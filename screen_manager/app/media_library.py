@@ -244,7 +244,9 @@ def item_of(raw):
         thumbnail = re.sub(r'[?&](token|authSig)=[^&]*', '', thumbnail)
     return {'title': title, 'id': content_id, 'type': content_type, 'play': play, 'expand': expand,
             'thumb': thumbnail if isinstance(thumbnail, str) and thumbnail else None, 'icon': icon_of(raw),
-            'class': raw.get('media_class') if isinstance(raw.get('media_class'), str) else ''}
+            'class': raw.get('media_class') if isinstance(raw.get('media_class'), str) else '',
+            # What a folder holds (Home Assistant's children_media_class): the covers at rest take a folder of songs.
+            'holds': raw.get('children_media_class') if isinstance(raw.get('children_media_class'), str) else ''}
 
 
 def folder_of(answer):

@@ -1,6 +1,6 @@
 #pragma once
 // A picture that moves slowly over the glass (the screensaver's photos, app 0.4.89, and a plugin face over them, plugin
-// API 0.14): the app cuts the photo a little larger than the glass (camera_feed.MOTION_OVERSCAN), and the screen shows
+// API 0.14): the app cuts the photo a little larger than the glass (the place's `move`, picture_paint), and the screen shows
 // the glass's piece of it, a pixel further every PIXEL_MS, from one corner of the room it has toward the opposite one
 // and back, which corner by the photo's own mark. So slow that it reads as a still photo that breathes, and it costs one
 // redraw of the glass every second and a half; nothing stands on the same pixels for long.

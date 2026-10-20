@@ -4,7 +4,7 @@
 //
 // ESP Screen Manager decides what the screensaver shows (screen_manager/app/screen_saver.py) and the screen shows it
 // when Auto standby dims it, instead of the dimmed tiles. A camera or a cover is one picture over the whole glass that
-// the app made for it (camera_feed.encode_saver): a camera fills the glass; a cover fills it while the glass is about
+// the app made for it (picture_paint's fit `saver`): a camera fills the glass; a cover fills it while the glass is about
 // square, and on longer glass takes the full height at the left or the full width at the top, the rest in the cover's
 // own colour. The whole picture is a little darker, so the few words over it read. The clock is the time with the date.
 // A touch wakes the screen, as it always did in standby, except on a player's three keys (firmware 0.33.0+): play or
@@ -16,7 +16,7 @@
 namespace saver_view {
 using media_card::Rect;
 
-// How a cover lies on glass of this size: the same rule as camera_feed.saver_shape (SAVER_SQUARE, five to four),
+// How a cover lies on glass of this size: the same rule as picture_paint.fills (SQUARE, five to four),
 // guarded by tests/test_screen_saver.py.
 enum class Shape { fill, side, top };
 inline Shape shape(int width, int height) {

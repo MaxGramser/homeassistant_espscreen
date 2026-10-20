@@ -29,7 +29,9 @@ namespace settings_screen {
 // 0.2.54+) only exists as the screen's own setting and entity, like page_buttons (firmware 0.2.69+): off, the
 // Previous and Next bar under the tiles goes and the tiles take its room.
 // Swiping is off until someone turns it on, as it always was: a screen that never saved its settings
-// stores no choice, so a default of on would turn it on for every screen out there with the update.
+// stores no choice, so a default of on would turn it on for every screen out there with the update. A screen set
+// up with New screen starts with it on instead: its own YAML says SWIPE_PAGES_DEFAULT "1", which the boot
+// lambda of packages/core.yaml puts here before runtime_tiles::load_settings() reads a stored choice.
 inline int32_t swipe_pages = 0, rotation = 0, auto_home = 1, auto_home_seconds = 120, dark_mode = 0, page_buttons = 1;
 // The house at the far left of the top bar (firmware 0.2.100+): one tap and the screen is back on page 1, from
 // wherever it stands. On page 1 there is nowhere to go, so it is not drawn there and the page title starts at the

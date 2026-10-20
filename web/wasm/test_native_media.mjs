@@ -15,8 +15,11 @@ for(const label of ['Library','Favorites','Queue','Speakers','More'])assert.ok(t
 const source=readFileSync(new URL('generated/firmware_renderer_manifest.h',import.meta.url),'utf8').match(/SHA256 "([a-f0-9]+)"/)[1];
 assert.equal(JSON.parse(m.ccall('preview_diagnostics','string',[],[])).source,source,'WASM must match current sources');
 // Native toolbar navigation remains internal while device actions are disabled.
-ms+=300;m._preview_time(ms,1789401840,0);m._preview_touch(213,136,1);tick(120);
-m._preview_touch(213,136,0);tick();tick();
+const favorites=tree().objects.find(object=>object.text==='Favorites');
+const favoritesX=Math.floor((favorites.x1+favorites.x2)/2);
+const favoritesY=Math.floor((favorites.y1+favorites.y2)/2);
+ms+=300;m._preview_time(ms,1789401840,0);m._preview_touch(favoritesX,favoritesY,1);tick(120);
+m._preview_touch(favoritesX,favoritesY,0);tick();tick();
 assert.ok(JSON.stringify(tree()).includes('Playlists'),'Favorites opens its categories in the actual renderer');
 m._preview_touch(35,35,1);tick(120);m._preview_touch(35,35,0);tick();tick();
 // A different/stock screen must not inherit native controls.

@@ -35,11 +35,13 @@ int main() {
     assert(std::abs(double(f.w) / f.h - 1248.0 / 760.0) < 0.01);
   }
   // A board whose store has the room takes the place's own pixels (GitHub #183): the 32 MB of the P4 boards keep 6 MB,
-  // so a camera over the whole 10-inch page comes whole; a board with 8 MB (a store of 1.2 MB) keeps the common cap.
+  // so a camera over the whole 10-inch page comes whole; a board with 8 MB (a store of 1.2 MB) keeps the common side, and
+  // never more bytes than its store keeps at all (docs/PICTURES.md): a larger one could only be drawn from its download.
   {
     const auto large = picture_store::cap_for(6u << 20), small = picture_store::cap_for(1196u << 10);
     assert(large.side == picture_store::LARGE_SIDE && large.bytes == (6u << 20) / 3);
-    assert(small.side == picture_store::MAX_SIDE && small.bytes == picture_store::MAX_BYTES);
+    assert(small.side == picture_store::MAX_SIDE && small.bytes == (1196u << 10));
+    assert(picture_store::cap_for(0).bytes == picture_store::MAX_BYTES);  // no store (the host): the common cap
     const Frame whole = frame(1248, 760, 24, 0, 0x202020, 0x0A0A0A, large);
     assert(whole.w == 1248 && whole.h == 760 && whole.ground == 0x202020 && whole.radius == 24);
     assert(frame(1248, 760, 24, 0, 0x202020, 0x0A0A0A, small).w < 1248);
@@ -63,7 +65,7 @@ int main() {
     assert(belongs(key(a), 3, "media_player.kitchen") && !belongs(key(a), 13, "media_player.kitchen"));
     assert(!belongs(key(a), 3, "media_player.kitchen_2") && !belongs("", 3, "media_player.kitchen"));
   }
-  // The question is a page of one tile, as every app since 0.3.8 reads it (camera_feed.live_request, tile_art.parse):
+  // The question is a page of one tile, as every app since 0.3.8 reads it (picture_legacy.read now):
   // its entity, its index, a circle within LIVE_SIZES, its ground and one frame at the top left.
   {
     Ask a = ask(7, "camera.drive", 504, 316);

@@ -25,9 +25,13 @@ const VIRTUAL_SCREENS_KEY = "esp-screens.virtual-screens";
 export const RECONNECT_MS = [1000, 2000, 5000, 10000, 30000];
 // The whole catalogue again every five minutes; a light poll carries only the screens and the update status.
 export const FULL_REFRESH_MS = 300000;
-// How often the inventory is polled: rarely while the stream is open, every three seconds while something builds (or the
-// add-on updates), every ten otherwise.
+// How often the inventory is polled: rarely while the stream is open and the add-on answers, every three seconds while
+// something builds (or the add-on updates), every ten otherwise.
 export const POLL_MS = { live: 60000, busy: 3000, down: 10000 };
+// The add-on says something on the stream every three seconds, a ping when nothing changed (server.py events): a stream
+// that spoke and has been silent this long is dead though the browser still counts it open, as one a phone kept through
+// hours in the background, and a new one is opened in its place.
+export const SILENT_MS = 20000;
 
 export type Live = { busy?: () => boolean };
 
@@ -160,20 +164,25 @@ export const useInventoryStore = defineStore("inventory", () => {
   // Live updates arrive over server-sent events; polling is the fallback while the stream is down, plus a full catalogue
   // refresh every five minutes. Nothing is polled while the tab is hidden, and a stream given up is opened again only once
   // the tab is shown: a hidden tab would keep the add-on busy, and it is read in full again when it is shown. A stream that
-  // opens or speaks proves the add-on is there again; one that opens after it could not be reached reads what changed
-  // meanwhile at once, rather than at the next full refresh.
+  // opens proves the add-on is there again; one that opens after it could not be reached reads what changed meanwhile at
+  // once, rather than at the next full refresh. A message on a stream open all along proves nothing of the kind: the
+  // add-on still speaks on it while ingress refuses every new request, as when Home Assistant's ingress session ran out
+  // while a phone kept the page in the background for hours. So while the add-on cannot be reached the polls go on, open
+  // stream or not, until one is answered, and that answer is read in full.
   let following = false, live = false, stream: EventSource | null = null, busy: () => boolean = () => false;
-  let pollTimer = 0, reconnectTimer = 0, reconnects = 0, lastFull = 0;
+  let pollTimer = 0, reconnectTimer = 0, reconnects = 0, lastFull = 0, heard = 0;
   function listen() {
     if (stream || !following || typeof EventSource === "undefined" || document.hidden) return;
     // An EventSource sends no headers of its own: the editor's language goes along in the address (app 0.2.90).
     const source = (stream = new EventSource(`api/events?language=${encodeURIComponent(editorLanguage())}`));
+    heard = 0;
     source.onopen = () => {
       live = true; reconnects = 0;
       if (!reachable.value) void refresh(false);
       poll();
     };
-    source.onmessage = (e) => { reachable.value = true; if (!document.hidden) applyLive(JSON.parse(e.data)); };
+    source.onmessage = (e) => { heard = Date.now(); if (!document.hidden) applyLive(JSON.parse(e.data)); };
+    source.addEventListener("ping", () => { heard = Date.now(); });
     source.onerror = () => {
       live = false;
       poll();
@@ -183,13 +192,20 @@ export const useInventoryStore = defineStore("inventory", () => {
       reconnectTimer = window.setTimeout(listen, RECONNECT_MS[Math.min(reconnects++, RECONNECT_MS.length - 1)]);
     };
   }
+  // A stream that spoke and fell silent is closed, and a new one opened at once.
+  function revive() {
+    if (!stream || !live || !heard || Date.now() - heard < SILENT_MS) return;
+    stream.close(); stream = null; live = false;
+    listen();
+  }
   function poll() {
     clearTimeout(pollTimer);
     if (!following) return;
-    const wait = live ? POLL_MS.live : busy() || inventory.value.updates?.busy ? POLL_MS.busy : POLL_MS.down;
+    const wait = live && reachable.value ? POLL_MS.live : busy() || inventory.value.updates?.busy ? POLL_MS.busy : POLL_MS.down;
     pollTimer = window.setTimeout(async () => {
       if (!document.hidden) {
-        const full = Date.now() - lastFull >= FULL_REFRESH_MS;
+        revive();
+        const full = !reachable.value || Date.now() - lastFull >= FULL_REFRESH_MS;
         if (full) lastFull = Date.now();
         if (full || !live) await refresh(full);
       }

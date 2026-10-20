@@ -10,6 +10,9 @@ namespace standard_133 {
 namespace compact_143 {
 #include "compact_143/ui.h"
 }
+namespace standard_144 {
+#include "standard_144/ui.h"
+}
 namespace compact_146 {
 #include "compact_146/ui.h"
 }
@@ -22,11 +25,17 @@ namespace standard_165 {
 namespace standard_170 {
 #include "standard_170/ui.h"
 }
+namespace standard_172 {
+#include "standard_172/ui.h"
+}
 namespace standard_187 {
 #include "standard_187/ui.h"
 }
 namespace standard_189 {
 #include "standard_189/ui.h"
+}
+namespace standard_210 {
+#include "standard_210/ui.h"
 }
 namespace standard_217 {
 #include "standard_217/ui.h"
@@ -47,6 +56,8 @@ if (dpi == 133) { using namespace standard_133; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 143) { using namespace compact_143; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "compact"}; }
+if (dpi == 144) { using namespace standard_144; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 146) { using namespace compact_146; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "compact"}; }
 if (dpi == 149) { using namespace standard_149; setup_firmware_ui(root);
@@ -55,9 +66,13 @@ if (dpi == 165) { using namespace standard_165; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 170) { using namespace standard_170; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
+if (dpi == 172) { using namespace standard_172; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 187) { using namespace standard_187; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 189) { using namespace standard_189; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
+if (dpi == 210) { using namespace standard_210; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 217) { using namespace standard_217; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }

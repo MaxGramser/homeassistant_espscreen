@@ -5,7 +5,7 @@
 # the full view is the canvas, and the alert's image the box screen_alert::layout gives it on that canvas
 # (tools/generate_board_shapes.py works out both for boards.json, with screen_manager/app/alert_layout.py for the alert).
 substitutions:
-  # The canvas lying down, which ESP Screen Manager sizes a full-screen picture for (camera_feed.BOXES).
+  # The canvas lying down, which ESP Screen Manager sizes a full-screen picture for (picture_question.BOXES).
   CAMERA_FULL_W: ${ PANEL_H if (ROTATION_LANDSCAPE | int) in (90, 270) else PANEL_W }
   CAMERA_FULL_H: ${ PANEL_W if (ROTATION_LANDSCAPE | int) in (90, 270) else PANEL_H }
 
@@ -23,12 +23,14 @@ substitutions:
     });
     runtime_tiles::camera_full.load = [](const std::string &url) { picture_fetch::load(picture_fetch::full(), url); };
     runtime_tiles::camera_full.release = []() { picture_fetch::release(picture_fetch::full()); };
+    runtime_tiles::camera_full.hand_over = []() { picture_fetch::hand_over(picture_fetch::full()); };
     runtime_tiles::camera_full.source = []() { return picture_fetch::source(picture_fetch::full()); };
     picture_fetch::bind(picture_fetch::thumb(), [](bool ok, bool cached) {
       runtime_tiles::picture_done(picture_loader::Slot::THUMB, ok, cached);
     });
     runtime_tiles::camera_thumb.load = [](const std::string &url) { picture_fetch::load(picture_fetch::thumb(), url); };
     runtime_tiles::camera_thumb.release = []() { picture_fetch::release(picture_fetch::thumb()); };
+    runtime_tiles::camera_thumb.hand_over = []() { picture_fetch::hand_over(picture_fetch::thumb()); };
     runtime_tiles::camera_thumb.source = []() { return picture_fetch::source(picture_fetch::thumb()); };
     // The tiles' own pictures (a live camera, a cover, a favourite, a map: tile_picture.h), one at a time in the third slot.
     picture_fetch::bind(picture_fetch::live(), [](bool ok, bool cached) {
@@ -36,6 +38,7 @@ substitutions:
     });
     runtime_tiles::camera_live.load = [](const std::string &url) { picture_fetch::load(picture_fetch::live(), url); };
     runtime_tiles::camera_live.release = []() { picture_fetch::release(picture_fetch::live()); };
+    runtime_tiles::camera_live.hand_over = []() { picture_fetch::hand_over(picture_fetch::live()); };
     runtime_tiles::camera_live.source = []() { return picture_fetch::source(picture_fetch::live()); };
     // The alert's frame for the picture; runtime_tiles::alert_place makes room for it in the card.
     runtime_tiles::alert_frame = id(alert_image_frame);
@@ -66,7 +69,7 @@ api:
               if (runtime_tiles::model.tiles[i].entity == entity) { name = runtime_tiles::model.tiles[i].name; break; }
             runtime_tiles::camera_open(entity, name);
 
-# ESP Screen Manager serves each image as an uncompressed BMP on its own port on the LAN (screen_manager/app/camera_feed.py).
+# ESP Screen Manager serves each image as an uncompressed BMP on its own port on the LAN (docs/PICTURES.md).
 # The screen downloads it in a task beside the main loop (components/smart_display/picture_fetch.cpp, firmware 0.49.0+)
 # and decodes it as it comes, so touch and drawing never wait for the network. Before, ESPHome's online_image downloaded
 # in the main loop, 16 KB a turn, and every turn waited for its chunk: a page of album covers (a few hundred KB at the

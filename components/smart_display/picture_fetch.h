@@ -27,7 +27,9 @@
 // The link, the answer's head and the BMP are parsed here, free of sockets, LVGL and ESPHome, so
 // tests/test_picture_fetch.cpp checks them on a PC; picture_fetch.cpp has the task and the sockets (BSD sockets on the
 // ESP32's lwIP and on the host renders alike).
+#include <algorithm>
 #include <cstddef>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -78,6 +80,9 @@ struct Head {
   size_t content_length = 0;
   std::string etag;
   bool audio = false;  // Content-Type audio/... (a live camera's sound between its pictures, live_view.h)
+  // X-Picture: still, a live camera's picture from before its stream came (its still while WebRTC starts): the screen
+  // shows it with the loader in its corner (live_view.h, "Until it is live"). Without it a picture is live.
+  bool still = false;
 };
 inline bool same_ignoring_case(const char *a, const char *b, size_t n) {
   for (size_t i = 0; i < n; ++i) {
@@ -137,6 +142,8 @@ inline Head parse_head(const char *data, size_t size) {
           h.etag.assign(line + v, ve - v);
         } else if (colon == 12 && same_ignoring_case(line, "content-type", 12)) {
           h.audio = ve - v >= 6 && same_ignoring_case(line + v, "audio/", 6);
+        } else if (colon == 9 && same_ignoring_case(line, "x-picture", 9)) {
+          h.still = ve - v == 5 && same_ignoring_case(line + v, "still", 5);
         }
       }
     }
@@ -332,6 +339,81 @@ class Decoder {
 // frame and the live strip. Its `done` is bound once at boot (the hooks in packages/features/camera.yaml) and called on
 // the main loop, from tick(), when a load ends: `ok` with the picture in source(), or `cached` when the add-on answered
 // 304 and the picture there is still the right one.
+// ---- a JPEG answer, gathered whole (a P4: docs/PICTURES.md, "Formats") ----
+// The P4's hardware decoder takes a JPEG at once, so its bytes are kept, as many as the answer's Content-Length says
+// and at most MAX_JPEG (a busy camera over the 10-inch glass is 150 to 250 KB), in a buffer the decoder reads. Every
+// other picture is a BMP and decoded as it streams (Decoder).
+constexpr size_t MAX_JPEG = 1536u * 1024;
+inline bool is_jpeg(const uint8_t *data, size_t size) { return size >= 2 && data[0] == 0xFF && data[1] == 0xD8; }
+// What the app says along with a JPEG (picture_paint.encode: an APP15 segment right after its start, `TSSR`): the size it
+// is shown at, since every JPEG is made whole MCUs (a multiple of 16 each way, the P4's decoder takes no other), and the
+// rounded corners of its flat places. JPEG rings where a corner's edge meets its ground (white flecks on a light page
+// around a dark cover), so each corner is made exact again after decoding (mask_corners). False without the segment:
+// the JPEG's own size holds, and it has no corners to mend.
+struct Corner {
+  int x = 0, y = 0, w = 0, h = 0, radius = 0;
+  uint16_t ground = 0;  // RGB565, as the pixels are
+};
+struct JpegNotes {
+  int width = 0, height = 0;
+  std::vector<Corner> corners;
+};
+inline bool jpeg_notes(const uint8_t *data, size_t size, JpegNotes &notes) {
+  if (size < 15 || data[2] != 0xFF || data[3] != 0xEF || std::memcmp(data + 6, "TSSR", 4) != 0) return false;
+  const size_t end = 4 + ((static_cast<size_t>(data[4]) << 8) | data[5]);  // the segment ends here
+  if (end < 15 || end > size) return false;
+  const auto u16 = [&](size_t at) { return (static_cast<int>(data[at]) << 8) | data[at + 1]; };
+  notes.width = u16(10);
+  notes.height = u16(12);
+  notes.corners.clear();
+  for (size_t i = 0, at = 15; i < data[14] && at + 11 <= end; ++i, at += 11) {
+    Corner c;
+    c.x = u16(at), c.y = u16(at + 2), c.w = u16(at + 4), c.h = u16(at + 6), c.radius = data[at + 8];
+    c.ground = static_cast<uint16_t>(u16(at + 9));
+    notes.corners.push_back(c);
+  }
+  return notes.width > 0 && notes.height > 0;
+}
+// Every pixel of `c`'s four corners that lies wholly outside its arc (past its soft edge, half a pixel wide) back to its
+// ground, in pixels of `stride` a row and `width` x `height` shown. The soft edge itself stays as the app painted it.
+inline void mask_corners(uint16_t *pixels, int stride, int width, int height, const Corner &c) {
+  const int r = std::min(c.radius, std::min(c.w, c.h) / 2);
+  if (!pixels || r <= 0) return;
+  const float edge = r + 0.5f;
+  for (int dy = 0; dy < r; ++dy) {
+    const float across = r - dy - 0.5f;  // the row's distance from the arc's centre
+    const int out = std::max(0, std::min(r, static_cast<int>(std::ceil(r - std::sqrt(edge * edge - across * across) - 0.5f))));
+    for (const int y : {c.y + dy, c.y + c.h - 1 - dy}) {
+      if (y < 0 || y >= height) continue;
+      for (int i = 0; i < out; ++i)
+        for (const int x : {c.x + i, c.x + c.w - 1 - i})
+          if (x >= 0 && x < width) pixels[static_cast<size_t>(y) * stride + x] = c.ground;
+    }
+  }
+}
+
+struct Gather {
+  using Allocate = std::function<uint8_t *(size_t bytes, size_t *got)>;
+  uint8_t *buffer = nullptr;
+  size_t want = 0, have = 0;
+  // False without a length, over MAX_JPEG, or without a buffer: the picture is not one this screen takes.
+  bool start(bool has_length, size_t length, const Allocate &allocate) {
+    if (!has_length || length < 2 || length > MAX_JPEG || !allocate) return false;
+    size_t room = 0;
+    buffer = allocate(length, &room);
+    if (!buffer || room < length) return false;
+    want = length;
+    return true;
+  }
+  // The answer's next bytes; what comes past its length is not the picture's.
+  void feed(const uint8_t *data, size_t size) {
+    const size_t take = std::min(size, want - have);
+    std::memcpy(buffer + have, data, take);
+    have += take;
+  }
+  bool done() const { return want && have == want; }
+};
+
 struct Slot;
 using Done = std::function<void(bool ok, bool cached)>;
 Slot &full();
@@ -343,6 +425,10 @@ void bind(Slot &slot, Done done);
 void load(Slot &slot, const std::string &url);
 // Frees the picture; a download on its way is cancelled and reports nothing.
 void release(Slot &slot);
+// The store took the picture over (picture_store::adopt): the slot forgets its pixels without freeing them, and
+// keeps its link and its ETag, so an unchanged picture still answers 304 and costs no bytes. Called from the slot's
+// `done`, where no download runs.
+void hand_over(Slot &slot);
 bool loading(const Slot &slot);
 // Hands finished downloads to their `done`, on the main loop (every 50 ms, packages/features/camera.yaml).
 void tick();

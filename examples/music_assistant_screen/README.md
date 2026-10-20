@@ -2,7 +2,7 @@
 
 An expanded white main player with album art, Library, Favorites, Queue, Speakers and More directly on the page. Playback, shuffle, repeat, seeking and volume stay on this main screen. Library and search open their own pages; Back returns to the same player, with no automatic reopening of a duplicate detail screen. Starting playback from stopped or idle lowers an excessive volume to 30% by default. Paused playback resumes unchanged, and volume controls remain unrestricted afterward.
 
-**Requires the accompanying Tessera media API extension (0.15). This example is not compatible with released Tessera versions that lack those hooks.**
+**Requires the accompanying Tessera media API extension (0.19). This example is not compatible with released Tessera versions that lack those hooks.**
 
 ## Set up
 

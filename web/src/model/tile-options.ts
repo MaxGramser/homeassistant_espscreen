@@ -213,7 +213,7 @@ export function displayChoices(tile: Tile, panel: TilePanel) {
 }
 /** What the panel says of the face: what it needs or does, a warning unless the screen's firmware already does it. */
 export function displayHint(tile: Tile, panel: TilePanel): Hint | null {
-  const c = panel.caps, display = tileDisplay(tile), supports = panel.supports, filled = cardFilled(tile, supports), taller = isTallSize(sizeOfTile(tile));
+  const c = panel.caps, display = tileDisplay(tile), supports = panel.supports, filled = cardFilled(tile, supports);
   let text = "";
   if (c && display === "graph" && !c.displays.includes("graph")) text = t("editor.tile.display.no_graph");
   else if (c && display === "forecast" && !c.displays.includes("forecast")) text = t("editor.tile.display.no_forecast");
@@ -223,8 +223,8 @@ export function displayHint(tile: Tile, panel: TilePanel): Hint | null {
   else if (display === "live") text = t(filled ? "editor.tile.display.live_card_hint" : supports(0, 2, 77) ? "editor.tile.display.live_card_needs_firmware" : "editor.tile.display.live_needs_firmware");
   else if (display === "map") text = t(supports(0, 20, 0) ? "editor.tile.display.map_hint" : "editor.tile.display.map_needs_firmware");
   else if (display === "favorite") text = t(supports(0, 24, 0) ? "editor.tile.display.favorite_hint" : "editor.tile.display.favorite_needs_firmware");
-  else if (display === "cover" && taller) text = t("editor.tile.display.tall_cover_hint");
-  else if (display === "cover") text = t(supports(0, 2, 78) ? "editor.tile.display.cover_hint" : "editor.tile.display.cover_needs_firmware");
+  // The album cover dims behind the whole card on every size (one row too since the picture system).
+  else if (display === "cover") text = t(supports(0, 2, 78) ? "editor.tile.display.tall_cover_hint" : "editor.tile.display.cover_needs_firmware");
   // The calm dial and the flip clock (firmware 0.3.6): an older screen shows the digital clock until it is updated.
   else if (clockFace(tile) && !supports(0, 3, 6)) text = t("editor.tile.display.face_needs_firmware");
   if (!text) return null;

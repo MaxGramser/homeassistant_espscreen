@@ -4,6 +4,30 @@ This is hardware support for the **ESP32-P4-86-Panel-ETH-2RO**. No assistant, wa
 AI provider, conversation backend, Spotify control or Ethernet implementation is included.
 The two relays are ordinary HA switches; [WAVESHAREP4.md](WAVESHAREP4.md) describes them.
 
+Three other Waveshare ESP32-P4 boards wire their audio exactly as the 86 panel does, per Waveshare's
+schematics, and take the same codecs (`packages/hardware/wavesharep4-audio/codecs.yaml`), transports and
+settings: the [ESP32-P4-WIFI6-Touch-LCD-7B](WAVESHAREP47B.md), the [ESP32-P4-WIFI6-Touch-LCD-7](WAVESHAREP47.md)
+and the [ESP32-P4-WIFI6-Touch-LCD-10.1](WAVESHARE101.md). All three are experimental; their pages say who tried what.
+
+## Which P4 boards have audio
+
+| Board | Codecs | Transport | Echo cancellation | Extras |
+| --- | --- | --- | --- | --- |
+| Waveshare 86 panel, LCD-7B, LCD-7, LCD-10.1 | ES8311 + ES7210 | AEC by default, half-duplex I2S optional | Yes (ES7210 MIC3 reference) | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation |
+| M5Stack Tab5 | ES8388 + ES7210 | AEC by default, half-duplex I2S optional | Yes | Volume, Microphone, Echo cancellation |
+| Guition JC8012P4A1 (all builds), JC1060P470 (both), JC4880P443 | ES8311 alone | Full duplex at 16 kHz: two I2S ports on the codec's one bus | No (no reference input) | Volume, Microphone |
+| CrowPanel Advanced 10.1 | NS4168 amplifier, PDM microphone | Two I2S buses | No | Volume, Microphone |
+| reTerminal D1001 | ES8311 + ES7210 | Two I2S buses | No | Volume, Microphone |
+
+The Guition panels' one ES8311 plays the speaker and reads an analogue microphone on its own input
+(`packages/hardware/guition-p4-audio.yaml`). ESPHome never turns on that codec's internal loopback, so there is
+no playback reference and no echo cancellation. The speaker and the microphone still work at the same time: two of
+the chip's I2S ports share the codec's clock pins, the microphone's port giving the clocks (ESPHome's `primary`)
+and the speaker's following them (`secondary`), as [@Eugen417](https://github.com/Eugen417) runs it on a
+JC8012P4A1 V3 (#259). ESPHome runs a microphone only while something listens, so the board listens from the
+start to keep the clocks running for the speaker. The Guition pages ([JC8012P4A1](JC8012P4A1.md),
+[JC1060P470](JC1060P470.md), [JC4880P443](JC4880P443.md)) have the wiring and the sources.
+
 ## Interfaces and settings
 
 The board keeps `ts_microphone`, `ts_speaker` and `ts_media_player`. Its new transport replaces
@@ -26,7 +50,7 @@ retain the last accepted value and try to restore the previous codec registers. 
 **Echo cancellation status** is Enabled, Bypass, Starting or Error. Enabled means cancellation
 is selected and the DSP initialized; it is not a measurement of echo suppression quality.
 
-The P4 board selects `P4_AUDIO_TRANSPORT: "aec"` in this branch. To omit the audio stack/AEC
+The Waveshare P4 boards select `P4_AUDIO_TRANSPORT: "aec"`. To omit the audio stack/AEC
 libraries entirely, select `P4_AUDIO_TRANSPORT: "i2s"` in Override YAML and rebuild. This keeps
 the original half-duplex I2S transport, gain and ALC. No AEC entity is present in that build.
 Other boards retain their default codecs and transport; the Tab5 can opt into the same
@@ -79,6 +103,10 @@ publishing firmware; retaining notices alone does not establish compatibility.
 
 The earlier audio work was exercised on one pre-v3 Waveshare P4 (revision 1.3). Those results
 are not acceptance of this port. Tab5, D1001 and other hardware are not validated by this change.
+A contributor ran the same codecs, AEC transport and amplifier on a pre-v3 ESP32-P4-WIFI6-Touch-LCD-7
+(speaker, microphones, playback with capture and echo cancellation worked). The LCD-7B (rev3 silicon) and
+the LCD-10.1 have not run them yet. Of the Guition panels, a JC8012P4A1 V3 runs the same codec wiring in full
+duplex with a build of its owner's own; the other Guition boards have not run their audio yet.
 
 Focused tests exercise real driver register writes, reference isolation, failed-write recovery,
 initial zero frames and AEC bypass/resume. Compile the affected configuration, then check on the panel:
@@ -110,3 +138,8 @@ Neither build contains a voice assistant, wake-word component or Ethernet config
 Static RAM does not include runtime buffer/DSP allocations; measure those on hardware.
 These are build results from the earlier 16 kHz bus configuration, not size measurements
 or acoustic acceptance of the 48 kHz playback path.
+
+With the codecs shared by the four Waveshare boards, the AEC builds on ESPHome 2026.9.0 come to these
+OTA images: the 86 panel 3,745,648 bytes, the LCD-7 3,709,136 and the LCD-7B 3,282,928. The two pre-v3
+boards resolve esp_audio_effects 1.3.0~1 as above; the LCD-7B, built for rev3 silicon, resolves
+esp_audio_effects 1.4.3 with the same ESP-SR 2.5.5 and ESP-DSP 1.8.2.

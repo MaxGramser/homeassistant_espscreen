@@ -28,6 +28,8 @@ KNOBS = {
     'cyd': ('DISPLAY_MODEL', 'DISPLAY_DATA_RATE', 'DISPLAY_INVERT_COLORS', 'BACKLIGHT_FREQUENCY'),
     'guition': ('BACKLIGHT_FREQUENCY',),
     'waveshare4b': ('BACKLIGHT_FREQUENCY',),
+    'tab5': ('DISPLAY_MODEL',),
+    'waveshare43': ('FLASH_SIZE',),
 }
 
 

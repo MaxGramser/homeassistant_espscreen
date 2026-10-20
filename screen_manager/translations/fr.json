@@ -915,12 +915,16 @@
         "choose": "Choisissez quel plugin apporte le {feature} pour {name}.",
         "other_origin": "Cet écran utilise un autre plugin nommé {name}, venant de {origin}. Passez à celui-ci dans ses détails.",
         "misfit_esphome": "{name} nécessite ESPHome {version} ou plus récent pour compiler.",
-        "like_not_installed": "Installez d'abord le plugin sur un de vos écrans, ensuite vous pourrez l'aimer.",
         "like_consent": "Acceptez d'abord que votre j'aime compte dans un nombre public.",
         "like_off": "Les j'aime sont désactivés : une version plus récente de l'app les gère.",
         "like_failed": "Le j'aime n'est pas parti. Réessayez dans un instant.",
         "misfit_built_in": "{name} apporte ce que cette carte a déjà.",
-        "offline": "L'application ne sait pas encore où se trouve {screen} sur le réseau. Allumez-le, attendez qu'il soit en ligne, puis réessayez."
+        "offline": "L'application ne sait pas encore où se trouve {screen} sur le réseau. Allumez-le, attendez qu'il soit en ligne, puis réessayez.",
+        "like_not_listed": "Seuls les plugins du catalogue de Tessera peuvent recevoir un j'aime.",
+        "rate_not_installed": "Mettez d'abord le plugin sur un de vos écrans, vous pourrez ensuite le noter.",
+        "rate_failed": "Les étoiles ne sont pas parties. Réessayez dans un instant.",
+        "count_failed": "Le comptage n'a pas pu être désactivé : Tessera était injoignable. Réessayez dans un instant.",
+        "forget_running": "Un écran utilise encore ce plugin. Retirez-le d'abord de l'écran."
       },
       "extras": {
         "request": "Ce changement d’un extra n’est pas possible sur cet écran."
@@ -2111,7 +2115,9 @@
         "label": "Trier par",
         "popular": "Les plus aimés",
         "new": "Les plus récents",
-        "name": "Nom"
+        "name": "Nom",
+        "rated": "Les mieux notés",
+        "used": "Les plus utilisés"
       },
       "none_in_tab": {
         "tiles": "Pas encore de plugins avec des tuiles.",
@@ -2124,8 +2130,8 @@
         "count": "{n} personne aime | {n} personnes aiment",
         "like": "J'aime",
         "unlike": "Retirer votre j'aime",
-        "install_first": "Installez-le d'abord sur un écran, ensuite vous pourrez l'aimer",
-        "ask": "Votre j'aime compte dans un nombre public par plugin. Seul le nombre est public : rien sur vous, Home Assistant ou vos écrans n'est envoyé."
+        "ask": "Votre j'aime compte dans un nombre public par plugin. Seul le nombre est public : rien sur vous, Home Assistant ou vos écrans n'est envoyé.",
+        "like_hint": "Aimez-le, même s'il n'est sur aucun de vos écrans : un merci à la personne qui l'a fait."
       },
       "along": {
         "title": "Vient avec",
@@ -2178,7 +2184,59 @@
         "history": "Toutes les versions"
       },
       "failed_update": "La version {version} n'a pas pu être compilée pour {screen}, qui est donc revenu à {current}, celle qu'il exécute. Son journal se trouve dans Firmware et USB.",
-      "interrupted": "L'application a redémarré pendant la compilation."
+      "interrupted": "L'application a redémarré pendant la compilation.",
+      "stars": {
+        "label": "Étoiles pour {name}",
+        "of_five": "{n} étoiles sur 5",
+        "say": {
+          "1": "Ne fonctionne pas",
+          "2": "Médiocre",
+          "3": "Correct",
+          "4": "Bien",
+          "5": "Excellent"
+        },
+        "yours": "Vos étoiles",
+        "give": "Comment fonctionne-t-il chez vous ?",
+        "clear": "Retirer"
+      },
+      "numbers": {
+        "rating": "{rating} sur {n} note | {rating} sur {n} notes",
+        "few": "{n} note pour l'instant | {n} notes pour l'instant",
+        "homes": "utilisé dans {n} foyer | utilisé dans {n} foyers"
+      },
+      "counting": {
+        "label": "Compter mes plugins dans le catalogue",
+        "hint": "Une fois par jour, les noms et versions de vos plugins et le modèle de chaque écran. Rien d'autre.",
+        "on_hint": "Activé : une fois par jour, les noms et versions de vos plugins et le modèle de chaque écran partent vers Tessera. Le désactiver les y supprime."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} tourne depuis {days} jour sur {screen}. Qu'en pensez-vous ? | {name} tourne depuis {days} jours sur {screen}. Qu'en pensez-vous ?",
+        "send": "Envoyer",
+        "what_title": "Qu'est-ce qui est partagé ?",
+        "what": {
+          "plugin": "Le plugin et sa version : {name} {version}",
+          "board": "Le modèle d'écran : {board}",
+          "stars": "Vos étoiles",
+          "counting": "Avec le comptage activé : une fois par jour, les plugins de vos écrans, leurs versions et les modèles d'écran",
+          "nothing_else": "Rien d'autre : aucun nom, compte, entité ni réglage de Home Assistant. L'app partage sous une clé aléatoire qui lui est propre."
+        },
+        "thanks": "Merci ! Vos étoiles sont chez {name}.",
+        "heart_hint": "Vous l'adorez ? Donnez aussi un j'aime à {maker}. Il compte dans un nombre public par plugin ; rien sur vous n'est envoyé.",
+        "hearted": "Merci pour votre j'aime",
+        "issue_hint": "Dommage. Vous voulez que ce soit corrigé ? Ouvrez un ticket pour {maker}, avec la version et votre modèle d'écran déjà remplis.",
+        "issue_open": "Ouvrir un ticket sur GitHub"
+      },
+      "sharing": {
+        "title": "Catalogue de plugins",
+        "text": "Aidez les autres à trouver de bons plugins. Les j'aime et les étoiles ne partent que si vous les donnez, le comptage seulement tant qu'il est activé.",
+        "asking": "Demander des étoiles quelques jours après un nouveau plugin",
+        "asking_hint": "Une carte au-dessus de l'écran, un plugin à la fois."
+      },
+      "forget": {
+        "go": "Retirer de la liste",
+        "note": "Aucun écran n'utilise ce plugin. Retirez-le de la liste pour oublier le lien."
+      }
     },
     "plugin_tile": {
       "from": "Une tuile du plugin {plugin}",
@@ -2308,7 +2366,6 @@
         "live_card_hint": "L'image remplit la tuile, rafraîchie au rythme ci-dessous tant que la page est affichée. Un appui l'ouvre toujours en plein écran.",
         "live_card_needs_firmware": "Une image qui remplit la tuile demande le firmware 0.3.7 ou plus récent : appuyez sur Mettre à jour sur l'écran après l'enregistrement. D'ici là, l'écran affiche une petite image à la place de l'icône.",
         "cover": "Pochette",
-        "cover_hint": "La pochette de ce qui joue à la place de l'icône, comme la tuile de Home Assistant ; un lecteur sans image garde son icône. Un appui ouvre toujours la carte.",
         "cover_needs_firmware": "La pochette sur la tuile demande le firmware 0.2.78 ou plus récent : appuyez sur Mettre à jour sur l'écran après l'enregistrement.",
         "map": "Carte",
         "map_hint": "Où se trouvent cette personne et celles que vous ajoutez, sur une carte calme aux couleurs de l'écran. Home Assistant fournit les rues d'OpenStreetMap ; l'écran ne reçoit que l'image, jamais une position. Elle est redessinée quand quelqu'un se déplace. Un appui l'ouvre sur tout l'écran.",
@@ -3149,10 +3206,20 @@
         "calibration": "Étalonnage tactile au premier démarrage"
       },
       "choice": {
-        "DISPLAY_MODEL": "Contrôleur d'affichage"
+        "DISPLAY_MODEL": "Contrôleur d'affichage",
+        "FLASH_SIZE": "Mémoire flash",
+        "BOARD_VARIANT": "Carte"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La plupart de ces cartes ont le premier. Prenez l'autre si l'écran affiche du bruit ou une image brouillée."
+        "DISPLAY_MODEL": "Commencez par le premier. Prenez l'autre si l'écran reste noir ou affiche du bruit ou une image brouillée.",
+        "FLASH_SIZE": "La plupart de ces cartes ont 16 Mo. Prenez 8 Mo si l'écran reste noir après l'installation et redémarre sans cesse.",
+        "BOARD_VARIANT": "Prenez celle que vous avez. Sur la carte jaune sans boîtier, un appui en haut à gauche arriverait sinon en bas à droite."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Noire, dans un boîtier",
+          "yellow": "Jaune, sans boîtier"
+        }
       },
       "choice_usual": "la plupart",
       "orientation_landscape": "À l'horizontale",

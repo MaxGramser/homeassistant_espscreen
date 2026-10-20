@@ -1963,6 +1963,9 @@ section.advanced code { font-size: 11.5px; }
    The tabs reuse the segmented control; topics are quiet pills that read like the chips on a card, one chosen at a
    time. What fits none of the screens folds away under the list. A heart is a count first and a control only where
    the plugin runs. What comes along sits in the action box as rows like the tray's, never as a second dialog. */
+.plugin-counting { margin: 0 0 12px; }
+.plugin-counting > .ui-icon { font-size: 18px; color: var(--accent); flex: none; }
+.plugin-counting strong { display: block; color: var(--ink); }
 .plugin-misfits { display: grid; gap: 10px; margin-top: 6px; }
 .plugin-misfits-head { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 4px 6px 4px 0; }
 .plugin-misfits-head:hover { color: var(--ink-2); }
@@ -1970,6 +1973,11 @@ section.advanced code { font-size: 11.5px; }
 .plugin-likes { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 .plugin-likes .ui-icon { font-size: 14px; }
 .plugin-likes.mine .ui-icon { color: var(--danger); }
+.plugin-likes { border: 0; background: none; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: pointer; }
+.plugin-likes:hover { color: var(--ink); background: var(--seg); }
+.plugin-numbers { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plugin-numbers .ui-icon { font-size: 13px; }
+.plugin-numbers .ui-icon.star { color: var(--star); }
 .plugin-chip.topic { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line-strong); }
 .pd-top-end { display: inline-flex; align-items: center; gap: 4px; }
 .pd-like { display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 11px; border-radius: 999px; font-size: 13px; font-weight: 550;
@@ -1978,6 +1986,11 @@ section.advanced code { font-size: 11.5px; }
 .pd-like:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
 .pd-like.on .ui-icon { color: var(--danger); transform: scale(1.08); }
 .pd-like:disabled { opacity: 0.6; cursor: default; }
+.pd-numbers { display: flex; align-items: center; gap: 5px; margin: -4px 0 0; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pd-star { color: var(--star); font-size: 15px; }
+.pd-rate { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); font-size: 12.5px; }
+.pd-rate-label { color: var(--ink-2); font-weight: 550; }
+.pd-rate-clear { font-size: 12px; }
 .pd-confirm { display: grid; gap: 10px; padding: 12px 14px; margin: 10px 0 2px; border-radius: 12px; background: var(--surface-2); font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
 .pd-confirm a { color: var(--accent); }
 .pd-confirm .btn { height: 32px; font-size: 12.5px; }

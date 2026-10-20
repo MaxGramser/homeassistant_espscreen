@@ -221,7 +221,7 @@ keys under it, the volume slider of a player and the words of a track stay withi
 
 A picture has a second ceiling that a drawing does not: what the add-on will hand over. A media player's cover is
 cut, rounded and resized by the app to exactly the size the card asked for, and the screen draws what comes back one
-to one, so a square larger than `camera_feed.COVER_SIZES[1]` stays empty - the app answers such a request with
+to one, so a square larger than `picture_legacy.COVER_SIZES[1]` stays empty - the app answers such a request with
 nothing at all, and an add-on older than the firmware never grows its ceiling. `media_card::Metrics::cover_max()`
 holds the same number and `tests/test_media_card.py` keeps the two equal; raising it is a change in both, the app
 first.

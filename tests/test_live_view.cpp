@@ -59,6 +59,72 @@ static void framing() {
   assert(read(head + "--frame\r\nContent-Length: " + std::to_string(MAX_PICTURE + 1) + "\r\n\r\n", 9).back() == "!");
 }
 
+// Until it is live: the stills before the camera's stream are marked, part by part, in any pieces.
+static void marking() {
+  const std::string head = "HTTP/1.0 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=frame\r\n\r\n";
+  const std::string still = "--frame\r\nContent-Type: image/jpeg\r\nX-Picture: still\r\nContent-Length: 5\r\n\r\nstill\r\n";
+  const std::string stream = head + still + still + part("live") + part("live2");
+  for (size_t step : {stream.size(), size_t(1), size_t(5)}) {
+    Reader reader;
+    uint8_t buffer[64];
+    std::vector<bool> marks;
+    for (size_t at = 0; at < stream.size(); at += step) {
+      const size_t n = std::min(step, stream.size() - at);
+      assert(reader.feed(reinterpret_cast<const uint8_t *>(stream.data() + at), n,
+                         [&](size_t, bool) -> uint8_t * { return buffer; },
+                         [&](size_t, bool) { marks.push_back(reader.still()); }));
+    }
+    assert((marks == std::vector<bool>{true, true, false, false}));
+  }
+}
+
+// The loader in a live tile's corner while its stills show: where it lies, and the spinner it draws as it turns.
+static void loading() {
+  Look look;
+  look.tile = true;
+  look.loader = 40;
+  look.loader_margin = 8;
+  look.loader_arc = 6;
+  look.loader_ring = 0x39E7;
+  look.loader_turn = 0x001F;
+  int x = 0, y = 0;
+  // In the top right corner of a card, and none in a card too small for it or in the full view.
+  assert(loader_spot(look, 300, 200, x, y) && x == 300 - 8 - 40 && y == 8);
+  assert(!loader_spot(look, 300, 55, x, y));
+  Look view = look;
+  view.tile = false;
+  assert(!loader_spot(view, 1280, 720, x, y));
+  look.loader = 0;
+  assert(!loader_spot(look, 300, 200, x, y));
+  look.loader = 40;
+  // Drawn into a card of 100 x 60 at its spot, over white.
+  const int w = 100, h = 60;
+  std::vector<uint16_t> px(w * h, 0xFFFF);
+  assert(loader_spot(look, w, h, x, y));
+  auto at = [&](int i, int j) { return px[static_cast<size_t>(y + j) * w + x + i]; };
+  draw_loader(px.data(), w, x, y, look, 0);
+  // Outside its round shade nothing changes: the card around it and the square's own corners.
+  assert(px[0] == 0xFFFF && px[w * h - 1] == 0xFFFF && at(0, 0) == 0xFFFF && at(39, 39) == 0xFFFF);
+  // Its middle is shaded, not black; at the start of its turn the arc runs from three o'clock clockwise, so it lies
+  // under the middle and the ring alone above it.
+  assert(at(20, 20) != 0xFFFF && at(20, 20) != 0x0000);
+  assert(at(20, 31) == 0x001F && at(20, 8) == 0x39E7);
+  // Half a turn on (LVGL's 900 ms), the arc has gone round: above the middle, and the ring below it.
+  std::fill(px.begin(), px.end(), 0xFFFF);
+  draw_loader(px.data(), w, x, y, look, LOADER_TURN_MS / 2);
+  assert(at(20, 8) == 0x001F && at(20, 31) == 0x39E7);
+  // The arc is about LOADER_ARC of the ring at the start: count the ring's pixels wholly in one colour or the other.
+  std::fill(px.begin(), px.end(), 0xFFFF);
+  draw_loader(px.data(), w, x, y, look, 0);
+  int arc = 0, ring = 0;
+  for (int j = 0; j < 40; ++j)
+    for (int i = 0; i < 40; ++i) arc += at(i, j) == 0x001F, ring += at(i, j) == 0x39E7;
+  const float share = static_cast<float>(arc) / (arc + ring);
+  assert(share > 0.5f && share < 0.66f);
+  // Nothing outside its square: the rows over and under it are white.
+  for (int i = 0; i < w; ++i) assert(px[static_cast<size_t>(y - 1) * w + i] == 0xFFFF && px[static_cast<size_t>(y + 40) * w + i] == 0xFFFF);
+}
+
 static void links() {
   assert(is_stream("http://192.168.1.20:8098/camera/abcdefghijklmnopqrstuvwx.mjpeg"));
   assert(is_stream("http://h/camera/t.mjpeg?x=1"));
@@ -120,7 +186,7 @@ static void cutting() {
   assert(!cut(0, 10, 100, 100, false).ok && !cut(10, 10, 0, 100, true).ok);
 }
 
-// What a live tile lays over its picture, as tile_art.py does: the shade, the corners, the name.
+// What a live tile lays over its picture, as picture_paint.py does: the shade, the corners, the name.
 static void composing() {
   const int w = 40, h = 20;
   std::vector<uint16_t> px(w * h, 0xFFFF);  // white
@@ -151,6 +217,8 @@ static void composing() {
 
 int main() {
   framing();
+  marking();
+  loading();
   links();
   panel();
   placing();

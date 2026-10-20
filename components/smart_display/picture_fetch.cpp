@@ -8,6 +8,7 @@
 // frame, as online_image did it), and into a new one otherwise, which tick() swaps in: a widget that drew the old one
 // is told about the new size by the slot's `done`, as it always was.
 #include "picture_fetch.h"
+#include "live_view.h"
 // Only a board with pictures builds this (SCREEN_PICTURES, packages/features/camera.yaml): the CYD keeps its flash.
 #ifdef SCREEN_PICTURES
 #include "esphome/core/hal.h"
@@ -65,7 +66,7 @@ struct Slot {
   size_t received = 0;
   uint16_t *fresh = nullptr;      // a buffer of a new size, or null when the task wrote in place
   size_t fresh_bytes = 0;
-  int fresh_w = 0, fresh_h = 0;
+  int fresh_w = 0, fresh_h = 0, fresh_stride = 0;  // stride: pixels a row (a JPEG's are whole MCUs)
   std::string fresh_etag;
 };
 static Slot slots[3] = {Slot("camera"), Slot("alert"), Slot("live")};
@@ -145,8 +146,10 @@ static void download(Slot &slot) {
   if (!a.ok) { ESP_LOGW(TAG, "%s: not a link: %s", slot.name, slot.task_url.c_str()); return; }
   const int fd = connect_to(a, RECV_MS);
   if (fd < 0) { ESP_LOGW(TAG, "%s: no connection to %s:%u", slot.name, a.host.c_str(), a.port); return; }
+  // A P4 takes JPEG as well (live_view::STILLS_JPEG); the app answers with the format the question named first.
   std::string request = "GET " + a.path + " HTTP/1.1\r\nHost: " + a.host + ":" + std::to_string(a.port) +
-                        "\r\nAccept: image/bmp,*/*;q=0.8\r\nConnection: close\r\n";
+                        (live_view::STILLS_JPEG ? "\r\nAccept: image/jpeg,image/bmp,*/*;q=0.8" : "\r\nAccept: image/bmp,*/*;q=0.8") +
+                        "\r\nConnection: close\r\n";
   if (!slot.task_etag.empty()) request += "If-None-Match: " + slot.task_etag + "\r\n";
   request += "\r\n";
   if (!send_all(fd, request)) { ESP_LOGW(TAG, "%s: the request did not go out", slot.name); close(fd); return; }
@@ -159,14 +162,20 @@ static void download(Slot &slot) {
   size_t body = 0;
   Decoder decoder([&](int width, int height) -> uint16_t * {
     const size_t needed = static_cast<size_t>(width) * height * 2;
-    if (slot.pixels && slot.bytes == needed) return slot.pixels;  // in place, the size on the glass
+    // In place, the size on the glass (rows without the padding a JPEG's whole MCUs leave).
+    if (slot.pixels && slot.bytes == needed && slot.dsc.header.stride == static_cast<uint32_t>(width) * 2) return slot.pixels;
     slot.fresh = allocate(needed);
     if (!slot.fresh) { ESP_LOGW(TAG, "%s: no memory for %dx%d", slot.name, width, height); return nullptr; }
     slot.fresh_bytes = needed;
     slot.fresh_w = width;
     slot.fresh_h = height;
+    slot.fresh_stride = width;
     return slot.fresh;
   });
+  // A JPEG (a P4): gathered whole, then decoded at once in hardware (live_view::decode_still). 0 before the first byte
+  // of the body says which, 1 a BMP, 2 a JPEG.
+  Gather jpeg;
+  int kind = 0;
   bool closed = false, failed = false;
   while (!closed && !failed && !slot.cancel.load(std::memory_order_relaxed)) {
     if (esphome::millis() - slot.started > WHOLE_MS) { ESP_LOGW(TAG, "%s: took too long", slot.name); failed = true; break; }
@@ -196,14 +205,57 @@ static void download(Slot &slot) {
       size = head.size() - answer.length;
     }
     body += size;
+    if (size && kind == 0) {
+      kind = live_view::STILLS_JPEG && is_jpeg(data, size) ? 2 : 1;
+      if (kind == 2 && !jpeg.start(answer.has_length, answer.content_length, live_view::still_input)) {
+        ESP_LOGW(TAG, "%s: a JPEG of %u bytes this screen cannot take", slot.name, (unsigned) answer.content_length);
+        failed = true;
+        break;
+      }
+    }
+    if (kind == 2) {
+      jpeg.feed(data, size);
+      if (jpeg.done()) break;
+      continue;
+    }
     if (size && !decoder.feed(data, size)) { ESP_LOGW(TAG, "%s: not a picture this screen shows", slot.name); failed = true; break; }
     if (decoder.done() || (answer.has_length && body >= answer.content_length)) break;
   }
   close(fd);
   release_memory(chunk);
-  if (!slot.cached && !failed && decoder.done()) slot.ok = true;
-  else if (!slot.cached && !failed && !slot.cancel.load(std::memory_order_relaxed))
+  if (kind == 2 && !slot.cached && !failed && jpeg.done()) {
+    // The whole JPEG: decoded into a buffer of its own, which tick() swaps in as it does a BMP of a new size.
+    live_view::Still still;
+    uint8_t *pixels = live_view::decode_still(jpeg.buffer, jpeg.have, still);
+    // Shown at its own size (the rows and columns past it, made to fill whole MCUs, lie unseen in the stride), with
+    // its places' corners exact again (jpeg_notes).
+    JpegNotes notes;
+    if (pixels && jpeg_notes(jpeg.buffer, jpeg.have, notes)) {
+      if (notes.width <= still.w && notes.height <= still.h) {
+        still.w = notes.width;
+        still.h = notes.height;
+      }
+      for (const auto &corner : notes.corners)
+        mask_corners(reinterpret_cast<uint16_t *>(pixels), still.stride, still.w, still.h, corner);
+    }
+    if (pixels) {
+      slot.fresh = reinterpret_cast<uint16_t *>(pixels);
+      slot.fresh_bytes = still.bytes;
+      slot.fresh_w = still.w;
+      slot.fresh_h = still.h;
+      slot.fresh_stride = still.stride;
+      slot.ok = true;
+    } else {
+      ESP_LOGW(TAG, "%s: the JPEG could not be decoded", slot.name);
+    }
+  } else if (kind == 2 && !slot.cached && !failed && !slot.cancel.load(std::memory_order_relaxed)) {
+    ESP_LOGW(TAG, "%s: the JPEG ended early (%u of %u bytes)", slot.name, (unsigned) jpeg.have, (unsigned) jpeg.want);
+  } else if (kind != 2 && !slot.cached && !failed && decoder.done()) {
+    slot.ok = true;
+  } else if (kind != 2 && !slot.cached && !failed && !slot.cancel.load(std::memory_order_relaxed)) {
     ESP_LOGW(TAG, "%s: the picture ended early (%d of %d rows)", slot.name, decoder.rows(), decoder.bmp().height);
+  }
+  if (jpeg.buffer) release_memory(jpeg.buffer);
 }
 
 static void task_main(void *arg) {
@@ -226,7 +278,7 @@ static void start(Slot &slot) {
   slot.received = 0;
   slot.fresh = nullptr;
   slot.fresh_bytes = 0;
-  slot.fresh_w = slot.fresh_h = 0;
+  slot.fresh_w = slot.fresh_h = slot.fresh_stride = 0;
   slot.fresh_etag.clear();
   slot.task_url = slot.url;
   slot.task_etag = slot.etag;
@@ -254,6 +306,7 @@ void load(Slot &slot, const std::string &url) {
     return;
   }
   if (url != slot.url) { slot.url = url; slot.etag.clear(); }  // a new link: the ETag was the old one's
+  if (live_view::STILLS_JPEG) live_view::prepare_stills();  // the decoder for a JPEG, made on the main loop
   ESP_LOGD(TAG, "%s: loading %s", slot.name, url.c_str());
   start(slot);
 }
@@ -278,6 +331,14 @@ void release(Slot &slot) {
   forget_picture(slot);
 }
 
+void hand_over(Slot &slot) {
+  slot.pixels = nullptr;
+  slot.bytes = 0;
+  slot.dsc.data = nullptr;
+  slot.dsc.data_size = 0;
+  slot.dsc.header.w = slot.dsc.header.h = 0;
+}
+
 lv_image_dsc_t *source(Slot &slot) { return &slot.dsc; }
 
 static void take_over(Slot &slot) {
@@ -294,7 +355,7 @@ static void take_over(Slot &slot) {
     slot.fresh = nullptr;
     slot.dsc.header.w = static_cast<uint32_t>(slot.fresh_w);
     slot.dsc.header.h = static_cast<uint32_t>(slot.fresh_h);
-    slot.dsc.header.stride = static_cast<uint32_t>(slot.fresh_w) * 2;
+    slot.dsc.header.stride = static_cast<uint32_t>(slot.fresh_stride) * 2;
     slot.dsc.header.cf = LV_COLOR_FORMAT_RGB565;
 #ifdef LV_IMAGE_HEADER_MAGIC
     slot.dsc.header.magic = LV_IMAGE_HEADER_MAGIC;

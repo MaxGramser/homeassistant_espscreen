@@ -11,11 +11,23 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
 import { useInventoryStore } from "../stores/inventory";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const builds = useBuildsStore();
 const inv = useInventoryStore();
+const plugins = usePluginsStore();
+// What this app shares about plugins (plugin_likes.py): counting the plugins it runs, and the stars card's asking.
+const sharing = computed(() => inv.inventory.plugin_sharing || null);
+const sharingBusy = ref(false);
+async function share(what: "counting" | "asking", on: boolean) {
+  sharingBusy.value = true;
+  try {
+    if (what === "counting") await plugins.setCounting(on);
+    else await plugins.cardAnswer("any", on ? "ask" : "never");
+  } catch (error: any) { ui.toast(error.message); } finally { sharingBusy.value = false; }
+}
 
 const u = computed(() => inv.inventory.updates);
 const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
@@ -168,6 +180,20 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
           <button type="button" class="btn quiet mini" :disabled="saving" @click="useProfile">{{ t("editor.settings.language.use_profile") }}</button>
         </div>
         <small>{{ t("editor.settings.language.editor_hint") }}</small>
+      </section>
+      <!-- What this app shares about plugins (plugin_likes.py): counting, and whether the stars card asks. -->
+      <section v-if="inv.pluginsEnabled && sharing?.usable" class="card" id="plugin-sharing">
+        <h2>{{ t("editor.plugins.sharing.title") }}</h2>
+        <p>{{ t("editor.plugins.sharing.text") }}</p>
+        <label class="check" for="sharing-counting">
+          <input type="checkbox" id="sharing-counting" :checked="sharing.counting" :disabled="sharingBusy" @change="share('counting', ($event.target as HTMLInputElement).checked)" />
+          <span>{{ t("editor.plugins.counting.label") }}<small>{{ sharing.counting ? t("editor.plugins.counting.on_hint") : t("editor.plugins.counting.hint") }}</small></span>
+        </label>
+        <label class="check" for="sharing-asking">
+          <input type="checkbox" id="sharing-asking" :checked="sharing.asking" :disabled="sharingBusy" @change="share('asking', ($event.target as HTMLInputElement).checked)" />
+          <span>{{ t("editor.plugins.sharing.asking") }}<small>{{ t("editor.plugins.sharing.asking_hint") }}</small></span>
+        </label>
+        <a class="btn quiet mini" href="https://tessera-maxgramser.on-forge.com/privacy" target="_blank" rel="noopener">{{ t("editor.feedback.privacy") }}</a>
       </section>
       <section class="card">
         <h2>{{ t("editor.nav.alerts") }}</h2>

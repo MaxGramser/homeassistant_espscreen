@@ -257,6 +257,55 @@ class GhostTouch {
 };
 inline GhostTouch ghost_touch;
 
+// ESPHome hands what a touchscreen read to its listeners, LVGL's among them, one loop later (Touchscreen::loop defers
+// send_touches_). In a loop where the touchscreen runs before LVGL, as its priority puts it (ESPHome reorders loops
+// when a component pauses its own), LVGL reads a finger that the touchscreen has just read as gone. After a loop that
+// took long, such as the redraw of a pressed card on a large glass with its draw buffer in PSRAM (the Waveshare 7B),
+// LVGL counts that whole wait as press time, and past its long press a tap is a hold: a plugin's tile gets no tap, a
+// light's tile opens its card instead of switching. The lift is taken from the touchscreen's own last read instead,
+// once LVGL has heard the press; a finger that comes down still reaches LVGL the way ESPHome hands it on, after
+// on_touch has begun the touch guard.
+//
+// ESPHome marks each touch a touchscreen holds (esphome/components/touchscreen/touchscreen.h): PRESSED (1) or UPDATED
+// (2) for a finger its last read reported, the same with RELEASING (4) for one that read no longer did, RELEASED (0) for
+// one gone before, CALIBRATE (7) for a finger on a panel without its range. Whether that read let go of every finger it
+// held; `touches` is anything with a `state` per touch (Touchscreen::get_touches()).
+template<typename Touches> bool panel_let_go(const Touches &touches) {
+  bool held = false;
+  for (const auto &touch : touches) {
+    const int state = touch.state;
+    if (state == 1 || state == 2 || state == 7) return false;
+    held = true;
+  }
+  return held;
+}
+// How long LVGL holds a press before it is a long press: ESPHome's long_press_time for a touchscreen, which
+// packages/core.yaml leaves as it is. Only for the log line of a lift that came that late.
+constexpr uint32_t LVGL_LONG_PRESS_MS = 400;
+class PanelRelease {
+ public:
+  // `read`: what ESPHome's listener tells LVGL now; `let_go`: panel_let_go() of the touchscreen's touches; `now` in ms.
+  PointerRead filter(PointerRead read, bool let_go, uint32_t now) {
+    // A press LVGL has not heard yet reaches it first, or a tap shorter than one loop would never reach it at all. A
+    // finger let go stays let go until ESPHome says so too, so a later read can never press it a second time.
+    const bool early = read.pressed && let_go && (pressed_ || early_);
+    lifted_ = early && pressed_;
+    if (lifted_) held_ = now - since_;
+    if (early) read.pressed = false;
+    else if (read.pressed && !pressed_) since_ = now;
+    early_ = early;
+    pressed_ = read.pressed;
+    return read;
+  }
+  // Whether the last read let go of the press LVGL had, and how long LVGL had heard the finger by then.
+  bool lifted() const { return lifted_; }
+  uint32_t held() const { return held_; }
+ private:
+  bool pressed_{false}, early_{false}, lifted_{false};
+  uint32_t since_{0}, held_{0};
+};
+inline PanelRelease panel_release;
+
 // A dragged slider that LVGL moved to one of its ends on release, far from where the finger held
 // it: the touch panel reported a stray point. Worth a log line, the finger was never there.
 inline bool release_jump(int held, int released, int minimum, int maximum) {

@@ -369,13 +369,14 @@ KNOWN = [
     {'layout': r': sun-sunpath ', 'problem': r"^text '.+' is cut without dots",
      'cause': 'the sun path\'s name is a part_label (runtime_tiles.h:5007), which is LV_LABEL_LONG_CLIP '
               '(runtime_tiles.h:4291): a long name is cut, not dotted'},
-    {'layout': r'^jc8012p4a1-portrait: input_number ', 'problem': r"^text '[\d.]+ °C' is cut without dots",
+    {'layout': r'^(jc8012p4a1|waveshare101)-portrait: input_number ', 'problem': r"^text '[\d.]+ °C' is cut without dots",
      'cause': 'the stepper falls back to text_font when no face fits its room (runtime_tiles.h:5153 stepper_keys), and the '
-              'number is clipped: "21.5 °C" in 45 px between the keys'},
-    {'layout': r'^(jc3248w535|waveshare35)-landscape: weather-watch full ', 'problem': r"^text '[\d.]+ °C' (leaves its card by \d+ px|is -\d+ px from its card's edge)$",
+              'number is clipped: "21.5 °C" in 45 px between the keys; the Waveshare 10.1-inch is the same glass'},
+    {'layout': r'^(jc3248w535|waveshare35|wt32sc01plus)-landscape: weather-watch full ', 'problem': r"^text '[\d.]+ °C' (leaves its card by \d+ px|is -\d+ px from its card's edge)$",
      'cause': 'a full card stacks circle, name and value without giving any up when they are taller than the card '
               '(runtime_tiles.h:5960 render_full): the watch face\'s value ends 5 px under the card; the 3.5-inch glass with '
-              'pictures and the one without are audited apart since firmware 0.46.0'},
+              'pictures and the one without are audited apart since firmware 0.46.0, and the WT32-SC01 Plus has the same '
+              'glass with pictures'},
 ]
 
 

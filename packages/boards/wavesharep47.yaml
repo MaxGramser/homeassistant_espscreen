@@ -1,0 +1,114 @@
+# ESP Screens - Waveshare ESP32-P4-WIFI6-Touch-LCD-7, experimental: a 7-inch 720 x 1280 MIPI-DSI panel (ILI9881C) with
+# GT911-family capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+# Hardware reference: https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-7-8-10.1.htm
+#
+# Not the ESP32-P4-WIFI6-Touch-LCD-7B (wavesharep47b.yaml, 1024 x 600) and not the ESP32-S3-Touch-LCD-7. Waveshare's 8
+# and 10.1-inch boards of this series share its main board with other glass, and are not this file. The panel is
+# 720 x 1280 itself (portrait); LVGL turns the picture and the touch together.
+#
+# This file builds for pre-v3 silicon ("chip revision: v1.3" in the boot log, `engineering_sample: true` from
+# hardware/esp32p4-c6.yaml), which the board it was run on has. A board with rev3 silicon needs
+# `engineering_sample: false` in its Override YAML (docs/WAVESHAREP47.md). A community member ran this file on the board
+# (picture, rotation, touch, backlight, Wi-Fi); the project has not tried it on one. The speaker (ES8311 and its
+# amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel (Waveshare's schematic), so they
+# take its audio: hardware/wavesharep4-audio/, with echo cancellation by default. That member ran the same audio blocks
+# on this board: the speaker, the microphones and echo cancellation worked. The microSD slot and the MIPI-CSI camera
+# port are not configured.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board is
+# added. Two entry files include this one: checkout/wavesharep47.yaml (a build on this computer) and
+# packages/wavesharep47.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the other Waveshare P4 panels'.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel: its transport, its codecs (after the transport, so
+  # their values win over its defaults), its microphone settings, and the amplifier following the sound.
+  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
+  audio_codecs: !include ../hardware/wavesharep4-audio/codecs.yaml
+  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wavesharep47"
+  DEVICE_NAME: "wavesharep47-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare P4 7"
+
+  # The glass: the panel's own pixels and its density, 1469 diagonal pixels over 7.0 inches.
+  PANEL_W: "720"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "209.801"
+  # The LVGL angle that lays this panel out lying down (1280 x 720). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "8"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                    # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                        # LVGL's draw buffer as a share of the screen, in PSRAM
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "5000Hz"                 # the backlight's PWM, as in Waveshare's examples
+  # The audio transport: "aec" for full duplex with echo cancellation, "i2s" for the original half-duplex I2S path
+  # without the AEC libraries (docs/P4_AUDIO.md).
+  P4_AUDIO_TRANSPORT: "aec"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers, the echo cancellation's audio stack) is built and tried on 2026.9.0,
+  # as on the Waveshare P4 86 panel. A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+esp32:
+  flash_size: 32MB
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+# ESPHome's own gt911 platform; Waveshare names the chip a GT9271. Its reset and interrupt as on the board this file was
+# run on.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    reset_pin: GPIO23
+    interrupt_pin: GPIO33
+    update_interval: 20ms
+
+# The backlight, a PWM pin that is not inverted on this board (features/backlight.yaml makes it the light), at most 95 %
+# of its range as in Waveshare's examples; zero_means_zero keeps a dark standby dark.
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    frequency: ${BACKLIGHT_FREQUENCY}
+    max_power: 0.95
+    zero_means_zero: true
+
+# ESPHome's own mipi_dsi platform knows the panel by name: `model: WAVESHARE-7-DSI-TOUCH-A` brings the ILI9881C's init
+# sequence and timings. The model does not bring the reset pin: GPIO27 on this board.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-7-DSI-TOUCH-A
+    reset_pin: GPIO27
+    update_interval: never
+    auto_clear_enabled: false

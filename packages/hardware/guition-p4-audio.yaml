@@ -1,0 +1,73 @@
+# ESP Screens - the speaker and the microphone of the Guition ESP32-P4 panels, for a board file that includes this one:
+# the 10.1-inch JC8012P4A1 (its first build, the V2 and the V3), the 7-inch JC1060P470 (and its V2) and the 4.3-inch
+# JC4880P443, as Guition's schematics wire them.
+#
+# One ES8311 codec at 0x18 on the touch panel's I2C bus does both ways: its DAC drives an NS4150 amplifier and a 2-pin
+# speaker connector, its ADC reads one analogue MEMS microphone on its own MIC1P/MIC1N inputs. There is no ES7210, so no
+# second microphone and no playback reference for echo cancellation (ESPHome never turns on the ES8311's internal
+# loopback). The codec has one I2S bus, MCLK GPIO13, BCLK GPIO12, LRCLK GPIO10 and the speaker's data on GPIO9 (its
+# DSDIN), at 16 kHz as Guition's own firmware runs it. Two pins differ between the two circuit boards Guition builds
+# these panels on, and the board file states them:
+#
+# - AUDIO_DIN_PIN, the microphone's data (the codec's ASDOUT): GPIO11 on the 10.1-inch board, GPIO48 on the
+#   JC-ESP32P4-M3 module board of the 7-inch and the 4.3-inch;
+# - AUDIO_AMPLIFIER_PIN, the amplifier's enable, high for on, with a pull-down that keeps it off until the firmware turns
+#   it on: GPIO20 on the 10.1-inch board, GPIO11 on the module board.
+#
+# Both ways at once, as @Eugen417 runs it on a JC8012P4A1 V3 (pull request #259: the tap sound and a voice assistant
+# plugin worked): two of the chip's I2S ports on the same three clock pins, the microphone's port giving the clocks and
+# the speaker's following them (ESPHome's `i2s_mode: secondary`). The speaker's bus then runs all the time, in silence
+# between sounds, so the amplifier stays on, as on the reTerminal D1001 (switching it with every sound cut off the start
+# of a short one).
+packages:
+  audio: !include ../features/audio.yaml
+
+substitutions:
+  AUDIO_SAMPLE_RATE: "16000"
+  AUDIO_DOUT_PIN: GPIO9
+  # The ES8311 maps ESPHome's volume from 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step. The media player stops at
+  # the DAC's 0 dB (features/audio-player.yaml): above it a full-scale sound clips, and a community member found full
+  # volume distorting and browning out a 10.1-inch V2.
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+  # The clocks come from the microphone's port, which ESPHome runs only while something listens; a speaker without them
+  # plays nothing. So the board listens from the start, under everything that reads the microphone (ESPHome counts its
+  # listeners): the speaker plays whether a voice assistant listens or not. Microphone off under Extras still mutes it.
+  BOOT_BOARD_SETTINGS: |-
+    id(ts_microphone)->start();
+
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: {number: GPIO13, allow_other_uses: true}
+    i2s_bclk_pin: {number: GPIO12, allow_other_uses: true}
+    i2s_lrclk_pin: {number: GPIO10, allow_other_uses: true}
+  - id: ts_mic_bus
+    i2s_mclk_pin: {number: GPIO13, allow_other_uses: true}
+    i2s_bclk_pin: {number: GPIO12, allow_other_uses: true}
+    i2s_lrclk_pin: {number: GPIO10, allow_other_uses: true}
+
+speaker:
+  - id: !extend ts_speaker_out
+    i2s_mode: secondary
+
+# The microphone is analogue, the ES8311's own input: `use_microphone` stays false, because ESPHome's es8311 turns that
+# input into a PDM digital microphone when it is true. features/audio.yaml reads the codec's data on the left slot.
+# `mic_gain` is the ADC's digital gain (24 dB, Guition's own setting); the analogue stage before it is ESPHome's fixed
+# maximum.
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+    mic_gain: 24DB
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: ${AUDIO_AMPLIFIER_PIN}
+    restore_mode: ALWAYS_ON

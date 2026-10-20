@@ -94,6 +94,60 @@ class WifiReuse(unittest.TestCase):
                 f.change_wifi({'wifi_ssid': 'net', 'wifi_password': 'pw'})
             self.assertEqual(path.read_text(), 'wifi_ssid: [invalid')
 
+    def test_a_file_of_comments_only_has_no_keys_yet(self):
+        # ESPHome's Device Builder leaves a secrets.yaml of comments only (#263): ESPHome reads it as empty, and so does
+        # the wizard, which adds the two lines below the comments instead of calling the file invalid.
+        comments = '# Your secrets, café wifi and all\n# wifi_ssid: "REPLACEME"\n# wifi_password: "REPLACEME"'
+        for original in (comments, comments + '\n', '', '\n\n'):
+            with self.subTest(original=original), tempfile.TemporaryDirectory() as tmp:
+                f = Firmware(tmp, tmp)
+                path = Path(tmp) / 'secrets.yaml'
+                path.write_text(original)
+                self.assertEqual(f.wifi_status(), {'state': 'missing', 'missing': ['wifi_ssid', 'wifi_password']})
+                f.create({'board': 'cyd', 'name': 'screen', 'friendly_name': 'Screen',
+                          'wifi_ssid': 'net', 'wifi_password': 'pw'})
+                text = path.read_text()
+                self.assertTrue(text.startswith(original))
+                self.assertEqual(yaml.safe_load(text), {'wifi_ssid': 'net', 'wifi_password': 'pw'})
+                self.assertEqual(f.wifi_status()['state'], 'ready')
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Firmware(tmp, tmp)
+            path = Path(tmp) / 'secrets.yaml'
+            path.write_text(comments + '\n')
+            f.change_wifi({'wifi_ssid': 'other', 'wifi_password': 'secret'})
+            self.assertTrue(path.read_text().startswith(comments + '\n'))
+            self.assertEqual(yaml.safe_load(path.read_text()), {'wifi_ssid': 'other', 'wifi_password': 'secret'})
+
+    def test_a_document_that_is_no_mapping_stays_untouched(self):
+        # `~`, `---` or a list parse without error but are not a file of secrets: invalid, never rewritten.
+        for original in ('~\n', 'null\n', '---\n', '[]\n', '- a\n'):
+            with self.subTest(original=original), tempfile.TemporaryDirectory() as tmp:
+                f = Firmware(tmp, tmp)
+                path = Path(tmp) / 'secrets.yaml'
+                path.write_text(original)
+                self.assertEqual(f.wifi_status(), {'state': 'invalid'})
+                with self.assertRaises(ValueError):
+                    f.create({'board': 'cyd', 'name': 'screen', 'friendly_name': 'Screen',
+                              'wifi_ssid': 'net', 'wifi_password': 'pw'})
+                with self.assertRaises(ValueError):
+                    f.change_wifi({'wifi_ssid': 'net', 'wifi_password': 'pw'})
+                self.assertEqual(path.read_text(), original)
+
+    def test_lines_that_would_break_the_file_are_not_written(self):
+        # A flow mapping on one line reads fine, but a line added below it would not: the file stays as it was.
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Firmware(tmp, tmp)
+            path = Path(tmp) / 'secrets.yaml'
+            original = '{other: keep,\n'
+            path.write_text(original)
+            self.assertEqual(f.wifi_status(), {'state': 'invalid'})
+            original = '{other: keep}'
+            path.write_text(original)
+            self.assertEqual(f.wifi_status()['state'], 'missing')
+            with self.assertRaises(ValueError):
+                f.change_wifi({'wifi_ssid': 'net', 'wifi_password': 'pw'})
+            self.assertEqual(path.read_text(), original)
+
     def test_install_checks_port_and_busy_slot_before_writing(self):
         with tempfile.TemporaryDirectory() as tmp:
             f = Firmware(tmp, tmp)

@@ -22,9 +22,13 @@ export class FakeEventSource {
   constructor(public url: string) {
     FakeEventSource.streams.push(this);
   }
+  private named = new Map<string, Set<(event: MessageEvent) => void>>();
   close() { this.readyState = 2; }
-  addEventListener() {}
-  removeEventListener() {}
+  addEventListener(type: string, listener: (event: MessageEvent) => void) {
+    if (!this.named.has(type)) this.named.set(type, new Set());
+    this.named.get(type)!.add(listener);
+  }
+  removeEventListener(type: string, listener: (event: MessageEvent) => void) { this.named.get(type)?.delete(listener); }
   /** The add-on answers: the stream is open. */
   open() {
     this.readyState = 1;
@@ -33,6 +37,10 @@ export class FakeEventSource {
   /** One message, as the add-on sends it: JSON. */
   send(data: unknown) {
     this.onmessage?.(new MessageEvent("message", { data: JSON.stringify(data) }));
+  }
+  /** A ping, as the add-on sends one every three seconds when nothing changed (event: ping). */
+  ping() {
+    for (const listener of this.named.get("ping") ?? []) listener(new MessageEvent("ping", { data: "{}" }));
   }
   /** The stream breaks. The browser tries again by itself (CONNECTING), or gives up for good (CLOSED), as it does when
    * ingress answers 502 while the add-on restarts. */

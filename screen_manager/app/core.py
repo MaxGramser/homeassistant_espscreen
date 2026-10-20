@@ -51,7 +51,7 @@ def builtin_name(entity, text=screen_t):
     if entity == ENERGY_TILE:
         return text('addon.screen.builtin.energy')
     return text('screen.settings.title' if entity == 'screen.settings' else 'addon.screen.builtin.clock')
-# A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (camera_feed.py).
+# A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (docs/PICTURES.md).
 CAMERA_DOMAINS = frozenset(('camera', 'image'))
 CAMERA_MIN_FIRMWARE = (0, 2, 57)
 # A live picture on a camera tile ("display": "live", app 0.2.91): firmware from here asks for the page's strip.
@@ -105,8 +105,9 @@ REF = 'main'
 # Supervisor names an app `<hash>_<slug>`, the hash being the first eight characters of the sha1 of the repository URL
 # as it was added, in lower case (supervisor/store/utils.py, get_hash_from_repository). So the URL with `#dev` is
 # another app, with data of its own, and its screens build from dev. Any other hash (a local copy, a fork, another
-# spelling of the URL) and no Supervisor at all have no channel: new screens build from main, existing ones keep the
-# `ref:` they have.
+# spelling of the URL) has no channel: new screens build from main, existing ones keep the `ref:` they have. Without a
+# Supervisor (Docker, docs/DOCKER.md) SCREEN_CHANNEL names it, which the image GitHub builds from dev carries
+# (.github/workflows/docker.yml); unset, there is none.
 CHANNELS = {'ec8ae0ed': 'main', 'fa6a7b50': 'dev'}
 CHANNEL = None
 
@@ -115,6 +116,13 @@ def channel_of(slug):
     if not isinstance(slug, str) or '_' not in slug:
         return None
     return CHANNELS.get(slug.split('_', 1)[0])
+
+def start_channel(slug, environ=os.environ):
+    """The channel at the start (server.main): the slug's under the Supervisor, SCREEN_CHANNEL without one."""
+    if slug:
+        return channel_of(slug)
+    value = str(environ.get('SCREEN_CHANNEL') or '').strip()
+    return value if value in CHANNELS.values() else None
 
 def set_channel(channel):
     """The channel this app runs in, found once at the start (server.main)."""
@@ -687,7 +695,7 @@ def board_of(screen):
 # settings_screen::features() on the firmware side; the sensor, the reading of it and the fallback stay as they are.
 # Nothing asks about a word that is not in this table, so a screen may report one an older app has never heard of,
 # and a word may be retired here without the firmware having to stop sending it. Whether a board draws pictures is
-# the obvious next one: it is still read from boards.json alone (camera_feed.BOXES), because the memory for a
+# the obvious next one: it is still read from boards.json alone (picture_question.BOXES), because the memory for a
 # picture is the board's and not this screen's.
 FEATURES = {
     # The backlight takes levels, not just lit or dark (app 0.2.105). One board so far says no: the Waveshare's
@@ -3091,6 +3099,9 @@ def installation_yaml(data):
     if not isinstance(chosen, dict) or any(key not in offered or value not in offered[key] for key, value in chosen.items()):
         raise ValueError(t('addon.errors.firmware.choice'))
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
+    # Swipe between pages is on for a screen set up here: the line is the screen's start value until it stores a choice
+    # of its own (packages/core.yaml, SWIPE_PAGES_DEFAULT). A profile written before has no line and keeps the core's off,
+    # so an update never turns swiping on for a screen that is out there.
     # The components and fonts come from the branch the board package does (packages/<key>.yaml), main unless the app
     # runs in another channel.
     branch_line = f'  GITHUB_REF: {quote(ref())}\n' if ref() != REF else ''
@@ -3117,6 +3128,7 @@ substitutions:
   DEVICE_NAME: {quote(name)}
   DEVICE_FRIENDLY_NAME: {quote(friendly.strip())}
   LANGUAGE: {quote(language)}
+  SWIPE_PAGES_DEFAULT: "1"
 {rotation_line}{grid_lines}{choice_lines}{branch_line}
 esphome:
   name: {quote(name)}

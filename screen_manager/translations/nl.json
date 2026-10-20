@@ -915,12 +915,16 @@
         "choose": "Kies welke plugin de {feature} levert voor {name}.",
         "other_origin": "Dit scherm draait een andere plugin die {name} heet, uit {origin}. Stap over in de details van deze.",
         "misfit_esphome": "{name} heeft ESPHome {version} of nieuwer nodig om te bouwen.",
-        "like_not_installed": "Zet de plugin eerst op een van je schermen, dan kun je hem liken.",
         "like_consent": "Ga eerst akkoord dat je like meetelt in een openbaar aantal.",
         "like_off": "Likes staan uit: een nieuwere versie van de app houdt ze bij.",
         "like_failed": "De like is niet verstuurd. Probeer het zo nog eens.",
         "misfit_built_in": "{name} brengt iets wat dit bord zelf al heeft.",
-        "offline": "De app weet nog niet waar {screen} op het netwerk zit. Zet hem aan, wacht tot hij online is en probeer het dan opnieuw."
+        "offline": "De app weet nog niet waar {screen} op het netwerk zit. Zet hem aan, wacht tot hij online is en probeer het dan opnieuw.",
+        "like_not_listed": "Alleen plugins uit de catalogus van Tessera kun je een hartje geven.",
+        "rate_not_installed": "Zet de plugin eerst op een van je schermen, dan kun je hem beoordelen.",
+        "rate_failed": "De sterren zijn niet verstuurd. Probeer het zo nog eens.",
+        "count_failed": "Meetellen kon niet uit: Tessera was niet bereikbaar. Probeer het zo nog eens.",
+        "forget_running": "Een scherm gebruikt deze plugin nog. Haal hem eerst van het scherm."
       },
       "extras": {
         "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
@@ -1933,7 +1937,6 @@
         "live_card_hint": "Het beeld vult de tile en ververst in het tempo hieronder zolang de pagina in beeld is. Een tik opent hem nog steeds schermvullend.",
         "live_card_needs_firmware": "Een beeld dat de tile vult heeft firmware 0.3.7 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm. Tot dan toont het scherm een klein beeld op de plek van het icoon.",
         "cover": "Albumhoes",
-        "cover_hint": "De albumhoes van wat er speelt op de plek van het icoon, zoals de eigen tile van Home Assistant; een speler zonder afbeelding houdt zijn icoon. Een tik opent nog steeds de kaart.",
         "cover_needs_firmware": "De albumhoes op de tile heeft firmware 0.2.78 of nieuwer nodig: druk na het opslaan op Bijwerken bij het scherm.",
         "map": "Kaart",
         "map_hint": "Waar deze persoon en de mensen die je toevoegt zijn, op een rustige kaart in de kleuren van het scherm. Home Assistant levert de straten van OpenStreetMap; het scherm krijgt alleen het plaatje, nooit een locatie. De kaart wordt opnieuw getekend als iemand zich verplaatst. Een tik opent hem over het hele scherm.",
@@ -2774,10 +2777,20 @@
         "calibration": "Touch-kalibratie bij de eerste start"
       },
       "choice": {
-        "DISPLAY_MODEL": "Displaycontroller"
+        "DISPLAY_MODEL": "Displaycontroller",
+        "FLASH_SIZE": "Flashgeheugen",
+        "BOARD_VARIANT": "Bord"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "De meeste van deze borden hebben de eerste. Kies de andere als het scherm ruis of een verminkt beeld laat zien."
+        "DISPLAY_MODEL": "Begin met de eerste. Kies de andere als het scherm zwart blijft of ruis of een verminkt beeld laat zien.",
+        "FLASH_SIZE": "De meeste van deze borden hebben 16 MB. Kies 8 MB als het scherm na de installatie zwart blijft en steeds opnieuw start.",
+        "BOARD_VARIANT": "Kies het bord dat je hebt. Op het gele bord zonder behuizing komt een tik linksboven anders rechtsonder terecht."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Zwart, in een behuizing",
+          "yellow": "Geel, zonder behuizing"
+        }
       },
       "choice_usual": "de meeste",
       "orientation_landscape": "Liggend",
@@ -3769,7 +3782,9 @@
         "label": "Sorteren op",
         "popular": "Meest geliket",
         "new": "Nieuwste",
-        "name": "Naam"
+        "name": "Naam",
+        "rated": "Best beoordeeld",
+        "used": "Meest gebruikt"
       },
       "none_in_tab": {
         "tiles": "Nog geen plugins met tegels.",
@@ -3782,8 +3797,8 @@
         "count": "{n} persoon vindt dit leuk | {n} mensen vinden dit leuk",
         "like": "Liken",
         "unlike": "Je like intrekken",
-        "install_first": "Zet hem eerst op een scherm, dan kun je hem liken",
-        "ask": "Je like telt mee in een openbaar aantal per plugin. Alleen het aantal is openbaar: er gaat niets mee over jou, Home Assistant of je schermen."
+        "ask": "Je like telt mee in een openbaar aantal per plugin. Alleen het aantal is openbaar: er gaat niets mee over jou, Home Assistant of je schermen.",
+        "like_hint": "Geef een hartje, ook als hij op geen van je schermen staat: een bedankje aan de maker."
       },
       "along": {
         "title": "Komt mee",
@@ -3836,7 +3851,59 @@
         "history": "Alle versies"
       },
       "failed_update": "Versie {version} bouwde niet voor {screen}, dus die ging terug naar {current}, de versie die hij draait. Het log staat onder Firmware & USB.",
-      "interrupted": "De app startte opnieuw tijdens de build."
+      "interrupted": "De app startte opnieuw tijdens de build.",
+      "stars": {
+        "label": "Sterren voor {name}",
+        "of_five": "{n} van 5 sterren",
+        "say": {
+          "1": "Werkt niet",
+          "2": "Matig",
+          "3": "Gaat wel",
+          "4": "Goed",
+          "5": "Top"
+        },
+        "yours": "Jouw sterren",
+        "give": "Hoe werkt hij bij jou?",
+        "clear": "Intrekken"
+      },
+      "numbers": {
+        "rating": "{rating} uit {n} beoordeling | {rating} uit {n} beoordelingen",
+        "few": "{n} beoordeling tot nu toe | {n} beoordelingen tot nu toe",
+        "homes": "in gebruik in {n} huis | in gebruik in {n} huizen"
+      },
+      "counting": {
+        "label": "Tel mijn plugins mee in de store",
+        "hint": "Eén keer per dag de namen en versies van je plugins en het model van elk scherm. Niets anders.",
+        "on_hint": "Aan: één keer per dag gaan de namen en versies van je plugins en het model van elk scherm naar Tessera. Uitzetten haalt ze daar weg."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} draait {days} dag op {screen}. Hoe bevalt hij? | {name} draait {days} dagen op {screen}. Hoe bevalt hij?",
+        "send": "Versturen",
+        "what_title": "Wat wordt gedeeld?",
+        "what": {
+          "plugin": "De plugin en zijn versie: {name} {version}",
+          "board": "Het schermmodel: {board}",
+          "stars": "Je sterren",
+          "counting": "Met meetellen aan: één keer per dag welke plugins je schermen draaien, hun versies en de schermmodellen",
+          "nothing_else": "Niets anders: geen naam, account, entiteiten of Home Assistant-instellingen. De app deelt onder één eigen willekeurige sleutel."
+        },
+        "thanks": "Dank je! Je sterren staan bij {name}.",
+        "heart_hint": "Vind je hem vet? Geef {maker} ook een hartje. Het telt mee in een publiek getal per plugin; niets over jou gaat mee.",
+        "hearted": "Bedankt voor je hartje",
+        "issue_hint": "Jammer. Wil je dat het opgelost wordt? Open een issue voor {maker}, met de versie en je schermmodel al ingevuld.",
+        "issue_open": "Open een issue op GitHub"
+      },
+      "sharing": {
+        "title": "Plugin-store",
+        "text": "Help anderen goede plugins te vinden. Hartjes en sterren gaan alleen als jij ze geeft, meetellen alleen zolang het aan staat.",
+        "asking": "Vraag om sterren een paar dagen na een nieuwe plugin",
+        "asking_hint": "Een kaart boven het scherm, één plugin tegelijk."
+      },
+      "forget": {
+        "go": "Uit de lijst halen",
+        "note": "Geen enkel scherm gebruikt deze plugin. Haal hem uit de lijst om de link te vergeten."
+      }
     },
     "plugin_tile": {
       "from": "Een tegel van de plugin {plugin}",

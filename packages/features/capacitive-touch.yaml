@@ -38,6 +38,8 @@ substitutions:
     lv_obj_remove_flag(id(tile_scroll), LV_OBJ_FLAG_CLICKABLE);
     // A stray GT911 contact at exactly (0, 0) never reaches LVGL (screen_input::GhostTouch): as the last
     // sample of a drag it sent a slider to its end on release. LVGL still reads ESPHome's callback.
+    // A finger the panel let go of while LVGL still hears it, one loop late, is let go now
+    // (screen_input::PanelRelease): after a slow redraw a tap would otherwise be a long press.
     if (auto *indev = lv_indev_get_next(nullptr)) {
       static lv_indev_read_cb_t esphome_read = nullptr;
       static const lv_indev_read_cb_t filtered = [](lv_indev_t *input, lv_indev_data_t *data) {
@@ -45,8 +47,11 @@ substitutions:
         int32_t ghost_x = 0, ghost_y = 0;
         id(screen_lvgl).rotate_coordinates(ghost_x, ghost_y);
         const unsigned dropped = screen_input::ghost_touch.dropped();
-        const auto read = screen_input::ghost_touch.filter({data->state == LV_INDEV_STATE_PRESSED, (int) data->point.x, (int) data->point.y}, ghost_x, ghost_y);
+        auto read = screen_input::ghost_touch.filter({data->state == LV_INDEV_STATE_PRESSED, (int) data->point.x, (int) data->point.y}, ghost_x, ghost_y);
         if (screen_input::ghost_touch.dropped() != dropped) ESP_LOGI("touch", "GT911 stray contact at (0,0) ignored");
+        read = screen_input::panel_release.filter(read, read.pressed && screen_input::panel_let_go(id(ts_touch).get_touches()), millis());
+        if (screen_input::panel_release.lifted() && screen_input::panel_release.held() >= screen_input::LVGL_LONG_PRESS_MS)
+          ESP_LOGI("touch", "let go %u ms after LVGL heard the press: a tap, taken from the panel's own read", (unsigned) screen_input::panel_release.held());
         data->state = read.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
         data->point.x = read.x;
         data->point.y = read.y;

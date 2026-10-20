@@ -1,11 +1,11 @@
 """Render a live camera that fills its card on every size (1x2 and 2x2 since app 0.3.8 and firmware 0.3.3, single,
-double-width and full page since app 0.3.13 and firmware 0.3.7): fill or contain, with its name or without, with the real firmware on the host (tools/render/host.py) and the add-on's own camera_feed and tile_art.
+double-width and full page since app 0.3.13 and firmware 0.3.7): fill or contain, with its name or without, with the real firmware on the host (tools/render/host.py) and the add-on's own picture_question and picture_paint.
 
     python3 tools/render/camera_tiles.py guition waveshare43
 
-The program asks for its picture the way it asks ESP Screens (the esphome.screen_camera event with an atlas); this
-script answers as the add-on would (camera_feed.picture_modes, tile_art.encode), with a drawn porch as the camera: by
-day on the first camera, the hard case for white text, and by night on the second. One page per size.
+The program asks for its picture the way it asks ESP Screens (the esphome.screen_camera event with its question, `q`);
+this script answers as the add-on would (picture_sources.camera_modes, picture_paint), with a drawn porch as the camera:
+by day on the first camera, the hard case for white text, and by night on the second. One page per size.
 """
 import argparse
 import asyncio
@@ -21,9 +21,8 @@ sys.path.insert(0, str(HERE))
 import run  # noqa: E402
 import host  # noqa: E402
 import send_layout  # noqa: E402
-import camera_feed  # noqa: E402
 import core  # noqa: E402
-import tile_art  # noqa: E402
+import picture_sources  # noqa: E402
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 CAMERA = 'camera.front_door'
@@ -77,31 +76,39 @@ def scene(width, height, day):
 class Study(run.Run):
 
     def answer(self, call):
-        if call.service != 'esphome.screen_camera' or 'tiles' not in call.data:
+        if call.service != 'esphome.screen_camera':
             return
-        task = asyncio.get_running_loop().create_task(self.live(dict(call.data)))
+        asked = run.asked(dict(call.data), self.screen)
+        if asked is None:
+            self.warnings.append(f'a question the add-on cannot read: {dict(call.data)}')
+            return
+        if asked.owner.kind != 'tile':
+            return
+        task = asyncio.get_running_loop().create_task(self.live(asked))
         # An answer to an ask from before the last layout is dropped, as the app's own is (Sender.auxiliary).
         task.add_done_callback(lambda t: t.exception() and 'superseded' not in str(t.exception()) and self.warnings.append(f'answer failed: {t.exception()!r}'))
 
-    async def live(self, data):
+    async def live(self, asked):
         # A held answer shows the card while it waits for its picture: the spinner (firmware 0.3.3).
         while self.hold:
             await asyncio.sleep(0.1)
-        entities = data['tiles'].split(',')
-        atlas = tile_art.parse(data.get('atlas', ''), self.canvas, len(entities))
-        if atlas is None:
-            self.warnings.append(f'no atlas in {data}')
+        # The tiles by their index in the layout (`tile:<index>`); a question from before the last layout may name one
+        # that is not a camera now, and the add-on refuses that.
+        tiles = [self.tiles[int(source.ref)] if int(source.ref) < len(self.tiles) else {} for source in asked.question.sources]
+        if not all(tile.get('entity', '').startswith('camera.') for tile in tiles):
             return
-        raw = scene(*self.camera, day=entities[0] in DAY)
-        grounds = [int(c, 16) for c in data['bg'].split(',')]
-        modes = camera_feed.picture_modes({'firmware': core.FIRMWARE_VERSION}, self.options.get, entities)
-        # As the add-on answers this firmware: 8-bit colour (app 0.3.8).
-        screen = {'firmware': core.FIRMWARE_VERSION}
-        body = tile_art.encode([raw] * len(entities), grounds, atlas, modes, camera_feed.compact_pictures(screen))
+        raws = [scene(*self.camera, day=tile['entity'] in DAY) for tile in tiles]
+        # What the add-on reads from each camera tile's stored options (picture_sources.Sources._tile_picture): its fit
+        # and whether its name gets a shade, on the firmware this tree builds.
+        firmware = core.screen_firmware(self.screen)
+        said = [dict(zip(('fit', 'fade'), picture_sources.camera_modes(firmware, tile.get('options') or {}))) for tile in tiles]
+        # In the format the screen names first: 8-bit colour (app 0.3.8). A camera set to Live that this screen could
+        # stream gets a still, as from an app without streams.
+        body, _ = run.painted(asked.question, raws, said)
         self.served += 1
         url = self.pictures.url(f'live-{self.served}.bmp', body)
         async with self.turn:
-            await self.send({'v': 1, 'op': 'camera', 't': 'live', 'e': data['tiles'], 'u': url, 'view': int(data['view'])})
+            await self.reply(asked, url)
 
     async def picture(self, what, tries=4):
         """Ask for the page's picture again and wait until it is drawn. A new layout makes the screen ask by itself,
@@ -119,7 +126,7 @@ class Study(run.Run):
                 await asyncio.sleep(1)
 
     async def drive(self):
-        self.served, self.turn, self.hold = 0, asyncio.Lock(), False
+        self.served, self.turn, self.hold, self.tiles = 0, asyncio.Lock(), False, []
         self.client = run.APIClient('127.0.0.1', self.item.port, None)
         for _ in range(240):
             if self.process.poll() is not None:
@@ -150,7 +157,7 @@ class Study(run.Run):
         for fit in ('fill', 'contain'):
             for overlay in OVERLAYS:
                 states = {entity: {'state': 'idle', 'attributes': {'friendly_name': name}} for entity, name in cameras}
-                tiles, neighbours, self.options = [], iter(NEIGHBOURS), {}
+                tiles, neighbours = [], iter(NEIGHBOURS)
                 for page, size in enumerate(sizes):
                     slot = page * grid.slots
                     entity, name = cameras[page]
@@ -163,8 +170,9 @@ class Study(run.Run):
                         states[neighbour] = state
                 record = send_layout.migrate_legacy(dict(title='Cameras', tiles=tiles), grid)
                 compiled = send_layout.compile_tiles(record['layout'], grid)
-                # What the add-on answers from: the stored options of each camera tile (server.answer_live).
-                self.options = {tile['entity']: tile.get('options', {}) for tile in compiled}
+                # What the add-on answers from: the layout's tiles, each camera with its stored options
+                # (picture_sources.Sources._tile_picture).
+                self.tiles = compiled
                 values = [send_layout.state_message(i, tile, states) for i, tile in enumerate(compiled)]
                 bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
                 # One message at a time: an answer that crosses a new layout makes the screen refuse the layout.

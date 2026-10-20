@@ -16,13 +16,16 @@ export type HealthFacts = {
   ready: boolean;
   /** The entity as the inventory has it (an entity, a card of the screen's own or a tracker), if it does. */
   known: (id: string) => Entity | undefined;
+  /** Whether the editor can know this entity yet: one of a domain only a plugin names (a plant) is known from the
+   * plugins' own list (api/plugins), so it is gone only once that list is in. Every entity, when left out. */
+  judged?: (id: string) => boolean;
   /** Its state as the page asked for it last (the open layout's live values), if it did. */
   live: (id: string) => string | undefined;
   now: number;
 };
 /** Whether an entity a tile shows is gone or has been unavailable for a while; null when it is fine or nobody can say. */
 export function entityHealth(id: string, facts: HealthFacts): Health | null {
-  if (!facts.ready) return null;
+  if (!facts.ready || facts.judged?.(id) === false) return null;
   const known = facts.known(id);
   if (!known) return { kind: "missing" };
   const live = facts.live(id);

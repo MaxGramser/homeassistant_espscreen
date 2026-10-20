@@ -1,7 +1,8 @@
 // The live stream from the add-on (stores/inventory.ts): the page follows the inventory over it, polls while it is down
 // (closer while something builds), reads the whole catalogue every five minutes and when the tab is shown again, asks
-// nothing while the tab is hidden, says when the add-on cannot be reached, and opens a new stream when the browser has
-// given the old one up, as after an add-on restart that ingress answered with 502. Its stop leaves nothing running.
+// nothing while the tab is hidden, says when the add-on cannot be reached and keeps asking until it answers, and opens a
+// new stream when the browser has given the old one up, as after an add-on restart that ingress answered with 502, or
+// when the open one fell silent. Its stop leaves nothing running.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FakeEventSource, lastStream, setHidden } from "./helpers/browser";
 import { FULL_REFRESH_MS, useInventoryStore } from "../src/stores/inventory";
@@ -152,10 +153,57 @@ describe("the live stream", () => {
     lastStream()!.open();
     await vi.advanceTimersByTimeAsync(0);
     expect([inventory.reachable, inventories().length - before]).toEqual([true, 1]);
-    // A message on the stream says so as well.
-    inventory.reachable = false;
+    stop();
+  });
+
+  it("keeps asking while the add-on cannot be reached though the stream counts open, and reads that answer in full", async () => {
+    // A phone back after hours in the background: Home Assistant's ingress session ran out, so ingress refuses every
+    // request (401) until Home Assistant's panel makes a new one, within a minute; the old stream still counts open.
+    const inventory = useInventoryStore();
+    const stop = inventory.start();
+    await vi.advanceTimersByTimeAsync(0);
+    lastStream()!.open();
+    setHidden(true);
+    await vi.advanceTimersByTimeAsync(4 * 3600 * 1000);
+    answer = () => new Response("401: Unauthorized", { status: 401 });
+    setHidden(false);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(inventory.reachable).toBe(false);
+    // A message on that stream proves nothing: the add-on speaks there while every request is refused.
     lastStream()!.send({ connected: true });
-    expect(inventory.reachable).toBe(true);
+    expect(inventory.reachable).toBe(false);
+    // The stream goes on with its pings every three seconds, so it stays.
+    const pass = async (ms: number) => { for (let t = 0; t < ms; t += 3000) { await vi.advanceTimersByTimeAsync(3000); lastStream()!.ping(); } };
+    const before = inventories().length;
+    await pass(30000);
+    expect(inventories().slice(before)).toEqual(Array(3).fill("api/inventory"));
+    expect(inventory.reachable).toBe(false);
+    // The new session: the next poll is answered, and the page is back on the slow polls of an open stream.
+    answer = ok;
+    await pass(12000);
+    expect([inventory.reachable, inventories().length - before]).toEqual([true, 4]);
+    await pass(48000);
+    expect(inventories().length - before).toBe(4);
+    expect(FakeEventSource.streams).toHaveLength(1);
+    stop();
+  });
+
+  it("opens a new stream in place of one that spoke and fell silent, and keeps one that pings", async () => {
+    const stop = useInventoryStore().start();
+    await vi.advanceTimersByTimeAsync(0);
+    lastStream()!.open();
+    lastStream()!.send({ connected: true });
+    // Pings every three seconds: the stream stays, through more than one slow poll.
+    for (let i = 0; i < 50; i++) { await vi.advanceTimersByTimeAsync(3000); lastStream()!.ping(); }
+    expect(FakeEventSource.streams).toHaveLength(1);
+    // Silent while the browser still counts it open: the next poll closes it and opens a new one at once.
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(FakeEventSource.streams).toHaveLength(2);
+    expect(FakeEventSource.streams[0].readyState).toBe(FakeEventSource.CLOSED);
+    // A stream that never spoke is not judged: it may sit behind a proxy that holds what it says.
+    lastStream()!.open();
+    await vi.advanceTimersByTimeAsync(180000);
+    expect(FakeEventSource.streams).toHaveLength(2);
     stop();
   });
 

@@ -74,6 +74,14 @@ def font_letters():
     return set.intersection(*sets) if sets else set()
 
 
+def script_letters(script):
+    """The letters a screen built in a language of `script` carries beside font_letters(): packages/core.yaml's
+    SCRIPT_GLYPHS_<SCRIPT>, empty for the Latin script and for a script without a list."""
+    found = re.search(r'(?m)^  SCRIPT_GLYPHS_' + re.escape(str(script).upper()) + r': "([^"]*)"',
+                      CORE.read_text(encoding='utf-8'))
+    return set(found.group(1)) if found and script != 'latin' else set()
+
+
 def check():
     gen = generator()
     langs = languages()
@@ -124,7 +132,7 @@ def check():
             # The app's own words for the screens (addon.screen) are drawn by the same fonts.
             if key.startswith(('screen.', 'addon.screen.')) and drawable:
                 shown = PLACEHOLDER.sub('', text).replace('|', '')
-                unknown = sorted(set(shown) - drawable - {'\n'})
+                unknown = sorted(set(shown) - drawable - script_letters(meta.get('script')) - {'\n'})
                 if unknown:
                     problems.append(f'{code}: {key} uses letters the screens can\'t draw: {"".join(unknown)}')
                 # Home Assistant's words and the calendar's are what they are; our own texts should stay about as short.
@@ -221,6 +229,8 @@ LINT_KEEP = {
     # Placeholders of the YAML tree that the runtime tiles replace before a screen shows them, and profile defaults.
     'Lamp', 'Plug', 'Evening', 'All off', 'AC', 'Vacuum', 'Tile 7', 'Tile 8', 'Tile 9', 'Tile 10', 'Light', 'Light Color',
     'Climate', 'Example lamp', 'My CYD', 'My Guition', 'My Guition 4.3', 'My Guition 5', 'My Guition 10', 'My Guition 10 V3', 'My Guition 10 V2', 'My Guition 7', 'My Guition 7 V2', 'My Waveshare', 'My Waveshare 5', 'My Waveshare 7', 'My Waveshare 7B', 'My Waveshare 4B', 'My Waveshare P4', 'My Hosyond', 'My Guition 3.5', 'My Sunton 7', 'My reTerminal D1001', 'My CrowPanel 10',
+    'My Waveshare 4', 'My SenseCAP Indicator', 'My Freenove 4', 'My WT32-SC01 Plus', 'My Waveshare P4 7B',
+    'My Waveshare P4 7', 'My Waveshare 10',
 }
 LINT_FILES = ('components/smart_display/*.h', 'packages/core.yaml', 'packages/boards/*.yaml', 'packages/looks/*.yaml',
               'packages/features/*.yaml', 'packages/hardware/*.yaml')

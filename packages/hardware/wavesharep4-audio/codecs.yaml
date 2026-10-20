@@ -1,0 +1,48 @@
+# ESP Screens - the audio codecs and the speaker's amplifier of the Waveshare ESP32-P4 boards that wire their audio as the
+# 86 panel does, for a board file that includes this beside its transport (${P4_AUDIO_TRANSPORT}.yaml in this folder,
+# before this file), settings.yaml and features/audio-amplifier.yaml.
+#
+# The ESP32-P4-86-Panel-ETH-2RO (and the ESP32-P4-WIFI6-Touch-LCD-4B, the same main board), the
+# ESP32-P4-WIFI6-Touch-LCD-7B, and the 7 and 10.1-inch boards of the ESP32-P4-WIFI6-Touch-LCD-X series, as Waveshare's
+# schematics wire them: an ES8311 at 0x18 for the speaker (its ADC is not wired) and an ES7210 at 0x40 for the two
+# microphones on its MIC1 and MIC2, both on the touch panel's I2C bus; the speaker circuit's output, through an
+# attenuator, on the ES7210's MIC3 as the echo cancellation's reference; one I2S bus for both (MCLK GPIO13, BCLK GPIO12,
+# LRCLK GPIO10, speaker data GPIO9, microphone data GPIO11); and an NS4150B amplifier whose enable is GPIO53, high for
+# on, with a pull-down that keeps it off until the firmware turns it on.
+substitutions:
+  # One physical I2S bus, for the AEC transport's full duplex or the original half-duplex I2S path. The ES8311 maps
+  # volume from 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
+  AUDIO_MIC_BUS: ts_speaker_bus
+  AUDIO_DOUT_PIN: GPIO9
+  AUDIO_DIN_PIN: GPIO11
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+audio_adc:
+  - platform: es7210_extended
+    id: ts_audio_adc
+    i2c_id: touch_bus
+    address: 0x40
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    mic_gain: 30db
+    alc:
+      enabled: true
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: touch_bus
+    address: 0x18
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false
+
+switch:
+  - platform: gpio
+    id: board_speaker_amp
+    internal: true
+    pin: GPIO53
+    restore_mode: ALWAYS_OFF

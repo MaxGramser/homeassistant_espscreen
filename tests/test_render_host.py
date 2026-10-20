@@ -37,10 +37,13 @@ class HostBuild(unittest.TestCase):
                 self.assertIn('platform: sdl\n    id: my_display', hardware, item.key)
                 self.assertIn('platform: sdl\n    id: ts_touch', hardware, item.key)
                 self.assertIn('id: gpio_backlight_pwm', hardware, item.key)
-                # Nothing of the ESP32 is left in any file of the chain.
+                # Nothing of the ESP32 is left in any file of the chain, and nothing of the audio, which stands on its
+                # I2S: no audio package and no speaker, microphone or codec block of a board file.
                 for path in (mirror / 'packages').rglob('*.yaml'):
                     blocks = set(re.findall(r'(?m)^([a-z_0-9]+):', path.read_text()))
-                    self.assertFalse(blocks & set(host.HARDWARE_BLOCKS), f'{item.key}: {path.name}')
+                    self.assertFalse(blocks & set(host.HARDWARE_BLOCKS + host.AUDIO_BLOCKS), f'{item.key}: {path.name}')
+                    self.assertFalse(host.audio_package(path.relative_to(mirror / 'packages')), f'{item.key}: {path}')
+                    self.assertNotRegex(path.read_text(), r'(?m)^[^#\n]*!include \S*audio', f'{item.key}: {path.name}')
                 self.assertEqual('\n  LVGL_ROTATION: "' in text, item.key.endswith('-portrait'), item.key)
                 for action in ('render_png', 'render_finger', 'render_state'):
                     self.assertIn(f'- action: {action}', text)

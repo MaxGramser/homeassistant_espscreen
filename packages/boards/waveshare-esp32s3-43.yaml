@@ -26,6 +26,11 @@ substitutions:
   BOARD_ID: "waveshare43"
   DEVICE_NAME: "waveshare-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare"
+  # The flash chip: Waveshare fits an ESP32-S3-WROOM-1-N16R8, but boards with the N8R8's 8 MB are sold under the same
+  # name. A 16 MB build on one of those stops at every start ("Detected size(8192k) smaller than the size in the binary
+  # image header", GitHub #265), so New screen offers 8MB as a choice (boards.yaml). A screen keeps the size it was
+  # installed with: an update over the air leaves the flash's partition table as it is.
+  FLASH_SIZE: "16MB"
 
   # The glass: the panel's own pixels, which the display block below always drives, and its density.
   PANEL_W: "800"
@@ -57,7 +62,7 @@ substitutions:
 # ============================================================
 
 esp32:
-  flash_size: 16MB
+  flash_size: ${FLASH_SIZE}
 
 display:
   # The timings are Waveshare's own (ESP32_Display_Panel, BOARD_WAVESHARE_ESP32_S3_TOUCH_LCD_4_3.h), not the

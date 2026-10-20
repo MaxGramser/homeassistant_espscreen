@@ -53,7 +53,7 @@ board) puts the state beside the map and one row of keys under it.
   the routines, the error (`err`), the progress (`pg`) and the floor cleaned (`ar`). `related()` lists the entities
   whose change sends it again.
 - `screen_manager/app/vacuum_map.py`: the map read once per mark and drawn per size and look; served through the
-  picture port (`camera_feed.CameraFeed.vacuum_map`, the camera request with `vmap`, answered with `t` `vmap`).
+  picture port (the source `vacuum:<entity>` in a picture question, docs/PICTURES.md; an older screen's `vmap` request is read as the same question and answered with `t` `vmap`).
 - `components/smart_display/vacuum_model.h`: the block on the screen and the decisions without LVGL: the keys a robot
   gets, the rooms picked in order and the template for `cleaning_area_id`, floors and pages
   (`tests/test_vacuum_model.cpp`).

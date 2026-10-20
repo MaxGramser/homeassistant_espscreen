@@ -41,7 +41,12 @@ for path in files:
     if not path.is_file():
         raise SystemExit(f"missing firmware renderer source: {path}")
     digest.update(str(path.relative_to(root)).encode())
-    digest.update(path.read_bytes())
+    data = path.read_bytes()
+    # Git checkouts may use CRLF on Windows. The renderer source identity must
+    # match the same source committed with LF and checked on a Linux runner.
+    if path.suffix in {'.h', '.cpp', '.py'}:
+        data = data.replace(b'\r\n', b'\n')
+    digest.update(data)
 # Hash the resolved UI portions, so changing a board's pins does not invalidate
 # the renderer but changing its look, glyph set or boot bindings does.
 sys.path.insert(0, str(root / 'tools'))

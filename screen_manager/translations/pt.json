@@ -915,12 +915,16 @@
         "choose": "Escolha que plugin traz o {feature} para {name}.",
         "other_origin": "Este ecrã usa outro plugin chamado {name}, de {origin}. Mude para este nos seus detalhes.",
         "misfit_esphome": "{name} precisa do ESPHome {version} ou mais recente para compilar.",
-        "like_not_installed": "Coloque primeiro o plugin num dos seus ecrãs, depois pode dar gosto.",
         "like_consent": "Aceite primeiro que o seu gosto conte num número público.",
         "like_off": "Os gostos estão desligados: uma versão mais recente da app gere-os.",
         "like_failed": "O gosto não foi enviado. Tente de novo daqui a pouco.",
         "misfit_built_in": "{name} traz o que esta placa já tem.",
-        "offline": "A app ainda não sabe onde está {screen} na rede. Ligue-o, espere até aparecer online e tente de novo."
+        "offline": "A app ainda não sabe onde está {screen} na rede. Ligue-o, espere até aparecer online e tente de novo.",
+        "like_not_listed": "Só os plugins do catálogo do Tessera podem receber um gosto.",
+        "rate_not_installed": "Ponha primeiro o plugin num dos seus ecrãs e depois pode avaliá-lo.",
+        "rate_failed": "As estrelas não foram enviadas. Tente de novo daqui a pouco.",
+        "count_failed": "Não foi possível desligar a contagem: o Tessera não estava acessível. Tente de novo daqui a pouco.",
+        "forget_running": "Um ecrã ainda usa este plugin. Retire-o primeiro do ecrã."
       },
       "extras": {
         "request": "Esta alteração de um extra não é possível neste ecrã."
@@ -2111,7 +2115,9 @@
         "label": "Ordenar por",
         "popular": "Mais gostados",
         "new": "Mais recentes",
-        "name": "Nome"
+        "name": "Nome",
+        "rated": "Mais bem avaliados",
+        "used": "Mais usados"
       },
       "none_in_tab": {
         "tiles": "Ainda não há plugins com mosaicos.",
@@ -2124,8 +2130,8 @@
         "count": "{n} pessoa gosta | {n} pessoas gostam",
         "like": "Gosto",
         "unlike": "Retirar o seu gosto",
-        "install_first": "Coloque-o primeiro num ecrã, depois pode dar gosto",
-        "ask": "O seu gosto conta num número público por plugin. Só o número é público: nada sobre si, o Home Assistant ou os seus ecrãs é enviado."
+        "ask": "O seu gosto conta num número público por plugin. Só o número é público: nada sobre si, o Home Assistant ou os seus ecrãs é enviado.",
+        "like_hint": "Dê um gosto, mesmo que não esteja em nenhum dos seus ecrãs: um obrigado a quem o fez."
       },
       "along": {
         "title": "Vem junto",
@@ -2178,7 +2184,59 @@
         "history": "Todas as versões"
       },
       "failed_update": "A versão {version} não compilou para {screen}, por isso voltou à {current}, a que está a correr. O registo está em Firmware e USB.",
-      "interrupted": "A app reiniciou durante a compilação."
+      "interrupted": "A app reiniciou durante a compilação.",
+      "stars": {
+        "label": "Estrelas para {name}",
+        "of_five": "{n} de 5 estrelas",
+        "say": {
+          "1": "Não funciona",
+          "2": "Fraco",
+          "3": "Razoável",
+          "4": "Bom",
+          "5": "Ótimo"
+        },
+        "yours": "As suas estrelas",
+        "give": "Como funciona para si?",
+        "clear": "Retirar"
+      },
+      "numbers": {
+        "rating": "{rating} de {n} avaliação | {rating} de {n} avaliações",
+        "few": "{n} avaliação até agora | {n} avaliações até agora",
+        "homes": "usado em {n} casa | usado em {n} casas"
+      },
+      "counting": {
+        "label": "Contar os meus plugins na loja",
+        "hint": "Uma vez por dia, os nomes e versões dos seus plugins e o modelo de cada ecrã. Mais nada.",
+        "on_hint": "Ligado: uma vez por dia, os nomes e versões dos seus plugins e o modelo de cada ecrã vão para o Tessera. Desligar remove-os lá."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} está a correr há {days} dia em {screen}. O que acha? | {name} está a correr há {days} dias em {screen}. O que acha?",
+        "send": "Enviar",
+        "what_title": "O que é partilhado?",
+        "what": {
+          "plugin": "O plugin e a sua versão: {name} {version}",
+          "board": "O modelo do ecrã: {board}",
+          "stars": "As suas estrelas",
+          "counting": "Com a contagem ligada: uma vez por dia, que plugins os seus ecrãs usam, as versões e os modelos dos ecrãs",
+          "nothing_else": "Mais nada: nem nome, nem conta, nem entidades, nem definições do Home Assistant. A app partilha com uma chave aleatória própria."
+        },
+        "thanks": "Obrigado! As suas estrelas estão em {name}.",
+        "heart_hint": "Gosta muito? Dê também um gosto a {maker}. Conta num número público por plugin; nada sobre si é enviado.",
+        "hearted": "Obrigado pelo seu gosto",
+        "issue_hint": "Que pena. Quer que seja corrigido? Abra um issue para {maker}, com a versão e o modelo do seu ecrã já preenchidos.",
+        "issue_open": "Abrir um issue no GitHub"
+      },
+      "sharing": {
+        "title": "Loja de plugins",
+        "text": "Ajude outros a encontrar bons plugins. Gostos e estrelas só seguem quando os dá, a contagem só enquanto estiver ligada.",
+        "asking": "Pedir estrelas alguns dias depois de um plugin novo",
+        "asking_hint": "Um cartão por cima do ecrã, um plugin de cada vez."
+      },
+      "forget": {
+        "go": "Remover da lista",
+        "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação."
+      }
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",
@@ -2308,7 +2366,6 @@
         "live_card_hint": "A imagem preenche o mosaico, atualizada ao ritmo abaixo enquanto a página está no ecrã. Um toque continua a abri-la em ecrã inteiro.",
         "live_card_needs_firmware": "Uma imagem que preenche o mosaico precisa do firmware 0.3.7 ou mais recente: prima Atualizar no ecrã depois de guardar. Até lá o ecrã mostra uma imagem pequena no lugar do ícone.",
         "cover": "Capa do álbum",
-        "cover_hint": "A capa do álbum do que está a tocar no lugar do ícone, como no próprio mosaico do Home Assistant; um leitor sem imagem mantém o seu ícone. Um toque continua a abrir o cartão.",
         "cover_needs_firmware": "A capa do álbum no mosaico precisa do firmware 0.2.78 ou mais recente: prima Atualizar no ecrã depois de guardar.",
         "map": "Mapa",
         "map_hint": "Onde estão esta pessoa e as que adicionar, num mapa calmo nas cores do ecrã. O Home Assistant fornece as ruas do OpenStreetMap; o ecrã só recebe a imagem, nunca uma localização. É redesenhado quando alguém se move. Um toque abre-o em todo o ecrã.",
@@ -3149,10 +3206,20 @@
         "calibration": "Calibração do toque no primeiro arranque"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controlador do ecrã"
+        "DISPLAY_MODEL": "Controlador do ecrã",
+        "FLASH_SIZE": "Memória flash",
+        "BOARD_VARIANT": "Placa"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "A maioria destas placas tem o primeiro. Escolha o outro se o ecrã mostrar ruído ou uma imagem distorcida."
+        "DISPLAY_MODEL": "Comece pelo primeiro. Escolha o outro se o ecrã ficar preto ou mostrar ruído ou uma imagem distorcida.",
+        "FLASH_SIZE": "A maioria destas placas tem 16 MB. Escolha 8 MB se o ecrã ficar preto após a instalação e reiniciar uma e outra vez.",
+        "BOARD_VARIANT": "Escolha a que tem. Na placa amarela sem caixa, um toque no canto superior esquerdo iria parar ao canto inferior direito."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Preta, com caixa",
+          "yellow": "Amarela, sem caixa"
+        }
       },
       "choice_usual": "a maioria",
       "orientation_landscape": "Na horizontal",

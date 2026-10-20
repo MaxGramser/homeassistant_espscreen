@@ -60,7 +60,7 @@ struct Metrics {
   int gap() const { return ui::px(large ? 12 : 6); }
   int margin() const { return ui::px(large ? 24 : 10); }
   int max_art() const { return ui::px(large ? 200 : 120); }
-  // The largest cover ESP Screen Manager serves: `camera_feed.COVER_SIZES[1]`, guarded by tests/test_media_card.py.
+  // The largest cover ESP Screen Manager serves: `picture_legacy.COVER_SIZES[1]`, guarded by tests/test_media_card.py.
   // The app cuts and rounds a player's picture to exactly the size the card asks for and the screen draws what comes
   // back one to one, so a square the app will not serve is a square that stays empty: an add-on that does not know
   // the size answers nothing at all, and an older add-on than this firmware never will. Raising it is a change in

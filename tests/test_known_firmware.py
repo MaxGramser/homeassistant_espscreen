@@ -18,7 +18,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 sys.path.insert(0, str(ROOT / 'tests'))
-import camera_feed  # noqa: E402
+import picture_question  # noqa: E402
 from core import (alert_targets, discover_screens, firmware_features, known_firmware, parse_firmware, registry_firmware,  # noqa: E402
                   screen_firmware, tile_limit)
 import updates  # noqa: E402
@@ -74,10 +74,10 @@ class Versions(unittest.TestCase):
         restarting = {'id': 'text.hall', 'name': 'Hall', 'node': 'hall', 'online': True, 'board': 'guition',
                       'firmware': 'unknown', 'firmware_known': '0.2.63'}
         self.assertEqual(alert_targets([restarting]), ([restarting], []))
-        self.assertTrue(camera_feed.can_show(restarting))
+        self.assertTrue(picture_question.draws_pictures(restarting))
         unknown = {**restarting, 'firmware_known': None}
         self.assertEqual(alert_targets([unknown])[1], [(unknown, 'firmware unknown')])
-        self.assertFalse(camera_feed.can_show(unknown))
+        self.assertFalse(picture_question.draws_pictures(unknown))
 
 
 def tiles(count, prefix='light.l'):

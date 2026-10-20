@@ -28,5 +28,10 @@ WORKDIR /app
 # under the Supervisor every other address gets a 403, so it is /health and not /.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl --fail --silent --output /dev/null http://127.0.0.1:8099/health || exit 1
+# The image GitHub builds from dev for Docker is the dev app (docker.yml passes CHANNEL=dev), which an app without a
+# Supervisor reads (core.start_channel). Empty everywhere else: under the Supervisor the app's slug says it. Last, so
+# dev and main share every layer above.
+ARG CHANNEL=""
+ENV SCREEN_CHANNEL="${CHANNEL}"
 ENTRYPOINT []
 CMD ["python3", "/app/server.py"]

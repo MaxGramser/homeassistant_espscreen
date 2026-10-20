@@ -1,12 +1,14 @@
 #pragma once
-// Pictures kept until they change (firmware 0.3.2+). A download lands in one of the board's online_image buffers, which
-// the next download overwrites; the store copies it into memory of its own (PSRAM) under what was asked for (the tiles,
-// their colours, the track), and the cards draw that copy. A page that comes back finds its pictures here: an album cover
-// is not fetched again while the track plays, a camera shows its last picture at once and refreshes at its own pace.
+// Pictures kept until they change (firmware 0.3.2+). A download lands in a buffer of its own (picture_fetch); the store
+// takes that buffer over as it is under what was asked for (the tiles, their colours, the track), and the cards draw it.
+// A page that comes back finds its pictures here: an album cover is not fetched again while the track plays, a camera
+// shows its last picture at once and refreshes at its own pace.
 //
-// A copy stays where it is while a card may draw it: a camera's next picture of the same size is written over the old
-// one, another size gets a new copy and the old one waits until no card shows it (`collect`). The store keeps to its
-// budget by dropping the pictures used longest ago, never one a card still shows.
+// One picture is in memory once (docs/PICTURES.md, "Memory"): the store never copies a download (adopt), it takes its
+// buffer and the download lets go of it (picture_fetch::hand_over). The picture it replaces, a camera's last frame or
+// the photo before, stays on the glass until its cards show the new one and goes at the next `collect`: two pictures at
+// the moment one changes over to the next, never three. The store keeps to its budget by dropping the pictures used
+// longest ago, never one a card still shows.
 //
 // Pure bookkeeping over an image descriptor with LVGL's fields (header, data_size, data), so tests/test_picture_store.cpp
 // checks it on a PC with a stand-in; runtime_tiles.h uses lv_image_dsc_t and PSRAM.
@@ -34,13 +36,13 @@ constexpr size_t ENTRIES = 48;
 // its own (tile_picture.h), so only a tile larger than the cap, a camera over a whole 10-inch page, comes smaller and
 // is shown in the middle of its place. 1024x640 keeps every board up to the
 // 7-inch and the 1024x600 glass at its own pixels. ESP Screen Manager caps the pictures it sizes itself with the same
-// numbers (camera_feed.PICTURE_MAX_SIDE and PICTURE_MAX_BYTES, tests/test_camera.py keeps them equal).
+// numbers (picture_question.MAX_SIDE and MAX_BYTES, tests/test_camera.py keeps them equal).
 constexpr int MAX_SIDE = 1024;
 constexpr size_t MAX_BYTES = 1024 * 640 * 2;
 // A board whose store has the room takes larger pictures (GitHub #183): one picture may be a third of the store's
 // budget, at most LARGE_SIDE either way. The 32 MB of the P4 boards keep 6 MB, so one picture of 2 MB: the 10-inch
 // glass's 1280x800 at its own pixels, for a camera over the whole page, the full view and the screensaver. A board with
-// 8 MB keeps the cap above. ESP Screen Manager honours the same side (camera_feed.PICTURE_LARGE_SIDE).
+// 8 MB keeps the cap above. ESP Screen Manager honours the same side (picture_question.LARGE_SIDE).
 constexpr int LARGE_SIDE = 2048;
 struct Cap {
   int side = MAX_SIDE;
@@ -49,6 +51,9 @@ struct Cap {
 inline Cap cap_for(size_t budget) {
   Cap cap;
   if (budget / 3 > MAX_BYTES) { cap.side = LARGE_SIDE; cap.bytes = budget / 3; }
+  // Never more than the store can keep at all (a board whose PSRAM gives a store under MAX_BYTES): a picture over its
+  // budget could only be drawn from its download, outside every budget.
+  else if (budget > 0 && budget < cap.bytes) cap.bytes = budget;
   return cap;
 }
 // A scale in 1/SCALE_ONE, so the screen and its request round a picture's frames the same way.
@@ -74,7 +79,6 @@ template <class Image> struct Store {
     bool retired = false;    // replaced by a copy of another size; freed once no card shows it
   };
   std::array<Entry, ENTRIES> entries{};
-  std::function<void *(size_t)> allocate;
   std::function<void(void *)> release;
   // Whether a card (or an open card over the page) still draws a picture: put() makes room only with what none draws.
   std::function<bool(const Image *)> shown;
@@ -100,31 +104,23 @@ template <class Image> struct Store {
     e->used = ++uses;
     return &e->image;
   }
-  // Keep a copy of `from` under `key`. The same key with the same size keeps its place (the cards drawing it show the
-  // new picture); nullptr when there is no room, and the caller draws nothing from the store. With every slot taken the
-  // picture used longest ago that no card draws makes way (make_room).
-  Image *put(const std::string &key, const Image &from, uint32_t now) {
-    if (!budget || !allocate || !from.data || !from.data_size || key.empty() || from.data_size > budget) return nullptr;
-    Entry *e = entry(key);
-    if (e && e->bytes == from.data_size && std::memcmp(&e->image.header, &from.header, sizeof(from.header)) == 0) {
-      std::memcpy(e->buffer, from.data, from.data_size);
-      e->stored_at = now; e->used = ++uses;
-      note("renews", *e);
-      return &e->image;
-    }
-    if (e) { e->retired = true; note("retires (another size)", *e); }
+  // Keep `from`'s own pixels under `key`: the store owns its buffer from now on (freed by `release`, as the download
+  // allocated it) and the caller lets go of it. A picture under the same key before it is retired: it stays while a card
+  // draws it and goes at the next collect. nullptr when there is no room: the caller keeps its buffer and draws it
+  // itself. With every slot taken the picture used longest ago that no card draws makes way (make_room).
+  Image *adopt(const std::string &key, const Image &from, uint32_t now) {
+    if (!budget || !from.data || !from.data_size || key.empty() || from.data_size > budget) return nullptr;
     Entry *slot = nullptr;
     for (auto &c : entries) if (!c.buffer) { slot = &c; break; }
     if (!slot) slot = make_room();
     if (!slot) return nullptr;
-    void *buffer = allocate(from.data_size);
-    if (!buffer) return nullptr;
-    std::memcpy(buffer, from.data, from.data_size);
-    slot->key = key; slot->buffer = buffer; slot->bytes = from.data_size;
+    if (Entry *old = entry(key)) { old->retired = true; note("retires (the next picture came)", *old); }
+    slot->key = key;
+    slot->buffer = const_cast<void *>(static_cast<const void *>(from.data));
+    slot->bytes = from.data_size;
     slot->image = from;
-    slot->image.data = static_cast<decltype(from.data)>(buffer);
     slot->stored_at = now; slot->used = ++uses; slot->retired = false;
-    note("keeps", *slot);
+    note("takes", *slot);
     return &slot->image;
   }
   // Every slot taken (firmware 0.52.0): the picture that no card draws and was used longest ago makes way, one no longer

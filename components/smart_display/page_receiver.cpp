@@ -107,6 +107,12 @@ std::string receive(const std::string &payload) {
       if (!page_protocol::key(string(root["request"]), request)) return false;
       // Tessera says whether it has tiles for this screen yet (app 0.4.74+): without, the starting screen asks for them.
       awaiting_tiles = root["empty"].is<bool>() && root["empty"].as<bool>();
+      // What the app reads besides (its `features`): "pictures", every picture asked as one question (picture_question.h).
+      // An older app says nothing, and gets the fields it reads.
+      app_reads_questions = false;
+      if (root["features"].is<JsonArray>())
+        for (JsonVariant feature : root["features"].as<JsonArray>())
+          if (feature.is<const char *>() && std::string(feature.as<const char *>()) == "pictures") app_reads_questions = true;
       const uint64_t random = (uint64_t{esphome::random_uint32()} << 32) | esphome::random_uint32();
       result = "Session:" + protocol_key(transfer.grant(request, random));
       return true;
@@ -360,23 +366,42 @@ std::string receive(const std::string &payload) {
       // A link to a camera's image (app 0.2.66+): the answer to camera_request ("full"), or an alert's image ("alert",
       // announced with an empty link before show_alert and sent again with the link), or the media card's cover
       // ("cover", app 0.2.77+). Only ESP Screens' own port.
-      const std::string view = string(root["t"], 8), entity = string(root["e"], view == "live" ? 400 : 120), url = string(root["u"], 240);
+      std::string view = string(root["t"], 8), entity = string(root["e"], view == "live" ? 400 : 120);
+      const std::string url = string(root["u"], 240);
+      uint32_t number = root["view"].is<unsigned>() ? root["view"].as<unsigned>() : 0;
+      bool numbered = root["view"].is<unsigned>();
+      // "q" (an app that reads questions, picture_question.h): the answer to a question by its number `n`, which says
+      // how it was asked (the `t` and `e` an older app answers with) and the owner's own number of it, so it goes on
+      // where that answer always went.
+      if (view == "q") {
+        const auto *asked = root["n"].is<unsigned>() ? picture_numbers.find(root["n"].as<unsigned>()) : nullptr;
+        if (!asked) {
+          ESP_LOGD("picture", "answer to a question no longer asked: dropped");
+          result = "Synced";
+          return true;
+        }
+        view = asked->kind;
+        entity = asked->entity;
+        number = asked->own;
+        numbered = true;
+      }
       // "live" (app 0.2.91+): a page's pictures, asked per tile (tile_picture.h); `e` names the tile's entity.
       // "lib" (app 0.4.42+, firmware 0.24.0+): the covers of a page of a player's library, one picture.
       // "saver" (app 0.4.48, firmware 0.29.0+): the screensaver's picture of the whole glass, as a full view's.
       // "vmap" (module vacuum): a vacuum card's map, cleaned up by the app (vacuum_map.py).
       // "pcard" (plugin API 0.13): the pictures of a plugin's card over the page; `e` names the card (plugin:<p>.<card>).
       // "psaver" (plugin API 0.14): the pictures of a plugin's screensaver; `e` names it (plugin:<p>.<saver>).
-      if (view == "live" ? !valid_entity_list(entity) : (!valid_entity(entity) && entity != SAVER_PHOTOS) || (view != "full" && view != "alert" && view != "cover" && view != "lib" && view != "saver" && view != "vmap" && view != "pcard" && view != "psaver")) return false;
+      // "plive" (plugin API 0.17, a question only): the stream of a plugin tile's live place; `e` names its camera.
+      if (view == "live" ? !valid_entity_list(entity) : (!valid_entity(entity) && entity != SAVER_PHOTOS) || (view != "full" && view != "alert" && view != "cover" && view != "lib" && view != "saver" && view != "vmap" && view != "pcard" && view != "psaver" && view != "plive")) return false;
       if (!url.empty() && url.rfind("http://", 0) != 0) return false;
       // Every answer but an alert's carries the number of its question; one to an older question is dropped. A tile's
       // picture is the answer to that tile's last question (tile_picture::Questions).
-      const uint32_t number = root["view"].is<unsigned>() ? root["view"].as<unsigned>() : 0;
       const bool current = view == "live" ? tile_questions.answered(number) >= 0
                            : view == "pcard" ? plugin_host::card_question(number)
                            : view == "psaver" ? plugin_host::saver_question(number)
+                           : view == "plive" ? live_place_question(number)
                            : number == (view == "cover" ? cover_view_id : view == "lib" ? library_art_view_id : view == "vmap" ? vacuum_map_view_id : camera_view_id);
-      if (view != "alert" && (!root["view"].is<unsigned>() || !current)) {
+      if (view != "alert" && (!numbered || !current)) {
         ESP_LOGD("picture", "answer %u (%s) to an older question: dropped", (unsigned) number, view.c_str());
         result = "Synced"; return true;
       }

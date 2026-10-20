@@ -285,6 +285,66 @@ describe("New screen from this browser", () => {
 });
 
 // Firmware & USB: reinstall or rescue a screen from this browser, keeping its settings (no erase).
+// Firmware & USB fills in the address a paired screen's Update goes to (PR #143), until the person types another.
+describe("Firmware & USB fills in a paired screen's address", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  function pairedProfiles() {
+    const status = { available: true, ports: [], logs: [], job: null, wifi: { state: "ready" }, boards: {},
+      profiles: [{ file: "hall.yaml", host: "192.0.2.10" }, { file: "office.yaml", host: "192.0.2.20" }, { file: "spare.yaml" }] as { file: string; host?: string }[] };
+    const posted: any[] = [];
+    addon(factoryImage(0, 0x1000), (url, options) => {
+      if (url.endsWith("api/firmware")) return new Response(JSON.stringify(status));
+      if (url.includes("api/inventory")) return new Response(JSON.stringify({ screens: [], line: [] }));
+      if (url.endsWith("api/firmware/jobs") && options.method === "POST") {
+        posted.push(JSON.parse(options.body));
+        return new Response(JSON.stringify({ id: 4, by: "install", ...JSON.parse(options.body), state: "queued" }));
+      }
+      return null;
+    });
+    return { status, posted };
+  }
+  const hostField = (view: ReturnType<typeof mount>) => (view.get("#firmware-host").element as HTMLInputElement).value;
+
+  it("fills in and sends the chosen profile's address, and none for a profile it has none for", async () => {
+    const { posted } = pairedProfiles();
+    const view = mount(FirmwareView);
+    await flushPromises();
+    expect(hostField(view)).toBe("192.0.2.10");
+    await view.get("#firmware-file").setValue("office.yaml");
+    expect(hostField(view)).toBe("192.0.2.20");
+    await view.get("#firmware-install").trigger("click");
+    await flushPromises();
+    expect(posted).toEqual([{ file: "office.yaml", action: "install", target: "192.0.2.20" }]);
+    await view.get("#firmware-file").setValue("spare.yaml");
+    expect(hostField(view)).toBe("");
+  });
+
+  it("follows a new address until one is typed, which stays with its profile, an emptied field too", async () => {
+    const { status } = pairedProfiles();
+    const view = mount(FirmwareView);
+    await flushPromises();
+    status.profiles[0].host = "192.0.2.11";
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+    expect(hostField(view)).toBe("192.0.2.11");
+    await view.get("#firmware-host").setValue("hall.example.test");
+    status.profiles[0].host = "192.0.2.12";
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+    expect(hostField(view)).toBe("hall.example.test");
+    await view.get("#firmware-file").setValue("office.yaml");
+    expect(hostField(view)).toBe("192.0.2.20");
+    await view.get("#firmware-file").setValue("hall.yaml");
+    expect(hostField(view)).toBe("hall.example.test");
+    await view.get("#firmware-host").setValue("");
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+    expect(hostField(view)).toBe("");
+  });
+});
+
 describe("Firmware & USB from this browser", () => {
   it("builds the profile, then writes it without erasing", async () => {
     const flasher = fakeFlasher("ESP32");

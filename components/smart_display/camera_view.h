@@ -3,7 +3,7 @@
 // again. Pure bookkeeping, free of LVGL and ESPHome, so tests/test_camera_view.cpp can check it on a PC; runtime_tiles.h
 // draws the view and the board's online_image loads the link.
 //
-// The app answers `esphome.screen_camera` with a link to a BMP it keeps fresh (screen_manager/app/camera_feed.py).
+// The app answers `esphome.screen_camera` with a link to a BMP it keeps fresh (docs/PICTURES.md, picture_service.py).
 // Loading shares the main loop with touch and drawing, so the view loads one image at a time and leaves time free after
 // each. The rhythm is fixed rather than as fast as the Wi-Fi allows: a picture every four seconds, every time, reads as
 // smoother than one after three seconds and the next after five. Never a queue: a slow load makes the next one later.

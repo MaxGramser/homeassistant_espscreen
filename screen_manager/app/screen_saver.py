@@ -5,7 +5,7 @@ outlives a renamed inbox and leaves the layouts' storage alone: a media player (
 0.4.54), a camera and the order the screen tries them in, with the clock as a step of its own. This app decides which
 step is available right now (a player that plays and has a cover, a camera Home Assistant has, the clock always) and tells the screen in one small message whenever that
 changes. The screen asks for its picture the way a camera's full view does, and the app makes one picture of the whole
-glass (camera_feed.encode_saver): a camera filling it, a cover filling it or beside its own colour, all a little darker
+glass (picture_paint, the fit `saver`): a camera filling it, a cover filling it or beside its own colour, all a little darker
 for the words over it. Nothing on it takes a tap, so the first touch only wakes the screen.
 
 A board without pictures (the CYD and the other boards without PSRAM) shows the clock; its editor offers nothing else."""
@@ -275,7 +275,7 @@ def player(choice, states, keys=False, now=None, held='', broken=()):
     screen with keys (KEYS_FEATURE) a player paused a short while ago counts after those, the first of them in the
     order, with the cover Home Assistant still has for it. `held` is the player the screen shows: paused just now, it
     stays before every other (HELD_SECONDS). A player in `broken` has a cover that could not be fetched
-    (camera_feed.cover_broken) and counts as one without a cover: the glass would stay black where it never comes."""
+    (picture_sources.Snapshots.cover_broken) and counts as one without a cover: the glass would stay black where it never comes."""
     now = time.time() if now is None else now
     tried = [entity for entity in players(choice) if entity not in broken]
     if keys and held in tried and _has_cover(states.get(held), PAUSED) and _paused_lately(states.get(held), now, HELD_SECONDS):

@@ -16,7 +16,7 @@ CONFIG_SCHEMA=cv.Schema({
 }).extend(cv.COMPONENT_SCHEMA)
 async def to_code(config):
     if getattr(smart_display, "MEDIA_SCREEN_API", 0) != 1:
-        raise cv.Invalid("Music Assistant Screen requires the private Tessera media-screen extension; stock Tessera cannot build this plugin yet.")
+        raise cv.Invalid("Music Assistant Screen requires Tessera media-screen API 0.19 or later.")
     var=cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var,config)
     await smart_display.register_plugin(var,__file__)

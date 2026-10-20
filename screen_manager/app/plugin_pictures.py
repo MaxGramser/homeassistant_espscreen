@@ -1,132 +1,51 @@
-"""Pictures on a plugin's tile (plugin API 0.10, docs/PLUGINS.md "Pictures") and on a plugin's card over the page
-(0.13): the app's side of the question a plugin tile or card asks for its places (tile_picture.h "parts",
-plugin_host.cpp).
+"""What a plugin's places may show, and the pictures at their addresses (plugin API 0.10 a tile, 0.13 a card, 0.14 a
+screensaver; docs/PLUGINS.md "Pictures", docs/PICTURES.md).
 
-The screen asks with the event every tile picture is asked with (`esphome.screen_camera` with `tiles`, `idx`, `bg`,
-`dark`, `atlas`), plus `src`, the address of each frame, and `fit`, how each fills its frame. The app checks that the
-tile is a plugin tile of the screen's layout whose manifest gives it places, and each address against what the manifest
-allows (`allowed`): a host of `permissions.network`, or a picture of Home Assistant's own for a tile of an entity. A
-card's question has `card` and `for` (the entity it shows) beside them, and is a card of a plugin on that screen whose
-manifest gives it places; Home Assistant's own pictures are for a card shown for an entity of the screen's layout. It
-fetches each address once (a cache by address, so a page that comes back costs no fetch), paints the atlas as every
-tile picture is painted (tile_art.encode) and answers with a link to it, as it answers a camera tile. Nothing of the
-plugin runs here: the manifest is read, the addresses are data.
+A plugin's place asks like every place of the screen (picture_question, or picture_legacy for older firmware) and is
+answered by the one service (picture_service). What is a plugin's own is here: the rules its manifest sets (how many
+places, which hosts under `permissions.network`, Home Assistant's own pictures for a place of an entity, the screensaver
+step's own picture for a face of that step) and the fetching of its addresses, through the plugins' own session
+(plugin_fetch.Fetcher: public hosts only, no redirects) or Home Assistant's, kept by address. Nothing of the plugin runs
+here: the manifest is read, the addresses are data.
 """
 import asyncio
-import json
-import logging
-import re
-import time
 from collections import OrderedDict
+import logging
+import time
 
-import core
 import plugin_fetch
-import plugin_manifest as pm
-import tile_art
+import picture_question as pq
 
 LOG = logging.getLogger('plugins')
 
-FITS = ('cover', 'contain')
-MAX_URL = 512                  # an address, as a fetch's URL
 PICTURE_BYTES = 2 * 1024 * 1024  # one picture as it comes from its host; a poster is a few tens of KB
 CACHE_BYTES = 16 * 1024 * 1024   # pictures kept by address, the least used going first
 KEEP_SECONDS = 6 * 3600        # a picture is fetched again after this long (a poster at the same address rarely changes)
 FAIL_SECONDS = 60              # an address that did not come is not tried again sooner
-# The pictures of Home Assistant's own a tile may show: an entity's `entity_picture` as the map takes a person's
-# (server.HomeAssistant.entity_picture reads exactly these, with the app's own token).
-HA_PICTURES = ('/api/image/serve/', '/api/image_proxy/', '/local/')
-# A screensaver's picture of its step (0.14): the cover of the music on the glass, the photo of the photos step. A face of
-# that step names it instead of an address, and the app cuts the step's own picture to the place.
+# The screensaver step's own picture (0.14): the cover of the music on the glass, the photo of the photos step. A face of
+# that step names it instead of an address, and the app cuts the step's own picture to the place. `saver:picture` is its
+# name in API 0.14 to 0.16, `step:` from 0.17.
 SAVER_PICTURE = 'saver:picture'
 SAVER_PICTURE_STEPS = ('media', 'photos')
 
 
-class Question:
-    """What one plugin tile asked for."""
-    __slots__ = ('entity', 'plugin', 'tile', 'index', 'atlas', 'sources', 'fits', 'ground', 'dark', 'turns', 'mirrors',
-                 'card', 'of', 'saver')
-
-    def __init__(self, entity, plugin, tile, index, atlas, sources, fits, ground, dark, turns=None, mirrors=None,
-                 card=False, of='', saver=False):
-        self.entity, self.plugin, self.tile, self.index = entity, plugin, tile, index
-        self.atlas, self.sources, self.fits, self.ground, self.dark = atlas, sources, fits, ground, dark
-        self.turns = turns or [''] * len(sources)
-        self.mirrors = mirrors or [False] * len(sources)
-        # A card's question (0.13): `tile` is then the card's id, `index` None, `of` the entity it shows ('' for none).
-        self.card, self.of = card, of
-        # A screensaver's question (0.14): `tile` is the saver's id, `index` None, `of` the entity of its step.
-        self.saver = saver
-
-    def styles(self):
-        """How each frame is painted (tile_art.layers): its fit, its turn and whether a reflection goes under it."""
-        return [('fill' if fit == 'cover' else 'within', turn, mirror)
-                for fit, turn, mirror in zip(self.fits, self.turns, self.mirrors)]
-
-
-def parse(request, canvas):
-    """The Question a plugin tile's request carries, or None when it is not one the app can serve: `tiles` one plugin
-    tile, `idx` its index, `atlas` its frames within `canvas` (the screen's shape), `src` one address per frame and
-    `fit` one of FITS per frame (cover without), `bg` the card's colour behind the corners; and, when a place asks
-    for them, `turn` one of tile_art.TURNS per frame and `mirror` 0 or 1 per frame. The frames may overlap: they are the
-    layers of one card."""
-    if not isinstance(request, dict):
-        return None
-    entity = request.get('tiles')
-    parts = core.plugin_tile(entity) if isinstance(entity, str) else None
-    idx, ground = request.get('idx'), request.get('bg')
-    card = request.get('card') == '1'
-    saver = request.get('saver') == '1'
-    of = request.get('for') or ''
-    if (card or saver) and (not isinstance(of, str) or of and not core.plugin_entity(of)):
-        return None
-    if card and saver:
-        return None
-    if not parts or not (card or saver) and (not isinstance(idx, str) or not idx.isdigit() or len(idx) > 3):
-        return None
-    if not isinstance(ground, str) or not re.fullmatch(r'[0-9A-Fa-f]{6}', ground):
-        return None
-    try:
-        sources = json.loads(request.get('src') or '')
-        fits = json.loads(request.get('fit') or '[]')
-    except (ValueError, TypeError):
-        return None
-    if not isinstance(sources, list) or not 1 <= len(sources) <= pm.MAX_PICTURES or not isinstance(fits, list):
-        return None
-    if not all(isinstance(s, str) and 0 < len(s) <= MAX_URL for s in sources):
-        return None
-    fits = fits or ['cover'] * len(sources)
-    if len(fits) != len(sources) or any(f not in FITS for f in fits):
-        return None
-    try:
-        turns = json.loads(request['turn']) if request.get('turn') else [''] * len(sources)
-        mirrors = json.loads(request['mirror']) if request.get('mirror') else [0] * len(sources)
-    except (ValueError, TypeError):
-        return None
-    if not isinstance(turns, list) or len(turns) != len(sources) or any(t not in tile_art.TURNS for t in turns):
-        return None
-    if not isinstance(mirrors, list) or len(mirrors) != len(sources) or any(m not in (0, 1) for m in mirrors):
-        return None
-    atlas = tile_art.parse(request.get('atlas'), canvas, len(sources), overlap=True)
-    if atlas is None:
-        return None
-    return Question(entity, parts[0], parts[1], None if card or saver else int(idx), atlas, sources, fits, int(ground, 16),
-                    str(request.get('dark') or '') == '1', turns, [bool(m) for m in mirrors], card, of, saver)
-
-
 def allowed(url, manifest, tile, of_entity=None):
-    """Where a picture of a tile (or a card, 0.13) with this manifest may come from: 'network' for an address on a host
-    the manifest names under permissions.network, 'home_assistant' for a picture of Home Assistant's own (HA_PICTURES)
-    on a tile of an entity (`of_entity`: a card shown for one), None for anything else (the app fetches nothing it does
-    not name)."""
+    """Where a picture of a plugin's place with this manifest may come from: 'network' for an address on a host the
+    manifest names under permissions.network, 'home_assistant' for a picture of Home Assistant's own
+    (picture_question.HA_PICTURES) on a place of an entity (`of_entity`: a card or step shown for one, else the tile's
+    `domains` say), 'saver' for the step's own picture on a face of that step, None for anything else (the app fetches
+    nothing it does not name). `tile` is the manifest's tile, card or screensaver."""
     if not manifest or not tile or not tile.get('pictures'):
         return None
-    if url == SAVER_PICTURE:
+    source = pq.source(url)
+    if source is None:
+        return None
+    if source.kind == 'step':
         return 'saver' if tile.get('step') in SAVER_PICTURE_STEPS else None
     of_entity = bool(tile.get('domains')) if of_entity is None else of_entity
-    if url.startswith('/'):
-        path = url.split('?', 1)[0]
-        if of_entity and path.startswith(HA_PICTURES) and '..' not in path and '//' not in url[1:]:
-            return 'home_assistant'
+    if source.kind == 'ha':
+        return 'home_assistant' if of_entity else None
+    if source.kind != 'url':
         return None
     try:
         plugin_fetch.Fetcher.check_host(url, manifest['permissions']['network'])
@@ -135,24 +54,26 @@ def allowed(url, manifest, tile, of_entity=None):
     return 'network'
 
 
-def refused(question, manifest, tile, of_entity=None):
-    """Why a question is not answered with pictures, as a sentence for the log; None when it may be. `tile` is the
-    manifest's tile, or its card for a card's question."""
-    what = 'card' if question.card else 'screensaver' if question.saver else 'tile'
+def refused_source(source, count, manifest, tile, of_entity=None):
+    """Why a plugin's place may not show `source` (one of `count` places), as a sentence for the log; None when it may.
+    The core's sources (`camera`, `cover`, `entity`, plugin API 0.17) are a place's of an entity; picture_sources checks
+    that it is the place's own entity."""
     if not manifest or not tile:
-        return f'the screen does not run the plugin, or the plugin has no such {what}'
+        return 'the screen does not run the plugin, or the plugin has no such place'
     if not tile.get('pictures'):
-        return f'the manifest gives the {what} no pictures'
-    if len(question.sources) > tile['pictures']:
-        return f'{len(question.sources)} pictures asked, the manifest allows {tile["pictures"]}'
-    for url in question.sources:
-        if not allowed(url, manifest, tile, of_entity):
-            return f'{url[:80]} is not an address the plugin may show'
+        return 'the manifest gives the place no pictures'
+    if count > tile['pictures']:
+        return f'{count} pictures asked, the manifest allows {tile["pictures"]}'
+    if source.kind in ('camera', 'cover', 'entity'):
+        of = bool(tile.get('domains')) if of_entity is None else of_entity
+        return None if of else f'{source.text[:80]}: the place shows no entity'
+    if not allowed(source.text, manifest, tile, of_entity):
+        return f'{source.text[:80]} is not an address the plugin may show'
     return None
 
 
 class Pictures:
-    """The pictures of every plugin tile: fetched through the plugins' own session (plugin_fetch.Fetcher: public hosts
+    """The pictures at plugins' addresses: fetched through the plugins' own session (plugin_fetch.Fetcher: public hosts
     only, no redirects) or Home Assistant's (`ha_picture(path)`, the app's own token), kept by address."""
 
     def __init__(self, fetcher, ha_picture=None, clock=time.monotonic):
@@ -170,9 +91,9 @@ class Pictures:
             self.cache.popitem(last=False)
 
     async def fetch(self, url, manifest, tile, of_entity=None):
-        """The picture at `url` for a tile (or card) with this manifest, or None when it does not come (logged once;
-        tried again after FAIL_SECONDS). A picture that came is kept KEEP_SECONDS, by address: a card that shows the
-        cover its tile shows costs no fetch."""
+        """The picture at `url` for a place with this manifest, or None when it does not come (logged once; tried again
+        after FAIL_SECONDS). A picture that came is kept KEEP_SECONDS, by address: a card that shows the cover its tile
+        shows costs no fetch."""
         where = allowed(url, manifest, tile, of_entity)
         if not where or where == 'saver':  # the step's own picture comes from the app (server.saver_picture)
             return None
@@ -204,12 +125,6 @@ class Pictures:
             if len(self.locks) > 64:
                 self.locks.pop(next(iter(self.locks)))
         return raw
-
-    async def atlas(self, question, raws, compact=False):
-        """The BMP of a question's frames with their pictures (None where one did not come: the frame stays the card's
-        colour), painted as every tile picture is."""
-        return await asyncio.get_running_loop().run_in_executor(
-            None, tile_art.layers, raws, question.ground, question.atlas, question.styles(), compact)
 
     def forget(self):
         self.cache.clear()

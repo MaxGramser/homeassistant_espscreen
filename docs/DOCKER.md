@@ -163,6 +163,35 @@ This pulls the latest version from `main`, the same one the App store offers. To
 one version, replace `latest` in the `image:` line of `compose.yaml` with a version number, such as `0.3.22`.
 After an update, Tessera shows per screen whether newer firmware is available, as usual.
 
+## Testing dev
+
+To try what comes with the next release, use the image GitHub builds from the `dev` branch,
+`ghcr.io/maxgramser/homeassistant_espscreen:dev`. It is the dev app that Home Assistant installs from the repository
+URL with `#dev` ([RELEASING.md, "Testing dev"](RELEASING.md#testing-dev)):
+
+- its screens build from dev: when it starts, it points every screen's YAML in the ESPHome folder at dev (`ref: dev`
+  and `GITHUB_REF`), and each screen's details have **Reinstall from dev**;
+- the Plugins page also lists the plugins that wait for the next release;
+- a new image comes with every change to the app on dev, and dev can break.
+
+In `compose.yaml`, change two lines, then run `docker compose pull` and `docker compose up -d`:
+
+```yaml
+    image: ghcr.io/maxgramser/homeassistant_espscreen:dev
+```
+
+```yaml
+      - ./data-dev:/data                 # the dev app's own layouts, so the release's stay as they are
+```
+
+With a data folder of its own it starts without tiles, like the dev app in Home Assistant; the screens and their YAML
+are shared. It uses the same ports (8099 and 8098), so it replaces the release's container instead of running beside
+it. The same two commands get a newer dev.
+
+To go back, put `latest` and `./data` back, and add `SCREEN_CHANNEL: main` under `environment:`. When the app starts,
+it then points every screen back at main. Without that line the release's app leaves a screen's `ref:` as it is, so a
+screen would stay on dev.
+
 ## Settings in compose.yaml
 
 | Setting | What it does |
@@ -174,3 +203,4 @@ After an update, Tessera shows per screen whether newer firmware is available, a
 | `SCREEN_DATA` | Layouts, update settings, and build caches |
 | `SCREEN_CAMERA_URL` | Optional: where screens load camera images, such as `http://192.168.1.20:8098`; by default Home Assistant's own LAN address |
 | `SCREEN_CAMERA_PORT` | Optional: the camera image port instead of 8098 |
+| `SCREEN_CHANNEL` | Optional: `main` or `dev`, the branch every screen builds from, which an app in Home Assistant knows from its repository URL. The `:dev` image sets `dev` itself. Without it, each screen keeps the `ref:` it has ("Testing dev") |

@@ -17,7 +17,8 @@ the cheapest road there is (measured 2026-10-10 on an EZVIZ, 1080p main stream a
   made straight from the decoder's YUV with ffmpeg's encoder, at the camera's own size (1 ms for 512 x 288 on a PC,
   where Pillow from RGB took 3), or scaled down to the room where the camera is larger (7 ms for 1080p to 720p, Pillow
   19). Until WebRTC's first frame (it waits for the camera's next key frame, seconds on some cameras) the screen gets
-  the camera's still.
+  the camera's still, each such part marked `X-Picture: still`: the screen turns a loader over it until the first part
+  without the mark (live_view.h, "Until it is live"). A screen that knows no mark shows it as any picture.
 - Any other camera (a snapshot camera, an ESPHome camera, a picture an integration draws) gives its snapshot, asked
   again as soon as the last came. A JPEG the P4 decodes as it is (baseline, at most MAX_SIDE a side) goes out untouched,
   which costs this app nothing; anything else is made into one.
@@ -47,7 +48,9 @@ FRAME_SECONDS = 15        # nothing new from the camera for this long: the strea
 LINGER_SECONDS = 5        # a camera nobody watches any more stops after this (a screen that asks again at once finds it)
 SNAPSHOT_FPS = 15         # a camera without a stream is asked no more often than this
 WEBRTC_FIRST_SECONDS = 20  # a WebRTC session without a frame by then gives way to the snapshots
-DEFAULT_PACE = 15         # camera_feed.LIVE_REFRESH_DEFAULT: the pace of a camera tile on a screen that does not stream
+STILL_SECONDS = 2          # the camera's still, again this often, until WebRTC's first frame (the screen's
+                           # live_view::QUIET_MS closes a stream silent for 6 s)
+DEFAULT_PACE = 15         # picture_sources.TILE_PACE: the pace of a camera tile on a screen that does not stream
 QSCALE = 5                # ffmpeg's mjpeg quality (2 best, 31 worst): about 80 KB a 1280 x 720 camera picture
 SOUND_RATE = 16000        # a full view's sound: 16-bit mono at this rate (the board's resampler makes it its bus's)
 SOUND_QUEUE = 50          # parts of sound that may wait for a screen (about a second); older ones go
@@ -188,10 +191,11 @@ class Encoder:
 
 
 class Frame:
-    __slots__ = ('number', 'jpeg', 'video', 'at')
+    """A camera's picture; `still` when it is the camera's still from before its stream came."""
+    __slots__ = ('number', 'jpeg', 'video', 'at', 'still')
 
-    def __init__(self, number, jpeg=None, video=None):
-        self.number, self.jpeg, self.video, self.at = number, jpeg, video, time.monotonic()
+    def __init__(self, number, jpeg=None, video=None, still=False):
+        self.number, self.jpeg, self.video, self.at, self.still = number, jpeg, video, time.monotonic(), still
 
 
 class Source:
@@ -217,9 +221,9 @@ class Source:
     def mark(self, what):
         self.marks.setdefault(what, time.monotonic() - self.started)
 
-    async def publish(self, jpeg=None, video=None):
+    async def publish(self, jpeg=None, video=None, still=False):
         self.number += 1
-        self.frame = Frame(self.number, jpeg, video)
+        self.frame = Frame(self.number, jpeg, video, still)
         async with self.changed:
             self.changed.notify_all()
 
@@ -303,10 +307,10 @@ class Source:
 
     async def webrtc(self):
         """Home Assistant's WebRTC of the camera's pictures until nobody watches; False when it gave no frame (no WebRTC
-        here, no aiortc in this install, a camera go2rtc cannot relay): the snapshots take over. The camera's still goes
+        here, no aiortc in this install, a camera go2rtc cannot relay): the snapshots take over. The camera's stills go
         first: WebRTC waits for the camera's next key frame."""
         first = asyncio.Event()
-        still = asyncio.create_task(self.still_until(first))
+        still = asyncio.create_task(self.stills_until(first))
 
         async def take(kind, frame):
             if kind == 'audio':
@@ -329,13 +333,16 @@ class Source:
         each frame while `keep()`. False when no frame of the first kind came within WEBRTC_FIRST_SECONDS or the session
         could not start."""
         try:
-            from aiortc import RTCPeerConnection, RTCSessionDescription
+            from aiortc import RTCConfiguration, RTCPeerConnection, RTCSessionDescription
             from aiortc.sdp import candidate_from_sdp
         except ImportError:
             return False
         kind = kinds[0]
         first = asyncio.Event()
-        connection = RTCPeerConnection()
+        # No STUN server: this app and Home Assistant share a network (the Supervisor's, or the LAN), where the host's
+        # own addresses reach each other. aiortc asks Google's STUN server by default and the offer waited for its answer,
+        # about five seconds on a LAN without one, before every live camera started (2026-10-20, a full view and a tile).
+        connection = RTCPeerConnection(RTCConfiguration(iceServers=[]))
         for each in kinds:
             connection.addTransceiver(each, direction='recvonly')
         pulls = []
@@ -380,22 +387,32 @@ class Source:
                             raise ConnectionError(event.get('message') or 'error')
 
                 listening = asyncio.create_task(signals())
+                arrived = asyncio.create_task(first.wait())
                 try:
-                    await asyncio.wait_for(first.wait(), WEBRTC_FIRST_SECONDS)
-                except asyncio.TimeoutError:
-                    LOG.info('Live %s: no WebRTC %s in %d s', self.entity, kind, WEBRTC_FIRST_SECONDS)
-                    return False
-                while keep() and not listening.done() and all(not p.done() for p in pulls):
-                    await asyncio.sleep(1)
-                if listening.done() and listening.exception():
-                    LOG.info('Live %s: WebRTC %s ended (%s)', self.entity, kind, listening.exception())
-                listening.cancel()
-                return True
+                    # The first frame, or the end of the session before it: Home Assistant refuses the offer of a
+                    # camera without WebRTC at once (a camera with HLS alone), and the snapshots take over then, not
+                    # after WEBRTC_FIRST_SECONDS.
+                    await asyncio.wait((arrived, listening), timeout=WEBRTC_FIRST_SECONDS,
+                                       return_when=asyncio.FIRST_COMPLETED)
+                    if not first.is_set():
+                        why = ended(listening) or f'nothing in {WEBRTC_FIRST_SECONDS} s'
+                        LOG.info('Live %s: no WebRTC %s (%s)', self.entity, kind, why)
+                        return False
+                    while keep() and not listening.done() and all(not p.done() for p in pulls):
+                        await asyncio.sleep(1)
+                    why = ended(listening)
+                    if why:
+                        LOG.info('Live %s: WebRTC %s ended (%s)', self.entity, kind, why)
+                    return True
+                finally:
+                    arrived.cancel()
+                    listening.cancel()
         except (ConnectionError, OSError, asyncio.TimeoutError) as error:
             LOG.info('Live %s: no WebRTC %s (%s)', self.entity, kind, error)
             return False
         finally:
             for task in pulls:
+                ended(task)
                 task.cancel()
             await connection.close()
 
@@ -442,16 +459,30 @@ class Source:
         except Exception as error:  # noqa: BLE001 - no sound, the pictures go on
             LOG.info('Live %s: no sound (%s)', self.entity, error)
 
-    async def still_until(self, first):
-        try:
-            raw = await self.feed.fetch(self.entity)
-            self.mark('still')
-            if raw and not first.is_set():
-                await self.publish(jpeg=raw)
-        except asyncio.CancelledError:
-            raise
-        except Exception:  # noqa: BLE001 - only a first picture; the stream follows
-            pass
+    async def stills_until(self, first):
+        """The camera's still, again every STILL_SECONDS, until WebRTC's first frame. A single still left the screen
+        without a byte while a camera took longer for its key frame than the screen waits (live_view::QUIET_MS): it
+        closed the stream, went black and asked again, over and over."""
+        while not first.is_set():
+            started = time.monotonic()
+            try:
+                raw = await self.feed.fetch(self.entity)
+                self.mark('still')
+                if raw and not first.is_set():
+                    await self.publish(jpeg=raw, still=True)
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001 - only the pictures before the stream's; the next is tried
+                pass
+            await asyncio.sleep(max(0.0, STILL_SECONDS - (time.monotonic() - started)))
+
+
+def ended(task):
+    """What ended a finished task (its exception, read so asyncio never logs it as never retrieved); None while it runs,
+    when it was cancelled or ended without one."""
+    if not task.done() or task.cancelled():
+        return None
+    return task.exception()
 
 
 class Link:
@@ -517,6 +548,20 @@ class LiveFeed:
     def streaming(self):
         return sum(link.streaming for link in self.links.values())
 
+    async def latest(self, entity, fresh=2.0):
+        """The JPEG of a camera's newest frame while a stream of it runs (docs/PICTURES.md: one source per camera for
+        stills and streams), at the camera's own size up to MAX_SIDE; None while none runs or its last frame is older than
+        `fresh` seconds, and the caller takes Home Assistant's snapshot."""
+        source = self.sources.get(entity)
+        if source is None or source.task is None or source.task.done() or source.frame is None:
+            return None
+        frame = source.frame
+        if time.monotonic() - frame.at > fresh:
+            return None
+        if frame.jpeg is not None:
+            return frame.jpeg
+        return await source.picture(frame, (MAX_SIDE, MAX_SIDE))
+
     def source(self, entity):
         source = self.sources.get(entity)
         if source is None or (source.task and source.task.done() and not source.viewers):
@@ -559,7 +604,8 @@ class LiveFeed:
                 jpeg = await source.picture(frame, link.box, link.cover)
                 if not jpeg:
                     continue
-                await write(b'--frame\r\nContent-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n' % len(jpeg), jpeg)
+                await write(b'--frame\r\nContent-Type: image/jpeg\r\n%sContent-Length: %d\r\n\r\n'
+                            % (b'X-Picture: still\r\n' if frame.still else b'', len(jpeg)), jpeg)
                 if not sent:
                     LOG.info('Live %s: first picture %.1f s after the link went out (the screen came %.1f s after it); '
                              'its source: %s', link.entity, self.clock() - link.made, began - link.made,

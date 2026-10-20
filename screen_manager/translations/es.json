@@ -915,12 +915,16 @@
         "choose": "Elige qué plugin aporta el {feature} para {name}.",
         "other_origin": "Esta pantalla usa otro plugin llamado {name}, de {origin}. Cambia a este en sus detalles.",
         "misfit_esphome": "{name} necesita ESPHome {version} o más nuevo para compilar.",
-        "like_not_installed": "Pon primero el plugin en una de tus pantallas y luego podrás darle me gusta.",
         "like_consent": "Acepta primero que tu me gusta cuente en un número público.",
         "like_off": "Los me gusta están desactivados: una versión más nueva de la app los gestiona.",
         "like_failed": "El me gusta no se envió. Inténtalo de nuevo en un momento.",
         "misfit_built_in": "{name} aporta lo que esta placa ya tiene.",
-        "offline": "La app aún no sabe dónde está {screen} en la red. Enciéndela, espera a que aparezca en línea y vuelve a intentarlo."
+        "offline": "La app aún no sabe dónde está {screen} en la red. Enciéndela, espera a que aparezca en línea y vuelve a intentarlo.",
+        "like_not_listed": "Solo los plugins del catálogo de Tessera pueden recibir un me gusta.",
+        "rate_not_installed": "Pon primero el plugin en una de tus pantallas y después podrás valorarlo.",
+        "rate_failed": "Las estrellas no se enviaron. Inténtalo de nuevo en un momento.",
+        "count_failed": "No se pudo desactivar el recuento: no se pudo contactar con Tessera. Inténtalo de nuevo en un momento.",
+        "forget_running": "Una pantalla todavía usa este plugin. Quítalo primero de la pantalla."
       },
       "extras": {
         "request": "Este cambio de un extra no es posible en esta pantalla."
@@ -2111,7 +2115,9 @@
         "label": "Ordenar por",
         "popular": "Más gustados",
         "new": "Más nuevos",
-        "name": "Nombre"
+        "name": "Nombre",
+        "rated": "Mejor valorados",
+        "used": "Más usados"
       },
       "none_in_tab": {
         "tiles": "Aún no hay plugins con mosaicos.",
@@ -2124,8 +2130,8 @@
         "count": "A {n} persona le gusta | A {n} personas les gusta",
         "like": "Me gusta",
         "unlike": "Quitar tu me gusta",
-        "install_first": "Ponlo primero en una pantalla y luego podrás darle me gusta",
-        "ask": "Tu me gusta cuenta en un número público por plugin. Solo el número es público: no se envía nada sobre ti, Home Assistant ni tus pantallas."
+        "ask": "Tu me gusta cuenta en un número público por plugin. Solo el número es público: no se envía nada sobre ti, Home Assistant ni tus pantallas.",
+        "like_hint": "Dale me gusta, aunque no esté en ninguna de tus pantallas: un agradecimiento a quien lo hizo."
       },
       "along": {
         "title": "Viene con él",
@@ -2178,7 +2184,59 @@
         "history": "Todas las versiones"
       },
       "failed_update": "La versión {version} no se pudo compilar para {screen}, así que volvió a {current}, la que ejecuta. Su registro está en Firmware y USB.",
-      "interrupted": "La app se reinició durante la compilación."
+      "interrupted": "La app se reinició durante la compilación.",
+      "stars": {
+        "label": "Estrellas para {name}",
+        "of_five": "{n} de 5 estrellas",
+        "say": {
+          "1": "No funciona",
+          "2": "Flojo",
+          "3": "Aceptable",
+          "4": "Bien",
+          "5": "Genial"
+        },
+        "yours": "Tus estrellas",
+        "give": "¿Qué tal te funciona?",
+        "clear": "Retirar"
+      },
+      "numbers": {
+        "rating": "{rating} de {n} valoración | {rating} de {n} valoraciones",
+        "few": "{n} valoración por ahora | {n} valoraciones por ahora",
+        "homes": "se usa en {n} hogar | se usa en {n} hogares"
+      },
+      "counting": {
+        "label": "Contar mis plugins en la tienda",
+        "hint": "Una vez al día, los nombres y versiones de tus plugins y el modelo de cada pantalla. Nada más.",
+        "on_hint": "Activado: una vez al día los nombres y versiones de tus plugins y el modelo de cada pantalla van a Tessera. Al desactivarlo se borran allí."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} lleva {days} día en {screen}. ¿Qué te parece? | {name} lleva {days} días en {screen}. ¿Qué te parece?",
+        "send": "Enviar",
+        "what_title": "¿Qué se comparte?",
+        "what": {
+          "plugin": "El plugin y su versión: {name} {version}",
+          "board": "El modelo de pantalla: {board}",
+          "stars": "Tus estrellas",
+          "counting": "Con el recuento activado: una vez al día, qué plugins usan tus pantallas, sus versiones y los modelos de pantalla",
+          "nothing_else": "Nada más: ni nombre, ni cuenta, ni entidades, ni ajustes de Home Assistant. La app comparte con una clave aleatoria propia."
+        },
+        "thanks": "¡Gracias! Tus estrellas ya están en {name}.",
+        "heart_hint": "¿Te encanta? Dale también un me gusta a {maker}. Cuenta en un número público por plugin; no se envía nada sobre ti.",
+        "hearted": "Gracias por tu me gusta",
+        "issue_hint": "Qué pena. ¿Quieres que se arregle? Abre un issue para {maker}, con la versión y tu modelo de pantalla ya rellenados.",
+        "issue_open": "Abrir un issue en GitHub"
+      },
+      "sharing": {
+        "title": "Tienda de plugins",
+        "text": "Ayuda a otros a encontrar buenos plugins. Los me gusta y las estrellas solo se envían cuando los das, el recuento solo mientras está activado.",
+        "asking": "Pedir estrellas unos días después de un plugin nuevo",
+        "asking_hint": "Una tarjeta encima de la pantalla, un plugin cada vez."
+      },
+      "forget": {
+        "go": "Quitar de la lista",
+        "note": "Ninguna pantalla usa este plugin. Quítalo de la lista para olvidar el enlace."
+      }
     },
     "plugin_tile": {
       "from": "Un mosaico del plugin {plugin}",
@@ -2308,7 +2366,6 @@
         "live_card_hint": "La imagen llena el mosaico, actualizada al ritmo de abajo mientras la página está en pantalla. Un toque la sigue abriendo a pantalla completa.",
         "live_card_needs_firmware": "Una imagen que llena el mosaico necesita el firmware 0.3.7 o más reciente: pulsa Actualizar en la pantalla después de guardar. Hasta entonces la pantalla muestra una imagen pequeña en el lugar del icono.",
         "cover": "Carátula",
-        "cover_hint": "La carátula de lo que suena en el lugar del icono, como en el propio mosaico de Home Assistant; un reproductor sin imagen conserva su icono. Un toque sigue abriendo la tarjeta.",
         "cover_needs_firmware": "La carátula en el mosaico necesita el firmware 0.2.78 o más reciente: pulsa Actualizar en la pantalla después de guardar.",
         "map": "Mapa",
         "map_hint": "Dónde están esta persona y las que añadas, en un mapa tranquilo con los colores de la pantalla. Home Assistant aporta las calles de OpenStreetMap; la pantalla solo recibe la imagen, nunca una ubicación. Se vuelve a dibujar cuando alguien se mueve. Un toque lo abre en toda la pantalla.",
@@ -3149,10 +3206,20 @@
         "calibration": "Calibración táctil al primer arranque"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controlador de pantalla"
+        "DISPLAY_MODEL": "Controlador de pantalla",
+        "FLASH_SIZE": "Memoria flash",
+        "BOARD_VARIANT": "Placa"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La mayoría de estas placas llevan el primero. Elige el otro si la pantalla muestra ruido o una imagen distorsionada."
+        "DISPLAY_MODEL": "Empieza por el primero. Elige el otro si la pantalla se queda negra o muestra ruido o una imagen distorsionada.",
+        "FLASH_SIZE": "La mayoría de estas placas tienen 16 MB. Elige 8 MB si la pantalla se queda negra tras la instalación y se reinicia una y otra vez.",
+        "BOARD_VARIANT": "Elige la que tienes. En la placa amarilla sin carcasa, un toque arriba a la izquierda acabaría si no abajo a la derecha."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Negra, con carcasa",
+          "yellow": "Amarilla, sin carcasa"
+        }
       },
       "choice_usual": "la mayoría",
       "orientation_landscape": "En horizontal",

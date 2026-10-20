@@ -22,7 +22,8 @@ inline:
 displays:
   standard: {}
   watch: {}
-  # The album cover in the icon's place, on a board that draws pictures (firmware 0.2.78), not on a whole page.
+  # The album cover dimmed behind the whole card, on a board that draws pictures, not on a whole page: in the icon's
+  # place since firmware 0.2.78, over taller cards since 0.3.1, over every size since the picture system.
   cover:
     screen: {pictures: true, firmware: 0.2.78}
     sizes: {full: false}

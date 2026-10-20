@@ -24,7 +24,7 @@ Home Assistant entity belongs in a board file. docs/README.md lists every doc an
 | add a part of the UI that only the larger boards get | docs/MODULES.md | `components/smart_display/modules.py`, `module_<name>.h` |
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
-| change how a picture reaches the screen | docs/CAMERA.md | `picture_loader.h`, `picture_fetch.h`, `camera_view.h`, `screen_manager/app/camera_feed.py` |
+| change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
@@ -119,7 +119,8 @@ release is checked fully, once a week. docs/TESTING.md says what each layer prov
 - **On dev the proof is the bench**: the three real boards on the owner's bench Home Assistant and its local app
   (`.esphome/bench/README.md` on the owner's machine). Put the app on it, flash the change to the boards it concerns,
   and have the owner look and tap. Run a single test when that is the quickest way to see a piece of logic work. No
-  `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI. After a change
+  `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI but the Docker
+  image `:dev` when `screen_manager/` changed (docs/DOCKER.md, "Testing dev"). After a change
   under `web/src`, `cd web && npm run build` (the app serves that build) and commit `screen_manager/app/static` with it.
 - **At a release** (and a hotfix) everything runs, on the commit that goes out: `tools/check.sh`, CI on that commit
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens

@@ -333,6 +333,17 @@ inline std::string humidity_text(float value) {
   if (std::fabs(value - std::round(value)) < 0.05f) return screen_text::percent(static_cast<int>(std::lround(value)));
   return screen_text::decimal(value, 1) + screen_text::percent_sign();
 }
+// Whether a tile's second line was chosen by hand (firmware 0.2.90+): Nothing, its own text or a value of the
+// entity. Empty and "auto" are the line the screen works out itself, and so is a choice this screen cannot read.
+inline bool subtitle_by_hand(const std::string &choice) {
+  return choice == "none" || choice.compare(0, 5, "text:") == 0 || choice.compare(0, 5, "attr:") == 0;
+}
+// The battery a vacuum's own status line ends on ("Docked / 100 %"), the end that stays readable in a narrow tile.
+// Only that line carries it: a line chosen by hand is that line alone, and Nothing is nothing (#293).
+inline std::string vacuum_tail(const Tile &t) {
+  if (t.domain() != "vacuum" || !std::isfinite(t.battery) || subtitle_by_hand(t.subtitle)) return {};
+  return " / " + screen_text::percent(static_cast<int>(t.battery));
+}
 // What a thermostat measures, in its own unit: degrees, or a humidifier's humidity.
 inline std::string reading_text(const Tile &t, float value) { return humidifier(t) ? humidity_text(value) : temperature_text(value); }
 // The suffix of the number a thermostat is set to.

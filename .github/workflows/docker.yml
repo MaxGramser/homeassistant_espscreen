@@ -1,13 +1,17 @@
-# The Screen Manager image (screen_manager/Dockerfile) built on every push to main, every release tag and every pull request, for both architectures
-# the app ships (config.yaml `arch`). A push publishes it to the GitHub Container Registry, so a Docker install
-# (docs/DOCKER.md) can pull it instead of building from the Git context. A pull request and a fork only build it:
-# a fork's token can't write this repository's packages, and a fork's own pushes shouldn't fill its owner's registry.
+# The Screen Manager image (screen_manager/Dockerfile) built on every push to main or dev that changes the app, every
+# release tag and every pull request, for both architectures the app ships (config.yaml `arch`). A push publishes it to
+# the GitHub Container Registry, so a Docker install (docs/DOCKER.md) can pull it instead of building from the Git
+# context. A pull request and a fork only build it: a fork's token can't write this repository's packages, and a fork's
+# own pushes shouldn't fill its owner's registry. dev's image is `:dev`, the dev app (docs/DOCKER.md, "Testing dev"):
+# the one CI a push to dev starts, and only when the image changes, since the firmware comes from GitHub at its build.
 name: Docker image
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     tags: ["screens-v*"]
+    # What the image is made of. GitHub doesn't apply this to a tag, so every release tag builds.
+    paths: ["screen_manager/**", ".github/workflows/docker.yml"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -18,7 +22,8 @@ permissions:
 
 concurrency:
   group: docker-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # dev moves quickly: a newer push replaces the build of an older one, so `:dev` never goes back to an older commit.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/dev' }}
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
@@ -45,7 +50,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # latest follows main; every commit also gets its sha, a branch its name, and main the app version.
+      # latest follows main; every commit also gets its sha, a branch its name (dev: `:dev`), and main the app version.
       - uses: docker/metadata-action@v5
         id: meta
         with:
@@ -66,5 +71,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_VERSION=${{ steps.app.outputs.version }}
+            CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

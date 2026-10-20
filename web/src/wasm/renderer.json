@@ -14,6 +14,10 @@
       "look": "compact"
     },
     {
+      "dpi": 144,
+      "look": "standard"
+    },
+    {
       "dpi": 146,
       "look": "compact"
     },
@@ -30,11 +34,19 @@
       "look": "standard"
     },
     {
+      "dpi": 172,
+      "look": "standard"
+    },
+    {
       "dpi": 187,
       "look": "standard"
     },
     {
       "dpi": 189,
+      "look": "standard"
+    },
+    {
+      "dpi": 210,
       "look": "standard"
     },
     {

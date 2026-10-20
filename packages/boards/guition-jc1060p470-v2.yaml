@@ -5,6 +5,9 @@
 #
 # With the JC1060P470's own panel settings a V2 shows a white screen with a vertical band of noise, which is how
 # someone finds out which of the two they have. docs/JC1060P470.md has what to check on the glass.
+# The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml) on the pins of the
+# JC-ESP32P4-M3 module board, experimental: the same codec wiring runs on a 10.1-inch V3 (pull request #259), not yet
+# on this board.
 #
 # docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
 # checkout/jc1060p470v2.yaml (a build on this computer) and packages/jc1060p470v2.yaml (the package a screen builds from
@@ -19,6 +22,8 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The ES8311, its speaker and its microphone, on the pins of the module board below.
+  audio: !include ../hardware/guition-p4-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -49,10 +54,25 @@ substitutions:
   # The Wi-Fi link at 10 MHz: at 20 MHz the C6's SDIO clock puts a band of vertical streaks into the picture of this
   # panel, reported and measured by people with a V2 (ESPHome pull request 18695 and the configurations around it).
   HOSTED_SDIO_FREQUENCY: "10MHz"
+  # The audio on the JC-ESP32P4-M3 module board (hardware/guition-p4-audio.yaml): the microphone's data and the
+  # amplifier's enable.
+  AUDIO_DIN_PIN: GPIO48
+  AUDIO_AMPLIFIER_PIN: GPIO11
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the OmniVision OV02C10 on the MIPI-CSI port of
+  # the boards that carry one (the "C" in Guition's model name). It answers on the touch bus at 0x36, clocks itself
+  # and has no reset or power-down pin; a camera plugin drives it (screen_camera), as Guition's firmware for the JC1060P470C drives it (espressif/esp-video-components#90).
+  CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the sensor has its own clock
 
 # ============================================================
 # No need to edit below this line.
 # ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker.
+  # A board file's min_version wins over the core's.
+  min_version: 2026.9.0
 
 # ESPHome has no model for this panel yet (pull request 18695 adds `JC1060P470-V2`), so it is described in full:
 # the timings and the init table of Guition's own driver for the new panel (JC1060P470C_I_W_Y.zip, 2026-07-13,

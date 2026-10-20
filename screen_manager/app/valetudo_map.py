@@ -3,7 +3,7 @@
 Valetudo hands Home Assistant its map as a camera (MQTT, topic `MapData/map-data-hass`) whose picture is a placeholder
 that says to install a Lovelace card: the map itself rides along in the PNG, as JSON deflated into a zTXt chunk named
 `ValetudoMap` (Valetudo's backend/lib/mqtt/handles/MapNodeMqttHandle.js). A screen would show the placeholder, so the
-app reads that chunk and draws the map itself, once per map Valetudo sends (camera_feed.Feed.fetch_one), and the
+app reads that chunk and draws the map itself, once per map Valetudo sends (picture_sources.Snapshots.fetch_one), and the
 picture then goes the way of any camera's.
 
 The map (backend/lib/entities/map/): `pixelSize` centimetres per map pixel; `layers` of type floor, segment (a room)

@@ -23,6 +23,17 @@ substitutions:
   # The language of every text on the screen (app 0.2.90): a file in screen_manager/translations, English for any
   # text it lacks. ESP Screens writes it into the screen's own YAML, from Home Assistant's language or its Settings.
   LANGUAGE: "en"
+  # The letters a language written in another script needs beyond the Latin ones the text fonts always carry
+  # (docs/TRANSLATING.md, "Letters"): only a screen built in such a language carries them, so no other screen spends
+  # flash on them. One list per script with the letters its languages here write (Russian's now), the same letters as
+  # header_bar.SCRIPT_GLYPHS in the add-on (a test keeps the two equal), and the languages that take it, those whose
+  # translation file says `"script": "cyrillic"` (a test as well).
+  SCRIPT_GLYPHS_CYRILLIC: "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№"
+  SCRIPT_GLYPHS: '${ SCRIPT_GLYPHS_CYRILLIC if LANGUAGE.split("-")[0] in ["ru"] else "" }'
+  # Swipe between pages on a screen that has stored no choice of its own: off, as every screen set up before had it, so
+  # an update changes nothing there. New screen writes "1" into a new screen's own YAML, which then swipes and opens the
+  # Dock out of the box. Once the screen stores a choice (any change of a setting), that choice wins. Keep "0" here.
+  SWIPE_PAGES_DEFAULT: "0"
 
   ## DIM settings
   AUTO_DIM: "true"                                 # true = enable auto dimming
@@ -155,7 +166,7 @@ esphome:
           runtime_tiles::now_time = []() { return id(homeassistant_time).now(); };
           runtime_tiles::screen_awake = []() { return !id(display_dimmed); };
           // The screensaver (firmware 0.29.0+): a new word from ESP Screens in standby sets the level and the glass again.
-          runtime_tiles::saver_changed = []() { id(apply_screen_settings).execute(); };
+          runtime_tiles::saver_changed = []() { id(apply_screen_settings).execute(false); };
           runtime_tiles::mini_icon_font = id(materialdesign_icons_mini)->get_lv_font();
           // The top bar of every page a tap opens (detail_bar.h): its keys' glyphs and the page's name.
           detail_bar::icon_font = id(materialdesign_icons_mini)->get_lv_font();
@@ -193,6 +204,8 @@ esphome:
           // the 3.3 V rail under the brownout level when it switches on from a dark screen, so that board has no
           // standby and no night. The rows, the entities and the add-on's Settings follow the same fact.
           settings_screen::can_standby = ${CAN_STANDBY};
+          // Swipe between pages before the screen's own choice is read: the start value of a screen that stored none.
+          settings_screen::swipe_pages = ${SWIPE_PAGES_DEFAULT};
           runtime_tiles::load_settings();
           // Colours (firmware 0.2.54+): the styles of this profile take their colours from theme.h. The list runs now,
           // in the look the screen saved, before anything is drawn, and again after every change of look.
@@ -216,7 +229,7 @@ esphome:
           };
           theme::paints();
           theme::set_dark(settings_screen::dark_mode != 0);
-          runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(); };
+          runtime_tiles::settings_changed = []() { id(apply_screen_settings).execute(false); };
           runtime_tiles::dismiss = []() {
             effects_page::close();
             group_page::close();
@@ -257,6 +270,9 @@ esphome:
           // An alarm panel that someone comes in on, or that goes off, wakes the screen as a touch does and opens its
           // card (firmware 0.3.3+): Back to page 1 counts from now.
           runtime_tiles::alarm_wake = []() { id(last_use_ms) = millis(); id(wake_display).execute(); };
+          // A plugin wakes the screen as Home Assistant's Wake button does (tessera::wake, plugin API 0.16): the one way
+          // in for every wake that is not a finger, the script wake_from, with the plugin's name for the log.
+          plugin_host::wake = [](const std::string &source) { id(wake_from).execute(source); };
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
           screen_power::freeze = [](bool on) { id(screen_lvgl).set_paused(on, false); ESP_LOGI("power", on ? "dark: saving" : "awake"); };
           screen_power::later = [](uint32_t ms) { id(screen_power_wait).execute(ms); };
@@ -319,7 +335,7 @@ esphome:
           settings_screen::row_font = id(sublabel_big)->get_lv_font();
           settings_screen::icon_font = id(materialdesign_icons_mini)->get_lv_font();
           settings_screen::store = []() { runtime_tiles::persist_settings(); };
-          settings_screen::apply = []() { id(apply_screen_settings).execute(); };
+          settings_screen::apply = []() { id(apply_screen_settings).execute(false); };
           settings_screen::report = [](const char *key, int32_t value) { runtime_tiles::setting_event(key, value); };
           settings_screen::name_text = []() { return std::string("${DEVICE_FRIENDLY_NAME}"); };
           settings_screen::address_text = []() { return id(wifi_ip).state.empty() ? std::string(screen_text::tr(screen_text::txt::status_no_network)) : id(wifi_ip).state; };
@@ -492,22 +508,22 @@ api:
     # bring up the page with its full-page player. The screen wakes, a card or the settings page closes,
     # and Back to page 1 counts from now, as after a touch. `page` is the number the editor shows, 1 up;
     # a number past the last page opens the last page. An alert that is showing stays in front of it.
+    # The screen wakes first: a layout that came while it stood dark is prepared only once it is lit, and before it is
+    # ready the page waits (runtime_tiles::wanted_page) and opens then, from the 1 s interval below.
     - action: show_page
       variables:
         page: int
       then:
         - lambda: |-
-            if (!runtime_tiles::navigation_ready()) {
-              ESP_LOGI("navigation", "show page ignored: configuration not ready");
-              return;
-            }
             id(last_use_ms) = millis();
             id(wake_display).execute();
-            settings_screen::close();
-            const int pages = runtime_tiles::enabled ? std::max(1, (int) runtime_tiles::page_count())
-                                                     : (runtime_tiles::model.count > 6 ? 2 : 1);
-            runtime_tiles::go_to_page(std::clamp((int) page, 1, pages) - 1, false);
-            ESP_LOGI("navigation", "page %d of %d open from Home Assistant", id(tile_page) + 1, pages);
+            if (!runtime_tiles::navigation_ready()) {
+              runtime_tiles::wanted_page = std::max(1, (int) page);
+              ESP_LOGI("navigation", "show page %d waits until the pages are ready", runtime_tiles::wanted_page);
+              return;
+            }
+            runtime_tiles::wanted_page = 0;
+            id(open_page).execute(page);
 
     # Diagnostics: the busy sheet of a tile, without touching the glass or Home Assistant.
     - action: preview_busy
@@ -697,6 +713,9 @@ api:
                     // live: a P4 that streams (live_view.h): a camera tile set to Live gets pace 0 and streams on the
                     // glass, and ESP Screens makes Live the default for camera tiles here.
                     if (live_view::available()) features.add("live");
+                    // pictures (docs/PICTURES.md): this screen asks for every picture as one question (picture_question.h)
+                    // once the app's hello says it reads them, and the fields an older app reads until then.
+                    if (runtime_tiles::camera_supported()) features.add("pictures");
                     // bar_cards (firmware 0.56.0): an entity's item in the top bar opens its tile's card (hold_card), so ESP
                     // Screens names that tile in the item (`d`) and sends a tile without a cell for an entity on no tile.
                     features.add("bar_cards");
@@ -758,6 +777,13 @@ interval:
           then:
             - script.execute: dim_display
       - script.execute: back_to_page_1_when_due
+      # A page Home Assistant asked for while the pages were being prepared (show_page) opens once they are ready.
+      - lambda: |-
+          if (runtime_tiles::wanted_page > 0 && runtime_tiles::navigation_ready()) {
+            const int page = runtime_tiles::wanted_page;
+            runtime_tiles::wanted_page = 0;
+            id(open_page).execute(page);
+          }
 
 time:
   - platform: homeassistant
@@ -766,15 +792,18 @@ time:
     update_interval: 60s
     on_time_sync:
       then:
-        - script.execute: apply_screen_settings
-        # Only the time moved on: a kept page draws its cards once it is back (firmware 0.3.2+).
-        - lambda: 'runtime_tiles::mark_time(); if (!id(ui_refresh).is_running()) id(ui_refresh).execute();'
+        # Only the time moved on: the night hours, and the cards that show the time (a kept page's once it is back,
+        # firmware 0.3.2+), never every card.
+        - script.execute:
+            id: apply_screen_settings
+            minute: true
     on_time:
       - seconds: 0
         minutes: /1
         then:
-          - script.execute: apply_screen_settings
-          - lambda: 'runtime_tiles::mark_time(); if (!id(ui_refresh).is_running()) id(ui_refresh).execute();'
+          - script.execute:
+              id: apply_screen_settings
+              minute: true
 
 globals:
   # Alert overlay (HA action show_alert): standby waits while one is up.
@@ -876,6 +905,7 @@ font:
   # and the letters European languages write with. Roboto has no heart, so ♡, ♥ and ❤ come from
   # NotoSansSymbols2-hearts.ttf (OFL): Noto Sans Symbols 2 cut to those three with fontTools' pyftsubset, its U+2764 given
   # the U+2665 heart, as Noto's own is a squat one lying on its side. tools/profiles.py glyphs() reads both lists.
+  # The last entry, ${SCRIPT_GLYPHS}, is empty on every screen but one built in a language of another script.
   - file: "${FONT_DIR}/Roboto-500.ttf"
     id: headline
     size: ${FONT_HEADLINE_SIZE}
@@ -892,7 +922,7 @@ font:
              'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
              'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
              'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
-             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§']
+             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§',"${SCRIPT_GLYPHS}"]
     extras:
       - file: "${FONT_DIR}/NotoSansSymbols2-hearts.ttf"
         glyphs: ['♡','♥','❤']
@@ -913,7 +943,7 @@ font:
              'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
              'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
              'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
-             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§']
+             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§',"${SCRIPT_GLYPHS}"]
     extras:
       - file: "${FONT_DIR}/NotoSansSymbols2-hearts.ttf"
         glyphs: ['♡','♥','❤']
@@ -964,7 +994,7 @@ font:
              'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
              'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
              'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
-             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§']
+             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§',"${SCRIPT_GLYPHS}"]
     extras:
       - file: "${FONT_DIR}/NotoSansSymbols2-hearts.ttf"
         glyphs: ['♡','♥','❤']
@@ -985,7 +1015,7 @@ font:
              'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
              'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
              'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
-             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§']
+             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§',"${SCRIPT_GLYPHS}"]
     extras:
       - file: "${FONT_DIR}/NotoSansSymbols2-hearts.ttf"
         glyphs: ['♡','♥','❤']
@@ -1006,7 +1036,7 @@ font:
              'Ĺ','ĺ','Ľ','ľ','Ŕ','ŕ','Ő','ő','Ű','ű','Ă','ă','Ș','ș','Ț','ț','Đ','đ','Ā','ā','Ē','ē','Ģ','ģ',
              'Ī','ī','Ķ','ķ','Ļ','ļ','Ņ','ņ','Ū','ū','Ė','ė','Į','į','Ų','ų','Ğ','ğ','İ','ı','Ş','ş','Ċ','ċ',
              'Ġ','ġ','Ħ','ħ','Ŵ','ŵ','Ŷ','ŷ','Ŀ','ŀ','Œ','œ','Ÿ','„','“','”','‘','’','«','»','‹','›','¿','¡',
-             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§']
+             '€','£','²','³','µ','–','×','©','®','™','¢','¥','§',"${SCRIPT_GLYPHS}"]
     extras:
       - file: "${FONT_DIR}/NotoSansSymbols2-hearts.ttf"
         glyphs: ['♡','♥','❤']
@@ -2308,6 +2338,20 @@ lvgl:
                   styles: ${TOUCH_TEST_PAINT}
 
 script:
+  # A page opened for someone to look at (show_page, which also starts Back to page 1's clock): the settings page and
+  # every card close, as go_home does, and the page is drawn the way a swipe draws it. 1 is the first page, and a number
+  # past the last page lands on the last page, never outside.
+  - id: open_page
+    parameters:
+      page: int
+    then:
+      - lambda: |-
+          settings_screen::close();
+          const int pages = runtime_tiles::enabled ? std::max(1, (int) runtime_tiles::page_count())
+                                                   : (runtime_tiles::model.count > 6 ? 2 : 1);
+          runtime_tiles::go_to_page(std::clamp((int) page, 1, pages) - 1, false);
+          ESP_LOGI("navigation", "page %d of %d open from Home Assistant", id(tile_page) + 1, pages);
+
   - id: show_tile_page
     then:
       - lambda: |-
@@ -2321,8 +2365,11 @@ script:
           for (lv_obj_t *control : {id(page_prev), id(page_next), id(page_number)}) lv_obj_add_flag(control, LV_OBJ_FLAG_HIDDEN);
 
   # Runtime changes do not count as touches and do not reset the idle timer.
+  # `minute`: it runs because the minute turned or Home Assistant set the clock, not because a setting changed.
   - id: apply_screen_settings
     mode: restart
+    parameters:
+      minute: bool
     then:
       - lambda: |-
           const auto &settings = screen_settings::current;
@@ -2379,8 +2426,10 @@ script:
           // The Page buttons setting moves the cards into the bar's room or back (firmware 0.2.69+).
           if (runtime_tiles::enabled) runtime_tiles::page_buttons_changed();
           settings_screen::refresh();
-          // A display setting (the clock's format, say): drawn like a minute turning (firmware 0.3.2+).
-          runtime_tiles::mark_time();
+          // A display setting (the clock's format, say): every card drawn (firmware 0.3.2+); the minute draws the cards
+          // that show the time.
+          if (minute) runtime_tiles::mark_minute();
+          else runtime_tiles::mark_time();
           if (!id(ui_refresh).is_running()) id(ui_refresh).execute();
 
   # Every card closes through runtime_tiles::dismiss (set in on_boot): the runtime detail card, the light,
@@ -2415,6 +2464,27 @@ script:
               return away && (millis() - id(last_use_ms)) > (uint32_t) runtime_tiles::auto_home_seconds * 1000UL;
           then:
             - script.execute: go_home
+
+  # Wake that is light, not a tap (0.2.56+): the one way in for every wake that is not a finger on the glass. Home
+  # Assistant's Wake button, a board's own sensor (which presses that button) and a plugin (tessera::wake, plugin API
+  # 0.16, through plugin_host::wake) all come here; `source` only goes into the log. A dimmed screen lights up the way
+  # the tap on its wake overlay does, then goes to page 1 at once when that time ran out during standby; one that is on
+  # only restarts the standby time. Back to page 1 keeps counting from the last touch (last_use_ms), so a wake on every
+  # motion holds no card or page 2 up.
+  - id: wake_from
+    parameters:
+      source: string
+    then:
+      - lambda: 'ESP_LOGI("standby", "Wake from %s, screen %s", source.c_str(), id(display_dimmed) ? "in standby" : "on");'
+      - if:
+          condition:
+            lambda: 'return id(display_dimmed);'
+          then:
+            - script.execute: wake_display
+            # A page whose time ran out during standby: light up on page 1, not on the old page first.
+            - script.execute: back_to_page_1_when_due
+          else:
+            - lambda: 'id(last_touch_ms) = millis();'
 
   # ---------- ALERT (HA action show_alert) ----------
   # The screen wakes, keeps its normal brightness and shows the card until OK or the
@@ -2524,7 +2594,7 @@ script:
                   - lambda: 'settings_screen::close();'
                   - script.execute: close_cards
             # After the cards closed: the screensaver (firmware 0.29.0+) may open the camera's full view itself.
-            - lambda: 'id(apply_screen_settings).execute();'
+            - lambda: 'id(apply_screen_settings).execute(false);'
 
   # The power saving's one wait (screen_power.h): after the backlight's fade out, or after a touch on the dark glass.
   - id: screen_power_wait
@@ -2612,27 +2682,20 @@ text:
     internal: ${DASHBOARD_INBOX_INTERNAL}
 
 button:
-  # Wake and Sleep for Home Assistant automations (0.2.45+). Wake is light, not a tap (0.2.56+): it
-  # lights a dimmed screen and counts the standby time from now, while Back to page 1 keeps counting
-  # from the last touch, so Wake on every motion no longer holds a card or page 2 up. Sleep is the
-  # standby time running out, right away and also with Auto standby off; it holds until a tap, Wake
-  # or an alert, and closes an alert that is up. Neither saves anything, so an automation may press
-  # them on every motion. No entity_category: they are controls, not settings.
+  # Wake and Sleep for Home Assistant automations (0.2.45+). Wake is light, not a tap (0.2.56+, the
+  # script wake_from): it lights a dimmed screen and counts the standby time from now, while Back to
+  # page 1 keeps counting from the last touch, so Wake on every motion no longer holds a card or page 2
+  # up. Sleep is the standby time running out, right away and also with Auto standby off; it holds until
+  # a tap, Wake or an alert, and closes an alert that is up. Neither saves anything, so an automation may
+  # press them on every motion. No entity_category: they are controls, not settings.
   - platform: template
     id: wake_button
     name: "Wake"
     icon: "mdi:gesture-tap"
     on_press:
-      - lambda: 'ESP_LOGI("standby", "Wake from Home Assistant, screen %s", id(display_dimmed) ? "in standby" : "on");'
-      - if:
-          condition:
-            lambda: 'return id(display_dimmed);'
-          then:
-            - script.execute: wake_display
-            # A page whose time ran out during standby: light up on page 1, not on the old page first.
-            - script.execute: back_to_page_1_when_due
-          else:
-            - lambda: 'id(last_touch_ms) = millis();'
+      - script.execute:
+          id: wake_from
+          source: "Home Assistant"
   - platform: template
     id: sleep_button
     name: "Sleep"

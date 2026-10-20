@@ -119,7 +119,7 @@ screen's inbox and reaches `on_message`, also as a mapped answer of 96 prices; a
 `on_touch` and opens the plugin's card, which closes with the cards; on a board with pictures the card's place asks
 for its picture as a card (plugin API 0.13), the harness answers as the app does and the piece shows on the place, and
 with `KEPT_PAGES_HOST=1` the store holds it while the card is open and frees it when the card closes; a board without
-pictures asks for none; the tap action opens the card with the sensor's entity, which asks again for it; page 2 and back count the tile objects made and deleted; standby reaches `on_standby` both ways. The self test
+pictures asks for none; the tap action opens the card with the sensor's entity, which asks again for it; page 2 and back count the tile objects made and deleted; standby reaches `on_standby` both ways, and the probe's `tessera::wake` (plugin API 0.16) lights a screen in standby through the script Home Assistant's Wake runs (`wake_from`, the log naming the plugin) and only restarts the standby time of a lit one; the probe's popup (plugin API 0.18) shows, ticks, takes a tap with its place and goes on a tap beside it, by `close_popup`, by itself inside its own `on_tap` and when an alert comes. The self test
 runs on the layout too. Run it twice, after any change to `plugin_host.cpp`, `plugin_api.h` or the receiver's plugin
 fields (docs/PLUGINS.md): plain, where every host program makes a card anew when its page comes back, as the CYD does,
 and with `KEPT_PAGES_HOST=1`, the path a board with PSRAM takes (docs/KEPT_PAGES.md), where the kept card shows again

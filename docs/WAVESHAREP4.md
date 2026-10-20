@@ -101,7 +101,12 @@ The fixed playback-reference gain is unaffected by microphone gain and Automatic
 Echo cancellation can be turned on/off live. Off passes the selected microphone through while
 keeping the adaptive filter current; it does not mute the microphone or switch to half-duplex.
 The setting survives reboot. `Echo cancellation status` reports Enabled, Bypass, Starting or Error.
-Other boards do not select the extended ES7210 driver, audio stack or AEC dependency.
+
+The codecs and the amplifier live in `packages/hardware/wavesharep4-audio/codecs.yaml`. Waveshare wires the
+audio of the [ESP32-P4-WIFI6-Touch-LCD-7B](WAVESHAREP47B.md), the [ESP32-P4-WIFI6-Touch-LCD-7](WAVESHAREP47.md)
+and the [ESP32-P4-WIFI6-Touch-LCD-10.1](WAVESHARE101.md) the same way, so those boards take the same codecs,
+transports and settings. The Tab5 brings its own wiring for the same transport. Other boards do not select the
+extended ES7210 driver, audio stack or AEC dependency.
 
 For the original half-duplex path without the AEC library, override and rebuild:
 

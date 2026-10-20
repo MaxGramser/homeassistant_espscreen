@@ -1,0 +1,130 @@
+# ESP Screens - Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, experimental: a 7-inch 1024 x 600 MIPI-DSI panel (EK79007) with
+# GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi, built for rev3 silicon. Hardware reference:
+# https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-7B
+#
+# Not the ESP32-S3-Touch-LCD-7B (packages/boards/waveshare-esp32s3-7b.yaml), which is an RGB panel behind a CH32V003
+# expander. This board has no expander: its backlight and touch hang on ordinary P4 pins.
+#
+# This file builds for rev3 silicon ("chip revision: v3.x" in the boot log; `engineering_sample: false`), which is what
+# Waveshare ships now. A board with pre-v3 silicon of the same name does not boot this firmware and the other way round,
+# so it needs `engineering_sample: true` in its Override YAML (docs/WAVESHAREP47B.md). A community member ran this file
+# on a board with rev3 silicon (picture, touch, brightness, standby and wake); the project has not tried it on one.
+# The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel
+# (Waveshare's schematic), so they take its audio: hardware/wavesharep4-audio/, with echo cancellation by default.
+# Experimental: a community member had playback and the microphone working on this board with a configuration of their
+# own; this file's audio has not been tried on one, and the echo cancellation was first built for pre-v3 silicon.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board is
+# added. Two entry files include this one: checkout/wavesharep47b.yaml (a build on this computer) and
+# packages/wavesharep47b.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the other Waveshare P4 panels'.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel: its transport, its codecs (after the transport, so
+  # their values win over its defaults), its microphone settings, and the amplifier following the sound.
+  audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
+  audio_codecs: !include ../hardware/wavesharep4-audio/codecs.yaml
+  audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wavesharep47b"
+  DEVICE_NAME: "wavesharep47b-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare P4 7B"
+
+  # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 7 inches. The panel is 1024 x 600
+  # itself, so it lies down without a turn.
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "169.548"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  # The GT911's axes lie mirrored against this panel's pixels: without this a tap in the bottom-right corner lands on
+  # the top-left tile. Waveshare's own BSP compensates the same way (touch_flags mirror_x and mirror_y).
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                    # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                        # LVGL's draw buffer as a share of the screen, in PSRAM
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  # The backlight's PWM. Waveshare's BSP drives the pin at 5 kHz; 1 kHz is what the community configurations that ran
+  # on this board used, and what it dimmed with.
+  BACKLIGHT_FREQUENCY: "1000Hz"
+  # The audio transport: "aec" for full duplex with echo cancellation, "i2s" for the original half-duplex I2S path
+  # without the AEC libraries (docs/P4_AUDIO.md).
+  P4_AUDIO_TRANSPORT: "aec"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its display platform,
+  # components/mipi_dsi_v3, is ESPHome 2026.9.0's mipi_dsi with one line changed, and this board has only been built
+  # on 2026.9.0. A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+esp32:
+  flash_size: 32MB
+  # Rev3 silicon: a pre-v3 firmware does not boot it, and the other way round (docs/WAVESHAREP47B.md). A pre-v3 board
+  # of this name sets this to true in its Override YAML.
+  engineering_sample: false
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+# The board flashes and logs over the chip's own USB ("USB OTG", the port macOS shows as a `usbmodem` device). Its other
+# USB-C port, "USB TO UART", is behind a bridge chip; a screen flashed over that one wants `hardware_uart: UART0`.
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: USB_SERIAL_JTAG
+
+# ESPHome's own gt911 platform. The touch interrupt ends at a test point, so the panel is polled; the GT911 reports the
+# panel's own pixels, with no resistive calibration.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    reset_pin: GPIO23
+    update_interval: 20ms
+
+# The backlight, an inverted PWM pin (features/backlight.yaml makes it the light), as Waveshare's BSP dims it.
+# zero_means_zero keeps a dark standby dark.
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO32
+    frequency: ${BACKLIGHT_FREQUENCY}
+    inverted: true
+    zero_means_zero: true
+
+# ESPHome's panel model drives the EK79007 at 1024 x 600 with its init sequence and timings; the reset is GPIO33.
+# The platform is the repository's mipi_dsi_v3 copy (components/mipi_dsi_v3): it leaves the DSI clock for ESP-IDF to
+# choose, where the stock driver's fixed clock aborts on rev3 silicon while the display starts
+# (packages/boards/guition-jc8012p4a1-v3.yaml, GitHub #52).
+display:
+  - platform: mipi_dsi_v3
+    id: my_display
+    model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
+    dimensions: {width: 1024, height: 600}
+    lanes: 2
+    reset_pin: GPIO33
+    update_interval: never
+    auto_clear_enabled: false

@@ -34,15 +34,23 @@ class ShowPage(unittest.TestCase):
             block = action(text, 'show_page')
             self.assertTrue(block, f'{name}: no show_page action')
             self.assertIn('page: int', block, name)
-            # Opened for someone to look at: Back to page 1 counts from now, and a dimmed screen lights up.
+            # Opened for someone to look at: Back to page 1 counts from now, and a dimmed screen lights up, first: a
+            # layout that came while it stood dark is prepared only once it is lit, and the page waits for that.
+            self.assertLess(block.index('id(wake_display).execute();'), block.index('runtime_tiles::navigation_ready()'), name)
+            self.assertIn('runtime_tiles::wanted_page = std::max(1, (int) page);', block, name)
+            self.assertIn('id(open_page).execute(page);', block, name)
+            opened = re.search(r'^  - id: open_page\n(.*?)(?=^  - id: )', text, re.M | re.S)
+            self.assertTrue(opened, name)
+            opened = opened[1]
             self.assertIn('id(last_use_ms) = millis();', block, name)
-            self.assertIn('id(wake_display).execute();', block, name)
             # The settings page and every card close, as go_home does; the page is drawn the way a swipe draws it.
-            self.assertIn('settings_screen::close();', block, name)
-            self.assertIn('runtime_tiles::go_to_page(std::clamp((int) page, 1, pages) - 1, false);', block, name)
+            self.assertIn('settings_screen::close();', opened, name)
+            self.assertIn('runtime_tiles::go_to_page(std::clamp((int) page, 1, pages) - 1, false);', opened, name)
             # 1 is the first page, and a number past the last page lands on the last page, never outside.
-            self.assertIn('std::clamp((int) page, 1, pages) - 1', block, name)
-            self.assertIn('runtime_tiles::page_count()', block, name)
+            self.assertIn('std::clamp((int) page, 1, pages) - 1', opened, name)
+            self.assertIn('runtime_tiles::page_count()', opened, name)
+            # A page that waited opens once the pages are ready, from the 1 s interval.
+            self.assertIn('runtime_tiles::wanted_page > 0 && runtime_tiles::navigation_ready()', text, name)
 
     def test_the_skill_and_the_guide_explain_it(self):
         text = claude_skill.text()
@@ -54,7 +62,7 @@ class ShowPage(unittest.TestCase):
         self.assertIn('open a page', claude_skill.DESCRIPTION)
         # claude.ai takes at most 200 characters, and the boards are the catalog's.
         self.assertLessEqual(len(claude_skill.DESCRIPTION), 200)
-        self.assertIn('CYD, Guition, Waveshare, Hosyond, Sunton, M5Stack Tab5, reTerminal D1001 and CrowPanel', claude_skill.DESCRIPTION)
+        self.assertIn('CYD, Guition, Waveshare, Hosyond, Sunton, M5Stack Tab5, reTerminal D1001, CrowPanel, SenseCAP, Freenove and WT32', claude_skill.DESCRIPTION)
         guide = (ROOT / 'README_EXTENDED.md').read_text(encoding='utf-8')
         self.assertIn('## Open a page from an automation', guide)
         self.assertIn(f'esphome.<screen>_show_page`** (firmware {SHOW_PAGE_MIN_FIRMWARE}+)', guide)

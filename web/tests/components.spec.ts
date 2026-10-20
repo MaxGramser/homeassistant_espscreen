@@ -149,7 +149,7 @@ describe("TileCard", () => {
     expect(card.find('.ctl.cover-row').exists()).toBe(true);
   });
 
-  it("extends only taller tiles and waits for actual artwork before using white text", async () => {
+  it("extends only taller tiles, puts the cover behind every size and waits for actual artwork before using white text", async () => {
     useInventoryStore().inventory.controls!.media_player = { default: 'playback', choices: [] };
     useEntitiesStore().liveStates['media_player.a'] = { state: 'playing', word: 'Playing', a: { media_title: 'A track', media_artist: 'An artist', artwork_mark: 'first', supported_features: 49 } };
     // A screen that draws pictures (app 0.4.42: a CYD's mockup draws no cover it will never show).
@@ -174,7 +174,12 @@ describe("TileCard", () => {
     await card.setProps({ tile: { entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'wide', display: 'cover', controls: 'playback' } } });
     expect(card.classes()).not.toContain('tall');
     expect(card.find('.tall-body').exists()).toBe(false);
-    expect(card.find('img').exists()).toBe(false);
+    // A card of one row has the cover behind it too (runtime_tiles::card_art since the picture system), light words on it
+    // once it is here.
+    expect(card.find('img.line-art').attributes('src')).toBe('api/media-art?entity=media_player.a&v=second');
+    expect(card.classes()).not.toContain('photo');
+    await card.find('img.line-art').trigger('load');
+    expect(card.classes()).toContain('photo');
     Object.assign(useInventoryStore().inventory.screens[0], { pictures: false });
     await card.setProps({ tile: { entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'tall', display: 'cover', controls: 'playback' } } });
     expect(card.find('img').exists()).toBe(false);
@@ -706,11 +711,12 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(choices(drawer, "Display")).toEqual(["Name and status", "Large value", "Album cover", "Favourite"]);
     await row(drawer, "Display").findAll(".seg button")[2].trigger("click");
     expect(current(tile).options).toEqual({ size: "wide", display: "cover" });
-    expect(hint(row(drawer, "Display")).text).toMatch(/icon's place/);
+    // The cover dims behind the whole card on one row too (the picture system), as on a taller one.
+    expect(hint(row(drawer, "Display")).text).toMatch(/dimmed background/);
     expect(row(drawer, "Refresh")).toBeUndefined();
     expect(row(drawer, "Direct control on the tile")).toBeDefined();
     const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
-    expect(card.find(".ic").classes()).toContain("thumb");
+    expect(card.find(".ic").classes()).not.toContain("thumb");
     expect(card.find(".range").exists()).toBe(true);
     // A board without memory for pictures (a CYD) gets no such choice; a tile over the whole page keeps the card's big cover.
     Object.assign(useInventoryStore().inventory.screens[0], { board: "cyd", pictures: false });
@@ -1467,6 +1473,16 @@ describe("the orientation of a new screen", () => {
     const third = await installer();
     await third.find('input[value="guition"]').setValue("guition");
     expect(third.find("#choice-DISPLAY_MODEL").exists()).toBe(false);
+    // A value with words of its own shows them (GitHub #289), and is sent as the value.
+    const fourth = await installer();
+    await fourth.find('input[value="jc1060p470"]').setValue("jc1060p470");
+    expect(fourth.find("#choice-BOARD_VARIANT legend").text()).toBe("Board");
+    expect(fourth.findAll("#choice-BOARD_VARIANT .choice b").map((b) => b.text())).toEqual(["Black, in a case", "Yellow, without a case"]);
+    await fourth.findAll("#choice-BOARD_VARIANT .choice input")[1].setValue("yellow");
+    await fourth.find("#friendly_name").setValue("Hall");
+    await fourth.find("#install-form").trigger("submit");
+    await flush();
+    expect(answers.pop()).toMatchObject({ board: "jc1060p470", choices: { BOARD_VARIANT: "yellow" } });
     // The grid is no board's choice any more (app 0.4.85): Advanced takes columns and rows within the board's range, and
     // only a grid that differs from the board's best goes along.
     expect(third.find("#choice-GRID_ROWS").exists()).toBe(false);

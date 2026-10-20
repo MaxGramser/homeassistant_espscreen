@@ -33,7 +33,7 @@ const card = props.card;
 .tile .camera-art.fill { object-fit: cover; }
 .tile .camera-art.contain { object-fit: contain; }
 .tile.camera .camera-art { opacity: 1; }
-/* The shade the add-on puts under the name (tile_art.FADE_SHARE, FADE_DEPTH). */
+/* The shade the add-on puts under the name (picture_paint.FADE_SHARE, FADE_DEPTH). */
 .tile .camera-name { position: absolute; inset: auto 0 0 0; height: 42%; padding: 0 9px 8px; display: flex; align-items: end; color: white; font-weight: 700; background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .59)); border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; pointer-events: none; }
 .tile .camera-name > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* A favourite (app 0.4.42): the picture dimmed as the screen dims it (a third of its light), the words and the key over it. */

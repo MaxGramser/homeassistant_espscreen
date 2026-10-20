@@ -24,7 +24,7 @@ import profiles  # noqa: E402
 import core  # noqa: E402
 import firmware as firmware_module  # noqa: E402
 import generate_board_shapes  # noqa: E402
-import camera_feed  # noqa: E402
+import picture_question  # noqa: E402
 
 # What each board becomes standing up, read off the board files as they ship. Written out here rather than
 # computed, so a board file that quietly changes its panel or its portrait grid is noticed.
@@ -103,13 +103,13 @@ class CameraBoxes(unittest.TestCase):
                 self.assertNotIn('camera', entry, board)
                 for way in core.ORIENTATIONS:
                     self.assertNotIn('camera', entry['orientations'][way], f'{board} {way}')
-                self.assertNotIn(board, camera_feed.BOXES, board)
+                self.assertNotIn(board, picture_question.BOXES, board)
                 continue
             stated = {'full': [int(values['CAMERA_FULL_W']), int(values['CAMERA_FULL_H'])],
                       'thumb': entry['orientations']['landscape']['camera']['thumb']}
             self.assertEqual(entry['camera'], stated, board)
             self.assertEqual(entry['orientations']['landscape']['camera'], stated, board)
-            self.assertEqual(camera_feed.BOXES[board], {view: tuple(box) for view, box in stated.items()}, board)
+            self.assertEqual(picture_question.BOXES[board], {view: tuple(box) for view, box in stated.items()}, board)
 
     def test_a_screen_standing_up_gets_a_picture_standing_up(self):
         for board, (width, height, *_) in STANDING_UP.items():
@@ -142,21 +142,21 @@ class CameraBoxes(unittest.TestCase):
     def test_the_box_a_screen_is_served_follows_that_screen(self):
         lying = {'board': 'waveshare43'}
         standing = {'board': 'waveshare43', 'orientation': 'portrait'}
-        self.assertEqual(camera_feed.box(lying, 'full'), (800, 480))
-        self.assertEqual(camera_feed.box(standing, 'full'), (480, 800))
-        self.assertEqual(camera_feed.box(standing, 'thumb'), (386, 217))
+        self.assertEqual(picture_question.box(lying, 'full'), (800, 480))
+        self.assertEqual(picture_question.box(standing, 'full'), (480, 800))
+        self.assertEqual(picture_question.box(standing, 'thumb'), (386, 217))
         # What an online screen reports decides too, whatever its profile says: the canvas it names is one of its
         # board's two, and a screen flashed by hand has no profile here to be read.
         online = {'board': 'waveshare43', 'shape': {'width': 480, 'height': 800, 'columns': 1, 'rows': 4}}
-        self.assertEqual(camera_feed.box(online, 'full'), (480, 800))
-        self.assertEqual(camera_feed.box({**online, 'orientation': 'landscape'}, 'full'), (480, 800))
+        self.assertEqual(picture_question.box(online, 'full'), (480, 800))
+        self.assertEqual(picture_question.box({**online, 'orientation': 'landscape'}, 'full'), (480, 800))
         # A board that draws no pictures has no box either way up, and nothing else changes for it.
         for screen in ({'board': 'cyd'}, {'board': 'cyd', 'orientation': 'portrait'}):
-            self.assertIsNone(camera_feed.box(screen, 'full'), screen)
-            self.assertIsNone(camera_feed.boxes(screen), screen)
+            self.assertIsNone(picture_question.box(screen, 'full'), screen)
+            self.assertIsNone(picture_question.boxes(screen), screen)
         # Square glass is served the same picture whichever word it is given.
-        self.assertEqual(camera_feed.box({'board': 'guition'}, 'thumb'),
-                         camera_feed.box({'board': 'guition', 'orientation': 'portrait'}, 'thumb'))
+        self.assertEqual(picture_question.box({'board': 'guition'}, 'thumb'),
+                         picture_question.box({'board': 'guition', 'orientation': 'portrait'}, 'thumb'))
 
 
 class NewScreen(unittest.TestCase):

@@ -1,6 +1,7 @@
-# ESP Screens - M5Stack Tab5 ST7121: 5-inch 1280 x 720 panel, ESP32-P4 and ESP32-C6.
-# This profile targets only the confirmed ST7121 display and touch-controller variant (issue #79).
-# docs/TAB5.md records the evidence and what still needs checking on the glass.
+# ESP Screens - M5Stack Tab5: 5-inch 1280 x 720 panel, ESP32-P4 and ESP32-C6.
+# The Tab5 is sold with an ST7121 (issue #79) or an ST7123 (issue #240) display and touch controller: DISPLAY_MODEL
+# below, which New screen asks for (boards.yaml `choices`). docs/TAB5.md says how to tell them apart and records the
+# evidence.
 packages:
   hardware: !include ../hardware/m5stack-tab5.yaml
   look: !include ../looks/standard.yaml
@@ -36,7 +37,10 @@ substitutions:
   SCREEN_MAX_PAGES: "16"
   SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it (GitHub #247)
   LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
-  TOUCH_CONTROLLER: "ST7121"                    # The ESPHome driver is named st7123; the glass reports ST7121.
+  # The display and touch controller, one chip: ST7121 or ST7123, ESPHome's display model M5STACK-TAB5-<this>. The touch
+  # is ESPHome's st7123 platform for both.
+  DISPLAY_MODEL: "ST7121"
+  TOUCH_CONTROLLER: "ST7121/ST7123"
   TOUCH_TEST_READY_LOG: "ST7121 touch test ready; no tile actions"
 
   # The audio (features/audio.yaml), as ESPHome's own Tab5 configuration and M5Stack's BSP wire it: an ES8388 for the
@@ -89,11 +93,11 @@ touchscreen:
       y_min: 0
       y_max: 1280
 
-# ESPHome's MIPI-DSI model selects the ST7121 panel sequence. The panel is 720x1280; LVGL turns it a quarter.
+# ESPHome's MIPI-DSI model selects the panel's sequence (DISPLAY_MODEL). The panel is 720x1280; LVGL turns it a quarter.
 display:
   - platform: mipi_dsi
     id: my_display
-    model: M5STACK-TAB5-ST7121
+    model: M5STACK-TAB5-${DISPLAY_MODEL}
     dimensions: {width: 720, height: 1280}
     lanes: 2
     reset_pin:

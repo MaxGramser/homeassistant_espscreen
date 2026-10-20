@@ -211,6 +211,15 @@ export type FeedbackView = {
   board: string; model?: string | null; privacy: string;
   versions: { firmware_version?: string | null; addon_version?: string | null };
 };
+// What this app shares about plugins (plugin_likes.py view): never the key.
+export type PluginSharing = {
+  consented: boolean; counting: boolean; counting_asked: boolean; asking: boolean; counted?: number | null; usable: boolean;
+};
+// The stars card above a screen (Plugins.ask_card): a plugin of the index it has run for a few days and not yet rated.
+export type PluginAsk = {
+  plugin: string; name: Record<string, string>; version?: string | null; days: number; maintainer: string; tessera: boolean;
+  issues?: string | null; image?: string | null; board?: string | null; ask_counting: boolean; privacy: string;
+};
 export type Screen = {
   // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
   preview?: { media_screen?: { entity: string; starting_volume?: number; library_entry?: string; favorite_button?: string } };
@@ -236,6 +245,8 @@ export type Screen = {
   // The layout is out and the screen holds it (app 0.2.108): the editor then shows no delivery line.
   in_sync?: boolean;
   feedback?: FeedbackView | null;
+  // How a plugin it runs works for you (docs/PLUGINS.md, "Likes, ratings and counting"): the stars card, or none.
+  plugin_ask?: PluginAsk | null;
   alert_action?: string; dismiss_action?: string;
   // The screen's device name (its ESPHome name): what its actions are named after and what an alert's `screen` takes.
   node?: string;
@@ -353,6 +364,8 @@ export type Inventory = {
   line?: LineBuild[];
   // The build server (build_server.py, docs/BUILDS.md "On a build server"), in every live answer.
   build_server?: BuildServerView;
+  // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
+  plugin_sharing?: PluginSharing | null;
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
   claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };

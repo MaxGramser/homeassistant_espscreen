@@ -19,12 +19,15 @@ const card = props.card;
 </script>
 
 <template>
+  <!-- A player's album cover over the whole card, dimmed (runtime_tiles::card_art, one row too since the picture
+       system): the card's words light on it and the icon in a dark circle, as on a taller card. -->
+  <img v-if="card.artwork" :key="card.artwork" class="line-art" :src="card.artwork" alt="" @load="card.loaded.artwork = true" @error="card.loaded.artwork = false" />
   <template v-if="card.face.kind === 'graph'">
     <span class="head"><span class="ic mdi">{{ glyph(card.icon) }}</span><span class="tx"><span class="nm">{{ card.texts.name }}</span><span class="st">{{ card.texts.line }}</span></span></span>
     <SensorHistory :entity="card.tile.entity" :hours="Number(card.tile.options?.history_hours || 24)" />
   </template>
   <template v-else-if="card.face.kind === 'full'">
-    <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' || card.face.display === 'cover' }">{{ glyph(card.icon) }}</span>
+    <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' }">{{ glyph(card.icon) }}</span>
     <span class="lead">
       <span class="nm">{{ card.texts.name }}</span>
       <span v-if="card.goesTo" class="goto">{{ card.texts.pageLink }}</span>
@@ -43,7 +46,7 @@ const card = props.card;
   </template>
   <template v-else-if="card.face.kind === 'wide'">
     <span class="lead">
-      <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' || card.face.display === 'cover' }">{{ glyph(card.icon) }}</span>
+      <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' }">{{ glyph(card.icon) }}</span>
       <span class="tx">
         <span class="nm">{{ card.texts.name }}</span>
         <span v-if="card.goesTo" class="goto">{{ card.texts.pageLink }}</span>
@@ -76,7 +79,7 @@ const card = props.card;
     <!-- As the screen draws it: the icon on the left, the name and the value beside it. A watch
          card puts the name on top and the big value under it; the small slider runs underneath. -->
     <span class="head" :class="{ top: card.face.display === 'watch' }">
-      <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' || card.face.display === 'cover' }">{{ glyph(card.icon) }}</span>
+      <span class="ic mdi" :class="{ lit: card.lit, thumb: card.face.display === 'live' }">{{ glyph(card.icon) }}</span>
       <span class="tx">
         <span class="nm">{{ card.texts.name }}</span>
         <span v-if="card.goesTo" class="goto">{{ card.texts.pageLink }}</span>

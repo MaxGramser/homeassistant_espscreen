@@ -5,7 +5,7 @@ services. This module owns capability gates and commit-before-delivery order;
 it does not import the server or keep another copy of a page document.
 """
 import time
-import camera_feed
+import picture_question
 import page_delivery
 from core import bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
 from i18n import t, shown, english
@@ -103,10 +103,10 @@ def save_pages(manager, inbox, data):
     # More pages than 64 tiles fill needs firmware 0.18.0, and a screen that said so in its hello has it.
     if len(document['pages']) > features['page_limit'] and not (sender and sender.free_pages):
         raise LayoutError(t('addon.errors.layout.firmware_first', version=version_text(FREE_PAGES_MIN_FIRMWARE)))
-    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
+    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and board_of(screen) not in picture_question.BOXES:
         raise LayoutError(t('addon.errors.layout.camera_unsupported'))
     # A map is a picture too (app 0.4.33): a board without room for pictures hears about the map.
-    if any((tile.get('options') or {}).get('display') == 'map' for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
+    if any((tile.get('options') or {}).get('display') == 'map' for tile in flat['tiles']) and board_of(screen) not in picture_question.BOXES:
         raise LayoutError(t('addon.errors.layout.map_unsupported'))
     needed = manager.needs_firmware(inbox, flat, screen)
     if needed: raise LayoutError(t('addon.errors.layout.firmware_first', version=needed))
@@ -195,7 +195,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         dependencies = cached['dependencies']
     values = []
     for i, tile in enumerate(tiles):
-        reuse = not full and tile['entity'] not in dirty and dirty.isdisjoint(manager.related_entities(tile))
+        reuse = not full and tile['entity'] not in dirty and dirty.isdisjoint(manager.related_entities(tile, inbox))
         if reuse and tile['entity'].startswith('weather.') and manager.forecast_due(tile['entity']): reuse = False
         if reuse and tile['entity'].startswith('calendar.') and manager.calendar_due(tile): reuse = False
         values.append(cached['values'][i] if reuse else await manager.tile_message(i, tile, lamps=lamps, features=features, inbox=inbox))

@@ -175,6 +175,8 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
   microphone and speaker share one I2S bus sets `AUDIO_HALF_DUPLEX` and `AUDIO_MIC_BUS` and includes
   `features/audio-half-duplex.yaml` (the microphone lets the speaker have the bus for every sound), and
   `features/audio-amplifier.yaml` for an amplifier that follows the sound (the Waveshare P4 86 panel, the M5Stack Tab5).
+  A codec with one I2S bus can also work both ways at once on two of the chip's I2S ports that share its clock pins
+  (`allow_other_uses`), one of them `i2s_mode: secondary`, as on the Guition P4 panels (`hardware/guition-p4-audio.yaml`).
   A camera clocked from a pin takes LEDC timer 0 and channel 0: give the board's own PWM outputs another channel. The screen is then a media player in
   Home Assistant, and plugins that need a speaker or a microphone fit it.
 - Settings of its own, for hardware the other boards do not have (a volume, a microphone switch, waking when the board

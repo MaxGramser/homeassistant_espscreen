@@ -915,12 +915,16 @@
         "choose": "Wähle, welches Plugin den {feature} für {name} bringt.",
         "other_origin": "Dieser Bildschirm nutzt ein anderes Plugin namens {name}, aus {origin}. Wechsle in seinen Details zu diesem.",
         "misfit_esphome": "{name} braucht ESPHome {version} oder neuer zum Bauen.",
-        "like_not_installed": "Bring das Plugin zuerst auf einen deiner Bildschirme, dann kannst du es mögen.",
         "like_consent": "Stimme zuerst zu, dass dein Gefällt mir in einer öffentlichen Zahl zählt.",
         "like_off": "Gefällt mir ist aus: eine neuere Version der App verwaltet es.",
         "like_failed": "Das Gefällt mir wurde nicht gesendet. Versuch es gleich noch einmal.",
         "misfit_built_in": "{name} bringt mit, was dieses Board selbst hat.",
-        "offline": "Die App weiß noch nicht, wo {screen} im Netzwerk ist. Schalte ihn ein, warte, bis er online ist, und versuche es dann erneut."
+        "offline": "Die App weiß noch nicht, wo {screen} im Netzwerk ist. Schalte ihn ein, warte, bis er online ist, und versuche es dann erneut.",
+        "like_not_listed": "Nur Plugins aus dem Katalog von Tessera können ein Gefällt mir bekommen.",
+        "rate_not_installed": "Setz das Plugin zuerst auf einen deiner Bildschirme, dann kannst du es bewerten.",
+        "rate_failed": "Die Sterne wurden nicht gesendet. Versuch es gleich noch einmal.",
+        "count_failed": "Das Mitzählen ließ sich nicht ausschalten: Tessera war nicht erreichbar. Versuch es gleich noch einmal.",
+        "forget_running": "Ein Bildschirm nutzt dieses Plugin noch. Nimm es zuerst vom Bildschirm."
       },
       "extras": {
         "request": "Diese Änderung eines Extras ist auf diesem Bildschirm nicht möglich."
@@ -2111,7 +2115,9 @@
         "label": "Sortieren nach",
         "popular": "Beliebteste",
         "new": "Neueste",
-        "name": "Name"
+        "name": "Name",
+        "rated": "Am besten bewertet",
+        "used": "Am meisten genutzt"
       },
       "none_in_tab": {
         "tiles": "Noch keine Plugins mit Kacheln.",
@@ -2124,8 +2130,8 @@
         "count": "{n} Person mag das | {n} Personen mögen das",
         "like": "Gefällt mir",
         "unlike": "Gefällt mir zurücknehmen",
-        "install_first": "Bring es zuerst auf einen Bildschirm, dann kannst du es mögen",
-        "ask": "Dein Gefällt mir zählt in einer öffentlichen Zahl pro Plugin. Nur die Zahl ist öffentlich: nichts über dich, Home Assistant oder deine Bildschirme geht mit."
+        "ask": "Dein Gefällt mir zählt in einer öffentlichen Zahl pro Plugin. Nur die Zahl ist öffentlich: nichts über dich, Home Assistant oder deine Bildschirme geht mit.",
+        "like_hint": "Gefällt mir, auch wenn es auf keinem deiner Bildschirme läuft: ein Dankeschön an die Person, die es gemacht hat."
       },
       "along": {
         "title": "Kommt mit",
@@ -2178,7 +2184,59 @@
         "history": "Alle Versionen"
       },
       "failed_update": "Version {version} ließ sich für {screen} nicht erstellen, daher bleibt {current}, die Version, die er ausführt. Das Protokoll findest du unter Firmware & USB.",
-      "interrupted": "Die App wurde während des Erstellens neu gestartet."
+      "interrupted": "Die App wurde während des Erstellens neu gestartet.",
+      "stars": {
+        "label": "Sterne für {name}",
+        "of_five": "{n} von 5 Sternen",
+        "say": {
+          "1": "Funktioniert nicht",
+          "2": "Mäßig",
+          "3": "Geht so",
+          "4": "Gut",
+          "5": "Super"
+        },
+        "yours": "Deine Sterne",
+        "give": "Wie funktioniert es bei dir?",
+        "clear": "Zurücknehmen"
+      },
+      "numbers": {
+        "rating": "{rating} aus {n} Bewertung | {rating} aus {n} Bewertungen",
+        "few": "{n} Bewertung bisher | {n} Bewertungen bisher",
+        "homes": "in {n} Zuhause genutzt | in {n} Zuhause genutzt"
+      },
+      "counting": {
+        "label": "Meine Plugins im Store mitzählen",
+        "hint": "Einmal am Tag die Namen und Versionen deiner Plugins und das Modell jedes Bildschirms. Sonst nichts.",
+        "on_hint": "An: Einmal am Tag gehen die Namen und Versionen deiner Plugins und das Modell jedes Bildschirms an Tessera. Ausschalten entfernt sie dort."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} läuft seit {days} Tag auf {screen}. Wie gefällt es dir? | {name} läuft seit {days} Tagen auf {screen}. Wie gefällt es dir?",
+        "send": "Senden",
+        "what_title": "Was wird geteilt?",
+        "what": {
+          "plugin": "Das Plugin und seine Version: {name} {version}",
+          "board": "Das Bildschirmmodell: {board}",
+          "stars": "Deine Sterne",
+          "counting": "Mit Mitzählen an: einmal am Tag, welche Plugins deine Bildschirme ausführen, ihre Versionen und die Bildschirmmodelle",
+          "nothing_else": "Sonst nichts: kein Name, kein Konto, keine Entitäten und keine Home Assistant-Einstellungen. Die App teilt unter einem eigenen zufälligen Schlüssel."
+        },
+        "thanks": "Danke! Deine Sterne sind bei {name}.",
+        "heart_hint": "Gefällt es dir sehr? Gib {maker} auch ein Gefällt mir. Es zählt in einer öffentlichen Zahl pro Plugin; nichts über dich geht mit.",
+        "hearted": "Danke für dein Gefällt mir",
+        "issue_hint": "Schade. Soll es behoben werden? Öffne ein Issue für {maker}, mit der Version und deinem Bildschirmmodell schon ausgefüllt.",
+        "issue_open": "Issue auf GitHub öffnen"
+      },
+      "sharing": {
+        "title": "Plugin-Store",
+        "text": "Hilf anderen, gute Plugins zu finden. Gefällt mir und Sterne gehen nur, wenn du sie gibst, das Mitzählen nur, solange es an ist.",
+        "asking": "Ein paar Tage nach einem neuen Plugin nach Sternen fragen",
+        "asking_hint": "Eine Karte über dem Bildschirm, ein Plugin nach dem anderen."
+      },
+      "forget": {
+        "go": "Aus der Liste entfernen",
+        "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen."
+      }
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",
@@ -2308,7 +2366,6 @@
         "live_card_hint": "Das Bild füllt die Kachel, im Takt unten aufgefrischt, solange die Seite zu sehen ist. Ein Tipp öffnet sie weiterhin bildschirmfüllend.",
         "live_card_needs_firmware": "Ein Bild, das die Kachel füllt, braucht Firmware 0.3.7 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken. Bis dahin zeigt der Bildschirm ein kleines Bild anstelle des Symbols.",
         "cover": "Albumcover",
-        "cover_hint": "Das Albumcover des laufenden Titels anstelle des Symbols, wie auf der eigenen Kachel von Home Assistant; ein Player ohne Bild behält sein Symbol. Ein Tipp öffnet weiterhin die Karte.",
         "cover_needs_firmware": "Das Albumcover auf der Kachel braucht Firmware 0.2.78 oder neuer: Nach dem Speichern beim Bildschirm auf Aktualisieren drücken.",
         "map": "Karte",
         "map_hint": "Wo diese Person und die hinzugefügten Personen sind, auf einer ruhigen Karte in den Farben des Bildschirms. Home Assistant liefert die Straßen von OpenStreetMap; der Bildschirm erhält nur das Bild, nie einen Standort. Sie wird neu gezeichnet, wenn sich jemand bewegt. Ein Tippen öffnet sie über den ganzen Bildschirm.",
@@ -3149,10 +3206,20 @@
         "calibration": "Touch-Kalibrierung beim ersten Start"
       },
       "choice": {
-        "DISPLAY_MODEL": "Display-Controller"
+        "DISPLAY_MODEL": "Display-Controller",
+        "FLASH_SIZE": "Flash-Speicher",
+        "BOARD_VARIANT": "Board"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "Die meisten dieser Boards haben den ersten. Nimm den anderen, wenn der Bildschirm Rauschen oder ein verzerrtes Bild zeigt."
+        "DISPLAY_MODEL": "Nimm zuerst den ersten. Nimm den anderen, wenn der Bildschirm schwarz bleibt oder Rauschen oder ein verzerrtes Bild zeigt.",
+        "FLASH_SIZE": "Die meisten dieser Boards haben 16 MB. Nimm 8 MB, wenn der Bildschirm nach der Installation schwarz bleibt und immer wieder neu startet.",
+        "BOARD_VARIANT": "Nimm das Board, das du hast. Auf dem gelben Board ohne Gehäuse landet ein Tippen oben links sonst unten rechts."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Schwarz, im Gehäuse",
+          "yellow": "Gelb, ohne Gehäuse"
+        }
       },
       "choice_usual": "die meisten",
       "orientation_landscape": "Quer",

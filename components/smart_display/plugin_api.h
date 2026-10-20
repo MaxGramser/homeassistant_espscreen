@@ -64,7 +64,22 @@ namespace tessera {
 // `backdrop: true`, the step's own picture (moving, for the photos) under the whole saver; and wish(), a
 // value a finger changed, shown at once and squared with Home Assistant as every control of the screen does; drift(),
 // the slow circle against burn-in, for a saver that moves only some of its parts.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 15;
+// 0.15: an option of kind `entity`; the add-on follows its selected Home Assistant entity and puts the bounded state
+// under `entities.<option id>` in the tile's data. This adds no firmware-side symbols.
+// 0.16: wake(), the screen wakes as Home Assistant's Wake button does, for a plugin that senses someone come.
+// 0.17 (docs/PICTURES.md): pictures in one system. ui::picture(parent, Placeholder::NONE), a place without its soft
+// block (places that lie over each other, a cover flow); on_picture(place, PictureState) on a tile, a card and a
+// screensaver, whether a place's picture came; the core's sources as a place's address (`cover:<entity>`,
+// `camera:<entity>`, `entity:<entity>` for a place of that entity, `step:` for the screensaver step's own picture, the
+// old `saver:picture` still read); slide_pictures from any call of a tile or a card; ui::live, a tile's place that
+// streams its camera on a P4 as a camera tile set to Live does; and capturing(), a plugin that uses
+// the screen's own camera on the screen itself, which the core then shows with its dot (the core shows Home
+// Assistant's own use of the camera by itself).
+// 0.18: popups (show_popup, close_popup, popup_shown, Popup): the alert's card in the middle of the glass with what the
+// plugin draws in it, as high as that, over everything but an alert, for a voice assistant that listens, thinks and
+// answers; and ui::animate and ui::still, a part of it that pulses, spins or ripples while something goes on.
+// 0.19: optional native media-screen configuration and startup-volume handling.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 19;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -73,6 +88,9 @@ constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 15;
 // icon set only. DIGITS (0.9) is the largest: a climate card's setpoint, with the digits and - . , ° % alone, so a
 // tile takes it only for a value ui::covers() and steps down to VALUE for any other (a word, a unit, a letter).
 enum class Font : uint8_t { VALUE, HEADLINE, TITLE, BODY_LARGE, BODY, ICON, ICON_SMALL, DIGITS };
+// What came of a place's picture (0.17, on_picture): SHOWN, it is on its place; NONE, the app has no picture at that
+// address now (it asks again later, each time after a longer while); FAILED, it did not come (the download broke off).
+enum class PictureState : uint8_t { SHOWN, NONE, FAILED };
 
 // What a tile gets when its card is made. It is valid during create() only: `name`, `entity` and `options` point into
 // the core's own storage and the JSON document of the call, so a tile copies what it needs into members of its own.
@@ -129,6 +147,10 @@ class Tile : public InPsram {
   virtual void on_theme() {}
   // A tap on the tile that the touch filter let through (tap_point() says where).
   virtual void on_tap() {}
+  // What came of the picture of one of its places (0.17): once when it is on its place, or when it did not come, and
+  // again when that changes (a new address, a picture that comes after all). A place shows its block, or nothing (its
+  // Placeholder), until then: show something of your own where it stays NONE or FAILED.
+  virtual void on_picture(lv_obj_t *place, PictureState state) {}
 };
 
 // What a card gets when it opens. A card is a screen of its own over the page: Tessera draws its frame (the page's
@@ -161,6 +183,54 @@ class Card : public InPsram {
   // so a tap on them comes here; an LVGL object of the plugin's own that is clickable takes the tap itself. Back is
   // on_back, never this. The card may close itself or open another from here.
   virtual void on_tap() {}
+  // What came of the picture of one of its places (0.17), as Tile::on_picture.
+  virtual void on_picture(lv_obj_t *place, PictureState state) {}
+};
+
+// How a part moves (0.18, ui::animate). PULSE: its opacity goes from full to a fifth and back. SPIN: it turns around its
+// middle (a ring with one side drawn, an icon). RIPPLE: it grows to half again its size while it fades out, as a ripple
+// on water, and starts again.
+enum class Motion : uint8_t { PULSE, SPIN, RIPPLE };
+
+// How wide a popup is (0.18): ALERT, as an alert's card on this glass and at least two fifths of the glass's width (for
+// words, a question and its answer); WIDE, the glass less its edge on each side (a list, a row of keys).
+enum class PopupWidth : uint8_t { ALERT, WIDE };
+
+// What a popup gets when it shows (0.18): the room inside its card. The card is as high as what the popup puts in the
+// room, up to `height`: lay the parts out from the top, and the card follows when they grow or shrink (a part that is
+// hidden takes no room). What lies below `height` is cut off; a part that moves (ui::animate) may reach out over the
+// room's edge into the card's.
+struct PopupContext {
+  lv_obj_t *parent;          // the card's room, inside its edge: everything the popup makes goes in here
+  int width, height;         // the room's width, and the most it may grow to on this glass, in pixels
+  int key;                   // the close key's size: it stands in the room's top right corner, as high as a first row
+                             // of that size (a disc, an icon) at the top left, on the same line and as far in
+  int corner;                // how far the first row keeps from the right for it: the key and a gap
+};
+
+// A popup of a plugin (0.18, docs/PLUGINS.md "A popup"): the card an alert of Home Assistant shows (its width on this
+// glass, its corners and colours, in the middle over the dimmed screen), as high as what the plugin draws in it, for a
+// moment that wants the eye now: a voice assistant that listens, thinks and answers, a timer that went off, a question.
+// Its top right corner holds the round close key of every card's top bar (PopupContext::corner). It lies over the page,
+// a card, the settings and the screensaver, and under an alert. One shows at a time, of any plugin, and showing one
+// lights a dark screen (as wake() does), also one that Home Assistant's Sleep put out. It goes when its plugin closes it
+// (tessera::close_popup) or shows another, and by itself on its close key, a tap beside the card, when the screen goes
+// dark, before an update and when an alert comes: then it hears on_dismiss first. It may close itself from any of its
+// own calls; it leaves the glass at once and is deleted once that call returned. It shows no pictures (ui::picture).
+class Popup : public InPsram {
+ public:
+  virtual ~Popup() = default;
+  virtual void open(const PopupContext &context) = 0;
+  // Every 250 ms while it shows, with millis(): for what moves on by itself (words that come one by one).
+  virtual void on_interval(uint32_t now_ms) {}
+  // Once a second while it shows, with the screen's clock.
+  virtual void on_tick(uint32_t epoch) {}
+  virtual void on_theme() {}
+  // A tap on the card through the touch filter, as Card::on_tap: tap_point() says where, in the room's pixels.
+  virtual void on_tap() {}
+  // It goes by itself (its close key, a tap beside it, the screen going dark, an update, an alert, another plugin's
+  // popup): the last call before it is deleted. Not when its own plugin closed it or showed another.
+  virtual void on_dismiss() {}
 };
 
 // A tap action on a tile of Home Assistant's own (a thermostat that opens the plugin's schedule): what it was tapped on.
@@ -230,6 +300,10 @@ enum class Fit : uint8_t { COVER, CONTAIN };
 // draws the whole picture in perspective within the place, its near edge the place's height and its far edge 70 % of
 // it. LEFT faces the left (its left edge far: a cover right of the middle), RIGHT faces the right (a cover left of it).
 enum class Turn : uint8_t { NONE, LEFT, RIGHT };
+// What a place shows until its picture is there (0.17, ui::picture): BLOCK, the soft block of a key's colour (TRACK);
+// NONE, nothing, so what lies under the place shows (places that lie over each other, a reflection that reaches past
+// its picture).
+enum class Placeholder : uint8_t { BLOCK, NONE };
 // A reflection under a picture (0.10, ui::set_picture's `mirror`): it takes this share of the picture's height under it,
 // within the place, so a place for a picture of height h with its reflection is h * (100 + MIRROR_PERCENT) / 100 high.
 constexpr int MIRROR_PERCENT = 30;
@@ -302,6 +376,8 @@ class Saver : public InPsram {
   virtual void on_tap() {}
   // A finger held on such a part for a second and a half (as volume down held mutes on Tessera's own player face).
   virtual void on_hold() {}
+  // What came of the picture of one of its places (0.17), as Tile::on_picture.
+  virtual void on_picture(lv_obj_t *place, PictureState state) {}
 };
 struct SaverType {
   Plugin *plugin;
@@ -418,18 +494,6 @@ std::vector<BarItemType> &bar_items();
 std::vector<SaverType> &saver_types();
 
 // ---- What the core offers a plugin ----
-// Private API 0.15 extension; not yet part of upstream Tessera.
-// Configure the existing media detail experience without exposing core objects.
-struct MediaScreenConfig {
-  std::string entity, library_entry, favorite_button;
-  float starting_volume = 0.30f;
-  uint32_t artwork_after_ms = 60000;
-  bool enabled = true;
-};
-void configure_media_screen(const MediaScreenConfig &config);
-void poll_media_screen(uint32_t now_ms);
-void close_media_artwork();
-
 // The screen's clock: seconds since 1970, 0 until Home Assistant set it.
 uint32_t epoch();
 // A moment in the screen's own time zone (the one Home Assistant gave it).
@@ -458,6 +522,14 @@ bool open_card(const char *plugin_id, const char *card, const std::string &entit
                const std::string &title = "");
 // Close the card that is open, as Back does.
 void close_card();
+// Show a popup of this plugin over the glass (0.18), made by `make` (the core deletes it), in place of the popup shown
+// now. A dark screen lights up first, as wake() does: a popup is something to see. Call it from the plugin's own calls
+// (the screen's loop). False when nothing could show (`make` returned none).
+bool show_popup(const Plugin *plugin, std::function<Popup *()> make, PopupWidth width = PopupWidth::ALERT);
+// Close this plugin's popup, if it shows one (it hears no on_dismiss).
+void close_popup(const Plugin *plugin);
+// Whether a popup of this plugin shows.
+bool popup_shown(const Plugin *plugin);
 // Where the finger of a tile's on_tap was (0.10), in the pixels of the tile's drawing area (TileContext::parent: 0,0
 // its top left, width and height as create() got them), so a tile with a list or a row of posters knows which one was
 // tapped; or of a card's on_tap (0.12), in the pixels of its room (CardContext::parent). Valid during on_tap; -1,-1
@@ -477,6 +549,23 @@ Point drift(uint32_t epoch);
 uint32_t send(const Plugin *plugin, JsonObjectConst request);
 // The card on the glass draws again in its next pass (after a change made outside on_state or on_tick).
 void refresh();
+// Wake the screen as Home Assistant's Wake button does (0.16), for a plugin that senses someone come (motion in front of
+// a camera, a light coming on): the one way every wake takes that is not a finger on the glass. A dimmed screen lights
+// up at its brightness, also at night, its screensaver goes and a Sleep is over; it goes back to page 1 at once when
+// that time ran out during standby. A screen that is on only counts its standby time from now. It is no tap: Back to
+// page 1 keeps counting from the last touch, so waking on every motion holds no card or page 2 up. The log names the
+// plugin. Call it from the plugin's own calls (the screen's loop, as every call here), never from a task of its own,
+// and at most once a second or two while what it senses goes on. A plugin that wakes the screen by what it senses has
+// a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen").
+void wake(const Plugin *plugin);
+// What a plugin captures on the screen itself (0.17): its own camera.
+enum class Capture : uint8_t { CAMERA };
+// A plugin uses the screen's own camera on the screen itself (0.17, docs/PICTURES.md "Capture"), for what never leaves
+// it (a light level, motion): true while it does, false once it stops. The core shows a dot in the glass's top right
+// corner, on top of everything, while anything uses the camera, and no plugin or setting can take it away: Home
+// Assistant taking pictures or a stream of the camera (`ts_camera`, the feature `camera`) the core sees by itself; what a
+// plugin does on the screen it must say here. Call it from the plugin's own calls (the screen's loop).
+void capturing(const Plugin *plugin, Capture what, bool on);
 // A Home Assistant action on an entity, as a tile's tap sends it: action("light.toggle", entity), or with one field
 // (action("climate.set_temperature", entity, "temperature", "21")). The screen must be allowed to perform actions.
 // The plugin's manifest names every action it calls under permissions.home_assistant_actions so that a person can read
@@ -548,7 +637,11 @@ lv_obj_t *text(lv_obj_t *parent, Font font, theme::Role role = theme::INK);
 // card draws each place its frame. Pictures come only while the tile is on the glass or on a kept page, and leave the
 // store when the tile does. An address is on a host the plugin's manifest names under permissions.network, or a
 // picture of Home Assistant's own for a tile of an entity (its entity_picture: /api/image/serve/..., /api/image_proxy/...,
-// /local/...); the app fetches nothing else. The manifest's `pictures` of the tile says how many places it has at most.
+// /local/...), or (0.17) one of the core's own sources for a place of that entity: `cover:<entity>` what a media player
+// plays (through Home Assistant's own proxy for it, as the media card's cover), `camera:<entity>` a camera's or image
+// entity's still, `entity:<entity>` an entity's own picture (a person's); and `step:` the screensaver step's own picture
+// (docs/PICTURES.md "Sources"). The app fetches nothing else. The manifest's `pictures` of the tile says how many places
+// it has at most.
 // A card (0.13) does the same in its room (CardContext::parent): its places, made in open(), come as one picture while it
 // is open, the way Tessera's own media card shows its cover, and leave the store when it closes. The manifest's
 // `pictures` of the card says how many it has; Home Assistant's own pictures only for a card opened for an entity. The
@@ -559,8 +652,10 @@ bool pictures();
 // A place for a picture in `parent`, sized and placed by the plugin as any object (lv_obj_set_size, lv_obj_set_pos):
 // a soft block (theme::TRACK) until its picture is there. Its corners are a key's; a radius of the plugin's own
 // (lv_obj_set_style_radius) is taken over by the picture. Call it in create() of a tile or open() of a card, as every
-// object.
+// object. The place is the core's: size and place it, never style it (0.17: Placeholder::NONE for a place without its
+// block, which stays so whatever comes of its picture).
 lv_obj_t *picture(lv_obj_t *parent);
+lv_obj_t *picture(lv_obj_t *parent, Placeholder placeholder);
 // The picture a place shows, by its address, COVER or CONTAIN (Fit). The same address again does nothing (call it on
 // every on_state for free); another address asks the app again; "" takes the picture away and shows the block. A
 // place that lies outside the card, or has no size, gets no picture.
@@ -572,8 +667,32 @@ void set_picture(lv_obj_t *place, const std::string &url, Fit fit, Turn turn, bo
 // Slide every place of the tile `dx` pixels sideways over `ms` (0.10), and keep them there until the tile's next
 // picture is here: then they are back where the tile laid them out, with it, in the same frame. Call it beside the
 // set_picture calls of a change (a cover flow that turns), so the change shows which way it goes while the next picture
-// comes. Call it in a call of the tile or the card (on_tap, on_tick).
+// comes. Call it in any call of the tile or the card (on_state, on_tap, on_tick).
 void slide_pictures(int dx, uint32_t ms = 300);
+// The part moves once every `period_ms`, again and again, starting `delay_ms` from now (three dots that pulse one after
+// the other, two ripples half a period apart), until ui::still or until the part is deleted. For a popup, whose moment
+// is short (a microphone that listens, a ring that turns while it thinks); a tile, a card and a screensaver stand
+// still, since the screen draws the part again in every frame while it moves. Keep a part that moves small: it is drawn
+// anew each frame, and a part that spins or ripples through a layer of its own.
+void animate(lv_obj_t *part, Motion motion, uint32_t period_ms, uint32_t delay_ms = 0);
+// The part stops moving and shows as it was laid out: whole, upright, at its size.
+void still(lv_obj_t *part);
+// A tile's place shows its camera live (0.17): a place whose address is `camera:<entity>` of the tile's own entity
+// streams on a screen that streams (the ESP32-P4 boards) while it is on the glass, the page stands still and nothing
+// lies over it, exactly as a camera tile set to Live does (docs/PICTURES.md); everywhere else, and until its first live
+// picture, it shows its stills. Lay nothing over a live place (a label, another place): LVGL's drawing there stops the
+// stream. Only on a tile's places; a card's and a saver's places show stills. Call it in create() or on_state.
+void live(lv_obj_t *place, bool on = true);
 }  // namespace ui
+
+struct MediaScreenConfig {
+  std::string entity, library_entry, favorite_button;
+  float starting_volume = 0.30f;
+  uint32_t artwork_after_ms = 60000;
+  bool enabled = true;
+};
+void configure_media_screen(const MediaScreenConfig &config);
+void poll_media_screen(uint32_t now_ms);
+void close_media_artwork();
 
 }  // namespace tessera

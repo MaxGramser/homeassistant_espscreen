@@ -915,12 +915,16 @@
         "choose": "Choose which plugin brings the {feature} for {name}.",
         "other_origin": "This screen runs another plugin called {name}, from {origin}. Switch to this one in its details.",
         "misfit_esphome": "{name} needs ESPHome {version} or newer to build.",
-        "like_not_installed": "Put the plugin on one of your screens first, then you can like it.",
         "like_consent": "Agree first that your like counts in a public number.",
         "like_off": "Likes are off: a newer version of the app keeps them.",
         "like_failed": "The like did not go out. Try again in a moment.",
         "misfit_built_in": "{name} brings what this board has itself.",
-        "offline": "The app does not know where {screen} is on the network yet. Switch it on, wait until it shows as online, then try again."
+        "offline": "The app does not know where {screen} is on the network yet. Switch it on, wait until it shows as online, then try again.",
+        "like_not_listed": "Only plugins of Tessera's catalogue can be liked.",
+        "rate_not_installed": "Put the plugin on one of your screens first, then you can rate it.",
+        "rate_failed": "The stars did not go out. Try again in a moment.",
+        "count_failed": "Counting could not be turned off: Tessera could not be reached. Try again in a moment.",
+        "forget_running": "A screen still runs this plugin. Take it off the screen first."
       },
       "extras": {
         "request": "This change of an extra is not possible on this screen."
@@ -1933,7 +1937,6 @@
         "live_card_hint": "The picture fills the tile, refreshed at the pace below while the page is on screen. A tap still opens it full screen.",
         "live_card_needs_firmware": "A picture that fills the tile needs firmware 0.3.7 or newer: press Update on the screen after saving. Until then the screen shows a small picture in the icon's place.",
         "cover": "Album cover",
-        "cover_hint": "The album cover of what plays in the icon's place, like Home Assistant's own tile; a player without a picture keeps its icon. A tap still opens the card.",
         "cover_needs_firmware": "The album cover on the tile needs firmware 0.2.78 or newer: press Update on the screen after saving.",
         "map": "Map",
         "map_hint": "Where this person and the people you add are, on a calm map drawn in the screen's colours. Home Assistant supplies the streets from OpenStreetMap; the screen only gets the picture, never a location. It is drawn again when someone moves. A tap opens it over the whole screen.",
@@ -2774,10 +2777,20 @@
         "calibration": "Touch calibration on first start"
       },
       "choice": {
-        "DISPLAY_MODEL": "Display controller"
+        "DISPLAY_MODEL": "Display controller",
+        "FLASH_SIZE": "Flash memory",
+        "BOARD_VARIANT": "Board"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "Most of these boards have the first one. Take the other when the screen shows noise or a garbled picture."
+        "DISPLAY_MODEL": "Start with the first. Take the other when the screen stays black or shows noise or a garbled picture.",
+        "FLASH_SIZE": "Most of these boards have 16 MB. Take 8 MB when the screen stays black after the install and keeps starting again.",
+        "BOARD_VARIANT": "Take the one you have. On the yellow board without a case, a tap on the top left would otherwise land on the bottom right."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Black, in a case",
+          "yellow": "Yellow, without a case"
+        }
       },
       "choice_usual": "most boards",
       "orientation_landscape": "Lying down",
@@ -3769,7 +3782,9 @@
         "label": "Sort by",
         "popular": "Most liked",
         "new": "Newest",
-        "name": "Name"
+        "name": "Name",
+        "rated": "Best rated",
+        "used": "Most used"
       },
       "none_in_tab": {
         "tiles": "No plugins with tiles yet.",
@@ -3782,8 +3797,8 @@
         "count": "{n} person likes this | {n} people like this",
         "like": "Like",
         "unlike": "Take back your like",
-        "install_first": "Put it on a screen first, then you can like it",
-        "ask": "Your like counts in a public number per plugin. Only the number is public: nothing about you, Home Assistant or your screens goes along."
+        "ask": "Your like counts in a public number per plugin. Only the number is public: nothing about you, Home Assistant or your screens goes along.",
+        "like_hint": "Like it, also when it is on none of your screens: a thank-you to its maker."
       },
       "along": {
         "title": "Comes along",
@@ -3836,7 +3851,59 @@
         "history": "All versions"
       },
       "failed_update": "Version {version} did not build for {screen}, so it went back to {current}, the one it runs. Its log is under Firmware & USB.",
-      "interrupted": "The app restarted during the build."
+      "interrupted": "The app restarted during the build.",
+      "stars": {
+        "label": "Stars for {name}",
+        "of_five": "{n} of 5 stars",
+        "say": {
+          "1": "Doesn't work",
+          "2": "Poor",
+          "3": "Okay",
+          "4": "Good",
+          "5": "Great"
+        },
+        "yours": "Your stars",
+        "give": "How does it work for you?",
+        "clear": "Take back"
+      },
+      "numbers": {
+        "rating": "{rating} from {n} rating | {rating} from {n} ratings",
+        "few": "{n} rating so far | {n} ratings so far",
+        "homes": "used in {n} home | used in {n} homes"
+      },
+      "counting": {
+        "label": "Count my plugins in the store",
+        "hint": "Once a day the names and versions of your plugins and the model of each screen. Nothing else.",
+        "on_hint": "On: once a day the names and versions of your plugins and the model of each screen go to Tessera. Turning it off removes them there."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} has run on {screen} for {days} day. How do you like it? | {name} has run on {screen} for {days} days. How do you like it?",
+        "send": "Send",
+        "what_title": "What is shared?",
+        "what": {
+          "plugin": "The plugin and its version: {name} {version}",
+          "board": "The screen model: {board}",
+          "stars": "Your stars",
+          "counting": "With counting on: once a day which plugins your screens run, their versions and the screen models",
+          "nothing_else": "Nothing else: no name, account, entities or Home Assistant settings. The app shares under one random key of its own."
+        },
+        "thanks": "Thanks! Your stars are with {name}.",
+        "heart_hint": "Like it a lot? Give {maker} a heart too. It counts in a public number per plugin; nothing about you goes along.",
+        "hearted": "Thanks for the heart",
+        "issue_hint": "A pity. Want it fixed? Open an issue for {maker}, with the version and your screen model filled in.",
+        "issue_open": "Open an issue on GitHub"
+      },
+      "sharing": {
+        "title": "Plugin store",
+        "text": "Help others find good plugins. Hearts and stars go only when you give them, counting only while it is on.",
+        "asking": "Ask for stars a few days after a new plugin",
+        "asking_hint": "A card above the screen, one plugin at a time."
+      },
+      "forget": {
+        "go": "Remove from the list",
+        "note": "No screen runs this plugin. Remove it from the list to forget the link."
+      }
     },
     "plugin_tile": {
       "from": "A tile of the plugin {plugin}",

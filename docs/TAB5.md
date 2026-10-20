@@ -1,27 +1,28 @@
-# M5Stack Tab5, ST7121 variant
+# M5Stack Tab5
 
-This profile supports only the M5Stack Tab5 variant whose factory firmware reports:
+The M5Stack Tab5 is sold with one of two display and touch controllers, the ST7121 or the ST7123. They need a different
+start sequence, and the wrong one leaves the screen black with its backlight on, without an error. The label on the back
+is not a reliable guide. The factory firmware's USB log says which one a unit has:
 
 ```text
 Detected ST7121 touch controller (FW version: 1), using ST7121 display
+Detected ST7123 touch controller (FW version: 3)
 ```
 
-The reported unit has an ESP32-P4 eco2 at chip revision v1.3, 16 MB SPI flash and 32 MB PSRAM. The screen is 720 × 1280
-pixels, used as a 1280 × 720 landscape layout. The profile selects ESPHome's `M5STACK-TAB5-ST7121` MIPI-DSI model.
-Other Tab5 display and touch variants are not covered. A profile for the wrong display variant can leave the screen
-blank, so check the factory log before choosing it.
+The first reported unit has an ESP32-P4 eco2 at chip revision v1.3, 16 MB SPI flash and 32 MB PSRAM. The screen is
+720 × 1280 pixels, used as a 1280 × 720 landscape layout. The board file selects ESPHome's `M5STACK-TAB5-ST7121` or
+`M5STACK-TAB5-ST7123` MIPI-DSI model through its `DISPLAY_MODEL` substitution (`ST7121` or `ST7123`). The touch uses
+ESPHome's `st7123` platform for both controllers.
 
 ## Install and test
 
-The Tab5 is listed as a new board after successful hardware testing. In **New screen**, choose **M5Stack Tab5**, model
-**Tab5 ST7121**. Other Tab5 display and touch variants are not covered by this hardware confirmation.
-
-The display uses the explicit ST7121 model. ESPHome's available touch platform is named `st7123`; it is configured
-here for the ST7121 controller using the community reference. This profile has been tested with the ST7121 variant;
-other Tab5 display and touch variants still need to be checked on glass.
+The Tab5 is listed as a new board after successful hardware testing. In **New screen**, choose **M5Stack Tab5**, then
+the display controller: **ST7121** (the default) or **ST7123**. If the screen stays black with its backlight on after
+the install, build it again with the other one. The ST7123 was confirmed by two owners (GitHub #240), first through an
+Override YAML that changed only the display model.
 
 In Tessera, the screen's board label comes from its **Screen board** diagnostic and should identify the Tab5 (`tab5`).
-If it identifies another board, such as the CYD, reinstall the screen using the **Tab5 ST7121** profile so its firmware
+If it identifies another board, such as the CYD, reinstall the screen using the **M5Stack Tab5** profile so its firmware
 reports the correct board.
 
 The landscape grid starts with three rows of tiles; the Grid button beside the pages in the editor gives it more, up to
@@ -83,8 +84,7 @@ substitutions:
   TAB5_AUDIO_TRANSPORT: "i2s"
 ```
 
-Keep the screen's own name, Wi-Fi settings and API/update keys. Use the ST7121 profile
-only on that display variant. Plain I2S removes the AEC stack and its DSP libraries
+Keep the screen's own name, Wi-Fi settings and API/update keys. Plain I2S removes the AEC stack and its DSP libraries
 entirely. It has no Echo cancellation switch, so the editor shows that row as unavailable.
 
 The AEC transport adds **Echo cancellation** under Extras on the panel and, with the

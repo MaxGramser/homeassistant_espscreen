@@ -136,13 +136,13 @@ def camera_of(values, side):
     other one would letterbox it into a third of the glass. The alert's picture gets the frame the firmware makes for
     it on that canvas for a camera's 16:9 (screen_alert::layout, firmware 0.2.103+), which alert_layout.py works out
     the same way, from the look, the density and the two fonts of the card. ESP Screens works out the frame for a
-    picture of other proportions itself (camera_feed.alert_box), with the line heights written here as `alert`.
+    picture of other proportions itself (picture_question.alert_box), with the line heights written here as `alert`.
     """
     lines = alert_lines(values)
     card = alert_layout.layout(side['width'], side['height'], lines['title_line'], lines['line'], True,
                                round(float(values['DISPLAY_DPI'])), values['LOOK'].strip('"'))
     boxes = {'full': [side['width'], side['height']]}
-    # Glass too low for a picture in the alert leaves it out there, and ESP Screens then sends none (camera_feed.box).
+    # Glass too low for a picture in the alert leaves it out there, and ESP Screens then sends none (picture_question.box).
     if card.image_w > 0 and card.image_h > 0:
         boxes['thumb'] = [card.image_w, card.image_h]
     return boxes
@@ -171,7 +171,7 @@ def shapes():
                  # panel leaves those out as the screen itself does.
                  'can_standby': values.get('CAN_STANDBY', 'true').strip('"') != 'false',
                  # The alert card's two line heights (firmware 0.2.103+): with the canvas, the density and the look they
-                 # are what screen_alert::layout needs to size an alert's picture (camera_feed.alert_box).
+                 # are what screen_alert::layout needs to size an alert's picture (picture_question.alert_box).
                  'alert': alert_lines(values),
                  # The sizes of the faces a card's controls draw their numbers in (app 0.4.32): the editor's mockup picks
                  # among them as runtime_tiles::stepper_keys does, the largest that fits, instead of sizes of its own;

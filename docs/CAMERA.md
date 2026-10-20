@@ -117,6 +117,17 @@ cut square with the tile's rounded corners, delivered as described below.
   double-width media player tile. The app fetches the player's picture only when its address changes (a new track);
   the screen asks again the moment the picture's mark in the player's state changes. A player without a picture keeps
   its icon; the tile over the whole page keeps the card's big cover.
+- **The library while nothing plays.** A media player's tile on *Album cover* that is 1 x 2, 2 x 2 or larger shows
+  the covers of the player's library while it has nothing to show (idle, on, off or standby, or paused with no song,
+  and no picture of its own), darkened as much as a cover under its track. The app takes the first folder of the
+  library that holds songs (Spotify's "Liked songs", newest first), else albums, else playlists, each picture once,
+  and reads it again every half hour. The covers stay square and all one size, two along the tile's shorter side and
+  as many along the longer one as fill it; what reaches past the tile is cut off evenly at both ends, never squeezed.
+  Every minute one of them moves on to the next cover of the folder: the one longest on the tile goes, and none shows
+  twice. It is the tile's own picture by a mark in the player's state, so the firmware asks for it as for a cover and
+  nothing in the firmware changed; a screen gets it once its firmware draws a player's extras (0.24.0+). A library
+  whose pictures the app may not fetch, such as Music Assistant's covers of files in the house, which come from an
+  address in the house, keeps the tile as it was. The rules are in `screen_manager/app/rest_mosaic.py`.
 - The tiles' pictures come through the third of the screen's three downloads (`picture_fetch::live`, decoded into
   PSRAM), bound in `packages/features/camera.yaml`, which every board with camera pictures includes; the CYD, the
   Waveshare 3.5 and the Hosyond have none.
@@ -152,7 +163,7 @@ alone, and a board with more memory takes larger pictures: one picture may be a 
 2048 pixels a side (`picture_store::cap_for`). The P4 boards with 32 MB keep 6 MB of pictures, so 2 MB a picture: the
 10-inch glass gets a camera over its whole page, its full view, a map and the screensaver at its own 1280 x 800. The
 screen says so with `cap` (the bytes) when it asks for a picture of the whole glass, and the app honours up to 4 MB
-(`camera_feed.picture_cap`); an older app keeps the common cap. A picture that is still smaller than its place sits in
+(`picture_question.cap_of`); an older app keeps the common cap. A picture that is still smaller than its place sits in
 the middle of its card on a dark ground, so the name under it stays readable.
 
 A screen with firmware 0.3.3 or newer gets its live pictures in 8-bit colour: a palette of the picture's own
@@ -196,7 +207,7 @@ The screen never talks to Home Assistant about images, and it never holds a Home
    at most the board's canvas (`camera.full` in boards.json: 480×480 on the 4-inch Guition, 800×480 on
    the Waveshare 4.3, 5 and 7, 1024×600 on the JC1060P470), an alert card at its frame (`camera.thumb`,
    392×220 on the 4-inch Guition), proportions kept. Neither is ever larger than the cap above
-   (`camera_feed.PICTURE_MAX_SIDE` and `PICTURE_MAX_BYTES`): the JC8012P4A1's 1280×800 canvas gets a
+   (`picture_question.MAX_SIDE` and `MAX_BYTES`): the JC8012P4A1's 1280×800 canvas gets a
    full-screen picture of at most 1024×640, shown in the middle.
 3. It serves the result as an uncompressed BMP on **port 8098** under a random link, and sends the
    link to the screen. The screen downloads it in a task of its own, beside its main loop
@@ -211,7 +222,7 @@ The screen never talks to Home Assistant about images, and it never holds a Home
 
 While a camera is open, the screen loads its link every four seconds, one image at a time. Each load sets the
 camera's next fetch for just before the next load: four seconds on, less the time the camera took to answer last
-time and half a second (`camera_feed.CameraFeed.ahead`), so the next load finds a snapshot a fraction of a second old
+time and half a second (`picture_sources.Snapshots.ahead`), so the next load finds a snapshot a fraction of a second old
 and the picture changes at the screen's steady pace. A load whose fetch is still on its way waits up to 1.5 seconds
 for it, then takes the last snapshot. (Firmware before 0.52.0 got the snapshot fetched at the load before, a picture
 four seconds old; a fetch on its own clock next to the screen's made the picture change after 1.5 s one time and 6 s
@@ -236,7 +247,8 @@ bar in pixels (`1280x715`). An app that knows streams answers with a link on its
 older app answers with a still, and the screen shows stills. The link serves `multipart/x-mixed-replace`: one baseline
 JPEG a part, each with its Content-Length, over plain HTTP/1.0. The app makes the next picture once the last one has
 left its host, always of the newest frame the camera gave, so a slow Wi-Fi gets fewer pictures and never older ones.
-At most four screens stream at once.
+The app serves at most eight streams at once, of every screen together (a page of live tiles and a camera full
+screen); a stream it refuses leaves that screen with its stills. A screen runs at most seven of its own.
 
 **Where the pictures come from** (`screen_manager/app/live_feed.py`). Most of the work lands on Home Assistant's host,
 often a Raspberry Pi, so each kind of camera takes the cheapest road:
@@ -247,7 +259,9 @@ often a Raspberry Pi, so each kind of camera takes the cheapest road:
   software decoder takes only the baseline profile most cameras do not send), so Home Assistant's host does, once per
   camera however many screens watch it. The JPEG is made straight from the decoder's YUV with FFmpeg's encoder, at the
   camera's own size where that fits the room, or scaled down to it. Until the first frame (WebRTC waits for the
-  camera's next key frame, a few seconds on some cameras) the screen gets the camera's still.
+  camera's next key frame, a few seconds on some cameras) the screen gets the camera's still, again every two seconds,
+  each such part marked `X-Picture: still` (see "Until it is live" below). The app offers WebRTC without a STUN server:
+  it and Home Assistant share a network, and gathering a STUN candidate first cost about five seconds.
 - Any other camera (a snapshot camera, an ESPHome camera, a picture an integration draws) gives its snapshot, asked again
   as soon as the last one came, at most 15 a second. A JPEG the P4 decodes as it is (baseline, at most 1920 pixels a
   side) goes out untouched, which costs the app nothing; anything else is made into one.
@@ -278,6 +292,15 @@ Measured on the reTerminal D1001 (2026-10-10):
 | 1920 x 1080, sent as 1264 x 704 | 15 a second, the camera's pace | 10 ms | 48 ms |
 
 Home Assistant's LL-HLS was 0.6 to 1.2 seconds behind the same camera and came in bursts of a second; its WebRTC 0.12.
+
+**Until it is live.** The stills before WebRTC's first frame show at once, but they stand still, so the screen says
+they are not live yet: a live tile (and a plugin's live place) turns the firmware's spinner, small, in its top right
+corner on a round shade, and the full view turns it at the right of its top bar, the place its sound key takes once
+the picture is live (the sound comes with the live stream). The stream's task draws the tile's loader itself,
+over the picture it composed and every 50 ms between the stills, since LVGL draws nothing over a stream; the full
+view's is LVGL's, beside the picture. The first part without the mark ends it, and `live_view` tells its owner
+(`Event::LIVE`, logged as "stream N: live after ... ms"). A camera without a stream sends no marks, so it is live from
+its first picture, and so is everything an older app sends; an older screen reads the mark as a header it does not know.
 
 **Live tiles.** A camera tile with **Display → Live picture** has one more pace on a P4: **Live**, its first and default
 one, so a camera tile on a P4 is live unless its pace says otherwise. The editor offers it for a screen that streams
@@ -363,6 +386,10 @@ board without PSRAM has no room for it.
 - **Home Assistant OS:** the app publishes port 8098 on the Home Assistant host. When another app
   already uses 8098, pick another port in the app's network settings: the app sends the screens
   links on the port you chose (app 0.4.24+). The screens need to reach Home Assistant's address on it.
+- **Home Assistant on more than one network:** each screen gets the address Home Assistant has on the screen's own
+  network, found from the screen's IP address and the networks Home Assistant lists. A screen on a network where Home
+  Assistant has no address of its own (one reached through a router) gets the address of Home Assistant's default
+  network, as every screen did before. It then needs a route to that address.
 - **Docker** (docs/DOCKER.md): the container uses the host network, so 8098 is open as is. When
   the screens reach the host under another address, set `SCREEN_CAMERA_URL`, for example
   `http://192.168.1.20:8098`.
@@ -412,9 +439,11 @@ through, how much it matters, and how the app is asked for it. One loader decide
 
 ## For developers
 
-- `screen_manager/app/camera_feed.py`: fetching, sizing, links and the port; `CameraFeed.live` makes a tile's picture
-  (with `tile_art.encode`) and an older screen's strip (`encode_live`); `Manager.answer_live` in `server.py` checks the
-  tiles against the layout.
+- The app's side is one picture system, docs/PICTURES.md: `picture_question.py` (the question and its answer),
+  `picture_legacy.py` (an older screen's fields read as the same question), `picture_sources.py` (what each address
+  is, fetched once per camera and checked against the layout), `picture_paint.py` (sizing, cutting, the shade and the
+  corners), `picture_links.py` (the links and the port) and `picture_service.py` (the question in, the link out);
+  `Manager.answer_camera` in `server.py` hands a screen's question to it.
 - `components/smart_display/camera_view.h`: when to ask for a link and when to load again
   (`tests/test_camera_view.cpp`).
 - `components/smart_display/picture_loader.h`: the one route every picture goes (`tests/test_picture_loader.cpp`

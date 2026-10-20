@@ -915,12 +915,16 @@
         "choose": "Válaszd ki, melyik bővítmény biztosítja ezt: {feature} ({name}).",
         "other_origin": "Ez a kijelző egy másik {name} nevű bővítményt futtat innen: {origin}. A részleteiben válts erre.",
         "misfit_esphome": "A(z) {name} fordításához ESPHome {version} vagy újabb kell.",
-        "like_not_installed": "Előbb tedd fel a bővítményt egy kijelződre, utána kedvelheted.",
         "like_consent": "Előbb fogadd el, hogy a kedvelésed nyilvános számba számít.",
         "like_off": "A kedvelés ki van kapcsolva: az alkalmazás újabb verziója kezeli.",
         "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később.",
         "misfit_built_in": "{name} azt hozza, ami ennek a lapkának már megvan.",
-        "offline": "Az app még nem tudja, hol van a(z) {screen} a hálózaton. Kapcsold be, várd meg, amíg online lesz, és próbáld újra."
+        "offline": "Az app még nem tudja, hol van a(z) {screen} a hálózaton. Kapcsold be, várd meg, amíg online lesz, és próbáld újra.",
+        "like_not_listed": "Csak a Tessera katalógusában lévő bővítményeket lehet kedvelni.",
+        "rate_not_installed": "Előbb tedd fel a bővítményt az egyik kijelződre, utána értékelheted.",
+        "rate_failed": "A csillagok nem mentek el. Próbáld újra egy kicsit később.",
+        "count_failed": "A számolást nem sikerült kikapcsolni: a Tessera nem volt elérhető. Próbáld újra egy kicsit később.",
+        "forget_running": "Egy képernyő még használja ezt a bővítményt. Előbb vedd le a képernyőről."
       },
       "extras": {
         "request": "Ez a módosítás ezen a kijelzőn nem lehetséges."
@@ -2111,7 +2115,9 @@
         "label": "Rendezés",
         "popular": "Legkedveltebb",
         "new": "Legújabb",
-        "name": "Név"
+        "name": "Név",
+        "rated": "Legjobbra értékelt",
+        "used": "Leggyakrabban használt"
       },
       "none_in_tab": {
         "tiles": "Még nincs csempés bővítmény.",
@@ -2124,8 +2130,8 @@
         "count": "{n} embernek tetszik | {n} embernek tetszik",
         "like": "Tetszik",
         "unlike": "Tetszik visszavonása",
-        "install_first": "Előbb tedd fel egy kijelzőre, utána kedvelheted",
-        "ask": "A kedvelésed egy bővítményenkénti nyilvános számba számít bele. Csak a szám nyilvános: rólad, a Home Assistantról vagy a kijelzőidről semmi sem kerül át."
+        "ask": "A kedvelésed egy bővítményenkénti nyilvános számba számít bele. Csak a szám nyilvános: rólad, a Home Assistantról vagy a kijelzőidről semmi sem kerül át.",
+        "like_hint": "Kedveld, akkor is, ha egyik kijelződön sincs: egy köszönet a készítőnek."
       },
       "along": {
         "title": "Vele jön",
@@ -2178,7 +2184,59 @@
         "history": "Minden verzió"
       },
       "failed_update": "A(z) {version} verzió nem fordult le a(z) {screen} számára, ezért visszaállt a futó {current} verzióra. A naplót a Firmware és USB alatt találod.",
-      "interrupted": "Az app újraindult a fordítás közben."
+      "interrupted": "Az app újraindult a fordítás közben.",
+      "stars": {
+        "label": "Csillagok ehhez: {name}",
+        "of_five": "{n} csillag az 5-ből",
+        "say": {
+          "1": "Nem működik",
+          "2": "Gyenge",
+          "3": "Elmegy",
+          "4": "Jó",
+          "5": "Szuper"
+        },
+        "yours": "A te csillagaid",
+        "give": "Hogyan működik nálad?",
+        "clear": "Visszavonás"
+      },
+      "numbers": {
+        "rating": "{rating}, {n} értékelés alapján | {rating}, {n} értékelés alapján",
+        "few": "eddig {n} értékelés | eddig {n} értékelés",
+        "homes": "{n} otthonban használják | {n} otthonban használják"
+      },
+      "counting": {
+        "label": "A bővítményeim számolása a boltban",
+        "hint": "Naponta egyszer a bővítményeid neve és verziója, valamint minden kijelző modellje. Semmi más.",
+        "on_hint": "Be: naponta egyszer a bővítményeid neve és verziója, valamint minden kijelző modellje a Tesserához kerül. Kikapcsolva ott törlődnek."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "A(z) {name} {days} napja fut ezen: {screen}. Hogy tetszik? | A(z) {name} {days} napja fut ezen: {screen}. Hogy tetszik?",
+        "send": "Küldés",
+        "what_title": "Mi kerül megosztásra?",
+        "what": {
+          "plugin": "A bővítmény és a verziója: {name} {version}",
+          "board": "A kijelző modellje: {board}",
+          "stars": "A csillagaid",
+          "counting": "Bekapcsolt számolással: naponta egyszer, hogy mely bővítmények futnak a kijelzőiden, a verzióik és a kijelzők modelljei",
+          "nothing_else": "Semmi más: se név, se fiók, se entitás, se Home Assistant-beállítás. Az alkalmazás egy saját, véletlen kulccsal oszt meg."
+        },
+        "thanks": "Köszönjük! A csillagaid ott vannak a(z) {name} mellett.",
+        "heart_hint": "Nagyon tetszik? Adj {maker} részére egy kedvelést is. Egy bővítményenkénti nyilvános számban számít; rólad semmi sem megy el.",
+        "hearted": "Köszönjük a kedvelést",
+        "issue_hint": "Kár. Szeretnéd, hogy kijavítsák? Nyiss egy hibajegyet {maker} számára, a verzióval és a kijelződ modelljével már kitöltve.",
+        "issue_open": "Hibajegy nyitása a GitHubon"
+      },
+      "sharing": {
+        "title": "Bővítménybolt",
+        "text": "Segíts másoknak jó bővítményeket találni. Kedvelés és csillag csak akkor megy, ha te adod, a számolás csak amíg be van kapcsolva.",
+        "asking": "Csillagok kérése néhány nappal egy új bővítmény után",
+        "asking_hint": "Egy kártya a kijelző fölött, egyszerre egy bővítményről."
+      },
+      "forget": {
+        "go": "Eltávolítás a listából",
+        "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön."
+      }
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",
@@ -2308,7 +2366,6 @@
         "live_card_hint": "A kép kitölti a csempét, és amíg az oldal látszik, az alább megadott ütemben frissül. Koppintásra továbbra is teljes képernyőn nyílik meg.",
         "live_card_needs_firmware": "A csempét kitöltő képhez 0.3.7 vagy újabb firmware kell: mentés után nyomd meg a Frissítés gombot a kijelzőnél. Addig a kijelző kis képet mutat az ikon helyén.",
         "cover": "Albumborító",
-        "cover_hint": "Az éppen szóló zene albumborítója az ikon helyén, mint a Home Assistant saját csempéjén; kép nélküli lejátszónál az ikon marad. Koppintásra továbbra is a kártya nyílik meg.",
         "cover_needs_firmware": "A csempén lévő albumborítóhoz 0.2.78 vagy újabb firmware kell: mentés után nyomd meg a Frissítés gombot a kijelzőnél.",
         "map": "Térkép",
         "map_hint": "Hol van ez a személy és akiket hozzáadsz, egy nyugodt térképen a kijelző színeiben. Az utcákat a Home Assistant adja az OpenStreetMapből; a kijelző csak a képet kapja, soha nem helyet. Újrarajzolódik, ha valaki elmozdul. Egy érintés a teljes képernyőn nyitja meg.",
@@ -3149,10 +3206,20 @@
         "calibration": "Érintéskalibrálás az első indításkor"
       },
       "choice": {
-        "DISPLAY_MODEL": "Kijelzővezérlő"
+        "DISPLAY_MODEL": "Kijelzővezérlő",
+        "FLASH_SIZE": "Flash-memória",
+        "BOARD_VARIANT": "Panel"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "A legtöbb ilyen panelen az első van. Ha a kijelző zajos vagy torz képet mutat, válaszd a másikat."
+        "DISPLAY_MODEL": "Kezdd az elsővel. Ha a kijelző fekete marad, zajos vagy torz képet mutat, válaszd a másikat.",
+        "FLASH_SIZE": "A legtöbb ilyen panelen 16 MB van. Válaszd a 8 MB-ot, ha a kijelző a telepítés után fekete marad és újra meg újra elindul.",
+        "BOARD_VARIANT": "Válaszd azt, amelyik nálad van. A sárga, ház nélküli panelen a bal felső koppintás különben a jobb alsó sarokba kerülne."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Fekete, házban",
+          "yellow": "Sárga, ház nélkül"
+        }
       },
       "choice_usual": "a legtöbb panel",
       "orientation_landscape": "Fekvő",

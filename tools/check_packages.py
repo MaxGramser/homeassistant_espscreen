@@ -213,10 +213,13 @@ def main():
                 lower.setdefault(key, value)
         for key, value in profiles.substitutions_of(profiles.CORE).items():
             lower.setdefault(key, value)
+        # A line that follows one of the board's choices (boards.yaml `choices`) counts with each value it may take.
+        picks = [{}] + [{name: option} for name, options in (profiles.CATALOG.get(board, {}).get('choices') or {}).items()
+                        for option in options[1:]]
         for key, value in own.items():
             if key in lower:
-                mine = profiles.evaluate({**everything})[key]
-                theirs = profiles.evaluate({**everything, key: lower[key]})[key]
+                mine = [profiles.evaluate({**everything, **pick})[key] for pick in picks]
+                theirs = [profiles.evaluate({**everything, **pick, key: lower[key]})[key] for pick in picks]
                 if mine == theirs:
                     fail(f'{path.relative_to(ROOT)} states {key}: "{value}", which is what it gets without that line; '
                          f'leave it out, so a change to the default reaches this board too')

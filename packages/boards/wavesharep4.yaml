@@ -22,8 +22,11 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
-  # The P4 transport keeps the shared speaker/microphone/player interfaces. The amplifier follows playback.
+  # The P4 transport keeps the shared speaker/microphone/player interfaces. The codecs and the amplifier are the ones
+  # every Waveshare P4 board with this main board's audio shares (after the transport, so their values win over its
+  # defaults); the amplifier follows playback.
   audio: !include ../hardware/wavesharep4-audio/${P4_AUDIO_TRANSPORT}.yaml
+  audio_codecs: !include ../hardware/wavesharep4-audio/codecs.yaml
   audio_settings: !include ../hardware/wavesharep4-audio/settings.yaml
   audio_amplifier: !include ../features/audio-amplifier.yaml
 
@@ -50,15 +53,9 @@ substitutions:
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
   BACKLIGHT_FREQUENCY: "200Hz"                  # the backlight's PWM: at 100 Hz grey areas flickered (GitHub #209)
 
-  # One physical I2S bus, with full-duplex AEC or the original half-duplex I2S path. The ES8311 maps volume from
-  # 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
+  # The audio transport: "aec" for full duplex with echo cancellation, "i2s" for the original half-duplex I2S path
+  # without the AEC libraries (docs/P4_AUDIO.md). The wiring is hardware/wavesharep4-audio/codecs.yaml's.
   P4_AUDIO_TRANSPORT: "aec"
-  AUDIO_MIC_BUS: ts_speaker_bus
-  AUDIO_DOUT_PIN: GPIO9
-  AUDIO_DIN_PIN: GPIO11
-  AUDIO_DAC_DB_AT_0: "-95.5"
-  AUDIO_DAC_DB_AT_1: "32"
-  AUDIO_AMPLIFIER: board_speaker_amp
 
 # ============================================================
 # No need to edit below this line.
@@ -108,35 +105,9 @@ display:
     update_interval: never
     auto_clear_enabled: false
 
-# The audio, as Waveshare's schematic wires it: both codecs on the touch panel's I2C bus, one I2S bus for both, and the
-# speaker's amplifier on GPIO53.
-audio_adc:
-  - platform: es7210_extended
-    id: ts_audio_adc
-    i2c_id: touch_bus
-    address: 0x40
-    sample_rate: ${AUDIO_SAMPLE_RATE}
-    bits_per_sample: 16bit
-    mic_gain: 30db
-    alc:
-      enabled: true
-
-audio_dac:
-  - platform: es8311
-    id: ts_audio_dac
-    i2c_id: touch_bus
-    address: 0x18
-    sample_rate: ${AUDIO_SAMPLE_RATE}
-    bits_per_sample: 16bit
-    use_mclk: true
-    use_microphone: false
-
+# The audio (both codecs on the touch panel's I2C bus, one I2S bus for both, the speaker's amplifier on GPIO53) is
+# hardware/wavesharep4-audio/codecs.yaml, shared with the other Waveshare P4 boards wired the same way.
 switch:
-  - platform: gpio
-    id: board_speaker_amp
-    internal: true
-    pin: GPIO53
-    restore_mode: ALWAYS_OFF
   # Ordinary HA controls, not settings: show them as switches and let the user choose tiles/automations.
   # Waveshare's bottom board and demo use active-high GPIO32/GPIO46. Always start de-energised.
   - platform: gpio

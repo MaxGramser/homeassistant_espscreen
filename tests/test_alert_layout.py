@@ -102,7 +102,7 @@ int main() {{
 
     def test_the_card_fonts_are_worked_out_as_the_build_makes_them(self):
         # ESP Screens works the card's two line heights out itself for a screen whose Override YAML changed its density
-        # or look (camera_feed.alert_box): the fonts' own measure, the look's sizes, and every board's result.
+        # or look (picture_question.alert_box): the fonts' own measure, the look's sizes, and every board's result.
         core = profiles.CORE.read_text()
         for font_id in ('headline', 'sublabel_big'):
             font = ROOT / font_metrics.font_file(core, font_id)

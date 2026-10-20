@@ -16,6 +16,7 @@ import { useBrokenStore } from "../src/stores/broken";
 import { useDocumentStore } from "../src/stores/document";
 import { useInspectorStore } from "../src/stores/inspector";
 import { useInventoryStore } from "../src/stores/inventory";
+import { usePluginsStore } from "../src/stores/plugins";
 import { useScreenStore } from "../src/stores/screen";
 import { useUiStore } from "../src/stores/ui";
 import type { Entity, PageLayout, PageTile, Screen } from "../src/types";
@@ -34,6 +35,10 @@ describe("an entity's health", () => {
     expect(entityHealth("sensor.gone", facts([]))).toEqual({ kind: "missing" });
     expect(entityHealth("sensor.gone", facts([], {}, false))).toBeNull();
     expect(entityHealth("sensor.here", facts([entity("sensor.here")]))).toBeNull();
+  });
+  it("is unknown while nobody can know it yet, as a plant only a plugin names before the plugins' list is in", () => {
+    expect(entityHealth("plant.gone", { ...facts([]), judged: () => false })).toBeNull();
+    expect(entityHealth("plant.gone", { ...facts([]), judged: () => true })).toEqual({ kind: "missing" });
   });
   it("is unavailable only after a while, by Home Assistant's own moment, and fine again once a live state says so", () => {
     expect(entityHealth("sensor.porch", facts([away(2)]))).toBeNull();
@@ -102,6 +107,21 @@ beforeEach(() => {
 });
 
 describe("the broken tiles of the house", () => {
+  it("knows a plugin tile's entity of a domain only the plugin names from the plugins' own list (GitHub #262)", () => {
+    const layout: PageLayout = emptyLayout("Garden");
+    layout.pages[0].tiles = [tile("monstera", { kind: "plugin", plugin: "microplant", tile: "plant", entityId: "plant.monstera" }),
+      tile("fern", { kind: "plugin", plugin: "microplant", tile: "plant", entityId: "plant.gone" }, 0, 1)];
+    const garden = { ...hall(), id: "garden", name: "Garden", page_document: { ...hall().page_document!, layout } } as Screen;
+    useInventoryStore().inventory.screens = [living(), hall(), garden];
+    const broken = useBrokenStore(), plugins = usePluginsStore();
+    // Not judged before the list is in, which a tile of such an entity asks for.
+    expect(plugins.loaded).toBe(true);
+    expect(broken.tiles.map((item) => item.entity)).toEqual(["sensor.gone"]);
+    plugins.entities = [{ id: "plant.monstera", name: "Monstera" }];
+    plugins.received = true;
+    expect(broken.tiles.map((item) => item.entity)).toEqual(["sensor.gone", "plant.gone"]);
+  });
+
   it("counts the open screen as its draft has it: a tile given another entity is fine at once", async () => {
     const broken = useBrokenStore();
     expect(broken.tiles.map((item) => item.entity)).toEqual(["sensor.gone"]);

@@ -30,6 +30,7 @@ ALLOWED_IN_FIRMWARE = {
                          'inline constexpr uint32_t RAINBOW[] = {0xFF0000, 0xFFFF00, 0x00FF00, 0x00FFFF, 0x0000FF, 0xFF00FF, 0xFF0000};'),
     'tile_icon.h': ('if (cp < 0x10000 || cp > 0x10FFFF) return {};',),
     'runtime_tiles.h': ('accent=lv_color_to_u32(lv_color_hsv_to_rgb(t.hue%360,t.saturation<40?40:t.saturation,100))&0xFFFFFF;',),
+    'picture_question.h': ('snprintf(out, sizeof(out), "%06X", (unsigned) (colour & 0xFFFFFF));',),
 }
 # The eight hues of the rainbow key the brightness overlay carried, until firmware 0.2.80 removed it. Kept as a
 # reminder of what a profile is no longer allowed to write; the colour card draws its wheel from theme.h.

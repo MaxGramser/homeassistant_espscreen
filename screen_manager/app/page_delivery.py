@@ -297,7 +297,9 @@ class Sender:
 
     async def _hello(self, empty=False):
         request = new_id()
-        hello = {"v": PROTOCOL, "op": "hello", "request": request}
+        # `features`: what this app reads (docs/PICTURES.md): "pictures", every picture asked as one question
+        # (picture_question). Older firmware reads only the request.
+        hello = {"v": PROTOCOL, "op": "hello", "request": request, "features": ["pictures"]}
         # `empty`: this app has no tiles for the screen yet (app 0.4.74), so its starting screen asks for them instead of
         # waiting for Tessera (firmware 0.45.0). Older firmware reads only the request.
         if empty:

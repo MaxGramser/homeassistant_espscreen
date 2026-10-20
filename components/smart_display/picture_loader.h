@@ -230,6 +230,11 @@ class Loader {
     return std::any_of(jobs_.begin(), jobs_.end(), [&](const Job &j) { return j.phase == Phase::LOADING && j.want.slot == slot; });
   }
   bool busy() const { return std::any_of(jobs_.begin(), jobs_.end(), [](const Job &j) { return j.phase == Phase::LOADING; }); }
+  // The key of the picture loading into `slot`, "" when none does (before loaded() says how it went).
+  std::string loading_key(Slot slot) const {
+    for (const auto &j : jobs_) if (j.phase == Phase::LOADING && j.want.slot == slot) return j.want.key;
+    return {};
+  }
   size_t size() const { return jobs_.size(); }
   // For the tests and the log.
   enum class Phase : uint8_t { NEW, ASKED, NONE, LINKED, LOADING, DONE };

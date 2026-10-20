@@ -81,6 +81,10 @@ speaker:
     id: ts_speaker
     output_speaker: ts_announcement_input
     task_stack_in_psram: true
+    # A plugin's sound (plugin_sound.h) is handed over from the screen's loop: half a second ahead, so a long redraw of
+    # the glass (a popup coming up over a 10-inch, 300 ms) never runs it dry. ESPHome's default of 100 ms stuttered the
+    # voice assistant's wake sound. Announcements and voice fill it from their own task, as before.
+    buffer_duration: 500ms
   - platform: resampler
     id: ts_media_speaker
     output_speaker: ts_media_input

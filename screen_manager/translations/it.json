@@ -915,12 +915,16 @@
         "choose": "Scegli quale plugin fornisce il {feature} per {name}.",
         "other_origin": "Questo schermo usa un altro plugin chiamato {name}, da {origin}. Passa a questo nei suoi dettagli.",
         "misfit_esphome": "{name} richiede ESPHome {version} o più recente per compilare.",
-        "like_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai mettere mi piace.",
         "like_consent": "Accetta prima che il tuo mi piace conti in un numero pubblico.",
         "like_off": "I mi piace sono disattivati: li gestisce una versione più recente dell'app.",
         "like_failed": "Il mi piace non è stato inviato. Riprova tra un attimo.",
         "misfit_built_in": "{name} porta ciò che questa scheda ha già.",
-        "offline": "L'app non sa ancora dove si trova {screen} nella rete. Accendilo, attendi che sia online e riprova."
+        "offline": "L'app non sa ancora dove si trova {screen} nella rete. Accendilo, attendi che sia online e riprova.",
+        "like_not_listed": "Solo i plugin del catalogo di Tessera possono ricevere un mi piace.",
+        "rate_not_installed": "Metti prima il plugin su uno dei tuoi schermi, poi potrai valutarlo.",
+        "rate_failed": "Le stelle non sono state inviate. Riprova tra un attimo.",
+        "count_failed": "Non è stato possibile disattivare il conteggio: Tessera non era raggiungibile. Riprova tra un attimo.",
+        "forget_running": "Uno schermo usa ancora questo plugin. Toglilo prima dallo schermo."
       },
       "extras": {
         "request": "Questa modifica di un extra non è possibile su questo schermo."
@@ -2111,7 +2115,9 @@
         "label": "Ordina per",
         "popular": "Più apprezzati",
         "new": "Più recenti",
-        "name": "Nome"
+        "name": "Nome",
+        "rated": "Più votati",
+        "used": "Più usati"
       },
       "none_in_tab": {
         "tiles": "Ancora nessun plugin con riquadri.",
@@ -2124,8 +2130,8 @@
         "count": "Piace a {n} persona | Piace a {n} persone",
         "like": "Mi piace",
         "unlike": "Ritira il tuo mi piace",
-        "install_first": "Mettilo prima su uno schermo, poi potrai mettere mi piace",
-        "ask": "Il tuo mi piace conta in un numero pubblico per plugin. Solo il numero è pubblico: niente su di te, Home Assistant o i tuoi schermi viene inviato."
+        "ask": "Il tuo mi piace conta in un numero pubblico per plugin. Solo il numero è pubblico: niente su di te, Home Assistant o i tuoi schermi viene inviato.",
+        "like_hint": "Metti mi piace, anche se non è su nessuno dei tuoi schermi: un grazie a chi l'ha fatto."
       },
       "along": {
         "title": "Arriva insieme",
@@ -2178,7 +2184,59 @@
         "history": "Tutte le versioni"
       },
       "failed_update": "La versione {version} non si è compilata per {screen}, che è tornato a {current}, quella che esegue. Il registro è in Firmware e USB.",
-      "interrupted": "L'app si è riavviata durante la compilazione."
+      "interrupted": "L'app si è riavviata durante la compilazione.",
+      "stars": {
+        "label": "Stelle per {name}",
+        "of_five": "{n} stelle su 5",
+        "say": {
+          "1": "Non funziona",
+          "2": "Scarso",
+          "3": "Così così",
+          "4": "Buono",
+          "5": "Ottimo"
+        },
+        "yours": "Le tue stelle",
+        "give": "Come funziona per te?",
+        "clear": "Ritira"
+      },
+      "numbers": {
+        "rating": "{rating} da {n} valutazione | {rating} da {n} valutazioni",
+        "few": "{n} valutazione finora | {n} valutazioni finora",
+        "homes": "usato in {n} casa | usato in {n} case"
+      },
+      "counting": {
+        "label": "Conta i miei plugin nello store",
+        "hint": "Una volta al giorno i nomi e le versioni dei tuoi plugin e il modello di ogni schermo. Nient'altro.",
+        "on_hint": "Attivo: una volta al giorno i nomi e le versioni dei tuoi plugin e il modello di ogni schermo vanno a Tessera. Disattivandolo vengono rimossi lì."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} gira da {days} giorno su {screen}. Come ti trovi? | {name} gira da {days} giorni su {screen}. Come ti trovi?",
+        "send": "Invia",
+        "what_title": "Cosa viene condiviso?",
+        "what": {
+          "plugin": "Il plugin e la sua versione: {name} {version}",
+          "board": "Il modello dello schermo: {board}",
+          "stars": "Le tue stelle",
+          "counting": "Con il conteggio attivo: una volta al giorno quali plugin usano i tuoi schermi, le loro versioni e i modelli degli schermi",
+          "nothing_else": "Nient'altro: nessun nome, account, entità o impostazione di Home Assistant. L'app condivide con una propria chiave casuale."
+        },
+        "thanks": "Grazie! Le tue stelle sono arrivate a {name}.",
+        "heart_hint": "Ti piace molto? Dai anche un mi piace a {maker}. Conta in un numero pubblico per plugin; niente su di te viene inviato.",
+        "hearted": "Grazie per il tuo mi piace",
+        "issue_hint": "Peccato. Vuoi che venga sistemato? Apri una segnalazione per {maker}, con la versione e il modello del tuo schermo già compilati.",
+        "issue_open": "Apri una segnalazione su GitHub"
+      },
+      "sharing": {
+        "title": "Store dei plugin",
+        "text": "Aiuta gli altri a trovare buoni plugin. Mi piace e stelle partono solo quando li dai, il conteggio solo finché è attivo.",
+        "asking": "Chiedi stelle qualche giorno dopo un nuovo plugin",
+        "asking_hint": "Una scheda sopra lo schermo, un plugin alla volta."
+      },
+      "forget": {
+        "go": "Rimuovi dall'elenco",
+        "note": "Nessuno schermo usa questo plugin. Rimuovilo dall'elenco per dimenticare il link."
+      }
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",
@@ -2308,7 +2366,6 @@
         "live_card_hint": "L'immagine riempie il riquadro, aggiornata al ritmo qui sotto finché la pagina è sullo schermo. Un tocco la apre ancora a schermo intero.",
         "live_card_needs_firmware": "Un'immagine che riempie il riquadro richiede il firmware 0.3.7 o più recente: premi Aggiorna sullo schermo dopo il salvataggio. Fino ad allora lo schermo mostra una piccola immagine al posto dell'icona.",
         "cover": "Copertina",
-        "cover_hint": "La copertina di ciò che suona al posto dell'icona, come nel riquadro di Home Assistant; un lettore senza immagine mantiene la sua icona. Un tocco apre ancora la scheda.",
         "cover_needs_firmware": "La copertina sul riquadro richiede il firmware 0.2.78 o più recente: premi Aggiorna sullo schermo dopo il salvataggio.",
         "map": "Mappa",
         "map_hint": "Dove si trovano questa persona e quelle che aggiungi, su una mappa tranquilla nei colori dello schermo. Home Assistant fornisce le strade di OpenStreetMap; lo schermo riceve solo l'immagine, mai una posizione. Viene ridisegnata quando qualcuno si sposta. Un tocco la apre a tutto schermo.",
@@ -3149,10 +3206,20 @@
         "calibration": "Calibrazione del touch al primo avvio"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controller del display"
+        "DISPLAY_MODEL": "Controller del display",
+        "FLASH_SIZE": "Memoria flash",
+        "BOARD_VARIANT": "Scheda"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La maggior parte di queste schede ha il primo. Scegli l'altro se lo schermo mostra rumore o un'immagine disturbata."
+        "DISPLAY_MODEL": "Inizia con il primo. Scegli l'altro se lo schermo resta nero o mostra rumore o un'immagine disturbata.",
+        "FLASH_SIZE": "La maggior parte di queste schede ha 16 MB. Scegli 8 MB se lo schermo resta nero dopo l'installazione e si riavvia di continuo.",
+        "BOARD_VARIANT": "Scegli quella che hai. Sulla scheda gialla senza custodia, un tocco in alto a sinistra finirebbe altrimenti in basso a destra."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Nera, in custodia",
+          "yellow": "Gialla, senza custodia"
+        }
       },
       "choice_usual": "la maggior parte",
       "orientation_landscape": "In orizzontale",

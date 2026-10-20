@@ -1,6 +1,6 @@
 id: music_assistant_screen
 version: 0.1.1
-api: "0.15"
+api: "0.19"
 icon: music
 maintainer: bptworld
 license: MIT

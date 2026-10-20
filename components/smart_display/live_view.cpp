@@ -130,6 +130,7 @@ struct Stream {
   std::atomic<uint32_t> shown{0}, bytes{0}, decode_us{0}, copy_us{0}, skipped{0};
   // When the way to the first picture went by (ms after start, written once by the task, read after `shown`).
   uint32_t started_at = 0, connected_ms = 0, answered_ms = 0, first_bytes_ms = 0;
+  uint32_t live_ms = 0;  // its first live picture (written once by the task, read after `live`)
   ppa_client_handle_t ppa = nullptr;
   uint8_t *input = nullptr, *picture = nullptr;
   uint16_t *canvas = nullptr;
@@ -141,8 +142,14 @@ struct Stream {
   uint8_t *sound_piece = nullptr;  // what the speaker took part of, the rest of it next tick
   size_t piece_left = 0, piece_at = 0;
   std::atomic<bool> muted{false}, heard{false};
-  // The main loop's own: the report of the last REPORT_MS, the first picture and sound told, the speaker started.
-  bool told_first = false, told_sound = false, speaking = false;
+  // Until it is live (live_view.h): the picture on the glass is a still (the task turns a tile's loader over it), and a
+  // live one was shown. `under` holds the loader's square of the card as composed, its last turn drawn at `turned_at`.
+  std::atomic<bool> warming{false}, live{false};
+  uint16_t *under = nullptr;
+  uint32_t turned_at = 0;
+  // The main loop's own: the report of the last REPORT_MS, the first picture, its first live one and sound told, the
+  // speaker started.
+  bool told_first = false, told_live = false, told_sound = false, speaking = false;
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0;
 };
 static Stream *streams[MAX_STREAMS] = {};
@@ -298,6 +305,7 @@ static void free_stream(Stream *s) {
   if (s->picture) free(s->picture);
   if (s->canvas) free(s->canvas);
   if (s->name) free(s->name);
+  if (s->under) free(s->under);
   if (s->ppa) ppa_unregister_client(s->ppa);
   delete s;
 }
@@ -332,8 +340,44 @@ static esp_err_t copy(Stream &s, const void *in, int stride_w, int rows, int bx,
   return ppa_do_scale_rotate_mirror(s.ppa, &srm);
 }
 
-// One picture of `length` bytes in the stream's input: decoded, laid out, and copied onto the glass.
-static void show(Stream &s, size_t length) {
+// A tile's loader over a still (live_view.h, "Until it is live"): its square of the card as composed kept in `under`,
+// and the loader drawn over it as it stands now.
+static bool lay_loader(Stream &s) {
+  int lx = 0, ly = 0;
+  if (!s.under || !loader_spot(s.look, s.area.w, s.area.h, lx, ly)) return false;
+  const int cw = s.area.w, size = s.look.loader;
+  for (int j = 0; j < size; ++j)
+    memcpy(s.under + static_cast<size_t>(j) * size, s.canvas + static_cast<size_t>(ly + j) * cw + lx,
+           static_cast<size_t>(size) * 2);
+  s.turned_at = esphome::millis();
+  draw_loader(s.canvas, cw, lx, ly, s.look, s.turned_at);
+  return true;
+}
+// Its next turn, between the stills: the square as composed again, the loader over it, and that square alone onto the
+// glass, every LOADER_STEP_MS while the task waits for the stream's next bytes.
+static void turn_loader(Stream &s) {
+  const uint32_t now = esphome::millis();
+  int lx = 0, ly = 0;
+  if (!s.warming || now - s.turned_at < LOADER_STEP_MS || !loader_spot(s.look, s.area.w, s.area.h, lx, ly)) return;
+  s.turned_at = now;
+  const int cw = s.area.w, ch = s.area.h, size = s.look.loader;
+  for (int j = 0; j < size; ++j)
+    memcpy(s.canvas + static_cast<size_t>(ly + j) * cw + lx, s.under + static_cast<size_t>(j) * size,
+           static_cast<size_t>(size) * 2);
+  draw_loader(s.canvas, cw, lx, ly, s.look, now);
+  const Rect target = on_panel(Rect{s.area.x + lx, s.area.y + ly, size, size}, s.turn, panel_w, panel_h);
+  esp_err_t err = ESP_OK;
+  xSemaphoreTakeRecursive(glass, portMAX_DELAY);
+  if (!s.stopping && s.armed)
+    err = copy(s, s.canvas, cw, ch, lx, ly, size, size, frame_buffer, static_cast<size_t>(panel_w) * panel_h * 2,
+               panel_w, panel_h, target.x, target.y, 16, s.turn);
+  xSemaphoreGiveRecursive(glass);
+  if (err != ESP_OK) s.warming = false;  // the loader stops where it stands; the pictures go on
+}
+
+// One picture of `length` bytes in the stream's input: decoded, laid out, and copied onto the glass. `still`: the
+// camera's still from before its stream came, with the loader over it on a tile.
+static void show(Stream &s, size_t length, bool still) {
   jpeg_decode_picture_info_t info{};
   if (jpeg_decoder_get_info(s.input, length, &info) != ESP_OK) {
     s.skipped++;
@@ -397,6 +441,7 @@ static void show(Stream &s, size_t length) {
              where.x, where.y);
   const size_t glass_size = static_cast<size_t>(panel_w) * panel_h * 2;
   esp_err_t err = ESP_OK;
+  bool loading = false;
   if (s.look.tile) {
     // The card: the picture cut or fitted into it, on black where it leaves room, then the shade, corners and name.
     const int cw = s.area.w, ch = s.area.h;
@@ -420,6 +465,7 @@ static void show(Stream &s, size_t length) {
     xSemaphoreGiveRecursive(glass);
     if (err == ESP_OK) {
       compose(s.canvas, cw, cw, ch, s.look);
+      loading = still && lay_loader(s);
       const Rect target = on_panel(s.area, s.turn, panel_w, panel_h);
       xSemaphoreTakeRecursive(glass, portMAX_DELAY);
       if (!s.stopping) {
@@ -450,6 +496,11 @@ static void show(Stream &s, size_t length) {
   }
   s.decode_us += static_cast<uint32_t>(t1 - t0);
   s.copy_us += static_cast<uint32_t>(esp_timer_get_time() - t1);
+  s.warming = loading;
+  if (!still && !s.live) {
+    s.live_ms = esphome::millis() - s.started_at;
+    s.live = true;
+  }
   s.shown++;
 }
 
@@ -474,18 +525,25 @@ static void stream(Stream &s) {
     s.failed = true;
     return;
   }
+  // A tile with a loader reads in short waits, so its loader turns between the stills.
+  if (s.under) {
+    timeval step{0, static_cast<suseconds_t>(LOADER_STEP_MS * 1000)};
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &step, sizeof(step));
+  }
   Reader reader;
   uint32_t heard = esphome::millis();
   while (!s.stopping) {
     const int n = recv(fd, chunk, CHUNK, 0);
-    if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    const int error = errno;
+    turn_loader(s);
+    if (n < 0 && (error == EAGAIN || error == EWOULDBLOCK)) {
       if (esphome::millis() - heard < QUIET_MS) continue;
       ESP_LOGW(TAG, "the stream went quiet");
       s.failed = true;
       break;
     }
     if (n <= 0) {
-      ESP_LOGW(TAG, "the stream ended (%d, errno %d)", n, errno);
+      ESP_LOGW(TAG, "the stream ended (%d, errno %d)", n, error);
       s.failed = true;
       break;
     }
@@ -498,9 +556,9 @@ static void stream(Stream &s) {
           if (audio) return s.sound && length <= SOUND_PART ? s.sound_part : nullptr;
           return length <= s.input_size ? s.input : nullptr;
         },
-        [&s](size_t length, bool audio) {
+        [&s, &reader](size_t length, bool audio) {
           if (!audio) {
-            show(s, length);
+            show(s, length, reader.still());
             return;
           }
           // Sound: into the buffer the main loop plays from; none of it while muted, and none when it is full.
@@ -525,17 +583,77 @@ static void task_main(void *arg) {
   vTaskDelete(nullptr);
 }
 
+// The decoder and the lock of the 2D-DMA, made once on the main loop; both stay for good.
+static bool decoder_ready() {
+  if (!glass) glass = xSemaphoreCreateRecursiveMutex();
+  if (!decoder) {
+    jpeg_decode_engine_cfg_t engine{.intr_priority = 0, .timeout_ms = 200};
+    if (jpeg_new_decoder_engine(&engine, &decoder) != ESP_OK) decoder = nullptr;
+  }
+  return glass && decoder;
+}
+
+// ---- Stills as JPEG (docs/PICTURES.md, "Formats") ----
+// A still decodes the way a stream's picture does (show, above): whole MCUs into a buffer of the decoder's own, RGB565
+// in LVGL's order, while the decode holds the glass. From then on LVGL holds the glass while it refreshes, as after a
+// first stream: a decode and LVGL's copy to the panel never run on the 2D-DMA at once.
+static std::atomic<bool> stills_on{false};
+bool prepare_stills() {
+  if (stills_on.load(std::memory_order_acquire)) return true;
+  if (!lv_display_get_default() || !decoder_ready()) return false;
+  if (!holding) {
+    lv_display_add_event_cb(lv_display_get_default(), hold_glass, LV_EVENT_REFR_START, nullptr);
+    lv_display_add_event_cb(lv_display_get_default(), release_glass, LV_EVENT_REFR_READY, nullptr);
+    holding = true;
+  }
+  stills_on.store(true, std::memory_order_release);
+  return true;
+}
+uint8_t *still_input(size_t bytes, size_t *got) {
+  jpeg_decode_memory_alloc_cfg_t in{.buffer_direction = JPEG_DEC_ALLOC_INPUT_BUFFER};
+  size_t size = 0;
+  auto *buffer = static_cast<uint8_t *>(jpeg_alloc_decoder_mem(bytes, &in, &size));
+  if (got) *got = buffer ? size : 0;
+  return buffer;
+}
+uint8_t *decode_still(const uint8_t *jpeg, size_t length, Still &out) {
+  if (!stills_on.load(std::memory_order_acquire)) return nullptr;
+  jpeg_decode_picture_info_t info{};
+  if (jpeg_decoder_get_info(jpeg, length, &info) != ESP_OK) return nullptr;
+  const bool wide = info.sample_method == JPEG_DOWN_SAMPLING_YUV420 || info.sample_method == JPEG_DOWN_SAMPLING_YUV422;
+  const bool tall = info.sample_method == JPEG_DOWN_SAMPLING_YUV420;
+  const int stride_w = (info.width + (wide ? 15 : 7)) & ~(wide ? 15 : 7);
+  const int rows = (info.height + (tall ? 15 : 7)) & ~(tall ? 15 : 7);
+  jpeg_decode_memory_alloc_cfg_t o{.buffer_direction = JPEG_DEC_ALLOC_OUTPUT_BUFFER};
+  size_t size = 0;
+  auto *pixels = static_cast<uint8_t *>(jpeg_alloc_decoder_mem(static_cast<size_t>(stride_w) * rows * 2, &o, &size));
+  if (!pixels) return nullptr;
+  jpeg_decode_cfg_t cfg{};
+  cfg.output_format = JPEG_DECODE_OUT_FORMAT_RGB565;
+  cfg.rgb_order = JPEG_DEC_RGB_ELEMENT_ORDER_BGR;  // little-endian RGB565, as LVGL's own pixels
+  cfg.conv_std = JPEG_YUV_RGB_CONV_STD_BT601;
+  uint32_t written = 0;
+  xSemaphoreTakeRecursive(glass, portMAX_DELAY);
+  const esp_err_t decoded = jpeg_decoder_process(decoder, &cfg, jpeg, length, pixels, size, &written);
+  xSemaphoreGiveRecursive(glass);
+  if (decoded != ESP_OK) {
+    free(pixels);
+    return nullptr;
+  }
+  out.w = info.width;
+  out.h = info.height;
+  out.stride = stride_w;
+  out.bytes = size;
+  return pixels;
+}
+
 Handle open(const std::string &url, const Rect &area, const Look &look, bool sound) {
   if (!available() || area.empty()) return -1;
   int slot = -1;
   for (int i = 0; i < MAX_STREAMS && slot < 0; ++i)
     if (!streams[i]) slot = i;
   if (slot < 0) return -1;
-  if (!glass) glass = xSemaphoreCreateRecursiveMutex();
-  if (!decoder) {
-    jpeg_decode_engine_cfg_t engine{.intr_priority = 0, .timeout_ms = 200};
-    if (jpeg_new_decoder_engine(&engine, &decoder) != ESP_OK) decoder = nullptr;
-  }
+  decoder_ready();
   if (!frame_buffer && esp_lcd_dpi_panel_get_frame_buffer(panel, 1, &frame_buffer) != ESP_OK) frame_buffer = nullptr;
   if (!glass || !decoder || !frame_buffer) {
     ESP_LOGW(TAG, "cannot stream on this panel");
@@ -579,6 +697,11 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
     free_stream(s);
     return -1;
   }
+  // The loader's square of the card, kept under it while it turns; without the memory the tile simply has none.
+  int lx = 0, ly = 0;
+  if (loader_spot(look, area.w, area.h, lx, ly))
+    s->under = static_cast<uint16_t *>(
+        heap_caps_malloc(static_cast<size_t>(look.loader) * look.loader * 2, MALLOC_CAP_SPIRAM));
   streams[slot] = s;
   if (xTaskCreatePinnedToCore(task_main, "live_view", 6144, s, 5, nullptr, 1) != pdPASS) {
     streams[slot] = nullptr;
@@ -629,6 +752,13 @@ static void speak(Stream &s, bool on) {
   (void) s;
   (void) on;
 #endif
+}
+
+size_t held_bytes() {
+  size_t held = 0;
+  for (auto *s : streams)
+    if (s && !s->stopping) held += s->input_size + static_cast<size_t>(std::max(0, s->area.w)) * std::max(0, s->area.h) * 2;
+  return held;
 }
 
 void close(Handle handle) {
@@ -710,6 +840,11 @@ void tick(const std::function<void(Handle, Event)> &tell) {
                "answered after %u, its first bytes after %u)", slot, (unsigned) (now - s->started_at),
                (unsigned) s->connected_ms, (unsigned) s->answered_ms, (unsigned) s->first_bytes_ms);
       tell(slot, Event::FIRST);
+    }
+    if (s->told_first && !s->told_live && s->live.load()) {
+      s->told_live = true;
+      ESP_LOGI(TAG, "stream %d: live %u ms after it started", slot, (unsigned) s->live_ms);
+      tell(slot, Event::LIVE);
     }
   }
 }

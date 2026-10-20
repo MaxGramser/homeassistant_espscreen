@@ -216,6 +216,17 @@ int main() {
   assert(thermostat(dry) && humidifier(dry) && !climate_off(dry) && accent(dry) == theme::ha::BLUE);
   assert(climate_card_status(dry, true) == "Drying · 68%" && climate_card_status(dry) == "Drying · Now 68%");
   assert(status_text(dry) == "Drying · 68%" && humidity_text(45.5f) == "45.5%" && reading_text(dry, 68) == "68%");
+
+  // A vacuum's battery ends its own status line only; Nothing, its own text and a value stay as chosen (#293).
+  Tile docked_robot = make("vacuum.robot", "docked"); docked_robot.battery = 100;
+  assert(vacuum_tail(docked_robot) == " / 100%");
+  docked_robot.subtitle = "auto"; assert(vacuum_tail(docked_robot) == " / 100%");
+  docked_robot.subtitle = "none"; assert(vacuum_tail(docked_robot).empty());
+  docked_robot.subtitle = "text:Hall"; assert(vacuum_tail(docked_robot).empty());
+  docked_robot.subtitle = "attr:fan_speed"; assert(vacuum_tail(docked_robot).empty());
+  docked_robot.subtitle = ""; docked_robot.battery = NAN; assert(vacuum_tail(docked_robot).empty());
+  assert(vacuum_tail(make("sensor.robot_battery", "100")).empty());
+  assert(subtitle_by_hand("none") && !subtitle_by_hand("") && !subtitle_by_hand("auto") && !subtitle_by_hand("later:x"));
   assert(std::strcmp(setpoint_suffix(dry), "%") == 0 && edit_target(dry) == 55);
   const auto humid = edit_action(dry, step_value(55, 1, 0, 100, 1));
   assert(humid.service == "humidifier.set_humidity" && humid.key == "humidity" && humid.value == "56");

@@ -1,0 +1,201 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-4, revision 4.0 (480 x 480), experimental.
+# ESP32-S3, 16 MB flash, 8 MB octal PSRAM, a 4-inch ST7701S RGB panel, GT911 touch and, from revision 4.0 on, Waveshare's
+# CH32V003 as its IO expander. Hardware reference: https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4
+# Not the earlier revisions of the same name, which have a TCA9554 expander, and not the ESP32-S3-Touch-LCD-4B
+# (packages/boards/waveshare-esp32s3-4b.yaml): that board has a TCA9554 at 0x20, other I2C pins and the panel's setup
+# over SPI lines of the expander. Community members ran this file on revision 4.0 boards (docs/WAVESHARE4V4.md); the
+# project has not tried it on one.
+# The standard look at 170 dpi (72 x 72 mm): 2 x 3 cards lying down and 2 x 3 standing up.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/waveshare4v4.yaml (a build on this computer) and packages/waveshare4v4.yaml (the package a screen builds
+# from over GitHub).
+packages:
+  # The chip and its memory for an RGB panel, as on the other Waveshare boards.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare4v4"
+  DEVICE_NAME: "waveshare4v4-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 4"
+
+  # The glass: the panel's own pixels and its density, 679 diagonal pixels over 4.0 inches.
+  PANEL_W: "480"
+  PANEL_H: "480"
+  DISPLAY_DPI: "169.706"
+  # The tile grid: columns and rows of cells; square glass has the same six whichever way it hangs.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  # LVGL's draw buffer as a share of the screen: 25 % of 480 x 480 is 115 KB of the memory inside the chip,
+  # what the other 480 x 480 boards take (docs/ADDING_A_BOARD.md, step 3).
+  LVGL_BUFFER_SIZE: "25%"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its expander,
+  # `waveshare_io_ch32v003` below, arrived in 2026.7.0. A board file's min_version wins over the core's, so the other
+  # boards keep building on the older ESPHome.
+  min_version: 2026.7.0
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The one USB-C port is the chip's own USB (the computer sees Espressif 303a:1001), used for power, flashing and
+  # the log, so the console goes out over it rather than over UART0.
+  hardware_uart: USB_SERIAL_JTAG
+
+# The GT911, the CH32V003 expander and the board's clock share the one I2C bus, on the pins of Waveshare's pin table.
+i2c:
+  id: touch_bus
+  sda: GPIO15
+  scl: GPIO7
+  frequency: 400kHz
+  scan: true
+
+# Waveshare's CH32V003 is a small microcontroller with its own firmware that answers as an expander at 0x24: eight
+# lines, one PWM output and one ADC. It starts before the panel and the touch below (its lines power them), and it
+# comes up with every line an output driven high: EXIO1 the touch reset, EXIO3 the panel reset, EXIO5 the supply of the
+# panel and the touch (SYS_EN, left high), EXIO6 the buzzer's enable, which the switch below takes low again. The
+# panel's setup and the backlight's level ride on it.
+waveshare_io_ch32v003:
+  - id: expander
+    i2c_id: touch_bus
+    address: 0x24
+    setup_priority: 850
+
+# The ST7701S takes its setup over three-wire SPI, straight from GPIO2 and GPIO1 (no expander line here: the model
+# below has no `dc_pin`, so ESPHome writes nine bits a word). It runs once, at boot; the picture goes over the RGB
+# pins of the model.
+spi:
+  id: lcd
+  clk_pin: GPIO2
+  mosi_pin: GPIO1
+
+output:
+  # The backlight's level is the expander's PWM output, low for full light (inverted). The safe levels are ESPHome's
+  # defaults for Waveshare's circuit: 247 keeps the dark end steady, 1 is the brightest, and a level of 0 goes straight
+  # onto the output (zero_means_zero) so the standby and the night are dark instead of inverted into full light.
+  # features/backlight.yaml puts the screen's light on this output; a level 0 is the darkest the board gives.
+  - platform: waveshare_io_ch32v003
+    id: gpio_backlight_pwm
+    waveshare_io_ch32v003_id: expander
+    inverted: true
+    zero_means_zero: true
+    safe_pwm_levels:
+      min_value: 1
+      max_value: 247
+
+# The buzzer's enable (EXIO6, a plain buzzer behind a transistor; the board has no I2S audio): the expander drives every
+# line high at its own setup, above this switch's, so without a switch holding it low the buzzer sounds for as long as
+# the board is on. Not an entity of Home Assistant (internal): the board only needs the line parked low, and a board
+# file may not have an `esphome: on_boot:` of its own (tools/check_packages.py), which would replace the core's whole
+# boot block.
+switch:
+  - platform: gpio
+    id: buzzer_enable
+    internal: true
+    restore_mode: ALWAYS_OFF
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 6
+      mode:
+        output: true
+
+  # The panel and the touch are held in reset from the first moment the expander is up, and let go much later in
+  # the setup (their own setup_priority below). Waveshare's own bring-up does the same: it enables the power with
+  # both resets low and only starts the panel and the touch afterwards. Without it a cold start loses the two
+  # chips, which are still coming up, and the screen stays black or the touch never answers until the next reset;
+  # the pins are shared with the display and the touch below (allow_other_uses).
+  - platform: gpio
+    id: lcd_reset_hold
+    internal: true
+    restore_mode: ALWAYS_OFF
+    setup_priority: 800
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 3
+      allow_other_uses: true
+      mode:
+        output: true
+
+  - platform: gpio
+    id: touch_reset_hold
+    internal: true
+    restore_mode: ALWAYS_OFF
+    setup_priority: 800
+    pin:
+      waveshare_io_ch32v003: expander
+      number: 1
+      allow_other_uses: true
+      mode:
+        output: true
+
+# The GT911 hangs on the bus with the expander: the rev 4.0 schematic puts its reset on EXIO1 and its interrupt on
+# EXIO2, both expander lines. The interrupt has to be driven by the firmware, not left at the level the expander comes
+# up with: only a reset taken with the interrupt low puts the chip on 0x5D, and holding the line high leaves the chip's
+# own interrupt output shorted against it. The reset line is held low by the switch above until late in the setup, so
+# the chip starts fresh when the driver below pulses it, and it still has the datasheet's time to answer (56 ms). The
+# firmware still polls at 20 ms, as on every other board here (an expander line cannot carry a hardware interrupt).
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    # After the hold switch above, the last thing in the setup to come up: the touch has had the whole boot to be
+    # powered, and the reset it gets here is the one that decides its address.
+    setup_priority: 300
+    interrupt_pin:
+      waveshare_io_ch32v003: expander
+      number: 2
+      mode:
+        output: true
+    reset_pin:
+      waveshare_io_ch32v003: expander
+      number: 1
+      allow_other_uses: true
+      mode:
+        output: true
+
+# ESPHome has a model for this board: WAVESHARE-4-480X480 brings the panel's init sequence, its RGB pins, its 12 MHz
+# pixel clock and its three-wire SPI setup. The timing values the model does not bring are the ST7701S's.
+# The panel's reset line (EXIO3) is the expander's, and it is held low by the switch above until this driver runs.
+# It is released here through enable_pin rather than reset_pin: the driver drives an enable pin high and then waits
+# 10 ms before the first command, which is the settling time the panel asks for after its reset is let go (a
+# reset_pin would start sending commands the moment it goes high again, too early for a cold panel). Later in the
+# setup than the expander, so that the panel sits in reset while the rails come up.
+display:
+  - platform: mipi_rgb
+    model: WAVESHARE-4-480X480
+    id: my_display
+    spi_id: lcd
+    setup_priority: 450
+    enable_pin:
+      - waveshare_io_ch32v003: expander
+        number: 3
+        allow_other_uses: true
+        mode:
+          output: true
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    update_interval: never
+    auto_clear_enabled: false
