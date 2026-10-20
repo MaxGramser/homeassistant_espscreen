@@ -6,6 +6,8 @@ import re
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,6 +64,20 @@ def manifest(**changes):
     return data
 
 
+def wake_models_spec(**changes):
+    spec = {
+        'id': 'wake_models', 'kind': 'micro_wake_word_models', 'label': 'tile', 'hint': 'tile',
+        'target': 'managed_wake', 'feature_step_size': 10,
+        'legacy_installed': ['old_nabu', 'old_jarvis', 'old_mycroft'],
+        'catalogue': [
+            {'id': 'old_nabu', 'label': 'tile', 'url': 'https://models.example.org/nabu.json'},
+            {'id': 'old_jarvis', 'label': 'tile', 'url': 'https://models.example.org/jarvis.json'},
+            {'id': 'old_mycroft', 'label': 'tile', 'url': 'https://models.example.org/mycroft.json'}],
+    }
+    spec.update(changes)
+    return spec
+
+
 class Manifest(unittest.TestCase):
     def test_a_complete_manifest_passes(self):
         out = pm.check(manifest(), ENGLISH)
@@ -88,6 +104,40 @@ class Manifest(unittest.TestCase):
             broken['tiles'][0]['options'].append({'id': 'power', 'kind': 'entity', 'label': 'key', **missing})
             with self.subTest(missing), self.assertRaises(pm.ManifestError):
                 pm.check(broken, ENGLISH)
+
+    def test_build_settings_are_typed_optional_and_not_scalar_inputs(self):
+        self.assertEqual(pm.check(manifest(), ENGLISH)['build_settings'], [])
+        spec = wake_models_spec()
+        checked = pm.check(manifest(build_settings=[spec]), ENGLISH)
+        self.assertEqual(checked['build_settings'], [spec])
+        self.assertEqual(checked['inputs'], [])
+
+    def test_invalid_build_settings_are_rejected(self):
+        specs = [wake_models_spec(kind='text'), wake_models_spec(unknown=True),
+                 wake_models_spec(legacy_installed=['not_catalogued']),
+                 wake_models_spec(label='missing_translation')]
+        for step in (True, 0, 31):
+            specs.append(wake_models_spec(feature_step_size=step))
+        repeated_id = wake_models_spec()
+        repeated_id['catalogue'][1]['id'] = repeated_id['catalogue'][0]['id']
+        specs.append(repeated_id)
+        repeated_url = wake_models_spec()
+        repeated_url['catalogue'][1]['url'] = repeated_url['catalogue'][0]['url']
+        specs.append(repeated_url)
+        unknown_catalogue = wake_models_spec()
+        unknown_catalogue['catalogue'][0]['snapshot'] = 'a' * 64
+        specs.append(unknown_catalogue)
+        for spec in specs:
+            with self.subTest(spec=spec), self.assertRaises(pm.ManifestError):
+                pm.check(manifest(build_settings=[spec]), ENGLISH)
+
+    def test_catalogue_and_custom_model_urls_have_the_same_public_boundary(self):
+        for url in ('https://models.example.org/model.json#', 'https://models.example.org/a\\b.json',
+                    'https://models.test/model.json', 'https://models.home.arpa/model.json'):
+            spec = wake_models_spec(legacy_installed=[])
+            spec['catalogue'][0]['url'] = url
+            with self.subTest(url=url), self.assertRaises(pm.ManifestError):
+                pm.check(manifest(build_settings=[spec]), ENGLISH)
 
     def test_the_real_plugins_pass(self):
         plugins = ROOT.parent / 'tessera-plugins'
@@ -1281,6 +1331,9 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
 
             def start(self, data):
                 assert not (self.task and not self.task.done()), 'two builds at once'
+                build = service.manager.build_queue.running
+                if build:
+                    build.plugin_records.setdefault(build.screen, deepcopy(service.store.of(build.screen)))
                 started.append((config / 'hall.plugins.yaml').read_text())
                 state = outcomes.pop(0) if outcomes else 'success'
 
@@ -1306,6 +1359,8 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
                 pass
         FakeManager.updates = type('U', (), {'resolve': lambda self, screen: (screen['id'] + '.yaml', host)})()
         service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        service.manager.plugins = service
+        service.manager.firmware.root = config
         return service, config, started
 
     async def test_a_change_while_the_screen_builds_gets_a_build_of_its_own(self):
@@ -1425,6 +1480,515 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(service.secrets.of('bus', 'hall', plugin_service.origin_of('https://github.com/fork/bus')), {})
         kept = json.loads((data / 'plugin_secrets.json').read_text())
         self.assertEqual(kept['origins'], {'bus/key/all': origin, 'bus/token/hall': origin})
+
+
+class ModelLifecycle(unittest.IsolatedAsyncioTestCase):
+    """Build settings use the ordinary plugin queue, with separate desired and installed model revisions."""
+    make = BuildOutcome.make
+    ALISA = 'https://models.example.org/alisa.json'
+    JARVIS = 'https://models.example.org/jarvis.json'
+
+    def models(self, results=None, **kwargs):
+        import hashlib
+        import uuid
+        import yaml
+        import plugins
+        service, config, started = self.make(results, **kwargs)
+        path = config.parent / 'tessera-plugins' / 'clock_words' / 'tessera-plugin.yaml'
+        raw = yaml.safe_load(path.read_text())
+        raw['build_settings'] = [wake_models_spec()]
+        path.write_text(yaml.safe_dump(raw))
+        service.scan_folders()
+        calls = []
+
+        async def resolve(spec, requested, previous, fetcher, root):
+            calls.append(deepcopy((requested, previous)))
+            out = []
+            for item in requested:
+                saved = next((p for p in previous if p['url'] == item['url'] and p.get('snapshot')), None)
+                if saved:
+                    out.append(deepcopy(saved))
+                    continue
+                source = next((c for c in spec['catalogue'] if c['url'] == item['url']), {})
+                model_id = item.get('id') or source.get('id') or 'ww_' + uuid.uuid4().hex[:24]
+                out.append({'id': model_id, 'url': item['url'],
+                            'label': 'Алиса' if item['url'] == self.ALISA else 'Hey Jarvis',
+                            'snapshot': hashlib.sha256(item['url'].encode()).hexdigest(),
+                            'model_bytes': 100, 'feature_step_size': 10})
+            return out
+
+        replacing = patch.object(plugins.plugin_models, 'resolve_models', side_effect=resolve)
+        replacing.start()
+        self.addCleanup(replacing.stop)
+        return service, config, started, calls, resolve
+
+    def request(self, models, **extra):
+        return {'add': [{'id': 'clock_words', 'source': 'folder',
+                         'build_values': {'wake_models': models}, **extra}]}
+
+    def desired(self, service):
+        return service.store.get('hall', 'clock_words')
+
+    async def test_first_install_is_explicit_and_catalogue_is_not_installed(self):
+        service, config, started, calls, _ = self.models()
+        for body in ({'add': [{'id': 'clock_words', 'source': 'folder'}]}, self.request([])):
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                await service.apply('hall', body)
+        self.assertEqual(calls, [])
+        self.assertEqual(started, [])
+        self.assertFalse((config / 'hall.plugins.yaml').exists())
+        self.assertIsNone(self.desired(service))
+        # Dependency discovery is structural and must not demand model choices yet.
+        self.assertIsNone(service.plan('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})['error'])
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        pending = service._build_payload(self.desired(service))
+        self.assertEqual(pending['installed_build_values'], {})
+        self.assertFalse(pending['build_confirmed'])
+        await service.manager.build_queue.idle()
+        record = self.desired(service)
+        self.assertEqual([m['url'] for m in record['build_values']['wake_models']], [self.ALISA])
+        self.assertTrue(record['build_confirmed'])
+        self.assertEqual(len(started), 1)
+        text = (config / 'hall.plugins.yaml').read_text()
+        self.assertIn('micro_wake_word:', text)
+        self.assertNotIn('old_nabu', text)
+        self.assertNotIn('old_mycroft', text)
+        self.assertNotIn(self.ALISA, text)
+        api = service.editor_plugin(service.folders['clock_words'])
+        self.assertEqual(len(api['build_settings'][0]['catalogue']), 3)
+        self.assertEqual(api['build_settings'][0]['label']['en'], 'Time in words')
+        self.assertEqual(api['build_settings'][0]['target'], 'managed_wake')
+
+    async def test_pending_or_failed_first_install_does_not_allow_manual_only_retry(self):
+        service, _, started, calls, _ = self.models(['failed'])
+        service.manager.firmware.gate = asyncio.Event()
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        with self.assertRaises(ValueError):
+            await service.apply('hall', self.request([]))
+        self.assertEqual(len(calls), 1)
+        service.manager.firmware.gate.set()
+        await service.manager.build_queue.idle()
+        self.assertEqual(self.desired(service)['state'], 'failed')
+        with self.assertRaises(ValueError):
+            await service.apply('hall', self.request([]))
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(started), 1)
+
+    async def test_existing_models_and_explicit_manual_only_survive_ordinary_updates(self):
+        service, config, started, calls, _ = self.models()
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        await service.manager.build_queue.idle()
+        before = self.desired(service)['build_values']
+        import yaml
+        path = config.parent / 'tessera-plugins' / 'clock_words' / 'tessera-plugin.yaml'
+        raw = yaml.safe_load(path.read_text())
+        raw['build_settings'] = [wake_models_spec(catalogue=[], legacy_installed=[])]
+        path.write_text(yaml.safe_dump(raw))
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual(self.desired(service)['build_values'], before)
+        self.assertEqual(calls[-1][1], before['wake_models'])
+        await service.apply('hall', self.request([]))
+        await service.manager.build_queue.idle()
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual(self.desired(service)['build_values'], {'wake_models': []})
+        self.assertIn('models: []', (config / 'hall.plugins.yaml').read_text())
+        self.assertEqual(len(started), 4)
+
+    async def test_two_chosen_models_share_one_apply_and_one_build(self):
+        service, config, started, calls, _ = self.models()
+        await service.apply('hall', self.request([{'url': self.ALISA}, {'url': self.JARVIS}]))
+        await service.manager.build_queue.idle()
+        record = self.desired(service)
+        self.assertEqual([m['url'] for m in record['build_values']['wake_models']], [self.ALISA, self.JARVIS])
+        self.assertEqual(record['build_values']['wake_models'][1]['id'], 'old_jarvis')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(started), 1)
+        text = (config / 'hall.plugins.yaml').read_text()
+        self.assertEqual(text.count('/manifest.json'), 2)
+        self.assertNotIn('old_nabu', text)
+        self.assertNotIn('old_mycroft', text)
+
+    async def test_model_install_requires_a_managed_profile(self):
+        service, config, started, calls, _ = self.models()
+        service.manager.updates = type('U', (), {'resolve': lambda self, screen: (None, None)})()
+        with self.assertRaises(ValueError):
+            await service.apply('hall', self.request([{'url': self.ALISA}]))
+        self.assertEqual(calls, [])
+        self.assertEqual(started, [])
+        self.assertIsNone(self.desired(service))
+
+    async def test_apply_serializes_screen_mutations_across_downloads(self):
+        import plugins
+        service, _, _, _, resolve = self.models()
+        entered, release = asyncio.Event(), asyncio.Event()
+        requests = []
+
+        async def download(*args):
+            requests.append(deepcopy(args[1]))
+            if len(requests) == 1:
+                entered.set()
+                await release.wait()
+            return await resolve(*args)
+
+        with patch.object(plugins.plugin_models, 'resolve_models', side_effect=download):
+            first = asyncio.create_task(service.apply('hall', self.request([{'url': self.ALISA}])))
+            await entered.wait()
+            second = asyncio.create_task(service.apply('hall', self.request([{'url': self.JARVIS}])))
+            await asyncio.sleep(0)
+            self.assertEqual(len(requests), 1)
+            release.set()
+            await asyncio.gather(first, second)
+        await service.manager.build_queue.idle()
+        self.assertEqual([m['url'] for m in self.desired(service)['build_values']['wake_models']], [self.JARVIS])
+
+    def test_multiple_plugins_cannot_own_the_singleton_component(self):
+        import plugins
+        service, _, _, _, _ = self.models()
+        service.index['bus'] = plugins.Entry(manifest(build_settings=[wake_models_spec(target='second_wake')]),
+                                             {'en': ENGLISH}, {}, 'index', 'community',
+                                             repo='https://github.com/maker/bus', ref='b' * 40)
+        result = service.plan('hall', {'add': [{'id': 'clock_words', 'source': 'folder'},
+                                              {'id': 'bus', 'source': 'index'}]})
+        self.assertIsNotNone(result['error'])
+
+    async def test_duplicate_private_and_forged_sources_leave_state_unchanged(self):
+        service, config, started, calls, _ = self.models()
+        for models in ([{'id': 'old_jarvis', 'url': self.JARVIS}, {'url': self.JARVIS}],
+                       [{'url': 'https://127.0.0.1/model.json'}],
+                       [{'id': 'ww_' + 'a' * 24, 'url': self.ALISA}],
+                       [{'url': self.ALISA, 'snapshot': 'a' * 64}]):
+            with self.subTest(models=models), self.assertRaises(ValueError):
+                await service.apply('hall', self.request(models))
+        self.assertEqual(calls, [])
+        self.assertEqual(started, [])
+        self.assertFalse((config / 'hall.plugins.yaml').exists())
+        self.assertIsNone(self.desired(service))
+
+    async def test_preflight_and_store_failure_leave_the_queue_and_exact_files_unchanged(self):
+        service, config, started, calls, _ = self.models()
+        with patch.object(service.manager.firmware, 'preflight_plugins', create=True,
+                          side_effect=ValueError('hall.yaml: micro_wake_word.models')):
+            with self.assertRaises(ValueError):
+                await service.apply('hall', self.request([{'url': self.ALISA}]))
+        self.assertEqual(calls, [])
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        await service.manager.build_queue.idle()
+        before = self.desired(service)
+        files = {path: path.read_bytes() for path in (service.store.path, config / 'hall.plugins.yaml')}
+        with patch.object(service.store, 'put', side_effect=OSError('disk full')):
+            with self.assertRaises(OSError):
+                await service.apply('hall', self.request([{'url': self.JARVIS}]))
+        self.assertEqual(self.desired(service), before)
+        self.assertEqual({path: path.read_bytes() for path in files}, files)
+        self.assertEqual(len(started), 1)
+        self.assertFalse(service.manager.build_queue.busy())
+        await service.apply('hall', self.request([{'url': self.JARVIS}]))
+        await service.manager.build_queue.idle()
+        self.assertEqual(len(started), 2)
+
+    async def test_running_success_is_the_successor_failure_rollback_baseline_and_retry_keeps_ids(self):
+        service, config, started, _, _ = self.models(['success', 'failed', 'success'])
+        service.manager.firmware.gate = asyncio.Event()
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        while not started:
+            await asyncio.sleep(0)
+        a = deepcopy(self.desired(service))
+        await service.apply('hall', self.request([{'url': self.JARVIS},
+                                                 {'url': 'https://models.example.org/custom_retry.json'}]))
+        b = deepcopy(self.desired(service))
+        service.manager.firmware.gate.set()
+        await service.manager.build_queue.idle()
+        record = self.desired(service)
+        self.assertEqual(record['build_revision'], a['build_revision'])
+        self.assertEqual(record['failed_update']['build_values'], b['build_values'])
+        self.assertEqual(record['failed_update']['build_revision'], b['build_revision'])
+        retry = [{'id': m['id'], 'url': m['url']} for m in record['failed_update']['build_values']['wake_models']]
+        await service.apply('hall', self.request(retry))
+        await service.manager.build_queue.idle()
+        self.assertEqual(self.desired(service)['build_values'], b['build_values'])
+        self.assertEqual(self.desired(service)['state'], 'active')
+        self.assertNotIn('failed_update', self.desired(service))
+
+    async def test_download_wait_rebases_to_a_build_that_finished_during_resolution(self):
+        import plugins
+        service, config, started, _, resolve = self.models(['success', 'success', 'failed'])
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        await service.manager.build_queue.idle()
+        service.manager.firmware.gate = asyncio.Event()
+        await service.apply('hall', self.request([{'url': self.JARVIS}]))
+        while len(started) < 2:
+            await asyncio.sleep(0)
+        b = deepcopy(self.desired(service))
+        entered, finish = asyncio.Event(), asyncio.Event()
+
+        async def download(*args):
+            entered.set()
+            await finish.wait()
+            return await resolve(*args)
+
+        with patch.object(plugins.plugin_models, 'resolve_models', side_effect=download):
+            applying = asyncio.create_task(service.apply(
+                'hall', self.request([{'url': 'https://models.example.org/third.json'}])))
+            await entered.wait()
+            service.manager.firmware.gate.set()
+            await service.manager.build_queue.idle()
+            self.assertEqual(self.desired(service)['build_revision'], b['build_revision'])
+            self.assertEqual(self.desired(service)['state'], 'active')
+            finish.set()
+            await applying
+        await service.manager.build_queue.idle()
+        record = self.desired(service)
+        self.assertEqual(record['build_revision'], b['build_revision'])
+        self.assertEqual(record['state'], 'active')
+        self.assertEqual(record['failed_update']['build_values']['wake_models'][0]['url'],
+                         'https://models.example.org/third.json')
+
+    async def test_restart_same_version_is_not_installation_evidence(self):
+        service, config, _, _, _ = self.models()
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        await service.manager.build_queue.idle()
+        a = deepcopy(self.desired(service))
+        requested = deepcopy(a)
+        requested.update(state='building', previous=deepcopy(a), build_revision='b' * 64)
+        requested['build_values']['wake_models'][0]['snapshot'] = 'b' * 64
+        service.store.put('hall', requested)
+        service.manager.firmware.save_plugins('hall.yaml', service.sidecar('hall'))
+        service.manager.page_senders = {'hall': type('Sender', (), {
+            'plugin_api': '0.1', 'plugins': [{'id': 'clock_words', 'version': a['version']}]
+        })()}
+        service.reconcile()
+        back = self.desired(service)
+        self.assertEqual(back['build_revision'], a['build_revision'])
+        self.assertFalse(back['build_confirmed'])
+        self.assertEqual(back['failed_update']['build_revision'], requested['build_revision'])
+        self.assertEqual(back['failed_update']['reason'], 'interrupted')
+        self.assertIn(a['build_values']['wake_models'][0]['snapshot'], (config / 'hall.plugins.yaml').read_text())
+        payload = service.payload()['installed']['hall'][0]
+        self.assertEqual(payload['installed_build_values'], a['build_values'])
+        self.assertEqual(payload['failed_update']['build_values'], requested['build_values'])
+        self.assertFalse(payload['build_confirmed'])
+
+    async def test_queued_cancellation_fails_only_its_own_uncaptured_request(self):
+        service, _, started, _, _ = self.models()
+        line = service.manager.build_queue
+        release = asyncio.Event()
+
+        async def hold_slot(build):
+            await release.wait()
+            return 'success'
+
+        # The first queued build becomes RUNNING synchronously in add(); keep another job in the slot
+        # so this test actually cancels a waiting, uncaptured plugin request.
+        line.add('update', 'other.yaml', hold_slot, screen='other')
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        waiting = line.waiting('hall.yaml')
+        self.assertIsNotNone(waiting)
+        line.drop(waiting)
+        release.set()
+        await line.idle()
+        record = self.desired(service)
+        self.assertEqual(started, [])
+        self.assertEqual(record['state'], 'failed')
+        self.assertEqual(record['failed_update']['build_values'], record['build_values'])
+        self.assertFalse(record['build_confirmed'])
+
+    async def test_verified_legacy_update_uses_only_declared_historical_models(self):
+        import plugins
+        service, _, _, calls, _ = self.models()
+        repo = 'https://github.com/maker/models'
+        old = plugins.Entry(manifest(), {'en': ENGLISH}, {}, 'index', 'community', repo=repo, ref='a' * 40)
+        new = plugins.Entry(manifest(build_settings=[wake_models_spec(legacy_installed=['old_jarvis'])]),
+                            {'en': ENGLISH}, {}, 'index', 'community', repo=repo, ref='b' * 40)
+        service.keep_snapshot(old)
+        service.index['bus'] = new
+        service.store.put('hall', {'id': 'bus', 'source': 'index', 'repo': repo, 'path': '.',
+                                   'ref': old.ref, 'version': old.version, 'state': 'active'})
+        payload = service._build_payload(service.store.get('hall', 'bus'), new)
+        self.assertEqual([m['id'] for m in payload['build_values']['wake_models']], ['old_jarvis'])
+        self.assertFalse(payload['build_confirmed'])
+        await service.apply('hall', {'add': [{'id': 'bus', 'source': 'index'}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual([m['id'] for m in service.store.get('hall', 'bus')['build_values']['wake_models']],
+                         ['old_jarvis'])
+        self.assertEqual([m['url'] for m in calls[-1][0]], [self.JARVIS])
+
+    async def test_unverifiable_legacy_state_requires_an_explicit_nonempty_choice(self):
+        service, config, started, calls, _ = self.models()
+        service.store.put('hall', {'id': 'clock_words', 'source': 'folder', 'state': 'active'})
+        for body in ({'add': [{'id': 'clock_words', 'source': 'folder'}]}, self.request([])):
+            with self.subTest(body=body), self.assertRaises(ValueError):
+                await service.apply('hall', body)
+        self.assertEqual(calls, [])
+        self.assertEqual(started, [])
+        self.assertFalse((config / 'hall.plugins.yaml').exists())
+
+    async def test_origin_switch_needs_a_new_explicit_choice(self):
+        import plugins
+        service, _, started, calls, _ = self.models()
+        await service.apply('hall', self.request([{'url': self.ALISA}]))
+        await service.manager.build_queue.idle()
+        raw = deepcopy(service.folders['clock_words'].raw)
+        fork = plugins.Entry(raw, service.folders['clock_words'].translations, {}, 'index', 'community',
+                             repo='https://github.com/other/fork', ref='f' * 40)
+        service.index['clock_words'] = fork
+        for item in ({'switch': True}, {'switch': True, 'build_values': {'wake_models': []}},
+                     {'build_values': {'wake_models': [{'url': self.JARVIS}]}}):
+            with self.subTest(item=item), self.assertRaises(ValueError):
+                await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'index', **item}]})
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(started), 1)
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'index', 'switch': True,
+                                             'build_values': {'wake_models': [{'url': self.JARVIS}]}}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual(self.desired(service)['repo'], fork.repo)
+        self.assertEqual([m['url'] for m in self.desired(service)['build_values']['wake_models']], [self.JARVIS])
+
+    def test_store_deep_copies_nested_model_records_without_a_storage_version_change(self):
+        service, _, _ = self.make()
+        record = {'id': 'clock_words', 'build_values': {'wake_models': [{'id': 'word', 'url': self.ALISA}]},
+                  'previous': {'build_values': {'wake_models': []}},
+                  'failed_update': {'build_values': {'wake_models': [{'url': self.JARVIS}]}}}
+        service.store.put('hall', record)
+        record['build_values']['wake_models'][0]['url'] = 'changed'
+        loaded = service.store.get('hall', 'clock_words')
+        loaded['previous']['build_values']['wake_models'].append({'url': 'changed'})
+        loaded['failed_update']['build_values']['wake_models'].clear()
+        self.assertEqual(service.store.get('hall', 'clock_words')['build_values']['wake_models'][0]['url'], self.ALISA)
+        self.assertEqual(service.store.get('hall', 'clock_words')['previous']['build_values']['wake_models'], [])
+        self.assertEqual(len(service.store.get('hall', 'clock_words')['failed_update']['build_values']['wake_models']), 1)
+        self.assertEqual(json.loads(service.store.path.read_text())['version'], 1)
+
+
+class PluginRecovery(unittest.IsolatedAsyncioTestCase):
+    """A bad owner profile is isolated at real Manager startup and cannot build stale managed inputs."""
+
+    def manager(self, pending=False):
+        import shutil
+        import yaml
+        import server
+        from manager_fixtures import with_screen_grid
+        from test_screen_owned_settings import fake_ha
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name) / 'esphome'
+        root.mkdir()
+        data = Path(tmp.name) / 'data'
+        data.mkdir()
+        folder = Path(tmp.name) / 'tessera-plugins' / 'clock_words'
+        shutil.copytree(ROOT / 'tests' / 'fixtures' / 'plugins' / 'clock_words', folder)
+        manifest_path = folder / 'tessera-plugin.yaml'
+        raw = yaml.safe_load(manifest_path.read_text())
+        raw['build_settings'] = [wake_models_spec()]
+        manifest_path.write_text(yaml.safe_dump(raw))
+        original = 'esphome:\n  name: office-1\npackages:\n  display: {}\n'
+        conflict = original + 'micro_wake_word:\n  models:\n    - model: private-owner-secret-string\n'
+        (root / 'office-1.yaml').write_text(conflict)
+        (root / 'other.yaml').write_text('esphome:\n  name: other-node\npackages:\n  display: {}\n')
+        (root / 'office-1.plugins.yaml').write_text('# Existing sidecar must not be replaced on a conflict.\n{}\n')
+        active = {'id': 'clock_words', 'source': 'folder', 'version': '1.0.0', 'state': 'active',
+                  'build_values': {'wake_models': []}, 'build_revision': 'a' * 64, 'build_confirmed': True}
+        bad = deepcopy(active)
+        if pending:
+            bad.update(state='building', previous=deepcopy(active), build_revision='b' * 64,
+                       build_confirmed=False)
+        (data / 'plugins.json').write_text(json.dumps({'version': 1, 'screens': {
+            'text.screen': {'plugins': [bad]}, 'text.other': {'plugins': [deepcopy(active)]}}}))
+        ha = fake_ha()
+        ha.devices.append({'id': 'd2', 'name': 'Other'})
+        for entity, name, state in (
+                ('text.other', 'Tile settings', 'Synced'),
+                ('sensor.other_node', 'Device name', 'other-node'),
+                ('sensor.other_fw', 'Screen firmware', '0.2.104'),
+                ('sensor.other_board', 'Guition screen type', 'guition')):
+            ha.registry.append({'entity_id': entity, 'platform': 'esphome', 'original_name': name, 'device_id': 'd2'})
+            ha.states[entity] = {'state': state}
+        with patch.dict('os.environ', {'ESPHOME_CONFIG': str(root)}):
+            manager = server.Manager(with_screen_grid(ha), data / 'screens.json')
+        return manager, root, original, conflict
+
+    async def test_owner_conflict_isolated_for_active_and_interrupted_records_and_apply_recovers(self):
+        for pending in (False, True):
+            with self.subTest(pending=pending):
+                manager, root, original, conflict = self.manager(pending)
+                recovery = manager.plugins.payload()['recovery']
+                self.assertEqual(set(recovery), {'text.screen'})
+                self.assertEqual(recovery['text.screen']['file'], 'office-1.yaml')
+                self.assertIn('micro_wake_word.models', recovery['text.screen']['reason'])
+                self.assertNotIn('private-owner-secret-string', recovery['text.screen']['reason'])
+                self.assertEqual((root / 'office-1.yaml').read_text(), conflict)
+                self.assertIn('Existing sidecar', (root / 'office-1.plugins.yaml').read_text())
+                self.assertIn('micro_wake_word:', (root / 'other.plugins.yaml').read_text())
+                record = manager.plugins.store.get('text.screen', 'clock_words')
+                self.assertEqual(record['state'], 'active')
+                if pending:
+                    self.assertEqual(record['build_revision'], 'a' * 64)
+                    self.assertEqual(record['failed_update']['build_revision'], 'b' * 64)
+                    self.assertEqual(record['failed_update']['reason'], 'interrupted')
+                    self.assertFalse(record['build_confirmed'])
+                with patch('firmware.shutil.which', return_value='esphome'):
+                    for action in ('build', 'validate', 'install'):
+                        request = {'file': 'office-1.yaml', 'action': action, 'target': '10.0.0.1'}
+                        with self.assertRaises(ValueError) as caught:
+                            manager.firmware.check(request)
+                        self.assertEqual(str(caught.exception), recovery['text.screen']['reason'])
+                        with self.assertRaises(ValueError):
+                            manager.firmware.start(request)
+                    self.assertEqual(manager.firmware.check({'file': 'other.yaml', 'action': 'build'})[0].name,
+                                     'other.yaml')
+                self.assertIsNone(manager.firmware.task)
+                # Fixing the owner file then applying the unchanged saved set recovers without a separate endpoint.
+                (root / 'office-1.yaml').write_text(original)
+                manager.updates.hosts['text.screen'] = '10.0.0.1'
+                with patch.object(manager.build_queue, '_wake'):
+                    await manager.plugins.apply('text.screen', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+                self.assertNotIn('text.screen', manager.plugins.recovery)
+                self.assertNotIn('office-1.yaml', manager.firmware.plugin_recovery)
+                self.assertIn('micro_wake_word:', (root / 'office-1.plugins.yaml').read_text())
+                with patch('firmware.shutil.which', return_value='esphome'):
+                    self.assertEqual(manager.firmware.check({'file': 'office-1.yaml', 'action': 'build'})[0].name,
+                                     'office-1.yaml')
+                for build in list(manager.build_queue.line):
+                    manager.build_queue.drop(build)
+
+    async def test_unwritable_sidecar_diagnostic_persists_until_successful_recovery(self):
+        manager, root, original, _ = self.manager()
+        (root / 'office-1.yaml').write_text(original)
+        before = (root / 'office-1.plugins.yaml').read_bytes()
+        with patch.object(manager.firmware, 'save_plugins', side_effect=PermissionError('secret absolute path')):
+            manager.plugins.reconcile()
+        self.assertIn('text.screen', manager.plugins.recovery)
+        self.assertIn('office-1.yaml', manager.firmware.plugin_recovery)
+        self.assertNotIn('secret absolute path', manager.plugins.recovery['text.screen']['reason'])
+        self.assertEqual((root / 'office-1.plugins.yaml').read_bytes(), before)
+        manager.plugins.reconcile()
+        self.assertEqual(manager.plugins.recovery, {})
+        self.assertEqual(manager.firmware.plugin_recovery, {})
+        self.assertIn('micro_wake_word:', (root / 'office-1.plugins.yaml').read_text())
+
+
+    async def test_interrupted_settlement_store_failure_stays_blocked_and_retains_persistent_request(self):
+        service, _, _ = BuildOutcome.make(self)
+        active = {'id': 'clock_words', 'source': 'folder', 'version': '1.0.0', 'state': 'active',
+                  'build_values': {'wake_models': []}, 'build_revision': 'a' * 64, 'build_confirmed': True}
+        pending = dict(deepcopy(active), state='building', previous=deepcopy(active), build_revision='b' * 64)
+        service.store.put('hall', pending)
+        before = service.store.get('hall', 'clock_words')
+        persisted = service.store.path.read_bytes()
+        with patch.object(service.store, 'save', side_effect=PermissionError('cannot save')):
+            service.reconcile()
+        self.assertEqual(service.store.get('hall', 'clock_words'), before)
+        self.assertEqual(service.store.path.read_bytes(), persisted)
+        self.assertIn('hall', service.recovery)
+        self.assertIn('hall.yaml', service.manager.firmware.plugin_recovery)
+        service.reconcile()
+        back = service.store.get('hall', 'clock_words')
+        self.assertEqual(back['build_revision'], 'a' * 64)
+        self.assertEqual(back['failed_update']['build_revision'], 'b' * 64)
+        self.assertFalse(back['build_confirmed'])
+        self.assertEqual(service.recovery, {})
+        self.assertEqual(service.manager.firmware.plugin_recovery, {})
 
 
 class Builds(unittest.IsolatedAsyncioTestCase):
@@ -1782,6 +2346,22 @@ class PanelSettings(unittest.IsolatedAsyncioTestCase):
                               ('select.hall_wake_word', 'Hey Jarvis')):           # another screen's entity
             with self.subTest(entity), self.assertRaises(ValueError):
                 await service.set_setting('kitchen', entity, value)
+
+    def test_unselected_phrase_keeps_explicit_choices_available(self):
+        entity = 'select.kitchen_wake_word'
+        state = {'state': 'unknown', 'attributes': {'options': ['Алиса']}}
+        service, calls = self.service([self.esphome(entity, 'Wake word')], {entity: state})
+        selected = service.settings_for('kitchen')[0]['rows'][0]
+        self.assertTrue(selected['available'])
+        self.assertIsNone(selected['value'])
+        self.assertEqual(selected['options'], ['Алиса'])
+        self.assertEqual(calls, [], 'listing choices must not select a replacement')
+        for value, options, online in [('unavailable', ['Алиса'], True),
+                                       ('unknown', [], True), ('unknown', ['Алиса'], False)]:
+            with self.subTest(value=value, options=options, online=online):
+                state.update(state=value, attributes={'options': options})
+                service.manager.screen = lambda inbox: {'id': inbox, 'device_id': 'dev1', 'online': online}
+                self.assertFalse(service.settings_for('kitchen')[0]['rows'][0]['available'])
 
     def test_the_object_id_is_esphomes(self):
         import plugins as plugin_service

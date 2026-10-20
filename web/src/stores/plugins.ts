@@ -7,9 +7,10 @@ import { defineStore } from "pinia";
 import { computed, effectScope, onScopeDispose, reactive, ref, watch } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
+import { askConfirm } from "../composables/useConfirm";
 import { boardTitle } from "../model/boards";
-import { attachLine, barItemView, barTypesOf, choiceKey, pluginSaverKey, saverTypesOf, compareUrl, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
-  text, tileTypesOf, type AppFit, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
+import { attachLine, barItemView, barTypesOf, choiceKey, pluginSaverKey, saverTypesOf, compareUrl, copyBuildValues, fit, isTest, modelKey, modelSources, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
+  text, tileTypesOf, type AppFit, type BuildValues, type Installed, type ModelEntry, type Plugin, type PluginBuildSetting, type PluginTileOption, type ResolvedModel, type Texts } from "../model/plugins";
 import type { PluginSharing, Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useInventoryStore } from "./inventory";
@@ -33,6 +34,7 @@ type Payload = {
   plugins: Plugin[]; installed: Record<string, Installed[]>; secrets: Record<string, Record<string, boolean>>;
   folders: { path: string; errors: Record<string, string> }; entities?: { id: string; name: string }[];
   features?: Record<string, string[]>; fit?: AppFit; likes?: { consented?: boolean };
+  recovery?: Record<string, { file: string; reason: string }>;
 };
 
 export const usePluginsStore = defineStore("plugins", () => {
@@ -64,11 +66,14 @@ export const usePluginsStore = defineStore("plugins", () => {
   const likeConsent = ref(false);
   // What only the add-on knows about a plugin on a screen (its payload's `fit`): handed to fit() per screen.
   const appFit = ref<AppFit>({});
+  const recovery = ref<Record<string, { file: string; reason: string }>>({});
   // ---- What a person chose on this page ----
   // What was filled in when adding a plugin (inputs) and which optional parts are on, per screen node and plugin. A secret
   // is kept by the add-on and never comes back to the page; here it only says that one is set.
   const values = ref<Record<string, Record<string, Record<string, string>>>>({});
   const parts = ref<Record<string, Record<string, string[]>>>({});
+  const buildValues = ref<Record<string, Record<string, BuildValues>>>({});
+  const setupErrors = ref<Record<string, Record<string, string>>>({});
   const attached = ref<Record<string, boolean>>({});
   // A plugin whose details the screen's Plugins tab opens next (Screen settings sends a person there).
   const focus = ref<string | null>(null);
@@ -80,7 +85,7 @@ export const usePluginsStore = defineStore("plugins", () => {
   // The plugin a person chose for a feature, per screen: {inbox: {feature: plugin}}.
   const providers = ref<Record<string, Record<string, string>>>({});
   // What is asked for now (a list of choices, a tile's look, a plan) and what this page is sending a screen now.
-  const asking = new Set<string>(), drawing = new Set<string>(), planning = new Set<string>();
+  const asking = new Set<string>(), drawing = new Set<string>(), planning = new Map<string, Promise<Plan>>();
   // The keys of the lists of the last searches (choicesFor): older ones are let go.
   const searched: string[] = [];
   const SEARCHES_KEPT = 12;
@@ -120,6 +125,7 @@ export const usePluginsStore = defineStore("plugins", () => {
       entities.value = data.entities || [];
       received.value = true;
       features.value = data.features || {};
+      recovery.value = data.recovery || {};
       likeConsent.value = Boolean(data.likes?.consented);
       appFit.value = data.fit || {};
       plans.value = {};
@@ -241,6 +247,53 @@ export const usePluginsStore = defineStore("plugins", () => {
     const node = screen.node || screen.id;
     ((values.value[node] ||= {})[plugin.id] ||= {})[id] = value;
   }
+  const buildKey = (plugin: Plugin) => `${plugin.id}|${plugin.origin || plugin.source || "index"}`;
+  const buildDraft = (screen: Screen, plugin: Plugin) => buildValues.value[screen.node || screen.id]?.[buildKey(plugin)];
+  // Invalidates an in-flight import even when Cancel returns to an identical list.
+  const modelEdits = new Map<string, number>();
+  const modelEditKey = (screen: Screen, plugin: Plugin) => JSON.stringify([screen.node || screen.id, buildKey(plugin)]);
+  function touchModels(screen: Screen, plugin: Plugin) {
+    const key = modelEditKey(screen, plugin);
+    modelEdits.set(key, (modelEdits.get(key) || 0) + 1);
+  }
+  const buildValuesOn = (screen: Screen, plugin: Plugin): BuildValues =>
+    copyBuildValues({ ...(!otherOrigin(screen, plugin) ? installedOn(screen, plugin.id)?.build_values : {}), ...buildDraft(screen, plugin) });
+  const modelsOn = (screen: Screen, plugin: Plugin, setting: PluginBuildSetting): ModelEntry[] =>
+    buildValuesOn(screen, plugin)[setting.id] || [];
+  function setModels(screen: Screen, plugin: Plugin, setting: PluginBuildSetting, models: ModelEntry[]) {
+    touchModels(screen, plugin);
+    const node = screen.node || screen.id;
+    ((buildValues.value[node] ||= {})[buildKey(plugin)] ||= {})[setting.id] = models.map((model) => ({ ...model }));
+    delete setupErrors.value[screen.id]?.[plugin.id];
+  }
+  async function importModel(screen: Screen, plugin: Plugin, setting: PluginBuildSetting, manifest: File, model: File, signal?: AbortSignal) {
+    if (manifest.size > 64 * 1024 || model.size > 2 * 1024 * 1024) throw new Error(t("editor.plugins.models.upload_size"));
+    if (modelsOn(screen, plugin, setting).length >= 16) throw new Error(t("editor.plugins.models.limit"));
+    const key = modelEditKey(screen, plugin);
+    const revision = modelEdits.get(key);
+    const before = JSON.stringify(modelSources(buildValuesOn(screen, plugin)));
+    const form = new FormData();
+    form.append("manifest", manifest);
+    form.append("model", model);
+    const result = await send<ResolvedModel>(
+      `screens/${encodeURIComponent(screen.id)}/plugins/${encodeURIComponent(plugin.id)}/models/${encodeURIComponent(setting.id)}/import?source=${plugin.source || "index"}`,
+      "POST", form, { signal });
+    if (signal?.aborted || revision !== modelEdits.get(key) || submittingOn(screen, plugin.id)
+      || before !== JSON.stringify(modelSources(buildValuesOn(screen, plugin)))) {
+      throw new Error(t("editor.plugins.models.upload_changed"));
+    }
+    const current = modelsOn(screen, plugin, setting);
+    if (current.some((entry) => modelKey(entry) === modelKey(result) || entry.id === result.id)) {
+      throw new Error(t("editor.plugins.models.duplicate"));
+    }
+    if (current.length >= 16) throw new Error(t("editor.plugins.models.limit"));
+    setModels(screen, plugin, setting, [...current, result]);
+  }
+  const modelChoiceRequired = (screen: Screen, plugin: Plugin, setting: PluginBuildSetting) =>
+    (!installedOn(screen, plugin.id) || installedOn(screen, plugin.id)?.state === "failed" || otherOrigin(screen, plugin))
+    && !modelsOn(screen, plugin, setting).length;
+  const setupError = (screen: Screen, plugin: Plugin) => setupErrors.value[screen.id]?.[plugin.id] || "";
+  const submittingOn = (screen: Screen, id: string) => Boolean(sending[screen.id]?.includes(id));
   // An own-YAML screen counts as attached once the person says the line is in its YAML (the app cannot build it, so it
   // cannot check).
   const needsAttach = (screen: Screen) => ownYaml(screen) && !attached.value[screen.node || screen.id];
@@ -259,7 +312,9 @@ export const usePluginsStore = defineStore("plugins", () => {
     const changed = (plugin.inputs || []).some((input) => input.id in drafted && (input.kind === "secret"
       ? drafted[input.id].trim() !== "" : drafted[input.id].trim() !== (have.values?.[input.id] ?? "")));
     const chosen = parts.value[node]?.[plugin.id];
-    return changed || (chosen !== undefined && [...chosen].sort().join() !== [...(have.parts || [])].sort().join());
+    const modelChanged = Object.entries(buildDraft(screen, plugin) || {}).some(([id, models]) =>
+      JSON.stringify(modelSources({ [id]: models })) !== JSON.stringify(modelSources({ [id]: have.build_values?.[id] || [] })));
+    return changed || modelChanged || (chosen !== undefined && [...chosen].sort().join() !== [...(have.parts || [])].sort().join());
   }
   // Whether a secret is kept by the add-on: for every screen, or for this screen alone (never its value).
   const secretSet = (screen: Screen, plugin: Plugin, input: { id: string; scope?: string }) => Boolean(input.scope === "screen"
@@ -267,7 +322,9 @@ export const usePluginsStore = defineStore("plugins", () => {
   // Whether everything a plugin asks for is filled in on these screens: the button waits until it is.
   const setupReady = (plugin: Plugin, screens: Screen[]) =>
     screens.every((screen) => (plugin.inputs || []).every((input) => valueOf(screen, plugin, input.id).trim() !== ""
-      || (input.kind === "secret" && secretSet(screen, plugin, input))));
+      || (input.kind === "secret" && secretSet(screen, plugin, input)))
+      && (plugin.build_settings || []).every((setting) => !modelChoiceRequired(screen, plugin, setting))
+      && (!(plugin.build_settings || []).length || !ownYaml(screen)));
   // The room the chosen optional parts add.
   const partsKb = (screen: Screen, plugin: Plugin) =>
     partsOn(screen, plugin).reduce((sum, id) => sum + (plugin.parts?.find((part) => part.id === id)?.flash_kb || 0), 0);
@@ -331,7 +388,9 @@ export const usePluginsStore = defineStore("plugins", () => {
       const value = valueOf(screen, plugin, input.id).trim();
       if (value) (input.kind === "secret" ? secret : filled)[input.id] = value;
     }
-    return { id: plugin.id, source: plugin.source || "index", parts: partsOn(screen, plugin), values: filled, secrets: secret,
+    const structured = buildValuesOn(screen, plugin);
+    return { id: plugin.id, source: plugin.source || "index", parts: [...partsOn(screen, plugin)], values: filled, secrets: secret,
+      ...(Object.keys(structured).length ? { build_values: modelSources(structured) } : {}),
       ...(consented.value[plugin.id] ? { consent: true } : {}), ...(auto ? { auto: true } : {}) };
   }
   // ---- What comes along: the add-on's plan of a change on one screen (plugins.py _plan) ----
@@ -343,12 +402,12 @@ export const usePluginsStore = defineStore("plugins", () => {
     if (!add.length && !remove.length) return { error: null, add: [], remove: [], choose: [], orphans: [] };
     const key = planKey(screen, add, remove);
     if (!(key in plans.value) && !planning.has(key)) {
-      planning.add(key);
-      send<Plan>(`screens/${encodeURIComponent(screen.id)}/plugins/plan`, "POST", {
+      const request = send<Plan>(`screens/${encodeURIComponent(screen.id)}/plugins/plan`, "POST", {
         add: add.map((id) => ({ id, source: pluginById(id)?.source || "index" })), remove, providers: providers.value[screen.id] || {},
-      }).then((plan) => { plans.value[key] = plan || { error: null }; })
-        .catch((error: any) => { plans.value[key] = { error: error?.message || "" }; })
+      }).then((plan) => (plans.value[key] = plan || { error: null }))
+        .catch((error: unknown) => (plans.value[key] = { error: error instanceof Error ? error.message : String(error) }))
         .finally(() => planning.delete(key));
+      planning.set(key, request);
     }
     return plans.value[key] ?? null;
   }
@@ -356,6 +415,22 @@ export const usePluginsStore = defineStore("plugins", () => {
   const comesAlong = (plan: Plan | null, asked: string[]) =>
     (plan?.add || []).filter((step) => !asked.includes(step.id)).map((step) => ({ step, plugin: pluginById(step.id) }))
       .filter((row): row is { step: PlanStep; plugin: Plugin } => Boolean(row.plugin));
+  // Direct updates and switches need the same dependency choices and complete additions as a tray build.
+  function changeReady(screen: Screen, list: Plugin[]) {
+    if (!list.every((plugin) => setupReady(plugin, [screen]))) return false;
+    if (!list.some((plugin) => plugin.requires.plugins?.length || plugin.requires.features?.length)) return true;
+    const asked = list.map((plugin) => plugin.id), plan = planOn(screen, asked);
+    return Boolean(plan && !plan.error && !plan.choose?.length
+      && comesAlong(plan, asked).every(({ plugin }) => setupReady(plugin, [screen])));
+  }
+  function retryAvailable(screen: Screen, plugin: Plugin) {
+    const have = installedOn(screen, plugin.id);
+    if (have?.failed_update) {
+      const origin = have.failed_update.origin ?? have.origin;
+      return origin ? origin === plugin.origin : !otherOrigin(screen, plugin);
+    }
+    return have?.state === "failed" && !otherOrigin(screen, plugin);
+  }
   function chooseProvider(screen: Screen, feature: string, plugin: string) {
     (providers.value[screen.id] ||= {})[feature] = plugin;
   }
@@ -410,26 +485,63 @@ export const usePluginsStore = defineStore("plugins", () => {
   // What was filled in for a plugin on a screen, once the add-on has it: the build's own values show from then on, and a
   // secret, which never comes back, no longer counts as a change.
   function forgetDrafts(screen: Screen, plugin: Plugin) {
+    touchModels(screen, plugin);
     const node = screen.node || screen.id;
     delete values.value[node]?.[plugin.id];
     delete parts.value[node]?.[plugin.id];
+    delete buildValues.value[node]?.[buildKey(plugin)];
+    delete setupErrors.value[screen.id]?.[plugin.id];
+  }
+  async function commitAdditions(screen: Screen, list: Plugin[], switchId?: string) {
+    const asked = list.map((plugin) => plugin.id);
+    sending[screen.id] = asked;
+    try {
+      const needsPlan = list.some((plugin) => plugin.requires.plugins?.length || plugin.requires.features?.length);
+      const plan: Plan | undefined = needsPlan
+        ? (planOn(screen, asked) ?? await planning.get(planKey(screen, asked)))
+        : { error: null };
+      if (!plan || plan.error || plan.choose?.length) throw new Error(plan?.error || t("editor.plugins.tray.setup"));
+      const along = comesAlong(plan, asked).map(({ plugin }) => plugin);
+      const all = [...list, ...along];
+      if (!all.every((plugin) => setupReady(plugin, [screen]))) return false;
+      sending[screen.id] = all.map((plugin) => plugin.id);
+      for (const plugin of all) delete setupErrors.value[screen.id]?.[plugin.id];
+      await change(screen, { add: [
+        ...list.map((plugin) => ({ ...addition(screen, plugin), ...(plugin.id === switchId ? { switch: true } : {}) })),
+        ...along.map((plugin) => addition(screen, plugin, true)),
+      ], providers: providers.value[screen.id] || {} });
+      for (const plugin of all) forgetDrafts(screen, plugin);
+      return true;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      for (const plugin of list) (setupErrors.value[screen.id] ||= {})[plugin.id] = message;
+      ui.toast(message);
+      return false;
+    } finally {
+      delete sending[screen.id];
+    }
   }
   async function addPlugin(screens: Screen[], plugin: Plugin) {
-    if (!screens.length) return;
-    // One build at a time: the add-on builds the screens one after the other as each build ends.
-    for (const screen of screens) {
-      try {
-        sending[screen.id] = [plugin.id];
-        await change(screen, { add: [addition(screen, plugin)] });
-        forgetDrafts(screen, plugin);
-      } catch (error: any) {
-        ui.toast(error.message);
-        break;
-      } finally {
-        delete sending[screen.id];
-      }
-    }
+    if (!screens.length || !setupReady(plugin, screens)) return;
+    for (const screen of screens) if (!await commitAdditions(screen, [plugin])) break;
     await reloadPlugins();
+  }
+  async function retryPlugin(screen: Screen, plugin: Plugin) {
+    if (!retryAvailable(screen, plugin)) return;
+    const have = installedOn(screen, plugin.id);
+    const failed = have?.failed_update?.build_values ?? (have?.state === "failed" ? have.build_values : undefined);
+    if (failed) {
+      touchModels(screen, plugin);
+      const node = screen.node || screen.id;
+      (buildValues.value[node] ||= {})[buildKey(plugin)] = copyBuildValues(failed);
+    }
+    if (otherOrigin(screen, plugin)) {
+      if (await askConfirm(t("editor.plugins.other_origin", { origin: have?.origin }), {
+        confirm: t("editor.plugins.switch", { origin: plugin.origin }),
+      })) await switchPlugin(screen, plugin);
+      return;
+    }
+    await addPlugin([screen], plugin);
   }
   // Build a test again: a folder as it is now, a branch from its newest commit (the add-on asks GitHub at once instead of
   // within the hour, refresh_links), so what a maker just pushed is what the screen gets.
@@ -442,15 +554,8 @@ export const usePluginsStore = defineStore("plugins", () => {
   // Every update of one screen in one build (the add-on takes several plugins in one request and builds the screen once).
   // An update that asks for other rights goes only with the person's yes (consented), as it does one by one.
   async function updateAll(screen: Screen, list: Plugin[]) {
-    if (!list.length) return;
-    sending[screen.id] = list.map((plugin) => plugin.id);
-    try {
-      await change(screen, { add: list.map((plugin) => addition(screen, plugin)) });
-    } catch (error: any) {
-      ui.toast(error.message);
-    } finally {
-      delete sending[screen.id];
-    }
+    if (!list.length || list.some((plugin) => !setupReady(plugin, [screen]))) return;
+    await commitAdditions(screen, list);
     await reloadPlugins();
   }
 
@@ -502,13 +607,16 @@ export const usePluginsStore = defineStore("plugins", () => {
   // Whether a group can be built: its plan is known, says no, and asks no choice.
   const trayReady = (group: TrayGroup) => {
     const plan = trayPlan(group);
-    return Boolean(plan && !plan.error && !plan.choose?.length);
+    return Boolean(plan && !plan.error && !plan.choose?.length
+      && [...group.plugins, ...trayAlong(group).map((row) => row.plugin)].every((plugin) => setupReady(plugin, [group.screen])));
   };
   // The room what is set aside on a 4 MB screen takes together, with what comes along: two plugins that each fit can be
   // too much together.
   const setAsideKb = (screen: Screen, list: Plugin[]) => list.reduce((sum, p) => sum + p.flash_kb + partsKb(screen, p), 0)
     + comesAlong(planOn(screen, list.map((p) => p.id)), list.map((p) => p.id)).reduce((sum, row) => sum + row.step.flash_kb, 0);
   async function installTray() {
+    if (tray.value.sending || trayGroups.value.some((group) =>
+      [...group.plugins, ...trayAlong(group).map((row) => row.plugin)].some((plugin) => !setupReady(plugin, [group.screen])))) return;
     tray.value.sending = true;
     try {
       for (const group of trayGroups.value) {
@@ -518,7 +626,7 @@ export const usePluginsStore = defineStore("plugins", () => {
           await change(group.screen, { add: [...group.plugins.map((plugin) => addition(group.screen, plugin)),
             ...trayAlong(group).map((row) => addition(group.screen, row.plugin, true))],
             remove: group.removes.map((plugin) => plugin.id), providers: providers.value[group.screen.id] || {} });
-          for (const plugin of group.plugins) forgetDrafts(group.screen, plugin);
+          for (const plugin of [...group.plugins, ...trayAlong(group).map((row) => row.plugin)]) forgetDrafts(group.screen, plugin);
           tray.value.items = tray.value.items.filter((item) => item.screen !== group.screen.id);
         } finally {
           delete sending[group.screen.id];
@@ -534,10 +642,8 @@ export const usePluginsStore = defineStore("plugins", () => {
   // Switch a screen to this plugin from another plugin of the same id it runs (a fork, a folder being made): the person
   // asked in its details, so the add-on replaces it (`switch`).
   async function switchPlugin(screen: Screen, plugin: Plugin) {
-    sending[screen.id] = [plugin.id];
-    try { await change(screen, { add: [{ ...addition(screen, plugin), switch: true }] }); }
-    catch (error: any) { ui.toast(error.message); }
-    finally { delete sending[screen.id]; }
+    if (!setupReady(plugin, [screen])) return;
+    await commitAdditions(screen, [plugin], plugin.id);
     await reloadPlugins();
   }
   // A secret for every screen (an API key): kept by the add-on, never shown again.
@@ -604,8 +710,8 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
 
   return {
-    index, installed, loaded, received, secrets, files, choices, previews, entities, pluginEntities, folders, features, likeConsent, likeAsk, sharing, appFit,
-    values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups, forgettable, forgetLink,
+    index, installed, loaded, received, secrets, files, choices, previews, entities, pluginEntities, folders, features, likeConsent, likeAsk, sharing, appFit, recovery,
+    values, parts, buildValues, setupErrors, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups, forgettable, forgetLink,
     // What the Plugins page, a screen's tab and the cards read as they draw (stores/lookup.ts); choicesFor, previewFor and
     // planOn answer at once and ask the add-on for what they do not have yet.
     ...lookups({
@@ -613,8 +719,9 @@ export const usePluginsStore = defineStore("plugins", () => {
       otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike, canRate,
       isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
+      buildValuesOn, modelsOn, modelChoiceRequired, setupError, submittingOn, changeReady, retryAvailable,
     }),
-    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, rate, setCounting, cardAnswer, forgetDrafts,
-    addPlugin, rebuildTest, updateAll, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
+    reloadPlugins, loadPlugins, setParts, setValue, setModels, importModel, markAttached, copyAttach, chooseProvider, like, rate, setCounting, cardAnswer, forgetDrafts,
+    addPlugin, retryPlugin, rebuildTest, updateAll, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
   };
 });

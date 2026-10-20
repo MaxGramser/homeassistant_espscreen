@@ -7,6 +7,9 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -235,6 +238,103 @@ class TheLine(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((running.state, waiting.state), ('interrupted', 'interrupted'))
         self.assertTrue(running.done.is_set())
         owner.firmware.task.cancel()
+
+
+class FrozenBuildInputs(unittest.IsolatedAsyncioTestCase):
+    async def test_multistep_build_keeps_root_sidecar_and_records_until_settlement(self):
+        from firmware import Firmware as RealFirmware
+        from test_firmware_download import PROFILE, ManagedModelFiles
+        with tempfile.TemporaryDirectory() as tmp, patch('firmware.shutil.which', return_value='/bin/esphome'):
+            f = RealFirmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+            f.create(PROFILE)
+            f.save_plugins('kitchen.yaml', ManagedModelFiles.sidecar())
+            records = [{'id': 'voice', 'build_revision': 'A', 'build_values': {'wake_models': []}}]
+            owner = SimpleNamespace(firmware=f, plugins=SimpleNamespace(store=SimpleNamespace(of=lambda _: records)))
+            line = owner.build_queue = BuildQueue(owner)
+            f.builds = line
+            f.retire_platformio = AsyncMock()
+            f.seed_cache = AsyncMock()
+            observed, callbacks, captures = [], [], []
+
+            async def cli(stage, cmd, env):
+                input_path = Path(next(arg for arg in cmd if str(arg).endswith('.yaml')))
+                node = yaml.compose(input_path.read_text())
+                packages = next(value for key, value in node.value if key.value == 'packages')
+                include = next(value.value for key, value in packages.value if key.value == 'tessera_plugins')
+                observed.append((line.running.id, stage, input_path, input_path.read_bytes(),
+                                 (f.root / include).read_bytes(), env['ESPHOME_BUILD_PATH']))
+                return (1, False) if line.running is successor else (0, False)
+
+            f.esphome = cli
+            successor = None
+
+            async def original(build):
+                nonlocal successor
+                self.assertTrue(await line.step({'file': 'kitchen.yaml', 'action': 'build'}))
+                captures.extend(build.input_snapshots['kitchen.yaml']['paths'])
+                self.assertEqual(build.plugin_revisions, {'screen': {'voice': 'A'}})
+                records[0]['build_revision'] = 'B'
+                records[0]['build_values']['wake_models'].append({'id': 'ww_new'})
+                f.save_plugins('kitchen.yaml', 'packages: {}\n')
+                profile = f.profile('kitchen.yaml')
+                profile.write_text(profile.read_text() + '\n# successor root\n')
+                successor = line.add('plugins', 'kitchen.yaml', one_step(line, 'kitchen.yaml'), screen='screen')
+                self.assertTrue(await line.step({'file': 'kitchen.yaml', 'action': 'widen', 'target': '10.0.0.1'}))
+                self.assertTrue(await line.step({'file': 'kitchen.yaml', 'action': 'install', 'target': '10.0.0.1'}))
+                self.assertEqual(build.plugin_records['screen'][0]['build_values'], {'wake_models': []})
+                return 'success'
+
+            first = line.add('update', 'kitchen.yaml', original, screen='screen')
+
+            def settled(build):
+                callbacks.append(all(path.exists() for path in captures))
+                self.assertEqual(build.plugin_records['screen'][0]['build_revision'], 'A')
+                raise RuntimeError('one settlement callback must not skip cleanup')
+
+            first.ends.append(settled)
+            await line.idle()
+            self.assertEqual((first.state, successor.state), ('success', 'failed'))
+            self.assertTrue(first.installed)
+            self.assertEqual(callbacks, [True])
+            self.assertTrue(captures)
+            self.assertTrue(all(not path.exists() for path in captures))
+            original_steps = [item for item in observed if item[0] == first.id]
+            self.assertEqual([item[1] for item in original_steps], ['compile', 'upload', 'compile', 'upload'])
+            self.assertEqual(len({item[2] for item in original_steps}), 1)
+            self.assertEqual(len({item[3] for item in original_steps}), 1)
+            self.assertEqual(len({item[4] for item in original_steps}), 1)
+            self.assertTrue(all(item[5] == str(f.data / 'build' / 'kitchen') for item in observed))
+            self.assertNotEqual(observed[-1][2], original_steps[0][2])
+            self.assertIn(b'successor root', observed[-1][3])
+            self.assertEqual(successor.plugin_revisions, {'screen': {'voice': 'B'}})
+            self.assertEqual(f.profiles(), [{'file': 'kitchen.yaml'}])
+            self.assertFalse(list(f.root.glob('.tessera-*.plugins.yaml')))
+
+    async def test_cancelled_build_releases_after_callbacks(self):
+        from firmware import Firmware as RealFirmware
+        from test_firmware_download import PROFILE
+        with tempfile.TemporaryDirectory() as tmp, patch('firmware.shutil.which', return_value='/bin/esphome'):
+            f = RealFirmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+            f.create(PROFILE)
+            owner = SimpleNamespace(firmware=f)
+            line = owner.build_queue = BuildQueue(owner)
+            f.builds = line
+            f.retire_platformio = AsyncMock()
+            f.seed_cache = AsyncMock()
+            started = asyncio.Event()
+            async def cli(*_):
+                started.set()
+                await asyncio.Event().wait()
+            f.esphome = cli
+            build = line.add('install', 'kitchen.yaml', one_step(line, 'kitchen.yaml'), screen='screen')
+            await started.wait()
+            paths = list(build.input_snapshots['kitchen.yaml']['paths'])
+            seen = []
+            build.ends.append(lambda _: seen.append(all(path.exists() for path in paths)))
+            await line.close()
+            self.assertEqual(build.state, 'interrupted')
+            self.assertEqual(seen, [True])
+            self.assertTrue(all(not path.exists() for path in paths))
 
 
 class ThePageHears(unittest.TestCase):

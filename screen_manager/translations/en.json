@@ -924,7 +924,13 @@
         "rate_not_installed": "Put the plugin on one of your screens first, then you can rate it.",
         "rate_failed": "The stars did not go out. Try again in a moment.",
         "count_failed": "Counting could not be turned off: Tessera could not be reached. Try again in a moment.",
-        "forget_running": "A screen still runs this plugin. Take it off the screen first."
+        "forget_running": "A screen still runs this plugin. Take it off the screen first.",
+        "models_required": "Choose at least one wake model before installing.",
+        "models_profile": "Wake models need a screen profile managed by this app and a known network address.",
+        "models_conflict": "Only one plugin on a screen can manage microWakeWord models.",
+        "models_changed": "The plugin configuration changed. Review it and apply again.",
+        "models_invalid": "The wake model could not be added: {reason}",
+        "recovery": "Plugin configuration for {file} could not be recovered. Resolve the conflict or file permissions, then apply the plugin settings again: {reason}"
       },
       "extras": {
         "request": "This change of an extra is not possible on this screen."
@@ -3666,6 +3672,36 @@
         "secret_set": "Set. Fill in a new one to replace it.",
         "part_needs": "Needs a {what} on the screen"
       },
+      "models": {
+        "available": "Available models",
+        "add_to_screen": "Add to screen",
+        "added": "Added",
+        "installed": "Installed models",
+        "url": "Public JSON manifest URL",
+        "add": "Add",
+        "duplicate": "This model is already in the list.",
+        "limit": "Choose at most 16 wake models.",
+        "computer": "Add from computer",
+        "manifest_file": "JSON manifest file",
+        "binary_file": "TFLite model file",
+        "upload_hint": "Choose both files: JSON up to 64 KiB and TFLite up to 2 MiB. They stay private on your Home Assistant. Uploading only adds a draft; Apply installs it on the screen.",
+        "upload_size": "Choose a JSON file no larger than 64 KiB and a TFLite file no larger than 2 MiB.",
+        "uploading": "Uploading and checking…",
+        "uploaded": "Uploaded from this computer",
+        "upload_changed": "The model list changed during upload. Nothing was added. Add the files again if you still want this model.",
+        "desired": "Models for the next update",
+        "remove": "Remove",
+        "remove_all": "Remove all",
+        "manual_only": "Manual activation only",
+        "required": "Choose at least one wake model before installing.",
+        "managed_required": "Choose a Tessera-managed screen profile before managing wake models.",
+        "apply_note": "List edits do not install models. Uploaded files stay on your Home Assistant; public URLs are downloaded on Apply. Apply once to build and update the screen.",
+        "unconfirmed": "Installed model state unconfirmed",
+        "pending": "This model update is pending. The installed list changes only after a successful installation.",
+        "failed": "Models from the failed update",
+        "apply": "Apply and update screen",
+        "saving": "Checking and saving…"
+      },
       "readme": {
         "title": "Read me"
       },
@@ -3960,7 +3996,8 @@
           "provision": "the build server could not install ESPHome",
           "cancelled": "it was stopped on the build server",
           "fetch": "the firmware did not come back",
-          "bundle": "the YAML could not be packed"
+          "bundle": "the YAML could not be packed",
+          "changed": "the screen's YAML changed after the build took it"
         }
       }
     },

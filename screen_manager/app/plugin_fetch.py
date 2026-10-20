@@ -354,7 +354,7 @@ class Fetcher:
             return host
         raise FetchRefused('a fetch names a host, not an address')
 
-    async def download_bytes(self, url, headers, network, limit=MAX_BYTES):
+    async def download_bytes(self, url, headers, network, limit=MAX_BYTES, *, require_status=None):
         """The bytes at `url`, within the rules (a host the plugin may reach, no redirects, at most `limit` bytes); raises
         on anything else. A picture of a plugin tile (plugin_pictures) comes this way too, with its own limit."""
         self.check_host(url, network)
@@ -362,13 +362,15 @@ class Fetcher:
         async with session.get(url, headers=headers, allow_redirects=False) as response:
             if response.status in (301, 302, 303, 307, 308):
                 raise OSError(f'HTTP {response.status}: redirects are not followed')
+            if require_status is not None and response.status != require_status:
+                raise OSError(f'HTTP {response.status}: expected {require_status}')
             if response.status >= 400:
                 raise OSError(f'HTTP {response.status}')
             raw = bytearray()
             async for chunk in response.content.iter_chunked(16384):
-                raw += chunk
-                if len(raw) > limit:
+                if len(chunk) > limit - len(raw):
                     raise OSError(f'the answer is larger than {limit // 1024} KB')
+                raw += chunk
         return bytes(raw)
 
     async def download(self, url, headers, network):

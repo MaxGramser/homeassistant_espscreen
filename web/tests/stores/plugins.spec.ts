@@ -5,6 +5,7 @@ import { flushPromises } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import { i18n } from "../../src/i18n";
+import { answer, question } from "../../src/composables/useConfirm";
 import type { Installed, Plugin } from "../../src/model/plugins";
 import { usePluginsStore } from "../../src/stores/plugins";
 import { useUiStore } from "../../src/stores/ui";
@@ -217,5 +218,187 @@ describe("what its start follows", () => {
     useInventoryStore().inventory.builds = {};
     await flushPromises();
     expect(api.count("GET plugins")).toBe(2);
+  });
+});
+
+describe("structured model drafts", () => {
+  const setting = {
+    id: "wake_models", kind: "micro_wake_word_models" as const, label: { en: "Wake models" }, target: "wake", feature_step_size: 10,
+    legacy_installed: ["jarvis"], catalogue: [{ id: "jarvis", label: { en: "Hey Jarvis" }, url: "https://models.example/jarvis.json" }],
+  };
+  const alisa = { id: "ww_alisa", url: "https://models.example/alisa.json", label: "Алиса", snapshot: "a".repeat(64), model_bytes: 32, feature_step_size: 10 };
+  const voice = plugin("voice", { origin: "github.com/maker/models", build_settings: [setting] });
+  const local = { id: "ww_local", upload: "synthetic-token", label: "Local wake", snapshot: "b".repeat(64), model_bytes: 32, feature_step_size: 10 };
+
+  it("preserves imported entries on normal updates and compares their source identity without display metadata", async () => {
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", {
+      origin: voice.origin, build_values: { wake_models: [alisa, local] }, build_confirmed: true,
+    })] });
+    plugins.setModels(hall, voice, setting, [alisa, { ...local, label: "Different display text" }]);
+    expect(plugins.setupChanged(hall, voice)).toBe(false);
+    plugins.setModels(hall, voice, setting, [alisa, { ...local, upload: "another-token" }]);
+    expect(plugins.setupChanged(hall, voice)).toBe(true);
+    plugins.forgetDrafts(hall, voice);
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual([alisa, local]);
+    await plugins.addPlugin([hall], voice);
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[0].build_values).toEqual({
+      wake_models: [{ id: alisa.id, url: alisa.url }, { id: local.id, upload: local.upload }],
+    });
+  });
+
+  it("retries the failed uploaded source rather than a URL or the installed list", async () => {
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", {
+      origin: voice.origin, build_values: { wake_models: [alisa] },
+      failed_update: { version: voice.version, build_values: { wake_models: [alisa, local] }, reason: "Build failed" },
+    })] });
+    api.on("POST screens/:id/plugins", failure(400, "Retry refused"));
+    await plugins.retryPlugin(hall, voice);
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[0].build_values).toEqual({
+      wake_models: [{ id: alisa.id, url: alisa.url }, { id: local.id, upload: local.upload }],
+    });
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual([alisa, local]);
+  });
+
+  it("rejects an import after external Cancel even when the source list returns to the same value", async () => {
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", { origin: voice.origin, build_values: { wake_models: [alisa] } })] });
+    const route = "POST screens/:id/plugins/:plugin/models/:setting/import";
+    api.on(route, local);
+    const held = api.defer(route);
+    const promise = plugins.importModel(hall, voice, setting, new File(["{}"], "synthetic.json"), new File(["synthetic"], "synthetic.tflite"));
+    const refusal = expect(promise).rejects.toThrow("The model list changed during upload");
+    plugins.forgetDrafts(hall, voice);
+    held.resolve();
+    await refusal;
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual([alisa]);
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+  });
+
+  it("starts empty and gates every fresh target, while draft edits send nothing", async () => {
+    const { api, plugins } = await loaded([voice]);
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual([]);
+    expect(plugins.setupReady(voice, [hall, desk])).toBe(false);
+    await plugins.addPlugin([hall], voice);
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    plugins.setModels(hall, voice, setting, [{ url: alisa.url }]);
+    expect(plugins.setupReady(voice, [hall])).toBe(true);
+    expect(plugins.setupReady(voice, [hall, desk])).toBe(false);
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    plugins.setModels(hall, voice, setting, []);
+    expect(plugins.setupReady(voice, [hall])).toBe(false);
+    plugins.forgetDrafts(hall, voice);
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual([]);
+  });
+
+  it("deep-copies stable IDs and metadata, strips trusted fields from one batch request, and preserves a refused draft", async () => {
+    const original = { wake_models: [{ ...alisa }] };
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", { origin: voice.origin, build_values: original, build_confirmed: true })] });
+    const draft = plugins.modelsOn(hall, voice, setting);
+    draft[0].label = "changed outside the store";
+    expect(plugins.modelsOn(hall, voice, setting)[0].label).toBe("Алиса");
+    plugins.setModels(hall, voice, setting, [...plugins.modelsOn(hall, voice, setting), { id: "jarvis", url: setting.catalogue[0].url }]);
+    expect(plugins.setupChanged(hall, voice)).toBe(true);
+    api.on("POST screens/:id/plugins", failure(400, "Model refused"));
+    await plugins.addPlugin([hall], voice);
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[0].build_values).toEqual({
+      wake_models: [{ id: alisa.id, url: alisa.url }, { id: "jarvis", url: setting.catalogue[0].url }],
+    });
+    expect(plugins.modelsOn(hall, voice, setting)).toHaveLength(2);
+    expect(plugins.setupError(hall, voice)).toBe("Model refused");
+    expect(api.count("POST screens/:id/plugins")).toBe(1);
+    plugins.forgetDrafts(hall, voice);
+    expect(plugins.setupChanged(hall, voice)).toBe(false);
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual(original.wake_models);
+  });
+
+  it("allows explicit empty updates and ordinary manual-only upgrades without selecting catalogue models", async () => {
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", { origin: voice.origin, build_values: { wake_models: [alisa] } })],
+      desk: [installed("voice", { origin: voice.origin, build_values: { wake_models: [] }, build_confirmed: true })] });
+    plugins.setModels(hall, voice, setting, []);
+    expect(plugins.setupChanged(hall, voice)).toBe(true);
+    expect(plugins.setupReady(voice, [hall, desk])).toBe(true);
+    await plugins.addPlugin([hall, desk], voice);
+    expect(api.asked("POST screens/:id/plugins").map((request) => request.body.add[0].build_values)).toEqual([{ wake_models: [] }, { wake_models: [] }]);
+  });
+
+  it("requires a new explicit origin-switch choice and never inherits old-origin models or IDs", async () => {
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", { origin: "github.com/old/models", build_values: { wake_models: [alisa] } })] });
+    expect(plugins.modelsOn(hall, voice, setting)).toEqual([]);
+    expect(plugins.setupReady(voice, [hall])).toBe(false);
+    await plugins.switchPlugin(hall, voice);
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    plugins.setModels(hall, voice, setting, [{ url: alisa.url }]);
+    await plugins.switchPlugin(hall, voice);
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[0]).toMatchObject({ switch: true, build_values: { wake_models: [{ url: alisa.url }] } });
+  });
+
+  it("retries the failed resolved request rather than the restored baseline", async () => {
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", { origin: voice.origin, build_values: { wake_models: [] },
+      failed_update: { version: voice.version, reason: "Build failed", build_values: { wake_models: [alisa] }, build_revision: "failed" } })] });
+    await plugins.retryPlugin(hall, voice);
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[0].build_values).toEqual({ wake_models: [{ id: alisa.id, url: alisa.url }] });
+  });
+
+  it("retries a failed origin switch only on the failed origin and only after explicit switch confirmation", async () => {
+    const fork = { ...voice, origin: "github.com/fork/models", source: "branch" as const };
+    const { api, plugins } = await loaded([voice], { hall: [installed("voice", { origin: voice.origin, build_values: { wake_models: [] },
+      failed_update: { version: fork.version, origin: fork.origin, build_values: { wake_models: [alisa] } } })] });
+    expect(plugins.retryAvailable(hall, voice)).toBe(false);
+    await plugins.retryPlugin(hall, voice);
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    expect(plugins.retryAvailable(hall, fork)).toBe(true);
+    const cancelled = plugins.retryPlugin(hall, fork);
+    expect(question.value?.kind).toBe("confirm");
+    expect(plugins.modelsOn(hall, fork, setting)).toEqual([alisa]);
+    answer(false);
+    await cancelled;
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    const retry = plugins.retryPlugin(hall, fork);
+    answer(true);
+    await retry;
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[0]).toMatchObject({
+      id: "voice", source: "branch", switch: true, build_values: { wake_models: [{ id: alisa.id, url: alisa.url }] },
+    });
+  });
+
+  it.each(["update", "updateAll", "switch"] as const)("includes explicitly configured new dependencies in a direct %s", async (mode) => {
+    const main = plugin("main", { origin: "github.com/maker/main", version: "1.1.0", requires: { plugins: ["voice"] } });
+    const { api, plugins } = await loaded([main, voice], { hall: [installed("main", {
+      origin: mode === "switch" ? "github.com/old/main" : main.origin,
+    })] }, { hall: ["voice"] });
+    const submit = () => mode === "switch" ? plugins.switchPlugin(hall, main)
+      : mode === "updateAll" ? plugins.updateAll(hall, [main]) : plugins.addPlugin([hall], main);
+    expect(plugins.changeReady(hall, [main])).toBe(false);
+    await flushPromises();
+    await submit();
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    plugins.setModels(hall, voice, setting, [{ url: alisa.url }]);
+    plugins.changeReady(hall, [main]);
+    await flushPromises();
+    expect(plugins.changeReady(hall, [main])).toBe(true);
+    await submit();
+    const additions = api.asked("POST screens/:id/plugins")[0].body.add;
+    expect(additions).toHaveLength(2);
+    expect(additions[0].id).toBe("main");
+    expect(Boolean(additions[0].switch)).toBe(mode === "switch");
+    expect(additions[1]).toMatchObject({ id: "voice", auto: true, build_values: { wake_models: [{ url: alisa.url }] } });
+    expect(additions[1].build_values.wake_models[0].snapshot).toBeUndefined();
+    expect(api.count("POST screens/:id/plugins")).toBe(1);
+  });
+
+  it("keeps dependency installs unready until their per-screen models are explicitly chosen", async () => {
+    const main = plugin("main", { requires: { plugins: ["voice"] } });
+    const { api, plugins } = await loaded([main, voice], {}, { hall: ["voice"] });
+    plugins.setAside(hall, main);
+    const group = plugins.trayGroups[0];
+    expect(plugins.trayReady(group)).toBe(false);
+    await flushPromises();
+    expect(plugins.trayReady(group)).toBe(false);
+    await plugins.installTray();
+    expect(api.count("POST screens/:id/plugins")).toBe(0);
+    plugins.setModels(hall, voice, setting, [{ url: alisa.url }]);
+    expect(plugins.trayReady(group)).toBe(true);
+    await plugins.installTray();
+    expect(api.count("POST screens/:id/plugins")).toBe(1);
+    expect(api.asked("POST screens/:id/plugins")[0].body.add[1]).toMatchObject({ id: "voice", auto: true, build_values: { wake_models: [{ url: alisa.url }] } });
   });
 });

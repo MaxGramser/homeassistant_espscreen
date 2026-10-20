@@ -127,6 +127,7 @@ FALLBACK_NOTES = {
     'cancelled': 'the build was stopped on the build server.',
     'fetch': 'the firmware did not come back from the build server.',
     'bundle': 'the YAML could not be packed for the build server.',
+    'changed': "the screen's YAML changed after this build froze it, and the build server would take the new one.",
 }
 
 

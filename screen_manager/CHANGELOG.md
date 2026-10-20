@@ -199,6 +199,31 @@
   screen can be reinstalled from dev. Set `SCREEN_CHANNEL` to `main` to point the screens back at main
   (docs/DOCKER.md, "Testing dev").
 
+- **Plugin settings: keep wake phrase choices inside the card.** Choice controls move below their description when
+  space is tight; multiple options and long model names wrap without clipping or horizontal overflow.
+
+- **Wake models: import private files from the editor.** Add a microWakeWord JSON manifest and its TFLite file from
+  your computer without publishing either file. Upload only adds a draft; Apply builds the chosen set once.
+  Existing models and Wake phrase selections are preserved, and identical uploads keep the same model identity.
+
+- **Plugin settings: recover an unselected wake phrase in Tessera.** An online select with available options stays
+  usable when Home Assistant reports `unknown`. Choosing a model remains explicit; unavailable screens and empty
+  model lists do not offer a choice.
+
+- **Editor: wake model lists fit narrow screens.** Long model names and manifest URLs wrap within the plugin's
+  setup card instead of widening it and pushing catalogue or Remove buttons off-screen.
+
+- **Voice assistant: choose the wake models installed on each screen.** A plugin's build settings can offer a
+  catalogue and public microWakeWord JSON URLs. First installation requires an explicit model choice, with no stock
+  models preselected. Apply batches the chosen set into one screen update; existing installations keep their models
+  until changed. Switching between installed models remains immediate. Immutable model snapshots travel with
+  downloaded screen files, and queued builds retain their exact configuration across build and install steps (with a
+  build server on, a build whose screen YAML changed after it started builds in the app instead).
+
+- **Plugins: Update all asks for what the updates bring along.** When an update needs another plugin or a feature,
+  the screen's Plugins tab shows that plugin's setup and the choice of provider before Update all lights up, as adding
+  a plugin does. A blocked recovery of a screen's plugin settings is shown there with its file and reason.
+
 ## 0.4.89 (firmware 0.57.0)
 
 - **A thermostat's state line no longer runs into its card.** On screens with dense glass (the Waveshare P4 and

@@ -18,13 +18,14 @@ defineEmits<{ remove: [screens: Screen[]] }>();
 const status = computed(() => plugins.statusOn(props.plugin, props.screen));
 const installed = computed(() => plugins.installedOn(props.screen, props.plugin.id));
 const fit = computed(() => plugins.fits(props.plugin, props.screen));
-const attach = computed(() => plugins.needsAttach(props.screen));
+const attach = computed(() => plugins.needsAttach(props.screen) && !props.plugin.build_settings?.length);
 // What it needs, what comes along, and the plugins that need it: on this screen, what adding it brings along (the
 // add-on's plan), a feature to choose a plugin for, or why it cannot.
 const byId = (id: string) => plugins.index.find((p) => p.id === id);
 const nameOf = (id: string) => (byId(id) ? text(byId(id)!.name) : id);
 const feature = (name: string) => (te(`editor.plugins.features.${name}`) ? t(`editor.plugins.features.${name}`) : name);
-const plan = computed(() => (!installed.value && fit.value.ok ? plugins.planOn(props.screen, [props.plugin.id]) : null));
+const plan = computed(() => (fit.value.ok && (!installed.value || props.plugin.requires.plugins?.length || props.plugin.requires.features?.length)
+  ? plugins.planOn(props.screen, [props.plugin.id]) : null));
 const along = computed(() => plugins.comesAlong(plan.value, [props.plugin.id]));
 const needed = computed(() => (installed.value ? plugins.neededBy(props.screen, props.plugin.id) : []));
 const cameWith = computed(() => (installed.value?.auto ? needed.value : []));
@@ -63,17 +64,17 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
         <button type="button" class="btn quiet" id="plugin-keep" @click="plugins.takeOut(screen, plugin.id)">{{ t("editor.plugins.tray.keep") }}</button>
       </div>
     </template>
-    <template v-else-if="status.kind === 'test'">
+    <template v-else-if="status.kind === 'test' && !other && !installed?.failed_update">
       <p class="pd-note">{{ t("editor.plugins.test_note") }}</p>
       <div class="pd-buttons">
-        <button type="button" class="btn primary" id="plugin-rebuild" @click="plugins.rebuildTest(screen, plugin)">{{ t("editor.plugins.rebuild") }}</button>
+        <button type="button" class="btn primary" id="plugin-rebuild" :disabled="!plugins.changeReady(screen, [plugin])" @click="plugins.rebuildTest(screen, plugin)">{{ t("editor.plugins.rebuild") }}</button>
         <button type="button" class="btn quiet" @click="$emit('remove', [screen])">{{ t("editor.plugins.remove", { screen: screen.name }) }}</button>
       </div>
     </template>
     <template v-else-if="status.kind === 'failed'">
       <p class="pd-misfit" id="plugin-failed"><Icon name="information-outline" /><span>{{ t("editor.plugins.failed", { screen: screen.name }) }}<small v-if="installed?.reason" class="pd-reason">{{ reasonText(installed.reason) }}</small></span></p>
       <div class="pd-buttons">
-        <button type="button" class="btn primary" @click="plugins.addPlugin([screen], plugin)">{{ t("editor.plugins.retry") }}</button>
+        <button v-if="plugins.retryAvailable(screen, plugin)" type="button" class="btn primary" :disabled="plugins.submittingOn(screen, plugin.id)" @click="plugins.retryPlugin(screen, plugin)">{{ t("editor.plugins.retry") }}</button>
         <button type="button" class="btn quiet" @click="$emit('remove', [screen])">{{ t("editor.plugins.remove", { screen: screen.name }) }}</button>
       </div>
     </template>
@@ -86,19 +87,28 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
       <p v-if="installed.blocked" class="pd-misfit" id="plugin-blocked"><Icon name="alert-circle-outline" />{{ t("editor.plugins.blocked_now", { why: installed.blocked }) }}</p>
       <template v-if="other">
         <p class="pd-misfit" id="plugin-other-origin"><Icon name="information-outline" />{{ t("editor.plugins.other_origin", { origin: installed.origin }) }}</p>
-        <div class="pd-buttons"><button type="button" class="btn quiet" id="plugin-switch" @click="plugins.switchPlugin(screen, plugin)">{{ t("editor.plugins.switch", { origin: plugin.origin }) }}</button></div>
+        <div class="pd-buttons"><button type="button" class="btn quiet" id="plugin-switch" :disabled="!plugins.changeReady(screen, [plugin]) || plugins.submittingOn(screen, plugin.id)" @click="plugins.switchPlugin(screen, plugin)">{{ t("editor.plugins.switch", { origin: plugin.origin }) }}</button></div>
       </template>
       <label v-if="status.kind === 'update' && askConsent" class="pd-trust" id="plugin-consent">
         <input type="checkbox" :checked="plugins.consented[plugin.id]" @change="plugins.consented[plugin.id] = ($event.target as HTMLInputElement).checked" />
         <span><b>{{ t("editor.plugins.consent.title") }}</b>{{ t("editor.plugins.consent.agree") }}</span>
       </label>
       <div class="pd-buttons">
-        <button v-if="status.kind === 'update'" type="button" class="btn primary" id="plugin-update" :disabled="!agreed" @click="plugins.addPlugin([screen], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
+        <button v-if="installed.failed_update && plugins.retryAvailable(screen, plugin)" type="button" class="btn primary" id="plugin-retry" :disabled="plugins.submittingOn(screen, plugin.id)" @click="plugins.retryPlugin(screen, plugin)">{{ t("editor.plugins.retry") }}</button>
+        <button v-if="status.kind === 'update' && !other" type="button" class="btn primary" id="plugin-update" :disabled="!agreed || !plugins.changeReady(screen, [plugin])" @click="plugins.addPlugin([screen], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
         <button type="button" class="btn quiet" id="plugin-remove" @click="$emit('remove', [screen])">{{ t("editor.plugins.remove", { screen: screen.name }) }}</button>
       </div>
     </template>
     <template v-else>
       <PluginSetup :plugin="plugin" :screens="[screen]" />
+      <!-- Set aside, not built: the tray takes it with whatever else is chosen, and builds the screen once. -->
+      <button type="button" class="btn pd-install" :class="plugins.isSetAside(screen, plugin.id) ? 'quiet' : 'primary'" id="plugin-install"
+        :disabled="!plugins.isSetAside(screen, plugin.id) && !plugins.changeReady(screen, [plugin])"
+        @click="plugins.toggleSetAside(screen, plugin)">
+        <Icon :name="plugins.isSetAside(screen, plugin.id) ? 'check' : 'plus'" />{{ plugins.isSetAside(screen, plugin.id) ? t("editor.plugins.tray.in_tray") : t("editor.plugins.tray.stage", { screen: screen.name }) }}
+      </button>
+      <p class="pd-build-note">{{ plugins.isSetAside(screen, plugin.id) ? t("editor.plugins.tray.in_tray_note") : t("editor.plugins.build_note") }}</p>
+    </template>
       <!-- What comes along: a plugin it needs, or the one plugin that brings a feature it needs; set aside with it. -->
       <div v-if="along.length || plan?.choose?.length || plan?.error" class="pd-along" id="plugin-along">
         <p class="pd-label">{{ t("editor.plugins.along.title") }}</p>
@@ -107,6 +117,7 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
           <span class="plugin-icon" :class="{ tessera: row.plugin.tessera }" aria-hidden="true"><span class="mdi">{{ glyph(row.plugin.icon) }}</span></span>
           <span class="pd-along-words"><b>{{ text(row.plugin.name) }}</b><small>{{ whyAlong(row) }} · {{ row.plugin.tessera ? t("editor.plugins.from_tessera") : t("editor.plugins.by", { maker: row.plugin.maintainer }) }} · {{ editorNumber(row.step.flash_kb) }} KB</small></span>
         </div>
+        <PluginSetup v-for="row in along" :key="`setup-${row.plugin.id}`" :plugin="row.plugin" :screens="[screen]" />
         <label v-for="choice in plan?.choose || []" :key="choice.feature" class="field pd-choose">
           <span class="f-label">{{ t("editor.plugins.along.choose", { what: feature(choice.feature) }) }}</span>
           <select :data-feature="choice.feature" @change="plugins.chooseProvider(screen, choice.feature, ($event.target as HTMLSelectElement).value)">
@@ -115,11 +126,5 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
           </select>
         </label>
       </div>
-      <!-- Set aside, not built: the tray takes it with whatever else is chosen, and builds the screen once. -->
-      <button type="button" class="btn pd-install" :class="plugins.isSetAside(screen, plugin.id) ? 'quiet' : 'primary'" id="plugin-install" @click="plugins.toggleSetAside(screen, plugin)">
-        <Icon :name="plugins.isSetAside(screen, plugin.id) ? 'check' : 'plus'" />{{ plugins.isSetAside(screen, plugin.id) ? t("editor.plugins.tray.in_tray") : t("editor.plugins.tray.stage", { screen: screen.name }) }}
-      </button>
-      <p class="pd-build-note">{{ plugins.isSetAside(screen, plugin.id) ? t("editor.plugins.tray.in_tray_note") : t("editor.plugins.build_note") }}</p>
-    </template>
   </div>
 </template>

@@ -43,9 +43,10 @@ const hereFlash = computed(() => (here.value ? flashShare(props.plugin, here.val
 // The settings of a plugin this screen runs, grouped by what a change does: at once (its ESPHome entities), for every
 // screen (what was filled in once), or a new build of this screen (its own inputs and parts).
 const sharedInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "all"));
-const buildInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "screen").length + (props.plugin.parts || []).length);
+const buildInputs = computed(() => (props.plugin.inputs || []).filter((input) => input.scope === "screen").length
+  + (props.plugin.parts || []).length + (props.plugin.build_settings || []).length);
 const hereSettings = computed(() => Boolean(here.value && hereInstalled.value
-  && (props.plugin.settings?.length || sharedInputs.value.length || buildInputs.value)));
+  && (props.plugin.settings?.length || sharedInputs.value.length || buildInputs.value || plugins.recovery[here.value.id])));
 const hereChanged = computed(() => Boolean(here.value && plugins.setupChanged(here.value, props.plugin)));
 
 // ---- What it needs and what it brings ----
@@ -169,6 +170,9 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
   <!-- In a screen's tab: the action for this screen; on the Plugins page: a box per screen. -->
   <PluginOnScreen v-if="here" :plugin="plugin" :screen="here" @remove="askRemove" />
   <PluginOnScreens v-else :plugin="plugin" @remove="askRemove" />
+  <p v-if="here && plugins.recovery[here.id]" class="pd-misfit" data-plugin-recovery role="alert">
+    <code>{{ plugins.recovery[here.id].file }}</code> · {{ plugins.recovery[here.id].reason }}
+  </p>
 
   <!-- What an update brings, before the person presses it: the changelog's lines from the version they run. -->
   <section v-if="newsFrom" class="pd-section pd-news" id="plugin-news">
@@ -193,8 +197,11 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
       <p class="pd-group-head"><b>{{ t("editor.plugins.settings.build") }}</b><small>{{ t("editor.plugins.settings.build_note", { screen: here.name }) }}</small></p>
       <PluginSetup :plugin="plugin" :screens="[here]" only="screen" />
     </div>
-    <button v-if="sharedInputs.length || buildInputs" type="button" class="btn primary pd-save" id="plugin-settings-save"
-      :disabled="!hereChanged || hereStatus?.kind === 'building'" @click="plugins.addPlugin([here], plugin)">{{ t("editor.plugins.settings.save_build") }}</button>
+    <button v-if="sharedInputs.length || buildInputs || plugins.recovery[here.id]" type="button" class="btn primary pd-save" id="plugin-settings-save"
+      :disabled="(!hereChanged && !plugins.recovery[here.id]) || hereStatus?.kind === 'building' || !plugins.changeReady(here, [plugin]) || plugins.otherOrigin(here, plugin)"
+      @click="plugins.addPlugin([here], plugin)">{{ t(plugin.build_settings?.length
+        ? (plugins.submittingOn(here, plugin.id) ? "editor.plugins.models.saving" : "editor.plugins.models.apply")
+        : "editor.plugins.settings.save_build") }}</button>
   </section>
 
   <!-- The plugin's README: what to do in Home Assistant, where a key comes from. Its own words, safely shown. -->

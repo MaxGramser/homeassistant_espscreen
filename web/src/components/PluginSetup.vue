@@ -5,6 +5,7 @@ import { editorNumber, t, te } from "../i18n";
 import { freePins, text, type Plugin } from "../model/plugins";
 import type { Screen } from "../types";
 import { usePluginsStore } from "../stores/plugins";
+import PluginModelList from "./PluginModelList.vue";
 
 const plugins = usePluginsStore();
 
@@ -32,7 +33,7 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
 </script>
 
 <template>
-  <div v-if="screens.length && ((plugin.inputs || []).length || (plugin.parts || []).length)" class="pd-setup">
+  <div v-if="screens.length && ((plugin.inputs || []).length || (plugin.parts || []).length || (plugin.build_settings || []).length)" class="pd-setup">
     <div v-for="input in showShared() ? shared() : []" :key="input.id" class="field">
       <label class="f-label" :for="`plugin-input-${input.id}`">{{ text(input.label) }}</label>
       <input :id="`plugin-input-${input.id}`" :type="input.kind === 'secret' ? 'password' : 'text'" autocomplete="off" spellcheck="false"
@@ -56,6 +57,7 @@ const partOn = (id: string) => props.screens.length > 0 && props.screens.every((
         <small v-if="input.kind === 'secret' && plugins.secretSet(screen, plugin, input)">{{ t("editor.plugins.setup.secret_set") }}</small>
         <small v-else-if="input.hint">{{ text(input.hint) }}</small>
       </div>
+      <PluginModelList v-for="setting in plugin.build_settings || []" :key="`${screen.id}-${setting.id}`" :plugin="plugin" :screen="screen" :setting="setting" />
     </template>
     <label v-for="part in showScreen() ? plugin.parts || [] : []" :key="part.id" class="pd-part" :class="{ off: lacking(part.features).length }">
       <input type="checkbox" :checked="partOn(part.id) && !lacking(part.features).length" :disabled="lacking(part.features).length > 0" :data-part="part.id" @change="togglePart(part.id, ($event.target as HTMLInputElement).checked)" />
