@@ -9,7 +9,7 @@ from core import (DOMAINS, HEADER_ONLY_DOMAINS, CAMERA_DOMAINS, HEADER_BUILTIN,
                   HEADER_CONTENTS, HEADER_SHOWS, WIFI_CONTENTS, WIFI_SHOWS, BATTERY_CONTENTS, BATTERY_SHOWS, PLUGIN_ITEM_CONTENTS,
                   DISPLAYS, WIDE_ONLY, CONTROLS,
                   TILE_BACKGROUNDS, LIVE_REFRESH, PICTURE_OPTIONS, KEY_HOLDERS, KEY_DOMAINS, BUILTIN,
-                  FAVORITE_SHUFFLES, FAVORITE_REPEATS, ENERGY_FLOWS)
+                  FAVORITE_SHUFFLES, FAVORITE_REPEATS, ENERGY_FLOWS, ENERGY_PERIODS)
 from tile_icons import ICONS
 import calendar_feed
 import meter
@@ -37,6 +37,8 @@ def rules():
             'favoriteShuffles': list(FAVORITE_SHUFFLES), 'favoriteRepeats': list(FAVORITE_REPEATS),
             # How the energy card shows power along a line, the first the default.
             'energyFlow': list(ENERGY_FLOWS),
+            # What it shows: the power now (the default) or the energy of a period.
+            'energyPeriod': list(ENERGY_PERIODS),
             # A calendar card's choices (firmware 0.56.0, calendar_feed.validate): what it shows, the view its full
             # screen opens on, how many calendars and words it takes and how far it looks, each first or default the one
             # never stored.

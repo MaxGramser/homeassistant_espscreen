@@ -59,7 +59,15 @@ struct Data {
   std::vector<Device> devices;  // drawing power now, in the order of Home Assistant's Energy settings
   std::string home_name;        // the home's name in Home Assistant, for the house's circle
   float rest = 0;               // devices drawing power beyond the ones sent
+  // A period instead of the moment (the tile's `period`, the full screen's keys): "day", "week", "month" or "year", every
+  // number above in kWh, as Home Assistant's energy dashboard splits the period. Empty for the power now.
+  std::string period;
+  int range[6]{};      // its first and last day: year, month, day of each
+  int offset = 0;      // steps back from the period now (0 the period now, -1 the one before)
+  int this_year = 0;   // the year now, so a date of another year says its year
+  bool waiting = false;  // the app has not read the period yet
   bool any() const { return solar || grid || battery; }
+  bool energy() const { return !period.empty(); }
 };
 
 // ---- Glyphs (Material Design Icons) and words.
@@ -89,6 +97,12 @@ struct Words {
   // mark, and what follows a number for a percentage ("%" or " %").
   char decimal = '.';
   std::string percent = " %";
+  // A period's words (screen.energy.day ..): the full screen's keys, Today (the calendar's key and its word for the day
+  // now), and the dates its line under the name writes (screen.date: Monday first, January first).
+  std::array<std::string, 4> units;
+  std::string today_key, today;
+  std::array<std::string, 7> weekdays;
+  std::array<std::string, 12> months, months_short;
 };
 
 // power-flow-card-plus's numbers: W below 1000 without decimals, kW with one, a trailing ".0" dropped ("1 kW"),
@@ -103,12 +117,63 @@ inline std::string power(float w, char decimal = '.') {
   for (auto &c : v) if (c == '.') c = decimal;
   return v + " kW";
 }
+// Home Assistant's energy numbers (formatConsumptionShort in data/energy.ts): kWh, Wh below 1 kWh and MWh from 1000, with
+// at most two decimals below 10, one below 100 and none from there, the trailing zeros dropped ("2.5 kWh", "12 kWh").
+inline std::string energy(float kwh, char decimal = '.') {
+  static const char *const UNITS[] = {"Wh", "kWh", "MWh", "GWh"};
+  float v = std::fabs(kwh);
+  int unit = 1;
+  if (v < 1) { v *= 1000; unit = 0; }  // nothing too: "0 Wh"
+  while (v >= 1000 && unit < 3) { v /= 1000; ++unit; }
+  const int digits = v < 10 ? 2 : v < 100 ? 1 : 0;
+  // Rounded half up in whole hundredths or tenths (no pow: on the CYD its library code alone is some 3 KB of flash).
+  static const float SCALE[] = {1.f, 10.f, 100.f};
+  char b[32];
+  snprintf(b, sizeof b, "%.*f", digits, std::floor(v * SCALE[digits] + 0.5f) / SCALE[digits]);
+  std::string s = b;
+  if (s.find('.') != std::string::npos) {
+    while (s.back() == '0') s.pop_back();
+    if (s.back() == '.') s.pop_back();
+  }
+  for (auto &c : s) if (c == '.') c = decimal;
+  return s + " " + UNITS[unit];
+}
+// A number of the card: power for the moment, energy for a period.
+inline std::string amount(const Data &d, float v, char decimal) { return d.energy() ? energy(v, decimal) : power(v, decimal); }
+
+// The line that names a period, as Home Assistant's period selector names it, in the calendar card's words: "Today" or
+// "Mon 19 Oct" for a day, "19 – 25 Oct" for a week, "October 2026" for a month, "2026" for a year; a day or a week of
+// another year says its year.
+inline int days_from_civil(int y, int m, int d) {  // Howard Hinnant's, as the calendar card counts its days
+  y -= m <= 2;
+  const int era = (y >= 0 ? y : y - 399) / 400, yoe = y - era * 400;
+  const int doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1, doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+  return era * 146097 + doe - 719468;
+}
+inline int weekday_of(int y, int m, int d) { const int z = days_from_civil(y, m, d); return ((z % 7) + 7 + 3) % 7; }  // 0 Monday
+inline std::string period_text(const Data &d, const Words &w) {
+  const int *r = d.range;
+  if (r[1] < 1 || r[1] > 12 || r[4] < 1 || r[4] > 12) return "";
+  const std::string dash = " \xE2\x80\x93 ";  // an en dash between the days, as Home Assistant writes a range
+  const bool other_year = d.this_year && r[0] != d.this_year;
+  const std::string year = std::to_string(r[0]);
+  if (d.period == "year") return year;
+  if (d.period == "month") return w.months[r[1] - 1] + " " + year;
+  if (d.period == "day") {
+    if (d.offset == 0 && !w.today.empty()) return w.today;
+    return w.weekdays[weekday_of(r[0], r[1], r[2])] + " " + std::to_string(r[2]) + " " + w.months_short[r[1] - 1] + (other_year ? " " + year : "");
+  }
+  const std::string last = std::to_string(r[5]) + " " + w.months_short[r[4] - 1] + (d.this_year && r[3] != d.this_year ? " " + std::to_string(r[3]) : "");
+  if (r[1] == r[4]) return std::to_string(r[2]) + dash + last;
+  return std::to_string(r[2]) + " " + w.months_short[r[1] - 1] + (r[0] != r[3] ? " " + year : "") + dash + last;
+}
 // The seconds a dot takes to run its line: power-flow-card-plus's flow-rate model, 6 s for almost nothing, 0.75 s
 // from 2 kW.
 inline float duration(float w) { return w > 2000 ? 0.75f : (w - 0.01f) * (0.75f - 6.f) / (2000.f - 0.01f) + 6.f; }
 
 // ---- Colours by role; the draw step asks the theme for them (theme.h, energy section).
-enum class Paint : uint8_t { SOLAR, GRID_IN, GRID_OUT, BATTERY_OUT, BATTERY_IN, DEVICE0, DEVICE1, DEVICE2, DEVICE3, REST, INK, MUTED, IDLE, ACCENT };
+enum class Paint : uint8_t { SOLAR, GRID_IN, GRID_OUT, BATTERY_OUT, BATTERY_IN, DEVICE0, DEVICE1, DEVICE2, DEVICE3, REST, INK, MUTED, IDLE, ACCENT,
+                             KEY, ON_ACCENT, SUBTLE };  // the full screen's keys: a key, the words on the chosen one, a key that is off
 
 // ---- The board's faces the card may use (its fixed font set) and what the caller measured of them.
 enum Face : uint8_t { WATCH_VALUE, HEADLINE, CONTROL, SMALL, ICON, ICON_MINI, ICON_WATCH, FACES };
@@ -173,6 +238,10 @@ struct Text {
   bool centre = false;
   Paint paint = Paint::INK;
 };
+// A key of the full screen's header (calendar_card.h's header): a rounded box, and what a finger on it does.
+struct KeyBox { int x = 0, y = 0, w = 0, h = 0, radius = 0; Paint paint = Paint::KEY; };
+enum HitKind : uint8_t { HIT_CLOSE, HIT_UNIT, HIT_TODAY, HIT_PREV, HIT_NEXT };
+struct Hit { int x = 0, y = 0, w = 0, h = 0; HitKind kind = HIT_CLOSE; int arg = 0; };
 struct Scene {
   bool ok = false;     // false: the card is too small for the diagram (the draw step shows the house's use alone)
   bool vertical = false;
@@ -186,6 +255,8 @@ struct Scene {
   std::vector<Flow> flows;   // the lines a dot runs along (none where the card draws lines instead)
   std::vector<Arrow> arrows; // the arrows of a card drawn with lines
   std::vector<Text> texts;
+  std::vector<KeyBox> boxes;  // the header's keys, under everything
+  std::vector<Hit> hits;
 };
 
 // How the card shows power going along a line: power-flow-card-plus's running dots (the default), or a calm card whose
@@ -393,16 +464,17 @@ struct ChoiceCache {
 inline Choice choose(const Data &data, const Measure &m, int w, int h, const Words &words, const std::string &widest = "",
                      ChoiceCache *cache = nullptr) {
   std::vector<std::string> values;
-  for (float v : {data.solar_w, data.from_grid, data.to_grid, data.from_battery, data.to_battery, data.home}) values.push_back(power(v, words.decimal));
-  for (auto &dv : data.devices) values.push_back(power(dv.w, words.decimal));
+  for (float v : {data.solar_w, data.from_grid, data.to_grid, data.from_battery, data.to_battery, data.home}) values.push_back(amount(data, v, words.decimal));
+  for (auto &dv : data.devices) values.push_back(amount(data, dv.w, words.decimal));
   if (!widest.empty()) values.push_back(widest);
   // What no device measures, as Home Assistant's sankey draws it: the house less every device and Other, from 1 W
   // (untrackedFloor). A house without a measured device keeps it in its own number: it would only repeat the house.
   float measured = data.rest;
   for (auto &dv : data.devices) measured += dv.w;
   const float untracked = data.home - measured;
-  const bool tracks = measured > 0 && untracked > 1;
-  if (tracks) values.push_back(power(untracked, words.decimal));
+  // A period's floor is a watt-hour (energy sankey: untrackedFloor 0, its numbers start at 1 Wh).
+  const bool tracks = measured > 0 && untracked > (data.energy() ? 0.001f : 1.f);
+  if (tracks) values.push_back(amount(data, untracked, words.decimal));
   const int listed = int(data.devices.size()) + (data.rest > 0 ? 1 : 0) + (tracks ? 1 : 0);
   std::string shape = std::to_string(w) + 'x' + std::to_string(h) + char('0' + data.solar) + char('0' + data.grid) +
                       char('0' + data.battery) + char(data.soc >= 0 ? 's' : '-') + char(data.rest > 0 ? 'o' : '-') + char(tracks ? 'u' : '-') + words.decimal;
@@ -576,7 +648,8 @@ inline Scene build(const Data &data, const Measure &m, int w, int h, const Words
   auto flow = [&](Path path, Paint paint, float watts, bool reverse = false) {
     path = stand(path);
     // Lines drawn calm grow with their power; with dots every line keeps its width.
-    const int width = style == Style::LINES ? flow_width(watts, lw, o) : lw;
+    // A period's lines keep their width: the steps up to 2 kW are of power, not of kWh.
+    const int width = style == Style::LINES && !data.energy() ? flow_width(watts, lw, o) : lw;
     for (size_t i = 0; i < path.size(); ++i) {
       const Seg &s = path[i];
       if (s.arc) {
@@ -719,13 +792,13 @@ inline Scene build(const Data &data, const Measure &m, int w, int h, const Words
   const std::string down_a = ft.mode.arrows ? utf8(ARROW_DOWN) : "", up_a = ft.mode.arrows ? utf8(ARROW_UP) : "";
   if (data.solar) {
     circle(solar, border, Paint::SOLAR, data.solar_entity);
-    place(solar, utf8(ICON_SOLAR), Paint::INK, {{"", power(data.solar_w, words.decimal), Paint::INK}}, words.solar, !ft.vertical);
+    place(solar, utf8(ICON_SOLAR), Paint::INK, {{"", amount(data, data.solar_w, words.decimal), Paint::INK}}, words.solar, !ft.vertical);
   }
   if (data.grid) {
     circle(grid, border, grid_exports ? Paint::GRID_OUT : Paint::GRID_IN, data.grid_entity);
     std::vector<Value> rows;
-    if (ft.mode.both || data.to_grid > 0) rows.push_back({left, power(data.to_grid, words.decimal), Paint::GRID_OUT});
-    if (ft.mode.both || data.from_grid > 0 || data.to_grid <= 0) rows.push_back({right, power(data.from_grid, words.decimal), Paint::GRID_IN});
+    if (ft.mode.both || data.to_grid > 0) rows.push_back({left, amount(data, data.to_grid, words.decimal), Paint::GRID_OUT});
+    if (ft.mode.both || data.from_grid > 0 || data.to_grid <= 0) rows.push_back({right, amount(data, data.from_grid, words.decimal), Paint::GRID_IN});
     if ((ft.mode.one || ft.mode.compact) && rows.size() > 1) rows.erase(rows.begin() + (grid_exports ? 1 : 0));
     if (ft.mode.one) for (auto &r : rows) r.arrow.clear();
     place(grid, utf8(ICON_GRID), Paint::INK, rows, words.grid, ft.vertical);
@@ -734,12 +807,12 @@ inline Scene build(const Data &data, const Measure &m, int w, int h, const Words
     const bool charging = data.to_battery > data.from_battery;
     circle(battery, border, charging ? Paint::BATTERY_IN : Paint::BATTERY_OUT, data.battery_entity);
     std::vector<Value> rows;
-    if (ft.mode.both || data.to_battery > 0) rows.push_back({down_a, power(data.to_battery, words.decimal), Paint::BATTERY_IN});
-    if (ft.mode.both || data.from_battery > 0) rows.push_back({up_a, power(data.from_battery, words.decimal), Paint::BATTERY_OUT});
+    if (ft.mode.both || data.to_battery > 0) rows.push_back({down_a, amount(data, data.to_battery, words.decimal), Paint::BATTERY_IN});
+    if (ft.mode.both || data.from_battery > 0) rows.push_back({up_a, amount(data, data.from_battery, words.decimal), Paint::BATTERY_OUT});
     const std::string soc = data.soc >= 0 ? std::to_string(data.soc) + words.percent : "";
     const std::string charge = ft.mode.charge ? soc : "";
     // At rest: "0 W"; the charge alone in the number's place where the form has no room for it beside the glyph.
-    if (rows.empty()) rows.push_back({"", charge.empty() && !soc.empty() ? soc : power(0, words.decimal), Paint::INK});
+    if (rows.empty()) rows.push_back({"", charge.empty() && !soc.empty() ? soc : amount(data, 0, words.decimal), Paint::INK});
     if (ft.mode.one) for (auto &r : rows) r.arrow.clear();
     place(battery, utf8(battery_glyph(data.soc)), Paint::INK, rows, words.battery, false, charge);
   }
@@ -760,12 +833,12 @@ inline Scene build(const Data &data, const Measure &m, int w, int h, const Words
         a += span;
       }
     }
-    place(home, utf8(ICON_HOME), Paint::INK, {{"", power(data.home, words.decimal), Paint::INK}}, dev.size() <= 1 ? words.home : "", false);
+    place(home, utf8(ICON_HOME), Paint::INK, {{"", amount(data, data.home, words.decimal), Paint::INK}}, dev.size() <= 1 ? words.home : "", false);
   }
   for (size_t i = 0; i < dev.size(); ++i) {
     circle(slot[i], border, paint_of(i), dev[i].entity);
     const bool top = !ft.vertical && (i == 0 || i == 2);
-    place(slot[i], utf8(dev[i].icon ? dev[i].icon : ICON_FLASH), paint_of(i), {{"", power(dev[i].w, words.decimal), Paint::INK}}, dev[i].name, top);
+    place(slot[i], utf8(dev[i].icon ? dev[i].icon : ICON_FLASH), paint_of(i), {{"", amount(data, dev[i].w, words.decimal), Paint::INK}}, dev[i].name, top);
   }
   return sc;
 }
@@ -780,4 +853,100 @@ inline const Circle *hit(const Scene &sc, float x, float y, int touch) {
   }
   return best;
 }
+
+// ---- A period: the tile's line that names it, and the full screen's header.
+// Everything of a scene `dy` lower: the diagram under the tile's line or the full screen's header.
+inline void shift(Scene &sc, int dy) {
+  const float f = float(dy);
+  for (auto &c : sc.circles) c.c.y += f;
+  for (auto *list : {&sc.arcs, &sc.ring}) for (auto &a : *list) a.c.y += f;
+  for (auto &l : sc.lines) { l.a.y += f; l.b.y += f; }
+  for (auto &fl : sc.flows) for (auto &s : fl.path) { s.a.y += f; s.b.y += f; s.c.y += f; }
+  for (auto &a : sc.arrows) { a.tip.y += f; a.left.y += f; a.right.y += f; }
+  for (auto &t : sc.texts) t.y += dy;
+  for (auto &b : sc.boxes) b.y += dy;
+  for (auto &h : sc.hits) h.y += dy;
+}
+// The tile's line over the diagram: the period it shows, quiet, in the smallest face, where it leaves the diagram the
+// least room it needs (the CYD's page has none to spare: its card has the diagram alone, and its full screen names the
+// period). Returns how much room it takes.
+inline int caption(Scene &sc, const Measure &m, int w, int h, const std::string &line) {
+  const int need = m.line[SMALL] + ui::px(4);
+  if (line.empty() || !m.line[SMALL] || (offered(w, h) && !offered(w, h - need))) return 0;
+  sc.texts.push_back({line, SMALL, 0, 0, w, false, Paint::MUTED});
+  return need;
+}
+
+inline int look_px(int big, int small) { return ui::px(ui::large() ? big : small); }
+// A round key: the calendar card's size, at least a finger wide.
+inline int key_size(const Measure &m) { return std::max(ui::touch_min(), m.line[ICON_MINI] + look_px(14, 6)); }
+constexpr uint32_t GLYPH_CLOSE = 0xF0156, GLYPH_LEFT = 0xF0141, GLYPH_RIGHT = 0xF0142, GLYPH_CALENDAR = 0xF00ED;
+const char *const UNITS[] = {"day", "week", "month", "year"};
+inline int unit_index(const std::string &u) {
+  for (int i = 0; i < 4; ++i) if (u == UNITS[i]) return i;
+  return 0;
+}
+// The full screen's header, in the calendar card's style (calendar_card.h header()): close, the card's name with the
+// period under it, the units as keys (the chosen one blue, no menu: every choice shows), Today, back and forward.
+// Narrow glass moves the units under the rest, and then Today becomes a round key with the calendar. `now`: the period
+// on show is the one now, so Today and forward have nothing to do; `back`: an earlier period may be asked for.
+// Returns where the header ends.
+inline int header(Scene &sc, const Measure &m, int width, int margin, const std::string &name, const std::string &line,
+                  int unit, bool now, bool back, const Words &w) {
+  const int d = key_size(m), y = margin, g = look_px(16, 8), gap = look_px(8, 4), pad = look_px(4, 2);
+  const Face kf = SMALL, tf = ui::large() ? HEADLINE : CONTROL;
+  auto glyph_key = [&](int x, int ky, uint32_t glyph, HitKind kind, bool on) {
+    sc.boxes.push_back({x, ky, d, d, d / 2, Paint::KEY});
+    sc.texts.push_back({utf8(glyph), ICON_MINI, x, ky + (d - m.line[ICON_MINI]) / 2, d, true, on ? Paint::INK : Paint::SUBTLE});
+    if (on) sc.hits.push_back({x - pad, ky - pad, d + 2 * pad, d + 2 * pad, kind, 0});
+  };
+  int seg_w[4], units_w = 2 * pad;
+  for (int i = 0; i < 4; ++i) { seg_w[i] = m.width(kf, w.units[i]) + look_px(28, 14); units_w += seg_w[i]; }
+  const int word_w = m.width(kf, w.today_key) + look_px(28, 14), arrows = 2 * d + gap;
+  const int tx = margin + d + look_px(14, 8);
+  const int title_w = std::max(m.width(tf, name), m.width(SMALL, line));
+  auto room = [&](int right) { return width - margin - right - g - tx; };
+  // One row where the name fits beside every key; else the units on a row of their own, and Today a round key where
+  // even then the name has no room.
+  bool row = room(arrows + g + word_w + g + units_w) >= title_w;
+  bool icon = false;
+  if (!row) icon = room(arrows + g + word_w) < title_w;
+  const int today_w = icon ? d : word_w;
+  glyph_key(margin, y, GLYPH_CLOSE, HIT_CLOSE, true);
+  int rx = width - margin - d;
+  glyph_key(rx, y, GLYPH_RIGHT, HIT_NEXT, !now);
+  rx -= gap + d;
+  glyph_key(rx, y, GLYPH_LEFT, HIT_PREV, back);
+  rx -= g + today_w;
+  if (icon) glyph_key(rx, y, GLYPH_CALENDAR, HIT_TODAY, !now);
+  else {
+    sc.boxes.push_back({rx, y, today_w, d, d / 2, Paint::KEY});
+    sc.texts.push_back({w.today_key, kf, rx, y + (d - m.line[kf]) / 2, today_w, true, now ? Paint::MUTED : Paint::INK});
+    if (!now) sc.hits.push_back({rx, y - pad, today_w, d + 2 * pad, HIT_TODAY, 0});
+  }
+  int ux = rx - g - units_w, uy = y;
+  if (!row) { ux = std::max(margin, (width - units_w) / 2); uy = y + d + look_px(12, 6); }
+  sc.boxes.push_back({ux, uy, units_w, d, d / 2, Paint::KEY});
+  int x = ux + pad;
+  for (int i = 0; i < 4; ++i) {
+    const bool chosen = i == unit;
+    if (chosen) sc.boxes.push_back({x, uy + pad, seg_w[i], d - 2 * pad, (d - 2 * pad) / 2, Paint::ACCENT});
+    sc.texts.push_back({w.units[i], kf, x, uy + (d - m.line[kf]) / 2, seg_w[i], true, chosen ? Paint::ON_ACCENT : Paint::INK});
+    sc.hits.push_back({x, uy - pad, seg_w[i], d + 2 * pad, HIT_UNIT, i});
+    x += seg_w[i];
+  }
+  // The name, and the period under it, in the room the keys leave.
+  const int tw = (row ? ux : rx) - g - tx, th = m.line[tf] + m.line[SMALL];
+  sc.texts.push_back({name, tf, tx, y + (d - th) / 2, std::max(0, tw), false, Paint::INK});
+  sc.texts.push_back({line, SMALL, tx, y + (d - th) / 2 + m.line[tf], std::max(0, tw), false, Paint::MUTED});
+  return (row ? y + d : uy + d) + look_px(12, 6);
+}
+// The key under a finger, in the header's own coordinates; nullptr where none is.
+inline const Hit *key_at(const Scene &sc, int x, int y) {
+  for (auto it = sc.hits.rbegin(); it != sc.hits.rend(); ++it)
+    if (x >= it->x && x < it->x + it->w && y >= it->y && y < it->y + it->h) return &*it;
+  return nullptr;
+}
+// How far back a unit steps (energy_flow.MAX_BACK): about ten years.
+inline int max_back(int unit) { static const int BACK[] = {3660, 522, 120, 10}; return BACK[std::clamp(unit, 0, 3)]; }
 }  // namespace energy_card

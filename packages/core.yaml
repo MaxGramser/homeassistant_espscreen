@@ -732,6 +732,9 @@ api:
                     // media_rows: a taller player card draws its volume over its playback keys (volume_playback), so
                     // ESP Screens sends the pair; an older screen gets the keys.
                     features.add("media_rows");
+                    // energy_period: the energy card shows a period's energy in kWh and opens its full screen, so ESP
+                    // Screens sends a card of today, this week, this month or this year (energy_flow.period_payload).
+                    features.add("energy_period");
                     // group_covers (firmware 0.57.0, module cover_groups): a cover group's card has a key to the group's page, one card per
                     // cover, so ESP Screens sends a cover group's covers (`covers`, cover_groups.py) with its state.
                     #ifdef SD_MOD_COVER_GROUPS

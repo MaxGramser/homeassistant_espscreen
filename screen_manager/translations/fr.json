@@ -595,7 +595,12 @@
       "home": "Maison",
       "other": "Autres",
       "untracked": "Non suivi",
-      "no_power": "Aucun capteur de puissance dans les réglages d'énergie de Home Assistant"
+      "no_power": "Aucun capteur de puissance dans les réglages d'énergie de Home Assistant",
+      "no_energy": "Aucun capteur d'énergie dans les réglages d'énergie de Home Assistant",
+      "day": "Jour",
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
     },
     "plugin": {
       "missing": "Plugin absent"
@@ -2577,6 +2582,15 @@
           "hint": "Des points parcourent chaque ligne, plus vite quand plus de puissance circule. Lignes et flèches est plus calme : une ligne s'épaissit avec la puissance et une flèche indique son sens. Un écran avec un firmware plus ancien garde les points.",
           "dots": "Points animés",
           "lines": "Lignes et flèches"
+        },
+        "period": {
+          "label": "Afficher",
+          "hint": "La puissance actuelle, ou l'énergie d'aujourd'hui, de cette semaine, de ce mois ou de cette année, comme le tableau de bord Énergie de Home Assistant la montre. Un appui ouvre la carte en plein écran : choisissez le jour, la semaine, le mois ou l'année et avancez ou reculez. Un écran avec un firmware plus ancien montre la puissance actuelle.",
+          "now": "Puissance actuelle",
+          "day": "Aujourd'hui",
+          "week": "Cette semaine",
+          "month": "Ce mois-ci",
+          "year": "Cette année"
         }
       },
       "calendar": {

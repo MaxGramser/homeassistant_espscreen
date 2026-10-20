@@ -474,6 +474,13 @@
     "dots",
     "lines"
   ],
+  "energyPeriod": [
+    "now",
+    "day",
+    "week",
+    "month",
+    "year"
+  ],
   "calendar": {
     "styles": [
       "events",

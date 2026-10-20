@@ -50,6 +50,58 @@ static bool parse_bar(JsonVariant items, header_bar::Bar &out) {
 // parser of the layout protocol, which is not a trade this is worth.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"
+// The energy card's numbers (app 0.4.77, firmware 0.47.0): the house now, split as Home Assistant's own live view splits it
+// (screen_manager/app/energy_flow.py): which sources it has, their power, the flows between them, the batteries' charge,
+// the sensor behind each source and the devices drawing power, biggest first. A period (its `k`: day, week, month or
+// year) has the same keys in kWh, with its first and last day (`r`), how far back it lies (`z`) and the year now (`y`);
+// `w` while the app has not read it yet. The tile's state and the full screen's answer (op "energy") both bring one.
+static std::shared_ptr<energy_card::Data> parse_energy(JsonVariant extra) {
+  auto e = std::make_shared<energy_card::Data>();
+  const unsigned has = extra["h"].is<unsigned>() ? extra["h"].as<unsigned>() : 0;
+  e->solar = has & 1; e->grid = has & 2; e->battery = has & 4;
+  auto watts = [](JsonVariant list, unsigned i) { const float v = number(list[i], 0); return std::isfinite(v) ? std::max(0.f, v) : 0.f; };
+  JsonVariant p = extra["p"], f = extra["f"];
+  e->solar_w = watts(p, 0); e->from_grid = watts(p, 1); e->to_grid = watts(p, 2);
+  e->from_battery = watts(p, 3); e->to_battery = watts(p, 4); e->home = watts(p, 5);
+  if (f.is<JsonArray>()) {
+    e->s2h = watts(f, 0); e->s2g = watts(f, 1); e->s2b = watts(f, 2); e->g2h = watts(f, 3);
+    e->g2b = watts(f, 4); e->b2h = watts(f, 5); e->b2g = watts(f, 6);
+  }
+  e->soc = extra["c"].is<int>() ? std::clamp(extra["c"].as<int>(), 0, 100) : -1;
+  if (extra["e"].is<JsonArray>()) {
+    e->solar_entity = string(extra["e"][0], 64); e->grid_entity = string(extra["e"][1], 64); e->battery_entity = string(extra["e"][2], 64);
+    for (auto *id : {&e->solar_entity, &e->grid_entity, &e->battery_entity}) if (!valid_entity(*id)) id->clear();
+  }
+  if (extra["u"].is<JsonArray>()) {
+    const std::string *ids[3] = {&e->solar_entity, &e->grid_entity, &e->battery_entity};
+    for (unsigned i = 0; i < 3; ++i)
+      if (!ids[i]->empty()) e->readings.push_back({*ids[i], string(extra["u"][i][0], 32), string(extra["u"][i][1], 16)});
+  }
+  if (extra["d"].is<JsonArray>()) for (JsonVariant dev : extra["d"].as<JsonArray>()) {
+    if (e->devices.size() == 8) break;
+    energy_card::Device d;
+    d.name = string(dev["n"], 48);
+    d.entity = string(dev["e"], 64);
+    if (!valid_entity(d.entity)) d.entity.clear();
+    const uint32_t icon = tile_icon::codepoint(string(dev["i"], 8));
+    d.icon = icon && has_icon_glyph(icon) ? icon : 0;
+    d.w = std::max(0.f, number(dev["w"], 0));
+    if (d.name.empty() || d.w <= 0) continue;
+    if (!d.entity.empty()) e->readings.push_back({d.entity, string(dev["s"], 32), string(dev["u"], 16)});
+    e->devices.push_back(std::move(d));
+  }
+  e->rest = std::max(0.f, number(extra["o"], 0));
+  e->home_name = string(extra["n"], 32);
+  const std::string period = string(extra["k"], 8);
+  if (period == "day" || period == "week" || period == "month" || period == "year") {
+    e->period = period;
+    e->waiting = extra["w"].is<int>() && extra["w"].as<int>() == 1;
+    if (extra["r"].is<JsonArray>()) for (int i = 0; i < 6; ++i) e->range[i] = extra["r"][i] | 0;
+    e->offset = std::clamp(extra["z"] | 0, -4000, 0);
+    e->this_year = extra["y"] | 0;
+  }
+  return e;
+}
 std::string receive(const std::string &payload) {
   reply_memory = false;
   if (!enabled) return "Use the Easy Setup profile";
@@ -510,6 +562,16 @@ std::string receive(const std::string &payload) {
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
     }
+    if (op == "energy") {
+      // An energy card's full screen asked for a period (docs/ENERGY.md, energy_view::open); an answer to an older key
+      // is left, as the history card leaves one.
+      if (!root["view"].is<unsigned>() || root["view"].as<unsigned>() != energy_view::asked() || !root["x"].is<JsonObject>()) {
+        result = model.ready() ? "Synced" : "Loading tiles"; return true;
+      }
+      energy_view::receive(parse_energy(root["x"]), root["view"].as<unsigned>());
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
     if (op == "history") {
       if (!root["view"].is<unsigned>() || root["view"].as<unsigned>() != history_view_id) {
         result = "Synced"; return true;
@@ -744,6 +806,10 @@ std::string receive(const std::string &payload) {
     tile.refresh = refresh == 0 || (refresh >= 5 && refresh <= 3600) ? refresh : 15;
     tile.overlay = string(options["overlay"], 8) != "none";
     tile.energy_lines = string(options["flow"], 8) == "lines";
+    {
+      const std::string period = string(options["period"], 8);
+      tile.energy_period = period == "day" || period == "week" || period == "month" || period == "year" ? period : "";
+    }
     // A calendar card's choices (firmware 0.56.0+): its look, when an event "starts soon", its full screen's first view.
     tile.calendar_busy_free = string(options["style"], 12) == "busy_free";
     tile.calendar_soon = options["soon"].is<int>() ? (uint8_t) std::clamp(options["soon"].as<int>(), 0, 120) : 0;
@@ -1082,45 +1148,7 @@ std::string receive(const std::string &payload) {
     // The energy card (app 0.4.77, firmware 0.47.0): the house now, split as Home Assistant's own live view splits it
     // (screen_manager/app/energy_flow.py): which sources it has, their power, the flows between them, the batteries'
     // charge, the sensor behind each source and the devices drawing power, biggest first.
-    if (tile.is_energy() && extra["p"].is<JsonArray>()) {
-      auto e = std::make_shared<energy_card::Data>();
-      const unsigned has = extra["h"].is<unsigned>() ? extra["h"].as<unsigned>() : 0;
-      e->solar = has & 1; e->grid = has & 2; e->battery = has & 4;
-      auto watts = [](JsonVariant list, unsigned i) { const float v = number(list[i], 0); return std::isfinite(v) ? std::max(0.f, v) : 0.f; };
-      JsonVariant p = extra["p"], f = extra["f"];
-      e->solar_w = watts(p, 0); e->from_grid = watts(p, 1); e->to_grid = watts(p, 2);
-      e->from_battery = watts(p, 3); e->to_battery = watts(p, 4); e->home = watts(p, 5);
-      if (f.is<JsonArray>()) {
-        e->s2h = watts(f, 0); e->s2g = watts(f, 1); e->s2b = watts(f, 2); e->g2h = watts(f, 3);
-        e->g2b = watts(f, 4); e->b2h = watts(f, 5); e->b2g = watts(f, 6);
-      }
-      e->soc = extra["c"].is<int>() ? std::clamp(extra["c"].as<int>(), 0, 100) : -1;
-      if (extra["e"].is<JsonArray>()) {
-        e->solar_entity = string(extra["e"][0], 64); e->grid_entity = string(extra["e"][1], 64); e->battery_entity = string(extra["e"][2], 64);
-        for (auto *id : {&e->solar_entity, &e->grid_entity, &e->battery_entity}) if (!valid_entity(*id)) id->clear();
-      }
-      if (extra["u"].is<JsonArray>()) {
-        const std::string *ids[3] = {&e->solar_entity, &e->grid_entity, &e->battery_entity};
-        for (unsigned i = 0; i < 3; ++i)
-          if (!ids[i]->empty()) e->readings.push_back({*ids[i], string(extra["u"][i][0], 32), string(extra["u"][i][1], 16)});
-      }
-      if (extra["d"].is<JsonArray>()) for (JsonVariant dev : extra["d"].as<JsonArray>()) {
-        if (e->devices.size() == 8) break;
-        energy_card::Device d;
-        d.name = string(dev["n"], 48);
-        d.entity = string(dev["e"], 64);
-        if (!valid_entity(d.entity)) d.entity.clear();
-        const uint32_t icon = tile_icon::codepoint(string(dev["i"], 8));
-        d.icon = icon && has_icon_glyph(icon) ? icon : 0;
-        d.w = std::max(0.f, number(dev["w"], 0));
-        if (d.name.empty() || d.w <= 0) continue;
-        if (!d.entity.empty()) e->readings.push_back({d.entity, string(dev["s"], 32), string(dev["u"], 16)});
-        e->devices.push_back(std::move(d));
-      }
-      e->rest = std::max(0.f, number(extra["o"], 0));
-      e->home_name = string(extra["n"], 32);
-      next.energy = std::move(e);
-    }
+    if (tile.is_energy() && (extra["p"].is<JsonArray>() || extra["k"].is<const char *>())) next.energy = parse_energy(extra);
     // A calendar card (firmware 0.56.0+, calendar_card.h): today, the calendars' colours and names, the events the app
     // filtered for this card (minutes from today 00:00), how many it left out, the notes of the event of the moment, and
     // a mask a day for the month's glance. A board without PSRAM keeps 24 events (catalogue/calendar.yaml prices them).

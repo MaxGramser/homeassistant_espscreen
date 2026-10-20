@@ -512,6 +512,9 @@ struct Tile {
   bool overlay = true;
   // The energy card drawn calm: lines that grow with the power and an arrow on each, no running dots ("flow": "lines").
   bool energy_lines = false;
+  // The energy card of a period ("day", "week", "month" or "year"; empty for the power now): its numbers in kWh, and a tap
+  // opens its full screen (energy_view::open).
+  std::string energy_period;
   // A calendar card's choices (firmware 0.56.0+): "Free or busy" words in its head, minutes that count as starting
   // soon, and the view its full screen opens on.
   bool calendar_busy_free = false;

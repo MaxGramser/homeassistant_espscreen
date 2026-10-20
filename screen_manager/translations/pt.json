@@ -595,7 +595,12 @@
       "home": "Casa",
       "other": "Outros",
       "untracked": "Não registado",
-      "no_power": "Sem sensores de potência nas definições de energia do Home Assistant"
+      "no_power": "Sem sensores de potência nas definições de energia do Home Assistant",
+      "no_energy": "Sem sensores de energia nas definições de energia do Home Assistant",
+      "day": "Dia",
+      "week": "Semana",
+      "month": "Mês",
+      "year": "Ano"
     },
     "plugin": {
       "missing": "Plugin ausente"
@@ -2577,6 +2582,15 @@
           "hint": "Pontos percorrem cada linha, mais depressa quanto mais potência flui. Linhas e setas é mais calmo: uma linha fica mais grossa com a potência e uma seta mostra o sentido. Um ecrã com firmware mais antigo mantém os pontos.",
           "dots": "Pontos em movimento",
           "lines": "Linhas e setas"
+        },
+        "period": {
+          "label": "Mostrar",
+          "hint": "A potência agora, ou a energia de hoje, desta semana, deste mês ou deste ano, como o painel de energia do Home Assistant a mostra. Um toque abre o cartão em ecrã inteiro, onde escolhe dia, semana, mês ou ano e avança ou recua. Um ecrã com firmware mais antigo mostra a potência agora.",
+          "now": "Potência agora",
+          "day": "Hoje",
+          "week": "Esta semana",
+          "month": "Este mês",
+          "year": "Este ano"
         }
       },
       "calendar": {

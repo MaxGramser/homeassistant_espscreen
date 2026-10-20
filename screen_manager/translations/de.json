@@ -595,7 +595,12 @@
       "home": "Zuhause",
       "other": "Andere",
       "untracked": "Nicht erfasst",
-      "no_power": "Keine Leistungssensoren in den Energie-Einstellungen von Home Assistant"
+      "no_power": "Keine Leistungssensoren in den Energie-Einstellungen von Home Assistant",
+      "no_energy": "Keine Energiesensoren in den Energieeinstellungen von Home Assistant",
+      "day": "Tag",
+      "week": "Woche",
+      "month": "Monat",
+      "year": "Jahr"
     },
     "plugin": {
       "missing": "Plugin fehlt"
@@ -2577,6 +2582,15 @@
           "hint": "Punkte laufen über jede Linie, schneller, je mehr Leistung fließt. Linien und Pfeile ist ruhiger: Eine Linie wird mit der Leistung dicker und ein Pfeil zeigt, in welche Richtung sie fließt. Ein Bildschirm mit älterer Firmware behält die Punkte.",
           "dots": "Bewegte Punkte",
           "lines": "Linien und Pfeile"
+        },
+        "period": {
+          "label": "Anzeigen",
+          "hint": "Die Leistung jetzt oder die Energie von heute, dieser Woche, diesem Monat oder diesem Jahr, wie das Energie-Dashboard von Home Assistant sie zeigt. Ein Tippen öffnet die Karte im Vollbild: dort wählst du Tag, Woche, Monat oder Jahr und blätterst vor und zurück. Ein Bildschirm mit älterer Firmware zeigt die Leistung jetzt.",
+          "now": "Leistung jetzt",
+          "day": "Heute",
+          "week": "Diese Woche",
+          "month": "Dieser Monat",
+          "year": "Dieses Jahr"
         }
       },
       "calendar": {

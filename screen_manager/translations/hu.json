@@ -595,7 +595,12 @@
       "home": "Otthon",
       "other": "Egyéb",
       "untracked": "Méretlen",
-      "no_power": "Nincs teljesítményérzékelő a Home Assistant energiabeállításaiban"
+      "no_power": "Nincs teljesítményérzékelő a Home Assistant energiabeállításaiban",
+      "no_energy": "Nincs energiaérzékelő a Home Assistant energiabeállításaiban",
+      "day": "Nap",
+      "week": "Hét",
+      "month": "Hónap",
+      "year": "Év"
     },
     "plugin": {
       "missing": "Hiányzó bővítmény"
@@ -2577,6 +2582,15 @@
           "hint": "Pontok futnak végig minden vonalon, annál gyorsabban, minél több teljesítmény áramlik. A vonalak és nyilak nyugodtabb: a vonal a teljesítménnyel vastagodik, és egy nyíl mutatja az irányt. A régebbi firmware-rel futó kijelző megtartja a pontokat.",
           "dots": "Mozgó pontok",
           "lines": "Vonalak és nyilak"
+        },
+        "period": {
+          "label": "Megjelenítés",
+          "hint": "A mostani teljesítmény, vagy a mai, e heti, e havi vagy idei energia, ahogy a Home Assistant energia-irányítópultja mutatja. Egy koppintás teljes képernyőn nyitja meg a kártyát: ott választhatsz napot, hetet, hónapot vagy évet, és léphetsz előre és vissza. A régebbi firmware-rel futó kijelző a mostani teljesítményt mutatja.",
+          "now": "Teljesítmény most",
+          "day": "Ma",
+          "week": "Ezen a héten",
+          "month": "Ebben a hónapban",
+          "year": "Idén"
         }
       },
       "calendar": {

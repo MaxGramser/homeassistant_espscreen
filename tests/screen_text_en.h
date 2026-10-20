@@ -3,7 +3,7 @@
 #pragma once
 #include "components/smart_display/screen_text.h"
 
-static_assert(screen_text::KEYS_HASH == 0x622770E9u && screen_text::KEY_COUNT == 513,
+static_assert(screen_text::KEYS_HASH == 0xDD487218u && screen_text::KEY_COUNT == 518,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -487,6 +487,11 @@ const char *const screen_text::TABLE[] = {
     "Other",
     "Untracked",
     "No power sensors in Home Assistant's energy settings",
+    "No energy sensors in Home Assistant's energy settings",
+    "Day",
+    "Week",
+    "Month",
+    "Year",
     "Plugin missing",
     "Free",
     "Busy",

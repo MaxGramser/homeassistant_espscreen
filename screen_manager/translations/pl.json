@@ -595,7 +595,12 @@
       "home": "Dom",
       "other": "Inne",
       "untracked": "Nieśledzone",
-      "no_power": "Brak czujników mocy w ustawieniach energii Home Assistant"
+      "no_power": "Brak czujników mocy w ustawieniach energii Home Assistant",
+      "no_energy": "Brak czujników energii w ustawieniach energii Home Assistant",
+      "day": "Dzień",
+      "week": "Tydzień",
+      "month": "Miesiąc",
+      "year": "Rok"
     },
     "plugin": {
       "missing": "Brak wtyczki"
@@ -2577,6 +2582,15 @@
           "hint": "Kropki biegną wzdłuż każdej linii, tym szybciej, im więcej mocy płynie. Linie i strzałki są spokojniejsze: linia grubieje wraz z mocą, a strzałka pokazuje kierunek. Ekran ze starszym firmware zachowuje kropki.",
           "dots": "Ruchome kropki",
           "lines": "Linie i strzałki"
+        },
+        "period": {
+          "label": "Pokaż",
+          "hint": "Moc teraz albo energię z dziś, tego tygodnia, tego miesiąca lub tego roku, tak jak pokazuje ją panel energii Home Assistant. Dotknięcie otwiera kartę na pełnym ekranie, gdzie wybierasz dzień, tydzień, miesiąc lub rok i przechodzisz dalej lub wstecz. Ekran ze starszym firmware pokazuje moc teraz.",
+          "now": "Moc teraz",
+          "day": "Dziś",
+          "week": "Ten tydzień",
+          "month": "Ten miesiąc",
+          "year": "Ten rok"
         }
       },
       "calendar": {

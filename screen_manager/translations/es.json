@@ -595,7 +595,12 @@
       "home": "Casa",
       "other": "Otros",
       "untracked": "Sin seguimiento",
-      "no_power": "No hay sensores de potencia en los ajustes de energía de Home Assistant"
+      "no_power": "No hay sensores de potencia en los ajustes de energía de Home Assistant",
+      "no_energy": "No hay sensores de energía en los ajustes de energía de Home Assistant",
+      "day": "Día",
+      "week": "Semana",
+      "month": "Mes",
+      "year": "Año"
     },
     "plugin": {
       "missing": "Falta el plugin"
@@ -2577,6 +2582,15 @@
           "hint": "Unos puntos recorren cada línea, más rápido cuanta más potencia fluye. Líneas y flechas es más tranquilo: una línea se hace más gruesa con la potencia y una flecha indica su sentido. Una pantalla con un firmware más antiguo mantiene los puntos.",
           "dots": "Puntos en movimiento",
           "lines": "Líneas y flechas"
+        },
+        "period": {
+          "label": "Mostrar",
+          "hint": "La potencia ahora, o la energía de hoy, esta semana, este mes o este año, como la muestra el panel de energía de Home Assistant. Un toque abre la tarjeta a pantalla completa, donde eliges día, semana, mes o año y avanzas o retrocedes. Una pantalla con firmware anterior muestra la potencia ahora.",
+          "now": "Potencia ahora",
+          "day": "Hoy",
+          "week": "Esta semana",
+          "month": "Este mes",
+          "year": "Este año"
         }
       },
       "calendar": {

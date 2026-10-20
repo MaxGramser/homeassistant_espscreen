@@ -121,6 +121,13 @@ FORECAST_SECONDS = 1800
 # Home Assistant's Energy settings, which the energy card is drawn from (energy_flow.py): read again every five minutes,
 # so a sensor added there reaches the card without a restart.
 ENERGY_PREFS_SECONDS = 300
+# An energy card's period (energy_flow.PERIODS): the period now is read again as often as the Energy settings, as Home
+# Assistant's dashboard asks for it again while it is open; a period gone by changes only when Home Assistant corrects
+# its statistics. The full screen asks for one with ENERGY_EVENT ({inbox, unit, offset}) and gets it back as op "energy".
+ENERGY_NOW_SECONDS = 300
+ENERGY_PAST_SECONDS = 6 * 3600
+ENERGY_KEPT = 48
+ENERGY_EVENT = 'esphome.screen_energy'
 # A screen that answers its ping (firmware 0.2.49+) is asked with this timeout, so a busy screen never holds
 # up the others. An answer that the screen lacks something repeats everything, after this many seconds right
 # after a full send, doubling up to RESEND_GUARD_SECONDS while it keeps failing.
@@ -254,6 +261,8 @@ class HomeAssistant:
         self.history_requests = asyncio.Queue()
         # A camera a screen opens full screen (firmware 0.2.57+): {inbox, entity}, for Manager.camera_loop.
         self.camera_requests = asyncio.Queue()
+        # The period an energy card's full screen shows: {inbox, unit, offset}, for Manager.energy_request_loop.
+        self.energy_requests = asyncio.Queue()
         # The names a light's picker lists (firmware 0.2.70+): {inbox, entity, page}, for Manager.card_options_loop.
         self.options_requests = asyncio.Queue()
         # A player's library (firmware 0.24.0+): a folder a screen opens and an item it plays, for Manager.media_loop.
@@ -300,6 +309,9 @@ class HomeAssistant:
                     self.history_requests.put_nowait(body)
                 elif event.get('event_type') == 'esphome.screen_camera':
                     self.camera_requests.put_nowait(body)
+                elif event.get('event_type') == ENERGY_EVENT:
+                    if self.energy_requests.qsize() < 32:
+                        self.energy_requests.put_nowait(body)
                 elif event.get('event_type') == light_effects.OPTIONS_EVENT:
                     self.options_requests.put_nowait(body)
                 elif event.get('event_type') == PLUGIN_EVENT:
@@ -578,6 +590,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='esphome.screen_setting')
                     await self.request('subscribe_events', event_type='esphome.screen_history')
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
+                    await self.request('subscribe_events', event_type=ENERGY_EVENT)
                     await self.request('subscribe_events', event_type=light_effects.OPTIONS_EVENT)
                     await self.request('subscribe_events', event_type=PLUGIN_EVENT)
                     await self.request('subscribe_events', event_type=media_library.BROWSE_EVENT)
@@ -938,6 +951,13 @@ class HomeAssistant:
         rows = (result or {}).get(entity) if isinstance(result, dict) else None
         return rows if isinstance(rows, list) else []
 
+    async def energy_changes(self, statistic_ids, start, end, period):
+        """The `change` of these energy statistics from `start` to `end` (aware datetimes), per `period`, in kWh, as Home
+        Assistant's energy dashboard asks for them (getEnergyData: types change, units energy kWh)."""
+        result = await self.request('recorder/statistics_during_period', start_time=start.isoformat(), end_time=end.isoformat(),
+                                    statistic_ids=list(statistic_ids), period=period, types=['change'], units={'energy': 'kWh'})
+        return {key: rows for key, rows in (result or {}).items() if isinstance(rows, list)} if isinstance(result, dict) else {}
+
 class Manager:
     def __init__(self, ha, path):
         self.ha, self.path = ha, Path(path)
@@ -952,6 +972,10 @@ class Manager:
         self._migration_metadata = None
         # (entity, hours) -> (monotonic, 24 samples); filled by history_loop, read by sync_one.
         self.histories = {}
+        # An energy card's periods: (unit, offset, first weekday) -> (monotonic, x), filled by energy_loop and the full
+        # screen's requests, read by tile_message (energy_flow.period_payload).
+        self.energy_periods = {}
+        self.energy_wake = asyncio.Event()
         # Resolved values, not a second editable document. Dependencies let one
         # HA change refresh every affected page and leave unrelated bars alone.
         self.page_values = {}
@@ -2442,6 +2466,9 @@ class Manager:
             return tuple(e for e in followed if e != tile['entity']) + tuple(e for e in self.ha.states if isinstance(e, str) and e.startswith('zone.'))
         # The energy card (app 0.4.77) reads every sensor of the Energy settings.
         if tile['entity'] == ENERGY_TILE:
+            # A period follows the recorder's statistics (energy_loop marks the card), not every change of power.
+            if (tile.get('options') or {}).get('period') in energy_flow.PERIODS:
+                return ()
             return tuple(energy_flow.related_entities(self.energy_prefs()))
         # A calendar card (firmware 0.56.0) follows every calendar it shows.
         if tile['entity'].startswith('calendar.'):
@@ -2817,7 +2844,17 @@ class Manager:
                 self.forecasts.pop('energy/get_prefs', None)
         # A screen that draws the weather card's week (its hello says weather_week) takes seven days and 48 hours.
         week=features is not None and WEATHER_WEEK in features
-        extra=extras(tile,states,forecast,getattr(self.ha,'time_zone',None),hourly,device=device,energy=self.energy_prefs() if tile['entity'] == ENERGY_TILE else None,
+        # An energy card of a period (its `period`), to a screen that draws one: the period now, from what energy_loop
+        # fetched; until then the card waits for it (`w`). A screen whose hello does not say so gets the power now; the
+        # editor's preview (no hello) runs the newest firmware.
+        period=(tile.get('options') or {}).get('period') if tile['entity'] == ENERGY_TILE else None
+        period_x=None
+        if period in energy_flow.PERIODS and (features is None or core.ENERGY_PERIOD_FEATURE in features):
+            entry=self.energy_periods.get((period,0,energy_flow.first_weekday(i18n.screen_language())))
+            if entry is None:
+                self.energy_wake.set()
+            period_x=entry[1] if entry else {'k':period,'w':1}
+        extra=period_x if period_x is not None else extras(tile,states,forecast,getattr(self.ha,'time_zone',None),hourly,device=device,energy=self.energy_prefs() if tile['entity'] == ENERGY_TILE else None,
                      home_name=getattr(self.ha,'location_name','') if tile['entity'] == ENERGY_TILE else '',
                      entries=self.registry_index() if light or (tile.get('options') or {}).get('display') == 'map' else None,words=getattr(self.ha,'state_words',None) if light else None,
                      icon_of=row_icon if light else None,device_name=self.device_name_of(tile['entity']) if light else None,week=week)
@@ -3242,6 +3279,120 @@ class Manager:
             if dirty is not None:
                 dirty.update(changed)
             self.ha.changed.set()
+
+    # ----- The energy card's periods (energy_flow.PERIODS) -----
+    def energy_keys(self):
+        """(unit, 0, first weekday) of every energy card of a period on any screen, in each screen's language."""
+        keys = set()
+        for inbox, layout in self.layouts.items():
+            units = {(tile.get('options') or {}).get('period') for tile in layout.get('tiles', []) if tile['entity'] == ENERGY_TILE}
+            units &= set(energy_flow.PERIODS)
+            if not units:
+                continue
+            context = i18n.screen_context(self.screen(inbox))
+            first = energy_flow.first_weekday((context or {}).get('language') or i18n.screen_language())
+            keys |= {(unit, 0, first) for unit in units}
+        return keys
+
+    async def energy_period(self, unit, offset, first):
+        """The card's `x` for a period (energy_flow.period_payload), from a cache the period now leaves after
+        ENERGY_NOW_SECONDS and one gone by after ENERGY_PAST_SECONDS."""
+        key = (unit, offset, first)
+        entry = self.energy_periods.get(key)
+        if entry and time.monotonic() - entry[0] < (ENERGY_NOW_SECONDS if offset == 0 else ENERGY_PAST_SECONDS):
+            return entry[1]
+        prefs = self.energy_prefs()
+        if not prefs and hasattr(self.ha, 'request'):
+            with contextlib.suppress(Refused):
+                prefs = await self.ha.request('energy/get_prefs')
+                if isinstance(prefs, dict):
+                    self.forecasts['energy/get_prefs'] = (time.monotonic(), prefs)
+        prefs = prefs if isinstance(prefs, dict) else {}
+        zone = self.ha.time_zone if isinstance(getattr(self.ha, 'time_zone', None), ZoneInfo) else ZoneInfo('UTC')
+        now = datetime.now(zone)
+        start, end = energy_flow.period_range(unit, offset, now, first)
+        ids = energy_flow.statistic_ids(prefs)
+        stats = await self.ha.energy_changes(ids, start, end, energy_flow.STATISTIC_PERIOD[unit]) if ids else {}
+        glyph = lambda icon: tile_icons.GLYPHS.get(icon[4:]) if isinstance(icon, str) and icon.startswith('mdi:') else None
+        x = energy_flow.period_payload(prefs, stats, self.ha.states, unit, start, end, offset, glyph,
+                                       getattr(self.ha, 'location_name', '') or '', now.year)
+        self.energy_periods[key] = (time.monotonic(), x)
+        while len(self.energy_periods) > ENERGY_KEPT:
+            self.energy_periods.pop(min(self.energy_periods, key=lambda k: self.energy_periods[k][0]))
+        return x
+
+    async def refresh_energy(self):
+        """Fetch the periods now of the screens' energy cards that are missing or due; a changed one marks the card."""
+        changed = False
+        for key in self.energy_keys():
+            old = self.energy_periods.get(key)
+            if old and time.monotonic() - old[0] < ENERGY_NOW_SECONDS:
+                continue
+            x = await self.energy_period(*key)
+            changed |= old is None or old[1] != x
+        if changed:
+            dirty = getattr(self.ha, 'dirty', None)
+            if dirty is not None:
+                dirty.add(ENERGY_TILE)
+            self.ha.changed.set()
+
+    async def energy_loop(self):
+        """Background refresh of the energy cards' periods, so a tile never waits for Home Assistant's database."""
+        while True:
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(self.energy_wake.wait(), 60)
+            self.energy_wake.clear()
+            if not self.ha.online or not hasattr(self.ha, 'energy_changes'):
+                continue
+            try:
+                await self.refresh_energy()
+            except Exception as error:
+                LOG.warning('Refreshing the energy periods failed (%s)', type(error).__name__)
+
+    async def energy_request_loop(self):
+        """Answer the periods an energy card's full screen asks for, a few at a time."""
+        limit = asyncio.Semaphore(2)
+
+        async def answer(request):
+            async with limit:
+                try:
+                    await self.answer_energy(request)
+                except (ClientError, ConnectionError, TimeoutError, OSError, ValueError, Refused) as error:
+                    # Nothing is sent: the full screen keeps waiting, and asks again on the next key.
+                    LOG.info('No energy period for %s (%s)', request.get('inbox') if isinstance(request, dict) else '?', type(error).__name__)
+                except Exception as error:
+                    LOG.warning('Energy period was not sent (%s)', type(error).__name__)
+        queue = getattr(self.ha, 'energy_requests', None)
+        while queue is not None:
+            request = await queue.get()
+            asyncio.ensure_future(answer(request))
+
+    async def answer_energy(self, request):
+        """One screen's request: a period of a unit the card offers, no further back than MAX_BACK, from a screen whose
+        layout has an energy card and that takes whole messages."""
+        if not isinstance(request, dict) or not hasattr(self.ha, 'energy_changes'):
+            return
+        inbox = self.aliases.get(request.get('inbox'), request.get('inbox'))
+        unit = request.get('unit')
+        try:
+            offset = int(request.get('offset'))
+        except (TypeError, ValueError):
+            return
+        layout, screen = self.layouts.get(inbox), self.screen(inbox) if isinstance(inbox, str) else None
+        if unit not in energy_flow.PERIODS or not -energy_flow.MAX_BACK[unit] <= offset <= 0 or not layout or not screen \
+                or not screen.get('online'):
+            return
+        if not any(tile['entity'] == ENERGY_TILE for tile in layout['tiles']):
+            return
+        action = self.transport(inbox, screen)
+        if not action:
+            return
+        token = i18n.SCREEN.set(i18n.screen_context(screen))
+        try:
+            x = await self.energy_period(unit, offset, energy_flow.first_weekday(i18n.screen_language()))
+            await self.send_auxiliary(inbox, {'op': 'energy', 'x': x}, action, request)
+        finally:
+            i18n.SCREEN.reset(token)
 
     async def history_loop(self):
         """Background refresh of sensor histories, so the sync loop never waits for Home Assistant's database."""
@@ -5069,7 +5220,7 @@ async def main():
             LOG.error('Camera images are off: port %d is not available (%s)', picture_links.port(), error)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
-                                 manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(),
+                                 manager.alert_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.energy_loop(), manager.energy_request_loop(), manager.card_options_loop(),
                                  manager.media_loop(), manager.pairing_loop(), manager.photo_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))
         finally:

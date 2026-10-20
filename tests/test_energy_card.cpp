@@ -56,6 +56,12 @@ static Measure measure(const Board &b) {
 static Words W() {
   Words w;
   w.solar = "Solar"; w.grid = "Grid"; w.battery = "Battery"; w.home = "Home"; w.other = "Other"; w.untracked = "Untracked";
+  // A period's words (screen.energy.day .., the calendar's Today, screen.date).
+  w.units = {"Day", "Week", "Month", "Year"};
+  w.today_key = "Today"; w.today = "Today";
+  w.weekdays = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+  w.months = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+  w.months_short = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
   return w;
 }
 
@@ -345,6 +351,105 @@ int main() {
         ++checks;
       }
     }
+  }
+  // ---- A period (the tile's `period`, the full screen): Home Assistant's energy numbers and its period's name.
+  assert(energy(0) == "0 Wh");
+  assert(energy(0.25f) == "250 Wh");
+  assert(energy(2.5f) == "2.5 kWh" && energy(2.5f, ',') == "2,5 kWh");
+  assert(energy(3.14159f) == "3.14 kWh");
+  assert(energy(12.345f) == "12.3 kWh" && energy(12.0f) == "12 kWh");
+  assert(energy(123.6f) == "124 kWh");
+  assert(energy(1500) == "1.5 MWh");
+  checks += 9;
+  {
+    Words w = W();
+    Data d;
+    d.this_year = 2026;
+    auto at = [&](const char *unit, int offset, std::array<int, 6> r) {
+      d.period = unit; d.offset = offset;
+      for (int i = 0; i < 6; ++i) d.range[i] = r[i];
+      ++checks;
+      return period_text(d, w);
+    };
+    assert(at("day", 0, {2026, 10, 20, 2026, 10, 20}) == "Today");
+    assert(at("day", -1, {2026, 10, 19, 2026, 10, 19}) == "Mon 19 Oct");
+    assert(at("day", -365, {2025, 10, 20, 2025, 10, 20}) == "Mon 20 Oct 2025");
+    assert(at("week", 0, {2026, 10, 19, 2026, 10, 25}) == "19 \xE2\x80\x93 25 Oct");
+    assert(at("week", -3, {2026, 9, 28, 2026, 10, 4}) == "28 Sep \xE2\x80\x93 4 Oct");
+    assert(at("week", -42, {2025, 12, 29, 2026, 1, 4}) == "29 Dec 2025 \xE2\x80\x93 4 Jan");
+    assert(at("month", 0, {2026, 10, 1, 2026, 10, 31}) == "October 2026");
+    assert(at("year", -1, {2025, 1, 1, 2025, 12, 31}) == "2025");
+    assert(weekday_of(1970, 1, 1) == 3 && weekday_of(2026, 10, 20) == 1);
+  }
+  // A period's diagram on every card the editor offers: kWh, calm lines, the tile's line over it.
+  for (const Board &b : BOARDS) {
+    const Measure m = measure(b);
+    for (const auto &size : b.sizes) {
+      if (!size.name || !size.fits) continue;
+      for (Data d : {noon(), busy()}) {
+        d.period = "month";
+        const int r[6] = {2026, 10, 1, 2026, 10, 31};
+        for (int i = 0; i < 6; ++i) d.range[i] = r[i];
+        // A month of the house in kWh: its watts times a few hundred hours, in thousands.
+        for (float *v : {&d.solar_w, &d.from_grid, &d.to_grid, &d.from_battery, &d.to_battery, &d.home, &d.s2h, &d.s2g, &d.s2b,
+                         &d.g2h, &d.g2b, &d.b2h, &d.b2g}) *v *= 0.3f;
+        for (auto &dv : d.devices) dv.w *= 0.3f;
+        d.soc = -1;
+        Scene line;
+        const int top = caption(line, m, size.w, size.h, period_text(d, W()));
+        Scene sc = build(d, m, size.w, size.h - top, W(), "", nullptr, Style::LINES);
+        check(sc.ok, "a period's diagram fits", b, size.name);
+        check(sc.flows.empty(), "a period runs no dots", b, size.name);
+        for (auto &l : sc.lines) check(l.width == sc.lw, "a period's lines keep their width", b, size.name);
+        audit(sc, m, b, size.name, size.w, size.h - top);
+        shift(sc, top);
+        for (auto &c : sc.circles) check(c.c.y - c.d / 2.f >= top - 0.5f, "the diagram under the tile's line", b, size.name);
+      }
+    }
+  }
+  // The full screen's header on the whole glass of every board, lying and standing: every key inside the glass, a key a
+  // finger wide, none over another, the units all there with one chosen, the name clear of the keys.
+  struct Glass { const char *name; int dpi; bool standard; int w; };
+  const Glass glasses[] = {{"cyd", 143, false, 320}, {"cyd standing", 143, false, 240}, {"guition", 170, true, 480},
+                           {"waveshare 4.3", 217, true, 800}, {"waveshare 7", 133, true, 1024}, {"guition p4", 149, true, 1280},
+                           {"guition p4 standing", 149, true, 800}};
+  for (const Glass &g : glasses) {
+    const Board b{g.name, g.dpi, g.standard, {}};
+    const Measure m = measure(b);
+    Words w = W();
+    w.units = {"Day", "Week", "Month", "Year"};
+    w.today_key = "Today";
+    for (int unit = 0; unit < 4; ++unit)
+      for (bool now : {true, false}) {
+        Scene sc;
+        const int bottom = header(sc, m, g.w, ui::px(ui::large() ? 16 : 9), "Energy", "28 Sep \xE2\x80\x93 4 Oct", unit, now, true, w);
+        check(bottom > 0 && bottom <= 3 * key_size(m), "the header leaves room for the diagram", b, "header");
+        for (auto &k : sc.boxes) check(k.x >= 0 && k.x + k.w <= g.w && k.y >= 0 && k.y + k.h <= bottom, "a key inside the glass", b, "header");
+        int units = 0, chosen = 0, prev = 0, next = 0;
+        for (auto &h : sc.hits) {
+          check(h.w >= ui::touch_min() - 1 || h.kind == HIT_UNIT, "a key a finger wide", b, "header");
+          units += h.kind == HIT_UNIT; prev += h.kind == HIT_PREV; next += h.kind == HIT_NEXT;
+        }
+        for (auto &k : sc.boxes) chosen += k.paint == Paint::ACCENT;
+        check(units == 4 && chosen == 1, "every unit shows, one of them chosen", b, "header");
+        check(prev == 1 && next == (now ? 0 : 1), "back always, forward only from a period gone by", b, "header");
+        // The round keys and the units' track stand apart (the chosen pill lies inside its track).
+        std::vector<KeyBox> keys;
+        for (auto &k : sc.boxes) if (k.paint == Paint::KEY) keys.push_back(k);
+        for (size_t i = 0; i < keys.size(); ++i)
+          for (size_t j = i + 1; j < keys.size(); ++j) {
+            const KeyBox &p = keys[i], &q = keys[j];
+            check(p.x + p.w <= q.x || q.x + q.w <= p.x || p.y + p.h <= q.y || q.y + q.h <= p.y, "keys apart", b, "header");
+          }
+        for (auto &t : sc.texts) {
+          if (t.s != "Energy" && t.s.find("Sep") == std::string::npos) continue;
+          check(t.w > 0, "the name has room", b, "header");
+          for (auto &k : keys) {
+            const bool same_row = t.y < k.y + k.h && t.y + m.line[t.face] > k.y;
+            check(!same_row || t.x + t.w <= k.x || k.x + k.w <= t.x, "the name clear of the keys", b, "header");
+          }
+        }
+      }
   }
   std::printf("energy card: %d checks passed\n", checks);
   return 0;

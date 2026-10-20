@@ -10,6 +10,10 @@ cards:
 # grow with the power and carry an arrow the way it goes. A firmware before this one keeps the dots.
 energy:
   flow: [dots, lines]
+  # What it shows: the house's power now (the default, never stored), or its energy over today, this week, this month or
+  # this year, as Home Assistant's energy dashboard splits it. A tap opens its full screen with the same choice and back
+  # and forward (docs/ENERGY.md). A screen whose hello does not say energy_period shows the power now.
+  period: [now, day, week, month, year]
 firmware: 0.2.14   # the first firmware that draws these cards
 displays:
   # The clock's faces; the dial and the flip clock came with firmware 0.3.6.

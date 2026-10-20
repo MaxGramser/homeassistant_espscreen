@@ -5562,6 +5562,8 @@ inline void show_detail(unsigned index){
   media_knob=media_pill_obj=media_library_key=media_input_key=nullptr;
   // The calendar card's full screen (firmware 0.56.0+) is its own: the whole glass, its own header with the view key.
   if(t.domain()=="calendar"){calendar_view::open(detail_root,t,index);return;}
+  // So is the energy card's of a period (docs/ENERGY.md): the calendar's header with its units over the period's diagram.
+  if(t.is_energy()&&!t.energy_period.empty()){energy_view::open(detail_root,t,index);return;}
   // The card's room: capped to what a hand spans and centred, unless it shows a picture (the media card's
   // cover art, a camera), which may fill the glass. Every size below follows from `width`.
   auto d=t.domain();

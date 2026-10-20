@@ -20,7 +20,7 @@ import { canonicalMeter } from "./meter";
 const APPEARANCE = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
-  energyFlow: "flow",
+  energyFlow: "flow", energyPeriod: "period",
   calendarStyle: "style", calendarEntities: "calendars", calendarPlaces: "places", calendarWords: "words", calendarHideWords: "hide_words",
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",
@@ -47,7 +47,7 @@ const SAMPLE_ACTION = { action: "homeassistant.turn_on" };
 // The value an option means when it is not stored, where the add-on drops the stored one (core.validate_layout).
 export const DEFAULTS: Record<string, unknown> = { sub: "auto", fit: rules.picture.fit[0], overlay: rules.picture.overlay[0],
   framing: MAP?.framing[0], distance: MAP?.distance[0], follow: MAP?.follow[0], markers: MAP?.markers[0], names: MAP?.names[0],
-  zones: MAP?.zones[0], streets: MAP?.streets[0], look: MAP?.look[0], flow: rules.energyFlow[0],
+  zones: MAP?.zones[0], streets: MAP?.streets[0], look: MAP?.look[0], flow: rules.energyFlow[0], period: rules.energyPeriod[0],
   ...Object.fromEntries(Object.entries(CALENDAR_DEFAULTS).filter(([key]) => !["places", "words", "hide_words", "calendars"].includes(key))),
   // A sensor's meter (firmware 0.56.0, meter.validate): the ring and one segment are what nothing means.
   meter: rules.meter.styles[0], segments: rules.meter.segments[0], tilt_open: "100" };

@@ -247,7 +247,7 @@ def normalise(tile, types, translations, facts, commands=None):
         # The energy card's choices: how it shows power along a line, the first the default.
         energy = data.get('energy')
         if energy is not None:
-            check_keys(f'{where} energy', energy, {'flow'})
+            check_keys(f'{where} energy', energy, {'flow', 'period'})
             if domain != 'screen' or 'energy' not in cards_of(data):
                 fail(where, 'energy options belong to the screen\'s energy card')
         memory = data.get('memory')

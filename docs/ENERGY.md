@@ -120,6 +120,56 @@ sources" graph adds them up (power-sources-graph-data.ts): the add-on sends a ke
 changes for an hour, in W. The add-on answers the history of a sensor in the Energy settings of a screen that has an
 energy card, as it answers the history of a tile.
 
+## Energy over a period
+
+The tile's **Show** choice (its `period`, `energy` in catalogue/screen.yaml) is **Power now**, the default and never
+stored, or **Today**, **This week**, **This month** or **This year**. A card of a period shows the same diagram with
+how much each source gave and took in kWh, and each device's use, the way Home Assistant's energy dashboard shows that
+period in its energy distribution and energy sankey cards.
+
+### What it reads
+
+The energy statistics of the Energy settings: each grid's import and export (`stat_energy_from`, `stat_energy_to`),
+each solar array, each battery's discharge and charge, and each device's use (`stat_consumption`). The add-on asks the
+recorder for their `change` in kWh (`recorder/statistics_during_period`, as `getEnergyData` in data/energy.ts asks), per
+hour for a day, per day for a week or a month, and per month for a year (`getSuggestedPeriod`).
+
+`energy_flow.period_moment` splits each of those hours, days or months on its own, in Home Assistant's order
+(`computeConsumptionSingle`, the same `route()` the power now uses), and adds them up. Split once over the whole period,
+solar sent to the grid at noon and energy taken from it at night would look like solar used in the house. A device's
+use is the sum of its changes (`calculateStatisticSumGrowth`), split under the house as the energy sankey card splits
+it: a device inside another counts in that one, and a device under 0.1 % of the house goes to Other.
+
+A period begins at midnight in Home Assistant's time zone. A week begins on the first day of the week of the screen's
+language, as Home Assistant's frontend begins it (`firstWeekdayIndex`, `Intl.Locale` weekInfo): Sunday for English and
+Portuguese, Monday for British English and the other languages. The period now is read again every five minutes, as
+often as the Energy settings. A period gone by is kept for six hours. Like Home Assistant's own dashboard, today's
+numbers come from the hourly statistics, so the hour that is running is not in them yet.
+
+### On the glass
+
+The card names its period over the diagram ("Today", "19 – 25 Oct", "October 2026", "2026"), in the smallest font, where
+that leaves the diagram the room it needs (the CYD's page has none to spare, so there the name shows only full screen).
+The lines keep one width and carry an arrow the way the energy went; no dot runs and no timer ticks. The grid and the
+battery show both directions, the house's ring the shares of what fed it, and the numbers are written as Home Assistant
+writes energy (`formatConsumptionShort`): kWh with at most two decimals below 10 and one below 100, Wh below 1 kWh and
+MWh from 1000 kWh. The battery's charge, a moment, is not shown for a period.
+
+A tap on the card opens its full screen, as a tap on a calendar card does. Its header is the calendar card's: a close
+key, the card's name with the period under it, the units Day, Week, Month and Year as keys (the chosen one blue; every
+choice shows, there is no menu), Today, and back and forward. The ranges and the stepping follow Home Assistant's energy
+period selector: a step back or forward is a whole day, week, month or year, forward stops at the period now, and back
+goes up to about ten years (`MAX_BACK`). Today goes back to the period now of the unit on show. Narrow glass puts the
+units on a row of their own under the rest, and then turns Today into a round key with the calendar icon. A tap on a
+circle with a sensor behind it opens that sensor's history, as on the card of the power now.
+
+The full screen opens on the tile's own period, now, and follows the tile's numbers while it shows them. Any other
+period it asks the add-on for (`esphome.screen_energy`: `inbox`, `unit`, `offset`), which answers with op `energy` and
+the period's `x`. While it waits the last diagram stays and the line under the name is empty.
+
+A screen says it draws a period in its hello (`energy_period`, packages/core.yaml). The add-on sends a screen without it
+the power now, whatever the card's choice, as the choice's hint in the editor says.
+
 ## On the wire
 
 The card is a screen card, `screen.energy`, whose state message carries the moment in `x` (`energy_flow.payload`,
@@ -136,6 +186,16 @@ read by `page_receiver.cpp`):
 | `n` | the home's name in Home Assistant |
 | `o` | the power of the devices beyond those eight and of those under 0.1 % of the house (Other) |
 
+A card of a period (`energy_flow.period_payload`) has the same keys with every number in kWh and no `c`, and these:
+
+| key | what |
+|---|---|
+| `k` | the unit: `day`, `week`, `month` or `year` |
+| `r` | its first and last day: year, month and day of each |
+| `z` | how many units it lies back: 0 for the period now, -1 for the one before |
+| `y` | the year now, so a day or a week of another year says its year |
+| `w` | 1 while the add-on has not read the period yet; the card then shows nothing and waits |
+
 ## Memory
 
 The card keeps the moment, its diagram and a small picture per running dot, about 4 to 8 KB depending on the glass.
@@ -145,8 +205,14 @@ the other screen cards.
 ## Places a change touches
 
 - `screen_manager/app/energy_flow.py` and `tests/test_energy_flow.py` (with `tests/fixtures/energy/`) for what the card
-  says.
-- `components/smart_display/energy_card.h` and `tests/test_energy_card.cpp` for where things go.
-- `energy_view.cpp` for how it is painted.
+  says; `tests/test_energy_period.py` for a period, and `Manager.energy_period`, `answer_energy` and `energy_loop` in
+  `server.py` for how the add-on reads and sends one.
+- `catalogue/screen.yaml` (`energy`: `flow`, `period`), then tools/generate_catalogue.py and tools/generate_page_rules.py.
+- `page_receiver.cpp` (`parse_energy`, op `energy`) and the `energy_period` feature in packages/core.yaml.
+- `components/smart_display/energy_card.h` and `tests/test_energy_card.cpp` for where things go, the full screen's
+  header (`header`) and a period's numbers and name (`energy`, `period_text`) included.
+- `energy_view.cpp` for how it is painted, and for the full screen (`open`, `receive`).
+- `web/src/components/TileInspector.vue` (Show and Flow), `web/src/components/tile/TileEnergy.vue` (the mockup), and the
+  `editor.tile.energy` and `screen.energy` texts of every language.
 - `web/src/model/ui-scale.ts` (`ENERGY_MIN_MM`) together with `MIN_*_MM`: a parity test compares them.
 - `tools/render/energy_tiles.py` renders the card on any board with the real firmware.

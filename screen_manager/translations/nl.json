@@ -595,7 +595,12 @@
       "home": "Thuis",
       "other": "Overig",
       "untracked": "Niet getraceerd",
-      "no_power": "Geen vermogenssensoren in de energie-instellingen van Home Assistant"
+      "no_power": "Geen vermogenssensoren in de energie-instellingen van Home Assistant",
+      "no_energy": "Geen energiesensoren in de energie-instellingen van Home Assistant",
+      "day": "Dag",
+      "week": "Week",
+      "month": "Maand",
+      "year": "Jaar"
     },
     "plugin": {
       "missing": "Plugin ontbreekt"
@@ -2148,6 +2153,15 @@
           "hint": "Bolletjes lopen over elke lijn, sneller naarmate er meer stroom loopt. Lijnen en pijlen is rustiger: een lijn wordt dikker met het vermogen en een pijl laat zien welke kant het op gaat. Een scherm met oudere firmware houdt de bolletjes.",
           "dots": "Bewegende bolletjes",
           "lines": "Lijnen en pijlen"
+        },
+        "period": {
+          "label": "Toon",
+          "hint": "Het vermogen nu, of de energie van vandaag, deze week, deze maand of dit jaar, zoals het energiedashboard van Home Assistant die toont. Een tik opent de kaart schermvullend: daar kies je dag, week, maand of jaar en ga je vooruit en terug. Een scherm met oudere firmware toont het vermogen nu.",
+          "now": "Vermogen nu",
+          "day": "Vandaag",
+          "week": "Deze week",
+          "month": "Deze maand",
+          "year": "Dit jaar"
         }
       },
       "calendar": {

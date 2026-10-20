@@ -233,7 +233,7 @@ export function childOf(tile: Tile, id: string): ChildTile {
 const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
-  energyFlow: "flow",
+  energyFlow: "flow", energyPeriod: "period",
   calendarStyle: "style", calendarEntities: "calendars", calendarPlaces: "places", calendarWords: "words", calendarHideWords: "hide_words",
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",

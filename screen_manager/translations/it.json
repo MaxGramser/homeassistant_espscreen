@@ -595,7 +595,12 @@
       "home": "Casa",
       "other": "Altro",
       "untracked": "Non tracciato",
-      "no_power": "Nessun sensore di potenza nelle impostazioni energia di Home Assistant"
+      "no_power": "Nessun sensore di potenza nelle impostazioni energia di Home Assistant",
+      "no_energy": "Nessun sensore di energia nelle impostazioni energia di Home Assistant",
+      "day": "Giorno",
+      "week": "Settimana",
+      "month": "Mese",
+      "year": "Anno"
     },
     "plugin": {
       "missing": "Plugin mancante"
@@ -2577,6 +2582,15 @@
           "hint": "Dei punti scorrono lungo ogni linea, più veloci quando passa più potenza. Linee e frecce è più calmo: una linea si ispessisce con la potenza e una freccia ne indica la direzione. Uno schermo con un firmware più vecchio mantiene i punti.",
           "dots": "Punti in movimento",
           "lines": "Linee e frecce"
+        },
+        "period": {
+          "label": "Mostra",
+          "hint": "La potenza adesso, oppure l'energia di oggi, di questa settimana, di questo mese o di quest'anno, come la mostra la dashboard energia di Home Assistant. Un tocco apre la scheda a schermo intero, dove scegli giorno, settimana, mese o anno e vai avanti e indietro. Uno schermo con firmware precedente mostra la potenza adesso.",
+          "now": "Potenza adesso",
+          "day": "Oggi",
+          "week": "Questa settimana",
+          "month": "Questo mese",
+          "year": "Quest'anno"
         }
       },
       "calendar": {

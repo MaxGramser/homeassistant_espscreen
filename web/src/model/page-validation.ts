@@ -97,7 +97,7 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction', 'children'], ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
-        'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow',
+        'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow', 'energyPeriod',
         ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...METER_FIELDS], ['label']);
       fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat', 'tilt_open'], []);
       const content = tile.content;
@@ -172,6 +172,8 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     if (value !== undefined && (a.display !== 'map' || !choices.includes(value) || value === choices[0])) fail('normalization');
   // How the energy card shows power along a line: the energy card's own, the default (dots) never stored.
   if (a.energyFlow !== undefined && (entityId !== 'screen.energy' || !rules.energyFlow.includes(a.energyFlow) || a.energyFlow === rules.energyFlow[0])) fail('normalization');
+  // What it shows: the power now (never stored) or a period's energy.
+  if (a.energyPeriod !== undefined && (entityId !== 'screen.energy' || !rules.energyPeriod.includes(a.energyPeriod) || a.energyPeriod === rules.energyPeriod[0])) fail('normalization');
   // A calendar card (firmware 0.56.0), as calendar_feed.validate checks it: its own choices, a default never stored.
   if (CALENDAR_FIELDS.some((key) => a[key] !== undefined)) {
     if (domain !== 'calendar') fail('normalization');

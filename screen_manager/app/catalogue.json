@@ -1920,6 +1920,13 @@
     "flow": [
      "dots",
      "lines"
+    ],
+    "period": [
+     "now",
+     "day",
+     "week",
+     "month",
+     "year"
     ]
    }
   },

@@ -595,7 +595,12 @@
       "home": "Home",
       "other": "Other",
       "untracked": "Untracked",
-      "no_power": "No power sensors in Home Assistant's energy settings"
+      "no_power": "No power sensors in Home Assistant's energy settings",
+      "no_energy": "No energy sensors in Home Assistant's energy settings",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
     },
     "plugin": {
       "missing": "Plugin missing"
@@ -2148,6 +2153,15 @@
           "hint": "Dots run along each line, faster as more power flows. Lines and arrows is calmer: a line grows thicker with the power and an arrow shows which way it goes. A screen with older firmware keeps the dots.",
           "dots": "Moving dots",
           "lines": "Lines and arrows"
+        },
+        "period": {
+          "label": "Show",
+          "hint": "The power right now, or the energy of today, this week, this month or this year, as Home Assistant's energy dashboard shows it. A tap opens the card full screen, where you pick a day, week, month or year and go back and forward. A screen with older firmware shows the power right now.",
+          "now": "Power now",
+          "day": "Today",
+          "week": "This week",
+          "month": "This month",
+          "year": "This year"
         }
       },
       "calendar": {

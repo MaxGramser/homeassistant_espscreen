@@ -63,6 +63,9 @@ static lv_color_t paint(ec::Paint p) {
     case ec::Paint::MUTED: return theme::color(theme::MUTED);
     case ec::Paint::IDLE: return theme::color(theme::LINE);
     case ec::Paint::ACCENT: return theme::color(theme::ACCENT);
+    case ec::Paint::KEY: return theme::color(theme::KEY);
+    case ec::Paint::ON_ACCENT: return theme::color(theme::ON_ACCENT);
+    case ec::Paint::SUBTLE: return theme::color(theme::SUBTLE);
     case ec::Paint::INK: default: return theme::color(theme::INK);
   }
 }
@@ -96,17 +99,27 @@ static bool meets(const lv_area_t &clip, int x1, int y1, int x2, int y2) {
   return x1 <= clip.x2 && x2 >= clip.x1 && y1 <= clip.y2 && y2 >= clip.y1;
 }
 
-// The scene, painted in the order of power-flow-card-plus's layers: lines, dots, circles, the house's ring, words.
-// Only what meets the area being redrawn is handed to LVGL: a moving dot redraws a few pixels, not the card.
+// The scene, painted in the order of power-flow-card-plus's layers: the header's keys, lines, dots, circles, the
+// house's ring, words. Only what meets the area being redrawn is handed to LVGL: a moving dot redraws a few pixels.
+static void paint_scene(lv_layer_t *layer, lv_obj_t *canvas, View *view, const ec::Scene &sc);
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
   View *view = view_of(canvas);
   if (!view) return;
-  auto *layer = lv_event_get_layer(e);
+  paint_scene(lv_event_get_layer(e), canvas, view, view->scene);
+}
+static void paint_scene(lv_layer_t *layer, lv_obj_t *canvas, View *view, const ec::Scene &sc) {
   lv_area_t a;
   lv_obj_get_coords(canvas, &a);
   const lv_area_t clip = layer->_clip_area;
-  const ec::Scene &sc = view->scene;
+  for (auto &b : sc.boxes) {
+    if (!meets(clip, a.x1 + b.x, a.y1 + b.y, a.x1 + b.x + b.w - 1, a.y1 + b.y + b.h - 1)) continue;
+    lv_draw_rect_dsc_t dsc;
+    lv_draw_rect_dsc_init(&dsc);
+    dsc.radius = b.radius; dsc.bg_color = paint(b.paint); dsc.bg_opa = LV_OPA_COVER;
+    lv_area_t box{a.x1 + b.x, a.y1 + b.y, a.x1 + b.x + b.w - 1, a.y1 + b.y + b.h - 1};
+    lv_draw_rect(layer, &dsc, &box);
+  }
 #if defined(USE_HOST) || defined(ESP_SCREEN_HOST)
   // Where the circles stand on the glass, once per scene, for the render harness's taps (tools/render/energy_tiles.py).
   if (!view->told) {
@@ -253,21 +266,8 @@ static bool reading(const ec::Data &data, const std::string &entity, Sensor &out
   return true;
 }
 
-void render(Widgets &w, const Tile &t, int width, int height) {
-  rt::begin_extra(w, "energy", width, height);
-  if (!w.energy) { w.energy = new View(); ++views; }
-  View &view = *w.energy;
-  auto *&canvas = w.parts[0];
-  if (!canvas) {
-    canvas = lv_obj_create(w.extra);
-    lv_obj_remove_style_all(canvas);
-    lv_obj_remove_flag(canvas, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_remove_flag(canvas, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(canvas, draw, LV_EVENT_DRAW_MAIN, nullptr);
-  }
-  lv_obj_set_pos(canvas, 0, 0);
-  lv_obj_set_size(canvas, width, height);
-  // The board's fixed fonts the card may use, largest first.
+// The board's fixed fonts the card may use, largest first, and how wide a text is in them, remembered per view.
+static ec::Measure measure_of(View &view) {
   view.faces = {rt::watch_value_font, rt::watch_font, rt::control_font, rt::small_font, rt::tile_icon_font(), rt::mini_icon_font, rt::watch_icon_font};
   ec::Measure m;
   for (int f = 0; f < ec::FACES; ++f) m.line[f] = view.faces[f] ? lv_font_get_line_height(view.faces[f]) : 0;
@@ -283,13 +283,67 @@ void render(Widgets &w, const Tile &t, int width, int height) {
     widths->emplace(std::move(key), w);
     return w;
   };
+  return m;
+}
+static ec::Words words_of(const ec::Data *data) {
   ec::Words words;
   words.solar = rt::tr(rt::txt::energy_solar); words.grid = rt::tr(rt::txt::energy_grid); words.battery = rt::tr(rt::txt::energy_battery);
   words.home = rt::tr(rt::txt::energy_home); words.other = rt::tr(rt::txt::energy_other);
   words.untracked = rt::tr(rt::txt::energy_untracked);
   words.decimal = screen_text::decimal_mark(); words.percent = screen_text::percent_sign();
   // The house is named as Home Assistant names it in its live power view: the home's own name.
-  if (t.extra().energy && !t.extra().energy->home_name.empty()) words.home = t.extra().energy->home_name;
+  if (data && !data->home_name.empty()) words.home = data->home_name;
+  // A period's words: the units, Today (the calendar card's), the days and months (the screen's own date words).
+  words.units = {rt::tr(rt::txt::energy_day), rt::tr(rt::txt::energy_week), rt::tr(rt::txt::energy_month), rt::tr(rt::txt::energy_year)};
+  words.today_key = rt::tr(rt::txt::calendar_today_key); words.today = rt::tr(rt::txt::calendar_today);
+  for (int i = 0; i < 7; ++i) words.weekdays[i] = rt::tr(rt::txt::date_weekdays_short + (i + 1) % 7);
+  for (int i = 0; i < 12; ++i) { words.months[i] = rt::tr(rt::txt::date_months + i); words.months_short[i] = rt::tr(rt::txt::date_months_short + i); }
+  return words;
+}
+// The diagram of `data` in `width` x `height`: a period drawn calm, with lines and arrows; the power now as the tile
+// chooses. The widest number shown so far keeps its room (measured in the smallest face, which orders them alike).
+static ec::Scene diagram(View &view, const ec::Data &data, const ec::Measure &m, const ec::Words &words, int width, int height, bool lines) {
+  ec::Scene sc;
+  if (data.waiting) return sc;  // the app reads the period: the card shows it as soon as it comes
+  if (!data.any()) {
+    // Home Assistant knows no sensor for it in its Energy settings: say where to add them, as it hides its own view.
+    sc.texts.push_back({rt::tr(data.energy() ? rt::txt::energy_no_energy : rt::txt::energy_no_power), ec::SMALL, 0,
+                        std::max(0, height / 2 - m.line[ec::SMALL]), width, true, ec::Paint::MUTED});
+    return sc;
+  }
+  for (float v : {data.solar_w, data.from_grid, data.to_grid, data.from_battery, data.to_battery, data.home}) {
+    const std::string s = ec::amount(data, v, words.decimal);
+    if (view.widest.empty() || m.width(ec::SMALL, s) > m.width(ec::SMALL, view.widest)) view.widest = s;
+  }
+  sc = ec::build(data, m, width, height, words, view.widest, &view.choice, lines || data.energy() ? ec::Style::LINES : ec::Style::DOTS);
+  if (!sc.ok) {
+    // Too small for the diagram (a size the editor does not offer): the house's use alone, as a watch card says it.
+    const std::string value = ec::amount(data, data.home, words.decimal);
+    int face = ec::WATCH_VALUE;
+    while (face < ec::SMALL && (!view.faces[face] || m.width(ec::Face(face), value) > width)) ++face;
+    const int ih = m.line[ec::ICON_MINI], vh = m.line[face], top = std::max(0, (height - ih - vh) / 2);
+    sc.texts.push_back({ec::utf8(ec::ICON_HOME), ec::ICON_MINI, 0, top, width, true, ec::Paint::INK});
+    sc.texts.push_back({value, ec::Face(face), 0, top + ih, width, true, ec::Paint::INK});
+  }
+  return sc;
+}
+
+void render(Widgets &w, const Tile &t, int width, int height) {
+  rt::begin_extra(w, "energy", width, height);
+  if (!w.energy) { w.energy = new View(); ++views; }
+  View &view = *w.energy;
+  auto *&canvas = w.parts[0];
+  if (!canvas) {
+    canvas = lv_obj_create(w.extra);
+    lv_obj_remove_style_all(canvas);
+    lv_obj_remove_flag(canvas, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(canvas, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(canvas, draw, LV_EVENT_DRAW_MAIN, nullptr);
+  }
+  lv_obj_set_pos(canvas, 0, 0);
+  lv_obj_set_size(canvas, width, height);
+  const ec::Measure m = measure_of(view);
+  const ec::Words words = words_of(t.extra().energy.get());
   // The circles take the card's own colour (a card may have a background of its own); a card without one, the page's.
   view.ground = lv_obj_get_style_bg_opa(w.tile, LV_PART_MAIN) > LV_OPA_50 ? lv_obj_get_style_bg_color(w.tile, LV_PART_MAIN) : theme::color(theme::PAGE);
   const bool resized = view.width != width || view.height != height;
@@ -300,25 +354,15 @@ void render(Widgets &w, const Tile &t, int width, int height) {
   if (rt::detail_index == rt::SENSOR_DETAIL && view.data && reading(*view.data, rt::detail_sensor.entity, sensor))
     rt::sensor_detail_update(sensor.entity, sensor.state);
   ec::Scene sc;
-  if (view.data && view.data->any()) {
-    // The widest number shown so far keeps its room (measured in the smallest face, which orders them alike).
-    for (float v : {view.data->solar_w, view.data->from_grid, view.data->to_grid, view.data->from_battery, view.data->to_battery, view.data->home}) {
-      const std::string s = ec::power(v, words.decimal);
-      if (view.widest.empty() || m.width(ec::SMALL, s) > m.width(ec::SMALL, view.widest)) view.widest = s;
-    }
-    sc = ec::build(*view.data, m, width, height, words, view.widest, &view.choice, t.energy_lines ? ec::Style::LINES : ec::Style::DOTS);
-    if (!sc.ok) {
-      // Too small for the diagram (a size the editor does not offer): the house's use alone, as a watch card says it.
-      const std::string value = ec::power(view.data->home, words.decimal);
-      int face = ec::WATCH_VALUE;
-      while (face < ec::SMALL && (!view.faces[face] || m.width(ec::Face(face), value) > width)) ++face;
-      const int ih = m.line[ec::ICON_MINI], vh = m.line[face], top = std::max(0, (height - ih - vh) / 2);
-      sc.texts.push_back({ec::utf8(ec::ICON_HOME), ec::ICON_MINI, 0, top, width, true, ec::Paint::INK});
-      sc.texts.push_back({value, ec::Face(face), 0, top + ih, width, true, ec::Paint::INK});
-    }
+  if (view.data && view.data->energy()) {
+    // A period: its name over the diagram ("Today", "19 – 25 Oct"), so the card never passes for the power now.
+    ec::Scene line;
+    const int top = ec::caption(line, m, width, height, view.data->waiting ? "" : ec::period_text(*view.data, words));
+    sc = diagram(view, *view.data, m, words, width, height - top, true);
+    ec::shift(sc, top);
+    sc.texts.insert(sc.texts.begin(), line.texts.begin(), line.texts.end());
   } else if (view.data) {
-    // Home Assistant knows no power sensor in its Energy settings: say where to add them, as it hides its own view.
-    sc.texts.push_back({rt::tr(rt::txt::energy_no_power), ec::SMALL, 0, std::max(0, height / 2 - m.line[ec::SMALL]), width, true, ec::Paint::MUTED});
+    sc = diagram(view, *view.data, m, words, width, height, t.energy_lines);
   }
   // The dots keep running where they were. Every value from Home Assistant is a new moment (a new `data`), so a dot
   // follows its line, not its index: a line that runs from the same place to the same place keeps its dot, and only a
@@ -410,6 +454,11 @@ void render(Widgets &w, const Tile &t, int width, int height) {
 }
 
 bool tap(Widgets &w, const Tile &t, const lv_point_t &point) {
+  // A card of a period opens its full screen, as a calendar card does; its circles open their sensors there.
+  if (!t.energy_period.empty()) {
+    rt::show_detail(w.index);
+    return true;
+  }
   View *view = w.energy;
   auto *canvas = w.parts[0];
   if (!view || !canvas || !view->scene.ok) return false;
@@ -421,5 +470,164 @@ bool tap(Widgets &w, const Tile &t, const lv_point_t &point) {
   (void) t;
   rt::open_sensor_detail(sensor.entity, sensor.name, sensor.state, sensor.unit);
   return true;
+}
+
+// ---- The full screen of a card of a period: the calendar card's header with the units, Today, back and forward, and
+// the diagram of the period chosen under it. The period now of the tile's own unit is the tile's; any other the app
+// reads when a key asks for it (ENERGY_EVENT, answered as op "energy": receive()).
+struct Full {
+  std::string entity;
+  unsigned index = 0;
+  int unit = 0, offset = 0;              // what the keys chose
+  std::shared_ptr<const ec::Data> data;  // what the diagram shows: the tile's, or the app's answer
+  unsigned asked = 0;                    // the request it waits for, 0 when none
+  View view;                             // the diagram's scene and caches; a period runs no dots
+  ec::Scene head;
+  lv_obj_t *head_obj = nullptr, *canvas = nullptr;
+  int width = 0, height = 0, top = 0;
+};
+static Full full;
+static unsigned requests = 0;
+static int margin() { return ui::px(ui::large() ? 16 : 9); }
+static const Tile *tile_open() {
+  return full.index < rt::model.count && rt::model.tiles[full.index].entity == full.entity ? &rt::model.tiles[full.index] : nullptr;
+}
+static bool is_open() {
+  return rt::detail_root && !lv_obj_has_flag(rt::detail_root, LV_OBJ_FLAG_HIDDEN) && rt::detail_index == full.index && full.head_obj;
+}
+// The app's answer for this unit and offset, as history_request asks for a history: an event, which needs no permission
+// to call Home Assistant's actions.
+static void request(int unit, int offset) {
+  if (rt::inbox.empty()) return;
+  esphome::api::HomeassistantActionRequest request;
+  request.service = esphome::StringRef("esphome.screen_energy");
+  request.is_event = true;
+  full.asked = ++requests;
+  const std::string keys[] = {"inbox", "unit", "offset", "session", "rev", "view"};
+  const std::string values[] = {rt::inbox, ec::UNITS[unit], std::to_string(offset), rt::protocol_key(rt::transfer.lease), rt::layout_rev,
+                                std::to_string(full.asked)};
+  request.data.init(6);
+  for (int i = 0; i < 6; ++i) {
+    esphome::api::HomeassistantServiceMap entry;
+    entry.key = esphome::StringRef(keys[i]);
+    entry.value = esphome::StringRef(values[i]);
+    request.data.push_back(entry);
+  }
+  esphome::api::global_api_server->send_homeassistant_action(request);
+  ESP_LOGI("energy", "asked for the %s %d back", ec::UNITS[unit], -offset);
+}
+static void apply() {
+  const Tile *t = tile_open();
+  if (!t || !full.head_obj) return;
+  const ec::Measure m = measure_of(full.view);
+  const ec::Words words = words_of(full.data.get());
+  const int w = full.width, h = full.height, mg = margin();
+  // The line under the name: the period on show, or nothing while the app reads the one chosen.
+  const bool shows = full.data && full.data->energy() && !full.data->waiting && !full.asked;
+  full.head = ec::Scene{};
+  full.top = ec::header(full.head, m, w, mg, t->name, shows ? ec::period_text(*full.data, words) : "", full.unit, full.offset == 0,
+                        full.offset > -ec::max_back(full.unit), words);
+  full.view.ground = theme::color(theme::CARD);
+  // While the app reads the period chosen, the last one stays under the header.
+  if (!full.asked) {
+    full.view.scene = full.data ? diagram(full.view, *full.data, m, words, w - 2 * mg, std::max(1, h - full.top - mg), true) : ec::Scene{};
+    full.view.data = full.data;
+  }
+  lv_obj_set_pos(full.canvas, mg, full.top);
+  lv_obj_set_size(full.canvas, w - 2 * mg, std::max(1, h - full.top - mg));
+  lv_obj_invalidate(full.head_obj);
+  lv_obj_invalidate(full.canvas);
+}
+// The tile's own period now, else the app's answer for the one chosen.
+static void choose(int unit, int offset) {
+  const Tile *t = tile_open();
+  if (!t) return;
+  full.unit = unit;
+  full.offset = std::clamp(offset, -ec::max_back(unit), 0);
+  if (offset == 0 && ec::UNITS[unit] == t->energy_period) {
+    full.asked = 0;
+    full.data = t->extra().energy;
+  } else {
+    request(full.unit, full.offset);
+  }
+  apply();
+}
+static void tapped(lv_event_t *e) {
+  auto *o = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  auto *input = lv_indev_active();
+  if (!input || !tile_open()) return;
+  lv_point_t p;
+  lv_indev_get_point(input, &p);
+  lv_area_t a;
+  lv_obj_get_coords(o, &a);
+  if (o == full.canvas) {
+    // A circle opens its sensor's history, as on the card of the power now.
+    const ec::Circle *hit = ec::hit(full.view.scene, float(p.x - a.x1), float(p.y - a.y1), ui::touch_min());
+    Sensor sensor;
+    if (hit && full.data && reading(*full.data, hit->entity, sensor) && rt::allowed(esphome::millis(), 3100, full.entity))
+      rt::open_sensor_detail(sensor.entity, sensor.name, sensor.state, sensor.unit);
+    return;
+  }
+  const ec::Hit *hit = ec::key_at(full.head, p.x - a.x1, p.y - a.y1);
+  if (!hit || !rt::allowed(esphome::millis(), 3000 + hit->kind, full.entity)) return;
+  switch (hit->kind) {
+    case ec::HIT_CLOSE: rt::detail_command(-1); return;
+    case ec::HIT_UNIT: choose(hit->arg, 0); return;
+    case ec::HIT_TODAY: choose(full.unit, 0); return;
+    case ec::HIT_PREV: choose(full.unit, full.offset - 1); return;
+    case ec::HIT_NEXT: if (full.offset < 0) choose(full.unit, full.offset + 1); return;
+  }
+}
+static lv_obj_t *layer(lv_obj_t *parent, void (*draw_cb)(lv_event_t *)) {
+  auto *o = lv_obj_create(parent);
+  lv_obj_remove_style_all(o);
+  lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(o, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(o, draw_cb, LV_EVENT_DRAW_MAIN, nullptr);
+  lv_obj_add_event_cb(o, tapped, LV_EVENT_SHORT_CLICKED, nullptr);
+  return o;
+}
+void open(lv_obj_t *root, const Tile &t, unsigned index) {
+  // The whole glass, as the calendar card's full screen takes it (calendar_view.cpp open).
+  const int w = overlay_card::screen_width(), h = overlay_card::screen_height();
+  lv_obj_set_pos(root, 0, 0);
+  lv_obj_set_size(root, w, h);
+  lv_obj_set_style_pad_all(root, 0, 0);
+  lv_obj_set_style_bg_color(root, theme::color(theme::CARD), 0);
+  // It opens on the tile's own period, now.
+  full.entity = t.entity;
+  full.index = index;
+  full.unit = ec::unit_index(t.energy_period);
+  full.offset = 0;
+  full.asked = 0;
+  full.data = t.extra().energy;
+  full.view.choice = ec::ChoiceCache{};
+  full.view.widest.clear();
+  full.width = w;
+  full.height = h;
+  full.head_obj = layer(root, [](lv_event_t *e) {
+    paint_scene(lv_event_get_layer(e), static_cast<lv_obj_t *>(lv_event_get_current_target(e)), &full.view, full.head);
+  });
+  lv_obj_set_pos(full.head_obj, 0, 0);
+  lv_obj_set_size(full.head_obj, w, h);
+  full.canvas = layer(root, [](lv_event_t *e) {
+    paint_scene(lv_event_get_layer(e), static_cast<lv_obj_t *>(lv_event_get_current_target(e)), &full.view, full.view.scene);
+  });
+  apply();
+  // The tile's new numbers repaint it while it shows the tile's own period (docs/CARD_PARTS.md).
+  rt::card_shaped(t, rt::entity_shape);
+  rt::card_bind(full.head_obj, t, [](lv_obj_t *, const Tile &tile, const rt::CardPart &) {
+    if (full.asked || full.offset != 0 || ec::UNITS[full.unit] != tile.energy_period) return;
+    full.data = tile.extra().energy;
+    apply();
+  });
+}
+unsigned asked() { return full.asked; }
+void receive(std::shared_ptr<const ec::Data> data, unsigned view) {
+  if (!view || view != full.asked || !data || !data->energy()) return;
+  if (ec::unit_index(data->period) != full.unit || data->offset != full.offset) return;
+  full.asked = 0;
+  full.data = std::move(data);
+  if (is_open()) apply();
 }
 }  // namespace energy_view

@@ -111,6 +111,10 @@ const meterCard = computed(() => display.value === "meter" && domain.value === "
 // A sensor's display precision: Home Assistant's own setting of the entity, so the same row on any of its cards, a key's too.
 const precisionShown = computed(() => precisionOffered(props.tile.entity, entities.liveOf(props.tile.entity)));
 // How the energy card shows power along a line: running dots, or calm lines that grow with it and an arrow each.
+// What the energy card shows: the power now, or the energy of today, this week, this month or this year (a period is
+// drawn calm, so it has no flow of its own to choose).
+const periodChoices = computed(() => offer("period", rules.energyPeriod.map((value) => [value, t(`editor.tile.energy.period.${value}`)] as [string, string]), current("period", rules.energyPeriod[0])));
+const energyLive = computed(() => current("period", rules.energyPeriod[0]) === rules.energyPeriod[0]);
 const flowChoices = computed(() => offer("flow", rules.energyFlow.map((value) => [value, t(`editor.tile.energy.flow.${value}`)] as [string, string]), current("flow", rules.energyFlow[0])));
 const pictureChoices = (key: "fit" | "overlay") => offer(key, rules.picture[key].map((value) => [value, t(`editor.tile.picture.${key}.${value}`)] as [string, string]), current(key, rules.picture[key][0]));
 // A screen that streams a camera live (a P4, its hello's `live`): Live, pace 0, is a camera tile's first pace and its
@@ -264,7 +268,10 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
     <template v-if="!ui.phone || more">
     <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard" :title="t('editor.tile.sections.look')">
       <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
-      <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
+      <PropRow v-if="energyTile" :label="t('editor.tile.energy.period.label')" icon="clock-outline" :hint="t('editor.tile.energy.period.hint')">
+        <ChoiceField :choices="periodChoices" :value="current('period', rules.energyPeriod[0])" :tile="tile" preview-key="period" :aria-label="t('editor.tile.energy.period.label')" @pick="(v) => setTileOption(tile, 'period', v)" />
+      </PropRow>
+      <PropRow v-if="energyTile && energyLive" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
         <ChoiceField :choices="flowChoices" :value="current('flow', rules.energyFlow[0])" :tile="tile" preview-key="flow" :aria-label="t('editor.tile.energy.flow.label')" @pick="(v) => setTileOption(tile, 'flow', v)" />
       </PropRow>
       <PropRow v-if="lookShown && tile.entity !== 'screen.settings' && !mapTile && !energyTile" :label="t('editor.tile.display.label')" icon="eye-outline" :hint="shownHint && !shownHint.warn ? shownHint.text : undefined">
