@@ -256,7 +256,7 @@ waveshare101:
   settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation, doorbell]
 
 onx3248g035:
-  file: onx3248g035.yaml
-  name: Open Nextion Genius
+  file: opennextion-onx3248g035.yaml
+  name: Open Nextion
   model: ONX3248G035
   status: experimental

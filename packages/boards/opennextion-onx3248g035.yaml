@@ -1,4 +1,4 @@
-# ESP Screens - Open Nextion Genius ONX3248G035, PCB V1.2.
+# ESP Screens - Open Nextion ONX3248G035, PCB V1.2.
 # ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM, ST7796 SPI LCD and CST826 capacitive touch.
 # Hardware reference: https://github.com/OpenNextion/OpenNextion-SKU-ONX3248G035
 # Targeted hardware checks are documented in docs/ONX3248G035.md; support remains experimental.

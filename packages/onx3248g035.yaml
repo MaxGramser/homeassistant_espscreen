@@ -1,9 +1,9 @@
-# ESP Screens - the package a Open Nextion Genius ONX3248G035 builds from over GitHub. Written by tools/generate_entries.py
+# ESP Screens - the package a Open Nextion ONX3248G035 builds from over GitHub. Written by tools/generate_entries.py
 # from boards.yaml; do not edit.
 #
 # ESP Screen Manager writes every screen's own YAML with `packages: display: {url: <this repository>, files:
 # [packages/onx3248g035.yaml]}` and adds the name, the Wi-Fi reference and the unique keys (docs/EASY_SETUP.md); nothing
-# of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/onx3248g035.yaml with this
+# of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/opennextion-onx3248g035.yaml with this
 # board's hardware and sizes (docs/PROFILES.md). checkout/onx3248g035.yaml builds the same two from a checkout.
 substitutions:
   # The branch the components and the fonts come from: main, or dev for a screen of the app's dev channel, which
@@ -13,7 +13,7 @@ substitutions:
 
 packages:
   core: !include core.yaml
-  board: !include boards/onx3248g035.yaml
+  board: !include boards/opennextion-onx3248g035.yaml
   hotspot: !include features/hotspot.yaml
 
 external_components:

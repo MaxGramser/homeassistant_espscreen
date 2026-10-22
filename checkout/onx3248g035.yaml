@@ -1,7 +1,7 @@
-# ESP Screens - a Open Nextion Genius ONX3248G035 built from a clone of this repository. Written by tools/generate_entries.py
+# ESP Screens - a Open Nextion ONX3248G035 built from a clone of this repository. Written by tools/generate_entries.py
 # from boards.yaml; do not edit. checkout/README.md says how to build it.
 #
-# The screen is two packages: packages/core.yaml, which every board shares, and packages/boards/onx3248g035.yaml with
+# The screen is two packages: packages/core.yaml, which every board shares, and packages/boards/opennextion-onx3248g035.yaml with
 # this board's hardware and sizes (docs/PROFILES.md). A screen installed from ESP Screens builds the same two over
 # GitHub through packages/onx3248g035.yaml; this file only adds what a build from a checkout needs: the fonts and the
 # components of this checkout, and the secrets (api_encryption_key, ota_password, Wi-Fi) from checkout/secrets.yaml.
@@ -10,7 +10,7 @@ substitutions:
 
 packages:
   core: !include ../packages/core.yaml
-  board: !include ../packages/boards/onx3248g035.yaml
+  board: !include ../packages/boards/opennextion-onx3248g035.yaml
   hotspot: !include ../packages/features/hotspot.yaml
 
 external_components:
