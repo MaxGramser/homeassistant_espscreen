@@ -1,5 +1,16 @@
 ## Unreleased
 
+- **A new board, experimental: the Open Nextion ONX3248G035**, a 3.5-inch ESP32-S3 panel with ST7796 display,
+  CST826 touch, dimmable backlight, landscape and portrait layouts, remote pictures and voltage, estimated
+  level and charging status for an optional battery. Battery, camera, microphone and speaker are sold
+  separately and are not included with the board. Tested on the current board circuit; earlier hardware with
+  different wiring is not covered. Audio, RTC, MicroSD, external camera capture and UI snapshots are not
+  enabled. Physical checks cover layouts and controls, rotation, picture display, brightness, standby and
+  touch wake, cold starts, battery operation and USB charging transitions. Short running observation only; the
+  final uptime and memory comparison could not be collected, so long-term stability and leak checks remain
+  unverified. See docs/ONX3248G035.md and
+  [wishlist #171](https://tessera-maxgramser.on-forge.com/wishlist/171).
+
 - **The doorbell on the ESP32-P4 screens.** When a video doorbell in Home Assistant rings, every P4 screen wakes up, plays a chime and opens the doorbell's camera full screen, live, with its sound on, without an automation. The first screen someone touches answers the ring and the others close it. A ring nobody answers closes after a minute and stays in the top bar ("2 min ago") until someone taps it, which opens the camera again. A switch **Doorbell** under Extras (on the screen, in the editor and in Home Assistant) turns it off for one screen. It works with every doorbell Home Assistant knows as a doorbell (an event entity with the doorbell class and its standard event type `ring`) that has a camera on the same device (docs/DOORBELL.md). Needs the screen's Update.
 
 - **A robot vacuum's larger tile.** On a screen with 8 MB of flash or more, a robot's tile two rows high can now show its map, its rooms to pick, its routines, or the map with the rooms, beside its keys: a small screen of its own with the robot's state and battery at the top and Start and Dock (and the cleaning mode as icons) at the bottom. Tap rooms in the order you want them cleaned and press Start. Choose it under the tile's controls in the editor, or from the tip that shows when you drag the tile larger. Only what your robot has is offered. The CYD and the other 4 MB screens keep the tile with its keys (docs/VACUUM.md, "A larger tile").

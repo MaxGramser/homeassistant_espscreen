@@ -1,0 +1,129 @@
+# ESP Screens - Open Nextion ONX3248G035, PCB V1.2.
+# ESP32-S3R8, 16 MB flash, 8 MB octal PSRAM, ST7796 SPI LCD and CST826 capacitive touch.
+# Hardware reference: https://github.com/OpenNextion/OpenNextion-SKU-ONX3248G035
+# Targeted hardware checks are documented in docs/ONX3248G035.md; support remains experimental.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  # snapshot.yaml is omitted: its current logger samples a fixed 480 x 480 area.
+  battery_voltage: !include ../features/battery-voltage.yaml
+  battery_adc: !include ../features/battery-adc.yaml
+
+substitutions:
+  BOARD_ID: "onx3248g035"
+  DEVICE_NAME: "onx3248g035-new"
+  DEVICE_FRIENDLY_NAME: "My Open Nextion"
+
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  ROTATION_LANDSCAPE: "270"
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "3"
+  LVGL_BUFFER_SIZE: "12%"
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+
+  TOUCH_CONTROLLER: "CST826"
+  TOUCH_TEST_READY_LOG: "CST826 touch test ready; no tile actions"
+  BACKLIGHT_FREQUENCY: "10000Hz"
+  # V1.2: R31 = 1 Mohm from VBAT, R32 = 2.2 Mohm to ground.
+  BATTERY_PIN: GPIO4
+  BATTERY_DIVIDER: "1.45454545"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 40MHz
+
+# USB-C is connected to the CH340K on UART0, not the S3 native USB port.
+logger:
+  hardware_uart: UART0
+
+spi:
+  id: lcd
+  clk_pin: GPIO5
+  mosi_pin: GPIO1
+
+i2c:
+  id: touch_bus
+  sda: GPIO8
+  scl: GPIO7
+  frequency: 100kHz
+  scan: true
+
+# V1.2 PCF8574A: P0 audio control, P1 RTC interrupt, P2 charging status,
+# P3 camera power-down, P4 touch interrupt, P5 LCD/touch reset, P6 SD CS.
+# Only P5 is an output here. Unused ports stay released high, including SD CS
+# and camera power-down; input ports must stay high in the quasi-bidirectional latch.
+pcf8574:
+  id: io_expander
+  address: 0x38
+  i2c_id: touch_bus
+
+output:
+  - platform: ledc
+    pin: GPIO6
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+# Poll directly over I2C; TP_INT is on the expander, not an ESP32 interrupt pin.
+# The shared reset line is driven once by the display, not again by the touch driver.
+touchscreen:
+  - platform: cst816
+    id: ts_touch
+    i2c_id: touch_bus
+    address: 0x15
+    display: my_display
+    update_interval: 16ms
+
+binary_sensor:
+  # The charger CHRG output is inverted by Q8 before PCF8574 P2 (CHG_N).
+  # High at P2 means charging, checked through both USB transitions on the supported circuit.
+  - platform: gpio
+    id: board_battery_charging
+    name: "Battery Charging"
+    device_class: battery_charging
+    entity_category: diagnostic
+    pin:
+      pcf8574: io_expander
+      number: 2
+      mode: INPUT
+      inverted: false
+
+# Panel direction and colours follow the previously tested ESPHome configuration.
+# LVGL handles landscape/portrait rotation; the touch transform stays at the core defaults.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ST7796
+    spi_id: lcd
+    dimensions: {width: 320, height: 480}
+    color_order: bgr
+    invert_colors: false
+    dc_pin: GPIO3
+    cs_pin: GPIO2
+    reset_pin:
+      pcf8574: io_expander
+      number: 5
+      mode: OUTPUT
+    spi_mode: 0
+    data_rate: 80MHz
+    transform:
+      swap_xy: false
+      mirror_x: true
+      mirror_y: false
+    update_interval: never
+    auto_clear_enabled: false

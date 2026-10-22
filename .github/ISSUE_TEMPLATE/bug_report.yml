@@ -49,6 +49,7 @@ body:
         - Waveshare (ESP32-P4-WIFI6-Touch-LCD-7B)
         - Waveshare (ESP32-P4-WIFI6-Touch-LCD-7)
         - Waveshare (ESP32-P4-WIFI6-Touch-LCD-10.1)
+        - Open Nextion (ONX3248G035)
         - Other / not listed here
         - Not board-specific (add-on, editor, documentation)
     validations:

@@ -1717,6 +1717,133 @@
   "wide_slots": false,
   "width": 800
  },
+ "checkout/onx3248g035.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": true,
+  "board": "onx3248g035",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ONX3248G035",
+   "name": "Open Nextion",
+   "order": 30,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST826"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 26,
+   "icon": 41,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "radius": 21,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "checkout/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -5487,6 +5614,133 @@
   "wide_slots": false,
   "width": 800
  },
+ "onx3248g035": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": true,
+  "board": "onx3248g035",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ONX3248G035",
+   "name": "Open Nextion",
+   "order": 30,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST826"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 26,
+   "icon": 41,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "radius": 21,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "packages/crowpanel101.yaml": {
   "alert": {
    "line": 18,
@@ -7204,6 +7458,133 @@
   "tier": "full",
   "wide_slots": false,
   "width": 800
+ },
+ "packages/onx3248g035.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 30
+  },
+  "battery": true,
+  "board": "onx3248g035",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ONX3248G035",
+   "name": "Open Nextion",
+   "order": 30,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST826"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 26,
+   "icon": 41,
+   "icon_home": 33,
+   "icon_mini": 25,
+   "label": 17,
+   "setpoint": 62,
+   "sublabel": 16,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 37
+  },
+  "height": 320,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
+    "columns": 2,
+    "height": 320,
+    "max": [
+     3,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 2,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 320
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 52,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 45,
+   "radius": 21,
+   "tile_pad": 12,
+   "top": 55
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
  },
  "packages/reterminald1001.yaml": {
   "alert": {

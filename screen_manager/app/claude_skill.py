@@ -52,7 +52,7 @@ def _grids():
 
 NAMES = list(dict.fromkeys(SHAPES[board].get('catalog', {}).get('name', board) for board in BOARD_KEYS))
 # The words after the boards are few, so the catalog's names have the room: each maker a new board brings adds its name.
-DESCRIPTION = f'ESP Screens ({_and(NAMES)}) in Home Assistant: order tiles, show alerts, open a page, keep awake.'
+DESCRIPTION = f'ESP Screens ({_and(NAMES)}) HA: order tiles, alerts, open a page, keep awake.'
 TYPES = {'string': 'text', 'int': 'number', 'bool': 'on/off'}
 
 def skill_dir(config=None):
