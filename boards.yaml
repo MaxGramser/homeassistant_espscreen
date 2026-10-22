@@ -80,6 +80,7 @@ waveshare4b:
   name: Waveshare
   model: ESP32-S3-Touch-LCD-4B
   status: experimental
+  settings: [media_player, microphone]
 
 waveshare35:
   file: waveshare-esp32s3-35.yaml

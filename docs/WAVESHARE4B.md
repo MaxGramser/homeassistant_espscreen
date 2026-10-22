@@ -25,6 +25,7 @@ Keep an existing working profile if the board is already installed. Tessera adds
 The remote package is `packages/waveshare4b.yaml`; the checkout entry is `checkout/waveshare4b.yaml`.
 Both combine `packages/core.yaml` with `packages/boards/waveshare-esp32s3-4b.yaml`.
 The board has two USB-C ports. Logs go out over the one with the USB-to-UART chip, as on the 4-inch Guition.
+The audio-enabled profile requires ESPHome **2026.9.0 or newer**.
 
 ## Layout and capabilities
 
@@ -40,8 +41,40 @@ The board has two USB-C ports. Logs go out over the one with the USB-to-UART chi
   wake from a dark standby has not been seen on this hardware yet.
 - Camera tiles, full-screen snapshots, live tile pictures, camera alerts and media artwork use the shared PSRAM implementation.
 - GT911 reports pixel coordinates, with no resistive calibration. The existing touch filter and action guard remain in use.
-- The battery charger (AXP2101), the audio chips, the microphone, the speaker connector, the motion sensor and the clock chip
-  on the board stay unused. The screen runs from USB; a battery on the connector is neither read nor managed.
+- The ES7210 microphone input and ES8311 speaker output use the shared audio graph, with Volume and Microphone in
+  Extras. The speech path is mono, 16 kHz, with simultaneous capture and playback.
+- The battery charger (AXP2101), the motion sensor and the clock chip stay unused. The screen runs from USB;
+  a battery on the connector is neither read nor managed.
+
+## Audio and Assist
+
+Connect a suitable **8 ohm, 2 W speaker** to the speaker connector. Home Assistant exposes the screen's Media Player
+for announcements and TTS. Volume is shared by Home Assistant, **Screen settings → Extras** in Tessera and
+**Settings → Extras** on the screen. Hold the top bar to open the screen's settings.
+
+**Microphone starts OFF when no choice has been saved.** Enable it in Extras on the screen, through its Microphone
+entity in Home Assistant or through Tessera's Screen settings. The local control works without Home Assistant.
+The screen restores a saved ON or OFF choice after restarting. Preferences normally reach flash within 60 seconds;
+a sudden loss of power before that write can restore the previous choice.
+
+Microphone OFF is a **software mute**, not a physical power disconnect. New audio callback buffers are zeroed;
+already forwarded data and an answer that has started playing are not canceled. Without a microphone consumer,
+the profile does not start continuous capture.
+
+The separate **Voice assistant** plugin requires microphone, speaker and media player capabilities, which this
+profile provides without another hardware plugin. Assist and wake words are not built into the default firmware.
+Use an existing Home Assistant Assist pipeline with speech recognition, a conversation agent and speech synthesis.
+There is no echo cancellation, stereo capture or two-microphone beamforming. Simultaneous capture preserves speech
+during the wake sound; it does not remove that sound or a spoken reply from the microphone signal.
+
+The speaker uses one native I2S controller as the clock source and keeps its clocks running in silence. The microphone
+uses the other controller in secondary mode, following the same BCLK and LRCLK pins; only the speaker drives MCLK.
+The amplifier follows buffered audio and switches off during silence without stopping capture.
+
+Audio and end-to-end Assist still require physical acceptance. The target is ordinary speech about one metre from
+the panel in a quiet room, not far-field use or speech over a television. The AXP2101's ALDO1 rail supplies the analog
+audio circuitry; its availability after a true cold USB start must be checked. The profile does not write guessed
+PMIC settings. A warm restart does not establish that cold-start audio works.
 
 ## Hardware references
 
@@ -52,9 +85,12 @@ The board has two USB-C ports. Logs go out over the one with the USB-to-UART chi
   ([alaltitov/Waveshare-ESP32-S3-Touch-LCD-4B](https://github.com/alaltitov/Waveshare-ESP32-S3-Touch-LCD-4B)).
 - I2C: SDA GPIO47, SCL GPIO48, shared by the GT911, the TCA9554 expander (0x20) and the other chips.
 - The ST7701S takes its setup over three-wire SPI on the expander: CS on EXIO0, data on EXIO1, clock on EXIO2.
-  EXIO3 enables the speaker amplifier and stays off.
+  EXIO3 enables the speaker amplifier, initially off and then following buffered audio.
 - RGB: DE GPIO17, PCLK GPIO9, HSYNC GPIO46, VSYNC GPIO3, 16 MHz pixel clock, 18-bit pixel mode, inverted colours.
 - Backlight: GPIO4, PWM at 300 kHz, inverted, `min_power: 0.52` (duty 48 % at the dimmest), `zero_means_zero`, gamma 1.0.
+- Audio I2S: MCLK GPIO5, BCLK GPIO16, LRCLK GPIO7, speaker data GPIO6 and microphone data GPIO15.
+  The speaker controller is primary; the microphone controller is secondary and shares only the clock inputs.
+  ES7210 is at I2C 0x40 with initial gain 24 dB; ES8311 is at 0x18. Mono capture uses the left channel.
 
 ## What to report while testing
 
@@ -68,5 +104,13 @@ The board has two USB-C ports. Logs go out over the one with the USB-to-UART chi
 5. A full page of tiles, opening and closing the settings and detail cards.
 6. Camera tile pictures, full-screen camera images and camera alerts, including repeated opens and closes.
 7. Free internal heap with a full layout, any reset or I2C errors, and how long the screen stayed running.
+8. Audio after five full power-off USB starts, including successful codec initialization and an audible TTS answer.
+9. Volume at 0, 25 and 50 percent through all three interfaces, repeated playback and Stop, and silence when idle.
+10. Microphone OFF before its first saved choice, restored ON/OFF after power cycles, and muted input after playback.
+    Wait more than 60 seconds after each choice before cutting power; do not erase existing preferences to test defaults.
+11. With the optional Voice assistant plugin temporarily installed, twenty wake/question/spoken-answer cycles at one
+    metre, repeated manual requests with wake word off, and recovery after reconnecting the screen's HA integration.
+    Keep the plugin's normal sounds enabled for acceptance, and report clipped words or a capture that does not resume.
+    Remove the temporary plugin and test page afterward and restore the previous layout, plugins and microphone choice.
 
 Do not publish Wi-Fi passwords or API/OTA keys with logs.
