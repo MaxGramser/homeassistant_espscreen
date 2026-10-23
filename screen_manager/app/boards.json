@@ -3642,6 +3642,138 @@
   "wide_slots": false,
   "width": 1024
  },
+ "checkout/wavesharep4nano.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "wavesharep4nano",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-NANO + 10.1-DSI-TOUCH-A",
+   "name": "Waveshare",
+   "order": 30,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 24,
+   "icon": 37,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 4,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "radius": 19,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
  "checkout/wt32sc01plus.yaml": {
   "alert": {
    "line": 23,
@@ -9130,6 +9262,138 @@
   "wide_slots": false,
   "width": 1024
  },
+ "packages/wavesharep4nano.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "wavesharep4nano",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-NANO + 10.1-DSI-TOUCH-A",
+   "name": "Waveshare",
+   "order": 30,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 24,
+   "icon": 37,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 4,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "radius": 19,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
  "packages/wt32sc01plus.yaml": {
   "alert": {
    "line": 23,
@@ -11181,6 +11445,138 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1024
+ },
+ "wavesharep4nano": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "wavesharep4nano",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-NANO + 10.1-DSI-TOUCH-A",
+   "name": "Waveshare",
+   "order": 30,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 24,
+   "icon": 37,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 4,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 8,
+    "width": 800
+   }
+  },
+  "rows": 5,
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "radius": 19,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
  },
  "wt32sc01plus": {
   "alert": {
