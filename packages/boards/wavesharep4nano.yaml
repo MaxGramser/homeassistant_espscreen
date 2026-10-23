@@ -1,0 +1,137 @@
+# ESP Screens - Waveshare ESP32-P4-NANO with the 10.1-DSI-TOUCH-A panel: a 10.1-inch 800x1280 MIPI-DSI panel
+# (JD9365) and GT911-compatible capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 1280x800 at 149 dpi, the standard look, a grid of 5 x 5 cells. The panel itself is 800x1280 (portrait); LVGL turns
+# the picture and the touch, as it does on the other 10.1-inch P4 boards. Pre-v3 silicon ("chip revision: v1.3" in the
+# boot log).
+#
+# This is the *two-piece* combination: a carrier board plus a 10.1-DSI-TOUCH-A panel on the MIPI-DSI FPC. It is NOT the
+# all-in-one ESP32-P4-WIFI6-Touch-LCD-10.1, which is packages/boards/waveshare101.yaml. The two differ in exactly the
+# places that matter here: the all-in-one routes an LCD reset (GPIO27) and a backlight PWM pin (GPIO26), and this
+# carrier routes neither.
+#
+#   - No LCD reset GPIO. The panel self-resets, and is *enabled* over I2C instead (see the on_boot block below).
+#   - No backlight PWM GPIO. Brightness is a byte written to register 0x96 of I2C device 0x45, so the output that
+#     features/backlight.yaml dims is a template output rather than a ledc pin.
+#   - No touch INT or RESET GPIO: the GT911-compatible controller is polled on the shared touch bus.
+#
+# Verified on a Waveshare ESP32-P4-Module-DEV-KIT with the 10.1-DSI-TOUCH-A panel; the ESP32-P4-NANO and the
+# ESP32-P4-WIFI6-DEV-KIT carriers are wired the same for the display, the touch bus and this enable, and ESPHome names
+# the panel after the Nano (`model: WAVESHARE-P4-NANO-10.1`).
+#
+# Board wiki:  https://www.waveshare.com/wiki/ESP32-P4-NANO
+# Panel wiki:  https://www.waveshare.com/wiki/10.1-DSI-TOUCH-A
+# Vendor BSP:  https://github.com/waveshareteam/Waveshare-ESP32-components
+#              display/lcd/esp_lcd_jd9365/esp_lcd_jd9365.c  (the 0x45 enable, inside esp_lcd_new_panel_jd9365)
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/wavesharep4nano.yaml (a build on this computer) and
+# packages/wavesharep4nano.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the other Waveshare P4 panels'.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # No audio on this board file: the carrier's ES8311 codec is wired, but this board has no ES7210 microphone ADC and
+  # its audio is not tried yet, so it ships without the speaker/microphone packages rather than with untested ones.
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wavesharep4nano"
+  DEVICE_NAME: "wavesharep4nano-new"
+  DEVICE_FRIENDLY_NAME: "My wavesharep4nano"
+
+  # The glass: the panel's own pixels and its density, 1509 diagonal pixels over 10.1 inches.
+  PANEL_W: "800"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "149.449"
+  # The LVGL angle that lays this panel out lying down (1280 x 800). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "5"
+  GRID_ROWS: "5"
+  GRID_COLS_PORTRAIT: "4"
+  GRID_ROWS_PORTRAIT: "8"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+
+  # From the waveshare101 board: its hardware values and the code it hands the shared lambdas. Replace them
+  # with this board's, as the hardware sections below.
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # ESPHome's `model: WAVESHARE-P4-NANO-10.1` is what this board drives; it is present well before this version, and
+  # 2026.9.0 is the version this board was built and tried on. A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+# Switch the panel on BEFORE the display sets up. On this carrier the panel is enabled by an I2C register, not a GPIO,
+# and ESPHome's mipi_dsi does not know about it: it only ever writes 0x96 (brightness, later, through the output
+# below) and never writes 0x95 at all.
+#
+# Waveshare do exactly this inside esp_lcd_new_panel_jd9365(), before any DSI traffic, unconditionally for every panel
+# their driver supports (esp_lcd_jd9365.c). Without it the panel never drives its side of the DSI link, so the host
+# cannot complete a transfer: the generic command FIFO buffers about 19 short writes and then never drains, tx_param
+# spins forever in mipi_dsi_host_ll_gen_is_cmd_fifo_full, and roughly 30 s later the task watchdog aborts the boot --
+# ten times over, into safe mode with a dark panel. Reported upstream as esphome/esphome#21451.
+#
+# components/panel_i2c_enable runs at setup_priority::IO, after the I2C bus and before any display. The shared
+# on_boot in packages/core.yaml is priority -100, which is long after the display has already given up.
+panel_i2c_enable:
+  - i2c_id: touch_bus
+    address: 0x45
+    sequence: [[0x95, 0x11], [0x95, 0x17], [0x96, 0x00], 100ms, [0x96, 0xFF], 1000ms]
+
+esp32:
+  # The ESP32-P4NRW32 module on this carrier: 16 MB NOR flash with 32 MB of in-package PSRAM. Some batches ship a
+  # 32 MB flash module; such a board states 32MB here and keeps enable_idf_experimental_features for its update slots.
+  flash_size: 16MB
+
+# The touch panel's interrupt and reset are not wired to the P4, so it is read by polling, without a reset pin. LVGL
+# turns the touch with the picture (LVGL_ROTATION): the panel reports its own pixels.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    # Polled: neither the interrupt nor the reset of the touch controller is wired to the P4 on this carrier.
+    update_interval: 50ms
+
+# The backlight. This carrier routes no PWM pin for it: brightness is a single byte in register 0x96 of I2C device
+# 0x45, the same register the vendor BSP writes in bsp_display_brightness_set(). features/backlight.yaml accepts a
+# template output here ("a PWM pin, or a line on an expander"), so the shared monochromatic light dims this unchanged.
+# zero_means_zero keeps 0 fully dark for standby. (The panel wiki quotes register 0x86; the BSP uses 0x96, which is
+# what is confirmed working on this panel.)
+output:
+  - platform: template
+    id: gpio_backlight_pwm
+    type: float
+    zero_means_zero: true
+    write_action:
+      - lambda: |-
+          uint8_t level = (uint8_t) lroundf(state * 255.0f);
+          uint8_t data[2] = {0x96, level};
+          id(touch_bus)->write(0x45, data, sizeof(data));
+
+# ESPHome's own mipi_dsi platform knows the panel by name: `model: WAVESHARE-P4-NANO-10.1` brings the JD9365's init
+# sequence and timings for two lanes. Unlike the all-in-one board there is no reset pin to give it here -- this
+# carrier routes none, the panel self-resets on power-up, and what it needs instead is the I2C enable in the on_boot
+# block above. With that enable in place the init sequence completes (202 commands) and setup takes about 2.7 s.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-P4-NANO-10.1
+    dimensions: {width: 800, height: 1280}
+    update_interval: never
+    auto_clear_enabled: false
