@@ -1531,6 +1531,130 @@
   "wide_slots": false,
   "width": 800
  },
+ "checkout/panlee-zx3d95ce01s.yaml": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "panlee-zx3d95ce01s",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    395,
+    222
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ZX3D95CE01S-TR-V12",
+   "name": "Panlee",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 172,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 65,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 55,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "checkout/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -5836,6 +5960,130 @@
   "wide_slots": false,
   "width": 800
  },
+ "packages/panlee-zx3d95ce01s.yaml": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "panlee-zx3d95ce01s",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    395,
+    222
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ZX3D95CE01S-TR-V12",
+   "name": "Panlee",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 172,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 65,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 55,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
+ },
  "packages/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -7076,6 +7324,130 @@
   "tier": "full",
   "wide_slots": false,
   "width": 720
+ },
+ "panlee-zx3d95ce01s": {
+  "alert": {
+   "line": 25,
+   "title_line": 32
+  },
+  "battery": false,
+  "board": "panlee-zx3d95ce01s",
+  "camera": {
+   "full": [
+    480,
+    480
+   ],
+   "thumb": [
+    395,
+    222
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.0,
+   "model": "ZX3D95CE01S-TR-V12",
+   "name": "Panlee",
+   "order": 23,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 172,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 27,
+   "icon_home": 34,
+   "icon_mini": 26,
+   "label": 18,
+   "setpoint": 65,
+   "sublabel": 16,
+   "sublabel_big": 21,
+   "watch_icon": 18,
+   "watch_value": 38
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      480
+     ],
+     "thumb": [
+      395,
+      222
+     ]
+    },
+    "columns": 2,
+    "height": 480,
+    "max": [
+     3,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 55,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 47,
+   "tile_pad": 12,
+   "top": 56
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 480
  },
  "reterminald1001": {
   "alert": {
