@@ -1,0 +1,41 @@
+# ESP Screens - the Waveshare 10.1-DSI-TOUCH-A panel on an ESP32-P4 carrier, for a board file that includes this one.
+#
+# The panel hangs on the MIPI-DSI FPC of a carrier that routes no LCD reset and no backlight PWM pin. Both of those
+# live in a small I2C controller at 0x45 on the panel itself, on the same bus as the touch controller:
+#
+#   register 0x95   the panel's enable
+#   register 0x96   the backlight's level, a byte from 0 to 255
+#
+# So this file holds what that controller does, and the board file names its panel, its touch and its flash.
+# The bus is the carrier's touch bus (hardware/esp32p4-c6.yaml).
+
+# Switch the panel on BEFORE the display sets up. ESPHome's mipi_dsi does not know about the enable: it only ever
+# writes 0x96 (brightness, through the output below) and never writes 0x95 at all.
+#
+# Waveshare do exactly this inside esp_lcd_new_panel_jd9365(), before any DSI traffic, unconditionally for every panel
+# their driver supports (esp_lcd_jd9365.c). Without it the panel never drives its side of the DSI link, so the host
+# cannot complete a transfer: the generic command FIFO buffers about 19 short writes and then never drains, tx_param
+# spins forever in mipi_dsi_host_ll_gen_is_cmd_fifo_full, and roughly 30 s later the task watchdog aborts the boot,
+# ten times over, into safe mode with a dark panel. Reported upstream as esphome/esphome#21451.
+#
+# components/panel_i2c_enable runs at setup_priority::IO, after the I2C bus and before any display. The shared
+# on_boot in packages/core.yaml is priority -100, which is long after the display has already given up.
+panel_i2c_enable:
+  - i2c_id: touch_bus
+    address: 0x45
+    sequence: [[0x95, 0x11], [0x95, 0x17], [0x96, 0x00], 100ms, [0x96, 0xFF], 1000ms]
+
+# The backlight. The carrier routes no PWM pin for it: brightness is the single byte in register 0x96 that the vendor
+# BSP writes in bsp_display_brightness_set(). features/backlight.yaml accepts a template output here ("a PWM pin, or a
+# line on an expander"), so the shared monochromatic light dims this unchanged. zero_means_zero keeps 0 fully dark for
+# standby. (The panel wiki quotes register 0x86; the BSP uses 0x96, which is what is confirmed working on this panel.)
+output:
+  - platform: template
+    id: gpio_backlight_pwm
+    type: float
+    zero_means_zero: true
+    write_action:
+      - lambda: |-
+          uint8_t level = (uint8_t) lroundf(state * 255.0f);
+          uint8_t data[2] = {0x96, level};
+          id(touch_bus)->write(0x45, data, sizeof(data));

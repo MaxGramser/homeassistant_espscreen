@@ -262,3 +262,9 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+wavesharep4nano:
+  file: wavesharep4nano.yaml
+  name: Waveshare
+  model: ESP32-P4-NANO + 10.1-DSI-TOUCH-A
+  status: experimental

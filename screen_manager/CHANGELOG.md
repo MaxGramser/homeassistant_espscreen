@@ -1,5 +1,12 @@
 ## Unreleased
 
+- **The Waveshare ESP32-P4-NANO with a 10.1-DSI-TOUCH-A panel, experimental.** The two-piece 10.1 inch: a P4
+  carrier board and a separate 800 x 1280 panel on the MIPI-DSI connector, which the all-in-one
+  ESP32-P4-WIFI6-Touch-LCD-10.1 board file cannot drive. That panel has no reset pin and no backlight PWM pin:
+  it is switched on, and dimmed, through a small I2C controller on the panel itself, so a build made for the
+  all-in-one board stayed dark and went into safe mode. It is a board of its own now, under New screen, with a
+  dimmable backlight and no audio (docs/WAVESHAREP4NANO.md).
+
 - **Presets for a light, one tap away.** A light's tile (and a light group's) can have up to four presets: round keys in Home Assistant's own favourite-colour style that each set a white shade or a colour and a brightness at once. Choose **Presets** under **Direct control on the tile** in the editor, or **Brightness slider and presets** on a tile two rows high; they also show on the light's card, beside its sliders on a wide screen. The key of the preset the light shows has a ring round it. **Show brightness on presets** adds each one's brightness to its key. On every screen with 8 MB of flash or more; the CYD and other 4 MB boards keep the slider (docs/LIGHT_PRESETS.md).
 
 - **A blind's bar reads the same everywhere.** On a cover group's page, the bar of each blind filled with the part that was open, while the tile and the cover's card fill the part that is closed, as Home Assistant does: a closed blind looked open there and the other way round. The group page and a cover's bar lying across a wide tile now fill the closed part too, and dragging works the same way round. A tilt bar lying across a card or the group page has its open end at the left, as in Home Assistant, and a cover group's **Slats open at** (100 % or 50 %) now counts for every blind on its group page.

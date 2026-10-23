@@ -50,6 +50,7 @@ body:
         - Waveshare (ESP32-P4-WIFI6-Touch-LCD-7)
         - Waveshare (ESP32-P4-WIFI6-Touch-LCD-10.1)
         - Waveshare (ESP32-S3-Touch-LCD-4.3C)
+        - Waveshare (ESP32-P4-NANO + 10.1-DSI-TOUCH-A)
         - Other / not listed here
         - Not board-specific (add-on, editor, documentation)
     validations:
