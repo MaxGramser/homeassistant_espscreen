@@ -45,8 +45,8 @@ class NotationTests(unittest.TestCase):
 
     def test_automatic_follows_home_assistants_own_language(self):
         with tempfile.TemporaryDirectory() as tmp:
-            # Swedish: English texts (no file yet), Swedish clock and numbers.
-            sv = region(tmp, 'sv')
+            # Finnish: English texts (no file yet), Finnish clock and numbers.
+            sv = region(tmp, 'fi')
             self.assertEqual((sv.language(), sv.clock_24h(), sv.number_style(), sv.group_min(), sv.percent_space()),
                              ('en', True, 'space', 1, True))
             # Brazilian Portuguese: the Portuguese texts, Brazil's numbers.
