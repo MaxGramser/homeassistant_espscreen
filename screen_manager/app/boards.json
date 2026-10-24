@@ -2351,6 +2351,103 @@
   "wide_slots": false,
   "width": 1280
  },
+ "checkout/waveshare2.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 29
+  },
+  "battery": false,
+  "board": "waveshare2",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.0,
+   "model": "ESP32-S3-Touch-LCD-2",
+   "name": "Waveshare",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST816"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 200,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 25,
+   "icon": 39,
+   "icon_home": 35,
+   "icon_mini": 25,
+   "label": 15,
+   "setpoint": 56,
+   "sublabel": 15,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 31
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     2,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 2,
+    "width": 240
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 50,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 50,
+   "radius": 25,
+   "tile_pad": 11,
+   "top": 48
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "checkout/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -7946,6 +8043,103 @@
   "wide_slots": false,
   "width": 1280
  },
+ "packages/waveshare2.yaml": {
+  "alert": {
+   "line": 23,
+   "title_line": 29
+  },
+  "battery": false,
+  "board": "waveshare2",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.0,
+   "model": "ESP32-S3-Touch-LCD-2",
+   "name": "Waveshare",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST816"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 200,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 25,
+   "icon": 39,
+   "icon_home": 35,
+   "icon_mini": 25,
+   "label": 15,
+   "setpoint": 56,
+   "sublabel": 15,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 31
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     2,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 2,
+    "width": 240
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 50,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 50,
+   "radius": 25,
+   "tile_pad": 11,
+   "top": 48
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "packages/waveshare35.yaml": {
   "alert": {
    "line": 23,
@@ -10118,6 +10312,103 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1280
+ },
+ "waveshare2": {
+  "alert": {
+   "line": 23,
+   "title_line": 29
+  },
+  "battery": false,
+  "board": "waveshare2",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.0,
+   "model": "ESP32-S3-Touch-LCD-2",
+   "name": "Waveshare",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST816"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 200,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 25,
+   "icon": 39,
+   "icon_home": 35,
+   "icon_mini": 25,
+   "label": 15,
+   "setpoint": 56,
+   "sublabel": 15,
+   "sublabel_big": 20,
+   "watch_icon": 17,
+   "watch_value": 31
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 2,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     2,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 2,
+    "width": 240
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 50,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 50,
+   "radius": 25,
+   "tile_pad": 11,
+   "top": 48
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
  },
  "waveshare35": {
   "alert": {
