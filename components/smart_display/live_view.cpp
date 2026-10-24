@@ -30,6 +30,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/stream_buffer.h>
 #include <freertos/task.h>
+
+#include "psram_task.h"
+#include "roomy.h"
 #ifdef USE_SPEAKER
 #include "esphome/components/audio/audio.h"
 #include "esphome/components/speaker/speaker.h"
@@ -39,6 +42,7 @@ namespace live_view {
 
 static const char *const TAG = "live";
 constexpr size_t CHUNK = 16 * 1024;
+constexpr uint32_t STACK_BYTES = 6144;  // a stream task's stack (psram_task.h), its high water logged as it ends
 constexpr uint32_t WAIT_MS = 500;  // a read waits this long, so a stop is seen within it
 // ---- The glass (glass.h): the panel, its frame buffer, the one-writer lock and the rooms LVGL keeps out of ----
 bool available() { return glass::direct(); }
@@ -74,7 +78,7 @@ struct Stream {
   size_t input_size = 0, picture_size = 0, canvas_size = 0;
   // The camera's sound (a full view on a board with a speaker): parts the task puts in `sound`, which the main loop
   // hands to the speaker unless `muted`.
-  StreamBufferHandle_t sound = nullptr;
+  StreamBufferHandle_t sound = nullptr;  // in PSRAM (xStreamBufferCreateWithCaps), as its parts below
   uint8_t *sound_part = nullptr;
   uint8_t *sound_piece = nullptr;  // what the speaker took part of, the rest of it next tick
   size_t piece_left = 0, piece_at = 0;
@@ -88,14 +92,16 @@ struct Stream {
   // speaker started.
   bool told_first = false, told_live = false, told_sound = false, speaking = false;
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0;
+  psram_task::Task task;  // its task, its stack in PSRAM: the main loop deletes it once done (psram_task.h)
+  std::atomic<uint32_t> stack_left{0};  // what of its stack the task never used, in bytes (written before `done`)
 };
 static Stream *streams[MAX_STREAMS] = {};
 static_assert(MAX_STREAMS <= glass::MAX_ROOMS, "every stream has a room on the glass");
 
 static void free_stream(Stream *s) {
-  if (s->sound) vStreamBufferDelete(s->sound);
-  if (s->sound_part) free(s->sound_part);
-  if (s->sound_piece) free(s->sound_piece);
+  if (s->sound) vStreamBufferDeleteWithCaps(s->sound);
+  if (s->sound_part) roomy::release(s->sound_part);
+  if (s->sound_piece) roomy::release(s->sound_piece);
   if (s->input) free(s->input);
   if (s->picture) free(s->picture);
   if (s->canvas) free(s->canvas);
@@ -288,9 +294,8 @@ static void stream(Stream &s) {
     s.failed = true;
     return;
   }
-  // In PSRAM: recv copies into it, nothing reaches it by DMA, and internal RAM is what the Wi-Fi link runs short of.
-  auto *chunk = static_cast<uint8_t *>(heap_caps_malloc(CHUNK, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-  if (!chunk) chunk = static_cast<uint8_t *>(heap_caps_malloc(CHUNK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+  // PSRAM first (roomy.h): recv copies into it and no DMA reads it, and internal RAM is what the Wi-Fi link runs short of.
+  auto *chunk = static_cast<uint8_t *>(roomy::allocate(CHUNK));
   if (!chunk) {
     ::close(fd);
     s.failed = true;
@@ -344,14 +349,16 @@ static void stream(Stream &s) {
     if (!s.answered_ms && reader.status()) s.answered_ms = esphome::millis() - s.started_at;
   }
   ::close(fd);
-  free(chunk);
+  roomy::release(chunk);
 }
 
 static void task_main(void *arg) {
   auto *s = static_cast<Stream *>(arg);
   stream(*s);
+  const bool in_psram = psram_task::in_psram(s->task);  // read before `done`: the main loop frees the stream after it
+  s->stack_left.store(uxTaskGetStackHighWaterMark(nullptr), std::memory_order_relaxed);
   s->done.store(true, std::memory_order_release);
-  vTaskDelete(nullptr);
+  psram_task::finish(in_psram);
 }
 
 Handle open(const std::string &url, const Rect &area, const Look &look, bool sound) {
@@ -375,9 +382,10 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
   s->ppa = picture_engine::client();
   bool ok = s->input && s->ppa;
   if (ok && sound && has_speaker()) {
-    s->sound = xStreamBufferCreate(SOUND_BUFFER, 1);
-    s->sound_part = static_cast<uint8_t *>(heap_caps_malloc(SOUND_PART, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
-    s->sound_piece = static_cast<uint8_t *>(heap_caps_malloc(SOUND_PART, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    // The camera's sound between the task and the main loop, in PSRAM: only the task and the speaker's copy read it.
+    s->sound = xStreamBufferCreateWithCaps(SOUND_BUFFER, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    s->sound_part = static_cast<uint8_t *>(roomy::allocate(SOUND_PART));
+    s->sound_piece = static_cast<uint8_t *>(roomy::allocate(SOUND_PART));
     ok = s->sound && s->sound_part && s->sound_piece;
   }
   // The name as LVGL drew it, the stream's own copy: its owner may draw the card again meanwhile.
@@ -409,7 +417,7 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
     return -1;
   }
   streams[slot] = s;
-  if (xTaskCreatePinnedToCore(task_main, "live_view", 6144, s, 5, nullptr, 1) != pdPASS) {
+  if (!psram_task::start(s->task, task_main, "live_view", STACK_BYTES, s, 5, 1)) {
     streams[slot] = nullptr;
     free_stream(s);
     return -1;
@@ -500,8 +508,13 @@ void tick(const std::function<void(Handle, Event)> &tell) {
     Stream *s = streams[slot];
     if (!s) continue;
     if (s->done.load(std::memory_order_acquire)) {
+      const bool in_psram = psram_task::in_psram(s->task);
+      psram_task::reap(s->task);  // its task deleted (a stack in PSRAM) before anything of the stream is freed
       speak(*s, false);
       report(slot, *s, now, true);
+      ESP_LOGI(TAG, "ended %d: its task's stack was in %s, %u of %u bytes of it never used", slot,
+               in_psram ? "PSRAM" : "internal RAM", (unsigned) s->stack_left.load(std::memory_order_relaxed),
+               (unsigned) STACK_BYTES);
       const bool turned = s->turn != turn, ended = s->stopping && !s->failed;
       glass::disarm(s->room, false);  // its task has ended: nothing of it copies, and LVGL draws the room again
       streams[slot] = nullptr;

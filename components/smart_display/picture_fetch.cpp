@@ -28,6 +28,7 @@
 #include <esp_heap_caps.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include "psram_task.h"
 #else
 #include <thread>
 #endif
@@ -46,6 +47,9 @@ enum State : int { IDLE = 0, LOADING = 1, DONE = 2 };
 struct Slot {
   explicit Slot(const char *n) : name(n) {}
   const char *name;
+#ifdef USE_ESP32
+  psram_task::Task task;  // the download's task, its stack in PSRAM: tick deletes it once done (psram_task.h)
+#endif
   Done done;
   std::string url, etag;   // the link on the glass (or on its way) and the ETag the add-on gave for it
   // The picture LVGL draws.
@@ -74,30 +78,7 @@ Slot &full() { return slots[0]; }
 Slot &thumb() { return slots[1]; }
 Slot &live() { return slots[2]; }
 
-static uint16_t *allocate(size_t bytes) {
-#ifdef USE_ESP32
-  void *p = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-  if (!p) p = heap_caps_malloc(bytes, MALLOC_CAP_8BIT);
-  return static_cast<uint16_t *>(p);
-#else
-  return static_cast<uint16_t *>(std::malloc(bytes));
-#endif
-}
-static void *allocate_chunk(size_t bytes) {
-#ifdef USE_ESP32
-  void *p = heap_caps_malloc(bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-  return p ? p : heap_caps_malloc(bytes, MALLOC_CAP_8BIT);
-#else
-  return std::malloc(bytes);
-#endif
-}
-static void release_memory(void *p) {
-#ifdef USE_ESP32
-  heap_caps_free(p);
-#else
-  std::free(p);
-#endif
-}
+// Pixels and the read buffer take PSRAM first (roomy.h): only this file's code reads them, never a DMA.
 
 // ---- the task ----
 int connect_to(const Address &a, uint32_t wait_ms) {
@@ -154,7 +135,7 @@ static void download(Slot &slot) {
   request += "\r\n";
   if (!send_all(fd, request)) { ESP_LOGW(TAG, "%s: the request did not go out", slot.name); close(fd); return; }
 
-  auto *chunk = static_cast<uint8_t *>(allocate_chunk(CHUNK));
+  auto *chunk = static_cast<uint8_t *>(roomy::allocate(CHUNK));
   if (!chunk) { ESP_LOGW(TAG, "%s: no memory for the download", slot.name); close(fd); return; }
   roomy::Text head;
   head.reserve(1024);
@@ -164,7 +145,7 @@ static void download(Slot &slot) {
     const size_t needed = static_cast<size_t>(width) * height * 2;
     // In place, the size on the glass (rows without the padding a JPEG's whole MCUs leave).
     if (slot.pixels && slot.bytes == needed && slot.dsc.header.stride == static_cast<uint32_t>(width) * 2) return slot.pixels;
-    slot.fresh = allocate(needed);
+    slot.fresh = static_cast<uint16_t *>(roomy::allocate(needed));
     if (!slot.fresh) { ESP_LOGW(TAG, "%s: no memory for %dx%d", slot.name, width, height); return nullptr; }
     slot.fresh_bytes = needed;
     slot.fresh_w = width;
@@ -222,7 +203,7 @@ static void download(Slot &slot) {
     if (decoder.done() || (answer.has_length && body >= answer.content_length)) break;
   }
   close(fd);
-  release_memory(chunk);
+  roomy::release(chunk);
   if (kind == 2 && !slot.cached && !failed && jpeg.done()) {
     // The whole JPEG: decoded into a buffer of its own, which tick() swaps in as it does a BMP of a new size.
     picture_engine::Still still;
@@ -255,18 +236,23 @@ static void download(Slot &slot) {
   } else if (kind != 2 && !slot.cached && !failed && !slot.cancel.load(std::memory_order_relaxed)) {
     ESP_LOGW(TAG, "%s: the picture ended early (%d of %d rows)", slot.name, decoder.rows(), decoder.bmp().height);
   }
-  if (jpeg.buffer) release_memory(jpeg.buffer);
+  if (jpeg.buffer) roomy::release(jpeg.buffer);
 }
 
 static void task_main(void *arg) {
   auto &slot = *static_cast<Slot *>(arg);
   download(slot);
 #ifdef USE_ESP32
-  ESP_LOGD(TAG, "%s: task stack left %u", slot.name, (unsigned) uxTaskGetStackHighWaterMark(nullptr));
+  // A stack nearly used up says so (psram_task.h moved it to PSRAM; its size is unchanged).
+  const unsigned stack_left = uxTaskGetStackHighWaterMark(nullptr);
+  if (stack_left < 1024) ESP_LOGW(TAG, "%s: only %u bytes of the task's stack were never used", slot.name, stack_left);
+#endif
+#ifdef USE_ESP32
+  const bool in_psram = psram_task::in_psram(slot.task);  // read before DONE: the slot's next download follows it
 #endif
   slot.state.store(DONE, std::memory_order_release);
 #ifdef USE_ESP32
-  vTaskDelete(nullptr);
+  psram_task::finish(in_psram);
 #endif
 }
 
@@ -285,7 +271,7 @@ static void start(Slot &slot) {
   slot.started = esphome::millis();
   slot.state.store(LOADING, std::memory_order_release);
 #ifdef USE_ESP32
-  if (xTaskCreate(task_main, "picture", STACK_BYTES, &slot, 1, nullptr) != pdPASS) {
+  if (!psram_task::start(slot.task, task_main, "picture", STACK_BYTES, &slot, 1, tskNO_AFFINITY)) {
     ESP_LOGW(TAG, "%s: no task for the download", slot.name);
     slot.state.store(DONE, std::memory_order_release);  // tick reports the failure
   }
@@ -312,7 +298,7 @@ void load(Slot &slot, const std::string &url) {
 }
 
 static void forget_picture(Slot &slot) {
-  if (slot.pixels) release_memory(slot.pixels);
+  if (slot.pixels) roomy::release(slot.pixels);
   slot.pixels = nullptr;
   slot.bytes = 0;
   slot.dsc.data = nullptr;
@@ -345,11 +331,11 @@ static void take_over(Slot &slot) {
   const bool cancelled = slot.cancel.load();
   if (slot.fresh && !slot.ok) {
     // A picture that did not come whole: the one on the glass stays.
-    release_memory(slot.fresh);
+    roomy::release(slot.fresh);
     slot.fresh = nullptr;
   }
   if (slot.fresh) {
-    if (slot.pixels) release_memory(slot.pixels);
+    if (slot.pixels) roomy::release(slot.pixels);
     slot.pixels = slot.fresh;
     slot.bytes = slot.fresh_bytes;
     slot.fresh = nullptr;
@@ -383,7 +369,12 @@ static void take_over(Slot &slot) {
 
 void tick() {
   for (auto &slot : slots)
-    if (slot.state.load(std::memory_order_acquire) == DONE) take_over(slot);
+    if (slot.state.load(std::memory_order_acquire) == DONE) {
+#ifdef USE_ESP32
+      psram_task::reap(slot.task);  // its task deleted (a stack in PSRAM) before the slot's next download makes one
+#endif
+      take_over(slot);
+    }
 }
 }  // namespace picture_fetch
 #endif

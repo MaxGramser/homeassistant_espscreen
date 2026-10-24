@@ -32,7 +32,8 @@ __NOINIT_ATTR Record record;
 Record previous{};
 bool had_previous = false;
 LowWater water;
-uint32_t logged_failures = 0, checked_at = 0;
+uint32_t logged_failures = 0, checked_at = 0, counted_at = 0;
+constexpr uint32_t COUNT_MS = 5 * 60 * 1000;  // how often the tasks and the two heaps are logged: a leak shows as a trend
 
 uint32_t internal_free() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
 uint32_t internal_lowest() { return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL); }
@@ -94,6 +95,11 @@ void tick(uint32_t now) {
   if (water.due(lowest, STEP))
     ESP_LOGW(TAG, "Internal RAM at its lowest since boot: %u bytes free (%u free now)", (unsigned) lowest,
              (unsigned) internal_free());
+  if (now - counted_at >= COUNT_MS) {
+    counted_at = now;
+    ESP_LOGI(TAG, "%u tasks; internal RAM %u bytes free (%u at the lowest), PSRAM %u free", (unsigned) uxTaskGetNumberOfTasks(),
+             (unsigned) internal_free(), (unsigned) record.lowest, (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+  }
   const uint32_t failures = record.failures;
   if (failures != logged_failures) {
     logged_failures = failures;
