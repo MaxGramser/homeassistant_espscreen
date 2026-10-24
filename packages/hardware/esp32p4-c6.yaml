@@ -52,6 +52,11 @@ esp32:
       # for. All three from the build that ran on the real board (pull request #14).
       CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
       CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
+      # Its transport buffers (every packet to and from the C6, and Bluetooth's HCI) in PSRAM, which the P4's SDIO DMA
+      # reaches (SOC_SDMMC_PSRAM_DMA_CAPABLE), internal RAM only when PSRAM has none: a received packet stays in its
+      # buffer until the reader of its connection has taken it, and in internal RAM two live tiles held enough of them to
+      # leave the next buffer without room (heap_watch on a reTerminal D1001, 2026-10-24).
+      CONFIG_ESP_HOSTED_MEMPOOL_PREFER_SPIRAM: "y"
       CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
 
 psram:
