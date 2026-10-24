@@ -55,6 +55,9 @@ async def to_code(config):
         from esphome.components import ota
 
         ota.request_ota_state_listeners()
+    # What an abort said, kept across the reset (abort_record.h): ESP-IDF's panic_abort wrapped on every ESP32.
+    if CORE.is_esp32:
+        cg.add_build_flag("-Wl,--wrap=panic_abort")
     if _esp32_p4():
         await _p4(config)
     _tier(config)

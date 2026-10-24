@@ -3,6 +3,7 @@
 #include "chunk_transport.h"
 #include "loop_record.h"
 #include "heap_watch.h"
+#include "abort_record.h"
 #include "esphome/components/text/text.h"
 #include "esphome/core/component.h"
 namespace esphome::smart_display {
@@ -11,6 +12,7 @@ class DashboardInbox : public text::Text, public Component {
  public:
   void setup() override {
     loop_record::take();  // what the main loop was doing when the last task watchdog restarted the screen, if one did
+    abort_record::take();  // what the last abort or failed assert said, if one restarted it
     heap_watch::setup();  // the internal RAM's lowest and its failed allocations, of the previous boot and this one
     this->publish_state("Ready for tile configuration");
   }
@@ -18,6 +20,7 @@ class DashboardInbox : public text::Text, public Component {
   // Every log subscriber asks for the config dump: the records of the previous boot go to each of them.
   void dump_config() override {
     loop_record::report();
+    abort_record::report();
     heap_watch::dump();
   }
  protected:
