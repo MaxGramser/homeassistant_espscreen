@@ -288,7 +288,9 @@ static void stream(Stream &s) {
     s.failed = true;
     return;
   }
-  auto *chunk = static_cast<uint8_t *>(heap_caps_malloc(CHUNK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+  // In PSRAM: recv copies into it, nothing reaches it by DMA, and internal RAM is what the Wi-Fi link runs short of.
+  auto *chunk = static_cast<uint8_t *>(heap_caps_malloc(CHUNK, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (!chunk) chunk = static_cast<uint8_t *>(heap_caps_malloc(CHUNK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
   if (!chunk) {
     ::close(fd);
     s.failed = true;
