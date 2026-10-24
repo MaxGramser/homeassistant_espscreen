@@ -40,7 +40,11 @@ constexpr uint32_t RECV_MS = 4000;      // a chunk that does not come in this lo
 constexpr uint32_t WHOLE_MS = 30000;    // and a picture that takes longer than this altogether
 constexpr size_t CHUNK = 8192;          // what one recv takes at most
 constexpr size_t HEAD_MAX = 4096;       // an answer's head larger than this is no picture
-constexpr uint32_t STACK_BYTES = 6144;  // the task's stack: a socket, the head, a row of the picture (on the heap)
+// The task's stack: a socket, the head, a row of a BMP, and on a P4 the decode of a whole JPEG (the hardware decoder's
+// driver and the PPA's, picture_engine_p4.cpp). 6 KB from the days of BMP alone left 61 bytes unused on a reTerminal
+// D1001 (2026-10-24, a cover of 1.5 KB), and the stack's canary turns an overflow into a restart; 10 KB, in PSRAM
+// (psram_task.h), costs no internal RAM. The least a task ever left is logged (task_main).
+constexpr uint32_t STACK_BYTES = 10240;
 
 enum State : int { IDLE = 0, LOADING = 1, DONE = 2 };
 
@@ -243,9 +247,17 @@ static void task_main(void *arg) {
   auto &slot = *static_cast<Slot *>(arg);
   download(slot);
 #ifdef USE_ESP32
-  // A stack nearly used up says so (psram_task.h moved it to PSRAM; its size is unchanged).
+  // The least of the stack any download left unused, logged as it falls: the margin STACK_BYTES really has.
+  static std::atomic<unsigned> least{~0u};
   const unsigned stack_left = uxTaskGetStackHighWaterMark(nullptr);
-  if (stack_left < 1024) ESP_LOGW(TAG, "%s: only %u bytes of the task's stack were never used", slot.name, stack_left);
+  unsigned was = least.load(std::memory_order_relaxed);
+  while (stack_left < was && !least.compare_exchange_weak(was, stack_left, std::memory_order_relaxed)) {}
+  if (stack_left < was && stack_left < 2048)
+    ESP_LOGW(TAG, "%s: a download left %u of the task's %u bytes of stack unused, the least so far", slot.name, stack_left,
+             (unsigned) STACK_BYTES);
+  else if (stack_left < was)
+    ESP_LOGI(TAG, "%s: a download left %u of the task's %u bytes of stack unused, the least so far", slot.name, stack_left,
+             (unsigned) STACK_BYTES);
 #endif
 #ifdef USE_ESP32
   const bool in_psram = psram_task::in_psram(slot.task);  // read before DONE: the slot's next download follows it
