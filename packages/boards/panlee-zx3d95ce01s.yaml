@@ -1,0 +1,212 @@
+# ESP Screens - Panlee ZX3D95CE01S-TR-V12 board: 3.95-inch 480x480 IPS (GC9503V over RGB) +
+# capacitive touch, ESP32-S3 WT32-S3-WROVER-N16R8 with 16 MB flash and 8 MB of octal PSRAM.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its size), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Everything else (the LVGL tree,
+# the cards, the scripts, the entities) is packages/core.yaml, which every board shares.
+#
+# HARDWARE STATUS: EXPERIMENTAL — Pinout and timings verified against a working ESPHome configuration
+# using the Quanghoster gc9503v external component. Physical validation on Tessera firmware still required.
+
+packages:
+  # The chip, its PSRAM and the ESP-IDF settings every ESP32-S3 RGB panel shares.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  # Every size of the standard look, scaled to DISPLAY_DPI below.
+  look: !include ../looks/standard.yaml
+  # Capacitive touch handling shared by all capacitive panels.
+  touch: !include ../features/capacitive-touch.yaml
+  # Backlight dimming, standby and alert flashes.
+  backlight: !include ../features/backlight.yaml
+  # Optional extras this glass can run.
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/Quanghoster/gc9503v
+      ref: main
+    components:
+      - gc9503v
+    refresh: 0s
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "panlee-zx3d95ce01s"
+  DEVICE_NAME: "panlee-zx3d95ce01s-new"
+  DEVICE_FRIENDLY_NAME: "My Panlee"
+
+  # The glass: the panel's own pixels, which the display block below always drives, and its density.
+  PANEL_W: "480"
+  PANEL_H: "480"
+  DISPLAY_DPI: "171.8"
+  # The tile grid: columns and rows of cells. Square glass: the same six cells whichever way it hangs.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  # More tiles and pages than the default, because this board has PSRAM.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  LVGL_BUFFER_SIZE: "25%"
+  BACKLIGHT_FREQUENCY: "5kHz"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  platformio_options:
+    board_upload.maximum_ram_size: 524288
+
+esp32:
+  flash_size: 16MB
+  framework:
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_RODATA: "y"
+
+logger:
+  tx_buffer_size: 2048
+  hardware_uart: UART0
+
+text_sensor:
+  - platform: template
+    name: "Panlee screen type"
+    entity_category: diagnostic
+    update_interval: never
+    lambda: 'return {"panlee-zx3d95ce01s"};'
+
+# SPI component must be loaded so the gc9503v external component can include its headers.
+# The gc9503v platform drives the init SPI phase itself; no explicit bus pins are needed here.
+spi:
+
+# I2C bus for the FT63x6 capacitive touch controller.
+# Touch I2C: TP_SCL=GPIO6, TP_SDA=GPIO15.
+i2c:
+  id: touch_bus
+  sda: GPIO15
+  scl: GPIO6
+  scan: true
+  frequency: 400kHz
+
+# Backlight control — GPIO5, active high (verified on working hardware).
+# features/backlight.yaml attaches to this output id.
+output:
+  - platform: ledc
+    pin: GPIO5
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# Onboard HTU21D / SHT21 temperature and humidity sensor.
+# Assumed to be on the same I2C bus as the touch controller (GPIO15/6).
+sensor:
+  - platform: htu21d
+    model: sht21
+    temperature:
+      name: "Temperature"
+      id: air_temperature
+    humidity:
+      name: "Humidity"
+      id: relative_humidity
+    heater:
+      name: "Heater"
+
+# Touch controller — FT63x6 (FT6336U family) on the dedicated touch I2C bus.
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: 4
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: 480
+      y_min: 0
+      y_max: 480
+
+# GC9503V display via the Quanghoster gc9503v external component.
+# The model: PANLEE selects the manufacturer-specific init sequence.
+#
+# RGB interface pins (verified against working hardware):
+#   PCLK=GPIO39, DE=GPIO40, VS=GPIO41, HS=GPIO42
+#   D0=GPIO45, D1=GPIO48, D2=GPIO47, D3=GPIO0, D4=GPIO21,
+#   D5=GPIO14, D6=GPIO13, D7=GPIO12, D8=GPIO11, D9=GPIO16, D10=GPIO17,
+#   D11=GPIO18, D12=GPIO8, D13=GPIO3, D14=GPIO46, D15=GPIO10
+#
+# SPI init pins (shared with D0/D1):
+#   CS/enable=GPIO38, SCLK=GPIO45, MOSI=GPIO48
+#   RST=GPIO41 (shared with VSYNC, as on the working hardware)
+#
+# RGB565 data mapping:
+#   Blue[0:4]  → D0-D4  → GPIO45, GPIO48, GPIO47, GPIO0, GPIO21
+#   Green[0:5] → D5-D10 → GPIO14, GPIO13, GPIO12, GPIO11, GPIO10, GPIO16
+#   Red[0:4]   → D11-D15 → GPIO18, GPIO8, GPIO3, GPIO46, GPIO10
+# Touch interrupt: GPIO4 (verified on working hardware).
+display:
+  - platform: gc9503v
+    model: PANLEE
+    id: my_display
+    color_order: RGB
+    dimensions:
+      width: 480
+      height: 480
+    de_pin:
+      number: 40
+      inverted: false
+    hsync_pin:
+      number: 42
+      inverted: false
+    vsync_pin:
+      number: 41
+      inverted: false
+      allow_other_uses: true
+    pclk_pin: 39
+    pclk_inverted: true
+    hsync_pulse_width: 10
+    hsync_front_porch: 8
+    hsync_back_porch: 40
+    vsync_pulse_width: 10
+    vsync_front_porch: 8
+    vsync_back_porch: 40
+    data_pins:
+      red:
+        - 18
+        - 8
+        - 3
+        - 46
+        - 10
+      green:
+        - 14
+        - 13
+        - 12
+        - 11
+        - 16
+        - 17
+      blue:
+        - number: 45
+          allow_other_uses: true
+        - number: 48
+          allow_other_uses: true
+        - 47
+        - 0
+        - 21
+    enable_pin:
+      number: 38
+      inverted: false
+    reset_pin:
+      number: 41
+      inverted: false
+      allow_other_uses: true
+    sclk_pin:
+      number: 45
+      allow_other_uses: true
+    mosi_pin:
+      number: 48
+      allow_other_uses: true
+    update_interval: never
+    auto_clear_enabled: false
