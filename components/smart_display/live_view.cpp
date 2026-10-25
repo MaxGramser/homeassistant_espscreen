@@ -80,7 +80,7 @@ struct Stream {
   // The camera's sound (a full view on a board with a speaker): parts the task puts in `sound`, which the main loop
   // hands to the speaker unless `muted`.
   // Its storage in PSRAM, its control (with the spinlock its critical sections take) inside the chip: made static over
-  // memory of the stream's own (sound_buffer below), never with xStreamBufferCreateWithCaps. ESP-IDF 5.5.5's
+  // memory of the stream's own (sound_control, sound_storage), never with xStreamBufferCreateWithCaps. ESP-IDF 5.5.5's
   // vStreamBufferDeleteWithCaps deletes a stream buffer as a queue (vSemaphoreDelete), reads a byte past the control
   // as the queue's "statically allocated" flag and, when that byte is 0, frees the control twice: a restart (tlsf_free,
   // "block already marked as free") at the close of a camera with sound, now and then (reTerminal D1001, 2026-10-25;
