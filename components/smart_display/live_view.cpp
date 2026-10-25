@@ -17,6 +17,7 @@
 #if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
 #include <atomic>
 #include <cerrno>
+#include <cstring>
 #include <cstdlib>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -96,6 +97,71 @@ struct Stream {
   std::atomic<uint32_t> stack_left{0};  // what of its stack the task never used, in bytes (written before `done`)
 };
 static Stream *streams[MAX_STREAMS] = {};
+
+// ---- TEST BUILD ONLY: the PSRAM heap's canaries checked (CONFIG_HEAP_POISONING_LIGHT), the first bad one logged ----
+#ifdef CONFIG_HEAP_POISONING_LIGHT
+namespace heap_probe {
+struct Bad {
+  const void *ptr = nullptr, *before = nullptr;
+  size_t size = 0, asked = 0, before_asked = 0;
+  bool head = false;
+  uint32_t got = 0;
+};
+static const void *last_used = nullptr;
+static size_t last_asked = 0;
+static bool walk(walker_heap_into_t, walker_block_info_t b, void *user) {
+  auto *bad = static_cast<Bad *>(user);
+  if (!b.used) return true;
+  const auto *raw = static_cast<const uint8_t *>(b.ptr);
+  uint32_t head;
+  size_t asked;
+  memcpy(&head, raw, 4);
+  memcpy(&asked, raw + 4, 4);
+  if (head != 0xABBA1234u) {
+    *bad = Bad{b.ptr, last_used, b.size, asked, last_asked, true, head};
+    return false;
+  }
+  if (asked + 12 <= b.size) {
+    uint32_t tail;
+    memcpy(&tail, raw + 8 + asked, 4);
+    if (tail != 0xBAAD5678u) {
+      *bad = Bad{b.ptr, last_used, b.size, asked, last_asked, false, tail};
+      return false;
+    }
+  }
+  last_used = b.ptr;
+  last_asked = asked;
+  return true;
+}
+static bool corrupt = false;
+static uint32_t checked_at = 0;
+// True when the PSRAM heap is (now or before) corrupt; logs the first bad block once.
+static bool check(const char *when, bool now_anyway) {
+  if (corrupt) return true;
+  const uint32_t ms = esphome::millis();
+  if (!now_anyway && ms - checked_at < 250) return false;
+  checked_at = ms;
+  Bad bad;
+  last_used = nullptr;
+  last_asked = 0;
+  heap_caps_walk(MALLOC_CAP_SPIRAM, walk, &bad);
+  if (!bad.ptr) return false;
+  corrupt = true;
+  ESP_LOGE("heap_probe", "PSRAM heap corrupt (%s): block %p of %u bytes (%u asked) has a bad %s canary 0x%08X; the used "
+           "block before it %p (%u asked)", when, bad.ptr, (unsigned) bad.size, (unsigned) bad.asked,
+           bad.head ? "head" : "tail", (unsigned) bad.got, bad.before, (unsigned) bad.before_asked);
+  return true;
+}
+static void where(int slot, const Stream &s) {
+  uint8_t *storage = nullptr;
+  StaticStreamBuffer_t *control = nullptr;
+  if (s.sound) xStreamBufferGetStaticBuffers(s.sound, &storage, &control);
+  ESP_LOGI("heap_probe", "stream %d: input %p+%u picture %p+%u canvas %p+%u name %p under %p sound %p/%p part %p piece %p",
+           slot, s.input, (unsigned) s.input_size, s.picture, (unsigned) s.picture_size, s.canvas, (unsigned) s.canvas_size,
+           s.name, s.under, control, storage, s.sound_part, s.sound_piece);
+}
+}  // namespace heap_probe
+#endif
 static_assert(MAX_STREAMS <= glass::MAX_ROOMS, "every stream has a room on the glass");
 
 static void free_stream(Stream *s) {
@@ -417,6 +483,9 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
     return -1;
   }
   streams[slot] = s;
+#ifdef CONFIG_HEAP_POISONING_LIGHT
+  heap_probe::where(slot, *s);
+#endif
   if (!psram_task::start(s->task, task_main, "live_view", STACK_BYTES, s, 5, 1)) {
     streams[slot] = nullptr;
     free_stream(s);
@@ -502,12 +571,26 @@ static void report(int slot, Stream &s, uint32_t now, bool last) {
 
 void tick(const std::function<void(Handle, Event)> &tell) {
   const uint32_t now = esphome::millis();
+#ifdef CONFIG_HEAP_POISONING_LIGHT
+  for (int i = 0; i < MAX_STREAMS; ++i)
+    if (streams[i]) { heap_probe::check("while streams run", false); break; }
+#endif
   const int turn = glass::turn();
   glass::tick();
   for (int slot = 0; slot < MAX_STREAMS; ++slot) {
     Stream *s = streams[slot];
     if (!s) continue;
     if (s->done.load(std::memory_order_acquire)) {
+#ifdef CONFIG_HEAP_POISONING_LIGHT
+      heap_probe::where(slot, *s);
+      if (heap_probe::check("before a stream is freed", true)) {
+        ESP_LOGE("heap_probe", "stream %d left unfreed (test build), its task deleted", slot);
+        psram_task::reap(s->task);
+        streams[slot] = nullptr;
+        tell(slot, Event::FAILED);
+        continue;
+      }
+#endif
       const bool in_psram = psram_task::in_psram(s->task);
       psram_task::reap(s->task);  // its task deleted (a stack in PSRAM) before anything of the stream is freed
       speak(*s, false);
