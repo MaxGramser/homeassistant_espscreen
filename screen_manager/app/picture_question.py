@@ -9,7 +9,7 @@ from dataclasses import dataclass, field, replace
 import json
 import re
 
-from core import SHAPES, board_of, screen_firmware, shape_of
+from core import SHAPES, board_of, features_of, screen_firmware, shape_of
 
 # The largest picture any screen gets, whatever its glass (app 0.4.13, GitHub #68): at most this many pixels either way
 # and this many bytes once the screen has decoded it to RGB565. The firmware caps the pictures it sizes itself with the
@@ -236,6 +236,18 @@ FEATURE = 'pictures'
 def draws_pictures(screen):
     """Whether a screen's board draws pictures and its firmware asks for them."""
     return bool(screen) and board_of(screen) in BOXES and (screen_firmware(screen) or (0, 0, 0)) >= MIN_FIRMWARE
+
+
+# A screen that is none of the boards but draws a camera's picture on its tile itself says so in its Screen features
+# (core.features_of): the word `own_pictures`. TECHO5 on an Echo Show is one; it fetches the snapshot from Home Assistant
+# on its own. Such a screen takes camera tiles (takes_camera_tiles), and is asked nothing and sent nothing for them:
+# what this app serves a screen's pictures still goes by its board (draws_pictures).
+OWN_PICTURES_FEATURE = 'own_pictures'
+
+
+def takes_camera_tiles(screen):
+    """Whether a screen draws camera tiles: its board has camera sizes here, or the screen says `own_pictures`."""
+    return bool(screen) and (board_of(screen) in BOXES or OWN_PICTURES_FEATURE in (features_of(screen) or ()))
 
 
 def boxes(screen):

@@ -2605,7 +2605,7 @@ class Manager:
         grid = (given or self.grid_of(screen)).for_firmware(self.firmware_version(inbox, screen))
         layout = validate_layout(data, grid=grid)
         # A CYD has no memory for camera images, whatever its firmware; say so before asking for an update.
-        if any(t['entity'].split('.')[0] in CAMERA_DOMAINS for t in layout['tiles']) and board_of(screen) not in picture_question.BOXES:
+        if any(t['entity'].split('.')[0] in CAMERA_DOMAINS for t in layout['tiles']) and not picture_question.takes_camera_tiles(screen):
             raise ValueError(t('addon.errors.layout.camera_unsupported'))
         # A map is a picture too (app 0.4.33).
         if any((t.get('options') or {}).get('display') == 'map' for t in layout['tiles']) and board_of(screen) not in picture_question.BOXES:
@@ -4219,9 +4219,10 @@ def create_app(manager, development=False):
             # the keys (catalogue screen else).
             screen['vacuum_tile'] = has_module(screen, 'vacuum_card')
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with
-            # memory for them say so with their camera sizes (boards.json); the firmware that draws them is a
-            # separate question the editor asks by version, so an older screen still learns what an update brings.
-            screen['pictures'] = board_of(screen) in picture_question.BOXES
+            # memory for them say so with their camera sizes (boards.json), and a screen of another kind in its Screen
+            # features (picture_question.takes_camera_tiles); the firmware that draws them is a separate question the
+            # editor asks by version, so an older screen still learns what an update brings.
+            screen['pictures'] = picture_question.takes_camera_tiles(screen)
             screen['alert_action'] = alert_service(screen.get('node'))
             screen['dismiss_action'] = alert_service(screen.get('node'), 'dismiss_alert')
             screen['doorbell'] = manager.doorbell_kind(screen)

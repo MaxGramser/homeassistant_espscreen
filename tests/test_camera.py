@@ -1007,6 +1007,23 @@ class App(unittest.IsolatedAsyncioTestCase):
             m.save('text.d1_tiles', {'title': 'Hall', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
             self.assertEqual(m.layouts['text.d1_tiles']['tiles'][0]['entity'], 'camera.max')
 
+    async def test_camera_tiles_on_a_screen_that_says_it_draws_them(self):
+        """A screen that is none of the boards (TECHO5 on an Echo Show) and says `own_pictures` in its Screen features
+        takes a camera tile, and the editor offers it cameras; the app still sends it no pictures, as it fetches its own."""
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = fake_ha()
+            ha.registry.append({'entity_id': 'sensor.d2_features', 'platform': 'esphome', 'original_name': 'Screen features',
+                                'device_id': 'd2'})
+            ha.states['sensor.d2_features'] = {'state': 'dimmable standby own_pictures'}
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            m.inventory = lambda: (m.screens(), [{'id': 'camera.max'}])
+            m.write_layouts = lambda layouts: None
+            m.notify = lambda: None
+            m.save('text.d2_tiles', {'title': 'Desk', 'tiles': [{'entity': 'camera.max', 'name': ''}]})
+            self.assertEqual(m.layouts['text.d2_tiles']['tiles'][0]['entity'], 'camera.max')
+            await m.answer_camera({'inbox': 'text.d2_tiles', 'entity': 'camera.max'})
+            self.assertEqual([entry for entry in ha.log if entry[0] == 'send'], [])
+
     async def test_home_assistant_queues_camera_requests(self):
         from aiohttp import WSMsgType
 
@@ -1196,6 +1213,18 @@ class LiveTiles(unittest.TestCase):
         self.assertEqual([(s.kind, s.ref, s.param('entity')) for s in found.question.sources],
                          [('tile', '0', 'camera.front_door'), ('tile', '1', 'media_player.sonos')])
         self.assertEqual((found.question.box, [p.ground for p in found.question.places]), ((54, 108), [0xFFFFFF, 0xFFFFFF]))
+
+    def test_a_screen_of_another_kind_takes_camera_tiles_when_it_says_so(self):
+        """A screen that is none of the boards (TECHO5 on an Echo Show) takes camera tiles when its Screen features say
+        `own_pictures`, and is still served no pictures: it fetches the snapshot itself."""
+        self.assertTrue(pq.takes_camera_tiles({'board': 'guition'}))
+        echo = {'board': 'unknown', 'firmware': '0.57.0', 'features': 'dimmable standby own_pictures'}
+        self.assertTrue(pq.takes_camera_tiles(echo))
+        self.assertFalse(pq.draws_pictures(echo))
+        self.assertIsNone(pq.box(echo, 'full'))
+        for screen in ({'board': 'cyd'}, {'board': 'cyd', 'features': 'dimmable standby'}, {'board': 'unknown'},
+                       {'board': 'unknown', 'features': 'pictures'}, None):
+            self.assertFalse(pq.takes_camera_tiles(screen), screen)
 
     def test_which_screens_draw_live_pictures(self):
         # One question for every board that draws pictures: a screen's firmware asks only for what it draws (a strip
