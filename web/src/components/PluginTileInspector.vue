@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // A plugin's tile in the inspector (design, docs: the plugins proposal): its name, the options its manifest lists, drawn
-// with the inspector's own rows (PluginOptions, which the screensaver's drawer shares), and the sizes it takes.
+// with the inspector's own rows (PluginOptions, which the screensaver's drawer shares), its background as any tile's
+// (the layout keeps it for a plugin's tile, core.PLUGIN_TILE_OPTIONS), and the sizes it takes.
 import { computed } from "vue";
 import { t } from "../i18n";
 import { healthText } from "../model/broken-tiles";
@@ -20,6 +21,7 @@ import { removeTile, setTileOption } from "../editor/tiles";
 import { useUiStore } from "../stores/ui";
 import { useInspectorStore } from "../stores/inspector";
 import { useBrokenStore } from "../stores/broken";
+import { useInventoryStore } from "../stores/inventory";
 
 const plugins = usePluginsStore();
 const ui = useUiStore();
@@ -39,6 +41,14 @@ const size = (value: string) => value.replace("x", "×");
 // Its entity gone from Home Assistant, or away for a while (stores/broken.ts): said under the choice of another.
 const broken = useBrokenStore();
 const entityHealth = computed(() => props.tile.options?.plugin_entity ? broken.tileHealth(props.tile.options.plugin_entity) : null);
+// Its background, chosen as on any tile (TileInspector): previewed under the pointer, kept on a click.
+const inv = useInventoryStore();
+const backgrounds = computed(() => Object.entries(inv.inventory.backgrounds || {}));
+const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.options?.background || "auto"]?.label || "");
+function previewBackground(key: string | null) {
+  if (key && props.tile.id && key !== (props.tile.options?.background || "auto")) insp.optionPreview = { tileId: props.tile.id, key: "background", value: key };
+  else if (insp.optionPreview?.key === "background") insp.optionPreview = null;
+}
 // The plugin's details, in the screen's Plugins tab: the README says what the options mean.
 function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
 </script>
@@ -62,6 +72,18 @@ function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
     </Section>
     <Section v-if="kind.tile.options?.length" :title="t('editor.plugin_tile.options')">
       <PluginOptions :plugin="kind.plugin" :options="kind.tile.options" :values="values" @change="set" />
+    </Section>
+
+    <Section :title="t('editor.tile.sections.style')" class="style-section">
+      <PropRow :label="t('editor.tile.background.label')" icon="palette-outline" stack>
+        <template #aside>{{ backgroundName }}</template>
+        <div class="sw" @pointerleave="previewBackground(null)">
+          <button v-for="[background, choice] in backgrounds" :key="background" type="button" :aria-label="t('editor.tile.background.aria', { name: choice.label })" :title="choice.label"
+            :aria-pressed="(tile.options?.background || 'auto') === background ? 'true' : 'false'" @pointerenter="previewBackground(background)" @click="previewBackground(null); setTileOption(tile, 'background', background)">
+            <i :class="choice.color ? '' : background === 'none' ? 'none' : 'auto'" :style="choice.color ? { background: choice.color } : undefined"></i>
+          </button>
+        </div>
+      </PropRow>
     </Section>
 
     <Section :title="t('editor.plugin_tile.on_screen')">
