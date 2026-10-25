@@ -79,7 +79,15 @@ struct Stream {
   size_t input_size = 0, picture_size = 0, canvas_size = 0;
   // The camera's sound (a full view on a board with a speaker): parts the task puts in `sound`, which the main loop
   // hands to the speaker unless `muted`.
-  StreamBufferHandle_t sound = nullptr;  // in PSRAM (xStreamBufferCreateWithCaps), as its parts below
+  // Its storage in PSRAM, its control (with the spinlock its critical sections take) inside the chip: made static over
+  // memory of the stream's own (sound_buffer below), never with xStreamBufferCreateWithCaps. ESP-IDF 5.5.5's
+  // vStreamBufferDeleteWithCaps deletes a stream buffer as a queue (vSemaphoreDelete), reads a byte past the control
+  // as the queue's "statically allocated" flag and, when that byte is 0, frees the control twice: a restart (tlsf_free,
+  // "block already marked as free") at the close of a camera with sound, now and then (reTerminal D1001, 2026-10-25;
+  // idf_additions.c, fixed on ESP-IDF's master as vStreamBufferDelete).
+  StreamBufferHandle_t sound = nullptr;
+  StaticStreamBuffer_t *sound_control = nullptr;
+  uint8_t *sound_storage = nullptr;
   uint8_t *sound_part = nullptr;
   uint8_t *sound_piece = nullptr;  // what the speaker took part of, the rest of it next tick
   size_t piece_left = 0, piece_at = 0;
@@ -165,7 +173,9 @@ static void where(int slot, const Stream &s) {
 static_assert(MAX_STREAMS <= glass::MAX_ROOMS, "every stream has a room on the glass");
 
 static void free_stream(Stream *s) {
-  if (s->sound) vStreamBufferDeleteWithCaps(s->sound);
+  if (s->sound) vStreamBufferDelete(s->sound);  // static: frees nothing, its memory is the stream's own below
+  if (s->sound_control) heap_caps_free(s->sound_control);
+  if (s->sound_storage) roomy::release(s->sound_storage);
   if (s->sound_part) roomy::release(s->sound_part);
   if (s->sound_piece) roomy::release(s->sound_piece);
   if (s->input) free(s->input);
@@ -448,8 +458,13 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
   s->ppa = picture_engine::client();
   bool ok = s->input && s->ppa;
   if (ok && sound && has_speaker()) {
-    // The camera's sound between the task and the main loop, in PSRAM: only the task and the speaker's copy read it.
-    s->sound = xStreamBufferCreateWithCaps(SOUND_BUFFER, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    // The camera's sound between the task and the main loop: its storage in PSRAM (only the task and the speaker's copy
+    // read it), its control inside the chip (see Stream::sound).
+    s->sound_control = static_cast<StaticStreamBuffer_t *>(
+        heap_caps_malloc(sizeof(StaticStreamBuffer_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    s->sound_storage = static_cast<uint8_t *>(roomy::allocate(SOUND_BUFFER));
+    if (s->sound_control && s->sound_storage)
+      s->sound = xStreamBufferCreateStatic(SOUND_BUFFER, 1, s->sound_storage, s->sound_control);
     s->sound_part = static_cast<uint8_t *>(roomy::allocate(SOUND_PART));
     s->sound_piece = static_cast<uint8_t *>(roomy::allocate(SOUND_PART));
     ok = s->sound && s->sound_part && s->sound_piece;
