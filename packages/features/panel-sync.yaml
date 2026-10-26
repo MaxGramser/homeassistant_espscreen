@@ -1,0 +1,9 @@
+# ESP Screens - a panel's tearing signal: each frame starts as the panel starts showing one (panel_sync.h), so a picture
+# that moves never shows in steps. For a panel with its own memory (a QSPI AMOLED) whose TE line reaches a GPIO; the
+# board file names it (PANEL_TE_PIN) and its panel sends the signal (the RM690B0 does, from ESPHome's qspi_dbi).
+esphome:
+  includes:
+    - <esphome/components/smart_display/panel_sync.h>
+
+substitutions:
+  BOOT_PANEL_SYNC: panel_sync::start(${PANEL_TE_PIN});

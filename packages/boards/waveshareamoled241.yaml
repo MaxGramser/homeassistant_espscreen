@@ -10,6 +10,8 @@ packages:
   self_test: !include ../features/self-test.yaml
   # Camera pictures: the PSRAM has the room for them (docs/CAMERA.md).
   camera: !include ../features/camera.yaml
+  # The panel draws from its own memory: frames wait for its tearing signal (PANEL_TE_PIN).
+  panel_sync: !include ../features/panel-sync.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -30,6 +32,8 @@ substitutions:
   GRID_COLS_PORTRAIT: "1"
   GRID_ROWS_PORTRAIT: "4"
   LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+  # The RM690B0's tearing signal (OLED_TE): GPIO21 on Rev 2.0 of the board, where Rev 1 had the panel's reset.
+  PANEL_TE_PIN: "21"
   # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
   # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
   SCREEN_MAX_TILES: "128"
