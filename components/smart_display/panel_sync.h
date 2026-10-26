@@ -6,7 +6,8 @@
 // of every frame waits for that pulse, so the writing starts behind the panel's own scan and keeps ahead of it.
 //
 // A pulse that never comes (TE not wired, or a panel that does not send it) stops the waiting after MISSES frames in a
-// row, so a screen without the signal draws as fast as before.
+// row, so a screen without the signal draws as fast as before. REPORT_MS after the start the log says how it went, late
+// enough for a log that connects after the screen started to see it.
 #include "lvgl.h"
 
 #include <cstdint>
@@ -25,6 +26,7 @@ namespace panel_sync {
 constexpr int64_t WAIT_US = 20000;
 // Frames in a row without a pulse before the screen stops waiting for one.
 constexpr int MISSES = 10;
+constexpr uint32_t REPORT_MS = 30000;
 
 inline volatile uint32_t pulses = 0;
 inline bool armed = false, on = false;
@@ -75,6 +77,11 @@ inline void start(int pin) {
   if (gpio_isr_handler_add((gpio_num_t) pin, on_pulse, nullptr) != ESP_OK) return;
   lv_display_add_event_cb(display, [](lv_event_t *) { armed = true; }, LV_EVENT_REFR_START, nullptr);
   lv_display_add_event_cb(display, flush_start, LV_EVENT_FLUSH_START, nullptr);
+  lv_timer_t *report = lv_timer_create([](lv_timer_t *) {
+    if (on) ESP_LOGI("panel_sync", "%u frames waited for the panel's tearing signal, none of the last ones in vain", (unsigned) synced);
+    else ESP_LOGW("panel_sync", "The tearing signal stopped coming after %u frames: the screen draws without it", (unsigned) synced);
+  }, REPORT_MS, nullptr);
+  lv_timer_set_repeat_count(report, 1);
   on = true;
   ESP_LOGI("panel_sync", "Each frame waits for the panel's tearing signal on GPIO%d", pin);
 }
