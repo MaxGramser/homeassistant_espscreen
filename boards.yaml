@@ -262,3 +262,13 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+wavesharep43:
+  file: wavesharep43.yaml
+  name: Waveshare
+  model: ESP32-P4-WIFI6-Touch-LCD-4.3
+  status: experimental
+  # The 4.3-inch ESP32-P4 board, pre-v3 silicon, from Waveshare's board support package; not the ESP32-S3-Touch-LCD-4.3
+  # (waveshare43). Its speaker and microphones are the Waveshare P4 86 panel's audio (docs/WAVESHAREP43.md).
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]

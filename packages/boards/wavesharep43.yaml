@@ -1,0 +1,155 @@
+# ESP Screens - Waveshare ESP32-P4-WIFI6-Touch-LCD-4.3, experimental: a 4.3-inch 480 x 800 MIPI-DSI panel (ST7701)
+# with GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+# Hardware reference: https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4.3.htm
+#
+# Not the ESP32-S3-Touch-LCD-4.3 (waveshare43, an RGB panel on an ESP32-S3) and not the Guition JC4880P443, whose glass
+# has the same size and driver but other pins, timings and gamma. The panel is 480 x 800 itself (portrait); LVGL turns
+# the picture and the touch together. The display, touch and backlight follow Waveshare's own board support package
+# for this board (waveshare/esp32_p4_wifi6_touch_lcd_4_3 1.0.1 in the ESP Component Registry): the ST7701's init
+# table, the timings, reset GPIO27, the backlight on GPIO26 (inverted PWM at 5 kHz), the GT911 on GPIO7/GPIO8 without
+# reset or interrupt. The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are wired as on the
+# Waveshare P4 86 panel (the same I2S pins and amplifier pin in that package), so they take its audio:
+# hardware/wavesharep4-audio.yaml. The microSD slot and the MIPI-CSI camera port are not configured.
+#
+# This file builds for pre-v3 silicon ("chip revision: v1.3" in the boot log, `engineering_sample: true` from
+# hardware/esp32p4-c6.yaml), which the board it was run on has.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board is
+# added. Two entry files include this one: checkout/wavesharep43.yaml (a build on this computer) and
+# packages/wavesharep43.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the other Waveshare P4 panels'.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
+  # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
+  audio: !include ../hardware/wavesharep4-audio.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wavesharep43"
+  DEVICE_NAME: "wavesharep43-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare P4 4.3"
+
+  # The glass: the panel's own pixels and its density, 933 diagonal pixels over 4.3 inches.
+  PANEL_W: "480"
+  PANEL_H: "800"
+  DISPLAY_DPI: "216.966"
+  # The LVGL angle that lays this panel out lying down (800 x 480). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The grid a screen starts with, as on the Waveshare 4.3 and the JC4880P443 with the same glass: 3 x 3 lying down,
+  # one column of four standing up.
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                    # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, in PSRAM
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "5000Hz"                 # the backlight's PWM, as in Waveshare's board support package
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers, the echo cancellation's audio stack) is built and tried on 2026.9.0,
+  # as on the Waveshare P4 86 panel. A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+esp32:
+  flash_size: 32MB
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+# ESPHome's own gt911 platform. Waveshare's board support package wires no reset or interrupt pin for it.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    update_interval: 20ms
+
+# The backlight, an inverted PWM pin on this board (features/backlight.yaml makes it the light), over its whole range as
+# in Waveshare's board support package; zero_means_zero keeps a dark standby dark.
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    inverted: true
+    frequency: ${BACKLIGHT_FREQUENCY}
+    zero_means_zero: true
+
+# ESPHome's mipi_dsi platform has no model for this glass, so the panel is given in full from Waveshare's board support
+# package: the ST7701's init table (its own gamma and power values, not the JC4880P443's), two lanes at 500 Mbps, a
+# 30 MHz pixel clock and its porches. ESPHome adds the pixel format, the orientation, sleep-out and display-on itself.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: CUSTOM
+    update_interval: never
+    auto_clear_enabled: false
+    reset_pin: GPIO27
+    color_order: RGB
+    dimensions: {width: 480, height: 800}
+    lanes: 2
+    lane_bit_rate: 500Mbps
+    pclk_frequency: 30MHz
+    hsync_pulse_width: 12
+    hsync_back_porch: 42
+    hsync_front_porch: 42
+    vsync_pulse_width: 8
+    vsync_back_porch: 2
+    vsync_front_porch: 60
+    init_sequence:
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xEF, 0x08]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10]
+      - [0xC0, 0x63, 0x00]
+      - [0xC1, 0x0D, 0x02]
+      - [0xC2, 0x17, 0x08]
+      - [0xCC, 0x10]
+      - [0xB0, 0x40, 0xC9, 0x94, 0x0E, 0x10, 0x05, 0x0B, 0x09, 0x08, 0x26, 0x04, 0x52, 0x10, 0x69, 0x6B, 0x69]
+      - [0xB1, 0x40, 0xD2, 0x98, 0x0C, 0x92, 0x07, 0x09, 0x08, 0x07, 0x25, 0x02, 0x0E, 0x0C, 0x6E, 0x78, 0x55]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x11]
+      - [0xB0, 0x5D]
+      - [0xB1, 0x4E]
+      - [0xB2, 0x87]
+      - [0xB3, 0x80]
+      - [0xB5, 0x4E]
+      - [0xB7, 0x85]
+      - [0xB8, 0x21]
+      - [0xB9, 0x10, 0x1F]
+      - [0xBB, 0x03]
+      - [0xBC, 0x00]
+      - [0xC1, 0x78]
+      - [0xC2, 0x78]
+      - [0xD0, 0x88]
+      - [0xE0, 0x00, 0x3A, 0x02]
+      - [0xE1, 0x04, 0xA0, 0x00, 0xA0, 0x05, 0xA0, 0x00, 0xA0, 0x00, 0x40, 0x40]
+      - [0xE2, 0x30, 0x00, 0x40, 0x40, 0x32, 0xA0, 0x00, 0xA0, 0x00, 0xA0, 0x00, 0xA0, 0x00]
+      - [0xE3, 0x00, 0x00, 0x33, 0x33]
+      - [0xE4, 0x44, 0x44]
+      - [0xE5, 0x09, 0x2E, 0xA0, 0xA0, 0x0B, 0x30, 0xA0, 0xA0, 0x05, 0x2A, 0xA0, 0xA0, 0x07, 0x2C, 0xA0, 0xA0]
+      - [0xE6, 0x00, 0x00, 0x33, 0x33]
+      - [0xE7, 0x44, 0x44]
+      - [0xE8, 0x08, 0x2D, 0xA0, 0xA0, 0x0A, 0x2F, 0xA0, 0xA0, 0x04, 0x29, 0xA0, 0xA0, 0x06, 0x2B, 0xA0, 0xA0]
+      - [0xEB, 0x00, 0x00, 0x4E, 0x4E, 0x00, 0x00, 0x00]
+      - [0xEC, 0x08, 0x01]
+      - [0xED, 0xB0, 0x2B, 0x98, 0xA4, 0x56, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xF7, 0x65, 0x4A, 0x89, 0xB2, 0x0B]
+      - [0xEF, 0x08, 0x08, 0x08, 0x45, 0x3F, 0x54]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
