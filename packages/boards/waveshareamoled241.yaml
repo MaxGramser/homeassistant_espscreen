@@ -104,8 +104,10 @@ touchscreen:
     display: my_display
 
 display:
-  # mipi_spi, not the older qspi_dbi (deprecated in ESPHome): it turns the picture in the panel (MADCTL) when the screen
-  # lies down or is turned, where qspi_dbi had LVGL turn every frame in software, a copy through PSRAM.
+  # mipi_spi, not the older qspi_dbi, which ESPHome deprecates. The panel does not turn the picture (transform: disabled):
+  # turned in the panel (MADCTL), a frame lying down is written down the columns of its memory across the rows it scans,
+  # and no tearing signal keeps such a write clear of the scan. LVGL turns each frame instead and sends native rows, in
+  # the order the panel scans them, started on its tearing signal (panel_sync.h).
   - platform: mipi_spi
     model: RM690B0
     bus_mode: quad
@@ -116,6 +118,7 @@ display:
     dimensions: {width: 450, height: 600, offset_width: 16}
     # The RM690B0 takes windows that start and end on even pixels, as Waveshare's demo rounds them.
     draw_rounding: 2
+    transform: disabled
     cs_pin: GPIO9
     data_rate: ${DISPLAY_DATA_RATE}
     reset_pin:

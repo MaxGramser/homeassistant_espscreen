@@ -36,8 +36,9 @@ substitution, not as `esphome: name:`. Tessera finds the screen's action from it
   below about 20 of 255, so a lit screen starts there and 0 is dark. Dimming and standby work through it.
 - FT6336 reports pixel coordinates, with no calibration. The touch transform needs none of `packages/core.yaml`'s
   `false` defaults changed: taps land where they are made on a unit standing up, turned half way.
-- The panel turns the picture itself (`mipi_spi` sets its MADCTL) when the screen lies down or is turned, so LVGL
-  sends each frame as it drew it.
+- LVGL turns each frame when the screen lies down or is turned (`transform: disabled`) and sends the panel's own rows,
+  in the order it scans them. Turned by the panel itself (its MADCTL), a frame lying down would be written down its
+  columns, across the scan, and tear however the writing is timed.
 - LVGL draws the whole screen in one buffer in PSRAM (`LVGL_BUFFER_SIZE: "100%"`) and sends a frame's changes in one
   piece. With a smaller buffer each strip, lying down, is a column of the panel's memory that crosses every row the panel
   scans, so a moving diagonal showed one step per strip whatever else was done.
