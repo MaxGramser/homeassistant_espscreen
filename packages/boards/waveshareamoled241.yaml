@@ -31,7 +31,10 @@ substitutions:
   GRID_ROWS: "2"
   GRID_COLS_PORTRAIT: "1"
   GRID_ROWS_PORTRAIT: "4"
-  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+  # LVGL's draw buffer as a share of the screen: all of it, in PSRAM, so a frame goes to the panel in one piece. The
+  # panel stands up and the screen lies down, so a strip of a smaller buffer would be a column of the panel's memory,
+  # crossing every row it scans, and a diagonal (a radar's beam) would show one step per strip.
+  LVGL_BUFFER_SIZE: "100%"
   # The QSPI clock: Waveshare's own demos for this board drive the RM690B0 at 40 MHz (ESPHome's default is 10). The bus
   # pins reach the SPI peripheral through the GPIO matrix, not its IO MUX pins, so 80 MHz is out of reach here.
   DISPLAY_DATA_RATE: "40MHz"

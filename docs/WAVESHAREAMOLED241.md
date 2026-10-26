@@ -36,7 +36,9 @@ substitution, not as `esphome: name:`. Tessera finds the screen's action from it
   below about 20 of 255, so a lit screen starts there and 0 is dark. Dimming and standby work through it.
 - FT6336 reports pixel coordinates, with no calibration. The touch transform needs none of `packages/core.yaml`'s
   `false` defaults changed: taps land where they are made on a unit standing up, turned half way.
-- LVGL uses a 12% draw buffer in the chip's own memory.
+- LVGL draws the whole screen in one buffer in PSRAM (`LVGL_BUFFER_SIZE: "100%"`) and sends a frame's changes in one
+  piece. With a smaller buffer each strip, lying down, is a column of the panel's memory that crosses every row the panel
+  scans, so a moving diagonal showed one step per strip whatever else was done.
 - The panel draws from its own memory while it is written, so a frame that LVGL sends in strips could show half old
   and half new. On Rev 2.0 the panel's tearing signal (`OLED_TE`) is on GPIO21, and `features/panel-sync.yaml` makes the
   first strip of every frame wait for it. Rev 1 has the panel's reset on GPIO21 and is not supported by this board file.
