@@ -66,6 +66,11 @@ class Rules(unittest.TestCase):
         card = alert_layout.layout(480, 480, *alert_layout.lines(200, 'standard'), True, 200, 'standard', 1080, 1440)
         self.assertEqual(pq.alert_box(denser, (1080, 1440)), (card.image_w, card.image_h))
         self.assertNotEqual(pq.alert_box(denser, (1080, 1440)), pq.alert_box(guition, (1080, 1440)))
+        # A board that states the density of its fonts (FONT_DPI, `font_dpi`) keeps those fonts at the other density.
+        from unittest import mock
+        with mock.patch.dict(pq.SHAPES, {'guition': {**pq.SHAPES['guition'], 'font_dpi': 170}}):
+            card = alert_layout.layout(480, 480, *alert_layout.lines(170, 'standard'), True, 200, 'standard', 1080, 1440)
+            self.assertEqual(pq.alert_box(denser, (1080, 1440)), (card.image_w, card.image_h))
         # No picture known, or a board without pictures.
         self.assertEqual(pq.alert_box(guition, None), (392, 220))
         self.assertIsNone(pq.alert_box({'board': 'cyd', 'firmware_known': '0.2.103'}, (720, 720)))

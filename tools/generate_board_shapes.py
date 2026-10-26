@@ -163,6 +163,10 @@ def shapes():
                  'columns': lying['columns'], 'rows': lying['rows'],
                  'orientations': both,
                  'dpi': round(float(values['DISPLAY_DPI'])), 'look': values['LOOK'].strip('"'),
+                 # The density its fonts are drawn for, where the board states another than its glass's (FONT_DPI in
+                 # packages/looks/): ESP Screens works out an alert card's fonts from it (picture_question.alert_box).
+                 **({'font_dpi': round(float(values['FONT_DPI']))}
+                    if round(float(values['FONT_DPI'])) != round(float(values['DISPLAY_DPI'])) else {}),
                  # Whether the backlight takes levels (app 0.2.105): on a board whose backlight is one line, a
                  # brightness percentage is a number that lies, so the settings panel shows a switch instead.
                  'dimmable': values.get('BACKLIGHT_DIMMABLE', 'true').strip('"') != 'false',

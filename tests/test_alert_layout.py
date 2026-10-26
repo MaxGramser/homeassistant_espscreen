@@ -110,14 +110,14 @@ int main() {{
                 self.assertEqual(alert_layout.font_line(size), font_metrics.line_height(font, size), (font_id, size))
         for look, (reference, title, words) in alert_layout.LOOK_FONTS.items():
             text = (ROOT / f'packages/looks/{look}.yaml').read_text()
-            self.assertIn(f'LOOK_SCALE: ${{ (DISPLAY_DPI | float) / {reference} }}', text, look)
-            self.assertIn(f'FONT_HEADLINE_SIZE: ${{ [8, ({title} * LOOK_SCALE | float) | round | int] | max }}', text, look)
-            self.assertIn(f'FONT_SUBLABEL_BIG_SIZE: ${{ [8, ({words} * LOOK_SCALE | float) | round | int] | max }}', text, look)
+            self.assertIn(f'FONT_SCALE: ${{ (FONT_DPI | float) / {reference} }}', text, look)
+            self.assertIn(f'FONT_HEADLINE_SIZE: ${{ [8, ({title} * FONT_SCALE | float) | round | int] | max }}', text, look)
+            self.assertIn(f'FONT_SUBLABEL_BIG_SIZE: ${{ [8, ({words} * FONT_SCALE | float) | round | int] | max }}', text, look)
         shapes = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         for board in profiles.BOARDS:
             values = profiles.board_values(board)
             if 'alert' in shapes[board]:
-                self.assertEqual(alert_layout.lines(float(values['DISPLAY_DPI']), values['LOOK']),
+                self.assertEqual(alert_layout.lines(float(values['FONT_DPI']), values['LOOK']),
                                  (shapes[board]['alert']['title_line'], shapes[board]['alert']['line']), board)
 
     def test_the_two_boards_each_look_was_drawn_on_keep_their_card(self):

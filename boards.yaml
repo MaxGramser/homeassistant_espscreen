@@ -262,3 +262,17 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+cyd35r:
+  file: cyd35r.yaml
+  name: CYD
+  model: ESP32-3248S035R
+  status: experimental
+  # The 3.5-inch CYD with resistive touch (website wish); cyd35c is the same board with capacitive touch.
+
+cyd35c:
+  file: cyd35c.yaml
+  name: CYD
+  model: ESP32-3248S035C
+  status: experimental
+  # The 3.5-inch CYD with GT911 capacitive touch over I2C, pins from a community member's working configuration.

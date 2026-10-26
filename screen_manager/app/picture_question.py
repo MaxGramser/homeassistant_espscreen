@@ -280,7 +280,9 @@ def alert_box(screen, picture):
     if (dpi, look) == (board['dpi'], board.get('look', 'standard')):
         title_line, line = lines['title_line'], lines['line']
     else:
-        title_line, line = alert_layout.lines(dpi, look)
+        # A board that states the density of its fonts (FONT_DPI, boards.json `font_dpi`) keeps them whatever the
+        # glass's density: its board file wins over the look that would follow DISPLAY_DPI.
+        title_line, line = alert_layout.lines(board.get('font_dpi') or dpi, look)
     card = alert_layout.layout(shape['width'], shape['height'], title_line, line, True, dpi, look, picture[0], picture[1])
     return capped((card.image_w, card.image_h), box(screen, 'full')) if card.image_w > 0 and card.image_h > 0 else default
 

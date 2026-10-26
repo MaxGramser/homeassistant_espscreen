@@ -121,8 +121,13 @@ Every board builds the same fifteen fonts, by id (firmware 0.17.0+): four text s
 The icon fonts take their bits from the look (`FONT_ICON_BPP`): 4 in the standard look, 2 in the compact one, which
 halves their flash on the boards with 4 MB.
 Their pixel sizes are the look's (`FONT_*_SIZE` in `packages/looks/standard.yaml` and `compact.yaml`, each a design
-size times `LOOK_SCALE`, the board's density over the look's own), and the two large digit steps are worked out from
-the glass in `packages/looks/shared/digits.yaml`. A new card takes the largest step that fits (for digits
+size times `FONT_SCALE`, the density of the fonts over the look's own), and the two large digit steps are worked out
+from the glass in `packages/looks/shared/digits.yaml`. The density of the fonts, `FONT_DPI`, is the glass's own
+(`DISPLAY_DPI`) unless the board states another. A board with 4 MB of flash on glass denser than its look's may state
+the look's own, so its fonts take no more flash than the CYD's: the 3.5-inch CYD does, as its letters at 165 dpi did
+not fit its update slot. Its letters are then smaller in millimetres than on other boards, while every other size
+still follows the glass. `boards.json` carries such a board's `font_dpi`, and ESP Screens works out an alert card's
+fonts from it (`alert_layout.lines`). A new card takes the largest step that fits (for digits
 `runtime_tiles::largest_digits`) and never brings a font or a size of its own: every font is compiled into every
 board's flash, the 4 MB boards have no room to spare, and the CYD runs close to its budget (docs/RELEASING.md).
 `tests/test_font_set.py` fails on a font that slips in with a feature, so adding one is a deliberate change to that
