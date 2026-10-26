@@ -25,6 +25,9 @@ packages:
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "waveshare5"
+  # This board's own firmware revision (docs/BOARD_RELEASES.md), app 0.4.90 in the CHANGELOG.
+  # The next shared release takes this line out again.
+  SCREEN_FIRMWARE_VERSION: "0.57.1"
   DEVICE_NAME: "waveshare5-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 5"
 

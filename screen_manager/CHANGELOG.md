@@ -1,3 +1,10 @@
+## 0.4.90 (firmware 0.57.1 for waveshare43, waveshare5)
+
+- **The Waveshare 4.3-inch and 5-inch update again with ESPHome 2026.10.** ESPHome 2026.10.0 checks more closely
+  whether a pin is used twice, and on these boards the display and the backlight named the same line of the board's
+  expander, so every update stopped with "Pin 2 is used in multiple places". The backlight now has that line to itself,
+  as on the 7-inch, and the screen lights as before.
+
 ## 0.4.89 (firmware 0.57.0)
 
 - **A thermostat's state line no longer runs into its card.** On screens with dense glass (the Waveshare P4 and

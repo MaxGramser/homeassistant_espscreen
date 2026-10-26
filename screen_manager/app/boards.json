@@ -2051,7 +2051,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.57.0",
+  "firmware": "0.57.1",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -2299,7 +2299,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.57.0",
+  "firmware": "0.57.1",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -6356,7 +6356,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.57.0",
+  "firmware": "0.57.1",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -6604,7 +6604,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.57.0",
+  "firmware": "0.57.1",
   "fonts": {
    "headline": 30,
    "icon_home": 37,
@@ -7597,7 +7597,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.57.0",
+  "firmware": "0.57.1",
   "fonts": {
    "headline": 34,
    "icon_home": 43,
@@ -7845,7 +7845,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.57.0",
+  "firmware": "0.57.1",
   "fonts": {
    "headline": 30,
    "icon_home": 37,

@@ -27,6 +27,9 @@ display:
   # day on these timings, built from the 4.3-inch package.
   - id: !extend my_display
     model: ESP32-S3-TOUCH-LCD-4.3
+    # The model's enable pin is EXIO2, the backlight line hardware/waveshare-ch422g.yaml gives the firmware. No enable
+    # pin here, as on the 7-inch: ESPHome 2026.10 refuses a line used twice ("Pin 2 is used in multiple places").
+    enable_pin: []
     hsync_pulse_width: 4
     hsync_back_porch: 8
     hsync_front_porch: 8

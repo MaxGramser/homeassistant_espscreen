@@ -94,6 +94,29 @@ https://github.com/user-attachments/assets/f9f6a933-d388-4c8b-9c9a-011dfa37617b
 </p>
 <p align="center"><sub>Real photos, not renders: the 4-inch Guition next to the lamp it controls.</sub></p>
 
+## Print a stand for your screen
+
+A screen looks best on a stand that was made for it. These are free to download and print on MakerWorld, each with a
+ready Bambu Studio print profile and no supports needed.
+
+<p align="center">
+  <a href="https://makerworld.com/en/models/3485702"><img src="docs/images/stand-d1001.jpg" width="32%" alt="A Seeed reTerminal D1001 on a round white printed base on a wooden desk, showing a Tessera page with the clock, the weather, music, a camera and the lights"></a>
+  <a href="https://makerworld.com/en/models/3410079"><img src="docs/images/stand-guition-v2.jpg" width="32%" alt="The 4-inch Guition in a black printed wedge stand on a wooden table, showing a home page with the weather, a speaker, the airco and two lights"></a>
+  <a href="https://makerworld.com/en/models/3389654"><img src="docs/images/stand-guition.jpg" width="32%" alt="The 4-inch Guition in an upright black printed stand on a wooden table, beside a window"></a>
+</p>
+
+- **[Home Assistant tablet base](https://makerworld.com/en/models/3485702)** for the Seeed reTerminal D1001 (8 inch): a
+  round base with a dock, tilted 30 degrees. Two printed rails hold the screen by its VESA holes, with four M4 x 8 mm
+  screws. The ESP32-P4 inside plays your cameras live and talks to Assist.
+- **[Wedge stand](https://makerworld.com/en/models/3410079)** for the Guition 4" ESP32-S3-4848S040: a calm wedge that
+  holds the square screen at a comfortable angle. Take the small back plate off the screen first (two tiny screws on
+  its back), then push it in.
+- **[Upright stand](https://makerworld.com/en/models/3389654)** for the same Guition 4": the first Tessera stand, with a
+  small heart in its speaker grille. Push the screen in, no screws.
+
+**Printed one?** A like or a Boost on MakerWorld costs you nothing and helps keep Tessera free, and a photo of your
+make with your own layout is always welcome.
+
 ## Five screens supported, 2.8 to 10.1 inch
 
 One home, five panels. A screen is built for the glass it runs on: it measures its own canvas at boot and gives a page
