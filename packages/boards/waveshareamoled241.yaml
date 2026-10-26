@@ -1,5 +1,5 @@
 # ESP Screens - waveshareamoled241: the Waveshare ESP32-S3-Touch-AMOLED-2.41, a 2.41-inch 450 x 600 AMOLED panel
-# (RM690B0 over QSPI, ESPHome's qspi_dbi component) with FT6336 capacitive touch over I2C, an ESP32-S3 with 16MB flash
+# (RM690B0 over QSPI, ESPHome's mipi_spi component) with FT6336 capacitive touch over I2C, an ESP32-S3 with 16MB flash
 # and 8MB of octal PSRAM at 80MHz. A TCA9554 I2C expander (Rev 2.0 of the board) drives the reset lines of the display (EXIO0)
 # and the touch panel (EXIO1). An AMOLED has no backlight: the panel's own brightness (DCS 0x51) stands in for it.
 packages:
@@ -80,7 +80,7 @@ pca9554:
   i2c_id: touch_bus
 
 # The panel's brightness in the place of a backlight's PWM: features/backlight.yaml puts the light, its fades and the
-# alert blinks on this output, and every level goes to the RM690B0 as its brightness command (qspi_dbi::set_brightness).
+# alert blinks on this output, and every level goes to the RM690B0 as its brightness command (mipi_spi's set_brightness).
 # The panel shows nothing below about 20 of 255, so a lit screen starts there and 0 stays dark.
 output:
   - platform: template
@@ -104,13 +104,18 @@ touchscreen:
     display: my_display
 
 display:
-  - platform: qspi_dbi
+  # mipi_spi, not the older qspi_dbi (deprecated in ESPHome): it turns the picture in the panel (MADCTL) when the screen
+  # lies down or is turned, where qspi_dbi had LVGL turn every frame in software, a copy through PSRAM.
+  - platform: mipi_spi
     model: RM690B0
+    bus_mode: quad
     id: my_display
     spi_id: lcd
     # The RM690B0 has 480 columns and the glass shows 450 of them from column 16, as in Waveshare's own demo for this
     # board; without the offset the picture stands 16 px off one edge and is cut off at the other.
     dimensions: {width: 450, height: 600, offset_width: 16}
+    # The RM690B0 takes windows that start and end on even pixels, as Waveshare's demo rounds them.
+    draw_rounding: 2
     cs_pin: GPIO9
     data_rate: ${DISPLAY_DATA_RATE}
     reset_pin:

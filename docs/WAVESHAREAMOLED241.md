@@ -1,7 +1,7 @@
 # Waveshare ESP32-S3-Touch-AMOLED-2.41, 600 × 450
 
 This is the **ESP32-S3-Touch-AMOLED-2.41**: a 2.41-inch 450 x 600 AMOLED panel with an RM690B0 driver over QSPI
-(ESPHome's `qspi_dbi` component, model `RM690B0`) and **FT6336 capacitive touch** over I2C, on an ESP32-S3 with 16 MB
+(ESPHome's `mipi_spi` component, model `RM690B0`) and **FT6336 capacitive touch** over I2C, on an ESP32-S3 with 16 MB
 flash and 8 MB of octal PSRAM. The panel's native orientation is 450 x 600 portrait; the board file lays it down
 (600 x 450) with a 90° rotation, and the screen stands it up a quarter further. The board is experimental: it boots,
 joins Home Assistant, takes its layout, dims and shows camera pictures on a real unit, and the rest of the list below
@@ -32,10 +32,12 @@ substitution, not as `esphome: name:`. Tessera finds the screen's action from it
 - Camera pictures (`features/camera.yaml`): camera tiles, their live picture and the full-screen picture. Standing
   up, an alert shows its picture above the words; lying down the alert card has no room for one, so it shows without.
 - An AMOLED has no backlight. `features/backlight.yaml` drives a template output, `gpio_backlight_pwm`, that hands
-  each level to the panel's own brightness command (DCS `0x51`, `qspi_dbi`'s `set_brightness`). The panel shows nothing
+  each level to the panel's own brightness command (DCS `0x51`, `mipi_spi`'s `set_brightness`). The panel shows nothing
   below about 20 of 255, so a lit screen starts there and 0 is dark. Dimming and standby work through it.
 - FT6336 reports pixel coordinates, with no calibration. The touch transform needs none of `packages/core.yaml`'s
   `false` defaults changed: taps land where they are made on a unit standing up, turned half way.
+- The panel turns the picture itself (`mipi_spi` sets its MADCTL) when the screen lies down or is turned, so LVGL
+  sends each frame as it drew it.
 - LVGL draws the whole screen in one buffer in PSRAM (`LVGL_BUFFER_SIZE: "100%"`) and sends a frame's changes in one
   piece. With a smaller buffer each strip, lying down, is a column of the panel's memory that crosses every row the panel
   scans, so a moving diagonal showed one step per strip whatever else was done.
@@ -67,7 +69,7 @@ LVGL turns the picture in software, so the one offset holds in every orientation
 ## Hardware references
 
 - [Waveshare wiki](https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-2.41).
-- [ESPHome `qspi_dbi`](https://esphome.io/components/display/qspi_dbi/), model `RM690B0`.
+- [ESPHome `mipi_spi`](https://esphome.io/components/display/mipi_spi/), model `RM690B0`.
 - QSPI: CLK GPIO10, data GPIO11 to GPIO14, CS GPIO9.
 - I2C: SDA GPIO47, SCL GPIO48, shared by the FT6336 (address `0x38`, interrupt on GPIO3) and the TCA9554 expander
   (address `0x20`).
