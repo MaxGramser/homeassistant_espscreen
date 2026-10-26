@@ -40,6 +40,8 @@ substitution, not as `esphome: name:`. Tessera finds the screen's action from it
 - The panel draws from its own memory while it is written, so a frame that LVGL sends in strips could show half old
   and half new. On Rev 2.0 the panel's tearing signal (`OLED_TE`) is on GPIO21, and `features/panel-sync.yaml` makes the
   first strip of every frame wait for it. Rev 1 has the panel's reset on GPIO21 and is not supported by this board file.
+- The QSPI bus runs at 40 MHz, as Waveshare's own demos for this board drive it; at ESPHome's default of 10 MHz a large
+  part of the screen took longer to send than the panel takes to show a frame, so the waiting above could not help it.
 
 ## Known limits lying down
 

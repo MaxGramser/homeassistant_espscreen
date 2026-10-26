@@ -32,6 +32,9 @@ substitutions:
   GRID_COLS_PORTRAIT: "1"
   GRID_ROWS_PORTRAIT: "4"
   LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+  # The QSPI clock: Waveshare's own demos for this board drive the RM690B0 at 40 MHz (ESPHome's default is 10). The bus
+  # pins reach the SPI peripheral through the GPIO matrix, not its IO MUX pins, so 80 MHz is out of reach here.
+  DISPLAY_DATA_RATE: "40MHz"
   # The RM690B0's tearing signal (OLED_TE): GPIO21 on Rev 2.0 of the board, where Rev 1 had the panel's reset.
   PANEL_TE_PIN: "21"
   # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
@@ -106,6 +109,7 @@ display:
     # board; without the offset the picture stands 16 px off one edge and is cut off at the other.
     dimensions: {width: 450, height: 600, offset_width: 16}
     cs_pin: GPIO9
+    data_rate: ${DISPLAY_DATA_RATE}
     reset_pin:
       pca9554: io_expander
       number: 0
