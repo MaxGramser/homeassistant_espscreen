@@ -388,13 +388,15 @@ class HomeAssistant:
             await self.request('unsubscribe_events', subscription=key)
 
     def describe_close(self, connected):
-        """Why and after how long the websocket ended; helps explain unexpected reconnects in the log."""
-        if connected is None:
-            return ''
+        """Why and after how long the websocket ended; helps explain unexpected reconnects in the log. One that ends while
+        the app connects says its code too (1009: an answer too big, issue #315)."""
         ws = self.ws
+        if connected is None and (ws is None or ws.close_code is None):
+            return ''
         reason = ws.exception() if ws is not None else None
-        return ' after %d s, close code %s%s' % (time.monotonic() - connected, ws.close_code if ws is not None else None,
-                                            f', {type(reason).__name__}' if reason else '')
+        after = ' after %d s' % (time.monotonic() - connected) if connected is not None else ''
+        return '%s, close code %s%s' % (after, ws.close_code if ws is not None else None,
+                                       f', {type(reason).__name__}' if reason else '')
 
     @property
     def state_words(self):
@@ -615,7 +617,10 @@ class HomeAssistant:
         while True:
             reader, connected = None, None
             try:
-                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=16*1024*1024) as ws:
+                # No cap on an answer's size (0): a home with many entities sends an entity registry or a get_states
+                # past any fixed one (issue #315: 16.45 MiB with 15,000 entities), and Home Assistant's own frontend
+                # takes them whole.
+                async with self.session.ws_connect(url, heartbeat=30, max_msg_size=0) as ws:
                     self.ws = ws
                     self.connection += 1
                     self.template_subs = {}
