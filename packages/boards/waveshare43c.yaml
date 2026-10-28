@@ -1,6 +1,9 @@
 # ESP Screens - Waveshare ESP32-S3-Touch-LCD-4.3C board: the 4.3-inch 800 x 480 IPS panel and GT911 touch of the
 # Waveshare 4.3, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and Waveshare's CH32V003 expander in place of
-# the 4.3's CH422G. It is sold on its own and in the 4.3C-BOX.
+# the 4.3's CH422G. It is sold on its own and in the 4.3C-BOX. Its audio is the Waveshare P4 panels' family: an ES8311
+# for the speaker and an ES7210 for its two microphones, with the speaker's output on the ES7210's MIC3 as the echo
+# cancellation's reference and an NS4150B amplifier on the expander's EXIO3 (hardware/waveshare-esp32s3-43c-audio.yaml,
+# docs/WAVESHARE43C.md, "Audio").
 #
 # The expander is the 7B's: a small microcontroller that answers at 0x24 with eight lines, one PWM output and one
 # ADC. A 4.3C built from the 4.3's board file drives a CH422G that isn't there, so its touch chip stays in reset
@@ -22,6 +25,10 @@ packages:
   backlight: !include ../features/backlight.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
+  # The speaker, the microphones, the amplifier and the microphone's settings, the P4 panels' codecs and transports
+  # (hardware/wavesharep4-audio.yaml's parts, docs/P4_AUDIO.md): AEC by default, the plain half-duplex bus when a
+  # screen's Override YAML sets AUDIO_TRANSPORT: "i2s".
+  audio: !include ../hardware/waveshare-esp32s3-43c-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -69,7 +76,7 @@ logger:
   hardware_uart: USB_SERIAL_JTAG
 
 # Of the expander's lines, this board uses EXIO1 (the touch reset) and EXIO2 (the backlight enable), both as the 7B
-# does; EXIO3 is the speaker's amplifier, which this board file leaves alone.
+# does, and EXIO3 for the speaker's amplifier (hardware/waveshare-esp32s3-43c-audio.yaml).
 #
 # ESPHome's model for this glass (ESP32-S3-TOUCH-LCD-4.3) asks for a CH422G, so the panel is ESPHome's RPI model, an RGB
 # panel without an init sequence, with the 4.3's pins. The timings are Waveshare's for the 4.3C

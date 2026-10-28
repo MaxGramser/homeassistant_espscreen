@@ -2641,7 +2641,13 @@
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
    "order": 30,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -2649,7 +2655,11 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 217,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.57.0",
   "fonts": {
    "headline": 34,
@@ -8314,7 +8324,13 @@
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
    "order": 30,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -8322,7 +8338,11 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 217,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.57.0",
   "fonts": {
    "headline": 34,
@@ -10521,7 +10541,13 @@
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
    "order": 30,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
    "status": "experimental",
    "touch": "GT911"
   },
@@ -10529,7 +10555,11 @@
   "columns": 3,
   "dimmable": true,
   "dpi": 217,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.57.0",
   "fonts": {
    "headline": 34,

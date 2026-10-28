@@ -1,0 +1,38 @@
+# ESP Screens - the audio of the Waveshare ESP32-S3-Touch-LCD-4.3C, declared: the parts and their pins, nothing else
+# (docs/PROFILES.md, "Parts"). For the board file of the ESP32-S3-Touch-LCD-4.3C, and of the 4.3C-BOX that carries it.
+#
+# As Waveshare's schematic (ESP32-S3-Touch-LCD-4.3C V1.1, its Codec and PA&SPEAKER&MIC sections) and Waveshare's board
+# support package (Waveshare-ESP32-components, bsp/esp32_s3_touch_lcd_4_3c) wire them: an ES8311 at 0x18 for the
+# speaker (its ADC is not wired) and an ES7210 at 0x40 for the two microphones on its MIC1 and MIC2, both on the
+# board's only I2C bus (the touch bus, SDA GPIO8, SCL GPIO9); the speaker's output, through a divider of about 24 dB,
+# on the ES7210's MIC3 as the echo cancellation's reference; one I2S bus for both (MCLK GPIO6, BCLK GPIO44, LRCLK
+# GPIO16, speaker data GPIO15, microphone data GPIO43); and an NS4150B amplifier whose enable is the CH32V003
+# expander's EXIO3, high for on, with a 10 kOhm pull-down that keeps it off until the firmware turns it on.
+#
+# The same codecs and transport as the Waveshare P4 panels (hardware/wavesharep4-audio.yaml): AEC by default, the
+# plain half-duplex bus when a screen's Override YAML sets AUDIO_TRANSPORT: "i2s" (docs/P4_AUDIO.md). The stack the
+# AEC transport brings needs PSRAM, and this board has 8 MB of octal. Not yet seen on the glass of a board here.
+packages:
+  microphones: !include parts/es7210.yaml
+  speaker: !include parts/es8311.yaml
+  amplifier: !include parts/amplifier.yaml
+  controls: !include parts/es7210-controls.yaml
+
+substitutions:
+  AUDIO_I2C: touch_bus
+  AUDIO_MCLK_PIN: GPIO6
+  AUDIO_BCLK_PIN: GPIO44
+  AUDIO_LRCLK_PIN: GPIO16
+  AUDIO_DOUT_PIN: GPIO15
+  AUDIO_DIN_PIN: GPIO43
+  # The board's attenuator between the speaker's output and the reference: 2.2 + 10 + 20 kOhm in series to a 4.3 kOhm
+  # differential shunt, 220 nF into the ES7210's MIC3, about 24 dB down (the P4 panels' reference, the same gain).
+  AUDIO_REFERENCE_GAIN: "24dB"
+  AUDIO_MIC_ALC: "true"
+  # The amplifier's enable is the CH32V003 expander's EXIO3, not a GPIO: the amplifier part takes an expander's pin as
+  # a mapping. The expander's own lines the board already uses are EXIO1 (touch reset) and EXIO2 (backlight enable).
+  AUDIO_AMPLIFIER_PIN:
+    waveshare_io_ch32v003: expander
+    number: 3
+    mode:
+      output: true
