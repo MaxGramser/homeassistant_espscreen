@@ -4064,6 +4064,15 @@ class Manager:
         if camera is None:
             LOG.warning('%s: no camera (camera.<name>), nothing sent', doorbell.SHOW)
             return {'sent': 0, 'alerts': 0, 'skipped': 0, 'failed': 0, 'unusable': unusable}
+        door, door_unusable = doorbell.door_of(data)
+        sound, sound_unusable = doorbell.sound_of(data)
+        chime, chime_unusable = doorbell.sound_of(data, 'chime')
+        unusable = unusable + door_unusable + sound_unusable + chime_unusable
+        if door and door.get('lock'):
+            blocked = doorbell.door_blocked(door['lock'], self.ha.states, self.registry_index().get(door['lock']))
+            if blocked:
+                LOG.warning('%s: %s %s, so the view has no door key', doorbell.SHOW, door['lock'], blocked)
+                door = None
         paired = self.screens()
         wanted, usable = alert_screen_names(data)
         if not usable:
@@ -4077,8 +4086,11 @@ class Manager:
         name = title or doorbell.name_of(camera, self.device_name_of(camera), self.ha.states)
         # The screens may open this camera now (camera_allowed), as after an alert with its picture.
         self.alert_cameras[camera] = time.monotonic()
-        key = self.doorbells.start(camera, name, timeout, [screen['id'] for screen in views], [screen['node'] for screen in others])
-        sent = await self.doorbell_send(views, self.doorbells.message(key)) if views else 0
+        key = self.doorbells.start(camera, name, timeout, [screen['id'] for screen in views], [screen['node'] for screen in others],
+                                   door, [screen.get('node') for screen in views if screen.get('node')], sound, chime)
+        sent = await self.doorbell_send(views, self.doorbells.message(key, door_state=self.doorbell_lock_state(door))) if views else 0
+        if door and door.get('lock') and views:
+            asyncio.ensure_future(self.doorbell_follow_lock(key))
         alerts = {'sent': 0, 'skipped': 0, 'failed': 0}
         if others:
             alerts = await self.broadcast(BROADCAST_SHOW, {'title': name, 'icon': doorbell.ALERT_ICON, 'camera': camera,
@@ -4094,6 +4106,7 @@ class Manager:
     async def doorbell_close(self, key, views, alerts):
         """A ring ends: its view closes on `views` (inboxes), its alert on `alerts` (nodes)."""
         screens = [screen for screen in self.screens() if screen['id'] in set(views) and self.transport(screen['id'], screen)]
+        self.doorbells.gone(key, [screen.get('node') for screen in self.screens() if screen['id'] in set(views)])
         closed = await self.doorbell_send(screens, self.doorbells.message(key, close=True)) if screens else 0
         if alerts:
             await self.broadcast(BROADCAST_DISMISS, {'screen': list(alerts)})
@@ -4123,12 +4136,65 @@ class Manager:
         except Exception as error:
             LOG.warning('%s was not fired (%s)', event_type, type(error).__name__)
 
+    def doorbell_lock_state(self, door):
+        """The state of a ring's lock as Home Assistant has it, '' without one."""
+        lock = (door or {}).get('lock')
+        return str((self.ha.states.get(lock) or {}).get('state') or '') if lock else ''
+
+    def doorbell_view_screens(self, key):
+        """The screens whose view of ring `key` still shows."""
+        nodes = set(self.doorbells.showing(key))
+        return [screen for screen in self.doorbell_screens() if screen.get('node') in nodes]
+
+    async def doorbell_follow_lock(self, key):
+        """While ring `key` shows on a screen, every new state of its lock goes to those screens' door key."""
+        ring = self.doorbells.ring(key)
+        changes = getattr(self.ha, 'state_events', None)
+        if ring is None or ring.get('following') or changes is None:
+            return
+        lock, sent = ring['door']['lock'], self.doorbell_lock_state(ring['door'])
+        ring['following'] = True
+        wake = asyncio.Event()
+        changes.listeners[wake] = frozenset({lock})
+        try:
+            while self.doorbells.showing(key):
+                try:
+                    await asyncio.wait_for(wake.wait(), 5)
+                except asyncio.TimeoutError:
+                    continue
+                wake.clear()
+                state = self.doorbell_lock_state(ring['door'])
+                if state != sent:
+                    sent = state
+                    await self.doorbell_send(self.doorbell_view_screens(key), self.doorbells.door_message(key, state))
+        finally:
+            changes.listeners.pop(wake, None)
+            ring['following'] = False
+
+    async def doorbell_open_door(self, key, node):
+        """A second tap on the door key of ring `key` on screen `node`: the ring's lock unlocks, or its action runs, once."""
+        door = self.doorbells.door_press(key, node)
+        if door is None:
+            LOG.warning('Doorbell door from %s: no door of a ring that shows there, nothing performed', node)
+            return
+        action, fields = ('lock.unlock', {'entity_id': door['lock']}) if door.get('lock') else (door['action'], door['data'])
+        try:
+            await self.ha.call(action, fields)
+            LOG.info('Doorbell door on %s: %s performed', node, action)
+        except Exception as error:
+            LOG.warning('Doorbell door on %s: %s failed (%s)', node, action, type(error).__name__)
+
     async def doorbell_report(self, data):
         """A screen says how a ring ended there (esphome.screen_doorbell): answered or closed closes it on the others,
-        seen takes a missed ring out of the top bars."""
+        seen takes a missed ring out of the top bars, door opens the ring's door."""
         if not isinstance(data, dict):
             return
         action, key, node = data.get('action'), data.get('key'), data.get('screen')
+        if action == doorbell.DOOR and isinstance(key, str):
+            await self.doorbell_open_door(key, node)
+            return
+        if action in ('closed', 'missed') and isinstance(key, str):
+            self.doorbells.gone(key, [node])
         if action in doorbell.ANSWERS and isinstance(key, str):
             had_missed = self.doorbells.missed is not None
             first = not (self.doorbells.ring(key) or {'answered': True})['answered']
@@ -4142,8 +4208,16 @@ class Manager:
                 LOG.info('Doorbell ring %s on %s: closed on %d other screens', action, node, closed)
             if had_missed and self.doorbells.missed is None:
                 self.ha.changed.set()
-        elif action == 'seen' and self.doorbells.seen():
-            self.ha.changed.set()
+        elif action == 'seen':
+            # The missed ring opened again from the top bar: its door key gets its lock's state and follows it again.
+            if isinstance(key, str) and (self.doorbells.ring(key) or {}).get('door'):
+                self.doorbells.back(key, node)
+                ring = self.doorbells.ring(key)
+                if ring['door'].get('lock'):
+                    await self.doorbell_send(self.doorbell_view_screens(key), self.doorbells.door_message(key, self.doorbell_lock_state(ring['door'])))
+                    asyncio.ensure_future(self.doorbell_follow_lock(key))
+            if self.doorbells.seen():
+                self.ha.changed.set()
 
     async def doorbell_loop(self):
         """Rings and the screens' reports of them, in arrival order."""
@@ -4608,6 +4682,14 @@ def create_app(manager, development=False):
         names = await ha.service_names_in(REQUEST_LANGUAGE.get()) if hasattr(ha, 'service_names_in') else getattr(ha, 'service_names', {})
         return web.json_response({'actions': ha_catalogue.action_choices(entity, actions, ha.states.get(entity), ha.services,
                                                                          names, ha.platform_of(entity))})
+    async def light_choices(request):
+        """A light's presets (docs/LIGHT_PRESETS.md): the effects and the settings of its device (light_effects.choices)
+        a preset may set, with every choice of each."""
+        entity = request.query.get('entity', '')
+        if not entity.startswith('light.') or entity not in manager.ha.states:
+            return web.json_response({'effects': [], 'rows': []})
+        return web.json_response(light_effects.choices(entity, manager.device_entries(entity), manager.ha.states, manager.registry_index(),
+                                                       getattr(manager.ha, 'state_words', None), manager.device_name_of(entity)))
     async def entity_subtitle(request):
         """The second line of a tile (app 0.2.105): the values of one entity it may say. The list is Home Assistant's
         own - the attributes its frontend translations name - in the editor's language, so nothing here is a list we
@@ -4815,6 +4897,11 @@ def create_app(manager, development=False):
                                     precision=header_bar.precision_of(entry) if eid.startswith('sensor.') else None,
                                     units=getattr(manager.ha, 'units', None))
             attributes = dict(message['a'])
+            # A light group's lamps (light_groups.lamp_ids): the editor reads its presets lamp by lamp, as the screen does.
+            if eid.startswith('light.'):
+                members = light_groups.lamp_ids(eid, manager.ha.states)
+                if members:
+                    attributes['entity_id'] = list(members)
             if eid.startswith('media_player.'):
                 # What the player reported at its widest (GitHub #88): the editor draws a player at rest with its keys.
                 attributes['supported_features'] = manager.players.widest(eid, state.get('attributes'))
@@ -5544,6 +5631,7 @@ def create_app(manager, development=False):
     app.router.add_post('/api/automations', save_automation)
     app.router.add_delete('/api/automations/{id}', delete_automation)
     app.router.add_get('/api/entity-actions', entity_actions)
+    app.router.add_get('/api/light-choices', light_choices)
     app.router.add_get('/api/entity-subtitle', entity_subtitle)
     app.router.add_get('/api/display-precision', display_precision)
     app.router.add_put('/api/display-precision', display_precision)

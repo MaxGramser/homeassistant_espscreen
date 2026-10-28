@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { automationYaml, title, trigger, triggerKind } from "../src/model/automation";
 import { alertRoute, buttonFields } from "../src/model/alert-yaml";
-import { doorbellAutomation, triggerKind as doorbellKind, type DoorbellReference } from "../src/model/doorbell-yaml";
+import { doorbellAutomation, doorFields, triggerKind as doorbellKind, type DoorbellReference } from "../src/model/doorbell-yaml";
 
 describe("what starts an automation", () => {
   it("reads a boolean, a sensor and a switch as turning on", () => {
@@ -47,6 +47,20 @@ describe("the doorbell's automation", () => {
     expect(automation.triggers).toEqual([{ trigger: "state", entity_id: "binary_sensor.porch_visitor", from: "off", to: "on" }]);
     expect(automation.actions).toEqual([{ event: "esp_screens_doorbell", event_data: { camera: "camera.porch", screen: ["hallway", "kitchen"], timeout: 90 } }]);
     expect(automationYaml(automation)).toContain("    from: \"off\"\n    to: \"on\"");
+  });
+
+  it("names the door as the add-on reads it: a lock, or an entity's action, and nothing half chosen", () => {
+    expect(doorFields({ kind: "lock", lock: "lock.front_door" })).toEqual({ lock: "lock.front_door" });
+    expect(doorFields({ kind: "action", entity: "button.gate", action: "button.press" })).toEqual({ door_action: "button.press", door_data: { entity_id: "button.gate" } });
+    expect(doorFields({ kind: "action", entity: "button.gate", action: "" })).toEqual({});
+    expect(doorFields({ kind: "lock" })).toEqual({});
+    expect(doorFields({ kind: "none", lock: "lock.front_door" })).toEqual({});
+    const automation = doorbellAutomation(reference, { trigger: "binary_sensor.porch_visitor", camera: "camera.porch", door: { kind: "lock", lock: "lock.front_door" } });
+    expect(automation.actions).toEqual([{ event: "esp_screens_doorbell", event_data: { camera: "camera.porch", lock: "lock.front_door" } }]);
+    // Quiet only when asked: the sound is on by default and the automation leaves it out.
+    expect(doorbellAutomation(reference, { camera: "camera.porch", sound: false }).actions[0].event_data).toEqual({ camera: "camera.porch", sound: false });
+    expect(doorbellAutomation(reference, { camera: "camera.porch", sound: true }).actions[0].event_data).toEqual({ camera: "camera.porch" });
+    expect(doorbellAutomation(reference, { camera: "camera.porch", chime: false }).actions[0].event_data).toEqual({ camera: "camera.porch", chime: false });
   });
 });
 

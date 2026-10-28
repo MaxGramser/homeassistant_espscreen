@@ -2585,6 +2585,9 @@ def screen_options(tile, attrs, state=None, entry=None):
     options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN)}
     # A meter's colours travel as numbers (firmware 0.56.0): the screen keeps no table of names.
     options = meter.screen_options(options)
+    # A light preset's device settings travel as [entity, value] pairs.
+    if isinstance(options.get(light_presets.OPTION), list):
+        options[light_presets.OPTION] = light_presets.screen_presets(options[light_presets.OPTION])
     icon = tile_icon(tile, attrs, state, entry)
     if icon:
         options['icon'] = icon

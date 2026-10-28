@@ -3,8 +3,9 @@ export type BuiltinName = "clock" | "nightstand" | "settings" | "map" | "energy"
 export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy", "screen.text"];
 // A plugin tile's option as it is kept (plugin API 0.12): a text, number or toggle; a pick of a list found by searching,
 // {value, label} with the words the person saw; or a list of texts or picks (the add-on's core.plugin_options).
-// A light's preset as the tile keeps it: a brightness, and a white shade in kelvin or a colour (hue, saturation).
-export type LightPreset = { b: number; k?: number; h?: number; s?: number };
+// A light's preset as the tile keeps it: a brightness, a white shade in kelvin or a colour (hue, saturation), an effect
+// (`fx`) and settings of its device (`rw`); or settings alone, a preset of the lamp itself (model/light-presets.ts).
+export type LightPreset = { b?: number; k?: number; h?: number; s?: number; fx?: string; rw?: Record<string, string | number> };
 export type PluginPick = { value: string; label: string };
 export type PluginValue = string | number | boolean | PluginPick | (string | PluginPick)[];
 export type TileOptions = {

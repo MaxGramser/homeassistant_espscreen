@@ -17,6 +17,10 @@ namespace hw {
 // shows its stills. One number for every P4 board, so a user reads "4" rather than finding out which tile stopped. The
 // streams a screen can hold (live_view::MAX_STREAMS) is a ceiling above it: four tiles, the full view, a plugin's places.
 constexpr uint8_t LIVE_TILES = 4;
+// And the pictures a second a live tile shows at most, every board alike: a clear limit, at which a reTerminal D1001
+// with four tiles keeps its wake word (10 a second each cost it 51 resets in three minutes, 2026-10-28). A busy screen
+// takes half or a quarter of it (live_view.cpp, pace; the governor, pressure.h).
+constexpr uint8_t LIVE_TILE_PPS = 6;
 
 struct Caps {
   bool live_video = false;   // streams a camera live on the glass: a P4 with the picture engine and a direct frame buffer

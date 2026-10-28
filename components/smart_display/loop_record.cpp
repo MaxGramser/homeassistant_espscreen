@@ -30,6 +30,10 @@ struct Record {
   uint32_t running;      // the main loop was the task on its core at the time (it spun), else it waited
   uint32_t stack_words;  // how much of its stack was in use, in words
   uint32_t at[MOST];
+  // The esp_timer task: its eTaskState plus one (0 when the hook did not find it), and the code on its stack.
+  uint32_t timer_state;
+  uint32_t timer_count;
+  uint32_t timer_at[MOST_TIMER];
 };
 __NOINIT_ATTR Record record;
 
@@ -39,8 +43,10 @@ bool is_code(uint32_t word) { return esp_ptr_executable(reinterpret_cast<const v
 
 Record taken{};
 bool had = false;
+TaskHandle_t timer_task = nullptr;  // looked up at boot: the watchdog's interrupt cannot search the tasks by name
 
 void take() {
+  timer_task = xTaskGetHandle("esp_timer");
   if (record.magic != MAGIC) return;
   taken = record;
   had = true;
@@ -57,6 +63,21 @@ void report() {
     ESP_LOGE(TAG, "  LOOP%u: 0x%08X", (unsigned) i, (unsigned) taken.at[i]);
     char hex[12];
     snprintf(hex, sizeof hex, " 0x%08X", (unsigned) taken.at[i]);
+    all += hex;
+  }
+  ESP_LOGE(TAG, "  Use: addr2line -pfiaC -e firmware.elf%s", all.c_str());
+  if (taken.timer_state == 0) return;
+  // eTaskState: running, ready, blocked, suspended, deleted.
+  static const char *const STATE[] = {"running", "ready", "blocked", "suspended", "deleted"};
+  const uint32_t state = taken.timer_state - 1;
+  const uint32_t timer_count = taken.timer_count > static_cast<uint32_t>(MOST_TIMER) ? MOST_TIMER : taken.timer_count;
+  ESP_LOGE(TAG, "*** THE ESP_TIMER TASK AT THE LAST TASK WATCHDOG *** (it was %s; newest first)",
+           state < 5 ? STATE[state] : "?");
+  all.clear();
+  for (uint32_t i = 0; i < timer_count; ++i) {
+    ESP_LOGE(TAG, "  TIMER%u: 0x%08X", (unsigned) i, (unsigned) taken.timer_at[i]);
+    char hex[12];
+    snprintf(hex, sizeof hex, " 0x%08X", (unsigned) taken.timer_at[i]);
     all += hex;
   }
   ESP_LOGE(TAG, "  Use: addr2line -pfiaC -e firmware.elf%s", all.c_str());
@@ -84,6 +105,19 @@ extern "C" void esp_task_wdt_isr_user_handler(void) {
   loop_record::record.running = running;
   loop_record::record.stack_words = static_cast<uint32_t>(end - from);
   loop_record::record.count = loop_record::scan(from, end, loop_record::record.at, loop_record::MOST, loop_record::is_code);
+  // The esp_timer task the same way. eTaskGetState takes the kernel's lock as the interrupt's own critical sections do.
+  loop_record::record.timer_state = 0;
+  loop_record::record.timer_count = 0;
+  TaskHandle_t timer = loop_record::timer_task;
+  TaskSnapshot_t timer_snapshot;
+  if (timer != nullptr && vTaskGetSnapshot(timer, &timer_snapshot) == pdTRUE) {
+    const auto *timer_from = reinterpret_cast<const uint32_t *>(timer_snapshot.pxTopOfStack);
+    const auto *timer_end = reinterpret_cast<const uint32_t *>(timer_snapshot.pxEndOfStack);
+    if (timer_from != nullptr && timer_end != nullptr && timer_from < timer_end)
+      loop_record::record.timer_count = loop_record::scan(timer_from, timer_end, loop_record::record.timer_at,
+                                                          loop_record::MOST_TIMER, loop_record::is_code);
+    loop_record::record.timer_state = static_cast<uint32_t>(eTaskGetState(timer)) + 1;
+  }
   loop_record::record.magic = loop_record::MAGIC;
 }
 #else

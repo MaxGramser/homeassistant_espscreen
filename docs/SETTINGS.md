@@ -31,6 +31,16 @@ changes them with the entity's own action, and leaves them out of the layout mes
 | Page buttons (0.2.69+) | `switch.<screen>_page_buttons` | `page_buttons` |
 | Show home button (0.2.100+) | `switch.<screen>_show_home_button` | `home_button` |
 | Rotation | `select.<screen>_rotation` | `rotation` (0.2.80+ on every board: a half turn on any glass, the quarter turns as well on a square one; standing up or lying down on other glass is the editor's Grid button, firmware 0.53.0+, because it changes the grid) |
+| Debug mode (This screen) | `switch.<screen>_debug_mode`, a diagnostic entity | none: the screen and Home Assistant only, and the troubleshooting report, which turns it on for its own read of the log |
+
+**Debug mode** is the screen's log. Off, which is how every screen starts, the screen writes its warnings and errors
+alone: the records a crash leaves (the crash, the main loop at a task watchdog, an abort, the last calls to the P4's
+picture engine, the internal RAM of the boot before) are warnings and errors and come either way. On, it writes
+everything its firmware is built with, INFO as before (DEBUG where its own YAML builds that level). It is off by
+default because writing log lines costs the glass: on a Guition 10.1 every line written, to the UART or to a
+subscriber over Wi-Fi, came with a flash on the live camera tiles, and with the log silent there were none
+(docs/PLATFORM_PLAN.md 4.7). Turn it on to read a screen's log in ESPHome or Home Assistant; the troubleshooting
+report turns it on for its own 45 seconds and back to what it was (`reports.screen_log`, `debug=True`).
 
 A screen starts with each setting's default until it stores a value of its own. Swipe between pages is the one whose
 default depends on the screen: off in the firmware and in `SETTING_RULES`, because every screen set up before had it off
@@ -79,7 +89,7 @@ The page is a menu of groups, each of which opens a page of its own:
 | Brightness | Brightness (dimmable backlight), Dark mode, Auto standby, Standby after, Standby brightness or Screen on in standby (boards that can go dark) |
 | Night (boards that can go dark) | Night mode, Starts, Ends, Night brightness or Screen on at night |
 | Screen | Back to Home, After, Also on standby (boards that can go dark), Swipe between pages, Page buttons, Show home button, Rotation |
-| This screen | Screen, Address, Wi-Fi (network and signal), Firmware, Home Assistant, Tessera, Calibrate touch (a resistive panel that has a wizard), Restart; the rows say their values again every two seconds while the page is open |
+| This screen | Screen, Address, Wi-Fi (network and signal), Firmware, Home Assistant, Tessera, Debug mode, Calibrate touch (a resistive panel that has a wizard), Restart; the rows say their values again every two seconds while the page is open |
 
 Every change is stored on the screen, applied at once and published on its entity, so Home Assistant and
 Tessera show it within a second. The editor's **Screen settings** panel has the first three groups as

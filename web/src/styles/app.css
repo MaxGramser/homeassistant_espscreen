@@ -1851,6 +1851,9 @@ section.advanced code { font-size: 11.5px; }
 .pd-readme img { max-width: 100%; border-radius: 8px; border: 1px solid var(--line); }
 .pd-readme table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 12px; overflow-wrap: normal; }
 .pd-readme th, .pd-readme td { padding: 4px 10px 4px 0; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+/* A quote in a README is a notice (the Bluetooth proxy says what it costs the Wi-Fi): a box in the warning's colour, at the top of the text. */
+.pd-readme blockquote { display: grid; gap: 6px; padding: 10px 12px; border-left: 3px solid var(--warn); border-radius: 8px; background: var(--warn-soft); color: var(--ink); }
+.pd-readme blockquote > * { margin: 0; }
 .pd-package { justify-self: start; }
 .pd-attach-note { align-items: flex-start; }
 .pd-attach-note .ui-icon { margin-top: 1px; color: var(--ink-2); }
@@ -1946,6 +1949,9 @@ section.advanced code { font-size: 11.5px; }
 .pt-room { padding: 0 6px; font-size: 11.5px; color: var(--muted); }
 .pt-room.over { color: var(--warn); }
 .pt-trust { margin: 12px 6px 0; font-size: 12px; }
+/* Plugins are at one's own risk: said once more beside Install, the reason in a line. */
+.pt-risk { display: flex; align-items: flex-start; gap: 6px; margin: 12px 6px 0; font-size: 11.5px; line-height: 1.4; color: var(--ink-2); }
+.pt-risk .ui-icon { font-size: 14px; color: var(--warn); flex: none; margin-top: 1px; }
 .pt-foot { display: grid; gap: 7px; margin-top: 14px; }
 .pt-install { width: 100%; height: 38px; border-radius: 10px; font-size: 13.5px; font-weight: 600; }
 .pt-install:disabled { opacity: 0.45; }
@@ -1991,6 +1997,9 @@ section.advanced code { font-size: 11.5px; }
    time. What fits none of the screens folds away under the list. A heart is a count first and a control only where
    the plugin runs. What comes along sits in the action box as rows like the tray's, never as a second dialog. */
 .plugin-counting { margin: 0 0 12px; }
+/* Plugins are at one's own risk: on the Plugins page and a screen's Plugins tab, before anything is picked. */
+.plugin-risk { margin: 14px 0 12px; max-width: 720px; align-items: flex-start; }
+#screen-plugin-risk { margin: 12px 0 0; }
 .plugin-counting > .ui-icon { font-size: 18px; color: var(--accent); flex: none; }
 .plugin-counting strong { display: block; color: var(--ink); }
 .plugin-misfits { display: grid; gap: 10px; margin-top: 6px; }

@@ -191,6 +191,7 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Gain du microphone",
       "automatic_gain": "Gain automatique",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Son activé",
-      "sound_off": "Son coupé"
+      "sound_off": "Son coupé",
+      "door": "Porte",
+      "door_confirm": "Touchez encore pour ouvrir",
+      "door_sent": "Envoyé",
+      "talk": "Parler",
+      "coming_soon": "Bientôt"
     },
     "tile": {
       "tap_to_open": "Ouvrir",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Délai",
           "help": "Secondes pendant lesquelles la sonnerie reste si personne ne la touche, de {min} à {max}. Vide vaut {default}. Un toucher la garde ouverte."
+        },
+        "sound": {
+          "label": "Son",
+          "help": "Si le son de la sonnette joue dès qu'elle sonne, là où l'écran a un haut-parleur. Vide ou true : la vue s'ouvre avec le son activé. false : elle s'ouvre en silence (un studio, une chambre), et un appui sur Son l'active."
+        },
+        "chime": {
+          "label": "Carillon",
+          "help": "Si l'écran joue son carillon quand on sonne, là où il a un haut-parleur. Vide ou true : il le joue. false : il sonne sans, et la vue s'ouvre quand même."
+        },
+        "lock": {
+          "label": "Serrure",
+          "help": "Une entité de serrure que la touche de porte de la vue déverrouille après un second appui ; la touche montre son état. Une serrure qui demande un code a besoin d'un code par défaut dans Home Assistant (les réglages de la serrure). Laissez vide pour aucune touche de porte."
+        },
+        "door_action": {
+          "label": "Action de porte",
+          "help": "Au lieu d'une serrure : une action Home Assistant que la touche de porte effectue après un second appui, comme script.open_gate ou button.press. `door_data` donne ses champs (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Données de porte",
+          "help": "Les champs de `door_action`, comme entity_id."
         }
       },
       "endings": {
@@ -1903,6 +1929,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Des extras pour vos écrans : des tuiles pour une page, quelque chose de plus pour tout l'écran, ou du matériel sur la carte. Un plugin est intégré au firmware d'un écran, vous choisissez donc écran par écran ceux qu'il reçoit.",
+      "risk": {
+        "title": "Les plugins sont à vos risques",
+        "text": "Chaque plugin prend une part de la mémoire et du temps de calcul d'un écran. Quelques-uns s'entendent bien, mais beaucoup à la fois (un assistant vocal, un proxy Bluetooth et une caméra, par exemple) peuvent remplir la mémoire et rendre un écran lent, le figer ou le faire redémarrer. Vous pouvez essayer, mais ajoutez-en un ou deux à la fois et vérifiez que l'écran reste stable. S'il se met à mal fonctionner, retirez d'abord les plus récents.",
+        "many": "{screen} aura {n} plugins après cette compilation. Autant peut rendre un écran instable : s'il fonctionne mal, retirez-en quelques-uns."
+      },
       "search": "Rechercher par nom, auteur ou fonction",
       "filter": "Afficher",
       "from_tessera": "De Tessera",
@@ -2112,7 +2143,8 @@
         "keep": "Le garder",
         "keep_named": "Garder {name}",
         "minutes": "Chaque compilation prend quelques minutes.",
-        "off_set": "Prévu pour être retiré"
+        "off_set": "Prévu pour être retiré",
+        "risk": "À vos risques : chaque plugin prend de la mémoire, et trop de plugins peuvent rendre un écran instable."
       },
       "maker": {
         "title": "Créer votre propre plugin",
@@ -2555,7 +2587,17 @@
         "levels": "Afficher la luminosité sur les préréglages",
         "levels_hint": "Écrit la luminosité en petit dans chaque cercle. Un préréglage de luminosité seule l'affiche toujours.",
         "hint": "Un appui sur un préréglage règle la lampe d'un coup ; l'anneau marque celui qu'elle affiche. Cliquez-en un pour le modifier, faites-le glisser pour changer l'ordre.",
-        "hint_empty": "Jusqu'à quatre touches rondes, comme les couleurs favorites de Home Assistant, chacune avec sa luminosité. Un nouveau part de ce que la lampe affiche."
+        "hint_empty": "Jusqu'à quatre touches rondes, comme les couleurs favorites de Home Assistant, chacune avec sa luminosité. Un nouveau part de ce que la lampe affiche.",
+        "own": "Réglage propre",
+        "device": "Préréglage de la lampe",
+        "effect": "Effet",
+        "search": "Rechercher",
+        "none_found": "Aucun résultat",
+        "device_kind": "Type",
+        "device_preset": "Préréglage",
+        "device_playlist": "Playlist",
+        "device_hint": "Un préréglage de la lampe elle-même définit sa propre couleur, son effet et sa luminosité.",
+        "swatch_aria_named": "Préréglage {n}, {name}"
       },
       "tap": {
         "label": "Au toucher",
@@ -4409,11 +4451,12 @@
         "title": "Nouvelle automatisation de sonnette",
         "camera_hint": "Un écran P4 la diffuse en direct avec le son si la caméra en a ; les autres écrans affichent son image.",
         "screens_hint": "Aucun choisi : tous les écrans.",
-        "limits": "Toutes les sonnettes ne peuvent pas tout : le son vient seulement si le flux de la caméra en a. Parler et ouvrir la porte viendront plus tard.",
+        "limits": "Toutes les sonnettes ne peuvent pas tout : le son vient seulement si le flux de la caméra en a. Parler viendra plus tard.",
         "more_cameras": "Une autre caméra…",
         "timeout_hint": "Combien de temps un appel reste ouvert si personne ne touche l'écran. Vide : la valeur par défaut.",
         "summary": {
-          "camera": "Caméra"
+          "camera": "Caméra",
+          "door": "Porte"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "Quelle caméra ?",
             "help": "La caméra que montrent les écrans quand ça sonne. En général celle de la sonnette."
+          },
+          "door": {
+            "title": "Une porte à ouvrir ?",
+            "help": "La vue de la sonnette peut avoir une touche qui ouvre la porte après un second appui : une serrure, ou une autre action comme un script ou le bouton d'un portail. Vous pouvez la laisser de côté."
           },
           "screens": {
             "title": "Quels écrans ?",
@@ -4440,6 +4487,22 @@
             "title": "Terminer",
             "help": "Faites-en une automatisation à part, ou copiez l'action dans une automatisation que vous avez déjà."
           }
+        },
+        "door": {
+          "none": "Pas de touche de porte",
+          "lock": "Une serrure",
+          "action": "Une autre action",
+          "pick_lock": "Choisir une serrure…",
+          "pick_action": "Choisir ce qu'elle ouvre…",
+          "code": "Cette serrure demande un code : la touche n'apparaît que si la serrure a un code par défaut dans Home Assistant (les réglages de la serrure)."
+        },
+        "sound": {
+          "label": "Entendre la sonnette tout de suite",
+          "hint": "La vue de la sonnette s'ouvre avec son son activé. Désactivez ceci pour un endroit calme, comme un studio : le son attend alors un appui sur Son."
+        },
+        "chime": {
+          "label": "Carillon à la sonnerie",
+          "hint": "L'écran joue un carillon de porte quand quelqu'un sonne. Désactivez ceci si vous ne voulez pas entendre le ding-dong à chaque fois."
         }
       },
       "hero": {

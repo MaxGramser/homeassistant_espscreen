@@ -24,6 +24,7 @@ struct Record {
   uint32_t magic;
   uint32_t lowest, lowest_at;  // the least internal RAM free this boot, and when (ms since boot)
   uint32_t failures;           // allocations that found no room this boot
+  uint32_t fell_back, fell_back_size;  // the encoder's first asks (falls_back), and the last one's size
   // The last of them.
   uint32_t size, caps, free_then, at;
   char task[16];
@@ -33,7 +34,8 @@ __NOINIT_ATTR Record record;
 Record previous{};
 bool had_previous = false;
 LowWater water;
-uint32_t logged_failures = 0, checked_at = 0, counted_at = 0;
+uint32_t logged_failures = 0, logged_fell_back = 0, checked_at = 0, counted_at = 0;
+uint32_t internal_total = 0;  // all the internal RAM there is, read once at boot
 constexpr uint32_t COUNT_MS = 5 * 60 * 1000;  // how often the tasks and the two heaps are logged: a leak shows as a trend
 
 uint32_t internal_free() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
@@ -47,6 +49,11 @@ void copy(char *to, size_t room, const char *from) {
 
 // ESP-IDF calls this in the task whose allocation failed: no logging and no allocation here.
 void failed(size_t size, uint32_t caps, const char *function) {
+  if (falls_back(static_cast<uint32_t>(size), caps, internal_total)) {
+    record.fell_back++;
+    record.fell_back_size = static_cast<uint32_t>(size);
+    return;
+  }
   record.failures++;
   record.size = size;
   record.caps = caps;
@@ -81,6 +88,7 @@ void setup() {
   record = Record{};
   record.lowest = internal_lowest();
   record.magic = MAGIC;
+  internal_total = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_INTERNAL));
   water.due(record.lowest, STEP);
   heap_caps_register_failed_alloc_callback(failed);
 }
@@ -104,6 +112,12 @@ void tick(uint32_t now) {
              (unsigned) uxTaskGetNumberOfTasks(), (unsigned) internal_free(), (unsigned) record.lowest,
              (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM), (unsigned) glass::misses());
   }
+  const uint32_t fell_back = record.fell_back;
+  if (fell_back != logged_fell_back) {
+    logged_fell_back = fell_back;
+    ESP_LOGI(TAG, "An ask of %u bytes for internal RAM fell back to PSRAM, as the H.264 encoder's reference frame does",
+             (unsigned) record.fell_back_size);
+  }
   const uint32_t failures = record.failures;
   if (failures != logged_failures) {
     logged_failures = failures;
@@ -120,9 +134,9 @@ void dump() {
     if (previous.failures != 0) log_failure(previous, true);
   }
   // INFO, not CONFIG: the screens log at INFO, where ESPHome compiles every ESP_LOGCONFIG out.
-  ESP_LOGI(TAG, "Internal RAM: %u bytes free, %u at the lowest since boot (%u s after it), %u failed allocations",
-                (unsigned) internal_free(), (unsigned) record.lowest, (unsigned) (record.lowest_at / 1000),
-                (unsigned) record.failures);
+  ESP_LOGI(TAG, "Internal RAM: %u bytes free, %u at the lowest since boot (%u s after it), %u failed allocations, %u "
+                "fell back to PSRAM", (unsigned) internal_free(), (unsigned) record.lowest,
+                (unsigned) (record.lowest_at / 1000), (unsigned) record.failures, (unsigned) record.fell_back);
 }
 
 }  // namespace heap_watch

@@ -86,7 +86,12 @@ namespace tessera {
 // speaker, a microphone, echo cancellation and a camera of its own, how many live tiles it runs at once, and its
 // memory. A plugin reads it instead of inferring any of that from a board, a chip or an id (docs/PLATFORM_PLAN.md
 // 3.3); ui::live() still degrades to stills on its own, so a plugin that wants to say why reads caps().live_video.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 19;
+// 0.20: Capture::SENSING, the screen's own camera used for what never leaves it and nobody watches (a light level,
+// motion): the core's dot shows as a ring then, and solid while anyone watches (Capture::CAMERA, Home Assistant).
+// 0.21: squeeze(), how much of its work a busy screen asks a plugin to give up now (the governor, pressure.h): the
+// screen's own camera's video, its sensing and work in the background do half or a quarter while a finger is on the
+// glass or the screen shows signs of trouble, so the glass and the voice never wait.
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 21;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -565,14 +570,25 @@ void refresh();
 // and at most once a second or two while what it senses goes on. A plugin that wakes the screen by what it senses has
 // a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen").
 void wake(const Plugin *plugin);
-// What a plugin captures on the screen itself (0.17): its own camera.
-enum class Capture : uint8_t { CAMERA };
-// A plugin uses the screen's own camera on the screen itself (0.17, docs/PICTURES.md "Capture"), for what never leaves
-// it (a light level, motion): true while it does, false once it stops. The core shows a dot in the glass's top right
-// corner, on top of everything, while anything uses the camera, and no plugin or setting can take it away: Home
-// Assistant taking pictures or a stream of the camera (`ts_camera`, the feature `camera`) the core sees by itself; what a
-// plugin does on the screen it must say here. Call it from the plugin's own calls (the screen's loop).
+// What a plugin captures on the screen itself (0.17): its own camera, watched (CAMERA: someone sees what it sees), or
+// for sensing alone (SENSING, 0.20: a light level, motion, and no picture leaves the screen or reaches a person).
+enum class Capture : uint8_t { CAMERA, SENSING };
+// A plugin uses the screen's own camera on the screen itself (0.17, docs/PICTURES.md "Capture"): true while it does,
+// false once it stops, for each Capture on its own. The core shows a dot in the glass's top right corner, on top of
+// everything, while anything uses the camera, and no plugin or setting can take it away: solid while anyone watches
+// (a plugin's CAMERA, or Home Assistant taking pictures or a stream of the camera, `ts_camera`, which the core sees by
+// itself), a ring while the camera only senses (SENSING, 0.20). What a plugin does on the screen it must say here.
+// Call it from the plugin's own calls (the screen's loop).
 void capturing(const Plugin *plugin, Capture what, bool on);
+// The work a busy screen may squeeze (0.21, docs/PLATFORM_PLAN.md 4.10), in the order it gives up: the screen's own
+// camera's picture leaving it (its video), its sensing (a light level, motion), and work in the background (anything
+// done ahead for later).
+enum class Work : uint8_t { OWN_CAMERA = 4, SENSING = 5, BACKGROUND = 6 };
+// How much of it to give up now: 0 none, 1 half (every other frame, sample or item), 2 three quarters. The screen sets
+// it from what it measures (the panel running dry, the main loop held up, the wake word falling behind) and while a
+// finger is on the glass; it goes back by itself. Any task may ask, at any moment, and nothing waits on it. A plugin
+// that gives up frames of a video leaves them out before it encodes them, so its stream stays whole.
+uint8_t squeeze(Work work);
 // How far the screen's own camera turns its picture to stand upright (0.19), 0 or 180: half way round when the board
 // mounts its sensor upside down against the glass (its CAMERA_ORIENTATION), and half way again while the screen is
 // turned half way round from lying down. A quarter turn (a screen stood up) changes nothing; the picture stays lying

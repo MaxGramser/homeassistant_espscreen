@@ -191,6 +191,7 @@
       "hours_minutes": "{h} Std. {m}",
       "wifi": "WLAN",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Mikrofonverstärkung",
       "automatic_gain": "Automatische Verstärkung",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Ton an",
-      "sound_off": "Ton aus"
+      "sound_off": "Ton aus",
+      "door": "Tür",
+      "door_confirm": "Zum Öffnen erneut tippen",
+      "door_sent": "Gesendet",
+      "talk": "Sprechen",
+      "coming_soon": "Demnächst"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Timeout",
           "help": "Sekunden, die das Klingeln bleibt, wenn niemand es berührt, {min} bis {max}. Leer ist {default}. Eine Berührung hält es offen."
+        },
+        "sound": {
+          "label": "Ton",
+          "help": "Ob der Ton der Türklingel beim Klingeln sofort spielt, wo der Bildschirm einen Lautsprecher hat. Leer oder true: Die Ansicht öffnet mit Ton an. false: Sie öffnet leise (ein Studio, ein Schlafzimmer), und ein Tippen auf Ton schaltet ihn ein."
+        },
+        "chime": {
+          "label": "Gong",
+          "help": "Ob der Bildschirm beim Klingeln seinen Gong spielt, wo er einen Lautsprecher hat. Leer oder true: Er spielt ihn. false: Er klingelt ohne, und die Ansicht öffnet trotzdem."
+        },
+        "lock": {
+          "label": "Schloss",
+          "help": "Eine Schloss-Entität, die die Türtaste der Klingelansicht nach einem zweiten Tippen entriegelt; die Taste zeigt ihren Zustand. Ein Schloss, das einen Code verlangt, braucht einen Standardcode in Home Assistant (die Einstellungen des Schlosses). Weglassen für keine Türtaste."
+        },
+        "door_action": {
+          "label": "Türaktion",
+          "help": "Statt eines Schlosses: eine Home-Assistant-Aktion, die die Türtaste nach einem zweiten Tippen ausführt, etwa script.open_gate oder button.press. `door_data` gibt ihre Felder (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Türdaten",
+          "help": "Die Felder von `door_action`, etwa entity_id."
         }
       },
       "endings": {
@@ -1903,6 +1929,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras für deine Bildschirme: Kacheln für eine Seite, etwas, das der ganze Bildschirm zusätzlich kann, oder Hardware auf der Platine. Ein Plugin wird in die Firmware eines Bildschirms gebaut, also wählst du pro Bildschirm, welche er bekommt.",
+      "risk": {
+        "title": "Plugins auf eigenes Risiko",
+        "text": "Jedes Plugin braucht einen Teil des Speichers und der Rechenzeit eines Bildschirms. Ein paar vertragen sich gut, aber viele auf einmal (etwa ein Sprachassistent, ein Bluetooth-Proxy und eine Kamera) können den Speicher füllen und einen Bildschirm langsam machen, einfrieren oder neu starten lassen. Du kannst es versuchen, aber füge eins oder zwei auf einmal hinzu und prüfe, ob der Bildschirm stabil bleibt. Wenn er Probleme macht, entferne zuerst die neuesten.",
+        "many": "{screen} hat nach diesem Build {n} Plugins. So viele können einen Bildschirm instabil machen: Wenn er Probleme macht, entferne einige."
+      },
       "search": "Nach Name, Autor oder Funktion suchen",
       "filter": "Zeigen",
       "from_tessera": "Von Tessera",
@@ -2112,7 +2143,8 @@
         "keep": "Behalten",
         "keep_named": "{name} behalten",
         "minutes": "Jedes Erstellen dauert ein paar Minuten.",
-        "off_set": "Zum Entfernen vorgemerkt"
+        "off_set": "Zum Entfernen vorgemerkt",
+        "risk": "Auf eigenes Risiko: Jedes Plugin braucht Speicher, und zu viele können einen Bildschirm instabil machen."
       },
       "maker": {
         "title": "Eigenes Plugin erstellen",
@@ -2555,7 +2587,17 @@
         "levels": "Helligkeit auf Voreinstellungen zeigen",
         "levels_hint": "Schreibt die Helligkeit klein in jeden Kreis. Eine Voreinstellung nur mit Helligkeit zeigt sie immer.",
         "hint": "Ein Tippen auf eine Voreinstellung stellt die Leuchte in einem Schritt darauf ein; der Ring zeigt, welche gerade leuchtet. Klicke eine an, um sie zu ändern, ziehe sie, um die Reihenfolge zu ändern.",
-        "hint_empty": "Bis zu vier runde Tasten, wie die Lieblingsfarben in Home Assistant, jede mit eigener Helligkeit. Eine neue beginnt mit dem, was die Leuchte gerade zeigt."
+        "hint_empty": "Bis zu vier runde Tasten, wie die Lieblingsfarben in Home Assistant, jede mit eigener Helligkeit. Eine neue beginnt mit dem, was die Leuchte gerade zeigt.",
+        "own": "Eigene Einstellung",
+        "device": "Preset der Lampe",
+        "effect": "Effekt",
+        "search": "Suchen",
+        "none_found": "Nichts gefunden",
+        "device_kind": "Art",
+        "device_preset": "Preset",
+        "device_playlist": "Playlist",
+        "device_hint": "Ein Preset der Lampe selbst setzt seine eigene Farbe, seinen Effekt und seine Helligkeit.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "Beim Tippen",
@@ -4409,11 +4451,12 @@
         "title": "Neue Türklingel-Automation",
         "camera_hint": "Ein P4-Bildschirm streamt sie live mit Ton, wenn die Kamera Ton hat; andere Bildschirme zeigen ihr Bild.",
         "screens_hint": "Keiner gewählt: jeder Bildschirm.",
-        "limits": "Nicht jede Türklingel kann alles: Ton kommt nur, wenn der Stream der Kamera ihn hat. Zurücksprechen und die Tür öffnen kommen später.",
+        "limits": "Nicht jede Türklingel kann alles: Ton kommt nur, wenn der Stream der Kamera ihn hat. Zurücksprechen kommt später.",
         "more_cameras": "Eine andere Kamera…",
         "timeout_hint": "Wie lange ein Klingeln offen bleibt, wenn niemand den Bildschirm berührt. Leer: der Standard.",
         "summary": {
-          "camera": "Kamera"
+          "camera": "Kamera",
+          "door": "Tür"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "Welche Kamera?",
             "help": "Die Kamera, die die Bildschirme beim Klingeln zeigen. Meist die eigene Kamera der Türklingel."
+          },
+          "door": {
+            "title": "Eine Tür zum Öffnen?",
+            "help": "Die Klingelansicht kann eine Taste haben, die nach einem zweiten Tippen die Tür öffnet: ein Schloss oder eine andere Aktion wie ein Skript oder die Taste eines Tors. Du kannst es weglassen."
           },
           "screens": {
             "title": "Welche Bildschirme?",
@@ -4440,6 +4487,22 @@
             "title": "Abschließen",
             "help": "Mach eine eigene Automation daraus, oder kopiere die Aktion in eine Automation, die du schon hast."
           }
+        },
+        "door": {
+          "none": "Keine Türtaste",
+          "lock": "Ein Schloss",
+          "action": "Eine andere Aktion",
+          "pick_lock": "Schloss wählen…",
+          "pick_action": "Wählen, was es öffnet…",
+          "code": "Dieses Schloss verlangt einen Code: Die Taste erscheint nur, wenn das Schloss einen Standardcode in Home Assistant hat (die Einstellungen des Schlosses)."
+        },
+        "sound": {
+          "label": "Die Türklingel sofort hören",
+          "hint": "Die Klingelansicht öffnet mit dem Ton der Türklingel an. Schalte das für einen ruhigen Ort aus, etwa ein Studio: Der Ton wartet dann auf ein Tippen auf Ton."
+        },
+        "chime": {
+          "label": "Gong beim Klingeln",
+          "hint": "Der Bildschirm spielt einen Türgong, wenn jemand klingelt. Schalte das aus, wenn du das Ding-Dong nicht jedes Mal hören willst."
         }
       },
       "hero": {

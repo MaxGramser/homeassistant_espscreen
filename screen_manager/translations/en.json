@@ -191,6 +191,7 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Microphone gain",
       "automatic_gain": "Automatic gain",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Sound on",
-      "sound_off": "Sound off"
+      "sound_off": "Sound off",
+      "door": "Door",
+      "door_confirm": "Tap again to open",
+      "door_sent": "Sent",
+      "talk": "Talk",
+      "coming_soon": "Coming soon"
     },
     "tile": {
       "tap_to_open": "Tap to open",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Timeout",
           "help": "Seconds the ring stays when nobody touches it, {min} to {max}. Empty is {default}. A touch keeps it open."
+        },
+        "sound": {
+          "label": "Sound",
+          "help": "Whether the doorbell's own sound plays at once when it rings, where the screen has a speaker. Empty or true: the view opens with Sound on. false: it opens quiet (a studio, a bedroom), and a tap on Sound turns it on."
+        },
+        "chime": {
+          "label": "Chime",
+          "help": "Whether the screen plays its chime when it rings, where it has a speaker. Empty or true: it chimes. false: it rings without one, and the view opens all the same."
+        },
+        "lock": {
+          "label": "Lock",
+          "help": "A lock entity the view's door key unlocks after a second tap; the key shows its state. A lock that asks for a code needs a default code in Home Assistant (the lock's settings). Leave it out for no door key."
+        },
+        "door_action": {
+          "label": "Door action",
+          "help": "Instead of a lock: a Home Assistant action the door key performs after a second tap, such as script.open_gate or button.press. `door_data` gives its fields (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Door data",
+          "help": "The fields of `door_action`, such as entity_id."
         }
       },
       "endings": {
@@ -2126,7 +2152,17 @@
         "levels": "Show brightness on presets",
         "levels_hint": "Writes each preset's brightness small in its circle. A preset of brightness only always shows it.",
         "hint": "A tap on a preset sets the light to it in one go; the ring marks the one the light shows. Click one to change it, drag to reorder.",
-        "hint_empty": "Up to four round keys, like the favorite colors in Home Assistant, each with its own brightness. A new one starts from what the light shows now."
+        "hint_empty": "Up to four round keys, like the favorite colors in Home Assistant, each with its own brightness. A new one starts from what the light shows now.",
+        "own": "Own setting",
+        "device": "Lamp's own preset",
+        "effect": "Effect",
+        "search": "Search",
+        "none_found": "Nothing found",
+        "device_kind": "Kind",
+        "device_preset": "Preset",
+        "device_playlist": "Playlist",
+        "device_hint": "A preset of the lamp itself sets its own color, effect and brightness.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "On tap",
@@ -3727,6 +3763,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras for your screens: tiles to put on a page, something more the whole screen can do, or hardware on the board. A plugin is built into a screen's firmware, so you choose per screen which ones it gets.",
+      "risk": {
+        "title": "Plugins are at your own risk",
+        "text": "Every plugin takes some of a screen's memory and processor time. A few go well together, but many at once (a voice assistant, a Bluetooth proxy and a camera, say) can fill the memory and make a screen slow, freeze or restart. You can try it, but add one or two at a time and check that the screen stays stable. When it starts acting up, take the newest ones off first.",
+        "many": "{screen} runs {n} plugins after this build. That many can make a screen unstable: if it acts up, take some off."
+      },
       "search": "Search by name, maker or what it does",
       "filter": "Show",
       "from_tessera": "From Tessera",
@@ -3936,7 +3977,8 @@
         "keep": "Keep it",
         "keep_named": "Keep {name}",
         "minutes": "Each build takes a few minutes.",
-        "off_set": "Set aside to come off"
+        "off_set": "Set aside to come off",
+        "risk": "At your own risk: every plugin takes memory, and too many can make a screen unstable."
       },
       "maker": {
         "title": "Make a plugin of your own",
@@ -4409,11 +4451,12 @@
         "title": "New doorbell automation",
         "camera_hint": "A P4 screen streams it live with sound when the camera has sound; other screens show its picture.",
         "screens_hint": "None chosen: every screen.",
-        "limits": "Not every doorbell can do everything: sound comes only when the camera's stream has it. Talking back and opening the door come later.",
+        "limits": "Not every doorbell can do everything: sound comes only when the camera's stream has it. Talking back comes later.",
         "more_cameras": "Another camera…",
         "timeout_hint": "How long a ring stays open when nobody touches the screen. Empty: the default.",
         "summary": {
-          "camera": "Camera"
+          "camera": "Camera",
+          "door": "Door"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "Which camera?",
             "help": "The camera the screens show when it rings. Usually the doorbell's own camera."
+          },
+          "door": {
+            "title": "A door to open?",
+            "help": "The ring's view can have a key that opens the door after a second tap: a lock, or another action such as a script or a gate's button. You can leave it out."
           },
           "screens": {
             "title": "Which screens?",
@@ -4440,6 +4487,22 @@
             "title": "Finish",
             "help": "Make it an automation of its own, or copy the action into an automation you already have."
           }
+        },
+        "door": {
+          "none": "No door key",
+          "lock": "A lock",
+          "action": "Another action",
+          "pick_lock": "Pick a lock…",
+          "pick_action": "Pick what it opens…",
+          "code": "This lock asks for a code: the key only appears when the lock has a default code in Home Assistant (the lock's settings)."
+        },
+        "sound": {
+          "label": "Hear the doorbell at once",
+          "hint": "The ring opens with the doorbell's sound on. Turn this off for a quiet place, such as a studio: the sound then waits for a tap on Sound."
+        },
+        "chime": {
+          "label": "Chime when it rings",
+          "hint": "The screen plays a door chime when someone rings. Turn this off if you would rather not hear the ding-dong every time."
         }
       },
       "hero": {

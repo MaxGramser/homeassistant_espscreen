@@ -6,6 +6,7 @@ import { defineStore } from "pinia";
 import { computed, ref, toRaw } from "vue";
 import { getJson, send } from "../api";
 import type { HistoryPreview } from "../model/history-preview";
+import type { LightChoices } from "../model/light-presets";
 import { homeView, type HomeView } from "../model/overview";
 import { text as pluginText } from "../model/plugins";
 import { itemKey } from "../model/topbar";
@@ -95,6 +96,22 @@ export const useEntitiesStore = defineStore("entities", () => {
     }
   }
 
+  // ---- What a light's presets may set beside its colour: its effects and its device's rows (docs/LIGHT_PRESETS.md) ----
+  // Asked once per light while the page is open, as its actions are.
+  const lightChoices = ref<Record<string, LightChoices | undefined>>({});
+  const askedChoices = new Set<string>();
+  async function loadLightChoices(entity: string) {
+    if (askedChoices.has(entity) || !entity.startsWith("light.")) return;
+    askedChoices.add(entity);
+    try {
+      const data = await getJson<Partial<LightChoices>>(`light-choices?entity=${encodeURIComponent(entity)}`);
+      lightChoices.value[entity] = { effects: Array.isArray(data.effects) ? data.effects.filter((e) => typeof e === "string") : [],
+        rows: Array.isArray(data.rows) ? data.rows.filter((r) => r && typeof r.e === "string" && (r.kind === "select" || r.kind === "number")) : [] };
+    } catch {
+      askedChoices.delete(entity);
+    }
+  }
+
   // ---- Live values on the mockup (app 0.2.73): what the screen shows right now ----
   const liveStates = ref<Record<string, Live>>({});
   let statesFlight = false;
@@ -106,6 +123,16 @@ export const useEntitiesStore = defineStore("entities", () => {
     try {
       for (let i = 0; i < entities.length; i += 60) {
         const values = await getJson(`states?${query(entities.slice(i, i + 60))}`);
+        if (!still()) return;
+        Object.assign(liveStates.value, values.states || {});
+      }
+      // The lamps of a light group on the layout: its presets are read lamp by lamp (model/light-presets.ts presetLit).
+      const lamps = [...new Set(entities.flatMap((id) => {
+        const members = id.startsWith("light.") ? liveStates.value[id]?.a?.entity_id : null;
+        return Array.isArray(members) ? members : [];
+      }))].filter((e): e is string => typeof e === "string" && e.startsWith("light.") && !entities.includes(e)).slice(0, 60);
+      if (lamps.length) {
+        const values = await getJson(`states?${query(lamps)}`);
         if (!still()) return;
         Object.assign(liveStates.value, values.states || {});
       }
@@ -185,7 +212,7 @@ export const useEntitiesStore = defineStore("entities", () => {
 
   return {
     ...lookups({ entityName, iconNamed, automaticIcon, tileIconCp, liveOf }),
-    capabilities, entityActions, subtitleValues, loadCapabilities, loadSubtitleValues, loadEntityActions,
+    capabilities, entityActions, subtitleValues, loadCapabilities, loadSubtitleValues, loadEntityActions, lightChoices, loadLightChoices,
     liveStates, loadStates, loadLibraryStates, reloadState, topbarPreviews, loadOverview, loadHistory,
   };
 });

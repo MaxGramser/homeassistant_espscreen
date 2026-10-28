@@ -21,7 +21,7 @@ import { dotted, textPx } from "../model/text-fit";
 import { tallCard, type Rect, type TallText } from "../model/tall-layout";
 import { clockText as trackTime, mediaLayout, mediaMetrics, mediaTop } from "../model/media-layout";
 import { barKeys } from "../model/tall-controls";
-import { levelShown, lightNow, presetSizes, presetsOf, shown } from "../model/light-presets";
+import { levelShown, presetLit as presetLit_, presetSizes, presetsOf } from "../model/light-presets";
 import { bits } from "../model/catalogue";
 import theme from "virtual:esp-screens-theme";
 import { useCanvasStore } from "../stores/canvas";
@@ -342,7 +342,7 @@ export function useTileCard(props: TileCardProps) {
   });
   // ---- A light's presets (module light_presets): round keys in their colours, the ring round the one it shows ----
   const presets = computed(() => (domain.value === "light" ? presetsOf(props.tile.options) : []));
-  const presetLit = computed(() => shown(presets.value, lightNow(current.value)));
+  const presetLit = computed(() => presetLit_(presets.value, current.value, entities.liveOf));
   /** The keys at their places in glass pixels (model/light-presets.ts), each with its look. */
   function presetDots(places: { x: number; y: number; size: number }[]) {
     const z = presetSizes(doc.screenShape), levels = props.tile.options?.preset_levels === true;

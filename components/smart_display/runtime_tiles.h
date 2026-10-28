@@ -1,6 +1,8 @@
 #pragma once
 #include <cmath>
+#include <atomic>
 #include <cstring>
+#include <string_view>
 #include "runtime_model.h"
 #ifdef ESP_SCREEN_HOST
 #include "host_shims.h"
@@ -21,6 +23,9 @@
 #endif
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#endif
+#ifdef USE_LOGGER
+#include "esphome/components/logger/logger.h"
 #endif
 #endif
 #include "header_bar.h"
@@ -48,6 +53,7 @@
 #include "camera_view.h"
 #include "picture_fetch.h"
 #include "live_spots.h"
+#include "pressure.h"
 #include "live_view.h"
 #include "hw.h"
 #include "boot_trial.h"
@@ -106,6 +112,15 @@ inline esphome::ESPPreferenceObject buttons_preference;
 inline esphome::ESPPreferenceObject swipe_preference;
 inline esphome::ESPPreferenceObject home_preference;
 inline esphome::ESPPreferenceObject dark_preference;
+inline esphome::ESPPreferenceObject debug_preference;
+// Debug mode (settings_screen.h): the logger at the level the firmware is built with while it is on, warnings and
+// errors alone while it is off. At boot and after every change of a setting.
+inline void apply_debug_mode() {
+#if defined(USE_LOGGER) && !defined(ESP_SCREEN_HOST)
+  if (esphome::logger::global_logger != nullptr)
+    esphome::logger::global_logger->set_log_level(settings_screen::debug_mode ? ESPHOME_LOG_LEVEL : ESPHOME_LOG_LEVEL_WARN);
+#endif
+}
 // The grid chosen for each way the glass hangs (firmware 0.53.0+, regrid), lying down first.
 struct GridChoice { uint8_t columns[2], rows[2]; };
 inline esphome::ESPPreferenceObject grid_preference;
@@ -520,6 +535,7 @@ inline void load_settings() {
   home_preference = esphome::global_preferences->make_preference<HomeTimeout>(0x484F4D31);
   dark_preference = esphome::global_preferences->make_preference<uint32_t>(0x44524B31);
   buttons_preference = esphome::global_preferences->make_preference<uint32_t>(0x50474231);
+  debug_preference = esphome::global_preferences->make_preference<uint32_t>(0x44424731);
   numbers_preference = esphome::global_preferences->make_preference<uint32_t>(0x4E554D31);
   uint32_t numbers_saved=0;
   if(numbers_preference.load(&numbers_saved))screen_text_numbers(numbers_saved);
@@ -529,6 +545,9 @@ inline void load_settings() {
   if(dark_preference.load(&dark_saved))settings_screen::dark_mode=dark_saved==1;
   uint32_t buttons_saved=1;
   if(buttons_preference.load(&buttons_saved))page_buttons=buttons_saved!=0;
+  uint32_t debug_saved=0;
+  if(debug_preference.load(&debug_saved))settings_screen::debug_mode=debug_saved==1;
+  apply_debug_mode();
   HomeTimeout home;
   if(home_preference.load(&home) && home.seconds>=30 && home.seconds<=3600){
     auto_home=home.enabled?1:0;auto_home_seconds=(int32_t)home.seconds;
@@ -561,6 +580,8 @@ inline void persist_settings() {
   dark_preference.save(&dark);
   uint32_t buttons = page_buttons ? 1 : 0;
   buttons_preference.save(&buttons);
+  uint32_t debug = settings_screen::debug_mode ? 1 : 0;
+  debug_preference.save(&debug);
   uint32_t turned = (uint32_t) rotation;
   rotation_preference.save(&turned);
 }
@@ -1271,7 +1292,46 @@ inline light_presets::Light preset_light(const Tile &t) {
   l.on = t.state == "on";
   l.level = std::isfinite(t.brightness) ? std::clamp((int) std::lround(t.brightness * 100.0f / 255.0f), 1, 100) : 100;
   l.white = t.white; l.kelvin = t.kelvin; l.hue = t.hue; l.saturation = t.saturation;
+  // Its effect and its device's settings as they stand (the effects page's rows), for a preset that names them.
+  const auto &x = t.extra();
+  l.effect = x.effect;
+  for (const auto &r : x.option_rows) l.now.push_back({r.entity, r.current, NAN});
+  for (const auto &r : x.number_rows) l.now.push_back({r.entity, effects_page::number_text(r.value), r.value});
   return l;
+}
+// The preset the light shows now, or -1: a group's lamp by lamp where the screen has its lamps (light_presets::Lamp),
+// any other light by its own state.
+inline int preset_lit(const Tile &t) {
+  if (!t.presets) return -1;
+  const auto &lamps = t.extra().lamps;
+  if (lamps.empty()) return light_presets::shown(*t.presets, preset_light(t));
+  std::array<light_presets::Lamp, MAX_LAMPS> each{};
+  size_t n = 0;
+  for (const auto &l : lamps) {
+    if (n == each.size()) break;
+    auto &e = each[n++];
+    e.on = l.on; e.unavailable = l.unavailable; e.dims = l.dimmable; e.color = l.color; e.temperature = l.temperature;
+    e.level = l.level; e.hue = l.hue; e.saturation = l.saturation; e.kelvin = l.temperature ? l.kelvin : 0;
+  }
+  return light_presets::group_shown(*t.presets, each.data(), n, preset_light(t));
+}
+// The preset a tap set on its way, or -1: one of its wishes (its colour and brightness, its effect, a setting) is still
+// live, so Home Assistant has not reported it yet. Its key turns a spinner in the ring's place until it has.
+inline int preset_pending(const Tile &t) {
+  if (!t.presets) return -1;
+  const auto on_way = [&](optimistic::Field field, const std::string &want, const std::string &item = "") {
+    const auto *w = wishes.find(t.entity, field, item);
+    return w && w->want == want;
+  };
+  for (unsigned n = 0; n < t.presets->count; ++n) {
+    const auto &p = t.presets->items[n];
+    bool busy = (p.level && on_way(optimistic::Field::PRESET, light_presets::value(p))) ||
+                (!p.effect.empty() && on_way(optimistic::Field::EFFECT, p.effect));
+    for (const auto &s : p.settings)
+      busy = busy || on_way(s.is_number() ? optimistic::Field::ROW_NUMBER : optimistic::Field::ROW_OPTION, s.text, s.entity);
+    if (busy) return (int) n;
+  }
+  return -1;
 }
 #endif
 inline std::string wish_read(const Tile &t, optimistic::Field field, const std::string &item = "") {
@@ -1366,6 +1426,15 @@ inline void wish_write(Tile &t, optimistic::Field field, const std::string &valu
       t.state = "on"; t.brightness = p.level * 255.0f / 100.0f;
       if (p.kind == light_presets::Preset::WHITE) { t.kelvin = p.kelvin; t.saturation = 0; t.white = true; }
       if (p.kind == light_presets::Preset::COLOUR) { t.hue = p.hue; t.saturation = p.saturation; t.has_hs_color = true; t.white = false; }
+      // A group's lamps as Home Assistant carries the call out, lamp by lamp: each on, at the brightness if it dims, in the
+      // white shade or the colour where it can show it (light/helper.py); what a lamp makes of the rest Home Assistant says.
+      if (auto *x = t.extra_ptr()) for (auto &l : x->lamps) {
+        if (l.unavailable) continue;
+        l.on = true;
+        if (l.dimmable) l.level = p.level;
+        if (p.kind == light_presets::Preset::WHITE && l.temperature) { l.kelvin = p.kelvin; l.saturation = 0; }
+        if (p.kind == light_presets::Preset::COLOUR && l.color) { l.hue = p.hue; l.saturation = p.saturation; l.kelvin = 0; }
+      }
 #endif
       break;
     }
@@ -1462,11 +1531,23 @@ inline bool toggle_tap(const Tile &t, const std::string &service) {
 #ifdef SD_MOD_LIGHT_PRESETS
 // A preset's key: the light to its brightness and its white shade or colour at once, shown on every tile and the open card
 // of the light before Home Assistant answers (Field::PRESET), as one light.turn_on whose values Home Assistant renders.
+// Its effect and its device's settings each go as the light's effects page sends them (effects_page.h): the effect as
+// light.turn_on, a select's option and a number's value as the row's own action, each a wish shown at once. A preset of the
+// lamp itself is its settings alone.
 inline void preset_wish(Tile &t, const light_presets::Preset &p) {
-  if (t.domain() != "light" || !t.available() || p.level == 0) return;
-  const auto colour = light_presets::colour_data(p);
-  wish(t, optimistic::Field::PRESET, light_presets::value(p), "light.turn_on", "brightness_pct", std::to_string(p.level), "", "", true,
-       colour.key2, colour.value2);
+  if (t.domain() != "light" || !t.available() || !p.valid()) return;
+  if (p.level) {
+    const auto colour = light_presets::colour_data(p);
+    wish(t, optimistic::Field::PRESET, light_presets::value(p), "light.turn_on", "brightness_pct", std::to_string(p.level), "", "", true,
+         colour.key2, colour.value2);
+  }
+  if (!p.effect.empty()) wish(t, optimistic::Field::EFFECT, p.effect, "light.turn_on", "effect", p.effect);
+  for (const auto &s : p.settings) {
+    if (s.is_number())
+      wish(t, optimistic::Field::ROW_NUMBER, s.text, "number.set_value", "value", s.text, "", s.entity);
+    else
+      wish(t, optimistic::Field::ROW_OPTION, s.text, "select.select_option", "option", s.text, "", s.entity);
+  }
 }
 #endif
 inline void toggle_wish(Tile &t) {
@@ -12295,6 +12376,9 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
   // The screensaver's photos (app 0.4.89) open the full view as a camera does, under the step's own name.
   if (!camera_supported() || (!valid_entity(entity) && entity != SAVER_PHOTOS)) return;
   camera_close();
+  // The view covers the page: its live tiles stop now, not at the next round, so their streams are gone before the
+  // view's asks for its own (a ring with four live tiles was refused once, PLATFORM_PLAN.md 4.9).
+  live_tiles_halt();
   camera_map_index = map_index;
   // Opened on someone (a person tile tapped): focused from the start, and Back closes the map at once.
   map_focus = focus;
@@ -12395,9 +12479,88 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
   pictures_round();
 }
 
+// ---- The governor (pressure.h, docs/PLATFORM_PLAN.md 4.10): what a busy screen gives up first ----
+inline pressure::Governor governor;
+// Signs that come from the log, on whichever task wrote the line (ESPHome hands every line at the screen's level, a
+// warning with Debug mode off too, to its listeners): only counted there, and turned into signs on the main loop.
+inline std::atomic<uint32_t> wake_word_resets{0}, loop_holds{0};
+inline uint32_t wake_word_seen = 0, loop_holds_seen = 0, glass_misses_seen = 0;
+// What the governor does, in words, for the "Pressure" sensor (core.yaml) and the log, once at every change.
+inline std::function<void(const std::string &)> pressure_told;
+inline std::string pressure_said;
+
+// One line of the log, on any task: micro_wake_word's "Not enough free bytes in ring buffer ... Resetting" (its
+// inference fell behind) and ESPHome's "<component> took a long time for an operation" (the main loop held up).
+inline void pressure_log(void *, uint8_t level, const char *tag, const char *line, size_t length) {
+  if (level > ESPHOME_LOG_LEVEL_WARN || tag == nullptr || line == nullptr) return;
+  const std::string_view text(line, length);
+  if (strcmp(tag, "micro_wake_word") == 0 && text.find("ring buffer") != std::string_view::npos)
+    wake_word_resets.fetch_add(1, std::memory_order_relaxed);
+  else if (strcmp(tag, "component") == 0 && text.find("took a long time") != std::string_view::npos)
+    loop_holds.fetch_add(1, std::memory_order_relaxed);
+}
+
+// The log's lines to pressure_log, through ESPHome's log listeners (the API's subscriptions use them too, so every
+// screen has them).
+inline void pressure_listen() {
+#if defined(USE_LOGGER) && defined(USE_LOG_LISTENERS) && !defined(ESP_SCREEN_HOST)
+#ifdef USE_API
+  // The API's slot and the governor's (smart_display/__init__.py asks for it): with fewer, ESPHome would drop this
+  // listener without a word, and the governor would see no wake word and no held-up loop (2026-10-28, a D1001).
+  static_assert(ESPHOME_LOG_MAX_LISTENERS >= 2, "the governor's log listener has no slot (logger.request_log_listener)");
+#endif
+  if (esphome::logger::global_logger != nullptr) esphome::logger::global_logger->add_log_callback(nullptr, pressure_log);
+#else
+  ESP_LOGW("pressure", "no log listeners in this build: the governor sees no wake word and no held-up loop");
+#endif
+}
+
+// The finger, from the touch panel's own path (touch_input) and the bench's: down, and whether it drags.
+inline void pressure_finger(bool down, bool dragging) { governor.finger(down, dragging, esphome::millis()); }
+
+inline std::string pressure_text() {
+  using namespace pressure;
+  if (governor.step() == 0 && !governor.touched()) return "normal";
+  static const char *const NAMES[WORKS] = {"glass", "voice", "doorbell", "live tiles", "own camera", "sensing", "background"};
+  std::string text;
+  for (int w = LIVE_TILES; w < WORKS; ++w) {
+    const uint8_t l = governor.level(static_cast<Work>(w));
+    if (!l) continue;
+    if (!text.empty()) text += ", ";
+    text += NAMES[w];
+    text += l == 1 ? " 1/2" : " 1/4";
+  }
+  if (text.empty()) return "normal";
+  text += governor.step() ? std::string(" (") + sign_name(governor.cause()) + ")" : std::string(" (a finger)");
+  return text;
+}
+
+// Four times a second, on the main loop: new signs from the panel and the log, the rest, the finger's drag, and the
+// levels for every task.
+inline void pressure_tick(uint32_t now) {
+  const uint32_t misses = glass::misses();
+  if (misses != glass_misses_seen) { glass_misses_seen = misses; governor.sign(pressure::GLASS_MISS, now); }
+  const uint32_t resets = wake_word_resets.load(std::memory_order_relaxed);
+  if (resets != wake_word_seen) { wake_word_seen = resets; governor.sign(pressure::WAKE_WORD_RESET, now); }
+  const uint32_t holds = loop_holds.load(std::memory_order_relaxed);
+  if (holds != loop_holds_seen) { loop_holds_seen = holds; governor.sign(pressure::SLOW_LOOP, now); }
+  // A slider held is a drag, whichever finger holds it (the touch panel's, or the bench's own pointer).
+  if (captured_slider) governor.finger(true, true, now);
+  governor.tick(now);
+  for (int w = 0; w < pressure::WORKS; ++w)
+    pressure::shared[w].store(governor.level(static_cast<pressure::Work>(w)), std::memory_order_relaxed);
+  const std::string text = pressure_text();
+  if (text != pressure_said) {
+    pressure_said = text;
+    ESP_LOGW("pressure", "%s", text.c_str());
+    if (pressure_told) pressure_told(text);
+  }
+}
+
 // The board's interval (250 ms): the store lets go of what no card draws, every picture says what it wants and the
 // loader asks, loads and breaks off (pictures_round), and the screensaver follows.
 inline void camera_tick() {
+  pressure_tick(esphome::millis());
 #ifdef SD_MOD_DOORBELL
   doorbell::tick(esphome::millis());  // its chime, how long ago it rang, the close of a ring nobody answered
 #endif
@@ -12766,7 +12929,8 @@ inline void card_picture_wants() {
   const bool seen = tiles_seen() && !card_open() && !camera_root;
   // Ahead only while the store has room to spare: over its budget a page out of sight lets its pictures go
   // (picture_away), and fetching them ahead again would only send them round.
-  const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3;
+  const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3 &&
+                     pressure::level_now(pressure::BACKGROUND) == 0;  // a busy screen fetches nothing ahead
   const bool tiles = tile_pictures_supported() && model.ready();
   each_card([&](Widgets &w) {
 #if LV_USE_IMAGE
@@ -13614,6 +13778,7 @@ inline void edge_release() {
 
 inline void pressed(int x, int y, int id, bool calibrating) {
   if (contact) contact(true);
+  pressure_finger(true, false);
   screen_input::touch_guard.begin(esphome::millis(), x, y, id);
   int sx = x, sy = y;
   screen_point(sx, sy);
@@ -13631,6 +13796,8 @@ inline void moved(int x, int y, int id, int state) {
   if (x == 0 && y == 0) return;
   screen_input::touch_guard.update(x, y, id);
   if (id != screen_input::touch_guard.contact()) return;
+  // Past a tap's reach it is a drag (a slider, a list, a page swipe): the live tiles give way too.
+  pressure_finger(true, screen_input::touch_guard.distance() > ui::touch_min() / 2);
   // Swiping in from an edge ("Swiping between pages"); the tap under the finger is consumed and LVGL waits for the
   // release. LVGL 9.5 sends no PRESSING to the input device, hence the touchscreen trigger.
   edge_move(x, y);
@@ -13638,6 +13805,7 @@ inline void moved(int x, int y, int id, int state) {
 
 inline void released() {
   if (contact) contact(false);
+  pressure_finger(false, false);
   touched_at = esphome::millis();
   edge_release();
 }

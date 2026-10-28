@@ -28,6 +28,10 @@ FRAME_SECONDS = 15        # nothing new from the camera for this long: the strea
 DEFAULT_PACE = 15         # picture_sources.TILE_PACE: the pace of a camera tile on a screen that does not stream
 SOUND_QUEUE = 50          # parts of sound that may wait for a screen (about a second); older ones go
 SEND_BUFFER = 65536       # what may wait in this host's socket for a screen: a picture, not a queue of them
+# A live tile's pictures are a few KB, so the full view's buffer held a dozen of them for a screen that read slower than
+# its camera, and the screen's own TCP window as many again: a tile showed pictures a second or two old (a reTerminal
+# D1001, 2026-10-28, X-Made). Its link keeps two or three of them here; the screen shows the newest of what reached it.
+TILE_SEND_BUFFER = 16384
 # What a screen that streams says in its hello (live_view.h): a camera tile set to Live, pace 0, streams there, and Live
 # is the default pace of its camera tiles.
 SCREEN_FEATURE = 'live'
@@ -145,14 +149,18 @@ class LiveFeed:
         return source
 
     def pictures_of(self, entity):
-        return self.pictures.setdefault(entity, live_pictures.Pictures())
+        return self.pictures.setdefault(entity, live_pictures.Pictures(entity))
 
     async def serve(self, request, token):
         from aiohttp import web
         link = self.links.get(token)
         if link is None:
             return web.Response(status=404, text='Unknown link')
-        if self.streaming() >= MAX_STREAMS:
+        # A full view (a camera opened, a doorbell's ring) of a screen whose own live tiles still stream goes through:
+        # the view covers those tiles, and they end the moment it opens. A ring on the bench Guition with four live tiles
+        # and the D1001's own was refused here at its first ask, and its picture came 1.9 s after the view opened
+        # instead of under one (2026-10-28, docs/PLATFORM_PLAN.md 4.9).
+        if self.streaming() >= MAX_STREAMS and (link.tile or link.screen is None or not self.tiles_streaming(link.screen)):
             return web.Response(status=503, text='Too many live cameras')
         # A screen's own count (hw.h LIVE_TILES, docs/PLATFORM_PLAN.md 4.1): its fifth live tile is refused here as the
         # firmware refuses it there, so a screen whose firmware and app disagree never streams more than the lower says.
@@ -189,8 +197,11 @@ class LiveFeed:
                 jpeg = await jpegs.picture(frame, link.box, link.cover)
                 if not jpeg:
                     continue
-                await write(b'--frame\r\nContent-Type: image/jpeg\r\n%sContent-Length: %d\r\n\r\n'
-                            % (b'X-Picture: still\r\n' if frame.still else b'', len(jpeg)), jpeg)
+                # X-Made: this host's clock in ms as the picture leaves for the screen, which sets it beside its own
+                # to see how long a picture waits on the way (live_view.cpp, its pictures' wait).
+                await write(b'--frame\r\nContent-Type: image/jpeg\r\n%sContent-Length: %d\r\nX-Made: %d\r\n\r\n'
+                            % (b'X-Picture: still\r\n' if frame.still else b'', len(jpeg),
+                               int(time.monotonic() * 1000) & 0xFFFFFFFF), jpeg)
                 if not sent:
                     LOG.info('Live %s: first picture %.1f s after the link went out (the screen came %.1f s after it); '
                              'its source: %s', link.entity, self.clock() - link.made, began - link.made,
@@ -216,7 +227,7 @@ class LiveFeed:
             await response.prepare(request)
             sock = request.transport.get_extra_info('socket') if request.transport else None
             if sock is not None:
-                sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFFER)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, TILE_SEND_BUFFER if link.tile else SEND_BUFFER)
             if sound is not None:
                 source.listen(sound)
                 listening = asyncio.create_task(sounds())

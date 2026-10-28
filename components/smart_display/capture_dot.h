@@ -4,8 +4,10 @@
 // screensaver), while the screen's own camera is in use: Home Assistant taking pictures or a stream of it, which the core
 // sees by itself on the camera with the id ts_camera (the feature `camera`, smart_display.register_plugin binds it
 // through plugin_host::watch_camera), or a plugin that uses it on the screen itself (tessera::capturing). No plugin or
-// setting takes it away. It lies in the top bar's row, so it never lies over a live picture (live_view.h stops one
-// under anything LVGL draws). The rule is the screen's, not a plugin's: the plugin API only reports to it.
+// setting takes it away. Solid while anyone watches (Home Assistant, or a plugin's Capture::CAMERA); a ring of the same
+// size while the camera only senses on the screen (Capture::SENSING, plugin API 0.20: a light level, motion), so a
+// glance tells "seen" from "counted". It lies in the top bar's row, so it never lies over a live picture (live_view.h
+// stops one under anything LVGL draws). The rule is the screen's, not a plugin's: the plugin API only reports to it.
 //
 // Included by plugin_host.cpp alone, in a build with a plugin (a camera is always a plugin's).
 #include <algorithm>
@@ -29,25 +31,36 @@ namespace capture_dot {
 // stream is in use while its pictures come; at five a second, a gap this long means it ended.
 constexpr uint32_t PICTURE_IN_USE_MS = 12000;
 constexpr uint32_t STREAM_QUIET_MS = 3000;
-// The plugins that use the camera on the screen itself right now (tessera::capturing).
-inline std::vector<const tessera::Plugin *> &users() {
-  static std::vector<const tessera::Plugin *> list;
+// The plugins that use the camera on the screen itself right now (tessera::capturing), each with how: sensing alone.
+struct User {
+  const tessera::Plugin *plugin;
+  bool sensing;
+};
+inline std::vector<User> &users() {
+  static std::vector<User> list;
   return list;
 }
 inline uint32_t picture_at = 0;   // millis() of the camera's last picture to Home Assistant, 0 before the first
 inline bool streaming = false;
 inline lv_obj_t *dot = nullptr;
 inline bool dot_dark = false;
-inline bool in_use(uint32_t now) {
-  if (!users().empty()) return true;
-  if (!picture_at) return false;
-  return now - picture_at < (streaming ? STREAM_QUIET_MS : PICTURE_IN_USE_MS);
+inline bool dot_ring = false;
+enum State : uint8_t { OFF, SENSING, WATCHED };
+inline State state(uint32_t now) {
+  bool sensing = false;
+  for (const User &user : users()) {
+    if (!user.sensing) return WATCHED;
+    sensing = true;
+  }
+  if (picture_at && now - picture_at < (streaming ? STREAM_QUIET_MS : PICTURE_IN_USE_MS)) return WATCHED;
+  return sensing ? SENSING : OFF;
 }
+inline bool in_use(uint32_t now) { return state(now) != OFF; }
 // The dot goes once the camera's last picture is old and no plugin uses it, and takes the look's colour (every 250 ms
 // from the plugin host's tick, and at once when the camera is heard or a plugin says so).
 inline void update(uint32_t now) {
-  const bool on = in_use(now);
-  if (!on) {
+  const State now_state = state(now);
+  if (now_state == OFF) {
     if (dot) { lv_obj_delete(dot); dot = nullptr; ESP_LOGI("plugins", "the camera is no longer in use"); }
     return;
   }
@@ -61,12 +74,24 @@ inline void update(uint32_t now) {
     lv_obj_set_style_radius(dot, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_opa(dot, LV_OPA_COVER, 0);
     lv_obj_align(dot, LV_ALIGN_TOP_RIGHT, -std::max(3, ::ui::mm(1)), std::max(3, ::ui::mm(1)));
-    dot_dark = !theme::dark;  // coloured below
+    lv_obj_set_style_border_width(dot, std::max(1, d / 5), 0);  // the ring's line, a fifth of the dot
+    dot_dark = !theme::dark;          // coloured below
+    dot_ring = now_state != SENSING;  // shaped below
     ESP_LOGI("plugins", "the camera is in use: the dot shows");
   }
   if (dot_dark != theme::dark) {
     dot_dark = theme::dark;
-    lv_obj_set_style_bg_color(dot, lv_color_hex(theme::foreground(theme::ha::GREEN)), 0);
+    const lv_color_t green = lv_color_hex(theme::foreground(theme::ha::GREEN));
+    lv_obj_set_style_bg_color(dot, green, 0);
+    lv_obj_set_style_border_color(dot, green, 0);
+  }
+  // Solid while anyone watches, a ring while the camera only senses.
+  const bool ring = now_state == SENSING;
+  if (dot_ring != ring) {
+    dot_ring = ring;
+    lv_obj_set_style_bg_opa(dot, ring ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
+    lv_obj_set_style_border_opa(dot, ring ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+    ESP_LOGI("plugins", "the camera dot: %s", ring ? "a ring, the camera only senses" : "solid, someone watches");
   }
 }
 #ifdef USE_CAMERA
@@ -88,16 +113,18 @@ inline void watch(esphome::camera::Camera *camera) {
   if (camera) camera->add_listener(&watcher);
 }
 #endif
-// A plugin uses the camera on the screen itself, or no longer: the dot shows while any does.
-inline void capturing(const tessera::Plugin *plugin, bool on) {
+// A plugin uses the camera on the screen itself, watched or for sensing alone, or no longer: the dot shows while any
+// does, solid while one watches.
+inline void capturing(const tessera::Plugin *plugin, bool sensing, bool on) {
   auto &using_it = users();
-  const auto found = std::find(using_it.begin(), using_it.end(), plugin);
+  const auto found = std::find_if(using_it.begin(), using_it.end(),
+                                  [&](const User &u) { return u.plugin == plugin && u.sensing == sensing; });
   if (on && found == using_it.end()) {
-    using_it.push_back(plugin);
-    ESP_LOGI("plugins", "%s uses the camera on the screen", plugin->plugin_id());
+    using_it.push_back({plugin, sensing});
+    ESP_LOGI("plugins", "%s uses the camera on the screen%s", plugin->plugin_id(), sensing ? " to sense" : "");
   } else if (!on && found != using_it.end()) {
     using_it.erase(found);
-    ESP_LOGI("plugins", "%s no longer uses the camera", plugin->plugin_id());
+    ESP_LOGI("plugins", "%s no longer uses the camera%s", plugin->plugin_id(), sensing ? " to sense" : "");
   }
   update(esphome::millis());
 }

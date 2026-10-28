@@ -107,6 +107,24 @@ void redraw_all();
 // The underrun flag read and counted (every 50 ms, from the streams' tick), and how often the panel ran dry since boot.
 void tick();
 uint32_t misses();
+// Who keeps a stream waiting for the glass (live_view's 10 s report, PLATFORM_PLAN 4.10): LVGL's refreshes, how many
+// and how long it held the glass, in all and the longest; how much of that went to flushing what it drew (the turn on
+// the PPA of a turned glass, then the panel's copy and its wait for the copy's end) and how much of the flushing to the
+// PPA's turn alone; and the streams' waits for the glass, behind LVGL's refresh, another stream or another writer (a
+// still's decode, a page's picture fetched ahead). Counted since the last call, which starts the count again (the main
+// loop).
+struct Held {
+  uint32_t refreshes = 0, flushes = 0, refresh_us = 0, refresh_most_us = 0, flush_us = 0, flush_most_us = 0,
+           turn_us = 0, turn_most_us = 0;
+  uint32_t waits = 0, behind_lvgl_us = 0, behind_lvgl_most_us = 0, behind_stream_us = 0, behind_stream_most_us = 0,
+           behind_other_us = 0, behind_other_most_us = 0;
+};
+Held held_since();
+// A task asks for the glass (hold), as hold() does, and says how long it waited for it.
+uint32_t hold_counted();
+// A copy of the picture engine came back after `us` (its wrap, any task): counted as the turn while LVGL flushes on
+// that task.
+void engine_took(uint32_t us);
 #else
 inline void bind(esphome::lvgl::LvglComponent *) {}
 inline Panel panel() { return {}; }
@@ -125,6 +143,15 @@ inline void give_back(Room) {}
 inline void redraw_all() {}
 inline void tick() {}
 inline uint32_t misses() { return 0; }
+struct Held {
+  uint32_t refreshes = 0, flushes = 0, refresh_us = 0, refresh_most_us = 0, flush_us = 0, flush_most_us = 0,
+           turn_us = 0, turn_most_us = 0;
+  uint32_t waits = 0, behind_lvgl_us = 0, behind_lvgl_most_us = 0, behind_stream_us = 0, behind_stream_most_us = 0,
+           behind_other_us = 0, behind_other_most_us = 0;
+};
+inline Held held_since() { return {}; }
+inline uint32_t hold_counted() { return 0; }
+inline void engine_took(uint32_t) {}
 #endif
 
 }  // namespace glass

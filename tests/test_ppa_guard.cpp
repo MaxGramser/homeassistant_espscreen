@@ -107,6 +107,15 @@ int main() {
   // goes in two pieces the driver sets the bypass for.
   assert(stalls(block(300, 4, A270)) && !driver_bypasses(block(300, 4, A270)) && check(block(300, 4, A270), true) == 2);
 
+  // The top bar's hold line on a reTerminal D1001 (2026-10-27): a 6-row strip turned a quarter whose last unit is
+  // exactly the FIFO (6 x 16 x 16 bits). The hardware stalled on 336x6 and on 864x6, a piece of 872x6, so both go in
+  // pieces now, each one the engine takes whole, while the driver still counts such a block strictly and sets no bypass
+  // for it. 904x6 goes whole: the driver sets the bypass for it (904 % 64 = 8). 200x6 too (200 % 64 = 8).
+  assert(stalls(block(336, 6, A90)) && !driver_bypasses(block(336, 6, A90)));
+  assert(stalls(block(864, 6, A90)) && !driver_bypasses(block(864, 6, A90)));
+  for (uint32_t w : {336u, 864u, 872u, 528u, 1280u}) assert(check(block(w, 6, A90), true) >= 2);
+  assert(check(block(904, 6, A90), false) == 1 && check(block(200, 6, A90), false) == 1);
+
   // Unturned, the driver's rule is the hardware's: never a split, whatever the size.
   for (uint32_t w = 1; w <= 200; ++w)
     for (uint32_t h = 1; h <= 200; h += 3) {
@@ -114,22 +123,35 @@ int main() {
       assert(check(block(w, h, A180), false) == 1);
     }
 
-  // Every turned block up to 200 x 200, at both angles and in 16- and 32-bit pixels: a plan, few pieces, all safe.
+  // A build for the P4's revision 3 runs macro blocks of 32 rows (the engine's register, as the driver reads it): 33x17
+  // turned 270 is safe with 16 (the driver sets the bypass) and stalls with 32 (it does not), so there it goes in
+  // pieces; 30x2 is the other way round, one unit tall with 32 rows.
+  Block rev3 = block(33, 17, A270);
+  rev3.mb = 32;
+  assert(safe(block(33, 17, A270)) && stalls(rev3) && !driver_bypasses(rev3) && check(rev3, true) >= 2);
+  Block rev3_thin = block(30, 2, A270);
+  rev3_thin.mb = 32;
+  assert(!safe(block(30, 2, A270)) && safe(rev3_thin) && check(rev3_thin, false) == 1);
+
+  // Every turned block up to 200 x 200, at both angles, in 16- and 32-bit pixels and with macro blocks of 16 and 32
+  // rows: a plan, few pieces, all safe.
   int most = 0;
   uint32_t most_w = 0, most_h = 0;
-  for (uint32_t depth : {16u, 32u})
-    for (Angle angle : {A90, A270})
-      for (uint32_t w = 1; w <= 200; ++w)
-        for (uint32_t h = 1; h <= 200; ++h) {
-          const Block b = block(w, h, angle, {}, {}, depth);
-          const int n = check(b, stalls(b) && !driver_bypasses(b));
-          assert(n >= 1);
-          if (n > most) {
-            most = n;
-            most_w = w;
-            most_h = h;
+  for (uint32_t mb : {16u, 32u})
+    for (uint32_t depth : {16u, 32u})
+      for (Angle angle : {A90, A270})
+        for (uint32_t w = 1; w <= 200; ++w)
+          for (uint32_t h = 1; h <= 200; ++h) {
+            Block b = block(w, h, angle, {}, {}, depth);
+            b.mb = mb;
+            const int n = check(b, stalls(b) && !driver_bypasses(b));
+            assert(n >= 1);
+            if (n > most) {
+              most = n;
+              most_w = w;
+              most_h = h;
+            }
           }
-        }
   printf("turned blocks up to 200x200: at most %d pieces (%ux%u)\n", most, (unsigned) most_w, (unsigned) most_h);
   assert(most <= 6);
 

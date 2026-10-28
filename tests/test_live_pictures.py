@@ -62,11 +62,24 @@ class Sizes(unittest.TestCase):
             self.assertLessEqual(size[1], 728)
 
     def test_a_tile_that_fills_its_card_gets_as_little_as_covers_it(self):
-        self.assertEqual(live_pictures.size_to_cover(1920, 1080, (434, 244)), (434, 246))
-        self.assertEqual(live_pictures.size_to_cover(1920, 1080, (434, 434)), (772, 434))
-        # Smaller than the card: as it is, the screen scales it up.
+        self.assertEqual(live_pictures.size_to_cover(1920, 1080, (434, 244)), (440, 248))
+        self.assertEqual(live_pictures.size_to_cover(1920, 1080, (434, 434)), (776, 440))
+        # Smaller than the card: as it is (to the multiple of 8 below), the screen scales it up.
         self.assertEqual(live_pictures.size_to_cover(512, 288, (868, 488)), (512, 288))
-        self.assertEqual(live_pictures.size_to_cover(511, 287, (868, 488)), (510, 286))
+        self.assertEqual(live_pictures.size_to_cover(511, 287, (868, 488)), (504, 280))
+
+    def test_a_covering_picture_is_one_the_decoder_takes(self):
+        # The Guition 10.1's right-hand tiles (2026-10-27): 494 x 278 was refused, width times height not a multiple of 8.
+        self.assertEqual(live_pictures.size_to_cover(1920, 1080, (494, 277)), (496, 280))
+        self.assertEqual(live_pictures.size_to_cover(1920, 1080, (495, 277)), (496, 280))
+        for frame in ((1920, 1080), (1280, 720), (640, 360), (512, 288), (511, 287)):
+            for bw in range(200, 700, 7):
+                for bh in range(100, 500, 9):
+                    w, h = live_pictures.size_to_cover(*frame, (bw, bh))
+                    self.assertEqual(w * h % 8, 0, (frame, bw, bh, w, h))
+                    self.assertLessEqual(w, frame[0]); self.assertLessEqual(h, frame[1])
+                    if frame[0] > bw and frame[1] > bh:
+                        self.assertTrue(w >= bw - 7 or h >= bh - 7, (frame, bw, bh, w, h))
 
 
 class Encoder(unittest.TestCase):

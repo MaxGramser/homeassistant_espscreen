@@ -74,7 +74,17 @@ speaker:
     num_channels: 1
     task_stack_in_psram: true
     source_speakers:
+      # The rule for a sound the screen's loop hands over (plugin_sound.h: the doorbell's chime, a plugin's sounds): the
+      # buffer it lands in, with ts_speaker_out's 100 ms behind it, covers the time between two handovers and the main
+      # loop's longest absence: the board's 250 ms interval and a 300 ms redraw of a 10-inch, 550 ms, so 500 ms here. A
+      # sound at the bus's own rate (16 kHz on a Guition or a Waveshare P4, as the chime) lands here and not in
+      # ts_speaker's buffer: ESPHome's resampler hands it straight on when there is nothing to resample. With ESPHome's
+      # default of 100 ms a Guition's chime played in pieces of 200 ms with gaps between (2026-10-28).
       - id: ts_announcement_input
+        buffer_duration: 500ms
+      # A live camera's sound (live_view.cpp speak) stays at ESPHome's 100 ms: it is handed over at every pass of the
+      # loop, and what waits for the speaker is held in the stream's own buffer, where the picture's catch-up reaches it.
+      # Half a second here would let the sound fall that far behind the picture, out of that catch-up's reach.
       - id: ts_media_input
   # And in front of each a resampler, as in Home Assistant's Voice PE: a sound at any rate (a plugin's 48 kHz sound on a
   # bus that runs at 16 kHz) reaches the mixer at the bus's own rate, so the bus never starts again for another rate.
@@ -83,9 +93,10 @@ speaker:
     id: ts_speaker
     output_speaker: ts_announcement_input
     task_stack_in_psram: true
-    # A plugin's sound (plugin_sound.h) is handed over from the screen's loop: half a second ahead, so a long redraw of
-    # the glass (a popup coming up over a 10-inch, 300 ms) never runs it dry. ESPHome's default of 100 ms stuttered the
-    # voice assistant's wake sound. Announcements and voice fill it from their own task, as before.
+    # A plugin's sound (plugin_sound.h) is handed over from the screen's loop: half a second ahead, by the rule at
+    # ts_announcement_input above, for a sound this resampler does convert (a 16 kHz sound on a 48 kHz bus, as on the
+    # reTerminal D1001). ESPHome's default of 100 ms stuttered the voice assistant's wake sound. Announcements and voice
+    # fill it from their own task, as before.
     buffer_duration: 500ms
   - platform: resampler
     id: ts_media_speaker

@@ -184,9 +184,9 @@ describe("the keys on the mockup", () => {
   });
 });
 
+const inspect = (tile: Tile) => mount(defineComponent({ setup: () => () => h(TileInspector, { tile: current(tile) }) }), { attachTo: document.body });
 describe("the inspector's presets", () => {
   beforeEach(() => open(true));
-  const inspect = (tile: Tile) => mount(defineComponent({ setup: () => () => h(TileInspector, { tile: current(tile) }) }), { attachTo: document.body });
   it("shows only where the control draws them, and adds one from the light's state", async () => {
     const plain = tileOf({ size: "wide", controls: "toggle" });
     appendTiles(plain);
@@ -212,5 +212,180 @@ describe("the inspector's presets", () => {
     await flushPromises();
     await panel.find(".lp-levels input, .lp-levels button[role='switch']").trigger("click");
     expect(current(tile).options?.preset_levels).toBe(true);
+  });
+});
+
+// A light group, lamp by lamp (light_presets::group_shows): what Home Assistant 2026.9.2 made of a purple preset on a group
+// of a lamp with colour and white shades, a colour lamp, one that only takes white shades and one that only dims.
+import { groupShows, presetLit, type Lamp } from "../src/model/light-presets";
+describe("a light group's preset, lamp by lamp", () => {
+  const lamp = (over: Partial<Lamp>): Lamp => ({ on: true, unavailable: false, dims: true, color: false, temperature: false, level: 60, hue: 0, saturation: 0, kelvin: 0, ...over });
+  const mixed = [lamp({ color: true, temperature: true, hue: 280, saturation: 41 }), lamp({ color: true, hue: 280, saturation: 41 }),
+    lamp({ temperature: true, hue: 221, saturation: 20, kelvin: 9861 }), lamp({})];
+  it("shows a colour preset the group's average does not", () => {
+    expect(groupShows({ b: 60, h: 280, s: 41 }, mixed)).toBe(true);
+    expect(groupShows({ b: 80, k: 2700 }, mixed)).toBe(false);
+  });
+  it("holds a lamp off or in another colour against it, an unavailable one not", () => {
+    expect(groupShows({ b: 60, h: 280, s: 41 }, [...mixed.slice(0, 3), lamp({ on: false })])).toBe(false);
+    expect(groupShows({ b: 60, h: 280, s: 41 }, [lamp({ color: true, hue: 220, saturation: 41 })])).toBe(false);
+    expect(groupShows({ b: 60, h: 280, s: 41 }, [...mixed, lamp({ unavailable: true, on: false })])).toBe(true);
+  });
+  it("reads a group by its lamps and any other light by itself", () => {
+    const states: Record<string, any> = {
+      "light.a": { state: "on", a: { supported_color_modes: ["hs", "color_temp"], color_mode: "hs", brightness: 153, hs_color: [280, 41] } },
+      "light.b": { state: "on", a: { supported_color_modes: ["color_temp"], color_mode: "color_temp", brightness: 153, color_temp_kelvin: 9861, hs_color: [221.7, 20.5] } },
+    };
+    const group = { state: "on", a: { entity_id: ["light.a", "light.b"], brightness: 153, hs_color: [261, 34] } };
+    expect(presetLit([{ b: 80, k: 2700 }, { b: 60, h: 280, s: 41 }], group, (e) => states[e])).toBe(1);
+    expect(presetLit([{ b: 60, h: 280, s: 41 }], states["light.a"], (e) => states[e])).toBe(0);
+  });
+});
+
+// ---- An effect, the settings of the light's device, and the lamp's own preset (a WLED) ----
+import { device, deviceRows, initials, neutral, numberText, presetLabel, rowStart, settingRows, settingsShow, withEffect, withoutEffect,
+  type LightChoices } from "../src/model/light-presets";
+const WLED: LightChoices = { effects: ["Solid", "Colorloop", "Rainbow"], rows: [
+  { e: "select.desk_preset", n: "Preset", key: "preset", kind: "select", options: ["Film", "Reading"], value: "Film" },
+  { e: "select.desk_color_palette", n: "Color palette", key: "color_palette", kind: "select", options: ["Default", "Party"], value: "Default" },
+  { e: "number.desk_speed", n: "Speed", key: "speed", kind: "number", min: 0, max: 255, step: 1, value: 128 },
+  { e: "number.desk_intensity", n: "Intensity", key: "intensity", kind: "number", min: 0, max: 255, step: 1, value: 128 },
+  { e: "select.desk_playlist", n: "Playlist", key: "playlist", kind: "select", options: ["Evening"], value: "Evening" },
+  { e: "select.desk_mode", n: "Preset", key: "", kind: "select", options: ["A", "B"], value: "A" }] };
+
+describe("a preset with an effect, settings of the device, or the lamp's own", () => {
+  it("is kept as light_presets.py keeps it", () => {
+    const rw = { "select.desk_color_palette": "Party", "number.desk_speed": 180 };
+    expect(cleanPreset({ b: 70, h: 280, s: 41, fx: "Colorloop", rw })).toEqual({ b: 70, h: 280, s: 41, fx: "Colorloop", rw });
+    expect(cleanPreset({ b: 90, fx: "Rainbow" })).toEqual({ b: 90, fx: "Rainbow" });
+    expect(cleanPreset({ rw: { "select.desk_preset": "Film" } })).toEqual({ rw: { "select.desk_preset": "Film" } });
+    // A brightness is needed beside an effect or a colour; the settings at most four, of selects and numbers, each its kind.
+    expect(cleanPreset({ fx: "Rainbow", rw })).toBeNull();
+    expect(cleanPreset({ k: 2700, rw })).toBeNull();
+    expect(cleanPreset({ b: 50, rw: {} })).toBeNull();
+    expect(cleanPreset({ b: 50, rw: { "light.x": "a" } })).toBeNull();
+    expect(cleanPreset({ b: 50, rw: { "select.x": 3 } })).toBeNull();
+    expect(cleanPreset({ b: 50, rw: { "number.x": "3" } })).toBeNull();
+    expect(cleanPreset({ b: 50, rw: { "number.a": 1, "number.b": 2, "number.c": 3, "number.d": 4, "number.e": 5 } })).toBeNull();
+    expect(cleanPreset({ b: 50, fx: " " })).toBeNull();
+    expect(device({ rw: { "select.desk_preset": "Film" } })).toBe(true);
+    expect(device({ b: 50, rw })).toBe(false);
+  });
+  it("draws a plain key with the first two characters of its effect, else of its first setting (Presets::label)", () => {
+    expect(initials("Film")).toBe("Fi");
+    expect(initials("Ünïcode")).toBe("Ün");
+    expect(initials("🌈x")).toBe("🌈x");
+    expect(numberText(180)).toBe("180");
+    expect(numberText(12.5)).toBe("12.5");
+    expect(neutral({ b: 90, fx: "Rainbow" })).toBe(true);
+    expect(neutral({ b: 70, h: 280, s: 41, fx: "Colorloop" })).toBe(false);
+    expect(neutral({ b: 30 })).toBe(false);
+    expect(presetLabel({ b: 90, fx: "Colorloop" }, true)).toBe("Co");
+    expect(presetLabel({ rw: { "select.desk_preset": "Film" } }, false)).toBe("Fi");
+    expect(presetLabel({ b: 90, rw: { "number.desk_speed": 180 } }, false)).toBe("18");
+    expect(presetLabel({ b: 70, h: 280, s: 41, fx: "Colorloop" }, false)).toBe("");
+    expect(presetLabel({ b: 70, h: 280, s: 41, fx: "Colorloop" }, true)).toBe("70");
+    expect(presetLabel({ b: 30 }, false)).toBe("30");
+    // The number never on a plain key, even where the tile shows brightness.
+    expect(levelShown({ b: 90, fx: "Rainbow" }, true)).toBe(false);
+  });
+  it("shows the ring only with its effect and settings standing (light_presets::settings_show)", () => {
+    const base = lightNow({ state: "on", a: { brightness: 179, hs_color: [280, 41], effect: "Colorloop" } });
+    const p = { b: 70, h: 280, s: 41, fx: "Colorloop", rw: { "select.desk_color_palette": "Party", "number.desk_speed": 180 } };
+    expect(shows(p, { ...base, now: { "select.desk_color_palette": "Party", "number.desk_speed": 180.4 } })).toBe(true);
+    expect(shows(p, { ...base, now: { "select.desk_color_palette": "Party", "number.desk_speed": 181 } })).toBe(false);
+    expect(shows(p, { ...base, now: { "select.desk_color_palette": "Default", "number.desk_speed": 180 } })).toBe(false);
+    expect(shows(p, { ...base, now: { "select.desk_color_palette": "Party" } })).toBe(false);
+    expect(shows(p, { ...base, effect: "Solid", now: { "select.desk_color_palette": "Party", "number.desk_speed": 180 } })).toBe(false);
+    // The lamp's own preset by its select alone, whatever the light shows, off too.
+    const own = { rw: { "select.desk_preset": "Film" } };
+    expect(shows(own, { ...lightNow({ state: "off", a: {} }), now: { "select.desk_preset": "Film" } })).toBe(true);
+    expect(settingsShow(own, { ...base, now: { "select.desk_preset": "Reading" } })).toBe(false);
+  });
+  it("reads the settings' states from the store and a group's effect as the group's own", () => {
+    const states: Record<string, any> = {
+      "select.desk_preset": { state: "Film" }, "number.desk_speed": { state: "180.0" },
+      "light.a": { state: "on", a: { supported_color_modes: ["hs"], brightness: 230, hs_color: [0, 0] } },
+      "light.b": { state: "on", a: { supported_color_modes: ["brightness"], brightness: 230 } },
+    };
+    const lamp = { state: "on", a: { brightness: 230, effect: "Rainbow" } };
+    expect(presetLit([{ b: 90, fx: "Solid" }, { rw: { "select.desk_preset": "Film" } }], lamp, (e) => states[e])).toBe(1);
+    expect(presetLit([{ b: 90, fx: "Rainbow", rw: { "number.desk_speed": 180 } }], lamp, (e) => states[e])).toBe(0);
+    const group = { state: "on", a: { entity_id: ["light.a", "light.b"], brightness: 230, effect: "Rainbow" } };
+    expect(presetLit([{ b: 90, fx: "Solid" }, { b: 90, fx: "Rainbow" }], group, (e) => states[e])).toBe(1);
+    expect(presetLit([{ b: 50, fx: "Rainbow" }], group, (e) => states[e])).toBe(-1);
+  });
+  it("takes the light's effect and its rows as they stand, the lamp's own presets apart", () => {
+    expect(deviceRows(WLED).map((r) => r.e)).toEqual(["select.desk_preset", "select.desk_playlist"]);
+    // A select Home Assistant does not call a preset or playlist is an ordinary setting, whatever its name.
+    expect(settingRows(WLED).map((r) => r.e)).toEqual(["select.desk_color_palette", "number.desk_speed", "number.desk_intensity", "select.desk_mode"]);
+    expect(rowStart(WLED.rows[1], "Lost")).toBe("Default");
+    expect(rowStart(WLED.rows[2], "300")).toBe(255);
+    expect(rowStart(WLED.rows[2], null)).toBe(128);
+    const on = withEffect({ b: 70, h: 280, s: 41 }, WLED, "Colorloop", (r) => (r.e === "number.desk_speed" ? "180" : r.value));
+    expect(on).toEqual({ b: 70, h: 280, s: 41, fx: "Colorloop", rw: { "select.desk_color_palette": "Default", "number.desk_speed": 180,
+      "number.desk_intensity": 128, "select.desk_mode": "A" } });
+    expect(withEffect({ b: 70 }, WLED, "Nope", () => undefined).fx).toBe("Solid");
+    expect(withoutEffect(on)).toEqual({ b: 70, h: 280, s: 41 });
+  });
+});
+
+describe("the inspector's presets on a WLED", () => {
+  beforeEach(() => {
+    open(true);
+    const entities = useEntitiesStore();
+    entities.lightChoices["light.a"] = WLED;
+    entities.liveStates["light.a"] = { state: "on", word: "On", a: { ...LAMP, effect: "Colorloop" } };
+    entities.liveStates["number.desk_speed"] = { state: "200", a: {} };
+  });
+  const popover = () => document.body.querySelector(".lp-pop") as HTMLElement;
+  const button = (text: string) => [...popover().querySelectorAll("button")].find((b) => b.textContent?.trim() === text) as HTMLElement;
+  it("turns an effect on with the light's effect and rows, and off again", async () => {
+    const tile = tileOf({ size: "wide", controls: "presets", presets: [{ b: 80, k: 2700 }] });
+    appendTiles(tile);
+    const panel = inspect(tile);
+    await panel.find(".lp-swatch").trigger("click");
+    await flushPromises();
+    expect(popover()).toBeTruthy();
+    (popover().querySelector(".lp-effect button[role='switch']") as HTMLElement).click();
+    await flushPromises();
+    expect(current(tile).options?.presets).toEqual([{ b: 80, k: 2700, fx: "Colorloop", rw: { "select.desk_color_palette": "Default",
+      "number.desk_speed": 200, "number.desk_intensity": 128, "select.desk_mode": "A" } }]);
+    expect(popover().querySelector(".lp-fx")?.textContent).toContain("Colorloop");
+    (popover().querySelector(".lp-effect button[role='switch']") as HTMLElement).click();
+    await flushPromises();
+    expect(current(tile).options?.presets).toEqual([{ b: 80, k: 2700 }]);
+    panel.unmount();
+  });
+  it("makes a preset of the lamp itself, a plain key with its name", async () => {
+    const tile = tileOf({ size: "wide", controls: "presets", presets: [{ b: 80, k: 2700 }] });
+    appendTiles(tile);
+    const panel = inspect(tile);
+    await panel.find(".lp-swatch").trigger("click");
+    await flushPromises();
+    button("Lamp's own preset").click();
+    await flushPromises();
+    expect(current(tile).options?.presets).toEqual([{ rw: { "select.desk_preset": "Film" } }]);
+    button("Playlist").click();
+    await flushPromises();
+    expect(current(tile).options?.presets).toEqual([{ rw: { "select.desk_playlist": "Evening" } }]);
+    button("Preset").click();
+    await flushPromises();
+    ([...popover().querySelectorAll(".lp-option")].find((o) => o.textContent?.includes("Reading")) as HTMLElement).click();
+    await flushPromises();
+    expect(current(tile).options?.presets).toEqual([{ rw: { "select.desk_preset": "Reading" } }]);
+    expect(panel.find(".lp-swatch .preset-disc").classes()).toContain("plain");
+    expect(panel.find(".lp-swatch .preset-level").text()).toBe("Re");
+    button("Own setting").click();
+    await flushPromises();
+    expect(current(tile).options?.presets).toEqual([{ b: 80, k: 2700 }]);
+    panel.unmount();
+  });
+  it("draws a plain key on the mockup with its initials and no number", () => {
+    const tile = tileOf({ size: "wide", controls: "presets", preset_levels: true, presets: [{ b: 90, fx: "Rainbow" }, { b: 80, k: 2700 }] });
+    appendTiles(tile);
+    const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
+    expect(card.findAll(".ctl .preset-level").map((n) => n.text())).toEqual(["Ra", "80"]);
+    expect(card.findAll(".ctl .preset-disc")[0].classes()).toContain("plain");
   });
 });

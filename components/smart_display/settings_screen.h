@@ -37,6 +37,14 @@ inline int32_t swipe_pages = 0, rotation = 0, auto_home = 1, auto_home_seconds =
 // wherever it stands. On page 1 there is nowhere to go, so it is not drawn there and the page title starts at the
 // margin as it always did. Off, the bar is exactly what it was.
 inline int32_t home_button = 1;
+// Debug mode: the screen's whole log while on (INFO, and DEBUG where its YAML builds that level), its warnings and
+// errors alone while off, which is how a screen starts. Every line the screen writes, to its UART or to a subscriber of
+// its log in Home Assistant or Tessera, came with a flash on the live tiles of a Guition 10.1 (2026-10-27,
+// docs/PLATFORM_PLAN.md 4.7): two lines of a stream's report every 10 s were enough, and with the log silent a quarter
+// of an hour passed without one. The records a crash leaves are warnings and errors and come either way; the
+// troubleshooting report turns the mode on for its own 45 seconds of log and back (screen_manager/app/reports.py). The
+// logger follows it in runtime_tiles::apply_debug_mode.
+inline int32_t debug_mode = 0;
 // Whether this board's backlight takes levels (firmware 0.2.90+). The Waveshare's is one line on an I2C expander:
 // the panel is lit or it is not, and anything above a hair of a level lights it. A percentage there is a number
 // that lies, so the board's own file says so (BACKLIGHT_DIMMABLE) and the rows below follow: the normal brightness
@@ -228,6 +236,16 @@ inline SetResult set(const std::string &key, int32_t value) {
     return SetResult::same;
   changed(key.c_str(), reported);
   return SetResult::changed;
+}
+
+// Debug mode's own write, for its row and its entity: stored and applied as every setting is, and not reported, since it
+// is the screen's and Home Assistant's alone and no setting of ESP Screens (whose editor has no row for it).
+inline void set_debug_mode(int32_t value) {
+  const int32_t on = value ? 1 : 0;
+  if (on == debug_mode) return;
+  debug_mode = on;
+  if (store) store();
+  if (apply) apply();
 }
 
 // How coarse a duration steps: seconds near the bottom, quarters of an hour at the top. Stepping down
@@ -433,6 +451,8 @@ inline constexpr Row about_rows[] = {
   info(screen_text::txt::settings_firmware, [] { return firmware_text ? firmware_text() : std::string(); }),
   info(screen_text::txt::settings_home_assistant, [] { return link_text ? link_text() : std::string(); }),
   info(screen_text::txt::settings_tessera, [] { return tessera_text ? tessera_text() : std::string(); }),
+  toggle(screen_text::txt::settings_debug_mode, []() -> int32_t { return debug_mode; },
+         [](int32_t value) { set_debug_mode(value); }),
   action(screen_text::txt::settings_calibrate_touch, "\U000F01A3", [] { if (calibrate_touch) calibrate_touch(); },
          screen_text::txt::settings_tap_again_to_calibrate, [] { return calibrate_touch != nullptr; }),
   action(screen_text::txt::settings_restart, "\U000F0709", [] { if (restart_device) restart_device(); },

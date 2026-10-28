@@ -22,9 +22,22 @@
 // sets the bypass for it. Two pieces do in almost every case (the issue's 368x66 at 270 degrees goes as 368x65 and
 // 368x1, the way its reporter worked around it); the rest are cut again, a few times at most. A block the driver takes
 // as it is costs nothing. Every number here is the driver's: the FIFO's 1536 bits, the unit's 64 or 32 pixels, the macro
-// block's 16 rows (ESPHome builds the P4 for revision 1, where the engine runs 16 x 16 blocks), a scale's fraction in
-// sixteenths and the truncation of a scaled size (ppa_srm.c, ppa_ll.h). tests/test_ppa_guard.cpp proves the pieces
-// cover the block once, land where the whole would, and are each safe.
+// block's rows, a scale's fraction in sixteenths and the truncation of a scaled size (ppa_srm.c, ppa_ll.h). The macro
+// block is the engine's own: 16 rows on a firmware built for the P4's first revisions (the Tab5, the reTerminal D1001,
+// most Guition panels: CONFIG_ESP32P4_SELECTS_REV_LESS_V3), and on one built for revision 3 (a Guition 10.1 of rev 3.2,
+// its v3 profile) what the engine's register says, 32 unless set otherwise; the guard asks it as the driver does
+// (ppa_srm.c, ppa_ll_srm_get_mb_size). Until 2026-10-27 it took 16 on every build, and on a rev 3 build it then judged
+// some blocks safe that the engine stalls on (33x17 turned 270: the driver's rule sets the bypass for 16 rows, not 32).
+// tests/test_ppa_guard.cpp proves the pieces cover the block once, land where the whole would, and are each safe, for
+// both sizes.
+//
+// What the rules cannot do (measured 2026-10-27, docs/PLATFORM_PLAN.md 4.7): the stall is the memory bus's while the
+// panel scans PSRAM, not the frame buffer's alone. On a Guition 10.1 the issue's 368x66 turned 270 stalled on its first
+// copy into a PSRAM buffer no panel reads as well as into the frame buffer; on a reTerminal D1001 it came back at least
+// 31 times before one stalled. And a copy both rules call safe stalls now and then too: a Tab5's live tile, 618x307
+// turned 270 into its frame buffer (TR-2M2KX9), where 115,000 such copies on a Guition 10.1 and a D1001 never did. The
+// guard keeps the blocks the hardware stalls on every time out of the engine; for the rest the PPA watch restarts the
+// screen within four seconds (ppa_trace.h).
 #pragma once
 #include <cstdint>
 
@@ -49,7 +62,7 @@ struct Block {
   Angle angle = A0;
   Scale sx, sy;
   uint32_t unit_w = 64;  // a transaction unit's width in pixels: 64, or 32 for 24- and 32-bit output
-  uint32_t mb = 16;      // a macro block's height in rows: 16 on the P4 ESPHome builds for
+  uint32_t mb = 16;      // a macro block's height in rows: 16, or 32 on a rev 3 build (the engine's register)
   uint32_t depth = 16;   // bits per output pixel
 };
 
@@ -73,20 +86,27 @@ inline Size output_of(const Block &b) {
   return turned(b.angle) ? Size{scaled(b.h, b.sy), scaled(b.w, b.sx)} : Size{scaled(b.w, b.sx), scaled(b.h, b.sy)};
 }
 
-// The engine's rule for an output of `w` x `h`: cut into more than one unit, and the last unit holds fewer bits than the
-// FIFO. That is the block the DMA never finishes unless the bypass is set.
-inline bool small_leftover(uint32_t w, uint32_t h, const Block &b) {
+// The rule for an output of `w` x `h`: cut into more than one unit, and the last unit holds fewer bits than the FIFO,
+// or, with `equal_stalls`, no more than it. That is the block the DMA never finishes unless the bypass is set.
+inline bool small_leftover(uint32_t w, uint32_t h, const Block &b, bool equal_stalls) {
   const uint32_t w_left = w % b.unit_w ? w % b.unit_w : b.unit_w;
   const uint32_t h_left = h % b.mb ? h % b.mb : b.mb;
-  return (w > b.unit_w || h > b.mb) && w_left * h_left * b.depth < FIFO_BITS;
+  const uint32_t bits = w_left * h_left * b.depth;
+  return (w > b.unit_w || h > b.mb) && (bits < FIFO_BITS || (equal_stalls && bits == FIFO_BITS));
 }
-// What the hardware does: the rule on the output as it comes out, turned (Espressif's fix, 469aa16).
+// What the hardware does: the rule on the output as it comes out, turned (Espressif's fix, 469aa16), and a last unit
+// of exactly the FIFO stalls too. Espressif's driver counts that one safe, master as much as 5.5.5, but a reTerminal
+// D1001 (2026-10-27) restarted on it twice while its top bar was held: the line growing along the glass's edge is a
+// 6-row strip, turned a 6-pixel-wide column of units of 6 x 16 x 16 bits, and the copies of 336x6 whole and of 864x6
+// (a piece of 872x6) never came back while the panel read its frame buffer (the main loop waiting in ppa_do_operation,
+// the guard's trace of the last calls naming the copy). Most such copies did come back, as in espressif/esp-idf #19096.
 inline bool stalls(const Block &b) {
   const Size out = output_of(b);
-  return small_leftover(out.w, out.h, b);
+  return small_leftover(out.w, out.h, b, true);
 }
-// What ESP-IDF 5.5.5's driver does: the rule on the input's own width and height, each with its own scale, turned or not.
-inline bool driver_bypasses(const Block &b) { return small_leftover(scaled(b.w, b.sx), scaled(b.h, b.sy), b); }
+// What ESP-IDF 5.5.5's driver does: the rule on the input's own width and height, each with its own scale, turned or
+// not, and strictly fewer bits than the FIFO.
+inline bool driver_bypasses(const Block &b) { return small_leftover(scaled(b.w, b.sx), scaled(b.h, b.sy), b, false); }
 // A block the engine takes whole: nothing to stall on, or the driver sets the bypass anyway.
 inline bool safe(const Block &b) { return !stalls(b) || driver_bypasses(b); }
 

@@ -149,3 +149,52 @@ class Boards(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class Effects(unittest.TestCase):
+    """A preset with an effect and settings of the light's device (a WLED's palette, speed, intensity), or a preset of
+    the lamp itself (a WLED's own preset or playlist)."""
+    WLED = {'b': 70, 'h': 280, 's': 41, 'fx': 'Colorloop',
+            'rw': {'select.desk_color_palette': 'Party', 'number.desk_speed': 180, 'number.desk_intensity': 128}}
+
+    def test_kept_as_stored(self):
+        out = core.validate_layout(layout({'presets': [self.WLED, {'rw': {'select.desk_preset': 'Film'}}, {'b': 90, 'fx': 'Rainbow'}]}))
+        self.assertEqual(out['tiles'][0]['options']['presets'],
+                         [self.WLED, {'rw': {'select.desk_preset': 'Film'}}, {'b': 90, 'fx': 'Rainbow'}])
+
+    def test_the_screen_gets_pairs(self):
+        tile = {'entity': 'light.living_room', 'name': '', 'options': {'size': 'wide', 'controls': 'presets', 'presets': [self.WLED]}}
+        sent = core.state_message(0, tile, {'light.living_room': LIGHT})['o']['presets'][0]
+        self.assertEqual(sent['rw'], [['select.desk_color_palette', 'Party'], ['number.desk_speed', 180], ['number.desk_intensity', 128]])
+        self.assertEqual(sent['fx'], 'Colorloop')
+
+    def test_wrong_ones_are_refused(self):
+        wrong = [
+            {'fx': 'Rainbow'},                                   # an effect needs a brightness
+            {'rw': {'select.desk_preset': 'Film'}, 'k': 2700},   # a colour needs one too
+            {'b': 50, 'fx': ''}, {'b': 50, 'fx': 7},
+            {'b': 50, 'rw': {}}, {'b': 50, 'rw': {'light.desk': 'x'}}, {'b': 50, 'rw': {'select.desk_preset': ''}},
+            {'b': 50, 'rw': {'number.desk_speed': 'fast'}}, {'b': 50, 'rw': {'number.desk_speed': True}},
+            {'b': 50, 'rw': {f'number.n{i}': i for i in range(5)}},
+        ]
+        for preset in wrong:
+            with self.subTest(preset=preset), self.assertRaises(ValueError):
+                core.validate_layout(layout({'presets': [preset]}))
+
+    def test_the_choices_of_a_wled(self):
+        import light_effects
+        states = {
+            'light.desk': {'state': 'on', 'attributes': {'supported_features': light_effects.EFFECT, 'effect_list': ['Solid', 'Rainbow', 'Aurora']}},
+            'select.desk_color_palette': {'state': 'Default', 'attributes': {'options': ['Default', 'Party']}},
+            'select.desk_preset': {'state': 'Film', 'attributes': {'options': ['Film', 'Lezen']}},
+            'select.desk_live_override': {'state': '0', 'attributes': {'options': ['0', '1', '2']}},
+            'number.desk_speed': {'state': '128', 'attributes': {'min': 0, 'max': 255, 'step': 1}},
+        }
+        device = [{'entity_id': e, 'translation_key': k} for e, k in (('light.desk', 'main'), ('select.desk_color_palette', 'color_palette'),
+                  ('select.desk_preset', 'preset'), ('select.desk_live_override', 'live_override'), ('number.desk_speed', 'speed'))]
+        out = light_effects.choices('light.desk', device, states)
+        self.assertEqual(out['effects'], ['Solid', 'Aurora', 'Rainbow'])
+        self.assertEqual([r['key'] for r in out['rows']], ['color_palette', 'preset', 'speed'])  # not the numeric live override
+        self.assertEqual(out['rows'][1]['options'], ['Film', 'Lezen'])
+        self.assertEqual((out['rows'][2]['min'], out['rows'][2]['max'], out['rows'][2]['value']), (0, 255, 128))
+        self.assertEqual(light_effects.choices('light.desk', [], {'light.desk': {'state': 'off', 'attributes': {}}}), {'effects': [], 'rows': []})

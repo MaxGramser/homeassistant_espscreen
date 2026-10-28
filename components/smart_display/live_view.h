@@ -108,6 +108,8 @@ class Reader {
         this->got_ = 0;
         this->audio_ = h.audio;
         this->still_ = h.still;
+        this->has_made_ = h.has_made;
+        this->made_ = h.made;
         this->room_ = room(this->need_, this->audio_);
         this->in_body_ = true;
       } else {
@@ -130,11 +132,15 @@ class Reader {
   uint32_t parts() const { return this->parts_; }
   // Whether the part `done` was told of is the camera's still from before its stream came (X-Picture: still).
   bool still() const { return this->still_; }
+  // And when the app made it (X-Made, its own milliseconds), when it said.
+  bool has_made() const { return this->has_made_; }
+  uint32_t made() const { return this->made_; }
 
  private:
   std::string head_;
   size_t most_ = 0;
-  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false;
+  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false, has_made_ = false;
+  uint32_t made_ = 0;
   int status_ = 0;
   size_t need_ = 0, got_ = 0;
   uint8_t *room_ = nullptr;

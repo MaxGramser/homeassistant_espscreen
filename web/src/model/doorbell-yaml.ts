@@ -18,7 +18,19 @@ export type DoorbellReference = {
 };
 /** What a ring does on a screen (server.doorbell_kind): the camera live, its alert with its picture, or the alert alone. */
 export type DoorbellKind = "view" | "picture" | "plain";
-export type DoorbellChoice = { trigger?: string; camera?: string; title?: string; screens?: string[]; timeout?: number; name?: string };
+/** The ring's door key (docs/DOORBELL.md, "Open the door"): a lock, or another action of an entity's own (a script, a
+ * gate's button) that the app performs on the second tap. */
+export type DoorChoice = { kind: "none" | "lock" | "action"; lock?: string; entity?: string; action?: string };
+/** `sound`: whether the view opens with its sound on (the default) or quiet, for a screen somewhere quiet; `chime`: whether
+ * the screen chimes when it rings (the default) or rings without. */
+export type DoorbellChoice = { trigger?: string; camera?: string; title?: string; screens?: string[]; timeout?: number; name?: string; door?: DoorChoice; sound?: boolean; chime?: boolean };
+
+/** The event's fields of a door: `lock`, or `door_action` with the entity in `door_data`; none without one. */
+export function doorFields(door: DoorChoice | undefined): Record<string, unknown> {
+  if (door?.kind === "lock" && door.lock) return { lock: door.lock };
+  if (door?.kind === "action" && door.entity && door.action) return { door_action: door.action, door_data: { entity_id: door.entity } };
+  return {};
+}
 
 const SHOW = "esp_screens_doorbell", DISMISS = "esp_screens_dismiss_doorbell", MISSED = "esp_screens_doorbell_missed";
 
@@ -41,6 +53,9 @@ export function doorbellAutomation(reference: DoorbellReference | undefined, cho
       ...(choice.title ? { title: choice.title } : {}),
       ...(screens.length ? { screen: screens.length === 1 ? screens[0] : screens } : {}),
       ...(choice.timeout && choice.timeout !== fallback ? { timeout: choice.timeout } : {}),
+      ...(choice.sound === false ? { sound: false } : {}),
+      ...(choice.chime === false ? { chime: false } : {}),
+      ...doorFields(choice.door),
     } }],
   };
 }

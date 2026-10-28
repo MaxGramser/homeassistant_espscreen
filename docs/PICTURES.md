@@ -169,8 +169,10 @@ H.264 and sends JPEG (`camera_source.py`, `live_pictures.py`).
 - **The core shows when the camera is in use**: a dot in the glass's top right corner, on top of everything (pages,
   cards, the full view, the screensaver), that no plugin or setting can take away. Home Assistant taking pictures or a
   stream the core sees by itself on `ts_camera` (`plugin_host::watch_camera`, bound when a plugin provides `camera`); a
-  plugin that uses the camera on the screen itself says so (`tessera::capturing`, plugin API 0.17). The dot lies in the
-  top bar's row, so it never lies over a live picture.
+  plugin that uses the camera on the screen itself says so (`tessera::capturing`, plugin API 0.17). The dot is solid
+  while anyone watches (Home Assistant, or a plugin's `Capture::CAMERA`) and a ring while the camera only senses on the
+  screen (`Capture::SENSING`, plugin API 0.20: a light level, motion), so a glance tells "seen" from "counted". It lies
+  in the top bar's row, so it never lies over a live picture.
 
 ## Compatibility
 
@@ -197,7 +199,8 @@ H.264 and sends JPEG (`camera_source.py`, `live_pictures.py`).
   streams, exactly as a camera tile set to Live (`runtime_tiles` live places: on the glass, the page still, nothing over
   it; its stills under it until the first live picture). Its question names the owner `plugin_tile` and `live`; the app
   answers with a stream into the place's room (`picture_service._stream`). A card's and a saver's places show stills.
-- `tessera::capturing(plugin, Capture::CAMERA, on)` for a plugin that uses the screen's own camera on the screen itself.
+- `tessera::capturing(plugin, Capture::CAMERA, on)` for a plugin that uses the screen's own camera on the screen itself
+  while someone watches, `Capture::SENSING` (0.20) while it only senses.
 
 A plugin never writes the glass itself: `live_view` is the one writer past LVGL, and a plugin's video goes into a place
 it laid out. A plugin with video of its own one day (an intercom's caller over SIP and RTP, for instance) gets the same

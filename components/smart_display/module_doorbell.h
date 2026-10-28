@@ -24,16 +24,21 @@ namespace runtime_tiles {
 namespace doorbell {
 // Bound at boot (packages/core.yaml): the report of how a ring's view ended to ESP Screens (esphome.screen_doorbell):
 // "answered" at the first touch, "closed" by its close key or anything else that closed it, "missed" when nobody touched
-// it, "seen" when a missed ring was opened from the top bar.
+// it, "seen" when a missed ring was opened from the top bar; and "door", the door key's second tap, which ESP Screens
+// answers by opening the ring's door.
 extern std::function<void(const std::string &action, const std::string &key)> report;
 // The chime plays on the speaker for announcements (ts_speaker).
 void bind_speaker(esphome::speaker::Speaker *speaker);
 
 // The op "doorbell" from ESP Screens (an automation's esp_screens_doorbell): a ring of `camera`, its doorbell's `name`,
-// the app's `key` for this ring, when it rang (unix time) and how long it stays when nobody touches it; or the close of
-// that ring, answered on another screen or dismissed.
-void ring(const std::string &camera, const std::string &name, const std::string &key, uint32_t rang, uint32_t untouched_s);
+// the app's `key` for this ring, when it rang (unix time), how long it stays when nobody touches it, its door (`door`:
+// 1 a lock in state `door_state`, 2 an action, 0 none; doorbell_door.h), whether its view opens with its sound off
+// (`quiet`, the automation's `sound: false`) and whether it chimes (`chime: false` rings without); or the close of that
+// ring, answered on another screen or dismissed; or its lock's new state.
+void ring(const std::string &camera, const std::string &name, const std::string &key, uint32_t rang, uint32_t untouched_s,
+          unsigned door = 0, const std::string &door_state = "", bool quiet = false, bool chimes = true);
 void close_ring(const std::string &key);
+void door_state(const std::string &key, const std::string &state);
 // The top bar's item of a missed ring (`b`): the ring this screen showed last, opened again without a chime.
 void reopen();
 

@@ -14,6 +14,13 @@
 // The next boot hands both on: `*** INTERNAL RAM ON PREVIOUS BOOT ***` with a `Lowest:` and a `Failed:` line, logged
 // with ESPHome's config dump, which every log subscriber asks for (the troubleshooting report's too: reports.py
 // CRASH_LINE keeps the lines with a crash).
+//
+// One ask fails on every P4 screen with Screen camera's video, and is no failure: Espressif's H.264 encoder (esp_h264,
+// esp_h264_enc_hw_param.c) asks internal RAM first for its reference frame, a whole frame (1382464 bytes at 1280x720),
+// more than the chip has, and takes PSRAM right after. Every report of such a screen began with it (a Tab5,
+// TR-2M2KX9, 2026-10-27). So an ask of the encoder's own caps (internal, cache aligned) larger than all internal RAM
+// is counted apart, as one that fell back to PSRAM; should PSRAM fail it too, that second ask is a failure as any
+// other.
 #pragma once
 #include <cstdint>
 
@@ -21,6 +28,13 @@ namespace heap_watch {
 
 constexpr uint32_t STEP = 16 * 1024;  // the lowest is logged again once it falls this much further
 constexpr uint32_t EVERY_MS = 250;    // how often the main loop reads the counter
+
+// The encoder's first ask, which falls back to PSRAM by itself: its caps are ESP-IDF's MALLOC_CAP_INTERNAL and
+// MALLOC_CAP_CACHE_ALIGNED (esp_h264_alloc.c adds the second), and it could never fit in the internal RAM there is.
+constexpr uint32_t FIRST_TRY_CAPS = (1u << 11) | (1u << 19);
+inline bool falls_back(uint32_t size, uint32_t caps, uint32_t internal_total) {
+  return caps == FIRST_TRY_CAPS && size > internal_total;
+}
 
 // The lowest seen, and whether it fell far enough below the last one logged to be logged again.
 struct LowWater {

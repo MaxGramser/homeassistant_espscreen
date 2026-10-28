@@ -132,6 +132,11 @@ const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => bu
       <section class="plugins-list">
         <h1>{{ t("editor.plugins.title") }}</h1>
         <p class="setup-lead">{{ t("editor.plugins.intro") }}</p>
+        <!-- Said before anything is picked: plugins share a screen's memory, and many at once can make it unstable. -->
+        <div class="notice warn plugin-risk" id="plugin-risk" role="note">
+          <Icon name="alert-circle-outline" />
+          <span class="notice-text"><strong>{{ t("editor.plugins.risk.title") }}</strong>{{ t("editor.plugins.risk.text") }}</span>
+        </div>
         <!-- The screens building their plugins now, each with its progress and log (the builds store, stores/builds.ts). -->
         <div v-if="pluginBuilds.length" class="plugin-builds" id="plugin-builds">
           <BuildLog v-for="screen in pluginBuilds" :key="screen.id" :screen="screen" name />

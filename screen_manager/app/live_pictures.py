@@ -44,13 +44,17 @@ def size_for(width, height, box):
 def size_to_cover(width, height, box):
     """The size a frame of width x height goes out at for a live tile that fills its card: as small as still covers the
     card, its proportions kept (the screen cuts the middle of it), and never larger than the frame: a smaller one the
-    screen's PPA scales up."""
+    screen's PPA scales up. Every side a multiple of 8: the P4's decoder refuses a picture whose width times height is
+    not a multiple of 8 (ESP-IDF jpeg_parse_marker.c, "Picture sizes not divisible by 8"), and even sides are not
+    enough for that. A Guition 10.1's right-hand tiles asked 494 x 277 and got 494 x 278 pictures, every one refused,
+    while the left-hand ones asked 495 x 277 and got 496 x 280 (2026-10-27)."""
     bw, bh = box
+    down = lambda n: max(16, int(n) // 8 * 8)
     if width <= bw or height <= bh:
-        return width - width % 2, height - height % 2
+        return down(width), down(height)
     scale = max(bw / width, bh / height)
-    even_up = lambda n: min(int(-(-n // 2) * 2), 4096)
-    return min(even_up(width * scale), width - width % 2), min(even_up(height * scale), height - height % 2)
+    up = lambda n: min(int(-(-n // 8) * 8), 4096)
+    return min(up(width * scale), down(width)), min(up(height * scale), down(height))
 
 
 def jpeg_size(raw):
@@ -108,6 +112,10 @@ def remake(raw, box, cover=False):
 
 # The frames of every stream that wait for a thread or have one now: picture_service's line on a slow still reads it.
 encoding = 0
+# Per camera, the pictures made here that the P4's decoder would refuse (jpeg_size None: empty, too large, not baseline,
+# or a width times height that is not a multiple of 8) or that failed to be made at all; camera_source's frame watch
+# says them in its line.
+refused = {}
 
 class Encoder:
     """JPEGs of decoded video frames at one size, made straight from the decoder's YUV (ffmpeg's mjpeg)."""
@@ -138,7 +146,8 @@ class Encoder:
 class Pictures:
     """The JPEGs of one camera's frames for the screens that watch it, made once per frame and room."""
 
-    def __init__(self):
+    def __init__(self, entity=None):
+        self.entity = entity
         self.encoders, self.pictures = {}, {}
         self.making = asyncio.Lock()  # one picture at a time: an encoder is not for two threads
         self.made = self.made_ms = 0
@@ -178,8 +187,17 @@ class Pictures:
             encoding += 1
             try:
                 jpeg, ms = await loop.run_in_executor(None, encoder.encode, frame.video)
+            except Exception:
+                self.refuse()
+                raise
             finally:
                 encoding -= 1
+        if jpeg is not frame.jpeg and jpeg_size(jpeg) is None:
+            self.refuse()
         self.made += 1
         self.made_ms += ms
         return jpeg
+
+    def refuse(self):
+        if self.entity:
+            refused[self.entity] = refused.get(self.entity, 0) + 1

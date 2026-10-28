@@ -92,6 +92,14 @@ async def to_code(config):
         from esphome.components import ota
 
         ota.request_ota_state_listeners()
+    # The governor's signs from the log (runtime_tiles.h pressure_log, docs/PLATFORM_PLAN.md 4.10): a slot of its own
+    # among the logger's listeners, which ESPHome sizes from these requests (a listener added without one is dropped,
+    # as the first build of the governor on a reTerminal D1001 showed, 2026-10-28). No fallback: an ESPHome without it
+    # stops the build here, and pressure_listen's static_assert stops one that dropped the slot.
+    if "logger" in CORE.config:
+        from esphome.components import logger
+
+        logger.request_log_listener()
     if CORE.is_esp32:
         for wrap in DIAGNOSTIC_WRAPS:
             cg.add_build_flag(f"-Wl,--wrap={wrap}")
@@ -173,7 +181,7 @@ async def _p4(config):
 # The plugin API this core offers: plugin_api.h's PLUGIN_API_MAJOR/MINOR and the add-on's plugin_manifest.PLUGIN_API
 # (a test keeps the three equal). A plugin builds on the same major from its own minor up, unless a minor between its
 # own and this one changed a name while the major is 0 (PLUGIN_API_BREAKS, the same as plugin_manifest.py's).
-PLUGIN_API = (0, 19)
+PLUGIN_API = (0, 21)
 PLUGIN_API_BREAKS = {0: (4,)}
 PLUGIN_MANIFEST = "tessera-plugin.yaml"
 

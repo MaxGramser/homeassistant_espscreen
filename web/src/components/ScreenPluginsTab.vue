@@ -56,6 +56,12 @@ watch(() => plugins.focus, (id) => {
         </div>
       </div>
 
+      <!-- The same word as the Plugins page: plugins share this screen's memory, and many at once can make it unstable. -->
+      <div class="notice warn plugin-risk" id="screen-plugin-risk" role="note">
+        <Icon name="alert-circle-outline" />
+        <span class="notice-text"><strong>{{ t("editor.plugins.risk.title") }}</strong>{{ t("editor.plugins.risk.text") }}</span>
+      </div>
+
       <!-- This screen's build, whoever asked for it, with its log; a failed one stays until the next build. -->
       <BuildLog :screen="screen" />
 

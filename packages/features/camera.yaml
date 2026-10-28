@@ -51,6 +51,21 @@ substitutions:
     screen_hooks::away().push_back([]() { return runtime_tiles::camera_visible(); });
     screen_hooks::tick().push_back([](uint32_t) { runtime_tiles::camera_tick(); });
     screen_hooks::alert_show().push_back([]() { runtime_tiles::alert_prepare(); });
+    // The governor (runtime_tiles.h, pressure.h; docs/PLATFORM_PLAN.md 4.10), on the camera's tick: its signs from the
+    // log (the wake word falling behind, the main loop held up) through ESPHome's log listeners, and what it does in
+    // the "Pressure" sensor below.
+    runtime_tiles::pressure_listen();
+    runtime_tiles::pressure_told = [](const std::string &text) { id(pressure_state).publish_state(text); };
+
+# What the governor gives up now (docs/PLATFORM_PLAN.md 4.10), in words: "normal", or for example "live tiles 1/2, own
+# camera 1/4, sensing 1/2, background 1/2 (the wake word fell behind)". Set at every change, never on a timer.
+text_sensor:
+  - platform: template
+    id: pressure_state
+    name: "Pressure"
+    icon: "mdi:gauge"
+    entity_category: diagnostic
+    update_interval: never
 
 api:
   actions:

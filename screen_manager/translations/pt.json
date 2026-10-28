@@ -191,6 +191,7 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Ganho do microfone",
       "automatic_gain": "Ganho automático",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Som ligado",
-      "sound_off": "Som desligado"
+      "sound_off": "Som desligado",
+      "door": "Porta",
+      "door_confirm": "Toque de novo para abrir",
+      "door_sent": "Enviado",
+      "talk": "Falar",
+      "coming_soon": "Em breve"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Tempo limite",
           "help": "Segundos que o toque fica se ninguém tocar, de {min} a {max}. Vazio é {default}. Um toque mantém-no aberto."
+        },
+        "sound": {
+          "label": "Som",
+          "help": "Se o som da campainha toca logo quando ela toca, onde o ecrã tem altifalante. Vazio ou true: a vista abre com o som ligado. false: abre em silêncio (um estúdio, um quarto), e um toque em Som liga-o."
+        },
+        "chime": {
+          "label": "Toque",
+          "help": "Se o ecrã toca o seu toque quando tocam à porta, onde tem altifalante. Vazio ou true: toca. false: toca sem ele, e a vista abre na mesma."
+        },
+        "lock": {
+          "label": "Fechadura",
+          "help": "Uma entidade de fechadura que a tecla da porta da vista destranca após um segundo toque; a tecla mostra o seu estado. Uma fechadura que pede um código precisa de um código predefinido no Home Assistant (as definições da fechadura). Deixe vazio para não ter tecla da porta."
+        },
+        "door_action": {
+          "label": "Ação da porta",
+          "help": "Em vez de uma fechadura: uma ação do Home Assistant que a tecla da porta executa após um segundo toque, como script.open_gate ou button.press. `door_data` dá os seus campos (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Dados da porta",
+          "help": "Os campos de `door_action`, como entity_id."
         }
       },
       "endings": {
@@ -1903,6 +1929,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras para os seus ecrãs: mosaicos para uma página, algo mais que o ecrã inteiro pode fazer, ou hardware na placa. Um plugin é integrado no firmware de um ecrã, por isso escolhe por ecrã quais recebe.",
+      "risk": {
+        "title": "Os plugins são por sua conta e risco",
+        "text": "Cada plugin usa parte da memória e do tempo de processador de um ecrã. Alguns funcionam bem juntos, mas muitos de uma vez (por exemplo um assistente de voz, um proxy Bluetooth e uma câmara) podem encher a memória e tornar um ecrã lento, bloqueá-lo ou fazê-lo reiniciar. Pode experimentar, mas adicione um ou dois de cada vez e verifique se o ecrã continua estável. Se começar a falhar, retire primeiro os mais recentes.",
+        "many": "{screen} terá {n} plugins depois desta compilação. Tantos podem tornar um ecrã instável: se falhar, retire alguns."
+      },
       "search": "Procurar por nome, autor ou o que faz",
       "filter": "Mostrar",
       "from_tessera": "Do Tessera",
@@ -2112,7 +2143,8 @@
         "keep": "Manter",
         "keep_named": "Manter {name}",
         "minutes": "Cada compilação demora alguns minutos.",
-        "off_set": "Preparado para sair"
+        "off_set": "Preparado para sair",
+        "risk": "Por sua conta e risco: cada plugin usa memória, e demasiados podem tornar um ecrã instável."
       },
       "maker": {
         "title": "Crie o seu próprio plugin",
@@ -2555,7 +2587,17 @@
         "levels": "Mostrar o brilho nas predefinições",
         "levels_hint": "Escreve o brilho em pequeno em cada círculo. Uma predefinição só de brilho mostra-o sempre.",
         "hint": "Um toque numa predefinição põe a luz assim de uma vez; o anel marca a que a luz mostra. Clique numa para a alterar, arraste para mudar a ordem.",
-        "hint_empty": "Até quatro teclas redondas, como as cores favoritas do Home Assistant, cada uma com o seu brilho. Uma nova parte do que a luz mostra agora."
+        "hint_empty": "Até quatro teclas redondas, como as cores favoritas do Home Assistant, cada uma com o seu brilho. Uma nova parte do que a luz mostra agora.",
+        "own": "Definição própria",
+        "device": "Predefinição da lâmpada",
+        "effect": "Efeito",
+        "search": "Pesquisar",
+        "none_found": "Nada encontrado",
+        "device_kind": "Tipo",
+        "device_preset": "Predefinição",
+        "device_playlist": "Lista",
+        "device_hint": "Uma predefinição da própria lâmpada define a sua cor, efeito e brilho.",
+        "swatch_aria_named": "Predefinição {n}, {name}"
       },
       "tap": {
         "label": "Ao tocar",
@@ -4409,11 +4451,12 @@
         "title": "Nova automação de campainha",
         "camera_hint": "Um ecrã P4 transmite-a em direto com som se a câmara tiver som; os outros ecrãs mostram a imagem.",
         "screens_hint": "Nenhum escolhido: todos os ecrãs.",
-        "limits": "Nem todas as campainhas fazem tudo: o som só vem se o fluxo da câmara o tiver. Falar e abrir a porta virão mais tarde.",
+        "limits": "Nem todas as campainhas fazem tudo: o som só vem se o fluxo da câmara o tiver. Falar virá mais tarde.",
         "more_cameras": "Outra câmara…",
         "timeout_hint": "Quanto tempo um toque fica aberto se ninguém tocar no ecrã. Vazio: o valor predefinido.",
         "summary": {
-          "camera": "Câmara"
+          "camera": "Câmara",
+          "door": "Porta"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "Que câmara?",
             "help": "A câmara que os ecrãs mostram quando toca. Normalmente a da própria campainha."
+          },
+          "door": {
+            "title": "Uma porta para abrir?",
+            "help": "A vista da campainha pode ter uma tecla que abre a porta após um segundo toque: uma fechadura, ou outra ação como um script ou o botão de um portão. Pode deixá-la de fora."
           },
           "screens": {
             "title": "Que ecrãs?",
@@ -4440,6 +4487,22 @@
             "title": "Concluir",
             "help": "Faça dela uma automação própria, ou copie a ação para uma automação que já tem."
           }
+        },
+        "door": {
+          "none": "Sem tecla da porta",
+          "lock": "Uma fechadura",
+          "action": "Outra ação",
+          "pick_lock": "Escolha uma fechadura…",
+          "pick_action": "Escolha o que abre…",
+          "code": "Esta fechadura pede um código: a tecla só aparece se a fechadura tiver um código predefinido no Home Assistant (as definições da fechadura)."
+        },
+        "sound": {
+          "label": "Ouvir a campainha logo",
+          "hint": "A vista da campainha abre com o seu som ligado. Desligue isto para um lugar sossegado, como um estúdio: o som espera então por um toque em Som."
+        },
+        "chime": {
+          "label": "Toque ao tocar",
+          "hint": "O ecrã toca um toque de campainha quando alguém toca. Desligue isto se não quiser ouvir o ding-dong de cada vez."
         }
       },
       "hero": {

@@ -84,6 +84,10 @@ struct Head {
   // X-Picture: still, a live camera's picture from before its stream came (its still while WebRTC starts): the screen
   // shows it with the loader in its corner (live_view.h, "Until it is live"). Without it a picture is live.
   bool still = false;
+  // X-Made: when the app made a live camera's picture, in its own milliseconds (wrapping at 2^32): set beside the
+  // screen's clock, what is left over the least of it is how long the picture waited on its way (live_view.cpp).
+  bool has_made = false;
+  uint32_t made = 0;
 };
 inline bool same_ignoring_case(const char *a, const char *b, size_t n) {
   for (size_t i = 0; i < n; ++i) {
@@ -145,6 +149,14 @@ inline Head parse_head(const char *data, size_t size) {
           h.audio = ve - v >= 6 && same_ignoring_case(line + v, "audio/", 6);
         } else if (colon == 9 && same_ignoring_case(line, "x-picture", 9)) {
           h.still = ve - v == 5 && same_ignoring_case(line + v, "still", 5);
+        } else if (colon == 6 && same_ignoring_case(line, "x-made", 6)) {
+          uint32_t n = 0;
+          bool digits = v < ve;
+          for (size_t i = v; i < ve; ++i) {
+            if (line[i] < '0' || line[i] > '9') { digits = false; break; }
+            n = n * 10 + static_cast<uint32_t>(line[i] - '0');
+          }
+          if (digits) { h.has_made = true; h.made = n; }
         }
       }
     }

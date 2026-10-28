@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 19)
+PLUGIN_API = (0, 21)
 # Major 0 is the time before that promise: a minor may still change a name or a signature. The minors that did are
 # listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so a plugin written before one is told
 # so in one sentence instead of failing in the compiler. 0.4: Plugin::on_tick became on_interval.

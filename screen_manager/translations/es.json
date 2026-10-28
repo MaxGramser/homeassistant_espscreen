@@ -191,6 +191,7 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Ganancia de micrófono",
       "automatic_gain": "Ganancia automática",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Sonido activado",
-      "sound_off": "Sonido desactivado"
+      "sound_off": "Sonido desactivado",
+      "door": "Puerta",
+      "door_confirm": "Toca otra vez para abrir",
+      "door_sent": "Enviado",
+      "talk": "Hablar",
+      "coming_soon": "Próximamente"
     },
     "tile": {
       "tap_to_open": "Toca para abrir",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Tiempo límite",
           "help": "Segundos que la llamada se queda si nadie la toca, de {min} a {max}. Vacío es {default}. Un toque la mantiene abierta."
+        },
+        "sound": {
+          "label": "Sonido",
+          "help": "Si el sonido del timbre suena en cuanto llama, donde la pantalla tiene altavoz. Vacío o true: la vista se abre con el sonido activado. false: se abre en silencio (un estudio, un dormitorio), y un toque en Sonido lo activa."
+        },
+        "chime": {
+          "label": "Campanilla",
+          "help": "Si la pantalla toca su campanilla cuando llaman, donde tiene altavoz. Vacío o true: la toca. false: llama sin ella, y la vista se abre igual."
+        },
+        "lock": {
+          "label": "Cerradura",
+          "help": "Una entidad de cerradura que la tecla de puerta de la vista desbloquea tras un segundo toque; la tecla muestra su estado. Una cerradura que pide un código necesita un código predeterminado en Home Assistant (los ajustes de la cerradura). Déjalo vacío para no tener tecla de puerta."
+        },
+        "door_action": {
+          "label": "Acción de puerta",
+          "help": "En lugar de una cerradura: una acción de Home Assistant que la tecla de puerta realiza tras un segundo toque, como script.open_gate o button.press. `door_data` da sus campos (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Datos de puerta",
+          "help": "Los campos de `door_action`, como entity_id."
         }
       },
       "endings": {
@@ -1903,6 +1929,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras para tus pantallas: mosaicos para una página, algo más que puede hacer toda la pantalla o hardware en la placa. Un plugin se integra en el firmware de una pantalla, así que eliges por pantalla cuáles recibe.",
+      "risk": {
+        "title": "Los plugins son bajo tu propio riesgo",
+        "text": "Cada plugin usa parte de la memoria y del tiempo de procesador de una pantalla. Unos pocos funcionan bien juntos, pero muchos a la vez (por ejemplo un asistente de voz, un proxy Bluetooth y una cámara) pueden llenar la memoria y hacer que una pantalla vaya lenta, se congele o se reinicie. Puedes probarlo, pero añade uno o dos a la vez y comprueba que la pantalla sigue estable. Si empieza a fallar, quita primero los más nuevos.",
+        "many": "{screen} tendrá {n} plugins tras esta compilación. Tantos pueden hacer inestable una pantalla: si falla, quita algunos."
+      },
       "search": "Busca por nombre, autor o lo que hace",
       "filter": "Mostrar",
       "from_tessera": "De Tessera",
@@ -2112,7 +2143,8 @@
         "keep": "Conservarlo",
         "keep_named": "Conservar {name}",
         "minutes": "Cada compilación tarda unos minutos.",
-        "off_set": "Preparado para quitarse"
+        "off_set": "Preparado para quitarse",
+        "risk": "Bajo tu propio riesgo: cada plugin usa memoria, y demasiados pueden hacer inestable una pantalla."
       },
       "maker": {
         "title": "Crea tu propio plugin",
@@ -2555,7 +2587,17 @@
         "levels": "Mostrar el brillo en los ajustes",
         "levels_hint": "Escribe el brillo en pequeño en cada círculo. Un ajuste solo de brillo siempre lo muestra.",
         "hint": "Un toque en un ajuste pone la luz así de una vez; el anillo marca el que muestra la luz. Haz clic en uno para cambiarlo, arrástralo para cambiar el orden.",
-        "hint_empty": "Hasta cuatro teclas redondas, como los colores favoritos de Home Assistant, cada una con su brillo. Uno nuevo parte de lo que muestra la luz ahora."
+        "hint_empty": "Hasta cuatro teclas redondas, como los colores favoritos de Home Assistant, cada una con su brillo. Uno nuevo parte de lo que muestra la luz ahora.",
+        "own": "Ajuste propio",
+        "device": "Preset de la lámpara",
+        "effect": "Efecto",
+        "search": "Buscar",
+        "none_found": "No se encontró nada",
+        "device_kind": "Tipo",
+        "device_preset": "Preset",
+        "device_playlist": "Lista",
+        "device_hint": "Un preset de la propia lámpara fija su propio color, efecto y brillo.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "Al tocar",
@@ -4409,11 +4451,12 @@
         "title": "Nueva automatización de timbre",
         "camera_hint": "Una pantalla P4 la transmite en directo con sonido si la cámara tiene sonido; las demás muestran su imagen.",
         "screens_hint": "Ninguna elegida: todas las pantallas.",
-        "limits": "No todos los timbres pueden con todo: el sonido llega solo si el flujo de la cámara lo tiene. Hablar y abrir la puerta llegarán más adelante.",
+        "limits": "No todos los timbres pueden con todo: el sonido llega solo si el flujo de la cámara lo tiene. Hablar llegará más adelante.",
         "more_cameras": "Otra cámara…",
         "timeout_hint": "Cuánto tiempo sigue abierta una llamada si nadie toca la pantalla. Vacío: el valor por defecto.",
         "summary": {
-          "camera": "Cámara"
+          "camera": "Cámara",
+          "door": "Puerta"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "¿Qué cámara?",
             "help": "La cámara que muestran las pantallas cuando suena. Normalmente la del propio timbre."
+          },
+          "door": {
+            "title": "¿Una puerta que abrir?",
+            "help": "La vista del timbre puede tener una tecla que abre la puerta tras un segundo toque: una cerradura, u otra acción como un script o el botón de una verja. Puedes dejarlo fuera."
           },
           "screens": {
             "title": "¿Qué pantallas?",
@@ -4440,6 +4487,22 @@
             "title": "Terminar",
             "help": "Conviértela en una automatización propia, o copia la acción en una automatización que ya tengas."
           }
+        },
+        "door": {
+          "none": "Sin tecla de puerta",
+          "lock": "Una cerradura",
+          "action": "Otra acción",
+          "pick_lock": "Elige una cerradura…",
+          "pick_action": "Elige lo que abre…",
+          "code": "Esta cerradura pide un código: la tecla solo aparece si la cerradura tiene un código predeterminado en Home Assistant (los ajustes de la cerradura)."
+        },
+        "sound": {
+          "label": "Oír el timbre al momento",
+          "hint": "La vista del timbre se abre con su sonido activado. Desactívalo para un lugar tranquilo, como un estudio: el sonido espera entonces a un toque en Sonido."
+        },
+        "chime": {
+          "label": "Campanilla al llamar",
+          "hint": "La pantalla toca una campanilla de puerta cuando alguien llama. Desactívalo si no quieres oír el ding-dong cada vez."
         }
       },
       "hero": {

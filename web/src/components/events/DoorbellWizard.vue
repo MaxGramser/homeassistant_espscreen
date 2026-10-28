@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The doorbell's wizard (Events, Doorbell; docs/DOORBELL.md): what rings, its camera, the screens, a name, then a ring now
+// The doorbell's wizard (Events, Doorbell; docs/DOORBELL.md): what rings, its camera, its door, the screens, a name, then a ring now
 // to see it and the automation into Home Assistant, "Tessera: Doorbell <name>". One step at a time in UiWizard; what is
 // chosen stays while the window is open, and the page lists the automation once it is saved. The last step also offers
 // the action alone, for an automation of the person's own (WizardFinish); then what rings may stay empty.
@@ -8,7 +8,7 @@ import { useBusy } from "../../composables/useBusy";
 import { t } from "../../i18n";
 import { screenValue } from "../../model/alert-yaml";
 import { actionYaml } from "../../model/automation";
-import { doorbellAutomation, triggerKind, type DoorbellKind, type DoorbellReference } from "../../model/doorbell-yaml";
+import { doorbellAutomation, doorFields, triggerKind, type DoorChoice, type DoorbellKind, type DoorbellReference } from "../../model/doorbell-yaml";
 import { glyph } from "../../model/topbar";
 import { useInventoryStore } from "../../stores/inventory";
 import { useScreenStore } from "../../stores/screen";
@@ -18,6 +18,7 @@ import Icon from "../ui/Icon.vue";
 import UiChoiceCards from "../ui/UiChoiceCards.vue";
 import UiPicker from "../ui/UiPicker.vue";
 import UiWizard from "../ui/UiWizard.vue";
+import DoorStep from "./DoorStep.vue";
 import TriggerStep, { type Suggestion } from "./TriggerStep.vue";
 import WizardFinish, { type Finish } from "./WizardFinish.vue";
 
@@ -35,21 +36,31 @@ const kindOf = (screen: { doorbell?: DoorbellKind }) => screen.doorbell || "plai
 const suggestions = computed<(Suggestion & { camera: string | null })[]>(() => (reference.value?.suggestions || [])
   .map((s) => ({ ...s, detail: [s.trigger, s.camera].filter(Boolean).join(" · ") })));
 
-const steps = computed(() => ["rings", "camera", "screens", "name", "try", "add"].map((id) => ({
+const steps = computed(() => ["rings", "camera", "door", "screens", "name", "try", "add"].map((id) => ({
   id, title: t(`editor.doorbell.wizard.steps.${id}.title`), help: t(`editor.doorbell.wizard.steps.${id}.help`) })));
 const step = ref(1);
 const finish = ref<Finish>("automation");
 // At the last step without anything that starts it, the action alone is what fits.
 watch(step, (now) => { if (now === steps.value.length && !choice.trigger && !saved.value) finish.value = "action"; });
-const choice = reactive({ trigger: "", camera: "", screens: [] as string[], title: "", timeout: undefined as number | undefined });
+const noDoor = (): DoorChoice => ({ kind: "none" });
+const choice = reactive({ trigger: "", camera: "", screens: [] as string[], title: "", timeout: undefined as number | undefined, door: noDoor(), sound: true, chime: true });
+// Sound on or off when it rings is a choice only where a screen it reaches can play it: one that shows the ring live and
+// has a speaker (its capability record). Without one the choice is not offered, and the automation leaves it out.
+const reached = computed(() => choice.screens.length ? screens.value.filter((s) => choice.screens.includes(screenValue(s))) : screens.value);
+const plays = computed(() => reached.value.some((s) => kindOf(s) === "view" && s.caps?.speaker));
 function suggest(s: Suggestion) {
   const camera = suggestions.value.find((item) => item.trigger === s.trigger)?.camera;
   if (camera) choice.camera = camera;
 }
 const cameraCards = computed(() => cameras.value.slice(0, 4).map((c) => ({ value: c.id, title: c.name, detail: c.hint, glyph: glyph("F07AE") })));
 const toggle = (value: string) => { choice.screens = choice.screens.includes(value) ? choice.screens.filter((v) => v !== value) : [...choice.screens, value]; };
-const automation = computed(() => doorbellAutomation(reference.value, { ...choice, name: choice.camera ? nameOf(choice.camera) : "" }));
-const ready = computed(() => ({ camera: Boolean(choice.camera) } as Record<string, boolean>)[steps.value[step.value - 1]?.id] ?? true);
+const automation = computed(() => doorbellAutomation(reference.value, { ...choice, sound: plays.value ? choice.sound : undefined,
+  chime: plays.value ? choice.chime : undefined, name: choice.camera ? nameOf(choice.camera) : "" }));
+// A door step is ready without a door, with a lock picked, or with an entity and one of its actions.
+const doorReady = computed(() => choice.door.kind === "none" || Object.keys(doorFields(choice.door)).length > 0);
+const ready = computed(() => ({ camera: Boolean(choice.camera), door: doorReady.value } as Record<string, boolean>)[steps.value[step.value - 1]?.id] ?? true);
+const doorSummary = computed(() => choice.door.kind === "lock" && choice.door.lock ? nameOf(choice.door.lock)
+  : choice.door.kind === "action" && choice.door.entity ? `${nameOf(choice.door.entity)} · ${choice.door.action}` : t("editor.doorbell.wizard.door.none"));
 const chosenScreens = computed(() => choice.screens.length ? screens.value.filter((s) => choice.screens.includes(screenValue(s))).map((s) => s.name).join(", ") : t("editor.events.wizard.every_screen"));
 
 // A ring now, as the automation would send it.
@@ -59,7 +70,8 @@ const tryIt = () => whileTrying(async () => {
   tried.value = "";
   try {
     const answer = await scr.sendTestDoorbell("", { camera: choice.camera, title: choice.title, timeout: choice.timeout || undefined,
-      ...(choice.screens.length ? { screen: choice.screens } : {}) });
+      ...(choice.screens.length ? { screen: choice.screens } : {}), ...doorFields(choice.door), ...(plays.value && !choice.sound ? { sound: false } : {}),
+      ...(plays.value && !choice.chime ? { chime: false } : {}) });
     tried.value = answer.sent || answer.alerts
       ? [answer.sent ? t("editor.doorbell.try.views", answer.sent) : "", answer.alerts ? t("editor.doorbell.try.alerts", answer.alerts) : ""].filter(Boolean).join(" ")
       : t("editor.doorbell.try.nothing");
@@ -77,7 +89,7 @@ const add = () => whileSaving(async () => {
   try { saved.value = await props.save(automation.value, saved.value?.id); } catch (e: any) { error.value = e.message; }
 });
 // A new wizard starts afresh once the last one was added.
-watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(choice, { trigger: "", camera: "", screens: [], title: "", timeout: undefined }); saved.value = null; tried.value = ""; step.value = 1; finish.value = "automation"; } });
+watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(choice, { trigger: "", camera: "", screens: [], title: "", timeout: undefined, door: noDoor(), sound: true, chime: true }); saved.value = null; tried.value = ""; step.value = 1; finish.value = "automation"; } });
 </script>
 
 <template>
@@ -92,6 +104,9 @@ watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(cho
       </UiPicker>
       <p class="hint">{{ t("editor.doorbell.wizard.camera_hint") }}</p>
     </template>
+    <template #door>
+      <DoorStep v-model="choice.door" />
+    </template>
     <template #screens>
       <div class="screen-rows">
         <CheckRow v-for="screen in screens" :key="screen.id" :checked="choice.screens.includes(screenValue(screen))" @toggle="toggle(screenValue(screen))">
@@ -99,6 +114,14 @@ watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(cho
         </CheckRow>
       </div>
       <p class="hint">{{ t("editor.doorbell.wizard.screens_hint") }}</p>
+      <template v-if="plays">
+        <CheckRow id="doorbell-chime" :checked="choice.chime" @toggle="choice.chime = !choice.chime">
+          <span class="screen-row"><strong>{{ t("editor.doorbell.wizard.chime.label") }}</strong><small>{{ t("editor.doorbell.wizard.chime.hint") }}</small></span>
+        </CheckRow>
+        <CheckRow id="doorbell-sound" :checked="choice.sound" @toggle="choice.sound = !choice.sound">
+          <span class="screen-row"><strong>{{ t("editor.doorbell.wizard.sound.label") }}</strong><small>{{ t("editor.doorbell.wizard.sound.hint") }}</small></span>
+        </CheckRow>
+      </template>
     </template>
     <template #name>
       <div class="field"><label class="f-label" for="doorbell-title">{{ t("editor.doorbell.fields.title") }}</label>
@@ -118,6 +141,7 @@ watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(cho
           <dl class="summary">
             <template v-if="choice.trigger"><dt>{{ t("editor.events.wizard.summary.starts") }}</dt><dd>{{ nameOf(choice.trigger) }} · {{ t(`editor.events.wizard.kind.${triggerKind(reference, choice.trigger) || 'event'}`) }}</dd></template>
             <dt>{{ t("editor.doorbell.wizard.summary.camera") }}</dt><dd>{{ nameOf(choice.camera) }}</dd>
+            <dt>{{ t("editor.doorbell.wizard.summary.door") }}</dt><dd>{{ doorSummary }}</dd>
             <dt>{{ t("editor.events.wizard.summary.screens") }}</dt><dd>{{ chosenScreens }}</dd>
             <dt>{{ t("editor.events.wizard.summary.title") }}</dt><dd>{{ automation.alias }}</dd>
           </dl>

@@ -13,12 +13,20 @@
 // first two are the saved frame's MEPC and RA, the rest a scan of the stack: return addresses of the callers with,
 // between them, whatever else on the stack happens to look like code, which addr2line names as `??` and the report
 // drops. Read the chain for the names that make sense together.
+//
+// The same hook keeps ESP-IDF's esp_timer task too: its state (running, ready, blocked, suspended) and the code on its
+// stack, logged as `TIMER0: 0x...` lines after the main loop's. That task runs the PPA watch (ppa_trace.h), which
+// restarts a screen within four seconds when a copy of the picture engine never comes back; on a Tab5 of a dev tester
+// (TR-2M2KX9, 2026-10-27) a live tile's copy never came back and the task watchdog restarted the screen 20 s later
+// instead, the watch silent, where on a Guition 10.1 the same watch caught a forced hang after 3.1 s. Its stack at the
+// next such watchdog says whether it waited for its next timer, as it should, or sat in a callback that never returned.
 #pragma once
 #include <cstdint>
 
 namespace loop_record {
 
-constexpr int MOST = 24;  // addresses kept, enough for the chain from the wait to the component that waited
+constexpr int MOST = 24;        // addresses kept, enough for the chain from the wait to the component that waited
+constexpr int MOST_TIMER = 12;  // the esp_timer task's: a callback and its callers
 
 // The words from `from` (the top of the stack, the newest) up to `end` that `is_code` takes for code, at most `most`.
 template <typename IsCode>

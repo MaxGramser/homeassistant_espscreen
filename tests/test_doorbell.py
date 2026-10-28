@@ -98,11 +98,77 @@ class TheRings(unittest.TestCase):
         self.assertEqual(len(doorbell.with_missed([{'k': 'clock'}] * 6, item, 6)), 6)
 
 
+class TheDoor(unittest.TestCase):
+    def test_a_lock_or_an_action_and_the_lock_first(self):
+        self.assertEqual(doorbell.door_of({'lock': 'lock.front_door'}), ({'lock': 'lock.front_door'}, []))
+        self.assertEqual(doorbell.door_of({'door_action': 'button.press', 'door_data': {'entity_id': 'button.gate'}}),
+                         ({'action': 'button.press', 'data': {'entity_id': 'button.gate'}}, []))
+        self.assertEqual(doorbell.door_of({'lock': 'lock.front_door', 'door_action': 'script.open_gate'})[0], {'lock': 'lock.front_door'})
+        self.assertEqual(doorbell.door_of({}), (None, []))
+        self.assertEqual(doorbell.door_of({'lock': 'switch.front_door'}), (None, ['lock']))
+        self.assertEqual(doorbell.door_of({'door_action': 'not an action'}), (None, ['door_action']))
+        self.assertEqual(doorbell.door_of({'door_action': 'script.open_gate', 'door_data': 'gate'}), (None, ['door_action']))
+
+    def test_a_lock_that_asks_a_code_needs_its_default_code(self):
+        states = {'lock.front_door': {'state': 'locked', 'attributes': {'code_format': r'^\d{4}$'}}, 'lock.back': {'state': 'locked', 'attributes': {}}}
+        self.assertTrue(doorbell.door_blocked('lock.front_door', states, {}))
+        self.assertIsNone(doorbell.door_blocked('lock.front_door', states, {'options': {'lock': {'default_code': '1234'}}}))
+        self.assertIsNone(doorbell.door_blocked('lock.back', states, None))
+
+    def test_the_op_says_what_the_key_is_and_the_locks_state(self):
+        rings = doorbell.Doorbells()
+        lock = rings.start('camera.porch', 'Porch', 60, ['a'], door={'lock': 'lock.front_door'}, nodes=['hall'])
+        action = rings.start('camera.porch', 'Porch', 60, ['a'], door={'action': 'script.open_gate', 'data': {}}, nodes=['hall'])
+        plain = rings.start('camera.porch', 'Porch', 60, ['a'], nodes=['hall'])
+        self.assertEqual((rings.message(lock, door_state='locked')['d'], rings.message(lock, door_state='locked')['ds']), (doorbell.DOOR_LOCK, 'locked'))
+        self.assertEqual(rings.message(action)['d'], doorbell.DOOR_ACTION)
+        self.assertNotIn('ds', rings.message(action))
+        self.assertNotIn('d', rings.message(plain))
+        self.assertEqual(rings.door_message(lock, 'unlocked'), {'v': 1, 'op': 'doorbell', 'k': lock, 'ds': 'unlocked'})
+
+    def test_only_a_screen_that_shows_the_ring_opens_its_door_once(self):
+        rings = doorbell.Doorbells()
+        key = rings.start('camera.porch', 'Porch', 60, ['a', 'b'], door={'lock': 'lock.front_door'}, nodes=['hall', 'kitchen'])
+        self.assertIsNone(rings.door_press(key, 'garage'), 'a screen that never showed it')
+        self.assertIsNone(rings.door_press('other', 'hall'), 'no such ring')
+        self.assertEqual(rings.door_press(key, 'hall'), {'lock': 'lock.front_door'})
+        self.assertIsNone(rings.door_press(key, 'kitchen'), 'one press, delivered twice or from two screens at once')
+        rings.rings[key]['door_at'] -= doorbell.DOOR_AGAIN
+        rings.gone(key, ['hall'])
+        self.assertIsNone(rings.door_press(key, 'hall'), 'its view closed there')
+        self.assertEqual(rings.door_press(key, 'kitchen'), {'lock': 'lock.front_door'})
+        rings.rings[key]['since'] -= doorbell.DOOR_LIFE + 1
+        rings.rings[key]['door_at'] = None
+        self.assertEqual(rings.showing(key), [], 'past the door\'s life')
+        self.assertIsNone(rings.door_press(key, 'kitchen'))
+        rings.gone(key, ['kitchen'])
+        rings.back(key, 'hall')
+        self.assertEqual(rings.showing(key), ['hall'], 'opened again from the top bar')
+        self.assertIsNone(rings.door_press(rings.start('camera.porch', 'Porch', 60, ['a'], nodes=['hall']), 'hall'), 'a ring without a door')
+
+
+class TheSound(unittest.TestCase):
+    def test_on_unless_the_event_says_quiet(self):
+        self.assertEqual(doorbell.sound_of({}), (True, []))
+        self.assertEqual(doorbell.sound_of({'sound': False}), (False, []))
+        self.assertEqual(doorbell.sound_of({'sound': 'off'}), (False, []))
+        self.assertEqual(doorbell.sound_of({'sound': True}), (True, []))
+        self.assertEqual(doorbell.sound_of({'sound': 3}), (True, ['sound']))
+        rings = doorbell.Doorbells()
+        self.assertEqual(rings.message(rings.start('camera.porch', 'Porch', 60, ['a'], sound=False))['m'], 1)
+        self.assertNotIn('m', rings.message(rings.start('camera.porch', 'Porch', 60, ['a'])))
+        # The chime the same way: on unless the event says false.
+        self.assertEqual(doorbell.sound_of({'chime': False}, 'chime'), (False, []))
+        self.assertEqual(doorbell.sound_of({}, 'chime'), (True, []))
+        self.assertEqual(rings.message(rings.start('camera.porch', 'Porch', 60, ['a'], chime=False))['nc'], 1)
+        self.assertNotIn('nc', rings.message(rings.start('camera.porch', 'Porch', 60, ['a'])))
+
+
 class TheFirmwareReadsTheSame(unittest.TestCase):
     def test_the_op_the_report_and_the_item(self):
         receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
         self.assertIn('op == "doorbell"', receiver)
-        for field in ('"k"', '"c"', '"e"', '"n"', '"r"', '"t"'):
+        for field in ('"k"', '"c"', '"e"', '"n"', '"r"', '"t"', '"d"', '"ds"', '"m"', '"nc"'):
             self.assertIn(f'root[{field}]', receiver)
         self.assertIn('value["b"]', receiver)
         core = (ROOT / 'packages/core.yaml').read_text()
@@ -113,10 +179,24 @@ class TheFirmwareReadsTheSame(unittest.TestCase):
         module = (ROOT / 'components/smart_display/module_doorbell.cpp').read_text()
         for action, _ in doorbell.ENDINGS:
             self.assertIn(f'say("{action}")', module)
+        self.assertIn(f'say("{doorbell.DOOR}")', module)
+        # A key the screen cannot use is not there: Talk needs its microphone, Sound its speaker.
+        self.assertIn('hears = hw::caps().microphone, plays = hw::caps().speaker', module)
+        self.assertIn('camera_muted = quiet;', module)
+        self.assertEqual(module.count('if (chimes) chime();'), 2, 'a ring and a ring again while it shows')
+        door = (ROOT / 'components/smart_display/doorbell_door.h').read_text()
+        self.assertIn(f'd == {doorbell.DOOR_LOCK} ? Kind::LOCK : d == {doorbell.DOOR_ACTION} ? Kind::ACTION', door)
         clamp = re.search(r'std::max<uint32_t>\((\d+), std::min<uint32_t>\((\d+), untouched_s \? untouched_s : (\d+)\)\)', module)
         self.assertEqual(tuple(map(int, clamp.groups())), (doorbell.TIMEOUT_MIN, doorbell.TIMEOUT_MAX, doorbell.TIMEOUT))
         # No switch of its own any more: which screens get a ring is the event's `screen`.
         self.assertNotIn('ts_doorbell', (ROOT / 'packages/features/audio-player.yaml').read_text())
+
+    def test_the_chime_has_half_a_second_ahead(self):
+        # The chime is handed over every 250 ms (camera_tick). At the bus's own rate ts_speaker's resampler hands it
+        # straight to the mixer's announcement input, so that input holds half a second itself: with ESPHome's 100 ms a
+        # Guition's chime came in pieces of 200 ms with gaps between (2026-10-28).
+        player = (ROOT / 'packages/features/audio-player.yaml').read_text()
+        self.assertRegex(player, r'- id: ts_announcement_input\n\s+buffer_duration: 500ms\n')
 
 
 class TheAutomations(unittest.TestCase):
@@ -229,6 +309,41 @@ class TheManager(unittest.TestCase):
         manager.sent_messages.clear()
         asyncio.run(manager.doorbell_dismiss({}))
         self.assertEqual(manager.sent_messages, [('a', {'v': 1, 'op': 'doorbell', 'k': key, 'c': 1})])
+
+    def test_the_door_key_unlocks_the_lock_from_the_screen_that_shows_it(self):
+        manager = self.manager([Screen('a', 'hall'), Screen('b', 'kitchen')])
+        manager.registry_index = lambda: {}
+        manager.ha.states['lock.front_door'] = {'state': 'locked', 'attributes': {}}
+        calls = []
+
+        async def call(action, data):
+            calls.append((action, data))
+        manager.ha.call = call
+        asyncio.run(manager.doorbell_show({'camera': 'camera.front_door', 'lock': 'lock.front_door', 'screen': 'hall'}))
+        message = manager.sent_messages[0][1]
+        self.assertEqual((message['d'], message['ds']), (doorbell.DOOR_LOCK, 'locked'))
+        asyncio.run(manager.doorbell_report({'action': 'door', 'key': message['k'], 'screen': 'kitchen'}))
+        self.assertEqual(calls, [], 'the kitchen never showed this ring')
+        asyncio.run(manager.doorbell_report({'action': 'door', 'key': message['k'], 'screen': 'hall'}))
+        self.assertEqual(calls, [('lock.unlock', {'entity_id': 'lock.front_door'})])
+
+    def test_the_door_key_performs_the_action_and_a_lock_with_a_code_gets_none(self):
+        manager = self.manager([Screen('a', 'hall')])
+        manager.registry_index = lambda: {}
+        manager.ha.states['lock.front_door'] = {'state': 'locked', 'attributes': {'code_format': r'^\d{4}$'}}
+        calls = []
+
+        async def call(action, data):
+            calls.append((action, data))
+        manager.ha.call = call
+        asyncio.run(manager.doorbell_show({'camera': 'camera.front_door', 'lock': 'lock.front_door'}))
+        self.assertNotIn('d', manager.sent_messages[0][1], 'no keypad on the view: no key without a default code')
+        manager.sent_messages.clear()
+        asyncio.run(manager.doorbell_show({'camera': 'camera.front_door', 'door_action': 'button.press', 'door_data': {'entity_id': 'button.gate'}}))
+        message = manager.sent_messages[0][1]
+        self.assertEqual(message['d'], doorbell.DOOR_ACTION)
+        asyncio.run(manager.doorbell_report({'action': 'door', 'key': message['k'], 'screen': 'hall'}))
+        self.assertEqual(calls, [('button.press', {'entity_id': 'button.gate'})])
 
     def test_a_missed_ring_is_seen_once(self):
         manager = self.manager([Screen('a', 'hall')])

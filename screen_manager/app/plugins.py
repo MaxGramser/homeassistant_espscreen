@@ -1116,7 +1116,7 @@ class Plugins:
         # something only the app knows (a feature nothing brings, a plugin it needs that does not fit, ESPHome too old).
         # The editor works out the board, PSRAM and room itself.
         features, fit = {}, {}
-        for screen in self.screens():
+        for screen in map(self.known_board, self.screens()):
             features[screen['id']] = sorted(self.features_on(screen))
             reasons = {entry.id: reason for entry in listed.values()
                        if (reason := self.fits(entry, screen)) in ('esphome', 'feature', 'needs', 'built_in')}
@@ -1137,12 +1137,12 @@ class Plugins:
         first build failed is left out, so the screen's next build (an update of the core) does not fail on it."""
         packages, components = [], []
         records = [r for r in (self.store.of(inbox) if records is None else records) if r.get('state') != 'failed']
-        have = self.features_on(self.manager.screen(inbox) or {'id': inbox}, records)
+        screen = self.screen_of(inbox) or {'id': inbox}
+        have = self.features_on(screen, records)
         for record in records:
             entry = self.entry_for(record)
             # A release the index blocks is left out of the next build (drop_blocked); the editor says why. So is one that
             # brings what the screen's board now brings itself: two of one ESPHome id would stop the build.
-            screen = self.manager.screen(inbox) or {'id': inbox}
             if not entry or self.blocked_record(record) or self.fits(entry, screen, deep=False) == 'built_in':
                 continue
             values = record.get('values') or {}
@@ -1187,6 +1187,21 @@ class Plugins:
         """The screens this app knows (the manager's list)."""
         screens = getattr(self.manager, 'screens', None)
         return list(screens() if callable(screens) else [])
+
+    def screen_of(self, inbox):
+        """The screen as the manager knows it (None when it is not paired), with the board package its profile builds
+        from while it reports no board itself: offline or restarting, its Screen board sensor says nothing, and without
+        its board's features a part that needs one (Screen camera's Video, a microphone) fell out of its plugins file,
+        so the next build had no video (a reTerminal D1001, 2026-10-27)."""
+        screen = self.manager.screen(inbox)
+        return self.known_board(screen) if screen else None
+
+    def known_board(self, screen):
+        if core.board_of(screen) in core.SHAPES or screen.get('package'):
+            return screen
+        package_of = getattr(self.manager, 'package_of', None)
+        package = package_of(screen) if callable(package_of) else None
+        return {**screen, 'package': package} if package else screen
 
     def features_on(self, screen, records=None):
         """The features a screen has: what its board brings (boards.json `features`) and what its plugins bring."""
@@ -1350,7 +1365,7 @@ class Plugins:
     def plan(self, inbox, body, language='en'):
         """What adding and removing these plugins on one screen comes to, for the editor to show before anything is built:
         what comes along and why, a feature to choose a plugin for, what else could go, and why it cannot be done."""
-        screen = self.manager.screen(inbox)
+        screen = self.screen_of(inbox)
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
         if not isinstance(body, dict):
@@ -1373,7 +1388,7 @@ class Plugins:
         id from another origin on this screen, which nothing does unasked."""
         if not isinstance(body, dict):
             raise ValueError(t('addon.errors.plugins.request'))
-        screen = self.manager.screen(inbox)
+        screen = self.screen_of(inbox)
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
         inbox = screen['id']

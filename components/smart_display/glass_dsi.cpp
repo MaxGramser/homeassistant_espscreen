@@ -19,6 +19,7 @@
 #include <soc/mipi_dsi_bridge_struct.h>
 #define GLASS_COUNTS_MISSES 1
 #endif
+#include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
@@ -56,23 +57,98 @@ void *frame_buffer() {
 }
 
 // ---- One writer at a time ----
+// Who holds it, for the count of who keeps a stream waiting (Held below): LVGL's refresh, a stream, or another writer
+// (a still's decode, a page's picture ahead). Set and cleared by the holder only, at its outermost hold.
+enum Holder : uint8_t { NOBODY, LVGL, STREAM, OTHER };
+static std::atomic<uint8_t> holder{NOBODY};
+static int depth = 0;  // the holder's own nesting; only the task that holds the lock touches it
 void hold() {
-  if (lock) xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+  if (!lock) return;
+  xSemaphoreTakeRecursive(lock, portMAX_DELAY);
+  if (depth++ == 0) holder.store(OTHER, std::memory_order_relaxed);
 }
 void release() {
-  if (lock) xSemaphoreGiveRecursive(lock);
+  if (!lock) return;
+  if (--depth == 0) holder.store(NOBODY, std::memory_order_relaxed);
+  xSemaphoreGiveRecursive(lock);
 }
-static void hold_glass(lv_event_t *) { hold(); }
-static void release_glass(lv_event_t *) { release(); }
+// ---- Who keeps a stream waiting (glass.h, Held) ----
+// LVGL's side on the main loop only; the streams' waits and the PPA's calls from any task, so all of it atomic.
+struct Count {
+  std::atomic<uint32_t> n{0}, us{0}, most_us{0};
+  void add(uint32_t t) {
+    n.fetch_add(1, std::memory_order_relaxed);
+    us.fetch_add(t, std::memory_order_relaxed);
+    uint32_t most = most_us.load(std::memory_order_relaxed);
+    while (t > most && !most_us.compare_exchange_weak(most, t, std::memory_order_relaxed)) {
+    }
+  }
+  void take(uint32_t &n_out, uint32_t &us_out, uint32_t &most_out) {
+    n_out = n.exchange(0, std::memory_order_relaxed);
+    us_out = us.exchange(0, std::memory_order_relaxed);
+    most_out = most_us.exchange(0, std::memory_order_relaxed);
+  }
+};
+static Count refreshes, flushes, turns, behind_lvgl, behind_stream, behind_other;
+static std::atomic<bool> flushing{false};
+static std::atomic<TaskHandle_t> flusher{nullptr};
+static int64_t refresh_from = 0, flush_from = 0;
+
+static void hold_glass(lv_event_t *) {
+  hold();
+  holder.store(LVGL, std::memory_order_relaxed);
+  refresh_from = esp_timer_get_time();
+}
+static void release_glass(lv_event_t *) {
+  refreshes.add(static_cast<uint32_t>(esp_timer_get_time() - refresh_from));
+  release();
+}
+static void flush_start(lv_event_t *) {
+  flusher.store(xTaskGetCurrentTaskHandle(), std::memory_order_relaxed);
+  flush_from = esp_timer_get_time();
+  flushing.store(true, std::memory_order_release);
+}
+static void flush_finish(lv_event_t *) {
+  flushing.store(false, std::memory_order_relaxed);
+  flushes.add(static_cast<uint32_t>(esp_timer_get_time() - flush_from));
+}
 static bool holding = false;  // LVGL holds the glass while it refreshes, from the first stream or still on and for good
 bool watch() {
   if (!lv_display_get_default() || !lock) return false;
   if (!holding) {
     lv_display_add_event_cb(lv_display_get_default(), hold_glass, LV_EVENT_REFR_START, nullptr);
     lv_display_add_event_cb(lv_display_get_default(), release_glass, LV_EVENT_REFR_READY, nullptr);
+    lv_display_add_event_cb(lv_display_get_default(), flush_start, LV_EVENT_FLUSH_START, nullptr);
+    lv_display_add_event_cb(lv_display_get_default(), flush_finish, LV_EVENT_FLUSH_FINISH, nullptr);
     holding = true;
   }
   return true;
+}
+uint32_t hold_counted() {
+  const uint8_t before = holder.load(std::memory_order_relaxed);
+  const int64_t asked = esp_timer_get_time();
+  hold();
+  if (depth == 1) holder.store(STREAM, std::memory_order_relaxed);
+  const uint32_t waited = static_cast<uint32_t>(esp_timer_get_time() - asked);
+  (before == LVGL ? behind_lvgl : before == STREAM ? behind_stream : behind_other).add(waited);
+  return waited;
+}
+void engine_took(uint32_t us) {
+  if (flushing.load(std::memory_order_acquire) && flusher.load(std::memory_order_relaxed) == xTaskGetCurrentTaskHandle())
+    turns.add(us);
+}
+Held held_since() {
+  Held h;
+  uint32_t n = 0, lvgl_waits = 0, stream_waits = 0;
+  refreshes.take(h.refreshes, h.refresh_us, h.refresh_most_us);
+  flushes.take(h.flushes, h.flush_us, h.flush_most_us);
+  turns.take(n, h.turn_us, h.turn_most_us);
+  behind_lvgl.take(lvgl_waits, h.behind_lvgl_us, h.behind_lvgl_most_us);
+  behind_stream.take(stream_waits, h.behind_stream_us, h.behind_stream_most_us);
+  uint32_t other_waits = 0;
+  behind_other.take(other_waits, h.behind_other_us, h.behind_other_most_us);
+  h.waits = lvgl_waits + stream_waits + other_waits;
+  return h;
 }
 
 // ---- The panel's share of the memory bus ----

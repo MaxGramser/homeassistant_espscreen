@@ -26,6 +26,7 @@ import { slug } from "../model/slug";
 import type { ChildTile, Inventory, Layout, PageDocument, PageGrid, PageLayout, PageTile, PageWorkspace, Screen, Tile } from "../types";
 import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
+import { presetRowEntities } from "../model/light-presets";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { usePluginsStore } from "./plugins";
@@ -294,9 +295,10 @@ export const useDocumentStore = defineStore("document", () => {
     return () => { followers.delete(follower); };
   }
   const replaced = (opened: boolean) => { for (const follower of followers) follower(opened); };
-  // The states of the open layout's entities, for the mockup.
+  // The states of the open layout's entities, for the mockup, with the device's settings a light's presets name (their ring).
   function loadStates() {
-    return entities.loadStates((layout.value?.tiles || []).map((tile) => tile.entity), stillSelected());
+    return entities.loadStates((layout.value?.tiles || []).flatMap((tile) =>
+      [tile.entity, ...(tile.entity.startsWith("light.") ? presetRowEntities(tile.options) : [])]), stillSelected());
   }
   // A screen's saved document becomes the draft, with nothing to undo and nothing unsaved: when a screen is opened, when it
   // is read again, and for the tests' fixtures (tests/helpers/fixtures.ts), which so start from what the editor starts from.

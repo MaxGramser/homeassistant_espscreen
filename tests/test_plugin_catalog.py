@@ -61,7 +61,7 @@ class Manifest(unittest.TestCase):
 
 
 class Catalogue(unittest.TestCase):
-    def service(self, *items, board='guition'):
+    def service(self, *items, board='guition', package=None):
         import plugins as plugin_service
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -76,6 +76,9 @@ class Catalogue(unittest.TestCase):
 
             def screens(self):
                 return [self.screen('kitchen')]
+
+            def package_of(self, screen, profiles=None):
+                return package
 
             def notify(self):
                 pass
@@ -131,6 +134,27 @@ class Catalogue(unittest.TestCase):
                                     'ref': 'a' * 40, 'version': '1.0.0'})
         other.keep_snapshot(other.index['audio'])
         self.assertIn('plugin_audio', other.sidecar('kitchen'))
+
+    def test_a_part_stays_while_the_screen_says_nothing(self):
+        # A reTerminal D1001 that is offline or restarting reports no board (its Screen board sensor is unavailable). The
+        # board its profile builds from still brings the microphone, so the part Video, which needs one, stays in its
+        # plugins file: without it a build had no video server, and the screen's camera no picture (2026-10-27).
+        video = {'id': 'video', 'file': 'parts/video.yaml', 'label': 'name', 'features': ['microphone'], 'default': True}
+        camera = item('screen_camera', provides=['camera'], requires={'features': ['camera_sensor']}, parts=[video])
+        service = self.service(camera, board='unknown', package='packages/reterminald1001.yaml')
+        service.store.put('kitchen', {'id': 'screen_camera', 'source': 'index', 'repo': TESSERA,
+                                      'path': 'plugins/screen_camera', 'ref': 'a' * 40, 'version': '1.0.0',
+                                      'parts': ['video']})
+        service.keep_snapshot(service.index['screen_camera'])
+        self.assertIn('plugins/screen_camera/parts/video.yaml', service.sidecar('kitchen'))
+        self.assertIn('microphone', service.payload()['features']['kitchen'])
+        # A screen with no profile here and no board of its own has nothing to go by: the part waits.
+        service = self.service(camera, board='unknown')
+        service.store.put('kitchen', {'id': 'screen_camera', 'source': 'index', 'repo': TESSERA,
+                                      'path': 'plugins/screen_camera', 'ref': 'a' * 40, 'version': '1.0.0',
+                                      'parts': ['video']})
+        service.keep_snapshot(service.index['screen_camera'])
+        self.assertNotIn('parts/video.yaml', service.sidecar('kitchen'))
 
     def test_a_build_the_app_lost_is_squared_with_what_the_screen_runs(self):
         # The app restarted while it built (the job lives in memory, the record's state on disk): a screen that reports the

@@ -343,7 +343,10 @@ esphome:
           settings_screen::row_font = id(sublabel_big)->get_lv_font();
           settings_screen::icon_font = id(materialdesign_icons_mini)->get_lv_font();
           settings_screen::store = []() { runtime_tiles::persist_settings(); };
-          settings_screen::apply = []() { id(apply_screen_settings).execute(false); };
+          settings_screen::apply = []() {
+            runtime_tiles::apply_debug_mode();
+            id(apply_screen_settings).execute(false);
+          };
           settings_screen::report = [](const char *key, int32_t value) { runtime_tiles::setting_event(key, value); };
           settings_screen::name_text = []() { return std::string("${DEVICE_FRIENDLY_NAME}"); };
           settings_screen::address_text = []() { return id(wifi_ip).state.empty() ? std::string(screen_text::tr(screen_text::txt::status_no_network)) : id(wifi_ip).state; };
@@ -427,6 +430,10 @@ logger:
   # out of the firmware, 9 KB on the CYD. For a diagnosis, give one screen `logger: level: DEBUG` in its Override YAML.
   level: INFO
   logs:
+    # ESP-IDF's own lines (a driver's error, the JPEG decoder refusing a picture) reach ESPHome's log at INFO whatever
+    # their own level, under this tag: kept at INFO so they come with Debug mode off too (settings_screen.h), where the
+    # rest of the log is warnings and errors. ESP-IDF itself writes its errors alone on these screens.
+    esp-idf: INFO
     sensor: WARN
     text_sensor: WARN
     xpt2046: WARN
@@ -1788,6 +1795,19 @@ switch:
       - lambda: 'settings_screen::set("home_on_standby", 1);'
     turn_off_action:
       - lambda: 'settings_screen::set("home_on_standby", 0);'
+  # Debug mode: the whole log while on, warnings and errors alone while off (settings_screen.h says why). Beside the
+  # screen's other diagnostics in Home Assistant; the same value as the row under This screen on the glass.
+  - platform: template
+    id: setting_debug_mode
+    name: "Debug mode"
+    icon: "mdi:bug-outline"
+    entity_category: diagnostic
+    restore_mode: DISABLED
+    lambda: return settings_screen::debug_mode != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set_debug_mode(1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set_debug_mode(0);'
   - platform: template
     id: setting_swipe_pages
     name: "Swipe between pages"

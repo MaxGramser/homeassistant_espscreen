@@ -1348,7 +1348,7 @@ int main() {
   for (const auto &h : HUES) std::printf("hue %u %ld\n", hs_rgb(h[0], h[1]), lum(hs_rgb(h[0], h[1])));
   for (const auto &p : PRESETS) {
     Presets off, on; on.levels = true; const auto x = preset(p);
-    std::printf("level %d %d\n", off.level_shown(x) ? 1 : 0, on.level_shown(x) ? 1 : 0);
+    std::printf("level %d %d\n", off.label(x).empty() ? 0 : 1, on.label(x).empty() ? 0 : 1);
   }
   for (const auto &l : LIGHTS) {
     Light light; light.on = l[0]; light.white = l[1]; light.level = l[2]; light.kelvin = l[3]; light.hue = l[4]; light.saturation = l[5];

@@ -248,8 +248,13 @@ stills on a P4 too.
 **How it travels.** The screen asks for the camera as for a still, with one key more: `live`, the room below its top
 bar in pixels (`1280x715`). An app that knows streams answers with a link on its camera port that ends in `.mjpeg`; an
 older app answers with a still, and the screen shows stills. The link serves `multipart/x-mixed-replace`: one baseline
-JPEG a part, each with its Content-Length, over plain HTTP/1.0. The app makes the next picture once the last one has
-left its host, always of the newest frame the camera gave, so a slow Wi-Fi gets fewer pictures and never older ones.
+JPEG a part, each with its Content-Length and X-Made (the app's clock in ms as it leaves), over plain HTTP/1.0. The
+app makes the next picture once the last one has left its host, always of the newest frame the camera gave. Between
+the app and the screen a dozen of a tile's small pictures still fit (the app's socket buffer, the screen's TCP window
+of 64 KB), and a tile that read them one by one showed pictures a second old, so a live tile shows the newest picture
+that reached it and passes the older ones, and the app keeps a tile's socket buffer at 16 KB (docs/PLATFORM_PLAN.md
+4.10). A tile shows at most six pictures a second (hw::LIVE_TILE_PPS). Its line in the screen's log every 10 s says
+how long its pictures waited on the way and how many older ones it passed.
 The app serves at most eight streams at once, of every screen together (a page of live tiles and a camera full
 screen); a stream it refuses leaves that screen with its stills. A screen runs at most seven of its own.
 
@@ -270,6 +275,25 @@ often a Raspberry Pi, so each kind of camera takes the cheapest road:
   as soon as the last one came, at most 15 a second. A JPEG the P4 decodes as it is (baseline, at most 1920 pixels a
   side) goes out untouched, which costs the app nothing; anything else is made into one.
 - A camera whose WebRTC does not start within 20 seconds sends its snapshots instead.
+
+**Every frame looked at** (`camera_source.FrameWatch`). Each decoded WebRTC frame is checked before a screen gets it:
+
+- a frame the decoder marks corrupt (`is_corrupt`, after packets that never came) is left out, and the screen keeps the
+  one before;
+- a gap in the frames' timestamps (frames that never came), a flash (the picture at least 1.25 times and 8 steps of 255
+  brighter than the median of its last frames, falling back at least halfway within 15 frames: one bright frame or a
+  second of them, as a camera's own jump of exposure), the packets lost on the way, the
+  NACKs and PLIs the app sent back (aiortc asks the camera for a new key frame after a loss it cannot mend), the JPEGs
+  a screen would refuse and the stills are counted;
+- the app's log says them every 10 seconds when anything but frames was counted, a flash at once with its timestamp and
+  the brightness of it and its neighbours, and the totals every 5 minutes whatever they are:
+  `Live camera.porch: 150 frames (2 key), 0 corrupt, 0 missing, 0 flashes; 0 packets lost, 0 NACKs and 0 PLIs sent; 0
+  JPEGs the screen would refuse, 0 stills in 10 s`.
+
+The brightness comes from a grid of 40 x 24 pixels that FFmpeg's scaler picks in grey: 0.05 ms for a 1080p frame. For
+evidence, an empty file `tessera_frame_dump` in Home Assistant's config folder makes the app keep each flagged frame,
+the two before it and the two after it as JPEGs 480 pixels wide in `tessera_diagnostics/frames/<camera>/` there, at most
+50 in all, the oldest going first; delete the file to stop it.
 
 **What it costs Home Assistant's host.** Decoding costs what the camera's resolution costs, so give a camera's tile the
 camera's low-resolution stream where the integration offers one (most do, as a second camera entity). Measured on a PC
@@ -534,8 +558,15 @@ the P4's pixel engine: the middle, 1280 x 720. The whole of a larger mode, scale
 and left out (a reTerminal D1001, 2026-10-25, a forced pass of its 1280 x 720 into 960 x 528 beside two live tiles and
 three viewers): the panel never ran dry, but the pass took 77 to 89 ms a frame, the video fell from 12-13 to 7-9 fps,
 and the live tiles from 12-14 to 6-9 pictures a second with laying out a picture going from 60 to 92-137 ms. The PPA
-is one device that the video and the tiles share (PICTURE_ARCHITECTURE.md, section 2.4, has what its driver allows), so
-the Guition shows the middle of its camera. The encoder keeps its reference frame in internal RAM and that grows
+is one device that the video and the tiles share (PICTURE_ARCHITECTURE.md, section 2.4, has what its driver allows).
+The Guition's whole field comes another way (Screen camera 0.6.5, its default since 2026-10-27): the OV02C10 reads its
+whole array with each two columns averaged in the sensor, 960 x 1080 at 15 frames a second (with its lines binned
+too, the sensor stopped after one frame), and Screen camera's frame hub halves the lines once on the PPA, 960 x 528
+for every consumer, in whole macroblocks so the encoder cuts nothing. Measured on a Guition 10.1 (2026-10-27, two live
+tiles and three viewers, 12 minutes against Sharp's 12): the panel never ran dry, the tiles kept 14.6 and 8.0 pictures
+a second, laying out a live picture took 49 to 54 ms instead of 32 to 36, the video gave 10.3 fps instead of 12.3,
+and the halving took 44 ms a frame on average, up to 0.74 s while it waited its turn on the PPA. Sharp, the middle at
+1280 x 720, stays a setting away. The encoder keeps its reference frame in internal RAM and that grows
 with the size, so the video takes no camera above 1280 x 800; a sensor whose modes are all larger gets a smaller one
 in the part's YAML (`esp_video_camera: resolution`), never in a board file. The microphone goes as Opus, 16 kHz in one channel at 32 kbit/s. A small
 RTSP server on the screen (port 8554, RTP over the RTSP connection) serves up to three viewers from the one encoder.
@@ -547,8 +578,14 @@ Home Assistant already keeps for the screen (`sha256("tessera-video:" + key)`, i
 
 **What changes on the screen.** The camera runs from boot, in its raw mode. Its JPEG pictures are gone, and so is the
 camera "Camera" of the screen's device: "Video" gives the stills now. Light level and motion of Screen camera keep
-working: they read the same frames the video gets. The dot in the top right corner shows while anyone watches. The
-microphone listens only while someone watches, and the voice assistant can listen at the same time.
+working: they read the same frames the video gets. The dot in the top right corner is solid while anyone watches and a
+ring while the camera only senses (light level, motion; plugin API 0.20). While nobody watches, for sensing alone or
+for nothing at all, the sensor makes 5 frames a second, and full speed again the moment someone opens the video or
+Home Assistant asks for a picture (Screen camera 0.6.5, its `frame_rate.h`; what a sensor can, its driver tells the
+camera through `camera_sensor.h`, on any board). Measured on 2026-10-27 on a Guition 10.1 (OV02C10) and a reTerminal
+D1001 (SC202CS): 4.9 frames a second counted at 5, the light level kept coming every ten seconds; motion at 5 a
+second was not tried yet, since nobody walked past. The microphone listens only while someone watches, and the voice
+assistant can listen at the same time.
 
 **What it takes, measured on a reTerminal D1001.** Each of these cost a build to find, and each is kept in the code:
 

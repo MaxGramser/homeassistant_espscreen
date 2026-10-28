@@ -191,6 +191,7 @@
       "hours_minutes": "{h} ó {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Bővítmények",
       "microphone_gain": "Mikrofonerősítés",
       "automatic_gain": "Automatikus erősítés",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Hang be",
-      "sound_off": "Hang ki"
+      "sound_off": "Hang ki",
+      "door": "Ajtó",
+      "door_confirm": "Koppints újra a nyitáshoz",
+      "door_sent": "Elküldve",
+      "talk": "Beszéd",
+      "coming_soon": "Hamarosan"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Időkorlát",
           "help": "Ennyi másodpercig marad a csengetés, ha senki nem érinti meg, {min}–{max}. Üresen {default}. Egy érintés nyitva tartja."
+        },
+        "sound": {
+          "label": "Hang",
+          "help": "Megszólal-e a csengő hangja rögtön, amikor csenget, ahol a képernyőnek van hangszórója. Üres vagy true: a nézet bekapcsolt hanggal nyílik. false: csendben nyílik (stúdió, hálószoba), és egy koppintás a Hangra bekapcsolja."
+        },
+        "chime": {
+          "label": "Csengőhang",
+          "help": "Lejátssza-e a képernyő a csengőhangját, amikor csengetnek, ahol van hangszórója. Üres vagy true: lejátssza. false: anélkül csenget, és a nézet ugyanúgy megnyílik."
+        },
+        "lock": {
+          "label": "Zár",
+          "help": "Egy zár entitás, amelyet a csengőnézet ajtógombja egy második koppintás után nyit ki; a gomb mutatja az állapotát. Egy kódot kérő zárnak alapértelmezett kód kell a Home Assistantben (a zár beállításai). Hagyd üresen, ha nem kell ajtógomb."
+        },
+        "door_action": {
+          "label": "Ajtóművelet",
+          "help": "Zár helyett: egy Home Assistant művelet, amelyet az ajtógomb egy második koppintás után végrehajt, például script.open_gate vagy button.press. A `door_data` adja a mezőit (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Ajtóadatok",
+          "help": "A `door_action` mezői, például entity_id."
         }
       },
       "endings": {
@@ -1903,6 +1929,11 @@
     "plugins": {
       "title": "Bővítmények",
       "intro": "Extrák a kijelzőidhez: csempék egy oldalra, valami plusz, amit az egész kijelző tud, vagy hardver a lapkán. A bővítmény a kijelző firmware-ébe épül, ezért kijelzőnként választod ki, melyiket kapja.",
+      "risk": {
+        "title": "A bővítmények saját felelősségre",
+        "text": "Minden bővítmény elvesz a kijelző memóriájából és processzoridejéből. Néhány jól megfér egymással, de sok egyszerre (például egy hangasszisztens, egy Bluetooth-proxy és egy kamera) megtöltheti a memóriát, és lelassíthatja, lefagyaszthatja vagy újraindíthatja a kijelzőt. Kipróbálhatod, de egyszerre egyet vagy kettőt adj hozzá, és nézd meg, stabil marad-e a kijelző. Ha furcsán kezd viselkedni, először a legújabbakat vedd le.",
+        "many": "A(z) {screen} ezután a fordítás után {n} bővítményt futtat. Ennyi instabillá teheti a kijelzőt: ha furcsán viselkedik, vegyél le néhányat."
+      },
       "search": "Keresés név, készítő vagy funkció szerint",
       "filter": "Mutat",
       "from_tessera": "A Tesserától",
@@ -2112,7 +2143,8 @@
         "keep": "Maradjon",
         "keep_named": "{name} maradjon",
         "minutes": "Minden fordítás néhány percig tart.",
-        "off_set": "Eltávolításra előkészítve"
+        "off_set": "Eltávolításra előkészítve",
+        "risk": "Saját felelősségre: minden bővítmény memóriát foglal, és túl sok instabillá teheti a kijelzőt."
       },
       "maker": {
         "title": "Saját bővítmény készítése",
@@ -2555,7 +2587,17 @@
         "levels": "Fényerő mutatása az előbeállításokon",
         "levels_hint": "Kicsiben beírja a fényerőt minden körbe. A csak fényerős előbeállítás mindig mutatja.",
         "hint": "Egy érintés az előbeállításon egy lépésben beállítja a lámpát; a gyűrű jelöli, amelyiket a lámpa most mutatja. Kattints rá a módosításhoz, húzd a sorrend változtatásához.",
-        "hint_empty": "Legfeljebb négy kerek gomb, mint a Home Assistant kedvenc színei, mindegyik saját fényerővel. Az új abból indul, amit a lámpa most mutat."
+        "hint_empty": "Legfeljebb négy kerek gomb, mint a Home Assistant kedvenc színei, mindegyik saját fényerővel. Az új abból indul, amit a lámpa most mutat.",
+        "own": "Saját beállítás",
+        "device": "A lámpa saját előbeállítása",
+        "effect": "Effekt",
+        "search": "Keresés",
+        "none_found": "Nincs találat",
+        "device_kind": "Fajta",
+        "device_preset": "Előbeállítás",
+        "device_playlist": "Lejátszási lista",
+        "device_hint": "A lámpa saját előbeállítása maga állítja be a színét, effektjét és fényerejét.",
+        "swatch_aria_named": "{n}. előbeállítás, {name}"
       },
       "tap": {
         "label": "Koppintásra",
@@ -4409,11 +4451,12 @@
         "title": "Új csengő-automatizálás",
         "camera_hint": "Egy P4 képernyő élőben, hanggal streameli, ha a kamerának van hangja; a többi képernyő a képét mutatja.",
         "screens_hint": "Nincs kiválasztva: minden képernyő.",
-        "limits": "Nem minden csengő tud mindent: hang csak akkor van, ha a kamera streamjében van. A visszabeszélés és az ajtónyitás később jön.",
+        "limits": "Nem minden csengő tud mindent: hang csak akkor van, ha a kamera streamjében van. A visszabeszélés később jön.",
         "more_cameras": "Másik kamera…",
         "timeout_hint": "Meddig marad nyitva egy csengetés, ha senki nem érinti meg a képernyőt. Üres: az alapérték.",
         "summary": {
-          "camera": "Kamera"
+          "camera": "Kamera",
+          "door": "Ajtó"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "Melyik kamera?",
             "help": "A kamera, amelyet a képernyők csengetéskor mutatnak. Általában a csengő saját kamerája."
+          },
+          "door": {
+            "title": "Nyitandó ajtó?",
+            "help": "A csengőnézetben lehet egy gomb, amely egy második koppintás után kinyitja az ajtót: egy zár, vagy egy másik művelet, például egy szkript vagy egy kapu gombja. Ki is hagyhatod."
           },
           "screens": {
             "title": "Mely képernyők?",
@@ -4440,6 +4487,22 @@
             "title": "Befejezés",
             "help": "Legyen belőle saját automatizálás, vagy másold a műveletet egy meglévő automatizálásodba."
           }
+        },
+        "door": {
+          "none": "Nincs ajtógomb",
+          "lock": "Egy zár",
+          "action": "Másik művelet",
+          "pick_lock": "Válassz zárat…",
+          "pick_action": "Válaszd ki, mit nyit…",
+          "code": "Ez a zár kódot kér: a gomb csak akkor jelenik meg, ha a zárnak van alapértelmezett kódja a Home Assistantben (a zár beállításai)."
+        },
+        "sound": {
+          "label": "A csengő azonnali hallása",
+          "hint": "A csengőnézet a csengő hangjával bekapcsolva nyílik. Kapcsold ki egy csendes helyen, például egy stúdióban: a hang ekkor egy koppintásra vár a Hangon."
+        },
+        "chime": {
+          "label": "Csengőhang csengetéskor",
+          "hint": "A képernyő ajtócsengő-hangot játszik, amikor valaki csenget. Kapcsold ki, ha nem akarod minden alkalommal hallani a bim-bamot."
         }
       },
       "hero": {

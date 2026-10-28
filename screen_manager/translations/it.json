@@ -191,6 +191,7 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugin",
       "microphone_gain": "Guadagno microfono",
       "automatic_gain": "Guadagno automatico",
@@ -198,7 +199,12 @@
     },
     "doorbell": {
       "sound_on": "Audio attivo",
-      "sound_off": "Audio disattivato"
+      "sound_off": "Audio disattivato",
+      "door": "Porta",
+      "door_confirm": "Tocca di nuovo per aprire",
+      "door_sent": "Inviato",
+      "talk": "Parla",
+      "coming_soon": "Prossimamente"
     },
     "tile": {
       "tap_to_open": "Tocca per aprire",
@@ -1527,6 +1533,26 @@
         "timeout": {
           "label": "Timeout",
           "help": "Secondi in cui lo squillo resta se nessuno lo tocca, da {min} a {max}. Vuoto è {default}. Un tocco lo tiene aperto."
+        },
+        "sound": {
+          "label": "Audio",
+          "help": "Se l'audio del campanello suona subito quando squilla, dove lo schermo ha un altoparlante. Vuoto o true: la vista si apre con l'audio attivo. false: si apre in silenzio (uno studio, una camera), e un tocco su Audio lo attiva."
+        },
+        "chime": {
+          "label": "Campanello",
+          "help": "Se lo schermo suona il suo campanello quando suonano, dove ha un altoparlante. Vuoto o true: lo suona. false: squilla senza, e la vista si apre lo stesso."
+        },
+        "lock": {
+          "label": "Serratura",
+          "help": "Un'entità serratura che il tasto porta della vista sblocca dopo un secondo tocco; il tasto ne mostra lo stato. Una serratura che chiede un codice ha bisogno di un codice predefinito in Home Assistant (le impostazioni della serratura). Lascia vuoto per nessun tasto porta."
+        },
+        "door_action": {
+          "label": "Azione porta",
+          "help": "Invece di una serratura: un'azione di Home Assistant che il tasto porta esegue dopo un secondo tocco, come script.open_gate o button.press. `door_data` ne dà i campi (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Dati porta",
+          "help": "I campi di `door_action`, come entity_id."
         }
       },
       "endings": {
@@ -1903,6 +1929,11 @@
     "plugins": {
       "title": "Plugin",
       "intro": "Extra per i tuoi schermi: riquadri per una pagina, qualcosa in più che può fare tutto lo schermo, o hardware sulla scheda. Un plugin viene integrato nel firmware di uno schermo, quindi scegli per ogni schermo quali riceve.",
+      "risk": {
+        "title": "I plugin sono a tuo rischio",
+        "text": "Ogni plugin usa una parte della memoria e del tempo di calcolo di uno schermo. Alcuni vanno bene insieme, ma molti alla volta (per esempio un assistente vocale, un proxy Bluetooth e una fotocamera) possono riempire la memoria e rendere uno schermo lento, bloccarlo o farlo riavviare. Puoi provarci, ma aggiungine uno o due alla volta e controlla che lo schermo resti stabile. Se inizia a dare problemi, togli prima i più recenti.",
+        "many": "{screen} avrà {n} plugin dopo questa compilazione. Così tanti possono rendere instabile uno schermo: se dà problemi, togline qualcuno."
+      },
       "search": "Cerca per nome, autore o funzione",
       "filter": "Mostra",
       "from_tessera": "Da Tessera",
@@ -2112,7 +2143,8 @@
         "keep": "Tienilo",
         "keep_named": "Tieni {name}",
         "minutes": "Ogni compilazione richiede qualche minuto.",
-        "off_set": "Pronto per essere tolto"
+        "off_set": "Pronto per essere tolto",
+        "risk": "A tuo rischio: ogni plugin usa memoria, e troppi possono rendere instabile uno schermo."
       },
       "maker": {
         "title": "Crea un plugin tuo",
@@ -2555,7 +2587,17 @@
         "levels": "Mostra la luminosità sulle preimpostazioni",
         "levels_hint": "Scrive la luminosità in piccolo in ogni cerchio. Una preimpostazione di sola luminosità la mostra sempre.",
         "hint": "Un tocco su una preimpostazione regola la luce in un colpo; l'anello indica quella che la luce mostra. Fai clic su una per cambiarla, trascinala per cambiare l'ordine.",
-        "hint_empty": "Fino a quattro tasti rotondi, come i colori preferiti di Home Assistant, ognuno con la sua luminosità. Una nuova parte da ciò che la luce mostra ora."
+        "hint_empty": "Fino a quattro tasti rotondi, come i colori preferiti di Home Assistant, ognuno con la sua luminosità. Una nuova parte da ciò che la luce mostra ora.",
+        "own": "Impostazione propria",
+        "device": "Preset della lampada",
+        "effect": "Effetto",
+        "search": "Cerca",
+        "none_found": "Nessun risultato",
+        "device_kind": "Tipo",
+        "device_preset": "Preset",
+        "device_playlist": "Playlist",
+        "device_hint": "Un preset della lampada stessa imposta da sé colore, effetto e luminosità.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "Al tocco",
@@ -4409,11 +4451,12 @@
         "title": "Nuova automazione del campanello",
         "camera_hint": "Uno schermo P4 la trasmette dal vivo con l'audio se la telecamera ce l'ha; gli altri schermi mostrano la sua immagine.",
         "screens_hint": "Nessuno scelto: tutti gli schermi.",
-        "limits": "Non tutti i campanelli possono tutto: l'audio arriva solo se lo stream della telecamera lo ha. Parlare e aprire la porta arriveranno più avanti.",
+        "limits": "Non tutti i campanelli possono tutto: l'audio arriva solo se lo stream della telecamera lo ha. Parlare arriverà più avanti.",
         "more_cameras": "Un'altra telecamera…",
         "timeout_hint": "Quanto resta aperta una chiamata se nessuno tocca lo schermo. Vuoto: il valore predefinito.",
         "summary": {
-          "camera": "Telecamera"
+          "camera": "Telecamera",
+          "door": "Porta"
         },
         "steps": {
           "rings": {
@@ -4423,6 +4466,10 @@
           "camera": {
             "title": "Quale telecamera?",
             "help": "La telecamera che gli schermi mostrano quando suona. Di solito quella del campanello stesso."
+          },
+          "door": {
+            "title": "Una porta da aprire?",
+            "help": "La vista del campanello può avere un tasto che apre la porta dopo un secondo tocco: una serratura, o un'altra azione come uno script o il pulsante di un cancello. Puoi lasciarlo fuori."
           },
           "screens": {
             "title": "Quali schermi?",
@@ -4440,6 +4487,22 @@
             "title": "Concludi",
             "help": "Rendila un'automazione a sé, oppure copia l'azione in un'automazione che hai già."
           }
+        },
+        "door": {
+          "none": "Nessun tasto porta",
+          "lock": "Una serratura",
+          "action": "Un'altra azione",
+          "pick_lock": "Scegli una serratura…",
+          "pick_action": "Scegli cosa apre…",
+          "code": "Questa serratura chiede un codice: il tasto compare solo se la serratura ha un codice predefinito in Home Assistant (le impostazioni della serratura)."
+        },
+        "sound": {
+          "label": "Sentire subito il campanello",
+          "hint": "La vista del campanello si apre con il suo audio attivo. Disattivalo per un posto silenzioso, come uno studio: l'audio aspetta allora un tocco su Audio."
+        },
+        "chime": {
+          "label": "Suono del campanello",
+          "hint": "Lo schermo suona un campanello quando qualcuno suona. Disattivalo se non vuoi sentire il din-don ogni volta."
         }
       },
       "hero": {

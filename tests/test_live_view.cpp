@@ -100,6 +100,26 @@ static void marking() {
   }
 }
 
+// When the app made each picture (X-Made), in any pieces; a part without it says none.
+static void made() {
+  const std::string head = "HTTP/1.0 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=frame\r\n\r\n";
+  const std::string stamped = "--frame\r\nContent-Type: image/jpeg\r\nX-Made: 4294967290\r\nContent-Length: 4\r\n\r\nlive\r\n";
+  const std::string odd = "--frame\r\nContent-Type: image/jpeg\r\nX-Made: 12ab\r\nContent-Length: 4\r\n\r\nlive\r\n";
+  const std::string stream = head + stamped + part("live") + odd;
+  for (size_t step : {stream.size(), size_t(1), size_t(7)}) {
+    Reader reader(MOST);
+    uint8_t buffer[64];
+    std::vector<std::pair<bool, uint32_t>> seen;
+    for (size_t at = 0; at < stream.size(); at += step) {
+      const size_t n = std::min(step, stream.size() - at);
+      assert(reader.feed(reinterpret_cast<const uint8_t *>(stream.data() + at), n,
+                         [&](size_t, bool) -> uint8_t * { return buffer; },
+                         [&](size_t, bool) { seen.emplace_back(reader.has_made(), reader.made()); }));
+    }
+    assert(seen.size() == 3 && seen[0].first && seen[0].second == 4294967290u && !seen[1].first && !seen[2].first);
+  }
+}
+
 // The loader in a live tile's corner while its stills show: where it lies, and the spinner it draws as it turns.
 static void loading() {
   Look look;
@@ -241,6 +261,7 @@ int main() {
   none();
   framing();
   marking();
+  made();
   loading();
   links();
   panel();

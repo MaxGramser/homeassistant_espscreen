@@ -8,13 +8,23 @@ tile in the editor and kept in the tile's options:
     {"b": 80, "k": 2700}          80 %, white at 2700 K
     {"b": 60, "h": 280, "s": 41}  60 %, hue 280 at 41 % saturation (Home Assistant's hs_color)
     {"b": 30}                     30 %, the colour the light has
+    {"b": 70, "h": 280, "s": 41, "fx": "Colorloop", "rw": {"select.desk_color_palette": "Party", "number.desk_speed": 180}}
+                                  with an effect of the light's and settings of its device (its effects page's rows)
+    {"rw": {"select.desk_preset": "Film"}}   a preset of the lamp itself (a WLED's own): that sets everything
 
 The screen gets them as they are stored (`o.presets`), and draws them only where its hello says light_presets; another
 screen draws the brightness slider in their place (catalogue/light.yaml).
 """
 from __future__ import annotations
 
+import math
+import re
+
 OPTION = 'presets'
+# The settings of the light's device a preset may set (the effects page's rows, light_effects.py): at most this many.
+ROWS = 4
+NAME_LIMIT = 64
+ROW_ENTITY = re.compile(r'(select|number)\.[a-z0-9_]+\Z')
 # Whether each disc shows its preset's brightness, small in its middle (off unless chosen; a preset of a brightness alone
 # always shows it, as it has no colour to tell it by).
 LEVELS = 'preset_levels'
@@ -34,12 +44,35 @@ def _int(value, low, high):
 
 def preset(item):
     """One preset in its stored form, or ValueError."""
-    if not isinstance(item, dict) or set(item) - {'b', 'k', 'h', 's'}:
+    if not isinstance(item, dict) or set(item) - {'b', 'k', 'h', 's', 'fx', 'rw'}:
         raise ValueError(OPTION)
+    out = {}
+    # The settings of the light's device: a select's option or a number's value each, by entity.
+    if 'rw' in item:
+        rows = item['rw']
+        if not isinstance(rows, dict) or not rows or len(rows) > ROWS:
+            raise ValueError(OPTION)
+        out['rw'] = {}
+        for entity, value in rows.items():
+            if not isinstance(entity, str) or not ROW_ENTITY.match(entity):
+                raise ValueError(OPTION)
+            if entity.startswith('select.'):
+                if not isinstance(value, str) or not value.strip() or len(value) > NAME_LIMIT:
+                    raise ValueError(OPTION)
+            elif isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(OPTION)
+            out['rw'][entity] = value
+    if 'fx' in item:
+        if not isinstance(item['fx'], str) or not item['fx'].strip() or len(item['fx']) > NAME_LIMIT:
+            raise ValueError(OPTION)
+        out['fx'] = item['fx']
+    # A preset of the lamp itself (its device's settings alone) needs no brightness; every other one has one.
+    if 'b' not in item and 'rw' in out and not ({'k', 'h', 's', 'fx'} & set(item)):
+        return out
     level = _int(item.get('b'), 1, 100)
     if level is None:
         raise ValueError(OPTION)
-    out = {'b': level}
+    out = {'b': level, **out}
     if 'k' in item:
         if 'h' in item or 's' in item:
             raise ValueError(OPTION)
@@ -53,6 +86,11 @@ def preset(item):
             raise ValueError(OPTION)
         out['h'], out['s'] = hue % 360, saturation
     return out
+
+
+def screen_presets(items):
+    """The presets as a screen reads them: the device's settings as a list of [entity, value] (page_receiver.cpp)."""
+    return [{**p, 'rw': [[e, v] for e, v in p['rw'].items()]} if isinstance(p.get('rw'), dict) else p for p in items]
 
 
 def validate(options, domain):
