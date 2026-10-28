@@ -232,6 +232,190 @@
   "wide_slots": true,
   "width": 320
  },
+ "checkout/cyd35c.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "cyd35c",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ESP32-3248S035C",
+   "name": "CYD",
+   "order": 32,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "font_dpi": 143,
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 320,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 41,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 41,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 39
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 480
+ },
+ "checkout/cyd35r.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "cyd35r",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": true,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ESP32-3248S035R",
+   "name": "CYD",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "XPT2046"
+  },
+  "chip": "ESP32",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "font_dpi": 143,
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 320,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 41,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 41,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 39
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 480
+ },
  "checkout/cyd9342.yaml": {
   "alert": {
    "line": 16,
@@ -4172,6 +4356,190 @@
   "wide_slots": true,
   "width": 320
  },
+ "cyd35c": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "cyd35c",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ESP32-3248S035C",
+   "name": "CYD",
+   "order": 32,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "font_dpi": 143,
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 320,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 41,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 41,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 39
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 480
+ },
+ "cyd35r": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "cyd35r",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": true,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ESP32-3248S035R",
+   "name": "CYD",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "XPT2046"
+  },
+  "chip": "ESP32",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "font_dpi": 143,
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 320,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 41,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 41,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 39
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 480
+ },
  "cyd9342": {
   "alert": {
    "line": 16,
@@ -5904,6 +6272,190 @@
   "tier": "lite",
   "wide_slots": true,
   "width": 320
+ },
+ "packages/cyd35c.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "cyd35c",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ESP32-3248S035C",
+   "name": "CYD",
+   "order": 32,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "font_dpi": 143,
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 320,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 41,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 41,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 39
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 480
+ },
+ "packages/cyd35r.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "cyd35r",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": true,
+   "choices": {},
+   "inch": 3.5,
+   "model": "ESP32-3248S035R",
+   "name": "CYD",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "XPT2046"
+  },
+  "chip": "ESP32",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 165,
+  "features": [],
+  "firmware": "0.57.0",
+  "font_dpi": 143,
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 320,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 8,
+  "max_tiles": 64,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 320,
+    "max": [
+     4,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 480
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 480,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 320
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 41,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 41,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 39
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 480
  },
  "packages/cyd9342.yaml": {
   "alert": {

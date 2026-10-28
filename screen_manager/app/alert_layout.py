@@ -30,11 +30,12 @@ def font_line(size):
     return ((FONT_LINE_UNITS * scale + 0x8000) >> 16) + 32 >> 6
 
 
-def lines(display_dpi, look):
-    """(title line, subtitle line) of a screen of this density and look: the look's font sizes scaled the way the look
-    scales them (at least 8 px, rounded half up like Jinja's round), and the line height of each."""
+def lines(font_dpi, look):
+    """(title line, subtitle line) of a screen whose fonts are drawn for this density (FONT_DPI, the glass's own unless
+    its board states another) in this look: the look's font sizes scaled the way the look scales them (at least 8 px,
+    rounded half up like Jinja's round), and the line height of each."""
     reference, title, words = LOOK_FONTS.get(look, LOOK_FONTS['standard'])
-    size = lambda base: max(8, int(base * display_dpi / reference + 0.5))  # noqa: E731
+    size = lambda base: max(8, int(base * font_dpi / reference + 0.5))  # noqa: E731
     return font_line(size(title)), font_line(size(words))
 
 

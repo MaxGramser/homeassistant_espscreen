@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Two new boards, experimental: the 3.5-inch CYD.** The Sunton ESP32-3248S035R (resistive touch, calibrated on the first start) and ESP32-3248S035C (capacitive) are in **New screen** as CYD · ESP32-3248S035R and CYD · ESP32-3248S035C: 480 × 320, two by three tiles lying down, a dimmable backlight and the LED on the back, no camera pictures (no PSRAM). Built from configurations owners ran on their own boards; if you have one, try it and say how the picture, the touch and the LED behave (docs/CYD35.md).
+
 - **A plugin's README can open with a notice.** A quote at the top of a plugin's README shows as a box in the warning's colour in the plugin's details, before anything else. The Bluetooth proxy says there what it costs: the screen answers more slowly, its Wi-Fi gets weaker, and camera streams and video can stutter.
 - **ESP32-P4 screens run their firmware faster.** The firmware is now built for speed instead of size on every ESP32-P4 board: on a Guition 10.1 with four live camera tiles the second processor core works 52 % instead of 63 %, and each live picture is laid out in 26.5 ms instead of 32. The firmware is 889 KB larger, which every P4 screen has room for. Measured on the Guition 10.1; the reTerminal D1001 and the M5Stack Tab5 get it too, the Tab5 not yet tried.
 
