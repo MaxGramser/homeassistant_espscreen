@@ -12,6 +12,13 @@
 # Two entry files include this: checkout/cyd.yaml (a build on this computer)
 # and packages/cyd.yaml (the package a screen builds from over GitHub).
 ############################################################
+esphome:
+  # The 4 MB boards build on ESPHome 2026.9.0, the add-on's, from release 0.4.91: on 2026.6.2 the same firmware is 65 KB
+  # larger (CI's min_version build, 2026-10-29: cyd 1,984,496 bytes = 97.7 % of its slot, hosyond40 98.3 %, against
+  # 95.8 and 96.4 % expected on 2026.9.0), past the 97 % the flash budget never ships (docs/RELEASING.md). A board
+  # file's min_version wins over the core's; whoever builds with an older ESPHome elsewhere updates it first.
+  min_version: 2026.9.0
+
 packages:
   # How every board's firmware is built (ESP-IDF, as ESPHome recommends it).
   build: !include ../hardware/esp-idf.yaml

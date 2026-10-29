@@ -43,7 +43,7 @@ SAMPLE = ('cyd', 'guition', 'jc8012p4a1', 'waveshare7')
 # board, so one board says it. The CYD, for its flash budget. tools/affected_boards.py --older-sample adds a board for a
 # changed file the CYD doesn't build (a feature package, another board's file), and CI builds every board on both
 # ESPHomes each night.
-MIN_VERSION_SAMPLE = ('cyd',)
+MIN_VERSION_SAMPLE = ('guition',)  # the CYD asks 2026.9.0 since 0.4.91 (its flash), so the Guition 4848S040 says it
 # The boards a render check draws the UI on: the smallest glass, one in the middle and the largest.
 RENDER_SAMPLE = ('cyd', 'guition', 'jc8012p4a1')
 ENTRIES = {**{profile: board for board, _, profile in BOARD_TABLE},

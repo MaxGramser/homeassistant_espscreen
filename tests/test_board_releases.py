@@ -228,26 +228,27 @@ class TheOlderESPHome(unittest.TestCase):
     """On the packages' min_version ESPHome a change that reaches every board builds MIN_VERSION_SAMPLE (app 0.4.41),
     plus one board for each changed file those don't build."""
 
-    def test_the_shared_core_builds_the_cyd_alone(self):
-        self.assertEqual(profiles.MIN_VERSION_SAMPLE, ('cyd',))
+    def test_the_shared_core_builds_the_guition_alone(self):
+        # The CYD said it until 0.4.91; it asks the add-on's ESPHome now (its flash), so the Guition 4848S040 says it.
+        self.assertEqual(profiles.MIN_VERSION_SAMPLE, ('guition',))
         self.assertEqual(affected_boards.older_sample(reach('packages/core.yaml', 'components/smart_display/theme.h')),
-                         ['cyd'])
+                         ['guition'])
 
-    def test_a_package_the_cyd_lacks_adds_a_board_that_has_it(self):
-        changed = reach('packages/core.yaml', 'packages/features/capacitive-touch.yaml')
+    def test_a_package_the_sample_lacks_adds_a_board_that_has_it(self):
+        changed = reach('packages/core.yaml', 'packages/features/resistive-touch.yaml')
         picked = affected_boards.older_sample(changed)
-        self.assertEqual(picked[0], 'cyd')
+        self.assertEqual(picked[0], 'guition')
         self.assertEqual(len(picked), 2, picked)
-        self.assertIn(picked[1], changed['packages/features/capacitive-touch.yaml'])
-        # The first of the sample that has it: the Guition.
-        self.assertEqual(picked[1], 'guition')
+        self.assertIn(picked[1], changed['packages/features/resistive-touch.yaml'])
+        # The first of the sample that has it: the CYD.
+        self.assertEqual(picked[1], 'cyd')
 
     def test_another_boards_own_file_adds_that_board(self):
         board_file = 'packages/boards/' + profiles.CATALOG['hosyond40']['file']
-        self.assertEqual(affected_boards.older_sample(reach('packages/core.yaml', board_file)), ['cyd', 'hosyond40'])
+        self.assertEqual(affected_boards.older_sample(reach('packages/core.yaml', board_file)), ['guition', 'hosyond40'])
 
     def test_no_firmware_adds_nothing(self):
-        self.assertEqual(affected_boards.older_sample(reach('packages/core.yaml', 'docs/TESTING.md')), ['cyd'])
+        self.assertEqual(affected_boards.older_sample(reach('packages/core.yaml', 'docs/TESTING.md')), ['guition'])
 
     def test_check_sh_builds_it_on_an_older_esphome(self):
         script = (ROOT / 'tools/check.sh').read_text()
