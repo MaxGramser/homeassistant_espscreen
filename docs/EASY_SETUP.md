@@ -25,6 +25,7 @@ ESPHome Device Builder is optional:
 | Waveshare P4, 7 inch 7B (experimental) | ESP32-P4-WIFI6-Touch-LCD-7B (not the ESP32-S3-Touch-LCD-7B), 1024×600, EK79007 MIPI-DSI and GT911, rev3 ESP32-P4 ([details](WAVESHAREP47B.md)) |
 | Waveshare P4, 7 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-7 (not the 7B), 1280×720, ILI9881C MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHAREP47.md)) |
 | Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
+| Panlee, 7 inch (experimental) | ZX7D00CE01S-V13, 800×480, RGB and GT911 ([details](ZX7D00CE01S.md)) |
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
 | Waveshare, 4 inch V4.0 (experimental) | ESP32-S3-Touch-LCD-4 revision 4.0 (not the 4B, not earlier revisions), 480×480, ST7701S and GT911 ([details](WAVESHARE4V4.md)) |
 | SenseCAP, 4 inch (experimental) | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
@@ -219,7 +220,7 @@ colored icons, a room filter, and **Hide placed**. You can add one tile for ever
 48 on a CYD, a 4-inch Guition or the experimental Waveshare 4B and Waveshare P4 (firmware 0.2.62+; see below for older firmware).
 The screen preview shows their placement on the screen's own grid, lying down: two columns of three on a CYD, a 4-inch Guition,
 the Waveshare 4B, the Waveshare P4 or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch and 5-inch,
-four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, and five by five on the
+four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md), the [experimental Panlee 7-inch](ZX7D00CE01S.md) and the 7-inch Guition, and five by five on the
 10.1-inch Guition, either way up (firmware 0.18.0; five by four before, and a saved layout moves on by itself); up to
 eight pages and 64 tiles, or more on a board with PSRAM ([TILE_MEMORY.md](TILE_MEMORY.md)). That grid is where a screen
 starts: **Grid**, beside the pages, gives it other columns and rows, and on glass that is not square stands it up or lays it

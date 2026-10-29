@@ -2,6 +2,12 @@
 
 - **A build server empties its build folder for a screen whose plugin part changed.** When a part of a plugin is added or removed (Screen camera's Video), the app already started that screen's next build from an empty build folder here; a build on a build server kept the server's folder, and a component the earlier build left behind (the empty esp_h264 of a Screen camera without video) shadowed the real one: "esp_h264_enc_single_hw.h: No such file or directory". The server now runs its clean for that screen first. Seen on a reTerminal D1001 going from Screen camera 0.2.0 to 0.6.13 with Video on a Mac mini build server, 2026-10-29.
 
+- **The Panlee ZX7D00CE01S-V13, experimental.** A 7-inch 800 x 480 ESP32-S3 screen with GT911 touch, under New
+  screen as **Panlee · 7 inch**: four by four tiles lying down and two by seven standing up, with a dimmable backlight.
+  Its pins and timings are those of an ESPHome configuration its owner ran, and its owner tried this firmware on the
+  glass: colours, touch, brightness and standby work. Camera pictures are not yet tried on it.
+  Nothing changes for a screen you have: no firmware update.
+
 - **A screen's log says why the chip started.** The first line after boot names the reset: power on, a software reset, a watchdog, or a brown-out of the supply. A troubleshooting report reads it, so a screen that restarted because its power dipped (a Tab5 as its charger was plugged in) says so instead of "no crash record".
 
 - **Plugin API 0.24 keeps one way for each thing (for plugin makers).** Removed, as each had a newer form beside it: `Plugin::on_touch` (use `on_press`), `tessera::action(service, entity, key, value)` (use `tessera::action(service, entity, fields)` with a JSON object, or no fields), the picture address `saver:picture` (use `step:`) and a tile's `memory: { bytes: n }` (write the number). A plugin that still uses one of them no longer builds; of the plugins in the plugin list one did, and its maker is told.

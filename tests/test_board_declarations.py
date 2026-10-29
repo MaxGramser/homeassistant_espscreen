@@ -27,6 +27,7 @@ STILL_HELD = {
         'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-43', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7', 'waveshare-esp32s3-7b', 'waveshare101', 'waveshare43c',
         'wavesharep4', 'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
+        'zx7d00ce01s',
     ),
     'esp_ldo': ('crowpanel101',),
     'esphome': (
@@ -40,6 +41,7 @@ STILL_HELD = {
         'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535', 'guition-jc8048w550c-i', 'reterminald1001',
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'wt32sc01plus',
+        'zx7d00ce01s',
     ),
     'i2s_audio': ('crowpanel101', 'reterminald1001',),
     'interval': ('reterminald1001',),
@@ -48,6 +50,7 @@ STILL_HELD = {
         'guition-4848s040', 'guition-jc8048w550c-i', 'reterminald1001', 'seeed-sensecap-indicator-d1',
         'sunton-8048s070', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7b', 'waveshare43c',
         'wavesharep47b',
+        'zx7d00ce01s',
     ),
     'microphone': ('crowpanel101',),
     'motion': ('reterminald1001',),
@@ -56,6 +59,7 @@ STILL_HELD = {
         'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001', 'seeed-sensecap-indicator-d1', 'sunton-8048s070',
         'waveshare-esp32s3-35', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare101', 'wavesharep4',
         'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
+        'zx7d00ce01s',
     ),
     'pca9554': ('seeed-sensecap-indicator-d1', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',),
     'psram': ('freenove-fnk0104s', 'guition-jc3248w535', 'waveshare-esp32s3-35', 'wt32sc01plus',),
@@ -83,12 +87,14 @@ STILL_HELD = {
         'waveshare-esp32s3-43', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7',
         'waveshare-esp32s3-7b', 'waveshare101', 'waveshare43c', 'wavesharep4', 'wavesharep47', 'wavesharep47b',
         'wt32sc01plus',
+        'zx7d00ce01s',
     ),
     'touchscreen': (
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
         'guition-jc4880p443', 'guition-jc8012p4a1', 'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001',
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'tab5', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'waveshare101', 'wavesharep4', 'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
+        'zx7d00ce01s',
     ),
 }
 

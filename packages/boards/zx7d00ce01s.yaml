@@ -1,0 +1,111 @@
+# ESP Screens - Panlee ZX7D00CE01S-V13 (800 x 480, 7 inch), EXPERIMENTAL.
+# ESP32-S3, 16 MB flash, 8 MB octal PSRAM, an RGB panel that needs no init sequence, a GT911 touch panel and an I2S
+# speaker output (not used here yet).
+# Pins, timings and the touch bus are those of the configuration a board owner ran on the glass (rpi_dpi_rgb with its
+# 16 MHz inverted pixel clock); no physical acceptance by the project yet.
+# The standard look at 133 dpi, as the other 7-inch 800 x 480 boards: 4 x 4 landscape, 2 x 7 portrait.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  # The chip and its memory for an RGB panel, as on the other ESP32-S3 boards with one.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "zx7d00ce01s"
+  DEVICE_NAME: "zx7d00ce01s-new"
+  DEVICE_FRIENDLY_NAME: "My Panlee 7"
+
+  # The glass: the panel's own pixels and its density, 933 diagonal pixels over 7.0 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "133.279"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # LVGL's draw buffer as a share of the screen: 12 % of 800 x 480, as on the other 800 x 480 boards
+  # (docs/ADDING_A_BOARD.md, step 3).
+  LVGL_BUFFER_SIZE: "12%"
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM (see the output block)
+  # As on the other 7-inch 800 x 480 boards; the look would give 27
+  FONT_ICON_HOME_SIZE: "26"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The owner's configuration logs over UART0.
+  hardware_uart: UART0
+
+# The GT911 has the board's I2C bus to itself.
+i2c:
+  id: touch_bus
+  sda: GPIO48
+  scl: GPIO47
+  scan: true
+  frequency: 400kHz
+
+output:
+  # GPIO45 drives the backlight; its level is a PWM.
+  - platform: ledc
+    pin: GPIO45
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# The GT911 is polled: the owner's configuration uses neither its reset nor its interrupt line, nor a calibration (the
+# chip reports the panel's pixels). A board whose touch lands off should state the range as the Sunton 7 does.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+
+# No init sequence (ESPHome's RPI model). The pixel clock is stated: mipi_rgb defaults to 40 MHz, rpi_dpi_rgb (what ran
+# on the glass) to 16 MHz inverted. The colour lines are the owner's as they ran: the panel's blue on the first list.
+display:
+  - platform: mipi_rgb
+    model: RPI
+    id: my_display
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    color_order: RGB
+    pclk_frequency: 16MHz
+    pclk_inverted: true
+    de_pin: GPIO39
+    pclk_pin: GPIO9
+    hsync_pin: GPIO5
+    vsync_pin: GPIO38
+    hsync_pulse_width: 10
+    hsync_back_porch: 40
+    hsync_front_porch: 40
+    vsync_pulse_width: 6
+    vsync_back_porch: 31
+    vsync_front_porch: 18
+    data_pins:
+      red: [GPIO10, GPIO11, GPIO12, GPIO13, GPIO14]
+      green: [GPIO21, GPIO0, GPIO46, GPIO3, GPIO8, GPIO18]
+      blue: [GPIO17, GPIO16, GPIO15, GPIO7, GPIO6]
+    update_interval: never
+    auto_clear_enabled: false
