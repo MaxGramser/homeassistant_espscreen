@@ -412,3 +412,7 @@ display:
     # pixels a line (front porch 56) the line is 2100 clocks exactly, and the panel refreshes at 67.3 Hz instead of
     # 68.6; the vertical timing stays the preset's.
     hsync_front_porch: 56
+    # TEST (test-pclk, 2026-10-29): the preset's 80 MHz makes 68.6 Hz; 70 MHz makes 58.9 Hz and the DSI bridge reads an
+    # eighth less from PSRAM for the panel (896 x 1326 pixels a frame, 2 bytes each). The host's line stays whole:
+    # 896 x 1.5 Gbps / 70 MHz / 8 = 2400 clocks. Max's eye on a page of five live tiles decides.
+    pclk_frequency: 70MHz
