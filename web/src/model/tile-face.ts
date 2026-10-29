@@ -3,14 +3,15 @@
 // graph, a favourite or a live picture, a Big number, a card over the whole page, a big key, a tall card, a wide card or
 // the standard one. TileCard draws the face this names (components/tile/). Pure: what the card is, how large, what Home
 // Assistant reports and what its screen's firmware draws come in; nothing is read from a store.
-import { drawable } from "./catalogue";
+import { drawable, featuresOf } from "./catalogue";
 import { inlineControlKind, pageTarget } from "./layout";
+import { VACUUM_FACES } from "./vacuum-tile";
 import { availableControl, controlKeys, coverPrimary, hasCoverTilt, type ControlKey } from "./tall-controls";
 import type { Live } from "./tile-text";
 import type { TileOptions } from "../types";
 
-export type FaceKind = "bedside" | "plugin-live" | "plugin" | "energy" | "analog" | "dial" | "flip-wide" | "flip" | "digital" | "graph" | "meter"
-  | "favorite" | "camera" | "watch" | "full" | "big-key" | "tall" | "wide" | "standard";
+export type FaceKind = "bedside" | "plugin-live" | "plugin" | "energy" | "text" | "analog" | "dial" | "flip-wide" | "flip" | "digital" | "graph" | "meter"
+  | "favorite" | "camera" | "watch" | "full" | "big-key" | "vacuum" | "tall" | "wide" | "standard";
 
 export type FaceInput = {
   entity: string;
@@ -25,6 +26,10 @@ export type FaceInput = {
   chosen: string | null;
   /** The screen draws a thermostat's range on its -/+ (firmware 0.19.0+). */
   rangeReady: boolean;
+  /** The screen's board has the vacuum card's module, and with it the larger vacuum tile (false: the keys). */
+  vacuumTile?: boolean;
+  /** The screen's board has the light_presets module: a light's presets (false: the brightness slider in their place). */
+  lightPresets?: boolean;
   /** The screen's firmware is 0.17.0 or newer: big keys, the wide flip clock and a bedside clock's AM or PM. */
   bigKeys: boolean;
   /** A favourite with something to play (app 0.4.42). */
@@ -71,12 +76,14 @@ export type Face = {
   modeBar: boolean;
   /** The control fills every cell after the first (runtime_tiles::rest_content_width). */
   fillsCell: boolean;
+  /** A light's card of one cell with its presets chosen (runtime_tiles preset_cell): its heading over a row of the keys. */
+  presetCell: boolean;
 };
 
 // A card that only switches or only runs, two rows tall, is one big key (firmware 0.17.0 big_key).
 const BIG_KEY_DOMAINS = ["light", "switch", "input_boolean", "fan", "script", "scene", "button", "input_button"];
 // Controls whose keys are not a row of keys: a toggle, a -/+, a slider, a run key.
-const NOT_KEYS = ["toggle", "setpoint", "volume", "run", "stepper", "slider", "brightness", "speed", "position"];
+const NOT_KEYS = ["toggle", "setpoint", "volume", "run", "stepper", "slider", "brightness", "speed", "position", "presets", "brightness_presets"];
 // The screens give a control that fills its room every cell after the first (the first keeps the name), so its edges
 // stand where the cards above and below have theirs; keys, a switch and a run key keep their own size.
 const FILLS_CELL = ["brightness", "speed", "position", "slider", "volume", "setpoint", "mode"];
@@ -88,9 +95,13 @@ export const displayOf = (entity: string, options?: TileOptions) => (entity === 
 /** The control set the screen draws for this entity on this card (catalogue drawable): an older screen gets a thermostat
  * with only a range without its -/+, one without a temperature to set never has them; a card one row high draws the
  * setpoint alone (resolve_controls), and a blind its own control without its slats. */
-export function drawnControls(domain: string, chosen: string | null, live: Live | null | undefined, rows: number, rangeReady: boolean) {
-  const drawn = chosen ? drawable(domain, chosen, live?.a || {}, rangeReady ? null : new Set<string>()) : null;
+export function drawnControls(domain: string, chosen: string | null, live: Live | null | undefined, rows: number, rangeReady: boolean, vacuumTile = true,
+  lightPresets?: boolean) {
+  const features = featuresOf({ rangeless: !rangeReady, vacuumTile, lightPresets });
+  const drawn = chosen ? drawable(domain, chosen, live?.a || {}, features) : null;
   const selected = drawn === "none" ? null : drawn;
+  // A light's slider and presets on a card one row high is its presets alone (tile_controls::panel_kind).
+  if (selected === "brightness_presets" && rows < 2) return "presets";
   if (selected === "setpoint_mode" && rows < 2) return "setpoint";
   if (selected === "volume_playback" && rows < 2) return "volume";
   if (domain !== "cover") return selected;
@@ -109,11 +120,16 @@ export function tileFace(input: FaceInput): Face {
   const coverRow = domain === "cover" && !full && shape.rows === 1 && options?.inline !== "slider" && ["standard", "cover"].includes(display)
     && Boolean(chosen) && (hasCoverTilt(chosen) || (shape.columns === 1 && ["position", "buttons"].includes(chosen || "")));
   const coverPrimaryKind = domain === "cover" ? availableControl(domain, coverPrimary(chosen) === "none" ? null : coverPrimary(chosen), state, a, input.rangeReady) : "";
-  const tall = shape.rows > 1 && (!full || coverExtended || climateModes) && ["standard", "cover"].includes(display);
+  const controls = drawnControls(domain, chosen, live, shape.rows, input.rangeReady, input.vacuumTile !== false, input.lightPresets);
+  // A light's card of one cell with its presets: its heading over the keys, as a taller card has its controls under its
+  // name (runtime_tiles preset_cell), where the light has presets to show and can be dimmed.
+  const presetCell = domain === "light" && !full && !input.wide && shape.rows === 1 && options?.inline !== "slider" && display === "standard"
+    && controls === "presets" && availableControl(domain, "presets", state, a, true, Array.isArray(options?.presets) && options!.presets.length > 0) === "presets";
+  const tall = (shape.rows > 1 && (!full || coverExtended || climateModes) && ["standard", "cover"].includes(display)) || presetCell;
   const goesTo = pageTarget(entity);
   const tallAction = tall && (entity === "screen.settings" || Boolean(goesTo));
-  const controls = drawnControls(domain, chosen, live, shape.rows, input.rangeReady);
-  const tallControls = availableControl(domain, options?.inline === "slider" ? inlineControlKind(domain) : controls, state, a, input.rangeReady);
+  const tallControls = availableControl(domain, options?.inline === "slider" ? inlineControlKind(domain) : controls, state, a, input.rangeReady,
+    Array.isArray(options?.presets) && options!.presets.length > 0);
   const tallStack = tall && tallControls === "toggle";
   const bigKey = tall && !full && input.bigKeys && BIG_KEY_DOMAINS.includes(domain) && options?.inline !== "slider"
     && (!tallControls || tallControls === "toggle" || tallControls === "run");
@@ -124,6 +140,7 @@ export function tileFace(input: FaceInput): Face {
     panelKeys: controls && !NOT_KEYS.includes(controls) ? controlKeys(domain, controls, state, a) : [],
     modeBar: thermostat && controls === "mode",
     fillsCell: FILLS_CELL.includes(controls || "") || (controls === "stepper" && !domain.endsWith("select")),
+    presetCell,
   };
   return { kind: faceKind(input, face), ...face };
 }
@@ -134,6 +151,8 @@ function faceKind(input: FaceInput, face: Omit<Face, "kind">): FaceKind {
   if (entity === "screen.nightstand") return "bedside";
   if (input.plugin) return input.pluginRow ? "plugin-live" : "plugin";
   if (entity === "screen.energy") return "energy";
+  // The template tile (docs/TEXT_TILE.md): the rows Home Assistant rendered, over the whole card at every size.
+  if (entity === "screen.text") return "text";
   if (display === "analog") return "analog";
   if (domain === "screen" && CLOCK_FACES.includes(display)) {
     // The flip clock on a card two columns wide and two rows tall, or a whole page (firmware 0.17.0): the blocks share
@@ -147,6 +166,7 @@ function faceKind(input: FaceInput, face: Omit<Face, "kind">): FaceKind {
   if (input.favorite && !face.full) return "favorite";
   if (display === "live" && ["camera", "image"].includes(domain)) return "camera";
   if (input.watch) return "watch";
+  if ((face.tall || face.full) && domain === "vacuum" && VACUUM_FACES.includes(face.tallControls)) return "vacuum";
   if (face.full && !face.tall) return "full";
   if (face.bigKey) return "big-key";
   if (face.tall) return "tall";

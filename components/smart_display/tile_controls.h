@@ -103,13 +103,14 @@ inline std::string panel_kind(const Tile &t) {
   if(d=="cover"){if(c=="tilt")return {};if(c=="buttons_tilt")return "buttons";if(c=="position_tilt")return "position";}
   if((d=="climate"||d=="humidifier")&&c=="setpoint_mode")return "setpoint";
   if(d=="media_player"&&c=="volume_playback")return "playback";
+  // A light's presets (module light_presets): with the slider over them on a card with a second row, else the keys alone.
+  if(d=="light"&&c=="brightness_presets")return t.row_span()>1?c:"presets";
   // The small slider of a wide card is that domain's slider: the manager sends no control set beside it
   // (resolve_controls), so the kind comes from the domain.
   if (c.empty() && t.inline_control == "slider") return inline_kind(d);
   if (c == "stepper" && (d == "select" || d == "input_select")) return "chevrons";
   return c;
 }
-inline bool has_mode(const std::string &hvac_modes, const char *mode) { return hvac_modes.find("\"" + std::string(mode) + "\"") != std::string::npos; }
 // Home Assistant's colour for a climate mode (the card and its mode keys use it).
 inline uint32_t mode_color(const std::string &mode) {
   using namespace theme::ha;
@@ -332,6 +333,17 @@ inline std::string temperature_text(float value) {
 inline std::string humidity_text(float value) {
   if (std::fabs(value - std::round(value)) < 0.05f) return screen_text::percent(static_cast<int>(std::lround(value)));
   return screen_text::decimal(value, 1) + screen_text::percent_sign();
+}
+// Whether a tile's second line was chosen by hand (firmware 0.2.90+): Nothing, its own text or a value of the
+// entity. Empty and "auto" are the line the screen works out itself, and so is a choice this screen cannot read.
+inline bool subtitle_by_hand(const std::string &choice) {
+  return choice == "none" || choice.compare(0, 5, "text:") == 0 || choice.compare(0, 5, "attr:") == 0;
+}
+// The battery a vacuum's own status line ends on ("Docked / 100 %"), the end that stays readable in a narrow tile.
+// Only that line carries it: a line chosen by hand is that line alone, and Nothing is nothing (#293).
+inline std::string vacuum_tail(const Tile &t) {
+  if (t.domain() != "vacuum" || !std::isfinite(t.battery) || subtitle_by_hand(t.subtitle)) return {};
+  return " / " + screen_text::percent(static_cast<int>(t.battery));
 }
 // What a thermostat measures, in its own unit: degrees, or a humidifier's humidity.
 inline std::string reading_text(const Tile &t, float value) { return humidifier(t) ? humidity_text(value) : temperature_text(value); }
@@ -999,6 +1011,11 @@ inline bool panel_available(const Tile &t) {
   // A thermostat's modes are its mode bar (climate_bar_keys), the same one as under its -/+ (firmware 0.19.0).
   if(mode=="mode"){std::array<Key,6> keys;return thermostat(t)&&climate_bar_keys(t,keys)>0;}
   if(mode=="brightness")return domain=="light"&&light_dims(t);
+#ifdef SD_MOD_LIGHT_PRESETS
+  // A light's presets: the keys where the tile has any; with the slider over them, the slider at least.
+  if(mode=="presets")return domain=="light"&&light_dims(t)&&t.presets;
+  if(mode=="brightness_presets")return domain=="light"&&light_dims(t);
+#endif
   if(mode=="speed")return domain=="fan"&&(t.supported&feature::FAN_SPEED);
   if(mode=="position")return domain=="cover"&&(t.supported&feature::COVER_POSITION);
   if(mode=="volume")return domain=="media_player"&&(t.supported&(feature::MEDIA_VOLUME_SET|feature::MEDIA_VOLUME_MUTE));

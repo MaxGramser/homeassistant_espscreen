@@ -19,10 +19,15 @@ export const router = createRouter({
     { path: "/settings", name: "settings", component: Nothing },
     { path: "/new-screen", name: "new-screen", component: Nothing },
     { path: "/firmware", name: "firmware", component: Nothing },
-    { path: "/alerts", name: "alerts", component: Nothing },
+    // Events (app 0.4.91): what an automation in Home Assistant can fire at the screens, an alert or a doorbell's ring,
+    // each one a part of the page (`kind`). The address of the Alerts page before it still opens the alerts.
+    { path: "/events/:kind(alerts|doorbell)?", name: "events", component: Nothing },
+    { path: "/alerts", redirect: "/events/alerts" },
     { path: "/plugins", name: "plugins", component: Nothing },
     // The Override YAML of a screen's ESPHome profile (kitchen.yaml); without a profile the page says so.
     { path: "/override/:profile?", name: "override", component: Nothing },
+    // The troubleshooting report of a screen ("My screen doesn't work right"), by the screen's inbox id as above.
+    { path: "/screens/:id/report", name: "report", component: Nothing },
     { path: "/:pathMatch(.*)*", redirect: "/" },
   ],
 });
@@ -60,3 +65,4 @@ export async function restoreKeptRoute() {
 
 export const screenRoute = (id: string): RouteLocationRaw => ({ name: "screen", params: { id } });
 export const overrideRoute = (profile: string | null): RouteLocationRaw => ({ name: "override", params: { profile: profile ?? "" } });
+export const reportRoute = (id: string): RouteLocationRaw => ({ name: "report", params: { id } });

@@ -1,0 +1,31 @@
+# ESP Screens - the audio of the Waveshare ESP32-P4 boards that wire it as the 86 panel does, declared: the parts and
+# their pins, nothing else (docs/PROFILES.md, "Parts"). For the board files of the ESP32-P4-86-Panel-ETH-2RO (and the
+# ESP32-P4-WIFI6-Touch-LCD-4B, the same main board), the ESP32-P4-WIFI6-Touch-LCD-7B, and the 7 and 10.1-inch boards of
+# the ESP32-P4-WIFI6-Touch-LCD-X series.
+#
+# As Waveshare's schematics wire them: an ES8311 at 0x18 for the speaker (its ADC is not wired) and an ES7210 at 0x40
+# for the two microphones on its MIC1 and MIC2, both on the touch panel's I2C bus; the speaker circuit's output, through
+# an attenuator, on the ES7210's MIC3 as the echo cancellation's reference; one I2S bus for both (MCLK GPIO13, BCLK
+# GPIO12, LRCLK GPIO10, speaker data GPIO9, microphone data GPIO11); and an NS4150B amplifier whose enable is GPIO53,
+# high for on, with a pull-down that keeps it off until the firmware turns it on.
+packages:
+  microphones: !include parts/es7210.yaml
+  speaker: !include parts/es8311.yaml
+  amplifier: !include parts/amplifier.yaml
+  controls: !include parts/es7210-controls.yaml
+
+substitutions:
+  AUDIO_I2C: touch_bus
+  AUDIO_MCLK_PIN: GPIO13
+  AUDIO_BCLK_PIN: GPIO12
+  AUDIO_LRCLK_PIN: GPIO10
+  AUDIO_DOUT_PIN: GPIO9
+  AUDIO_DIN_PIN: GPIO11
+  AUDIO_MIC_ALC: "true"
+  AUDIO_REFERENCE_GAIN: "24dB"                  # the reference comes through the speaker circuit's attenuator
+  AUDIO_I2S_SAMPLE_RATE: "16000"                # the whole bus at the voice's rate on the plain transport
+  AUDIO_AMPLIFIER_PIN: GPIO53
+  # The transport (parts/es7210.yaml): AUDIO_TRANSPORT in a screen's Override YAML. P4_AUDIO_TRANSPORT, its old name,
+  # still works in firmware 0.58 and goes in the release after (tests/test_board_declarations.py, STILL_TO_MOVE).
+  AUDIO_TRANSPORT: ${P4_AUDIO_TRANSPORT}
+  P4_AUDIO_TRANSPORT: "aec"

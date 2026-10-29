@@ -11,7 +11,9 @@ import secrets
 
 from i18n import english, screen_t, t
 import calendar_feed
+import light_presets
 import meter
+import text_tile
 import catalogue
 import tile_icons
 
@@ -20,7 +22,7 @@ import tile_icons
 DOMAINS = catalogue.DOMAINS
 # Built-in cards without a Home Assistant entity; firmware 0.2.14+ renders them. The names in English: a screen gets them in
 # its language and the editor in its own (builtin_name, app 0.2.90).
-BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', 'screen.energy': 'Energy', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
+BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', 'screen.energy': 'Energy', 'screen.text': 'Template', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
 # A navigation tile (firmware 0.2.62+): screen.page_<n> goes to page n, up to page 32 on a board that holds that many
 # (firmware 0.34.0+); whether the screen has page n is the screen's Grid's to say. Firmware 0.2.65+ takes the same one on several
 # pages (a "Back to page 1" on every page), firmware 0.16.0+ any entity on several tiles (GitHub #83) but the bedside
@@ -50,8 +52,10 @@ def builtin_name(entity, text=screen_t):
         return text('addon.screen.builtin.map')
     if entity == ENERGY_TILE:
         return text('addon.screen.builtin.energy')
+    if entity == text_tile.TEXT_TILE:
+        return text('addon.screen.builtin.text')
     return text('screen.settings.title' if entity == 'screen.settings' else 'addon.screen.builtin.clock')
-# A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (camera_feed.py).
+# A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (docs/PICTURES.md).
 CAMERA_DOMAINS = frozenset(('camera', 'image'))
 CAMERA_MIN_FIRMWARE = (0, 2, 57)
 # A live picture on a camera tile ("display": "live", app 0.2.91): firmware from here asks for the page's strip.
@@ -62,9 +66,6 @@ LIVE_REFRESH = tuple(catalogue.of_type('camera')['picture']['refresh'])
 LIVE_REFRESH_DEFAULT = 15
 # A media tile's album cover in the icon's place ("display": "cover", app 0.2.92): the same strip, firmware from here.
 COVER_TILE_MIN_FIRMWARE = (0, 2, 78)
-# The calm dial and the flip clock (firmware 0.3.6+). An older screen draws either as the digital clock, so a layout
-# with one is sent as it is; the editor says so.
-CLOCK_FACES_MIN_FIRMWARE = (0, 3, 6)
 CLOCK_DEFAULT_DISPLAY = 'dial'
 # The bedside clock (firmware 0.8.0+): a clock that always takes the whole page, digits as large as the page allows and
 # up to three keys under them, each a tile of its own (a lamp, a temperature, a lock). It starts without a card behind
@@ -105,8 +106,9 @@ REF = 'main'
 # Supervisor names an app `<hash>_<slug>`, the hash being the first eight characters of the sha1 of the repository URL
 # as it was added, in lower case (supervisor/store/utils.py, get_hash_from_repository). So the URL with `#dev` is
 # another app, with data of its own, and its screens build from dev. Any other hash (a local copy, a fork, another
-# spelling of the URL) and no Supervisor at all have no channel: new screens build from main, existing ones keep the
-# `ref:` they have.
+# spelling of the URL) has no channel: new screens build from main, existing ones keep the `ref:` they have. Without a
+# Supervisor (Docker, docs/DOCKER.md) SCREEN_CHANNEL names it, which the image GitHub builds from dev carries
+# (.github/workflows/docker.yml); unset, there is none.
 CHANNELS = {'ec8ae0ed': 'main', 'fa6a7b50': 'dev'}
 CHANNEL = None
 
@@ -115,6 +117,13 @@ def channel_of(slug):
     if not isinstance(slug, str) or '_' not in slug:
         return None
     return CHANNELS.get(slug.split('_', 1)[0])
+
+def start_channel(slug, environ=os.environ):
+    """The channel at the start (server.main): the slug's under the Supervisor, SCREEN_CHANNEL without one."""
+    if slug:
+        return channel_of(slug)
+    value = str(environ.get('SCREEN_CHANNEL') or '').strip()
+    return value if value in CHANNELS.values() else None
 
 def set_channel(channel):
     """The channel this app runs in, found once at the start (server.main)."""
@@ -161,7 +170,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.57.0'
+FIRMWARE_VERSION = '0.58.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -371,9 +380,6 @@ class Grid:
     def page_start(self, slot):
         return slot - slot % self.slots
 
-    def row_start(self, slot):
-        return slot - slot % self.columns
-
     def wide_fits(self, slot):
         """Whether a wide tile may start here: a cell beside it in the same row, or a single column."""
         return self.columns == 1 or slot % self.columns <= self.columns - 2
@@ -477,15 +483,8 @@ def tile_size(tile):
     size = tile.get('options', {}).get('size', 'single')
     return size if is_size(size) else 'single'
 
-def is_wide(tile):
-    """Double width or the whole page: the card spans two columns."""
-    return tile_size(tile) != 'single'
-
 def is_full(tile):
     return tile_size(tile) == 'full'
-
-def cells_of(size, grid=DEFAULT_GRID):
-    return grid.cells(size)
 
 def page_start(slot, grid=DEFAULT_GRID):
     return grid.page_start(slot)
@@ -687,7 +686,7 @@ def board_of(screen):
 # settings_screen::features() on the firmware side; the sensor, the reading of it and the fallback stay as they are.
 # Nothing asks about a word that is not in this table, so a screen may report one an older app has never heard of,
 # and a word may be retired here without the firmware having to stop sending it. Whether a board draws pictures is
-# the obvious next one: it is still read from boards.json alone (camera_feed.BOXES), because the memory for a
+# the obvious next one: it is still read from boards.json alone (picture_question.BOXES), because the memory for a
 # picture is the board's and not this screen's.
 FEATURES = {
     # The backlight takes levels, not just lit or dark (app 0.2.105). One board so far says no: the Waveshare's
@@ -1363,6 +1362,10 @@ TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'displa
                       'history_hours': 'history_hours', 'refresh': 'refresh', 'fit': 'fit', 'overlay': 'overlay',
                       # Where a cover's slats stand open: 100 (Home Assistant's rule) or 50.
                       'tilt_open': 'tilt_open',
+                      # A light's presets: a list of at most four, each {"b": 1-100} with "k" kelvin or "h" and "s".
+                      'presets': 'presets',
+                      # Whether the presets show their brightness on their discs (off unless asked).
+                      'preset_levels': 'preset_levels',
                       # How a map frames its people (app 0.4.33); who is on it is the editor's.
                       'framing': 'framing', 'distance': 'distance',
                       # A favourite (app 0.4.42): what it plays, as Home Assistant's library names it, and on which speaker.
@@ -1465,6 +1468,16 @@ def tile_options(data, current=None):
         elif name == 'play':
             # What a favourite plays is an object, as the editor stores it (validate_favorite checks it).
             options[name] = value
+        elif name == 'presets':
+            # A light's presets: a list, or that list written as JSON (light_presets.validate checks it).
+            if isinstance(value, str):
+                try:
+                    value = json.loads(value)
+                except ValueError:
+                    pass
+            options[name] = value
+        elif name == 'preset_levels':
+            options[name] = value if isinstance(value, bool) else loose(value) in ('true', 'yes', 'on', '1')
         elif name in ('calendars', 'places', 'words', 'hide_words'):
             # A calendar card's lists (firmware 0.56.0): a list, or words split at commas as people write them.
             options[name] = [str(v).strip() for v in (value if isinstance(value, list) else str(value).split(','))]
@@ -1944,7 +1957,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -1990,6 +2003,19 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     options = {k: v for k, v in options.items() if k != 'flow'}
             elif 'flow' in options:
                 options = {k: v for k, v in options.items() if k != 'flow'}
+            # The template tile (firmware 0.58.0, text_tile.py) is its template and nothing else: no face, slider or
+            # second line, and a tap does nothing (an action needs an entity to aim at, and the tile has none).
+            if tile['entity'] == text_tile.TEXT_TILE:
+                try:
+                    template = text_tile.validate(options.get(text_tile.OPTION))
+                except ValueError:
+                    raise ValueError(t('addon.errors.layout.text_template')) from None
+                options = {**{k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours', 'sub')},
+                           text_tile.OPTION: template}
+                if options.get('tap') not in (None, 'none'):
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting='tap'))
+            elif text_tile.OPTION in options:
+                options = {k: v for k, v in options.items() if k != text_tile.OPTION}
             # Every tile's taps and its type's own (run, an automation's alone: firmware 0.7.0+), from the catalogue.
             taps = tuple(catalogue.taps(domain))
             choices = {'tap': taps, 'display': displays, 'inline': ('none', 'slider')}
@@ -2009,6 +2035,11 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 options = {k: v for k, v in options.items() if k != 'tilt_open'}
                 if value != COVER_TILT_OPEN[0]:
                     options['tilt_open'] = value
+            # A light's presets (module light_presets): at most four, each a brightness with a white shade or a colour.
+            try:
+                options = light_presets.validate(options, domain)
+            except ValueError as error:
+                raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
             # A plugin's tap action (docs/PLUGINS.md, plugin:<plugin>.<action>) on any tile: which domains it takes is its
             # manifest's, and a screen without that plugin does nothing on the tap.
             if plugin_tile(options.get('tap')):
@@ -2538,9 +2569,12 @@ def screen_options(tile, attrs, state=None, entry=None):
     # A map's own choices stay in the app: who is on it and how it frames them say where people are (app 0.4.33).
     # So do a favourite's own (app 0.4.42): the screen asks to play its tile, never an id.
     # A calendar's filters stay too (calendar_feed.OWN): the screen gets the events they let through.
-    options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN)}
+    options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN)}
     # A meter's colours travel as numbers (firmware 0.56.0): the screen keeps no table of names.
     options = meter.screen_options(options)
+    # A light preset's device settings travel as [entity, value] pairs.
+    if isinstance(options.get(light_presets.OPTION), list):
+        options[light_presets.OPTION] = light_presets.screen_presets(options[light_presets.OPTION])
     icon = tile_icon(tile, attrs, state, entry)
     if icon:
         options['icon'] = icon
@@ -3021,14 +3055,17 @@ def discover(registry, states, devices, areas):
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
                          **({} if tile else {'tile': False}), **unavailable_since(state)})
-    # YAML entities may not have an entity-registry entry.
+    # YAML entities may not have an entity-registry entry. Their icon is the one the screen gets (tile_icon): Home
+    # Assistant's own, else the one its frontend shows for the state, as for a registered entity (app 0.4.90; before, a
+    # player or a lock of YAML showed the power icon on the mockup and its cast or lock icon on the glass).
     registered = {e['id'] for e in entities}
     in_registry = {r['entity_id'] for r in registry}
     for eid, state in states.items():
         tile = entity_id(eid)
         if (tile or header_entity(eid)) and eid not in registered and eid not in in_registry:
             entities.append({'id': eid, 'name': state.get('attributes', {}).get('friendly_name', eid), 'device': '', 'area': '', 'state': state['state'],
-                             'icon': tile_icons.ha_icon(state.get('attributes')), **({} if tile else {'tile': False}), **unavailable_since(state)})
+                             'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes')),
+                             **({} if tile else {'tile': False}), **unavailable_since(state)})
     return screens, sorted(entities, key=lambda e: e['name'].casefold())
 
 def hotspot_name(friendly):
@@ -3091,6 +3128,9 @@ def installation_yaml(data):
     if not isinstance(chosen, dict) or any(key not in offered or value not in offered[key] for key, value in chosen.items()):
         raise ValueError(t('addon.errors.firmware.choice'))
     choice_lines = ''.join(f'  {key}: {quote(chosen[key])}\n' for key in offered if chosen.get(key, offered[key][0]) != offered[key][0])
+    # Swipe between pages is on for a screen set up here: the line is the screen's start value until it stores a choice
+    # of its own (packages/core.yaml, SWIPE_PAGES_DEFAULT). A profile written before has no line and keeps the core's off,
+    # so an update never turns swiping on for a screen that is out there.
     # The components and fonts come from the branch the board package does (packages/<key>.yaml), main unless the app
     # runs in another channel.
     branch_line = f'  GITHUB_REF: {quote(ref())}\n' if ref() != REF else ''
@@ -3117,6 +3157,7 @@ substitutions:
   DEVICE_NAME: {quote(name)}
   DEVICE_FRIENDLY_NAME: {quote(friendly.strip())}
   LANGUAGE: {quote(language)}
+  SWIPE_PAGES_DEFAULT: "1"
 {rotation_line}{grid_lines}{choice_lines}{branch_line}
 esphome:
   name: {quote(name)}

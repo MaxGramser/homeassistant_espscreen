@@ -62,6 +62,17 @@ def option(domain, group, key):
     return next((item for item in (entry or {}).get(group, []) if item['key'] == key), None)
 
 
+def device_holds(domain, key, entity_id, has):
+    """Whether the device of an entity has what a control needs of it (`needs: device`): a vacuum's map or its routines,
+    as `has(entity_id, what)` finds them. A pair needs what each of its parts needs."""
+    item = option(domain, 'controls', key)
+    if not item:
+        return True
+    if 'of' in item:
+        return all(device_holds(domain, part, entity_id, has) for part in item['of'])
+    return all(has(entity_id, what) for what in (item.get('needs') or {}).get('device', ()))
+
+
 def control_keys(domain):
     """The controls of a type in the catalogue's order, the default first."""
     return [item['key'] for item in (TYPES.get(domain) or {}).get('controls', [])]

@@ -297,10 +297,26 @@
         "calendars": {
           "hint": "Up to {n} calendars on one card, each in its own colour from Home Assistant."
         }
+      },
+      "presets": {
+        "device_hint": "A preset of the lamp itself sets its own colour, effect and brightness."
       }
     },
     "plugins": {
       "changes": "What changed"
+    },
+    "alerts": {
+      "wizard": {
+        "steps": {
+          "look": {
+            "help": "An icon, a colour, a camera picture if you like, and whether it blinks."
+          }
+        },
+        "buttons": {
+          "color": "Colour",
+          "own_color": "Its own colour"
+        }
+      }
     }
   },
   "addon": {

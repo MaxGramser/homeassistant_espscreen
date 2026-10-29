@@ -1,0 +1,18 @@
+# ESP Screens - the ES8311, a codec whose DAC drives the speaker (a part: docs/PROFILES.md, "Parts"). The board declares
+# its I2C bus (AUDIO_I2C); the transport that runs its I2S bus comes with the microphones' part. The DAC maps ESPHome's
+# volume from 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step. Its ADC stays off here (`use_microphone`): ESPHome's
+# es8311 turns that input into a PDM digital microphone when it is on.
+substitutions:
+  AUDIO_DAC_ADDRESS: "0x18"
+  AUDIO_DAC_DB_AT_0: "-95.5"
+  AUDIO_DAC_DB_AT_1: "32"
+
+audio_dac:
+  - platform: es8311
+    id: ts_audio_dac
+    i2c_id: ${AUDIO_I2C}
+    address: ${AUDIO_DAC_ADDRESS}
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    use_mclk: true
+    use_microphone: false

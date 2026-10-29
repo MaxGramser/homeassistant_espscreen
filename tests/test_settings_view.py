@@ -19,12 +19,12 @@ class SettingsView(unittest.TestCase):
 
     def test_the_sidebar_is_the_one_way_to_the_tools(self):
         more = self.sidebar.split('<div class="more">', 1)[1]
-        self.assertEqual(re.findall(r'<button id="([\w-]+)"', more), ['open-alerts', 'open-settings'])
+        self.assertEqual(re.findall(r'<button id="([\w-]+)"', more), ['open-events', 'open-settings'])
         # New screen and Refresh sit beside the Screens heading, as a list's own buttons do (app 0.4.32).
         heading = self.sidebar.split('class="label label-row"', 1)[1].split('<div id="screens">', 1)[0]
         self.assertEqual(re.findall(r'<button id="([\w-]+)"', heading), ['refresh', 'new-screen'])
         self.assertEqual(self.sidebar.count('id="new-screen"'), 1)
-        for element in ('new-screen', 'open-alerts', 'open-settings'):
+        for element in ('new-screen', 'open-events', 'open-settings'):
             self.assertEqual(editor_sources.PAGE.count(f'id="{element}"'), 1, element)
         # The firmware tool is no way to add a screen: it stays out of the sidebar but in Settings (app 0.3.27).
         self.assertNotIn("go('#firmware')\"><span class=\"mdi\"", self.sidebar)
@@ -41,7 +41,7 @@ class SettingsView(unittest.TestCase):
     def test_the_view_switches_by_hash_and_renders_what_it_shows(self):
         ui = editor_sources.source('stores/ui.ts')
         # The address is the router's (web/src/router.ts, docs/PAGES.md "The address"): the store reads the route and pushes it.
-        for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#alerts", "#override", "#plugins"] as const;',
+        for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report"] as const;',
                        'const current = router.currentRoute;', 'return router.push(target === "" ? mainView() : `/${target.slice(1)}`);'):
             self.assertIn(marker, ui, marker)
         router = editor_sources.source('router.ts')
@@ -54,7 +54,7 @@ class SettingsView(unittest.TestCase):
             self.assertIn(marker, inventory, marker)
         app = editor_sources.source('App.vue')
         for marker in ('ui.route === "#settings") return AppSettingsView', 'ui.route === "#new-screen") return InstallerView',
-                       'ui.route === "#firmware") return FirmwareView', 'ui.route === "#alerts") return AlertsView'):
+                       'ui.route === "#firmware") return FirmwareView', 'ui.route === "#events") return EventsView'):
             self.assertIn(marker, app, marker)
         for marker in ('.side', '.nav-item[aria-current="true"]', '.panel', '.card'):
             self.assertIn(marker, self.css, marker)

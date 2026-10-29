@@ -149,7 +149,7 @@ describe("TileCard", () => {
     expect(card.find('.ctl.cover-row').exists()).toBe(true);
   });
 
-  it("extends only taller tiles and waits for actual artwork before using white text", async () => {
+  it("extends only taller tiles, puts the cover behind every size and waits for actual artwork before using white text", async () => {
     useInventoryStore().inventory.controls!.media_player = { default: 'playback', choices: [] };
     useEntitiesStore().liveStates['media_player.a'] = { state: 'playing', word: 'Playing', a: { media_title: 'A track', media_artist: 'An artist', artwork_mark: 'first', supported_features: 49 } };
     // A screen that draws pictures (app 0.4.42: a CYD's mockup draws no cover it will never show).
@@ -157,11 +157,11 @@ describe("TileCard", () => {
     const card = placed({ entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'tall', display: 'cover', controls: 'playback' } });
     expect(card.classes()).toContain('tall');
     expect(card.find('.track-title').text()).toBe('A track');
-    expect(card.findAll('.ctl .key')).toHaveLength(3);
+    expect(card.findAll('.glass-row .key')).toHaveLength(3);
     useEntitiesStore().liveStates['media_player.a'].a.supported_features = 1;
     await nextTick();
-    expect(card.findAll('.ctl .key')).toHaveLength(1);
-    expect(card.find('.ctl .key').classes()).toContain('primary');
+    expect(card.findAll('.glass-row .key')).toHaveLength(1);
+    expect(card.find('.glass-row .key').classes()).toContain('primary');
     expect(card.find('img').attributes('src')).toBe('api/media-art?entity=media_player.a&v=first');
     expect(card.classes()).not.toContain('photo');
     await card.find('img').trigger('load');
@@ -174,7 +174,12 @@ describe("TileCard", () => {
     await card.setProps({ tile: { entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'wide', display: 'cover', controls: 'playback' } } });
     expect(card.classes()).not.toContain('tall');
     expect(card.find('.tall-body').exists()).toBe(false);
-    expect(card.find('img').exists()).toBe(false);
+    // A card of one row has the cover behind it too (runtime_tiles::card_art since the picture system), light words on it
+    // once it is here.
+    expect(card.find('img.line-art').attributes('src')).toBe('api/media-art?entity=media_player.a&v=second');
+    expect(card.classes()).not.toContain('photo');
+    await card.find('img.line-art').trigger('load');
+    expect(card.classes()).toContain('photo');
     Object.assign(useInventoryStore().inventory.screens[0], { pictures: false });
     await card.setProps({ tile: { entity: 'media_player.a', name: 'Music', slot: 0, options: { size: 'tall', display: 'cover', controls: 'playback' } } });
     expect(card.find('img').exists()).toBe(false);
@@ -184,14 +189,20 @@ describe("TileCard", () => {
     useEntitiesStore().liveStates['climate.a'] = { state: 'cool', word: 'Cooling', a: { supported_features: 1, current_temperature: 24, temperature: 21, hvac_modes: ['off', 'cool'] } };
     const plain = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'tall' } });
     expect(plain.find('.ctl').exists()).toBe(false);
-    expect(plain.find('.tall-setpoint').exists()).toBe(false);
-    const target = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
-    expect(target.find('.target b').text()).toBe('21°');
-    expect(target.find('.tall-setpoint .st').text()).toBe('Now 24°');
+    expect(plain.find('.glass-tall .number').exists()).toBe(false);
+    // The number with the decimal of a thermostat's half-degree step (climate_tile.h): big between its keys with what it
+    // measures under it on a square card, on one row in a grey pill on a card one column wide, as the Guition draws them.
+    const target = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'square', controls: 'setpoint' } });
+    expect(target.find('.glass-tall .number').text()).toBe('21.0°');
+    expect(target.find('.glass-tall .now').text()).toBe('Now 24°');
+    const narrow = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
+    expect(narrow.find('.glass-tall .number').text()).toBe('21.0°');
+    expect(narrow.find('.glass-tall .pill').exists()).toBe(true);
+    expect(narrow.find('.glass-tall .now').exists()).toBe(false);
     useEntitiesStore().liveStates['climate.a'].a.hvac_modes = ['off', 'heat', 'cool', 'dry'];
     const modes = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'square', controls: 'mode' } });
     // "Mode" on a taller card is the same bar as under the -/+ of "Temperature and mode".
-    expect(modes.findAll('.ctl .mode-bar .seg').map((s) => s.classes('on'))).toEqual([false, true, false]);
+    expect(modes.findAll('.glass-row .mode-bar .seg').map((s) => s.classes('on'))).toEqual([false, true, false]);
     const both = placed({ entity: 'climate.a', name: 'Climate', slot: 0, options: { size: 'square', controls: 'setpoint_mode' } });
     expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
   });
@@ -219,8 +230,9 @@ describe("TileCard", () => {
     // The humidity it is set to between - and +, on a wide card and a tall one with the humidity now under it.
     expect(placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'setpoint' } }).find('.stp b').text()).toBe('55%');
     const tall = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
-    expect(tall.find('.target b').text()).toBe('55%');
-    expect(tall.find('.tall-setpoint .st').text()).toBe('Now 68%');
+    expect(tall.find('.glass-tall .number').text()).toBe('55%');
+    const square = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'square', controls: 'setpoint' } });
+    expect(square.find('.glass-tall .now').text()).toBe('Now 68%');
     // Its modes as the mode bar with Home Assistant's icons, the one it is in filled blue.
     const modes = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'mode' } });
     const segs = modes.findAll('.ctl .mode-bar .seg');
@@ -228,7 +240,7 @@ describe("TileCard", () => {
     expect(segs.map((s) => s.classes('on'))).toEqual([false, true, false]);
     expect(segs[1].attributes('style')).toContain('#2196f3');
     const both = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'square', controls: 'setpoint_mode' } });
-    expect(both.find('.tall-setpoint .target b').text()).toBe('55%');
+    expect(both.find('.glass-tall .number').text()).toBe('55%');
     expect(both.findAll('.mode-bar .seg')).toHaveLength(3);
     // The slider fills to the humidity it is set to over its own range: 55 of 30 to 80 is half.
     const slider = placed({ entity: 'humidifier.h', name: 'Dryer', slot: 0, options: { size: 'wide', controls: 'slider' } });
@@ -249,7 +261,7 @@ describe("TileCard", () => {
     useEntitiesStore().liveStates['climate.b'].a.temperature = 20;
     const single = placed({ entity: 'climate.b', name: 'Both', slot: 0, options: { size: 'tall', controls: 'setpoint' } });
     expect(single.find('.range-chip').exists()).toBe(false);
-    expect(single.find('.target b').text()).toBe('20°');
+    expect(single.find('.glass-tall .number').text()).toBe('20.0°');
     // One set to a single temperature says it as Home Assistant sends it: 68°, 21.5°, never 68.0°.
     useEntitiesStore().liveStates['climate.s'] = { state: 'heat', word: 'Heat', a: { supported_features: 385, temperature: 68, current_temperature: 77 } };
     expect(placed({ entity: 'climate.s', name: 'Single', slot: 0 }).find('.st').text()).toBe('68°');
@@ -320,9 +332,10 @@ describe("TileCard", () => {
   it("draws a single tile as the screen does: the icon left, the name and value beside it", () => {
     useEntitiesStore().liveStates["sensor.t"] = { state: "1249", word: null, a: { unit_of_measurement: "W" } };
     const plain = placed({ entity: "sensor.t", name: "Power", slot: 0 });
-    expect(plain.find(".head > .ic").exists()).toBe(true);
-    expect(plain.find(".head > .tx > .nm").text()).toBe("Power");
-    expect(plain.find(".head > .tx > .st").text()).toBe("1,249 W");
+    // Each part where the glass puts it (runtime_tiles head_row, model/card-layout.ts).
+    expect(plain.find(".glass-head > .ic").exists()).toBe(true);
+    expect(plain.find(".glass-head > .nm").text()).toBe("Power");
+    expect(plain.find(".glass-head > .st").text()).toBe("1,249 W");
     // A watch card stands as the glass lays it out (ui-scale watchCard, app 0.4.74): the icon and the name above the
     // big value where the cell has room for the three, each where the firmware puts it.
     const watch = placed({ entity: "sensor.t", name: "Power", slot: 1, options: { display: "watch" } });
@@ -360,9 +373,9 @@ describe("Library", () => {
     appendTiles({ entity: "light.a", name: "", slot: 0 });
     const library = mount(Library);
     const names = () => library.findAll(".ent .tx b").map((b) => b.text());
-    // Browsing, each room under its name and the screen's own cards last (app 0.4.32).
-    expect(library.findAll(".lib-group-title").map((h) => h.text())).toEqual(["Kitchen 1", "Living room 3", "Screen 2"]);
-    expect(names()).toEqual(["Lamp B", "Lamp A", "Temperature", "Curtains", "Clock", "Go to page 1"]);
+    // Browsing, the screen's own cards first, then each room under its name (app 0.4.32).
+    expect(library.findAll(".lib-group-title").map((h) => h.text())).toEqual(["Screen 2", "Kitchen 1", "Living room 3"]);
+    expect(names()).toEqual(["Clock", "Go to page 1", "Lamp B", "Lamp A", "Temperature", "Curtains"]);
     expect(library.find('.ent[title="light.a"]').attributes("disabled")).toBeDefined();
     expect(library.find('.ent[title="light.a"] .av').classes()).toContain("on");
     expect(library.find('.ent[title="light.b"] .av').classes()).toContain("gone");
@@ -374,7 +387,7 @@ describe("Library", () => {
     await room(library, "Kitchen").trigger("click");
     expect(useUiStore().room).toBe("");
     await library.find("#hide-placed").trigger("click");
-    expect(names()).toEqual(["Lamp B", "Temperature", "Curtains", "Clock", "Go to page 1"]);
+    expect(names()).toEqual(["Clock", "Go to page 1", "Lamp B", "Temperature", "Curtains"]);
     useUiStore().filter = "light";
     await library.vm.$nextTick();
     expect(names()).toEqual(["Lamp B"]);
@@ -706,11 +719,12 @@ describe("TileInspector: a live picture on a camera tile (app 0.2.91)", () => {
     expect(choices(drawer, "Display")).toEqual(["Name and status", "Large value", "Album cover", "Favourite"]);
     await row(drawer, "Display").findAll(".seg button")[2].trigger("click");
     expect(current(tile).options).toEqual({ size: "wide", display: "cover" });
-    expect(hint(row(drawer, "Display")).text).toMatch(/icon's place/);
+    // The cover dims behind the whole card on one row too (the picture system), as on a taller one.
+    expect(hint(row(drawer, "Display")).text).toMatch(/dimmed background/);
     expect(row(drawer, "Refresh")).toBeUndefined();
     expect(row(drawer, "Direct control on the tile")).toBeDefined();
     const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
-    expect(card.find(".ic").classes()).toContain("thumb");
+    expect(card.find(".ic").classes()).not.toContain("thumb");
     expect(card.find(".range").exists()).toBe(true);
     // A board without memory for pictures (a CYD) gets no such choice; a tile over the whole page keeps the card's big cover.
     Object.assign(useInventoryStore().inventory.screens[0], { board: "cyd", pictures: false });
@@ -1467,6 +1481,16 @@ describe("the orientation of a new screen", () => {
     const third = await installer();
     await third.find('input[value="guition"]').setValue("guition");
     expect(third.find("#choice-DISPLAY_MODEL").exists()).toBe(false);
+    // A value with words of its own shows them (GitHub #289), and is sent as the value.
+    const fourth = await installer();
+    await fourth.find('input[value="jc1060p470"]').setValue("jc1060p470");
+    expect(fourth.find("#choice-BOARD_VARIANT legend").text()).toBe("Board");
+    expect(fourth.findAll("#choice-BOARD_VARIANT .choice b").map((b) => b.text())).toEqual(["Black, in a case", "Yellow, without a case"]);
+    await fourth.findAll("#choice-BOARD_VARIANT .choice input")[1].setValue("yellow");
+    await fourth.find("#friendly_name").setValue("Hall");
+    await fourth.find("#install-form").trigger("submit");
+    await flush();
+    expect(answers.pop()).toMatchObject({ board: "jc1060p470", choices: { BOARD_VARIANT: "yellow" } });
     // The grid is no board's choice any more (app 0.4.85): Advanced takes columns and rows within the board's range, and
     // only a grid that differs from the board's best goes along.
     expect(third.find("#choice-GRID_ROWS").exists()).toBe(false);

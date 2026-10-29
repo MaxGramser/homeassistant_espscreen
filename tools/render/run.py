@@ -8,8 +8,12 @@ real firmware for the host, starts it, and drives it over its API with no Home A
   and on every board the geometry check that nothing falls outside its area. A FAIL fails the run;
 - PNGs of every page, of the alerts (plain, long, with a button, with two buttons and button colors), of an alert with a camera picture
   (one button and two) on the boards
-  that draw pictures (made by the add-on's own camera_feed for the frame this screen's card makes for it), and of
-  page 1 in Dark mode.
+  that draw pictures (sized by the add-on's own picture_question.alert_box for the frame this screen's card makes for it
+  and painted by its picture_paint), and of page 1 in Dark mode.
+
+Every picture a screen asks for is answered the way ESP Screen Manager answers it (docs/PICTURES.md): the question read
+by picture_question (or picture_legacy, for the fields of older firmware), painted by picture_paint from the harness's own
+drawn pictures, and answered with picture_question.answer.
 
     python3 tools/render/run.py                       every variant, into .esphome/render/out/
     python3 tools/render/run.py guition cyd-portrait  those variants
@@ -168,16 +172,92 @@ class Pictures:
         return f'http://127.0.0.1:{self.server.server_address[1]}/{name}'
 
 
-def alert_picture(item, camera):
-    """(BMP bytes, box) of the camera picture an alert on this variant gets: sized by the add-on's own rule for the frame
-    this screen's card makes for it (camera_feed.alert_box), encoded as the add-on encodes it."""
-    import camera_feed
+def screen_of(item):
+    """The screen of a variant as ESP Screen Manager knows it: its board, the way it hangs and the firmware of this tree."""
     import core
+    return {'board': item.board, 'orientation': 'portrait' if item.rotation else 'landscape',
+            'firmware_known': core.FIRMWARE_VERSION}
+
+
+def alert_picture(item, camera):
+    """(BMP bytes, box) of the camera picture an alert on this variant gets, as the add-on sends it (server.alert_images):
+    sized by its own rule for the frame this screen's card makes for it (picture_question.alert_box), painted by
+    picture_paint."""
+    import picture_paint
+    import picture_question as pq
     raw = porch(*camera)
-    screen = {'board': item.board, 'orientation': 'portrait' if item.rotation else 'landscape',
-              'firmware_known': core.FIRMWARE_VERSION}
-    box = camera_feed.alert_box(screen, camera_feed.picture_size(raw))
-    return camera_feed.encode(raw, box, exact=box != camera_feed.box(screen, 'thumb')), box
+    screen = screen_of(item)
+    box = pq.alert_box(screen, picture_paint.size_of(raw))
+    # A box made for this picture's proportions is filled exactly; the 16:9 frame of older firmware gets it fitted inside.
+    exact = box != pq.box(screen, 'thumb')
+    question = pq.Question(pq.Owner('alert'), (pq.Source('camera', 'camera.front_door'),), box,
+                           (pq.Place(0, 0, *box, fit='exact' if exact else 'shrink'),), formats=('bmp24',))
+    return picture_paint.paint(question, [raw]), box
+
+
+@dataclasses.dataclass
+class Asked:
+    """A screen's question for a picture as the add-on reads it (server.Manager.answer_camera): the question, the `t` and
+    `e` its answer goes back with (`q` and nothing for a question, an older screen's own for its fields), and the event's
+    fields."""
+    question: object
+    kind: str
+    entity: str
+    data: dict
+
+    @property
+    def owner(self):
+        return self.question.owner
+
+    @property
+    def what(self):
+        """The entity the picture is of: the one an older screen named, else the one its owner shows (a tile's, the
+        photos'), else its first source's."""
+        if self.kind != 'q':
+            return self.entity
+        source = self.question.sources[0]
+        return self.question.owner.of or source.param('entity') or source.ref
+
+
+def asked(data, screen):
+    """The Asked of one esphome.screen_camera event, read as the add-on reads it: a question (`q` and its number `n`, from
+    firmware whose hello from the app said `pictures`) by picture_question.parse, the fields of older firmware by
+    picture_legacy.read. None for one the add-on does not answer."""
+    import picture_legacy
+    import picture_question as pq
+    if 'q' in data:
+        try:
+            number = int(data.get('n'))
+        except (TypeError, ValueError):
+            return None
+        shape = pq.shape_of(screen)
+        question = pq.parse(data['q'], number, (shape.get('width', 0), shape.get('height', 0)))
+        return Asked(question, 'q', '', data) if question else None
+    legacy = picture_legacy.read(data, screen)
+    return Asked(legacy.question, legacy.kind, legacy.entity, data) if legacy else None
+
+
+def placed(question, place, **said):
+    """`place` as its source would have it painted: what picture_sources.Resolved says of it (a camera tile's own `fit`
+    and `fade`, the `ground` beside the screensaver's cover, whether a photo may `move`), by the add-on's own rule
+    (picture_service.Service._painted)."""
+    import picture_service
+    import picture_sources
+    return picture_service.Service._painted(None, question, place, picture_sources.Resolved(**said))
+
+
+def painted(question, raws, said=None):
+    """(bytes, question) of a screen's question painted as the add-on paints it (picture_service.Service.answer and
+    picture): within the screen's cap, each place as its source says (`said`, a dict per place for placed()), from one raw
+    picture per place (bytes, a picture, None for none, or a function of the place's width and height that draws it, as
+    a map and the covers at rest are drawn) by picture_paint, in the format the question names first."""
+    import picture_paint
+    import picture_question as pq
+    question = question.scaled(pq.scale_for(question.box, question.cap))
+    question = dataclasses.replace(question, places=tuple(placed(question, place, **(said[n] if said else {}))
+                                                          for n, place in enumerate(question.places)))
+    raws = [raw(place.w, place.h) if callable(raw) else raw for raw, place in zip(raws, question.places)]
+    return picture_paint.paint(question, raws), question
 
 
 def free(port):
@@ -191,6 +271,7 @@ class Run:
     def __init__(self, build, out, pictures, camera, only=None):
         self.build, self.item, self.out, self.pictures, self.camera = build, build.variant, out, pictures, camera
         self.only = only
+        self.screen = screen_of(build.variant)
         self.lines, self.warnings, self.failures = [], [], []
 
     async def call(self, name, **args):
@@ -285,6 +366,32 @@ class Run:
     async def send(self, message):
         if not await self.sender.auxiliary(message, session=self.sender.session, revision=self.sender.confirmed):
             raise RuntimeError('The render configuration was superseded')
+
+    def unanswered(self, calls, since=0):
+        """[(call, Asked)] of the screen's picture questions among `calls[since:]` not answered yet (an answered call is
+        marked `_answered`). One the add-on cannot read is a failure of the run, and is not asked again."""
+        found = []
+        for call in calls[since:]:
+            if call.service != 'esphome.screen_camera' or call.data.get('_answered'):
+                continue
+            read = asked(dict(call.data), self.screen)
+            if read is None:
+                self.failures.append(f'a picture question the add-on cannot read: {dict(call.data)}')
+                call.data['_answered'] = '1'
+                continue
+            found.append((call, read))
+        return found
+
+    async def reply(self, question, url, meta=None):
+        """The answer to an Asked as the add-on sends it (server.Manager.answer_camera, send_auxiliary): the message of
+        picture_question.answer, with the number an older screen gave its question (`view`, 0 for a question)."""
+        import picture_question
+        message = picture_question.answer(question.question, url, question.kind, question.entity, meta or None)
+        try:
+            view = int(question.data.get('view', 0))
+        except (TypeError, ValueError):
+            view = 0
+        await self.send({**message, 'view': view})
 
     async def alert(self, name, reference, **given):
         """One alert over page 1, rendered and dismissed; page 1 must then look as it did."""
@@ -777,39 +884,35 @@ class Run:
         self.client.switch_command(self.dark_switch.key, False)
         await self.until(lambda l: probe(l, 'tile=0 theme dark=0'), 10, 'light again', start)
         # Pictures on the tile (plugin API 0.10): an address in the data gives the probe's two places a picture, the card
-        # asks for both as one picture (the atlas of their frames, the addresses and the fits, as plugin_pictures reads
-        # them), the harness answers with a poster in both frames, and the pieces land on the places.
-        import plugin_pictures
-        import tile_art
+        # asks for both as one picture (one question of their places, an address and a fit each, as picture_question
+        # reads it), the harness answers with a poster in both places, and the pieces land on the places.
         start = len(self.lines)
         since = len(calls)
         poster = 'https://image.tmdb.org/t/p/w342/probe.jpg'
+        tile_asked = lambda: [(call, read) for call, read in self.unanswered(calls, since)
+                              if read.owner.kind == 'plugin_tile' and read.owner.key == 'plugin:host_probe.probe']
         await self.sender.synchronize(self.inbox.object_id, record, region, values(3, {**x, 'picture': poster}), bars)
         await self.until(lambda l: probe(l, 'tile=0 picture set'), 10, 'the picture was set', start)
         shown = await self.until(lambda l: probe(l, 'tile=0 pictures='), 10, 'whether the host shows pictures', 0)
         # A board without pictures (the CYD) has the calls and lays the tile out without places: it asks for nothing.
         if 'pictures=0' in shown:
             await asyncio.sleep(2)
-            asked = [c for c in calls[since:] if c.service == 'esphome.screen_camera' and dict(c.data).get('tiles') == 'plugin:host_probe.probe']
-            assert not asked, f'a board without pictures asked for the plugin tile\'s pictures: {asked}'
+            questions = [read.data for _, read in tile_asked()]
+            assert not questions, f'a board without pictures asked for the plugin tile\'s pictures: {questions}'
             self.warnings.append('pictures: none on this board (pictures=0), no question asked')
         else:
             served = {'posters': 0}
             async def answer_posters():
                 answered = 0
-                for call in calls[since:]:
-                    data = dict(call.data)
-                    if call.service != 'esphome.screen_camera' or data.get('tiles') != 'plugin:host_probe.probe' or data.get('_answered'):
-                        continue
-                    question = plugin_pictures.parse(data, self.canvas)
-                    assert question, f'the plugin tile asked without frames and addresses the app takes: {data}'
-                    assert question.sources == [poster, poster] and question.fits == ['cover', 'contain'], \
-                        f'the places asked for {question.sources} as {question.fits}'
+                for call, read in tile_asked():
+                    sources = [source.text for source in read.question.sources]
+                    fits = [place.fit for place in read.question.places]
+                    assert sources == [poster, poster] and fits == ['cover', 'within'], f'the places asked for {sources} as {fits}'
                     raw = porch(300, 450)
-                    body = tile_art.layers([raw, raw], question.ground, question.atlas, question.styles(), compact=True)
+                    body, _ = painted(read.question, [raw, raw])
                     url = self.pictures.url(f'{self.item.key}-posters-{served["posters"]}.bmp', body)
                     served['posters'] += 1
-                    await self.send({'v': 1, 'op': 'camera', 't': 'live', 'e': data['tiles'], 'u': url, 'view': int(data['view'])})
+                    await self.reply(read, url)
                     call.data['_answered'] = '1'
                     answered += 1
                 return answered
@@ -838,7 +941,7 @@ class Run:
                 await self.until(lambda l: probe(l, 'tile=0 picture set ' + poster), 10, 'the next picture was set', start)
                 # Until the card asked for the next picture: before that it shows the last one anyway.
                 for _ in range(40):
-                    if any(c.service == 'esphome.screen_camera' and poster in str(dict(c.data).get('src', '')) for c in calls[since:]):
+                    if any(poster in [source.text for source in read.question.sources] for _, read in tile_asked()):
                         break
                     await asyncio.sleep(0.25)
                 else:
@@ -867,8 +970,8 @@ class Run:
         await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'re': body['re'], 'ok': True, 'result': {
             'prices': days[1]['prices'], 'start': 1791410400}}})
         await self.until(lambda l: probe(l, f'message re={body["re"]} ok=1 prices=96'), 10, 'a mapped answer of 96 prices', start)
-        # A tap on the plugin tile: on_press as the finger lands (plugin API 0.11), then through the touch guard to on_tap
-        # and on_touch; the plugin opens its card.
+        # A tap on the plugin tile: on_press as the finger lands (plugin API 0.11), then through the touch guard to on_tap;
+        # the plugin opens its card.
         start = len(self.lines)
         tile = (await self.navigation_state())['tile']
         since = len(calls)
@@ -906,34 +1009,33 @@ class Run:
         if not (0 <= tx < tw and 0 <= ty < th):
             self.failures.append(f'the tap point {tx},{ty} is not within the tile\'s {tw}x{th}: {tapped}')
         await self.until(lambda l: probe(l, 'press'), 10, 'on_press', start)
-        await self.until(lambda l: probe(l, 'touch'), 10, 'on_touch', start)
         await self.until(lambda l: probe(l, 'card open') and 'tile=0' in l, 10, 'the card opened', start)
         await self.until(lambda l: probe(l, 'card tick'), 10, 'the card ticked', start)
-        # Pictures on the card (plugin API 0.13): its place asks for its picture as a plugin tile's do, marked as a
-        # card's (`card`, `for`), the harness answers as the app does ("pcard"), and the piece lands on the place. A board
-        # without pictures lays the card out without the place and asks for nothing.
+        # Pictures on the card (plugin API 0.13): its place asks for its picture as a plugin tile's do, as a card's
+        # (owner plugin_card, with the entity it shows), the harness answers as the app does, and the piece lands on the
+        # place. A board without pictures lays the card out without the place and asks for nothing.
         kept = os.environ.get('KEPT_PAGES_HOST') == '1'
         card_shows = await self.until(lambda l: probe(l, 'card pictures='), 10, 'whether the card shows pictures', start)
+        card_asked = lambda since: [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card']
         async def card_picture(since, of):
             for _ in range(24):
-                asked = [c for c in calls[since:] if c.service == 'esphome.screen_camera' and dict(c.data).get('card') == '1']
-                if asked:
+                questions = card_asked(since)
+                if questions:
                     break
                 await asyncio.sleep(0.5)
-            assert asked, 'the card did not ask for its picture'
-            data = dict(asked[-1].data)
-            assert data.get('tiles') == 'plugin:host_probe.detail' and data.get('for') == of, f'the card asked as {data}'
-            question = plugin_pictures.parse(data, self.canvas)
-            assert question and question.card and question.sources == ['https://image.tmdb.org/t/p/w342/probe-card.jpg'], \
-                f'the card asked for {data}'
+            assert questions, 'the card did not ask for its picture'
+            read = questions[-1]
+            assert read.owner.key == 'plugin:host_probe.detail' and read.owner.of == of, f'the card asked as {read.data}'
+            assert [source.text for source in read.question.sources] == ['https://image.tmdb.org/t/p/w342/probe-card.jpg'], \
+                f'the card asked for {read.data}'
             raw = porch(400, 400)
-            body = tile_art.layers([raw], question.ground, question.atlas, question.styles(), compact=True)
+            body, _ = painted(read.question, [raw])
             url = self.pictures.url(f'{self.item.key}-card-{since}.bmp', body)
-            await self.send({'v': 1, 'op': 'camera', 't': 'pcard', 'e': data['tiles'], 'u': url, 'view': int(data['view'])})
+            await self.reply(read, url)
         if 'pictures=0' in card_shows:
             await asyncio.sleep(2)
-            asked = [c for c in calls[since:] if c.service == 'esphome.screen_camera' and dict(c.data).get('card') == '1']
-            assert not asked, f'a board without pictures asked for the card\'s picture: {asked}'
+            questions = [read.data for read in card_asked(since)]
+            assert not questions, f'a board without pictures asked for the card\'s picture: {questions}'
             self.warnings.append('card pictures: none on this board (pictures=0), no question asked')
         else:
             await card_picture(since, '')
@@ -1015,6 +1117,23 @@ class Run:
             await self.until(lambda l: probe(l, 'standby dark=1'), 10, 'on_standby(true)', start)
             await self.call('render_standby', enter=0)
             await self.until(lambda l: probe(l, 'standby dark=0'), 10, 'on_standby(false)', start)
+            # A plugin wakes the screen as Home Assistant's Wake button does (tessera::wake, plugin API 0.16): the same
+            # script (wake_from) with the plugin's name in the log, and the plugin hears the screen come back. On a lit
+            # screen it only counts the standby time from now.
+            start = len(self.lines)
+            await self.call('render_standby', enter=1)
+            await self.until(lambda l: probe(l, 'standby dark=1'), 10, 'on_standby(true) before the plugin wakes it', start)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'wake'}})
+            await self.until(lambda l: 'Wake from plugin host_probe, screen in standby' in l, 10, 'tessera::wake took wake_from', start)
+            await self.until(lambda l: probe(l, 'standby dark=0'), 10, 'on_standby(false) after tessera::wake', start)
+            start = len(self.lines)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'wake'}})
+            await self.until(lambda l: 'Wake from plugin host_probe, screen on' in l, 10, 'tessera::wake on a lit screen', start)
+            # How far the camera turns its picture (tessera::camera_turn, plugin API 0.19): 0 on a board that mounts no
+            # camera upside down, lying down as built.
+            start = len(self.lines)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'camera_turn'}})
+            await self.until(lambda l: probe(l, 'camera_turn=0'), 10, 'tessera::camera_turn on a board lying down', start)
         await self.call('render_page', page=0)
         await self.page_done(0)
         # A card that closes itself, or opens another in its place, from inside one of its own calls (the probe's
@@ -1059,6 +1178,68 @@ class Run:
         await self.call('render_close_cards')
         await self.until(lambda l: probe(l, 'card destroy'), 10, 'the card on_back opened closed', start)
         self.warnings.append('closer: closed in open, on_state, on_tick, new data, the look, and Back that opens a card')
+        # A popup (plugin API 0.18): the alert's card over the page with the probe's words in it, which lives (its
+        # interval and clock), takes a tap on the card where the finger was, goes on a tap beside it (on_dismiss first),
+        # when its plugin closes it (no on_dismiss), when it closes itself inside its own on_tap (deleted only after that
+        # call) and when an alert comes; showing one lights the screen as tessera::wake does.
+        async def popup(mode='popup'):
+            start = len(self.lines)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': mode}})
+            line = await self.until(lambda l: probe(l, 'popup open '), 10, f'{mode}: the popup opened', start)
+            w, h, x, y = (int(v) for v in re.search(r'open (\d+)x(\d+) at=(-?\d+),(-?\d+)', line).groups())
+            await self.until(lambda l: probe(l, 'popup interval'), 10, f'{mode}: the popup\'s interval', start)
+            await self.until(lambda l: probe(l, 'popup tick'), 10, f'{mode}: the popup\'s clock', start)
+            assert any('Wake from plugin host_probe' in l for l in self.lines[start:]), f'{mode}: showing it woke nothing'
+            key = next(l for l in self.lines[start:] if 'Popup of host_probe shows' in l)
+            self.popup_key = tuple(int(v) for v in re.search(r'close key at (-?\d+),(-?\d+)', key).groups())
+            return start, (x + w // 3, y + 6)   # on its first line: the card is only as high as what it shows
+        start, middle = await popup()
+        await self.render('plugin-popup')
+        await self.tap(*middle)
+        await self.until(lambda l: probe(l, 'popup tap at='), 10, 'a tap on the popup', start)
+        tapped_at = next(l for l in self.lines[start:] if probe(l, 'popup tap at='))
+        assert 'at=-1,-1' not in tapped_at, f'the popup\'s tap said no place: {tapped_at}'
+        assert said(start, 'popup destroy') == 0, 'a tap on the popup closed it'
+        await self.tap(4, 4)
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'a tap beside the popup closed it', start)
+        assert said(start, 'popup dismiss') == 1, 'the popup a tap beside closed heard no on_dismiss'
+        start, middle = await popup()
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'popup shown=0'), 10, 'close_popup closed it', start)
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the closed popup deleted', start)
+        assert said(start, 'popup dismiss') == 0, 'close_popup called on_dismiss'
+        start, middle = await popup('popup_self')
+        await self.tap(*middle)
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the popup that closed itself deleted', start)
+        said_now = [l[l.index('popup '):] for l in self.lines[start:] if probe(l, 'popup ')]
+        assert said_now.index('popup destroy') > said_now.index('popup tap end'), \
+            f'the popup was deleted inside its own on_tap: {said_now}'
+        # Its close key, the round key of every card's top bar, in the card's top right corner.
+        start, middle = await popup()
+        await self.render('plugin-popup-key')
+        await self.tap(*self.popup_key)
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the close key closed the popup', start)
+        assert said(start, 'popup dismiss') == 1, 'the popup its close key closed heard no on_dismiss'
+        assert said(start, 'popup tap at=') == 0, 'the close key reached the popup as a tap'
+        # A popup lights a screen in standby, as tessera::wake does.
+        if 'render_standby' in self.services:
+            start = len(self.lines)
+            await self.call('render_standby', enter=1)
+            await self.until(lambda l: probe(l, 'standby dark=1'), 10, 'on_standby(true) before the popup', start)
+            await popup()
+            await self.until(lambda l: 'Wake from plugin host_probe, screen in standby' in l, 10, 'the popup woke the screen', start)
+            await self.until(lambda l: probe(l, 'standby dark=0'), 10, 'on_standby(false) after the popup', start)
+            assert said(start, 'popup destroy') == 0, 'the screen that woke closed its popup'
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+            await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the popup after standby closed', start)
+        start, middle = await popup()
+        await self.call('show_alert', title='Over the popup', subtitle='', icon='', color='', button_text='', timeout=0,
+                        flash=False)
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'an alert closed the popup', start)
+        assert said(start, 'popup dismiss') == 1, 'the popup an alert closed heard no on_dismiss'
+        await self.call('dismiss_alert')
+        self.warnings.append('popup: shown, ticked, tapped, closed beside, by its key, by its plugin, by itself and by an '
+                             'alert; it woke a screen in standby')
         # A slot that goes from the plugin tile to a plain card lets the plugin's object go at once (plugin_api.h), not
         # when the slot next draws a custom card; page 2 and back still show their plugin tiles, kept or made anew.
         start = len(self.lines)
@@ -1100,8 +1281,7 @@ class Run:
         state and its clock, and goes when the next comes; a tap on the key wishes play or pause, sends the action and
         stays in standby, and without a word from Home Assistant the face goes back; a hold holds; a tap beside it wakes
         the screen and the saver leaves the glass. Every count from the probe's own lines."""
-        import plugin_pictures
-        import tile_art
+        import picture_question
         mine = next((p for p in self.sender.plugins if p['id'] == 'host_probe'), None)
         assert mine and mine.get('savers') == ['deck', 'dial', 'alarm', 'frame'], f'the hello names the savers {mine}'
         pictured = 'camera' in json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board]
@@ -1128,25 +1308,26 @@ class Run:
             word = {'k': 'media', 'e': entity, 'n': 'Living room', 't': 'Evening Drive', 'x': {'artist': 'Nova Coast', 'pic': 'c0ffee1234'},
                     's': 'playing', 'f': 1 | 4 | 8 | 1024 | 16384}
             contract = {'entity': entity, 'name': 'Living room', 'title': 'Evening Drive', 'artist': 'Nova Coast', 'state': 'playing',
-                        'features': 1 | 4 | 8 | 1024 | 16384, 'muted': False, 'picture': 'saver:picture', 'mark': 'c0ffee1234'}
+                        'features': 1 | 4 | 8 | 1024 | 16384, 'muted': False, 'picture': 'step:', 'mark': 'c0ffee1234'}
             await self.send({'v': 1, 'op': 'saver', **word, 'pf': {'p': 'plugin:host_probe.deck', 'o': {}, 'x': contract}})
             await self.until(lambda l: probe(l, 'saver=dial destroy'), 10, 'the clock face left for the music', lines)
             key = await self.until(lambda l: probe(l, 'saver=deck key '), 10, 'the music face and its key', lines)
             x1, y1, x2, y2 = (int(n) for n in key.rsplit(' ', 1)[1].split(','))
-            # Its cover: asked as a saver's (`saver`), the address the step's own, answered as the app does ("psaver").
+            # Its cover: asked as a saver's (owner plugin_saver), the source the step's own picture (`step:`), answered
+            # as the app does.
             for _ in range(24):
-                asked = [c for c in calls[start:] if c.service == 'esphome.screen_camera' and dict(c.data).get('saver') == '1']
-                if asked:
+                questions = [read for _, read in self.unanswered(calls, start) if read.owner.kind == 'plugin_saver']
+                if questions:
                     break
                 await asyncio.sleep(0.5)
-            assert asked, 'the music face did not ask for its cover'
-            data = dict(asked[-1].data)
-            question = plugin_pictures.parse(data, self.canvas)
-            assert question and question.saver and question.sources == ['saver:picture'], f'the face asked as {data}'
+            assert questions, 'the music face did not ask for its cover'
+            read = questions[-1]
+            assert read.owner.key == 'plugin:host_probe.deck' and read.question.sources == (picture_question.Source('step'),), \
+                f'the face asked as {read.data}'
             import media_art
-            body = tile_art.layers([media_art.png(0, 640)], question.ground, question.atlas, question.styles(), compact=True)
+            body, _ = painted(read.question, [media_art.png(0, 640)])
             url = self.pictures.url(f'{self.item.key}-psaver.bmp', body)
-            await self.send({'v': 1, 'op': 'camera', 't': 'psaver', 'e': data['tiles'], 'u': url, 'view': int(data['view'])})
+            await self.reply(read, url)
             await asyncio.sleep(1.5)
             await self.render('plugin-saver-deck')
             # The key: a tap wishes the pause, the action goes, the face hears "paused" at once and the screen stays dark.
@@ -1174,30 +1355,33 @@ class Run:
             # A face over the step's own photo (`backdrop`): the screen asks for the photo as its own face does, the
             # face draws over it on a clear glass, and the photo moves (`mv`).
             start, lines = len(calls), len(self.lines)
-            import camera_feed
             await self.send({'v': 1, 'op': 'saver', 'k': 'photos', 'e': 'saver.photos', 'n': '', 'x': {'pic': 'beef00beef', 'mv': 1},
-                             'pf': {'p': 'plugin:host_probe.frame', 'o': {}, 'x': {'picture': 'saver:picture', 'mark': 'beef00beef',
+                             'pf': {'p': 'plugin:host_probe.frame', 'o': {}, 'x': {'picture': 'step:', 'mark': 'beef00beef',
                                                                                      'index': 2, 'count': 9, 'album': 'Family'}}})
             await self.until(lambda l: probe(l, 'saver=frame show'), 10, 'the photo face over its photo', lines)
             for _ in range(24):
-                asked = [c for c in calls[start:] if c.service == 'esphome.screen_camera' and dict(c.data).get('saver') == 'photos']
-                if asked:
+                questions = [read for _, read in self.unanswered(calls, start)
+                             if read.owner.kind == 'saver' and read.question.sources[0].kind == 'photos']
+                if questions:
                     break
                 await asyncio.sleep(0.5)
-            assert asked, 'the photo under the face was not asked for'
-            data = dict(asked[-1].data)
-            box = camera_feed.capped(self.canvas)
-            moving = camera_feed.motion_box(box, camera_feed.picture_cap(data))
-            body = camera_feed.encode_photo(porch(1600, 1200), box, 'fill', moving)
+            assert questions, 'the photo under the face was not asked for'
+            # A photo set to fill the glass and move slowly, as the add-on paints it (picture_sources.Sources.get): cut
+            # larger than the glass when that fits the screen's cap, so the screen moves it.
+            body, question = painted(questions[-1].question, [porch(1600, 1200)], [{'fit': 'cover', 'move': True}])
+            place = question.places[0]
+            with Image.open(io.BytesIO(body)) as sent:
+                size = sent.size
+            moving = size != (place.w, place.h)
             url = self.pictures.url(f'{self.item.key}-frame.bmp', body)
-            await self.send({'v': 1, 'op': 'camera', 't': 'saver', 'e': 'saver.photos', 'u': url, 'view': int(data['view'])})
+            await self.reply(questions[-1], url)
             await asyncio.sleep(1.5)
             first = await self.render('plugin-saver-frame')
             await asyncio.sleep(2 * 1.6)
             later = await self.render('plugin-saver-frame-later')
             if moving and first.convert('RGB').tobytes() == later.convert('RGB').tobytes():
                 raise RuntimeError('saver: the photo under the face did not move')
-            self.warnings.append(f'saver face over its photo: photo {moving or box}, {"moving" if moving else "still"}')
+            self.warnings.append(f'saver face over its photo: photo {size[0]}x{size[1]}, {"moving" if moving else "still"}')
         lines = len(self.lines)
         await self.send({'v': 1, 'op': 'saver', 'k': 'plugin',
                          'pf': {'p': 'plugin:host_probe.alarm', 'o': {}, 'x': {'state': 'on', 'name': 'Alarm'}}})
@@ -1540,6 +1724,138 @@ class Run:
         await asyncio.sleep(1.0)
         await self.call('render_finger', x=x, y=y, down=False)
         await asyncio.sleep(0.4)
+
+    async def vacuum_tiles(self, grid):
+        """A robot's larger tile (module_vacuum_tile.cpp, docs/VACUUM.md "A larger tile") the way it is used: each face on
+        a 2x2 and the map with the rooms on the whole page, docked; two rooms tapped (Start counts them); cleaning with how
+        far it is; an error; dark. The map is the add-on's own vacuum_map at the size the tile asks for. Every part a
+        finger acts on is read back (render_vacuum) and must lie on the glass."""
+        import vacuum_map
+        from core import state_message
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        ENTITY = 'vacuum.robot'
+        FULL = 4 | 8 | 16 | 32 | 512 | 4096 | 8192 | 16384
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        from PIL import Image as _Image, ImageDraw as _Draw
+        cells = _Image.new('RGBA', (160, 84), (0, 0, 0, 0))
+        d = _Draw.Draw(cells)
+        for box, colour in [((2, 2, 60, 22), (165, 105, 189, 255)), ((2, 22, 50, 82), (217, 136, 128, 255)),
+                            ((50, 50, 96, 82), (240, 178, 122, 255)), ((60, 2, 158, 82), (133, 193, 233, 255))]:
+            d.rectangle(box, fill=colour, outline=(93, 109, 126, 255))
+        plan = io.BytesIO()
+        cells.resize((640, 336), _Image.NEAREST).save(plan, 'PNG')
+        drawing = vacuum_map.read(plan.getvalue())
+        rows = {'mode': {'e': 'select.robot_cleaning_mode', 's': 'vac_and_mop', 'o': ['vacuum', 'vac_and_mop', 'mop'],
+                         'l': ['Vacuum', 'Vac & mop', 'Mop'], 'r': 'vbm'}}
+        six = [['kitchen', 'Kitchen', 'F0B7C', 0], ['living_room', 'Living room', 'F04B9', 0], ['hall', 'Hallway', 'F081A', 0],
+               ['bedroom', 'Bedroom', 'F02E3', 0], ['study', 'Office', 'F1239', 0], ['bathroom', 'Bathroom', 'F09A0', 0]]
+        routines = [['button.robot_after_dinner', 'After dinner'], ['button.robot_daily', 'Daily clean'],
+                    ['button.robot_deep', 'Deep clean'], ['button.robot_bin', 'Empty the bin'], ['button.robot_mop', 'Mop the kitchen']]
+        card_map = {'e': 'image.robot_home', 'm': '2026-09-15T08:00:00+00:00'}
+        def scene(state, battery=100, charging=True, room=None, vc=None):
+            x = dict(rows, bat=battery)
+            if charging:
+                x['chg'] = 1
+            if room:
+                x['room'] = room
+            x['vc'] = {'map': card_map, 'rooms': six, 'rt': routines, **(vc or {})}
+            return {'state': state, 'attributes': {'friendly_name': 'Robot', 'supported_features': FULL}}, x
+        faces = [('rooms', 'square'), ('map', 'square'), ('routines', 'square'), ('map_rooms', 'full')]
+        legacy = [dict(entity=ENTITY, name='Robot', options={'size': size, 'controls': face}, slot=n * grid.slots)
+                  for n, (face, size) in enumerate(faces)]
+        record = send_layout.migrate_legacy(dict(title='Robot', tiles=legacy, pages=len(faces)), grid)
+        tiles = send_layout.compile_tiles(record['layout'], grid)
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        served = [0]
+        async def answer_maps():
+            for call, read in self.unanswered(calls):
+                if read.question.sources[0].kind != 'vacuum':
+                    continue
+                ground, dark = read.question.places[0].ground, read.question.dark
+                body, _ = painted(read.question, [lambda w, h: vacuum_map.render(drawing, (w, h), ground, dark)])
+                await self.reply(read, self.pictures.url(f'{self.item.key}-vtile-{served[0]}.bmp', body))
+                served[0] += 1
+                call.data['_answered'] = '1'
+        async def push(state, x):
+            await self.sender.synchronize(self.inbox.object_id, record, region,
+                                          [state_message(i, tile, {ENTITY: state}, x) for i, tile in enumerate(tiles)], bars)
+            await asyncio.sleep(0.8)
+        async def settle():
+            for _ in range(3):
+                await asyncio.sleep(0.7)
+                await answer_maps()
+        async def parts(page):
+            start = len(self.lines)
+            await self.call('render_vacuum')
+            await self.until(lambda l: 'vacuum open=' in l, 10, 'render_vacuum', start)
+            await asyncio.sleep(0.3)
+            found = {}
+            for line in self.lines[start:]:
+                if 'vacuum tile slot=' not in line:
+                    continue
+                face = line.split('vacuum tile slot=', 1)[1].split(' ', 1)[1]
+                spots = {}
+                for item in face.split('|')[1].split(';'):
+                    if '@' in item:
+                        key, point = item.split('@')
+                        spots[key] = tuple(int(n) for n in point.split(','))
+                        if min(spots[key]) < 0:
+                            self.warnings.append(f'vacuum tile {face.split("|")[0]}: part {key} off the glass at {point}')
+                found[face.split('|')[0]] = (spots, face)
+            return found
+        async def show(page, name, dark=False):
+            await self.call('render_page', page=page)
+            await self.page_done(page)
+            await settle()
+            await self.render(name)
+            if dark:
+                self.client.switch_command(self.dark_switch.key, True)
+                await settle()
+                await self.render(name + '-dark')
+                self.client.switch_command(self.dark_switch.key, False)
+                await asyncio.sleep(1.5)
+            card = await self.alarm_probe()
+            if card['faults']:
+                self.warnings.append(f'vacuum tile {name}: {card["faults"]}')
+        # No finger has touched the glass for minutes: its Back to page 1 would take every page home within a second.
+        home = next((e for e in (await self.client.list_entities_services())[0] if getattr(e, 'name', '') == 'Back to page 1'), None)
+        if home:
+            self.client.switch_command(home.key, False)
+        await push(*scene('docked'))
+        for page, (face, size) in enumerate(faces):
+            await show(page, f'vacuum-tile-{face}', dark=face in ('rooms', 'map_rooms'))
+        # Two rooms tapped on the 2x2 of rooms, the bedroom first: Start counts them, each says its place.
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        found = await parts(0)
+        spots = found.get('rooms', ({}, ''))[0]
+        # The last room on the tile first, then the first: a short tile shows fewer rooms and a "+N".
+        rooms = sorted((int(key[2:]) for key in spots if key.startswith('4:')), reverse=True)
+        tapped = [rooms[0], rooms[-1]] if len(rooms) > 1 else rooms
+        for room in tapped:
+            await self.tap(*spots[f'4:{room}'])
+            await asyncio.sleep(0.6)
+        await self.render('vacuum-tile-rooms-picked')
+        after = await parts(0)
+        if 'picks=' + ''.join(f'{room},' for room in tapped) not in after.get('rooms', ({}, ''))[1]:
+            self.warnings.append(f'vacuum tile: picks after two taps: {after.get("rooms")}')
+        # Start cleans those two, in the order of the taps.
+        since = len(calls)
+        if '1:0' in spots:
+            await self.tap(*spots['1:0'])
+            await asyncio.sleep(1.6)
+            sent = [c for c in calls[since:] if 'clean_area' in c.service or 'clean_area' in str(c.data)]
+            if not sent:
+                self.warnings.append(f'vacuum tile: Start with two rooms sent no vacuum.clean_area: {[c.service for c in calls[since:]]}')
+        await push(*scene('cleaning', battery=64, charging=False, room='Living room', vc={'pg': 42}))
+        await show(0, 'vacuum-tile-rooms-cleaning')
+        await show(3, 'vacuum-tile-map_rooms-cleaning')
+        await push(*scene('error', battery=38, charging=False, vc={'err': 'Main brush jammed'}))
+        await show(3, 'vacuum-tile-map_rooms-error')
+        if home:
+            self.client.switch_command(home.key, True)
+        return 1
 
     async def lock_panel(self, grid):
         """The lock (firmware 0.5.0+) the way it is used: a tap locks at once, a locked lock asks for a second tap on its
@@ -1963,15 +2279,16 @@ class Run:
         async def answer_maps(since=0):
             # Every question not answered yet, as the add-on answers each: a card built again after a change of look
             # asks before the next tap.
-            for call in calls:
-                data = dict(call.data)
-                if call.service != 'esphome.screen_camera' or data.get('_answered') or 'vmap' not in data:
+            for call, read in self.unanswered(calls):
+                if read.question.sources[0].kind != 'vacuum':
                     continue
-                width, height = (int(n) for n in data['vmap'].split('x'))
-                body = vacuum_map.render(drawing, (width, height), int(data['bg'], 16), data.get('dark') == '1')
+                # The map drawn at its place's size, in the screen's look and on the card's ground the place names, then
+                # painted as every picture (picture_sources.Sources._vacuum).
+                ground, dark = read.question.places[0].ground, read.question.dark
+                body, _ = painted(read.question, [lambda w, h: vacuum_map.render(drawing, (w, h), ground, dark)])
                 url = self.pictures.url(f'{self.item.key}-vmap-{served[0]}.bmp', body)
                 served[0] += 1
-                await self.send({'v': 1, 'op': 'camera', 't': 'vmap', 'e': ENTITY, 'u': url, 'view': int(data['view'])})
+                await self.reply(read, url)
                 call.data['_answered'] = '1'
         record = send_layout.migrate_legacy(dict(title='Robot', tiles=[dict(entity=ENTITY, name='Robot', options={}, slot=0)]), grid)
         tiles = send_layout.compile_tiles(record['layout'], grid)
@@ -2397,10 +2714,52 @@ class Run:
                 raise RuntimeError(f'media: {what}: {card}')
             await asyncio.sleep(0.15)
 
+    async def doorbell_round(self):
+        """A doorbell's ring (module doorbell, docs/DOORBELL.md): the op doorbell opens the camera full view as a ring, with
+        its picture as ESP Screens paints it in the room beside its keys; a touch answers it (esphome.screen_doorbell), a
+        second ring keeps it open, and the close of a ring answered on another screen closes it."""
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        # Page 1 stands first: a layout that lands closes a camera's view (cancel_layout_input), a ring's too.
+        await self.page_done(0)
+        await asyncio.sleep(2)
+        key, start, since = 'ring0001', len(self.lines), 0
+        ring = {'v': 1, 'op': 'doorbell', 'e': 'camera.front_door', 'n': 'Front door', 'k': key, 'r': int(MOMENT.timestamp()) - 20}
+        await self.send(ring)
+        await self.until(lambda l: 'for a ring' in l, 10, 'doorbell: the view never opened', start)
+        end, answered = time.monotonic() + 10, False
+        while time.monotonic() < end and not answered:
+            for call, read in self.unanswered(calls, since):
+                body, _ = painted(read.question, [porch(*self.camera)], [{}])
+                await self.reply(read, self.pictures.url(f'{self.item.key}-doorbell.bmp', body))
+                call.data['_answered'] = '1'
+                answered = True
+                self.warnings.append(f'doorbell: its picture asked at {read.question.box[0]} x {read.question.box[1]}')
+                break
+            await asyncio.sleep(0.05)
+        if not answered:
+            self.failures.append('doorbell: the view asked for no picture')
+        await self.render('doorbell')
+        # A touch in the middle of the picture answers the ring, once.
+        since = len(calls)
+        await self.tap(self.canvas[0] // 3, self.canvas[1] // 2)
+        await self.tap(self.canvas[0] // 3, self.canvas[1] // 2)
+        reports = [dict(c.data) for c in calls[since:] if c.service == 'esphome.screen_doorbell']
+        if [r.get('action') for r in reports] != ['answered'] or any(r.get('key') != key for r in reports):
+            self.failures.append(f'doorbell: a touch should report answered once, reported {reports}')
+        # Answered elsewhere: the close of that ring closes it here, without a report of its own.
+        since, start = len(calls), len(self.lines)
+        await self.send({'v': 1, 'op': 'doorbell', 'k': key, 'c': 1})
+        await self.until(lambda l: 'answered on another screen' in l, 10, 'doorbell: the close never came', start)
+        await self.page_done(0)
+        await self.render('doorbell-closed')
+        if any(c.service == 'esphome.screen_doorbell' for c in calls[since:]):
+            self.failures.append('doorbell: a ring closed from elsewhere reported again')
+        return 1
+
     async def saver_panel(self):
         """The screensaver (firmware 0.29.0+) over the demo layout in standby: a cover that plays, a camera and the clock,
-        each as ESP Screens says it (screen_saver.py) and with its picture as ESP Screens makes it (camera_feed)."""
-        import camera_feed
+        each as ESP Screens says it (screen_saver.py) and with its picture as ESP Screens paints it (picture_paint)."""
         import media_art
         import media_library
         calls = []
@@ -2410,22 +2769,24 @@ class Run:
         async def answer(since, entity=None, timeout=8):
             end = time.monotonic() + timeout
             while time.monotonic() < end:
-                for call in calls[since:]:
-                    data = dict(call.data)
-                    if call.service != 'esphome.screen_camera' or data.get('_answered'):
-                        continue
+                for call, read in self.unanswered(calls, since):
                     # The question of this step: a question left from the step before (a wake that opened it) is not.
-                    if entity and data.get('entity') != entity:
+                    if entity and read.what != entity:
                         continue
-                    # The screensaver's picture as ESP Screens makes it: the screen's full box, within the picture cap.
-                    kind, box = data.get('saver'), camera_feed.capped(self.canvas)
-                    raw = media_art.png(0, 640) if kind == 'media' else porch(*self.camera)
-                    # A photo of the photos step (app 0.4.89): a standing one, shown whole on its own colour.
-                    body = camera_feed.encode_photo(porch(900, 1200), box) if kind == 'photos' else \
-                        camera_feed.encode_saver(raw, box, kind, int(ground.split(',')[0], 16) if ground else 0)
+                    # The screensaver's picture as ESP Screens paints it (picture_sources.Sources.get) for the places the
+                    # screen asks: the player's cover beside its own colour, a camera's snapshot, and a photo of the
+                    # photos step (app 0.4.89), a standing one, shown whole on its own colour.
+                    kind = read.question.sources[0].kind
+                    if kind == 'cover':
+                        raw, said = media_art.png(0, 640), {'ground': int(ground.split(',')[0], 16) if ground and ground != '-' else 0}
+                    elif kind == 'photos':
+                        raw, said = porch(900, 1200), {'fit': 'auto', 'move': False}
+                    else:
+                        raw, said = porch(*self.camera), {}
+                    body, _ = painted(read.question, [raw], [said])
                     url = self.pictures.url(f'{self.item.key}-saver-{served[0]}.bmp', body)
                     served[0] += 1
-                    await self.send({'v': 1, 'op': 'camera', 't': 'saver', 'e': data['entity'], 'u': url, 'view': int(data['view'])})
+                    await self.reply(read, url)
                     call.data['_answered'] = '1'
                     return
                 await asyncio.sleep(0.05)
@@ -2537,12 +2898,10 @@ class Run:
         """A player the way Spotify is used (firmware 0.24.0, app 0.4.42): its card on its cover's ground with the speaker
         in the top bar, the speaker menu, shuffle and repeat, the library from its folders to a page of covers, a tap
         that plays, and the card of a player at rest. The app's side is played by the add-on's own code (media_library,
-        tile_art, camera_feed); Home Assistant's answers have the shape of the Spotify integration's."""
+        picture_question, picture_paint); Home Assistant's answers have the shape of the Spotify integration's."""
         from core import extras, state_message
-        import camera_feed
         import media_library
         import speakers
-        import tile_art
         import media_art
         from PIL import Image as PILImage, ImageDraw as PILDraw
         calls = []
@@ -2586,27 +2945,21 @@ class Run:
         served = {'cover': 0, 'art': 0}
         async def answer_pictures(since):
             """The pictures the screen asked for since `since`: the card's cover and a page's covers."""
-            for call in calls[since:]:
-                data = dict(call.data)
-                if call.service != 'esphome.screen_camera' or data.get('_answered'):
-                    continue
-                if 'lib' in data:
-                    tokens = [int(t) for t in data['lib'].split(',')]
-                    atlas = tile_art.parse(data['atlas'], self.canvas, len(tokens))
-                    if atlas is None:
-                        faults.append(f'the covers were asked for with frames the app refuses: {data["atlas"][:120]}')
-                        continue
+            for call, read in self.unanswered(calls, since):
+                kinds = {source.kind for source in read.question.sources}
+                if kinds == {'library'}:
                     # Each album keeps its own cover: the one the card plays from (Low Sun) is the same picture here.
+                    tokens = [int(source.ref.split('/', 1)[1]) for source in read.question.sources]
                     seeds = [int(((shelf.get(ENTITY, t) or {}).get('id') or f':{t}').rsplit(':', 1)[1]) for t in tokens]
-                    body = tile_art.encode([picture(n) for n in seeds], [int(data['bg'], 16)] * len(tokens), atlas, compact=True)
+                    body, _ = painted(read.question, [picture(n) for n in seeds])
                     url = self.pictures.url(f'{self.item.key}-lib-{served["art"]}.bmp', body)
                     served['art'] += 1
-                    await self.send({'v': 1, 'op': 'camera', 't': 'lib', 'e': ENTITY, 'u': url, 'view': int(data['view'])})
-                elif data.get('size'):
-                    body = camera_feed.encode_cover(picture(0), int(data['size']), int(data['bg'], 16))
+                    await self.reply(read, url)
+                elif kinds == {'cover'}:
+                    body, _ = painted(read.question, [picture(0)])
                     url = self.pictures.url(f'{self.item.key}-cover-{served["cover"]}.bmp', body)
                     served['cover'] += 1
-                    await self.send({'v': 1, 'op': 'camera', 't': 'cover', 'e': ENTITY, 'u': url, 'view': int(data['view'])})
+                    await self.reply(read, url)
                 call.data['_answered'] = '1'
         async def call_for(service, since, timeout=8):
             end = time.monotonic() + timeout
@@ -2810,22 +3163,17 @@ class Run:
         await self.call('render_cards')
         await self.until(lambda l: 'cards ' in l, 10, 'render_cards', start)
         async def answer_strip(since):
-            for call in calls[since:]:
-                data = dict(call.data)
-                if call.service != 'esphome.screen_camera' or 'tiles' not in data or data.get('_answered'):
+            for call, read in self.unanswered(calls, since):
+                if read.owner.kind != 'tile':
                     continue
-                entities = data['tiles'].split(',')
-                atlas = tile_art.parse(data.get('atlas'), self.canvas, len(entities)) if data.get('atlas') else None
-                if atlas is None:
-                    faults.append(f'the favourites asked for their pictures without frames the app takes: {data}')
-                    continue
-                indexes = [int(n) for n in data['idx'].split(',')]
+                # The tiles by their index in the layout (`tile:<index>`), each with its own picture.
+                indexes = [int(source.ref) for source in read.question.sources]
                 # Low Sun and the player that plays from it share the card's cover; the playlists have their own.
                 seeds = {0: 0, 1: 2, 2: 6, 4: 0}
-                body = tile_art.encode([picture(seeds.get(i, i + 3)) for i in indexes], [int(g, 16) for g in data['bg'].split(',')], atlas, compact=True)
+                body, _ = painted(read.question, [picture(seeds.get(i, i + 3)) for i in indexes])
                 url = self.pictures.url(f'{self.item.key}-strip-{served["art"]}.bmp', body)
                 served['art'] += 1
-                await self.send({'v': 1, 'op': 'camera', 't': 'live', 'e': data['tiles'], 'u': url, 'view': int(data['view'])})
+                await self.reply(read, url)
                 call.data['_answered'] = '1'
         since = 0
         await asyncio.sleep(1.0)
@@ -3476,10 +3824,14 @@ class Run:
             return 1, await self.media_tiles(grid)
         if self.only == 'saver':
             return 1, await self.saver_panel()
+        if self.only == 'doorbell':
+            return 1, await self.doorbell_round()
         if self.only == 'humidifier':
             return 1, await self.humidifier_panel(grid)
         if self.only == 'vacuum':
             return 1, await self.vacuum_panel(grid)
+        if self.only == 'vacuumtile':
+            return 1, await self.vacuum_tiles(grid)
         if self.only == 'bars':
             return 1, await self.bars_round(grid)
         if self.only == 'weather':
@@ -3578,7 +3930,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'bars', 'dock', 'vacuum'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')

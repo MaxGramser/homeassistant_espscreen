@@ -120,9 +120,15 @@ AMBER, GREEN, RED, BLUE, ORANGE, TEAL = 'FFB300', '43A047', 'E53935', '2196F3', 
 ALARM_CLASSES = frozenset(['battery', 'carbon_monoxide', 'gas', 'heat', 'lock', 'moisture', 'problem', 'safety', 'smoke',
                            'sound', 'tamper'])
 
+# The letters of a language written in another script, which a screen built in that language carries beside GLYPHS
+# (packages/core.yaml's SCRIPT_GLYPHS_<SCRIPT>, a test keeps the two equal; docs/TRANSLATING.md, "Letters"): its
+# translation file's `_meta.script` names the list.
+SCRIPT_GLYPHS = {'cyrillic': frozenset('АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№')}
+
 def clean_text(text):
-    """Text the screen can draw: known glyphs, accents folded to the base letter, at most TEXT_BYTES."""
-    glyphs = LEGACY_GLYPHS if i18n.legacy_screen() else GLYPHS
+    """Text the screen can draw: known glyphs, the letters of its language's own script, accents folded to the base
+    letter, at most TEXT_BYTES."""
+    glyphs = LEGACY_GLYPHS if i18n.legacy_screen() else GLYPHS | SCRIPT_GLYPHS.get(i18n.screen_script(), frozenset())
     out = []
     for char in unicodedata.normalize('NFC', one_mu(text)):
         if char in glyphs:

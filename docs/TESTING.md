@@ -115,11 +115,11 @@ the plugin round alone: a layout with a plugin tile on page 1 and on page 2 and 
 plugin's tap action, then every moment in the order the API promises them. The hello names the plugin; create, then
 state, then tick; new data reaches `on_state` without a new object, and so do two days of 96 prices (a full 2.6 KB
 `x`, as a tile of an entity gets them); dark and light reach `on_theme`; the plugin's question is answered through the
-screen's inbox and reaches `on_message`, also as a mapped answer of 96 prices; a finger on the tile reaches `on_press`, `on_tap` and
-`on_touch` and opens the plugin's card, which closes with the cards; on a board with pictures the card's place asks
+screen's inbox and reaches `on_message`, also as a mapped answer of 96 prices; a finger on the tile reaches `on_press` and `on_tap` and
+opens the plugin's card, which closes with the cards; on a board with pictures the card's place asks
 for its picture as a card (plugin API 0.13), the harness answers as the app does and the piece shows on the place, and
 with `KEPT_PAGES_HOST=1` the store holds it while the card is open and frees it when the card closes; a board without
-pictures asks for none; the tap action opens the card with the sensor's entity, which asks again for it; page 2 and back count the tile objects made and deleted; standby reaches `on_standby` both ways. The self test
+pictures asks for none; the tap action opens the card with the sensor's entity, which asks again for it; page 2 and back count the tile objects made and deleted; standby reaches `on_standby` both ways, and the probe's `tessera::wake` (plugin API 0.16) lights a screen in standby through the script Home Assistant's Wake runs (`wake_from`, the log naming the plugin) and only restarts the standby time of a lit one; the probe's popup (plugin API 0.18) shows, ticks, takes a tap with its place and goes on a tap beside it, by `close_popup`, by itself inside its own `on_tap` and when an alert comes. The self test
 runs on the layout too. Run it twice, after any change to `plugin_host.cpp`, `plugin_api.h` or the receiver's plugin
 fields (docs/PLUGINS.md): plain, where every host program makes a card anew when its page comes back, as the CYD does,
 and with `KEPT_PAGES_HOST=1`, the path a board with PSRAM takes (docs/KEPT_PAGES.md), where the kept card shows again
@@ -155,16 +155,22 @@ The release a user gets, from end to end, on a screen of its own (not one a hous
 ## 6. The upgrade
 
 What a user goes through when a release comes out: the app they run updates, and then each screen, from the release
-before. Every release runs it, on the commit that will be published (docs/RELEASING.md, "The release", step 5), with a
-test Home Assistant whose app is installed locally (a copy of `screen_manager/` in its local add-ons folder, rebuilt in
-place, so it keeps its data from one version to the next the way an installed app does) and screens of its own.
+before. Every release runs it, on the commit that will be published (docs/RELEASING.md, "The release", step 5). Since
+2026-10-29 the test Home Assistant is Max's own home Home Assistant (the bench VM is gone): its screens are his real
+ones plus the bench boards on the Mac mini's USB, every build runs on the Mac mini as its build server, and the
+`deploy-home` skill (`.claude/skills/deploy-home/deploy_home.py`, local to that Mac) does the steps below in one
+command, `release-test --candidate <commit> [--other-order <node>]`: the candidate's app is installed locally (a copy
+of `screen_manager/` in the local add-ons folder, with the GitHub app's data copied in, so it keeps the data the way an
+installed app does), and the report it writes names every step with its time. Before anything, it keeps a backup of
+the tiles in Home Assistant; everything it makes there carries `tessera:test` in its name, so it can all be cleaned
+up one day. After the release, `deploy_home.py main` puts the house back on the GitHub app (which is then the release).
 
 1. **Start from main.** The app as main has it, and every test screen on main's firmware: `ref: main` under
    `packages: display:` in its YAML, built by the app (Firmware & USB, Install over Wi-Fi). The screens keep the
    layouts they normally have, heavy ones included. Note what the app holds: its screens, their documents and settings.
 2. **The app of the release.** Put the release's `screen_manager/` in place of main's and rebuild. The data is the same
-   after the update (the documents byte for byte), and every screen still gets its tiles while it runs the old
-   firmware. Look at each screen.
+   after the update (the documents byte for byte: `release-test` compares the data of a backup before and after, and
+   names what differs), and every screen still gets its tiles while it runs the old firmware. Look at each screen.
 3. **Each screen's own Update.** `tools/release.py candidate`, `ref: release-candidate` in the test screens' YAML, and
    **Update** on each screen in the app: the app builds the release with its own ESPHome, fetching every component and
    font from GitHub, and sends it over Wi-Fi, as it will for every user. The screen comes back on the new firmware with

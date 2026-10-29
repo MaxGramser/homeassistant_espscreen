@@ -40,6 +40,7 @@
   "flash": "F0241",
   "format-list-bulleted": "F0279",
   "format-title": "F05F4",
+  "gesture-double-tap": "F073C",
   "gesture-swipe-horizontal": "F0ABF",
   "gesture-tap": "F0741",
   "heart": "F02D1",
@@ -76,6 +77,8 @@
   "sitemap-outline": "F199C",
   "sort-variant": "F04BF",
   "speaker": "F04C3",
+  "star": "F04CE",
+  "star-outline": "F04D2",
   "swap-horizontal": "F04E1",
   "tablet-dashboard": "F0ECE",
   "text-short": "F09A9",
@@ -93,5 +96,6 @@
   "wifi-strength-2": "F0922",
   "wifi-strength-3": "F0925",
   "wifi-strength-4": "F0928",
-  "wifi-strength-off-outline": "F092E"
+  "wifi-strength-off-outline": "F092E",
+  "book-open-page-variant": "F05DA"
 }

@@ -33,9 +33,9 @@ describe("the library", () => {
     expect([inDomain("input_boolean.guest", "switch"), inDomain("sun.sun", "weather"), inDomain("light.a", "switch"), inDomain("x.y", "")]).toEqual([true, true, false, true]);
   });
 
-  it("stands the entities under their room, the screen's own cards and the plugins' tiles last", () => {
+  it("stands the entities under their room, the screen's own cards first and the plugins' tiles last", () => {
     const groups = libraryGroups(libraryBase(ENTRIES, filter()), true);
-    expect(groups.map((g) => g.title)).toEqual(["Bedroom", "Hall", "Kitchen", t("editor.library.no_room"), t("editor.library.filters.screen"), t("editor.library.plugins")]);
+    expect(groups.map((g) => g.title)).toEqual([t("editor.library.filters.screen"), "Bedroom", "Hall", "Kitchen", t("editor.library.no_room"), t("editor.library.plugins")]);
     expect(libraryGroups(ENTRIES.slice(0, 2), false)).toEqual([{ key: "", title: "", entities: ENTRIES.slice(0, 2) }]);
   });
 

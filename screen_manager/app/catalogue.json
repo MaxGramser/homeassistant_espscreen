@@ -1140,6 +1140,37 @@
        }
       ]
      }
+    },
+    {
+     "key": "presets",
+     "needs": {
+      "actions": [
+       {
+        "action": "light.turn_on",
+        "field": "brightness_pct"
+       }
+      ]
+     },
+     "screen": {
+      "feature": "light_presets",
+      "else": "brightness"
+     },
+     "room": {
+      "feature": "light_presets"
+     }
+    },
+    {
+     "key": "brightness_presets",
+     "screen": {
+      "feature": "light_presets",
+      "else": "brightness"
+     },
+     "rows": 2,
+     "of": [
+      "brightness",
+      "presets"
+     ],
+     "one_row": "presets"
     }
    ],
    "inline": {
@@ -1881,6 +1912,10 @@
     "screen.energy": {
      "bytes": 6144,
      "extras": true
+    },
+    "screen.text": {
+     "bytes": 2048,
+     "extras": true
     }
    },
    "key": false,
@@ -2258,9 +2293,98 @@
        }
       ]
      }
+    },
+    {
+     "key": "map",
+     "needs": {
+      "actions": [
+       {
+        "action": "vacuum.start"
+       },
+       {
+        "action": "vacuum.pause"
+       },
+       {
+        "action": "vacuum.stop"
+       },
+       {
+        "action": "vacuum.return_to_base"
+       }
+      ],
+      "device": [
+       "map"
+      ]
+     },
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "one_row": "buttons"
+    },
+    {
+     "key": "rooms",
+     "needs": {
+      "features": [
+       "CLEAN_AREA"
+      ]
+     },
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "one_row": "buttons",
+     "fallback": "buttons"
+    },
+    {
+     "key": "routines",
+     "needs": {
+      "actions": [
+       {
+        "action": "vacuum.start"
+       },
+       {
+        "action": "vacuum.pause"
+       },
+       {
+        "action": "vacuum.stop"
+       },
+       {
+        "action": "vacuum.return_to_base"
+       }
+      ],
+      "device": [
+       "routines"
+      ]
+     },
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "one_row": "buttons"
+    },
+    {
+     "key": "map_rooms",
+     "screen": {
+      "feature": "vacuum_tile",
+      "else": "buttons"
+     },
+     "rows": 2,
+     "of": [
+      "map",
+      "rooms"
+     ],
+     "one_row": "buttons"
     }
    ],
    "inline": null,
+   "grow": [
+    "map_rooms",
+    "map",
+    "rooms"
+   ],
    "toggle": null,
    "taps": [],
    "guards": [],

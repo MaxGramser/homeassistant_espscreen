@@ -207,10 +207,17 @@ def section(changelog, version):
 ISSUE = re.compile(r'github\.com/' + re.escape(REPOSITORY) + r'/(?:issues|pull)/(\d+)|(?<![\w/&])#(\d+)\b')
 
 
+NOT_OURS = re.compile(r'(?:\bwish|/\S+)\s*$', re.IGNORECASE)
+
+
 def issues_in(notes):
-    """The issue and pull request numbers a CHANGELOG section names, as links or as #123, in order, once each."""
+    """The issue and pull request numbers a CHANGELOG section names, as links or as #123, in order, once each.
+    A bare #123 after "wish" (the website's wishlist) or after another repository ("espressif/esp-idf #123") is not
+    an issue of ours."""
     found = []
     for match in ISSUE.finditer(notes):
+        if match.group(2) and NOT_OURS.search(notes[max(0, match.start() - 40):match.start()]):
+            continue
         number = int(match.group(1) or match.group(2))
         if number not in found:
             found.append(number)

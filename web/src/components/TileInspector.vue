@@ -16,12 +16,13 @@ import IconChoices from "./IconChoices.vue";
 import IconPicker from "./IconPicker.vue";
 import TileAnchor from "./TileAnchor.vue";
 import { coverPrimary, coverTiltKind, hasCoverTilt, withCoverTilt } from "../model/tall-controls";
-import { roomControls } from "../model/catalogue";
 import ChoiceField from "./ChoiceField.vue";
 import CalendarSection from "./inspector/CalendarSection.vue";
 import FavoriteSection from "./inspector/FavoriteSection.vue";
 import MapSection from "./inspector/MapSection.vue";
 import MeterSection from "./inspector/MeterSection.vue";
+import PresetsSection from "./inspector/PresetsSection.vue";
+import TextSection from "./inspector/TextSection.vue";
 import NameField from "./inspector/NameField.vue";
 import PrecisionRow from "./inspector/PrecisionRow.vue";
 import TitleButton from "./inspector/TitleButton.vue";
@@ -35,7 +36,7 @@ import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import rules from "../model/page-rules.json";
 import { precisionOffered } from "../model/display-precision";
-import { controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, offeredChoices, sliderOffered, subChoices,
+import { controlChoices, controlHint, displayChoices, displayHint, goesToChoices, goesToHint, offeredChoices, presetsOffered, roomHere, sliderOffered, subChoices,
   tapChoices, tapHint, tileControls, tileDisplay, tiltOffered, type TilePanel } from "../model/tile-options";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
@@ -101,6 +102,8 @@ const mapCard = computed(() => display.value === "map");
 const mapTile = computed(() => props.tile.entity === "screen.map");
 // The energy card (app 0.4.77) is its diagram: no face and no second line to choose, its sensors are Home Assistant's.
 const energyTile = computed(() => props.tile.entity === "screen.energy");
+// The template tile (docs/TEXT_TILE.md) is its template: no face, second line or tap to choose, its field in a section of its own.
+const textTile = computed(() => props.tile.entity === "screen.text");
 // A calendar card (firmware 0.56.0) draws its own head and what its room allows: no face or second line to choose, its
 // choices in a section of their own. As a bedside clock's key it is a key like any other.
 const calendarCard = computed(() => domain.value === "calendar" && !key.value);
@@ -116,6 +119,11 @@ const pictureChoices = (key: "fit" | "overlay") => offer(key, rules.picture[key]
 // A screen that streams a camera live (a P4, its hello's `live`): Live, pace 0, is a camera tile's first pace and its
 // default there; anywhere else a tile keeps the paces in seconds, and the app sends such a screen 15 s for Live.
 const liveCamera = computed(() => domain.value === "camera" && Boolean(scr.currentScreen?.live_camera));
+// How many live cameras the screen plays at once (its caps, docs/PLATFORM_PLAN.md 4.1), for the line under the pace.
+const liveTiles = computed(() => liveCamera.value ? scr.currentScreen?.caps?.live_tiles ?? null : null);
+// The live streams the app serves of every screen together (eight), and how many are in use now: a camera beyond them
+// shows its stills, whatever the screen could play.
+const liveStreams = computed(() => liveCamera.value ? inv.inventory.live_streams ?? null : null);
 const refresh = computed(() => current("refresh", liveCamera.value ? 0 : 15) as number);
 const refreshChoices = computed(() => offer("refresh", rules.refresh.filter((seconds) => seconds !== 0 || liveCamera.value)
   .map((seconds) => [seconds, seconds === 0 ? t("editor.tile.refresh.live") : t("editor.tile.refresh.seconds", { n: seconds })] as [number, string]), refresh.value));
@@ -199,7 +207,9 @@ const crumbs = computed(() => [
 ]);
 const lookShown = computed(() => !goesTo.value && !bedside.value && !key.value && (props.tile.entity !== "screen.settings" || display.value === "live" || domain.value === "sensor"));
 // A card of one cell offers controls only for a type the screen lays out by its room (a cover, firmware 0.57.0).
-const controlsHere = computed(() => Boolean(catalogue.value) && (size.value !== "single" || roomControls(domain.value)));
+const controlsHere = computed(() => Boolean(catalogue.value) && (size.value !== "single" || roomHere(props.tile, panel.value)));
+// A light's presets (module light_presets): their keys right under the control that draws them, on a board that has them.
+const presetsShown = computed(() => presetsOffered(props.tile, panel.value, controls.value));
 const controlsShown = computed(() => (domain.value !== "screen" && !goesTo.value) || (controlsHere.value && !goesTo.value) || (showSlider.value && !goesTo.value));
 // What the pointer rests on is drawn on the tile before it is picked (ChoiceField does the same for its lists).
 const subSample = (kind: string) => kind === "attr" ? `attr:${subAttribute.value || "state"}` : kind === "text" ? `text:${subText.value || t("editor.tile.sub.text_placeholder")}` : kind;
@@ -262,7 +272,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
 
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
     <template v-if="!ui.phone || more">
-    <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard" :title="t('editor.tile.sections.look')">
+    <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard && !textTile" :title="t('editor.tile.sections.look')">
       <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
         <ChoiceField :choices="flowChoices" :value="current('flow', rules.energyFlow[0])" :tile="tile" preview-key="flow" :aria-label="t('editor.tile.energy.flow.label')" @pick="(v) => setTileOption(tile, 'flow', v)" />
@@ -288,6 +298,8 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       <PropRow v-if="lookShown && display === 'live'" :label="t('editor.tile.refresh.label')" icon="refresh">
         <ChoiceField :choices="refreshChoices" :value="refresh" :aria-label="t('editor.tile.refresh.label')" @pick="(v) => setTileOption(tile, 'refresh', Number(v))" />
       </PropRow>
+      <p v-if="lookShown && display === 'live' && liveTiles !== null" class="hint">{{ liveTiles === 1 ? t("editor.tile.refresh.cap_one") : t("editor.tile.refresh.cap", { n: liveTiles }) }}</p>
+      <p v-if="lookShown && display === 'live' && liveStreams" class="hint">{{ t("editor.tile.refresh.streams", { used: liveStreams.used, most: liveStreams.most }) }}</p>
       <PropRow v-if="lookShown && pictureCard" :label="t('editor.tile.picture.fit.label')" icon="resize">
         <ChoiceField :choices="pictureChoices('fit')" :value="current('fit', 'fill')" :tile="tile" preview-key="fit" :aria-label="t('editor.tile.picture.fit.label')" @pick="(v) => setTileOption(tile, 'fit', v)" />
       </PropRow>
@@ -302,6 +314,9 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
 
     <!-- A sensor's meter (firmware 0.56.0): a ring, a tape or a bar; Home Assistant's range or its own; its colours. -->
     <MeterSection v-if="lookShown && meterCard" :tile="tile" />
+
+    <!-- The template tile: its template, completed as it is typed, and the result as the screen gets it. -->
+    <TextSection v-if="textTile" :tile="tile" />
 
     <!-- A calendar card (firmware 0.56.0): what it shows, its calendars, which events, how far ahead. -->
     <CalendarSection v-if="calendarCard" :tile="tile" />
@@ -336,6 +351,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
         <ChoiceField :choices="controlList" :value="primaryControl" :tile="tile" preview-key="controls" :sample="controlSample" :aria-label="t('editor.tile.controls.label')" @pick="pickControl" />
         <template v-if="controlNote.warn" #note><small class="help warn">{{ controlNote.text }}</small></template>
       </PropRow>
+      <PresetsSection v-if="presetsShown && controlsHere && !goesTo" :tile="tile" />
       <SwitchRow v-if="offerTilt" class="tilt-choice" :label="t('editor.tile.controls.tilt')" :description="t('editor.tile.controls.tilt_hint')"
         :model-value="tiltSelected" @update:model-value="(on) => setTileOption(tile, 'controls', withCoverTilt(primaryControl, on))" />
       <SwitchRow v-if="showSlider && !goesTo && !key" class="slider-choice" :label="t('editor.tile.slider.label')"

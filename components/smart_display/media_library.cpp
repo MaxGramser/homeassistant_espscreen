@@ -27,6 +27,7 @@ struct Art {
   std::string key, items, atlas;
   int x = 0, y = 0, scale = picture_store::SCALE_ONE;
   uint32_t ground = 0;
+  picture_question::Question question;  // what the page asks for (picture_question.h)
 };
 static Art art;
 // What a finger uses, for describe(): the cells of the page, the pager's keys, the menu's rows.
@@ -124,22 +125,33 @@ static void art_want() {
     art.x = std::min(art.x, c.at.x); art.y = std::min(art.y, c.at.y);
     right = std::max(right, c.at.right()); bottom = std::max(bottom, c.at.bottom());
   }
-  art.scale = picture_store::fit_scale(right - art.x, bottom - art.y);
+  // Within the board's cap, as every picture of the screen (a page of large covers on a board with little memory).
+  art.scale = picture_store::fit_scale(right - art.x, bottom - art.y, rt::picture_cap());
   art.ground = theme::hex(theme::PAGE);
   art.items.clear();
-  art.atlas = "[";
+  art.question = picture_question::Question{};
+  art.question.owner = picture_question::Owner::LIBRARY;
+  art.question.dark = theme::dark;
+  art.question.formats = {"bmp8", "bmp24"};
+  art.question.cap = rt::picture_cap().bytes;
   for (auto &c : covers) {
     if (!art.items.empty()) art.items += ',';
-    art.items += std::to_string(folder.items[c.index].token);
+    const uint32_t token = folder.items[c.index].token;
+    art.items += std::to_string(token);
     const int ax = c.at.x - art.x, ay = c.at.y - art.y;
-    const int fx = picture_store::scaled(ax, art.scale), fy = picture_store::scaled(ay, art.scale);
-    const int fw = std::max(1, picture_store::scaled(ax + c.at.w, art.scale) - fx), fh = std::max(1, picture_store::scaled(ay + c.at.h, art.scale) - fy);
-    const int radius = std::min(std::min(fw, fh) / 2, picture_store::scaled(media_card::radius_for(c.at.w), art.scale));
-    char frame[64];
-    snprintf(frame, sizeof(frame), "%s[%d,%d,%d,%d,%d,0]", art.atlas.size() > 1 ? "," : "", fx, fy, fw, fh, radius);
-    art.atlas += frame;
+    picture_question::Place p;
+    p.x = picture_store::scaled(ax, art.scale);
+    p.y = picture_store::scaled(ay, art.scale);
+    p.w = std::max(1, picture_store::scaled(ax + c.at.w, art.scale) - p.x);
+    p.h = std::max(1, picture_store::scaled(ay + c.at.h, art.scale) - p.y);
+    p.radius = std::min(std::min(p.w, p.h) / 2, picture_store::scaled(media_card::radius_for(c.at.w), art.scale));
+    p.ground = art.ground;
+    art.question.w = std::max(art.question.w, p.x + p.w);
+    art.question.h = std::max(art.question.h, p.y + p.h);
+    art.question.places.push_back(p);
+    art.question.sources.push_back(picture_question::library_source(entity, token));
   }
-  art.atlas += "]";
+  art.atlas = picture_question::atlas_of(art.question);
   char tail[16];
   snprintf(tail, sizeof(tail), "|%06X", (unsigned) art.ground);
   art.key = "lib|" + entity + "|" + std::to_string(folder.token) + "|" + art.items + "|" + art.atlas + tail;
@@ -158,9 +170,12 @@ bool picture_want(picture_loader::Want &w) {
   w.tag = "lib|" + entity;
   w.slot = picture_loader::Slot::FULL;
   w.rank = picture_loader::Rank::LIBRARY;
-  const std::string who = entity, items = art.items, atlas = art.atlas;
-  const uint32_t ground = art.ground;
-  w.ask = [who, items, atlas, ground] { rt::library_art_request(who, items, atlas, ground); };
+  const std::string who = entity;
+  const picture_question::Question question = art.question;
+  w.ask = [who, question] {
+    rt::picture_ask(question, "lib", who, ++rt::library_art_view_id);
+    ESP_LOGI("library", "Asked for the covers of %s", who.c_str());
+  };
   w.done = art_done;
   return true;
 }

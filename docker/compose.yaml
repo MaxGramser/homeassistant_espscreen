@@ -8,7 +8,8 @@ services:
   esp-screens:
     container_name: esp-screens
     # The same image as the Home Assistant app, built by GitHub from the main branch. To stay on one version, use
-    # its number instead of latest, such as :0.3.22. To build it yourself instead (needs git), replace this line with:
+    # its number instead of latest, such as :0.3.22; :dev is the dev app, to try the next release (docs/DOCKER.md,
+    # "Testing dev"). To build it yourself instead (needs git), replace this line with:
     #   build:
     #     context: https://github.com/MaxGramser/homeassistant_espscreen.git#main:screen_manager
     image: ghcr.io/maxgramser/homeassistant_espscreen:latest

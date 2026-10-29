@@ -17,9 +17,10 @@ export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: numb
 // Plugin API 0.12: `multiple` keeps a list of up to that many values (texts, or picks of a choice), and `search` finds the
 // choices of `options_from` by what the person types.
 export type PluginTileOption = {
-  id: string; kind: "text" | "choice" | "number" | "toggle"; label: Texts; hint?: Texts;
+  id: string; kind: "text" | "choice" | "number" | "toggle" | "entity"; label: Texts; hint?: Texts;
   default?: PluginValue; choices?: { value: string; label: Texts }[]; options_from?: string;
   min?: number; max?: number; step?: number; unit?: string; multiple?: number; search?: boolean;
+  domains?: string[]; attributes?: string[];
 };
 export type PluginTile = {
   id: string; name: Texts; icon?: string; min: string; max: string; memory: number;
@@ -83,6 +84,10 @@ export type Plugin = {
   featured?: boolean;                 // one Tessera recommends to start with (the index's featured.yaml)
   likes?: number;                     // how many like it (the website's count, copied hourly into likes.json)
   liked?: boolean;                    // this app likes it
+  rating?: number | null;             // its average stars (stats.json), none below three ratings
+  ratings?: number;                   // how many rated it
+  homes?: number;                     // how many homes run it, of those who agreed to be counted
+  stars?: number | null;              // this app's own stars for it
   boards: string[] | "any";
   board_names?: string[];             // how a person knows those boards; the add-on fills it from boards.json
   // What it needs: PSRAM, other plugins (they come along), features of the screen (a speaker), an ESPHome to build with.
@@ -261,11 +266,12 @@ export type Fit = { ok: true } | { ok: false; reason: Misfit };
 export type AppFit = Record<string, Record<string, Misfit>>;
 
 // The 4 MB boards (the classic ESP32: the CYD, its ILI9342 sibling, the Hosyond) run close to the top of their slot.
-// What a plugin may add there keeps the image under the 93 % line of docs/RELEASING.md: the CYD's 0.51.0 image is
-// 1,853,664 B of 2,031,616 B, which leaves 34 KB below it.
+// What a plugin may add there keeps the image under the 97 % line of docs/RELEASING.md, the line no image crosses
+// (#292: the stock image passed 93 % in 0.4.88, and with that line no plugin fit): the CYD's English image of 0.4.89 is
+// 1,919,472 B of 2,031,616 B, which leaves 49 KB below it.
 // The add-on reports a 4 MB screen's own last image and slot (firmware_image, Firmware.image_room); before its first
 // build the CYD's numbers stand in for every 4 MB board.
-export const SMALL_FLASH = { image: 1_853_664, slot: 2_031_616, ceiling: 0.93 };
+export const SMALL_FLASH = { image: 1_919_472, slot: 2_031_616, ceiling: 0.97 };
 const SMALL_FLASH_BOARDS = ["cyd", "cyd9342", "hosyond40"];
 const imageOf = (screen: Screen) => screen.firmware_image
   || (screen.board && SMALL_FLASH_BOARDS.includes(screen.board) ? { size: SMALL_FLASH.image, slot: SMALL_FLASH.slot } : null);

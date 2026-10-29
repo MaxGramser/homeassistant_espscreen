@@ -1,12 +1,13 @@
 // The firmware's sizes in the editor's mockup (app 0.4.32): ui_scale.h's px() and the -/+ pill of a card's controls
 // (runtime_tiles panel_metrics, stepper_keys), computed the same way from the board's density and look, so the mockup
 // draws them at the size the glass does instead of sizes of its own.
-type Shape = { width?: number; height?: number; dpi?: number; look?: string;
-  fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; watch_icon?: number; setpoint?: number };
+export type Shape = { width?: number; height?: number; dpi?: number; look?: string;
+  fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; watch_icon?: number; setpoint?: number; icon?: number };
   spacing?: Spacing };
 // The glass's grid (boards.json "spacing"): its margin, the gaps between columns and between rows, a card's padding, where
-// the tile area starts under the top bar (SCROLL_Y), the page bar's height (PAGE_BAR_H) and a card's icon circle.
-type Spacing = { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number };
+// the tile area starts under the top bar (SCROLL_Y), the page bar's height (PAGE_BAR_H), a card's icon circle and its
+// corner (TILE_RADIUS).
+type Spacing = { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
 
 /** ui::configure and ui::px: a size of the reference look (170 dpi standard, 143 dpi compact) in this board's pixels. */
 export function uiScale(shape: Shape) {
@@ -69,7 +70,8 @@ const spacingOf = (shape: Shape) => shape.spacing ?? (uiScale(shape).compact ? {
 export function frameOf(shape: Shape): Required<Spacing> {
   const s = spacingOf(shape), { compact, px } = uiScale(shape), dpi = shape.dpi || (compact ? 143 : 170);
   return { ...s, gap_y: s.gap_y ?? Math.min(px(compact ? 6 : 12), compact ? 4 : 12), top: s.top ?? px(compact ? 37 : 56),
-    page_bar: s.page_bar ?? Math.min(px(compact ? 36 : 60), Math.round((dpi * 7) / 25.4)), circle: s.circle ?? px(compact ? 36 : 54) };
+    page_bar: s.page_bar ?? Math.min(px(compact ? 36 : 60), Math.round((dpi * 7) / 25.4)), circle: s.circle ?? px(compact ? 36 : 54),
+    radius: s.radius ?? px(compact ? 18 : 22) };
 }
 
 /** A card's height in glass pixels, its padding and border included: `rows` of the page's `down` rows from row `start`,

@@ -66,7 +66,7 @@ onMounted(entities.loadOverview);
       <UiMenu v-if="ui.phone" width="240px">
         <template #trigger><button type="button" class="icon-btn home-more" :aria-label="t('editor.screen_view.more')"><Icon name="dots-horizontal" /></button></template>
         <UiMenuItem icon="magnify" @select="ui.palette = true">{{ t("editor.sidebar.search") }}</UiMenuItem>
-        <UiMenuItem icon="alert-circle-outline" @select="ui.go('#alerts')">{{ t("editor.nav.alerts") }}</UiMenuItem>
+        <UiMenuItem icon="gesture-double-tap" @select="ui.go('#events')">{{ t("editor.nav.events") }}</UiMenuItem>
         <UiMenuItem icon="cog-outline" @select="ui.go('#settings')">{{ t("editor.nav.settings") }}</UiMenuItem>
         <UiMenuItem icon="plus" @select="ui.go('#new-screen')">{{ t("editor.nav.new_screen") }}</UiMenuItem>
         <UiMenuSeparator />

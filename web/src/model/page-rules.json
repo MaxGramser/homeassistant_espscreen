@@ -202,7 +202,9 @@
     ],
     "light": [
       "toggle",
-      "brightness"
+      "brightness",
+      "presets",
+      "brightness_presets"
     ],
     "media_player": [
       "volume",
@@ -232,7 +234,11 @@
       "buttons"
     ],
     "vacuum": [
-      "buttons"
+      "buttons",
+      "map",
+      "rooms",
+      "routines",
+      "map_rooms"
     ]
   },
   "backgrounds": [
@@ -426,7 +432,8 @@
     "energy",
     "map",
     "nightstand",
-    "settings"
+    "settings",
+    "text"
   ],
   "keyHolders": {
     "screen.nightstand": 3

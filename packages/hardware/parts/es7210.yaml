@@ -1,0 +1,37 @@
+# ESP Screens - the ES7210, a four-input microphone ADC with a playback reference on its MIC3 (a part: docs/PROFILES.md,
+# "Parts"). A board names it and declares its wiring: the I2C bus (AUDIO_I2C), the one I2S bus it shares with the
+# speaker's codec (AUDIO_MCLK_PIN, AUDIO_BCLK_PIN, AUDIO_LRCLK_PIN, AUDIO_DOUT_PIN, AUDIO_DIN_PIN), the input the voice
+# microphone is on (AUDIO_MIC_INPUT) and the reference's gain (AUDIO_REFERENCE_GAIN, the board's attenuator). The part
+# turns that into the microphone `ts_microphone` and the speaker `ts_speaker_out` the features build on, over one of two
+# transports: "aec" (es7210/aec.yaml), both ways at once with echo cancellation, which the reference makes possible and
+# so the default; or "i2s" (es7210/i2s.yaml), ESPHome's own I2S bus one way at a time, without the AEC libraries
+# (docs/P4_AUDIO.md). A screen's Override YAML picks the other with AUDIO_TRANSPORT.
+packages:
+  transport: !include es7210/${AUDIO_TRANSPORT}.yaml
+
+substitutions:
+  AUDIO_TRANSPORT: "aec"
+  AUDIO_MIC_ADDRESS: "0x40"
+  # The microphones' gain in the analogue stage, before the converter: 30 dB rather than ESPHome's 24 raises the voice
+  # above the converter's own noise, where a digital gain raises both and clips the peaks. ALC off unless the board
+  # turns it on.
+  AUDIO_MIC_GAIN: "30dB"
+  AUDIO_MIC_ALC: "false"
+  # The voice microphone's input, MIC1 or MIC2: in TDM the first data line carries MIC1, MIC3 (the reference), MIC2,
+  # MIC4 in that order, and without TDM MIC1 on the left slot and MIC2 on the right.
+  AUDIO_MIC_INPUT: "1"
+  AUDIO_MIC_SLOT: ${ 2 if (AUDIO_MIC_INPUT | int) == 2 else 0 }
+  AUDIO_MIC_CHANNEL: ${ "right" if (AUDIO_MIC_INPUT | int) == 2 else "left" }
+  AUDIO_MIC_DC_OFFSET: "false"                  # the plain I2S microphone's DC offset taken out (ESPHome's own option)
+  AUDIO_I2S_SAMPLE_RATE: "48000"                # the speaker's rate on the plain I2S bus
+  AUDIO_SPEAKER_BUFFER: "100ms"
+
+audio_adc:
+  - platform: es7210_extended
+    id: ts_audio_adc
+    i2c_id: ${AUDIO_I2C}
+    address: ${AUDIO_MIC_ADDRESS}
+    bits_per_sample: 16bit
+    mic_gain: ${AUDIO_MIC_GAIN}
+    alc:
+      enabled: ${AUDIO_MIC_ALC}

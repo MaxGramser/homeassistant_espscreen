@@ -1,0 +1,113 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-4.3C board: the 4.3-inch 800 x 480 IPS panel and GT911 touch of the
+# Waveshare 4.3, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and Waveshare's CH32V003 expander in place of
+# the 4.3's CH422G. It is sold on its own and in the 4.3C-BOX.
+#
+# The expander is the 7B's: a small microcontroller that answers at 0x24 with eight lines, one PWM output and one
+# ADC. A 4.3C built from the 4.3's board file drives a CH422G that isn't there, so its touch chip stays in reset
+# ("touchscreen is marked FAILED: Calibration error") and its backlight follows whatever the board ran before. The
+# pins and timings below are Waveshare's own (Waveshare-ESP32-components, bsp/esp32_s3_touch_lcd_4_3c): the glass,
+# its pins and its timings are the 4.3's, the expander's lines EXIO1 the touch reset and EXIO2 the backlight enable,
+# and the panel has no reset line. Compiled, not yet seen on the glass of a board here.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# like this one is added. Two entry files include this one: checkout/waveshare43c.yaml (a build on this computer)
+# and packages/waveshare43c.yaml (the package a screen builds from over GitHub).
+packages:
+  # The chip, the CH32V003 expander, the GT911 and the backlight this board shares with the 7B. Not
+  # hardware/waveshare-ch422g.yaml: this board's expander is another chip.
+  hardware: !include ../hardware/waveshare-ch32v003.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare43c"
+  DEVICE_NAME: "waveshare43c-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 4.3C"
+
+  # The glass: the panel's own pixels and its density, 933 diagonal pixels over 4.3 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "216.966"
+  # The tile grid: columns and rows of cells lying down, and standing up. The same as the 4.3: standing up, two
+  # columns would be 26 mm wide, under the 30 mm a card needs, so it is one column of four cards.
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # An eighth of the screen, as on the 4.3: it stays inside the chip and leaves Wi-Fi enough (docs/ADDING_A_BOARD.md).
+  LVGL_BUFFER_SIZE: "12%"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # Set by hand for the three rows of this glass, as on the 4.3; the look has 12
+  GRID_GAP_Y: "13"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its expander,
+  # `waveshare_io_ch32v003` in hardware/waveshare-ch32v003.yaml, arrived in 2026.7.0. A board file's min_version wins
+  # over the core's, so the other boards keep building on 2026.6.2.
+  min_version: 2026.7.0
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The log over the USB-C cable is the chip's own USB, as on the 4.3: a 4.3C's boot log reads
+  # "rst:0x15 (USB_UART_CHIP_RESET)".
+  hardware_uart: USB_SERIAL_JTAG
+
+# Of the expander's lines, this board uses EXIO1 (the touch reset) and EXIO2 (the backlight enable), both as the 7B
+# does; EXIO3 is the speaker's amplifier, which this board file leaves alone.
+#
+# ESPHome's model for this glass (ESP32-S3-TOUCH-LCD-4.3) asks for a CH422G, so the panel is ESPHome's RPI model, an RGB
+# panel without an init sequence, with the 4.3's pins. The timings are Waveshare's for the 4.3C
+# (BSP_LCD_800_480_PANEL_35HZ_RGB_TIMING), the same the 4.3's board file gives that model: 16 MHz, porches of 8 and
+# pulses of 4, which keep the ST7262 locked (packages/hardware/waveshare-esp32s3-43.yaml says why).
+display:
+  - platform: mipi_rgb
+    model: RPI
+    id: my_display
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    color_order: RGB
+    pclk_frequency: 16MHz
+    pclk_inverted: true
+    de_pin: GPIO5
+    pclk_pin: GPIO7
+    hsync_pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    vsync_pin:
+      number: GPIO3
+      ignore_strapping_warning: true
+    hsync_pulse_width: 4
+    hsync_back_porch: 8
+    hsync_front_porch: 8
+    vsync_pulse_width: 4
+    vsync_back_porch: 8
+    vsync_front_porch: 8
+    data_pins:
+      red: [GPIO1, GPIO2, GPIO42, GPIO41, GPIO40]
+      green: [GPIO39, GPIO0, GPIO45, GPIO48, GPIO47, GPIO21]
+      blue: [GPIO14, GPIO38, GPIO18, GPIO17, GPIO10]
+    # The backlight enable, high from the panel's start on. The 4.3C's panel has no reset line.
+    enable_pin:
+      - waveshare_io_ch32v003: expander
+        number: 2
+        mode:
+          output: true
+    update_interval: never
+    auto_clear_enabled: false

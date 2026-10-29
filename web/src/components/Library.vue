@@ -73,7 +73,7 @@ const query = computed(() => ui.search.trim().toLocaleLowerCase());
 // image tiles need a board that draws pictures (app 0.2.66). The screen's own cards and plugin tiles first: the list
 // shows the first 80, and these are few.
 const base = computed(() => libraryBase([...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities],
-  { query: query.value, pages: pagesOffered.value, pictures: scr.pictures, hidePlaced: ui.hidePlaced, counts: chosen.value }));
+  { query: query.value, pages: pagesOffered.value, pictures: scr.pictures, textTiles: Boolean(scr.currentScreen?.text_tiles), hidePlaced: ui.hidePlaced, counts: chosen.value }));
 const pool = computed(() => base.value.filter((e) => !ui.room || e.area === ui.room));
 const matches = computed(() => libraryMatches(pool.value, ui.filter, query.value));
 const shownList = computed(() => matches.value.slice(0, SHOWN));

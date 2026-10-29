@@ -124,6 +124,10 @@ enum Role : uint8_t {
   BAUHAUS_BLUE,
   BAUHAUS_BLACK,
   BAUHAUS_CREAM,
+  // ---- a light's presets (module light_presets): the brightness on a preset's disc, dark on a pale disc and white on a
+  // deep one. The disc is the light's own colour, so these stay the same in both looks.
+  PRESET_INK_DARK,
+  PRESET_INK_LIGHT,
   ROLE_COUNT
 };
 
@@ -219,6 +223,8 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* BAUHAUS_BLUE */             {0x2B4E9B, 0x284783},
   /* BAUHAUS_BLACK */            {0x1D1D1B, 0x0B0B0B},
   /* BAUHAUS_CREAM */            {0xF2EBDD, 0x1A1A19},
+  /* PRESET_INK_DARK */          {0x1B1B1B, 0x1B1B1B},
+  /* PRESET_INK_LIGHT */         {0xFFFFFF, 0xFFFFFF},
 };
 
 // The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the

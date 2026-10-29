@@ -1,5 +1,5 @@
 {
-  "firmware": "0.57.0",
+  "firmware": "0.58.0",
   "profiles": [
     {
       "dpi": 118,
@@ -12,6 +12,10 @@
     {
       "dpi": 143,
       "look": "compact"
+    },
+    {
+      "dpi": 144,
+      "look": "standard"
     },
     {
       "dpi": 146,
@@ -30,11 +34,19 @@
       "look": "standard"
     },
     {
+      "dpi": 172,
+      "look": "standard"
+    },
+    {
       "dpi": 187,
       "look": "standard"
     },
     {
       "dpi": 189,
+      "look": "standard"
+    },
+    {
+      "dpi": 210,
       "look": "standard"
     },
     {
@@ -48,6 +60,10 @@
     {
       "dpi": 255,
       "look": "standard"
+    },
+    {
+      "dpi": 286,
+      "look": "compact"
     },
     {
       "dpi": 294,

@@ -1,8 +1,11 @@
 /** The cards built into a screen, with no Home Assistant entity of their own (core.py BUILTIN, the page tiles aside). */
-export type BuiltinName = "clock" | "nightstand" | "settings" | "map" | "energy";
-export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy"];
+export type BuiltinName = "clock" | "nightstand" | "settings" | "map" | "energy" | "text";
+export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy", "screen.text"];
 // A plugin tile's option as it is kept (plugin API 0.12): a text, number or toggle; a pick of a list found by searching,
 // {value, label} with the words the person saw; or a list of texts or picks (the add-on's core.plugin_options).
+// A light's preset as the tile keeps it: a brightness, a white shade in kelvin or a colour (hue, saturation), an effect
+// (`fx`) and settings of its device (`rw`); or settings alone, a preset of the lamp itself (model/light-presets.ts).
+export type LightPreset = { b?: number; k?: number; h?: number; s?: number; fx?: string; rw?: Record<string, string | number> };
 export type PluginPick = { value: string; label: string };
 export type PluginValue = string | number | boolean | PluginPick | (string | PluginPick)[];
 export type TileOptions = {
@@ -17,11 +20,17 @@ export type TileOptions = {
   guard?: string;
   // Where a cover's slats stand open: "100" (Home Assistant's rule, never stored) or "50".
   tilt_open?: string;
+  // A light's presets (docs/LIGHT_PRESETS.md, light_presets.py): at most four, each a brightness with a white shade or a
+  // colour, and whether each disc shows its brightness (stored only when it does).
+  presets?: LightPreset[];
+  preset_levels?: boolean;
   tap?: string;
   icon?: string;
   background?: string;
   history_hours?: number;
   action?: { action: string; data?: Record<string, unknown> };
+  // The template tile's template (docs/TEXT_TILE.md, text_tile.py): Home Assistant renders it, the screen gets rows.
+  template?: string;
   // A calendar card's choices (firmware 0.56.0, calendar_feed.validate): what it shows, the calendars beside the tile's
   // own, which events it lets through, how far it looks, when an event starts soon and where its full screen opens.
   style?: "events" | "busy_free" | "room";
@@ -95,6 +104,8 @@ export type PageTile = {
   appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string;
     mapEntities?: string[]; mapFraming?: string; mapDistance?: string; mapFollow?: string; mapMarkers?: string; mapNames?: string;
     mapZones?: string; mapStreets?: string; mapLook?: string; energyFlow?: string;
+    // The template tile's template (docs/TEXT_TILE.md): TileOptions' template.
+    textTemplate?: string;
     // A calendar card's choices (firmware 0.56.0): TileOptions' style, calendars, places, words, hide_words, all_day,
     // tentative, private, ahead, soon and start_view.
     calendarStyle?: string; calendarEntities?: string[]; calendarPlaces?: string[]; calendarWords?: string[]; calendarHideWords?: string[];
@@ -102,7 +113,8 @@ export type PageTile = {
     calendarWeekStart?: string; calendarHours?: [number, number]; calendarWeekNumbers?: boolean; calendarBookOn?: string; calendarBookPlace?: string; calendarBookTitle?: string;
     // A sensor's meter (firmware 0.56.0): TileOptions' meter, min, max, segments, colors and thresholds.
     meterStyle?: string; meterMin?: number; meterMax?: number; meterSegments?: number; meterColors?: string[]; meterThresholds?: number[] };
-  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string };
+  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string;
+    presets?: LightPreset[]; preset_levels?: boolean };
   children?: ChildTile[];
 };
 export type Page = {
@@ -201,6 +213,34 @@ export type BoardChoice = BoardCatalog & {
 };
 // Does this screen work as you expect (app 0.3.10): what the add-on says about the board's shared answer. The key and
 // the revision never reach the page; the add-on keeps them.
+// The troubleshooting report of a screen ("My screen doesn't work right", components/ReportPanel.vue): what the add-on
+// offers for a screen, the report as it is collected, and the answer of a send. Field names are the add-on's.
+export type ReportDepth = "basic" | "full";
+export type ReportBlocker = "no_profile" | "collecting";
+export type ReportCrash = { at: string; reason: string; decoded: string[]; count: number };
+export type ReportLast = { id: string; reference: string; sent_at: string; depth: ReportDepth };
+export type ReportOffer = {
+  ready: boolean; blockers: ReportBlocker[]; retention_days: number; last: ReportLast | null; crash: ReportCrash | null;
+  email: string | null; privacy_url: string;
+};
+export type ReportState = "collecting" | "ready" | "failed" | "sent";
+export type ReportStep = "identity" | "profile" | "screen_log" | "ha_log" | "addon_log" | "build_log" | "crash" | "zip";
+export type ReportFile = { name: string; size: number; lines: number; kind: "md" | "json" | "yaml" | "log" | "txt" };
+export type ReportWarning = "screen_offline" | "no_api_key" | "no_elf" | "ha_log_unavailable" | "addon_log_unavailable" | "no_crash_record";
+export type ReportSummary = {
+  board: string; board_name: string; chip: string; firmware: string | null; channel: string; esphome: string | null;
+  addon: string; ha: string | null; plugins: { id: string; version: string }[]; crash: { reason: string; at: string } | null;
+  online: boolean; built_on: "addon" | "build_server" | "unknown"; elf: boolean;
+};
+export type Report = {
+  id: string; screen: string; depth: ReportDepth; state: ReportState; step: ReportStep | null; progress: number;
+  files: ReportFile[]; summary: ReportSummary | null; warnings: ReportWarning[]; size: number;
+  reference: string | null; sent_at: string | null; error: string | null;
+};
+export type ReportSendResult =
+  | { state: "sent"; reference: string; expires_at: string }
+  | { state: "retry" | "invalid" | "too_large" | "offline"; error: string };
+
 export type FeedbackIssue = "display" | "touch" | "connection" | "installation" | "other";
 export type FeedbackAnswer = { outcome: "working" | "not_working"; issues?: FeedbackIssue[] | null; comment?: string | null };
 export type FeedbackView = {
@@ -210,6 +250,15 @@ export type FeedbackView = {
   problem: "conflict" | "rejected" | null; deleted: boolean; retry_at?: number | null;
   board: string; model?: string | null; privacy: string;
   versions: { firmware_version?: string | null; addon_version?: string | null };
+};
+// What this app shares about plugins (plugin_likes.py view): never the key.
+export type PluginSharing = {
+  consented: boolean; counting: boolean; counting_asked: boolean; asking: boolean; counted?: number | null; usable: boolean;
+};
+// The stars card above a screen (Plugins.ask_card): a plugin of the index it has run for a few days and not yet rated.
+export type PluginAsk = {
+  plugin: string; name: Record<string, string>; version?: string | null; days: number; maintainer: string; tessera: boolean;
+  issues?: string | null; image?: string | null; board?: string | null; ask_counting: boolean; privacy: string;
 };
 export type Screen = {
   // name: the editor's own name when one is set (app 0.4.2); ha_name: what Home Assistant calls the screen.
@@ -235,7 +284,11 @@ export type Screen = {
   // The layout is out and the screen holds it (app 0.2.108): the editor then shows no delivery line.
   in_sync?: boolean;
   feedback?: FeedbackView | null;
+  // How a plugin it runs works for you (docs/PLUGINS.md, "Likes, ratings and counting"): the stars card, or none.
+  plugin_ask?: PluginAsk | null;
   alert_action?: string; dismiss_action?: string;
+  // What a doorbell's ring does here (app 0.4.91, docs/DOORBELL.md): its camera live, its alert with the picture, or the alert alone.
+  doorbell?: "view" | "picture" | "plain";
   // The screen's device name (its ESPHome name): what its actions are named after and what an alert's `screen` takes.
   node?: string;
   // The API key in the screen's own YAML (app 0.2.132), for pairing it again; null when the add-on has no profile for it.
@@ -249,16 +302,17 @@ export type Screen = {
   // A board with 4 MB of flash that still has ESPHome's partition table (app 0.4.82): its next update has to come from
   // Tessera, which moves the table; ESPHome Device Builder's firmware no longer fits its slot (core.update_in_tessera).
   update_in_tessera?: boolean;
-  firmware_known?: string | null; tile_limit?: number; page_limit?: number; full_page?: boolean; page_tiles_repeat?: boolean; entity_tiles_repeat?: boolean; no_title?: boolean; climate_range?: boolean;
+  firmware_known?: string | null; tile_limit?: number; page_limit?: number; full_page?: boolean; page_tiles_repeat?: boolean; entity_tiles_repeat?: boolean; no_title?: boolean; climate_range?: boolean; vacuum_tile?: boolean;
   // The language its firmware was built in (app 0.2.90); null for older firmware, which is English.
   language?: string | null;
   // What the screen looks like (app 0.2.94): the glass it draws on, the cells of one page, its density and its look,
   // from the screen itself (firmware 0.2.80) or from the board it was built for (core.shape_of); the editor draws it.
   shape?: { width: number; height: number; columns: number; rows: number; dpi?: number; look?: string; catalog?: BoardCatalog;
     fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; icon_home?: number;
-      watch_icon?: number; setpoint?: number };
-    // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74.
-    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number } } | null;
+      watch_icon?: number; setpoint?: number; icon?: number };
+    // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74, a
+    // card's corner and its icon's face (fonts.icon) from app 0.4.90.
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number } } | null;
   // Which way it was built to hang (app 0.2.107): a screen standing up has another canvas and another grid, and
   // while it is offline only the YAML of its own profile says so.
   orientation?: Orientation;
@@ -270,10 +324,19 @@ export type Screen = {
   battery?: boolean;
   // Whether its board has the Dock (boards.json `modules`, docs/MODULES.md): a page then offers Show in Dock.
   dock?: boolean;
+  // Whether its board draws the template tile (boards.json `modules` has text_card, docs/TEXT_TILE.md).
+  text_tiles?: boolean;
+  // Whether its board draws a light's presets (boards.json `modules` has light_presets, docs/LIGHT_PRESETS.md).
+  light_presets?: boolean;
   /** Streams a camera live (a P4 whose hello says `live`, or such a board while it is offline): Live is a camera tile's
    * first and default pace there (app dev). */
   live_camera?: boolean;
+  /** What its hardware can do, from its last hello (firmware hw.h, docs/PLATFORM_PLAN.md 3.3): null until it said so. */
+  caps?: ScreenCaps | null;
 };
+// A screen's capability record (page_delivery.caps_of): `live_tiles`, the most live camera tiles it streams at once.
+export type ScreenCaps = { live: boolean; speaker: boolean; microphone: boolean; echo_cancel: boolean; camera: boolean;
+  live_tiles: number | null; psram_kb: number | null; internal_kb: number | null; text_tiles?: number | null; text_bytes?: number | null };
 export type ScreenShape = NonNullable<Screen["shape"]>;
 // Language & region of the screens (app 0.2.90): the language setting ("auto" follows Home Assistant), the language that
 // gives, Home Assistant's own, and every language there is, by its own name; the time and number format, each "auto"
@@ -331,6 +394,11 @@ export type LineBuild = {
   place?: number; after?: string | null; stage?: string | null; memory?: import("./model/install-progress").BuildMemory | null;
   reason?: string | null;
 } & ServerSide;
+export type VideoIntegration = {
+  path: string; installed: boolean; current: boolean; version: string; loaded: string | null;
+  screens: string[]; entries: number; restart?: boolean;
+};
+
 export type Inventory = {
   editor_features?: { tall_tiles?: boolean; plugins?: boolean };
   csrf?: string;
@@ -352,9 +420,16 @@ export type Inventory = {
   line?: LineBuild[];
   // The build server (build_server.py, docs/BUILDS.md "On a build server"), in every live answer.
   build_server?: BuildServerView;
+  // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
+  plugin_sharing?: PluginSharing | null;
+  // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).
+  live_streams?: { used: number; most: number };
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
   claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };
+  // Video in Home Assistant (Settings, screen_video.py): the tessera_video integration in Home Assistant's folder, the
+  // version Home Assistant runs (null until it restarted with it), and the screens with Screen camera's part Video.
+  video?: VideoIntegration;
   icons?: {
     groups: { label: string; icons: IconInfo[] }[];
     builtin?: Record<string, string>; weather: Record<string, string>; sun: Record<string, string>; calendar?: Record<string, string>;
@@ -380,6 +455,8 @@ export type Inventory = {
     suggestions?: Record<string, { item: HeaderItem; label: string; name?: string; area?: string; icon?: string }[]>;
   };
   alerts?: any;
+  // The doorbell's event, its fields and what comes back (model/doorbell-yaml.ts DoorbellReference).
+  doorbell?: any;
   // Missing from an add-on before 0.2.90: English everywhere, and no Language card.
   language?: Languages;
   [key: string]: unknown;

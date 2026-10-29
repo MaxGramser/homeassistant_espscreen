@@ -223,13 +223,16 @@ class Loader {
   }
   // Whether the owner said what it wants (this round or before, and has not moved on).
   bool has(const Owner &owner) const { return find(owner) != nullptr; }
-  // Whether the owner's picture is on its way right now.
-  bool loading_for(const Owner &owner) const { const Job *job = find(owner); return job && job->phase == Phase::LOADING; }
   // Whether a download runs in this slot (its buffer is not to be freed under it).
   bool slot_busy(Slot slot) const {
     return std::any_of(jobs_.begin(), jobs_.end(), [&](const Job &j) { return j.phase == Phase::LOADING && j.want.slot == slot; });
   }
   bool busy() const { return std::any_of(jobs_.begin(), jobs_.end(), [](const Job &j) { return j.phase == Phase::LOADING; }); }
+  // The key of the picture loading into `slot`, "" when none does (before loaded() says how it went).
+  std::string loading_key(Slot slot) const {
+    for (const auto &j : jobs_) if (j.phase == Phase::LOADING && j.want.slot == slot) return j.want.key;
+    return {};
+  }
   size_t size() const { return jobs_.size(); }
   // For the tests and the log.
   enum class Phase : uint8_t { NEW, ASKED, NONE, LINKED, LOADING, DONE };
@@ -337,8 +340,11 @@ class Loader {
   }
   bool should_load(const Job &job, uint32_t now) const {
     if (job.phase != Phase::LINKED) return false;
-    // A failed load is tried again after the gap; a picture that refreshes keeps its rhythm.
-    if (job.finished_at && now - job.finished_at < camera_view::GAP_MS) return false;
+    // A failed load is tried again after the gap; a picture that refreshes keeps its rhythm, after a failure too: a camera
+    // tile that found no connection (the screen's sockets all taken by its live streams and the video's viewers) asked
+    // again every second and logged every failure (a reTerminal D1001 with five live cameras on a page, 2026-10-25).
+    const uint32_t gap = job.failures && job.want.every > camera_view::GAP_MS ? job.want.every : camera_view::GAP_MS;
+    if (job.finished_at && now - job.finished_at < gap) return false;
     if (job.want.every && job.kept_at && now - job.kept_at < job.want.every) return false;
     return true;
   }

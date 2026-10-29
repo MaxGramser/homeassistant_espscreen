@@ -431,9 +431,9 @@ DEFAULTS = {'light': 'lightbulb', 'climate': 'air-conditioner', 'humidifier': 'a
             'timer': 'timer-outline', 'person': 'account', 'camera': 'cctv', 'image': 'cctv', 'screen': 'clock-outline'}
 # The cards the screen brings itself: one icon per entity, not per domain.
 BUILTIN_TILES = {'screen.clock': 'clock-outline', 'screen.settings': 'cog', 'screen.map': 'map-marker', **{f'screen.page_{n}': 'arrow-right' for n in range(1, 9)}}
-# The energy card's icon (app 0.4.77), Home Assistant's Energy panel's: never drawn big, since the card is its diagram on
+# The energy card's icon (app 0.4.77), Home Assistant's Energy panel's, and the template tile's (app 0.4.9x): never drawn big, since the card is its diagram (or its text) on
 # every size, so it stays out of the big icon font.
-DIAGRAM_TILES = {'screen.energy': 'lightning-bolt'}
+DIAGRAM_TILES = {'screen.energy': 'lightning-bolt', 'screen.text': 'format-list-bulleted'}
 FALLBACK = 'power'
 # The large icon font of a card that takes the whole page (firmware 0.2.62+): what the screen draws on its own for a
 # domain, a state or a built-in card, at 64 px on the Guition and 40 px on the CYD. Kept to these so the CYD's flash

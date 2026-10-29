@@ -7,6 +7,7 @@ The document revision used for saving is separate from this content revision.
 import asyncio
 from copy import deepcopy
 import json
+import logging
 import re
 
 from core import (BAR_CARDS_FEATURE, ENTITY_REPEAT_MIN_FIRMWARE, FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, FREE_PAGES_MIN_FIRMWARE,
@@ -17,6 +18,9 @@ import tile_icons
 
 PROTOCOL = 2
 MAX_MESSAGE = 4096
+
+
+LOG = logging.getLogger(__name__)
 
 
 class DeliveryError(RuntimeError):
@@ -158,6 +162,56 @@ def prepare(inbox, record, region, values, bars, bar=()):
     return begin, initial_tiles, initial_bars, live_values
 
 
+# own_camera: a tile of the screen's own camera is drawn on the screen from the camera itself (plugin API 0.22,
+# firmware live_view.h is_own), so the app answers such a tile "own:" (picture_service, Manager.own_camera_of).
+CAP_FLAGS = ("live", "speaker", "microphone", "echo_cancel", "camera", "own_camera")
+CAP_COUNTS = ("live_tiles", "psram_kb", "internal_kb", "text_tiles", "text_bytes")
+# picture_turn: the screen's glass is turned (LVGL's rotation: 90, 180 or 270 degrees) and it takes its live pictures
+# turned so, to copy them onto the glass straight (live_pictures.TURNS); 0 for one that is not, or does not say.
+PICTURE_TURNS = (90, 180, 270)
+
+
+def caps_of(answer):
+    """The capability record of a hello (firmware hw.h, docs/PLATFORM_PLAN.md 3.3): the flags of CAP_FLAGS as booleans and
+    the counts of CAP_COUNTS as ints, or None for a count the screen did not give. A firmware without the record (before
+    it existed) gets `live` from its features, and False for every other flag: an older screen is taken for what its
+    features say, never for more."""
+    answer = answer if isinstance(answer, dict) else {}
+    record = answer.get("caps")
+    record = record if isinstance(record, dict) else {}
+    features = answer.get("features")
+    features = {name for name in features if isinstance(name, str)} if isinstance(features, list) else set()
+    caps = {flag: record.get(flag) is True for flag in CAP_FLAGS}
+    if "live" not in record:
+        caps["live"] = "live" in features
+    for count in CAP_COUNTS:
+        value = record.get(count)
+        caps[count] = value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+    turn = record.get("picture_turn")
+    caps["picture_turn"] = turn if turn in PICTURE_TURNS and not isinstance(turn, bool) else 0
+    return caps
+
+
+def caps_line(caps):
+    """The record in one line for the log, one per screen whenever it changes (a hello after an update): "live, 4 live
+    tiles, speaker, microphone, camera, no echo cancellation, 28272 KB PSRAM, 519 KB internal RAM"."""
+    words = []
+    for flag, name in (("live", "live"), ("speaker", "speaker"), ("microphone", "microphone"), ("camera", "camera"),
+                       ("echo_cancel", "echo cancellation")):
+        if flag == "echo_cancel":
+            words.append(name if caps.get(flag) else "no " + name)
+        elif caps.get(flag):
+            words.append(name)
+            if flag == "live" and caps.get("live_tiles") is not None:
+                words.append(f"{caps['live_tiles']} live tiles")
+    for count, unit in (("psram_kb", "KB PSRAM"), ("internal_kb", "KB internal RAM")):
+        if caps.get(count) is not None:
+            words.append(f"{caps[count]} {unit}")
+    if caps.get("picture_turn"):
+        words.append(f"live pictures turned {caps['picture_turn']}")
+    return ", ".join(words)
+
+
 def plugins_of(answer):
     """The plugin API and plugins of a hello (docs/PLUGINS.md): ("0.4", [{"id", "version", "tiles"}]), or (None, [])."""
     api = answer.get("plugin_api") if isinstance(answer, dict) else None
@@ -242,8 +296,9 @@ class Sender:
     configuration being sent is still current after each asynchronous step.
     """
 
-    def __init__(self, send):
+    def __init__(self, send, name=None):
         self.send = send
+        self.name = name  # the screen's, for the log
         self.lock = asyncio.Lock()
         self.session = None
         self.sequence = 0
@@ -264,6 +319,8 @@ class Sender:
         self.tile_repeats = False
         self.free_pages = False
         self.features = set()
+        # What its hardware can do (caps_of): nothing until its hello.
+        self.caps = caps_of({})
         # The plugin API the firmware offers and the plugins built into it (docs/PLUGINS.md): None and [] for a firmware
         # without plugins, which refuses a plugin's tile.
         self.plugin_api, self.plugins = None, []
@@ -286,6 +343,7 @@ class Sender:
         self.tile_repeats = False
         self.free_pages = False
         self.features = set()
+        self.caps = caps_of({})
         self.plugin_api, self.plugins = None, []
         self.max_tiles = self.max_pages = self.max_bar_items = self.memory = None
         self.grids = None
@@ -295,7 +353,9 @@ class Sender:
 
     async def _hello(self, empty=False):
         request = new_id()
-        hello = {"v": PROTOCOL, "op": "hello", "request": request}
+        # `features`: what this app reads (docs/PICTURES.md): "pictures", every picture asked as one question
+        # (picture_question). Older firmware reads only the request.
+        hello = {"v": PROTOCOL, "op": "hello", "request": request, "features": ["pictures"]}
         # `empty`: this app has no tiles for the screen yet (app 0.4.74), so its starting screen asks for them instead of
         # waiting for Tessera (firmware 0.45.0). Older firmware reads only the request.
         if empty:
@@ -324,6 +384,12 @@ class Sender:
             # and none of its own here. climate_range: a thermostat's range on its -/+. The older flags above stay.
             listed = answer.get("features")
             self.features = {name for name in listed if isinstance(name, str)} if isinstance(listed, list) else set()
+            # Its hardware's record (firmware hw.h): live video, speaker, microphone, echo cancellation, a camera of its
+            # own, the live tiles it runs at once, its memory; from the features alone for an older firmware.
+            caps = caps_of(answer)
+            if caps != getattr(self, "caps", None) and "caps" in answer:
+                LOG.info("%s: %s", self.name or "A screen", caps_line(caps))
+            self.caps = caps
             # Plugins (docs/PLUGINS.md): the API it offers ("0.1") and what it runs, [{id, version, tiles}].
             self.plugin_api, self.plugins = plugins_of(answer)
             # Its own ceilings and the memory its tiles may take (firmware 0.34.0+): 64 tiles over eight pages when it says

@@ -165,8 +165,16 @@ const startCalibration = () => scr.currentScreen && scr.calibrateTouch(scr.curre
       </template>
     </div>
     <!-- Does it work as you expect (app 0.3.10): always here, also for a screen that is offline or never got its tiles. -->
-    <div v-if="scr.currentScreen?.feedback?.available" class="set-grid feedback-grid">
-      <FeedbackPanel :key="`settings-${scr.currentScreen.id}`" :screen="scr.currentScreen" mode="settings" />
+    <div v-if="scr.currentScreen && (scr.currentScreen.feedback?.available || !scr.currentScreen.virtual)" class="set-grid feedback-grid">
+      <FeedbackPanel v-if="scr.currentScreen.feedback?.available" :key="`settings-${scr.currentScreen.id}`" :screen="scr.currentScreen" mode="settings" />
+      <!-- A screen that doesn't work right: the troubleshooting report (ReportPanel), also behind the screen's menu. -->
+      <section v-if="!scr.currentScreen.virtual" class="set-card" id="settings-report">
+        <h4><span class="mdi">{{ glyph("F02D7") }}</span>{{ t("editor.report.card_title") }}</h4>
+        <p class="hint">{{ t("editor.report.card_hint") }}</p>
+        <div class="s-action">
+          <button type="button" class="btn quiet" id="setting-report" @click="ui.openReport(scr.currentScreen.id)">{{ t("editor.report.button") }}<Icon name="arrow-right" /></button>
+        </div>
+      </section>
     </div>
   </div>
 </template>

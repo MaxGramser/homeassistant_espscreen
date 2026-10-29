@@ -66,7 +66,7 @@ export function barKeys(a: Attributes, state: string, room = 6, domain = 'climat
 }
 // `range`: the screen draws a thermostat's range on its -/+ (its firmware's climate_range, 0.19.0+); an older one gets a
 // thermostat with only a range without them (core.drawn_controls), and so does its picture here.
-export function availableControl(domain: string, kind: string | null, state: string, a: Attributes, range = true): string {
+export function availableControl(domain: string, kind: string | null, state: string, a: Attributes, range = true, presets = true): string {
   // A cover that cannot tell whether it is open reports "unknown" and keeps its controls (Tile::available).
   if (!kind || ['unavailable', ''].includes(state) || (state === 'unknown' && domain !== 'cover')) return '';
   if (domain === 'cover') kind = coverPrimary(kind);
@@ -74,6 +74,9 @@ export function availableControl(domain: string, kind: string | null, state: str
   if (['buttons', 'playback', 'mode'].includes(kind) || kind === 'stepper' && domain.endsWith('select'))
     return controlKeys(domain, kind, state, a).length ? kind : '';
   if (kind === 'brightness') return domain === 'light' && (!a.supported_color_modes?.length || a.supported_color_modes.some((mode: string) => ['brightness', 'white', 'color_temp', 'hs', 'rgb', 'rgbw', 'rgbww', 'xy'].includes(mode))) ? kind : '';
+  // A light's presets (tile_controls::panel_available): the keys where the tile has any, the slider of the pair at least.
+  if (kind === 'presets' || kind === 'brightness_presets')
+    return availableControl(domain, 'brightness', state, a) && (kind === 'brightness_presets' || presets) ? kind : '';
   if (kind === 'speed') return domain === 'fan' && f & bits('fan', 'SET_SPEED') ? kind : '';
   if (kind === 'position') return domain === 'cover' && f & bits('cover', 'SET_POSITION') ? kind : '';
   // A player's volume over its playback keys (runtime_tiles media_volume_selected): where its keys stand.
@@ -86,6 +89,8 @@ export function availableControl(domain: string, kind: string | null, state: str
   if (kind === 'stepper' || kind === 'slider') return ['number', 'input_number'].includes(domain) || kind === 'slider' && domain === 'humidifier' ? kind : '';
   if (kind === 'toggle') return ['light', 'switch', 'input_boolean', 'automation', 'remote', 'fan', 'humidifier'].includes(domain) ? kind : '';
   if (kind === 'run') return ['scene', 'script', 'button', 'input_button', 'automation'].includes(domain) ? kind : '';
+  // A robot's larger tile (docs/VACUUM.md, "A larger tile"): its map, rooms or routines with its keys.
+  if (['map', 'rooms', 'routines', 'map_rooms'].includes(kind)) return domain === 'vacuum' ? kind : '';
   return '';
 }
 

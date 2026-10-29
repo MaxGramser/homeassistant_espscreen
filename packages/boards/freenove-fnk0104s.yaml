@@ -1,0 +1,115 @@
+# ESP Screens - Freenove FNK0104S, experimental: a 4.0-inch 320 x 480 ST7796 panel over SPI with FT6336 capacitive
+# touch over I2C, on an ESP32-S3 with 16 MB flash and octal PSRAM. Freenove's 2.8 and 3.5-inch boards of the same
+# series (FNK0104A, B and N) have other glass and are not this file.
+#
+# The pins and the panel's colour order come from the board a community member ran this file on
+# (docs/FREENOVEFNK0104S.md); the project has not tried it on one.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/freenovefnk0104s.yaml (a build on this computer) and packages/freenovefnk0104s.yaml (the package a screen
+# builds from over GitHub).
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "freenovefnk0104s"
+  DEVICE_NAME: "freenovefnk0104s-new"
+  DEVICE_FRIENDLY_NAME: "My Freenove 4"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 4.0 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "144.222"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus.
+spi:
+  id: lcd
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+# The touch panel's bus.
+i2c:
+  id: touch_bus
+  sda: GPIO16
+  scl: GPIO15
+  scan: true
+
+# The backlight, a PWM pin (features/backlight.yaml makes it the light). GPIO45 is a strapping pin of the ESP32-S3,
+# wired to the backlight on this board.
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+# ESPHome's ft63x6 platform, with the touch panel's interrupt and reset wired to the chip.
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO17
+    reset_pin: GPIO18
+    update_interval: 20ms
+
+# ESPHome's own ST7796 model over SPI. GPIO46 (the panel's data/command line) is a strapping pin of the ESP32-S3, wired
+# to the panel on this board.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ST7796
+    spi_id: lcd
+    dimensions:
+      width: 320
+      height: 480
+    # This panel wires the ST7796's colour channels as BGR; RGB swaps red and blue (blue shows orange).
+    color_order: bgr
+    # The panel inverts the ST7796's normal output: without this the light and the dark look come out reversed.
+    invert_colors: true
+    dc_pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    cs_pin: GPIO10
+    spi_mode: MODE0
+    data_rate: 10MHz
+    update_interval: never
+    auto_clear_enabled: false

@@ -200,6 +200,7 @@ describe("the mockup speaks the screens' language", () => {
     useEntitiesStore().liveStates = {
       "light.c": { state: "on", word: null, a: {} },
       "weather.home": { state: "windy-variant", word: null, a: { temperature: 12.5 } },
+      "weather.away": { state: "windy-variant", word: null, a: {} },
       "binary_sensor.door": { state: "on", word: null, a: { device_class: "door" } },
       "sensor.power": { state: "1249", word: null, a: { unit_of_measurement: "W" } },
       "sensor.energy": { state: "12345.5", word: null, a: { unit_of_measurement: "kWh" } },
@@ -215,7 +216,9 @@ describe("the mockup speaks the screens' language", () => {
     expect(gone.find(".remove").attributes("title")).toBe("Remove tile");
     expect(card("screen.page_2", 1).find(".goto").text()).toBe("Seite 2 ›");
     expect(card("light.c", 2).find(".st").text()).toBe("An");
-    expect(card("weather.home", 3).find(".st").text()).toBe("Windig · 12,5°");
+    // A weather card says its temperature in the screens' numbers, and its condition in their words without one.
+    expect(card("weather.home", 3).find(".st").text()).toBe("12,5 °C");
+    expect(card("weather.away", 3).find(".st").text()).toBe("Windig");
     expect(card("binary_sensor.door", 4).find(".st").text()).toBe("Offen");
     expect(card("script.movie", 5, { size: "wide", controls: "run" }).find(".run").text()).toBe("Ausführen");
     // 1249 has too few digits for a mark in this language; 12345 gets one, as the screen writes them.

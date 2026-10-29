@@ -26,7 +26,8 @@ from core import SCREENSAVER_MIN_FIRMWARE, media_extras, short, validate_layout 
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
-    import camera_feed
+    import lan_address
+    import picture_sources
     from server import Manager
 
 PLAYER, CAMERA = 'media_player.living_room', 'camera.front_door'
@@ -281,7 +282,7 @@ HAS_PIL = importlib.util.find_spec('PIL') is not None
 
 @unittest.skipUnless(HAS_PIL, 'Run using .venv-portal/bin/python for picture tests')
 class Picture(unittest.TestCase):
-    """camera_feed.encode_saver: one picture of the screen's whole box, a little darker everywhere."""
+    """The screensaver's picture (picture_paint): one picture of the screen's whole box, a little darker everywhere."""
 
     def picture(self, size, colour=(200, 200, 200)):
         from PIL import Image
@@ -293,35 +294,56 @@ class Picture(unittest.TestCase):
         from PIL import Image
         return Image.open(io.BytesIO(bmp)).convert('RGB')
 
+    def saver(self, raw, box, kind, ground=0):
+        """The screensaver's picture as the one painter makes it: the whole glass, a camera cut to it, a cover filling
+        about square glass and beside its own colour on long glass (fit `saver`), darkened, in 8 bits."""
+        import picture_legacy
+        import picture_paint
+        from picture_question import Owner, Place, Question, Source
+        place = Place(0, 0, *box, fit='cover' if kind == 'camera' else 'saver', ground=ground, dim=picture_legacy.SAVER_DIM)
+        source = Source('camera', CAMERA) if kind == 'camera' else Source('cover', PLAYER)
+        return picture_paint.paint(Question(Owner('saver'), (source,), box, (place,), formats=('bmp8',)), [raw])
+
     def test_a_camera_fills_the_glass_darkened(self):
-        import camera_feed
-        image = self.open(camera_feed.encode_saver(self.picture((1920, 1080)), (480, 480), 'camera'))
+        image = self.open(self.saver(self.picture((1920, 1080)), (480, 480), 'camera'))
         self.assertEqual(image.size, (480, 480))
         # Cut to the glass, not fitted into it: no black bars, and every pixel a little darker, the same everywhere.
         for point in ((2, 2), (240, 240), (477, 477)):
             self.assertTrue(120 <= image.getpixel(point)[0] <= 160, image.getpixel(point))
+        # As an older screen asks for it (firmware 0.29.0): the whole glass, cut to it, darkened, in 8 bits, fetched again
+        # at the screensaver's own pace.
+        import picture_legacy
+        found = picture_legacy.read({'saver': 'camera', 'entity': CAMERA, 'view': '3'}, {'board': 'guition', 'firmware': '0.29.0'})
+        self.assertEqual((found.kind, found.entity, found.question.owner.kind, found.question.formats), ('saver', CAMERA, 'saver', ('bmp8',)))
+        self.assertEqual(found.question.places[0], picture_legacy.Place(0, 0, 480, 480, fit='cover', dim=picture_legacy.SAVER_DIM))
+        self.assertEqual(found.question.pace, picture_legacy.SAVER_PACE)
 
     def test_a_cover_fills_square_glass_and_stands_beside_its_colour_on_long_glass(self):
-        import camera_feed
         cover = self.picture((640, 640), (240, 240, 240))
-        square = self.open(camera_feed.encode_saver(cover, (480, 480), 'media', 0x204060))
+        square = self.open(self.saver(cover, (480, 480), 'media', 0x204060))
         self.assertGreater(square.getpixel((470, 240))[0], 140)
-        wide = self.open(camera_feed.encode_saver(cover, (1024, 600), 'media', 0x204060))
+        wide = self.open(self.saver(cover, (1024, 600), 'media', 0x204060))
         self.assertEqual(wide.size, (1024, 600))
         self.assertGreater(wide.getpixel((300, 300))[0], 140, 'the cover at the left, the full height')
         right = wide.getpixel((900, 300))
         self.assertTrue(abs(right[2] - 0x60 * 0.7) < 12 and right[0] < 40, right)
-        tall = self.open(camera_feed.encode_saver(cover, (600, 1024), 'media', 0x204060))
+        tall = self.open(self.saver(cover, (600, 1024), 'media', 0x204060))
         self.assertGreater(tall.getpixel((300, 300))[0], 140, 'the cover at the top, the full width')
         self.assertLess(tall.getpixel((300, 900))[0], 40)
 
     def test_the_firmware_lays_its_words_by_the_same_rule(self):
-        import camera_feed
+        import picture_paint
         header = (ROOT / 'components/smart_display/saver_view.h').read_text()
-        self.assertEqual(camera_feed.SAVER_SQUARE, (5, 4))
+        self.assertEqual(picture_paint.SQUARE, (5, 4))
         self.assertIn('width * 4 <= height * 5 && height * 4 <= width * 5', header)
+        # The cover fills glass that is about square (picture_paint.fills against a square), and stands at the left of
+        # lying glass or at the top of standing glass.
         for box, shape in (((480, 480), 'fill'), ((500, 400), 'fill'), ((501, 400), 'side'), ((400, 501), 'top'), ((1024, 600), 'side')):
-            self.assertEqual(camera_feed.saver_shape(box), shape, box)
+            fills = picture_paint.fills(box, (1, 1))
+            self.assertEqual('fill' if fills else 'side' if box[0] > box[1] else 'top', shape, box)
+            image = self.open(self.saver(self.picture((300, 300), (240, 240, 240)), box, 'media', 0x000000))
+            far = image.getpixel((box[0] - 2, box[1] - 2))
+            self.assertEqual(far[0] > 100, fills, (box, far))
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
@@ -439,7 +461,7 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
                 fetched.append(entity)
                 raise RuntimeError('404')
             pictures = {PLAYER: '/api/media_player_proxy/x?cache=1'}
-            m.camera.fetch_cover, m.camera.picture, m.camera.clock = failing, lambda e: pictures.get(e, ''), lambda: clock[0]
+            m.snapshots.fetch_cover, m.snapshots.picture, m.snapshots.clock = failing, lambda e: pictures.get(e, ''), lambda: clock[0]
             await m.sync_saver('text.d1_tiles', screen)
             self.assertEqual(sent[-1]['k'], 'media', 'nothing is known of the cover yet: the player counts')
             # The screen asks for the picture; the cover fails, so it hears there is none, and the next pass the clock.
@@ -450,20 +472,20 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
             m.send_auxiliary = send_auxiliary
             m.transport = lambda inbox, screen: 'esphome.d1_tiles'
 
-            async def base_url(request):
+            async def base_url(request, *args, **kwargs):
                 return 'http://addon:8098'
-            original = camera_feed.base_url
-            camera_feed.base_url = base_url
+            original = lan_address.base_url
+            lan_address.base_url = base_url
             try:
                 ha.changed.clear()
                 ha.request = None
                 screen['online'] = True
-                await m.answer_saver('text.d1_tiles', screen, {'saver': 'media', 'entity': PLAYER})
+                await m.answer_camera({'inbox': 'text.d1_tiles', 'saver': 'media', 'entity': PLAYER})
             finally:
-                camera_feed.base_url = original
+                lan_address.base_url = original
             self.assertEqual(answers[-1]['u'], '')
             self.assertTrue(ha.changed.is_set(), 'a pass right away')
-            self.assertTrue(m.camera.cover_broken(PLAYER))
+            self.assertTrue(m.snapshots.cover_broken(PLAYER))
             await m.sync_saver('text.d1_tiles', screen)
             self.assertEqual(sent[-1]['k'], 'clock')
             # The app tries the cover again by itself, not before COVER_RETRY_SECONDS.
@@ -471,25 +493,25 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
             await m.sync_saver('text.d1_tiles', screen)
             await asyncio.sleep(0)
             self.assertEqual(len(fetched), count)
-            clock[0] += camera_feed.COVER_RETRY_SECONDS
+            clock[0] += picture_sources.COVER_RETRY_SECONDS
 
             async def working(entity):
                 fetched.append(entity)
                 return b'cover'
-            m.camera.fetch_cover = working
-            self.assertTrue(m.camera.cover_broken(PLAYER), 'still on its way')
+            m.snapshots.fetch_cover = working
+            self.assertTrue(m.snapshots.cover_broken(PLAYER), 'still on its way')
             await asyncio.sleep(0)
             await asyncio.sleep(0)
-            self.assertFalse(m.camera.cover_broken(PLAYER), 'it came')
+            self.assertFalse(m.snapshots.cover_broken(PLAYER), 'it came')
             await m.sync_saver('text.d1_tiles', screen)
             self.assertEqual(sent[-1]['k'], 'media')
             # A new track is another picture, which counts at once even after a failure.
-            m.camera.fetch_cover = failing
+            m.snapshots.fetch_cover = failing
             pictures[PLAYER] = '/api/media_player_proxy/x?cache=2'
-            await m.camera.fetch_cover_one(PLAYER, m.camera.watch(PLAYER), pictures[PLAYER])
-            self.assertTrue(m.camera.cover_broken(PLAYER))
+            await m.snapshots.fetch_cover_one(PLAYER, m.snapshots.watch(PLAYER), pictures[PLAYER])
+            self.assertTrue(m.snapshots.cover_broken(PLAYER))
             pictures[PLAYER] = '/api/media_player_proxy/x?cache=3'
-            self.assertFalse(m.camera.cover_broken(PLAYER))
+            self.assertFalse(m.snapshots.cover_broken(PLAYER))
             # The word whose answer timed out: clock, then media (timed out, yet it may have reached the screen), then
             # clock again, which goes out although it equals the last word delivered.
             ha.states[PLAYER] = {**PLAYING, 'state': 'idle'}

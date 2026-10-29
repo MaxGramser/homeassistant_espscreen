@@ -11,6 +11,7 @@ import Icon from "./ui/Icon.vue";
 import PropRow from "./ui/PropRow.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import UiSelect from "./ui/UiSelect.vue";
+import UiPicker from "./ui/UiPicker.vue";
 import { usePluginsStore } from "../stores/plugins";
 
 const plugins = usePluginsStore();
@@ -23,6 +24,11 @@ const fromFetch = (option: PluginTileOption) => Boolean(option.options_from);
 const isList = (option: PluginTileOption) => Boolean(option.multiple || (option.kind === "choice" && option.search));
 const count = (option: PluginTileOption) => t("editor.plugin_tile.count", { n: picksOf(props.values[option.id]).length, max: option.multiple });
 const number = (value: number) => editorNumber(value);
+const entityItems = (option: PluginTileOption) => plugins.entitiesIn(option.domains || []);
+const entityName = (option: PluginTileOption) => {
+  const id = String(props.values[option.id] ?? "");
+  return entityItems(option).find((item) => item.id === id)?.name || id || t("editor.plugin_tile.choose");
+};
 function step(option: PluginTileOption, by: number) {
   const now = Number(props.values[option.id] ?? option.min ?? 0);
   set(option, Math.min(option.max ?? Infinity, Math.max(option.min ?? -Infinity, now + by * (option.step ?? 1))));
@@ -37,8 +43,17 @@ function step(option: PluginTileOption, by: number) {
       <template v-if="option.multiple" #aside>{{ count(option) }}</template>
       <PluginListOption :plugin="plugin" :option="option" :values="values" @change="(value: PluginValue) => set(option, value)" />
     </PropRow>
-    <PropRow v-else :label="text(option.label)" icon="tune-variant" :hint="option.hint ? text(option.hint) : undefined" :for="`plugin-option-${option.id}`">
-      <UiSelect v-if="option.kind === 'choice'" :id="`plugin-option-${option.id}`" :model-value="String(values[option.id] ?? '')"
+    <PropRow v-else :label="text(option.label)" :icon="option.kind === 'entity' ? 'link-variant' : 'tune-variant'"
+      :hint="option.hint ? text(option.hint) : undefined" :for="`plugin-option-${option.id}`" :stack="option.kind === 'entity'">
+      <UiPicker v-if="option.kind === 'entity'" :id="`plugin-option-${option.id}`" :items="entityItems(option)"
+        :placeholder="t('editor.plugin_tile.search')" :empty="t('editor.plugin_tile.none_found')" @pick="(value: string) => set(option, value)">
+        <template #trigger>
+          <button type="button" class="ghost-btn"><Icon name="magnify" />{{ entityName(option) }}</button>
+        </template>
+      </UiPicker>
+      <button v-if="option.kind === 'entity' && values[option.id]" type="button" class="btn quiet mini"
+        :aria-label="t('editor.plugin_tile.remove', { name: entityName(option) })" @click="set(option, '')"><Icon name="close" /></button>
+      <UiSelect v-else-if="option.kind === 'choice'" :id="`plugin-option-${option.id}`" :model-value="String(values[option.id] ?? '')"
         :options="choices(option)" :placeholder="t('editor.plugin_tile.choose')" @update:model-value="(value: string) => set(option, value)" />
       <span v-else-if="option.kind === 'number'" class="plugin-stepper">
         <button type="button" class="btn quiet mini" :aria-label="t('editor.plugin_tile.less')" @click="step(option, -1)"><Icon name="minus" /></button>

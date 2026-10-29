@@ -13,7 +13,7 @@
 // its items with numbers of their own; the app keeps what each number stands for and plays it when asked. A folder
 // holds at most 48 items, what Home Assistant gives for Spotify, and the pager counts only those.
 //
-// The covers of a page come as one picture, the way a page's camera tiles do (tile_art): the screen names the frames,
+// The covers of a page come as one picture, the way a page's camera tiles do (picture_paint): the screen names the frames,
 // the app fills them with the thumbnails Home Assistant names and the corners rounded over the page, and every cell
 // shows its own part. Nothing waits for it: the page is whole with its placeholders, and the picture comes over them.
 //

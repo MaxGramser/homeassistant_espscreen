@@ -3,7 +3,7 @@
 // what it may do and the room it takes. On the Plugins page (no `screen`) the action is a box per screen, ticked where it
 // is on and greyed out with its reason where it does not fit (plugins/PluginOnScreens); in a screen's Plugins tab it is
 // the one action for that screen (plugins/PluginOnScreen). Taking it off is said here, once, for either.
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { editorLanguage, editorNumber, t, te } from "../i18n";
 import { changesBetween, flashShare, inEditorLanguage, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
@@ -11,6 +11,7 @@ import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
 import PluginSettings from "./PluginSettings.vue";
 import PluginSetup from "./PluginSetup.vue";
+import StarPicker from "./StarPicker.vue";
 import PluginOnScreen from "./plugins/PluginOnScreen.vue";
 import PluginOnScreens from "./plugins/PluginOnScreens.vue";
 import Icon from "./ui/Icon.vue";
@@ -21,7 +22,7 @@ const ui = useUiStore();
 const plugins = usePluginsStore();
 
 const props = defineProps<{ plugin: Plugin; screen?: Screen | null }>();
-defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: [] }>();
 
 const label = computed(() => plugins.labelOf(props.plugin));
 const stage = computed(() => plugins.stageOf(props.plugin));
@@ -66,13 +67,34 @@ function confirmRemove() {
   confirming.value = null;
   plugins.setAsideRemoval(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
 }
-// A like: the first one asks once whether it may count in a public number (plugin_likes.py).
+// A plugin added with a link and run by no screen is taken off the list again.
+async function forget() {
+  try { await plugins.forgetLink(props.plugin); emit("close"); } catch (error: any) { ui.toast(error.message); }
+}
+// A like, for any plugin of the index: the first one asks once whether it may count in a public number (plugin_likes.py).
+// A heart on a card in the list that had not asked yet opens these details with the question (likeAsk).
 const askingLike = ref(false);
 async function toggleLike(consent = false) {
   if (!props.plugin.liked && !plugins.likeConsent && !consent) { askingLike.value = true; return; }
   askingLike.value = false;
   try { await plugins.like(props.plugin, !props.plugin.liked, consent); } catch (error: any) { ui.toast(error.message); }
 }
+watch(() => [plugins.likeAsk, props.plugin.id], () => {
+  if (plugins.likeAsk && plugins.likeAsk === props.plugin.id) { plugins.likeAsk = null; askingLike.value = true; }
+}, { immediate: true });
+// Stars, for a plugin one of the screens runs; changed or taken back here at any time. On a screen's Plugins tab the
+// rating goes with that screen's model.
+const rating = ref(false);
+async function rate(stars: number | null) {
+  rating.value = true;
+  try { await plugins.rate(props.plugin, stars, here.value?.id); } catch (error: any) { ui.toast(error.message); }
+  finally { rating.value = false; }
+}
+const numbers = computed(() => [
+  props.plugin.rating != null ? t("editor.plugins.numbers.rating", { rating: editorNumber(props.plugin.rating.toFixed(1)), n: props.plugin.ratings || 0 }, props.plugin.ratings || 0)
+    : props.plugin.ratings ? t("editor.plugins.numbers.few", { n: props.plugin.ratings }, props.plugin.ratings) : "",
+  props.plugin.homes ? t("editor.plugins.numbers.homes", { n: props.plugin.homes }, props.plugin.homes) : "",
+].filter(Boolean).join(" · "));
 
 // Its picture for the Plugins page (store.png), large above its name; one the add-on cannot serve folds away.
 const failedPicture = ref<string | null>(null);
@@ -90,9 +112,9 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
   <div class="pd-top">
     <span class="plugin-icon large" :class="{ tessera: plugin.tessera }" aria-hidden="true"><span class="mdi">{{ glyph(plugin.icon) }}</span></span>
     <span class="pd-top-end">
-      <!-- A heart for a plugin that runs on one of the screens; before that it only shows how many like it. -->
+      <!-- A heart for any plugin of the index, also one no screen runs: "great that you made this". -->
       <button v-if="plugin.source === 'index'" type="button" class="pd-like" id="plugin-like" :class="{ on: plugin.liked }" :aria-pressed="Boolean(plugin.liked)"
-        :disabled="!plugins.canLike(plugin) && !plugin.liked" :title="plugins.canLike(plugin) || plugin.liked ? t(plugin.liked ? 'editor.plugins.likes.unlike' : 'editor.plugins.likes.like') : t('editor.plugins.likes.install_first')"
+        :title="t(plugin.liked ? 'editor.plugins.likes.unlike' : 'editor.plugins.likes.like_hint')"
         @click="toggleLike()"><Icon :name="plugin.liked ? 'heart' : 'heart-outline'" /><span>{{ plugin.likes || 0 }}</span></button>
       <button type="button" class="icon-btn" :aria-label="t('editor.common.close')" @click="$emit('close')"><Icon name="close" /></button>
     </span>
@@ -123,6 +145,12 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
     </p>
   </div>
   <p v-if="text(plugin.summary)" class="pd-description">{{ text(plugin.summary) }}</p>
+  <p v-if="numbers" class="pd-numbers" id="plugin-numbers"><Icon v-if="plugin.rating != null" name="star" class="pd-star" />{{ numbers }}</p>
+  <div v-if="plugins.canRate(plugin)" class="pd-rate" id="plugin-rate">
+    <span class="pd-rate-label">{{ plugin.stars ? t("editor.plugins.stars.yours") : t("editor.plugins.stars.give") }}</span>
+    <StarPicker :model-value="plugin.stars ?? null" :label="t('editor.plugins.stars.label', { name: text(plugin.name) })" :disabled="rating" small id="plugin-rate-stars" @update:model-value="rate" />
+    <button v-if="plugin.stars" type="button" class="btn link pd-rate-clear" id="plugin-rate-clear" :disabled="rating" @click="rate(null)">{{ t("editor.plugins.stars.clear") }}</button>
+  </div>
   <p v-if="stage" class="pd-stage" id="plugin-stage-hint">{{ t(`editor.plugins.stage_hint.${stage}`) }}</p>
 
   <!-- Taking it off when another plugin needs it, or one only came along with it: said once, decided here. -->
@@ -206,6 +234,11 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
       <li><Icon name="wifi-strength-off-outline" /><span><b>{{ plugin.permissions.network.length ? t("editor.plugins.may.network", { hosts: plugin.permissions.network.join(", ") }) : t("editor.plugins.may.network_none") }}</b></span></li>
     </ul>
     <p v-if="!plugin.tessera" class="pd-warning" id="plugin-warning">{{ t("editor.plugins.warning") }}</p>
+  </section>
+
+  <section v-if="plugins.forgettable(plugin)" class="pd-section" id="plugin-forget">
+    <p class="pd-note">{{ t("editor.plugins.forget.note") }}</p>
+    <button type="button" class="btn" id="plugin-forget-go" @click="forget"><Icon name="delete-outline" />{{ t("editor.plugins.forget.go") }}</button>
   </section>
 
   <section v-if="label !== 'test'" class="pd-section">

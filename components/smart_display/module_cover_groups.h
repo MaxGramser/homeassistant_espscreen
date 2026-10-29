@@ -6,11 +6,13 @@
 #define SMART_DISPLAY_MODULE_COVER_GROUPS
 
 // A cover of the group as a tile of its own, so it is read by the rules every cover tile is (tile_controls::cover_card,
-// cover_keys, cover_tilt_keys, status_text).
+// cover_keys, cover_tilt_keys, status_text). The covers of a group are one kind of blind, so each takes where its slats
+// stand open from the group's tile (tilt_open: at 100, or at 50 and closed at both ends).
 inline Tile blind_tile(const Blind &b) {
   Tile t;
   t.entity = b.entity; t.name = b.name; t.state = b.unavailable ? "unavailable" : b.state; t.device_class = b.device_class;
   t.supported = b.supported; t.position = b.position;
+  if (const Tile *group = tile()) t.tilt_middle = group->tilt_middle;
   if (std::isfinite(b.tilt)) t.edit_extra().tilt = b.tilt;
   return t;
 }
@@ -45,11 +47,12 @@ inline void paint_blind(Card &c, const Blind &b, bool fresh_card) {
     lv_obj_set_style_text_color(c.icon, shut || b.unavailable ? theme::color(theme::MUTED) : lv_color_hex(cover_paint::ACCENT), 0);
   }
   if (c.slider && (fresh_card || (!c.dirty && !lv_obj_has_state(c.slider, LV_STATE_PRESSED)))) {
-    // A closed cover shows its track alone, as a lamp that is off, until a finger moves it.
-    const int open = (int) std::lround(std::isfinite(b.position) ? b.position : 0);
-    lv_obj_set_style_bg_opa(c.slider, open > 0 ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(c.slider, open > 0 ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_KNOB);
-    lv_slider_set_value(c.slider, std::max(1, open), LV_ANIM_OFF);
+    // The bar fills with the closed share, as Home Assistant's cover-position feature and the cover's own tile do: a
+    // closed cover is a full bar, an open one shows its track alone until a finger moves it.
+    const int shut_share = std::isfinite(b.position) ? 100 - (int) std::lround(std::clamp(b.position, 0.0f, 100.0f)) : 0;
+    lv_obj_set_style_bg_opa(c.slider, shut_share > 0 ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(c.slider, shut_share > 0 ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_KNOB);
+    lv_slider_set_value(c.slider, std::max(1, shut_share), LV_ANIM_OFF);
   }
   std::array<tile_controls::Key, 3> keys;
   const unsigned count = tile_controls::cover_keys(t, keys);
@@ -86,7 +89,7 @@ inline void blind_slider_event(lv_event_t *e) {
   if (code == LV_EVENT_PRESS_LOST) c.dirty = false;
   if (code == LV_EVENT_RELEASED && c.dirty) {
     c.dirty = false;
-    cover_want(optimistic::Field::MEMBER_POSITION, c.entity, std::clamp((int) lv_slider_get_value(c.slider), 0, 100));
+    cover_want(optimistic::Field::MEMBER_POSITION, c.entity, 100 - std::clamp((int) lv_slider_get_value(c.slider), 0, 100));
   }
 }
 // A key of a cover's card: user data card * 4 + key.
@@ -154,7 +157,7 @@ inline void open_cover_panel(int index) {
   lv_obj_set_pos(label, tx, pad + text_y);
   const int y = h - pad - foot - track_h;
   if (card.tilt) {
-    p.slider = cover_paint::tilt_bar(panel, inset, y, w - 2 * inset, track_h, b->tilt);
+    p.slider = cover_paint::tilt_bar(panel, inset, y, w - 2 * inset, track_h, b->tilt, t.tilt_middle);
     lv_obj_set_ext_click_area(p.slider, ui::px(large ? 12 : 8));
     lv_obj_add_event_cb(p.slider, blind_tilt_event, LV_EVENT_ALL, nullptr);
   } else {
@@ -221,7 +224,7 @@ inline void blind_card(lv_obj_t *parent, int x, int y, int w, int h, const Blind
   if (bar) {
     const int track_h = ui::px(large ? 28 : 14), foot = ui::px(large ? 12 : 5);
     c.slider = brightness_slider(c.box, inset, h - foot - track_h - 2, right - 2 * inset, track_h);
-    // The lamp's slider in the cover's colours, its fill the share the cover is open (Home Assistant's cover-position).
+    // The lamp's slider in the cover's colours, its fill the share the cover is closed (Home Assistant's cover-position).
     lv_obj_set_style_bg_color(c.slider, lv_color_hex(cover_paint::track()), LV_PART_MAIN);
     lv_obj_set_style_bg_color(c.slider, lv_color_hex(cover_paint::ACCENT), LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(c.slider, LV_OPA_COVER, LV_PART_INDICATOR);

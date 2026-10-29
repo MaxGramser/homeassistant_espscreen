@@ -263,6 +263,8 @@ export function defaultOptions(id: string, covers = false): Partial<Tile> {
   // The energy card (app 0.4.77) starts 2 x 2, the least power-flow-card-plus takes; the store takes a larger size where
   // the glass is too low for that (startTile).
   if (id === "screen.energy") return { options: { size: "square" } };
+  // The template tile starts 2 x 2: room for a heading and a few lines (docs/TEXT_TILE.md).
+  if (id === "screen.text") return { options: { size: "square" } };
   return {};
 }
 export const newTile = (id: string, covers = false): Tile => ({ entity: id, name: "", slot: -1, ...defaultOptions(id, covers) } as Tile);

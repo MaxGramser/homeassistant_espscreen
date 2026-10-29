@@ -6,6 +6,9 @@ memory: {bytes: 32, extras: false}
 # with a small picture of each running dot: its own price, measured as docs/TILE_MEMORY.md says.
 cards:
   energy: {bytes: 6144, extras: true}
+  # The template tile (module text_card) keeps its rows and its plan in PSRAM; inside the chip it keeps its one canvas,
+  # its plan's lists and the pieces' small strings: priced at what a full tile of 24 rows takes there.
+  text: {bytes: 2048, extras: true}
 # How the energy card shows power along a line: running dots (power-flow-card-plus's, the default), or calm lines that
 # grow with the power and carry an arrow the way it goes. A firmware before this one keeps the dots.
 energy:

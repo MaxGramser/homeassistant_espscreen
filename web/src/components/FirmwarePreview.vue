@@ -171,7 +171,7 @@ async function receive() {
     };
     if (result.revision !== lastLayout || !session) {
       const request = [...crypto.getRandomValues(new Uint8Array(8))].map(byte => byte.toString(16).padStart(2, '0')).join('');
-      const answer = module.ccall('preview_receive', 'string', ['string'], [JSON.stringify({ v: 2, op: 'hello', request })]);
+      const answer = module.ccall('preview_receive', 'string', ['string'], [JSON.stringify({ v: 2, op: 'hello', request, features: ['pictures'] })]);
       if (!/^Session:[0-9a-f]{16}$/.test(answer)) throw new Error(t('editor.preview.packet_error', { message: answer }));
       session = answer.slice(8); sequence = 0;
       for (const packet of result.configuration) deliver(packet);

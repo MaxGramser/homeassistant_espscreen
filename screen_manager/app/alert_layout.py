@@ -2,7 +2,7 @@
 
 The firmware lays its alert out on the glass it draws on (screen_alert::layout, firmware 0.2.103+), and once the picture
 of an alert with a camera is there, again for that picture's own proportions. ESP Screen Manager sends the picture at the
-size that layout gives it, so it measures the camera's snapshot and works the frame out here (camera_feed.alert_box),
+size that layout gives it, so it measures the camera's snapshot and works the frame out here (picture_question.alert_box),
 from the screen's canvas and what boards.json says of its board (tools/generate_board_shapes.py writes the box for a
 16:9 picture there too). tests/test_alert_layout.py compiles the C++ rule and checks that the two give the same numbers.
 Change one, change the other.

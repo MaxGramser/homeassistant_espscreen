@@ -22,6 +22,8 @@
   --danger-soft: #fdecea;
   --danger-ink: #ffffff;
   --seg: #f1f2f3;
+  /* A plugin's stars (plugin ratings): the warm yellow of a store's stars, readable on white and on the dark ground. */
+  --star: #e39b0b;
   /* What is open in the inspector (app 0.4.32): a tile in black, a page in the accent, the top bar dashed in black. The
      tile's and the bar's ring stand on the mockup, which keeps its light palette in either theme. */
   --kind-tile: #101112;
@@ -58,6 +60,7 @@
     --danger-soft: #361b19;
     --danger-ink: #1c0c0b;
     --seg: #262626;
+    --star: #f2b84b;
     --kind-tile: #000000;
     --kind-page: #3f6fe0;
     --kind-bar: #000000;
@@ -67,7 +70,7 @@
   }
 }
 /* The screens draw Material Design Icons; tile-icons.woff holds the same glyphs. The top bar
-   mockup measures text in the firmware's Roboto. */
+   mockup and its cards write in the firmware's Roboto: 400 and 500, and 700 for a card's name. */
 @font-face {
   font-family: "Tile Icons";
   src: url("../assets/tile-icons.woff") format("woff");
@@ -83,5 +86,11 @@
   font-family: "Bar Roboto";
   font-weight: 500;
   src: url("../assets/bar-roboto-500.woff") format("woff");
+  font-display: block;
+}
+@font-face {
+  font-family: "Bar Roboto";
+  font-weight: 700;
+  src: url("../assets/bar-roboto-700.woff") format("woff");
   font-display: block;
 }

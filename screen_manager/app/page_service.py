@@ -5,9 +5,10 @@ services. This module owns capability gates and commit-before-delivery order;
 it does not import the server or keep another copy of a page document.
 """
 import time
-import camera_feed
+import picture_question
 import page_delivery
-from core import bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
+from doorbell import FEATURE as DOORBELL_FEATURE, with_missed
+from core import bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
 from i18n import t, shown, english
 from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, bar_items, compile_tiles,
                          grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document)
@@ -103,10 +104,10 @@ def save_pages(manager, inbox, data):
     # More pages than 64 tiles fill needs firmware 0.18.0, and a screen that said so in its hello has it.
     if len(document['pages']) > features['page_limit'] and not (sender and sender.free_pages):
         raise LayoutError(t('addon.errors.layout.firmware_first', version=version_text(FREE_PAGES_MIN_FIRMWARE)))
-    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
+    if any(tile['entity'].split('.')[0] in CAMERA_DOMAINS for tile in flat['tiles']) and board_of(screen) not in picture_question.BOXES:
         raise LayoutError(t('addon.errors.layout.camera_unsupported'))
     # A map is a picture too (app 0.4.33): a board without room for pictures hears about the map.
-    if any((tile.get('options') or {}).get('display') == 'map' for tile in flat['tiles']) and board_of(screen) not in camera_feed.BOXES:
+    if any((tile.get('options') or {}).get('display') == 'map' for tile in flat['tiles']) and board_of(screen) not in picture_question.BOXES:
         raise LayoutError(t('addon.errors.layout.map_unsupported'))
     needed = manager.needs_firmware(inbox, flat, screen)
     if needed: raise LayoutError(t('addon.errors.layout.firmware_first', version=needed))
@@ -195,14 +196,17 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         dependencies = cached['dependencies']
     values = []
     for i, tile in enumerate(tiles):
-        reuse = not full and tile['entity'] not in dirty and dirty.isdisjoint(manager.related_entities(tile))
+        reuse = not full and tile['entity'] not in dirty and dirty.isdisjoint(manager.related_entities(tile, inbox))
         if reuse and tile['entity'].startswith('weather.') and manager.forecast_due(tile['entity']): reuse = False
         if reuse and tile['entity'].startswith('calendar.') and manager.calendar_due(tile): reuse = False
         values.append(cached['values'][i] if reuse else await manager.tile_message(i, tile, lamps=lamps, features=features, inbox=inbox))
     # Each entity's item names the tile whose card it opens, to a screen that takes cards from its top bar.
     cards = bar_cards(tiles) if BAR_CARDS_FEATURE in features else None
-    bars = [cached['bars'][i] if not full and dirty.isdisjoint(dependencies[i]) else
-            manager.header_message({'header': {'items': bar_items(page)}}, features, cards)['items'] for i, page in enumerate(record['layout']['pages'])]
+    # A doorbell's missed ring (docs/DOORBELL.md) first in every page's bar, for a screen that draws doorbells.
+    missed = manager.doorbells.bar_item() if DOORBELL_FEATURE in features and hasattr(manager, 'doorbells') else None
+    bars = [cached['bars'][i] if not full and dirty.isdisjoint(dependencies[i]) and cached.get('missed') == missed else
+            with_missed(manager.header_message({'header': {'items': bar_items(page)}}, features, cards)['items'], missed, HEADER_MAX_ITEMS)
+            for i, page in enumerate(record['layout']['pages'])]
     expected = record['revision']
     def current():
         saved = manager.store.get(inbox)
@@ -227,7 +231,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         return True
     manager.sent[inbox] = {'protocol': 2, 'rev': rev, 'saved_revision': expected}
     manager.page_values[inbox] = {'revision': expected, 'context': context, 'dependencies': dependencies, 'values': values, 'bars': bars,
-                                  'lamps': lamps, 'features': features, 'bar': bar}
+                                  'lamps': lamps, 'features': features, 'bar': bar, 'missed': missed}
     # The hello of this delivery told us the screen takes lamps, or anything else new: the next round sends them.
     if getattr(sender, 'group_lamps', False) != lamps or frozenset(getattr(sender, 'features', ()) or ()) != features:
         manager.ha.changed.set()

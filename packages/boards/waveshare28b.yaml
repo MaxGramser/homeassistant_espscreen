@@ -1,0 +1,57 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-2.8B board, experimental: a 2.8-inch 480 x 640 IPS panel (ST7701S over
+# RGB) with GT911 capacitive touch, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and a TCA9554 expander that
+# carries the panel's reset and select lines. Tried on one board (docs/WAVESHARE28B.md): the picture, the colours
+# (gradients and greys checked against a test page).
+#
+# The glass is as large as the CYD's 2.8 inches at twice its density, so it takes the CYD's look and grid: compact, 2 x 3
+# lying down and 1 x 4 standing up. The standard look's smallest cell (20 mm wide) leaves one column standing up; the
+# compact look's (15 mm) lets an owner choose up to 3 x 4 lying down and 2 x 6 standing up.
+# The battery charger, the buzzer, the motion sensor (QMI8658), the clock chip (PCF85063) and the SD card on this board
+# stay unused.
+#
+# The hardware itself, with the display's own driver (mipi_rgb_ws28b, which leaves COLMOD out), is in
+# packages/hardware/waveshare-esp32s3-28b.yaml: a board file declares, it holds no components (docs/PLATFORM_PLAN.md
+# 3.7).
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/waveshare28b.yaml (a build on this computer) and packages/waveshare28b.yaml (the package a screen builds
+# from over GitHub).
+packages:
+  # The chip, its memory, its expander, touch and the panel (packages/hardware/waveshare-esp32s3-28b.yaml).
+  hardware: !include ../hardware/waveshare-esp32s3-28b.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare28b"
+  DEVICE_NAME: "waveshare28b-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 2.8B"
+
+  # The glass: the panel's own pixels and its density, 800 diagonal pixels over 2.8 inches.
+  PANEL_W: "480"
+  PANEL_H: "640"
+  DISPLAY_DPI: "285.714"
+  # The LVGL angle that lays this panel out lying down (640 x 480). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up; the CYD's, whose glass is the same size.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # LVGL's draw buffer as a share of the screen: an eighth (77 KB of 480 x 640), as on the other S3 boards of this
+  # size. A quarter (154 KB) lands inside the chip as well and left the screen no room for tiles at all.
+  LVGL_BUFFER_SIZE: "12%"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM, as in Waveshare's example

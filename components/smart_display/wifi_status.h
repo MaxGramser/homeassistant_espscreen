@@ -91,6 +91,32 @@ inline Trouble trouble(const Link &l) {
   return l.failures ? Trouble::failed : Trouble::none;
 }
 
+// The signal is the one fact of the link that costs a question to the radio: ESPHome's wifi_rssi() asks the Wi-Fi
+// driver for the access point, and on an ESP32-P4 that is an RPC to the Wi-Fi co-processor over the SDIO link the
+// pictures come in on, answered late or not at all while two streams run (packages/hardware/esp32p4-c6.yaml; a lost
+// answer holds the main loop 5 seconds). The top bar reads link() at every draw, about once a second with its clock,
+// so the signal is asked at most every RSSI_MS and remembered in between: the bars change slowly, ESPHome's own
+// wifi_signal sensor reads it every minute. A lost network forgets the reading, so the first look after joining asks.
+constexpr uint32_t RSSI_MS = 5000;
+struct Signal {
+  int rssi = 0;
+  uint32_t asked_at = 0;
+  bool held = false;
+  template <typename Ask> int read(uint32_t now, Ask ask) {
+    if (!held || now - asked_at >= RSSI_MS) {
+      rssi = ask();
+      asked_at = now;
+      held = true;
+    }
+    return rssi;
+  }
+  void forget() {
+    held = false;
+    rssi = 0;
+  }
+};
+inline Signal signal;
+
 #if defined(USE_WIFI) && !defined(ESP_SCREEN_HOST)
 // What the listeners heard. ESP-IDF's event arrives on its own task: a few plain words, each written whole.
 struct Heard {
@@ -176,7 +202,7 @@ inline Link link() {
   l.hotspot = wifi->has_ap() && wifi->is_ap_active();
 #endif
   if (l.connected) {
-    l.rssi = wifi->wifi_rssi();
+    l.rssi = signal.read(esphome::millis(), [wifi] { return static_cast<int>(wifi->wifi_rssi()); });
     for (const auto &ip : wifi->wifi_sta_ip_addresses()) {
       if (!ip.is_set()) continue;
       char text[esphome::network::IP_ADDRESS_BUFFER_SIZE];
@@ -188,6 +214,8 @@ inline Link link() {
     heard.scanned = heard.seen = false;
     heard.reason = 0;
     heard.failures = 0;
+  } else {
+    signal.forget();
   }
   l.joined = l.connected || heard.joined;
   l.scanned = heard.scanned;

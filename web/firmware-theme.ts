@@ -15,9 +15,12 @@ export function firmwareTheme(): Plugin {
       const ha = Object.fromEntries([...block.matchAll(/\b([A-Z_]+) = 0x([0-9A-F]{6})/g)].map((m) => [m[1], parseInt(m[2], 16)]));
       const roles = Object.fromEntries([...text.matchAll(/\/\* (\w+) \*\/\s+\{0x([0-9A-F]{6}), 0x([0-9A-F]{6})\}/g)]
         .map((m) => [m[1], { light: parseInt(m[2], 16), dark: parseInt(m[3], 16) }]));
+      // An alert button's key colours (KEY_SWATCHES): its name, the key and the words on it.
+      const keyBlock = text.split("KEY_SWATCHES[] = {")[1]?.split("};")[0] || "";
+      const keys = [...keyBlock.matchAll(/\{"(\w+)", 0x([0-9A-F]{6}), 0x([0-9A-F]{6})\}/g)].map((m) => ({ name: m[1], key: parseInt(m[2], 16), text: parseInt(m[3], 16) }));
       const icon = /inline uint32_t icon\([\s\S]*?: mix\(color, 0x([0-9A-F]{6}), (\d+)\)/.exec(text);
-      if (!ha.AMBER || !roles.CARD || !icon) throw new Error("The firmware theme changed; update the editor theme reader");
-      return `export default ${JSON.stringify({ ha, roles, iconBase: parseInt(icon[1], 16), iconWeight: Number(icon[2]) })};`;
+      if (!ha.AMBER || !roles.CARD || !icon || !keys.length) throw new Error("The firmware theme changed; update the editor theme reader");
+      return `export default ${JSON.stringify({ ha, roles, keys, iconBase: parseInt(icon[1], 16), iconWeight: Number(icon[2]) })};`;
     },
   };
 }

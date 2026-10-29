@@ -18,6 +18,7 @@ numbers.
 | `packages/looks/` | How big everything is: `standard.yaml` (drawn on the 4-inch Guition at 170 dpi) and `compact.yaml` (drawn on the CYD at 143 dpi). Every size is written at the look's own density and scaled to the board's `DISPLAY_DPI`, so a tile, a letter and a key keep their size in millimetres. | Every board, exactly one |
 | `packages/features/` | What a board can do, once for every board that can: `capacitive-touch.yaml` or `resistive-touch.yaml` (how its touch panel is read), `backlight.yaml` (a backlight the firmware dims) and `backlight-always-on.yaml` (one that must never go dark), `camera.yaml` (camera images, needs PSRAM), `self-test.yaml` (the UI self test with its geometry check), `snapshot.yaml` (a picture of the screen over the log), `rgb-led.yaml` (the RGB LED on the back of a board that has one, on the outputs its board file names). | Board files |
 | `packages/hardware/` | Hardware that several boards share: `esp-idf.yaml` (how every firmware is built), `esp32s3-rgb.yaml` (an ESP32-S3 with octal PSRAM driving an RGB panel), `waveshare-ch422g.yaml` (the Waveshare boards whose panel, touch and backlight hang on a CH422G expander), `guition-esp32p4.yaml` (the Guition ESP32-P4 boards with an ESP32-C6 for Wi-Fi) and the Guition boards on it, `guition-jc1060p470.yaml` and `guition-jc8012p4a1.yaml`, `m5stack-tab5.yaml` (the Tab5's different ESP32-C6 pins and I/O expander), and `cyd-2432s028.yaml` (the CYD apart from its display controller). | Board files, and each other |
+| `packages/hardware/parts/` | One part: a codec, a sensor or an amplifier (`es7210.yaml`, `es8311.yaml`, `es8388.yaml`, `amplifier.yaml`), the chip's own facts as defaults and the components it turns into, bound to the ids the features build on (`ts_microphone`, `ts_speaker_out`, `ts_audio_dac`). A part that runs a bus knows its transport (`es7210/aec.yaml`, `es7210/i2s.yaml`). See "Parts" below. | Board files and the hardware files that declare a family's wiring (`wavesharep4-audio.yaml`) |
 | `packages/boards/` | One board: its word (`BOARD_ID`), its glass (`PANEL_W`, `PANEL_H`, `DISPLAY_DPI`, `ROTATION_LANDSCAPE`), its grid, its draw buffer, the packages it includes, and its own hardware sections. `TOUCH_CONTROLLER` may name the physical chip when the ESPHome platform uses another chip's protocol driver. | The entry files |
 | `packages/<board>.yaml` | The entry a screen installed from Tessera builds from over GitHub. Tessera Screen Manager writes every screen's YAML with `files: [packages/<board>.yaml]`, so these names never change. | A screen's own YAML |
 | `checkout/<board>.yaml` | The same entry for a build from a clone of this repository (checkout/README.md), with the secrets from `checkout/secrets.yaml` and the components of the checkout. | You |
@@ -91,6 +92,42 @@ builds; a board file may set its own under `BOARD_ID` after a fix for that board
 0.4.1 for that board), and that board then builds and reports its own number (docs/BOARD_RELEASES.md). Only the core
 and a board file may set it, and a board's own number keeps the core's X.Y with a higher last number;
 `tools/check_packages.py` holds both.
+
+## Parts: declare below, resolve above
+
+A board file declares its parts and their pins; a part file turns that into ESPHome's components; the features build on
+the ids alone; the firmware and the plugins ask for "the microphone of this board" (docs/PLATFORM_PLAN.md, 3.7). The
+Tab5 reads like this:
+
+```yaml
+packages:
+  microphones: !include ../hardware/parts/es7210.yaml
+  speaker: !include ../hardware/parts/es8388.yaml
+  amplifier: !include ../hardware/parts/amplifier.yaml
+
+substitutions:
+  AUDIO_I2C: tab5_bus
+  AUDIO_MCLK_PIN: GPIO30
+  # ... the other four I2S pins
+  AUDIO_MIC_INPUT: "2"
+  AUDIO_REFERENCE_GAIN: "0dB"
+  AUDIO_DAC_OUTPUT: LINE1
+  AUDIO_AMPLIFIER_PIN: {pi4ioe5v6408: tab5_ioe, number: 1}
+```
+
+A part gives each of its names a default, the chip's own fact where there is one (the ES8311's address and its dB
+range, the ES7210's transport), and the file that includes the part wins over it, as any file wins over its packages
+("Which value wins"): the Tab5's speaker buffer of 500 ms over the part's 100, the Waveshare P4's ALC over the part's
+off. A name a part cannot know, a pin or the reference's gain, has no default, so a board that forgets it does not
+build. A part works out what follows from the chip: the ES7210 turns the voice's input (MIC1 or MIC2) into its TDM slot
+and its I2S channel. Boards wired alike declare their wiring once, in a hardware file of only substitutions and
+includes (`hardware/wavesharep4-audio.yaml` for four Waveshare P4 boards). A part's code at start goes in its own slot
+of the core (`BOOT_SPEAKER_PART`, `BOOT_MICROPHONE_PART`), so `BOOT_BOARD_SETTINGS` stays the board's.
+
+`tests/test_board_declarations.py` holds the rule: a board file has `packages:` and `substitutions:` only, and a list
+says which board files still hold which other keys; the list only shrinks. The audio of the Tab5 and the Waveshare P4
+boards moved first; the camera's sensor was already declared (`CAMERA_I2C`, `CAMERA_XCLK_PIN`); the panels and touch
+move last.
 
 ## Sizes: the look works them out
 
@@ -198,3 +235,13 @@ those of app 0.2.126, with ESPHome 2026.9.0 and the packages' `min_version` 2026
 number, every component and lambda was the same, and the generated C++ held the same statements. What differs is the
 order in which ESPHome registers components and API actions, which follows the order of the files, and the numbers
 ESPHome gives what it names itself.
+
+The move of the Tab5's and the Waveshare P4 boards' audio to parts (firmware 0.58) was checked the same way, with
+`tools/config_diff.py`: the validated configuration of each board at the commit before and in the working tree, with
+the echo-cancelling transport and with the plain I2S bus, the same in everything but the order of a domain's
+components. The one difference meant: the Tab5's plain I2S bus reads its microphones with `es7210_extended`, as the
+Waveshare P4 does. A move of another board's hardware to parts gives the same proof with one command:
+
+```bash
+tools/config_diff.py HEAD <board> [--set NAME=VALUE]
+```

@@ -143,6 +143,7 @@ A wish writes its value into the tile and paints every tile and the open card of
 | `VACUUM_ROW` | the choice | a vacuum's mode, suction or water row (`item`: `m`, `s` or `w`) |
 | `HUE` | 0-360 | a light's own colour at full saturation (its colour card) |
 | `KELVIN` | kelvin | a light's own white shade (its colour card) |
+| `PRESET` | `80\|k2700`, `60\|h280,41`, `30\|`; `0\|` for off | a light's brightness and white shade or colour at once (its presets, docs/LIGHT_PRESETS.md), sent as one `light.turn_on` with two values |
 
 ### Adding a field
 

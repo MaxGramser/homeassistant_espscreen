@@ -3,7 +3,7 @@
 #pragma once
 #include "components/smart_display/screen_text.h"
 
-static_assert(screen_text::KEYS_HASH == 0x622770E9u && screen_text::KEY_COUNT == 513,
+static_assert(screen_text::KEYS_HASH == 0x51CD8ADFu && screen_text::KEY_COUNT == 522,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 const char *const screen_text::TABLE[] = {
     ".",
@@ -166,10 +166,18 @@ const char *const screen_text::TABLE[] = {
     "{h} h {m}",
     "Wi-Fi",
     "Tessera",
+    "Debug mode",
     "Plugins",
     "Microphone gain",
     "Automatic gain",
     "Echo cancellation",
+    "Sound on",
+    "Sound off",
+    "Door",
+    "Tap again to open",
+    "Sent",
+    "Talk",
+    "Coming soon",
     "Tap to open",
     "Page {n}",
     "Refused",
@@ -183,6 +191,7 @@ const char *const screen_text::TABLE[] = {
     "Color temperature",
     "Brightness",
     "Waiting...",
+    "Presets",
     "Effect",
     "Nothing to choose",
     "Loading...",

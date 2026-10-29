@@ -64,13 +64,22 @@ class Profiles(unittest.TestCase):
 
     def test_wake_is_light_not_a_tap(self):
         for name, text in self.profiles.items():
-            wake = item(section(text, 'button'), 'name', 'Wake')
+            button = item(section(text, 'button'), 'name', 'Wake')
+            # Every wake that is not a finger takes one way, the script wake_from (plugin API 0.16): Home Assistant's
+            # button, a board's sensor (it presses that button) and a plugin (tessera::wake through plugin_host::wake).
+            self.assertRegex(button, r'on_press:\s+- script\.execute:\s+id: wake_from\s+source: "Home Assistant"\s*$', name)
+            self.assertIn('plugin_host::wake = [](const std::string &source) { id(wake_from).execute(source); };', text,
+                          f'{name}: a plugin wakes through the same script')
+            self.assertEqual(len(re.findall(r'id\(wake_from\)|id: wake_from$', text, re.M)), 3,
+                             f'{name}: the script, the button and the plugin hook, nothing else')
+            wake = script(text, 'wake_from')
+            self.assertIn('source: string', wake, name)
             # A dimmed screen lights up the way the tap on its wake overlay does, then goes to page 1 at once when
             # that time ran out during standby; one that is on only restarts the standby time.
             self.assertRegex(wake, r"return id\(display_dimmed\);'\s+then:\s+- script\.execute: wake_display\s+"
                                    r"(?:#[^\n]*\s+)?- script\.execute: back_to_page_1_when_due\s+else:\s+"
                                    r"- lambda: 'id\(last_touch_ms\) = millis\(\);'", name)
-            self.assertNotIn('last_use_ms', wake, f'{name}: Wake must not postpone Back to page 1')
+            self.assertNotIn('last_use_ms', wake + button, f'{name}: Wake must not postpone Back to page 1')
             self.assertNotIn('last_use_ms', script(text, 'wake_display'), f'{name}: waking is no touch')
             self.assertIn('id(sleep_requested) = false;', script(text, 'wake_display'), f'{name}: waking ends a Sleep')
             overlay = re.search(r'id: dim_wake_overlay\n.*?on_click:\s+- script\.execute: (\w+)', text, re.S)
@@ -149,12 +158,14 @@ class Profiles(unittest.TestCase):
             # view itself in apply_screen_settings, and close_cards would close it again.
             self.assertRegex(dim, r"return screen_settings::current\.home_on_standby;'\s+then:\s+- script\.execute: go_home\s+else:\s+"
                                   r"- lambda: 'settings_screen::close\(\);'\s+- script\.execute: close_cards\s+(#[^\n]*\s+)?"
-                                  r"- lambda: 'id\(apply_screen_settings\)\.execute\(\);'", name)
+                                  r"- lambda: 'id\(apply_screen_settings\)\.execute\(false\);'", name)
             self.assertNotIn('lvgl.widget.hide', dim, f'{name}: cards close through close_cards')
             callers = re.findall(r'script\.execute: dim_display', text)
             self.assertEqual(len(callers), 2, f'{name}: the standby interval and the Sleep button')
             interval = re.search(r'if \(!screen_settings::current\.standby_enabled\) return false;\s+'
                                  r'if \(id\(display_dimmed\) \|\| id\(touch_down\) \|\| id\(calibration_active\) \|\| id\(alert_active\)\) return false;\s+'
+                                 # A doorbell's ring on the glass holds it lit too (module doorbell, docs/DOORBELL.md).
+                                 r'//[^\n]*\s+if \(runtime_tiles::doorbell_holds\(\)\) return false;\s+'
                                  r'return \(millis\(\) - id\(last_touch_ms\)\) > [^\n]+\n\s+then:\s+- script\.execute: dim_display', text)
             self.assertTrue(interval, f'{name}: the standby time only dims with Auto standby on')
 

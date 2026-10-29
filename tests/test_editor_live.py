@@ -193,8 +193,8 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(result['states']['media_player.test']['a']['artwork_mark']), 10)
         source = io.BytesIO()
         Image.new('RGB', (1200, 600), (80, 130, 210)).save(source, 'JPEG')
-        self.manager.camera.picture = lambda entity: attributes['entity_picture']
-        self.manager.camera.fetch_cover = AsyncMock(return_value=source.getvalue())
+        self.manager.snapshots.picture = lambda entity: attributes['entity_picture']
+        self.manager.snapshots.fetch_cover = AsyncMock(return_value=source.getvalue())
         response = await self.client.get('/api/media-art?entity=media_player.test')
         self.assertEqual(response.status, 200)
         tag = response.headers['ETag']
@@ -206,7 +206,7 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.client.get('/api/media-art?entity=media_player.unknown')).status, 404)
         # A camera that fills a taller tile on the mockup (app 0.3.8): prepared pixels too, never a camera URL.
         self.ha.states['camera.garden'] = {'state': 'idle', 'attributes': {'access_token': 'private', 'entity_picture': '/api/camera_proxy/camera.garden?token=private'}}
-        self.manager.camera.fetch = AsyncMock(return_value=source.getvalue())
+        self.manager.snapshots.fetch = AsyncMock(return_value=source.getvalue())
         response = await self.client.get('/api/camera-preview?entity=camera.garden')
         self.assertEqual(response.status, 200)
         with Image.open(io.BytesIO(await response.read())) as image:
@@ -272,10 +272,10 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         from PIL import Image
         from unittest.mock import AsyncMock
         self.ha.states['media_player.test'] = {'state': 'playing', 'attributes': {'entity_picture': '/private?token=secret'}}
-        self.manager.camera.picture = lambda entity: '/private?token=secret'
+        self.manager.snapshots.picture = lambda entity: '/private?token=secret'
         source = io.BytesIO()
         Image.new('RGB', (160, 80), (220, 30, 70)).save(source, 'PNG')
-        self.manager.camera.fetch_cover = AsyncMock(return_value=source.getvalue())
+        self.manager.snapshots.fetch_cover = AsyncMock(return_value=source.getvalue())
         command = {'service': 'esphome.screen_camera', 'event': True, 'data': {
             'entity': 'media_player.test', 'size': '120', 'bg': '123456',
             'session': '1111111111111111', 'rev': '2222222222222222', 'view': '3'}}
@@ -291,19 +291,28 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         token = packet['u'].rsplit('/', 1)[1]
         pixels = await self.client.get('/api/firmware-preview/images/' + token)
         self.assertEqual(pixels.status, 200)
-        expected = await self.manager.camera.cover('media_player.test', 120, 0x123456)
+        # What a screen's card gets for the same question, painted by the same service.
+        import picture_legacy
+        import preview_images
+        screen = preview_images.screen_of(body['shape'])
+        question = picture_legacy.read(command['data'], screen).question
+        expected = await self.manager.pictures.picture(preview_images.INBOX, screen, question)
         raw = await pixels.read()
-        self.assertEqual(raw, expected[1], 'the preview transports the device bytes without a second image renderer')
+        self.assertEqual(raw, expected.body, 'the preview transports the device bytes without a second image renderer')
         with Image.open(io.BytesIO(raw)) as image:
             self.assertEqual(image.size, (120, 120))
             self.assertEqual(image.getpixel((0, 0)), (0x12, 0x34, 0x56))
         self.assertEqual(self.ha.calls, [])
         self.assertFalse(self.manager.layouts)
-        for change in [{'size': '10000'}, {'entity': 'light.a'}, {'entity': 'media_player.unknown'},
+        for change in [{'size': '10000'}, {'entity': 'light.a'},
                        {'url': 'http://example.com'}, {'view': '-1'}, {'session': 'bad'}, {'bg': 'white'}]:
             invalid = {**body, 'request': {**command, 'data': {**command['data'], **change}}}
             response = await self.client.post('/api/firmware-preview/image', json=invalid, headers=self.headers)
             self.assertEqual(response.status, 400, await response.text())
+        # A player Home Assistant does not have is refused as a screen's would be: an answer without a link.
+        unknown = {**body, 'request': {**command, 'data': {**command['data'], 'entity': 'media_player.unknown'}}}
+        response = await self.client.post('/api/firmware-preview/image', json=unknown, headers=self.headers)
+        self.assertEqual((response.status, (await response.json())['u']), (200, ''))
         self.assertEqual((await self.client.get('/api/firmware-preview/images/abcdefghijklmnop.bmp')).status, 404)
 
     async def test_firmware_cover_strip_uses_the_shared_atlas_and_missing_art_placeholder(self):
@@ -312,15 +321,20 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         from PIL import Image
         from unittest.mock import AsyncMock
         self.ha.states['media_player.test'] = {'state': 'playing', 'attributes': {}}
-        self.manager.camera.picture = lambda entity: '/private'
+        self.manager.snapshots.picture = lambda entity: '/private'
         source = io.BytesIO()
         Image.new('RGB', (160, 80), (50, 120, 200)).save(source, 'PNG')
-        self.manager.camera.fetch_cover = AsyncMock(return_value=source.getvalue())
-        # Firmware 0.16.0+ names each square's tile by index (`idx`); the preview takes the request with it.
+        self.manager.snapshots.fetch_cover = AsyncMock(return_value=source.getvalue())
+        # Firmware 0.16.0+ names each square's tile by index (`idx`); the preview takes the request with it. The tiles
+        # are the page the preview compiled last (Manager.preview_tiles, set by /api/firmware-preview), as a screen's
+        # are its layout: a tile that is not a pictured tile there gets no picture.
         fields = {'tiles': 'media_player.test', 'idx': '0', 'size': '64', 'bg': '123456', 'session': '1111111111111111',
                   'rev': '2222222222222222', 'view': '4', 'atlas': json.dumps([[0, 0, 120, 80, 8, 0]])}
         body = {'request': {'service': 'esphome.screen_camera', 'event': True, 'data': fields},
                 'shape': {'width': 720, 'height': 720}}
+        response = await self.client.post('/api/firmware-preview/image', json=body, headers=self.headers)
+        self.assertEqual((response.status, (await response.json())['u']), (200, ''))
+        self.manager.preview_tiles = [{'entity': 'media_player.test', 'name': '', 'options': {'display': 'cover', 'size': 'wide'}}]
         response = await self.client.post('/api/firmware-preview/image', json=body, headers=self.headers)
         self.assertEqual(response.status, 200, await response.text())
         packet = await response.json()
@@ -328,12 +342,43 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         pixels = await self.client.get('/api/firmware-preview/images/' + packet['u'].rsplit('/', 1)[1])
         with Image.open(io.BytesIO(await pixels.read())) as image:
             self.assertEqual(image.size, (120, 80))
-        self.manager.camera.picture = lambda entity: ''
+        self.manager.snapshots.picture = lambda entity: ''
         body['request']['data'] = {'entity': 'media_player.test', 'size': '120', 'bg': '123456',
                                   'session': '1111111111111111', 'rev': '2222222222222222', 'view': '5'}
         response = await self.client.post('/api/firmware-preview/image', json=body, headers=self.headers)
         self.assertEqual(response.status, 200, await response.text())
         self.assertEqual((await response.json())['u'], '')
+
+    async def test_each_preview_on_a_page_has_its_own_layout(self):
+        # The overview shows a mockup of every screen: each compiled its own layout, and its questions name its revision
+        # (`rev`). A tile is checked against the layout of that revision, not the one compiled last.
+        import io
+        import json
+        from PIL import Image
+        from unittest.mock import AsyncMock
+        self.ha.states['media_player.test'] = {'state': 'playing', 'attributes': {}}
+        self.ha.states['light.hall'] = {'state': 'on', 'attributes': {}}
+        self.manager.snapshots.picture = lambda entity: '/private'
+        source = io.BytesIO()
+        Image.new('RGB', (160, 80), (50, 120, 200)).save(source, 'PNG')
+        self.manager.snapshots.fetch_cover = AsyncMock(return_value=source.getvalue())
+        cover = [{'entity': 'media_player.test', 'name': '', 'options': {'display': 'cover', 'size': 'wide'}}]
+        lamp = [{'entity': 'light.hall', 'name': '', 'options': {}}]
+        self.manager.preview_layouts['aaaaaaaaaaaaaaaa'] = cover
+        self.manager.preview_layouts['bbbbbbbbbbbbbbbb'] = lamp
+        self.manager.preview_tiles = lamp  # the one compiled last
+
+        async def ask(rev):
+            fields = {'tiles': 'media_player.test', 'idx': '0', 'size': '64', 'bg': '123456', 'session': '1111111111111111',
+                      'rev': rev, 'view': '4', 'atlas': json.dumps([[0, 0, 120, 80, 8, 0]])}
+            body = {'request': {'service': 'esphome.screen_camera', 'event': True, 'data': fields},
+                    'shape': {'width': 720, 'height': 720}}
+            response = await self.client.post('/api/firmware-preview/image', json=body, headers=self.headers)
+            self.assertEqual(response.status, 200, await response.text())
+            return (await response.json())['u']
+        self.assertTrue(await ask('aaaaaaaaaaaaaaaa'), 'the cover of the mockup whose layout has it')
+        self.assertEqual(await ask('bbbbbbbbbbbbbbbb'), '', 'a lamp is no pictured tile')
+        self.assertEqual(await ask('cccccccccccccccc'), '', 'an unknown revision: the layout compiled last')
 
     async def test_states_give_the_value_word_and_attributes_per_entity(self):
         response = await self.client.get('/api/states?entity=light.a&entity=sensor.t&entity=light.nope&entity=screen.clock')
@@ -530,8 +575,8 @@ class Editor(unittest.TestCase):
         self.assertIn('send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST")', screen)
         self.assertIn('send("alerts/test", "POST", { screen: target, data })', screen)
         self.assertIn('id="identify"', self.page)
-        self.assertIn('id="alerts-try"', self.page)
-        self.assertIn('id="try-send"', self.page)
+        self.assertIn('id="alert-wizard-open"', self.page)
+        self.assertIn('id="alert-try"', self.page)
 
     def test_layouts_can_be_copied_exported_and_imported(self):
         for name in ('function copyLayoutFrom(', 'function exportLayout(', 'async function importLayout('):

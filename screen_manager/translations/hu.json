@@ -191,10 +191,20 @@
       "hours_minutes": "{h} ó {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Bővítmények",
       "microphone_gain": "Mikrofonerősítés",
       "automatic_gain": "Automatikus erősítés",
       "echo_cancellation": "Visszhangszűrés"
+    },
+    "doorbell": {
+      "sound_on": "Hang be",
+      "sound_off": "Hang ki",
+      "door": "Ajtó",
+      "door_confirm": "Koppints újra a nyitáshoz",
+      "door_sent": "Elküldve",
+      "talk": "Beszéd",
+      "coming_soon": "Hamarosan"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -213,7 +223,8 @@
       "color": "Szín",
       "color_temperature": "Színhőmérséklet",
       "brightness": "Fényerő",
-      "waiting": "Várakozás..."
+      "waiting": "Várakozás...",
+      "presets": "Előbeállítások"
     },
     "effects": {
       "effect": "Effekt",
@@ -695,7 +706,8 @@
         "firmware_first": "Ezekhez a csempékhez előbb telepíts {version} vagy újabb kijelző-firmware-t.",
         "entity_gone": "Egy kiválasztott entitás már nem létezik. Keresd meg az újat.",
         "ids_too_long": "Ezeknek a csempéknek az entitásazonosítói együtt túl hosszúak ahhoz, hogy egy üzenetben elférjenek; távolíts el néhány csempét.",
-        "favorite_play": "Válaszd ki, mit játsszon ez a kedvenc."
+        "favorite_play": "Válaszd ki, mit játsszon ez a kedvenc.",
+        "text_template": "A sablon csempének legfeljebb 4000 karakteres sablon kell."
       },
       "top_bar": {
         "invalid": "Érvénytelen felső sáv; frissítsd a kezelőoldalt.",
@@ -915,12 +927,16 @@
         "choose": "Válaszd ki, melyik bővítmény biztosítja ezt: {feature} ({name}).",
         "other_origin": "Ez a kijelző egy másik {name} nevű bővítményt futtat innen: {origin}. A részleteiben válts erre.",
         "misfit_esphome": "A(z) {name} fordításához ESPHome {version} vagy újabb kell.",
-        "like_not_installed": "Előbb tedd fel a bővítményt egy kijelződre, utána kedvelheted.",
         "like_consent": "Előbb fogadd el, hogy a kedvelésed nyilvános számba számít.",
         "like_off": "A kedvelés ki van kapcsolva: az alkalmazás újabb verziója kezeli.",
         "like_failed": "A kedvelés nem ment el. Próbáld újra egy kicsit később.",
         "misfit_built_in": "{name} azt hozza, ami ennek a lapkának már megvan.",
-        "offline": "Az app még nem tudja, hol van a(z) {screen} a hálózaton. Kapcsold be, várd meg, amíg online lesz, és próbáld újra."
+        "offline": "Az app még nem tudja, hol van a(z) {screen} a hálózaton. Kapcsold be, várd meg, amíg online lesz, és próbáld újra.",
+        "like_not_listed": "Csak a Tessera katalógusában lévő bővítményeket lehet kedvelni.",
+        "rate_not_installed": "Előbb tedd fel a bővítményt az egyik kijelződre, utána értékelheted.",
+        "rate_failed": "A csillagok nem mentek el. Próbáld újra egy kicsit később.",
+        "count_failed": "A számolást nem sikerült kikapcsolni: a Tessera nem volt elérhető. Próbáld újra egy kicsit később.",
+        "forget_running": "Egy képernyő még használja ezt a bővítményt. Előbb vedd le a képernyőről."
       },
       "extras": {
         "request": "Ez a módosítás ezen a kijelzőn nem lehetséges."
@@ -939,6 +955,31 @@
         "not_paired": "Előbb párosíts egy fordítószervert.",
         "unknown": "A fordítószerver már nem ismeri a Tesserát. Párosítsd újra.",
         "pending": "A fordítószerver még nem fogadta el a Tesserát."
+      },
+      "video": {
+        "not_written": "A Tessera video nem írható ide: {folder}: {reason}.",
+        "not_installed": "Először telepítsd a Tessera videót."
+      },
+      "report": {
+        "depth": "Válaszd az alap vagy a teljes jelentést.",
+        "busy": "Erről a kijelzőről még készül egy jelentés.",
+        "no_profile": "Ennek a kijelzőnek a YAML-je nincs ennek a kiegészítőnek az ESPHome mappájában, így innen nincs miről jelentést készíteni.",
+        "not_found": "Ez a jelentés már nincs meg. Készíts újat.",
+        "not_ready": "A jelentés még nem készült el.",
+        "failed": "A jelentés gyűjtése megszakadt ({reason}). Próbáld újra.",
+        "consent": "Jelöld be a négyzetet a jelentés elküldéséhez.",
+        "note": "A megjegyzés legyen 2000 karakternél rövidebb.",
+        "email": "Ez nem néz ki e-mail-címnek.",
+        "too_large": "A jelentés túl nagy a küldéshez. Töltsd le, és csatold inkább egy GitHub issue-hoz.",
+        "retry": "A Tessera most nem fogadta a jelentést. Próbáld újra egy perc múlva, vagy töltsd le.",
+        "offline": "A Tessera innen nem érhető el. Töltsd le inkább a jelentést.",
+        "invalid": "A Tessera visszautasította a jelentést. Töltsd le, és csatold inkább egy GitHub issue-hoz."
+      },
+      "automations": {
+        "not_allowed": "A Home Assistant nem engedte, hogy az alkalmazás automatizálást mentsen. Rendszergazdai hozzáférés kell.",
+        "refused": "A Home Assistant elutasította az automatizálást: {reason}",
+        "not_ours": "Ezt az automatizálást nem a Tessera készítette, ezért az alkalmazás nem nyúl hozzá.",
+        "invalid": "Ez az automatizálás nem menthető ({part})."
       }
     },
     "status": {
@@ -1009,14 +1050,20 @@
         },
         "light": {
           "toggle": "Be/ki kapcsoló",
-          "brightness": "Fényerő-csúszka"
+          "brightness": "Fényerő-csúszka",
+          "presets": "Előbeállítások",
+          "brightness_presets": "Fényerő-csúszka és előbeállítások"
         },
         "fan": {
           "toggle": "Be/ki kapcsoló",
           "speed": "Sebesség-csúszka"
         },
         "vacuum": {
-          "buttons": "Indítás, leállítás, dokkolás"
+          "buttons": "Indítás, leállítás, dokkolás",
+          "map": "Térkép",
+          "rooms": "Szobák kiválasztása",
+          "routines": "Rutinok",
+          "map_rooms": "Térkép és szobák"
         },
         "cover": {
           "buttons": "Nyitás, állj, zárás",
@@ -1396,7 +1443,8 @@
         "nightstand": "Éjjeliszekrény-óra",
         "page": "Ugrás: {page}. oldal",
         "map": "Térkép",
-        "energy": "Energia"
+        "energy": "Energia",
+        "text": "Sablon"
       },
       "identify": {
         "title": "Ez itt: {name}",
@@ -1467,6 +1515,56 @@
         "directory": "Mappa",
         "music": "Zene"
       }
+    },
+    "doorbell": {
+      "fields": {
+        "camera": {
+          "label": "Kamera",
+          "help": "A csengő kamera entitása. A streamelő képernyő (ESP32-P4) élőben, hanggal mutatja; minden más képernyő értesítésben mutatja a képét. Kötelező."
+        },
+        "title": {
+          "label": "Cím",
+          "help": "Ahogy a képernyő a csengőt nevezi, a nézet tetején és az értesítés címeként. Üresen a kamera nevét veszi."
+        },
+        "screen": {
+          "label": "Képernyő",
+          "help": "Mely képernyők kapják a csengetést: eszköznév (például kitchen-screen), a Home Assistantben látható név vagy egy helyiség. Egy lista többet ér el. Hagyd el minden képernyőhöz. Egy név, amely egy képernyőhöz sem illik, semmit nem küld."
+        },
+        "timeout": {
+          "label": "Időkorlát",
+          "help": "Ennyi másodpercig marad a csengetés, ha senki nem érinti meg, {min}–{max}. Üresen {default}. Egy érintés nyitva tartja."
+        },
+        "keep_minutes": {
+          "label": "Nem fogadott megtartása",
+          "help": "Ennyi percig marad a senki által nem fogadott csengetés a képét mutató képernyők felső sávjában, a csengetéstől számítva, 1 és {most} között. Üres vagy 0: amíg valaki meg nem nyitja."
+        },
+        "sound": {
+          "label": "Hang",
+          "help": "Megszólal-e a csengő hangja rögtön, amikor csenget, ahol a képernyőnek van hangszórója. Üres vagy true: a nézet bekapcsolt hanggal nyílik. false: csendben nyílik (stúdió, hálószoba), és egy koppintás a Hangra bekapcsolja."
+        },
+        "chime": {
+          "label": "Csengőhang",
+          "help": "Lejátssza-e a képernyő a csengőhangját, amikor csengetnek, ahol van hangszórója. Üres vagy true: lejátssza. false: anélkül csenget, és a nézet ugyanúgy megnyílik."
+        },
+        "lock": {
+          "label": "Zár",
+          "help": "Egy zár entitás, amelyet a csengőnézet ajtógombja egy második koppintás után nyit ki; a gomb mutatja az állapotát. Egy kódot kérő zárnak alapértelmezett kód kell a Home Assistantben (a zár beállításai). Hagyd üresen, ha nem kell ajtógomb."
+        },
+        "door_action": {
+          "label": "Ajtóművelet",
+          "help": "Zár helyett: egy Home Assistant művelet, amelyet az ajtógomb egy második koppintás után végrehajt, például script.open_gate vagy button.press. A `door_data` adja a mezőit (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Ajtóadatok",
+          "help": "A `door_action` mezői, például entity_id."
+        }
+      },
+      "endings": {
+        "answered": "Valaki megérintette: fogadva, és bezárva a többi képernyőn",
+        "closed": "A bezárás gombja, vagy valami más zárta be",
+        "missed": "Senki nem érintette meg az időkorlát előtt",
+        "seen": "Egy nem fogadott csengetést újra megnyitottak a felső sávból"
+      }
     }
   },
   "editor": {
@@ -1494,9 +1592,10 @@
       "plugins": "Bővítmények",
       "new_screen": "Új kijelző",
       "firmware": "Firmware és USB",
-      "alerts": "Figyelmeztetések",
+      "events": "Események",
       "settings": "Beállítások",
-      "new_screen_detail": "Csatlakoztatás és telepítés"
+      "new_screen_detail": "Csatlakoztatás és telepítés",
+      "manual": "Kézikönyv"
     },
     "api": {
       "failed": "Ez nem sikerült. Frissítsd az oldalt, és próbáld újra."
@@ -1834,6 +1933,11 @@
     "plugins": {
       "title": "Bővítmények",
       "intro": "Extrák a kijelzőidhez: csempék egy oldalra, valami plusz, amit az egész kijelző tud, vagy hardver a lapkán. A bővítmény a kijelző firmware-ébe épül, ezért kijelzőnként választod ki, melyiket kapja.",
+      "risk": {
+        "title": "A bővítmények saját felelősségre",
+        "text": "Minden bővítmény elvesz a kijelző memóriájából és processzoridejéből. Néhány jól megfér egymással, de sok egyszerre (például egy hangasszisztens, egy Bluetooth-proxy és egy kamera) megtöltheti a memóriát, és lelassíthatja, lefagyaszthatja vagy újraindíthatja a kijelzőt. Kipróbálhatod, de egyszerre egyet vagy kettőt adj hozzá, és nézd meg, stabil marad-e a kijelző. Ha furcsán kezd viselkedni, először a legújabbakat vedd le.",
+        "many": "A(z) {screen} ezután a fordítás után {n} bővítményt futtat. Ennyi instabillá teheti a kijelzőt: ha furcsán viselkedik, vegyél le néhányat."
+      },
       "search": "Keresés név, készítő vagy funkció szerint",
       "filter": "Mutat",
       "from_tessera": "A Tesserától",
@@ -2043,7 +2147,8 @@
         "keep": "Maradjon",
         "keep_named": "{name} maradjon",
         "minutes": "Minden fordítás néhány percig tart.",
-        "off_set": "Eltávolításra előkészítve"
+        "off_set": "Eltávolításra előkészítve",
+        "risk": "Saját felelősségre: minden bővítmény memóriát foglal, és túl sok instabillá teheti a kijelzőt."
       },
       "maker": {
         "title": "Saját bővítmény készítése",
@@ -2111,7 +2216,9 @@
         "label": "Rendezés",
         "popular": "Legkedveltebb",
         "new": "Legújabb",
-        "name": "Név"
+        "name": "Név",
+        "rated": "Legjobbra értékelt",
+        "used": "Leggyakrabban használt"
       },
       "none_in_tab": {
         "tiles": "Még nincs csempés bővítmény.",
@@ -2124,8 +2231,8 @@
         "count": "{n} embernek tetszik | {n} embernek tetszik",
         "like": "Tetszik",
         "unlike": "Tetszik visszavonása",
-        "install_first": "Előbb tedd fel egy kijelzőre, utána kedvelheted",
-        "ask": "A kedvelésed egy bővítményenkénti nyilvános számba számít bele. Csak a szám nyilvános: rólad, a Home Assistantról vagy a kijelzőidről semmi sem kerül át."
+        "ask": "A kedvelésed egy bővítményenkénti nyilvános számba számít bele. Csak a szám nyilvános: rólad, a Home Assistantról vagy a kijelzőidről semmi sem kerül át.",
+        "like_hint": "Kedveld, akkor is, ha egyik kijelződön sincs: egy köszönet a készítőnek."
       },
       "along": {
         "title": "Vele jön",
@@ -2178,7 +2285,59 @@
         "history": "Minden verzió"
       },
       "failed_update": "A(z) {version} verzió nem fordult le a(z) {screen} számára, ezért visszaállt a futó {current} verzióra. A naplót a Firmware és USB alatt találod.",
-      "interrupted": "Az app újraindult a fordítás közben."
+      "interrupted": "Az app újraindult a fordítás közben.",
+      "stars": {
+        "label": "Csillagok ehhez: {name}",
+        "of_five": "{n} csillag az 5-ből",
+        "say": {
+          "1": "Nem működik",
+          "2": "Gyenge",
+          "3": "Elmegy",
+          "4": "Jó",
+          "5": "Szuper"
+        },
+        "yours": "A te csillagaid",
+        "give": "Hogyan működik nálad?",
+        "clear": "Visszavonás"
+      },
+      "numbers": {
+        "rating": "{rating}, {n} értékelés alapján | {rating}, {n} értékelés alapján",
+        "few": "eddig {n} értékelés | eddig {n} értékelés",
+        "homes": "{n} otthonban használják | {n} otthonban használják"
+      },
+      "counting": {
+        "label": "A bővítményeim számolása a boltban",
+        "hint": "Naponta egyszer a bővítményeid neve és verziója, valamint minden kijelző modellje. Semmi más.",
+        "on_hint": "Be: naponta egyszer a bővítményeid neve és verziója, valamint minden kijelző modellje a Tesserához kerül. Kikapcsolva ott törlődnek."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "A(z) {name} {days} napja fut ezen: {screen}. Hogy tetszik? | A(z) {name} {days} napja fut ezen: {screen}. Hogy tetszik?",
+        "send": "Küldés",
+        "what_title": "Mi kerül megosztásra?",
+        "what": {
+          "plugin": "A bővítmény és a verziója: {name} {version}",
+          "board": "A kijelző modellje: {board}",
+          "stars": "A csillagaid",
+          "counting": "Bekapcsolt számolással: naponta egyszer, hogy mely bővítmények futnak a kijelzőiden, a verzióik és a kijelzők modelljei",
+          "nothing_else": "Semmi más: se név, se fiók, se entitás, se Home Assistant-beállítás. Az alkalmazás egy saját, véletlen kulccsal oszt meg."
+        },
+        "thanks": "Köszönjük! A csillagaid ott vannak a(z) {name} mellett.",
+        "heart_hint": "Nagyon tetszik? Adj {maker} részére egy kedvelést is. Egy bővítményenkénti nyilvános számban számít; rólad semmi sem megy el.",
+        "hearted": "Köszönjük a kedvelést",
+        "issue_hint": "Kár. Szeretnéd, hogy kijavítsák? Nyiss egy hibajegyet {maker} számára, a verzióval és a kijelződ modelljével már kitöltve.",
+        "issue_open": "Hibajegy nyitása a GitHubon"
+      },
+      "sharing": {
+        "title": "Bővítménybolt",
+        "text": "Segíts másoknak jó bővítményeket találni. Kedvelés és csillag csak akkor megy, ha te adod, a számolás csak amíg be van kapcsolva.",
+        "asking": "Csillagok kérése néhány nappal egy új bővítmény után",
+        "asking_hint": "Egy kártya a kijelző fölött, egyszerre egy bővítményről."
+      },
+      "forget": {
+        "go": "Eltávolítás a listából",
+        "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön."
+      }
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",
@@ -2308,7 +2467,6 @@
         "live_card_hint": "A kép kitölti a csempét, és amíg az oldal látszik, az alább megadott ütemben frissül. Koppintásra továbbra is teljes képernyőn nyílik meg.",
         "live_card_needs_firmware": "A csempét kitöltő képhez 0.3.7 vagy újabb firmware kell: mentés után nyomd meg a Frissítés gombot a kijelzőnél. Addig a kijelző kis képet mutat az ikon helyén.",
         "cover": "Albumborító",
-        "cover_hint": "Az éppen szóló zene albumborítója az ikon helyén, mint a Home Assistant saját csempéjén; kép nélküli lejátszónál az ikon marad. Koppintásra továbbra is a kártya nyílik meg.",
         "cover_needs_firmware": "A csempén lévő albumborítóhoz 0.2.78 vagy újabb firmware kell: mentés után nyomd meg a Frissítés gombot a kijelzőnél.",
         "map": "Térkép",
         "map_hint": "Hol van ez a személy és akiket hozzáadsz, egy nyugodt térképen a kijelző színeiben. Az utcákat a Home Assistant adja az OpenStreetMapből; a kijelző csak a képet kapja, soha nem helyet. Újrarajzolódik, ha valaki elmozdul. Egy érintés a teljes képernyőn nyitja meg.",
@@ -2327,7 +2485,11 @@
       "refresh": {
         "label": "Frissítés",
         "seconds": "{n} mp-enként",
-        "live": "Élő"
+        "live": "Élő",
+        "paused": "Élő szünetel",
+        "cap": "Ez a képernyő egyszerre {n} kamerát mutat élőben; a többi 15 másodpercenként mutat egy képet. Két kamerával mindegyik gördülékenyebben fut, mint néggyel.",
+        "cap_one": "Ez a képernyő egyszerre egy kamerát mutat élőben; a többi 15 másodpercenként mutat egy képet.",
+        "streams": "{most} élő közvetítésből {used} használatban, az összes képernyőn. Az ezen felüli kamera 15 másodpercenként mutat egy képet."
       },
       "picture": {
         "fit": {
@@ -2409,6 +2571,39 @@
         "room_hint": "A kijelző ott rajzolja ki őket, ahol a csempén van hely (0.57.0-s vagy újabb firmware): egyes csempén a név alatt, dupla szélesen mellette. Ahol nem férnek el, a csempe úgy néz ki, mint nélkülük.",
         "tilt": "Lamella dőlése",
         "tilt_hint": "Ha van elég hely, hozzáadja a támogatott lamellacsúszkát vagy dőlésgombokat. Kisebb csempéken használd a részletes nézetet. A nyitás/zárás választásod változatlan marad."
+      },
+      "presets": {
+        "label": "Előbeállítások",
+        "preset": "{n}. előbeállítás",
+        "swatch_aria": "{n}. előbeállítás, fényerő {b}%",
+        "white": "Fehér",
+        "colour": "Szín",
+        "level": "Csak fényerő",
+        "white_shade": "Fehér árnyalat",
+        "kelvin": "{k} K",
+        "hue": "Színárnyalat",
+        "degrees": "{h}°",
+        "saturation": "Telítettség",
+        "brightness": "Fényerő",
+        "percent": "{n}%",
+        "use_light": "A lámpa jelenlegi állapotának átvétele",
+        "use_light_off": "Kapcsold be a lámpát, hogy átvehesd a fényerejét és színét.",
+        "add": "Előbeállítás hozzáadása",
+        "add_first": "Első előbeállítás hozzáadása",
+        "levels": "Fényerő mutatása az előbeállításokon",
+        "levels_hint": "Kicsiben beírja a fényerőt minden körbe. A csak fényerős előbeállítás mindig mutatja.",
+        "hint": "Egy érintés az előbeállításon egy lépésben beállítja a lámpát; a gyűrű jelöli, amelyiket a lámpa most mutatja. Kattints rá a módosításhoz, húzd a sorrend változtatásához.",
+        "hint_empty": "Legfeljebb négy kerek gomb, mint a Home Assistant kedvenc színei, mindegyik saját fényerővel. Az új abból indul, amit a lámpa most mutat.",
+        "own": "Saját beállítás",
+        "device": "A lámpa saját előbeállítása",
+        "effect": "Effekt",
+        "search": "Keresés",
+        "none_found": "Nincs találat",
+        "device_kind": "Fajta",
+        "device_preset": "Előbeállítás",
+        "device_playlist": "Lejátszási lista",
+        "device_hint": "A lámpa saját előbeállítása maga állítja be a színét, effektjét és fényerejét.",
+        "swatch_aria_named": "{n}. előbeállítás, {name}"
       },
       "tap": {
         "label": "Koppintásra",
@@ -2662,6 +2857,58 @@
         "none": "Nincs vezérlő",
         "never": "Ne mutasd újra",
         "done": "Kész"
+      },
+      "text": {
+        "title": "Sablon",
+        "hint": "Írj szöveget Home Assistant sablonokkal, mint a Fejlesztői eszközök › Sablon alatt. A Home Assistant kitölti, a képernyő pedig megmutatja és naprakészen tartja az eredményt. Ha az eredmény üres, a csempe eltűnik.",
+        "manual": "Hogyan írj sablont",
+        "field": "Sablon",
+        "placeholder": "Írj szöveget, vagy {'{{'} egy állapot olvasásához…",
+        "keys": {
+          "space": "Szóköz",
+          "complete": "kiegészítés",
+          "next": "következő mező",
+          "comment": "megjegyzés"
+        },
+        "result": "A képernyőn",
+        "bytes": "{n} / {of} bájt",
+        "empty": "Az eredmény üres: a képernyő itt nem mutat semmit.",
+        "access": "A sablon a Home Assistantben fut a Tessera alkalmazás jogaival, így bármely entitást olvashat.",
+        "markup": {
+          "label": "Formázás",
+          "heading": "Címsor",
+          "bullet": "Felsorolásjel",
+          "table": "Táblázat",
+          "bold": "Félkövér",
+          "good": "Zöld szöveg",
+          "alert": "Piros szöveg",
+          "accent": "Kék szöveg"
+        },
+        "complete": {
+          "now": "most",
+          "state": "Állapot: {state}"
+        },
+        "examples": {
+          "title": "Kezdés egy példával:",
+          "lights": "Égő lámpák",
+          "open": "Nyitott ajtók és ablakok",
+          "weather": "Időjárás",
+          "lights_heading": "Égő lámpák",
+          "all_off": "Minden lámpa le van kapcsolva",
+          "open_heading": "Nyitva",
+          "now": "Most",
+          "humidity": "Páratartalom"
+        },
+        "listen": {
+          "label": "Frissül, ha változik",
+          "time": "az idő",
+          "none": "Nem olvas entitást: csak a sablon módosításakor változik.",
+          "all": "Minden állapotot olvas: a Home Assistant legfeljebb percenként egyszer számolja újra. Nevezd meg az entitásokat vagy egy tartományt (states.light), hogy azonnal kövesse."
+        },
+        "lint": {
+          "unknown": "{id} nem létezik a Home Assistantben",
+          "replace": "Csere erre: {id}"
+        }
       }
     },
     "precision": {
@@ -3002,6 +3249,23 @@
         "reinstall_all_confirm": "Újratelepíted 1 kijelzőt a legújabb dev-ből? Újraindul, amint rajta van a firmware. | Újratelepítesz {n} kijelzőt a legújabb dev-ből? Egymás után fordulnak, és mindegyik újraindul, amint rajta van a firmware.",
         "reinstall_all_go": "Újratelepítés"
       },
+      "video": {
+        "title": "Videó a Home Assistantban",
+        "text": "A Képernyőkamera Videó részével rendelkező képernyő élőben mutatja kameráját a Home Assistantban, hanggal: egy Videó kamera a képernyő eszközén, a böngészőben és az alkalmazásban. Ehhez a Home Assistantnak a Tessera video integrációra van szüksége.",
+        "install": "Telepítés a Home Assistantba",
+        "install_again": "Újratelepítés",
+        "update": "Integráció frissítése",
+        "newer": "Telepítve · újabb verzió érhető el",
+        "waits_restart": "Telepítve · indítsd újra a Home Assistantot a betöltéshez",
+        "running": "● Fut a Home Assistantban",
+        "restart": "Home Assistant újraindítása",
+        "restart_confirm": "Újraindítod most a Home Assistantot? Egy-két percig nem elérhető, ahogy az irányítópultjai és automatizálásai sem.",
+        "restarting": "A Home Assistant újraindul. A képernyők videója egy percen belül követi.",
+        "installed": "Tessera video telepítve. Indítsd újra egyszer a Home Assistantot a betöltéshez.",
+        "screens": "Képernyők videóval: {names}",
+        "no_screens": "Még egyik képernyőn sincs videó: add hozzá a Képernyőkamerát a Videó résszel egy kamerás P4 képernyőhöz.",
+        "writes": "A(z) {path} mappát írja; az újratelepítés lecseréli. A Tessera magától felveszi a videós képernyőket."
+      },
       "claude": {
         "installed": "Skill telepítve. A Claude Code azonnal átveszi.",
         "installed_restart": "Skill telepítve. Indítsd újra egyszer a Claude Code-ot, hogy megtalálja az új skills mappát.",
@@ -3149,10 +3413,20 @@
         "calibration": "Érintéskalibrálás az első indításkor"
       },
       "choice": {
-        "DISPLAY_MODEL": "Kijelzővezérlő"
+        "DISPLAY_MODEL": "Kijelzővezérlő",
+        "FLASH_SIZE": "Flash-memória",
+        "BOARD_VARIANT": "Panel"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "A legtöbb ilyen panelen az első van. Ha a kijelző zajos vagy torz képet mutat, válaszd a másikat."
+        "DISPLAY_MODEL": "Kezdd az elsővel. Ha a kijelző fekete marad, zajos vagy torz képet mutat, válaszd a másikat.",
+        "FLASH_SIZE": "A legtöbb ilyen panelen 16 MB van. Válaszd a 8 MB-ot, ha a kijelző a telepítés után fekete marad és újra meg újra elindul.",
+        "BOARD_VARIANT": "Válaszd azt, amelyik nálad van. A sárga, ház nélküli panelen a bal felső koppintás különben a jobb alsó sarokba kerülne."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Fekete, házban",
+          "yellow": "Sárga, ház nélkül"
+        }
       },
       "choice_usual": "a legtöbb panel",
       "orientation_landscape": "Fekvő",
@@ -3309,8 +3583,6 @@
       "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul."
     },
     "alerts": {
-      "eyebrow": "Figyelmeztetések · puska",
-      "title": "Teljes képernyős értesítés automatizmusból.",
       "intro": "Minden kijelzőnek van {action} művelete. Ez egy kártyát tesz mindenre, felébreszti a kijelzőt, és normál fényerőn tartja a háttérvilágítást, amíg valaki meg nem nyomja a gombot, vagy le nem jár az időkorlát. A Home Assistant maga nem ad magyarázatot vagy legördülő listákat az ESPHome-műveletekhez; minden, amit kitölthetsz, itt van felsorolva.",
       "loading": "A puska még töltődik; egy pillanat.",
       "example": {
@@ -3320,7 +3592,6 @@
       },
       "sections": "Szakaszok",
       "nav": {
-        "try": "Kipróbálás",
         "screens": "Kijelzőid",
         "howto": "Automatizmusban",
         "all": "Minden kijelző",
@@ -3334,10 +3605,6 @@
         "choice": "Két gomb"
       },
       "try": {
-        "text": "Küldj most egy figyelmeztetést, ugyanazokkal a mezőkkel, amelyeket egy automatizmus küld. A kijelző megjeleníti a kártyát, és bekapcsolt villogásnál felvillantja a háttérvilágítást.",
-        "screen": "Kijelző",
-        "all": "Minden kijelző ({ready} kész)",
-        "not_ready": "{name} · nem áll készen",
         "title": "Cím",
         "subtitle": "Alcím",
         "icon": "Ikon",
@@ -3349,10 +3616,6 @@
         "sending": "Küldés…",
         "send": "Figyelmeztetés küldése",
         "sent_all": "Elküldve {n} kijelzőre. | Elküldve {n} kijelzőre.",
-        "sent_to": "Elküldve ide: {name}.",
-        "sent_one": "Elküldve a kijelzőre.",
-        "skipped": "1 kihagyva (offline vagy régi firmware). | {n} kihagyva (offline vagy régi firmware).",
-        "left_empty": "Üresen hagyva: {fields}.",
         "nothing": "Egyik kijelző sem tudta megjeleníteni: ellenőrizd, hogy van-e online kijelző {version} vagy újabb firmware-rel."
       },
       "white": "Fehér (alapértelmezett)",
@@ -3466,7 +3729,80 @@
         "text": "Add hozzá a(z) {second} mezőt egy második gombhoz az első bal oldalán, így a kijelző előtt álló választhat, például Most nem és Nyitás közül. A(z) {first_color} és {second_color} saját színt ad a gombnak, zöldet az igenhez, pirosat a nemhez. Hogy melyik válasz melyik oldalra kerül, te döntöd el: az első gomb mindig jobb oldalon van.",
         "event": "Az eseményen keresztül ezek a mezők mind opcionálisak, és a(z) {second_action} a(z) {second_data} mezővel a második gombról futtat műveletet, ahogy a(z) {action} az elsőről. A(z) {version} előtti firmware-ű kijelző egy gombbal mutatja a figyelmeztetést.",
         "direct": "Közvetlenül hívsz egy kijelzőt? A(z) {choice} művelete a show_alert mezőit és ezt a hármat fogadja; a második gomb {ending} eredménnyel zárja a figyelmeztetést."
-      }
+      },
+      "wizard": {
+        "camera": "Kamera (nem kötelező)",
+        "no_camera": "Nincs kamera",
+        "screens_hint": "Nincs kiválasztva: minden képernyő, amely értesítést tud mutatni.",
+        "description": "A Tessera Eseményeiben készült: egy értesítés a képernyőkön.",
+        "title": "Új értesítés-automatizálás",
+        "with_picture": "A kamera képét mutatja",
+        "without_picture": "Kép nélkül mutatja az értesítést",
+        "summary": {
+          "says": "Szöveg",
+          "buttons": "Gombok"
+        },
+        "steps": {
+          "trigger": {
+            "title": "Mi indítja?",
+            "help": "Válaszd ki, mitől jelenik meg az értesítés: egy bekapcsoló érzékelő, egy kapcsoló segítő, egy gomb vagy egy esemény. Egy meglévő automatizálásban használod? Akkor ezt a lépést kihagyhatod."
+          },
+          "words": {
+            "title": "Mit ír ki?",
+            "help": "Egy rövid cím és alatta egy sor. A kártyát úgy látod, ahogy a képernyő rajzolja."
+          },
+          "look": {
+            "title": "Hogy néz ki?",
+            "help": "Egy ikon, egy szín, ha szeretnéd egy kamerakép, és hogy villogjon-e."
+          },
+          "screens": {
+            "title": "Mely képernyők?",
+            "help": "Válaszd ki a képernyőket, amelyek mutatják, és hogy meddig marad."
+          },
+          "try": {
+            "title": "Kipróbálás",
+            "help": "Küldd el most egyszer, pontosan úgy, ahogy az automatizálás fogja. Nézd a képernyőidet."
+          },
+          "add": {
+            "title": "Befejezés",
+            "help": "Legyen belőle saját automatizálás, vagy másold a műveletet egy meglévő automatizálásodba."
+          },
+          "buttons": {
+            "title": "Melyik gombok?",
+            "help": "Egy gomb, vagy kettő egy választáshoz. Mindegyik tehet valamit a Home Assistantben, ha megnyomják, vagy csak bezárja az értesítést."
+          }
+        },
+        "buttons": {
+          "one": "Egy gomb",
+          "one_detail": "OK, Jövök, Láttam: bezárja az értesítést és tehet egy dolgot.",
+          "two": "Két gomb",
+          "two_detail": "Választás, például Nyitás és Most nem, mindegyik saját művelettel.",
+          "first": "Jobb gomb",
+          "second": "Bal gomb",
+          "second_example": "Most nem",
+          "color": "Szín",
+          "own_color": "Saját szín",
+          "does": "Megnyomáskor",
+          "only_close": "Csak bezárja az értesítést",
+          "no_actions": "Ennek az entitásnak nincs olyan művelete, amely mást nem igényel. Válassz másikat.",
+          "closes": "bezárja az értesítést",
+          "only": "A gomb"
+        },
+        "try_action": "Figyelem: egy művelettel rendelkező gomb megnyomása tényleg végrehajtja azt, most is.",
+        "route": {
+          "event": "A(z) {event} eseményként küldve: az egyetlen út, amely kamerát, egy gomb műveletét és képernyők választását is visz. Az app minden képernyőnek abban a formában adja az értesítést, amelyet a firmware-je ismer.",
+          "one_button": "{screens}: a firmware régebbi, mint {version}, csak a jobb gombot mutatja.",
+          "action": "Az app egy gomb műveletét egyszer hajtja végre, bármelyik képernyőn nyomják meg. Az időkorlát vagy egy új értesítés után nem történik semmi.",
+          "no_picture": "{screens}: a kamera képe nélkül mutatja az értesítést."
+        }
+      },
+      "hero": {
+        "title": "Értesítés a képernyőiden",
+        "text": "Egy kártya mindenen felül a képernyőn, egy gombbal: amikor valaki az ajtónál van, kész a mosás, vagy nyitva maradt egy ablak. A varázsló végigvezet, és hozzáadja az automatizálást a Home Assistanthez.",
+        "create": "Értesítés-automatizálás létrehozása",
+        "empty": "Még nincs értesítés-automatizálás. Hozz létre egyet fent, és itt jelenik meg."
+      },
+      "reference": "Megírás saját kézzel"
     },
     "override": {
       "eyebrow": "Haladó · helyi felülírás",
@@ -3638,8 +3974,7 @@
       "comment_label": "Van még valami? (nem kötelező)",
       "comment_hint": "Kérjük, ne írj bele személyes adatokat, naplókat, jelszavakat vagy API-kulcsokat.",
       "report_title": "Szeretnéd, hogy javítsuk?",
-      "report_text": "Nyiss egy issue-t a GitHubon. A kijelződ típusa, a verziók és amit megírtál, már ki vannak töltve. Csatolj egy naplót, és utána tudunk járni, és kérdezni tudunk tőled.",
-      "report_open": "GitHub issue megnyitása",
+      "report_text": "Küldj jelentést: a Tessera összegyűjti a panelt, a verziókat, a naplókat és az utolsó összeomlást, előbb megmutatja neked, és csak a beleegyezéseddel küldi el. Vagy olvasd el, mit tehetsz, ha valami nem működik.",
       "add_details": "Részletek hozzáadása",
       "done": "Kész",
       "settings_title": "Visszajelzés",
@@ -3672,7 +4007,9 @@
         "addon": "A Tessera verziója: {version}",
         "nothing_else": "Semmi más: sem név, sem fiók, sem entitások, naplók vagy Home Assistant-beállítások. Minden kijelző a saját véletlenszerű kulcsával oszt meg."
       },
-      "privacy": "Adatvédelem"
+      "privacy": "Adatvédelem",
+      "report_send": "Jelentés küldése",
+      "report_manual": "Hibaelhárítási útmutató"
     },
     "webflash": {
       "target": "Telepítés ebből a böngészőből (Chrome vagy Edge)",
@@ -3936,6 +4273,263 @@
       "move_to": "Áthelyezés oldalra",
       "add_here": "Csempe hozzáadása ide",
       "paste_here": "Beillesztés ide"
+    },
+    "report": {
+      "button": "A kijelzőm nem működik jól",
+      "card_title": "Valami nem stimmel?",
+      "card_hint": "Állíts össze egy jelentést abból, amit az app tud erről a kijelzőről, olvasd el, és küldd el a Tesserának, hogy megtaláljuk az okát.",
+      "eyebrow": "Hibaelhárítás",
+      "title": "A kijelzőm nem működik jól",
+      "title_named": "{name} nem működik jól",
+      "intro": "Az app néhány fájlba gyűjti, amit erről a kijelzőről tud. Itt elolvashatod őket, és csak a Küldés viszi el a Tesserának.",
+      "loading": "Olvasom, amit az app tud…",
+      "collects_title": "Mi kerül bele",
+      "collects": "A kijelző panelje és verziói, a saját naplója (legfeljebb 45 másodperc, élőben), a Home Assistant naplójának rá vonatkozó sorai, az app naplója és az utolsó fordítási napló. A jelszavak, kulcsok, hálózati címek és a kijelző neve ki vannak takarva.",
+      "nothing_leaves": "Semmi nem hagyja el a Home Assistantodat, amíg meg nem nyomod a Küldést. Előbb minden fájlt elolvashatsz.",
+      "crash_title": "Utolsó összeomlás",
+      "crash_line": "{reason}, {when}, {seen}",
+      "crash_seen": "egyszer fordult elő ezen a héten | {n} alkalommal fordult elő ezen a héten",
+      "crash_lines": "Dekódolt sorok",
+      "full": "Az oldalaim elrendezését, az entitások nevét és a Home Assistant naplójának többi sorát is add hozzá. Ez sokat segít az ok megtalálásában.",
+      "note_label": "Mi történt? (nem kötelező)",
+      "note_hint": "Mit láttál, mit csináltál közvetlenül előtte, és milyen gyakran fordul elő.",
+      "email_label": "Az e-mail-címed (nem kötelező)",
+      "email_hint": "Ha kérdezhetünk tőled róla valamit.",
+      "remember_email": "Jegyezze meg az e-mail-címemet ebben az appban",
+      "collect": "Gyűjtés",
+      "check_again": "Ellenőrzés újra",
+      "blockers": {
+        "no_profile": "Ennek a kijelzőnek a YAML-je nincs ennek az appnak a mappájában, így nem készíthető róla jelentés.",
+        "collecting": "Erről a kijelzőről már készül egy jelentés. Várj egy kicsit, és ellenőrizd újra."
+      },
+      "collecting": "Gyűjtés…",
+      "collecting_hint": "Ez legfeljebb egy percig tart: az app egy ideig figyeli a kijelző naplóját.",
+      "steps": {
+        "identity": "A kijelző azonosságának olvasása",
+        "profile": "A profiljának másolása",
+        "screen_log": "A kijelző naplójának figyelése",
+        "ha_log": "A Home Assistant naplójának olvasása",
+        "addon_log": "Az app naplójának olvasása",
+        "build_log": "Az utolsó fordítási napló olvasása",
+        "crash": "Az utolsó összeomlás olvasása",
+        "zip": "A fájlok becsomagolása"
+      },
+      "ready_title": "Olvasásra kész",
+      "facts": {
+        "board": "Panel",
+        "firmware": "Firmware",
+        "addon": "Tessera",
+        "ha": "Home Assistant",
+        "esphome": "ESPHome",
+        "plugins": "Bővítmények",
+        "crash": "Utolsó összeomlás",
+        "none": "Nincs",
+        "unknown": "Ismeretlen"
+      },
+      "warnings": {
+        "screen_offline": "A kijelző offline: a jelentésben nincs élő napló, csak amit az app megőrzött.",
+        "no_api_key": "Az appnak nincs API-kulcsa ehhez a kijelzőhöz, így az élő naplóját nem lehetett beolvasni.",
+        "no_elf": "A firmware hibakeresési fájlja hiányzik, így egy összeomlás nem köthető a kódsoraihoz.",
+        "ha_log_unavailable": "A Home Assistant naplóját nem lehetett beolvasni.",
+        "addon_log_unavailable": "Az app saját naplóját nem lehetett beolvasni.",
+        "no_crash_record": "Ehhez a kijelzőhöz nem található összeomlás-bejegyzés."
+      },
+      "files_title": "A jelentés fájljai",
+      "file_lines": "1 sor | {n} sor",
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
+      },
+      "download": "Zip letöltése",
+      "send_title": "Küldés a Tesserának",
+      "send_text": "Ez a Tesserához kerül, és {days} napig őrizzük. A fenti fájlokat, a megjegyzésedet és az e-mail-címedet tartalmazza, ha megadtad.",
+      "privacy": "Adatvédelem",
+      "with_note": "A megjegyzéseddel.",
+      "with_email": "Írhatunk a(z) {email} címre.",
+      "change_note": "Megjegyzés vagy e-mail módosítása",
+      "consent": "Elolvastam, mi van a jelentésben, és beleegyezem, hogy elküldjük a Tesserának.",
+      "send": "Küldés",
+      "sending": "Küldés…",
+      "sent": {
+        "title": "Elküldve, köszönjük",
+        "quote": "Hivatkozz erre az azonosítóra a GitHubon vagy a Discordon, hogy megtaláljuk a jelentésedet.",
+        "copy": "Másolás",
+        "copied": "Azonosító kimásolva.",
+        "selected": "Az azonosító ki van jelölve: másold ki Ctrl+C-vel vagy ⌘C-vel.",
+        "github": "GitHub issue megnyitása",
+        "discord": "Kérdezz a Discordon",
+        "new": "Új jelentés készítése"
+      },
+      "failed_title": "A jelentést nem sikerült elkészíteni",
+      "try_again": "Próbáld újra"
+    },
+    "events": {
+      "eyebrow": "Események · a Home Assistantből",
+      "intro": "Amit egy Home Assistant automatizálás a képernyőidre küldhet. Te választod a kiváltót, a képernyőket és hogy mit mutatnak.",
+      "alerts": "Értesítések",
+      "doorbell": "Ajtócsengő",
+      "wizard": {
+        "suggested": "A csengőid:",
+        "none": "Nincs találat",
+        "pick_trigger": "Válaszd ki, mi indítja",
+        "yaml": "Az automatizálás YAML-ként",
+        "kind": {
+          "doorbell": "Indul, amikor ez a csengő megszólal (a Home Assistant Doorbell rang triggere).",
+          "event": "Indul minden alkalommal, amikor ez az esemény bekövetkezik.",
+          "on": "Indul, amikor ez bekapcsol.",
+          "press": "Indul minden megnyomáskor."
+        },
+        "back": "Vissza",
+        "next": "Tovább",
+        "done": "Kész",
+        "other": "Valami más",
+        "other_detail": "Bármely saját érzékelő, kapcsoló, segítő, gomb vagy esemény",
+        "every_screen": "Minden képernyő",
+        "summary": {
+          "starts": "Indítja",
+          "screens": "Képernyők",
+          "title": "Név a Home Assistantben"
+        },
+        "domain": {
+          "binary_sensor": "Érzékelő: kiről bere vált, például amikor valakit észlel.",
+          "switch": "Kapcsoló: amikor valaki bekapcsolja.",
+          "input_boolean": "Kapcsoló segítő: amikor bekapcsol, például egy másik automatizálásból."
+        },
+        "finish": {
+          "label": "Hogyan szeretnéd használni?",
+          "automation": "Automatizálás létrehozása",
+          "automation_detail": "A Tessera hozzáadja a Home Assistanthez, az 1. lépésben választott indítással.",
+          "needs_trigger": "Először válaszd ki az 1. lépésben, mi indítja.",
+          "action": "Saját automatizálásban használom",
+          "action_detail": "Csak a műveletet másold ki, és illeszd be egy meglévő automatizálásodba.",
+          "paste": "A Home Assistantben nyisd meg az automatizálásodat, adj hozzá egy műveletet, a menüjében válaszd a Szerkesztés YAML-ben lehetőséget, és illeszd be ezt.",
+          "copy": "YAML másolása"
+        }
+      },
+      "install": {
+        "add": "Hozzáadás a Home Assistanthez",
+        "saving": "Hozzáadás…",
+        "saved": "Hozzáadva. Azonnal működik, újraindítás nélkül.",
+        "open": "Megnyitás a Home Assistantben",
+        "hint": "A neve „{title}” a Home Assistant automatizálásai között, ahol tovább módosíthatod.",
+        "listed": "A Tesserától a Home Assistantben",
+        "remove": "Eltávolítás",
+        "remove_confirm": "Eltávolítod a(z) „{name}” automatizálást a Home Assistantből?",
+        "on": "Be",
+        "off": "Ki"
+      }
+    },
+    "doorbell": {
+      "intro": "Valaki csenget, és a képernyőid mutatják az ajtót. Egy automatizálás elküldi az eseményt a csengő kamerájával: egy P4 képernyő felébred, csengőhangot játszik és élőben, hanggal megnyitja a kamerát; minden más képernyő értesítésben mutatja a képét. Bármilyen csengő működik, bármi indítja az automatizálást.",
+      "example": {
+        "title": "Bejárati ajtó",
+        "when": "Épp most",
+        "sound": "Hang be"
+      },
+      "try": {
+        "send": "Csengetés",
+        "views": "Élőben megnyitva {n} képernyőn. | Élőben megnyitva {n} képernyőn.",
+        "alerts": "Értesítésként mutatva {n} képernyőn. | Értesítésként mutatva {n} képernyőn.",
+        "nothing": "Egy képernyő sem mutatta. Online a képernyő, és a kamera kamera entitás?"
+      },
+      "no_camera": "Nincs kamera",
+      "fields": {
+        "title": "Cím",
+        "timeout": "Időkorlát (másodperc)",
+        "keep": "Nem fogadott csengetés a felső sávban"
+      },
+      "screens": {
+        "view": "Élőben, hanggal",
+        "picture": "Értesítés képpel",
+        "plain": "Értesítés kép nélkül"
+      },
+      "after": {
+        "title": "Utána",
+        "text": "Csengetésenként egyszer az alkalmazás elküldi a(z) {answered} eseményt, ha valaki fogadta egy képernyőn, vagy a(z) {missed} eseményt, ha senki. Mindkettő tartalmazza a kamerát és a címet; az answered a képernyőt is.",
+        "dismiss": "Egy csengetés bezárása minden képernyőn, például amikor kinyílik az ajtó:"
+      },
+      "yaml": {
+        "missed_alias": "Nem fogadott csengetés a telefonomra",
+        "missed_message": "Valaki csengetett",
+        "description": "A Tessera Eseményeiben készült: egy csengő a képernyőkön."
+      },
+      "wizard": {
+        "title": "Új csengő-automatizálás",
+        "camera_hint": "Egy P4 képernyő élőben, hanggal streameli, ha a kamerának van hangja; a többi képernyő a képét mutatja.",
+        "screens_hint": "Nincs kiválasztva: minden képernyő.",
+        "limits": "Nem minden csengő tud mindent: hang csak akkor van, ha a kamera streamjében van. A visszabeszélés később jön.",
+        "more_cameras": "Másik kamera…",
+        "timeout_hint": "Meddig marad nyitva egy csengetés, ha senki nem érinti meg a képernyőt. Üres: az alapérték.",
+        "summary": {
+          "camera": "Kamera",
+          "door": "Ajtó"
+        },
+        "steps": {
+          "rings": {
+            "title": "Mi csenget?",
+            "help": "Válaszd ki, mi jelzi a Home Assistantnek, hogy valaki az ajtónál van. Elöl a csengőid; bármely érzékelő, gomb vagy esemény is jó. Egy meglévő automatizálásban használod? Akkor ezt a lépést kihagyhatod."
+          },
+          "camera": {
+            "title": "Melyik kamera?",
+            "help": "A kamera, amelyet a képernyők csengetéskor mutatnak. Általában a csengő saját kamerája."
+          },
+          "door": {
+            "title": "Nyitandó ajtó?",
+            "help": "A csengőnézetben lehet egy gomb, amely egy második koppintás után kinyitja az ajtót: egy zár, vagy egy másik művelet, például egy szkript vagy egy kapu gombja. Ki is hagyhatod."
+          },
+          "screens": {
+            "title": "Mely képernyők?",
+            "help": "Válaszd ki a képernyőket, amelyek a csengetést mutatják. Mindegyiknél látszik, mit tud vele kezdeni."
+          },
+          "name": {
+            "title": "Név és idő",
+            "help": "A cím a képernyőn, és meddig marad nyitva egy csengetés. Mindkettő üresen hagyható."
+          },
+          "try": {
+            "title": "Kipróbálás",
+            "help": "Csengess most egyszer, pontosan úgy, ahogy az automatizálás fog. Nézd a képernyőidet."
+          },
+          "add": {
+            "title": "Befejezés",
+            "help": "Legyen belőle saját automatizálás, vagy másold a műveletet egy meglévő automatizálásodba."
+          }
+        },
+        "door": {
+          "none": "Nincs ajtógomb",
+          "lock": "Egy zár",
+          "action": "Másik művelet",
+          "pick_lock": "Válassz zárat…",
+          "pick_action": "Válaszd ki, mit nyit…",
+          "code": "Ez a zár kódot kér: a gomb csak akkor jelenik meg, ha a zárnak van alapértelmezett kódja a Home Assistantben (a zár beállításai)."
+        },
+        "sound": {
+          "label": "A csengő azonnali hallása",
+          "hint": "A csengőnézet a csengő hangjával bekapcsolva nyílik. Kapcsold ki egy csendes helyen, például egy stúdióban: a hang ekkor egy koppintásra vár a Hangon."
+        },
+        "chime": {
+          "label": "Csengőhang csengetéskor",
+          "hint": "A képernyő ajtócsengő-hangot játszik, amikor valaki csenget. Kapcsold ki, ha nem akarod minden alkalommal hallani a bim-bamot."
+        },
+        "keep": {
+          "minutes": "{n} perc",
+          "hours": "{n} óra",
+          "open": "Amíg valaki meg nem nyitja",
+          "hint": "A senki által nem fogadott csengetés ennyi ideig marad a képernyők felső sávjában, azzal, hogy mennyi ideje volt. Egy koppintás újra megnyitja."
+        }
+      },
+      "hero": {
+        "title": "Az ajtócsengőd a képernyőiden",
+        "text": "Valaki csenget, és a képernyőid megmutatják, ki áll az ajtó előtt: élőben hanggal egy P4 képernyőn, képként vagy értesítésként a többin. A varázsló végigvezet, és hozzáadja az automatizálást a Home Assistanthez.",
+        "create": "Csengő-automatizálás létrehozása",
+        "empty": "Még nincs csengő-automatizálás. Hozz létre egyet fent, és itt jelenik meg."
+      },
+      "by_hand": {
+        "title": "Az automatizálás megírása saját kézzel"
+      }
+    },
+    "drawer": {
+      "resize": "A beállítások szélessége: húzd, vagy használd a nyilakat; dupla kattintás visszaállítja"
     }
   }
 }

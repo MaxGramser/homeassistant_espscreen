@@ -8,9 +8,9 @@
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together.
 packages:
-  # The chip and its memory for an RGB panel, as on the other Waveshare boards. Not hardware/waveshare-ch422g.yaml:
-  # this board's expander is another chip.
-  hardware: !include ../hardware/esp32s3-rgb.yaml
+  # The chip, the CH32V003 expander, the GT911 and the backlight this board shares with the 4.3C. Not
+  # hardware/waveshare-ch422g.yaml: this board's expander is another chip.
+  hardware: !include ../hardware/waveshare-ch32v003.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
@@ -52,8 +52,8 @@ substitutions:
 
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its expander,
-  # `waveshare_io_ch32v003` below, arrived in 2026.7.0. A board file's min_version wins over the core's, so the other
-  # boards keep building on 2026.6.2.
+  # `waveshare_io_ch32v003` in hardware/waveshare-ch32v003.yaml, arrived in 2026.7.0. A board file's min_version wins
+  # over the core's, so the other boards keep building on 2026.6.2.
   min_version: 2026.7.0
 
 esp32:
@@ -65,49 +65,8 @@ logger:
   # the Waveshare 4B.
   hardware_uart: UART0
 
-# The GT911 and the expander share the board's only I2C bus.
-i2c:
-  id: touch_bus
-  sda: GPIO8
-  scl: GPIO9
-  scan: true
-
-# Waveshare's CH32V003 is a small microcontroller with its own firmware that answers as an expander at 0x24: eight
-# lines, one PWM output and one ADC. Its lines here: EXIO1 the touch reset, EXIO2 the backlight enable (DISP), EXIO3
-# the panel reset, EXIO6 the panel supply (LCD_VDD_EN). ESPHome has had a component for it since 2026.7.0.
-waveshare_io_ch32v003:
-  - id: expander
-    i2c_id: touch_bus
-
-output:
-  # The backlight's level is the expander's PWM output, low for full light (inverted). The safe levels are
-  # ESPHome's defaults for this board: 247 keeps the backlight from flickering at the dark end, and 1 is full light.
-  # The enable line (EXIO2) stays out of this output. It goes high once, with the panel below, and never low again:
-  # on the 4.3-inch Waveshare, switching the backlight's boost converter on from a dark screen browned the board out
-  # (packages/features/backlight-always-on.yaml). A level of 0 is the darkest the PWM gives, with the enable kept on.
-  - platform: waveshare_io_ch32v003
-    id: gpio_backlight_pwm
-    waveshare_io_ch32v003_id: expander
-    inverted: true
-    safe_pwm_levels:
-      min_value: 1
-      max_value: 247
-
-# The GT911's reset line hangs on the expander; its interrupt line is GPIO4, which also sets its I2C address while
-# it resets. It reports pixels of the panel.
-touchscreen:
-  - platform: gt911
-    id: ts_touch
-    i2c_id: touch_bus
-    display: my_display
-    update_interval: 20ms
-    interrupt_pin: GPIO4
-    reset_pin:
-      waveshare_io_ch32v003: expander
-      number: 1
-      mode:
-        output: true
-
+# The expander's lines of this board's own: EXIO3 the panel reset, EXIO6 the panel supply (LCD_VDD_EN).
+#
 # ESPHome has no model for this board (its WAVESHARE-5-1024X600 wants a CH422G), so the panel is ESPHome's RPI model,
 # an RGB panel without an init sequence, with this board's pins and timings. The pins are Waveshare's pin table, the
 # same as on the 4.3 and 7-inch boards; the timings and the 30 MHz pixel clock are those of Waveshare's demo, as the

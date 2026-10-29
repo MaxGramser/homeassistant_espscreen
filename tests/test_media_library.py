@@ -29,7 +29,7 @@ from core import encode, validate_layout  # noqa: E402
 HAS_PIL = importlib.util.find_spec('PIL') is not None
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
-    import camera_feed
+    import lan_address
     from server import Manager
 
 PLAYER = 'media_player.spotify'
@@ -320,7 +320,7 @@ class ASpotifyLink(unittest.TestCase):
 @unittest.skipUnless(HAS_AIOHTTP and HAS_PIL, 'Run using .venv-portal/bin/python for server tests')
 class TheApp(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        camera_feed.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     def ha(self):
         class HA:
@@ -383,7 +383,7 @@ class TheApp(unittest.IsolatedAsyncioTestCase):
                 await m.answer_camera({'inbox': 'text.d1_tiles', 'entity': PLAYER, 'lib': f'{first},{first + 1}', 'atlas': atlas, 'bg': 'E7E7E7'})
             (cover,) = [e[2] for e in ha.log if e[0] == 'send']
             self.assertEqual((cover['op'], cover['t'], cover['e']), ('camera', 'lib', PLAYER))
-            status, raw, _ = await m.camera.serve(cover['u'].rsplit('/', 1)[1][:-4])
+            status, raw, _, _ = await m.links.serve(cover['u'].rsplit('/', 1)[1][:-4])
             self.assertEqual(status, 200)
             from PIL import Image
             with Image.open(io.BytesIO(raw)) as image:

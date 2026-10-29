@@ -345,7 +345,6 @@ void HostProbe::before_update() {
 }
 void HostProbe::on_cards_closed() { ESP_LOGI(TAG, "cards_closed"); }
 void HostProbe::on_alert() { ESP_LOGI(TAG, "alert"); }
-void HostProbe::on_touch() { ESP_LOGI(TAG, "touch"); }
 void HostProbe::on_press() { ESP_LOGI(TAG, "press"); }
 void HostProbe::on_step(const tessera::Step &step) { ESP_LOGI(TAG, "step %d%s", step.direction, step.edge ? " edge" : ""); }
 
@@ -371,9 +370,81 @@ void HostProbe::ask_once() {
   ESP_LOGI(TAG, "sent re=%u", (unsigned) re);
 }
 
+// The popup (0.18): a status line and a label of several lines in its room, each moment a log line. `closes` asks it to
+// close itself in its own on_tap, so the harness sees the host delete it only after that call returned.
+class ProbePopup : public tessera::Popup {
+ public:
+  explicit ProbePopup(bool closes) : closes_(closes) {}
+  ~ProbePopup() override { ESP_LOGI(TAG, "popup destroy"); }
+  void open(const tessera::PopupContext &c) override {
+    // Where the room lies on the glass, for the harness's taps on the card and beside it.
+    lv_obj_update_layout(c.parent);
+    lv_area_t room;
+    lv_obj_get_coords(c.parent, &room);
+    ESP_LOGI(TAG, "popup open %dx%d at=%d,%d", c.width, c.height, (int) room.x1, (int) room.y1);
+    title_ = ui::label(c.parent, Font::TITLE, theme::INK);
+    ui::set_text(title_, "Listening");
+    ui::animate(title_, tessera::Motion::PULSE, 1200);   // a part that moves while it shows (0.18)
+    words_ = ui::text(c.parent, Font::BODY, theme::INK_SOFT);
+    lv_obj_set_pos(words_, 0, ui::line_height(Font::TITLE) + ui::px(8));
+    lv_obj_set_width(words_, c.width);
+    ui::set_text(words_, "A popup of a plugin, the card an alert shows, over everything but an alert");
+  }
+  void on_interval(uint32_t now_ms) override {
+    if (said_interval_) return;
+    said_interval_ = true;
+    ESP_LOGI(TAG, "popup interval");
+  }
+  void on_tick(uint32_t) override {
+    if (said_tick_) return;
+    said_tick_ = true;
+    ESP_LOGI(TAG, "popup tick");
+  }
+  void on_theme() override { ESP_LOGI(TAG, "popup theme"); }
+  void on_tap() override {
+    const auto at = tessera::tap_point();
+    ESP_LOGI(TAG, "popup tap at=%d,%d", at.x, at.y);
+    if (closes_) {
+      tessera::close_popup(plugin);
+      ESP_LOGI(TAG, "popup tap end");
+    }
+  }
+  void on_dismiss() override { ESP_LOGI(TAG, "popup dismiss"); }
+  static HostProbe *plugin;
+
+ private:
+  bool closes_, said_interval_ = false, said_tick_ = false;
+  lv_obj_t *title_{}, *words_{};
+};
+HostProbe *ProbePopup::plugin = nullptr;
+
 void HostProbe::on_message(JsonObjectConst message) {
   // A message of the harness that asks for a closer: {"do": "<mode>", "tile": <the layout's tile it opens from>}.
   const char *what = message["do"] | "";
+  // {"do": "wake"}: the plugin wakes the screen (plugin API 0.16), as one that senses someone come does.
+  if (std::string(what) == "wake") {
+    ESP_LOGI(TAG, "wake");
+    tessera::wake(this);
+    return;
+  }
+  // {"do": "camera_turn"}: how far the screen's camera turns its picture (plugin API 0.19), 0 on a board without one.
+  if (std::string(what) == "camera_turn") {
+    ESP_LOGI(TAG, "camera_turn=%d", tessera::camera_turn());
+    return;
+  }
+  // {"do": "popup"} (or "popup_self", one that closes itself on a tap), {"do": "popup_close"}: plugin API 0.18.
+  if (std::string(what) == "popup" || std::string(what) == "popup_self") {
+    ProbePopup::plugin = this;
+    const bool closes = std::string(what) == "popup_self";
+    ESP_LOGI(TAG, "do %s shown=%d", what, (int) tessera::show_popup(this, [closes]() { return new ProbePopup(closes); }));
+    return;
+  }
+  if (std::string(what) == "popup_close") {
+    ESP_LOGI(TAG, "do popup_close shown=%d", (int) tessera::popup_shown(this));
+    tessera::close_popup(this);
+    ESP_LOGI(TAG, "popup shown=%d", (int) tessera::popup_shown(this));
+    return;
+  }
   if (*what) {
     ProbeCloser::mode = what;
     ESP_LOGI(TAG, "do %s", what);

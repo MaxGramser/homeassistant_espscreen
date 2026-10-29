@@ -86,7 +86,8 @@ class TheIssues(unittest.TestCase):
         notes = ('- **A fix** ([#169](https://github.com/MaxGramser/homeassistant_espscreen/issues/169)). Also #170 and '
                  'again #169, a pull request https://github.com/MaxGramser/homeassistant_espscreen/pull/151, not '
                  'a colour like &#35;1 or a heading anchor docs/PAGES.md#updating, nor another repository '
-                 'https://github.com/esphome/esphome/issues/9999.')
+                 'https://github.com/esphome/esphome/issues/9999, nor a wish on the website (wish #88) or another '
+                 "repository's issue named in words (espressif/esp-idf #19096).")
         self.assertEqual(release.issues_in(notes), [169, 170, 151])
 
     def test_a_real_section_reads(self):
@@ -258,14 +259,14 @@ class ThePlugins(unittest.TestCase):
             for key, value in (('user.name', 'Release test'), ('user.email', 'release-test@example.invalid')):
                 run('config', key, value)
             write = lambda name, text: (root / 'work' / name).write_text(text)
-            write('index.json', '{"plugin_api": "0.11"}'); write('likes.json', '{"a": 1}'); write('README.md', 'one\n')
+            write('index.json', '{"plugin_api": "0.11"}'); write('likes.json', '{"a": 1}'); write('stats.json', '{"a": 1}'); write('README.md', 'one\n')
             run('add', '-A'); run('commit', '-qm', 'start'); run('push', '-q', 'origin', 'HEAD:main')
             run('checkout', '-qb', 'dev')
-            write('index.json', '{"plugin_api": "0.12"}'); write('likes.json', '{"a": 2}'); (root / 'work' / 'plugins').mkdir()
+            write('index.json', '{"plugin_api": "0.12"}'); write('likes.json', '{"a": 2}'); write('stats.json', '{"a": 2}'); (root / 'work' / 'plugins').mkdir()
             write('plugins/new.txt', 'tap sound 0.2.0\n')
             run('add', '-A'); run('commit', '-qm', 'dev'); run('push', '-q', 'origin', 'dev')
             run('checkout', '-q', 'main')
-            write('index.json', '{"plugin_api": "0.10"}'); write('likes.json', '{"a": 3}')   # the hourly bot on main
+            write('index.json', '{"plugin_api": "0.10"}'); write('likes.json', '{"a": 3}'); write('stats.json', '{"a": 3}')   # the hourly bot on main
             run('add', '-A'); run('commit', '-qm', 'Index: likes'); run('push', '-q', 'origin', 'main')
             with release_plugins.Clone(str(root / 'origin.git')) as plugins:
                 plugins.fetch()
@@ -275,6 +276,7 @@ class ThePlugins(unittest.TestCase):
                 self.assertTrue(merged and not left)
                 self.assertEqual(plugins.git('show', f'{merged}:index.json'), '{"plugin_api": "0.12"}')   # dev's, built again after
                 self.assertEqual(plugins.git('show', f'{merged}:likes.json'), '{"a": 3}')                  # main's, the newest
+                self.assertEqual(plugins.git('show', f'{merged}:stats.json'), '{"a": 3}')
                 self.assertEqual(plugins.git('show', f'{merged}:plugins/new.txt'), 'tap sound 0.2.0')
                 self.assertTrue(plugins.contains('origin/dev', merged))
             # A conflict outside the generated files stops it, and leaves nothing behind.

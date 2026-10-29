@@ -1,4 +1,4 @@
-# ESP Screens - a M5Stack Tab5 Tab5 ST7121 built from a clone of this repository. Written by tools/generate_entries.py
+# ESP Screens - a M5Stack Tab5 Tab5 built from a clone of this repository. Written by tools/generate_entries.py
 # from boards.yaml; do not edit. checkout/README.md says how to build it.
 #
 # The screen is two packages: packages/core.yaml, which every board shares, and packages/boards/tab5.yaml with

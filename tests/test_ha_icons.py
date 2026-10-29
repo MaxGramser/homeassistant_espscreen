@@ -114,6 +114,15 @@ class Everywhere(unittest.TestCase):
         self.assertEqual(entities[0]['icon'], glyph('blinds-horizontal-closed'))
         self.assertEqual(header_bar.auto_icon('weather.home', {'state': 'rainy', 'attributes': {}}), glyph('weather-rainy'))
 
+    def test_an_entity_without_a_registry_entry_shows_the_screens_icon_in_the_editor(self):
+        # A player or a lock of YAML (no unique id, so no registry entry) gets the icon the screen draws, not the power.
+        state = {'entity_id': 'media_player.kitchen', 'state': 'playing', 'attributes': {'friendly_name': 'Kitchen'}}
+        _, entities = discover([], {'media_player.kitchen': state, 'lock.front': {'entity_id': 'lock.front', 'state': 'locked', 'attributes': {}}}, [], [])
+        icons = {e['id']: e['icon'] for e in entities}
+        self.assertEqual(icons['media_player.kitchen'], glyph('cast-connected'))
+        self.assertEqual(icons['media_player.kitchen'], screen_options({'entity': 'media_player.kitchen', 'name': ''}, state['attributes'], 'playing')['icon'])
+        self.assertEqual(icons['lock.front'], glyph('lock'))
+
     def test_without_home_assistants_icons_everything_is_as_before(self):
         tile_icons.use_ha_icons({})
         self.assertNotIn('icon', screen_options({'entity': 'cover.office', 'name': ''}, {'device_class': 'blind'}, 'closed') or {})

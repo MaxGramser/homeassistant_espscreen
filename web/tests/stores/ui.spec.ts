@@ -45,12 +45,12 @@ describe("the view the address names", () => {
     await router.push("/nowhere");
     expect([router.currentRoute.value.path, ui.route]).toEqual(["/", ""]);
     // A hash from before the router (#alerts, a kept link) still opens its page: a router made on that address, as
-    // the page's is when it loads, reads it as /alerts.
+    // the page's is when it loads, reads it as /alerts, which is the alerts of Events now (app 0.4.91).
     history.replaceState(null, "", "#alerts");
     const { createRouter, createWebHashHistory } = await import("vue-router");
     const kept = createRouter({ history: createWebHashHistory(), routes: router.options.routes });
     await kept.push(kept.options.history.location);
-    expect(kept.currentRoute.value.path).toBe("/alerts");
+    expect(kept.currentRoute.value.path).toBe("/events/alerts");
     // The main view, with no session to name the open screen, is the overview.
     await ui.go("");
     expect([router.currentRoute.value.path, ui.route]).toEqual(["/", ""]);
@@ -82,7 +82,11 @@ describe("the view the address names", () => {
     history.replaceState(null, "", "#/alerts");
     await router.replace("/alerts");
     await restoreKeptRoute();
-    expect(router.currentRoute.value.fullPath).toBe("/alerts");
+    expect(router.currentRoute.value.fullPath).toBe("/events/alerts");
+    // Events by its part: the doorbell's address opens the doorbell.
+    const ui = useUiStore();
+    await ui.openEvents("doorbell");
+    expect([router.currentRoute.value.path, ui.route, ui.eventsKind]).toEqual(["/events/doorbell", "#events", "doorbell"]);
   });
 });
 

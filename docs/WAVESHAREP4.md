@@ -92,7 +92,7 @@ The speaker (ES8311, amplifier GPIO53) and microphones (ES7210) keep the shared 
 interfaces `ts_speaker`, `ts_microphone` and `ts_media_player`. Existing plugins use these same
 interfaces; no voice assistant or AI provider is added by this board support.
 
-This branch selects `P4_AUDIO_TRANSPORT: "aec"` on the Waveshare P4. The shared I2S/TDM bus
+The Waveshare P4 takes the ES7210's echo-cancelling transport by default (`AUDIO_TRANSPORT: "aec"`). The shared I2S/TDM bus
 can capture and play simultaneously. **Extras** in the editor and on the panel offers Volume,
 Microphone, Microphone gain (0–36 dB in 3 dB steps, initially 30 dB), Automatic gain and
 Echo cancellation. These are the board's ESPHome entities in HA, not separate editor settings.
@@ -101,14 +101,22 @@ The fixed playback-reference gain is unaffected by microphone gain and Automatic
 Echo cancellation can be turned on/off live. Off passes the selected microphone through while
 keeping the adaptive filter current; it does not mute the microphone or switch to half-duplex.
 The setting survives reboot. `Echo cancellation status` reports Enabled, Bypass, Starting or Error.
-Other boards do not select the extended ES7210 driver, audio stack or AEC dependency.
+
+The codecs and the amplifier are declared in `packages/hardware/wavesharep4-audio.yaml`: the parts
+(`packages/hardware/parts/es7210.yaml`, `es8311.yaml`, `amplifier.yaml`) and their pins. Waveshare wires the
+audio of the [ESP32-P4-WIFI6-Touch-LCD-7B](WAVESHAREP47B.md), the [ESP32-P4-WIFI6-Touch-LCD-7](WAVESHAREP47.md)
+and the [ESP32-P4-WIFI6-Touch-LCD-10.1](WAVESHARE101.md) the same way, so those boards take the same codecs,
+transports and settings. The Tab5 brings its own wiring for the same transport. Other boards do not select the
+extended ES7210 driver, audio stack or AEC dependency.
 
 For the original half-duplex path without the AEC library, override and rebuild:
 
 ```yaml
 substitutions:
-  P4_AUDIO_TRANSPORT: "i2s"
+  AUDIO_TRANSPORT: "i2s"
 ```
+
+`P4_AUDIO_TRANSPORT`, the old name, still works in firmware 0.58 and goes in the release after.
 
 Gain and Automatic gain remain available. Echo cancellation is absent in that firmware and
 its editor row is unavailable. A live switch does not change firmware size. See

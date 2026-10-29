@@ -98,6 +98,51 @@ class Card(unittest.TestCase):
         self.assertEqual(len(data['e']) + data['m'], 80)
 
 
+    def test_compact_events_are_short_and_ask_for_the_rest(self):
+        long = {'calendar.work': [{'start': '2026-10-11T16:00:00+02:00', 'end': '2026-10-11T17:00:00+02:00',
+                                   'summary': 'A rather long meeting title that goes on and on', 'location': 'Conference room on the third floor',
+                                   'description': 'Bring the slides'}]}
+        data = cf.card({'entity': 'calendar.work'}, long, DATA['states'], {}, TZ, NOW, compact=True)
+        row = data['e'][0]
+        self.assertEqual(data['a'], 1)
+        self.assertTrue(row[4].endswith('…') and len(row[4].encode()) <= cf.SHORT_TITLE)
+        self.assertTrue(row[5].endswith('…') and len(row[5].encode()) <= cf.SHORT_PLACE)
+        self.assertNotIn('a', cf.card({'entity': 'calendar.work'}, long, DATA['states'], {}, TZ, NOW))
+        # A tap asks by the calendar's place and the minutes: the whole event comes back.
+        found = cf.detail({'entity': 'calendar.work'}, long, TZ, NOW.date(), row[3], row[0], row[1])
+        self.assertEqual(found, {'t': 'A rather long meeting title that goes on and on', 'p': 'Conference room on the third floor', 'n': 'Bring the slides'})
+        self.assertIsNone(cf.detail({'entity': 'calendar.work'}, long, TZ, NOW.date(), row[3], row[0] + 1, row[1]))
+        self.assertIsNone(cf.detail({'entity': 'calendar.work', 'options': {'private': True}}, long, TZ, NOW.date(), row[3], row[0], row[1]))
+
+    def test_a_busy_week_fits_compact(self):
+        # Five events a day over two weeks with long titles and places: whole, the budget ends in a few days; short, the
+        # whole of this week and the next fits.
+        many = {'calendar.work': [{'start': f'2026-10-{12 + i // 5:02d}T{8 + i % 5 * 2:02d}:00:00+02:00',
+                                   'end': f'2026-10-{12 + i // 5:02d}T{9 + i % 5 * 2:02d}:00:00+02:00',
+                                   'summary': 'Weekly planning meeting with the whole team ' + str(i), 'location': 'Main office, second floor, room 4'}
+                                  for i in range(50)]}
+        whole = cf.card({'entity': 'calendar.work'}, many, DATA['states'], {}, TZ, NOW)
+        short = cf.card({'entity': 'calendar.work'}, many, DATA['states'], {}, TZ, NOW, compact=True, most=cf.KEEPS)
+        self.assertGreater(whole['m'], 20)
+        self.assertGreater(len(short['e']), 2 * len(whole['e']) - 5)
+        self.assertLessEqual(len(json.dumps(short, separators=(',', ':')).encode()), cf.BUDGET + 200)
+
+    def test_most_keeps_the_nearest_and_counts_the_rest(self):
+        many = {'calendar.work': [{'start': f'2026-10-{12 + i // 8:02d}T{8 + i % 8:02d}:00:00+02:00',
+                                   'end': f'2026-10-{12 + i // 8:02d}T{8 + i % 8:02d}:30:00+02:00', 'summary': str(i)}
+                                  for i in range(40)]}
+        data = cf.card({'entity': 'calendar.work'}, many, DATA['states'], {}, TZ, NOW, most=24)
+        self.assertEqual(len(data['e']), 24)
+        self.assertEqual(data['m'], 16)
+        self.assertEqual([row[4] for row in data['e']], [str(i) for i in range(24)])
+
+    def test_what_a_screen_keeps(self):
+        self.assertIsNone(cf.keeps({'calendar_detail'}, None))
+        self.assertEqual(cf.keeps({'calendar_detail'}, {'psram_kb': 8192}), cf.KEEPS_PSRAM)
+        self.assertEqual(cf.keeps({'calendar_detail'}, {'psram_kb': 0}), cf.KEEPS)
+        self.assertEqual(cf.keeps(set(), {'psram_kb': 0}), cf.KEEPS_BEFORE)
+
+
 class Room(unittest.TestCase):
     """ "Status and booking": the calendar a key books on, only one that takes new events (Home Assistant's CREATE_EVENT)."""
     def states(self, features):

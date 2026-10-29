@@ -947,24 +947,26 @@ void command(Tile &t, int cmd) {
 // ---- The map's picture (picture_loader.h): wanted while the card shows it ----
 inline void map_request(const MapAsk &a) {
   if (inbox.empty()) return;
-  esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef("esphome.screen_camera");
-  request.is_event = true;
-  char box[16], ground[8];
-  snprintf(box, sizeof(box), "%dx%d", a.w, a.h);
-  snprintf(ground, sizeof(ground), "%06X", (unsigned) a.ground);
-  const std::string session = protocol_key(transfer.lease), number = std::to_string(++vacuum_map_view_id);
-  const std::string keys_[] = {"inbox", "entity", "vmap", "bg", "dark", "session", "rev", "view"};
-  const std::string values[] = {inbox, a.entity, box, ground, a.dark ? "1" : "0", session, layout_rev, number};
-  request.data.init(8);
-  for (int i = 0; i < 8; ++i) {
-    esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(keys_[i]);
-    entry.value = esphome::StringRef(values[i]);
-    request.data.push_back(entry);
-  }
-  esphome::api::global_api_server->send_homeassistant_action(request);
-  ESP_LOGI("camera", "asked for the map of %s at %dx%d", a.entity.c_str(), a.w, a.h);
+  // The map at exactly the card's box, within the board's cap as every picture (a picture over it comes smaller and
+  // sits in the middle of its place).
+  picture_question::Question q;
+  q.owner = picture_question::Owner::CARD;
+  q.sources = {picture_question::vacuum_source(a.entity)};
+  const auto cap = picture_cap();
+  const int scale = picture_store::fit_scale(a.w, a.h, cap);
+  q.w = std::max(1, picture_store::scaled(a.w, scale));
+  q.h = std::max(1, picture_store::scaled(a.h, scale));
+  q.cap = cap.bytes;
+  q.dark = a.dark;
+  q.formats = {"bmp8", "bmp24"};
+  picture_question::Place place;
+  place.w = q.w;
+  place.h = q.h;
+  place.fit = picture_question::Fit::EXACT;
+  place.ground = a.ground;
+  q.places = {place};
+  picture_ask(q, "vmap", a.entity, ++vacuum_map_view_id);
+  ESP_LOGI("camera", "asked for the map of %s at %dx%d", a.entity.c_str(), q.w, q.h);
 }
 void picture_want() {
   if (!map_ask.valid() || view != MAIN || !detail_shown() || !tiles_seen() || detail_index >= model.count ||

@@ -1,0 +1,168 @@
+# ESP Screens - the Waveshare ESP32-S3-Touch-LCD-2.8B apart from its glass and grid, for its board file
+# (packages/boards/waveshare28b.yaml), which declares the sizes this file uses (PANEL_W, PANEL_H, BACKLIGHT_FREQUENCY).
+#
+# The display is not ESPHome's mipi_rgb but mipi_rgb_ws28b, a copy of ESPHome 2026.9.0's in components/ that can leave
+# out COLMOD (0x3A). ESPHome always sends it, and with any value it sends, 16 or 18 bit, this panel reads the RGB lines
+# shifted: every channel lost its top bits and greys turned green or purple. Waveshare's own example never sends 0x3A
+# and the panel keeps its power-on format; so does this board (components/mipi_rgb_ws28b/README.md).
+packages:
+  # The chip and its memory for an RGB panel, as on the other Waveshare boards.
+  rgb: !include esp32s3-rgb.yaml
+
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its display
+  # driver, components/mipi_rgb_ws28b, is ESPHome 2026.9.0's mipi_rgb and builds on that version's mipi helpers.
+  min_version: 2026.9.0
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The one USB-C port goes to the chip's own USB.
+  hardware_uart: USB_SERIAL_JTAG
+
+# The GT911 (0x5D), the TCA9554 (0x20) and the board's other chips share one bus. GPIO47 and GPIO48, the 4B's I2C
+# pins, are RGB data lines on this board.
+i2c:
+  id: touch_bus
+  sda: GPIO15
+  scl: GPIO7
+  frequency: 400kHz
+  scan: true
+
+# The IO expander: line 0 resets the panel, line 1 resets the touch panel, line 2 selects the panel for its setup.
+# The TCA9554 speaks the PCA9554's registers.
+pca9554:
+  - id: expander
+    address: 0x20
+    i2c_id: touch_bus
+
+# The ST7701S takes its setup over three-wire SPI on chip pins (shared with the SD card, which stays unused); only its
+# select line is on the expander. It runs once, at boot; the picture itself goes over the RGB pins below.
+spi:
+  id: lcd
+  clk_pin: GPIO2
+  mosi_pin: GPIO1
+
+output:
+  # The backlight is a plain PWM pin, high for light (Waveshare's example: 20 kHz).
+  - platform: ledc
+    pin: GPIO6
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO16
+    reset_pin:
+      pca9554: expander
+      number: 1
+    # No update_interval: the GT911 reports over its interrupt line (GPIO16), and ESPHome stops polling then anyway.
+
+# Pins, timings and the init sequence are those of Waveshare's example for this board (Display_ST7701.cpp and .h);
+# the data lines in its order, DATA0..15. That example sends no COLMOD, and neither does this board (send_colmod).
+# pixel_mode is then never sent to the panel. The pixel clock is 16 MHz, below the example's 30 MHz, which is what
+# an ESP32-S3 with Wi-Fi keeps up with steadily from PSRAM.
+display:
+  - platform: mipi_rgb_ws28b
+    model: CUSTOM
+    id: my_display
+    spi_id: lcd
+    cs_pin:
+      pca9554: expander
+      number: 2
+    reset_pin:
+      pca9554: expander
+      number: 0
+    data_rate: 80MHz
+    spi_mode: MODE0
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    de_pin: GPIO40
+    pclk_pin: GPIO41
+    hsync_pin: GPIO38
+    vsync_pin: GPIO39
+    pclk_frequency: 16MHz
+    pclk_inverted: false
+    hsync_pulse_width: 10
+    hsync_back_porch: 70
+    hsync_front_porch: 60
+    vsync_pulse_width: 10
+    vsync_back_porch: 20
+    vsync_front_porch: 20
+    send_colmod: false
+    color_order: RGB
+    invert_colors: false
+    data_pins:
+      red:
+        - number: GPIO46
+          ignore_strapping_warning: true
+        - number: GPIO3
+          ignore_strapping_warning: true
+        - GPIO8
+        - GPIO18
+        - GPIO17
+      green: [GPIO14, GPIO13, GPIO12, GPIO11, GPIO10, GPIO9]
+      blue:
+        - GPIO5
+        - number: GPIO45
+          ignore_strapping_warning: true
+        - GPIO48
+        - GPIO47
+        - GPIO21
+    update_interval: never
+    auto_clear_enabled: false
+    init_sequence:
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xEF, 0x08]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10]
+      - [0xC0, 0x4F, 0x00]
+      - [0xC1, 0x10, 0x02]
+      - [0xC2, 0x07, 0x02]
+      - [0xCC, 0x10]
+      - [0xB0, 0x00, 0x10, 0x17, 0x0D, 0x11, 0x06, 0x05, 0x08, 0x07, 0x1F, 0x04, 0x11, 0x0E, 0x29, 0x30, 0x1F]
+      - [0xB1, 0x00, 0x0D, 0x14, 0x0E, 0x11, 0x06, 0x04, 0x08, 0x08, 0x20, 0x05, 0x13, 0x13, 0x26, 0x30, 0x1F]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x11]
+      - [0xB0, 0x65]
+      - [0xB1, 0x71]
+      - [0xB2, 0x82]
+      - [0xB3, 0x80]
+      - [0xB5, 0x42]
+      - [0xB7, 0x85]
+      - [0xB8, 0x20]
+      - [0xC0, 0x09]
+      - [0xC1, 0x78]
+      - [0xC2, 0x78]
+      - [0xD0, 0x88]
+      - [0xEE, 0x42]
+      - [0xE0, 0x00, 0x00, 0x02]
+      - [0xE1, 0x04, 0xA0, 0x06, 0xA0, 0x05, 0xA0, 0x07, 0xA0, 0x00, 0x44, 0x44]
+      - [0xE2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      - [0xE3, 0x00, 0x00, 0x22, 0x22]
+      - [0xE4, 0x44, 0x44]
+      - [0xE5, 0x0C, 0x90, 0xA0, 0xA0, 0x0E, 0x92, 0xA0, 0xA0, 0x08, 0x8C, 0xA0, 0xA0, 0x0A, 0x8E, 0xA0, 0xA0]
+      - [0xE6, 0x00, 0x00, 0x22, 0x22]
+      - [0xE7, 0x44, 0x44]
+      - [0xE8, 0x0D, 0x91, 0xA0, 0xA0, 0x0F, 0x93, 0xA0, 0xA0, 0x09, 0x8D, 0xA0, 0xA0, 0x0B, 0x8F, 0xA0, 0xA0]
+      - [0xEB, 0x00, 0x00, 0xE4, 0xE4, 0x44, 0x00, 0x40]
+      - [0xED, 0xFF, 0xF5, 0x47, 0x6F, 0x0B, 0xA1, 0xAB, 0xFF, 0xFF, 0xBA, 0x1A, 0xB0, 0xF6, 0x74, 0x5F, 0xFF]
+      - [0xEF, 0x08, 0x08, 0x08, 0x40, 0x3F, 0x64]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xE6, 0x16, 0x7C]
+      - [0xE8, 0x00, 0x0E]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+      - [0x11]
+      - delay 200ms
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xE8, 0x00, 0x0C]
+      - delay 150ms
+      - [0xE8, 0x00, 0x00]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+      - [0x35, 0x00]

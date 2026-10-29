@@ -13,5 +13,19 @@ controls:
     needs: {actions: [light.toggle]}
   brightness:
     needs: {actions: [{action: light.turn_on, field: brightness_pct}]}
+  # The tile's own presets (module light_presets, docs/LIGHT_PRESETS.md): round keys that each set the light to a colour
+  # or white shade and a brightness chosen in the editor, as Home Assistant's favourite colours in its more-info dialog.
+  # Laid out by the card's room, a card of one cell included, by a screen that says light_presets; any other screen
+  # draws the brightness slider.
+  presets:
+    needs: {actions: [{action: light.turn_on, field: brightness_pct}]}
+    screen: {feature: light_presets, else: brightness}
+    room: {feature: light_presets}
+  # Both: the brightness slider with the presets under it, on a card with a second row for them.
+  brightness_presets:
+    of: [brightness, presets]
+    rows: 2
+    screen: {feature: light_presets, else: brightness}
+    one_row: presets
 inline:
   needs: {actions: [{action: light.turn_on, field: brightness_pct}]}

@@ -47,7 +47,6 @@ NOT_DISCOVERY = {'user', 'reauth', 'reconfigure', 'ignore'}
 # What a finished flow can say when the screen is in Home Assistant with the right key after all.
 PAIRED = {'already_configured', 'already_configured_updates', 'already_configured_detailed', 'reauth_successful',
           'name_conflict_migrated'}
-ACTIONS_ISSUE = 'service_calls_not_enabled-'
 
 
 def discovered_node(flow):

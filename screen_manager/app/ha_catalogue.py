@@ -113,19 +113,6 @@ def field_matches(field, attributes):
     return False
 
 
-def _fits(requirements, actions, attributes, services):
-    for action, field in requirements:
-        if action not in actions:
-            continue
-        if field is None:
-            return True
-        domain, name = action.split('.', 1)
-        found = find_field(((services or {}).get(domain) or {}).get(name), field)
-        if found is not None and field_matches(found, attributes):
-            return True
-    return False
-
-
 def capabilities(entity_id, actions, state, services):
     """What the editor may offer for this entity, in Home Assistant's own terms: On / off, a small slider, which direct
     controls and which displays (catalogue.offers). `actions` are the actions Home Assistant lists for the entity."""

@@ -11,11 +11,23 @@ import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
 import { useInventoryStore } from "../stores/inventory";
+import { usePluginsStore } from "../stores/plugins";
 
 const ui = useUiStore();
 const region = useRegionStore();
 const builds = useBuildsStore();
 const inv = useInventoryStore();
+const plugins = usePluginsStore();
+// What this app shares about plugins (plugin_likes.py): counting the plugins it runs, and the stars card's asking.
+const sharing = computed(() => inv.inventory.plugin_sharing || null);
+const sharingBusy = ref(false);
+async function share(what: "counting" | "asking", on: boolean) {
+  sharingBusy.value = true;
+  try {
+    if (what === "counting") await plugins.setCounting(on);
+    else await plugins.cardAnswer("any", on ? "ask" : "never");
+  } catch (error: any) { ui.toast(error.message); } finally { sharingBusy.value = false; }
+}
 
 const u = computed(() => inv.inventory.updates);
 const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
@@ -55,6 +67,21 @@ const installing = ref(false);
 async function install() {
   installing.value = true;
   try { await inv.installClaudeSkill(); } finally { installing.value = false; }
+}
+
+// Video in Home Assistant: the tessera_video integration, installed on request, then loaded by a restart of Home
+// Assistant; the app adds the screens with Screen camera's part Video to it by itself (screen_video.py).
+const video = computed(() => inv.inventory.video);
+const videoBusy = ref(false);
+const videoWaitsRestart = computed(() => !!video.value?.installed && (!video.value.loaded || video.value.loaded !== video.value.version));
+async function installVideo() {
+  videoBusy.value = true;
+  try { await inv.installVideo(); } finally { videoBusy.value = false; }
+}
+async function restartForVideo() {
+  if (!(await confirm(t("editor.settings.video.restart_confirm"), { confirm: t("editor.settings.video.restart") }))) return;
+  videoBusy.value = true;
+  try { await inv.restartForVideo(); } finally { videoBusy.value = false; }
 }
 
 // ---- Language & region (app 0.2.90): one place for every screen ----
@@ -169,12 +196,45 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
         </div>
         <small>{{ t("editor.settings.language.editor_hint") }}</small>
       </section>
+      <!-- What this app shares about plugins (plugin_likes.py): counting, and whether the stars card asks. -->
+      <section v-if="inv.pluginsEnabled && sharing?.usable" class="card" id="plugin-sharing">
+        <h2>{{ t("editor.plugins.sharing.title") }}</h2>
+        <p>{{ t("editor.plugins.sharing.text") }}</p>
+        <label class="check" for="sharing-counting">
+          <input type="checkbox" id="sharing-counting" :checked="sharing.counting" :disabled="sharingBusy" @change="share('counting', ($event.target as HTMLInputElement).checked)" />
+          <span>{{ t("editor.plugins.counting.label") }}<small>{{ sharing.counting ? t("editor.plugins.counting.on_hint") : t("editor.plugins.counting.hint") }}</small></span>
+        </label>
+        <label class="check" for="sharing-asking">
+          <input type="checkbox" id="sharing-asking" :checked="sharing.asking" :disabled="sharingBusy" @change="share('asking', ($event.target as HTMLInputElement).checked)" />
+          <span>{{ t("editor.plugins.sharing.asking") }}<small>{{ t("editor.plugins.sharing.asking_hint") }}</small></span>
+        </label>
+        <a class="btn quiet mini" href="https://tessera-maxgramser.on-forge.com/privacy" target="_blank" rel="noopener">{{ t("editor.feedback.privacy") }}</a>
+      </section>
       <section class="card">
-        <h2>{{ t("editor.nav.alerts") }}</h2>
+        <h2>{{ t("editor.nav.events") }}</h2>
         <p>{{ t("editor.settings.alerts.text") }}</p>
         <div class="tools">
-          <button type="button" class="tool" @click="ui.go('#alerts')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.alerts") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
+          <button type="button" class="tool" @click="ui.go('#events')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.events") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
         </div>
+      </section>
+      <section v-if="inv.pluginsEnabled" class="card" id="video">
+        <h2>{{ t("editor.settings.video.title") }}</h2>
+        <p>{{ t("editor.settings.video.text") }}</p>
+        <div class="actions">
+          <button type="button" id="video-install" class="btn" :class="video?.installed && video.current ? 'quiet' : 'primary'" :disabled="!video || videoBusy" @click="installVideo">
+            {{ !video || !video.installed ? t("editor.settings.video.install") : video.current ? t("editor.settings.video.install_again") : t("editor.settings.video.update") }}
+          </button>
+          <button v-if="videoWaitsRestart" type="button" id="video-restart" class="btn primary" :disabled="videoBusy" @click="restartForVideo">
+            {{ t("editor.settings.video.restart") }}
+          </button>
+          <span id="video-status" class="chip" :class="!video ? '' : !video.installed ? '' : !video.current ? 'update' : videoWaitsRestart ? 'update' : 'good'" role="status">
+            {{ !video ? t("editor.common.loading") : !video.installed ? t("editor.settings.claude.not_installed") : !video.current ? t("editor.settings.video.newer") : videoWaitsRestart ? t("editor.settings.video.waits_restart") : t("editor.settings.video.running") }}
+          </span>
+        </div>
+        <small id="video-screens">{{ video?.screens.length ? t("editor.settings.video.screens", { names: video.screens.join(", ") }) : t("editor.settings.video.no_screens") }}</small>
+        <i18n-t keypath="editor.settings.video.writes" tag="small" scope="global">
+          <template #path><code id="video-path">{{ video?.path || "/homeassistant/custom_components/tessera_video" }}</code></template>
+        </i18n-t>
       </section>
       <section class="card" id="claude">
         <h2>Claude</h2>

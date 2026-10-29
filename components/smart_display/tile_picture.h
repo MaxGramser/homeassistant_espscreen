@@ -15,8 +15,8 @@
 //
 // The question is the one a page of pictures has always been asked with, for a page of one tile: `esphome.screen_camera`
 // with `tiles`, `idx`, `size`, `bg`, `dark` and an `atlas` of one frame at the top left. Every app since 0.3.8 answers it
-// (camera_feed.live_request, tile_art.parse), with the question's number (`view`) in its answer, so the answer finds
-// its tile by that number (Questions). An app keeps the strip of an older screen as it was.
+// (picture_legacy.read now), with the question's number (`view`) in its answer, so the answer finds its tile by that
+// number (Questions). An app that reads questions (docs/PICTURES.md) gets the same as one question (`question`).
 //
 // A plugin's tile (plugin API 0.10, docs/PLUGINS.md "Pictures") shows pictures of its own: places it laid out on its
 // card, each with an address (a film's poster). The card asks for all of them as one picture, an atlas of their frames
@@ -32,13 +32,14 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "picture_question.h"
 #include "picture_store.h"
 
 namespace tile_picture {
 // The shade the app lays over a picture with words on it (an album cover under its track, a favourite under its name),
-// as tile_art.parse takes it: 0 or 170.
+// as picture_question.SHADES has it: 0 or 170.
 constexpr int SHADE = 170;
-// The icon's circle an older app checks a question against (camera_feed.LIVE_SIZES); the frame says the real size.
+// The icon's circle an older app checks a question against (picture_legacy.LIVE_SIZES); the frame says the real size.
 constexpr int CIRCLE_MIN = 24, CIRCLE_MAX = 160;
 
 // How the app paints a picture: its pixels (within the cap), the radius of its corners, a shade over all of it and the
@@ -97,6 +98,7 @@ struct Ask {
   uint32_t every = 0;         // a camera's pace in ms; 0: once
   bool drawn = false;         // the app draws it (a map), so an answer without one is asked again
   std::vector<Part> parts;    // a plugin tile's places (plugin API 0.10); empty for a picture over the whole place
+  std::string source;         // where the picture comes from when not from the tile's settings (a robot's map)
   int scale = picture_store::SCALE_ONE;  // the atlas's scale, for its pieces
 };
 // A short hash of a text (FNV-1a), as sixteen hex digits: a mark for what would be too long for a key.
@@ -214,6 +216,53 @@ inline std::vector<std::pair<std::string, std::string>> fields(const Ask &a) {
     }
   }
   return out;
+}
+
+// The one question (picture_question.h) of a tile's ask: a tile's own picture over its whole place (`tile:<index>`, the
+// app paints it the way that tile's settings say), or a plugin's places, each with its address. `owner` a plugin's tile,
+// card or screensaver, `key` its type and `of` the entity its card or step shows. 8-bit pictures, as every tile's since
+// firmware 0.3.3.
+inline picture_question::Question question(const Ask &a, picture_question::Owner owner = picture_question::Owner::TILE,
+                                           const std::string &key = "", const std::string &of = "") {
+  using picture_question::Fit;
+  picture_question::Question q;
+  q.owner = owner;
+  q.index = static_cast<int>(a.index);
+  q.key = key;
+  q.of = owner == picture_question::Owner::TILE ? a.entity : of;
+  q.w = a.frame.w;
+  q.h = a.frame.h;
+  q.dark = a.dark;
+  q.pace = a.every;
+  q.circle = a.circle;
+  q.formats = {"bmp8", "bmp24"};
+  if (a.parts.empty()) {
+    q.sources = {a.source.empty() ? picture_question::tile_source(a.index) : a.source};
+    picture_question::Place p;
+    p.w = a.frame.w;
+    p.h = a.frame.h;
+    p.radius = a.frame.radius;
+    p.shade = a.frame.shade;
+    p.ground = a.frame.ground;
+    q.places = {p};
+    return q;
+  }
+  for (const auto &part : a.parts) {
+    const Piece f = piece(part, a.scale);
+    picture_question::Place p;
+    p.x = f.x;
+    p.y = f.y;
+    p.w = f.w;
+    p.h = f.h;
+    p.radius = f.radius;
+    p.fit = part.contain ? Fit::WITHIN : Fit::COVER;
+    p.ground = a.frame.ground;
+    p.turn = part.turn;
+    p.mirror = part.mirror;
+    q.sources.push_back(part.url);
+    q.places.push_back(p);
+  }
+  return q;
 }
 
 // ---- A plugin's card over the page (plugin API 0.13) ----

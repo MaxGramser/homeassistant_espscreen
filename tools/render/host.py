@@ -2,7 +2,8 @@
 
 A screen's firmware is packages/core.yaml plus the board's file under packages/boards/, which includes its own packages
 (looks, features, hardware) with relative includes (docs/PROFILES.md). This walks that include tree and writes a
-copy of every file with the ESP32 hardware taken out, under the same relative layout, so the includes keep working. A
+copy of every file with the ESP32 hardware and the audio taken out, under the same relative layout, so the includes
+keep working. A
 small host-hw.yaml stands in for the hardware: an SDL display `my_display` at the panel's own pixels (LVGL turns the
 picture as on the glass), an SDL touchscreen `ts_touch` for the features' `!extend ts_touch`, and a template output for
 every output id the chain named, so `back_light` and the backlight scripts still resolve. A handful of API actions let
@@ -31,6 +32,16 @@ import profiles  # noqa: E402
 # Top-level blocks that are ESP32 hardware wherever they live (board file or hardware package).
 HARDWARE_BLOCKS = ('esp32', 'psram', 'spi', 'i2c', 'ch422g', 'pca9554', 'tca9554', 'waveshare_io_ch32v003', 'esp_ldo',
                    'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout')
+# The screen's audio: ESPHome's speaker, microphone and media player stand on the chip's I2S and codecs, which the host
+# has not. The host build leaves the audio packages out whole (features/audio*.yaml and a board's audio hardware under
+# hardware/, with the settings rows and the boot steps they bring), and these blocks wherever else they live (a board
+# file that extends the shared speaker or brings its codecs itself).
+AUDIO_BLOCKS = ('speaker', 'microphone', 'media_player', 'media_source', 'audio_dac', 'audio_adc')
+
+
+def audio_package(rel):
+    """Whether a package, by its path under packages/, is the screen's audio, which the host build leaves out."""
+    return 'audio' in rel.as_posix()
 # RENDER_PORT_BASE moves every variant's port, so two checkouts can render at the same time without meeting.
 PORT_BASE = int(os.environ.get('RENDER_PORT_BASE', 6481))
 
@@ -183,7 +194,7 @@ class Chain:
 
 def host_file(text, chain, rel):
     """One package of the chain (board file, hardware, look, feature) without its ESP32 hardware."""
-    for key in HARDWARE_BLOCKS:
+    for key in HARDWARE_BLOCKS + AUDIO_BLOCKS:
         text, removed = drop_blocks(text, key)
         for block in removed:
             if key == 'display':
@@ -238,7 +249,8 @@ def walk(tree, source, mirror, chain):
     chain.files.append(rel)
     text = source.read_text()
     values = None
-    for include in INCLUDE.findall(text):
+    for written in INCLUDE.findall(text):
+        include = written
         if '${' in include:
             # A path worked out from the file's own substitutions: the mirror copies the file ESPHome takes with the
             # values the render builds with.
@@ -249,6 +261,10 @@ def walk(tree, source, mirror, chain):
             raise SystemExit(f'{rel}: include {include} does not exist in {tree}')
         if tree / 'packages' not in target.parents:
             raise SystemExit(f'{rel}: include {include} leaves packages/; the mirror cannot follow it')
+        if audio_package(target.relative_to(tree / 'packages')):
+            text = re.sub(rf'(?m)^[ \t]+[a-z_0-9]+: !include {re.escape(written)}[ \t]*\n', '', text)
+            chain.notes.append(f'{rel}: left out {include} (audio)')
+            continue
         walk(tree, target, mirror, chain)
     host = host_file(text, chain, rel)
     if not top_blocks(host):
@@ -687,6 +703,12 @@ VACUUM_PROBE = '''    - action: render_vacuum
             const bool open = detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN);
             #ifdef SD_MOD_VACUUM_CARD
             ESP_LOGI("render", "vacuum open=%d %s", (int) open, vacuum_card::describe().c_str());
+            // The larger tiles of robots on the glass (module_vacuum_tile.cpp): each slot's face and its parts.
+            for (auto &w : widgets)
+              if (w.tile && w.index < model.count) {
+                const std::string face = vacuum_face::describe(w);
+                if (!face.empty()) ESP_LOGI("render", "vacuum tile slot=%u %s", (unsigned) w.index, face.c_str());
+              }
             #else
             ESP_LOGI("render", "vacuum open=%d view=-1 keys=", (int) open);
             #endif

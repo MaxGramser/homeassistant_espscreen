@@ -1,0 +1,12 @@
+{
+  "domain": "tessera_video",
+  "name": "Tessera video",
+  "codeowners": ["@MaxGramser"],
+  "config_flow": true,
+  "dependencies": ["esphome", "ffmpeg"],
+  "documentation": "https://github.com/MaxGramser/homeassistant_espscreen/blob/main/docs/CAMERA.md",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "1.0.1"
+}

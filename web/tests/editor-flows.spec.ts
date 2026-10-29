@@ -74,12 +74,13 @@ describe("the editor", () => {
   it("draws the second line the tile panel chose on the mockup: nothing, own words or a value", () => {
     useEntitiesStore().liveStates["light.a"] = { state: "on", word: "On", a: { brightness: 128 } };
     const card = (sub?: string) => mount(TileCard, { props: { tile: { ...doc.layout!.tiles[0], options: sub ? { sub } : {} }, at: 0 } }).find(".st");
-    expect(card().text()).toBe("On");
+    // A light that is on says its brightness, as the glass does (runtime_tiles render).
+    expect(card().text()).toBe("50%");
     expect(card("none").exists()).toBe(false);
     expect(card("text:Sofa left").text()).toBe("Sofa left");
     expect(card("attr:brightness").text()).toBe("128");
     // A value Home Assistant does not report leaves the line to the screen, as on the glass.
-    expect(card("attr:effect").text()).toBe("On");
+    expect(card("attr:effect").text()).toBe("50%");
   });
 
   it("never pushes a wide tile onto a new page to make room for a single one (app 0.4.2)", () => {

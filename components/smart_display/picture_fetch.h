@@ -17,7 +17,7 @@
 // What online_image did for us, this keeps, so a screen behaves as before in every case that mattered: the ETag of the
 // last picture goes out as If-None-Match and a 304 reports the picture unchanged; a link that does not connect, an
 // answer that is not 200, a body that is no BMP or breaks off, a chunk that does not come within four seconds and a
-// picture that takes over thirty all end as a failure the card's own retry handles (camera_view::Feed); the BMP is
+// picture that takes over thirty all end as a failure the loader's own retry handles (picture_loader.h); the BMP is
 // decoded as it streams, so no copy of the file is kept, and the pixels of a camera's next frame land in the buffer of
 // the last; a picture of another size gets a new buffer, swapped in on the main loop. It decodes every BMP the add-on
 // writes (Pillow: 24-bit, or 8-bit on a palette, BITMAPINFOHEADER, bottom-up) and the other plain forms too (16 and 32
@@ -27,12 +27,15 @@
 // The link, the answer's head and the BMP are parsed here, free of sockets, LVGL and ESPHome, so
 // tests/test_picture_fetch.cpp checks them on a PC; picture_fetch.cpp has the task and the sockets (BSD sockets on the
 // ESP32's lwIP and on the host renders alike).
+#include <algorithm>
 #include <cstddef>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <string>
 #include <vector>
+#include "picture_jpeg.h"
 #include "roomy.h"
 
 namespace picture_fetch {
@@ -78,6 +81,16 @@ struct Head {
   size_t content_length = 0;
   std::string etag;
   bool audio = false;  // Content-Type audio/... (a live camera's sound between its pictures, live_view.h)
+  // X-Picture: still, a live camera's picture from before its stream came (its still while WebRTC starts): the screen
+  // shows it with the loader in its corner (live_view.h, "Until it is live"). Without it a picture is live.
+  bool still = false;
+  // X-Made: when the app made a live camera's picture, in its own milliseconds (wrapping at 2^32): set beside the
+  // screen's clock, what is left over the least of it is how long the picture waited on its way (live_view.cpp).
+  bool has_made = false;
+  uint32_t made = 0;
+  // X-Turn: the app turned a live picture as a turned glass is (90, 180 or 270 degrees, the hello's picture_turn), so
+  // the screen copies it onto the glass straight (live_view.cpp, show); 0: upright.
+  int turn = 0;
 };
 inline bool same_ignoring_case(const char *a, const char *b, size_t n) {
   for (size_t i = 0; i < n; ++i) {
@@ -137,6 +150,24 @@ inline Head parse_head(const char *data, size_t size) {
           h.etag.assign(line + v, ve - v);
         } else if (colon == 12 && same_ignoring_case(line, "content-type", 12)) {
           h.audio = ve - v >= 6 && same_ignoring_case(line + v, "audio/", 6);
+        } else if (colon == 9 && same_ignoring_case(line, "x-picture", 9)) {
+          h.still = ve - v == 5 && same_ignoring_case(line + v, "still", 5);
+        } else if (colon == 6 && same_ignoring_case(line, "x-made", 6)) {
+          uint32_t n = 0;
+          bool digits = v < ve;
+          for (size_t i = v; i < ve; ++i) {
+            if (line[i] < '0' || line[i] > '9') { digits = false; break; }
+            n = n * 10 + static_cast<uint32_t>(line[i] - '0');
+          }
+          if (digits) { h.has_made = true; h.made = n; }
+        } else if (colon == 6 && same_ignoring_case(line, "x-turn", 6)) {
+          int n = 0;
+          bool digits = v < ve && ve - v <= 3;
+          for (size_t i = v; digits && i < ve; ++i) {
+            if (line[i] < '0' || line[i] > '9') { digits = false; break; }
+            n = n * 10 + (line[i] - '0');
+          }
+          if (digits && (n == 90 || n == 180 || n == 270)) h.turn = n;
         }
       }
     }
@@ -332,6 +363,34 @@ class Decoder {
 // frame and the live strip. Its `done` is bound once at boot (the hooks in packages/features/camera.yaml) and called on
 // the main loop, from tick(), when a load ends: `ok` with the picture in source(), or `cached` when the add-on answered
 // 304 and the picture there is still the right one.
+// ---- a JPEG answer, gathered whole (a P4: docs/PICTURES.md, "Formats") ----
+// The P4's hardware decoder takes a JPEG at once, so its bytes are kept, as many as the answer's Content-Length says
+// and at most MAX_JPEG (a busy camera over the 10-inch glass is 150 to 250 KB), in a buffer the decoder reads. Every
+// other picture is a BMP and decoded as it streams (Decoder). What a JPEG for a screen is, and what the app says along
+// with it, is picture_jpeg.h.
+constexpr size_t MAX_JPEG = 1536u * 1024;
+struct Gather {
+  using Allocate = std::function<uint8_t *(size_t bytes, size_t *got)>;
+  uint8_t *buffer = nullptr;
+  size_t want = 0, have = 0;
+  // False without a length, over MAX_JPEG, or without a buffer: the picture is not one this screen takes.
+  bool start(bool has_length, size_t length, const Allocate &allocate) {
+    if (!has_length || length < 2 || length > MAX_JPEG || !allocate) return false;
+    size_t room = 0;
+    buffer = allocate(length, &room);
+    if (!buffer || room < length) return false;
+    want = length;
+    return true;
+  }
+  // The answer's next bytes; what comes past its length is not the picture's.
+  void feed(const uint8_t *data, size_t size) {
+    const size_t take = std::min(size, want - have);
+    std::memcpy(buffer + have, data, take);
+    have += take;
+  }
+  bool done() const { return want && have == want; }
+};
+
 struct Slot;
 using Done = std::function<void(bool ok, bool cached)>;
 Slot &full();
@@ -343,6 +402,10 @@ void bind(Slot &slot, Done done);
 void load(Slot &slot, const std::string &url);
 // Frees the picture; a download on its way is cancelled and reports nothing.
 void release(Slot &slot);
+// The store took the picture over (picture_store::adopt): the slot forgets its pixels without freeing them, and
+// keeps its link and its ETag, so an unchanged picture still answers 304 and costs no bytes. Called from the slot's
+// `done`, where no download runs.
+void hand_over(Slot &slot);
 bool loading(const Slot &slot);
 // Hands finished downloads to their `done`, on the main loop (every 50 ms, packages/features/camera.yaml).
 void tick();

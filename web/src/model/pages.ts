@@ -233,7 +233,7 @@ export function childOf(tile: Tile, id: string): ChildTile {
 const appearanceKeys = { display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub", fit: "fit", overlay: "overlay",
   mapEntities: "map", mapFraming: "framing", mapDistance: "distance",
   mapFollow: "follow", mapMarkers: "markers", mapNames: "names", mapZones: "zones", mapStreets: "streets", mapLook: "look",
-  energyFlow: "flow",
+  energyFlow: "flow", textTemplate: "template",
   calendarStyle: "style", calendarEntities: "calendars", calendarPlaces: "places", calendarWords: "words", calendarHideWords: "hide_words",
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",
@@ -413,7 +413,7 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
         if (options[wire] !== undefined) Object.assign(appearance, { [key]: clone(options[wire]) });
       }
       const interaction: PageTile["interaction"] = {};
-      for (const key of ["tap", "inline", "controls", "action", "guard", "play", "speaker", "shuffle", "repeat", "tilt_open"] as const) {
+      for (const key of ["tap", "inline", "controls", "action", "guard", "play", "speaker", "shuffle", "repeat", "tilt_open", "presets", "preset_levels"] as const) {
         if (options[key] !== undefined) Object.assign(interaction, { [key]: clone(options[key]) });
       }
       // A key keeps its id: an edit of one key is not a new key.

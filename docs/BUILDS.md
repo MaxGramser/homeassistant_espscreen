@@ -41,6 +41,11 @@ What is asked for a profile that already waits joins that build (`Build.join`):
 
 What a person follows (`attended`) never joins and is never joined. The same request twice (a second click) waits once.
 
+A plugin build whose plugin parts changed starts from an empty build folder (`Build.fresh`, `Firmware.clean_build`),
+and so does the build it joins. ESPHome never takes a file it wrote into the build folder away again (it wipes the
+folder only when a component it had is gone), so a part that needs what an earlier build left a placeholder for would
+find the placeholder (docs/CAMERA.md, Screen camera's video). The compile cache outside the folder stays.
+
 ## Rounds
 
 Update all and the nightly round are a `Round`: one build that fails leaves the builds of its round that still wait out
@@ -106,6 +111,10 @@ but ESPHome does not support remote builds there, and neither does Tessera.
 - The images come back into the app's build folder (`/data/build/<screen>/server`), and everything after the build
   runs here as before: the update over Wi-Fi, USB, the download for the browser, the bridge and the wide partition
   table on boards with 4 MB of flash (`esphome upload --file`).
+- An update builds, then installs, the same YAML: the install takes the build just made instead of asking the server
+  again. A YAML that takes its packages from a branch (`ref: dev` or `ref: main`) is the same text after every push,
+  as the server fetches the branch itself, so its build is taken again only within two minutes, the update it was
+  made for; a release tag or a commit builds the same whenever (`REUSE_MOVING_SECONDS`, `follows_branch`).
 - The page says where a build runs and at which step (packing, sending, waiting, building, fetching), and the Build
   server card says how the last build went.
 
@@ -120,7 +129,9 @@ A build runs here, as without a build server, and its log and the page say why, 
 
 When the log says the server could not install ESPHome, the build server's own log says why. On an Intel Mac, a
 package of ESPHome 2026.9 has no ready-made build and needs Rust to be compiled there
-(github.com/esphome/esphome/issues/20286): install Rust on that computer, or use another one as the build server.
+(github.com/esphome/esphome/issues/20286): install Rust on that computer, pin the package that needs it to its last
+release with a ready-made build (`PIP_CONSTRAINT` pointing at a file with `cbor2==5.9.0`, in the build server's
+environment), or use another computer as the build server.
 
 A build that fails on the server itself (a compile error) fails: the same YAML fails here too, after a much longer
 wait. Its log is the server's.

@@ -2,6 +2,7 @@
 #include "../components/smart_display/screen_input.h"
 #include <cassert>
 #include <limits>
+#include <vector>
 int main() {
   using screen_input::quantize_temperature;
   // Fan and swing mode chips read the n-th name of a JSON list attribute.
@@ -22,18 +23,14 @@ int main() {
   r.begin(1300); assert(!r.accept_repeat(1340, 7));                                     // 80 ms after the last: bounce
   r.begin(1300); r.update(40, 0); assert(!r.accept_repeat(1500, 7));                   // a swipe is never a step
   r.begin(1600); assert(r.accept_repeat(1660, 8));                                      // the other key right away
-  // A tap and a key the guard takes reach screen_hooks::touched() (a plugin's click, plugin API 0.3); a refused one,
-  // and a slider's release, do not.
+  // A tap and a key the guard takes; a refused one (bounce, a swipe) does not count, a slider's release takes its own.
   {
-    int heard = 0;
-    screen_hooks::touched().push_back([&heard]() { ++heard; });
     screen_input::TouchGuard t;
-    t.begin(5000); assert(t.accept(5080, 3)); assert(heard == 1);
-    t.begin(5100); assert(!t.accept(5180, 3)); assert(heard == 1);                    // bounce: no click
-    t.begin(6000); t.update(40, 0); assert(!t.accept(6100, 4)); assert(heard == 1);   // a swipe: no click
-    t.begin(7000); assert(t.accept_repeat(7060, 9)); assert(heard == 2);
-    t.begin(8000); assert(t.accept_slider(8100, 200)); assert(heard == 2);
-    screen_hooks::touched().clear();
+    t.begin(5000); assert(t.accept(5080, 3));
+    t.begin(5100); assert(!t.accept(5180, 3));                    // bounce
+    t.begin(6000); t.update(40, 0); assert(!t.accept(6100, 4));   // a swipe
+    t.begin(7000); assert(t.accept_repeat(7060, 9));
+    t.begin(8000); assert(t.accept_slider(8100, 200));
   }
   // Page buttons (0.2.72): Next, Next, Next at a finger's pace all count, so page 4 is three taps away
   // while the pages are still drawing; accept() would have dropped the second and third (600 ms).
@@ -263,6 +260,44 @@ int main() {
   assert(same(ghost.filter({true, 0, 240}, 0, 0), true, 0, 240));    // the left edge itself is a real touch
   assert(same(ghost.filter({true, 479, 479}, 479, 479), true, 0, 240)); // rotated 180: (0, 0) is that corner
   assert(same(ghost.filter({true, 0, 0}, 479, 479), true, 0, 0));    // and the top-left is a real pixel there
+  // A lift the panel already read reaches LVGL then, not one loop later (the Waveshare 7B: a tap became a long press).
+  // ESPHome's marks: 1 pressed, 2 updated, +4 releasing (its last read no longer had it), 0 released, 7 uncalibrated.
+  struct Touch { int8_t state; };
+  using Touches = std::vector<Touch>;
+  assert(!screen_input::panel_let_go(Touches{}));                // no finger held: nothing to let go
+  assert(!screen_input::panel_let_go(Touches{{1}}));             // just came down
+  assert(!screen_input::panel_let_go(Touches{{2}}));             // still there
+  assert(screen_input::panel_let_go(Touches{{5}}));              // gone in the read after the press
+  assert(screen_input::panel_let_go(Touches{{6}}));              // gone after it moved
+  assert(!screen_input::panel_let_go(Touches{{6}, {2}}));        // one finger up, the other still down
+  assert(!screen_input::panel_let_go(Touches{{0}, {2}}));
+  assert(screen_input::panel_let_go(Touches{{0}, {6}}));         // the last finger up
+  assert(!screen_input::panel_let_go(Touches{{7}}));             // a finger on a panel without its range
+  screen_input::PanelRelease lift;
+  // A tap read in the loop that also redrew the pressed card for 450 ms: LVGL hears the press, the loop stalls, then
+  // ESPHome still says pressed while the panel has let go. LVGL is told released, at the point it had.
+  assert(same(lift.filter({true, 300, 200}, false, 1000), true, 300, 200));
+  assert(!lift.lifted());
+  assert(same(lift.filter({true, 300, 200}, true, 1450), false, 300, 200));
+  assert(lift.lifted() && lift.held() == 450);
+  assert(same(lift.filter({true, 300, 200}, true, 1455), false, 300, 200));   // read again before ESPHome lets go:
+  assert(!lift.lifted());                                                      // still up, never a second press
+  assert(same(lift.filter({false, 300, 200}, false, 1460), false, 300, 200));  // ESPHome's own release, a loop on
+  assert(!lift.lifted());
+  // A tap shorter than one loop: the panel has let go before LVGL heard the press. LVGL hears the press first, the
+  // release a read later, or it would never see the tap at all.
+  assert(same(lift.filter({true, 120, 80}, true, 2000), true, 120, 80));
+  assert(!lift.lifted());
+  assert(same(lift.filter({true, 120, 80}, true, 2030), false, 120, 80));
+  assert(lift.lifted() && lift.held() == 30);
+  // A hold: the panel keeps the finger, so LVGL keeps the press as long as it lasts, and a long press stays one.
+  assert(same(lift.filter({true, 50, 60}, false, 3000), true, 50, 60));
+  assert(same(lift.filter({true, 52, 61}, false, 3500), true, 52, 61));
+  assert(same(lift.filter({false, 52, 61}, false, 3520), false, 52, 61));
+  assert(!lift.lifted());
+  // A finger that slid on before it let go: the release is where the panel saw it last, as LVGL's slider takes it.
+  assert(same(lift.filter({true, 100, 60}, false, 4000), true, 100, 60));
+  assert(same(lift.filter({true, 180, 60}, true, 4400), false, 180, 60));
   // A dragged slider sent to its end on release is reported; a drag that ends there is not a jump.
   assert(screen_input::release_jump(240, 0, 0, 360));      // hue: blue to red at the start
   assert(screen_input::release_jump(120, 360, 0, 360));    // green to red at the end

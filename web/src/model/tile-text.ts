@@ -26,6 +26,11 @@ export const sameLive = (a: Live, b: Live) => a === b || (a.state === b.state &&
 const isEmpty = (values: Record<string, any> | undefined) => !values || Object.keys(values).length === 0;
 /** A text as the screens show it, in their language. */
 export const screenText = (words: ScreenWords, key: string, named: Record<string, unknown> = {}) => t(key, named, { locale: words.locale });
+/** A light's effect that runs, not one that only names the plain light (tile_controls::effect_running). */
+export const effectRunning = (effect: unknown) => {
+  const lower = String(effect ?? "").toLowerCase().replace(/ +$/, "");
+  return lower !== "" && !["solid", "off", "none", "unknown", "unavailable"].includes(lower);
+};
 // A text the screens have, asked in English: every language falls back to it.
 const has = (key: string) => te(key);
 /** A number as Home Assistant sends it ("1234.5", "-3"), written as the screens write numbers; any other text as it is. */
@@ -124,7 +129,8 @@ export type StateTextOptions = {
   runs?: boolean;
   /** What a face other than the standard one says where the entity has no state worth a word: its name. */
   note?: string;
-  /** A control on the card: a thermostat then says what it is doing (tile_controls::status_text). */
+  /** A control on the card, a wide one or one more than a row high (runtime_tiles with_panel): a thermostat then says what
+   * it is doing, a blind its position and a player what it plays (tile_controls::status_text). */
   controlled?: boolean;
 };
 /** A number Home Assistant writes in words of its own, as the add-on sends them: a duration in hours and minutes
@@ -144,9 +150,23 @@ export function stateText(entity: string, live: Live | null | undefined, options
   const word = live.word || haWord(domain, live, words) || capital(live.state);
   if (domain === "climate") return climateLine(live, word, Boolean(options.controlled), words);
   if (domain === "humidifier") return humidifierLine(live, words);
-  if (domain === "weather") return `${word}${a.temperature !== undefined ? ` · ${numberOf(a.temperature, words)}°` : ""}`;
-  if (domain === "cover" && a.current_position !== undefined && a.current_position > 0 && a.current_position < 100) return `${word} · ${a.current_position}${percentSign(words)}`;
-  if (domain === "media_player" && a.media_title) return `${word} · ${a.media_title}`;
+  // A weather card's line is the temperature it reports, one decimal and its unit (runtime_tiles render); without one its
+  // condition in the screen's words.
+  if (domain === "weather") return a.temperature != null && Number.isFinite(Number(a.temperature))
+    ? `${decimalText(Number(a.temperature), 1, words)}${unitSuffix(String(a.temperature_unit || "°C"), words.percentSpace)}` : word;
+  // A light that is on says its effect while one runs, else its brightness (runtime_tiles render).
+  if (domain === "light" && live.state === "on") {
+    if (effectRunning(a.effect)) return String(a.effect);
+    if (a.brightness != null && Number.isFinite(Number(a.brightness))) return `${lround((Math.min(255, Math.max(0, Number(a.brightness))) * 100) / 255)}${percentSign(words)}`;
+  }
+  // With a control on it a blind says its position and a player what it plays and its volume (tile_controls::status_text);
+  // a plain card says Home Assistant's word alone, as the glass does.
+  if (domain === "cover" && options.controlled && Number.isFinite(Number(a.current_position))) return `${word} · ${lround(Number(a.current_position))}${percentSign(words)}`;
+  if (domain === "media_player" && options.controlled) {
+    const playing = ["playing", "paused"].includes(live.state) && a.media_title ? String(a.media_title) : word;
+    const volume = Number(a.volume_level), set = Number(a.supported_features || 0) & bits("media_player", "VOLUME_SET");
+    return Number.isFinite(volume) && a.volume_level != null && set ? `${playing} · ${lround(volume * 100)}${percentSign(words)}` : playing;
+  }
   // A remote that runs an activity names it (firmware 0.22.0+), as the screen does.
   if (domain === "remote" && live.state === "on" && a.current_activity) return String(a.current_activity);
   // A calendar names the event of the moment (Home Assistant's `message`) and says Free while none runs, as its card does
@@ -219,12 +239,13 @@ export function rangeChip(domain: string, live: Live | null | undefined, ready: 
   return { icon: "fire", color: modeColor("heat"), text: `${numberOf(Number(a.target_temp_low).toFixed(digits), words)}°`, ems: textEms(widestSetpoint(a)) };
 }
 /** The number between a thermostat's -/+: the end of its range, a humidifier's humidity in percent
- * (tile_controls::setpoint_suffix), or the temperature it is set to. */
+ * (tile_controls::setpoint_suffix), or the temperature it is set to, with a decimal where its step is less than one
+ * (tile_controls::format_value, edit_step: a thermostat steps 0.5 unless it says otherwise, so 20 is "20.0°"). */
 export function setpointText(domain: string, live: Live | null | undefined, chip: RangeChip | null, words: ScreenWords) {
   if (chip) return chip.text;
-  const a = live?.a || {};
-  if (domain === "humidifier") return a.humidity != null ? `${numberOf(a.humidity, words)}${percentSign(words)}` : "—";
-  return a.temperature !== undefined && a.temperature !== null ? `${numberOf(a.temperature, words)}°` : "—";
+  const a = live?.a || {}, step = Number(a.target_temp_step), digits = (step > 0 ? step : domain === "climate" ? 0.5 : 1) >= 1 ? 0 : 1;
+  if (domain === "humidifier") return a.humidity != null ? `${decimalText(Number(a.humidity), 0, words)}${percentSign(words)}` : "--";
+  return a.temperature !== undefined && a.temperature !== null ? `${decimalText(Number(a.temperature), digits, words)}°` : "--";
 }
 
 /** The word on the key of a scene, script, automation that runs, or a button, as the screen labels it. */
@@ -257,3 +278,15 @@ export function bodyText(domain: string, live: Live | null | undefined, plain: b
 /** The line under a tall card's name: its own line, unless the body already stands it large (a second line of your
  * own stays). */
 export const headLine = (body: string, line: string) => (body && (line === body || line.startsWith(body + " ")) ? "" : line);
+
+/** What a card more than a row high stands large when it has no reading or track of its own (render_tall card_status, brief):
+ * a light's brightness, a blind's state with its position, a measurement's number without its unit (detail_state), a
+ * weather's condition, and otherwise the card's line. */
+export function tallValue(domain: string, live: Live | null | undefined, status: string, words: ScreenWords) {
+  if (!live || isGone(live)) return "";
+  if (domain === "cover") return stateText(`cover.x`, live, { controlled: true }, words);
+  if (domain === "weather") return live.word || haWord("weather", live, words) || capital(live.state);
+  if ((live.a?.unit_of_measurement || NUMERIC.includes(domain)) && !ownWords(domain, live) && live.state.trim() !== "" && Number.isFinite(Number(live.state)))
+    return numberOf(live.state, words);
+  return status;
+}

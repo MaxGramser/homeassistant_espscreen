@@ -67,6 +67,8 @@ enum class Field : uint8_t {
   // The light's own colour (its colour card): its hue 0-360 at full saturation, its white shade in kelvin.
   HUE,
   KELVIN,
+  // A light's preset (module light_presets): its brightness and white shade or colour at once, "80|k2700" (docs/LIGHT_PRESETS.md).
+  PRESET,
 };
 
 // IDLE: nothing. READY: to go out at the next tick (a step waits for its quiet first). SENT: on its way, `sent` asked
@@ -93,6 +95,7 @@ struct Wish {
   std::string before, sent, want;
   // The action that makes `want` come true, kept from the last tap.
   std::string service, key, value;
+  std::string key2, value2;  // a second field of the action (a preset's colour beside its brightness), rendered as `value`
   Phase phase = Phase::IDLE;
   uint32_t quiet = 0;  // 0 for a choice; a step's rest before it goes out
   uint32_t changed_at = 0, sent_at = 0, answered_at = 0;

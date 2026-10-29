@@ -40,7 +40,9 @@ MOST_BYTES = 16384
 # The keys of a remote's card (keypad): up, down, left, right and OK always, the rest where the remote has them.
 KEYPAD_KEYS = ('up', 'down', 'left', 'right', 'ok', 'back', 'home', 'play', 'volume_up', 'volume_down', 'mute')
 OPTION = {'needs', 'screen', 'sizes', 'wide', 'rows', 'of', 'one_row', 'fallback', 'range', 'room'}
-NEEDS = {'actions', 'features', 'history', 'attributes', 'unless'}
+NEEDS = {'actions', 'features', 'history', 'attributes', 'unless', 'device'}
+# What the add-on finds on an entity's device that a need may name (catalogue.device_holds): a vacuum's map, its routines.
+DEVICE = {'map', 'routines'}
 SCREEN = {'firmware', 'feature', 'pictures', 'else'}
 
 
@@ -156,6 +158,10 @@ def normalise(tile, types, translations, facts, commands=None):
             out['history'] = 'line'
         if 'unless' in value:
             out['unless'] = needs(f'{where} unless', domain, value['unless'])
+        if 'device' in value:
+            if not value['device'] or set(value['device']) - DEVICE:
+                fail(where, f'device names what its device has: {", ".join(sorted(DEVICE))}')
+            out['device'] = list(value['device'])
         return out
 
     def screen(where, value):

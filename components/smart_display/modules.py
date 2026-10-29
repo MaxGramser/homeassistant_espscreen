@@ -25,6 +25,12 @@ MODULES = {
     "cover_groups": {"min_tier": "full", "define": "SD_MOD_COVER_GROUPS"},
     # The screensaver's clock faces beside the digital clock: Glass, Classic and Bauhaus; lite keeps the digital clock.
     "clock_faces": {"min_tier": "full", "define": "SD_MOD_CLOCK_FACES"},
+    # A doorbell's ring opens its camera live with a chime, on a screen that streams (a P4); lite shows alerts only.
+    "doorbell": {"min_tier": "full", "define": "SD_MOD_DOORBELL"},
+    # The template tile: a text Home Assistant renders from a template, as rows the app sends; lite is not offered it.
+    "text_card": {"min_tier": "full", "define": "SD_MOD_TEXT_CARD"},
+    # A light's presets: round keys on its tile and its card that set a colour and a brightness; lite draws the slider.
+    "light_presets": {"min_tier": "full", "define": "SD_MOD_LIGHT_PRESETS"},
 }
 
 

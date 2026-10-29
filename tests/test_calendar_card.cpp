@@ -182,6 +182,47 @@ int main() {
     for (auto &h : sc.hits) opens |= h.kind == HIT_DAY && h.arg == 0;
     assert(plus && opens);
   }
+  // A tapped short event: the sheet shows the short title until the app answers, then the whole title, place and notes
+  // of that event (not of another one at the same time), on every board's glass.
+  for (const auto &b : BOARDS) {
+    ui::configure(b.dpi, b.look);
+    const Measure m = measure(b);
+    Data shortened = demo(); shortened.asks = true;
+    const int k = 6;  // Parent evening, not the event of the moment
+    Full f; State st; st.view = DAY; st.sheet = k;
+    auto shown = [&](const std::string &text) { for (auto &t : f.overlay.texts) if (t.s.find(text) != std::string::npos) return true; return false; };
+    plan_full(f, m, b.width, b.height, 14, shortened, now, o, wd, "Family", st);
+    assert(shown("Parent") && !shown("Bring the reports"));
+    st.detail.cal = shortened.events[k].cal; st.detail.start = shortened.events[k].start; st.detail.end = shortened.events[k].end;
+    st.detail.answered = true; st.detail.title = "Parent evening with the class"; st.detail.place = "Hall"; st.detail.notes = "Bring the reports";
+    plan_full(f, m, b.width, b.height, 14, shortened, now, o, wd, "Family", st);
+    // The whole title, on two lines where one does not hold it.
+    assert(shown("Hall") && shown("Bring") && shown("class"));
+    inside(f.overlay, b.width, b.height, b.name);
+    st.detail.start += 1;  // an answer for another event changes nothing
+    plan_full(f, m, b.width, b.height, 14, shortened, now, o, wd, "Family", st);
+    assert(!shown("Hall"));
+  }
+  // The agenda's last line counts this week only, and says "more" without the week when the app left out events of it.
+  {
+    ui::configure(BOARDS[2].dpi, BOARDS[2].look);
+    const Measure m = measure(BOARDS[2]);
+    auto last_line = [&](const Data &dd) {
+      Scene sc;
+      plan_tile(sc, m, 448, 448, dd, Moment{0, 8 * 60}, o, wd, "Family");
+      for (auto &t : sc.texts) if (t.s.find("more") != std::string::npos) return t.s;
+      return std::string();
+    };
+    auto busy_week = [] { Data b = demo(); for (int k = 0; k < 10; ++k) { Event e; e.start = (1 + k % 3) * 1440 + 600 + k * 30; e.end = e.start + 25; e.title = "Busy"; b.events.push_back(e); } return b; };
+    Data later = busy_week();
+    Event next_week; next_week.start = 9 * 1440 + 600; next_week.end = next_week.start + 60; next_week.title = "Next week"; later.events.push_back(next_week);
+    later.left_out = 30;  // all of them after the week: the events reach past Sunday
+    const std::string week = last_line(later);
+    assert(week.find("this week") != std::string::npos && week.find("30") == std::string::npos);
+    Data cut = busy_week(); cut.left_out = 30;  // the app's cut falls inside this week
+    const std::string more = last_line(cut);
+    assert(!more.empty() && more.find("this week") == std::string::npos);
+  }
   printf("calendar card: ok\n");
   return 0;
 }

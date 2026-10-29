@@ -1,4 +1,4 @@
-# ESP Screens - the package a M5Stack Tab5 Tab5 ST7121 builds from over GitHub. Written by tools/generate_entries.py
+# ESP Screens - the package a M5Stack Tab5 Tab5 builds from over GitHub. Written by tools/generate_entries.py
 # from boards.yaml; do not edit.
 #
 # ESP Screen Manager writes every screen's own YAML with `packages: display: {url: <this repository>, files:

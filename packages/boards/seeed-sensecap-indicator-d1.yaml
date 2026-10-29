@@ -1,0 +1,142 @@
+# ESP Screens - Seeed SenseCAP Indicator D1 series (D1, D1S, D1L, D1Pro) with the GX panel, experimental: a 3.95-inch
+# 480 x 480 ST7701S RGB panel and FT6336U capacitive touch, on an ESP32-S3 with 8 MB flash and 8 MB octal PSRAM.
+#
+# The four models share the ESP32-S3 side: the panel, the touch, the PCA9535 expander and the backlight are wired the
+# same, and what tells them apart (the sensors on the RP2040, the LoRa radio of the D1L and D1Pro) is not used here.
+# Seeed fits a GX or a DX panel; this file drives the GX one, the panel of ESPHome's SEEED-INDICATOR-D1 model. A
+# community member ran it on a D1L with the GX panel (docs/SENSECAP_INDICATOR.md); the project has not tried it on one.
+# Only the ESP32-S3 is programmed: the RP2040 keeps its own firmware, and LoRa, the sensors, Grove, the microSD slot,
+# the buzzer and the user button are not configured.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/sensecapd1.yaml (a build on this computer) and packages/sensecapd1.yaml (the package a screen builds from
+# over GitHub).
+packages:
+  # The chip and its memory for an RGB panel, as on the other ESP32-S3 RGB boards.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "sensecapd1"
+  DEVICE_NAME: "sensecapd1-new"
+  DEVICE_FRIENDLY_NAME: "My SenseCAP Indicator"
+
+  # The glass: the panel's own pixels and its density, 679 diagonal pixels over its 3.95-inch diagonal.
+  PANEL_W: "480"
+  PANEL_H: "480"
+  DISPLAY_DPI: "171.85"
+  # The tile grid: columns and rows of cells; square glass has the same six whichever way it hangs.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  # An eighth of the screen for LVGL's draw buffer, which keeps room inside the chip (docs/ADDING_A_BOARD.md, step 3).
+  LVGL_BUFFER_SIZE: "12%"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # ESPHome's ft5x06 platform reads it; what is printed on the chip is an FT6336U.
+  TOUCH_CONTROLLER: "FT6336U"
+  # The touch panel's axes run opposite to the display's pixels on both, as in ESPHome's own configuration for this
+  # board; the core turns the touch with them (its touchscreen: !extend ts_touch).
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "100Hz"                  # the backlight's PWM, as in ESPHome's configuration for this board
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  flash_size: 8MB
+
+# The USB-C port reaches the ESP32-S3 through a CH340, beside a second USB interface of the RP2040.
+logger:
+  hardware_uart: UART0
+  tx_buffer_size: 2048
+
+# The PCA9535 expander and the touch panel share this bus.
+i2c:
+  id: touch_bus
+  sda: GPIO39
+  scl: GPIO40
+  frequency: 100kHz
+  scan: true
+
+# A PCA9535 at 0x20, which ESPHome's pca9554 platform drives with 16 lines: the panel's chip select and reset, the
+# touch panel's reset and interrupt, the LoRa radio's lines and the RP2040's reset.
+pca9554:
+  id: indicator_io
+  i2c_id: touch_bus
+  address: 0x20
+  pin_count: 16
+
+switch:
+  # The LoRa radio's chip select (line 0), held high so a D1L or D1Pro radio stays off the bus; nothing is on that line
+  # on a D1 or D1S.
+  - platform: gpio
+    id: unused_radio_cs_high
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      pca9554: indicator_io
+      number: 0
+      mode: OUTPUT
+  # The touch panel's reset (line 7), released for good.
+  - platform: gpio
+    id: touch_reset_released
+    internal: true
+    restore_mode: ALWAYS_ON
+    pin:
+      pca9554: indicator_io
+      number: 7
+      mode: OUTPUT
+
+# The ST7701S takes its setup over this three-wire bus; the picture goes over the RGB pins of the model.
+spi:
+  id: lcd_spi
+  clk_pin: GPIO41
+  mosi_pin: GPIO48
+
+# The backlight, a PWM pin, active high (features/backlight.yaml makes it the light). GPIO45 is a strapping pin of the
+# ESP32-S3, wired to the backlight on this board.
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+# The FT6336U at 0x48. Its interrupt is line 6 of the expander, not a pin of the chip, so it is polled.
+touchscreen:
+  - platform: ft5x06
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    address: 0x48
+    update_interval: 20ms
+
+# ESPHome's model for this board brings the GX panel's init sequence, its RGB pins and its porches. The chip select and
+# the reset are expander lines 4 and 5. A 16 MHz pixel clock, as the community member's board ran it.
+display:
+  - platform: mipi_rgb
+    model: SEEED-INDICATOR-D1
+    id: my_display
+    spi_id: lcd_spi
+    cs_pin:
+      pca9554: indicator_io
+      number: 4
+    reset_pin:
+      pca9554: indicator_io
+      number: 5
+    pclk_frequency: 16MHz
+    update_interval: never
+    auto_clear_enabled: false

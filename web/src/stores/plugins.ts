@@ -10,7 +10,7 @@ import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { attachLine, barItemView, barTypesOf, choiceKey, pluginSaverKey, saverTypesOf, compareUrl, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
   text, tileTypesOf, type AppFit, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
-import type { Screen } from "../types";
+import type { PluginSharing, Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
@@ -54,6 +54,9 @@ export const usePluginsStore = defineStore("plugins", () => {
   const previews = ref<Record<string, { items: PreviewRow[]; at: number }>>({});
   // Entities of the domains the plugins name that the editor's own list lacks (a calendar), from the add-on.
   const entities = ref<{ id: string; name: string }[]>([]);
+  // Whether api/plugins answered once, so `entities` says which entities of a plugin's own domains there are.
+  const received = ref(false);
+  const pluginEntities = computed(() => new Map(entities.value.map((e) => [e.id, e])));
   const folders = ref<{ path: string; errors: Record<string, string> }>({ path: "", errors: {} });
   // The features each screen has (its board's and its plugins'), by inbox, and whether this app agreed once that a like
   // counts in a public number (plugin_likes.py).
@@ -115,6 +118,7 @@ export const usePluginsStore = defineStore("plugins", () => {
       secrets.value = data.secrets || {};
       folders.value = data.folders || { path: "", errors: {} };
       entities.value = data.entities || [];
+      received.value = true;
       features.value = data.features || {};
       likeConsent.value = Boolean(data.likes?.consented);
       appFit.value = data.fit || {};
@@ -360,14 +364,43 @@ export const usePluginsStore = defineStore("plugins", () => {
     .map((item) => pluginById(item.id)).filter((p): p is Plugin => Boolean(p && p.id !== id && (p.requires.plugins?.includes(id)
       || (p.requires.features || []).some((f) => pluginById(id)?.provides?.includes(f)))));
 
-  // ---- Likes (plugin_likes.py): a heart for a plugin that runs on one of this app's screens ----
-  const canLike = (plugin: Plugin) => plugin.source === "index"
+  // ---- Likes, ratings and counting (plugin_likes.py) ----
+  // A heart for any plugin of the index, also one no screen runs: a thank-you to its maker. Stars only for one that runs
+  // on one of this app's screens, from the index's own origin. The first heart asks once whether it counts in a public
+  // number; a heart on a card that has not asked yet opens the details with that question (likeAsk).
+  const canLike = (plugin: Plugin) => plugin.source === "index";
+  const canRate = (plugin: Plugin) => plugin.source === "index"
     && realScreens().some((screen) => installedOn(screen, plugin.id) && !otherOrigin(screen, plugin));
-  async function like(plugin: Plugin, on: boolean, consent = false) {
+  const likeAsk = ref<string | null>(null);
+  const sharing = computed(() => inv.inventory.plugin_sharing || null);
+  async function like(plugin: Pick<Plugin, "id">, on: boolean, consent = false) {
     const result = await send<{ liked: boolean; likes: number }>(`plugins/${plugin.id}/like`, "PUT", { like: on, consent });
     const listed = index.value.find((p) => p.id === plugin.id);
     if (listed && result) { listed.liked = result.liked; listed.likes = result.likes; }
     if (consent) likeConsent.value = true;
+  }
+  type Rated = { stars: number | null; rating: number | null; ratings: number; homes: number };
+  // A plugin added with a link that runs on no screen, off the Plugins page again (the add-on only keeps it in memory).
+  const runsAnywhere = (id: string) => Object.values(installed.value).some((list) => list.some((item) => item.id === id));
+  const forgettable = (plugin: Plugin) => (plugin.source === "link" || plugin.source === "branch") && !runsAnywhere(plugin.id);
+  async function forgetLink(plugin: Pick<Plugin, "id">) {
+    await send(`plugins/${plugin.id}/link`, "DELETE");
+    await reloadPlugins();
+  }
+  async function rate(plugin: Pick<Plugin, "id">, stars: number | null, screen?: string) {
+    const result = await send<Rated>(`plugins/${plugin.id}/rating`, "PUT", { stars, ...(screen ? { screen } : {}) });
+    const listed = index.value.find((p) => p.id === plugin.id);
+    if (listed && result) Object.assign(listed, { stars: result.stars, rating: result.rating, ratings: result.ratings, homes: result.homes });
+    return result;
+  }
+  async function setCounting(on: boolean) {
+    const result = await send<{ likes: PluginSharing }>("plugins/counting", "PUT", { on });
+    if (result?.likes) inv.inventory = { ...inv.inventory, plugin_sharing: result.likes };
+  }
+  // The stars card's Later (this plugin), Never (every plugin), Settings' ask again, and the counting question answered no.
+  async function cardAnswer(plugin: string, action: "later" | "never" | "ask" | "asked_counting") {
+    const result = await send<{ likes: PluginSharing }>(`plugins/${plugin}/ask`, "POST", { action });
+    if (result?.likes) inv.inventory = { ...inv.inventory, plugin_sharing: result.likes };
   }
   async function change(screen: Screen, body: object) {
     const result = await send<{ own_yaml?: boolean; file?: string; content?: string; line?: string }>(
@@ -571,17 +604,17 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
 
   return {
-    index, installed, loaded, secrets, files, choices, previews, entities, folders, features, likeConsent, appFit,
-    values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups,
+    index, installed, loaded, received, secrets, files, choices, previews, entities, pluginEntities, folders, features, likeConsent, likeAsk, sharing, appFit,
+    values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups, forgettable, forgetLink,
     // What the Plugins page, a screen's tab and the cards read as they draw (stores/lookup.ts); choicesFor, previewFor and
     // planOn answer at once and ask the add-on for what they do not have yet.
     ...lookups({
       pluginTileOf, barItemOf, saverOf, saversFor, fits, choicesFor, choicesPending, previewFor, tapActionsFor, barItemsFor, entitiesIn, needsConsent, realScreens,
       otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
-      installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike,
+      installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike, canRate,
       isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),
-    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, forgetDrafts,
+    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, rate, setCounting, cardAnswer, forgetDrafts,
     addPlugin, rebuildTest, updateAll, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
   };
 });

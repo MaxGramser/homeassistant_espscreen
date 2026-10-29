@@ -5,7 +5,7 @@ outlives a renamed inbox and leaves the layouts' storage alone: a media player (
 0.4.54), a camera and the order the screen tries them in, with the clock as a step of its own. This app decides which
 step is available right now (a player that plays and has a cover, a camera Home Assistant has, the clock always) and tells the screen in one small message whenever that
 changes. The screen asks for its picture the way a camera's full view does, and the app makes one picture of the whole
-glass (camera_feed.encode_saver): a camera filling it, a cover filling it or beside its own colour, all a little darker
+glass (picture_paint, the fit `saver`): a camera filling it, a cover filling it or beside its own colour, all a little darker
 for the words over it. Nothing on it takes a tap, so the first touch only wakes the screen.
 
 A board without pictures (the CYD and the other boards without PSRAM) shows the clock; its editor offers nothing else."""
@@ -275,7 +275,7 @@ def player(choice, states, keys=False, now=None, held='', broken=()):
     screen with keys (KEYS_FEATURE) a player paused a short while ago counts after those, the first of them in the
     order, with the cover Home Assistant still has for it. `held` is the player the screen shows: paused just now, it
     stays before every other (HELD_SECONDS). A player in `broken` has a cover that could not be fetched
-    (camera_feed.cover_broken) and counts as one without a cover: the glass would stay black where it never comes."""
+    (picture_sources.Snapshots.cover_broken) and counts as one without a cover: the glass would stay black where it never comes."""
     now = time.time() if now is None else now
     tried = [entity for entity in players(choice) if entity not in broken]
     if keys and held in tried and _has_cover(states.get(held), PAUSED) and _paused_lately(states.get(held), now, HELD_SECONDS):
@@ -447,7 +447,7 @@ def _number(value, low=None, high=None):
 
 
 def media_contract(entity, state, said, extras, colours):
-    """The music step: the player on the glass, what it plays and what it can do. `picture` is 'saver:picture' while it
+    """The music step: the player on the glass, what it plays and what it can do. `picture` is 'step:' while it
     has a cover, the address a face gives ui::set_picture for it; `colour` the cover's own colour ('#rrggbb')."""
     attrs = (state or {}).get('attributes') or {}
     features = attrs.get('supported_features')
@@ -457,7 +457,7 @@ def media_contract(entity, state, said, extras, colours):
            'state': (state or {}).get('state', ''),
            'features': features if isinstance(features, int) and not isinstance(features, bool) and features >= 0 else 0,
            'muted': attrs.get('is_volume_muted') is True,
-           'picture': 'saver:picture' if extras.get('pic') else '', 'mark': extras.get('pic', '')}
+           'picture': 'step:' if extras.get('pic') else '', 'mark': extras.get('pic', '')}
     if volume is not None:
         out['volume'] = round(volume, 3)
     for key, name in (('duration', 'dur'), ('position', 'pos'), ('position_at', 'at')):
@@ -482,8 +482,8 @@ def clock_contract(degrees, row):
 
 
 def photos_contract(photos):
-    """The photos step: the photo on the glass ('saver:picture') and where it stands in its folder."""
-    return {'picture': 'saver:picture', 'mark': photos.get('mark', ''), 'index': photos.get('index', 0),
+    """The photos step: the photo on the glass ('step:') and where it stands in its folder."""
+    return {'picture': 'step:', 'mark': photos.get('mark', ''), 'index': photos.get('index', 0),
             'count': photos.get('count', 0), 'album': photos.get('album', '')}
 
 

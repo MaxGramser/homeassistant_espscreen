@@ -221,7 +221,7 @@ keys under it, the volume slider of a player and the words of a track stay withi
 
 A picture has a second ceiling that a drawing does not: what the add-on will hand over. A media player's cover is
 cut, rounded and resized by the app to exactly the size the card asked for, and the screen draws what comes back one
-to one, so a square larger than `camera_feed.COVER_SIZES[1]` stays empty - the app answers such a request with
+to one, so a square larger than `picture_legacy.COVER_SIZES[1]` stays empty - the app answers such a request with
 nothing at all, and an add-on older than the firmware never grows its ceiling. `media_card::Metrics::cover_max()`
 holds the same number and `tests/test_media_card.py` keeps the two equal; raising it is a change in both, the app
 first.
@@ -346,6 +346,17 @@ proportions: the top bar down to where the tile area starts (`SCROLL_Y`), the gr
 page bar (`PAGE_BAR_H`) once the layout has more than one page, all from `boards.json`, so a card is as high
 against its page as on the screen (`cardHeight` in `web/src/model/ui-scale.ts`).
 
+Inside a card the mockup draws in the glass's own pixels too, scaled by the page's zoom: the board's corner
+(`TILE_RADIUS`), padding, icon circle and fonts from `boards.json` (`fonts.icon` is the card's icon face,
+`spacing.radius` its corner), written in the screens' Roboto at the firmware's weights (a name is 700, a line 400),
+and every part where the firmware puts it. `web/src/model/card-layout.ts` ports a card of one row (`head_row`,
+`name_font`, `center_icon`, which steps an icon down to the keys' face where its ink does not fit its circle, and the
+control at a wide card's right, `layout_panel`); `tall-layout.ts` a card more than a row high (`tall_tile.h`,
+`climate_tile.h` and `render_tall`); `media-layout.ts` a player over a whole page (`media_card.h`). A name too long
+for its room is cut with the three dots LVGL writes, measured in Roboto. `tests/test_editor_parity.py` holds the
+heads to the WebAssembly build on every board (`CardHead`) and the tall, thermostat and media layouts to the C++ on a
+sweep of rooms (`TallGeometry`). A card carried in a drag keeps all of it: it is carried in a copy of its glass.
+
 ## What is still open, and the way it becomes durable
 
 - The sizes in `runtime_tiles.h` and the metric tables of the settings, effects, media and light cards go
@@ -416,7 +427,8 @@ cover group's page share the one drawing (`cover_paint.h`). The editor lays the 
 port that `tests/test_editor_parity.py` compares with the C++ on a sweep of rooms.
 
 The tile and the card share `cover_slider`, `cover_bar`, `cover_tilt_keys` and `cover_position_action`. A standing
-position slider fills the closed part of the blind; a lying one fills the open part, as Home Assistant's
-cover-position feature does (`cover_bar_raw` turns its value around before it goes out). The tile uses the existing
+position slider fills the closed part of the blind, and so does a lying one, from the left, as Home Assistant's
+cover-position feature does (its slider is `inverted`); a lying tilt bar has its open end at the left for the same
+reason. A cover group's page draws its covers' bars the same way, and its covers take the group tile's `tilt_open`. The tile uses the existing
 captured slider lifecycle, so a lost press cannot send an action. Capability and pending checks run again when an
 interaction commits.

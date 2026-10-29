@@ -72,6 +72,20 @@ export const vDrag: ObjectDirective<HTMLElement, DragSource | null> = {
   },
 };
 
+// What the pointer carries: a copy of what was grabbed. A card of the mockup is carried in a copy of its glass (app
+// 0.4.90): the glass's sizes, faces and colours are the device's (stores/canvas.ts deviceStyle and .device rules), so a
+// copy on its own in the page's body lost them and the card changed its letters and its controls the moment it moved.
+function carried(element: HTMLElement): HTMLElement {
+  const copy = element.cloneNode(true) as HTMLElement, device = element.closest<HTMLElement>(".device");
+  if (!device) return copy;
+  const glass = document.createElement("div");
+  glass.className = `${device.className} drag-glass`;
+  glass.setAttribute("style", device.getAttribute("style") || "");
+  glass.style.borderRadius = getComputedStyle(element).borderRadius;
+  glass.append(copy);
+  return glass;
+}
+
 function beginDrag(e: PointerEvent) {
   const dragging = useDragStore();
   if (dragging.active || !drag.start || !drag.source || !drag.element) return;
@@ -86,7 +100,7 @@ function beginDrag(e: PointerEvent) {
   drag.target = null;
   getSelection()?.removeAllRanges();
   const rect = drag.element.getBoundingClientRect();
-  const ghost = drag.element.cloneNode(true) as HTMLElement;
+  const ghost = carried(drag.element);
   ghost.classList.add("drag-ghost");
   ghost.style.width = `${rect.width}px`;
   ghost.style.height = `${rect.height}px`;

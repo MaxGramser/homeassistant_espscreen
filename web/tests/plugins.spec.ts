@@ -73,19 +73,29 @@ describe("plugins", () => {
   });
 
   it("measures the room from the screen's own last build when the add-on reports it", () => {
-    const measured = screen("hosyond40", { firmware_image: { size: 1_880_000, slot: 2_031_616 } });
-    expect(headroomKb(measured)).toBe(9);
-    expect(fit(plugin({ flash_kb: 12 }), measured)).toEqual({ ok: false, reason: "flash" });
-    expect(fit(plugin({ flash_kb: 3 }), measured)).toEqual({ ok: true });
+    const measured = screen("hosyond40", { firmware_image: { size: 1_950_000, slot: 2_031_616 } });
+    expect(headroomKb(measured)).toBe(20);
+    expect(fit(plugin({ flash_kb: 24 }), measured)).toEqual({ ok: false, reason: "flash" });
+    expect(fit(plugin({ flash_kb: 12 }), measured)).toEqual({ ok: true });
   });
 
-  it("keeps a 4 MB board under the 93 % line of its slot", () => {
-    expect(headroomKb()).toBe(34);
+  it("leaves room on a 4 MB board whose own image is already past 93 % of its slot (#292)", () => {
+    const built = screen("cyd", { firmware_image: { size: 1_919_472, slot: 2_031_616 } });
+    expect(built.firmware_image!.size / built.firmware_image!.slot).toBeGreaterThan(0.93);
+    expect(headroomKb(built)).toBe(49);
+    expect(fit(plugin({ flash_kb: 12 }), built)).toEqual({ ok: true });
+    const full = screen("cyd", { firmware_image: { size: 1_975_000, slot: 2_031_616 } });
+    expect(headroomKb(full)).toBe(0);
+    expect(fit(plugin({ flash_kb: 4 }), full)).toEqual({ ok: false, reason: "flash" });
+  });
+
+  it("keeps a 4 MB board under the 97 % line of its slot", () => {
+    expect(headroomKb()).toBe(49);
     expect(fit(plugin(), screen("cyd"))).toEqual({ ok: true });
-    expect(fit(plugin({ flash_kb: 40 }), screen("cyd"))).toEqual({ ok: false, reason: "flash" });
+    expect(fit(plugin({ flash_kb: 50 }), screen("cyd"))).toEqual({ ok: false, reason: "flash" });
     const share = flashShare(plugin(), screen("cyd"))!;
-    expect(share.before).toBeCloseTo(0.912, 3);
-    expect(share.after).toBeCloseTo((1_853_664 + 12 * 1024) / 2_031_616, 3);
+    expect(share.before).toBeCloseTo(0.945, 3);
+    expect(share.after).toBeCloseTo((1_919_472 + 12 * 1024) / 2_031_616, 3);
     expect(flashShare(plugin(), screen("guition"))).toBeNull();
   });
 });

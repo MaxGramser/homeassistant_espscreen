@@ -69,6 +69,25 @@ class Channel(unittest.TestCase):
             with self.subTest(slug):
                 self.assertIsNone(channel_of(slug))
 
+    def test_docker_names_its_channel_and_the_supervisor_slug_wins(self):
+        # docs/DOCKER.md, "Testing dev": without a Supervisor SCREEN_CHANNEL says it, which dev's image carries.
+        self.assertEqual(core.start_channel(None, {'SCREEN_CHANNEL': 'dev'}), 'dev')
+        self.assertEqual(core.start_channel(None, {'SCREEN_CHANNEL': 'main'}), 'main')
+        for value in ('', ' ', 'Dev', 'feature', None):
+            with self.subTest(value):
+                self.assertIsNone(core.start_channel(None, {'SCREEN_CHANNEL': value}))
+        self.assertIsNone(core.start_channel(None, {}))
+        self.assertEqual(core.start_channel('fa6a7b50_esp_screen_manager', {'SCREEN_CHANNEL': 'main'}), 'dev')
+        self.assertIsNone(core.start_channel('local_esp_screen_manager', {'SCREEN_CHANNEL': 'dev'}))
+        # The image of a push to dev is built with CHANNEL=dev and keeps it; every other build leaves it empty.
+        workflow = yaml.safe_load((ROOT / '.github/workflows/docker.yml').read_text())
+        self.assertIn('dev', workflow[True]['push']['branches'])
+        self.assertIn('screen_manager/**', workflow[True]['push']['paths'])
+        build = workflow['jobs']['image']['steps'][-1]['with']['build-args']
+        self.assertIn("CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || '' }}", build)
+        dockerfile = (ROOT / 'screen_manager/Dockerfile').read_text()
+        self.assertRegex(dockerfile, r'ARG CHANNEL=""\nENV SCREEN_CHANNEL="\$\{CHANNEL\}"\n')
+
     def test_a_new_screen_builds_from_the_channel(self):
         data = {'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'}
         for channel, ref in ((None, 'main'), ('main', 'main'), ('dev', 'dev')):

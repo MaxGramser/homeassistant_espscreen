@@ -22,6 +22,9 @@ class Firmware:
     def __init__(self):
         self.task, self.job, self.logs, self.calls, self.gate, self.fail = None, None, [], [], None, set()
 
+    async def clean_build(self, name):
+        self.calls.append((name, 'clean'))
+
     def check(self, data):
         if data.get('file') == 'missing.yaml':
             raise ValueError('Choose a profile.')
@@ -165,6 +168,25 @@ class TheLine(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(owner.firmware.calls, [('other.yaml', 'install'), ('hall.yaml', 'install')])
         self.assertEqual(update_ran, [same.id])
         self.assertEqual(settled, [('update', True, ['waste'])])
+
+    async def test_a_changed_part_starts_from_an_empty_build_folder_also_when_an_update_takes_it(self):
+        # Screen camera's part Video needs the real esp_h264 where an older JPEG-only build left an empty one, and ESPHome
+        # never takes a file it wrote away again: the build folder goes first (Firmware.clean_build).
+        owner = Owner()
+        line = owner.build_queue
+        owner.firmware.gate = asyncio.Event()
+        line.add('update', 'other.yaml', one_step(line, 'other.yaml'), screen='other')
+        plugins = line.add('plugins', 'hall.yaml', one_step(line, 'hall.yaml'), screen='hall',
+                           plugins={'add': ['screen_camera'], 'fresh': True})
+        same = line.add('update', 'hall.yaml', one_step(line, 'hall.yaml'), screen='hall')
+        self.assertIs(same, plugins)
+        self.assertTrue(same.fresh)
+        plain = line.add('plugins', 'desk.yaml', one_step(line, 'desk.yaml'), screen='desk', plugins={'add': ['bus']})
+        self.assertFalse(plain.fresh)
+        owner.firmware.gate.set()
+        await line.idle()
+        self.assertEqual(owner.firmware.calls, [('other.yaml', 'install'), ('hall.yaml', 'clean'), ('hall.yaml', 'install'),
+                                                ('desk.yaml', 'install')])
 
     async def test_a_build_that_runs_takes_nothing_more(self):
         owner = Owner()

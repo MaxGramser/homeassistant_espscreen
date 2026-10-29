@@ -225,6 +225,12 @@ def screen_language():
     return _screen('language')
 
 
+def screen_script():
+    """The script of the screen being written for (`_meta.script` of its language): its firmware carries that script's
+    letters (packages/core.yaml, SCRIPT_GLYPHS), "latin" for most."""
+    return TRANSLATIONS.meta(screen_language()).get('script', 'latin')
+
+
 def legacy_screen():
     screen = SCREEN.get()
     return bool(screen and screen.get('legacy'))

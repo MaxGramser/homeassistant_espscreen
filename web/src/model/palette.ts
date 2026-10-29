@@ -63,7 +63,7 @@ export type PaletteFacts = {
 };
 export type PaletteActions = {
   openScreen: (screen: Screen) => void;
-  go: (route: "#new-screen" | "#firmware" | "#alerts" | "#settings" | "#plugins") => void;
+  go: (route: "#new-screen" | "#firmware" | "#events" | "#settings" | "#plugins") => void;
   showTab: (tab: "layout" | "settings") => void;
   save: () => void;
   identify: (screen: Screen) => void;
@@ -116,7 +116,7 @@ export function paletteItems(facts: PaletteFacts, actions: PaletteActions): Pale
   act.push(
     { id: "go:new-screen", group: groups.actions, label: t("editor.nav.new_screen"), detail: t("editor.nav.new_screen_detail"), glyphText: "+", run: () => actions.go("#new-screen") },
     { id: "go:firmware", group: groups.actions, label: t("editor.nav.firmware"), icon: "F0241", run: () => actions.go("#firmware") },
-    { id: "go:alerts", group: groups.actions, label: t("editor.nav.alerts"), detail: t("editor.palette.alerts_detail"), icon: "F0594", run: () => actions.go("#alerts") },
+    { id: "go:events", group: groups.actions, label: t("editor.nav.events"), detail: t("editor.palette.alerts_detail"), icon: "F073C", run: () => actions.go("#events") },
     { id: "go:settings", group: groups.actions, label: t("editor.nav.settings"), detail: t("editor.palette.settings_detail"), icon: "F0493", run: () => actions.go("#settings") },
   );
   // Each screen's own actions are found by name ("identify kitchen", "update"); the open screen's identify stands above.

@@ -38,6 +38,8 @@ export type LibraryFilter = {
   pages: number;
   /** The board draws pictures: camera and image tiles, and the map tile. */
   pictures: boolean;
+  /** The board draws the template tile (module text_card); left out, it does not. */
+  textTiles?: boolean;
   /** Leave out what is on the screen already. */
   hidePlaced: boolean;
   /** How many tiles each entity has on the screen. */
@@ -47,6 +49,7 @@ export type LibraryFilter = {
 export function libraryBase(entries: readonly Entry[], filter: LibraryFilter) {
   return entries.filter((e) => e.tile !== false && pageTarget(e.id) <= filter.pages &&
     (filter.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
+    (filter.textTiles || e.id !== "screen.text") &&
     (!filter.hidePlaced || !filter.counts.has(e.id)) && matchesQuery(filter.query, e.name, e.id, e.device, e.area));
 }
 /** What a kind leaves of the room's entries: ranked by the search as Spotlight ranks (a name that starts with it first,
@@ -56,8 +59,8 @@ export function libraryMatches(pool: readonly Entry[], kind: string, query: stri
   return query ? [...found].sort((a, b) => prefixRank(a.name, query) - prefixRank(b.name, query)) : found;
 }
 const PLUGINS = "\u0002plugins", SCREEN = "\u0001screen", NONE = "\u0000none";
-/** The entities under their room while browsing, the screen's own cards and the plugins' tiles last; a search or a room
- * is one list. */
+/** The entities under their room while browsing: the screen's own cards first, the plugins' tiles last; a search or a
+ * room is one list. */
 export function libraryGroups(list: readonly Entry[], grouped: boolean) {
   if (!grouped) return [{ key: "", title: "", entities: [...list] }];
   const byRoom = new Map<string, Entry[]>();
@@ -65,7 +68,7 @@ export function libraryGroups(list: readonly Entry[], grouped: boolean) {
     const key = isPluginTile(e.id) ? PLUGINS : e.id.startsWith("screen.") ? SCREEN : e.area || NONE;
     byRoom.set(key, [...(byRoom.get(key) || []), e]);
   }
-  const order = (key: string) => key === PLUGINS ? 3 : key === SCREEN ? 2 : key === NONE ? 1 : 0;
+  const order = (key: string) => key === SCREEN ? -1 : key === PLUGINS ? 3 : key === NONE ? 1 : 0;
   return [...byRoom.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((key) => ({
     key, entities: byRoom.get(key)!,
     title: key === PLUGINS ? t("editor.library.plugins") : key === SCREEN ? t("editor.library.filters.screen") : key === NONE ? t("editor.library.no_room") : key,

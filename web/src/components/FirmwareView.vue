@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Shared firmware workspace; always a concrete profile and upload target.
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useFirmwareJob, useLineBuild } from "../composables/useFirmwareJob";
 import { t } from "../i18n";
 import { afterBrowserBuild, ESPHOME_WEB, firmwareImage, memoryText as memoryOf, usbTarget } from "../model/firmware-job";
@@ -18,7 +18,13 @@ const builds = useBuildsStore();
 const data = ref<any>(null);
 const file = ref("");
 const target = ref("ota");
-const host = ref("");
+// The address of a paired screen's profile, as its Update has it (api/firmware), until the person types another: what
+// they typed stays with that profile while the page is open, a field they emptied too, through every poll.
+const typedHosts = reactive<Record<string, string>>({});
+const host = computed({
+  get: () => typedHosts[file.value] ?? data.value?.profiles?.find((p: { file: string; host?: string }) => p.file === file.value)?.host ?? "",
+  set: (value: string) => { typedHosts[file.value] = value; },
+});
 // This computer (browser): reinstall or rescue a screen plugged into the computer this page runs on, for instance one
 // that restarts over and over and so never comes online for Wi-Fi / OTA. The add-on builds, this page writes the image
 // without erasing first, so the screen keeps its touch calibration and settings (as ESPHome's reinstall does).

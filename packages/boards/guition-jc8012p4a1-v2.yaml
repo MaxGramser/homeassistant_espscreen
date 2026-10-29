@@ -10,6 +10,8 @@
 # washed-out picture with a coloured line across it (GitHub issue #92), and the V3's firmware does not start on this
 # chip. So this file is the V3's with the first build's chip: the same LCD and touch, and ESPHome's own display driver,
 # whose fixed display clock only rev3 silicon refuses. docs/JC8012P4A1.md has what to check on the glass.
+# The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml), experimental: run
+# on a V3 of the same circuit board (pull request #259), not yet on this build.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
@@ -25,6 +27,8 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The ES8311, its speaker and its microphone, on the pins of the 10.1-inch circuit board below.
+  audio: !include ../hardware/guition-p4-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -59,6 +63,15 @@ substitutions:
   # either way. The 10.1-inch glass is 136 x 218 mm standing up, columns of about 27 mm: a long name ends in dots
   # sooner than lying down.
   LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+  # The audio on the 10.1-inch circuit board (hardware/guition-p4-audio.yaml): the microphone's data and the
+  # amplifier's enable.
+  AUDIO_DIN_PIN: GPIO11
+  AUDIO_AMPLIFIER_PIN: GPIO20
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the OmniVision OV02C10 on the MIPI-CSI port of
+  # the boards that carry one (the "C" in Guition's model name). It answers on the touch bus at 0x36, clocks itself
+  # and has no reset or power-down pin; a camera plugin drives it (screen_camera), as on the first build and the V3, the same circuit board.
+  CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the sensor has its own clock
 
 # ============================================================
 # No need to edit below this line.
@@ -66,10 +79,11 @@ substitutions:
 
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its display
-  # model, `JC8012P4A1-V2` below, arrived in 2026.8.0. A board file's min_version wins over the core's, so the CYD,
-  # the Guition and the Waveshare keep building on an older ESPHome; only a 10.1-inch screen asks for 2026.8 or newer.
-  # docs/RELEASING.md says why the packages stay behind the add-on's ESPHome.
-  min_version: 2026.8.0
+  # model, `JC8012P4A1-V2` below, arrived in 2026.8.0, and its audio (the speaker_source media player, the resamplers)
+  # is built and tried on 2026.9.0, as on the other boards with a speaker. A board file's min_version wins over the
+  # core's, so the CYD, the Guition and the Waveshare keep building on an older ESPHome. docs/RELEASING.md says why the
+  # packages stay behind the add-on's ESPHome.
+  min_version: 2026.9.0
 
 # ESPHome's own mipi_dsi platform knows the newer LCD by name (2026.8.0+): `model: JC8012P4A1-V2` brings the JD9365's
 # init sequence for it, its timings and its reset pin, as on the V3. Its init sequence is the one the community

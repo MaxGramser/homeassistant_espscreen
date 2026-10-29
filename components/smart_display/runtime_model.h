@@ -16,6 +16,12 @@
 #include "calendar_card.h"
 #include "vacuum_model.h"
 #include "roomy.h"
+#ifdef SD_MOD_TEXT_CARD
+#include "module_text_card.h"
+#endif
+#ifdef SD_MOD_LIGHT_PRESETS
+#include "module_light_presets.h"
+#endif
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -200,6 +206,10 @@ inline bool valid_entity(const std::string &entity) {
     // (firmware 0.47.0+): the house's power, Home Assistant's energy distribution live (energy_card.h).
     if (entity == "screen.clock" || entity == "screen.settings" || entity == "screen.nightstand" || entity == "screen.map" ||
         entity == "screen.energy") return true;
+#ifdef SD_MOD_TEXT_CARD
+    // screen.text (module text_card, firmware 0.58.0+): a template Home Assistant renders, as rows the app sends.
+    if (entity == "screen.text") return true;
+#endif
     return page_entity(entity) && page_number(entity) <= grid.pages();
   }
   // The types the tile catalogue has (catalogue/*.yaml, tile_catalogue.h): the same list the add-on and the editor take.
@@ -333,6 +343,10 @@ struct Extra {
   std::shared_ptr<const energy_card::Data> energy;
   // A calendar card's events (firmware 0.56.0+, calendar_card.h): its own block too, shared with the card that paints it.
   std::shared_ptr<const calendar_card::Data> calendar;
+#ifdef SD_MOD_TEXT_CARD
+  // A template tile's rows (module text_card, firmware 0.58.0+): its own block, kept in PSRAM.
+  std::shared_ptr<const text_card::Data> text;
+#endif
   // A vacuum card's map, rooms and routines (module vacuum, vacuum_model.h): its own block too.
   std::shared_ptr<const vacuum_model::Data> vacuum;
   uint32_t media_duration = 0, media_position = 0, media_position_at = 0;
@@ -412,7 +426,11 @@ struct Extra {
            media_source.empty() && media_repeat.empty() && media_sources.empty() && media_shuffle < 0 && !media_features &&
            speaker_flags.empty() && speaker_volumes.empty() && media_inputs.empty() && media_input.empty() && media_target.empty() &&
            !has_ground && !ground_known && !media_library && fav_kind.empty() && fav_source.empty() && fav_mark.empty() &&
-           fav_glyph.empty() && !fav_playing && !energy && !calendar && plugin_options.empty() && plugin_state.empty() && plugin_entity.empty();
+           fav_glyph.empty() && !fav_playing && !energy && !calendar && plugin_options.empty() && plugin_state.empty() && plugin_entity.empty()
+#ifdef SD_MOD_TEXT_CARD
+           && !text  // a template tile's rows, even an empty list: "nothing to say" hides the card
+#endif
+           ;
   }
 };
 // The numbers of a clock text ("0:05:00", "07:45"), at most `max` of them, each after optional white space, up to the
@@ -497,6 +515,8 @@ struct Tile {
   int hue = 0, kelvin = 3000, min_kelvin = 0, max_kelvin = 0;
   bool received = false;
   bool has_hs_color = false;
+  // A light in a white shade: Home Assistant reports its colour temperature, which it names in no colour mode.
+  bool white = false;
   int saturation = 0;
   std::string tap = "auto", display = "standard", inline_control = "none", guard = "confirm";
   // What the second line says (firmware 0.2.90+), as the option was stored: "auto" is the line the screen works
@@ -528,6 +548,10 @@ struct Tile {
     std::array<float, 2> thresholds{NAN, NAN};  // in the sensor's unit; NAN: 80 % and 90 % of the range
   };
   std::shared_ptr<const Meter> meter;
+#ifdef SD_MOD_LIGHT_PRESETS
+  // A light's presets (module light_presets): its tile's round keys and its card's; none on any other tile.
+  std::shared_ptr<const light_presets::Presets> presets;
+#endif
   bool is_meter() const { return display == "meter" && domain() == "sensor"; }
   bool live() const { const auto d = domain(); return display == "live" && (d == "camera" || d == "image"); }
   // A media player's album cover in the icon's place (firmware 0.2.78+): "display": "cover" on a single or double-width
@@ -539,11 +563,21 @@ struct Tile {
   bool is_map() const { return display == "map" && (domain() == "person" || entity == "screen.map"); }
   // The energy card (firmware 0.47.0+): the house's power, drawn from the numbers the app sends (energy_card.h).
   bool is_energy() const { return entity == "screen.energy"; }
+  // The template tile (module text_card, firmware 0.58.0+): rows of text the app sends, drawn by its module.
+  bool is_text() const { return entity == "screen.text"; }
   // A favourite (firmware 0.24.0+): a player's tile that plays one thing of its library on a tap, with that thing's
   // picture over the card where the board draws pictures. Never a whole page: the player's card is that.
   bool favorite() const { return display == "favorite" && domain() == "media_player" && !full; }
   // A tile that draws its picture out of the page's strip (runtime_tiles.h, live_*).
-  bool pictured() const { return live() || cover_tile() || is_map() || (favorite() && !extra().fav_mark.empty()); }
+  bool pictured() const { return live() || cover_tile() || is_map() || (favorite() && !extra().fav_mark.empty()) || vacuum_map(); }
+  // A robot's map on its larger tile (module vacuum, module_vacuum_tile.cpp): the app draws it at the map's place.
+  bool vacuum_map() const {
+#ifdef SD_MOD_VACUUM_CARD
+    return domain() == "vacuum" && (controls == "map" || controls == "map_rooms") && extra().vacuum && extra().vacuum->has_map();
+#else
+    return false;
+#endif
+  }
   // Double width takes a row; full (firmware 0.2.62+) takes the whole page, all six slots, and is also wide.
   bool wide = false, full = false;
   uint8_t height = 1;  // Row span; independent of the card design and page height.

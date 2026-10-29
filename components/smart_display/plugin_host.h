@@ -2,10 +2,13 @@
 // The core's side of the plugin API (plugin_api.h, docs/PLUGINS.md): a plugin tile in a card, its moments, and what the
 // screen says about its plugins. plugin_host.cpp holds it, apart from main.cpp, as energy_view.cpp does.
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <ArduinoJson.h>
+#include "picture_loader.h"
 #include "tile_picture.h"
 #include "lvgl.h"
+namespace esphome::camera { class Camera; }
 #include "roomy.h"
 
 namespace runtime_tiles {
@@ -44,12 +47,22 @@ uint16_t bytes(const std::string &entity);
 // A plugin tile's pictures (plugin API 0.10, tile_picture.h "parts"): the places on its card that have an address.
 // Whether the card has a place with an address: it asks for a picture, as a pictured tile does.
 bool pictured(const runtime_tiles::Widgets &w);
+// The places of a plugin tile's card that stream (0.17, ui::live): each with its camera's entity and whether it shows
+// the picture whole (contain); runtime_tiles streams them as it does a camera tile set to Live.
+void live_places(const runtime_tiles::Widgets &w, const std::function<void(lv_obj_t *, const std::string &, bool)> &each);
 // What the card asks for: every place with an address that lies within the card, as the parts of one picture; false
 // when there is none. Each place keeps the piece it takes in that picture, for picture_place.
 bool picture_ask(const runtime_tiles::Widgets &w, const runtime_tiles::Tile &t, tile_picture::Ask &a);
 // The card's picture (an lv_image_dsc_t of the store, or nullptr for none) onto its places, each its own piece; a
 // place whose piece is not in it shows its block again.
+// The screen's own camera (docs/PICTURES.md "Capture", capture_dot.h): the core watches the camera a plugin brings as
+// ts_camera (the feature `camera`, smart_display.register_plugin calls this) and shows its dot while Home Assistant uses
+// it or a plugin says it does (tessera::capturing).
+void watch_camera(esphome::camera::Camera *camera);
+void camera_dot_update(uint32_t now_ms);
 void picture_place(runtime_tiles::Widgets &w, void *picture);
+// What came of a plugin tile's picture when it did not come (0.17, Tile::on_picture): NONE or FAILED to its places.
+void picture_outcome(runtime_tiles::Widgets &w, picture_loader::Outcome outcome);
 // The picture the card's places draw now (its last atlas), nullptr for none: while the next one comes, a card whose
 // addresses changed keeps showing it (tile_picture_place), as a tile's own picture keeps its last.
 const void *picture_drawn(const runtime_tiles::Widgets &w);
@@ -73,7 +86,6 @@ void card_letgo(const void *download);
 // `root` with the app's word for it ({"o": options, "x": what it draws from}), at the backlight's level, a new word for
 // it, the same word again (a finger's wish on the player shows in it, saver_wish), and its end (the root goes with it).
 bool saver_known(const std::string &key);
-bool saver_shows();
 // The saver has the step's own picture under it (`backdrop: true`): runtime_tiles opens that picture first.
 bool saver_backdrop(const std::string &key);
 void saver_show(lv_obj_t *root, const std::string &key, const roomy::Text &data, int level, bool night);
@@ -93,4 +105,9 @@ void standby(bool dark);
 void before_update();
 // plugin_api and plugins ([{id, version, tiles}]) in the screen's answer to the add-on's hello.
 void hello(JsonObject root);
+
+// What the core does for a plugin that only the YAML can do. tessera::wake (plugin API 0.16): the screen wakes as Home
+// Assistant's Wake button does, through the one way every wake that is not a finger takes (packages/core.yaml, the script
+// wake_from); `source` names the plugin in the log.
+inline void (*wake)(const std::string &source) = nullptr;
 }  // namespace plugin_host

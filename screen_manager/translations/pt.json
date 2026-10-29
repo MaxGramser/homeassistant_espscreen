@@ -191,10 +191,20 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Ganho do microfone",
       "automatic_gain": "Ganho automático",
       "echo_cancellation": "Cancelamento eco"
+    },
+    "doorbell": {
+      "sound_on": "Som ligado",
+      "sound_off": "Som desligado",
+      "door": "Porta",
+      "door_confirm": "Toque de novo para abrir",
+      "door_sent": "Enviado",
+      "talk": "Falar",
+      "coming_soon": "Em breve"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",
@@ -213,7 +223,8 @@
       "color": "Cor",
       "color_temperature": "Temperatura de cor",
       "brightness": "Brilho",
-      "waiting": "A aguardar..."
+      "waiting": "A aguardar...",
+      "presets": "Predefinições"
     },
     "effects": {
       "effect": "Efeito",
@@ -695,7 +706,8 @@
         "firmware_first": "Para estes mosaicos, instale primeiro o firmware {version} ou mais recente no ecrã.",
         "entity_gone": "Uma das entidades escolhidas já não existe. Procure a nova entidade.",
         "ids_too_long": "Em conjunto, os IDs de entidade destes mosaicos são demasiado longos para caberem numa mensagem para o ecrã; remova alguns mosaicos.",
-        "favorite_play": "Escolha o que este favorito reproduz."
+        "favorite_play": "Escolha o que este favorito reproduz.",
+        "text_template": "Um mosaico de modelo precisa de um modelo com no máximo 4000 caracteres."
       },
       "top_bar": {
         "invalid": "Barra superior inválida; recarregue a página de gestão.",
@@ -915,12 +927,16 @@
         "choose": "Escolha que plugin traz o {feature} para {name}.",
         "other_origin": "Este ecrã usa outro plugin chamado {name}, de {origin}. Mude para este nos seus detalhes.",
         "misfit_esphome": "{name} precisa do ESPHome {version} ou mais recente para compilar.",
-        "like_not_installed": "Coloque primeiro o plugin num dos seus ecrãs, depois pode dar gosto.",
         "like_consent": "Aceite primeiro que o seu gosto conte num número público.",
         "like_off": "Os gostos estão desligados: uma versão mais recente da app gere-os.",
         "like_failed": "O gosto não foi enviado. Tente de novo daqui a pouco.",
         "misfit_built_in": "{name} traz o que esta placa já tem.",
-        "offline": "A app ainda não sabe onde está {screen} na rede. Ligue-o, espere até aparecer online e tente de novo."
+        "offline": "A app ainda não sabe onde está {screen} na rede. Ligue-o, espere até aparecer online e tente de novo.",
+        "like_not_listed": "Só os plugins do catálogo do Tessera podem receber um gosto.",
+        "rate_not_installed": "Ponha primeiro o plugin num dos seus ecrãs e depois pode avaliá-lo.",
+        "rate_failed": "As estrelas não foram enviadas. Tente de novo daqui a pouco.",
+        "count_failed": "Não foi possível desligar a contagem: o Tessera não estava acessível. Tente de novo daqui a pouco.",
+        "forget_running": "Um ecrã ainda usa este plugin. Retire-o primeiro do ecrã."
       },
       "extras": {
         "request": "Esta alteração de um extra não é possível neste ecrã."
@@ -939,6 +955,31 @@
         "not_paired": "Emparelhe primeiro um servidor de compilação.",
         "unknown": "O servidor de compilação já não conhece o Tessera. Emparelhe-o de novo.",
         "pending": "O servidor de compilação ainda não aceitou o Tessera."
+      },
+      "video": {
+        "not_written": "Não foi possível escrever Tessera video em {folder}: {reason}.",
+        "not_installed": "Instale primeiro Tessera video."
+      },
+      "report": {
+        "depth": "Escolha o relatório básico ou o completo.",
+        "busy": "Ainda está a ser recolhido um relatório deste ecrã.",
+        "no_profile": "O YAML deste ecrã não está na pasta ESPHome deste complemento, por isso não há nada a relatar a partir daqui.",
+        "not_found": "Esse relatório já não existe. Faça um novo.",
+        "not_ready": "O relatório ainda não está terminado.",
+        "failed": "A recolha do relatório parou ({reason}). Tente novamente.",
+        "consent": "Marque a caixa para enviar o relatório.",
+        "note": "Mantenha a nota abaixo de 2000 caracteres.",
+        "email": "Isso não parece um endereço de email.",
+        "too_large": "O relatório é demasiado grande para enviar. Transfira-o e anexe-o a um issue no GitHub.",
+        "retry": "A Tessera não aceitou o relatório neste momento. Tente novamente dentro de um minuto, ou transfira-o.",
+        "offline": "A Tessera não está acessível a partir daqui. Transfira o relatório em vez disso.",
+        "invalid": "A Tessera recusou o relatório. Transfira-o e anexe-o a um issue no GitHub."
+      },
+      "automations": {
+        "not_allowed": "O Home Assistant não deixou a app guardar automações. A app precisa de acesso de administrador.",
+        "refused": "O Home Assistant recusou a automação: {reason}",
+        "not_ours": "Essa automação não foi criada pelo Tessera, por isso a app não lhe toca.",
+        "invalid": "Esta automação não pode ser guardada ({part})."
       }
     },
     "status": {
@@ -1009,14 +1050,20 @@
         },
         "light": {
           "toggle": "Interruptor",
-          "brightness": "Controlo deslizante de brilho"
+          "brightness": "Controlo deslizante de brilho",
+          "presets": "Predefinições",
+          "brightness_presets": "Controlo de brilho e predefinições"
         },
         "fan": {
           "toggle": "Interruptor",
           "speed": "Controlo deslizante de velocidade"
         },
         "vacuum": {
-          "buttons": "Iniciar, parar, base"
+          "buttons": "Iniciar, parar, base",
+          "map": "Mapa",
+          "rooms": "Escolher divisões",
+          "routines": "Rotinas",
+          "map_rooms": "Mapa e divisões"
         },
         "cover": {
           "buttons": "Abrir, parar, fechar",
@@ -1396,7 +1443,8 @@
         "nightstand": "Relógio de cabeceira",
         "page": "Ir para a página {page}",
         "map": "Mapa",
-        "energy": "Energia"
+        "energy": "Energia",
+        "text": "Modelo"
       },
       "identify": {
         "title": "Este é {name}",
@@ -1467,6 +1515,56 @@
         "directory": "Pasta",
         "music": "Música"
       }
+    },
+    "doorbell": {
+      "fields": {
+        "camera": {
+          "label": "Câmara",
+          "help": "A entidade de câmara da campainha. Um ecrã que transmite (um ESP32-P4) mostra-a em direto com som; qualquer outro mostra a imagem num alerta. Obrigatória."
+        },
+        "title": {
+          "label": "Título",
+          "help": "Como o ecrã chama a campainha, no topo da vista e como título do alerta. Vazio usa o nome da câmara."
+        },
+        "screen": {
+          "label": "Ecrã",
+          "help": "Que ecrãs recebem o toque: um nome de dispositivo (como kitchen-screen), o nome que o Home Assistant mostra ou uma divisão. Uma lista chega a vários. Omita para todos. Um nome que não corresponde a nenhum ecrã não envia nada."
+        },
+        "timeout": {
+          "label": "Tempo limite",
+          "help": "Segundos que o toque fica se ninguém tocar, de {min} a {max}. Vazio é {default}. Um toque mantém-no aberto."
+        },
+        "keep_minutes": {
+          "label": "Manter perdida",
+          "help": "Minutos que uma campainha sem resposta fica na barra superior dos ecrãs com a sua vista, contados a partir do toque, de 1 a {most}. Vazio ou 0: até alguém a abrir."
+        },
+        "sound": {
+          "label": "Som",
+          "help": "Se o som da campainha toca logo quando ela toca, onde o ecrã tem altifalante. Vazio ou true: a vista abre com o som ligado. false: abre em silêncio (um estúdio, um quarto), e um toque em Som liga-o."
+        },
+        "chime": {
+          "label": "Toque",
+          "help": "Se o ecrã toca o seu toque quando tocam à porta, onde tem altifalante. Vazio ou true: toca. false: toca sem ele, e a vista abre na mesma."
+        },
+        "lock": {
+          "label": "Fechadura",
+          "help": "Uma entidade de fechadura que a tecla da porta da vista destranca após um segundo toque; a tecla mostra o seu estado. Uma fechadura que pede um código precisa de um código predefinido no Home Assistant (as definições da fechadura). Deixe vazio para não ter tecla da porta."
+        },
+        "door_action": {
+          "label": "Ação da porta",
+          "help": "Em vez de uma fechadura: uma ação do Home Assistant que a tecla da porta executa após um segundo toque, como script.open_gate ou button.press. `door_data` dá os seus campos (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Dados da porta",
+          "help": "Os campos de `door_action`, como entity_id."
+        }
+      },
+      "endings": {
+        "answered": "Alguém tocou: atendido e fechado nos outros ecrãs",
+        "closed": "O botão de fechar, ou outra coisa que o fechou",
+        "missed": "Ninguém tocou antes do tempo limite",
+        "seen": "Um toque perdido foi reaberto a partir da barra superior"
+      }
     }
   },
   "editor": {
@@ -1494,9 +1592,10 @@
       "plugins": "Plugins",
       "new_screen": "Novo ecrã",
       "firmware": "Firmware e USB",
-      "alerts": "Alertas",
+      "events": "Eventos",
       "settings": "Definições",
-      "new_screen_detail": "Ligar e instalar"
+      "new_screen_detail": "Ligar e instalar",
+      "manual": "Manual"
     },
     "api": {
       "failed": "Não funcionou. Recarregue a página e tente novamente."
@@ -1834,6 +1933,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras para os seus ecrãs: mosaicos para uma página, algo mais que o ecrã inteiro pode fazer, ou hardware na placa. Um plugin é integrado no firmware de um ecrã, por isso escolhe por ecrã quais recebe.",
+      "risk": {
+        "title": "Os plugins são por sua conta e risco",
+        "text": "Cada plugin usa parte da memória e do tempo de processador de um ecrã. Alguns funcionam bem juntos, mas muitos de uma vez (por exemplo um assistente de voz, um proxy Bluetooth e uma câmara) podem encher a memória e tornar um ecrã lento, bloqueá-lo ou fazê-lo reiniciar. Pode experimentar, mas adicione um ou dois de cada vez e verifique se o ecrã continua estável. Se começar a falhar, retire primeiro os mais recentes.",
+        "many": "{screen} terá {n} plugins depois desta compilação. Tantos podem tornar um ecrã instável: se falhar, retire alguns."
+      },
       "search": "Procurar por nome, autor ou o que faz",
       "filter": "Mostrar",
       "from_tessera": "Do Tessera",
@@ -2043,7 +2147,8 @@
         "keep": "Manter",
         "keep_named": "Manter {name}",
         "minutes": "Cada compilação demora alguns minutos.",
-        "off_set": "Preparado para sair"
+        "off_set": "Preparado para sair",
+        "risk": "Por sua conta e risco: cada plugin usa memória, e demasiados podem tornar um ecrã instável."
       },
       "maker": {
         "title": "Crie o seu próprio plugin",
@@ -2111,7 +2216,9 @@
         "label": "Ordenar por",
         "popular": "Mais gostados",
         "new": "Mais recentes",
-        "name": "Nome"
+        "name": "Nome",
+        "rated": "Mais bem avaliados",
+        "used": "Mais usados"
       },
       "none_in_tab": {
         "tiles": "Ainda não há plugins com mosaicos.",
@@ -2124,8 +2231,8 @@
         "count": "{n} pessoa gosta | {n} pessoas gostam",
         "like": "Gosto",
         "unlike": "Retirar o seu gosto",
-        "install_first": "Coloque-o primeiro num ecrã, depois pode dar gosto",
-        "ask": "O seu gosto conta num número público por plugin. Só o número é público: nada sobre si, o Home Assistant ou os seus ecrãs é enviado."
+        "ask": "O seu gosto conta num número público por plugin. Só o número é público: nada sobre si, o Home Assistant ou os seus ecrãs é enviado.",
+        "like_hint": "Dê um gosto, mesmo que não esteja em nenhum dos seus ecrãs: um obrigado a quem o fez."
       },
       "along": {
         "title": "Vem junto",
@@ -2178,7 +2285,59 @@
         "history": "Todas as versões"
       },
       "failed_update": "A versão {version} não compilou para {screen}, por isso voltou à {current}, a que está a correr. O registo está em Firmware e USB.",
-      "interrupted": "A app reiniciou durante a compilação."
+      "interrupted": "A app reiniciou durante a compilação.",
+      "stars": {
+        "label": "Estrelas para {name}",
+        "of_five": "{n} de 5 estrelas",
+        "say": {
+          "1": "Não funciona",
+          "2": "Fraco",
+          "3": "Razoável",
+          "4": "Bom",
+          "5": "Ótimo"
+        },
+        "yours": "As suas estrelas",
+        "give": "Como funciona para si?",
+        "clear": "Retirar"
+      },
+      "numbers": {
+        "rating": "{rating} de {n} avaliação | {rating} de {n} avaliações",
+        "few": "{n} avaliação até agora | {n} avaliações até agora",
+        "homes": "usado em {n} casa | usado em {n} casas"
+      },
+      "counting": {
+        "label": "Contar os meus plugins na loja",
+        "hint": "Uma vez por dia, os nomes e versões dos seus plugins e o modelo de cada ecrã. Mais nada.",
+        "on_hint": "Ligado: uma vez por dia, os nomes e versões dos seus plugins e o modelo de cada ecrã vão para o Tessera. Desligar remove-os lá."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} está a correr há {days} dia em {screen}. O que acha? | {name} está a correr há {days} dias em {screen}. O que acha?",
+        "send": "Enviar",
+        "what_title": "O que é partilhado?",
+        "what": {
+          "plugin": "O plugin e a sua versão: {name} {version}",
+          "board": "O modelo do ecrã: {board}",
+          "stars": "As suas estrelas",
+          "counting": "Com a contagem ligada: uma vez por dia, que plugins os seus ecrãs usam, as versões e os modelos dos ecrãs",
+          "nothing_else": "Mais nada: nem nome, nem conta, nem entidades, nem definições do Home Assistant. A app partilha com uma chave aleatória própria."
+        },
+        "thanks": "Obrigado! As suas estrelas estão em {name}.",
+        "heart_hint": "Gosta muito? Dê também um gosto a {maker}. Conta num número público por plugin; nada sobre si é enviado.",
+        "hearted": "Obrigado pelo seu gosto",
+        "issue_hint": "Que pena. Quer que seja corrigido? Abra um issue para {maker}, com a versão e o modelo do seu ecrã já preenchidos.",
+        "issue_open": "Abrir um issue no GitHub"
+      },
+      "sharing": {
+        "title": "Loja de plugins",
+        "text": "Ajude outros a encontrar bons plugins. Gostos e estrelas só seguem quando os dá, a contagem só enquanto estiver ligada.",
+        "asking": "Pedir estrelas alguns dias depois de um plugin novo",
+        "asking_hint": "Um cartão por cima do ecrã, um plugin de cada vez."
+      },
+      "forget": {
+        "go": "Remover da lista",
+        "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação."
+      }
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",
@@ -2308,7 +2467,6 @@
         "live_card_hint": "A imagem preenche o mosaico, atualizada ao ritmo abaixo enquanto a página está no ecrã. Um toque continua a abri-la em ecrã inteiro.",
         "live_card_needs_firmware": "Uma imagem que preenche o mosaico precisa do firmware 0.3.7 ou mais recente: prima Atualizar no ecrã depois de guardar. Até lá o ecrã mostra uma imagem pequena no lugar do ícone.",
         "cover": "Capa do álbum",
-        "cover_hint": "A capa do álbum do que está a tocar no lugar do ícone, como no próprio mosaico do Home Assistant; um leitor sem imagem mantém o seu ícone. Um toque continua a abrir o cartão.",
         "cover_needs_firmware": "A capa do álbum no mosaico precisa do firmware 0.2.78 ou mais recente: prima Atualizar no ecrã depois de guardar.",
         "map": "Mapa",
         "map_hint": "Onde estão esta pessoa e as que adicionar, num mapa calmo nas cores do ecrã. O Home Assistant fornece as ruas do OpenStreetMap; o ecrã só recebe a imagem, nunca uma localização. É redesenhado quando alguém se move. Um toque abre-o em todo o ecrã.",
@@ -2327,7 +2485,11 @@
       "refresh": {
         "label": "Atualizar",
         "seconds": "A cada {n} s",
-        "live": "Ao vivo"
+        "live": "Ao vivo",
+        "paused": "Ao vivo em pausa",
+        "cap": "Este ecrã mostra {n} câmaras ao vivo de cada vez; as outras mostram uma imagem a cada 15 segundos. Com duas câmaras, cada uma fica mais fluida do que com quatro.",
+        "cap_one": "Este ecrã mostra uma câmara em direto de cada vez; as outras mostram uma imagem a cada 15 segundos.",
+        "streams": "{used} de {most} transmissões em direto em uso, em todos os ecrãs. Uma câmara além destas mostra uma imagem a cada 15 segundos."
       },
       "picture": {
         "fit": {
@@ -2409,6 +2571,39 @@
         "room_hint": "O ecrã desenha-os onde o mosaico tem espaço (firmware 0.57.0 ou mais recente): por baixo do nome num mosaico simples, ao lado num de largura dupla. Onde não cabem, o mosaico fica como sem eles.",
         "tilt": "",
         "tilt_hint": ""
+      },
+      "presets": {
+        "label": "Predefinições",
+        "preset": "Predefinição {n}",
+        "swatch_aria": "Predefinição {n}, brilho {b}%",
+        "white": "Branco",
+        "colour": "Cor",
+        "level": "Só brilho",
+        "white_shade": "Tom de branco",
+        "kelvin": "{k} K",
+        "hue": "Matiz",
+        "degrees": "{h}°",
+        "saturation": "Saturação",
+        "brightness": "Brilho",
+        "percent": "{n}%",
+        "use_light": "Usar o estado atual da luz",
+        "use_light_off": "Ligue a luz para usar o seu brilho e a sua cor.",
+        "add": "Adicionar uma predefinição",
+        "add_first": "Adicionar a primeira predefinição",
+        "levels": "Mostrar o brilho nas predefinições",
+        "levels_hint": "Escreve o brilho em pequeno em cada círculo. Uma predefinição só de brilho mostra-o sempre.",
+        "hint": "Um toque numa predefinição põe a luz assim de uma vez; o anel marca a que a luz mostra. Clique numa para a alterar, arraste para mudar a ordem.",
+        "hint_empty": "Até quatro teclas redondas, como as cores favoritas do Home Assistant, cada uma com o seu brilho. Uma nova parte do que a luz mostra agora.",
+        "own": "Definição própria",
+        "device": "Predefinição da lâmpada",
+        "effect": "Efeito",
+        "search": "Pesquisar",
+        "none_found": "Nada encontrado",
+        "device_kind": "Tipo",
+        "device_preset": "Predefinição",
+        "device_playlist": "Lista",
+        "device_hint": "Uma predefinição da própria lâmpada define a sua cor, efeito e brilho.",
+        "swatch_aria_named": "Predefinição {n}, {name}"
       },
       "tap": {
         "label": "Ao tocar",
@@ -2662,6 +2857,58 @@
         "none": "Sem controlos",
         "never": "Não mostrar novamente",
         "done": "Concluído"
+      },
+      "text": {
+        "title": "Modelo",
+        "hint": "Escreva texto com modelos do Home Assistant, como em Ferramentas de programador › Modelo. O Home Assistant preenche-o, e o ecrã mostra o resultado e mantém-no atualizado. Se o resultado estiver vazio, o mosaico desaparece.",
+        "manual": "Como escrever um modelo",
+        "field": "Modelo",
+        "placeholder": "Escreva texto, ou {'{{'} para ler um estado…",
+        "keys": {
+          "space": "Espaço",
+          "complete": "completar",
+          "next": "campo seguinte",
+          "comment": "comentário"
+        },
+        "result": "No ecrã",
+        "bytes": "{n} de {of} bytes",
+        "empty": "O resultado está vazio: o ecrã não mostra nada aqui.",
+        "access": "O modelo corre no Home Assistant com as permissões da app Tessera, por isso pode ler qualquer entidade.",
+        "markup": {
+          "label": "Formatação",
+          "heading": "Título",
+          "bullet": "Marcador",
+          "table": "Tabela",
+          "bold": "Negrito",
+          "good": "Texto verde",
+          "alert": "Texto vermelho",
+          "accent": "Texto azul"
+        },
+        "complete": {
+          "now": "agora",
+          "state": "Estado: {state}"
+        },
+        "examples": {
+          "title": "Começar com um exemplo:",
+          "lights": "Luzes acesas",
+          "open": "Portas e janelas abertas",
+          "weather": "Tempo",
+          "lights_heading": "Luzes acesas",
+          "all_off": "Todas as luzes estão apagadas",
+          "open_heading": "Aberto",
+          "now": "Agora",
+          "humidity": "Humidade"
+        },
+        "listen": {
+          "label": "Atualiza com",
+          "time": "a hora",
+          "none": "Não lê nenhuma entidade: só muda quando altera o modelo.",
+          "all": "Lê todos os estados: o Home Assistant recalcula-o no máximo uma vez por minuto. Indique as entidades ou um domínio (states.light) para seguir de imediato."
+        },
+        "lint": {
+          "unknown": "{id} não existe no Home Assistant",
+          "replace": "Substituir por {id}"
+        }
       }
     },
     "precision": {
@@ -3002,6 +3249,23 @@
         "reinstall_all_confirm": "Reinstalar 1 ecrã a partir da dev mais recente? Reinicia assim que tiver o firmware. | Reinstalar {n} ecrãs a partir da dev mais recente? São compilados um após o outro, e cada um reinicia assim que tiver o firmware.",
         "reinstall_all_go": "Reinstalar"
       },
+      "video": {
+        "title": "Vídeo no Home Assistant",
+        "text": "Um ecrã com a parte Vídeo de Câmara do ecrã mostra a sua câmara em direto no Home Assistant, com som: uma câmara Vídeo no dispositivo do ecrã, no navegador e na app. O Home Assistant precisa da integração Tessera video para isso.",
+        "install": "Instalar no Home Assistant",
+        "install_again": "Instalar de novo",
+        "update": "Atualizar a integração",
+        "newer": "Instalada · há uma versão mais recente",
+        "waits_restart": "Instalada · reinicie o Home Assistant para a carregar",
+        "running": "● A funcionar no Home Assistant",
+        "restart": "Reiniciar o Home Assistant",
+        "restart_confirm": "Reiniciar o Home Assistant agora? Fica fora um ou dois minutos, tal como os seus painéis e automatizações.",
+        "restarting": "O Home Assistant reinicia. O vídeo dos ecrãs segue um minuto depois de voltar.",
+        "installed": "Tessera video instalada. Reinicie o Home Assistant uma vez para a carregar.",
+        "screens": "Ecrãs com vídeo: {names}",
+        "no_screens": "Nenhum ecrã tem vídeo ainda: adicione Câmara do ecrã, com a parte Vídeo, a um ecrã P4 com câmara.",
+        "writes": "Escreve a pasta {path}; instalar de novo substitui-a. O Tessera adiciona cada ecrã com vídeo por si."
+      },
       "claude": {
         "installed": "Habilidade instalada. O Claude Code deteta-a de imediato.",
         "installed_restart": "Habilidade instalada. Reinicie o Claude Code uma vez para que encontre a nova pasta de habilidades.",
@@ -3149,10 +3413,20 @@
         "calibration": "Calibração do toque no primeiro arranque"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controlador do ecrã"
+        "DISPLAY_MODEL": "Controlador do ecrã",
+        "FLASH_SIZE": "Memória flash",
+        "BOARD_VARIANT": "Placa"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "A maioria destas placas tem o primeiro. Escolha o outro se o ecrã mostrar ruído ou uma imagem distorcida."
+        "DISPLAY_MODEL": "Comece pelo primeiro. Escolha o outro se o ecrã ficar preto ou mostrar ruído ou uma imagem distorcida.",
+        "FLASH_SIZE": "A maioria destas placas tem 16 MB. Escolha 8 MB se o ecrã ficar preto após a instalação e reiniciar uma e outra vez.",
+        "BOARD_VARIANT": "Escolha a que tem. Na placa amarela sem caixa, um toque no canto superior esquerdo iria parar ao canto inferior direito."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Preta, com caixa",
+          "yellow": "Amarela, sem caixa"
+        }
       },
       "choice_usual": "a maioria",
       "orientation_landscape": "Na horizontal",
@@ -3309,8 +3583,6 @@
       "waits_turn": "Outro ecrã está a ser compilado agora. Este espera a sua vez e começa sozinho logo a seguir."
     },
     "alerts": {
-      "eyebrow": "Alertas · guia rápido",
-      "title": "Uma notificação em ecrã inteiro, a partir de uma automatização.",
       "intro": "Cada ecrã tem a ação {action}. Coloca um cartão por cima de tudo, acorda o ecrã e mantém a retroiluminação no brilho normal até alguém tocar no botão ou o tempo limite acabar. O próprio Home Assistant não mostra explicações nem listas pendentes para as ações do ESPHome; tudo o que pode preencher está aqui.",
       "loading": "O guia rápido ainda está a carregar; um momento.",
       "example": {
@@ -3320,7 +3592,6 @@
       },
       "sections": "Secções",
       "nav": {
-        "try": "Experimente",
         "screens": "Os seus ecrãs",
         "howto": "Numa automatização",
         "all": "Todos os ecrãs",
@@ -3334,10 +3605,6 @@
         "choice": "Dois botões"
       },
       "try": {
-        "text": "Envie agora um alerta, com os mesmos campos que uma automatização envia. O ecrã mostra o cartão e, com a intermitência ativada, faz piscar a retroiluminação.",
-        "screen": "Ecrã",
-        "all": "Todos os ecrãs (prontos: {ready})",
-        "not_ready": "{name} · não está pronto",
         "title": "Título",
         "subtitle": "Subtítulo",
         "icon": "Ícone",
@@ -3349,10 +3616,6 @@
         "sending": "A enviar…",
         "send": "Enviar alerta",
         "sent_all": "Enviado para {n} ecrã. | Enviado para {n} ecrãs.",
-        "sent_to": "Enviado para {name}.",
-        "sent_one": "Enviado para o ecrã.",
-        "skipped": "{n} ecrã ignorado (offline ou firmware antigo). | {n} ecrãs ignorados (offline ou firmware antigo).",
-        "left_empty": "Deixados vazios: {fields}.",
         "nothing": "Nenhum ecrã o conseguiu mostrar: verifique se há um ecrã online com o firmware {version} ou mais recente."
       },
       "white": "Branco (predefinido)",
@@ -3466,7 +3729,80 @@
         "text": "Adicione {second} para um segundo botão à esquerda do primeiro, para que quem está no ecrã possa escolher, por exemplo Agora não e Abrir. {first_color} e {second_color} dão a um botão uma cor própria, verde para sim e vermelho para não. Que resposta fica em que lado é consigo: o primeiro botão fica sempre à direita.",
         "event": "Através do evento cada um destes campos é opcional, e {second_action} com {second_data} executa uma ação a partir do segundo botão, como {action} a partir do primeiro. Um ecrã com firmware anterior a {version} mostra o alerta com um só botão.",
         "direct": "Chama um ecrã diretamente? A sua ação {choice} recebe os campos de show_alert mais estes três; o segundo botão termina o alerta com {ending}."
-      }
+      },
+      "wizard": {
+        "camera": "Câmara (opcional)",
+        "no_camera": "Sem câmara",
+        "screens_hint": "Nenhum escolhido: todos os ecrãs que podem mostrar um alerta.",
+        "description": "Criada nos Eventos do Tessera: um alerta nos ecrãs.",
+        "title": "Nova automação de alerta",
+        "with_picture": "Mostra a imagem da câmara",
+        "without_picture": "Mostra o alerta sem imagem",
+        "summary": {
+          "says": "Texto",
+          "buttons": "Botões"
+        },
+        "steps": {
+          "trigger": {
+            "title": "O que o inicia?",
+            "help": "Escolha o que faz aparecer o alerta: um sensor que liga, um auxiliar de interruptor, um botão ou um evento. Usa-a numa automação que já tem? Então pode saltar este passo."
+          },
+          "words": {
+            "title": "O que diz?",
+            "help": "Um título curto e uma linha por baixo. Vê o cartão tal como o ecrã o desenha."
+          },
+          "look": {
+            "title": "Como fica?",
+            "help": "Um ícone, uma cor, uma imagem de câmara se quiser, e se pisca."
+          },
+          "screens": {
+            "title": "Que ecrãs?",
+            "help": "Escolha os ecrãs que o mostram e quanto tempo fica."
+          },
+          "try": {
+            "title": "Experimentar",
+            "help": "Envie-o uma vez agora, tal como a automação fará. Olhe para os seus ecrãs."
+          },
+          "add": {
+            "title": "Concluir",
+            "help": "Faça dela uma automação própria, ou copie a ação para uma automação que já tem."
+          },
+          "buttons": {
+            "title": "Que botões?",
+            "help": "Um botão, ou dois para uma escolha. Cada um pode fazer algo no Home Assistant quando é premido, ou só fechar o alerta."
+          }
+        },
+        "buttons": {
+          "one": "Um botão",
+          "one_detail": "OK, Já vou, Visto: fecha o alerta e pode fazer uma coisa.",
+          "two": "Dois botões",
+          "two_detail": "Uma escolha, como Abrir e Agora não, cada um com a sua ação.",
+          "first": "Botão direito",
+          "second": "Botão esquerdo",
+          "second_example": "Agora não",
+          "color": "Cor",
+          "own_color": "Cor própria",
+          "does": "Ao premir",
+          "only_close": "Só fecha o alerta",
+          "no_actions": "Esta entidade não tem nenhuma ação que não precise de mais nada. Escolha outra.",
+          "closes": "fecha o alerta",
+          "only": "O botão"
+        },
+        "try_action": "Atenção: premir um botão com uma ação executa-a mesmo, também agora.",
+        "route": {
+          "event": "Enviado como o evento {event}: a única via que leva uma câmara, a ação de um botão e uma escolha de ecrãs. A app dá a cada ecrã o alerta na forma que o seu firmware conhece.",
+          "one_button": "{screens}: firmware anterior a {version}, mostra só o botão direito.",
+          "action": "A app executa a ação de um botão uma vez, em qualquer ecrã onde seja premido. Depois do tempo limite ou de um novo alerta nada acontece.",
+          "no_picture": "{screens}: mostra o alerta sem a imagem da câmara."
+        }
+      },
+      "hero": {
+        "title": "Um alerta nos seus ecrãs",
+        "text": "Um cartão sobre tudo o que está no ecrã, com um botão: quando há alguém à porta, a roupa está pronta ou uma janela ficou aberta. O assistente guia-o e adiciona a automação ao Home Assistant.",
+        "create": "Criar uma automação de alerta",
+        "empty": "Ainda não há automação de alerta. Crie uma acima e ela aparece aqui."
+      },
+      "reference": "Escrevê-lo você mesmo"
     },
     "override": {
       "eyebrow": "Avançado · personalização local",
@@ -3637,9 +3973,8 @@
       },
       "comment_label": "Nota (opcional)",
       "comment_hint": "Não inclua dados pessoais, registos, palavras-passe nem chaves de API.",
-      "report_title": "Quer que seja corrigido?",
-      "report_text": "Abra um issue no GitHub. A sua placa, as versões e o que nos disse já estão preenchidos. Adicione um registo e poderemos analisá-lo e fazer-lhe perguntas.",
-      "report_open": "Abrir um issue no GitHub",
+      "report_title": "Quer que seja resolvido?",
+      "report_text": "Envie um relatório: o Tessera reúne a placa, as versões, os registos e a última falha, mostra-os primeiro e só os envia com a sua aprovação. Ou leia o que fazer quando algo não funciona.",
       "add_details": "Acrescentar detalhes",
       "done": "Concluído",
       "settings_title": "Feedback",
@@ -3672,7 +4007,9 @@
         "addon": "A versão do Tessera: {version}",
         "nothing_else": "Mais nada: nem nome, conta, entidades, registos ou definições do Home Assistant. Cada ecrã partilha com a sua própria chave aleatória."
       },
-      "privacy": "Privacidade"
+      "privacy": "Privacidade",
+      "report_send": "Enviar um relatório",
+      "report_manual": "Ler o guia de problemas"
     },
     "webflash": {
       "target": "Instalar a partir deste navegador (Chrome ou Edge)",
@@ -3936,6 +4273,263 @@
       "move_to": "Mover para a página",
       "add_here": "Adicionar um mosaico aqui",
       "paste_here": "Colar aqui"
+    },
+    "report": {
+      "button": "O meu ecrã não funciona bem",
+      "card_title": "Algo está mal?",
+      "card_hint": "Junte um relatório com o que a app sabe sobre este ecrã, leia-o e envie-o à Tessera para que possamos encontrar a causa.",
+      "eyebrow": "Resolução de problemas",
+      "title": "O meu ecrã não funciona bem",
+      "title_named": "{name} não funciona bem",
+      "intro": "A app recolhe o que sabe sobre este ecrã em alguns ficheiros. Lê-os aqui, e só Enviar os leva à Tessera.",
+      "loading": "A ler o que a app sabe…",
+      "collects_title": "O que inclui",
+      "collects": "A placa e as versões do ecrã, o seu próprio registo (até 45 segundos, em direto), as linhas do registo do Home Assistant sobre ele, o registo da app e o último registo de compilação. Palavras-passe, chaves, endereços de rede e o nome do ecrã são ocultados.",
+      "nothing_leaves": "Nada sai do seu Home Assistant até carregar em Enviar. Pode ler cada ficheiro primeiro.",
+      "crash_title": "Última falha",
+      "crash_line": "{reason}, {when}, {seen}",
+      "crash_seen": "vista uma vez esta semana | vista {n} vezes esta semana",
+      "crash_lines": "Linhas descodificadas",
+      "full": "Incluir também a disposição das minhas páginas, os nomes das entidades e as outras linhas do registo do Home Assistant. Ajuda muito a encontrar a causa.",
+      "note_label": "O que aconteceu? (opcional)",
+      "note_hint": "O que viu, o que fez mesmo antes e com que frequência acontece.",
+      "email_label": "O seu email (opcional)",
+      "email_hint": "Caso possamos fazer-lhe uma pergunta sobre isto.",
+      "remember_email": "Lembrar o meu email nesta app",
+      "collect": "Recolher",
+      "check_again": "Verificar de novo",
+      "blockers": {
+        "no_profile": "O YAML deste ecrã não está na pasta desta app, por isso não é possível fazer um relatório dele.",
+        "collecting": "Já está a ser recolhido um relatório deste ecrã. Aguarde um momento e verifique de novo."
+      },
+      "collecting": "A recolher…",
+      "collecting_hint": "Demora até um minuto: a app escuta o registo do ecrã durante algum tempo.",
+      "steps": {
+        "identity": "A ler a identidade do ecrã",
+        "profile": "A copiar o seu perfil",
+        "screen_log": "A escutar o registo do ecrã",
+        "ha_log": "A ler o registo do Home Assistant",
+        "addon_log": "A ler o registo da app",
+        "build_log": "A ler o último registo de compilação",
+        "crash": "A ler a última falha",
+        "zip": "A empacotar os ficheiros"
+      },
+      "ready_title": "Pronto para ler",
+      "facts": {
+        "board": "Placa",
+        "firmware": "Firmware",
+        "addon": "Tessera",
+        "ha": "Home Assistant",
+        "esphome": "ESPHome",
+        "plugins": "Plugins",
+        "crash": "Última falha",
+        "none": "Nenhuma",
+        "unknown": "Desconhecido"
+      },
+      "warnings": {
+        "screen_offline": "O ecrã está offline: o relatório não tem registo em direto, só o que a app guardou.",
+        "no_api_key": "A app não tem chave de API para este ecrã, por isso o seu registo em direto não pôde ser lido.",
+        "no_elf": "Falta o ficheiro de depuração do firmware, por isso uma falha não pode ser identificada pelas suas linhas de código.",
+        "ha_log_unavailable": "Não foi possível ler o registo do Home Assistant.",
+        "addon_log_unavailable": "Não foi possível ler o registo da própria app.",
+        "no_crash_record": "Não foi encontrada nenhuma falha registada para este ecrã."
+      },
+      "files_title": "Ficheiros no relatório",
+      "file_lines": "1 linha | {n} linhas",
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
+      },
+      "download": "Transferir zip",
+      "send_title": "Enviar à Tessera",
+      "send_text": "Isto vai para a Tessera e fica guardado {days} dias. Contém os ficheiros acima, a sua nota e o seu email, se o deu.",
+      "privacy": "Privacidade",
+      "with_note": "Com a sua nota.",
+      "with_email": "Podemos escrever para {email}.",
+      "change_note": "Alterar nota ou email",
+      "consent": "Li o que está no relatório e aceito enviá-lo à Tessera.",
+      "send": "Enviar",
+      "sending": "A enviar…",
+      "sent": {
+        "title": "Enviado, obrigado",
+        "quote": "Cite esta referência no GitHub ou no Discord para que possamos encontrar o seu relatório.",
+        "copy": "Copiar",
+        "copied": "Referência copiada.",
+        "selected": "A referência está selecionada: copie-a com Ctrl+C ou ⌘C.",
+        "github": "Abrir um issue no GitHub",
+        "discord": "Perguntar no Discord",
+        "new": "Fazer um novo relatório"
+      },
+      "failed_title": "Não foi possível fazer o relatório",
+      "try_again": "Tentar novamente"
+    },
+    "events": {
+      "eyebrow": "Eventos · do Home Assistant",
+      "intro": "O que uma automação do Home Assistant pode enviar aos seus ecrãs. Escolhe o gatilho, os ecrãs e o que mostram.",
+      "alerts": "Alertas",
+      "doorbell": "Campainha",
+      "wizard": {
+        "suggested": "As suas campainhas:",
+        "none": "Nenhuma entidade encontrada",
+        "pick_trigger": "Escolha o que a inicia",
+        "yaml": "Mostrar a automação em YAML",
+        "kind": {
+          "doorbell": "Começa quando esta campainha toca (Doorbell rang do Home Assistant).",
+          "event": "Começa sempre que este evento dispara.",
+          "on": "Começa quando isto liga.",
+          "press": "Começa sempre que é premido."
+        },
+        "back": "Voltar",
+        "next": "Seguinte",
+        "done": "Concluído",
+        "other": "Outra coisa",
+        "other_detail": "Qualquer sensor, interruptor, auxiliar, botão ou evento seu",
+        "every_screen": "Todos os ecrãs",
+        "summary": {
+          "starts": "Começa com",
+          "screens": "Ecrãs",
+          "title": "Nome no Home Assistant"
+        },
+        "domain": {
+          "binary_sensor": "Um sensor: de desligado para ligado, por exemplo quando deteta alguém.",
+          "switch": "Um interruptor: quando alguém o liga.",
+          "input_boolean": "Um auxiliar de interruptor: quando liga, por exemplo a partir de outra automação."
+        },
+        "finish": {
+          "label": "Como quer usá-la?",
+          "automation": "Criar a automação",
+          "automation_detail": "O Tessera adiciona-a ao Home Assistant, com o início escolhido no passo 1.",
+          "needs_trigger": "Escolha primeiro no passo 1 o que a inicia.",
+          "action": "Usar numa automação sua",
+          "action_detail": "Copie só a ação e cole-a numa automação que já tem.",
+          "paste": "No Home Assistant, abra a sua automação, adicione uma ação, escolha Editar em YAML no menu e cole isto.",
+          "copy": "Copiar YAML"
+        }
+      },
+      "install": {
+        "add": "Adicionar ao Home Assistant",
+        "saving": "A adicionar…",
+        "saved": "Adicionada. Funciona de imediato, sem reiniciar.",
+        "open": "Abrir no Home Assistant",
+        "hint": "Chama-se \"{title}\" nas automações do Home Assistant, onde a pode alterar.",
+        "listed": "Do Tessera no Home Assistant",
+        "remove": "Remover",
+        "remove_confirm": "Remover \"{name}\" do Home Assistant?",
+        "on": "Ligada",
+        "off": "Desligada"
+      }
+    },
+    "doorbell": {
+      "intro": "Alguém toca e os seus ecrãs mostram a porta. Uma automação envia o evento com a câmara da campainha: um ecrã P4 acorda, toca um aviso e abre a câmara em direto com som; qualquer outro ecrã mostra a imagem num alerta. Qualquer campainha funciona, seja qual for o gatilho.",
+      "example": {
+        "title": "Porta da frente",
+        "when": "Agora mesmo",
+        "sound": "Som ligado"
+      },
+      "try": {
+        "send": "Tocar",
+        "views": "Aberto em direto em {n} ecrã. | Aberto em direto em {n} ecrãs.",
+        "alerts": "Mostrado como alerta em {n} ecrã. | Mostrado como alerta em {n} ecrãs.",
+        "nothing": "Nenhum ecrã o mostrou. O ecrã está online e a câmara é uma entidade de câmara?"
+      },
+      "no_camera": "Sem câmara",
+      "fields": {
+        "title": "Título",
+        "timeout": "Tempo limite (segundos)",
+        "keep": "Manter uma campainha perdida na barra superior"
+      },
+      "screens": {
+        "view": "Em direto com som",
+        "picture": "Alerta com imagem",
+        "plain": "Alerta sem imagem"
+      },
+      "after": {
+        "title": "Depois",
+        "text": "Uma vez por toque a app envia {answered} quando alguém atendeu num ecrã, ou {missed} quando ninguém o fez. Ambos levam a câmara e o título; answered também indica o ecrã.",
+        "dismiss": "Para fechar um toque em todos os ecrãs, por exemplo quando a porta abre:"
+      },
+      "yaml": {
+        "missed_alias": "Campainha perdida para o meu telemóvel",
+        "missed_message": "Alguém tocou à campainha",
+        "description": "Criada nos Eventos do Tessera: uma campainha nos ecrãs."
+      },
+      "wizard": {
+        "title": "Nova automação de campainha",
+        "camera_hint": "Um ecrã P4 transmite-a em direto com som se a câmara tiver som; os outros ecrãs mostram a imagem.",
+        "screens_hint": "Nenhum escolhido: todos os ecrãs.",
+        "limits": "Nem todas as campainhas fazem tudo: o som só vem se o fluxo da câmara o tiver. Falar virá mais tarde.",
+        "more_cameras": "Outra câmara…",
+        "timeout_hint": "Quanto tempo um toque fica aberto se ninguém tocar no ecrã. Vazio: o valor predefinido.",
+        "summary": {
+          "camera": "Câmara",
+          "door": "Porta"
+        },
+        "steps": {
+          "rings": {
+            "title": "O que toca?",
+            "help": "Escolha o que diz ao Home Assistant que há alguém à porta. As suas campainhas primeiro; qualquer sensor, botão ou evento também serve. Usa-a numa automação que já tem? Então pode saltar este passo."
+          },
+          "camera": {
+            "title": "Que câmara?",
+            "help": "A câmara que os ecrãs mostram quando toca. Normalmente a da própria campainha."
+          },
+          "door": {
+            "title": "Uma porta para abrir?",
+            "help": "A vista da campainha pode ter uma tecla que abre a porta após um segundo toque: uma fechadura, ou outra ação como um script ou o botão de um portão. Pode deixá-la de fora."
+          },
+          "screens": {
+            "title": "Que ecrãs?",
+            "help": "Escolha os ecrãs que mostram o toque. Cada um diz o que consegue fazer com ele."
+          },
+          "name": {
+            "title": "Nome e tempo",
+            "help": "O título no ecrã e quanto tempo um toque fica aberto. Pode deixar ambos vazios."
+          },
+          "try": {
+            "title": "Experimentar",
+            "help": "Toque uma vez agora, tal como a automação fará. Olhe para os seus ecrãs."
+          },
+          "add": {
+            "title": "Concluir",
+            "help": "Faça dela uma automação própria, ou copie a ação para uma automação que já tem."
+          }
+        },
+        "door": {
+          "none": "Sem tecla da porta",
+          "lock": "Uma fechadura",
+          "action": "Outra ação",
+          "pick_lock": "Escolha uma fechadura…",
+          "pick_action": "Escolha o que abre…",
+          "code": "Esta fechadura pede um código: a tecla só aparece se a fechadura tiver um código predefinido no Home Assistant (as definições da fechadura)."
+        },
+        "sound": {
+          "label": "Ouvir a campainha logo",
+          "hint": "A vista da campainha abre com o seu som ligado. Desligue isto para um lugar sossegado, como um estúdio: o som espera então por um toque em Som."
+        },
+        "chime": {
+          "label": "Toque ao tocar",
+          "hint": "O ecrã toca um toque de campainha quando alguém toca. Desligue isto se não quiser ouvir o ding-dong de cada vez."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} h",
+          "open": "Até alguém a abrir",
+          "hint": "Uma campainha sem resposta fica este tempo depois de tocar na barra superior dos ecrãs, com há quanto tempo foi. Um toque abre-a de novo."
+        }
+      },
+      "hero": {
+        "title": "A sua campainha nos seus ecrãs",
+        "text": "Alguém toca, e os seus ecrãs mostram quem está à porta: ao vivo com som num ecrã P4, como imagem ou alerta nos outros. O assistente guia-o e adiciona a automação ao Home Assistant.",
+        "create": "Criar uma automação de campainha",
+        "empty": "Ainda não há automação de campainha. Crie uma acima e ela aparece aqui."
+      },
+      "by_hand": {
+        "title": "Escrever a automação você mesmo"
+      }
+    },
+    "drawer": {
+      "resize": "Largura das definições: arraste ou use as setas; duplo clique para repor"
     }
   }
 }

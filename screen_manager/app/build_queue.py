@@ -60,6 +60,11 @@ class Build:
         self.screen, self.action, self.target, self.attended, self.round = screen, action, target, attended, round
         # What the build brings for the screen's plugins (Plugins.apply): settled once it ends (`ends`).
         self.plugins = {'add': list((plugins or {}).get('add') or []), 'remove': list((plugins or {}).get('remove') or [])}
+        # Starts from an empty build folder (Plugins.apply: a plugin's parts changed). ESPHome writes a file a component
+        # adds to the build folder and never takes it away again; it wipes the folder only when a component is gone. So
+        # a part that needs what an earlier build put a placeholder for (Screen camera's video and the empty esp_h264 of
+        # its JPEG-only builds) would find the placeholder.
+        self.fresh = bool((plugins or {}).get('fresh'))
         self.state, self.phase, self.reason = WAITING, None, None
         self.asked, self.started, self.finished = time.time(), None, None
         # Whether the profile itself went onto the screen (an install of `file` that succeeded, not its bridge's): what a
@@ -86,6 +91,7 @@ class Build:
             self.round = None
         for key in ('add', 'remove'):
             self.plugins[key] = sorted(set(self.plugins[key]) | set(other.plugins[key]))
+        self.fresh = self.fresh or other.fresh
         # A plugin taken off now is no longer added, and the other way round.
         self.plugins['add'] = [p for p in self.plugins['add'] if p not in other.plugins['remove']]
         self.plugins['remove'] = [p for p in self.plugins['remove'] if p not in other.plugins['add']]
@@ -209,6 +215,8 @@ class BuildQueue:
             build = self.running
             state = 'failed'
             try:
+                if build.fresh and build.file:
+                    await self.firmware.clean_build(build.file)
                 state = await build.run(build) or 'success'
             except asyncio.CancelledError:
                 state = 'interrupted'

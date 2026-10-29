@@ -22,14 +22,17 @@ const canvas = useCanvasStore();
 const doc = useDocumentStore();
 
 // `columns`: how many of the page's columns the card spans. `mode`: the entity's state; `domain`: climate or humidifier.
-const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string }>(), { domain: "climate" });
+// `fit`: the room and width a thermostat's controls gave the bar under its number (climate_tile::layout, model/tall-layout.ts).
+const props = withDefaults(defineProps<{ a: Record<string, any>; mode: string; place: "row" | "tall" | "full"; columns: number; domain?: string;
+  fit?: { room: number; width: number } | null }>(), { domain: "climate", fit: null });
 const glass = computed(() => Number(canvas.deviceStyle["--glass"]) || 1);
 // The room the glass gives the bar: every cell after the name's on a card of one row, the card's content on a taller one
 // or the page (runtime_tiles layout_panel), from the board's own spacing.
 const bar = computed(() => {
   const shape = doc.screenShape, across = doc.documentGrid?.columns ?? shape.columns;
   const reach = props.place === "row" ? restContent(shape, across, props.columns) : cardContent(shape, across, props.place === "full" ? across : props.columns);
-  return modeBar(shape, props.place, reach, barKeys(props.a, props.mode, 6, props.domain).length);
+  const found = modeBar(shape, props.place, reach, barKeys(props.a, props.mode, 6, props.domain).length);
+  return props.fit ? { ...found, room: props.fit.room, width: props.fit.width } : found;
 });
 const keys = computed(() => barKeys(props.a, props.mode, bar.value.room, props.domain));
 const current = computed(() => thermostatMode(props.domain, props.mode, props.a));

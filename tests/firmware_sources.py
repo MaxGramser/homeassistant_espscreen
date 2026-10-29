@@ -10,7 +10,7 @@ def runtime_source():
     # where runtime_tiles.h names its header.
     # A player's library (media_library.cpp, firmware 0.24.0+) likewise, after the parser.
     return text.replace('#include "page_receiver.h"', (ROOT / 'page_receiver.h').read_text() + (ROOT / 'page_receiver.cpp').read_text()
-                        + (ROOT / 'media_library.cpp').read_text())
+                        + (ROOT / 'media_library.cpp').read_text() + (ROOT / 'tile_panel.cpp').read_text())
 
 
 def firmware_domains():

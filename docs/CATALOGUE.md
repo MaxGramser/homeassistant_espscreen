@@ -118,6 +118,9 @@ extras}}`), counted by its entity (`screen.energy`) before the type's: the energ
 - `attributes`: attributes that must be present.
 - `history: line`: a history of numbers (a status sensor has none).
 - `unless`: holds when this does not.
+- `device`: what the entity's device must hold beside it, as ESP Screen Manager finds it there: `map` (an image or
+  camera entity of the robot's map) or `routines` (buttons that run something). Checked by the add-on alone
+  (`catalogue.device_holds`), so it never reaches the screen; an option made `of` others needs what each of them needs.
 
 A variant's `when` is stricter than `needs`: it only holds on features Home Assistant does report.
 

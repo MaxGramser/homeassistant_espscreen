@@ -1,0 +1,117 @@
+# ESP Screens - Wireless-Tag WT32-SC01 Plus, experimental: a 3.5-inch 480 x 320 panel (ST7796UI over an 8-bit bus,
+# ESPHome's mipi_spi model WT32-SC01-PLUS) with FT6336U capacitive touch over I2C, on an ESP32-S3 with 16 MB flash and
+# 8 MB octal PSRAM. Not the WT32-SC01 without "Plus", which has an ESP32 and other pins.
+#
+# A community member ran this file on the board (docs/WT32SC01PLUS.md); the project has not tried it on one.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/wt32sc01plus.yaml (a build on this computer) and packages/wt32sc01plus.yaml (the package a screen builds from
+# over GitHub).
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wt32sc01plus"
+  DEVICE_NAME: "wt32sc01plus-new"
+  DEVICE_FRIENDLY_NAME: "My WT32-SC01 Plus"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "3"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "150Hz"                  # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# ESPHome's WT32-SC01-PLUS model requires PSRAM: the panel is driven from a frame in it.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus: 8 data lines. GPIO46 and GPIO3 are strapping pins of the ESP32-S3, wired to the panel on this board.
+spi:
+  id: lcd_spi
+  type: octal
+  clk_pin: GPIO47
+  data_pins:
+    - GPIO9
+    - number: GPIO46
+      ignore_strapping_warning: true
+    - number: GPIO3
+      ignore_strapping_warning: true
+    - GPIO8
+    - GPIO18
+    - GPIO17
+    - GPIO16
+    - GPIO15
+
+# The FT6336U capacitive touch, at 0x38.
+i2c:
+  id: touch_bus
+  sda: GPIO6
+  scl: GPIO5
+  frequency: 400kHz
+
+# The backlight, a PWM pin (features/backlight.yaml makes it the light); zero_means_zero keeps a dark standby dark.
+# GPIO45 is a strapping pin of the ESP32-S3, wired to the backlight on this board.
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# ESPHome's ft63x6 platform, with the touch panel's interrupt on GPIO7, read every 20 ms as on the other boards (a finger
+# that moves between reads is what LVGL counts as a swipe).
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO7
+    update_interval: 20ms
+
+# ESPHome's model carries the init sequence, the size, the colour order, the data/command and reset pins; the bus runs
+# at 20 MHz, as on the board this file was run on.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: WT32-SC01-PLUS
+    spi_id: lcd_spi
+    data_rate: 20MHz
+    update_interval: never
+    auto_clear_enabled: false

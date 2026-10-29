@@ -2,6 +2,7 @@
 #include "../components/smart_display/picture_store.h"
 #include <cassert>
 #include <cstdlib>
+#include <cstring>
 #include <set>
 #include <string>
 #include <utility>
@@ -11,73 +12,91 @@
 struct Header { uint32_t w = 0, h = 0, cf = 0; };
 struct Image { Header header; uint32_t data_size = 0; const uint8_t *data = nullptr; };
 
+// A download as picture_fetch makes it: pixels in a buffer of its own, which the store takes over (adopt) or the caller
+// frees. `live` counts the buffers that exist, downloads and kept pictures alike.
+static int live = 0;
+static Image download(uint8_t colour, uint32_t w, uint32_t h) {
+  const size_t bytes = size_t(w) * h * 2;
+  auto *pixels = static_cast<uint8_t *>(std::malloc(bytes));
+  std::memset(pixels, colour, bytes);
+  ++live;
+  return Image{{w, h, 1}, uint32_t(bytes), pixels};
+}
+static void drop(const Image &download) { --live; std::free(const_cast<uint8_t *>(download.data)); }
+
 int main() {
-  int live = 0;
   picture_store::Store<Image> store;
-  store.allocate = [&](size_t n) { ++live; return std::malloc(n); };
-  store.release = [&](void *p) { --live; std::free(p); };
+  store.release = [](void *p) { --live; std::free(p); };
 
-  std::vector<uint8_t> red(100, 1), blue(100, 2), big(300, 3);
-  Image a{{10, 5, 1}, 100, red.data()};
-
-  // No budget, no pictures: a board without PSRAM draws from the download as before.
-  assert(!store.put("cover", a, 1));
+  // No budget, no pictures: a board without PSRAM draws from the download as before (the caller keeps it).
+  Image a = download(1, 10, 5);
+  assert(!store.adopt("cover", a, 1));
+  drop(a);
   store.budget = 1000;
 
-  // A copy of its own, found again by what was asked for.
-  Image *kept = store.put("cover", a, 1);
-  assert(kept && kept->data != red.data() && kept->data[0] == 1 && store.find("cover") == kept && live == 1);
+  // The download's own buffer, no copy: found again by what was asked for.
+  a = download(1, 10, 5);
+  Image *kept = store.adopt("cover", a, 1);
+  assert(kept && kept->data == a.data && store.find("cover") == kept && live == 1);
   assert(store.entry("cover") && !store.find("other"));
 
-  // The next camera picture of the same size is written over the old one: the card keeps its pointer.
-  Image b{{10, 5, 1}, 100, blue.data()};
-  assert(store.put("cover", b, 2) == kept && kept->data[0] == 2 && live == 1 && store.entry("cover")->stored_at == 2);
-
-  // Another size: a new copy, the old one waits while a card still shows it.
+  // The next picture under the same key (a camera's next frame): taken over too, and the one before stays while a card
+  // draws it. Two pictures at the moment one changes over to the next, never three; the old goes once no card shows it.
   std::set<const Image *> shown{kept};
   auto on_card = [&](const Image *i) { return shown.count(i) > 0; };
-  Image c{{10, 15, 1}, 300, big.data()};
-  Image *bigger = store.put("cover", c, 3);
-  assert(bigger && bigger != kept && store.find("cover") == bigger && live == 2);
+  Image b = download(2, 10, 5);
+  Image *next = store.adopt("cover", b, 2);
+  assert(next && next != kept && next->data == b.data && store.find("cover") == next && live == 2);
+  assert(store.entry("cover")->stored_at == 2 && store.holder(kept) && store.holder(kept)->retired);
   store.collect(on_card);
-  assert(live == 2);
+  assert(live == 2);  // still on its card
+  shown = {next};
+  store.collect(on_card);
+  assert(live == 1 && store.size() == 100);
+
+  // Another size is the same: the bigger one is taken, the smaller goes once its card shows the bigger.
+  Image c = download(3, 10, 15);
+  Image *bigger = store.adopt("cover", c, 3);
+  assert(bigger && bigger->data == c.data && store.find("cover") == bigger && live == 2);
   shown = {bigger};
   store.collect(on_card);
   assert(live == 1 && store.size() == 300);
 
   // Over budget: the picture used longest ago goes, never one on a card.
   store.budget = 500;
-  assert(store.put("a", a, 4) && store.put("b", b, 5));  // 300 + 100 + 100
+  assert(store.adopt("a", download(4, 10, 5), 4) && store.adopt("b", download(5, 10, 5), 5));  // 300 + 100 + 100
   store.find("a");                                        // of the two not on a card, "b" was used longest ago
   store.budget = 350;
   store.collect(on_card);                                 // "cover" is on a card and stays: "b" goes, then "a"
   assert(store.find("cover") && !store.find("b") && !store.find("a") && live == 1);
 
-  // A picture larger than the budget is not kept.
+  // A picture larger than the budget is not kept: its download stays the caller's.
   store.budget = 200;
-  assert(!store.put("huge", c, 6));
+  Image huge = download(6, 10, 15);
+  assert(!store.adopt("huge", huge, 6) && live == 2);
+  drop(huge);
 
   // A picture no longer wanted (the camera full screen closed): gone at the next collect once nothing draws it, while
-  // the budget alone would have kept it; a new picture under the same key is a copy of its own.
+  // the budget alone would have kept it; a new picture under the same key is one of its own.
   store.budget = 1000;
-  Image *camera = store.put("camera", a, 7);
+  Image *camera = store.adopt("camera", download(7, 10, 5), 7);
   shown.insert(camera);
   store.retire("camera");
   store.retire("nothing");  // a key the store has not got: nothing happens
   assert(!store.find("camera") && live == 2);
   store.collect(on_card);
   assert(live == 2);  // still drawn
-  Image *next = store.put("camera", b, 8);
-  assert(next && next != camera && next->data[0] == 2 && live == 3);
+  Image *again = store.adopt("camera", download(8, 10, 5), 8);
+  assert(again && again != camera && again->data[0] == 8 && live == 3);
   shown.erase(camera);
   store.collect(on_card);
-  assert(live == 2 && store.find("camera") == next);
+  assert(live == 2 && store.find("camera") == again);
   store.retire("camera");
   store.collect(on_card);
   assert(live == 1 && !store.find("camera") && store.find("cover"));
 
   // Another layout: what no card shows goes now, the rest once its card lets it go.
-  store.put("x", a, 7);
+  store.adopt("x", download(9, 10, 5), 7);
   store.forget(on_card);
   assert(!store.find("x") && !store.find("cover") && live == 1);
   shown.clear();
@@ -86,12 +105,13 @@ int main() {
 
   // A page's strip from before someone on its map moved (firmware 0.30.0+): retired by what its key says, found by
   // its picture for as long as a card draws it, and gone once none does. Sixteen moves never fill the store.
-  Image *first = store.put("live|a|1", a, 8);
+  Image *first = store.adopt("live|a|1", download(1, 10, 5), 8);
   shown = {first};
-  Image *second = store.put("live|a|2", a, 9);
+  Image *second = store.adopt("live|a|2", download(2, 10, 5), 9);
   store.retire_if([](const auto &e) { return e.key != "live|a|2" && e.key.rfind("live|a|", 0) == 0; });
+  Image outside{};
   assert(!store.find("live|a|1") && store.find("live|a|2") == second);
-  assert(store.holder(first) && store.holder(first)->key == "live|a|1" && !store.holder(&a) && !store.holder(nullptr));
+  assert(store.holder(first) && store.holder(first)->key == "live|a|1" && !store.holder(&outside) && !store.holder(nullptr));
   store.collect(on_card);
   assert(live == 2 && store.holder(first));           // a card still draws the old one
   shown = {second};
@@ -99,10 +119,10 @@ int main() {
   assert(live == 1 && !store.holder(first) && store.find("live|a|2") == second);
   for (int move = 3; move < 40; ++move) {
     const std::string key = "live|a|" + std::to_string(move);
-    Image *next = store.put(key, a, 10 + move);
-    assert(next);                                       // always a place for the next one
+    Image *moved = store.adopt(key, download(uint8_t(move), 10, 5), 10 + move);
+    assert(moved);                                      // always a place for the next one
     store.retire_if([&](const auto &e) { return e.key != key && e.key.rfind("live|a|", 0) == 0; });
-    shown = {next};
+    shown = {moved};
     store.collect(on_card);
     assert(live == 1);
   }
@@ -137,57 +157,61 @@ int main() {
   // board): the next picture takes the place of the one used longest ago that no card draws, one no longer wanted
   // first, and never one on a card.
   {
-    int left = 0;
     picture_store::Store<Image> full;
-    full.allocate = [&](size_t n) { ++left; return std::malloc(n); };
-    full.release = [&](void *p) { --left; std::free(p); };
+    full.release = [](void *p) { --live; std::free(p); };
     full.budget = 1u << 20;
     std::set<const Image *> drawn;
-    for (size_t i = 0; i < picture_store::ENTRIES; ++i) assert(full.put("track" + std::to_string(i), a, uint32_t(i)));
-    assert(left == int(picture_store::ENTRIES) && full.size() < full.budget);
-    // Without being told what the cards draw, the store keeps what it has (as before).
-    assert(!full.put("next", a, 20));
+    for (size_t i = 0; i < picture_store::ENTRIES; ++i) assert(full.adopt("track" + std::to_string(i), download(1, 10, 5), uint32_t(i)));
+    assert(live == int(picture_store::ENTRIES) && full.size() < full.budget);
+    // Without being told what the cards draw, the store keeps what it has (as before): the download stays the caller's.
+    Image refused = download(2, 10, 5);
+    assert(!full.adopt("next", refused, 20));
+    drop(refused);
     full.shown = [&](const Image *i) { return drawn.count(i) > 0; };
     // The oldest, "track0", is on a card: "track1" makes way.
     drawn = {full.find("track0")};
     for (size_t i = 2; i < picture_store::ENTRIES; ++i) full.find("track" + std::to_string(i));
-    Image *next = full.put("next", a, 21);
-    assert(next && full.find("next") == next && full.find("track0") && !full.find("track1") && left == int(picture_store::ENTRIES));
+    Image *next = full.adopt("next", download(3, 10, 5), 21);
+    assert(next && full.find("next") == next && full.find("track0") && !full.find("track1") && live == int(picture_store::ENTRIES));
     // A cover no longer wanted goes before one used longer ago that is.
     full.retire("track9");
-    assert(full.put("after", a, 22) && full.find("track2") && left == int(picture_store::ENTRIES));
+    assert(full.adopt("after", download(4, 10, 5), 22) && full.find("track2") && live == int(picture_store::ENTRIES));
     for (auto &e : full.entries) assert(e.key != "track9");  // gone, not just out of sight
     // Every picture on a card: nothing makes way, and nothing is kept.
     drawn.clear();
     for (auto &e : full.entries) drawn.insert(&e.image);
-    assert(!full.put("one more", a, 23) && left == int(picture_store::ENTRIES));
+    Image more = download(5, 10, 5);
+    assert(!full.adopt("one more", more, 23) && live == int(picture_store::ENTRIES) + 1);
+    drop(more);
+    drawn.clear();
+    full.forget([](const Image *) { return false; });
+    assert(live == 0);
   }
   // Over the budget with every picture on a card (GitHub #183, every page kept): a picture only a page out of sight
   // draws makes way, the one used longest ago first, after it was taken off its cards; the glass keeps its own.
   {
-    int left = 0;
     picture_store::Store<Image> kept;
-    kept.allocate = [&](size_t n) { ++left; return std::malloc(n); };
-    kept.release = [&](void *p) { --left; std::free(p); };
+    kept.release = [](void *p) { --live; std::free(p); };
     kept.budget = 250;
-    std::vector<uint8_t> pixels(100, 7);
-    Image a{{10, 5, 1}, 100, pixels.data()};
-    Image *glass = kept.put("glass", a, 1), *old_page = kept.put("old page", a, 2), *new_page = kept.put("new page", a, 3);
+    Image *glass = kept.adopt("glass", download(7, 10, 5), 1);
+    Image *old_page = kept.adopt("old page", download(7, 10, 5), 2), *new_page = kept.adopt("new page", download(7, 10, 5), 3);
     kept.find("new page");  // used later than the old page's
     const auto shown = [](const Image *) { return true; };  // every picture is on some card
     const auto away = [&](const Image *i) { return i != glass; };
     std::vector<const Image *> taken;
     kept.collect(shown, away, [&](const Image *i) { taken.push_back(i); });
-    assert(left == 2 && taken.size() == 1 && taken[0] == old_page && kept.find("glass") && kept.find("new page") && new_page);
+    assert(live == 2 && taken.size() == 1 && taken[0] == old_page && kept.find("glass") && kept.find("new page") && new_page);
     // Within the budget again: nothing more goes. Without `away` nothing on a card ever goes, as before.
     kept.collect(shown, away, [&](const Image *i) { taken.push_back(i); });
-    assert(left == 2 && taken.size() == 1);
+    assert(live == 2 && taken.size() == 1);
     kept.budget = 50;
     kept.collect(shown);
-    assert(left == 2);
+    assert(live == 2);
     // Only the glass left over the budget: it stays.
     kept.collect(shown, away, [&](const Image *i) { taken.push_back(i); });
-    assert(left == 1 && kept.find("glass") && taken.size() == 2);
+    assert(live == 1 && kept.find("glass") && taken.size() == 2);
+    kept.forget([](const Image *) { return false; });
+    assert(live == 0);
   }
   return 0;
 }

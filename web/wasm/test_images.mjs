@@ -80,15 +80,18 @@ assert.equal(m._preview_image_ready(stale.id, 1), 0);
 assert.equal(diagnostics().images.length, 0);
 
 // A compact album-art tile in the slot a full media card had asks for its own picture (tile_picture.h), decoded with
-// the same 8-bit BMP support as ESPHome. Include a padded row.
+// the same 8-bit BMP support as ESPHome. Include a padded row. The cover lies behind the whole
+// card on every size but a whole page (runtime_tiles::card_art), so the question's place is the card (`atlas`), and the
+// app answers it at that size.
 layout([{ ...tile, x: { ...tile.x, pic: 'picture3' }, o: { display: 'cover' } }]);
 tick(); tick();
 const live = action();
 assert.equal(live.data.tiles, tile.entity);
 assert.equal(live.data.entity, undefined);
-const side = Number(live.data.size);
+const [[, , cardW, cardH]] = JSON.parse(live.data.atlas);
 receive({ op: 'camera', t: 'live', e: tile.entity, u: 'http://firmware-preview.invalid/abcdefghijklmnop.bmp', view: Number(live.data.view) });
 tick(800);
-deliver(nextImage(), bmp(side, side, true));
-expectImage();
+deliver(nextImage(), bmp(cardW, cardH, true));
+const behind = expectImage();
+assert.deepEqual([behind.width, behind.height], [cardW, cardH], 'the cover fills the card it was asked for');
 console.log(`PASS ${width}x${height}: firmware cover and strip requests, ESPHome 24/8-bit decoding, LVGL artwork pixels, caching and stale download rejection`);

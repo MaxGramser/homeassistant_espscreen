@@ -176,7 +176,9 @@ int main() {
   assert(PAGE_COUNT == 5);
   for (uint8_t p = 0; p < PAGE_COUNT; ++p) {
     const Page &page = pages[p];
-    assert(page.title != NO_TEXT && *screen_text::tr(page.title) && page.count && page.count <= 8);
+    // At most nine rows a page: This screen holds nine since Debug mode (Calibrate touch only on a resistive panel), and
+    // the pager takes any count the glass cannot show at once (fitting_rows).
+    assert(page.title != NO_TEXT && *screen_text::tr(page.title) && page.count && page.count <= 9);
     for (uint8_t i = 0; i < page.count; ++i) {
       const Row &row = page.rows[i];
       assert(row.label != NO_TEXT && *label_text(row));
@@ -236,6 +238,24 @@ int main() {
   assert(stored == 1 && applied == 1 && last_key == "standby_enabled" && last_value == 0);
   row_named(screen, "After").write(600);
   assert(stored == 2 && last_key == "auto_home_seconds" && last_value == 600 && auto_home_seconds == 600);
+  // Debug mode: off on a screen that never chose, a toggle under This screen right after Tessera, the one value of the
+  // row and the entity (set_debug_mode); stored and applied, and never reported, as no key of ESP Screens.
+  {
+    const Row &debug = row_named(pages[4], "Debug mode");
+    assert(debug.kind == Kind::toggle && &debug == &row_named(pages[4], "Tessera") + 1);
+    assert(debug_mode == 0 && value_text(debug) == "Off");
+    const int stored_before = stored, applied_before = applied;
+    const std::string key_before = last_key;
+    debug.write(1);
+    assert(debug_mode == 1 && value_text(debug) == "On");
+    assert(stored == stored_before + 1 && applied == applied_before + 1 && last_key == key_before);
+    set_debug_mode(1);
+    assert(stored == stored_before + 1);
+    set_debug_mode(0);
+    assert(debug_mode == 0 && set("debug_mode", 1) == SetResult::unknown);
+    stored = 2;
+    applied = 2;
+  }
 
   // ---- set(): the one path for the rows and for Home Assistant's entities (firmware 0.2.49+) ----
   // A value the screen already has is not stored, applied or reported: an automation may set it on every change.

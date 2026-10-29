@@ -698,7 +698,11 @@ class Editor(unittest.TestCase):
         # so the editor keeps one row and the manager says to draw it as a switch (settings_view `switches`).
         switch_labels = {english['standby_lit'], english['night_lit']}
         self.assertTrue(switch_labels <= page_labels)
-        self.assertEqual(page_labels - switch_labels, script_labels)
+        # Debug mode is the screen's and Home Assistant's alone (settings_screen::set_debug_mode): no setting of the
+        # editor, and no key the screen reports.
+        screen_only = {english['debug_mode']}
+        self.assertTrue(screen_only <= page_labels)
+        self.assertEqual(page_labels - switch_labels - screen_only, script_labels)
         for key, step in (('brightness', 5), ('standby_brightness', 5), ('night_brightness', 5)):
             self.assertRegex(self.script, rf'key: "{key}", [^}}]*step: {step}')
         ladder = re.search(r'if \(seconds < 300\) return 30;\s+if \(seconds < 900\) return 60;\s+if \(seconds < 3600\) return 300;\s+'

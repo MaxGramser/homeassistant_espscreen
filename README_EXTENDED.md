@@ -22,9 +22,9 @@ on the screen itself, and how updates work.
 - **One tile per cell**, across up to eight fixed pages and 64 tiles, or more on a board with PSRAM (up to 128 tiles on
   24 pages on an ESP32-S3 board, 256 on 16 pages on the larger ESP32-P4 boards, firmware 0.34.0+), as many as the screen's memory
   holds; the editor shows how full it is ([TILE_MEMORY.md](docs/TILE_MEMORY.md)): six cells a page on a CYD, a 4-inch Guition or the
-  [experimental Waveshare 4B](docs/WAVESHARE4B.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md) (48 tiles), nine on the
-  [M5Stack Tab5](docs/TAB5.md), the Waveshare 4.3-inch, the [Waveshare 5-inch](docs/WAVESHARE5.md), the [experimental Guition 4.3-inch](docs/JC4880P443.md) and the [experimental Guition 5-inch](docs/JC8048W550.md), twenty-five on the 10.1-inch Guition and the [experimental CrowPanel 10.1-inch](docs/CROWPANEL101.md), sixteen on the
-  [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md) (32), lying down, where each starts (the Grid button gives
+  [experimental Waveshare 4B](docs/WAVESHARE4B.md), the [experimental Waveshare 2.8B](docs/WAVESHARE28B.md), the [experimental Waveshare 4 V4.0](docs/WAVESHARE4V4.md), the [experimental SenseCAP Indicator](docs/SENSECAP_INDICATOR.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md) (48 tiles), nine on the
+  [M5Stack Tab5](docs/TAB5.md), the Waveshare 4.3-inch, the [experimental Waveshare 4.3C](docs/WAVESHARE43C.md), the [Waveshare 5-inch](docs/WAVESHARE5.md), the [experimental Guition 4.3-inch](docs/JC4880P443.md) and the [experimental Guition 5-inch](docs/JC8048W550.md), twenty-five on the 10.1-inch Guition, the [experimental CrowPanel 10.1-inch](docs/CROWPANEL101.md) and the [experimental Waveshare 10.1-inch](docs/WAVESHARE101.md), sixteen on the
+  [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md), the [experimental Waveshare P4 7B](docs/WAVESHAREP47B.md), the [experimental Waveshare P4 7-inch](docs/WAVESHAREP47.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md), the [experimental Freenove 4-inch](docs/FREENOVEFNK0104S.md) and the [experimental WT32-SC01 Plus](docs/WT32SC01PLUS.md) (32), lying down, where each starts (the Grid button gives
   a screen another, below). A page need not be full: every screen has eight pages from firmware 0.18.0, where
   a bigger grid had fewer before (three on the 10.1-inch Guition, then five by four). Firmware 0.2.62+; twenty tiles before.
   Search by entity, device, or room, and drag to reorder. A whole page moves the same way: drag it by its
@@ -404,9 +404,11 @@ data:
   night mode wait as long as the card is showing.
 - **`flash`**: `true` makes the backlight blink four times when the alert arrives.
 
-In Tessera, **Alerts** in the sidebar opens a cheatsheet with the exact action name for each screen,
-a ready-to-paste example, and all fields, icons, and colors. It starts with **Try it** (app 0.2.73): fill in
-the same seven fields, choose one screen or all of them, and send a test alert.
+In Tessera, **Events** in the sidebar opens **Alerts**: a cheatsheet with the exact action name for each screen,
+a ready-to-paste example, and all fields, icons, and colors. It starts with a wizard: point to what starts the alert
+(any entity of yours), fill in the same fields, choose the screens, and **Add to Home Assistant** saves the automation
+for you, called "Tessera: <name>", or send a test alert now. The same page has **Doorbell**, a doorbell's ring with its
+camera live on the ESP32-P4 screens (docs/DOORBELL.md).
 Home Assistant asks for all seven fields; leave a field empty (`""`, `0`, `false`) if you
 don't use it. A new alert replaces the current one. Every end is reported as the event
 **`esphome.screen_alert`** with `action` (`ok`, `button2`, `timeout`, `replaced`, or `remote`), `title`,
@@ -456,7 +458,7 @@ actions:
 - **What to fill in:** the screen's device name (`hallway-screen`), the name Home Assistant shows
   for it (`Hallway Screen`), or a room (`Hallway`), which reaches every screen in it. Case, spaces,
   dashes and underscores don't matter, so the `hallway_screen` of its action works too.
-  **Alerts** in Tessera lists the value for every screen, ready to copy, and writes the example
+  **Events, Alerts** in Tessera lists the value for every screen, ready to copy, and writes the example
   for the screen you choose.
 - **Several screens:** give a list, such as `screen: [hallway-screen, kitchen-screen]`.
 - **A name that matches no screen sends nothing,** so an alert meant for one screen never lands on

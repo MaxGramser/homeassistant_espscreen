@@ -45,8 +45,8 @@ class ReferenceTests(unittest.TestCase):
             text = (ROOT / f'packages/looks/{look}.yaml').read_text()
             for field, key in (('title', 'ALERT_TITLE_MAX'), ('subtitle', 'ALERT_SUBTITLE_MAX'), ('button_text', 'ALERT_BUTTON_MAX')):
                 self.assertEqual(ALERT_LIMITS[look][field], int(re.search(rf'^  {key}: "(\d+)"', text, re.M)[1]), (look, field))
-        self.assertEqual(reference['limit_boards']['compact'], ['CYD', 'Hosyond'])
-        self.assertEqual(reference['limit_boards']['standard'], ['Guition', 'Waveshare', 'Sunton', 'M5Stack Tab5', 'reTerminal D1001', 'CrowPanel'])
+        self.assertEqual(reference['limit_boards']['compact'], ['CYD', 'Hosyond', 'Waveshare'])
+        self.assertEqual(reference['limit_boards']['standard'], ['Guition', 'Waveshare', 'Sunton', 'M5Stack Tab5', 'reTerminal D1001', 'CrowPanel', 'SenseCAP', 'Freenove', 'WT32'])
 
     def test_colours_icons_and_fallback_match_the_firmware_headers(self):
         reference = alert_reference()
@@ -76,9 +76,10 @@ class ReferenceTests(unittest.TestCase):
     def test_page_carries_the_cheatsheet(self):
         import editor_sources
         html = editor_sources.PAGE
-        for marker in ('id="open-alerts"', 'id="alerts-dialog"', 'id="close-alerts"', 'id="alerts-screens"', 'id="alerts-icons"', 'id="alerts-colors"', 'id="alerts-fields"', 'id="alerts-example"'):
+        # Alerts is a part of Events (app 0.4.91): the sidebar's Events opens it, its Back is the page's.
+        for marker in ('id="open-events"', 'id="alerts-dialog"', 'id="close-events"', 'id="alerts-screens"', 'id="alerts-icons"', 'id="alerts-colors"', 'id="alerts-fields"', 'id="alerts-example"'):
             self.assertIn(marker, html, marker)
-        for marker in ('inventory.alerts', 'alert_action', 'dismiss_action', 'AlertsView', 'go(\'#alerts\')'):
+        for marker in ('inventory.alerts', 'alert_action', 'dismiss_action', 'AlertsView', 'go(\'#events\')'):
             self.assertIn(marker, editor_sources.SCRIPT, marker)
         self.assertIn('.alert-icon-grid', editor_sources.CSS)
 

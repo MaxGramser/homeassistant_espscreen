@@ -14,7 +14,9 @@ class CardPaintTests(unittest.TestCase):
     def test_the_colour_cache_counts_the_card_paint(self):
         source = runtime_source()
         self.assertIn('uint32_t cached_paint=UINT32_MAX;', source)
-        paint = re.search(r'const uint32_t paint=t\.background\|\(t\.transparent\?1u<<24:0\);\n(.*)\n(.*)\n', source)
+        # `bare`: "Background: none", or a template tile Home Assistant rendered empty (module text_card).
+        self.assertIn('const bool bare=t.transparent;', source)
+        paint = re.search(r'const uint32_t paint=t\.background\|\(bare\?1u<<24:0\);\n(.*)\n(.*)\n', source)
         self.assertIsNotNone(paint)
         self.assertIn('w.cached_paint == paint', paint.group(1))
         self.assertIn('return;', paint.group(1))

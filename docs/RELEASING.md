@@ -31,7 +31,8 @@ there reaches no ordinary Home Assistant and no screen; it is tested on a test H
   heading when it is missing). What's new in the app shows releases only, and the release turns this section into its
   heading;
 - the proof is a test Home Assistant with real screens: the change on the app and on the boards it concerns, looked at
-  and tapped. A push to dev starts no CI and no heavy check; those run once, at the release, on the commit that goes
+  and tapped. A push to dev starts no CI and no heavy check, apart from the Docker image `:dev` when the app changed
+  (docs/DOCKER.md, "Testing dev"); those run once, at the release, on the commit that goes
   out. A firmware change without its number only warns in `tools/check.sh` there (`CHECK_BRANCH`); the release sets
   it.
 
@@ -79,7 +80,9 @@ again (both lines say its tag, below), and the screen's next update builds that 
 How the app knows: the Supervisor names an app `<hash>_<slug>`, where the hash comes from the repository URL as it
 was added. `screen_manager/app/core.py` (`CHANNELS`) knows the two hashes of this repository. An app from any other
 URL (a local copy, a fork) has no channel: new screens build from main and existing ones keep their `ref:`, so a
-screen pointed at dev or `release-candidate` by hand stays there.
+screen pointed at dev or `release-candidate` by hand stays there. Without a Supervisor, `SCREEN_CHANNEL` says it
+(`core.start_channel`): the Docker image of dev, `:dev`, carries `SCREEN_CHANNEL=dev`, so Docker has the dev app too
+(docs/DOCKER.md, "Testing dev").
 
 ## Which firmware a screen builds
 
@@ -123,9 +126,10 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    hour. The upgrade test can run meanwhile.
 5. **The upgrade test.** `tools/release.py candidate` pushes the branch `release-candidate`: this commit with the
    published packages pointing at it, so a test screen builds the release from GitHub, the way it will from main.
-   docs/TESTING.md, "6. The upgrade", is the test: the test Home Assistant on main's app and firmware, then the app of
-   the release, then each screen's own Update. Its builds fetch every component and font from GitHub, which is also
-   the test that the remote YAML is complete.
+   docs/TESTING.md, "6. The upgrade", is the test: the test Home Assistant (Max's home Home Assistant, with the Mac
+   mini as its build server, since 2026-10-29) on main's app and firmware, then the app of the release, then each
+   screen's own Update; the `deploy-home` skill's `release-test` runs it and writes the report. Its builds fetch every
+   component and font from GitHub, which is also the test that the remote YAML is complete.
 6. **Publish.** Write the GitHub release notes in English, in a file, the way the earlier releases read. Then
    `tools/release.py publish --notes <file> --yes`: it checks that HEAD is pushed, green in CI and the commit the
    candidate was made of, then fast-forwards main to it, tags it `screens-vX.Y.Z`, makes the GitHub release, removes
@@ -135,14 +139,14 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    needs a newer plugin API waits on the plugins repository's dev, and would fit no screen of main before this release.
    So before anything is published, `publish` checks that the plugins' check is green on their dev, that every plugin
    of dev's index fits this release's plugin API, and that their dev merges into their main without a conflict outside
-   `index.json` and `likes.json`; any of these refuses the release. Right after main moved, it merges their dev into
+   `index.json`, `likes.json` and `stats.json`; any of these refuses the release. Right after main moved, it merges their dev into
    their main, runs their index workflow on main (built against the released core), and checks main's index: it names
    this plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and their check
    is green on main. Then their dev moves up to main, so every app offers the plugins the same day. A step that fails
    leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a
    main that has dev already only gets its index built and checked). `status` and `prepare` say what the plugins bring;
    `--without-plugins` publishes without them when there is a reason. A hotfix leaves the plugins alone.
-7. **After.** Point the test screens back at main. Users find the update in the App store and update Tessera Screen
+7. **After.** Point the test screens back at main (`deploy_home.py main`: the GitHub app, now the release, builds them). Users find the update in the App store and update Tessera Screen
    Manager; for new screen features they use **Update** on the screen in Tessera (or the nightly round), and ESPHome
    Device Builder's Install, Wirelessly, on the existing device works too: the updated app points every screen's YAML
    at the new release's tag when it starts ("Which firmware a screen builds"). Every issue the release's CHANGELOG section names gets a short

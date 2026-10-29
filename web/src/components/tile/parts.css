@@ -2,3 +2,9 @@
    the icon in its circle and a switch that is on. */
 .tile .ic:not(.thumb) { color: var(--tile-icon); background: var(--tile-circle); border-radius: 50%; padding: 5px; }
 .tile .tog:not(.off) { background: var(--tile-accent); }
+/* A player's album cover over a card of one row (TileLine): behind the card's words in the card's own stacking
+   (the card isolates), dimmed as the screen's SHADE, the words light and the icon in a dark circle once it is here. */
+.line-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; opacity: 0; filter: brightness(.333); pointer-events: none; z-index: -1; }
+.tile.photo .line-art { opacity: 1; }
+.tile.photo .nm, .tile.photo .st { color: white; }
+.tile.photo .ic { background: #333; color: white; }

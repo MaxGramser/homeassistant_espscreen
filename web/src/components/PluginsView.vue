@@ -20,6 +20,7 @@ import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuLabel from "./ui/UiMenuLabel.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
+import UiSwitch from "./ui/UiSwitch.vue";
 import { DropdownMenuCheckboxItem, DropdownMenuItemIndicator, DropdownMenuRadioGroup, DropdownMenuRadioItem } from "reka-ui";
 import { useUiStore } from "../stores/ui";
 import { useBuildsStore } from "../stores/builds";
@@ -36,8 +37,15 @@ const TABS = [...PLUGIN_TYPES, "in_use"] as const;
 type Tab = (typeof TABS)[number];
 const tab = ref<Tab>("tiles");
 const chosenTopics = ref<string[]>([]);
-// Most liked first by default; or the newest, or by name. Tessera's recommendation (featured.yaml) breaks a tie.
-const SORTS = ["popular", "new", "name"] as const;
+// Most liked first by default; or the best rated, the most used, the newest, or by name. Tessera's recommendation
+// (featured.yaml) breaks a tie. A plugin with too few ratings for an average goes after those with one.
+const SORTS = ["popular", "rated", "used", "new", "name"] as const;
+// Counting this app's plugins in the store (plugin_likes.py): the In use tab's switch.
+const countingBusy = ref(false);
+async function setCounting(on: boolean) {
+  countingBusy.value = true;
+  try { await plugins.setCounting(on); } catch (error: any) { ui.toast(error.message); } finally { countingBusy.value = false; }
+}
 const sort = ref<(typeof SORTS)[number]>("popular");
 // Who made it: anyone, Tessera, or the community.
 const MAKERS = ["all", "tessera", "community"] as const;
@@ -77,6 +85,8 @@ const clearAll = () => { chosenTopics.value = []; maker.value = "all"; fittingOn
 const byName = (a: Plugin, b: Plugin) => text(a.name).localeCompare(text(b.name));
 const order = (a: Plugin, b: Plugin) => sort.value === "name" ? byName(a, b)
   : sort.value === "new" ? String(b.date || "").localeCompare(String(a.date || "")) || byName(a, b)
+  : sort.value === "rated" ? (b.rating ?? -1) - (a.rating ?? -1) || (b.ratings || 0) - (a.ratings || 0) || byName(a, b)
+  : sort.value === "used" ? (b.homes || 0) - (a.homes || 0) || (b.likes || 0) - (a.likes || 0) || byName(a, b)
   : (b.likes || 0) - (a.likes || 0) || Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || byName(a, b);
 const byMaker = (plugin: Plugin) => maker.value === "all" || (maker.value === "tessera" ? plugin.tessera : !plugin.tessera);
 const listed = computed(() => found.value.filter((plugin) => inTab(plugin, tab.value) && byMaker(plugin)
@@ -122,6 +132,11 @@ const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => bu
       <section class="plugins-list">
         <h1>{{ t("editor.plugins.title") }}</h1>
         <p class="setup-lead">{{ t("editor.plugins.intro") }}</p>
+        <!-- Said before anything is picked: plugins share a screen's memory, and many at once can make it unstable. -->
+        <div class="notice warn plugin-risk" id="plugin-risk" role="note">
+          <Icon name="alert-circle-outline" />
+          <span class="notice-text"><strong>{{ t("editor.plugins.risk.title") }}</strong>{{ t("editor.plugins.risk.text") }}</span>
+        </div>
         <!-- The screens building their plugins now, each with its progress and log (the builds store, stores/builds.ts). -->
         <div v-if="pluginBuilds.length" class="plugin-builds" id="plugin-builds">
           <BuildLog v-for="screen in pluginBuilds" :key="screen.id" :screen="screen" name />
@@ -184,6 +199,12 @@ const pluginBuilds = computed(() => builds.buildingScreens.filter((screen) => bu
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </UiMenu>
+        </div>
+        <!-- In use: whether this app counts its plugins in the store, said and changed here (plugin_likes.py). -->
+        <div v-if="tab === 'in_use' && plugins.sharing?.usable" class="notice plugin-counting" id="plugin-counting">
+          <Icon name="home-outline" />
+          <span class="notice-text"><strong>{{ t("editor.plugins.counting.label") }}</strong>{{ plugins.sharing.counting ? t("editor.plugins.counting.on_hint") : t("editor.plugins.counting.hint") }}</span>
+          <UiSwitch id="plugin-counting-switch" :model-value="plugins.sharing.counting" :disabled="countingBusy" :aria-label="t('editor.plugins.counting.label')" @update:model-value="setCounting" />
         </div>
         <div class="plugin-grid" role="list">
           <PluginCard v-for="plugin in shown" :key="plugin.id" :plugin="plugin" :status="plugins.statusOverall(plugin)" :chosen="openId === plugin.id"

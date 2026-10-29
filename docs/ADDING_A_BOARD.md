@@ -45,7 +45,13 @@ Then choose what the board includes:
   `TOUCH_CAL_*`);
 - `features/backlight.yaml`, and `features/backlight-always-on.yaml` after it for a backlight that must never go dark;
 - with PSRAM: `features/camera.yaml`, `features/self-test.yaml`, and `features/snapshot.yaml` when there is memory for
-  a second frame.
+  a second frame;
+- its audio as parts: name the parts, give the pins, done. `hardware/parts/es7210.yaml` for an ES7210's microphones,
+  `es8311.yaml` or `es8388.yaml` for the speaker's codec, `amplifier.yaml` for an amplifier with an enable pin, and in
+  the board's substitutions their I2C bus, the five I2S pins, the voice's input and whatever else a part names without
+  a default (each part's header says what). A board whose audio is wired like a family's includes that family's
+  declarations instead (`hardware/wavesharep4-audio.yaml`). docs/PROFILES.md, "Parts", says how a part's defaults and a
+  board's values meet, and `tools/config_diff.py` shows what a move to parts changed.
 
 One number to look at on a parallel (RGB) panel: `LVGL_BUFFER_SIZE`. The picture lives in PSRAM, but LVGL's draw
 buffer lives in the memory inside the chip, next to Wi-Fi, the API and the panel's bounce buffers, and a quarter of
@@ -175,6 +181,8 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
   microphone and speaker share one I2S bus sets `AUDIO_HALF_DUPLEX` and `AUDIO_MIC_BUS` and includes
   `features/audio-half-duplex.yaml` (the microphone lets the speaker have the bus for every sound), and
   `features/audio-amplifier.yaml` for an amplifier that follows the sound (the Waveshare P4 86 panel, the M5Stack Tab5).
+  A codec with one I2S bus can also work both ways at once on two of the chip's I2S ports that share its clock pins
+  (`allow_other_uses`), one of them `i2s_mode: secondary`, as on the Guition P4 panels (`hardware/guition-p4-audio.yaml`).
   A camera clocked from a pin takes LEDC timer 0 and channel 0: give the board's own PWM outputs another channel. The screen is then a media player in
   Home Assistant, and plugins that need a speaker or a microphone fit it.
 - Settings of its own, for hardware the other boards do not have (a volume, a microphone switch, waking when the board

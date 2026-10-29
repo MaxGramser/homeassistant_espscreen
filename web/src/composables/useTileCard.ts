@@ -6,15 +6,24 @@
 import { computed, proxyRefs, reactive, watch } from "vue";
 import { t } from "../i18n";
 import { dimensions, displayName, isFull, isWide, keysOf, pageTarget, sizeOf } from "../model/layout";
+import { pausedLive } from "../model/live-tiles";
 import { clockSample } from "../model/clock";
 import rules from "../model/page-rules.json";
 import { energyPaints, tileActive, tilePalette } from "../model/tile-palette";
 import { displayOf, sameFace, tileFace, type Face } from "../model/tile-face";
 import { bigKeyLine, bigValue, bodyText, ownWords, favoriteLine, fillPercent, headLine, isGone, isOn, mediaSubtitle, pageLink, rangeChip, readingText,
-  roundValue, runText, sameLive, sameWords, screenText, setpointText, stateText, subLine, type Live, type ScreenWords } from "../model/tile-text";
+  roundValue, runText, sameLive, sameWords, screenText, setpointText, stateText, subLine, tallValue, type Live, type ScreenWords } from "../model/tile-text";
 import { glyph, clockText } from "../model/topbar";
 import { resolveControls } from "../model/catalogue";
-import { cardContent, cardHeight, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
+import { cardContent, cardHeight, lineOf, restContent, uiScale, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
+import { cardHead, cardLook, cardPanel, cardRoom, iconFace, panelMetrics, pillFace, sliderCorner, type PanelKind } from "../model/card-layout";
+import { dotted, textPx } from "../model/text-fit";
+import { tallCard, type Rect, type TallText } from "../model/tall-layout";
+import { clockText as trackTime, mediaLayout, mediaMetrics, mediaTop } from "../model/media-layout";
+import { barKeys } from "../model/tall-controls";
+import { levelShown, presetLit as presetLit_, presetSizes, presetsOf } from "../model/light-presets";
+import { bits } from "../model/catalogue";
+import theme from "virtual:esp-screens-theme";
 import { useCanvasStore } from "../stores/canvas";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
@@ -97,7 +106,8 @@ export function useTileCard(props: TileCardProps) {
   });
   const faceOf = () => tileFace({
     entity: props.tile.entity, options: props.tile.options, shape: shape.value, full: isFull(props.tile), wide: isWide(props.tile),
-    live: current.value, chosen: chosenControls.value, rangeReady: rangeReady.value, bigKeys: bigKeys.value,
+    live: current.value, chosen: chosenControls.value, rangeReady: rangeReady.value, bigKeys: bigKeys.value, vacuumTile: scr.currentScreen?.vacuum_tile !== false,
+    lightPresets: scr.currentScreen ? scr.currentScreen.light_presets === true : undefined,
     favorite: Boolean(favoritePlay.value), plugin: Boolean(pluginTile.value), pluginRow: Boolean(pluginRow.value), watch: Boolean(watchFace.value),
   });
 
@@ -105,7 +115,7 @@ export function useTileCard(props: TileCardProps) {
   const name = computed(() => props.tile.name || favoritePlay.value?.title || (domain.value === "screen" && region.screenBuiltinName(props.tile.entity)) || entities.entityName(props.tile.entity));
   const note = computed(() => (face.value.display !== "standard" ? displayName(face.value.display) : ""));
   const status = computed(() => stateText(props.tile.entity, current.value, { runs: runs.value, note: note.value,
-    controlled: Boolean(face.value.controls && face.value.controls !== "none") }, words.value));
+    controlled: Boolean(face.value.controls && face.value.controls !== "none" && (face.value.wide || face.value.tall) && !face.value.full) }, words.value));
   const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value, status.value));
   const fill = computed(() => fillPercent(domain.value, current.value));
   const lit = computed(() => isOn(domain.value, current.value, runs.value));
@@ -169,21 +179,203 @@ export function useTileCard(props: TileCardProps) {
       row: { top: glassPx(w.value.y), height: glassPx(w.value.line), gap: glassPx(w.unitGap) },
       unit: unitStyle && (w.stacked ? { ...unitStyle, right: "0", top: glassPx(w.unit!.y) } : unitStyle) };
   });
+  // ---- The card as the glass lays it out (model/card-layout.ts, app 0.4.90) ----
+  // Its corner, padding and faces on this board, and its room in the cell it stands in; a card of another screen (the
+  // overview) or a key keeps the editor's own drawing.
+  const look = computed(() => cardLook(doc.screenShape));
+  const room = computed(() => {
+    if (foreign.value || props.round || props.at < 0) return null;
+    const g = grid.value, cell = props.at % g.slots;
+    return cardRoom(doc.screenShape, { across: g.columns, down: g.rows, column: cell % g.columns, row: Math.floor(cell / g.columns),
+      columns: shape.value.columns, rows: shape.value.rows, paged: canvas.pageBarShown });
+  });
+  // The control a wide card draws at its right (runtime_tiles layout_panel), by the kind of its parts.
+  const panelKind = computed<PanelKind | null>(() => {
+    const f = face.value, c = f.controls;
+    if (!f.wide || !c || f.coverRow) return null;
+    if (c === "toggle") return "toggle";
+    if (f.modeBar) return "mode";
+    if (c === "setpoint" || (c === "stepper" && !domain.value.endsWith("select"))) return "setpoint";
+    if (c === "volume") return "volume";
+    if (c === "run") return "run";
+    if (c === "presets") return "presets";
+    if (c === "stepper" || f.panelKeys.length) return "keys";
+    return "slider";
+  });
+  const panel = computed(() => {
+    const r = room.value, kind = panelKind.value;
+    if (!r || !kind || kind === "mode") return null;
+    const g = grid.value, s = doc.screenShape, cell = props.at % g.slots;
+    const keys = kind === "keys" ? (face.value.controls === "stepper" ? 2 : face.value.panelKeys.length) : kind === "presets" ? presets.value.length : 3;
+    const run = kind === "run" ? Math.round(texts.runText.length * look.value.label * 0.6) : 0;
+    return cardPanel(s, kind, restContent(s, g.columns, shape.value.columns, cell % g.columns), r, keys, run);
+  });
+  // A card of one row with a plain head (runtime_tiles head_row): the circle at the left, the name and its line beside
+  // it; not a Big number, a graph, a picture, a small slider, a cover laid out by its room or a page's link.
+  const head = computed(() => {
+    const r = room.value, f = face.value;
+    if (!r || !["standard", "wide"].includes(f.kind) || shape.value.rows !== 1 || !(f.display === "standard" || (f.display === "cover" && domain.value === "media_player")) || f.coverRow || f.modeBar
+      || goesTo.value || props.tile.options?.inline === "slider") return null;
+    return cardHead(doc.screenShape, look.value, r, panel.value?.taken ?? 0, icon.value, Boolean(texts.line), f.wide);
+  });
+  // A card more than a row high as the glass lays it out (runtime_tiles render_tall, model/tall-layout.ts): its heading,
+  // the body's words in the face that fits, its controls in their row, or one centred stack; a blind's slats keep the
+  // cover's own drawing (CoverTilePreview), a picture its own card.
+  const tall = computed(() => {
+    const r = room.value, f = face.value, a = current.value?.a || {}, state = current.value?.state || "";
+    if (!r || !(f.kind === "tall" || f.kind === "big-key") || f.coverExtended) return null;
+    const controls = f.tallControls, volume = controls === "volume_playback" && Boolean(Number(a.supported_features || 0) & 4);
+    const track = ["playing", "paused", "buffering"].includes(state) && !gone.value ? String(a.media_title || "") : "";
+    return tallCard(doc.screenShape, look.value, r.width, r.height, {
+      domain: domain.value, name: texts.name, line: texts.line, code: icon.value, controls, panel: Boolean(controls) && !gone.value,
+      keys: f.tallKeys.length, modes: f.thermostat ? barKeys(a, state, 6, domain.value).length : 0, bigKey: f.bigKey, action: f.tallAction, full: f.full, volume,
+      title: track, artist: mediaSubtitle(current.value), reading: texts.reading, now: texts.now,
+      value: domain.value === "screen" || gone.value ? "" : tallValue(domain.value, current.value, texts.status, words.value), setpoint: texts.setpoint, widest: chip.value ? widestSetpoint(a) : undefined,
+      runWidth: Math.ceil(textPx(texts.runText, look.value.sublabelBig, 400)),
+      presets: presets.value.length, presetCell: f.presetCell,
+    });
+  });
+  const tallStyle = computed(() => {
+    const r = room.value, g = tall.value;
+    if (!r || !g) return null;
+    const box = (b: Rect) => ({ left: glassPx(b.x), top: glassPx(b.y), width: glassPx(b.w), height: glassPx(b.h) });
+    const text = (t: TallText) => ({ style: { left: glassPx(t.x), top: glassPx(t.y), width: glassPx(t.w), fontSize: glassPx(t.size), lineHeight: glassPx(t.line),
+      fontWeight: String(t.weight), textAlign: t.align }, text: t.marquee ? t.text : dotted(t.text, t.size, t.weight, t.w), muted: Boolean(t.muted),
+      marquee: Boolean(t.marquee) });
+    const c = g.climate, p = g.panel;
+    const role = (name: string) => `#${theme.roles[name].light.toString(16).padStart(6, "0")}`;
+    return {
+      box: { left: glassPx(r.pad), top: glassPx(r.padY), width: glassPx(r.width), height: glassPx(r.height),
+        "--track": role("TRACK"), "--stepper-key": role("STEPPER_KEY"), "--muted": role("MUTED"), "--camera-track": role("CAMERA_TRACK") },
+      circle: g.circle && { left: glassPx(g.circle.x), top: glassPx(g.circle.y), width: glassPx(g.circle.size), height: glassPx(g.circle.size), fontSize: glassPx(g.circle.icon) },
+      title: g.title && text(g.title), value: g.value && text(g.value), body: g.body.map(text),
+      panel: p && { kind: p.kind, box: { ...box(p), "--key-w": glassPx(p.keyW), "--key-h": glassPx(p.keyH), "--key-gap": glassPx(p.gap), "--icon-mini": glassPx(look.value.iconMini),
+          "--key-r": glassPx(panelMetrics(doc.screenShape).radius), "--slider-r": glassPx(sliderCorner(p.keyH)),
+          "--tog-w": glassPx(p.w), "--tog-h": glassPx(p.h), "--knob": glassPx(p.knob) },
+        slider: p.slider && box(p.slider), keys: p.keys && box(p.keys), standing: p.standing && box(p.standing),
+        dots: p.dots ? presetDots(p.dots) : null },
+      climate: c && { form: c.form, minus: box(c.minus), plus: box(c.plus), stepper: c.form === "row" ? box(c.stepper) : null,
+        number: { ...box(c.number), fontSize: glassPx(c.faceSize), lineHeight: glassPx(c.number.h), fontWeight: String(c.faceWeight),
+          "--chip-icon": glassPx(look.value.iconMini), "--chip-gap": glassPx(Math.trunc(uiScale(doc.screenShape).px(6) / 2)) },
+        now: c.now ? { ...box(c.captionBox), fontSize: glassPx(look.value.sublabel), lineHeight: glassPx(c.captionBox.h) } : null, nowText: c.now,
+        bar: c.room ? { box: box(c.bar), fit: { room: c.room, width: c.bar.w } } : null, iconSize: glassPx(look.value.iconMini) },
+    };
+  });
+  // A card over the whole page as the glass lays it out (runtime_tiles render_full): without a control one big button,
+  // the icon in a large circle with the name in the headline under it; a player the head with the media card under it.
+  const full = computed(() => {
+    const r = room.value, f = face.value;
+    if (!r || f.kind !== "full" || f.display !== "standard" || props.tile.options?.inline === "slider") return null;
+    const s = doc.screenShape, { large, px } = uiScale(s), lk = look.value, a = current.value?.a || {};
+    const media = domain.value === "media_player" && !gone.value;
+    if (media) {
+      const cellH = px(large ? 108 : 52) - 2 * r.padY, headH0 = Math.max(1, Math.min(cellH, Math.trunc((r.height * 30) / 100)));
+      const head = cardHead(s, lk, { width: r.width, height: headH0, padY: r.padY }, 0, icon.value, Boolean(texts.line), true, false);
+      const headH = Math.max(headH0, head.circle.y + head.circle.size, head.value ? head.value.y + head.value.line : 0);
+      const duration = Number(a.media_duration) || 0, m = mediaMetrics(s, lk, scr.pictures, duration ? Math.ceil(textPx(trackTime(duration), lk.sublabel, 400)) + px(2) : 0);
+      const { top, below } = mediaTop(s, headH);
+      return { kind: "media" as const, head, top, layout: mediaLayout(m, r.width, Math.max(40, r.height - top - below)) };
+    }
+    if (f.controls) return null;
+    const circle = px(large ? 128 : 64), gap = px(large ? 12 : 6), nameH = lineOf(lk.headline), valueH = lineOf(lk.sublabel);
+    const top = Math.max(0, Math.trunc((r.height - (circle + gap + nameH + 2 + valueH)) / 2));
+    const chosen = props.tile.options?.icon && props.tile.options.icon !== "auto";
+    return { kind: "stack" as const, circle: { x: Math.max(0, Math.trunc((r.width - circle) / 2)), y: top, size: circle,
+      icon: chosen ? iconFace(lk, icon.value, circle) : Math.max(8, px(large ? 64 : 40)) }, nameY: top + circle + gap, nameH, valueY: top + circle + gap + nameH + 2, valueH };
+  });
+  const fullStyle = computed(() => {
+    const r = room.value, f = full.value;
+    if (!r || !f) return null;
+    const box = (b: Rect, dy = 0) => ({ left: glassPx(b.x), top: glassPx(b.y + dy), width: glassPx(b.w), height: glassPx(b.h) });
+    const hex = (color: number) => `#${color.toString(16).padStart(6, "0")}`, role = (name: string) => hex(theme.roles[name].light);
+    const lk = look.value, frame = { left: glassPx(r.pad), top: glassPx(r.padY), width: glassPx(r.width), height: glassPx(r.height),
+      "--track": role("TRACK"), "--key": role("KEY"), "--muted": role("MUTED"), "--subtle": role("SUBTLE"), "--media-accent": role("ACCENT"), "--media-blue": hex(theme.ha.LIGHT_BLUE) };
+    if (f.kind === "stack") return { kind: f.kind, box: frame,
+      circle: { ...box({ x: f.circle.x, y: f.circle.y, w: f.circle.size, h: f.circle.size }), fontSize: glassPx(f.circle.icon) },
+      title: { left: "0", width: "100%", top: glassPx(f.nameY), fontSize: glassPx(lk.headline), lineHeight: glassPx(f.nameH), fontWeight: "500", textAlign: "center" as const },
+      name: dotted(texts.name, lk.headline, 500, r.width), line: texts.line,
+      value: { left: "0", width: "100%", top: glassPx(f.valueY), fontSize: glassPx(lk.sublabel), lineHeight: glassPx(f.valueH), textAlign: "center" as const } };
+    const h = f.head, l = f.layout, a = current.value?.a || {}, state = current.value?.state || "";
+    const track = ["playing", "paused", "buffering"].includes(state);
+    const text = (b: Rect, size: number, weight: number) => ({ ...box(b, f.top), fontSize: glassPx(size), lineHeight: glassPx(b.h), fontWeight: String(weight) });
+    const duration = Number(a.media_duration) || 0, position = Math.min(duration, Number(a.media_position) || 0), features = Number(a.supported_features || 0);
+    return { kind: f.kind, box: frame,
+      circle: { left: glassPx(h.circle.x), top: glassPx(h.circle.y), width: glassPx(h.circle.size), height: glassPx(h.circle.size), fontSize: glassPx(h.circle.icon) },
+      title: { left: glassPx(h.title.x), top: glassPx(h.title.y), width: glassPx(h.title.width), fontSize: glassPx(h.title.size), lineHeight: glassPx(h.title.line), fontWeight: String(h.title.weight) },
+      name: dotted(texts.name, h.title.size, h.title.weight, h.title.width), line: h.value ? dotted(texts.line, h.value.size, 400, h.value.width) : "",
+      value: h.value && { left: glassPx(h.value.x), top: glassPx(h.value.y), width: glassPx(h.value.width), fontSize: glassPx(h.value.size), lineHeight: glassPx(h.value.line) },
+      cover: coverArt.value, art: l.art.w ? { ...box(l.art, f.top), borderRadius: glassPx(l.artRadius), fontSize: glassPx(Math.min(l.art.h, uiScale(doc.screenShape).px(uiScale(doc.screenShape).large ? 64 : 40))) } : null,
+      track: { style: text(l.title, look.value.headline, 500), text: track && a.media_title ? String(a.media_title) : "" },
+      artist: l.artist && track ? { style: text(l.artistLine, look.value.sublabelBig, 400), text: dotted(mediaSubtitle(current.value), look.value.sublabelBig, 400, l.artistLine.w) } : null,
+      bar: box(l.bar, f.top), fill: duration ? `${(position / duration) * 100}%` : "0%",
+      elapsed: l.times ? { style: text(l.elapsed, look.value.sublabel, 400), text: trackTime(position) } : null,
+      total: l.times ? { style: { ...text(l.total, look.value.sublabel, 400), textAlign: "right" as const }, text: trackTime(duration) } : null,
+      prev: { ...box(l.prev, f.top), fontSize: glassPx(look.value.iconMini) }, play: { ...box(l.play, f.top), fontSize: glassPx(look.value.icon) },
+      next: { ...box(l.next, f.top), fontSize: glassPx(look.value.iconMini) },
+      volume: a.volume_level != null ? { minus: { ...box(l.minus, f.top), fontSize: glassPx(look.value.iconMini) }, plus: { ...box(l.plus, f.top), fontSize: glassPx(look.value.iconMini) },
+        slider: { ...box(l.volume, f.top), "--fill": `${Math.round(Number(a.volume_level) * 100)}%`, "--knob": glassPx(l.volume.h + 2 * uiScale(doc.screenShape).px(uiScale(doc.screenShape).large ? 4 : 3)) } } : null,
+      playing: state === "playing", prevOff: !(features & bits("media_player", "PREVIOUS_TRACK")), nextOff: !(features & bits("media_player", "NEXT_TRACK")) };
+  });
+  // The number between a wide card's -/+ in the face the glass picks for it (stepper_keys); a range's chip picks its own.
+  const pill = computed(() => {
+    const p = panel.value;
+    if (!p || p.kind !== "setpoint" || chip.value) return null;
+    const f = pillFace(doc.screenShape, look.value, p.width, p.height, texts.setpoint);
+    return { fontSize: glassPx(f.size), fontWeight: String(f.weight), lineHeight: glassPx(f.line) };
+  });
+  const glassStyle = computed(() => {
+    const r = room.value, h = head.value, p = panel.value;
+    const frame = { borderRadius: glassPx(look.value.radius), ...(r ? { padding: `${glassPx(r.padY)} ${glassPx(r.pad)}` } : {}) };
+    if (!r || !h) return { frame, head: null, panel: null, name: texts.name, line: texts.line };
+    const text = (box: NonNullable<typeof h.value>) => ({ left: glassPx(box.x), top: glassPx(box.y), width: glassPx(box.width), fontSize: glassPx(box.size),
+      lineHeight: glassPx(box.line), fontWeight: String(box.weight), ...(box.center ? { textAlign: "center" as const } : {}) });
+    return { frame,
+      head: { box: { left: glassPx(r.pad), top: glassPx(r.padY), width: glassPx(r.width), height: glassPx(r.height) },
+        circle: { left: glassPx(h.circle.x), top: glassPx(h.circle.y), width: glassPx(h.circle.size), height: glassPx(h.circle.size), fontSize: glassPx(h.circle.icon) },
+        title: text(h.title), value: h.value ? text(h.value) : null },
+      panel: p && { left: glassPx(r.pad + p.x), top: glassPx(r.padY + p.y), width: glassPx(p.width), height: glassPx(p.height), "--key-w": glassPx(p.keyW), "--key-h": glassPx(p.keyH),
+        "--key-r": glassPx(p.radius), "--key-gap": glassPx(p.gap), "--tog-w": glassPx(p.toggleW), "--tog-h": glassPx(p.toggleH), "--knob": glassPx(p.knob),
+        "--slider-h": glassPx(p.sliderH), "--slider-w": glassPx(p.slider), "--icon-mini": glassPx(look.value.iconMini), "--slider-r": glassPx(sliderCorner(p.sliderH)) },
+      dots: p?.presets ? presetDots(p.presets.keys) : null,
+      name: dotted(texts.name, h.title.size, h.title.weight, h.title.width),
+      line: h.value ? dotted(texts.line, h.value.size, h.value.weight, h.value.width) : "" };
+  });
+  // ---- A light's presets (module light_presets): round keys in their colours, the ring round the one it shows ----
+  const presets = computed(() => (domain.value === "light" ? presetsOf(props.tile.options) : []));
+  const presetLit = computed(() => presetLit_(presets.value, current.value, entities.liveOf));
+  /** The keys at their places in glass pixels (model/light-presets.ts), each with its look. */
+  function presetDots(places: { x: number; y: number; size: number }[]) {
+    const z = presetSizes(doc.screenShape), levels = props.tile.options?.preset_levels === true;
+    return places.map((place, i) => ({ key: i, preset: presets.value[i], lit: i === presetLit.value, level: levelShown(presets.value[i], levels),
+      style: { left: glassPx(place.x), top: glassPx(place.y), width: glassPx(place.size), height: glassPx(place.size),
+        fontSize: glassPx(look.value.sublabel), "--ring-pad": glassPx(z.ringPad), "--ring-w": glassPx(z.ringWidth) } }));
+  }
   // The clock faces at the editor's one clock, as the screen draws them (model/clock.ts).
   const clock = computed(() => clockSample(ui.now, region.clock24, region.screenLanguage));
 
   // ---- Pictures: the add-on prepares them; source URLs and Home Assistant's credentials stay with it ----
   const loaded = reactive({ artwork: false, camera: false, favorite: false });
-  const artwork = computed(() => scr.pictures && face.value.tall && face.value.display === "cover" && domain.value === "media_player" && current.value?.a?.artwork_mark
+  // A player's album cover over the whole card, dimmed, on every size: one row too since the picture system (taller
+  // cards since firmware 0.3.1), as runtime_tiles::card_art.
+  const artwork = computed(() => scr.pictures && !face.value.full && face.value.display === "cover" && domain.value === "media_player" && current.value?.a?.artwork_mark
     ? `api/media-art?entity=${encodeURIComponent(props.tile.entity)}&v=${encodeURIComponent(String(current.value.a.artwork_mark))}` : "");
   // A live camera fills its card on every size (app 0.3.13; 1x2 and 2x2 since 0.3.8): the add-on's picture, cut the way
   // the tile asks, with the name at the bottom or nothing on it. Until the picture is here, the head as on the screen.
   const cameraPicture = computed(() => face.value.kind === "camera" ? `api/camera-preview?entity=${encodeURIComponent(props.tile.entity)}` : "");
+  // A live camera beyond the screen's live tiles at once (its caps.live_tiles, docs/PLATFORM_PLAN.md 4.1): on the screen
+  // it shows a picture every 15 seconds instead of streaming, and the card says so.
+  const livePaused = computed(() => !foreign.value && face.value.kind === "camera" && Boolean(props.tile.id) &&
+    pausedLive(doc.layout?.tiles ?? [], scr.currentScreen?.caps?.live_tiles, grid.value.slots,
+      Boolean(scr.currentScreen?.live_camera)).has(props.tile.id!));
   // A favourite (app 0.4.42): what it plays fills the card, dimmed as an album cover over a card is, with its name, its
   // line and a round play key; on a screen without pictures the ordinary tile with the icon of what it plays.
   const favoritePicture = computed(() => face.value.kind === "favorite" && scr.pictures && favoritePlay.value?.thumb
     ? `api/media/picture?entity=${encodeURIComponent(props.tile.entity)}&url=${encodeURIComponent(favoritePlay.value.thumb)}` : "");
   const favoriteIcon = computed(() => props.tile.options?.icon && props.tile.options.icon !== "auto" ? icon.value : FAVORITE_ICONS[favoritePlay.value?.class || ""] || "F024B");
+  // What a player plays, as the add-on prepares it for the screen, on a whole page's media card (app 0.4.90).
+  const coverArt = computed(() => scr.pictures && domain.value === "media_player" && current.value?.a?.artwork_mark
+    && ["playing", "paused", "buffering"].includes(current.value.state)
+    ? `api/media-art?entity=${encodeURIComponent(props.tile.entity)}&v=${encodeURIComponent(String(current.value.a.artwork_mark))}` : "");
   watch(artwork, () => { loaded.artwork = false; });
   watch(cameraPicture, () => { loaded.camera = false; });
   watch(favoritePicture, () => { loaded.favorite = false; });
@@ -200,9 +392,9 @@ export function useTileCard(props: TileCardProps) {
 
   return proxyRefs({
     tile: computed(() => props.tile), preview: computed(() => Boolean(props.preview)), placeholder: computed(() => Boolean(props.placeholder)),
-    grid, foreign, domain, shape, goesTo, current, gone, face, texts, fill, lit, on, palette, background, icon, chip, wideFit, glassScale, sliderStyle,
-    watchFace, watchStyle, clock, energy: energyPaints(), pluginTile, pluginRow, artwork, cameraPicture, favoritePicture, favoriteIcon, loaded,
-    keyPlaces, chosen, live, features: computed(() => Number(current.value?.a?.supported_features || 0)),
+    grid, foreign, domain, shape, goesTo, current, gone, face, texts, fill, lit, on, palette, background, icon, chip, wideFit, glassScale, sliderStyle, head, panel, pill, glassStyle, tall, tallStyle, full, fullStyle,
+    watchFace, watchStyle, clock, energy: energyPaints(), pluginTile, pluginRow, artwork, cameraPicture, livePaused, favoritePicture, favoriteIcon, loaded,
+    keyPlaces, chosen, live, presets, presetLit, features: computed(() => Number(current.value?.a?.supported_features || 0)),
     key,
   });
 }

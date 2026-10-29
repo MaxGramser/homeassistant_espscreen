@@ -49,18 +49,25 @@ waveshare43:
   name: Waveshare
   model: ESP32-S3-Touch-LCD-4.3
   status: stable
+  choices:
+    # Some of these boards carry 8 MB of flash instead of 16 MB (GitHub #265).
+    FLASH_SIZE: [16MB, 8MB]
 
 jc8012p4a1:
   file: guition-jc8012p4a1.yaml
   name: Guition
   model: JC8012P4A1
   status: new
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 jc8012p4a1v3:
   file: guition-jc8012p4a1-v3.yaml
   name: Guition
   model: JC8012P4A1 V3
   status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 waveshare7:
   file: waveshare-esp32s3-7.yaml
@@ -85,12 +92,19 @@ jc1060p470:
   name: Guition
   model: JC1060P470
   status: experimental
+  choices:
+    # In a black case or on a yellow board without one (GitHub #289): the yellow one's touch lies half a turn round.
+    BOARD_VARIANT: [black, yellow]
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 jc1060p470v2:
   file: guition-jc1060p470-v2.yaml
   name: Guition
   model: JC1060P470 V2
   status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 hosyond40:
   file: hosyond40.yaml
@@ -121,12 +135,17 @@ jc8012p4a1v2:
   name: Guition
   model: JC8012P4A1 V2
   status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 tab5:
   file: tab5.yaml
   name: M5Stack Tab5
-  model: Tab5 ST7121
+  model: Tab5
   status: new
+  choices:
+    # The display and touch controller (GitHub #240): the factory log says which, "Detected ST7123 touch controller".
+    DISPLAY_MODEL: [ST7121, ST7123]
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, echo_cancellation]
 
@@ -163,6 +182,8 @@ jc4880p443:
   name: Guition
   model: JC4880P443
   status: experimental
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]
 
 crowpanel101:
   file: crowpanel101.yaml
@@ -173,3 +194,77 @@ crowpanel101:
   # member ran it on (GitHub #116).
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone]
+
+waveshare4v4:
+  file: waveshare-esp32s3-4v4.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-4 V4.0
+  status: experimental
+  # Revision 4.0, with Waveshare's CH32V003 expander (GitHub #275). Earlier revisions of the same name have a TCA9554
+  # expander instead, and this board file is not for them.
+
+sensecapd1:
+  file: seeed-sensecap-indicator-d1.yaml
+  name: SenseCAP
+  model: Indicator D1, D1S, D1L, D1Pro (GX)
+  status: experimental
+  # Seeed's SenseCAP Indicator D1 series with the GX panel (GitHub #277): the four models share the ESP32-S3 side.
+  # Tried on a D1L; the DX panel is not covered.
+
+freenovefnk0104s:
+  file: freenove-fnk0104s.yaml
+  name: Freenove
+  model: FNK0104S
+  status: experimental
+  # The 4-inch board of Freenove's ESP32-S3 display series (GitHub #285); its 2.8 and 3.5-inch boards are other glass.
+
+wt32sc01plus:
+  file: wt32sc01plus.yaml
+  name: WT32
+  model: WT32-SC01 Plus
+  status: experimental
+  # Wireless-Tag's WT32-SC01 Plus (GitHub #238), named WT32 as people call the series; not the WT32-SC01 without "Plus".
+
+wavesharep47b:
+  file: wavesharep47b.yaml
+  name: Waveshare
+  model: ESP32-P4-WIFI6-Touch-LCD-7B
+  status: experimental
+  # The ESP32-P4 7B with rev3 silicon (GitHub #271), not the ESP32-S3-Touch-LCD-7B. Its speaker and microphones are the
+  # Waveshare P4 86 panel's audio (docs/WAVESHAREP47B.md).
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+
+wavesharep47:
+  file: wavesharep47.yaml
+  name: Waveshare
+  model: ESP32-P4-WIFI6-Touch-LCD-7
+  status: experimental
+  # The 7-inch 720 x 1280 board of the ESP32-P4-WIFI6-Touch-LCD 7, 8 and 10.1-inch series (GitHub #274), pre-v3 silicon.
+  # Not the 7B. Its speaker and microphones are the Waveshare P4 86 panel's audio (docs/WAVESHAREP47.md).
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+
+waveshare101:
+  file: waveshare101.yaml
+  name: Waveshare
+  model: ESP32-P4-WIFI6-Touch-LCD-10.1
+  status: experimental
+  # The 10.1-inch board of the same series (GitHub #281), pre-v3 silicon, from a community configuration that runs on
+  # one (website wish 125). Its speaker and microphones are the Waveshare P4 86 panel's audio, not yet tried on it.
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+
+waveshare43c:
+  file: waveshare43c.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-4.3C
+  status: experimental
+  # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
+  # from the 4.3's board file starts with its touch chip in reset.
+
+waveshare28b:
+  file: waveshare28b.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-2.8B
+  status: experimental

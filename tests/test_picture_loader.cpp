@@ -153,8 +153,8 @@ int main() {
     b.loader.end(1200, true);
     assert(b.asked.size() == 2 && b.loads.size() == 1 && b.loads[0] == "0:http://app/132");
   }
-  // A camera refreshes at its pace; a load that fails is tried again after the gap, and a link that fails three times is
-  // asked for anew.
+  // A camera refreshes at its pace; a load that fails is tried again at that pace too, and a link that fails three times
+  // is asked for anew.
   {
     Bench b;
     auto round = [&](uint32_t t) { b.loader.begin(); b.loader.want(VIEW, b.want("camera|c", "full|c", Rank::VIEW, Slot::FULL, 4000)); b.loader.end(t, true); };
@@ -166,10 +166,16 @@ int main() {
     assert(b.loads.size() == 1);
     round(5600);  // 4 s after the copy was made
     assert(b.loads.size() == 2);
-    for (int i = 0; i < 3; ++i) {
-      b.finish(Slot::FULL, false, 6000 + i * 2000);
-      round(6000 + i * 2000 + 1000);
-    }
+    b.finish(Slot::FULL, false, 6000);
+    round(7000);
+    assert(b.loads.size() == 2);  // not after the gap: a failure waits the pace
+    round(10000);
+    assert(b.loads.size() == 3);
+    b.finish(Slot::FULL, false, 10500);
+    round(14500);
+    assert(b.loads.size() == 4);
+    b.finish(Slot::FULL, false, 15000);
+    round(16000);
     assert(b.loader.phase(VIEW) == Loader::Phase::ASKED && b.asked.size() == 2);
     int failed = 0;
     for (auto &t : b.told) failed += t.second == Outcome::FAILED;

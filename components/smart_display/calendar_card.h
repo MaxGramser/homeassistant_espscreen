@@ -43,11 +43,20 @@ struct Data {
   int from = 0, to = 7;                           // days (from today) the events cover
   int left_out = 0;                               // events the message had no room for
   std::string notes;                              // the description of the event of the moment, or the next one
+  bool asks = false;                              // the events are short: a tap asks the app for the rest (Detail)
   int glance_from = 0;                            // the month glance: its first day, from today
   std::vector<uint8_t> glance;                    // one mask per day from there: bit n = calendar n has something
   // "Status and booking" with booking on (the app sends it only for a calendar that takes new events): the calendar a
   // key books on, the place and the title the booking gets.
   std::string book_on, book_place, book_title;
+};
+// The rest of a tapped event, the app's answer when the events are short (Data::asks): its whole title, place and notes,
+// for the event of that calendar, start and end.
+struct Detail {
+  int cal = -1, start = 0, end = 0;
+  bool answered = false;
+  std::string title, place, notes;
+  bool of(const Event &e) const { return answered && e.cal == cal && e.start == start && e.end == end; }
 };
 inline bool all_day(const Event &e) { return e.flags & ALL_DAY; }
 inline int day_of(int minute) { return minute >= 0 ? minute / 1440 : -((-minute + 1439) / 1440); }
@@ -491,9 +500,18 @@ inline void list(Pen &p, int x, int y, int w, int h, const Data &d, Moment t, co
     event_line(p, x + mp + (date_column ? date_w : 0), yy, W - (date_column ? date_w : 0), d, e, items[k], wd);
     yy += row_h(k, nd);
   }
-  const int rest = (int) items.size() - show + d.left_out;
+  // "12 more this week" counts this week only. The app keeps the nearest events, so when the ones it sent reach past
+  // Sunday, none of this week was left out; when they do not, the rest is said without the week ("40 more").
+  const int sunday = 6 - d.weekday;
+  bool past_week = false;
+  for (const auto &e : d.events) past_week |= shown_day(e, t.day) > sunday;
+  int week_rest = 0;
+  for (int k = show; k < (int) items.size(); ++k) week_rest += shown_day(d.events[items[k]], t.day) <= sunday;
+  const bool whole_week = past_week || d.left_out == 0;
+  const int rest = whole_week ? week_rest : (int) items.size() - show + d.left_out;
   if (rest > 0 && yy + gap + L(m, mf) <= bottom)
-    p.text(x + mp + (date_column ? date_w : 0), yy + gap, W - (date_column ? date_w : 0), mf, Paint{MUTED}, with(wd.more_week, std::to_string(rest)));
+    p.text(x + mp + (date_column ? date_w : 0), yy + gap, W - (date_column ? date_w : 0), mf, Paint{MUTED},
+           with(whole_week ? wd.more_week : wd.more, std::to_string(rest)));
 }
 // Columns: today and the next days side by side, the event of the moment above the first.
 inline void columns(Pen &p, int x, int y, int w, int h, const Data &d, Moment t, const Options &o, const Words &wd, int n) {
@@ -978,6 +996,7 @@ struct State {
   int month = 0;        // months forward or back
   bool menu = false;    // the view key's choice is open
   int sheet = -1;       // the event whose sheet is open
+  Detail detail;        // the rest of it, once the app answered
   uint8_t hidden = 0;   // calendars hidden on the glass from the view choice (bit n: calendar n), until it closes
 };
 // The views a glass takes: the week where it holds three days and six hours, else the day; the month on any glass.
@@ -1221,18 +1240,30 @@ inline bool month(Pen &p, int x, int y, int w, int h, const Data &d, Moment t, c
   return side || below;
 }
 // A tapped event: a sheet over the view with everything Home Assistant knows of it.
-inline void sheet(Pen &p, int width, int height, int margin, const Data &d, Moment t, const Words &wd, int index) {
+inline void sheet(Pen &p, int width, int height, int margin, const Data &d, Moment t, const Words &wd, int index, const Detail &more = Detail{}) {
   const auto &m = p.m;
   if (index < 0 || index >= (int) d.events.size()) return;
-  const auto &e = d.events[index];
+  // The app's answer takes the place of the short title and place, and brings this event's own notes.
+  Event e = d.events[index];
+  const bool answered = more.of(e);
+  if (answered && !(e.flags & PRIVATE)) { if (!more.title.empty()) e.title = more.title; e.place = more.place; }
   p.box(0, 0, width, height, Paint{SCRIM}, 0, 128);
   p.hit(0, 0, width, height, HIT_SCRIM);
   const int w = std::min(width - 2 * margin, ui::mm(95)), pad = P(20, 10);
   const Face tf = large() ? HEADLINE : CONTROL, mf = meta_face();
-  const int k = key_size(m), lines_note = large() ? 3 : 2, iw = L(m, ICON) + P(10, 4), hh = std::max(k, m.circle);
+  // An event's own notes (the app's answer) take a few lines more than the short notes of the event of the moment.
+  const int k = key_size(m), most_notes = answered ? (large() ? 6 : 4) : (large() ? 3 : 2), iw = L(m, ICON) + P(10, 4);
   const Status s = status(d, t, Options{});
-  const bool has_note = !d.notes.empty() && index == (s.now >= 0 ? s.now : s.next);
-  const int H = 2 * pad + hh + P(16, 6) + L(m, tf) + L(m, mf) + P(12, 4) + (e.place.empty() ? 0 : L(m, mf) + P(12, 4)) + (has_note ? lines_note * L(m, mf) : 0);
+  const std::string &note = answered ? more.notes : d.notes;
+  const bool has_note = !note.empty() && (answered || index == (s.now >= 0 ? s.now : s.next));
+  // The title on up to two lines (the whole of it is why the sheet was opened), the notes on the lines they take: the
+  // sheet is as tall as what it holds.
+  const int W0 = w - 2 * pad, tw = W0 - m.circle - P(10, 12) - k - P(10, 4);
+  const std::string title = title_of(e, wd);
+  const int title_lines = std::max(1, (int) wrap(m, LABEL, title, tw, 2).size());
+  const int lines_note = has_note ? std::max(1, std::min(most_notes, (int) wrap(m, mf, note, W0 - iw, most_notes).size())) : 0;
+  const int th = title_lines * L(m, LABEL) + head_gap() + L(m, SMALL), hh = std::max({k, m.circle, th});
+  const int H = 2 * pad + hh + P(16, 6) + L(m, tf) + L(m, mf) + P(12, 4) + (e.place.empty() ? 0 : L(m, mf) + P(12, 4)) + lines_note * L(m, mf);
   const int h = std::min(H, height - 2 * margin), x = (width - w) / 2, y = std::max(margin, (height - h) / 2);
   p.framed(x, y, w, h, Paint{RAISED}, Paint{RAISED_LINE}, P(22, 14));
   p.hit(x, y, w, h, HIT_SHEET);
@@ -1242,10 +1273,9 @@ inline void sheet(Pen &p, int width, int height, int margin, const Data &d, Mome
   p.box(x + pad, yy + (hh - circle) / 2, circle, circle, cal(CAL_BLOCK, e.cal), circle / 2);
   const Face g = circle >= P(40, 28) ? TILE_ICON : ICON;
   p.sc.texts.push_back({x + pad, yy + (hh - L(m, g)) / 2, circle, g, cal(CAL_KEY, e.cal), CENTRE, GLYPH_CALENDAR});
-  const int tx = x + pad + circle + P(10, 12), tw = W - circle - P(10, 12) - k - P(10, 4);
-  const int th = L(m, LABEL) + head_gap() + L(m, SMALL);
-  p.text(tx, yy + (hh - th) / 2, tw, LABEL, Paint{INK}, title_of(e, wd));
-  p.text(tx, yy + (hh - th) / 2 + L(m, LABEL) + head_gap(), tw, SMALL, Paint{MUTED}, e.cal < d.names.size() ? d.names[e.cal] : "");
+  const int tx = x + pad + circle + P(10, 12);
+  p.para(tx, yy + (hh - th) / 2, tw, LABEL, Paint{INK}, title, title_lines);
+  p.text(tx, yy + (hh - th) / 2 + title_lines * L(m, LABEL) + head_gap(), tw, SMALL, Paint{MUTED}, e.cal < d.names.size() ? d.names[e.cal] : "");
   const int kx = x + pad + W - k;
   p.box(kx, yy + (hh - k) / 2, k, k, Paint{KEY}, k / 2);
   p.sc.texts.push_back({kx, yy + (hh - k) / 2 + (k - L(m, ICON)) / 2, k, ICON, Paint{INK}, CENTRE, GLYPH_CLOSE});
@@ -1263,7 +1293,7 @@ inline void sheet(Pen &p, int width, int height, int margin, const Data &d, Mome
     p.text(x + pad + iw, yy, W - iw, mf, Paint{INK}, e.place);
     yy += L(m, mf) + P(12, 4);
   }
-  if (has_note && yy < y + h - pad) p.para(x + pad + iw, yy, W - iw, mf, Paint{MUTED}, d.notes, std::min(lines_note, (y + h - pad - yy) / std::max(1, L(m, mf))));
+  if (has_note && yy < y + h - pad) p.para(x + pad + iw, yy, W - iw, mf, Paint{MUTED}, note, std::min(lines_note, (y + h - pad - yy) / std::max(1, L(m, mf))));
 }
 // The view key's choice: four views, the one on show ticked, in a sheet under the key.
 // The view key's choice: the four views, and under them the card's calendars when it has more than one, a tap showing
@@ -1425,7 +1455,7 @@ inline View plan_full(Full &f, const Measure &m, int width, int height, int marg
   }
   Pen op{f.overlay, m};
   if (st.menu) choice(op, width, height, margin, hp, v, wd, all, st.hidden, week_word);
-  else if (st.sheet >= 0) sheet(op, width, height, margin, d, t, wd, st.sheet);
+  else if (st.sheet >= 0) sheet(op, width, height, margin, d, t, wd, st.sheet, st.detail);
   f.view = v;
   return v;
 }

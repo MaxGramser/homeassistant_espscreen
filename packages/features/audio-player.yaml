@@ -48,6 +48,8 @@ substitutions:
     settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_microphone,
         []() -> int32_t { return id(ts_microphone_on).state ? 1 : 0; },
         [](int32_t on) { if (on) id(ts_microphone_on).turn_on(); else id(ts_microphone_on).turn_off(); }));
+    // The doorbell's chime (module doorbell, docs/DOORBELL.md) on the speaker for announcements.
+    runtime_tiles::doorbell_audio(id(ts_speaker));
 
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
@@ -72,7 +74,17 @@ speaker:
     num_channels: 1
     task_stack_in_psram: true
     source_speakers:
+      # The rule for a sound the screen's loop hands over (plugin_sound.h: the doorbell's chime, a plugin's sounds): the
+      # buffer it lands in, with ts_speaker_out's 100 ms behind it, covers the time between two handovers and the main
+      # loop's longest absence: the board's 250 ms interval and a 300 ms redraw of a 10-inch, 550 ms, so 500 ms here. A
+      # sound at the bus's own rate (16 kHz on a Guition or a Waveshare P4, as the chime) lands here and not in
+      # ts_speaker's buffer: ESPHome's resampler hands it straight on when there is nothing to resample. With ESPHome's
+      # default of 100 ms a Guition's chime played in pieces of 200 ms with gaps between (2026-10-28).
       - id: ts_announcement_input
+        buffer_duration: 500ms
+      # A live camera's sound (live_view.cpp speak) stays at ESPHome's 100 ms: it is handed over at every pass of the
+      # loop, and what waits for the speaker is held in the stream's own buffer, where the picture's catch-up reaches it.
+      # Half a second here would let the sound fall that far behind the picture, out of that catch-up's reach.
       - id: ts_media_input
   # And in front of each a resampler, as in Home Assistant's Voice PE: a sound at any rate (a plugin's 48 kHz sound on a
   # bus that runs at 16 kHz) reaches the mixer at the bus's own rate, so the bus never starts again for another rate.
@@ -81,6 +93,11 @@ speaker:
     id: ts_speaker
     output_speaker: ts_announcement_input
     task_stack_in_psram: true
+    # A plugin's sound (plugin_sound.h) is handed over from the screen's loop: half a second ahead, by the rule at
+    # ts_announcement_input above, for a sound this resampler does convert (a 16 kHz sound on a 48 kHz bus, as on the
+    # reTerminal D1001). ESPHome's default of 100 ms stuttered the voice assistant's wake sound. Announcements and voice
+    # fill it from their own task, as before.
+    buffer_duration: 500ms
   - platform: resampler
     id: ts_media_speaker
     output_speaker: ts_media_input
@@ -99,6 +116,21 @@ media_player:
     volume_initial: 0.5
     volume_min: ${ ((AUDIO_VOLUME_DB_LOW | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }
     volume_max: ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }
+    # Who may play (components/smart_display/audio_owner.h, docs/PLATFORM_PLAN.md 3.4): music claims the speaker as
+    # MEDIA when it starts playing and gives it back when it pauses or ends. A camera's sound, the voice assistant or a
+    # doorbell outranks it and pauses it, and the music does not start again by itself; while one of them holds the
+    # speaker, music that starts is paused at once. Announcements take the mixer's other input and are not claimed.
+    on_play:
+      - lambda: |-
+          audio_owner::Claim claim;
+          claim.role = audio_owner::Role::MEDIA;
+          claim.lost = []() { id(ts_media_player).make_call().set_command(media_player::MEDIA_PLAYER_COMMAND_PAUSE).perform(); };
+          if (!audio_owner::the().claim(audio_owner::Side::OUT, claim))
+            id(ts_media_player).make_call().set_command(media_player::MEDIA_PLAYER_COMMAND_PAUSE).perform();
+    on_pause:
+      - lambda: audio_owner::the().release(audio_owner::Side::OUT, audio_owner::Role::MEDIA);
+    on_idle:
+      - lambda: audio_owner::the().release(audio_owner::Side::OUT, audio_owner::Role::MEDIA);
     announcement_pipeline:
       speaker: ts_speaker
       sources: [ts_announcement_source]

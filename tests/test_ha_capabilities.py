@@ -144,7 +144,7 @@ class WhatTheEditorOffers(unittest.TestCase):
 
     def test_small_slider_and_direct_controls(self):
         self.assertEqual(caps('light.hood'), {'toggle': True, 'inline': False, 'controls': ['toggle'], 'displays': ['standard', 'watch']})
-        self.assertEqual((caps('light.bathroom')['inline'], caps('light.bathroom')['controls']), (True, ['toggle', 'brightness']))
+        self.assertEqual((caps('light.bathroom')['inline'], caps('light.bathroom')['controls']), (True, ['toggle', 'brightness', 'presets', 'brightness_presets']))
         self.assertEqual((caps('cover.curtains')['inline'], caps('cover.curtains')['controls']), (True, ['buttons', 'position']))
         self.assertEqual((caps('cover.garage')['inline'], caps('cover.garage')['controls']), (False, ['buttons']))
         self.assertEqual((caps('cover.position_only')['inline'], caps('cover.position_only')['controls']), (True, ['position']))

@@ -42,6 +42,11 @@ Pictures
   The front door in the camera pictures under docs/images is a photo by Virginia Marinova on Unsplash, used under the
   Unsplash License, which is not this project's licence.
 
+The template tile's code field in the editor (docs/TEXT_TILE.md) is CodeMirror 6 (https://codemirror.net): the
+@codemirror and @lezer packages, style-mod, w3c-keyname, crelt and @marijn/find-cluster-break, copyright Marijn
+Haverbeke and others, licensed under the MIT License. Bundled unmodified in the editor's build, loaded when a template
+tile is opened; the licence text is in screen_manager/app/static/THIRD_PARTY_LICENSES.txt.
+
 The firmware preview (web/wasm) lists its third-party code in web/public/firmware-preview-licenses.txt.
 
 The editor's browser installer (New screen and Firmware & USB, "This computer") contains third-party code.

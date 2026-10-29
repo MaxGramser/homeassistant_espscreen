@@ -28,8 +28,8 @@ from pathlib import Path
 REPOSITORY = 'MaxGramser/tessera-plugins'
 WORK, RELEASES = 'dev', 'main'
 # The files the plugins repository's workflow writes (index.yml): in a merge, dev's index (it is built again on main
-# right after) and main's likes (the newest count).
-GENERATED = {'index.json': 'dev', 'likes.json': 'main'}
+# right after) and main's likes and stats (the newest numbers).
+GENERATED = {'index.json': 'dev', 'likes.json': 'main', 'stats.json': 'main'}
 CHECK_JOB = 'check'
 INDEX_WORKFLOW = 'index.yml'
 WAIT = 20 * 60          # seconds a workflow of the plugins repository may take before the release says so

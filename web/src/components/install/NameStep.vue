@@ -8,12 +8,16 @@ import { boardDetail, boardTitle } from "../../model/boards";
 import { canStep } from "../../model/installer";
 import { customPreview } from "../../model/preview";
 import { injectInstaller } from "../../composables/useInstaller";
-import { t } from "../../i18n";
+import { t, te } from "../../i18n";
 import DeviceArt from "../DeviceArt.vue";
 import Icon from "../ui/Icon.vue";
 
 const install = injectInstaller();
 const gridAxes = ["columns", "rows"] as const;
+// A choice's value as New screen names it: its own words where the translations have them (a "black" or "yellow"
+// board), else the value itself, as a display controller's name or a flash size already reads.
+const optionLabel = (key: string, option: string) =>
+  te(`editor.installer.choice_option.${key}.${option}`) ? t(`editor.installer.choice_option.${key}.${option}`) : option;
 function stepGrid(axis: "columns" | "rows", by: number) { if (canStep(install.form.grid, install.range, axis, by)) install.form.grid[axis] += by; }
 const root = ref<HTMLElement | null>(null);
 /** Whether its fields are filled in as they must be; the first that is not says why. */
@@ -65,7 +69,7 @@ defineExpose({ check });
         <div class="choice-options">
           <label v-for="(option, index) in choice.options" :key="option" class="choice">
             <input type="radio" :name="`choice-${choice.key}`" :value="option" v-model="install.form.choices[choice.key]" />
-            <span><b>{{ option }}</b><small v-if="index === 0">{{ t("editor.installer.choice_usual") }}</small></span>
+            <span><b>{{ optionLabel(choice.key, option) }}</b><small v-if="index === 0">{{ t("editor.installer.choice_usual") }}</small></span>
           </label>
         </div>
         <small>{{ t(`editor.installer.choice_hint.${choice.key}`) }}</small>

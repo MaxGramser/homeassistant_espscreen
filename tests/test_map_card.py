@@ -13,7 +13,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-import camera_feed  # noqa: E402
+import lan_address  # noqa: E402
+import picture_question  # noqa: E402
 import map_card  # noqa: E402
 import map_tiles  # noqa: E402
 import vector_tiles  # noqa: E402
@@ -418,7 +419,7 @@ class Source(unittest.IsolatedAsyncioTestCase):
 @unittest.skipUnless(HAS_PIL and HAS_AIOHTTP, 'Pillow and aiohttp')
 class Screens(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        camera_feed.base_url.__defaults__[0].clear()
+        lan_address.base_url.__defaults__[0].clear()
 
     async def test_a_screen_gets_its_map_in_its_own_look(self):
         from test_camera import fake_ha, picture
@@ -450,7 +451,7 @@ class Screens(unittest.IsolatedAsyncioTestCase):
                 sent = [entry[2] for entry in ha.log if entry[0] == 'send']
                 if not sent or not sent[0]['u']:
                     return None
-                status, raw, _ = await m.camera.serve(sent[0]['u'].rsplit('/', 1)[1][:-4])
+                status, raw, _, _ = await m.links.serve(sent[0]['u'].rsplit('/', 1)[1][:-4])
                 self.assertEqual((status, sent[0]['e']), (200, tiles))
                 with Image.open(io.BytesIO(raw)) as image:
                     return image.convert('RGB')
@@ -466,10 +467,14 @@ class Screens(unittest.IsolatedAsyncioTestCase):
             with self.assertLogs('screen_manager', 'INFO'):
                 await ask('0')
             self.assertFalse(any(entry[0] == 'tile' for entry in ha.log))
-            # A person on the page who is not a map tile, and a screen that cannot draw one yet: nothing.
-            for tiles, idx, inbox in (('person.sam', '2', 'text.d1_tiles'), ('person.alex', '0', 'text.d3_tiles')):
-                with self.assertLogs('screen_manager', 'INFO'):
-                    self.assertIsNone(await ask('0', tiles, idx, inbox))
+            # A person on the page who is not a map tile: no picture (refused, an answer without a link).
+            with self.assertLogs('screen_manager', 'INFO'):
+                self.assertIsNone(await ask('0', 'person.sam', '2'))
+            self.assertEqual([entry[2]['u'] for entry in ha.log if entry[0] == 'send'], [''])
+            # A screen's firmware asks only for what it draws (a map from 0.20.0), so the app asks no version of its own:
+            # firmware that asks for a map gets it.
+            with self.assertLogs('screen_manager', 'INFO'):
+                self.assertEqual((await ask('0', 'person.alex', '0', 'text.d3_tiles')).size, (218, 118))
 
     async def test_a_markers_picture_comes_only_from_home_assistant_or_the_internet(self):
         from test_camera import RecordingSession
@@ -508,7 +513,7 @@ class Screens(unittest.IsolatedAsyncioTestCase):
             sent = [entry[2] for entry in ha.log if entry[0] == 'send']
             self.assertEqual(sent[0]['e'], 'screen.map')
             self.assertIn(('picture', '/api/image/serve/alex/512x512'), ha.log, 'a photo in the marker, as Home Assistant shows it')
-            status, raw, _ = await m.camera.serve(sent[0]['u'].rsplit('/', 1)[1][:-4])
+            status, raw, _, _ = await m.links.serve(sent[0]['u'].rsplit('/', 1)[1][:-4])
             with Image.open(io.BytesIO(raw)) as image:
                 self.assertEqual((status, image.size), (200, (448, 118)))
 
@@ -534,10 +539,10 @@ class Screens(unittest.IsolatedAsyncioTestCase):
                     await m.answer_camera({'inbox': 'text.d1_tiles', 'entity': entity, 'idx': idx, 'dark': '1'})
                 message, = [entry[2] for entry in ha.log if entry[0] == 'send']
                 self.assertEqual((message['t'], message['e']), ('full', entity))
-                status, raw, _ = await m.camera.serve(message['u'].rsplit('/', 1)[1][:-4])
+                status, raw, _, _ = await m.links.serve(message['u'].rsplit('/', 1)[1][:-4])
                 with Image.open(io.BytesIO(raw)) as image:
                     # As large as the board takes a camera, in the screen's look: dark.
-                    self.assertEqual((status, image.size), (200, camera_feed.box(m.screen('text.d1_tiles'), 'full')))
+                    self.assertEqual((status, image.size), (200, picture_question.box(m.screen('text.d1_tiles'), 'full')))
                     self.assertLess(sum(image.convert('RGB').getpixel((10, 240))), 150)
             # A finger on Sam (firmware 0.21.0+): Sam's card, as Home Assistant shows a selected person, and every marker's
             # place on the picture for the next finger. Pixels and words, never a place.

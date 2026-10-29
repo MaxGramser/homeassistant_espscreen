@@ -25,7 +25,11 @@ static bool parse_bar_item(JsonVariant value, header_bar::Item &item) {
     item.icon_only = item.kind == header_bar::Kind::plugin && value["o"].is<unsigned>() && value["o"].as<unsigned>() == 1;
     // An entity's item (firmware 0.56.0+): the index of the tile whose card a tap on it opens, one on a page or a tile of
     // the top bar (Tile::BAR_TILE).
-    if (value["d"].is<unsigned>() && value["d"].as<unsigned>() < header_bar::NO_CARD) item.card = static_cast<uint16_t>(value["d"].as<unsigned>());
+    if (value["d"].is<unsigned>() && value["d"].as<unsigned>() < header_bar::DOORBELL_CARD) item.card = static_cast<uint16_t>(value["d"].as<unsigned>());
+    // A missed ring (module doorbell): its item opens that ring again.
+    if (item.kind == header_bar::Kind::ago && value["b"].is<unsigned>() && value["b"].as<unsigned>() == 1) item.card = header_bar::DOORBELL_CARD;
+    // Until when it stands (`x`, unix time): a missed ring that its automation keeps for a while.
+    item.until = value["x"].is<unsigned>() ? value["x"].as<uint32_t>() : 0;
     if (item.kind == header_bar::Kind::ago && item.epoch == 0) return false;
     // A plugin's item names itself: plugin:<plugin>.<item> (docs/PLUGINS.md).
     if (item.kind == header_bar::Kind::plugin && !plugin_key(item.text)) return false;
@@ -107,6 +111,12 @@ std::string receive(const std::string &payload) {
       if (!page_protocol::key(string(root["request"]), request)) return false;
       // Tessera says whether it has tiles for this screen yet (app 0.4.74+): without, the starting screen asks for them.
       awaiting_tiles = root["empty"].is<bool>() && root["empty"].as<bool>();
+      // What the app reads besides (its `features`): "pictures", every picture asked as one question (picture_question.h).
+      // An older app says nothing, and gets the fields it reads.
+      app_reads_questions = false;
+      if (root["features"].is<JsonArray>())
+        for (JsonVariant feature : root["features"].as<JsonArray>())
+          if (feature.is<const char *>() && std::string(feature.as<const char *>()) == "pictures") app_reads_questions = true;
       const uint64_t random = (uint64_t{esphome::random_uint32()} << 32) | esphome::random_uint32();
       result = "Session:" + protocol_key(transfer.grant(request, random));
       return true;
@@ -356,27 +366,73 @@ std::string receive(const std::string &payload) {
       return true;
     }
     if (op != "tile" && !transfer.active) { result = "Resend needed"; return false; }
+    if (op == "doorbell") {
+      // A ring (module doorbell, docs/DOORBELL.md): an automation fired esp_screens_doorbell, and ESP Screens names its
+      // camera (`e`), its name (`n`), the ring's key (`k`), when it rang (`r`, unix time) and how long it stays untouched
+      // (`t`, seconds), whether its view opens quiet (`m`) and rings without the chime (`nc`), its door when it has one
+      // (`d`: 1 a lock, with its state `ds`, 2 an action) and the stream the app made for this screen (`l`, opened at
+      // once); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
+      // `ds` alone, its lock's new state. Only a screen whose hello says `doorbell` gets it.
+#ifdef SD_MOD_DOORBELL
+      const std::string key = string(root["k"], 16);
+      if (key.empty()) return false;
+      if (root["c"].is<unsigned>() && root["c"].as<unsigned>() == 1) {
+        doorbell::close_ring(key);
+      } else if (root["e"].isNull() && root["ds"].is<const char *>()) {
+        doorbell::door_state(key, string(root["ds"], 16));
+      } else {
+        const std::string entity = string(root["e"], 120), name = string(root["n"], 60);
+        if (!valid_entity(entity)) return false;
+        doorbell::ring(entity, name.empty() ? entity : name, key, root["r"].is<unsigned>() ? root["r"].as<uint32_t>() : 0,
+                       root["t"].is<unsigned>() ? root["t"].as<uint32_t>() : 0, root["d"].is<unsigned>() ? root["d"].as<unsigned>() : 0,
+                       string(root["ds"], 16), root["m"].is<unsigned>() && root["m"].as<unsigned>() == 1,
+                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200));
+      }
+#endif
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
     if (op == "camera") {
       // A link to a camera's image (app 0.2.66+): the answer to camera_request ("full"), or an alert's image ("alert",
       // announced with an empty link before show_alert and sent again with the link), or the media card's cover
       // ("cover", app 0.2.77+). Only ESP Screens' own port.
-      const std::string view = string(root["t"], 8), entity = string(root["e"], view == "live" ? 400 : 120), url = string(root["u"], 240);
+      std::string view = string(root["t"], 8), entity = string(root["e"], view == "live" ? 400 : 120);
+      const std::string url = string(root["u"], 240);
+      uint32_t number = root["view"].is<unsigned>() ? root["view"].as<unsigned>() : 0;
+      bool numbered = root["view"].is<unsigned>();
+      // "q" (an app that reads questions, picture_question.h): the answer to a question by its number `n`, which says
+      // how it was asked (the `t` and `e` an older app answers with) and the owner's own number of it, so it goes on
+      // where that answer always went.
+      if (view == "q") {
+        const auto *asked = root["n"].is<unsigned>() ? picture_numbers.find(root["n"].as<unsigned>()) : nullptr;
+        if (!asked) {
+          ESP_LOGD("picture", "answer to a question no longer asked: dropped");
+          result = "Synced";
+          return true;
+        }
+        view = asked->kind;
+        entity = asked->entity;
+        number = asked->own;
+        numbered = true;
+      }
       // "live" (app 0.2.91+): a page's pictures, asked per tile (tile_picture.h); `e` names the tile's entity.
       // "lib" (app 0.4.42+, firmware 0.24.0+): the covers of a page of a player's library, one picture.
       // "saver" (app 0.4.48, firmware 0.29.0+): the screensaver's picture of the whole glass, as a full view's.
       // "vmap" (module vacuum): a vacuum card's map, cleaned up by the app (vacuum_map.py).
       // "pcard" (plugin API 0.13): the pictures of a plugin's card over the page; `e` names the card (plugin:<p>.<card>).
       // "psaver" (plugin API 0.14): the pictures of a plugin's screensaver; `e` names it (plugin:<p>.<saver>).
-      if (view == "live" ? !valid_entity_list(entity) : (!valid_entity(entity) && entity != SAVER_PHOTOS) || (view != "full" && view != "alert" && view != "cover" && view != "lib" && view != "saver" && view != "vmap" && view != "pcard" && view != "psaver")) return false;
-      if (!url.empty() && url.rfind("http://", 0) != 0) return false;
+      // "plive" (plugin API 0.17, a question only): the stream of a plugin tile's live place; `e` names its camera.
+      if (view == "live" ? !valid_entity_list(entity) : (!valid_entity(entity) && entity != SAVER_PHOTOS) || (view != "full" && view != "alert" && view != "cover" && view != "lib" && view != "saver" && view != "vmap" && view != "pcard" && view != "psaver" && view != "plive")) return false;
+      // A link on the LAN, or "own:" for a live tile of this screen's own camera (plugin API 0.22, live_view::is_own).
+      if (!url.empty() && url.rfind("http://", 0) != 0 && !(view == "live" && live_view::is_own(url))) return false;
       // Every answer but an alert's carries the number of its question; one to an older question is dropped. A tile's
       // picture is the answer to that tile's last question (tile_picture::Questions).
-      const uint32_t number = root["view"].is<unsigned>() ? root["view"].as<unsigned>() : 0;
       const bool current = view == "live" ? tile_questions.answered(number) >= 0
                            : view == "pcard" ? plugin_host::card_question(number)
                            : view == "psaver" ? plugin_host::saver_question(number)
+                           : view == "plive" ? live_place_question(number)
                            : number == (view == "cover" ? cover_view_id : view == "lib" ? library_art_view_id : view == "vmap" ? vacuum_map_view_id : camera_view_id);
-      if (view != "alert" && (!root["view"].is<unsigned>() || !current)) {
+      if (view != "alert" && (!numbered || !current)) {
         ESP_LOGD("picture", "answer %u (%s) to an older question: dropped", (unsigned) number, view.c_str());
         result = "Synced"; return true;
       }
@@ -580,6 +636,14 @@ std::string receive(const std::string &payload) {
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;
     }
+    if (op == "calendar_event") {
+      // The rest of a tapped short event (app calendar_feed.detail), the answer to calendar_view's question.
+      if (!root["view"].is<unsigned>() || root["view"].as<unsigned>() != calendar_view_id) { result = "Synced"; return true; }
+      calendar_view::detail(root["view"].as<unsigned>(), root["c"] | -1, root["s"] | 0, root["e"] | 0, string(root["t"], 128),
+                            string(root["p"], 100), string(root["n"], 500), (root["x"] | 0) == 1);
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
     if (op == "options") {
       if (!root["view"].is<unsigned>() || root["view"].as<unsigned>() != options_view_id) {
         result = "Synced"; return true;
@@ -732,6 +796,37 @@ std::string receive(const std::string &payload) {
       if (a >= 0 && b <= 24 && b - a >= 4) { tile.calendar_hours_from = (uint8_t) a; tile.calendar_hours_to = (uint8_t) b; }
     }
     tile.calendar_week_numbers = options["week_numbers"].is<bool>() && options["week_numbers"].as<bool>();
+#ifdef SD_MOD_LIGHT_PRESETS
+    // A light's presets (module light_presets): at most four, as the app keeps them; one the screen cannot take is left out.
+    tile.presets.reset();
+    if (tile.domain() == "light" && options["presets"].is<JsonArray>()) {
+      auto ps = std::make_shared<light_presets::Presets>();
+      for (JsonVariant p : options["presets"].as<JsonArray>()) {
+        if (ps->count == light_presets::MAX) break;
+        auto preset = light_presets::make(p["b"] | 0, p["k"] | 0, p["h"] | -1, p["s"] | -1, !p["k"].isNull(), !p["h"].isNull());
+        // Its effect and its device's settings (a select's option, a number's value), each as the app sends them.
+        preset.effect = string(p["fx"], 64);
+        if (p["rw"].is<JsonArray>()) for (JsonVariant pair : p["rw"].as<JsonArray>()) {
+          if (preset.settings.size() == 4) break;
+          light_presets::Setting s;
+          s.entity = string(pair[0], 120);
+          if (!valid_entity(s.entity) || (s.entity.rfind("select.", 0) != 0 && s.entity.rfind("number.", 0) != 0)) continue;
+          if (s.entity[0] == 'n') {
+            if (!pair[1].is<float>()) continue;
+            s.number = pair[1].as<float>();
+            s.text = effects_page::number_text(s.number);
+          } else {
+            s.text = string(pair[1], 64);
+            if (s.text.empty()) continue;
+          }
+          preset.settings.push_back(std::move(s));
+        }
+        if (preset.valid()) ps->items[ps->count++] = preset;
+      }
+      ps->levels = options["preset_levels"].is<bool>() && options["preset_levels"].as<bool>();
+      if (ps->count) tile.presets = ps;
+    }
+#endif
     // A sensor's meter (firmware 0.56.0, meter_card.h): a ring, a tape or a bar, its own range, one to three colours.
     tile.meter.reset();
     if (tile.display == "meter") {
@@ -757,7 +852,7 @@ std::string receive(const std::string &payload) {
     // What the second line says (firmware 0.2.90+); "auto" is the line the screen works out itself, as before.
     tile.subtitle = string(options["sub"], 96); if (tile.subtitle.empty()) tile.subtitle="auto";
     // Direct controls (0.2.19+): the manager sends only the set a wide card really shows.
-    tile.controls = string(options["controls"], 16);
+    tile.controls = string(options["controls"], 24);  // the longest, brightness_presets, is 18
     // Geometry belongs to initialization and never changes in a live value packet.
     std::string size = string(options["size"]);
     tile.full = size == "full";
@@ -966,6 +1061,7 @@ std::string receive(const std::string &payload) {
     tile.saturation = tile.has_hs_color ? std::lround(std::clamp(saturation, 0.0f, 100.0f)) : 0;
     if (std::isfinite(hue)) tile.hue = std::lround(std::clamp(hue, 0.0f, 360.0f));
     float kelvin = number(a["color_temp_kelvin"]);
+    tile.white = std::isfinite(kelvin);
     if (std::isfinite(kelvin)) tile.kelvin = std::lround(std::clamp(kelvin, 1000.0f, 15000.0f));
     tile.min_kelvin = std::clamp(number(a["min_color_temp_kelvin"], 0), 0.0f, 15000.0f);
     tile.max_kelvin = std::clamp(number(a["max_color_temp_kelvin"], 0), 0.0f, 15000.0f);
@@ -1112,9 +1208,34 @@ std::string receive(const std::string &payload) {
         d->colors.push_back(k[0].is<uint32_t>() ? (k[0].as<uint32_t>() & 0xFFFFFF) : 0);
         d->names.push_back(string(k[1], 32));
       }
-      const size_t most = has_psram() ? 80 : 24;
+      // As many as it keeps (80 with PSRAM, 48 without: the app's budget of the message bounds what they hold), the nearest
+      // to now first, as the app orders them; the rest are counted with the ones the app left out, never dropped in
+      // silence. The app (calendar_feed.keeps) sends no more than that, so this only cuts an older app's message.
+      const size_t most = has_psram() ? 80 : 48;
+      std::vector<bool> keep;
+      size_t extra_left = 0;
+      if (c["e"].is<JsonArray>()) {
+        JsonArray sent = c["e"].as<JsonArray>();
+        keep.assign(sent.size(), true);
+        if (sent.size() > most) {
+          // Now as minutes of the day the app calls today (its messages are fresh: the screen's clock is on that day).
+          const auto clock = now_time ? now_time() : esphome::ESPTime{};
+          const long now_ = clock.is_valid() ? clock.hour * 60 + clock.minute : 0;
+          std::vector<std::pair<long, size_t>> order;
+          order.reserve(sent.size());
+          size_t i = 0;
+          for (JsonVariant e : sent) {
+            const int s = e[0] | 0, f = e[1] | 0;
+            order.emplace_back(f > now_ ? std::abs((long) s - now_) : 1000000000L + now_ - f, i++);
+          }
+          std::stable_sort(order.begin(), order.end());
+          for (size_t k = most; k < order.size(); ++k) keep[order[k].second] = false;
+          extra_left = sent.size() - most;
+        }
+      }
+      size_t at = 0;
       if (c["e"].is<JsonArray>()) for (JsonVariant e : c["e"].as<JsonArray>()) {
-        if (d->events.size() == most) break;
+        if (!keep[at++]) continue;
         calendar_card::Event ev;
         ev.start = e[0] | 0; ev.end = e[1] | 0; ev.flags = (uint8_t) (e[2] | 0); ev.cal = (uint8_t) std::clamp(e[3] | 0, 0, 7);
         ev.title = string(e[4], 64); ev.place = string(e[5], 40);
@@ -1122,7 +1243,8 @@ std::string receive(const std::string &payload) {
         d->events.push_back(std::move(ev));
       }
       std::stable_sort(d->events.begin(), d->events.end(), [](const calendar_card::Event &a, const calendar_card::Event &b) { return a.start < b.start; });
-      d->left_out = std::max(0, c["m"] | 0);
+      d->left_out = std::max(0, c["m"] | 0) + (int) extra_left;
+      d->asks = (c["a"] | 0) == 1;
       d->notes = string(c["n"], 200);
       if (c["g"].is<JsonArray>()) {
         d->glance_from = std::clamp(c["g"][0] | 0, -62, 0);
@@ -1135,6 +1257,50 @@ std::string receive(const std::string &payload) {
       }
       next.calendar = std::move(d);
     }
+#ifdef SD_MOD_TEXT_CARD
+    // A template tile (module text_card, firmware 0.58.0+, app text_tile.py): {"v":1,"r":[rows]} or {"v":1,"e":why}.
+    // A row is [kind, runs], a table row [kind, [runs per cell]]; a run is [tone, text]. Whatever a message says, a tile
+    // keeps text_card's caps: rows, cells, runs and bytes, in PSRAM.
+    if (tile.is_text() && extra["md"].is<JsonObject>() && (extra["md"]["v"] | 0) == 1) {
+      JsonVariant md = extra["md"];
+      auto d = std::make_shared<text_card::Data>();
+      unsigned bytes = 0;
+      auto runs_of = [&](JsonVariant list, text_card::Runs &out) {
+        if (!list.is<JsonArray>()) return;
+        for (JsonVariant r : list.as<JsonArray>()) {
+          if (out.size() == text_card::MAX_RUNS || bytes >= text_card::MAX_BYTES) break;
+          const char *s = r[1].is<const char *>() ? r[1].as<const char *>() : "";
+          const size_t n = std::min<size_t>(strlen(s), text_card::MAX_BYTES - bytes);
+          bytes += n;
+          out.push_back({static_cast<uint8_t>(std::min<unsigned>(r[0] | 0u, text_card::TONES - 1)), roomy::Text(s, n)});
+        }
+      };
+      if (md["e"].is<const char *>()) {
+        d->failed = true;
+        d->error = roomy::text(string(md["e"], 160));
+      } else if (md["r"].is<JsonArray>()) {
+        for (JsonVariant r : md["r"].as<JsonArray>()) {
+          if (d->rows.size() == text_card::MAX_ROWS || bytes >= text_card::MAX_BYTES) break;
+          const std::string kind = string(r[0], 4);
+          text_card::Row row;
+          row.kind = kind == "h" ? text_card::HEAD : kind == "li" ? text_card::BULLET : kind == "t" ? text_card::ROW
+                   : kind == "th" ? text_card::HEAD_ROW : text_card::TEXT;
+          if (row.kind == text_card::ROW || row.kind == text_card::HEAD_ROW) {
+            if (r[1].is<JsonArray>()) for (JsonVariant cell : r[1].as<JsonArray>()) {
+              if (row.cells.size() == text_card::MAX_CELLS) break;
+              row.cells.emplace_back();
+              runs_of(cell, row.cells.back());
+            }
+          } else {
+            row.cells.emplace_back();
+            runs_of(r[1], row.cells.back());
+          }
+          if (!row.cells.empty()) d->rows.push_back(std::move(row));
+        }
+      }
+      next.text = std::move(d);
+    }
+#endif
 #ifdef SD_MOD_VACUUM_CARD
     // A vacuum's card of the module (module_vacuum_card.h, vacuum_model.h, app vacuum_card.py): its map and its mark, the areas
     // linked to its segments with their icons and floors, its routines, and why it stopped or how far it is.

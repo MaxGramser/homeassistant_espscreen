@@ -166,12 +166,12 @@ has.
   the app fetches it with its own token (`HomeAssistant.media_file`: a path of Home Assistant's, or a public address,
   never a redirect, at most 25 MB). A photo that cannot be read is passed over; five in a row read the folder again.
   With `motion: slow` the word carries `"mv": 1` and the app cuts a photo that fills the glass `MOTION_OVERSCAN` (8 %)
-  larger (`camera_feed.motion_box`, none where that does not fit the screen's picture cap); the screen shows the glass's
+  larger (the place's `move`, none where that does not fit the screen's picture cap: `picture_service`); the screen shows the glass's
   piece of it and moves it by `picture_motion.h` (`saver_motion_start`, `saver_motion_tick` every 250 ms, a new offset
   only when a pixel is due), a photo at the glass's size standing still as before.
   The word is `{"k": "photos", "e": "saver.photos", "x": {"pic": <mark>}}`, sent once the photo is here, to a screen
   whose hello lists `saver_photos` (a board that draws pictures). The screen opens the full view under that name, asks
-  with `saver: photos`, and the app answers with a still link to `camera_feed.encode_photo`: exactly the screen's box,
+  with the source `photos:`, and the app answers with a still link painted by `picture_paint`: exactly the screen's box,
   not darkened, 8-bit. `photo_loop` starts a pass when a screen's next photo is due. Nothing of a photo is logged.
 - **Faces and steps of plugins** (plugin API 0.14): `media_face`, `photos_face` and `face` may name a plugin's saver,
   `order` may hold up to four plugin steps, and `plugins` keeps their options and entities. The message gains `pf`;
@@ -185,7 +185,7 @@ has.
   pass of a screen it works out the first step that is on and available (`screen_saver.pick`): the first player of the
   list (`media`, then `more`, `screen_saver.player`) whose state is `playing` with an `entity_picture`, a camera whose state is not `unavailable` or `unknown`, the clock always. A
   board without pictures has only the clock. A player whose cover could not be fetched for its current picture
-  (`camera_feed.cover_broken`) counts as one without a cover: a screen told there is no picture keeps a black glass until
+  (`picture_sources.Snapshots.cover_broken`) counts as one without a cover: a screen told there is no picture keeps a black glass until
   the next track, so the app answers that once and moves on to the next step at once. It fetches the cover again by
   itself every `COVER_RETRY_SECONDS`, and a cover still on its way gets no answer, so the screen asks again.
 - **On the wire** the answer is one message in the screen's session, sent when it changes and once in every new
@@ -211,7 +211,7 @@ has.
   wakes the screen, and `wake_tap` leaves the tile under it alone. A new word in standby redraws at once.
 - **The picture.** A cover and a camera both open the camera's full view without its keys, its name and its spinner.
   Its request carries `saver` (`media` or `camera`), and the app answers with `t: "saver"` and a link to one picture of
-  the screen's whole full box (`camera_feed.encode_saver`): the camera or the cover cut to the glass, or on long glass
+  the screen's whole full box (`picture_paint`, the fit `saver`): the camera or the cover cut to the glass, or on long glass
   the cover beside its colour (`saver_shape`, five to four either way), all darkened by `SAVER_DIM`, in 8-bit on the
   picture's own palette as live pictures go. A picture under the size cap (the 10-inch's 1280 x 800 comes as
   1024 x 640) is scaled to the glass on the screen. A camera loads every 15 seconds (`SAVER_CAMERA_MS`), a cover once

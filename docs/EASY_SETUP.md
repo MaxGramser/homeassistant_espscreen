@@ -16,24 +16,33 @@ ESPHome Device Builder is optional:
 | CYD, 2.8 inch | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
 | CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
-| Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911 |
+| Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911, 16 MB or 8 MB flash (New screen asks which) |
+| Waveshare, 4.3 inch 4.3C (experimental) | ESP32-S3-Touch-LCD-4.3C (not the 4.3), 800×480, ST7262 and GT911, CH32V003 expander ([details](WAVESHARE43C.md)) |
 | Waveshare, 5 inch (new) | ESP32-S3-Touch-LCD-5 (not the 5B), 800×480, RGB and GT911 ([details](WAVESHARE5.md)) |
 | Guition, 5 inch (experimental) | JC8048W550C_I (the capacitive variant only), 800×480, ST7262 RGB and GT911 ([details](JC8048W550.md)) |
 | Waveshare, 7 inch (experimental) | ESP32-S3-Touch-LCD-7, 800×480, RGB and GT911 |
 | Waveshare, 7 inch 7B (experimental) | ESP32-S3-Touch-LCD-7B, 1024×600, RGB and GT911 ([details](WAVESHARE7B.md)) |
+| Waveshare P4, 7 inch 7B (experimental) | ESP32-P4-WIFI6-Touch-LCD-7B (not the ESP32-S3-Touch-LCD-7B), 1024×600, EK79007 MIPI-DSI and GT911, rev3 ESP32-P4 ([details](WAVESHAREP47B.md)) |
+| Waveshare P4, 7 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-7 (not the 7B), 1280×720, ILI9881C MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHAREP47.md)) |
 | Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
+| Waveshare, 2.8 inch (experimental) | ESP32-S3-Touch-LCD-2.8B (not the 2.8 without the B), 640×480, ST7701S and GT911 ([details](WAVESHARE28B.md)) |
+| Waveshare, 4 inch V4.0 (experimental) | ESP32-S3-Touch-LCD-4 revision 4.0 (not the 4B, not earlier revisions), 480×480, ST7701S and GT911 ([details](WAVESHARE4V4.md)) |
+| SenseCAP, 4 inch (experimental) | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
+| Freenove, 4 inch (experimental) | FNK0104S (not the 2.8 or 3.5-inch boards of the series), 480×320, ST7796 and FT6336 ([details](FREENOVEFNK0104S.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
 | Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
+| WT32, 3.5 inch (experimental) | Wireless-Tag WT32-SC01 Plus (not the WT32-SC01), 480×320, ST7796UI and FT6336U ([details](WT32SC01PLUS.md)) |
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V2 (experimental) | JC8012P4A1 V2, 1280×800, JD9365 MIPI-DSI and GSL3680, early ESP32-P4 with the newer LCD ([details](JC8012P4A1.md)) |
+| Waveshare P4, 10.1 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-10.1, 1280×800, JD9365 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHARE101.md)) |
 | Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
 | Waveshare P4, 4 inch (experimental) | ESP32-P4-86-Panel-ETH-2RO, 720×720, ST7703 MIPI-DSI and GT911, ESP32-P4 ([details](WAVESHAREP4.md)) |
 | Guition, 4.3 inch (experimental) | JC4880P443, 480×800, ST7701 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](JC4880P443.md)) |
 | CrowPanel, 10.1 inch (experimental) | Elecrow CrowPanel Advanced 10.1 ESP32-P4 (DHE04310D, V1.1 or V1.2), 1024×600, EK79007 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](CROWPANEL101.md)) |
-| M5Stack Tab5, 5 inch (new) | Tab5 ST7121, 1280×720, ST7121 MIPI-DSI and touch, ESP32-P4 ([details](TAB5.md)) |
+| M5Stack Tab5, 5 inch (new) | Tab5, 1280×720, ST7121 or ST7123 MIPI-DSI and touch (New screen asks which), ESP32-P4 ([details](TAB5.md)) |
 
 Other screens with roughly the same name can have different pins. Use
 the board profile that matches the hardware. Use a USB cable that supports data.
@@ -285,7 +294,8 @@ Click **Save & send** to send your changes.
   browse the player, the library key beside it opens its library down to a page of covers, and a tap plays one (firmware 0.24.0+, boards with camera
   pictures). **Display → Favourite** makes the tile play one playlist, album or artist you pick from that library, on
   the speaker you choose. A new media tile shows its cover by default on a board with pictures.
-- Camera or image (every board except the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch): tap for the
+- Camera or image (every board except the CYD, the Hosyond 4-inch, the Waveshare 3.5-inch, the SenseCAP Indicator
+  and the Freenove FNK0104S): tap for the
   picture full screen, refreshed every four seconds. **Display → Live picture** fills the tile itself, on every size, and refreshes every 5, 10, 15 or 30 seconds (firmware 0.3.7+, [CAMERA.md](CAMERA.md)).
 - Alarm panel: tap for its card with a key per mode, and a keypad when the panel asks for a code (firmware 0.3.3+).
 - A *Go to page* tile: tap to open its page.
@@ -301,7 +311,8 @@ Guition). From firmware 0.34.0 a board with PSRAM holds more: up to 128 tiles on
 on 16 pages on an ESP32-P4 board, as many as the screen's memory takes. The editor shows that memory beside the tile
 count, and a tile that no longer fits can't be added ([TILE_MEMORY.md](TILE_MEMORY.md)). Firmware 0.2.7 to
 0.2.61 keeps the limit of twenty (four pages) and older firmware ten, until you
-update. In the **Screen settings** tab, **Swipe between pages** turns on swiping.
+update. In the **Screen settings** tab, **Swipe between pages** turns swiping on or off. A screen set up with New screen
+has it on from the start; one set up before keeps it off until you turn it on.
 On a board with capacitive touch (every board but the CYD and the Hosyond, firmware 0.2.24+), you then swipe inward from the left or right
 edge, like the back-swipe gesture on a phone; slow or fast, and a swipe starting in the
 middle of the screen does nothing, so tapping and dragging tiles never
@@ -380,9 +391,10 @@ that screen and says where it is set.
 
 | Substitution | Boards | What it changes |
 |---|---|---|
-| `DISPLAY_MODEL` | CYD, Hosyond | ESPHome's `mipi_spi` model of the display controller (`ILI9341`, `ST7789V`, ...) |
+| `DISPLAY_MODEL` | CYD, Hosyond, Tab5 | the display controller: ESPHome's `mipi_spi` model on the CYD and the Hosyond (`ILI9341`, `ST7789V`, ...), `ST7121` or `ST7123` on the Tab5 |
 | `DISPLAY_DATA_RATE` | CYD, Hosyond | the display's SPI clock (`40MHz`; some boards want `20MHz`) |
 | `DISPLAY_INVERT_COLORS` | CYD, Hosyond | `true` for a panel that shows its colours inverted |
+| `FLASH_SIZE` | Waveshare 4.3 | the flash chip (`16MB`, or `8MB` on boards that carry an N8R8). Set it when the screen is installed over USB: an update over the air keeps the flash's partition table |
 | `GRID_COLS`, `GRID_ROWS` | every board | the grid a screen starts with lying down (`GRID_COLS_PORTRAIT` and `GRID_ROWS_PORTRAIT` standing up). New screen writes them when **Advanced** chose another grid. Since firmware 0.53.0 the editor changes columns and rows beside the mockup without a build, and the screen keeps the grid it was given |
 | `GRID_MAX_COLUMNS`, `GRID_MAX_ROWS` | every board | the most columns and rows the editor offers lying down (`GRID_MAX_COLUMNS_PORTRAIT` and `GRID_MAX_ROWS_PORTRAIT` standing up), at most `8`; worked out from the glass (docs/RESPONSIVE.md, "The grid a screen is given") |
 | `GRID_MIN_COLUMNS`, `GRID_MIN_ROWS` | every board | the fewest columns and rows the editor offers (`1`) |
@@ -512,7 +524,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Clock | 24 or 12 hour, the same on every screen: Settings → Language & region in Tessera (firmware 0.2.76+); the Simple dial shows AM or PM beside the time (firmware 0.3.6+); the Flip clock on a card as wide as the page and the bedside clock put it under the time (firmware 0.17.0+) | Follows the language |
 | Back to Home | Closes an open card and goes back to the Home page after 30 seconds to 60 minutes without a touch, firmware 0.2.44+ | On, 2 minutes |
 | Also on standby | Standby goes back to the Home page too (it always closes an open card) | Off |
-| Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | Off |
+| Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | On for a screen set up with New screen, off for one set up before |
 | Page buttons | Off: no buttons under the tiles, the tiles take their room, firmware 0.2.69+ | On |
 | Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |

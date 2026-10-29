@@ -4,6 +4,7 @@
 // camera (app 0.3.13): the add-on's picture, cut the way the tile asks, with the name at the bottom or nothing on it.
 // Until a picture is here, the head as on the screen. The card says once it has loaded (`loaded`): its look follows.
 import { glyph } from "../../model/topbar";
+import { t } from "../../i18n";
 import type { TileCardView } from "../../composables/useTileCard";
 
 const props = defineProps<{ card: TileCardView }>();
@@ -24,6 +25,7 @@ const card = props.card;
     <img v-if="card.cameraPicture" :key="card.cameraPicture" class="camera-art" :class="card.tile.options?.fit === 'contain' ? 'contain' : 'fill'" :src="card.cameraPicture" alt="" @load="card.loaded.camera = true" @error="card.loaded.camera = false" />
     <span v-if="!card.loaded.camera" class="head"><span class="ic mdi">{{ glyph(card.icon) }}</span><span class="tx"><span class="nm">{{ card.texts.name }}</span><span v-if="card.texts.line" class="st" :class="{ off: card.gone }">{{ card.texts.line }}</span></span></span>
     <span v-else-if="card.tile.options?.overlay !== 'none'" class="camera-name"><span>{{ card.texts.name }}</span></span>
+    <span v-if="card.livePaused" class="live-paused">{{ t("editor.tile.refresh.paused") }}</span>
   </template>
 </template>
 
@@ -33,8 +35,10 @@ const card = props.card;
 .tile .camera-art.fill { object-fit: cover; }
 .tile .camera-art.contain { object-fit: contain; }
 .tile.camera .camera-art { opacity: 1; }
-/* The shade the add-on puts under the name (tile_art.FADE_SHARE, FADE_DEPTH). */
+/* The shade the add-on puts under the name (picture_paint.FADE_SHARE, FADE_DEPTH). */
 .tile .camera-name { position: absolute; inset: auto 0 0 0; height: 42%; padding: 0 9px 8px; display: flex; align-items: end; color: white; font-weight: 700; background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .59)); border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; pointer-events: none; }
+/* A live camera beyond the screen's live tiles at once: a still every 15 seconds on the screen (model/live-tiles.ts). */
+.tile .live-paused { position: absolute; top: 6px; left: 6px; padding: 1px 7px; border-radius: 8px; background: rgba(0, 0, 0, .66); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .tile .camera-name > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* A favourite (app 0.4.42): the picture dimmed as the screen dims it (a third of its light), the words and the key over it. */
 .tile .favorite-art { filter: brightness(.333); }

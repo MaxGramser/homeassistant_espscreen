@@ -41,7 +41,9 @@ inline void slats_draw(lv_event_t *e) {
 }
 
 // A tilt slider lying across `w` x `h`: the track behind it, the slats, and an upright accent handle a third of its
-// height. Its value is the tilt times ten; a margin past both ends keeps the handle on the track at 0 and 100 %.
+// height. Its value is the tilt times ten; a margin past both ends keeps the handle on the track at 0 and 100 %. Its
+// range is reversed, open at the left and closed at the right, as Home Assistant's cover-tilt-position feature
+// (`inverted`) and the position bar beside it.
 inline lv_obj_t *tilt_bar(lv_obj_t *parent, int x, int y, int w, int h, float value, bool middle = false) {
   const int radius = h > 20 ? h * 12 / 42 : LV_RADIUS_CIRCLE, handle = std::max(4, h / 9), inset = std::max(4, h / 6);
   auto *back = lv_obj_create(parent);
@@ -72,7 +74,7 @@ inline lv_obj_t *tilt_bar(lv_obj_t *parent, int x, int y, int w, int h, float va
   lv_obj_set_style_pad_top(slider, along, LV_PART_KNOB);
   lv_obj_set_style_pad_bottom(slider, along, LV_PART_KNOB);
   const int margin = 1000 * (inset + handle) / std::max(1, w - 2 * (inset + handle));
-  lv_slider_set_range(slider, -margin, 1000 + margin);
+  lv_slider_set_range(slider, 1000 + margin, -margin);
   lv_slider_set_value(slider, std::isfinite(value) ? (int) std::lround(std::clamp(value, 0.0f, 100.0f) * 10) : 500, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider, slats_draw, LV_EVENT_DRAW_MAIN_BEGIN, (void *) (uintptr_t) (middle ? 1 : 0));
   return slider;

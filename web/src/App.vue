@@ -14,8 +14,9 @@ import HomeView from "./components/HomeView.vue";
 import AppSettingsView from "./components/AppSettingsView.vue";
 import InstallerView from "./components/InstallerView.vue";
 import FirmwareView from "./components/FirmwareView.vue";
-import AlertsView from "./components/AlertsView.vue";
+import EventsView from "./components/EventsView.vue";
 import OverrideView from "./components/OverrideView.vue";
+import ReportPanel from "./components/ReportPanel.vue";
 import PluginsView from "./components/PluginsView.vue";
 import { question } from "./composables/useConfirm";
 import { useSidebarStore } from "./stores/sidebar";
@@ -37,8 +38,9 @@ const view = computed(() => {
   if (ui.route === "#settings") return AppSettingsView;
   if (ui.route === "#new-screen") return InstallerView;
   if (ui.route === "#firmware") return FirmwareView;
-  if (ui.route === "#alerts") return AlertsView;
+  if (ui.route === "#events") return EventsView;
   if (ui.route === "#override") return OverrideView;
+  if (ui.route === "#report") return ReportPanel;
   if (ui.route === "#plugins" && plugins.pluginsEnabled) return PluginsView;
   // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
   if (scr.currentScreen && doc.layout) return ScreenView;

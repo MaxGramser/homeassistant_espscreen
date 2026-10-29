@@ -89,8 +89,20 @@ times keeps its own time zone and is shown in Home Assistant's, and a calendar's
 Assistant, else the colour Home Assistant's calendar panel gives it.
 
 The events travel in the tile's state message (`x.cal`), nearest first, within a fixed budget of the message; an event
-that does not fit is counted and shown as "more", never dropped in silence. A screen without PSRAM keeps up to 24
-events, one with PSRAM up to 80.
+that does not fit is counted and shown as "more", never dropped in silence. A screen without PSRAM keeps up to 48
+events, one with PSRAM up to 80, and the app sends no more than the screen keeps, the nearest first.
+
+A screen whose hello says `calendar_detail` gets every event short, with what its views draw: its times, its calendar,
+a title of at most 28 bytes and, for the eight nearest events only, a place of at most 20, each cut with an ellipsis.
+The week and the month never draw a place, and the agenda shows the nearest few. A busy week then fits whole: about
+twice as many events as with whole titles and places. A tap on an event opens its sheet with the short event and asks
+the app for the rest (`esphome.screen_calendar` with the card, the event's calendar and its minutes); the app answers
+with its whole title, place and notes from the events it fetched (op `calendar_event`), and the sheet shows them: the
+title on up to two lines, the notes on the lines they take. An older screen gets whole events, as before.
+
+The agenda's last line counts the rest of this week ("12 more this week"). The app keeps the nearest events, so when
+the events it sent reach past Sunday none of this week was left out; when they do not, the line counts everything
+left, the events the app left out too, without naming the week ("40 more").
 
 ## Where it lives
 

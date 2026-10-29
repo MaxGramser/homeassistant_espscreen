@@ -6,6 +6,11 @@
 # Built from ESPHome's own panel model (with a hardware reset added) and the pins community configurations agree on; nobody on the project has
 # tried it on the glass yet (docs/JC1060P470.md has what to check). Panels whose rear label says "V2" after the
 # material number carry a different LCD and need guition-jc1060p470-v2.yaml instead.
+# The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml) on the pins of the
+# JC-ESP32P4-M3 module board this panel is built on (LCD reset GPIO0), experimental: the same codec wiring runs on a
+# 10.1-inch V3 (pull request #259), not yet on this board. Guition also sells this 7-inch on a yellow board with the
+# bare chips and no case (JC1060P470C_I_W): its touch lies half a turn round and it has the 10.1-inch's audio pins,
+# which BOARD_VARIANT below gives it (docs/JC1060P470.md).
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
@@ -21,6 +26,8 @@ packages:
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  # The ES8311, its speaker and its microphone, on the pins of the module board below.
+  audio: !include ../hardware/guition-p4-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -48,10 +55,27 @@ substitutions:
   # LVGL's draw buffer as a share of the screen. A quarter of 1024x600 is 300 KB, most of what the chip keeps free
   # inside it, so the buffer goes to PSRAM at once, as on the 10.1-inch (docs/ADDING_A_BOARD.md).
   LVGL_BUFFER_SIZE: "50%"
+  # Which of Guition's two boards this is, which New screen asks (boards.yaml `choices`): "black", the board in a black
+  # case built on the JC-ESP32P4-M3 module (JC1060P470C_I_W_Y), or "yellow", the yellow board with the bare chips and no
+  # case (JC1060P470C_I_W). On the yellow one the GT911 reports its corners half a turn round: a tap on the top left
+  # lands on the bottom right, on every rotation (GitHub #289, a board of May 2025). Its audio has the pins of the
+  # 10.1-inch Guition, from Guition's schematics, not yet tried on it.
+  BOARD_VARIANT: "black"
+  TOUCH_MIRROR_X: '${ "true" if BOARD_VARIANT == "yellow" else "false" }'
+  TOUCH_MIRROR_Y: '${ "true" if BOARD_VARIANT == "yellow" else "false" }'
+  # The audio (hardware/guition-p4-audio.yaml): the microphone's data and the amplifier's enable.
+  AUDIO_DIN_PIN: '${ "GPIO11" if BOARD_VARIANT == "yellow" else "GPIO48" }'
+  AUDIO_AMPLIFIER_PIN: '${ "GPIO20" if BOARD_VARIANT == "yellow" else "GPIO11" }'
 
 # ============================================================
 # No need to edit below this line.
 # ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker.
+  # A board file's min_version wins over the core's.
+  min_version: 2026.9.0
 
 # The panel as ESPHome's own `model: JC1060P470` describes it (the JD9165's timings and init table), written out in full
 # for the two things that model cannot say: the panel's hardware reset and a wait after it. With the model alone the

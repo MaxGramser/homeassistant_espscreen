@@ -50,8 +50,10 @@ describe("the line under a card's name", () => {
     expect(stateText("binary_sensor.door", climate("on", { device_class: "door" }), {}, en)).toBe("Open");
     expect(stateText("binary_sensor.thing", climate("off", { device_class: "made_up" }), {}, en)).toBe("Off");
     expect(haWord("weather", { state: "windy-variant" }, en)).toBe("Windy");
-    expect(stateText("cover.blind", climate("open", { current_position: 60 }), {}, en)).toBe("Open · 60%");
-    expect(stateText("cover.blind", climate("open", { current_position: 100 }), {}, en)).toBe("Open");
+    // A plain card says the word alone; with a control on it a blind says its position too (status_text).
+    expect(stateText("cover.blind", climate("open", { current_position: 60 }), {}, en)).toBe("Open");
+    expect(stateText("cover.blind", climate("open", { current_position: 60 }), { controlled: true }, en)).toBe("Open · 60%");
+    expect(stateText("cover.blind", climate("open", { current_position: 100 }), { controlled: true }, en)).toBe("Open · 100%");
     expect(stateText("washer.x", { state: "rinsing", word: "Rinsing now" }, {}, en)).toBe("Rinsing now");
     expect(stateText("vacuum.robot", climate("returning_home", {}), {}, en)).not.toBe("");
   });
@@ -61,8 +63,18 @@ describe("the line under a card's name", () => {
     expect(stateText("sensor.power", climate("1234.5", { unit_of_measurement: "W" }), {}, comma)).toBe("1.234,5 W");
     expect(stateText("sensor.code", climate("1234", {}), {}, en)).toBe("1234");
     expect(stateText("counter.visits", climate("1234", {}), {}, en)).toBe("1,234");
-    expect(stateText("weather.home", climate("sunny", { temperature: 14.2 }), {}, en)).toBe("Sunny · 14.2°");
-    expect(stateText("media_player.speaker", climate("playing", { media_title: "Song" }), {}, en)).toBe("Playing · Song");
+    // A weather card says the temperature, one decimal and its unit, as the screen does.
+    expect(stateText("weather.home", climate("sunny", { temperature: 14, temperature_unit: "°C" }), {}, en)).toBe("14.0 °C");
+    expect(stateText("weather.home", climate("sunny", {}), {}, en)).toBe("Sunny");
+    // A player says its state on a plain card, what it plays and its volume with a control on it (status_text).
+    expect(stateText("media_player.speaker", climate("playing", { media_title: "Song" }), {}, en)).toBe("Playing");
+    expect(stateText("media_player.speaker", climate("playing", { media_title: "Song", volume_level: 0.42, supported_features: 4 }), { controlled: true }, en)).toBe("Song · 42%");
+    expect(stateText("media_player.speaker", climate("idle", { media_title: "Song" }), { controlled: true }, en)).toBe("Idle");
+    // A light that is on says its brightness, or the effect that runs (runtime_tiles render).
+    expect(stateText("light.desk", climate("on", { brightness: 181 }), {}, en)).toBe("71%");
+    expect(stateText("light.desk", climate("on", { brightness: 181, effect: "Rainbow" }), {}, en)).toBe("Rainbow");
+    expect(stateText("light.desk", climate("on", { brightness: 181, effect: "none" }), {}, en)).toBe("71%");
+    expect(stateText("light.desk", climate("on", {}), {}, en)).toBe("On");
     expect(stateText("remote.tv", climate("on", { current_activity: "Watch TV" }), {}, en)).toBe("Watch TV");
   });
 
@@ -118,7 +130,10 @@ describe("the values a card stands large", () => {
     expect(setpointText("climate", range, chip, en)).toBe("19°");
     expect(setpointText("climate", climate("heat", { temperature: 21.5 }), null, en)).toBe("21.5°");
     expect(setpointText("humidifier", climate("on", { humidity: 45 }), null, comma)).toBe("45 %");
-    expect(setpointText("climate", climate("heat", {}), null, en)).toBe("—");
+    expect(setpointText("climate", climate("heat", {}), null, en)).toBe("--");
+    // A whole temperature keeps the decimal a thermostat's half-degree step shows; a step of one shows none.
+    expect(setpointText("climate", climate("heat", { temperature: 20 }), null, comma)).toBe("20,0°");
+    expect(setpointText("climate", climate("heat", { temperature: 68, target_temp_step: 1 }), null, en)).toBe("68°");
   });
 
   it("says how bright a lamp is under its big key, and when a script never ran", () => {

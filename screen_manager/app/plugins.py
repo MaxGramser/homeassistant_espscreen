@@ -29,6 +29,7 @@ import yaml
 import build_cache
 import core
 import entity_settings
+import feedback
 import page_delivery
 import plugin_fetch
 import plugin_likes
@@ -44,6 +45,8 @@ INDEX_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{branc
 # How many people like each plugin: the website counts the likes, the plugins repository copies the counts every hour, so
 # reading them is a request to GitHub like the index's, never to the website (plugin_likes.py sends a like).
 LIKES_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/main/likes.json'
+# Each plugin's likes, rating (from three ratings), ratings and the homes that use it, copied with the likes.
+STATS_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/main/stats.json'
 LIKES_MAX = 256 * 1024
 # How old the index may be before the next editor visit asks GitHub again: a conditional request (ETag) that costs
 # nothing when it did not change, so a new release shows as an update within minutes.
@@ -195,6 +198,23 @@ def bounded(value, limit=3200):
     return None
 
 
+def plugin_entities(entries, states, most=500):
+    """The entities of every domain a plugin names (a tile's `entity`, an input of kind entity, a screensaver step of
+    an entity, an entity option of a tile) that the editor's own list lacks, for its pickers and its check of tiles whose entity is gone: that list
+    has the domains Tessera draws tiles for and the top bar's (core.discover), and a plugin may add one it does not (a
+    plant, GitHub #262). Those the editor has stay out, so the `most` here go to the plugins' own domains alone."""
+    entries = list(entries)
+    domains = {d for entry in entries for tile in entry.manifest['tiles'] for d in tile['domains']}
+    domains |= {d for entry in entries for item in entry.manifest['inputs'] for d in item['domains']}
+    domains |= {d for entry in entries for saver in entry.manifest.get('savers', []) for d in saver.get('domains', [])}
+    domains |= {d for entry in entries for tile in entry.manifest['tiles'] for option in tile.get('options', [])
+                if option.get('kind') == 'entity' for d in option.get('domains', [])}
+    domains -= core.DOMAINS | core.HEADER_ONLY_DOMAINS
+    return sorted(({'id': eid, 'name': (state.get('attributes') or {}).get('friendly_name') or eid}
+                   for eid, state in states.items() if isinstance(eid, str) and eid.split('.')[0] in domains),
+                  key=lambda e: e['name'].lower())[:most]
+
+
 def trimmed(data, budget=X_BUDGET):
     """A tile's data within `budget` bytes (X_BUDGET, or less beside large options): the last items go first."""
     if not isinstance(data, dict):
@@ -316,6 +336,8 @@ class Plugins:
         # likes.json: how many like each plugin; `fresh`: the website's own answer to a like from this app, which counts
         # until likes.json has caught up (it is copied once an hour).
         self.likes = {'counts': {}, 'etag': None, 'checked': 0.0, 'fresh': {}}
+        # stats.json: per plugin its likes, rating, ratings and homes; `fresh` as for likes, from this app's own rating.
+        self.stats = {'numbers': {}, 'etag': None, 'fresh': {}}
         self.folders = {}           # id -> Entry, from tessera-plugins/<id>/
         self.folder_errors = {}     # folder name -> what is wrong with it
         self.snapshots = {}         # (id, ref) -> Entry of an installed release
@@ -553,38 +575,73 @@ class Plugins:
             return fresh[0]
         return count
 
-    async def refresh_likes(self):
-        """likes.json from the plugins repository, with the index, at most every INDEX_TTL."""
-        if time.monotonic() - self.likes['checked'] < INDEX_TTL and self.likes['checked']:
-            return
-        self.likes['checked'] = time.monotonic()
+    def numbers(self, plugin):
+        """A plugin's rating (None below three ratings), ratings and homes from stats.json, or this app's own rating's
+        answer until stats.json has caught up."""
+        found = self.stats['numbers'].get(plugin) or {}
+        numbers = {'rating': found.get('rating'), 'ratings': int(found.get('ratings') or 0), 'homes': int(found.get('homes') or 0)}
+        fresh = self.stats['fresh'].get(plugin)
+        if fresh and time.monotonic() - fresh[1] < 2 * 3600 and fresh[0]['ratings'] != numbers['ratings']:
+            numbers.update(rating=fresh[0]['rating'], ratings=fresh[0]['ratings'])
+        return numbers
+
+    async def _read_repository_file(self, url, kept):
+        """A JSON file of the plugins repository (likes.json, stats.json) with its ETag: the data, or None when it did
+        not change or could not be read."""
         import aiohttp
         try:
             if self.http is None or self.http.closed:
                 self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
                                                   headers={'User-Agent': self.fetcher.user_agent})
-            headers = {'If-None-Match': self.likes['etag']} if self.likes['etag'] else {}
-            async with self.http.get(LIKES_URL, headers=headers) as response:
+            headers = {'If-None-Match': kept['etag']} if kept['etag'] else {}
+            async with self.http.get(url, headers=headers) as response:
                 if response.status == 304:
-                    return
+                    return None
                 response.raise_for_status()
                 data = json.loads(await read_whole(response, LIKES_MAX))
-                etag = response.headers.get('ETag')
+                kept['etag'] = response.headers.get('ETag')
+                return data
         except Exception as error:
-            LOG.info('Plugin likes not read (%s)', error)
+            LOG.info('Plugin %s not read (%s)', url.rsplit('/', 1)[-1], error)
+            return None
+
+    async def refresh_likes(self):
+        """likes.json and stats.json from the plugins repository, with the index, at most every INDEX_TTL."""
+        if time.monotonic() - self.likes['checked'] < INDEX_TTL and self.likes['checked']:
             return
+        self.likes['checked'] = time.monotonic()
+        data = await self._read_repository_file(LIKES_URL, self.likes)
         counts = (data or {}).get('likes') if isinstance(data, dict) and data.get('format') == 1 else None
         if isinstance(counts, dict):
-            self.likes.update(etag=etag, counts={k: v for k, v in counts.items()
-                                                 if isinstance(k, str) and isinstance(v, int) and v >= 0})
+            self.likes['counts'] = {k: v for k, v in counts.items() if isinstance(k, str) and isinstance(v, int) and v >= 0}
+        data = await self._read_repository_file(STATS_URL, self.stats)
+        found = (data or {}).get('plugins') if isinstance(data, dict) and data.get('format') == 1 else None
+        if isinstance(found, dict):
+            count = lambda value: isinstance(value, int) and not isinstance(value, bool) and value >= 0
+            self.stats['numbers'] = {
+                plugin: {'rating': value['rating'] if isinstance(value.get('rating'), (int, float))
+                         and not isinstance(value.get('rating'), bool) else None,
+                         'ratings': value['ratings'] if count(value.get('ratings')) else 0,
+                         'homes': value['homes'] if count(value.get('homes')) else 0}
+                for plugin, value in found.items() if isinstance(plugin, str) and isinstance(value, dict)}
+
+    def _index_records(self, plugin=None):
+        """{inbox: [record]} of the plugins of the index this app's screens have from the index's own origin (one from
+        a link, a branch or a folder is not the plugin others count), active: what a rating and counting speak of."""
+        out = {}
+        for inbox, records in self.store.everywhere().items():
+            for record in records:
+                entry = self.index.get(record['id'])
+                if (plugin is None or record['id'] == plugin) and entry and record_origin(record) == entry.origin \
+                        and record.get('state', 'active') == 'active':
+                    out.setdefault(inbox, []).append(record)
+        return out
 
     async def like(self, plugin, like, consent=False):
-        """Like a plugin that runs on one of this app's screens, or take the like back (plugin_likes.py). Only a plugin
-        of the index: one from a link or a folder is not the plugin others count."""
-        entry = self.index.get(plugin)
-        installed = [r for records in self.store.everywhere().values() for r in records if r['id'] == plugin]
-        if not entry or (like and not any(record_origin(r) == entry.origin for r in installed)):
-            raise ValueError(t('addon.errors.plugins.like_not_installed'))
+        """Like a plugin of the index, also one that runs on none of this app's screens, or take the like back
+        (plugin_likes.py). Only a plugin of the index: one from a link or a folder is not the plugin others count."""
+        if not self.index.get(plugin) and like:
+            raise ValueError(t('addon.errors.plugins.like_not_listed'))
         try:
             result = await self.liker.send(plugin, like, consent)
         except ValueError as error:
@@ -595,6 +652,102 @@ class Plugins:
         if result['likes'] is not None:
             self.likes['fresh'][plugin] = (result['likes'], time.monotonic())
         return {'liked': result['liked'], 'likes': self.like_count(plugin)}
+
+    # ---- Ratings and counting (plugin_likes.py) ----
+
+    def _board(self, inbox):
+        screen = next((s for s in self.screens() if s.get('id') == inbox), None)
+        board = core.board_of(screen) if screen else None
+        return board if board in core.SHAPES else None
+
+    async def rate(self, plugin, stars, inbox=None):
+        """Rate a plugin of the index that runs on one of this app's screens (`inbox` names the screen whose model goes
+        along, else the first that has it), or take the rating back (stars None)."""
+        places = self._index_records(plugin)
+        if stars is not None and not places:
+            raise ValueError(t('addon.errors.plugins.rate_not_installed'))
+        inbox = inbox if inbox in places else next(iter(places), None)
+        record = next(iter(places.get(inbox) or []), {})
+        try:
+            result = await self.liker.rate(plugin, stars, record.get('version'), self._board(inbox) if inbox else None)
+        except ValueError as error:
+            texts = {'rate_off': 'addon.errors.plugins.like_off', 'request': 'addon.errors.plugins.request'}
+            raise ValueError(t(texts.get(str(error), 'addon.errors.plugins.rate_failed'))) from None
+        if result['ratings'] is not None:
+            self.stats['fresh'][plugin] = ({'rating': result['rating'], 'ratings': result['ratings']}, time.monotonic())
+        return {'stars': result['stars'], **self.numbers(plugin)}
+
+    def ask_card(self, screen):
+        """The card above a screen that asks for a plugin's stars (docs/PLUGINS.md, "Likes, ratings and counting"), or
+        None: a plugin of the index this screen has run ASK_AFTER, not yet rated, the cards not told to stop."""
+        inbox = screen.get('id')
+        records = {r['id']: r for r in self._index_records().get(inbox, [])}
+        reported = {item.get('id') for item in self.running().get(inbox) or []}
+        self.liker.saw(inbox, sorted(set(records) & reported))
+        found = self.liker.ask_for(inbox, sorted(records))
+        if not found:
+            return None
+        plugin, days = found
+        entry = self.index[plugin]
+        words = lambda key: dict(entry.texts.get(key) or {'en': key})
+        return {'plugin': plugin, 'name': words('name'), 'version': records[plugin].get('version'), 'days': days,
+                'maintainer': entry.manifest['maintainer'], 'tessera': entry.label == 'tessera',
+                # Where a problem with it goes: its repository's issues on GitHub, opened and posted by the person.
+                'issues': f"{entry.repo.rstrip('/').removesuffix('.git')}/issues/new"
+                if str(entry.repo or '').startswith('https://github.com/') else None,
+                'image': self.image_url(entry), 'board': self._board(inbox),
+                'ask_counting': not self.liker.view()['counting_asked'], 'privacy': feedback.PRIVACY_URL}
+
+    def card_answer(self, plugin, action):
+        """Later (this plugin, again after a while) or never (no plugin's card again) on the stars card."""
+        if action == 'later' and plugin_likes.ID.match(str(plugin or '')):
+            self.liker.later(plugin)
+        elif action == 'never':
+            self.liker.never()
+        elif action == 'ask':
+            self.liker.never(asking=True)
+        elif action == 'asked_counting':
+            self.liker.asked_counting()
+        else:
+            raise ValueError(t('addon.errors.plugins.request'))
+        return self.liker.view()
+
+    async def set_counting(self, on):
+        try:
+            await self.liker.set_counting(on)
+        except ValueError as error:
+            raise ValueError(t('addon.errors.plugins.count_failed' if str(error) == 'count_failed'
+                               else 'addon.errors.plugins.like_off')) from None
+        if on:
+            await self.count_tick()
+        return self.liker.view()
+
+    def usage(self):
+        """What counting says: each plugin of the index this app's screens run, its version and the screen models."""
+        found = {}
+        for inbox, records in self._index_records().items():
+            board = self._board(inbox)
+            for record in records:
+                item = found.setdefault(record['id'], {'id': record['id'], 'version': record.get('version') or None, 'boards': []})
+                if board and board not in item['boards']:
+                    item['boards'].append(board)
+        return [{**item, 'boards': sorted(item['boards'])} for _, item in sorted(found.items())]
+
+    async def count_tick(self):
+        """Counting's turn: send what the screens run when a day has passed or it changed (plugin_likes.usage_due)."""
+        plugins = self.usage()
+        if self.liker.usage_due(plugins):
+            if await self.liker.send_usage(plugins):
+                LOG.info('Plugins counted at Tessera: %d', len(plugins))
+
+    async def counting(self):
+        """The app's counting loop: a look every minute, a request only when count_tick says so."""
+        while True:
+            await asyncio.sleep(60)
+            try:
+                await self.count_tick()
+            except Exception as error:   # the next minute tries again
+                LOG.info('Plugin counting skipped (%s)', error)
 
     # ---- Adding with a link ----
 
@@ -697,6 +850,16 @@ class Plugins:
         self._know_tiles()
         return entry
 
+    def forget_link(self, plugin):
+        """Take a plugin someone added with a link (a release or a branch) off the Plugins page again. Only one that
+        runs on no screen: one a screen runs is taken off the screen first, which is what keeps its commit pinned."""
+        if plugin not in self.links:
+            raise ValueError(t('addon.errors.plugins.unknown', id=plugin))
+        if any(record['id'] == plugin for records in self.store.everywhere().values() for record in records):
+            raise ValueError(t('addon.errors.plugins.forget_running'))
+        del self.links[plugin]
+        self._know_tiles()
+
     async def refresh_links(self, force=False):
         """A plugin added with a link follows its repository: its newest release (a link) or the newest commit of its
         branch (a test) is asked for at most every LINK_TTL, and the editor offers it as an update. The repository is
@@ -770,6 +933,9 @@ class Plugins:
             'type': pm.plugin_type(manifest), 'topics': manifest['topics'],
             'featured': entry.id in self.index_state['featured'] and entry.source == 'index',
             'likes': self.like_count(entry.id), 'liked': self.liker.liked(entry.id),
+            # Its rating (None below three), ratings and homes (stats.json), and this app's own stars for it.
+            **(self.numbers(entry.id) if entry.source == 'index' else {}),
+            'stars': self.liker.stars(entry.id) if entry.source == 'index' else None,
             'stage': manifest['stage'], 'boards': manifest['boards'],
             'board_names': None if manifest['boards'] == 'any' else [board_name(key) for key in manifest['boards']],
             'requires': {'psram': manifest['requires']['psram'], 'plugins': manifest['requires']['plugins'],
@@ -945,19 +1111,12 @@ class Plugins:
                 if item['kind'] == 'secret':
                     secrets.setdefault(entry.id, {})[item['id']] = self.secrets.has(
                         entry.id, item['id'], origin=None if entry.source == 'folder' else entry.origin)
-        # The entities of every domain a plugin names (a tile's `entity`, an input of kind entity): the editor's own list
-        # has only the domains Tessera draws tiles for, and a plugin may add one it does not (a calendar).
-        domains = {d for entry in listed.values() for tile in entry.manifest['tiles'] for d in tile['domains']}
-        domains |= {d for entry in listed.values() for item in entry.manifest['inputs'] for d in item['domains']}
-        states = getattr(self.manager.ha, 'states', {}) or {}
-        entities = sorted(({'id': eid, 'name': (state.get('attributes') or {}).get('friendly_name') or eid}
-                           for eid, state in states.items() if isinstance(eid, str) and eid.split('.')[0] in domains),
-                          key=lambda e: e['name'].lower())[:500]
+        entities = plugin_entities(listed.values(), getattr(self.manager.ha, 'states', {}) or {})
         # Per screen: the features its board and its plugins bring, and why a plugin cannot go on it when that is
         # something only the app knows (a feature nothing brings, a plugin it needs that does not fit, ESPHome too old).
         # The editor works out the board, PSRAM and room itself.
         features, fit = {}, {}
-        for screen in self.screens():
+        for screen in map(self.known_board, self.screens()):
             features[screen['id']] = sorted(self.features_on(screen))
             reasons = {entry.id: reason for entry in listed.values()
                        if (reason := self.fits(entry, screen)) in ('esphome', 'feature', 'needs', 'built_in')}
@@ -966,7 +1125,7 @@ class Plugins:
         return {'api': api_text(), 'plugins': [self.editor_plugin(entry, language) for entry in listed.values()],
                 'entities': entities,
                 'installed': installed, 'running': running, 'secrets': secrets,
-                'features': features, 'fit': fit, 'likes': {'consented': self.liker.consented()},
+                'features': features, 'fit': fit, 'likes': self.liker.view(),
                 'index': {'at': self.index_state['at'], 'error': self.index_state['error']},
                 'folders': {'path': str(self.folder_root()), 'errors': self.folder_errors},
                 'fetch': self.fetcher.status()}
@@ -978,12 +1137,12 @@ class Plugins:
         first build failed is left out, so the screen's next build (an update of the core) does not fail on it."""
         packages, components = [], []
         records = [r for r in (self.store.of(inbox) if records is None else records) if r.get('state') != 'failed']
-        have = self.features_on(self.manager.screen(inbox) or {'id': inbox}, records)
+        screen = self.screen_of(inbox) or {'id': inbox}
+        have = self.features_on(screen, records)
         for record in records:
             entry = self.entry_for(record)
             # A release the index blocks is left out of the next build (drop_blocked); the editor says why. So is one that
             # brings what the screen's board now brings itself: two of one ESPHome id would stop the build.
-            screen = self.manager.screen(inbox) or {'id': inbox}
             if not entry or self.blocked_record(record) or self.fits(entry, screen, deep=False) == 'built_in':
                 continue
             values = record.get('values') or {}
@@ -1028,6 +1187,21 @@ class Plugins:
         """The screens this app knows (the manager's list)."""
         screens = getattr(self.manager, 'screens', None)
         return list(screens() if callable(screens) else [])
+
+    def screen_of(self, inbox):
+        """The screen as the manager knows it (None when it is not paired), with the board package its profile builds
+        from while it reports no board itself: offline or restarting, its Screen board sensor says nothing, and without
+        its board's features a part that needs one (Screen camera's Video, a microphone) fell out of its plugins file,
+        so the next build had no video (a reTerminal D1001, 2026-10-27)."""
+        screen = self.manager.screen(inbox)
+        return self.known_board(screen) if screen else None
+
+    def known_board(self, screen):
+        if core.board_of(screen) in core.SHAPES or screen.get('package'):
+            return screen
+        package_of = getattr(self.manager, 'package_of', None)
+        package = package_of(screen) if callable(package_of) else None
+        return {**screen, 'package': package} if package else screen
 
     def features_on(self, screen, records=None):
         """The features a screen has: what its board brings (boards.json `features`) and what its plugins bring."""
@@ -1191,7 +1365,7 @@ class Plugins:
     def plan(self, inbox, body, language='en'):
         """What adding and removing these plugins on one screen comes to, for the editor to show before anything is built:
         what comes along and why, a feature to choose a plugin for, what else could go, and why it cannot be done."""
-        screen = self.manager.screen(inbox)
+        screen = self.screen_of(inbox)
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
         if not isinstance(body, dict):
@@ -1214,7 +1388,7 @@ class Plugins:
         id from another origin on this screen, which nothing does unasked."""
         if not isinstance(body, dict):
             raise ValueError(t('addon.errors.plugins.request'))
-        screen = self.manager.screen(inbox)
+        screen = self.screen_of(inbox)
         if screen is None:
             raise ValueError(t('addon.errors.not_paired'))
         inbox = screen['id']
@@ -1288,7 +1462,8 @@ class Plugins:
                 'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())},
                 'state': 'building' if profile else 'active'}})
         removes = plan['remove']
-        records = [r for r in self.store.of(inbox) if r['id'] not in removes and r['id'] not in {c['record']['id'] for c in changes}]
+        had_records = self.store.of(inbox)
+        records = [r for r in had_records if r['id'] not in removes and r['id'] not in {c['record']['id'] for c in changes}]
         records += [dict(c['record'], changed=int(time.time())) for c in changes]
         text = self.sidecar(inbox, records)
         if profile:
@@ -1318,8 +1493,13 @@ class Plugins:
         # once, with everything asked for it, and so does one whose update waits; one asked while its build runs builds
         # once more after it, since that build may have read its YAML before this change.
         line = self.manager.build_queue
+        # A plugin whose parts changed builds from an empty build folder (BuildQueue, Build.fresh).
+        before = {r['id']: r for r in had_records}
+        fresh = any(c['record']['id'] in before and
+                    sorted(before[c['record']['id']].get('parts') or []) != sorted(c['record']['parts'] or [])
+                    for c in changes)
         build = line.add('plugins', profile, self._build, screen=inbox, target=host,
-                         plugins={'add': [c['record']['id'] for c in changes], 'remove': list(removes)})
+                         plugins={'add': [c['record']['id'] for c in changes], 'remove': list(removes), 'fresh': fresh})
         if self._built not in build.ends:
             build.ends.append(self._built)
         self.manager.notify()
@@ -1484,21 +1664,22 @@ class Plugins:
             data['stale'] = True
         return trimmed(data)
 
-    def entity_part(self, kind, tile, budget=X_BUDGET):
-        """(entity, what the screen gets of it) for a tile that belongs to an entity: its state, its name, the
-        attributes its manifest names and the `fields` it takes out of them, bounded as every tile's: a text at 48
-        bytes, and the lists together within X_BUDGET, each shortened from the end to the same length only when they
-        do not fit (96 prices of a quarter of an hour fit, twice). An attribute named ..._at, ..._time or ...date that
-        holds a moment goes as seconds since 1970, so the screen says it in its words."""
-        entity = (tile.get('options') or {}).get('plugin_entity')
-        if not kind or not kind['domains'] or not entity:
+    def state_part(self, spec, entity, budget=X_BUDGET, updated=False):
+        """(entity, what the screen gets of it) for a tile that belongs to an entity, or one an entity option chose
+        (plugin API 0.15): its state, its name, the attributes `spec` names and the `fields` it takes out of them,
+        bounded as every tile's: a text at 48 bytes, and the lists together within `budget`, each shortened from the
+        end to the same length only when they do not fit (96 prices of a quarter of an hour fit, twice). An attribute
+        named ..._at, ..._time or ...date that holds a moment goes as seconds since 1970, so the screen says it in its
+        words. `updated`: also when Home Assistant last heard from the entity, in seconds since 1970 (an entity option's,
+        so a tile of several sources can say how old its values are)."""
+        if not spec or not spec.get('domains') or not entity:
             return None, None
-        if entity.split('.')[0] not in kind['domains']:
+        if entity.split('.')[0] not in spec['domains']:
             return entity, {'wait': 'wrong_entity'}
         state = self.manager.ha.states.get(entity) or {}
         attrs = state.get('attributes') or {}
         bounded = {}
-        for name in kind['attributes']:
+        for name in spec.get('attributes', ()):
             value = attrs.get(name)
             if name.endswith(('_at', '_time', 'date')) and isinstance(value, str):
                 moment = plugin_fetch.epoch_of(value, getattr(self.manager.ha, 'time_zone', None))
@@ -1515,16 +1696,32 @@ class Plugins:
                                  if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool)
                                                            and math.isfinite(v))]
         zone = getattr(self.manager.ha, 'time_zone', None)
-        for name, field in (kind.get('fields') or {}).items():
+        for name, field in (spec.get('fields') or {}).items():
             bounded[name] = plugin_fetch.field_value(attrs, {**field, 'tz': field.get('tz') or zone})
         part = {'state': core.short(str(state.get('state', 'unavailable')), 160),
                 'name': core.short(attrs.get('friendly_name') or entity, 48), 'attributes': bounded}
+        moment = plugin_fetch.epoch_of(state.get('last_updated'), zone) if updated else None
+        if moment is not None:
+            part['updated'] = moment
         for items in LIST_STEPS:
             shaped = {**part, 'attributes': {name: value if not isinstance(value, list) or items is None else value[:items]
                                              for name, value in bounded.items()}}
             if json_size(shaped) <= budget:
                 return entity, shaped
         return entity, {'wait': 'too_large'}
+
+    def entity_part(self, kind, tile, budget=X_BUDGET):
+        """The tile's own entity (its `plugin_entity`), as state_part has it."""
+        entity = (tile.get('options') or {}).get('plugin_entity')
+        return self.state_part(kind, entity, budget)
+
+    @staticmethod
+    def option_entities(kind, chosen):
+        """The selected Home Assistant entities of a plugin tile's entity options (plugin API 0.15)."""
+        if not kind:
+            return ()
+        return tuple(value for option in kind.get('options', ()) if option['kind'] == 'entity'
+                     for value in (chosen.get(option['id']),) if isinstance(value, str) and value)
 
     async def tile_message(self, index, tile, ask=True, inbox=None):
         """The state message of a plugin tile (core.state_message's shape): no entity behind it, its options, its data.
@@ -1556,8 +1753,21 @@ class Plugins:
                    'state': 'ok', 'a': {}, 'o': wire}
         if kind:
             data = await self.tile_data(entry, kind, chosen, ask, inbox)
-            if part or data:
-                message['x'] = trimmed({**(part or {}), **(data or {})}, room)
+            # The entities its entity options chose (0.15), under x.entities.<option id>: they share what the tile's
+            # own entity and data leave of the room, so one with long attributes waits as too large on its own instead
+            # of taking the whole tile with it.
+            picked = [(option, chosen[option['id']]) for option in kind.get('options', ())
+                      if option['kind'] == 'entity' and isinstance(chosen.get(option['id']), str) and chosen[option['id']]]
+            entities = {}
+            if picked:
+                left = room - json_size({**(part or {}), **(data or {}), 'entities': {}})
+                share = left // len(picked) - max(len(option['id']) for option, _ in picked) - 4
+                for option, selected in picked:
+                    _, selected_part = self.state_part(option, selected, share, updated=True)
+                    if selected_part:
+                        entities[option['id']] = selected_part
+            if part or data or entities:
+                message['x'] = trimmed({**(part or {}), **(data or {}), **({'entities': entities} if entities else {})}, room)
         return message
 
     async def choices(self, plugin, fetch_id, values, inbox=None, search=''):
@@ -1771,7 +1981,15 @@ class Plugins:
             return None
         if isinstance(when, dict) and (states.get(entity) or {}).get('state') not in when['state']:
             return None
-        return trimmed({**(part or {}), **(data or {})}, room)
+        step = {**(part or {}), **(data or {})}
+        # The step's entity in its words (#286): the screen asks for the step's pictures `for` it, and the app shows
+        # Home Assistant's own only for the entity chosen for the step. On a step of an entity it is always the app's,
+        # so a field of the fetch's answer cannot stand in for it, and none while an entity of another domain waits.
+        if kind['domains']:
+            step.pop('entity', None)
+            if 'wait' not in part:
+                step['entity'] = entity
+        return trimmed(step, room)
 
     def saver_steps(self):
         """Every plugin step of a screensaver with a fetch, on a screen whose screensaver is on: [(inbox, key, entry,

@@ -30,6 +30,8 @@ APPEARANCE = {
     "mapLook": "look",
     # How the energy card shows power along a line: running dots or calm lines (catalogue/screen.yaml `energy`).
     "energyFlow": "flow",
+    # The template tile (docs/TEXT_TILE.md): its template, as typed. Home Assistant renders it; it never reaches a screen.
+    "textTemplate": "template",
     # A calendar card (firmware 0.56.0, calendar_feed.py): its look, its calendars and filters, how far it looks, when an
     # event starts soon and its full screen's first view. The calendars and filters stay in the app.
     "calendarStyle": "style", "calendarEntities": "calendars", "calendarPlaces": "places", "calendarWords": "words",
@@ -44,7 +46,9 @@ APPEARANCE = {
 # A favourite (app 0.4.42) keeps what it plays (`play`, Home Assistant's own ids) and on which speaker (`speaker`), and
 # since app 0.4.84 its own shuffle and repeat.
 INTERACTION = {"tap": "tap", "inline": "inline", "controls": "controls", "action": "action", "guard": "guard", "play": "play", "speaker": "speaker",
-               "shuffle": "shuffle", "repeat": "repeat", "tilt_open": "tilt_open"}
+               "shuffle": "shuffle", "repeat": "repeat", "tilt_open": "tilt_open",
+               # A light's presets (module light_presets, light_presets.py): a brightness with a white shade or a colour each.
+               "presets": "presets", "preset_levels": "preset_levels"}
 
 
 class LayoutError(ValueError):

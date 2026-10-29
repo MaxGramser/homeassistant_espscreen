@@ -191,10 +191,20 @@
       "hours_minutes": "{h} h {m}",
       "wifi": "Wi-Fi",
       "tessera": "Tessera",
+      "debug_mode": "Debug mode",
       "plugins": "Plugins",
       "microphone_gain": "Ganancia de micrófono",
       "automatic_gain": "Ganancia automática",
       "echo_cancellation": "Cancelación de eco"
+    },
+    "doorbell": {
+      "sound_on": "Sonido activado",
+      "sound_off": "Sonido desactivado",
+      "door": "Puerta",
+      "door_confirm": "Toca otra vez para abrir",
+      "door_sent": "Enviado",
+      "talk": "Hablar",
+      "coming_soon": "Próximamente"
     },
     "tile": {
       "tap_to_open": "Toca para abrir",
@@ -213,7 +223,8 @@
       "color": "Color",
       "color_temperature": "Temperatura del color",
       "brightness": "Brillo",
-      "waiting": "Esperando..."
+      "waiting": "Esperando...",
+      "presets": "Ajustes"
     },
     "effects": {
       "effect": "Efecto",
@@ -695,7 +706,8 @@
         "firmware_first": "Para estos mosaicos, instala antes el firmware {version} o posterior en la pantalla.",
         "entity_gone": "Una de las entidades elegidas ya no existe. Busca la entidad nueva.",
         "ids_too_long": "Juntos, los ID de entidad de estos mosaicos son demasiado largos para caber en un mensaje a la pantalla; elimina algunos mosaicos.",
-        "favorite_play": "Elige qué reproduce este favorito."
+        "favorite_play": "Elige qué reproduce este favorito.",
+        "text_template": "Un mosaico de plantilla necesita una plantilla de 4000 caracteres como máximo."
       },
       "top_bar": {
         "invalid": "Barra superior no válida; recarga la página de gestión.",
@@ -915,12 +927,16 @@
         "choose": "Elige qué plugin aporta el {feature} para {name}.",
         "other_origin": "Esta pantalla usa otro plugin llamado {name}, de {origin}. Cambia a este en sus detalles.",
         "misfit_esphome": "{name} necesita ESPHome {version} o más nuevo para compilar.",
-        "like_not_installed": "Pon primero el plugin en una de tus pantallas y luego podrás darle me gusta.",
         "like_consent": "Acepta primero que tu me gusta cuente en un número público.",
         "like_off": "Los me gusta están desactivados: una versión más nueva de la app los gestiona.",
         "like_failed": "El me gusta no se envió. Inténtalo de nuevo en un momento.",
         "misfit_built_in": "{name} aporta lo que esta placa ya tiene.",
-        "offline": "La app aún no sabe dónde está {screen} en la red. Enciéndela, espera a que aparezca en línea y vuelve a intentarlo."
+        "offline": "La app aún no sabe dónde está {screen} en la red. Enciéndela, espera a que aparezca en línea y vuelve a intentarlo.",
+        "like_not_listed": "Solo los plugins del catálogo de Tessera pueden recibir un me gusta.",
+        "rate_not_installed": "Pon primero el plugin en una de tus pantallas y después podrás valorarlo.",
+        "rate_failed": "Las estrellas no se enviaron. Inténtalo de nuevo en un momento.",
+        "count_failed": "No se pudo desactivar el recuento: no se pudo contactar con Tessera. Inténtalo de nuevo en un momento.",
+        "forget_running": "Una pantalla todavía usa este plugin. Quítalo primero de la pantalla."
       },
       "extras": {
         "request": "Este cambio de un extra no es posible en esta pantalla."
@@ -939,6 +955,31 @@
         "not_paired": "Empareja antes un servidor de compilación.",
         "unknown": "El servidor de compilación ya no conoce a Tessera. Vuelve a emparejarlo.",
         "pending": "El servidor de compilación aún no ha aceptado a Tessera."
+      },
+      "video": {
+        "not_written": "No se pudo escribir Tessera video en {folder}: {reason}.",
+        "not_installed": "Instala primero Tessera video."
+      },
+      "report": {
+        "depth": "Elige el informe básico o el completo.",
+        "busy": "Todavía se está recopilando un informe de esta pantalla.",
+        "no_profile": "El YAML de esta pantalla no está en la carpeta de ESPHome de este complemento, así que desde aquí no hay nada que informar.",
+        "not_found": "Ese informe ya no existe. Haz uno nuevo.",
+        "not_ready": "El informe aún no está terminado.",
+        "failed": "La recopilación del informe se detuvo ({reason}). Inténtalo de nuevo.",
+        "consent": "Marca la casilla para enviar el informe.",
+        "note": "La nota debe tener menos de 2000 caracteres.",
+        "email": "Eso no parece una dirección de correo.",
+        "too_large": "El informe es demasiado grande para enviarlo. Descárgalo y adjúntalo a un issue de GitHub.",
+        "retry": "Tessera no aceptó el informe en este momento. Inténtalo de nuevo en un minuto, o descárgalo.",
+        "offline": "No se puede contactar con Tessera desde aquí. Descarga el informe en su lugar.",
+        "invalid": "Tessera rechazó el informe. Descárgalo y adjúntalo a un issue de GitHub."
+      },
+      "automations": {
+        "not_allowed": "Home Assistant no dejó a la app guardar automatizaciones. La app necesita acceso de administrador.",
+        "refused": "Home Assistant rechazó la automatización: {reason}",
+        "not_ours": "Esa automatización no la creó Tessera, así que la app no la toca.",
+        "invalid": "Esta automatización no se puede guardar ({part})."
       }
     },
     "status": {
@@ -1009,14 +1050,20 @@
         },
         "light": {
           "toggle": "Interruptor",
-          "brightness": "Control deslizante de brillo"
+          "brightness": "Control deslizante de brillo",
+          "presets": "Ajustes",
+          "brightness_presets": "Control de brillo y ajustes"
         },
         "fan": {
           "toggle": "Interruptor",
           "speed": "Control deslizante de velocidad"
         },
         "vacuum": {
-          "buttons": "Iniciar, detener, base"
+          "buttons": "Iniciar, detener, base",
+          "map": "Mapa",
+          "rooms": "Elegir habitaciones",
+          "routines": "Rutinas",
+          "map_rooms": "Mapa y habitaciones"
         },
         "cover": {
           "buttons": "Abrir, detener, cerrar",
@@ -1396,7 +1443,8 @@
         "nightstand": "Reloj de mesita",
         "page": "Ir a la página {page}",
         "map": "Mapa",
-        "energy": "Energía"
+        "energy": "Energía",
+        "text": "Plantilla"
       },
       "identify": {
         "title": "Esta es {name}",
@@ -1467,6 +1515,56 @@
         "directory": "Carpeta",
         "music": "Música"
       }
+    },
+    "doorbell": {
+      "fields": {
+        "camera": {
+          "label": "Cámara",
+          "help": "La entidad de cámara del timbre. Una pantalla que transmite (un ESP32-P4) la muestra en directo con sonido; cualquier otra muestra su imagen en una alerta. Obligatoria."
+        },
+        "title": {
+          "label": "Título",
+          "help": "Cómo llama la pantalla al timbre, arriba en la vista y como título de la alerta. Vacío toma el nombre de la cámara."
+        },
+        "screen": {
+          "label": "Pantalla",
+          "help": "Qué pantallas reciben la llamada: un nombre de dispositivo (como kitchen-screen), el nombre que muestra Home Assistant o una estancia. Una lista llega a varias. Omítelo para todas. Un nombre que no coincide con ninguna pantalla no envía nada."
+        },
+        "timeout": {
+          "label": "Tiempo límite",
+          "help": "Segundos que la llamada se queda si nadie la toca, de {min} a {max}. Vacío es {default}. Un toque la mantiene abierta."
+        },
+        "keep_minutes": {
+          "label": "Mantener perdido",
+          "help": "Minutos que un timbre sin respuesta se queda en la barra superior de las pantallas con su vista, contados desde que sonó, de 1 a {most}. Vacío o 0: hasta que alguien lo abra."
+        },
+        "sound": {
+          "label": "Sonido",
+          "help": "Si el sonido del timbre suena en cuanto llama, donde la pantalla tiene altavoz. Vacío o true: la vista se abre con el sonido activado. false: se abre en silencio (un estudio, un dormitorio), y un toque en Sonido lo activa."
+        },
+        "chime": {
+          "label": "Campanilla",
+          "help": "Si la pantalla toca su campanilla cuando llaman, donde tiene altavoz. Vacío o true: la toca. false: llama sin ella, y la vista se abre igual."
+        },
+        "lock": {
+          "label": "Cerradura",
+          "help": "Una entidad de cerradura que la tecla de puerta de la vista desbloquea tras un segundo toque; la tecla muestra su estado. Una cerradura que pide un código necesita un código predeterminado en Home Assistant (los ajustes de la cerradura). Déjalo vacío para no tener tecla de puerta."
+        },
+        "door_action": {
+          "label": "Acción de puerta",
+          "help": "En lugar de una cerradura: una acción de Home Assistant que la tecla de puerta realiza tras un segundo toque, como script.open_gate o button.press. `door_data` da sus campos (entity_id, ...)."
+        },
+        "door_data": {
+          "label": "Datos de puerta",
+          "help": "Los campos de `door_action`, como entity_id."
+        }
+      },
+      "endings": {
+        "answered": "Alguien la tocó: contestada y cerrada en las demás pantallas",
+        "closed": "Su botón de cerrar, u otra cosa que la cerró",
+        "missed": "Nadie la tocó antes de su tiempo límite",
+        "seen": "Una llamada perdida se abrió de nuevo desde la barra superior"
+      }
     }
   },
   "editor": {
@@ -1494,9 +1592,10 @@
       "plugins": "Plugins",
       "new_screen": "Nueva pantalla",
       "firmware": "Firmware y USB",
-      "alerts": "Alertas",
+      "events": "Eventos",
       "settings": "Configuración",
-      "new_screen_detail": "Conectar e instalar"
+      "new_screen_detail": "Conectar e instalar",
+      "manual": "Manual"
     },
     "api": {
       "failed": "No ha funcionado. Recarga la página y vuelve a intentarlo."
@@ -1834,6 +1933,11 @@
     "plugins": {
       "title": "Plugins",
       "intro": "Extras para tus pantallas: mosaicos para una página, algo más que puede hacer toda la pantalla o hardware en la placa. Un plugin se integra en el firmware de una pantalla, así que eliges por pantalla cuáles recibe.",
+      "risk": {
+        "title": "Los plugins son bajo tu propio riesgo",
+        "text": "Cada plugin usa parte de la memoria y del tiempo de procesador de una pantalla. Unos pocos funcionan bien juntos, pero muchos a la vez (por ejemplo un asistente de voz, un proxy Bluetooth y una cámara) pueden llenar la memoria y hacer que una pantalla vaya lenta, se congele o se reinicie. Puedes probarlo, pero añade uno o dos a la vez y comprueba que la pantalla sigue estable. Si empieza a fallar, quita primero los más nuevos.",
+        "many": "{screen} tendrá {n} plugins tras esta compilación. Tantos pueden hacer inestable una pantalla: si falla, quita algunos."
+      },
       "search": "Busca por nombre, autor o lo que hace",
       "filter": "Mostrar",
       "from_tessera": "De Tessera",
@@ -2043,7 +2147,8 @@
         "keep": "Conservarlo",
         "keep_named": "Conservar {name}",
         "minutes": "Cada compilación tarda unos minutos.",
-        "off_set": "Preparado para quitarse"
+        "off_set": "Preparado para quitarse",
+        "risk": "Bajo tu propio riesgo: cada plugin usa memoria, y demasiados pueden hacer inestable una pantalla."
       },
       "maker": {
         "title": "Crea tu propio plugin",
@@ -2111,7 +2216,9 @@
         "label": "Ordenar por",
         "popular": "Más gustados",
         "new": "Más nuevos",
-        "name": "Nombre"
+        "name": "Nombre",
+        "rated": "Mejor valorados",
+        "used": "Más usados"
       },
       "none_in_tab": {
         "tiles": "Aún no hay plugins con mosaicos.",
@@ -2124,8 +2231,8 @@
         "count": "A {n} persona le gusta | A {n} personas les gusta",
         "like": "Me gusta",
         "unlike": "Quitar tu me gusta",
-        "install_first": "Ponlo primero en una pantalla y luego podrás darle me gusta",
-        "ask": "Tu me gusta cuenta en un número público por plugin. Solo el número es público: no se envía nada sobre ti, Home Assistant ni tus pantallas."
+        "ask": "Tu me gusta cuenta en un número público por plugin. Solo el número es público: no se envía nada sobre ti, Home Assistant ni tus pantallas.",
+        "like_hint": "Dale me gusta, aunque no esté en ninguna de tus pantallas: un agradecimiento a quien lo hizo."
       },
       "along": {
         "title": "Viene con él",
@@ -2178,7 +2285,59 @@
         "history": "Todas las versiones"
       },
       "failed_update": "La versión {version} no se pudo compilar para {screen}, así que volvió a {current}, la que ejecuta. Su registro está en Firmware y USB.",
-      "interrupted": "La app se reinició durante la compilación."
+      "interrupted": "La app se reinició durante la compilación.",
+      "stars": {
+        "label": "Estrellas para {name}",
+        "of_five": "{n} de 5 estrellas",
+        "say": {
+          "1": "No funciona",
+          "2": "Flojo",
+          "3": "Aceptable",
+          "4": "Bien",
+          "5": "Genial"
+        },
+        "yours": "Tus estrellas",
+        "give": "¿Qué tal te funciona?",
+        "clear": "Retirar"
+      },
+      "numbers": {
+        "rating": "{rating} de {n} valoración | {rating} de {n} valoraciones",
+        "few": "{n} valoración por ahora | {n} valoraciones por ahora",
+        "homes": "se usa en {n} hogar | se usa en {n} hogares"
+      },
+      "counting": {
+        "label": "Contar mis plugins en la tienda",
+        "hint": "Una vez al día, los nombres y versiones de tus plugins y el modelo de cada pantalla. Nada más.",
+        "on_hint": "Activado: una vez al día los nombres y versiones de tus plugins y el modelo de cada pantalla van a Tessera. Al desactivarlo se borran allí."
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} lleva {days} día en {screen}. ¿Qué te parece? | {name} lleva {days} días en {screen}. ¿Qué te parece?",
+        "send": "Enviar",
+        "what_title": "¿Qué se comparte?",
+        "what": {
+          "plugin": "El plugin y su versión: {name} {version}",
+          "board": "El modelo de pantalla: {board}",
+          "stars": "Tus estrellas",
+          "counting": "Con el recuento activado: una vez al día, qué plugins usan tus pantallas, sus versiones y los modelos de pantalla",
+          "nothing_else": "Nada más: ni nombre, ni cuenta, ni entidades, ni ajustes de Home Assistant. La app comparte con una clave aleatoria propia."
+        },
+        "thanks": "¡Gracias! Tus estrellas ya están en {name}.",
+        "heart_hint": "¿Te encanta? Dale también un me gusta a {maker}. Cuenta en un número público por plugin; no se envía nada sobre ti.",
+        "hearted": "Gracias por tu me gusta",
+        "issue_hint": "Qué pena. ¿Quieres que se arregle? Abre un issue para {maker}, con la versión y tu modelo de pantalla ya rellenados.",
+        "issue_open": "Abrir un issue en GitHub"
+      },
+      "sharing": {
+        "title": "Tienda de plugins",
+        "text": "Ayuda a otros a encontrar buenos plugins. Los me gusta y las estrellas solo se envían cuando los das, el recuento solo mientras está activado.",
+        "asking": "Pedir estrellas unos días después de un plugin nuevo",
+        "asking_hint": "Una tarjeta encima de la pantalla, un plugin cada vez."
+      },
+      "forget": {
+        "go": "Quitar de la lista",
+        "note": "Ninguna pantalla usa este plugin. Quítalo de la lista para olvidar el enlace."
+      }
     },
     "plugin_tile": {
       "from": "Un mosaico del plugin {plugin}",
@@ -2308,7 +2467,6 @@
         "live_card_hint": "La imagen llena el mosaico, actualizada al ritmo de abajo mientras la página está en pantalla. Un toque la sigue abriendo a pantalla completa.",
         "live_card_needs_firmware": "Una imagen que llena el mosaico necesita el firmware 0.3.7 o más reciente: pulsa Actualizar en la pantalla después de guardar. Hasta entonces la pantalla muestra una imagen pequeña en el lugar del icono.",
         "cover": "Carátula",
-        "cover_hint": "La carátula de lo que suena en el lugar del icono, como en el propio mosaico de Home Assistant; un reproductor sin imagen conserva su icono. Un toque sigue abriendo la tarjeta.",
         "cover_needs_firmware": "La carátula en el mosaico necesita el firmware 0.2.78 o más reciente: pulsa Actualizar en la pantalla después de guardar.",
         "map": "Mapa",
         "map_hint": "Dónde están esta persona y las que añadas, en un mapa tranquilo con los colores de la pantalla. Home Assistant aporta las calles de OpenStreetMap; la pantalla solo recibe la imagen, nunca una ubicación. Se vuelve a dibujar cuando alguien se mueve. Un toque lo abre en toda la pantalla.",
@@ -2327,7 +2485,11 @@
       "refresh": {
         "label": "Actualizar",
         "seconds": "Cada {n} s",
-        "live": "En directo"
+        "live": "En directo",
+        "paused": "En directo en pausa",
+        "cap": "Esta pantalla muestra {n} cámaras en directo a la vez; las demás muestran una imagen cada 15 segundos. Con dos cámaras, cada una va más fluida que con cuatro.",
+        "cap_one": "Esta pantalla muestra una cámara en directo a la vez; las demás muestran una imagen cada 15 segundos.",
+        "streams": "{used} de {most} transmisiones en directo en uso, entre todas las pantallas. Una cámara más allá muestra una imagen cada 15 segundos."
       },
       "picture": {
         "fit": {
@@ -2409,6 +2571,39 @@
         "room_hint": "La pantalla los dibuja donde el mosaico tiene sitio (firmware 0.57.0 o posterior): bajo el nombre en un mosaico sencillo, al lado en uno de doble ancho. Donde no caben, el mosaico se ve como sin ellos.",
         "tilt": "",
         "tilt_hint": ""
+      },
+      "presets": {
+        "label": "Ajustes",
+        "preset": "Ajuste {n}",
+        "swatch_aria": "Ajuste {n}, brillo {b} %",
+        "white": "Blanco",
+        "colour": "Color",
+        "level": "Solo brillo",
+        "white_shade": "Tono de blanco",
+        "kelvin": "{k} K",
+        "hue": "Tono",
+        "degrees": "{h}°",
+        "saturation": "Saturación",
+        "brightness": "Brillo",
+        "percent": "{n} %",
+        "use_light": "Usar el estado actual de la luz",
+        "use_light_off": "Enciende la luz para tomar su brillo y color.",
+        "add": "Añadir un ajuste",
+        "add_first": "Añadir el primer ajuste",
+        "levels": "Mostrar el brillo en los ajustes",
+        "levels_hint": "Escribe el brillo en pequeño en cada círculo. Un ajuste solo de brillo siempre lo muestra.",
+        "hint": "Un toque en un ajuste pone la luz así de una vez; el anillo marca el que muestra la luz. Haz clic en uno para cambiarlo, arrástralo para cambiar el orden.",
+        "hint_empty": "Hasta cuatro teclas redondas, como los colores favoritos de Home Assistant, cada una con su brillo. Uno nuevo parte de lo que muestra la luz ahora.",
+        "own": "Ajuste propio",
+        "device": "Preset de la lámpara",
+        "effect": "Efecto",
+        "search": "Buscar",
+        "none_found": "No se encontró nada",
+        "device_kind": "Tipo",
+        "device_preset": "Preset",
+        "device_playlist": "Lista",
+        "device_hint": "Un preset de la propia lámpara fija su propio color, efecto y brillo.",
+        "swatch_aria_named": "Preset {n}, {name}"
       },
       "tap": {
         "label": "Al tocar",
@@ -2662,6 +2857,58 @@
         "none": "Sin controles",
         "never": "No volver a mostrar",
         "done": "Listo"
+      },
+      "text": {
+        "title": "Plantilla",
+        "hint": "Escribe texto con plantillas de Home Assistant, como en Herramientas para desarrolladores › Plantilla. Home Assistant lo rellena, y la pantalla muestra el resultado y lo mantiene al día. Si el resultado está vacío, el mosaico desaparece.",
+        "manual": "Cómo escribir una plantilla",
+        "field": "Plantilla",
+        "placeholder": "Escribe texto, o {'{{'} para leer un estado…",
+        "keys": {
+          "space": "Espacio",
+          "complete": "completar",
+          "next": "campo siguiente",
+          "comment": "comentario"
+        },
+        "result": "En la pantalla",
+        "bytes": "{n} de {of} bytes",
+        "empty": "El resultado está vacío: la pantalla no muestra nada aquí.",
+        "access": "La plantilla se ejecuta en Home Assistant con los permisos de la app Tessera, así que puede leer cualquier entidad.",
+        "markup": {
+          "label": "Formato",
+          "heading": "Encabezado",
+          "bullet": "Viñeta",
+          "table": "Tabla",
+          "bold": "Negrita",
+          "good": "Texto verde",
+          "alert": "Texto rojo",
+          "accent": "Texto azul"
+        },
+        "complete": {
+          "now": "ahora",
+          "state": "Estado: {state}"
+        },
+        "examples": {
+          "title": "Empezar con un ejemplo:",
+          "lights": "Luces encendidas",
+          "open": "Puertas y ventanas abiertas",
+          "weather": "Tiempo",
+          "lights_heading": "Luces encendidas",
+          "all_off": "Todas las luces están apagadas",
+          "open_heading": "Abierto",
+          "now": "Ahora",
+          "humidity": "Humedad"
+        },
+        "listen": {
+          "label": "Se actualiza con",
+          "time": "la hora",
+          "none": "No lee ninguna entidad: solo cambia cuando cambias la plantilla.",
+          "all": "Lee todos los estados: Home Assistant la recalcula como mucho una vez por minuto. Nombra las entidades o un dominio (states.light) para que siga al instante."
+        },
+        "lint": {
+          "unknown": "{id} no existe en Home Assistant",
+          "replace": "Reemplazar por {id}"
+        }
       }
     },
     "precision": {
@@ -3002,6 +3249,23 @@
         "reinstall_all_confirm": "¿Reinstalar 1 pantalla desde la dev más reciente? Se reinicia cuando tenga el firmware. | ¿Reinstalar {n} pantallas desde la dev más reciente? Se compilan una tras otra y cada una se reinicia cuando tiene su firmware.",
         "reinstall_all_go": "Reinstalar"
       },
+      "video": {
+        "title": "Vídeo en Home Assistant",
+        "text": "Una pantalla con la parte Vídeo de Cámara de la pantalla muestra su cámara en directo en Home Assistant, con sonido: una cámara Vídeo en el dispositivo de la pantalla, en el navegador y en la app. Home Assistant necesita para ello la integración Tessera video.",
+        "install": "Instalar en Home Assistant",
+        "install_again": "Instalar de nuevo",
+        "update": "Actualizar la integración",
+        "newer": "Instalada · hay una versión más nueva",
+        "waits_restart": "Instalada · reinicia Home Assistant para cargarla",
+        "running": "● Funcionando en Home Assistant",
+        "restart": "Reiniciar Home Assistant",
+        "restart_confirm": "¿Reiniciar Home Assistant ahora? Estará fuera uno o dos minutos, igual que sus paneles y automatizaciones.",
+        "restarting": "Home Assistant se reinicia. El vídeo de las pantallas llega en un minuto tras su vuelta.",
+        "installed": "Tessera video instalada. Reinicia Home Assistant una vez para cargarla.",
+        "screens": "Pantallas con vídeo: {names}",
+        "no_screens": "Ninguna pantalla tiene vídeo aún: añade Cámara de la pantalla, con su parte Vídeo, a una pantalla P4 con cámara.",
+        "writes": "Escribe la carpeta {path}; instalar de nuevo la reemplaza. Tessera añade cada pantalla con vídeo por sí mismo."
+      },
       "claude": {
         "installed": "Habilidad instalada. Claude Code la detecta al momento.",
         "installed_restart": "Habilidad instalada. Reinicia Claude Code una vez para que encuentre la nueva carpeta de habilidades.",
@@ -3149,10 +3413,20 @@
         "calibration": "Calibración táctil al primer arranque"
       },
       "choice": {
-        "DISPLAY_MODEL": "Controlador de pantalla"
+        "DISPLAY_MODEL": "Controlador de pantalla",
+        "FLASH_SIZE": "Memoria flash",
+        "BOARD_VARIANT": "Placa"
       },
       "choice_hint": {
-        "DISPLAY_MODEL": "La mayoría de estas placas llevan el primero. Elige el otro si la pantalla muestra ruido o una imagen distorsionada."
+        "DISPLAY_MODEL": "Empieza por el primero. Elige el otro si la pantalla se queda negra o muestra ruido o una imagen distorsionada.",
+        "FLASH_SIZE": "La mayoría de estas placas tienen 16 MB. Elige 8 MB si la pantalla se queda negra tras la instalación y se reinicia una y otra vez.",
+        "BOARD_VARIANT": "Elige la que tienes. En la placa amarilla sin carcasa, un toque arriba a la izquierda acabaría si no abajo a la derecha."
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "Negra, con carcasa",
+          "yellow": "Amarilla, sin carcasa"
+        }
       },
       "choice_usual": "la mayoría",
       "orientation_landscape": "En horizontal",
@@ -3309,8 +3583,6 @@
       "waits_turn": "Ahora se está compilando otra pantalla. Esta espera su turno y empieza sola justo después."
     },
     "alerts": {
-      "eyebrow": "Alertas · guía rápida",
-      "title": "Una notificación a pantalla completa, desde una automatización.",
       "intro": "Cada pantalla tiene la acción {action}. Coloca una tarjeta por encima de todo, despierta la pantalla y mantiene la retroiluminación al brillo normal hasta que alguien toque el botón o se agote el tiempo de espera. Home Assistant no muestra explicaciones ni desplegables para las acciones de ESPHome; aquí tienes todo lo que puedes rellenar.",
       "loading": "La guía rápida aún se está cargando; un momento.",
       "example": {
@@ -3320,7 +3592,6 @@
       },
       "sections": "Secciones",
       "nav": {
-        "try": "Pruébalo",
         "screens": "Tus pantallas",
         "howto": "En una automatización",
         "all": "Todas las pantallas",
@@ -3334,10 +3605,6 @@
         "choice": "Dos botones"
       },
       "try": {
-        "text": "Envía ahora una alerta, con los mismos campos que envía una automatización. La pantalla muestra la tarjeta y, con el parpadeo activado, hace parpadear la retroiluminación.",
-        "screen": "Pantalla",
-        "all": "Todas las pantallas (listas: {ready})",
-        "not_ready": "{name} · no está lista",
         "title": "Título",
         "subtitle": "Subtítulo",
         "icon": "Icono",
@@ -3349,10 +3616,6 @@
         "sending": "Enviando…",
         "send": "Enviar alerta",
         "sent_all": "Enviada a {n} pantalla. | Enviada a {n} pantallas.",
-        "sent_to": "Enviada a {name}.",
-        "sent_one": "Enviada a la pantalla.",
-        "skipped": "Se ha omitido 1 pantalla (sin conexión o firmware antiguo). | Se han omitido {n} pantallas (sin conexión o firmware antiguo).",
-        "left_empty": "Se dejaron vacíos: {fields}.",
         "nothing": "Ninguna pantalla ha podido mostrarla: comprueba que haya una pantalla en línea con el firmware {version} o posterior."
       },
       "white": "Blanco (predeterminado)",
@@ -3466,7 +3729,80 @@
         "text": "Añade {second} para un segundo botón a la izquierda del primero, para que quien esté ante la pantalla pueda elegir, por ejemplo Ahora no y Abrir. {first_color} y {second_color} dan a un botón un color propio, verde para sí y rojo para no. Qué respuesta va a cada lado lo decides tú: el primer botón siempre está a la derecha.",
         "event": "Mediante el evento, cada uno de estos campos es opcional, y {second_action} con {second_data} ejecuta una acción desde el segundo botón, como {action} desde el primero. Una pantalla con firmware anterior a {version} muestra el aviso con un solo botón.",
         "direct": "¿Llamas a una pantalla directamente? Su acción {choice} toma los campos de show_alert más estos tres; el segundo botón termina el aviso con {ending}."
-      }
+      },
+      "wizard": {
+        "camera": "Cámara (opcional)",
+        "no_camera": "Sin cámara",
+        "screens_hint": "Ninguna elegida: todas las pantallas que pueden mostrar una alerta.",
+        "description": "Creada en los Eventos de Tessera: una alerta en las pantallas.",
+        "title": "Nueva automatización de alerta",
+        "with_picture": "Muestra la imagen de la cámara",
+        "without_picture": "Muestra la alerta sin imagen",
+        "summary": {
+          "says": "Texto",
+          "buttons": "Botones"
+        },
+        "steps": {
+          "trigger": {
+            "title": "¿Qué la inicia?",
+            "help": "Elige qué hace aparecer la alerta: un sensor que se enciende, un ayudante de interruptor, un botón o un evento. ¿La usas en una automatización que ya tienes? Entonces puedes saltarte este paso."
+          },
+          "words": {
+            "title": "¿Qué dice?",
+            "help": "Un título corto y una línea debajo. Ves la tarjeta tal como la dibuja la pantalla."
+          },
+          "look": {
+            "title": "¿Cómo se ve?",
+            "help": "Un icono, un color, una imagen de cámara si quieres, y si parpadea."
+          },
+          "screens": {
+            "title": "¿Qué pantallas?",
+            "help": "Elige las pantallas que la muestran y cuánto tiempo se queda."
+          },
+          "try": {
+            "title": "Pruébalo",
+            "help": "Envíala una vez ahora, igual que lo hará la automatización. Mira tus pantallas."
+          },
+          "add": {
+            "title": "Terminar",
+            "help": "Conviértela en una automatización propia, o copia la acción en una automatización que ya tengas."
+          },
+          "buttons": {
+            "title": "¿Qué botones?",
+            "help": "Un botón, o dos para elegir. Cada uno puede hacer algo en Home Assistant al pulsarlo, o solo cerrar la alerta."
+          }
+        },
+        "buttons": {
+          "one": "Un botón",
+          "one_detail": "OK, Voy, Visto: cierra la alerta y puede hacer una cosa.",
+          "two": "Dos botones",
+          "two_detail": "Una elección, como Abrir y Ahora no, cada uno con su acción.",
+          "first": "Botón derecho",
+          "second": "Botón izquierdo",
+          "second_example": "Ahora no",
+          "color": "Color",
+          "own_color": "Su propio color",
+          "does": "Al pulsarlo",
+          "only_close": "Solo cierra la alerta",
+          "no_actions": "Esta entidad no tiene ninguna acción que no necesite nada más. Elige otra.",
+          "closes": "cierra la alerta",
+          "only": "El botón"
+        },
+        "try_action": "Cuidado: pulsar un botón con una acción la ejecuta de verdad, también ahora.",
+        "route": {
+          "event": "Enviada como el evento {event}: la única vía que lleva una cámara, la acción de un botón y una elección de pantallas. La app da a cada pantalla la alerta en la forma que conoce su firmware.",
+          "one_button": "{screens}: firmware anterior a {version}, muestra solo el botón derecho.",
+          "action": "La app ejecuta la acción de un botón una vez, en cualquier pantalla donde se pulse. Tras el tiempo de espera o una nueva alerta no pasa nada.",
+          "no_picture": "{screens}: muestra la alerta sin la imagen de la cámara."
+        }
+      },
+      "hero": {
+        "title": "Una alerta en tus pantallas",
+        "text": "Una tarjeta sobre todo lo que hay en la pantalla, con un botón: cuando hay alguien en la puerta, la colada está lista o queda una ventana abierta. El asistente te guía y añade la automatización a Home Assistant.",
+        "create": "Crear una automatización de alerta",
+        "empty": "Aún no hay automatización de alerta. Crea una arriba y aparecerá aquí."
+      },
+      "reference": "Escribirla tú mismo"
     },
     "override": {
       "eyebrow": "Avanzado · personalización local",
@@ -3638,8 +3974,7 @@
       "comment_label": "Nota (opcional)",
       "comment_hint": "No incluyas datos personales, registros, contraseñas ni claves de API.",
       "report_title": "¿Quieres que se arregle?",
-      "report_text": "Abre un issue en GitHub. Tu placa, las versiones y lo que nos contaste ya están rellenados. Añade un registro y podremos investigarlo y preguntarte.",
-      "report_open": "Abrir un issue en GitHub",
+      "report_text": "Envía un informe: Tessera reúne la placa, las versiones, los registros y el último fallo, te los muestra primero y solo los envía cuando tú lo apruebas. O lee qué hacer cuando algo no funciona.",
       "add_details": "Añadir detalles",
       "done": "Listo",
       "settings_title": "Comentarios",
@@ -3672,7 +4007,9 @@
         "addon": "La versión de Tessera: {version}",
         "nothing_else": "Nada más: ni nombre, ni cuenta, ni entidades, registros o configuración de Home Assistant. Cada pantalla comparte con su propia clave aleatoria."
       },
-      "privacy": "Privacidad"
+      "privacy": "Privacidad",
+      "report_send": "Enviar un informe",
+      "report_manual": "Leer la guía de problemas"
     },
     "webflash": {
       "target": "Instalar desde este navegador (Chrome o Edge)",
@@ -3936,6 +4273,263 @@
       "move_to": "Mover a la página",
       "add_here": "Añadir un mosaico aquí",
       "paste_here": "Pegar aquí"
+    },
+    "report": {
+      "button": "Mi pantalla no funciona bien",
+      "card_title": "¿Algo va mal?",
+      "card_hint": "Reúne un informe con lo que la app sabe de esta pantalla, léelo y envíalo a Tessera para que podamos encontrar la causa.",
+      "eyebrow": "Solución de problemas",
+      "title": "Mi pantalla no funciona bien",
+      "title_named": "{name} no funciona bien",
+      "intro": "La app recopila lo que sabe de esta pantalla en unos pocos archivos. Los lees aquí, y solo Enviar los lleva a Tessera.",
+      "loading": "Leyendo lo que sabe la app…",
+      "collects_title": "Qué incluye",
+      "collects": "La placa y las versiones de la pantalla, su propio registro (hasta 45 segundos, en directo), las líneas del registro de Home Assistant sobre ella, el registro de la app y el último registro de compilación. Las contraseñas, claves, direcciones de red y el nombre de la pantalla se ocultan.",
+      "nothing_leaves": "Nada sale de tu Home Assistant hasta que pulses Enviar. Puedes leer cada archivo antes.",
+      "crash_title": "Último fallo",
+      "crash_line": "{reason}, {when}, {seen}",
+      "crash_seen": "visto una vez esta semana | visto {n} veces esta semana",
+      "crash_lines": "Líneas decodificadas",
+      "full": "Incluir también la disposición de mis páginas, los nombres de las entidades y las demás líneas del registro de Home Assistant. Ayuda mucho a encontrar la causa.",
+      "note_label": "¿Qué pasó? (opcional)",
+      "note_hint": "Lo que viste, lo que hiciste justo antes y con qué frecuencia ocurre.",
+      "email_label": "Tu correo (opcional)",
+      "email_hint": "Por si podemos hacerte alguna pregunta al respecto.",
+      "remember_email": "Recordar mi correo en esta app",
+      "collect": "Recopilar",
+      "check_again": "Comprobar de nuevo",
+      "blockers": {
+        "no_profile": "El YAML de esta pantalla no está en la carpeta de esta app, así que no se puede hacer un informe de ella.",
+        "collecting": "Ya se está recopilando un informe de esta pantalla. Espera un momento y comprueba de nuevo."
+      },
+      "collecting": "Recopilando…",
+      "collecting_hint": "Tarda hasta un minuto: la app escucha el registro de la pantalla durante un rato.",
+      "steps": {
+        "identity": "Leyendo la identidad de la pantalla",
+        "profile": "Copiando su perfil",
+        "screen_log": "Escuchando el registro de la pantalla",
+        "ha_log": "Leyendo el registro de Home Assistant",
+        "addon_log": "Leyendo el registro de la app",
+        "build_log": "Leyendo el último registro de compilación",
+        "crash": "Leyendo el último fallo",
+        "zip": "Empaquetando los archivos"
+      },
+      "ready_title": "Listo para leer",
+      "facts": {
+        "board": "Placa",
+        "firmware": "Firmware",
+        "addon": "Tessera",
+        "ha": "Home Assistant",
+        "esphome": "ESPHome",
+        "plugins": "Plugins",
+        "crash": "Último fallo",
+        "none": "Ninguno",
+        "unknown": "Desconocido"
+      },
+      "warnings": {
+        "screen_offline": "La pantalla está desconectada: el informe no tiene registro en directo, solo lo que la app guardó.",
+        "no_api_key": "La app no tiene clave de API para esta pantalla, así que no se pudo leer su registro en directo.",
+        "no_elf": "Falta el archivo de depuración del firmware, así que un fallo no se puede señalar por sus líneas de código.",
+        "ha_log_unavailable": "No se pudo leer el registro de Home Assistant.",
+        "addon_log_unavailable": "No se pudo leer el registro de la propia app.",
+        "no_crash_record": "No se encontró ningún fallo registrado para esta pantalla."
+      },
+      "files_title": "Archivos del informe",
+      "file_lines": "1 línea | {n} líneas",
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
+      },
+      "download": "Descargar zip",
+      "send_title": "Enviar a Tessera",
+      "send_text": "Esto va a Tessera y se guarda {days} días. Contiene los archivos de arriba, tu nota y tu correo si lo diste.",
+      "privacy": "Privacidad",
+      "with_note": "Con tu nota.",
+      "with_email": "Podemos escribir a {email}.",
+      "change_note": "Cambiar la nota o el correo",
+      "consent": "He leído lo que contiene el informe y acepto enviarlo a Tessera.",
+      "send": "Enviar",
+      "sending": "Enviando…",
+      "sent": {
+        "title": "Enviado, gracias",
+        "quote": "Cita esta referencia en GitHub o Discord para que podamos encontrar tu informe.",
+        "copy": "Copiar",
+        "copied": "Referencia copiada.",
+        "selected": "La referencia está seleccionada: cópiala con Ctrl+C o ⌘C.",
+        "github": "Abrir un issue en GitHub",
+        "discord": "Preguntar en Discord",
+        "new": "Hacer un informe nuevo"
+      },
+      "failed_title": "No se pudo hacer el informe",
+      "try_again": "Reintentar"
+    },
+    "events": {
+      "eyebrow": "Eventos · desde Home Assistant",
+      "intro": "Lo que una automatización de Home Assistant puede enviar a tus pantallas. Tú eliges el disparador, las pantallas y lo que muestran.",
+      "alerts": "Alertas",
+      "doorbell": "Timbre",
+      "wizard": {
+        "suggested": "Tus timbres:",
+        "none": "No se encontró ninguna entidad",
+        "pick_trigger": "Elige qué la inicia",
+        "yaml": "Mostrar la automatización en YAML",
+        "kind": {
+          "doorbell": "Empieza cuando suena este timbre (Doorbell rang de Home Assistant).",
+          "event": "Empieza cada vez que se dispara este evento.",
+          "on": "Empieza cuando esto se enciende.",
+          "press": "Empieza cada vez que se pulsa."
+        },
+        "back": "Atrás",
+        "next": "Siguiente",
+        "done": "Hecho",
+        "other": "Otra cosa",
+        "other_detail": "Cualquier sensor, interruptor, ayudante, botón o evento tuyo",
+        "every_screen": "Todas las pantallas",
+        "summary": {
+          "starts": "Empieza con",
+          "screens": "Pantallas",
+          "title": "Nombre en Home Assistant"
+        },
+        "domain": {
+          "binary_sensor": "Un sensor: de apagado a encendido, por ejemplo cuando detecta a alguien.",
+          "switch": "Un interruptor: cuando alguien lo enciende.",
+          "input_boolean": "Un ayudante de interruptor: cuando se enciende, por ejemplo desde otra automatización."
+        },
+        "finish": {
+          "label": "¿Cómo quieres usarla?",
+          "automation": "Crear la automatización",
+          "automation_detail": "Tessera la añade a Home Assistant, con el inicio que elegiste en el paso 1.",
+          "needs_trigger": "Elige primero en el paso 1 qué la inicia.",
+          "action": "Usarla en una automatización tuya",
+          "action_detail": "Copia solo la acción y pégala en una automatización que ya tengas.",
+          "paste": "En Home Assistant, abre tu automatización, añade una acción, elige Editar en YAML en su menú y pega esto.",
+          "copy": "Copiar YAML"
+        }
+      },
+      "install": {
+        "add": "Añadir a Home Assistant",
+        "saving": "Añadiendo…",
+        "saved": "Añadida. Funciona enseguida, sin reiniciar.",
+        "open": "Abrir en Home Assistant",
+        "hint": "Se llama \"{title}\" en las automatizaciones de Home Assistant, donde puedes cambiarla más.",
+        "listed": "De Tessera en Home Assistant",
+        "remove": "Eliminar",
+        "remove_confirm": "¿Eliminar \"{name}\" de Home Assistant?",
+        "on": "Activada",
+        "off": "Desactivada"
+      }
+    },
+    "doorbell": {
+      "intro": "Alguien llama y tus pantallas muestran la puerta. Una automatización envía el evento con la cámara del timbre: una pantalla P4 se despierta, toca un aviso y abre la cámara en directo con sonido; cualquier otra pantalla muestra su imagen en una alerta. Funciona cualquier timbre, sea cual sea el disparador.",
+      "example": {
+        "title": "Puerta principal",
+        "when": "Ahora mismo",
+        "sound": "Sonido activado"
+      },
+      "try": {
+        "send": "Llamar",
+        "views": "Abierta en directo en {n} pantalla. | Abierta en directo en {n} pantallas.",
+        "alerts": "Mostrada como alerta en {n} pantalla. | Mostrada como alerta en {n} pantallas.",
+        "nothing": "Ninguna pantalla la mostró. ¿Está la pantalla en línea y la cámara es una entidad de cámara?"
+      },
+      "no_camera": "Sin cámara",
+      "fields": {
+        "title": "Título",
+        "timeout": "Tiempo límite (segundos)",
+        "keep": "Mantener un timbre perdido en la barra superior"
+      },
+      "screens": {
+        "view": "En directo con sonido",
+        "picture": "Alerta con imagen",
+        "plain": "Alerta sin imagen"
+      },
+      "after": {
+        "title": "Después",
+        "text": "Una vez por llamada, la app envía {answered} cuando alguien contestó en una pantalla, o {missed} cuando nadie lo hizo. Ambos llevan la cámara y el título; answered también nombra la pantalla.",
+        "dismiss": "Para cerrar una llamada en todas las pantallas, por ejemplo cuando se abre la puerta:"
+      },
+      "yaml": {
+        "missed_alias": "Timbre perdido a mi teléfono",
+        "missed_message": "Alguien llamó al timbre",
+        "description": "Creada en los Eventos de Tessera: un timbre en las pantallas."
+      },
+      "wizard": {
+        "title": "Nueva automatización de timbre",
+        "camera_hint": "Una pantalla P4 la transmite en directo con sonido si la cámara tiene sonido; las demás muestran su imagen.",
+        "screens_hint": "Ninguna elegida: todas las pantallas.",
+        "limits": "No todos los timbres pueden con todo: el sonido llega solo si el flujo de la cámara lo tiene. Hablar llegará más adelante.",
+        "more_cameras": "Otra cámara…",
+        "timeout_hint": "Cuánto tiempo sigue abierta una llamada si nadie toca la pantalla. Vacío: el valor por defecto.",
+        "summary": {
+          "camera": "Cámara",
+          "door": "Puerta"
+        },
+        "steps": {
+          "rings": {
+            "title": "¿Qué suena?",
+            "help": "Elige lo que le dice a Home Assistant que hay alguien en la puerta. Tus timbres primero; cualquier sensor, botón o evento también sirve. ¿La usas en una automatización que ya tienes? Entonces puedes saltarte este paso."
+          },
+          "camera": {
+            "title": "¿Qué cámara?",
+            "help": "La cámara que muestran las pantallas cuando suena. Normalmente la del propio timbre."
+          },
+          "door": {
+            "title": "¿Una puerta que abrir?",
+            "help": "La vista del timbre puede tener una tecla que abre la puerta tras un segundo toque: una cerradura, u otra acción como un script o el botón de una verja. Puedes dejarlo fuera."
+          },
+          "screens": {
+            "title": "¿Qué pantallas?",
+            "help": "Elige las pantallas que muestran la llamada. Cada una dice qué puede hacer con ella."
+          },
+          "name": {
+            "title": "Nombre y tiempo",
+            "help": "El título en la pantalla y cuánto tiempo sigue abierta una llamada. Puedes dejar ambos vacíos."
+          },
+          "try": {
+            "title": "Pruébalo",
+            "help": "Llama una vez ahora, igual que lo hará la automatización. Mira tus pantallas."
+          },
+          "add": {
+            "title": "Terminar",
+            "help": "Conviértela en una automatización propia, o copia la acción en una automatización que ya tengas."
+          }
+        },
+        "door": {
+          "none": "Sin tecla de puerta",
+          "lock": "Una cerradura",
+          "action": "Otra acción",
+          "pick_lock": "Elige una cerradura…",
+          "pick_action": "Elige lo que abre…",
+          "code": "Esta cerradura pide un código: la tecla solo aparece si la cerradura tiene un código predeterminado en Home Assistant (los ajustes de la cerradura)."
+        },
+        "sound": {
+          "label": "Oír el timbre al momento",
+          "hint": "La vista del timbre se abre con su sonido activado. Desactívalo para un lugar tranquilo, como un estudio: el sonido espera entonces a un toque en Sonido."
+        },
+        "chime": {
+          "label": "Campanilla al llamar",
+          "hint": "La pantalla toca una campanilla de puerta cuando alguien llama. Desactívalo si no quieres oír el ding-dong cada vez."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} h",
+          "open": "Hasta que alguien lo abra",
+          "hint": "Un timbre sin respuesta se queda este tiempo después de sonar en la barra superior de las pantallas, con cuánto hace. Un toque lo vuelve a abrir."
+        }
+      },
+      "hero": {
+        "title": "Tu timbre en tus pantallas",
+        "text": "Alguien llama, y tus pantallas muestran quién está en la puerta: en directo con sonido en una pantalla P4, como imagen o alerta en las demás. El asistente te guía y añade la automatización a Home Assistant.",
+        "create": "Crear una automatización de timbre",
+        "empty": "Aún no hay automatización de timbre. Crea una arriba y aparecerá aquí."
+      },
+      "by_hand": {
+        "title": "Escribir la automatización tú mismo"
+      }
+    },
+    "drawer": {
+      "resize": "Ancho de los ajustes: arrastra o usa las flechas; doble clic para restablecer"
     }
   }
 }

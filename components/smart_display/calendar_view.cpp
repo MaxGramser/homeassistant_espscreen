@@ -228,6 +228,22 @@ static void apply(bool keep_scroll);
 static const Tile *tile_open() {
   return full.index < rt::model.count && rt::model.tiles[full.index].entity == full.entity ? &rt::model.tiles[full.index] : nullptr;
 }
+// A sheet opens on a short event (the app's `calendar_detail`): the app is asked for its whole title, place and notes,
+// by the card's place, the event's calendar and its minutes from the day the data calls today. The sheet shows the short
+// event until the answer comes.
+static void ask(cc::State &st) {
+  st.detail = cc::Detail{};
+  if (!full.data || !full.data->asks || st.sheet < 0 || st.sheet >= (int) full.data->events.size()) return;
+  const auto &e = full.data->events[st.sheet];
+  if (e.flags & cc::PRIVATE) return;
+  st.detail.cal = e.cal; st.detail.start = e.start; st.detail.end = e.end;
+  char day[16];
+  snprintf(day, sizeof day, "%04d-%02d-%02d", full.data->year, full.data->month, full.data->day);
+  rt::library_event("esphome.screen_calendar", {{"entity", full.entity}, {"i", std::to_string(full.index)}, {"c", std::to_string(e.cal)},
+                                                {"s", std::to_string(e.start)}, {"e", std::to_string(e.end)}, {"day", day},
+                                                {"view", std::to_string(++rt::calendar_view_id)}});
+  ESP_LOGI("calendar", "Asked for the event at %d of calendar %d", e.start, (int) e.cal);
+}
 // A tap on one of the three layers: the plan says what lies under the finger.
 static void tapped(lv_event_t *e) {
   auto *o = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
@@ -252,7 +268,7 @@ static void tapped(lv_event_t *e) {
     case cc::HIT_SHEET: return;
     case cc::HIT_VIEW_KEY: st.menu = !st.menu; break;
     case cc::HIT_VIEW: st.view = static_cast<cc::View>(hit->arg); st.menu = false; st.chosen = true; st.week = st.month = 0; keep = false; break;
-    case cc::HIT_EVENT: st.sheet = hit->arg; break;
+    case cc::HIT_EVENT: st.sheet = hit->arg; ask(st); break;
     case cc::HIT_CALENDAR: st.hidden ^= uint8_t(1u << std::clamp(hit->arg, 0, 7)); keep = full.plan.view == cc::WEEK; break;
     case cc::HIT_DAY:
       st.day = hit->arg;
@@ -348,6 +364,15 @@ void open(lv_obj_t *root, const Tile &t, unsigned index) {
   // New events while it is open repaint it in place, where it is scrolled (docs/CARD_PARTS.md).
   rt::card_shaped(t, rt::entity_shape);
   rt::card_bind(full.fixed, t, [](lv_obj_t *, const Tile &, const rt::CardPart &) { apply(true); });
+}
+void detail(unsigned view, int cal, int start, int end, std::string title, std::string place, std::string notes, bool gone) {
+  auto &d = full.state.detail;
+  if (view != rt::calendar_view_id || full.state.sheet < 0 || d.answered || d.cal != cal || d.start != start || d.end != end) return;
+  if (gone) return;  // the sheet keeps the short event
+  d.title = std::move(title); d.place = std::move(place); d.notes = std::move(notes);
+  d.answered = true;
+  ESP_LOGI("calendar", "The rest of the event at %d of calendar %d came (%u bytes of notes)", start, cal, (unsigned) d.notes.size());
+  if (rt::detail_root && !lv_obj_has_flag(rt::detail_root, LV_OBJ_FLAG_HIDDEN) && rt::detail_index == full.index) apply(true);
 }
 void minute() {
   if (!rt::detail_root || lv_obj_has_flag(rt::detail_root, LV_OBJ_FLAG_HIDDEN) || rt::detail_index != full.index || !tile_open()) return;

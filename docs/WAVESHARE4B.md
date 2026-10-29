@@ -2,7 +2,8 @@
 
 Added in app 0.2.126, firmware 0.2.102.
 This is the **ESP32-S3-Touch-LCD-4B**: a 4-inch 480 x 480 IPS panel with an ST7701S driver over RGB, GT911 capacitive
-touch, 8 MB octal PSRAM and 16 MB flash. It is not the older ESP32-S3-Touch-LCD-4 without the "B", which has other pins.
+touch, 8 MB octal PSRAM and 16 MB flash. It is not the older ESP32-S3-Touch-LCD-4 without the "B", which has other pins
+(its revision 4.0 has a board file of its own: [WAVESHARE4V4.md](WAVESHARE4V4.md)).
 Physical acceptance has not been performed.
 
 Up to firmware 0.3.9 this board started without its tiles: a light page with only the page buttons, and every save

@@ -12,6 +12,8 @@ import CoverTilePreview from "../CoverTilePreview.vue";
 import MarqueeText from "../MarqueeText.vue";
 import ModeBar from "../ModeBar.vue";
 import RangeChip from "./RangeChip.vue";
+import PresetDisc from "./PresetDisc.vue";
+import { levelShown } from "../../model/light-presets";
 
 const props = defineProps<{ card: TileCardView }>();
 // The same card for as long as this face stands (useTileCard): read without going through the props each time.
@@ -26,7 +28,46 @@ const standStyle = computed(() => ({ background: `linear-gradient(to top, ${card
 </script>
 
 <template>
-  <template v-if="card.face.kind === 'big-key'">
+  <!-- As the glass lays it out (runtime_tiles render_tall, model/tall-layout.ts): every part where the glass puts it. -->
+  <img v-if="card.tallStyle && card.artwork" :key="card.artwork" class="tall-art" :src="card.artwork" alt="" @load="card.loaded.artwork = true" @error="card.loaded.artwork = false" />
+  <span v-if="card.tallStyle" class="glass-head glass-tall" :style="card.tallStyle.box">
+    <span v-if="card.tallStyle.circle" class="ic mdi" :class="{ lit: card.lit }" :style="card.tallStyle.circle">{{ glyph(card.icon) }}</span>
+    <span v-if="card.tallStyle.title" class="nm" :style="card.tallStyle.title.style">{{ card.tallStyle.title.text }}</span>
+    <span v-if="card.tallStyle.value" class="st" :class="{ off: card.gone }" :style="card.tallStyle.value.style">{{ card.tallStyle.value.text }}</span>
+    <span v-for="(line, i) in card.tallStyle.body" :key="i" class="words" :class="{ muted: line.muted, 'track-title': line.marquee }" :style="line.style">{{ line.text }}</span>
+    <template v-if="card.tallStyle.climate">
+      <span v-if="card.tallStyle.climate.stepper" class="pill" :style="card.tallStyle.climate.stepper"></span>
+      <span class="key mdi" :class="card.tallStyle.climate.form" :style="{ ...card.tallStyle.climate.minus, fontSize: card.tallStyle.climate.iconSize }">{{ card.key("minus") || "−" }}</span>
+      <span class="key mdi" :class="card.tallStyle.climate.form" :style="{ ...card.tallStyle.climate.plus, fontSize: card.tallStyle.climate.iconSize }">{{ card.key("plus") || "+" }}</span>
+      <span class="number" :class="{ off: card.current?.state === 'off' }" :style="card.tallStyle.climate.number">
+        <RangeChip v-if="card.chip" :chip="card.chip" :icon="card.key(card.chip.icon)" /><template v-else>{{ card.texts.setpoint }}</template></span>
+      <span v-if="card.tallStyle.climate.now" class="words muted now" :style="card.tallStyle.climate.now">{{ card.tallStyle.climate.nowText }}</span>
+      <span v-if="card.tallStyle.climate.bar" class="bar" :style="card.tallStyle.climate.bar.box">
+        <ModeBar :a="card.current?.a || {}" :mode="card.current?.state || ''" :domain="card.domain" place="tall" :columns="card.shape.columns" :fit="card.tallStyle.climate.bar.fit" /></span>
+    </template>
+    <span v-if="card.tallStyle.panel" class="glass-row" :class="card.tallStyle.panel.kind" :style="card.tallStyle.panel.box">
+      <span v-if="card.tallStyle.panel.kind === 'toggle'" class="tog" :class="{ off: !card.on }"></span>
+      <ModeBar v-else-if="card.tallStyle.panel.kind === 'mode'" :a="card.current?.a || {}" :mode="card.current?.state || ''" :domain="card.domain" place="tall" :columns="card.shape.columns" />
+      <span v-else-if="['setpoint', 'stepper'].includes(card.tallStyle.panel.kind) && !card.face.tallKeys.length" class="stp"><span class="mdi">{{ card.key("minus") || "−" }}</span><b>{{ card.face.thermostat ? card.texts.setpoint : card.texts.value }}</b><span class="mdi">{{ card.key("plus") || "+" }}</span></span>
+      <span v-else-if="card.tallStyle.panel.kind === 'run'" class="run">{{ card.texts.runText }}</span>
+      <!-- A light's presets (module light_presets): their round keys, under its slider where both are chosen. -->
+      <template v-else-if="card.tallStyle.panel.dots">
+        <span v-if="card.tallStyle.panel.slider" class="range" :style="{ ...card.tallStyle.panel.slider, ...rangeStyle }"></span>
+        <PresetDisc v-for="dot in card.tallStyle.panel.dots" :key="dot.key" class="dot" :preset="dot.preset" :lit="dot.lit" :level="dot.level" :style="dot.style" />
+      </template>
+      <template v-else-if="card.tallStyle.panel.keys">
+        <span v-if="card.tallStyle.panel.slider" class="range" :style="{ ...card.tallStyle.panel.slider, ...rangeStyle }"></span>
+        <span class="keys" :style="card.tallStyle.panel.keys"><span v-for="(control, i) in card.face.tallKeys" :key="i" class="key mdi"
+          :class="{ primary: control.primary, disabled: control.disabled, active: control.mode === card.current?.state }">{{ control.cp ? glyph(control.cp) : card.key(control.icon) }}</span></span>
+      </template>
+      <template v-else>
+        <span class="range" :style="rangeStyle"></span>
+        <span v-if="card.tallStyle.panel.kind === 'volume'" class="key mdi">{{ card.key(card.current?.a?.is_volume_muted ? 'volume-off' : 'volume-high') }}</span>
+      </template>
+    </span>
+    <span v-if="card.tallStyle.panel?.standing" class="vol-glass" :style="{ ...card.tallStyle.panel.standing, ...standStyle }"></span>
+  </span>
+  <template v-else-if="card.face.kind === 'big-key'">
     <span class="ic mdi" :class="{ lit: card.lit }">{{ glyph(card.icon) }}</span>
     <span class="nm">{{ card.texts.name }}</span>
     <span v-if="card.texts.bigKeyLine" class="st" :class="{ off: card.gone }">{{ card.texts.bigKeyLine }}</span>
@@ -69,6 +110,8 @@ const standStyle = computed(() => ({ background: `linear-gradient(to top, ${card
         <span v-else-if="card.face.tallControls === 'stepper'" class="stp"><span class="mdi">{{ card.key("minus") || "−" }}</span><b>{{ card.texts.value }}</b><span class="mdi">{{ card.key("plus") || "+" }}</span></span>
         <template v-else-if="card.face.tallControls === 'volume'"><span v-if="card.features & bits('media_player', 'VOLUME_SET')" class="range" :style="rangeStyle"></span><span v-if="card.features & bits('media_player', 'VOLUME_MUTE')" class="key mdi">{{ card.key(card.current?.a?.is_volume_muted ? 'volume-off' : 'volume-high') }}</span></template>
         <span v-else-if="card.face.tallControls === 'run'" class="run">{{ card.texts.runText }}</span>
+        <template v-else-if="['presets', 'brightness_presets'].includes(card.face.tallControls)"><PresetDisc v-for="(preset, i) in card.presets" :key="i" class="dot-loose"
+          :preset="preset" :lit="i === card.presetLit" :level="levelShown(preset, card.tile.options?.preset_levels === true)" /></template>
         <span v-else class="range" :style="rangeStyle"></span>
       </span>
     </template>
@@ -77,6 +120,48 @@ const standStyle = computed(() => ({ background: `linear-gradient(to top, ${card
 
 <style scoped src="./parts.css"></style>
 <style scoped>
+/* A tall card laid out as the glass does (model/tall-layout.ts): its parts at their own places, the controls at the
+   glass's sizes (layout_panel on a taller card, climate_tile.h). */
+.tile .glass-tall { position: absolute; }
+.tile .glass-tall > * { position: absolute; margin: 0; white-space: nowrap; overflow: hidden; }
+.tile .glass-tall .ic:not(.thumb) { display: grid; place-items: center; padding: 0; line-height: 1; }
+.tile .glass-tall .nm { color: #1b1b1b; }
+.tile .glass-tall .words { color: #1b1b1b; }
+.tile .glass-tall .words.muted, .tile .glass-tall .st { color: var(--muted); }
+/* A player's title rolls by on the glass: cut at the edge, no dots. */
+.tile .glass-tall .words.track-title { text-overflow: clip; font-size: inherit; line-height: inherit; }
+.tile .glass-tall .pill { border-radius: 999px; background: var(--track); }
+.tile .glass-tall > .key { display: grid; place-items: center; border-radius: 50%; padding: 0; min-width: 0; line-height: 1; }
+.tile .glass-tall > .key.big { background: var(--track); }
+.tile .glass-tall > .key.row { background: var(--stepper-key); }
+.tile .glass-tall .number { display: flex; align-items: center; justify-content: center; color: #1b1b1b; overflow: visible; }
+.tile .glass-tall .number :deep(b) { font-weight: inherit; font-size: inherit; }
+.tile .glass-tall .number :deep(.range-chip) { padding: 0; margin: 0; gap: var(--chip-gap); flex: none; }
+.tile .glass-tall .number :deep(.end-icon) { font-size: var(--chip-icon); }
+.tile .glass-tall .number.off { color: var(--muted); }
+.tile .glass-tall .now { text-align: center; }
+.tile .glass-tall .bar { display: flex; overflow: visible; }
+.tile .glass-tall .glass-row { display: flex; align-items: center; justify-content: center; gap: var(--key-gap); overflow: visible; }
+.tile .glass-tall .glass-row .tog { width: var(--tog-w); height: var(--tog-h); border-radius: 999px; flex: none; }
+.tile .glass-tall .glass-row .tog::after { width: var(--knob); height: var(--knob); top: calc((var(--tog-h) - var(--knob)) / 2); right: calc((var(--tog-h) - var(--knob)) / 2); }
+.tile .glass-tall .glass-row .tog.off::after { right: auto; left: calc((var(--tog-h) - var(--knob)) / 2); }
+.tile .glass-tall .glass-row .keys { position: absolute; display: flex; gap: var(--key-gap); }
+.tile .glass-tall .glass-row .key { width: var(--key-w); height: var(--key-h); flex: none; padding: 0; min-width: 0; font-size: var(--icon-mini); border-radius: var(--key-r); }
+.tile .glass-tall .glass-row .range + .key { width: var(--key-h); }
+.tile .glass-tall .glass-row.playback .key, .tile .glass-tall .glass-row.volume_playback .key { border-radius: 50%; background: var(--track); }
+.tile .glass-tall .glass-row .key.primary { background: var(--tile-accent); color: white; }
+.tile .glass-tall .glass-row .range { height: var(--key-h); flex: 1; border-radius: var(--slider-r); width: auto; }
+.tile .glass-tall .glass-row .keys + .range, .tile .glass-tall .glass-row .range[style*="left"] { position: absolute; }
+.tile .glass-tall .glass-row .stp { flex: 1; height: 100%; border-radius: 999px; }
+.tile .glass-tall .glass-row .run { height: 100%; border-radius: 999px; display: grid; place-items: center; flex: 1; }
+.tile .glass-tall .vol-glass { border-radius: 10px; }
+.tile .glass-tall .glass-row .dot { position: absolute; }
+.tile.tall .ctl .dot-loose { width: 22px; height: 22px; flex: none; font-size: 9px; }
+/* Over a player's cover (style_tall): light words, a dark circle, the play key white with a dark glyph. */
+.tile.tall.photo .glass-tall .nm, .tile.tall.photo .glass-tall .words, .tile.tall.photo .glass-tall .st { color: white; }
+.tile.tall.photo .glass-tall .ic:not(.thumb) { background: var(--camera-track); color: white; }
+.tile.tall.photo .glass-tall .glass-row.playback .key, .tile.tall.photo .glass-tall .glass-row.volume_playback .key { background: transparent; color: white; }
+.tile.tall.photo .glass-tall .glass-row .key.primary, .tile.tall.photo .glass-tall .glass-row .range + .key { background: white; color: #1b1b1b; }
 /* A player's volume standing at the card's right, the whole height of its content; the rest keeps clear of it. */
 .vol-stand { position: absolute; top: 8px; bottom: 8px; right: 9px; width: clamp(22px, 18cqh, 36px); border-radius: 10px; }
 .vol-stand::after { content: ''; position: absolute; left: 25%; right: 25%; height: 3px; bottom: clamp(4px, var(--fill), calc(100% - 6px)); background: white; border-radius: 2px; }

@@ -14,12 +14,17 @@ import io
 import json
 from pathlib import Path
 import sys
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-import camera_feed  # noqa: E402
 import page_delivery  # noqa: E402
+import picture_legacy  # noqa: E402
+import picture_paint  # noqa: E402
+import picture_question as pq  # noqa: E402
+import picture_service  # noqa: E402
+from picture_sources import Resolved  # noqa: E402
 import plugin_manifest as pm  # noqa: E402
 import plugin_pictures  # noqa: E402
 import saver_photos  # noqa: E402
@@ -107,7 +112,7 @@ class Pick(unittest.TestCase):
         self.assertEqual(x['entity'], PLAYER)
         self.assertEqual((x['title'], x['artist'], x['state'], x['volume'], x['muted']), ('Song', 'Band', 'playing', 0.42, False))
         self.assertEqual((x['duration'], x['position'], x['position_at']), (200, 20, 1792224000))
-        self.assertEqual(x['picture'], 'saver:picture')
+        self.assertEqual(x['picture'], 'step:')
         self.assertTrue(x['mark'])
         self.assertEqual(x['features'], 4127)
 
@@ -141,18 +146,46 @@ class Pick(unittest.TestCase):
         self.assertEqual(shown, {'op': 'saver', 'k': 'photos', 'e': 'saver.photos', 'n': '', 'x': {'pic': 'abc'}})
 
 
+def photo_question(box, fit='auto', cap=None):
+    """The photos step's question as an older screen asks it (firmware 0.29.0+, `saver` photos): the whole glass, the photo
+    cut MOTION_OVERSCAN percent larger where it moves, in 8 bits."""
+    place = pq.Place(0, 0, *box, fit=fit, move=picture_legacy.MOTION_OVERSCAN)
+    return pq.Question(pq.Owner('saver'), (pq.Source('photos'),), box, (place,), cap=cap or (pq.MAX_SIDE, pq.MAX_BYTES),
+                       formats=('bmp8',))
+
+
+def moved(box, cap=None, moves=True):
+    """The place a photo is painted for on glass of `box`: the service lets a photo the choice moves (`moves`) move only
+    where the larger picture fits the screen's picture memory (picture_service.Service._painted)."""
+    question = photo_question(box, cap=cap)
+    service = picture_service.Service(None, None, types.SimpleNamespace(render=None))
+    return service._painted(question, question.places[0], Resolved(b'', 'photos:x', move=moves))
+
+
+def moved_box(box, cap=None):
+    """The box a moving photo is cut to for glass of `box`, or None where it stands still."""
+    move = moved(box, cap).move
+    return (round(box[0] * (1 + move / 100)), round(box[1] * (1 + move / 100))) if move else None
+
+
 class Motion(unittest.TestCase):
     def test_a_moving_photo_is_cut_larger_where_it_fits(self):
-        self.assertEqual(camera_feed.motion_box((480, 480)), (518, 518))
-        self.assertEqual(camera_feed.motion_box((1024, 600), (2048, 2 * 1024 * 1024)), (1106, 648))
+        self.assertEqual(moved_box((480, 480)), (518, 518))
+        self.assertEqual(moved_box((1024, 600), (2048, 2 * 1024 * 1024)), (1106, 648))
         # The 10-inch's full glass has no room for a larger photo in its picture memory: its photos stand still.
-        self.assertIsNone(camera_feed.motion_box((1280, 800), (2048, 2 * 1024 * 1024)))
+        self.assertIsNone(moved_box((1280, 800), (2048, 2 * 1024 * 1024)))
+        # A photo the choice keeps still is not cut larger.
+        self.assertEqual(moved((480, 480), moves=False).move, 0)
         from PIL import Image
-        bmp = camera_feed.encode_photo(jpeg((4000, 3000)), (800, 480), 'fill', (864, 518))
+        bmp = picture_paint.paint(photo_question((800, 480), 'cover'), [jpeg((4000, 3000))])
         with Image.open(io.BytesIO(bmp)) as image:
             self.assertEqual(image.size, (864, 518))
         # A photo shown whole is never cut larger: it does not move.
-        bmp = camera_feed.encode_photo(jpeg((3000, 4000)), (800, 480), 'whole', (864, 518))
+        bmp = picture_paint.paint(photo_question((800, 480), 'whole'), [jpeg((3000, 4000))])
+        with Image.open(io.BytesIO(bmp)) as image:
+            self.assertEqual(image.size, (800, 480))
+        # Nor is one shown whole because it is not of the glass's shape (`auto`).
+        bmp = picture_paint.paint(photo_question((800, 480)), [jpeg((3000, 4000))])
         with Image.open(io.BytesIO(bmp)) as image:
             self.assertEqual(image.size, (800, 480))
 
@@ -197,6 +230,9 @@ class Manifest(unittest.TestCase):
             [{'id': 'rain', 'name': 'rain', 'step': 'own', 'memory': 600, 'domains': ['weather'], 'when': 'sometimes'}],
             [{'id': 'deck', 'name': 'deck', 'step': 'media', 'memory': 900, 'taps': 'yes'}],
             [{'id': f's{i}', 'name': 'deck', 'step': 'clock', 'memory': 100} for i in range(5)],
+            # An option of kind entity is a tile's (plugin API 0.15): a step of an entity names its domains instead.
+            [{'id': 'rain', 'name': 'rain', 'step': 'own', 'memory': 600, 'domains': ['weather'],
+              'options': [{'id': 'other', 'kind': 'entity', 'label': 'rain', 'domains': ['sensor']}]}],
         ]
         for savers in bad:
             with self.assertRaises(pm.ManifestError, msg=savers):
@@ -214,12 +250,14 @@ class Manifest(unittest.TestCase):
     def test_the_step_picture_is_the_apps_own(self):
         face = {'pictures': 1, 'step': 'media', 'domains': []}
         manifest = {'id': 'vinyl', 'permissions': {'network': []}}
-        self.assertEqual(plugin_pictures.allowed('saver:picture', manifest, face), 'saver')
-        self.assertIsNone(plugin_pictures.allowed('saver:picture', manifest, {**face, 'step': 'clock'}))
-        question = plugin_pictures.parse({'tiles': DECK, 'saver': '1', 'bg': '000000', 'src': '["saver:picture"]',
-                                          'atlas': '[[0,0,100,100,0,0]]'}, (480, 480))
-        self.assertTrue(question.saver)
-        self.assertIsNone(question.index)
+        self.assertEqual(plugin_pictures.allowed('step:', manifest, face), 'saver')
+        self.assertIsNone(plugin_pictures.allowed('step:', manifest, {**face, 'step': 'clock'}))
+        self.assertIsNone(plugin_pictures.allowed('saver:picture', manifest, face))   # its old name, gone in 0.24
+        found = picture_legacy.read({'tiles': DECK, 'saver': '1', 'bg': '000000', 'src': '["step:"]',
+                                     'atlas': '[[0,0,100,100,0,0]]'}, {'board': 'guition', 'firmware': '0.50.0'})
+        self.assertEqual((found.kind, found.entity), ('psaver', DECK))
+        self.assertEqual((found.question.owner.kind, found.question.owner.key, found.question.owner.index), ('plugin_saver', DECK, -1))
+        self.assertEqual(found.question.sources, (pq.Source('step'),))
 
 
 def jpeg(size, colour=(200, 40, 40), orientation=None):
@@ -237,15 +275,22 @@ def jpeg(size, colour=(200, 40, 40), orientation=None):
 
 class Photos(unittest.TestCase):
     def test_a_photo_fills_glass_of_its_shape_and_shows_whole_on_other_glass(self):
-        self.assertTrue(camera_feed.photo_fills((4000, 3000), (800, 480), 'auto'))   # 4:3 on 5:3 glass: within five to four
-        self.assertFalse(camera_feed.photo_fills((3000, 4000), (800, 480), 'auto'))  # standing on lying glass
-        self.assertTrue(camera_feed.photo_fills((3000, 4000), (800, 480), 'fill'))
-        self.assertFalse(camera_feed.photo_fills((4000, 3000), (800, 480), 'whole'))
+        self.assertTrue(picture_paint.fills((4000, 3000), (800, 480)))   # 4:3 on 5:3 glass: within five to four
+        self.assertFalse(picture_paint.fills((3000, 4000), (800, 480)))  # standing on lying glass
+        # `fill` always cuts (fit `cover`), `whole` never does: a standing red photo fills lying glass to its edges, and
+        # a lying one shown whole leaves its own darker colour beside it.
+        from PIL import Image
+        with Image.open(io.BytesIO(picture_paint.paint(photo_question((800, 480), 'cover'), [jpeg((3000, 4000))]))) as image:
+            self.assertGreater(image.convert('RGB').getpixel((10, 240))[0], 150)
+        with Image.open(io.BytesIO(picture_paint.paint(photo_question((800, 480), 'whole'), [jpeg((4000, 3000))]))) as image:
+            self.assertLess(image.convert('RGB').getpixel((10, 240))[0], 120)
 
     def test_a_photo_is_cut_to_exactly_the_box_in_eight_bits(self):
         from PIL import Image
         for raw, fit in ((jpeg((4000, 3000)), 'auto'), (jpeg((3000, 4000)), 'auto'), (jpeg((3000, 4000), orientation=6), 'whole')):
-            bmp = camera_feed.encode_photo(raw, (800, 480), fit)
+            question = photo_question((800, 480), fit)
+            bmp = picture_paint.paint(pq.Question(question.owner, question.sources, question.box,
+                                                  (pq.Place(0, 0, 800, 480, fit=fit),), formats=question.formats), [raw])
             with Image.open(io.BytesIO(bmp)) as image:
                 self.assertEqual(image.size, (800, 480))
                 self.assertEqual(image.mode, 'P')
@@ -324,8 +369,8 @@ class Photos(unittest.TestCase):
         self.assertEqual(saver_photos.pixel_limit(SimpleNamespace(format='HEIF')), saver_photos.MAX_PIXELS_HEIF)
         self.assertGreaterEqual(saver_photos.MAX_PIXELS_HEIF, 48_000_000)
         self.assertLess(saver_photos.MAX_PIXELS_HEIF, saver_photos.MAX_PIXELS)
-        # encode_photo reads the same limit, so a photo readable() let through is not refused later.
-        source = (ROOT / 'screen_manager/app/camera_feed.py').read_text()
+        # The painter reads the same limit, so a photo readable() let through is not refused later.
+        source = (ROOT / 'screen_manager/app/picture_paint.py').read_text()
         self.assertIn('saver_photos.pixel_limit(source)', source)
 
     def test_a_crafted_picture_of_too_many_pixels_is_refused(self):
@@ -334,6 +379,9 @@ class Photos(unittest.TestCase):
         Image.new('1', (12000, 12000)).save(out, 'PNG')
         with self.assertRaises(Exception):
             saver_photos.readable(out.getvalue())
+        # And by the painter, from its header, before it is decoded, whatever source brought it.
+        with self.assertRaisesRegex(ValueError, 'too large'):
+            picture_paint.paint(photo_question((800, 480)), [out.getvalue()])
 
 
 if __name__ == '__main__':

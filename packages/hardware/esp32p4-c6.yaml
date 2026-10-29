@@ -1,13 +1,13 @@
 # ESP Screens - an ESP32-P4 with an ESP32-C6 for Wi-Fi, for a hardware or board file that includes this one.
 #
-# The chip, its memory, the supply of the MIPI-DSI PHY, the Wi-Fi co-processor and the I2C bus of the touch panel: what
-# the Guition P4 panels (hardware/guition-esp32p4.yaml) and the Waveshare ESP32-P4 86 panel share, pin for pin. The file
-# that includes this one adds the flash size, the backlight, the display and the touch panel. `HOSTED_SDIO_FREQUENCY`
-# is the clock of the Wi-Fi link, which a board may lower. A board wired otherwise (the reTerminal D1001) states its
-# own pins for the Wi-Fi link (`HOSTED_*_PIN`) and the touch bus (`TOUCH_SDA`, `TOUCH_SCL`); the defaults are the
-# Guition's and the Waveshare's.
+# The chip and its memory (hardware/esp32p4-core.yaml, every P4's), the supply of the MIPI-DSI PHY, the Wi-Fi
+# co-processor and the I2C bus of the touch panel: what the Guition P4 panels (hardware/guition-esp32p4.yaml) and the
+# Waveshare ESP32-P4 86 panel share, pin for pin. The file that includes this one adds the flash size, the backlight,
+# the display and the touch panel. `HOSTED_SDIO_FREQUENCY` is the clock of the Wi-Fi link, which a board may lower. A
+# board wired otherwise (the reTerminal D1001) states its own pins for the Wi-Fi link (`HOSTED_*_PIN`) and the touch
+# bus (`TOUCH_SDA`, `TOUCH_SCL`); the defaults are the Guition's and the Waveshare's.
 packages:
-  build: !include esp-idf.yaml
+  core: !include esp32p4-core.yaml
 
 substitutions:
   HOSTED_SDIO_FREQUENCY: "40MHz"
@@ -20,30 +20,6 @@ substitutions:
   HOSTED_D3_PIN: GPIO17
   TOUCH_SDA: GPIO7
   TOUCH_SCL: GPIO8
-
-esp32:
-  variant: esp32p4
-  # Engineering-sample silicon (pre-v3) runs at 360 MHz at most; rev3 does 400 MHz.
-  cpu_frequency: 360MHz
-  # The chips in these panels are pre-v3 ("chip revision: v1.3" in the boot log). ESP-IDF links a different
-  # memory layout for pre-v3 and for rev3 (CONFIG_ESP32P4_SELECTS_REV_LESS_V3) and the two are NOT binary
-  # compatible: a firmware built with this flag does not boot on rev3 silicon, and the other way round.
-  # Checked on a real JC8012P4A1 (pull request #14); a panel that reports v3.0 or higher needs this set to false.
-  engineering_sample: true
-  framework:
-    advanced:
-      execute_from_psram: true
-    sdkconfig_options:
-      # The Wi-Fi co-processor's driver (esp_hosted): its own memory pool off and its task stack in PSRAM, so the
-      # memory inside the chip stays for LVGL and the panel; the extra thread-local slot is what that driver asks
-      # for. All three from the build that ran on the real board (pull request #14).
-      CONFIG_ESP_HOSTED_USE_MEMPOOL: "n"
-      CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM: "y"
-      CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS: "1"
-
-psram:
-  mode: hex
-  speed: 200MHz
 
 # The MIPI-DSI PHY has its own supply, switched by one of the chip's internal regulators. Not adjustable (ESPHome's
 # default), so a camera on the MIPI-CSI port shares it: Espressif's esp_video asks the same channel at the same 2.5 V,

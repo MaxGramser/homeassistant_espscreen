@@ -68,6 +68,7 @@ struct Layout {
   Rect icon;      // the entity's icon: near the slider's foot, or in the middle of the halo
   Rect value;     // the percentage or the state: under the card, or beside it in two columns
   Rect caption;   // what the slider is ("Brightness"); empty without a slider or without the room
+  Rect presets;   // a light's presets (module light_presets): a row under it all, or under the value in two columns
 };
 
 // The height the card asks for in one column, which overlay_card::columns compares with the glass.
@@ -78,10 +79,16 @@ inline int stacked_height(const Metrics &m) {
 // Where every part goes on glass of `width` x `height`, in `columns` columns (1 or 2). `dims` is false for a
 // light Home Assistant lists as "onoff" only: the card then has no slider to draw and shows the light's icon
 // on a round field instead, the way the blind's card does for a door that only opens and closes.
-inline Layout layout(const Metrics &m, int width, int height, int columns = 1, bool dims = true) {
+// `presets`: the height of a row of the light's presets (0: none), taken from the card's in one column.
+inline Layout layout(const Metrics &m, int width, int height, int columns = 1, bool dims = true, int presets = 0) {
   Layout l;
   l.columns = columns >= 2 ? 2 : 1;
-  const int inner = width - 2 * m.pad, top = m.top(), bottom = height - m.margin();
+  const int inner = width - 2 * m.pad, top = m.top();
+  int bottom = height - m.margin();
+  if (presets > 0 && l.columns == 1) {
+    l.presets = {m.pad, bottom - presets, inner, presets};
+    bottom -= presets + m.gap();
+  }
   l.power = {width - m.bar_x - m.bar, m.bar_y, m.bar, m.bar};
 
   if (l.columns == 2) {
@@ -91,8 +98,10 @@ inline Layout layout(const Metrics &m, int width, int height, int columns = 1, b
     const int card_w = std::max(m.slider_w() + 2 * m.edge(), inner - text_w - ui::column_gap());
     l.card = {m.pad, top, card_w, std::max(ui::px(8), bottom - top)};
     const int block = m.value_h + m.text_h;
-    l.value = {l.card.right() + ui::column_gap(), l.card.cy() - block / 2, inner - card_w - ui::column_gap(), m.value_h};
+    const int below = presets > 0 ? m.gap() + presets : 0;
+    l.value = {l.card.right() + ui::column_gap(), l.card.cy() - (block + below) / 2, inner - card_w - ui::column_gap(), m.value_h};
     l.caption = {l.value.x, l.value.bottom(), l.value.w, m.text_h};
+    if (presets > 0) l.presets = {l.value.x, l.caption.bottom() + m.gap(), l.value.w, presets};
   } else {
     bool caption = true;
     auto room = [&]() { return bottom - top - m.value_h - (caption ? m.text_h : 0); };

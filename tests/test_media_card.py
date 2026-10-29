@@ -1,5 +1,6 @@
 """The media card (app 0.2.77, firmware 0.2.64): what the app pre-computes for it, and the album cover the app serves
-like a camera image (camera_feed), at the size the card asks for, with the corners rounded over the colour behind them."""
+like a camera image (picture_service), at the size the card asks for, with the corners rounded over the colour behind
+them (picture_paint)."""
 from firmware_sources import runtime_source
 from manager_fixtures import with_screen_grid
 import asyncio
@@ -12,7 +13,10 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-import camera_feed  # noqa: E402
+import picture_legacy  # noqa: E402
+import picture_paint  # noqa: E402
+import picture_question as pq  # noqa: E402
+import picture_sources  # noqa: E402
 from core import COVER_MIN_FIRMWARE, extras, media_cover, media_extras, state_message  # noqa: E402
 
 HAS_PIL = importlib.util.find_spec('PIL') is not None
@@ -21,6 +25,22 @@ if HAS_AIOHTTP:
     from server import Manager
 
 TILES = runtime_source()
+GUITION = {'board': 'guition', 'firmware': '0.2.64'}
+
+
+def cover_request(request):
+    """(size, ground) of the cover an open card asks for (firmware 0.2.64), as picture_legacy reads it, or None."""
+    found = picture_legacy.read({'entity': 'media_player.office', **request}, GUITION)
+    if found is None:
+        return None
+    place, = found.question.places
+    return place.w, place.ground
+
+
+def encode_cover(raw, size, ground):
+    """The cover the card gets for that question, as the one painter makes it."""
+    found = picture_legacy.read({'entity': 'media_player.office', 'size': str(size), 'bg': f'{ground:06X}'}, GUITION)
+    return picture_paint.paint(found.question, [raw])
 MODEL = (ROOT / 'components/smart_display/runtime_model.h').read_text()
 CARD = (ROOT / 'components/smart_display/media_card.h').read_text()
 SONOS = {'friendly_name': 'Office', 'media_title': 'Woman at the Loom', 'media_artist': 'KATZROAR', 'media_album_name': 'Invocation',
@@ -111,7 +131,12 @@ class Firmware(unittest.TestCase):
             self.assertIn(field, MODEL[MODEL.index('bool empty() const'):], f'{field} counted in Extra::empty')
 
     def test_the_card_asks_for_a_cover_with_size_and_background(self):
-        self.assertIn('"size", "bg"', TILES)
+        # One question with the card's place and its ground (picture_question.h); an older app gets `size` and `bg`.
+        question = (ROOT / 'components/smart_display/picture_question.h').read_text()
+        card = question[question.index('inline Fields legacy('):]
+        card = card[card.index('case Owner::CARD:'):card.index('case Owner::LIBRARY:')]
+        self.assertIn('out.emplace_back("size", std::to_string(q.w));', card)
+        self.assertIn('out.emplace_back("bg", hex(place.ground));', card)
         self.assertIn('view != "cover"', TILES)
         self.assertIn('if (view == "cover")', TILES)
         # The keys of the card and of the tile over the whole page share one action table.
@@ -129,51 +154,64 @@ class Firmware(unittest.TestCase):
 
 class Covers(unittest.TestCase):
     def test_a_media_player_may_ask_for_a_cover_and_a_camera_may_not(self):
-        self.assertTrue(camera_feed.cover_supported('media_player.office'))
-        self.assertFalse(camera_feed.cover_supported('camera.front_door'))
-        self.assertFalse(camera_feed.cover_supported('media_player.Office'))
-        self.assertFalse(camera_feed.supported('media_player.office'))
-        self.assertEqual(camera_feed.COVER_MIN_FIRMWARE, COVER_MIN_FIRMWARE)
-        self.assertTrue(camera_feed.can_show_cover({'board': 'guition', 'firmware': '0.2.64'}))
-        self.assertFalse(camera_feed.can_show_cover({'board': 'guition', 'firmware': '0.2.63'}))
-        self.assertFalse(camera_feed.can_show_cover({'board': 'cyd', 'firmware': '0.2.64'}))
+        self.assertTrue(pq.valid_entity('media_player.office', pq.COVER_DOMAINS))
+        self.assertFalse(pq.valid_entity('camera.front_door', pq.COVER_DOMAINS))
+        self.assertFalse(pq.valid_entity('media_player.Office', pq.COVER_DOMAINS))
+        self.assertFalse(pq.valid_entity('media_player.office', pq.CAMERA_DOMAINS))
+        self.assertEqual(COVER_MIN_FIRMWARE, (0, 2, 64))
+        # A screen's firmware asks only for what it draws (a cover from 0.2.64): the app asks whether its board draws
+        # pictures at all.
+        self.assertTrue(pq.draws_pictures({'board': 'guition', 'firmware': '0.2.64'}))
+        self.assertTrue(pq.draws_pictures({'board': 'guition', 'firmware': '0.2.63'}))
+        self.assertFalse(pq.draws_pictures({'board': 'guition', 'firmware': '0.2.56'}))
+        self.assertFalse(pq.draws_pictures({'board': 'cyd', 'firmware': '0.2.64'}))
+        # The source a cover is of, as the new question names it.
+        self.assertEqual(pq.source('cover:media_player.office'), pq.Source('cover', 'media_player.office'))
+        self.assertIsNone(pq.source('cover:camera.front_door'))
 
     def test_the_card_never_asks_for_a_cover_the_app_will_not_serve(self):
         # The card asks for exactly the pixels it draws and the screen draws what comes back one to one, so a square
-        # the app refuses is a square that stays empty, silently: cover_request returns None, answer_camera falls
-        # through (a media player is no camera) and returns without a word. The two numbers are one number.
+        # the app refuses is a square that stays empty, silently: picture_legacy reads no question, answer_camera
+        # returns without a word. The two numbers are one number.
         ceiling = int(re.search(r'static int cover_max\(\) \{ return (\d+); \}', CARD)[1])
-        self.assertEqual(ceiling, camera_feed.COVER_SIZES[1])
-        self.assertIsNone(camera_feed.cover_request({'size': str(ceiling + 1), 'bg': 'E7E7E7'}))
-        self.assertIsNotNone(camera_feed.cover_request({'size': str(ceiling), 'bg': 'E7E7E7'}))
+        self.assertEqual(ceiling, picture_legacy.COVER_SIZES[1])
+        self.assertIsNone(cover_request({'size': str(ceiling + 1), 'bg': 'E7E7E7'}))
+        self.assertIsNotNone(cover_request({'size': str(ceiling), 'bg': 'E7E7E7'}))
         # art_cap takes the smaller of the room and that ceiling; nothing else sizes the cover.
         self.assertIn('std::min(cover_max(), std::max(max_art()', CARD)
         self.assertNotIn('m.max_art(), above,', CARD)
 
     def test_the_request_names_a_size_and_a_background(self):
-        self.assertEqual(camera_feed.cover_request({'size': '160', 'bg': 'E7E7E7'}), (160, 0xE7E7E7))
-        self.assertEqual(camera_feed.cover_request({'size': 200, 'bg': '1a1a1a'}), (200, 0x1A1A1A))
+        self.assertEqual(cover_request({'size': '160', 'bg': 'E7E7E7'}), (160, 0xE7E7E7))
+        self.assertEqual(cover_request({'size': 200, 'bg': '1a1a1a'}), (200, 0x1A1A1A))
         for bad in ({'size': '9999', 'bg': 'FFFFFF'}, {'size': '10', 'bg': 'FFFFFF'}, {'size': '160', 'bg': 'white'},
                     {'size': '160'}, {'bg': 'FFFFFF'}, {'size': 'x', 'bg': 'FFFFFF'}):
-            self.assertIsNone(camera_feed.cover_request(bad), bad)
+            self.assertIsNone(cover_request(bad), bad)
+        # The question it is: the player's cover on an open card, a square with the card's corner over that colour.
+        found = picture_legacy.read({'entity': 'media_player.office', 'size': '160', 'bg': 'E7E7E7', 'view': '7'}, GUITION)
+        self.assertEqual((found.kind, found.entity, found.question.owner.kind, found.question.number), ('cover', 'media_player.office', 'card', 7))
+        self.assertEqual(found.question.sources, (pq.Source('cover', 'media_player.office'),))
+        self.assertEqual(found.question.places, (pq.Place(0, 0, 160, 160, 13, fit='cover', ground=0xE7E7E7),))
 
     @unittest.skipUnless(HAS_PIL, 'Pillow')
     def test_the_cover_is_square_at_the_size_asked_with_rounded_corners_over_the_background(self):
         from PIL import Image
-        out = camera_feed.encode_cover(picture((640, 640), fmt='PNG'), 160, 0x1A1A1A)
+        out = encode_cover(picture((640, 640), fmt='PNG'), 160, 0x1A1A1A)
         with Image.open(io.BytesIO(out)) as image:
             self.assertEqual((image.format, image.size, image.mode), ('BMP', (160, 160), 'RGB'))
             self.assertEqual(image.getpixel((0, 0)), (26, 26, 26))       # the corner: the background
             self.assertEqual(image.getpixel((80, 80)), (200, 30, 90))    # the middle: the picture
             self.assertEqual(image.getpixel((0, 80)), (200, 30, 90))     # the edge between the corners: the picture
         # A wide picture is cut to its middle; a PNG with transparency lands on the background.
-        with Image.open(io.BytesIO(camera_feed.encode_cover(picture((900, 300)), 48, 0xFFFFFF))) as image:
+        with Image.open(io.BytesIO(encode_cover(picture((900, 300)), 48, 0xFFFFFF))) as image:
             self.assertEqual(image.size, (48, 48))
-        with Image.open(io.BytesIO(camera_feed.encode_cover(picture((100, 100), 'RGBA', 'PNG'), 48, 0x00FF00))) as image:
+        with Image.open(io.BytesIO(encode_cover(picture((100, 100), 'RGBA', 'PNG'), 48, 0x00FF00))) as image:
             self.assertEqual(image.size, (48, 48))
+            self.assertEqual(image.convert('RGB').getpixel((24, 24)), (0, 255, 0))
 
     @unittest.skipUnless(HAS_PIL, 'Pillow')
     def test_a_cover_is_fetched_when_the_picture_changes_and_served_at_a_link(self):
+        from test_camera import Rig
         pictures = {'media_player.office': '/api/media_player_proxy/media_player.office?token=a&cache=1'}
         fetched = []
 
@@ -182,37 +220,41 @@ class Covers(unittest.TestCase):
             return picture((640, 640)) if 'cache=1' in pictures[entity] else picture((300, 300))
 
         async def scenario():
-            feed = camera_feed.CameraFeed(lambda entity: None, fetch_cover=fetch_cover, picture=lambda entity: pictures.get(entity, ''))
+            rig = Rig(fetch_cover=fetch_cover, picture=lambda entity: pictures.get(entity, ''), firmware='0.2.64')
+            cover = lambda entity, size, ground: rig.service.picture('text.d1_tiles', rig.player, rig.read(
+                {'entity': entity, 'size': str(size), 'bg': f'{ground:06X}'}))
             # No picture: no cover, nothing fetched.
-            self.assertIsNone(await feed.cover('media_player.bedroom', 160, 0))
+            self.assertEqual((await cover('media_player.bedroom', 160, 0)).state, 'none')
             self.assertEqual(fetched, [])
             # The first load fetches; the next load of the same picture serves what it has.
-            tag, image = await feed.cover('media_player.office', 160, 0xFFFFFF)
+            first = await cover('media_player.office', 160, 0xFFFFFF)
             self.assertEqual(len(fetched), 1)
-            self.assertTrue(tag.endswith('-c160-FFFFFF"'))
-            again = await feed.cover('media_player.office', 160, 0xFFFFFF)
+            again = await cover('media_player.office', 160, 0xFFFFFF)
             self.assertEqual(len(fetched), 1)
-            self.assertEqual(again, (tag, image))
+            self.assertEqual((again.etag, again.body), (first.etag, first.body))
             # Another size or background: the same picture, sized again.
-            other_tag, other = await feed.cover('media_player.office', 192, 0x1A1A1A)
+            other = await cover('media_player.office', 192, 0x1A1A1A)
             self.assertEqual(len(fetched), 1)
-            self.assertNotEqual(other_tag, tag)
-            self.assertNotEqual(other, image)
+            self.assertNotEqual(other.etag, first.etag)
+            self.assertNotEqual(other.body, first.body)
             # A new picture in Home Assistant: fetched again on the next load.
             pictures['media_player.office'] = '/api/media_player_proxy/media_player.office?token=a&cache=2'
-            new_tag, _ = await feed.cover('media_player.office', 160, 0xFFFFFF)
+            new = await cover('media_player.office', 160, 0xFFFFFF)
             self.assertEqual(len(fetched), 2)
-            self.assertNotEqual(new_tag, tag)
-            # The link: a screen loads it, and the link answers with the cover of this moment.
-            token = feed.link('media_player.office', (160, 160), cover=(160, 0xFFFFFF))
-            status, body, etag = await feed.serve(token)
-            self.assertEqual((status, etag), (200, new_tag))
+            self.assertNotEqual(new.etag, first.etag)
+            # The link: a still of the cover of this moment (a cover changes only with the player's state, and the card
+            # asks again then), answered with a 304 while the screen holds it.
+            question = rig.read({'entity': 'media_player.office', 'size': '160', 'bg': 'FFFFFF'})
+            token = await rig.token(question)
+            status, body, etag, _ = await rig.links.serve(token)
+            self.assertEqual((status, etag, body), (200, rig.links.links[token].etag, new.body))
             self.assertEqual(body[:2], b'BM')
-            self.assertEqual((await feed.serve(token, etag))[0], 304)
-            # A player whose picture went away: no cover.
+            self.assertEqual((await rig.links.serve(token, etag))[0], 304)
+            # A player whose picture went away: no cover, and the card's question gets an empty link.
             pictures['media_player.office'] = ''
-            self.assertIsNone(await feed.cover('media_player.office', 160, 0xFFFFFF))
-            self.assertEqual((await feed.serve(token))[0], 503)
+            self.assertEqual((await cover('media_player.office', 160, 0xFFFFFF)).state, 'none')
+            self.assertEqual((await rig.answer(question)).url, '')
+            self.assertEqual(len(fetched), 2)
 
         asyncio.run(scenario())
 
@@ -222,9 +264,10 @@ class Covers(unittest.TestCase):
             raise ConnectionError('gone')
 
         async def scenario():
-            feed = camera_feed.CameraFeed(lambda entity: None, fetch_cover=failing, picture=lambda entity: '/api/x')
-            self.assertIsNone(await feed.cover('media_player.office', 160, 0))
-            self.assertEqual(feed.watches['media_player.office'].failures, 1)
+            snapshots = picture_sources.Snapshots(lambda entity: None, fetch_cover=failing, picture=lambda entity: '/api/x')
+            self.assertIsNone(await snapshots.cover('media_player.office'))
+            self.assertEqual(snapshots.watches['media_player.office'].failures, 1)
+            self.assertTrue(snapshots.cover_broken('media_player.office'))
 
         asyncio.run(scenario())
 
@@ -235,7 +278,8 @@ class Answer(unittest.TestCase):
 
     def setUp(self):
         # base_url keeps the last address for ten minutes; another test's Home Assistant may have left one behind.
-        camera_feed.base_url.__defaults__[0].clear()
+        import lan_address
+        lan_address.base_url.__defaults__[0].clear()
 
     class HA:
         online = True
@@ -282,7 +326,7 @@ class Answer(unittest.TestCase):
             self.assertEqual((message['op'], message['t'], message['e']), ('camera', 'cover', 'media_player.office'))
             self.assertTrue(message['u'].startswith('http://192.168.1.5:') and message['u'].endswith('.bmp'))
             token = message['u'].rsplit('/', 1)[1][:-4]
-            status, body, _ = await manager.camera.serve(token)
+            status, body, _, _ = await manager.links.serve(token)
             self.assertEqual(status, 200)
             from PIL import Image
             with Image.open(io.BytesIO(body)) as image:
@@ -291,17 +335,24 @@ class Answer(unittest.TestCase):
             # A stream without a picture: an empty link, so the card keeps its placeholder and stops asking.
             await manager.answer_camera({'inbox': 'text.hall_tile_settings', 'entity': 'media_player.radio', 'size': '160', 'bg': 'E7E7E7'})
             self.assertEqual(ha.sent[1][1], {'v': 1, 'op': 'camera', 't': 'cover', 'e': 'media_player.radio', 'u': ''})
-            # A player that is not on the screen's layout, a size out of range, a request without a size: no answer.
-            for request in ({'inbox': 'text.hall_tile_settings', 'entity': 'media_player.other', 'size': '160', 'bg': 'E7E7E7'},
-                            {'inbox': 'text.hall_tile_settings', 'entity': 'media_player.office', 'size': '2000', 'bg': 'E7E7E7'},
+            # A size out of range, a request without a size: no answer.
+            for request in ({'inbox': 'text.hall_tile_settings', 'entity': 'media_player.office', 'size': '2000', 'bg': 'E7E7E7'},
                             {'inbox': 'text.hall_tile_settings', 'entity': 'media_player.office'}):
                 await manager.answer_camera(request)
             self.assertEqual(len(ha.sent), 2)
+            # A player that is not on the screen's layout: refused, an empty link (the card keeps its placeholder), and
+            # nothing of that player is fetched.
+            fetched = []
+            manager.snapshots.fetch_cover = lambda entity: fetched.append(entity)
+            await manager.answer_camera({'inbox': 'text.hall_tile_settings', 'entity': 'media_player.other', 'size': '160', 'bg': 'E7E7E7'})
+            self.assertEqual(ha.sent[2][1], {'v': 1, 'op': 'camera', 't': 'cover', 'e': 'media_player.other', 'u': ''})
+            self.assertEqual(fetched, [])
 
         asyncio.run(scenario())
 
     def test_older_firmware_and_a_cyd_get_no_cover(self):
-        for ha in (self.HA(firmware='0.2.63'), self.HA(guition=False)):
+        # A board without pictures, and firmware before the first that draws any (0.2.57): no answer.
+        for ha in (self.HA(firmware='0.2.56'), self.HA(guition=False)):
             manager = self.manager(ha)
             asyncio.run(manager.answer_camera({'inbox': 'text.hall_tile_settings', 'entity': 'media_player.office', 'size': '160', 'bg': 'E7E7E7'}))
             self.assertEqual(ha.sent, [])

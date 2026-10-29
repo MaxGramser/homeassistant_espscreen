@@ -8,19 +8,16 @@ import { t } from "../i18n";
 import type { FeedbackAnswer, FeedbackIssue, Screen } from "../types";
 import { useBuildsStore } from "../stores/builds";
 import { useScreenStore } from "../stores/screen";
+import { useUiStore } from "../stores/ui";
 
 const builds = useBuildsStore();
 const scr = useScreenStore();
+const ui = useUiStore();
+// What to do when something doesn't work, in the manual on the website.
+const MANUAL = "https://tessera-maxgramser.on-forge.com/docs/troubleshooting";
 
 const props = defineProps<{ screen: Screen; mode: "card" | "settings" }>();
 const ISSUES: FeedbackIssue[] = ["display", "touch", "connection", "installation", "other"];
-// A problem needs more than an answer here to be fixed (a log, and someone to ask): after "Not quite" the card offers
-// the bug report on GitHub (app 0.4.13), filled in with what this page knows (app 0.4.78). GitHub fills an issue form's
-// text fields from the link, not its dropdowns. Nothing is sent there; the owner opens and posts it themselves, under
-// their own name, so they can be asked about it. Issues are written in English, whatever the editor speaks.
-const REPORT = "https://github.com/MaxGramser/homeassistant_espscreen/issues/new";
-const ISSUE_WORDS: Record<FeedbackIssue, string> = { display: "Screen", touch: "Touch", connection: "Connection", installation: "Installation", other: "Other" };
-
 const fb = computed(() => props.screen.feedback!);
 // ask: the question; details: what goes wrong, after an answer went out; report: the way to GitHub after a "Not quite";
 // done: the card has said its thanks.
@@ -40,19 +37,6 @@ const visible = computed(() => props.mode === "settings" || (
 
 const current = computed(() => fb.value.pending || fb.value.shared);
 
-const reportUrl = computed(() => {
-  const f = fb.value;
-  const areas = issues.value.map((issue) => ISSUE_WORDS[issue]).join(", ");
-  const model = f.model ? `${f.model} (${f.board})` : f.board;
-  const versions = [f.versions.addon_version && `add-on ${f.versions.addon_version}`,
-    f.versions.firmware_version && `firmware ${f.versions.firmware_version}`].filter(Boolean).join(", ");
-  const facts = [`Board: ${model}`, areas && `Problem: ${areas}`].filter(Boolean).join("\n");
-  const query = new URLSearchParams({ template: "bug_report.yml" });
-  if (areas) query.set("title", `[Bug]: ${areas} on ${f.model || f.board}`);
-  if (versions) query.set("versions", versions);
-  query.set("what-happened", comment.value.trim() ? `${comment.value.trim()}\n\n${facts}` : facts);
-  return `${REPORT}?${query}`;
-});
 const answerText = (answer: FeedbackAnswer | null) => answer
   ? [t(`editor.feedback.shared.${answer.outcome}`), ...(answer.issues || []).map((issue) => t(`editor.feedback.issues.${issue}`))].join(" · ")
   : "";
@@ -165,12 +149,14 @@ const toggle = (issue: FeedbackIssue) => {
       </div>
     </template>
 
-    <!-- After "Not quite": the bug report on GitHub, filled in with the board, the versions and what was chosen here. -->
+    <!-- After "Not quite": two ways on (app 0.4.91). The troubleshooting report (ReportPanel), which ends with the GitHub
+         issue filled in with its reference, or the manual's troubleshooting page. -->
     <template v-else-if="step === 'report'">
       <p class="fb-question" :id="mode === 'card' ? `${uid}-title` : undefined">{{ t("editor.feedback.report_title") }}</p>
       <p class="fb-report">{{ t("editor.feedback.report_text") }}</p>
       <div class="fb-actions">
-        <a class="btn primary" :href="reportUrl" target="_blank" rel="noopener noreferrer" @click="finish">{{ t("editor.feedback.report_open") }}</a>
+        <button type="button" class="btn primary" @click="finish(); ui.openReport(screen.id)">{{ t("editor.feedback.report_send") }}</button>
+        <a class="btn" :href="MANUAL" target="_blank" rel="noopener noreferrer">{{ t("editor.feedback.report_manual") }}</a>
         <button type="button" class="btn quiet" @click="finish">{{ t("editor.common.close") }}</button>
       </div>
     </template>

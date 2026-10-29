@@ -172,6 +172,27 @@ class Screens(unittest.TestCase):
         message = {'entity': 'climate.a', 'o': {'controls': 'setpoint'}, 'a': {}}  # says nothing: as it is
         self.assertEqual(catalogue.drawn_controls(message, frozenset())['o']['controls'], 'setpoint')
 
+    def test_a_robots_larger_tile_goes_to_a_screen_whose_hello_says_it_draws_one(self):
+        # A map, rooms or routines on a 2x2 (module_vacuum_tile.cpp): the keys to a lite screen, a CYD or older firmware.
+        full = 4 | 8 | 16 | 32 | 512 | 4096 | 8192 | 16384
+        drawn = lambda controls, features, flags=full: catalogue.drawn_controls(
+            {'entity': 'vacuum.a', 'o': {'size': 'square', 'controls': controls}, 'a': {'supported_features': flags}}, features)['o']['controls']
+        for face in ('map', 'rooms', 'routines', 'map_rooms'):
+            self.assertEqual(drawn(face, frozenset({'vacuum_card', 'vacuum_tile'})), face)
+            self.assertEqual(drawn(face, frozenset({'vacuum_card'})), 'buttons')
+            self.assertEqual(drawn(face, frozenset()), 'buttons')
+        # Rooms to pick only where the robot cleans by area (CLEAN_AREA, Home Assistant 2026.3).
+        self.assertEqual(drawn('rooms', frozenset({'vacuum_tile'}), full & ~16384), 'buttons')
+
+    def test_a_face_is_offered_only_where_the_robots_device_has_it(self):
+        has = lambda *what: (lambda entity, kind: kind in what)
+        self.assertTrue(catalogue.device_holds('vacuum', 'map', 'vacuum.a', has('map')))
+        self.assertFalse(catalogue.device_holds('vacuum', 'map', 'vacuum.a', has('routines')))
+        self.assertFalse(catalogue.device_holds('vacuum', 'routines', 'vacuum.a', has('map')))
+        self.assertTrue(catalogue.device_holds('vacuum', 'rooms', 'vacuum.a', has()))       # the areas ask nothing of the device
+        self.assertFalse(catalogue.device_holds('vacuum', 'map_rooms', 'vacuum.a', has()))  # the map with the rooms needs the map
+        self.assertTrue(catalogue.device_holds('vacuum', 'buttons', 'vacuum.a', has()))
+
     def test_what_a_layout_asks_of_a_screens_firmware(self):
         gate = lambda entity, **options: sorted(version for version, _ in catalogue.gates({'entity': entity, 'options': options}))
         self.assertEqual(gate('lock.a'), [(0, 5, 0)])

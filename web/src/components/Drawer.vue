@@ -2,7 +2,10 @@
 // The inspector: a column of its own on the right (app 0.4.32), there only while something is selected, so it never
 // covers the pages or the library. Its content follows what is selected. It glides open and shut (app 0.4.32): the
 // column grows while its content keeps its own width, so the pages beside it make room once instead of reflowing.
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { t } from "../i18n";
+import { useResizeHandle } from "../composables/useResizeHandle";
+import { DRAWER_MAX, DRAWER_MIN, useDrawerStore } from "../stores/drawer";
 import TileInspector from "./TileInspector.vue";
 import TopbarInspector from "./TopbarInspector.vue";
 import SaverClock from "./SaverClock.vue";
@@ -19,13 +22,36 @@ const doc = useDocumentStore();
 const insp = useInspectorStore();
 
 const open = computed(() => Boolean(insp.inspector && (insp.inspector.kind !== "tile" || doc.currentTile)));
+// Its left edge (app dev): dragged wider or narrower as the sidebar's edge is, by the arrow keys (Shift for bigger
+// steps), or back to its width with a double click (stores/drawer.ts).
+const drawer = useDrawerStore();
+const aside = ref<HTMLElement | null>(null);
+let right = 0;
+const edge = useResizeHandle({
+  onStart: () => { right = aside.value?.getBoundingClientRect().right || window.innerWidth; drawer.resizing = true; },
+  onMove: (e) => drawer.drag(right - e.clientX),
+  onEnd: () => { drawer.resizing = false; },
+  selectNothing: true,
+});
+function resizeKey(event: KeyboardEvent) {
+  const by = event.shiftKey ? 48 : 16;
+  if (event.key === "ArrowLeft") drawer.drag(drawer.width + by);
+  else if (event.key === "ArrowRight") drawer.drag(drawer.width - by);
+  else if (event.key === "Home") drawer.reset();
+  else return;
+  event.preventDefault();
+}
 </script>
 
 <template>
   <!-- On a phone (app 0.4.40) the inspector is a sheet from the bottom over a dimmed page; a tap beside it closes it. -->
   <Transition name="dim"><div v-if="open && ui.phone" class="sheet-dim" @click="insp.closeInspector"></div></Transition>
   <Transition name="drawer">
-  <aside v-if="open" class="drawer open" id="tile-sheet" @click.stop>
+  <aside v-if="open" ref="aside" class="drawer open" :class="{ resizing: drawer.resizing }" id="tile-sheet"
+    :style="ui.phone ? undefined : { '--drawer-w': `${drawer.width}px` }" @click.stop>
+    <div v-if="!ui.phone" class="drawer-resize" role="separator" aria-orientation="vertical" tabindex="0" :aria-label="t('editor.drawer.resize')"
+      :aria-valuenow="drawer.width" :aria-valuemin="DRAWER_MIN" :aria-valuemax="DRAWER_MAX" :title="t('editor.drawer.resize')"
+      @pointerdown="edge.start" @dblclick="drawer.reset()" @keydown="resizeKey"></div>
     <div v-if="insp.inspector" class="drawer-inner">
       <!-- Keyed by the tile: another tile's settings start as a tile's settings start, with More settings and every chooser closed. -->
       <TileInspector v-if="insp.inspector.kind === 'tile' && doc.currentTile" :key="doc.currentTile.id" :tile="doc.currentTile" />

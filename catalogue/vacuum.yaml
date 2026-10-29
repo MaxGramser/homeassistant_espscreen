@@ -6,6 +6,35 @@ memory: {bytes: 1088, extras: true}
 displays:
   standard: {}
   watch: {}
+# A tile that grows suggests the map with the rooms, then the map, where its room and the robot have them (docs/VACUUM.md,
+# "A larger tile"). Each keeps Start and Dock: in the head on a tile wide enough, else in a row at the bottom.
+grow: [map_rooms, map, rooms]
 controls:
   buttons:
     needs: {actions: [vacuum.start, vacuum.pause, vacuum.stop, vacuum.return_to_base]}
+  # The robot's map on its device (an image or camera entity, vacuum_card.py), drawn in the screen's look, on a screen
+  # with the vacuum card's module (its hello says vacuum_tile).
+  map:
+    needs: {actions: [vacuum.start, vacuum.pause, vacuum.stop, vacuum.return_to_base], device: [map]}
+    rows: 2
+    screen: {feature: vacuum_tile, else: buttons}
+    one_row: buttons
+  # The rooms linked to the robot's segments, picked in the order of the taps, cleaned with vacuum.clean_area.
+  rooms:
+    needs: {features: [CLEAN_AREA]}
+    # A robot that stopped cleaning by area (another integration, an older Home Assistant) keeps its keys.
+    fallback: buttons
+    rows: 2
+    screen: {feature: vacuum_tile, else: buttons}
+    one_row: buttons
+  # The robot's routines: the buttons its integration puts on its device that run something.
+  routines:
+    needs: {actions: [vacuum.start, vacuum.pause, vacuum.stop, vacuum.return_to_base], device: [routines]}
+    rows: 2
+    screen: {feature: vacuum_tile, else: buttons}
+    one_row: buttons
+  map_rooms:
+    of: [map, rooms]
+    rows: 2
+    screen: {feature: vacuum_tile, else: buttons}
+    one_row: buttons
