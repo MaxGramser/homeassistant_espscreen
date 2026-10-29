@@ -12,6 +12,11 @@
 # features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
 # checkout/sensecapd1.yaml (a build on this computer) and packages/sensecapd1.yaml (the package a screen builds from
 # over GitHub).
+esphome:
+  # The RGB panel's wrapped esp_lcd_new_rgb_panel (mipi_rgb.cpp, --wrap) does not link on ESPHome 2026.6.2: this board
+  # builds on 2026.9.0, the add-on's ESPHome (CI's min_version build, 2026-10-29).
+  min_version: 2026.9.0
+
 packages:
   # The chip and its memory for an RGB panel, as on the other ESP32-S3 RGB boards.
   hardware: !include ../hardware/esp32s3-rgb.yaml
