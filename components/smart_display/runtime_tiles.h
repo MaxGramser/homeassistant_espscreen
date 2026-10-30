@@ -11739,7 +11739,7 @@ inline bool live_link_may_open(uint32_t now) {
 inline void live_begin(const std::string &link) {
   // Its own copy: live_tick hands it live_link_waiting itself, which is cleared below. Opened with the cleared one, the
   // view asked ":80", failed, and its next try came 10 s later: 11 s from a tap on a live tile to its picture full
-  // screen (0.4.91 and 0.4.92, docs/open-issues/full-view-first-link-empty-host.md).
+  // screen (0.4.91 and 0.4.92).
   const std::string url = link;
   const uint32_t now = esphome::millis();
   if (live_link_waiting.empty()) ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (now - camera_opened_at));
