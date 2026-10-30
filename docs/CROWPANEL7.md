@@ -48,5 +48,5 @@ to the family's hardware file.
 
 ## What to report while testing
 
-The list in [CROWPANEL101.md](CROWPANEL101.md), "What to report while testing": booting, Wi-Fi, touch, pages and tiles,
-dimming and OTA builds have been seen on one 7-inch board; the loudspeaker, the microphone and camera pictures have not.
+The list in [CROWPANEL101.md](CROWPANEL101.md), "What to report while testing": booting, Wi-Fi, touch, pages and tiles and
+OTA builds have been seen on one 7-inch board; the loudspeaker, the microphone and camera pictures have not.
