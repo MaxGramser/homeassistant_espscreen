@@ -449,6 +449,7 @@ while it keeps your country's clock and numbers.
 | Guition [JC1060P470](https://tessera-maxgramser.on-forge.com/screens/jc1060p470) and [JC1060P470 V2](https://tessera-maxgramser.on-forge.com/screens/jc1060p470v2), 7 inch (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI JD9165 / capacitive GT911, ESP32-P4; speaker and microphone (experimental), hardware acceptance pending ([details](docs/JC1060P470.md)) |
 | Guition JC4880P443, 4.3 inch (experimental) | 800 × 480, 3 × 3 tiles | MIPI-DSI ST7701 / capacitive GT911, pre-v3 ESP32-P4; dimmable backlight, speaker and microphone (experimental) ([details](docs/JC4880P443.md)) |
 | Elecrow CrowPanel Advanced 10.1 inch, ESP32-P4 (experimental) | 1024 × 600, 5 × 5 tiles | MIPI-DSI EK79007 / capacitive GT911, pre-v3 ESP32-P4, V1.1 or V1.2; dimmable backlight, speaker and microphone ([details](docs/CROWPANEL101.md)) |
+| Elecrow CrowPanel Advanced 7 inch, ESP32-P4 (experimental) | 1024 × 600, 4 × 4 tiles | MIPI-DSI EK79007 / capacitive GT911, pre-v3 ESP32-P4, V1.1 or later; dimmable backlight, speaker and microphone; not yet tried on the glass ([details](docs/CROWPANEL7.md)) |
 | M5Stack Tab5 (ST7121 variant, new) | 1280 × 720, 3 × 3 tiles | MIPI-DSI ST7121 / capacitive ST7121, ESP32-P4; hardware tested ([details](docs/TAB5.md)) |
 
 Each screen links to its page on the [Tessera website](https://tessera-maxgramser.on-forge.com/screens), with what owners report about it.
