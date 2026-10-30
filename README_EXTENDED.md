@@ -1,5 +1,12 @@
 # Tessera: the full reference
 
+> [!IMPORTANT]
+> # LOOKING FOR FUNDING
+>
+> I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, [send me an email](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera).
+>
+> Max, maker of Tessera
+
 <sub>Tessera is the new name for ESP Screens. Since app 0.3.18 Home Assistant shows the app as Tessera Screen Manager and its panel as Tessera. More on the [Tessera website](https://tessera-maxgramser.on-forge.com).</sub>
 
 <sub>Looking for e-ink? [Tesserae (tesserae.ink)](https://tesserae.ink) is a separate open-source project with a similar name, for calm dashboards on e-ink panels. Tessera is for colour LCD touch screens.</sub>

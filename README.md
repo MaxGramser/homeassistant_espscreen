@@ -1,7 +1,7 @@
 > [!IMPORTANT]
-> ## Looking for funding
+> # LOOKING FOR FUNDING
 >
-> I have a day job that pays the bills, and it comes first. But Tessera keeps growing, and to do it right I want to give it more of my time, or hire someone to help. For that I need funding. If you can help, [send me an email](mailto:max@thndr.studio?subject=Helping%20Tessera%20find%20funding).
+> I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, [send me an email](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera).
 >
 > Max, maker of Tessera
 
