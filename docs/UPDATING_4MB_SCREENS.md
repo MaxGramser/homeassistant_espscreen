@@ -68,7 +68,7 @@ calibration: the old one comes along.
 ### 3. Over Wi-Fi by hand
 
 This is what Tessera does, step by step. You need the screen's YAML and secrets on a computer with ESPHome
-2026.6.2 or newer (**Download screen files** in the screen's details in the Tessera panel gives you exactly that).
+2026.7.0 or newer (**Download screen files** in the screen's details in the Tessera panel gives you exactly that).
 
 1. Add one line to the `ota:` block of the screen's YAML. It lets the screen take a partition table over Wi-Fi, and
    it has to stand in the screen's own YAML, not in a package:

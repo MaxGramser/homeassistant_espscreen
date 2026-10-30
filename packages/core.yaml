@@ -98,7 +98,7 @@ esphome:
   # add-on or ESPHome Device Builder that isn't updated yet keeps building every screen (firmware 0.2.75+). Raise it in a
   # release of its own, with the camera images' `image:` form (before ESPHome 2027.1) and OTA with the api key for new
   # screens; docs/RELEASING.md, "ESPHome versions".
-  min_version: 2026.6.2
+  min_version: 2026.7.0
   project:
     name: maxgramser.esp_screen
     version: "${SCREEN_FIRMWARE_VERSION}"
@@ -927,17 +927,19 @@ globals:
 
 
 # The Tessera mark on the starting screen (firmware 0.3.8+), fonts/tessera-mark.png rendered from the website's
-# tessera-mark.svg; ESPHome scales it to the look's size when it builds. The top-level form that ESPHome 2026.6.2
-# (min_version) knows; 2026.7+ reads it as `platform: file`.
+# tessera-mark.svg; ESPHome scales it to the look's size when it builds. The `platform: file` form of ESPHome 2026.7+
+# (min_version); 2026.9 warns about the older top-level form, which 2027.1 removes.
 image:
-  - id: tessera_mark
+  - platform: file
+    id: tessera_mark
     file: "${FONT_DIR}/tessera-mark.png"
     type: RGB565
     transparency: alpha_channel
     resize: ${BRAND_MARK_SIZE}x${BRAND_MARK_SIZE}
   # The home key at the far left of the top bar (firmware 0.10.0+): the same mark as tall as the house that stood there
   # before, a house of Material Design Icons at FONT_ICON_HOME_SIZE (17 of its 24 units), about a kilobyte per board.
-  - id: tessera_mark_bar
+  - platform: file
+    id: tessera_mark_bar
     file: "${FONT_DIR}/tessera-mark.png"
     type: RGB565
     transparency: alpha_channel
