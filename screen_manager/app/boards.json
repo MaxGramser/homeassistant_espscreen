@@ -3939,6 +3939,135 @@
   "wide_slots": false,
   "width": 480
  },
+ "checkout/zx7d00ce01s.yaml": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "battery": false,
+  "board": "zx7d00ce01s",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    304,
+    171
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ZX7D00CE01S-V13",
+   "name": "Panlee",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 21,
+   "icon": 33,
+   "icon_home": 26,
+   "icon_mini": 20,
+   "label": 14,
+   "setpoint": 50,
+   "sublabel": 13,
+   "sublabel_big": 16,
+   "watch_icon": 14,
+   "watch_value": 30
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "rows": 4,
+  "spacing": {
+   "circle": 42,
+   "gap": 9,
+   "gap_y": 9,
+   "margin": 13,
+   "page_bar": 37,
+   "radius": 17,
+   "tile_pad": 9,
+   "top": 43
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "crowpanel101": {
   "alert": {
    "line": 18,
@@ -9612,6 +9741,135 @@
   "wide_slots": false,
   "width": 480
  },
+ "packages/zx7d00ce01s.yaml": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "battery": false,
+  "board": "zx7d00ce01s",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    304,
+    171
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ZX7D00CE01S-V13",
+   "name": "Panlee",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 21,
+   "icon": 33,
+   "icon_home": 26,
+   "icon_mini": 20,
+   "label": 14,
+   "setpoint": 50,
+   "sublabel": 13,
+   "sublabel_big": 16,
+   "watch_icon": 14,
+   "watch_value": 30
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "rows": 4,
+  "spacing": {
+   "circle": 42,
+   "gap": 9,
+   "gap_y": 9,
+   "margin": 13,
+   "page_bar": 37,
+   "radius": 17,
+   "tile_pad": 9,
+   "top": 43
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "reterminald1001": {
   "alert": {
    "line": 27,
@@ -11818,5 +12076,134 @@
   "tier": "full",
   "wide_slots": false,
   "width": 480
+ },
+ "zx7d00ce01s": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "battery": false,
+  "board": "zx7d00ce01s",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    304,
+    171
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "ZX7D00CE01S-V13",
+   "name": "Panlee",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "features": [],
+  "firmware": "0.57.0",
+  "fonts": {
+   "headline": 21,
+   "icon": 33,
+   "icon_home": 26,
+   "icon_mini": 20,
+   "label": 14,
+   "setpoint": 50,
+   "sublabel": 13,
+   "sublabel_big": 16,
+   "watch_icon": 14,
+   "watch_value": 30
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 4,
+    "height": 480,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 4,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      304,
+      171
+     ]
+    },
+    "columns": 2,
+    "height": 800,
+    "max": [
+     4,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 7,
+    "width": 480
+   }
+  },
+  "rows": 4,
+  "spacing": {
+   "circle": 42,
+   "gap": 9,
+   "gap_y": 9,
+   "margin": 13,
+   "page_bar": 37,
+   "radius": 17,
+   "tile_pad": 9,
+   "top": 43
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
  }
 }

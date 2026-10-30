@@ -262,3 +262,9 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+zx7d00ce01s:
+  file: zx7d00ce01s.yaml
+  name: Panlee
+  model: ZX7D00CE01S-V13
+  status: experimental

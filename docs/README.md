@@ -50,6 +50,7 @@
 - [FREENOVEFNK0104S.md](FREENOVEFNK0104S.md): the Freenove FNK0104S, 4 inch.
 - [SENSECAP_INDICATOR.md](SENSECAP_INDICATOR.md): the Seeed SenseCAP Indicator D1 series with the GX panel, 4 inch.
 - [SUNTON8048S070.md](SUNTON8048S070.md): the Sunton ESP32-8048S070, 7 inch.
+- [ZX7D00CE01S.md](ZX7D00CE01S.md): the Panlee ZX7D00CE01S-V13, 7 inch.
 
 ## Recipes for changing the code
 
