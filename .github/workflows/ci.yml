@@ -76,7 +76,9 @@ jobs:
     # Nine boards since 0.3.6: the add-on's ESPHome builds took just under 30 minutes and ran past it on a slow runner.
     # A build without its build folder (a source file added or removed) took 40 minutes for min_version on 09-26.
     # Twenty-one boards without a cache take about four minutes each: the add-on's ESPHome ran past 60 minutes at 0.4.84.
-    timeout-minutes: 120
+    # 31 boards without a cache take about 2.7 hours (release 0.4.91, 2026-10-30: 23 in two hours, the eight new boards
+    # never reached); a cancelled job keeps no cache, so the next run starts cold too.
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       matrix:
