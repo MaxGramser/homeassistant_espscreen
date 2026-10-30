@@ -517,9 +517,15 @@ LVGL's core 1. The screen runs:
 - **Six pictures a second on that tile** at most, as on a P4; while a finger drags, the governor halves it.
 - **A full view of at most eight pictures a second.** The tile under it stops while the view is open and comes back
   when it closes.
-- **One connection at a time.** The view's stream opens once the tile's has ended and its task let go of its
-  connection and memory (`live_view::ending`), never beside it; a tile that has not ended after 2 s gets a log line and
-  the view opens anyway. The view is always the stream: only when it cannot open does it show stills, and the log says
+- **One stream at a time, of any kind.** A live tile, a full view and a plugin's live place each count, and so does a
+  stream that is still ending (`picture_engine::limits().streams`, checked in `live_view::open`). The view's stream
+  opens once the tile's has ended and its task let go of its connection and memory (`live_view::ending`), never beside
+  it, however long that takes: the view shows its stills meanwhile, and after 2 s the log says it waits. A view that
+  opened beside a tile still ending took a tester's 4848S040 with seven pages down to 2 KB of internal RAM and an abort
+  (2026-10-30). A tile asked while the view's stream still ends asks again in its turn instead of keeping its stills.
+- **A stream opens only with internal RAM to spare.** Its connection takes about 11 KB, and 32 KB stays free whatever
+  streams: below 43 KB free when it would open, the tile or view keeps its stills and the log says so ("too little for
+  a stream's connection"). A P4 holds seven streams and its view may still open beside a tile after 2 s. The view is always the stream: only when it cannot open does it show stills, and the log says
   so ("the full view could not stream").
 
 **Measured** on a Guition 4848S040 (dev, 2026-10-28, a WebRTC camera, a tile of 448 x 118, each setting for 150 s):

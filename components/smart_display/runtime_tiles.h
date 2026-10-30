@@ -11729,7 +11729,13 @@ inline void live_tiles_halt();
 // it once they are gone.
 inline std::string live_link_waiting;
 inline uint32_t live_link_waiting_at = 0;
-constexpr uint32_t LIVE_LINK_WAIT_MS = 2000;  // a stream that will not end by then: the view opens beside it
+// A stream that will not end by then: the view opens beside it, where the engine holds a second (a P4). An S3 holds one
+// (picture_engine::limits().streams): its view waits on, showing the stills meanwhile, as one opened beside a tile's
+// took a tester's Guition 4848S040 down (2026-10-30).
+constexpr uint32_t LIVE_LINK_WAIT_MS = 2000;
+inline bool live_link_may_open(uint32_t now) {
+  return !live_view::ending() || (live_view::beside() && now - live_link_waiting_at >= LIVE_LINK_WAIT_MS);
+}
 inline void live_begin(const std::string &url) {
   const uint32_t now = esphome::millis();
   if (live_link_waiting.empty()) ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (now - camera_opened_at));
@@ -11741,7 +11747,7 @@ inline void live_begin(const std::string &url) {
   // And the view's stream opens once theirs are gone, never beside them: one connection at a time (live_view::ending).
   if (live_view::ending()) {
     if (live_link_waiting.empty()) live_link_waiting_at = now;
-    if (now - live_link_waiting_at < LIVE_LINK_WAIT_MS) {
+    if (!live_link_may_open(now)) {
       live_link_waiting = url;
       return;
     }
@@ -11974,6 +11980,9 @@ inline uint32_t live_spot_ask(const live_spots::Spot &spot) {
 // Opens a spot's stream as the app answered it: a tile's laid out as its card (the card's corners, the shade and the
 // name over each picture), a place's laid in the place. NOT_NOW when the card is gone or not wanted now.
 inline live_view::Handle live_spot_open(const live_spots::Spot &spot, const std::string &url) {
+  // The one stream an S3 holds is still ending (a full view that just closed): not now, the spot asks again in its turn
+  // instead of giving up for its stills.
+  if (live_view::ending() && !live_view::room_for_another()) return live_spots::Spots::NOT_NOW;
   if (spot.kind == live_spots::Kind::TILE) {
     Widgets *card = nullptr;
     each_card([&](Widgets &w) { if (w.index == spot.index && spot.index < model.count && live_tile_wanted(w, model.tiles[spot.index])) card = &w; });
@@ -12126,10 +12135,18 @@ inline void live_tick() {
     lv_display_add_event_cb(lv_display_get_default(), [](lv_event_t *) { live_stop_covered(); }, LV_EVENT_REFR_START, nullptr);
   }
   live_stop_covered();
-  if (!live_link_waiting.empty() &&
-      (!live_view::ending() || esphome::millis() - live_link_waiting_at >= LIVE_LINK_WAIT_MS)) {
-    if (camera_root && live_wanted() && !camera.stream.live) live_begin(live_link_waiting);
-    else live_link_waiting.clear();  // the view closed meanwhile
+  if (!live_link_waiting.empty()) {
+    const uint32_t now = esphome::millis();
+    static uint32_t told_at = 0;
+    if (!camera_root || !live_wanted() || camera.stream.live) {
+      live_link_waiting.clear();  // the view closed meanwhile
+    } else if (live_link_may_open(now)) {
+      live_begin(live_link_waiting);
+    } else if (now - live_link_waiting_at >= LIVE_LINK_WAIT_MS && told_at != live_link_waiting_at) {
+      told_at = live_link_waiting_at;
+      ESP_LOGW("camera", "the page's stream did not end in %u ms: the full view waits for it (one stream at once)",
+               (unsigned) LIVE_LINK_WAIT_MS);
+    }
   }
   live_view::tick([](live_view::Handle handle, live_view::Event event) {
     if (camera_root && camera.stream.is(handle)) {

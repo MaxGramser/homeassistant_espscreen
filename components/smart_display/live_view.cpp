@@ -918,8 +918,39 @@ static void count_tiles() {
   pressure::live_tiles.store(n, std::memory_order_relaxed);
 }
 
+static_assert(picture_engine::limits().streams <= MAX_STREAMS, "the engine's streams have their slots");
+// What a stream's connection takes of the chip's internal RAM, its Wi-Fi and lwIP buffers (about 11 KB on a Guition
+// 4848S040, 2026-10-28), and what stays free whatever streams: docs/ARCHITECTURE.md, "Internal RAM never below 32 KB at
+// rest". A screen whose pages already took it closer keeps its stills.
+constexpr size_t STREAM_INTERNAL_BYTES = 11 * 1024;
+constexpr size_t INTERNAL_FLOOR_BYTES = 32 * 1024;
+
+static int held() {
+  int n = 0;
+  for (auto *s : streams)
+    if (s) ++n;
+  return n;
+}
+bool room_for_another() { return held() < picture_engine::limits().streams; }
+bool beside() { return picture_engine::limits().streams > 1; }
+
 Handle open(const std::string &url, const Rect &area, const Look &look, bool sound, audio_owner::Role role) {
   if (!available() || area.empty() || (!look.tile && !full_view())) return -1;
+  // Every stream counts, of every kind, and one still ending too: its task holds its connection until it is gone. A
+  // full view beside a live tile that had not ended took a tester's S3 down (2026-10-30).
+  if (!room_for_another()) {
+    ESP_LOGW(TAG, "no room for another stream: %d at once on this screen", picture_engine::limits().streams);
+    return -1;
+  }
+  if (!is_own(url)) {
+    const size_t internal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    if (internal < STREAM_INTERNAL_BYTES + INTERNAL_FLOOR_BYTES) {
+      ESP_LOGW(TAG, "internal RAM %u KB: too little for a stream's connection (%u KB with %u KB left), the stills stay",
+               (unsigned) (internal / 1024), (unsigned) (STREAM_INTERNAL_BYTES / 1024),
+               (unsigned) (INTERNAL_FLOOR_BYTES / 1024));
+      return -1;
+    }
+  }
   int slot = -1;
   for (int i = 0; i < MAX_STREAMS && slot < 0; ++i)
     if (!streams[i]) slot = i;

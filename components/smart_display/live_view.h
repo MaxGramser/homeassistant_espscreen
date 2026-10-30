@@ -503,6 +503,11 @@ void close(Handle handle);
 // a time, as an S3 has internal RAM for one stream's network buffers and not for two (docs/CAMERA.md, "Live on an
 // ESP32-S3").
 bool ending();
+// Whether another stream may open now: fewer than the engine's streams at once (picture_engine::limits), one still
+// ending counted. And whether the engine holds a second one at all; an S3 does not, so its full view waits for the
+// page's stream to end however long it takes.
+bool room_for_another();
+bool beside();
 // The main loop, every 50 ms: frees what finished tasks left and tells each stream's owner what happened.
 void tick(const std::function<void(Handle, Event)> &tell);
 // How often the panel ran dry since boot (a frame of blue: glass.h, "The panel's share of the memory bus").
@@ -533,6 +538,8 @@ inline bool has_speaker() { return false; }
 inline void mute(Handle, bool) {}
 inline void close(Handle) {}
 inline bool ending() { return false; }
+inline bool room_for_another() { return false; }
+inline bool beside() { return false; }
 inline void tick(const std::function<void(Handle, Event)> &) {}
 inline uint32_t misses() { return 0; }
 inline void own_offer() {}
