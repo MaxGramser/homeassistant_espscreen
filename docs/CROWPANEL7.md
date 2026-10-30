@@ -6,8 +6,9 @@ ESP32-C6 beside it for Wi-Fi, a loudspeaker and a PDM microphone.
 
 It is the [CrowPanel Advanced 10.1](CROWPANEL101.md) behind smaller glass: Elecrow builds the 7, 9 and 10.1-inch
 boards on one design and serves them with one ESPHome example, and the two board files share every pin
-(`packages/hardware/crowpanel-p4.yaml`). The 10.1 has run on this hardware file; the 7-inch has not been tried on its
-own glass yet, so everything under "What to report while testing" is open.
+(`packages/hardware/crowpanel-p4.yaml`). One 7-inch board runs this file day to day: it boots, joins Wi-Fi, shows its
+pages, takes its builds from the add-on and works as a Bluetooth proxy. The audio and the camera pictures have not been
+tried on it; see "What to report while testing".
 
 ## Which board
 
@@ -47,5 +48,5 @@ to the family's hardware file.
 
 ## What to report while testing
 
-The list in [CROWPANEL101.md](CROWPANEL101.md), "What to report while testing", from the first boot on: nothing on
-this list has been seen on the 7-inch glass yet.
+The list in [CROWPANEL101.md](CROWPANEL101.md), "What to report while testing": booting, Wi-Fi, touch, pages and tiles,
+dimming and OTA builds have been seen on one 7-inch board; the loudspeaker, the microphone and camera pictures have not.
