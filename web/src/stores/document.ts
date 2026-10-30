@@ -185,7 +185,7 @@ export const useDocumentStore = defineStore("document", () => {
   // when anything changed. A change of a page's top bar is the top bar store's (stores/topbar.ts).
   function applyDocument(next: PageLayout, remember = true, nextGrid = documentGrid.value, said?: ChangeLabel) {
     if (!document.value || !documentGrid.value || !nextGrid) return false;
-    pages.validatePages(next, screenGridOf(nextGrid));
+    pages.validatePages(next, screenGridOf(nextGrid), document.value);
     if (pages.sameValue(next, document.value) && pages.sameGrid(nextGrid, documentGrid.value)) return false;
     if (remember) {
       history.remember(snapshot(), "document", said ?? describeChange(document.value, next, documentGrid.value, nextGrid, nameOf));
@@ -224,7 +224,13 @@ export const useDocumentStore = defineStore("document", () => {
   /** An edit of the draft in place (model/pages.ts changePages); a refused one is said, and changes nothing. */
   function editDocument(apply: (draft: PageLayout) => void, field?: string) {
     if (!document.value || !documentGrid.value) return false;
-    try { return applyEdit(pages.changePages(document.value, heldTo(documentGrid.value), apply), field); }
+    // A tile that does not fit is put right rather than the edit refused, and the toast says what went (0.4.92).
+    const repairs: string[] = [];
+    try {
+      const changed = applyEdit(pages.changePages(document.value, heldTo(documentGrid.value), apply, repairs), field);
+      if (repairs.length) ui.toast(repairs.join(" "));
+      return changed;
+    }
     catch (error: any) { ui.toast(error.message); return false; }
   }
   function restoreSnapshot(value: DraftSnapshot, scope: HistoryScope) {

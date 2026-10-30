@@ -878,6 +878,7 @@
         "layout_conflict": "La distribución ha cambiado en otro editor; recarga y revisa el borrador",
         "adaptation": "La cuadrícula ha cambiado; se requiere una adaptación explícita de la distribución",
         "normalization": "Las opciones de la tarjeta deben normalizarse antes de guardar la página",
+        "on_tile": "Página {page}, tarjeta «{tile}»: {problem}",
         "ambiguous_tile": "El evento de tarjeta tiene un origen ambiguo; especifica su página",
         "save_first": "Guarda la distribución de páginas antes de guardar sus ajustes",
         "destination_exists": "La pantalla de destino ya tiene una distribución guardada",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Libre"
     },
     "pages": {
+      "repaired": "Página {page}, tarjeta «{tile}»: se quitó lo que no encajaba ({what}).",
+      "repaired_tile": "Página {page}: se quitó la tarjeta «{tile}», ya no encajaba.",
       "mode": "Modo del editor",
       "simple": "Sencillo",
       "advanced": "Avanzado",

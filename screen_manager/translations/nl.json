@@ -878,6 +878,7 @@
         "layout_conflict": "De indeling is gewijzigd in een andere editor; laad opnieuw en vergelijk je wijzigingen",
         "adaptation": "Het schermraster is gewijzigd; beoordeel en bevestig de aangepaste indeling",
         "normalization": "De tegelinstellingen moeten worden aangepast voordat de pagina kan worden opgeslagen",
+        "on_tile": "Pagina {page}, tegel “{tile}”: {problem}",
         "ambiguous_tile": "De tegelopdracht heeft meerdere mogelijke bronnen; geef de pagina op",
         "save_first": "Sla eerst de pagina-indeling op voordat je de instellingen opslaat",
         "destination_exists": "Het doelscherm heeft al een opgeslagen indeling",
@@ -3408,6 +3409,8 @@
       "calendar_free": "Vrij"
     },
     "pages": {
+      "repaired": "Pagina {page}, tegel “{tile}”: weggehaald wat niet klopte ({what}).",
+      "repaired_tile": "Pagina {page}: tegel “{tile}” weggehaald, die klopte niet meer.",
       "mode": "Editormodus",
       "simple": "Eenvoudig",
       "advanced": "Geavanceerd",

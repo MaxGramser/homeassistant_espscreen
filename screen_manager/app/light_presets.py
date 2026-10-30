@@ -72,7 +72,9 @@ def preset(item):
     level = _int(item.get('b'), 1, 100)
     if level is None:
         raise ValueError(OPTION)
-    out = {'b': level, **out}
+    # In the editor's order (web/src/model/light-presets.ts cleanPreset): the brightness, the shade or colour, then the
+    # effect and the device's settings.
+    extra, out = out, {'b': level}
     if 'k' in item:
         if 'h' in item or 's' in item:
             raise ValueError(OPTION)
@@ -85,6 +87,10 @@ def preset(item):
         if hue is None or saturation is None:
             raise ValueError(OPTION)
         out['h'], out['s'] = hue % 360, saturation
+    if 'fx' in extra:
+        out['fx'] = extra['fx']
+    if 'rw' in extra:
+        out['rw'] = extra['rw']
     return out
 
 

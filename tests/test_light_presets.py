@@ -32,6 +32,15 @@ class Validation(unittest.TestCase):
         out = core.validate_layout(layout({'size': 'wide', 'controls': 'presets', 'presets': PRESETS}))
         self.assertEqual(out['tiles'][0]['options']['presets'], PRESETS)
 
+    def test_keys_in_the_editor_s_order(self):
+        # web/src/model/light-presets.ts cleanPreset builds the same order; 0.4.91 wrote the effect and the device's
+        # settings first, and the editor then refused every save of a page with such a preset.
+        full = light_presets.preset({'b': 70, 'rw': {'number.desk_speed': 128}, 'fx': 'Aurora', 'h': 220, 's': 100})
+        self.assertEqual(list(full), ['b', 'h', 's', 'fx', 'rw'])
+        self.assertEqual(list(light_presets.preset({'rw': {'number.desk_speed': 90}, 'fx': 'Candle', 'b': 100})),
+                         ['b', 'fx', 'rw'])
+        self.assertEqual(list(light_presets.preset({'fx': 'Candle', 'k': 2700, 'b': 40})), ['b', 'k', 'fx'])
+
     def test_whole_floats_become_ints_and_hue_wraps(self):
         self.assertEqual(light_presets.preset({'b': 80.0, 'h': 360, 's': 100.0}), {'b': 80, 'h': 0, 's': 100})
 

@@ -878,6 +878,7 @@
         "layout_conflict": "A disposição foi alterada noutro editor; recarrega e compara o rascunho",
         "adaptation": "A grelha do ecrã mudou; é necessária uma adaptação explícita da disposição",
         "normalization": "As opções dos cartões precisam de ser normalizadas antes de guardar a página",
+        "on_tile": "Página {page}, cartão «{tile}»: {problem}",
         "ambiguous_tile": "O evento do cartão tem uma origem ambígua; indica a página",
         "save_first": "Guarda a disposição das páginas antes de guardar as definições",
         "destination_exists": "O ecrã de destino já tem uma disposição guardada",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Livre"
     },
     "pages": {
+      "repaired": "Página {page}, cartão «{tile}»: retirado o que não servia ({what}).",
+      "repaired_tile": "Página {page}: cartão «{tile}» retirado, já não servia.",
       "mode": "Modo do editor",
       "simple": "Simples",
       "advanced": "Avançado",

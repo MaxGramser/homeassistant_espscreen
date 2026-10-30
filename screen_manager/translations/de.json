@@ -878,6 +878,7 @@
         "layout_conflict": "Das Layout wurde in einem anderen Editor geändert; lade es neu und gleiche den Entwurf ab",
         "adaptation": "Das Bildschirmraster hat sich geändert; eine ausdrückliche Layoutanpassung ist erforderlich",
         "normalization": "Die Kacheleinstellungen müssen vor dem Speichern der Seite angepasst werden",
+        "on_tile": "Seite {page}, Kachel „{tile}“: {problem}",
         "ambiguous_tile": "Der Kachelbefehl hat mehrere mögliche Quellen; gib die Seite an",
         "save_first": "Speichere zuerst das Seitenlayout und danach die Einstellungen",
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Frei"
     },
     "pages": {
+      "repaired": "Seite {page}, Kachel „{tile}“: Unpassendes entfernt ({what}).",
+      "repaired_tile": "Seite {page}: Kachel „{tile}“ entfernt, sie passte nicht mehr.",
       "mode": "Editormodus",
       "simple": "Einfach",
       "advanced": "Erweitert",

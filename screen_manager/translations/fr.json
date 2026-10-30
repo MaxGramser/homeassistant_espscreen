@@ -878,6 +878,7 @@
         "layout_conflict": "La disposition a été modifiée dans un autre éditeur ; rechargez et vérifiez le brouillon",
         "adaptation": "La grille de l’écran a changé ; une adaptation explicite de la disposition est nécessaire",
         "normalization": "Les options des tuiles doivent être normalisées avant d’enregistrer la page",
+        "on_tile": "Page {page}, tuile « {tile} » : {problem}",
         "ambiguous_tile": "La source de l’événement de tuile est ambiguë ; précisez sa page",
         "save_first": "Enregistrez la disposition des pages avant ses paramètres",
         "destination_exists": "L’écran de destination possède déjà une disposition enregistrée",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Libre"
     },
     "pages": {
+      "repaired": "Page {page}, tuile « {tile} » : ce qui ne convenait pas a été retiré ({what}).",
+      "repaired_tile": "Page {page} : tuile « {tile} » retirée, elle ne convenait plus.",
       "mode": "Mode de l’éditeur",
       "simple": "Simple",
       "advanced": "Avancé",
