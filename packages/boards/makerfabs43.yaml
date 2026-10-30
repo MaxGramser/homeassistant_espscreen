@@ -20,8 +20,9 @@ packages:
 
 substitutions:
   BOARD_ID: "makerfabs43"
+  MAKER_NAME: "Makerfabs"
   DEVICE_NAME: "makerfabs43-new"
-  DEVICE_FRIENDLY_NAME: "My Makerfabs"
+  DEVICE_FRIENDLY_NAME: "My ${MAKER_NAME}"
 
   PANEL_W: "800"
   PANEL_H: "480"
