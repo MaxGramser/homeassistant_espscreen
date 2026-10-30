@@ -262,3 +262,11 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+makerfabs43:
+  file: makerfabs43.yaml
+  name: Makerfabs
+  model: E32S3RGB43 V3.1
+  status: new
+  # Hardware-tested on V3.1: display, GT911 touch and Tessera UI. Stock backlight is always on; docs/MAKERFABS43.md
+  # documents the optional R59/R29 modification for PWM dimming on GPIO44.
