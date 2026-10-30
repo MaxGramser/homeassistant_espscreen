@@ -11,6 +11,10 @@ import type { PageLayout, PageTile } from '../types';
 
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 const matches = (pattern: RegExp, value: string) => value.match(pattern)?.[0] === value;
+// A value as JSON with every object's keys in one order: two objects with the same keys and values are the same,
+// whichever order they were written in (the add-on writes a preset's keys in an order of its own).
+const canon = (value: unknown) => JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item)
+  ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : item);
 function fail(key = 'fields'): never { throw new Error(t(`addon.errors.pages.${key}`)); }
 export function fields(value: any, allowed: string[], required = allowed) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(k => !allowed.includes(k)) ||
@@ -157,7 +161,7 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
   if (i.tilt_open !== undefined && i.tilt_open === ofType(domain)?.tilt_open?.[0]) fail('normalization');
   // A light's presets (light_presets.validate): at most four on a light, none stored empty; their brightness shown only when true.
   if (i.presets !== undefined && (domain !== 'light' || !Array.isArray(i.presets) || !i.presets.length || i.presets.length > PRESETS_MAX
-    || i.presets.some((p) => JSON.stringify(cleanPreset(p)) !== JSON.stringify(p)))) fail('normalization');
+    || i.presets.some((p) => canon(cleanPreset(p)) !== canon(p)))) fail('normalization');
   if (i.preset_levels !== undefined && (domain !== 'light' || i.preset_levels !== true)) fail('normalization');
   if (a.icon !== undefined && !icon(a.icon)) fail();
   if (rules.wideOnly.includes(a.display || '') && !isWideSize(size)) fail('normalization');
