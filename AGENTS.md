@@ -120,6 +120,15 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   build` and commit both. Keep every URL the page asks for relative (`api/...`) so it works behind ingress.
 - Production ingress needs no long-lived token or public port.
 
+## What is still open
+
+`docs/open-issues/` holds one file per thing we do not understand or have not solved: the symptom, what was measured
+(dates, commits, numbers), what was ruled out, the candidates left and the experiment that decides. Look there when a
+bench is free, between releases, when a user's report rhymes with one, or when you want work nobody is on: pick one,
+say so, and take the file along as you learn. Whatever stays open at the end of a day's work goes in as a new file
+or a dated section of an existing one, in the same commit as the work; a solved one gets its "Solved" section with
+the commit and stays a release long. The README there has the table and the rules.
+
 ## Checks
 
 How much is checked follows the branch (next section): work on dev moves fast and is proven on real screens, a
