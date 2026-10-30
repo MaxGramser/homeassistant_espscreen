@@ -9,7 +9,7 @@ from dataclasses import dataclass, field, replace
 import json
 import re
 
-from core import SHAPES, board_of, screen_firmware, shape_of
+from core import SHAPES, board_of, orientation_shown, screen_firmware, shape_of
 
 # The largest picture any screen gets, whatever its glass (app 0.4.13, GitHub #68): at most this many pixels either way
 # and this many bytes once the screen has decoded it to RGB565. The firmware caps the pictures it sizes itself with the
@@ -243,7 +243,15 @@ def boxes(screen):
     found = shape_of(screen).get('camera') if isinstance(screen, dict) else None
     if not found:
         return BOXES.get(board_of(screen))
-    return {view: tuple(box) for view, box in found.items()}
+    found = {view: tuple(box) for view, box in found.items()}
+    # A canvas that is neither of the board's own (older firmware of a board whose canvas has since changed, such as
+    # the Guition 7 inch V2 on 1024 x 600) is the glass the full-screen picture must fill; the thumb is the alert
+    # card's frame, the same either way, and the grid is not touched (shape_of).
+    reported = screen.get('shape')
+    if (isinstance(reported, dict) and 'full' in found and type(reported.get('width')) is int
+            and type(reported.get('height')) is int and not orientation_shown(SHAPES.get(board_of(screen), {}), reported)):
+        found['full'] = (reported['width'], reported['height'])
+    return found
 
 
 def box(screen, view, cap=None):
