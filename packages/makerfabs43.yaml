@@ -6,6 +6,8 @@
 # of that lives here. The screen is two packages: core.yaml, which every board shares, and boards/makerfabs43.yaml with this
 # board's hardware and sizes (docs/PROFILES.md). checkout/makerfabs43.yaml builds the same two from a checkout.
 substitutions:
+  # The branch the components and the fonts come from: main, or dev for a screen of the app's dev channel, which
+  # writes GITHUB_REF into the screen's own YAML next to the `ref:` of this package (docs/RELEASING.md, "Testing dev").
   GITHUB_REF: "main"
   FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/${GITHUB_REF}/fonts"
 
