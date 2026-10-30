@@ -13,8 +13,9 @@
 # checkout/sensecapd1.yaml (a build on this computer) and packages/sensecapd1.yaml (the package a screen builds from
 # over GitHub).
 esphome:
-  # The RGB panel's wrapped esp_lcd_new_rgb_panel (mipi_rgb.cpp, --wrap) does not link on ESPHome 2026.6.2: this board
-  # builds on 2026.9.0, the add-on's ESPHome (CI's min_version build, 2026-10-29).
+  # This board builds on 2026.9.0, the add-on's ESPHome, as the other new boards of release 0.4.91 do (CI's min_version
+  # build of 2026-10-29 showed its link failing on 2026.6.2; the cause was the RGB panel's wrap missing on a board without
+  # pictures, glass_rgb.cpp, fixed on 2026-10-30, and the floor stays: the board was never tried on an older ESPHome).
   min_version: 2026.9.0
 
 packages:

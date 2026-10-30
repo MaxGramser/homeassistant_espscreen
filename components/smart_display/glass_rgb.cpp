@@ -11,8 +11,9 @@
 // next VBlank and tells nobody (esp_lcd_panel_rgb.c, lcd_rgb_panel_try_restart_transmission), so a frame that slipped
 // sideways shows only to an eye (packages/hardware/esp32s3-rgb.yaml). misses() stays 0 here; it says nothing.
 #include "glass.h"
-#if defined(GLASS_RGB) && defined(SCREEN_PICTURES)
+#if defined(GLASS_RGB)
 #include <esp_lcd_panel_rgb.h>
+#if defined(SCREEN_PICTURES)
 
 #include "lvgl.h"  // LV_COLOR_16_SWAP, LVGL's byte order for this display
 
@@ -45,13 +46,21 @@ void note_log_line() {}
 void note_finger(bool) {}
 
 }  // namespace glass
+#endif  // SCREEN_PICTURES
 
 // ESP-IDF makes the RGB panel for ESPHome's display: its handle and its size are picked up here as they are made
-// (-Wl,--wrap=esp_lcd_new_rgb_panel, engine_build.py on an S3).
+// (-Wl,--wrap=esp_lcd_new_rgb_panel, engine_build.py on every S3 with an RGB panel). On a board without pictures
+// (no camera feature: the SenseCAP Indicator D1) the wrap only passes the call on, so the link finds it either way
+// (release 0.4.91's CI, 2026-10-30: "undefined reference to __wrap_esp_lcd_new_rgb_panel").
 extern "C" esp_err_t __real_esp_lcd_new_rgb_panel(const esp_lcd_rgb_panel_config_t *config, esp_lcd_panel_handle_t *made);
 extern "C" esp_err_t __wrap_esp_lcd_new_rgb_panel(const esp_lcd_rgb_panel_config_t *config, esp_lcd_panel_handle_t *made) {
   const esp_err_t err = __real_esp_lcd_new_rgb_panel(config, made);
+#if defined(SCREEN_PICTURES)
   if (err == ESP_OK && made && config) glass::panel_made(*made, config);
+#else
+  (void) made;
+  (void) config;
+#endif
   return err;
 }
-#endif
+#endif  // GLASS_RGB
