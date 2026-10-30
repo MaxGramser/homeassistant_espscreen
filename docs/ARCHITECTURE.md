@@ -207,6 +207,9 @@ docs/TROUBLESHOOTING.md.
   copy per picture is the class that stalled a Tab5 (docs/PLATFORM_PLAN.md 4.7).
 - **Internal RAM never below 32 KB at rest.** The S3 engine's memory comes from PSRAM; an S3 runs one live tile
   because each tile's socket buffers cost about 11 KB of internal RAM (two tiles: 16 KB left, three: 3 KB; 2026-10-28).
+  `live_view::open` holds it for every stream: no more at once than the engine's `streams` (an S3's 1, a full view and
+  a stream still ending counted), and none that would leave less than 32 KB free (a tester's S3 aborted with a view
+  beside a tile, 2026-10-30).
 - **Limits are read, not inferred, in three places that agree.** The engine's `live_tiles`, the add-on's ceiling of
   eight streams over all screens (visible in the editor and the log), and the hello that carries both.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal

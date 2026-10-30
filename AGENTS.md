@@ -134,9 +134,12 @@ the commit and stays a release long. The README there has the table and the rule
 How much is checked follows the branch (next section): work on dev moves fast and is proven on real screens, a
 release is checked fully, once a week. docs/TESTING.md says what each layer proves.
 
-- **On dev the proof is the bench**: the three real boards on the owner's bench Home Assistant and its local app
-  (`.esphome/bench/README.md` on the owner's machine). Put the app on it, flash the change to the boards it concerns,
-  and have the owner look and tap. Run a single test when that is the quickest way to see a piece of logic work. No
+- **On dev the proof is the bench**: the owner's home Home Assistant is the test Home Assistant (since 2026-10-29),
+  with the owner's real screens and the bench boards on the Mac mini's USB as screens of it. The bench HA VM and
+  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house with the
+  deploy-home skill (`deploy_home.py dev`, after a push to `origin dev`), whose builds run on the Mac mini as the app's
+  build server, flash the change to the boards it concerns, and have the owner look and tap. Run a single test when
+  that is the quickest way to see a piece of logic work. No
   `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI but the Docker
   image `:dev` when `screen_manager/` changed (docs/DOCKER.md, "Testing dev"). After a change
   under `web/src`, `cd web && npm run build` (the app serves that build) and commit `screen_manager/app/static` with it.
@@ -173,7 +176,7 @@ Two branches, and the difference between them is the most important rule in this
   whether it is a release or work to test on the bench, before anything goes near main.
 - **The release**, about once a week: `tools/release.py` with docs/RELEASING.md, "The release", step by step. It counts
   everything since the last release as one: one app version, one CHANGELOG section, one firmware number, tested as an
-  upgrade from main on the bench, and then main moves to that exact commit with its tag and GitHub release. The
+  upgrade from main on the home Home Assistant, and then main moves to that exact commit with its tag and GitHub release. The
   plugins repository goes along in the same `publish`: its dev to its main, its index checked against the release.
 - **A hotfix** is for something broken for users now: a screen that doesn't start, an add-on that doesn't start, data
   that is lost. Branch from main (`hotfix-<what>`), fix it, release it alone with the same steps, then merge main into

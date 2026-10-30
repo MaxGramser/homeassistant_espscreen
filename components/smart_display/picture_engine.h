@@ -141,7 +141,9 @@ inline Cut cut(int w, int h, int cw, int ch, bool contain) {
 // (hw::caps, the hello's live_tiles, docs/PLATFORM_PLAN.md 4.1), whether a decode holds the glass, as one that runs on
 // the 2D-DMA must (glass.h: its one user at a time), the most pictures a second a full view decodes (0: as they come;
 // the pictures that come sooner are passed, and the sound plays on), the pictures a second all live tiles share
-// (tile_pps), and the core a stream's task decodes and copies on. 0 takes no pictures at all, never "no limit".
+// (tile_pps), the core a stream's task decodes and copies on, and how many streams of every kind it holds at once (live
+// tiles, a full view and a plugin's live places alike, one that is still ending counted: live_view::open). 0 takes no
+// pictures at all, never "no limit".
 struct Limits {
   int burst_bytes;
   size_t picture_bytes, tile_picture_bytes;
@@ -150,6 +152,7 @@ struct Limits {
   uint8_t view_pps;
   uint8_t tile_budget_pps;
   uint8_t stream_core;
+  uint8_t streams;
 };
 // The pictures a second each of `tiles` live tiles shows: the engine's budget shared among them, at least 2 (fewer
 // reads as stills) and at most `most` (hw::LIVE_TILE_PPS, every board alike). On a P4 four tiles keep their 6 each; an
@@ -169,7 +172,7 @@ inline int ppa_angle(int turn) { return turn == 90 ? 3 : turn == 180 ? 2 : turn 
 // camera is (150 to 250 KB) and a tile's room needs (docs/CAMERA.md, "Live on the P4 boards", 2026-10-10); four live
 // tiles at once, measured on a reTerminal D1001 and a Guition 10.1 (docs/PLATFORM_PLAN.md 4.1), 24 pictures a second
 // among them: 6 each, as before the budget.
-constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 24, 1}; }
+constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 24, 1, 7}; }
 #elif defined(PICTURE_ENGINE_S3) && defined(SCREEN_PICTURES)
 // The S3's: no 2D engine, so no bursts; one live tile, its picture at most 128 KB (the app's JPEG of a 4-inch card is
 // about 10 KB), decoded by the CPU off the glass on core 0, away from LVGL's; a full view's picture at most 256 KB, as
@@ -178,8 +181,9 @@ constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 24,
 // each live tile costs about 11 KB of internal RAM for its socket's Wi-Fi and lwIP buffers, and two took it down to
 // 16 KB, three to 3 KB, so one; its budget of 8 pictures a second is the one a second tile would share. With the tile
 // decoding on core 1, LVGL's core was 38 % busy and LVGL refreshed 410 times in 10 s of dragging; on core 0, 23 % and
-// 435.
-constexpr Limits limits() { return {0, 256 * 1024, 128 * 1024, 1, false, 8, 8, 0}; }
+// 435. One stream of any kind at once: a full view that opened beside a live tile still ending took the internal RAM to
+// 2 KB and the screen down with it (a tester's Guition 4848S040 with 7 pages, 2026-10-30, docs/CAMERA.md).
+constexpr Limits limits() { return {0, 256 * 1024, 128 * 1024, 1, false, 8, 8, 0, 1}; }
 #endif
 #if (defined(PICTURE_ENGINE_P4) || defined(PICTURE_ENGINE_S3)) && defined(SCREEN_PICTURES)
 // This screen's decoder takes JPEG: its questions name it first (runtime_tiles::picture_ask), the download gathers a
@@ -218,7 +222,7 @@ inline void drop(Client) {}
 inline int blit(Client, const Block &) { return -1; }
 #endif
 #if !(defined(PICTURE_ENGINE_P4) || defined(PICTURE_ENGINE_S3)) || !defined(SCREEN_PICTURES)
-constexpr Limits limits() { return {0, 0, 0, 0, false, 0, 0, 1}; }
+constexpr Limits limits() { return {0, 0, 0, 0, false, 0, 0, 1, 0}; }
 constexpr bool JPEG = false;
 inline const std::vector<std::string> &whole_formats() {
   static const std::vector<std::string> none;
