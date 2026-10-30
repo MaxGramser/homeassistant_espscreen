@@ -1,7 +1,9 @@
 > [!IMPORTANT]
 > # LOOKING FOR FUNDING
 >
-> I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, [send me an email](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera).
+> I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. Help now with a donation, or mail me an offer or an idea.
+>
+> **[Donate now](https://buymeacoffee.com/f5j9jnkmhpv)** · **[Mail an offer or idea](mailto:maxgramser@gmail.com?subject=Funding%20for%20Tessera%3A%20an%20offer%20or%20an%20idea)**
 >
 > Max, maker of Tessera
 
