@@ -1,3 +1,10 @@
+> [!IMPORTANT]
+> ## Looking for funding
+>
+> I have a day job that pays the bills, and it comes first. But Tessera keeps growing, and to do it right I want to give it more of my time, or hire someone to help. For that I need funding. If you can help, [send me an email](mailto:max@thndr.studio?subject=Helping%20Tessera%20find%20funding).
+>
+> Max, maker of Tessera
+
 <p align="center">
   <a href="https://tessera-maxgramser.on-forge.com"><img src="docs/images/tessera-mosaic.jpg" width="100%" alt="A mosaic of real Tessera screens in every size, from the 2.8-inch CYD to the 10.1-inch Guition: lights, music, the thermostat, the weather, locks, blinds and the vacuum, in light and dark mode"></a>
 </p>
