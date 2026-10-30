@@ -1,3 +1,7 @@
+## Unreleased
+
+- **The editor saves again on a screen with a light preset that has an effect or the light's own settings.** Since 0.4.91 every save of such a screen, also a delete, was refused with "Tile options need normalization": the app keeps a preset's keys in another order than the editor writes them, and the editor took the two for different presets (a WLED with an effect preset, on a reTerminal D1001 and a Guition 10.1, 2026-10-30). The editor now compares presets whatever the order of their keys, and the app keeps them in the editor's order. Beyond that bug: when a tile's options no longer fit what its tile allows, the editor takes out what does not fit and says so, naming the page and the tile ("Page 2, tile “Lamp”: took out what did not fit (refresh)"), instead of refusing the whole save; a tile it cannot put right goes off the page with such a note. A tile you did not touch never blocks a save or a delete, and a refusal names the page and the tile it is about.
+
 ## 0.4.91 (firmware 0.58.0)
 
 - **The 4 MB boards (the CYDs and the Hosyond 4.0) build with ESPHome 2026.9.0 or newer.** That is the ESPHome the add-on ships, so a screen updated from the app notices nothing. Whoever builds these screens elsewhere with an older ESPHome Device Builder updates it first: on 2026.6.2 the same firmware is 65 KB larger and no longer fits the 97 % of the update slot the flash budget allows (docs/RELEASING.md).
