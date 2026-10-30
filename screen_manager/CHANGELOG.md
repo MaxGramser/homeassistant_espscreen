@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **A camera opens full screen at once again from its live tile.** Since 0.4.91 a tap on a live tile took about 11 seconds to show the camera full screen: its first try went out without an address while the tile's own stream was still ending, and the second came 10 seconds later.
 - **An ESP32-S3 screen no longer restarts when a camera opens full screen next to a live tile.** The S3 holds one live stream at a time, and the full view could open beside a live tile that had not stopped yet, which ran the screen out of memory. The view now waits for the tile, and no stream opens when the screen's memory is already too tight for one; it shows its pictures instead.
 
 ## 0.4.92 (firmware 0.58.0)
