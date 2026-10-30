@@ -30,6 +30,7 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # Mains-powered panel: no modem sleep, so HA updates and OTA arrive without beacon latency.
   power_save_mode: none
   ap:
     ssid: "Tessera ${DEVICE_FRIENDLY_NAME}"
