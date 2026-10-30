@@ -4204,6 +4204,12 @@
       "donated": "Már adományoztam",
       "thanks": "Köszönöm! Ez az üzenet többé nem jelenik meg."
     },
+    "funding": {
+      "title": "Finanszírozást keresek",
+      "body": "Van egy munkám, ami fizeti a számlákat, és az az első. A Tessera egyre nagyobb, és egyszerűen nincs rá annyi időm, amennyi kellene. Hogy életben maradjon, finanszírozásra van szükségem: hogy annyi időt adhassak neki, amennyit megérdemel, vagy felvehessek valakit, aki segít. Ha tudsz segíteni, írj nekem e-mailt.",
+      "mail": "Írj nekem",
+      "later": "Most nem"
+    },
     "build": {
       "plugins": "Fordítás a bővítményeivel",
       "install": "Telepítés",

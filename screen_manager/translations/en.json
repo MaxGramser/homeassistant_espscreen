@@ -3769,6 +3769,12 @@
       "donated": "I already donated",
       "thanks": "Thank you! This won't ask again."
     },
+    "funding": {
+      "title": "Looking for funding",
+      "body": "I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, send me an email.",
+      "mail": "Email me",
+      "later": "Not now"
+    },
     "plugins": {
       "title": "Plugins",
       "intro": "Extras for your screens: tiles to put on a page, something more the whole screen can do, or hardware on the board. A plugin is built into a screen's firmware, so you choose per screen which ones it gets.",

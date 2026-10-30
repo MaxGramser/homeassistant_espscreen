@@ -4204,6 +4204,12 @@
       "donated": "Już wpłaciłem",
       "thanks": "Dziękuję! Ta wiadomość już nie wróci."
     },
+    "funding": {
+      "title": "Szukam finansowania",
+      "body": "Mam pracę, która opłaca rachunki, i ona jest na pierwszym miejscu. Tessera wciąż rośnie, a ja po prostu nie mam tyle czasu, ile potrzebuje. Żeby projekt przetrwał, potrzebuję finansowania: żeby poświęcić mu tyle czasu, na ile zasługuje, albo zatrudnić kogoś do pomocy. Jeśli możesz pomóc, napisz do mnie e-mail.",
+      "mail": "Napisz do mnie",
+      "later": "Nie teraz"
+    },
     "build": {
       "plugins": "Kompiluje z wtyczkami",
       "install": "Instaluje",

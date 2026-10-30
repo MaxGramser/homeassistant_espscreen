@@ -4204,6 +4204,12 @@
       "donated": "Ho già donato",
       "thanks": "Grazie! Questo messaggio non tornerà più."
     },
+    "funding": {
+      "title": "In cerca di finanziamenti",
+      "body": "Ho un lavoro che paga le bollette, e viene prima di tutto. Tessera continua a crescere e semplicemente non ho il tempo che richiede. Per tenerlo in vita mi servono finanziamenti: per dedicargli il tempo che merita o assumere qualcuno che aiuti. Se puoi aiutare, scrivimi un'email.",
+      "mail": "Scrivimi",
+      "later": "Non ora"
+    },
     "build": {
       "plugins": "Compila con i suoi plugin",
       "install": "Installazione",

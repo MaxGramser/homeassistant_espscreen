@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 - **A camera opens full screen at once again from its live tile.** Since 0.4.91 a tap on a live tile took about 11 seconds to show the camera full screen: its first try went out without an address while the tile's own stream was still ending, and the second came 10 seconds later.
 - **An ESP32-S3 screen no longer restarts when a camera opens full screen next to a live tile.** The S3 holds one live stream at a time, and the full view could open beside a live tile that had not stopped yet, which ran the screen out of memory. The view now waits for the tile, and no stream opens when the screen's memory is already too tight for one; it shows its pictures instead.
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The add-on's home (app 0.4.0): every screen of the house with its home page as it stands on the glass right now, the
 // page shown when no screen is chosen and where the logo leads. A click on a screen opens it in the editor.
-import { computed, onMounted, reactive } from "vue";
+import { computed, onMounted, reactive, useTemplateRef } from "vue";
 import { t } from "../i18n";
 import { barMetricsFor } from "../model/topbar";
 import { boardTitle } from "../model/boards";
@@ -14,6 +14,7 @@ import { previewShapeOf } from "../model/preview";
 import type { Screen } from "../types";
 import FirmwarePreview from "./FirmwarePreview.vue";
 import DonateCard from "./DonateCard.vue";
+import FundingCard from "./FundingCard.vue";
 import TileCard from "./TileCard.vue";
 import TopbarSvg from "./TopbarSvg.vue";
 import Icon from "./ui/Icon.vue";
@@ -29,6 +30,8 @@ import { useSessionStore } from "../stores/session";
 import { useInventoryStore } from "../stores/inventory";
 
 const ui = useUiStore();
+// The funding request first; the support card waits until it is put away.
+const funding = useTemplateRef<InstanceType<typeof FundingCard>>("funding");
 const entities = useEntitiesStore();
 const scr = useScreenStore();
 const session = useSessionStore();
@@ -120,7 +123,8 @@ onMounted(entities.loadOverview);
       </div>
       <button type="button" class="home-new" @click="ui.go('#new-screen')"><Icon name="plus" class="home-plus" />{{ t("editor.nav.new_screen") }}</button>
     </div>
-    <DonateCard />
+    <FundingCard ref="funding" />
+    <DonateCard v-if="funding && !funding.open" />
   </section>
 </template>
 

@@ -3769,6 +3769,12 @@
       "donated": "Ik heb al gedoneerd",
       "thanks": "Dank je wel! Dit komt niet meer terug."
     },
+    "funding": {
+      "title": "Op zoek naar funding",
+      "body": "Ik heb een baan die de rekeningen betaalt, en die gaat voor. Tessera wordt steeds groter, en ik heb simpelweg niet de tijd die het nodig heeft. Om het in leven te houden heb ik funding nodig: zodat ik er de tijd aan kan geven die het verdient, of iemand kan inhuren om te helpen. Kun je helpen? Stuur me een mail.",
+      "mail": "Mail me",
+      "later": "Niet nu"
+    },
     "plugins": {
       "title": "Plugins",
       "intro": "Extra's voor je schermen: tegels voor op een pagina, iets wat het hele scherm extra kan, of hardware op het bordje. Een plugin wordt in de firmware van een scherm gebouwd, dus je kiest per scherm welke het krijgt.",

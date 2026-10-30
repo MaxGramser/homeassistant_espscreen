@@ -4204,6 +4204,12 @@
       "donated": "J'ai déjà fait un don",
       "thanks": "Merci ! Ce message ne reviendra plus."
     },
+    "funding": {
+      "title": "À la recherche de financement",
+      "body": "J'ai un emploi qui paie les factures, et il passe en premier. Tessera ne cesse de grandir, et je n'ai tout simplement pas le temps qu'il demande. Pour le garder en vie, j'ai besoin de financement : pour lui consacrer le temps qu'il mérite, ou embaucher quelqu'un pour m'aider. Si vous pouvez aider, envoyez-moi un e-mail.",
+      "mail": "M'écrire",
+      "later": "Pas maintenant"
+    },
     "build": {
       "plugins": "Compilation avec ses plugins",
       "install": "Installation",
