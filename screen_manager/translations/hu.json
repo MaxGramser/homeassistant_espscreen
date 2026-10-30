@@ -878,6 +878,7 @@
         "layout_conflict": "Az elrendezés egy másik szerkesztőben módosult; töltsd újra, és egyeztesd a vázlatot",
         "adaptation": "A kijelző rácsa megváltozott; az elrendezést kifejezetten át kell igazítani",
         "normalization": "A csempebeállításokat normalizálni kell az oldaldokumentum mentése előtt",
+        "on_tile": "{page}. oldal, „{tile}” csempe: {problem}",
         "ambiguous_tile": "A csempeesemény forrása nem egyértelmű; add meg az oldalát",
         "save_first": "A dokumentumbeállítások mentése előtt mentsd az oldaldokumentumot",
         "destination_exists": "A célkijelzőnek már van mentett elrendezése",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Szabad"
     },
     "pages": {
+      "repaired": "{page}. oldal, „{tile}” csempe: ami nem illett, eltávolítva ({what}).",
+      "repaired_tile": "{page}. oldal: a „{tile}” csempe eltávolítva, már nem illett.",
       "mode": "Szerkesztő mód",
       "simple": "Egyszerű",
       "advanced": "Haladó",

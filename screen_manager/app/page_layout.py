@@ -491,8 +491,14 @@ def validate_document(data, grid):
     checked = validate_layout(flat, grid=grid)
     # The legacy validator sorts by slot and normalizes documented defaults.
     # Incompatible size/action combinations must not escape into a document.
-    if checked["title"] != data["title"] or checked["tiles"] != flat["tiles"]:
+    if checked["title"] != data["title"]:
         raise LayoutError(t('addon.errors.pages.normalization'))
+    if checked["tiles"] != flat["tiles"]:
+        # The tile that is refused is named, with its page, so the person can find it (and change or delete it).
+        shown = {tile["slot"]: tile for tile in checked["tiles"]}
+        tile = next((tile for tile in flat["tiles"] if shown.get(tile["slot"]) != tile), flat["tiles"][0])
+        raise LayoutError(t('addon.errors.pages.on_tile', page=tile["slot"] // (grid.columns * grid.rows) + 1,
+                            tile=tile.get("name") or tile["entity"], problem=t('addon.errors.pages.normalization')))
     return deepcopy(data)
 
 

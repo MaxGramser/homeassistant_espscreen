@@ -878,6 +878,7 @@
         "layout_conflict": "Układ został zmieniony w innym edytorze; wczytaj go ponownie i porównaj wersję roboczą",
         "adaptation": "Siatka ekranu uległa zmianie; wymagane jest jawne dostosowanie układu",
         "normalization": "Opcje kafelków wymagają normalizacji przed zapisaniem strony",
+        "on_tile": "Strona {page}, kafelek „{tile}”: {problem}",
         "ambiguous_tile": "Zdarzenie kafelka ma niejednoznaczne źródło; podaj jego stronę",
         "save_first": "Zapisz układ stron przed zapisaniem ustawień",
         "destination_exists": "Ekran docelowy ma już zapisany układ",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Wolne"
     },
     "pages": {
+      "repaired": "Strona {page}, kafelek „{tile}”: usunięto to, co nie pasowało ({what}).",
+      "repaired_tile": "Strona {page}: usunięto kafelek „{tile}”, już nie pasował.",
       "mode": "Tryb edytora",
       "simple": "Prosty",
       "advanced": "Zaawansowany",

@@ -878,6 +878,7 @@
         "layout_conflict": "Layout changed in another editor; reload and reconcile the draft",
         "adaptation": "Screen grid changed; explicit layout adaptation is required",
         "normalization": "Tile options need normalization before saving the page document",
+        "on_tile": "Page {page}, tile “{tile}”: {problem}",
         "ambiguous_tile": "Tile event has an ambiguous source; specify its page",
         "save_first": "Save a page document before saving document settings",
         "destination_exists": "Destination screen already has a saved layout",
@@ -3408,6 +3409,8 @@
       "calendar_free": "Free"
     },
     "pages": {
+      "repaired": "Page {page}, tile “{tile}”: took out what did not fit ({what}).",
+      "repaired_tile": "Page {page}: took the tile “{tile}” off, it did not fit any more.",
       "mode": "Editor mode",
       "simple": "Simple",
       "advanced": "Advanced",

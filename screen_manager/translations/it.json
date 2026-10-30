@@ -878,6 +878,7 @@
         "layout_conflict": "La disposizione è stata modificata in un altro editor; ricarica e confronta la bozza",
         "adaptation": "La griglia dello schermo è cambiata; occorre adattare esplicitamente la disposizione",
         "normalization": "Le opzioni delle tessere devono essere normalizzate prima di salvare la pagina",
+        "on_tile": "Pagina {page}, tessera «{tile}»: {problem}",
         "ambiguous_tile": "L’evento della tessera ha un’origine ambigua; specifica la pagina",
         "save_first": "Salva la disposizione delle pagine prima delle relative impostazioni",
         "destination_exists": "Lo schermo di destinazione ha già una disposizione salvata",
@@ -3843,6 +3844,8 @@
       "calendar_free": "Libero"
     },
     "pages": {
+      "repaired": "Pagina {page}, tessera «{tile}»: tolto ciò che non andava ({what}).",
+      "repaired_tile": "Pagina {page}: tessera «{tile}» tolta, non andava più.",
       "mode": "Modalità editor",
       "simple": "Semplice",
       "advanced": "Avanzato",
