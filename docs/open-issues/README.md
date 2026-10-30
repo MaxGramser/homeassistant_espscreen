@@ -22,3 +22,6 @@ Rules:
 | [opus-cost-on-the-10-1.md](opus-cost-on-the-10-1.md) | Opus encoding costs 11.8 ms per 20 ms packet on the Guition 10.1 beside four tiles, 7.8 on the D1001 | 2026-10-29 |
 | [d1001-internal-ram-drop.md](d1001-internal-ram-drop.md) | The reTerminal D1001's internal RAM fell from 284 to 140 KB in 18 minutes with the encoder and sensing running | 2026-10-29 |
 | [addon-counts-a-reboot-as-missing.md](addon-counts-a-reboot-as-missing.md) | The add-on's frame watch counts a screen's reboot (sequence numbers restart) as hundreds of thousands of missing frames | 2026-10-29 |
+| [video-left-behind-at-half-buffer.md](video-left-behind-at-half-buffer.md) | A screen's video leaves a viewer behind until the next key frame once half its 64 KB send buffer is unacknowledged (lwIP's select), 9 to 36 times a minute over Wi-Fi | 2026-10-29 |
+| [governor-slow-loop-feedback.md](governor-slow-loop-feedback.md) | A full view held up on the main loop raises the governor's step, which squeezes the tiles and sensing beside it | 2026-10-29 |
+| [plugins-before-a-firmware-update.md](plugins-before-a-firmware-update.md) | A screen's Update builds with the plugins it has; a plugin that uses a form removed from the plugin API fails in the compiler, and only then is its update named | 2026-10-29 |
