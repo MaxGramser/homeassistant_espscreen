@@ -189,11 +189,19 @@ class OneConnectionAtATime(unittest.TestCase):
 
     def test_the_full_view_waits_for_the_tiles_streams_to_end(self):
         tiles = (COMPONENT / 'runtime_tiles.h').read_text()
-        begin = tiles[tiles.index('inline void live_begin(const std::string &url) {'):]
+        begin = tiles[tiles.index('inline void live_begin(const std::string &link) {'):]
         begin = begin[:begin.index('\n}\n')]
-        steps = ['live_tiles_halt();', 'if (live_view::ending()) {', 'live_link_waiting = url;',
-                 'camera.stream.opened(live_view::open(url,']
+        # Its own copy of the link first: live_tick hands it live_link_waiting, which it clears before it opens, and
+        # opened with the cleared one the view asked ":80" and tried again 10 s later (0.4.91, 0.4.92).
+        steps = ['const std::string url = link;', 'live_tiles_halt();', 'if (live_view::ending()) {',
+                 'live_link_waiting = url;', 'live_link_waiting.clear();', 'camera.stream.opened(live_view::open(url,']
         self.assertEqual([begin.index(step) for step in steps], sorted(begin.index(step) for step in steps))
+        self.assertNotIn('open(link', begin)
+        # A view beside a stream still ending only where the engine holds a second (a P4); an S3 waits (2026-10-30).
+        self.assertIn('return !live_view::ending() || (live_view::beside() && now - live_link_waiting_at >= LIVE_LINK_WAIT_MS);',
+                      tiles)
+        self.assertIn('bool beside() { return picture_engine::limits().streams > 1; }',
+                      (COMPONENT / 'live_view.cpp').read_text())
         self.assertIn('the full view could not stream', begin)
         self.assertIn('constexpr uint32_t LIVE_LINK_WAIT_MS = 2000;', tiles)
         tick = tiles[tiles.index('inline void live_tick() {'):]

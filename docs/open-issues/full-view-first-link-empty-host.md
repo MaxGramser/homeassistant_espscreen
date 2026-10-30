@@ -19,3 +19,10 @@ came from, at the moment of "no connection to :80". Fix the source; the 10 s ret
 ## Pointers
 components/smart_display/live_view.cpp (read_stream, the warning at line ~794), runtime_tiles.h (LIVE_LINK_WAIT_MS,
 the full view's link while the page's streams end).
+
+## Solved (2026-10-30)
+The link was cleared under the view's feet. When the page's streams had not ended yet, `live_begin` kept the link in
+`live_link_waiting`, and `live_tick` called `live_begin(live_link_waiting)` once they had: a reference to that very
+string, which `live_begin` then cleared before `live_view::open(url, ...)`. So every tap on a live tile whose stream
+had to end first opened ":80", failed, and waited 10 s for the next try. It came with the wait itself (03910c97,
+0.4.91). `live_begin` now takes its own copy first; tests/test_live_view.py keeps the order.
