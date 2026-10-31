@@ -22,6 +22,7 @@ STILL_HELD = {
     'audio_dac': ('reterminald1001',),
     'binary_sensor': ('reterminald1001',),
     'esp32': (
+        'espressif-esp32-s3-box-3',
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
         'guition-jc8012p4a1-v3', 'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001', 'seeed-sensecap-indicator-d1',
         'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-43', 'waveshare-esp32s3-4b',
@@ -38,6 +39,7 @@ STILL_HELD = {
     ),
     'globals': ('reterminald1001',),
     'i2c': (
+        'espressif-esp32-s3-box-3',
         'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535', 'guition-jc8048w550c-i', 'reterminald1001',
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'wt32sc01plus',
@@ -53,17 +55,20 @@ STILL_HELD = {
     'microphone': ('crowpanel101',),
     'motion': ('reterminald1001',),
     'output': (
+        'espressif-esp32-s3-box-3',
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
         'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001', 'seeed-sensecap-indicator-d1', 'sunton-8048s070',
         'waveshare-esp32s3-35', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare101', 'wavesharep4',
         'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
     ),
     'pca9554': ('seeed-sensecap-indicator-d1', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',),
-    'psram': ('freenove-fnk0104s', 'guition-jc3248w535', 'waveshare-esp32s3-35', 'wt32sc01plus',),
+    'psram': (
+        'espressif-esp32-s3-box-3', 'freenove-fnk0104s', 'guition-jc3248w535', 'waveshare-esp32s3-35', 'wt32sc01plus',),
     'script': ('reterminald1001',),
     'sensor': ('reterminald1001',),
     'speaker': ('crowpanel101',),
     'spi': (
+        'espressif-esp32-s3-box-3',
         'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535', 'hosyond40',
         'seeed-sensecap-indicator-d1', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4',
         'wt32sc01plus',
@@ -77,6 +82,7 @@ STILL_HELD = {
     'waveshare_io_ch32v003': ('waveshare-esp32s3-4v4',),
     'xl9535': ('reterminald1001',),
     'display': (
+        'espressif-esp32-s3-box-3',
         'crowpanel101', 'cyd-2432s028-ili9342', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040',
         'guition-jc1060p470-v2', 'guition-jc1060p470', 'guition-jc3248w535', 'guition-jc4880p443',
         'guition-jc8012p4a1-v2', 'guition-jc8012p4a1-v3', 'guition-jc8012p4a1', 'guition-jc8048w550c-i', 'hosyond40',
@@ -86,6 +92,7 @@ STILL_HELD = {
         'wt32sc01plus',
     ),
     'touchscreen': (
+        'espressif-esp32-s3-box-3',
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
         'guition-jc4880p443', 'guition-jc8012p4a1', 'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001',
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'tab5', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',

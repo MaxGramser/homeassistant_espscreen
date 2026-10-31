@@ -323,6 +323,105 @@
   "wide_slots": true,
   "width": 320
  },
+ "checkout/esp32s3box3.yaml": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "battery": false,
+  "board": "esp32s3box3",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.4,
+   "model": "ESP32-S3-BOX-3",
+   "name": "Espressif",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 167,
+  "features": [],
+  "firmware": "0.59.0",
+  "fonts": {
+   "headline": 21,
+   "icon": 33,
+   "icon_home": 29,
+   "icon_mini": 21,
+   "label": 13,
+   "setpoint": 47,
+   "sublabel": 13,
+   "sublabel_big": 16,
+   "watch_icon": 14,
+   "watch_value": 26
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     2,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 42,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 42,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 42
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "checkout/freenovefnk0104s.yaml": {
   "alert": {
    "line": 21,
@@ -4263,6 +4362,105 @@
   "wide_slots": true,
   "width": 320
  },
+ "esp32s3box3": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "battery": false,
+  "board": "esp32s3box3",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.4,
+   "model": "ESP32-S3-BOX-3",
+   "name": "Espressif",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 167,
+  "features": [],
+  "firmware": "0.59.0",
+  "fonts": {
+   "headline": 21,
+   "icon": 33,
+   "icon_home": 29,
+   "icon_mini": 21,
+   "label": 13,
+   "setpoint": 47,
+   "sublabel": 13,
+   "sublabel_big": 16,
+   "watch_icon": 14,
+   "watch_value": 26
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     2,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 42,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 42,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 42
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "freenovefnk0104s": {
   "alert": {
    "line": 21,
@@ -5994,6 +6192,105 @@
   },
   "tier": "lite",
   "wide_slots": true,
+  "width": 320
+ },
+ "packages/esp32s3box3.yaml": {
+  "alert": {
+   "line": 19,
+   "title_line": 25
+  },
+  "battery": false,
+  "board": "esp32s3box3",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.4,
+   "model": "ESP32-S3-BOX-3",
+   "name": "Espressif",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 167,
+  "features": [],
+  "firmware": "0.59.0",
+  "fonts": {
+   "headline": 21,
+   "icon": 33,
+   "icon_home": 29,
+   "icon_mini": 21,
+   "label": 13,
+   "setpoint": 47,
+   "sublabel": 13,
+   "sublabel_big": 16,
+   "watch_icon": 14,
+   "watch_value": 26
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 6,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     2,
+     3
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "rows": 2,
+  "spacing": {
+   "circle": 42,
+   "gap": 7,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 42,
+   "radius": 21,
+   "tile_pad": 9,
+   "top": 42
+  },
+  "tier": "full",
+  "wide_slots": false,
   "width": 320
  },
  "packages/freenovefnk0104s.yaml": {

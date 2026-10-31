@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **A new board, experimental: the Espressif ESP32-S3-BOX-3**, a 2.4-inch ESP32-S3 board with 320 x 240 glass, GT911 touch, a dimmable backlight and 16 MB PSRAM, as a screen only (its microphones and speaker are not used yet). Choose it under New screen, as Espressif.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.93 (firmware 0.59.0)
