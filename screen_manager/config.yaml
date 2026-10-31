@@ -1,5 +1,6 @@
 name: Tessera Screen Manager (dev)
 version: "0.4.93"
+image: ghcr.io/maxgramser/homeassistant_espscreen
 slug: esp_screen_manager
 description: "Tessera: touch screens for Home Assistant. Choose tiles for your ESP32 screens, 2.8 to 10.1 inch, without reflashing."
 url: https://tessera-maxgramser.on-forge.com
