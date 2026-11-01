@@ -3675,7 +3675,7 @@
    "line": 25,
    "title_line": 32
   },
-  "battery": false,
+  "battery": true,
   "board": "wavesharep47b",
   "camera": {
    "full": [
@@ -3690,7 +3690,12 @@
   "can_standby": true,
   "catalog": {
    "calibrate": false,
-   "choices": {},
+   "choices": {
+    "CHIP_REVISION": [
+     "v3",
+     "v1"
+    ]
+   },
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
@@ -3713,6 +3718,7 @@
    "speaker",
    "microphone",
    "media_player",
+   "camera_sensor",
    "bluetooth"
   ],
   "firmware": "0.59.0",
@@ -9348,7 +9354,7 @@
    "line": 25,
    "title_line": 32
   },
-  "battery": false,
+  "battery": true,
   "board": "wavesharep47b",
   "camera": {
    "full": [
@@ -9363,7 +9369,12 @@
   "can_standby": true,
   "catalog": {
    "calibrate": false,
-   "choices": {},
+   "choices": {
+    "CHIP_REVISION": [
+     "v3",
+     "v1"
+    ]
+   },
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
@@ -9386,6 +9397,7 @@
    "speaker",
    "microphone",
    "media_player",
+   "camera_sensor",
    "bluetooth"
   ],
   "firmware": "0.59.0",
@@ -11555,7 +11567,7 @@
    "line": 25,
    "title_line": 32
   },
-  "battery": false,
+  "battery": true,
   "board": "wavesharep47b",
   "camera": {
    "full": [
@@ -11570,7 +11582,12 @@
   "can_standby": true,
   "catalog": {
    "calibrate": false,
-   "choices": {},
+   "choices": {
+    "CHIP_REVISION": [
+     "v3",
+     "v1"
+    ]
+   },
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
@@ -11593,6 +11610,7 @@
    "speaker",
    "microphone",
    "media_player",
+   "camera_sensor",
    "bluetooth"
   ],
   "firmware": "0.59.0",

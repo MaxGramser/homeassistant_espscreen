@@ -3416,17 +3416,23 @@
       "choice": {
         "DISPLAY_MODEL": "Kijelzővezérlő",
         "FLASH_SIZE": "Flash-memória",
-        "BOARD_VARIANT": "Panel"
+        "BOARD_VARIANT": "Panel",
+        "CHIP_REVISION": "Chip revízió"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Kezdd az elsővel. Ha a kijelző fekete marad, zajos vagy torz képet mutat, válaszd a másikat.",
         "FLASH_SIZE": "A legtöbb ilyen panelen 16 MB van. Válaszd a 8 MB-ot, ha a kijelző a telepítés után fekete marad és újra meg újra elindul.",
-        "BOARD_VARIANT": "Válaszd azt, amelyik nálad van. A sárga, ház nélküli panelen a bal felső koppintás különben a jobb alsó sarokba kerülne."
+        "BOARD_VARIANT": "Válaszd azt, amelyik nálad van. A sárga, ház nélküli panelen a bal felső koppintás különben a jobb alsó sarokba kerülne.",
+        "CHIP_REVISION": "Az USB-napló első sorai megmondják: „chip revision: v3.x” vagy „v1.3”. Az egyikre készült firmware nem indul el a másikon."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Fekete, házban",
           "yellow": "Sárga, ház nélkül"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, újabb lapok",
+          "v1": "v1, korábbi lapok"
         }
       },
       "choice_usual": "a legtöbb panel",

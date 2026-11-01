@@ -3416,17 +3416,23 @@
       "choice": {
         "DISPLAY_MODEL": "Controlador de pantalla",
         "FLASH_SIZE": "Memoria flash",
-        "BOARD_VARIANT": "Placa"
+        "BOARD_VARIANT": "Placa",
+        "CHIP_REVISION": "Revisión del chip"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Empieza por el primero. Elige el otro si la pantalla se queda negra o muestra ruido o una imagen distorsionada.",
         "FLASH_SIZE": "La mayoría de estas placas tienen 16 MB. Elige 8 MB si la pantalla se queda negra tras la instalación y se reinicia una y otra vez.",
-        "BOARD_VARIANT": "Elige la que tienes. En la placa amarilla sin carcasa, un toque arriba a la izquierda acabaría si no abajo a la derecha."
+        "BOARD_VARIANT": "Elige la que tienes. En la placa amarilla sin carcasa, un toque arriba a la izquierda acabaría si no abajo a la derecha.",
+        "CHIP_REVISION": "Las primeras líneas del registro USB lo indican: «chip revision: v3.x» o «v1.3». Un firmware para una no arranca en la otra."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Negra, con carcasa",
           "yellow": "Amarilla, sin carcasa"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, placas nuevas",
+          "v1": "v1, placas anteriores"
         }
       },
       "choice_usual": "la mayoría",

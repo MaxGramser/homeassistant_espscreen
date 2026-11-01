@@ -1,18 +1,21 @@
 # ESP Screens - Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, experimental: a 7-inch 1024 x 600 MIPI-DSI panel (EK79007) with
-# GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi, built for rev3 silicon. Hardware reference:
+# GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi, rev3 or earlier silicon. Hardware reference:
 # https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-7B
 #
 # Not the ESP32-S3-Touch-LCD-7B (packages/boards/waveshare-esp32s3-7b.yaml), which is an RGB panel behind a CH32V003
 # expander. This board has no expander: its backlight and touch hang on ordinary P4 pins.
 #
-# This file builds for rev3 silicon ("chip revision: v3.x" in the boot log; `engineering_sample: false`), which is what
-# Waveshare ships now. A board with pre-v3 silicon of the same name does not boot this firmware and the other way round,
-# so it needs `engineering_sample: true` in its Override YAML (docs/WAVESHAREP47B.md). A community member ran this file
-# on a board with rev3 silicon (picture, touch, brightness, standby and wake); the project has not tried it on one.
+# Waveshare sells it with rev3 silicon ("chip revision: v3.x" in the boot log), what it ships now, and with pre-v3 silicon
+# ("v1.3"); a firmware for one does not boot on the other. CHIP_REVISION below says which (a choice in New screen,
+# boards.yaml): v3 by default, v1 for `engineering_sample: true` (docs/WAVESHAREP47B.md). Community members ran this file
+# on both: rev3 (picture, touch, brightness, standby and wake) and pre-v3 with `engineering_sample: true`; the project
+# has not tried it on either.
 # The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are wired as on the Waveshare P4 86 panel
 # (Waveshare's schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default.
 # Experimental: a community member had playback and the microphone working on this board with a configuration of their
 # own; this file's audio has not been tried on one, and the echo cancellation was first built for pre-v3 silicon.
+# The camera connector takes an OV5647 (Waveshare sells the board with one) for Screen camera, and the MX1.25 battery
+# connector's cell is read on GPIO20 (the feature camera_sensor and the battery, below).
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board is
@@ -30,12 +33,20 @@ packages:
   # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
   # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
   audio: !include ../hardware/wavesharep4-audio.yaml
+  # The battery on the MX1.25 connector: its voltage on GPIO20 through a divider of three, and a level from it
+  # (docs/BATTERY.md).
+  battery_voltage: !include ../features/battery-voltage.yaml
+  battery_adc: !include ../features/battery-adc.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "wavesharep47b"
   DEVICE_NAME: "wavesharep47b-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare P4 7B"
+  # The ESP32-P4's silicon: v3 ("chip revision: v3.x" in the first lines of the USB log, what Waveshare ships now) or v1
+  # (pre-v3, "v1.3"). ESP-IDF links a different memory layout for each and neither firmware boots on the other chip;
+  # New screen offers both (boards.yaml).
+  CHIP_REVISION: "v3"
 
   # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 7 inches. The panel is 1024 x 600
   # itself, so it lies down without a turn.
@@ -63,6 +74,20 @@ substitutions:
   # on this board used, and what it dimmed with.
   BACKLIGHT_FREQUENCY: "1000Hz"
 
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): an OmniVision OV5647 on the 15-pin MIPI-CSI
+  # connector (the "With OV5647 camera" kit, or a Raspberry Pi camera of that sensor). Its SCCB is the touch bus (GPIO7
+  # and GPIO8, as in Waveshare's own camera app), the module clocks itself and the board wires no reset or power-down
+  # pin; Screen camera drives it with esp_cam_sensor's own OV5647 driver.
+  CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the module has its own clock
+
+  # The battery (docs/BATTERY.md): BAT through 200K over 100K to GND (R92 and R93 in Waveshare's schematic), so GPIO20,
+  # ADC1, sees a third of the cell. The ETA6098 charger's status pin only lights an LED, so the screen cannot tell
+  # whether it charges. Without a cell the pin reads next to nothing and the level stays unknown rather than 0 %.
+  BATTERY_PIN: GPIO20
+  BATTERY_DIVIDER: "3.0"
+  BATTERY_LEVEL_FORMULA: "(v < 2.5f ? NAN : (v - 3.3f) / (4.2f - 3.3f) * 100.0f)"
+
 # ============================================================
 # No need to edit below this line.
 # ============================================================
@@ -75,9 +100,8 @@ esphome:
 
 esp32:
   flash_size: 32MB
-  # Rev3 silicon: a pre-v3 firmware does not boot it, and the other way round (docs/WAVESHAREP47B.md). A pre-v3 board
-  # of this name sets this to true in its Override YAML.
-  engineering_sample: false
+  # Rev3 silicon or pre-v3 (CHIP_REVISION above): a firmware for one does not boot the other (docs/WAVESHAREP47B.md).
+  engineering_sample: ${ "true" if CHIP_REVISION == "v1" else "false" }
   framework:
     advanced:
       # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.

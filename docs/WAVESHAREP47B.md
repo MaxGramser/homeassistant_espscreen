@@ -5,22 +5,24 @@ capacitive touch, an ESP32-P4 with 32 MB flash and 32 MB PSRAM, and an ESP32-C6 
 ESP32-S3-Touch-LCD-7B ([its own page](WAVESHARE7B.md)): that one is an RGB panel behind a CH32V003 expander, while this
 board drives its panel over MIPI-DSI and has no expander.
 
-A community member ran this board file on a board with rev3 silicon (see "Who tried what" below). The project has not
-tried it on one, so the board is **experimental**.
+Community members ran this board file on boards with rev3 and with earlier silicon (see "Who tried what" below). The
+project has not tried it on either, so the board is **experimental**.
 
 ## Which silicon
 
 Waveshare sells this board with two revisions of the ESP32-P4 under one name, and firmware for one does not start on the
-other. This board file builds for **rev3 silicon** ("chip revision: v3.x" in the first lines of the USB log,
-`engineering_sample: false`), which is what Waveshare ships now. A board with earlier silicon ("chip revision: v1.3")
-needs this in its screen's Override YAML:
+other. The first lines of the USB log say which one a board has: "chip revision: v3.x" is rev3, which Waveshare ships
+now, and "chip revision: v1.3" the earlier silicon. **New screen** asks for it under **Chip revision**: v3 (the default,
+`engineering_sample: false`) or v1 (`engineering_sample: true`). A screen set up before this choice existed sets it in
+its own substitutions:
 
 ```yaml
-esp32:
-  engineering_sample: true
+substitutions:
+  CHIP_REVISION: "v1"
 ```
 
-Nobody has tried this board file on earlier silicon yet; please report how it goes.
+Both have run this board file: rev3 first, and a board with earlier silicon with `engineering_sample: true` (picture,
+touch and the rest worked; with the default rev3 build it did not start).
 
 ## Install
 
@@ -47,13 +49,17 @@ newer: its display platform is the repository's copy of that version's driver.
   and `TOUCH_MIRROR_Y`), as Waveshare's BSP compensates for this panel. Its interrupt ends at a test point, so it is
   polled.
 - Camera tiles, full-screen snapshots and the live camera of the P4 boards, camera alerts and media artwork use the
-  shared PSRAM implementation. The board has no camera of its own configured.
+  shared PSRAM implementation.
+- The board's own camera, experimental: an OV5647 on the MIPI-CSI connector, through the Screen camera plugin. See "The
+  camera" below.
+- A battery on the MX1.25 connector, experimental: **Battery Voltage** and **Battery Level**, and the battery in the
+  top bar. See "The battery" below.
 - The display runs on `components/mipi_dsi_v3`, ESPHome's driver with the DSI clock left to ESP-IDF: the stock driver's
   fixed clock stops rev3 silicon while the display starts, as on the Guition JC8012P4A1 V3.
 - The speaker and the two microphones are the screen's audio, experimental: a media player in Home Assistant for
   announcements and music, Volume, Microphone, Microphone gain, Automatic gain and Echo cancellation under Screen
   settings, and what audio plugins (a voice assistant) need. See "Speaker and microphones" below.
-- The microSD slot, the RS485 and CAN ports and the camera connector stay unused.
+- The microSD slot and the RS485 and CAN ports stay unused.
 
 ## Speaker and microphones
 
@@ -76,6 +82,35 @@ This is **experimental**. The echo cancellation's libraries were first built for
 builds them for rev3, where they resolve a newer esp_audio_effects (1.4.3, against 1.3.0~1 on earlier silicon).
 Nobody has tried this file's audio on the board yet.
 
+## The camera
+
+Waveshare sells this board with an OmniVision OV5647 camera as a kit ("With OV5647 camera"), and its 15-pin MIPI-CSI
+connector (two lanes, 1.0 mm pitch) takes the Raspberry Pi cameras of that sensor as well. The sensor's SCCB is the
+board's I2C bus, GPIO7 and GPIO8, as in Waveshare's own camera app; the module clocks itself and the board wires no reset
+or power-down pin. The board file names that bus in `CAMERA_I2C` (the feature `camera_sensor`, docs/PLUGINS.md), so the
+**Screen camera** plugin fits this board. It finds the OV5647 with the driver in Espressif's own `esp_cam_sensor` and
+makes it a camera of the screen's device in Home Assistant.
+
+- **A board without a camera** fits Screen camera as well: `CAMERA_I2C` says where a camera answers, not that one is
+  there. Without a sensor the camera only logs that it found none.
+- If the picture is upside down for the way the camera is mounted, the plugin's **Camera upside down** setting turns it.
+- Not tried on this board yet: please report the picture, its colours and a stream.
+
+## The battery
+
+The board charges a single lithium cell on its MX1.25 battery connector (forward polarity) with an ETA6098 charger.
+Waveshare's schematic puts the cell's voltage on GPIO20 (ADC1) through a divider of 200K over 100K (R92 and R93), so the
+pin sees a third of it. The board file reads it (`features/battery-adc.yaml`, `BATTERY_DIVIDER: "3.0"`) and turns it
+into a level (`features/battery-voltage.yaml`): a straight line from 3.3 V (empty) to 4.2 V (full). Home Assistant shows
+**Battery Voltage** and **Battery Level**, and the editor offers the battery in the top bar ([BATTERY.md](BATTERY.md)).
+
+- The charger's status pin only lights an LED on the board, so the screen cannot tell whether the cell charges: the top
+  bar never shows the lightning bolt.
+- Without a cell the pin reads next to nothing and the level stays unknown instead of 0 %.
+- A curve measured on your own cell gives a better level than the straight line; `BATTERY_LEVEL_FORMULA` in the
+  screen's own substitutions replaces it (docs/BATTERY.md).
+- Not tried on this board yet: please report the voltage it reads with a cell, with a cell on USB, and without one.
+
 ## Who tried what
 
 - [@tomvanoosterwyck](https://github.com/tomvanoosterwyck) ran this board file on a board with rev3 silicon
@@ -85,11 +120,13 @@ Nobody has tried this file's audio on the board yet.
   ([wish 136](https://tessera-maxgramser.on-forge.com/wishlist/136)): display, backlight, Wi-Fi, the API, touch targets
   with the X axis mirrored, and an update over Wi-Fi. That file used ESPHome's stock display driver and was built for
   the earlier silicon, so boards of both revisions are out there.
+- [@aalaei](https://github.com/aalaei) ran this board file on a board with earlier silicon: it did not start with the
+  rev3 build, and worked with `engineering_sample: true`.
 - [@Axellum](https://github.com/Axellum) had the speaker play and the microphone capture on this board with a
   configuration of their own (#271).
 
-Not tried yet with this file: the speaker and microphones, echo cancellation, camera pictures, standing up, earlier
-silicon, and a full page of tiles over a long run.
+Not tried yet with this file: the speaker and microphones, echo cancellation, the OV5647 camera, the battery, camera
+pictures, standing up, and a full page of tiles over a long run.
 
 ## Hardware references
 
@@ -106,6 +143,10 @@ silicon, and a full page of tiles over a long run.
   - Touch: GT911, reset GPIO23, polled.
   - Backlight: GPIO32, PWM, inverted.
   - Display reset: GPIO33.
+  - Camera: OV5647 on the MIPI-CSI connector, SCCB on the same I2C bus (GPIO7 and GPIO8), its own clock, no reset or
+    power-down pin.
+  - Battery: GPIO20 (ADC1), a third of the cell's voltage through 200K over 100K. The ETA6098 charger's status pin
+    drives an LED only.
   - Audio: I2S MCLK GPIO13, BCLK GPIO12, LRCLK GPIO10, speaker data GPIO9, microphone data GPIO11; amplifier enable
     GPIO53, high for on, with a pull-down that keeps it off at reset.
 - The 86 panel's two relays are not on this board: its GPIO32 is this board's backlight.
@@ -118,12 +159,14 @@ silicon, and a full page of tiles over a long run.
 3. Taps near each corner, slider drags and edge swipes, lying down and standing up.
 4. The brightness setting across its range, standby after the timeout and the wake by touch, several times in a row,
    and night mode.
-5. Camera tile pictures, full-screen camera images and camera alerts, including repeated opens and closes.
-6. A text-to-speech announcement and music on the screen's media player, the Volume setting from low to high, and
+5. Camera tile pictures, full-screen camera images and camera alerts, including repeated opens and closes, and with
+   Screen camera the OV5647's picture in Home Assistant.
+6. With a cell: Battery Voltage against a meter, on the battery and on USB, and the level in the top bar.
+7. A text-to-speech announcement and music on the screen's media player, the Volume setting from low to high, and
    whether the speaker stays quiet between sounds.
-7. The microphones, with a voice assistant plugin: whether the wake word is heard from across the room, also while
+8. The microphones, with a voice assistant plugin: whether the wake word is heard from across the room, also while
    music plays, and the **Echo cancellation status** entity (Enabled, Bypass, Starting or Error).
-8. `sensor.<screen>_heap_free` with a full layout, any reset, Wi-Fi drop or I2C error, and how long the screen stayed
+9. `sensor.<screen>_heap_free` with a full layout, any reset, Wi-Fi drop or I2C error, and how long the screen stayed
    running.
 
 Do not publish Wi-Fi passwords or API/OTA keys with logs.
