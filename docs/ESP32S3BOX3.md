@@ -35,6 +35,9 @@ The remote package is `packages/esp32s3box3.yaml` and the checkout entry `checko
 - The backlight is a PWM pin (GPIO47) at 1 kHz: brightness is a percentage, and standby, night mode, Sleep, Wake and the
   alert's flashes are enabled.
 - The GT911 reports pixels lying down and is read through its interrupt line.
+- The GT911 shares its reset with the display, and picks its I2C address again each time it is reset. So it starts
+  after the display (`setup_priority: 500`), and finds its address after the display's reset. Started before it, the touch
+  panel stopped answering after a reset over USB.
 - 128 tiles on up to 24 pages, as on the other ESP32-S3 boards with PSRAM.
 - No camera pictures yet. The PSRAM would hold them, but lying down an alert card on 320 x 240 glass has no room for a
   picture, and every board with camera pictures shows one both ways up.

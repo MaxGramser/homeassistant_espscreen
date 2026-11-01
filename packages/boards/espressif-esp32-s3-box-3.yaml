@@ -91,9 +91,16 @@ output:
 # ESPHome's gt911 platform, with the touch panel's interrupt on GPIO3 (a strapping pin of the ESP32-S3, wired to the
 # touch panel on this board), read every 20 ms as on the other boards (a finger that moves between reads is what LVGL
 # counts as a swipe). The touch panel's reset is the display's (GPIO48), so it has none of its own here.
+#
+# It starts after the display: both are ESPHome's DATA (600), which runs them in the order of the config, touch first,
+# and the display's reset then reset the GT911 too, which picks its address (0x5D or 0x14) again from GPIO3 as it
+# starts. ESPHome kept the address it had found, and every read failed ("Communication failed", a BOX-3 after a reset
+# over USB, 2026-11-01). At 500 it finds its address after the last reset (the driver tries both), and before LVGL
+# (PROCESSOR, 400), which takes its touches.
 touchscreen:
   - platform: gt911
     id: ts_touch
+    setup_priority: 500
     i2c_id: touch_bus
     display: my_display
     interrupt_pin:
