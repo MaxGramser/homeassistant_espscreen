@@ -93,8 +93,12 @@ makes it a camera of the screen's device in Home Assistant.
 
 - **A board without a camera** fits Screen camera as well: `CAMERA_I2C` says where a camera answers, not that one is
   there. Without a sensor the camera only logs that it found none.
-- If the picture is upside down for the way the camera is mounted, the plugin's **Camera upside down** setting turns it.
-- Not tried on this board yet: please report the picture, its colours and a stream.
+- **Colours and turning need Screen camera's OV5647 support.** Espressif's driver starts the sensor with one of its two
+  mirror bits (register 0x3821 0x03), and the colour order it declares (GBRG) only holds with both (0x07): without it
+  the picture is purple and orange shows as green. The sensor's own flips turn the picture but swap red and blue, so on
+  this sensor a turn is done on the P4's picture engine instead. Both are Screen camera's work, not the board file's.
+- The camera stands as the glass does (`CAMERA_ORIENTATION` 0): with the screen turned 180 degrees, the picture turns
+  with it.
 
 ## The battery
 
@@ -109,7 +113,7 @@ into a level (`features/battery-voltage.yaml`): a straight line from 3.3 V (empt
 - Without a cell the pin reads next to nothing and the level stays unknown instead of 0 %.
 - A curve measured on your own cell gives a better level than the straight line; `BATTERY_LEVEL_FORMULA` in the
   screen's own substitutions replaces it (docs/BATTERY.md).
-- Not tried on this board yet: please report the voltage it reads with a cell, with a cell on USB, and without one.
+- Tried on a board with a cell on USB: 4.13 V and 94 %. Please report the voltage it reads without a cell.
 
 ## Who tried what
 
@@ -120,13 +124,16 @@ into a level (`features/battery-voltage.yaml`): a straight line from 3.3 V (empt
   ([wish 136](https://tessera-maxgramser.on-forge.com/wishlist/136)): display, backlight, Wi-Fi, the API, touch targets
   with the X axis mirrored, and an update over Wi-Fi. That file used ESPHome's stock display driver and was built for
   the earlier silicon, so boards of both revisions are out there.
-- [@aalaei](https://github.com/aalaei) ran this board file on a board with earlier silicon: it did not start with the
-  rev3 build, and worked with `engineering_sample: true`.
+- [@aalaei](https://github.com/aalaei) ran this board file on a board with earlier silicon ("chip revision: v1.3"):
+  it did not start with the rev3 build, and starts with the v1 choice (`engineering_sample: true`), joins Wi-Fi and
+  Home Assistant, with the voice assistant and other plugins. The battery read 4.13 V (94 %) with a cell on USB, and
+  the OV5647 answered on the touch bus and gave pictures through Screen camera, in the right colours and the right way
+  up once its mirror bit was set and the picture turned on the picture engine (a test build; see "The camera").
 - [@Axellum](https://github.com/Axellum) had the speaker play and the microphone capture on this board with a
   configuration of their own (#271).
 
-Not tried yet with this file: the speaker and microphones, echo cancellation, the OV5647 camera, the battery, camera
-pictures, standing up, and a full page of tiles over a long run.
+Not tried yet with this file: the speaker and microphones, echo cancellation, the battery without a cell, standing up,
+and a full page of tiles over a long run.
 
 ## Hardware references
 

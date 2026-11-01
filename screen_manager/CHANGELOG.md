@@ -1,7 +1,7 @@
 ## Unreleased
 
 - **The Waveshare ESP32-P4 7B with earlier silicon starts.** New screen asks for the board's chip revision: v3, what Waveshare ships now, or v1, the earlier silicon ("chip revision: v1.3" in the USB log), which did not start with the v3 build. A screen of it set up before sets `CHIP_REVISION: "v1"` in its substitutions.
-- **The Waveshare ESP32-P4 7B's camera and battery.** Its OV5647 camera works with the Screen camera plugin, and a battery on its battery connector shows as Battery Voltage and Battery Level in Home Assistant and in the top bar. Both are experimental.
+- **The Waveshare ESP32-P4 7B's camera and battery.** Screen camera fits the board and finds its OV5647 camera (its colours and turning come with Screen camera's OV5647 support), and a battery on its battery connector shows as Battery Voltage and Battery Level in Home Assistant and in the top bar. Both are experimental.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.93 (firmware 0.59.0)
