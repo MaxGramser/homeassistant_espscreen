@@ -23,7 +23,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone"
@@ -337,7 +337,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 25,
+   "order": 26,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -1189,6 +1189,144 @@
   "wide_slots": false,
   "width": 800
  },
+ "checkout/jc4880p443v3.yaml": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443v3",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443 V3",
+   "name": "Guition",
+   "order": 22,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor",
+   "bluetooth"
+  ],
+  "firmware": "0.59.0",
+  "fonts": {
+   "headline": 34,
+   "icon": 54,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 60,
+   "radius": 28,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "checkout/jc8012p4a1.yaml": {
   "alert": {
    "line": 21,
@@ -1885,7 +2023,7 @@
    "inch": 4.0,
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
-   "order": 24,
+   "order": 25,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -2267,7 +2405,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "settings": [
     "media_player",
     "microphone",
@@ -2640,7 +2778,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -2898,7 +3036,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
-   "order": 23,
+   "order": 24,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3554,7 +3692,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "settings": [
     "media_player",
     "microphone",
@@ -3694,7 +3832,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "settings": [
     "media_player",
     "microphone",
@@ -3834,7 +3972,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -3963,7 +4101,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone"
@@ -4277,7 +4415,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 25,
+   "order": 26,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -5129,6 +5267,144 @@
   "wide_slots": false,
   "width": 800
  },
+ "jc4880p443v3": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443v3",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443 V3",
+   "name": "Guition",
+   "order": 22,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor",
+   "bluetooth"
+  ],
+  "firmware": "0.59.0",
+  "fonts": {
+   "headline": 34,
+   "icon": 54,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 60,
+   "radius": 28,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "jc8012p4a1": {
   "alert": {
    "line": 21,
@@ -5696,7 +5972,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone"
@@ -6010,7 +6286,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 25,
+   "order": 26,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -6862,6 +7138,144 @@
   "wide_slots": false,
   "width": 800
  },
+ "packages/jc4880p443v3.yaml": {
+  "alert": {
+   "line": 32,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "jc4880p443v3",
+  "camera": {
+   "full": [
+    800,
+    480
+   ],
+   "thumb": [
+    349,
+    196
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 4.3,
+   "model": "JC4880P443 V3",
+   "name": "Guition",
+   "order": 22,
+   "settings": [
+    "media_player",
+    "microphone"
+   ],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 3,
+  "dimmable": true,
+  "dpi": 217,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "camera_sensor",
+   "bluetooth"
+  ],
+  "firmware": "0.59.0",
+  "fonts": {
+   "headline": 34,
+   "icon": 54,
+   "icon_home": 43,
+   "icon_mini": 33,
+   "label": 23,
+   "setpoint": 82,
+   "sublabel": 20,
+   "sublabel_big": 27,
+   "watch_icon": 23,
+   "watch_value": 48
+  },
+  "height": 480,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "text_card",
+   "light_presets"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      800,
+      480
+     ],
+     "thumb": [
+      349,
+      196
+     ]
+    },
+    "columns": 3,
+    "height": 480,
+    "max": [
+     4,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 800
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      480,
+      800
+     ],
+     "thumb": [
+      386,
+      217
+     ]
+    },
+    "columns": 1,
+    "height": 800,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 480
+   }
+  },
+  "rows": 3,
+  "spacing": {
+   "circle": 69,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 60,
+   "radius": 28,
+   "tile_pad": 15,
+   "top": 64
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 800
+ },
  "packages/jc8012p4a1.yaml": {
   "alert": {
    "line": 21,
@@ -7558,7 +7972,7 @@
    "inch": 4.0,
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
-   "order": 24,
+   "order": 25,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -7940,7 +8354,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "settings": [
     "media_player",
     "microphone",
@@ -8313,7 +8727,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -8571,7 +8985,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
-   "order": 23,
+   "order": 24,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -9227,7 +9641,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "settings": [
     "media_player",
     "microphone",
@@ -9367,7 +9781,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "settings": [
     "media_player",
     "microphone",
@@ -9507,7 +9921,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -9765,7 +10179,7 @@
    "inch": 4.0,
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
-   "order": 24,
+   "order": 25,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -10147,7 +10561,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "settings": [
     "media_player",
     "microphone",
@@ -10520,7 +10934,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -10778,7 +11192,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
-   "order": 23,
+   "order": 24,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -11434,7 +11848,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "settings": [
     "media_player",
     "microphone",
@@ -11574,7 +11988,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "settings": [
     "media_player",
     "microphone",
@@ -11714,7 +12128,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
