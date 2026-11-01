@@ -1,6 +1,7 @@
 ## Unreleased
 
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
+- **The live preview and the editor mockup draw Cyrillic letters instead of boxes.** `web/wasm/generate_host_ui.py` resolved `packages/core.yaml` at the default `LANGUAGE: "en"`, leaving `SCRIPT_GLYPHS` empty in the compiled preview fonts, and `tools/generate_icons.py` subsetted `Bar Roboto` from `header_bar.GLYPHS` alone. Both now include `SCRIPT_GLYPHS`.
 
 ## 0.4.93 (firmware 0.59.0)
 

@@ -137,9 +137,10 @@ def ink_table():
     return json.dumps(table, separators=(',', ':')) + '\n'
 
 def bar_codepoints(weight):
-    """The characters of header_bar.GLYPHS that Roboto has: the hearts come from another font on the screens
-    (packages/core.yaml), and the browser draws them from its own."""
-    return {ord(char) for char in header_bar.GLYPHS} & set(TTFont(ROOT / f'fonts/Roboto-{weight}.ttf').getBestCmap())
+    """The characters of header_bar.GLYPHS and SCRIPT_GLYPHS that Roboto has: the hearts come from another font on the
+    screens (packages/core.yaml), and the browser draws them from its own."""
+    chars = set(header_bar.GLYPHS).union(*header_bar.SCRIPT_GLYPHS.values())
+    return {ord(char) for char in chars} & set(TTFont(ROOT / f'fonts/Roboto-{weight}.ttf').getBestCmap())
 
 def bar_font(weight):
     """Roboto subset for the editor's mockup (its top bar and cards): the glyphs and metrics the screens draw."""

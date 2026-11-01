@@ -55,6 +55,12 @@ class FirmwareLetters(unittest.TestCase):
                  if json.loads(path.read_text(encoding='utf-8')).get('_meta', {}).get('script') == 'cyrillic'}
         self.assertEqual(named, files)
 
+    def test_the_preview_fonts_carry_the_script_letters(self):
+        wanted = {f'{{{ord(char)},' for char in core_list('cyrillic')}
+        for fonts_h in sorted((ROOT / 'web/wasm/generated').glob('*/fonts.h')):
+            text = fonts_h.read_text(encoding='utf-8')
+            self.assertTrue(all(code in text for code in wanted), fonts_h.parent.name)
+
 
 class AppLetters(unittest.TestCase):
     def tearDown(self):
