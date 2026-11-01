@@ -95,8 +95,9 @@ makes it a camera of the screen's device in Home Assistant.
   there. Without a sensor the camera only logs that it found none.
 - **Colours and turning need Screen camera's OV5647 support.** Espressif's driver starts the sensor with one of its two
   mirror bits (register 0x3821 0x03), and the colour order it declares (GBRG) only holds with both (0x07): without it
-  the picture is purple and orange shows as green. The sensor's own flips turn the picture but swap red and blue, so on
-  this sensor a turn is done on the P4's picture engine instead. Both are Screen camera's work, not the board file's.
+  the picture is purple and orange shows as green. And the sensor's flips, which turn the picture for a screen hung
+  upside down, move its colours: red and blue swap. Screen camera 0.6.16 and later set the second bit and move the
+  sensor's window by a pixel for each flip (its `components/ov5647`); an earlier Screen camera shows these colours.
 - The camera stands as the glass does (`CAMERA_ORIENTATION` 0): with the screen turned 180 degrees, the picture turns
   with it.
 
@@ -127,8 +128,8 @@ into a level (`features/battery-voltage.yaml`): a straight line from 3.3 V (empt
 - [@aalaei](https://github.com/aalaei) ran this board file on a board with earlier silicon ("chip revision: v1.3"):
   it did not start with the rev3 build, and starts with the v1 choice (`engineering_sample: true`), joins Wi-Fi and
   Home Assistant, with the voice assistant and other plugins. The battery read 4.13 V (94 %) with a cell on USB, and
-  the OV5647 answered on the touch bus and gave pictures through Screen camera, in the right colours and the right way
-  up once its mirror bit was set and the picture turned on the picture engine (a test build; see "The camera").
+  the OV5647 answered on the touch bus and gave pictures through Screen camera, in the right colours upright and turned
+  with Screen camera's OV5647 component (see "The camera").
 - [@Axellum](https://github.com/Axellum) had the speaker play and the microphone capture on this board with a
   configuration of their own (#271).
 
