@@ -1,0 +1,130 @@
+# ESP Screens - Espressif ESP32-S3-BOX-3, new: a 2.4-inch 320 x 240 panel (an ILI9342C over SPI, ESPHome's
+# mipi_spi model S3BOX) with GT911 capacitive touch over I2C, on an ESP32-S3 with 16 MB flash and 16 MB octal PSRAM.
+#
+# The pins are those of ESPHome's own BOX-3 package (esphome/wake-word-voice-assistants) and of Espressif's board
+# support package (esp-bsp, bsp/esp-box-3). Early BOX-3 units carry a TT21100 touch controller and an ST7789 panel
+# instead; the BSP tells them apart by which chip answers on I2C. This file is for the GT911 units (docs/ESP32S3BOX3.md).
+#
+# Its microphones (ES7210) and speaker (ES8311 and its amplifier) make it a media player and let plugins listen
+# (hardware/espressif-box3-audio.yaml); the mute button and the sensors of its dock are not part of this file yet.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/esp32s3box3.yaml (a build on this computer) and packages/esp32s3box3.yaml (the package a screen builds from
+# over GitHub).
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below: the standard look leaves one tile on glass this small.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  # No features/camera.yaml yet, though the PSRAM would hold the pictures: lying down, the alert card on 320 x 240 has no
+  # room for a picture (screen_alert::layout, alert_layout.py), and every board with the camera shows one both ways.
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  audio: !include ../hardware/espressif-box3-audio.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "esp32s3box3"
+  DEVICE_NAME: "esp32s3box3-new"
+  DEVICE_FRIENDLY_NAME: "My ESP32-S3-BOX-3"
+
+  # The glass: the panel's own pixels and its density, 400 diagonal pixels over 2.4 inches. The panel lies down by
+  # itself (320 x 240), so the LVGL angle that lays it out lying down is the core's 0.
+  PANEL_W: "320"
+  PANEL_H: "240"
+  DISPLAY_DPI: "166.667"
+  # The tile grid: columns and rows of cells lying down, and standing up. The CYD's 2 x 3 would leave rows of about
+  # 7 mm on this smaller glass, under the 12 mm a tile keeps (tools/propose_grid.py).
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # twelve top bar items, as on every board with PSRAM (docs/TILE_MEMORY.md)
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen, 38 KB of 320 x 240
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM, ESPHome's ledc default as in its BOX-3 package
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+# ESPHome's esp32s3box board: an ESP32-S3 with 16 MB flash.
+esp32:
+  board: esp32s3box
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# ESPHome's S3BOX model requires PSRAM.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The panel's bus: write only, clock on GPIO7 and data on GPIO6.
+spi:
+  id: lcd_spi
+  clk_pin: GPIO7
+  mosi_pin: GPIO6
+
+# The GT911 capacitive touch, at 0x5D or 0x14, and the audio codecs (ES8311 at 0x18, ES7210 at 0x40) on the same bus.
+i2c:
+  id: touch_bus
+  sda: GPIO8
+  scl: GPIO18
+  frequency: 400kHz
+
+# The backlight, a PWM pin (features/backlight.yaml makes it the light); zero_means_zero keeps a dark standby dark.
+output:
+  - platform: ledc
+    pin: GPIO47
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# ESPHome's gt911 platform, with the touch panel's interrupt on GPIO3 (a strapping pin of the ESP32-S3, wired to the
+# touch panel on this board), read every 20 ms as on the other boards (a finger that moves between reads is what LVGL
+# counts as a swipe). The touch panel's reset is the display's (GPIO48), so it has none of its own here.
+#
+# It starts after the display: both are ESPHome's DATA (600), which runs them in the order of the config, touch first,
+# and the display's reset then reset the GT911 too, which picks its address (0x5D or 0x14) again from GPIO3 as it
+# starts. ESPHome kept the address it had found, and every read failed ("Communication failed", a BOX-3 after a reset
+# over USB, 2026-11-01). At 500 it finds its address after the last reset (the driver tries both), and before LVGL
+# (PROCESSOR, 400), which takes its touches.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    setup_priority: 500
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin:
+      number: GPIO3
+      ignore_strapping_warning: true
+    update_interval: 20ms
+    # The GT911 reports pixels lying down, 320 x 240, the way the panel is drawn (the BSP neither swaps nor mirrors
+    # it). Without this range ESPHome reads it from the chip's own configuration.
+    calibration:
+      x_min: 0
+      x_max: 320
+      y_min: 0
+      y_max: 240
+
+# ESPHome's model carries the init sequence, the size, the mirroring, the colour order and the data/command (GPIO4) and
+# chip select (GPIO5) pins at 40 MHz. The reset pin is the BOX-3's own, active high (ESPHome's BOX-3 package).
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: S3BOX
+    spi_id: lcd_spi
+    reset_pin:
+      number: GPIO48
+      inverted: true
+    update_interval: never
+    auto_clear_enabled: false

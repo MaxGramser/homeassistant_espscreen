@@ -1,0 +1,41 @@
+# The ES7210's transport both ways at once without echo cancellation (parts/es7210.yaml, AUDIO_TRANSPORT "duplex"): the
+# codecs' one I2S bus driven from two of the chip's I2S ports on the same three clock pins, the microphone's port giving
+# the clocks and the speaker's following them (ESPHome's `i2s_mode: secondary`), as the Guition P4 panels run their
+# ES8311 (hardware/guition-p4-audio.yaml). The microphone never waits for the speaker, so a wake word listens through
+# every sound and a question is heard from its first word, which the one-way-at-a-time transport (es7210/i2s.yaml) loses
+# while a wake sound plays. No AEC libraries in the firmware; the speaker's own sound reaches the microphone unfiltered.
+# The clocks come from the microphone's port, which ESPHome runs only while something listens: the board starts the
+# microphone at boot (BOOT_BOARD_SETTINGS: `id(ts_microphone)->start();`), under everything that reads it, so the speaker
+# plays whether anything listens or not. Microphone off under Extras still mutes it.
+packages:
+  audio: !include ../../../features/audio.yaml
+
+substitutions:
+  AUDIO_SAMPLE_RATE: ${AUDIO_I2S_SAMPLE_RATE}
+  AUDIO_HALF_DUPLEX: "false"
+  AUDIO_MIC_BUS: ts_mic_bus
+
+i2s_audio:
+  - id: ts_mic_bus
+    i2s_mclk_pin: {number: "${AUDIO_MCLK_PIN}", allow_other_uses: true}
+    i2s_bclk_pin: {number: "${AUDIO_BCLK_PIN}", allow_other_uses: true}
+    i2s_lrclk_pin: {number: "${AUDIO_LRCLK_PIN}", allow_other_uses: true}
+  - id: ts_speaker_bus
+    i2s_mclk_pin: {number: "${AUDIO_MCLK_PIN}", allow_other_uses: true}
+    i2s_bclk_pin: {number: "${AUDIO_BCLK_PIN}", allow_other_uses: true}
+    i2s_lrclk_pin: {number: "${AUDIO_LRCLK_PIN}", allow_other_uses: true}
+
+# The converter at the voice's rate, the microphone on the slot of its input.
+audio_adc:
+  - id: !extend ts_audio_adc
+    sample_rate: 16000
+
+microphone:
+  - id: !extend ts_microphone
+    channel: ${AUDIO_MIC_CHANNEL}
+    correct_dc_offset: ${AUDIO_MIC_DC_OFFSET}
+
+speaker:
+  - id: !extend ts_speaker_out
+    i2s_mode: secondary
+    buffer_duration: ${AUDIO_SPEAKER_BUFFER}

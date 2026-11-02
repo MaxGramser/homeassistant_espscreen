@@ -1,0 +1,35 @@
+# ESP Screens - the audio of the Espressif ESP32-S3-BOX-3, declared: the parts and their pins, nothing else
+# (docs/PROFILES.md, "Parts").
+#
+# As Espressif's board support package (esp-bsp, bsp/esp-box-3) and ESPHome's own BOX-3 package wire them: an ES8311 at
+# 0x18 for the speaker and an ES7210 at 0x40 for the two microphones, both on the touch panel's I2C bus; one I2S bus for
+# both (MCLK GPIO2, BCLK GPIO17, LRCLK GPIO45, speaker data GPIO15, microphone data GPIO16); and the speaker's amplifier,
+# enabled by GPIO46, high for on. GPIO45 and GPIO46 are strapping pins of the ESP32-S3, wired to the audio on this board.
+#
+# Both ways at once on two of the ESP32-S3's I2S ports (parts/es7210/duplex.yaml), so a wake word listens through every
+# sound and a question is heard from its first word. One way at a time (AUDIO_TRANSPORT: "i2s") lost the first seconds
+# of a question while the wake sound played (2026-11-02). The echo cancellation the ES7210's part defaults to ("aec") has
+# not been tried on an ESP32-S3; a screen's Override YAML can still set it.
+packages:
+  microphones: !include parts/es7210.yaml
+  speaker: !include parts/es8311.yaml
+  amplifier: !include parts/amplifier.yaml
+  controls: !include parts/es7210-controls.yaml
+
+substitutions:
+  AUDIO_TRANSPORT: "duplex"
+  AUDIO_I2C: touch_bus
+  AUDIO_MCLK_PIN: GPIO2
+  AUDIO_BCLK_PIN: GPIO17
+  AUDIO_LRCLK_PIN: GPIO45                       # a strapping pin; ESPHome warns about it
+  AUDIO_DOUT_PIN: GPIO15
+  AUDIO_DIN_PIN: GPIO16
+  # The voice microphone on the ES7210's MIC2, the right slot, as ESPHome's own BOX-3 package reads it: the wake word
+  # and Assist were tried on it (2026-11-02).
+  AUDIO_MIC_INPUT: "2"
+  AUDIO_REFERENCE_GAIN: "24dB"                  # the AEC transport's playback reference, unused here
+  AUDIO_I2S_SAMPLE_RATE: "16000"                # the whole bus at the voice's rate
+  AUDIO_AMPLIFIER_PIN: {number: GPIO46, ignore_strapping_warning: true}
+  # The microphone's port gives the clocks the speaker follows, so it runs from the start (parts/es7210/duplex.yaml).
+  BOOT_BOARD_SETTINGS: |-
+    id(ts_microphone)->start();

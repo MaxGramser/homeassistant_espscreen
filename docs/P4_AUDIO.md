@@ -55,6 +55,10 @@ the audio stack/AEC libraries entirely, select `AUDIO_TRANSPORT: "i2s"` in Overr
 (`P4_AUDIO_TRANSPORT` and `TAB5_AUDIO_TRANSPORT`, the old names, still work in firmware 0.58 and go in the release
 after). This keeps
 the original half-duplex I2S transport, gain and ALC. No AEC entity is present in that build.
+A third transport, `AUDIO_TRANSPORT: "duplex"` (`packages/hardware/parts/es7210/duplex.yaml`), runs the one bus both
+ways at once from two of the chip's I2S ports, the microphone's giving the clocks and the speaker's following them, as
+the Guition panels run their ES8311; the board starts the microphone at boot (`BOOT_BOARD_SETTINGS`). It has no echo
+cancellation and no AEC libraries. The ESP32-S3-BOX-3 takes it ([ESP32S3BOX3.md](ESP32S3BOX3.md)).
 Other boards retain their default codecs and transport; the Tab5 can opt into the same
 AEC transport with its own wiring ([Tab5 notes](TAB5.md#optional-echo-cancellation)). The extended codec is named
 `es7210_extended` so importing it for this P4 cannot silently replace another board's driver.

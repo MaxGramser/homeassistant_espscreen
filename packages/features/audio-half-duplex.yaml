@@ -6,6 +6,13 @@
 # time, so without this nothing would ever play. Whenever the speaker wants the bus, for any sound (an answer, music,
 # a plugin's tick), the microphone lets go of it, and it listens again once the speaker has stopped (half a second after
 # its last sound). Whatever reads the microphone waits for its data meanwhile and goes on after.
+#
+# ESPHome counts a microphone's readers; letting go of it stops it once for each reader, but giving it back starts it
+# once. With a wake word and a voice assistant both reading, the voice assistant's own stop at the end of a question then
+# took the last count and stopped the microphone under the wake word, which never heard its word again (an
+# ESP32-S3-BOX-3 answered once a boot, 2026-11-02). So while something holds the microphone (audio_owner, the voice
+# plugin while its wake word listens) and the speaker is quiet, the microphone runs. Muting it (the Microphone switch) is
+# not stopping it.
 globals:
   - id: ts_audio_microphone_paused
     type: bool
@@ -21,5 +28,8 @@ interval:
             id(ts_microphone)->stop();
           } else if (!speaking && id(ts_audio_microphone_paused)) {
             id(ts_audio_microphone_paused) = false;
+            id(ts_microphone)->start();
+          } else if (!speaking && id(ts_microphone)->is_stopped() &&
+                     audio_owner::the().held(audio_owner::Side::IN)) {
             id(ts_microphone)->start();
           }
