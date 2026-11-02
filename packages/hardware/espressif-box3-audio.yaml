@@ -24,6 +24,9 @@ substitutions:
   AUDIO_LRCLK_PIN: GPIO45                       # a strapping pin; ESPHome warns about it
   AUDIO_DOUT_PIN: GPIO15
   AUDIO_DIN_PIN: GPIO16
+  # The voice microphone on the ES7210's MIC2, the right slot, as ESPHome's own BOX-3 package reads it: the wake word
+  # and Assist were tried on it (2026-11-02).
+  AUDIO_MIC_INPUT: "2"
   AUDIO_REFERENCE_GAIN: "24dB"                  # the AEC transport's playback reference, unused here
   AUDIO_I2S_SAMPLE_RATE: "16000"                # the whole bus at the voice's rate
   AUDIO_AMPLIFIER_PIN: {number: GPIO46, ignore_strapping_warning: true}

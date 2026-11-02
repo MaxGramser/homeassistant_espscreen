@@ -75,6 +75,11 @@ the microphone gain (0 to 36 dB, initially 30) and the automatic gain.
   with icons alone (`content: icon`); the ninth left the bar.
 - Memory over 31 hours without a restart, with a page of tiles: about 183 KB of internal heap free, 182 KB at the
   lowest.
+- The speaker: text to speech and a radio stream from Home Assistant's media player, the volume from 10 to 100 %, while
+  the screen kept drawing and changing pages.
+- The microphones, with the voice assistant plugin on the voice microphone (MIC2): the wake word heard at 0.97 to 0.99,
+  and four questions in a row understood and answered ("turn the office light on", "off", and so on), asked right
+  after the wake word while its sound played. Internal RAM at about 98 KB free at the lowest with audio running.
 
 The host render (`tools/render/run.py esp32s3box3`) fails on the dock and on a clickable below the glass lying down,
 while on the real unit the dock opens and closes as it should. That is still open
@@ -84,8 +89,7 @@ while on the real unit the dock opens and closes as it should. That is still ope
 
 - An early BOX-3 with the TT21100 touch controller, which this board file does not drive.
 - Camera pictures, once the alert card has room for one lying down on 320 x 240 glass.
-- The speaker and the microphones on a real unit: a sound from a media player tile, the volume, the voice assistant
-  plugin's wake word and answer, and the internal RAM with audio running.
+- The ES7210's echo cancellation (`AUDIO_TRANSPORT: "aec"`) on an ESP32-S3.
 
 ## Hardware references
 
