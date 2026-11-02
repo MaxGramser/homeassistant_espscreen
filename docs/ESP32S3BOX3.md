@@ -50,14 +50,13 @@ The remote package is `packages/esp32s3box3.yaml` and the checkout entry `checko
 
 The BOX-3 is the first ESP32-S3 board here with audio. `packages/hardware/espressif-box3-audio.yaml` names the parts the
 Waveshare P4 boards also use (docs/P4_AUDIO.md): the ES8311 for the speaker, its amplifier on GPIO46, and the ES7210 for
-the two microphones, on one I2S bus at 16 kHz. It takes ESPHome's own I2S, one way at a time: while the speaker plays,
-the microphone waits. The ES7210's echo cancellation (`AUDIO_TRANSPORT: "aec"`) has not been tried on an ESP32-S3; a
-screen's Override YAML can set it to try.
-
-With the voice assistant plugin, the wake sound takes the bus for a moment after the wake word: words said while it
-plays are not heard. Ask after the sound, or turn **Wake sound** off. While a plugin holds the microphone, it runs
-whenever the speaker is quiet (`features/audio-half-duplex.yaml`): ESPHome stops a microphone for all its readers when
-one of them stops it, and the wake word heard its word only once a boot before that.
+the two microphones, on one I2S bus at 16 kHz. Two of the chip's I2S ports share that bus
+(`packages/hardware/parts/es7210/duplex.yaml`): the microphone's port gives the clocks and the speaker's follows them,
+as on the Guition P4 panels, so the microphone listens while the speaker plays. A wake word keeps listening through a
+sound, and a question is heard from its first word. One way at a time (`AUDIO_TRANSPORT: "i2s"`) lost the first
+seconds of a question while the wake sound played. The ES7210's echo cancellation (`AUDIO_TRANSPORT: "aec"`) has not
+been tried on an ESP32-S3; a screen's Override YAML can set it to try. Without it, the speaker's own sound reaches the
+microphones.
 
 Under **Screen settings → Extras**, in Tessera and on the screen: the media player's volume, the microphone on or off,
 the microphone gain (0 to 36 dB, initially 30) and the automatic gain.

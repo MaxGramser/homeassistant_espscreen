@@ -6,9 +6,10 @@
 # both (MCLK GPIO2, BCLK GPIO17, LRCLK GPIO45, speaker data GPIO15, microphone data GPIO16); and the speaker's amplifier,
 # enabled by GPIO46, high for on. GPIO45 and GPIO46 are strapping pins of the ESP32-S3, wired to the audio on this board.
 #
-# The first ESP32-S3 with audio here, so the plain transport (ESPHome's own I2S, one way at a time, no AEC libraries)
-# rather than the echo cancellation the ES7210's part defaults to: a screen's Override YAML can still try
-# AUDIO_TRANSPORT: "aec".
+# Both ways at once on two of the ESP32-S3's I2S ports (parts/es7210/duplex.yaml), so a wake word listens through every
+# sound and a question is heard from its first word. One way at a time (AUDIO_TRANSPORT: "i2s") lost the first seconds
+# of a question while the wake sound played (2026-11-02). The echo cancellation the ES7210's part defaults to ("aec") has
+# not been tried on an ESP32-S3; a screen's Override YAML can still set it.
 packages:
   microphones: !include parts/es7210.yaml
   speaker: !include parts/es8311.yaml
@@ -16,13 +17,16 @@ packages:
   controls: !include parts/es7210-controls.yaml
 
 substitutions:
-  AUDIO_TRANSPORT: "i2s"
+  AUDIO_TRANSPORT: "duplex"
   AUDIO_I2C: touch_bus
   AUDIO_MCLK_PIN: GPIO2
   AUDIO_BCLK_PIN: GPIO17
-  AUDIO_LRCLK_PIN: {number: GPIO45, ignore_strapping_warning: true}
+  AUDIO_LRCLK_PIN: GPIO45                       # a strapping pin; ESPHome warns about it
   AUDIO_DOUT_PIN: GPIO15
   AUDIO_DIN_PIN: GPIO16
-  AUDIO_REFERENCE_GAIN: "24dB"                  # the AEC transport's playback reference, unused on the plain one
-  AUDIO_I2S_SAMPLE_RATE: "16000"                # the whole bus at the voice's rate on the plain transport
+  AUDIO_REFERENCE_GAIN: "24dB"                  # the AEC transport's playback reference, unused here
+  AUDIO_I2S_SAMPLE_RATE: "16000"                # the whole bus at the voice's rate
   AUDIO_AMPLIFIER_PIN: {number: GPIO46, ignore_strapping_warning: true}
+  # The microphone's port gives the clocks the speaker follows, so it runs from the start (parts/es7210/duplex.yaml).
+  BOOT_BOARD_SETTINGS: |-
+    id(ts_microphone)->start();

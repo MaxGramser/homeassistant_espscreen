@@ -7,10 +7,12 @@
 # a plugin's tick), the microphone lets go of it, and it listens again once the speaker has stopped (half a second after
 # its last sound). Whatever reads the microphone waits for its data meanwhile and goes on after.
 #
-# ESPHome's microphone also stops for everyone when one of its readers stops it: the voice assistant, at the end of a
-# question, stopped it under the wake word, which kept waiting for data and never heard its word again (an ESP32-S3-BOX-3
-# answered once a boot, 2026-11-02). So while something holds the microphone (audio_owner, the voice plugin while its
-# wake word listens) and the speaker is quiet, the microphone runs. Muting it (the Microphone switch) is not stopping it.
+# ESPHome counts a microphone's readers; letting go of it stops it once for each reader, but giving it back starts it
+# once. With a wake word and a voice assistant both reading, the voice assistant's own stop at the end of a question then
+# took the last count and stopped the microphone under the wake word, which never heard its word again (an
+# ESP32-S3-BOX-3 answered once a boot, 2026-11-02). So while something holds the microphone (audio_owner, the voice
+# plugin while its wake word listens) and the speaker is quiet, the microphone runs. Muting it (the Microphone switch) is
+# not stopping it.
 globals:
   - id: ts_audio_microphone_paused
     type: bool
