@@ -54,6 +54,8 @@ The remote package is `packages/esp32s3box3.yaml` and the checkout entry `checko
 - The dock opens with a swipe up from the bottom edge, shows the pages, and closes with a tap above it and with a drag
   down.
 - After several resets the touch panel keeps answering, with the GT911 starting after the display (above).
+- The top bar takes twelve items, as on every board with PSRAM, but the glass's width shows about eight lying down,
+  with icons alone (`content: icon`); the ninth left the bar.
 - Memory over 31 hours without a restart, with a page of tiles: about 183 KB of internal heap free, 182 KB at the
   lowest.
 

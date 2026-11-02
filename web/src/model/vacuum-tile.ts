@@ -150,7 +150,7 @@ export function vacuumLayout(shape: Shape, input: VacuumInput): VacuumLayout {
     start = { x: x + pw - sd, y: cy - Math.floor(sd / 2), w: sd, h: sd };
     if (withMode) mode = { x: 0, y: cy - Math.floor(m.key / 2), w: modeW(m, input.modes), h: m.key };
   } else {
-    const x = w - pairW(m, false, input.second), y = Math.floor((head - m.key) / 2);
+    const x = w - pairW(m, false, input.second), y = Math.trunc((head - m.key) / 2);
     if (input.second) dock = { x, y, w: m.key, h: m.key };
     start = { x: w - m.key, y, w: m.key, h: m.key };
   }
@@ -168,7 +168,7 @@ export function vacuumLayout(shape: Shape, input: VacuumInput): VacuumLayout {
     if (wanted.length && w - tx - all - m.gap >= nameLeast) {
       const ch = lineOf(m.fonts.small) + m.px(10);
       let x = w - all;
-      for (const c of wanted) { chips.push({ ...c, box: { x, y: Math.floor((head - ch) / 2), w: chipW(m, c.words), h: ch } }); x += chipW(m, c.words) + m.px(6); }
+      for (const c of wanted) { chips.push({ ...c, box: { x, y: Math.trunc((head - ch) / 2), w: chipW(m, c.words), h: ch } }); x += chipW(m, c.words) + m.px(6); }
     }
   }
   const right = docked ? (chips.length ? w - chips[0].box.x + m.gap : 0) : pairW(m, false, input.second) + m.gap;
