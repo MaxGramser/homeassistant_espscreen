@@ -1,4 +1,4 @@
-# ESP Screens - the package a ESP32-S3-BOX-3 ESP32-S3-BOX-3 builds from over GitHub. Written by tools/generate_entries.py
+# ESP Screens - the package a Espressif ESP32-S3-BOX-3 builds from over GitHub. Written by tools/generate_entries.py
 # from boards.yaml; do not edit.
 #
 # ESP Screen Manager writes every screen's own YAML with `packages: display: {url: <this repository>, files:

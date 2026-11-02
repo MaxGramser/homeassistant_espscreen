@@ -1,4 +1,4 @@
-# ESP Screens - a ESP32-S3-BOX-3 ESP32-S3-BOX-3 built from a clone of this repository. Written by tools/generate_entries.py
+# ESP Screens - a Espressif ESP32-S3-BOX-3 built from a clone of this repository. Written by tools/generate_entries.py
 # from boards.yaml; do not edit. checkout/README.md says how to build it.
 #
 # The screen is two packages: packages/core.yaml, which every board shares, and packages/boards/espressif-esp32-s3-box-3.yaml with

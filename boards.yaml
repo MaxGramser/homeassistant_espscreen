@@ -267,6 +267,6 @@ esp32s3box3:
   file: espressif-esp32-s3-box-3.yaml
   name: Espressif
   model: ESP32-S3-BOX-3
-  status: experimental
+  status: new
   # Espressif's ESP32-S3-BOX-3 with GT911 touch, the screen only: its microphones, speaker and dock sensors are not in
   # its file yet (docs/ESP32S3BOX3.md). Early units with a TT21100 touch panel are not this board.

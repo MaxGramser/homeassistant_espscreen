@@ -1,11 +1,12 @@
-# Espressif ESP32-S3-BOX-3, 2.4 inch, experimental
+# Espressif ESP32-S3-BOX-3, 2.4 inch (new)
 
 The **ESP32-S3-BOX-3** from Espressif is a 2.4-inch 320 x 240 board: an ILI9342C panel over SPI, GT911 capacitive touch
 over I2C, and an ESP32-S3 with 16 MB flash and 16 MB octal PSRAM. It has the CYD's resolution on smaller glass, with
 PSRAM and a backlight that dims.
 
-The board file has been built and its pins checked against ESPHome's own BOX-3 package and Espressif's board support
-package, but it has not run on a BOX-3 yet, so the board is **experimental**.
+The board file's pins come from ESPHome's own BOX-3 package and Espressif's board support package. A contributor ran it
+on a BOX-3 of their own with no changes to the board file (below), so the board is **new**: tried on a real unit, with
+few screens out there yet.
 
 This board file makes the BOX-3 a screen only. Its microphones (ES7210), its speaker (ES8311 and an amplifier), the
 mute button and the sensors of its dock are not used yet. A BOX-3 that runs a voice assistant today stops being one when
@@ -19,7 +20,7 @@ The boot log tells you which one you have: the GT911 answers at 0x5D or 0x14, th
 
 ## Install
 
-Update Tessera Screen Manager and choose **Espressif · 2.4 inch, ESP32-S3-BOX-3** (marked Experimental) in **New
+Update Tessera Screen Manager and choose **Espressif · 2.4 inch, ESP32-S3-BOX-3** in **New
 screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi references and unique API/OTA
 keys, then flash it over USB-C or download the firmware for ESPHome Web. There is no touch calibration: the touch panel
 reports pixels.
@@ -42,6 +43,28 @@ The remote package is `packages/esp32s3box3.yaml` and the checkout entry `checko
 - No camera pictures yet. The PSRAM would hold them, but lying down an alert card on 320 x 240 glass has no room for a
   picture, and every board with camera pictures shows one both ways up.
 - LVGL draws through a quarter of the screen (`LVGL_BUFFER_SIZE: "25%"`).
+
+## Tried on a real unit
+
+- Installed from a build of this board file, lying down and standing up, taking tiles that switch lights in Home
+  Assistant.
+- Colours right (red and blue not swapped), nothing shifted at the edges.
+- Taps land where they should near the corners and in the middle, slider drags and swipes between pages, both ways up.
+- Brightness changes from the settings, standby goes dark and a touch wakes it, night mode dims.
+- The dock opens with a swipe up from the bottom edge, shows the pages, and closes with a tap above it and with a drag
+  down.
+- After several resets the touch panel keeps answering, with the GT911 starting after the display (above).
+- Memory over 31 hours without a restart, with a page of tiles: about 183 KB of internal heap free, 182 KB at the
+  lowest.
+
+The host render (`tools/render/run.py esp32s3box3`) fails on the dock and on a clickable below the glass lying down,
+while on the real unit the dock opens and closes as it should. That is still open
+([open issue](open-issues/box3-render-dock.md)).
+
+## Still to check
+
+- An early BOX-3 with the TT21100 touch controller, which this board file does not drive.
+- Camera pictures, once the alert card has room for one lying down on 320 x 240 glass.
 
 ## Hardware references
 

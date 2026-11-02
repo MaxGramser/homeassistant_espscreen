@@ -44,6 +44,7 @@ substitutions:
   # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
   SCREEN_MAX_TILES: "128"
   SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # twelve top bar items, as on every board with PSRAM (docs/TILE_MEMORY.md)
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen, 38 KB of 320 x 240
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")

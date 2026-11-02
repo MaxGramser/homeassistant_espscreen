@@ -339,7 +339,7 @@
    "name": "Espressif",
    "order": 31,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -363,7 +363,7 @@
   "height": 240,
   "hotspot": true,
   "look": "compact",
-  "max_bar_items": 6,
+  "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
   "modules": [
@@ -4378,7 +4378,7 @@
    "name": "Espressif",
    "order": 31,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -4402,7 +4402,7 @@
   "height": 240,
   "hotspot": true,
   "look": "compact",
-  "max_bar_items": 6,
+  "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
   "modules": [
@@ -6210,7 +6210,7 @@
    "name": "Espressif",
    "order": 31,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -6234,7 +6234,7 @@
   "height": 240,
   "hotspot": true,
   "look": "compact",
-  "max_bar_items": 6,
+  "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
   "modules": [
