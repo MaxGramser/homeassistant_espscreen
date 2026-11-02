@@ -1,0 +1,28 @@
+# ESP Screens - the audio of the Espressif ESP32-S3-BOX-3, declared: the parts and their pins, nothing else
+# (docs/PROFILES.md, "Parts").
+#
+# As Espressif's board support package (esp-bsp, bsp/esp-box-3) and ESPHome's own BOX-3 package wire them: an ES8311 at
+# 0x18 for the speaker and an ES7210 at 0x40 for the two microphones, both on the touch panel's I2C bus; one I2S bus for
+# both (MCLK GPIO2, BCLK GPIO17, LRCLK GPIO45, speaker data GPIO15, microphone data GPIO16); and the speaker's amplifier,
+# enabled by GPIO46, high for on. GPIO45 and GPIO46 are strapping pins of the ESP32-S3, wired to the audio on this board.
+#
+# The first ESP32-S3 with audio here, so the plain transport (ESPHome's own I2S, one way at a time, no AEC libraries)
+# rather than the echo cancellation the ES7210's part defaults to: a screen's Override YAML can still try
+# AUDIO_TRANSPORT: "aec".
+packages:
+  microphones: !include parts/es7210.yaml
+  speaker: !include parts/es8311.yaml
+  amplifier: !include parts/amplifier.yaml
+  controls: !include parts/es7210-controls.yaml
+
+substitutions:
+  AUDIO_TRANSPORT: "i2s"
+  AUDIO_I2C: touch_bus
+  AUDIO_MCLK_PIN: GPIO2
+  AUDIO_BCLK_PIN: GPIO17
+  AUDIO_LRCLK_PIN: {number: GPIO45, ignore_strapping_warning: true}
+  AUDIO_DOUT_PIN: GPIO15
+  AUDIO_DIN_PIN: GPIO16
+  AUDIO_REFERENCE_GAIN: "24dB"                  # the AEC transport's playback reference, unused on the plain one
+  AUDIO_I2S_SAMPLE_RATE: "16000"                # the whole bus at the voice's rate on the plain transport
+  AUDIO_AMPLIFIER_PIN: {number: GPIO46, ignore_strapping_warning: true}

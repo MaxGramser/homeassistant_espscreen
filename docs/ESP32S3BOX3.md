@@ -8,9 +8,11 @@ The board file's pins come from ESPHome's own BOX-3 package and Espressif's boar
 on a BOX-3 of their own with no changes to the board file (below), so the board is **new**: tried on a real unit, with
 few screens out there yet.
 
-This board file makes the BOX-3 a screen only. Its microphones (ES7210), its speaker (ES8311 and an amplifier), the
-mute button and the sensors of its dock are not used yet. A BOX-3 that runs a voice assistant today stops being one when
-it is flashed with this firmware. Keep that firmware to flash it back.
+Its speaker (ES8311 and an amplifier) and its two microphones (ES7210) work, which makes the screen a media player in
+Home Assistant and lets plugins play and listen (the voice assistant among them); the audio is **experimental** (below).
+The mute button and the sensors of its dock are not used yet. A BOX-3 that runs ESPHome's own voice assistant firmware
+today stops being one when it is flashed with this firmware, until the voice assistant plugin is added. Keep that
+firmware to flash it back.
 
 ## Which BOX-3
 
@@ -44,6 +46,17 @@ The remote package is `packages/esp32s3box3.yaml` and the checkout entry `checko
   picture, and every board with camera pictures shows one both ways up.
 - LVGL draws through a quarter of the screen (`LVGL_BUFFER_SIZE: "25%"`).
 
+## Speaker and microphones
+
+The BOX-3 is the first ESP32-S3 board here with audio. `packages/hardware/espressif-box3-audio.yaml` names the parts the
+Waveshare P4 boards also use (docs/P4_AUDIO.md): the ES8311 for the speaker, its amplifier on GPIO46, and the ES7210 for
+the two microphones, on one I2S bus at 16 kHz. It takes ESPHome's own I2S, one way at a time: while the speaker plays,
+the microphone waits. The ES7210's echo cancellation (`AUDIO_TRANSPORT: "aec"`) has not been tried on an ESP32-S3; a
+screen's Override YAML can set it to try.
+
+Under **Screen settings → Extras**, in Tessera and on the screen: the media player's volume, the microphone on or off,
+the microphone gain (0 to 36 dB, initially 30) and the automatic gain.
+
 ## Tried on a real unit
 
 - Installed from a build of this board file, lying down and standing up, taking tiles that switch lights in Home
@@ -67,6 +80,8 @@ while on the real unit the dock opens and closes as it should. That is still ope
 
 - An early BOX-3 with the TT21100 touch controller, which this board file does not drive.
 - Camera pictures, once the alert card has room for one lying down on 320 x 240 glass.
+- The speaker and the microphones on a real unit: a sound from a media player tile, the volume, the voice assistant
+  plugin's wake word and answer, and the internal RAM with audio running.
 
 ## Hardware references
 
@@ -76,16 +91,19 @@ while on the real unit the dock opens and closes as it should. That is still ope
 | Display control | chip select GPIO5 and data/command GPIO4, from ESPHome's model; reset GPIO48, active high |
 | Touch (GT911, I2C 0x5D or 0x14) | SDA GPIO8, SCL GPIO18, interrupt GPIO3; its reset is the display's |
 | Backlight | GPIO47, PWM |
+| Audio codecs (ES8311 at 0x18, ES7210 at 0x40) | the touch panel's I2C bus |
+| Audio (I2S) | MCLK GPIO2, BCLK GPIO17, LRCLK GPIO45, speaker data GPIO15, microphone data GPIO16 |
+| Speaker amplifier | enable GPIO46, high for on |
 
-The touch panel's I2C bus also carries the audio codecs (ES8311 and ES7210), which this board file leaves alone. GPIO3
-is a strapping pin of the ESP32-S3, wired to the touch panel's interrupt on this board.
+GPIO3, GPIO45 and GPIO46 are strapping pins of the ESP32-S3, wired to the touch panel's interrupt and the audio on this
+board.
 
 - [ESPHome mipi_spi](https://esphome.io/components/display/mipi_spi/), model `S3BOX`: the panel's init sequence, its
   size, its mirroring and its chip select and data/command pins.
 - [ESPHome's BOX-3 package](https://github.com/esphome/wake-word-voice-assistants/tree/main/esp32-s3-box-3): the
-  display, the backlight, the I2C bus and the PSRAM.
+  display, the backlight, the I2C bus, the PSRAM and the audio.
 - [Espressif's board support package](https://github.com/espressif/esp-bsp/tree/master/bsp/esp-box-3): the touch
-  controller and its interrupt pin.
+  controller and its interrupt pin, and the audio pins.
 
 ## What to report while testing
 

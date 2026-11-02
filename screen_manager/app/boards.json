@@ -338,7 +338,12 @@
    "model": "ESP32-S3-BOX-3",
    "name": "Espressif",
    "order": 31,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain"
+   ],
    "status": "new",
    "touch": "GT911"
   },
@@ -346,7 +351,11 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 167,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.59.0",
   "fonts": {
    "headline": 21,
@@ -4377,7 +4386,12 @@
    "model": "ESP32-S3-BOX-3",
    "name": "Espressif",
    "order": 31,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain"
+   ],
    "status": "new",
    "touch": "GT911"
   },
@@ -4385,7 +4399,11 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 167,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.59.0",
   "fonts": {
    "headline": 21,
@@ -6209,7 +6227,12 @@
    "model": "ESP32-S3-BOX-3",
    "name": "Espressif",
    "order": 31,
-   "settings": [],
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain"
+   ],
    "status": "new",
    "touch": "GT911"
   },
@@ -6217,7 +6240,11 @@
   "columns": 2,
   "dimmable": true,
   "dpi": 167,
-  "features": [],
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player"
+  ],
   "firmware": "0.59.0",
   "fonts": {
    "headline": 21,

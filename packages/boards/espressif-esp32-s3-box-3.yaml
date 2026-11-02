@@ -1,12 +1,12 @@
-# ESP Screens - Espressif ESP32-S3-BOX-3, experimental: a 2.4-inch 320 x 240 panel (an ILI9342C over SPI, ESPHome's
+# ESP Screens - Espressif ESP32-S3-BOX-3, new: a 2.4-inch 320 x 240 panel (an ILI9342C over SPI, ESPHome's
 # mipi_spi model S3BOX) with GT911 capacitive touch over I2C, on an ESP32-S3 with 16 MB flash and 16 MB octal PSRAM.
 #
 # The pins are those of ESPHome's own BOX-3 package (esphome/wake-word-voice-assistants) and of Espressif's board
 # support package (esp-bsp, bsp/esp-box-3). Early BOX-3 units carry a TT21100 touch controller and an ST7789 panel
 # instead; the BSP tells them apart by which chip answers on I2C. This file is for the GT911 units (docs/ESP32S3BOX3.md).
 #
-# The screen only: the BOX-3's microphones (ES7210), speaker (ES8311 and its amplifier), the mute button and the
-# sensors of its dock are not part of this file yet.
+# Its microphones (ES7210) and speaker (ES8311 and its amplifier) make it a media player and let plugins listen
+# (hardware/espressif-box3-audio.yaml); the mute button and the sensors of its dock are not part of this file yet.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
@@ -22,6 +22,7 @@ packages:
   # room for a picture (screen_alert::layout, alert_layout.py), and every board with the camera shows one both ways.
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
+  audio: !include ../hardware/espressif-box3-audio.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -72,8 +73,7 @@ spi:
   clk_pin: GPIO7
   mosi_pin: GPIO6
 
-# The GT911 capacitive touch, at 0x5D or 0x14. The BOX-3's audio codecs (ES8311, ES7210) sit on the same bus and are
-# left alone here.
+# The GT911 capacitive touch, at 0x5D or 0x14, and the audio codecs (ES8311 at 0x18, ES7210 at 0x40) on the same bus.
 i2c:
   id: touch_bus
   sda: GPIO8
