@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **A screen builds again with ESPHome 2026.10.** The link stopped at an undefined `esphome::loop_task_handle`, which ESPHome 2026.10 no longer defines: the task watchdog's record of the main loop now takes the main loop's task itself at boot.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.93 (firmware 0.59.0)
