@@ -54,6 +54,11 @@ the two microphones, on one I2S bus at 16 kHz. It takes ESPHome's own I2S, one w
 the microphone waits. The ES7210's echo cancellation (`AUDIO_TRANSPORT: "aec"`) has not been tried on an ESP32-S3; a
 screen's Override YAML can set it to try.
 
+With the voice assistant plugin, the wake sound takes the bus for a moment after the wake word: words said while it
+plays are not heard. Ask after the sound, or turn **Wake sound** off. While a plugin holds the microphone, it runs
+whenever the speaker is quiet (`features/audio-half-duplex.yaml`): ESPHome stops a microphone for all its readers when
+one of them stops it, and the wake word heard its word only once a boot before that.
+
 Under **Screen settings → Extras**, in Tessera and on the screen: the media player's volume, the microphone on or off,
 the microphone gain (0 to 36 dB, initially 30) and the automatic gain.
 
