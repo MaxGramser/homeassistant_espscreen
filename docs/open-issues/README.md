@@ -26,3 +26,4 @@ Rules:
 | [governor-slow-loop-feedback.md](governor-slow-loop-feedback.md) | A full view held up on the main loop raises the governor's step, which squeezes the tiles and sensing beside it | 2026-10-29 |
 | [plugins-before-a-firmware-update.md](plugins-before-a-firmware-update.md) | A screen's Update builds with the plugins it has; a plugin that uses a form removed from the plugin API fails in the compiler, and only then is its update named | 2026-10-29 |
 | [tile-refused-after-quick-views.md](tile-refused-after-quick-views.md) | After a full view opened and closed quickly a few times, the app refuses the S3's live tile (503) three times and it keeps its stills until the page turns | 2026-10-30 |
+| [camera-sound-key-clipped.md](camera-sound-key-clipped.md) | The full view's sound key on a reTerminal D1001 showed only its bottom right quarter, once, in an opening whose stream came 5 s late | 2026-11-03 |
