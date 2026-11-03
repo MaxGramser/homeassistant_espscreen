@@ -1728,10 +1728,12 @@ class Manager:
                 'entries': entries}
 
     async def replace_known_board(self, mac, by):
-        """Take the old device of a board out of Home Assistant so the screen flashed onto it under a new name can be
-        added (known_board): its ESPHome integration goes, as the screen's own Remove does, and with it the device and
-        its entities. The old screen's YAML stays on disk with its keys. `by` names the new profile, which has to be one
-        this app wrote."""
+        """Take the old screen of a board out, so the screen flashed onto it under a new name can be added
+        (known_board). A screen of this app's goes the way its own Remove takes it (remove_screen: out of Home
+        Assistant, its YAML out of the ESPHome folder, everything this app kept for it): the board is erased and
+        taken over, so its old keys are good for nothing, and a profile left behind showed as a screen still waiting
+        for its firmware (app 0.4.96). A device Home Assistant has without a screen of ours loses its ESPHome
+        integrations. `by` names the new profile, which has to be one this app wrote."""
         if not isinstance(by, str) or by not in self.firmware.profile_names():
             raise ValueError(t('addon.errors.firmware.profile_missing'))
         # The registry as Home Assistant has it now, not as this app last saw it: the device and its integrations
@@ -1740,6 +1742,10 @@ class Manager:
         known = self.known_board(mac)
         if not known:
             raise ValueError(t('addon.errors.not_paired'))
+        if known.get('screen'):
+            gone = await self.remove_screen(known['screen'])
+            LOG.info('%s was replaced by %s: removed as a screen', known['name'], by)
+            return {'replaced': known['name'], 'by': by, 'entries': 1, 'profile': gone.get('profile')}
         entries = await self.ha.esphome_entries()
         mine = {e for e in known['entries'] if e in entries}
         # The device's entities name their integration too, when the device's own list is behind.
