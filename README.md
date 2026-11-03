@@ -472,7 +472,7 @@ AliExpress being AliExpress, that link may go dead at some point. If it does, se
 touch panel before you order.
 
 Tessera builds with its own **ESPHome 2026.9.0**. The firmware also builds in your own ESPHome Device Builder
-with ESPHome 2026.6.2 or newer; the 10.1-inch Guition asks for 2026.8.0 or newer, because its touch panel is
+with ESPHome 2026.7.0 or newer; the 10.1-inch Guition asks for 2026.8.0 or newer, because its touch panel is
 newer than that.
 
 The 10.1-inch Guition is **new in this release and has not yet been through our own acceptance test**: its

@@ -151,7 +151,7 @@ other board.
    ESPHome says so with its own `min_version` in its board file, and is then skipped here instead of failing:
 
    ```bash
-   ESPHOME="uv run -q --no-project --with esphome==2026.6.2 esphome" tools/check.sh --firmware --board <key>
+   ESPHOME="uv run -q --no-project --with esphome==2026.7.0 esphome" tools/check.sh --firmware --board <key>
    ```
 
    ```bash
@@ -199,7 +199,7 @@ only it includes, its entry files.
    ```
 
    ```bash
-   ESPHOME="uv run -q --no-project --with esphome==2026.6.2 esphome" tools/check.sh --firmware --affected
+   ESPHOME="uv run -q --no-project --with esphome==2026.7.0 esphome" tools/check.sh --firmware --affected
    ```
 
    The second is CI's min_version leg: the oldest ESPHome the packages promise (`min_version` in
