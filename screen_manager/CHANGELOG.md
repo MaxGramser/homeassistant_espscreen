@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.94 (firmware 0.60.0)
 
 - **A screen builds again with ESPHome 2026.10.** The link stopped at an undefined `esphome::loop_task_handle`, which ESPHome 2026.10 no longer defines (GitHub #356, #376): the task watchdog's record of the main loop now takes the main loop's task itself at boot. By StefanHAJ (pull request #375). CI builds the newest ESPHome release from now on, beside the app's and the oldest one the packages promise, so the next such change is seen before anyone builds with it.
 - **The Template tile saves on a page.** Since 0.4.91 a page with one was refused with "This entity is not supported": the page validator kept a list of the built-in tiles of its own and had not been told about the template tile (GitHub #358). It takes them from the one list the app has.
