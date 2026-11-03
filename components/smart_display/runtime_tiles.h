@@ -547,6 +547,10 @@ inline void load_settings() {
   if(dark_preference.load(&dark_saved))settings_screen::dark_mode=dark_saved==1;
   uint32_t buttons_saved=1;
   if(buttons_preference.load(&buttons_saved))page_buttons=buttons_saved!=0;
+  // The home button (0.2.122+) had no record of its own until 0.60.0, so a screen forgot it was off (GitHub #319).
+  home_button_preference=esphome::global_preferences->make_preference<uint32_t>(0x48425431);
+  uint32_t house_saved=1;
+  if(home_button_preference.load(&house_saved))settings_screen::home_button=house_saved!=0;
   uint32_t debug_saved=0;
   if(debug_preference.load(&debug_saved))settings_screen::debug_mode=debug_saved==1;
   apply_debug_mode();
@@ -582,6 +586,8 @@ inline void persist_settings() {
   dark_preference.save(&dark);
   uint32_t buttons = page_buttons ? 1 : 0;
   buttons_preference.save(&buttons);
+  uint32_t house = settings_screen::home_button ? 1 : 0;
+  home_button_preference.save(&house);
   uint32_t debug = settings_screen::debug_mode ? 1 : 0;
   debug_preference.save(&debug);
   uint32_t turned = (uint32_t) rotation;
@@ -8087,7 +8093,9 @@ inline void cover_tile_key_event(lv_event_t *e){
     if(!enabled||!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
     cover_swapped[w.index]^=1;w.cached_active=-1;refresh_tile(w.index);return;
   }
-  if(!enabled||!fresh()||!t.available()||t.waiting(esphome::millis())||!tile_controls::cover_tilt_selected(t))return;
+  // The cards of this layout: the tilt cards and, since the one-row cards (0.57.0), the 1x1 with buttons or a
+  // position, whose keys answered nothing while this asked for the slats alone (GitHub #363).
+  if(!enabled||!fresh()||!t.available()||t.waiting(esphome::millis())||!cover_row_card(t))return;
   std::array<tile_controls::Key,3> keys;
   const unsigned group=part/3,count=group==1?tile_controls::cover_tilt_keys(t,keys):group==2?tile_controls::cover_keys(t,keys):tile_controls::keys_for(t,keys);
   if(part%3>=count||keys[part%3].disabled)return;

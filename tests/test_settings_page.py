@@ -104,6 +104,20 @@ class Firmware(unittest.TestCase):
             version = re.search(r'SCREEN_FIRMWARE_VERSION: "([0-9.]+)"', text)[1]
             self.assertGreaterEqual(tuple(map(int, version.split('.'))), (0, 2, 44), name)
 
+    def test_every_plain_setting_is_loaded_at_boot_and_saved_with_the_rest(self):
+        # The home button (0.2.122) got its set() branch, its row and its entity but no preference, so a screen that
+        # restarted showed it again and reported it on (GitHub #319, firmware 0.60.0). Each of the values beside the
+        # frozen block has a record of its own in load_settings() and persist_settings() (docs/SETTINGS.md).
+        tiles = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
+        load = tiles[tiles.index('inline void load_settings()'):tiles.index('inline void persist_settings()')]
+        save = tiles[tiles.index('inline void persist_settings()'):tiles.index('// One page of a picker')]
+        for preference in ('swipe', 'home', 'dark', 'buttons', 'home_button', 'debug', 'rotation'):
+            with self.subTest(preference=preference):
+                self.assertIn(f'{preference}_preference.load(&', load)
+                self.assertIn(f'{preference}_preference.save(&', save)
+        self.assertIn('make_preference<uint32_t>(0x48425431)', load)
+        self.assertRegex(load, r'if\(home_button_preference\.load\(&house_saved\)\)settings_screen::home_button=house_saved!=0;')
+
     def test_the_hold_strip_covers_the_top_bar_and_no_more(self):
         """The strip is as wide as the glass less the band it starts in on each side, measured on the live canvas
         (overlay_card::screen_width), so it is right whichever way the screen was built to hang."""
