@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Pictures on an ESP32-P4 screen show their true colours.** The P4's JPEG engine reads a picture in BT.601's video range, and the app wrote the full range, so every dark shade came out darker and every colour stronger: in the dark look a plugin's picture shown whole sat in a box nearly as black as the page instead of on the card's colour (GitHub #305). The app now writes a P4's JPEG in that range; an ESP32-S3 still gets the full range its decoder reads.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.97 (firmware 0.60.0)

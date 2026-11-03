@@ -31,6 +31,13 @@ PHOTO_GROUND_DIM = 0.55
 CORNER_SUPERSAMPLE = 4
 # A baseline JPEG for a screen whose decoder is the ESP32-P4's hardware (picture_question.FORMATS `jpeg`).
 JPEG_QUALITY = 85
+# The ESP32-P4's JPEG engine hands its YCbCr to the 2D-DMA, which turns it into RGB by BT.601's video range: luma 16 to
+# 235, chroma 16 to 240 (ESP-IDF's DMA2D_COLOR_SPACE_CONV_PARAM_YUV2RGB_BT601, 298/256 for luma). A JPEG holds the full
+# range, so on a P4 every dark shade came out darker and every colour stronger: a card's 1A1A1A as 0C0C0C, nearly the
+# page's black, around a picture shown whole on it (GitHub #305). A P4's JPEG is written in that range instead, so the
+# engine gives the colours back. The S3's software decoder (esp_new_jpeg) reads the full range and gets the JPEG as is.
+VIDEO_LUMA = (16, 219)
+VIDEO_CHROMA = 224
 
 
 def rgb(colour):
@@ -356,10 +363,21 @@ def corners_of(question, size):
     return tuple(found[:MAX_CORNERS])
 
 
-def encode(image, fmt='bmp24', corners=()):
+def _video_range(rgb):
+    """`rgb` as YCbCr in BT.601's video range (VIDEO_LUMA, VIDEO_CHROMA), what the P4's JPEG engine expects."""
+    from PIL import Image
+    y, cb, cr = rgb.convert('YCbCr').split()
+    low, span = VIDEO_LUMA
+    y = y.point(lambda v: low + (v * span + 127) // 255)
+    chroma = lambda v: 128 + round((v - 128) * VIDEO_CHROMA / 255)
+    return Image.merge('YCbCr', (y, cb.point(chroma), cr.point(chroma)))
+
+
+def encode(image, fmt='bmp24', corners=(), video=False):
     """`image` in the format a screen takes: `bmp24`, `bmp8` (on a palette of the picture's own 256 colours, dithered so a
     shade stays smooth: a third of the bytes, at about the quality of an RGB565 glass; Pillow's fast octree keeps it cheap
-    on a Raspberry Pi) or `jpeg` (baseline, for the ESP32-P4's hardware decoder)."""
+    on a Raspberry Pi) or `jpeg` (baseline, for the ESP32-P4's hardware decoder, in BT.601's video range when `video`:
+    VIDEO_LUMA)."""
     from PIL import Image
     out = io.BytesIO()
     if fmt == 'jpeg':
@@ -369,6 +387,8 @@ def encode(image, fmt='bmp24', corners=()):
         rgb = image.convert('RGB')
         width, height = rgb.size
         padded = _whole_mcus(rgb)
+        if video:
+            padded = _video_range(padded)
         padded.save(out, 'JPEG', quality=JPEG_QUALITY, optimize=True, progressive=False, subsampling='4:2:0')
         body = out.getvalue()
         if padded.size == rgb.size and not corners:
@@ -384,8 +404,9 @@ def encode(image, fmt='bmp24', corners=()):
     return out.getvalue()
 
 
-def paint(question, raws, fmt=None):
-    """The bytes a screen downloads for a question: its picture (picture()) in `fmt`, the question's own when not given."""
+def paint(question, raws, fmt=None, video=False):
+    """The bytes a screen downloads for a question: its picture (picture()) in `fmt`, the question's own when not given;
+    a JPEG in BT.601's video range when `video` (a P4's: VIDEO_LUMA)."""
     image = picture(question, raws)
     fmt = fmt or question.format
-    return encode(image, fmt, corners_of(question, image.size) if fmt == 'jpeg' else ())
+    return encode(image, fmt, corners_of(question, image.size) if fmt == 'jpeg' else (), video)

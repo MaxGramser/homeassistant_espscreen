@@ -183,6 +183,24 @@ class SameAsBefore(unittest.TestCase):
         self.assertIn(b'\xff\xc0', jpg)
         self.assertNotIn(b'\xff\xc2', jpg)
 
+    def test_a_p4_jpeg_is_in_bt601_video_range(self):
+        # The P4's 2D-DMA turns the JPEG engine's YCbCr into RGB by BT.601's video range (ESP-IDF dma2d_types.h, its
+        # YUV2RGB_BT601 table): a full-range JPEG of a dark card's 1A1A1A came out 0C0C0C (GitHub #305). In the video
+        # range it comes out as painted; the full range stays for the S3, whose esp_new_jpeg reads it so.
+        def p4(jpg):
+            with Image.open(io.BytesIO(jpg)) as decoded:
+                decoded.draft('YCbCr', decoded.size)
+                y, cb, cr = decoded.convert('YCbCr').getpixel((8, 8))
+            to = lambda v: max(0, min(255, v >> 8))
+            return to(298 * y + 409 * cr - 56906), to(298 * y - 100 * cb - 208 * cr + 34707), to(298 * y + 516 * cb - 70836)
+        for colour in ((0x1A, 0x1A, 0x1A), (0, 0, 0), (255, 255, 255), (0x0A, 0x93, 0xD2), (0x2A, 0x2A, 0x2A)):
+            image = Image.new('RGB', (32, 32), colour)
+            self.assertTrue(all(abs(a - b) <= 4 for a, b in zip(p4(paint.encode(image, 'jpeg', video=True)), colour)), colour)
+        dark = Image.new('RGB', (32, 32), (0x1A, 0x1A, 0x1A))
+        self.assertLess(p4(paint.encode(dark, 'jpeg'))[0], 16)  # the full range on a P4: the box of #305
+        with Image.open(io.BytesIO(paint.encode(dark, 'jpeg'))) as full:
+            self.assertTrue(all(abs(c - 0x1A) <= 2 for c in full.convert('RGB').getpixel((8, 8))))
+
     def test_a_jpeg_is_whole_mcus_and_names_its_own_size(self):
         # The P4's decoder takes whole MCUs only (a cover of 226x254 was refused, 2026-10-20): the JPEG is a multiple of 16
         # each way, its last column and row carried on, and its own size is in an APP15 segment right after its start.

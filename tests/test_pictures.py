@@ -572,6 +572,15 @@ class StreamOf(unittest.TestCase):
 
 # ----- the links on the camera port (picture_links) -----
 
+class VideoRange(unittest.TestCase):
+    def test_a_p4_takes_its_jpeg_in_video_range(self):
+        # The P4's JPEG engine reads BT.601's video range (picture_paint.VIDEO_LUMA, GitHub #305); the S3 reads the full one.
+        self.assertTrue(picture_service.video_range({'board': 'jc1060p470'}))
+        self.assertTrue(picture_service.video_range({'board': 'jc4880p443'}))
+        self.assertFalse(picture_service.video_range({'board': 'guition'}))
+        self.assertFalse(picture_service.video_range({}))
+
+
 class Clock:
     def __init__(self): self.now = 1000.0
     def __call__(self): return self.now
