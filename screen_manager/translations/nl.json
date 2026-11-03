@@ -159,6 +159,8 @@
       "microphone": "Microfoon",
       "media_player": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
+      "backlight_pwm": "Achtergrondlicht-PWM",
+      "dimmest_level": "Laagste stand",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
       "standby_after": "Stand-by na",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wakker bij bewegen",
           "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
+        },
+        "backlight_pwm": {
+          "label": "Achtergrondlicht-PWM",
+          "hint": "Hoe snel het achtergrondlicht aan en uit schakelt om te dimmen. 150 Hz dimt elk exemplaar van dit bord, maar sommige piepen onder 20 kHz: kies 20 kHz als dat van jou piept, 15 kHz als 20 kHz niet gelijkmatig dimt."
+        },
+        "dimmest_level": {
+          "label": "Laagste stand",
+          "hint": "Hoe laag het achtergrondlicht gaat, als deel van zijn volle vermogen. Zet het hoger als het scherm op de laagste helderheid zwart blijft of flikkert."
         },
         "microphone_gain": {
           "label": "Microfoongain",

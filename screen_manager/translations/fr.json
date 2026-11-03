@@ -159,6 +159,8 @@
       "microphone": "Microphone",
       "media_player": "Volume",
       "wake_when_moved": "Réveil au mouvement",
+      "backlight_pwm": "PWM du rétroéclairage",
+      "dimmest_level": "Niveau le plus bas",
       "dark_mode": "Mode sombre",
       "auto_standby": "Veille auto",
       "standby_after": "Veille après",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Réveil au mouvement",
           "hint": "L’écran sort de veille quand quelqu’un le prend, le déplace ou le heurte. Il sent l’écran lui-même, pas quelqu’un qui passe."
+        },
+        "backlight_pwm": {
+          "label": "PWM du rétroéclairage",
+          "hint": "La vitesse à laquelle le rétroéclairage s’allume et s’éteint pour baisser. 150 Hz atténue chaque exemplaire de cette carte, mais certains sifflent en dessous de 20 kHz : choisissez 20 kHz si le vôtre siffle, 15 kHz si 20 kHz n’atténue pas régulièrement."
+        },
+        "dimmest_level": {
+          "label": "Niveau le plus bas",
+          "hint": "Le niveau le plus bas du rétroéclairage, en part de sa pleine puissance. Augmentez-le si l’écran reste noir ou scintille à la luminosité la plus basse."
         },
         "microphone_gain": {
           "label": "Gain du microphone",

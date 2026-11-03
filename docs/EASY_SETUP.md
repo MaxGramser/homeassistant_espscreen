@@ -398,7 +398,7 @@ that screen and says where it is set.
 | `GRID_MAX_COLUMNS`, `GRID_MAX_ROWS` | every board | the most columns and rows the editor offers lying down (`GRID_MAX_COLUMNS_PORTRAIT` and `GRID_MAX_ROWS_PORTRAIT` standing up), at most `8`; worked out from the glass (docs/RESPONSIVE.md, "The grid a screen is given") |
 | `GRID_MIN_COLUMNS`, `GRID_MIN_ROWS` | every board | the fewest columns and rows the editor offers (`1`) |
 | `GRID_CELL_MIN_W_MM`, `GRID_CELL_MIN_H_MM` | every board | the smallest cell the range is worked out from, in millimetres (`20` x `8` on the standard look, `15` x `6.5` on the compact one) |
-| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Waveshare P4, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0, the Waveshare P4 `100Hz`) |
+| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Waveshare P4, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150 Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0, the Waveshare P4 `100Hz`). On the 4-inch Guition the **Backlight PWM** extra under Screen settings changes it without a build (150 Hz, 15 kHz or 20 kHz, kept over a restart), beside **Dimmest level** for a backlight that stays black or flickers at 1 % |
 
 The parts an override names stay the same on every board and in every update:
 `my_display` (the display), `ts_touch` (the touch panel), `gpio_backlight_pwm`

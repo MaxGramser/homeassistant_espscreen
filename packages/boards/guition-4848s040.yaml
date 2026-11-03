@@ -43,7 +43,19 @@ substitutions:
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
-  BACKLIGHT_FREQUENCY: "150Hz"                  # the backlight's PWM; see the output block (GitHub #5)
+  BACKLIGHT_FREQUENCY: "150 Hz"                 # the backlight's PWM at boot; the Backlight PWM extra below changes it
+
+  # This board's own rows on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings"):
+  # the backlight's PWM and its floor, bound to the select and the number below.
+  BOOT_BOARD_SETTINGS: |-
+    static const char *const backlight_pwm_options[] = {"${BACKLIGHT_FREQUENCY}", "15 kHz", "20 kHz"};
+    settings_screen::board_rows.push_back(settings_screen::choice(screen_text::txt::settings_backlight_pwm,
+        []() -> int32_t { return (int32_t) id(board_backlight_pwm).active_index().value_or(0); },
+        [](int32_t index) { id(board_backlight_pwm).make_call().set_index((size_t) index).perform(); },
+        backlight_pwm_options, 3));
+    settings_screen::board_rows.push_back(settings_screen::number(screen_text::txt::settings_dimmest_level,
+        []() -> int32_t { return (int32_t) lroundf(id(board_dimmest_level).state); },
+        [](int32_t value) { id(board_dimmest_level).make_call().set_value((float) value).perform(); }, 1, 10, 1, "%"));
 
 # ============================================================
 # No need to edit below this line.
@@ -83,10 +95,54 @@ output:
     id: gpio_backlight_pwm
     # The backlight driver on many of these boards cannot follow a fast PWM: at 20 kHz (firmware before 0.3.5) every
     # level below 85-95 % looked off, and no marking on the board tells those batches apart. 150 Hz with a small floor
-    # dims every board, as ESPHome's own device page for this board does; 100 Hz shimmers visibly.
+    # dims every board, as ESPHome's own device page for this board does; 100 Hz shimmers visibly. Other batches whine
+    # audibly at anything under 20 kHz (GitHub #327: 17 units from several sellers), and on some the floor of 1 % is
+    # under the driver's start (GitHub #337: black below 25 %). So both are a setting of the screen, kept over a
+    # restart: the select and the number below, under Extras on the screen, in the app and in Home Assistant.
     frequency: ${BACKLIGHT_FREQUENCY}
     min_power: 0.01
     zero_means_zero: true
+
+select:
+  # Backlight PWM: the YAML's frequency (BACKLIGHT_FREQUENCY, an override's value stays the first choice), 15 kHz or
+  # 20 kHz, applied to the output at once; ESPHome's LEDC takes a new frequency while it runs (firmware 0.60.0).
+  - platform: template
+    id: board_backlight_pwm
+    name: "Backlight PWM"
+    icon: "mdi:sine-wave"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    options: ["${BACKLIGHT_FREQUENCY}", "15 kHz", "20 kHz"]
+    initial_option: "${BACKLIGHT_FREQUENCY}"
+    on_value:
+      - lambda: |-
+          // The first option is the YAML's own value, a number with its unit (ESPHome takes no prefix there).
+          const float hz = x == "20 kHz" ? 20000.0f : x == "15 kHz" ? 15000.0f : strtof("${BACKLIGHT_FREQUENCY}", nullptr);
+          if (hz > 0.0f) id(gpio_backlight_pwm).update_frequency(hz);
+
+number:
+  # Dimmest level: the backlight's floor, 1 to 10 % of its power (min_power above is the 1 % it starts at). A higher
+  # floor keeps a driver that is black or flickers at 1 % lit at the screen's lowest brightness (firmware 0.60.0).
+  - platform: template
+    id: board_dimmest_level
+    name: "Dimmest level"
+    icon: "mdi:brightness-6"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_value: 1
+    min_value: 1
+    max_value: 10
+    step: 1
+    unit_of_measurement: "%"
+    mode: slider
+    on_value:
+      - lambda: |-
+          id(gpio_backlight_pwm).set_min_power(x / 100.0f);
+          // The glass at its level again, through the new floor, when it is lit; a dark one stays dark.
+          const auto &now = id(back_light).current_values;
+          if (now.is_on()) id(gpio_backlight_pwm).set_level(powf(now.get_brightness(), id(back_light).get_gamma_correct()));
 
 touchscreen:
   - platform: gt911

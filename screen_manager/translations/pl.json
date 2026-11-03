@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
+      "backlight_pwm": "PWM podświetlenia",
+      "dimmest_level": "Najniższy poziom",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
       "standby_after": "Czuwanie po",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wybudź przy ruchu",
           "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
+        },
+        "backlight_pwm": {
+          "label": "PWM podświetlenia",
+          "hint": "Jak szybko podświetlenie włącza się i wyłącza, by przyciemniać. 150 Hz przyciemnia każdy egzemplarz tej płytki, ale niektóre piszczą poniżej 20 kHz: wybierz 20 kHz, gdy twój piszczy, 15 kHz, gdy 20 kHz nie przyciemnia równomiernie."
+        },
+        "dimmest_level": {
+          "label": "Najniższy poziom",
+          "hint": "Najniższy poziom podświetlenia jako część pełnej mocy. Podnieś go, gdy ekran przy najniższej jasności pozostaje czarny lub migocze."
         },
         "microphone_gain": {
           "label": "Wzmocnienie mikrofonu",

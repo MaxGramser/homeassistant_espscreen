@@ -159,6 +159,8 @@
       "microphone": "Micrófono",
       "media_player": "Volumen",
       "wake_when_moved": "Despertar al moverlo",
+      "backlight_pwm": "PWM de retroiluminación",
+      "dimmest_level": "Nivel mínimo",
       "dark_mode": "Modo oscuro",
       "auto_standby": "Reposo automático",
       "standby_after": "Reposo tras",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Despertar al moverlo",
           "hint": "La pantalla sale del modo de espera cuando alguien la coge, la mueve o la golpea. Siente la propia pantalla, no a alguien que pasa."
+        },
+        "backlight_pwm": {
+          "label": "PWM de retroiluminación",
+          "hint": "La velocidad a la que la retroiluminación se enciende y apaga para atenuarse. 150 Hz atenúa todas las unidades de esta placa, pero algunas zumban por debajo de 20 kHz: elige 20 kHz si la tuya zumba, 15 kHz si con 20 kHz no atenúa de forma uniforme."
+        },
+        "dimmest_level": {
+          "label": "Nivel mínimo",
+          "hint": "Lo más baja que llega la retroiluminación, como parte de su potencia total. Súbelo si la pantalla se queda negra o parpadea con el brillo más bajo."
         },
         "microphone_gain": {
           "label": "Ganancia de micrófono",
