@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Replacing a screen in New screen takes the old screen out of Tessera too.** In 0.4.96 only its device left Home Assistant, and its profile stayed in the sidebar as a screen still waiting for its firmware. The old screen now goes the way Remove takes it: out of Home Assistant, its YAML out of the ESPHome folder, and everything Tessera kept for it.
+
 ## 0.4.96 (firmware 0.60.0)
 
 - **New screen says when the board on the cable is a screen Home Assistant already has.** Installing from this browser, the wizard reads the board's MAC address and asks Home Assistant, before anything is built: a board that is already a screen there (flashed before under another name) cannot be added as a new one, since Home Assistant keeps one ESPHome device per board, and until now the wizard waited for a screen that never came. It now names the screen Home Assistant has and offers to install that one again, or to replace it: after the firmware is on the board, the old screen leaves Home Assistant with its entities and the new one pairs by itself.

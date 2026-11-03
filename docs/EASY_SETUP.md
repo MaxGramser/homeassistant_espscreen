@@ -191,8 +191,9 @@ Home Assistant keeps one ESPHome device per board, keyed on the board's MAC addr
 in Home Assistant cannot be added again under a new name: flashed with a new profile, it would wait for Home Assistant
 for ever. Installing from this browser, **New screen** reads the board's MAC before it builds and, when Home Assistant
 has that board already, names the screen it is and offers to install that screen again or to replace it (app 0.4.96).
-Replacing writes the new firmware first; then the old screen leaves Home Assistant with its entities, its YAML stays in
-the ESPHome folder, and the new screen pairs by itself. Over the other ways (USB on the Home Assistant machine, a
+Replacing writes the new firmware first; then the old screen goes the way Remove takes it (out of Home Assistant with
+its entities, its YAML out of the ESPHome folder, everything Tessera kept for it; app 0.4.97), and the new screen
+pairs by itself. Over the other ways (USB on the Home Assistant machine, a
 file) the board's MAC is not known before the build: remove the old device under **Settings → Devices & services →
 ESPHome** yourself, and the new screen pairs.
 
