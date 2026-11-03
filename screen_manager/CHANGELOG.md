@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **An ESP32-P4 screen no longer restarts when a camera opens full screen.** A reTerminal D1001 restarted every time a camera opened ("PPA copy never finished"): the picture engine stalls on a scaled copy whose input leaves a few columns in its last unit, a case ESP-IDF's driver does not count. The firmware counts it the hardware's way now and copies such a picture in two pieces.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.93 (firmware 0.59.0)
