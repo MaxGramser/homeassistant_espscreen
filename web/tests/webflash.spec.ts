@@ -46,9 +46,10 @@ function fakeFlasher(chip = "ESP32") {
 
 let port: SerialPort;
 const requestPort = vi.fn();
+const getPorts = vi.fn(async (): Promise<SerialPort[]> => []);
 function secure(on = true, serial = true) {
   Object.defineProperty(window, "isSecureContext", { value: on, configurable: true });
-  if (serial) Object.defineProperty(navigator, "serial", { value: { requestPort }, configurable: true });
+  if (serial) Object.defineProperty(navigator, "serial", { value: { requestPort, getPorts }, configurable: true });
   else delete (navigator as any).serial;
 }
 // The add-on: the factory image at its relative URL, and an empty answer to everything else.
@@ -68,6 +69,8 @@ beforeEach(() => {
   port = fakePort();
   requestPort.mockReset();
   requestPort.mockImplementation(async () => port);
+  getPorts.mockReset();
+  getPorts.mockImplementation(async () => []);
   secure();
 });
 afterEach(() => {
@@ -135,6 +138,18 @@ describe("one installation from the browser", () => {
     // Relative URLs, for Home Assistant's ingress path.
     expect(calls).toEqual([{ url: "api/firmware/profiles/hall.yaml/download", method: "GET" },
       { url: "api/firmware/profiles/hall.yaml/flashed", method: "POST" }]);
+  });
+
+  it("uses the one port the page was given before without the picker, and asks when there are several", async () => {
+    fakeFlasher("ESP32-P4");
+    addon(factoryImage(18, 0x2000));
+    const flash = useBrowserFlash();
+    getPorts.mockImplementation(async () => [port]);
+    expect(await flash.connect("ESP32-P4")).toBe(true);
+    expect(requestPort).not.toHaveBeenCalled();
+    getPorts.mockImplementation(async () => [port, fakePort()]);
+    expect(await flash.connect("ESP32-P4")).toBe(true);
+    expect(requestPort).toHaveBeenCalledOnce();
   });
 
   it("builds nothing when the picker is closed without a port, and says what to check", async () => {

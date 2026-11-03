@@ -58,7 +58,12 @@ export function useBrowserFlash() {
     }
     let port: SerialPort;
     try {
-      port = await navigator.serial.requestPort();
+      // A port this page was given before and that is plugged in now is used again without the picker, when it is the
+      // only one (Chrome's remembered devices, app 0.4.96): the same screen on the same cable, as after a build that
+      // failed or a Wi-Fi that was wrong. Another board on it is caught by the chip check below, and the picker is
+      // asked as before when none or several are remembered.
+      const remembered = (await navigator.serial.getPorts?.()) || [];
+      port = remembered.length === 1 ? remembered[0] : await navigator.serial.requestPort();
     } catch (error) {
       fail(pickProblem(error), {}, (error as Error)?.message || "");
       return false;
