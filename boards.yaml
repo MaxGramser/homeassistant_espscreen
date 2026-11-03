@@ -262,3 +262,9 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+crowpanel7:
+  file: crowpanel7.yaml
+  name: CrowPanel
+  model: Advanced 7.0 ESP32-P4
+  status: experimental

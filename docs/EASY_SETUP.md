@@ -41,6 +41,7 @@ ESPHome Device Builder is optional:
 | Waveshare P4, 4 inch (experimental) | ESP32-P4-86-Panel-ETH-2RO, 720×720, ST7703 MIPI-DSI and GT911, ESP32-P4 ([details](WAVESHAREP4.md)) |
 | Guition, 4.3 inch (experimental) | JC4880P443, 480×800, ST7701 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](JC4880P443.md)) |
 | CrowPanel, 10.1 inch (experimental) | Elecrow CrowPanel Advanced 10.1 ESP32-P4 (DHE04310D, V1.1 or V1.2), 1024×600, EK79007 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](CROWPANEL101.md)) |
+| CrowPanel, 7 inch (experimental) | Elecrow CrowPanel Advanced 7 ESP32-P4 (DHE04107D, V1.1 or later), 1024×600, EK79007 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](CROWPANEL7.md)) |
 | M5Stack Tab5, 5 inch (new) | Tab5, 1280×720, ST7121 or ST7123 MIPI-DSI and touch (New screen asks which), ESP32-P4 ([details](TAB5.md)) |
 
 Other screens with roughly the same name can have different pins. Use
