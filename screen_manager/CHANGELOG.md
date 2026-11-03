@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.97 (firmware 0.60.0)
 
 - **Replacing a screen in New screen takes the old screen out of Tessera too.** In 0.4.96 only its device left Home Assistant, and its profile stayed in the sidebar as a screen still waiting for its firmware. The old screen now goes the way Remove takes it: out of Home Assistant, its YAML out of the ESPHome folder, and everything Tessera kept for it.
 
