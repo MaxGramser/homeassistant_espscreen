@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.95 (firmware 0.60.0)
 
 - **A screen installed from this browser over USB starts by itself again on an ESP32-P4** (reTerminal D1001, Guition 10.1 and 7 inch, Waveshare P4, M5Stack Tab5, CrowPanel Advanced). After the image was written the page sent the reset sequence that esptool-js names "USB JTAG serial reset", which puts such a chip in download mode: the page said "Installed, the screen restarts", the screen stayed dark until its cable was pulled, and the wizard waited for a screen that never came. The page now pulses the chip's EN line, as it does for a board behind a USB-UART bridge; the S3 keeps its watchdog reset.
 
