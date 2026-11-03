@@ -1,16 +1,22 @@
 // The live view's streams on a P4 (live_view.h says why and what).
 //
 // Each stream (the full view, a live tile of the page on the glass) is a task of its own with its own buffers and PPA
-// client, owned by the main loop: open() makes it, close() and tick() end it. The task reads the stream, decodes each
-// picture with the hardware JPEG decoder (one engine for all, its calls are thread safe) and has the PPA bring it to the
-// glass: a full view's picture scaled to fill its room and turned as LVGL turns its drawing, straight into the panel's
-// frame buffer; a tile's picture first cut or fitted into a canvas of the card's size, where the shade, the corners and
-// the name go over it (live_view::compose), and then turned onto the glass. A copy happens with the glass held (glass.h:
-// one writer at a time) and only while nobody stopped the stream, so once close() returns nothing of it writes the glass
-// any more and LVGL may draw there at once. Buffers live in PSRAM and go when the task has ended (tick()). The panel, its
-// frame buffer, the lock and the rooms LVGL keeps out of are the glass's (glass.h, glass_dsi.cpp); the decoder and the
-// PPA copies are the engine's (picture_engine.h, picture_engine_p4.cpp). What is here is the stream's own: its task
-// and socket, the framing, the canvas of a tile and what goes over it, the loader, the sound, the reports.
+// client, owned by the main loop: open() makes it, close() and tick() end it. Two halves make it:
+//
+// - Where its pictures come from, its Source: the app's link asked for each picture (a live tile), the app's stream of
+//   pictures and sound (the full view, and a tile of an app before asking), or the screen's own camera's frames (a tile
+//   of it, plugin API 0.22). Each runs on the stream's task until the stream stops.
+// - What every stream does with a picture, shared: decoded with the hardware JPEG decoder, laid out (a full view's
+//   scaled to fill its room; a tile's card, corners, shade and name, laid over it as one overlay made once,
+//   live_view::Overlay) and copied onto the glass with the PPA, turned as LVGL turns its drawing where the app did not
+//   turn the picture so already (X-Turn); a live tile kept to its pace (pace), a busy screen's tile to a share of it
+//   (the governor, pressure.h).
+//
+// A copy happens with the glass held (glass.h: one writer at a time, and one user of the 2D-DMA) and only while nobody
+// stopped the stream, so once close() returns nothing of it writes the glass any more and LVGL may draw there at once.
+// A stream's task runs below the voice and holds the glass at the writers' priority (take_glass). Buffers live in PSRAM
+// and go when the task has ended (tick()). The panel, its frame buffer, the lock and the rooms LVGL keeps out of are the
+// glass's (glass.h, glass_dsi.cpp); the decoder and the PPA copies are the engine's (picture_engine.h).
 #include "live_view.h"
 #include "glass.h"
 #include "picture_engine.h"
@@ -21,7 +27,6 @@
 #include <atomic>
 #include <cerrno>
 #include <cstdlib>
-#include <utility>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -47,12 +52,13 @@ namespace live_view {
 
 static const char *const TAG = "live";
 constexpr size_t CHUNK = 16 * 1024;
-// A live tile's pause (pace below): a read and a picture longer than this say nothing of its pace (a camera that
-// paused), and the step it looks again at. And how long a tile's newest picture waits for a newer one while bytes keep
-// coming (Stream, pending), so a long queue never holds the tile still.
-constexpr int64_t PACE_GAP_US = 2000000, NEWEST_WAIT_US = 250000;
+// A live tile's pause (pace): a read and a picture longer than this say nothing of its pace (a camera that paused).
+constexpr int64_t PACE_GAP_US = 2000000;
+// A picture of a stream this much later on its way than the quickest is a frame behind (read_stream, Wait).
+constexpr uint32_t STALE_MS = 150;
 constexpr uint32_t PAUSE_STEP_MS = 20;
 constexpr uint32_t STACK_BYTES = 6144;  // a stream task's stack (psram_task.h), its high water logged as it ends
+constexpr unsigned STREAM_PRIORITY = 2;  // below the wake word's inference (3), above the main loop (1): take_glass
 constexpr uint32_t WAIT_MS = 500;  // a read waits this long, so a stop is seen within it
 // ---- The glass (glass.h): the panel, its frame buffer, the one-writer lock and the rooms LVGL keeps out of ----
 bool available() { return glass::direct(); }
@@ -67,12 +73,62 @@ bool has_speaker() { return speaker != nullptr; }
 bool has_speaker() { return false; }
 #endif
 
+// How long the parts of a stream waited on their way, from the app's X-Made: the app's clock and this one differ by a
+// constant (and a drift of milliseconds an hour), so the least difference seen is the way at its quickest and what lies
+// over it the wait. Kept by the stream's task, read by the main loop for its report.
+struct Wait {
+  bool seen = false;
+  int32_t quickest = 0;
+  std::atomic<uint32_t> count{0}, total_ms{0}, most_ms{0};
+  uint32_t reported_count = 0, reported_total = 0;
+  // A part that left the app at `made` came now: its wait, which is also counted.
+  uint32_t add(uint32_t made) {
+    const int32_t gap = static_cast<int32_t>(static_cast<uint32_t>(esp_timer_get_time() / 1000) - made);
+    if (!seen || gap < quickest) {
+      quickest = gap;
+      seen = true;
+    }
+    const uint32_t waited = static_cast<uint32_t>(gap - quickest);
+    count++;
+    total_ms += waited;
+    if (waited > most_ms) most_ms = waited;
+    return waited;
+  }
+};
+
+struct Stream;
+// Where a stream's pictures come from (the file's head): run on the stream's task until it stops; false when this
+// source cannot serve it, and the next one takes over (a tile's ask_each on an app before it: read_stream).
+struct Source {
+  const char *what;
+  bool (*run)(Stream &s);
+  const Source *otherwise;
+};
+
 // ---- One stream ----
+// One overlay of a tile (live_view.h, Overlay) made for pictures that lie `lies` degrees turned (-1: not made): its shade,
+// and its marks' segments and pixels, in PSRAM.
+struct MadeOverlay {
+  int lies = -1;
+  uint8_t *shade = nullptr, *alpha = nullptr;
+  OverlaySegment *segments = nullptr;
+  uint16_t *color = nullptr;
+  Overlay over;
+  void clear() {
+    for (void *part : {static_cast<void *>(shade), static_cast<void *>(segments), static_cast<void *>(alpha),
+                       static_cast<void *>(color)})
+      if (part) free(part);
+    *this = MadeOverlay{};
+  }
+};
+
 struct Stream {
+  const Source *source = nullptr;
   std::string url;
   Rect area;
   Look look;
-  uint32_t *name = nullptr;  // the stream's own copy of look.name
+  uint32_t *name = nullptr;   // the stream's own copy of look.name
+  uint32_t *badge = nullptr;  // and of look.badge
   int turn = 0;
   std::atomic<bool> stopping{false}, done{false}, failed{false};
   // Its room on the glass (glass.h): LVGL is kept out of where its picture lies from the first picture on (placed by
@@ -82,7 +138,7 @@ struct Stream {
   // Time a picture waited for the glass (glass::hold) while it was laid out, inside copy_us; and of a tile's lay-out, the
   // PPA's copy into its card and onto the glass (each under the glass) and the composing between them.
   std::atomic<uint32_t> wait_us{0}, into_us{0}, compose_us{0}, onto_us{0};
-  // A live tile pauses after a picture instead of reading on: to keep to hw::LIVE_TILE_PPS, and on a busy screen (the
+  // A live tile pauses after a picture instead of reading on: to keep to its share (tile_gap_us), and on a busy screen (the
   // governor's LIVE_TILES, pressure.h) to half or a quarter of that or of its own pace, whichever is slower. It reads
   // nothing meanwhile, so the app sends fewer (it makes the next picture once the last one left its host) and the
   // Wi-Fi rests too. Leaving pictures out undecoded saved nothing, as the tile only read the next one sooner (a
@@ -92,22 +148,10 @@ struct Stream {
   uint32_t pace_us = 0;
   int64_t free_at = 0;
   std::atomic<uint32_t> pauses{0}, paused_us{0}, net_us{0};
-  // A live tile shows the newest picture there is. Between the app and the screen a dozen of a tile's pictures fit
-  // (the app's send buffer, the screen's TCP window of 64 KB), and a tile that read them one by one showed pictures a
-  // second or two old (a reTerminal D1001, 2026-10-28, X-Made). So a picture waits in `pending` (the buffer `input`
-  // filled, swapped with `spare`) while more bytes wait in the socket, and goes once none do, or after NEWEST_WAIT_US;
-  // the older ones it passes, counted.
-  uint8_t *spare = nullptr, *pending = nullptr;
-  size_t pending_length = 0;
-  bool pending_has_made = false;
-  uint32_t pending_made = 0;
-  int64_t pending_since = 0;
-  std::atomic<uint32_t> passed{0};
-  // How long its pictures waited on their way (X-Made, the app's clock set beside this one): over the least seen, on
-  // average and at most.
-  bool aged = false;
-  int32_t youngest = 0;
-  std::atomic<uint32_t> ages{0}, age_ms{0}, age_most_ms{0};
+  std::atomic<uint32_t> passed{0};  // pictures of a stream passed for a newer one (read_stream)
+  int64_t view_at = 0;               // a full view's last picture shown, for the engine's view_pps
+  // How long its pictures and its sound waited on their way (X-Made: Wait).
+  Wait picture_wait, sound_wait;
   // When the way to the first picture went by (ms after start, written once by the task, read after `shown`).
   uint32_t started_at = 0, connected_ms = 0, answered_ms = 0, first_bytes_ms = 0;
   uint32_t live_ms = 0;  // its first live picture (written once by the task, read after `live`)
@@ -115,6 +159,11 @@ struct Stream {
   uint8_t *input = nullptr, *picture = nullptr;
   uint16_t *canvas = nullptr;
   size_t input_size = 0, picture_size = 0, canvas_size = 0;
+  // What a tile lays over each picture (MadeOverlay), made at its first picture for the way its pictures lie (X-Turn);
+  // and the same with the mark of a squeezed tile, made the first time the governor squeezes the live tiles.
+  // `onto_turn`: what the PPA still turns on a picture's way onto the glass, for the report.
+  MadeOverlay plain, squeezed;
+  std::atomic<int> onto_turn{0};
   // The camera's sound (a full view on a board with a speaker): parts the task puts in `sound`, which the main loop
   // hands to the speaker unless `muted`.
   // Its storage in PSRAM, its control (with the spinlock its critical sections take) inside the chip: made static over
@@ -136,6 +185,10 @@ struct Stream {
   std::atomic<uint32_t> full_parts{0};  // parts left out because the buffer had no room for all of it
   uint32_t odd_taken = 0;
   uint32_t caught_up = 0, caught_up_bytes = 0;  // the times the main loop left the oldest out (SOUND_HIGH), and how much
+  // The buffer ran dry while speaking: the speaker gets nothing until SOUND_LOW waits again, as at the start, instead of
+  // each part as it trickles in (which played as snippets out of joint, 2026-10-29). Counted for the stream's line.
+  bool dry = false;
+  uint32_t ran_dry = 0;
   std::atomic<bool> muted{false}, heard{false};
   // The speaker is someone else's for now (audio_owner.h: a voice session or a doorbell took it): the sound is held back
   // as when muted, and plays again once the owner gives the speaker back. Set on the main loop, read by the task.
@@ -153,12 +206,26 @@ struct Stream {
   bool told_first = false, told_live = false, told_sound = false, speaking = false;
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0,
            reported_wait = 0, reported_net = 0, reported_into = 0, reported_compose = 0, reported_onto = 0,
-           reported_ages = 0, reported_age = 0, reported_passed = 0, reported_pauses = 0, reported_paused = 0;
+           reported_passed = 0, reported_pauses = 0, reported_paused = 0;
   psram_task::Task task;  // its task, its stack in PSRAM: the main loop deletes it once done (psram_task.h)
+  // A tile of the screen's own camera (take_frames): its card's canvas filled from a camera frame on the camera's task
+  // (own_frame), then `own_full` until its own task laid it onto the glass; and when it takes the next.
+  std::atomic<bool> own_full{false};
+  int64_t own_next = 0;
   std::atomic<uint32_t> stack_left{0};  // what of its stack the task never used, in bytes (written before `done`)
 };
 static Stream *streams[MAX_STREAMS] = {};
 static_assert(MAX_STREAMS <= glass::MAX_ROOMS, "every stream has a room on the glass");
+// The live tiles streaming, a camera's or the screen's own: counted as they open and as they are reaped, on the main
+// loop, and read by every tile's pace (tile_pps).
+static std::atomic<int> tiles_open{0};
+// What one tile waits between pictures: the engine's budget shared among the tiles streaming (picture_engine::tile_pps),
+// on a busy screen half or a quarter of that (the governor's LIVE_TILES, pressure.h).
+static int64_t tile_gap_us() {
+  const int pps = picture_engine::tile_pps(picture_engine::limits().tile_budget_pps,
+                                           tiles_open.load(std::memory_order_relaxed), hw::LIVE_TILE_PPS);
+  return 1000000 / pps;
+}
 
 static void free_stream(Stream *s) {
   if (s->sound) vStreamBufferDelete(s->sound);  // static: frees nothing, its memory is the stream's own below
@@ -167,10 +234,12 @@ static void free_stream(Stream *s) {
   if (s->sound_part) roomy::release(s->sound_part);
   if (s->sound_piece) roomy::release(s->sound_piece);
   if (s->input) free(s->input);
-  if (s->spare) free(s->spare);
   if (s->picture) free(s->picture);
   if (s->canvas) free(s->canvas);
+  s->plain.clear();
+  s->squeezed.clear();
   if (s->name) free(s->name);
+  if (s->badge) free(s->badge);
   if (s->under) free(s->under);
   picture_engine::drop(s->ppa);
   if (s->room >= 0) glass::give_back(s->room);
@@ -185,51 +254,125 @@ static esp_err_t copy(Stream &s, const void *in, int in_w, int rows, int bx, int
   block.in = in, block.in_w = in_w, block.in_rows = rows, block.bx = bx, block.by = by, block.bw = bw, block.bh = bh;
   block.out = out, block.out_size = out_size, block.out_w = ow, block.out_h = oh, block.x = x, block.y = y;
   block.scale = scale, block.turn = turn;
+  block.swap = out == glass::frame_buffer() && glass::panel().swapped;
   return static_cast<esp_err_t>(picture_engine::blit(s.ppa, block));
+}
+
+// One overlay of a tile (live_view.h) for pictures that lie turned `lies`, with the squeezed mark or without: made on
+// the stream's task, once. False without the memory for it.
+static bool make_overlay(Stream &s, MadeOverlay &made, int lies, bool badge) {
+  const int64_t from = esp_timer_get_time();
+  const int w = s.area.w, h = s.area.h;
+  made.clear();
+  Overlay o{turned_w(w, h, lies), turned_h(w, h, lies)};
+  made.shade = static_cast<uint8_t *>(heap_caps_malloc(std::max(w, h), MALLOC_CAP_SPIRAM));
+  if (!made.shade) return false;
+  o.shade_count = overlay_shade(s.look, w, h, lies, made.shade, o.shade_by_column, o.shade_from);
+  size_t pixels = 0;
+  o.count = overlay_marks(s.look, w, h, lies, nullptr, pixels, nullptr, nullptr, badge);
+  made.segments = static_cast<OverlaySegment *>(
+      heap_caps_malloc(sizeof(OverlaySegment) * std::max(o.count, 1), MALLOC_CAP_SPIRAM));
+  made.alpha = static_cast<uint8_t *>(heap_caps_malloc(std::max<size_t>(pixels, 1), MALLOC_CAP_SPIRAM));
+  made.color = static_cast<uint16_t *>(heap_caps_malloc(std::max<size_t>(pixels, 1) * 2, MALLOC_CAP_SPIRAM));
+  if (!made.segments || !made.alpha || !made.color) {
+    made.clear();
+    return false;
+  }
+  overlay_marks(s.look, w, h, lies, made.segments, pixels, made.alpha, made.color, badge);
+  o.shade = made.shade, o.segments = made.segments, o.alpha = made.alpha, o.color = made.color;
+  made.over = o;
+  made.lies = lies;
+  ESP_LOGI(TAG, "its card's overlay%s for pictures turned %d: a shade of %d %s, %d marks of %u pixels, made in %u ms",
+           badge ? " with the squeezed mark" : "", lies, o.shade_count, o.shade_by_column ? "columns" : "rows", o.count,
+           (unsigned) pixels, (unsigned) ((esp_timer_get_time() - from) / 1000));
+  return true;
+}
+// A tile's overlay for pictures that lie turned `lies`: made at its first picture, again only if its pictures came to
+// lie otherwise. False without the memory for it.
+static bool overlay_for(Stream &s, int lies) {
+  return s.plain.lies == lies || make_overlay(s, s.plain, lies, false);
+}
+// What a picture gets laid over it now: with the squeezed mark while the governor squeezes the live tiles (pressure.h),
+// made the first time it does; the plain one at rest, for a card without the mark, or when its memory is not there
+// (the mark then stays off for this stream).
+static const Overlay &overlay_now(Stream &s) {
+  if (!s.look.badge || pressure::level_of(pressure::LIVE_TILES) == 0) return s.plain.over;
+  if (s.squeezed.lies != s.plain.lies && !make_overlay(s, s.squeezed, s.plain.lies, true)) {
+    s.look.badge = nullptr;
+    return s.plain.over;
+  }
+  return s.squeezed.over;
+}
+
+// A tile's loader square: where it lies in the card's canvas, as the pictures lie (s.plain.lies), and on the glass.
+static bool loader_square(const Stream &s, Rect &in_canvas, Rect &on_glass) {
+  int lx = 0, ly = 0;
+  if (s.plain.lies < 0 || !loader_spot(s.look, s.area.w, s.area.h, lx, ly)) return false;
+  const int size = s.look.loader;
+  in_canvas = in_turned(Rect{lx, ly, size, size}, s.plain.lies, s.area.w, s.area.h);
+  const glass::Panel panel = glass::panel();
+  on_glass = on_panel(Rect{s.area.x + lx, s.area.y + ly, size, size}, s.turn, panel.w, panel.h);
+  return true;
 }
 
 // A tile's loader over a still (live_view.h, "Until it is live"): its square of the card as composed kept in `under`,
 // and the loader drawn over it as it stands now.
 static bool lay_loader(Stream &s) {
-  int lx = 0, ly = 0;
-  if (!s.under || !loader_spot(s.look, s.area.w, s.area.h, lx, ly)) return false;
-  const int cw = s.area.w, size = s.look.loader;
+  Rect at, unused;
+  if (!s.under || !loader_square(s, at, unused)) return false;
+  const int cw = s.plain.over.w, size = s.look.loader;
   for (int j = 0; j < size; ++j)
-    memcpy(s.under + static_cast<size_t>(j) * size, s.canvas + static_cast<size_t>(ly + j) * cw + lx,
+    memcpy(s.under + static_cast<size_t>(j) * size, s.canvas + static_cast<size_t>(at.y + j) * cw + at.x,
            static_cast<size_t>(size) * 2);
   s.turned_at = esphome::millis();
-  draw_loader(s.canvas, cw, lx, ly, s.look, s.turned_at);
+  draw_loader(s.canvas, cw, at.x, at.y, s.look, s.turned_at);
   return true;
 }
 // Its next turn, between the stills: the square as composed again, the loader over it, and that square alone onto the
 // glass, every LOADER_STEP_MS while the task waits for the stream's next bytes.
+// A stream's task runs below the voice assistant's wake word (STREAM_PRIORITY), and asks for and holds the glass at
+// glass::WRITER_PRIORITY, in turn with the other streams and a still's download (picture_engine::decode), then goes back:
+// composing a picture and reading the app run below the voice. At WRITER_PRIORITY throughout, four tiles' composing (30
+// ms of wall clock a picture on a reTerminal D1001) and the screen's own video (priority 4) left the wake word's
+// inference (ESPHome's micro_wake_word, priority 3) behind 644 times in an hour at rest (2026-10-28).
+static uint32_t take_glass() {
+  vTaskPrioritySet(nullptr, glass::WRITER_PRIORITY);
+  return glass::hold_counted();
+}
+static void give_glass() {
+  glass::release();
+  vTaskPrioritySet(nullptr, STREAM_PRIORITY);
+}
+
 static void turn_loader(Stream &s) {
   const uint32_t now = esphome::millis();
-  int lx = 0, ly = 0;
-  if (!s.warming || now - s.turned_at < LOADER_STEP_MS || !loader_spot(s.look, s.area.w, s.area.h, lx, ly)) return;
+  Rect at, target;
+  if (!s.warming || now - s.turned_at < LOADER_STEP_MS || !loader_square(s, at, target)) return;
   s.turned_at = now;
-  const int cw = s.area.w, ch = s.area.h, size = s.look.loader;
+  const int cw = s.plain.over.w, ch = s.plain.over.h, size = s.look.loader;
   for (int j = 0; j < size; ++j)
-    memcpy(s.canvas + static_cast<size_t>(ly + j) * cw + lx, s.under + static_cast<size_t>(j) * size,
+    memcpy(s.canvas + static_cast<size_t>(at.y + j) * cw + at.x, s.under + static_cast<size_t>(j) * size,
            static_cast<size_t>(size) * 2);
-  draw_loader(s.canvas, cw, lx, ly, s.look, now);
+  draw_loader(s.canvas, cw, at.x, at.y, s.look, now);
   const glass::Panel panel = glass::panel();
-  const Rect target = on_panel(Rect{s.area.x + lx, s.area.y + ly, size, size}, s.turn, panel.w, panel.h);
   esp_err_t err = ESP_OK;
-  glass::hold();
+  take_glass();
   if (!s.stopping && glass::armed(s.room))
-    err = copy(s, s.canvas, cw, ch, lx, ly, size, size, glass::frame_buffer(), static_cast<size_t>(panel.w) * panel.h * 2,
-               panel.w, panel.h, target.x, target.y, 16, s.turn);
-  glass::release();
+    err = copy(s, s.canvas, cw, ch, at.x, at.y, size, size, glass::frame_buffer(),
+               static_cast<size_t>(panel.w) * panel.h * 2, panel.w, panel.h, target.x, target.y, picture_engine::AS_IS,
+               turn_between(s.plain.lies, s.turn));
+  give_glass();
   if (err != ESP_OK) s.warming = false;  // the loader stops where it stands; the pictures go on
 }
 
 // The glass held for a copy of the lay-out, and how long that waited for it (another stream's copy, LVGL's flush).
-static void hold_timed(Stream &s) { s.wait_us += glass::hold_counted(); }
+static void hold_timed(Stream &s) { s.wait_us += take_glass(); }
 
-// One picture of `length` bytes at `data` (the stream's input, or its pending newest): decoded, laid out, and copied
-// onto the glass. `still`: the camera's still from before its stream came, with the loader over it on a tile.
-static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
+// One picture of `length` bytes at `data`: decoded, laid out, and copied onto the glass. `still`: the camera's still
+// from before its stream came, with the loader over it on a tile. `turn`: how the app turned the picture for a turned
+// glass (X-Turn, the hello's picture_turn): a tile lays its card over it as it lies, and the PPA turns only what is left
+// between the picture and the glass, nothing on a glass the app turned it for.
+static void show(Stream &s, const uint8_t *data, size_t length, bool still, int turn) {
   picture_engine::Still info;
   if (!picture_engine::info(data, length, info)) {
     s.skipped++;
@@ -239,15 +382,19 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
   const int stride_w = info.stride;
   const int rows = static_cast<int>(info.bytes / 2 / info.stride);
   const int w = info.w, h = info.h;
-  // Where it goes: a full view's picture as large as fits its room, a tile's into its card.
+  // Where it goes: a full view's picture as large as fits its room, worked out on the picture upright; a tile's into its
+  // card, the card as the picture lies.
   int scale = 0;
   Rect where;
   picture_engine::Cut into;
+  const int lies = turn;
+  const int cw = turned_w(s.area.w, s.area.h, lies), ch = turned_h(s.area.w, s.area.h, lies);
   if (s.look.tile) {
-    into = picture_engine::cut(w, h, s.area.w, s.area.h, s.look.contain);
+    into = picture_engine::cut(w, h, cw, ch, s.look.contain);
     if (into.ok) where = s.area;
   } else {
-    const picture_engine::Fit f = picture_engine::fit(w, h, s.area.x, s.area.y, s.area.w, s.area.h);
+    const picture_engine::Fit f =
+        picture_engine::fit(turned_w(w, h, lies), turned_h(w, h, lies), s.area.x, s.area.y, s.area.w, s.area.h);
     if (!f.empty()) where = Rect{f.x, f.y, f.w, f.h};
     scale = f.scale;
   }
@@ -267,17 +414,19 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
       return;
     }
   }
-  // The decoder works through the 2D-DMA, as the PPA and the panel's copy of each of LVGL's strips do: it decodes
-  // while it holds the glass (glass.h). Its wait counts in the glass's report, not in the stream's own.
-  glass::hold_counted();
+  // A P4's decoder works through the 2D-DMA, as the PPA and the panel's copy of each of LVGL's strips do: it decodes
+  // while it holds the glass (glass.h). Its wait counts in the glass's report, not in the stream's own. An S3's decodes
+  // with the CPU, and holds nothing (picture_engine::Limits::decode_on_glass).
+  const bool on_glass = picture_engine::limits().decode_on_glass;
+  if (on_glass) take_glass();
   if (s.stopping) {
-    glass::release();
+    if (on_glass) give_glass();
     return;
   }
   const int64_t t0 = esp_timer_get_time();
   const bool decoded = picture_engine::decode_into(data, length, s.picture, s.picture_size);
   const int64_t t1 = esp_timer_get_time();
-  glass::release();
+  if (on_glass) give_glass();
   if (!decoded) {
     s.skipped++;
     return;
@@ -289,7 +438,14 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
   const size_t glass_size = static_cast<size_t>(panel.w) * panel.h * 2;
   esp_err_t err = ESP_OK;
   bool loading = false;
-  const int cw = s.area.w, ch = s.area.h;
+  if (s.look.tile && !overlay_for(s, lies)) {
+    ESP_LOGW(TAG, "no memory for the overlay of a card of %dx%d", s.area.w, s.area.h);
+    s.failed = true;
+    s.stopping = true;
+    return;
+  }
+  const int onto = turn_between(lies, s.turn);
+  s.onto_turn = onto;
   // A live tile's picture the app sent at the card's own size (it makes them for the card, a few pixels over): the card
   // is composed in the decoded picture where it lies, and the PPA copies it once, onto the glass. Through the card's
   // canvas the PPA worked twice under the glass, and four tiles waited their turn for it: on a reTerminal D1001 18 ms
@@ -299,7 +455,7 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
       into.in_w == cw && into.in_h == ch) {
     int64_t from = esp_timer_get_time();
     uint16_t *card = reinterpret_cast<uint16_t *>(s.picture) + static_cast<size_t>(into.in_y) * stride_w + into.in_x;
-    compose(card, stride_w, cw, ch, s.look);
+    lay_overlay(card, stride_w, overlay_now(s));
     const Rect target = on_panel(s.area, s.turn, panel.w, panel.h);
     s.compose_us += static_cast<uint32_t>(esp_timer_get_time() - from);
     hold_timed(s);
@@ -307,9 +463,9 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
     if (!s.stopping) {
       glass::place(s.room, s.area);  // from now on LVGL draws nothing here
       err = copy(s, s.picture, stride_w, rows, into.in_x, into.in_y, cw, ch, glass::frame_buffer(), glass_size, panel.w,
-                 panel.h, target.x, target.y, picture_engine::AS_IS, s.turn);
+                 panel.h, target.x, target.y, picture_engine::AS_IS, onto);
     }
-    glass::release();
+    give_glass();
     s.onto_us += static_cast<uint32_t>(esp_timer_get_time() - from);
   } else if (s.look.tile) {
     // The card: the picture cut or fitted into it, on black where it leaves room, then the shade, corners and name.
@@ -331,11 +487,11 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
     int64_t from = esp_timer_get_time();
     err = copy(s, s.picture, stride_w, rows, into.in_x, into.in_y, into.in_w, into.in_h, s.canvas, s.canvas_size, cw,
                ch, into.out_x, into.out_y, into.scale, 0);
-    glass::release();
+    give_glass();
     int64_t to = esp_timer_get_time();
     s.into_us += static_cast<uint32_t>(to - from);
     if (err == ESP_OK) {
-      compose(s.canvas, cw, cw, ch, s.look);
+      lay_overlay(s.canvas, cw, overlay_now(s));
       loading = still && lay_loader(s);
       from = esp_timer_get_time();
       s.compose_us += static_cast<uint32_t>(from - to);
@@ -345,9 +501,9 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
       if (!s.stopping) {
         glass::place(s.room, s.area);  // from now on LVGL draws nothing here
         err = copy(s, s.canvas, cw, ch, 0, 0, cw, ch, glass::frame_buffer(), glass_size, panel.w, panel.h, target.x,
-                   target.y, picture_engine::AS_IS, s.turn);
+                   target.y, picture_engine::AS_IS, onto);
       }
-      glass::release();
+      give_glass();
       s.onto_us += static_cast<uint32_t>(esp_timer_get_time() - from);
     }
   } else {
@@ -357,9 +513,9 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
     if (!s.stopping) {
       glass::place(s.room, where);
       err = copy(s, s.picture, stride_w, rows, 0, 0, w, h, glass::frame_buffer(), glass_size, panel.w, panel.h, target.x,
-                 target.y, scale, s.turn);
+                 target.y, scale, onto);
     }
-    glass::release();
+    give_glass();
   }
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "copy to the glass failed: %s", esp_err_to_name(err));
@@ -377,22 +533,8 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still) {
   s.shown++;
 }
 
-// A picture's wait on its way: the app's clock and this one differ by a constant (and a drift of milliseconds an
-// hour), so the least difference seen is the way at its quickest and what lies over it the wait.
-static void age(Stream &s, uint32_t made) {
-  const int32_t gap = static_cast<int32_t>(static_cast<uint32_t>(esp_timer_get_time() / 1000) - made);
-  if (!s.aged || gap < s.youngest) {
-    s.youngest = gap;
-    s.aged = true;
-  }
-  const uint32_t waited = static_cast<uint32_t>(gap - s.youngest);
-  s.ages++;
-  s.age_ms += waited;
-  if (waited > s.age_most_ms) s.age_most_ms = waited;
-}
-
-// After a live tile's picture: its pace kept and the pause it owes, to hw::LIVE_TILE_PPS or to a busy screen's share of
-// it (Stream, pace_us). Each 20 ms it looks again whether the pressure eased or the stream stops; it reads nothing
+// After a live tile's picture: its pace kept and the pause it owes, to its share of the engine's budget or to a busy
+// screen's share of that (Stream, pace_us). Each 20 ms it looks again whether the pressure eased or the stream stops; it reads nothing
 // meanwhile.
 static void pace(Stream &s) {
   const int64_t now = esp_timer_get_time();
@@ -401,11 +543,11 @@ static void pace(Stream &s) {
   if (took > 0 && took < PACE_GAP_US)
     s.pace_us = s.pace_us ? static_cast<uint32_t>((3 * static_cast<int64_t>(s.pace_us) + took) / 4)
                           : static_cast<uint32_t>(took);
-  const int64_t base = std::max<int64_t>(s.pace_us, 1000000 / hw::LIVE_TILE_PPS);
-  const bool busy = pressure::level_now(pressure::LIVE_TILES) > 0;
+  const int64_t base = std::max<int64_t>(s.pace_us, tile_gap_us());
+  const bool busy = pressure::level_of(pressure::LIVE_TILES) > 0;
   if (busy) s.pauses++;
   for (;;) {
-    const uint8_t level = pressure::level_now(pressure::LIVE_TILES);
+    const uint8_t level = pressure::level_of(pressure::LIVE_TILES);
     if (s.stopping || esp_timer_get_time() + took >= now + (base << level)) break;
     vTaskDelay(pdMS_TO_TICKS(PAUSE_STEP_MS));
   }
@@ -413,27 +555,259 @@ static void pace(Stream &s) {
   if (busy) s.paused_us += static_cast<uint32_t>(s.free_at - now);
 }
 
-static void stream(Stream &s) {
+// ---- The sources ----
+// A live tile asks the app for each picture (its link's .jpg, live_stream.py pull): one at a time over a kept connection,
+// when its pace says, so nothing waits on the way and the app sends only what the tile shows. An ask with nothing newer
+// within the app's wait answers 204, and the tile asks again. False when the app has no such link (an app before it
+// answers 404 at the first ask).
+static bool ask_each(Stream &s) {
+  const auto address = picture_fetch::split(s.url);
+  const std::string path = address.ok ? pull_path(address.path) : "";
+  if (path.empty()) return false;
+  const int fd = picture_fetch::connect_to(address, WAIT_MS);
+  if (fd < 0) {
+    ESP_LOGW(TAG, "no connection to %s:%u", address.host.c_str(), address.port);
+    s.failed = true;
+    return true;
+  }
+  s.connected_ms = esphome::millis() - s.started_at;
+  auto *chunk = static_cast<uint8_t *>(roomy::allocate(CHUNK));
+  if (!chunk) {
+    ::close(fd);
+    s.failed = true;
+    return true;
+  }
+  if (s.under) {  // a tile with a loader waits in short steps, so its loader turns between the stills
+    timeval step{0, static_cast<suseconds_t>(LOADER_STEP_MS * 1000)};
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &step, sizeof(step));
+  }
+  const std::string ask = "GET " + path + " HTTP/1.1\r\nHost: " + address.host + "\r\n\r\n";
+  const size_t most = picture_engine::limits().tile_picture_bytes;
+  bool supported = true, first = true;
+  std::string head;
+  while (!s.stopping) {
+    if (!picture_fetch::send_all(fd, ask)) {
+      ESP_LOGW(TAG, "the app's link closed");
+      s.failed = true;
+      break;
+    }
+    // The answer: its head, then Content-Length bytes of picture (none for 204). The app sends nothing unasked, so what
+    // one read brings past the head is this picture's.
+    head.clear();
+    size_t length = 0, got = 0;
+    picture_fetch::Head h;
+    uint32_t heard = esphome::millis();
+    bool broken = false;
+    while (!s.stopping) {
+      const int64_t asked = esp_timer_get_time();
+      const int n = recv(fd, chunk, CHUNK, 0);
+      const int error = errno;
+      s.net_us += static_cast<uint32_t>(esp_timer_get_time() - asked);
+      turn_loader(s);
+      if (n < 0 && (error == EAGAIN || error == EWOULDBLOCK)) {
+        if (esphome::millis() - heard < QUIET_MS) continue;
+        ESP_LOGW(TAG, "the app went quiet");
+        broken = true;
+        break;
+      }
+      if (n <= 0) {
+        ESP_LOGW(TAG, "the app's link ended (%d, errno %d)", n, error);
+        broken = true;
+        break;
+      }
+      heard = esphome::millis();
+      if (s.bytes == 0) s.first_bytes_ms = heard - s.started_at;
+      s.bytes += n;
+      size_t at = 0;
+      if (!h.complete) {
+        head.append(reinterpret_cast<const char *>(chunk), n);
+        h = picture_fetch::parse_head(head.data(), head.size());
+        if (!h.complete) {
+          if (head.size() >= MAX_HEAD) broken = true;
+          if (broken) break;
+          continue;
+        }
+        if (!s.answered_ms) s.answered_ms = heard - s.started_at;
+        if (h.status == 404 && first) {
+          supported = false;
+          break;
+        }
+        if (h.status == 204) break;
+        if (h.status != 200 || !h.has_length || h.content_length == 0 || h.content_length > most ||
+            h.content_length > s.input_size) {
+          ESP_LOGW(TAG, "not a picture (answer %d, %u bytes)", h.status, (unsigned) h.content_length);
+          broken = true;
+          break;
+        }
+        length = h.content_length;
+        at = n - (head.size() - h.length);  // where this read's picture bytes begin
+      }
+      const size_t take = std::min(static_cast<size_t>(n) - at, length - got);
+      memcpy(s.input + got, chunk + at, take);
+      got += take;
+      if (got == length) break;
+    }
+    first = false;
+    if (broken) {
+      s.failed = true;
+      break;
+    }
+    if (!supported || s.stopping) break;
+    if (h.status == 204 || got != length || length == 0) continue;
+    if (h.has_made) s.picture_wait.add(h.made);
+    show(s, s.input, length, h.still, h.turn);
+    if (!h.still) pace(s);
+  }
+  ::close(fd);
+  roomy::release(chunk);
+  if (!supported) ESP_LOGI(TAG, "the app sends this tile as a stream (it answers no ask for a picture)");
+  return supported;
+}
+
+// The screen's own camera on a tile of its own (live_view.h, own_frame).
+// The open tiles of it, which the camera's task reads under own_lock while it fills one's canvas; the main loop takes a
+// tile out under it before it frees the stream. The camera's task never waits for it: a frame it cannot take goes by.
+static Stream *own_tiles[MAX_STREAMS] = {};
+static SemaphoreHandle_t own_lock = nullptr;
+static std::atomic<bool> offered{false};
+static std::atomic<int> own_open{0};
+
+void own_offer() { offered.store(true, std::memory_order_release); }
+bool own_offered() { return offered.load(std::memory_order_acquire) && available(); }
+bool own_wanted() { return own_open.load(std::memory_order_relaxed) > 0; }
+
+static void own_add(Stream *s) {
+  if (!own_lock) own_lock = xSemaphoreCreateMutex();
+  xSemaphoreTake(own_lock, portMAX_DELAY);
+  for (auto &slot : own_tiles)
+    if (!slot) {
+      slot = s;
+      break;
+    }
+  xSemaphoreGive(own_lock);
+  own_open.fetch_add(1, std::memory_order_relaxed);
+}
+static void own_remove(Stream *s) {
+  if (!own_lock) return;
+  xSemaphoreTake(own_lock, portMAX_DELAY);
+  for (auto &slot : own_tiles)
+    if (slot == s) {
+      slot = nullptr;
+      own_open.fetch_sub(1, std::memory_order_relaxed);
+    }
+  xSemaphoreGive(own_lock);
+}
+
+void own_frame(const uint8_t *data, int width, int height, bool yuv420) {
+  if (!data || width <= 0 || height <= 0 || !own_wanted() || !own_lock) return;
+  if (xSemaphoreTake(own_lock, 0) != pdTRUE) return;
+  const int64_t now = esp_timer_get_time();
+  for (Stream *s : own_tiles) {
+    if (!s || s->stopping || s->own_full.load(std::memory_order_acquire) || now < s->own_next || !s->canvas) continue;
+    const int cw = s->area.w, ch = s->area.h;
+    picture_engine::Cut into = picture_engine::cut(width, height, cw, ch, s->look.contain);
+    if (!into.ok) continue;
+    if (yuv420) {  // the PPA reads YUV420 in pairs of pixels and rows
+      into.in_x &= ~1;
+      into.in_y &= ~1;
+      into.in_w &= ~1;
+      into.in_h &= ~1;
+    }
+    if (!glass::try_hold()) continue;  // the glass is busy: this frame goes by, the next one comes
+    if (!into.covers(cw, ch)) memset(s->canvas, 0, static_cast<size_t>(cw) * ch * 2);
+    picture_engine::Block block;
+    block.in = data, block.in_w = width, block.in_rows = height, block.bx = into.in_x, block.by = into.in_y;
+    block.bw = into.in_w, block.bh = into.in_h, block.out = s->canvas, block.out_size = s->canvas_size;
+    block.out_w = cw, block.out_h = ch, block.x = into.out_x, block.y = into.out_y, block.scale = into.scale;
+    block.yuv420 = yuv420;
+    const int64_t from = esp_timer_get_time();
+    const int err = picture_engine::blit(s->ppa, block);
+    glass::release();
+    s->into_us += static_cast<uint32_t>(esp_timer_get_time() - from);
+    if (err != 0) {
+      s->skipped++;
+      continue;
+    }
+    // Its next frame after its pace: its share of the budget, a busy screen's tile half or a quarter of that.
+    s->own_next = now + (tile_gap_us() << pressure::level_of(pressure::LIVE_TILES));
+    s->own_full.store(true, std::memory_order_release);
+    xTaskNotifyGive(s->task.handle);
+  }
+  xSemaphoreGive(own_lock);
+}
+
+// The tile's own task: its card laid over the frame the camera's task copied in, and laid onto the glass. The frames
+// come upright, so this is the one live tile whose pictures the PPA still turns onto a turned glass, once a picture
+// (docs/PLATFORM_PLAN.md 4.12).
+static bool take_frames(Stream &s) {
+  s.connected_ms = s.answered_ms = s.first_bytes_ms = esphome::millis() - s.started_at;
+  const glass::Panel panel = glass::panel();
+  const size_t glass_size = static_cast<size_t>(panel.w) * panel.h * 2;
+  const int cw = s.area.w, ch = s.area.h;
+  if (!overlay_for(s, 0)) {
+    ESP_LOGW(TAG, "no memory for the overlay of a card of %dx%d", cw, ch);
+    s.failed = true;
+    return true;
+  }
+  s.onto_turn = s.turn;
+  while (!s.stopping) {
+    if (!ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(WAIT_MS)) || !s.own_full.load(std::memory_order_acquire)) continue;
+    const int64_t t0 = esp_timer_get_time();
+    lay_overlay(s.canvas, cw, overlay_now(s));
+    const int64_t t1 = esp_timer_get_time();
+    s.compose_us += static_cast<uint32_t>(t1 - t0);
+    const Rect target = on_panel(s.area, s.turn, panel.w, panel.h);
+    hold_timed(s);
+    const int64_t t2 = esp_timer_get_time();
+    esp_err_t err = ESP_OK;
+    if (!s.stopping) {
+      glass::place(s.room, s.area);  // from now on LVGL draws nothing here
+      err = copy(s, s.canvas, cw, ch, 0, 0, cw, ch, glass::frame_buffer(), glass_size, panel.w, panel.h, target.x,
+                 target.y, picture_engine::AS_IS, s.turn);
+    }
+    give_glass();
+    s.onto_us += static_cast<uint32_t>(esp_timer_get_time() - t2);
+    s.copy_us += static_cast<uint32_t>(esp_timer_get_time() - t0);
+    s.own_full.store(false, std::memory_order_release);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "copy to the glass failed: %s", esp_err_to_name(err));
+      s.failed = true;
+      break;
+    }
+    s.warming = false;
+    if (!s.live) {
+      s.live_ms = esphome::millis() - s.started_at;
+      s.live = true;
+    }
+    s.shown++;
+  }
+  return true;
+}
+
+// The app's stream: plain HTTP/1.0, then parts, pictures and (a full view's) sound as they come (Reader). The sound is
+// the clock: a picture more than a frame later on its way than the quickest, with more bytes already waiting, is passed
+// for the newer one behind it, and the sound that came with it plays on.
+static bool read_stream(Stream &s) {
   const auto address = picture_fetch::split(s.url);
   const int fd = address.ok ? picture_fetch::connect_to(address, WAIT_MS) : -1;
   if (fd < 0) {
     ESP_LOGW(TAG, "no connection to %s:%u", address.host.c_str(), address.port);
     s.failed = true;
-    return;
+    return true;
   }
   s.connected_ms = esphome::millis() - s.started_at;
   // HTTP/1.0: the app answers without chunks, and ends the stream by closing it.
   if (!picture_fetch::send_all(fd, "GET " + address.path + " HTTP/1.0\r\nHost: " + address.host + "\r\n\r\n")) {
     ::close(fd);
     s.failed = true;
-    return;
+    return true;
   }
   // PSRAM first (roomy.h): recv copies into it and no DMA reads it, and internal RAM is what the Wi-Fi link runs short of.
   auto *chunk = static_cast<uint8_t *>(roomy::allocate(CHUNK));
   if (!chunk) {
     ::close(fd);
     s.failed = true;
-    return;
+    return true;
   }
   // A tile with a loader reads in short waits, so its loader turns between the stills.
   if (s.under) {
@@ -469,23 +843,27 @@ static void stream(Stream &s) {
           if (audio) return s.sound && length <= SOUND_PART ? s.sound_part : nullptr;
           return length <= s.input_size ? s.input : nullptr;
         },
-        [&s, &reader](size_t length, bool audio) {
+        [&s, &reader, fd](size_t length, bool audio) {
           if (!audio) {
-            // A live tile's picture waits for a newer one (Stream, pending); a full view and the stills go at once.
-            if (s.look.tile && !reader.still() && s.spare) {
-              if (s.pending)
+            // A frame behind, with a newer picture on its way: passed.
+            if (reader.has_made() && s.picture_wait.add(reader.made()) > STALE_MS && !reader.still()) {
+              uint8_t next = 0;
+              if (recv(fd, &next, 1, MSG_PEEK | MSG_DONTWAIT) > 0) {
                 s.passed++;
-              else
-                s.pending_since = esp_timer_get_time();
-              s.pending = s.input;
-              s.pending_length = length;
-              s.pending_has_made = reader.has_made();
-              s.pending_made = reader.made();
-              std::swap(s.input, s.spare);
-              return;
+                return;
+              }
             }
-            if (reader.has_made()) age(s, reader.made());
-            show(s, s.input, length, reader.still());
+            // A full view on an engine that decodes so many a second at most: one that comes sooner is passed.
+            const uint8_t most = picture_engine::limits().view_pps;
+            if (!s.look.tile && most && !reader.still()) {
+              const int64_t now = esp_timer_get_time();
+              if (s.view_at && now - s.view_at < 1000000 / most) {
+                s.passed++;
+                return;
+              }
+              s.view_at = now;
+            }
+            show(s, s.input, length, reader.still(), reader.turn());
             return;
           }
           // Sound: into the buffer the main loop plays from; none of it while muted. Whole samples only, so the buffer,
@@ -493,6 +871,7 @@ static void stream(Stream &s) {
           // off plays seconds of full-scale noise (a ring on a reTerminal D1001, 2026-10-25), until another odd write
           // puts it right by chance. So a part goes in whole or not at all, never cut to the room left.
           s.heard = true;
+          if (reader.has_made()) s.sound_wait.add(reader.made());
           if (length & 1) s.odd_parts.fetch_add(1, std::memory_order_relaxed);
           if (s.muted || s.yielded) return;
           const size_t whole = length & ~static_cast<size_t>(1);
@@ -507,33 +886,71 @@ static void stream(Stream &s) {
       s.failed = true;
       break;
     }
-    // The newest picture goes once no more bytes wait (Stream, pending), then the tile's pace or a busy screen's pause.
-    if (s.pending) {
-      uint8_t next = 0;
-      if (recv(fd, &next, 1, MSG_PEEK | MSG_DONTWAIT) <= 0 || esp_timer_get_time() - s.pending_since > NEWEST_WAIT_US) {
-        if (s.pending_has_made) age(s, s.pending_made);
-        show(s, s.pending, s.pending_length, false);
-        s.pending = nullptr;
-        pace(s);
-      }
-    }
     if (!s.answered_ms && reader.status()) s.answered_ms = esphome::millis() - s.started_at;
   }
   ::close(fd);
   roomy::release(chunk);
+  return true;
 }
+
+static const Source STREAM{"the app's stream", read_stream, nullptr};
+static const Source ASK_EACH{"a picture at a time from the app", ask_each, &STREAM};
+static const Source OWN_CAMERA{"the screen's own camera", take_frames, nullptr};
 
 static void task_main(void *arg) {
   auto *s = static_cast<Stream *>(arg);
-  stream(*s);
+  // A source that cannot serve the stream hands it on (a tile on an app before asking: the app's stream).
+  for (const Source *source = s->source; source && !source->run(*s); source = source->otherwise)
+    s->source = source->otherwise;
   const bool in_psram = psram_task::in_psram(s->task);  // read before `done`: the main loop frees the stream after it
   s->stack_left.store(uxTaskGetStackHighWaterMark(nullptr), std::memory_order_relaxed);
   s->done.store(true, std::memory_order_release);
   psram_task::finish(in_psram);
 }
 
+bool full_view() { return available() && picture_engine::limits().picture_bytes > 0; }
+
+// The live tiles on the glass now, for the governor's heard rule (pressure::live_tiles): the tile streams, not a view.
+static void count_tiles() {
+  uint8_t n = 0;
+  for (auto *s : streams)
+    if (s && !s->stopping && s->look.tile) ++n;
+  pressure::live_tiles.store(n, std::memory_order_relaxed);
+}
+
+static_assert(picture_engine::limits().streams <= MAX_STREAMS, "the engine's streams have their slots");
+// What a stream's connection takes of the chip's internal RAM, its Wi-Fi and lwIP buffers (about 11 KB on a Guition
+// 4848S040, 2026-10-28), and what stays free whatever streams: docs/ARCHITECTURE.md, "Internal RAM never below 32 KB at
+// rest". A screen whose pages already took it closer keeps its stills.
+constexpr size_t STREAM_INTERNAL_BYTES = 11 * 1024;
+constexpr size_t INTERNAL_FLOOR_BYTES = 32 * 1024;
+
+static int held() {
+  int n = 0;
+  for (auto *s : streams)
+    if (s) ++n;
+  return n;
+}
+bool room_for_another() { return held() < picture_engine::limits().streams; }
+bool beside() { return picture_engine::limits().streams > 1; }
+
 Handle open(const std::string &url, const Rect &area, const Look &look, bool sound, audio_owner::Role role) {
-  if (!available() || area.empty()) return -1;
+  if (!available() || area.empty() || (!look.tile && !full_view())) return -1;
+  // Every stream counts, of every kind, and one still ending too: its task holds its connection until it is gone. A
+  // full view beside a live tile that had not ended took a tester's S3 down (2026-10-30).
+  if (!room_for_another()) {
+    ESP_LOGW(TAG, "no room for another stream: %d at once on this screen", picture_engine::limits().streams);
+    return -1;
+  }
+  if (!is_own(url)) {
+    const size_t internal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    if (internal < STREAM_INTERNAL_BYTES + INTERNAL_FLOOR_BYTES) {
+      ESP_LOGW(TAG, "internal RAM %u KB: too little for a stream's connection (%u KB with %u KB left), the stills stay",
+               (unsigned) (internal / 1024), (unsigned) (STREAM_INTERNAL_BYTES / 1024),
+               (unsigned) (INTERNAL_FLOOR_BYTES / 1024));
+      return -1;
+    }
+  }
   int slot = -1;
   for (int i = 0; i < MAX_STREAMS && slot < 0; ++i)
     if (!streams[i]) slot = i;
@@ -549,18 +966,20 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
   s->look.name = nullptr;
   s->turn = glass::turn();
   s->started_at = s->reported_at = esphome::millis();
-  s->input = picture_engine::input(look.tile ? picture_engine::limits().tile_picture_bytes : picture_engine::limits().picture_bytes,
-                                   &s->input_size);
-  if (look.tile) {
-    size_t spare_size = 0;
-    s->spare = picture_engine::input(s->input_size, &spare_size);
-    if (spare_size != s->input_size) {
-      if (s->spare) free(s->spare);
-      s->spare = nullptr;  // without it the tile shows each picture as it comes, as before
-    }
+  s->source = is_own(url) ? &OWN_CAMERA : look.tile ? &ASK_EACH : &STREAM;
+  const bool own = s->source == &OWN_CAMERA;
+  if (own) {
+    // The card's canvas the camera's frames are copied into: no input, no decoded picture.
+    s->canvas_size = (static_cast<size_t>(area.w) * area.h * 2 + 127) & ~static_cast<size_t>(127);
+    s->canvas = static_cast<uint16_t *>(heap_caps_aligned_calloc(128, 1, s->canvas_size, MALLOC_CAP_SPIRAM));
+    if (!s->canvas) s->canvas_size = 0;
+  } else {
+    s->input = picture_engine::input(look.tile ? picture_engine::limits().tile_picture_bytes
+                                               : picture_engine::limits().picture_bytes,
+                                     &s->input_size);
   }
   s->ppa = picture_engine::client();
-  bool ok = s->input && s->ppa;
+  bool ok = (own ? s->canvas != nullptr : s->input != nullptr) && s->ppa;
   if (ok && sound && has_speaker()) {
     // The camera's sound between the task and the main loop: its storage in PSRAM (only the task and the speaker's copy
     // read it), its control inside the chip (see Stream::sound).
@@ -588,6 +1007,20 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
       s->look.name_stride = look.name_w;
     }
   }
+  // The squeezed mark the same way; without the memory for it the tile simply goes without.
+  s->look.badge = nullptr;
+  if (ok && look.tile && look.badge && look.badge_w > 0 && look.badge_h > 0) {
+    s->badge = static_cast<uint32_t *>(
+        heap_caps_malloc(static_cast<size_t>(look.badge_w) * look.badge_h * 4, MALLOC_CAP_SPIRAM));
+    if (s->badge) {
+      const int stride = look.badge_stride ? look.badge_stride : look.badge_w;
+      for (int y = 0; y < look.badge_h; ++y)
+        memcpy(s->badge + static_cast<size_t>(y) * look.badge_w, look.badge + static_cast<size_t>(y) * stride,
+               static_cast<size_t>(look.badge_w) * 4);
+      s->look.badge = s->badge;
+      s->look.badge_stride = look.badge_w;
+    }
+  }
   if (!ok) {
     ESP_LOGW(TAG, "no memory for another stream");
     free_stream(s);
@@ -604,11 +1037,15 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
     return -1;
   }
   streams[slot] = s;
-  if (!psram_task::start(s->task, task_main, "live_view", STACK_BYTES, s, glass::WRITER_PRIORITY, 1)) {
+  if (!psram_task::start(s->task, task_main, "live_view", STACK_BYTES, s, STREAM_PRIORITY,
+                          picture_engine::limits().stream_core)) {
     streams[slot] = nullptr;
     free_stream(s);
     return -1;
   }
+  count_tiles();
+  if (own) own_add(s);
+  if (look.tile) tiles_open.fetch_add(1, std::memory_order_relaxed);
   if (s->sound || role == audio_owner::Role::DOORBELL) {
     // The camera's sound claims the speaker (audio_owner.h) in the role its opener gave: as CAMERA_SOUND music pauses
     // for it, and a voice session or a doorbell takes it and gives it back, since the camera stays open; as DOORBELL
@@ -635,8 +1072,9 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
     audio_owner::the().claim(s->claimed, claim);
   }
   glass::watch();
-  ESP_LOGI(TAG, "stream %d into %dx%d at %d,%d%s, turned %d, PPA bursts of %d bytes", slot, area.w, area.h, area.x, area.y,
-           look.tile ? (look.contain ? " (a tile, whole picture)" : " (a tile)") : "", s->turn, picture_engine::limits().burst_bytes);
+  ESP_LOGI(TAG, "stream %d into %dx%d at %d,%d%s from %s, turned %d, PPA bursts of %d bytes", slot, area.w, area.h,
+           area.x, area.y, look.tile ? (look.contain ? " (a tile, whole picture)" : " (a tile)") : "", s->source->what,
+           s->turn, picture_engine::limits().burst_bytes);
   return slot;
 }
 
@@ -662,6 +1100,11 @@ static void speak(Stream &s, bool on) {
     speaker->set_audio_stream_info(esphome::audio::AudioStreamInfo(16, 1, SOUND_RATE));
     speaker->start();
     s.speaking = true;
+    s.dry = false;
+  }
+  if (s.dry) {
+    if (xStreamBufferBytesAvailable(s.sound) < SOUND_LOW) return;  // a new run-up first, as at the start
+    s.dry = false;
   }
   // Behind the picture (a burst after a hiccup in the stream): the oldest goes, down to SOUND_LOW, the rest of the piece
   // the speaker had not taken first. Every tick, whatever the speaker takes, so a speaker that is full does not hold it
@@ -683,7 +1126,13 @@ static void speak(Stream &s, bool on) {
     if (s.piece_left == 0) {
       s.piece_left = xStreamBufferReceive(s.sound, s.sound_piece, SOUND_PART, 0);
       s.piece_at = 0;
-      if (s.piece_left == 0) return;
+      if (s.piece_left == 0) {
+        if (rounds == 0) {  // nothing waited at all: the buffer ran dry
+          s.dry = true;
+          ++s.ran_dry;
+        }
+        return;
+      }
     }
     // Every piece is whole samples (the task writes only those); a write the speaker took an odd number of bytes of goes
     // on from the very next byte, the other half of that sample first, so its count is even again.
@@ -703,7 +1152,7 @@ size_t held_bytes() {
   size_t held = 0;
   for (auto *s : streams)
     if (s && !s->stopping)
-      held += s->input_size * (s->spare ? 2 : 1) +
+      held += s->input_size +
               static_cast<size_t>(std::max(0, s->area.w)) * std::max(0, s->area.h) * 2;
   return held;
 }
@@ -714,6 +1163,12 @@ void close(Handle handle) {
   s.stopping = true;
   // A copy on its way finishes; none starts after this, and LVGL draws there again (glass::disarm, under the glass).
   glass::disarm(s.room, true);
+}
+
+bool ending() {
+  for (Stream *s : streams)
+    if (s && s->stopping.load(std::memory_order_relaxed)) return true;
+  return false;
 }
 
 static void report(int slot, Stream &s, uint32_t now, bool last) {
@@ -733,21 +1188,31 @@ static void report(int slot, Stream &s, uint32_t now, bool last) {
            pauses != s.reported_pauses ? ", paused for a busy screen" : "", (unsigned) glass::misses());
   const uint32_t into = s.into_us, composed = s.compose_us, onto = s.onto_us;
   if (frames && s.look.tile)
-    ESP_LOGI(TAG, "%s %d: of laying out, %.1f ms a picture into its card, %.1f ms composing and %.1f ms onto the glass",
-             last ? "ended" : "stream", slot, (into - s.reported_into) / 1000.0f / frames,
-             (composed - s.reported_compose) / 1000.0f / frames, (onto - s.reported_onto) / 1000.0f / frames);
+    ESP_LOGI(TAG, "%s %d: of laying out, %.1f ms a picture into its card, %.1f ms composing and %.1f ms onto the glass, "
+             "turned %d on the way", last ? "ended" : "stream", slot, (into - s.reported_into) / 1000.0f / frames,
+             (composed - s.reported_compose) / 1000.0f / frames, (onto - s.reported_onto) / 1000.0f / frames,
+             s.onto_turn.load());
   s.reported_into = into;
   s.reported_compose = composed;
   s.reported_onto = onto;
-  const uint32_t ages = s.ages, aged = s.age_ms;
-  if (ages != s.reported_ages)
+  Wait &pw = s.picture_wait, &sw = s.sound_wait;
+  const uint32_t pictures = pw.count, picture_total = pw.total_ms, sounds = sw.count, sound_total = sw.total_ms;
+  if (pictures != pw.reported_count)
     ESP_LOGI(TAG, "%s %d: its pictures waited %.0f ms on their way (at most %u) over the quickest; %u older ones passed "
              "for a newer", last ? "ended" : "stream", slot,
-             static_cast<float>(aged - s.reported_age) / static_cast<float>(ages - s.reported_ages),
-             (unsigned) s.age_most_ms.exchange(0), (unsigned) (passed - s.reported_passed));
+             static_cast<float>(picture_total - pw.reported_total) / static_cast<float>(pictures - pw.reported_count),
+             (unsigned) pw.most_ms.exchange(0), (unsigned) (passed - s.reported_passed));
+  if (sounds != sw.reported_count)
+    ESP_LOGI(TAG, "%s %d: its sound waited %.0f ms on its way (at most %u) over the quickest, %u pieces; ran dry %u times, "
+             "caught up %u times since the start", last ? "ended" : "stream",
+             slot, static_cast<float>(sound_total - sw.reported_total) / static_cast<float>(sounds - sw.reported_count),
+             (unsigned) sw.most_ms.exchange(0), (unsigned) (sounds - sw.reported_count), (unsigned) s.ran_dry,
+             (unsigned) s.caught_up);
   s.reported_passed = passed;
-  s.reported_ages = ages;
-  s.reported_age = aged;
+  pw.reported_count = pictures;
+  pw.reported_total = picture_total;
+  sw.reported_count = sounds;
+  sw.reported_total = sound_total;
   if (pauses != s.reported_pauses)
     ESP_LOGI(TAG, "%s %d: paused %u times for a busy screen since the last report, %.1f s in all, its pace %.0f ms",
              last ? "ended" : "stream", slot, (unsigned) (pauses - s.reported_pauses),
@@ -795,6 +1260,8 @@ void tick(const std::function<void(Handle, Event)> &tell) {
     if (!s) continue;
     if (s->done.load(std::memory_order_acquire)) {
       const bool in_psram = psram_task::in_psram(s->task);
+      if (s->source == &OWN_CAMERA) own_remove(s);  // the camera's task copies into it no more
+      if (s->look.tile) tiles_open.fetch_sub(1, std::memory_order_relaxed);
       psram_task::reap(s->task);  // its task deleted (a stack in PSRAM) before anything of the stream is freed
       speak(*s, false);
       report(slot, *s, now, true);
@@ -810,6 +1277,7 @@ void tick(const std::function<void(Handle, Event)> &tell) {
       const bool turned = s->turn != turn, ended = s->stopping && !s->failed;
       glass::disarm(s->room, false);  // its task has ended: nothing of it copies, and LVGL draws the room again
       streams[slot] = nullptr;
+      count_tiles();
       // A full view's stream gone for good: LVGL draws the whole glass once more, now that its task decodes and copies
       // nothing. Now and then the view's top bar, the back key and the name, stayed over the page after the camera
       // closed while the picture's room below it was drawn again, until something else drew there (2026-10-15, a P4

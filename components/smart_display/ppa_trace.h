@@ -43,11 +43,16 @@ struct Call {
   char task[13];
 };
 
-// The call among `calls` that was asked more than NEVER_MS before `now_ms` and is not back, or nullptr (millis wrap).
+// The call among `calls` that was asked more than NEVER_MS before `now_ms` and is not back, or nullptr. The age is
+// signed: the watch takes `now_ms` once and then walks the ring while the streams keep asking, so a call noted after
+// that moment is younger than now, not 4294967 s old (a Tab5 aborted a sound boot on one, TR-NQRE3E: "-5 ms"). The
+// millisecond clock wrapping in between still counts right, as the difference is taken modulo 2^32 first.
 inline const Call *never_back(const Call *calls, uint32_t count, uint32_t now_ms) {
   for (uint32_t i = 0; i < count; ++i) {
     const Call &call = calls[i];
-    if (__atomic_load_n(&call.state, __ATOMIC_ACQUIRE) == ASKED && now_ms - call.at_ms > NEVER_MS) return &call;
+    if (__atomic_load_n(&call.state, __ATOMIC_ACQUIRE) != ASKED) continue;
+    const int32_t age_ms = static_cast<int32_t>(now_ms - call.at_ms);
+    if (age_ms > static_cast<int32_t>(NEVER_MS)) return &call;
   }
   return nullptr;
 }

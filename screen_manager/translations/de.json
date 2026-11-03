@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Lautstärke",
       "wake_when_moved": "Bei Bewegung aufwecken",
+      "backlight_pwm": "Hintergrundlicht-PWM",
+      "dimmest_level": "Dunkelste Stufe",
       "dark_mode": "Dunkler Modus",
       "auto_standby": "Auto-Standby",
       "standby_after": "Standby nach",
@@ -878,6 +880,7 @@
         "layout_conflict": "Das Layout wurde in einem anderen Editor geändert; lade es neu und gleiche den Entwurf ab",
         "adaptation": "Das Bildschirmraster hat sich geändert; eine ausdrückliche Layoutanpassung ist erforderlich",
         "normalization": "Die Kacheleinstellungen müssen vor dem Speichern der Seite angepasst werden",
+        "on_tile": "Seite {page}, Kachel „{tile}“: {problem}",
         "ambiguous_tile": "Der Kachelbefehl hat mehrere mögliche Quellen; gib die Seite an",
         "save_first": "Speichere zuerst das Seitenlayout und danach die Einstellungen",
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
@@ -1179,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Bei Bewegung aufwecken",
           "hint": "Der Bildschirm wacht aus dem Standby auf, wenn jemand ihn hochnimmt, bewegt oder anstößt. Er spürt sich selbst, nicht jemanden, der vorbeigeht."
+        },
+        "backlight_pwm": {
+          "label": "Hintergrundlicht-PWM",
+          "hint": "Wie schnell das Hintergrundlicht zum Dimmen ein- und ausschaltet. 150 Hz dimmt jedes Gerät dieser Platine, manche pfeifen aber unter 20 kHz: wähle 20 kHz, wenn deins pfeift, 15 kHz, wenn 20 kHz nicht gleichmäßig dimmt."
+        },
+        "dimmest_level": {
+          "label": "Dunkelste Stufe",
+          "hint": "Die niedrigste Stufe des Hintergrundlichts, als Anteil seiner vollen Leistung. Erhöhe sie, wenn der Bildschirm bei der niedrigsten Helligkeit schwarz bleibt oder flackert."
         },
         "microphone_gain": {
           "label": "Mikrofonverstärkung",
@@ -1533,6 +1544,10 @@
         "timeout": {
           "label": "Timeout",
           "help": "Sekunden, die das Klingeln bleibt, wenn niemand es berührt, {min} bis {max}. Leer ist {default}. Eine Berührung hält es offen."
+        },
+        "keep_minutes": {
+          "label": "Verpasst behalten",
+          "help": "Minuten, die ein Klingeln, das niemand beantwortet hat, in der oberen Leiste der Bildschirme mit seiner Ansicht bleibt, ab dem Klingeln gezählt, 1 bis {most}. Leer oder 0: bis jemand es öffnet."
         },
         "sound": {
           "label": "Ton",
@@ -2483,7 +2498,9 @@
         "seconds": "Alle {n} s",
         "live": "Live",
         "paused": "Live pausiert",
-        "cap": "Dieser Bildschirm zeigt {n} Kameras gleichzeitig live; die anderen zeigen alle 15 Sekunden ein Bild. Mit zwei Kameras läuft jede flüssiger als mit vier."
+        "cap": "Dieser Bildschirm zeigt {n} Kameras gleichzeitig live; die anderen zeigen alle 15 Sekunden ein Bild. Mit zwei Kameras läuft jede flüssiger als mit vier.",
+        "cap_one": "Dieser Bildschirm zeigt eine Kamera gleichzeitig live; die anderen zeigen alle 15 Sekunden ein Bild.",
+        "streams": "{used} von {most} Live-Streams in Gebrauch, über alle Bildschirme. Eine Kamera darüber hinaus zeigt alle 15 Sekunden ein Bild."
       },
       "picture": {
         "fit": {
@@ -3558,6 +3575,14 @@
         "change": "WLAN ändern und neu installieren",
         "failed": "Tessera kann {name} nicht selbst zu Home Assistant hinzufügen. Füge ihn unten selbst hinzu."
       },
+      "known": {
+        "title": "Dieses Board ist in Home Assistant schon als {name} bekannt",
+        "text": "Home Assistant führt pro Board (seiner MAC-Adresse) ein ESPHome-Gerät, darum kann {new} nicht hinzukommen, solange {name} da ist. Installiere {name} erneut, oder ersetze es: sobald die Firmware auf dem Board ist, verschwindet {name} mit seinen Entitäten aus Home Assistant und {new} tritt an seine Stelle.",
+        "reinstall": "{name} erneut installieren",
+        "replace": "{name} durch {new} ersetzen",
+        "replaced": "{name} wurde aus Home Assistant entfernt; {new} tritt an seine Stelle.",
+        "go_firmware": "Wähle unter Firmware & USB das Profil von {name} und „Aus diesem Browser installieren“."
+      },
       "memory": {
         "low_title": "Wenig freier Speicher auf der Home-Assistant-Maschine",
         "low": "{free} Speicher sind frei, darum erstellt die Firmware mit weniger Compilern gleichzeitig ({jobs} statt {cores}). Das dauert länger, passt aber.",
@@ -3837,6 +3862,8 @@
       "calendar_free": "Frei"
     },
     "pages": {
+      "repaired": "Seite {page}, Kachel „{tile}“: Unpassendes entfernt ({what}).",
+      "repaired_tile": "Seite {page}: Kachel „{tile}“ entfernt, sie passte nicht mehr.",
       "mode": "Editormodus",
       "simple": "Einfach",
       "advanced": "Erweitert",
@@ -4195,6 +4222,12 @@
       "donated": "Ich habe schon gespendet",
       "thanks": "Danke! Diese Frage kommt nicht wieder."
     },
+    "funding": {
+      "title": "Auf der Suche nach Finanzierung",
+      "body": "Ich habe einen Job, der die Rechnungen bezahlt, und der geht vor. Tessera wird immer größer, und mir fehlt schlicht die Zeit, die es braucht. Damit es weiterlebt, brauche ich eine Finanzierung: um ihm die Zeit zu geben, die es verdient, oder um jemanden einzustellen, der hilft. Wenn du helfen kannst, schreib mir eine E-Mail.",
+      "mail": "E-Mail an mich",
+      "later": "Nicht jetzt"
+    },
     "build": {
       "plugins": "Baut mit seinen Plugins",
       "install": "Installiert",
@@ -4430,7 +4463,8 @@
       "no_camera": "Keine Kamera",
       "fields": {
         "title": "Titel",
-        "timeout": "Timeout (Sekunden)"
+        "timeout": "Timeout (Sekunden)",
+        "keep": "Verpasstes Klingeln in der oberen Leiste behalten"
       },
       "screens": {
         "view": "Live mit Ton",
@@ -4503,6 +4537,12 @@
         "chime": {
           "label": "Gong beim Klingeln",
           "hint": "Der Bildschirm spielt einen Türgong, wenn jemand klingelt. Schalte das aus, wenn du das Ding-Dong nicht jedes Mal hören willst."
+        },
+        "keep": {
+          "minutes": "{n} Min.",
+          "hours": "{n} Std.",
+          "open": "Bis jemand es öffnet",
+          "hint": "Ein Klingeln, das niemand beantwortet hat, bleibt so lange nach dem Klingeln in der oberen Leiste der Bildschirme, mit der Zeit seitdem. Ein Tippen darauf öffnet die Türklingel wieder."
         }
       },
       "hero": {

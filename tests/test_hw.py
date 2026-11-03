@@ -61,6 +61,16 @@ class Wiring(unittest.TestCase):
         self.assertIn('#include "hw.h"', (COMPONENT / 'smart_display.h').read_text())
         self.assertIn('#include "hw.h"', (COMPONENT / 'plugin_api.h').read_text())
 
+    def test_the_live_tiles_are_the_engines(self):
+        # How many live tiles a screen streams at once is its picture engine's (picture_engine::limits): four on a P4, as
+        # docs/PLATFORM_PLAN.md 4.1 and the add-on's editor text say; one on an S3, whose CPU decodes it; none elsewhere.
+        engine = (COMPONENT / 'picture_engine.h').read_text()
+        self.assertIn('constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 24, 1, 7}; }', engine)
+        self.assertIn('constexpr Limits limits() { return {0, 256 * 1024, 128 * 1024, 1, false, 8, 8, 0, 1}; }', engine)
+        self.assertIn('constexpr Limits limits() { return {0, 0, 0, 0, false, 0, 0, 1, 0}; }', engine)
+        self.assertIn('f.live_tiles = picture_engine::limits().live_tiles;', (COMPONENT / 'hw.cpp').read_text())
+        self.assertNotIn('LIVE_TILES =', (COMPONENT / 'hw.h').read_text())
+
     def test_the_cpp_test_is_in_the_runner(self):
         self.assertTrue((ROOT / 'tests' / 'test_hw.cpp').exists())
 
@@ -78,6 +88,35 @@ class AppSide(unittest.TestCase):
         self.assertEqual(caps['speaker'], True)
         self.assertEqual(caps['microphone'], False)
         self.assertEqual(caps['psram_kb'], 32768)
+        # A tile of the screen's own camera drawn on the screen (plugin API 0.22): only when the hello says so.
+        self.assertEqual(caps['own_camera'], False)
+        self.assertEqual(page_delivery.caps_of({'caps': {'own_camera': True}})['own_camera'], True)
+        # Which camera is a screen's own (server.Manager.own_camera_of): the tessera_video camera on its device, or on a
+        # device of its own with the screen's MAC; and only for a screen whose hello says own_camera.
+        import types
+        import server
+        sender = types.SimpleNamespace(caps={'own_camera': True})
+        registry = {'camera.tablet_video': {'platform': 'tessera_video', 'device_id': 'cam'},
+                    'camera.door': {'platform': 'generic', 'device_id': 'cam'},
+                    'camera.other': {'platform': 'tessera_video', 'device_id': 'elsewhere'}}
+        devices = [{'id': 'screen', 'connections': [['mac', 'AA:BB:CC:00:11:22']]},
+                   {'id': 'cam', 'connections': [['mac', 'aa:bb:cc:00:11:22']]},
+                   {'id': 'elsewhere', 'connections': [['mac', 'aa:bb:cc:99:99:99']]}]
+        manager = types.SimpleNamespace(page_senders={'text.tablet': sender}, aliases={}, registry_index=lambda: registry,
+                                        ha=types.SimpleNamespace(devices=devices))
+        own = lambda entity, screen={'device_id': 'screen'}: server.Manager.own_camera_of(manager, 'text.tablet', screen, entity)
+        self.assertTrue(own('camera.tablet_video'))
+        self.assertFalse(own('camera.door') or own('camera.other') or own('camera.tablet_video', {}))
+        sender.caps = {'own_camera': False}
+        self.assertFalse(own('camera.tablet_video'))
+        # A glass turned so that the screen takes its live pictures turned (picture_turn): only a turn a glass has.
+        self.assertEqual(caps['picture_turn'], 0)
+        self.assertEqual(page_delivery.caps_of({'caps': {'picture_turn': 270}})['picture_turn'], 270)
+        for odd in (45, True, '90', -90, 360):
+            self.assertEqual(page_delivery.caps_of({'caps': {'picture_turn': odd}})['picture_turn'], 0, odd)
+        manager.page_senders['text.tablet'].caps = {'picture_turn': 90}
+        self.assertEqual(server.Manager.picture_turn_of(manager, 'text.tablet'), 90)
+        self.assertEqual(server.Manager.picture_turn_of(manager, 'text.other'), 0)
         # An older firmware sends no record: live follows the feature, the counts are unknown (None), the rest False.
         old = page_delivery.caps_of({'features': ['live', 'pictures']})
         self.assertEqual(old['live'], True)
@@ -104,6 +143,8 @@ class AppSide(unittest.TestCase):
         self.assertEqual(page_delivery.caps_line(caps), 'live, 4 live tiles, speaker, microphone, camera, no echo '
                          'cancellation, 28272 KB PSRAM, 519 KB internal RAM')
         self.assertEqual(page_delivery.caps_line(page_delivery.caps_of({'features': ['pictures']})), 'no echo cancellation')
+        self.assertEqual(page_delivery.caps_line(page_delivery.caps_of({'caps': {'picture_turn': 270}})),
+                         "no echo cancellation, live pictures turned 270")
 
     def test_the_editor_gets_the_record(self):
         # The inventory's screen carries it (server.py, caps_of_screen) and the editor marks a live camera beyond
@@ -118,7 +159,9 @@ class AppSide(unittest.TestCase):
         # the app's 503 for a stream beyond them (live_stream.py) is never reached by such a firmware: it is the net for
         # one that does not cap, and no proof on glass can show it.
         source = (ROOT / 'screen_manager' / 'app' / 'live_stream.py').read_text()
-        self.assertIn("return web.Response(status=503, text=f'This screen plays {cap} cameras live at once')", source)
+        self.assertIn("return f'This screen plays {cap} cameras live at once' if cap != 1", source)
+        # The stream and a tile's picture at a time both answer it (LiveFeed.refused).
+        self.assertEqual(source.count('return web.Response(status=503, text=why)'), 2)
 
 
 if __name__ == '__main__':

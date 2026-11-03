@@ -1,5 +1,5 @@
-"""The ESP32-P4's build: the facts that pick a screen's picture engine and glass, and the network of its Wi-Fi
-co-processor (docs/PICTURE_ARCHITECTURE.md, section 3.9; docs/CAMERA.md, "Live on the P4 boards").
+"""The ESP32-P4's build: the network of its Wi-Fi co-processor (docs/PICTURE_ARCHITECTURE.md, section 3.9; docs/CAMERA.md,
+"Live on the P4 boards"). Its picture engine, glass and streams are engine_build.py's, beside every other chip's.
 
 Keyed on the chip, never on a board: a new P4 board has all of this without a line in its file, and the boards with
 less memory never do. Free of ESPHome, so tests/test_live_view.py checks it; __init__.py applies it to the build.
@@ -39,26 +39,3 @@ P4_NETWORK = {
 def network_options(own):
     """The options a P4 gets, less those the screen's own sdkconfig_options set."""
     return {name: value for name, value in P4_NETWORK.items() if name not in own}
-
-
-# The picture engine (picture_engine.h) and the glass (glass.h) a screen is built with. Two engines exist: the P4's,
-# whose hardware decodes JPEG and whose PPA scales and turns a picture straight into the panel's frame buffer past LVGL
-# (picture_engine_p4.cpp, glass_dsi.cpp), and the software one, the BMP rows of picture_fetch with LVGL drawing every
-# still (the inline stubs of both headers). The P4's is chosen by the chip and LVGL; whether the panel gives a frame
-# buffer a task may write is a fact the glass finds at run time (glass::direct), so a P4 whose display ESP-IDF did not
-# make as MIPI-DSI simply shows stills. A chip with another decoder or 2D engine is a row here, with its own files
-# beside the P4's; nothing in picture_fetch, live_view, live_spots or runtime_tiles changes for it.
-ENGINES = {
-    # The define the P4 engine, the glass and the streams build under (live_view.h, glass.h, picture_engine.h).
-    "p4": {"define": "USE_LIVE_VIEW",
-           # The linker wraps the engine and the glass need: the panel picked up as ESP-IDF makes it and every PPA
-           # client's bursts (glass_dsi.cpp), and the guard of every turned copy (ppa_guard.cpp).
-           "wraps": ("esp_lcd_new_panel_dpi", "ppa_register_client", "ppa_do_scale_rotate_mirror")},
-    "software": {"define": None, "wraps": ()},
-}
-
-
-def picture_engine(variant, has_lvgl):
-    """The engine a build gets: 'p4' for an ESP32-P4 with LVGL (`variant` as ESPHome names it, lowercase), else
-    'software'."""
-    return "p4" if variant == "esp32p4" and has_lvgl else "software"

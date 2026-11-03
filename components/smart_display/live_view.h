@@ -51,21 +51,38 @@ constexpr uint8_t TRIES = 3;
 // loop leaves out the oldest of it.
 constexpr uint32_t SOUND_RATE = 16000;
 constexpr size_t SOUND_PART = 4096;
-constexpr size_t SOUND_BUFFER = 32768;
+constexpr size_t SOUND_BUFFER = 49152;  // 1.5 s at 16 kHz mono
 // The sound keeps up with the picture: with more than SOUND_HIGH held (a burst after a hiccup in the stream) the oldest
 // goes, down to SOUND_LOW, which is also what the speaker waits for before it starts; the app's own queue drops its
 // oldest the same way. Without it the sound would stay up to the buffer's second behind the picture.
-constexpr size_t SOUND_LOW = SOUND_RATE * 2 * 150 / 1000;   // 150 ms
-constexpr size_t SOUND_HIGH = SOUND_RATE * 2 * 400 / 1000;  // 400 ms
+// 400 and 1200 ms (150 and 400 until 2026-10-29): the app's push stream puts a part of sound behind each picture, and on
+// the way through Home Assistant (go2rtc, aiortc, the pictures made) a part waited up to 635 ms by the viewer's own
+// count where the window was 400, so it was cut and the buffer ran dry in turns: small snippets out of joint, the same
+// from a screen's camera and from an EZVIZ (Max, both screens). A quarter of a second more latency, which Max takes for
+// sound that stays whole ("200 ms extra is fine, 3 s is not").
+constexpr size_t SOUND_LOW = SOUND_RATE * 2 * 400 / 1000;    // 400 ms
+constexpr size_t SOUND_HIGH = SOUND_RATE * 2 * 1200 / 1000;  // 1200 ms
 static_assert(SOUND_PART % 2 == 0 && SOUND_BUFFER % 2 == 0 && SOUND_LOW % 2 == 0 && SOUND_HIGH % 2 == 0,
               "the sound moves in whole samples, two bytes each");
 static_assert(SOUND_LOW < SOUND_HIGH && SOUND_HIGH < SOUND_BUFFER, "the sound catches up before its buffer runs full");
 
-// A link to a stream rather than to a still: the app serves both on its camera port, a still as .bmp.
+// The app's answer for a live tile of this screen's own camera (plugin API 0.22): no link, the tile is drawn from the
+// camera's frames on the screen itself (open, own_frame). "own:", with "?fit=contain" as any tile's link may have.
+inline bool is_own(const std::string &url) { return url.compare(0, 4, "own:") == 0; }
+// A link to a stream rather than to a still: the app serves both on its camera port, a still as .bmp. The own camera's
+// answer counts as one.
 inline bool is_stream(const std::string &url) {
+  if (is_own(url)) return true;
   const size_t end = url.find_first_of("?#");
   const std::string path = url.substr(0, end);
   return path.size() > 6 && path.compare(path.size() - 6, 6, ".mjpeg") == 0;
+}
+// The same link's pictures one an ask (the app's .jpg on a stream's token, live_stream.py pull): a live tile asks for
+// each, so nothing queues on the way and its bytes are what it shows. Empty for a path that is no stream's.
+inline std::string pull_path(const std::string &path) {
+  if (!is_stream(path)) return "";
+  const size_t found = path.find_first_of("?#"), end = found == std::string::npos ? path.size() : found;
+  return path.substr(0, end - 6) + ".jpg" + path.substr(end);
 }
 
 // ---- The stream: plain HTTP/1.0 (no chunks), then parts, each with a head that names its Content-Length ----
@@ -110,6 +127,7 @@ class Reader {
         this->still_ = h.still;
         this->has_made_ = h.has_made;
         this->made_ = h.made;
+        this->turn_ = h.turn;
         this->room_ = room(this->need_, this->audio_);
         this->in_body_ = true;
       } else {
@@ -135,12 +153,15 @@ class Reader {
   // And when the app made it (X-Made, its own milliseconds), when it said.
   bool has_made() const { return this->has_made_; }
   uint32_t made() const { return this->made_; }
+  // And how the app turned it for a turned glass (X-Turn: 90, 180, 270), 0 upright.
+  int turn() const { return this->turn_; }
 
  private:
   std::string head_;
   size_t most_ = 0;
   bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false, has_made_ = false;
   uint32_t made_ = 0;
+  int turn_ = 0;
   int status_ = 0;
   size_t need_ = 0, got_ = 0;
   uint8_t *room_ = nullptr;
@@ -170,6 +191,10 @@ struct Look {
   // The name as LVGL draws it (ARGB8888, w x h with `stride` pixels a row), at x, y on the card; copied at open().
   const uint32_t *name = nullptr;
   int name_x = 0, name_y = 0, name_w = 0, name_h = 0, name_stride = 0;
+  // The mark of a squeezed tile, as LVGL draws it (ARGB8888 as the name, where the loader turns): laid over the pictures
+  // only while the governor squeezes the live tiles (pressure.h, docs/PLATFORM_PLAN.md 4.10); copied at open().
+  const uint32_t *badge = nullptr;
+  int badge_x = 0, badge_y = 0, badge_w = 0, badge_h = 0, badge_stride = 0;
   // The loader in the card's top right corner until the camera is live ("Until it is live", below): `loader` pixels
   // across, `loader_margin` from the card's edges, its ring `loader_arc` wide; 0: none.
   int loader = 0, loader_margin = 0, loader_arc = 0;
@@ -188,55 +213,199 @@ inline uint16_t blend(uint16_t under, uint16_t over, unsigned alpha) {  // alpha
   const unsigned bl = ((over & 31) * a + (under & 31) * b) >> 8;
   return static_cast<uint16_t>(r << 11 | g << 5 | bl);
 }
-// The shade under a name: the bottom FADE_PERCENT of the card darkens row by row to FADE_DEPTH / 255 black.
-inline void fade(uint16_t *px, int stride, int w, int h) {
+// ---- What a live tile lays over its pictures, made once ----
+// The shade, the corners and the name, in picture_paint.py's order, made once when a stream's first picture comes
+// (Overlay), in the way its pictures lie: upright, or turned as the glass when the app sends them so (X-Turn, caps
+// picture_turn). Each picture then costs the shade's darkening, as before, and one blend for each pixel of the corners
+// and the name; no corner is worked out and nothing is turned per picture.
+//
+// A card of w x h turned as a glass of `turn` degrees turns it (glass::on_panel, the card as the panel): its size, where
+// a rectangle of it lies, and which upright pixel lies at gx, gy of it.
+inline bool sideways(int turn) { return turn == 90 || turn == 270; }
+inline int turned_w(int w, int h, int turn) { return sideways(turn) ? h : w; }
+inline int turned_h(int w, int h, int turn) { return sideways(turn) ? w : h; }
+inline Rect in_turned(const Rect &r, int turn, int w, int h) {
+  return on_panel(r, turn, turned_w(w, h, turn), turned_h(w, h, turn));
+}
+inline void upright_of(int turn, int w, int h, int gx, int gy, int &x, int &y) {
+  switch (turn) {
+    case 90: x = gy, y = h - 1 - gx; break;
+    case 180: x = w - 1 - gx, y = h - 1 - gy; break;
+    case 270: x = w - 1 - gy, y = gx; break;
+    default: x = gx, y = gy;
+  }
+}
+// The turn from the way a picture lies to the glass: what the PPA still turns on its way there.
+inline int turn_between(int lies, int glass_turn) { return ((glass_turn - lies) % 360 + 360) % 360; }
+
+// The shade under a name: the bottom FADE_PERCENT of the card darkens row by row to FADE_DEPTH / 255 black; how much
+// at row `y` of a card `h` high.
+inline unsigned fade_at(int y, int h) {
   const int rows = std::max(1, (h * FADE_PERCENT + 50) / 100);
-  for (int i = 0; i < rows; ++i) {
-    const unsigned depth = static_cast<unsigned>(FADE_DEPTH * (i + 1) / rows);  // 0 at the top of the shade
-    uint16_t *row = px + static_cast<size_t>(h - rows + i) * stride;
-    for (int x = 0; x < w; ++x) row[x] = blend(row[x], 0, depth);
-  }
+  const int i = y - (h - rows);
+  return i < 0 ? 0 : static_cast<unsigned>(FADE_DEPTH * (i + 1) / rows);  // 0 above the shade
 }
-// The card's rounded corners: what lies outside a circle of `radius` in each corner becomes `ground`, its edge
-// smoothed by how much of each pixel lies outside.
-inline void round_corners(uint16_t *px, int stride, int w, int h, int radius, uint16_t ground) {
+// The card's rounded corners: what lies outside a circle of `radius` in each corner becomes the ground, its edge smoothed
+// by how much of each pixel lies outside; how much at x, y of a w x h card.
+inline unsigned corner_at(int x, int y, int w, int h, int radius) {
   radius = std::min(radius, std::min(w, h) / 2);
-  for (int y = 0; y < radius; ++y) {
-    for (int x = 0; x < radius; ++x) {
-      const float dx = radius - (x + 0.5f), dy = radius - (y + 0.5f);
-      const float outside = std::sqrt(dx * dx + dy * dy) - radius + 0.5f;  // 0: inside, 1: wholly outside
-      if (outside <= 0) continue;
-      const unsigned a = outside >= 1 ? 255 : static_cast<unsigned>(outside * 255);
-      uint16_t *corners[4] = {px + static_cast<size_t>(y) * stride + x, px + static_cast<size_t>(y) * stride + (w - 1 - x),
-                              px + static_cast<size_t>(h - 1 - y) * stride + x,
-                              px + static_cast<size_t>(h - 1 - y) * stride + (w - 1 - x)};
-      for (auto *p : corners) *p = blend(*p, ground, a);
+  const int cx = x < radius ? x : w - 1 - x, cy = y < radius ? y : h - 1 - y;  // as in the top left corner
+  if (cx >= radius || cy >= radius) return 0;
+  const float dx = radius - (cx + 0.5f), dy = radius - (cy + 0.5f);
+  const float outside = std::sqrt(dx * dx + dy * dy) - radius + 0.5f;  // 0: inside, 1: wholly outside
+  return outside <= 0 ? 0 : outside >= 1 ? 255 : static_cast<unsigned>(outside * 255);
+}
+// What lies over the shade at x, y of a live tile's card (w x h, upright): the corners and then the name, as one colour
+// and how much of the picture it covers, so that one blend(picture, color, alpha) after the shade is the two blends
+// to within a step of RGB565.
+struct Cover {
+  uint16_t color = 0;
+  uint8_t alpha = 0;
+};
+// The ARGB8888 pixel at x, y of an image w x h laid at ix, iy (`stride` pixels a row, 0 for w), or 0 outside it.
+inline uint32_t argb_at(const uint32_t *px, int ix, int iy, int w, int h, int stride, int x, int y) {
+  if (!px || x < ix || y < iy || x >= ix + w || y >= iy + h) return 0;
+  return px[static_cast<size_t>(y - iy) * (stride ? stride : w) + (x - ix)];
+}
+// `badge`: with the mark of a squeezed tile over the rest (Look::badge).
+inline Cover marks_at(const Look &look, int w, int h, int x, int y, bool badge = false) {
+  if (!look.tile) return {};
+  const unsigned corner = look.radius > 0 ? corner_at(x, y, w, h, look.radius) : 0;
+  const uint32_t name = argb_at(look.name, look.name_x, look.name_y, look.name_w, look.name_h, look.name_stride, x, y);
+  const uint32_t mark =
+      badge ? argb_at(look.badge, look.badge_x, look.badge_y, look.badge_w, look.badge_h, look.badge_stride, x, y) : 0;
+  const unsigned over = name >> 24, top = mark >> 24;
+  if (!corner && !top) return {rgb565(name), static_cast<uint8_t>(over)};
+  if (!corner && !over) return {rgb565(mark), static_cast<uint8_t>(top)};
+  if (!over && !top) return {look.ground, static_cast<uint8_t>(corner)};
+  // The name or the mark over a corner's edge, or over each other: each layer over what lies under it, how much of the
+  // picture still shows and the colour laid over it so far, weighted by how much it covers.
+  float keep = 1, r = 0, g = 0, b = 0;
+  auto lay = [&](unsigned alpha, uint16_t c) {
+    const float a = alpha / 255.0f;
+    keep *= 1 - a;
+    r = r * (1 - a) + a * ((c >> 11) & 31) / 31.0f;
+    g = g * (1 - a) + a * ((c >> 5) & 63) / 63.0f;
+    b = b * (1 - a) + a * (c & 31) / 31.0f;
+  };
+  lay(corner, look.ground);
+  lay(over, rgb565(name));
+  lay(top, rgb565(mark));
+  const float covers = 1 - keep;
+  auto level = [&](float v, int most) { return static_cast<unsigned>(std::min<float>(most, v / covers * most + 0.5f)); };
+  return {static_cast<uint16_t>(level(r, 31) << 11 | level(g, 63) << 5 | level(b, 31)),
+          static_cast<uint8_t>(std::min(255.0f, covers * 255 + 0.5f))};
+}
+// The overlay of a card as its pictures lie, `w` x `h` of them, in two parts. The shade: how deep it darkens each row
+// (or, on a card that lies on its side, each column) from `shade_from` on, `shade_count` of them. The marks (the
+// corners and the name): segments of a row whose pixels each have a colour and how much they cover, one after another
+// in `alpha` and `color`. A gap of fewer than MARK_GAP pixels without a mark stays in its segment.
+constexpr int MARK_GAP = 8;
+struct OverlaySegment {
+  uint16_t y = 0, from = 0, to = 0;
+  uint32_t at = 0;
+};
+struct Overlay {
+  int w = 0, h = 0;
+  bool shade_by_column = false;
+  int shade_from = 0, shade_count = 0;
+  const uint8_t *shade = nullptr;
+  const OverlaySegment *segments = nullptr;
+  int count = 0;
+  const uint8_t *alpha = nullptr;
+  const uint16_t *color = nullptr;
+};
+// The shade of an upright card w x h whose pictures lie turned `turn`, into `depth` (room for the longer side): whether
+// it goes by column, from where, and how many rows or columns it darkens (0: none).
+inline int overlay_shade(const Look &look, int w, int h, int turn, uint8_t *depth, bool &by_column, int &from) {
+  by_column = sideways(turn);
+  from = 0;
+  if (!look.tile || !look.fade) return 0;
+  const int along = by_column ? turned_w(w, h, turn) : turned_h(w, h, turn);
+  int first = -1, last = -1;
+  for (int k = 0; k < along; ++k) {
+    int x = 0, y = 0;
+    upright_of(turn, w, h, by_column ? k : 0, by_column ? 0 : k, x, y);
+    depth[k] = static_cast<uint8_t>(fade_at(y, h));
+    if (depth[k]) {
+      if (first < 0) first = k;
+      last = k;
     }
   }
+  if (first < 0) return 0;
+  from = first;
+  for (int k = first; k <= last; ++k) depth[k - first] = depth[k];
+  return last - first + 1;
 }
-// LVGL's drawing of the name (ARGB8888, sw x sh, `sstride` pixels a row) laid over the picture at x, y.
-inline void lay_over(uint16_t *px, int stride, int w, int h, const uint32_t *argb, int sstride, int x, int y, int sw,
-                     int sh) {
-  for (int j = 0; j < sh; ++j) {
-    const int py = y + j;
-    if (py < 0 || py >= h) continue;
-    for (int i = 0; i < sw; ++i) {
-      const int qx = x + i;
-      if (qx < 0 || qx >= w) continue;
-      const uint32_t c = argb[static_cast<size_t>(j) * sstride + i];
-      const unsigned a = c >> 24;
-      if (a) px[static_cast<size_t>(py) * stride + qx] = blend(px[static_cast<size_t>(py) * stride + qx], rgb565(c), a);
+// The marks' segments of that card: with `segments` null only counted (how many, and the pixels they hold, for the
+// memory), else written, and with `alpha` and `color` their pixels too.
+inline int overlay_marks(const Look &look, int w, int h, int turn, OverlaySegment *segments, size_t &pixels,
+                         uint8_t *alpha = nullptr, uint16_t *color = nullptr, bool badge = false) {
+  const int tw = turned_w(w, h, turn), th = turned_h(w, h, turn);
+  int count = 0;
+  pixels = 0;
+  for (int gy = 0; gy < th; ++gy) {
+    int gx = 0;
+    while (gx < tw) {
+      int x = 0, y = 0;
+      upright_of(turn, w, h, gx, gy, x, y);
+      if (!marks_at(look, w, h, x, y, badge).alpha) {
+        ++gx;
+        continue;
+      }
+      // A segment: from this mark to the last one with no gap of MARK_GAP between.
+      const int from = gx;
+      int to = gx + 1, quiet = 0;
+      for (int at = gx + 1; at < tw && quiet < MARK_GAP; ++at) {
+        upright_of(turn, w, h, at, gy, x, y);
+        if (marks_at(look, w, h, x, y, badge).alpha) {
+          to = at + 1;
+          quiet = 0;
+        } else {
+          ++quiet;
+        }
+      }
+      if (segments) {
+        segments[count] = OverlaySegment{static_cast<uint16_t>(gy), static_cast<uint16_t>(from), static_cast<uint16_t>(to),
+                                         static_cast<uint32_t>(pixels)};
+        for (int at = from; alpha && at < to; ++at) {
+          upright_of(turn, w, h, at, gy, x, y);
+          const Cover c = marks_at(look, w, h, x, y, badge);
+          alpha[pixels + at - from] = c.alpha;
+          color[pixels + at - from] = c.color;
+        }
+      }
+      pixels += static_cast<size_t>(to - from);
+      ++count;
+      gx = to;
     }
   }
+  return count;
 }
-// Everything a live tile lays over its picture, in the order picture_paint.py does it: the shade, the corners, the name.
-inline void compose(uint16_t *px, int stride, int w, int h, const Look &look) {
-  if (!look.tile) return;
-  if (look.fade) fade(px, stride, w, h);
-  if (look.radius > 0) round_corners(px, stride, w, h, look.radius, look.ground);
-  if (look.name && look.name_w > 0 && look.name_h > 0)
-    lay_over(px, stride, w, h, look.name, look.name_stride ? look.name_stride : look.name_w, look.name_x, look.name_y,
-             look.name_w, look.name_h);
+// The overlay laid over a picture of its size (`stride` pixels a row): the shade, then one blend a mark.
+inline void lay_overlay(uint16_t *px, int stride, const Overlay &o) {
+  if (o.shade_count > 0) {
+    if (o.shade_by_column) {
+      for (int y = 0; y < o.h; ++y) {
+        uint16_t *row = px + static_cast<size_t>(y) * stride + o.shade_from;
+        for (int i = 0; i < o.shade_count; ++i) row[i] = blend(row[i], 0, o.shade[i]);
+      }
+    } else {
+      for (int i = 0; i < o.shade_count; ++i) {
+        uint16_t *row = px + static_cast<size_t>(o.shade_from + i) * stride;
+        const unsigned depth = o.shade[i];
+        for (int x = 0; x < o.w; ++x) row[x] = blend(row[x], 0, depth);
+      }
+    }
+  }
+  for (int s = 0; s < o.count; ++s) {
+    const OverlaySegment &seg = o.segments[s];
+    uint16_t *p = px + static_cast<size_t>(seg.y) * stride + seg.from;
+    const uint8_t *a = o.alpha + seg.at;
+    const uint16_t *c = o.color + seg.at;
+    for (int i = 0, n = seg.to - seg.from; i < n; ++i)
+      if (a[i]) p[i] = blend(p[i], c[i], a[i]);
+  }
 }
 
 // ---- Until it is live ----
@@ -310,8 +479,12 @@ enum class Event : uint8_t {
 // Its stills come as JPEG too, through the engine (picture_engine.h, docs/PICTURES.md "Formats"); LVGL is bound to the
 // glass at boot (glass::bind, smart_display/__init__.py).
 #if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
-// Whether this screen streams: a P4 whose panel ESP-IDF made with an RGB565 frame buffer, and LVGL bound.
+// Whether this screen streams: a P4 or an S3 whose panel ESP-IDF made with an RGB565 frame buffer a task may write
+// (glass::direct), and LVGL bound.
 bool available();
+// And whether it streams a camera full screen too: not where the engine takes no full view's picture; its view then
+// shows the stills of every board.
+bool full_view();
 // Streams `url` into `area`, the screen as LVGL lays it out, looking as `look` says. -1 when it cannot start (no room
 // for another stream, no memory): its owner shows its stills. `sound`: the stream may carry the camera's sound, which
 // goes to the board's speaker (bind_speaker) unless muted, claimed from the audio owner (audio_owner.h) in `role`:
@@ -325,10 +498,30 @@ void mute(Handle handle, bool muted);
 // Ends a stream. Returns once nothing of it writes the glass any more, so LVGL may draw there again at once; its ENDED
 // comes with the next tick.
 void close(Handle handle);
+// Whether a stream that was closed is still there: its task may still hold its connection and its memory until it ends
+// and the next tick frees it (about one picture's time). A full view opens after it, never beside it: one connection at
+// a time, as an S3 has internal RAM for one stream's network buffers and not for two (docs/CAMERA.md, "Live on an
+// ESP32-S3").
+bool ending();
+// Whether another stream may open now: fewer than the engine's streams at once (picture_engine::limits), one still
+// ending counted. And whether the engine holds a second one at all; an S3 does not, so its full view waits for the
+// page's stream to end however long it takes.
+bool room_for_another();
+bool beside();
 // The main loop, every 50 ms: frees what finished tasks left and tells each stream's owner what happened.
 void tick(const std::function<void(Handle, Event)> &tell);
 // How often the panel ran dry since boot (a frame of blue: glass.h, "The panel's share of the memory bus").
 uint32_t misses();
+// The screen's own camera on a tile of its own (plugin API 0.22, docs/PLATFORM_PLAN.md 4.11). A plugin with the camera
+// offers its frames once (own_offer, its setup), and the hello then says "own_camera", so the app answers such a tile
+// "own:". While a tile of it is open, own_wanted says so, and the plugin hands each frame to own_frame on its camera's
+// task: the tile takes one when its pace says (its share of the engine's budget, a busy screen's share of that), copies it into its card with
+// the PPA (scaled, from the camera's YUV420 or RGB565) when the glass is free at once, and lays it onto the glass on its
+// own task. Never waits: a frame it cannot take now goes by.
+void own_offer();
+bool own_offered();
+bool own_wanted();
+void own_frame(const uint8_t *data, int width, int height, bool yuv420);
 // What the streams that run hold of the board's memory, about (docs/PICTURES.md: the streams take their share of the one
 // picture budget while they run): each stream's input and its decoded picture of its room, from what the main loop
 // set when it opened, so never read under a task.
@@ -336,6 +529,7 @@ size_t held_bytes();
 #else
 inline size_t held_bytes() { return 0; }
 inline bool available() { return false; }
+inline bool full_view() { return false; }
 inline Handle open(const std::string &, const Rect &, const Look & = Look{}, bool = false,
                    audio_owner::Role = audio_owner::Role::CAMERA_SOUND) {
   return -1;
@@ -343,8 +537,15 @@ inline Handle open(const std::string &, const Rect &, const Look & = Look{}, boo
 inline bool has_speaker() { return false; }
 inline void mute(Handle, bool) {}
 inline void close(Handle) {}
+inline bool ending() { return false; }
+inline bool room_for_another() { return false; }
+inline bool beside() { return false; }
 inline void tick(const std::function<void(Handle, Event)> &) {}
 inline uint32_t misses() { return 0; }
+inline void own_offer() {}
+inline bool own_offered() { return false; }
+inline bool own_wanted() { return false; }
+inline void own_frame(const uint8_t *, int, int, bool) {}
 #endif
 
 }  // namespace live_view

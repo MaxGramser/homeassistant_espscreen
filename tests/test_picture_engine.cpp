@@ -35,6 +35,12 @@ int main() {
   // a glass turned 90 clockwise copies at the PPA's 270, and the other way round; 180 is 180; anything else flat.
   assert(ppa_angle(0) == ppa_guard::A0 && ppa_angle(90) == ppa_guard::A270 && ppa_angle(180) == ppa_guard::A180 &&
          ppa_angle(270) == ppa_guard::A90 && ppa_angle(45) == ppa_guard::A0);
+  // The tiles' budget shared: a P4's 24 keeps four tiles at 6 each and one at 6 too; an S3's 8 gives one tile 6, two 4
+  // each, three 2; never fewer than 2, whatever the budget, and never over the most.
+  assert(tile_pps(24, 1, 6) == 6 && tile_pps(24, 4, 6) == 6 && tile_pps(24, 5, 6) == 4);
+  assert(tile_pps(8, 1, 6) == 6 && tile_pps(8, 2, 6) == 4 && tile_pps(8, 3, 6) == 2 && tile_pps(8, 8, 6) == 2);
+  assert(tile_pps(8, 0, 6) == 6 && tile_pps(0, 1, 6) == 2);
+  static_assert(limits().tile_budget_pps == 0, "the software engine streams no tile");
   std::puts("picture_engine: ok");
   return 0;
 }

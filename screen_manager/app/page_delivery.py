@@ -162,8 +162,13 @@ def prepare(inbox, record, region, values, bars, bar=()):
     return begin, initial_tiles, initial_bars, live_values
 
 
-CAP_FLAGS = ("live", "speaker", "microphone", "echo_cancel", "camera")
+# own_camera: a tile of the screen's own camera is drawn on the screen from the camera itself (plugin API 0.22,
+# firmware live_view.h is_own), so the app answers such a tile "own:" (picture_service, Manager.own_camera_of).
+CAP_FLAGS = ("live", "speaker", "microphone", "echo_cancel", "camera", "own_camera")
 CAP_COUNTS = ("live_tiles", "psram_kb", "internal_kb", "text_tiles", "text_bytes")
+# picture_turn: the screen's glass is turned (LVGL's rotation: 90, 180 or 270 degrees) and it takes its live pictures
+# turned so, to copy them onto the glass straight (live_pictures.TURNS); 0 for one that is not, or does not say.
+PICTURE_TURNS = (90, 180, 270)
 
 
 def caps_of(answer):
@@ -182,6 +187,8 @@ def caps_of(answer):
     for count in CAP_COUNTS:
         value = record.get(count)
         caps[count] = value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+    turn = record.get("picture_turn")
+    caps["picture_turn"] = turn if turn in PICTURE_TURNS and not isinstance(turn, bool) else 0
     return caps
 
 
@@ -200,6 +207,8 @@ def caps_line(caps):
     for count, unit in (("psram_kb", "KB PSRAM"), ("internal_kb", "KB internal RAM")):
         if caps.get(count) is not None:
             words.append(f"{caps[count]} {unit}")
+    if caps.get("picture_turn"):
+        words.append(f"live pictures turned {caps['picture_turn']}")
     return ", ".join(words)
 
 

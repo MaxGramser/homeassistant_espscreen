@@ -29,7 +29,6 @@ COVER_RETRY_SECONDS = 60
 # load finds a snapshot a fraction of a second old (GitHub #183); a load whose fetch is still on its way waits this long.
 AHEAD_MARGIN = 0.5
 AHEAD_WAIT = 1.5
-MAX_SNAPSHOT_BYTES = 8 * 1024 * 1024
 # A camera tile's pace when it names none, in seconds (catalogue camera.picture.refresh).
 TILE_PACE = 15
 # Firmware whose camera tile fills its card with the tile's own fit and shade (app 0.3.8): 1x2 and 2x2 from 0.3.3, every

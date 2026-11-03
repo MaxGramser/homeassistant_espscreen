@@ -35,7 +35,7 @@ its chip, its panel or its sensor, and the layers below are keyed on those facts
 | `plugin_host.cpp` (its picture parts) | a plugin's places measured and laid, `ui::picture`, `ui::set_picture`, `ui::live`; `tessera::capturing` reports to the dot | no | LVGL |
 | `capture_dot.h` | the dot while the screen's own camera is in use, and the listener on that camera (step 6, done) | no | LVGL, ESPHome's camera API |
 | `module_doorbell.cpp` | a ring's view over the camera full view | no | LVGL, speaker |
-| `__init__.py` (`_p4`), `p4_build.py` | on an ESP32-P4 with LVGL: the TCP window and the network buffers in PSRAM, the engine chosen by the chip and LVGL (`p4_build.picture_engine`: its define and its wraps), LVGL bound to the glass (step 7, done) | `p4_build.py`, `tests/test_live_view.py` | the build |
+| `__init__.py` (`_p4`, `_engine`), `p4_build.py`, `engine_build.py` | on an ESP32-P4: the TCP window and the network buffers in PSRAM (`p4_build.py`); on every ESP32 the engine, the glass and the streams chosen by the chip, LVGL and PSRAM (`engine_build.picture_engine`: their defines, wraps and IDF components), LVGL bound to the glass where there is one (step 7, done) | `p4_build.py`, `engine_build.py`, `tests/test_live_view.py` | the build |
 | `packages/features/camera.yaml` | binds the three slots to `picture_fetch` (`BOOT_CAMERA_HOOKS`), the 50 ms hand-off, `SCREEN_PICTURES`, `LV_USE_IMAGE`, `LV_USE_SNAPSHOT`, the alert's frame | | the build |
 | `web/wasm/image_transport.h` | the editor's preview binding the same three slots to a fetch in the browser | | the browser |
 
@@ -186,8 +186,15 @@ fact of the hardware, and where:
 
 | Fact | Where it is read | Where it has effect |
 |---|---|---|
-| the chip is an ESP32-P4 | `__init__.py` (`_esp32_p4`) | `P4_NETWORK`, `USE_LIVE_VIEW`, the three wraps |
+| the chip is an ESP32-P4 | `__init__.py` (`_esp32_p4`, `_engine`) | `P4_NETWORK`; `PICTURE_ENGINE_P4`, `GLASS_DSI`, `USE_LIVE_VIEW` and the three wraps (`engine_build.py`) |
+| the chip is an ESP32-S3 with PSRAM and LVGL | `__init__.py` (`_engine`) | `PICTURE_ENGINE_S3`, `GLASS_RGB`, `USE_LIVE_VIEW`, the esp_new_jpeg component and the wraps of its allocator and of `esp_lcd_new_rgb_panel` (`engine_build.py`) |
+| how many live tiles at once | `picture_engine::limits().live_tiles` (four on the P4, one on the S3: each tile's Wi-Fi and lwIP buffers cost the S3 about 11 KB of internal RAM, CAMERA.md "Live on an ESP32-S3") | `hw::caps`, the hello, the editor |
+| the pictures a second the live tiles share | `picture_engine::limits().tile_budget_pps` (24 on the P4, 8 on the S3), shared by `picture_engine::tile_pps` | each tile's pace (`live_view.cpp`, `tile_gap_us`) |
+| the core a stream decodes on | `picture_engine::limits().stream_core` (1 on the P4, 0 on the S3, away from LVGL) | the stream's task (`live_view::open`) |
+| whether a decode holds the glass, and a full view's pace | `picture_engine::limits()` (`decode_on_glass`: the P4's decoder runs on the 2D-DMA, the S3's on the CPU; `view_pps` 8 on the S3) | `live_view.cpp` |
 | the panel is MIPI-DSI | `glass_dsi.cpp` (the wrap of `esp_lcd_new_panel_dpi`) | a P4 with an RGB panel would find no frame buffer and show stills |
+| the panel is an S3's RGB panel | `glass_rgb.cpp` (the wrap of `esp_lcd_new_rgb_panel`, its frame buffer; no underrun count, `misses` 0) | an S3 with a SPI or QSPI panel finds no frame buffer and shows stills |
+| LVGL draws big-endian | `glass_rgb.cpp` (`LV_COLOR_16_SWAP`, `glass::Panel::swapped`) | `picture_engine::Block::swap`, the S3's blit |
 | the frame buffer is RGB565 | `glass_dsi.cpp` | `glass::direct()`, `live_view::available()` |
 | each 2D-DMA client's burst | `picture_engine::limits().burst_bytes` (64 on the P4: the panel's bridge runs dry on ESP-IDF's 128, lvgl/lvgl #9590) | the streams' and LVGL's PPA clients (`glass_dsi.cpp`) |
 | the largest picture a stream's part may be | `picture_engine::limits()` (`picture_bytes` 1 MB, `tile_picture_bytes` 384 KB on the P4, over a busy camera's 150 to 250 KB at 1280 x 800, CAMERA.md 2026-10-10; 0 elsewhere, no part at all) | `live_view::Reader`, a stream's input buffer |
@@ -385,15 +392,17 @@ points (`watch_camera`, `capturing`). Optional: it changes no behaviour and no i
 
 ### 3.9 Which engine, decided by the build
 
-`__init__.py` reads the facts and defines the engine; the C++ selects by define, as it does for modules. The facts and
-the engines are a table in `p4_build.py` (free of ESPHome, `tests/test_live_view.py`): the chip is an ESP32-P4 (a
-hardware JPEG decoder and the PPA) and LVGL is present, which choose the P4 engine with its define and its three linker
-wraps; whether the display gave a frame buffer a task may write is a fact the glass finds at run time (`glass::direct`),
-so a P4 whose panel ESP-IDF did not make as MIPI-DSI shows stills. The define stays `USE_LIVE_VIEW` so that no YAML, test
-or render changes for the move; the Python names what it means. A future chip with its own decoder and 2D engine
-is a second `picture_engine_<chip>.cpp` and, for its panel kind, a second `glass_<panel>.cpp`, chosen by the same
-Python from its own facts; `picture_fetch`, `live_view`, `live_spots` and `runtime_tiles` see nothing of it. A P4 with
-an RGB panel is one function more in `glass` (the RGB panel's frame buffer) and nothing elsewhere.
+`__init__.py` reads the facts and applies the engine; the C++ selects by define, as it does for modules. The facts and
+the engines are a table in `engine_build.py` (free of ESPHome, `tests/test_live_view.py`), one row a chip, each with
+three things that may come apart: the engine (`PICTURE_ENGINE_P4`: the P4's hardware JPEG decoder and the PPA;
+`PICTURE_ENGINE_S3`: Espressif's software decoder on an S3 with PSRAM, stills only), the glass (`GLASS_DSI`: the P4's
+MIPI-DSI frame buffer) and the streams (`USE_LIVE_VIEW`, which need an engine that copies pixels and a glass), with the
+linker wraps and the IDF components each needs. Whether the display gave a frame buffer a task may write is a fact the
+glass finds at run time (`glass::direct`), so a P4 whose panel ESP-IDF did not make as MIPI-DSI shows stills. How many
+live tiles a screen streams at once is the engine's (`picture_engine::limits().live_tiles`). Another chip with its own
+decoder is a `picture_engine_<chip>.cpp` and a row here; a panel kind a task may write is a `glass_<panel>.cpp` and its
+own define; `picture_fetch`, `live_view`, `live_spots` and `runtime_tiles` see nothing of either. An RGB panel's glass,
+for streams on the S3, is the next of these (docs/PLATFORM_PLAN.md 3.2).
 
 What each layer may and may not know, in one table:
 
@@ -545,8 +554,6 @@ and the diagnostics of section 9, which the layers make room for and which each 
 
 - The names: `glass`, `picture_engine`, `live_spots`, `picture_jpeg`, `capture_dot`, `camera_source`, `live_pictures`,
   `live_stream`, `lan_address`, `frame hub`, `camera_modes`.
-- Whether `USE_LIVE_VIEW` keeps its name as the P4 engine's define, or becomes `SCREEN_ENGINE_P4` in one commit that
-  touches `__init__.py`, `live_view.h`, `ppa_guard.cpp` and the docs.
 - Whether steps 5 (the one live spot), 6 (the dot) and 8 (the app's three moves) go in this round or wait: each is
   independent of the others and of the engine.
 - Whether the video's viewer model (section 8) goes before the refactor, as the fix for the viewer storm a tester's

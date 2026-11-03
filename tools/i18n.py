@@ -208,6 +208,20 @@ LINT_KEEP = {
     'the top layer', 'the system layer', 'something on the page', 'another screen',
     # Why a live tile stops streaming (runtime_tiles.h, the live tiles' check before LVGL draws).
     'its card moved', 'nothing over it',
+    # The audio owner's log of who holds the speaker and the microphone (audio_owner.h).
+    '%s refused %s: %s holds it', '%s gave %s back: %s has it again', 'the speaker', 'the microphone',
+    # The live spots' log of why a tile streams or not (live_spots.h, runtime_tiles.h live_spots_bind).
+    'answered: no stream', 'could not open', 'it is gone', 'it moved',
+    # A static_assert's reason, read by a developer at build time (live_view.h).
+    'the sound moves in whole samples, two bytes each',
+    # The governor (pressure.h, runtime_tiles.h): its signs and works in the "Pressure" diagnostic sensor and the log, and
+    # the words of ESPHome's own log lines it listens for ("Resetting ring buffer", "took a long time").
+    'the panel ran dry', 'the main loop held up', 'the wake word fell behind', 'live tiles', 'own camera',
+    'ring buffer', 'took a long time',
+    # The rate limiter's reason for a tap on the top bar's doorbell item (runtime_tiles.h, allowed()).
+    'header doorbell',
+    # Who woke the screen, in the log (packages/core.yaml, wake_from's source).
+    'Home Assistant',
     # The picture loader's log of a picture's steps (picture_loader.h, note()).
     'not wanted now', 'asks again', 'breaks off for the glass', 'load failed',
     'history range', 'card button ', 'header navigation', 'header item', 'media key ', 'screensaver play', 'screensaver mute', 'let go', 'too short (', 'already handled in this contact',

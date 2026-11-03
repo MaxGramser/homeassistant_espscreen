@@ -54,6 +54,7 @@ struct Ring {
   unsigned door = 0;  // the op's `d` (doorbell_door::kind_of)
   std::string door_state;
   bool quiet = false;  // its view opens with Sound off (the automation's `sound: false`)
+  std::string link;    // the stream the app made for this screen as the event came (the op's `l`), or empty
 };
 Ring now_ring, last_ring;  // the ring on the glass, and the last one this screen showed (the top bar opens it again)
 bool active = false, touched = false, ended = false;
@@ -450,7 +451,7 @@ void take_door(const Ring &r) {
 }
 
 void ring(const std::string &camera_entity, const std::string &name, const std::string &key, uint32_t rang, uint32_t untouched_s,
-          unsigned door_kind, const std::string &door_state_now, bool quiet, bool chimes) {
+          unsigned door_kind, const std::string &door_state_now, bool quiet, bool chimes, const std::string &link) {
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;
@@ -474,12 +475,12 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   settings_screen::close();
   camera_close();
   camera_muted = quiet;  // a ring is to be heard, unless its automation says the screen stands somewhere quiet
-  now_ring = last_ring = Ring{camera_entity, name, key, rang, door_kind, door_state_now, quiet};
+  now_ring = last_ring = Ring{camera_entity, name, key, rang, door_kind, door_state_now, quiet, link};
   take_door(now_ring);
   active = true;
   touched = ended = false;
   touch_ms = 0;
-  camera_open(camera_entity, name);
+  camera_open(camera_entity, name);  // its stream at once when the app made one (link()), else the view asks
   if (!camera_root) { active = false; return; }
   // The ring's view claims the speaker as DOORBELL when its stream opens (runtime_tiles live_begin, audio_owner.h): music
   // pauses, a camera's sound and the voice assistant step back, and nothing takes it from a ring. The chime itself goes
@@ -502,10 +503,13 @@ void close_ring(const std::string &key) {
   camera_close();
 }
 
+const std::string &link() { return now_ring.link; }
+
 void reopen() {
   if (last_ring.camera.empty() || !camera_supported()) return;
   camera_close();
   now_ring = last_ring;
+  now_ring.link.clear();  // minutes later its stream may be gone: the view asks for one
   take_door(now_ring);
   camera_muted = now_ring.quiet;
   active = true;

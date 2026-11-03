@@ -294,6 +294,7 @@ public:
       const auto &item = bar.items[i];
       using header_bar::Kind;
       if ((item.kind == Kind::text || item.kind == Kind::ago) && !live) continue;
+      if (!header_bar::shown_at(item, view.epoch)) continue;  // its time in the bar is over (a missed ring's keep)
       Part p;
       p.item = i;
       if (item.kind == Kind::analog) { p.dial = true; p.width = dial; }

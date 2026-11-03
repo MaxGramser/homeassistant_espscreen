@@ -5,11 +5,13 @@
 // and the rooms LVGL keeps out of while a stream writes there. The glass knows pictures, streams, the decoder and the
 // PPA not at all: live_view.cpp (the streams) and picture_engine (the copies) ask it.
 //
-// On an ESP32-P4 with a MIPI-DSI panel (USE_LIVE_VIEW and pictures) the glass is direct: glass_dsi.cpp has the panel
-// picked up as ESP-IDF makes it (a linker wrap of esp_lcd_new_panel_dpi), the frame buffer, the lock and LVGL's refresh
-// hooks, the keep-out of LVGL's areas, the panel's underrun counter and the wrap that shortens every PPA client's bursts
-// so the panel keeps its share of the memory bus. Every other board, the host renders and the editor's preview have
-// no direct glass: direct() is false and the rest are inline stubs that cost no flash.
+// On an ESP32-P4 with a MIPI-DSI panel (GLASS_DSI) and on an ESP32-S3 with an RGB panel (GLASS_RGB), with pictures, the
+// glass is direct. glass_core.cpp has what both share: the lock and LVGL's refresh hooks, and the keep-out of LVGL's
+// areas. A panel kind's own file has the panel picked up as ESP-IDF makes it (a linker wrap of esp_lcd_new_panel_dpi or
+// esp_lcd_new_rgb_panel) and its frame buffer: glass_dsi.cpp also the panel's underrun counter and the wrap that shortens
+// every PPA client's bursts so the panel keeps its share of the memory bus; glass_rgb.cpp no counter, as an RGB panel's
+// driver keeps none. Every other board, the host renders and the editor's preview have no direct glass: direct() is
+// false and the rest are inline stubs that cost no flash.
 //
 // Two writers reach the frame buffer, and the lock covers both. LVGL's refresh (on a turned glass through ESPHome's own
 // PPA turn of each strip into a buffer in PSRAM, then the panel's DMA copy) holds it from LV_EVENT_REFR_START to
@@ -22,7 +24,8 @@
 //
 // What a PC can check is pure: a rectangle of the screen on a turned panel (on_panel, tests/test_live_view.cpp).
 #include <cstdint>
-// USE_LIVE_VIEW comes with ESPHome's defines (smart_display/__init__.py); a PC test has none and builds without it.
+#include <string>
+// GLASS_DSI and GLASS_RGB come with ESPHome's defines (engine_build.py); a PC test has neither and builds without them.
 #if __has_include("esphome/core/defines.h")
 #include "esphome/core/defines.h"
 #endif
@@ -64,6 +67,9 @@ inline Rect on_panel(const Rect &r, int turn, int pw, int ph) {
 struct Panel {
   int w = 0, h = 0;
   bool rgb565 = false;
+  // Its RGB565 with the two bytes of a pixel swapped: LVGL draws so for a display that takes them big-endian
+  // (ESPHome's byte_order, LV_COLOR_16_SWAP), and a picture written past LVGL must be too.
+  bool swapped = false;
 };
 // A room LVGL keeps out of while a stream writes there; -1 for none.
 using Room = int;
@@ -72,9 +78,11 @@ constexpr int MAX_ROOMS = 8;
 // in turn with them (picture_engine::decode), as a mutex goes to its highest waiter.
 constexpr unsigned WRITER_PRIORITY = 5;
 
-#if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
-// LVGL, which says how the glass is turned (smart_display/__init__.py binds it at boot).
+#if (defined(GLASS_DSI) || defined(GLASS_RGB)) && defined(SCREEN_PICTURES)
+// LVGL, which says how the glass is turned (smart_display/__init__.py binds it at boot), and whether it is bound yet (a
+// panel kind's file asks, for direct()).
 void bind(esphome::lvgl::LvglComponent *lvgl);
+bool bound();
 Panel panel();      // 0 x 0 while ESP-IDF made no panel for LVGL
 int turn();         // LVGL's rotation now, degrees clockwise: read every time, the app can stand a screen up at run time
 bool direct();      // a frame buffer a task may write past LVGL: a panel ESP-IDF made with RGB565, and LVGL bound
@@ -82,6 +90,8 @@ void *frame_buffer();  // that buffer, panel().w x panel().h RGB565, found as ne
 // One writer at a time: LVGL for the whole of each refresh, a task for each decode and each copy. Recursive.
 void hold();
 void release();
+// The glass at once or not at all (the screen's own camera, on its camera's task, which must never wait for it).
+bool try_hold();
 // LVGL holds the glass while it refreshes, from now on and for good (the hooks on REFR_START and REFR_READY). False
 // while LVGL has no display yet.
 bool watch();
@@ -104,9 +114,25 @@ void give_back(Room room);
 // LVGL draws the whole glass again (a full view's stream gone for good, its room drawn again while its task may still
 // have been busy with its last picture).
 void redraw_all();
-// The underrun flag read and counted (every 50 ms, from the streams' tick), and how often the panel ran dry since boot.
+// How often the panel ran dry since boot: the frames of blue (the panel watch below counts them), every 50 ms from the
+// streams' tick.
 void tick();
 uint32_t misses();
+// The panel watch (docs/CAMERA.md "The panel's share of the memory bus"): at the end of every frame the panel's own
+// callback reads whether the DSI bridge ran dry in it, so the screen sees each frame of blue itself, with no eye on the
+// glass. A flash is a run of such frames; each is noted with who held the glass as it began and whether LVGL was
+// flushing, the finger and the log's lines in the second before, beside the DSI host's own error flags (a blue that is
+// no underrun). Once a minute watch_said() becomes that minute in one line (the "Panel watch" sensor, and the log when
+// the panel ran dry), "quiet" when it never did. The runtime notes what the glass cannot see: every line of the log and
+// the finger.
+std::string watch_said();
+void note_log_line();
+void note_finger(bool down);
+// For a panel kind's file, from an interrupt too: who holds the glass now (LVGL's refresh, a stream, another writer: a
+// still's decode, a page's picture ahead) and whether LVGL flushes.
+enum Holder : uint8_t { NOBODY, LVGL, STREAM, OTHER, HOLDERS };
+Holder holder_now();
+bool flushing_now();
 // Who keeps a stream waiting for the glass (live_view's 10 s report, PLATFORM_PLAN 4.10): LVGL's refreshes, how many
 // and how long it held the glass, in all and the longest; how much of that went to flushing what it drew (the turn on
 // the PPA of a turned glass, then the panel's copy and its wait for the copy's end) and how much of the flushing to the
@@ -133,6 +159,7 @@ inline bool direct() { return false; }
 inline void *frame_buffer() { return nullptr; }
 inline void hold() {}
 inline void release() {}
+inline bool try_hold() { return true; }
 inline bool watch() { return false; }
 inline Room reserve(const Rect &) { return -1; }
 inline void place(Room, const Rect &) {}
@@ -143,6 +170,9 @@ inline void give_back(Room) {}
 inline void redraw_all() {}
 inline void tick() {}
 inline uint32_t misses() { return 0; }
+inline std::string watch_said() { return {}; }
+inline void note_log_line() {}
+inline void note_finger(bool) {}
 struct Held {
   uint32_t refreshes = 0, flushes = 0, refresh_us = 0, refresh_most_us = 0, flush_us = 0, flush_most_us = 0,
            turn_us = 0, turn_most_us = 0;

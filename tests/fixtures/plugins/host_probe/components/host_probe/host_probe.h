@@ -17,7 +17,6 @@ class HostProbe : public Component, public tessera::Plugin {
   void before_update() override;
   void on_cards_closed() override;
   void on_alert() override;
-  void on_touch() override;
   void on_press() override;
   void on_step(const tessera::Step &step) override;
   bool settings(tessera::SettingsPage &page) override;

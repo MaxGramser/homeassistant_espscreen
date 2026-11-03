@@ -66,9 +66,6 @@ LIVE_REFRESH = tuple(catalogue.of_type('camera')['picture']['refresh'])
 LIVE_REFRESH_DEFAULT = 15
 # A media tile's album cover in the icon's place ("display": "cover", app 0.2.92): the same strip, firmware from here.
 COVER_TILE_MIN_FIRMWARE = (0, 2, 78)
-# The calm dial and the flip clock (firmware 0.3.6+). An older screen draws either as the digital clock, so a layout
-# with one is sent as it is; the editor says so.
-CLOCK_FACES_MIN_FIRMWARE = (0, 3, 6)
 CLOCK_DEFAULT_DISPLAY = 'dial'
 # The bedside clock (firmware 0.8.0+): a clock that always takes the whole page, digits as large as the page allows and
 # up to three keys under them, each a tile of its own (a lamp, a temperature, a lock). It starts without a card behind
@@ -173,7 +170,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.57.0'
+FIRMWARE_VERSION = '0.60.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -383,9 +380,6 @@ class Grid:
     def page_start(self, slot):
         return slot - slot % self.slots
 
-    def row_start(self, slot):
-        return slot - slot % self.columns
-
     def wide_fits(self, slot):
         """Whether a wide tile may start here: a cell beside it in the same row, or a single column."""
         return self.columns == 1 or slot % self.columns <= self.columns - 2
@@ -489,15 +483,8 @@ def tile_size(tile):
     size = tile.get('options', {}).get('size', 'single')
     return size if is_size(size) else 'single'
 
-def is_wide(tile):
-    """Double width or the whole page: the card spans two columns."""
-    return tile_size(tile) != 'single'
-
 def is_full(tile):
     return tile_size(tile) == 'full'
-
-def cells_of(size, grid=DEFAULT_GRID):
-    return grid.cells(size)
 
 def page_start(slot, grid=DEFAULT_GRID):
     return grid.page_start(slot)

@@ -111,7 +111,6 @@ inline std::string panel_kind(const Tile &t) {
   if (c == "stepper" && (d == "select" || d == "input_select")) return "chevrons";
   return c;
 }
-inline bool has_mode(const std::string &hvac_modes, const char *mode) { return hvac_modes.find("\"" + std::string(mode) + "\"") != std::string::npos; }
 // Home Assistant's colour for a climate mode (the card and its mode keys use it).
 inline uint32_t mode_color(const std::string &mode) {
   using namespace theme::ha;

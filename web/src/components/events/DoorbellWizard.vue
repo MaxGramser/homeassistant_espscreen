@@ -17,6 +17,7 @@ import CheckRow from "../ui/CheckRow.vue";
 import Icon from "../ui/Icon.vue";
 import UiChoiceCards from "../ui/UiChoiceCards.vue";
 import UiPicker from "../ui/UiPicker.vue";
+import UiSelect from "../ui/UiSelect.vue";
 import UiWizard from "../ui/UiWizard.vue";
 import DoorStep from "./DoorStep.vue";
 import TriggerStep, { type Suggestion } from "./TriggerStep.vue";
@@ -43,7 +44,12 @@ const finish = ref<Finish>("automation");
 // At the last step without anything that starts it, the action alone is what fits.
 watch(step, (now) => { if (now === steps.value.length && !choice.trigger && !saved.value) finish.value = "action"; });
 const noDoor = (): DoorChoice => ({ kind: "none" });
-const choice = reactive({ trigger: "", camera: "", screens: [] as string[], title: "", timeout: undefined as number | undefined, door: noDoor(), sound: true, chime: true });
+// A missed ring stays in the top bars for a while (the add-on's choices; a new automation gets half an hour).
+const keepNew = () => reference.value?.keep?.new ?? 30;
+const keepChoices = computed(() => (reference.value?.keep?.choices ?? [10, 30, 60, 240, 0]).map((n) => [n,
+  n === 0 ? t("editor.doorbell.wizard.keep.open") : n % 60 === 0 ? t("editor.doorbell.wizard.keep.hours", { n: n / 60 })
+    : t("editor.doorbell.wizard.keep.minutes", { n })] as const));
+const choice = reactive({ trigger: "", camera: "", screens: [] as string[], title: "", timeout: undefined as number | undefined, door: noDoor(), sound: true, chime: true, keep: keepNew() });
 // Sound on or off when it rings is a choice only where a screen it reaches can play it: one that shows the ring live and
 // has a speaker (its capability record). Without one the choice is not offered, and the automation leaves it out.
 const reached = computed(() => choice.screens.length ? screens.value.filter((s) => choice.screens.includes(screenValue(s))) : screens.value);
@@ -71,7 +77,7 @@ const tryIt = () => whileTrying(async () => {
   try {
     const answer = await scr.sendTestDoorbell("", { camera: choice.camera, title: choice.title, timeout: choice.timeout || undefined,
       ...(choice.screens.length ? { screen: choice.screens } : {}), ...doorFields(choice.door), ...(plays.value && !choice.sound ? { sound: false } : {}),
-      ...(plays.value && !choice.chime ? { chime: false } : {}) });
+      ...(plays.value && !choice.chime ? { chime: false } : {}), ...(choice.keep ? { keep_minutes: choice.keep } : {}) });
     tried.value = answer.sent || answer.alerts
       ? [answer.sent ? t("editor.doorbell.try.views", answer.sent) : "", answer.alerts ? t("editor.doorbell.try.alerts", answer.alerts) : ""].filter(Boolean).join(" ")
       : t("editor.doorbell.try.nothing");
@@ -89,7 +95,7 @@ const add = () => whileSaving(async () => {
   try { saved.value = await props.save(automation.value, saved.value?.id); } catch (e: any) { error.value = e.message; }
 });
 // A new wizard starts afresh once the last one was added.
-watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(choice, { trigger: "", camera: "", screens: [], title: "", timeout: undefined, door: noDoor(), sound: true, chime: true }); saved.value = null; tried.value = ""; step.value = 1; finish.value = "automation"; } });
+watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(choice, { trigger: "", camera: "", screens: [], title: "", timeout: undefined, door: noDoor(), sound: true, chime: true, keep: keepNew() }); saved.value = null; tried.value = ""; step.value = 1; finish.value = "automation"; } });
 </script>
 
 <template>
@@ -129,6 +135,9 @@ watch(() => props.open, (open) => { if (open && saved.value) { Object.assign(cho
       <div class="field"><label class="f-label" for="doorbell-timeout">{{ t("editor.doorbell.fields.timeout") }}</label>
         <input id="doorbell-timeout" v-model.number="choice.timeout" type="number" :min="reference?.timeout?.min ?? 10" :max="reference?.timeout?.max ?? 600" :placeholder="String(reference?.timeout?.default ?? 60)" />
         <small class="hint">{{ t("editor.doorbell.wizard.timeout_hint") }}</small></div>
+      <div class="field"><label class="f-label" for="doorbell-keep">{{ t("editor.doorbell.fields.keep") }}</label>
+        <UiSelect id="doorbell-keep" v-model="choice.keep" :options="keepChoices" />
+        <small class="hint">{{ t("editor.doorbell.wizard.keep.hint") }}</small></div>
     </template>
     <template #try>
       <button type="button" class="btn primary big-action" id="doorbell-try" :disabled="trying" @click="tryIt"><span class="mdi">{{ glyph("F12E6") }}</span>{{ trying ? t("editor.alerts.try.sending") : t("editor.doorbell.try.send") }}</button>

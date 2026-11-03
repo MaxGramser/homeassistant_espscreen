@@ -402,3 +402,14 @@ display:
     model: SEEED-RETERMINAL-D1001
     update_interval: never
     auto_clear_enabled: false
+    # The panel at 58.9 Hz instead of the preset's 68.6 (pclk 70 MHz instead of 80): the DSI bridge reads an eighth
+    # less from PSRAM for the panel, the bus it shares with the live tiles' pictures, the camera and the H.264 encoder.
+    # Max's eye, 2026-10-29, on a page of five live camera tiles with the screen's own camera streamed to another screen:
+    # one or two whole frames of light blue a minute at 80 MHz, none in a quarter of an hour at 70, with the panel watch
+    # counting 0 dry frames both times (the DSI stream never stalls; the frame itself is what goes wrong under bus
+    # load). The front porch goes with it so the DSI host's line stays a whole number of lane byte clocks (ESP-IDF
+    # 5.5.5 mipi_dsi_hal.c host_dpi_set_horizontal_timing scales a line by lane rate / pixel clock / 8 and rounds):
+    # 896 pixels x 1.5 Gbps / 70 MHz / 8 = 2400 exactly, where the preset's 880 at 80 MHz made 2062.5. The other P4
+    # panels already run near this (Guition 10.1 54 MHz, Tab5 60 MHz); only this board's preset asked for 80.
+    hsync_front_porch: 56
+    pclk_frequency: 70MHz

@@ -15,8 +15,15 @@ Home Assistant entity belongs in a board file. docs/README.md lists every doc an
 
 ## Where to start for a change
 
+Read in this order, and stop as soon as you know enough: docs/ARCHITECTURE.md (the one map of the firmware's layers,
+the hard rules between them and the measurement behind each), then the document of the thing you change (the table
+below), then the head of the file (every file in `components/smart_display/` opens with what it is, what it knows and
+what it does not, and which test proves it), then that test. A change in the code gets its line in the document of its
+subject in the same commit, and a measurement goes with it; the map is updated when a layer, a seam or a rule changes.
+
 | You want to | Read first | The source of truth |
 |---|---|---|
+| understand how the firmware's layers fit, or find where a rule is written | docs/ARCHITECTURE.md | `engine_build.py`, `glass.h`, `picture_engine.h`, `live_view.h`, `hw.h`, `pressure.h`, `audio_owner.h` |
 | support a new entity type, or a new control on a tile | docs/CATALOGUE.md | `catalogue/<type>.yaml`, `catalogue/_ha.json` |
 | add a screen setting | docs/SETTINGS.md | `settings_screen.h`, `SETTING_RULES` in `screen_manager/app/core.py` |
 | give a board a setting of its own (Extras: on the screen, in the app, in Home Assistant) | docs/SETTINGS.md, "A board's own settings" | `boards.yaml` `settings`, the board's `BOOT_BOARD_SETTINGS`, `entity_settings.py` |
@@ -113,20 +120,33 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   build` and commit both. Keep every URL the page asks for relative (`api/...`) so it works behind ingress.
 - Production ingress needs no long-lived token or public port.
 
+## What is still open
+
+`docs/open-issues/` holds one file per thing we do not understand or have not solved: the symptom, what was measured
+(dates, commits, numbers), what was ruled out, the candidates left and the experiment that decides. Look there when a
+bench is free, between releases, when a user's report rhymes with one, or when you want work nobody is on: pick one,
+say so, and take the file along as you learn. Whatever stays open at the end of a day's work goes in as a new file
+or a dated section of an existing one, in the same commit as the work; a solved one gets its "Solved" section with
+the commit and stays a release long. The README there has the table and the rules.
+
 ## Checks
 
 How much is checked follows the branch (next section): work on dev moves fast and is proven on real screens, a
 release is checked fully, once a week. docs/TESTING.md says what each layer proves.
 
-- **On dev the proof is the bench**: the three real boards on the owner's bench Home Assistant and its local app
-  (`.esphome/bench/README.md` on the owner's machine). Put the app on it, flash the change to the boards it concerns,
-  and have the owner look and tap. Run a single test when that is the quickest way to see a piece of logic work. No
+- **On dev the proof is the bench**: the owner's home Home Assistant is the test Home Assistant (since 2026-10-29),
+  with the owner's real screens and the bench boards on the Mac mini's USB as screens of it. The bench HA VM and
+  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house with the
+  deploy-home skill (`deploy_home.py dev`, after a push to `origin dev`), whose builds run on the Mac mini as the app's
+  build server, flash the change to the boards it concerns, and have the owner look and tap. Run a single test when
+  that is the quickest way to see a piece of logic work. No
   `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI but the Docker
   image `:dev` when `screen_manager/` changed (docs/DOCKER.md, "Testing dev"). After a change
   under `web/src`, `cd web && npm run build` (the app serves that build) and commit `screen_manager/app/static` with it.
 - **At a release** (and a hotfix) everything runs, on the commit that goes out: `tools/check.sh`, CI on that commit
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
-  draw, and the upgrade test on the bench (docs/TESTING.md, "6. The upgrade"). What fails there is fixed in the release.
+  draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"; the deploy-home skill's
+  `release-test`). What fails there is fixed in the release.
 - `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
   and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches
@@ -156,7 +176,7 @@ Two branches, and the difference between them is the most important rule in this
   whether it is a release or work to test on the bench, before anything goes near main.
 - **The release**, about once a week: `tools/release.py` with docs/RELEASING.md, "The release", step by step. It counts
   everything since the last release as one: one app version, one CHANGELOG section, one firmware number, tested as an
-  upgrade from main on the bench, and then main moves to that exact commit with its tag and GitHub release. The
+  upgrade from main on the home Home Assistant, and then main moves to that exact commit with its tag and GitHub release. The
   plugins repository goes along in the same `publish`: its dev to its main, its index checked against the release.
 - **A hotfix** is for something broken for users now: a screen that doesn't start, an add-on that doesn't start, data
   that is lost. Branch from main (`hotfix-<what>`), fix it, release it alone with the same steps, then merge main into

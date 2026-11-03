@@ -13,6 +13,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_private/freertos_debug.h>
+#include <esp_system.h>
 
 namespace abort_record {
 
@@ -42,7 +43,33 @@ void take() {
   record.magic = 0;
 }
 
+// Why the chip started, in the words ESPHome's debug component uses, which the app's report reads ("Reset Reason:",
+// screen_manager/app/reports.py): a brown-out or a power glitch is a restart of the supply, not of the firmware, and
+// without this line such a restart read as "no crash record" (a Tab5 that restarted as its charger was plugged in,
+// TR-Y2FPG6, 2026-10-29). A power on, a software reset or a reboot request is harmless there.
+static const char *reset_name() {
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON: return "Power On";
+    case ESP_RST_EXT: return "External Pin";
+    case ESP_RST_SW: return "Software Reset";
+    case ESP_RST_PANIC: return "Exception/panic";
+    case ESP_RST_INT_WDT: return "Interrupt Watchdog";
+    case ESP_RST_TASK_WDT: return "Task Watchdog";
+    case ESP_RST_WDT: return "Other Watchdog";
+    case ESP_RST_DEEPSLEEP: return "Deep Sleep";
+    case ESP_RST_BROWNOUT: return "Brownout";
+    case ESP_RST_SDIO: return "SDIO";
+    case ESP_RST_USB: return "USB";
+    case ESP_RST_JTAG: return "JTAG";
+    case ESP_RST_EFUSE: return "EFUSE";
+    case ESP_RST_PWR_GLITCH: return "Power glitch";
+    case ESP_RST_CPU_LOCKUP: return "CPU lockup";
+    default: return "Unknown";
+  }
+}
+
 void report() {
+  ESP_LOGI(TAG, "Reset Reason: %s", reset_name());
   if (!had) return;
   ESP_LOGE(TAG, "*** ABORT ON PREVIOUS BOOT *** (in task %s)", taken.task);
   ESP_LOGE(TAG, "  Details: %s", taken.text);

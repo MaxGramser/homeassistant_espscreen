@@ -29,6 +29,20 @@ class PageConformanceTests(unittest.TestCase):
                         validate_document(doc, grid)
                 self.assertEqual(doc, case['document'], 'Validation must not modify a draft')
 
+    def test_a_refused_tile_is_named_with_its_page(self):
+        cases = {case['name']: case for case in json.loads((ROOT / 'tests/fixtures/page-conformance.json').read_text())}
+        doc = deepcopy(cases['minimal canonical page']['document'])
+        second = deepcopy(cases['stale refresh']['document']['pages'][0])
+        second['id'], second['tiles'][0]['id'] = '0000000000000002', 'lamp'
+        for item in second['topbar']['leading'] + second['topbar']['trailing']:
+            item['id'] += '-2'
+        second['tiles'][0]['appearance']['label'] = 'Reading lamp'
+        doc['pages'].append(second)
+        with self.assertRaises(ValueError) as caught:
+            validate_document(doc, Grid(**cases['minimal canonical page']['grid']))
+        self.assertIn('Page 2', str(caught.exception))
+        self.assertIn('Reading lamp', str(caught.exception))
+
     def test_editor_choices_match_authoritative_tables(self):
         spec = importlib.util.spec_from_file_location('page_rules_generator', ROOT / 'tools/generate_page_rules.py')
         module = importlib.util.module_from_spec(spec)

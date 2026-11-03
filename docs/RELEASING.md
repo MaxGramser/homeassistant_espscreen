@@ -126,9 +126,10 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    hour. The upgrade test can run meanwhile.
 5. **The upgrade test.** `tools/release.py candidate` pushes the branch `release-candidate`: this commit with the
    published packages pointing at it, so a test screen builds the release from GitHub, the way it will from main.
-   docs/TESTING.md, "6. The upgrade", is the test: the test Home Assistant on main's app and firmware, then the app of
-   the release, then each screen's own Update. Its builds fetch every component and font from GitHub, which is also
-   the test that the remote YAML is complete.
+   docs/TESTING.md, "6. The upgrade", is the test: the test Home Assistant (Max's home Home Assistant, with the Mac
+   mini as its build server, since 2026-10-29) on main's app and firmware, then the app of the release, then each
+   screen's own Update; the `deploy-home` skill's `release-test` runs it and writes the report. Its builds fetch every
+   component and font from GitHub, which is also the test that the remote YAML is complete.
 6. **Publish.** Write the GitHub release notes in English, in a file, the way the earlier releases read. Then
    `tools/release.py publish --notes <file> --yes`: it checks that HEAD is pushed, green in CI and the commit the
    candidate was made of, then fast-forwards main to it, tags it `screens-vX.Y.Z`, makes the GitHub release, removes
@@ -145,7 +146,7 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a
    main that has dev already only gets its index built and checked). `status` and `prepare` say what the plugins bring;
    `--without-plugins` publishes without them when there is a reason. A hotfix leaves the plugins alone.
-7. **After.** Point the test screens back at main. Users find the update in the App store and update Tessera Screen
+7. **After.** Point the test screens back at main (`deploy_home.py main`: the GitHub app, now the release, builds them). Users find the update in the App store and update Tessera Screen
    Manager; for new screen features they use **Update** on the screen in Tessera (or the nightly round), and ESPHome
    Device Builder's Install, Wirelessly, on the existing device works too: the updated app points every screen's YAML
    at the new release's tag when it starts ("Which firmware a screen builds"). Every issue the release's CHANGELOG section names gets a short

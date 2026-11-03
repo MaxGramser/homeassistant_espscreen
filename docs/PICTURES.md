@@ -142,14 +142,17 @@ store let go meanwhile is loaded whole again (`runtime_tiles::picture_done`).
 
 The question names the formats the screen takes, best first (`fmt`), and the app picks per picture
 (`picture_service.format_for`). Every board takes BMP: 8-bit where the owner allows it (a palette of the picture's own
-256 colours, dithered), 24-bit otherwise; the screen decodes it row by row as it comes, without a copy. An ESP32-P4 also
-takes JPEG: its engine takes the format whole (`picture_engine::whole_formats`, which `runtime_tiles::picture_ask` names
-first in every question), so the download gathers the whole JPEG (`picture_fetch::Gather`, at most `MAX_JPEG`) and the
-engine decodes it with the hardware decoder its streams use (`picture_engine::decode`, under the same lock of the
-2D-DMA, the glass's), about a tenth of a BMP's bytes on the network. What such
+256 colours, dithered), 24-bit otherwise; the screen decodes it row by row as it comes, without a copy. An ESP32-P4 and
+an ESP32-S3 with PSRAM also take JPEG: their engine takes the format whole (`picture_engine::whole_formats`, which
+`runtime_tiles::picture_ask` names first in every question), so the download gathers the whole JPEG
+(`picture_fetch::Gather`, at most `MAX_JPEG`) and the engine decodes it, about a tenth of a BMP's bytes on the network.
+A P4 decodes with the hardware decoder its streams use (`picture_engine::decode`, under the same lock of the 2D-DMA, the
+glass's); an S3 with Espressif's software decoder, esp_new_jpeg, into a picture buffer of its own that LVGL draws as it
+drew a BMP's rows, a row of MCUs at a time with a pause between, as its RGB panel reads its picture from the same PSRAM
+(a 480 x 270 camera still in 28 to 45 ms on a Guition 4848S040). What such
 a JPEG is (baseline, whole MCUs of 16, the shown size and the flat places' corners in an APP15 segment the screen makes
 exact again) is one profile on both sides, `picture_jpeg.h` and `picture_paint.encode`, kept equal by `tests/test_camera.py`. A
-photograph (a camera, a cover, a photo, a poster) goes in the format the screen named first, JPEG on a P4; a drawn picture
+photograph (a camera, a cover, a photo, a poster) goes in the format the screen named first, JPEG on a P4 or an S3 with PSRAM; a drawn picture
 (a map, a vacuum's map: lines, words and flat colours, which JPEG blurs) goes as the first BMP the screen takes. Streams
 are JPEG on every P4 (`live_view`); the P4 has a hardware H.264 encoder but no decoder, so the app decodes a camera's
 H.264 and sends JPEG (`camera_source.py`, `live_pictures.py`).
@@ -193,7 +196,7 @@ H.264 and sends JPEG (`camera_source.py`, `live_pictures.py`).
 - Whether a place's picture came: `on_picture(place, state)` on a tile, a card and a screensaver (`PictureState`
   `SHOWN`, `NONE`, `FAILED`), once per address, so a plugin can show something else where a picture does not come.
 - The core's sources (`cover:<entity>`, `camera:<entity>`, `entity:<entity>`, `step:`) for a place of that entity, under
-  the same rules as the core's own pictures. `saver:picture` stays as another name for `step:`.
+  the same rules as the core's own pictures.
 - `slide_pictures` may be called from any call of a tile or card, `on_state` included.
 - `ui::live(place)`: a tile's place with the address `camera:<entity>` of its own entity streams on a screen that
   streams, exactly as a camera tile set to Live (`runtime_tiles` live places: on the glass, the page still, nothing over

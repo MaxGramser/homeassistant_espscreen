@@ -92,8 +92,13 @@ class FrameWatch(unittest.TestCase):
         told = watch.line(lost=5, nacks=4, plis=1, refused=2, stills=1)
         self.assertIn('1 frames (1 key)', told)
         self.assertIn('5 packets lost, 4 NACKs and 1 PLIs sent; 2 JPEGs the screen would refuse, 1 stills', told)
+        self.assertNotIn('not turned', told)
         self.now[0] += camera_source.FRAME_REPORT_SECONDS
         self.assertIsNone(watch.line(lost=5, nacks=4, plis=1, refused=2, stills=1), 'nothing new: quiet')
+        # Pictures for a turned glass that went upright (live_pictures.not_turned) are said when there are any.
+        self.now[0] += camera_source.FRAME_REPORT_SECONDS
+        told = watch.line(lost=5, nacks=4, plis=1, refused=2, stills=1, not_turned=3)
+        self.assertIn('0 stills, 3 pictures not turned for a turned glass in', told)
         self.now[0] = camera_source.FRAME_TOTALS_SECONDS
         self.assertIn('since the stream began', watch.line(lost=5))
 
@@ -200,7 +205,7 @@ class WaitForWebRTC(unittest.TestCase):
             source = camera_source.Source(live_stream.LiveFeed(fetch, None, lambda e: True), 'camera.door', True)
             source.viewers = 1
 
-            async def rtc(kinds, take, keep):
+            async def rtc(kinds, take, keep, quiet=False):
                 await asyncio.sleep(0.35)  # a camera's key frame that takes its time
                 await take('video', object())
                 return True
@@ -217,6 +222,78 @@ class WaitForWebRTC(unittest.TestCase):
             self.assertGreaterEqual(came, 3)
             self.assertEqual(len(stills), came)
             self.assertIsNotNone(source.frame.video)
+
+        asyncio.run(main())
+
+    def test_a_camera_on_its_snapshots_tries_webrtc_again_and_says_once_that_it_works(self):
+        """A camera whose WebRTC gave no frame (its privacy mode, a go2rtc that was away) sends its snapshots and tries
+        WebRTC again every WEBRTC_RETRY_SECONDS while it is watched, its snapshots going on meanwhile; only the first
+        failure is in the log, and one line says when it works again."""
+        async def main():
+            fetched, quiet_asked = [], []
+
+            async def fetch(entity):
+                fetched.append(asyncio.get_running_loop().time())
+                return jpeg(64, 36)
+
+            source = camera_source.Source(live_stream.LiveFeed(fetch, None, lambda e: True), 'camera.door', True)
+            source.viewers = 1
+
+            async def rtc(kinds, take, keep, quiet=False):
+                quiet_asked.append(quiet)
+                await asyncio.sleep(0.1)
+                if len(quiet_asked) < 3:
+                    return False
+                await take('video', object())
+                return True
+            source.rtc = rtc
+            saved = camera_source.WEBRTC_RETRY_SECONDS, camera_source.webrtc_here
+            camera_source.WEBRTC_RETRY_SECONDS, camera_source.webrtc_here = 0.3, lambda: True
+            try:
+                with self.assertLogs('camera_source', 'INFO') as logged:
+                    await source.run()
+            finally:
+                camera_source.WEBRTC_RETRY_SECONDS, camera_source.webrtc_here = saved
+            return fetched, quiet_asked, logged.output, source
+
+        fetched, quiet_asked, output, source = asyncio.run(main())
+        self.assertEqual(quiet_asked, [False, True, True])
+        works = [line for line in output if 'WebRTC works again' in line]
+        self.assertEqual(len(works), 1, output)
+        self.assertIn('Live camera.door: WebRTC works again at try 3, after', works[0])
+        # Snapshots between the tries and during the last one, at the snapshots' pace, not a still every 2 s.
+        self.assertGreater(len(fetched), 10)
+        self.assertIsNotNone(source.frame.video)
+
+    def test_the_sounds_own_session_ends_when_the_pictures_bring_the_sound(self):
+        """A tile first (pictures without sound), then the full view with sound: the listener's own sound session goes,
+        so the sound comes once, not twice shifted (2026-10-29); it comes back when the pictures' session ends."""
+        async def main():
+            source = camera_source.Source(live_stream.LiveFeed(lambda e: None, None, lambda e: True), 'camera.door', True)
+            source.viewers = 1
+            sessions = []
+
+            async def rtc(kinds, take, keep, quiet=False):
+                sessions.append(kinds)
+                if 'video' in kinds:
+                    await take('video', object())
+                    await asyncio.sleep(0.2)
+                    return True
+                await asyncio.sleep(10)  # the sound's own session, until it is cancelled
+                return True
+            source.rtc = rtc
+            source.listen(asyncio.Queue(maxsize=4))
+            await asyncio.sleep(0.05)
+            self.assertEqual(sessions, [('audio',)])
+            own = source.sound
+            source.wants_sound = True
+            self.assertTrue(await source.webrtc())
+            self.assertTrue(own.cancelled() or own.done())
+            self.assertEqual(sessions[1], ('video', 'audio'))
+            await asyncio.sleep(0.05)
+            # The pictures' session ended with a listener still there: the sound's own session again.
+            self.assertEqual(sessions[2], ('audio',))
+            source.sound.cancel()
 
         asyncio.run(main())
 

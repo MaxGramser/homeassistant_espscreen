@@ -159,6 +159,8 @@
       "microphone": "Microphone",
       "media_player": "Volume",
       "wake_when_moved": "Wake when moved",
+      "backlight_pwm": "Backlight PWM",
+      "dimmest_level": "Dimmest level",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
       "standby_after": "Standby after",
@@ -878,6 +880,7 @@
         "layout_conflict": "Layout changed in another editor; reload and reconcile the draft",
         "adaptation": "Screen grid changed; explicit layout adaptation is required",
         "normalization": "Tile options need normalization before saving the page document",
+        "on_tile": "Page {page}, tile “{tile}”: {problem}",
         "ambiguous_tile": "Tile event has an ambiguous source; specify its page",
         "save_first": "Save a page document before saving document settings",
         "destination_exists": "Destination screen already has a saved layout",
@@ -1179,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
+        },
+        "backlight_pwm": {
+          "label": "Backlight PWM",
+          "hint": "How fast the backlight switches on and off to dim. 150 Hz dims every unit of this board, but some whine below 20 kHz: choose 20 kHz when yours whines, 15 kHz when 20 kHz does not dim it evenly."
+        },
+        "dimmest_level": {
+          "label": "Dimmest level",
+          "hint": "The lowest the backlight goes, as a share of its full power. Raise it when the screen stays black or flickers at its lowest brightness."
         },
         "microphone_gain": {
           "label": "Microphone gain",
@@ -1533,6 +1544,10 @@
         "timeout": {
           "label": "Timeout",
           "help": "Seconds the ring stays when nobody touches it, {min} to {max}. Empty is {default}. A touch keeps it open."
+        },
+        "keep_minutes": {
+          "label": "Keep missed",
+          "help": "Minutes a ring nobody answered stays in the top bar of the screens with its view, counted from the ring, 1 to {most}. Empty or 0: until someone opens it."
         },
         "sound": {
           "label": "Sound",
@@ -2048,7 +2063,9 @@
         "seconds": "Every {n} s",
         "live": "Live",
         "paused": "Live paused",
-        "cap": "This screen plays {n} cameras live at once; the others show a picture every 15 seconds. With two cameras, each one runs more smoothly than with four."
+        "cap": "This screen plays {n} cameras live at once; the others show a picture every 15 seconds. With two cameras, each one runs more smoothly than with four.",
+        "cap_one": "This screen plays one camera live at a time; the others show a picture every 15 seconds.",
+        "streams": "{used} of {most} live streams in use, across all screens. A camera beyond them shows a picture every 15 seconds."
       },
       "picture": {
         "fit": {
@@ -3123,6 +3140,14 @@
         "change": "Change Wi-Fi and install again",
         "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
       },
+      "known": {
+        "title": "This board is already in Home Assistant as {name}",
+        "text": "Home Assistant keeps one ESPHome device per board (its MAC address), so {new} cannot be added while {name} is there. Install {name} again, or replace it: after the firmware is on the board, {name} leaves Home Assistant with its entities and {new} takes its place.",
+        "reinstall": "Install {name} again",
+        "replace": "Replace {name} with {new}",
+        "replaced": "{name} was removed from Home Assistant; {new} takes its place.",
+        "go_firmware": "Under Firmware & USB, pick the profile of {name} and “Install from this browser”."
+      },
       "memory": {
         "low_title": "Little memory free on the Home Assistant machine",
         "low": "{free} of memory is free, so the firmware builds with fewer compilers at a time ({jobs} instead of {cores}). That takes longer, but it fits.",
@@ -3402,6 +3427,8 @@
       "calendar_free": "Free"
     },
     "pages": {
+      "repaired": "Page {page}, tile “{tile}”: took out what did not fit ({what}).",
+      "repaired_tile": "Page {page}: took the tile “{tile}” off, it did not fit any more.",
       "mode": "Editor mode",
       "simple": "Simple",
       "advanced": "Advanced",
@@ -3759,6 +3786,12 @@
       "later": "Maybe later",
       "donated": "I already donated",
       "thanks": "Thank you! This won't ask again."
+    },
+    "funding": {
+      "title": "Looking for funding",
+      "body": "I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, send me an email.",
+      "mail": "Email me",
+      "later": "Not now"
     },
     "plugins": {
       "title": "Plugins",
@@ -4430,7 +4463,8 @@
       "no_camera": "No camera",
       "fields": {
         "title": "Title",
-        "timeout": "Timeout (seconds)"
+        "timeout": "Timeout (seconds)",
+        "keep": "Keep a missed ring in the top bar"
       },
       "screens": {
         "view": "Live with sound",
@@ -4503,6 +4537,12 @@
         "chime": {
           "label": "Chime when it rings",
           "hint": "The screen plays a door chime when someone rings. Turn this off if you would rather not hear the ding-dong every time."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} h",
+          "open": "Until someone opens it",
+          "hint": "A ring nobody answered stays in the top bar of the screens for this long after it rang, with how long ago it was. A tap on it opens the doorbell again."
         }
       },
       "hero": {

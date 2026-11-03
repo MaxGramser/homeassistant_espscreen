@@ -374,7 +374,12 @@ static void take_over(Slot &slot) {
   }
   if (slot.ok && !slot.cached) slot.etag = slot.fresh_etag;
   const uint32_t took = esphome::millis() - slot.started;
-  if (slot.ok)
+  // A JPEG is decoded once it is all here (a BMP row by row as it comes): its decode is what lies past the body.
+  if (slot.ok && slot.decoded_ms > slot.body_ms)
+    ESP_LOGI(TAG, "%s: loaded, %u bytes in %u ms, of which %u decoding a JPEG of %dx%d%s", slot.name,
+             (unsigned) slot.received, (unsigned) took, (unsigned) (slot.decoded_ms - slot.body_ms), slot.fresh_w,
+             slot.fresh_h, cancelled ? " (no longer wanted)" : "");
+  else if (slot.ok)
     ESP_LOGI(TAG, "%s: %s, %u bytes in %u ms%s", slot.name, slot.cached ? "unchanged" : "loaded", (unsigned) slot.received,
              (unsigned) took, cancelled ? " (no longer wanted)" : "");
   if (took > SLOW_MS)

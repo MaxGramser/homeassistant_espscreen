@@ -7,6 +7,11 @@ today; docs/PICTURE_ARCHITECTURE.md says how the picture path is built, this pag
 that already hold stay (AGENTS.md: behaviour lives once, a board file holds hardware and sizes only, no capability rules
 by hand).
 
+> **Where this plan stands (2026-10-28).** This page is a plan with its measurements, written as the work went, so an
+> early section may describe a state that is gone. docs/ARCHITECTURE.md is the map of what is built now; read that for
+> the current shape and this page for why and what was measured. Built: 3.1 to 3.4, 3.2 with the S3 as its second
+> engine, 4.1, 4.4a, 4.7, 4.10, 4.11, 4.12. Open: 4.6, 4.8, 4.9, a second live tile on an S3, and section 5.
+
 ## 1. Where we stand
 
 A few thousand screens run Tessera, a few hundred of them on a P4. The S3 boards keep their refreshed stills and stay
@@ -83,6 +88,37 @@ Done when: the Tab5 builds from the core file with no sdkconfig of its own, and 
 Done when: `grep -rn "PPA\|sixteenth\|MIPI\|JPEG" components/smart_display/*.h` outside `picture_engine*.h`,
 `ppa_guard.h`, `picture_jpeg.h` and `glass_dsi.cpp` finds comments only, and a test keeps it so (the way
 `test_live_view.py` keeps `DIAGNOSTIC_WRAPS` to what `abort_record.cpp` defines).
+
+Built in part (2026-10-28), with the S3 as the second engine that proves the seam:
+
+- `USE_LIVE_VIEW` meant three things at once. Each is its own define now, from one table by chip (`engine_build.py`):
+  the engine (`PICTURE_ENGINE_P4`, `PICTURE_ENGINE_S3`), the glass (`GLASS_DSI`, `GLASS_RGB`) and the streams
+  (`USE_LIVE_VIEW`). A P4 builds the same code as before; an S3 has all three too.
+- How many live tiles a screen streams at once is the engine's (`limits().live_tiles`), where `hw.h` had a constant.
+- The S3 with PSRAM decodes JPEG stills in software (`picture_engine_s3.cpp`, esp_new_jpeg 1.0.2): its questions name
+  JPEG first, and the app sends photographs as JPEG. Its decoder writes a row of MCUs at a time with a pause between, as
+  the RGB panel reads its picture from the same PSRAM; whether the panel shifts a frame meanwhile only an eye can tell,
+  since an RGB panel's driver counts no underrun (`glass::misses` is the DSI's alone). The decoder's own memory comes
+  from PSRAM (a wrap of its allocator): asked inside the chip, as the library does, it took the internal RAM down to
+  33 KB at a camera's full-screen stills. Measured on a Guition 4848S040, the same dev with BMP and with JPEG
+  (2026-10-28, a camera tile's stills on its page, then the camera full screen):
+
+  | A still | BMP | JPEG |
+  |---|---|---|
+  | camera tile, 448 x 118: bytes | 54 KB | 10 KB |
+  | from the ask to the picture ready | 107 to 325 ms | 109 to 361 ms, 20 to 29 of it decoding |
+  | full view, 480 x 270: bytes | 389 KB | 25 KB |
+  | from the ask to the picture ready | 426 to 559 ms | 120 to 439 ms, 45 to 59 of it decoding |
+  | internal RAM at its lowest | 42 KB | 43 KB (33 KB with the decoder's memory inside the chip) |
+
+- Live pictures on an S3's RGB panel (2026-10-28): the glass is split into what every panel shares (`glass_core.cpp`:
+  the lock, LVGL's hooks, the rooms) and a file per panel kind (`glass_dsi.cpp`, `glass_rgb.cpp`); the S3 engine
+  decodes a stream's picture off the glass and copies it with the CPU (`blit`, as it is and not turned), and the
+  engine's limits say what differs (`decode_on_glass`, `view_pps`, `live_tiles`, `tile_budget_pps`, `stream_core`;
+  4.1, docs/CAMERA.md "Live on an ESP32-S3"). The seam the streams use is the one they had, `Block` and `blit`: the
+  app sends a tile's pictures at the card's size and turned as the glass is, so no engine scales or turns for a tile,
+  and no further engine API came of this first caller.
+- Still to do: the grep and its test above.
 
 ### 3.3 One capability record
 
@@ -231,6 +267,16 @@ Why four: the soak numbers (two tiles plus the video held 175 KB internal RAM fr
 for two more; the SDIO link carries it; and a user who reads "4" trusts the screen more than one who finds out which
 fifth tile silently stopped. `MAX_STREAMS` stays seven for a page of four tiles, the full view and plugin places; it is
 a ceiling, not the cap.
+
+**The engine's numbers (2026-10-28).** The cap and the pace are the picture engine's (`picture_engine::limits`): its
+`live_tiles` and `tile_budget_pps`, the pictures a second all streaming tiles share (`picture_engine::tile_pps`: the
+budget over the tiles, at least 2, at most `hw::LIVE_TILE_PPS`). A P4 has 4 and 24, so its four tiles keep 6 each as
+before. An ESP32-S3 with an RGB panel has 1 and 8 (docs/CAMERA.md, "Live on an ESP32-S3"): its CPU decodes every
+picture, and each live tile took about 11 KB of internal RAM for its connection's Wi-Fi and lwIP buffers, two tiles the
+lowest down to 16 KB and three to 3 KB on a Guition 4848S040. A second S3 tile waits for those buffers in PSRAM
+(`CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP`), measured against the panel's bounce buffers and 32 KB at the lowest; its
+budget of 8 would give two tiles 4 each. The engine also names the core a stream's task runs on (`stream_core`): 1 on
+a P4, 0 on an S3, where it took LVGL's core from 39 to 23 % busy with one tile.
 
 ### 4.2 The source scales, not the screen
 
@@ -470,6 +516,17 @@ the tiles and LVGL (up to 0.74 s measured).
     bad block. On the D1001 the same block came back at least 31 times, 2 ms each, before one stalled: a bad block
     stalls by chance too, only sooner. The watch caught every one: 3.1 and 3.8 s in the esp_timer task, 3.4 s (D1001)
     and 3.75 s (Guition) in its own, its words ending "esp_timer blocked".
+  - **A scaled copy stalls unturned too (2026-11-03, a user's reTerminal D1001, then the bench D1001).** A camera opened
+    full screen restarted the screen every time: "PPA copy never finished: 450x800 turned 0 to 91,15 by live_view",
+    the app's picture, turned for the glass, scaled 25/16 to fill the 800 x 1280 panel. The rig (a task copying the
+    block into the frame buffer with the glass held, 300 copies a case, the watch catching a hang): 450x800 at 25/16
+    stalled within 30 copies, three boots running; 450x790 (its rows' leftover 6, 9 scaled), 450x800 at 20/16 and
+    66x800 at 25/16 stalled too; 448x800 at 25/16 came back 5,000 times. The rule that fits: the hardware's last unit
+    is the input's leftover scaled (450 % 64 = 2 columns, 3 pixels at 25/16, by 16 rows, 25 pixels: 1200 bits, under
+    the FIFO), where the driver, master as much as 5.5.5, counts the scaled width's leftover (703 % 64 = 63 columns:
+    25,200 bits) and sets no bypass. The guard counts it the hardware's way now and cuts the picture in two (`ppa_guard.h`
+    small_leftover; before, no unturned block was ever cut, and a block whose scaled size was not whole was left alone,
+    which 450 x 25/16 = 703.125 is).
   - **Found on the way:** a build for the P4's revision 3 (the Guition 10.1 of rev 3.2, its v3 profile) runs macro
     blocks of 32 rows, the engine's register says so ("the engine's macro block: 32 rows"), and the guard took 16 on
     every build; it asks the engine now, as the driver does (`ppa_guard.h`).
@@ -585,8 +642,12 @@ screen's camera_open halts its live tiles before the view asks (live_tiles_halt)
 screen through MAX_STREAMS while that screen's own tiles still stream (live_stream.serve). Measured on the bench Guition
 with the screen's half alone: no 503, the first picture 1.54 s after the view opened (1.3 s of it the app's answer with
 the link, the stream's first picture 226 ms after it started), and the four tiles back by themselves after the ring.
-Next: the app makes the ring's link when the event comes, before the screen asks (a link in the op doorbell, or one the
-camera request finds ready), so the first picture can come within half a second.
+Done (2026-10-28): the app makes each view screen's link as the event comes and sends it in the op doorbell (`l`,
+Manager.doorbell_link), its room coming with the screen's first open (`?room=WxH`), and starts the camera's source at
+once (LiveFeed.warm); the view opens it before its first round and asks for nothing. On the bench Guition: the link open
+17 to 22 ms after the view opened (245 asking first), the first picture 340 to 440 ms after it with the camera running
+for the tiles, 330 to 670 ms with it cold. The first ring after a restart of the screen or the app connected slowly
+(1.2 s), which is the first connection, not the ring.
 
 ### 4.10 The governor: what a busy screen gives up first (v1, 2026-10-28)
 
@@ -594,7 +655,11 @@ camera request finds ready), so the first picture can come within half a second.
 The work of a screen in one fixed order, from what never waits to what gives up first: the glass, the voice assistant,
 a doorbell's ring, the live tiles, the screen's own camera (its video), its sensing (light level, motion) and the
 background (pictures fetched ahead for pages out of sight). Each has a level: 0 runs as it is, 1 does half, 2 a
-quarter; the glass, the voice and a ring are never squeezed.
+quarter; the glass, the voice and a ring are never squeezed. Since 2026-10-29 (plugin API 0.23, `heard`): while someone
+hears the screen's microphone (its video watched with its sound, Screen camera 0.6.12; a call, 5.1) the live tiles stay
+at a quarter whatever the steps say, so the conversation's uplink is not starved by them: on a reTerminal D1001 four
+live tiles beside its own video stalled the uplink, the sound reached the viewing screen in bursts a second late (2.4 s
+at most) and that screen cut more than half of it away.
 
 - **One mechanism.** Every sign of trouble climbs one step of a table, from the bottom of the order up: step 1 the
   background, sensing and the camera to 1; step 2 the camera to 2 and the live tiles to 1; step 3 the live tiles to 2.
@@ -620,7 +685,11 @@ quarter; the glass, the voice and a ring are never squeezed.
   sensing half or a quarter as often.
 - **What it says.** The diagnostic sensor "Pressure" in Home Assistant ("normal", or for example "live tiles 1/2, own
   camera 1/4, sensing 1/2, background 1/2 (the wake word fell behind)") and one warning in the log at every change; a
-  live tile's line says how many pictures it left out. A mark on a squeezed tile is for v2.
+  live tile's line says how many pictures it left out. And the tile itself (2026-10-29): while the governor squeezes the
+  live tiles, each shows speedometer-slow in white on a round dark chip where its loader turns (runtime_tiles
+  live_badge, Look::badge). LVGL draws the chip once as the stream opens, off the glass; the stream makes its overlay
+  with the mark the first time the tiles are squeezed (240 to 350 ms on the D1001, once) and lays that one over its
+  pictures while they are, the plain one at rest, composing as fast as before (26.5 to 30 ms a picture).
 - **Measured before it** (the reTerminal D1001, 2026-10-28, slider drags in a light's card with page 1's four live
   tiles and the camera's video): 27 wake word resets in 7 moments, ui_refresh up to 71 ms, the panel dry once, the
   cores at 73 and 57 % (the H.264 encoder 34.5 % of core 0), the tiles' lay-out 132 ms a picture against 32 on the
@@ -667,14 +736,112 @@ over the quickest picture seen is its wait on the way ("its pictures waited ... 
 
 - **At rest** three of four tiles showed pictures 0.86 to 1.18 s old on average (up to 2.3 s), one 74 ms.
 - **Paused for a busy screen** without more, 11 to 14 s old: the tile read nothing, and the buffers filled.
-- **The fix**: a live tile shows the newest picture there is. A whole picture waits while more bytes wait in its
-  socket (a second input buffer, recv with MSG_PEEK and MSG_DONTWAIT) and goes once none do, or after 250 ms; the older
-  ones are passed and counted. The app keeps a tile's socket buffer at 16 KB. Measured: 19 to 41 ms on the way at rest
-  and during drags, at most 160; a tile passed 1 to 85 older pictures in 10 s. It reads at its camera's pace now (40 to
-  140 KB/s a tile against 26 to 50), which the screen takes; the full view, with its sound between the pictures, reads
-  as before.
-- **Next**: a tile's link asks for each picture (one at a time over a kept connection, the app answering with the
-  newest), so nothing queues, the bytes are what is shown and the governor's pause is not asking.
+- **First fix, now replaced**: the tile read on to the newest picture there was (a second input buffer, a picture
+  waiting while more bytes waited in its socket): 19 to 41 ms on the way, but at the camera's pace in bytes (40 to 140
+  KB/s a tile). The app keeps a tile's socket buffer at 16 KB.
+- **Then a tile asks for each picture** (live_stream.py pull, live_view.cpp ask_each): GET on its link's .jpg over a kept
+  connection, the app answering with the newest frame's JPEG once it is newer than the last it sent there, or 204
+  after 2 s; the tile asks when its pace says (six a second, or a busy screen's share), so nothing queues and the bytes
+  are what it shows. A tile whose app answers 404 (an app before it) reads the stream, passing a picture a frame behind
+  when a newer one is on its way (read_stream), as the full view does, which keeps the stream for its sound. Measured on the D1001 (the same three minutes of drags):
+  at rest 5.0 to 5.7 pictures a second, 4 to 6 ms on the way (at most 67), 24 to 31 KB/s a tile (the heaviest camera
+  57 against 132 to 142); during drags 2.7 to 2.9 a second at 12 to 13 KB/s (against 4.4 at 57 to 60), the cores at
+  54.6 and 40.7 %, the panel dry 0 times.
+
+#### Who runs above the voice (measured 2026-10-28)
+
+The wake word's inference (ESPHome's micro_wake_word, priority 3, fixed there) fell behind 644 times an hour on the
+reTerminal D1001 at rest with four live tiles, its own camera's video on one of them: the tiles' tasks ran at 5 on the
+same core. The tasks of a P4 screen, as a bench action listed them (name, priority, core):
+
+| Task | Priority | Core | Whose |
+|---|---|---|---|
+| ipc0, esp_timer, sys_evt | 24, 22, 20 | 0 | ESP-IDF |
+| mic_task, rpc_tx, rpc_rx, sdio_* | 23 | any | the microphone, ESP-Hosted's Wi-Fi |
+| speaker_task, tiT | 19, 18 | any | the speaker, lwIP |
+| isp_task, ppa_watch | 11, 10 | 0 | the camera's ISP, the PPA's watch (ppa_guard.cpp) |
+| live_view while it asks for or holds the glass | 5 | 1 | live_view.cpp take_glass (glass::WRITER_PRIORITY) |
+| screen_video | 4 | 0 | Screen camera's video (its encoder, RTSP) |
+| mww | 3 | 1 | the wake word's inference |
+| esp_video_cap | 3 | 0 | the camera's frames |
+| live_view | 2 | 1 | a live tile or view: reading, composing |
+| loopTask, mdns, Tmr Svc | 1 | 1, 0, any | ESPHome's main loop with LVGL |
+
+The rule: nothing of ours runs above the voice (3) but the glass (a stream only while it asks for or holds it), the
+sound and the Wi-Fi. A task that someone adds above it, or a stream that holds the glass for long, takes the voice's
+turn. With the streams at 2 (ba8256cb) the D1001 had 0 resets in ten minutes at rest and in three minutes of drags,
+against 108; the video's encoder stays at 4, on core 0, where the wake word does not run.
+
+### 4.11 The screen's own camera on a tile of its own (2026-10-28)
+
+A live tile that shows the screen's own camera (the reTerminal D1001's tile of its own Video) went the long way: the
+camera's frames into the H.264 encoder (a third of a core), over RTSP to Home Assistant, to the app, into JPEGs, and back
+over the network to the same screen, to be decoded there. Now the screen draws it from the camera itself:
+
+- **The tie.** A plugin with the screen's camera offers its frames (plugin API 0.22, `tessera::offer_own_frames`;
+  Screen camera 0.6.8), the screen's hello says `own_camera`, and the app answers the live ask of a tile of the screen's
+  own camera (the tessera_video camera on the screen's device, or on a device of its own with the screen's MAC, as Home
+  Assistant may keep them apart) with `own:` instead of a link (picture_service, `Manager.own_camera_of`). An app
+  before it gives the link, a firmware before it never says `own_camera`: the hello's flag and the answer are all that
+  ties the two.
+- **The draw.** `own:` opens a stream with no socket and no decoder (live_view.cpp, `own_stream`). While it is open
+  the plugin hands each camera frame to `tessera::own_frame` on the camera's task; the tile takes one when its pace
+  says (hw::LIVE_TILE_PPS, a busy screen's share) and the glass is free at once (`glass::try_hold`: the camera's task
+  never waits), and the PPA copies the part it shows into the card's canvas, scaled, from the camera's YUV420 or RGB565.
+  The tile's own task composes the card over it (corners, shade, name) and lays it onto the glass in one more copy, turned.
+  A frame it cannot take goes by. Covered, on a page out of sight or in standby, the tile closes as any live tile does,
+  and the plugin's hub takes no frames for it.
+- **The encoder** runs only while someone watches the video in Home Assistant (or a ring), not for the tile.
+- **The shape, for what comes next.** The stream is a stream of frames from a source, the drawing shared with every
+  live tile; the screen's own camera is its first source. A call between two screens, foreseen and not built: Screen
+  camera's RTSP session as it is (H.264 and Opus, in step) straight from one screen to the other, without the app; on
+  the screen that receives, a new source for the shared drawing (an RTSP client, the H.264 through the P4's hardware
+  decoder) and the Opus played through the mixer with echo cancelled (the D1001's hardware reference channel, the
+  Guition's in software); ringing, answering and hanging up through the app. The picture of oneself is today's tile of
+  the own camera.
+
+### 4.12 Live pictures come turned for a turned glass (2026-10-28)
+
+On a glass that LVGL turns (the M5Stack Tab5, the reTerminal D1001 and the Guition 10.1: panels made upright, shown on
+their side) every live picture went onto the glass through a turned PPA copy, the class of copy that stopped the Tab5
+three times in two days (4.7: 618x307 turned 270 to 16,646, twice; the third, before 9eef23bf, a copy into a card's
+canvas). The turn now happens in the app, where it costs little, and the screen copies a live picture straight:
+
+- **The tie.** A screen whose glass is turned says in its hello `picture_turn`, LVGL's turn as the hello leaves
+  (hw.cpp). The app turns every live picture of that screen by it, a tile's, a plugin's place's and the full view's, the
+  same for a picture at a time and for a stream (live_pictures.TURNS: Pillow's transpose for a camera's JPEG, FFmpeg's
+  transpose filter in YUV for video), its size worked out upright as before and then turned, and says so on every
+  picture, `X-Turn` (live_stream.py). A picture it cannot turn goes upright without `X-Turn`, counted in the camera's
+  frame watch line ("pictures not turned for a turned glass"), and the screen turns it itself: a turned screen never
+  goes without its picture for the app's turn. The screen reads `X-Turn` per picture (picture_fetch::parse_head), so an
+  app before it, which turns nothing and says nothing, gets the turned copy as before, and a screen stood up at run time
+  copies what is left between the picture's turn and the glass's (turn_between).
+- **The overlay, once.** What a tile lays over each picture is made once at a stream's first picture for the way its
+  pictures lie, with the CPU (live_view.h, Overlay): the shade as how deep it darkens each row, or each column of a card
+  on its side, and the corners and the name as short segments of pixels, each with one colour and how much of the
+  picture it hides, laid after the shade. Each picture then costs the shade's darkening as before and one blend a pixel
+  of the corners and the name; within a step of RGB565 of the three blends it replaces (tests/test_live_view.cpp,
+  composing). A first version kept a colour and a coverage for every covered pixel of the card in PSRAM and composed in
+  33 to 42 ms where the old composing took 30 on the D1001: the shade is a table now. The loader over a still lies and
+  turns in the same way. A full view's room is worked out on its picture upright, and the picture scaled straight onto it.
+- **Measured** (2026-10-28, ten minutes at rest, four live tiles on each board, one of the D1001's its own camera): every
+  tile of the app's pictures copied at 0 on both boards (the stream's ten-second line, "turned 0 on the way"), the own
+  tile at 270. Per picture, composing 26.4 ms on the D1001 and 15.0 on the Guition (30.0 and 16.2 before), onto the glass
+  16.9 and 6.3 (17.6 and 6.1 turned): the straight copy is no quicker, the point is the hang. 5.2 and 5.6 pictures a
+  second, 6 and 11 ms on the way, the panel dry 0 times, internal RAM at its lowest 191 and 196 KB. The app's share of
+  Home Assistant's processor went from 43.9 to 45.3 % turning the pictures of seven tiles. The D1001's video was watched
+  all along by the Guition's tile of it (13 frames a second encoded, a third of a core), and its wake word fell behind 10
+  times in the ten minutes and 11 in three minutes of dragging, against 0 and 33 in two rounds of the build before with
+  the same load: what decides it is the encoder, not the turn.
+- **What the PPA still turns per picture:** a tile of the screen's own camera (its frames come upright from the
+  sensor; one turned copy each onto the glass) and LVGL's own flushes. Tried and left out (2026-10-29, the D1001, three
+  minutes each): the frame turned on its way into the canvas, which converts and scales it anyway, so the copy onto the
+  glass goes straight. Into the canvas 57.7 ms against 52 to 55, composing 30 against 24 to 30, onto the glass 18.0
+  straight against 17.8 to 19.8 turned: no quicker, and still one turned copy a frame, the kind the hang is about,
+  into PSRAM instead of the glass. The sensor cannot turn a quarter (only mirror and flip), and the video wants its
+  frames upright, so a turn in the frame hub would serve the tile alone: the turned copy onto the glass stays.
+- **What the Tab5 should show:** its two live tiles no longer turn on the chip. Whether the stall comes back is for its
+  tester to say; the ring of a stall names the copy and its turn as before.
 
 ## 5. The doorbell's talk-back, prepared
 
@@ -706,6 +873,31 @@ depend on which one wins:
 
 Done when (later): a tester holds the key on a D1001 and is heard at a Reolink doorbell, with the doorbell's sound on
 the glass before and after, silent while the key is held.
+
+### 5.1 Calling: screen to screen, later SIP (direction only, 2026-10-29)
+
+Not built, and nothing here is code yet. A call is the doorbell's talk-back between two screens: one screen's camera
+and microphone to another screen's glass and speaker, both ways. It reuses what the ring has, so nothing new is needed
+on the screen beyond a key and a view:
+
+- **The audio owner** (3.4): a call claims the speaker and the microphone as a ring does, the wake word steps back, and
+  a ring at the door takes over from a call (the door goes first).
+- **The uplink** the talk-back prepares (section 5): the microphone's 16 kHz PCM up to the add-on. The picture goes up
+  as the screen's own camera already does (4.11, the video server); the other screen gets both as it gets any camera.
+- **The add-on as the bridge.** A screen never speaks to another screen. The add-on joins the two uplinks to the two
+  screens' links, so a call works across rooms and networks the app reaches, and later bridges a call to a SIP or VoIP
+  endpoint in Home Assistant the same way it bridges a doorbell.
+- **Half duplex first**: one side speaks while the other listens, as the doorbell's push to talk. Full duplex only on a
+  screen whose hardware reports echo cancellation (`echo_cancel` in its caps, 3.1); without it the speaker comes back in
+  the microphone.
+- **What gives way** (a governor rule for later, 4.10): a doorbell's view and a call fill the screen, so while one is
+  open it ranks above the live tiles, on the receiving screen and on the sending one: a screen whose camera with its
+  sound someone watches squeezes its own live tiles, so its video and its voice keep their share of the bus and the
+  link. Seen on a reTerminal D1001 with four live tiles on its page (2026-10-29): the sound it sent another screen broke up
+  (words twice, words lost), and better on a page without tiles.
+
+Done when (later): two screens call each other half duplex through the add-on, a ring interrupts the call, and the
+sender with four live tiles on its page keeps clean sound.
 
 ## 6. What stays out
 

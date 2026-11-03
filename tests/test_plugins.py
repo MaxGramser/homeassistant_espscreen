@@ -528,6 +528,52 @@ class Links(unittest.IsolatedAsyncioTestCase):
                 self.assertIn(f'ref: {ref}  # bus {version}', (config / 'hall.plugins.yaml').read_text())
                 self.assertEqual(service.store.get('hall', 'bus')['state'], 'active')
 
+    async def test_the_index_an_app_reads_is_the_version_a_screen_gets_back_and_forth(self):
+        """The dev app reads the plugins index of the dev branch, the stable app that of main (Plugins.index_branches):
+        a screen moved to dev and back (the deploy-home skill) takes each index's version through the same update,
+        the newer one on dev and the older one again on main, so a lower version is an update too."""
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+
+        class FakeFirmware:
+            task = None
+            job = None
+
+            def save_plugins(self, profile, text):
+                (config / profile.replace('.yaml', '.plugins.yaml')).write_text(text)
+
+            def start(self, data):
+                async def build():
+                    self.job = {'state': 'success'}
+                self.task = asyncio.get_running_loop().create_task(build())
+
+        class FakeManager:
+            firmware = FakeFirmware()
+
+            def __init__(self):
+                self.build_queue = BuildQueue(self)
+            ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders = {}
+
+            def screen(self, inbox):
+                return {'id': inbox, 'node': inbox, 'board': 'guition'}
+
+            def notify(self):
+                pass
+        FakeManager.updates = type('U', (), {'resolve': lambda self, screen: (screen['id'] + '.yaml', '10.0.0.1')})()
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', config)
+        for version, ref in (('1.0.0', 'a' * 40), ('1.1.0', 'b' * 40), ('1.0.0', 'a' * 40)):   # main, dev, main again
+            service.index['bus'] = plugin_service.Entry(manifest(version=version), {'en': ENGLISH}, {}, 'index', 'community',
+                                                        repo='https://github.com/someone/tessera-bus', path='.', ref=ref)
+            await service.apply('hall', {'add': [{'id': 'bus', 'source': 'index', 'consent': True}]})
+            await service.manager.build_queue.idle()
+            with self.subTest(version=version, ref=ref[0]):
+                self.assertIn(f'ref: {ref}  # bus {version}', (config / 'hall.plugins.yaml').read_text())
+                self.assertEqual(service.store.get('hall', 'bus')['state'], 'active')
+
 
 class LinkPath(unittest.IsolatedAsyncioTestCase):
     """The folder in a link goes into the screen's plugins file and into git's path: only plain names, never a step up."""

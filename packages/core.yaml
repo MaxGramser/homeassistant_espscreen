@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.57.0"
+  SCREEN_FIRMWARE_VERSION: "0.60.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -1466,14 +1466,15 @@ font:
   # The top bar's Wi-Fi item (firmware 0.38.0): four bars down to one and struck through, at the size of the bar's icons.
   # A font of their own, so the three fonts of the tile icons carry none of them. And the battery item's icons that the
   # tile icons lack (firmware 0.41.0, battery_status::icon): the charging ones per ten percent, the charging outline and
-  # the alert outline. Its level icons, battery-unknown and the full charging one are tile icons already.
+  # the alert outline. Its level icons, battery-unknown and the full charging one are tile icons already. And the mark of
+  # a squeezed live tile (speedometer-slow, runtime_tiles live_badge).
   - file: "${FONT_DIR}/materialdesignicons-webfont.ttf"
     id: materialdesign_icons_status
     size: ${FONT_ICON_MINI_SIZE}
     bpp: ${FONT_ICON_BPP}
     glyphs: ["\U000F092E", "\U000F091F", "\U000F0922", "\U000F0925", "\U000F0928",
              "\U000F089C", "\U000F0086", "\U000F0087", "\U000F0088", "\U000F089D",
-             "\U000F0089", "\U000F089E", "\U000F008A", "\U000F008B", "\U000F089F", "\U000F10CD"]
+             "\U000F0089", "\U000F089E", "\U000F008A", "\U000F008B", "\U000F089F", "\U000F10CD", "\U000F0F86"]
 
   # The large icon of a card that takes the whole page (firmware 0.2.62+): the domain icons only,
   # so the flash stays free for other things; a chosen icon outside this set keeps its usual size.

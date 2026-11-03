@@ -29,6 +29,7 @@ Facts facts() {
   f.camera = true;
 #endif
   f.live_video = live_view::available();
+  f.live_tiles = picture_engine::limits().live_tiles;
 #ifdef USE_ESP32
   f.psram_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
   f.internal_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_INTERNAL));
@@ -51,6 +52,12 @@ void hello(JsonObject root) {
   caps["microphone"] = c.microphone;
   caps["echo_cancel"] = c.echo_cancel;
   caps["camera"] = c.camera;
+  // A plugin hands this screen's own camera to a live tile of its own (plugin API 0.22): the app answers such a tile
+  // "own:" (live_view.h is_own) instead of a link.
+  caps["own_camera"] = live_view::own_offered();
+  // On a turned glass the app may send its live pictures turned as it is (X-Turn): the screen copies them onto the glass
+  // straight, and its PPA turns nothing per picture (live_view.cpp, show). LVGL's turn as the hello leaves.
+  if (c.live_video && glass::turn() != 0) caps["picture_turn"] = glass::turn();
   caps["live_tiles"] = c.live_tiles;
   caps["psram_kb"] = c.psram_bytes / 1024;
   caps["internal_kb"] = c.internal_bytes / 1024;

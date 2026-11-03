@@ -82,6 +82,84 @@ class Sizes(unittest.TestCase):
                         self.assertTrue(w >= bw - 7 or h >= bh - 7, (frame, bw, bh, w, h))
 
 
+def on_panel(x, y, w, h, turn, pw, ph):
+    """glass::on_panel (components/smart_display/glass.h) of a rectangle, as the firmware turns one: x, y, w, h."""
+    return {90: (pw - y - h, x, h, w), 180: (pw - x - w, ph - y - h, w, h), 270: (y, ph - x - w, h, w)}.get(turn, (x, y, w, h))
+
+
+class Turned(unittest.TestCase):
+    """Live pictures for a screen whose glass is turned (caps picture_turn): turned so that the screen copies them onto
+    its glass straight. Each pixel of a tile's card lands where the firmware's glass::on_panel puts it, with the card as
+    the panel."""
+
+    def card(self, width, height):
+        # Four colours in the four quarters, so a turn shows where each went.
+        image = Image.new('RGB', (width, height))
+        for (x, y), colour in {(0, 0): (255, 0, 0), (1, 0): (0, 255, 0), (0, 1): (0, 0, 255), (1, 1): (255, 255, 255)}.items():
+            image.paste(colour, (x * width // 2, y * height // 2, (x + 1) * width // 2, (y + 1) * height // 2))
+        out = io.BytesIO()
+        image.save(out, 'JPEG', quality=95)
+        return out.getvalue(), image
+
+    def test_each_pixel_lands_where_the_glass_puts_it(self):
+        raw, upright = self.card(496, 280)
+        for turn in live_pictures.TURNS:
+            made, _ = live_pictures.remake(raw, (496, 280), cover=True, turn=turn)
+            self.assertEqual(live_pictures.jpeg_size(made), live_pictures.turned((496, 280), turn))
+            picture = Image.open(io.BytesIO(made)).convert('RGB')
+            pw, ph = picture.size
+            for x, y in ((40, 30), (450, 30), (40, 250), (450, 250), (200, 100)):
+                gx, gy, _, _ = on_panel(x, y, 1, 1, turn, pw, ph)
+                want, got = upright.getpixel((x, y)), picture.getpixel((gx, gy))
+                self.assertTrue(all(abs(a - b) < 40 for a, b in zip(want, got)), (turn, (x, y), want, got))
+
+    def test_the_size_turns_and_stays_one_the_decoder_takes(self):
+        self.assertEqual(live_pictures.turned((496, 280), 90), (280, 496))
+        self.assertEqual(live_pictures.turned((496, 280), 180), (496, 280))
+        self.assertEqual(live_pictures.turned((496, 280), 270), (280, 496))
+        self.assertEqual(live_pictures.turned((496, 280), 0), (496, 280))
+        self.assertEqual(live_pictures.turned((496, 280), 45), (496, 280))  # no turn the glass has
+
+    def test_an_upright_glass_changes_nothing(self):
+        raw = jpeg(496, 280)
+        self.assertEqual(live_pictures.remake(raw, (496, 280), cover=True)[0], live_pictures.remake(raw, (496, 280), True, 0)[0])
+
+    def test_a_camera_jpeg_that_fits_is_turned_too(self):
+        # Untouched on an upright glass; on a turned one remade turned, though the decoder would take it as it is.
+        import asyncio
+        frame = type('Frame', (), {'jpeg': jpeg(496, 280), 'video': None, 'number': 1, 'still': False})()
+        pictures = live_pictures.Pictures()
+        upright, turn = asyncio.run(pictures.picture(frame, (496, 280), True))
+        self.assertEqual(turn, 0)
+        self.assertIs(upright, frame.jpeg)
+        turned, turn = asyncio.run(pictures.picture(frame, (496, 280), True, 270))
+        self.assertEqual((live_pictures.jpeg_size(turned), turn), ((280, 496), 270))
+        # Made once per frame, room and turn.
+        self.assertEqual(asyncio.run(pictures.picture(frame, (496, 280), True, 270)), (turned, 270))
+        self.assertEqual(pictures.made, 2)
+
+    def test_a_picture_that_cannot_be_turned_goes_upright_and_is_counted(self):
+        # Whatever fails in turning (here Pillow's transpose), the screen gets the picture upright with turn 0, which it
+        # turns itself, and never goes without one; the camera's count says it (camera_source's frame watch).
+        import asyncio
+        from unittest import mock
+        frame = type('Frame', (), {'jpeg': jpeg(496, 280), 'video': None, 'number': 1, 'still': False})()
+        pictures = live_pictures.Pictures('camera.door')
+        live_pictures.not_turned.pop('camera.door', None)
+        with mock.patch.object(live_pictures, 'turn_image', side_effect=ValueError('no such filter')):
+            with self.assertLogs(live_pictures.LOG, 'WARNING') as told:
+                made, turn = asyncio.run(pictures.picture(frame, (496, 280), True, 270))
+            frame.number = 2
+            asyncio.run(pictures.picture(frame, (496, 280), True, 270))
+        self.assertEqual((made, turn), (frame.jpeg, 0))
+        self.assertEqual(live_pictures.not_turned['camera.door'], 2)
+        self.assertEqual(len(told.output), 1, 'said once')
+        # An upright picture that fails fails as before: nothing to fall back on.
+        with mock.patch.object(live_pictures, 'remake', side_effect=OSError('broken')):
+            with self.assertRaises(OSError):
+                asyncio.run(pictures.picture(type(frame)(), (100, 100), True))
+
+
 class Encoder(unittest.TestCase):
     def test_frames_become_jpegs_the_decoder_takes(self):
         try:
@@ -93,6 +171,22 @@ class Encoder(unittest.TestCase):
         made, ms = encoder.encode(frame)
         self.assertEqual(live_pictures.jpeg_size(made), (1280, 720))
         self.assertGreaterEqual(ms, 0)
+
+    def test_a_turned_glass_gets_its_frames_turned(self):
+        try:
+            import av
+        except ImportError:
+            self.skipTest('PyAV is not installed here (the add-on image has it)')
+        upright = Image.new('RGB', (496, 280), (0, 0, 255))
+        upright.paste((255, 0, 0), (0, 0, 248, 140))  # the top left quarter red
+        for turn in live_pictures.TURNS:
+            encoder = live_pictures.Encoder(496, 280, turn=turn)
+            for _ in range(2):  # the filters keep their state from frame to frame
+                made, _ = encoder.encode(av.VideoFrame.from_image(upright))
+            picture = Image.open(io.BytesIO(made)).convert('RGB')
+            self.assertEqual(picture.size, live_pictures.turned((496, 280), turn))
+            gx, gy, _, _ = on_panel(60, 40, 1, 1, turn, *picture.size)
+            self.assertGreater(picture.getpixel((gx, gy))[0], 200, turn)
 
 
 if __name__ == '__main__':

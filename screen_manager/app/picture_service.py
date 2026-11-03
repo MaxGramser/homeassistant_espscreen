@@ -126,14 +126,22 @@ class Service:
         if found is None:
             return ''
         entity, fit = found
+        # A screen whose glass is turned and that takes its live pictures so gets them turned (its hello's picture_turn).
+        turn_of = getattr(self.manager, 'picture_turn_of', None)
+        turn = turn_of(inbox) if turn_of is not None else 0
         if question.owner.kind == 'view':
-            token = self.stream.link(entity, question.live, sound=question.sound, screen=inbox)
+            token = self.stream.link(entity, question.live, sound=question.sound, screen=inbox, turn=turn)
             return url_of(token, 'mjpeg')
         # A live tile's card or a plugin's place: the link says how its picture fills the room, and so does the address
         # (?fit=contain, the screen's own reading of it). A camera tile's screen with a speaker warms the camera's sound.
         contain = fit == 'contain'
+        # The screen's own camera on a tile of its own: the screen draws it from the camera itself (its hello's
+        # own_camera, plugin API 0.22), so no link and no stream, and the screen's video encoder may rest.
+        own = getattr(self.manager, 'own_camera_of', None)
+        if question.owner.kind == 'tile' and own is not None and own(inbox, screen, entity):
+            return 'own:' + ('?fit=contain' if contain else '')
         warm = {'warm': question.sound} if question.owner.kind == 'tile' else {}
-        token = self.stream.link(entity, question.live, cover=not contain, **warm, screen=inbox, tile=True)
+        token = self.stream.link(entity, question.live, cover=not contain, **warm, screen=inbox, tile=True, turn=turn)
         return url_of(token, 'mjpeg') + ('?fit=contain' if contain else '')
 
     # ----- painting -----

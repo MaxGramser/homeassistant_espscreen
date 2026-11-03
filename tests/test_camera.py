@@ -1175,7 +1175,7 @@ class LiveTiles(unittest.TestCase):
         self.assertIn('const bool seen = tiles_seen() && !card_open() && !camera_root;', tiles)
         self.assertIn('const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3', tiles)
         # And a busy screen fetches nothing ahead (the governor's background, pressure.h).
-        self.assertIn('pressure::level_now(pressure::BACKGROUND) == 0;', tiles)
+        self.assertIn('pressure::level_of(pressure::BACKGROUND) == 0;', tiles)
         page = tiles
         card = TILES.split('inline void card_cover_want() {', 1)[1].split('\n}\n', 1)[0]
         self.assertIn('!tiles_seen()', card)

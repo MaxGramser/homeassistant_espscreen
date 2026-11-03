@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Hangerő",
       "wake_when_moved": "Ébresztés mozgatásra",
+      "backlight_pwm": "Háttérvilágítás PWM",
+      "dimmest_level": "Legsötétebb szint",
       "dark_mode": "Sötét mód",
       "auto_standby": "Auto készenlét",
       "standby_after": "Készenlét ennyi után",
@@ -878,6 +880,7 @@
         "layout_conflict": "Az elrendezés egy másik szerkesztőben módosult; töltsd újra, és egyeztesd a vázlatot",
         "adaptation": "A kijelző rácsa megváltozott; az elrendezést kifejezetten át kell igazítani",
         "normalization": "A csempebeállításokat normalizálni kell az oldaldokumentum mentése előtt",
+        "on_tile": "{page}. oldal, „{tile}” csempe: {problem}",
         "ambiguous_tile": "A csempeesemény forrása nem egyértelmű; add meg az oldalát",
         "save_first": "A dokumentumbeállítások mentése előtt mentsd az oldaldokumentumot",
         "destination_exists": "A célkijelzőnek már van mentett elrendezése",
@@ -1179,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Ébresztés mozgatásra",
           "hint": "A kijelző felébred készenlétből, ha valaki felveszi, elmozdítja vagy megkocogtatja. Magát a kijelzőt érzékeli, nem az arra járókat."
+        },
+        "backlight_pwm": {
+          "label": "Háttérvilágítás PWM",
+          "hint": "Milyen gyorsan kapcsol ki-be a háttérvilágítás a halványításhoz. 150 Hz minden ilyen panelt halványít, de néhány 20 kHz alatt sípol: válaszd a 20 kHz-et, ha a tiéd sípol, a 15 kHz-et, ha 20 kHz-en nem halványít egyenletesen."
+        },
+        "dimmest_level": {
+          "label": "Legsötétebb szint",
+          "hint": "A háttérvilágítás legalacsonyabb szintje a teljes teljesítmény arányában. Emeld meg, ha a képernyő a legkisebb fényerőn fekete marad vagy villog."
         },
         "microphone_gain": {
           "label": "Mikrofonerősítés",
@@ -1533,6 +1544,10 @@
         "timeout": {
           "label": "Időkorlát",
           "help": "Ennyi másodpercig marad a csengetés, ha senki nem érinti meg, {min}–{max}. Üresen {default}. Egy érintés nyitva tartja."
+        },
+        "keep_minutes": {
+          "label": "Nem fogadott megtartása",
+          "help": "Ennyi percig marad a senki által nem fogadott csengetés a képét mutató képernyők felső sávjában, a csengetéstől számítva, 1 és {most} között. Üres vagy 0: amíg valaki meg nem nyitja."
         },
         "sound": {
           "label": "Hang",
@@ -2483,7 +2498,9 @@
         "seconds": "{n} mp-enként",
         "live": "Élő",
         "paused": "Élő szünetel",
-        "cap": "Ez a képernyő egyszerre {n} kamerát mutat élőben; a többi 15 másodpercenként mutat egy képet. Két kamerával mindegyik gördülékenyebben fut, mint néggyel."
+        "cap": "Ez a képernyő egyszerre {n} kamerát mutat élőben; a többi 15 másodpercenként mutat egy képet. Két kamerával mindegyik gördülékenyebben fut, mint néggyel.",
+        "cap_one": "Ez a képernyő egyszerre egy kamerát mutat élőben; a többi 15 másodpercenként mutat egy képet.",
+        "streams": "{most} élő közvetítésből {used} használatban, az összes képernyőn. Az ezen felüli kamera 15 másodpercenként mutat egy képet."
       },
       "picture": {
         "fit": {
@@ -3558,6 +3575,14 @@
         "change": "Wi-Fi módosítása és újratelepítés",
         "failed": "A Tessera nem tudja magától hozzáadni ezt a Home Assistanthez: {name}. Add hozzá magad lent."
       },
+      "known": {
+        "title": "Ez a panel már {name} néven szerepel a Home Assistantban",
+        "text": "A Home Assistant panelenként (MAC-cím szerint) egy ESPHome-eszközt tart, ezért {new} nem adható hozzá, amíg {name} ott van. Telepítsd újra {name} képernyőt, vagy cseréld le: amint a firmware a panelen van, {name} az entitásaival együtt eltűnik a Home Assistantból, és {new} veszi át a helyét.",
+        "reinstall": "{name} újratelepítése",
+        "replace": "{name} cseréje erre: {new}",
+        "replaced": "{name} el lett távolítva a Home Assistantból; {new} veszi át a helyét.",
+        "go_firmware": "A Firmware és USB alatt válaszd {name} profilját és a „Telepítés ebből a böngészőből” lehetőséget."
+      },
       "memory": {
         "low_title": "Kevés a szabad memória a Home Assistant gépen",
         "low": "{free} memória szabad, ezért a firmware kevesebb fordítóval készül egyszerre ({jobs} a {cores} helyett). Ez tovább tart, de így elfér.",
@@ -3837,6 +3862,8 @@
       "calendar_free": "Szabad"
     },
     "pages": {
+      "repaired": "{page}. oldal, „{tile}” csempe: ami nem illett, eltávolítva ({what}).",
+      "repaired_tile": "{page}. oldal: a „{tile}” csempe eltávolítva, már nem illett.",
       "mode": "Szerkesztő mód",
       "simple": "Egyszerű",
       "advanced": "Haladó",
@@ -4195,6 +4222,12 @@
       "donated": "Már adományoztam",
       "thanks": "Köszönöm! Ez az üzenet többé nem jelenik meg."
     },
+    "funding": {
+      "title": "Finanszírozást keresek",
+      "body": "Van egy munkám, ami fizeti a számlákat, és az az első. A Tessera egyre nagyobb, és egyszerűen nincs rá annyi időm, amennyi kellene. Hogy életben maradjon, finanszírozásra van szükségem: hogy annyi időt adhassak neki, amennyit megérdemel, vagy felvehessek valakit, aki segít. Ha tudsz segíteni, írj nekem e-mailt.",
+      "mail": "Írj nekem",
+      "later": "Most nem"
+    },
     "build": {
       "plugins": "Fordítás a bővítményeivel",
       "install": "Telepítés",
@@ -4430,7 +4463,8 @@
       "no_camera": "Nincs kamera",
       "fields": {
         "title": "Cím",
-        "timeout": "Időkorlát (másodperc)"
+        "timeout": "Időkorlát (másodperc)",
+        "keep": "Nem fogadott csengetés a felső sávban"
       },
       "screens": {
         "view": "Élőben, hanggal",
@@ -4503,6 +4537,12 @@
         "chime": {
           "label": "Csengőhang csengetéskor",
           "hint": "A képernyő ajtócsengő-hangot játszik, amikor valaki csenget. Kapcsold ki, ha nem akarod minden alkalommal hallani a bim-bamot."
+        },
+        "keep": {
+          "minutes": "{n} perc",
+          "hours": "{n} óra",
+          "open": "Amíg valaki meg nem nyitja",
+          "hint": "A senki által nem fogadott csengetés ennyi ideig marad a képernyők felső sávjában, azzal, hogy mennyi ideje volt. Egy koppintás újra megnyitja."
         }
       },
       "hero": {

@@ -159,6 +159,8 @@
       "microphone": "Microfono",
       "media_player": "Volume",
       "wake_when_moved": "Riattiva se mosso",
+      "backlight_pwm": "PWM retroilluminazione",
+      "dimmest_level": "Livello minimo",
       "dark_mode": "Modalità scura",
       "auto_standby": "Standby automatico",
       "standby_after": "Standby dopo",
@@ -878,6 +880,7 @@
         "layout_conflict": "La disposizione è stata modificata in un altro editor; ricarica e confronta la bozza",
         "adaptation": "La griglia dello schermo è cambiata; occorre adattare esplicitamente la disposizione",
         "normalization": "Le opzioni delle tessere devono essere normalizzate prima di salvare la pagina",
+        "on_tile": "Pagina {page}, tessera «{tile}»: {problem}",
         "ambiguous_tile": "L’evento della tessera ha un’origine ambigua; specifica la pagina",
         "save_first": "Salva la disposizione delle pagine prima delle relative impostazioni",
         "destination_exists": "Lo schermo di destinazione ha già una disposizione salvata",
@@ -1179,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Riattiva se mosso",
           "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
+        },
+        "backlight_pwm": {
+          "label": "PWM retroilluminazione",
+          "hint": "Quanto velocemente la retroilluminazione si accende e spegne per attenuarsi. 150 Hz attenua ogni esemplare di questa scheda, ma alcuni fischiano sotto i 20 kHz: scegli 20 kHz se il tuo fischia, 15 kHz se a 20 kHz non attenua in modo uniforme."
+        },
+        "dimmest_level": {
+          "label": "Livello minimo",
+          "hint": "Il livello più basso della retroilluminazione, come quota della sua potenza piena. Alzalo se lo schermo resta nero o sfarfalla alla luminosità minima."
         },
         "microphone_gain": {
           "label": "Guadagno microfono",
@@ -1533,6 +1544,10 @@
         "timeout": {
           "label": "Timeout",
           "help": "Secondi in cui lo squillo resta se nessuno lo tocca, da {min} a {max}. Vuoto è {default}. Un tocco lo tiene aperto."
+        },
+        "keep_minutes": {
+          "label": "Conserva perso",
+          "help": "Minuti per cui una chiamata senza risposta resta nella barra in alto degli schermi con la sua vista, contati dalla chiamata, da 1 a {most}. Vuoto o 0: finché qualcuno non la apre."
         },
         "sound": {
           "label": "Audio",
@@ -2483,7 +2498,9 @@
         "seconds": "Ogni {n} s",
         "live": "Dal vivo",
         "paused": "Live in pausa",
-        "cap": "Questo schermo mostra {n} telecamere dal vivo alla volta; le altre mostrano un'immagine ogni 15 secondi. Con due telecamere, ognuna è più fluida che con quattro."
+        "cap": "Questo schermo mostra {n} telecamere dal vivo alla volta; le altre mostrano un'immagine ogni 15 secondi. Con due telecamere, ognuna è più fluida che con quattro.",
+        "cap_one": "Questo schermo mostra una telecamera dal vivo alla volta; le altre mostrano un'immagine ogni 15 secondi.",
+        "streams": "{used} di {most} flussi dal vivo in uso, su tutti gli schermi. Una telecamera oltre questi mostra un'immagine ogni 15 secondi."
       },
       "picture": {
         "fit": {
@@ -3558,6 +3575,14 @@
         "change": "Cambia Wi-Fi e reinstalla",
         "failed": "Tessera non riesce ad aggiungere {name} da solo a Home Assistant. Aggiungilo tu qui sotto."
       },
+      "known": {
+        "title": "Questa scheda è già in Home Assistant come {name}",
+        "text": "Home Assistant tiene un dispositivo ESPHome per scheda (il suo indirizzo MAC), quindi {new} non può essere aggiunto finché c’è {name}. Installa di nuovo {name}, oppure sostituiscilo: quando il firmware è sulla scheda, {name} lascia Home Assistant con le sue entità e {new} prende il suo posto.",
+        "reinstall": "Installa di nuovo {name}",
+        "replace": "Sostituisci {name} con {new}",
+        "replaced": "{name} è stato rimosso da Home Assistant; {new} prende il suo posto.",
+        "go_firmware": "In Firmware e USB scegli il profilo di {name} e «Installa da questo browser»."
+      },
       "memory": {
         "low_title": "Poca memoria libera sulla macchina Home Assistant",
         "low": "Ci sono {free} di memoria libera, quindi il firmware si compila con meno compilatori alla volta ({jobs} invece di {cores}). Ci vuole più tempo, ma ci sta.",
@@ -3837,6 +3862,8 @@
       "calendar_free": "Libero"
     },
     "pages": {
+      "repaired": "Pagina {page}, tessera «{tile}»: tolto ciò che non andava ({what}).",
+      "repaired_tile": "Pagina {page}: tessera «{tile}» tolta, non andava più.",
       "mode": "Modalità editor",
       "simple": "Semplice",
       "advanced": "Avanzato",
@@ -4195,6 +4222,12 @@
       "donated": "Ho già donato",
       "thanks": "Grazie! Questo messaggio non tornerà più."
     },
+    "funding": {
+      "title": "In cerca di finanziamenti",
+      "body": "Ho un lavoro che paga le bollette, e viene prima di tutto. Tessera continua a crescere e semplicemente non ho il tempo che richiede. Per tenerlo in vita mi servono finanziamenti: per dedicargli il tempo che merita o assumere qualcuno che aiuti. Se puoi aiutare, scrivimi un'email.",
+      "mail": "Scrivimi",
+      "later": "Non ora"
+    },
     "build": {
       "plugins": "Compila con i suoi plugin",
       "install": "Installazione",
@@ -4430,7 +4463,8 @@
       "no_camera": "Nessuna telecamera",
       "fields": {
         "title": "Titolo",
-        "timeout": "Timeout (secondi)"
+        "timeout": "Timeout (secondi)",
+        "keep": "Tieni una chiamata persa nella barra in alto"
       },
       "screens": {
         "view": "Dal vivo con audio",
@@ -4503,6 +4537,12 @@
         "chime": {
           "label": "Suono del campanello",
           "hint": "Lo schermo suona un campanello quando qualcuno suona. Disattivalo se non vuoi sentire il din-don ogni volta."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} h",
+          "open": "Finché qualcuno non la apre",
+          "hint": "Una chiamata senza risposta resta così a lungo dopo lo squillo nella barra in alto degli schermi, con quanto tempo fa. Un tocco riapre il campanello."
         }
       },
       "hero": {

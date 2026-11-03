@@ -54,6 +54,10 @@
 
 ## Recipes for changing the code
 
+- [ARCHITECTURE.md](ARCHITECTURE.md): the one map of the firmware: its layers (the engine per chip, the glass per
+  panel kind, the streams, pictures, the capability record, the governor, the audio owner, plugins), the hard rules
+  between them with the measurement behind each, where the add-on meets them, and what is built against what is still
+  a plan. Read it first.
 - [CATALOGUE.md](CATALOGUE.md): what a tile of each entity type can do, and adding an entity type.
 - [RESPONSIVE.md](RESPONSIVE.md): how one firmware fits every glass: looks, grids, the font set and card design rules.
 - [MODULES.md](MODULES.md): tiers and modules, the parts of the UI only boards with 8 MB of flash or more get (a recipe).
@@ -93,3 +97,4 @@
 - [SWIPE_PROFILE.md](SWIPE_PROFILE.md): measuring what a page swipe costs the main loop.
 - [TESTING.md](TESTING.md): the levels of testing, from `tools/check.sh` to the whole chain and the upgrade from the last release.
 - [RELEASING.md](RELEASING.md): the two branches, the weekly release, a hotfix, the flash budget and the ESPHome versions.
+- [open-issues/](open-issues/README.md): what is not understood or solved yet, one file each with the measurements, what is ruled out and the experiment that decides; for anyone to pick up.

@@ -16,6 +16,7 @@
 #include "camera_turn.h"
 #include "glass.h"
 #include "pressure.h"
+#include "live_view.h"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -262,16 +263,11 @@ std::string fill(const char *text, const char *name, const std::string &value) {
   return screen_text::fill(std::string(text ? text : ""), name, value);
 }
 
-bool action(const char *service, const std::string &entity, const char *key, const std::string &value) {
-  if (!service || !rt::entity_id(entity) || entity.rfind("screen.", 0) == 0) return false;
-  return rt::action(service, entity, key ? key : "", value);
-}
-
-// An action with fields of any JSON type (0.12): each field as plugin_action.h writes it for Home Assistant, through
-// the screen's own route as a tap's action goes (the screen must be allowed to perform actions).
+// An action, with no fields or fields of any JSON type: each field as plugin_action.h writes it for Home Assistant,
+// through the screen's own route as a tap's action goes (the screen must be allowed to perform actions).
 bool action(const char *service, const std::string &entity, JsonVariantConst fields) {
   static const char *const TAG = "plugin_action";
-  if (!service || !plugin_action::service_name(service) || !fields.is<JsonObjectConst>()) {
+  if (!service || !plugin_action::service_name(service) || (!fields.isNull() && !fields.is<JsonObjectConst>())) {
     ESP_LOGW(TAG, "Not sent: %s needs a service as domain.action and its fields as an object", service ? service : "");
     return false;
   }
@@ -428,11 +424,23 @@ void wake(const Plugin *plugin) {
 // A plugin that uses the screen's own camera on the screen itself says so (0.17), watched or for sensing alone (0.20):
 // the core's dot shows while one does (capture_dot.h).
 void capturing(const Plugin *plugin, Capture what, bool on) {
-  if (!plugin || (what != Capture::CAMERA && what != Capture::SENSING)) return;
+  if (!plugin) return;
+  // Someone hears the microphone (0.23): the governor's rule, no dot (pressure.h, heard).
+  if (what == Capture::SOUND) {
+    runtime_tiles::governor.heard(on);
+    return;
+  }
+  if (what != Capture::CAMERA && what != Capture::SENSING) return;
   capture_dot::capturing(plugin, what == Capture::SENSING, on);
 }
 
-uint8_t squeeze(Work work) { return pressure::level_now(static_cast<pressure::Work>(static_cast<uint8_t>(work))); }
+uint8_t squeeze(Work work) { return pressure::level_of(static_cast<pressure::Work>(static_cast<uint8_t>(work))); }
+
+void offer_own_frames() { live_view::own_offer(); }
+bool own_tile_wants() { return live_view::own_wanted(); }
+void own_frame(const OwnFrame &frame) {
+  live_view::own_frame(frame.data, frame.width, frame.height, frame.format == FrameFormat::YUV420);
+}
 
 int camera_turn() {
 #ifndef SCREEN_CAMERA_ORIENTATION
@@ -1411,7 +1419,7 @@ static void card_pictures_end(OpenCard &open) {
 // this screen has, it hands the glass here. The saver draws in a stage over the whole glass, which the host moves a
 // millimetre along a slow circle every minute (saver_view::drift, as the clock's faces), unless the manifest says the
 // saver moves itself. Its places for pictures are asked for as a card's are, with `saver` instead of `card`; the
-// address "saver:picture" is the step's own picture, which the app cuts to the place, and the key carries the step's
+// address "step:" is the step's own picture, which the app cuts to the place, and the key carries the step's
 // mark of it, so the next cover or photo is another picture.
 struct OpenSaver : tessera::InPsram {
   std::unique_ptr<tessera::Saver> saver;
@@ -1450,7 +1458,6 @@ bool saver_known(const std::string &key) {
   for (const auto &type : tessera::saver_types()) if (type.key == key && type.make) return true;
   return false;
 }
-bool saver_shows() { return saver_open != nullptr; }
 bool saver_backdrop(const std::string &key) {
   for (const auto &type : tessera::saver_types()) if (type.key == key) return type.plugin->backdrop(type.id);
   return false;
@@ -1641,7 +1648,7 @@ void saver_picture_want() {
     if (!open->art_key.empty()) { rt::loader.release(SAVER_OWNER); open->art_key.clear(); }
     return;
   }
-  // The step's picture changes under the same address ("saver:picture"): its mark is part of the key.
+  // The step's picture changes under the same address ("step:"): its mark is part of the key.
   const std::string key = "psaver|" + tile_picture::card_key(a, open->key, open->entity) + "|" + open->mark;
   if (key != open->art_key) {
     open->art_key = key;
@@ -1837,7 +1844,6 @@ static void start() {
   screen_hooks::alert_show().push_back([]() { for (auto *p : tessera::plugins()) p->on_alert(); });
   // An alert takes the glass: a popup goes (0.18).
   screen_hooks::alert_show().push_back([]() { popup_end(true, "an alert"); });
-  screen_hooks::touched().push_back([]() { for (auto *p : tessera::plugins()) p->on_touch(); });
   // Feedback the moment a finger lands or a value under it steps (touch_feedback.h), heard by the plugins only.
   touch_feedback::pressed().push_back([]() { for (auto *p : tessera::plugins()) p->on_press(); });
   touch_feedback::stepped().push_back([](const touch_feedback::Step &s) {
@@ -1942,8 +1948,6 @@ void takes_taps(lv_obj_t *part) {
   lv_obj_add_event_cb(part, plugin_host::saver_touch, LV_EVENT_SHORT_CLICKED, reinterpret_cast<void *>(spot));
 }
 
-lv_obj_t *picture(lv_obj_t *parent) { return picture(parent, Placeholder::BLOCK); }
-
 lv_obj_t *picture(lv_obj_t *parent, Placeholder placeholder) {
   lv_obj_t *place = block(parent, theme::TRACK);
   lv_obj_remove_flag(place, LV_OBJ_FLAG_SCROLLABLE);
@@ -1955,8 +1959,6 @@ lv_obj_t *picture(lv_obj_t *parent, Placeholder placeholder) {
   else ESP_LOGW("plugins", "ui::picture outside a call of a tile, a card or a screensaver: the place shows no picture");
   return place;
 }
-
-void set_picture(lv_obj_t *place, const std::string &url, Fit fit) { set_picture(place, url, fit, Turn::NONE, false); }
 
 static void slide_exec(void *obj, int32_t x) { lv_obj_set_style_translate_x(static_cast<lv_obj_t *>(obj), x, 0); }
 
@@ -2094,7 +2096,6 @@ bool open_card(const std::string &, const std::string &, int, const std::string 
 void close_card() {}
 bool card_open() { return false; }
 bool saver_known(const std::string &) { return false; }
-bool saver_shows() { return false; }
 bool saver_backdrop(const std::string &) { return false; }
 void saver_show(lv_obj_t *, const std::string &, const roomy::Text &, int, bool) {}
 void saver_state(const roomy::Text &) {}

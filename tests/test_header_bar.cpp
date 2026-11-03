@@ -85,5 +85,14 @@ int main() {
   auto cut = centre(many, 4, g, 300);
   assert(cut.count == 2 && cut.x[0] == (300 - (86 + 19 + 163)) / 2);
   assert(centre(huge, 1, g, 448).count == 0 && centre(many, 0, g, 448).count == 0);
+  // An item with a moment to leave (`x`, a missed ring's keep): there before it, gone from it on; one without stays, and
+  // so does every item while the screen's clock is not set.
+  Item kept;
+  kept.until = 1800000000;
+  assert(shown_at(kept, 1799999999) && !shown_at(kept, 1800000000) && !shown_at(kept, 1800003600));
+  assert(shown_at(kept, 0) && shown_at(Item{}, 1800003600));
+  Item other = kept;
+  other.until = 0;
+  assert(!(other == kept));
   std::puts("test_header_bar: PASS");
 }

@@ -685,7 +685,6 @@ inline void step_event(lv_event_t *event) {
     held = repeats > REPEATS_BEFORE_FAST;
   } else {
     repeats = 0;
-    screen_hooks::run_touched();   // a tap, never a repeat of a key that is held (a plugin's click)
   }
   int data = (int) (intptr_t) lv_event_get_user_data(event);
   const Page &page = page_at(current_page);
@@ -706,7 +705,6 @@ inline void row_event(lv_event_t *event) {
   if (index < 0 || index >= page.count) return;
   const Row &row = page.rows[index];
   if (!live_row(row)) return;
-  screen_hooks::run_touched();
   if (row.kind == Kind::page) { current_page = row.opens; first_row = 0; forget_confirm(); draw(); return; }
   if (row.kind == Kind::toggle && readable(row) && writable(row)) { put(row, get(row) ? 0 : 1); refresh(); return; }
   if (row.kind == Kind::choice && readable(row) && writable(row) && row.option_count) {
@@ -729,7 +727,6 @@ inline void row_event(lv_event_t *event) {
 }
 inline void close();
 inline void back_event(lv_event_t *) {
-  screen_hooks::run_touched();
   forget_confirm();
   if (current_page == 0) { close(); return; }
   current_page = page_at(current_page).parent;
@@ -740,7 +737,6 @@ inline uint8_t rows_per_page = 1;
 inline void pager_step(int step) {
   int next = (int) first_row + step * (int) rows_per_page;
   if (next < 0) return;
-  screen_hooks::run_touched();
   first_row = (uint8_t) next;
   forget_confirm();
   draw();

@@ -14,6 +14,8 @@ packages:
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
+  # The backlight's own settings, Backlight PWM and Dimmest level (Extras; their rows are BOOT_BOARD_SETTINGS below).
+  backlight_extras: !include ../hardware/parts/guition-backlight-extras.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
   snapshot: !include ../features/snapshot.yaml
@@ -43,7 +45,19 @@ substitutions:
   LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
 
   # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
-  BACKLIGHT_FREQUENCY: "150Hz"                  # the backlight's PWM; see the output block (GitHub #5)
+  BACKLIGHT_FREQUENCY: "150 Hz"                 # the backlight's PWM at boot; the Backlight PWM extra below changes it
+
+  # This board's own rows on the screen's settings page, under Extras (docs/SETTINGS.md, "A board's own settings"):
+  # the backlight's PWM and its floor, bound to the select and the number below.
+  BOOT_BOARD_SETTINGS: |-
+    static const char *const backlight_pwm_options[] = {"${BACKLIGHT_FREQUENCY}", "15 kHz", "20 kHz"};
+    settings_screen::board_rows.push_back(settings_screen::choice(screen_text::txt::settings_backlight_pwm,
+        []() -> int32_t { return (int32_t) id(board_backlight_pwm).active_index().value_or(0); },
+        [](int32_t index) { id(board_backlight_pwm).make_call().set_index((size_t) index).perform(); },
+        backlight_pwm_options, 3));
+    settings_screen::board_rows.push_back(settings_screen::number(screen_text::txt::settings_dimmest_level,
+        []() -> int32_t { return (int32_t) lroundf(id(board_dimmest_level).state); },
+        [](int32_t value) { id(board_dimmest_level).make_call().set_value((float) value).perform(); }, 1, 10, 1, "%"));
 
 # ============================================================
 # No need to edit below this line.
@@ -83,7 +97,10 @@ output:
     id: gpio_backlight_pwm
     # The backlight driver on many of these boards cannot follow a fast PWM: at 20 kHz (firmware before 0.3.5) every
     # level below 85-95 % looked off, and no marking on the board tells those batches apart. 150 Hz with a small floor
-    # dims every board, as ESPHome's own device page for this board does; 100 Hz shimmers visibly.
+    # dims every board, as ESPHome's own device page for this board does; 100 Hz shimmers visibly. Other batches whine
+    # audibly at anything under 20 kHz (GitHub #327: 17 units from several sellers), and on some the floor of 1 % is
+    # under the driver's start (GitHub #337: black below 25 %). So both are a setting of the screen, kept over a
+    # restart: parts/guition-backlight-extras.yaml, under Extras on the screen, in the app and in Home Assistant.
     frequency: ${BACKLIGHT_FREQUENCY}
     min_power: 0.01
     zero_means_zero: true

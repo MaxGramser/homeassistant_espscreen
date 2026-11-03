@@ -28,6 +28,8 @@ static bool parse_bar_item(JsonVariant value, header_bar::Item &item) {
     if (value["d"].is<unsigned>() && value["d"].as<unsigned>() < header_bar::DOORBELL_CARD) item.card = static_cast<uint16_t>(value["d"].as<unsigned>());
     // A missed ring (module doorbell): its item opens that ring again.
     if (item.kind == header_bar::Kind::ago && value["b"].is<unsigned>() && value["b"].as<unsigned>() == 1) item.card = header_bar::DOORBELL_CARD;
+    // Until when it stands (`x`, unix time): a missed ring that its automation keeps for a while.
+    item.until = value["x"].is<unsigned>() ? value["x"].as<uint32_t>() : 0;
     if (item.kind == header_bar::Kind::ago && item.epoch == 0) return false;
     // A plugin's item names itself: plugin:<plugin>.<item> (docs/PLUGINS.md).
     if (item.kind == header_bar::Kind::plugin && !plugin_key(item.text)) return false;
@@ -367,11 +369,10 @@ std::string receive(const std::string &payload) {
     if (op == "doorbell") {
       // A ring (module doorbell, docs/DOORBELL.md): an automation fired esp_screens_doorbell, and ESP Screens names its
       // camera (`e`), its name (`n`), the ring's key (`k`), when it rang (`r`, unix time) and how long it stays untouched
-      // (`t`, seconds), whether its view opens quiet (`m`) and rings without the chime (`nc`), and its door when it has one
-      // (`d`: 1 a lock, with its state
-      // `ds`, 2 an action); or, with `c`, that
-      // this ring was answered on another screen or dismissed and closes here too; or, with `ds` alone, its lock's new
-      // state. Only a screen whose hello says `doorbell` gets it.
+      // (`t`, seconds), whether its view opens quiet (`m`) and rings without the chime (`nc`), its door when it has one
+      // (`d`: 1 a lock, with its state `ds`, 2 an action) and the stream the app made for this screen (`l`, opened at
+      // once); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
+      // `ds` alone, its lock's new state. Only a screen whose hello says `doorbell` gets it.
 #ifdef SD_MOD_DOORBELL
       const std::string key = string(root["k"], 16);
       if (key.empty()) return false;
@@ -385,7 +386,7 @@ std::string receive(const std::string &payload) {
         doorbell::ring(entity, name.empty() ? entity : name, key, root["r"].is<unsigned>() ? root["r"].as<uint32_t>() : 0,
                        root["t"].is<unsigned>() ? root["t"].as<uint32_t>() : 0, root["d"].is<unsigned>() ? root["d"].as<unsigned>() : 0,
                        string(root["ds"], 16), root["m"].is<unsigned>() && root["m"].as<unsigned>() == 1,
-                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1));
+                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200));
       }
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";
@@ -422,7 +423,8 @@ std::string receive(const std::string &payload) {
       // "psaver" (plugin API 0.14): the pictures of a plugin's screensaver; `e` names it (plugin:<p>.<saver>).
       // "plive" (plugin API 0.17, a question only): the stream of a plugin tile's live place; `e` names its camera.
       if (view == "live" ? !valid_entity_list(entity) : (!valid_entity(entity) && entity != SAVER_PHOTOS) || (view != "full" && view != "alert" && view != "cover" && view != "lib" && view != "saver" && view != "vmap" && view != "pcard" && view != "psaver" && view != "plive")) return false;
-      if (!url.empty() && url.rfind("http://", 0) != 0) return false;
+      // A link on the LAN, or "own:" for a live tile of this screen's own camera (plugin API 0.22, live_view::is_own).
+      if (!url.empty() && url.rfind("http://", 0) != 0 && !(view == "live" && live_view::is_own(url))) return false;
       // Every answer but an alert's carries the number of its question; one to an older question is dropped. A tile's
       // picture is the answer to that tile's last question (tile_picture::Questions).
       const bool current = view == "live" ? tile_questions.answered(number) >= 0

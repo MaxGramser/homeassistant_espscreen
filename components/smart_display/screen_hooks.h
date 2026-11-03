@@ -32,17 +32,6 @@ inline std::vector<std::function<bool()>> &away() {
   static std::vector<std::function<bool()>> list;
   return list;
 }
-// A tap the screen took: the touch filter let it through to a tile, a key or a button (screen_input::TouchGuard), or
-// it landed on a row of the settings, Back or the pager (settings_screen); never the repeat of a key that is held.
-// It comes as the finger lets go, with the tap's action; feedback the moment a finger lands is touch_feedback.h. It runs
-// inside the touch event, so what it does must be quick.
-inline std::vector<std::function<void()>> &touched() {
-  static std::vector<std::function<void()>> list;
-  return list;
-}
-inline void run_touched() {
-  for (auto &f : touched()) f();
-}
 // An alert is about to show, after the settings page closed and before its card is made.
 inline std::vector<std::function<void()>> &alert_show() {
   static std::vector<std::function<void()>> list;

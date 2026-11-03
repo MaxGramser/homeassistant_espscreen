@@ -43,6 +43,9 @@ guition:
   name: Guition
   model: ESP32-S3-4848S040
   status: stable
+  # Its extras under Screen settings (docs/SETTINGS.md, "A board's own settings"): the backlight's PWM and its floor,
+  # which differ between batches of this board (GitHub #5, #327, #337).
+  settings: [backlight_pwm, dimmest_level]
 
 waveshare43:
   file: waveshare-esp32s3-43.yaml

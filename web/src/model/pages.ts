@@ -13,6 +13,7 @@ import { spanOf, spanOffered } from "./sizes";
 import { STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES, dimensions, type Size } from "./layout";
 import { isSize } from "./sizes";
 import { validateCardOptions, validatePageShape } from './page-validation';
+import { cleanPreset, MAX as PRESETS_MAX, type Preset } from './light-presets';
 import rules from './page-rules.json';
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -265,7 +266,11 @@ export function projectLayout(layout: PageLayout, grid: PageGrid): Layout {
   };
 }
 
-export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
+// `before`: the document an edit starts from. A tile it already had, unchanged, is not refused over its options: the
+// add-on checked it when it was saved, so an edit elsewhere on the screen, or deleting it, never waits on it. A tile
+// that is refused is named, with its page.
+export function validatePages(layout: PageLayout, grid: PageGrid, before?: PageLayout): PageLayout {
+  const kept = new Map((before?.pages ?? []).flatMap((page) => page.tiles.map((tile) => [tile.id, JSON.stringify(tile)] as const)));
   validatePageShape(layout, grid.plugins === true);
   if (![grid.columns, grid.rows].every((n) => Number.isInteger(n) && n > 0) || grid.columns * grid.rows > 64)
     throw new Error(t("editor.pages.wait_grid"));
@@ -302,7 +307,12 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
         occupied.add(cell);
       }
       const entity = entityOf(layout, tile);
-      validateCardOptions(tile, entity, footprintSize(tile, grid));
+      try { validateCardOptions(tile, entity, footprintSize(tile, grid)); }
+      catch (error: any) {
+        if (kept.get(tile.id) !== JSON.stringify(tile))
+          throw new Error(t("addon.errors.pages.on_tile", { page: layout.pages.indexOf(page) + 1,
+            tile: tile.appearance.label || entity, problem: error.message }), { cause: error });
+      }
       // Any entity may stand on several tiles (firmware 0.16.0+; the add-on asks an older screen to update first), but
       // a clock with keys: its keys name it by its entity.
       if (entity in rules.keyHolders) {
@@ -316,10 +326,59 @@ export function validatePages(layout: PageLayout, grid: PageGrid): PageLayout {
   return layout;
 }
 
-export function changePages(layout: PageLayout, grid: PageGrid, apply: (draft: PageLayout) => void): PageLayout {
+// What the editor takes out of a tile whose options do not pass, instead of refusing the edit (0.4.92): first what it
+// can put in its own form (a light's presets, a name without spaces at its ends), then the one option that does not
+// fit, then as many as it takes; a tile that still does not pass leaves its page. One note per tile, in the person's
+// words. A name too long for the screen is the person's to shorten: that tile stays and its edit is refused.
+export function repairPages(layout: PageLayout, grid: PageGrid): string[] {
+  const notes: string[] = [];
+  const tooLong = t("addon.errors.layout.tile_name");
+  layout.pages.forEach((page, index) => {
+    page.tiles = page.tiles.filter((tile) => {
+      const entity = entityOf(layout, tile);
+      let footprint: string | null = null;
+      try { footprint = footprintSize(tile, grid); } catch { /* a footprint is no option: validatePages names it */ }
+      if (footprint === null) return true;
+      const size: string = footprint;
+      const problem = () => { try { validateCardOptions(tile, entity, size); return null; } catch (error: any) { return String(error.message); } };
+      const first = problem();
+      if (first === null || first === tooLong || !tile.appearance || !tile.interaction) return true;
+      const name = (typeof tile.appearance.label === "string" && tile.appearance.label.trim()) || entity;
+      if (typeof tile.appearance.label === "string") tile.appearance.label = tile.appearance.label.trim();
+      const gone: string[] = [];
+      if (Array.isArray(tile.interaction.presets)) {
+        const kept = tile.interaction.presets.map(cleanPreset).filter((item): item is Preset => item !== null).slice(0, PRESETS_MAX);
+        if (kept.length) tile.interaction.presets = kept;
+        else { delete tile.interaction.presets; gone.push("presets"); }
+      }
+      const parts = [tile.interaction, tile.appearance] as Record<string, unknown>[];
+      const options = parts.flatMap((part) => Object.keys(part).filter((key) => part !== tile.appearance || key !== "label")
+        .map((key) => [part, key] as const));
+      for (const [part, key] of options) {
+        if (problem() === null) break;
+        const value = part[key];
+        delete part[key];
+        if (problem() === null) gone.push(key);
+        else part[key] = value;
+      }
+      for (const [part, key] of options) {
+        if (problem() === null) break;
+        if (key in part) { delete part[key]; gone.push(key); }
+      }
+      if (problem() !== null) { notes.push(t("editor.pages.repaired_tile", { page: index + 1, tile: name })); return false; }
+      if (gone.length) notes.push(t("editor.pages.repaired", { page: index + 1, tile: name, what: gone.join(", ") }));
+      return true;
+    });
+  });
+  return notes;
+}
+/** The draft after `apply`, checked; with `repairs`, a tile that does not pass is put right first (repairPages), and
+ * what was taken out is said in `repairs`. */
+export function changePages(layout: PageLayout, grid: PageGrid, apply: (draft: PageLayout) => void, repairs?: string[]): PageLayout {
   const draft = clone(layout);
   apply(draft);
-  return validatePages(draft, grid);
+  if (repairs) repairs.push(...repairPages(draft, grid));
+  return validatePages(draft, grid, layout);
 }
 export function reorderPage(layout: PageLayout, grid: PageGrid, pageId: string, to: number) {
   return changePages(layout, grid, (draft) => {

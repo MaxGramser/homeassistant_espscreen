@@ -13,13 +13,14 @@
 
 namespace hw {
 
-// Live camera tiles a screen runs at once, every board alike (docs/PLATFORM_PLAN.md, section 4.1): the fifth on a page
-// shows its stills. One number for every P4 board, so a user reads "4" rather than finding out which tile stopped. The
-// streams a screen can hold (live_view::MAX_STREAMS) is a ceiling above it: four tiles, the full view, a plugin's places.
-constexpr uint8_t LIVE_TILES = 4;
-// And the pictures a second a live tile shows at most, every board alike: a clear limit, at which a reTerminal D1001
-// with four tiles keeps its wake word (10 a second each cost it 51 resets in three minutes, 2026-10-28). A busy screen
-// takes half or a quarter of it (live_view.cpp, pace; the governor, pressure.h).
+// How many live camera tiles a screen runs at once is its picture engine's (picture_engine::limits, docs/PLATFORM_PLAN.md
+// section 4.1): four on every P4 board, so a user reads "4" rather than finding out which tile stopped, the fifth on a
+// page showing its stills. The streams a screen can hold (live_view::MAX_STREAMS) is a ceiling above it: four tiles, the
+// full view, a plugin's places.
+// The pictures a second a live tile shows at most, every board alike: a clear limit, at which a reTerminal D1001
+// with four tiles keeps its wake word (10 a second each cost it 51 resets in three minutes, 2026-10-28). Each tile gets
+// its share of the engine's budget up to this (picture_engine::tile_pps), a busy screen half or a quarter of that
+// (live_view.cpp, pace; the governor, pressure.h).
 constexpr uint8_t LIVE_TILE_PPS = 6;
 
 struct Caps {
@@ -28,7 +29,7 @@ struct Caps {
   bool microphone = false;   // hears (a microphone component is built in)
   bool echo_cancel = false;  // the microphone's path takes the speaker's sound back out (an echo canceller is built in)
   bool camera = false;       // a camera of the board's own (the esp_video_camera component is built in)
-  uint8_t live_tiles = 0;    // live camera tiles at once: LIVE_TILES with live video, 0 without
+  uint8_t live_tiles = 0;    // live camera tiles at once: the engine's with live video, 0 without
   uint32_t psram_bytes = 0, internal_bytes = 0;  // the heaps as the chip reports them at boot
 };
 
@@ -36,6 +37,7 @@ struct Caps {
 struct Facts {
   bool speaker = false, microphone = false, echo_cancel = false, camera = false;
   bool live_video = false;
+  uint8_t live_tiles = 0;  // the engine's (picture_engine::limits)
   uint32_t psram_bytes = 0, internal_bytes = 0;
 };
 
@@ -46,7 +48,7 @@ constexpr Caps resolve(const Facts &f) {
   c.microphone = f.microphone;
   c.echo_cancel = f.echo_cancel && f.microphone && f.speaker;  // cancelling echo needs both ends
   c.camera = f.camera;
-  c.live_tiles = f.live_video ? LIVE_TILES : 0;
+  c.live_tiles = f.live_video ? f.live_tiles : 0;
   c.psram_bytes = f.psram_bytes;
   c.internal_bytes = f.internal_bytes;
   return c;

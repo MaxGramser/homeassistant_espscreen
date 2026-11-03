@@ -3,7 +3,7 @@
 // the whole MCUs it writes (picture_jpeg.h), the PPA's block copy with its scale and turn, and the client with the
 // glass's bursts are the streams' before the move, written once here for the streams and the stills alike.
 #include "picture_engine.h"
-#if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
+#if defined(PICTURE_ENGINE_P4) && defined(SCREEN_PICTURES)
 #include <atomic>
 
 #include "esphome/core/log.h"
@@ -130,6 +130,7 @@ void drop(Client client) {
 }
 int blit(Client client, const Block &b) {
   if (!client) return ESP_ERR_INVALID_STATE;
+  if (b.swap) return ESP_ERR_NOT_SUPPORTED;  // no P4 panel ESPHome makes is drawn big-endian
   ppa_srm_oper_config_t srm{};
   srm.in.buffer = b.in;
   srm.in.pic_w = b.in_w;
@@ -138,7 +139,11 @@ int blit(Client client, const Block &b) {
   srm.in.block_h = b.bh;
   srm.in.block_offset_x = b.bx;
   srm.in.block_offset_y = b.by;
-  srm.in.srm_cm = PPA_SRM_COLOR_MODE_RGB565;
+  srm.in.srm_cm = b.yuv420 ? PPA_SRM_COLOR_MODE_YUV420 : PPA_SRM_COLOR_MODE_RGB565;
+  if (b.yuv420) {
+    srm.in.yuv_range = PPA_COLOR_RANGE_LIMIT;
+    srm.in.yuv_std = PPA_COLOR_CONV_STD_RGB_YUV_BT601;
+  }
   srm.out.buffer = b.out;
   srm.out.buffer_size = b.out_size;
   srm.out.pic_w = b.out_w;

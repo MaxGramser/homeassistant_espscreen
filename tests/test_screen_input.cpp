@@ -23,18 +23,14 @@ int main() {
   r.begin(1300); assert(!r.accept_repeat(1340, 7));                                     // 80 ms after the last: bounce
   r.begin(1300); r.update(40, 0); assert(!r.accept_repeat(1500, 7));                   // a swipe is never a step
   r.begin(1600); assert(r.accept_repeat(1660, 8));                                      // the other key right away
-  // A tap and a key the guard takes reach screen_hooks::touched() (a plugin's click, plugin API 0.3); a refused one,
-  // and a slider's release, do not.
+  // A tap and a key the guard takes; a refused one (bounce, a swipe) does not count, a slider's release takes its own.
   {
-    int heard = 0;
-    screen_hooks::touched().push_back([&heard]() { ++heard; });
     screen_input::TouchGuard t;
-    t.begin(5000); assert(t.accept(5080, 3)); assert(heard == 1);
-    t.begin(5100); assert(!t.accept(5180, 3)); assert(heard == 1);                    // bounce: no click
-    t.begin(6000); t.update(40, 0); assert(!t.accept(6100, 4)); assert(heard == 1);   // a swipe: no click
-    t.begin(7000); assert(t.accept_repeat(7060, 9)); assert(heard == 2);
-    t.begin(8000); assert(t.accept_slider(8100, 200)); assert(heard == 2);
-    screen_hooks::touched().clear();
+    t.begin(5000); assert(t.accept(5080, 3));
+    t.begin(5100); assert(!t.accept(5180, 3));                    // bounce
+    t.begin(6000); t.update(40, 0); assert(!t.accept(6100, 4));   // a swipe
+    t.begin(7000); assert(t.accept_repeat(7060, 9));
+    t.begin(8000); assert(t.accept_slider(8100, 200));
   }
   // Page buttons (0.2.72): Next, Next, Next at a finger's pace all count, so page 4 is three taps away
   // while the pages are still drawing; accept() would have dropped the second and third (600 ms).

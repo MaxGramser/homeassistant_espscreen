@@ -223,8 +223,6 @@ class Loader {
   }
   // Whether the owner said what it wants (this round or before, and has not moved on).
   bool has(const Owner &owner) const { return find(owner) != nullptr; }
-  // Whether the owner's picture is on its way right now.
-  bool loading_for(const Owner &owner) const { const Job *job = find(owner); return job && job->phase == Phase::LOADING; }
   // Whether a download runs in this slot (its buffer is not to be freed under it).
   bool slot_busy(Slot slot) const {
     return std::any_of(jobs_.begin(), jobs_.end(), [&](const Job &j) { return j.phase == Phase::LOADING && j.want.slot == slot; });

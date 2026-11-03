@@ -33,14 +33,19 @@ void bind_speaker(esphome::speaker::Speaker *speaker);
 // The op "doorbell" from ESP Screens (an automation's esp_screens_doorbell): a ring of `camera`, its doorbell's `name`,
 // the app's `key` for this ring, when it rang (unix time), how long it stays when nobody touches it, its door (`door`:
 // 1 a lock in state `door_state`, 2 an action, 0 none; doorbell_door.h), whether its view opens with its sound off
-// (`quiet`, the automation's `sound: false`) and whether it chimes (`chime: false` rings without); or the close of that
+// (`quiet`, the automation's `sound: false`), whether it chimes (`chime: false` rings without) and the stream the app
+// made for this screen as the event came (`link`, which the view opens at once instead of asking); or the close of that
 // ring, answered on another screen or dismissed; or its lock's new state.
 void ring(const std::string &camera, const std::string &name, const std::string &key, uint32_t rang, uint32_t untouched_s,
-          unsigned door = 0, const std::string &door_state = "", bool quiet = false, bool chimes = true);
+          unsigned door = 0, const std::string &door_state = "", bool quiet = false, bool chimes = true,
+          const std::string &link = "");
 void close_ring(const std::string &key);
 void door_state(const std::string &key, const std::string &state);
 // The top bar's item of a missed ring (`b`): the ring this screen showed last, opened again without a chime.
 void reopen();
+// The stream the app made for the ring that opens now (the op's `l`), empty when the view is to ask for one: a missed
+// ring opened again asks, as its link may be gone by then.
+const std::string &link();
 
 // The camera view as a doorbell (runtime_tiles.h calls these from the camera's own functions).
 bool shown();

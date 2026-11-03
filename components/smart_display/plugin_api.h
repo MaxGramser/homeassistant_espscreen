@@ -32,66 +32,12 @@ namespace tessera {
 // of a compiler error. A plugin builds on every core with the same major and at least its minor.
 // From 1.0 on that is a promise: a minor only adds, and only a break raises the major. Major 0 is the time before
 // the API is promised to anyone: a minor may still change a name or a signature while the API settles, and Tessera's
-// own plugins move with it in the same release (the plugins repository, docs/FIRMWARE_API.md "Versions"). Such a minor
-// is listed in PLUGIN_API_BREAKS (__init__.py, plugin_manifest.py): a plugin written before it is refused in one sentence.
-// 0.1: tiles and the moments. 0.2: tiles of an entity, cards, tap actions, top bar items, settings rows, questions to
-// the app, date words. 0.3: on_touch, a settings action that says how it is going. 0.4: Plugin::on_tick (every 250 ms,
-// with millis()) became on_interval, so that on_tick everywhere means once a second with the clock. 0.5: the app's side
-// only: lists of an entity bounded by bytes instead of 16 items, `fields` of a tile's entity and of an answer, the
-// field kind `numbers`, `has_attributes` for the entity list (a plugin that uses them needs an app that knows them).
-// 0.6: the app's side only: settings of kind text and button, a button's `status`, settings found by their name in the
-// entity registry, and each plugin's settings in its details on the screen's Plugins tab. 0.7: the manifest's side only:
-// `topics`, `provides` and `requires.features` (a feature is a promise about one ESPHome id, such as a speaker with id
-// ts_speaker, whichever plugin or board brings it), parts that need a feature, and plugins that come along with the one
-// that needs them. 0.8: the features `camera` (ts_camera) and `camera_sensor`, the first feature only a board brings (its
-// I2C bus as the substitution CAMERA_I2C), and a top bar item's `tone`, the colour of its icon. 0.9: Font::DIGITS, the
-// large digits of a climate card's setpoint, and ui::covers(), whether a font has every character of a text;
-// Tone::GOOD, and the tones for a block too (ui::set_fill, ui::tone_color); ui::label is one line high as it says.
-// 0.10: pictures on a tile (ui::picture, ui::set_picture, ui::pictures; the manifest's `pictures` of a tile): places a
-// tile lays out, each with an address the app fetches and paints for exactly that place, through the route every
-// picture of the screen takes (tile_picture.h "parts"); ui::text, a label of several lines; and tap_point(), where the
-// finger of a tile's on_tap was.
-// 0.11: on_press, a finger landing on something that takes a tap, at once; on_step(Step), a value under the finger
-// stepping (a dragged slider, dial or seek bar, a held key); SoundPlayer::add(), a sound after the ones before it, evenly
-// spaced.
-// 0.12: values of JSON: an option that keeps several values (`multiple`: a list of texts, or of picks {value, label}), a
-// choice found by searching (`search`, a pick), a fetch that asks once per value of a list and puts the answers together
-// (`each`, `{name|,}` to join a list in one ask), and action() with fields of any JSON type. Card::on_tap, a tap on a
-// card's room, with tap_point() in the card's own pixels.
-// 0.13: pictures on a card over the page: ui::picture and ui::set_picture in a card's calls as in a tile's, and the
-// manifest's `pictures` of a card.
-// 0.14: screensavers (docs/PLUGINS.md "A screensaver"): add_saver, a Saver drawn over the whole glass in standby, as a
-// face of a step of the screensaver (the clock, the music, the photos) or as a step of its own; ui::takes_taps, a part of
-// it a finger may tap without waking the screen; "saver:picture", the step's own picture for a place, or the manifest's
-// `backdrop: true`, the step's own picture (moving, for the photos) under the whole saver; and wish(), a
-// value a finger changed, shown at once and squared with Home Assistant as every control of the screen does; drift(),
-// the slow circle against burn-in, for a saver that moves only some of its parts.
-// 0.15: an option of kind `entity`; the add-on follows its selected Home Assistant entity and puts the bounded state
-// under `entities.<option id>` in the tile's data. This adds no firmware-side symbols.
-// 0.16: wake(), the screen wakes as Home Assistant's Wake button does, for a plugin that senses someone come.
-// 0.17 (docs/PICTURES.md): pictures in one system. ui::picture(parent, Placeholder::NONE), a place without its soft
-// block (places that lie over each other, a cover flow); on_picture(place, PictureState) on a tile, a card and a
-// screensaver, whether a place's picture came; the core's sources as a place's address (`cover:<entity>`,
-// `camera:<entity>`, `entity:<entity>` for a place of that entity, `step:` for the screensaver step's own picture, the
-// old `saver:picture` still read); slide_pictures from any call of a tile or a card; ui::live, a tile's place that
-// streams its camera on a P4 as a camera tile set to Live does; and capturing(), a plugin that uses
-// the screen's own camera on the screen itself, which the core then shows with its dot (the core shows Home
-// Assistant's own use of the camera by itself).
-// 0.18: popups (show_popup, close_popup, popup_shown, Popup): the alert's card in the middle of the glass with what the
-// plugin draws in it, as high as that, over everything but an alert, for a voice assistant that listens, thinks and
-// answers; and ui::animate and ui::still, a part of it that pulses, spins or ripples while something goes on.
-// 0.19: camera_turn(), how far a plugin that drives the screen's own camera turns its picture to stand upright: the
-// board's mounting of the sensor and the screen turned half way round.
-// 0.19: hw::caps() (hw.h), what this screen's hardware can do in one record: whether it streams a camera live, has a
-// speaker, a microphone, echo cancellation and a camera of its own, how many live tiles it runs at once, and its
-// memory. A plugin reads it instead of inferring any of that from a board, a chip or an id (docs/PLATFORM_PLAN.md
-// 3.3); ui::live() still degrades to stills on its own, so a plugin that wants to say why reads caps().live_video.
-// 0.20: Capture::SENSING, the screen's own camera used for what never leaves it and nobody watches (a light level,
-// motion): the core's dot shows as a ring then, and solid while anyone watches (Capture::CAMERA, Home Assistant).
-// 0.21: squeeze(), how much of its work a busy screen asks a plugin to give up now (the governor, pressure.h): the
-// screen's own camera's video, its sensing and work in the background do half or a quarter while a finger is on the
-// glass or the screen shows signs of trouble, so the glass and the voice never wait.
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 21;
+// own plugins move with it in the same release. A minor may take a form away: a plugin that still uses it fails its
+// build with the compiler's error at that call (0.24). PLUGIN_API_BREAKS (__init__.py, plugin_manifest.py) is for a
+// minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
+// plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
+// docs/FIRMWARE_API.md, "Versions".
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 24;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -428,10 +374,6 @@ class Plugin {
   virtual void on_cards_closed() {}
   // An alert is about to show (a doorbell), 0.2.
   virtual void on_alert() {}
-  // A tap the screen took, after the touch filter: a tile, a key, a button, a row of the settings, Back or the pager,
-  // never the repeat of a key that is held. For a click or a buzz, 0.3. It runs inside the touch event: start a sound,
-  // never wait for one.
-  virtual void on_touch() {}
   // A finger came down on something that takes a tap or a drag: a tile, a key, a slider, a row of the settings, the
   // top bar. At once, before the screen knows whether it becomes a tap, a hold or a swipe, so a click answers the finger
   // (0.11). Not for the push that wakes a dimmed screen, nor between the tiles. Runs inside the touch: start a sound,
@@ -571,13 +513,17 @@ void refresh();
 // a setting for it, off until someone turns it on (docs/PLUGINS.md, "Waking the screen").
 void wake(const Plugin *plugin);
 // What a plugin captures on the screen itself (0.17): its own camera, watched (CAMERA: someone sees what it sees), or
-// for sensing alone (SENSING, 0.20: a light level, motion, and no picture leaves the screen or reaches a person).
-enum class Capture : uint8_t { CAMERA, SENSING };
+// for sensing alone (SENSING, 0.20: a light level, motion, and no picture leaves the screen or reaches a person), or
+// its microphone, heard (SOUND, 0.23: someone hears what it hears, as a viewer of its video with sound or a call).
+enum class Capture : uint8_t { CAMERA, SENSING, SOUND };
 // A plugin uses the screen's own camera on the screen itself (0.17, docs/PICTURES.md "Capture"): true while it does,
 // false once it stops, for each Capture on its own. The core shows a dot in the glass's top right corner, on top of
 // everything, while anything uses the camera, and no plugin or setting can take it away: solid while anyone watches
 // (a plugin's CAMERA, or Home Assistant taking pictures or a stream of the camera, `ts_camera`, which the core sees by
 // itself), a ring while the camera only senses (SENSING, 0.20). What a plugin does on the screen it must say here.
+// SOUND (0.23) changes no dot: the screen squeezes its live tiles to a quarter while someone hears the microphone
+// (pressure.h, heard), since a conversation goes before the tiles on the sending side too; on a reTerminal D1001 four
+// live tiles beside its own video stalled the uplink and the sound reached its viewer in bursts a second late.
 // Call it from the plugin's own calls (the screen's loop).
 void capturing(const Plugin *plugin, Capture what, bool on);
 // The work a busy screen may squeeze (0.21, docs/PLATFORM_PLAN.md 4.10), in the order it gives up: the screen's own
@@ -589,6 +535,20 @@ enum class Work : uint8_t { OWN_CAMERA = 4, SENSING = 5, BACKGROUND = 6 };
 // finger is on the glass; it goes back by itself. Any task may ask, at any moment, and nothing waits on it. A plugin
 // that gives up frames of a video leaves them out before it encodes them, so its stream stays whole.
 uint8_t squeeze(Work work);
+// The screen's own camera on a live tile of its own (0.22, docs/PLATFORM_PLAN.md 4.11). A plugin that has the camera's
+// frames offers them once, in its setup: the screen's hello then says so, and the app answers a live tile of this
+// screen's own camera with no link but this. While such a tile is on the glass, own_tile_wants() is true, and the plugin
+// hands each frame to own_frame() on its camera's task, as the camera gave it: the core takes what it needs before it
+// returns (a copy of the part it shows, at its pace), never waits, and lets a frame it cannot take go by.
+enum class FrameFormat : uint8_t { RGB565, YUV420 };  // YUV420: the P4's packed layout (ISP, encoder), BT.601 limited
+struct OwnFrame {
+  const uint8_t *data = nullptr;
+  uint16_t width = 0, height = 0;
+  FrameFormat format = FrameFormat::RGB565;
+};
+void offer_own_frames();
+bool own_tile_wants();
+void own_frame(const OwnFrame &frame);
 // How far the screen's own camera turns its picture to stand upright (0.19), 0 or 180: half way round when the board
 // mounts its sensor upside down against the glass (its CAMERA_ORIENTATION), and half way again while the screen is
 // turned half way round from lying down. A quarter turn (a screen stood up) changes nothing; the picture stays lying
@@ -620,22 +580,20 @@ inline bool open(Side side, Role role) { return audio_owner::the().would_grant(s
 inline bool held(Side side) { return audio_owner::the().held(side); }
 inline Role holder(Side side) { return audio_owner::the().holder(side); }
 }  // namespace audio
-// A Home Assistant action on an entity, as a tile's tap sends it: action("light.toggle", entity), or with one field
-// (action("climate.set_temperature", entity, "temperature", "21")). The screen must be allowed to perform actions.
-// The plugin's manifest names every action it calls under permissions.home_assistant_actions so that a person can read
-// what it does before adding it; the screen does not check that list (code built into the firmware can do what the
-// firmware can), the manifest is the plugin's own word. False when it was not sent.
-bool action(const char *service, const std::string &entity, const char *key = nullptr, const std::string &value = "");
-// The same with fields of any JSON type (0.12), a JSON object of up to 16 fields, together at most 1 KB:
+// A Home Assistant action on an entity, as a tile's tap sends it: action("light.toggle", entity), or with fields of any
+// JSON type, a JSON object of up to 16 fields, together at most 1 KB:
 //   JsonDocument d;
 //   d["media_id"] = title; d["media_type"] = "album"; d["artist"] = artist;
 //   tessera::action("music_assistant.play_media", player, d);
+// The screen must be allowed to perform actions. The plugin's manifest names every action it calls under
+// permissions.home_assistant_actions so that a person can read what it does before adding it; the screen does not check
+// that list (code built into the firmware can do what the firmware can), the manifest is the plugin's own word.
 // A text arrives as the text ("1989" stays a text), a number as a number, true and false as themselves, a list or an
 // object whole, and nothing in it is ever run as a template. `entity` is the action's entity_id, whose tiles wait for
 // the answer as for a tap; "" when the fields name their own target (an "entity_id" list of several speakers, an
 // area_id) or the action has none. False when it was not sent: no object, a field name that is not a-z, 0-9 and _,
 // entity_id given twice, too many or too much (the log says which).
-bool action(const char *service, const std::string &entity, JsonVariantConst fields);
+bool action(const char *service, const std::string &entity, JsonVariantConst fields = JsonVariantConst());
 // A value a finger changed (0.14, docs/OPTIMISTIC.md): it shows at once on every tile and card of the entity and on the
 // screensaver (a saver's on_state gets it), the action goes out at once (taps while it is on its way fold into one), and
 // Home Assistant's reports, answers and silence square it: a refusal or no answer puts the old value back. Use it for
@@ -708,16 +666,14 @@ bool pictures();
 // (lv_obj_set_style_radius) is taken over by the picture. Call it in create() of a tile or open() of a card, as every
 // object. The place is the core's: size and place it, never style it (0.17: Placeholder::NONE for a place without its
 // block, which stays so whatever comes of its picture).
-lv_obj_t *picture(lv_obj_t *parent);
-lv_obj_t *picture(lv_obj_t *parent, Placeholder placeholder);
+lv_obj_t *picture(lv_obj_t *parent, Placeholder placeholder = Placeholder::BLOCK);
 // The picture a place shows, by its address, COVER or CONTAIN (Fit). The same address again does nothing (call it on
 // every on_state for free); another address asks the app again; "" takes the picture away and shows the block. A
 // place that lies outside the card, or has no size, gets no picture.
-void set_picture(lv_obj_t *place, const std::string &url, Fit fit = Fit::COVER);
-// The same, turned in perspective (Turn) and with a reflection fading out under it (`mirror`: the place's lower part,
+// Turned in perspective (Turn) and with a reflection fading out under it (`mirror`: the place's lower part,
 // MIRROR_PERCENT of the picture's height, holds it). Places may overlap: they are layers, a place made later lies over
 // one made earlier, and the app paints them so (a cover flow, a stack of photos). An older app draws them flat.
-void set_picture(lv_obj_t *place, const std::string &url, Fit fit, Turn turn, bool mirror = false);
+void set_picture(lv_obj_t *place, const std::string &url, Fit fit = Fit::COVER, Turn turn = Turn::NONE, bool mirror = false);
 // Slide every place of the tile `dx` pixels sideways over `ms` (0.10), and keep them there until the tile's next
 // picture is here: then they are back where the tile laid them out, with it, in the same frame. Call it beside the
 // set_picture calls of a change (a cover flow that turns), so the change shows which way it goes while the next picture

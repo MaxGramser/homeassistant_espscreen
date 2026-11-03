@@ -112,7 +112,7 @@ class Pick(unittest.TestCase):
         self.assertEqual(x['entity'], PLAYER)
         self.assertEqual((x['title'], x['artist'], x['state'], x['volume'], x['muted']), ('Song', 'Band', 'playing', 0.42, False))
         self.assertEqual((x['duration'], x['position'], x['position_at']), (200, 20, 1792224000))
-        self.assertEqual(x['picture'], 'saver:picture')
+        self.assertEqual(x['picture'], 'step:')
         self.assertTrue(x['mark'])
         self.assertEqual(x['features'], 4127)
 
@@ -250,11 +250,10 @@ class Manifest(unittest.TestCase):
     def test_the_step_picture_is_the_apps_own(self):
         face = {'pictures': 1, 'step': 'media', 'domains': []}
         manifest = {'id': 'vinyl', 'permissions': {'network': []}}
-        self.assertEqual(plugin_pictures.allowed('saver:picture', manifest, face), 'saver')
-        self.assertIsNone(plugin_pictures.allowed('saver:picture', manifest, {**face, 'step': 'clock'}))
-        # Its name from plugin API 0.17 is the same source.
         self.assertEqual(plugin_pictures.allowed('step:', manifest, face), 'saver')
-        found = picture_legacy.read({'tiles': DECK, 'saver': '1', 'bg': '000000', 'src': '["saver:picture"]',
+        self.assertIsNone(plugin_pictures.allowed('step:', manifest, {**face, 'step': 'clock'}))
+        self.assertIsNone(plugin_pictures.allowed('saver:picture', manifest, face))   # its old name, gone in 0.24
+        found = picture_legacy.read({'tiles': DECK, 'saver': '1', 'bg': '000000', 'src': '["step:"]',
                                      'atlas': '[[0,0,100,100,0,0]]'}, {'board': 'guition', 'firmware': '0.50.0'})
         self.assertEqual((found.kind, found.entity), ('psaver', DECK))
         self.assertEqual((found.question.owner.kind, found.question.owner.key, found.question.owner.index), ('plugin_saver', DECK, -1))

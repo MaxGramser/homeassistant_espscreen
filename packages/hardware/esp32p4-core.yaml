@@ -64,3 +64,32 @@ text_sensor:
     entity_category: diagnostic
     lambda: 'return {wifi_chip::firmware()};'
     update_interval: 60s
+  # The panel watch (glass.h, glass_dsi.cpp): the last minute in one line, "quiet, 3601 frames" when the panel never ran
+  # dry in it, or for example "2 flashes, 3 of 3601 frames dry; +12.3 s LVGL flushing, finger, 4 log; +40.1 s a
+  # stream, 0 log; 31 log lines; DSI host errors 0 (0x00000000)": who held the glass as each flash began, the finger,
+  # the log's lines in the second before. The screen sees each frame of blue itself, so a flash needs no eye on the glass, and Home
+  # Assistant's history of this sensor is the record (the log gets the same line, once a minute and only after a flash).
+  - platform: template
+    name: "Panel watch"
+    icon: "mdi:monitor-eye"
+    entity_category: diagnostic
+    lambda: 'return {glass::watch_said()};'
+    update_interval: 60s
+
+# How often the panel ran dry since boot (glass_dsi.cpp, "The panel's share of the memory bus"): each frame the DSI
+# bridge could not fetch the next pixels from PSRAM in time and the panel showed blue, over the whole glass or its
+# lower part. A tester who sees a flash reads here whether the screen counted it, and a graph of this number
+# beside the screen's activity says what brings them on. Every ten seconds, so a flash and its count are near in time.
+sensor:
+  - platform: template
+    name: "Panel misses"
+    icon: "mdi:monitor-off"
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    lambda: 'return glass::misses();'
+    update_interval: 10s
+
+esphome:
+  includes:
+    - <esphome/components/smart_display/glass.h>

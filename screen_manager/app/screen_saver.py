@@ -447,7 +447,7 @@ def _number(value, low=None, high=None):
 
 
 def media_contract(entity, state, said, extras, colours):
-    """The music step: the player on the glass, what it plays and what it can do. `picture` is 'saver:picture' while it
+    """The music step: the player on the glass, what it plays and what it can do. `picture` is 'step:' while it
     has a cover, the address a face gives ui::set_picture for it; `colour` the cover's own colour ('#rrggbb')."""
     attrs = (state or {}).get('attributes') or {}
     features = attrs.get('supported_features')
@@ -457,7 +457,7 @@ def media_contract(entity, state, said, extras, colours):
            'state': (state or {}).get('state', ''),
            'features': features if isinstance(features, int) and not isinstance(features, bool) and features >= 0 else 0,
            'muted': attrs.get('is_volume_muted') is True,
-           'picture': 'saver:picture' if extras.get('pic') else '', 'mark': extras.get('pic', '')}
+           'picture': 'step:' if extras.get('pic') else '', 'mark': extras.get('pic', '')}
     if volume is not None:
         out['volume'] = round(volume, 3)
     for key, name in (('duration', 'dur'), ('position', 'pos'), ('position_at', 'at')):
@@ -482,8 +482,8 @@ def clock_contract(degrees, row):
 
 
 def photos_contract(photos):
-    """The photos step: the photo on the glass ('saver:picture') and where it stands in its folder."""
-    return {'picture': 'saver:picture', 'mark': photos.get('mark', ''), 'index': photos.get('index', 0),
+    """The photos step: the photo on the glass ('step:') and where it stands in its folder."""
+    return {'picture': 'step:', 'mark': photos.get('mark', ''), 'index': photos.get('index', 0),
             'count': photos.get('count', 0), 'album': photos.get('album', '')}
 
 

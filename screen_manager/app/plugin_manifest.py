@@ -15,10 +15,11 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 21)
-# Major 0 is the time before that promise: a minor may still change a name or a signature. The minors that did are
-# listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so a plugin written before one is told
-# so in one sentence instead of failing in the compiler. 0.4: Plugin::on_tick became on_interval.
+PLUGIN_API = (0, 24)
+# Major 0 is the time before that promise: a minor may still change a name or a signature, or take a form away (a plugin
+# that uses it then fails in the compiler, 0.24). A minor after which an older plugin would still build but work wrongly
+# is listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so such a plugin is told so in one
+# sentence. 0.4: Plugin::on_tick changed its meaning; the old one became on_interval.
 PLUGIN_API_BREAKS = {0: (4,)}
 
 ID = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
@@ -109,7 +110,6 @@ MAX_PICTURES = 8
 # the photos) or a step of its own. `when` says when a step of its own has something to show.
 MAX_SAVERS = 4
 SAVER_STEPS = ('clock', 'media', 'photos', 'own')
-SAVER_WHEN = ('always', 'data', 'state')
 SAVER_API = (0, 14)
 # An option of kind entity (0.15): a tile's own choice of a Home Assistant entity, which the app follows and sends under
 # x.entities (Plugins.tile_message). Only a tile's: a screensaver's options have no entities sent with them.
@@ -200,10 +200,6 @@ def parse_path(path, root=True):
     return steps
 
 
-def _where(where):
-    return f'{where}.' if where else ''
-
-
 def _object(value, where, allowed, required=()):
     if not isinstance(value, dict):
         raise ManifestError(where, 'must be a mapping')
@@ -256,7 +252,7 @@ def check_savers(value, out, keys, fetch_ids, choice_lists, searched, options_of
             raise ManifestError(f'{where}.step', f'one of {", ".join(SAVER_STEPS)}')
         saver['step'] = item['step']
         saver['memory'] = _number(item['memory'], f'{where}.memory', 64, MAX_TILE_BYTES, whole=True)
-        # Places for pictures (as a tile's); 'saver:picture' is the step's own picture (the cover, the photo).
+        # Places for pictures (as a tile's); `step:` is the step's own picture (the cover, the photo).
         saver['pictures'] = _number(item.get('pictures', 0), f'{where}.pictures', 0, MAX_PICTURES, whole=True)
         for flag in ('taps', 'moves', 'backdrop'):
             if flag in item and not isinstance(item[flag], bool):
@@ -833,10 +829,7 @@ def check(manifest, english=None, strict=True):
         if low[0] > high[0] or low[1] > high[1]:
             raise ManifestError(f'{where}.sizes', 'min must not be larger than max')
         tile.update(min=sizes['min'], max=sizes['max'], full=bool(sizes.get('full', False)))
-        memory = item['memory']
-        if isinstance(memory, dict):
-            memory = _object(memory, f'{where}.memory', {'bytes'}, ('bytes',))['bytes']
-        tile['memory'] = _number(memory, f'{where}.memory', 64, MAX_TILE_BYTES, whole=True)
+        tile['memory'] = _number(item['memory'], f'{where}.memory', 64, MAX_TILE_BYTES, whole=True)
         # Places for pictures on the tile (0.10): how many at most. The app paints a picture only for a tile whose
         # manifest says it has places, from a host of permissions.network or Home Assistant's own pictures of a tile of
         # an entity (plugin_pictures.allowed).

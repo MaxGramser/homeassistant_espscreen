@@ -970,8 +970,8 @@ class Run:
         await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'re': body['re'], 'ok': True, 'result': {
             'prices': days[1]['prices'], 'start': 1791410400}}})
         await self.until(lambda l: probe(l, f'message re={body["re"]} ok=1 prices=96'), 10, 'a mapped answer of 96 prices', start)
-        # A tap on the plugin tile: on_press as the finger lands (plugin API 0.11), then through the touch guard to on_tap
-        # and on_touch; the plugin opens its card.
+        # A tap on the plugin tile: on_press as the finger lands (plugin API 0.11), then through the touch guard to on_tap;
+        # the plugin opens its card.
         start = len(self.lines)
         tile = (await self.navigation_state())['tile']
         since = len(calls)
@@ -1009,7 +1009,6 @@ class Run:
         if not (0 <= tx < tw and 0 <= ty < th):
             self.failures.append(f'the tap point {tx},{ty} is not within the tile\'s {tw}x{th}: {tapped}')
         await self.until(lambda l: probe(l, 'press'), 10, 'on_press', start)
-        await self.until(lambda l: probe(l, 'touch'), 10, 'on_touch', start)
         await self.until(lambda l: probe(l, 'card open') and 'tile=0' in l, 10, 'the card opened', start)
         await self.until(lambda l: probe(l, 'card tick'), 10, 'the card ticked', start)
         # Pictures on the card (plugin API 0.13): its place asks for its picture as a plugin tile's do, as a card's
@@ -1309,13 +1308,13 @@ class Run:
             word = {'k': 'media', 'e': entity, 'n': 'Living room', 't': 'Evening Drive', 'x': {'artist': 'Nova Coast', 'pic': 'c0ffee1234'},
                     's': 'playing', 'f': 1 | 4 | 8 | 1024 | 16384}
             contract = {'entity': entity, 'name': 'Living room', 'title': 'Evening Drive', 'artist': 'Nova Coast', 'state': 'playing',
-                        'features': 1 | 4 | 8 | 1024 | 16384, 'muted': False, 'picture': 'saver:picture', 'mark': 'c0ffee1234'}
+                        'features': 1 | 4 | 8 | 1024 | 16384, 'muted': False, 'picture': 'step:', 'mark': 'c0ffee1234'}
             await self.send({'v': 1, 'op': 'saver', **word, 'pf': {'p': 'plugin:host_probe.deck', 'o': {}, 'x': contract}})
             await self.until(lambda l: probe(l, 'saver=dial destroy'), 10, 'the clock face left for the music', lines)
             key = await self.until(lambda l: probe(l, 'saver=deck key '), 10, 'the music face and its key', lines)
             x1, y1, x2, y2 = (int(n) for n in key.rsplit(' ', 1)[1].split(','))
-            # Its cover: asked as a saver's (owner plugin_saver), the source the step's own picture (`step:`, which
-            # `saver:picture` names too), answered as the app does.
+            # Its cover: asked as a saver's (owner plugin_saver), the source the step's own picture (`step:`), answered
+            # as the app does.
             for _ in range(24):
                 questions = [read for _, read in self.unanswered(calls, start) if read.owner.kind == 'plugin_saver']
                 if questions:
@@ -1357,7 +1356,7 @@ class Run:
             # face draws over it on a clear glass, and the photo moves (`mv`).
             start, lines = len(calls), len(self.lines)
             await self.send({'v': 1, 'op': 'saver', 'k': 'photos', 'e': 'saver.photos', 'n': '', 'x': {'pic': 'beef00beef', 'mv': 1},
-                             'pf': {'p': 'plugin:host_probe.frame', 'o': {}, 'x': {'picture': 'saver:picture', 'mark': 'beef00beef',
+                             'pf': {'p': 'plugin:host_probe.frame', 'o': {}, 'x': {'picture': 'step:', 'mark': 'beef00beef',
                                                                                      'index': 2, 'count': 9, 'album': 'Family'}}})
             await self.until(lambda l: probe(l, 'saver=frame show'), 10, 'the photo face over its photo', lines)
             for _ in range(24):

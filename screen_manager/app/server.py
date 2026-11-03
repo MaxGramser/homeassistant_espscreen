@@ -1105,7 +1105,8 @@ class Manager:
         self.alert_cameras = {}
         # A camera live on a P4 (live_stream.py): its links and the sources behind them, on the camera port.
         self.live = live_stream.LiveFeed(lambda entity: self.ha.camera_image(entity), lambda: self.ha.websocket(),
-                                       lambda entity: self.ha.camera_streams(entity), live_tiles=self.live_tiles_of)
+                                       lambda entity: self.ha.camera_streams(entity), live_tiles=self.live_tiles_of,
+                                       screen_name=self.name_of)
         self.links = picture_links.Links()
         self.sources = picture_sources.Sources(picture_sources.Providers.of(self), self.snapshots)
         self.pictures = picture_service.Service(self, self.sources, self.links, self.live)
@@ -1284,6 +1285,11 @@ class Manager:
             view = has_module(screen, 'doorbell') and self.live_camera(screen)
         return 'view' if view else 'picture' if board_of(screen) in picture_question.BOXES else 'plain'
 
+    def name_of(self, inbox):
+        """The name this app gives the screen of `inbox` (its own label, else Home Assistant's), or the inbox."""
+        screen = self.screen(inbox)
+        return (self.labels.get(screen.get('device_id')) or screen['name']) if screen else inbox
+
     def live_tiles_of(self, inbox):
         """How many live camera tiles the screen of `inbox` streams at once, from its hello (page_delivery.caps_of,
         firmware hw.h), or None while it is not connected or its firmware did not say."""
@@ -1291,6 +1297,34 @@ class Manager:
         if sender is None or getattr(sender, 'protocol', None) is None:
             return None
         return (getattr(sender, 'caps', None) or {}).get('live_tiles')
+
+    def picture_turn_of(self, inbox):
+        """How the screen of `inbox` takes its live pictures: turned as its glass is (90, 180 or 270, its hello's
+        picture_turn), or 0 upright."""
+        sender = self.page_senders.get(self.aliases.get(inbox, inbox))
+        return (getattr(sender, 'caps', None) or {}).get('picture_turn') or 0 if sender is not None else 0
+
+    def own_camera_of(self, inbox, screen, entity):
+        """Whether `entity` is the screen of `inbox`'s own camera as Home Assistant shows it (Video in Home Assistant: the
+        tessera_video camera on the screen's own device) and the screen draws a tile of it from the camera itself (its
+        hello's own_camera, plugin API 0.22)."""
+        sender = self.page_senders.get(self.aliases.get(inbox, inbox))
+        if sender is None or not (getattr(sender, 'caps', None) or {}).get('own_camera'):
+            return False
+        item = self.registry_index().get(entity) or {}
+        device = (screen or {}).get('device_id')
+        if not device or item.get('platform') != screen_video.DOMAIN:
+            return False
+        if item.get('device_id') == device:
+            return True
+        # The camera on a device of its own beside the screen's, with the screen's MAC: Home Assistant kept the two
+        # apart (seen on a reTerminal D1001, 2026-10-28), and it is the same screen.
+        devices = {d.get('id'): d for d in getattr(self.ha, 'devices', None) or [] if isinstance(d, dict)}
+
+        def macs(found):
+            return {str(c[1]).lower() for c in (found or {}).get('connections') or []
+                    if isinstance(c, (list, tuple)) and len(c) == 2 and c[0] == 'mac'}
+        return bool(macs(devices.get(device)) & macs(devices.get(item.get('device_id'))))
 
     def live_camera(self, screen):
         """Whether this screen streams a camera live (live_stream.py): its hello while it is connected (`live`), else its
@@ -1667,6 +1701,65 @@ class Manager:
                   if entity.startswith('sensor.esp_screens_') and (state.get('attributes') or {}).get('friendly_name') == title}
         return sorted(found)
 
+    def known_board(self, mac):
+        """The device Home Assistant already has for a board, by the board's MAC (app 0.4.96): Home Assistant keeps one
+        ESPHome device per MAC, so a board flashed again under a new name cannot be added while its old device is
+        there (it answers `already_configured`, then asks the old device's key of the new firmware, for ever). New screen
+        asks this before it builds, with the MAC esptool read from the chip, and offers to install the old screen again
+        or to replace it. None when Home Assistant has no device with that MAC."""
+        wanted = str(mac or '').strip().lower()
+        if not re.fullmatch(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', wanted):
+            return None
+        # Every device with that MAC: a board can have two (a reTerminal D1001's camera stands on a device of its own
+        # beside the screen's, with the screen's MAC), so the screen's device names it, and the integrations of all of
+        # them go when it is replaced.
+        devices = [d for d in getattr(self.ha, 'devices', None) or [] if isinstance(d, dict)
+                   and any(isinstance(c, (list, tuple)) and len(c) == 2 and c[0] == 'mac' and str(c[1]).lower() == wanted
+                           for c in d.get('connections') or [])]
+        if not devices:
+            return None
+        ids = {d.get('id') for d in devices}
+        screen = next((s for s in self.screens() if s.get('device_id') in ids), None)
+        first = next((d for d in devices if d.get('id') == (screen or {}).get('device_id')), devices[0])
+        name = (screen or {}).get('name') or first.get('name_by_user') or first.get('name') or wanted
+        entries = sorted({e for d in devices for e in d.get('config_entries') or [] if isinstance(e, str)})
+        return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'),
+                'screen': (screen or {}).get('id'), 'device_id': first.get('id'), 'device_ids': sorted(ids),
+                'entries': entries}
+
+    async def replace_known_board(self, mac, by):
+        """Take the old screen of a board out, so the screen flashed onto it under a new name can be added
+        (known_board). A screen of this app's goes the way its own Remove takes it (remove_screen: out of Home
+        Assistant, its YAML out of the ESPHome folder, everything this app kept for it): the board is erased and
+        taken over, so its old keys are good for nothing, and a profile left behind showed as a screen still waiting
+        for its firmware (app 0.4.96). A device Home Assistant has without a screen of ours loses its ESPHome
+        integrations. `by` names the new profile, which has to be one this app wrote."""
+        if not isinstance(by, str) or by not in self.firmware.profile_names():
+            raise ValueError(t('addon.errors.firmware.profile_missing'))
+        # The registry as Home Assistant has it now, not as this app last saw it: the device and its integrations
+        # changed since (a pairing a minute ago), and a stale list found nothing to remove on 2026-11-03.
+        await self.ha.registries()
+        known = self.known_board(mac)
+        if not known:
+            raise ValueError(t('addon.errors.not_paired'))
+        if known.get('screen'):
+            gone = await self.remove_screen(known['screen'])
+            LOG.info('%s was replaced by %s: removed as a screen', known['name'], by)
+            return {'replaced': known['name'], 'by': by, 'entries': 1, 'profile': gone.get('profile')}
+        entries = await self.ha.esphome_entries()
+        mine = {e for e in known['entries'] if e in entries}
+        # The device's entities name their integration too, when the device's own list is behind.
+        mine |= {item.get('config_entry_id') for item in getattr(self.ha, 'registry', None) or []
+                 if isinstance(item, dict) and item.get('device_id') in known['device_ids']
+                 and item.get('config_entry_id') in entries}
+        if not mine:
+            raise ValueError(t('addon.errors.remove.gone'))
+        for entry in sorted(mine):
+            await self.ha.delete_config_entry(entry)
+        LOG.info('%s was replaced by %s: its device left Home Assistant (%d integration%s)', known['name'], by,
+                 len(mine), '' if len(mine) == 1 else 's')
+        return {'replaced': known['name'], 'by': by, 'entries': len(mine)}
+
     async def remove_screen(self, inbox):
         """Remove a screen for good (app 0.2.112): out of Home Assistant, its own YAML out of the ESPHome folder,
         and everything this app kept for it. The mirror of New screen.
@@ -1778,10 +1871,6 @@ class Manager:
         if screen is None:
             screen = self.screen(inbox) or {}
         return screen_firmware(screen)
-
-    def supports_twenty(self, inbox):
-        version=self.firmware_version(inbox)
-        return bool(version) and version >= (0,2,7)
 
     def supports_header(self, inbox, screen=None):
         return (self.firmware_version(inbox, screen) or (0, 0, 0)) >= HEADER_MIN_FIRMWARE
@@ -3705,7 +3794,7 @@ class Manager:
                 self.ha.changed.set()
 
     async def saver_picture(self, inbox, screen, kind):
-        """The picture of the step a plugin's screensaver face draws (plugin API 0.14, 'saver:picture'): the cover of the
+        """The picture of the step a plugin's screensaver face draws (its address `step:`): the cover of the
         player the music step shows, or the photo of the photos step; None while there is none."""
         if kind.get('step') == 'photos':
             return self.photos.raw(inbox)
@@ -4052,9 +4141,22 @@ class Manager:
         return out
 
     async def doorbell_send(self, screens, message):
-        results = await asyncio.gather(*(self.send_auxiliary(screen['id'], message, self.transport(screen['id'], screen), self.page_scope(screen['id']))
+        """`message` to each of `screens`, or `message(screen)` for a message of each one's own: how many took it."""
+        results = await asyncio.gather(*(self.send_auxiliary(screen['id'], message(screen) if callable(message) else message,
+                                                             self.transport(screen['id'], screen), self.page_scope(screen['id']))
                                          for screen in screens), return_exceptions=True)
         return sum(1 for result in results if result is True)
+
+    async def doorbell_link(self, screen, camera):
+        """The stream of `camera` for the ring's view on `screen`, made as the event comes: the screen opens it at once,
+        where asking for one took 1.3 s of a ring's 1.54 s to its first picture (docs/PLATFORM_PLAN.md 4.9). Its room
+        comes with the screen's first open (?room=WxH). None without an address for this app on its network."""
+        base = await self.link_base(screen)
+        if not base:
+            return None
+        sound = bool((self.caps_of_screen(screen) or {}).get('speaker'))
+        token = self.live.link(camera, None, sound=sound, screen=screen['id'], turn=self.picture_turn_of(screen['id']))
+        return f'{base}/camera/{token}.mjpeg'
 
     async def doorbell_show(self, data):
         """esp_screens_doorbell (docs/DOORBELL.md): the doorbell's camera on the screens the event names, every screen
@@ -4067,7 +4169,8 @@ class Manager:
         door, door_unusable = doorbell.door_of(data)
         sound, sound_unusable = doorbell.sound_of(data)
         chime, chime_unusable = doorbell.sound_of(data, 'chime')
-        unusable = unusable + door_unusable + sound_unusable + chime_unusable
+        keep, keep_unusable = doorbell.keep_of(data)
+        unusable = unusable + door_unusable + sound_unusable + chime_unusable + keep_unusable
         if door and door.get('lock'):
             blocked = doorbell.door_blocked(door['lock'], self.ha.states, self.registry_index().get(door['lock']))
             if blocked:
@@ -4087,8 +4190,14 @@ class Manager:
         # The screens may open this camera now (camera_allowed), as after an alert with its picture.
         self.alert_cameras[camera] = time.monotonic()
         key = self.doorbells.start(camera, name, timeout, [screen['id'] for screen in views], [screen['node'] for screen in others],
-                                   door, [screen.get('node') for screen in views if screen.get('node')], sound, chime)
-        sent = await self.doorbell_send(views, self.doorbells.message(key, door_state=self.doorbell_lock_state(door))) if views else 0
+                                   door, [screen.get('node') for screen in views if screen.get('node')], sound, chime, keep)
+        links = dict(zip((screen['id'] for screen in views),
+                         await asyncio.gather(*(self.doorbell_link(screen, camera) for screen in views))))
+        if any(links.values()):
+            self.live.warm(camera)  # its first picture on its way before the first screen opens its link
+        state = self.doorbell_lock_state(door)
+        sent = await self.doorbell_send(views, lambda screen: self.doorbells.message(key, door_state=state,
+                                                                                  link=links.get(screen['id']))) if views else 0
         if door and door.get('lock') and views:
             asyncio.ensure_future(self.doorbell_follow_lock(key))
         alerts = {'sent': 0, 'skipped': 0, 'failed': 0}
@@ -4459,6 +4568,9 @@ def create_app(manager, development=False):
                 'build_server': manager.build_server.view(),
                 # What this app shares about plugins (plugin_likes.py): the likes' yes, counting, whether cards ask.
                 'plugin_sharing': manager.plugins.liker.view() if editor_features['plugins'] else None,
+                # The live streams of every screen together against the most the app serves (live_stream.py): the
+                # camera card says them, so whoever adds a ninth knows why it shows its stills.
+                'live_streams': manager.live.usage(),
                 'language': manager.region.view()}
     async def seen_pending(payload):
         """Marks each screen that waits for pairing that Home Assistant has found on the network (`seen`); the rest is
@@ -5187,6 +5299,20 @@ def create_app(manager, development=False):
         """New screen and Firmware & USB → This computer (browser): the page wrote the image it downloaded onto a
         screen over Web Serial, so the screen list nudges pairing as for one flashed from Home Assistant's own USB port."""
         return web.json_response(manager.firmware.flashed(request.match_info['file']))
+    async def board_known(request):
+        """New screen → This computer, once esptool read the chip (app 0.4.96): whether Home Assistant already has a
+        device with this MAC, and as what, so the wizard can offer to install that screen again or to replace it
+        instead of building a screen Home Assistant will never add. The registry is read again first: the device may
+        have changed since this app last saw it (a pairing a minute ago)."""
+        await manager.ha.registries()
+        return web.json_response(manager.known_board(request.query.get('mac')) or {'known': False})
+    async def board_replace(request):
+        """The wizard's choice to replace the known screen (board_known) with the one it just wrote: the old device
+        leaves Home Assistant, and the new screen pairs."""
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise LayoutError(t('addon.errors.invalid_input'))
+        return web.json_response(await manager.replace_known_board(data.get('mac'), data.get('by')))
     # The answers that are still waiting after a restart try again (feedback.py); a request never runs past shutdown.
     FEEDBACK_ERRORS = {'outcome': 'addon.errors.feedback.invalid', 'issues': 'addon.errors.feedback.invalid',
                        'comment': 'addon.errors.feedback.comment', 'board': 'addon.errors.feedback.unknown_board',
@@ -5344,6 +5470,8 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
     app.router.add_get('/api/firmware/profiles/{file}/files', firmware_files)
     app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
+    app.router.add_get('/api/boards/known', board_known)
+    app.router.add_post('/api/boards/replace', board_replace)
     app.router.add_delete('/api/firmware/profiles/{file}', firmware_forget)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_put('/api/firmware/wifi', firmware_wifi)

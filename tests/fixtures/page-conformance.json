@@ -222,6 +222,94 @@
     ]
   },
   {
+    "name": "light presets with an effect and the device's settings, keys in the add-on's order",
+    "valid": true,
+    "grid": {
+      "columns": 2,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "light",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.desk"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 2,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Desk",
+                "presentation": "wide"
+              },
+              "interaction": {
+                "controls": "presets",
+                "presets": [
+                  {
+                    "b": 80,
+                    "h": 30,
+                    "s": 60
+                  },
+                  {
+                    "b": 70,
+                    "rw": {
+                      "select.desk_color_palette": "Aurora",
+                      "number.desk_speed": 128
+                    },
+                    "fx": "Aurora",
+                    "h": 220,
+                    "s": 100
+                  },
+                  {
+                    "b": 100,
+                    "rw": {
+                      "number.desk_speed": 90
+                    },
+                    "fx": "Candle"
+                  },
+                  {
+                    "rw": {
+                      "select.desk_preset": "Film"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
     "name": "explicit custom title",
     "valid": true,
     "grid": {

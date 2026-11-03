@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import automations  # noqa: E402
 import doorbell  # noqa: E402
+import live_stream  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
@@ -91,6 +92,32 @@ class TheRings(unittest.TestCase):
         rings.unanswered(rings.start('camera.front_door', 'Front door', 60, ['a']))
         self.assertTrue(rings.seen())
         self.assertFalse(rings.seen())
+
+    def test_a_missed_ring_kept_for_a_while_says_until_when_and_then_goes(self):
+        """keep_minutes (docs/DOORBELL.md): the item says until when it stands (`x`, the ring's moment and the minutes),
+        the screens take it away then by their own clock, and past it the app sends it no more either. None or 0 keeps
+        it until someone opens it, as before."""
+        self.assertEqual(doorbell.keep_of({}), (0, []))
+        self.assertEqual(doorbell.keep_of({'keep_minutes': ''}), (0, []))
+        self.assertEqual(doorbell.keep_of({'keep_minutes': '30'}), (30, []))
+        self.assertEqual(doorbell.keep_of({'keep_minutes': 0}), (0, []))
+        self.assertEqual(doorbell.keep_of({'keep_minutes': 99999}), (doorbell.KEEP_MAX, []))
+        self.assertEqual(doorbell.keep_of({'keep_minutes': 'soon'}), (0, ['keep_minutes']))
+        self.assertEqual(doorbell.keep_of({'keep_minutes': -5}), (0, ['keep_minutes']))
+        rings = doorbell.Doorbells()
+        key = rings.start('camera.front_door', 'Front door', 60, ['a'], keep=30)
+        rings.unanswered(key)
+        at = rings.ring(key)['at']
+        self.assertEqual(rings.bar_item(now=at + 60), {'k': 'ago', 'i': 'F12E6', 'e': at, 'b': 1, 'x': at + 1800})
+        self.assertIsNotNone(rings.bar_item(now=at + 1799))
+        self.assertIsNone(rings.bar_item(now=at + 1800))
+        self.assertIsNone(rings.missed, 'past its keep it is gone from the app too')
+        # Until someone opens it: no `x`, at any time.
+        rings.unanswered(rings.start('camera.front_door', 'Front door', 60, ['a']))
+        self.assertNotIn('x', rings.bar_item(now=at + 10 ** 6))
+        # The wizard's choices, and what a new automation gets.
+        self.assertEqual(doorbell.KEEP_CHOICES, (10, 30, 60, 240, 0))
+        self.assertEqual(doorbell.reference()['keep'], {'choices': [10, 30, 60, 240, 0], 'new': 30, 'max': doorbell.KEEP_MAX})
 
     def test_the_item_goes_first_within_the_bar_limit(self):
         item = {'k': 'ago', 'i': 'F12E6', 'e': 1, 'b': 1}
@@ -267,6 +294,16 @@ class TheManager(unittest.TestCase):
             return {'sent': len(data.get('screen') or []), 'skipped': 0, 'failed': 0}
         manager.send_auxiliary, manager.broadcast = send_auxiliary, broadcast
         manager.doorbell_unanswered = lambda key, timeout: asyncio.sleep(0)
+        # The ring's own streams (Manager.doorbell_link): this app's address on each screen's network, its camera links.
+        manager.live = live_stream.LiveFeed(None, None, lambda e: True)
+        manager.warmed = []
+        manager.live.warm = manager.warmed.append
+
+        async def link_base(screen):
+            return 'http://10.0.0.2:8099'
+        manager.link_base = link_base
+        manager.caps_of_screen = lambda screen: {'speaker': screen['id'] == 'a'}
+        manager.picture_turn_of = lambda inbox: 0
         return manager
 
     def test_a_ring_opens_the_view_on_p4s_and_the_alert_elsewhere(self):
@@ -276,6 +313,16 @@ class TheManager(unittest.TestCase):
         self.assertEqual([inbox for inbox, _ in manager.sent_messages], ['a', 'b'])
         message = manager.sent_messages[0][1]
         self.assertEqual((message['e'], message['n'], message['t']), ('camera.front_door', 'Front door', 30))
+        # Each view gets a stream of its own, made as the event came (docs/PLATFORM_PLAN.md 4.9): its room comes with the
+        # screen's first open, its sound where the screen has a speaker.
+        links = [m['l'] for _, m in manager.sent_messages]
+        self.assertEqual(len(set(links)), 2)
+        for (inbox, _), link in zip(manager.sent_messages, links):
+            self.assertRegex(link, r'^http://10\.0\.0\.2:8099/camera/[\w-]+\.mjpeg$')
+            made = manager.live.links[link.rsplit('/', 1)[1][:-len('.mjpeg')]]
+            self.assertEqual((made.entity, made.box, made.screen, made.tile, made.sound),
+                             ('camera.front_door', None, inbox, False, inbox == 'a'))
+        self.assertEqual(manager.warmed, ['camera.front_door'], 'its camera starts before the first screen opens')
         self.assertEqual(manager.broadcasts, [('esp_screens_show_alert', {'title': 'Front door', 'icon': 'doorbell', 'camera': 'camera.front_door',
                                                                           'timeout': 30, 'screen': ['cyd', 'off']})])
         self.assertEqual((result['sent'], result['alerts']), (2, 2))

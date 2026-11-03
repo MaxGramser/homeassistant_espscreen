@@ -58,11 +58,16 @@ struct Item {
   // An entity's item (`d`, firmware 0.56.0+): the index of the tile whose card a tap on it opens
   // (runtime_tiles::open_card), NO_CARD for an item that opens nothing, DOORBELL_CARD for a missed ring.
   uint16_t card = NO_CARD;
+  // The moment it leaves the bar (`x`, unix time), 0 for never: a missed ring kept as long as its automation says
+  // (keep_minutes, docs/DOORBELL.md), counted by the screen's own clock, in standby too.
+  int64_t until = 0;
   bool operator==(const Item &o) const {
     return kind == o.kind && icon == o.icon && text == o.text && epoch == o.epoch && color == o.color && has_color == o.has_color &&
-           only_weak == o.only_weak && icon_only == o.icon_only && card == o.card;
+           only_weak == o.only_weak && icon_only == o.icon_only && card == o.card && until == o.until;
   }
 };
+// Whether `item` still stands in the bar at `now` (unix time; 0 while the screen's clock is not set, when it stays).
+inline bool shown_at(const Item &item, int64_t now) { return item.until <= 0 || now <= 0 || now < item.until; }
 
 struct Bar {
   std::array<Item, MAX_ITEMS> items{};

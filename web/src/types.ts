@@ -422,6 +422,8 @@ export type Inventory = {
   build_server?: BuildServerView;
   // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
   plugin_sharing?: PluginSharing | null;
+  // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).
+  live_streams?: { used: number; most: number };
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
   claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };

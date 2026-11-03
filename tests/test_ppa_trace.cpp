@@ -37,6 +37,14 @@ int main() {
   assert(never_back(wrapped, CALLS, 100) == nullptr);
   assert(never_back(wrapped, CALLS, 0xFFFFFF00u + NEVER_MS + 1) == &wrapped[5]);
 
+  // Asked a moment after the watch took its clock (the streams keep asking while it walks the ring): younger than
+  // now, not 4294967 s old. A Tab5 aborted a sound boot on exactly this (TR-NQRE3E, "-5 ms").
+  Call fresh[CALLS] = {};
+  fresh[3] = call(9, 100005, ASKED);
+  assert(never_back(fresh, CALLS, 100000) == nullptr);
+  fresh[3] = call(9, 0x00000002u, ASKED);  // just past the wrap, the watch's clock just before it
+  assert(never_back(fresh, CALLS, 0xFFFFFFFEu) == nullptr);
+
   printf("test_ppa_trace: ok\n");
   return 0;
 }

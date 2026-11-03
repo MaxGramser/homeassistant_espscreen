@@ -80,11 +80,14 @@ class Links:
 
 
 def web_app(links, stream=None):
-    """The camera port: GET /camera/<token>.bmp or .jpg, and /camera/<token>.mjpeg for a stream (live_stream), open to
-    the LAN like the screens are."""
+    """The camera port: GET /camera/<token>.bmp or .jpg, and /camera/<token>.mjpeg for a stream (live_stream), or .jpg
+    on a stream's token for its pictures one an ask, open to the LAN like the screens are."""
     from aiohttp import web
 
     async def image(request):
+        # A live link's token as .jpg: one picture an ask (live_stream.LiveFeed.pull), for firmware whose tiles ask so.
+        if stream is not None and request.match_info['suffix'] == 'jpg' and request.match_info['token'] in stream.links:
+            return await stream.pull(request, request.match_info['token'])
         status, body, etag, kind = await links.serve(request.match_info['token'], request.headers.get('If-None-Match'))
         # Last-Modified with every picture: ESPHome's online_image (firmware before 0.49.0) warned at every load without one.
         headers = {'Cache-Control': 'no-cache', 'Last-Modified': formatdate(usegmt=True), **({'ETag': etag} if etag else {})}

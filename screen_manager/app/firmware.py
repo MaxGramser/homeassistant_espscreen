@@ -191,6 +191,7 @@ class Firmware:
         # server"), and per profile the images of its last build there: what `esphome upload --file` sends.
         self.server = None
         self.served = {}
+        self.fresh = set()   # profiles whose next build starts from an empty build folder, on the server too
 
     def profiles(self):
         if not self.root.exists(): return []
@@ -611,7 +612,9 @@ class Firmware:
         """An empty build folder for this profile's next build (BuildQueue, a build marked `fresh`): the build folder is
         this app's own (/data/build/<profile>, build_env), and ESPHome makes it anew, as after its own Clean. The compile
         cache outside it stays, so the build takes minutes, not the first build's quarter of an hour."""
-        build = self.data / 'build' / self.profile(name).name.removesuffix('.yaml')
+        profile = self.profile(name)
+        self.fresh.add(profile.name)   # and the build server's folder for it (compile_on_server)
+        build = self.data / 'build' / profile.name.removesuffix('.yaml')
         if build.is_dir() and not build.is_symlink():
             self.logs.append('A plugin part changed: this build starts from an empty build folder.')
             await asyncio.to_thread(shutil.rmtree, build, True)
@@ -1202,7 +1205,9 @@ packages:
             if text:
                 self.logs.append(text)
         try:
-            self.served[profile.name] = await server.compile(profile, self.root, self.data, env, log, phase)
+            fresh = profile.name in self.fresh
+            self.served[profile.name] = await server.compile(profile, self.root, self.data, env, log, phase, fresh)
+            self.fresh.discard(profile.name)
             return True
         except build_server.Failed as error:
             raise RuntimeError(str(error)) from None

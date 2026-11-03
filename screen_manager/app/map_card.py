@@ -314,10 +314,6 @@ def frame_view(framing, distance, people, zones, size, own=None, reserve=(0, 0),
 # INK, the accent ACCENT, the halo CARD. The map's own tints (water, green, streets) are mixed from those, so light and
 # dark stay one family with the rest of the screen.
 
-def _mix(a, b, t):
-    return tuple(round(a[i] + (b[i] - a[i]) * t) for i in range(3))
-
-
 def _rgb(value):
     return ((value >> 16) & 255, (value >> 8) & 255, value & 255)
 
@@ -448,15 +444,6 @@ def _fill(canvas, view, tiles, layer, colour, keep=None):
                 draw.polygon(ring, fill=0)
     if touched:
         canvas.image.paste(colour, mask=mask)
-
-
-def _stroke(draw, parts, width):
-    if width <= 0:
-        return
-    w = max(1, round(width))
-    for line in parts:
-        if len(line) >= 2:
-            draw.line(line, fill=None, width=w, joint='curve')
 
 
 def draw_basemap(canvas, view, tiles, look, dpi_scale=1.0):

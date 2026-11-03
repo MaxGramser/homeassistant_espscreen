@@ -51,6 +51,7 @@ class Receiver:
         self.bundles, self.accept = [], asyncio.Event()
         self.version = '2026.9.1'
         self.targets = []
+        self.jobs = []   # the target of each submitted job: compile, or clean first for a fresh build
 
     @property
     def pin(self):
@@ -124,6 +125,7 @@ class Receiver:
             if kind == 'submit_job':
                 header, parts = frame, []
                 self.targets.append(frame.get('target_esphome_version'))
+                self.jobs.append(frame.get('target'))
             elif kind == 'submit_job_chunk':
                 parts.append(base64.b64decode(frame['data_b64']))
                 if frame['is_last']:
@@ -184,11 +186,11 @@ class BuildServerTest(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0.02)
         self.fail(f'not linked: {self.server.connection} {self.server.error}')
 
-    async def build(self, logs=None, phases=None):
+    async def build(self, logs=None, phases=None, text='esphome: {}', fresh=False):
         profile = self.data / 'kitchen.yaml'
-        profile.write_text('esphome: {}')
+        profile.write_text(text)
         logs, phases = (logs if logs is not None else []), (phases if phases is not None else [])
-        return await self.server.compile(profile, self.data, self.data, {}, logs.append, phases.append)
+        return await self.server.compile(profile, self.data, self.data, {}, logs.append, phases.append, fresh)
 
     def test_the_fingerprint_is_the_seven_emoji_device_builder_shows(self):
         # As a headless Device Builder printed it for this pin.
@@ -250,6 +252,19 @@ class BuildServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(caught.exception.args[0], 'mismatch')
         self.assertFalse(self.receiver.approved)
 
+    async def test_a_fresh_build_empties_the_server_folder_first(self):
+        """A plugin part changed (screen camera's Video): the server runs `esphome clean` for the screen before the
+        compile, so a component the earlier build left behind does not shadow the real one. A build that is not fresh
+        sends one job, as before."""
+        await self.paired()
+        await self.build()
+        self.assertEqual(self.receiver.jobs, ['compile'])
+        logs = []
+        images = await self.build(logs, text='esphome: {name: changed}', fresh=True)
+        self.assertEqual(self.receiver.jobs, ['compile', 'clean', 'compile'])
+        self.assertTrue(any('empties its build folder' in line for line in logs))
+        self.assertEqual(images['ota'].read_bytes(), b'O' * 2000)
+
     async def test_a_build_goes_there_and_its_images_come_back_where_the_app_looks(self):
         await self.paired()
         logs, phases = [], []
@@ -275,6 +290,26 @@ class BuildServerTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.receiver.bundles), 1)
         self.assertEqual(first, second)
         self.assertTrue(any('the same as in the build' in line for line in logs))
+
+    async def test_a_yaml_on_a_branch_builds_again_after_the_update_it_was_built_for(self):
+        # The same `ref: dev` is another firmware after a push: the server fetches the branch, the bundle has the YAML.
+        await self.paired()
+        on_dev = 'packages:\n  display:\n    url: https://github.com/example/screens\n    ref: dev\n'
+        await self.build(text=on_dev)
+        await self.build(text=on_dev)   # the install of the same update
+        self.assertEqual(len(self.receiver.bundles), 1)
+        digest, images, pin, at = self.server.built['kitchen.yaml']
+        self.server.built['kitchen.yaml'] = (digest, images, pin, at - build_server.REUSE_MOVING_SECONDS - 1)
+        logs = []
+        await self.build(logs, text=on_dev)   # a reinstall later
+        self.assertEqual(len(self.receiver.bundles), 2)
+        self.assertFalse(any('the same as in the build' in line for line in logs))
+        # A release tag builds the same whenever.
+        tagged = on_dev.replace('ref: dev', 'ref: screens-v0.57.0')
+        digest, images, pin, at = self.server.built['kitchen.yaml']
+        self.server.built['kitchen.yaml'] = (digest, images, pin, at - 3600)
+        await self.build(text=tagged)
+        self.assertEqual(len(self.receiver.bundles), 2)
 
     async def test_a_build_that_fails_on_the_server_fails(self):
         await self.paired()
@@ -393,7 +428,10 @@ class FirmwareTest(unittest.IsolatedAsyncioTestCase):
             def wanted(self):
                 return True
 
-            async def compile(self, profile, root, data, env, log, phase):
+            fresh = []
+
+            async def compile(self, profile, root, data, env, log, phase, fresh=False):
+                self.fresh.append(fresh)
                 phase('build')
                 log('[3/9] Compiling \\033[32mok\\033[0m')
                 if isinstance(self.outcome, Exception):
@@ -408,6 +446,15 @@ class FirmwareTest(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         self.folder.cleanup()
+
+    async def test_a_cleaned_build_folder_is_cleaned_on_the_server_too(self):
+        """Firmware.clean_build (a plugin part changed) marks the profile; its next build on the server is fresh, the one
+        after it is not."""
+        profile = self.firmware.profile('kitchen.yaml')
+        await self.firmware.clean_build('kitchen.yaml')
+        self.assertTrue(await self.firmware.compile_on_server(profile, {}))
+        self.assertTrue(await self.firmware.compile_on_server(profile, {}))
+        self.assertEqual(self.server.fresh, [True, False])
 
     async def test_the_upload_sends_what_the_server_built(self):
         self.assertTrue(await self.firmware.compile_on_server(self.firmware.profile('kitchen.yaml'), {}))

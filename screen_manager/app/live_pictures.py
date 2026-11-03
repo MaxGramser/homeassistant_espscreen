@@ -6,13 +6,19 @@ tile's card, a plugin's live place. Every frame goes out as a baseline JPEG the 
 at the frame's own size where it fits the room, the screen's PPA scaling it up, else as large as fits (size_for); for a
 tile that fills its card, as small as still covers it (size_to_cover). A camera's own JPEG the decoder takes (jpeg_size)
 goes out untouched when it is no larger than it needs to be; anything else is made into one (remake), and a frame of
-video straight from the decoder's YUV (Encoder). Pictures makes each once per frame and room, for every screen that
-watches the camera; where the frames come from is camera_source's, how they travel live_stream's.
+video straight from the decoder's YUV (Encoder). On a screen whose glass is turned and whose hello says it takes its
+live pictures so (caps picture_turn, firmware hw.cpp), they go out turned as its glass is (turned): the screen copies
+them onto its glass straight, and its PPA turns nothing per picture (docs/PLATFORM_PLAN.md 4.12). Pictures
+makes each once per frame, room and turn, for every screen that watches the camera; where the frames come from is
+camera_source's, how they travel live_stream's.
 """
 import asyncio
 import fractions
 import io
+import logging
 import time
+
+LOG = logging.getLogger(__name__)
 
 # The largest picture a screen takes as it is (firmware live_view::MAX_SIDE is 2048 and MAX_PICTURE 1 MB), and larger
 # frames are scaled down to the room the screen asked for.
@@ -57,6 +63,28 @@ def size_to_cover(width, height, box):
     return min(up(width * scale), down(width)), min(up(height * scale), down(height))
 
 
+# How a picture is turned for a glass turned `turn` degrees (LVGL's rotation, clockwise): so that each pixel lands where
+# the screen's glass::on_panel puts that pixel of its card, with the card itself as the panel. On a glass turned 90 the
+# card's pixel (x, y) of a w x h card lies at (h - 1 - y, x): the picture turned a quarter clockwise; on one turned 270
+# at (y, w - 1 - x), a quarter the other way; on one turned 180 at (w - 1 - x, h - 1 - y). Pillow's ROTATE_* turn
+# counter-clockwise; FFmpeg's transpose filter turns `clock` and `cclock`.
+TURNS = (90, 180, 270)
+PILLOW_TURN = {90: 'ROTATE_270', 180: 'ROTATE_180', 270: 'ROTATE_90'}
+FFMPEG_TURN = {90: (('transpose', 'clock'),), 180: (('hflip', None), ('vflip', None)), 270: (('transpose', 'cclock'),)}
+
+
+def turned(size, turn):
+    """The size of a picture of `size` (width, height) turned `turn` degrees."""
+    width, height = size
+    return (height, width) if turn in (90, 270) else (width, height)
+
+
+def turn_image(image, turn):
+    """A Pillow image turned for a glass turned `turn` degrees (TURNS), or as it is for any other."""
+    from PIL import Image
+    return image.transpose(getattr(Image.Transpose, PILLOW_TURN[turn])) if turn in PILLOW_TURN else image
+
+
 def jpeg_size(raw):
     """(width, height) of a JPEG the P4's hardware decoder takes as it is (baseline, 8 bits, one or three components
     sampled 4:4:4, 4:2:2 or 4:2:0, ESP-IDF's jpeg_parse_marker.c), at most MAX_SIDE a side; None for anything else."""
@@ -93,9 +121,10 @@ def jpeg_size(raw):
     return None
 
 
-def remake(raw, box, cover=False):
-    """A picture the P4 does not take as it is (a progressive JPEG, a PNG, one too large) as a baseline JPEG that fits,
-    or that covers a live tile's card: (JPEG, CPU ms this thread spent on it)."""
+def remake(raw, box, cover=False, turn=0):
+    """A picture the P4 does not take as it is (a progressive JPEG, a PNG, one too large, one for a turned glass) as a
+    baseline JPEG that fits, or that covers a live tile's card, turned `turn` degrees: (JPEG, CPU ms this thread spent on
+    it)."""
     from PIL import Image
     started = time.thread_time()
     image = Image.open(io.BytesIO(raw))
@@ -105,6 +134,7 @@ def remake(raw, box, cover=False):
     image = image.convert('RGB')
     if image.size != (width, height):
         image = image.resize((width, height), Image.BILINEAR)
+    image = turn_image(image, turn)
     out = io.BytesIO()
     image.save(out, 'JPEG', quality=80, subsampling='4:2:0')
     return out.getvalue(), (time.thread_time() - started) * 1000
@@ -116,19 +146,35 @@ encoding = 0
 # or a width times height that is not a multiple of 8) or that failed to be made at all; camera_source's frame watch
 # says them in its line.
 refused = {}
+# Per camera, the pictures for a turned glass that could not be turned and went upright (Pictures.picture), said there
+# too.
+not_turned = {}
 
 class Encoder:
-    """JPEGs of decoded video frames at one size, made straight from the decoder's YUV (ffmpeg's mjpeg)."""
+    """JPEGs of decoded video frames at one size, made straight from the decoder's YUV (ffmpeg's mjpeg), turned `turn`
+    degrees on the way (TURNS: FFmpeg's own filters, in YUV) for a turned glass."""
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, turn=0):
         import av
         self.size = (width, height)
         self.codec = av.CodecContext.create('mjpeg', 'w')
-        self.codec.width, self.codec.height, self.codec.pix_fmt = width, height, 'yuvj420p'
+        self.codec.width, self.codec.height = turned(self.size, turn)
+        self.codec.pix_fmt = 'yuvj420p'
         self.codec.time_base = fractions.Fraction(1, 90000)
         # A fixed quality: the encoder's quantiser held at QSCALE (PyAV leaves -q:v's global_quality alone for mjpeg).
         self.codec.qmin = self.codec.qmax = QSCALE
         self.count = 0
+        self.graph = None
+        if turn in FFMPEG_TURN:
+            import av.filter
+            self.graph = av.filter.Graph()
+            node = self.graph.add_buffer(width=width, height=height, format='yuvj420p', time_base=self.codec.time_base)
+            for name, argument in FFMPEG_TURN[turn]:
+                step = self.graph.add(name, argument)
+                node.link_to(step)
+                node = step
+            node.link_to(self.graph.add('buffersink'))
+            self.graph.configure()
 
     def encode(self, frame):
         """(JPEG, CPU ms this thread spent on it)."""
@@ -137,6 +183,10 @@ class Encoder:
         scaled = (frame.width, frame.height) != (width, height)
         picture = frame.reformat(width=width, height=height, format='yuvj420p',
                                  interpolation='BILINEAR' if scaled else None)
+        if self.graph is not None:
+            picture.pts, picture.time_base = self.count, self.codec.time_base
+            self.graph.push(picture)
+            picture = self.graph.pull()
         self.count += 1
         picture.pts = self.count
         jpeg = b''.join(bytes(packet) for packet in self.codec.encode(picture))
@@ -151,39 +201,59 @@ class Pictures:
         self.encoders, self.pictures = {}, {}
         self.making = asyncio.Lock()  # one picture at a time: an encoder is not for two threads
         self.made = self.made_ms = 0
+        self.told_turn = False
 
-    async def picture(self, frame, box, cover=False):
-        """The JPEG of `frame` for a screen with room `box` (a live tile that fills its card: `cover`), made once per
-        frame and room."""
+    async def picture(self, frame, box, cover=False, turn=0):
+        """(JPEG, turn) of `frame` for a screen with room `box` (a live tile that fills its card: `cover`), turned `turn`
+        degrees for a turned glass (TURNS; `box` as the screen's layout has it, upright), made once per frame, room and
+        turn. The turn is what it went out with: a picture that could not be turned goes upright, its turn 0, and is
+        counted (not_turned), so the screen turns it itself as it did before it took turned pictures, and never goes
+        without one."""
         async with self.making:
-            made = self.pictures.get((box, cover))
+            key = (box, cover, turn)
+            made = self.pictures.get(key)
             if made and made[0] == frame.number:
-                return made[1]
-            jpeg = await self.make(frame, box, cover)
-            self.pictures[(box, cover)] = (frame.number, jpeg)
-            return jpeg
+                return made[1], made[2]
+            done = turn if turn in TURNS else 0
+            try:
+                jpeg = await self.make(frame, box, cover, done)
+            except Exception as error:  # noqa: BLE001 - whatever failed in turning, the upright picture goes instead
+                if not done:
+                    raise
+                self.turn_failed(error)
+                jpeg, done = await self.make(frame, box, cover, 0), 0
+            self.pictures[key] = (frame.number, jpeg, done)
+            return jpeg, done
 
-    async def make(self, frame, box, cover=False):
+    def turn_failed(self, error):
+        if self.entity:
+            not_turned[self.entity] = not_turned.get(self.entity, 0) + 1
+        if not self.told_turn:
+            self.told_turn = True
+            LOG.warning('Live %s: a picture for a turned glass could not be turned (%s); it goes upright, and the screen '
+                        'turns it', self.entity, error)
+
+    async def make(self, frame, box, cover=False, turn=0):
         global encoding
         loop = asyncio.get_running_loop()
         sizing = size_to_cover if cover else size_for
         if frame.jpeg is not None:
             size = jpeg_size(frame.jpeg)
-            # A JPEG the P4 takes as it is goes out untouched, when it is no larger than it needs to be: the screen
-            # scales and cuts it itself.
-            if size and size == sizing(*size, box):
+            # A JPEG the P4 takes as it is goes out untouched, when it is no larger than it needs to be and needs no
+            # turn: the screen scales and cuts it itself.
+            if size and size == sizing(*size, box) and turn not in TURNS:
                 jpeg, ms = frame.jpeg, 0.0
             else:
                 encoding += 1
                 try:
-                    jpeg, ms = await loop.run_in_executor(None, remake, frame.jpeg, box, cover)
+                    jpeg, ms = await loop.run_in_executor(None, remake, frame.jpeg, box, cover, turn)
                 finally:
                     encoding -= 1
         else:
             size = sizing(frame.video.width, frame.video.height, box)
-            encoder = self.encoders.get(size)
+            encoder = self.encoders.get((size, turn))
             if encoder is None:
-                encoder = self.encoders[size] = Encoder(*size)
+                encoder = self.encoders[(size, turn)] = Encoder(*size, turn=turn)
             encoding += 1
             try:
                 jpeg, ms = await loop.run_in_executor(None, encoder.encode, frame.video)

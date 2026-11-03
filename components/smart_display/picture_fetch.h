@@ -88,6 +88,9 @@ struct Head {
   // screen's clock, what is left over the least of it is how long the picture waited on its way (live_view.cpp).
   bool has_made = false;
   uint32_t made = 0;
+  // X-Turn: the app turned a live picture as a turned glass is (90, 180 or 270 degrees, the hello's picture_turn), so
+  // the screen copies it onto the glass straight (live_view.cpp, show); 0: upright.
+  int turn = 0;
 };
 inline bool same_ignoring_case(const char *a, const char *b, size_t n) {
   for (size_t i = 0; i < n; ++i) {
@@ -157,6 +160,14 @@ inline Head parse_head(const char *data, size_t size) {
             n = n * 10 + static_cast<uint32_t>(line[i] - '0');
           }
           if (digits) { h.has_made = true; h.made = n; }
+        } else if (colon == 6 && same_ignoring_case(line, "x-turn", 6)) {
+          int n = 0;
+          bool digits = v < ve && ve - v <= 3;
+          for (size_t i = v; digits && i < ve; ++i) {
+            if (line[i] < '0' || line[i] > '9') { digits = false; break; }
+            n = n * 10 + (line[i] - '0');
+          }
+          if (digits && (n == 90 || n == 180 || n == 270)) h.turn = n;
         }
       }
     }

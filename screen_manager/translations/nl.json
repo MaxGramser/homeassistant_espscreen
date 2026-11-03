@@ -159,6 +159,8 @@
       "microphone": "Microfoon",
       "media_player": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
+      "backlight_pwm": "Achtergrondlicht-PWM",
+      "dimmest_level": "Laagste stand",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
       "standby_after": "Stand-by na",
@@ -878,6 +880,7 @@
         "layout_conflict": "De indeling is gewijzigd in een andere editor; laad opnieuw en vergelijk je wijzigingen",
         "adaptation": "Het schermraster is gewijzigd; beoordeel en bevestig de aangepaste indeling",
         "normalization": "De tegelinstellingen moeten worden aangepast voordat de pagina kan worden opgeslagen",
+        "on_tile": "Pagina {page}, tegel “{tile}”: {problem}",
         "ambiguous_tile": "De tegelopdracht heeft meerdere mogelijke bronnen; geef de pagina op",
         "save_first": "Sla eerst de pagina-indeling op voordat je de instellingen opslaat",
         "destination_exists": "Het doelscherm heeft al een opgeslagen indeling",
@@ -1179,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wakker bij bewegen",
           "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
+        },
+        "backlight_pwm": {
+          "label": "Achtergrondlicht-PWM",
+          "hint": "Hoe snel het achtergrondlicht aan en uit schakelt om te dimmen. 150 Hz dimt elk exemplaar van dit bord, maar sommige piepen onder 20 kHz: kies 20 kHz als dat van jou piept, 15 kHz als 20 kHz niet gelijkmatig dimt."
+        },
+        "dimmest_level": {
+          "label": "Laagste stand",
+          "hint": "Hoe laag het achtergrondlicht gaat, als deel van zijn volle vermogen. Zet het hoger als het scherm op de laagste helderheid zwart blijft of flikkert."
         },
         "microphone_gain": {
           "label": "Microfoongain",
@@ -1533,6 +1544,10 @@
         "timeout": {
           "label": "Timeout",
           "help": "Seconden dat de bel blijft als niemand hem aanraakt, {min} tot {max}. Leeg is {default}. Een aanraking houdt hem open."
+        },
+        "keep_minutes": {
+          "label": "Gemist bewaren",
+          "help": "Minuten dat een bel die niemand beantwoordde in de bovenbalk blijft van de schermen met zijn beeld, geteld vanaf het aanbellen, 1 tot {most}. Leeg of 0: tot iemand hem opent."
         },
         "sound": {
           "label": "Geluid",
@@ -2048,7 +2063,9 @@
         "seconds": "Elke {n} s",
         "live": "Live",
         "paused": "Live gepauzeerd",
-        "cap": "Dit scherm speelt {n} camera's tegelijk live; de andere tonen elke 15 seconden een plaatje. Met twee camera's loopt elke camera vloeiender dan met vier."
+        "cap": "Dit scherm speelt {n} camera's tegelijk live; de andere tonen elke 15 seconden een plaatje. Met twee camera's loopt elke camera vloeiender dan met vier.",
+        "cap_one": "Dit scherm speelt één camera tegelijk live; de andere tonen elke 15 seconden een plaatje.",
+        "streams": "{used} van {most} live streams in gebruik, over alle schermen. Een camera daarboven toont elke 15 seconden een plaatje."
       },
       "picture": {
         "fit": {
@@ -3123,6 +3140,14 @@
         "change": "Wifi wijzigen en opnieuw installeren",
         "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
       },
+      "known": {
+        "title": "Dit bord staat al in Home Assistant als {name}",
+        "text": "Home Assistant houdt één ESPHome-apparaat per bord (zijn MAC-adres), dus {new} kan er niet bij zolang {name} er staat. Installeer {name} opnieuw, of vervang het: zodra de firmware op het bord staat, verdwijnt {name} met zijn entiteiten uit Home Assistant en komt {new} ervoor in de plaats.",
+        "reinstall": "{name} opnieuw installeren",
+        "replace": "{name} vervangen door {new}",
+        "replaced": "{name} is uit Home Assistant verwijderd; {new} komt ervoor in de plaats.",
+        "go_firmware": "Kies onder Firmware & USB het profiel van {name} en “Installeren vanuit deze browser”."
+      },
       "memory": {
         "low_title": "Weinig geheugen vrij op de Home Assistant-machine",
         "low": "Er is {free} geheugen vrij, dus de firmware bouwt met minder compilers tegelijk ({jobs} in plaats van {cores}). Dat duurt langer, maar het past.",
@@ -3402,6 +3427,8 @@
       "calendar_free": "Vrij"
     },
     "pages": {
+      "repaired": "Pagina {page}, tegel “{tile}”: weggehaald wat niet klopte ({what}).",
+      "repaired_tile": "Pagina {page}: tegel “{tile}” weggehaald, die klopte niet meer.",
       "mode": "Editormodus",
       "simple": "Eenvoudig",
       "advanced": "Geavanceerd",
@@ -3759,6 +3786,12 @@
       "later": "Misschien later",
       "donated": "Ik heb al gedoneerd",
       "thanks": "Dank je wel! Dit komt niet meer terug."
+    },
+    "funding": {
+      "title": "Op zoek naar funding",
+      "body": "Ik heb een baan die de rekeningen betaalt, en die gaat voor. Tessera wordt steeds groter, en ik heb simpelweg niet de tijd die het nodig heeft. Om het in leven te houden heb ik funding nodig: zodat ik er de tijd aan kan geven die het verdient, of iemand kan inhuren om te helpen. Kun je helpen? Stuur me een mail.",
+      "mail": "Mail me",
+      "later": "Niet nu"
     },
     "plugins": {
       "title": "Plugins",
@@ -4430,7 +4463,8 @@
       "no_camera": "Geen camera",
       "fields": {
         "title": "Titel",
-        "timeout": "Timeout (seconden)"
+        "timeout": "Timeout (seconden)",
+        "keep": "Gemiste bel in de bovenbalk houden"
       },
       "screens": {
         "view": "Live met geluid",
@@ -4503,6 +4537,12 @@
         "chime": {
           "label": "Chime bij het bellen",
           "hint": "Het scherm speelt een deurbel-chime als er iemand belt. Zet dit uit als je dat ding-dong niet elke keer wilt horen."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} uur",
+          "open": "Tot iemand hem opent",
+          "hint": "Een bel die niemand beantwoordde blijft zo lang na het aanbellen in de bovenbalk van de schermen staan, met hoe lang geleden. Een tik erop opent de deurbel weer."
         }
       },
       "hero": {

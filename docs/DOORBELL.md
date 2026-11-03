@@ -27,6 +27,7 @@ actions:
       title: Front door
       screen: [hallway-screen, kitchen-screen]
       timeout: 60
+      keep_minutes: 30
       lock: lock.front_door
 ```
 
@@ -36,6 +37,7 @@ actions:
 | `title` | What the screen calls the doorbell, at the top of its view and as the alert's title. Empty takes the name of the camera's device, or the camera's own. |
 | `screen` | Which screens get the ring: a device name, the name Home Assistant shows, or a room; a list reaches several. Leave it out for every screen. A name that matches no screen sends nothing. The same rules as an alert's `screen`. |
 | `timeout` | Seconds a ring stays when nobody touches it, 10 to 600. Empty is 60. |
+| `keep_minutes` | Minutes a missed ring stays in the top bar of the doorbell screens, counted from the moment it rang, 1 to 1440. Empty or 0 keeps it until someone opens it. The wizard offers 10 and 30 minutes, an hour, four hours and until someone opens it, and gives a new automation 30 minutes; an automation without the field keeps its missed rings until they are opened, as before. |
 | `sound` | Whether the view opens with **Sound** on, so the doorbell is heard at once. Empty or `true` is on; `false` opens it quiet, for a studio or a bedroom, and a tap on Sound turns it on. |
 | `chime` | Whether the screen plays its chime when it rings. Empty or `true` chimes; `false` rings without it, for someone who would rather not hear the ding-dong every time. |
 | `lock` | A lock entity the view's **Door** key unlocks, after a second tap. The key shows the lock's state. Leave it out for no door key. |
@@ -65,7 +67,9 @@ What starts the automation is yours to pick:
    others. The close key answers it too.
 4. Nobody touches it: it closes after its timeout. The ring is then **missed**, and every doorbell screen shows it at the
    left of its top bar (the doorbell's icon and "2 min ago") until someone taps that item, which opens the camera again,
-   or answers a later ring of that camera.
+   or answers a later ring of that camera, or until its `keep_minutes` have passed since it rang. The screen counts
+   those itself, by its own clock, in standby too: the item carries the moment it leaves (`x`), and a screen that
+   wakes after it shows the bar without it.
 
 ## The keys
 
@@ -136,7 +140,7 @@ listed too, but left alone.
 | The event, its fields, the screens, answered and missed, the wizard's suggestions | `screen_manager/app/doorbell.py`, `Manager.doorbell_*` in `server.py` |
 | Automations into Home Assistant | `screen_manager/app/automations.py`, `api/automations` in `server.py` |
 | The Events page and its wizards | `web/src/components/EventsView.vue`, `DoorbellView.vue`, `AlertsView.vue`, `events/` (the wizards, in `ui/UiWizard.vue`) |
-| The missed ring in the top bar | `page_service.sync_pages` (`with_missed`), the item's `b` |
+| The missed ring in the top bar | `page_service.sync_pages` (`with_missed`), the item's `b`, and its `x` (`Doorbells.bar_item`; the screen's `header_bar::shown_at`, tests/test_header_bar.cpp) |
 | The op `doorbell` | `page_receiver.cpp` |
 | The view, the chime, the times | `module_doorbell.cpp` (module doorbell), hooked into the camera full view of `runtime_tiles.h` |
 | The door key: its two taps, which lock states open, its looks | `doorbell_door.h` (tests/test_doorbell_door.cpp); the app's `Manager.doorbell_open_door` and `doorbell_follow_lock` |

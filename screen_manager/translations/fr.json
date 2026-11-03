@@ -159,6 +159,8 @@
       "microphone": "Microphone",
       "media_player": "Volume",
       "wake_when_moved": "Réveil au mouvement",
+      "backlight_pwm": "PWM du rétroéclairage",
+      "dimmest_level": "Niveau le plus bas",
       "dark_mode": "Mode sombre",
       "auto_standby": "Veille auto",
       "standby_after": "Veille après",
@@ -878,6 +880,7 @@
         "layout_conflict": "La disposition a été modifiée dans un autre éditeur ; rechargez et vérifiez le brouillon",
         "adaptation": "La grille de l’écran a changé ; une adaptation explicite de la disposition est nécessaire",
         "normalization": "Les options des tuiles doivent être normalisées avant d’enregistrer la page",
+        "on_tile": "Page {page}, tuile « {tile} » : {problem}",
         "ambiguous_tile": "La source de l’événement de tuile est ambiguë ; précisez sa page",
         "save_first": "Enregistrez la disposition des pages avant ses paramètres",
         "destination_exists": "L’écran de destination possède déjà une disposition enregistrée",
@@ -1179,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Réveil au mouvement",
           "hint": "L’écran sort de veille quand quelqu’un le prend, le déplace ou le heurte. Il sent l’écran lui-même, pas quelqu’un qui passe."
+        },
+        "backlight_pwm": {
+          "label": "PWM du rétroéclairage",
+          "hint": "La vitesse à laquelle le rétroéclairage s’allume et s’éteint pour baisser. 150 Hz atténue chaque exemplaire de cette carte, mais certains sifflent en dessous de 20 kHz : choisissez 20 kHz si le vôtre siffle, 15 kHz si 20 kHz n’atténue pas régulièrement."
+        },
+        "dimmest_level": {
+          "label": "Niveau le plus bas",
+          "hint": "Le niveau le plus bas du rétroéclairage, en part de sa pleine puissance. Augmentez-le si l’écran reste noir ou scintille à la luminosité la plus basse."
         },
         "microphone_gain": {
           "label": "Gain du microphone",
@@ -1533,6 +1544,10 @@
         "timeout": {
           "label": "Délai",
           "help": "Secondes pendant lesquelles la sonnerie reste si personne ne la touche, de {min} à {max}. Vide vaut {default}. Un toucher la garde ouverte."
+        },
+        "keep_minutes": {
+          "label": "Garder manqué",
+          "help": "Minutes pendant lesquelles une sonnerie sans réponse reste dans la barre du haut des écrans qui l'affichent, comptées depuis la sonnerie, de 1 à {most}. Vide ou 0 : jusqu'à ce que quelqu'un l'ouvre."
         },
         "sound": {
           "label": "Son",
@@ -2483,7 +2498,9 @@
         "seconds": "Toutes les {n} s",
         "live": "En direct",
         "paused": "Direct en pause",
-        "cap": "Cet écran diffuse {n} caméras en direct à la fois ; les autres affichent une image toutes les 15 secondes. Avec deux caméras, chacune est plus fluide qu'avec quatre."
+        "cap": "Cet écran diffuse {n} caméras en direct à la fois ; les autres affichent une image toutes les 15 secondes. Avec deux caméras, chacune est plus fluide qu'avec quatre.",
+        "cap_one": "Cet écran diffuse une seule caméra en direct à la fois ; les autres affichent une image toutes les 15 secondes.",
+        "streams": "{used} flux en direct sur {most} utilisés, tous écrans confondus. Une caméra au-delà affiche une image toutes les 15 secondes."
       },
       "picture": {
         "fit": {
@@ -3558,6 +3575,14 @@
         "change": "Changer le Wi-Fi et réinstaller",
         "failed": "Tessera ne peut pas ajouter {name} lui-même à Home Assistant. Ajoute-le toi-même ci-dessous."
       },
+      "known": {
+        "title": "Cette carte est déjà dans Home Assistant sous le nom {name}",
+        "text": "Home Assistant garde un appareil ESPHome par carte (son adresse MAC) : {new} ne peut donc pas être ajouté tant que {name} est là. Réinstallez {name}, ou remplacez-le : une fois le firmware sur la carte, {name} quitte Home Assistant avec ses entités et {new} prend sa place.",
+        "reinstall": "Réinstaller {name}",
+        "replace": "Remplacer {name} par {new}",
+        "replaced": "{name} a été retiré de Home Assistant ; {new} prend sa place.",
+        "go_firmware": "Sous Firmware et USB, choisissez le profil de {name} et « Installer depuis ce navigateur »."
+      },
       "memory": {
         "low_title": "Peu de mémoire libre sur la machine Home Assistant",
         "low": "Il y a {free} de mémoire libre, donc le firmware se compile avec moins de compilateurs à la fois ({jobs} au lieu de {cores}). C’est plus long, mais ça tient.",
@@ -3837,6 +3862,8 @@
       "calendar_free": "Libre"
     },
     "pages": {
+      "repaired": "Page {page}, tuile « {tile} » : ce qui ne convenait pas a été retiré ({what}).",
+      "repaired_tile": "Page {page} : tuile « {tile} » retirée, elle ne convenait plus.",
       "mode": "Mode de l’éditeur",
       "simple": "Simple",
       "advanced": "Avancé",
@@ -4195,6 +4222,12 @@
       "donated": "J'ai déjà fait un don",
       "thanks": "Merci ! Ce message ne reviendra plus."
     },
+    "funding": {
+      "title": "À la recherche de financement",
+      "body": "J'ai un emploi qui paie les factures, et il passe en premier. Tessera ne cesse de grandir, et je n'ai tout simplement pas le temps qu'il demande. Pour le garder en vie, j'ai besoin de financement : pour lui consacrer le temps qu'il mérite, ou embaucher quelqu'un pour m'aider. Si vous pouvez aider, envoyez-moi un e-mail.",
+      "mail": "M'écrire",
+      "later": "Pas maintenant"
+    },
     "build": {
       "plugins": "Compilation avec ses plugins",
       "install": "Installation",
@@ -4430,7 +4463,8 @@
       "no_camera": "Aucune caméra",
       "fields": {
         "title": "Titre",
-        "timeout": "Délai (secondes)"
+        "timeout": "Délai (secondes)",
+        "keep": "Garder une sonnerie manquée dans la barre du haut"
       },
       "screens": {
         "view": "En direct avec le son",
@@ -4503,6 +4537,12 @@
         "chime": {
           "label": "Carillon à la sonnerie",
           "hint": "L'écran joue un carillon de porte quand quelqu'un sonne. Désactivez ceci si vous ne voulez pas entendre le ding-dong à chaque fois."
+        },
+        "keep": {
+          "minutes": "{n} min",
+          "hours": "{n} h",
+          "open": "Jusqu'à ce que quelqu'un l'ouvre",
+          "hint": "Une sonnerie sans réponse reste aussi longtemps après avoir sonné dans la barre du haut des écrans, avec le temps écoulé. Un appui dessus rouvre la sonnette."
         }
       },
       "hero": {

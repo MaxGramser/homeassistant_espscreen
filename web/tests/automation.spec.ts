@@ -61,6 +61,9 @@ describe("the doorbell's automation", () => {
     expect(doorbellAutomation(reference, { camera: "camera.porch", sound: false }).actions[0].event_data).toEqual({ camera: "camera.porch", sound: false });
     expect(doorbellAutomation(reference, { camera: "camera.porch", sound: true }).actions[0].event_data).toEqual({ camera: "camera.porch" });
     expect(doorbellAutomation(reference, { camera: "camera.porch", chime: false }).actions[0].event_data).toEqual({ camera: "camera.porch", chime: false });
+    // A missed ring kept for a while says how long; until someone opens it (0, as before) the automation leaves it out.
+    expect(doorbellAutomation(reference, { camera: "camera.porch", keep: 30 }).actions[0].event_data).toEqual({ camera: "camera.porch", keep_minutes: 30 });
+    expect(doorbellAutomation(reference, { camera: "camera.porch", keep: 0 }).actions[0].event_data).toEqual({ camera: "camera.porch" });
   });
 });
 

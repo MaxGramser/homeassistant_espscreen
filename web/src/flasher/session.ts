@@ -20,12 +20,12 @@ export function setFlasherLoader(load: () => Promise<Flasher>) {
 }
 
 export type FlashState = {
-  phase: FlashPhase; percent: number; chip: string; problem: FlashProblem | null;
+  phase: FlashPhase; percent: number; chip: string; mac: string; problem: FlashProblem | null;
   params: Record<string, string>; detail: string;
 };
 
 export function useBrowserFlash() {
-  const state = reactive<FlashState>({ phase: "idle", percent: 0, chip: "", problem: null, params: {}, detail: "" });
+  const state = reactive<FlashState>({ phase: "idle", percent: 0, chip: "", mac: "", problem: null, params: {}, detail: "" });
   let flasher: Flasher | null = null;
   let loader: Loader | null = null;
   // Set once the image is written: the restart makes a native USB chip drop off the bus and come back, which is
@@ -51,14 +51,19 @@ export function useBrowserFlash() {
   async function connect(expected?: string | null): Promise<boolean> {
     await close();
     written = false;
-    Object.assign(state, { phase: "picking", percent: 0, chip: "", problem: null, params: {}, detail: "" });
+    Object.assign(state, { phase: "picking", percent: 0, chip: "", mac: "", problem: null, params: {}, detail: "" });
     if (flashSupport() !== "ok") {
       fail("failed");
       return false;
     }
     let port: SerialPort;
     try {
-      port = await navigator.serial.requestPort();
+      // A port this page was given before and that is plugged in now is used again without the picker, when it is the
+      // only one (Chrome's remembered devices, app 0.4.96): the same screen on the same cable, as after a build that
+      // failed or a Wi-Fi that was wrong. Another board on it is caught by the chip check below, and the picker is
+      // asked as before when none or several are remembered.
+      const remembered = (await navigator.serial.getPorts?.()) || [];
+      port = remembered.length === 1 ? remembered[0] : await navigator.serial.requestPort();
     } catch (error) {
       fail(pickProblem(error), {}, (error as Error)?.message || "");
       return false;
@@ -91,6 +96,14 @@ export function useBrowserFlash() {
       await close();
       fail("wrong_chip", { found: state.chip, expected: expected || "" });
       return false;
+    }
+    // The board's MAC, which Home Assistant keys its device on: New screen asks the add-on whether the board is known
+    // already (app 0.4.96). A chip that does not say leaves it empty, and the install goes on as before.
+    try {
+      state.mac = await flasher.readMac(current);
+    } catch (error) {
+      console.error("Reading the MAC failed:", error);
+      state.mac = "";
     }
     state.phase = "waiting";
     return true;

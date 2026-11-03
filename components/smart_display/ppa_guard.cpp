@@ -7,8 +7,8 @@
 #include "ppa_guard.h"
 #include "ppa_trace.h"
 #include "glass.h"
-#include "esphome/core/defines.h"  // USE_LIVE_VIEW: the header above has no ESPHome in it
-#ifdef USE_LIVE_VIEW
+#include "esphome/core/defines.h"  // PICTURE_ENGINE_P4: the header above has no ESPHome in it
+#ifdef PICTURE_ENGINE_P4
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -189,13 +189,15 @@ static esp_err_t copy_guarded(ppa_client_handle_t client, const ppa_srm_oper_con
   if (n == 1) return __real_ppa_do_scale_rotate_mirror(client, config);
   if (n == 0) {
     if (given_up++ == 0)
-      ESP_LOGW(TAG, "a turned copy of %ux%u may hang the 2D-DMA (DIG-734) and has no safe pieces; copied as it is",
-               (unsigned) block.w, (unsigned) block.h);
+      ESP_LOGW(TAG, "a copy of %ux%u turned %u at %u/16 may hang the 2D-DMA (DIG-734) and has no safe pieces; copied as it is",
+               (unsigned) block.w, (unsigned) block.h, (unsigned) block.angle * 90,
+               (unsigned) (block.sx.whole * ppa_guard::FRAG_MAX + block.sx.frag));
     return __real_ppa_do_scale_rotate_mirror(client, config);
   }
   if (guarded++ < TOLD_AT_MOST)
-    ESP_LOGI(TAG, "a turned copy of %ux%u would hang the 2D-DMA (DIG-734): copied in %d pieces", (unsigned) block.w,
-             (unsigned) block.h, n);
+    ESP_LOGI(TAG, "a copy of %ux%u turned %u at %u/16 would hang the 2D-DMA (DIG-734): copied in %d pieces",
+             (unsigned) block.w, (unsigned) block.h, (unsigned) block.angle * 90,
+             (unsigned) (block.sx.whole * ppa_guard::FRAG_MAX + block.sx.frag), n);
   for (int i = 0; i < n; ++i) {
     ppa_srm_oper_config_t own = *config;
     own.in.block_offset_x = config->in.block_offset_x + plan[i].in_x;
