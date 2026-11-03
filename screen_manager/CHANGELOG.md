@@ -1,5 +1,12 @@
 ## Unreleased
 
+- **The Guition JC4880P443 V3 (10150002-V3) is a board of its own, experimental.** Guition now ships the 4.3-inch
+  JC4880P443 with rev3 ESP32-P4 silicon, and the firmware of the first build does not boot on it: the screen stays
+  black. Choose **Guition · 4.3 inch, JC4880P443 V3** in New screen. It is built for rev3 silicon with the display
+  driver copy the JC8012P4A1 V3 uses, and it logs over the chip's own USB. Tried on one board (chip revision v3.2): it
+  boots, the display shows the screen, the touch answers and it joins Wi-Fi. The backlight, colours, rotation, speaker,
+  microphone and camera have not been checked on it yet. A new board takes no firmware number, so no screen is offered an update (docs/JC4880P443.md).
+
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.95 (firmware 0.60.0)
