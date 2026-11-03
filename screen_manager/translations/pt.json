@@ -3575,6 +3575,14 @@
         "change": "Mudar Wi-Fi e instalar de novo",
         "failed": "O Tessera não consegue adicionar {name} sozinho ao Home Assistant. Adiciona-o tu mesmo abaixo."
       },
+      "known": {
+        "title": "Esta placa já está no Home Assistant como {name}",
+        "text": "O Home Assistant guarda um dispositivo ESPHome por placa (o seu endereço MAC), por isso {new} não pode ser adicionado enquanto {name} lá estiver. Instale {name} de novo, ou substitua-o: quando o firmware estiver na placa, {name} sai do Home Assistant com as suas entidades e {new} fica no seu lugar.",
+        "reinstall": "Instalar {name} de novo",
+        "replace": "Substituir {name} por {new}",
+        "replaced": "{name} foi removido do Home Assistant; {new} fica no seu lugar.",
+        "go_firmware": "Em Firmware e USB, escolha o perfil de {name} e «Instalar a partir deste browser»."
+      },
       "memory": {
         "low_title": "Pouca memória livre na máquina do Home Assistant",
         "low": "Estão livres {free} de memória, por isso o firmware compila com menos compiladores ao mesmo tempo ({jobs} em vez de {cores}). Demora mais, mas cabe.",

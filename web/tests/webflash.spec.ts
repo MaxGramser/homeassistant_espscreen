@@ -30,6 +30,7 @@ function fakeFlasher(chip = "ESP32") {
   const flasher = {
     createLoader: vi.fn((port: SerialPort) => ({ port })),
     connect: vi.fn(async () => chip),
+    readMac: vi.fn(async () => "aa:bb:cc:dd:ee:ff"),
     writeImage: vi.fn(async (_loader: unknown, _data: Uint8Array, erase: boolean, onErase: () => void, onProgress: (p: number) => void) => {
       if (erase) onErase();
       onProgress(0);
@@ -123,6 +124,8 @@ describe("one installation from the browser", () => {
     expect(await flash.connect("ESP32-S3")).toBe(true);
     expect(flash.state.phase).toBe("waiting");
     expect(flash.state.chip).toBe("ESP32-S3");
+    // The board's MAC, read while the port is open: New screen asks the add-on whether Home Assistant knows the board.
+    expect(flash.state.mac).toBe("aa:bb:cc:dd:ee:ff");
     expect(await flash.install("hall.yaml", false)).toBe(true);
     expect(flash.state.phase).toBe("done");
     expect(flasher.writeImage.mock.calls[0][2]).toBe(false);

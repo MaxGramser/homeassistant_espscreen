@@ -1,0 +1,92 @@
+"""A board Home Assistant already has, flashed again under a new name (app 0.4.96, server.py known_board).
+
+Home Assistant keeps one ESPHome device per board, keyed on its MAC: a board flashed with a new profile cannot be added
+while its old device is there (the discovery aborts with already_configured, and Home Assistant then asks the old
+device's key of the new firmware for ever). New screen asks the add-on, with the MAC esptool read from the chip, whether
+the board is known and as what, and offers to install that screen again or to replace it: after the image is on the
+board, the old device's integration leaves Home Assistant and the new screen pairs.
+"""
+import importlib.util
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+sys.path.insert(0, str(ROOT / 'tests'))
+
+HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
+if HAS_AIOHTTP:
+    from aiohttp.test_utils import TestClient, TestServer
+    from firmware import Firmware
+    from manager_fixtures import with_screen_grid
+    from server import Manager, create_app
+    from test_screen_owned_settings import fake_ha
+
+MAC = 'aa:bb:cc:dd:ee:ff'
+
+
+@unittest.skipUnless(HAS_AIOHTTP, 'aiohttp is not installed')
+class AKnownBoard(unittest.IsolatedAsyncioTestCase):
+    def manager(self, tmp):
+        (Path(tmp) / 'screens.json').write_text(json.dumps({'version': 1, 'screens': {}}))
+        ha = with_screen_grid(fake_ha())
+        ha.devices = [{'id': 'd-old', 'name': 'Living room', 'name_by_user': None, 'config_entries': ['E1', 'E-other'],
+                       'connections': [['mac', MAC.upper()]]},
+                      {'id': 'd-lamp', 'name': 'Lamp', 'config_entries': ['E2'], 'connections': [['mac', '11:22:33:44:55:66']]}]
+        self.deleted = []
+
+        async def esphome_entries():
+            return {'E1': {'entry_id': 'E1', 'domain': 'esphome', 'title': 'Living room', 'state': 'loaded'}}
+
+        async def delete_config_entry(entry_id):
+            self.deleted.append(entry_id)
+            return False
+        ha.esphome_entries, ha.delete_config_entry = esphome_entries, delete_config_entry
+        manager = Manager(ha, Path(tmp) / 'screens.json')
+        manager.firmware = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
+        manager.firmware.create({'board': 'cyd', 'name': 'hall-2', 'friendly_name': 'Hall 2',
+                                 'wifi_ssid': 'ssid', 'wifi_password': 'password'})
+        return manager
+
+    def test_the_board_is_found_by_its_mac_whatever_the_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manager = self.manager(tmp)
+            known = manager.known_board(MAC)
+            self.assertEqual((known['known'], known['name'], known['device_id'], known['entries']),
+                             (True, 'Living room', 'd-old', ['E1', 'E-other']))
+            self.assertEqual(manager.known_board(MAC.upper())['name'], 'Living room')
+            self.assertIsNone(manager.known_board('11:22:33:44:55:67'))
+            # Nothing that is not a MAC is looked up: the page sends what esptool read, nothing else.
+            self.assertIsNone(manager.known_board('../etc/passwd'))
+            self.assertIsNone(manager.known_board(None))
+
+    async def test_the_page_asks_and_replaces_through_the_api(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            manager = self.manager(tmp)
+            async with TestClient(TestServer(create_app(manager, True))) as client:
+                first = await (await client.get('/api/inventory?light=1')).json()
+                known = await (await client.get(f'/api/boards/known?mac={MAC}')).json()
+                self.assertEqual((known['known'], known['name']), (True, 'Living room'))
+                self.assertEqual(await (await client.get('/api/boards/known?mac=11:22:33:44:55:67')).json(), {'known': False})
+                # Replacing takes the old device's ESPHome integration out, and only that one (E-other is another
+                # integration of the device, a camera's say), once the new profile is one this app wrote.
+                refused = await client.post('/api/boards/replace', json={'mac': MAC, 'by': 'stranger.yaml'},
+                                            headers={'X-Screen-CSRF': first['csrf']})
+                self.assertEqual(refused.status, 400)
+                self.assertEqual(self.deleted, [])
+                answer = await client.post('/api/boards/replace', json={'mac': MAC, 'by': 'hall-2.yaml'},
+                                           headers={'X-Screen-CSRF': first['csrf']})
+                self.assertEqual(answer.status, 200)
+                self.assertEqual(await answer.json(), {'replaced': 'Living room', 'by': 'hall-2.yaml', 'entries': 1})
+                self.assertEqual(self.deleted, ['E1'])
+                # A board Home Assistant does not have cannot be replaced.
+                missing = await client.post('/api/boards/replace', json={'mac': '11:22:33:44:55:67', 'by': 'hall-2.yaml'},
+                                            headers={'X-Screen-CSRF': first['csrf']})
+                self.assertEqual(missing.status, 400)
+
+
+if __name__ == '__main__':
+    unittest.main()

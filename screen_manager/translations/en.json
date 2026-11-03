@@ -3140,6 +3140,14 @@
         "change": "Change Wi-Fi and install again",
         "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
       },
+      "known": {
+        "title": "This board is already in Home Assistant as {name}",
+        "text": "Home Assistant keeps one ESPHome device per board (its MAC address), so {new} cannot be added while {name} is there. Install {name} again, or replace it: after the firmware is on the board, {name} leaves Home Assistant with its entities and {new} takes its place.",
+        "reinstall": "Install {name} again",
+        "replace": "Replace {name} with {new}",
+        "replaced": "{name} was removed from Home Assistant; {new} takes its place.",
+        "go_firmware": "Under Firmware & USB, pick the profile of {name} and “Install from this browser”."
+      },
       "memory": {
         "low_title": "Little memory free on the Home Assistant machine",
         "low": "{free} of memory is free, so the firmware builds with fewer compilers at a time ({jobs} instead of {cores}). That takes longer, but it fits.",

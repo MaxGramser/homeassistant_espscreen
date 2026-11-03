@@ -1701,6 +1701,46 @@ class Manager:
                   if entity.startswith('sensor.esp_screens_') and (state.get('attributes') or {}).get('friendly_name') == title}
         return sorted(found)
 
+    def known_board(self, mac):
+        """The device Home Assistant already has for a board, by the board's MAC (app 0.4.96): Home Assistant keeps one
+        ESPHome device per MAC, so a board flashed again under a new name cannot be added while its old device is
+        there (it answers `already_configured`, then asks the old device's key of the new firmware, for ever). New screen
+        asks this before it builds, with the MAC esptool read from the chip, and offers to install the old screen again
+        or to replace it. None when Home Assistant has no device with that MAC."""
+        wanted = str(mac or '').strip().lower()
+        if not re.fullmatch(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', wanted):
+            return None
+        for device in getattr(self.ha, 'devices', None) or []:
+            if not isinstance(device, dict):
+                continue
+            if not any(isinstance(c, (list, tuple)) and len(c) == 2 and c[0] == 'mac' and str(c[1]).lower() == wanted
+                       for c in device.get('connections') or []):
+                continue
+            screen = next((s for s in self.screens() if s.get('device_id') == device.get('id')), None)
+            name = (screen or {}).get('name') or device.get('name_by_user') or device.get('name') or wanted
+            return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'),
+                    'screen': (screen or {}).get('id'), 'device_id': device.get('id'),
+                    'entries': [e for e in device.get('config_entries') or [] if isinstance(e, str)]}
+        return None
+
+    async def replace_known_board(self, mac, by):
+        """Take the old device of a board out of Home Assistant so the screen flashed onto it under a new name can be
+        added (known_board): its ESPHome integration goes, as the screen's own Remove does, and with it the device and
+        its entities. The old screen's YAML stays on disk with its keys. `by` names the new profile, which has to be one
+        this app wrote."""
+        known = self.known_board(mac)
+        if not known:
+            raise ValueError(t('addon.errors.not_paired'))
+        if not isinstance(by, str) or by not in self.firmware.profile_names():
+            raise ValueError(t('addon.errors.firmware.profile_missing'))
+        entries = await self.ha.esphome_entries()
+        mine = [e for e in known['entries'] if e in entries]
+        for entry in mine:
+            await self.ha.delete_config_entry(entry)
+        LOG.info('%s was replaced by %s: its device left Home Assistant (%d integration%s)', known['name'], by,
+                 len(mine), '' if len(mine) == 1 else 's')
+        return {'replaced': known['name'], 'by': by, 'entries': len(mine)}
+
     async def remove_screen(self, inbox):
         """Remove a screen for good (app 0.2.112): out of Home Assistant, its own YAML out of the ESPHome folder,
         and everything this app kept for it. The mirror of New screen.
@@ -5240,6 +5280,18 @@ def create_app(manager, development=False):
         """New screen and Firmware & USB → This computer (browser): the page wrote the image it downloaded onto a
         screen over Web Serial, so the screen list nudges pairing as for one flashed from Home Assistant's own USB port."""
         return web.json_response(manager.firmware.flashed(request.match_info['file']))
+    async def board_known(request):
+        """New screen → This computer, once esptool read the chip (app 0.4.96): whether Home Assistant already has a
+        device with this MAC, and as what, so the wizard can offer to install that screen again or to replace it
+        instead of building a screen Home Assistant will never add."""
+        return web.json_response(manager.known_board(request.query.get('mac')) or {'known': False})
+    async def board_replace(request):
+        """The wizard's choice to replace the known screen (board_known) with the one it just wrote: the old device
+        leaves Home Assistant, and the new screen pairs."""
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise LayoutError(t('addon.errors.invalid_input'))
+        return web.json_response(await manager.replace_known_board(data.get('mac'), data.get('by')))
     # The answers that are still waiting after a restart try again (feedback.py); a request never runs past shutdown.
     FEEDBACK_ERRORS = {'outcome': 'addon.errors.feedback.invalid', 'issues': 'addon.errors.feedback.invalid',
                        'comment': 'addon.errors.feedback.comment', 'board': 'addon.errors.feedback.unknown_board',
@@ -5397,6 +5449,8 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)
     app.router.add_get('/api/firmware/profiles/{file}/files', firmware_files)
     app.router.add_post('/api/firmware/profiles/{file}/flashed', firmware_flashed)
+    app.router.add_get('/api/boards/known', board_known)
+    app.router.add_post('/api/boards/replace', board_replace)
     app.router.add_delete('/api/firmware/profiles/{file}', firmware_forget)
     app.router.add_post('/api/firmware/profiles', firmware_create)
     app.router.add_put('/api/firmware/wifi', firmware_wifi)
