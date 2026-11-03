@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.96 (firmware 0.60.0)
 
 - **New screen says when the board on the cable is a screen Home Assistant already has.** Installing from this browser, the wizard reads the board's MAC address and asks Home Assistant, before anything is built: a board that is already a screen there (flashed before under another name) cannot be added as a new one, since Home Assistant keeps one ESPHome device per board, and until now the wizard waited for a screen that never came. It now names the screen Home Assistant has and offers to install that one again, or to replace it: after the firmware is on the board, the old screen leaves Home Assistant with its entities and the new one pairs by itself.
 - **Installing from this browser asks for the USB port once.** A port this page was given before and that is plugged in now is used again without Chrome's picker, when it is the only one remembered: the same screen on the same cable, as after a build that failed or a Wi-Fi that was wrong. Another board on it is still caught by the chip check, and the picker comes as before when none or several ports are remembered.
