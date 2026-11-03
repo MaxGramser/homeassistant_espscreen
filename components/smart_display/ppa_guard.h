@@ -14,7 +14,10 @@
 // first try (espressif/esp-idf #19023). Espressif's fix, 469aa16 on master (2026-01-29, "fix(ppa): fix for SRM
 // operation potential block if do 90/270 degree rotation"), swaps width and height for 90 and 270 degrees before the
 // check; the backport to 5.5 is promised but not in the ESP-IDF ESPHome 2026.9 builds with, so the firmware guards the
-// call itself (ppa_guard.cpp, through a linker wrap of ppa_do_scale_rotate_mirror).
+// call itself (ppa_guard.cpp, through a linker wrap of ppa_do_scale_rotate_mirror). A scaled copy has a second gap,
+// in master as much as in 5.5.5 (small_leftover below): the driver counts the width's leftover on the scaled output,
+// where the hardware takes the input's last columns and scales them, so a camera's picture scaled to fill a full view
+// can stall unturned (a reTerminal D1001, 2026-11-03, 450x800 at 25/16: every time a camera opened).
 //
 // The guard cannot set the bypass bit, only choose what it asks for. So it works out both rules, the hardware's (the fix)
 // and the driver's (5.5.5), and a block the hardware would stall on while the driver leaves the bypass off is copied in
@@ -86,28 +89,40 @@ inline Size output_of(const Block &b) {
   return turned(b.angle) ? Size{scaled(b.h, b.sy), scaled(b.w, b.sx)} : Size{scaled(b.w, b.sx), scaled(b.h, b.sy)};
 }
 
-// The rule for an output of `w` x `h`: cut into more than one unit, and the last unit holds fewer bits than the FIFO,
-// or, with `equal_stalls`, no more than it. That is the block the DMA never finishes unless the bypass is set.
-inline bool small_leftover(uint32_t w, uint32_t h, const Block &b, bool equal_stalls) {
-  const uint32_t w_left = w % b.unit_w ? w % b.unit_w : b.unit_w;
-  const uint32_t h_left = h % b.mb ? h % b.mb : b.mb;
+// The last unit, and whether it holds too few bits. The engine reads the input in units of `unit_w` columns by `mb`
+// rows (a turned block as its output lies: the input's height along the output's width) and scales each unit into
+// the output, so the last unit's output, what the FIFO counts, is the input's leftover scaled: the columns past the
+// last whole unit and the rows past the last whole macro block, each at its own scale. Measured on a reTerminal D1001
+// (2026-11-03, a full view's picture of 450x800 at 25/16, unturned, docs/PLATFORM_PLAN.md 4.7): its input leaves 2
+// columns, 3 pixels scaled, by 16 rows, 25 scaled, 1200 bits, and it stalled every time within 30 copies, as did
+// 450x790 (432 bits), 450x800 at 20/16 (640) and 66x800 (1200); 448x800 at the same scale, its last unit whole, came
+// back 5,000 times. The driver's own count (`driver_width`) takes the leftover of the scaled width instead, 703 % 64 =
+// 63 columns for that block, 25,200 bits, and leaves the bypass off; for the height it scales the input's leftover as
+// the hardware does. At a block's own size the two counts are one. `equal_stalls`: a last unit of exactly the FIFO.
+inline bool small_leftover(uint32_t in_w, uint32_t in_h, Scale sx, Scale sy, const Block &b, bool equal_stalls,
+                           bool driver_width) {
+  const uint32_t out_w = scaled(in_w, sx);
+  const uint32_t w_in_left = in_w % b.unit_w ? in_w % b.unit_w : b.unit_w;
+  const uint32_t w_out_left = out_w % b.unit_w ? out_w % b.unit_w : b.unit_w;
+  const uint32_t w_left = driver_width ? w_out_left : scaled(w_in_left, sx);
+  const uint32_t h_left = scaled(in_h % b.mb ? in_h % b.mb : b.mb, sy);
   const uint32_t bits = w_left * h_left * b.depth;
-  return (w > b.unit_w || h > b.mb) && (bits < FIFO_BITS || (equal_stalls && bits == FIFO_BITS));
+  return (out_w > b.unit_w || in_h > b.mb) && (bits < FIFO_BITS || (equal_stalls && bits == FIFO_BITS));
 }
-// What the hardware does: the rule on the output as it comes out, turned (Espressif's fix, 469aa16), and a last unit
-// of exactly the FIFO stalls too. Espressif's driver counts that one safe, master as much as 5.5.5, but a reTerminal
-// D1001 (2026-10-27) restarted on it twice while its top bar was held: the line growing along the glass's edge is a
-// 6-row strip, turned a 6-pixel-wide column of units of 6 x 16 x 16 bits, and the copies of 336x6 whole and of 864x6
-// (a piece of 872x6) never came back while the panel read its frame buffer (the main loop waiting in ppa_do_operation,
+// What the hardware does: the rule on the block as its output lies, turned (Espressif's fix, 469aa16, swaps the
+// input's sides and scales for 90 and 270 degrees), the leftover the input's scaled, and a last unit of exactly the
+// FIFO stalls too. Espressif's driver counts that one safe, master as much as 5.5.5, but a reTerminal D1001
+// (2026-10-27) restarted on it twice while its top bar was held: the line growing along the glass's edge is a 6-row
+// strip, turned a 6-pixel-wide column of units of 6 x 16 x 16 bits, and the copies of 336x6 whole and of 864x6 (a
+// piece of 872x6) never came back while the panel read its frame buffer (the main loop waiting in ppa_do_operation,
 // the guard's trace of the last calls naming the copy). Most such copies did come back, as in espressif/esp-idf #19096.
 inline bool stalls(const Block &b) {
-  const Size out = output_of(b);
-  return small_leftover(out.w, out.h, b, true);
+  const bool t = turned(b.angle);
+  return small_leftover(t ? b.h : b.w, t ? b.w : b.h, t ? b.sy : b.sx, t ? b.sx : b.sy, b, true, false);
 }
-// What ESP-IDF 5.5.5's driver does: the rule on the input's own width and height, each with its own scale, turned or
-// not, and strictly fewer bits than the FIFO.
-inline bool driver_bypasses(const Block &b) { return small_leftover(scaled(b.w, b.sx), scaled(b.h, b.sy), b, false); }
-// A block the engine takes whole: nothing to stall on, or the driver sets the bypass anyway.
+// What ESP-IDF 5.5.5's driver does: the rule on the input's own width and height, turned or not, the width's leftover
+// counted on the scaled width, and strictly fewer bits than the FIFO.
+inline bool driver_bypasses(const Block &b) { return small_leftover(b.w, b.h, b.sx, b.sy, b, false, true); }
 inline bool safe(const Block &b) { return !stalls(b) || driver_bypasses(b); }
 
 inline Block part(const Block &b, uint32_t w, uint32_t h) {
@@ -255,15 +270,17 @@ inline void cut(Plan &p, uint32_t x, uint32_t y, const Block &b, int depth) {
 }  // namespace detail
 
 // The pieces a block goes to the engine in: 1 and the block itself when the engine takes it whole, more when it would
-// stall, 0 when the guard found no safe way (the block then goes as it is, as before the guard). Only a turned block is
-// ever cut: unturned, the driver's rule is the hardware's. A block whose scaled size is not whole is left alone too,
-// and one scaled by a fraction may stay whole when its cuts fall between pixels: every copy onto a turned glass at
-// its own size (LVGL's flushes, a live tile) has a plan, and a camera's picture scaled to fill the full view almost
-// always has one.
+// stall, 0 when the guard found no safe way (the block then goes as it is, as before the guard). An unturned block at
+// its own size is cut only for a last unit of exactly the FIFO, where the driver's rule is the hardware's otherwise;
+// a scaled one is cut when the driver counts its width's leftover wrong (the full view's picture: until 2026-11-03
+// no unturned block was ever cut, and a reTerminal D1001 restarted whenever a camera opened full screen). A block
+// scaled by a fraction is cut only where a cut falls on a whole pixel (the pieces then cover the output exactly, a
+// scaled size that is not whole included: the whole's rounding falls in the last piece), so a few such blocks find no
+// plan and go as they are: every copy onto a turned glass at its own size (LVGL's flushes, a live tile) has a plan,
+// and a camera's picture scaled to fill the full view almost always has one.
 inline int plan(const Block &b, Piece *pieces) {
   if (b.w == 0 || b.h == 0 || b.unit_w == 0 || b.mb == 0 || b.depth == 0) return 0;
-  const bool whole_block = !turned(b.angle) || safe(b) || !exact(b.w, b.sx) || !exact(b.h, b.sy);
-  if (whole_block) {
+  if (safe(b)) {
     pieces[0] = Piece{0, 0, b.w, b.h, 0, 0};
     return 1;
   }

@@ -13,7 +13,7 @@ import secrets
 
 from i18n import t
 import tile_icons
-from core import (entity_id, plugin_entity, plugin_tile, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, HEADER_MAX_ITEMS, KEY_HOLDERS, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES,
+from core import (BUILTIN, entity_id, plugin_entity, plugin_tile, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, HEADER_MAX_ITEMS, KEY_HOLDERS, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES,
                   STORE_MAX_TILES, Grid, is_key, span_of,
                   span_offered, placed, header_items, page_target, tile_size, validate_header, validate_layout)
 
@@ -220,7 +220,10 @@ def _entity(content, page_indexes, home):
         return entity
     if content["kind"] == "builtin":
         _object(content, {"kind", "name"}, {"kind", "name"})
-        if content["name"] not in ("clock", "nightstand", "settings", "map", "energy"):
+        # Every built-in tile the app knows (core.BUILTIN), a page's link apart: it is "navigation" below. A hand-kept
+        # list here forgot the template tile (GitHub #358).
+        if not isinstance(content["name"], str) or content["name"].startswith("page_") \
+                or "screen." + content["name"] not in BUILTIN:
             raise LayoutError(t('addon.errors.layout.unsupported'))
         return "screen." + content["name"]
     if content["kind"] == "navigation":

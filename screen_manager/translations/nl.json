@@ -159,6 +159,8 @@
       "microphone": "Microfoon",
       "media_player": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
+      "backlight_pwm": "Achtergrondlicht-PWM",
+      "dimmest_level": "Laagste stand",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
       "standby_after": "Stand-by na",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wakker bij bewegen",
           "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
+        },
+        "backlight_pwm": {
+          "label": "Achtergrondlicht-PWM",
+          "hint": "Hoe snel het achtergrondlicht aan en uit schakelt om te dimmen. 150 Hz dimt elk exemplaar van dit bord, maar sommige piepen onder 20 kHz: kies 20 kHz als dat van jou piept, 15 kHz als 20 kHz niet gelijkmatig dimt."
+        },
+        "dimmest_level": {
+          "label": "Laagste stand",
+          "hint": "Hoe laag het achtergrondlicht gaat, als deel van zijn volle vermogen. Zet het hoger als het scherm op de laagste helderheid zwart blijft of flikkert."
         },
         "microphone_gain": {
           "label": "Microfoongain",
@@ -3130,6 +3140,14 @@
         "change": "Wifi wijzigen en opnieuw installeren",
         "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
       },
+      "known": {
+        "title": "Dit bord staat al in Home Assistant als {name}",
+        "text": "Home Assistant houdt één ESPHome-apparaat per bord (zijn MAC-adres), dus {new} kan er niet bij zolang {name} er staat. Installeer {name} opnieuw, of vervang het: zodra de firmware op het bord staat, verdwijnt {name} met zijn entiteiten uit Home Assistant en komt {new} ervoor in de plaats.",
+        "reinstall": "{name} opnieuw installeren",
+        "replace": "{name} vervangen door {new}",
+        "replaced": "{name} is uit Home Assistant verwijderd; {new} komt ervoor in de plaats.",
+        "go_firmware": "Kies onder Firmware & USB het profiel van {name} en “Installeren vanuit deze browser”."
+      },
       "memory": {
         "low_title": "Weinig geheugen vrij op de Home Assistant-machine",
         "low": "Er is {free} geheugen vrij, dus de firmware bouwt met minder compilers tegelijk ({jobs} in plaats van {cores}). Dat duurt langer, maar het past.",
@@ -3768,6 +3786,12 @@
       "later": "Misschien later",
       "donated": "Ik heb al gedoneerd",
       "thanks": "Dank je wel! Dit komt niet meer terug."
+    },
+    "funding": {
+      "title": "Op zoek naar funding",
+      "body": "Ik heb een baan die de rekeningen betaalt, en die gaat voor. Tessera wordt steeds groter, en ik heb simpelweg niet de tijd die het nodig heeft. Om het in leven te houden heb ik funding nodig: zodat ik er de tijd aan kan geven die het verdient, of iemand kan inhuren om te helpen. Kun je helpen? Stuur me een mail.",
+      "mail": "Mail me",
+      "later": "Niet nu"
     },
     "plugins": {
       "title": "Plugins",

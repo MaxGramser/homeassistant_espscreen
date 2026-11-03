@@ -187,6 +187,15 @@ reads. That is every screen made with **New screen**, and a screen of your own w
 ESPHome folder (`/config/esphome`, the folder ESPHome Device Builder uses too; with [Docker](DOCKER.md), the folder
 you mounted as the ESPHome folder).
 
+Home Assistant keeps one ESPHome device per board, keyed on the board's MAC address. A board that is already a screen
+in Home Assistant cannot be added again under a new name: flashed with a new profile, it would wait for Home Assistant
+for ever. Installing from this browser, **New screen** reads the board's MAC before it builds and, when Home Assistant
+has that board already, names the screen it is and offers to install that screen again or to replace it (app 0.4.96).
+Replacing writes the new firmware first; then the old screen leaves Home Assistant with its entities, its YAML stays in
+the ESPHome folder, and the new screen pairs by itself. Over the other ways (USB on the Home Assistant machine, a
+file) the board's MAC is not known before the build: remove the old device under **Settings → Devices & services →
+ESPHome** yourself, and the new screen pairs.
+
 ### Adding a screen by hand
 
 A screen whose YAML lives somewhere else (built with the ESPHome CLI on your own computer, with an ESPHome Device
@@ -398,7 +407,7 @@ that screen and says where it is set.
 | `GRID_MAX_COLUMNS`, `GRID_MAX_ROWS` | every board | the most columns and rows the editor offers lying down (`GRID_MAX_COLUMNS_PORTRAIT` and `GRID_MAX_ROWS_PORTRAIT` standing up), at most `8`; worked out from the glass (docs/RESPONSIVE.md, "The grid a screen is given") |
 | `GRID_MIN_COLUMNS`, `GRID_MIN_ROWS` | every board | the fewest columns and rows the editor offers (`1`) |
 | `GRID_CELL_MIN_W_MM`, `GRID_CELL_MIN_H_MM` | every board | the smallest cell the range is worked out from, in millimetres (`20` x `8` on the standard look, `15` x `6.5` on the compact one) |
-| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Waveshare P4, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0, the Waveshare P4 `100Hz`) |
+| `BACKLIGHT_FREQUENCY` | CYD, 4-inch Guition, 3.5-inch Guition, Waveshare 4B, Waveshare 3.5, Waveshare P4, Hosyond | the backlight's PWM frequency (the 4-inch Guition runs `150 Hz` since firmware 0.3.5, the CYD and the Hosyond `1000Hz` since firmware 0.29.0, the Waveshare 4B `300000Hz` since firmware 0.39.0, the Waveshare P4 `100Hz`). On the 4-inch Guition the **Backlight PWM** extra under Screen settings changes it without a build (150 Hz, 15 kHz or 20 kHz, kept over a restart), beside **Dimmest level** for a backlight that stays black or flickers at 1 % |
 
 The parts an override names stay the same on every board and in every update:
 `my_display` (the display), `ts_touch` (the touch panel), `gpio_backlight_pwm`

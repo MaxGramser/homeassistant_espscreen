@@ -159,6 +159,8 @@
       "microphone": "Microfone",
       "media_player": "Volume",
       "wake_when_moved": "Acordar ao mover",
+      "backlight_pwm": "PWM da retroiluminação",
+      "dimmest_level": "Nível mais baixo",
       "dark_mode": "Modo escuro",
       "auto_standby": "Espera automática",
       "standby_after": "Espera após",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Acordar ao mover",
           "hint": "O ecrã sai do modo de espera quando alguém o pega, move ou bate nele. Sente o próprio ecrã, não alguém que passa."
+        },
+        "backlight_pwm": {
+          "label": "PWM da retroiluminação",
+          "hint": "A velocidade a que a retroiluminação liga e desliga para escurecer. 150 Hz escurece todas as unidades desta placa, mas algumas zumbem abaixo de 20 kHz: escolha 20 kHz se a sua zumbir, 15 kHz se a 20 kHz não escurecer de forma uniforme."
+        },
+        "dimmest_level": {
+          "label": "Nível mais baixo",
+          "hint": "O mínimo a que a retroiluminação chega, como parte da sua potência total. Aumente-o se o ecrã ficar preto ou tremeluzir no brilho mais baixo."
         },
         "microphone_gain": {
           "label": "Ganho do microfone",
@@ -3565,6 +3575,14 @@
         "change": "Mudar Wi-Fi e instalar de novo",
         "failed": "O Tessera não consegue adicionar {name} sozinho ao Home Assistant. Adiciona-o tu mesmo abaixo."
       },
+      "known": {
+        "title": "Esta placa já está no Home Assistant como {name}",
+        "text": "O Home Assistant guarda um dispositivo ESPHome por placa (o seu endereço MAC), por isso {new} não pode ser adicionado enquanto {name} lá estiver. Instale {name} de novo, ou substitua-o: quando o firmware estiver na placa, {name} sai do Home Assistant com as suas entidades e {new} fica no seu lugar.",
+        "reinstall": "Instalar {name} de novo",
+        "replace": "Substituir {name} por {new}",
+        "replaced": "{name} foi removido do Home Assistant; {new} fica no seu lugar.",
+        "go_firmware": "Em Firmware e USB, escolha o perfil de {name} e «Instalar a partir deste browser»."
+      },
       "memory": {
         "low_title": "Pouca memória livre na máquina do Home Assistant",
         "low": "Estão livres {free} de memória, por isso o firmware compila com menos compiladores ao mesmo tempo ({jobs} em vez de {cores}). Demora mais, mas cabe.",
@@ -4203,6 +4221,12 @@
       "later": "Talvez mais tarde",
       "donated": "Já fiz um donativo",
       "thanks": "Obrigado! Esta mensagem não volta a aparecer."
+    },
+    "funding": {
+      "title": "À procura de financiamento",
+      "body": "Tenho um emprego que paga as contas, e ele vem primeiro. O Tessera continua a crescer e simplesmente não tenho o tempo de que ele precisa. Para o manter vivo, preciso de financiamento: para lhe dar o tempo que merece ou contratar alguém para ajudar. Se puder ajudar, envie-me um e-mail.",
+      "mail": "Enviar e-mail",
+      "later": "Agora não"
     },
     "build": {
       "plugins": "A compilar com os seus plugins",

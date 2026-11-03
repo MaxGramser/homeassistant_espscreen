@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Hangerő",
       "wake_when_moved": "Ébresztés mozgatásra",
+      "backlight_pwm": "Háttérvilágítás PWM",
+      "dimmest_level": "Legsötétebb szint",
       "dark_mode": "Sötét mód",
       "auto_standby": "Auto készenlét",
       "standby_after": "Készenlét ennyi után",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Ébresztés mozgatásra",
           "hint": "A kijelző felébred készenlétből, ha valaki felveszi, elmozdítja vagy megkocogtatja. Magát a kijelzőt érzékeli, nem az arra járókat."
+        },
+        "backlight_pwm": {
+          "label": "Háttérvilágítás PWM",
+          "hint": "Milyen gyorsan kapcsol ki-be a háttérvilágítás a halványításhoz. 150 Hz minden ilyen panelt halványít, de néhány 20 kHz alatt sípol: válaszd a 20 kHz-et, ha a tiéd sípol, a 15 kHz-et, ha 20 kHz-en nem halványít egyenletesen."
+        },
+        "dimmest_level": {
+          "label": "Legsötétebb szint",
+          "hint": "A háttérvilágítás legalacsonyabb szintje a teljes teljesítmény arányában. Emeld meg, ha a képernyő a legkisebb fényerőn fekete marad vagy villog."
         },
         "microphone_gain": {
           "label": "Mikrofonerősítés",
@@ -3565,6 +3575,14 @@
         "change": "Wi-Fi módosítása és újratelepítés",
         "failed": "A Tessera nem tudja magától hozzáadni ezt a Home Assistanthez: {name}. Add hozzá magad lent."
       },
+      "known": {
+        "title": "Ez a panel már {name} néven szerepel a Home Assistantban",
+        "text": "A Home Assistant panelenként (MAC-cím szerint) egy ESPHome-eszközt tart, ezért {new} nem adható hozzá, amíg {name} ott van. Telepítsd újra {name} képernyőt, vagy cseréld le: amint a firmware a panelen van, {name} az entitásaival együtt eltűnik a Home Assistantból, és {new} veszi át a helyét.",
+        "reinstall": "{name} újratelepítése",
+        "replace": "{name} cseréje erre: {new}",
+        "replaced": "{name} el lett távolítva a Home Assistantból; {new} veszi át a helyét.",
+        "go_firmware": "A Firmware és USB alatt válaszd {name} profilját és a „Telepítés ebből a böngészőből” lehetőséget."
+      },
       "memory": {
         "low_title": "Kevés a szabad memória a Home Assistant gépen",
         "low": "{free} memória szabad, ezért a firmware kevesebb fordítóval készül egyszerre ({jobs} a {cores} helyett). Ez tovább tart, de így elfér.",
@@ -4203,6 +4221,12 @@
       "later": "Talán később",
       "donated": "Már adományoztam",
       "thanks": "Köszönöm! Ez az üzenet többé nem jelenik meg."
+    },
+    "funding": {
+      "title": "Finanszírozást keresek",
+      "body": "Van egy munkám, ami fizeti a számlákat, és az az első. A Tessera egyre nagyobb, és egyszerűen nincs rá annyi időm, amennyi kellene. Hogy életben maradjon, finanszírozásra van szükségem: hogy annyi időt adhassak neki, amennyit megérdemel, vagy felvehessek valakit, aki segít. Ha tudsz segíteni, írj nekem e-mailt.",
+      "mail": "Írj nekem",
+      "later": "Most nem"
     },
     "build": {
       "plugins": "Fordítás a bővítményeivel",

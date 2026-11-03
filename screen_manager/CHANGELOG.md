@@ -1,3 +1,25 @@
+## Unreleased
+
+- **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
+
+## 0.4.96 (firmware 0.60.0)
+
+- **New screen says when the board on the cable is a screen Home Assistant already has.** Installing from this browser, the wizard reads the board's MAC address and asks Home Assistant, before anything is built: a board that is already a screen there (flashed before under another name) cannot be added as a new one, since Home Assistant keeps one ESPHome device per board, and until now the wizard waited for a screen that never came. It now names the screen Home Assistant has and offers to install that one again, or to replace it: after the firmware is on the board, the old screen leaves Home Assistant with its entities and the new one pairs by itself.
+- **Installing from this browser asks for the USB port once.** A port this page was given before and that is plugged in now is used again without Chrome's picker, when it is the only one remembered: the same screen on the same cable, as after a build that failed or a Wi-Fi that was wrong. Another board on it is still caught by the chip check, and the picker comes as before when none or several ports are remembered.
+
+## 0.4.95 (firmware 0.60.0)
+
+- **A screen installed from this browser over USB starts by itself again on an ESP32-P4** (reTerminal D1001, Guition 10.1 and 7 inch, Waveshare P4, M5Stack Tab5, CrowPanel Advanced). After the image was written the page sent the reset sequence that esptool-js names "USB JTAG serial reset", which puts such a chip in download mode: the page said "Installed, the screen restarts", the screen stayed dark until its cable was pulled, and the wizard waited for a screen that never came. The page now pulses the chip's EN line, as it does for a board behind a USB-UART bridge; the S3 keeps its watchdog reset.
+
+## 0.4.94 (firmware 0.60.0)
+
+- **A screen builds again with ESPHome 2026.10.** The link stopped at an undefined `esphome::loop_task_handle`, which ESPHome 2026.10 no longer defines (GitHub #356, #376): the task watchdog's record of the main loop now takes the main loop's task itself at boot. By StefanHAJ (pull request #375). CI builds the newest ESPHome release from now on, beside the app's and the oldest one the packages promise, so the next such change is seen before anyone builds with it.
+- **The Template tile saves on a page.** Since 0.4.91 a page with one was refused with "This entity is not supported": the page validator kept a list of the built-in tiles of its own and had not been told about the template tile (GitHub #358). It takes them from the one list the app has.
+- **The smallest cover tile with buttons moves the cover.** On a one-cell cover tile with open, stop and close keys (firmware 0.57.0+) the keys pressed and nothing went out; the tile's popup and a larger tile worked (GitHub #363). The keys' handler still asked for the slat controls that the older, larger layout has.
+- **Show the home button stays off over a restart.** The setting worked until the screen restarted, then the button was back and the switch in Home Assistant and the app said on again (GitHub #319): it was the one screen setting without a record in flash. It has one now; a screen that never changed it keeps the button.
+- **The 4-inch Guition's backlight has two settings of its own**, under Extras on the screen, under Screen settings in the app and as entities in Home Assistant: **Backlight PWM** (150 Hz, 15 kHz or 20 kHz) for a batch that whines at 150 Hz (GitHub #327, 17 units from several sellers), and **Dimmest level** (1 to 10 %) for a batch whose backlight is black or flickers at the lowest brightness (GitHub #337). Both take effect at once and are kept over a restart; nothing changes on a screen that leaves them as they are, and the `BACKLIGHT_FREQUENCY` override stays the value the screen boots with.
+- **An ESP32-P4 screen no longer restarts when a camera opens full screen.** A reTerminal D1001 restarted every time a camera opened ("PPA copy never finished"): the picture engine stalls on a scaled copy whose input leaves a few columns in its last unit, a case ESP-IDF's driver does not count. The firmware counts it the hardware's way now and copies such a picture in two pieces.
+
 ## 0.4.93 (firmware 0.59.0)
 
 - **A camera opens full screen at once again from its live tile.** Since 0.4.91 a tap on a live tile took about 11 seconds to show the camera full screen: its first try went out without an address while the tile's own stream was still ending, and the second came 10 seconds later.

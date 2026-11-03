@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
+      "backlight_pwm": "PWM podświetlenia",
+      "dimmest_level": "Najniższy poziom",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
       "standby_after": "Czuwanie po",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wybudź przy ruchu",
           "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
+        },
+        "backlight_pwm": {
+          "label": "PWM podświetlenia",
+          "hint": "Jak szybko podświetlenie włącza się i wyłącza, by przyciemniać. 150 Hz przyciemnia każdy egzemplarz tej płytki, ale niektóre piszczą poniżej 20 kHz: wybierz 20 kHz, gdy twój piszczy, 15 kHz, gdy 20 kHz nie przyciemnia równomiernie."
+        },
+        "dimmest_level": {
+          "label": "Najniższy poziom",
+          "hint": "Najniższy poziom podświetlenia jako część pełnej mocy. Podnieś go, gdy ekran przy najniższej jasności pozostaje czarny lub migocze."
         },
         "microphone_gain": {
           "label": "Wzmocnienie mikrofonu",
@@ -3565,6 +3575,14 @@
         "change": "Zmień Wi-Fi i zainstaluj ponownie",
         "failed": "Tessera nie może sama dodać {name} do Home Assistant. Dodaj go samodzielnie poniżej."
       },
+      "known": {
+        "title": "Ta płytka jest już w Home Assistant jako {name}",
+        "text": "Home Assistant trzyma jedno urządzenie ESPHome na płytkę (jej adres MAC), więc {new} nie da się dodać, dopóki jest {name}. Zainstaluj {name} ponownie albo zastąp: gdy firmware będzie na płytce, {name} zniknie z Home Assistant razem z encjami, a {new} zajmie jego miejsce.",
+        "reinstall": "Zainstaluj {name} ponownie",
+        "replace": "Zastąp {name} przez {new}",
+        "replaced": "{name} usunięto z Home Assistant; {new} zajmuje jego miejsce.",
+        "go_firmware": "W Firmware i USB wybierz profil {name} i „Zainstaluj z tej przeglądarki”."
+      },
       "memory": {
         "low_title": "Mało wolnej pamięci na maszynie Home Assistant",
         "low": "Wolne jest {free} pamięci, więc firmware kompiluje się mniejszą liczbą kompilatorów naraz ({jobs} zamiast {cores}). Trwa to dłużej, ale się mieści.",
@@ -4203,6 +4221,12 @@
       "later": "Może później",
       "donated": "Już wpłaciłem",
       "thanks": "Dziękuję! Ta wiadomość już nie wróci."
+    },
+    "funding": {
+      "title": "Szukam finansowania",
+      "body": "Mam pracę, która opłaca rachunki, i ona jest na pierwszym miejscu. Tessera wciąż rośnie, a ja po prostu nie mam tyle czasu, ile potrzebuje. Żeby projekt przetrwał, potrzebuję finansowania: żeby poświęcić mu tyle czasu, na ile zasługuje, albo zatrudnić kogoś do pomocy. Jeśli możesz pomóc, napisz do mnie e-mail.",
+      "mail": "Napisz do mnie",
+      "later": "Nie teraz"
     },
     "build": {
       "plugins": "Kompiluje z wtyczkami",

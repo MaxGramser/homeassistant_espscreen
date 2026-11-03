@@ -159,6 +159,8 @@
       "microphone": "Microphone",
       "media_player": "Volume",
       "wake_when_moved": "Wake when moved",
+      "backlight_pwm": "Backlight PWM",
+      "dimmest_level": "Dimmest level",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
       "standby_after": "Standby after",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
+        },
+        "backlight_pwm": {
+          "label": "Backlight PWM",
+          "hint": "How fast the backlight switches on and off to dim. 150 Hz dims every unit of this board, but some whine below 20 kHz: choose 20 kHz when yours whines, 15 kHz when 20 kHz does not dim it evenly."
+        },
+        "dimmest_level": {
+          "label": "Dimmest level",
+          "hint": "The lowest the backlight goes, as a share of its full power. Raise it when the screen stays black or flickers at its lowest brightness."
         },
         "microphone_gain": {
           "label": "Microphone gain",
@@ -3130,6 +3140,14 @@
         "change": "Change Wi-Fi and install again",
         "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
       },
+      "known": {
+        "title": "This board is already in Home Assistant as {name}",
+        "text": "Home Assistant keeps one ESPHome device per board (its MAC address), so {new} cannot be added while {name} is there. Install {name} again, or replace it: after the firmware is on the board, {name} leaves Home Assistant with its entities and {new} takes its place.",
+        "reinstall": "Install {name} again",
+        "replace": "Replace {name} with {new}",
+        "replaced": "{name} was removed from Home Assistant; {new} takes its place.",
+        "go_firmware": "Under Firmware & USB, pick the profile of {name} and “Install from this browser”."
+      },
       "memory": {
         "low_title": "Little memory free on the Home Assistant machine",
         "low": "{free} of memory is free, so the firmware builds with fewer compilers at a time ({jobs} instead of {cores}). That takes longer, but it fits.",
@@ -3768,6 +3786,12 @@
       "later": "Maybe later",
       "donated": "I already donated",
       "thanks": "Thank you! This won't ask again."
+    },
+    "funding": {
+      "title": "Looking for funding",
+      "body": "I have a day job that pays the bills, and it comes first. Tessera keeps getting bigger, and I simply don't have the time it needs. To keep it alive, I need funding: so I can give it the time it deserves, or hire someone to help. If you can help, send me an email.",
+      "mail": "Email me",
+      "later": "Not now"
     },
     "plugins": {
       "title": "Plugins",

@@ -24,6 +24,8 @@ class TheBoards(unittest.TestCase):
         listed = {board: shape['catalog'].get('settings') or [] for board, shape in SHAPES.items()
                   if not board.startswith(('checkout/', 'packages/'))}
         self.assertEqual(listed['reterminald1001'], ['media_player', 'microphone', 'wake_when_moved'])
+        # The 4-inch Guition's backlight: its PWM (a choice) and its floor (a number), which differ between batches.
+        self.assertEqual(listed['guition'], ['backlight_pwm', 'dimmest_level'])
         labels = SCREEN_TEXT['addon']['labels']['extras']
         for board, keys in listed.items():
             text = '\n'.join(path.read_text() for path in profiles.chain(profiles.BOARDS[board], all_variants=True))
@@ -31,9 +33,9 @@ class TheBoards(unittest.TestCase):
                 with self.subTest(board=board, key=key):
                     names = {entity_settings.object_id(n) for n in re.findall(r'(?m)^[ \t]+name:[ \t]*"?([^"\n]+)"?', text)}
                     self.assertIn(key, names, 'an entity of the board\'s files is named so')
-                    # The screen's own row under Extras, bound to that entity, with the screen's words for it: a switch, or
-                    # a number (the speaker's volume, its media player's).
-                    self.assertRegex(text, rf'settings_screen::(toggle|number)\(screen_text::txt::settings_{key},')
+                    # The screen's own row under Extras, bound to that entity, with the screen's words for it: a switch, a
+                    # number (the speaker's volume, its media player's) or a choice (a select's options).
+                    self.assertRegex(text, rf'settings_screen::(toggle|number|choice)\(screen_text::txt::settings_{key},')
                     self.assertIn(key, SCREEN_TEXT['screen']['settings'])
                     self.assertTrue(labels[key]['label'] and labels[key]['hint'], 'the editor\'s words')
 

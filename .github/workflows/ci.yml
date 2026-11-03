@@ -82,9 +82,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The ESPHome the add-on ships, and the oldest one the packages promise (`min_version` in packages/core.yaml):
-        # every screen builds from main with whichever its owner has (docs/RELEASING.md, "ESPHome versions").
-        esphome: [add-on, min_version]
+        # The ESPHome the add-on ships, the oldest one the packages promise (`min_version` in packages/core.yaml), and
+        # the newest release, which ESPHome Device Builder installs by itself: every screen builds from main with
+        # whichever its owner has (docs/RELEASING.md, "ESPHome versions"). The newest is a warning, not a gate: a
+        # change of ESPHome's own (an internal that went away, 2026.10) is fixed in the next release, not by holding it.
+        esphome: [add-on, min_version, latest]
+        include:
+          - esphome: latest
+            warn_only: true
+    continue-on-error: ${{ matrix.warn_only || false }}
     steps:
       # The whole history, so the build can compare with the last commit it built (--affected below).
       - uses: actions/checkout@v4
@@ -99,9 +105,13 @@ jobs:
           python-version: "3.13"
       - name: ESPHome version
         id: esphome
+        env:
+          GH_TOKEN: ${{ github.token }}  # the newest release's tag comes from gh
         run: |
           if [ "${{ matrix.esphome }}" = add-on ]; then
             version=$(sed -n 's|^FROM ghcr.io/esphome/esphome:||p' screen_manager/Dockerfile)
+          elif [ "${{ matrix.esphome }}" = latest ]; then
+            version=$(gh release view --repo esphome/esphome --json tagName --jq .tagName)
           else
             version=$(sed -n 's/^  min_version: //p' packages/core.yaml)
           fi
