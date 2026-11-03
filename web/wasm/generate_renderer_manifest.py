@@ -53,6 +53,7 @@ for dpi, look, profile in variants():
     raw = profiles.raw_substitutions(root / profile)
     raw['DISPLAY_DPI'] = str(dpi)
     values = profiles.evaluate(raw)
+    values['SCRIPT_GLYPHS'] = ''.join(v for k, v in sorted(values.items()) if k.startswith('SCRIPT_GLYPHS_'))
     resolved = profiles.resolve(profiles.CORE.read_text(), values)
     for section in ('esphome', 'font', 'image', 'lvgl'):
         digest.update(re.search(r'^' + section + r':\n.*?(?=^[a-z_]+:|\Z)', resolved, re.M | re.S)[0].encode())
