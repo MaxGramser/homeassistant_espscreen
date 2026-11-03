@@ -516,6 +516,17 @@ the tiles and LVGL (up to 0.74 s measured).
     bad block. On the D1001 the same block came back at least 31 times, 2 ms each, before one stalled: a bad block
     stalls by chance too, only sooner. The watch caught every one: 3.1 and 3.8 s in the esp_timer task, 3.4 s (D1001)
     and 3.75 s (Guition) in its own, its words ending "esp_timer blocked".
+  - **A scaled copy stalls unturned too (2026-11-03, a user's reTerminal D1001, then the bench D1001).** A camera opened
+    full screen restarted the screen every time: "PPA copy never finished: 450x800 turned 0 to 91,15 by live_view",
+    the app's picture, turned for the glass, scaled 25/16 to fill the 800 x 1280 panel. The rig (a task copying the
+    block into the frame buffer with the glass held, 300 copies a case, the watch catching a hang): 450x800 at 25/16
+    stalled within 30 copies, three boots running; 450x790 (its rows' leftover 6, 9 scaled), 450x800 at 20/16 and
+    66x800 at 25/16 stalled too; 448x800 at 25/16 came back 5,000 times. The rule that fits: the hardware's last unit
+    is the input's leftover scaled (450 % 64 = 2 columns, 3 pixels at 25/16, by 16 rows, 25 pixels: 1200 bits, under
+    the FIFO), where the driver, master as much as 5.5.5, counts the scaled width's leftover (703 % 64 = 63 columns:
+    25,200 bits) and sets no bypass. The guard counts it the hardware's way now and cuts the picture in two (`ppa_guard.h`
+    small_leftover; before, no unturned block was ever cut, and a block whose scaled size was not whole was left alone,
+    which 450 x 25/16 = 703.125 is).
   - **Found on the way:** a build for the P4's revision 3 (the Guition 10.1 of rev 3.2, its v3 profile) runs macro
     blocks of 32 rows, the engine's register says so ("the engine's macro block: 32 rows"), and the guard took 16 on
     every build; it asks the engine now, as the driver does (`ppa_guard.h`).
