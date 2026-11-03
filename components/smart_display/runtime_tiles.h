@@ -109,6 +109,7 @@ using settings_screen::auto_home_seconds;
 using settings_screen::page_buttons;
 inline esphome::ESPPreferenceObject rotation_preference;
 inline esphome::ESPPreferenceObject buttons_preference;
+inline esphome::ESPPreferenceObject home_button_preference;  // the home button in the top bar (0x48425431, 0.60.0+)
 inline esphome::ESPPreferenceObject swipe_preference;
 inline esphome::ESPPreferenceObject home_preference;
 inline esphome::ESPPreferenceObject dark_preference;
