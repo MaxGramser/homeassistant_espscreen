@@ -33,7 +33,11 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
     def manager(self, tmp):
         (Path(tmp) / 'screens.json').write_text(json.dumps({'version': 1, 'screens': {}}))
         ha = with_screen_grid(fake_ha())
-        ha.devices = [{'id': 'd-old', 'name': 'Living room', 'name_by_user': None, 'config_entries': ['E1', 'E-other'],
+        # The board's camera on a device of its own with the same MAC, listed first and once renamed by hand (a reTerminal
+        # D1001, 2026-11-03): the screen's device names the board, the camera's integration goes with it.
+        ha.devices = [{'id': 'd-cam', 'name': 'Living room camera', 'name_by_user': 'tablet', 'config_entries': ['E-other'],
+                       'connections': [['mac', MAC]]},
+                      {'id': 'd-old', 'name': 'Living room', 'name_by_user': None, 'config_entries': ['E1', 'E-other'],
                        'connections': [['mac', MAC.upper()]]},
                       {'id': 'd-lamp', 'name': 'Lamp', 'config_entries': ['E2'], 'connections': [['mac', '11:22:33:44:55:66']]}]
         self.deleted = []
@@ -49,7 +53,7 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
         async def registries():
             # Home Assistant's registry as it is now: the device's list of integrations may be behind in the app.
             self.refreshed += 1
-            ha.devices[0]['config_entries'] = ['E-other']
+            ha.devices[1]['config_entries'] = ['E-other']
             ha.registry = [{'entity_id': 'text.living_room_tile_settings', 'device_id': 'd-old', 'config_entry_id': 'E1'}]
         ha.esphome_entries, ha.delete_config_entry, ha.registries = esphome_entries, delete_config_entry, registries
         manager = Manager(ha, Path(tmp) / 'screens.json')
@@ -62,9 +66,11 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as tmp:
             manager = self.manager(tmp)
             known = manager.known_board(MAC)
-            self.assertEqual((known['known'], known['name'], known['device_id'], known['entries']),
-                             (True, 'Living room', 'd-old', ['E1', 'E-other']))
-            self.assertEqual(manager.known_board(MAC.upper())['name'], 'Living room')
+            # No screen of the app's has these devices (the fake's screens are others), so the first device names it,
+            # and the entries of both devices with the MAC are known.
+            self.assertEqual((known['known'], known['name'], known['device_ids'], known['entries']),
+                             (True, 'tablet', ['d-cam', 'd-old'], ['E-other', 'E1']))
+            self.assertEqual(manager.known_board(MAC.upper())['name'], 'tablet')
             self.assertIsNone(manager.known_board('11:22:33:44:55:67'))
             # Nothing that is not a MAC is looked up: the page sends what esptool read, nothing else.
             self.assertIsNone(manager.known_board('../etc/passwd'))
@@ -76,7 +82,7 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
             async with TestClient(TestServer(create_app(manager, True))) as client:
                 first = await (await client.get('/api/inventory?light=1')).json()
                 known = await (await client.get(f'/api/boards/known?mac={MAC}')).json()
-                self.assertEqual((known['known'], known['name']), (True, 'Living room'))
+                self.assertEqual((known['known'], known['name']), (True, 'tablet'))
                 self.assertEqual(await (await client.get('/api/boards/known?mac=11:22:33:44:55:67')).json(), {'known': False})
                 # Replacing takes the old device's ESPHome integration out, and only that one (E-other is another
                 # integration of the device, a camera's say), once the new profile is one this app wrote.
@@ -87,7 +93,7 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
                 answer = await client.post('/api/boards/replace', json={'mac': MAC, 'by': 'hall-2.yaml'},
                                            headers={'X-Screen-CSRF': first['csrf']})
                 self.assertEqual(answer.status, 200)
-                self.assertEqual(await answer.json(), {'replaced': 'Living room', 'by': 'hall-2.yaml', 'entries': 1})
+                self.assertEqual(await answer.json(), {'replaced': 'tablet', 'by': 'hall-2.yaml', 'entries': 1})
                 # Found through the device's entities after the registry was read again (the device's own list of
                 # integrations was behind): the stale list found nothing to remove on 2026-11-03.
                 self.assertEqual(self.deleted, ['E1'])

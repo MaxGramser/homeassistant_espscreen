@@ -1710,18 +1710,22 @@ class Manager:
         wanted = str(mac or '').strip().lower()
         if not re.fullmatch(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', wanted):
             return None
-        for device in getattr(self.ha, 'devices', None) or []:
-            if not isinstance(device, dict):
-                continue
-            if not any(isinstance(c, (list, tuple)) and len(c) == 2 and c[0] == 'mac' and str(c[1]).lower() == wanted
-                       for c in device.get('connections') or []):
-                continue
-            screen = next((s for s in self.screens() if s.get('device_id') == device.get('id')), None)
-            name = (screen or {}).get('name') or device.get('name_by_user') or device.get('name') or wanted
-            return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'),
-                    'screen': (screen or {}).get('id'), 'device_id': device.get('id'),
-                    'entries': [e for e in device.get('config_entries') or [] if isinstance(e, str)]}
-        return None
+        # Every device with that MAC: a board can have two (a reTerminal D1001's camera stands on a device of its own
+        # beside the screen's, with the screen's MAC), so the screen's device names it, and the integrations of all of
+        # them go when it is replaced.
+        devices = [d for d in getattr(self.ha, 'devices', None) or [] if isinstance(d, dict)
+                   and any(isinstance(c, (list, tuple)) and len(c) == 2 and c[0] == 'mac' and str(c[1]).lower() == wanted
+                           for c in d.get('connections') or [])]
+        if not devices:
+            return None
+        ids = {d.get('id') for d in devices}
+        screen = next((s for s in self.screens() if s.get('device_id') in ids), None)
+        first = next((d for d in devices if d.get('id') == (screen or {}).get('device_id')), devices[0])
+        name = (screen or {}).get('name') or first.get('name_by_user') or first.get('name') or wanted
+        entries = sorted({e for d in devices for e in d.get('config_entries') or [] if isinstance(e, str)})
+        return {'known': True, 'mac': wanted, 'name': name, 'node': (screen or {}).get('node'),
+                'screen': (screen or {}).get('id'), 'device_id': first.get('id'), 'device_ids': sorted(ids),
+                'entries': entries}
 
     async def replace_known_board(self, mac, by):
         """Take the old device of a board out of Home Assistant so the screen flashed onto it under a new name can be
@@ -1740,7 +1744,7 @@ class Manager:
         mine = {e for e in known['entries'] if e in entries}
         # The device's entities name their integration too, when the device's own list is behind.
         mine |= {item.get('config_entry_id') for item in getattr(self.ha, 'registry', None) or []
-                 if isinstance(item, dict) and item.get('device_id') == known['device_id']
+                 if isinstance(item, dict) and item.get('device_id') in known['device_ids']
                  and item.get('config_entry_id') in entries}
         if not mine:
             raise ValueError(t('addon.errors.remove.gone'))
