@@ -13,6 +13,7 @@ import hashlib
 import logging
 import time
 
+import core
 import live_pictures
 import picture_paint
 import picture_question as pq
@@ -37,6 +38,12 @@ def format_for(question, resolved):
     if any(r.state == 'ok' and str(r.mark).startswith(DRAWN) for r in resolved):
         return next((f for f in formats if f != 'jpeg'), formats[0])
     return formats[0]
+
+
+def video_range(screen):
+    """Whether this screen's JPEG goes in BT.601's video range: a P4's, whose JPEG engine reads it so
+    (picture_paint.VIDEO_LUMA, GitHub #305)."""
+    return (core.shape_of(screen) or {}).get('chip') == 'ESP32-P4'
 
 
 def stream_of(question, tile=None):
@@ -178,7 +185,8 @@ class Service:
             raws.append(raw)
         painted = replace(question, places=places)
         fmt = format_for(question, resolved)
-        key = (painted.box, painted.places, tuple(r.mark for r in resolved), fmt)
+        video = fmt == 'jpeg' and video_range(screen)
+        key = (painted.box, painted.places, tuple(r.mark for r in resolved), fmt, video)
         etag = f'"{hashlib.sha1(repr(key).encode()).hexdigest()[:16]}"'
         body = self.kept.get(key)
         if body is None:
@@ -189,7 +197,7 @@ class Service:
 
                 def paint():
                     ran.append(time.monotonic())
-                    return picture_paint.paint(painted, raws, fmt)
+                    return picture_paint.paint(painted, raws, fmt, video)
                 body = await asyncio.get_running_loop().run_in_executor(None, paint)
                 done = time.monotonic()
                 if ran and (behind or ran[0] - asked > 1):
