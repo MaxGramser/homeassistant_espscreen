@@ -159,6 +159,8 @@
       "microphone": "Microphone",
       "media_player": "Volume",
       "wake_when_moved": "Wake when moved",
+      "backlight_pwm": "Backlight PWM",
+      "dimmest_level": "Dimmest level",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
       "standby_after": "Standby after",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
+        },
+        "backlight_pwm": {
+          "label": "Backlight PWM",
+          "hint": "How fast the backlight switches on and off to dim. 150 Hz dims every unit of this board, but some whine below 20 kHz: choose 20 kHz when yours whines, 15 kHz when 20 kHz does not dim it evenly."
+        },
+        "dimmest_level": {
+          "label": "Dimmest level",
+          "hint": "The lowest the backlight goes, as a share of its full power. Raise it when the screen stays black or flickers at its lowest brightness."
         },
         "microphone_gain": {
           "label": "Microphone gain",

@@ -126,7 +126,8 @@ settings, so a new setting never travels in the layout message.
   with a preference record of its own: load it in `runtime_tiles::load_settings()` and write it in
   `persist_settings()`.
 - Every preference key in use stays what it is: `0x53435231` the frozen block, and one key each for swipe,
-  Back to Home (`HomeTimeout`, two uint32), dark mode, page buttons, number format, rotation and the alarm lock
+  Back to Home (`HomeTimeout`, two uint32), dark mode, page buttons, the home button (`0x48425431`, firmware 0.60.0:
+  before it the button was back after every restart, GitHub #319), number format, rotation and the alarm lock
   (`runtime_tiles.h`), and the CYD's calibration (`0x43594403`, `cyd_calibration.h`). Never reuse, renumber or
   reshape an existing key's record without a migration; a new value gets a new key.
 
@@ -255,6 +256,7 @@ What the boards have today:
 | Board | Extras | Where it comes from |
 |---|---|---|
 | reTerminal D1001 | Volume, Microphone, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
+| Guition 4-inch (4848S040) | Backlight PWM, Dimmest level | the board file: its backlight's PWM (150 Hz dims every batch, some whine under 20 kHz, GitHub #327) and the floor it dims to (1 % is under some drivers' start, GitHub #337) |
 | Waveshare ESP32-P4 86 panel, ESP32-P4-WIFI6-Touch-LCD-7B, -7 and -10.1 | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio.yaml` (its parts in `hardware/parts/`) and the shared audio player |
 | M5Stack Tab5 | Volume, Microphone, Echo cancellation (AEC transport) | `hardware/parts/es7210.yaml` and `es8388.yaml` and the shared audio player |
 | CrowPanel Advanced 10.1 | Volume, Microphone | `features/audio.yaml` |

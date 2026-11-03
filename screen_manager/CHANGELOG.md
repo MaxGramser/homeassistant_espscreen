@@ -1,7 +1,15 @@
 ## Unreleased
 
-- **An ESP32-P4 screen no longer restarts when a camera opens full screen.** A reTerminal D1001 restarted every time a camera opened ("PPA copy never finished"): the picture engine stalls on a scaled copy whose input leaves a few columns in its last unit, a case ESP-IDF's driver does not count. The firmware counts it the hardware's way now and copies such a picture in two pieces.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
+
+## 0.4.94 (firmware 0.60.0)
+
+- **A screen builds again with ESPHome 2026.10.** The link stopped at an undefined `esphome::loop_task_handle`, which ESPHome 2026.10 no longer defines (GitHub #356, #376): the task watchdog's record of the main loop now takes the main loop's task itself at boot. By StefanHAJ (pull request #375). CI builds the newest ESPHome release from now on, beside the app's and the oldest one the packages promise, so the next such change is seen before anyone builds with it.
+- **The Template tile saves on a page.** Since 0.4.91 a page with one was refused with "This entity is not supported": the page validator kept a list of the built-in tiles of its own and had not been told about the template tile (GitHub #358). It takes them from the one list the app has.
+- **The smallest cover tile with buttons moves the cover.** On a one-cell cover tile with open, stop and close keys (firmware 0.57.0+) the keys pressed and nothing went out; the tile's popup and a larger tile worked (GitHub #363). The keys' handler still asked for the slat controls that the older, larger layout has.
+- **Show the home button stays off over a restart.** The setting worked until the screen restarted, then the button was back and the switch in Home Assistant and the app said on again (GitHub #319): it was the one screen setting without a record in flash. It has one now; a screen that never changed it keeps the button.
+- **The 4-inch Guition's backlight has two settings of its own**, under Extras on the screen, under Screen settings in the app and as entities in Home Assistant: **Backlight PWM** (150 Hz, 15 kHz or 20 kHz) for a batch that whines at 150 Hz (GitHub #327, 17 units from several sellers), and **Dimmest level** (1 to 10 %) for a batch whose backlight is black or flickers at the lowest brightness (GitHub #337). Both take effect at once and are kept over a restart; nothing changes on a screen that leaves them as they are, and the `BACKLIGHT_FREQUENCY` override stays the value the screen boots with.
+- **An ESP32-P4 screen no longer restarts when a camera opens full screen.** A reTerminal D1001 restarted every time a camera opened ("PPA copy never finished"): the picture engine stalls on a scaled copy whose input leaves a few columns in its last unit, a case ESP-IDF's driver does not count. The firmware counts it the hardware's way now and copies such a picture in two pieces.
 
 ## 0.4.93 (firmware 0.59.0)
 

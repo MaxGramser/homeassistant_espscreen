@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Hangerő",
       "wake_when_moved": "Ébresztés mozgatásra",
+      "backlight_pwm": "Háttérvilágítás PWM",
+      "dimmest_level": "Legsötétebb szint",
       "dark_mode": "Sötét mód",
       "auto_standby": "Auto készenlét",
       "standby_after": "Készenlét ennyi után",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Ébresztés mozgatásra",
           "hint": "A kijelző felébred készenlétből, ha valaki felveszi, elmozdítja vagy megkocogtatja. Magát a kijelzőt érzékeli, nem az arra járókat."
+        },
+        "backlight_pwm": {
+          "label": "Háttérvilágítás PWM",
+          "hint": "Milyen gyorsan kapcsol ki-be a háttérvilágítás a halványításhoz. 150 Hz minden ilyen panelt halványít, de néhány 20 kHz alatt sípol: válaszd a 20 kHz-et, ha a tiéd sípol, a 15 kHz-et, ha 20 kHz-en nem halványít egyenletesen."
+        },
+        "dimmest_level": {
+          "label": "Legsötétebb szint",
+          "hint": "A háttérvilágítás legalacsonyabb szintje a teljes teljesítmény arányában. Emeld meg, ha a képernyő a legkisebb fényerőn fekete marad vagy villog."
         },
         "microphone_gain": {
           "label": "Mikrofonerősítés",

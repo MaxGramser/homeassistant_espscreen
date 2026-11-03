@@ -159,6 +159,8 @@
       "microphone": "Microfono",
       "media_player": "Volume",
       "wake_when_moved": "Riattiva se mosso",
+      "backlight_pwm": "PWM retroilluminazione",
+      "dimmest_level": "Livello minimo",
       "dark_mode": "Modalità scura",
       "auto_standby": "Standby automatico",
       "standby_after": "Standby dopo",
@@ -1180,6 +1182,14 @@
         "wake_when_moved": {
           "label": "Riattiva se mosso",
           "hint": "Lo schermo esce dallo standby quando qualcuno lo prende, lo sposta o lo urta. Sente lo schermo stesso, non chi passa."
+        },
+        "backlight_pwm": {
+          "label": "PWM retroilluminazione",
+          "hint": "Quanto velocemente la retroilluminazione si accende e spegne per attenuarsi. 150 Hz attenua ogni esemplare di questa scheda, ma alcuni fischiano sotto i 20 kHz: scegli 20 kHz se il tuo fischia, 15 kHz se a 20 kHz non attenua in modo uniforme."
+        },
+        "dimmest_level": {
+          "label": "Livello minimo",
+          "hint": "Il livello più basso della retroilluminazione, come quota della sua potenza piena. Alzalo se lo schermo resta nero o sfarfalla alla luminosità minima."
         },
         "microphone_gain": {
           "label": "Guadagno microfono",

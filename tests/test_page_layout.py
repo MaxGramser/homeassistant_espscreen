@@ -277,6 +277,24 @@ class PageLayoutTests(unittest.TestCase):
         self.assertEqual(result["pages"][0]["tiles"], [])
         with self.assertRaises(LayoutError): delete_page(result, result["homePageId"], Grid())
 
+    def test_every_builtin_tile_the_app_knows_is_a_page_tile(self):
+        # The page validator took its built-in tiles from a list of its own, which forgot the template tile: "This entity
+        # is not supported" on every save of a page with one (GitHub #358). It follows core.BUILTIN now.
+        from core import BUILTIN
+        for entity in BUILTIN:
+            if entity.startswith("screen.page_"):
+                continue
+            with self.subTest(entity=entity):
+                record = self.migrate({"title": "Screen", "tiles": [{"entity": entity, "slot": 0}]})
+                content = record["layout"]["pages"][0]["tiles"][0]["content"]
+                self.assertEqual(content, {"kind": "builtin", "name": entity.split(".", 1)[1]})
+                validate_document(record["layout"], Grid())
+                self.assertEqual([t["entity"] for t in compile_tiles(record["layout"], Grid())], [entity])
+        record = self.migrate({"title": "Screen", "tiles": [{"entity": "screen.clock", "slot": 0}]})
+        record["layout"]["pages"][0]["tiles"][0]["content"]["name"] = "weather"
+        with self.assertRaises(LayoutError):
+            validate_document(record["layout"], Grid())
+
     def test_credentials_and_runtime_fields_cannot_enter_a_document(self):
         layout = self.migrate({"title": "Screen", "tiles": []})["layout"]
         for key in ("api_key", "state", "workspace", "settings", "revision"):
