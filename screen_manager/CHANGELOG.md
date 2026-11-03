@@ -2,6 +2,10 @@
 
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
+## 0.4.95 (firmware 0.60.0)
+
+- **A screen installed from this browser over USB starts by itself again on an ESP32-P4** (reTerminal D1001, Guition 10.1 and 7 inch, Waveshare P4, M5Stack Tab5, CrowPanel Advanced). After the image was written the page sent the reset sequence that esptool-js names "USB JTAG serial reset", which puts such a chip in download mode: the page said "Installed, the screen restarts", the screen stayed dark until its cable was pulled, and the wizard waited for a screen that never came. The page now pulses the chip's EN line, as it does for a board behind a USB-UART bridge; the S3 keeps its watchdog reset.
+
 ## 0.4.94 (firmware 0.60.0)
 
 - **A screen builds again with ESPHome 2026.10.** The link stopped at an undefined `esphome::loop_task_handle`, which ESPHome 2026.10 no longer defines (GitHub #356, #376): the task watchdog's record of the main loop now takes the main loop's task itself at boot. By StefanHAJ (pull request #375). CI builds the newest ESPHome release from now on, beside the app's and the oldest one the packages promise, so the next such change is seen before anyone builds with it.
