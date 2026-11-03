@@ -105,6 +105,8 @@ jobs:
           python-version: "3.13"
       - name: ESPHome version
         id: esphome
+        env:
+          GH_TOKEN: ${{ github.token }}  # the newest release's tag comes from gh
         run: |
           if [ "${{ matrix.esphome }}" = add-on ]; then
             version=$(sed -n 's|^FROM ghcr.io/esphome/esphome:||p' screen_manager/Dockerfile)
