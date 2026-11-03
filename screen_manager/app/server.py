@@ -1728,14 +1728,23 @@ class Manager:
         added (known_board): its ESPHome integration goes, as the screen's own Remove does, and with it the device and
         its entities. The old screen's YAML stays on disk with its keys. `by` names the new profile, which has to be one
         this app wrote."""
+        if not isinstance(by, str) or by not in self.firmware.profile_names():
+            raise ValueError(t('addon.errors.firmware.profile_missing'))
+        # The registry as Home Assistant has it now, not as this app last saw it: the device and its integrations
+        # changed since (a pairing a minute ago), and a stale list found nothing to remove on 2026-11-03.
+        await self.ha.registries()
         known = self.known_board(mac)
         if not known:
             raise ValueError(t('addon.errors.not_paired'))
-        if not isinstance(by, str) or by not in self.firmware.profile_names():
-            raise ValueError(t('addon.errors.firmware.profile_missing'))
         entries = await self.ha.esphome_entries()
-        mine = [e for e in known['entries'] if e in entries]
-        for entry in mine:
+        mine = {e for e in known['entries'] if e in entries}
+        # The device's entities name their integration too, when the device's own list is behind.
+        mine |= {item.get('config_entry_id') for item in getattr(self.ha, 'registry', None) or []
+                 if isinstance(item, dict) and item.get('device_id') == known['device_id']
+                 and item.get('config_entry_id') in entries}
+        if not mine:
+            raise ValueError(t('addon.errors.remove.gone'))
+        for entry in sorted(mine):
             await self.ha.delete_config_entry(entry)
         LOG.info('%s was replaced by %s: its device left Home Assistant (%d integration%s)', known['name'], by,
                  len(mine), '' if len(mine) == 1 else 's')
@@ -5283,7 +5292,9 @@ def create_app(manager, development=False):
     async def board_known(request):
         """New screen → This computer, once esptool read the chip (app 0.4.96): whether Home Assistant already has a
         device with this MAC, and as what, so the wizard can offer to install that screen again or to replace it
-        instead of building a screen Home Assistant will never add."""
+        instead of building a screen Home Assistant will never add. The registry is read again first: the device may
+        have changed since this app last saw it (a pairing a minute ago)."""
+        await manager.ha.registries()
         return web.json_response(manager.known_board(request.query.get('mac')) or {'known': False})
     async def board_replace(request):
         """The wizard's choice to replace the known screen (board_known) with the one it just wrote: the old device

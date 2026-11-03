@@ -44,7 +44,14 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
         async def delete_config_entry(entry_id):
             self.deleted.append(entry_id)
             return False
-        ha.esphome_entries, ha.delete_config_entry = esphome_entries, delete_config_entry
+        self.refreshed = 0
+
+        async def registries():
+            # Home Assistant's registry as it is now: the device's list of integrations may be behind in the app.
+            self.refreshed += 1
+            ha.devices[0]['config_entries'] = ['E-other']
+            ha.registry = [{'entity_id': 'text.living_room_tile_settings', 'device_id': 'd-old', 'config_entry_id': 'E1'}]
+        ha.esphome_entries, ha.delete_config_entry, ha.registries = esphome_entries, delete_config_entry, registries
         manager = Manager(ha, Path(tmp) / 'screens.json')
         manager.firmware = Firmware(Path(tmp) / 'esphome', Path(tmp) / 'data')
         manager.firmware.create({'board': 'cyd', 'name': 'hall-2', 'friendly_name': 'Hall 2',
@@ -81,7 +88,9 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
                                            headers={'X-Screen-CSRF': first['csrf']})
                 self.assertEqual(answer.status, 200)
                 self.assertEqual(await answer.json(), {'replaced': 'Living room', 'by': 'hall-2.yaml', 'entries': 1})
-                self.assertEqual(self.deleted, ['E1'])
+                # Found through the device's entities after the registry was read again (the device's own list of
+                # integrations was behind): the stale list found nothing to remove on 2026-11-03.
+                self.assertEqual((self.deleted, self.refreshed), (['E1'], 1))
                 # A board Home Assistant does not have cannot be replaced.
                 missing = await client.post('/api/boards/replace', json={'mac': '11:22:33:44:55:67', 'by': 'hall-2.yaml'},
                                             headers={'X-Screen-CSRF': first['csrf']})
