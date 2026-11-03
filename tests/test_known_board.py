@@ -90,7 +90,8 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(await answer.json(), {'replaced': 'Living room', 'by': 'hall-2.yaml', 'entries': 1})
                 # Found through the device's entities after the registry was read again (the device's own list of
                 # integrations was behind): the stale list found nothing to remove on 2026-11-03.
-                self.assertEqual((self.deleted, self.refreshed), (['E1'], 1))
+                self.assertEqual(self.deleted, ['E1'])
+                self.assertGreaterEqual(self.refreshed, 2)  # once for the question, once for the replacing
                 # A board Home Assistant does not have cannot be replaced.
                 missing = await client.post('/api/boards/replace', json={'mac': '11:22:33:44:55:67', 'by': 'hall-2.yaml'},
                                             headers={'X-Screen-CSRF': first['csrf']})
