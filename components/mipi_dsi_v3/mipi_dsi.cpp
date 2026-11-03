@@ -1,6 +1,10 @@
 #ifdef USE_ESP32_VARIANT_ESP32P4
+#include <algorithm>
+#include <cstring>
 #include <utility>
+#include "esp_heap_caps.h"
 #include "mipi_dsi.h"
+#include "squeeze.h"
 #include "esphome/core/helpers.h"
 
 namespace esphome::mipi_dsi {
@@ -213,7 +217,58 @@ void MipiDsi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
                                      x_pad);
     return;
   }
+  if (this->logical_width_ != 0) {
+    this->draw_squeezed_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
+    return;
+  }
   this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
+}
+
+// The area goes into the canvas, then every panel column whose two source columns it touches is blended from the
+// canvas (linear, so a line one pixel wide never drops out) and drawn. The canvas holds the neighbours outside the area.
+void MipiDsi::draw_squeezed_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+                             int x_pad) {
+  const int lw = this->logical_width_, pw = this->width_;
+  if (this->is_failed())
+    return;
+  if (this->canvas_ == nullptr) {
+    this->canvas_ = static_cast<uint16_t *>(
+        heap_caps_aligned_calloc(64, lw * this->height_, sizeof(uint16_t), MALLOC_CAP_SPIRAM));
+    this->squeezed_ = static_cast<uint16_t *>(
+        heap_caps_aligned_calloc(64, pw * this->height_, sizeof(uint16_t), MALLOC_CAP_SPIRAM));
+    this->source_ = static_cast<uint32_t *>(heap_caps_calloc(pw, sizeof(uint32_t), MALLOC_CAP_SPIRAM));
+    if (this->canvas_ == nullptr || this->squeezed_ == nullptr || this->source_ == nullptr) {
+      this->mark_failed(LOG_STR("Could not allocate the squeeze buffers"));
+      return;
+    }
+    for (int p = 0; p != pw; p++)
+      this->source_[p] = squeeze::source(p, lw, pw);
+  }
+  const int stride = x_offset + w + x_pad;
+  w = std::min(w, lw - x_start);  // a rotated area rounded up may reach past the edge
+  h = std::min(h, (int) this->height_ - y_start);
+  if (x_start < 0 || y_start < 0 || w <= 0 || h <= 0)
+    return;
+  const auto *src = reinterpret_cast<const uint16_t *>(ptr);
+  src += y_offset * stride + x_offset;
+  for (int y = 0; y != h; y++)
+    memcpy(this->canvas_ + (y_start + y) * lw + x_start, src + y * stride, w * sizeof(uint16_t));
+
+  int first, last;
+  squeeze::touched(this->source_, lw, pw, x_start, w, first, last);
+  const int out_w = last - first + 1;
+  for (int y = 0; y != h; y++) {
+    const uint16_t *row = this->canvas_ + (y_start + y) * lw;
+    uint16_t *out = this->squeezed_ + y * out_w;
+    for (int p = first; p <= last; p++)
+      *out++ = squeeze::blend(row, this->source_[p]);
+  }
+  esp_err_t err = esp_lcd_panel_draw_bitmap(this->handle_, first, y_start, last + 1, y_start + h, this->squeezed_);
+  if (err == ESP_OK) {
+    xSemaphoreTake(this->io_lock_, portMAX_DELAY);
+  } else {
+    ESP_LOGE(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+  }
 }
 
 void MipiDsi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
@@ -278,7 +333,9 @@ void MipiDsi::draw_pixel_at(int x, int y, Color color) {
       y = this->height_ - y - 1;
       break;
   }
-  if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
+  if (this->logical_width_ != 0)
+    x = x * (int) this->width_ / (int) this->logical_width_;
+  if (x >= (int) this->width_ || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
   }
   if (!this->check_buffer_())

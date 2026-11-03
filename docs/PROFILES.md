@@ -205,7 +205,8 @@ ours sees it. A plugin's `plugin.yaml` hangs on the same names (docs/PLUGINS.md)
 - the substitutions a board offers for its hardware: `DISPLAY_MODEL`, `DISPLAY_DATA_RATE` and `DISPLAY_INVERT_COLORS`
   on the CYD, `BACKLIGHT_FREQUENCY` on the boards with a PWM backlight, and `BACKLIGHT_DIMMABLE`, `LVGL_ROTATION` and the
   `TOUCH_*` values on every board; the grid's range, `GRID_MIN_*`, `GRID_MAX_*` and `GRID_CELL_MIN_*_MM`, on every board
-  (firmware 0.53.0+).
+  (firmware 0.53.0+); `PANEL_W` and `DISPLAY_DPI` on the JC1060P470 V2, whose panel's own 1024 and 169.548 turn off its
+  pixel shape correction (docs/JC1060P470.md).
 
 The overrides people shared in GitHub issues are kept in `tests/fixtures/overrides/`. `tests/test_overrides.py` keeps
 the names they use, and `tools/check.sh --firmware` has ESPHome read each of them on its board, the way a screen's own
