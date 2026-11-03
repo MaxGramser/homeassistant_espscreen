@@ -1,0 +1,19 @@
+# ESP Screens - the GT911 capacitive touch panel of the Sunton ESP32-3248S035C (boards/cyd35c.yaml), on an I2C bus of
+# its own. The pins are those of a community member's working configuration for this board; the resistive 035R reads
+# an XPT2046 on the display's bus instead (xpt2046-on-display-bus.yaml).
+
+# The touch panel's bus.
+i2c:
+  id: touch_bus
+  sda: GPIO33
+  scl: GPIO32
+  scan: true
+
+# The GT911 reports pixels of the panel. Its interrupt line is not known on this board, so it is polled.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    reset_pin: GPIO25

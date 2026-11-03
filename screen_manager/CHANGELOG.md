@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Two new boards, experimental: the 3.5-inch CYD.** The Sunton ESP32-3248S035R (resistive touch, calibrated on the first start) and ESP32-3248S035C (capacitive) are in **New screen** as CYD · ESP32-3248S035R and CYD · ESP32-3248S035C: 480 × 320, two by three tiles lying down, a dimmable backlight and the LED on the back, no camera pictures (no PSRAM). Built from configurations owners ran on their own boards; if you have one, try it and say how the picture, the touch and the LED behave (docs/CYD35.md).
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.97 (firmware 0.60.0)

@@ -60,7 +60,7 @@ def load(text):
 class Boards(unittest.TestCase):
     def test_only_boards_with_4_mb_of_flash_go_without(self):
         without = sorted(board for board in profiles.BOARDS if not profiles.hotspot(board))
-        self.assertEqual(without, ['cyd', 'cyd9342', 'hosyond40'])
+        self.assertEqual(without, ['cyd', 'cyd35c', 'cyd35r', 'cyd9342', 'hosyond40'])
         for board in profiles.BOARDS:
             self.assertEqual(SHAPES[board]['hotspot'], profiles.flash_mb(board) > 4, board)
 

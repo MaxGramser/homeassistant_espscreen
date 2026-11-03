@@ -20,6 +20,11 @@ substitutions:
   GRID_CELL_MIN_W_MM: "15"
   GRID_CELL_MIN_H_MM: "6.5"
   LOOK_SCALE: ${ (DISPLAY_DPI | float) / 143 }
+  # The density the fonts are drawn for: the glass's own, unless the board states another. A board with 4 MB of flash
+  # on glass denser than the look's own may take the look's (143), as its letters at the glass's density would not
+  # fit its update slot (the 3.5-inch CYD); every other size still follows the glass.
+  FONT_DPI: ${DISPLAY_DPI}
+  FONT_SCALE: ${ (FONT_DPI | float) / 143 }
 
   # The page: the strip whose hold opens the settings (the top bar and where the tiles start follow the fonts below)
   SETTINGS_HOLD_DRIFT_PX: ${ (24 * LOOK_SCALE | float) | round | int }
@@ -48,20 +53,20 @@ substitutions:
   ALERT_SUBTITLE_MAX: "160"   # bytes; wraps over the rows the card has
 
   # Font sizes (points = pixels); never below 8
-  FONT_HEADLINE_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }     # card titles
-  FONT_WATCH_VALUE_SIZE: ${ [8, (22 * LOOK_SCALE | float) | round | int] | max }
-  FONT_CLOCK_DIGITS_SIZE: ${ [8, (24 * LOOK_SCALE | float) | round | int] | max }
-  FONT_SETPOINT_SIZE: ${ [8, (40 * LOOK_SCALE | float) | round | int] | max }     # the climate card's setpoint
+  FONT_HEADLINE_SIZE: ${ [8, (18 * FONT_SCALE | float) | round | int] | max }     # card titles
+  FONT_WATCH_VALUE_SIZE: ${ [8, (22 * FONT_SCALE | float) | round | int] | max }
+  FONT_CLOCK_DIGITS_SIZE: ${ [8, (24 * FONT_SCALE | float) | round | int] | max }
+  FONT_SETPOINT_SIZE: ${ [8, (40 * FONT_SCALE | float) | round | int] | max }     # the climate card's setpoint
 
   # Whether a bedside clock's keys have their names under them (looks/shared/digits.yaml works out its digits).
   BEDSIDE_WITH_NAMES: "0"   # the compact look keeps the keys without names
-  FONT_LABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }        # tile titles
+  FONT_LABEL_SIZE: ${ [8, (11 * FONT_SCALE | float) | round | int] | max }        # tile titles
   WIDE_NAME_FONT: "sublabel_big"  # a tile title with room: the L step, 14 px (firmware 0.17.0; before, a bold 14 of its own)
-  FONT_SUBLABEL_SIZE: ${ [8, (11 * LOOK_SCALE | float) | round | int] | max }     # tile values and small text
-  FONT_SUBLABEL_BIG_SIZE: ${ [8, (14 * LOOK_SCALE | float) | round | int] | max } # the top bar and settings rows
-  FONT_ICON_SIZE: ${ [8, (28 * LOOK_SCALE | float) | round | int] | max }         # tile icons
-  FONT_ICON_MINI_SIZE: ${ [8, (18 * LOOK_SCALE | float) | round | int] | max }    # the top bar and card keys
-  FONT_ICON_HOME_SIZE: ${ [8, (25 * LOOK_SCALE | float) | round | int] | max }    # the home key in the top bar
+  FONT_SUBLABEL_SIZE: ${ [8, (11 * FONT_SCALE | float) | round | int] | max }     # tile values and small text
+  FONT_SUBLABEL_BIG_SIZE: ${ [8, (14 * FONT_SCALE | float) | round | int] | max } # the top bar and settings rows
+  FONT_ICON_SIZE: ${ [8, (28 * FONT_SCALE | float) | round | int] | max }         # tile icons
+  FONT_ICON_MINI_SIZE: ${ [8, (18 * FONT_SCALE | float) | round | int] | max }    # the top bar and card keys
+  FONT_ICON_HOME_SIZE: ${ [8, (25 * FONT_SCALE | float) | round | int] | max }    # the home key in the top bar
   # The top bar and where the tiles start, after the sizes they are made of (ESPHome works substitutions out in order):
   # the bar keeps the tiles' margin from the glass, sides and top (firmware 0.14.0+), and the tiles start BAR_SPACE
   # below its band.
@@ -74,13 +79,13 @@ substitutions:
   # visible edge under the bar.
   BAR_SPACE: ${ [GRID_GAP_Y | int, ((DISPLAY_DPI | float) * 1.5 / 25.4) | round | int] | max }
   SCROLL_Y: ${ (GRID_MARGIN | int) + (BAR_BAND | int) + (BAR_SPACE | int) }
-  FONT_ICON_BIG_SIZE: ${ [8, (40 * LOOK_SCALE | float) | round | int] | max }     # full-page tiles
-  FONT_WATCH_ICON_SIZE: ${ [8, (12 * LOOK_SCALE | float) | round | int] | max }
+  FONT_ICON_BIG_SIZE: ${ [8, (40 * FONT_SCALE | float) | round | int] | max }     # full-page tiles
+  FONT_WATCH_ICON_SIZE: ${ [8, (12 * FONT_SCALE | float) | round | int] | max }
   # The icon fonts at 2 bits a pixel (four steps of edge) instead of 4: their bitmaps take half the flash, about 75 KB
   # on the boards with 4 MB, which all have this look. Compared on the glyphs of the CYD's sizes before (2026-10-12).
   FONT_ICON_BPP: 2
   # The starting screen's Tessera lockup: the mosaic mark beside the name, as on the website (firmware 0.3.8+)
-  FONT_BRAND_SIZE: ${ [8, (30 * LOOK_SCALE | float) | round | int] | max }
+  FONT_BRAND_SIZE: ${ [8, (30 * FONT_SCALE | float) | round | int] | max }
   BRAND_MARK_SIZE: ${ [8, (30 * 1.1 * LOOK_SCALE | float) | round | int] | max }
   LVGL_DEFAULT_FONT: "sublabel_big"   # LVGL's default font: every label names its own, so this only keeps Montserrat out of the build
   EFFECTS_ROW_FONT: "sublabel_big"    # the effects page's rows

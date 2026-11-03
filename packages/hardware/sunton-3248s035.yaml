@@ -1,0 +1,63 @@
+# ESP Screens - the Sunton ESP32-3248S035 apart from its touch panel, for a board file that includes this one.
+#
+# The 3.5-inch "CYD": a 320 x 480 ST7796 panel over SPI on an ESP32 with 4 MB flash and no PSRAM. It is sold with
+# XPT2046 resistive touch on the display's bus (ESP32-3248S035R, boards/cyd35r.yaml) or with GT911 capacitive touch
+# over I2C (ESP32-3248S035C, boards/cyd35c.yaml); everything else is the same board. This is the ESP32, the SPI bus,
+# the backlight, the RGB LED and the display; the board file adds its touch panel.
+#
+# The pins and the bus clock are those of the configuration the wish for this board shares, tested on a 035R in
+# ESPHome with LVGL. The Hosyond 4.0 (boards/hosyond40.yaml) has the same pins on other glass.
+esp32:
+  board: esp32dev
+  framework:
+    advanced:
+      # ESPHome recommends this itself in the boot log: about 40 KB more IRAM and a smaller binary, as on the CYD.
+      sram1_as_iram: true
+  variant: esp32
+
+# One SPI bus: the display (CS GPIO15), and on the 035R the touch controller (CS GPIO33).
+spi:
+  - id: lcd
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+
+output:
+  # The backlight, lit at a high level. 1 kHz as on the CYD: at 20 kHz 95 % was already almost dark (GitHub #42).
+  - platform: ledc
+    pin: GPIO27
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+  # The RGB LED on the back: common anode, lit at a low level. Green and blue are the other way round from the
+  # 2.8-inch CYD, as the tested configuration has them.
+  - platform: ledc
+    id: output_red
+    pin: GPIO4
+    inverted: true
+  - platform: ledc
+    id: output_green
+    pin: GPIO17
+    inverted: true
+  - platform: ledc
+    id: output_blue
+    pin: GPIO16
+    inverted: true
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    spi_id: lcd
+    model: ${DISPLAY_MODEL}
+    data_rate: ${DISPLAY_DATA_RATE}
+    cs_pin: 15
+    dc_pin: 2
+    invert_colors: ${DISPLAY_INVERT_COLORS}
+    update_interval: never
+    auto_clear_enabled: false
+    # Native panel dimensions (portrait), mirrored as ESPHome's ST7796 model does it; LVGL turns the picture
+    # (ROTATION_LANDSCAPE), never a display transform. The tested configuration drew lying down with the axes
+    # swapped and nothing mirrored, which is this picture turned a quarter.
+    dimensions:
+      width: 320
+      height: 480

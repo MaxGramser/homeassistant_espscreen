@@ -1,0 +1,71 @@
+############################################################
+# ESP Screens - CYD 3.5 with resistive touch (Sunton ESP32-3248S035R), EXPERIMENTAL.
+# ST7796 320x480 display and XPT2046 resistive touch on one SPI bus, an ESP32 with 4MB flash and no PSRAM.
+#
+# Its hardware apart from the touch is the 3248S035's (packages/hardware/sunton-3248s035.yaml), shared with the
+# capacitive 035C (cyd35c.yaml). Its resistive glass is features/resistive-touch.yaml (the calibration wizard, a page
+# swipe by LVGL's gesture), as on the 2.8-inch CYD. docs/CYD35.md has what has been tried; docs/PROFILES.md says how
+# the files of a screen fit together.
+#
+# Two entry files include this: checkout/cyd35r.yaml (a build on this computer)
+# and packages/cyd35r.yaml (the package a screen builds from over GitHub).
+############################################################
+packages:
+  # The 3248S035's ESP32, SPI bus, backlight, LED and display, and the XPT2046 on the display's bus.
+  hardware: !include ../hardware/sunton-3248s035.yaml
+  touch_panel: !include ../hardware/xpt2046-on-display-bus.yaml
+  # How every board's firmware is built (ESP-IDF, as ESPHome recommends it).
+  build: !include ../hardware/esp-idf.yaml
+  # Wide update slots for 4 MB of flash, and the way a screen that is out there gets them.
+  flash: !include ../hardware/flash-4mb.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below.
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/resistive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+  # The light on the RGB LED on the back of the board (the outputs are in the hardware file).
+  led: !include ../features/rgb-led.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "cyd35r"
+  DEVICE_NAME: "cyd35r-new"
+  DEVICE_FRIENDLY_NAME: "My CYD 3.5"
+  # The bedside clock draws with the display step this board has anyway: its own digits, a page tall, cost about 40 KB of
+  # a 4 MB board's slot, which is close to full (looks/shared/digits.yaml).
+  BEDSIDE_OWN_DIGITS: "0"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  # The fonts of the 2.8-inch CYD, drawn for 143 dpi: at this glass's 165 they take about 43 KB more, and the firmware
+  # filled 98.6 % of the update slot of a board with 4 MB, over the 97 % no release ships (docs/RELEASING.md). Letters
+  # are so about a seventh smaller in millimetres than on the 2.8-inch glass; the tiles and keys keep the glass's own.
+  FONT_DPI: "143"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # LVGL's draw buffer as a share of the screen. No PSRAM: 8 % (24 KB) as on the Hosyond 4.0, the same chip and
+  # canvas, until a heap reading with a full layout says there is room for 12 %.
+  LVGL_BUFFER_SIZE: "8%"
+
+  # The XPT2046's axes against the panel's own pixels: both run the other way. The tested configuration read the
+  # panel lying down with swap_xy and mirror_x, which on the standing canvas is both axes mirrored and none swapped.
+  TOUCH_MIRROR_X: "true"
+  TOUCH_MIRROR_Y: "true"
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides").
+  DISPLAY_MODEL: "ST7796"                       # ESPHome's mipi_spi model of the display controller
+  DISPLAY_DATA_RATE: "80MHz"                    # the display's SPI clock; the tested configuration ran at 80MHz
+  DISPLAY_INVERT_COLORS: "false"
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM; see the output block (GitHub #42)
+  # The XPT2046's raw range, as the tested configuration calibrated it (its X and Y swapped, as above). The
+  # calibration on the first start measures this board's own (docs/CALIBRATING.md).
+  TOUCH_CAL_X_MIN: "282"
+  TOUCH_CAL_X_MAX: "3835"
+  TOUCH_CAL_Y_MIN: "208"
+  TOUCH_CAL_Y_MAX: "3823"
