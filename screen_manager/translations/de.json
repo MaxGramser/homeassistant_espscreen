@@ -3575,6 +3575,14 @@
         "change": "WLAN ändern und neu installieren",
         "failed": "Tessera kann {name} nicht selbst zu Home Assistant hinzufügen. Füge ihn unten selbst hinzu."
       },
+      "known": {
+        "title": "Dieses Board ist in Home Assistant schon als {name} bekannt",
+        "text": "Home Assistant führt pro Board (seiner MAC-Adresse) ein ESPHome-Gerät, darum kann {new} nicht hinzukommen, solange {name} da ist. Installiere {name} erneut, oder ersetze es: sobald die Firmware auf dem Board ist, verschwindet {name} mit seinen Entitäten aus Home Assistant und {new} tritt an seine Stelle.",
+        "reinstall": "{name} erneut installieren",
+        "replace": "{name} durch {new} ersetzen",
+        "replaced": "{name} wurde aus Home Assistant entfernt; {new} tritt an seine Stelle.",
+        "go_firmware": "Wähle unter Firmware & USB das Profil von {name} und „Aus diesem Browser installieren“."
+      },
       "memory": {
         "low_title": "Wenig freier Speicher auf der Home-Assistant-Maschine",
         "low": "{free} Speicher sind frei, darum erstellt die Firmware mit weniger Compilern gleichzeitig ({jobs} statt {cores}). Das dauert länger, passt aber.",

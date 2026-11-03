@@ -3575,6 +3575,14 @@
         "change": "Wi-Fi módosítása és újratelepítés",
         "failed": "A Tessera nem tudja magától hozzáadni ezt a Home Assistanthez: {name}. Add hozzá magad lent."
       },
+      "known": {
+        "title": "Ez a panel már {name} néven szerepel a Home Assistantban",
+        "text": "A Home Assistant panelenként (MAC-cím szerint) egy ESPHome-eszközt tart, ezért {new} nem adható hozzá, amíg {name} ott van. Telepítsd újra {name} képernyőt, vagy cseréld le: amint a firmware a panelen van, {name} az entitásaival együtt eltűnik a Home Assistantból, és {new} veszi át a helyét.",
+        "reinstall": "{name} újratelepítése",
+        "replace": "{name} cseréje erre: {new}",
+        "replaced": "{name} el lett távolítva a Home Assistantból; {new} veszi át a helyét.",
+        "go_firmware": "A Firmware és USB alatt válaszd {name} profilját és a „Telepítés ebből a böngészőből” lehetőséget."
+      },
       "memory": {
         "low_title": "Kevés a szabad memória a Home Assistant gépen",
         "low": "{free} memória szabad, ezért a firmware kevesebb fordítóval készül egyszerre ({jobs} a {cores} helyett). Ez tovább tart, de így elfér.",

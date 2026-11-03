@@ -3575,6 +3575,14 @@
         "change": "Changer le Wi-Fi et réinstaller",
         "failed": "Tessera ne peut pas ajouter {name} lui-même à Home Assistant. Ajoute-le toi-même ci-dessous."
       },
+      "known": {
+        "title": "Cette carte est déjà dans Home Assistant sous le nom {name}",
+        "text": "Home Assistant garde un appareil ESPHome par carte (son adresse MAC) : {new} ne peut donc pas être ajouté tant que {name} est là. Réinstallez {name}, ou remplacez-le : une fois le firmware sur la carte, {name} quitte Home Assistant avec ses entités et {new} prend sa place.",
+        "reinstall": "Réinstaller {name}",
+        "replace": "Remplacer {name} par {new}",
+        "replaced": "{name} a été retiré de Home Assistant ; {new} prend sa place.",
+        "go_firmware": "Sous Firmware et USB, choisissez le profil de {name} et « Installer depuis ce navigateur »."
+      },
       "memory": {
         "low_title": "Peu de mémoire libre sur la machine Home Assistant",
         "low": "Il y a {free} de mémoire libre, donc le firmware se compile avec moins de compilateurs à la fois ({jobs} au lieu de {cores}). C’est plus long, mais ça tient.",

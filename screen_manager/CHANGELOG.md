@@ -2,6 +2,11 @@
 
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
+## 0.4.96 (firmware 0.60.0)
+
+- **New screen says when the board on the cable is a screen Home Assistant already has.** Installing from this browser, the wizard reads the board's MAC address and asks Home Assistant, before anything is built: a board that is already a screen there (flashed before under another name) cannot be added as a new one, since Home Assistant keeps one ESPHome device per board, and until now the wizard waited for a screen that never came. It now names the screen Home Assistant has and offers to install that one again, or to replace it: after the firmware is on the board, the old screen leaves Home Assistant with its entities and the new one pairs by itself.
+- **Installing from this browser asks for the USB port once.** A port this page was given before and that is plugged in now is used again without Chrome's picker, when it is the only one remembered: the same screen on the same cable, as after a build that failed or a Wi-Fi that was wrong. Another board on it is still caught by the chip check, and the picker comes as before when none or several ports are remembered.
+
 ## 0.4.95 (firmware 0.60.0)
 
 - **A screen installed from this browser over USB starts by itself again on an ESP32-P4** (reTerminal D1001, Guition 10.1 and 7 inch, Waveshare P4, M5Stack Tab5, CrowPanel Advanced). After the image was written the page sent the reset sequence that esptool-js names "USB JTAG serial reset", which puts such a chip in download mode: the page said "Installed, the screen restarts", the screen stayed dark until its cable was pulled, and the wizard waited for a screen that never came. The page now pulses the chip's EN line, as it does for a board behind a USB-UART bridge; the S3 keeps its watchdog reset.

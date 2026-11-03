@@ -31,6 +31,11 @@ export async function connect(loader: ESPLoader): Promise<string> {
   return loader.chip.CHIP_NAME;
 }
 
+/** The chip's MAC address, lower case with colons, as Home Assistant keys its ESPHome device on it (app 0.4.96). */
+export async function readMac(loader: ESPLoader): Promise<string> {
+  return (await loader.chip.readMac(loader)).toLowerCase();
+}
+
 /** ESPHome's flashFiles for one factory image at address 0: optionally erase, then write compressed and keep the
  * flash settings the image has. */
 export async function writeImage(loader: ESPLoader, data: Uint8Array, erase: boolean, onErase: () => void,

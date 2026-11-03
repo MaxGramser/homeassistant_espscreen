@@ -3140,6 +3140,14 @@
         "change": "Wifi wijzigen en opnieuw installeren",
         "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
       },
+      "known": {
+        "title": "Dit bord staat al in Home Assistant als {name}",
+        "text": "Home Assistant houdt één ESPHome-apparaat per bord (zijn MAC-adres), dus {new} kan er niet bij zolang {name} er staat. Installeer {name} opnieuw, of vervang het: zodra de firmware op het bord staat, verdwijnt {name} met zijn entiteiten uit Home Assistant en komt {new} ervoor in de plaats.",
+        "reinstall": "{name} opnieuw installeren",
+        "replace": "{name} vervangen door {new}",
+        "replaced": "{name} is uit Home Assistant verwijderd; {new} komt ervoor in de plaats.",
+        "go_firmware": "Kies onder Firmware & USB het profiel van {name} en “Installeren vanuit deze browser”."
+      },
       "memory": {
         "low_title": "Weinig geheugen vrij op de Home Assistant-machine",
         "low": "Er is {free} geheugen vrij, dus de firmware bouwt met minder compilers tegelijk ({jobs} in plaats van {cores}). Dat duurt langer, maar het past.",

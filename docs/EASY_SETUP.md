@@ -187,6 +187,15 @@ reads. That is every screen made with **New screen**, and a screen of your own w
 ESPHome folder (`/config/esphome`, the folder ESPHome Device Builder uses too; with [Docker](DOCKER.md), the folder
 you mounted as the ESPHome folder).
 
+Home Assistant keeps one ESPHome device per board, keyed on the board's MAC address. A board that is already a screen
+in Home Assistant cannot be added again under a new name: flashed with a new profile, it would wait for Home Assistant
+for ever. Installing from this browser, **New screen** reads the board's MAC before it builds and, when Home Assistant
+has that board already, names the screen it is and offers to install that screen again or to replace it (app 0.4.96).
+Replacing writes the new firmware first; then the old screen leaves Home Assistant with its entities, its YAML stays in
+the ESPHome folder, and the new screen pairs by itself. Over the other ways (USB on the Home Assistant machine, a
+file) the board's MAC is not known before the build: remove the old device under **Settings → Devices & services →
+ESPHome** yourself, and the new screen pairs.
+
 ### Adding a screen by hand
 
 A screen whose YAML lives somewhere else (built with the ESPHome CLI on your own computer, with an ESPHome Device
