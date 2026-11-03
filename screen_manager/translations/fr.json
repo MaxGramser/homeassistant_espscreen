@@ -3426,17 +3426,23 @@
       "choice": {
         "DISPLAY_MODEL": "Contrôleur d'affichage",
         "FLASH_SIZE": "Mémoire flash",
-        "BOARD_VARIANT": "Carte"
+        "BOARD_VARIANT": "Carte",
+        "CHIP_REVISION": "Révision de la puce"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Commencez par le premier. Prenez l'autre si l'écran reste noir ou affiche du bruit ou une image brouillée.",
         "FLASH_SIZE": "La plupart de ces cartes ont 16 Mo. Prenez 8 Mo si l'écran reste noir après l'installation et redémarre sans cesse.",
-        "BOARD_VARIANT": "Prenez celle que vous avez. Sur la carte jaune sans boîtier, un appui en haut à gauche arriverait sinon en bas à droite."
+        "BOARD_VARIANT": "Prenez celle que vous avez. Sur la carte jaune sans boîtier, un appui en haut à gauche arriverait sinon en bas à droite.",
+        "CHIP_REVISION": "Les premières lignes du journal USB l’indiquent : « chip revision: v3.x » ou « v1.3 ». Un firmware pour l’une ne démarre pas sur l’autre."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Noire, dans un boîtier",
           "yellow": "Jaune, sans boîtier"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, cartes récentes",
+          "v1": "v1, cartes plus anciennes"
         }
       },
       "choice_usual": "la plupart",

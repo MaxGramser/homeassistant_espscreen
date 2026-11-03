@@ -3426,17 +3426,23 @@
       "choice": {
         "DISPLAY_MODEL": "Display-Controller",
         "FLASH_SIZE": "Flash-Speicher",
-        "BOARD_VARIANT": "Board"
+        "BOARD_VARIANT": "Board",
+        "CHIP_REVISION": "Chip-Revision"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Nimm zuerst den ersten. Nimm den anderen, wenn der Bildschirm schwarz bleibt oder Rauschen oder ein verzerrtes Bild zeigt.",
         "FLASH_SIZE": "Die meisten dieser Boards haben 16 MB. Nimm 8 MB, wenn der Bildschirm nach der Installation schwarz bleibt und immer wieder neu startet.",
-        "BOARD_VARIANT": "Nimm das Board, das du hast. Auf dem gelben Board ohne Gehäuse landet ein Tippen oben links sonst unten rechts."
+        "BOARD_VARIANT": "Nimm das Board, das du hast. Auf dem gelben Board ohne Gehäuse landet ein Tippen oben links sonst unten rechts.",
+        "CHIP_REVISION": "Die ersten Zeilen des USB-Logs sagen es: „chip revision: v3.x“ oder „v1.3“. Eine Firmware für die eine startet nicht auf der anderen."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Schwarz, im Gehäuse",
           "yellow": "Gelb, ohne Gehäuse"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, neuere Boards",
+          "v1": "v1, ältere Boards"
         }
       },
       "choice_usual": "die meisten",

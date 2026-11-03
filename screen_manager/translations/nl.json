@@ -2991,17 +2991,23 @@
       "choice": {
         "DISPLAY_MODEL": "Displaycontroller",
         "FLASH_SIZE": "Flashgeheugen",
-        "BOARD_VARIANT": "Bord"
+        "BOARD_VARIANT": "Bord",
+        "CHIP_REVISION": "Chiprevisie"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Begin met de eerste. Kies de andere als het scherm zwart blijft of ruis of een verminkt beeld laat zien.",
         "FLASH_SIZE": "De meeste van deze borden hebben 16 MB. Kies 8 MB als het scherm na de installatie zwart blijft en steeds opnieuw start.",
-        "BOARD_VARIANT": "Kies het bord dat je hebt. Op het gele bord zonder behuizing komt een tik linksboven anders rechtsonder terecht."
+        "BOARD_VARIANT": "Kies het bord dat je hebt. Op het gele bord zonder behuizing komt een tik linksboven anders rechtsonder terecht.",
+        "CHIP_REVISION": "De eerste regels van het USB-logboek zeggen welke: \"chip revision: v3.x\" of \"v1.3\". Firmware voor de ene start niet op de andere."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Zwart, in een behuizing",
           "yellow": "Geel, zonder behuizing"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, nieuwere borden",
+          "v1": "v1, oudere borden"
         }
       },
       "choice_usual": "de meeste",

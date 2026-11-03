@@ -3426,17 +3426,23 @@
       "choice": {
         "DISPLAY_MODEL": "Kontroler wyświetlacza",
         "FLASH_SIZE": "Pamięć flash",
-        "BOARD_VARIANT": "Płytka"
+        "BOARD_VARIANT": "Płytka",
+        "CHIP_REVISION": "Rewizja układu"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Zacznij od pierwszego. Wybierz drugi, gdy ekran pozostaje czarny albo pokazuje szum lub zniekształcony obraz.",
         "FLASH_SIZE": "Większość tych płytek ma 16 MB. Wybierz 8 MB, gdy ekran po instalacji pozostaje czarny i ciągle uruchamia się od nowa.",
-        "BOARD_VARIANT": "Wybierz tę, którą masz. Na żółtej płytce bez obudowy dotknięcie w lewym górnym rogu trafiłoby inaczej w prawy dolny."
+        "BOARD_VARIANT": "Wybierz tę, którą masz. Na żółtej płytce bez obudowy dotknięcie w lewym górnym rogu trafiłoby inaczej w prawy dolny.",
+        "CHIP_REVISION": "Pierwsze wiersze logu USB mówią, która: „chip revision: v3.x” lub „v1.3”. Firmware dla jednej nie uruchomi się na drugiej."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Czarna, w obudowie",
           "yellow": "Żółta, bez obudowy"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, nowsze płytki",
+          "v1": "v1, starsze płytki"
         }
       },
       "choice_usual": "większość",

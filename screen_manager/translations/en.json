@@ -2991,17 +2991,23 @@
       "choice": {
         "DISPLAY_MODEL": "Display controller",
         "FLASH_SIZE": "Flash memory",
-        "BOARD_VARIANT": "Board"
+        "BOARD_VARIANT": "Board",
+        "CHIP_REVISION": "Chip revision"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Start with the first. Take the other when the screen stays black or shows noise or a garbled picture.",
         "FLASH_SIZE": "Most of these boards have 16 MB. Take 8 MB when the screen stays black after the install and keeps starting again.",
-        "BOARD_VARIANT": "Take the one you have. On the yellow board without a case, a tap on the top left would otherwise land on the bottom right."
+        "BOARD_VARIANT": "Take the one you have. On the yellow board without a case, a tap on the top left would otherwise land on the bottom right.",
+        "CHIP_REVISION": "The first lines of the USB log say which: \"chip revision: v3.x\" or \"v1.3\". A firmware for one does not start on the other."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Black, in a case",
           "yellow": "Yellow, without a case"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, newer boards",
+          "v1": "v1, earlier boards"
         }
       },
       "choice_usual": "most boards",

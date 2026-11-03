@@ -3426,17 +3426,23 @@
       "choice": {
         "DISPLAY_MODEL": "Controller del display",
         "FLASH_SIZE": "Memoria flash",
-        "BOARD_VARIANT": "Scheda"
+        "BOARD_VARIANT": "Scheda",
+        "CHIP_REVISION": "Revisione del chip"
       },
       "choice_hint": {
         "DISPLAY_MODEL": "Inizia con il primo. Scegli l'altro se lo schermo resta nero o mostra rumore o un'immagine disturbata.",
         "FLASH_SIZE": "La maggior parte di queste schede ha 16 MB. Scegli 8 MB se lo schermo resta nero dopo l'installazione e si riavvia di continuo.",
-        "BOARD_VARIANT": "Scegli quella che hai. Sulla scheda gialla senza custodia, un tocco in alto a sinistra finirebbe altrimenti in basso a destra."
+        "BOARD_VARIANT": "Scegli quella che hai. Sulla scheda gialla senza custodia, un tocco in alto a sinistra finirebbe altrimenti in basso a destra.",
+        "CHIP_REVISION": "Le prime righe del log USB lo indicano: «chip revision: v3.x» o «v1.3». Un firmware per l’una non si avvia sull’altra."
       },
       "choice_option": {
         "BOARD_VARIANT": {
           "black": "Nera, in custodia",
           "yellow": "Gialla, senza custodia"
+        },
+        "CHIP_REVISION": {
+          "v3": "v3, schede recenti",
+          "v1": "v1, schede precedenti"
         }
       },
       "choice_usual": "la maggior parte",
