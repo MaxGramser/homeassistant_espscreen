@@ -37,6 +37,9 @@ class HostBuild(unittest.TestCase):
                 self.assertIn('platform: sdl\n    id: my_display', hardware, item.key)
                 self.assertIn('platform: sdl\n    id: ts_touch', hardware, item.key)
                 self.assertIn('id: gpio_backlight_pwm', hardware, item.key)
+                # The Guition's backlight keeps its floor on the stand-in: its Dimmest level calls set_min_power().
+                if item.key == 'guition':
+                    self.assertIn('    id: gpio_backlight_pwm\n    type: float\n    min_power: 0.01\n', hardware)
                 # Nothing of the ESP32 is left in any file of the chain, and nothing of the audio, which stands on its
                 # I2S: no audio package and no speaker, microphone or codec block of a board file.
                 for path in (mirror / 'packages').rglob('*.yaml'):
@@ -52,6 +55,23 @@ class HostBuild(unittest.TestCase):
                 interval = '100ms' if item.key.startswith('tab5') else '20ms'
                 self.assertIn(f'    update_interval: {interval}\n', hardware, item.key)
                 self.assertIn('platform: host', (mirror / 'packages' / 'core.yaml').read_text())
+
+    def test_an_outputs_min_power_stays_on_its_stand_in(self):
+        # ESPHome compiles FloatOutput::set_min_power() only while some output of the configuration sets min_power, so
+        # a board lambda that calls it (the Guition's Dimmest level) fails on a stand-in without it.
+        board = ('''output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO38
+    min_power: 0.01
+  - platform: ledc
+    id: buzzer_pwm
+    pin: GPIO8
+''')
+        chain = host.Chain()
+        host.host_file(board, chain, 'board.yaml')
+        self.assertEqual(chain.outputs, ['gpio_backlight_pwm', 'buzzer_pwm'])
+        self.assertEqual(chain.min_power, {'gpio_backlight_pwm': '0.01'})
 
 
 if __name__ == '__main__':
