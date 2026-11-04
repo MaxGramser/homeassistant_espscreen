@@ -1,0 +1,131 @@
+# ESP Screens - the Elecrow CrowPanel Advance ESP32-S3 RGB boards apart from their glass, for a board file that includes
+# this one.
+#
+# Elecrow sells the CrowPanel Advance ESP32-S3 in 4.3, 5.0 and 7.0 inches on one design: an ESP32-S3-WROOM-1-N16R8
+# (16 MB flash, 8 MB octal PSRAM), a 16-bit RGB565 panel, GT911 capacitive touch and an STC8H1K28 coprocessor at 0x30 on
+# the same I2C bus (GPIO15/GPIO16) for the backlight brightness (0..245) and the speaker amplifier gate (248/249), an
+# NS4168 I2S speaker amplifier and a PDM microphone. The board file (crowpanel7s3.yaml) adds its dimensions, density and
+# grid.
+
+packages:
+  chip: !include esp32s3-rgb.yaml
+
+substitutions:
+  # 8 MB octal PSRAM: raised layout caps over a board without PSRAM (firmware 0.34.0+, tile_memory.h).
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+
+  # The audio (features/audio.yaml): an NS4168 amplifier that takes I2S as it is, with no volume register, so the
+  # speaker turns ESPHome's volume down in software, -49 dB at 0 to 0 dB at 1 (ESPHome's i2s_audio speaker), and a PDM
+  # microphone on a bus of its own.
+  AUDIO_DOUT_PIN: GPIO4
+  AUDIO_DIN_PIN: GPIO20
+  AUDIO_DAC_DB_AT_0: "-49"
+  AUDIO_DAC_DB_AT_1: "0"
+  AUDIO_AMPLIFIER: board_speaker_amp
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  hardware_uart: UART0
+
+# Shared I2C bus for the GT911 touch controller (0x5D) and the onboard STC8H1K28 coprocessor (0x30).
+i2c:
+  - id: touch_bus
+    sda: GPIO15
+    scl: GPIO16
+    scan: true
+
+# Backlight brightness on the STC8H1K28 at 0x30: 0 is full brightness, 245 is off.
+output:
+  - platform: template
+    type: float
+    id: gpio_backlight_pwm
+    write_action:
+      - lambda: |-
+          const uint8_t data[1] = {static_cast<uint8_t>(245.0f * (1.0f - state))};
+          id(touch_bus).write(0x30, data, 1);
+
+# Speaker amplifier gate on the STC8H1K28 at 0x30: 248 turns the amp on, 249 off; features/audio-amplifier.yaml
+# switches it with the sound.
+switch:
+  - platform: template
+    id: board_speaker_amp
+    internal: true
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      - lambda: |-
+          const uint8_t data[1] = {248};
+          id(touch_bus).write(0x30, data, 1);
+    on_turn_off:
+      - lambda: |-
+          const uint8_t data[1] = {249};
+          id(touch_bus).write(0x30, data, 1);
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    address: 0x5D
+    update_interval: 20ms
+
+display:
+  - platform: mipi_rgb
+    model: RPI
+    id: my_display
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    color_order: RGB
+    pclk_frequency: 16MHz
+    de_pin: GPIO42
+    hsync_pin: GPIO40
+    vsync_pin: GPIO41
+    pclk_pin: GPIO39
+    hsync_pulse_width: 48
+    hsync_back_porch: 32
+    hsync_front_porch: 16
+    vsync_pulse_width: 2
+    vsync_back_porch: 23
+    vsync_front_porch: 7
+    data_pins:
+      red:
+        - GPIO7
+        - GPIO17
+        - GPIO18
+        - number: GPIO3
+          ignore_strapping_warning: true
+        - number: GPIO46
+          ignore_strapping_warning: true
+      green: [GPIO9, GPIO10, GPIO11, GPIO12, GPIO13, GPIO14]
+      blue:
+        - GPIO21
+        - GPIO47
+        - GPIO48
+        - number: GPIO45
+          ignore_strapping_warning: true
+        - GPIO38
+    update_interval: never
+    auto_clear_enabled: false
+
+# The audio, as Elecrow's wiki wires it: the amplifier's I2S bus (LRCLK GPIO6, BCLK GPIO5, data GPIO4) and the PDM
+# microphone's, whose clock is the bus's word clock (GPIO19, data GPIO20).
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_lrclk_pin: GPIO6
+    i2s_bclk_pin: GPIO5
+  - id: ts_mic_bus
+    i2s_lrclk_pin: GPIO19
+
+# The NS4168 has no control interface: no audio_dac, and the speaker's own software volume instead.
+speaker:
+  - id: !extend ts_speaker_out
+    audio_dac: !remove
+
+microphone:
+  - id: !extend ts_microphone
+    pdm: true
