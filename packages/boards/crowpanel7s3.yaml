@@ -41,4 +41,4 @@ substitutions:
   # Standing up, two columns of seven, as on the 7-inch Waveshare.
   GRID_COLS_PORTRAIT: "2"
   GRID_ROWS_PORTRAIT: "7"
-  LVGL_BUFFER_SIZE: "12%"
+  LVGL_BUFFER_SIZE: "50%"
