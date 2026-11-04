@@ -1,0 +1,44 @@
+# ESP Screens - Elecrow CrowPanel Advance 7.0-inch ESP32-S3 (DIS08070H), EXPERIMENTAL: a 7-inch 800x480 IPS RGB565
+# panel with GT911 capacitive touch and an STC8H1K28 coprocessor at 0x30 on an ESP32-S3-WROOM-1-N16R8.
+#
+# 800x480 at 133 dpi, the standard look, a grid of 4 x 4 cells lying down and 2 x 7 standing up, as on the 7-inch
+# Waveshare and Sunton boards of the same glass. The hardware is the CrowPanel Advance S3 family's
+# (packages/hardware/crowpanel-s3.yaml); docs/CROWPANEL7S3.md has the details.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/crowpanel7s3.yaml (a build on this computer) and
+# packages/crowpanel7s3.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-S3, the RGB panel, the GT911 touch, the STC8H1K28 backlight/amp coprocessor and the audio of the
+  # CrowPanel Advance S3 family.
+  hardware: !include ../hardware/crowpanel-s3.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  # The loudspeaker and the microphone as the screen's audio (features/audio.yaml), and its amplifier following the
+  # sound (features/audio-amplifier.yaml): its hardware in the family file.
+  audio: !include ../features/audio.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "crowpanel7s3"
+  DEVICE_NAME: "crowpanel7s3-new"
+  DEVICE_FRIENDLY_NAME: "My CrowPanel 7 S3"
+
+  # The glass: the panel's own pixels and its density, 932.95 diagonal pixels over 7.0 inches. The look scales its sizes
+  # by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "133.279"
+  # The grid a screen starts with lying down, four by four as on the 7-inch Waveshare of the same glass; the owner picks
+  # another in the editor within what the glass holds (docs/RESPONSIVE.md, "The grid a screen is given").
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  # Standing up, two columns of seven, as on the 7-inch Waveshare.
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  LVGL_BUFFER_SIZE: "12%"
