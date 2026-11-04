@@ -98,6 +98,22 @@ class AKnownBoard(unittest.IsolatedAsyncioTestCase):
                 # integrations was behind): the stale list found nothing to remove on 2026-11-03.
                 self.assertEqual(self.deleted, ['E1'])
                 self.assertGreaterEqual(self.refreshed, 2)  # once for the question, once for the replacing
+                # A board that is a screen of this app's goes the way its own Remove takes it: out of Home Assistant,
+                # its YAML out of the ESPHome folder, everything the app kept (app 0.4.97; a profile left behind showed
+                # as a screen still waiting for its firmware).
+                removed = []
+
+                async def remove_screen(inbox):
+                    removed.append(inbox)
+                    return {'removed': True, 'name': 'Living room', 'profile': 'living-room.yaml', 'kept': []}
+                manager.remove_screen = remove_screen
+                manager.screens = lambda: [{'id': 'inbox-old', 'device_id': 'd-old', 'name': 'Living room', 'node': 'living-room'}]
+                answer = await client.post('/api/boards/replace', json={'mac': MAC, 'by': 'hall-2.yaml'},
+                                           headers={'X-Screen-CSRF': first['csrf']})
+                self.assertEqual(answer.status, 200)
+                self.assertEqual(await answer.json(), {'replaced': 'Living room', 'by': 'hall-2.yaml', 'entries': 1, 'profile': 'living-room.yaml'})
+                self.assertEqual((removed, self.deleted), (['inbox-old'], ['E1']))
+                manager.screens = lambda: []
                 # A board Home Assistant does not have cannot be replaced.
                 missing = await client.post('/api/boards/replace', json={'mac': '11:22:33:44:55:67', 'by': 'hall-2.yaml'},
                                             headers={'X-Screen-CSRF': first['csrf']})
