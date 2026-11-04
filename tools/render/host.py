@@ -185,6 +185,10 @@ def host_core(tree):
 class Chain:
     """What the walk of one board's include tree found: the ids the host stand-ins must carry."""
     outputs: list = field(default_factory=list)
+    # The `min_power` of an output that has one (the Guition 4848S040's backlight floor): its stand-in keeps it, since
+    # ESPHome compiles FloatOutput::set_min_power(), which a board's lambda calls, only when some output in the
+    # configuration sets it.
+    min_power: dict = field(default_factory=dict)
     displays: list = field(default_factory=list)
     touches: list = field(default_factory=list)
     files: list = field(default_factory=list)
@@ -204,6 +208,10 @@ def host_file(text, chain, rel):
     for block in removed:
         ids = re.findall(r'(?m)^    id: (\w+)', block)
         chain.outputs += ids
+        for entry in re.split(r'(?m)^  - ', block):
+            found, power = re.search(r'(?m)^    id: (\w+)', entry), re.search(r'(?m)^    min_power: (\S+)', entry)
+            if found and power:
+                chain.min_power[found[1]] = power[1]
         chain.notes.append(f'{rel}: dropped output: ({", ".join(ids)})')
     # A board's or a hardware file's own touch panel (it has a platform) goes; a feature's `!extend` stays, less the
     # resistive panel's raw range (the SDL touchscreen reports pixels).
@@ -302,8 +310,9 @@ touchscreen:
         text += f'    update_interval: {chain.touch_interval}\n'
     outputs = list(dict.fromkeys(chain.outputs))
     if outputs:
-        text += '\noutput:\n' + ''.join(f"  - platform: template\n    id: {i}\n    type: float\n    write_action:\n"
-                                        f"      - lambda: ''\n" for i in outputs)
+        text += '\noutput:\n' + ''.join(f"  - platform: template\n    id: {i}\n    type: float\n"
+                                        + (f"    min_power: {chain.min_power[i]}\n" if i in chain.min_power else '')
+                                        + "    write_action:\n      - lambda: ''\n" for i in outputs)
     return text
 
 
