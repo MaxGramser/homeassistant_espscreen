@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **A plugin's keypad takes the same key twice in a row.** A plugin can now say that its card is a keypad (plugin API
+  0.25). Its keys then count every tap, as Tessera's own code pad does: "1 1 2 3" typed quickly is four digits. Before,
+  a second tap on the same key within 0.6 seconds was dropped as a bounce.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.97 (firmware 0.60.0)
