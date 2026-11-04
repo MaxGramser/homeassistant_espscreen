@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 24;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 25;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -136,11 +136,17 @@ class Card : public InPsram {
   // Back was pressed: true keeps the card open (it went back a step of its own), false lets it close.
   virtual bool on_back() { return false; }
   // A tap on the card's room (CardContext::parent) that the touch filter let through (0.12): a finger that moved or
-  // was too short never comes, a bounce on the same spot within 600 ms is one tap, a tap on another spot is its own.
+  // was too short never comes, a bounce on the same spot within 600 ms is one tap, a tap on another spot is its own
+  // (a keypad, below, only within 150 ms).
   // tap_point() says where, in the card's own pixels, so a list knows its row. The objects of tessera::ui take no taps,
   // so a tap on them comes here; an LVGL object of the plugin's own that is clickable takes the tap itself. Back is
   // on_back, never this. The card may close itself or open another from here.
   virtual void on_tap() {}
+  // A card of keys a finger taps one after the other, the same key twice too (0.25): a code pad, a number pad. True
+  // makes its taps count as the keys of Tessera's own code pad do: only a bounce of the same spot within 150 ms is
+  // dropped, so "1 1 2 3" typed quickly is four taps. False (the default) keeps 600 ms, which a list wants, where a
+  // second tap on the same row soon after is a finger that bounced.
+  virtual bool keypad() const { return false; }
   // What came of the picture of one of its places (0.17), as Tile::on_picture.
   virtual void on_picture(lv_obj_t *place, PictureState state) {}
 };

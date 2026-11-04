@@ -995,7 +995,18 @@ static void card_tap(lv_event_t *event) {
   if (known && (at.x < area.x1 || at.x > area.x2 || at.y < area.y1 || at.y > area.y2)) return;
   const int cell = std::max(1, ::ui::mm(8));
   const int spot = known ? ((at.y - area.y1) / cell) * 64 + (at.x - area.x1) / cell : 0;
-  if (!shown || !rt::allowed(esphome::millis(), CARD_TOUCH + spot, "plugin card")) return;
+  if (!shown) return;
+  // A keypad (Card::keypad, 0.25) takes every clean tap, as Tessera's own code pad does; any other card keeps the
+  // longer bounce window a list needs.
+  const uint32_t now = esphome::millis();
+  if (shown->card && shown->card->keypad()) {
+    if (!screen_input::touch_guard.accept_repeat(now, CARD_TOUCH + spot)) {
+      ESP_LOGI("touch", "tap on plugin keypad ignored: %s", screen_input::touch_guard.reason().c_str());
+      return;
+    }
+  } else if (!rt::allowed(now, CARD_TOUCH + spot, "plugin card")) {
+    return;
+  }
   tapped = known ? tessera::Point{at.x - area.x1, at.y - area.y1} : tessera::Point{-1, -1};
   call(shown, [](tessera::Card &card) { card.on_tap(); });
 }
