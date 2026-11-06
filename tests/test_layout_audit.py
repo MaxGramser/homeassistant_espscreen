@@ -376,7 +376,7 @@ KNOWN = [
      'cause': 'a full card stacks circle, name and value without giving any up when they are taller than the card '
               '(runtime_tiles.h:5960 render_full): the watch face\'s value ends 5 px under the card; the 3.5-inch glass with '
               'pictures and the one without are audited apart since firmware 0.46.0, and the WT32-SC01 Plus has the same '
-              'glass with pictures, the WT32-SC01 the same glass without'},
+              'glass with pictures, the WT32-SC01 the same glass with pictures too'},
 ]
 
 

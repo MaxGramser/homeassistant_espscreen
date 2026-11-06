@@ -14,10 +14,12 @@ packages:
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
+  # Camera stills, alert snapshots and covers, kept in the PSRAM picture store. The classic ESP32 has no JPEG engine
+  # (engine_build.picture_engine): it takes BMP, decoded row by row as it arrives.
+  camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
-  # No camera and no snapshot yet: the classic ESP32's PSRAM is slower and smaller than an ESP32-S3's, and the internal
-  # heap left beside Wi-Fi, the API and LVGL is about a third of it. Add them once a heap reading with a full layout
-  # says there is room.
+  # No snapshot: it needs a second frame of the whole screen, and the internal heap left beside Wi-Fi, the API and LVGL
+  # is about 159 KB.
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
