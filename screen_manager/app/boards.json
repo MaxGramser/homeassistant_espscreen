@@ -4749,6 +4749,16 @@
   },
   "battery": false,
   "board": "wt32sc01",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -4800,6 +4810,16 @@
   ],
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
     "columns": 2,
     "height": 320,
     "max": [
@@ -4815,6 +4835,16 @@
     "width": 480
    },
    "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
     "columns": 1,
     "height": 480,
     "max": [
@@ -11831,6 +11861,16 @@
   },
   "battery": false,
   "board": "wt32sc01",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -11882,6 +11922,16 @@
   ],
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
     "columns": 2,
     "height": 320,
     "max": [
@@ -11897,6 +11947,16 @@
     "width": 480
    },
    "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
     "columns": 1,
     "height": 480,
     "max": [
@@ -14739,6 +14799,16 @@
   },
   "battery": false,
   "board": "wt32sc01",
+  "camera": {
+   "full": [
+    480,
+    320
+   ],
+   "thumb": [
+    187,
+    105
+   ]
+  },
   "can_standby": true,
   "catalog": {
    "calibrate": false,
@@ -14790,6 +14860,16 @@
   ],
   "orientations": {
    "landscape": {
+    "camera": {
+     "full": [
+      480,
+      320
+     ],
+     "thumb": [
+      187,
+      105
+     ]
+    },
     "columns": 2,
     "height": 320,
     "max": [
@@ -14805,6 +14885,16 @@
     "width": 480
    },
    "portrait": {
+    "camera": {
+     "full": [
+      320,
+      480
+     ],
+     "thumb": [
+      249,
+      140
+     ]
+    },
     "columns": 1,
     "height": 480,
     "max": [
