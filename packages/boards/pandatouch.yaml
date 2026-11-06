@@ -1,0 +1,53 @@
+# ESP Screens - BTT Panda Touch board: a 5-inch 800 x 480 IPS panel (16-bit RGB, driven in DE mode: the panel has no
+# HSYNC or VSYNC line) with GT911 capacitive touch, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM. The USB-C
+# port is a CH340K serial bridge on UART0 (flashing and logs); the USB-A port is the chip's own USB host.
+#
+# Unlike the Waveshare boards there is no expander here: the panel's reset, the touch panel's reset and the
+# backlight are plain GPIOs, and the backlight is a PWM pin, so the screen can dim, stand by and go dark
+# (BACKLIGHT_DIMMABLE stays true, and backlight-always-on.yaml is not included).
+#
+# The board's own hardware (panel, touch, backlight and buses) is in hardware/pandatouch.yaml: pins and timings come
+# from BTT's firmware (bigtreetech/PandaTouch_IDF, include/pandatouch_board.h) and agree with the ESPHome
+# configuration of the Panda Touch thread on the Home Assistant forum. Tried on one Panda Touch, lying down: picture,
+# touch, page swipes from the glass edge, tile editing and brightness. Not tried: standing up, the camera.
+#
+# A board file declares its packages and its substitutions (docs/PROFILES.md says how the files of a screen fit
+# together). Two entry files include this one: checkout/pandatouch.yaml (a build on this computer) and
+# packages/pandatouch.yaml (the package a screen builds from over GitHub).
+packages:
+  # The chip, its PSRAM and ESP-IDF settings, and this board's panel, touch, backlight and buses.
+  hardware: !include ../hardware/pandatouch.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  # No snapshot.yaml: the Waveshare 5 has the same 800 x 480 glass and leaves it out (a second frame in PSRAM).
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "pandatouch"
+  DEVICE_NAME: "pandatouch-new"
+  DEVICE_FRIENDLY_NAME: "My Panda Touch"
+
+  # The glass: the panel's own pixels, and its density: 933 diagonal pixels over 5 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "186.590"
+  # The tile grid, the same as the Waveshare 5 (the same glass): 3 x 3 lying down, each tile about 34 x 14 mm, and one
+  # column of five cards standing up (the glass is 65 x 109 mm).
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+).
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  # LVGL's draw buffer as a share of the screen: 12 % is an eighth, 96 KB inside the chip on 800 x 480, as on the
+  # Waveshare 4.3 and 5. With three pages kept and a full layout the heap stayed above 44 KB at its lowest
+  # (sensor.<screen>_heap_minimum_free); under 40 KB is too little.
+  LVGL_BUFFER_SIZE: "12%"
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides").
+  # BTT's own firmware drives the backlight at 30 kHz.
+  BACKLIGHT_FREQUENCY: "30000Hz"
