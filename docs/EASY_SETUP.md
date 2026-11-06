@@ -26,6 +26,7 @@ ESPHome Device Builder is optional:
 | Waveshare P4, 7 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-7 (not the 7B), 1280×720, ILI9881C MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHAREP47.md)) |
 | Sunton, 7 inch (experimental) | ESP32-8048S070, 800×480, RGB and GT911 ([details](SUNTON8048S070.md)) |
 | Waveshare 4B, 4 inch (experimental) | ESP32-S3-Touch-LCD-4B, 480×480, ST7701S and GT911 ([details](WAVESHARE4B.md)) |
+| Waveshare 2.8B, 2.8 inch (experimental) | ESP32-S3-Touch-LCD-2.8B, 480×640, ST7701S and GT911 ([details](WAVESHARE28B.md)) |
 | Waveshare, 4 inch V4.0 (experimental) | ESP32-S3-Touch-LCD-4 revision 4.0 (not the 4B, not earlier revisions), 480×480, ST7701S and GT911 ([details](WAVESHARE4V4.md)) |
 | SenseCAP, 4 inch (experimental) | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |

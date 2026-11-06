@@ -1,0 +1,240 @@
+# ESP Screens - Waveshare ESP32-S3-Touch-LCD-2.8B board, experimental: a 2.8-inch 480 x 640 IPS panel (ST7701S over
+# RGB, standing up by nature) with GT911 capacitive touch, an ESP32-S3 with 16 MB flash and 8 MB of octal PSRAM, and
+# an expander (PCA9554 registers, address 0x20) that carries the panel's chip select and reset and the touch's reset.
+# Not the 4-inch 4B (other pins) and not the 2.8-inch 240 x 320 Waveshare ESP32-S3-Touch-LCD-2.8 with an SPI panel.
+#
+# The pins, the panel's own init sequence (Waveshare's demo code) and the backlight's PWM are those of a community
+# ESPHome configuration (display, touch and Home Assistant buttons) that runs on this board; this file is that
+# configuration moved onto ESPHome's mipi_rgb platform. The panel is a CUSTOM model on purpose: ESPHome's ST7701S
+# model brings an init sequence of its own that this panel never saw. No physical acceptance with ESP Screens yet.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/waveshare28b.yaml (a build on this computer) and packages/waveshare28b.yaml (the package a screen builds
+# from over GitHub).
+packages:
+  # The chip and its memory for an RGB panel, as on the other Waveshare boards.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  # No camera pictures (features/camera.yaml, snapshot.yaml): on 57 x 43 mm of glass an alert card has no room for a
+  # picture, as on the Waveshare 3.5.
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare28b"
+  DEVICE_NAME: "waveshare28b-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 2.8B"
+
+  # The glass: the panel's own pixels (it is 480 wide and 640 tall by nature) and its density, 800 diagonal pixels
+  # over 2.8 inches.
+  PANEL_W: "480"
+  PANEL_H: "640"
+  DISPLAY_DPI: "285.714"
+  # The LVGL angle that lays this panel out lying down (640 x 480), as on the CYD. Standing up is the panel's own
+  # way round, a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up (tools/propose_grid.py, the compact look).
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # LVGL's draw buffer as a share of the screen: an eighth, 77 KB of the memory inside the chip. A quarter (154 KB) is
+  # what the community configuration ran with a handful of pages; this firmware keeps far more next to it, and the
+  # Waveshare 4.3 hung on 15 KB free at a quarter (docs/ADDING_A_BOARD.md). Read sensor.<screen>_heap_free after the
+  # first boot with a full layout: well over 40 KB free leaves room to try 25 %.
+  LVGL_BUFFER_SIZE: "12%"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "2000Hz"                 # the backlight's PWM on GPIO6, high for light (no inversion)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  flash_size: 16MB
+
+logger:
+  tx_buffer_size: 2048
+  # The log goes out over the chip's own USB serial (USB-Serial-JTAG), which is what the community configuration
+  # logs on.
+  hardware_uart: USB_SERIAL_JTAG
+
+# The GT911 and the expander share one bus.
+i2c:
+  id: touch_bus
+  sda: GPIO15
+  scl: GPIO7
+  frequency: 400kHz
+  scan: true
+
+# The IO expander: line 0 is the panel's reset, line 1 the touch's reset, line 2 the panel's chip select. Its chip
+# speaks the PCA9554's registers.
+pca9554:
+  - id: expander
+    address: 0x20
+    i2c_id: touch_bus
+
+# The ST7701S takes its setup over three-wire SPI (nine bits per word, no data/command line), on the chip's SPI3. It
+# runs once, at boot; the picture itself goes over the RGB pins below.
+spi:
+  id: lcd
+  interface: spi3
+  clk_pin: GPIO2
+  mosi_pin: GPIO1
+
+output:
+  # The backlight is a plain PWM line, GPIO6, high for light: the firmware dims it through the light of
+  # packages/features/backlight.yaml, and ESPHome's default gamma suits a LED that a PWM switches.
+  - platform: ledc
+    pin: GPIO6
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+# The GT911: its reset line hangs on the expander and its interrupt line is GPIO16, as in the community configuration.
+# It reports pixels of the panel; LVGL turns the touch with the picture (ROTATION_LANDSCAPE), never a transform here.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    interrupt_pin: GPIO16
+    reset_pin:
+      pca9554: expander
+      number: 1
+
+# The panel: ESPHome's mipi_rgb platform with the CUSTOM model, so the init sequence below is the only one the panel
+# gets (the platform then adds the pixel format, the colour order, the inversion, sleep out and display on).
+#
+# The data pins, measured on a real board (colour test pictures, November 2026): the lines do not carry the weights the
+# Waveshare wiki's pin names suggest. Lowest bit first, mipi_rgb wires `blue` to data lines 0-4, `green` to 5-10 and
+# `red` to 11-15, so the lists below read: blue GPIO21, 47, 48, 45, 5; green GPIO9, 10, 14, 13, 12, 11; red GPIO17, 18,
+# 8, 3, 46. With the wiki's order a gray ramp came out purple and green; with this order the colours are right.
+#
+# Only eight of the sixteen lines had any visible effect on that board: GPIO46 and 3 (red), GPIO14, 13, 12 and 11
+# (green), GPIO45 and 5 (blue). GPIO8, 9, 10, 17, 18, 21, 47 and 48 changed nothing, whatever was drawn. So red and blue
+# only switch on or off and green has about sixteen steps: pure colours, black and white are exact, grays are not
+# (they get a tint) and soft gradients show bands. Whether that is this one board, a revision or a setting is not
+# known. Keep UI colours to saturated tones, avoid gray fills, and prefer black with a coloured outline.
+#
+# The colour order is RGB: with it the pictures above came out right (the community configuration's `st7701s` platform
+# said BGR, which that platform wires the other way round).
+#
+# Timings, pclk and its polarity are the old platform's defaults, which this panel ran with. Pixel clock edge (pclk_inverted)
+# and 8 MHz against 16 MHz made no difference to the picture.
+display:
+  - platform: mipi_rgb
+    model: CUSTOM
+    id: my_display
+    spi_id: lcd
+    spi_mode: MODE1
+    data_rate: 8MHz
+    cs_pin:
+      pca9554: expander
+      number: 2
+    reset_pin:
+      pca9554: expander
+      number: 0
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    de_pin: GPIO40
+    pclk_pin: GPIO41
+    hsync_pin: GPIO38
+    vsync_pin: GPIO39
+    pclk_frequency: 16MHz
+    pclk_inverted: true
+    hsync_pulse_width: 10
+    hsync_back_porch: 10
+    hsync_front_porch: 20
+    vsync_pulse_width: 10
+    vsync_back_porch: 10
+    vsync_front_porch: 10
+    pixel_mode: 16bit
+    color_order: RGB
+    invert_colors: false
+    data_pins:
+      red: [GPIO17, GPIO18, GPIO8, GPIO3, GPIO46]
+      green: [GPIO9, GPIO10, GPIO14, GPIO13, GPIO12, GPIO11]
+      blue: [GPIO21, GPIO47, GPIO48, GPIO45, GPIO5]
+    update_interval: never
+    auto_clear_enabled: false
+    # Waveshare's own sequence for this panel, as the community configuration sent it (the command pages, the gamma
+    # and power settings, the VCOM steps and the sleep out). Its last lines (pixel format 0x3A, MADCTL 0x36) are left
+    # out: the platform writes both after it, with the same values.
+    init_sequence:
+      # Page 1 commands
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xEF, 0x08]
+
+      # Page 0 commands - display settings
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10]
+      - [0xC0, 0x4F, 0x00]
+      - [0xC1, 0x10, 0x02]
+      - [0xC2, 0x07, 0x02]
+      - [0xCC, 0x10]
+      - [0xB0, 0x00, 0x10, 0x17, 0x0D, 0x11, 0x06, 0x05, 0x08, 0x07, 0x1F, 0x04, 0x11, 0x0E, 0x29, 0x30, 0x1F]
+      - [0xB1, 0x00, 0x0D, 0x14, 0x0E, 0x11, 0x06, 0x04, 0x08, 0x08, 0x20, 0x05, 0x13, 0x13, 0x26, 0x30, 0x1F]
+
+      # Page 2 commands - timing and power
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x11]
+      - [0xB0, 0x65]
+      - [0xB1, 0x71]
+      - [0xB2, 0x82]
+      - [0xB3, 0x80]
+      - [0xB5, 0x42]
+      - [0xB7, 0x85]
+      - [0xB8, 0x20]
+      - [0xC0, 0x09]
+      - [0xC1, 0x78]
+      - [0xC2, 0x78]
+      - [0xD0, 0x88]
+      - [0xEE, 0x42]
+      - [0xE0, 0x00, 0x00, 0x02]
+      - [0xE1, 0x04, 0xA0, 0x06, 0xA0, 0x05, 0xA0, 0x07, 0xA0, 0x00, 0x44, 0x44]
+      - [0xE2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+      - [0xE3, 0x00, 0x00, 0x22, 0x22]
+      - [0xE4, 0x44, 0x44]
+      - [0xE5, 0x0C, 0x90, 0xA0, 0xA0, 0x0E, 0x92, 0xA0, 0xA0, 0x08, 0x8C, 0xA0, 0xA0, 0x0A, 0x8E, 0xA0, 0xA0]
+      - [0xE6, 0x00, 0x00, 0x22, 0x22]
+      - [0xE7, 0x44, 0x44]
+      - [0xE8, 0x0D, 0x91, 0xA0, 0xA0, 0x0F, 0x93, 0xA0, 0xA0, 0x09, 0x8D, 0xA0, 0xA0, 0x0B, 0x8F, 0xA0, 0xA0]
+      - [0xEB, 0x00, 0x00, 0xE4, 0xE4, 0x44, 0x00, 0x40]
+      - [0xED, 0xFF, 0xF5, 0x47, 0x6F, 0x0B, 0xA1, 0xAB, 0xFF, 0xFF, 0xBA, 0x1A, 0xB0, 0xF6, 0x74, 0x5F, 0xFF]
+      - [0xEF, 0x08, 0x08, 0x08, 0x40, 0x3F, 0x64]
+
+      # Back to page 0
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+
+      # VCOM steps
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xE6, 0x16, 0x7C]
+      - [0xE8, 0x00, 0x0E]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+
+      # Sleep out
+      - [0x11]
+      - delay 200ms
+
+      # More VCOM steps
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x13]
+      - [0xE8, 0x00, 0x0C]
+      - delay 150ms
+      - [0xE8, 0x00, 0x00]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+
+      # Tearing effect line on, vertical blanking only (0x35 with a parameter of 0, as the old sequence sent it)
+      - [0x35, 0x00]
+
+      # Display on
+      - [0x29]
+      - delay 100ms
