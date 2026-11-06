@@ -265,3 +265,10 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+wt32sc01:
+  file: wt32sc01.yaml
+  name: WT32
+  model: WT32-SC01
+  status: experimental
+  # Wireless-Tag's WT32-SC01: a classic ESP32 (WROVER, 16 MB flash, PSRAM) with an ST7796S over SPI.
