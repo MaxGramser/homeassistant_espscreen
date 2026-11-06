@@ -3,8 +3,9 @@
 // otherwise, and the stream and download tasks of a screen (live_view.cpp, picture_fetch.cpp) asked nothing: 6 KB each,
 // beside the Wi-Fi link's buffers that run a P4 short of internal RAM (heap_watch.h). PSRAM does for them, as it does
 // for Screen camera's video server. ESP-IDF allows a stack there on every chip but the ESP32
-// (CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM defaults to y elsewhere; without it xPortcheckValidStackMem would assert),
-// on two conditions:
+// (CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM defaults to y elsewhere; without it xPortcheckValidStackMem asserts), so
+// start() asks for one only where that option is on, and an ESP32 with PSRAM (the WT32-SC01) gets ordinary tasks. Where
+// it is allowed, there are two conditions:
 // - such a task never writes the flash itself (NVS, OTA, spi_flash): where the flash cache is turned off for a write the
 //   PSRAM is out of reach, and its own stack with it (ESP-IDF, "Support for External RAM", restrictions). The P4 screens
 //   execute from PSRAM (CONFIG_SPIRAM_XIP_FROM_PSRAM), which keeps it in reach while the flash is written, so on them
@@ -40,11 +41,18 @@ struct Task {
 inline bool start(Task &task, TaskFunction_t fn, const char *name, uint32_t stack, void *arg, UBaseType_t priority,
                   BaseType_t core) {
   task.handle = nullptr;
+#if CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM
   task.in_psram.store(true, std::memory_order_release);
   if (xTaskCreatePinnedToCoreWithCaps(fn, name, stack, arg, priority, &task.handle, core,
                                       MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) == pdPASS)
     return true;
-  // Nothing ran: the flag can still change.
+#endif
+  // We get here in two cases, and both fall back to an ordinary task with its stack in internal RAM:
+  // - the PSRAM stack was tried and refused (no PSRAM free), so no task was made;
+  // - the chip does not allow a task stack in PSRAM at all. That is the classic ESP32, where ESP-IDF leaves
+  //   CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM off: asking anyway fails an assert in xTaskCreateStaticPinnedToCore
+  //   and restarts the screen, which a WT32-SC01 did on its first camera picture (2026-11-06).
+  // No task is running yet, so changing the flag here is safe.
   task.handle = nullptr;
   task.in_psram.store(false, std::memory_order_release);
   return xTaskCreatePinnedToCore(fn, name, stack, arg, priority, &task.handle, core) == pdPASS;
