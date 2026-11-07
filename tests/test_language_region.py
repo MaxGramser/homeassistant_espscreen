@@ -31,6 +31,13 @@ def region(tmp, ha='en', **stored):
 
 
 class NotationTests(unittest.TestCase):
+    def test_bokmal_uses_the_existing_language_and_firmware_tables(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            nb = region(tmp, 'nb')
+            self.assertEqual((nb.language(), nb.clock_24h(), nb.number_style()), ('nb', True, 'space'))
+        self.assertEqual(i18n.TRANSLATIONS.text('screen.time.tomorrow', 'nb'), 'I morgen')
+        self.assertEqual(i18n.TRANSLATIONS.text('screen.time.in_days', 'nb', n=3), 'Om 3 dager')
+
     def test_every_home_assistant_language_has_a_notation(self):
         tool = importlib.util.spec_from_file_location('i18n_tool', ROOT / 'tools' / 'i18n.py')
         module = importlib.util.module_from_spec(tool)

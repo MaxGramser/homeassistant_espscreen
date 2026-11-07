@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Add Norwegian Bokmål for the screens, editor and app. The translation is a draft pending a speaker's full review. Rebuild a screen after choosing Bokmål under Language & region.
+
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.97 (firmware 0.60.0)
