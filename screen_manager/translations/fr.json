@@ -506,6 +506,16 @@
         "vertical": "Verticale",
         "horizontal": "Horizontale"
       },
+      "climate_preset": {
+        "none": "Aucun",
+        "eco": "Éco",
+        "away": "Absent",
+        "boost": "Boost",
+        "comfort": "Confort",
+        "home": "Maison",
+        "sleep": "Sommeil",
+        "activity": "Activité"
+      },
       "alarm": {
         "disarmed": "Désactivée",
         "armed_home": "Activée (présence)",

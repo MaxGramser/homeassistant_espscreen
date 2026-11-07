@@ -506,6 +506,16 @@
         "vertical": "ruch pionowy",
         "horizontal": "ruch poziomy"
       },
+      "climate_preset": {
+        "none": "Brak",
+        "eco": "Eko",
+        "away": "Poza domem",
+        "boost": "Boost",
+        "comfort": "Komfort",
+        "home": "W domu",
+        "sleep": "Sen",
+        "activity": "Aktywność"
+      },
       "alarm": {
         "disarmed": "rozbrojony",
         "armed_home": "uzbrojony (w domu)",

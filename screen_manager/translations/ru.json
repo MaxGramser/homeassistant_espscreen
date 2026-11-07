@@ -506,6 +506,16 @@
         "vertical": "Вертикально",
         "horizontal": "Горизонтально"
       },
+      "climate_preset": {
+        "none": "Нет",
+        "eco": "Эко",
+        "away": "Не дома",
+        "boost": "Турбо",
+        "comfort": "Комфорт",
+        "home": "Дома",
+        "sleep": "Сон",
+        "activity": "Активность"
+      },
       "alarm": {
         "disarmed": "Снято с охраны",
         "armed_home": "Охрана (дома)",

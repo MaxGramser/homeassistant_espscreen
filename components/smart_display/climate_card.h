@@ -73,7 +73,7 @@ struct Layout {
   Rect setpoint, minus, plus, number, caption;
   Rect modes;                  // the area the mode keys share
   Rect settings;               // the white card with the rows
-  Rect rows[2], row_icons[2], row_tracks[2];
+  Rect rows[3], row_icons[3], row_tracks[3];
   int mode_count = 0;          // 0 when the device has one mode: the power key already does that
   int mode_gap = 0;
   int row_count = 0;
@@ -121,7 +121,7 @@ inline Layout layout(const Metrics &m, int width, int top, int bottom, int modes
   Layout l;
   l.range = range;
   l.columns = columns >= 2 ? 2 : 1;
-  l.row_count = std::clamp(rows, 0, 2);
+  l.row_count = std::clamp(rows, 0, 3);
   l.mode_gap = m.mode_gap();
   l.power = {width - m.bar_x - m.bar, m.bar_y, m.bar, m.bar};
 

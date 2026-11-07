@@ -43,24 +43,42 @@ const MODE_ICONS: Record<string, string> = { off: 'power', heat: 'fire', cool: '
 const HUMIDIFIER_MODE_ICONS: Record<string, string> = { normal: 'F058E', eco: 'F032A', away: 'F0B53', boost: 'F14DE', comfort: 'F04B9',
   home: 'F02DC', sleep: 'F0904', auto: 'F18F2', baby: 'F068F' };
 export const humidifierModeIcon = (mode: string) => HUMIDIFIER_MODE_ICONS[mode] || 'F09DE';
-/** The mode a thermostat is in (tile_controls::current_mode): a climate's state, a humidifier's `mode` attribute. */
-export const thermostatMode = (domain: string, state: string, a: Attributes) => domain === 'humidifier' ? String(a.mode ?? '') : String(state).toLowerCase();
+/** Home Assistant's climate preset icons (climate/icons.json, tile_controls::climate_preset_icon); a custom preset takes circle-medium. */
+const CLIMATE_PRESET_ICONS: Record<string, string> = { none: 'F015A', eco: 'F032A', away: 'F0B53', boost: 'F14DE', comfort: 'F04B9',
+  home: 'F02DC', sleep: 'F0904', activity: 'F0D91' };
+export const climatePresetIcon = (mode: string) => CLIMATE_PRESET_ICONS[mode] || 'F09DE';
+/** Whether a thermostat's presets stand in for its modes (tile_controls::climate_uses_presets): fewer than two active HVAC modes and at least two presets. */
+export function climateUsesPresets(a: Attributes, domain = 'climate'): boolean {
+  if (domain !== 'climate' || !(Number(a.supported_features || 0) & bits('climate', 'PRESET_MODE'))) return false;
+  const raw: unknown[] = Array.isArray(a.hvac_modes) ? a.hvac_modes.slice(0, 8) : [];
+  const hvac = raw.filter((m) => String(m).toLowerCase() !== 'off').length;
+  const presets: unknown[] = Array.isArray(a.preset_modes) ? a.preset_modes.slice(0, 8).filter((m) => String(m).length > 0 && String(m) !== 'none') : [];
+  return hvac < 2 && presets.length >= 2;
+}
+/** The mode a thermostat is in (tile_controls::current_mode): a climate's state (or preset), a humidifier's `mode` attribute. */
+export const thermostatMode = (domain: string, state: string, a: Attributes) =>
+  domain === 'humidifier' ? String(a.mode ?? '') : climateUsesPresets(a, domain) ? String(a.preset_mode ?? '') : String(state).toLowerCase();
 /** A thermostat's mode bar (tile_controls::climate_bar_keys), for "Mode" and under the -/+ of "Temperature and mode":
  * heat and cool before the rest, never off (the tile's circle switches it), the mode it is in always among them; "…"
  * (the card) in the last place when they do not all fit, two modes rather than one and a "…" in a bar for two. None for
  * a device with fewer than two modes, or a bar with room for fewer than two. A humidifier's (firmware 0.42.0+) are its
- * available_modes in the order its integration lists them, the one in `mode` marked. */
+ * available_modes in the order its integration lists them, the one in `mode` marked; a single-mode thermostat with
+ * presets shows its preset_modes in the same way. */
 export function barKeys(a: Attributes, state: string, room = 6, domain = 'climate'): ControlKey[] {
-  const humidifier = domain === 'humidifier';
-  const raw: unknown[] = Array.isArray(humidifier ? a.available_modes : a.hvac_modes) ? (humidifier ? a.available_modes : a.hvac_modes).slice(0, 8) : [];
-  const listed = raw.map((m) => humidifier ? String(m) : String(m).toLowerCase());
-  const modes = humidifier ? listed : ['heat', 'cool', 'heat_cool', 'auto', 'dry', 'fan_only'].filter((mode) => listed.includes(mode));
+  const humidifier = domain === 'humidifier', presets = climateUsesPresets(a, domain);
+  const source = humidifier ? a.available_modes : presets ? a.preset_modes : a.hvac_modes;
+  const raw: unknown[] = Array.isArray(source) ? source.slice(0, 8) : [];
+  const listed = raw.map((m) => (humidifier || presets ? String(m) : String(m).toLowerCase())).filter((m) => m.length > 0 && (!presets || m !== 'none'));
+  const modes = humidifier || presets ? listed : ['heat', 'cool', 'heat_cool', 'auto', 'dry', 'fan_only'].filter((mode) => listed.includes(mode));
   room = Math.min(room, 6);
   if (modes.length < 2 || room < 2) return [];
   const more = modes.length > room, shown = !more ? modes.length : room === 2 ? 2 : room - 1;
   const pick = modes.slice(0, shown), current = thermostatMode(domain, state, a);
   if (modes.includes(current) && !pick.includes(current)) pick[pick.length - 1] = current;
-  const keys: ControlKey[] = pick.map((mode) => humidifier ? { icon: '', cp: humidifierModeIcon(mode), mode } : { icon: MODE_ICONS[mode] || 'fan', mode });
+  const keys: ControlKey[] = pick.map((mode) =>
+    humidifier ? { icon: '', cp: humidifierModeIcon(mode), mode }
+    : presets ? { icon: '', cp: climatePresetIcon(mode), mode }
+    : { icon: MODE_ICONS[mode] || 'fan', mode });
   if (more && shown < room) keys.push({ icon: 'dots-horizontal' });
   return keys;
 }

@@ -39,7 +39,8 @@ constexpr uint32_t MEDIA_SEEK = ha::media_player::SEEK, MEDIA_SHUFFLE = ha::medi
                    MEDIA_PLAY_MEDIA = ha::media_player::PLAY_MEDIA, MEDIA_SELECT_SOURCE = ha::media_player::SELECT_SOURCE;
 constexpr uint32_t VACUUM_TURN_ON = ha::vacuum::TURN_ON, VACUUM_TURN_OFF = ha::vacuum::TURN_OFF, VACUUM_PAUSE = ha::vacuum::PAUSE, VACUUM_STOP = ha::vacuum::STOP,
                    VACUUM_RETURN = ha::vacuum::RETURN_HOME, VACUUM_START = ha::vacuum::START, VACUUM_LOCATE = ha::vacuum::LOCATE;
-constexpr uint32_t CLIMATE_TEMPERATURE = ha::climate::TARGET_TEMPERATURE, CLIMATE_RANGE = ha::climate::TARGET_TEMPERATURE_RANGE;
+constexpr uint32_t CLIMATE_TEMPERATURE = ha::climate::TARGET_TEMPERATURE, CLIMATE_RANGE = ha::climate::TARGET_TEMPERATURE_RANGE,
+                   CLIMATE_PRESET = ha::climate::PRESET_MODE;
 constexpr uint32_t FAN_SPEED = ha::fan::SET_SPEED;
 }
 // Material Design Icons glyphs the icon fonts carry (tile_icons.py FIXED).
@@ -56,7 +57,7 @@ constexpr const char *SLATS = "\U000F1A2B", *SHADE = "\U000F1A6B";
 enum Command {
   NONE = 0, COVER_OPEN, COVER_STOP, COVER_CLOSE, VACUUM_START, VACUUM_PAUSE, VACUUM_STOP, VACUUM_DOCK,
   MEDIA_PREVIOUS, MEDIA_PLAY_PAUSE, MEDIA_NEXT, MEDIA_MUTE, TIMER_START, TIMER_PAUSE, TIMER_CANCEL,
-  HVAC_MODE, SELECT_PREVIOUS, SELECT_NEXT, RUN, TOGGLE, STEP_DOWN, STEP_UP,
+  HVAC_MODE, PRESET_MODE, SELECT_PREVIOUS, SELECT_NEXT, RUN, TOGGLE, STEP_DOWN, STEP_UP,
   COVER_OPEN_TILT, COVER_STOP_TILT, COVER_CLOSE_TILT,
   OPEN_CARD,  // "…": the modes that did not fit are on the card (firmware 0.3.1+)
   RANGE_SWITCH  // the chip between a range thermostat's - and +: heat or cool is the end they move (firmware 0.19.0)
@@ -466,11 +467,56 @@ inline const char *humidifier_action_text(const std::string &action) {
   if (action == "off") return tr(txt::ha_humidifier_action_off);
   return "";
 }
-// The mode a thermostat is in: a climate's state, a humidifier's `mode`.
-inline std::string current_mode(const Tile &t) { return humidifier(t) ? t.extra().humidifier_mode : lower_case(t.state); }
+// Home Assistant's climate preset icons and words (homeassistant/components/climate/icons.json); an integration's own
+// preset keeps its name and Home Assistant's default dot.
+inline const char *climate_preset_icon(const std::string &mode) {
+  if (mode == "none") return "\U000F015A";          // close-circle-outline
+  if (mode == "eco") return "\U000F032A";           // leaf
+  if (mode == "away") return "\U000F0B53";          // account-arrow-right
+  if (mode == "boost") return "\U000F14DE";         // rocket-launch
+  if (mode == "comfort") return "\U000F04B9";       // sofa
+  if (mode == "home") return "\U000F02DC";          // home
+  if (mode == "sleep") return "\U000F0904";         // power-sleep
+  if (mode == "activity") return "\U000F0D91";      // motion-sensor
+  return "\U000F09DE";                              // circle-medium
+}
+inline std::string climate_preset_text(const std::string &mode) {
+  using namespace screen_text;
+  if (mode == "none") return tr(txt::ha_climate_preset_none);
+  if (mode == "eco") return tr(txt::ha_climate_preset_eco);
+  if (mode == "away") return tr(txt::ha_climate_preset_away);
+  if (mode == "boost") return tr(txt::ha_climate_preset_boost);
+  if (mode == "comfort") return tr(txt::ha_climate_preset_comfort);
+  if (mode == "home") return tr(txt::ha_climate_preset_home);
+  if (mode == "sleep") return tr(txt::ha_climate_preset_sleep);
+  if (mode == "activity") return tr(txt::ha_climate_preset_activity);
+  return climate_setting_text('p', mode);
+}
+// Whether a thermostat's presets stand in for its modes: it has fewer than two active HVAC modes and at least two presets.
+inline bool climate_uses_presets(const Tile &t) {
+  if (t.domain() != "climate" || !(t.supported & feature::CLIMATE_PRESET)) return false;
+  unsigned hvac = 0;
+  for (const auto &raw : list_values(t.extra().hvac_modes, 8))
+    if (lower_case(raw) != "off") ++hvac;
+  unsigned presets = 0;
+  for (const auto &raw : list_values(t.extra().preset_modes, 8))
+    if (raw != "none" && !raw.empty()) ++presets;
+  return hvac < 2 && presets >= 2;
+}
+// The mode a thermostat is in: a climate's state (or its preset when presets stand in), a humidifier's `mode`.
+inline std::string current_mode(const Tile &t) {
+  if (humidifier(t)) return t.extra().humidifier_mode;
+  return climate_uses_presets(t) ? t.extra().preset_mode : lower_case(t.state);
+}
 // The icon and the words of a mode, for either.
-inline const char *thermostat_mode_icon(const Tile &t, const std::string &mode) { return humidifier(t) ? humidifier_mode_icon(mode) : climate_mode_icon(mode); }
-inline std::string thermostat_mode_text(const Tile &t, const std::string &mode) { return humidifier(t) ? humidifier_mode_text(mode) : std::string(climate_mode_text(mode)); }
+inline const char *thermostat_mode_icon(const Tile &t, const std::string &mode) {
+  if (humidifier(t)) return humidifier_mode_icon(mode);
+  return climate_uses_presets(t) ? climate_preset_icon(mode) : climate_mode_icon(mode);
+}
+inline std::string thermostat_mode_text(const Tile &t, const std::string &mode) {
+  if (humidifier(t)) return humidifier_mode_text(mode);
+  return climate_uses_presets(t) ? climate_preset_text(mode) : std::string(climate_mode_text(mode));
+}
 // The modes the card offers, in Home Assistant's order, without "off": the power key already does that one.
 // A device that reports no modes at all still shows the one it is in, so the card is never empty.
 inline std::vector<std::string> climate_modes(const Tile &t) {
@@ -482,6 +528,11 @@ inline std::vector<std::string> climate_modes(const Tile &t) {
     if (modes.empty() && !t.extra().humidifier_mode.empty()) modes.push_back(t.extra().humidifier_mode);
     return modes;
   }
+  if (climate_uses_presets(t)) {
+    for (const auto &raw : list_values(t.extra().preset_modes, 8))
+      if (raw != "none" && !raw.empty()) modes.push_back(raw);
+    return modes;
+  }
   for (const auto &raw : list_values(t.extra().hvac_modes, 8)) {
     const std::string mode = lower_case(raw);
     if (mode != "off") modes.push_back(mode);
@@ -489,8 +540,8 @@ inline std::vector<std::string> climate_modes(const Tile &t) {
   if (modes.empty() && !climate_off(t)) modes.push_back(lower_case(t.state));
   return modes;
 }
-// One row of settings under the modes: the fan and the swing, each with the entity's own choices, in its own
-// order and in Home Assistant's words. 'f' and 's' are what a tap reports back.
+// One row of settings under the modes: the preset (where HVAC modes already occupy the mode keys), the fan and the
+// swing, each with the entity's own choices, in its own order and in Home Assistant's words.
 struct ClimateRow {
   char kind = 0;
   const char *icon = "";
@@ -513,18 +564,22 @@ inline std::vector<ClimateRow> climate_rows(const Tile &t) {
     rows.push_back(std::move(out));
     return rows;
   }
+  const std::string empty;
+  const bool preset_row = !climate_uses_presets(t) && (t.supported & feature::CLIMATE_PRESET);
   const struct { char kind; const char *icon; const std::string &modes; const std::string &current; } wanted[] = {
+      {'p', "\U000F032A", preset_row ? x.preset_modes : empty, x.preset_mode},
       {'f', glyph::FAN, x.fan_modes, x.fan_mode},
       {'s', "\U000F1C91", x.swing_modes, x.swing_mode},
   };
   for (const auto &row : wanted) {
     auto values = list_values(row.modes, 6);
-    if (values.empty()) continue;
+    if (values.empty() || (row.kind == 'p' && values.size() < 2)) continue;
     ClimateRow out;
     out.kind = row.kind;
     out.icon = row.icon;
     out.current = row.current;
-    for (const auto &value : values) out.labels.push_back(climate_setting_text(row.kind, value));
+    for (const auto &value : values)
+      out.labels.push_back(row.kind == 'p' ? climate_preset_text(value) : climate_setting_text(row.kind, value));
     out.values = std::move(values);
     rows.push_back(std::move(out));
   }
@@ -533,6 +588,7 @@ inline std::vector<ClimateRow> climate_rows(const Tile &t) {
 // What a tap on a row sends.
 inline Action climate_row_action(char kind, const std::string &value) {
   if (kind == 'm') return {"humidifier.set_mode", "mode", value};
+  if (kind == 'p') return {"climate.set_preset_mode", "preset_mode", value};
   if (kind == 'f') return {"climate.set_fan_mode", "fan_mode", value};
   return {"climate.set_swing_mode", "swing_mode", value};
 }
@@ -708,9 +764,14 @@ template <size_t N> inline unsigned climate_bar_keys(const Tile &t, std::array<K
   static const char *const ORDER[] = {"heat", "cool", "heat_cool", "auto", "dry", "fan_only"};
   room = std::min<unsigned>(room, N);
   std::vector<std::string> modes;
+  const bool presets = climate_uses_presets(t);
   const auto listed = list_values(t.extra().hvac_modes, 8);
-  // A humidifier's modes stand in the order its integration lists them.
+  // A humidifier's modes and a thermostat's presets stand in the order their integration lists them.
   if (humidifier(t)) modes = listed;
+  else if (presets) {
+    for (const auto &raw : list_values(t.extra().preset_modes, 8))
+      if (raw != "none" && !raw.empty()) modes.push_back(raw);
+  }
   else
   for (const char *mode : ORDER)
     for (const auto &raw : listed)
@@ -723,7 +784,10 @@ template <size_t N> inline unsigned climate_bar_keys(const Tile &t, std::array<K
   if (std::find(modes.begin(), modes.end(), current) != modes.end() && std::find(pick.begin(), pick.end(), current) == pick.end())
     pick.back() = current;
   unsigned n = 0;
-  for (const auto &mode : pick) out[n++] = Key{humidifier(t) ? humidifier_mode_icon(mode) : mode_icon(mode), HVAC_MODE, mode, mode == current, false};
+  for (const auto &mode : pick) {
+    const char *icon = humidifier(t) ? humidifier_mode_icon(mode) : presets ? climate_preset_icon(mode) : mode_icon(mode);
+    out[n++] = Key{icon, presets ? PRESET_MODE : HVAC_MODE, mode, (!presets || !climate_off(t)) && mode == current, false};
+  }
   if (more && shown < room) out[n++] = Key{glyph::MORE, OPEN_CARD, "", false, false};
   return n;
 }
@@ -821,6 +885,8 @@ inline Action key_action(const Tile &t, int command, const std::string &arg = ""
     case HVAC_MODE:
       if (arg.empty()) return {};
       return d == "humidifier" ? Action{"humidifier.set_mode", "mode", arg} : Action{"climate.set_hvac_mode", "hvac_mode", arg};
+    case PRESET_MODE:
+      return arg.empty() ? Action{} : Action{"climate.set_preset_mode", "preset_mode", arg};
     case SELECT_PREVIOUS: case SELECT_NEXT: {
       std::string option = neighbour_option(t, command == SELECT_NEXT ? 1 : -1);
       return option.empty() ? Action{} : Action{d + ".select_option", "option", option};
@@ -852,6 +918,7 @@ inline Wanted wanted(const Tile &t, int command, const std::string &arg = "") {
   switch (command) {
     case TOGGLE: return key_action(t, command).valid() ? Wanted{true, F::ON_OFF, t.state == "on" ? "off" : "on"} : Wanted{};
     case HVAC_MODE: return arg.empty() ? Wanted{} : Wanted{true, d == "humidifier" ? F::HUMIDIFIER_MODE : F::HVAC_MODE, arg};
+    case PRESET_MODE: return arg.empty() ? Wanted{} : Wanted{true, F::PRESET_MODE, arg};
     case SELECT_PREVIOUS: case SELECT_NEXT: {
       const std::string option = neighbour_option(t, command == SELECT_NEXT ? 1 : -1);
       return option.empty() ? Wanted{} : Wanted{true, F::OPTION, option};

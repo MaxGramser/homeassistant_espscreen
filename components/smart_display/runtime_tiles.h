@@ -1366,6 +1366,7 @@ inline std::string wish_read(const Tile &t, optimistic::Field field, const std::
     case F::HUMIDIFIER_MODE: return x.humidifier_mode;
     case F::FAN_MODE: return x.fan_mode;
     case F::SWING_MODE: return x.swing_mode;
+    case F::PRESET_MODE: return x.preset_mode;
     case F::ACTIVITY: return t.state == "on" ? x.activity : std::string();  // empty: the remote is off
     case F::PLAYING: return media_card::playing(t.state) ? "1" : "0";
     case F::SHUFFLE: return x.media_shuffle < 0 ? std::string() : x.media_shuffle ? "1" : "0";
@@ -1408,6 +1409,7 @@ inline void wish_write(Tile &t, optimistic::Field field, const std::string &valu
     case F::HUMIDIFIER_MODE: t.edit_extra().humidifier_mode = value; break;
     case F::FAN_MODE: t.edit_extra().fan_mode = value; break;
     case F::SWING_MODE: t.edit_extra().swing_mode = value; break;
+    case F::PRESET_MODE: t.edit_extra().preset_mode = value; break;
     case F::ACTIVITY:
       if (value.empty()) t.state = "off";
       else { t.edit_extra().activity = value; t.state = "on"; }
@@ -1942,7 +1944,7 @@ inline bool alarm_pad_open();
 // a thermostat's rows and the power keys.
 inline bool wish_command(int cmd){
   return cmd==20||cmd==23||cmd==25||cmd==26||(cmd>=SELECT_OPTION_FIRST&&cmd<SELECT_OPTION_FIRST+64)||
-         (cmd>=CLIMATE_MODE_FIRST&&cmd<CLIMATE_ROW_FIRST+12)||cmd==CLIMATE_POWER||cmd==LIGHT_POWER;
+         (cmd>=CLIMATE_MODE_FIRST&&cmd<CLIMATE_ROW_FIRST+18)||cmd==CLIMATE_POWER||cmd==LIGHT_POWER;
 }
 inline void detail_command(int cmd){
   // Back on the alarm's keypad goes back to its card; everywhere else it closes the card.
@@ -2035,19 +2037,21 @@ inline void detail_command(int cmd){
   if(cmd>=70 && cmd<130){if(t.domain()=="cover")cover_key(t,cmd-70);}
   if(cmd==40)action(t.state=="active"?"timer.pause":"timer.start",t.entity);
   if(cmd==41)action("timer.cancel",t.entity);
-  // The climate card: a mode (200-207), a fan or swing choice (210-221) and the power key (230). The card
+  // The climate card: a mode (200-207), a preset, fan or swing choice (210-227) and the power key (230). The card
   // shows the choice at once and waits for Home Assistant, like the vacuum card's chips.
   if(cmd>=CLIMATE_MODE_FIRST&&cmd<CLIMATE_MODE_FIRST+8){
     const auto modes=tile_controls::climate_modes(t);
     const unsigned i=cmd-CLIMATE_MODE_FIRST;
     if(i<modes.size()&&tile_controls::humidifier(t)&&modes[i]!=t.extra().humidifier_mode){
       wish(t,optimistic::Field::HUMIDIFIER_MODE,modes[i],"humidifier.set_mode","mode",modes[i]);
-    }else if(i<modes.size()&&!tile_controls::humidifier(t)&&modes[i]!=tile_controls::lower_case(t.state)){
+    }else if(i<modes.size()&&tile_controls::climate_uses_presets(t)&&modes[i]!=t.extra().preset_mode){
+      wish(t,optimistic::Field::PRESET_MODE,modes[i],"climate.set_preset_mode","preset_mode",modes[i]);
+    }else if(i<modes.size()&&!tile_controls::humidifier(t)&&!tile_controls::climate_uses_presets(t)&&modes[i]!=tile_controls::lower_case(t.state)){
       climate_mode_wish(t,modes[i]);
     }
     return;
   }
-  if(cmd>=CLIMATE_ROW_FIRST&&cmd<CLIMATE_ROW_FIRST+12){
+  if(cmd>=CLIMATE_ROW_FIRST&&cmd<CLIMATE_ROW_FIRST+18){
     const auto rows=tile_controls::climate_rows(t);
     const unsigned r=(cmd-CLIMATE_ROW_FIRST)/6,i=(cmd-CLIMATE_ROW_FIRST)%6;
     if(r<rows.size()&&i<rows[r].values.size()&&rows[r].values[i]!=rows[r].current){
@@ -2055,7 +2059,7 @@ inline void detail_command(int cmd){
       const std::string value=rows[r].values[i];
       const auto a=tile_controls::climate_row_action(kind,value);
       using F=optimistic::Field;
-      wish(t,kind=='m'?F::HUMIDIFIER_MODE:kind=='f'?F::FAN_MODE:F::SWING_MODE,value,a.service,a.key,a.value);
+      wish(t,kind=='m'?F::HUMIDIFIER_MODE:kind=='p'?F::PRESET_MODE:kind=='f'?F::FAN_MODE:F::SWING_MODE,value,a.service,a.key,a.value);
     }
     return;
   }
@@ -3562,7 +3566,7 @@ inline void climate_limit_paint(lv_obj_t *key,const Tile &t,const CardPart &part
 // A mode key (value: its mode), in Home Assistant's colour for its mode while it is the one in use.
 inline void climate_mode_paint(lv_obj_t *key,const Tile &t,const CardPart &part){
   const bool selected=!tile_controls::climate_off(t)&&part.value==tile_controls::current_mode(t);
-  const uint32_t colour=tile_controls::humidifier(t)?tile_controls::accent(t):tile_controls::mode_color(part.value);
+  const uint32_t colour=(tile_controls::humidifier(t)||tile_controls::climate_uses_presets(t))?tile_controls::accent(t):tile_controls::mode_color(part.value);
   set_color(key,LV_STYLE_BG_COLOR,selected?lv_color_hex(colour):theme::color(theme::CARD));
   set_number(key,LV_STYLE_BORDER_WIDTH,selected?0:1);
   if(auto *glyph=lv_obj_get_child(key,0))set_color(glyph,LV_STYLE_TEXT_COLOR,theme::color(selected?theme::ON_ACCENT:theme::SLATE));
@@ -8008,10 +8012,11 @@ inline void mode_segment(lv_obj_t *&p,lv_obj_t *parent,unsigned code,climate_til
     lv_obj_add_event_cb(p,climate_mode_key_event,LV_EVENT_SHORT_CLICKED,(void*)(uintptr_t)code);
   }
   lv_obj_set_pos(p,r.x,r.y);lv_obj_set_size(p,r.w,r.h);lv_obj_remove_flag(p,LV_OBJ_FLAG_HIDDEN);
-  const bool mode=k.command==tile_controls::HVAC_MODE;
+  const bool mode=k.command==tile_controls::HVAC_MODE||k.command==tile_controls::PRESET_MODE;
+  const bool own_color=k.command==tile_controls::HVAC_MODE&&!tile_controls::humidifier(t);
   lv_obj_set_style_bg_opa(p,k.checked?LV_OPA_COVER:LV_OPA_TRANSP,0);
-  // A humidifier's mode has no colour of its own in Home Assistant: the one it is in takes the humidifier's blue.
-  if(k.checked)set_color(p,LV_STYLE_BG_COLOR,lv_color_hex(theme::foreground(tile_controls::humidifier(t)?tile_controls::accent(t):tile_controls::mode_color(k.arg))));
+  // A humidifier's mode and a thermostat's preset have no colour of their own in Home Assistant: the active one takes the tile's accent.
+  if(k.checked)set_color(p,LV_STYLE_BG_COLOR,lv_color_hex(theme::foreground(own_color?tile_controls::mode_color(k.arg):tile_controls::accent(t))));
   set_color(p,LV_STYLE_BG_COLOR,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
   const auto ink=k.checked?theme::color(theme::ON_ACCENT):theme::color(mode?theme::SLATE:theme::MUTED);
   auto *icon=lv_obj_get_child(p,0),*word=lv_obj_get_child(p,1);
@@ -8042,7 +8047,7 @@ inline void draw_mode_bar(Widgets &w,const Tile &t,lv_obj_t *parent,lv_obj_t *&t
   const lv_font_t *glyphs=mini_icon_font?mini_icon_font:w.icon_font;
   bool words=count>0;
   for(unsigned n=0;n<count&&words;++n)
-    words=modes[n].command!=tile_controls::HVAC_MODE||seg[n].w>=lv_font_get_line_height(glyphs)+ui::px(large?26:14)+
+    words=(modes[n].command!=tile_controls::HVAC_MODE&&modes[n].command!=tile_controls::PRESET_MODE)||seg[n].w>=lv_font_get_line_height(glyphs)+ui::px(large?26:14)+
           text_width(tile_controls::thermostat_mode_text(t,modes[n].arg),w.value_font);
   const unsigned slot=&w-widgets.data();
   const bool ready=fresh()&&t.available()&&!t.waiting(esphome::millis());
@@ -11748,7 +11753,7 @@ inline bool live_link_may_open(uint32_t now) {
 inline void live_begin(const std::string &link) {
   // Its own copy: live_tick hands it live_link_waiting itself, which is cleared below. Opened with the cleared one, the
   // view asked ":80", failed, and its next try came 10 s later: 11 s from a tap on a live tile to its picture full
-  // screen (0.4.91 and 0.4.92, docs/open-issues/full-view-first-link-empty-host.md).
+  // screen (0.4.91 and 0.4.92).
   const std::string url = link;
   const uint32_t now = esphome::millis();
   if (live_link_waiting.empty()) ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (now - camera_opened_at));

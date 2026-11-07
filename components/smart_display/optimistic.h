@@ -48,6 +48,7 @@ enum class Field : uint8_t {
   HUMIDIFIER_MODE,  // the humidifier's mode attribute
   FAN_MODE,         // a thermostat's fan mode
   SWING_MODE,       // a thermostat's swing mode
+  PRESET_MODE,      // a thermostat's preset mode
   ACTIVITY,         // a remote's activity (and it is on)
   PLAYING,          // "1" playing, "0" not: a player's play / pause key
   SHUFFLE,          // "1" / "0"

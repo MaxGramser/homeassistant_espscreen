@@ -506,6 +506,16 @@
         "vertical": "Függőleges",
         "horizontal": "Vízszintes"
       },
+      "climate_preset": {
+        "none": "Nincs",
+        "eco": "Takarékos",
+        "away": "Távol",
+        "boost": "Gyorsfelfűtés",
+        "comfort": "Komfort",
+        "home": "Otthon",
+        "sleep": "Alvás",
+        "activity": "Aktivitás"
+      },
       "alarm": {
         "disarmed": "Hatástalanítva",
         "armed_home": "Élesítve otthoni",
