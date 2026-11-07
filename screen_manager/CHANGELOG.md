@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Preset mode buttons on climate tiles and cards** ([#314](https://github.com/MaxGramser/homeassistant_espscreen/issues/314)). Thermostats with a single active HVAC mode (such as heating only) and preset modes in Home Assistant (`eco`, `comfort`, `boost`, `away`, `home`, `sleep`, `activity` or custom presets) now show their preset modes directly on the tile's mode bar and on the climate card's mode keys, excluding the `none` preset. Thermostats with multiple HVAC modes show their presets as a row on the climate card.
+
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.97 (firmware 0.60.0)

@@ -66,6 +66,31 @@ it('gives a humidifier its controls and its own modes', () => {
   expect(availableControl('humidifier', 'mode', 'on', { available_modes: ['normal'] })).toBe('');
 });
 
+it('shows preset modes on single-HVAC climate entities (issue #314)', () => {
+  const heater = {
+    supported_features: 1 | 16,
+    hvac_modes: ['off', 'heat'],
+    preset_modes: ['none', 'eco', 'comfort', 'boost', 'away', 'activity', 'frost_protection'],
+    preset_mode: 'comfort',
+  };
+  expect(availableControl('climate', 'mode', 'heat', heater)).toBe('mode');
+  expect(availableControl('climate', 'setpoint_mode', 'heat', heater)).toBe('setpoint_mode');
+  // Preset "none" is filtered out, so available presets start with eco.
+  expect(barKeys(heater, 'heat', 3)).toEqual([
+    { icon: '', cp: 'F032A', mode: 'eco' },
+    { icon: '', cp: 'F04B9', mode: 'comfort' },
+    { icon: 'dots-horizontal' },
+  ]);
+  expect(barKeys({ ...heater, preset_modes: ['activity', 'frost_protection'], preset_mode: 'activity' }, 'heat', 6)).toEqual([
+    { icon: '', cp: 'F0D91', mode: 'activity' },
+    { icon: '', cp: 'F09DE', mode: 'frost_protection' },
+  ]);
+  // Without PRESET_MODE feature flag or with >= 2 active HVAC modes, HVAC modes stay in charge.
+  expect(barKeys({ ...heater, supported_features: 1 }, 'heat', 6)).toEqual([]);
+  const multi = { ...heater, hvac_modes: ['off', 'heat', 'cool'] };
+  expect(barKeys(multi, 'heat', 6).map(k => k.mode)).toEqual(['heat', 'cool']);
+});
+
 it('keeps slats independent of the primary choice and follows every cover feature mask', async () => {
   const { coverPrimary, hasCoverTilt, withCoverTilt, coverTiltKind, coverTiltKeys } = await import('../src/model/tall-controls');
   for (const primary of ['none', 'buttons', 'position']) {

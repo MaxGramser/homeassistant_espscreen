@@ -306,8 +306,8 @@ struct Extra {
   std::vector<Lamp> lamps;
   // The covers of a cover group, for its page (firmware 0.57.0).
   std::vector<Blind> blinds;
-  // Climate: the modes as JSON lists, the current fan and swing mode, and what it is doing now.
-  std::string hvac_modes, fan_modes, swing_modes, fan_mode, swing_mode, hvac_action;
+  // Climate: the modes as JSON lists, the current fan, swing and preset mode, and what it is doing now.
+  std::string hvac_modes, fan_modes, swing_modes, preset_modes, fan_mode, swing_mode, preset_mode, hvac_action;
   // A humidifier (firmware 0.42.0+) keeps its modes (available_modes) in hvac_modes and what it does (action) in
   // hvac_action, as a thermostat; the mode it is in is an attribute of its own, not its state.
   std::string humidifier_mode;
@@ -413,7 +413,8 @@ struct Extra {
   std::string plugin_entity;
   Choice *choice(char kind) { for (auto &c : choices) if (c.kind == kind) return &c; return nullptr; }
   bool empty() const {
-    return hvac_modes.empty() && fan_modes.empty() && swing_modes.empty() && fan_mode.empty() && swing_mode.empty() &&
+    return hvac_modes.empty() && fan_modes.empty() && swing_modes.empty() && preset_modes.empty() &&
+           fan_mode.empty() && swing_mode.empty() && preset_mode.empty() &&
            hvac_action.empty() && humidifier_mode.empty() && std::isnan(target_low) && std::isnan(target_high) && options.empty() && forecast.empty() && hours.empty() && std::isnan(wind) &&
            std::isnan(feels) && wind_unit.empty() && std::isnan(bearing) && std::isnan(pressure) && std::isnan(visibility) &&
            pressure_unit.empty() && visibility_unit.empty() && rain_unit.empty() && sunrise.empty() && sunset.empty() && duration.empty() &&

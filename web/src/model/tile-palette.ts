@@ -10,9 +10,10 @@ const modes: Record<string, number> = { heat: c.DEEP_ORANGE, cool: c.BLUE, heat_
 const hex = (color: number) => `#${color.toString(16).padStart(6, "0")}`;
 /** Home Assistant's colour for a climate mode, as tile_controls::mode_color gives it. */
 export const modeColor = (mode: string) => hex(modes[mode] ?? c.GREY);
-/** The colour of the mode a thermostat is in on its mode bar: a climate mode's own, a humidifier's blue for every mode
- * (Home Assistant gives its modes no colour of their own; runtime_tiles mode_segment, firmware 0.42.0+). */
-export const thermostatModeColor = (domain: string, mode: string) => (domain === "humidifier" ? hex(c.BLUE) : modeColor(mode));
+/** The colour of the mode a thermostat is in on its mode bar: a climate mode's own, a preset's tile accent, or a
+ * humidifier's blue for every mode (Home Assistant gives presets and humidifier modes no colour of their own; runtime_tiles mode_segment). */
+export const thermostatModeColor = (domain: string, mode: string, state = "", presets = false) =>
+  domain === "humidifier" ? hex(c.BLUE) : presets ? hex(accent("climate.x", { state })) : modeColor(mode);
 const mix = (a: number, b: number, weight: number) => [16, 8, 0].reduce((out, shift) =>
   out | Math.floor((((a >> shift) & 255) * weight + ((b >> shift) & 255) * (255 - weight)) / 255) << shift, 0);
 

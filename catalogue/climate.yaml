@@ -2,7 +2,7 @@
 # Home Assistant's own facts for it (flags, actions) come from its source: catalogue/_ha.json (tools/read_ha_source.py).
 # docs/CATALOGUE.md says what every key means.
 domain: climate
-memory: {bytes: 304, extras: true}
+memory: {bytes: 384, extras: true}
 displays:
   standard: {}
   watch: {}
@@ -21,7 +21,7 @@ controls:
     # Without a temperature to set (a fan-only device) it draws none.
     fallback: none
   mode:
-    needs: {actions: [climate.set_hvac_mode]}
+    needs: {actions: [climate.set_hvac_mode, climate.set_preset_mode]}
   # Both, on a card with a second row for the mode keys.
   setpoint_mode:
     of: [setpoint, mode]

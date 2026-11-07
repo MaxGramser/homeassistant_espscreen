@@ -8,7 +8,7 @@
 import { computed } from "vue";
 import { te } from "../i18n";
 import { glyph } from "../model/topbar";
-import { barKeys, thermostatMode } from "../model/tall-controls";
+import { barKeys, climateUsesPresets, thermostatMode } from "../model/tall-controls";
 import { thermostatModeColor } from "../model/tile-palette";
 import { cardContent, restContent, modeBar, uiScale } from "../model/ui-scale";
 import { useRegionStore } from "../stores/region";
@@ -35,12 +35,16 @@ const bar = computed(() => {
   return props.fit ? { ...found, room: props.fit.room, width: props.fit.width } : found;
 });
 const keys = computed(() => barKeys(props.a, props.mode, bar.value.room, props.domain));
-const current = computed(() => thermostatMode(props.domain, props.mode, props.a));
-// A humidifier's mode of the integration's own keeps its name (tile_controls::humidifier_mode_text).
+const presets = computed(() => climateUsesPresets(props.a, props.domain));
+const off = computed(() => ["off", "", "unknown", "unavailable"].includes(props.mode.toLowerCase()));
+const current = computed(() => (presets.value && off.value ? "" : thermostatMode(props.domain, props.mode, props.a)));
+const formatSetting = (raw: string) => raw.replace(/_/g, " ").replace(/^[a-z]/, (ch) => ch.toUpperCase());
+// A humidifier's mode or a custom preset of the integration's own keeps its name (tile_controls::humidifier_mode_text / climate_preset_text).
 const word = (mode?: string) => {
   if (!mode) return "";
-  const key = `screen.ha.${props.domain === "humidifier" ? "humidifier_mode" : "climate"}.${mode}`;
-  return te(key) ? region.screenText(key) : props.domain === "humidifier" ? mode : "";
+  const group = props.domain === "humidifier" ? "humidifier_mode" : presets.value ? "climate_preset" : "climate";
+  const key = `screen.ha.${group}.${mode}`;
+  return te(key) ? region.screenText(key) : props.domain === "humidifier" ? mode : presets.value ? formatSetting(mode) : "";
 };
 // Words where every segment has room for its icon, a gap and its word (runtime_tiles draw_mode_bar), measured with
 // the board's own sizes: its key icons and the card's value line.
@@ -67,7 +71,7 @@ const style = computed(() => {
   <span class="mode-bar" :class="place">
     <span v-if="keys.length" class="track" :style="style">
       <span v-for="(k, i) in keys" :key="i" class="seg" :class="{ on: k.mode === current }"
-        :style="k.mode === current ? { '--mode': thermostatModeColor(domain, k.mode) } : undefined">
+        :style="k.mode === current ? { '--mode': thermostatModeColor(domain, k.mode, mode, presets) } : undefined">
         <span class="mdi">{{ icon(k) }}</span><span v-if="words && k.mode" class="word">{{ word(k.mode) }}</span>
       </span>
     </span>

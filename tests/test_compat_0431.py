@@ -18,7 +18,7 @@ import compat_corpus  # noqa: E402
 
 GOLDEN = ROOT / 'tests/fixtures/compat/golden-0.4.31.json.gz'
 # Attributes a screen gets now that it did not before; firmware before 0.19.0 reads none of them and skips them.
-NEW_ATTRIBUTES = {'target_temp_low', 'target_temp_high', 'target_temp_step'}
+NEW_ATTRIBUTES = {'target_temp_low', 'target_temp_high', 'target_temp_step', 'preset_mode', 'preset_modes'}
 
 
 def intended_control_change(entity, attributes, old, new):

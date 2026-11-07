@@ -291,6 +291,8 @@ def ha_sources():
         sources[f'climate_fan.{mode}'] = f'component.climate.entity_component._.state_attributes.fan_mode.state.{mode}'
     for mode in ('on', 'off', 'both', 'vertical', 'horizontal'):
         sources[f'climate_swing.{mode}'] = f'component.climate.entity_component._.state_attributes.swing_mode.state.{mode}'
+    for mode in ('none', 'eco', 'away', 'boost', 'comfort', 'home', 'sleep', 'activity'):
+        sources[f'climate_preset.{mode}'] = f'component.climate.entity_component._.state_attributes.preset_mode.state.{mode}'
     # A humidifier's modes and what it is doing (firmware 0.42.0+); an integration's own modes stay as it reports them.
     for mode in ('normal', 'eco', 'away', 'boost', 'comfort', 'home', 'sleep', 'auto', 'baby'):
         sources[f'humidifier_mode.{mode}'] = f'component.humidifier.entity_component._.state_attributes.mode.state.{mode}'

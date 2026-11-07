@@ -550,5 +550,52 @@ int main() {
   limited.supported=8; assert(!panel_available(limited));
   limited.supported=16; limited.controls="volume";
   limited.state="unavailable"; assert(!panel_available(limited));
+
+  // Issue #314: a thermostat with a single active HVAC mode and preset modes shows its presets on the mode bar and card.
+  {
+    Tile heater = make("climate.chambre_ami", "heat", feature::CLIMATE_TEMPERATURE | feature::CLIMATE_PRESET);
+    heater.controls = "mode";
+    heater.edit_extra().hvac_modes = "[\"off\",\"heat\"]";
+    heater.edit_extra().preset_modes = "[\"none\",\"eco\",\"comfort\",\"boost\",\"away\",\"frost_protection\"]";
+    heater.edit_extra().preset_mode = "comfort";
+    assert(climate_uses_presets(heater));
+    assert(panel_available(heater));
+    std::array<Key, 6> bar;
+    assert(climate_bar_keys(heater, bar, 3) == 3);
+    assert(bar[0].arg == "eco" && !strcmp(bar[0].icon, "\U000F032A") && bar[0].command == PRESET_MODE && !bar[0].checked);
+    assert(bar[1].arg == "comfort" && !strcmp(bar[1].icon, "\U000F04B9") && bar[1].command == PRESET_MODE && bar[1].checked);
+    assert(bar[2].command == OPEN_CARD);
+    // While the heater is off, no preset pill is highlighted on the tile.
+    heater.state = "off";
+    assert(climate_bar_keys(heater, bar, 3) == 3 && !bar[0].checked && !bar[1].checked);
+    heater.state = "heat";
+    const auto modes = climate_modes(heater);
+    assert(modes.size() == 5 && modes[0] == "eco" && modes[4] == "frost_protection");
+    assert(climate_rows(heater).empty());
+    assert(thermostat_mode_text(heater, "none") == "None" && thermostat_mode_text(heater, "activity") == "Activity");
+    assert(thermostat_mode_text(heater, "frost_protection") == "Frost protection");
+    assert(!strcmp(climate_preset_icon("activity"), "\U000F0D91") && !strcmp(climate_preset_icon("frost_protection"), "\U000F09DE"));
+    const Action act = key_action(heater, PRESET_MODE, "eco");
+    assert(act.service == "climate.set_preset_mode" && act.key == "preset_mode" && act.value == "eco");
+    const Wanted w = wanted(heater, PRESET_MODE, "eco");
+    assert(w.valid && w.field == optimistic::Field::PRESET_MODE && w.value == "eco");
+
+    // A multi-mode heat pump keeps its HVAC modes on the bar and mode keys, and puts presets on a card settings row.
+    Tile pump = make("climate.heat_pump", "heat", feature::CLIMATE_TEMPERATURE | feature::CLIMATE_PRESET);
+    pump.edit_extra().hvac_modes = "[\"off\",\"heat\",\"cool\",\"dry\"]";
+    pump.edit_extra().preset_modes = "[\"none\",\"eco\",\"boost\"]";
+    pump.edit_extra().preset_mode = "eco";
+    pump.edit_extra().fan_modes = "[\"auto\",\"low\",\"high\"]";
+    pump.edit_extra().fan_mode = "auto";
+    pump.edit_extra().swing_modes = "[\"off\",\"vertical\"]";
+    pump.edit_extra().swing_mode = "off";
+    assert(!climate_uses_presets(pump));
+    assert(climate_bar_keys(pump, bar, 6) == 3 && bar[0].arg == "heat" && bar[0].command == HVAC_MODE);
+    const auto rows = climate_rows(pump);
+    assert(rows.size() == 3 && rows[0].kind == 'p' && rows[0].current == "eco" && rows[0].labels[1] == "Eco");
+    assert(rows[1].kind == 'f' && rows[2].kind == 's');
+    const Action row_act = climate_row_action('p', "boost");
+    assert(row_act.service == "climate.set_preset_mode" && row_act.key == "preset_mode" && row_act.value == "boost");
+  }
   return 0;
 }
