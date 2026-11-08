@@ -15,17 +15,21 @@ Choose **Waveshare · ESP32-S3-LCD-Driver-Board (2.8inch round)** (marked Experi
 ## Round glass
 
 The firmware lays out a square, and the circle cuts its corners. The board file insets the grid, and the top bar with
-it, to the largest square inside the circle: `GRID_MARGIN` 70 px a side (480 / √2 = 339 px), two by two cells of about
-24 mm. What stays outside the circle:
+it, to the largest square inside the circle: `GRID_MARGIN` 70 px a side (480 / √2 = 339 px), and the page bar is as
+tall as the margin (`PAGE_BAR_H` 70), so the tiles end inside that square as well. The square is about 50 mm, smaller
+than a CYD's glass, so the screen takes the compact look (the CYD's sizes in millimetres) and the CYD's two columns of
+three cells. What stays outside the circle:
 
 - the page bar's chevrons, at the grid margin along the bottom edge. The page dots sit inside the circle and open the
   page switcher, and the edge swipe (Swipe between pages, on by default for a new screen) changes pages from the left
   and right edges at mid-height, where the circle reaches the edge;
-- the parts the firmware measures from the whole canvas: cards, the settings page and the alert card reach the corners.
+- what the firmware measures from the whole canvas: the settings page (hold the top bar) lays out over the whole square,
+  so its top rows and its Back key fall outside the circle. Swipe up from the bottom to close it, or call the screen's
+  `show_page` action from Home Assistant. In the renders the alert card stays inside the circle.
 
-The 2.8 inches are the circle's diameter, which is the panel's 480 px width, so the density is 480 / 2.8 = 171.4 dpi,
-the standard look's own size. The catalog works a board's size out from the square's diagonal and so lists this one
-as 4.0 inches; the model name says 2.8-inch round.
+The 2.8 inches are the circle's diameter, which is the panel's 480 px width, so the density is 480 / 2.8 = 171.4 dpi.
+The catalog works a board's size out from the square's diagonal and so lists this one as 4.0 inches; the model name
+says 2.8-inch round.
 
 ## Hardware
 
@@ -46,6 +50,9 @@ as 4.0 inches; the model name says 2.8-inch round.
 
 ## Tried on the glass
 
-On one board (November 2026, firmware 0.60.0): the picture and its colours, Wi-Fi, the ESPHome API, pages sent from
-Tessera, the edge swipe, the page switcher. Not yet tried: touch accuracy near the circle's edge, the screen turned
-a quarter (Grid standing up), cards, alerts and the settings page on the round glass, a long run.
+On one board (November 2026, firmware 0.60.0, with an earlier layout: the standard look, two by two cells): the picture
+and its colours, Wi-Fi, the ESPHome API, pages sent from Tessera, the edge swipe, the page switcher. With this layout (compact look,
+two by three, `PAGE_BAR_H` 70): rotation at 0°, 90°, 180° and 270° from Tessera, the edge swipe following each rotation,
+touch accurate for swiping, and layouts of two by three and two by four inside the circle; `tools/render/run.py
+waveshare28r` passes its self test. The settings page opens, clipped as above. Not yet tried: a long
+run.

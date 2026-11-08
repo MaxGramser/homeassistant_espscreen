@@ -6,10 +6,10 @@
 # docs/WAVESHARE28R.md says what has been tried on the glass.
 #
 # Round glass: the 2.8 inches are the circle's diameter, which is the panel's 480 px width, so the density is
-# 480 / 2.8 = 171 dpi, the standard look's own. The firmware lays out a square; the circle cuts its corners, so the
+# 480 / 2.8 = 171 dpi. The firmware lays out a square; the circle cuts its corners, so the
 # grid is inset to the largest square inside the circle (480 / sqrt 2 = 339 px, 70 px a side), and the top bar with
-# it (HEADER_INSET follows GRID_MARGIN). The page bar's chevrons still fall outside the circle; the page dots and the
-# edge swipe change pages.
+# it (HEADER_INSET follows GRID_MARGIN) and the page bar as tall as the margin. The page bar's chevrons still fall
+# outside the circle; the page dots and the edge swipe change pages.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
@@ -17,7 +17,8 @@
 # from over GitHub).
 packages:
   hardware: !include ../hardware/esp32s3-rgb.yaml
-  look: !include ../looks/standard.yaml
+  # The compact look (the CYD's sizes in millimetres): the square inside the circle is 50 mm, smaller than a CYD's glass.
+  look: !include ../looks/compact.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
   # The backlight cannot be dimmed or switched off from software on this board (below), so no standby and no night.
@@ -34,11 +35,13 @@ substitutions:
   PANEL_H: "480"
   # 480 / 2.8: on round glass the diameter is the width. Its own preview renderer carries GRID_MARGIN below.
   DISPLAY_DPI: "171.429"
-  # The square inside the circle is 50 x 50 mm: two by two cells about 24 mm wide under the top bar.
+  # The square inside the circle is 50 x 50 mm: two columns of three cells under the top bar, as on the CYD.
   GRID_COLS: "2"
-  GRID_ROWS: "2"
+  GRID_ROWS: "3"
   # A fixed inset to the inscribed square: it gives up the circle's edges, which a round-aware layout could use.
   GRID_MARGIN: "70"
+  # The page bar as tall as the margin, so the tile area ends inside the square too (480 - 70 = 410).
+  PAGE_BAR_H: "70"
   SCREEN_MAX_TILES: "128"
   SCREEN_MAX_PAGES: "24"
   SCREEN_MAX_BAR_ITEMS: "12"

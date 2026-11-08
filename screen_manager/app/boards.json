@@ -2388,8 +2388,8 @@
  },
  "checkout/waveshare28r.yaml": {
   "alert": {
-   "line": 25,
-   "title_line": 32
+   "line": 20,
+   "title_line": 26
   },
   "battery": false,
   "board": "waveshare28r",
@@ -2399,8 +2399,8 @@
     480
    ],
    "thumb": [
-    395,
-    222
+    324,
+    182
    ]
   },
   "can_standby": false,
@@ -2422,20 +2422,20 @@
   "features": [],
   "firmware": "0.60.0",
   "fonts": {
-   "headline": 27,
-   "icon": 42,
-   "icon_home": 34,
-   "icon_mini": 26,
-   "label": 18,
-   "setpoint": 65,
-   "sublabel": 16,
-   "sublabel_big": 21,
-   "watch_icon": 18,
-   "watch_value": 38
+   "headline": 22,
+   "icon": 34,
+   "icon_home": 30,
+   "icon_mini": 22,
+   "label": 13,
+   "setpoint": 48,
+   "sublabel": 13,
+   "sublabel_big": 17,
+   "watch_icon": 14,
+   "watch_value": 26
   },
   "height": 480,
   "hotspot": true,
-  "look": "standard",
+  "look": "compact",
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
@@ -2456,22 +2456,22 @@
       480
      ],
      "thumb": [
-      395,
-      222
+      324,
+      182
      ]
     },
     "columns": 2,
     "height": 480,
     "max": [
-     2,
-     5
+     3,
+     6
     ],
     "min": [
      1,
      1
     ],
     "rotation": 0,
-    "rows": 2,
+    "rows": 3,
     "width": 480
    },
    "portrait": {
@@ -2481,35 +2481,35 @@
       480
      ],
      "thumb": [
-      395,
-      222
+      324,
+      182
      ]
     },
     "columns": 2,
     "height": 480,
     "max": [
-     2,
-     5
+     3,
+     6
     ],
     "min": [
      1,
      1
     ],
     "rotation": 0,
-    "rows": 2,
+    "rows": 3,
     "width": 480
    }
   },
-  "rows": 2,
+  "rows": 3,
   "spacing": {
-   "circle": 54,
-   "gap": 12,
-   "gap_y": 12,
+   "circle": 43,
+   "gap": 7,
+   "gap_y": 4,
    "margin": 70,
-   "page_bar": 47,
+   "page_bar": 70,
    "radius": 22,
-   "tile_pad": 12,
-   "top": 110
+   "tile_pad": 10,
+   "top": 103
   },
   "tier": "full",
   "wide_slots": false,
@@ -8196,8 +8196,8 @@
  },
  "packages/waveshare28r.yaml": {
   "alert": {
-   "line": 25,
-   "title_line": 32
+   "line": 20,
+   "title_line": 26
   },
   "battery": false,
   "board": "waveshare28r",
@@ -8207,8 +8207,8 @@
     480
    ],
    "thumb": [
-    395,
-    222
+    324,
+    182
    ]
   },
   "can_standby": false,
@@ -8230,20 +8230,20 @@
   "features": [],
   "firmware": "0.60.0",
   "fonts": {
-   "headline": 27,
-   "icon": 42,
-   "icon_home": 34,
-   "icon_mini": 26,
-   "label": 18,
-   "setpoint": 65,
-   "sublabel": 16,
-   "sublabel_big": 21,
-   "watch_icon": 18,
-   "watch_value": 38
+   "headline": 22,
+   "icon": 34,
+   "icon_home": 30,
+   "icon_mini": 22,
+   "label": 13,
+   "setpoint": 48,
+   "sublabel": 13,
+   "sublabel_big": 17,
+   "watch_icon": 14,
+   "watch_value": 26
   },
   "height": 480,
   "hotspot": true,
-  "look": "standard",
+  "look": "compact",
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
@@ -8264,22 +8264,22 @@
       480
      ],
      "thumb": [
-      395,
-      222
+      324,
+      182
      ]
     },
     "columns": 2,
     "height": 480,
     "max": [
-     2,
-     5
+     3,
+     6
     ],
     "min": [
      1,
      1
     ],
     "rotation": 0,
-    "rows": 2,
+    "rows": 3,
     "width": 480
    },
    "portrait": {
@@ -8289,35 +8289,35 @@
       480
      ],
      "thumb": [
-      395,
-      222
+      324,
+      182
      ]
     },
     "columns": 2,
     "height": 480,
     "max": [
-     2,
-     5
+     3,
+     6
     ],
     "min": [
      1,
      1
     ],
     "rotation": 0,
-    "rows": 2,
+    "rows": 3,
     "width": 480
    }
   },
-  "rows": 2,
+  "rows": 3,
   "spacing": {
-   "circle": 54,
-   "gap": 12,
-   "gap_y": 12,
+   "circle": 43,
+   "gap": 7,
+   "gap_y": 4,
    "margin": 70,
-   "page_bar": 47,
+   "page_bar": 70,
    "radius": 22,
-   "tile_pad": 12,
-   "top": 110
+   "tile_pad": 10,
+   "top": 103
   },
   "tier": "full",
   "wide_slots": false,
@@ -10532,8 +10532,8 @@
  },
  "waveshare28r": {
   "alert": {
-   "line": 25,
-   "title_line": 32
+   "line": 20,
+   "title_line": 26
   },
   "battery": false,
   "board": "waveshare28r",
@@ -10543,8 +10543,8 @@
     480
    ],
    "thumb": [
-    395,
-    222
+    324,
+    182
    ]
   },
   "can_standby": false,
@@ -10566,20 +10566,20 @@
   "features": [],
   "firmware": "0.60.0",
   "fonts": {
-   "headline": 27,
-   "icon": 42,
-   "icon_home": 34,
-   "icon_mini": 26,
-   "label": 18,
-   "setpoint": 65,
-   "sublabel": 16,
-   "sublabel_big": 21,
-   "watch_icon": 18,
-   "watch_value": 38
+   "headline": 22,
+   "icon": 34,
+   "icon_home": 30,
+   "icon_mini": 22,
+   "label": 13,
+   "setpoint": 48,
+   "sublabel": 13,
+   "sublabel_big": 17,
+   "watch_icon": 14,
+   "watch_value": 26
   },
   "height": 480,
   "hotspot": true,
-  "look": "standard",
+  "look": "compact",
   "max_bar_items": 12,
   "max_pages": 24,
   "max_tiles": 128,
@@ -10600,22 +10600,22 @@
       480
      ],
      "thumb": [
-      395,
-      222
+      324,
+      182
      ]
     },
     "columns": 2,
     "height": 480,
     "max": [
-     2,
-     5
+     3,
+     6
     ],
     "min": [
      1,
      1
     ],
     "rotation": 0,
-    "rows": 2,
+    "rows": 3,
     "width": 480
    },
    "portrait": {
@@ -10625,35 +10625,35 @@
       480
      ],
      "thumb": [
-      395,
-      222
+      324,
+      182
      ]
     },
     "columns": 2,
     "height": 480,
     "max": [
-     2,
-     5
+     3,
+     6
     ],
     "min": [
      1,
      1
     ],
     "rotation": 0,
-    "rows": 2,
+    "rows": 3,
     "width": 480
    }
   },
-  "rows": 2,
+  "rows": 3,
   "spacing": {
-   "circle": 54,
-   "gap": 12,
-   "gap_y": 12,
+   "circle": 43,
+   "gap": 7,
+   "gap_y": 4,
    "margin": 70,
-   "page_bar": 47,
+   "page_bar": 70,
    "radius": 22,
-   "tile_pad": 12,
-   "top": 110
+   "tile_pad": 10,
+   "top": 103
   },
   "tier": "full",
   "wide_slots": false,
