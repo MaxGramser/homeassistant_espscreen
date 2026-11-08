@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **No more frames of blue from a busy ESP32-P4 screen.** A whole frame of light blue that no counter saw came when the processor was too busy for the one moment it had to start the next frame, most often with several live cameras, the screen's own video and the voice assistant at once. The panel's picture now repeats by itself in hardware. On a reTerminal D1001 running the screen's own camera, live tiles and a video viewer: six flashes in under seven minutes before, none after; the same mechanism and the same result measured on a Guition 10.1 V3.
+- **An ESP32-P4 screen no longer restarts over a live tile 135 pixels high.** A turned copy of that height never finished ("PPA copy never finished") beside the other work of the screen, on a chip of revision 1.3 such as the reTerminal D1001's. The firmware now copies such a block in two pieces.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
 
 ## 0.4.97 (firmware 0.60.0)

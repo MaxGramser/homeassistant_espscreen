@@ -129,6 +129,24 @@ int main() {
   assert(check(block(96, 19, A0), true) >= 2);  // 32 x 3 x 16 bits
   assert(check(block(97, 19, A0), false) == 1);
 
+  // A turned block's last unit stalls up to a little over the FIFO with this firmware's bursts of 64 bytes (STALL_BITS,
+  // a reTerminal D1001, 2026-11-08): a live tile of 240x135 turned 90 (7 columns by 16 rows, 1792 bits) never came back
+  // beside the frame buffer copy and a cache write-back, and 240x134 (1536) and 240x199 (1792) neither; 240x136 (2048)
+  // came back thousands of times. The pieces of the cut block each came back thousands of times under the same load.
+  for (Angle angle : {A90, A270}) {
+    for (uint32_t h : {134u, 135u, 199u}) {
+      assert(stalls(block(240, h, angle)));
+      assert(check(block(240, h, angle), true) >= 2);
+    }
+    assert(!stalls(block(240, 136, angle)));
+    assert(check(block(240, 136, angle), false) == 1);
+    // 492x135 (a wide tile) was cut by the old rule into 480x135, which has the same last unit: no piece may have it.
+    assert(check(block(492, 135, angle), true) >= 2);
+    assert(stalls(block(480, 135, angle)));
+  }
+  // An unturned block keeps the FIFO itself: nothing past it was seen to stall.
+  assert(!stalls(block(97, 19, A0)));
+
   // A camera's picture scaled to fill a reTerminal D1001's full view, unturned (the app turns it for the glass):
   // 450x800 at 25/16 stalled every time (2026-11-03), its input's last unit 2 columns by 16 rows, 3 x 25 pixels
   // scaled, while the driver counts the scaled width's leftover, 63 columns, and sets no bypass. It goes in two

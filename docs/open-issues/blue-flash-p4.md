@@ -125,3 +125,24 @@ finished copy; (3) fix the count first, then (1).
 - Memory files: tessera-blue-flash-dsi-line-rounding, tessera-blue-flash-next-experiment, tessera-p4-psram-bus-rule,
   tessera-blue-flash-underrun-mask, tessera-blue-flash-live-tiles.
 - Outside: espressif/esp-idf #19188 (the same flash with the flag silent), jtenniswood/espcontrol #2118.
+
+## Solved (2026-11-08): the frame's restart
+
+The flash without a counter is a missed restart of the panel's DMA (docs/CAMERA.md, "A frame's restart"; `refresh_hold` in
+`components/smart_display/glass_dsi.cpp`). Measured with a bare ESP-IDF firmware and a camera watching the glass, so nothing
+of this firmware was involved.
+
+- Candidate 1 was close and candidate 3 right: the count saw nothing because no DMA ran, and the frame interrupt's timing
+  shows it (33 ms between restarts instead of 17). Every frame missed was a flash on the camera and no other frame was: 13 of
+  13, 14 of 14, 17 of 17 at load, none with interrupts held off on the other core.
+- Reproduced on a reTerminal D1001 (revision 1.3) and a Guition 10.1 V3 (revision 3.2). PSRAM load alone, the PPA, the 2D-DMA,
+  flash writes, log lines and heap walks brought none; cache write-backs beside the PPA and the frame buffer copy did.
+- Auto-reload ended them on both chips, also with interrupts held off for 10 ms. On the real firmware with the screen's own
+  camera, live tiles and a video viewer on a D1001: 6 flashes in 400 s without it, 0 with it.
+- On a Guition 10.1 V3 the real firmware with four live tiles showed no flash in 300 s with or without it, so that load does not bring
+  the flash there; with auto-reload the screen ran as before (no restart, the same pictures a second). The bare firmware's load did
+  bring it on that chip: 117 frames missed in 15 s without auto-reload, none in 30 s with it.
+
+Still open: a real underrun, the DMA held up for more than 40 to 80 microseconds, is another thing. It raises the flag and shows
+a flash, auto-reload or not, and it is what GitHub #379 counts on a D1001 without a camera. It was not reproduced on the
+bench: 5,700 tile updates standing up in dark mode, 0 misses.

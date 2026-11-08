@@ -47,6 +47,13 @@
 namespace ppa_guard {
 
 constexpr uint32_t FIFO_BITS = 12 * 128;  // the 2D-DMA's FIFO, as the driver's workaround counts it
+// What the engine really stalls on, with the bursts of 64 bytes every client of this firmware uses (glass.h): a last unit
+// up to a little over the FIFO. Measured on a reTerminal D1001 with a bare ESP-IDF test (2026-11-08, turned 90 beside a
+// frame buffer copy and a cache write-back): 240x134 and 240x135 and 240x199, last units of 6 and 7 columns by 16 rows
+// (1536 and 1792 bits), never came back within 20 copies, where 1728, 1920, 2048, 2112 and 3072 bits came back thousands
+// of times; 1792 bits came back with bursts of 128 bytes and stalled at once with 32. The driver's own rule stays the
+// FIFO's. This was the "PPA copy never finished" of a live tile of 240x135 and of 492x135 (cut as 480x135 and 12x135).
+constexpr uint32_t STALL_BITS = 1792;
 constexpr uint32_t FRAG_MAX = 16;         // PPA_LL_SRM_SCALING_FRAG_MAX: a scale is a whole number and sixteenths
 constexpr int MAX_PIECES = 32;
 constexpr int MAX_DEPTH = 8;  // how often a piece may be cut again before the guard gives the block up
@@ -98,8 +105,8 @@ inline Size output_of(const Block &b) {
 // 450x790 (432 bits), 450x800 at 20/16 (640) and 66x800 (1200); 448x800 at the same scale, its last unit whole, came
 // back 5,000 times. The driver's own count (`driver_width`) takes the leftover of the scaled width instead, 703 % 64 =
 // 63 columns for that block, 25,200 bits, and leaves the bypass off; for the height it scales the input's leftover as
-// the hardware does. At a block's own size the two counts are one. `equal_stalls`: a last unit of exactly the FIFO.
-inline bool small_leftover(uint32_t in_w, uint32_t in_h, Scale sx, Scale sy, const Block &b, bool equal_stalls,
+// the hardware does. At a block's own size the two counts are one. `stalls_up_to`: the largest last unit that stalls, 0 for the driver's own rule, under the FIFO.
+inline bool small_leftover(uint32_t in_w, uint32_t in_h, Scale sx, Scale sy, const Block &b, uint32_t stalls_up_to,
                            bool driver_width) {
   const uint32_t out_w = scaled(in_w, sx);
   const uint32_t w_in_left = in_w % b.unit_w ? in_w % b.unit_w : b.unit_w;
@@ -107,7 +114,7 @@ inline bool small_leftover(uint32_t in_w, uint32_t in_h, Scale sx, Scale sy, con
   const uint32_t w_left = driver_width ? w_out_left : scaled(w_in_left, sx);
   const uint32_t h_left = scaled(in_h % b.mb ? in_h % b.mb : b.mb, sy);
   const uint32_t bits = w_left * h_left * b.depth;
-  return (out_w > b.unit_w || in_h > b.mb) && (bits < FIFO_BITS || (equal_stalls && bits == FIFO_BITS));
+  return (out_w > b.unit_w || in_h > b.mb) && (stalls_up_to ? bits <= stalls_up_to : bits < FIFO_BITS);
 }
 // What the hardware does: the rule on the block as its output lies, turned (Espressif's fix, 469aa16, swaps the
 // input's sides and scales for 90 and 270 degrees), the leftover the input's scaled, and a last unit of exactly the
@@ -118,11 +125,11 @@ inline bool small_leftover(uint32_t in_w, uint32_t in_h, Scale sx, Scale sy, con
 // the guard's trace of the last calls naming the copy). Most such copies did come back, as in espressif/esp-idf #19096.
 inline bool stalls(const Block &b) {
   const bool t = turned(b.angle);
-  return small_leftover(t ? b.h : b.w, t ? b.w : b.h, t ? b.sy : b.sx, t ? b.sx : b.sy, b, true, false);
+  return small_leftover(t ? b.h : b.w, t ? b.w : b.h, t ? b.sy : b.sx, t ? b.sx : b.sy, b, t ? STALL_BITS : FIFO_BITS, false);
 }
 // What ESP-IDF 5.5.5's driver does: the rule on the input's own width and height, turned or not, the width's leftover
 // counted on the scaled width, and strictly fewer bits than the FIFO.
-inline bool driver_bypasses(const Block &b) { return small_leftover(b.w, b.h, b.sx, b.sy, b, false, true); }
+inline bool driver_bypasses(const Block &b) { return small_leftover(b.w, b.h, b.sx, b.sy, b, 0, true); }
 inline bool safe(const Block &b) { return !stalls(b) || driver_bypasses(b); }
 
 inline Block part(const Block &b, uint32_t w, uint32_t h) {

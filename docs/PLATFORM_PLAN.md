@@ -446,6 +446,13 @@ the tiles and LVGL (up to 0.74 s measured).
 
 ### 4.7 Open on the P4 (2026-10-27)
 
+- **A last unit a little over the FIFO stalls too, with bursts of 64 bytes (2026-11-08).** A bare ESP-IDF test on a reTerminal D1001
+  (revision 1.3), a PPA copy turned 90 beside a frame buffer copy and a cache write-back, 20 s a shape: 240x134 (1536 bits),
+  240x135 and 240x199 (1792) never came back within about 20 copies; 240x128, 129, 136 and 140 and last units of 1728, 1920 and
+  2112 bits came back thousands of times; 240x135 came back with bursts of 128 bytes and stalled at once with 32. The same
+  shapes on a Guition 10.1 V3 (revision 3.2) never stalled. `ppa_guard.h` (`STALL_BITS`) cuts a turned block up to 1792 bits.
+  A lock around the 2D-DMA's clients also ended the stall in the test, but not on the real firmware, and is not in.
+
 - **LVGL's areas in blocks of 16 (`draw_rounding: 16`) are not in.** On a turned glass it leaves the PPA no thin strip
   to turn, and 40 held top bars on a reTerminal D1001 froze it no more, but the guard (`ppa_guard.h`, a last unit the
   size of the 2D-DMA's FIFO counts as a stall) did the same alone, and the watchdog on the PPA ring (`ppa_trace.h`)
