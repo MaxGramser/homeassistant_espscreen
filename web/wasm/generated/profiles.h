@@ -25,6 +25,9 @@ namespace standard_165 {
 namespace standard_170 {
 #include "standard_170/ui.h"
 }
+namespace compact_171 {
+#include "compact_171/ui.h"
+}
 namespace standard_172 {
 #include "standard_172/ui.h"
 }
@@ -66,6 +69,8 @@ if (dpi == 165) { using namespace standard_165; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 170) { using namespace standard_170; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
+if (dpi == 171) { using namespace compact_171; setup_firmware_ui(root);
+return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "compact"}; }
 if (dpi == 172) { using namespace standard_172; setup_firmware_ui(root);
 return {lbl_room, lbl_time, page_prev, page_next, page_number, bind_firmware_ui, setup_firmware_cells, "standard"}; }
 if (dpi == 187) { using namespace standard_187; setup_firmware_ui(root);
