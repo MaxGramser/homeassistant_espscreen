@@ -326,8 +326,8 @@ console.log(JSON.stringify(DATA.shapes.map((shape: any) => ({
     # > 80)), and the editor knows no cell heights: its mockup takes them by the look (modeBar "full"), which is the same
     # answer on every board but the Hosyond, whose compact look has cells of 88 and 105 pixels. Known, and kept here so
     # a fix shows up: the editor needs the board's cell height for it (the top bar's band and the page bar), which
-    # boards.json does not carry yet.
-    KNOWN = {'hosyond40-landscape', 'hosyond40-portrait'}
+    # boards.json does not carry yet. The Waveshare 2.8-inch round has the compact look with cells of 92 pixels.
+    KNOWN = {'hosyond40-landscape', 'hosyond40-portrait', 'waveshare28r-landscape'}
 
     def test_a_full_cards_finger_follows_its_cell(self):
         for (key, _, shape), ts in zip(SHAPES, self.ts):

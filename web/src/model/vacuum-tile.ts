@@ -150,7 +150,7 @@ export function vacuumLayout(shape: Shape, input: VacuumInput): VacuumLayout {
     start = { x: x + pw - sd, y: cy - Math.floor(sd / 2), w: sd, h: sd };
     if (withMode) mode = { x: 0, y: cy - Math.floor(m.key / 2), w: modeW(m, input.modes), h: m.key };
   } else {
-    const x = w - pairW(m, false, input.second), y = Math.floor((head - m.key) / 2);
+    const x = w - pairW(m, false, input.second), y = Math.trunc((head - m.key) / 2);  // C++ integer division: a key taller than the head
     if (input.second) dock = { x, y, w: m.key, h: m.key };
     start = { x: w - m.key, y, w: m.key, h: m.key };
   }
