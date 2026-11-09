@@ -430,7 +430,8 @@ DMA2D that copies what LVGL drew), the bridge runs dry and the panel shows a fra
 ESP-IDF only logs that from its interrupt, on the UART. A tester with a Guition 10.1-inch P4 (pixel clock 70 MHz) saw
 such flashes while a camera streamed. So the firmware does two things on a P4 (`glass.h`, "The panel's share of
 the memory bus"). It watches: at the end of every frame the panel's own callback (ESP-IDF's `on_vsync`, which
-ESPHome's display leaves free) reads and clears the bridge's underrun flag, so each frame of blue is counted where it
+ESPHome's display leaves free; a read of the DMA's address every 5 ms on a chip where that callback was the frame's own
+interrupt, see "A frame's restart") reads and clears the bridge's underrun flag, so each frame of blue is counted where it
 happened, with no eye on the glass. The count of blue frames stands in every stream report (`the panel ran dry N times
 since boot`) and in Home Assistant as the diagnostic sensor "Panel misses", and once a minute the sensor "Panel watch"
 says the minute in one line: "quiet" with the frames it saw, or how many flashes (runs of blue frames) out of how many
@@ -447,7 +448,7 @@ glass with the PPA) alike, through a linker wrap of `ppa_register_client`: betwe
 bridge. LVGL took the same way for the same underrun under its own PPA draw unit (lvgl/lvgl #9590). A copy takes a
 little longer for it.
 
-**A turned copy the 2D-DMA never finishes.** The P4's picture engine (the PPA) cuts a copy into units of 64 pixels
+**A copy the 2D-DMA never finishes.** The P4's picture engine (the PPA) cuts a copy into units of 64 pixels
 by 16 rows, and when the last unit holds fewer bits than the DMA's FIFO the DMA never counts it as received: the DONE
 never comes and the task that asked waits for good on the driver's semaphore, without an error or a log line
 (Espressif's hardware bug DIG-734). ESP-IDF knows and sets "bypass macro block order" for such a block, but in the
@@ -466,7 +467,9 @@ proves the pieces cover the block once and land where the whole would. A scaled 
 counts the width's leftover on the scaled output, the hardware takes the input's last columns and scales them (a
 reTerminal D1001 restarted whenever a camera opened full screen, its picture of 450x800 at 25/16 leaving 2 columns,
 3 pixels scaled, by 25 rows, 2026-11-03), so the guard counts the leftover as the hardware does and cuts such a
-picture in two. Copies the guard calls safe stalled a Tab5 all
+picture in two. With this firmware's bursts of 64 bytes a last unit stalls up to a little over the FIFO, 1792 bits
+(`STALL_BITS`), turned or straight: a live tile of one cell on a reTerminal D1001, its picture of 135x240 copied straight
+onto the glass, restarted the screen within minutes (2026-11-09). Copies the guard calls safe stalled a Tab5 all
 the same (docs/PLATFORM_PLAN.md 4.7), so since 2026-10-28 live pictures come turned from the app on a turned glass
 (the hello's `picture_turn`, each picture's `X-Turn`) and go onto the glass in a straight copy; a tile lays its card
 over each picture as it lies (PLATFORM_PLAN 4.12).
@@ -535,7 +538,7 @@ LVGL's core 1. The screen runs:
 
 - **One live tile at a time.** A second camera tile on the same page shows its stills. Each live tile costs about 11 KB
   of the chip's internal RAM for its connection's Wi-Fi and network buffers, and the RGB panel's S3 has little of it.
-- **Six pictures a second on that tile** at most, as on a P4; while a finger drags, the governor halves it.
+- **Six pictures a second on that tile** at most; while a finger drags, the governor halves it.
 - **A full view of at most eight pictures a second.** The tile under it stops while the view is open and comes back
   when it closes.
 - **One stream at a time, of any kind.** A live tile, a full view and a plugin's live place each count, and so does a

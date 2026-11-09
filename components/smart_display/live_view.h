@@ -515,7 +515,7 @@ uint32_t misses();
 // The screen's own camera on a tile of its own (plugin API 0.22, docs/PLATFORM_PLAN.md 4.11). A plugin with the camera
 // offers its frames once (own_offer, its setup), and the hello then says "own_camera", so the app answers such a tile
 // "own:". While a tile of it is open, own_wanted says so, and the plugin hands each frame to own_frame on its camera's
-// task: the tile takes one when its pace says (its share of the engine's budget, a busy screen's share of that), copies it into its card with
+// task: the tile takes one when its pace says (hw::OWN_TILE_PPS, a busy screen's share of that), copies it into its card with
 // the PPA (scaled, from the camera's YUV420 or RGB565) when the glass is free at once, and lays it onto the glass on its
 // own task. Never waits: a frame it cannot take now goes by.
 void own_offer();

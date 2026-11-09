@@ -70,7 +70,7 @@ The lock means two things at once, and both matter:
 On DSI the panel's DMA repeats the frame buffer by itself (`glass_dsi_refresh.cpp`, the hardware's auto-reload), so no interrupt
 stands between two frames and a busy processor cannot lose one: docs/CAMERA.md, "A frame's restart". On DSI the glass counts the panel running dry (`glass::misses`, the "Panel misses" sensor), with the chip's mask on
 that flag taken off (ESP-IDF masks underruns in the first lines of a frame, the ones that blue the whole glass), in the
-panel's own callback at each frame's end: the panel watch, which notes for each flash who held the glass and says each
+panel's own callback at each frame's end (or, where the DMA repeating its frame took that callback away, a read of the DMA's address every 5 ms): the panel watch, which notes for each flash who held the glass and says each
 minute in the "Panel watch" sensor (`glass::watch_said`), so a flash needs no eye on the glass. The runtime only tells
 it what the glass cannot see (log lines, the finger: `glass::note_log_line`, `note_finger`); an RGB
 panel's driver keeps no such count, so on an S3 a frame that shifts sideways is seen by eye only. Detail: docs/PICTURE_ARCHITECTURE.md 3.1, docs/CAMERA.md "Live on
@@ -82,8 +82,8 @@ the P4 boards" and "Live on an ESP32-S3"; tests: `tests/test_live_view.cpp` (a r
 takes. It owns every chip fact: the PPA's units, its macro block, the FIFO size and the turned block the hardware never
 finishes (DIG-734), which `ppa_guard` cuts into pieces the hardware takes whole; the S3 decoder's memory, taken from
 PSRAM first through linker wraps. Its `Limits` say what the chip affords: picture sizes, live tiles at once (P4 four,
-S3 one), whether a decode may run under the glass lock, the full view's pictures a second, the tile budget (P4 24,
-S3 8, shared as `tile_pps = clamp(budget / tiles, 2, 6)`) and which core the streams decode on (P4 1, S3 0).
+S3 one), whether a decode may run under the glass lock, the full view's pictures a second, the tile budget (P4 40,
+S3 6, shared as `tile_pps = clamp(budget / tiles, 2, 6)`) and which core the streams decode on (P4 1, S3 0).
 
 The rule the app and the engine agree on: **the app sends a live tile's picture at its card's size and turned as the
 glass is** (the hello's `picture_turn`, each picture's `X-Turn`), so an engine never scales or turns for a tile. The P4
@@ -200,6 +200,12 @@ docs/TROUBLESHOOTING.md.
 - **Nothing of ours runs above the voice (priority 3) except the glass, audio and Wi-Fi.** Streams at 2, the writers'
   priority 5 only while holding the glass. Streams above the wake word cost a reTerminal D1001 644 resets an hour
   (2026-10-28); at 2, none.
+- **The panel's DMA repeats its frame by itself** (`glass_dsi_refresh.cpp`). With ESP-IDF's restart from the end-of-frame
+  interrupt a reTerminal D1001 with its own camera, live tiles and a video viewer showed 6 blue frames in 400 s, with the
+  repeat none (2026-11-08, a camera on the glass).
+- **A tile of the screen's own camera has its own pace**, at most 15 pictures a second (`hw::OWN_TILE_PPS`): every second
+  frame of a 30 fps camera, because the PPA takes 50 to 60 ms to bring one down (2026-11-09,
+  docs/open-issues/own-camera-tile-blit-cost.md). It gives way with the live tiles while someone hears the microphone.
 - **A live tile shows at most 10 pictures a second, paced by time.** Four tiles at that limit reached 8 a second on a
   reTerminal D1001 with no wake word reset (2026-11-09); the same rate cost 51 resets in three minutes before (2026-10-28).
   Skipping decodes saves nothing on a pull link.

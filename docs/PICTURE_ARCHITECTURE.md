@@ -30,7 +30,7 @@ its chip, its panel or its sensor, and the layers below are keyed on those facts
 | `glass_dsi_refresh.h`, `.cpp` | the panel's DMA repeats the frame buffer by itself, so no interrupt stands between two frames (docs/CAMERA.md, "A frame's restart") | no, the bench with a camera on the glass | the DW-GDMA channel, through a linker wrap of `dw_gdma_new_channel` |
 | `picture_engine.h`, `picture_engine_p4.cpp` | the engine (step 4, done): the formats taken whole, the hardware JPEG decoder for stills and streams, the PPA copy through the guard, the one turn mapping (`ppa_angle`); the software engine is the stubs | `ppa_angle` and the stubs, `tests/test_picture_engine.cpp` | JPEG decoder, PPA, 2D-DMA |
 | `live_view.cpp` | the streams' tasks, the canvas of a tile and what goes over it, the camera's sound to the speaker | no | sockets, speaker |
-| `ppa_guard.h`, `.cpp` | a turned PPA copy the 2D-DMA would never finish goes in pieces (DIG-734) | yes, `tests/test_ppa_guard.cpp` | PPA, through a linker wrap |
+| `ppa_guard.h`, `.cpp` | a PPA copy the 2D-DMA would never finish, turned or straight, goes in pieces (DIG-734) | yes, `tests/test_ppa_guard.cpp` | PPA, through a linker wrap |
 | `live_spots.h` | the one machine of the live tiles and a plugin's live places: what streams, asks, stops and gives up; the full view's handle and tries (`ViewStream`) (step 5, done) | yes, `tests/test_live_spots.cpp` | none |
 | `runtime_tiles.h` (the picture parts) | the owners (the full view, the alert, the media card's cover, every tile, the library, a vacuum's map, a plugin's card and saver), the slots bound from YAML (`ImageHooks`), the store bound to PSRAM, `pictures_round`, the full view (`camera_open`, `camera_close`, `camera_answer`), what binds the live spots (which may stream, their question, their look), `drawn_over`, `live_stop_covered`, `live_tick` | no | LVGL |
 | `plugin_host.cpp` (its picture parts) | a plugin's places measured and laid, `ui::picture`, `ui::set_picture`, `ui::live`; `tessera::capturing` reports to the dot | no | LVGL |
@@ -302,7 +302,7 @@ size_t held(Client client);                         // what a client's buffers h
 
 The 2D-DMA's own facts are the engine's and nobody else's: its units of 64 pixels for 16-bit output and 32 for 24- and
 32-bit, its macro block of 16 rows on every P4 build ESPHome makes (`CONFIG_ESP32P4_SELECTS_REV_LESS_V3`), its FIFO of
-1536 bits, and the turned block with a small leftover that it never finishes (DIG-734), as `ppa_guard` holds them. The
+1536 bits, and the block with a small leftover that it never finishes (DIG-734), as `ppa_guard` holds them. The
 guard is proven on glass with every turned copy forced through its planner's cuts (ten thousand pieces in three minutes,
 pieces one pixel wide among them, the chrome correct) and cleared as a cause of the restarts of October 2026 (the two
 P4 screens that restarted decoded to a blocked main loop without a line of the guard; section 8 says what blocked it):

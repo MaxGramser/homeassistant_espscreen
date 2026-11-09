@@ -32,7 +32,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
 | change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
-| change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
+| change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `glass_dsi_refresh.cpp`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
