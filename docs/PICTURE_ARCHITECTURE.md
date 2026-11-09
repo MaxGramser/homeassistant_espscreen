@@ -190,7 +190,7 @@ fact of the hardware, and where:
 | the chip is an ESP32-P4 | `__init__.py` (`_esp32_p4`, `_engine`) | `P4_NETWORK`; `PICTURE_ENGINE_P4`, `GLASS_DSI`, `USE_LIVE_VIEW` and the three wraps (`engine_build.py`) |
 | the chip is an ESP32-S3 with PSRAM and LVGL | `__init__.py` (`_engine`) | `PICTURE_ENGINE_S3`, `GLASS_RGB`, `USE_LIVE_VIEW`, the esp_new_jpeg component and the wraps of its allocator and of `esp_lcd_new_rgb_panel` (`engine_build.py`) |
 | how many live tiles at once | `picture_engine::limits().live_tiles` (four on the P4, one on the S3: each tile's Wi-Fi and lwIP buffers cost the S3 about 11 KB of internal RAM, CAMERA.md "Live on an ESP32-S3") | `hw::caps`, the hello, the editor |
-| the pictures a second the live tiles share | `picture_engine::limits().tile_budget_pps` (24 on the P4, 8 on the S3), shared by `picture_engine::tile_pps` | each tile's pace (`live_view.cpp`, `tile_gap_us`) |
+| the pictures a second the live tiles share | `picture_engine::limits().tile_budget_pps` (40 on the P4, 6 on the S3), shared by `picture_engine::tile_pps` | each tile's pace (`live_view.cpp`, `tile_gap_us`) |
 | the core a stream decodes on | `picture_engine::limits().stream_core` (1 on the P4, 0 on the S3, away from LVGL) | the stream's task (`live_view::open`) |
 | whether a decode holds the glass, and a full view's pace | `picture_engine::limits()` (`decode_on_glass`: the P4's decoder runs on the 2D-DMA, the S3's on the CPU; `view_pps` 8 on the S3) | `live_view.cpp` |
 | the panel is MIPI-DSI | `glass_dsi.cpp` (the wrap of `esp_lcd_new_panel_dpi`) | a P4 with an RGB panel would find no frame buffer and show stills |

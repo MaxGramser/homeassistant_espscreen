@@ -17,11 +17,17 @@ namespace hw {
 // section 4.1): four on every P4 board, so a user reads "4" rather than finding out which tile stopped, the fifth on a
 // page showing its stills. The streams a screen can hold (live_view::MAX_STREAMS) is a ceiling above it: four tiles, the
 // full view, a plugin's places.
-// The pictures a second a live tile shows at most, every board alike: a clear limit, at which a reTerminal D1001
-// with four tiles keeps its wake word (10 a second each cost it 51 resets in three minutes, 2026-10-28). Each tile gets
+// The pictures a second a live tile shows at most, every board alike. Ten since 2026-11-09: a reTerminal D1001 with four
+// tiles reached 8 at this limit, with no reset of its wake word (6 until then, when 10 a second each cost 51 resets in
+// three minutes, 2026-10-28, before the panel's DMA repeated its frame by itself and the guard cut what stalled). Each tile gets
 // its share of the engine's budget up to this (picture_engine::tile_pps), a busy screen half or a quarter of that
 // (live_view.cpp, pace; the governor, pressure.h).
-constexpr uint8_t LIVE_TILE_PPS = 6;
+constexpr uint8_t LIVE_TILE_PPS = 10;
+// The pictures a second a live tile of the screen's own camera shows at most. Its frame comes over no network and is not
+// decoded; what limits it is the PPA, which takes 50 to 60 ms to bring a frame of 1280 x 720 down to a tile, so a camera
+// of 30 frames a second gives it every second one: 15, evenly, on a reTerminal D1001 with nothing else on the page, 8 to 10
+// beside three live tiles and a video viewer (2026-11-09, docs/PLATFORM_PLAN.md 4.11).
+constexpr uint8_t OWN_TILE_PPS = 15;
 
 struct Caps {
   bool live_video = false;   // streams a camera live on the glass: a P4 with the picture engine and a direct frame buffer

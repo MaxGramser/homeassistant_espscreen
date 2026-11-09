@@ -107,7 +107,7 @@ seconds from a watch task of its own, since nothing brings the engine back witho
   name as one overlay made once per stream), copy onto the glass under the lock, only while nobody stopped the stream.
 
 A live tile is paced by time (`pace`, never by skipping decodes: the link is pull-driven, so skipping only pulls faster),
-at most `hw::LIVE_TILE_PPS` (6) a second, less on a busy screen. The full view shows the newest picture and uses the
+at most `hw::LIVE_TILE_PPS` (10) a second, less on a busy screen. A tile of the screen's own camera comes over no network and has its own pace, `hw::OWN_TILE_PPS` (15), and follows the governor as the camera does. The full view shows the newest picture and uses the
 sound as its clock. A stream's task runs at priority 2, below the wake word (3), and takes the writers' priority (5)
 only while it holds the glass.
 

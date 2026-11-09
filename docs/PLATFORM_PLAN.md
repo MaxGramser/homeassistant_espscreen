@@ -270,7 +270,7 @@ a ceiling, not the cap.
 
 **The engine's numbers (2026-10-28).** The cap and the pace are the picture engine's (`picture_engine::limits`): its
 `live_tiles` and `tile_budget_pps`, the pictures a second all streaming tiles share (`picture_engine::tile_pps`: the
-budget over the tiles, at least 2, at most `hw::LIVE_TILE_PPS`). A P4 has 4 and 24, so its four tiles keep 6 each as
+budget over the tiles, at least 2, at most `hw::LIVE_TILE_PPS`). A P4 has 4 and 40 (24 until 2026-11-09), so its four tiles keep 10 each as
 before. An ESP32-S3 with an RGB panel has 1 and 8 (docs/CAMERA.md, "Live on an ESP32-S3"): its CPU decodes every
 picture, and each live tile took about 11 KB of internal RAM for its connection's Wi-Fi and lwIP buffers, two tiles the
 lowest down to 16 KB and three to 3 KB on a Guition 4848S040. A second S3 tile waits for those buffers in PSRAM
@@ -806,6 +806,18 @@ over the network to the same screen, to be decoded there. Now the screen draws i
   decoder) and the Opus played through the mixer with echo cancelled (the D1001's hardware reference channel, the
   Guition's in software); ringing, answering and hanging up through the app. The picture of oneself is today's tile of
   the own camera.
+
+**Its pace (2026-11-09, a reTerminal D1001, camera at 30 frames a second, wake word on).** The tile has its own pace, not the live
+tiles' share: its frame comes over no network and is not decoded. It stays out of the count of tiles that crowd the uplink. Measured:
+alone on the page 15 pictures a second, evenly, whatever more was asked; beside three live tiles and a video viewer 8 to 10, and those
+tiles about 5; four tiles that nearly fill the glass 4 to 6.6 on the camera's and 2.3 to 4.5 on the others. What limits it is the PPA: 50 to
+60 ms a frame of 1280 x 720, every tile shares it, and a frame that takes more than the camera's 33 ms leaves every second one.
+Bursts of 128 bytes took 47 ms and let go of nothing else; leaving the glass's lock during the copy gave 9.2 for 8 on this tile and
+nothing on the others. Neither is in. No flash on the camera and no restart in any of these runs.
+
+**The live tiles' limit (2026-11-09, the same board and wake word on, four tiles and no own camera).** At a limit of 6 they reached 5.6 a
+second, at 10 about 8 and at 15 about 9 to 10, so the limit was the brake where no tile of the own camera shares the PPA. No reset of the wake word
+in these runs of 40 s a step; the limit went to 10 with a budget of 40.
 
 ### 4.12 Live pictures come turned for a turned glass (2026-10-28)
 

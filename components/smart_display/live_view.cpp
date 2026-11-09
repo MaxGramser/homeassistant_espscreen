@@ -665,6 +665,17 @@ static bool ask_each(Stream &s) {
 }
 
 // The screen's own camera on a tile of its own (live_view.h, own_frame).
+// Its pace is its own: the frame reaches it over no network and is not decoded, so the pace of the tiles that are
+// (tile_gap_us) does not apply, though it counts among them for their share of the budget (tiles_open), since it takes
+// more of the PPA than any of them. It follows the governor as the camera does, and as the live tiles do while someone
+// hears the microphone: the video is what must go whole then, and the tile on the glass shares the PPA with it.
+// In a call this tile is the picture of oneself in the corner: the large picture goes first, and it gives way with the rest.
+static constexpr int64_t OWN_PACE_MARGIN_US = 4000;  // a frame a little early still counts: the camera's own gap wobbles
+static int64_t own_gap_us() {
+  const uint8_t level = std::max(pressure::level_of(pressure::OWN_CAMERA), pressure::level_of(pressure::LIVE_TILES));
+  return (static_cast<int64_t>(1000000 / hw::OWN_TILE_PPS) << level) - OWN_PACE_MARGIN_US;
+}
+
 // The open tiles of it, which the camera's task reads under own_lock while it fills one's canvas; the main loop takes a
 // tile out under it before it frees the stream. The camera's task never waits for it: a frame it cannot take goes by.
 static Stream *own_tiles[MAX_STREAMS] = {};
@@ -728,8 +739,7 @@ void own_frame(const uint8_t *data, int width, int height, bool yuv420) {
       s->skipped++;
       continue;
     }
-    // Its next frame after its pace: its share of the budget, a busy screen's tile half or a quarter of that.
-    s->own_next = now + (tile_gap_us() << pressure::level_of(pressure::LIVE_TILES));
+    s->own_next = now + own_gap_us();
     s->own_full.store(true, std::memory_order_release);
     xTaskNotifyGive(s->task.handle);
   }
@@ -910,11 +920,12 @@ static void task_main(void *arg) {
 
 bool full_view() { return available() && picture_engine::limits().picture_bytes > 0; }
 
-// The live tiles on the glass now, for the governor's heard rule (pressure::live_tiles): the tile streams, not a view.
+// The live tiles on the glass now, for the governor's heard rule (pressure::live_tiles): the tile streams, not a view
+// and not a tile of the screen's own camera, which takes nothing from the network.
 static void count_tiles() {
   uint8_t n = 0;
   for (auto *s : streams)
-    if (s && !s->stopping && s->look.tile) ++n;
+    if (s && !s->stopping && s->look.tile && s->source != &OWN_CAMERA) ++n;
   pressure::live_tiles.store(n, std::memory_order_relaxed);
 }
 

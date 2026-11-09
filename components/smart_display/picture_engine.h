@@ -155,8 +155,8 @@ struct Limits {
   uint8_t streams;
 };
 // The pictures a second each of `tiles` live tiles shows: the engine's budget shared among them, at least 2 (fewer
-// reads as stills) and at most `most` (hw::LIVE_TILE_PPS, every board alike). On a P4 four tiles keep their 6 each; an
-// S3's budget of 8 would give two tiles 4 each and three 2 (its CPU decodes them all).
+// reads as stills) and at most `most` (hw::LIVE_TILE_PPS, every board alike). On a P4 four tiles keep their 10 each; an
+// S3's budget of 6 is its one tile's (its CPU decodes it).
 inline int tile_pps(int budget, int tiles, int most) {
   return std::max(2, std::min(most, budget / std::max(tiles, 1)));
 }
@@ -170,20 +170,20 @@ inline int ppa_angle(int turn) { return turn == 90 ? 3 : turn == 180 ? 2 : turn 
 // The P4's: bursts of 64 bytes instead of ESP-IDF's 128, or the DSI bridge runs dry and the panel shows a frame of blue
 // (lvgl/lvgl #9590); a full view's picture of at most 1 MB and a tile's of 384 KB, over what a 1280 x 800 JPEG of a busy
 // camera is (150 to 250 KB) and a tile's room needs (docs/CAMERA.md, "Live on the P4 boards", 2026-10-10); four live
-// tiles at once, measured on a reTerminal D1001 and a Guition 10.1 (docs/PLATFORM_PLAN.md 4.1), 24 pictures a second
-// among them: 6 each, as before the budget.
-constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 24, 1, 7}; }
+// tiles at once, measured on a reTerminal D1001 and a Guition 10.1 (docs/PLATFORM_PLAN.md 4.1), 40 pictures a second
+// among them: 10 each.
+constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 40, 1, 7}; }
 #elif defined(PICTURE_ENGINE_S3) && defined(SCREEN_PICTURES)
 // The S3's: no 2D engine, so no bursts; one live tile, its picture at most 128 KB (the app's JPEG of a 4-inch card is
 // about 10 KB), decoded by the CPU off the glass on core 0, away from LVGL's; a full view's picture at most 256 KB, as
 // the app sends it to fit the glass (a picture it would have to scale up is refused by blit, and the view keeps its
 // stills), eight a second at most. Measured on a Guition 4848S040 (2026-10-28, docs/CAMERA.md "Live on an ESP32-S3"):
 // each live tile costs about 11 KB of internal RAM for its socket's Wi-Fi and lwIP buffers, and two took it down to
-// 16 KB, three to 3 KB, so one; its budget of 8 pictures a second is the one a second tile would share. With the tile
+// 16 KB, three to 3 KB, so one; its budget of 6 pictures a second is the one a second tile would share. With the tile
 // decoding on core 1, LVGL's core was 38 % busy and LVGL refreshed 410 times in 10 s of dragging; on core 0, 23 % and
 // 435. One stream of any kind at once: a full view that opened beside a live tile still ending took the internal RAM to
 // 2 KB and the screen down with it (a tester's Guition 4848S040 with 7 pages, 2026-10-30, docs/CAMERA.md).
-constexpr Limits limits() { return {0, 256 * 1024, 128 * 1024, 1, false, 8, 8, 0, 1}; }
+constexpr Limits limits() { return {0, 256 * 1024, 128 * 1024, 1, false, 8, 6, 0, 1}; }
 #endif
 #if (defined(PICTURE_ENGINE_P4) || defined(PICTURE_ENGINE_S3)) && defined(SCREEN_PICTURES)
 // This screen's decoder takes JPEG: its questions name it first (runtime_tiles::picture_ask), the download gathers a

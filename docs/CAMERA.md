@@ -255,10 +255,11 @@ the app and the screen a dozen of a tile's small pictures still fit (the app's s
 of 64 KB), and a tile that read them one by one showed pictures a second old. So a live tile asks for each picture
 instead: GET on the same link with `.jpg` for `.mjpeg`, over a kept connection (HTTP/1.1), and the app answers with the
 JPEG of the camera's newest frame once it is newer than the last it sent on that link, or 204 after 2 s, and the tile
-asks again; the link counts as a stream from its first ask until 3 s after its last answer. A tile asks at most six
+asks again; the link counts as a stream from its first ask until 3 s after its last answer. A tile asks at most ten
 times a second (hw::LIVE_TILE_PPS): the picture engine's budget of pictures a second shared among the tiles that stream
-(`picture_engine::tile_pps`, 24 on a P4, so four tiles keep six each), never fewer than two; a busy screen's tile asks
-half or a quarter of that (docs/PLATFORM_PLAN.md 4.10). An app without it answers
+(`picture_engine::tile_pps`, 40 on a P4, so four tiles keep ten each), never fewer than two; a busy screen's tile asks
+half or a quarter of that (docs/PLATFORM_PLAN.md 4.10). A tile of the screen's own camera has its own pace, at most fifteen
+times a second (hw::OWN_TILE_PPS). An app without it answers
 404, and the tile reads the stream, showing the newest picture that reached it and passing the older ones; the app
 keeps a tile's socket buffer at 16 KB. Its line in the screen's log every 10 s says how long it waited for the app,
 how long its pictures waited on the way and how many older ones it passed.
