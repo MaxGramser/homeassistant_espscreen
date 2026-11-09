@@ -128,8 +128,7 @@ finished copy; (3) fix the count first, then (1).
 
 ## Solved (2026-11-08): the frame's restart
 
-The flash without a counter is a missed restart of the panel's DMA (docs/CAMERA.md, "A frame's restart"; `refresh_hold` in
-`components/smart_display/glass_dsi.cpp`). Measured with a bare ESP-IDF firmware and a camera watching the glass, so nothing
+The flash without a counter is a missed restart of the panel's DMA (docs/CAMERA.md, "A frame's restart"; `components/smart_display/glass_dsi_refresh.cpp`). Measured with a bare ESP-IDF firmware and a camera watching the glass, so nothing
 of this firmware was involved.
 
 - Candidate 1 was close and candidate 3 right: the count saw nothing because no DMA ran, and the frame interrupt's timing

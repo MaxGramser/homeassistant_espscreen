@@ -23,10 +23,10 @@ ENGINES = {
     "p4": {
         "defines": ("PICTURE_ENGINE_P4", "GLASS_DSI", "USE_LIVE_VIEW"),
         # The linker wraps the engine and the glass need: the panel picked up as ESP-IDF makes it, the panel watch's
-        # frame callback beside the display's and every PPA client's bursts (glass_dsi.cpp), and the guard of every
-        # turned copy (ppa_guard.cpp).
+        # frame callback beside the display's and every PPA client's bursts (glass_dsi.cpp), the panel's DMA channel as
+        # ESP-IDF creates it (glass_dsi_refresh.cpp), and the guard of every turned copy (ppa_guard.cpp).
         "wraps": ("esp_lcd_new_panel_dpi", "esp_lcd_dpi_panel_register_event_callbacks", "ppa_register_client",
-                  "ppa_do_scale_rotate_mirror"),
+                  "ppa_do_scale_rotate_mirror", "dw_gdma_new_channel"),
         "components": (),
     },
     "s3": {

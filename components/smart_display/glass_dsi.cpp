@@ -2,6 +2,7 @@
 // the panel ESPHome's display made, picked up as ESP-IDF makes it, its frame buffer, the panel's underrun counter and the
 // PPA bursts of every client.
 #include "glass.h"
+#include "glass_dsi_refresh.h"
 #include "picture_engine.h"
 #if defined(GLASS_DSI) && defined(SCREEN_PICTURES)
 #include <driver/ppa.h>
@@ -17,17 +18,6 @@
 #include <soc/mipi_dsi_bridge_struct.h>
 #include <soc/mipi_dsi_host_struct.h>
 #define GLASS_COUNTS_MISSES 1
-#endif
-// The DMA that feeds the panel, for its own restart (refresh_hold below).
-#if defined(GLASS_COUNTS_MISSES) && __has_include(<hal/dw_gdma_ll.h>) && !defined(GLASS_NO_REFRESH_HOLD)
-#include <hal/dw_gdma_ll.h>
-#include <soc/reg_base.h>
-#include <esp_attr.h>
-#include <esp_rom_sys.h>
-#include <esp_system.h>
-#include <esp_timer.h>
-#include <freertos/FreeRTOS.h>
-#define GLASS_HOLDS_REFRESH 1
 #endif
 
 namespace glass {
@@ -116,119 +106,14 @@ static IRAM_ATTR bool frame_done(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel
   return display_vsync ? display_vsync(panel, data, ctx) : false;
 }
 
-// ---- The panel's DMA restarts itself ----
-// ESP-IDF sends each frame as one DW-GDMA transfer and starts the next one from that transfer's end-of-frame interrupt
-// (esp_lcd_panel_dpi.c, mipi_dsi_dma_trans_done_cb). The vertical blanking is all the time that interrupt has: 0.59 ms
-// on a reTerminal D1001 at 70 MHz. An interrupt that comes later misses the frame, the panel gets nothing for a whole
-// refresh and shows its colour for no data, blue, and the bridge raises no underrun flag: the DMA was never asked for
-// anything. Back-to-back cache write-backs on the two cores (esp_cache_msync, up to 0.6 ms with the interrupts off per
-// chunk, on a spinlock the other core waits for with its own off), a slow interrupt beside it or any long critical
-// section are enough. A bare firmware on a D1001 proved it with a camera on the glass (2026-11-08): every frame missed
-// (33 ms between restarts instead of 17) was a blue flash and nothing else was, 0 flags; none on the other core.
-// So the channel is put in the DMA's auto-reload mode: it repeats its one block, the whole frame buffer, in hardware,
-// and no interrupt stands between two frames (10 ms with the interrupts off: not one flash). The switch is made once,
-// at the end of a frame, in its blanking. The frame callback no longer comes on a chip whose only "vsync" was that
-// interrupt, so the frames are read from the DMA's address every 5 ms (frame_seen).
-#ifdef GLASS_HOLDS_REFRESH
-static RTC_NOINIT_ATTR uint32_t hold_failed;  // kept over the restart below
-static constexpr uint32_t HOLD_FAILED = 0x484F4C44;
-static int held_channel = -1;
-static uint32_t held_sar = 0;
-
-static void refresh_poll(void *) {
-  const uint32_t sar = DW_GDMA.ch[held_channel].sar0.sar0;
-  if (sar < held_sar) frame_seen();
-  held_sar = sar;
-}
-
-static int panel_channel() {
-  for (int i = 0; i < DW_GDMA_LL_CHANNELS_PER_GROUP; i++)
-    if ((DW_GDMA.chen0.val & (1u << i)) && DW_GDMA.ch[i].dar0.dar0 == MIPI_DSI_BRG_MEM_BASE) return i;
-  return -1;
-}
-
+// The panel's DMA repeats the frame buffer by itself (glass_dsi_refresh.cpp), so no interrupt stands between two frames. The
+// frame callback no longer comes on a chip whose only "vsync" was that interrupt: frame_seen is then called from a timer.
 static void refresh_hold() {
-  if (hold_failed == HOLD_FAILED) {
-    ESP_LOGW("glass", "the panel's DMA keeps the driver's restart: the last try to change it failed");
-    return;
-  }
-  const int ch = panel_channel();
   void *fb = frame_buffer();
+  if (!fb || !panel_facts.rgb565) return;
   const size_t bytes = (size_t) panel_facts.w * panel_facts.h * 2;
-  if (ch < 0 || !fb || !panel_facts.rgb565) return;
-  volatile dmac_channel_reg_t &c = DW_GDMA.ch[ch];
-  if (c.cfg0.src_multblk_type != DW_GDMA_BLOCK_TRANSFER_LIST || c.cfg0.dst_multblk_type != DW_GDMA_BLOCK_TRANSFER_LIST ||
-      ((size_t) c.block_ts0.block_ts + 1) * 8 != bytes) {
-    ESP_LOGW("glass", "the panel's DMA is not set up as expected: it keeps the driver's restart");
-    return;
-  }
-  // The DMA may read the frame buffer through another view of the same memory (only the top of its address differs, on
-  // a revision 3 chip): what counts is how far into the frame it is, and the address it reads through is the one to reload.
-  const uint32_t reading = c.sar0.sar0;
-  const uint32_t base = reading - ((reading - (uint32_t) fb) & 0x0FFFFFFF);
-  const auto sent = [&]() { return (uint32_t) c.sar0.sar0 - base; };
-  const auto wait = [](auto done) {
-    const int64_t from = esp_timer_get_time();
-    while (!done())
-      if (esp_timer_get_time() - from > 100000) return false;
-    return true;
-  };
-  // In the middle of a frame the end-of-frame interrupt is taken away, so the channel stops at the end of this frame.
-  static portMUX_TYPE lock = portMUX_INITIALIZER_UNLOCKED;
-  if (!wait([&]() { const uint32_t s = sent(); return s >= bytes / 5 && s <= bytes * 2 / 3; })) {
-    ESP_LOGW("glass", "the panel's DMA does not move through its frame buffer as expected: it keeps the driver's restart");
-    return;
-  }
-  const uint32_t signals = c.int_sig_ena0.val;
-  dw_gdma_ll_channel_enable_intr_propagation(&DW_GDMA, ch, UINT32_MAX, false);
-  // The interrupts go off only for the last tenth of the frame and the blanking.
-  const bool near_end = wait([&]() { return sent() >= bytes * 9 / 10 || !(DW_GDMA.chen0.val & (1u << ch)); });
-  bool stopped = false;
-  portENTER_CRITICAL(&lock);
-  if (near_end) {
-    const int64_t from = esp_timer_get_time();
-    while ((DW_GDMA.chen0.val & (1u << ch)) && esp_timer_get_time() - from < 50000) {}
-    stopped = !(DW_GDMA.chen0.val & (1u << ch));
-  }
-  if (stopped) {
-    dw_gdma_ll_channel_clear_intr(&DW_GDMA, ch, UINT32_MAX);
-    dw_gdma_ll_channel_set_src_multi_block_type(&DW_GDMA, ch, DW_GDMA_BLOCK_TRANSFER_RELOAD);
-    dw_gdma_ll_channel_set_dst_multi_block_type(&DW_GDMA, ch, DW_GDMA_BLOCK_TRANSFER_RELOAD);
-    dw_gdma_ll_channel_set_src_addr(&DW_GDMA, ch, base);
-    dw_gdma_ll_channel_set_dst_addr(&DW_GDMA, ch, MIPI_DSI_BRG_MEM_BASE);
-    dw_gdma_ll_channel_set_block_markers(&DW_GDMA, ch, false, false, false);
-    dw_gdma_ll_channel_enable(&DW_GDMA, ch, true);
-  } else if (DW_GDMA.chen0.val & (1u << ch)) {
-    c.int_sig_ena0.val = signals;  // it never stopped: the driver goes on as before
-  }
-  portEXIT_CRITICAL(&lock);
-  bool running = false;
-  if (stopped) {
-    esp_rom_delay_us(50000);
-    const uint32_t a = c.sar0.sar0;
-    esp_rom_delay_us(3000);
-    running = (DW_GDMA.chen0.val & (1u << ch)) && a != c.sar0.sar0;
-    if (!running) {
-      // A panel without a DMA stays blue until a restart; the next start leaves the driver's way alone.
-      ESP_LOGE("glass", "the panel's DMA did not keep running on its own: restarting without it");
-      hold_failed = HOLD_FAILED;
-      esp_restart();
-    }
-  }
-  if (!running) return;
-  held_channel = ch;
-  held_sar = c.sar0.sar0;
-  refresh_held.store(true, std::memory_order_relaxed);
-  esp_timer_create_args_t args{};
-  args.callback = refresh_poll;
-  args.name = "glass_frames";
-  esp_timer_handle_t timer = nullptr;
-  if (esp_timer_create(&args, &timer) == ESP_OK) esp_timer_start_periodic(timer, 5000);
-  ESP_LOGI("glass", "the panel's DMA restarts itself (channel %d)", ch);
+  if (hold_refresh(fb, bytes, frame_seen)) refresh_held.store(true, std::memory_order_relaxed);
 }
-#else
-static void refresh_hold() {}
-#endif
 
 // What the runtime notes for the watch: the log's lines (any task) and the finger (the main loop).
 static std::atomic<uint32_t> log_lines{0};

@@ -67,7 +67,7 @@ The lock means two things at once, and both matter:
 - **One user of the 2D-DMA at a time.** On a P4 the JPEG decoder, the PPA and LVGL's own turned strips all share the
   2D-DMA, and two of them from different tasks is what hangs the chip (espressif/esp-idf #18999, #19108, #19096).
 
-On DSI the panel's DMA repeats the frame buffer by itself (`refresh_hold`, the hardware's auto-reload), so no interrupt
+On DSI the panel's DMA repeats the frame buffer by itself (`glass_dsi_refresh.cpp`, the hardware's auto-reload), so no interrupt
 stands between two frames and a busy processor cannot lose one: docs/CAMERA.md, "A frame's restart". On DSI the glass counts the panel running dry (`glass::misses`, the "Panel misses" sensor), with the chip's mask on
 that flag taken off (ESP-IDF masks underruns in the first lines of a frame, the ones that blue the whole glass), in the
 panel's own callback at each frame's end: the panel watch, which notes for each flash who held the glass and says each

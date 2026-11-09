@@ -416,11 +416,12 @@ waits for), a slow interrupt or any long critical section are enough. A bare ESP
 glass showed it on a reTerminal D1001 (chip revision 1.3) and a Guition 10.1 V3 (revision 3.2): every frame missed
 was a flash, none of the others; interrupts held off on the other core did nothing, and the PSRAM load on its own
 brought none. So the firmware puts the panel's DMA channel in the hardware's auto-reload mode once, at the end of a
-frame (`refresh_hold`, `glass_dsi.cpp`): it repeats the whole frame buffer by itself and no interrupt stands between
+frame (`glass_dsi_refresh.cpp`): it repeats the whole frame buffer by itself and no interrupt stands between
 two frames. With interrupts held off for 10 ms not one flash came on either chip. A real underrun (the DMA held up
 for more than 40 to 80 microseconds) still shows and still counts, and leaves the picture in its place. On a chip whose
 only frame callback was that interrupt the panel watch reads the DMA's address every 5 ms instead. A screen whose DMA
-is not set up as expected keeps ESP-IDF's restart and says so in its log.
+is not set up as expected keeps ESP-IDF's restart and says so in its log. One whose DMA did not keep running on its own
+restarts without it and stays without it until the power goes off, an update or two included.
 
 **The panel's share of the memory bus.** The DSI bridge reads the frame buffer from PSRAM without pause, a frame
 every 16 ms. When another DMA holds the bus too long (the PPA scaling and turning a picture, the JPEG decoder, the
