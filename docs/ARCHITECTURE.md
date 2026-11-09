@@ -200,8 +200,9 @@ docs/TROUBLESHOOTING.md.
 - **Nothing of ours runs above the voice (priority 3) except the glass, audio and Wi-Fi.** Streams at 2, the writers'
   priority 5 only while holding the glass. Streams above the wake word cost a reTerminal D1001 644 resets an hour
   (2026-10-28); at 2, none.
-- **A live tile shows at most 6 pictures a second, paced by time.** 10 a second on four tiles cost 51 wake word resets
-  in three minutes (2026-10-28). Skipping decodes saves nothing on a pull link.
+- **A live tile shows at most 10 pictures a second, paced by time.** Four tiles at that limit reached 8 a second on a
+  reTerminal D1001 with no wake word reset (2026-11-09); the same rate cost 51 resets in three minutes before (2026-10-28).
+  Skipping decodes saves nothing on a pull link.
 - **One PPA copy per tile picture.** Two copies (38 ms a picture) made four tiles wait on each other under the lock
   and froze a slider's frame blue; one copy took the picture's age on a D1001 from 1 s to 6 ms (2026-10-28).
 - **The app delivers at card size and turned as the glass is.** The engine never scales or turns for a tile; a turned

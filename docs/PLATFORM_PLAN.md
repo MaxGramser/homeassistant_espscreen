@@ -725,8 +725,8 @@ cannot move out from under it. What helps is less work for it: a live tile's pic
 size is composed where it was decoded and copied once, onto the glass, with no canvas between. On the D1001 a tile then
 showed 8 to 10 pictures a second where it showed 5.3 to 6.3, its wait for the glass 22 to 30 ms instead of 60 to 84
 (the copy onto the glass 17 ms; composing, outside the lock, 31 to 35 ms of wall clock, with the tasks' CPU unchanged at
-9 %). At that rate the wake word fell behind 51 times in three minutes, so a live tile keeps to six pictures a second
-on every board (hw::LIVE_TILE_PPS), and a busy screen's tile to three or one and a half. With all of it (one copy, the
+9 %). At that rate the wake word fell behind 51 times in three minutes, so a live tile kept to six pictures a second
+on every board (hw::LIVE_TILE_PPS, ten since 2026-11-09), and a busy screen's tile to three or one and a half. With all of it (one copy, the
 newest picture below, six a second), three minutes of drags over the four tiles: the D1001's tiles at rest 5.6 to 5.7
 pictures a second, 35 to 69 ms on the way, waiting 0.5 to 2.9 ms for the glass, the cores at 59.9 and 44.8 % (the
 lowest of the day), one moment of 12 wake word resets on which the tiles gave way at once; the Guition 10.1's 5.6 a
@@ -793,7 +793,7 @@ over the network to the same screen, to be decoded there. Now the screen draws i
   ties the two.
 - **The draw.** `own:` opens a stream with no socket and no decoder (live_view.cpp, `own_stream`). While it is open
   the plugin hands each camera frame to `tessera::own_frame` on the camera's task; the tile takes one when its pace
-  says (hw::LIVE_TILE_PPS, a busy screen's share) and the glass is free at once (`glass::try_hold`: the camera's task
+  says (hw::OWN_TILE_PPS, a busy screen's share) and the glass is free at once (`glass::try_hold`: the camera's task
   never waits), and the PPA copies the part it shows into the card's canvas, scaled, from the camera's YUV420 or RGB565.
   The tile's own task composes the card over it (corners, shade, name) and lays it onto the glass in one more copy, turned.
   A frame it cannot take goes by. Covered, on a page out of sight or in standby, the tile closes as any live tile does,

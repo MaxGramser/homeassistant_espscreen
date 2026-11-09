@@ -57,7 +57,7 @@ void *frame_buffer() {
 // panel shows its colour for no data), raised no flag; one in the last 480 lines, which blues the bottom, did. So
 // until 2026-10-29 the count saw the blue over the lower tiles (39 to 53 a minute on a D1001 with the encoder's strip
 // in PSRAM, docs/PLATFORM_PLAN.md 4.4a) and never the whole-glass flash a slider drag or a log line brought on the
-// same board, and read "the D1001 counts none" (espressif/esp-idf #19188 and jtenniswood/espcontrol #2118 saw the
+// same board, and read "the D1001 counts none" (jtenniswood/espcontrol #2118 saw the
 // same flash with the flag silent). With the mask at 0 every underrun counts; what the panel shows does not change.
 //
 // The frame callback is ESP-IDF's on_vsync, which ESPHome's display leaves free (it takes on_color_trans_done only):

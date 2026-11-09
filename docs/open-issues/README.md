@@ -16,7 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
-| [blue-flash-p4.md](blue-flash-p4.md) | A whole frame of light blue, one frame, on the reTerminal D1001 and sometimes the Guition 10.1 under memory-bus load; the panel never reports an underrun | 2026-10-25 |
+| [p4-panel-underrun.md](p4-panel-underrun.md) | A real underrun of the panel on an ESP32-P4: one counted flash now and then (GitHub #379), not reproduced on the bench | 2026-11-09 |
 | [own-camera-tile-blit-cost.md](own-camera-tile-blit-cost.md) | A tile of the screen's own camera costs 50 to 60 ms of the PPA a frame, which limits every tile beside it | 2026-11-09 |
 | [addon-webrtc-loss-on-yellow.md](addon-webrtc-loss-on-yellow.md) | On a Home Assistant Yellow the add-on loses WebRTC packets of the biggest stream when a full view runs: the asyncio loop near one core | 2026-10-29 |
 | [full-view-first-link-empty-host.md](full-view-first-link-empty-host.md) | A full view's first attempt opens a link with an empty host (":80") and loses 10 s before the second works. Solved 2026-10-30 | 2026-10-29 |

@@ -521,7 +521,7 @@ enum class Capture : uint8_t { CAMERA, SENSING, SOUND };
 // everything, while anything uses the camera, and no plugin or setting can take it away: solid while anyone watches
 // (a plugin's CAMERA, or Home Assistant taking pictures or a stream of the camera, `ts_camera`, which the core sees by
 // itself), a ring while the camera only senses (SENSING, 0.20). What a plugin does on the screen it must say here.
-// SOUND (0.23) changes no dot: the screen squeezes its live tiles to a quarter while someone hears the microphone
+// SOUND (0.23) changes no dot: the screen squeezes its live tiles to half at least while someone hears the microphone
 // (pressure.h, heard), since a conversation goes before the tiles on the sending side too; on a reTerminal D1001 four
 // live tiles beside its own video stalled the uplink and the sound reached its viewer in bursts a second late.
 // Call it from the plugin's own calls (the screen's loop).
