@@ -116,18 +116,19 @@ int main() {
   for (uint32_t w : {336u, 864u, 872u, 528u, 1280u}) assert(check(block(w, 6, A90), true) >= 2);
   assert(check(block(904, 6, A90), false) == 1 && check(block(200, 6, A90), false) == 1);
 
-  // Unturned at its own size, the driver's rule is the hardware's but for a last unit of exactly the FIFO: a split
-  // there alone, and a few at most.
+  // Unturned at its own size, the driver's rule is the hardware's but for a last unit from the FIFO up to STALL_BITS: a
+  // split there alone, and a few at most.
   for (uint32_t w = 1; w <= 200; ++w)
     for (uint32_t h = 1; h <= 200; h += 3)
       for (Angle angle : {A0, A180}) {
         const Block b = block(w, h, angle);
-        const bool exact_fifo = stalls(b) && !driver_bypasses(b);
-        const int n = check(b, exact_fifo);
-        assert(exact_fifo ? n >= 2 && n <= 4 : n == 1);
+        const bool cut = stalls(b) && !driver_bypasses(b);
+        const int n = check(b, cut);
+        assert(cut ? n >= 2 && n <= 4 : n == 1);
       }
   assert(check(block(96, 19, A0), true) >= 2);  // 32 x 3 x 16 bits
-  assert(check(block(97, 19, A0), false) == 1);
+  assert(check(block(97, 19, A0), true) >= 2);  // 33 x 3 x 16 bits
+  assert(check(block(112, 19, A0), false) == 1);  // 48 x 3 x 16 bits
 
   // A turned block's last unit stalls up to a little over the FIFO with this firmware's bursts of 64 bytes (STALL_BITS,
   // a reTerminal D1001, 2026-11-08): a live tile of 240x135 turned 90 (7 columns by 16 rows, 1792 bits) never came back
@@ -144,8 +145,12 @@ int main() {
     assert(check(block(492, 135, angle), true) >= 2);
     assert(stalls(block(480, 135, angle)));
   }
-  // An unturned block keeps the FIFO itself: nothing past it was seen to stall.
-  assert(!stalls(block(97, 19, A0)));
+  // An unturned block with the same output stalls the same: a live tile's picture of 135x240, sent turned for a turned
+  // glass and copied straight onto it, never came back on the real firmware (a reTerminal D1001, 2026-11-09).
+  assert(stalls(block(135, 240, A0)));
+  assert(check(block(135, 240, A0), true) >= 2);
+  // Past the limit an unturned block goes whole.
+  assert(!stalls(block(136, 240, A0)));
 
   // A camera's picture scaled to fill a reTerminal D1001's full view, unturned (the app turns it for the glass):
   // 450x800 at 25/16 stalled every time (2026-11-03), its input's last unit 2 columns by 16 rows, 3 x 25 pixels

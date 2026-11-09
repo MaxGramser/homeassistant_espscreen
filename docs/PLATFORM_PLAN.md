@@ -450,7 +450,7 @@ the tiles and LVGL (up to 0.74 s measured).
   (revision 1.3), a PPA copy turned 90 beside a frame buffer copy and a cache write-back, 20 s a shape: 240x134 (1536 bits),
   240x135 and 240x199 (1792) never came back within about 20 copies; 240x128, 129, 136 and 140 and last units of 1728, 1920 and
   2112 bits came back thousands of times; 240x135 came back with bursts of 128 bytes and stalled at once with 32. The same
-  shapes on a Guition 10.1 V3 (revision 3.2) never stalled. `ppa_guard.h` (`STALL_BITS`) cuts a turned block up to 1792 bits.
+  shapes on a Guition 10.1 V3 (revision 3.2) never stalled. `ppa_guard.h` (`STALL_BITS`) cuts a block up to 1792 bits. A straight copy with the same output stalls the same: a live tile's picture of 135x240, sent turned for a turned glass, restarted a D1001 on the real firmware (2026-11-09).
   A lock around the 2D-DMA's clients also ended the stall in the test, but not on the real firmware, and is not in.
 
 - **LVGL's areas in blocks of 16 (`draw_rounding: 16`) are not in.** On a turned glass it leaves the PPA no thin strip

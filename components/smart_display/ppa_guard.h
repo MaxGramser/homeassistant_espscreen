@@ -53,6 +53,8 @@ constexpr uint32_t FIFO_BITS = 12 * 128;  // the 2D-DMA's FIFO, as the driver's 
 // (1536 and 1792 bits), never came back within 20 copies, where 1728, 1920, 2048, 2112 and 3072 bits came back thousands
 // of times; 1792 bits came back with bursts of 128 bytes and stalled at once with 32. The driver's own rule stays the
 // FIFO's. This was the "PPA copy never finished" of a live tile of 240x135 and of 492x135 (cut as 480x135 and 12x135).
+// The last unit lies where the output lies, so a straight copy of the same output stalls the same: a live tile's picture
+// of 135x240, sent turned for a turned glass and copied unturned onto it, never came back on the real firmware (2026-11-09).
 constexpr uint32_t STALL_BITS = 1792;
 constexpr uint32_t FRAG_MAX = 16;         // PPA_LL_SRM_SCALING_FRAG_MAX: a scale is a whole number and sixteenths
 constexpr int MAX_PIECES = 32;
@@ -125,7 +127,7 @@ inline bool small_leftover(uint32_t in_w, uint32_t in_h, Scale sx, Scale sy, con
 // the guard's trace of the last calls naming the copy). Most such copies did come back, as in espressif/esp-idf #19096.
 inline bool stalls(const Block &b) {
   const bool t = turned(b.angle);
-  return small_leftover(t ? b.h : b.w, t ? b.w : b.h, t ? b.sy : b.sx, t ? b.sx : b.sy, b, t ? STALL_BITS : FIFO_BITS, false);
+  return small_leftover(t ? b.h : b.w, t ? b.w : b.h, t ? b.sy : b.sx, t ? b.sx : b.sy, b, STALL_BITS, false);
 }
 // What ESP-IDF 5.5.5's driver does: the rule on the input's own width and height, turned or not, the width's leftover
 // counted on the scaled width, and strictly fewer bits than the FIFO.
@@ -278,7 +280,7 @@ inline void cut(Plan &p, uint32_t x, uint32_t y, const Block &b, int depth) {
 
 // The pieces a block goes to the engine in: 1 and the block itself when the engine takes it whole, more when it would
 // stall, 0 when the guard found no safe way (the block then goes as it is, as before the guard). An unturned block at
-// its own size is cut only for a last unit of exactly the FIFO, where the driver's rule is the hardware's otherwise;
+// its own size is cut only for a last unit from the FIFO up to STALL_BITS, where the driver's rule is the hardware's otherwise;
 // a scaled one is cut when the driver counts its width's leftover wrong (the full view's picture: until 2026-11-03
 // no unturned block was ever cut, and a reTerminal D1001 restarted whenever a camera opened full screen). A block
 // scaled by a fraction is cut only where a cut falls on a whole pixel (the pieces then cover the output exactly, a
