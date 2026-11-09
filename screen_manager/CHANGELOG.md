@@ -4,6 +4,7 @@
 - **An ESP32-P4 screen no longer restarts over a live tile 135 pixels high.** A copy of that shape never finished ("PPA copy never finished") beside the other work of the screen, on a chip of revision 1.3 such as the reTerminal D1001's, turned or straight, so a live camera on a tile of one cell restarted the screen as well. The firmware now copies such a block in pieces.
 - **The screen's own camera on a tile is much smoother.** It now shows up to 15 pictures a second instead of the share of a network camera (up to 6, and 1.5 while someone watched the video with sound), about 8 to 10 next to other live tiles. Network camera tiles go up to 10 pictures a second instead of 6, and slow down less while someone listens to the screen's microphone: to half instead of a quarter.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
+- Add experimental support for the Elecrow ESP Terminal DLC35010R: 3.5-inch parallel ILI9488 display, FT6236 capacitive touch, PWM backlight and onboard buzzer. Display and touch tested on physical hardware.
 
 ## 0.4.97 (firmware 0.60.0)
 

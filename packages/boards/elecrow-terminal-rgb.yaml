@@ -1,0 +1,131 @@
+# Elecrow ESP Terminal DLC35010R: ILI9488 16-bit i80, FT6236, S3 N16R8.
+# Experimental: manufacturer wiring verified; real hardware acceptance pending.
+# See docs/ELECROW_TERMINAL_RGB.md. Not the SPI Terminal.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "elecrow-terminal-rgb"
+  DEVICE_NAME: "elecrow-terminal-rgb-new"
+  DEVICE_FRIENDLY_NAME: "My Elecrow Terminal"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "3"
+  LVGL_BUFFER_SIZE: "25%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  TOUCH_CONTROLLER: "FT6236"
+  BACKLIGHT_FREQUENCY: "1000Hz"                  # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+# Validated against the add-on's pinned ESPHome toolchain.
+esphome:
+  min_version: 2026.9.0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# USB-C uses the onboard CH340C on UART0; GPIO20 belongs to the buzzer.
+logger:
+  hardware_uart: UART0
+
+# Octal PSRAM for the UI and pictures; the i80 driver uses a small internal DMA buffer.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Touch is polled; no interrupt or reset GPIO is specified by Elecrow's example.
+i2c:
+  id: touch_bus
+  sda: GPIO38
+  scl: GPIO39
+  frequency: 400kHz
+
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    frequency: ${BACKLIGHT_FREQUENCY}
+    zero_means_zero: true
+
+  # Onboard buzzer, available to ESPHome automations through terminal_buzzer.
+  - platform: ledc
+    id: terminal_buzzer
+    pin: GPIO20
+    frequency: 2000Hz
+    channel: 2
+
+rtttl:
+  output: terminal_buzzer
+
+# Native portrait coordinates; LVGL rotates both the image and touch once.
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    address: 0x38
+    update_interval: 20ms
+
+# The "RGB" Terminal uses 8080 DBI, not an RGB raster or SPI bus.
+display:
+  - platform: ili9488_i80
+    id: my_display
+    data_pins:
+      - GPIO47
+      - GPIO21
+      - GPIO14
+      - GPIO13
+      - GPIO12
+      - GPIO11
+      - GPIO10
+      - GPIO9
+      - number: GPIO3
+        ignore_strapping_warning: true
+      - GPIO8
+      - GPIO16
+      - GPIO15
+      - GPIO7
+      - GPIO6
+      - GPIO5
+      - GPIO4
+    dc_pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    wr_pin: GPIO18
+    rd_pin: GPIO48
+    data_rate: 10MHz
+    # Native unmirrored portrait; LVGL 270 matches Elecrow's offset_rotation=2 + rotation=1.
+    madctl: 0x08
+    invert_colors: false
+    update_interval: never
+    auto_clear_enabled: false
