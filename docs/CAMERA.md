@@ -706,7 +706,7 @@ assistant can listen at the same time.
   the uplink stalls (four live tiles on the same screen, 2026-10-29) a picture waited in send() and the sound behind
   it, in bursts a second late at the app. Since Screen camera 0.6.10 a picture that finds the connection more than
   half full is left behind and the sound goes between the packets of a long one; since 0.6.12 and plugin API 0.23
-  the screen keeps its live tiles at a quarter while anyone hears its microphone (the governor, PLATFORM_PLAN 4.10).
+  the screen keeps its live tiles at half at least while anyone hears its microphone (the governor, PLATFORM_PLAN 4.10).
 - Internal RAM is what a P4 runs short of. The encoder keeps about 104 KB of it and Opus about 25 KB, for as long as
   the screen runs. What every connection holds unsent or unread lived there too: with live camera tiles on the glass
   and the video playing, free internal RAM fell from 160 KB to 13 KB in two seconds and the C6's driver aborted the

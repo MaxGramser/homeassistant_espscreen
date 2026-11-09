@@ -151,7 +151,7 @@ buffer reset. A sign climbs one step (a burst within two seconds is one sign); t
 wake word reset climbs straight to the step that squeezes the tiles. A finger on the glass steps the camera, sensing
 and background down before any sign; a drag the tiles too; a second after release, all back. While someone hears the
 screen's microphone (a plugin's `capturing(SOUND)`, 0.23: its video watched with its sound, a call) the live tiles
-stay at a quarter whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). Each work reads its level
+stay at half at least whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). Each work reads its level
 on its own task (`level_of`); plugins read it as `tessera::squeeze` (API 0.21). Home Assistant sees it as the
 diagnostic sensor "Pressure". Detail: docs/PLATFORM_PLAN.md 4.10; test: `tests/test_pressure.cpp`.
 
