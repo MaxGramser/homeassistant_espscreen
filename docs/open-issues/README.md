@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [veil-holds-an-s3-loop.md](veil-holds-an-s3-loop.md) | The dim laid on the glass holds an ESP32-S3's main loop about 60 ms, over the 50 ms limit, and the governor steps down for a moment | 2026-11-10 |
 | [p4-panel-underrun.md](p4-panel-underrun.md) | A real underrun of the panel on an ESP32-P4: one counted flash now and then (GitHub #379), not reproduced on the bench | 2026-11-09 |
 | [own-camera-tile-blit-cost.md](own-camera-tile-blit-cost.md) | A tile of the screen's own camera costs 50 to 60 ms of the PPA a frame, which limits every tile beside it | 2026-11-09 |
 | [addon-webrtc-loss-on-yellow.md](addon-webrtc-loss-on-yellow.md) | On a Home Assistant Yellow the add-on loses WebRTC packets of the biggest stream when a full view runs: the asyncio loop near one core | 2026-10-29 |

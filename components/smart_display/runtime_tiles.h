@@ -38,6 +38,7 @@
 #include "cover_tile.h"
 #include "cover_paint.h"
 #include "alert_overlay.h"
+#include "screen_motion.h"
 #include "theme.h"
 #include "tile_icon.h"
 #include "screen_settings.h"
@@ -13204,6 +13205,9 @@ inline void pictures_round() {
 // wake_tap leaves the tile it lay over alone).
 inline std::function<void()> saver_changed;  // the profile's apply_screen_settings, which ends in saver_sync
 inline bool saver_lit = false;               // in standby with the backlight on (the standby or night level)
+// The screensaver is on its way out behind the backlight (saver_wake, screen_motion::cut): it stays on the glass until
+// the light is out, so nobody else takes it off in sight meanwhile.
+inline bool saver_leaving = false;
 inline uint32_t saver_ticked = 0;
 // A camera in standby loads at a live tile's default pace rather than the full view's four seconds: a screensaver can
 // stand there all evening, and the Wi-Fi and Home Assistant need not fetch a picture every four seconds for it.
@@ -13648,6 +13652,7 @@ inline void saver_follow_pending() {
 inline void saver_sync(bool lit) {
   saver_lit = lit;
   const bool shown = saver_root || saver_camera;
+  if (saver_leaving && !lit) return;  // it goes in the dark, in a moment
   if (!lit || !saver_wanted()) { if (shown) saver_hide(); return; }
   // The camera and the cover stand as they are while nothing changed; the clock is drawn again, a minute later. A
   // plugin's saver stays and draws on its own clock (on_tick).
@@ -13671,10 +13676,19 @@ inline void saver_sync(bool lit) {
   saver_show();
 }
 // wake_display: the screensaver goes, and the touch that woke the screen does nothing else.
-inline void saver_wake() {
+// `at_once` for a wake the main loop does not go on after (an update's start): no timer would end the dark.
+inline void saver_wake(bool at_once = false) {
+  // A second wake of the same touch (the finger's click after the board felt the tap) finds it leaving already.
+  if (saver_leaving && !at_once) return;
   saver_lit = false;
   saver_woke = saver_root || saver_camera;
-  saver_hide();
+  // The page under it would be drawn strip by strip in sight: on a screen with motion it comes behind the backlight.
+  if (saver_woke && !at_once) {
+    saver_leaving = true;
+    screen_motion::cut([]() { saver_leaving = false; saver_hide(); });
+  } else {
+    saver_hide();
+  }
 }
 // A new layout on its way (cancel_layout_input): every picture goes; saver_tick draws the screensaver again.
 inline void saver_forget() { saver_hide(); }

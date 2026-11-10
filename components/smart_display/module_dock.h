@@ -6,9 +6,10 @@
 // Each direction has one meaning: up and down open and close the drawer, sideways leafs through the pages when they
 // do not all fit, one drawer's width at a time with a dot for each. The pictures are as large as the glass allows:
 // all pages side by side where they fit at a readable size (a ten-inch glass holds eight), fewer and leafing on a
-// small one. The drawer rides on the finger as an iOS sheet does, and only the drawer moves: no scale, no fade, and the
-// dim behind it changes in one step once it stands open (dim), so the software renderer draws the drawer's own area
-// for each frame of the way and not the whole glass.
+// small one. The drawer rides on the finger as an iOS sheet does, and only the drawer moves: no scale, no fade, so the
+// software renderer draws the drawer's own area for each frame of the way and not the whole glass. Let go, it goes on
+// at the finger's speed (screen_motion::settle). The dim behind it changes in one step, on the pixels that are on the glass
+// where a board has a frame buffer (dim_on_glass), and otherwise through LVGL once the drawer stands open (dim).
 //
 // The pictures are drawn from the model, not from the cards: a kept page is drawn only while it is on the glass
 // (docs/KEPT_PAGES.md), so a page's picture is its grid, each tile a rounded block in the colour its tile has now.
@@ -16,6 +17,7 @@
 // main.cpp on its own: there the site is not defined and this file is empty.
 #if defined(SD_MOD_DOCK) && defined(SMART_DISPLAY_MODULE_SITE) && !defined(SMART_DISPLAY_MODULE_DOCK)
 #define SMART_DISPLAY_MODULE_DOCK
+#include "screen_motion.h"
 namespace dock {
 using namespace runtime_tiles;
 
@@ -23,22 +25,47 @@ inline lv_obj_t *root = nullptr;
 // The drawer on its way out: it slides down, then goes. A new swipe up meanwhile deletes it at once.
 inline lv_obj_t *leaving = nullptr;
 inline lv_obj_t *drawer = nullptr, *strip = nullptr, *dots = nullptr;
-inline int drawer_h = 0, views = 1, glass_w = 0, below = 0;
+inline int drawer_h = 0, views = 1, glass_w = 0, below = 0, corner = 0;
 
 constexpr uint32_t RISE_MS = 260, LEAVE_MS = 200, BACK_MS = 200;
 // After a finger let go of a drawer it carried up: the rest of the way, at most this long for the whole drawer.
 constexpr uint32_t SETTLE_MS = 260;
+// However little of the way is left.
+constexpr uint32_t SHORTEST_MS = 120;
 constexpr lv_opa_t DIM = LV_OPA_50;
 
 inline bool open() { return root != nullptr; }
 
+// The dim on the pixels that are on the glass, past LVGL (screen_motion::dim): LVGL keeps no picture of what it drew, so to dim
+// the page it would draw every tile again, tens of milliseconds in which the drawer stands still and no finger is read.
+// LVGL then learns the new dim with its invalidation off, so it goes on drawing what changes under the dim as it should
+// and draws nothing now. The drawer's own rectangle is left alone; only its rounded corners, where the page shows, are
+// drawn again, and so is whatever lies over the dim. False when the glass cannot (no frame buffer, a stream writing it).
+inline bool dim_on_glass(bool on) {
+  if (!root || !drawer) return false;
+  const lv_opa_t opa = on ? DIM : LV_OPA_TRANSP;
+  if (lv_obj_get_style_bg_opa(root, LV_PART_MAIN) == opa) return true;
+  lv_obj_update_layout(lv_layer_top());
+  lv_area_t a;
+  lv_obj_get_coords(drawer, &a);  // where it stands now, its translation included
+  const glass::Rect keep{a.x1, a.y1, lv_area_get_width(&a), std::min<int>(overlay_card::screen_height(), a.y2 + 1) - a.y1};
+  if (!screen_motion::dim(root, DIM, keep, on)) return false;
+  screen_motion::quietly(root, [&] { lv_obj_set_style_bg_opa(root, opa, 0); });
+  const int r = corner;
+  for (lv_area_t c : {lv_area_t{a.x1, a.y1, a.x1 + r - 1, a.y1 + r - 1}, lv_area_t{a.x2 - r + 1, a.y1, a.x2, a.y1 + r - 1},
+                      lv_area_t{a.x1, a.y2 - r + 1, a.x1 + r - 1, a.y2}, lv_area_t{a.x2 - r + 1, a.y2 - r + 1, a.x2, a.y2}})
+    lv_obj_invalidate_area(root, &c);
+  return true;
+}
 // While the drawer moves only the drawer is drawn: the dim behind it is a full-glass layer, and a dim that changed on
 // every frame had the software renderer draw the whole glass, every tile under it, for every frame of the way. So the
-// glass dims in one step once the drawer stands open, and clears in one step before it moves again.
+// glass dims in one step, and clears in one step before the drawer leaves: on the glass itself where it can, else
+// through LVGL, a whole redraw that waits until the drawer stands open.
 inline void dim(bool on) {
   if (!root) return;
   const lv_opa_t opa = on ? DIM : LV_OPA_TRANSP;
-  if (lv_obj_get_style_bg_opa(root, LV_PART_MAIN) != opa) lv_obj_set_style_bg_opa(root, opa, 0);
+  if (lv_obj_get_style_bg_opa(root, LV_PART_MAIN) == opa || dim_on_glass(on)) return;
+  lv_obj_set_style_bg_opa(root, opa, 0);
 }
 inline void settled(lv_anim_t *) { dim(true); }
 inline void set_rise(void *o, int32_t v) { lv_obj_set_style_translate_y(static_cast<lv_obj_t *>(o), v, 0); }
@@ -55,6 +82,10 @@ inline void animate(lv_obj_t *o, lv_anim_exec_xcb_t exec, int32_t from, int32_t 
   if (done) lv_anim_set_completed_cb(&a, done);
   exec(o, from);
   lv_anim_start(&a);
+}
+// The rest of the way after a finger let go, starting at its speed: `speed` in px a second, down positive.
+inline void carry(int32_t from, int32_t to, int speed, uint32_t longest, lv_anim_completed_cb_t done = nullptr) {
+  screen_motion::settle(drawer, set_rise, from, to, to < from ? -speed : speed, drawer_h, SHORTEST_MS, longest, done);
 }
 // The drawer is off the glass: its Dock goes.
 inline void gone(lv_anim_t *a) {
@@ -80,9 +111,9 @@ struct Lift {
 inline Lift lift;
 inline bool lifting() { return lift.on && drawer; }
 
-// Down and off the glass from wherever the drawer is now (a drag may have taken it part of the way): the dim goes at
-// once, then only the drawer moves.
-inline void close() {
+// Down and off the glass from wherever the drawer is now (a drag may have taken it part of the way), at the speed the
+// finger let it go (px a second, down positive): the dim goes at once, then only the drawer moves.
+inline void close_at(int speed) {
   lift.on = false;
   if (!root) return;
   drop_leaving();
@@ -93,13 +124,14 @@ inline void close() {
   if (drawer) {
     lv_anim_delete(drawer, nullptr);
     lv_obj_remove_flag(drawer, LV_OBJ_FLAG_CLICKABLE);
-    animate(drawer, set_rise, lv_obj_get_style_translate_y(drawer, LV_PART_MAIN), drawer_h, LEAVE_MS, 0, lv_anim_path_ease_in, gone);
+    carry(lv_obj_get_style_translate_y(drawer, LV_PART_MAIN), drawer_h, speed, LEAVE_MS, gone);
   } else {
     lv_obj_delete_async(leaving);
     leaving = nullptr;
   }
   drawer = strip = dots = nullptr;
 }
+inline void close() { close_at(0); }
 
 // A finger that moves down over the drawer takes it along; let go past a quarter of its height, or with a flick, it
 // closes, else it settles back. Sideways is the strip's, which LVGL scrolls; a drag never picks a page.
@@ -160,11 +192,11 @@ inline void on_drag(lv_event_t *e) {
     // A flick is some 15 cm a second, whatever the glass.
     if (drag.offset > drawer_h / 4 || drag.speed > ui::mm(150)) {
       ESP_LOGI("touch", "dock: dragged away");
-      close();
+      close_at(drag.speed);
       return;
     }
     ESP_LOGI("touch", "dock: drag of %d px back (%d px/s)", drag.offset, drag.speed);
-    animate(drawer, set_rise, drag.offset, 0, BACK_MS, 0, lv_anim_path_ease_out);
+    carry(drag.offset, 0, drag.speed, BACK_MS);
   }
 }
 
@@ -185,19 +217,19 @@ inline void lift_move(int y) {
   lift_to(y);
 }
 // Let go: a flick up opens it, a flick down closes it, and otherwise more than a quarter in view opens it. The rest of
-// the way takes as long as the part left, so a drawer let go nearly open does not crawl the last millimetres.
+// the way goes on at the finger's speed (carry), and the page dims the moment the finger lifts where the glass can.
 inline void lift_release() {
   if (!lifting()) { lift.on = false; return; }
   lift.on = false;
   const int rise = lv_obj_get_style_translate_y(drawer, LV_PART_MAIN), flick = ui::mm(50);
   if (lift.speed > flick || (lift.speed > -flick && rise > drawer_h * 3 / 4)) {
     ESP_LOGI("touch", "dock: let go at %d of %d px (%d px/s), closes", drawer_h - rise, drawer_h, lift.speed);
-    close();
+    close_at(lift.speed);
     return;
   }
   ESP_LOGI("touch", "dock: let go at %d of %d px (%d px/s), opens", drawer_h - rise, drawer_h, lift.speed);
-  const uint32_t ms = std::max<uint32_t>(120, SETTLE_MS * static_cast<uint32_t>(std::abs(rise)) / std::max(1, drawer_h));
-  animate(drawer, set_rise, rise, 0, ms, 0, lv_anim_path_ease_out, settled);
+  dim_on_glass(true);
+  carry(rise, 0, lift.speed, SETTLE_MS, settled);
 }
 
 inline void pick(lv_event_t *e) {
@@ -346,13 +378,14 @@ inline bool build(bool finger) {
   drawer_h = drawer_of(cols);
   // The drawer reaches below the glass by its corner and the overshoot's way, so the bottom never shows a gap.
   below = std::max(ui::mm(5), drawer_h / 8);
+  corner = ui::mm(6);
 
   drawer = lv_obj_create(root);
   lv_obj_remove_style_all(drawer);
   lv_obj_remove_flag(drawer, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_pos(drawer, (glass - W) / 2, H - drawer_h);
   lv_obj_set_size(drawer, W, drawer_h + below);
-  lv_obj_set_style_radius(drawer, ui::mm(6), 0);
+  lv_obj_set_style_radius(drawer, corner, 0);
   lv_obj_set_style_bg_opa(drawer, LV_OPA_COVER, 0);
   lv_obj_set_style_bg_color(drawer, theme::color(theme::RAISED), 0);
   for (auto code : {LV_EVENT_PRESSED, LV_EVENT_PRESSING, LV_EVENT_RELEASED, LV_EVENT_PRESS_LOST})
