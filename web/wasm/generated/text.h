@@ -1,5 +1,5 @@
 #include <string>
-static_assert(screen_text::KEYS_HASH == 0xD4DCEADBu && screen_text::KEY_COUNT == 525,
+static_assert(screen_text::KEYS_HASH == 0x87BB2B23u && screen_text::KEY_COUNT == 538,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 namespace screen_text {
 namespace languages {
@@ -528,7 +528,20 @@ const char *const table_0[] = {
     "Wird gebucht\342\200\246",
     "Kalender",
     "+{x} jetzt",
-    "Am Bildschirm gebucht"
+    "Am Bildschirm gebucht",
+    "{x} offen",
+    "Alles erledigt",
+    "+{x} weitere",
+    "Erledigt",
+    "Eintrag hinzuf\303\274gen",
+    "{x} hinzugef\303\274gt",
+    "Umbenennen",
+    "Entfernen",
+    "Abbrechen",
+    "{x} erledigte entfernen?",
+    "Laden",
+    "Nichts auf der Liste",
+    "Gestern"
 };
 int plural_0(int n) { return n == 1 ? 0 : 1; }
 const char *const table_1[] = {
@@ -1056,7 +1069,20 @@ const char *const table_1[] = {
     "Booking\342\200\246",
     "Calendars",
     "+{x} now",
-    "Booked on the screen"
+    "Booked on the screen",
+    "{x} open",
+    "All done",
+    "+{x} more",
+    "Completed",
+    "Add item",
+    "{x} added",
+    "Rename",
+    "Remove",
+    "Cancel",
+    "Remove {x} completed?",
+    "Loading",
+    "Nothing on the list",
+    "Yesterday"
 };
 int plural_1(int n) { return n == 1 ? 0 : 1; }
 const char *const table_2[] = {
@@ -1584,7 +1610,20 @@ const char *const table_2[] = {
     "Booking\342\200\246",
     "Calendars",
     "+{x} now",
-    "Booked on the screen"
+    "Booked on the screen",
+    "{x} open",
+    "All done",
+    "+{x} more",
+    "Completed",
+    "Add item",
+    "{x} added",
+    "Rename",
+    "Remove",
+    "Cancel",
+    "Remove {x} completed?",
+    "Loading",
+    "Nothing on the list",
+    "Yesterday"
 };
 int plural_2(int n) { return n == 1 ? 0 : 1; }
 const char *const table_3[] = {
@@ -2112,7 +2151,20 @@ const char *const table_3[] = {
     "Reservando\342\200\246",
     "Calendarios",
     "+{x} ahora",
-    "Reservado en la pantalla"
+    "Reservado en la pantalla",
+    "{x} pendientes",
+    "Todo hecho",
+    "+{x} m\303\241s",
+    "Completado",
+    "A\303\261adir elemento",
+    "{x} a\303\261adido",
+    "Renombrar",
+    "Eliminar",
+    "Cancelar",
+    "\302\277Eliminar {x} completados?",
+    "Cargando",
+    "Nada en la lista",
+    "Ayer"
 };
 int plural_3(int n) { return n == 1 ? 0 : 1; }
 const char *const table_4[] = {
@@ -2640,7 +2692,20 @@ const char *const table_4[] = {
     "R\303\251servation\342\200\246",
     "Calendriers",
     "+{x} maintenant",
-    "R\303\251serv\303\251 sur l'\303\251cran"
+    "R\303\251serv\303\251 sur l'\303\251cran",
+    "{x} \303\240 faire",
+    "Tout est fait",
+    "+{x} de plus",
+    "Termin\303\251",
+    "Ajouter un \303\251l\303\251ment",
+    "{x} ajout\303\251",
+    "Renommer",
+    "Supprimer",
+    "Annuler",
+    "Supprimer {x} termin\303\251s ?",
+    "Chargement",
+    "Rien sur la liste",
+    "Hier"
 };
 int plural_4(int n) { return (n < 0 ? -n : n) <= 1 ? 0 : 1; }
 const char *const table_5[] = {
@@ -3168,7 +3233,20 @@ const char *const table_5[] = {
     "Foglal\303\241s\342\200\246",
     "Napt\303\241rak",
     "+{x} most",
-    "A kijelz\305\221n foglalva"
+    "A kijelz\305\221n foglalva",
+    "{x} nyitott",
+    "Minden k\303\251sz",
+    "+{x} tov\303\241bbi",
+    "K\303\251sz",
+    "Elem hozz\303\241ad\303\241sa",
+    "{x} hozz\303\241adva",
+    "\303\201tnevez\303\251s",
+    "Elt\303\241vol\303\255t\303\241s",
+    "M\303\251gse",
+    "{x} k\303\251sz elem t\303\266rl\303\251se?",
+    "Bet\303\266lt\303\251s",
+    "Nincs semmi a list\303\241n",
+    "Tegnap"
 };
 int plural_5(int n) { return n == 1 ? 0 : 1; }
 const char *const table_6[] = {
@@ -3696,7 +3774,20 @@ const char *const table_6[] = {
     "Prenotazione\342\200\246",
     "Calendari",
     "+{x} ora",
-    "Prenotato sullo schermo"
+    "Prenotato sullo schermo",
+    "{x} da fare",
+    "Tutto fatto",
+    "+{x} altri",
+    "Completati",
+    "Aggiungi elemento",
+    "{x} aggiunto",
+    "Rinomina",
+    "Rimuovi",
+    "Annulla",
+    "Rimuovere {x} completati?",
+    "Caricamento",
+    "Niente nella lista",
+    "Ieri"
 };
 int plural_6(int n) { return n == 1 ? 0 : 1; }
 const char *const table_7[] = {
@@ -4224,7 +4315,20 @@ const char *const table_7[] = {
     "Boeken\342\200\246",
     "Agenda's",
     "+{x} nu",
-    "Geboekt op het scherm"
+    "Geboekt op het scherm",
+    "{x} open",
+    "Alles gedaan",
+    "+{x} meer",
+    "Afgevinkt",
+    "Item toevoegen",
+    "{x} toegevoegd",
+    "Naam wijzigen",
+    "Verwijderen",
+    "Annuleren",
+    "{x} afgevinkte verwijderen?",
+    "Laden",
+    "Niets op de lijst",
+    "Gisteren"
 };
 int plural_7(int n) { return n == 1 ? 0 : 1; }
 const char *const table_8[] = {
@@ -4752,7 +4856,20 @@ const char *const table_8[] = {
     "Rezerwacja\342\200\246",
     "Kalendarze",
     "+{x} teraz",
-    "Zarezerwowano na ekranie"
+    "Zarezerwowano na ekranie",
+    "{x} do zrobienia",
+    "Wszystko zrobione",
+    "+{x} wi\304\231cej",
+    "Uko\305\204czone",
+    "Dodaj pozycj\304\231",
+    "Dodano: {x}",
+    "Zmie\305\204 nazw\304\231",
+    "Usu\305\204",
+    "Anuluj",
+    "Usun\304\205\304\207 uko\305\204czone ({x})?",
+    "Wczytywanie",
+    "Nic na li\305\233cie",
+    "Wczoraj"
 };
 int plural_8(int n) { if (n == 1) return 0; int t = n % 10, h = n % 100; return t >= 2 && t <= 4 && (h < 12 || h > 14) ? 1 : 2; }
 const char *const table_9[] = {
@@ -5280,7 +5397,20 @@ const char *const table_9[] = {
     "A reservar\342\200\246",
     "Calend\303\241rios",
     "+{x} agora",
-    "Reservado no ecr\303\243"
+    "Reservado no ecr\303\243",
+    "{x} por fazer",
+    "Tudo feito",
+    "+{x} mais",
+    "Conclu\303\255do",
+    "Adicionar item",
+    "{x} adicionado",
+    "Renomear",
+    "Remover",
+    "Cancelar",
+    "Remover {x} conclu\303\255dos?",
+    "A carregar",
+    "Nada na lista",
+    "Ontem"
 };
 int plural_9(int n) { return n == 1 ? 0 : 1; }
 const char *const table_10[] = {
@@ -5808,7 +5938,20 @@ const char *const table_10[] = {
     "\320\221\321\200\320\276\320\275\320\270\321\200\320\276\320\262\320\260\320\275\320\270\320\265\342\200\246",
     "\320\232\320\260\320\273\320\265\320\275\320\264\320\260\321\200\320\270",
     "+{x} \321\201\320\265\320\271\321\207\320\260\321\201",
-    "\320\227\320\260\320\261\321\200\320\276\320\275\320\270\321\200\320\276\320\262\320\260\320\275\320\276 \321\201 \321\215\320\272\321\200\320\260\320\275\320\260"
+    "\320\227\320\260\320\261\321\200\320\276\320\275\320\270\321\200\320\276\320\262\320\260\320\275\320\276 \321\201 \321\215\320\272\321\200\320\260\320\275\320\260",
+    "\320\236\321\201\321\202\320\260\320\273\320\276\321\201\321\214: {x}",
+    "\320\222\321\201\321\221 \321\201\320\264\320\265\320\273\320\260\320\275\320\276",
+    "\320\265\321\211\321\221 {x}",
+    "\320\222\321\213\320\277\320\276\320\273\320\275\320\265\320\275\320\276",
+    "\320\224\320\276\320\261\320\260\320\262\320\270\321\202\321\214",
+    "\320\224\320\276\320\261\320\260\320\262\320\273\320\265\320\275\320\276: {x}",
+    "\320\237\320\265\321\200\320\265\320\270\320\274\320\265\320\275\320\276\320\262\320\260\321\202\321\214",
+    "\320\243\320\264\320\260\320\273\320\270\321\202\321\214",
+    "\320\236\321\202\320\274\320\265\320\275\320\260",
+    "\320\243\320\264\320\260\320\273\320\270\321\202\321\214 \320\262\321\213\320\277\320\276\320\273\320\275\320\265\320\275\320\275\321\213\320\265 ({x})?",
+    "\320\227\320\260\320\263\321\200\321\203\320\267\320\272\320\260",
+    "\320\241\320\277\320\270\321\201\320\276\320\272 \320\277\321\203\321\201\321\202",
+    "\320\222\321\207\320\265\321\200\320\260"
 };
 int plural_10(int n) { int t = n % 10, h = n % 100; if (t == 1 && h != 11) return 0; return t >= 2 && t <= 4 && (h < 12 || h > 14) ? 1 : 2; }
 struct Language { const char *code; const char *const *table; int (*plural)(int); };
