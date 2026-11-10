@@ -95,11 +95,12 @@ class IconSetTests(unittest.TestCase):
         self.assertIn(f'"\\U000{editor["sun"]["above_horizon"]}" : "\\U000{editor["sun"]["below_horizon"]}"', HEADER)
 
 class IconOptionTests(unittest.IsolatedAsyncioTestCase):
-    def test_validation_accepts_the_set_and_auto_only(self):
-        for value in ('auto', 'lamp', 'spotify', 'speaker'):
+    def test_validation_accepts_any_icon_and_auto_only(self):
+        # Which icons a screen can draw is its own (docs/ICONS.md): the layout holds any icon's name.
+        for value in ('auto', 'lamp', 'spotify', 'speaker', 'weather-fog', 'star-circle'):
             layout = validate_layout({'title': 'Home', 'tiles': [{'entity': 'media_player.a', 'options': {'icon': value}}]})
             self.assertEqual(layout['tiles'][0]['options']['icon'], value)
-        for value in ('mdi:lamp', 'F06B5', 'weather-fog', 'unknown', '', None, 42, ['lamp']):
+        for value in ('mdi:lamp', 'F06B5', 'no-such-icon', '', None, 42, ['lamp']):
             with self.assertRaises(ValueError):
                 validate_layout({'title': 'Home', 'tiles': [{'entity': 'light.a', 'options': {'icon': value}}]})
 

@@ -19,6 +19,8 @@
   recipe for the code).
 - [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md): a wall button, a temperature sensor or other parts on a screen's spare pins,
   through its Override YAML.
+- [ICONS.md](ICONS.md): the icons every screen carries, the ones you add per screen and why that takes a build (also a
+  recipe for the code).
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
   if you flash them yourself.
 

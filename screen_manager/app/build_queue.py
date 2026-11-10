@@ -32,7 +32,7 @@ LOG = logging.getLogger('screen_manager')
 
 # The kinds of build, as the page names them (Manager.builds `by`): an update joins anything of its screen that waits,
 # since it builds the same profile and does more.
-KINDS = ('update', 'plugins', 'install', 'check')
+KINDS = ('update', 'plugins', 'icons', 'install', 'check')
 WAITING, RUNNING = 'queued', 'running'
 ENDS = ('success', 'failed', 'skipped', 'interrupted')
 
@@ -65,6 +65,8 @@ class Build:
         # a part that needs what an earlier build put a placeholder for (Screen camera's video and the empty esp_h264 of
         # its JPEG-only builds) would find the placeholder.
         self.fresh = bool((plugins or {}).get('fresh'))
+        # Brings the icons the screen's plugins file was just written with (screen_icons.py).
+        self.icons = by == 'icons'
         self.state, self.phase, self.reason = WAITING, None, None
         self.asked, self.started, self.finished = time.time(), None, None
         # Whether the profile itself went onto the screen (an install of `file` that succeeded, not its bridge's): what a
@@ -92,6 +94,7 @@ class Build:
         for key in ('add', 'remove'):
             self.plugins[key] = sorted(set(self.plugins[key]) | set(other.plugins[key]))
         self.fresh = self.fresh or other.fresh
+        self.icons = self.icons or other.icons
         # A plugin taken off now is no longer added, and the other way round.
         self.plugins['add'] = [p for p in self.plugins['add'] if p not in other.plugins['remove']]
         self.plugins['remove'] = [p for p in self.plugins['remove'] if p not in other.plugins['add']]
@@ -215,6 +218,10 @@ class BuildQueue:
             build = self.running
             state = 'failed'
             try:
+                # A screen's plugins file is written again first: the icons in it follow this app's fixed set.
+                icons = getattr(self.manager, 'icons', None)
+                if icons:
+                    icons.before_build(build)
                 if build.fresh and build.file:
                     await self.firmware.clean_build(build.file)
                 state = await build.run(build) or 'success'

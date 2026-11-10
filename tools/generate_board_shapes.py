@@ -212,6 +212,8 @@ def shapes():
                  # a board with 4 MB of flash, where it would take some 90 KB of the update slot (profiles.hotspot).
                  # The manager writes a new screen's YAML by it and takes both out of an older one before it builds.
                  'hotspot': profiles.hotspot(board),
+                 # Whether a screen of this board may take icons of its own (docs/ICONS.md): not on 4 MB of flash, full as it is.
+                 'own_icons': profiles.flash_mb(board) > 4,
                  # Whether its flash takes the wide table (firmware 0.33.1+, profiles.wide_slots): the manager then
                  # writes `allow_partition_access` into a screen's own YAML and sends a screen that still has
                  # ESPHome's table the wide one after an update (docs/FLASH_LAYOUT.md).

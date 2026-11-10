@@ -1272,7 +1272,7 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
                      'icon': item.get('icon', 'auto'), 'show': item.get('show', 'always')}
             if clean['content'] not in HEADER_CONTENTS or clean['show'] not in HEADER_SHOWS:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
-            if not (clean['icon'] in ('auto', 'none') or isinstance(clean['icon'], str) and clean['icon'] in tile_icons.ICONS):
+            if not (clean['icon'] in ('auto', 'none') or tile_icons.known(clean['icon'])):
                 raise ValueError(t('addon.errors.choose_icon'))
             # An item that shows its icon alone needs one.
             if clean['content'] == 'icon' and clean['icon'] == 'none':
@@ -1949,7 +1949,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 raise ValueError(t('addon.errors.layout.invalid_setting', setting='tap'))
             if 'background' in options and (not isinstance(options['background'], str) or options['background'] not in TILE_BACKGROUNDS):
                 raise ValueError(t('addon.errors.layout.background'))
-            if 'icon' in options and not (options['icon'] == 'auto' or isinstance(options['icon'], str) and options['icon'] in tile_icons.ICONS):
+            if 'icon' in options and not (options['icon'] == 'auto' or tile_icons.known(options['icon'])):
                 raise ValueError(t('addon.errors.choose_icon'))
             if options:
                 item['options'] = deepcopy(options)
@@ -1979,7 +1979,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours')}
             if 'background' in options and (not isinstance(options['background'],str) or options['background'] not in TILE_BACKGROUNDS):
                 raise ValueError(t('addon.errors.layout.background'))
-            if 'icon' in options and not (options['icon'] == 'auto' or isinstance(options['icon'], str) and options['icon'] in tile_icons.ICONS):
+            if 'icon' in options and not (options['icon'] == 'auto' or tile_icons.known(options['icon'])):
                 raise ValueError(t('addon.errors.choose_icon'))
             domain = tile['entity'].split('.')[0]
             # The bedside clock is the whole page, always, and the only tile with keys.
@@ -2559,9 +2559,8 @@ def tile_icon(tile, attrs, state=None, entry=None):
     """Codepoint the screen shows: the chosen icon, else HA's own mdi icon, else the icon Home Assistant's frontend shows
     for this state (app 0.2.67); None keeps the firmware default."""
     choice = tile.get('options', {}).get('icon', 'auto')
-    if choice in tile_icons.ICONS:
-        return tile_icons.ICONS[choice][0]
-    return tile_icons.ha_icon(attrs) or tile_icons.default_glyph(tile['entity'], state, attrs, entry)
+    # A chosen icon this screen's firmware does not have (yet) is left to Home Assistant's, as `auto` is (docs/ICONS.md).
+    return tile_icons.carried(choice) or tile_icons.ha_icon(attrs) or tile_icons.default_glyph(tile['entity'], state, attrs, entry)
 
 def screen_options(tile, attrs, state=None, entry=None):
     """Stored options on the wire; `icon` travels as the resolved codepoint (firmware 0.2.18+, ignored before)

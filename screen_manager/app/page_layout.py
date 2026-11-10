@@ -451,7 +451,7 @@ def validate_document(data, grid):
     for page in pages:
         # `icon` (optional): a pickable MDI icon by name, which the Dock shows for the page instead of its picture.
         _object(page, {"id", "navigation", "topbar", "tiles", "icon"}, {"id", "navigation", "topbar", "tiles"})
-        if "icon" in page and (not isinstance(page["icon"], str) or page["icon"] not in tile_icons.ICONS):
+        if "icon" in page and (not isinstance(page["icon"], str) or not tile_icons.known(page["icon"])):
             raise LayoutError(t('addon.errors.pages.fields'))
         _identity(page["id"], seen, page=True)
     page_ids = seen.copy()

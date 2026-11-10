@@ -79,6 +79,7 @@ from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, compile_tiles, grid
 from layout_migrations import migrate_legacy
 import page_delivery
 import page_service
+import screen_icons
 import preview_images
 import preview_events
 from page_capabilities import CapabilityCache, identity as page_identity
@@ -1042,6 +1043,7 @@ class Manager:
         self.build_server = self.firmware.server = build_server.BuildServer(self.path.parent, self.notify)
         # Plugins (docs/PLUGINS.md): which exist, which each screen runs, their files and their tiles' data.
         self.plugins = plugins.Plugins(self, self.path.parent, self.firmware.root)
+        self.icons = screen_icons.ScreenIcons(self, self.path.parent)
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
@@ -1583,6 +1585,7 @@ class Manager:
         self.page_senders.pop(old, None)
         self.page_capabilities.forget(old)
         self.page_values.pop(old, None)
+        self.icons.renamed(old, new)
         if self.updates.renamed(old, new):
             moved.append('update history')
         for store in (self.sent, self.status, self.last, self.pinged):
@@ -1798,6 +1801,7 @@ class Manager:
                 await self.ha.remove_state(sensor)
         self.forget_inbox(inbox)
         self.plugins.forget_screen(inbox)
+        self.icons.forget_screen(inbox)
         self.labels.forget(screen.get('device_id'))
         self.hangs.forget(screen.get('device_id'))
         self.savers.forget(screen.get('device_id'))
@@ -3283,6 +3287,10 @@ class Manager:
         return await page_service.sync_pages(self, inbox=inbox, record=record, screen=screen, dirty=dirty, force=force, context=context)
 
     async def sync_one(self, inbox, layout, force=False, screen=None, dirty=None):
+        with tile_icons.carrying(self.icons.on_screen(inbox)):
+            return await self._sync_screen(inbox, layout, force, screen, dirty)
+
+    async def _sync_screen(self, inbox, layout, force=False, screen=None, dirty=None):
         """Send the screen what it lacks; True when something went out.
 
         `dirty` is the set of entity ids whose state changed since the last pass: only their tiles
@@ -3654,6 +3662,10 @@ class Manager:
                                       getattr(self.ha, 'time_zone', None), getattr(self.ha, 'state_words', None))[0]
 
     async def sync_saver(self, inbox, screen):
+        with tile_icons.carrying(self.icons.on_screen(inbox)):
+            return await self._sync_saver(inbox, screen)
+
+    async def _sync_saver(self, inbox, screen):
         """Tell a screen that takes a screensaver (its hello lists it, firmware 0.29.0+) what it shows now, whenever that
         changes and once in every new session. A small message in the screen's session, as a camera's answer is. Only
         once the screen holds a layout: before it confirmed one (a saved layout that waits for its grid to be adapted,
@@ -5752,6 +5764,32 @@ def create_app(manager, development=False):
         return web.Response(body=body, content_type='image/png', headers={'Cache-Control': 'max-age=60'})
     app.router.add_get('/api/vacuum/preview', vacuum_preview)
     app.router.add_get('/api/vacuum/map', vacuum_map_picture)
+    # The icons a screen takes on top of the fixed set (screen_icons.py, docs/ICONS.md).
+    async def icons_all(request):
+        return web.json_response({'icons': tile_icons.mdi()})
+
+    async def icons_view(request):
+        return web.json_response(manager.icons.view(request.match_info['inbox']))
+
+    async def icons_choose(request):
+        data = await request.json()
+        return web.json_response(manager.icons.choose(request.match_info['inbox'], data.get('icons') if isinstance(data, dict) else None))
+
+    async def icons_build(request):
+        inbox = request.match_info['inbox']
+        outcome = manager.icons.apply(inbox)
+        return web.json_response({**outcome, 'view': manager.icons.view(inbox)})
+
+    async def icons_everywhere(request):
+        inbox = request.match_info['inbox']
+        outcome = manager.icons.apply_everywhere(inbox)
+        return web.json_response({**outcome, 'view': manager.icons.view(inbox)})
+
+    app.router.add_get('/api/icons', icons_all)
+    app.router.add_get('/api/screens/{inbox}/icons', icons_view)
+    app.router.add_put('/api/screens/{inbox}/icons', icons_choose)
+    app.router.add_post('/api/screens/{inbox}/icons/build', icons_build)
+    app.router.add_post('/api/screens/{inbox}/icons/everywhere', icons_everywhere)
     app.router.add_get('/api/screens/{inbox}/extras', extras)
     app.router.add_get('/api/screens/{inbox}/extras/events', extras_events)
     app.router.add_post('/api/screens/{inbox}/extras', extra)

@@ -86,8 +86,9 @@ def page_message(page, index, items, *, initial):
         if page["navigation"].get("showInDock") is False:
             message["dock"] = False
         # A page's own icon, which the Dock shows instead of its picture: its codepoint, as a tile's icon travels.
-        if page.get("icon") in tile_icons.GLYPHS:
-            message["icon"] = tile_icons.GLYPHS[page["icon"]]
+        icon = tile_icons.carried(page.get("icon"))
+        if icon:
+            message["icon"] = icon
     return message
 
 

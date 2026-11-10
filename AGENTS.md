@@ -34,6 +34,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
 | change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `glass_dsi_refresh.cpp`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
+| add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
