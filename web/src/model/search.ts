@@ -1,32 +1,32 @@
-// The editor's searches, one way everywhere (the library, ⌘K, the pickers, New screen, the plugins): what is typed is
-// compared without case in the language's own way, against the fields of a thing joined by spaces, so a query may run
-// from one field into the next as it always could. A query of several words that must each be somewhere is
-// matchesWords; the order Spotlight gives (a name that starts with it, then one with a word that does) is prefixRank.
+// The editor's searches, one way everywhere (the library, ⌘K, the pickers, New screen, the plugins): each word typed
+// must be somewhere in the fields of a thing, in any order and in any field ("kitchen lamp" finds a Lamp in the room
+// Kitchen). Case, accents, and whether a word is joined by a space, a dash or an underscore make no difference. That is
+// matchesQuery from the text as typed and matchesWords from queryWords; the order Spotlight gives (a name that starts
+// with it, then one with a word that does) is prefixRank.
 
-/** The query as it is compared: without the spaces around it, in lower case. */
-export const normalizedQuery = (query: string) => query.trim().toLocaleLowerCase();
-/** The words of a query, in lower case. */
-export const queryWords = (query: string) => query.toLocaleLowerCase().split(/\s+/).filter(Boolean);
-// The fields of a thing as one text: an empty field still takes its place between the spaces.
-const haystack = (fields: readonly (string | number | null | undefined)[]) => fields.map((field) => field ?? "").join(" ").toLocaleLowerCase();
+// A text as it is compared: in lower case, without accents, and one space wherever spaces, dashes or underscores stand.
+const plain = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase().replace(/[\s_-]+/g, " ").trim();
+/** The words of a query, as they are compared. */
+export const queryWords = (query: string) => plain(query).split(" ").filter(Boolean);
+// The fields of a thing as one text.
+const haystack = (fields: readonly (string | number | null | undefined)[]) => plain(fields.map((field) => field ?? "").join(" "));
 
-/** Whether the fields hold what is typed; an empty query matches everything. */
-export function matchesQuery(query: string, ...fields: (string | number | null | undefined)[]) {
-  const wanted = normalizedQuery(query);
-  return !wanted || haystack(fields).includes(wanted);
-}
-/** Whether every word is somewhere in the fields (words in lower case, as queryWords gives them). */
+/** Whether every word typed is somewhere in the fields; an empty query matches everything. */
+export const matchesQuery = (query: string, ...fields: (string | number | null | undefined)[]) => matchesWords(queryWords(query), ...fields);
+/** Whether every word is somewhere in the fields (words as queryWords gives them). */
 export function matchesWords(words: readonly string[], ...fields: (string | number | null | undefined)[]) {
   const text = haystack(fields);
   return words.every((word) => text.includes(word));
 }
 /** The words of a name: split at spaces, dashes and underscores. */
 export const nameWords = (name: string) => name.toLocaleLowerCase().split(/[\s_-]+/);
-/** How well a name answers a query, for the order of what is found: 0 when it starts with it, 1 when one of its words
- * does, 2 otherwise. */
+/** How well a name answers a query, for the order of what is found: 0 when it starts with it, 1 when each word typed
+ * starts a word of the name, 2 when the name holds them all, 3 when it took the other fields to find it. */
 export function prefixRank(name: string, query: string) {
-  const wanted = normalizedQuery(query), lower = name.toLocaleLowerCase();
-  return lower.startsWith(wanted) ? 0 : nameWords(name).some((word) => word.startsWith(wanted)) ? 1 : 2;
+  const wanted = plain(query), lower = plain(name), asked = wanted.split(" "), words = lower.split(" ");
+  if (lower.startsWith(wanted)) return 0;
+  if (asked.every((word) => words.some((own) => own.startsWith(word)))) return 1;
+  return asked.every((word) => lower.includes(word)) ? 2 : 3;
 }
 /** The values that match what is typed, ignoring case, spaces, dashes and underscores ("vol" finds VOLUME_UP): those
  * that start with it or have a word that does first, then those that have it anywhere. */

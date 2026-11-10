@@ -1898,7 +1898,7 @@
     "library": {
       "title": "Library",
       "entities": "{n} entity | {n} entities",
-      "search": "Search by name, device, or room…",
+      "search": "Search by name, room, device or type…",
       "search_label": "Add an entity",
       "filters": {
         "all": "All",
@@ -1916,6 +1916,7 @@
         "vacuum": "Vacuum",
         "sensor": "Sensors",
         "media_player": "Media",
+        "camera": "Cameras",
         "weather": "Weather",
         "number": "Values",
         "select": "Selects",
@@ -1933,6 +1934,8 @@
       "again": "Already on this screen; add it again for another tile",
       "all_placed": "Everything here is already on this screen.",
       "none_found": "No entities found. Try a different name, room or filter.",
+      "found_elsewhere": "Nothing in this selection, but 1 entity matches in the whole library. | Nothing in this selection, but {n} entities match in the whole library.",
+      "search_everything": "Show all matches",
       "full": "This screen holds 1 tile. | This screen holds {n} tiles.",
       "full_update": "This screen holds 1 tile; update its firmware for 48. | This screen holds {n} tiles; update its firmware for 48.",
       "hint": "Drag onto a page, or tap + to add to the first free slot. ⌘K searches everything.",

@@ -1489,7 +1489,7 @@ class Manager:
 
     def inventory(self):
         """(screens, every tile/top-bar entity): the full walk over the registry, for the editor and saving."""
-        return discover(self.ha.registry, self.ha.states, self.ha.devices, self.ha.areas)
+        return discover(self.ha.registry, self.ha.states, self.ha.devices, self.ha.areas, list(getattr(self.ha, 'words_by_language', {}).values()))
 
     def screen_registry(self):
         """The few registry entries that describe screens; rebuilt only when HA delivers a new registry."""

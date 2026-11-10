@@ -541,6 +541,7 @@ a:hover { text-decoration: underline; }
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(208px, 1fr)); gap: 6px; }
 .lib-list > .hint, .lib-list > .lib-foot { margin: 12px 2px 0; }
 .lib-empty { padding: 28px 0; text-align: center; }
+.lib-everything { color: var(--accent); font-weight: 600; }
 /* manipulation like .tile: a finger scrolls either way from here, a hold starts a drag (app 0.2.78). */
 .ent { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px; border-radius: 8px; width: 100%; text-align: left; cursor: grab; touch-action: manipulation; border: 1px solid var(--line); background: var(--surface); transition: border-color 0.12s, background 0.12s, box-shadow 0.12s; }
 .ent:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface-2); }

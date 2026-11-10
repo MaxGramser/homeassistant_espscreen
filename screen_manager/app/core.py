@@ -3035,8 +3035,18 @@ def unavailable_since(state):
     since = epoch(state.get('last_changed')) if state.get('state') == 'unavailable' else None
     return {'unavailable_since': since} if since is not None else {}
 
-def discover(registry, states, devices, areas):
-    """(screens, entities): the paired screens and every entity a tile or the top bar can show."""
+def kind_words(entity_id, attributes, word_sets):
+    """What an entity measures or is, for the library's search: its device class ("temperature") and Home Assistant's own
+    name of it in each language the app holds ("Temperatuur"), so a sensor is found by what it is whatever it is called."""
+    device_class = attributes.get('device_class') if isinstance(attributes, dict) else None
+    if not isinstance(device_class, str) or not device_class:
+        return ''
+    key = f"component.{entity_id.split('.', 1)[0]}.entity_component.{device_class}.name"
+    return ' '.join(dict.fromkeys([device_class.replace('_', ' '), *(words[key] for words in word_sets if isinstance(words.get(key), str))]))
+
+def discover(registry, states, devices, areas, word_sets=()):
+    """(screens, entities): the paired screens and every entity a tile or the top bar can show. `word_sets` are Home
+    Assistant's words per language (kind_words)."""
     device_map = {d['id']: d for d in devices}
     area_map = {a['area_id']: a['name'] for a in areas}
     screens = discover_screens(registry, states, devices, areas)
@@ -3054,6 +3064,7 @@ def discover(registry, states, devices, areas):
                          'state': state.get('state', 'unavailable'),
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
+                         **({'words': words} if (words := kind_words(eid, state.get('attributes'), word_sets)) else {}),
                          **({} if tile else {'tile': False}), **unavailable_since(state)})
     # YAML entities may not have an entity-registry entry. Their icon is the one the screen gets (tile_icon): Home
     # Assistant's own, else the one its frontend shows for the state, as for a registered entity (app 0.4.90; before, a
@@ -3065,6 +3076,7 @@ def discover(registry, states, devices, areas):
         if (tile or header_entity(eid)) and eid not in registered and eid not in in_registry:
             entities.append({'id': eid, 'name': state.get('attributes', {}).get('friendly_name', eid), 'device': '', 'area': '', 'state': state['state'],
                              'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes')),
+                             **({'words': words} if (words := kind_words(eid, state.get('attributes'), word_sets)) else {}),
                              **({} if tile else {'tile': False}), **unavailable_since(state)})
     return screens, sorted(entities, key=lambda e: e['name'].casefold())
 

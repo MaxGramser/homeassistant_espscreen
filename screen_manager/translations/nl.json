@@ -1898,7 +1898,7 @@
     "library": {
       "title": "Bibliotheek",
       "entities": "{n} entiteit | {n} entiteiten",
-      "search": "Zoek op naam, apparaat of ruimte…",
+      "search": "Zoek op naam, ruimte, apparaat of soort…",
       "search_label": "Voeg een entiteit toe",
       "filters": {
         "all": "Alles",
@@ -1916,6 +1916,7 @@
         "vacuum": "Stofzuigers",
         "sensor": "Sensoren",
         "media_player": "Media",
+        "camera": "Camera's",
         "weather": "Weer",
         "number": "Waarden",
         "select": "Keuzelijsten",
@@ -1933,6 +1934,8 @@
       "again": "Staat al op dit scherm; voeg het nog eens toe voor een extra tegel",
       "all_placed": "Alles hier staat al op dit scherm.",
       "none_found": "Geen entiteiten gevonden. Probeer een andere naam, ruimte of filter.",
+      "found_elsewhere": "Niets in deze selectie, maar 1 entiteit past in de hele bibliotheek. | Niets in deze selectie, maar {n} entiteiten passen in de hele bibliotheek.",
+      "search_everything": "Toon alles wat past",
       "full": "Op dit scherm past 1 tegel. | Op dit scherm passen {n} tegels.",
       "full_update": "Op dit scherm past 1 tegel; werk de firmware bij voor 48. | Op dit scherm passen {n} tegels; werk de firmware bij voor 48.",
       "hint": "Sleep naar een pagina, of tik op + voor de eerste vrije plek. ⌘K doorzoekt alles.",

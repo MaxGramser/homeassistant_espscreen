@@ -5,14 +5,14 @@
 // entity stand in a column on the left and the entities beside them, grouped by room until a search ranks them.
 // Its top edge drags it taller or lower, and both are remembered.
 // A click adds the entity to the marked empty cell or the first free one; a drag puts it exactly where it lands.
-import { useEventListener, useTimeoutFn } from "@vueuse/core";
+import { useEventListener, useInfiniteScroll, useTimeoutFn } from "@vueuse/core";
 import { computed, nextTick, ref, watch } from "vue";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { domainInfo } from "../model/layout";
 import { glyph } from "../model/topbar";
-import { entryDetail, entryTone as tone, kindCounts, libraryBase, libraryGroups, libraryMatches, markOf, roomCounts, shortName as short, SHOWN, tileCounts,
-  type Entry } from "../model/library";
+import { entryDetail, entryTone as tone, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, ROWS_AT_ONCE, shortName as short, tileCounts,
+  type Entry, type LibraryFilter } from "../model/library";
 import { tilePalette } from "../model/tile-palette";
 import { usePreference } from "../composables/usePreference";
 import { useResizeHandle } from "../composables/useResizeHandle";
@@ -70,22 +70,39 @@ const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.p
 const pagesOffered = computed(() => Math.min(doc.editorLayout.grid.pages, Math.max(8, (doc.document?.pages.length || 0) + 1)));
 const query = computed(() => ui.search.trim().toLocaleLowerCase());
 // What the search and the hide switch leave over (model/library.ts). The picker offers what a tile can show; camera and
-// image tiles need a board that draws pictures (app 0.2.66). The screen's own cards and plugin tiles first: the list
-// shows the first 80, and these are few.
-const base = computed(() => libraryBase([...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities],
-  { query: query.value, pages: pagesOffered.value, pictures: scr.pictures, textTiles: Boolean(scr.currentScreen?.text_tiles), hidePlaced: ui.hidePlaced, counts: chosen.value }));
+// image tiles need a board that draws pictures (app 0.2.66).
+const entries = computed(() => [...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities]);
+const filterNow = computed<LibraryFilter>(() => ({ query: query.value, pages: pagesOffered.value, pictures: scr.pictures, textTiles: Boolean(scr.currentScreen?.text_tiles), hidePlaced: ui.hidePlaced, counts: chosen.value }));
+const base = computed(() => libraryBase(entries.value, filterNow.value));
 const pool = computed(() => base.value.filter((e) => !ui.room || e.area === ui.room));
 const matches = computed(() => libraryMatches(pool.value, ui.filter, query.value));
-const shownList = computed(() => matches.value.slice(0, SHOWN));
+// Nothing here for what is typed, because of a kind, a room or the hide switch: how many the whole library has for it.
+const elsewhere = computed(() => query.value && !matches.value.length && (ui.filter || ui.room || ui.hidePlaced)
+  ? libraryBase(entries.value, { ...filterNow.value, hidePlaced: false }).length : 0);
+function searchEverything() { ui.filter = ""; ui.room = ""; ui.hidePlaced = false; }
 // Browsing, the entities stand under their room, and the screen's own cards last; a search or a room is one list.
 const grouped = computed(() => !query.value && !ui.room);
-const groups = computed(() => libraryGroups(shownList.value, grouped.value));
-// The order the arrow keys walk: the groups as they stand.
-const flat = computed(() => groups.value.flatMap((group) => group.entities));
-// The states of what is shown, asked once the list has stood still a moment (180 ms), again every minute, and never for a
-// folded drawer; the wait goes with the drawer.
-const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(shownList.value.map((entity) => entity.id), doc.stillSelected()), 180, { immediate: false });
-watch(() => [open.value, shownList.value.map((entity) => entity.id).join('|'), Math.floor(ui.now / 60000)],
+const allGroups = computed(() => libraryGroups(matches.value, grouped.value));
+// The order the arrow keys walk: the groups as they stand, also what the list has not come to yet.
+const flat = computed(() => allGroups.value.flatMap((group) => group.entities));
+// Everything is listed, but a home's thousand entities don't stand on the page at once: the rows come as the list is
+// scrolled towards them, and a new search or kind starts at the top again.
+const list = ref<HTMLElement | null>(null);
+const rows = ref(ROWS_AT_ONCE);
+const groups = computed(() => libraryWindow(allGroups.value, rows.value));
+useInfiniteScroll(list, () => { rows.value += ROWS_AT_ONCE; }, { distance: 400, canLoadMore: () => open.value && rows.value < flat.value.length });
+watch(() => [ui.search, ui.filter, ui.room, ui.hidePlaced], () => { rows.value = ROWS_AT_ONCE; list.value?.scrollTo?.({ top: 0 }); });
+// The rows the list shows now.
+function rowsInView() {
+  const box = list.value?.getBoundingClientRect();
+  if (!box) return [];
+  return [...list.value!.querySelectorAll<HTMLElement>(".ent")].filter((row) => { const place = row.getBoundingClientRect(); return place.bottom >= box.top && place.top <= box.bottom; })
+    .map((row) => row.id.slice("lib-".length));
+}
+// The states of the rows in view, asked once the list has stood still a moment (180 ms), again every minute, and never for
+// a folded drawer; the wait goes with the drawer.
+const loadSoon = useTimeoutFn(() => entities.loadLibraryStates(rowsInView(), doc.stillSelected()), 180, { immediate: false });
+watch(() => [open.value, groups.value, Math.floor(ui.now / 60000)],
   () => (open.value ? loadSoon.start() : loadSoon.stop()), { immediate: true });
 // The kinds and rooms the results hold, each with its count, so searching narrows the column the way it narrows the
 // entities.
@@ -98,7 +115,6 @@ const detail = (e: Entry) => entryDetail(e, grouped.value, pluginOf(e.id));
 
 // ---- Keyboard: type anywhere to search, arrows to walk, Enter to add ----
 const search = ref<HTMLInputElement | null>(null);
-const list = ref<HTMLElement | null>(null);
 const searching = ref(false);
 const addable = (e: Entry) => !placed(e.id) && !full.value;
 // The arrows walk the results round, the one in focus scrolled into view; Enter adds it; a new search starts at the first.
@@ -106,7 +122,7 @@ const results = useListNavigation(flat, {
   wrap: true,
   onPick: (entity) => (addable(entity) ? (addTile(entity.id), true) : false),
   resetOn: () => [ui.search, ui.filter, ui.room],
-  onMove: () => nextTick(() => (list.value?.querySelector(".ent.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })),
+  onMove: (index) => { if (index >= rows.value) rows.value = index + ROWS_AT_ONCE; nextTick(() => (list.value?.querySelector(".ent.active") as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })); },
 });
 const active = results.active;
 function onSearchKey(e: KeyboardEvent) {
@@ -223,9 +239,9 @@ function onResizeKey(e: KeyboardEvent) {
           <UiSwitch id="hide-placed" :model-value="ui.hidePlaced" @update:model-value="(on: boolean) => (ui.hidePlaced = on)" />
         </div>
       </div>
-      <div ref="list" class="lib-list" id="results" role="listbox" aria-live="polite" :aria-label="t('editor.library.title')">
+      <div ref="list" class="lib-list" id="results" role="listbox" aria-live="polite" :aria-label="t('editor.library.title')" @scroll.passive="loadSoon.start()">
         <section v-for="group in groups" :key="group.key" class="lib-group">
-          <h4 v-if="group.title" class="lib-group-title">{{ group.title }} <small>{{ group.entities.length }}</small></h4>
+          <h4 v-if="group.title" class="lib-group-title">{{ group.title }} <small>{{ group.count }}</small></h4>
           <div class="lib-grid">
             <button v-for="entity in group.entities" :id="`lib-${entity.id}`" :key="entity.id" type="button" class="ent" role="option"
               :class="{ active: ui.search && flat[active]?.id === entity.id }" :aria-selected="ui.search && flat[active]?.id === entity.id ? 'true' : 'false'"
@@ -240,8 +256,8 @@ function onResizeKey(e: KeyboardEvent) {
             </button>
           </div>
         </section>
-        <p v-if="!matches.length" class="hint lib-empty">{{ ui.hidePlaced && !ui.search && !ui.filter && !ui.room ? t("editor.library.all_placed") : t("editor.library.none_found") }}</p>
-        <p v-else-if="matches.length > SHOWN" class="hint">{{ t("editor.common.results", matches.length) }}</p>
+        <p v-if="elsewhere" class="hint lib-empty">{{ t("editor.library.found_elsewhere", elsewhere) }} <button type="button" class="lib-everything" @click="searchEverything">{{ t("editor.library.search_everything") }}</button></p>
+        <p v-else-if="!matches.length" class="hint lib-empty">{{ ui.hidePlaced && !ui.search && !ui.filter && !ui.room ? t("editor.library.all_placed") : t("editor.library.none_found") }}</p>
         <div v-if="full" class="lib-foot">{{ t(doc.tileLimit < 48 ? "editor.library.full_update" : "editor.library.full", doc.tileLimit) }}</div>
         <div v-else-if="memoryFull" class="lib-foot">{{ t("editor.memory.full_library") }}</div>
       </div>

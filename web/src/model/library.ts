@@ -9,16 +9,16 @@ import { matchesQuery, prefixRank } from "./search";
 import type { Tile } from "../types";
 
 /** An entity the library offers: Home Assistant's, a card of the screen's own, or a plugin's tile type. */
-export type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean };
+export type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean; words?: string };
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "" for no filter.
 export const FILTERS = [
   "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar",
+  "media_player", "camera", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar",
 ];
 // A kind that takes a second domain along: an input helper with its entity, the sun with the weather.
-const ALIAS: Record<string, string> = { switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
-/** The first so many of what is found are listed. */
-export const SHOWN = 80;
+const ALIAS: Record<string, string> = { camera: "image", switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
+/** How many rows stand on the page at first, and how many more come as the list is scrolled. */
+export const ROWS_AT_ONCE = 120;
 
 /** How many tiles each entity has on the screen. */
 export function tileCounts(tiles: readonly Tile[]) {
@@ -47,10 +47,20 @@ export type LibraryFilter = {
 };
 /** What the search and the hide switch leave over: the rooms are counted off this, the kinds off it narrowed to the room. */
 export function libraryBase(entries: readonly Entry[], filter: LibraryFilter) {
+  const kinds = new Map<string, string>();
   return entries.filter((e) => e.tile !== false && pageTarget(e.id) <= filter.pages &&
     (filter.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
     (filter.textTiles || e.id !== "screen.text") &&
-    (!filter.hidePlaced || !filter.counts.has(e.id)) && matchesQuery(filter.query, e.name, e.id, e.device, e.area));
+    (!filter.hidePlaced || !filter.counts.has(e.id)) && matchesQuery(filter.query, e.name, e.id, e.device, e.area, e.words, filter.query && kindWords(e.id, kinds)));
+}
+// What an entity is in the words of the editor's language ("Lampen", "Klimaat"), so "kitchen lamp" finds a lamp that is
+// called Ceiling. Asked once per domain in a search.
+function kindWords(id: string, kinds: Map<string, string>) {
+  if (isPluginTile(id)) return "";
+  const domain = id.split(".")[0];
+  let words = kinds.get(domain);
+  if (words === undefined) kinds.set(domain, words = [domainInfo(id)[0], ...FILTERS.filter((kind) => kind && inDomain(id, kind)).map((kind) => t(`editor.library.filters.${kind}`))].join(" "));
+  return words;
 }
 /** What a kind leaves of the room's entries: ranked by the search as Spotlight ranks (a name that starts with it first,
  * then one with a word that does), in Home Assistant's order without one. */
@@ -66,13 +76,25 @@ export function libraryGroups(list: readonly Entry[], grouped: boolean) {
   const byRoom = new Map<string, Entry[]>();
   for (const e of list) {
     const key = isPluginTile(e.id) ? PLUGINS : e.id.startsWith("screen.") ? SCREEN : e.area || NONE;
-    byRoom.set(key, [...(byRoom.get(key) || []), e]);
+    const room = byRoom.get(key);
+    if (room) room.push(e);
+    else byRoom.set(key, [e]);
   }
   const order = (key: string) => key === SCREEN ? -1 : key === PLUGINS ? 3 : key === NONE ? 1 : 0;
   return [...byRoom.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((key) => ({
     key, entities: byRoom.get(key)!,
     title: key === PLUGINS ? t("editor.library.plugins") : key === SCREEN ? t("editor.library.filters.screen") : key === NONE ? t("editor.library.no_room") : key,
   }));
+}
+/** The first `rows` entities of the groups, for the page: the list grows as it is scrolled. A group that has begun says
+ * how many it holds in all (`count`), so a room's number is the room's and not what has come so far. */
+export function libraryWindow<G extends { entities: Entry[] }>(groups: readonly G[], rows: number) {
+  let left = rows;
+  return groups.flatMap((group) => {
+    const entities = group.entities.slice(0, Math.max(0, left));
+    left -= entities.length;
+    return entities.length ? [{ ...group, entities, count: group.entities.length }] : [];
+  });
 }
 /** The kinds the results hold, each with its count; the chosen one stays even when nothing matches it any more, otherwise
  * an empty list would have nothing to explain it. */
