@@ -4,7 +4,8 @@ A screen never asks Home Assistant for a picture and never holds a Home Assistan
 with a link on its own port on the LAN (8098), random and short-lived, and the screen downloads the picture there. A
 still that is made once (an alert's picture, a plugin's places, a photo) is kept as bytes; a picture that changes by
 itself (a camera at its pace, a map someone moves on) is a recipe, painted again when the screen loads its link, with an
-ETag of what it shows, so an unchanged picture answers 304. A stream (`.mjpeg`, live_stream) is served beside them. The
+ETag of what it shows, so an unchanged picture answers 304. A recipe that was slow to make (a map) brings the picture the
+answer already painted, for its first load: a screen waits four seconds for a picture's first bytes. A stream (`.mjpeg`, live_stream) is served beside them. The
 address the links carry, where the screens reach this app, is lan_address's.
 """
 import hashlib
@@ -25,10 +26,11 @@ TYPES = {'bmp': 'image/bmp', 'jpg': 'image/jpeg'}
 
 
 class Link:
-    __slots__ = ('still', 'etag', 'recipe', 'used', 'lifetime', 'suffix', 'revalidate')
+    __slots__ = ('still', 'etag', 'recipe', 'used', 'lifetime', 'suffix', 'revalidate', 'first')
 
-    def __init__(self, now, still=None, recipe=None, suffix='bmp', revalidate=True):
+    def __init__(self, now, still=None, recipe=None, suffix='bmp', revalidate=True, first=None):
         self.still, self.recipe, self.used = still, recipe, now
+        self.first = first  # (etag, bytes) of a recipe's first load
         self.etag = f'"{hashlib.sha1(still).hexdigest()[:16]}"' if still else ''
         self.lifetime = STILL_SECONDS if still is not None else LINK_SECONDS
         self.suffix = suffix
@@ -51,11 +53,12 @@ class Links:
         while len(self.links) >= MAX_LINKS:
             del self.links[min(self.links, key=lambda token: self.links[token].used)]
 
-    def add(self, still=None, recipe=None, suffix='bmp', revalidate=True):
-        """A new random token for one picture: `still` its bytes, or `recipe` what paints it again on every load."""
+    def add(self, still=None, recipe=None, suffix='bmp', revalidate=True, first=None):
+        """A new random token for one picture: `still` its bytes, or `recipe` what paints it again on every load, and
+        `first` its (etag, bytes) as already painted, for the first load."""
         self.prune()
         token = secrets.token_urlsafe(18)
-        self.links[token] = Link(self.clock(), still, recipe, suffix, revalidate)
+        self.links[token] = Link(self.clock(), still, recipe, suffix, revalidate, first)
         return token
 
     def __contains__(self, token):
@@ -72,7 +75,7 @@ class Links:
         kind = TYPES.get(link.suffix, 'image/bmp')
         if link.still is not None:
             return (304, None, link.etag, kind) if etag == link.etag and link.revalidate else (200, link.still, link.etag, kind)
-        found = await self.render(link.recipe) if self.render else None
+        found, link.first = link.first or (await self.render(link.recipe) if self.render else None), None
         if found is None:
             return 503, None, '', kind
         tag, body = found

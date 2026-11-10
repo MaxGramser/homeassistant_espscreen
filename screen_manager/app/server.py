@@ -1115,6 +1115,8 @@ class Manager:
         # own, and a page that loads again for its camera does not draw its map again.
         self.map_source = map_tiles.TileSource(lambda z, x, y: self.ha.map_tile(z, x, y))
         self.map_renders = OrderedDict()
+        self.map_drawing = {}                # the drawings under way, by what map_renders keeps them by
+        self.map_provisional = OrderedDict() # a drawing some streets were missing from, and when it was made
         # A media player's library (app 0.4.42, firmware 0.24.0, media_library.py): the widest features each player
         # reported (GitHub #88), the numbers each screen's items go by, the folders read a moment ago, the players
         # that browse, the colours of each cover, the item this app started last on each player, and the thumbnails.
@@ -3865,6 +3867,9 @@ class Manager:
 
     # The maps kept drawn: a page's maps in both looks and the page before it.
     MAP_RENDERS_KEPT = 12
+    # A map with streets missing is not kept, so the next look gets them; meanwhile an open full view asks every four
+    # seconds, and on a slow host each drawing would take longer than that. It is drawn again after this long.
+    MAP_PROVISIONAL_SECONDS = 60
 
     def map_render(self, tile, shape, dark, full=False, focus=None, move=None):
         """(mark, draw) of one saved map tile for CameraFeed.live: the mark is its movement mark and the look, `draw`
@@ -3887,6 +3892,18 @@ class Manager:
                 self.map_renders.move_to_end(key)
                 self.map_hits[key[:3]] = self.map_renders[key].info.get('hits', [])
                 return self.map_renders[key]
+            held = self.map_provisional.get(key)
+            if held and time.monotonic() - held[1] < self.MAP_PROVISIONAL_SECONDS:
+                self.map_hits[key[:3]] = held[0].info.get('hits', [])
+                return held[0]
+            # A screen asks again after ten seconds, and a slow host may still be drawing: one drawing answers both.
+            drawing = self.map_drawing.get(key)
+            if drawing is None:
+                drawing = self.map_drawing[key] = asyncio.ensure_future(drawn(key, width, height))
+                drawing.add_done_callback(lambda _: self.map_drawing.pop(key, None))
+            return await asyncio.shield(drawing)
+
+        async def drawn(key, width, height):
             registry = self.registry_index()
             view = map_card.view_for(tile, self.ha.states, (width, height), board, registry, full, focus, move)
             wanted = view.tiles() if map_card.wants_streets(tile) else []
@@ -3900,6 +3917,9 @@ class Manager:
                 self.map_hits.pop(next(iter(self.map_hits)))
             if self.map_source.available() and len(streets) < len(wanted):
                 image.info['provisional'] = True
+                self.map_provisional[key] = (image, time.monotonic())
+                while len(self.map_provisional) > self.MAP_RENDERS_KEPT:
+                    self.map_provisional.popitem(last=False)
             else:
                 self.map_renders[key] = image
                 while len(self.map_renders) > self.MAP_RENDERS_KEPT:
