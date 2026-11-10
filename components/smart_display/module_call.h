@@ -46,7 +46,6 @@ bool shown();
 bool holds();                                       // keeps the screen from standby
 void build(lv_obj_t *root, const std::string &name);
 live_view::Rect area();                             // the room of the other's picture
-bool composed();                                     // sprites over it (a video call)
 const std::string &link();
 void sound_changed();
 void closing();

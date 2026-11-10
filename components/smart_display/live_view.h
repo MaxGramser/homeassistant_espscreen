@@ -197,7 +197,6 @@ constexpr int FADE_PERCENT = 42;
 constexpr int FADE_DEPTH = 150;
 struct Look {
   bool tile = false;     // false: the full view, whose picture fills its room and has nothing over it
-  bool composed = false;  // a full view with sprites over its pictures (a call's keys and the picture of oneself: sprite_set)
   bool contain = false;  // the whole picture in the middle of the card on black; else it fills the card, cut to it
   int radius = 0;        // the card's corners, over `ground` (RGB565, the page behind the card)
   uint16_t ground = 0;
@@ -536,13 +535,6 @@ void own_offer();
 bool own_offered();
 bool own_wanted();
 void own_frame(const uint8_t *data, int width, int height, bool yuv420);
-// What lies over a call's picture (module call, docs/CALLS.md): small pictures laid over each frame before it reaches the glass,
-// in the place LVGL would draw them, so a frame reaches the glass whole. Coordinates are the screen's. ARGB8888 as LVGL draws it,
-// copied; a null or empty one takes that sprite away.
-constexpr int SPRITE_KEYS = 0, SPRITE_PILL = 1, SPRITE_SELF = 2, SPRITE_DOT = 3, SPRITES = 4;
-void sprite_set(int id, const uint32_t *argb, int stride, int x, int y, int w, int h);
-// The picture of oneself: the screen's own camera in `where`, a few times a second, its corners round. Never crosses the network.
-void self_view(bool on, const Rect &where);
 // What the streams that run hold of the board's memory, about (docs/PICTURES.md: the streams take their share of the one
 // picture budget while they run): each stream's input and its decoded picture of its room, from what the main loop
 // set when it opened, so never read under a task.
@@ -567,9 +559,6 @@ inline void own_offer() {}
 inline bool own_offered() { return false; }
 inline bool own_wanted() { return false; }
 inline void own_frame(const uint8_t *, int, int, bool) {}
-constexpr int SPRITE_KEYS = 0, SPRITE_PILL = 1, SPRITE_SELF = 2, SPRITE_DOT = 3, SPRITES = 4;
-inline void sprite_set(int, const uint32_t *, int, int, int, int, int) {}
-inline void self_view(bool, const Rect &) {}
 #endif
 
 }  // namespace live_view
