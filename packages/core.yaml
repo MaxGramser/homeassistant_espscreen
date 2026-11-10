@@ -1832,6 +1832,18 @@ switch:
       - lambda: 'settings_screen::set("page_buttons", 1);'
     turn_off_action:
       - lambda: 'settings_screen::set("page_buttons", 0);'
+  # On, the last page leads to the first and the first to the last, by swipe and by chevron (docs/SETTINGS.md).
+  - platform: template
+    id: setting_loop_pages
+    name: "Loop pages"
+    icon: "mdi:sync"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::loop_pages != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("loop_pages", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("loop_pages", 0);'
   # The house at the far left returns to the configured Home page (firmware 0.3.0+).
   # A detail page with hidden bottom navigation uses this position for Back, even when Home is disabled.
   - platform: template
@@ -2483,6 +2495,7 @@ script:
           }
           // The Page buttons setting moves the cards into the bar's room or back (firmware 0.2.69+).
           if (runtime_tiles::enabled) runtime_tiles::page_buttons_changed();
+          if (runtime_tiles::enabled) runtime_tiles::loop_pages_changed();
           settings_screen::refresh();
           // A display setting (the clock's format, say): every card drawn (firmware 0.3.2+); the minute draws the cards
           // that show the time.

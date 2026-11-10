@@ -197,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Microfoongain",
       "automatic_gain": "Automatische gain",
-      "echo_cancellation": "Echo-onderdrukking"
+      "echo_cancellation": "Echo-onderdrukking",
+      "loop_pages": "Pagina's rondlopen"
     },
     "doorbell": {
       "sound_on": "Geluid aan",
@@ -2642,7 +2643,8 @@
         "swipe_pages": "Vegen tussen pagina's",
         "page_buttons": "Paginaknoppen",
         "home_button": "Thuisknop tonen",
-        "rotation": "Rotatie"
+        "rotation": "Rotatie",
+        "loop_pages": "Pagina's rondlopen"
       },
       "actions": {
         "calibrate": {

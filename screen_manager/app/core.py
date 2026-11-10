@@ -954,6 +954,7 @@ SETTING_RULES = {
     # The Previous and Next bar under the tiles (firmware 0.2.69+); off, the tiles grow into its room. Only a screen
     # that owns its settings has it, like dark_mode.
     'page_buttons': (True, None, None),
+    'loop_pages': (True, None, None),
     # The house at the far left of the top bar (firmware 0.2.100+), which takes the screen back to page 1. Page 1
     # draws none. Only a screen that owns its settings has it, like dark_mode.
     'home_button': (True, None, None),
@@ -962,7 +963,7 @@ SETTING_RULES = {
 # other size, so everything added after it travels as its own key in the layout message. Old firmware
 # ignores a key it does not know; a new screen with an old add-on keeps what it saved itself.
 # docs/SETTINGS.md walks through adding one.
-SETTINGS_BESIDE_BLOCK = ('swipe_pages', 'rotation', 'auto_home', 'auto_home_seconds', 'dark_mode', 'page_buttons',
+SETTINGS_BESIDE_BLOCK = ('swipe_pages', 'rotation', 'auto_home', 'auto_home_seconds', 'dark_mode', 'page_buttons', 'loop_pages',
                          'home_button')
 
 # ----- The screen owns its settings (firmware 0.2.49+) -----
@@ -988,6 +989,7 @@ SETTING_ENTITIES = {
     'rotation': ('select', 'Rotation'),
     'dark_mode': ('switch', 'Dark mode'),
     'page_buttons': ('switch', 'Page buttons'),
+    'loop_pages': ('switch', 'Loop pages'),
     'home_button': ('switch', 'Show home button'),
 }
 # Entities firmware 0.2.49 added; one of them on a device means the screen owns its settings. The first five

@@ -197,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Microphone gain",
       "automatic_gain": "Automatic gain",
-      "echo_cancellation": "Echo cancellation"
+      "echo_cancellation": "Echo cancellation",
+      "loop_pages": "Loop pages"
     },
     "doorbell": {
       "sound_on": "Sound on",
@@ -2648,7 +2649,8 @@
         "swipe_pages": "Swipe between pages",
         "page_buttons": "Page buttons",
         "home_button": "Show home button",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "loop_pages": "Loop pages"
       },
       "actions": {
         "calibrate": {
