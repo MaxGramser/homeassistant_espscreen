@@ -5,7 +5,7 @@
     "script": "latin",
     "plural": "one_other",
     "clock": "24",
-    "checked": false
+    "checked": true
   },
   "screen": {
     "number": {
