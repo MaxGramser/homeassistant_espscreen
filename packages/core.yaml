@@ -135,7 +135,7 @@ esphome:
     - <esphome/components/smart_display/screen_input.h>
     - <esphome/components/smart_display/light_controls.h>
     - <esphome/components/smart_display/alert_overlay.h>
-    - <esphome/components/smart_display/overlay_dim.h>
+    - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
   name: ${DEVICE_NAME}
@@ -374,7 +374,7 @@ esphome:
             id(display_dimmed) = false;
             id(last_touch_ms) = millis();
             plugin_host::before_update();
-            runtime_tiles::saver_wake();
+            runtime_tiles::saver_wake(true);
             lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
             ${OTA_BACKLIGHT}
           };
@@ -2593,7 +2593,7 @@ script:
           ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
                    alert.button2.empty() ? 1 : 2);
       - script.execute: wake_display
-      - lambda: 'overlay_dim::show(id(alert_overlay), id(alert_card));'
+      - lambda: 'screen_motion::show(id(alert_overlay), id(alert_card));'
       - script.stop: alert_timeout
       - if:
           condition:

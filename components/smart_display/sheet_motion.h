@@ -1,5 +1,5 @@
 #pragma once
-// The rest of a sheet's way after a finger let it go (the Dock): how long it takes and where it is at each moment,
+// The rest of a sheet's way after a finger let it go (screen_motion.h, settle): how long it takes and where it is at each moment,
 // so that it goes on at the finger's speed and comes to rest at its place, as a phone's sheet does. Knows distances and
 // speeds, nothing of LVGL, of a board or of the Dock. tests/test_sheet_motion.cpp proves it.
 #include <algorithm>

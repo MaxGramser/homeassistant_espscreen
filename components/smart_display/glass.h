@@ -145,6 +145,7 @@ void redraw_all();
 // its picture would go on bright through the veil).
 bool veil(const Rect &keep, uint16_t scrim, uint8_t opa, bool on);
 bool veilable();  // whether veil would do it now
+bool drawing();   // LVGL is bound and not paused: its timers run and a refresh draws
 // How often the panel ran dry since boot: the frames of blue (the panel watch below counts them), every 50 ms from the
 // streams' tick.
 void tick();
@@ -201,6 +202,7 @@ inline void give_back(Room) {}
 inline void redraw_all() {}
 inline bool veil(const Rect &, uint16_t, uint8_t, bool) { return false; }
 inline bool veilable() { return false; }
+inline bool drawing() { return false; }
 inline void tick() {}
 inline uint32_t misses() { return 0; }
 inline std::string watch_said() { return {}; }

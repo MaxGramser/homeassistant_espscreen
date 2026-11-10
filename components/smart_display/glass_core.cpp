@@ -342,6 +342,7 @@ static void written(uint16_t *from, size_t bytes) {
   (void) bytes;
 #endif
 }
+bool drawing() { return lvgl && !lvgl->is_paused(); }
 bool veilable() {
   if (!direct() || !frame_buffer() || lvgl->is_paused()) return false;
   for (auto &s : rooms)
@@ -410,7 +411,7 @@ bool veil(const Rect &keep, uint16_t scrim, uint8_t opa, bool on) {
     written(fb, static_cast<size_t>(p.w) * p.h * 2);
   }
   release();
-  ESP_LOGI(TAG, "veil %s in %d ms", on ? "on" : "off", static_cast<int>((esp_timer_get_time() - started) / 1000));
+  ESP_LOGD(TAG, "veil %s in %d ms", on ? "on" : "off", static_cast<int>((esp_timer_get_time() - started) / 1000));
   return true;
 }
 

@@ -192,8 +192,8 @@ docs/TROUBLESHOOTING.md.
 
 - **Nothing in the shared code reads a board, a chip or a pin.** The engine table, the modules table and `hw::caps` are
   the three places a difference between boards is written. A board file holds hardware and sizes only (AGENTS.md).
-- **A dim over the whole glass is laid on the frame buffer, not drawn** (`glass::veil`, `overlay_dim.h`: the Dock, alerts
-  and plugin popups). LVGL keeps no picture of what it drew, so a dim through LVGL draws every tile again. The veil's mix is
+- **A dim over the whole glass is laid on the frame buffer, not drawn** (`glass::veil`, behind `screen_motion.h`, docs/MOTION.md:
+  the Dock, alerts and plugin popups). LVGL keeps no picture of what it drew, so a dim through LVGL draws every tile again. The veil's mix is
   LVGL's own to the bit, LVGL learns the new dim with its invalidation off, and it never runs over an armed room. It takes
   36 ms on an 800 x 1280 P4, on one core or two (2026-11-10): the memory is the limit, so it goes through the glass in four
   passes of every fourth row, and what shows on the way is a dim that deepens evenly.

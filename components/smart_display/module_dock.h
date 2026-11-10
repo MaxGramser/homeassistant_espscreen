@@ -8,7 +8,7 @@
 // all pages side by side where they fit at a readable size (a ten-inch glass holds eight), fewer and leafing on a
 // small one. The drawer rides on the finger as an iOS sheet does, and only the drawer moves: no scale, no fade, so the
 // software renderer draws the drawer's own area for each frame of the way and not the whole glass. Let go, it goes on
-// at the finger's speed (sheet_motion.h). The dim behind it changes in one step, on the pixels that are on the glass
+// at the finger's speed (screen_motion::settle). The dim behind it changes in one step, on the pixels that are on the glass
 // where a board has a frame buffer (dim_on_glass), and otherwise through LVGL once the drawer stands open (dim).
 //
 // The pictures are drawn from the model, not from the cards: a kept page is drawn only while it is on the glass
@@ -17,8 +17,7 @@
 // main.cpp on its own: there the site is not defined and this file is empty.
 #if defined(SD_MOD_DOCK) && defined(SMART_DISPLAY_MODULE_SITE) && !defined(SMART_DISPLAY_MODULE_DOCK)
 #define SMART_DISPLAY_MODULE_DOCK
-#include "overlay_dim.h"
-#include "sheet_motion.h"
+#include "screen_motion.h"
 namespace dock {
 using namespace runtime_tiles;
 
@@ -37,7 +36,7 @@ constexpr lv_opa_t DIM = LV_OPA_50;
 
 inline bool open() { return root != nullptr; }
 
-// The dim on the pixels that are on the glass, past LVGL (glass::veil): LVGL keeps no picture of what it drew, so to dim
+// The dim on the pixels that are on the glass, past LVGL (screen_motion::dim): LVGL keeps no picture of what it drew, so to dim
 // the page it would draw every tile again, tens of milliseconds in which the drawer stands still and no finger is read.
 // LVGL then learns the new dim with its invalidation off, so it goes on drawing what changes under the dim as it should
 // and draws nothing now. The drawer's own rectangle is left alone; only its rounded corners, where the page shows, are
@@ -50,8 +49,8 @@ inline bool dim_on_glass(bool on) {
   lv_area_t a;
   lv_obj_get_coords(drawer, &a);  // where it stands now, its translation included
   const glass::Rect keep{a.x1, a.y1, lv_area_get_width(&a), std::min<int>(overlay_card::screen_height(), a.y2 + 1) - a.y1};
-  if (!overlay_dim::lay(root, DIM, keep, on)) return false;
-  overlay_dim::quietly(root, [&] { lv_obj_set_style_bg_opa(root, opa, 0); });
+  if (!screen_motion::dim(root, DIM, keep, on)) return false;
+  screen_motion::quietly(root, [&] { lv_obj_set_style_bg_opa(root, opa, 0); });
   const int r = corner;
   for (lv_area_t c : {lv_area_t{a.x1, a.y1, a.x1 + r - 1, a.y1 + r - 1}, lv_area_t{a.x2 - r + 1, a.y1, a.x2, a.y1 + r - 1},
                       lv_area_t{a.x1, a.y2 - r + 1, a.x1 + r - 1, a.y2}, lv_area_t{a.x2 - r + 1, a.y2 - r + 1, a.x2, a.y2}})
@@ -71,7 +70,7 @@ inline void dim(bool on) {
 inline void settled(lv_anim_t *) { dim(true); }
 inline void set_rise(void *o, int32_t v) { lv_obj_set_style_translate_y(static_cast<lv_obj_t *>(o), v, 0); }
 inline void animate(lv_obj_t *o, lv_anim_exec_xcb_t exec, int32_t from, int32_t to, uint32_t ms, uint32_t delay,
-                    lv_anim_path_cb_t path, lv_anim_completed_cb_t done = nullptr, intptr_t lead = 0) {
+                    lv_anim_path_cb_t path, lv_anim_completed_cb_t done = nullptr) {
   lv_anim_t a;
   lv_anim_init(&a);
   lv_anim_set_var(&a, o);
@@ -80,19 +79,13 @@ inline void animate(lv_obj_t *o, lv_anim_exec_xcb_t exec, int32_t from, int32_t 
   lv_anim_set_duration(&a, ms);
   lv_anim_set_delay(&a, delay);
   lv_anim_set_path_cb(&a, path);
-  lv_anim_set_user_data(&a, reinterpret_cast<void *>(lead));
   if (done) lv_anim_set_completed_cb(&a, done);
   exec(o, from);
   lv_anim_start(&a);
 }
 // The rest of the way after a finger let go, starting at its speed: `speed` in px a second, down positive.
-inline int32_t carried(const lv_anim_t *a) {
-  return sheet_motion::at(a->start_value, a->end_value, static_cast<int32_t>(reinterpret_cast<intptr_t>(a->user_data)), a->act_time, a->duration);
-}
 inline void carry(int32_t from, int32_t to, int speed, uint32_t longest, lv_anim_completed_cb_t done = nullptr) {
-  const int way = to - from;
-  const auto s = sheet_motion::settle(std::abs(way), way < 0 ? -speed : speed, drawer_h, SHORTEST_MS, longest);
-  animate(drawer, set_rise, from, to, s.ms, 0, carried, done, s.lead);
+  screen_motion::settle(drawer, set_rise, from, to, to < from ? -speed : speed, drawer_h, SHORTEST_MS, longest, done);
 }
 // The drawer is off the glass: its Dock goes.
 inline void gone(lv_anim_t *a) {
