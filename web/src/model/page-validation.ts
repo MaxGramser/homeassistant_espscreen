@@ -31,7 +31,8 @@ const TODO_FIELDS = ['todoOrder', 'todoCompleted', 'todoDue', 'todoAdd', 'todoSu
 const METER_FIELDS = ['meterStyle', 'meterMin', 'meterMax', 'meterSegments', 'meterColors', 'meterThresholds'] as const;
 const entity = (value: any, domains: string[]) => typeof value === 'string' && value.length <= 120 &&
   matches(/^[a-z0-9_]+\.[a-z0-9_]+$/, value) && domains.includes(value.split('.')[0]);
-const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value);
+// Any icon's name: which ones a screen can draw is its own (docs/ICONS.md), and the add-on checks the name.
+const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value) || (typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value));
 // A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 12, each a short text, a
 // number, true/false, a pick {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most
 // PLUGIN_OPTIONS_BYTES of JSON. Whether a value fits its option is the plugin's manifest's.

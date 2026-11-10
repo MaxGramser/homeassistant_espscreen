@@ -535,6 +535,7 @@ device in Home Assistant ([SETTINGS.md](SETTINGS.md)).
 | Also on standby | Standby goes back to the Home page too (it always closes an open card) | Off |
 | Swipe between pages | Native horizontal swipe, firmware 0.2.7+ | On for a screen set up with New screen, off for one set up before |
 | Page buttons | Off: no buttons under the tiles, the tiles take their room, firmware 0.2.69+ | On |
+| Loop pages | On: past the last page comes the first, and before the first the last. Off: the pages stop at their ends | On |
 | Show home button | The Tessera logo at the far left of the top bar; tapping it goes back to the Home page, firmware 0.2.100+ (a house before firmware 0.10.0) | On |
 | Rotation | 0° or 180°, and also 90° and 270° on a square screen; every board from firmware 0.2.80 | 0° |
 

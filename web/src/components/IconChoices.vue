@@ -11,9 +11,11 @@ import Icon from "./ui/Icon.vue";
 import type { Tile } from "../types";
 import { useInventoryStore } from "../stores/inventory";
 import { useInspectorStore } from "../stores/inspector";
+import { useScreenIconsStore } from "../stores/screenIcons";
 
 const inv = useInventoryStore();
 const insp = useInspectorStore();
+const screenIcons = useScreenIconsStore();
 
 const props = defineProps<{ selected: string; automatic: string; autoLabel: string; allowNone?: boolean; tile?: Tile }>();
 const emit = defineEmits<{ (e: "pick", name: string): void }>();
@@ -24,7 +26,12 @@ function show(name: string | null) {
   else if (insp.optionPreview?.key === "icon") insp.optionPreview = null;
 }
 function pick(name: string) { show(null); emit("pick", name); }
-const groups = computed(() => iconGroupsMatching(inv.inventory.icons?.groups || [], query.value));
+// The screen's own icons first, then the set; what every screen carries beyond its groups on a screen with room for more.
+const groups = computed(() => iconGroupsMatching([
+  ...(screenIcons.own.length ? [{ label: t("editor.icon.own"), icons: screenIcons.own }] : []),
+  ...(inv.inventory.icons?.groups || []),
+  ...(screenIcons.view?.room && inv.inventory.icons?.more?.length ? [{ label: t("editor.icon.more"), icons: inv.inventory.icons.more }] : []),
+], query.value));
 </script>
 
 <template>

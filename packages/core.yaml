@@ -135,6 +135,7 @@ esphome:
     - <esphome/components/smart_display/screen_input.h>
     - <esphome/components/smart_display/light_controls.h>
     - <esphome/components/smart_display/alert_overlay.h>
+    - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
   name: ${DEVICE_NAME}
@@ -373,7 +374,7 @@ esphome:
             id(display_dimmed) = false;
             id(last_touch_ms) = millis();
             plugin_host::before_update();
-            runtime_tiles::saver_wake();
+            runtime_tiles::saver_wake(true);
             lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
             ${OTA_BACKLIGHT}
           };
@@ -1838,6 +1839,18 @@ switch:
       - lambda: 'settings_screen::set("page_buttons", 1);'
     turn_off_action:
       - lambda: 'settings_screen::set("page_buttons", 0);'
+  # On, the last page leads to the first and the first to the last, by swipe and by chevron (docs/SETTINGS.md).
+  - platform: template
+    id: setting_loop_pages
+    name: "Loop pages"
+    icon: "mdi:sync"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::loop_pages != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("loop_pages", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("loop_pages", 0);'
   # The house at the far left returns to the configured Home page (firmware 0.3.0+).
   # A detail page with hidden bottom navigation uses this position for Back, even when Home is disabled.
   - platform: template
@@ -2489,6 +2502,7 @@ script:
           }
           // The Page buttons setting moves the cards into the bar's room or back (firmware 0.2.69+).
           if (runtime_tiles::enabled) runtime_tiles::page_buttons_changed();
+          if (runtime_tiles::enabled) runtime_tiles::loop_pages_changed();
           settings_screen::refresh();
           // A display setting (the clock's format, say): every card drawn (firmware 0.3.2+); the minute draws the cards
           // that show the time.
@@ -2598,7 +2612,7 @@ script:
           ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
                    alert.button2.empty() ? 1 : 2);
       - script.execute: wake_display
-      - lvgl.widget.show: alert_overlay
+      - lambda: 'screen_motion::show(id(alert_overlay), id(alert_card));'
       - script.stop: alert_timeout
       - if:
           condition:

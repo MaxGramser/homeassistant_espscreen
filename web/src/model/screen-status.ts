@@ -24,7 +24,7 @@ export const phaseText = (phase: string | undefined) =>
 // What a running build is doing, in words: an update's phase, or what a plugin build or an install is.
 export function buildText(screen: Screen, build: Build | null) {
   if (!build || build.by === "update") return phaseText(build?.phase ?? screen.update?.phase);
-  return t(build.by === "plugins" ? "editor.build.plugins" : "editor.build.install");
+  return t(build.by === "plugins" ? "editor.build.plugins" : build.by === "icons" ? "editor.build.icons" : "editor.build.install");
 }
 /** A build that waits its turn in the add-on's line: how many builds are before it (the one that runs counts). */
 export const waitingText = (build: Pick<Build, "place"> | null | undefined) => t("editor.build.waiting_place", Math.max(1, build?.place || 1));

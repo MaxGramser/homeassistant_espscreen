@@ -197,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Microphone gain",
       "automatic_gain": "Automatic gain",
-      "echo_cancellation": "Echo cancellation"
+      "echo_cancellation": "Echo cancellation",
+      "loop_pages": "Loop pages"
     },
     "doorbell": {
       "sound_on": "Sound on",
@@ -998,6 +999,10 @@
         "refused": "Home Assistant refused the automation: {reason}",
         "not_ours": "That automation was not made by Tessera, so the app leaves it alone.",
         "invalid": "This automation cannot be saved ({part})."
+      },
+      "icons": {
+        "request": "That is not a list of icons.",
+        "too_many": "A screen takes at most {most} icons of its own."
       }
     },
     "status": {
@@ -2566,7 +2571,9 @@
       "search_label": "Search for an icon",
       "none_text_only": "No icon, text only",
       "aria": "Icon: {name}",
-      "none_found": "No icon found."
+      "none_found": "No icon found.",
+      "own": "Icons of this screen",
+      "more": "More icons"
     },
     "inspect": {
       "title": "Current data",
@@ -2684,7 +2691,8 @@
         "swipe_pages": "Swipe between pages",
         "page_buttons": "Page buttons",
         "home_button": "Show home button",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "loop_pages": "Loop pages"
       },
       "actions": {
         "calibrate": {
@@ -4312,7 +4320,8 @@
           "fetch": "the firmware did not come back",
           "bundle": "the YAML could not be packed"
         }
-      }
+      },
+      "icons": "Building with its icons"
     },
     "grid": {
       "title": "Grid",
@@ -4610,6 +4619,44 @@
     },
     "drawer": {
       "resize": "Resize the settings: drag, or use the arrow keys; double-click to reset"
+    },
+    "screen_icons": {
+      "eyebrow": "Icons",
+      "title": "Icons of {name}",
+      "intro": "Every screen carries a fixed set of icons. Here you add up to {room} more. Icons are part of the firmware, so a change only reaches the screen after it builds again.",
+      "count": "{n} of {room} added",
+      "on_screen": "On this screen",
+      "none_yet": "None yet. Pick from the icons below.",
+      "waiting": "1 icon waits for a build | {n} icons wait for a build",
+      "leaving": "1 icon leaves with the next build | {n} icons leave with the next build",
+      "changes": "Build to put these changes on the screen. It takes a few minutes and the screen restarts.",
+      "build": "Build {name}",
+      "building": "Building with these icons…",
+      "all_up_to_date": "Everything you picked is on the screen.",
+      "everywhere": "Put on every screen",
+      "everywhere_ask": "This replaces the added icons of {n} screen and builds it. | This replaces the added icons of {n} screens and builds them one after the other. A screen with 4 MB of flash stays as it is.",
+      "everywhere_yes": "Build {n} screen | Build {n} screens",
+      "everywhere_done": "Waiting to build: {names}",
+      "everywhere_off": "Off, so not built: {names}",
+      "from_ha": "Used in your Home Assistant",
+      "from_ha_hint": "Icons your entities have that this screen cannot draw yet.",
+      "add_all": "Add all",
+      "all": "All icons",
+      "search": "Search all icons",
+      "search_label": "Search all icons",
+      "nothing": "No icon has that name.",
+      "fixed": "Already on every screen",
+      "full": "This screen has no more room.",
+      "in_use": "{icon} is on {n} tile of this screen. It shows its automatic icon after the next build. | {icon} is on {n} tiles of this screen. They show their automatic icon after the next build.",
+      "remove": "Remove",
+      "own_yaml": "This screen is built from its own YAML. Save this as {file} next to it, add the line below under packages:, and build it there.",
+      "loading": "Loading the icons…",
+      "card_title": "Icons",
+      "card_hint": "Add up to {room} icons to the ones this screen carries.",
+      "card_button": "Choose icons",
+      "card_count": "{n} added",
+      "card_waiting": "{n} waiting for a build",
+      "card_no_room": "This board has 4 MB of flash, with no room for more icons."
     }
   }
 }

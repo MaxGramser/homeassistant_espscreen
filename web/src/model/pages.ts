@@ -51,12 +51,13 @@ export function copyBar(bar: Page["topbar"]): Page["topbar"] {
 export const destination = (layout: PageLayout, target: PageTarget) => target.kind === "home" ? layout.homePageId : target.pageId;
 export const titleOf = (layout: PageLayout, page: Page) => page.topbar.title.source === "text" ? page.topbar.title.text : layout.title;
 export const pagination = (layout: PageLayout) => layout.pages.filter((page) => !page.navigation.excludeFromPagination).map((page) => page.id);
-export function sequentialTarget(layout: PageLayout, current: string, direction: -1 | 1) {
+export function sequentialTarget(layout: PageLayout, current: string, direction: -1 | 1, loop = false) {
   const sequence = pagination(layout), index = sequence.indexOf(current);
-  return index < 0 ? current : sequence[index + direction] ?? current;
+  if (index < 0) return current;
+  return loop ? sequence[(index + direction + sequence.length) % sequence.length] : sequence[index + direction] ?? current;
 }
 
-export type NavigationSettings = { pageButtons: boolean; swipe: boolean; homeButton: boolean };
+export type NavigationSettings = { pageButtons: boolean; swipe: boolean; homeButton: boolean; loop?: boolean };
 export type NavigationIntent = { kind: "home" | "back" } | { kind: "tile"; tileId: string }
   | { kind: "previous" | "next" | "swipe-previous" | "swipe-next" };
 /** Shared by the preview and reachability checks. Explicit links are independent
@@ -72,7 +73,7 @@ export function navigationTarget(layout: PageLayout, current: string, intent: Na
     return tile?.content.kind === "navigation" ? destination(layout, tile.content.target) : current;
   }
   const allowed = intent.kind.startsWith("swipe-") ? settings.swipe : settings.pageButtons;
-  return allowed ? sequentialTarget(layout, current, intent.kind.endsWith("previous") ? -1 : 1) : current;
+  return allowed ? sequentialTarget(layout, current, intent.kind.endsWith("previous") ? -1 : 1, settings.loop) : current;
 }
 /** Same eight-ID route as firmware. Back never pushes another return entry. */
 export function navigationStep(layout: PageLayout, current: string, history: string[], intent: NavigationIntent, settings: NavigationSettings) {

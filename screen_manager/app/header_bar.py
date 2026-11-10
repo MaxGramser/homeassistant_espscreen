@@ -326,7 +326,8 @@ def entity_item(item, states, registry=None, units=None, tz=None, words=None, ca
     if item['icon'] == 'auto':
         wire['i'] = auto_icon(entity, state, (registry or {}).get(entity) if isinstance(registry, dict) else None)
     elif item['icon'] != 'none':
-        wire['i'] = tile_icons.ICONS[item['icon']][0]
+        # An icon of the screen's own that its firmware does not have yet shows as `auto` until it has.
+        wire['i'] = tile_icons.carried(item['icon']) or auto_icon(entity, state, (registry or {}).get(entity) if isinstance(registry, dict) else None)
     # Its card, whatever the item shows: its icon alone opens it too (GitHub #252).
     if card is not None:
         wire['d'] = card

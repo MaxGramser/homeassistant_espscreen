@@ -51,7 +51,7 @@ export const useSettingsStore = defineStore("settings", () => {
   // avoiding a false unreachable report.
   function navigationSettings(): NavigationSettings {
     const values = settingValues();
-    return { pageButtons: values.page_buttons !== false, swipe: values.swipe_pages !== false,
+    return { pageButtons: values.page_buttons !== false, swipe: values.swipe_pages !== false, loop: values.loop_pages === true,
       homeButton: scr.supports(0, 2, 100) && values.home_button !== false };
   }
 

@@ -1,6 +1,7 @@
 // The capability record (hw.h): the build's defines and the boot's findings resolved once, and written into the hello.
 #include "hw.h"
 #include "esphome/core/defines.h"
+#include "glass.h"
 #include "hw_hello.h"
 #include "live_view.h"
 #ifdef SD_MOD_TEXT_CARD
@@ -32,6 +33,10 @@ Facts facts() {
   f.camera = true;
 #endif
   f.live_video = live_view::available();
+  f.direct_glass = glass::direct();
+#ifdef SD_TIER_FULL
+  f.full_tier = true;
+#endif
   f.live_tiles = picture_engine::limits().live_tiles;
 #ifdef USE_ESP32
   f.psram_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_SPIRAM));

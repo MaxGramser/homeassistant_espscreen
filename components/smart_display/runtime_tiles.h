@@ -38,6 +38,7 @@
 #include "cover_tile.h"
 #include "cover_paint.h"
 #include "alert_overlay.h"
+#include "screen_motion.h"
 #include "theme.h"
 #include "tile_icon.h"
 #include "screen_settings.h"
@@ -111,7 +112,7 @@ using settings_screen::auto_home;
 using settings_screen::auto_home_seconds;
 using settings_screen::page_buttons;
 inline esphome::ESPPreferenceObject rotation_preference;
-inline esphome::ESPPreferenceObject buttons_preference;
+inline esphome::ESPPreferenceObject buttons_preference, loop_preference;
 inline esphome::ESPPreferenceObject home_button_preference;  // the home button in the top bar (0x48425431, 0.60.0+)
 inline esphome::ESPPreferenceObject swipe_preference;
 inline esphome::ESPPreferenceObject home_preference;
@@ -240,7 +241,7 @@ inline void forget_kept();
 inline void prepare_start();
 inline int home_page() { return model.page_data.home; }
 inline int sequential_page(int page, int step) {
-  return navigation_ready() ? model.page_data.step(page, step) : page;
+  return navigation_ready() ? model.page_data.step(page, step, settings_screen::loop_pages != 0) : page;
 }
 inline int previous_button_page(int page) {
   if (!navigation_ready()) return page;
@@ -551,6 +552,10 @@ inline void load_settings() {
   if(dark_preference.load(&dark_saved))settings_screen::dark_mode=dark_saved==1;
   uint32_t buttons_saved=1;
   if(buttons_preference.load(&buttons_saved))page_buttons=buttons_saved!=0;
+  // Loop pages: on until someone turns it off, so a screen with no record of it starts on.
+  loop_preference=esphome::global_preferences->make_preference<uint32_t>(0x4C4F5031);
+  uint32_t loop_saved=1;
+  if(loop_preference.load(&loop_saved))settings_screen::loop_pages=loop_saved!=0;
   // The home button (0.2.122+) had no record of its own until 0.60.0, so a screen forgot it was off (GitHub #319).
   home_button_preference=esphome::global_preferences->make_preference<uint32_t>(0x48425431);
   uint32_t house_saved=1;
@@ -590,6 +595,8 @@ inline void persist_settings() {
   dark_preference.save(&dark);
   uint32_t buttons = page_buttons ? 1 : 0;
   buttons_preference.save(&buttons);
+  uint32_t looping = settings_screen::loop_pages ? 1 : 0;
+  loop_preference.save(&looping);
   uint32_t house = settings_screen::home_button ? 1 : 0;
   home_button_preference.save(&house);
   uint32_t debug = settings_screen::debug_mode ? 1 : 0;
@@ -10222,6 +10229,13 @@ inline void place_keys(){
 }
 // Slot assignment plus card places, sizes and visibility for a page; contents are untouched. `kept`: the cards already
 // show this page (kept_pages.h), so a card that keeps its tile keeps what it knows about its own colours too.
+// Whether each chevron leads somewhere from this page: past the ends too when the pages loop (docs/SETTINGS.md).
+inline void show_page_keys(int page, bool detail) {
+  const bool loop=settings_screen::loop_pages!=0;
+  const int previous=detail?navigation_history.target(model.page_data,page):model.page_data.step(page,-1,loop);
+  page_bar::enable(nav_prev,previous!=page);
+  page_bar::enable(nav_next,model.page_data.step(page,1,loop)!=page);
+}
 inline int place_page(int page, bool kept = false) {
   swipe_profile::Lap lap;
   std::array<Placement,TILES_MAX> placement;
@@ -10282,9 +10296,7 @@ inline int place_page(int page, bool kept = false) {
   // Paint the document's destinations even while an error overlay blocks input.
   // Settings can re-place this page under that overlay; using the action guard
   // here would leave the arrows disabled when the same document recovers.
-  const int previous=detail?navigation_history.target(model.page_data,page):model.page_data.step(page,-1);
-  page_bar::enable(nav_prev,previous!=page);
-  page_bar::enable(nav_next,model.page_data.step(page,1)!=page);
+  show_page_keys(page,detail);
   // The dots between the two chevrons (firmware 0.2.69+): the page on screen in ink.
   if(sequential && nav_number)page_bar::dots(nav_number,model.page_data.ordinal(page),sequential_count);
   // The cards are drawn from the sizes the grid gives them, so it lays out before anything reads one.
@@ -10751,6 +10763,15 @@ inline void page_buttons_changed() {
   applied_buttons=page_buttons?1:0;
   each_card([](Widgets &w){w.cached_active=-1;w.panel_dirty=true;});
   apply_page(applied_page);
+}
+
+// Loop pages changed: the chevrons of the page on the glass say so at once.
+inline int applied_loop=-1;
+inline void loop_pages_changed() {
+  const int loop=settings_screen::loop_pages?1:0;
+  if(!shown_page || !nav_number || applied_page<0 || applied_loop==loop)return;
+  applied_loop=loop;
+  show_page_keys(applied_page,applied_bar && model.page_data.detail(applied_page));
 }
 
 #ifdef SWIPE_PROFILE
@@ -13224,6 +13245,9 @@ inline void pictures_round() {
 // wake_tap leaves the tile it lay over alone).
 inline std::function<void()> saver_changed;  // the profile's apply_screen_settings, which ends in saver_sync
 inline bool saver_lit = false;               // in standby with the backlight on (the standby or night level)
+// The screensaver is on its way out behind the backlight (saver_wake, screen_motion::cut): it stays on the glass until
+// the light is out, so nobody else takes it off in sight meanwhile.
+inline bool saver_leaving = false;
 inline uint32_t saver_ticked = 0;
 // A camera in standby loads at a live tile's default pace rather than the full view's four seconds: a screensaver can
 // stand there all evening, and the Wi-Fi and Home Assistant need not fetch a picture every four seconds for it.
@@ -13668,6 +13692,7 @@ inline void saver_follow_pending() {
 inline void saver_sync(bool lit) {
   saver_lit = lit;
   const bool shown = saver_root || saver_camera;
+  if (saver_leaving && !lit) return;  // it goes in the dark, in a moment
   if (!lit || !saver_wanted()) { if (shown) saver_hide(); return; }
   // The camera and the cover stand as they are while nothing changed; the clock is drawn again, a minute later. A
   // plugin's saver stays and draws on its own clock (on_tick).
@@ -13691,10 +13716,19 @@ inline void saver_sync(bool lit) {
   saver_show();
 }
 // wake_display: the screensaver goes, and the touch that woke the screen does nothing else.
-inline void saver_wake() {
+// `at_once` for a wake the main loop does not go on after (an update's start): no timer would end the dark.
+inline void saver_wake(bool at_once = false) {
+  // A second wake of the same touch (the finger's click after the board felt the tap) finds it leaving already.
+  if (saver_leaving && !at_once) return;
   saver_lit = false;
   saver_woke = saver_root || saver_camera;
-  saver_hide();
+  // The page under it would be drawn strip by strip in sight: on a screen with motion it comes behind the backlight.
+  if (saver_woke && !at_once) {
+    saver_leaving = true;
+    screen_motion::cut([]() { saver_leaving = false; saver_hide(); });
+  } else {
+    saver_hide();
+  }
 }
 // A new layout on its way (cancel_layout_input): every picture goes; saver_tick draws the screensaver again.
 inline void saver_forget() { saver_hide(); }

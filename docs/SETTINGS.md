@@ -29,6 +29,7 @@ changes them with the entity's own action, and leaves them out of the layout mes
 | Also on standby | `switch.<screen>_back_to_page_1_on_standby` | `home_on_standby` |
 | Swipe between pages | `switch.<screen>_swipe_between_pages` | `swipe_pages` |
 | Page buttons (0.2.69+) | `switch.<screen>_page_buttons` | `page_buttons` |
+| Loop pages | `switch.<screen>_loop_pages` | `loop_pages` (on by default: past the last page comes the first, by swipe and by the bar) |
 | Show home button (0.2.100+) | `switch.<screen>_show_home_button` | `home_button` |
 | Rotation | `select.<screen>_rotation` | `rotation` (0.2.80+ on every board: a half turn on any glass, the quarter turns as well on a square one; standing up or lying down on other glass is the editor's Grid button, firmware 0.53.0+, because it changes the grid) |
 | Debug mode (This screen) | `switch.<screen>_debug_mode`, a diagnostic entity | none: the screen and Home Assistant only, and the troubleshooting report, which turns it on for its own read of the log |
@@ -88,7 +89,7 @@ The page is a menu of groups, each of which opens a page of its own:
 |---|---|
 | Brightness | Brightness (dimmable backlight), Dark mode, Auto standby, Standby after, Standby brightness or Screen on in standby (boards that can go dark) |
 | Night (boards that can go dark) | Night mode, Starts, Ends, Night brightness or Screen on at night |
-| Screen | Back to Home, After, Also on standby (boards that can go dark), Swipe between pages, Page buttons, Show home button, Rotation |
+| Screen | Back to Home, After, Also on standby (boards that can go dark), Swipe between pages, Page buttons, Loop pages, Show home button, Rotation |
 | This screen | Screen, Address, Wi-Fi (network and signal), Firmware, Home Assistant, Tessera, Debug mode, Calibrate touch (a resistive panel that has a wizard), Restart; the rows say their values again every two seconds while the page is open |
 
 Every change is stored on the screen, applied at once and published on its entity, so Home Assistant and
@@ -125,7 +126,7 @@ settings, so a new setting never travels in the layout message.
 - Anything new is a plain value in `settings_screen.h` next to `swipe_pages`, `rotation` and `auto_home`,
   with a preference record of its own: load it in `runtime_tiles::load_settings()` and write it in
   `persist_settings()`.
-- Every preference key in use stays what it is: `0x53435231` the frozen block, and one key each for swipe,
+- Every preference key in use stays what it is: `0x53435231` the frozen block, and one key each for swipe, loop pages (`0x4C4F5031`), Back to Home
   Back to Home (`HomeTimeout`, two uint32), dark mode, page buttons, the home button (`0x48425431`, firmware 0.60.0:
   before it the button was back after every restart, GitHub #319), number format, rotation and the alarm lock
   (`runtime_tiles.h`), and the CYD's calibration (`0x43594403`, `cyd_calibration.h`). Never reuse, renumber or
@@ -168,7 +169,7 @@ it presses the screen's own entity for it: `Calibrate touch` is a button on the 
 there is also how the app knows this screen has a wizard at all (`core.calibrate_entity`).
 
 Watch the count: a group of more than five rows gets a pager on a 320x240 board. Six is the maximum
-that still fits a 480x480 board in one go. The Screen group already has seven rows.
+that still fits a 480x480 board in one go. The Screen group already has eight rows.
 
 ### 3. The entity
 

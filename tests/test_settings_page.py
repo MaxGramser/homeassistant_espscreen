@@ -111,7 +111,7 @@ class Firmware(unittest.TestCase):
         tiles = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
         load = tiles[tiles.index('inline void load_settings()'):tiles.index('inline void persist_settings()')]
         save = tiles[tiles.index('inline void persist_settings()'):tiles.index('// One page of a picker')]
-        for preference in ('swipe', 'home', 'dark', 'buttons', 'home_button', 'debug', 'rotation'):
+        for preference in ('swipe', 'home', 'dark', 'buttons', 'loop', 'home_button', 'debug', 'rotation'):
             with self.subTest(preference=preference):
                 self.assertIn(f'{preference}_preference.load(&', load)
                 self.assertIn(f'{preference}_preference.save(&', save)

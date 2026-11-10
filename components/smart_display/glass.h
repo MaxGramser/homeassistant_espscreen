@@ -13,7 +13,8 @@
 // driver keeps none. Every other board, the host renders and the editor's preview have no direct glass: direct() is
 // false and the rest are inline stubs that cost no flash.
 //
-// Two writers reach the frame buffer, and the lock covers both. LVGL's refresh (on a turned glass through ESPHome's own
+// Two writers reach the frame buffer, and the lock covers both (a third, the veil over the glass, comes between LVGL's
+// refreshes on the main loop and waits for streams the same way). LVGL's refresh (on a turned glass through ESPHome's own
 // PPA turn of each strip into a buffer in PSRAM, then the panel's DMA copy) holds it from LV_EVENT_REFR_START to
 // REFR_READY; a stream's task holds it for each decode and each copy. Without it a stream's first picture could land
 // while LVGL was still drawing the still and the name it had decided on before the stream armed, and that drawing then
@@ -52,6 +53,28 @@ inline Rect on_panel(const Rect &r, int turn, int pw, int ph) {
     case 270: return {r.y, ph - r.x - r.w, r.h, r.w};
     default: return r;
   }
+}
+
+// ---- A veil, past LVGL ----
+// A layer of `scrim` at `opa` over a pixel of RGB565, to the bit as LVGL draws it (lv_color_16_16_mix, which mixes in
+// steps of 1/32: `mix` is that step), so a part LVGL draws later under the same dim meets the part laid on the glass
+// without a seam.
+constexpr uint8_t veil_mix(uint8_t opa) { return static_cast<uint8_t>((opa + 4U) >> 3); }
+inline uint16_t veiled(uint16_t pixel, uint16_t scrim, uint8_t mix) {
+  if (pixel == scrim) return pixel;
+  const uint32_t bg = (pixel | (static_cast<uint32_t>(pixel) << 16)) & 0x7E0F81FU;
+  const uint32_t fg = (scrim | (static_cast<uint32_t>(scrim) << 16)) & 0x7E0F81FU;
+  const uint32_t mixed = ((((fg - bg) * mix) >> 5) + bg) & 0x7E0F81FU;
+  return static_cast<uint16_t>((mixed >> 16) | mixed);
+}
+// The way back, each colour within a few steps of 31 or 63 of what it was: the mix has lost its last bits. LVGL draws the
+// whole glass again afterwards; this is what shows until it has.
+inline uint16_t unveiled(uint16_t dark, uint16_t scrim, uint8_t mix) {
+  const auto back = [&](int shift, int most) {
+    const int kept = 32 - mix, value = (32 * ((dark >> shift) & most) - mix * ((scrim >> shift) & most) + kept / 2) / kept;
+    return static_cast<uint16_t>((value < 0 ? 0 : value > most ? most : value) << shift);
+  };
+  return static_cast<uint16_t>(back(11, 31) | back(5, 63) | back(0, 31));
 }
 
 // ---- The panel's share of the memory bus ----
@@ -114,6 +137,15 @@ void give_back(Room room);
 // LVGL draws the whole glass again (a full view's stream gone for good, its room drawn again while its task may still
 // have been busy with its last picture).
 void redraw_all();
+// Every pixel of the glass outside `keep` (a rectangle of the screen as LVGL lays it out, empty for none) goes under a
+// veil of `scrim` at `opa`, or comes out from under it, in the frame buffer itself, without LVGL: what a dim over the
+// whole glass would cost LVGL a whole redraw for. Row by row in four passes through the glass, so what the panel shows
+// meanwhile is a dim that deepens evenly and not one that wipes across it. On the main loop, between LVGL's refreshes.
+// False, and nothing done, without a frame buffer, with LVGL paused or while a stream writes the glass (an armed room:
+// its picture would go on bright through the veil).
+bool veil(const Rect &keep, uint16_t scrim, uint8_t opa, bool on);
+bool veilable();  // whether veil would do it now
+bool drawing();   // LVGL is bound and not paused: its timers run and a refresh draws
 // How often the panel ran dry since boot: the frames of blue (the panel watch below counts them), every 50 ms from the
 // streams' tick.
 void tick();
@@ -168,6 +200,9 @@ inline void disarm(Room, bool) {}
 inline void follow(Room) {}
 inline void give_back(Room) {}
 inline void redraw_all() {}
+inline bool veil(const Rect &, uint16_t, uint8_t, bool) { return false; }
+inline bool veilable() { return false; }
+inline bool drawing() { return false; }
 inline void tick() {}
 inline uint32_t misses() { return 0; }
 inline std::string watch_said() { return {}; }

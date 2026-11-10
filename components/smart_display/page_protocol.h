@@ -109,10 +109,16 @@ struct Pages {
     for (int i = 0; i <= index; ++i) if (included(i)) ++result;
     return result;
   }
-  int step(int index, int direction) const {
+  // The next page in the sequence that way; with `loop` past the last page comes the first, and the other way round.
+  int step(int index, int direction, bool loop = false) const {
     if (!included(index) || (direction != -1 && direction != 1)) return index;
-    for (int i = index + direction; i >= 0 && static_cast<size_t>(i) < records.size(); i += direction)
+    const int total = static_cast<int>(records.size());
+    for (int moved = 1; moved < total; ++moved) {
+      int i = index + direction * moved;
+      if (!loop && (i < 0 || i >= total)) break;
+      i = (i + total) % total;
       if (included(i)) return i;
+    }
     return index;
   }
   int restore(uint64_t previous, bool had_previous) const {

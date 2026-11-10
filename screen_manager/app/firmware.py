@@ -881,7 +881,7 @@ packages:
             parsed = yaml.load(content, Loader=LenientLoader)
         except yaml.YAMLError as error:
             raise ValueError(t('addon.errors.plugins.file')) from error
-        if not isinstance(parsed, dict) or set(parsed) - {'packages', 'external_components'}:
+        if not isinstance(parsed, dict) or set(parsed) - {'packages', 'external_components', 'font'}:
             raise ValueError(t('addon.errors.plugins.file'))
         self._atomic_write(path, content)
         self._ensure_include(profile, 'tessera_plugins', path.name)
