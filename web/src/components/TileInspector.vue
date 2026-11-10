@@ -22,6 +22,7 @@ import FavoriteSection from "./inspector/FavoriteSection.vue";
 import MapSection from "./inspector/MapSection.vue";
 import MeterSection from "./inspector/MeterSection.vue";
 import PresetsSection from "./inspector/PresetsSection.vue";
+import TodoSection from "./inspector/TodoSection.vue";
 import TextSection from "./inspector/TextSection.vue";
 import NameField from "./inspector/NameField.vue";
 import PrecisionRow from "./inspector/PrecisionRow.vue";
@@ -107,6 +108,8 @@ const textTile = computed(() => props.tile.entity === "screen.text");
 // A calendar card (firmware 0.56.0) draws its own head and what its room allows: no face or second line to choose, its
 // choices in a section of their own. As a bedside clock's key it is a key like any other.
 const calendarCard = computed(() => domain.value === "calendar" && !key.value);
+// A to-do card draws its own list on a board that has it (docs/TODO.md): its choices in a section of their own.
+const todoCard = computed(() => domain.value === "todo" && !key.value);
 // A favourite (app 0.4.42): what it plays and on which speaker, in its own section.
 const favoriteCard = computed(() => display.value === "favorite" && domain.value === "media_player");
 // A sensor's meter (firmware 0.56.0): its look, its range and its colours, in its own sections.
@@ -320,6 +323,9 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
 
     <!-- A calendar card (firmware 0.56.0): what it shows, its calendars, which events, how far ahead. -->
     <CalendarSection v-if="calendarCard" :tile="tile" />
+
+    <!-- A to-do card: its order, what it shows, and what a finger may do on the screen. -->
+    <TodoSection v-if="todoCard" :tile="tile" />
 
     <!-- A favourite (app 0.4.42): what it plays, from the player's library, and on which speaker. -->
     <FavoriteSection v-if="lookShown && favoriteCard" :tile="tile" />

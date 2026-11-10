@@ -1301,6 +1301,34 @@ std::string receive(const std::string &payload) {
       next.text = std::move(d);
     }
 #endif
+#ifdef SD_MOD_TODO
+    // A to-do card (module todo, firmware 0.61.0+, app todo_feed.py): {"v":1,"f":may,"n":open,"d":done,"i":[items],
+    // "s":[names to offer]}, or {"v":1,"w":1} while the app has no list yet. An item is [number, flags, name, days?].
+    // Whatever a message says, a card keeps todo's caps, in PSRAM.
+    if (tile.domain() == "todo" && extra["todo"].is<JsonObject>() && (extra["todo"]["v"] | 0) == 1) {
+      JsonVariant list = extra["todo"];
+      auto d = std::make_shared<todo::Data>();
+      d->waiting = (list["w"] | 0) == 1;
+      d->may = static_cast<uint8_t>(list["f"] | 0u);
+      d->open = static_cast<uint16_t>(std::min<unsigned>(list["n"] | 0u, 65535));
+      d->done = static_cast<uint16_t>(std::min<unsigned>(list["d"] | 0u, 65535));
+      if (list["i"].is<JsonArray>()) for (JsonVariant row : list["i"].as<JsonArray>()) {
+        if (d->items.size() == todo::MAX_ITEMS) break;
+        if (!row.is<JsonArray>() || !row[2].is<const char *>()) continue;
+        todo::Item item;
+        item.id = row[0] | 0u;
+        item.flags = static_cast<uint8_t>((row[1] | 0u) & (todo::DONE | todo::LATE));
+        if (row[3].is<int>()) { item.days = static_cast<int16_t>(std::clamp<int>(row[3] | 0, -9999, 9999)); item.flags |= todo::HAS_DUE; }
+        item.text = roomy::text(string(row[2], todo::SUMMARY_BYTES));
+        d->items.push_back(std::move(item));
+      }
+      if (list["s"].is<JsonArray>()) for (JsonVariant name : list["s"].as<JsonArray>()) {
+        if (d->offers.size() == todo::MAX_OFFERS) break;
+        if (name.is<const char *>()) d->offers.push_back(roomy::text(string(name, 48)));
+      }
+      next.todo = std::move(d);
+    }
+#endif
 #ifdef SD_MOD_VACUUM_CARD
     // A vacuum's card of the module (module_vacuum_card.h, vacuum_model.h, app vacuum_card.py): its map and its mark, the areas
     // linked to its segments with their icons and floors, its routines, and why it stopped or how far it is.

@@ -649,6 +649,21 @@
       "calendars": "Agenda's",
       "also": "+{x} nu",
       "booked": "Geboekt op het scherm"
+    },
+    "todo": {
+      "open": "{x} open",
+      "all_done": "Alles gedaan",
+      "more": "+{x} meer",
+      "completed": "Afgevinkt",
+      "add": "Item toevoegen",
+      "added": "{x} toegevoegd",
+      "rename": "Naam wijzigen",
+      "remove": "Verwijderen",
+      "cancel": "Annuleren",
+      "clear": "{x} afgevinkte verwijderen?",
+      "waiting": "Laden",
+      "empty": "Niets op de lijst",
+      "yesterday": "Gisteren"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarm",
         "lock": "Sloten",
         "humidifier": "Luchtbevochtigers",
-        "calendar": "Agenda's"
+        "calendar": "Agenda's",
+        "todo": "To-do-lijsten"
       },
       "room": "Ruimte",
       "hide_placed": "Geplaatste verbergen",
@@ -1992,7 +2008,8 @@
       "alarm_control_panel": "Alarmpaneel",
       "lock": "Slot",
       "humidifier": "Luchtbevochtiger",
-      "calendar": "Agenda"
+      "calendar": "Agenda",
+      "todo": "To-do-lijst"
     },
     "displays": {
       "standard": "standaard",
@@ -2488,6 +2505,31 @@
           "unknown": "{id} bestaat niet in Home Assistant",
           "replace": "Vervang door {id}"
         }
+      },
+      "todo": {
+        "title": "To-do-lijst",
+        "plain": "Dit bord kan geen to-do-lijst tonen: dat vraagt een bord met 8 MB flash of meer. Verwijder deze tegel.",
+        "needs_firmware": "De to-do-lijst vraagt firmware 0.61.0 of nieuwer: druk na het opslaan op Bijwerken bij het scherm.",
+        "order": {
+          "label": "Volgorde",
+          "hint": "Zoals de to-do-kaart van Home Assistant ze ordent",
+          "none": "Zoals in Home Assistant",
+          "alpha_asc": "Naam, A tot Z",
+          "alpha_desc": "Naam, Z tot A",
+          "duedate_asc": "Vervaldatum, eerste eerst",
+          "duedate_desc": "Vervaldatum, laatste eerst"
+        },
+        "completed": "Afgevinkte items",
+        "completed_hint": "Onder de open items, doorgestreept, waar ruimte is",
+        "due": "Vervaldatums",
+        "due_hint": "De dag naast een item; te laat is rood",
+        "screen": "Op het scherm",
+        "add": "Items toevoegen",
+        "add_hint": "Een plusknop op de tegel en een veld in de lijst openen het toetsenbord van het scherm",
+        "suggest": "Namen voorstellen",
+        "suggest_hint": "Tijdens het typen biedt het toetsenbord aan wat eerder is afgevinkt; een tik zet het terug op de lijst",
+        "clear": "Afgevinkte verwijderen",
+        "clear_hint": "Een knop in de lijst verwijdert alles wat is afgevinkt, na een vraag"
       }
     },
     "precision": {
@@ -3427,7 +3469,10 @@
     "mockup": {
       "home": "Thuis",
       "unknown": "Onbekend",
-      "calendar_free": "Vrij"
+      "calendar_free": "Vrij",
+      "todo_open": "{x} open",
+      "todo_all_done": "Alles gedaan",
+      "todo_more": "+{x} meer"
     },
     "pages": {
       "repaired": "Pagina {page}, tegel “{tile}”: weggehaald wat niet klopte ({what}).",

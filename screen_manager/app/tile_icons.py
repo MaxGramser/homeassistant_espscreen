@@ -272,6 +272,8 @@ HA_DEFAULTS = (
     # Home Assistant's calendar icons (homeassistant/components/calendar/icons.json): on while an event runs, off else.
     ('calendar-blank', 'F00EE'),
     ('calendar-check', 'F00EF'),
+    # Home Assistant's to-do list icon (homeassistant/components/todo/icons.json).
+    ('clipboard-list', 'F10D4'),
     ('account-arrow-right', 'F0B53'),
     ('air-filter', 'F0D43'),
     ('air-humidifier', 'F1099'),

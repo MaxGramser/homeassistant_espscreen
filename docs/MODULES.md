@@ -68,6 +68,10 @@ the add-on and the editor offer a module's options only on boards that have it.
 - **doorbell** (full): a doorbell's ring (the event `esp_screens_doorbell`) opens its camera full screen, live with its
   sound and a chime (docs/DOORBELL.md, `module_doorbell.cpp` with its header). Its screens say `doorbell` in their hello
   when they stream (a P4), and ESP Screens sends them the op `doorbell`; every other screen gets the camera's alert.
+- **todo** (full): the to-do card, a Home Assistant to-do list as a list to tick, its full screen, and the keyboard that
+  adds an item (docs/TODO.md, `module_todo.cpp` with its headers). Its screens say `todo_card` in their hello, with
+  `todo_items` in their caps, and ESP Screens sends them the list's items (`todo`); the editor offers to-do lists where
+  `boards.json` lists the module, and lite has no to-do tile.
 - **dock** (full): up from the bottom edge opens the Dock, a small drawer at the bottom of the glass (at most 12 cm
   wide, the full width on a 4-inch glass) with every page as a small picture and its name, in one row or two.
   The drawer rides on the finger that opens it: its top stays under the finger until it lets go, and then a flick, or

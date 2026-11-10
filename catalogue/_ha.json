@@ -641,6 +641,19 @@
    "enum": null,
    "features": {}
   },
+  "todo": {
+   "actions": {},
+   "enum": "TodoListEntityFeature",
+   "features": {
+    "CREATE_TODO_ITEM": 1,
+    "DELETE_TODO_ITEM": 2,
+    "MOVE_TODO_ITEM": 8,
+    "SET_DESCRIPTION_ON_ITEM": 64,
+    "SET_DUE_DATETIME_ON_ITEM": 32,
+    "SET_DUE_DATE_ON_ITEM": 16,
+    "UPDATE_TODO_ITEM": 4
+   }
+  },
   "vacuum": {
    "actions": {
     "clean_spot": [

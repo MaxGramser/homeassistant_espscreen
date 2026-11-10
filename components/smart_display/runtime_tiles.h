@@ -72,6 +72,9 @@
 #ifdef SD_MOD_TEXT_CARD
 #include "module_text_card_view.h"
 #endif
+#ifdef SD_MOD_TODO
+#include "module_todo_view.h"
+#endif
 #include "meter_view.h"
 #include "module_vacuum_tile.h"
 #ifdef SD_MOD_DOORBELL
@@ -661,6 +664,10 @@ struct Widgets {
 #ifdef SD_MOD_TEXT_CARD
   // A template tile's plan (module text_card, firmware 0.58.0+, module_text_card.cpp); it goes with the card's extra layer.
   text_card_view::View *text{};
+#endif
+#ifdef SD_MOD_TODO
+  // A to-do card's plan (module todo, firmware 0.61.0+, module_todo.cpp); it goes with the card's extra layer.
+  todo_view::View *todo{};
 #endif
   // A sensor's meter (firmware 0.56.0+, meter_view.cpp); it goes with the card's extra layer.
   meter_view::View *meter{};
@@ -1782,6 +1789,9 @@ inline void hide_detail(){
   if(detail_backdrop)lv_obj_add_flag(detail_backdrop,LV_OBJ_FLAG_HIDDEN);if(detail_root)lv_obj_add_flag(detail_root,LV_OBJ_FLAG_HIDDEN);
 #ifdef SD_MOD_VACUUM_CARD
   vacuum_card::closed();
+#endif
+#ifdef SD_MOD_TODO
+  todo_view::closed();
 #endif
   // A player's library and speaker menu go with its card (firmware 0.24.0+), after it: the card stays as it was.
   media_library::close();}
@@ -5723,6 +5733,10 @@ inline void show_detail(unsigned index){
   media_knob=media_pill_obj=media_library_key=media_input_key=nullptr;
   // The calendar card's full screen (firmware 0.56.0+) is its own: the whole glass, its own header with the view key.
   if(t.domain()=="calendar"){calendar_view::open(detail_root,t,index);return;}
+#ifdef SD_MOD_TODO
+  // The to-do card's full screen (module todo, firmware 0.61.0+) is its own too: the whole list and its keyboard.
+  if(t.domain()=="todo"){todo_view::open(detail_root,t,index);return;}
+#endif
   // The card's room: capped to what a hand spans and centred, unless it shows a picture (the media card's
   // cover art, a camera), which may fill the glass. Every size below follows from `width`.
   auto d=t.domain();
@@ -6264,6 +6278,11 @@ inline void event(lv_event_t *event) {
   if(tile.favorite()&&!held&&tile.tap=="auto"){favorite_tap(w.index);return;}
   // A room's calendar card books on its keys (calendar_view.cpp); the rest of the card opens its full screen.
   if(d=="calendar"&&!held&&calendar_view::card_tap(w,tile))return;
+#ifdef SD_MOD_TODO
+  // A to-do card ticks the item under the finger and opens its keyboard on its key (module_todo.cpp); the rest of the
+  // card opens its full screen, whatever the tile's tap says: a list has no other action.
+  if(d=="todo"&&!held&&w.todo){if(!todo_view::card_tap(w,tile))show_detail(w.index);return;}
+#endif
 #ifdef SD_MOD_VACUUM_CARD
   // A robot's larger tile acts on its own parts (its keys, rooms, routines, mode); the rest of it opens its card.
   if(d=="vacuum"&&!held&&w.vacuum_face&&vacuum_face::card_tap(w,tile))return;
@@ -6637,6 +6656,9 @@ inline void end_extra(Widgets &w) {
     if(w.meter)meter_view::release(w);
 #ifdef SD_MOD_TEXT_CARD
     if(w.text)text_card_view::release(w);
+#endif
+#ifdef SD_MOD_TODO
+    if(w.todo)todo_view::release(w);
 #endif
 #ifdef SD_MOD_VACUUM_CARD
     if(w.vacuum_face)vacuum_face::release(w);
@@ -8871,7 +8893,14 @@ inline void render_slot(size_t slot) {
 #else
   constexpr bool text=false;
 #endif
-  bool custom=clock||forecast||sunpath||bedside||energy||plugin||calendar||meter||vacuum||text;
+  // The to-do card (module todo, firmware 0.61.0+) draws its list on any size; without the module a to-do list is a
+  // tile like any other, with the number of open items as its state.
+#ifdef SD_MOD_TODO
+  bool todo_list=d=="todo" && !w.key;
+#else
+  constexpr bool todo_list=false;
+#endif
+  bool custom=clock||forecast||sunpath||bedside||energy||plugin||calendar||meter||vacuum||text||todo_list;
   if(!large_tile)pad_vertical(w.tile,watch||custom||graph?2:4);
   // A big value that stepped up to the setpoint's digits (the watch block below) keeps them until that block
   // decides again, so a card is not restyled twice a render.
@@ -8923,6 +8952,14 @@ inline void render_slot(size_t slot) {
     if(w.picture)lv_obj_add_flag(w.picture,LV_OBJ_FLAG_HIDDEN);
     lap(swipe_profile::GEOMETRY);
     text_card_view::render(w,t,content_w,content_h);
+    lap(swipe_profile::CUSTOM);
+#endif
+#ifdef SD_MOD_TODO
+  }else if(todo_list){
+    lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);hide_panel(w);lv_obj_add_flag(w.progress,LV_OBJ_FLAG_HIDDEN);
+    if(w.picture)lv_obj_add_flag(w.picture,LV_OBJ_FLAG_HIDDEN);
+    lap(swipe_profile::GEOMETRY);
+    todo_view::render(w,t,content_w,content_h);
     lap(swipe_profile::CUSTOM);
 #endif
   }else if(meter){
@@ -10408,6 +10445,9 @@ inline void drop_card(Widgets &w) {
   if (w.meter) meter_view::release(w);
 #ifdef SD_MOD_TEXT_CARD
   if (w.text) text_card_view::release(w);
+#endif
+#ifdef SD_MOD_TODO
+  if (w.todo) todo_view::release(w);
 #endif
 #ifdef SD_MOD_VACUUM_CARD
   if (w.vacuum_face) vacuum_face::release(w);

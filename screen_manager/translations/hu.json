@@ -649,6 +649,21 @@
       "calendars": "Naptárak",
       "also": "+{x} most",
       "booked": "A kijelzőn foglalva"
+    },
+    "todo": {
+      "open": "{x} nyitott",
+      "all_done": "Minden kész",
+      "more": "+{x} további",
+      "completed": "Kész",
+      "add": "Elem hozzáadása",
+      "added": "{x} hozzáadva",
+      "rename": "Átnevezés",
+      "remove": "Eltávolítás",
+      "cancel": "Mégse",
+      "clear": "{x} kész elem törlése?",
+      "waiting": "Betöltés",
+      "empty": "Nincs semmi a listán",
+      "yesterday": "Tegnap"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Riasztó",
         "lock": "Zárak",
         "humidifier": "Párásítók",
-        "calendar": "Naptárak"
+        "calendar": "Naptárak",
+        "todo": "Teendőlisták"
       },
       "room": "Helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Riasztópanel",
       "lock": "Zár",
       "humidifier": "Párásító",
-      "calendar": "Naptár"
+      "calendar": "Naptár",
+      "todo": "Teendőlista"
     },
     "displays": {
       "standard": "normál",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} nem létezik a Home Assistantben",
           "replace": "Csere erre: {id}"
         }
+      },
+      "todo": {
+        "title": "Teendőlista",
+        "plain": "Ez a panel nem tud teendőlistát mutatni: ehhez legalább 8 MB flash memóriájú panel kell. Távolítsd el ezt a csempét.",
+        "needs_firmware": "A teendőlistához 0.61.0-s vagy újabb firmware kell: mentés után nyomd meg a képernyőnél a Frissítés gombot.",
+        "order": {
+          "label": "Sorrend",
+          "hint": "Ahogy a Home Assistant teendőlista-kártyája rendezi",
+          "none": "Mint a Home Assistantban",
+          "alpha_asc": "Név, A-tól Z-ig",
+          "alpha_desc": "Név, Z-től A-ig",
+          "duedate_asc": "Határidő, a legkorábbi elöl",
+          "duedate_desc": "Határidő, a legkésőbbi elöl"
+        },
+        "completed": "Kész elemek",
+        "completed_hint": "A nyitottak alatt, áthúzva, ahol van hely",
+        "due": "Határidők",
+        "due_hint": "A nap az elem mellett; a késés piros",
+        "screen": "A képernyőn",
+        "add": "Elemek hozzáadása",
+        "add_hint": "A csempén egy plusz gomb, a listában egy mező nyitja meg a képernyő billentyűzetét",
+        "suggest": "Nevek felajánlása",
+        "suggest_hint": "Gépelés közben a billentyűzet felajánlja a korábban kipipáltakat; egy érintés visszateszi a listára",
+        "clear": "Készek eltávolítása",
+        "clear_hint": "A lista egy gombja kérdés után eltávolít mindent, ami ki van pipálva"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Kezdőlap",
       "unknown": "Ismeretlen",
-      "calendar_free": "Szabad"
+      "calendar_free": "Szabad",
+      "todo_open": "{x} nyitott",
+      "todo_all_done": "Minden kész",
+      "todo_more": "+{x} további"
     },
     "pages": {
       "repaired": "{page}. oldal, „{tile}” csempe: ami nem illett, eltávolítva ({what}).",

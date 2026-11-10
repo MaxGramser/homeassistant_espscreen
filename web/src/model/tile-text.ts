@@ -172,6 +172,9 @@ export function stateText(entity: string, live: Live | null | undefined, options
   // A calendar names the event of the moment (Home Assistant's `message`) and says Free while none runs, as its card does
   // (screen.calendar.free; the page carries the same word as editor.mockup.calendar_free).
   if (domain === "calendar") return live.state === "on" && a.message ? String(a.message) : live.state === "off" ? screenText(words, "editor.mockup.calendar_free") : word;
+  // A to-do list says how many items are open, as its card does (screen.todo.open; the page carries the same words as
+  // editor.mockup.todo_open and todo_all_done). Only a board with the to-do card has such a tile.
+  if (domain === "todo" && /^\d+$/.test(live.state)) return live.state === "0" ? screenText(words, "editor.mockup.todo_all_done") : screenText(words, "editor.mockup.todo_open").replace("{x}", live.state);
   if (domain === "sensor" || NUMERIC.includes(domain)) return ownWords(domain, live) || valueText(domain, live.state, a.unit_of_measurement, words);
   return word;
 }

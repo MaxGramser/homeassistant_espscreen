@@ -649,6 +649,21 @@
       "calendars": "Calendars",
       "also": "+{x} now",
       "booked": "Booked on the screen"
+    },
+    "todo": {
+      "open": "{x} open",
+      "all_done": "All done",
+      "more": "+{x} more",
+      "completed": "Completed",
+      "add": "Add item",
+      "added": "{x} added",
+      "rename": "Rename",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "clear": "Remove {x} completed?",
+      "waiting": "Loading",
+      "empty": "Nothing on the list",
+      "yesterday": "Yesterday"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarm",
         "lock": "Locks",
         "humidifier": "Humidifiers",
-        "calendar": "Calendars"
+        "calendar": "Calendars",
+        "todo": "To-do lists"
       },
       "room": "Room",
       "hide_placed": "Hide placed",
@@ -1992,7 +2008,8 @@
       "alarm_control_panel": "Alarm panel",
       "lock": "Lock",
       "humidifier": "Humidifier",
-      "calendar": "Calendar"
+      "calendar": "Calendar",
+      "todo": "To-do list"
     },
     "displays": {
       "standard": "standard",
@@ -2488,6 +2505,31 @@
           "unknown": "{id} is not in Home Assistant",
           "replace": "Replace with {id}"
         }
+      },
+      "todo": {
+        "title": "To-do list",
+        "plain": "This board cannot show a to-do list: it needs a board with 8 MB of flash or more. Remove this tile.",
+        "needs_firmware": "The to-do list needs firmware 0.61.0 or newer: press Update on the screen after saving.",
+        "order": {
+          "label": "Order",
+          "hint": "As Home Assistant's own to-do list card orders them",
+          "none": "As in Home Assistant",
+          "alpha_asc": "Name, A to Z",
+          "alpha_desc": "Name, Z to A",
+          "duedate_asc": "Due date, first due first",
+          "duedate_desc": "Due date, last due first"
+        },
+        "completed": "Completed items",
+        "completed_hint": "Shown under the open items, struck through, where there is room",
+        "due": "Due dates",
+        "due_hint": "The day beside an item; late is red",
+        "screen": "On the screen",
+        "add": "Add items",
+        "add_hint": "A plus key on the tile and a field in the list open the screen's keyboard",
+        "suggest": "Suggest names",
+        "suggest_hint": "While typing, the keyboard offers what was ticked off before; a tap puts it back on the list",
+        "clear": "Remove completed",
+        "clear_hint": "A key in the list removes everything that is ticked off, after asking"
       }
     },
     "precision": {
@@ -3427,7 +3469,10 @@
     "mockup": {
       "home": "Home",
       "unknown": "Unknown",
-      "calendar_free": "Free"
+      "calendar_free": "Free",
+      "todo_open": "{x} open",
+      "todo_all_done": "All done",
+      "todo_more": "+{x} more"
     },
     "pages": {
       "repaired": "Page {page}, tile “{tile}”: took out what did not fit ({what}).",

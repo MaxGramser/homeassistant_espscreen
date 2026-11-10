@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.60.0"
+  SCREEN_FIRMWARE_VERSION: "0.61.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -777,6 +777,11 @@ api:
                     #ifdef SD_MOD_TEXT_CARD
                     features.add("text_card");
                     #endif
+                    // todo_card (firmware 0.61.0, module todo, docs/TODO.md): a to-do list's tile draws its items and adds
+                    // one with its keyboard, so ESP Screens sends the list (`todo`); its caps say how many items it keeps.
+                    #ifdef SD_MOD_TODO
+                    features.add("todo_card");
+                    #endif
                     // light_presets (module light_presets, docs/LIGHT_PRESETS.md): a light's tile and card draw the round keys of
                     // its presets, so ESP Screens sends the controls presets and brightness_presets; another screen gets the slider.
                     #ifdef SD_MOD_LIGHT_PRESETS
@@ -1307,6 +1312,7 @@ font:
       - "\U000F024B" # folder
       - "\U000F00EE" # calendar-blank
       - "\U000F00EF" # calendar-check
+      - "\U000F10D4" # clipboard-list
       - "\U000F0B53" # account-arrow-right
       - "\U000F0D43" # air-filter
       - "\U000F1099" # air-humidifier

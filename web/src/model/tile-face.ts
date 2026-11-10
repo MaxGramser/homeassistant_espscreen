@@ -10,7 +10,7 @@ import { availableControl, controlKeys, coverPrimary, hasCoverTilt, type Control
 import type { Live } from "./tile-text";
 import type { TileOptions } from "../types";
 
-export type FaceKind = "bedside" | "plugin-live" | "plugin" | "energy" | "text" | "analog" | "dial" | "flip-wide" | "flip" | "digital" | "graph" | "meter"
+export type FaceKind = "bedside" | "plugin-live" | "plugin" | "energy" | "text" | "todo" | "analog" | "dial" | "flip-wide" | "flip" | "digital" | "graph" | "meter"
   | "favorite" | "camera" | "watch" | "full" | "big-key" | "vacuum" | "tall" | "wide" | "standard";
 
 export type FaceInput = {
@@ -24,6 +24,8 @@ export type FaceInput = {
   live: Live | null | undefined;
   /** The control set the add-on sends for it (layout.ts effectiveControls). */
   chosen: string | null;
+  /** The screen's board draws a to-do list (boards.json `modules` has todo); false only where it does not. */
+  todoLists?: boolean;
   /** The screen draws a thermostat's range on its -/+ (firmware 0.19.0+). */
   rangeReady: boolean;
   /** The screen's board has the vacuum card's module, and with it the larger vacuum tile (false: the keys). */
@@ -153,6 +155,8 @@ function faceKind(input: FaceInput, face: Omit<Face, "kind">): FaceKind {
   if (entity === "screen.energy") return "energy";
   // The template tile (docs/TEXT_TILE.md): the rows Home Assistant rendered, over the whole card at every size.
   if (entity === "screen.text") return "text";
+  // The to-do card (docs/TODO.md) on a board that draws it: the list, at every size. Any other board draws the count.
+  if (domain === "todo" && input.todoLists !== false) return "todo";
   if (display === "analog") return "analog";
   if (domain === "screen" && CLOCK_FACES.includes(display)) {
     // The flip clock on a card two columns wide and two rows tall, or a whole page (firmware 0.17.0): the blocks share

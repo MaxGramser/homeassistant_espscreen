@@ -17,6 +17,7 @@ import math
 from urllib.parse import urlsplit
 import automations
 import calendar_feed
+import todo_feed
 import doorbell
 import durations
 import picture_legacy
@@ -274,6 +275,8 @@ class HomeAssistant:
         # A tap on a compact calendar event (calendar_feed.EVENT): {inbox, entity, i, c, s, e, day}, for
         # Manager.calendar_loop.
         self.calendar_requests = asyncio.Queue()
+        # What a screen asks of a to-do list (todo_feed.EVENT): {inbox, entity, i, a, n, t}, for Manager.todo_loop.
+        self.todo_requests = asyncio.Queue()
         # A player's library (firmware 0.24.0+): a folder a screen opens and an item it plays, for Manager.media_loop.
         self.media_requests = asyncio.Queue()
         # A plugin's question to the app (docs/PLUGINS.md, tessera::send): answered by Plugins.answer.
@@ -326,6 +329,9 @@ class HomeAssistant:
                 elif event.get('event_type') == calendar_feed.EVENT:
                     if self.calendar_requests.qsize() < 32:
                         self.calendar_requests.put_nowait(body)
+                elif event.get('event_type') == todo_feed.EVENT:
+                    if self.todo_requests.qsize() < 64:
+                        self.todo_requests.put_nowait(body)
                 elif event.get('event_type') == PLUGIN_EVENT:
                     if self.plugin_requests.qsize() < 32:
                         self.plugin_requests.put_nowait(body)
@@ -384,6 +390,27 @@ class HomeAssistant:
         return key
 
     async def unsubscribe_template(self, key):
+        if self.template_subs.pop(key, None) is not None:
+            await self.request('unsubscribe_events', subscription=key)
+
+    async def subscribe_todo(self, entity, callback):
+        """A to-do list's items (todo_feed.TodoService): `callback(event)` takes the whole list ({"items": [...]}) each
+        time Home Assistant sends it, which is once at the start and after every change; returns its id for
+        unsubscribe_todo. A list Home Assistant does not have is Refused."""
+        if self.ws is None or self.ws.closed:
+            raise ConnectionError("Home Assistant isn't connected.")
+        # Registered before the request: the first list comes right behind the answer. The id is a subscription's, as
+        # a template's is, so the two share the table read() looks in.
+        key = self.next_id + 1
+        self.template_subs[key] = callback
+        try:
+            await self.request('todo/item/subscribe', entity_id=entity)
+        except BaseException:
+            self.template_subs.pop(key, None)
+            raise
+        return key
+
+    async def unsubscribe_todo(self, key):
         if self.template_subs.pop(key, None) is not None:
             await self.request('unsubscribe_events', subscription=key)
 
@@ -630,6 +657,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
                     await self.request('subscribe_events', event_type=light_effects.OPTIONS_EVENT)
                     await self.request('subscribe_events', event_type=calendar_feed.EVENT)
+                    await self.request('subscribe_events', event_type=todo_feed.EVENT)
                     await self.request('subscribe_events', event_type=PLUGIN_EVENT)
                     await self.request('subscribe_events', event_type=media_library.BROWSE_EVENT)
                     await self.request('subscribe_events', event_type=media_library.PLAY_EVENT)
@@ -1034,6 +1062,9 @@ class Manager:
         self.forecasts = {}
         # The template tiles' results from Home Assistant (docs/TEXT_TILE.md).
         self.templates = template_service.TemplateService(ha)
+        # The to-do lists' items from Home Assistant (docs/TODO.md), and when each list last went to a screen.
+        self.todos = todo_feed.TodoService(ha)
+        self.todo_sent = {}
         self.listeners = set()  # asyncio.Event per open /api/events stream
         self.firmware = Firmware(os.environ.get("ESPHOME_CONFIG", "/homeassistant/esphome"), self.path.parent)
         # The app's one build line (docs/BUILDS.md): updates, plugin builds, New screen and Firmware & USB wait in it.
@@ -2138,6 +2169,80 @@ class Manager:
         message = {'v': 1, 'op': 'calendar_event', 'c': cal, 's': start, 'e': end, **(found or {'x': 1})}
         await self.send_auxiliary(inbox, message, action, request)
 
+    async def todo_loop(self):
+        """Do what a screen asks of a to-do list (todo_feed.request): tick an item, add one, rename or remove one."""
+        while True:
+            request = await self.ha.todo_requests.get()
+            try:
+                await self.answer_todo(request)
+            except Exception as error:   # one screen's request never ends the app
+                LOG.info('A to-do list was not changed (%s)', type(error).__name__)
+
+    async def answer_todo(self, request):
+        """One screen's request: a to-do tile of its own layout (by its place `i` and its entity), the item by the
+        number the app gave it (`n`), and the text it typed (`t`). The list's own change comes back from Home Assistant
+        through the subscription, to every screen that shows the list."""
+        if not isinstance(request, dict):
+            return
+        inbox = self.aliases.get(request.get('inbox'), request.get('inbox'))
+        layout, screen = self.layouts.get(inbox), self.screen(inbox) if isinstance(inbox, str) else None
+        if not layout or not screen:
+            return
+        try:
+            index = int(request.get('i'))
+            number = int(request.get('n') or 0)
+        except (TypeError, ValueError):
+            return
+        tiles = layout['tiles']
+        if not 0 <= index < len(tiles) or tiles[index]['entity'] != request.get('entity') or not tiles[index]['entity'].startswith('todo.'):
+            return
+        tile, action = tiles[index], request.get('a')
+        entity = tile['entity']
+        if action not in todo_feed.ACTIONS:
+            return
+        features = ((self.ha.states.get(entity) or {}).get('attributes') or {}).get('supported_features') or 0
+        may = todo_feed.flags(tile, features)
+        allowed = {'tick': todo_feed.MAY_TICK, 'untick': todo_feed.MAY_TICK, 'add': todo_feed.MAY_ADD,
+                   'rename': todo_feed.MAY_RENAME, 'remove': todo_feed.MAY_REMOVE, 'clear': todo_feed.MAY_CLEAR}[action]
+        if not may & allowed:
+            return
+        uid = self.todos.numbers.uid(entity, number) if number else None
+        call = todo_feed.request(action, self.todos.of(entity), uid, request.get('t'), features)
+        if not call:
+            return
+        service, data = call
+        await self.ha.request('call_service', domain='todo', service=service, service_data=data,
+                              target={'entity_id': entity})
+
+    async def sync_todos(self):
+        """Home Assistant sends the items of every to-do list a screen shows, and of the editor's last preview."""
+        if not hasattr(self.ha, 'subscribe_todo'):
+            return
+        wanted = todo_feed.wanted_lists([layout.get('tiles', []) for layout in self.layouts.values()] + [self.preview_tiles])
+        try:
+            await self.todos.sync(wanted)
+        except Exception as error:
+            LOG.warning('To-do lists were not brought up to date (%s)', type(error).__name__)
+
+    def todo_extras(self, tile, features=None, caps=None):
+        """A to-do tile's `x.todo` (todo_feed.card): the list's items in the tile's order, for a screen that draws
+        them (its hello says todo_card); a screen without the card gets no layout with a to-do tile (needs_firmware)."""
+        if features is not None and todo_feed.FEATURE not in features:
+            return None
+        entity = tile['entity']
+        tz = getattr(self.ha, 'time_zone', None) or timezone.utc
+        supported = ((self.ha.states.get(entity) or {}).get('attributes') or {}).get('supported_features') or 0
+        self.todo_sent[entity] = time.monotonic()
+        return todo_feed.card(tile, self.todos.of(entity), self.todos.numbers.of(entity), supported, tz,
+                              datetime.now(tz), todo_feed.keeps(caps))
+
+    def todo_due(self, tile):
+        """A list with a due date is sent again each minute: an item turns late, and tomorrow turns into today."""
+        entity = tile['entity']
+        if not any(item.get('due') for item in self.todos.of(entity) or []):
+            return False
+        return time.monotonic() - self.todo_sent.get(entity, 0) > 60
+
     async def plugin_loop(self):
         """Answer the plugins on the screens (docs/PLUGINS.md): a Home Assistant command their manifest names."""
         while True:
@@ -2759,6 +2864,9 @@ class Manager:
         sender = self.page_senders.get(inbox)
         if sender is not None and getattr(sender, 'features', None) is not None and text_tile.unsupported(layout.get('tiles', []), sender.features):
             return text_tile.FIRMWARE
+        # A to-do tile: a screen whose hello names todo_card (module todo, a full-tier build) draws it.
+        if sender is not None and getattr(sender, 'features', None) is not None and todo_feed.unsupported(layout.get('tiles', []), sender.features):
+            return todo_feed.FIRMWARE
         return None
 
     def save(self, inbox, data):
@@ -3154,6 +3262,11 @@ class Manager:
         if tile['entity'].startswith('calendar.'):
             sender = self.page_senders.get(inbox) if inbox else None
             extra = {**(extra or {}), 'cal': await self.calendar_extras(tile, features, getattr(sender, 'caps', None))}
+        if tile['entity'].startswith('todo.'):
+            sender = self.page_senders.get(inbox) if inbox else None
+            block = self.todo_extras(tile, features, getattr(sender, 'caps', None))
+            if block:
+                extra = {**(extra or {}), 'todo': block}
         message=state_message(index,tile,states,extra,
                               precision=header_bar.precision_of(entry) if tile['entity'].startswith('sensor.') else None,entry=entry,
                               units=getattr(self.ha,'units',None),week=week)
@@ -3359,6 +3472,8 @@ class Manager:
                 reuse = False
             if reuse and tile['entity'].startswith('calendar.') and self.calendar_due(tile):
                 reuse = False
+            if reuse and tile['entity'].startswith('todo.') and self.todo_due(tile):
+                reuse = False
             # A screen on this route has no hello, and none of the flags a newer option needs.
             states.append(previous['states'][i] if reuse else await self.tile_message(i, tile, features=frozenset(), inbox=inbox))
         outgoing = []
@@ -3472,6 +3587,7 @@ class Manager:
             changed = self._screens_key != screens_key
             self.ha.relevant = self.watched_entities()
             await self.sync_templates()
+            await self.sync_todos()
             # A setting changed on a screen that owns them: the editor shows it.
             settings_key = self.settings_states_key()
             if settings_key != self._settings_key:
@@ -4546,6 +4662,9 @@ def create_app(manager, development=False):
             screen['vacuum_tile'] = has_module(screen, 'vacuum_card')
             # The template tile (docs/TEXT_TILE.md): only a board with the module text_card draws it.
             screen['text_tiles'] = has_module(screen, text_tile.FEATURE)
+            # The to-do card (docs/TODO.md): only a board with the module todo (8 MB of flash or more) has it; the
+            # editor offers to-do lists there only.
+            screen['todo_lists'] = has_module(screen, todo_feed.MODULE)
             # A light's presets (docs/LIGHT_PRESETS.md): only a board with the module light_presets draws them.
             screen['light_presets'] = has_module(screen, 'light_presets')
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with
@@ -5678,6 +5797,31 @@ def create_app(manager, development=False):
         return web.json_response({'cal': card, 'places': [place for place, _ in places.most_common(24)], 'bookable': sorted(bookable)})
     app.router.add_post('/api/calendar/preview', calendar_preview)
 
+    async def todo_preview(request):
+        """A to-do card as the screen would get it, for the editor's mockup (docs/TODO.md): the list's items in the
+        tile's order. A list no screen shows yet is asked of Home Assistant once (todo/item/list)."""
+        data = await request.json()
+        tile = data.get('tile') if isinstance(data, dict) else None
+        if not isinstance(tile, dict) or not str(tile.get('entity', '')).startswith('todo.'):
+            raise ValueError(t('addon.errors.invalid_input'))
+        try:
+            options = todo_feed.validate({k: v for k, v in (tile.get('options') or {}).items() if k in todo_feed.KEYS})
+        except ValueError:
+            options = {}
+        entity = tile['entity']
+        items = manager.todos.of(entity)
+        if items is None:
+            try:
+                answer = await manager.ha.request('todo/item/list', entity_id=entity)
+                items = [item for item in (answer or {}).get('items') or [] if isinstance(item, dict)]
+            except (ConnectionError, TimeoutError):
+                items = None
+        tz = getattr(manager.ha, 'time_zone', None) or timezone.utc
+        features = ((manager.ha.states.get(entity) or {}).get('attributes') or {}).get('supported_features') or 0
+        numbers = manager.todos.numbers.of(entity) or todo_feed.Numbers().update(entity, items or [])
+        return web.json_response({'todo': todo_feed.card({'entity': entity, 'options': options}, items, numbers, features, tz, datetime.now(tz))})
+    app.router.add_post('/api/todo/preview', todo_preview)
+
     async def text_preview(request):
         """A template tile as a screen would get it, for the editor's inspector (docs/TEXT_TILE.md): Home Assistant's
         rendering of the template once, its rows by the same text_tile.block the screens get, and the bytes they take
@@ -5858,7 +6002,7 @@ async def main():
             LOG.error('Camera images are off: port %d is not available (%s)', picture_links.port(), error)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
-                                 manager.alert_loop(), manager.doorbell_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(),
+                                 manager.alert_loop(), manager.doorbell_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
                                  manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))
         finally:

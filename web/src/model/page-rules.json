@@ -28,6 +28,7 @@
     "sun",
     "switch",
     "timer",
+    "todo",
     "vacuum",
     "weather"
   ],
@@ -63,6 +64,7 @@
     "sun",
     "switch",
     "timer",
+    "todo",
     "vacuum",
     "water_heater",
     "weather",
@@ -145,6 +147,9 @@
       "standard",
       "watch",
       "sunpath"
+    ],
+    "todo": [
+      "standard"
     ],
     "weather": [
       "standard",
@@ -465,6 +470,7 @@
     "sun",
     "switch",
     "timer",
+    "todo",
     "vacuum",
     "weather"
   ],
@@ -505,6 +511,15 @@
       "monday"
     ],
     "bookText": 48
+  },
+  "todo": {
+    "orders": [
+      "none",
+      "alpha_asc",
+      "alpha_desc",
+      "duedate_asc",
+      "duedate_desc"
+    ]
   },
   "meter": {
     "styles": [

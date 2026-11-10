@@ -649,6 +649,21 @@
       "calendars": "Calendarios",
       "also": "+{x} ahora",
       "booked": "Reservado en la pantalla"
+    },
+    "todo": {
+      "open": "{x} pendientes",
+      "all_done": "Todo hecho",
+      "more": "+{x} más",
+      "completed": "Completado",
+      "add": "Añadir elemento",
+      "added": "{x} añadido",
+      "rename": "Renombrar",
+      "remove": "Eliminar",
+      "cancel": "Cancelar",
+      "clear": "¿Eliminar {x} completados?",
+      "waiting": "Cargando",
+      "empty": "Nada en la lista",
+      "yesterday": "Ayer"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarma",
         "lock": "Cerraduras",
         "humidifier": "Humidificadores",
-        "calendar": "Calendarios"
+        "calendar": "Calendarios",
+        "todo": "Listas de tareas"
       },
       "room": "Habitación",
       "hide_placed": "Ocultar añadidas",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Panel de alarma",
       "lock": "Cerradura",
       "humidifier": "Humidificador",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "todo": "Lista de tareas"
     },
     "displays": {
       "standard": "estándar",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} no existe en Home Assistant",
           "replace": "Reemplazar por {id}"
         }
+      },
+      "todo": {
+        "title": "Lista de tareas",
+        "plain": "Esta placa no puede mostrar una lista de tareas: hace falta una placa con 8 MB de flash o más. Elimina esta tarjeta.",
+        "needs_firmware": "La lista de tareas necesita el firmware 0.61.0 o posterior: pulsa Actualizar en la pantalla después de guardar.",
+        "order": {
+          "label": "Orden",
+          "hint": "Como los ordena la tarjeta de lista de tareas de Home Assistant",
+          "none": "Como en Home Assistant",
+          "alpha_asc": "Nombre, A a Z",
+          "alpha_desc": "Nombre, Z a A",
+          "duedate_asc": "Vencimiento, el primero antes",
+          "duedate_desc": "Vencimiento, el último antes"
+        },
+        "completed": "Elementos completados",
+        "completed_hint": "Debajo de los pendientes, tachados, donde hay sitio",
+        "due": "Vencimientos",
+        "due_hint": "El día junto a un elemento; con retraso en rojo",
+        "screen": "En la pantalla",
+        "add": "Añadir elementos",
+        "add_hint": "Una tecla más en la tarjeta y un campo en la lista abren el teclado de la pantalla",
+        "suggest": "Sugerir nombres",
+        "suggest_hint": "Al escribir, el teclado ofrece lo que se marcó antes; un toque lo devuelve a la lista",
+        "clear": "Eliminar completados",
+        "clear_hint": "Una tecla en la lista elimina todo lo marcado, tras preguntar"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Casa",
       "unknown": "Desconocido",
-      "calendar_free": "Libre"
+      "calendar_free": "Libre",
+      "todo_open": "{x} pendientes",
+      "todo_all_done": "Todo hecho",
+      "todo_more": "+{x} más"
     },
     "pages": {
       "repaired": "Página {page}, tarjeta «{tile}»: se quitó lo que no encajaba ({what}).",

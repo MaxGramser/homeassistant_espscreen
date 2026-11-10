@@ -14,6 +14,8 @@
   on its tile and its card.
 - [TEXT_TILE.md](TEXT_TILE.md): the template tile, a text with Home Assistant templates in it, how to write one, its
   limits and why it is built so.
+- [TODO.md](TODO.md): the to-do card, a list to tick with a keyboard that adds an item, and how its items reach the
+  screen.
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [BATTERY.md](BATTERY.md): a screen's battery in its top bar, and how a board or your own YAML measures it (also a
   recipe for the code).

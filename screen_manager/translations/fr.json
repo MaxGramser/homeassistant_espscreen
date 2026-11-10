@@ -649,6 +649,21 @@
       "calendars": "Calendriers",
       "also": "+{x} maintenant",
       "booked": "Réservé sur l'écran"
+    },
+    "todo": {
+      "open": "{x} à faire",
+      "all_done": "Tout est fait",
+      "more": "+{x} de plus",
+      "completed": "Terminé",
+      "add": "Ajouter un élément",
+      "added": "{x} ajouté",
+      "rename": "Renommer",
+      "remove": "Supprimer",
+      "cancel": "Annuler",
+      "clear": "Supprimer {x} terminés ?",
+      "waiting": "Chargement",
+      "empty": "Rien sur la liste",
+      "yesterday": "Hier"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarme",
         "lock": "Serrures",
         "humidifier": "Humidificateurs",
-        "calendar": "Calendriers"
+        "calendar": "Calendriers",
+        "todo": "Listes de tâches"
       },
       "room": "Pièce",
       "hide_placed": "Masquer celles déjà placées",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Panneau d’alarme",
       "lock": "Serrure",
       "humidifier": "Humidificateur",
-      "calendar": "Calendrier"
+      "calendar": "Calendrier",
+      "todo": "Liste de tâches"
     },
     "displays": {
       "standard": "standard",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} n’existe pas dans Home Assistant",
           "replace": "Remplacer par {id}"
         }
+      },
+      "todo": {
+        "title": "Liste de tâches",
+        "plain": "Cette carte ne peut pas afficher de liste de tâches : il faut une carte avec 8 Mo de flash ou plus. Supprimez cette tuile.",
+        "needs_firmware": "La liste de tâches demande le firmware 0.61.0 ou plus récent : appuyez sur Mettre à jour sur l'écran après l'enregistrement.",
+        "order": {
+          "label": "Ordre",
+          "hint": "Comme la carte de liste de tâches de Home Assistant les ordonne",
+          "none": "Comme dans Home Assistant",
+          "alpha_asc": "Nom, A à Z",
+          "alpha_desc": "Nom, Z à A",
+          "duedate_asc": "Échéance, la plus proche d'abord",
+          "duedate_desc": "Échéance, la plus lointaine d'abord"
+        },
+        "completed": "Éléments terminés",
+        "completed_hint": "Sous les éléments à faire, barrés, là où il y a de la place",
+        "due": "Échéances",
+        "due_hint": "Le jour à côté d'un élément ; en retard en rouge",
+        "screen": "Sur l'écran",
+        "add": "Ajouter des éléments",
+        "add_hint": "Une touche plus sur la tuile et un champ dans la liste ouvrent le clavier de l'écran",
+        "suggest": "Proposer des noms",
+        "suggest_hint": "Pendant la saisie, le clavier propose ce qui a déjà été coché ; un appui le remet sur la liste",
+        "clear": "Supprimer les terminés",
+        "clear_hint": "Une touche dans la liste supprime tout ce qui est coché, après confirmation"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Accueil",
       "unknown": "Inconnu",
-      "calendar_free": "Libre"
+      "calendar_free": "Libre",
+      "todo_open": "{x} à faire",
+      "todo_all_done": "Tout est fait",
+      "todo_more": "+{x} de plus"
     },
     "pages": {
       "repaired": "Page {page}, tuile « {tile} » : ce qui ne convenait pas a été retiré ({what}).",

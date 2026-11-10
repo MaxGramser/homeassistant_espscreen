@@ -22,6 +22,9 @@
 #ifdef SD_MOD_LIGHT_PRESETS
 #include "module_light_presets.h"
 #endif
+#ifdef SD_MOD_TODO
+#include "module_todo.h"
+#endif
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -213,6 +216,10 @@ inline bool valid_entity(const std::string &entity) {
     return page_entity(entity) && page_number(entity) <= grid.pages();
   }
   // The types the tile catalogue has (catalogue/*.yaml, tile_catalogue.h): the same list the add-on and the editor take.
+#ifndef SD_MOD_TODO
+  // A to-do list is the module todo's (docs/TODO.md): a screen without it has no such tile.
+  if (domain == "todo") return false;
+#endif
   for (const auto *allowed : tile_catalogue::DOMAINS)
     if (domain == allowed) return true;
   return false;
@@ -347,6 +354,10 @@ struct Extra {
   // A template tile's rows (module text_card, firmware 0.58.0+): its own block, kept in PSRAM.
   std::shared_ptr<const text_card::Data> text;
 #endif
+#ifdef SD_MOD_TODO
+  // A to-do card's items (module todo, firmware 0.61.0+): its own block too, kept in PSRAM.
+  std::shared_ptr<const todo::Data> todo;
+#endif
   // A vacuum card's map, rooms and routines (module vacuum, vacuum_model.h): its own block too.
   std::shared_ptr<const vacuum_model::Data> vacuum;
   uint32_t media_duration = 0, media_position = 0, media_position_at = 0;
@@ -429,6 +440,9 @@ struct Extra {
            fav_glyph.empty() && !fav_playing && !energy && !calendar && plugin_options.empty() && plugin_state.empty() && plugin_entity.empty()
 #ifdef SD_MOD_TEXT_CARD
            && !text  // a template tile's rows, even an empty list: "nothing to say" hides the card
+#endif
+#ifdef SD_MOD_TODO
+           && !todo
 #endif
            ;
   }

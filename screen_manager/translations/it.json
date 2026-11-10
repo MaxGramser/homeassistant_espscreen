@@ -649,6 +649,21 @@
       "calendars": "Calendari",
       "also": "+{x} ora",
       "booked": "Prenotato sullo schermo"
+    },
+    "todo": {
+      "open": "{x} da fare",
+      "all_done": "Tutto fatto",
+      "more": "+{x} altri",
+      "completed": "Completati",
+      "add": "Aggiungi elemento",
+      "added": "{x} aggiunto",
+      "rename": "Rinomina",
+      "remove": "Rimuovi",
+      "cancel": "Annulla",
+      "clear": "Rimuovere {x} completati?",
+      "waiting": "Caricamento",
+      "empty": "Niente nella lista",
+      "yesterday": "Ieri"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Allarme",
         "lock": "Serrature",
         "humidifier": "Umidificatori",
-        "calendar": "Calendari"
+        "calendar": "Calendari",
+        "todo": "Liste di cose da fare"
       },
       "room": "Area",
       "hide_placed": "Nascondi quelle già inserite",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Pannello allarme",
       "lock": "Serratura",
       "humidifier": "Umidificatore",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "todo": "Lista di cose da fare"
     },
     "displays": {
       "standard": "standard",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} non esiste in Home Assistant",
           "replace": "Sostituisci con {id}"
         }
+      },
+      "todo": {
+        "title": "Lista di cose da fare",
+        "plain": "Questa scheda non può mostrare una lista: serve una scheda con 8 MB di flash o più. Rimuovi questa tessera.",
+        "needs_firmware": "La lista richiede il firmware 0.61.0 o successivo: premi Aggiorna sullo schermo dopo aver salvato.",
+        "order": {
+          "label": "Ordine",
+          "hint": "Come li ordina la scheda lista di Home Assistant",
+          "none": "Come in Home Assistant",
+          "alpha_asc": "Nome, dalla A alla Z",
+          "alpha_desc": "Nome, dalla Z alla A",
+          "duedate_asc": "Scadenza, la prima prima",
+          "duedate_desc": "Scadenza, l'ultima prima"
+        },
+        "completed": "Elementi completati",
+        "completed_hint": "Sotto quelli da fare, barrati, dove c'è spazio",
+        "due": "Scadenze",
+        "due_hint": "Il giorno accanto a un elemento; in ritardo è rosso",
+        "screen": "Sullo schermo",
+        "add": "Aggiungi elementi",
+        "add_hint": "Un tasto più sulla tessera e un campo nella lista aprono la tastiera dello schermo",
+        "suggest": "Suggerisci nomi",
+        "suggest_hint": "Mentre scrivi, la tastiera propone ciò che è stato spuntato prima; un tocco lo rimette nella lista",
+        "clear": "Rimuovi completati",
+        "clear_hint": "Un tasto nella lista rimuove tutto ciò che è spuntato, dopo una conferma"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Casa",
       "unknown": "Sconosciuto",
-      "calendar_free": "Libero"
+      "calendar_free": "Libero",
+      "todo_open": "{x} da fare",
+      "todo_all_done": "Tutto fatto",
+      "todo_more": "+{x} altri"
     },
     "pages": {
       "repaired": "Pagina {page}, tessera «{tile}»: tolto ciò che non andava ({what}).",

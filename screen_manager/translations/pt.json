@@ -649,6 +649,21 @@
       "calendars": "Calendários",
       "also": "+{x} agora",
       "booked": "Reservado no ecrã"
+    },
+    "todo": {
+      "open": "{x} por fazer",
+      "all_done": "Tudo feito",
+      "more": "+{x} mais",
+      "completed": "Concluído",
+      "add": "Adicionar item",
+      "added": "{x} adicionado",
+      "rename": "Renomear",
+      "remove": "Remover",
+      "cancel": "Cancelar",
+      "clear": "Remover {x} concluídos?",
+      "waiting": "A carregar",
+      "empty": "Nada na lista",
+      "yesterday": "Ontem"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarme",
         "lock": "Fechaduras",
         "humidifier": "Humidificadores",
-        "calendar": "Calendários"
+        "calendar": "Calendários",
+        "todo": "Listas de tarefas"
       },
       "room": "Divisão",
       "hide_placed": "Ocultar adicionadas",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Painel de alarme",
       "lock": "Fechadura",
       "humidifier": "Humidificador",
-      "calendar": "Calendário"
+      "calendar": "Calendário",
+      "todo": "Lista de tarefas"
     },
     "displays": {
       "standard": "padrão",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} não existe no Home Assistant",
           "replace": "Substituir por {id}"
         }
+      },
+      "todo": {
+        "title": "Lista de tarefas",
+        "plain": "Esta placa não pode mostrar uma lista de tarefas: é precisa uma placa com 8 MB de flash ou mais. Remova este mosaico.",
+        "needs_firmware": "A lista de tarefas precisa do firmware 0.61.0 ou mais recente: prima Atualizar no ecrã depois de guardar.",
+        "order": {
+          "label": "Ordem",
+          "hint": "Como o cartão de lista de tarefas do Home Assistant os ordena",
+          "none": "Como no Home Assistant",
+          "alpha_asc": "Nome, A a Z",
+          "alpha_desc": "Nome, Z a A",
+          "duedate_asc": "Prazo, o primeiro antes",
+          "duedate_desc": "Prazo, o último antes"
+        },
+        "completed": "Itens concluídos",
+        "completed_hint": "Por baixo dos itens por fazer, riscados, onde houver espaço",
+        "due": "Prazos",
+        "due_hint": "O dia ao lado de um item; em atraso a vermelho",
+        "screen": "No ecrã",
+        "add": "Adicionar itens",
+        "add_hint": "Uma tecla mais no mosaico e um campo na lista abrem o teclado do ecrã",
+        "suggest": "Sugerir nomes",
+        "suggest_hint": "Ao escrever, o teclado oferece o que foi assinalado antes; um toque volta a pô-lo na lista",
+        "clear": "Remover concluídos",
+        "clear_hint": "Uma tecla na lista remove tudo o que está assinalado, depois de perguntar"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Casa",
       "unknown": "Desconhecido",
-      "calendar_free": "Livre"
+      "calendar_free": "Livre",
+      "todo_open": "{x} por fazer",
+      "todo_all_done": "Tudo feito",
+      "todo_more": "+{x} mais"
     },
     "pages": {
       "repaired": "Página {page}, cartão «{tile}»: retirado o que não servia ({what}).",

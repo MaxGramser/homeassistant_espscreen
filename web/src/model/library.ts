@@ -13,7 +13,7 @@ export type Entry = { id: string; name: string; area?: string; device?: string; 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "" for no filter.
 export const FILTERS = [
   "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "camera", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar",
+  "media_player", "camera", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar", "todo",
 ];
 // A kind that takes a second domain along: an input helper with its entity, the sun with the weather.
 const ALIAS: Record<string, string> = { camera: "image", switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
@@ -40,6 +40,8 @@ export type LibraryFilter = {
   pictures: boolean;
   /** The board draws the template tile (module text_card); left out, it does not. */
   textTiles?: boolean;
+  /** The screen's board has the to-do card (boards.json `modules` has todo): to-do lists are offered there only. */
+  todoLists?: boolean;
   /** Leave out what is on the screen already. */
   hidePlaced: boolean;
   /** How many tiles each entity has on the screen. */
@@ -51,6 +53,7 @@ export function libraryBase(entries: readonly Entry[], filter: LibraryFilter) {
   return entries.filter((e) => e.tile !== false && pageTarget(e.id) <= filter.pages &&
     (filter.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
     (filter.textTiles || e.id !== "screen.text") &&
+    (filter.todoLists || !e.id.startsWith("todo.")) &&
     (!filter.hidePlaced || !filter.counts.has(e.id)) && matchesQuery(filter.query, e.name, e.id, e.device, e.area, e.words, filter.query && kindWords(e.id, kinds)));
 }
 // What an entity is in the words of the editor's language ("Lampen", "Klimaat"), so "kitchen lamp" finds a lamp that is

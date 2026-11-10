@@ -2201,6 +2201,37 @@
    "map": null,
    "keypad": null
   },
+  "todo": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 1152,
+    "extras": true
+   },
+   "key": true,
+   "features": {
+    "CREATE_TODO_ITEM": 1,
+    "DELETE_TODO_ITEM": 2,
+    "MOVE_TODO_ITEM": 8,
+    "SET_DESCRIPTION_ON_ITEM": 64,
+    "SET_DUE_DATETIME_ON_ITEM": 32,
+    "SET_DUE_DATE_ON_ITEM": 16,
+    "UPDATE_TODO_ITEM": 4
+   },
+   "actions": {},
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "vacuum": {
    "firmware": null,
    "memory": {

@@ -11,6 +11,7 @@ import secrets
 
 from i18n import english, screen_t, t
 import calendar_feed
+import todo_feed
 import light_presets
 import meter
 import text_tile
@@ -170,7 +171,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.60.0'
+FIRMWARE_VERSION = '0.61.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -1376,6 +1377,8 @@ TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'displa
                       'flow': 'flow',
                       # A calendar card (firmware 0.56.0): its calendars, filters and look (calendar_feed.validate).
                       **{key: key for key in calendar_feed.KEYS},
+                      # A to-do card: its order and what it shows and offers (todo_feed.validate).
+                      **{key: key for key in todo_feed.KEYS},
                       # A sensor's meter (firmware 0.56.0): its look, its range and its colours (meter.validate).
                       **{key: key for key in meter.KEYS}}
 TILE_SIZES = {'full': 'full', 'fullscreen': 'full', 'full screen': 'full', 'full-screen': 'full', 'page': 'full', 'whole page': 'full',
@@ -1485,7 +1488,7 @@ def tile_options(data, current=None):
             # A calendar week's hours: two numbers, as a list or written "8-18".
             parts = value if isinstance(value, list) else re.split(r'\s*[-–,]\s*', str(value).strip())
             options[name] = [int(p) if str(p).strip().isdigit() else p for p in parts]
-        elif name in ('all_day', 'tentative', 'private', 'week_numbers'):
+        elif name in ('all_day', 'tentative', 'private', 'week_numbers', 'todo_completed', 'todo_due', 'todo_add', 'todo_suggest', 'todo_clear'):
             options[name] = value if isinstance(value, bool) else loose(value) in ('true', 'yes', 'on', '1')
         elif name in ('ahead', 'soon'):
             options[name] = int(value) if str(value).strip().isdigit() else value
@@ -1957,7 +1960,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -1967,6 +1970,13 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
             else:
                 options = {k: v for k, v in options.items() if k not in calendar_feed.KEYS}
+            if tile['entity'].startswith('todo.'):
+                try:
+                    options = todo_feed.validate(options)
+                except ValueError as error:
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
+            else:
+                options = {k: v for k, v in options.items() if k not in todo_feed.KEYS}
             # A sensor's meter (firmware 0.56.0): its look, its range and its colours; another display keeps none of them.
             try:
                 options = meter.validate(options)
@@ -2569,7 +2579,7 @@ def screen_options(tile, attrs, state=None, entry=None):
     # A map's own choices stay in the app: who is on it and how it frames them say where people are (app 0.4.33).
     # So do a favourite's own (app 0.4.42): the screen asks to play its tile, never an id.
     # A calendar's filters stay too (calendar_feed.OWN): the screen gets the events they let through.
-    options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN)}
+    options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN, *todo_feed.OWN)}
     # A meter's colours travel as numbers (firmware 0.56.0): the screen keeps no table of names.
     options = meter.screen_options(options)
     # A light preset's device settings travel as [entity, value] pairs.

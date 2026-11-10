@@ -25,6 +25,7 @@ const APPEARANCE = { display: "display", icon: "icon", background: "background",
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",
   calendarBookOn: "book_on", calendarBookPlace: "book_place", calendarBookTitle: "book_title",
+  todoOrder: "todo_order", todoCompleted: "todo_completed", todoDue: "todo_due", todoAdd: "todo_add", todoSuggest: "todo_suggest", todoClear: "todo_clear",
   meterStyle: "meter", meterMin: "min", meterMax: "max", meterSegments: "segments", meterColors: "colors", meterThresholds: "thresholds" } as const;
 const INTERACTION = ["tap", "inline", "controls", "action", "play", "speaker", "shuffle", "repeat", "presets", "preset_levels"] as const;
 const PICTURE_OWN = ["refresh", ...Object.keys(rules.picture)];
@@ -40,6 +41,10 @@ export const CALENDAR_DEFAULTS: Record<string, unknown> = { style: rules.calenda
   all_day: true, tentative: true, private: false, ahead: rules.calendar.ahead[0], soon: 0, start_view: rules.calendar.startViews[0],
   week_start: rules.calendar.weekStarts[0], hours: null, week_numbers: false, book_on: "", book_place: "", book_title: "" };
 export const CALENDAR_OWN = Object.keys(CALENDAR_DEFAULTS);
+// A to-do card's own choices (todo_feed.validate) and what each means unstored.
+export const TODO_DEFAULTS: Record<string, unknown> = { todo_order: rules.todo.orders[0], todo_completed: true, todo_due: true, todo_add: true,
+  todo_suggest: true, todo_clear: true };
+export const TODO_OWN = Object.keys(TODO_DEFAULTS);
 
 // What a choice that asks a second step stands for while the inspector tries it: Perform action asks which action,
 // a value of the entity which value, words of your own the words. The step itself is checked when it is taken.
@@ -49,6 +54,7 @@ export const DEFAULTS: Record<string, unknown> = { sub: "auto", fit: rules.pictu
   framing: MAP?.framing[0], distance: MAP?.distance[0], follow: MAP?.follow[0], markers: MAP?.markers[0], names: MAP?.names[0],
   zones: MAP?.zones[0], streets: MAP?.streets[0], look: MAP?.look[0], flow: rules.energyFlow[0],
   ...Object.fromEntries(Object.entries(CALENDAR_DEFAULTS).filter(([key]) => !["places", "words", "hide_words", "calendars"].includes(key))),
+  ...TODO_DEFAULTS,
   // A sensor's meter (firmware 0.56.0, meter.validate): the ring and one segment are what nothing means.
   meter: rules.meter.styles[0], segments: rules.meter.segments[0], tilt_open: "100" };
 
@@ -94,6 +100,8 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   for (const field of ["calendars", "places", "words", "hide_words"]) if (Array.isArray(out[field]) && !(out[field] as unknown[]).length) delete out[field];
   // The week's and the booking's choices are stored only when they differ from what nothing means (calendar_feed.validate).
   for (const field of ["week_start", "hours", "week_numbers", "book_on", "book_place", "book_title"]) if (out[field] === CALENDAR_DEFAULTS[field] || out[field] === null) delete out[field];
+  // A to-do card keeps its choices; no other tile has them.
+  if (!entity.startsWith("todo.")) for (const field of TODO_OWN) delete out[field];
   // A sensor's meter (firmware 0.56.0) keeps its look, its range, its colours and its thresholds while it is the meter;
   // a default is never stored (model/meter.ts, meter.validate).
   canonicalMeter(entity, out);

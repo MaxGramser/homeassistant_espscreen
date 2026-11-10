@@ -6,6 +6,9 @@
 #ifdef SD_MOD_TEXT_CARD
 #include "module_text_card.h"
 #endif
+#ifdef SD_MOD_TODO
+#include "module_todo.h"
+#endif
 #ifdef USE_ESP32
 #include <esp_heap_caps.h>
 #endif
@@ -65,6 +68,10 @@ void hello(JsonObject root) {
   // The template tiles this screen takes (module text_card): how many at once, and the bytes of rows each keeps.
   caps["text_tiles"] = text_card::MAX_TILES;
   caps["text_bytes"] = text_card::MAX_BYTES;
+#endif
+#ifdef SD_MOD_TODO
+  // The items of a to-do list this screen keeps (module todo): the app sends no more.
+  caps["todo_items"] = static_cast<unsigned>(todo::MAX_ITEMS);
 #endif
 }
 

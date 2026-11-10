@@ -239,6 +239,7 @@ const appearanceKeys = { display: "display", icon: "icon", background: "backgrou
   calendarAllDay: "all_day", calendarTentative: "tentative", calendarPrivate: "private", calendarAhead: "ahead", calendarSoon: "soon",
   calendarStartView: "start_view", calendarWeekStart: "week_start", calendarHours: "hours", calendarWeekNumbers: "week_numbers",
   calendarBookOn: "book_on", calendarBookPlace: "book_place", calendarBookTitle: "book_title",
+  todoOrder: "todo_order", todoCompleted: "todo_completed", todoDue: "todo_due", todoAdd: "todo_add", todoSuggest: "todo_suggest", todoClear: "todo_clear",
   meterStyle: "meter", meterMin: "min", meterMax: "max", meterSegments: "segments", meterColors: "colors", meterThresholds: "thresholds" } as const;
 
 /** A render view, never a second saved or editable layout. */

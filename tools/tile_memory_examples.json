@@ -830,5 +830,143 @@
     "location": "Room B"
    }
   ]
+ },
+ "todo": {
+  "entity": "todo.example",
+  "state": "12",
+  "attributes": {
+   "friendly_name": "Shopping list",
+   "supported_features": 15
+  },
+  "items": [
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000000",
+    "summary": "Oat milk",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000001",
+    "summary": "Bananas",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000002",
+    "summary": "Coffee beans",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000003",
+    "summary": "Tomatoes",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000004",
+    "summary": "Dishwasher tablets",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000005",
+    "summary": "Olive oil",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000006",
+    "summary": "Sourdough bread",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000007",
+    "summary": "Eggs",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000008",
+    "summary": "Toilet paper",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000009",
+    "summary": "Laundry detergent",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000010",
+    "summary": "Parmesan cheese",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-000000000011",
+    "summary": "Sparkling water",
+    "status": "needs_action",
+    "due": null,
+    "description": null,
+    "completed": null
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-100000000000",
+    "summary": "Butter",
+    "status": "completed",
+    "due": null,
+    "description": null,
+    "completed": "2026-11-09T10:00:00+00:00"
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-100000000001",
+    "summary": "Apples",
+    "status": "completed",
+    "due": null,
+    "description": null,
+    "completed": "2026-11-09T10:00:00+00:00"
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-100000000002",
+    "summary": "Yoghurt",
+    "status": "completed",
+    "due": null,
+    "description": null,
+    "completed": "2026-11-09T10:00:00+00:00"
+   },
+   {
+    "uid": "0c1f6a52-7d3e-4b8a-9f10-100000000003",
+    "summary": "Burger buns",
+    "status": "completed",
+    "due": null,
+    "description": null,
+    "completed": "2026-11-09T10:00:00+00:00"
+   }
+  ]
  }
 }

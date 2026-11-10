@@ -31,6 +31,8 @@ MODULES = {
     "text_card": {"min_tier": "full", "define": "SD_MOD_TEXT_CARD"},
     # A light's presets: round keys on its tile and its card that set a colour and a brightness; lite draws the slider.
     "light_presets": {"min_tier": "full", "define": "SD_MOD_LIGHT_PRESETS"},
+    # The to-do card: a list to tick, its full screen and the keyboard that adds an item; lite has no to-do tile.
+    "todo": {"min_tier": "full", "define": "SD_MOD_TODO"},
 }
 
 

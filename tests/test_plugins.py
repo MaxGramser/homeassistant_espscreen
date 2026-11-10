@@ -916,7 +916,8 @@ class PluginEntities(unittest.TestCase):
     def test_only_the_domains_the_editor_has_not(self):
         # GitHub #262: a plugin's tile of a plant was called gone, as the editor's list has only Tessera's own domains.
         # The add-on lists the entities of the domains plugins name that the editor lacks: a tile's, an input's and a
-        # screensaver step's, and none it already has (sensors, a top bar's counter), so a plant is never cut off.
+        # screensaver step's, and none it already has (sensors, a top bar's counter, and since the to-do card a to-do list),
+        # so a plant is never cut off.
         import plugins as plugin_service
         entry = lambda **manifest: type('Entry', (), {'manifest': {'tiles': [], 'inputs': [], **manifest}})()
         states = {'plant.monstera': {'state': 'ok', 'attributes': {'friendly_name': 'Monstera'}},
@@ -926,8 +927,7 @@ class PluginEntities(unittest.TestCase):
         listed = [entry(tiles=[{'domains': ['sensor', 'plant']}], inputs=[{'domains': ['todo', 'counter', 'calendar']}]),
                   entry(savers=[{'domains': ['schedule']}, {'step': 'clock', 'domains': []}])]
         self.assertEqual(plugin_service.plugin_entities(listed, states),
-                         [{'id': 'plant.monstera', 'name': 'Monstera'}, {'id': 'schedule.heating', 'name': 'schedule.heating'},
-                          {'id': 'todo.shopping', 'name': 'Shopping'}])
+                         [{'id': 'plant.monstera', 'name': 'Monstera'}, {'id': 'schedule.heating', 'name': 'schedule.heating'}])
         self.assertEqual(len(plugin_service.plugin_entities(listed, states, most=1)), 1)
         self.assertEqual(plugin_service.plugin_entities([entry()], states), [])
     async def test_selected_entity_options_are_sent_together(self):

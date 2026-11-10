@@ -39,6 +39,9 @@ APPEARANCE = {
     "calendarPrivate": "private", "calendarAhead": "ahead", "calendarSoon": "soon", "calendarStartView": "start_view",
     "calendarWeekStart": "week_start", "calendarHours": "hours", "calendarWeekNumbers": "week_numbers",
     "calendarBookOn": "book_on", "calendarBookPlace": "book_place", "calendarBookTitle": "book_title",
+    # A to-do card (todo_feed.py): its order and what it shows and offers. All of them stay in the app.
+    "todoOrder": "todo_order", "todoCompleted": "todo_completed", "todoDue": "todo_due", "todoAdd": "todo_add",
+    "todoSuggest": "todo_suggest", "todoClear": "todo_clear",
     # A sensor's meter (firmware 0.56.0, meter.py): a ring, a tape or a bar, its own range and its colours.
     "meterStyle": "meter", "meterMin": "min", "meterMax": "max", "meterSegments": "segments", "meterColors": "colors",
     "meterThresholds": "thresholds",

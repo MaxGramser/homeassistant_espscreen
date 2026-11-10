@@ -174,6 +174,10 @@ Not a wish, and why:
 - the screensaver's play key: it has no tile to write into (`saver_flipped` flips its face for five seconds);
 - a player's speaker and input in the library menu: the pill shows the choice at once, and a speaker is picked through
   the add-on (an event), not through an action Home Assistant answers.
+- a tick on a to-do card (docs/TODO.md): an item of a list is no value of the entity, whose state is only the number of
+  open items, and the item is ticked through the add-on (an event), which knows its uid. The card marks the item itself
+  (`module_todo.cpp`): the tick shows at once, the item keeps its place for two seconds so the list does not move under
+  the finger, the list Home Assistant sends back squares it, and a tick unanswered for eight seconds is taken back.
 
 Not optimistic on purpose:
 

@@ -7,7 +7,7 @@
 namespace tile_catalogue {
 
 // Every type a tile can show, the screen's own cards (screen.*) included.
-inline constexpr const char *DOMAINS[] = {"alarm_control_panel", "automation", "binary_sensor", "button", "calendar", "camera", "climate", "cover", "fan", "humidifier", "image", "input_boolean", "input_button", "input_number", "input_select", "light", "lock", "media_player", "number", "person", "remote", "scene", "screen", "script", "select", "sensor", "sun", "switch", "timer", "vacuum", "weather"};
+inline constexpr const char *DOMAINS[] = {"alarm_control_panel", "automation", "binary_sensor", "button", "calendar", "camera", "climate", "cover", "fan", "humidifier", "image", "input_boolean", "input_button", "input_number", "input_select", "light", "lock", "media_player", "number", "person", "remote", "scene", "screen", "script", "select", "sensor", "sun", "switch", "timer", "todo", "vacuum", "weather"};
 
 // What one tile of each type keeps in the memory inside the chip besides the tile itself, in bytes, measured on a board
 // with PSRAM, and whether it keeps a block of extras (catalogue `memory`, docs/TILE_MEMORY.md): tile_memory.h works out
@@ -18,7 +18,7 @@ struct Memory { const char *domain; uint16_t bytes; bool extras; };
 inline constexpr uint16_t ACTION_BYTES = 256, LINE_BYTES = 96;
 // What a page keeps (its title) and an item of its top bar that shows an entity (its text).
 inline constexpr uint16_t PAGE_BYTES = 48, BAR_TEXT_BYTES = 48;
-inline constexpr Memory MEMORY[] = {{"alarm_control_panel", 160, true}, {"automation", 112, false}, {"binary_sensor", 112, false}, {"button", 144, false}, {"calendar", 1152, true}, {"camera", 96, false}, {"climate", 304, true}, {"cover", 96, true}, {"fan", 96, false}, {"humidifier", 192, true}, {"image", 144, false}, {"input_boolean", 112, false}, {"input_button", 144, false}, {"input_number", 112, false}, {"input_select", 1104, true}, {"light", 160, true}, {"lock", 160, true}, {"media_player", 1312, true}, {"number", 96, false}, {"person", 128, false}, {"remote", 928, true}, {"scene", 144, false}, {"screen", 32, false}, {"script", 96, false}, {"select", 1104, true}, {"sensor", 192, false}, {"sun", 32, true}, {"switch", 96, false}, {"timer", 96, true}, {"vacuum", 1088, true}, {"weather", 1152, true}};
+inline constexpr Memory MEMORY[] = {{"alarm_control_panel", 160, true}, {"automation", 112, false}, {"binary_sensor", 112, false}, {"button", 144, false}, {"calendar", 1152, true}, {"camera", 96, false}, {"climate", 304, true}, {"cover", 96, true}, {"fan", 96, false}, {"humidifier", 192, true}, {"image", 144, false}, {"input_boolean", 112, false}, {"input_button", 144, false}, {"input_number", 112, false}, {"input_select", 1104, true}, {"light", 160, true}, {"lock", 160, true}, {"media_player", 1312, true}, {"number", 96, false}, {"person", 128, false}, {"remote", 928, true}, {"scene", 144, false}, {"screen", 32, false}, {"script", 96, false}, {"select", 1104, true}, {"sensor", 192, false}, {"sun", 32, true}, {"switch", 96, false}, {"timer", 96, true}, {"todo", 1152, true}, {"vacuum", 1088, true}, {"weather", 1152, true}};
 // The screen's own cards that keep more than their type, priced by their entity first (catalogue/screen.yaml `cards`).
 inline constexpr Memory CARDS[] = {{"screen.energy", 6144, true}, {"screen.text", 2048, true}};
 
@@ -109,6 +109,15 @@ inline constexpr uint32_t ACTIVITY = 4;
 inline constexpr uint32_t DELETE_COMMAND = 2;
 inline constexpr uint32_t LEARN_COMMAND = 1;
 }  // namespace remote
+namespace todo {
+inline constexpr uint32_t CREATE_TODO_ITEM = 1;
+inline constexpr uint32_t DELETE_TODO_ITEM = 2;
+inline constexpr uint32_t MOVE_TODO_ITEM = 8;
+inline constexpr uint32_t SET_DESCRIPTION_ON_ITEM = 64;
+inline constexpr uint32_t SET_DUE_DATETIME_ON_ITEM = 32;
+inline constexpr uint32_t SET_DUE_DATE_ON_ITEM = 16;
+inline constexpr uint32_t UPDATE_TODO_ITEM = 4;
+}  // namespace todo
 namespace vacuum {
 inline constexpr uint32_t CLEAN_AREA = 16384;
 inline constexpr uint32_t CLEAN_SPOT = 1024;

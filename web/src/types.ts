@@ -44,6 +44,14 @@ export type TileOptions = {
   ahead?: number;
   soon?: number;
   start_view?: string;
+  // A to-do card's choices (todo_feed.validate): its order (Home Assistant's own), whether it shows what is done and
+  // due days, and whether the screen may add items, offers names while typing and may remove what is done.
+  todo_order?: string;
+  todo_completed?: boolean;
+  todo_due?: boolean;
+  todo_add?: boolean;
+  todo_suggest?: boolean;
+  todo_clear?: boolean;
   // ... and the week's first day, its hours, the month's week numbers, and where "Status and booking" books.
   week_start?: string;
   hours?: [number, number];
@@ -111,6 +119,8 @@ export type PageTile = {
     calendarStyle?: string; calendarEntities?: string[]; calendarPlaces?: string[]; calendarWords?: string[]; calendarHideWords?: string[];
     calendarAllDay?: boolean; calendarTentative?: boolean; calendarPrivate?: boolean; calendarAhead?: number; calendarSoon?: number; calendarStartView?: string;
     calendarWeekStart?: string; calendarHours?: [number, number]; calendarWeekNumbers?: boolean; calendarBookOn?: string; calendarBookPlace?: string; calendarBookTitle?: string;
+    // A to-do card's choices: TileOptions' todo_order, todo_completed, todo_due, todo_add, todo_suggest and todo_clear.
+    todoOrder?: string; todoCompleted?: boolean; todoDue?: boolean; todoAdd?: boolean; todoSuggest?: boolean; todoClear?: boolean;
     // A sensor's meter (firmware 0.56.0): TileOptions' meter, min, max, segments, colors and thresholds.
     meterStyle?: string; meterMin?: number; meterMax?: number; meterSegments?: number; meterColors?: string[]; meterThresholds?: number[] };
   interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string;
@@ -326,6 +336,9 @@ export type Screen = {
   dock?: boolean;
   // Whether its board draws the template tile (boards.json `modules` has text_card, docs/TEXT_TILE.md).
   text_tiles?: boolean;
+  // Whether its board has the to-do card (boards.json `modules` has todo, docs/TODO.md): 8 MB of flash or more. The
+  // library offers to-do lists there only.
+  todo_lists?: boolean;
   // Whether its board draws a light's presets (boards.json `modules` has light_presets, docs/LIGHT_PRESETS.md).
   light_presets?: boolean;
   /** Streams a camera live (a P4 whose hello says `live`, or such a board while it is offline): Live is a camera tile's

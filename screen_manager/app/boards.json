@@ -41,7 +41,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 19,
    "icon": 29,
@@ -67,7 +67,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -165,7 +166,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 28,
@@ -256,7 +257,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 28,
@@ -347,7 +348,7 @@
   "dimmable": true,
   "dpi": 144,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 23,
    "icon": 36,
@@ -373,7 +374,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -459,7 +461,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -485,7 +487,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -578,7 +581,7 @@
   "dimmable": true,
   "dpi": 146,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 29,
@@ -692,7 +695,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -718,7 +721,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -830,7 +834,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -856,7 +860,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -959,7 +964,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -985,7 +990,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1097,7 +1103,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -1123,7 +1129,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1235,7 +1242,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -1261,7 +1268,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1373,7 +1381,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -1399,7 +1407,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1511,7 +1520,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -1537,7 +1546,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1640,7 +1650,7 @@
   "dimmable": true,
   "dpi": 187,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 46,
@@ -1666,7 +1676,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1779,7 +1790,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 47,
@@ -1805,7 +1816,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -1898,7 +1910,7 @@
   "dimmable": true,
   "dpi": 172,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -1924,7 +1936,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2007,7 +2020,7 @@
   "dimmable": true,
   "dpi": 133,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -2033,7 +2046,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2151,7 +2165,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 47,
    "icon": 73,
@@ -2177,7 +2191,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2291,7 +2306,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -2317,7 +2332,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2410,7 +2426,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -2436,7 +2452,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2524,7 +2541,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -2550,7 +2567,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2653,7 +2671,7 @@
   "dimmable": true,
   "dpi": 217,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -2679,7 +2697,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2782,7 +2801,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -2808,7 +2827,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -2911,7 +2931,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -2937,7 +2957,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3040,7 +3061,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 46,
@@ -3066,7 +3087,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3169,7 +3191,7 @@
   "dimmable": false,
   "dpi": 133,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -3195,7 +3217,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3298,7 +3321,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -3324,7 +3347,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3438,7 +3462,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 40,
    "icon": 63,
@@ -3464,7 +3488,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3578,7 +3603,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 33,
    "icon": 52,
@@ -3604,7 +3629,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3718,7 +3744,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -3744,7 +3770,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3847,7 +3874,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -3873,7 +3900,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -3984,7 +4012,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 19,
    "icon": 29,
@@ -4010,7 +4038,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -4108,7 +4137,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 28,
@@ -4199,7 +4228,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 28,
@@ -4290,7 +4319,7 @@
   "dimmable": true,
   "dpi": 144,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 23,
    "icon": 36,
@@ -4316,7 +4345,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -4402,7 +4432,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -4428,7 +4458,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -4521,7 +4552,7 @@
   "dimmable": true,
   "dpi": 146,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 29,
@@ -4635,7 +4666,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -4661,7 +4692,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -4773,7 +4805,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -4799,7 +4831,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -4902,7 +4935,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -4928,7 +4961,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5040,7 +5074,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -5066,7 +5100,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5178,7 +5213,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -5204,7 +5239,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5316,7 +5352,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -5342,7 +5378,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5454,7 +5491,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -5480,7 +5517,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5583,7 +5621,7 @@
   "dimmable": true,
   "dpi": 187,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 46,
@@ -5609,7 +5647,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5720,7 +5759,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 19,
    "icon": 29,
@@ -5746,7 +5785,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -5844,7 +5884,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 28,
@@ -5935,7 +5975,7 @@
   "dimmable": true,
   "dpi": 143,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 28,
@@ -6026,7 +6066,7 @@
   "dimmable": true,
   "dpi": 144,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 23,
    "icon": 36,
@@ -6052,7 +6092,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -6138,7 +6179,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -6164,7 +6205,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -6257,7 +6299,7 @@
   "dimmable": true,
   "dpi": 146,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 18,
    "icon": 29,
@@ -6371,7 +6413,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -6397,7 +6439,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -6509,7 +6552,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -6535,7 +6578,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -6638,7 +6682,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -6664,7 +6708,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -6776,7 +6821,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -6802,7 +6847,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -6914,7 +6960,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -6940,7 +6986,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7052,7 +7099,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -7078,7 +7125,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7190,7 +7238,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -7216,7 +7264,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7319,7 +7368,7 @@
   "dimmable": true,
   "dpi": 187,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 46,
@@ -7345,7 +7394,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7458,7 +7508,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 47,
@@ -7484,7 +7534,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7577,7 +7628,7 @@
   "dimmable": true,
   "dpi": 172,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -7603,7 +7654,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7686,7 +7738,7 @@
   "dimmable": true,
   "dpi": 133,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -7712,7 +7764,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7830,7 +7883,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 47,
    "icon": 73,
@@ -7856,7 +7909,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -7970,7 +8024,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -7996,7 +8050,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8089,7 +8144,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -8115,7 +8170,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8203,7 +8259,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -8229,7 +8285,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8332,7 +8389,7 @@
   "dimmable": true,
   "dpi": 217,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -8358,7 +8415,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8461,7 +8519,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -8487,7 +8545,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8590,7 +8649,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -8616,7 +8675,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8719,7 +8779,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 46,
@@ -8745,7 +8805,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8848,7 +8909,7 @@
   "dimmable": false,
   "dpi": 133,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -8874,7 +8935,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -8977,7 +9039,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -9003,7 +9065,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9117,7 +9180,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 40,
    "icon": 63,
@@ -9143,7 +9206,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9257,7 +9321,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 33,
    "icon": 52,
@@ -9283,7 +9347,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9397,7 +9462,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -9423,7 +9488,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9526,7 +9592,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -9552,7 +9618,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9665,7 +9732,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 47,
@@ -9691,7 +9758,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9784,7 +9852,7 @@
   "dimmable": true,
   "dpi": 172,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -9810,7 +9878,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -9893,7 +9962,7 @@
   "dimmable": true,
   "dpi": 133,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -9919,7 +9988,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10037,7 +10107,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 47,
    "icon": 73,
@@ -10063,7 +10133,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10177,7 +10248,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 24,
    "icon": 37,
@@ -10203,7 +10274,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10296,7 +10368,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -10322,7 +10394,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10410,7 +10483,7 @@
   "dimmable": false,
   "dpi": 217,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -10436,7 +10509,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10539,7 +10613,7 @@
   "dimmable": true,
   "dpi": 217,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 34,
    "icon": 54,
@@ -10565,7 +10639,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10668,7 +10743,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -10694,7 +10769,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10797,7 +10873,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -10823,7 +10899,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -10926,7 +11003,7 @@
   "dimmable": false,
   "dpi": 187,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 30,
    "icon": 46,
@@ -10952,7 +11029,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -11055,7 +11133,7 @@
   "dimmable": false,
   "dpi": 133,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -11081,7 +11159,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -11184,7 +11263,7 @@
   "dimmable": true,
   "dpi": 170,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -11210,7 +11289,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -11324,7 +11404,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 40,
    "icon": 63,
@@ -11350,7 +11430,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -11464,7 +11545,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 33,
    "icon": 52,
@@ -11490,7 +11571,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -11604,7 +11686,7 @@
    "media_player",
    "bluetooth"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -11630,7 +11712,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {
@@ -11733,7 +11816,7 @@
   "dimmable": true,
   "dpi": 165,
   "features": [],
-  "firmware": "0.60.0",
+  "firmware": "0.61.0",
   "fonts": {
    "headline": 26,
    "icon": 41,
@@ -11759,7 +11842,8 @@
    "clock_faces",
    "doorbell",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo"
   ],
   "orientations": {
    "landscape": {

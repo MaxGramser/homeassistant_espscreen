@@ -4,7 +4,8 @@
     python tools/estimate_tile_memory.py light               one type
     python tools/estimate_tile_memory.py --state state.json  an entity of your own: {"entity", "state", "attributes"}
                                                              (and "forecast"/"hourly" for a weather entity, "events"
-                                                             for a calendar: Home Assistant's calendar.get_events)
+                                                             for a calendar: Home Assistant's calendar.get_events,
+                                                             "items" for a to-do list: its todo/item/subscribe)
 
 The add-on's own code builds the state message of the tile (Manager.tile_message with a stand-in Home Assistant), and a
 model of the firmware's storage prices what the screen keeps of it on a board with PSRAM, which is what a type's `memory:
@@ -153,6 +154,10 @@ async def messages(examples):
     with tempfile.TemporaryDirectory() as folder:
         manager = Manager(with_screen_grid(ha), Path(folder) / 'screens.json')
         out = []
+        # A to-do list's items, as Home Assistant's todo/item/subscribe sends them.
+        for example in examples:
+            if example.get('items'):
+                manager.todos.received(example['entity'], {'items': example['items']})
         for example in examples:
             if example['entity'].startswith('sensor.'):
                 manager.histories[(example['entity'], 24)] = (0, [round(20 + n / 10, 1) for n in range(24)])

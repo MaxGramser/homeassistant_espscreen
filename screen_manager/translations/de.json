@@ -649,6 +649,21 @@
       "calendars": "Kalender",
       "also": "+{x} jetzt",
       "booked": "Am Bildschirm gebucht"
+    },
+    "todo": {
+      "open": "{x} offen",
+      "all_done": "Alles erledigt",
+      "more": "+{x} weitere",
+      "completed": "Erledigt",
+      "add": "Eintrag hinzufügen",
+      "added": "{x} hinzugefügt",
+      "rename": "Umbenennen",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "clear": "{x} erledigte entfernen?",
+      "waiting": "Laden",
+      "empty": "Nichts auf der Liste",
+      "yesterday": "Gestern"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarm",
         "lock": "Schlösser",
         "humidifier": "Luftbefeuchter",
-        "calendar": "Kalender"
+        "calendar": "Kalender",
+        "todo": "To-do-Listen"
       },
       "room": "Bereich",
       "hide_placed": "Platzierte ausblenden",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Alarmanlage",
       "lock": "Schloss",
       "humidifier": "Luftbefeuchter",
-      "calendar": "Kalender"
+      "calendar": "Kalender",
+      "todo": "To-do-Liste"
     },
     "displays": {
       "standard": "Standard",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} gibt es in Home Assistant nicht",
           "replace": "Ersetzen durch {id}"
         }
+      },
+      "todo": {
+        "title": "To-do-Liste",
+        "plain": "Dieses Board kann keine To-do-Liste zeigen: dafür braucht es ein Board mit 8 MB Flash oder mehr. Entferne diese Kachel.",
+        "needs_firmware": "Die To-do-Liste braucht Firmware 0.61.0 oder neuer: nach dem Speichern beim Bildschirm auf Aktualisieren drücken.",
+        "order": {
+          "label": "Reihenfolge",
+          "hint": "Wie die To-do-Karte von Home Assistant sie ordnet",
+          "none": "Wie in Home Assistant",
+          "alpha_asc": "Name, A bis Z",
+          "alpha_desc": "Name, Z bis A",
+          "duedate_asc": "Fälligkeit, früheste zuerst",
+          "duedate_desc": "Fälligkeit, späteste zuerst"
+        },
+        "completed": "Erledigte Einträge",
+        "completed_hint": "Unter den offenen Einträgen, durchgestrichen, wo Platz ist",
+        "due": "Fälligkeiten",
+        "due_hint": "Der Tag neben einem Eintrag; überfällig ist rot",
+        "screen": "Auf dem Bildschirm",
+        "add": "Einträge hinzufügen",
+        "add_hint": "Eine Plus-Taste auf der Kachel und ein Feld in der Liste öffnen die Tastatur des Bildschirms",
+        "suggest": "Namen vorschlagen",
+        "suggest_hint": "Beim Tippen bietet die Tastatur an, was früher abgehakt wurde; ein Tipp setzt es zurück auf die Liste",
+        "clear": "Erledigte entfernen",
+        "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Zuhause",
       "unknown": "Unbekannt",
-      "calendar_free": "Frei"
+      "calendar_free": "Frei",
+      "todo_open": "{x} offen",
+      "todo_all_done": "Alles erledigt",
+      "todo_more": "+{x} weitere"
     },
     "pages": {
       "repaired": "Seite {page}, Kachel „{tile}“: Unpassendes entfernt ({what}).",

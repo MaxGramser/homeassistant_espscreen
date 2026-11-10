@@ -649,6 +649,21 @@
       "calendars": "Kalendarze",
       "also": "+{x} teraz",
       "booked": "Zarezerwowano na ekranie"
+    },
+    "todo": {
+      "open": "{x} do zrobienia",
+      "all_done": "Wszystko zrobione",
+      "more": "+{x} więcej",
+      "completed": "Ukończone",
+      "add": "Dodaj pozycję",
+      "added": "Dodano: {x}",
+      "rename": "Zmień nazwę",
+      "remove": "Usuń",
+      "cancel": "Anuluj",
+      "clear": "Usunąć ukończone ({x})?",
+      "waiting": "Wczytywanie",
+      "empty": "Nic na liście",
+      "yesterday": "Wczoraj"
     }
   },
   "addon": {
@@ -1926,7 +1941,8 @@
         "alarm_control_panel": "Alarm",
         "lock": "Zamki",
         "humidifier": "Nawilżacze",
-        "calendar": "Kalendarze"
+        "calendar": "Kalendarze",
+        "todo": "Listy zadań"
       },
       "room": "Obszar",
       "hide_placed": "Ukryj dodane",
@@ -2424,7 +2440,8 @@
       "alarm_control_panel": "Panel alarmowy",
       "lock": "Zamek",
       "humidifier": "Nawilżacz",
-      "calendar": "Kalendarz"
+      "calendar": "Kalendarz",
+      "todo": "Lista zadań"
     },
     "displays": {
       "standard": "standardowy",
@@ -2920,6 +2937,31 @@
           "unknown": "{id} nie istnieje w Home Assistant",
           "replace": "Zastąp przez {id}"
         }
+      },
+      "todo": {
+        "title": "Lista zadań",
+        "plain": "Ta płytka nie pokaże listy zadań: potrzebna jest płytka z 8 MB pamięci flash lub więcej. Usuń ten kafelek.",
+        "needs_firmware": "Lista zadań wymaga firmware 0.61.0 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie.",
+        "order": {
+          "label": "Kolejność",
+          "hint": "Tak, jak porządkuje je karta listy zadań Home Assistant",
+          "none": "Jak w Home Assistant",
+          "alpha_asc": "Nazwa, od A do Z",
+          "alpha_desc": "Nazwa, od Z do A",
+          "duedate_asc": "Termin, najbliższy najpierw",
+          "duedate_desc": "Termin, najdalszy najpierw"
+        },
+        "completed": "Ukończone pozycje",
+        "completed_hint": "Pod otwartymi, przekreślone, gdzie jest miejsce",
+        "due": "Terminy",
+        "due_hint": "Dzień obok pozycji; spóźnione na czerwono",
+        "screen": "Na ekranie",
+        "add": "Dodawanie pozycji",
+        "add_hint": "Klawisz plus na kafelku i pole na liście otwierają klawiaturę ekranu",
+        "suggest": "Podpowiadaj nazwy",
+        "suggest_hint": "Podczas pisania klawiatura proponuje to, co wcześniej odhaczono; dotknięcie przywraca to na listę",
+        "clear": "Usuwanie ukończonych",
+        "clear_hint": "Klawisz na liście usuwa po pytaniu wszystko, co odhaczone"
       }
     },
     "precision": {
@@ -3859,7 +3901,10 @@
     "mockup": {
       "home": "Dom",
       "unknown": "Nieznany",
-      "calendar_free": "Wolne"
+      "calendar_free": "Wolne",
+      "todo_open": "{x} do zrobienia",
+      "todo_all_done": "Wszystko zrobione",
+      "todo_more": "+{x} więcej"
     },
     "pages": {
       "repaired": "Strona {page}, kafelek „{tile}”: usunięto to, co nie pasowało ({what}).",
