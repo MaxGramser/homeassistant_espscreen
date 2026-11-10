@@ -4,10 +4,10 @@ This is the **Elecrow CrowPanel ESP32 HMI Display7.0-inch** (SKU DIS08070H): a7.
 16-bit RGB parallel bus (EK9716BD3 + EK73002ACGB), GT911 capacitive touch, and an ESP32-S3-WROOM-1-N4R8 with4 MB
 of flash and8 MB of octal PSRAM, a CH340 behind its USB port, a PCA9557 I/O expander and a speaker amplifier.
 
-No acceptance run on glass yet: the display, the touch and the backlight in this file come from the configuration
-that has been run on this board (Elecrow's own example, the devices.esphome.io device page for it, and a unit
-flashed with it over serial), and the layout has been through the host render. What only a person at the panel can
-check is listed under "What to report while testing" below.
+Run once on a real unit: the screen boots the firmware, draws LVGL, joins Wi-Fi, and pairs with Home Assistant as
+a screen that was already known there (the 39 entities of that device reported online, its `Screen flash` reading
+`wide`). What has **not** been verified on this unit is touch: see the note under
+"Touch on this unit" below. What only a person at the panel can check is listed under "What to report while testing" below.
 
 ## Which board
 
@@ -56,6 +56,17 @@ panel's ESP-IDF settings come from `packages/hardware/esp32s3-rgb.yaml`, the4 MB
   (I2S on GPIO17/GPIO42/GPIO18) is not wired up either; both are the first things to revisit if a later core
   gets smaller.
 
+## Touch on this unit
+
+Not working on the unit tested. The GT911 does not acknowledge at either address (0x5D and0x14) at any stage of
+the bring-up: the boot-time probe, a raw-I2C write of the switches register, and the bus scan, before and after
+the V3.0 reset sequence and with the driver's own `reset_pin` handling. The failure is not the bus: the PCA9557
+on the same wires answers every transaction at400 kHz, and the GT911 simply never does. The owner found the
+touch flex at the back of the panel had no latch holding it, the same physical cause as on a previous screen of
+this panel. So the board file's reset sequencing is in place but unproven on glass: reseat the flex first, and
+if the bus still shows no GT911, Elecrow's factory firmware is the next check to separate a dead controller from
+a configuration mistake. Once the flex makes contact, the reset_pin flow above should be all it takes.
+
 ## Hardware references
 
 - [Elecrow's wiki for the CrowPanel ESP32 displays](https://www.elecrow.com/wiki/esp32-display-702727-intelligent-touch-screen-wi-fi26ble-800480-hmi-display.html)
@@ -68,13 +79,13 @@ panel's ESP-IDF settings come from `packages/hardware/esp32s3-rgb.yaml`, the4 MB
 
 ## What to report while testing
 
-The host render cannot show any of these; they are what a run on the panel is for.
+A run once the flex makes contact: what only a person at the panel can check.
 
-- Touch: the corners and a drag across the glass, on a cold start as well as a warm one (the V3.0 reset runs at
-  every start).
-- The backlight at every brightness, including standby and night mode, and whether1220 Hz is audible on this
+- Touch: the corners and a drag across the glass, on a cold start and a warm one (the V3.0 reset runs at every
+  start).
+- The backlight at every brightness, including standby and night mode, and whether 1220 Hz is audible on this
   unit's driver.
 - The colour order and the rotation, lying down and standing up.
 - A page switch by an edge swipe, and a tap that does nothing when it starts on the tiles.
-- What `Screen flash` in Home Assistant says after the first update, and after the second (the table the wide
-  slots replace it with).
+- What the pages look like with the demo layout on this unit, and whether the tiles read at 133 dpi from a
+  seated position.
