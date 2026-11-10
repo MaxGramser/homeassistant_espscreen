@@ -83,6 +83,11 @@ export function startTile(id: string): Tile {
     const sizes = tileSizeChoices(tile), size = ["square", "wide"].find((choice) => sizes.includes(choice as Size));
     return size ? { ...tile, options: { ...tile.options, size } } : tile;
   }
+  // A plugin's tile starts at the smallest size its manifest takes: a tile of 2 x 2 and up never stands in one cell.
+  if (usePluginsStore().pluginTileOf(id)) {
+    const size = smallestPluginSize(tile);
+    return size && size !== "single" ? { ...tile, options: { ...tile.options, size } } : tile;
+  }
   if (id !== "screen.energy") return tile;
   const { grid } = useDocumentStore().editorLayout;
   const area = (size: Size) => { const d = dimensions(size, grid); return d.columns * d.rows; };
@@ -191,20 +196,31 @@ export function tileSizeChoices(tile: Tile): Size[] {
     if (!span || !spanOffered(span.columns, span.rows, grid) || (span.rows > 1 && !taller) || (span.columns === 1 && narrow)) continue;
     choices.push(size as Size);
   }
-  // A plugin's tile takes the sizes between its manifest's smallest and largest (design, docs: the plugins proposal).
   const plugin = usePluginsStore().pluginTileOf(tile.entity);
   if (!pageTarget(tile.entity) && !plugin) choices.push("full");
-  if (plugin) {
-    const least = dimensions(plugin.tile.min as Size, grid), most = dimensions(plugin.tile.max as Size, grid);
-    return choices.filter((size) => { const d = dimensions(size, grid);
-      return d.columns >= least.columns && d.rows >= least.rows && d.columns <= most.columns && d.rows <= most.rows; });
-  }
+  if (plugin) return pluginSizes(plugin.tile, choices, grid);
   // The energy card's diagram takes a size it fits (app 0.4.77): on a small glass a page of its own, never a single cell.
   if (tile.entity === "screen.energy") return choices.filter((size) => {
     const { columns, rows } = dimensions(size, grid);
     return energyFits(doc.screenShape, grid.columns, grid.rows, columns, rows);
   });
   return choices;
+}
+/** A plugin's tile takes the rectangles between its manifest's `min` and `max`, and the whole page with `full: true` or
+ * where its `max` reaches the grid (a 3 x 3 tile on a grid of 3 x 3 is the whole page; plugin API 0.25). */
+function pluginSizes(tile: { min: string | null; max: string | null; full?: boolean }, choices: Size[], grid: { columns: number; rows: number }): Size[] {
+  if (!tile.min || !tile.max) return tile.full ? ["full"] : [];
+  const least = dimensions(tile.min as Size, grid), most = dimensions(tile.max as Size, grid);
+  const sizes = choices.filter((size) => { const d = dimensions(size, grid);
+    return d.columns >= least.columns && d.rows >= least.rows && d.columns <= most.columns && d.rows <= most.rows; });
+  const reaches = most.columns >= grid.columns && most.rows >= grid.rows && least.columns <= grid.columns && least.rows <= grid.rows;
+  return tile.full || reaches ? [...sizes, "full"] : sizes;
+}
+/** The smallest size a plugin's tile takes on this screen, for a new tile and for leaving the whole page. */
+export function smallestPluginSize(tile: Tile): Size | null {
+  const { grid } = useDocumentStore().editorLayout;
+  const area = (size: Size) => { const d = dimensions(size, grid); return d.columns * d.rows; };
+  return tileSizeChoices(tile).sort((a, b) => area(a) - area(b))[0] ?? null;
 }
 /** Edge resizing keeps the anchor and every neighbouring tile in place. */
 export function resizeChoices(tile: Tile, axis: "columns" | "rows"): Size[] {

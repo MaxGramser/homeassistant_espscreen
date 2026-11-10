@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 24;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 25;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -64,6 +64,7 @@ struct TileContext {
   // or for a choice of picks, {"value": "...", "label": "..."} with the words the person saw in the list; a choice found
   // by searching (`search`) without `multiple` is one pick (or "" while none is chosen).
   JsonObjectConst options;
+  bool full;                 // the tile is the whole page (0.25): `columns` and `rows` are then the screen's grid
 };
 
 // Memory for what a plugin keeps (0.10). The memory inside the chip is small and Wi-Fi needs it; a board with PSRAM has

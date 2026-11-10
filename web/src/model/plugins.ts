@@ -23,7 +23,8 @@ export type PluginTileOption = {
   domains?: string[]; attributes?: string[];
 };
 export type PluginTile = {
-  id: string; name: Texts; icon?: string; min: string; max: string; memory: number;
+  // `min` and `max` are null on a tile that only takes the whole page (plugin API 0.25, `sizes: { full: true }`).
+  id: string; name: Texts; icon?: string; min: string | null; max: string | null; full?: boolean; memory: number;
   domains?: string[]; options?: PluginTileOption[]; example?: Texts;
   // The add-on draws a preview of it from its data (api/plugins/<id>/preview/<tile>): the manifest names one.
   preview?: boolean;

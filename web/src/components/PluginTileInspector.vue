@@ -16,7 +16,8 @@ import PropRow from "./ui/PropRow.vue";
 import Section from "./ui/Section.vue";
 import UiSelect from "./ui/UiSelect.vue";
 import { usePluginsStore } from "../stores/plugins";
-import { removeTile, setTileOption } from "../editor/tiles";
+import { removeTile, setTileOption, tileSizeChoices } from "../editor/tiles";
+import SwitchRow from "./ui/SwitchRow.vue";
 import { useUiStore } from "../stores/ui";
 import { useInspectorStore } from "../stores/inspector";
 import { useBrokenStore } from "../stores/broken";
@@ -36,6 +37,16 @@ function set(option: PluginTileOption, value: PluginValue) {
 const entityChoices = computed(() => offeredEntities(plugins.entitiesIn(kind.value.tile.domains), kind.value.tile, props.tile.options?.plugin_entity)
   .map((e) => [e.id, e.name !== e.id ? `${e.name} (${e.id})` : e.id] as [string, string]));
 const size = (value: string) => value.replace("x", "×");
+// What the manifest says of its sizes (plugin API 0.25: the whole page, or only that).
+const sizesHint = computed(() => {
+  const { min, max, full } = kind.value.tile;
+  if (!min || !max) return t("editor.plugin_tile.sizes_only_page");
+  return t(full ? "editor.plugin_tile.sizes_or_page" : "editor.plugin_tile.sizes", { min: size(min), max: size(max) });
+});
+// The edges go one direction at a time, and a tile of at most 2 x 2 has no way to the whole page along them.
+const sizes = computed(() => tileSizeChoices(props.tile));
+const isPage = computed(() => props.tile.options?.size === "full");
+const setPage = (on: boolean) => setTileOption(props.tile, "size", on ? "full" : sizes.value.find((choice) => choice !== "full"));
 // Its entity gone from Home Assistant, or away for a while (stores/broken.ts): said under the choice of another.
 const broken = useBrokenStore();
 const entityHealth = computed(() => props.tile.options?.plugin_entity ? broken.tileHealth(props.tile.options.plugin_entity) : null);
@@ -65,7 +76,9 @@ function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
     </Section>
 
     <Section :title="t('editor.plugin_tile.on_screen')">
-      <p class="hint">{{ t("editor.plugin_tile.sizes", { min: size(kind.tile.min), max: size(kind.tile.max) }) }}</p>
+      <SwitchRow v-if="sizes.includes('full') && sizes.length > 1" :label="t('editor.plugin_tile.whole_page')"
+        :model-value="isPage" @update:model-value="setPage" />
+      <p class="hint">{{ sizesHint }}</p>
       <p class="hint">{{ t(kind.tile.preview ? "editor.plugin_tile.live" : "editor.plugin_tile.placeholder") }}</p>
     </Section>
   </div>

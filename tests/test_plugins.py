@@ -180,6 +180,18 @@ class Manifest(unittest.TestCase):
         self.assertFalse(pm.api_fits('0.2', (0, 5), {0: (3,)}))
         self.assertTrue(pm.api_fits('0.2', (0, 2), {0: (3,)}))
 
+    def test_a_tile_says_its_sizes_and_the_whole_page(self):
+        """Plugin API 0.25: min and max, `full: true` beside them, or `full: true` alone for a tile of only the whole page."""
+        sizes = lambda **given: pm.check(manifest(fetch=[], tiles=[{'id': 'next', 'name': 'tile', 'sizes': given, 'memory': 900}]), ENGLISH)['tiles'][0]
+        tile = sizes(min='2x2', max='3x3', full=True)
+        self.assertEqual((tile['min'], tile['max'], tile['full']), ('2x2', '3x3', True))
+        self.assertFalse(sizes(min='1x1', max='2x3')['full'])
+        tile = sizes(full=True)
+        self.assertEqual((tile['min'], tile['max'], tile['full']), (None, None, True))
+        for wrong in ({'full': False}, {}, {'min': '1x1'}, {'max': '2x2', 'full': True}, {'min': '3x3', 'max': '2x2'}):
+            with self.assertRaises(pm.ManifestError):
+                sizes(**wrong)
+
     def test_one_plugin_api_everywhere(self):
         header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
         major, minor = re.search(r'PLUGIN_API_MAJOR = (\d+), PLUGIN_API_MINOR = (\d+)', header).groups()

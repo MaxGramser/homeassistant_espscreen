@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.24 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.25 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -215,6 +215,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
 | Part | Firmware | Add-on | Editor |
 |---|---|---|---|
 | A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector, `preview` drawn from the data |
+| How large a tile is (0.25) | `TileContext::full`, the tile is the whole page; `columns` and `rows` are then the grid's | the manifest's `sizes`: `min` and `max`, `full: true` for the whole page beside them, or `full: true` alone for a tile that only takes the whole page (`plugin_manifest`, `min` and `max` then `None`); no layout check, a saved layout stays readable | `tileSizeChoices`: the rectangles from `min` to `max`, and the whole page with `full: true` or where `max` reaches the grid (a rectangle that fills the grid is called `full`, never a span). A new tile starts at the smallest size it takes (`startTile`); the inspector's Whole page switch, because a tile of at most 2 x 2 has no way there along its edges |
 | Values of JSON (0.12) | `TileContext::options` holds lists and picks; `tessera::action` with a JSON object | `multiple`, `search`, `each`, `{name\|,}`; above | `PluginListOption.vue` |
 | A tile of an entity | `TileContext.entity`, `tessera::action` | the manifest's `domains`, `attributes` and `fields`; `Plugins.entity_part` (state, name, named attributes, fields), `related_entities`; `has_attributes` through `Plugins.entities_with` | entity picker of those domains, also ones Tessera draws no tile for; with `has_attributes` only the entities that have them, and always the one chosen (`offeredEntities`) |
 | A card | `Card`, `add_card`, `open_card`; closed by `hide_detail`; `on_tap` (0.12): a short tap on its room through the tiles' guard (`rt::allowed`), keyed by an 8 mm spot so a bounce on one row is one tap and the next row its own, with `tap_point()` in the room's pixels (`card_tap`) | nothing | nothing |

@@ -626,7 +626,7 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
       doc.to<JsonObject>();
     tessera::TileContext context{w.extra, width, height, static_cast<uint8_t>(t.column_span()),
                                  static_cast<uint8_t>(t.row_span()), t.name.c_str(), extra.plugin_entity.c_str(),
-                                 static_cast<int>(w.index), doc.as<JsonObjectConst>()};
+                                 static_cast<int>(w.index), doc.as<JsonObjectConst>(), t.full};
     Making call(card);
     card->tile->create(context);
   }

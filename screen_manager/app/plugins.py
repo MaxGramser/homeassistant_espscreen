@@ -957,7 +957,7 @@ class Plugins:
                       for p in manifest['parts']],
             'attributes': manifest['attributes'],
             'tiles': [{'id': tile['id'], 'name': words(tile['name']), 'icon': glyph(tile['icon']),
-                       'min': tile['min'], 'max': tile['max'], 'memory': tile['memory'],
+                       'min': tile['min'], 'max': tile['max'], 'full': tile['full'], 'memory': tile['memory'],
                        'domains': tile['domains'], 'data': tile.get('data'),
                        # The entities the inspector offers when the tile needs certain attributes (`has_attributes`).
                        **({'entities': self.entities_with(tile['domains'], tile['has_attributes'])}
