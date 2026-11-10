@@ -11709,6 +11709,11 @@ inline bool drawn_over_covers(lv_obj_t *o, int x, int y, int w, int h, int depth
 }
 inline bool drawn_over(lv_obj_t *owner, int x, int y, int w, int h) {
   drawn_over_by = nullptr;
+  // A video call fills the glass and lays the system layer (the camera's dot) over its pictures itself.
+  bool drawn_over_sprites = false;
+#ifdef SD_MOD_CALL
+  drawn_over_sprites = owner == camera_root && call::shown() && call::composed();
+#endif
   if (!owner) return true;
   lv_obj_t *sys = lv_layer_sys(), *top = lv_layer_top();
   lv_obj_t *at = owner;
@@ -11729,7 +11734,7 @@ inline bool drawn_over(lv_obj_t *owner, int x, int y, int w, int h) {
   }
   if (at != sys)
     for (uint32_t i = 0; sys && i < lv_obj_get_child_count(sys); ++i)
-      if (drawn_over_covers(lv_obj_get_child(sys, i), x, y, w, h)) { drawn_over_by = "the system layer"; return true; }
+      if (!drawn_over_sprites && drawn_over_covers(lv_obj_get_child(sys, i), x, y, w, h)) { drawn_over_by = "the system layer"; return true; }
   return false;
 }
 // The room below the top bar: the back key and the name stay LVGL's, on the view's black, never over the picture.
@@ -11883,7 +11888,11 @@ inline void live_begin(const std::string &link) {
 #ifdef SD_MOD_CALL
   if (call::shown()) role = audio_owner::Role::CALL;
 #endif
-  camera.stream.opened(live_view::open(url, live_area(), live_view::Look{}, live_view::has_speaker(), role));
+  live_view::Look look{};
+#ifdef SD_MOD_CALL
+  if (call::shown()) look.composed = call::composed();
+#endif
+  camera.stream.opened(live_view::open(url, live_area(), look, live_view::has_speaker(), role));
   if (camera.stream.live) {
     if (camera_muted) live_view::mute(camera.stream.handle, true);
     return;

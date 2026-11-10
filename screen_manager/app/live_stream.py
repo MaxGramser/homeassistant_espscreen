@@ -31,8 +31,8 @@ DEFAULT_PACE = 15         # picture_sources.TILE_PACE: the pace of a camera tile
 SOUND_QUEUE = 50          # parts of sound that may wait for a screen (about a second); older ones go
 TALK_QUEUE = 60           # the same in a conversation, 20 ms parts: over a second, the screen itself cuts it back above that
 # A call's pictures share the Wi-Fi with its sound in both directions, and the sound goes first (docs/CALLS.md): at most this
-# many pictures a second, at most this long a side (the screen's PPA scales them up to the room).
-TALK_PICTURES, TALK_SIDE = 10, 960
+# many pictures a second, at the glass's own size so the screen lays its keys over them and copies them once, unscaled.
+TALK_PICTURES = 10
 SEND_BUFFER = 65536       # what may wait in this host's socket for a screen: a picture, not a queue of them
 REFUSAL_LOG_SECONDS = 60  # a refused tile asks again within seconds: the log says each screen's camera once a minute
 ROOM = re.compile(r'(\d{2,4})x(\d{2,4})')  # a link made before its screen asked: the room its stream says, ?room=WxH
@@ -329,9 +329,6 @@ class LiveFeed:
             link.box = room_of(request.query.get('room'))
             if link.box is None:
                 return web.Response(status=400, text='No room for its pictures (?room=WxH)')
-        if link.talk and max(link.box) > TALK_SIDE:
-            scale = TALK_SIDE / max(link.box)
-            link.box = (max(64, int(link.box[0] * scale)), max(64, int(link.box[1] * scale)))
         source = self.begin(link, sound=link.sound)
         jpegs = self.pictures_of(link.entity)
         response = web.StreamResponse(headers={'Content-Type': 'multipart/x-mixed-replace;boundary=frame',

@@ -47,7 +47,40 @@ lv_obj_t *card = nullptr, *list = nullptr;
 lv_obj_t *timer_label = nullptr, *mic_key = nullptr, *mic_glyph = nullptr, *speaker_key = nullptr, *speaker_glyph = nullptr,
          *camera_key_obj = nullptr, *camera_glyph = nullptr;
 std::string timer_said;
-live_view::Rect room{};
+live_view::Rect room{}, self_where{};
+// A video call's keys and name lie over the picture as sprites; they leave after a while and come back with a touch.
+lv_obj_t *keys_bar = nullptr, *pill = nullptr;
+constexpr uint32_t KEYS_STAY_MS = 5000;
+uint32_t keys_at = 0, dot_at = 0;
+bool keys_shown = false, keys_dirty = false, pill_dirty = false;
+void capture(lv_obj_t *what, int id) {
+#if LV_USE_SNAPSHOT
+  if (!what) return;
+  lv_obj_update_layout(what);
+  lv_draw_buf_t *drawn = lv_snapshot_take(what, LV_COLOR_FORMAT_ARGB8888);
+  if (!drawn) return;
+  lv_area_t at;
+  lv_obj_get_coords(what, &at);
+  live_view::sprite_set(id, reinterpret_cast<const uint32_t *>(drawn->data), drawn->header.stride / 4, at.x1, at.y1, drawn->header.w, drawn->header.h);
+  lv_draw_buf_destroy(drawn);
+#endif
+}
+void show_keys() {
+  if (!keys_bar) return;
+  keys_at = esphome::millis();
+  if (keys_shown) return;
+  keys_shown = true;
+  lv_obj_remove_flag(keys_bar, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_remove_flag(pill, LV_OBJ_FLAG_HIDDEN);
+  keys_dirty = pill_dirty = true;
+}
+void hide_keys() {
+  keys_shown = false;
+  lv_obj_add_flag(keys_bar, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(pill, LV_OBJ_FLAG_HIDDEN);
+  live_view::sprite_set(live_view::SPRITE_KEYS, nullptr, 0, 0, 0, 0, 0);
+  live_view::sprite_set(live_view::SPRITE_PILL, nullptr, 0, 0, 0, 0, 0);
+}
 
 uint32_t red() { return theme::ha::RED; }
 uint32_t green() { return theme::ha::GREEN; }
@@ -247,6 +280,7 @@ void show_end() {
 uint32_t on_off(bool off) { return off ? 0xFFFFFF : theme::hex(theme::CAMERA_TRACK); }
 
 void paint_keys() {
+  keys_dirty = true;
   const uint32_t ink = theme::hex(theme::ON_ACCENT), dark = theme::hex(theme::CAMERA_PAGE);
   if (mic_key) {
     lv_obj_set_style_bg_color(mic_key, lv_color_hex(on_off(mic_off)), 0);
@@ -278,6 +312,7 @@ void speaker_cb(lv_event_t *) {
 }
 void camera_cb(lv_event_t *) {
   camera_off = !camera_off;
+  live_view::self_view(!camera_off && hw::caps().camera && keys_bar, self_where);
   say("camera", "", !camera_off);
   paint_keys();
 }
@@ -308,6 +343,13 @@ std::string timer_text() {
 }
 
 void forget_view_parts() {
+  if (keys_bar || pill) {
+    live_view::sprite_set(live_view::SPRITE_KEYS, nullptr, 0, 0, 0, 0, 0);
+    live_view::sprite_set(live_view::SPRITE_PILL, nullptr, 0, 0, 0, 0, 0);
+    live_view::sprite_set(live_view::SPRITE_DOT, nullptr, 0, 0, 0, 0, 0);
+    live_view::self_view(false, live_view::Rect{});
+  }
+  keys_bar = pill = nullptr;
   timer_label = mic_key = mic_glyph = speaker_key = speaker_glyph = camera_key_obj = camera_glyph = nullptr;
   room = {};
 }
@@ -546,6 +588,7 @@ bool holds() { return stage != Stage::NONE; }
 live_view::Rect area() { return room; }
 const std::string &link() { return stream_link; }
 void sound_changed() { paint_keys(); }
+bool composed() { return with_video; }
 
 void build(lv_obj_t *root, const std::string &name) {
   forget_view_parts();
@@ -553,19 +596,39 @@ void build(lv_obj_t *root, const std::string &name) {
   const int w = overlay_card::screen_width(), h = overlay_card::screen_height(), d = key_d(), gap = m.gap * 2;
   const bool lying = w * 10 > h * 12;
   const int keys = with_video ? 4 : 3;
+  keys_shown = false;
+  keys_dirty = pill_dirty = false;
   if (with_video) {
-    // The other's picture in the room beside or above the keys (the doorbell's way, until the overlay of the next step).
-    if (lying) room = {m.x, m.y, w - 3 * m.x - d, h - 2 * m.y};
-    else room = {m.x, m.y, w - 2 * m.x, h - 3 * m.y - d};
-    timer_label = lv_label_create(root);
+    // The other's picture fills the glass; its keys, the name and time and the picture of oneself lie over it, drawn by LVGL
+    // once into sprites (lv_snapshot_take) and laid over each frame by the stream's task (live_view.h, sprite_set). LVGL itself
+    // never draws here: nothing of it lies over a live picture.
+    room = {0, 0, w, h};
+    const int edge = m.x, row_w = keys * d + (keys - 1) * gap;
+    keys_bar = plain(root);
+    lv_obj_set_pos(keys_bar, (w - row_w) / 2, h - edge - d);
+    lv_obj_set_size(keys_bar, row_w, d);
+    lay_keys(keys_bar, KeySpots{0, 0, d + gap, 0}, d);
+    pill = plain(root);
+    lv_obj_set_pos(pill, edge, edge);
+    lv_obj_set_style_bg_opa(pill, 150, 0);
+    lv_obj_set_style_bg_color(pill, theme::color(theme::CAMERA_PAGE), 0);
+    lv_obj_set_style_radius(pill, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_pad_hor(pill, ui::px(14), 0);
+    lv_obj_set_style_pad_ver(pill, ui::px(6), 0);
+    lv_obj_set_size(pill, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    timer_label = lv_label_create(pill);
     if (detail_font) lv_obj_set_style_text_font(timer_label, detail_font, 0);
-    lv_obj_set_style_text_color(timer_label, theme::color(theme::CAMERA_NOTE), 0);
-    lv_label_set_text(timer_label, "0:00");
-    KeySpots at = lying ? KeySpots{w - m.x - d, h - m.y - keys * d - (keys - 1) * gap, 0, d + gap}
-                        : KeySpots{(w - keys * d - (keys - 1) * gap) / 2, h - m.y - d, d + gap, 0};
-    lay_keys(root, at, d);
-    if (lying) lv_obj_set_pos(timer_label, w - m.x - d, m.y);
-    else lv_obj_set_pos(timer_label, m.x, h - m.y - d - ui::px(4));
+    lv_obj_set_style_text_color(timer_label, theme::color(theme::CAMERA_INK), 0);
+    timer_said = name + "  0:00";
+    lv_label_set_text(timer_label, timer_said.c_str());
+    if (hw::caps().camera && !camera_off) {
+      // Oneself: lying on a lying glass, standing on a standing one, at the bottom left.
+      const int sw = lying ? w * 22 / 100 : w * 30 / 100, sh = lying ? sw * 9 / 16 : sw * 16 / 9;
+      self_where = live_view::Rect{edge, h - edge - sh, sw, sh};
+      live_view::self_view(true, self_where);
+    }
+    lv_obj_add_event_cb(root, [](lv_event_t *) { show_keys(); }, LV_EVENT_PRESSED, nullptr);
+    show_keys();
   } else {
     // A call with sound alone: its stream brings no pictures, and the app asks a room of at least 64 pixels a side.
     room = {w - 64, h - 64, 64, 64};
@@ -605,8 +668,22 @@ void tick(uint32_t now) {
   }
   talk_uplink::state();  // reaps a talk that ended by itself
   if (stage == Stage::LIVE && timer_label) {
-    const std::string t = timer_text();
-    if (t != timer_said) { timer_said = t; lv_label_set_text(timer_label, t.c_str()); }
+    const std::string t = keys_bar ? peer_name + "  " + timer_text() : timer_text();
+    if (t != timer_said) { timer_said = t; lv_label_set_text(timer_label, t.c_str()); pill_dirty = true; }
+  }
+  if (stage == Stage::LIVE && keys_bar && now - dot_at >= 1000) {
+    // The system layer (the camera's and microphone's dot) stays honest over a picture that fills the glass.
+    dot_at = now;
+    lv_obj_t *sys = lv_layer_sys(), *dot = nullptr;
+    for (uint32_t i = 0; i < lv_obj_get_child_count(sys) && !dot; ++i)
+      if (!lv_obj_has_flag(lv_obj_get_child(sys, i), LV_OBJ_FLAG_HIDDEN)) dot = lv_obj_get_child(sys, i);
+    if (dot) capture(dot, live_view::SPRITE_DOT);
+    else live_view::sprite_set(live_view::SPRITE_DOT, nullptr, 0, 0, 0, 0, 0);
+  }
+  if (stage == Stage::LIVE && keys_bar) {
+    if (keys_shown && now - keys_at > KEYS_STAY_MS) hide_keys();
+    if (keys_shown && keys_dirty) { keys_dirty = false; capture(keys_bar, live_view::SPRITE_KEYS); }
+    if (keys_shown && pill_dirty) { pill_dirty = false; capture(pill, live_view::SPRITE_PILL); }
   }
 }
 

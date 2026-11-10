@@ -291,6 +291,124 @@ static bool make_overlay(Stream &s, MadeOverlay &made, int lies, bool badge) {
 }
 // A tile's overlay for pictures that lie turned `lies`: made at its first picture, again only if its pictures came to
 // lie otherwise. False without the memory for it.
+// ---- What lies over a call's picture (Look::composed, sprite_set) ----
+struct Sprite {
+  uint16_t *rgb = nullptr;
+  uint8_t *alpha = nullptr;
+  int x = 0, y = 0, w = 0, h = 0;
+  size_t size = 0;
+};
+static Sprite sprites[SPRITES];
+static SemaphoreHandle_t sprite_lock = nullptr;
+static bool sprite_room(Sprite &s, int w, int h) {
+  const size_t need = static_cast<size_t>(w) * h;
+  if (need > s.size) {
+    if (s.rgb) free(s.rgb);
+    if (s.alpha) free(s.alpha);
+    s.rgb = static_cast<uint16_t *>(heap_caps_malloc(need * 2, MALLOC_CAP_SPIRAM));
+    s.alpha = static_cast<uint8_t *>(heap_caps_malloc(need, MALLOC_CAP_SPIRAM));
+    s.size = s.rgb && s.alpha ? need : 0;
+    if (!s.size) return false;
+  }
+  s.w = w;
+  s.h = h;
+  return true;
+}
+static bool sprite_take() {
+  if (!sprite_lock) sprite_lock = xSemaphoreCreateMutex();
+  return sprite_lock && xSemaphoreTake(sprite_lock, pdMS_TO_TICKS(20)) == pdTRUE;
+}
+void sprite_set(int id, const uint32_t *argb, int stride, int x, int y, int w, int h) {
+  if (id < 0 || id >= SPRITES || !sprite_take()) return;
+  Sprite &s = sprites[id];
+  if (!argb || w <= 0 || h <= 0 || !sprite_room(s, w, h)) {
+    s.w = s.h = 0;
+  } else {
+    s.x = x;
+    s.y = y;
+    for (int row = 0; row < h; ++row)
+      for (int col = 0; col < w; ++col) {
+        const uint32_t p = argb[static_cast<size_t>(row) * stride + col];
+        s.rgb[static_cast<size_t>(row) * w + col] = rgb565(p);
+        s.alpha[static_cast<size_t>(row) * w + col] = static_cast<uint8_t>(p >> 24);
+      }
+  }
+  xSemaphoreGive(sprite_lock);
+}
+// Over the picture as it lies (turned as the glass when the app sent it so): each pixel from the sprite's upright one.
+static void lay_sprites(const Stream &st, uint16_t *px, int stride, int lies) {
+  if (!sprite_lock || xSemaphoreTake(sprite_lock, pdMS_TO_TICKS(5)) != pdTRUE) return;
+  const int W = st.area.w, H = st.area.h;
+  for (const Sprite &s : sprites) {
+    if (s.w <= 0 || s.h <= 0) continue;
+    const Rect t = in_turned(Rect{s.x, s.y, s.w, s.h}, lies, W, H);
+    for (int gy = 0; gy < t.h; ++gy) {
+      uint16_t *row = px + static_cast<size_t>(t.y + gy) * stride + t.x;
+      for (int gx = 0; gx < t.w; ++gx) {
+        int ox = 0, oy = 0;
+        upright_of(lies, W, H, t.x + gx, t.y + gy, ox, oy);
+        const int sx = ox - s.x, sy = oy - s.y;
+        if (sx < 0 || sy < 0 || sx >= s.w || sy >= s.h) continue;
+        const size_t i = static_cast<size_t>(sy) * s.w + sx;
+        if (s.alpha[i]) row[gx] = blend(row[gx], s.rgb[i], s.alpha[i]);
+      }
+    }
+  }
+  xSemaphoreGive(sprite_lock);
+}
+// A call's picture of oneself needs the camera's frames as well (own_wanted).
+static std::atomic<bool> self_on{false};
+static Rect self_area{};
+static int64_t self_next = 0;
+void self_view(bool on, const Rect &where) {
+  self_area = where;
+  self_on.store(on, std::memory_order_relaxed);
+  if (!on) sprite_set(SPRITE_SELF, nullptr, 0, 0, 0, 0, 0);
+}
+// The camera's frame made small on the camera's own task, mirrored as a mirror is, at most five a second (its pace does not matter:
+// it is oneself). No PPA: this picture is small, and the PPA belongs to the picture of the other.
+static void self_take(const uint8_t *data, int width, int height, bool yuv420) {
+  const int w = self_area.w, h = self_area.h;
+  if (w <= 0 || h <= 0 || !sprite_take()) return;
+  Sprite &s = sprites[SPRITE_SELF];
+  if (sprite_room(s, w, h)) {
+    s.x = self_area.x;
+    s.y = self_area.y;
+    int cut_w = width, cut_h = height;
+    if (static_cast<int64_t>(width) * h > static_cast<int64_t>(height) * w) cut_w = static_cast<int>(static_cast<int64_t>(height) * w / h);
+    else cut_h = static_cast<int>(static_cast<int64_t>(width) * h / w);
+    const int x0 = (width - cut_w) / 2, y0 = (height - cut_h) / 2, radius = std::min(w, h) / 8;
+    const size_t yuv_stride = static_cast<size_t>(width) * 3 / 2;
+    for (int dy = 0; dy < h; ++dy) {
+      const int sy = y0 + dy * cut_h / h;
+      for (int dx = 0; dx < w; ++dx) {
+        const int sx = x0 + (w - 1 - dx) * cut_w / w;
+        uint16_t out;
+        if (yuv420) {
+          // Espressif's YUV420: rows of U Y Y, then V Y Y, three bytes to two pixels.
+          const int row = sy & ~1;
+          const size_t at = static_cast<size_t>(sx / 2) * 3;
+          const uint8_t *top = data + static_cast<size_t>(row) * yuv_stride, *low = top + yuv_stride;
+          const int luma = (sy & 1 ? low : top)[at + 1 + (sx & 1)];
+          const int u = top[at] - 128, v = low[at] - 128;
+          const int r = std::clamp(luma + (359 * v >> 8), 0, 255), g = std::clamp(luma - ((88 * u + 183 * v) >> 8), 0, 255),
+                    b = std::clamp(luma + (454 * u >> 8), 0, 255);
+          out = static_cast<uint16_t>((r & 0xF8) << 8 | (g & 0xFC) << 3 | b >> 3);
+        } else {
+          out = reinterpret_cast<const uint16_t *>(data)[static_cast<size_t>(sy) * width + sx];
+        }
+        const size_t i = static_cast<size_t>(dy) * w + dx;
+        s.rgb[i] = out;
+        // The corners round, one mask for the whole picture.
+        const int cx = dx < radius ? radius - dx : dx >= w - radius ? dx - (w - 1 - radius) : 0,
+                  cy = dy < radius ? radius - dy : dy >= h - radius ? dy - (h - 1 - radius) : 0;
+        s.alpha[i] = cx * cx + cy * cy > radius * radius ? 0 : 255;
+      }
+    }
+  }
+  xSemaphoreGive(sprite_lock);
+}
+
 static bool overlay_for(Stream &s, int lies) {
   return s.plain.lies == lies || make_overlay(s, s.plain, lies, false);
 }
@@ -391,7 +509,8 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still, int 
   picture_engine::Cut into;
   const int lies = turn;
   const int cw = turned_w(s.area.w, s.area.h, lies), ch = turned_h(s.area.w, s.area.h, lies);
-  if (s.look.tile) {
+  const bool card_like = s.look.tile || s.look.composed;
+  if (card_like) {
     into = picture_engine::cut(w, h, cw, ch, s.look.contain);
     if (into.ok) where = s.area;
   } else {
@@ -440,7 +559,7 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still, int 
   const size_t glass_size = static_cast<size_t>(panel.w) * panel.h * 2;
   esp_err_t err = ESP_OK;
   bool loading = false;
-  if (s.look.tile && !overlay_for(s, lies)) {
+  if (card_like && !overlay_for(s, lies)) {
     ESP_LOGW(TAG, "no memory for the overlay of a card of %dx%d", s.area.w, s.area.h);
     s.failed = true;
     s.stopping = true;
@@ -453,11 +572,12 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still, int 
   // canvas the PPA worked twice under the glass, and four tiles waited their turn for it: on a reTerminal D1001 18 ms
   // into the canvas and 18.5 onto the glass a picture, with 20 ms composing between, so each tile waited 60 to 80 ms
   // for the others (2026-10-28). A still keeps the canvas, which its loader turns over.
-  if (s.look.tile && !still && into.ok && into.scale == picture_engine::AS_IS && into.covers(cw, ch) &&
+  if (card_like && !still && into.ok && into.scale == picture_engine::AS_IS && into.covers(cw, ch) &&
       into.in_w == cw && into.in_h == ch) {
     int64_t from = esp_timer_get_time();
     uint16_t *card = reinterpret_cast<uint16_t *>(s.picture) + static_cast<size_t>(into.in_y) * stride_w + into.in_x;
     lay_overlay(card, stride_w, overlay_now(s));
+    if (s.look.composed) lay_sprites(s, card, stride_w, lies);
     const Rect target = on_panel(s.area, s.turn, panel.w, panel.h);
     s.compose_us += static_cast<uint32_t>(esp_timer_get_time() - from);
     hold_timed(s);
@@ -469,7 +589,7 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still, int 
     }
     give_glass();
     s.onto_us += static_cast<uint32_t>(esp_timer_get_time() - from);
-  } else if (s.look.tile) {
+  } else if (card_like) {
     // The card: the picture cut or fitted into it, on black where it leaves room, then the shade, corners and name.
     const size_t canvas_need = (static_cast<size_t>(cw) * ch * 2 + 127) & ~static_cast<size_t>(127);
     if (canvas_need > s.canvas_size) {
@@ -494,6 +614,7 @@ static void show(Stream &s, const uint8_t *data, size_t length, bool still, int 
     s.into_us += static_cast<uint32_t>(to - from);
     if (err == ESP_OK) {
       lay_overlay(s.canvas, cw, overlay_now(s));
+      if (s.look.composed) lay_sprites(s, s.canvas, cw, lies);
       loading = still && lay_loader(s);
       from = esp_timer_get_time();
       s.compose_us += static_cast<uint32_t>(from - to);
@@ -687,7 +808,7 @@ static std::atomic<int> own_open{0};
 
 void own_offer() { offered.store(true, std::memory_order_release); }
 bool own_offered() { return offered.load(std::memory_order_acquire) && available(); }
-bool own_wanted() { return own_open.load(std::memory_order_relaxed) > 0; }
+bool own_wanted() { return own_open.load(std::memory_order_relaxed) > 0 || self_on.load(std::memory_order_relaxed); }
 
 static void own_add(Stream *s) {
   if (!own_lock) own_lock = xSemaphoreCreateMutex();
@@ -712,7 +833,15 @@ static void own_remove(Stream *s) {
 }
 
 void own_frame(const uint8_t *data, int width, int height, bool yuv420) {
-  if (!data || width <= 0 || height <= 0 || !own_wanted() || !own_lock) return;
+  if (!data || width <= 0 || height <= 0 || !own_wanted()) return;
+  if (self_on.load(std::memory_order_relaxed)) {
+    const int64_t at = esp_timer_get_time();
+    if (at >= self_next) {
+      self_next = at + 200000;
+      self_take(data, width, height, yuv420);
+    }
+  }
+  if (!own_lock) return;
   if (xSemaphoreTake(own_lock, 0) != pdTRUE) return;
   const int64_t now = esp_timer_get_time();
   for (Stream *s : own_tiles) {
