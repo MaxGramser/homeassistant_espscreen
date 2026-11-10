@@ -31,3 +31,4 @@ Rules:
 | [camera-sound-key-clipped.md](camera-sound-key-clipped.md) | The full view's sound key on a reTerminal D1001 showed only its bottom right quarter, once, in an opening whose stream came 5 s late | 2026-11-03 |
 | [call-picture-over-the-whole-glass.md](call-picture-over-the-whole-glass.md) | A call's picture over the whole glass with its keys over it: 1.9 to 4.2 pictures a second, the minimum is 8 | 2026-11-10 |
 | [doorbell-talk-delay.md](doorbell-talk-delay.md) | A doorbell's Talk reaches a Reolink about 3 s late, as Home Assistant's own talk button does | 2026-11-10 |
+| [calls-before-release.md](calls-before-release.md) | What is left of calls before a release: flash on 4 MB boards, the ring's volume, ringing at night | 2026-11-10 |
