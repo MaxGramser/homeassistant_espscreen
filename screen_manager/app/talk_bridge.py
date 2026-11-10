@@ -31,6 +31,9 @@ DOOR_RATE = 8000          # G.711, what a backchannel takes
 PACKET_MS = 20            # one RTP packet of G.711
 PACKET_SAMPLES = DOOR_RATE * PACKET_MS // 1000
 QUEUE_PACKETS = 15        # 300 ms of voice may wait for the session; older ones go, a voice is never late
+# A camera's small speaker distorts near full scale, where G.711 has its coarsest steps: a spoken sentence at 70 % of full
+# scale came out of a Reolink "a little too loud, a little distorted" (2026-11-10). 6 dB down, for every voice.
+DOOR_LEVEL = 0.5
 ANSWER_SECONDS = 15       # Home Assistant's answer and the connection (go2rtc adds the camera's backchannel first)
 LINK_SECONDS = 900        # a talk link lives as long as a ring may be answered (doorbell.DOOR_LIFE)
 # The offer's codecs, best first (the module's head): names as aiortc's capabilities have them.
@@ -53,8 +56,9 @@ class Pcm8k:
     """Bytes of a screen at 16 kHz in, whole packets at 8 kHz out: a piece of any length, cut on whole samples and whole
     pairs (a part cut in the middle of a sample turns the rest to noise, docs/CAMERA.md), the newest QUEUE_PACKETS kept."""
 
-    def __init__(self, most=QUEUE_PACKETS):
+    def __init__(self, most=QUEUE_PACKETS, level=DOOR_LEVEL):
         self.most, self.spare, self.last, self.ready, self.dropped = most, b'', 0, array.array('h'), 0
+        self.level = level
 
     def feed(self, data):
         data = self.spare + bytes(data)
@@ -67,6 +71,8 @@ class Pcm8k:
         if sys.byteorder == 'big':
             samples.byteswap()
         out, self.last = decimate(samples, self.last)
+        if self.level != 1:
+            out = array.array('h', (int(value * self.level) for value in out))
         self.ready.extend(out)
         over = len(self.ready) - self.most * PACKET_SAMPLES
         if over > 0:

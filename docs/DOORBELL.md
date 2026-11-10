@@ -167,5 +167,9 @@ Home Assistant or a `generic` camera has no backchannel. One screen talks to a d
 someone else is talking. When talk starts, the picture may hiccup for a moment, as go2rtc reconnects the camera's stream to add
 the backchannel.
 
+A doorbell's speaker can lag well behind the voice: on a Reolink a word came out about 2.6 seconds after the screen sent it
+(its own microphone heard it then, measured 2026-11-10), while the screen and the app hold the voice for at most 0.4 and 0.3
+seconds. That wait is the camera's and go2rtc's; say a sentence and wait for the answer.
+
 `diagnostics/talk_test.py` plays a sound file through the same bridge without a screen, to find out whether a doorbell
 speaks at all.

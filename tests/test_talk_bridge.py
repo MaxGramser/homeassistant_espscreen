@@ -26,7 +26,7 @@ def test_decimate_takes_the_highest_tone_away():
 
 
 def test_a_part_cut_inside_a_sample_stays_whole():
-    source = tb.Pcm8k()
+    source = tb.Pcm8k(level=1)
     source.last = 800  # the filter's history, so the first sample is not a run-up from silence
     data = pcm(*[800] * 320)
     source.feed(data[:161])  # odd: half a sample left over
@@ -36,7 +36,7 @@ def test_a_part_cut_inside_a_sample_stays_whole():
 
 
 def test_a_packet_is_twenty_ms_and_silence_when_nothing_waits():
-    source = tb.Pcm8k()
+    source = tb.Pcm8k(level=1)
     assert source.packet() == bytes(tb.PACKET_SAMPLES * 2)
     source.feed(pcm(*[100] * (tb.PACKET_SAMPLES * 2)))
     packet = source.packet()
@@ -45,11 +45,18 @@ def test_a_packet_is_twenty_ms_and_silence_when_nothing_waits():
 
 
 def test_the_newest_voice_stays():
-    source = tb.Pcm8k(most=2)
+    source = tb.Pcm8k(most=2, level=1)
     source.feed(pcm(*[1] * (tb.PACKET_SAMPLES * 4)))   # the old
     source.feed(pcm(*[2] * (tb.PACKET_SAMPLES * 4)))   # the new, two packets
     assert source.dropped == tb.PACKET_SAMPLES * 2
     assert set(array.array('h', source.packet())[1:]) == {2}  # its first sample still carries the old one in the filter
+
+
+def test_a_voice_goes_to_the_door_at_half_level():
+    source = tb.Pcm8k()
+    source.last = 800
+    source.feed(pcm(*[800] * (tb.PACKET_SAMPLES * 2)))
+    assert set(array.array('h', source.packet())) == {400}
 
 
 def test_one_talker_a_camera():
