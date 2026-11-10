@@ -39,7 +39,7 @@ far speaker (a D1001 to a Guition 10.1, 2026-11-10):
 | | Sound thrown away, in 38 s | Longest hole | Purity at its worst | Parts waiting on the way, on average |
 |---|---|---|---|---|
 | Run-up 80 ms, cut back above 600 ms, 13 pictures a second at the glass's size | 5.2 s | 1.9 s | -23 dB | 159 to 241 ms |
-| Run-up 200 ms, cut back above 1 s, no new run-up at a moment's emptiness, at most 10 pictures a second and 960 pixels a side | none | 80 ms | +8 dB | 6 to 11 ms |
+| Run-up 200 ms, cut back above 1 s, no new run-up at a moment's emptiness, at most 10 pictures a second and 720 pixels a side | none | 80 ms | +8 dB | 6 to 11 ms |
 
 The network cuts a voice where it likes, also inside a sample (6 of 1334 pieces in one call). One odd byte handed on turns
 everything after it into noise, so `talk_bridge.Voice` passes on whole parts of 20 ms only.
@@ -74,3 +74,9 @@ The switch **Call ringtone** of each screen (in Home Assistant, under its config
 
 The other screen's picture lies beside the keys, as on a doorbell, and nothing of LVGL's lies over it. Over the whole glass with the
 keys over it was tried and given up for now: docs/open-issues/call-picture-over-the-whole-glass.md.
+
+## Through a Raspberry Pi
+
+A D1001 and a Guition 10.1 in a video call in both directions, through a Home Assistant Yellow (three calls of 36 s, 2026-11-10): 8.3 to
+9.5 pictures a second over the whole call and about 9.8 once it runs, 31 KB and 13 KB a picture, sound waiting 5 to 50 ms on its way and
+never running dry. The app used about 40 % of the Yellow while it ran. With pictures of 960 pixels a side the same call reached 6 to 8.
