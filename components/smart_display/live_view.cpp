@@ -1057,16 +1057,13 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
   count_tiles();
   if (own) own_add(s);
   if (look.tile) tiles_open.fetch_add(1, std::memory_order_relaxed);
-  if (s->sound || role == audio_owner::Role::DOORBELL) {
+  if (s->sound && role != audio_owner::Role::DOORBELL) {
     // The camera's sound claims the speaker (audio_owner.h) in the role its opener gave: as CAMERA_SOUND music pauses
-    // for it, and a voice session or a doorbell takes it and gives it back, since the camera stays open; as DOORBELL
-    // (the view a ring opened) nothing takes it, and the ring takes the microphone too, sound or not: the wake word
-    // rests while someone is at the door (and the talk, section 5 of PLATFORM_PLAN.md, will speak into it). Given back in
-    // tick when the stream ends: a ring whose stream ends while its view stays (stills after its third break) lets the
-    // wake word listen again under the open ring, until module_doorbell holds the claim for as long as the ring is up
-    // (PLATFORM_PLAN.md 3.4).
+    // for it, and a voice session or a doorbell takes it and gives it back, since the camera stays open. A ring's view
+    // (DOORBELL) claims nothing here: module_doorbell holds both sides for as long as the ring is up, so the wake word
+    // rests under an open ring also while its stream breaks and comes back (PLATFORM_PLAN.md 3.4).
     s->sound_role = role;
-    s->claimed = role == audio_owner::Role::DOORBELL ? audio_owner::Side::BOTH : audio_owner::Side::OUT;
+    s->claimed = audio_owner::Side::OUT;
     s->claims = true;
     audio_owner::Claim claim;
     claim.role = role;

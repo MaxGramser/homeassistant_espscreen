@@ -183,7 +183,7 @@ same role replaces its holder (a second camera's full view takes over from the f
   (`lost` stops the wake word, `regained` starts it) and BOTH for a session, on tessera-plugins dev.
 - The mixer and the half-duplex interval stay as they are: the owner decides who may start; the mixer mixes the
   announcement input over the media input as before.
-- Still to do: the IN side for the doorbell's talk (section 5). Proven on the D1001 (2026-10-25): music under a ring
+- The IN side: a ring's view holds both sides from the module for as long as the ring is up (module_doorbell, since 2026-11-10), its stream claims nothing. Proven on the D1001 (2026-10-25): music under a ring
   (the ring takes the speaker, the music stays paused after it), music started during a ring (refused, paused within a
   second), a ring while the wake word listens (the wake word rests during the ring, and "Okay Nabu" opened a session
   right after it, 12:46).
@@ -192,10 +192,8 @@ same role replaces its holder (a second camera's full view takes over from the f
   stream may go on under a popup is a question of its own, for later.
 - A ring's view claims the speaker and the microphone (live_view, role DOORBELL, both sides), so the wake word rests
   during a ring and listens again after it ("doorbell took the microphone from voice", "doorbell gave the microphone
-  back: voice has it again"; the voice plugin's claims, voice_assist 0.4.0). Open: the claim lives with the ring's
-  stream, so a stream that breaks and opens again claims anew (the same role replaces itself, harmless), and one that
-  ends while the ring's view stays (stills after three breaks) lets the wake word back under an open ring. The clean
-  way is module_doorbell holding the claim for as long as the ring is up, which waits for the talk's design (section 5).
+  back: voice has it again"; the voice plugin's claims, voice_assist 0.4.0). Since 2026-11-10 module_doorbell holds the claim for as long as the ring is up, so a stream that breaks no longer lets the
+  wake word back under an open ring.
 
 ### 3.5 Allocation as a seam
 
@@ -862,9 +860,10 @@ canvas). The turn now happens in the app, where it costs little, and the screen 
 - **What the Tab5 should show:** its two live tiles no longer turn on the chip. Whether the stall comes back is for its
   tester to say; the ring of a stall names the copy and its turn as before.
 
-## 5. The doorbell's talk-back, prepared
+## 5. The doorbell's talk-back
 
-Not built now: Home Assistant is expected to bring a two-way audio path of its own within months, and the community
+Built since 2026-11-10: docs/DOORBELL.md, "Talk" and docs/CALLS.md, "The voice". The plan as it stood, kept for why:
+Home Assistant is expected to bring a two-way audio path of its own within months, and the community
 VoIP stack (a SIP endpoint inside Home Assistant) already bridges door stations. What the firmware prepares does not
 depend on which one wins:
 

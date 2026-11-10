@@ -167,7 +167,7 @@ and never claim. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; test: `tes
 `header_bar.h` draws what the add-on decides to show and counts its own clocks; an item may carry an end (`until`), so
 a missed doorbell ring leaves the bar after the minutes its automation chose (`keep_minutes`, default 30 for new
 automations, 0 or absent means until someone opens it). `module_doorbell` opens a camera live with a chime on a ring
-and prepares the keys; the talk-back is prepared in the audio owner and not built. Detail: docs/DOORBELL.md; tests:
+and has its keys; Talk sends the screen's voice to the camera (`talk_uplink`, the add-on's `talk_bridge`). Detail: docs/DOORBELL.md, docs/CALLS.md; tests:
 `tests/test_header_bar.cpp`, `screen_manager/tests/test_doorbell.py`.
 
 ### 10. Plugins
@@ -246,4 +246,4 @@ docs/PLATFORM_PLAN.md is the plan with its measurements. Its sections 3.1 to 3.4
 behind the seam, the capability record, the audio owner), 4.1 (the cap three places share), 4.4a (the PSRAM bus rule),
 4.7 (what the PPA still turns), 4.10 (the governor), 4.11 (the own camera's tile) and 4.12 (pictures turned by the app)
 are built and described above; 3.2 has its second engine, the S3. Open: a second S3 tile (Wi-Fi buffers in PSRAM,
-measured against the panel bus), the D1001's video over Wi-Fi (4.8), the sensor's binned mode (4.6), the talk-back (5).
+measured against the panel bus), the D1001's video over Wi-Fi (4.8), the sensor's binned mode (4.6).

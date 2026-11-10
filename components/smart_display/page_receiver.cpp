@@ -370,8 +370,8 @@ std::string receive(const std::string &payload) {
       // A ring (module doorbell, docs/DOORBELL.md): an automation fired esp_screens_doorbell, and ESP Screens names its
       // camera (`e`), its name (`n`), the ring's key (`k`), when it rang (`r`, unix time) and how long it stays untouched
       // (`t`, seconds), whether its view opens quiet (`m`) and rings without the chime (`nc`), its door when it has one
-      // (`d`: 1 a lock, with its state `ds`, 2 an action) and the stream the app made for this screen (`l`, opened at
-      // once); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
+      // (`d`: 1 a lock, with its state `ds`, 2 an action), the stream the app made for this screen (`l`, opened at
+      // once) and where it sends its voice (`tk`, its Talk key); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
       // `ds` alone, its lock's new state. Only a screen whose hello says `doorbell` gets it.
 #ifdef SD_MOD_DOORBELL
       const std::string key = string(root["k"], 16);
@@ -386,7 +386,8 @@ std::string receive(const std::string &payload) {
         doorbell::ring(entity, name.empty() ? entity : name, key, root["r"].is<unsigned>() ? root["r"].as<uint32_t>() : 0,
                        root["t"].is<unsigned>() ? root["t"].as<uint32_t>() : 0, root["d"].is<unsigned>() ? root["d"].as<unsigned>() : 0,
                        string(root["ds"], 16), root["m"].is<unsigned>() && root["m"].as<unsigned>() == 1,
-                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200));
+                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200),
+                       string(root["tk"], 200));
       }
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";

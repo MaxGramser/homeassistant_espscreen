@@ -205,8 +205,7 @@
       "door": "Drzwi",
       "door_confirm": "Dotknij ponownie, by otworzyć",
       "door_sent": "Wysłano",
-      "talk": "Mów",
-      "coming_soon": "Wkrótce"
+      "talk": "Mów"
     },
     "tile": {
       "tap_to_open": "Otwórz",

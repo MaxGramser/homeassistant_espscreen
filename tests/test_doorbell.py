@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import automations  # noqa: E402
 import doorbell  # noqa: E402
 import live_stream  # noqa: E402
+import talk_bridge  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
@@ -208,7 +209,7 @@ class TheFirmwareReadsTheSame(unittest.TestCase):
             self.assertIn(f'say("{action}")', module)
         self.assertIn(f'say("{doorbell.DOOR}")', module)
         # A key the screen cannot use is not there: Talk needs its microphone, Sound its speaker.
-        self.assertIn('hears = hw::caps().microphone, plays = hw::caps().speaker', module)
+        self.assertIn('hears = hw::caps().microphone && talk_uplink::available()', module)
         self.assertIn('camera_muted = quiet;', module)
         self.assertEqual(module.count('if (chimes) chime();'), 2, 'a ring and a ring again while it shows')
         door = (ROOT / 'components/smart_display/doorbell_door.h').read_text()
@@ -268,6 +269,7 @@ class Screen:
 class TheManager(unittest.TestCase):
     def manager(self, screens):
         manager = Manager.__new__(Manager)
+        manager.talks = talk_bridge.Links(None)
         manager.ha = type('HA', (), {})()
         manager.ha.states = {'camera.front_door': {'state': 'idle', 'attributes': {'friendly_name': 'Front door'}}}
         manager.ha.changed = asyncio.Event()

@@ -56,6 +56,7 @@
 #include "live_spots.h"
 #include "pressure.h"
 #include "live_view.h"
+#include "talk_uplink.h"
 #include "hw.h"
 #include "boot_trial.h"
 #include "kept_pages.h"

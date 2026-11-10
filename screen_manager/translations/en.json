@@ -207,7 +207,12 @@
       "door_confirm": "Tap again to open",
       "door_sent": "Sent",
       "talk": "Talk",
-      "coming_soon": "Coming soon"
+      "tap_talk": "Tap to talk",
+      "talking": "Talking",
+      "tap_stop": "Tap to stop",
+      "connecting": "Connecting",
+      "talk_busy": "Someone else is talking",
+      "talk_failed": "No connection"
     },
     "tile": {
       "tap_to_open": "Tap to open",

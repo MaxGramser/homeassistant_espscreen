@@ -205,8 +205,7 @@
       "door": "Ajtó",
       "door_confirm": "Koppints újra a nyitáshoz",
       "door_sent": "Elküldve",
-      "talk": "Beszéd",
-      "coming_soon": "Hamarosan"
+      "talk": "Beszéd"
     },
     "tile": {
       "tap_to_open": "Megnyitás",

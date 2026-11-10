@@ -82,9 +82,10 @@ class Links:
         return (304, None, tag, kind) if etag == tag and link.revalidate else (200, body, tag, kind)
 
 
-def web_app(links, stream=None):
+def web_app(links, stream=None, talks=None):
     """The camera port: GET /camera/<token>.bmp or .jpg, and /camera/<token>.mjpeg for a stream (live_stream), or .jpg
-    on a stream's token for its pictures one an ask, open to the LAN like the screens are."""
+    on a stream's token for its pictures one an ask, and POST /camera/<token>/talk for a screen's voice (talk_bridge), open
+    to the LAN like the screens are."""
     from aiohttp import web
 
     async def image(request):
@@ -106,6 +107,10 @@ def web_app(links, stream=None):
         async def streamed(request):
             return await stream.serve(request, request.match_info['token'])
         app.router.add_get(r'/camera/{token:[A-Za-z0-9_-]{16,64}}.mjpeg', streamed)
+    if talks is not None:
+        async def talked(request):
+            return await talks.serve(request, request.match_info['token'])
+        app.router.add_post(r'/camera/{token:[A-Za-z0-9_-]{16,64}}/talk', talked)
     return app
 
 

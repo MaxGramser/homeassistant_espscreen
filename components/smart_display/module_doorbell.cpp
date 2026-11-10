@@ -5,8 +5,8 @@
 // The view: the doorbell's disc where the back key stands, its name and how long ago it rang beside it, the close key at
 // the right; the picture in the room under that bar, beside the keys on glass lying down and above them on glass that is
 // square or stands up. The keys: Door when the ring has one (doorbell_door.h: two taps open its lock or its action, which
-// ESP Screens performs), Talk where the screen has a microphone (not yet, grey: PLATFORM_PLAN.md 5) and Sound where it
-// has a speaker (hw::caps); one above the other beside the picture, or side by side under it. Nothing of LVGL lies over that room: a live picture is written to the glass past LVGL
+// ESP Screens performs), Talk where the screen has a microphone and Home Assistant has two-way audio for the camera (the
+// op's `tk`, talk_uplink.h: a tap turns it on, a tap off) and Sound where it has a speaker (hw::caps); one above the other beside the picture, or side by side under it. Nothing of LVGL lies over that room: a live picture is written to the glass past LVGL
 // (live_view.h), so a key over it would be painted over 15 times a second.
 //
 // A ring stays open while someone looks: the first touch says "answered" (ESP Screens then closes it on the other screens),
@@ -27,6 +27,7 @@
 #include "hw.h"
 #include "plugin_host.h"
 #include "settings_screen.h"
+#include "talk_uplink.h"
 #ifdef USE_SPEAKER
 #include "plugin_sound.h"
 #include "roomy.h"
@@ -47,6 +48,10 @@ constexpr uint32_t ANSWERED_MS = 300000;
 uint32_t untouched_ms = 60000;
 // The ring around the disc while it rings.
 constexpr uint32_t RINGING_MS = 15000;
+// Talk turns itself off after a minute without a voice, and a key that could not connect says so for a moment.
+constexpr uint32_t TALK_SILENT_MS = 60000, TALK_SAID_MS = 3000;
+// The ring's claim on speaker and microphone, for as long as the ring is up (audio_owner.h).
+constexpr uint32_t CLAIM_ID = 77;
 
 struct Ring {
   std::string camera, name, key;
@@ -55,6 +60,7 @@ struct Ring {
   std::string door_state;
   bool quiet = false;  // its view opens with Sound off (the automation's `sound: false`)
   std::string link;    // the stream the app made for this screen as the event came (the op's `l`), or empty
+  std::string talk;    // where this screen sends its voice (the op's `tk`), or empty: no Talk key
 };
 Ring now_ring, last_ring;  // the ring on the glass, and the last one this screen showed (the top bar opens it again)
 bool active = false, touched = false, ended = false;
@@ -70,6 +76,14 @@ std::string door_line_said;
 // Where pill() put the door key's word: its left, and its top with a line under it and without one, so a new line
 // moves it up or down and never sideways.
 int door_word_x = 0, door_word_top = 0, door_word_alone = 0;
+// The Talk key (talk_uplink.h), what it shows now, and the voice's bars at its end while it talks.
+constexpr int TALK_BARS = 5;
+lv_obj_t *talk_key = nullptr, *talk_icon = nullptr, *talk_text = nullptr, *talk_line = nullptr, *talk_bars[TALK_BARS] = {};
+lv_timer_t *talk_timer = nullptr;
+talk_uplink::State talk_shown = talk_uplink::State::OFF;
+int talk_bar_h = 0;
+uint32_t talk_said_ms = 0;
+talk_uplink::State talk_said = talk_uplink::State::OFF;
 
 void say(const char *what) {
   ESP_LOGI(TAG, "%s (%s)", what, now_ring.camera.c_str());
@@ -258,6 +272,73 @@ void paint_door(uint32_t now) {
   if (line.empty()) lv_obj_add_flag(door_line, LV_OBJ_FLAG_HIDDEN);
   else lv_obj_remove_flag(door_line, LV_OBJ_FLAG_HIDDEN);
 }
+
+// The Talk key's words and colour for how far the talk is: off is grey with "Tap to talk", a talk on its way or live blue,
+// a talk that could not start says why for a moment and is off.
+void paint_talk(talk_uplink::State state) {
+  if (!talk_key) return;
+  using talk_uplink::State;
+  const uint32_t now = esphome::millis();
+  State show = state;
+  if (show == State::OFF && talk_said != State::OFF && now - talk_said_ms < TALK_SAID_MS) show = talk_said;
+  if (show == talk_shown) return;
+  talk_shown = show;
+  const bool blue = show == State::LIVE || show == State::CONNECTING;
+  lv_obj_set_style_bg_color(talk_key, theme::color(blue ? theme::ACCENT : theme::CAMERA_TRACK), 0);
+  lv_obj_set_style_bg_color(talk_key, theme::color(blue ? theme::ACCENT_PRESSED : theme::KEY_PRESSED), LV_STATE_PRESSED);
+  using screen_text::tr;
+  namespace txt = screen_text::txt;
+  lv_label_set_text(talk_text, tr(show == State::LIVE ? txt::doorbell_talking : txt::doorbell_talk));
+  lv_label_set_text(talk_line, tr(show == State::LIVE ? txt::doorbell_tap_stop
+                                  : show == State::CONNECTING ? txt::doorbell_connecting
+                                  : show == State::BUSY ? txt::doorbell_talk_busy
+                                  : show == State::FAILED ? txt::doorbell_talk_failed
+                                  : txt::doorbell_tap_talk));
+  for (auto *bar : talk_bars) {
+    if (show == State::LIVE) lv_obj_remove_flag(bar, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+// The bars' heights from the voice, a tenth of a second at a time, the middle bar the tallest as on a phone's call.
+void talk_bars_step(lv_timer_t *) {
+  if (!talk_key) return;
+  const float bar = talk_uplink::bar();
+  static const float SHAPE[TALK_BARS] = {0.55f, 0.85f, 1.0f, 0.75f, 0.5f};
+  for (int i = 0; i < TALK_BARS; ++i) {
+    const int high = std::max(ui::px(3), static_cast<int>(talk_bar_h * (0.2f + 0.8f * bar * SHAPE[i])));
+    if (lv_obj_get_height(talk_bars[i]) != high) lv_obj_set_height(talk_bars[i], high);
+  }
+}
+
+void talk_stop_timer() {
+  if (talk_timer) lv_timer_delete(talk_timer);
+  talk_timer = nullptr;
+}
+
+// A tap on Talk: on, or off.
+void talk_tap() {
+  using talk_uplink::State;
+  const State state = talk_uplink::state();
+  if (state == State::LIVE || state == State::CONNECTING) {
+    talk_uplink::stop();
+    talk_stop_timer();
+    talk_said = State::OFF;
+    paint_talk(State::OFF);
+    return;
+  }
+  talk_said = State::OFF;
+  if (!now_ring.talk.empty() && talk_uplink::start(now_ring.talk)) {
+    paint_talk(State::CONNECTING);
+    if (!talk_timer) talk_timer = lv_timer_create(talk_bars_step, 100, nullptr);
+  }
+}
+
+void talk_off() {
+  talk_uplink::stop();
+  talk_stop_timer();
+  talk_said = talk_uplink::State::OFF;
+}
 }  // namespace
 
 void bind_speaker(esphome::speaker::Speaker *s) {
@@ -268,6 +349,8 @@ void bind_speaker(esphome::speaker::Speaker *s) {
   (void) s;
 #endif
 }
+
+void talk_toggle() { if (active && talk_key) talk_tap(); }
 
 bool shown() { return active; }
 bool holds() { return active && camera_root != nullptr; }
@@ -330,7 +413,8 @@ void build(lv_obj_t *root, const std::string &name) {
   });
   // The keys: Door when the ring has one, Talk where the screen hears (not yet), Sound where it plays; a key it cannot
   // use is not there at all.
-  const bool has_door = door.kind != doorbell_door::Kind::NONE, hears = hw::caps().microphone, plays = hw::caps().speaker;
+  const bool has_door = door.kind != doorbell_door::Kind::NONE, plays = hw::caps().speaker,
+             hears = hw::caps().microphone && talk_uplink::available() && !now_ring.talk.empty();
   const int keys = has_door + hears + plays;
   int at = 0;
   if (has_door) {
@@ -352,16 +436,31 @@ void build(lv_obj_t *root, const std::string &name) {
     paint_door(esphome::millis());
   }
   if (hears) {
-    // Talk: the doorbell's own speaker, which Home Assistant does not offer yet (PLATFORM_PLAN.md 5). Grey, and a tap on
-    // it only counts as a touch of the view.
-    lv_obj_t *icon = nullptr, *text = nullptr, *line = nullptr;
-    auto *talk = pill(root, slot(p, at++, keys), icon, text, &line);
-    lv_obj_set_style_bg_color(talk, theme::color(theme::CAMERA_TRACK), 0);
-    lv_obj_remove_flag(talk, LV_OBJ_FLAG_CLICKABLE);
-    lv_label_set_text(icon, MICROPHONE);
-    lv_label_set_text(text, screen_text::tr(screen_text::txt::doorbell_talk));
-    lv_label_set_text(line, screen_text::tr(screen_text::txt::doorbell_coming_soon));
-    for (auto *part : {icon, text, line}) lv_obj_set_style_text_color(part, theme::color(theme::CAMERA_NOTE), 0);
+    // Talk: a tap turns it on, a tap off (a held finger would cover the key, and a wall screen is tiring to hold). Blue
+    // while it talks, with the level of one's own voice at its end, as the render shows (docs/DOORBELL.md, "Talk").
+    const auto at_key = slot(p, at++, keys);
+    talk_key = pill(root, at_key, talk_icon, talk_text, &talk_line);
+    lv_label_set_text(talk_icon, MICROPHONE);
+    talk_shown = talk_uplink::State::CONNECTING;  // anything else than OFF, so the first paint paints
+    talk_said = talk_uplink::State::OFF;
+    // The bars at the key's end: each a small pill, thin as a tenth of the key's height.
+    const int thin = std::max(2, at_key.h / 18), step = thin * 2;
+    talk_bar_h = at_key.h * 44 / 100;
+    const int right = at_key.h * 42 / 100;
+    for (int i = 0; i < TALK_BARS; ++i) {
+      auto *bar = lv_obj_create(talk_key);
+      lv_obj_remove_style_all(bar);
+      lv_obj_remove_flag(bar, LV_OBJ_FLAG_CLICKABLE);
+      lv_obj_set_size(bar, thin, talk_bar_h / 2);
+      lv_obj_set_style_radius(bar, LV_RADIUS_CIRCLE, 0);
+      lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, 0);
+      lv_obj_set_style_bg_color(bar, theme::color(theme::ON_ACCENT), 0);
+      lv_obj_align(bar, LV_ALIGN_RIGHT_MID, -(right + (TALK_BARS - 1 - i) * step), 0);
+      lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
+      talk_bars[i] = bar;
+    }
+    lv_obj_add_event_cb(talk_key, [](lv_event_t *) { touch(); talk_tap(); }, LV_EVENT_SHORT_CLICKED, nullptr);
+    paint_talk(talk_uplink::State::OFF);
   }
   if (plays) {
     // Sound, on at a ring unless its automation says it opens quiet: a tap turns it on or off, as the sound key of the
@@ -408,6 +507,10 @@ void closing() {
   if (!active) return;
   if (!ended) { ended = true; say("closed"); }
   active = false;
+  talk_off();
+  audio_owner::the().release(audio_owner::Side::BOTH, audio_owner::Role::DOORBELL, CLAIM_ID);
+  talk_key = talk_icon = talk_text = talk_line = nullptr;
+  for (auto *&bar : talk_bars) bar = nullptr;
   disc = halo = note = sound_key = sound_icon = sound_text = nullptr;  // they go with the view
   door_key = door_icon = door_text = door_line = nullptr;
   room = {};
@@ -419,6 +522,21 @@ void tick(uint32_t now) {
 #endif
   if (!active || !camera_root) return;
   paint_door(now);  // the end of a "tap again", of "Sent", of the wait for the lock's new state
+  if (talk_key) {
+    using talk_uplink::State;
+    const State state = talk_uplink::state();
+    // A talk that failed says why for a moment; a minute without a voice turns it off, as a key forgotten on.
+    if ((state == State::BUSY || state == State::FAILED) && talk_said != state) {
+      talk_said = state;
+      talk_said_ms = now;
+      talk_stop_timer();
+    }
+    if (state == State::LIVE && now - talk_uplink::voice_at() > TALK_SILENT_MS) {
+      ESP_LOGI(TAG, "talk: a minute without a voice");
+      talk_tap();
+    }
+    paint_talk(state == State::BUSY || state == State::FAILED ? State::OFF : state);
+  }
   // How long ago it rang, in the top bar's words ("Just now", "2 min ago"), from the app's moment.
   if (note) {
     // A screen's clock a few seconds behind Home Assistant's never says the ring is still to come.
@@ -443,6 +561,15 @@ void tick(uint32_t now) {
   }
 }
 
+// The ring takes the speaker and the microphone for as long as it is up: the wake word rests, music stays paused, and
+// nothing takes them from it; closing() gives them back (audio_owner.h, PLATFORM_PLAN.md 3.4).
+void claim_ring() {
+  audio_owner::Claim claim;
+  claim.role = audio_owner::Role::DOORBELL;
+  claim.id = CLAIM_ID;
+  audio_owner::the().claim(audio_owner::Side::BOTH, claim);
+}
+
 // The door of a ring onto the key: what it is and its lock's state, waiting for nothing.
 void take_door(const Ring &r) {
   door = doorbell_door::Door{};
@@ -451,7 +578,8 @@ void take_door(const Ring &r) {
 }
 
 void ring(const std::string &camera_entity, const std::string &name, const std::string &key, uint32_t rang, uint32_t untouched_s,
-          unsigned door_kind, const std::string &door_state_now, bool quiet, bool chimes, const std::string &link) {
+          unsigned door_kind, const std::string &door_state_now, bool quiet, bool chimes, const std::string &link,
+          const std::string &talk) {
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;
@@ -463,6 +591,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
     now_ring.rang = rang;
     now_ring.door = door_kind;
     now_ring.door_state = door_state_now;
+    now_ring.talk = talk;
     door.set_state(door_state_now);
     last_ring = now_ring;
     ended = false;
@@ -475,8 +604,9 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   settings_screen::close();
   camera_close();
   camera_muted = quiet;  // a ring is to be heard, unless its automation says the screen stands somewhere quiet
-  now_ring = last_ring = Ring{camera_entity, name, key, rang, door_kind, door_state_now, quiet, link};
+  now_ring = last_ring = Ring{camera_entity, name, key, rang, door_kind, door_state_now, quiet, link, talk};
   take_door(now_ring);
+  claim_ring();
   active = true;
   touched = ended = false;
   touch_ms = 0;
@@ -510,8 +640,10 @@ void reopen() {
   camera_close();
   now_ring = last_ring;
   now_ring.link.clear();  // minutes later its stream may be gone: the view asks for one
+  now_ring.talk.clear();  // and nobody is at the door to talk to; a new ring brings a new link
   take_door(now_ring);
   camera_muted = now_ring.quiet;
+  claim_ring();
   active = true;
   touched = true;
   ended = false;

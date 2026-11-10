@@ -29,6 +29,7 @@ import picture_service
 import picture_sources
 import camera_source
 import live_stream
+import talk_bridge
 import claude_skill
 import screen_video
 import screen_hang
@@ -1137,6 +1138,8 @@ class Manager:
                                                    picture=lambda entity: self.ha.media_picture(self.followed(entity)))
         self.alert_cameras = {}
         # A camera live on a P4 (live_stream.py): its links and the sources behind them, on the camera port.
+        # A screen's voice to a doorbell's speaker, through Home Assistant's two-way audio (talk_bridge, docs/DOORBELL.md).
+        self.talks = talk_bridge.Links(lambda: self.ha.websocket(), sink=os.environ.get('SCREEN_TALK_SINK'))
         self.live = live_stream.LiveFeed(lambda entity: self.ha.camera_image(entity), lambda: self.ha.websocket(),
                                        lambda entity: self.ha.camera_streams(entity), live_tiles=self.live_tiles_of,
                                        screen_name=self.name_of)
@@ -4306,6 +4309,26 @@ class Manager:
         token = self.live.link(camera, None, sound=sound, screen=screen['id'], turn=self.picture_turn_of(screen['id']))
         return f'{base}/camera/{token}.mjpeg'
 
+    async def doorbell_talk(self, screen, camera):
+        """The Talk link of `camera` for the ring's view on `screen`, or None when the view has no Talk key: a screen without
+        a microphone, a camera Home Assistant offers no two-way audio for (camera/capabilities, Settings > Labs, 2026.11 and
+        later; docs/DOORBELL.md), or no address for this app on its network."""
+        talks = self.talks.sink is not None or await self.camera_talks(camera)  # the bench's stand-in talks to any camera
+        if not (self.caps_of_screen(screen) or {}).get('microphone') or not talks:
+            return None
+        base = await self.link_base(screen)
+        return f'{base}/camera/{self.talks.link(camera, screen=screen["id"])}/talk' if base else None
+
+    async def camera_talks(self, camera):
+        """Whether Home Assistant offers two-way audio for `camera`; False on an older Home Assistant, whose camera/capabilities
+        has no such key, and when it does not answer."""
+        try:
+            found = await self.ha.request('camera/capabilities', entity_id=camera)
+        except Exception as err:  # noqa: BLE001 - a Home Assistant without it: no Talk key
+            LOG.debug('camera/capabilities for %s: %s', camera, err)
+            return False
+        return bool(isinstance(found, dict) and found.get('two_way_audio'))
+
     async def doorbell_show(self, data):
         """esp_screens_doorbell (docs/DOORBELL.md): the doorbell's camera on the screens the event names, every screen
         without a name. A screen that draws a doorbell opens the camera live with its sound and a chime; any other gets
@@ -4341,11 +4364,13 @@ class Manager:
                                    door, [screen.get('node') for screen in views if screen.get('node')], sound, chime, keep)
         links = dict(zip((screen['id'] for screen in views),
                          await asyncio.gather(*(self.doorbell_link(screen, camera) for screen in views))))
+        talks = dict(zip((screen['id'] for screen in views),
+                         await asyncio.gather(*(self.doorbell_talk(screen, camera) for screen in views))))
         if any(links.values()):
             self.live.warm(camera)  # its first picture on its way before the first screen opens its link
         state = self.doorbell_lock_state(door)
-        sent = await self.doorbell_send(views, lambda screen: self.doorbells.message(key, door_state=state,
-                                                                                  link=links.get(screen['id']))) if views else 0
+        sent = await self.doorbell_send(views, lambda screen: self.doorbells.message(key, door_state=state, link=links.get(screen['id']),
+                                                                                  talk=talks.get(screen['id']))) if views else 0
         if door and door.get('lock') and views:
             asyncio.ensure_future(self.doorbell_follow_lock(key))
         alerts = {'sent': 0, 'skipped': 0, 'failed': 0}
@@ -6031,7 +6056,7 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live), access_log=None)
+        cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live, manager.talks), access_log=None)
         await cameras.setup()
         try:
             await web.TCPSite(cameras, '0.0.0.0', picture_links.port()).start()

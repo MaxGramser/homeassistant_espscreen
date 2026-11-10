@@ -205,8 +205,7 @@
       "door": "Porta",
       "door_confirm": "Toque de novo para abrir",
       "door_sent": "Enviado",
-      "talk": "Falar",
-      "coming_soon": "Em breve"
+      "talk": "Falar"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",

@@ -207,7 +207,12 @@
       "door_confirm": "Tik nog eens om te openen",
       "door_sent": "Verstuurd",
       "talk": "Spreken",
-      "coming_soon": "Binnenkort"
+      "tap_talk": "Tik om te praten",
+      "talking": "In gesprek",
+      "tap_stop": "Tik om te stoppen",
+      "connecting": "Verbinden",
+      "talk_busy": "Iemand anders praat",
+      "talk_failed": "Geen verbinding"
     },
     "tile": {
       "tap_to_open": "Tik om te openen",
