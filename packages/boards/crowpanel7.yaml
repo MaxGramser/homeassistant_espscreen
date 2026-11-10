@@ -1,0 +1,154 @@
+# ESP Screens - Elecrow CrowPanel ESP32 HMI 7.0 inch (DIS08070H, hardware V3.0), EXPERIMENTAL. Sold as the
+# "CrowPanel ESP32 HMI Display7.0-inch": an ESP32-S3-WROOM-1-N4R8 with4 MB of flash and8 MB of octal PSRAM,
+# an800 x480 TN RGB panel (EK9716BD3 + EK73002ACGB), GT911 capacitive touch on the shared I2C bus, a PCA9557
+# I/O expander at0x18 whose IO0 carries the touch's reset line, a CH340 on UART0 behind its one USB port, and
+# the backlight on GPIO2. No physical acceptance by the project yet.
+#
+# The panel's pins, porches and colour order are those of the configuration run on this glass (the Elecrow
+# example and the devices.esphome.io device page for it: mipi_rgb model RPI with the board's own data pins and
+# timings), not one of ESPHome's named models for this panel.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# like this one is added. Two entry files include this one: checkout/crowpanel7.yaml (a build on this computer)
+# and packages/crowpanel7.yaml (the package a screen builds from over GitHub).
+esphome:
+  # As on the CYD, the other4 MB board: on the add-on's ESPHome the firmware fits its slot with room to spare,
+  # and a board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+packages:
+  # The chip and its memory for an RGB panel, as on the other ESP32-S3 boards with one.
+  hardware: !include ../hardware/esp32s3-rgb.yaml
+  # Wide update slots for4 MB of flash, and the way a screen that is out there gets them.
+  flash: !include ../hardware/flash-4mb.yaml
+  # Every size of the compact look, scaled to DISPLAY_DPI below. Every board with4 MB of flash has this look:
+  # its fonts are the smaller set at2 bits a pixel for the icons, and with them the firmware fits this board's
+  # update slot (the standard look's fonts put it over by about300 KB).
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  # No camera feature: its picture fetching and decoding do not fit this board's update slot alongside the
+  # standard sizes, and the board has no camera of its own.
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "crowpanel7"
+  DEVICE_NAME: "crowpanel7-new"
+  DEVICE_FRIENDLY_NAME: "My CrowPanel"
+
+  # The glass: the panel's own pixels and its density,933 diagonal pixels over7.0 inches.
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "133.279"
+  # The tile grid: columns and rows of cells lying down, and standing up. Four columns, five rows: the cells must
+  # stay under twice the compact look's cell height (ui::cell_height,99 px at this density) or the renderer stacks
+  # each card's icon above its name, which the self test's geometry check then fails; four rows is exactly at that
+  # line and three rows is well over it. Five rows also lands the tiles at the16 mm the grid proposal asks for.
+  # The standing grid's seven rows stack the same way, so it is eight.
+  GRID_COLS: "4"
+  GRID_ROWS: "5"
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "8"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the64 and eight of a board without PSRAM (firmware0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # The bedside clock takes the display step, never digits of its own: on4 MB of flash digits a page tall cost
+  # tens of KB, and every board with this flash does the same (looks/shared/digits.yaml).
+  BEDSIDE_OWN_DIGITS: "0"
+  # The flip clock's digits smaller than the size its block gives on this glass (162 px): at that size their
+  # bitmaps alone are about47 KB, which puts this board's firmware past its update slot (tools/check.sh,
+  # Flash budget). The block and the card keep their size; only the digits in them shrink.
+  FONT_DISPLAY_SIZE: "110"
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  # The N4R8 module has4 MB; a16 MB build stops at every start ("Detected size(8192k) smaller than the size in
+  # the binary image header").
+  flash_size: 4MB
+
+logger:
+  tx_buffer_size: 2048
+  # The one USB port goes through a CH340 chip, not the chip's own USB, so the log goes out over UART0.
+  hardware_uart: UART0
+
+# The GT911 and the PCA9557 share the board's I2C bus; no scan, as a scan at start is reported to upset the
+# touch on this board (devices.esphome.io PR1494).
+i2c:
+  id: touch_bus
+  sda: GPIO19
+  scl: GPIO20
+  scan: false
+
+# The V3.0 board's touch timing control (Elecrow's wiki for it: "Version3.0 adds touch timing control based on
+# Version2.0"): the PCA9557 (register-compatible with the PCA9554 driver here) carries the GT911's reset line on
+# IO0. Its own setup runs at priority IO, after the bus and before the touch, and the GT911 driver below performs
+# the reset and address latch through reset_pin inside touch setup, which is where this board needs it. A board
+# file may not have an esphome: on_boot: of its own (tools/check_packages.py).
+pca9554:
+  id: touch_expander
+  i2c_id: touch_bus
+  address: 0x18
+
+# The GT911 is polled; its reset line is the expander's IO0 (the board's own wiring), and it reports pixels of
+# the panel. No calibration block: on this board a calibration section turns a working probe into
+# "Communication failed" (esphome/esphome#13307), and the panel reports its own pixel range.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 50ms
+    reset_pin:
+      pca9554: touch_expander
+      number: 0
+
+output:
+  # GPIO2 switches the backlight's LED driver; its level is a PWM at1220 Hz, the frequency the configuration run
+  # on this glass used (about1.2 kHz keeps this board's driver out of the audible range and dims evenly).
+  - platform: ledc
+    pin: GPIO2
+    id: gpio_backlight_pwm
+    frequency: 1220Hz
+    min_power: 0.01
+    zero_means_zero: true
+
+# The panel is driven over its16-bit RGB parallel bus with the timings of Elecrow's own example for it (the
+# devices.esphome.io device page for DIS08070H carries the same values, compile- and flash-tested on three
+# units):15 MHz pixel clock, the porches below, and the board's data pins. PCLK is GPIO0, the boot strap pin,
+# so a refresh glitch while flashing is normal.
+display:
+  - platform: mipi_rgb
+    model: RPI
+    id: my_display
+    invert_colors: true
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    de_pin: 41
+    hsync_pin: 39
+    vsync_pin: 40
+    pclk_pin: 0
+    pclk_frequency: 15MHz
+    pclk_inverted: true
+    hsync_front_porch: 40
+    hsync_pulse_width: 48
+    hsync_back_porch: 13
+    vsync_front_porch: 1
+    vsync_pulse_width: 31
+    vsync_back_porch: 13
+    data_pins:
+      red: [14, 21, 47, 48, 45]
+      green: [9, 46, 3, 8, 16, 1]
+      blue: [15, 7, 6, 5, 4]
+    color_order: RGB
+    auto_clear_enabled: false
+    update_interval: never

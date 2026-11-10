@@ -1,5 +1,9 @@
 ## Unreleased
 
+- **The Elecrow CrowPanel ESP32 HMI7 inch (DIS08070H).** The800 x480 ESP32-S3 panel joins New screen as
+  experimental. It has4 MB of flash, so it takes the compact look every board with that flash has, and its GT911
+  touch is reset through the PCA9557 expander the V3.0 boards carry. It starts with four columns of five tiles
+  lying down and two of eight standing up.
 - **Add your own icons to a screen.** Screen settings has a new Icons page where you add up to 151 icons to a screen, from all 7,430 Material Design icons, on top of the ones every screen carries. It can add the icons your Home Assistant entities already use, and it can put one list on all your screens at once. Icons are part of the firmware, so the page says what waits for a build and builds it for you. A screen with 4 MB of flash, like the CYD, stays as it is.
 - **The library finds what you mean and shows everything.** A search now takes each word on its own, in any order, so "kitchen lamp" finds a lamp called Ceiling in the Kitchen, and "bedroom temperature" finds a sensor by what it measures, whatever it is called. Accents and underscores no longer matter. All really is all: the list used to stop at 80 rows and now goes on as you scroll, with the right number beside each room. Cameras have their own filter, and when a filter hides what you searched for, the library says so and offers to show it.
 - **A map shows on large screens with a slower Home Assistant.** On a reTerminal D1001 a map often stayed a plain tile and its full view said "No image from this camera". The app drew the map, and drew it again when the screen came to fetch it, and a screen gives up when a picture's first bytes take more than four seconds. Now it is drawn once and comes at once (GitHub #390).

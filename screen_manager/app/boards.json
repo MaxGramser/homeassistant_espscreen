@@ -137,6 +137,98 @@
   "wide_slots": false,
   "width": 1024
  },
+ "checkout/crowpanel7.yaml": {
+  "alert": {
+   "line": 15,
+   "title_line": 20
+  },
+  "battery": false,
+  "board": "crowpanel7",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "DIS08070H",
+   "name": "CrowPanel",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "features": [],
+  "firmware": "0.60.0",
+  "fonts": {
+   "headline": 17,
+   "icon": 26,
+   "icon_home": 23,
+   "icon_mini": 17,
+   "label": 10,
+   "setpoint": 37,
+   "sublabel": 10,
+   "sublabel_big": 13,
+   "watch_icon": 11,
+   "watch_value": 21
+  },
+  "height": 480,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 4,
+    "height": 480,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 800,
+    "max": [
+     5,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 8,
+    "width": 480
+   }
+  },
+  "own_icons": false,
+  "rows": 5,
+  "spacing": {
+   "circle": 34,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 8,
+   "page_bar": 34,
+   "radius": 17,
+   "tile_pad": 7,
+   "top": 34
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 800
+ },
  "checkout/cyd.yaml": {
   "alert": {
    "line": 16,
@@ -4111,6 +4203,98 @@
   "wide_slots": false,
   "width": 1024
  },
+ "crowpanel7": {
+  "alert": {
+   "line": 15,
+   "title_line": 20
+  },
+  "battery": false,
+  "board": "crowpanel7",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "DIS08070H",
+   "name": "CrowPanel",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "features": [],
+  "firmware": "0.60.0",
+  "fonts": {
+   "headline": 17,
+   "icon": 26,
+   "icon_home": 23,
+   "icon_mini": 17,
+   "label": 10,
+   "setpoint": 37,
+   "sublabel": 10,
+   "sublabel_big": 13,
+   "watch_icon": 11,
+   "watch_value": 21
+  },
+  "height": 480,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 4,
+    "height": 480,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 800,
+    "max": [
+     5,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 8,
+    "width": 480
+   }
+  },
+  "own_icons": false,
+  "rows": 5,
+  "spacing": {
+   "circle": 34,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 8,
+   "page_bar": 34,
+   "radius": 17,
+   "tile_pad": 7,
+   "top": 34
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 800
+ },
  "cyd": {
   "alert": {
    "line": 16,
@@ -5860,6 +6044,98 @@
   "tier": "full",
   "wide_slots": false,
   "width": 1024
+ },
+ "packages/crowpanel7.yaml": {
+  "alert": {
+   "line": 15,
+   "title_line": 20
+  },
+  "battery": false,
+  "board": "crowpanel7",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 7.0,
+   "model": "DIS08070H",
+   "name": "CrowPanel",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 4,
+  "dimmable": true,
+  "dpi": 133,
+  "features": [],
+  "firmware": "0.60.0",
+  "fonts": {
+   "headline": 17,
+   "icon": 26,
+   "icon_home": 23,
+   "icon_mini": 17,
+   "label": 10,
+   "setpoint": 37,
+   "sublabel": 10,
+   "sublabel_big": 13,
+   "watch_icon": 11,
+   "watch_value": 21
+  },
+  "height": 480,
+  "hotspot": false,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [],
+  "orientations": {
+   "landscape": {
+    "columns": 4,
+    "height": 480,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   },
+   "portrait": {
+    "columns": 2,
+    "height": 800,
+    "max": [
+     5,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 8,
+    "width": 480
+   }
+  },
+  "own_icons": false,
+  "rows": 5,
+  "spacing": {
+   "circle": 34,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 8,
+   "page_bar": 34,
+   "radius": 17,
+   "tile_pad": 7,
+   "top": 34
+  },
+  "tier": "lite",
+  "wide_slots": true,
+  "width": 800
  },
  "packages/cyd.yaml": {
   "alert": {

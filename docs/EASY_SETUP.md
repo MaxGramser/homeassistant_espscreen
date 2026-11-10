@@ -41,6 +41,7 @@ ESPHome Device Builder is optional:
 | Waveshare P4, 4 inch (experimental) | ESP32-P4-86-Panel-ETH-2RO, 720×720, ST7703 MIPI-DSI and GT911, ESP32-P4 ([details](WAVESHAREP4.md)) |
 | Guition, 4.3 inch (experimental) | JC4880P443, 480×800, ST7701 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](JC4880P443.md)) |
 | CrowPanel, 10.1 inch (experimental) | Elecrow CrowPanel Advanced 10.1 ESP32-P4 (DHE04310D, V1.1 or V1.2), 1024×600, EK79007 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](CROWPANEL101.md)) |
+| CrowPanel, 7.0 inch (experimental) | Elecrow CrowPanel ESP32 HMI 7.0 (DIS08070H, hardware V3.0), 800×480, EK9716BD3 RGB and GT911, ESP32-S3 ([details](CROWPANEL7.md)) |
 | M5Stack Tab5, 5 inch (new) | Tab5, 1280×720, ST7121 or ST7123 MIPI-DSI and touch (New screen asks which), ESP32-P4 ([details](TAB5.md)) |
 
 Other screens with roughly the same name can have different pins. Use
@@ -229,7 +230,8 @@ colored icons, a room filter, and **Hide placed**. You can add one tile for ever
 48 on a CYD, a 4-inch Guition or the experimental Waveshare 4B and Waveshare P4 (firmware 0.2.62+; see below for older firmware).
 The screen preview shows their placement on the screen's own grid, lying down: two columns of three on a CYD, a 4-inch Guition,
 the Waveshare 4B, the Waveshare P4 or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch and 5-inch,
-four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, and five by five on the
+four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, four by five on the
+[experimental CrowPanel 7-inch](CROWPANEL7.md), and five by five on the
 10.1-inch Guition, either way up (firmware 0.18.0; five by four before, and a saved layout moves on by itself); up to
 eight pages and 64 tiles, or more on a board with PSRAM ([TILE_MEMORY.md](TILE_MEMORY.md)). That grid is where a screen
 starts: **Grid**, beside the pages, gives it other columns and rows, and on glass that is not square stands it up or lays it
