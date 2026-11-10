@@ -15,6 +15,7 @@
 #include "capture_dot.h"
 #include "camera_turn.h"
 #include "glass.h"
+#include "overlay_dim.h"
 #include "pressure.h"
 #include "live_view.h"
 #include <algorithm>
@@ -1121,6 +1122,7 @@ static void popup_destroy(OpenPopup *open) {
   ++popup_calling;     // its destructor is a call into it too
   open->popup.reset();
   --popup_calling;
+  if (open->scrim && open->card) overlay_dim::hide(open->scrim, open->card);
   if (open->scrim) lv_obj_delete(open->scrim);  // the card, its room and the popup's parts are the scrim's children
   delete open;
 }
@@ -1159,7 +1161,7 @@ static void popup_end(bool dismissed, const char *why) {
   if (dismissed && !popup_call(open, [](tessera::Popup &p) { p.on_dismiss(); })) return;
   popup_open = nullptr;
   if (!popup_calling) return popup_destroy(open);
-  lv_obj_add_flag(open->scrim, LV_OBJ_FLAG_HIDDEN);
+  overlay_dim::hide(open->scrim, open->card);
   popup_retired.push_back(open);
 }
 
@@ -1213,6 +1215,8 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
   open->dark = theme::dark;
   const bool large = ::ui::large();
   open->scrim = lv_obj_create(lv_layer_top());
+  // Hidden until the popup has made its parts, so LVGL draws no dim over the whole glass: overlay_dim::show lays it.
+  lv_obj_add_flag(open->scrim, LV_OBJ_FLAG_HIDDEN);
   lv_obj_remove_style_all(open->scrim);
   lv_obj_set_size(open->scrim, lv_pct(100), lv_pct(100));
   lv_obj_remove_flag(open->scrim, LV_OBJ_FLAG_SCROLLABLE);
@@ -1284,6 +1288,7 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
   if (!popup_call(open, [&](tessera::Popup &p) { p.open(context); })) return true;
   // Where the close key stands once the card is as high as what the popup made, for the log (and the render's taps).
   lv_obj_update_layout(open->scrim);
+  overlay_dim::show(open->scrim, open->card);
   lv_area_t key;
   lv_obj_get_coords(open->close, &key);
   ESP_LOGI("plugins", "Popup of %s shows, %dx%d, close key at %d,%d", plugin->plugin_id(), width, height,

@@ -135,6 +135,7 @@ esphome:
     - <esphome/components/smart_display/screen_input.h>
     - <esphome/components/smart_display/light_controls.h>
     - <esphome/components/smart_display/alert_overlay.h>
+    - <esphome/components/smart_display/overlay_dim.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
   name: ${DEVICE_NAME}
@@ -2592,7 +2593,7 @@ script:
           ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
                    alert.button2.empty() ? 1 : 2);
       - script.execute: wake_display
-      - lvgl.widget.show: alert_overlay
+      - lambda: 'overlay_dim::show(id(alert_overlay), id(alert_card));'
       - script.stop: alert_timeout
       - if:
           condition:

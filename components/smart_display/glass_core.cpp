@@ -4,6 +4,7 @@
 // Moved out of glass_dsi.cpp as it was: the lock's reach, the keep-out's rule and the invalidations are unchanged.
 #include "glass.h"
 #if (defined(GLASS_DSI) || defined(GLASS_RGB)) && defined(SCREEN_PICTURES)
+#include <algorithm>
 #include <atomic>
 
 #include "esphome/components/lvgl/lvgl_esphome.h"
@@ -16,6 +17,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <freertos/task.h>
+#if defined(GLASS_DSI)
+#include <esp_cache.h>
+#endif
 
 namespace glass {
 
@@ -325,6 +329,89 @@ void redraw_all() {
   const lv_area_t whole = {0, 0, lv_display_get_horizontal_resolution(display) - 1,
                            lv_display_get_vertical_resolution(display) - 1};
   invalidate(whole);
+}
+
+// ---- A veil, past LVGL (glass.h) ----
+// A P4's panel reads the frame buffer from PSRAM past the cache, so what the CPU wrote is written back. An S3's panel
+// reads it through the cache (glass_rgb.cpp).
+static void written(uint16_t *from, size_t bytes) {
+#if defined(GLASS_DSI)
+  esp_cache_msync(from, bytes, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+#else
+  (void) from;
+  (void) bytes;
+#endif
+}
+bool veilable() {
+  if (!direct() || !frame_buffer() || lvgl->is_paused()) return false;
+  for (auto &s : rooms)
+    if (s.used && s.armed) return false;
+  return true;
+}
+bool veil(const Rect &keep, uint16_t scrim, uint8_t opa, bool on) {
+  const Panel p = panel();
+  auto *fb = static_cast<uint16_t *>(frame_buffer());
+  if (!veilable()) return false;
+  hold();
+  if (!veilable()) {  // a stream armed its room while this waited for the glass
+    release();
+    return false;
+  }
+  const int64_t started = esp_timer_get_time();
+  const Rect k = keep.empty() ? Rect{} : on_panel(keep, turn(), p.w, p.h);
+  const int left = std::min(std::max(k.x, 0), p.w), right = std::min(std::max(k.x + k.w, 0), p.w);
+  const uint8_t mix = veil_mix(opa);
+  // The way back has a division in it: per colour once here, instead of per pixel.
+  uint16_t reds[32] = {}, greens[64] = {}, blues[32] = {};
+  if (!on) {
+    for (int v = 0; v < 32; ++v) {
+      reds[v] = unveiled(static_cast<uint16_t>(v << 11), scrim, mix) & 0xF800;
+      blues[v] = unveiled(static_cast<uint16_t>(v), scrim, mix) & 0x001F;
+    }
+    for (int v = 0; v < 64; ++v) greens[v] = unveiled(static_cast<uint16_t>(v << 5), scrim, mix) & 0x07E0;
+  }
+  const auto one = [&](uint16_t pixel) -> uint16_t {
+    const uint16_t native = p.swapped ? static_cast<uint16_t>(pixel << 8 | pixel >> 8) : pixel;
+    const uint16_t out = on ? veiled(native, scrim, mix) : static_cast<uint16_t>(reds[native >> 11] | greens[(native >> 5) & 63] | blues[native & 31]);
+    return p.swapped ? static_cast<uint16_t>(out << 8 | out >> 8) : out;
+  };
+  // Two pixels at a time: a page is mostly long runs of one colour, so the last sum is asked for again far more often
+  // than not, and the loop is what is left to save beside the memory.
+  uint32_t last_in = ~static_cast<uint32_t>(0), last_out = 0;
+  const auto pass = [&](uint16_t *row, int n) {
+    if (n > 0 && (reinterpret_cast<uintptr_t>(row) & 2)) {
+      *row = one(*row);
+      ++row;
+      --n;
+    }
+    auto *word = reinterpret_cast<uint32_t *>(row);
+    for (int i = 0; i < n / 2; ++i) {
+      const uint32_t pair = word[i];
+      if (pair != last_in) {
+        last_in = pair;
+        last_out = one(static_cast<uint16_t>(pair)) | static_cast<uint32_t>(one(static_cast<uint16_t>(pair >> 16))) << 16;
+      }
+      word[i] = last_out;
+    }
+    if (n & 1) row[n - 1] = one(row[n - 1]);
+  };
+  // The time goes to the memory (36 ms for a frame of 800 x 1280 on a P4, on one core or on two, 2026-11-10), and a
+  // frame lasts 17: spread over the glass the pixels that changed so far read as a dim on its way, and not as an edge.
+  for (int first : {0, 2, 1, 3}) {
+    for (int row = first; row < p.h; row += 4) {
+      uint16_t *line = fb + static_cast<size_t>(row) * p.w;
+      if (!k.empty() && row >= k.y && row < k.y + k.h) {
+        pass(line, left);
+        pass(line + right, p.w - right);
+      } else {
+        pass(line, p.w);
+      }
+    }
+    written(fb, static_cast<size_t>(p.w) * p.h * 2);
+  }
+  release();
+  ESP_LOGI(TAG, "veil %s in %d ms", on ? "on" : "off", static_cast<int>((esp_timer_get_time() - started) / 1000));
+  return true;
 }
 
 }  // namespace glass

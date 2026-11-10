@@ -68,7 +68,7 @@ script:
                 id(last_touch_ms) = millis();
                 runtime_tiles::alert_clear();
                 ESP_LOGI("alert", "dismissed: %s", reason.c_str());
-            - lvgl.widget.hide: alert_overlay
+            - lambda: 'overlay_dim::hide(id(alert_overlay), id(alert_card));'
             - script.stop: alert_timeout
             - script.stop: alert_flash
             - lambda: 'id(set_backlight).execute(screen_settings::current.brightness, 80);'
