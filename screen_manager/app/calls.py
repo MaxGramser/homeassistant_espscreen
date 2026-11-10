@@ -226,6 +226,12 @@ class VoiceSwitch:
         return out
 
 
+def unsupported(tiles, features):
+    """Whether a layout holds the Call tile for a screen whose hello does not name the feature `call`: it is not sent then, and the
+    editor says which firmware it needs. A screen that said nothing yet (`features` None) is not judged here."""
+    return features is not None and FEATURE not in features and any(tile.get('entity') == TILE for tile in tiles)
+
+
 def contacts_messages(rows):
     """The op `contacts` in parts: a message holds at most ROWS_A_MESSAGE rows, so thirty screens fit under the 4096 bytes of
     one message however long their names are (each cut to NAME_MOST)."""

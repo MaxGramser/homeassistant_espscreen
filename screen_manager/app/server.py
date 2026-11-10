@@ -2894,8 +2894,7 @@ class Manager:
         if sender is not None and getattr(sender, 'features', None) is not None and todo_feed.unsupported(layout.get('tiles', []), sender.features):
             return todo_feed.FIRMWARE
         # The Call tile: a screen whose hello names call (module call, a P4 with a microphone and a speaker) draws it.
-        if sender is not None and getattr(sender, 'features', None) is not None and calls.FEATURE not in sender.features and \
-                any(tile.get('entity') == calls.TILE for tile in layout.get('tiles', [])):
+        if sender is not None and calls.unsupported(layout.get('tiles', []), getattr(sender, 'features', None)):
             return calls.FIRMWARE
         return None
 
@@ -4659,14 +4658,17 @@ class Manager:
 
     async def call_loop(self):
         while True:
+            # With no call up nothing runs here but this wait: no pull, no thread, no poll (docs/CALLS.md).
             try:
-                data = await asyncio.wait_for(self.ha.call_events.get(), 1)
+                data = await asyncio.wait_for(self.ha.call_events.get(), 1 if self.calls.calls else None)
             except asyncio.TimeoutError:
                 data = None
             try:
                 if data is not None:
                     await self.call_report(data)
                 now = time.monotonic()
+                if not self.calls.calls:
+                    continue
                 await self.call_send(self.calls.tick(now))
                 online = {node for node, facts in self.call_screens().items() if facts['online']}
                 for call in list(self.calls.calls.values()):
@@ -4874,7 +4876,9 @@ def create_app(manager, development=False):
             screen['vacuum_tile'] = has_module(screen, 'vacuum_card')
             # The template tile (docs/TEXT_TILE.md): only a board with the module text_card draws it.
             screen['text_tiles'] = has_module(screen, text_tile.FEATURE)
-            screen['call_tiles'] = has_module(screen, calls.FEATURE)  # the Call tile, on a board with the module
+            # The Call tile: only a screen that says it can (a build of the full tier without live pictures, a microphone or a
+            # speaker has the module and cannot).
+            screen['call_tiles'] = calls.FEATURE in (getattr(manager.page_senders.get(screen['id']), 'features', None) or ())
             # The to-do card (docs/TODO.md): only a board with the module todo (8 MB of flash or more) has it; the
             # editor offers to-do lists there only.
             screen['todo_lists'] = has_module(screen, todo_feed.MODULE)

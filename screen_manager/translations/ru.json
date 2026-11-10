@@ -1485,7 +1485,13 @@
         "alert_outline": "Предупреждение",
         "cog": "Настройки",
         "broom": "Уборка",
-        "diabetes": "Диабет"
+        "diabetes": "Диабет",
+        "microphone_off": "Microphone off",
+        "phone": "Phone",
+        "phone_hangup": "Hang up",
+        "phone_missed": "Missed call",
+        "video": "Video",
+        "video_off": "Video off"
       }
     },
     "screen": {

@@ -79,6 +79,7 @@ void set_muted(bool muted);
 float bar();
 uint32_t voice_at();
 #else
+template<class Microphone> inline void bind_microphone(Microphone *) {}
 inline bool available() { return false; }
 inline bool start(const std::string &) { return false; }
 inline void stop() {}

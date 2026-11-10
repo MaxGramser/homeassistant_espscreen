@@ -27,6 +27,7 @@ std::function<void(const std::string &, const std::string &, bool, const std::st
 std::function<float()> volume_get;
 std::function<void(float)> volume_set;
 std::function<bool()> ring_on;
+float ring_top = 1.0f;
 
 namespace {
 const char *const TAG = "call";
@@ -34,7 +35,7 @@ const char *const PHONE = "\U000F03F2", *const HANGUP = "\U000F03F5", *const VID
 const char *const MIC = "\U000F036C", *const MIC_OFF = "\U000F036D", *const SPEAKER = "\U000F057E", *const SILENT = "\U000F0581";
 const char *const CLOSE = "\U000F0156", *const MISSED = "\U000F03FA";
 const char *const FAKE_CAMERA = "camera.tessera_call";
-constexpr uint32_t CLAIM_ID = 78, END_SHOWN_MS = 2500, RING_EVERY_MS = 3000;
+constexpr uint32_t CLAIM_ID = 78, END_SHOWN_MS = 2500, RING_EVERY_MS = 3000, RING_GONE_MS = 60000;
 // A key's disc a quarter larger than a tile's circle, on a dark ground (the study's key_d).
 int key_d() { return std::max(ui::touch_min(), detail_bar::metrics().key * 5 / 4); }
 
@@ -42,7 +43,7 @@ enum class Stage : uint8_t { NONE, OUT, RING, LIVE, ENDED };
 Stage stage = Stage::NONE;
 std::string call_key, peer_name, peer_icon, stream_link, talk_link, end_why;
 bool with_video = false, peer_films = true, mic_off = false, camera_off = false, on_hold = false;
-uint32_t live_since = 0, end_at = 0, last_ring = 0;
+uint32_t live_since = 0, end_at = 0, last_ring = 0, ring_since = 0;
 // The call that is not on the camera's view: going out, coming in, how it ended. On the top layer.
 lv_obj_t *card = nullptr, *list = nullptr;
 lv_obj_t *timer_label = nullptr, *mic_key = nullptr, *mic_glyph = nullptr, *speaker_key = nullptr, *speaker_glyph = nullptr,
@@ -63,9 +64,7 @@ void say(const char *action, const std::string &to = "", bool video = false) {
 esphome::speaker::Speaker *speaker_out = nullptr;
 tessera::SoundPlayer player;
 tessera::Sound ring_sound;
-// The DAC's one volume is the media player's: a screen at half volume rang too softly to hear (2026-11-10). It rings at least
-// at this volume, and goes back to its own when the ring ends.
-constexpr float RING_VOLUME = 1.0f;
+// While it rings the speaker's volume stands at the top; ring_stop puts back what it was, from one place.
 float ring_volume_restore = -1.0f;
 roomy::List<int16_t> ring_samples;
 void make_ring() {
@@ -108,6 +107,7 @@ void claim_audio() {
   audio_owner::Claim claim;
   claim.role = audio_owner::Role::CALL;
   claim.id = CLAIM_ID;
+  claim.lost = []() { ring_stop(); };  // a doorbell's ring takes the speaker: this ring's volume goes back at once
   audio_owner::the().claim(audio_owner::Side::BOTH, claim);
 }
 void release_audio() { audio_owner::the().release(audio_owner::Side::BOTH, audio_owner::Role::CALL, CLAIM_ID); }
@@ -514,10 +514,11 @@ void on_call(const std::string &state, const std::string &key, const std::string
     close_list();
     stage = Stage::RING;
     last_ring = 0;
+    ring_since = esphome::millis();
 #ifdef USE_SPEAKER
     if (volume_get && volume_set && ring_volume_restore < 0.0f && (!ring_on || ring_on())) {
       ring_volume_restore = volume_get();
-      if (ring_volume_restore < RING_VOLUME) volume_set(RING_VOLUME);
+      if (ring_volume_restore < ring_top) volume_set(ring_top);
     }
 #endif
     show_ring();
@@ -594,6 +595,15 @@ void tick(uint32_t now) {
 #ifdef USE_SPEAKER
   player.loop();
 #endif
+  // The add-on ends a ring after 45 s; if it went away meanwhile nobody says so, and a ring must not go on by itself.
+  if (stage == Stage::RING && now - ring_since > RING_GONE_MS) {
+    ESP_LOGW(TAG, "the ring was never ended");
+    ring_stop();
+    leave_call();
+    free_card();
+    stage = Stage::NONE;
+    call_key.clear();
+  }
   if (stage == Stage::RING && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
     last_ring = now;
     ring_once();

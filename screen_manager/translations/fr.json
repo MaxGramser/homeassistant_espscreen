@@ -1485,7 +1485,13 @@
         "alert_outline": "Avertissement",
         "cog": "Paramètres",
         "broom": "Ménage",
-        "diabetes": "Diabète"
+        "diabetes": "Diabète",
+        "microphone_off": "Microphone off",
+        "phone": "Phone",
+        "phone_hangup": "Hang up",
+        "phone_missed": "Missed call",
+        "video": "Video",
+        "video_off": "Video off"
       }
     },
     "screen": {

@@ -203,3 +203,18 @@ def test_the_rooms_noise_is_no_voice():
     for n in range(40):
         s.feed('a', tone(200), n * 0.02)
     assert s.talker is None
+
+
+def test_a_screen_without_the_feature_gets_no_call_tile():
+    tiles = [{'entity': 'light.a'}, {'entity': calls.TILE}]
+    assert calls.unsupported(tiles, ['doorbell'])          # a released firmware, or a board without the feature: not sent
+    assert not calls.unsupported(tiles, ['call'])
+    assert not calls.unsupported(tiles, None)              # a screen that said nothing yet
+    assert not calls.unsupported([{'entity': 'light.a'}], ['doorbell'])
+    source = (pathlib.Path(__file__).resolve().parent.parent / 'screen_manager/app/server.py').read_text()
+    assert "screen['call_tiles'] = calls.FEATURE in (getattr(manager.page_senders.get(screen['id']), 'features', None) or ())" in source
+
+
+def test_with_no_call_up_the_app_only_waits():
+    source = (pathlib.Path(__file__).resolve().parent.parent / 'screen_manager/app/server.py').read_text()
+    assert 'asyncio.wait_for(self.ha.call_events.get(), 1 if self.calls.calls else None)' in source
