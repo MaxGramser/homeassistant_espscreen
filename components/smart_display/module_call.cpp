@@ -373,6 +373,9 @@ void fill_list() {
   auto *panel = lv_obj_get_child(list, 0);
   auto *body = lv_obj_get_child(panel, 2);
   lv_obj_clean(body);
+  // Measured only after LVGL has laid the card out: before that it is 0 wide and at the top, and a card sized from that stays empty.
+  lv_obj_update_layout(list);
+  const int body_y = lv_obj_get_y(body);
   const int width = lv_obj_get_content_width(body), row_h = std::max(ui::touch_min() + ui::px(10), key_d() + ui::px(12)), d = key_d();
   int y = 0;
   if (rows.empty()) {
@@ -424,9 +427,10 @@ void fill_list() {
     y += row_h;
   }
   // The card as tall as its rows, up to the glass's own limit; more rows than that scroll.
-  const int pad = lv_obj_get_y(body) - detail_bar::metrics().y, wanted = lv_obj_get_y(body) + y + pad / 2;
-  lv_obj_set_height(panel, std::min(wanted, overlay_card::screen_height() * 86 / 100));
-  lv_obj_set_height(body, lv_obj_get_height(panel) - lv_obj_get_y(body) - pad / 2);
+  const int pad = std::max(0, body_y - detail_bar::metrics().y), panel_h = std::min(body_y + y + pad / 2, overlay_card::screen_height() * 86 / 100);
+  lv_obj_set_height(panel, panel_h);
+  lv_obj_set_height(body, std::max(1, panel_h - body_y - pad / 2));
+  ESP_LOGI(TAG, "the list: %u rows, card %d high", (unsigned) rows.size(), panel_h);
   lv_obj_center(panel);
 }
 }  // namespace
@@ -470,8 +474,8 @@ void open_list() {
   lv_obj_add_flag(body, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_scroll_dir(body, LV_DIR_VER);
   lv_obj_set_scrollbar_mode(body, LV_SCROLLBAR_MODE_ACTIVE);
+  rows.clear();  // what the list held the last time is not drawn: the answer comes within a moment
   say("list");
-  if (!rows.empty()) fill_list();
 }
 
 void on_contacts(const std::string &text_rows, bool append, bool more) {
