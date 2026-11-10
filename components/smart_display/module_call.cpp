@@ -375,6 +375,17 @@ void fill_list() {
   lv_obj_clean(body);
   const int width = lv_obj_get_content_width(body), row_h = std::max(ui::touch_min() + ui::px(10), key_d() + ui::px(12)), d = key_d();
   int y = 0;
+  if (rows.empty()) {
+    // No other screen can be called: the card says so, it never stands empty.
+    auto *none = lv_label_create(body);
+    if (detail_font) lv_obj_set_style_text_font(none, detail_font, 0);
+    lv_obj_set_style_text_color(none, theme::color(theme::OFF), 0);
+    lv_label_set_long_mode(none, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(none, width);
+    lv_label_set_text(none, screen_text::tr(screen_text::txt::call_no_screens));
+    lv_obj_update_layout(none);
+    y = lv_obj_get_height(none) + ui::px(8);
+  }
   for (size_t index = 0; index < rows.size(); ++index) {
     const auto &row = rows[index];
     auto *line = plain(body);

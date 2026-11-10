@@ -689,7 +689,8 @@
       "sound_only": "Beschikbaar, alleen geluid",
       "in_call": "In gesprek",
       "offline": "Offline",
-      "missed_at": "Gemist gesprek"
+      "missed_at": "Gemist gesprek",
+      "no_screens": "Geen ander scherm om te bellen"
     }
   },
   "addon": {

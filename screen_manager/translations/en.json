@@ -689,7 +689,8 @@
       "sound_only": "Available with sound only",
       "in_call": "In a call",
       "offline": "Offline",
-      "missed_at": "Missed call"
+      "missed_at": "Missed call",
+      "no_screens": "No other screen can be called"
     }
   },
   "addon": {

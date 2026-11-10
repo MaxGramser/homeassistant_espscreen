@@ -6236,6 +6236,17 @@ inline void event(lv_event_t *event) {
         camera_open(card.entity, card.name, (int)w.index);  // its name comes with its state ("Map")
       return;
     }
+#ifdef SD_MOD_CALL
+    // The Call tile: set to one screen a tap calls it, else the list of the house's screens (docs/CALLS.md).
+    if (card.is_call()) {
+      if (code == LV_EVENT_SHORT_CLICKED && card.tap != "none" && allowed(esphome::millis(), TILE_TOUCH + static_cast<int>(w.index), card.entity)) {
+        ESP_LOGI("call", "the tile: %s", card.call_to.empty() ? "the list" : card.call_to.c_str());
+        if (card.call_to.empty()) call::open_list();
+        else call::dial(card.call_to, !card.call_sound_only);
+      }
+      return;
+    }
+#endif
     // The energy card: a circle with a sensor behind it opens that sensor's history (firmware 0.47.0+).
     if (card.is_energy()) {
       lv_point_t at;
@@ -6260,14 +6271,6 @@ inline void event(lv_event_t *event) {
   if (!fresh()) return;
   auto &tile = model.tiles[w.index];
   auto d = tile.domain();
-#ifdef SD_MOD_CALL
-  if (tile.is_call()) {
-    // Set to one screen, a tap calls it; else the list.
-    if (tile.call_to.empty()) call::open_list();
-    else call::dial(tile.call_to, !tile.call_sound_only);
-    return;
-  }
-#endif
   // A tap set to a plugin's tap action (docs/PLUGINS.md): a short tap runs it, through the guard every tap passes; a
   // hold still opens the tile's own card. A screen without that plugin does nothing on the tap.
   if (code == LV_EVENT_SHORT_CLICKED && tile.tap.rfind("plugin:", 0) == 0) {

@@ -514,6 +514,7 @@ constexpr uint16_t call_sound_only = 557;
 constexpr uint16_t call_in_call = 558;
 constexpr uint16_t call_offline = 559;
 constexpr uint16_t call_missed_at = 560;
+constexpr uint16_t call_no_screens = 561;
 constexpr uint16_t date_weekdays = 18;
 constexpr uint16_t date_weekdays_count = 7;
 constexpr uint16_t date_weekdays_short = 25;
@@ -529,6 +530,6 @@ constexpr uint16_t calendar_views_count = 4;
 constexpr uint16_t calendar_view_notes = 521;
 constexpr uint16_t calendar_view_notes_count = 4;
 }  // namespace txt
-constexpr uint16_t KEY_COUNT = 561;
-constexpr uint32_t KEYS_HASH = 0x5F8F47F1u;
+constexpr uint16_t KEY_COUNT = 562;
+constexpr uint32_t KEYS_HASH = 0xCBF6789Cu;
 }  // namespace screen_text
