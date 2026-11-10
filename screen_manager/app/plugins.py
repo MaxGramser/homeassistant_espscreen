@@ -1171,10 +1171,13 @@ class Plugins:
             packages += [f'      - path: {folder}{part}' for part in parts]
             components += ['  - source:', '      type: git', f'      url: {entry.repo}', f'      ref: {entry.ref}',
                            f'      path: {folder}components', '    refresh: never']
-        lines = ['# Written by Tessera. Change plugins in Tessera, not here.']
+        lines = ['# Written by Tessera. Change plugins and icons in Tessera, not here.']
+        fonts = self.manager.icons.font_lines(inbox) if getattr(self.manager, 'icons', None) else []
         if packages:
             lines += ['packages:', *packages, 'external_components:', *components]
-        else:
+        if fonts:
+            lines += fonts
+        if not packages and not fonts:
             lines.append('{}')
         return '\n'.join(lines) + '\n'
 
@@ -1732,8 +1735,8 @@ class Plugins:
         options = tile.get('options') or {}
         wire = {key: deepcopy(options[key]) for key in ('size', 'background', 'tap') if key in options}
         icon = options.get('icon')
-        if icon in tile_icons.ICONS:
-            wire['icon'] = tile_icons.ICONS[icon][0]
+        if tile_icons.carried(icon):
+            wire['icon'] = tile_icons.carried(icon)
         elif kind:
             wire['icon'] = glyph(kind['icon'])
         chosen = self.values_of(entry, kind, options.get('plugin')) if kind else dict(options.get('plugin') or {})

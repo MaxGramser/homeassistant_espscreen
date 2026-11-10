@@ -362,7 +362,7 @@ export type IconInfo = { name: string; cp: string; label: string };
 // build's own, which the line (LineBuild) names with its outcome once it ended. An update that a plugin build joined
 // names the plugins it brings too.
 export type Build = {
-  id?: number; by: "update" | "plugins" | "install"; state: "queued" | "running"; place?: number; file?: string | null;
+  id?: number; by: "update" | "plugins" | "icons" | "install"; state: "queued" | "running"; place?: number; file?: string | null;
   stage?: string | null; phase?: string | null; plugins?: string[];
 } & ServerSide;
 // Where a build's compile runs (the add-on's build_server.py): `server` with the build server's name and its step
@@ -432,6 +432,8 @@ export type Inventory = {
   video?: VideoIntegration;
   icons?: {
     groups: { label: string; icons: IconInfo[] }[];
+    // What every screen carries beyond the groups (tile_icons.editor), for a screen with room for icons of its own.
+    more?: IconInfo[];
     builtin?: Record<string, string>; weather: Record<string, string>; sun: Record<string, string>; calendar?: Record<string, string>;
     defaults: Record<string, string>; fallback: string; controls?: Record<string, string>;
   };

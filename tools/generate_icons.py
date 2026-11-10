@@ -35,6 +35,10 @@ INK = ROOT / 'web/src/model/icon-ink.json'
 # Glyphs only the editor draws: its own controls (web/src/model/ui-icons.json, app 0.3.19), such as the board icon in the
 # screens list and the keys of the toolbar, menus and inspector. The firmware's fonts leave them out.
 UI_ICONS = ROOT / 'web/src/model/ui-icons.json'
+# Every icon of the font, for the icons a screen takes on top of the set (docs/ICONS.md): the add-on's table of them and
+# the editor's font to draw them in, which a browser fetches only for an icon the set's own font lacks.
+MDI_TABLE = ROOT / 'screen_manager/app/mdi_icons.json'
+MDI_FONT = ROOT / 'web/src/assets/mdi-all.woff'
 WEB_EXTRA = {name: code for name, code in json.loads(UI_ICONS.read_text()).items() if not name.startswith('_')}
 # Four bits per pixel: the default of one draws a thin ring like mdi:power as a lumpy circle on the CYD.
 FONT_BLOCK = re.compile(r"(  - file: \"\$\{FONT_DIR\}/materialdesignicons-webfont\.ttf\"\n    id: \w+\n    size: [^\n]+\n    bpp: \$\{FONT_ICON_BPP\}\n)    glyphs:.*\n(?:      .*\n)*")
@@ -136,6 +140,46 @@ def ink_table():
         table[code] = [getattr(glyph, key, 0) for key in ('xMin', 'yMin', 'xMax', 'yMax')]
     return json.dumps(table, separators=(',', ':')) + '\n'
 
+def every_icon():
+    """{name: codepoint} of every icon in the font, a name's lowest codepoint where it has more."""
+    found = {}
+    for code, name in TTFont(TTF).getBestCmap().items():
+        if 0xF0000 <= code <= 0xFFFFD and code < found.get(name, 0x110000):
+            found[name] = code
+    return found
+
+def mdi_table():
+    """{'upm': units per em, 'icons': {name: ['F0335', xMin, yMin, xMax, yMax]}}, sorted by name."""
+    font = TTFont(TTF)
+    glyf = font['glyf']
+    icons = {}
+    for name, code in sorted(every_icon().items()):
+        glyph = glyf[name]
+        glyph.recalcBounds(glyf)
+        icons[name] = [f'{code:05X}'] + [getattr(glyph, key, 0) for key in ('xMin', 'yMin', 'xMax', 'yMax')]
+    return json.dumps({'upm': font['head'].unitsPerEm, 'icons': icons}, separators=(',', ':')) + '\n'
+
+def mdi_font():
+    """The whole icon font for the editor."""
+    font = TTFont(TTF)
+    options = subset.Options()
+    options.flavor = 'woff'
+    options.layout_features = []
+    options.name_IDs = []
+    options.notdef_outline = False
+    subsetter = subset.Subsetter(options)
+    subsetter.populate(unicodes=list(every_icon().values()))
+    subsetter.subset(font)
+    glyf, hmtx = font['glyf'], font['hmtx']
+    for name in font.getGlyphOrder():
+        glyph = glyf[name]
+        glyph.recalcBounds(glyf)
+        hmtx[name] = (hmtx[name][0], getattr(glyph, 'xMin', 0))
+    buffer = io.BytesIO()
+    font.flavor = 'woff'
+    font.save(buffer)
+    return buffer.getvalue()
+
 def bar_codepoints(weight):
     """The characters of header_bar.GLYPHS that Roboto has: the hearts come from another font on the screens
     (packages/core.yaml), and the browser draws them from its own."""
@@ -170,6 +214,9 @@ def main():
     if args.check:
         if not NAME_TABLE.exists() or NAME_TABLE.read_text() != name_table(): raise SystemExit(f'Outdated: {NAME_TABLE.name}')
         if not INK.exists() or INK.read_text() != ink_table(): raise SystemExit(f'Outdated: {INK.name}')
+        if not MDI_TABLE.exists() or MDI_TABLE.read_text() != mdi_table(): raise SystemExit(f'Outdated: {MDI_TABLE.name}')
+        if not MDI_FONT.exists() or set(TTFont(MDI_FONT).getBestCmap()) != set(every_icon().values()):
+            raise SystemExit(f'Outdated: {MDI_FONT.name}')
         # Compare glyph coverage, not bytes: font output differs between fontTools versions.
         wanted = {int(code, 16) for code in {**tile_icons.GLYPHS, **WEB_EXTRA}.values()}
         if not WEB_FONT.exists() or set(TTFont(WEB_FONT).getBestCmap()) != wanted:
@@ -180,6 +227,8 @@ def main():
     else:
         NAME_TABLE.write_text(name_table())
         INK.write_text(ink_table())
+        MDI_TABLE.write_text(mdi_table())
+        MDI_FONT.write_bytes(mdi_font())
         WEB_FONT.write_bytes(web_font())
         for weight, path in BAR_FONTS.items():
             path.write_bytes(bar_font(weight))

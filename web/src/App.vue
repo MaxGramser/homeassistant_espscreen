@@ -17,6 +17,7 @@ import FirmwareView from "./components/FirmwareView.vue";
 import EventsView from "./components/EventsView.vue";
 import OverrideView from "./components/OverrideView.vue";
 import ReportPanel from "./components/ReportPanel.vue";
+import ScreenIconsPanel from "./components/ScreenIconsPanel.vue";
 import PluginsView from "./components/PluginsView.vue";
 import { question } from "./composables/useConfirm";
 import { useSidebarStore } from "./stores/sidebar";
@@ -41,6 +42,7 @@ const view = computed(() => {
   if (ui.route === "#events") return EventsView;
   if (ui.route === "#override") return OverrideView;
   if (ui.route === "#report") return ReportPanel;
+  if (ui.route === "#icons") return ScreenIconsPanel;
   if (ui.route === "#plugins" && plugins.pluginsEnabled) return PluginsView;
   // Nothing chosen is the overview of every screen (app 0.4.0); a house without screens starts with the first.
   if (scr.currentScreen && doc.layout) return ScreenView;
