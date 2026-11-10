@@ -29,7 +29,10 @@ LINK_SECONDS = 60         # a link nobody opened for this long goes; a stream ke
 FRAME_SECONDS = 15        # nothing new from the camera for this long: the stream ends and the screen asks again
 DEFAULT_PACE = 15         # picture_sources.TILE_PACE: the pace of a camera tile on a screen that does not stream
 SOUND_QUEUE = 50          # parts of sound that may wait for a screen (about a second); older ones go
-TALK_QUEUE = 12           # the same in a conversation, 20 ms parts: a quarter of a second at most
+TALK_QUEUE = 60           # the same in a conversation, 20 ms parts: over a second, the screen itself cuts it back above that
+# A call's pictures share the Wi-Fi with its sound in both directions, and the sound goes first (docs/CALLS.md): at most this
+# many pictures a second, at most this long a side (the screen's PPA scales them up to the room).
+TALK_PICTURES, TALK_SIDE = 10, 960
 SEND_BUFFER = 65536       # what may wait in this host's socket for a screen: a picture, not a queue of them
 REFUSAL_LOG_SECONDS = 60  # a refused tile asks again within seconds: the log says each screen's camera once a minute
 ROOM = re.compile(r'(\d{2,4})x(\d{2,4})')  # a link made before its screen asked: the room its stream says, ?room=WxH
@@ -203,9 +206,8 @@ class LiveFeed:
     def source(self, entity):
         source = self.sources.get(entity)
         if source is None or (source.task and source.task.done() and not source.viewers):
-            url = screen_source.url_of(entity)
-            source = self.sources[entity] = screen_source.ScreenSource(self, entity, url) if url else \
-                camera_source.Source(self, entity, self.streams(entity))
+            special = screen_source.source_for(self, entity)
+            source = self.sources[entity] = special or camera_source.Source(self, entity, self.streams(entity))
             self.pictures[entity] = live_pictures.Pictures()
         return source
 
@@ -327,6 +329,9 @@ class LiveFeed:
             link.box = room_of(request.query.get('room'))
             if link.box is None:
                 return web.Response(status=400, text='No room for its pictures (?room=WxH)')
+        if link.talk and max(link.box) > TALK_SIDE:
+            scale = TALK_SIDE / max(link.box)
+            link.box = (max(64, int(link.box[0] * scale)), max(64, int(link.box[1] * scale)))
         source = self.begin(link, sound=link.sound)
         jpegs = self.pictures_of(link.entity)
         response = web.StreamResponse(headers={'Content-Type': 'multipart/x-mixed-replace;boundary=frame',
@@ -340,11 +345,14 @@ class LiveFeed:
                 await response.write(head + body + b'\r\n')
 
         async def pictures():
-            last = 0
+            last, shown = 0, 0.0
             while True:
                 frame = await source.next(last, FRAME_SECONDS)
                 if frame is None or request.transport is None:
                     return
+                if link.talk and time.monotonic() - shown < 1 / TALK_PICTURES:
+                    continue  # the newest again next time: a call's sound goes before its pictures
+                shown = time.monotonic()
                 last = frame.number
                 jpeg, turn = await jpegs.picture(frame, link.box, link.cover, link.turn)
                 if not jpeg:
@@ -378,7 +386,12 @@ class LiveFeed:
             if sound is not None:
                 source.listen(sound)
                 listening = asyncio.create_task(sounds())
-            await pictures()
+            if getattr(source, 'sound_only', False):
+                # A call with sound alone: no pictures to wait for, only the end of the connection.
+                while request.transport is not None:
+                    await asyncio.sleep(0.5)
+            else:
+                await pictures()
         except (ConnectionResetError, ConnectionError, asyncio.CancelledError):
             pass
         finally:

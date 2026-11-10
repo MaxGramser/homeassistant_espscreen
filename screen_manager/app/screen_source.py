@@ -35,12 +35,71 @@ def rtsp_url(host, api_key):
     return f'rtsp://{USER}:{password}@{host}:{PORT}/'
 
 
+# How the Manager finds a screen's stream when no bench said: `provider(node)` gives its rtsp url or None.
+provider = None
+
+
 def url_of(entity):
-    return urls.get(entity)
+    if entity in urls:
+        return urls[entity]
+    if entity.startswith(PREFIX) and provider:
+        return provider(entity[len(PREFIX):])
+    return None
+
+
+VOICE_PREFIX = 'voice:'
+
+
+def source_for(feed, entity):
+    """The source a call's entity names: `screen:<node>` its camera (with its voice), `voice:<node>` its voice alone; None
+    for any other entity."""
+    if entity.startswith(VOICE_PREFIX):
+        return VoiceSource(feed, entity)
+    url = url_of(entity)
+    return ScreenSource(feed, entity, url) if url else None
+
+
+class VoiceSource(camera_source.Source):
+    """A screen's voice without a picture (a call with sound alone): its listeners are fed by talk_bridge. Silence while
+    nobody speaks keeps the stream alive at the far end: a screen gives up on a stream quiet for 6 s."""
+
+    sound_only = True
+
+    def __init__(self, feed, entity):
+        super().__init__(feed, entity, False)
+        self.route, self.last_voice = 'voice', 0.0
+
+    def voice(self, data):
+        self.last_voice = time.monotonic()
+        for queue in list(self.listeners):
+            if queue.full():
+                queue.get_nowait()
+                self.sound_dropped += 1
+            queue.put_nowait(data)
+
+    def listen(self, queue):
+        self.listeners.add(queue)
+
+    def unlisten(self, queue):
+        self.listeners.discard(queue)
+
+    async def run(self):
+        try:
+            while self.watched():
+                if time.monotonic() - self.last_voice > 0.2:
+                    silence = bytes(VOICE_PART)
+                    for queue in list(self.listeners):
+                        if not queue.full():
+                            queue.put_nowait(silence)
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            raise
 
 
 class ScreenSource(camera_source.Source):
     """The newest picture of a screen's camera, and its voice for every screen that listens (the call's other end)."""
+
+    sound_only = False
 
     def __init__(self, feed, entity, url):
         super().__init__(feed, entity, True)

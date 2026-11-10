@@ -670,6 +670,26 @@
       "waiting": "Loading",
       "empty": "Nothing on the list",
       "yesterday": "Yesterday"
+    },
+    "call": {
+      "title": "Call",
+      "calling": "Calling",
+      "calling_video": "Calling with video",
+      "video": "Video call",
+      "audio": "Call",
+      "decline": "Decline",
+      "answer": "Answer",
+      "ended": "Call ended",
+      "declined": "Declined",
+      "busy": "In another call",
+      "no_answer": "No answer",
+      "quiet": "Do not disturb",
+      "gone": "Not reachable",
+      "available": "Available",
+      "sound_only": "Available with sound only",
+      "in_call": "In a call",
+      "offline": "Offline",
+      "missed_at": "Missed call"
     }
   },
   "addon": {

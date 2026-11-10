@@ -144,3 +144,20 @@ def test_the_message_is_additive():
         'v': 1, 'op': 'call', 'k': 'k', 's': 'live', 'n': 'Kitchen', 'vd': 1, 'l': 'http://x/camera/t.mjpeg', 'pc': 0}
     end = calls.Say('a', 'k', calls.END, 'b', False, calls.BUSY)
     assert calls.message(end)['w'] == 'busy'
+
+
+def test_thirty_screens_fit_the_messages():
+    rows = [{'id': f'screen-{n}', 'n': 'A very long name of a screen in a large house ' * 3, 'i': 'x', 'a': 1, 'v': 1, 's': 'free'} for n in range(30)]
+    parts = calls.contacts_messages(rows)
+    assert len(parts) == 3 and [p['p'] for p in parts] == [0, 1, 2] and [p['more'] for p in parts] == [1, 1, 0]
+    import json
+    assert all(len(json.dumps(p)) < 4096 for p in parts)
+    assert sum(len(p['r']) for p in parts) == 30
+
+
+def test_the_ones_that_can_be_called_come_first():
+    c = machine()
+    screens = {'a': {'name': 'Me', 'hears': True, 'speaks': True, 'online': True},
+               'b': {'name': 'Attic', 'online': False},
+               'c': {'name': 'Zolder', 'hears': True, 'speaks': True, 'online': True}}
+    assert [row['id'] for row in c.contacts('a', screens)] == ['c', 'b']

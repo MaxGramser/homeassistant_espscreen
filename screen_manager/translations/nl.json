@@ -670,6 +670,26 @@
       "waiting": "Laden",
       "empty": "Niets op de lijst",
       "yesterday": "Gisteren"
+    },
+    "call": {
+      "title": "Bellen",
+      "calling": "Bellen",
+      "calling_video": "Videobellen",
+      "video": "Videogesprek",
+      "audio": "Gesprek",
+      "decline": "Weigeren",
+      "answer": "Opnemen",
+      "ended": "Gesprek beëindigd",
+      "declined": "Geweigerd",
+      "busy": "In gesprek",
+      "no_answer": "Geen antwoord",
+      "quiet": "Niet storen",
+      "gone": "Niet bereikbaar",
+      "available": "Beschikbaar",
+      "sound_only": "Beschikbaar, alleen geluid",
+      "in_call": "In gesprek",
+      "offline": "Offline",
+      "missed_at": "Gemist gesprek"
     }
   },
   "addon": {

@@ -30,6 +30,8 @@ import picture_sources
 import camera_source
 import live_stream
 import talk_bridge
+import calls
+import screen_source
 import claude_skill
 import screen_video
 import screen_hang
@@ -140,6 +142,15 @@ ANSWER_RETRY_SECONDS = 30
 SERVICE_EVENTS = ('service_registered', 'service_removed')
 # A plugin on a screen asks the app something (docs/PLUGINS.md): the event its tessera::send() fires.
 PLUGIN_EVENT = 'esphome.screen_plugin'
+CALL_EVENT = 'esphome.screen_call'
+CALL_FEATURE = 'call'
+CALL_ICON = 'F03F2'  # phone
+
+
+def glyph_of(code):
+    """An MDI icon's code as the glyph a screen draws."""
+    return chr(int(code, 16))
+
 
 def samples(events, begin, span):
     """24 values, one per bucket: the last known value at the end of each bucket (None until the first)."""
@@ -250,6 +261,7 @@ class HomeAssistant:
         # (event type, data) of the doorbell's events (esp_screens_doorbell, esp_screens_dismiss_doorbell) and of a screen's
         # report of a ring (esphome.screen_doorbell, docs/DOORBELL.md), for Manager.doorbell_loop.
         self.doorbell_events = asyncio.Queue()
+        self.call_events = asyncio.Queue()  # esphome.screen_call, for Manager.call_loop
         # ESPHome actions that can answer (`esphome.<node>_screen_message` of firmware 0.2.49+), from Home
         # Assistant's own list; refreshed when a device registers its actions again.
         self.responses = set()
@@ -371,6 +383,8 @@ class HomeAssistant:
                     self.tile_events.put_nowait((event['event_type'], body))
                 elif event.get('event_type') in (*doorbell.EVENTS, doorbell.EVENT):
                     self.doorbell_events.put_nowait((event['event_type'], body))
+                elif event.get('event_type') == CALL_EVENT:
+                    self.call_events.put_nowait(body)
         raise ConnectionError('Home Assistant connection lost.')
 
     async def subscribe_template(self, template, callback):
@@ -657,6 +671,7 @@ class HomeAssistant:
                     await self.request('subscribe_events', event_type='esphome.screen_setting')
                     await self.request('subscribe_events', event_type='esphome.screen_history')
                     await self.request('subscribe_events', event_type='esphome.screen_camera')
+                    await self.request('subscribe_events', event_type=CALL_EVENT)
                     await self.request('subscribe_events', event_type=light_effects.OPTIONS_EVENT)
                     await self.request('subscribe_events', event_type=calendar_feed.EVENT)
                     await self.request('subscribe_events', event_type=todo_feed.EVENT)
@@ -1177,6 +1192,9 @@ class Manager:
         self.alert_actions = {}
         # The rings of doorbells and the last one nobody answered (doorbell.py, docs/DOORBELL.md).
         self.doorbells = doorbell.Doorbells()
+        self.calls = calls.Calls()
+        self.call_cameras_off = set()  # nodes in a call whose camera is off
+        screen_source.provider = self.call_rtsp
         self.store = LayoutStore(self.path, self.record_grid)
         # An app from before Language & region (app 0.2.90): its screens keep the 24 hours they show, until Home Assistant
         # says every screen's own clock setting was 12 hours (resolve_clock_pin). A new install starts on Automatic, and
@@ -4501,6 +4519,140 @@ class Manager:
             if self.doorbells.seen():
                 self.ha.changed.set()
 
+    # ---- Calls between screens (calls.py is the state machine; docs/CALLS.md) ----
+    def call_screens(self):
+        """The screens that can be in a call: online ones say `call` in their hello, offline ones keep their last word."""
+        out = {}
+        for screen in self.screens():
+            node = screen.get('node')
+            if not node:
+                continue
+            sender = self.page_senders.get(screen['id'])
+            features = getattr(sender, 'features', ()) or ()
+            if sender is not None and CALL_FEATURE not in features:
+                continue
+            caps = self.caps_of_screen(screen) or {}
+            out[node] = {'screen': screen, 'name': self.labels.get(screen.get('device_id')) or screen.get('name') or node,
+                         'icon': CALL_ICON, 'hears': bool(caps.get('microphone')), 'speaks': bool(caps.get('speaker')),
+                         'shows': bool(caps.get('live')),
+                         'films': bool(caps.get('camera') and self.call_can_film(node)),
+                         'online': bool(screen.get('online')), 'quiet': False}
+        return out
+
+    def call_can_film(self, node):
+        return screen_source.url_of(screen_source.PREFIX + node) is not None
+
+    def call_rtsp(self, node):
+        """The address of a screen's own video server, from its IP and its API key; None without either."""
+        screen = next((s for s in self.screens() if s.get('node') == node), None)
+        key = self.call_api_key(screen)
+        return screen_source.rtsp_url(screen['ip'], key) if screen and screen.get('ip') and key else None
+
+    def call_api_key(self, screen):
+        """A screen's API key: from the profile this app keeps for it, else from Home Assistant's own record of it."""
+        if not screen:
+            return None
+        profile = next((meta for meta in self.firmware.profile_names().values() if meta.get('node') == screen.get('node')), None)
+        if profile and profile.get('api_key'):
+            return profile['api_key']
+        try:
+            import json as jsonlib
+            entries = jsonlib.loads((Path(os.environ.get('HA_CONFIG', '/homeassistant')) / '.storage/core.config_entries').read_text())
+        except (OSError, ValueError):
+            return None
+        for entry in entries.get('data', {}).get('entries', []):
+            data = entry.get('data') or {}
+            if entry.get('domain') == 'esphome' and data.get('host') == screen.get('ip'):
+                return data.get('noise_psk')
+        return None
+
+    async def call_send(self, outs):
+        """What calls.py said: each state to its screen with what it needs, each event into Home Assistant."""
+        known = self.call_screens()
+        for out in outs:
+            if isinstance(out, calls.Fire):
+                await self.ha.fire(out.event, out.data)
+                continue
+            mine = known.get(out.node)
+            if not mine:
+                continue
+            peer = known.get(out.peer) or {}
+            message = calls.message(out, name=peer.get('name', out.peer), icon=glyph_of(peer.get('icon') or CALL_ICON))
+            if out.state == calls.LIVE:
+                base = await self.link_base(mine['screen'])
+                if base:
+                    video = out.video and out.peer not in self.call_cameras_off and peer.get('films')
+                    source = (screen_source.PREFIX if video else screen_source.VOICE_PREFIX) + out.peer
+                    token = self.live.link(source, None, sound=True, screen=mine['screen']['id'], turn=self.picture_turn_of(mine['screen']['id']), talk=True, cover=True)
+                    message['l'] = f'{base}/camera/{token}.mjpeg'
+                    message['vd'] = int(bool(video))
+                    message['pc'] = int(bool(video))
+                    talk = self.talks.link(f'call:{out.node}', screen=mine['screen']['id'], into=self.call_voice_to(out.node))
+                    message['tk'] = f'{base}/camera/{talk}/talk'
+            await self.send_auxiliary(mine['screen']['id'], message, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
+
+    def call_voice_to(self, node):
+        """Where `node`'s voice goes: to whichever stream of it the other end listens to."""
+        def feed(data):
+            for entity in (screen_source.PREFIX + node, screen_source.VOICE_PREFIX + node):
+                source = self.live.sources.get(entity)
+                if source is not None:
+                    source.voice(data)
+        return feed
+
+    async def call_report(self, data):
+        """esphome.screen_call: what a finger did on a screen."""
+        node, action, key = str(data.get('screen') or '').replace('_', '-'), data.get('action'), data.get('key') or ''
+        to, video, now = str(data.get('to') or ''), str(data.get('video')) == '1', time.monotonic()
+        known = self.call_screens()
+        if action == 'list':
+            rows = self.calls.contacts(node, known)
+            self.calls.seen(node)
+            for row in rows:
+                row['i'] = glyph_of(row['i'] or CALL_ICON)
+            mine = known.get(node)
+            if mine:
+                for part in calls.contacts_messages(rows):
+                    await self.send_auxiliary(mine['screen']['id'], part, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
+            return
+        if action == 'dial':
+            target = known.get(to)
+            await self.call_send(self.calls.dial(node, to, video, now, reachable=bool(target and target['online']), quiet=bool(target and target['quiet'])))
+        elif action == 'answer':
+            await self.call_send(self.calls.answer(key, node, now))
+        elif action == 'decline':
+            await self.call_send(self.calls.decline(key, node, now))
+        elif action in ('cancel', 'end'):
+            call = self.calls.calls.get(key)
+            await self.call_send(self.calls.hang_up(key, node, now))
+            if call:
+                self.call_cameras_off.discard(call.caller)
+                self.call_cameras_off.discard(call.callee)
+        elif action == 'camera':
+            call = self.calls.of(node)
+            if call:
+                (self.call_cameras_off.discard if video else self.call_cameras_off.add)(node)
+                await self.call_send([calls.Say(call.other(node), call.key, calls.LIVE, node, call.video)])
+
+    async def call_loop(self):
+        while True:
+            try:
+                data = await asyncio.wait_for(self.ha.call_events.get(), 1)
+            except asyncio.TimeoutError:
+                data = None
+            try:
+                if data is not None:
+                    await self.call_report(data)
+                now = time.monotonic()
+                await self.call_send(self.calls.tick(now))
+                online = {node for node, facts in self.call_screens().items() if facts['online']}
+                for call in list(self.calls.calls.values()):
+                    for node in (call.caller, call.callee):
+                        if node not in online:
+                            await self.call_send(self.calls.gone(node, now))
+            except Exception as err:  # noqa: BLE001 - one call that fails must not end the others
+                LOG.exception('Calls: %r', err)
+
     async def doorbell_loop(self):
         """Rings and the screens' reports of them, in arrival order."""
         queue = getattr(self.ha, 'doorbell_events', None)
@@ -6065,7 +6217,7 @@ async def main():
             LOG.error('Camera images are off: port %d is not available (%s)', picture_links.port(), error)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
-                                 manager.alert_loop(), manager.doorbell_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
+                                 manager.alert_loop(), manager.doorbell_loop(), manager.call_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
                                  manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))
         finally:

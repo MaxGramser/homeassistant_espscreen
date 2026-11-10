@@ -279,6 +279,8 @@ esphome:
           plugin_host::wake = [](const std::string &source) { id(wake_from).execute(source); };
           // How a doorbell's ring ended on this screen goes to ESP Screens (module doorbell, esphome.screen_doorbell).
           runtime_tiles::doorbell_reports([](const std::string &action, const std::string &key) { id(doorbell_report).execute(action, key); });
+          // What a finger does in a call goes to ESP Screens (module call, esphome.screen_call).
+          runtime_tiles::call_reports([](const std::string &action, const std::string &to, bool video, const std::string &key) { id(call_report).execute(action, to, video, key); });
           // Saving power while the glass is dark (screen_power.h): LVGL pauses, and Wi-Fi dozes.
           screen_power::freeze = [](bool on) { id(screen_lvgl).set_paused(on, false); ESP_LOGI("power", on ? "dark: saving" : "awake"); };
           screen_power::later = [](uint32_t ms) { id(screen_power_wait).execute(ms); };
@@ -756,6 +758,10 @@ api:
                     #ifdef SD_MOD_DOORBELL
                     if (live_view::available()) features.add("doorbell");
                     #endif
+                    // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
+                    #ifdef SD_MOD_CALL
+                    if (live_view::available() && hw::caps().microphone && hw::caps().speaker) features.add("call");
+                    #endif
                     #ifdef SD_MOD_VACUUM_CARD
                     features.add("vacuum_card");
                     // vacuum_tile: a larger vacuum tile draws its map, its rooms or its routines beside its keys
@@ -1161,6 +1167,12 @@ font:
       - "\U000F17DB" # soundbar
       - "\U000F02CB" # headphones
       - "\U000F036C" # microphone
+      - "\U000F036D" # microphone-off
+      - "\U000F03F2" # phone
+      - "\U000F03F5" # phone-hangup
+      - "\U000F03FA" # phone-missed
+      - "\U000F0567" # video
+      - "\U000F0568" # video-off
       - "\U000F067D" # piano
       - "\U000F0771" # guitar-acoustic
       - "\U000F0502" # television
@@ -2665,6 +2677,23 @@ script:
           event: esphome.screen_doorbell
           data:
             action: !lambda 'return action;'
+            key: !lambda 'return key;'
+            screen: !lambda 'return App.get_name();'
+
+  # What a finger did in a call (module call, docs/CALLS.md): list, dial, cancel, answer, decline, end, camera or mic.
+  - id: call_report
+    parameters:
+      action: string
+      to: string
+      video: bool
+      key: string
+    then:
+      - homeassistant.event:
+          event: esphome.screen_call
+          data:
+            action: !lambda 'return action;'
+            to: !lambda 'return to;'
+            video: !lambda 'return video ? "1" : "0";'
             key: !lambda 'return key;'
             screen: !lambda 'return App.get_name();'
 

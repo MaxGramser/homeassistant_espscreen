@@ -205,6 +205,7 @@ struct Stream {
   // speaker started.
   bool told_first = false, told_live = false, told_sound = false, speaking = false;
   std::atomic<bool> talking{false};  // the stream's sound is a conversation (X-Sound: talk): a far smaller run-up
+  uint32_t talk_fed_ms = 0;          // when the speaker last got a piece of it
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0,
            reported_wait = 0, reported_net = 0, reported_into = 0, reported_compose = 0, reported_onto = 0,
            reported_passed = 0, reported_pauses = 0, reported_paused = 0;
@@ -1140,14 +1141,18 @@ static void speak(Stream &s, bool on) {
       s.piece_at = 0;
       if (s.piece_left == 0) {
         if (rounds == 0) {  // nothing waited at all: the buffer ran dry
-          s.dry = true;
-          ++s.ran_dry;
+          // In a conversation that is only worth a new run-up once the sound has been gone for a while.
+          if (!talk || esphome::millis() - s.talk_fed_ms > SOUND_TALK_GONE_MS) {
+            s.dry = true;
+            ++s.ran_dry;
+          }
         }
         return;
       }
     }
     // Every piece is whole samples (the task writes only those); a write the speaker took an odd number of bytes of goes
     // on from the very next byte, the other half of that sample first, so its count is even again.
+    s.talk_fed_ms = esphome::millis();
     const size_t taken = speaker->play(s.sound_piece + s.piece_at, s.piece_left, 0);
     if (taken & 1) ++s.odd_taken;
     s.piece_at += taken;

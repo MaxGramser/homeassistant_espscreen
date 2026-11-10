@@ -62,11 +62,15 @@ constexpr size_t SOUND_BUFFER = 49152;  // 1.5 s at 16 kHz mono
 // sound that stays whole ("200 ms extra is fine, 3 s is not").
 constexpr size_t SOUND_LOW = SOUND_RATE * 2 * 400 / 1000;    // 400 ms
 constexpr size_t SOUND_HIGH = SOUND_RATE * 2 * 1200 / 1000;  // 1200 ms
-// In a conversation (the part's X-Sound: talk) sound is someone speaking to you: 200 ms of run-up, cut back above 600 ms.
-// An 80 ms run-up gave 0.25 s from microphone to speaker but ran dry 137 times in 30 s (a reTerminal D1001 to a Guition
-// 10.1, 2026-11-10), and clean sound goes before the last 150 ms (docs/CALLS.md, "The voice"; a second would still do).
-constexpr size_t SOUND_TALK_LOW = SOUND_RATE * 2 * 200 / 1000;   // 200 ms
-constexpr size_t SOUND_TALK_HIGH = SOUND_RATE * 2 * 600 / 1000;  // 600 ms
+// In a conversation (the part's X-Sound: talk) sound is someone speaking to you: 200 ms of run-up. Above a second the oldest
+// goes. Measured on a call from a reTerminal D1001 to a Guition 10.1 (2026-11-10): with 600 ms, 5.2 s of 38 s of sound was thrown
+// away in pieces of up to 2 s, as the Wi-Fi brings sound in bursts of up to a second while pictures and sound share the link.
+// Clean sound goes first: a voice up to a second late is fine, and a voice with holes is not (docs/CALLS.md, "The voice").
+constexpr size_t SOUND_TALK_LOW = SOUND_RATE * 2 * 200 / 1000;    // 200 ms
+constexpr size_t SOUND_TALK_HIGH = SOUND_RATE * 2 * 1000 / 1000;  // 1 s
+// How long a conversation's sound may be gone before it takes a new run-up: a moment's empty buffer is normal, the speaker
+// has its own to play from, and a run-up at every one is a hole of 200 ms each time.
+constexpr uint32_t SOUND_TALK_GONE_MS = 400;
 static_assert(SOUND_TALK_LOW % 2 == 0 && SOUND_TALK_HIGH % 2 == 0 && SOUND_TALK_LOW < SOUND_TALK_HIGH, "whole samples");
 static_assert(SOUND_PART % 2 == 0 && SOUND_BUFFER % 2 == 0 && SOUND_LOW % 2 == 0 && SOUND_HIGH % 2 == 0,
               "the sound moves in whole samples, two bytes each");

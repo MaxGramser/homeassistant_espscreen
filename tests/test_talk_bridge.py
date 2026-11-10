@@ -98,8 +98,11 @@ def test_a_screens_stream_address_uses_its_api_key():
     assert url != screen_source.rtsp_url('192.0.2.1', 'abd')
 
 
-def test_a_voice_goes_straight_to_where_it_is_going():
+def test_a_voice_leaves_in_whole_parts_however_the_network_cut_it():
     got = []
     voice = tb.Voice(got.append, 'camera.x')
-    voice.feed(b'ab')
-    assert got == [b'ab']
+    data = bytes(range(256)) * 10
+    for piece in (data[:1], data[1:333], data[333:1281], data[1281:2560]):
+        voice.feed(piece)
+    assert all(len(part) == tb.Voice.PART for part in got)
+    assert b''.join(got) == data[:len(got) * tb.Voice.PART]

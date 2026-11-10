@@ -73,6 +73,8 @@ bool available();
 bool start(const std::string &url);
 void stop();
 State state();
+// While muted the microphone's parts go up as silence, so the stream on the far side stays alive (docs/CALLS.md).
+void set_muted(bool muted);
 // The voice's bar, 0 to 1, of the last few parts; when the voice was last above VOICE_DB (the main loop's clock).
 float bar();
 uint32_t voice_at();
@@ -81,6 +83,7 @@ inline bool available() { return false; }
 inline bool start(const std::string &) { return false; }
 inline void stop() {}
 inline State state() { return State::OFF; }
+inline void set_muted(bool) {}
 inline float bar() { return 0.0f; }
 inline uint32_t voice_at() { return 0; }
 #endif

@@ -31,5 +31,15 @@ frame and a smaller JPEG when the add-on falls behind.
 A call's picture is read straight from the other screen's own video server (RTSP over TCP, `screen_source.py`, video only),
 decoded by the add-on and sent to the glass as a JPEG for its size, as any live camera's. A D1001 to a Guition 10.1, both
 directions at once (2026-11-10): about 290 ms glass to glass with 13 pictures a second, against 230 ms for one direction
-through Home Assistant, the same within what the filming can tell. The voice, marked `X-Sound: talk`: about 0.25 s from
-microphone to speaker with a run-up of 80 ms, which ran dry too often; it now starts after 200 ms and is cut back above 600.
+through Home Assistant, the same within what the filming can tell. The voice, marked `X-Sound: talk`.
+
+What a clean voice took, measured on the real route with a clean tone in place of the voice and the Mac's microphone at the
+far speaker (a D1001 to a Guition 10.1, 2026-11-10):
+
+| | Sound thrown away, in 38 s | Longest hole | Purity at its worst | Parts waiting on the way, on average |
+|---|---|---|---|---|
+| Run-up 80 ms, cut back above 600 ms, 13 pictures a second at the glass's size | 5.2 s | 1.9 s | -23 dB | 159 to 241 ms |
+| Run-up 200 ms, cut back above 1 s, no new run-up at a moment's emptiness, at most 10 pictures a second and 960 pixels a side | none | 80 ms | +8 dB | 6 to 11 ms |
+
+The network cuts a voice where it likes, also inside a sample (6 of 1334 pieces in one call). One odd byte handed on turns
+everything after it into noise, so `talk_bridge.Voice` passes on whole parts of 20 ms only.

@@ -213,6 +213,10 @@ inline bool valid_entity(const std::string &entity) {
     // screen.text (module text_card, firmware 0.58.0+): a template Home Assistant renders, as rows the app sends.
     if (entity == "screen.text") return true;
 #endif
+#ifdef SD_MOD_CALL
+    // screen.call (module call): opens the list of the house's screens, or calls one (docs/CALLS.md).
+    if (entity == "screen.call") return true;
+#endif
     return page_entity(entity) && page_number(entity) <= grid.pages();
   }
   // The types the tile catalogue has (catalogue/*.yaml, tile_catalogue.h): the same list the add-on and the editor take.
@@ -771,6 +775,7 @@ struct Tile {
   // Two built-in cards, and only one of them is a clock that has to be redrawn every minute.
   bool is_clock() const { return entity == "screen.clock"; }
   bool is_settings() const { return entity == "screen.settings"; }
+  bool is_call() const { return entity == "screen.call"; }
   // The bedside clock (firmware 0.8.0+): the time as large as the page allows, with its keys under it.
   bool is_bedside() const { return entity == "screen.nightstand"; }
   // A navigation tile (screen.page_<n>, firmware 0.2.62+) and the page it goes to, counted from one.

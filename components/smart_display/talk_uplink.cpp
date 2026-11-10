@@ -46,6 +46,7 @@ Run *run = nullptr;
 std::atomic<State> now{State::OFF};
 std::atomic<float> shown_bar{0.0f};
 std::atomic<uint32_t> last_voice{0};
+std::atomic<bool> muted_now{false};
 
 // The microphone's task: a whole part or none.
 void on_samples(const std::vector<uint8_t> &data) {
@@ -129,6 +130,7 @@ void task_main(void *arg) {
           const size_t got = xStreamBufferReceive(r->buffer, part, PART, pdMS_TO_TICKS(100));
           if (got < 2) continue;
           const size_t whole = got & ~static_cast<size_t>(1);
+          if (muted_now.load(std::memory_order_relaxed)) std::memset(part, 0, whole);
           if (!send_frame(fd, part, whole)) {
             ESP_LOGW(TAG, "the add-on went away (errno %d)", errno);
             break;
@@ -213,6 +215,8 @@ bool start(const std::string &url) {
     return false;
   }
   source->start();
+  const auto info = source->get_audio_stream_info();
+  ESP_LOGI(TAG, "the microphone gives %u Hz, %u bits, %u channels", (unsigned) info.get_sample_rate(), (unsigned) info.get_bits_per_sample(), (unsigned) info.get_channels());
   return true;
 }
 
@@ -221,6 +225,8 @@ void stop() {
   run->stopping.store(true);
   // state() frees it on the main loop once its task said it is done.
 }
+
+void set_muted(bool muted) { muted_now.store(muted, std::memory_order_relaxed); }
 
 float bar() { return shown_bar.load(std::memory_order_relaxed); }
 uint32_t voice_at() { return last_voice.load(std::memory_order_relaxed); }

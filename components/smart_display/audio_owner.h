@@ -7,7 +7,7 @@
 // asks iOS for its audio session: it claims a side (OUT, IN or BOTH) in a role, and the owner says yes or no, tells the
 // holder it took the side from that it lost it, and gives it back afterwards to whoever asked to have it back.
 //
-// The ranking, highest first: DOORBELL (a ring, and later the talk), VOICE (the wake word and a session), CAMERA_SOUND
+// The ranking, highest first: DOORBELL (a ring, and its talk), CALL (a call between screens: the door goes first), VOICE (the wake word and a session), CAMERA_SOUND
 // (a full view with sound), MEDIA (music and messages from Home Assistant). A higher role takes a side from a lower
 // one; the same role replaces its holder (a second camera's full view takes over from the first); a lower role is
 // refused. A plugin's short sounds and Home Assistant's announcements never claim: they mix over whatever plays
@@ -28,7 +28,7 @@
 
 namespace audio_owner {
 
-enum class Role : uint8_t { MEDIA = 0, CAMERA_SOUND = 1, VOICE = 2, DOORBELL = 3 };  // lowest first
+enum class Role : uint8_t { MEDIA = 0, CAMERA_SOUND = 1, VOICE = 2, CALL = 3, DOORBELL = 4 };  // lowest first
 enum class Side : uint8_t { OUT = 1, IN = 2, BOTH = 3 };
 constexpr int SIDES = 2;  // OUT, IN
 
@@ -39,6 +39,7 @@ inline const char *name(Role r) {
     case Role::MEDIA: return "media";
     case Role::CAMERA_SOUND: return "camera";
     case Role::VOICE: return "voice";
+    case Role::CALL: return "call";
     case Role::DOORBELL: return "doorbell";
   }
   return "?";

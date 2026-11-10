@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import secrets
 
 RING_SECONDS = 45
+ROWS_A_MESSAGE, NAME_MOST = 12, 32
 
 # What a screen is shown (the op `call`'s `s`).
 OUT, RING, LIVE, HELD, END = 'out', 'ring', 'live', 'held', 'end'
@@ -169,10 +170,20 @@ class Calls:
             if missed and missed['from'] == other:
                 row['m'] = missed['at']
             rows.append(row)
-        return sorted(rows, key=lambda row: row['n'].casefold())
+        # The ones that can be called first: in a house of thirty screens those are what the list is for.
+        order = {FREE: 0, IN_CALL: 1, DND: 2, OFFLINE: 3}
+        return sorted(rows, key=lambda row: (order[row['s']], row['n'].casefold()))
 
     def seen(self, node):
         return self.missed.pop(node, None) is not None
+
+
+def contacts_messages(rows):
+    """The op `contacts` in parts: a message holds at most ROWS_A_MESSAGE rows, so thirty screens fit under the 4096 bytes of
+    one message however long their names are (each cut to NAME_MOST)."""
+    short = [{**row, 'n': row['n'][:NAME_MOST]} for row in rows]
+    parts = [short[i:i + ROWS_A_MESSAGE] for i in range(0, len(short), ROWS_A_MESSAGE)] or [[]]
+    return [{'v': 1, 'op': 'contacts', 'r': part, 'p': i, 'more': int(i < len(parts) - 1)} for i, part in enumerate(parts)]
 
 
 def message(say, name='', icon='', link='', peer_camera=True):

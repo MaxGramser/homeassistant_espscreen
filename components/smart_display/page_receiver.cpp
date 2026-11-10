@@ -366,6 +366,27 @@ std::string receive(const std::string &payload) {
       return true;
     }
     if (op != "tile" && !transfer.active) { result = "Resend needed"; return false; }
+    if (op == "call") {
+#ifdef SD_MOD_CALL
+      // A call between screens (module call, docs/CALLS.md): `s` out, ring, live, held or end; `k` its key, `n` the other
+      // screen's name, `i` its icon, `vd` video, `l` the stream of the other, `tk` where this screen sends its voice,
+      // `pc` the other's camera is on, `w` why it ended.
+      call::on_call(string(root["s"], 8), string(root["k"], 16), string(root["n"], 60), string(root["i"], 8),
+                    root["vd"].is<unsigned>() && root["vd"].as<unsigned>() == 1, string(root["l"], 200), string(root["tk"], 200),
+                    !(root["pc"].is<unsigned>() && root["pc"].as<unsigned>() == 0), string(root["w"], 16));
+#endif
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
+    if (op == "contacts") {
+#ifdef SD_MOD_CALL
+      std::string rows;
+      serializeJson(root["r"], rows);
+      call::on_contacts(rows, root["p"].is<unsigned>() && root["p"].as<unsigned>() > 0, root["more"].is<unsigned>() && root["more"].as<unsigned>() == 1);
+#endif
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
     if (op == "doorbell") {
       // A ring (module doorbell, docs/DOORBELL.md): an automation fired esp_screens_doorbell, and ESP Screens names its
       // camera (`e`), its name (`n`), the ring's key (`k`), when it rang (`r`, unix time) and how long it stays untouched

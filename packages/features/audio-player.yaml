@@ -40,6 +40,7 @@ substitutions:
     live_view::bind_speaker(id(ts_media_speaker));
     // The screen's voice to the app, for the doorbell's Talk and a call (talk_uplink.h).
     talk_uplink::bind_microphone(id(ts_microphone));
+    runtime_tiles::call_audio(id(ts_speaker));
     if (!${AUDIO_HALF_DUPLEX}) {
       id(ts_speaker_out)->set_audio_stream_info(audio::AudioStreamInfo(16, 1, ${AUDIO_SAMPLE_RATE}));
       id(ts_speaker_out)->start();

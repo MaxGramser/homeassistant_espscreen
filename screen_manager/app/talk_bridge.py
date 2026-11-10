@@ -266,17 +266,26 @@ class Sink:
 
 
 class Voice:
-    """A call's voice (docs/CALLS.md): the screen's PCM into `into`, the other screen's stream."""
+    """A call's voice (docs/CALLS.md): the screen's PCM into `into`, the other screen's stream, in whole parts of 20 ms. The
+    network cuts the bytes where it likes, also inside a sample, and one odd byte handed on turns all that follows into
+    noise at the far end (docs/CAMERA.md), so what is left over waits for the next piece."""
+
+    PART = SCREEN_RATE * 2 * PACKET_MS // 1000
 
     def __init__(self, into, entity):
         self.into, self.entity, self.codec = into, entity, 'pcm'
         self.source = Pcm8k(level=1)
+        self.spare = b''
 
     async def open(self):
         return True
 
     def feed(self, data):
-        self.into(bytes(data))
+        data = self.spare + bytes(data)
+        whole = len(data) - len(data) % self.PART
+        self.spare = data[whole:]
+        for i in range(0, whole, self.PART):
+            self.into(data[i:i + self.PART])
 
     async def close(self):
         return None

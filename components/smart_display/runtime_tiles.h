@@ -81,6 +81,7 @@
 #include "module_vacuum_tile.h"
 #ifdef SD_MOD_DOORBELL
 #include "module_doorbell.h"
+#include "module_call.h"
 #endif
 #include "plugin_api.h"
 #include "plugin_host.h"
@@ -5917,7 +5918,7 @@ inline const char *icon_for(const Tile &tile) {
   if (d == "timer") return "\U000F051B";
   if (d == "person") return "\U000F0004";
   // The map tile's marker (firmware 0.21.0) only shows while its picture is on its way.
-  if (d == "screen") return tile.is_settings() ? "\U000F0493" : tile.is_page() ? "\U000F0054" : tile.entity == "screen.map" ? "\U000F034E" : tile.is_energy() ? "\U000F140B" : tile.is_text() ? "\U000F0279" : "\U000F0150";
+  if (d == "screen") return tile.is_call() ? "\U000F03F2" : tile.is_settings() ? "\U000F0493" : tile.is_page() ? "\U000F0054" : tile.entity == "screen.map" ? "\U000F034E" : tile.is_energy() ? "\U000F140B" : tile.is_text() ? "\U000F0279" : "\U000F0150";
   if (d == "camera" || d == "image") return "\U000F07AE";
   if (d == "alarm_control_panel") return alarm_panel::icon(tile.state);
   if (d == "lock") return lock_icon(tile);
@@ -6257,6 +6258,9 @@ inline void event(lv_event_t *event) {
   if (!fresh()) return;
   auto &tile = model.tiles[w.index];
   auto d = tile.domain();
+#ifdef SD_MOD_CALL
+  if (tile.is_call()) { call::open_list(); return; }
+#endif
   // A tap set to a plugin's tap action (docs/PLUGINS.md): a short tap runs it, through the guard every tap passes; a
   // hold still opens the tile's own card. A screen without that plugin does nothing on the tap.
   if (code == LV_EVENT_SHORT_CLICKED && tile.tap.rfind("plugin:", 0) == 0) {
@@ -8386,7 +8390,7 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
   if(!l.fits){selected=false;m.row_count=0;l=tall_tile::layout(m);}
   lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(w.unit,LV_OBJ_FLAG_HIDDEN);
   if(!l.fits){hide_extra(w);hide_panel(w);return true;}
-  if(t.is_settings()||t.is_page()){
+  if(t.is_settings()||t.is_page()||t.is_call()){
     const auto action=tall_tile::action(width,height,w.base_circle,lv_font_get_line_height(w.icon_font),
       m.name_h,lv_label_get_text(w.value)[0]?m.state_h:0,gap);
     if(action.fits){
@@ -8783,7 +8787,7 @@ inline void render_slot(size_t slot) {
   if (t.is_plugin())
     value = plugin_host::known(t) ? std::string() : std::string(tr(txt::plugin_missing));
   // Nothing in Home Assistant stands behind a built-in card, so it says its own line with the link down too.
-  else if (t.is_settings() || t.is_page())
+  else if (t.is_settings() || t.is_page() || t.is_call())
     value = set_by_hand ? chosen
           : t.is_settings() ? std::string(tr(txt::tile_tap_to_open))
           : fill(txt::tile_page, "n", t.page_target());
@@ -11118,6 +11122,9 @@ inline bool camera_supported() { return static_cast<bool>(camera_full.load); }
 inline bool camera_visible() { return camera_root != nullptr; }
 // A ring's view keeps the screen from standby (module doorbell, packages/core.yaml's standby interval); lite has none.
 inline bool doorbell_holds() {
+#ifdef SD_MOD_CALL
+  if (call::holds()) return true;
+#endif
 #ifdef SD_MOD_DOORBELL
   return doorbell::holds();
 #else
@@ -11127,6 +11134,20 @@ inline bool doorbell_holds() {
 // Its bindings, for the YAML of every board: a lambda that holds a ${...} cannot hold an #ifdef (ESPHome reads it as a
 // template), so these take the module's place there. How a ring ended goes to ESP Screens (packages/core.yaml); the chime
 // plays on `speaker` (features/audio-player.yaml).
+inline void call_reports(std::function<void(const std::string &, const std::string &, bool, const std::string &)> report) {
+#ifdef SD_MOD_CALL
+  call::report = std::move(report);
+#else
+  (void) report;
+#endif
+}
+template<class Speaker> inline void call_audio(Speaker *speaker) {
+#ifdef SD_MOD_CALL
+  call::bind_speaker(speaker);
+#else
+  (void) speaker;
+#endif
+}
 inline void doorbell_reports(std::function<void(const std::string &, const std::string &)> report) {
 #ifdef SD_MOD_DOORBELL
   doorbell::report = std::move(report);
@@ -11704,6 +11725,9 @@ inline bool drawn_over(lv_obj_t *owner, int x, int y, int w, int h) {
 }
 // The room below the top bar: the back key and the name stay LVGL's, on the view's black, never over the picture.
 inline live_view::Rect live_area() {
+#ifdef SD_MOD_CALL
+  if (call::shown()) return call::area();
+#endif
 #ifdef SD_MOD_DOORBELL
   // A ring's view (module doorbell): the room beside or above its keys.
   if (doorbell::shown()) return doorbell::area();
@@ -11749,6 +11773,9 @@ inline void camera_sound_glyph() {
 #ifdef SD_MOD_DOORBELL
   if (doorbell::shown()) { doorbell::sound_changed(); return; }
 #endif
+#ifdef SD_MOD_CALL
+  if (call::shown()) { call::sound_changed(); return; }
+#endif
   if (!camera_sound_key) return;
   lv_label_set_text(lv_obj_get_child(camera_sound_key, 0), camera_muted ? "\U000F0581" : "\U000F057E");  // volume-off, -high
 }
@@ -11757,6 +11784,9 @@ inline void camera_sound_show() {
   if (!camera_root || camera_sound_key) return;
 #ifdef SD_MOD_DOORBELL
   if (doorbell::shown()) return;  // a ring's view has its sound key from the start
+#endif
+#ifdef SD_MOD_CALL
+  if (call::shown()) return;  // a call's keys are its own
 #endif
   const auto slot = detail_bar::right_slot(camera_root);
   camera_sound_key = view_key(camera_root, slot.h, camera_muted ? "\U000F0581" : "\U000F057E", false);
@@ -11790,6 +11820,9 @@ inline void camera_warm(bool on) {
 #ifdef SD_MOD_DOORBELL
   // A ring's view has its close key at the edge: the spinner turns beside it.
   if (doorbell::shown()) { doorbell::spinner_place(camera_warm_spinner, size); lv_obj_remove_flag(camera_warm_spinner, LV_OBJ_FLAG_HIDDEN); return; }
+#endif
+#ifdef SD_MOD_CALL
+  if (call::shown()) return;  // no spinner in a call: its keys and the ground are there at once
 #endif
   const auto slot = detail_bar::right_slot(camera_root);
   lv_obj_set_pos(camera_warm_spinner, slot.x + (slot.w - size) / 2, slot.y + (slot.h - size) / 2);
@@ -11837,6 +11870,9 @@ inline void live_begin(const std::string &link) {
   audio_owner::Role role = audio_owner::Role::CAMERA_SOUND;
 #ifdef SD_MOD_DOORBELL
   if (doorbell::shown()) role = audio_owner::Role::DOORBELL;
+#endif
+#ifdef SD_MOD_CALL
+  if (call::shown()) role = audio_owner::Role::CALL;
 #endif
   camera.stream.opened(live_view::open(url, live_area(), live_view::Look{}, live_view::has_speaker(), role));
   if (camera.stream.live) {
@@ -12285,6 +12321,9 @@ inline void camera_request(const std::string &entity, int size, uint32_t backgro
   // A ring's picture fills the room beside its keys.
   if (doorbell::shown() && camera_map_index < 0 && !saver_camera) { glass_w = doorbell::area().w; glass_h = doorbell::area().h; }
 #endif
+#ifdef SD_MOD_CALL
+  if (call::shown() && camera_map_index < 0 && !saver_camera) { glass_w = call::area().w; glass_h = call::area().h; }
+#endif
   const int scale = picture_store::fit_scale(glass_w, glass_h, cap);
   q.w = place.w = std::max(1, picture_store::scaled(glass_w, scale));
   q.h = place.h = std::max(1, picture_store::scaled(glass_h, scale));
@@ -12353,6 +12392,9 @@ inline void camera_close() {
   if (!camera_root) return;
 #ifdef SD_MOD_DOORBELL
   doorbell::closing();  // a ring's view says how it ended
+#endif
+#ifdef SD_MOD_CALL
+  call::closing();
 #endif
   // A live picture stops first: nothing of it writes the glass once LVGL draws the page there again.
   live_view::close(camera.stream.handle);
@@ -12596,6 +12638,16 @@ inline void camera_open(const std::string &entity, const std::string &name, int 
     lv_obj_set_style_arc_color(camera_spinner, theme::color(on_page ? theme::TRACK : theme::CAMERA_TRACK), LV_PART_MAIN);
     lv_obj_center(camera_spinner);
   }
+#ifdef SD_MOD_CALL
+  // A call (module call): its keys and its other screen, on the same view.
+  if (call::shown()) {
+    call::build(camera_root, name);
+    camera_name = name;
+    if (!call::link().empty()) camera_link_now(call::link());
+    pictures_round();
+    return;
+  }
+#endif
 #ifdef SD_MOD_DOORBELL
   // A ring (module doorbell): the doorbell's own header and keys instead of the back key and the name.
   if (doorbell::shown()) {
@@ -12755,6 +12807,9 @@ inline void camera_tick() {
   pressure_tick(esphome::millis());
 #ifdef SD_MOD_DOORBELL
   doorbell::tick(esphome::millis());  // its chime, how long ago it rang, the close of a ring nobody answered
+#endif
+#ifdef SD_MOD_CALL
+  call::tick(esphome::millis());  // its ring, its timer, the end shown for a moment
 #endif
   pictures_collect();  // copies no card shows any more, and the oldest over the budget
   live_tiles_round();
