@@ -1518,6 +1518,7 @@ font:
       - "\U000F0150" # clock-outline
       - "\U000F0493" # cog
       - "\U000F034E" # map-marker
+      - "\U000F03F2" # phone
       - "\U000F0054" # arrow-right
       - "\U000F0E4F" # lightbulb-off
       - "\U000F16A7" # robot-off

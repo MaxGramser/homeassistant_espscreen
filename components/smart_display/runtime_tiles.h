@@ -6261,7 +6261,12 @@ inline void event(lv_event_t *event) {
   auto &tile = model.tiles[w.index];
   auto d = tile.domain();
 #ifdef SD_MOD_CALL
-  if (tile.is_call()) { call::open_list(); return; }
+  if (tile.is_call()) {
+    // Set to one screen, a tap calls it; else the list.
+    if (tile.call_to.empty()) call::open_list();
+    else call::dial(tile.call_to, !tile.call_sound_only);
+    return;
+  }
 #endif
   // A tap set to a plugin's tap action (docs/PLUGINS.md): a short tap runs it, through the guard every tap passes; a
   // hold still opens the tile's own card. A screen without that plugin does nothing on the tap.
@@ -8791,7 +8796,7 @@ inline void render_slot(size_t slot) {
   // Nothing in Home Assistant stands behind a built-in card, so it says its own line with the link down too.
   else if (t.is_settings() || t.is_page() || t.is_call())
     value = set_by_hand ? chosen
-          : t.is_settings() ? std::string(tr(txt::tile_tap_to_open))
+          : t.is_settings() || t.is_call() ? std::string(tr(txt::tile_tap_to_open))
           : fill(txt::tile_page, "n", t.page_target());
   else if (!fresh() || !t.available()) value = tr(txt::ha_unavailable);
   else if (refused) value = tr(t.unanswered ? txt::tile_no_answer : txt::tile_refused);
@@ -11143,11 +11148,13 @@ inline void call_reports(std::function<void(const std::string &, const std::stri
   (void) report;
 #endif
 }
-template<class Speaker> inline void call_audio(Speaker *speaker) {
+template<class Speaker> inline void call_audio(Speaker *speaker, std::function<float()> volume_get, std::function<void(float)> volume_set) {
 #ifdef SD_MOD_CALL
   call::bind_speaker(speaker);
+  call::volume_get = std::move(volume_get);
+  call::volume_set = std::move(volume_set);
 #else
-  (void) speaker;
+  (void) speaker; (void) volume_get; (void) volume_set;
 #endif
 }
 inline void doorbell_reports(std::function<void(const std::string &, const std::string &)> report) {

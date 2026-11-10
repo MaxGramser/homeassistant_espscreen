@@ -24,6 +24,8 @@ namespace runtime_tiles {
 namespace call {
 
 std::function<void(const std::string &, const std::string &, bool, const std::string &)> report;
+std::function<float()> volume_get;
+std::function<void(float)> volume_set;
 
 namespace {
 const char *const TAG = "call";
@@ -60,12 +62,16 @@ void say(const char *action, const std::string &to = "", bool video = false) {
 esphome::speaker::Speaker *speaker_out = nullptr;
 tessera::SoundPlayer player;
 tessera::Sound ring_sound;
+// The DAC's one volume is the media player's: a screen at half volume rang too softly to hear (2026-11-10). It rings at least
+// at this volume, and goes back to its own when the ring ends.
+constexpr float RING_VOLUME = 1.0f;
+float ring_volume_restore = -1.0f;
 roomy::List<int16_t> ring_samples;
 void make_ring() {
-  // Two bursts of a bright two-tone ring, made once at 16 kHz. Bright on purpose: 523 Hz at a quarter of full scale could
-  // not be heard from a reTerminal D1001's small speaker at half volume (2026-11-10).
+  // Two bursts of a bright two-tone ring at full scale, made once at 16 kHz. Bright on purpose: these small speakers carry 1.4 to
+  // 1.9 kHz best, and 523 Hz at a quarter of full scale could not be heard at half volume (a reTerminal D1001, 2026-11-10).
   constexpr int RATE = 16000;
-  constexpr float LENGTH = 1.1f, LOW = 880.0f, HIGH = 1320.0f, BURST = 0.42f, GAP = 0.56f;
+  constexpr float LENGTH = 1.1f, LOW = 1400.0f, HIGH = 1900.0f, BURST = 0.42f, GAP = 0.56f;
   ring_samples.assign(static_cast<size_t>(LENGTH * RATE), 0);
   for (size_t i = 0; i < ring_samples.size(); ++i) {
     const float t = static_cast<float>(i) / RATE;
@@ -73,12 +79,17 @@ void make_ring() {
     if (u > BURST) continue;
     const float edge = std::min(std::min(u, BURST - u) / 0.012f, 1.0f);
     const float s = std::sin(2.0f * static_cast<float>(M_PI) * LOW * t) + std::sin(2.0f * static_cast<float>(M_PI) * HIGH * t);
-    ring_samples[i] = static_cast<int16_t>(edge * s * 0.42f * 32767.0f);
+    ring_samples[i] = static_cast<int16_t>(edge * s * 0.49f * 32767.0f);
   }
   ring_sound.data = reinterpret_cast<const uint8_t *>(ring_samples.data());
   ring_sound.length = ring_samples.size() * sizeof(int16_t);
   ring_sound.rate = RATE;
   ring_sound.channels = 1;
+}
+void ring_stop() {
+  player.stop();
+  if (ring_volume_restore >= 0.0f && volume_set) volume_set(ring_volume_restore);
+  ring_volume_restore = -1.0f;
 }
 void ring_once() {
   if (!speaker_out) { ESP_LOGW(TAG, "no speaker for the ring"); return; }
@@ -88,6 +99,7 @@ void ring_once() {
 }
 #else
 void ring_once() {}
+void ring_stop() {}
 #endif
 
 void claim_audio() {
@@ -471,6 +483,7 @@ void on_contacts(const std::string &text_rows, bool append, bool more) {
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
              const std::string &new_link, const std::string &talk, bool films, const std::string &why) {
   ESP_LOGI(TAG, "%s %s", state.c_str(), name.c_str());
+  if (state != "ring") ring_stop();
   if (state == "end") {
     if (call_key != key && !key.empty() && stage == Stage::NONE && why.empty()) return;
     call_key = key;
@@ -499,6 +512,12 @@ void on_call(const std::string &state, const std::string &key, const std::string
     close_list();
     stage = Stage::RING;
     last_ring = 0;
+#ifdef USE_SPEAKER
+    if (volume_get && volume_set && ring_volume_restore < 0.0f) {
+      ring_volume_restore = volume_get();
+      if (ring_volume_restore < RING_VOLUME) volume_set(RING_VOLUME);
+    }
+#endif
     show_ring();
     claim_audio();
   } else if (state == "live") {
@@ -591,6 +610,7 @@ void tick(uint32_t now) {
   }
 }
 
+void dial(const std::string &to, bool video) { say("dial", to, video); }
 void bench_dial(const std::string &to, bool video) { say("dial", to, video); }
 void bench_answer() { say("answer"); }
 void bench_end() { say(stage == Stage::RING ? "decline" : stage == Stage::OUT ? "cancel" : "end"); }

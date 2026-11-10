@@ -2557,6 +2557,17 @@
         "suggest_hint": "Tijdens het typen biedt het toetsenbord aan wat eerder is afgevinkt; een tik zet het terug op de lijst",
         "clear": "Afgevinkte verwijderen",
         "clear_hint": "Een knop in de lijst verwijdert alles wat is afgevinkt, na een vraag"
+      },
+      "call": {
+        "section": "Bellen",
+        "who": "Belt",
+        "who_hint_all": "Een tik opent de lijst met schermen.",
+        "who_hint_one": "Een tik belt dit scherm meteen.",
+        "everyone": "Kiezen uit de lijst",
+        "kind": "Soort gesprek",
+        "kind_hint": "Video vraagt een camera op beide schermen, anders wordt het een gesprek met geluid.",
+        "video": "Video waar het kan",
+        "sound": "Alleen geluid"
       }
     },
     "precision": {

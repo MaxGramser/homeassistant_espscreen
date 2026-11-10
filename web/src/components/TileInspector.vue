@@ -105,6 +105,11 @@ const mapTile = computed(() => props.tile.entity === "screen.map");
 const energyTile = computed(() => props.tile.entity === "screen.energy");
 // The template tile (docs/TEXT_TILE.md) is its template: no face, second line or tap to choose, its field in a section of its own.
 const textTile = computed(() => props.tile.entity === "screen.text");
+// The Call tile (docs/CALLS.md): whom it calls and how.
+const callTile = computed(() => props.tile.entity === "screen.call");
+const callChoices = computed<[string, string][]>(() => [["", t("editor.tile.call.everyone")],
+  ...inv.inventory.screens.filter((s) => s.call_tiles && s.id !== scr.currentScreen?.id && s.node).map((s) => [s.node as string, s.name] as [string, string])]);
+const callKinds = computed<[string, string][]>(() => [["video", t("editor.tile.call.video")], ["sound", t("editor.tile.call.sound")]]);
 // A calendar card (firmware 0.56.0) draws its own head and what its room allows: no face or second line to choose, its
 // choices in a section of their own. As a bedside clock's key it is a key like any other.
 const calendarCard = computed(() => domain.value === "calendar" && !key.value);
@@ -275,6 +280,14 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
 
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
     <template v-if="!ui.phone || more">
+    <Section v-if="callTile" :title="t('editor.tile.call.section')">
+      <PropRow :label="t('editor.tile.call.who')" icon="phone" :hint="current('call_to', '') ? t('editor.tile.call.who_hint_one') : t('editor.tile.call.who_hint_all')">
+        <UiSelect :model-value="String(current('call_to', ''))" :options="callChoices" :aria-label="t('editor.tile.call.who')" @update:model-value="(v) => setTileOption(tile, 'call_to', v || undefined)" />
+      </PropRow>
+      <PropRow :label="t('editor.tile.call.kind')" icon="video" :hint="t('editor.tile.call.kind_hint')">
+        <UiSelect :model-value="String(current('call_kind', 'video'))" :options="callKinds" :aria-label="t('editor.tile.call.kind')" @update:model-value="(v) => setTileOption(tile, 'call_kind', v === 'video' ? undefined : v)" />
+      </PropRow>
+    </Section>
     <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard && !textTile" :title="t('editor.tile.sections.look')">
       <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">

@@ -29,7 +29,7 @@ APPEARANCE = {
     "mapFollow": "follow", "mapMarkers": "markers", "mapNames": "names", "mapZones": "zones", "mapStreets": "streets",
     "mapLook": "look",
     # How the energy card shows power along a line: running dots or calm lines (catalogue/screen.yaml `energy`).
-    "energyFlow": "flow",
+    "callTo": "call_to", "callKind": "call_kind", "energyFlow": "flow",
     # The template tile (docs/TEXT_TILE.md): its template, as typed. Home Assistant renders it; it never reaches a screen.
     "textTemplate": "template",
     # A calendar card (firmware 0.56.0, calendar_feed.py): its look, its calendars and filters, how far it looks, when an

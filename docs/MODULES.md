@@ -65,6 +65,9 @@ the add-on and the editor offer a module's options only on boards that have it.
   and a brightness (docs/LIGHT_PRESETS.md, `module_light_presets.h`). Its screens say `light_presets` in their hello and
   ESP Screens sends them the controls `presets` and `brightness_presets`; the editor offers them where `boards.json`
   lists the module, and lite draws the brightness slider.
+- **call** (full): calls between screens (docs/CALLS.md, `module_call.cpp` with its header). Its screens say `call` in their hello
+  when they stream and have a microphone and a speaker, and ESP Screens sends them the ops `call` and `contacts`; the Call tile
+  `screen.call` is offered where `boards.json` lists the module.
 - **doorbell** (full): a doorbell's ring (the event `esp_screens_doorbell`) opens its camera full screen, live with its
   sound and a chime (docs/DOORBELL.md, `module_doorbell.cpp` with its header). Its screens say `doorbell` in their hello
   when they stream (a P4), and ESP Screens sends them the op `doorbell`; every other screen gets the camera's alert.

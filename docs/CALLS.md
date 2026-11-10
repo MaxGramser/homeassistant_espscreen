@@ -1,6 +1,6 @@
 # Calls between screens
 
-Work in progress: this document grows with the steps it describes. A call is a screen's camera and microphone to another
+A call is a screen's camera and microphone to another
 screen's glass and speaker, both ways, through the add-on. The doorbell's Talk is the first user of the same voice path
 (docs/DOORBELL.md).
 
@@ -43,3 +43,27 @@ far speaker (a D1001 to a Guition 10.1, 2026-11-10):
 
 The network cuts a voice where it likes, also inside a sample (6 of 1334 pieces in one call). One odd byte handed on turns
 everything after it into noise, so `talk_bridge.Voice` passes on whole parts of 20 ms only.
+
+## Signalling
+
+The add-on holds every call (`calls.py`, pure and tested without Home Assistant): one call a screen, busy, a ring nobody answers
+is missed after 45 s, both ends gone, a doorbell's ring goes first (the call is held and comes back). A screen says what a finger
+did with the event `esphome.screen_call` (`action`: list, dial, cancel, answer, decline, end, camera, mic; `to`, `video`, `key`).
+The add-on answers with the op `call` (`s`: out, ring, live, held, end) and the list with the op `contacts`, in parts of twelve
+rows so a house of thirty screens fits. Home Assistant gets one event per call: `esp_screens_call_started`, `_answered`,
+`_missed` and `_ended` (from, to, video, seconds).
+
+## The Call tile
+
+`screen.call`, on a board with the module `call`. In its inspector: **Calls**, the list of screens or one screen that a tap calls at
+once, and **Kind of call**, video where both ends can or sound only.
+
+## Echo
+
+While one side speaks the other side's microphone goes down by 18 dB, for a quarter of a second after the last word (`calls.VoiceSwitch`).
+A screen that cancels echo itself (`echo_cancel` in its capabilities) is left alone. The doorbell's Talk is always switched.
+
+## The ring
+
+The screen rings on its own speaker, at full volume whatever its volume is set to, and goes back to its volume when the ring
+ends. 1.4 and 1.9 kHz: what these small speakers carry best.

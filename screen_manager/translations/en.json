@@ -2561,6 +2561,17 @@
         "suggest_hint": "While typing, the keyboard offers what was ticked off before; a tap puts it back on the list",
         "clear": "Remove completed",
         "clear_hint": "A key in the list removes everything that is ticked off, after asking"
+      },
+      "call": {
+        "section": "Call",
+        "who": "Calls",
+        "who_hint_all": "A tap opens the list of screens.",
+        "who_hint_one": "A tap calls this screen at once.",
+        "everyone": "Choose from the list",
+        "kind": "Kind of call",
+        "kind_hint": "Video needs a camera on both screens, otherwise it is a call with sound.",
+        "video": "Video where possible",
+        "sound": "Sound only"
       }
     },
     "precision": {

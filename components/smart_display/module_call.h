@@ -23,6 +23,9 @@ namespace call {
 // Bound at boot (packages/core.yaml): what a finger did goes to ESP Screens (esphome.screen_call).
 extern std::function<void(const std::string &action, const std::string &to, bool video, const std::string &key)> report;
 void bind_speaker(esphome::speaker::Speaker *speaker);
+// The media player's volume, which is the DAC's: a ring is at least loud enough to hear (packages/features/audio-player.yaml).
+extern std::function<float()> volume_get;
+extern std::function<void(float)> volume_set;
 
 // The op `call` (state out, ring, live, held, end) and the op `contacts`: the list, as a JSON text of rows, in parts
 // for a house with many screens (`append` a later part, `more` a part still to come).
@@ -31,6 +34,8 @@ void on_call(const std::string &state, const std::string &key, const std::string
 void on_contacts(const std::string &rows, bool append, bool more);
 // The Call tile's tap.
 void open_list();
+// A Call tile set to one screen: straight to calling it.
+void dial(const std::string &to, bool video);
 // The bench's stand-ins for a finger (a diagnostic action in a bench's own YAML).
 void bench_dial(const std::string &to, bool video);
 void bench_answer();

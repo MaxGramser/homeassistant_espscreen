@@ -776,6 +776,8 @@ struct Tile {
   bool is_clock() const { return entity == "screen.clock"; }
   bool is_settings() const { return entity == "screen.settings"; }
   bool is_call() const { return entity == "screen.call"; }
+  std::string call_to;           // a screen's node: a tap calls it at once; empty: a tap opens the list
+  bool call_sound_only = false;
   // The bedside clock (firmware 0.8.0+): the time as large as the page allows, with its keys under it.
   bool is_bedside() const { return entity == "screen.nightstand"; }
   // A navigation tile (screen.page_<n>, firmware 0.2.62+) and the page it goes to, counted from one.

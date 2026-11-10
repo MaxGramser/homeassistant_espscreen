@@ -28,6 +28,9 @@ export type TileOptions = {
   icon?: string;
   background?: string;
   history_hours?: number;
+  // The Call tile (docs/CALLS.md): a screen's node, none for the list; video where it can, or sound only.
+  call_to?: string;
+  call_kind?: string;
   action?: { action: string; data?: Record<string, unknown> };
   // The template tile's template (docs/TEXT_TILE.md, text_tile.py): Home Assistant renders it, the screen gets rows.
   template?: string;
@@ -112,6 +115,8 @@ export type PageTile = {
   appearance: { label: string; presentation?: "single" | "wide" | "tall" | "square" | "full" | `${number}x${number}`; display?: string; icon?: string; background?: string; historyHours?: number; refresh?: number; subtitle?: string; fit?: string; overlay?: string;
     mapEntities?: string[]; mapFraming?: string; mapDistance?: string; mapFollow?: string; mapMarkers?: string; mapNames?: string;
     mapZones?: string; mapStreets?: string; mapLook?: string; energyFlow?: string;
+    // The Call tile: whom it calls and how (docs/CALLS.md).
+    callTo?: string; callKind?: string;
     // The template tile's template (docs/TEXT_TILE.md): TileOptions' template.
     textTemplate?: string;
     // A calendar card's choices (firmware 0.56.0): TileOptions' style, calendars, places, words, hide_words, all_day,
