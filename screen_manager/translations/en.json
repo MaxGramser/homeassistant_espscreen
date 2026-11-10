@@ -1500,7 +1500,8 @@
         "page": "Go to page {page}",
         "map": "Map",
         "energy": "Energy",
-        "text": "Template"
+        "text": "Template",
+        "call": "Call"
       },
       "identify": {
         "title": "This is {name}",

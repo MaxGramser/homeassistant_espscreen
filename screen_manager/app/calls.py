@@ -7,10 +7,13 @@ A screen is in at most one call. A ring nobody answers is missed after RING_SECO
 first: the call is held, muted on both ends, and comes back when the ring's view closes. When the add-on starts, no call
 is left: both ends of whatever a screen thinks it is in hear `end` (`Calls.forget`).
 """
+import array
 from dataclasses import dataclass
+import math
 import secrets
 
 RING_SECONDS = 45
+TILE, FEATURE, FIRMWARE = 'screen.call', 'call', '0.62.0'  # the first firmware with the module call
 ROWS_A_MESSAGE, NAME_MOST = 12, 32
 
 # What a screen is shown (the op `call`'s `s`).
@@ -176,6 +179,51 @@ class Calls:
 
     def seen(self, node):
         return self.missed.pop(node, None) is not None
+
+
+# Voice switching (docs/CALLS.md): while one side speaks the other side's microphone goes down by about 18 dB, so a voice does
+# not come back from the other loudspeaker; a screen with an echo canceller of its own needs none of it.
+HOLD_SECONDS, DUCK, FLOOR = 0.25, 0.125, 380
+
+
+def rms(samples):
+    return math.sqrt(sum(v * v for v in samples) / len(samples)) if samples else 0.0
+
+
+def scaled(data, gain, end=None):
+    """16-bit samples at `gain`, moving to `end` over the part (no clicks where the level changes)."""
+    samples = array.array('h')
+    samples.frombytes(bytes(data))
+    end = gain if end is None else end
+    n = max(1, len(samples))
+    return array.array('h', (int(v * (gain + (end - gain) * i / n)) for i, v in enumerate(samples))).tobytes()
+
+
+class VoiceSwitch:
+    """One call's two microphones. `feed(node, part, now)` is the part as it should go on. The one who speaks first holds the
+    line until HOLD_SECONDS after their last word; a side with its own echo canceller (`cancels`) is never turned down."""
+
+    def __init__(self, a, b, cancels=()):
+        self.nodes, self.cancels = (a, b), set(cancels)
+        self.last, self.noise, self.gain = {a: 0.0, b: 0.0}, {a: FLOOR, b: FLOOR}, {a: 1.0, b: 1.0}
+        self.talker = None
+
+    def feed(self, node, data, now):
+        samples = array.array('h')
+        samples.frombytes(bytes(data))
+        level = rms(samples)
+        # The room's own level follows quickly down and slowly up, so a voice never raises it.
+        self.noise[node] = min(level, self.noise[node] * 1.01) if level < self.noise[node] else self.noise[node] * 1.003
+        loud = level > max(FLOOR, self.noise[node] * 3)
+        if loud:
+            self.last[node] = now
+        if self.talker is None or now - self.last[self.talker] > HOLD_SECONDS:
+            self.talker = node if loud else None
+        held = self.talker is not None and self.talker != node and node not in self.cancels
+        target = DUCK if held else 1.0
+        out = scaled(data, self.gain[node], target) if self.gain[node] != 1.0 or target != 1.0 else bytes(data)
+        self.gain[node] = target
+        return out
 
 
 def contacts_messages(rows):

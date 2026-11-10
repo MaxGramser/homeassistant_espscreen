@@ -55,6 +55,7 @@ WEBRTC_RETRY_SECONDS = 60  # a camera on its snapshots while watched tries WebRT
 LAG_REPORT_SECONDS = 60   # how often a camera's WebRTC pictures say how far behind the camera they are (Lag)
 STILL_SECONDS = 2          # the camera's still, again this often, until WebRTC's first frame (the screen's
                            # live_view::QUIET_MS closes a stream silent for 6 s)
+DOOR_VOICE = 12           # of the high byte of a 16-bit sample: louder than this, someone speaks there
 SOUND_RATE = 16000        # a full view's sound: 16-bit mono at this rate (the board's resampler makes it its bus's)
 # A camera with a stream of its own (CameraEntityFeature.STREAM, by its name in Home Assistant's source).
 STREAM_FEATURE = catalogue.bits('camera', 'STREAM')
@@ -289,6 +290,7 @@ class Source:
         self.watch, self.stills = None, 0  # the frame watch of its WebRTC pictures; the stills among them
         self.webrtc_tries = 0  # WebRTC sessions that gave no frame since it last did, while watched (run)
         self.snapshots_since = None  # when its snapshots took over from WebRTC
+        self.loud_at = 0.0  # when its sound last held a voice (the Talk key turns the screen's microphone down meanwhile)
 
     def mark(self, what):
         self.marks.setdefault(what, time.monotonic() - self.started)
@@ -569,6 +571,8 @@ class Source:
             self.resampler = av.AudioResampler(format='s16', layout='mono', rate=SOUND_RATE)
         for out in self.resampler.resample(frame):
             data = bytes(out.planes[0])[:out.samples * 2]
+            if len(data) >= 2 and max(data[1::2]) > DOOR_VOICE and min(data[1::2]) < 256 - DOOR_VOICE:
+                self.loud_at = time.monotonic()  # someone speaks at the door (voice switching, docs/CALLS.md)
             for queue in list(self.listeners):
                 if queue.full():
                     queue.get_nowait()

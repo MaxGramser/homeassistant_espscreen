@@ -1496,7 +1496,8 @@
         "page": "Ga naar pagina {page}",
         "map": "Kaart",
         "energy": "Energie",
-        "text": "Template"
+        "text": "Template",
+        "call": "Bellen"
       },
       "identify": {
         "title": "Dit is {name}",

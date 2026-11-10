@@ -72,7 +72,7 @@ const query = computed(() => ui.search.trim().toLocaleLowerCase());
 // What the search and the hide switch leave over (model/library.ts). The picker offers what a tile can show; camera and
 // image tiles need a board that draws pictures (app 0.2.66).
 const entries = computed(() => [...pluginEntries.value, ...(inv.inventory.builtin || []), ...inv.inventory.entities]);
-const filterNow = computed<LibraryFilter>(() => ({ query: query.value, pages: pagesOffered.value, pictures: scr.pictures, textTiles: Boolean(scr.currentScreen?.text_tiles), todoLists: Boolean(scr.currentScreen?.todo_lists), hidePlaced: ui.hidePlaced, counts: chosen.value }));
+const filterNow = computed<LibraryFilter>(() => ({ query: query.value, pages: pagesOffered.value, pictures: scr.pictures, textTiles: Boolean(scr.currentScreen?.text_tiles), callTiles: Boolean(scr.currentScreen?.call_tiles), todoLists: Boolean(scr.currentScreen?.todo_lists), hidePlaced: ui.hidePlaced, counts: chosen.value }));
 const base = computed(() => libraryBase(entries.value, filterNow.value));
 const pool = computed(() => base.value.filter((e) => !ui.room || e.area === ui.room));
 const matches = computed(() => libraryMatches(pool.value, ui.filter, query.value));

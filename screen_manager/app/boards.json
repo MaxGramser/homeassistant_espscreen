@@ -66,6 +66,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -376,6 +377,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -490,6 +492,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -726,6 +729,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -866,6 +870,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -997,6 +1002,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1137,6 +1143,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1277,6 +1284,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1417,6 +1425,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1557,6 +1566,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1688,6 +1698,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1829,6 +1840,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -1950,6 +1962,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2061,6 +2074,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2207,6 +2221,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2349,6 +2364,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2470,6 +2486,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2586,6 +2603,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2717,6 +2735,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2848,6 +2867,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -2979,6 +2999,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3110,6 +3131,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3241,6 +3263,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3372,6 +3395,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3514,6 +3538,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3656,6 +3681,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3798,6 +3824,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -3929,6 +3956,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -4068,6 +4096,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -4378,6 +4407,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -4492,6 +4522,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -4728,6 +4759,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -4868,6 +4900,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -4999,6 +5032,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -5139,6 +5173,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -5279,6 +5314,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -5419,6 +5455,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -5559,6 +5596,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -5690,6 +5728,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -5829,6 +5868,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -6139,6 +6179,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -6253,6 +6294,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -6489,6 +6531,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -6629,6 +6672,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -6760,6 +6804,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -6900,6 +6945,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7040,6 +7086,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7180,6 +7227,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7320,6 +7368,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7451,6 +7500,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7592,6 +7642,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7713,6 +7764,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7824,6 +7876,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -7970,6 +8023,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8112,6 +8166,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8233,6 +8288,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8349,6 +8405,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8480,6 +8537,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8611,6 +8669,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8742,6 +8801,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -8873,6 +8933,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9004,6 +9065,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9135,6 +9197,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9277,6 +9340,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9419,6 +9483,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9561,6 +9626,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9692,6 +9758,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9833,6 +9900,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -9954,6 +10022,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10065,6 +10134,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10211,6 +10281,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10353,6 +10424,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10474,6 +10546,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10590,6 +10663,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10721,6 +10795,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10852,6 +10927,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -10983,6 +11059,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11114,6 +11191,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11245,6 +11323,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11376,6 +11455,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11518,6 +11598,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11660,6 +11741,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11802,6 +11884,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"
@@ -11933,6 +12016,7 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
    "light_presets",
    "todo"

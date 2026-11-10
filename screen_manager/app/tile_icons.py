@@ -483,7 +483,7 @@ DEFAULTS = {'light': 'lightbulb', 'climate': 'air-conditioner', 'humidifier': 'a
             'cover': 'window-shutter', 'scene': 'sofa', 'script': 'sofa', 'automation': 'robot', 'remote': 'remote', 'sensor': 'gauge', 'binary_sensor': 'gauge',
             'timer': 'timer-outline', 'person': 'account', 'camera': 'cctv', 'image': 'cctv', 'screen': 'clock-outline'}
 # The cards the screen brings itself: one icon per entity, not per domain.
-BUILTIN_TILES = {'screen.clock': 'clock-outline', 'screen.settings': 'cog', 'screen.map': 'map-marker', **{f'screen.page_{n}': 'arrow-right' for n in range(1, 9)}}
+BUILTIN_TILES = {'screen.clock': 'clock-outline', 'screen.settings': 'cog', 'screen.map': 'map-marker', 'screen.call': 'phone', **{f'screen.page_{n}': 'arrow-right' for n in range(1, 9)}}
 # The energy card's icon (app 0.4.77), Home Assistant's Energy panel's, and the template tile's (app 0.4.9x): never drawn big, since the card is its diagram (or its text) on
 # every size, so it stays out of the big icon font.
 DIAGRAM_TILES = {'screen.energy': 'lightning-bolt', 'screen.text': 'format-list-bulleted'}

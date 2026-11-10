@@ -300,13 +300,14 @@ class Links:
         self.links = {}   # token -> {'entity', 'screen', 'made'}
         self.talking = {}  # entity -> token
 
-    def link(self, entity, screen=None, into=None):
-        """A token for one screen's voice: to `entity`'s speaker, or with `into` (bytes) to wherever a call says."""
+    def link(self, entity, screen=None, into=None, turned=None):
+        """A token for one screen's voice: to `entity`'s speaker, or with `into` (bytes) to wherever a call says; `turned`
+        changes the level of what comes in first (voice switching)."""
         now = self.clock()
         for token in [t for t, item in self.links.items() if now - item['made'] > LINK_SECONDS]:
             del self.links[token]
         token = secrets.token_urlsafe(18)
-        self.links[token] = {'entity': entity, 'screen': screen, 'made': now, 'into': into}
+        self.links[token] = {'entity': entity, 'screen': screen, 'made': now, 'into': into, 'turned': turned}
         return token
 
     def busy(self, token):
@@ -347,8 +348,9 @@ class Links:
             response = web.StreamResponse(headers={'Content-Type': 'text/plain', 'Connection': 'close'})
             await response.prepare(request)
             await response.write(b'live\n')
+            turned = self.links[token].get('turned')  # a doorbell's own voice turns this one down (voice switching)
             async for data in request.content.iter_any():
-                talk.feed(data)
+                talk.feed(turned(data) if turned else data)
                 total += len(data)
             await response.write_eof()
             return response

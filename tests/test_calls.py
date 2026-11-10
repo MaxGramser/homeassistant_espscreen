@@ -161,3 +161,45 @@ def test_the_ones_that_can_be_called_come_first():
                'b': {'name': 'Attic', 'online': False},
                'c': {'name': 'Zolder', 'hears': True, 'speaks': True, 'online': True}}
     assert [row['id'] for row in c.contacts('a', screens)] == ['c', 'b']
+
+
+def tone(level, parts=1):
+    import array
+    return array.array('h', [level if i % 2 else -level for i in range(320)]).tobytes() * parts
+
+
+def level_of(data):
+    import array
+    samples = array.array('h')
+    samples.frombytes(data)
+    return calls.rms(samples)
+
+
+def test_the_one_who_speaks_holds_the_line_and_the_other_goes_down():
+    s = calls.VoiceSwitch('a', 'b')
+    assert level_of(s.feed('a', tone(5000), 0.0)) > 4900
+    s.feed('b', tone(3000), 0.02)        # the voice coming back from the other loudspeaker
+    assert level_of(s.feed('b', tone(3000), 0.04)) < 3000 * calls.DUCK * 1.1
+    assert level_of(s.feed('a', tone(5000), 0.06)) > 4900
+
+
+def test_after_the_hold_the_other_may_speak():
+    s = calls.VoiceSwitch('a', 'b')
+    s.feed('a', tone(5000), 0.0)
+    s.feed('a', tone(10), 0.1)
+    s.feed('b', tone(3000), 0.5)
+    assert s.talker == 'b'
+    assert level_of(s.feed('b', tone(3000), 0.52)) > 2900
+
+
+def test_a_side_with_its_own_canceller_is_never_turned_down():
+    s = calls.VoiceSwitch('a', 'b', cancels=['b'])
+    s.feed('a', tone(5000), 0.0)
+    assert level_of(s.feed('b', tone(3000), 0.02)) > 2900
+
+
+def test_the_rooms_noise_is_no_voice():
+    s = calls.VoiceSwitch('a', 'b')
+    for n in range(40):
+        s.feed('a', tone(200), n * 0.02)
+    assert s.talker is None

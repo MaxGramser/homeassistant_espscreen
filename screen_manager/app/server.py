@@ -1194,6 +1194,7 @@ class Manager:
         self.doorbells = doorbell.Doorbells()
         self.calls = calls.Calls()
         self.call_cameras_off = set()  # nodes in a call whose camera is off
+        self.call_switches = {}        # the voice switch of each call that is up, by its key
         screen_source.provider = self.call_rtsp
         self.store = LayoutStore(self.path, self.record_grid)
         # An app from before Language & region (app 0.2.90): its screens keep the 24 hours they show, until Home Assistant
@@ -2892,6 +2893,10 @@ class Manager:
         # A to-do tile: a screen whose hello names todo_card (module todo, a full-tier build) draws it.
         if sender is not None and getattr(sender, 'features', None) is not None and todo_feed.unsupported(layout.get('tiles', []), sender.features):
             return todo_feed.FIRMWARE
+        # The Call tile: a screen whose hello names call (module call, a P4 with a microphone and a speaker) draws it.
+        if sender is not None and getattr(sender, 'features', None) is not None and calls.FEATURE not in sender.features and \
+                any(tile.get('entity') == calls.TILE for tile in layout.get('tiles', [])):
+            return calls.FIRMWARE
         return None
 
     def save(self, inbox, data):
@@ -4335,7 +4340,16 @@ class Manager:
         if not (self.caps_of_screen(screen) or {}).get('microphone') or not talks:
             return None
         base = await self.link_base(screen)
-        return f'{base}/camera/{self.talks.link(camera, screen=screen["id"])}/talk' if base else None
+        return f'{base}/camera/{self.talks.link(camera, screen=screen["id"], turned=self.door_switch(camera))}/talk' if base else None
+
+    def door_switch(self, camera):
+        """The doorbell's Talk is always switched: while someone speaks at the door the screen's microphone goes down, so the
+        doorbell's own echo does not come back (docs/CALLS.md)."""
+        def turned(data):
+            source = self.live.sources.get(camera)
+            recent = source is not None and time.monotonic() - source.loud_at < calls.HOLD_SECONDS
+            return calls.scaled(data, calls.DUCK) if recent else data
+        return turned
 
     async def camera_talks(self, camera):
         """Whether Home Assistant offers two-way audio for `camera`; False on an older Home Assistant, whose camera/capabilities
@@ -4573,6 +4587,8 @@ class Manager:
             if isinstance(out, calls.Fire):
                 await self.ha.fire(out.event, out.data)
                 continue
+            if out.state == calls.END:
+                self.call_switches.pop(out.key, None)
             mine = known.get(out.node)
             if not mine:
                 continue
@@ -4587,17 +4603,24 @@ class Manager:
                     message['l'] = f'{base}/camera/{token}.mjpeg'
                     message['vd'] = int(bool(video))
                     message['pc'] = int(bool(video))
-                    talk = self.talks.link(f'call:{out.node}', screen=mine['screen']['id'], into=self.call_voice_to(out.node))
+                    talk = self.talks.link(f'call:{out.node}', screen=mine['screen']['id'], into=self.call_voice_to(out.node, out.key, known))
                     message['tk'] = f'{base}/camera/{talk}/talk'
             await self.send_auxiliary(mine['screen']['id'], message, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
 
-    def call_voice_to(self, node):
-        """Where `node`'s voice goes: to whichever stream of it the other end listens to."""
+    def call_voice_to(self, node, key, known):
+        """Where `node`'s voice goes: through the call's voice switch, to whichever stream of it the other end listens to."""
+        call = self.calls.calls.get(key)
+        if key not in self.call_switches and call:
+            cancels = [each for each in (call.caller, call.callee) if ((self.caps_of_screen(known[each]['screen']) or {}).get('echo_cancel') if each in known else False)]
+            self.call_switches[key] = calls.VoiceSwitch(call.caller, call.callee, cancels)
+        switch = self.call_switches.get(key)
+
         def feed(data):
+            part = switch.feed(node, data, time.monotonic()) if switch else data
             for entity in (screen_source.PREFIX + node, screen_source.VOICE_PREFIX + node):
                 source = self.live.sources.get(entity)
                 if source is not None:
-                    source.voice(data)
+                    source.voice(part)
         return feed
 
     async def call_report(self, data):
@@ -4851,6 +4874,7 @@ def create_app(manager, development=False):
             screen['vacuum_tile'] = has_module(screen, 'vacuum_card')
             # The template tile (docs/TEXT_TILE.md): only a board with the module text_card draws it.
             screen['text_tiles'] = has_module(screen, text_tile.FEATURE)
+            screen['call_tiles'] = has_module(screen, calls.FEATURE)  # the Call tile, on a board with the module
             # The to-do card (docs/TODO.md): only a board with the module todo (8 MB of flash or more) has it; the
             # editor offers to-do lists there only.
             screen['todo_lists'] = has_module(screen, todo_feed.MODULE)

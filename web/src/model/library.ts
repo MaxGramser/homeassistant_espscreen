@@ -40,6 +40,8 @@ export type LibraryFilter = {
   pictures: boolean;
   /** The board draws the template tile (module text_card); left out, it does not. */
   textTiles?: boolean;
+  /** The board has the module call; left out, it does not. */
+  callTiles?: boolean;
   /** The screen's board has the to-do card (boards.json `modules` has todo): to-do lists are offered there only. */
   todoLists?: boolean;
   /** Leave out what is on the screen already. */
@@ -53,6 +55,7 @@ export function libraryBase(entries: readonly Entry[], filter: LibraryFilter) {
   return entries.filter((e) => e.tile !== false && pageTarget(e.id) <= filter.pages &&
     (filter.pictures || (!["camera", "image"].includes(e.id.split(".")[0]) && e.id !== "screen.map")) &&
     (filter.textTiles || e.id !== "screen.text") &&
+    (filter.callTiles || e.id !== "screen.call") &&
     (filter.todoLists || !e.id.startsWith("todo.")) &&
     (!filter.hidePlaced || !filter.counts.has(e.id)) && matchesQuery(filter.query, e.name, e.id, e.device, e.area, e.words, filter.query && kindWords(e.id, kinds)));
 }

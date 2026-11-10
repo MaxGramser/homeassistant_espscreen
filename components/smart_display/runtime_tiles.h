@@ -81,7 +81,9 @@
 #include "module_vacuum_tile.h"
 #ifdef SD_MOD_DOORBELL
 #include "module_doorbell.h"
+#ifdef SD_MOD_CALL
 #include "module_call.h"
+#endif
 #endif
 #include "plugin_api.h"
 #include "plugin_host.h"

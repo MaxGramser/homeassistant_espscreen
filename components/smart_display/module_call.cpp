@@ -1,4 +1,4 @@
-// Calls between screens on the glass (module call, tier full; docs/CALLS.md). What module_call.h promises; compiled on its
+// Calls between screens on the glass (module call, tier full; docs/CALLS.md). What its header promises; compiled on its
 // own, as module_doorbell.cpp is. The looks follow the study of 2026-11-10: a dark ground, a disc with the screen's icon,
 // the name, and round keys; a key that is off is white with dark ink.
 #include "esphome/core/defines.h"

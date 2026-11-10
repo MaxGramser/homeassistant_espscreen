@@ -1,6 +1,6 @@
 /** The cards built into a screen, with no Home Assistant entity of their own (core.py BUILTIN, the page tiles aside). */
 export type BuiltinName = "clock" | "nightstand" | "settings" | "map" | "energy" | "text";
-export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy", "screen.text"];
+export const BUILTIN_CARDS: string[] = ["screen.clock", "screen.nightstand", "screen.settings", "screen.map", "screen.energy", "screen.text", "screen.call"];
 // A plugin tile's option as it is kept (plugin API 0.12): a text, number or toggle; a pick of a list found by searching,
 // {value, label} with the words the person saw; or a list of texts or picks (the add-on's core.plugin_options).
 // A light's preset as the tile keeps it: a brightness, a white shade in kelvin or a colour (hue, saturation), an effect
@@ -336,6 +336,8 @@ export type Screen = {
   dock?: boolean;
   // Whether its board draws the template tile (boards.json `modules` has text_card, docs/TEXT_TILE.md).
   text_tiles?: boolean;
+  /** The board has the module call: the Call tile is offered. */
+  call_tiles?: boolean;
   // Whether its board has the to-do card (boards.json `modules` has todo, docs/TODO.md): 8 MB of flash or more. The
   // library offers to-do lists there only.
   todo_lists?: boolean;
