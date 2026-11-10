@@ -205,7 +205,13 @@
       "door": "Porta",
       "door_confirm": "Tocca di nuovo per aprire",
       "door_sent": "Inviato",
-      "talk": "Parla"
+      "talk": "Parla",
+      "tap_talk": "Tocca per parlare",
+      "talking": "In conversazione",
+      "tap_stop": "Tocca per fermare",
+      "connecting": "Connessione",
+      "talk_busy": "Qualcun altro sta parlando",
+      "talk_failed": "Nessuna connessione"
     },
     "tile": {
       "tap_to_open": "Tocca per aprire",
@@ -663,6 +669,26 @@
       "waiting": "Caricamento",
       "empty": "Niente nella lista",
       "yesterday": "Ieri"
+    },
+    "call": {
+      "title": "Chiama",
+      "calling": "Chiamata in corso",
+      "calling_video": "Videochiamata in corso",
+      "video": "Videochiamata",
+      "audio": "Chiamata",
+      "decline": "Rifiuta",
+      "answer": "Rispondi",
+      "ended": "Chiamata terminata",
+      "declined": "Rifiutata",
+      "busy": "Occupato",
+      "no_answer": "Nessuna risposta",
+      "quiet": "Non disturbare",
+      "gone": "Non raggiungibile",
+      "available": "Disponibile",
+      "sound_only": "Disponibile, solo audio",
+      "in_call": "In chiamata",
+      "offline": "Offline",
+      "missed_at": "Chiamata persa"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Vai alla pagina {page}",
         "map": "Mappa",
         "energy": "Energia",
-        "text": "Modello"
+        "text": "Modello",
+        "call": "Chiama"
       },
       "identify": {
         "title": "Questo è {name}",

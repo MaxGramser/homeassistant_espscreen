@@ -205,7 +205,13 @@
       "door": "Porta",
       "door_confirm": "Toque de novo para abrir",
       "door_sent": "Enviado",
-      "talk": "Falar"
+      "talk": "Falar",
+      "tap_talk": "Toque para falar",
+      "talking": "A falar",
+      "tap_stop": "Toque para parar",
+      "connecting": "A ligar",
+      "talk_busy": "Outra pessoa está a falar",
+      "talk_failed": "Sem ligação"
     },
     "tile": {
       "tap_to_open": "Toque para abrir",
@@ -663,6 +669,26 @@
       "waiting": "A carregar",
       "empty": "Nada na lista",
       "yesterday": "Ontem"
+    },
+    "call": {
+      "title": "Ligar",
+      "calling": "A ligar",
+      "calling_video": "Videochamada a ligar",
+      "video": "Videochamada",
+      "audio": "Chamada",
+      "decline": "Recusar",
+      "answer": "Atender",
+      "ended": "Chamada terminada",
+      "declined": "Recusada",
+      "busy": "Noutra chamada",
+      "no_answer": "Sem resposta",
+      "quiet": "Não incomodar",
+      "gone": "Indisponível",
+      "available": "Disponível",
+      "sound_only": "Disponível, só som",
+      "in_call": "Em chamada",
+      "offline": "Offline",
+      "missed_at": "Chamada perdida"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Ir para a página {page}",
         "map": "Mapa",
         "energy": "Energia",
-        "text": "Modelo"
+        "text": "Modelo",
+        "call": "Ligar"
       },
       "identify": {
         "title": "Este é {name}",

@@ -205,7 +205,13 @@
       "door": "Ajtó",
       "door_confirm": "Koppints újra a nyitáshoz",
       "door_sent": "Elküldve",
-      "talk": "Beszéd"
+      "talk": "Beszéd",
+      "tap_talk": "Koppints a beszédhez",
+      "talking": "Beszéd",
+      "tap_stop": "Koppints a leállításhoz",
+      "connecting": "Kapcsolódás",
+      "talk_busy": "Valaki más beszél",
+      "talk_failed": "Nincs kapcsolat"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -663,6 +669,26 @@
       "waiting": "Betöltés",
       "empty": "Nincs semmi a listán",
       "yesterday": "Tegnap"
+    },
+    "call": {
+      "title": "Hívás",
+      "calling": "Hívás folyamatban",
+      "calling_video": "Videohívás folyamatban",
+      "video": "Videohívás",
+      "audio": "Hívás",
+      "decline": "Elutasítás",
+      "answer": "Felvétel",
+      "ended": "Hívás vége",
+      "declined": "Elutasítva",
+      "busy": "Másik hívásban",
+      "no_answer": "Nincs válasz",
+      "quiet": "Ne zavarjanak",
+      "gone": "Nem elérhető",
+      "available": "Elérhető",
+      "sound_only": "Elérhető, csak hang",
+      "in_call": "Hívásban",
+      "offline": "Offline",
+      "missed_at": "Nem fogadott hívás"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Ugrás: {page}. oldal",
         "map": "Térkép",
         "energy": "Energia",
-        "text": "Sablon"
+        "text": "Sablon",
+        "call": "Hívás"
       },
       "identify": {
         "title": "Ez itt: {name}",

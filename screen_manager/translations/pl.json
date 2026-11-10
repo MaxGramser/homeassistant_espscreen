@@ -205,7 +205,13 @@
       "door": "Drzwi",
       "door_confirm": "Dotknij ponownie, by otworzyć",
       "door_sent": "Wysłano",
-      "talk": "Mów"
+      "talk": "Mów",
+      "tap_talk": "Dotknij, aby mówić",
+      "talking": "Mówisz",
+      "tap_stop": "Dotknij, aby zakończyć",
+      "connecting": "Łączenie",
+      "talk_busy": "Ktoś inny mówi",
+      "talk_failed": "Brak połączenia"
     },
     "tile": {
       "tap_to_open": "Otwórz",
@@ -663,6 +669,26 @@
       "waiting": "Wczytywanie",
       "empty": "Nic na liście",
       "yesterday": "Wczoraj"
+    },
+    "call": {
+      "title": "Zadzwoń",
+      "calling": "Dzwonienie",
+      "calling_video": "Dzwonienie wideo",
+      "video": "Rozmowa wideo",
+      "audio": "Rozmowa",
+      "decline": "Odrzuć",
+      "answer": "Odbierz",
+      "ended": "Rozmowa zakończona",
+      "declined": "Odrzucono",
+      "busy": "Zajęty",
+      "no_answer": "Brak odpowiedzi",
+      "quiet": "Nie przeszkadzać",
+      "gone": "Niedostępny",
+      "available": "Dostępny",
+      "sound_only": "Dostępny, tylko dźwięk",
+      "in_call": "W trakcie rozmowy",
+      "offline": "Offline",
+      "missed_at": "Nieodebrane połączenie"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Przejdź do strony {page}",
         "map": "Mapa",
         "energy": "Energia",
-        "text": "Szablon"
+        "text": "Szablon",
+        "call": "Zadzwoń"
       },
       "identify": {
         "title": "To jest {name}",

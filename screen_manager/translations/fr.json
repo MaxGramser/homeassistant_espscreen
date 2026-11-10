@@ -205,7 +205,13 @@
       "door": "Porte",
       "door_confirm": "Touchez encore pour ouvrir",
       "door_sent": "Envoyé",
-      "talk": "Parler"
+      "talk": "Parler",
+      "tap_talk": "Touchez pour parler",
+      "talking": "En conversation",
+      "tap_stop": "Touchez pour arrêter",
+      "connecting": "Connexion",
+      "talk_busy": "Quelqu’un d’autre parle",
+      "talk_failed": "Pas de connexion"
     },
     "tile": {
       "tap_to_open": "Ouvrir",
@@ -663,6 +669,26 @@
       "waiting": "Chargement",
       "empty": "Rien sur la liste",
       "yesterday": "Hier"
+    },
+    "call": {
+      "title": "Appeler",
+      "calling": "Appel en cours",
+      "calling_video": "Appel vidéo en cours",
+      "video": "Appel vidéo",
+      "audio": "Appel",
+      "decline": "Refuser",
+      "answer": "Répondre",
+      "ended": "Appel terminé",
+      "declined": "Refusé",
+      "busy": "En communication",
+      "no_answer": "Pas de réponse",
+      "quiet": "Ne pas déranger",
+      "gone": "Injoignable",
+      "available": "Disponible",
+      "sound_only": "Disponible, son seul",
+      "in_call": "En communication",
+      "offline": "Hors ligne",
+      "missed_at": "Appel manqué"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Aller à la page {page}",
         "map": "Carte",
         "energy": "Énergie",
-        "text": "Modèle"
+        "text": "Modèle",
+        "call": "Appeler"
       },
       "identify": {
         "title": "Voici {name}",

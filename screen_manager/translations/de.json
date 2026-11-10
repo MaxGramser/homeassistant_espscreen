@@ -205,7 +205,13 @@
       "door": "Tür",
       "door_confirm": "Zum Öffnen erneut tippen",
       "door_sent": "Gesendet",
-      "talk": "Sprechen"
+      "talk": "Sprechen",
+      "tap_talk": "Tippen zum Sprechen",
+      "talking": "Sprechen",
+      "tap_stop": "Tippen zum Beenden",
+      "connecting": "Verbinden",
+      "talk_busy": "Jemand anderes spricht",
+      "talk_failed": "Keine Verbindung"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -663,6 +669,26 @@
       "waiting": "Laden",
       "empty": "Nichts auf der Liste",
       "yesterday": "Gestern"
+    },
+    "call": {
+      "title": "Anrufen",
+      "calling": "Ruft an",
+      "calling_video": "Videoanruf läuft",
+      "video": "Videoanruf",
+      "audio": "Anruf",
+      "decline": "Ablehnen",
+      "answer": "Annehmen",
+      "ended": "Anruf beendet",
+      "declined": "Abgelehnt",
+      "busy": "Im Gespräch",
+      "no_answer": "Keine Antwort",
+      "quiet": "Nicht stören",
+      "gone": "Nicht erreichbar",
+      "available": "Verfügbar",
+      "sound_only": "Verfügbar, nur Ton",
+      "in_call": "Im Gespräch",
+      "offline": "Offline",
+      "missed_at": "Verpasster Anruf"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Zu Seite {page}",
         "map": "Karte",
         "energy": "Energie",
-        "text": "Template"
+        "text": "Template",
+        "call": "Anrufen"
       },
       "identify": {
         "title": "Das ist {name}",

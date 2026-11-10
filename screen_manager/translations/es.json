@@ -205,7 +205,13 @@
       "door": "Puerta",
       "door_confirm": "Toca otra vez para abrir",
       "door_sent": "Enviado",
-      "talk": "Hablar"
+      "talk": "Hablar",
+      "tap_talk": "Toca para hablar",
+      "talking": "Hablando",
+      "tap_stop": "Toca para parar",
+      "connecting": "Conectando",
+      "talk_busy": "Otra persona habla",
+      "talk_failed": "Sin conexión"
     },
     "tile": {
       "tap_to_open": "Toca para abrir",
@@ -663,6 +669,26 @@
       "waiting": "Cargando",
       "empty": "Nada en la lista",
       "yesterday": "Ayer"
+    },
+    "call": {
+      "title": "Llamar",
+      "calling": "Llamando",
+      "calling_video": "Videollamando",
+      "video": "Videollamada",
+      "audio": "Llamada",
+      "decline": "Rechazar",
+      "answer": "Responder",
+      "ended": "Llamada finalizada",
+      "declined": "Rechazada",
+      "busy": "En otra llamada",
+      "no_answer": "Sin respuesta",
+      "quiet": "No molestar",
+      "gone": "No disponible",
+      "available": "Disponible",
+      "sound_only": "Disponible, solo sonido",
+      "in_call": "En llamada",
+      "offline": "Sin conexión",
+      "missed_at": "Llamada perdida"
     }
   },
   "addon": {
@@ -1469,7 +1495,8 @@
         "page": "Ir a la página {page}",
         "map": "Mapa",
         "energy": "Energía",
-        "text": "Plantilla"
+        "text": "Plantilla",
+        "call": "Llamar"
       },
       "identify": {
         "title": "Esta es {name}",
