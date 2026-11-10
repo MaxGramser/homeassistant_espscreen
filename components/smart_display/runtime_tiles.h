@@ -11148,13 +11148,15 @@ inline void call_reports(std::function<void(const std::string &, const std::stri
   (void) report;
 #endif
 }
-template<class Speaker> inline void call_audio(Speaker *speaker, std::function<float()> volume_get, std::function<void(float)> volume_set) {
+template<class Speaker> inline void call_audio(Speaker *speaker, std::function<float()> volume_get, std::function<void(float)> volume_set,
+                                               std::function<bool()> ring_on) {
 #ifdef SD_MOD_CALL
   call::bind_speaker(speaker);
   call::volume_get = std::move(volume_get);
   call::volume_set = std::move(volume_set);
+  call::ring_on = std::move(ring_on);
 #else
-  (void) speaker; (void) volume_get; (void) volume_set;
+  (void) speaker; (void) volume_get; (void) volume_set; (void) ring_on;
 #endif
 }
 inline void doorbell_reports(std::function<void(const std::string &, const std::string &)> report) {

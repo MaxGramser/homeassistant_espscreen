@@ -68,6 +68,8 @@ A screen that cancels echo itself (`echo_cancel` in its capabilities) is left al
 The screen rings on its own speaker, at full volume whatever its volume is set to, and goes back to its volume when the ring
 ends. 1.4 and 1.9 kHz: what these small speakers carry best.
 
+The switch **Call ringtone** of each screen (in Home Assistant, under its configuration) turns the ring off: the screen still lights up and shows who calls.
+
 ## The picture in a call
 
 The other screen's picture lies beside the keys, as on a doorbell, and nothing of LVGL's lies over it. Over the whole glass with the

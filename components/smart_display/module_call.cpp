@@ -26,6 +26,7 @@ namespace call {
 std::function<void(const std::string &, const std::string &, bool, const std::string &)> report;
 std::function<float()> volume_get;
 std::function<void(float)> volume_set;
+std::function<bool()> ring_on;
 
 namespace {
 const char *const TAG = "call";
@@ -92,6 +93,7 @@ void ring_stop() {
   ring_volume_restore = -1.0f;
 }
 void ring_once() {
+  if (ring_on && !ring_on()) return;
   if (!speaker_out) { ESP_LOGW(TAG, "no speaker for the ring"); return; }
   if (ring_samples.empty()) make_ring();
   ESP_LOGI(TAG, "ringing");
@@ -513,7 +515,7 @@ void on_call(const std::string &state, const std::string &key, const std::string
     stage = Stage::RING;
     last_ring = 0;
 #ifdef USE_SPEAKER
-    if (volume_get && volume_set && ring_volume_restore < 0.0f) {
+    if (volume_get && volume_set && ring_volume_restore < 0.0f && (!ring_on || ring_on())) {
       ring_volume_restore = volume_get();
       if (ring_volume_restore < RING_VOLUME) volume_set(RING_VOLUME);
     }

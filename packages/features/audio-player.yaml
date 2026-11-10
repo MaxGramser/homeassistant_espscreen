@@ -41,7 +41,8 @@ substitutions:
     // The screen's voice to the app, for the doorbell's Talk and a call (talk_uplink.h).
     talk_uplink::bind_microphone(id(ts_microphone));
     runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_media_player).volume; },
-                              [](float volume) { id(ts_media_player).make_call().set_volume(volume).perform(); });
+                              [](float volume) { id(ts_media_player).make_call().set_volume(volume).perform(); },
+                              []() { return id(ts_call_ringtone).state; });
     if (!${AUDIO_HALF_DUPLEX}) {
       id(ts_speaker_out)->set_audio_stream_info(audio::AudioStreamInfo(16, 1, ${AUDIO_SAMPLE_RATE}));
       id(ts_speaker_out)->start();
@@ -58,6 +59,14 @@ substitutions:
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
 switch:
+  # Whether a call makes this screen ring out loud (docs/CALLS.md): off, it lights up and shows who calls, without a sound.
+  - platform: template
+    id: ts_call_ringtone
+    name: "Call ringtone"
+    icon: "mdi:phone-ring"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
   - platform: template
     id: ts_microphone_on
     name: "Microphone"

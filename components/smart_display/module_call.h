@@ -26,6 +26,8 @@ void bind_speaker(esphome::speaker::Speaker *speaker);
 // The media player's volume, which is the DAC's: a ring is at least loud enough to hear (packages/features/audio-player.yaml).
 extern std::function<float()> volume_get;
 extern std::function<void(float)> volume_set;
+// The switch "Call ringtone": off, a call lights the screen up and shows who calls, without a sound.
+extern std::function<bool()> ring_on;
 
 // The op `call` (state out, ring, live, held, end) and the op `contacts`: the list, as a JSON text of rows, in parts
 // for a house with many screens (`append` a later part, `more` a part still to come).
