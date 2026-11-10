@@ -25,3 +25,11 @@ Before anything is changed for calls, a reTerminal D1001's camera shown full scr
 A Raspberry Pi 4 core is several times slower than an M1 core, so the same work is estimated at half to three quarters of
 a Pi 4 core per direction of a call. Not measured on a Pi. That is what the quality steps of a call are for: every second
 frame and a smaller JPEG when the add-on falls behind.
+
+## Media
+
+A call's picture is read straight from the other screen's own video server (RTSP over TCP, `screen_source.py`, video only),
+decoded by the add-on and sent to the glass as a JPEG for its size, as any live camera's. A D1001 to a Guition 10.1, both
+directions at once (2026-11-10): about 290 ms glass to glass with 13 pictures a second, against 230 ms for one direction
+through Home Assistant, the same within what the filming can tell. The voice, marked `X-Sound: talk`: about 0.25 s from
+microphone to speaker with a run-up of 80 ms, which ran dry too often; it now starts after 200 ms and is cut back above 600.

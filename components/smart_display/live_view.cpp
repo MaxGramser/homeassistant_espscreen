@@ -204,6 +204,7 @@ struct Stream {
   // The main loop's own: the report of the last REPORT_MS, the first picture, its first live one and sound told, the
   // speaker started.
   bool told_first = false, told_live = false, told_sound = false, speaking = false;
+  std::atomic<bool> talking{false};  // the stream's sound is a conversation (X-Sound: talk): a far smaller run-up
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0,
            reported_wait = 0, reported_net = 0, reported_into = 0, reported_compose = 0, reported_onto = 0,
            reported_passed = 0, reported_pauses = 0, reported_paused = 0;
@@ -881,6 +882,7 @@ static bool read_stream(Stream &s) {
           // off plays seconds of full-scale noise (a ring on a reTerminal D1001, 2026-10-25), until another odd write
           // puts it right by chance. So a part goes in whole or not at all, never cut to the room left.
           s.heard = true;
+          if (reader.talk()) s.talking.store(true, std::memory_order_relaxed);
           if (reader.has_made()) s.sound_wait.add(reader.made());
           if (length & 1) s.odd_parts.fetch_add(1, std::memory_order_relaxed);
           if (s.muted || s.yielded) return;
@@ -1097,6 +1099,8 @@ void mute(Handle handle, bool muted) {
 static void speak(Stream &s, bool on) {
 #ifdef USE_SPEAKER
   if (!speaker || !s.sound) return;
+  const bool talk = s.talking.load(std::memory_order_relaxed);
+  const size_t low = talk ? SOUND_TALK_LOW : SOUND_LOW, high = talk ? SOUND_TALK_HIGH : SOUND_HIGH;
   if (!on) {
     if (s.speaking) speaker->stop();
     s.speaking = false;
@@ -1104,14 +1108,14 @@ static void speak(Stream &s, bool on) {
     return;
   }
   if (!s.speaking) {
-    if (xStreamBufferBytesAvailable(s.sound) < SOUND_LOW) return;
+    if (xStreamBufferBytesAvailable(s.sound) < low) return;
     speaker->set_audio_stream_info(esphome::audio::AudioStreamInfo(16, 1, SOUND_RATE));
     speaker->start();
     s.speaking = true;
     s.dry = false;
   }
   if (s.dry) {
-    if (xStreamBufferBytesAvailable(s.sound) < SOUND_LOW) return;  // a new run-up first, as at the start
+    if (xStreamBufferBytesAvailable(s.sound) < low) return;  // a new run-up first, as at the start
     s.dry = false;
   }
   // Behind the picture (a burst after a hiccup in the stream): the oldest goes, down to SOUND_LOW, the rest of the piece
@@ -1119,11 +1123,11 @@ static void speak(Stream &s, bool on) {
   // back until the buffer runs full. Whole samples: the buffer holds only those, both marks are even, and a piece goes
   // only from a sample's first byte.
   const size_t held = xStreamBufferBytesAvailable(s.sound);
-  if (held > SOUND_HIGH && (s.piece_at & 1) == 0) {
+  if (held > high && (s.piece_at & 1) == 0) {
     ++s.caught_up;
     s.caught_up_bytes += s.piece_left;
     s.piece_left = 0;
-    for (size_t drop = held - SOUND_LOW; drop > 0;) {
+    for (size_t drop = held - low; drop > 0;) {
       const size_t n = xStreamBufferReceive(s.sound, s.sound_piece, std::min(drop, SOUND_PART), 0);
       if (n == 0) break;
       s.caught_up_bytes += n;

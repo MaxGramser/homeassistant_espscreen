@@ -265,6 +265,23 @@ class Sink:
             self.wave = None
 
 
+class Voice:
+    """A call's voice (docs/CALLS.md): the screen's PCM into `into`, the other screen's stream."""
+
+    def __init__(self, into, entity):
+        self.into, self.entity, self.codec = into, entity, 'pcm'
+        self.source = Pcm8k(level=1)
+
+    async def open(self):
+        return True
+
+    def feed(self, data):
+        self.into(bytes(data))
+
+    async def close(self):
+        return None
+
+
 class Links:
     """The talk links of this app's lifetime. `open(token)` hands out the bridge of a token's camera, one talker per
     camera; a screen that may not talk (no token, a second talker) gets the reason."""
@@ -274,12 +291,13 @@ class Links:
         self.links = {}   # token -> {'entity', 'screen', 'made'}
         self.talking = {}  # entity -> token
 
-    def link(self, entity, screen=None):
+    def link(self, entity, screen=None, into=None):
+        """A token for one screen's voice: to `entity`'s speaker, or with `into` (bytes) to wherever a call says."""
         now = self.clock()
         for token in [t for t, item in self.links.items() if now - item['made'] > LINK_SECONDS]:
             del self.links[token]
         token = secrets.token_urlsafe(18)
-        self.links[token] = {'entity': entity, 'screen': screen, 'made': now}
+        self.links[token] = {'entity': entity, 'screen': screen, 'made': now, 'into': into}
         return token
 
     def busy(self, token):
@@ -293,6 +311,8 @@ class Links:
     def begin(self, token):
         item = self.links[token]
         self.talking[item['entity']] = token
+        if item.get('into'):
+            return Voice(item['into'], item['entity'])
         return Sink(self.sink, item['entity']) if self.sink else Talk(self.websocket, item['entity'])
 
     def end(self, token):

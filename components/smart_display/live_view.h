@@ -62,6 +62,12 @@ constexpr size_t SOUND_BUFFER = 49152;  // 1.5 s at 16 kHz mono
 // sound that stays whole ("200 ms extra is fine, 3 s is not").
 constexpr size_t SOUND_LOW = SOUND_RATE * 2 * 400 / 1000;    // 400 ms
 constexpr size_t SOUND_HIGH = SOUND_RATE * 2 * 1200 / 1000;  // 1200 ms
+// In a conversation (the part's X-Sound: talk) sound is someone speaking to you: 200 ms of run-up, cut back above 600 ms.
+// An 80 ms run-up gave 0.25 s from microphone to speaker but ran dry 137 times in 30 s (a reTerminal D1001 to a Guition
+// 10.1, 2026-11-10), and clean sound goes before the last 150 ms (docs/CALLS.md, "The voice"; a second would still do).
+constexpr size_t SOUND_TALK_LOW = SOUND_RATE * 2 * 200 / 1000;   // 200 ms
+constexpr size_t SOUND_TALK_HIGH = SOUND_RATE * 2 * 600 / 1000;  // 600 ms
+static_assert(SOUND_TALK_LOW % 2 == 0 && SOUND_TALK_HIGH % 2 == 0 && SOUND_TALK_LOW < SOUND_TALK_HIGH, "whole samples");
 static_assert(SOUND_PART % 2 == 0 && SOUND_BUFFER % 2 == 0 && SOUND_LOW % 2 == 0 && SOUND_HIGH % 2 == 0,
               "the sound moves in whole samples, two bytes each");
 static_assert(SOUND_LOW < SOUND_HIGH && SOUND_HIGH < SOUND_BUFFER, "the sound catches up before its buffer runs full");
@@ -127,6 +133,7 @@ class Reader {
         this->still_ = h.still;
         this->has_made_ = h.has_made;
         this->made_ = h.made;
+        this->talk_ = h.talk;
         this->turn_ = h.turn;
         this->room_ = room(this->need_, this->audio_);
         this->in_body_ = true;
@@ -153,13 +160,15 @@ class Reader {
   // And when the app made it (X-Made, its own milliseconds), when it said.
   bool has_made() const { return this->has_made_; }
   uint32_t made() const { return this->made_; }
+  // And whether the part is sound of a conversation (X-Sound: talk).
+  bool talk() const { return this->talk_; }
   // And how the app turned it for a turned glass (X-Turn: 90, 180, 270), 0 upright.
   int turn() const { return this->turn_; }
 
  private:
   std::string head_;
   size_t most_ = 0;
-  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false, has_made_ = false;
+  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false, has_made_ = false, talk_ = false;
   uint32_t made_ = 0;
   int turn_ = 0;
   int status_ = 0;

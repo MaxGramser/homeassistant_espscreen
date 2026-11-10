@@ -83,3 +83,23 @@ def test_the_codec_of_the_answer():
     answer = 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 8 0\r\na=rtpmap:8 PCMA/8000\r\na=rtpmap:0 PCMU/8000\r\n'
     assert tb.negotiated_codec(answer) == 'PCMA/8000'
     assert tb.negotiated_codec('') == ''
+
+
+def test_a_conversations_sound_is_marked():
+    import live_stream
+    assert b'X-Sound: talk' in live_stream.part_head(b'audio/x-s16le;rate=16000', 640, talk=True)
+    assert b'X-Sound' not in live_stream.part_head(b'audio/x-s16le;rate=16000', 640)
+
+
+def test_a_screens_stream_address_uses_its_api_key():
+    import screen_source
+    url = screen_source.rtsp_url('192.0.2.1', 'abc')
+    assert url.startswith('rtsp://tessera:') and url.endswith('@192.0.2.1:8554/')
+    assert url != screen_source.rtsp_url('192.0.2.1', 'abd')
+
+
+def test_a_voice_goes_straight_to_where_it_is_going():
+    got = []
+    voice = tb.Voice(got.append, 'camera.x')
+    voice.feed(b'ab')
+    assert got == [b'ab']
