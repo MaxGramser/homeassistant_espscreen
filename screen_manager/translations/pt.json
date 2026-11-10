@@ -1486,12 +1486,7 @@
         "cog": "Definições",
         "broom": "Limpeza",
         "diabetes": "Diabetes",
-        "microphone_off": "Microphone off",
-        "phone": "Phone",
-        "phone_hangup": "Hang up",
-        "phone_missed": "Missed call",
-        "video": "Video",
-        "video_off": "Video off"
+        "phone": "Phone"
       }
     },
     "screen": {

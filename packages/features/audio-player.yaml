@@ -42,6 +42,8 @@ substitutions:
     talk_uplink::bind_microphone(id(ts_microphone));
     // The ring's loudness is the speaker's own, never the media player's: Home Assistant does not see it and nothing keeps it.
     // Its top is the same top the media player has, the DAC's full scale without digital gain.
+    // What a finger does in a call goes to ESP Screens (module call, esphome.screen_call).
+    runtime_tiles::call_reports([](const std::string &action, const std::string &to, bool video, const std::string &key) { id(call_report).execute(action, to, video, key); });
     runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_speaker_out)->get_volume(); },
                               [](float volume) { id(ts_speaker_out)->set_volume(volume); },
                               []() { return id(ts_call_ringtone).state; },
@@ -58,6 +60,13 @@ substitutions:
         [](int32_t on) { if (on) id(ts_microphone_on).turn_on(); else id(ts_microphone_on).turn_off(); }));
     // The doorbell's chime (module doorbell, docs/DOORBELL.md) on the speaker for announcements.
     runtime_tiles::doorbell_audio(id(ts_speaker));
+
+# A call's keys (module call, docs/CALLS.md): glyphs only a board with sound needs, so a CYD pays nothing for them.
+font:
+  - id: !extend materialdesign_icons
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568"]
+  - id: !extend materialdesign_icons_mini
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568"]
 
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
@@ -159,3 +168,21 @@ media_player:
       format: FLAC
       sample_rate: ${AUDIO_SAMPLE_RATE}
       num_channels: 1
+
+script:
+  # What a finger did in a call (module call, docs/CALLS.md): list, dial, cancel, answer, decline, end, camera or mic.
+  - id: call_report
+    parameters:
+      action: string
+      to: string
+      video: bool
+      key: string
+    then:
+      - homeassistant.event:
+          event: esphome.screen_call
+          data:
+            action: !lambda 'return action;'
+            to: !lambda 'return to;'
+            video: !lambda 'return video ? "1" : "0";'
+            key: !lambda 'return key;'
+            screen: !lambda 'return App.get_name();'

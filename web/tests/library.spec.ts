@@ -80,3 +80,12 @@ describe("the library", () => {
     expect([entryTone(ENTRIES[4]), entryTone(ENTRIES[5]), entryTone(ENTRIES[6])]).toEqual(["on", "gone", ""]);
   });
 });
+
+describe("the Call tile in the library", () => {
+  const entries = [{ id: "screen.call", name: "Call", tile: true }, { id: "light.a", name: "Lamp", tile: true }] as never[];
+  const base = { query: "", pages: 8, pictures: true, hidePlaced: false, counts: new Map() } as never;
+  it("is offered only to a screen that says it can call", () => {
+    expect(libraryBase(entries, { ...(base as object), callTiles: true } as never).map((e: { id: string }) => e.id)).toContain("screen.call");
+    expect(libraryBase(entries, { ...(base as object), callTiles: false } as never).map((e: { id: string }) => e.id)).not.toContain("screen.call");
+  });
+});

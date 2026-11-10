@@ -1487,12 +1487,7 @@
         "cog": "Instellingen",
         "broom": "Schoonmaken",
         "diabetes": "Diabetes",
-        "microphone_off": "Microfoon uit",
-        "phone": "Telefoon",
-        "phone_hangup": "Ophangen",
-        "phone_missed": "Gemiste oproep",
-        "video": "Video",
-        "video_off": "Video uit"
+        "phone": "Telefoon"
       }
     },
     "screen": {
