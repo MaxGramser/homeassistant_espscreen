@@ -175,6 +175,28 @@
   "width": 1024
  },
  "checkout/crowpanel7s3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 19,
    "title_line": 25
@@ -198,7 +220,8 @@
    "inch": 7.0,
    "model": "Advance 7.0 ESP32-S3",
    "name": "CrowPanel",
-   "order": 31,
+   "order": 32,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone"
@@ -215,7 +238,7 @@
    "microphone",
    "media_player"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.68.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -230,6 +253,7 @@
   },
   "height": 480,
   "hotspot": true,
+  "label_weight": 700,
   "look": "standard",
   "max_bar_items": 12,
   "max_pages": 24,
@@ -240,8 +264,12 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -295,7 +323,14 @@
     "width": 480
    }
   },
+  "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -5196,6 +5231,28 @@
   "width": 1024
  },
  "crowpanel7s3": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 19,
    "title_line": 25
@@ -5219,7 +5276,8 @@
    "inch": 7.0,
    "model": "Advance 7.0 ESP32-S3",
    "name": "CrowPanel",
-   "order": 31,
+   "order": 32,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone"
@@ -5236,7 +5294,7 @@
    "microphone",
    "media_player"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.68.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -5251,6 +5309,7 @@
   },
   "height": 480,
   "hotspot": true,
+  "label_weight": 700,
   "look": "standard",
   "max_bar_items": 12,
   "max_pages": 24,
@@ -5261,8 +5320,12 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5316,7 +5379,14 @@
     "width": 480
    }
   },
+  "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -7419,6 +7489,28 @@
   "width": 1024
  },
  "packages/crowpanel7s3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 19,
    "title_line": 25
@@ -7442,7 +7534,8 @@
    "inch": 7.0,
    "model": "Advance 7.0 ESP32-S3",
    "name": "CrowPanel",
-   "order": 31,
+   "order": 32,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone"
@@ -7459,7 +7552,7 @@
    "microphone",
    "media_player"
   ],
-  "firmware": "0.60.0",
+  "firmware": "0.68.0",
   "fonts": {
    "headline": 21,
    "icon": 33,
@@ -7474,6 +7567,7 @@
   },
   "height": 480,
   "hotspot": true,
+  "label_weight": 700,
   "look": "standard",
   "max_bar_items": 12,
   "max_pages": 24,
@@ -7484,8 +7578,12 @@
    "cover_groups",
    "clock_faces",
    "doorbell",
+   "call",
    "text_card",
-   "light_presets"
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7539,7 +7637,14 @@
     "width": 480
    }
   },
+  "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,

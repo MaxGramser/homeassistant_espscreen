@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Elecrow CrowPanel Advance 7.0-inch ESP32-S3 (`DIS08070H`), experimental.** 800 × 480 RGB IPS panel with 16 MB of flash, 8 MB of octal PSRAM, GT911 capacitive touch, dimmable backlight and NS4168 speaker amplifier gate on the onboard STC8H1K28 coprocessor at `0x30`, PDM microphone, 4 × 4 tiles lying down and 2 × 7 standing up (`crowpanel7s3`, [docs/CROWPANEL7S3.md](../docs/CROWPANEL7S3.md)).
 - **A long tile name or second line rolls by.** Where a tile's name or the line under it is too long for the tile, it now scrolls past slowly, round and round, instead of ending in dots, so you can read all of it. Two switches in the tile's settings, under Second line, turn it off for the name or the line. Screens show it after their update.
 - **New screen can point you to a screen to buy.** Under the recommended boards, Buy a recommended screen? shows the ones with a shop link on the Tessera website, with a photo and the discount, such as 5% off the reTerminal D1001 and the SenseCAP Indicator at Seeed Studio. These are affiliate links: you pay the same or less, and a small part of the sale goes to Tessera's development.
 
@@ -222,7 +223,6 @@
 - **The screen's own camera on a tile is much smoother.** It now shows up to 15 pictures a second instead of the share of a network camera (up to 6, and 1.5 while someone watched the video with sound), about 8 to 10 next to other live tiles. Network camera tiles go up to 10 pictures a second instead of 6, and slow down less while someone listens to the screen's microphone: to half instead of a quarter.
 - **Remove a plugin you were making from the Plugins page.** A plugin in a folder of `config/tessera-plugins/` that no screen runs any more now has Remove in its details, as a plugin added with a link already had. The app moves its folder to `config/tessera-plugins/.removed/`, so nothing of your work is lost; delete it there when you are sure.
 - **Tessera is looking for funding.** The home overview asks for it, before the support card, with a button that mails Max: a day job comes first, and Tessera needs funding to stay alive. "Not now" puts it away for a week.
-- **Elecrow CrowPanel Advance 7.0-inch ESP32-S3 (`DIS08070H`), experimental.** 800 × 480 RGB IPS panel with 16 MB of flash, 8 MB of octal PSRAM, GT911 capacitive touch, dimmable backlight and NS4168 speaker amplifier gate on the onboard STC8H1K28 coprocessor at `0x30`, PDM microphone, 4 × 4 tiles lying down and 2 × 7 standing up (`crowpanel7s3`, [docs/CROWPANEL7S3.md](../docs/CROWPANEL7S3.md)).
 
 ## 0.4.97 (firmware 0.60.0)
 
