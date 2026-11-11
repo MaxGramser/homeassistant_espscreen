@@ -1971,7 +1971,8 @@
         "lock": "Sloten",
         "humidifier": "Luchtbevochtigers",
         "calendar": "Agenda's",
-        "todo": "To-do-lijsten"
+        "todo": "To-do-lijsten",
+        "text": "Teksten"
       },
       "room": "Ruimte",
       "hide_placed": "Geplaatste verbergen",
@@ -2038,7 +2039,9 @@
       "lock": "Slot",
       "humidifier": "Luchtbevochtiger",
       "calendar": "Agenda",
-      "todo": "To-do-lijst"
+      "todo": "To-do-lijst",
+      "text": "Tekst",
+      "input_text": "Tekst"
     },
     "displays": {
       "standard": "standaard",
@@ -2570,6 +2573,10 @@
         "kind_hint": "Video vraagt een camera op beide schermen, anders wordt het een gesprek met geluid.",
         "video": "Video waar het kan",
         "sound": "Alleen geluid"
+      },
+      "text_entity": {
+        "edit": "Een tik opent de waarde in een veld met het toetsenbord van het scherm. Een wachtwoord staat er als stippen.",
+        "view_only": "Dit bord toont alleen de waarde: wijzigen op het scherm vraagt een bord met 8 MB flash of meer."
       }
     },
     "precision": {

@@ -210,6 +210,13 @@ ATTRS = frozenset('brightness percentage current_position current_tilt_position 
 # and what it is doing. Other domains use the same names for other things (an automation's `mode`), so only a humidifier
 # sends them.
 HUMIDIFIER_ATTRS = frozenset('min_humidity max_humidity target_humidity_step available_modes mode action'.split())
+# A text's (text, input_text, firmware 0.61.0, docs/TEXT_ENTITY.md): password or text. Its min and max are in ATTRS;
+# its pattern stays here, as Home Assistant checks it when the screen sends a value.
+TEXT_ATTRS = frozenset(['mode'])
+TEXT_DOMAINS = ('text.', 'input_text.')
+# Home Assistant's longest state is 255 characters (MAX_LENGTH_STATE_STATE): a text's value travels whole, so its field
+# on the screen never sends back a value cut short; any other state is cut to what a tile shows.
+STATE_BYTES, TEXT_STATE_BYTES = 160, 4 * 255
 # What the weather card of a screen that draws the week shows beside the temperature, as Home Assistant's more-info
 # dialog does (its hello says weather_week): the wind's bearing, the air pressure, the visibility, and the unit of the
 # rain. Only to such a screen; an older one keeps its message as it was.
@@ -2664,7 +2671,7 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     state = states.get(tile['entity'], {})
     attrs = state.get('attributes', {})
     bounded = {}
-    keys = ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS
+    keys = ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS | TEXT_ATTRS if tile['entity'].startswith(TEXT_DOMAINS) else ATTRS
     if week and tile['entity'].startswith('weather.'):
         keys = keys | WEATHER_WEEK_ATTRS
     for key in keys:
@@ -2698,7 +2705,8 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     options = screen_options(tile, attrs, state.get('state'), entry)
     return {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'],
             'name': short(tile['name'] or attrs.get('friendly_name') or tile['entity'], 80),
-            'state': short(rounded_state(state.get('state', 'unavailable'), precision) if tile['entity'].startswith('sensor.') else state.get('state', 'unavailable'), 160), 'a': bounded,
+            'state': short(rounded_state(state.get('state', 'unavailable'), precision) if tile['entity'].startswith('sensor.') else state.get('state', 'unavailable'),
+                           TEXT_STATE_BYTES if tile['entity'].startswith(TEXT_DOMAINS) else STATE_BYTES), 'a': bounded,
             **({'o': options} if options is not None else {}), **({'x': extra} if extra else {})}
 
 def drawn_controls(message, features):

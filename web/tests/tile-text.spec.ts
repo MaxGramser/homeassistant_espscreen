@@ -178,4 +178,11 @@ describe("a calendar's line (firmware 0.56.0)", () => {
     expect(stateText("calendar.work", { state: "off", a: { message: "Lunch" } }, {}, en)).toBe("Free");
     expect(stateText("calendar.work", { state: "unavailable" }, {}, en)).toBe("Unavailable");
   });
+
+  it("shows a text's value as it is, and a password as a dot per character (tile_controls::text_shown)", () => {
+    expect(stateText("input_text.note", { state: "on", a: { mode: "text" } }, {}, en)).toBe("on");
+    expect(stateText("text.note", { state: "", a: { mode: "text" } }, {}, en)).toBe("");
+    expect(stateText("input_text.code", { state: "é€x", a: { mode: "password" } }, {}, en)).toBe("•••");
+    expect(stateText("text.note", { state: "unavailable", a: {} }, {}, en)).toBe("Unavailable");
+  });
 });

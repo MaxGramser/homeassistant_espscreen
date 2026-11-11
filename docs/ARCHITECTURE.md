@@ -171,9 +171,9 @@ and has its keys; Talk sends the screen's voice to the camera (`talk_uplink`, th
 `tests/test_header_bar.cpp`, `screen_manager/tests/test_doorbell.py`.
 
 The keyboard is a part the modules share, not a module: `keyboard.h` plans it from what its caller asks (a layout, a
-hint, suggestions, the send key, the most bytes) and `keyboard_lvgl.h` shows it and hears the finger, telling the caller
-through callbacks. Both are headers, so a board carries it only when a module it compiles uses it (today the to-do
-card). Detail: docs/KEYBOARD.md; tests: `tests/test_keyboard.cpp`, `tests/test_keyboard_glyphs.py`.
+hint, suggestions, the send key, the most bytes and characters, the fewest it sends, a masked field, the field itself or not, the cursor) and
+`keyboard_lvgl.h` shows it and hears the finger, telling the caller through callbacks. Both are headers, so a board
+carries it only when a module it compiles uses it (today the to-do card and a text's field, docs/TEXT_ENTITY.md). Detail: docs/KEYBOARD.md; tests: `tests/test_keyboard.cpp`, `tests/test_keyboard_glyphs.py`.
 
 ### 10. Plugins
 

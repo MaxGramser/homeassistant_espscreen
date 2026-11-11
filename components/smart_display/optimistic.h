@@ -69,6 +69,8 @@ enum class Field : uint8_t {
   KELVIN,
   // A light's preset (module light_presets): its brightness and white shade or colour at once, "80|k2700" (docs/LIGHT_PRESETS.md).
   PRESET,
+  // A text's value (text, input_text: state = the text), sent from its field (module text_edit, docs/TEXT_ENTITY.md).
+  TEXT,
 };
 
 // IDLE: nothing. READY: to go out at the next tick (a step waits for its quiet first). SENT: on its way, `sent` asked

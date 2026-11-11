@@ -142,6 +142,10 @@ export function ownWords(domain: string, live: Live | null | undefined) {
 export function stateText(entity: string, live: Live | null | undefined, options: StateTextOptions, words: ScreenWords) {
   const domain = entity.split(".")[0], note = options.note || "";
   if (!live || NO_STATUS.includes(domain)) return note;
+  // A text's value as it is (tile_controls::text_shown, docs/TEXT_ENTITY.md): "on" stays "on", an empty value leaves the
+  // line empty, and a password is a dot per character.
+  if ((domain === "text" || domain === "input_text") && live.state !== "unavailable" && live.state !== "unknown")
+    return live.a?.mode === "password" ? "\u2022".repeat([...live.state].length) : live.state;
   const gone = isGone(live);
   // A run button says Running while its actions run and Off while nothing starts it on its own, as on the screen.
   if (options.runs && !gone) return Number(live.a?.current) > 0 ? screenText(words, "screen.script.running") : live.state === "off" ? screenText(words, "screen.ha.off") : note;

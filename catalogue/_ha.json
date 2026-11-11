@@ -359,6 +359,13 @@
    "enum": null,
    "features": {}
   },
+  "input_text": {
+   "actions": {
+    "set_value": []
+   },
+   "enum": null,
+   "features": {}
+  },
   "light": {
    "actions": {
     "toggle": [],
@@ -626,6 +633,13 @@
     "toggle": [],
     "turn_off": [],
     "turn_on": []
+   },
+   "enum": null,
+   "features": {}
+  },
+  "text": {
+   "actions": {
+    "set_value": []
    },
    "enum": null,
    "features": {}

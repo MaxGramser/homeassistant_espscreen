@@ -774,7 +774,9 @@ std::string receive(const std::string &payload) {
     auto a = root["a"].as<JsonObject>();
     // The fingerprint of state, attributes and extras (a vacuum's mode or water select changes only
     // there), hashed while serializing so no copy of the message stays behind.
-    const std::string word = string(root["state"]);
+    // A text's value is its state (text, input_text, docs/TEXT_ENTITY.md): kept whole, up to Home Assistant's 255
+    // characters, so its field never sends back a value cut short.
+    const std::string word = string(root["state"], tile_controls::text_entity(tile.domain()) ? tile_controls::TEXT_BYTES : 160);
     Fingerprint state_hash;
     state_hash.add(word);
     state_hash.write('\n');
@@ -1058,6 +1060,13 @@ std::string receive(const std::string &payload) {
     tile.step = number(a["target_temp_step"], 0.5f);
     if(tile.domain()=="number" || tile.domain()=="input_number") {
       tile.minimum=number(a["min"],0);tile.maximum=number(a["max"],100);tile.step=number(a["step"],1); }
+    // A text (firmware 0.61.0): the fewest and the most characters its field takes (Home Assistant's defaults 0 and 255)
+    // and whether it is a password.
+    tile.secret = false;
+    if (tile_controls::text_entity(tile.domain())) {
+      tile.minimum = number(a["min"], 0); tile.maximum = number(a["max"], 255);
+      tile.secret = string(a["mode"], 10) == "password";
+    }
     if(tile.domain()=="weather") {
       tile.current=number(a["temperature"]);tile.unit=string(a["temperature_unit"],12);
       tile.humidity=number(a["humidity"]);next.wind=number(a["wind_speed"]);next.wind_unit=string(a["wind_speed_unit"],8);next.feels=number(a["apparent_temperature"]);

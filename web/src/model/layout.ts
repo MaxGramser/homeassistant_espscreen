@@ -348,6 +348,9 @@ export const domains: Record<string, [string, string, string]> = {
   calendar: ["▦", "#ad7600", "#fff3d3"],
   // A to-do list: Home Assistant gives it no state colour, so the blue of everything without one.
   todo: ["☑", "#1668a8", "#dcecf9"],
+  // A text (docs/TEXT_ENTITY.md): Home Assistant gives it no state colour either.
+  text: ["✎", "#1668a8", "#dcecf9"],
+  input_text: ["✎", "#1668a8", "#dcecf9"],
 };
 // [name, sign, colour, background] of an entity's domain.
 export function domainInfo(id: string): [string, string, string, string] {

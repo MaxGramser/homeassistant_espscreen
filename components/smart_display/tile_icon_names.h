@@ -217,6 +217,7 @@ inline constexpr Named NAMES[] = {
   {"calendar-blank", 0xF00EE},
   {"calendar-check", 0xF00EF},
   {"clipboard-list", 0xF10D4},
+  {"form-textbox", 0xF060E},
   {"account-arrow-right", 0xF0B53},
   {"air-filter", 0xF0D43},
   {"air-humidifier", 0xF1099},

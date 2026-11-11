@@ -1969,7 +1969,8 @@
         "lock": "Zamki",
         "humidifier": "Nawilżacze",
         "calendar": "Kalendarze",
-        "todo": "Listy zadań"
+        "todo": "Listy zadań",
+        "text": "Teksty"
       },
       "room": "Obszar",
       "hide_placed": "Ukryj dodane",
@@ -2468,7 +2469,9 @@
       "lock": "Zamek",
       "humidifier": "Nawilżacz",
       "calendar": "Kalendarz",
-      "todo": "Lista zadań"
+      "todo": "Lista zadań",
+      "text": "Tekst",
+      "input_text": "Tekst"
     },
     "displays": {
       "standard": "standardowy",
@@ -2989,6 +2992,10 @@
         "suggest_hint": "Podczas pisania klawiatura proponuje to, co wcześniej odhaczono; dotknięcie przywraca to na listę",
         "clear": "Usuwanie ukończonych",
         "clear_hint": "Klawisz na liście usuwa po pytaniu wszystko, co odhaczone"
+      },
+      "text_entity": {
+        "edit": "Dotknięcie otwiera wartość w polu z klawiaturą ekranu. Hasło widać jako kropki.",
+        "view_only": "Ta płytka pokazuje tylko wartość: zmiana na ekranie wymaga płytki z 8 MB pamięci flash lub więcej."
       }
     },
     "precision": {

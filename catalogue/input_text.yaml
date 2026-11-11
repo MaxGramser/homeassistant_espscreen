@@ -1,0 +1,10 @@
+# Text helper. Home Assistant: homeassistant/components/input_text.
+# Home Assistant's own facts for it (flags, actions) come from its source: catalogue/_ha.json (tools/read_ha_source.py).
+# docs/CATALOGUE.md says what every key means; the tile itself: docs/TEXT_ENTITY.md.
+# The tile shows the entity's value, dots for one in mode password. A tap opens a field with the screen's keyboard where
+# the board has the module text_edit (8 MB of flash or more); a board with 4 MB shows the value only (wishlist 109).
+domain: input_text
+memory: {bytes: 176, extras: false}
+firmware: 0.61.0   # the first firmware that draws this type
+displays:
+  standard: {}

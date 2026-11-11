@@ -1975,7 +1975,8 @@
         "lock": "Locks",
         "humidifier": "Humidifiers",
         "calendar": "Calendars",
-        "todo": "To-do lists"
+        "todo": "To-do lists",
+        "text": "Texts"
       },
       "room": "Room",
       "hide_placed": "Hide placed",
@@ -2042,7 +2043,9 @@
       "lock": "Lock",
       "humidifier": "Humidifier",
       "calendar": "Calendar",
-      "todo": "To-do list"
+      "todo": "To-do list",
+      "text": "Text",
+      "input_text": "Text"
     },
     "displays": {
       "standard": "standard",
@@ -2574,6 +2577,10 @@
         "kind_hint": "Video needs a camera on both screens, otherwise it is a call with sound.",
         "video": "Video where possible",
         "sound": "Sound only"
+      },
+      "text_entity": {
+        "edit": "A tap opens the value in a field with the screen's keyboard. A password shows as dots.",
+        "view_only": "This board shows the value only: changing it on the screen needs a board with 8 MB of flash or more."
       }
     },
     "precision": {

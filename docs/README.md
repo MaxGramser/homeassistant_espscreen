@@ -16,6 +16,8 @@
   limits and why it is built so.
 - [TODO.md](TODO.md): the to-do card, a list to tick with a keyboard that adds an item, and how its items reach the
   screen.
+- [TEXT_ENTITY.md](TEXT_ENTITY.md): a Home Assistant text (text, input_text) as a tile, its value edited with the
+  keyboard on the larger boards and shown only on the 4 MB ones.
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [BATTERY.md](BATTERY.md): a screen's battery in its top bar, and how a board or your own YAML measures it (also a
   recipe for the code).

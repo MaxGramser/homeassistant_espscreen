@@ -2,7 +2,8 @@
 // The keyboard alone (components/smart_display/keyboard.h, docs/KEYBOARD.md), with no caller: what a key types, the
 // limit of the field, and the sheet it plans on the faces of several boards. Everything a caller hands it is an
 // argument: a second layout that lives only here (AZERTY, with rows of 10, 10 and 6 keys and accents of its own), a
-// send key that is a word, the hint, the suggestions and whether their row keeps its room.
+// send key that is a word, the hint, the suggestions and whether their row keeps its room, a field of a text entity
+// (a start value, the most and the fewest characters as Home Assistant counts them, and a masked field).
 #include "../components/smart_display/keyboard.h"
 #include <cassert>
 #include <cmath>
@@ -214,10 +215,89 @@ static void sheets() {
   inside(s, 480, 320, m, "the whole glass", "jc3248w535");
 }
 
+// A text entity's field (module text_edit, docs/TEXT_ENTITY.md): Home Assistant counts characters, not bytes, refuses
+// fewer than its min, and a password shows dots.
+static void entity_field() {
+  assert(characters("") == 0 && characters("abc") == 3 && characters("Azè\"") == 4 && characters("€£") == 2);
+  Spec k;
+  k.most = 1020;
+  k.chars = 4;
+  k.least = 2;
+  Entry e;
+  reset(e, "é");
+  // A start value: what is typed goes at its end, and it is no new sentence.
+  assert(e.text == "é" && !e.shift && !sendable(e, k));
+  assert(hold(e, 2, k));
+  press(e, ACCENT, k);  // é, two bytes, one character
+  assert(e.text == "éé" && sendable(e, k));
+  press(e, 2, k); press(e, 2, k); press(e, 2, k);  // the fourth character is the last
+  assert(e.text == "ééee" && characters(e.text) == 4);
+  press(e, K_BACK, k); press(e, K_BACK, k); press(e, K_BACK, k);
+  assert(e.text == "é" && !sendable(e, k));
+  // Without `chars` the bytes are the limit, as before.
+  Spec bytes;
+  bytes.most = 3;
+  Entry b;
+  reset(b, "é");
+  press(b, 2, bytes); press(b, 2, bytes);
+  assert(b.text == "ée");
+  // The cursor: a caller puts it anywhere (a finger in its own text), keys type there and backspace erases before it.
+  Spec plain;
+  Entry c;
+  reset(c, "abc");
+  assert(c.at == 3);
+  place(c, 1);
+  press(c, 0, plain);  // q
+  assert(c.text == "aqbc" && c.at == 2);
+  press(c, K_SPACE, plain);
+  press(c, K_SPACE, plain);  // never two spaces side by side
+  assert(c.text == "aq bc" && c.at == 3);
+  press(c, K_BACK, plain); press(c, K_BACK, plain);
+  assert(c.text == "abc" && c.at == 1);
+  reset(c, "é€");
+  place(c, 1);  // inside the é: the cursor goes to its start
+  assert(caret(c) == 0);
+  c.at = 9;  // past the end (a caller that changed the text itself): the cursor stays inside it
+  assert(caret(c) == c.text.size());
+  for (const auto &board : BOARDS) {
+    ui::configure(board.dpi, "standard");
+    const Measure m = measure(board);
+    // Too short: the send key and the check key are faded, and the masked field shows a dot for each character.
+    Spec pw = k;
+    pw.mask = true;
+    Entry one;
+    reset(one, "Q");  // a capital: the keys show small letters after a start value
+    Scene s;
+    plan(s, m, board.width, board.height, ui::px(120), one, pw);
+    inside(s, board.width, board.height, m, "a masked field", board.name);
+    assert(has_text(s, MASK) && !has_text(s, "Q"));
+    bool faded = false;
+    for (const auto &t : s.texts) if (t.s == I_CHECK) faded = faded || t.paint.role == calendar_card::SUBTLE;
+    assert(faded);
+    // Long enough: both take the accent and the ink again.
+    Entry two;
+    reset(two, "QRS");
+    Scene r;
+    plan(r, m, board.width, board.height, ui::px(120), two, pw);
+    int dots = 0;
+    for (const auto &t : r.texts) for (size_t at = t.s.find(MASK); at != std::string::npos; at = t.s.find(MASK, at + 1)) ++dots;
+    assert(dots == 3);
+    for (const auto &t : r.texts) if (t.s == I_CHECK) assert(t.paint.role != calendar_card::SUBTLE);    // Without the field: the keys alone, the sheet lower by the field's row, the check at the bottom right sends.
+    Spec bare = pw;
+    bare.field = false;
+    Scene b, f;
+    const Place pb = plan(b, m, board.width, board.height, ui::px(120), two, bare), pf = plan(f, m, board.width, board.height, ui::px(120), two, pw);
+    inside(b, board.width, board.height, m, "the keys alone", board.name);
+    assert(count(b, SEND) == 0 && count(b, KEY) == 31 && !has_text(b, MASK));
+    assert(pb.whole || pf.whole || pb.top > pf.top);
+  }
+}
+
 int main() {
   layouts();
   typing();
   sheets();
+  entity_field();
   printf("keyboard: ok\n");
   return 0;
 }

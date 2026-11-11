@@ -346,6 +346,9 @@ export type Screen = {
   // Whether its board has the to-do card (boards.json `modules` has todo, docs/TODO.md): 8 MB of flash or more. The
   // library offers to-do lists there only.
   todo_lists?: boolean;
+  // Whether its board edits a text with the keyboard (boards.json `modules` has text_edit, docs/TEXT_ENTITY.md): elsewhere
+  // a text's tile shows its value only, and the editor says so.
+  text_edit?: boolean;
   // Whether its board draws a light's presets (boards.json `modules` has light_presets, docs/LIGHT_PRESETS.md).
   light_presets?: boolean;
   /** Streams a camera live (a P4 whose hello says `live`, or such a board while it is offline): Live is a camera tile's

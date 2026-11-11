@@ -29,7 +29,8 @@ struct Callbacks {
   // A key changed the entry, with what the field holds. The place to set new suggestions in spec() before the sheet
   // is planned again.
   std::function<void(const std::string &)> changed;
-  // The send key or the check key, with typed(): the caller sends it, and resets the entry or hides the keyboard.
+  // The send key or the check key, with typed(): the caller sends it, and resets the entry or hides the keyboard. Never
+  // while the field holds fewer characters than the spec's `least` (the keys are faded then).
   std::function<void(const std::string &)> send;
   // A suggestion was tapped: its place in spec().suggestions and its text.
   std::function<void(size_t, const std::string &)> suggestion;
@@ -167,6 +168,8 @@ class Sheet {
     const bool found = k->under_finger(hit);
     k->pressed_clear();
     if (!found || (hit.kind != KEY && hit.kind != SUGGESTION && hit.kind != SEND)) return;
+    // A faded send key takes no shade: it does nothing.
+    if ((hit.kind == SEND || (hit.kind == KEY && hit.arg == K_ENTER)) && k->entry_ && !sendable(*k->entry_, k->spec_)) return;
     const int g = hit.kind == KEY ? std::max(3, ui::px(6)) / 2 : 0;
     k->pressed_ = {hit.x + g, hit.y + g, hit.x + hit.w - 1 - g, hit.y + hit.h - 1 - g};
     const lv_area_t a = k->origin();
@@ -193,7 +196,10 @@ class Sheet {
       }
       return;
     }
-    if (hit.kind == SEND || (hit.kind == KEY && hit.arg == K_ENTER)) { if (k->on.send) k->on.send(typed(*k->entry_)); return; }
+    if (hit.kind == SEND || (hit.kind == KEY && hit.arg == K_ENTER)) {
+      if (k->on.send && sendable(*k->entry_, k->spec_)) k->on.send(typed(*k->entry_));
+      return;
+    }
     if (hit.kind != KEY) return;
     press(*k->entry_, hit.arg, k->spec_);
     if (k->on.changed) k->on.changed(k->entry_->text);

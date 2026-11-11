@@ -1094,6 +1094,31 @@
    "map": null,
    "keypad": null
   },
+  "input_text": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 176,
+    "extras": false
+   },
+   "key": true,
+   "features": {},
+   "actions": {
+    "set_value": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "light": {
    "firmware": null,
    "memory": {
@@ -2147,6 +2172,31 @@
      }
     }
    ],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
+  "text": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 176,
+    "extras": false
+   },
+   "key": true,
+   "features": {},
+   "actions": {
+    "set_value": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
    "inline": null,
    "toggle": null,
    "taps": [],

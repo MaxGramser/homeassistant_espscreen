@@ -613,6 +613,8 @@ struct Tile {
   // Direct control set on a wide card (firmware 0.2.19+); empty keeps the plain card.
   std::string controls, device_class;
   bool muted = false;
+  // A text entity in mode password (docs/TEXT_ENTITY.md): its tile and its field show dots instead of its value.
+  bool secret = false;
   // A -/+ edit shows at once and is sent as one call after a short pause; the
   // value stays until Home Assistant reports it (or a timeout clears it).
   float edit_value = NAN; uint32_t edit_since = 0; bool edit_sent = false;
@@ -791,8 +793,10 @@ struct Tile {
   // (hui-button-entity-row disables only an unavailable one): its state is the moment it last ran (firmware 0.2.58+).
   bool available() const {
     if (builtin()) return true;
-    if (!received || state.empty() || state == "unavailable") return false;
+    if (!received || state == "unavailable") return false;
     auto d = domain();
+    // A text's value may be empty (docs/TEXT_ENTITY.md): that is a value, not a state that is missing.
+    if (state.empty()) return d == "text" || d == "input_text";
     // A cover that cannot tell whether it is open (an awning or a blind without feedback: Home Assistant's is_closed is
     // None) reports "unknown" and still takes its keys, as in Home Assistant, where only "unavailable" turns them off
     // (frontend data/cover.ts canOpen, canClose, canStop).
@@ -805,8 +809,10 @@ struct Tile {
   // inactive. A built-in card has no state and is always active.
   bool active() const {
     if (builtin()) return true;
-    if (!received || state.empty() || state == "unavailable") return false;
+    if (!received || state == "unavailable") return false;
     auto d = domain();
+    // An empty text is a value (docs/TEXT_ENTITY.md); any other empty state is one that has not come yet.
+    if (state.empty()) return d == "text" || d == "input_text";
     if (d == "scene" || d == "button" || d == "input_button" || d == "image") return true;
     // An automation that runs on a tap is a script's button: coloured while its actions run, whether it is on or off.
     if (runs()) return running;

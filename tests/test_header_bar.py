@@ -110,6 +110,9 @@ class TextTests(unittest.TestCase):
             ('sensor.p', state('1249.4', unit_of_measurement='W'), ('1,249 W', None)),
             ('sensor.h', state('unavailable', unit_of_measurement='%'), ('—', None)),
             ('binary_sensor.door', state('on', device_class='door'), ('Open', None)),
+            # A text shows its value as it is, a password a dot per character (docs/TEXT_ENTITY.md).
+            ('text.note', state('Back at three', mode='text'), ('Back at three', None)),
+            ('input_text.code', state('é€x9', mode='password'), ('••••', None)),
             ('binary_sensor.door', state('off', device_class='door'), ('Closed', None)),
             # Home Assistant's own words for the class (screen.ha.binary), as the screen's tiles say them (app 0.2.90).
             ('binary_sensor.smoke', state('on', device_class='smoke'), ('Detected', None)),

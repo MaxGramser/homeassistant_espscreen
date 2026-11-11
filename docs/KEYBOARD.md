@@ -1,9 +1,9 @@
 # The keyboard
 
 The screen's own keyboard: a sheet at the bottom of the glass with a field, the key that sends it, a row of
-suggestions and four rows of keys. The to-do card is its first user (docs/TODO.md, "The keyboard"), and any other part
-of the UI that needs a text (a search field, a rename, a plugin's card) uses the same one, with its own hint,
-suggestions and send key.
+suggestions and four rows of keys. The to-do card is its first user (docs/TODO.md, "The keyboard") and a Home Assistant
+text's field the second (docs/TEXT_ENTITY.md); any other part of the UI that needs a text (a search field, a rename, a
+plugin's card) uses the same one, with its own hint, suggestions, send key and limits.
 
 It is in two parts, as the touch feedback is (docs/PLUGINS.md, "Touch feedback"):
 
@@ -36,10 +36,19 @@ What a caller asks for is one `keyboard::Spec`:
 | `send_glyph` | The send key as an icon of the screens' icon font. | the check |
 | `send_word` | The send key as a word ("Search", "Save"), in place of the icon; the key grows to fit it and the field gives way. | none |
 | `most` | The most bytes the field holds; a character that does not fit whole is left out. | 120 |
+| `chars` | The most characters the field holds, counted as Home Assistant counts a text (Python's `len()`: code points, so `é` and `€` are one each); a key that would pass it types nothing. 0 for no limit beyond `most`. | 0 |
+| `least` | The fewest characters the send key takes. With fewer, the send key and the check key at the bottom right are faded, take no shade under a finger and send nothing, as Home Assistant's field refuses a text under its `minlength`. | 0 |
+| `mask` | The field shows a dot (•, `keyboard::MASK`) for every character instead of the text: a password. | no |
+| `field` | The field and its send key above the keys. Off, the sheet is the keys alone, lower by the field's row, and the check at the bottom right sends: for a caller that shows the text itself (a text entity's text area). Without the field there is no close key either, so such a caller keeps the field where the sheet would take the whole glass. | yes |
 
 What is typed is a `keyboard::Entry` the caller keeps: its text, the page, shift, and the letter whose accents show.
-`keyboard::reset(entry, text)` starts it, with a text to change (a rename) or empty; `keyboard::typed(entry)` is the
-text without spaces at either end.
+`keyboard::reset(entry, text)` starts it, with a text to change (a rename, a text entity's value) or empty: what is
+typed goes at its end, where the cursor stands, and a start value begins with small letters. `keyboard::typed(entry)`
+is the text without spaces at either end; a caller that sends a text as it stands reads `entry.text` instead (a text
+entity's field does). `entry.at` is the cursor, a byte offset where keys type and before which backspace erases;
+`reset` puts it at the end, `keyboard::place(entry, at)` where a caller's finger put it (on the start of a character),
+and `keyboard::caret(entry)` reads it back inside the text. The field draws the cursor where it stands. `keyboard::characters(text)` counts characters as `chars` and `least` do, and
+`keyboard::sendable(entry, spec)` says whether the send key takes what the field holds.
 
 ## Using it
 
@@ -73,8 +82,9 @@ const keyboard::Place where = keys.show(page, measure, faces, W, H, top, entry, 
   `PANEL`): the caller's guard against a bounce (the to-do card guards all but the letters, as before), or a check that
   its page is still there.
 - `changed(text)` comes after every key, before the sheet is planned again: the place to set new suggestions.
-- `send(text)` comes from the send key and from the check key at the bottom right. The keyboard stays up: the caller
-  resets the entry for the next text (the to-do card does) or hides it.
+- `send(text)` comes from the send key and from the check key at the bottom right, never while the field holds fewer
+  than `least` characters. The keyboard stays up: the caller resets the entry for the next text (the to-do card does)
+  or hides it (a text entity's field closes its page).
 - `suggestion(index, text)` and `hidden()` are the caller's too.
 - `moved()` comes when a key moved where the sheet begins (suggestions that came or went without `keep_row`): the
   caller lays its page out again and calls `show()`. Without it the sheet moves by itself.
@@ -115,7 +125,8 @@ There is no choice of layout on the screen yet: a caller names the one it wants.
 
 Both files are headers, and nothing of them is made unless a caller uses them. Every header of this component lands
 in the firmware's `main.cpp`, where the keyboard stays unused on a board without a caller; the to-do card uses it from
-`module_todo.cpp`, which only boards with the `todo` module compile (docs/MODULES.md). So a board without a user of the
+`module_todo.cpp` and `module_text_edit.cpp`, which only boards with the `todo` and `text_edit` modules compile
+(docs/MODULES.md). So a board without a user of the
 keyboard carries none of it, without a define of its own: the CYD's image has no symbol of `keyboard::`.
 
 A new caller in a module of its own adds it to the boards of that module. A caller in the shared code adds it to every
@@ -129,9 +140,13 @@ the same code differently; a symbol of the keyboard in its image is what says it
   field, every place inside the glass and every key a finger can hit, a second layout, a send key that is a word or a
   caller's icon, the row of suggestions with and without its room, the accents of a letter, the whole glass.
 - `tests/test_keyboard_glyphs.py`: every character of every layout is in the screens' fonts.
+- `tests/test_keyboard.cpp` (`entity_field`): characters and not bytes, the faded send key under `least`, a start
+  value, the cursor (typing and erasing in the middle, never two spaces side by side), the dots of a masked field and
+  the keys without their field, on six boards.
 - `tests/test_todo.cpp`: the keyboard as the to-do card uses it.
+- `tests/test_text_edit.cpp`: the keyboard as a text entity's field uses it.
 - `tools/render/run.py --only todo`: the real firmware typing on the host (the to-do card's keyboard, its accents and
-  its names offered).
+  its names offered); `--only text` a text entity's field, a password's, the faded check and a value sent.
 
 ## The places a change touches
 
@@ -142,4 +157,5 @@ the same code differently; a symbol of the keyboard in its image is what says it
 | The finger, the shade of a key, the callbacks | `keyboard_lvgl.h`, its callers (`module_todo.cpp`), this document |
 | A new caller | its own module or file, docs/KEYBOARD.md's list of callers below, and the CYD's size if it is shared code |
 
-Callers today: the to-do card (`module_todo.h` `typing_spec`, `module_todo.cpp`).
+Callers today: the to-do card (`module_todo.h` `typing_spec`, `module_todo.cpp`) and a text entity's field
+(`module_text_edit.h` `spec`, `module_text_edit.cpp`), both modules of the full tier.

@@ -28,7 +28,7 @@ from i18n import TRANSLATIONS, screen_number, screen_t, t
 # tests/test_header_bar.py keeps them equal). Anything else folds to its base letter or goes.
 # The characters the screen's text fonts carry (the sublabel_big glyph list; tests/test_header_bar.py keeps them equal):
 # every letter European languages write with since app 0.2.90, and every printable ASCII character and three hearts since firmware 0.36.0.
-GLYPHS = frozenset('<>—&@!,.?"%()+-_:°0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz/…·\'#*=;²³µ–$^~|`[]{}\\×©®™¢¥§♡♥❤ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĄąĆćĘęŁłŃńŚśŹźŻżČčĎďĚěŇňŘřŠšŤťŮůŽžĹĺĽľŔŕŐőŰűĂăȘșȚțĐđĀāĒēĢģĪīĶķĻļŅņŪūĖėĮįŲųĞğİıŞşĊċĠġĦħŴŵŶŷĿŀŒœŸ„“”‘’«»‹›¿¡€£')
+GLYPHS = frozenset('<>—&@!,.?"%()+-_:°0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz/…·•\'#*=;²³µ–$^~|`[]{}\\×©®™¢¥§♡♥❤ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĄąĆćĘęŁłŃńŚśŹźŻżČčĎďĚěŇňŘřŠšŤťŮůŽžĹĺĽľŔŕŐőŰűĂăȘșȚțĐđĀāĒēĢģĪīĶķĻļŅņŪūĖėĮįŲųĞğİıŞşĊċĠġĦħŴŵŶŷĿŀŒœŸ„“”‘’«»‹›¿¡€£')
 # The letters of firmware from before the languages (0.2.75 and older), which gets what it can draw.
 LEGACY_GLYPHS = frozenset("<>—&@!,.?\"%()+-_:°0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyzäöüÄÖÜß/…·'#*=;²³µéèëêïîóôàáâçñúû–")
 TEXT_BYTES = 40
@@ -107,7 +107,7 @@ DOMAIN_ICONS = {
     'climate': 'thermostat', 'vacuum': 'robot-vacuum', 'media_player': 'speaker', 'scene': 'palette', 'script': 'script-text',
     'button': 'gesture-tap-button', 'input_button': 'gesture-tap-button', 'person': 'account', 'device_tracker': 'map-marker',
     'zone': 'account-group', 'lock': 'lock', 'alarm_control_panel': 'shield-home', 'timer': 'timer-outline', 'counter': 'gauge',
-    'event': 'bell-ring', 'input_datetime': 'calendar', 'input_text': 'script-text', 'water_heater': 'water-boiler',
+    'event': 'bell-ring', 'input_datetime': 'calendar', 'input_text': 'script-text', 'text': 'form-textbox', 'water_heater': 'water-boiler',
     'humidifier': 'air-humidifier', 'select': 'cog', 'input_select': 'cog', 'number': 'gauge', 'input_number': 'gauge',
     'sensor': 'gauge', 'binary_sensor': 'gauge',
 }
@@ -244,7 +244,10 @@ def value(entity, state, entry=None, units=None, tz=None, words=None):
         return durations.text(raw, attrs['unit_of_measurement'], i18n.screen_language(), precision_of(entry)), None
     if number is not None and domain in ('sensor', 'number', 'input_number', 'counter', 'zone'):
         return with_unit(number_text(number, precision_of(entry)), attrs.get('unit_of_measurement')), None
-    if domain in ('input_text', 'input_select', 'select'):
+    # A text in mode password shows a dot per character, as on its tile (docs/TEXT_ENTITY.md); its value never leaves the app.
+    if domain in ('input_text', 'text') and attrs.get('mode') == 'password' and raw not in ('unknown', 'unavailable'):
+        return '\u2022' * len(raw), None
+    if domain in ('input_text', 'text', 'input_select', 'select'):
         return state_word(entity, raw, attrs, entry, words) or raw, None
     if raw in STATES:
         return state_text(raw), None

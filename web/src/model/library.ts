@@ -13,10 +13,10 @@ export type Entry = { id: string; name: string; area?: string; device?: string; 
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "" for no filter.
 export const FILTERS = [
   "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
-  "media_player", "camera", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar", "todo",
+  "media_player", "camera", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar", "todo", "text",
 ];
 // A kind that takes a second domain along: an input helper with its entity, the sun with the weather.
-const ALIAS: Record<string, string> = { camera: "image", switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button" };
+const ALIAS: Record<string, string> = { camera: "image", switch: "input_boolean", number: "input_number", select: "input_select", weather: "sun", button: "input_button", text: "input_text" };
 /** How many rows stand on the page at first, and how many more come as the list is scrolled. */
 export const ROWS_AT_ONCE = 120;
 

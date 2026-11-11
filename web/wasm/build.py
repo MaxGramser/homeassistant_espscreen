@@ -48,7 +48,7 @@ ceilings = {name: max([shape.get(key, low) for shape in shapes] + [low]) for nam
             (('PAGES', 'max_pages', 8), ('TILES', 'max_tiles', 64), ('BAR_ITEMS', 'max_bar_items', 6))}
 flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES',
          # The template tile's module (docs/TEXT_TILE.md): the preview draws the card the screen draws, rows and all.
-         '-DSD_MOD_TEXT_CARD', '-DSD_MOD_TODO', '-DGRID_COLS=8', '-DGRID_ROWS=8',
+         '-DSD_MOD_TEXT_CARD', '-DSD_MOD_TODO', '-DSD_MOD_TEXT_EDIT', '-DGRID_COLS=8', '-DGRID_ROWS=8',
          '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
 for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',
                lvgl, lvgl / 'src', arduino / 'src', ROOT / 'components'):
@@ -81,6 +81,7 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
                           ('meter', ROOT / 'components/smart_display/meter_view.cpp'),
                           ('text_card', ROOT / 'components/smart_display/module_text_card.cpp'),
                           ('todo', ROOT / 'components/smart_display/module_todo.cpp'),
+                          ('text_edit', ROOT / 'components/smart_display/module_text_edit.cpp'),
                           ('plugins', ROOT / 'components/smart_display/plugin_host.cpp'),
                           ('hooks', ROOT / 'components/smart_display/screen_hooks.cpp')]:
     obj = objects / f'{name}.o'

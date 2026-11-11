@@ -113,6 +113,8 @@ const callKinds = computed<[string, string][]>(() => [["video", t("editor.tile.c
 // A calendar card (firmware 0.56.0) draws its own head and what its room allows: no face or second line to choose, its
 // choices in a section of their own. As a bedside clock's key it is a key like any other.
 const calendarCard = computed(() => domain.value === "calendar" && !key.value);
+// A text (docs/TEXT_ENTITY.md): a tap edits it on a board with the module text_edit, any other shows the value only.
+const textEntity = computed(() => (domain.value === "text" || domain.value === "input_text") && !key.value);
 // A to-do card draws its own list on a board that has it (docs/TODO.md): its choices in a section of their own.
 const todoCard = computed(() => domain.value === "todo" && !key.value);
 // A favourite (app 0.4.42): what it plays and on which speaker, in its own section.
@@ -289,6 +291,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       </PropRow>
     </Section>
     <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard && !textTile" :title="t('editor.tile.sections.look')">
+      <p v-if="textEntity" class="hint">{{ t(scr.currentScreen?.text_edit === false ? "editor.tile.text_entity.view_only" : "editor.tile.text_entity.edit") }}</p>
       <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
         <ChoiceField :choices="flowChoices" :value="current('flow', rules.energyFlow[0])" :tile="tile" preview-key="flow" :aria-label="t('editor.tile.energy.flow.label')" @pick="(v) => setTileOption(tile, 'flow', v)" />

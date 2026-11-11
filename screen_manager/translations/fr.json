@@ -1969,7 +1969,8 @@
         "lock": "Serrures",
         "humidifier": "Humidificateurs",
         "calendar": "Calendriers",
-        "todo": "Listes de tâches"
+        "todo": "Listes de tâches",
+        "text": "Textes"
       },
       "room": "Pièce",
       "hide_placed": "Masquer celles déjà placées",
@@ -2468,7 +2469,9 @@
       "lock": "Serrure",
       "humidifier": "Humidificateur",
       "calendar": "Calendrier",
-      "todo": "Liste de tâches"
+      "todo": "Liste de tâches",
+      "text": "Texte",
+      "input_text": "Texte"
     },
     "displays": {
       "standard": "standard",
@@ -2989,6 +2992,10 @@
         "suggest_hint": "Pendant la saisie, le clavier propose ce qui a déjà été coché ; un appui le remet sur la liste",
         "clear": "Supprimer les terminés",
         "clear_hint": "Une touche dans la liste supprime tout ce qui est coché, après confirmation"
+      },
+      "text_entity": {
+        "edit": "Un appui ouvre la valeur dans un champ avec le clavier de l'écran. Un mot de passe s'affiche en points.",
+        "view_only": "Cette carte affiche seulement la valeur : la modifier sur l'écran demande une carte avec 8 Mo de flash ou plus."
       }
     },
     "precision": {

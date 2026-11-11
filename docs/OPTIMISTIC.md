@@ -144,6 +144,7 @@ A wish writes its value into the tile and paints every tile and the open card of
 | `HUE` | 0-360 | a light's own colour at full saturation (its colour card) |
 | `KELVIN` | kelvin | a light's own white shade (its colour card) |
 | `PRESET` | `80\|k2700`, `60\|h280,41`, `30\|`; `0\|` for off | a light's brightness and white shade or colour at once (its presets, docs/LIGHT_PRESETS.md), sent as one `light.turn_on` with two values |
+| `TEXT` | the text | the state: text, input_text (their field, docs/TEXT_ENTITY.md) |
 
 ### Adding a field
 
@@ -162,7 +163,7 @@ a humidifier's modes (card and the tile's mode bar), a thermostat's fan and swin
 player's play, pause, mute, shuffle and repeat (card, tile over the whole page, key row and favourite), a vacuum's chips,
 every lamp of a light group's lamp page (on and off, brightness, colour, white shade), a light's colour and white shade
 on its colour card (`HUE`, `KELVIN`; its brightness row is the tile's slider) and every row of a light's effects page
-(the effect, the device's selects and numbers).
+(the effect, the device's selects and numbers), and a text's value sent from its field (docs/TEXT_ENTITY.md).
 
 Not a wish, and why:
 

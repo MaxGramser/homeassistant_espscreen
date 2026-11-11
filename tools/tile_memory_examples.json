@@ -968,5 +968,28 @@
     "completed": "2026-11-09T10:00:00+00:00"
    }
   ]
+ },
+ "text": {
+  "entity": "text.living_room_floor_lamp_left",
+  "state": "Back at three, parcels go to the side door behind the garden gate",
+  "attributes": {
+   "friendly_name": "Living Room Floor Lamp Left Side",
+   "mode": "text",
+   "min": 0,
+   "max": 255,
+   "pattern": null
+  }
+ },
+ "input_text": {
+  "entity": "input_text.living_room_floor_lamp_left",
+  "state": "Back at three, parcels go to the side door behind the garden gate",
+  "attributes": {
+   "friendly_name": "Living Room Floor Lamp Left Side",
+   "mode": "password",
+   "min": 0,
+   "max": 100,
+   "pattern": null,
+   "editable": true
+  }
  }
 }

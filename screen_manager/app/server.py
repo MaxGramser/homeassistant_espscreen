@@ -4882,6 +4882,9 @@ def create_app(manager, development=False):
             # The to-do card (docs/TODO.md): only a board with the module todo (8 MB of flash or more) has it; the
             # editor offers to-do lists there only.
             screen['todo_lists'] = has_module(screen, todo_feed.MODULE)
+            # A text's field (docs/TEXT_ENTITY.md): only a board with the module text_edit edits a text on the glass; the
+            # editor says that any other shows the value only.
+            screen['text_edit'] = has_module(screen, 'text_edit')
             # A light's presets (docs/LIGHT_PRESETS.md): only a board with the module light_presets draws them.
             screen['light_presets'] = has_module(screen, 'light_presets')
             # Whether the board draws pictures (camera tiles, an alert's snapshot, an album cover): the boards with

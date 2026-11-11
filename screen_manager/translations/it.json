@@ -1969,7 +1969,8 @@
         "lock": "Serrature",
         "humidifier": "Umidificatori",
         "calendar": "Calendari",
-        "todo": "Liste di cose da fare"
+        "todo": "Liste di cose da fare",
+        "text": "Testi"
       },
       "room": "Area",
       "hide_placed": "Nascondi quelle già inserite",
@@ -2468,7 +2469,9 @@
       "lock": "Serratura",
       "humidifier": "Umidificatore",
       "calendar": "Calendario",
-      "todo": "Lista di cose da fare"
+      "todo": "Lista di cose da fare",
+      "text": "Testo",
+      "input_text": "Testo"
     },
     "displays": {
       "standard": "standard",
@@ -2989,6 +2992,10 @@
         "suggest_hint": "Mentre scrivi, la tastiera propone ciò che è stato spuntato prima; un tocco lo rimette nella lista",
         "clear": "Rimuovi completati",
         "clear_hint": "Un tasto nella lista rimuove tutto ciò che è spuntato, dopo una conferma"
+      },
+      "text_entity": {
+        "edit": "Un tocco apre il valore in un campo con la tastiera dello schermo. Una password appare come punti.",
+        "view_only": "Questa scheda mostra solo il valore: per cambiarlo sullo schermo serve una scheda con 8 MB di flash o più."
       }
     },
     "precision": {

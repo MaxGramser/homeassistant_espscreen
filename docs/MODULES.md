@@ -75,6 +75,10 @@ the add-on and the editor offer a module's options only on boards that have it.
   adds an item (docs/TODO.md, `module_todo.cpp` with its headers). Its screens say `todo_card` in their hello, with
   `todo_items` in their caps, and ESP Screens sends them the list's items (`todo`); the editor offers to-do lists where
   `boards.json` lists the module, and lite has no to-do tile.
+- **text_edit** (full): a Home Assistant text's field, the value with the keyboard under the page's top bar
+  (docs/TEXT_ENTITY.md, `module_text_edit.cpp` with its headers). Its screens say `text_edit` in their hello; the editor
+  reads the module in `boards.json` and says on a lite board that its text tiles show the value only, which lite draws
+  on the tile and on its plain card.
 - **dock** (full): up from the bottom edge opens the Dock, a small drawer at the bottom of the glass (at most 12 cm
   wide, the full width on a 4-inch glass) with every page as a small picture and its name, in one row or two.
   The drawer rides on the finger that opens it: its top stays under the finger until it lets go, and then a flick, or

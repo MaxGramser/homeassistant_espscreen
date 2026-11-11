@@ -1969,7 +1969,8 @@
         "lock": "Schlösser",
         "humidifier": "Luftbefeuchter",
         "calendar": "Kalender",
-        "todo": "To-do-Listen"
+        "todo": "To-do-Listen",
+        "text": "Texte"
       },
       "room": "Bereich",
       "hide_placed": "Platzierte ausblenden",
@@ -2468,7 +2469,9 @@
       "lock": "Schloss",
       "humidifier": "Luftbefeuchter",
       "calendar": "Kalender",
-      "todo": "To-do-Liste"
+      "todo": "To-do-Liste",
+      "text": "Text",
+      "input_text": "Text"
     },
     "displays": {
       "standard": "Standard",
@@ -2989,6 +2992,10 @@
         "suggest_hint": "Beim Tippen bietet die Tastatur an, was früher abgehakt wurde; ein Tipp setzt es zurück auf die Liste",
         "clear": "Erledigte entfernen",
         "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
+      },
+      "text_entity": {
+        "edit": "Ein Tippen öffnet den Wert in einem Feld mit der Tastatur des Bildschirms. Ein Passwort erscheint als Punkte.",
+        "view_only": "Dieses Board zeigt nur den Wert: Ändern auf dem Bildschirm braucht ein Board mit 8 MB Flash oder mehr."
       }
     },
     "precision": {

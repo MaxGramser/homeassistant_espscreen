@@ -1969,7 +1969,8 @@
         "lock": "Fechaduras",
         "humidifier": "Humidificadores",
         "calendar": "Calendários",
-        "todo": "Listas de tarefas"
+        "todo": "Listas de tarefas",
+        "text": "Textos"
       },
       "room": "Divisão",
       "hide_placed": "Ocultar adicionadas",
@@ -2468,7 +2469,9 @@
       "lock": "Fechadura",
       "humidifier": "Humidificador",
       "calendar": "Calendário",
-      "todo": "Lista de tarefas"
+      "todo": "Lista de tarefas",
+      "text": "Texto",
+      "input_text": "Texto"
     },
     "displays": {
       "standard": "padrão",
@@ -2989,6 +2992,10 @@
         "suggest_hint": "Ao escrever, o teclado oferece o que foi assinalado antes; um toque volta a pô-lo na lista",
         "clear": "Remover concluídos",
         "clear_hint": "Uma tecla na lista remove tudo o que está assinalado, depois de perguntar"
+      },
+      "text_entity": {
+        "edit": "Um toque abre o valor num campo com o teclado do ecrã. Uma palavra-passe aparece como pontos.",
+        "view_only": "Esta placa mostra apenas o valor: alterá-lo no ecrã precisa de uma placa com 8 MB de flash ou mais."
       }
     },
     "precision": {

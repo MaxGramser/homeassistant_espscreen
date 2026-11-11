@@ -1969,7 +1969,8 @@
         "lock": "Zárak",
         "humidifier": "Párásítók",
         "calendar": "Naptárak",
-        "todo": "Teendőlisták"
+        "todo": "Teendőlisták",
+        "text": "Szövegek"
       },
       "room": "Helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
@@ -2468,7 +2469,9 @@
       "lock": "Zár",
       "humidifier": "Párásító",
       "calendar": "Naptár",
-      "todo": "Teendőlista"
+      "todo": "Teendőlista",
+      "text": "Szöveg",
+      "input_text": "Szöveg"
     },
     "displays": {
       "standard": "normál",
@@ -2989,6 +2992,10 @@
         "suggest_hint": "Gépelés közben a billentyűzet felajánlja a korábban kipipáltakat; egy érintés visszateszi a listára",
         "clear": "Készek eltávolítása",
         "clear_hint": "A lista egy gombja kérdés után eltávolít mindent, ami ki van pipálva"
+      },
+      "text_entity": {
+        "edit": "Egy koppintás megnyitja az értéket egy mezőben a képernyő billentyűzetével. A jelszó pontokként látszik.",
+        "view_only": "Ez a panel csak az értéket mutatja: a képernyőn való módosításhoz legalább 8 MB flash memóriájú panel kell."
       }
     },
     "precision": {

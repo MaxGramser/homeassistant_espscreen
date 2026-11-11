@@ -77,6 +77,9 @@
 #ifdef SD_MOD_TODO
 #include "module_todo_view.h"
 #endif
+#ifdef SD_MOD_TEXT_EDIT
+#include "module_text_edit_view.h"
+#endif
 #include "meter_view.h"
 #include "module_vacuum_tile.h"
 #ifdef SD_MOD_DOORBELL
@@ -1380,7 +1383,7 @@ inline std::string wish_read(const Tile &t, optimistic::Field field, const std::
     case F::ROW_OPTION: for (const auto &r : x.option_rows) if (r.entity == item) return r.current; return {};
     case F::ROW_NUMBER: for (const auto &r : x.number_rows) if (r.entity == item) return effects_page::number_text(r.value); return {};
     case F::VACUUM_ROW: { const Choice *c = item.empty() ? nullptr : t.choice(item[0]); return c ? c->current : std::string(); }
-    case F::ON_OFF: case F::OPTION: case F::HVAC_MODE: return t.state;
+    case F::ON_OFF: case F::OPTION: case F::HVAC_MODE: case F::TEXT: return t.state;
     case F::HUMIDIFIER_MODE: return x.humidifier_mode;
     case F::FAN_MODE: return x.fan_mode;
     case F::SWING_MODE: return x.swing_mode;
@@ -1422,7 +1425,7 @@ inline void wish_write(Tile &t, optimistic::Field field, const std::string &valu
     case F::ROW_OPTION: for (auto &r : t.edit_extra().option_rows) if (r.entity == item) r.current = value; break;
     case F::ROW_NUMBER: for (auto &r : t.edit_extra().number_rows) if (r.entity == item) r.value = std::strtof(value.c_str(), nullptr); break;
     case F::VACUUM_ROW: if (!item.empty()) if (Choice *c = t.choice(item[0])) c->current = value; break;
-    case F::ON_OFF: case F::OPTION: case F::HVAC_MODE: t.state = value; break;
+    case F::ON_OFF: case F::OPTION: case F::HVAC_MODE: case F::TEXT: t.state = value; break;
     case F::HUMIDIFIER_MODE: t.edit_extra().humidifier_mode = value; break;
     case F::FAN_MODE: t.edit_extra().fan_mode = value; break;
     case F::SWING_MODE: t.edit_extra().swing_mode = value; break;
@@ -1759,6 +1762,7 @@ inline lv_obj_t *detail_label(lv_obj_t *parent,const std::string &text,int x,int
   lv_label_set_long_mode(label,LV_LABEL_LONG_DOT);lv_obj_set_height(label,lv_font_get_line_height(detail_font));return label;
 }
 inline std::string detail_state(const Tile &t){
+  if(tile_controls::text_value(t))return tile_controls::text_shown(t);
   if(t.domain()=="person")return t.state=="home"?tr(txt::ha_person_home):t.state=="not_home"?tr(txt::ha_person_not_home):t.state;
   if(t.domain()=="sun")return tr(t.state=="above_horizon"?txt::ha_sun_above_horizon:txt::ha_sun_below_horizon);
   if(t.domain()=="timer")return timer_text(t);
@@ -1803,6 +1807,9 @@ inline void hide_detail(){
 #endif
 #ifdef SD_MOD_TODO
   todo_view::closed();
+#endif
+#ifdef SD_MOD_TEXT_EDIT
+  text_edit_view::closed();
 #endif
   // A player's library and speaker menu go with its card (firmware 0.24.0+), after it: the card stays as it was.
   media_library::close();}
@@ -5748,6 +5755,12 @@ inline void show_detail(unsigned index){
   // The to-do card's full screen (module todo, firmware 0.61.0+) is its own too: the whole list and its keyboard.
   if(t.domain()=="todo"){todo_view::open(detail_root,t,index);return;}
 #endif
+#ifdef SD_MOD_TEXT_EDIT
+  // A text's field with the keyboard (module text_edit, firmware 0.61.0+); Home Assistant's own field is disabled while
+  // the entity is unavailable (and empty while it has no value yet), and so is this one: such a text gets the plain card
+  // that says so.
+  if(tile_controls::text_entity(t.domain())&&t.received&&t.state!="unavailable"&&fresh()){text_edit_view::open(detail_root,t,index);return;}
+#endif
   // The card's room: capped to what a hand spans and centred, unless it shows a picture (the media card's
   // cover art, a camera), which may fill the glass. Every size below follows from `width`.
   auto d=t.domain();
@@ -8587,6 +8600,19 @@ inline bool render_tall(Widgets &w,const Tile &t,bool selected,int width,int hei
   }else if((d=="climate"||d=="humidifier")&&std::isfinite(t.current)){
     const auto *font=watch_value_font&&lv_font_get_line_height(watch_value_font)<=body.h?watch_value_font:w.value_font;
     text(0,tile_controls::reading_text(t,t.current),font,{0,body.y+std::max(0,(body.h-static_cast<int>(lv_font_get_line_height(font)))/2),width,body.h},LV_TEXT_ALIGN_CENTER);
+  }else if(tile_controls::text_value(t)&&!t.secret){
+    // A text's value (docs/TEXT_ENTITY.md) fills the body under the head, from its top, over as many lines as it holds,
+    // the last ending in dots: a long note reads whole, and the name stays at the top. One line of a short value stands
+    // in the middle of the body, as any value does. A card of one row keeps its one line under the name.
+    const std::string value=tile_controls::text_shown(t);
+    const lv_font_t *font=w.value_font;
+    const int lh=lv_font_get_line_height(font),lines=std::min(8,lh>0?body.h/lh:0);
+    const bool one=text_width(value,font)<=width;
+    if(lines>0&&text(0,value,font,{0,one?body.y+(body.h-lh)/2:body.y,width,body.h},LV_TEXT_ALIGN_LEFT)){
+      if(!one){lv_label_set_long_mode(w.parts[0],LV_LABEL_LONG_DOT);lv_obj_set_height(w.parts[0],lines*lh);}
+      // The body is the value: the line under the name would repeat it (cut short, which drop_repeat cannot see).
+      set_hidden(w.value,true);lv_obj_set_y(w.title,(l.header.h-m.name_h)/2);
+    }
   }else if(!t.builtin() && fresh() && t.available()){
     const std::string value=d=="light"?light_value_text(t):card_status(t,true);
     const lv_font_t *font=w.value_font;
@@ -8804,6 +8830,8 @@ inline void render_slot(size_t slot) {
   else if (!fresh() || !t.available()) value = tr(txt::ha_unavailable);
   else if (refused) value = tr(t.unanswered ? txt::tile_no_answer : txt::tile_refused);
   else if (set_by_hand) value = chosen;
+  // A text's value as it is (docs/TEXT_ENTITY.md): "on" is no On here, and an empty value leaves the line empty.
+  else if (tile_controls::text_value(t)) value = tile_controls::text_shown(t);
   else if (d == "light" && t.state == "on" && tile_controls::effect_running(t.extra().effect)) value = t.extra().effect;
   else if (d == "light" && t.state == "on" && std::isfinite(t.brightness)) value = screen_text::percent(static_cast<int>(std::lround(std::clamp(t.brightness, 0.0f, 255.0f) * 100 / 255)));
   // An airco that is off says so, with the room's temperature when it knows it, as Home Assistant's tile does

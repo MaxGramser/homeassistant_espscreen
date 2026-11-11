@@ -35,6 +35,8 @@ MODULES = {
     "light_presets": {"min_tier": "full", "define": "SD_MOD_LIGHT_PRESETS"},
     # The to-do card: a list to tick, its full screen and the keyboard that adds an item; lite has no to-do tile.
     "todo": {"min_tier": "full", "define": "SD_MOD_TODO"},
+    # A text's field: a Home Assistant text or input_text edited with the keyboard; lite shows the value only.
+    "text_edit": {"min_tier": "full", "define": "SD_MOD_TEXT_EDIT"},
 }
 
 

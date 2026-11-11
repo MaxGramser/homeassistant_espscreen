@@ -15,6 +15,7 @@
     "input_button",
     "input_number",
     "input_select",
+    "input_text",
     "light",
     "lock",
     "media_player",
@@ -27,6 +28,7 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
     "todo",
     "vacuum",
@@ -63,6 +65,7 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
     "todo",
     "vacuum",
@@ -120,6 +123,9 @@
       "standard",
       "live"
     ],
+    "input_text": [
+      "standard"
+    ],
     "media_player": [
       "standard",
       "watch",
@@ -147,6 +153,9 @@
       "standard",
       "watch",
       "sunpath"
+    ],
+    "text": [
+      "standard"
     ],
     "todo": [
       "standard"
@@ -365,6 +374,7 @@
     "music-note",
     "outdoor-lamp",
     "palette",
+    "phone",
     "piano",
     "play",
     "playlist-music",
@@ -433,6 +443,7 @@
     "window-shutter-open"
   ],
   "builtins": [
+    "call",
     "clock",
     "energy",
     "map",
@@ -457,6 +468,7 @@
     "input_button",
     "input_number",
     "input_select",
+    "input_text",
     "light",
     "lock",
     "media_player",
@@ -469,6 +481,7 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
     "todo",
     "vacuum",
