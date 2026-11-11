@@ -1,7 +1,7 @@
 # ESP Screens - Elecrow CrowPanel 5.0" Standard package
 substitutions:
   GITHUB_REF: "main"
-  FONT_DIR: "https://githubusercontent.com + /Mastrolind0/homeassistant_espscreen/${GITHUB_REF}/fonts"
+  FONT_DIR: "https://raw.githubusercontent.com/Mastrolind0/homeassistant_espscreen/${GITHUB_REF}/fonts"
 
 packages:
   core: !include core.yaml
