@@ -1,0 +1,14 @@
+# Makerfabs E32S3RGB43 V3.1 optional backlight modification (docs/MAKERFABS43.md): R59 fitted, R29 removed.
+# GPIO44 then drives the backlight transistor. The stage is active-low, so PWM is inverted.
+substitutions:
+  BACKLIGHT_DIMMABLE: "true"
+  CAN_STANDBY: "true"
+
+output:
+  - id: !remove gpio_backlight_pwm
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin:
+      number: GPIO44
+      inverted: true
+    frequency: 1000Hz
