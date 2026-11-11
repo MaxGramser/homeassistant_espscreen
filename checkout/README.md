@@ -8,6 +8,7 @@ holds one file per board, named after the board's key in `boards.yaml`:
 
 | File | Board |
 |---|---|
+| `elecrow-terminal-rgb.yaml` | Elecrow ESP Terminal DLC35010R parallel (experimental) |
 | `cyd.yaml` | CYD, ESP32-2432S028 |
 | `cyd9342.yaml` | CYD, ESP32-2432S028 with an ILI9342 display controller (experimental) |
 | `guition.yaml` | Guition ESP32-S3-4848S040, 4 inch |
