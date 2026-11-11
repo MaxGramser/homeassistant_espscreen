@@ -31,6 +31,7 @@ ESPHome Device Builder is optional:
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
 | Freenove, 4 inch (experimental) | FNK0104S (not the 2.8 or 3.5-inch boards of the series), 480×320, ST7796 and FT6336 ([details](FREENOVEFNK0104S.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
+| Hosyond, 2.8 inch (experimental) | ES3C28P (LCDWiki, ESP32-S3; not the CYD and not the ES3N28P without touch), 320×240, ILI9341V and FT6336G ([details](ES3C28P.md)) |
 | Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
 | WT32, 3.5 inch (experimental) | Wireless-Tag WT32-SC01 Plus (not the WT32-SC01), 480×320, ST7796UI and FT6336U ([details](WT32SC01PLUS.md)) |
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
@@ -155,7 +156,7 @@ in the sidebar, open its details with the arrow at its right and use **Download 
 screen that isn't in Home Assistant yet has it on its card under Screens). The zip holds the screen's own
 YAML, its Override YAML and a `secrets.yaml` with only the secrets the two use, normally the Wi-Fi.
 Unpack it and run `esphome run <name>.yaml` in that folder. Like the firmware file, it holds your
-Wi-Fi password and the screen's keys. A CYD or a Hosyond you build yourself needs one more step once, for the
+Wi-Fi password and the screen's keys. A CYD or a Hosyond 4-inch you build yourself needs one more step once, for the
 partition table its firmware has had since 0.33.1: [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md) says what.
 
 **CYD:** calibration appears on first boot. Calmly tap the visible crosshair
@@ -228,7 +229,7 @@ title of its own still shows that. It has domain filters with
 colored icons, a room filter, and **Hide placed**. You can add one tile for every cell of the screen's pages,
 48 on a CYD, a 4-inch Guition or the experimental Waveshare 4B and Waveshare P4 (firmware 0.2.62+; see below for older firmware).
 The screen preview shows their placement on the screen's own grid, lying down: two columns of three on a CYD, a 4-inch Guition,
-the Waveshare 4B, the Waveshare P4 or the Hosyond 4-inch, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch and 5-inch,
+the Waveshare 4B, the Waveshare P4, the Hosyond 4-inch or the Hosyond ES3C28P, two by two on the Waveshare 3.5-inch and the 3.5-inch Guition, three by three on the Waveshare 4.3-inch and 5-inch,
 four by four on the [experimental Waveshare 7-inch](WAVESHARE7.md), the [experimental Waveshare 7B](WAVESHARE7B.md), the [experimental Sunton 7-inch](SUNTON8048S070.md) and the 7-inch Guition, and five by five on the
 10.1-inch Guition, either way up (firmware 0.18.0; five by four before, and a saved layout moves on by itself); up to
 eight pages and 64 tiles, or more on a board with PSRAM ([TILE_MEMORY.md](TILE_MEMORY.md)). That grid is where a screen
@@ -303,8 +304,8 @@ Click **Save & send** to send your changes.
   browse the player, the library key beside it opens its library down to a page of covers, and a tap plays one (firmware 0.24.0+, boards with camera
   pictures). **Display → Favourite** makes the tile play one playlist, album or artist you pick from that library, on
   the speaker you choose. A new media tile shows its cover by default on a board with pictures.
-- Camera or image (every board except the CYD, the Hosyond 4-inch, the Waveshare 3.5-inch, the SenseCAP Indicator
-  and the Freenove FNK0104S): tap for the
+- Camera or image (every board except the CYD, the Hosyond 4-inch, the Waveshare 3.5-inch, the SenseCAP Indicator,
+  the Freenove FNK0104S and the Hosyond ES3C28P): tap for the
   picture full screen, refreshed every four seconds. **Display → Live picture** fills the tile itself, on every size, and refreshes every 5, 10, 15 or 30 seconds (firmware 0.3.7+, [CAMERA.md](CAMERA.md)).
 - Alarm panel: tap for its card with a key per mode, and a keypad when the panel asks for a code (firmware 0.3.3+).
 - A *Go to page* tile: tap to open its page.
@@ -322,15 +323,15 @@ count, and a tile that no longer fits can't be added ([TILE_MEMORY.md](TILE_MEMO
 0.2.61 keeps the limit of twenty (four pages) and older firmware ten, until you
 update. In the **Screen settings** tab, **Swipe between pages** turns swiping on or off. A screen set up with New screen
 has it on from the start; one set up before keeps it off until you turn it on.
-On a board with capacitive touch (every board but the CYD and the Hosyond, firmware 0.2.24+), you then swipe inward from the left or right
+On a board with capacitive touch (every board but the CYD and the Hosyond 4-inch, firmware 0.2.24+), you then swipe inward from the left or right
 edge, like the back-swipe gesture on a phone; slow or fast, and a swipe starting in the
 middle of the screen does nothing, so tapping and dragging tiles never
-accidentally changes pages. On the CYD and the Hosyond, it stays a quick swipe across the screen. Sliders
+accidentally changes pages. On the CYD and the Hosyond 4-inch, it stays a quick swipe across the screen. Sliders
 only control their value; detail menus and standby don't change pages. Swiping up from the
 bottom edge goes back to the Home page (firmware 0.2.100+; page 1 unless you chose another page as Home, [PAGES.md](PAGES.md)).
 With firmware 0.28.0+ it works wherever you are, like the home gesture on a phone: an open card, a camera or the
 settings page closes on the way. Swiping down from the top edge opens the screen's settings page. A swipe that starts on
-a slider stays that slider's. The CYD and the Hosyond take both from a band along the top and bottom edge as well, and
+a slider stays that slider's. The CYD and the Hosyond 4-inch take both from a band along the top and bottom edge as well, and
 a quick swipe up anywhere over the tiles still goes home there. Every swipe that is
 taken lights the edge it came from for a quarter of a second, so the screen answers the gesture
 before the new page is drawn.

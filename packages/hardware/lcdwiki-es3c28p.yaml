@@ -1,0 +1,77 @@
+# ESP Screens - the hardware of the LCDWiki ES3C28P (sold as Hosyond 2.8" ESP32-S3), for packages/boards/es3c28p.yaml:
+# the chip, its PSRAM and USB log, the panel's SPI bus, the touch panel's I2C bus (touch_bus), the backlight's PWM pin
+# (gpio_backlight_pwm), the FT6336G and the ILI9341V. Pins from LCDWiki's pin table (docs/ES3C28P.md).
+packages:
+  build: !include esp-idf.yaml
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# The 8 MB of octal PSRAM in the module.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The native USB-C port is the chip's USB-Serial-JTAG: without this no log reaches the USB port.
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+# The panel's bus. MISO is wired; the write-only panel doesn't read it.
+spi:
+  id: lcd
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+  miso_pin: GPIO13
+
+# The touch panel's bus: the FT6336G at 0x38.
+i2c:
+  id: touch_bus
+  sda: GPIO16
+  scl: GPIO15
+  frequency: 400kHz
+
+# The backlight, a PWM pin, high is lit (features/backlight.yaml makes it the light); zero_means_zero keeps a dark
+# standby dark. GPIO45 is a strapping pin of the ESP32-S3, wired to the backlight on this board.
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    zero_means_zero: true
+
+# ESPHome's ft63x6 platform, with its interrupt on GPIO17 and its reset on GPIO18, read every 20 ms as on the other boards
+# (the Freenove FNK0104S wires its FT6336 the same way).
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO17
+    reset_pin: GPIO18
+    update_interval: 20ms
+
+# ESPHome's own ILI9341 model over SPI. The LCD's reset hangs on the chip's reset: no reset_pin. GPIO46 (the panel's
+# data/command line) is a strapping pin of the ESP32-S3, wired to the panel on this board.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ILI9341
+    spi_id: lcd
+    cs_pin: GPIO10
+    dc_pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    # Required on this board: without it every colour is its complement.
+    invert_colors: true
+    data_rate: 40MHz
+    # The panel's own pixels, standing up; LVGL turns them (ROTATION_LANDSCAPE).
+    dimensions:
+      width: 240
+      height: 320
+    update_interval: never
+    auto_clear_enabled: false
