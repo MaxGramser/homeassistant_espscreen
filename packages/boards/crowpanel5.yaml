@@ -1,0 +1,27 @@
+# ESP Screens - Elecrow CrowPanel 5.0" Standard (DIS07050H)
+packages:
+  hardware: !include ../hardware/crowpanel-esp32s3-50.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  BOARD_ID: "crowpanel5"
+  DEVICE_NAME: "crowpanel5-new"
+  DEVICE_FRIENDLY_NAME: "My CrowPanel 5"
+
+  PANEL_W: "800"
+  PANEL_H: "480"
+  DISPLAY_DPI: "186.590"
+
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  LVGL_BUFFER_SIZE: "12%"
