@@ -5,7 +5,7 @@ substitutions:
 
 packages:
   core: !include core.yaml
-  board: !include boards/crowpanel-esp32s3-50.yaml
+  board: !include boards/crowpanel-esp32s3-5.yaml
   hotspot: !include features/hotspot.yaml
 
 external_components:
