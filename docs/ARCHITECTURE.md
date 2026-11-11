@@ -170,6 +170,11 @@ automations, 0 or absent means until someone opens it). `module_doorbell` opens 
 and has its keys; Talk sends the screen's voice to the camera (`talk_uplink`, the add-on's `talk_bridge`). Detail: docs/DOORBELL.md, docs/CALLS.md; tests:
 `tests/test_header_bar.cpp`, `screen_manager/tests/test_doorbell.py`.
 
+The keyboard is a part the modules share, not a module: `keyboard.h` plans it from what its caller asks (a layout, a
+hint, suggestions, the send key, the most bytes) and `keyboard_lvgl.h` shows it and hears the finger, telling the caller
+through callbacks. Both are headers, so a board carries it only when a module it compiles uses it (today the to-do
+card). Detail: docs/KEYBOARD.md; tests: `tests/test_keyboard.cpp`, `tests/test_keyboard_glyphs.py`.
+
 ### 10. Plugins
 
 `plugin_api.h` is what a component of someone else may use: tile types, cards, top bar items, settings rows, questions

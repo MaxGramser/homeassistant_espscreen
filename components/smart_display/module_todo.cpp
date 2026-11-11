@@ -1,6 +1,6 @@
 // The to-do card on the glass (module todo, docs/TODO.md): the plans of the module's header painted in one object per
 // card, as the calendar card paints its plan (calendar_view.cpp), and the full screen a tap opens, with the list in a
-// scrolling box and the keyboard in a sheet over it.
+// scrolling box and the keyboard (keyboard_lvgl.h, docs/KEYBOARD.md) in a sheet over it.
 //
 // A tick shows at once (docs/OPTIMISTIC.md): the screen marks the item, asks the app (the event esphome.screen_todo
 // with the item's number), and Home Assistant's own list, which comes back through the app, squares it. A ticked item
@@ -16,6 +16,7 @@
 #ifdef SD_MOD_TODO
 #include "runtime_tiles.h"
 #include "calendar_paint.h"
+#include "keyboard_lvgl.h"
 #include "module_todo.h"
 #include "module_todo_view.h"
 
@@ -120,7 +121,7 @@ static cc::Measure measure() {
 // it takes the blue of everything without one.
 static std::vector<uint32_t> colours() {
   const uint32_t own = theme::ha::BLUE;
-  return {theme::state(own), theme::tint(own, 40), theme::icon(own), theme::ha::RED, theme::hex(theme::BUTTON)};
+  return {theme::state(own), theme::tint(own, 40), theme::icon(own), theme::ha::RED};
 }
 // Days since 1970-01-01 of a date, and back (Howard Hinnant's civil algorithms).
 static int days_of(int y, int m, int d) {
@@ -228,12 +229,11 @@ static struct {
   td::Full state;
   td::FullPlan plan;
   std::shared_ptr<const td::Data> data;
-  lv_obj_t *fixed = nullptr, *scroller = nullptr, *content = nullptr, *overlay = nullptr;
+  lv_obj_t *root = nullptr, *fixed = nullptr, *scroller = nullptr, *content = nullptr, *overlay = nullptr;
+  keyboard::lvgl::Sheet keys;  // types into state.entry; shown while is_typing()
   int width = 0, height = 0;
   bool typing = false;     // the key that adds an item on a card opens the full screen with its keyboard
   bool follow = false;     // the next list ends in what was just added: the list shows its end
-  int overlay_y = 0;       // where the overlay's object begins on the glass: its plan is in the glass's coordinates
-  lv_area_t pressed{0, 0, -1, -1};  // the key under the finger, in the overlay's own coordinates
   // A row dragged aside: which one (or none), how far, and where the finger came down.
   td::Swipe swipe;
   int swipe_row = -1, swipe_dx = 0, swipe_from = 0, down_row = -1;
@@ -252,28 +252,16 @@ static void repaint(const std::string &entity) {
   for (size_t i = 0; i < rt::model.count; ++i) if (rt::model.tiles[i].entity == entity) rt::refresh_tile(i);
   if (is_open() && full.entity == entity) apply(true);
 }
-// Where a layer's plan begins on the glass: the overlay's object covers only its sheet, so the list above the keys
-// keeps its own touches, while its plan counts from the glass's corner.
+// Where a layer's plan begins on the glass: each covers the glass from its corner, the list from where it scrolls to.
 static lv_area_t origin(lv_obj_t *o) {
   lv_area_t a;
   lv_obj_get_coords(o, &a);
-  if (o == full.overlay) a.y1 -= full.overlay_y;
   return a;
 }
 static void paint_scene(lv_event_t *e, const cc::Scene &scene) {
   auto *o = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
   const lv_area_t a = origin(o);
-  lv_layer_t *layer = lv_event_get_layer(e);
-  calendar_paint::paint(layer, scene, a.x1, a.y1, faces(), colours());
-  if (o != full.overlay || full.pressed.x2 < full.pressed.x1) return;
-  // The key under the finger, a shade darker at once.
-  lv_draw_rect_dsc_t d;
-  lv_draw_rect_dsc_init(&d);
-  d.bg_color = lv_color_black();
-  d.bg_opa = theme::dark ? LV_OPA_30 : LV_OPA_10;
-  d.radius = ui::px(8);
-  const lv_area_t k{a.x1 + full.pressed.x1, a.y1 + full.pressed.y1, a.x1 + full.pressed.x2, a.y1 + full.pressed.y2};
-  lv_draw_rect(layer, &d, &k);
+  calendar_paint::paint(lv_event_get_layer(e), scene, a.x1, a.y1, faces(), colours());
 }
 static const cc::Hit *under_finger(lv_obj_t *o, const cc::Scene &scene) {
   auto *input = lv_indev_active();
@@ -404,37 +392,6 @@ static void send(const std::string &text) {
   td::reset(st.entry);
   full.follow = true;
 }
-static void pressed_clear() {
-  if (full.pressed.x2 < full.pressed.x1 || !full.overlay) return;
-  const lv_area_t a = origin(full.overlay);
-  const lv_area_t k{a.x1 + full.pressed.x1, a.y1 + full.pressed.y1, a.x1 + full.pressed.x2, a.y1 + full.pressed.y2};
-  full.pressed = {0, 0, -1, -1};
-  lv_obj_invalidate_area(full.overlay, &k);
-}
-// A finger lands on the keyboard: its key darkens before anything else happens.
-static void finger_down(lv_event_t *e) {
-  auto *o = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
-  const cc::Hit *hit = o == full.overlay ? under_finger(o, full.plan.overlay) : nullptr;
-  pressed_clear();
-  if (!hit || (hit->kind != td::H_KEY && hit->kind != td::H_OFFER && hit->kind != td::H_SEND)) return;
-  const int g = hit->kind == td::H_KEY ? std::max(3, ui::px(6)) / 2 : 0;
-  full.pressed = {hit->x + g, hit->y + g, hit->x + hit->w - 1 - g, hit->y + hit->h - 1 - g};
-  const lv_area_t a = origin(o);
-  const lv_area_t k{a.x1 + full.pressed.x1, a.y1 + full.pressed.y1, a.x1 + full.pressed.x2, a.y1 + full.pressed.y2};
-  lv_obj_invalidate_area(o, &k);
-}
-static void finger_up(lv_event_t *) { pressed_clear(); }
-// A key changed what is typed and nothing else: the keyboard is planned and painted again, the list and the head stay
-// as they are. Where the sheet would begin elsewhere (it does not while the list has names to offer), everything is.
-static void retype() {
-  const Tile *t = tile_open();
-  if (!t || !full.data || !full.overlay || !td::is_typing(*full.data, full.state)) { apply(true); return; }
-  const int top = full.plan.covered ? 0 : full.plan.scroll_y + full.plan.scroll_h;
-  const bool covered = full.plan.covered;
-  const td::Keyboard k = td::plan_typing(full.plan, measure(), full.width, full.height, *full.data, words(), full.state);
-  if (k.whole != covered || (k.whole ? 0 : k.top) != top) { apply(true); return; }
-  lv_obj_invalidate(full.overlay);
-}
 // A tap on one of the three layers: the plan says what lies under the finger.
 static void tapped(lv_event_t *e) {
   auto *o = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
@@ -459,15 +416,11 @@ static void tapped(lv_event_t *e) {
     if (st.keys && o != full.overlay) { keys_down(); apply(true); }
     return;
   }
-  const bool key = hit->kind == td::H_KEY;
-  // Keys follow each other faster than any other touch: only the rest takes the guard against a double tap.
-  if (!key && !rt::allowed(esphome::millis(), 3300 + int(hit->kind), full.entity)) return;
-  bool keep = true;
+  if (!rt::allowed(esphome::millis(), 3300 + int(hit->kind), full.entity)) return;
   if (hit->kind == td::H_CLOSE) {
     if (st.keys || st.sheet >= 0 || st.confirm) { keys_down(); st.sheet = -1; st.confirm = false; }
     else { rt::detail_command(-1); return; }
-  } else if (hit->kind == td::H_HIDE) keys_down();
-  else if (hit->kind == td::H_PANEL) return;
+  } else if (hit->kind == td::H_PANEL) return;
   else if (hit->kind == td::H_SCRIM || hit->kind == td::H_NO) { st.sheet = -1; st.confirm = false; }
   else if (hit->kind == td::H_FIELD) { st.keys = true; st.renaming = 0; st.notice.clear(); td::reset(st.entry); full.follow = true; }
   else if (hit->kind == td::H_ROW) {
@@ -486,17 +439,10 @@ static void tapped(lv_event_t *e) {
   } else if (hit->kind == td::H_REMOVE) {
     if (st.sheet >= 0 && size_t(st.sheet) < d.items.size() && rt::fresh()) ask(full.entity, full.index, "remove", d.items[st.sheet].id);
     st.sheet = -1;
-  } else if (hit->kind == td::H_OFFER) {
-    const auto names = td::offers(d, st.entry.text);
-    if (size_t(hit->arg) < names.size() && rt::fresh()) send(names[hit->arg]);
-  } else if (hit->kind == td::H_SEND) { if (rt::fresh()) send(td::typed(st.entry)); }
-  else if (key) {
-    if (hit->arg == td::K_ENTER) { if (rt::fresh()) send(td::typed(st.entry)); }
-    else { td::press(st.entry, hit->arg); retype(); return; }
   } else return;
-  apply(keep);
+  apply(true);
 }
-// Held: a letter shows its accents, backspace keeps erasing, and an item opens its sheet.
+// Held: an item opens its sheet (the keyboard hears its own keys held).
 static void held_down(lv_event_t *e) {
   auto *o = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
   const cc::Scene *sc = scene_of(o);
@@ -504,14 +450,10 @@ static void held_down(lv_event_t *e) {
   const cc::Hit *hit = under_finger(o, *sc);
   if (!hit) return;
   auto &st = full.state;
-  const bool again = lv_event_get_code(e) == LV_EVENT_LONG_PRESSED_REPEAT;
-  if (hit->kind == td::H_KEY && hit->arg == td::K_BACK) td::press(st.entry, td::K_BACK);
-  else if (again) return;
-  else if (hit->kind == td::H_KEY && hit->arg >= 0 && hit->arg < 26) { if (!td::hold(st.entry, hit->arg)) return; }
-  else if (hit->kind == td::H_ROW && o == full.content && !st.keys && (full.data->may & (td::MAY_RENAME | td::MAY_REMOVE))) st.sheet = hit->arg;
+  if (lv_event_get_code(e) == LV_EVENT_LONG_PRESSED_REPEAT) return;
+  if (hit->kind == td::H_ROW && o == full.content && !st.keys && (full.data->may & (td::MAY_RENAME | td::MAY_REMOVE))) st.sheet = hit->arg;
   else return;
-  pressed_clear();
-  if (hit->kind == td::H_KEY) retype(); else apply(true);
+  apply(true);
 }
 static lv_obj_t *layer(lv_obj_t *parent, void (*draw_cb)(lv_event_t *)) {
   auto *o = lv_obj_create(parent);
@@ -532,7 +474,8 @@ static void apply(bool keep_scroll) {
   full.data = shown(*t);
   const int w = full.width, h = full.height;
   const int was = lv_obj_get_scroll_y(full.scroller), was_y = full.plan.scroll_y, was_h = full.plan.scroll_h;
-  td::plan_full(full.plan, measure(), w, h, t->name.empty() ? t->entity : t->name, *full.data, marks_of(full.entity), words(), full.state);
+  const cc::Measure m = measure();
+  td::plan_full(full.plan, m, w, h, t->name.empty() ? t->entity : t->name, *full.data, marks_of(full.entity), words(), full.state);
   const auto &pl = full.plan;
   if (pl.scroll_y != was_y || pl.scroll_h != was_h || !keep_scroll) {
     lv_obj_set_pos(full.scroller, 0, pl.scroll_y);
@@ -551,13 +494,14 @@ static void apply(bool keep_scroll) {
   }
   lv_obj_scroll_to_y(full.scroller, to, LV_ANIM_OFF);
   lv_obj_invalidate(full.content);
-  const bool overlay = !pl.overlay.boxes.empty();
-  // The overlay hears the finger only where it draws: above a keyboard the list keeps its own touches.
-  full.overlay_y = overlay && !pl.covered ? pl.scroll_y + pl.scroll_h : 0;
-  lv_obj_set_pos(full.overlay, 0, full.overlay_y);
-  lv_obj_set_size(full.overlay, w, std::max(1, h - full.overlay_y));
+  // The keyboard is its own sheet (keyboard_lvgl.h), from the Spec the plan put into its overlay; the overlay shows an
+  // item's sheet or the question before what is done goes.
+  const bool typing = td::is_typing(*full.data, full.state);
+  const bool overlay = !typing && !pl.overlay.boxes.empty();
   if (!overlay) lv_obj_add_flag(full.overlay, LV_OBJ_FLAG_HIDDEN);
   else { lv_obj_remove_flag(full.overlay, LV_OBJ_FLAG_HIDDEN); lv_obj_move_foreground(full.overlay); lv_obj_invalidate(full.overlay); }
+  if (typing) full.keys.show(full.root, m, faces(), w, h, td::typing_top(m, w, h), full.state.entry, td::typing_spec(*full.data, words(), full.state));
+  else full.keys.hide();
   lv_obj_invalidate(full.fixed);
 }
 void open(lv_obj_t *root, const Tile &t, unsigned index) {
@@ -571,9 +515,9 @@ void open(lv_obj_t *root, const Tile &t, unsigned index) {
   full.index = index;
   full.width = w;
   full.height = h;
-  full.pressed = {0, 0, -1, -1};
   full.follow = false;
-  full.overlay_y = 0;
+  full.root = root;
+  full.keys.forget();
   lv_anim_delete(&full, swipe_step);
   full.swipe_row = full.down_row = -1;
   full.swipe_dx = 0;
@@ -602,9 +546,20 @@ void open(lv_obj_t *root, const Tile &t, unsigned index) {
   lv_obj_add_event_cb(full.content, list_up, LV_EVENT_PRESS_LOST, nullptr);
   lv_obj_add_event_cb(full.scroller, [](lv_event_t *) { swipe_close(true); }, LV_EVENT_SCROLL_BEGIN, nullptr);
   full.overlay = layer(root, [](lv_event_t *e) { paint_scene(e, full.plan.overlay); });
-  lv_obj_add_event_cb(full.overlay, finger_down, LV_EVENT_PRESSED, nullptr);
-  lv_obj_add_event_cb(full.overlay, finger_up, LV_EVENT_RELEASED, nullptr);
-  lv_obj_add_event_cb(full.overlay, finger_up, LV_EVENT_PRESS_LOST, nullptr);
+  lv_obj_set_pos(full.overlay, 0, 0);
+  lv_obj_set_size(full.overlay, w, h);
+  // The keyboard's keys: what it types stays its own; what is sent, a name taken and its close key are the list's.
+  auto &k = full.keys.on;
+  k.allow = [](cc::HitKind kind) {
+    // Keys follow each other faster than any other touch: only the rest takes the guard against a double tap.
+    return tile_open() && full.data && (kind == td::H_KEY || rt::allowed(esphome::millis(), 3300 + int(kind), full.entity));
+  };
+  k.changed = [](const std::string &) { if (full.data) full.keys.spec() = td::typing_spec(*full.data, words(), full.state); };
+  k.moved = [] { apply(true); };
+  // What the field holds goes to the list, and the keyboard stays for the next item (send says when it goes).
+  k.send = [](const std::string &text) { if (rt::fresh()) send(text); apply(true); };
+  k.suggestion = [](size_t, const std::string &name) { if (rt::fresh()) send(name); apply(true); };
+  k.hidden = [] { keys_down(); apply(true); };
   apply(false);
   // A new list while it is open repaints it in place, where it is scrolled (docs/CARD_PARTS.md).
   rt::card_shaped(t, rt::entity_shape);
@@ -615,7 +570,8 @@ void closed() {
   full.swipe_row = full.down_row = -1;
   full.swipe_dx = 0;
   full.swiping = full.swipe_open = full.swallow = false;
-  full.fixed = full.scroller = full.content = full.overlay = nullptr;
+  full.keys.forget();
+  full.root = full.fixed = full.scroller = full.content = full.overlay = nullptr;
   full.state = td::Full{};
   full.data.reset();
   full.typing = false;

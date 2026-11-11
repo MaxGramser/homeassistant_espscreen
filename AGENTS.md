@@ -37,6 +37,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
+| give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `runtime_tiles.h` |

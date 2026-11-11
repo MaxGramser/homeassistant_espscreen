@@ -1,16 +1,17 @@
 #pragma once
 // The to-do card (module todo, docs/TODO.md): a Home Assistant to-do list as a tile that shows more as it gets more
-// room, a full screen with the whole list, and the keyboard that adds an item to it.
+// room, a full screen with the whole list, and the keyboard (keyboard.h, docs/KEYBOARD.md) that adds an item to it.
 //
 // What it knows: the list as the app sends it (`x.todo`, screen_manager/app/todo_feed.py: the items in the tile's
 // order, each with a number the app keeps for it, what the screen may do with the list, and names to offer while
 // typing), the room it gets, and the board's faces. It plans rectangles, texts and the places a finger may hit, as
-// the calendar card does (calendar_card.h Scene), and it keeps what is typed (Entry).
+// the calendar card does (calendar_card.h Scene), and what it asks of the keyboard (typing_spec).
 // What it does not know: LVGL, Home Assistant, the app. module_todo.cpp paints a plan, hears the finger and sends
 // what it asks for.
 //
 // Pure: tests/test_todo.cpp checks it on a PC.
 #include "calendar_card.h"
+#include "keyboard.h"
 #include "roomy.h"
 #include "ui_scale.h"
 
@@ -72,20 +73,20 @@ inline std::string count_words(const Data &d, const Marks &marks, const Words &w
   return fill(w.open, std::to_string(open));
 }
 
-// ---- Places a finger may hit. They live in calendar_card's Hit, whose own kinds end far below these.
+// ---- Places a finger may hit. They live in calendar_card's Hit, whose own kinds end far below these; 69 to 73 are
+// the keyboard's (keyboard.h), and a sheet's panel is the same kind as the keyboard's: it takes a tap and does nothing.
 constexpr cc::HitKind H_ROW = cc::HitKind(64), H_ADD = cc::HitKind(65), H_CLOSE = cc::HitKind(66), H_FIELD = cc::HitKind(67),
-    H_CLEAR = cc::HitKind(68), H_KEY = cc::HitKind(69), H_OFFER = cc::HitKind(70), H_SEND = cc::HitKind(71),
-    H_HIDE = cc::HitKind(72), H_PANEL = cc::HitKind(73), H_SCRIM = cc::HitKind(74), H_RENAME = cc::HitKind(75),
+    H_CLEAR = cc::HitKind(68), H_KEY = keyboard::KEY, H_OFFER = keyboard::SUGGESTION, H_SEND = keyboard::SEND,
+    H_HIDE = keyboard::HIDE, H_PANEL = keyboard::PANEL, H_SCRIM = cc::HitKind(74), H_RENAME = cc::HitKind(75),
     H_REMOVE = cc::HitKind(76), H_YES = cc::HitKind(77), H_NO = cc::HitKind(78);
 // The list's own colours, as places in the painter's colour list (module_todo.cpp): the list's colour, the pale
-// circle behind its icon, the icon in it, late, and a key that is no letter.
-enum : uint8_t { C_LIST, C_TINT, C_ICON, C_LATE, C_SPECIAL, COLOURS };
+// circle behind its icon, the icon in it, and late.
+enum : uint8_t { C_LIST, C_TINT, C_ICON, C_LATE, COLOURS };
 inline cc::Paint own(uint8_t c) { return cc::cal(cc::CAL_KEY, c); }
 
-// Icons the screens' fonts already carry (screen_manager/app/tile_icons.py): the list, plus, check, close, the arrows
-// that stand for backspace and shift, and the bin.
+// Icons the screens' fonts already carry (screen_manager/app/tile_icons.py): the list, plus, check, close and the bin.
 constexpr const char *I_LIST = "\U000F10D4", *I_PLUS = "\U000F0415", *I_CHECK = "\U000F012C", *I_CLOSE = "\U000F0156",
-    *I_BACK = "\U000F004D", *I_SHIFT = "\U000F005D", *I_BIN = "\U000F0A79";
+    *I_BIN = "\U000F0A79";
 
 using cc::L;
 inline void box(cc::Scene &s, int x, int y, int w, int h, int radius, cc::Paint p, uint8_t opa = 255) {
@@ -234,99 +235,32 @@ inline void plan_tile(cc::Scene &s, const cc::Measure &m, int w, int h, const st
   words(s, m, tx, (h - two) / 2 + L(m, cc::LABEL), w - tx, cc::SMALL, {cc::MUTED}, second);
 }
 
-// ---- The keyboard. One layout, QWERTY, with a page of digits and one of signs; a long press on a letter shows its
-// accents above it. Every character is one the screens' fonts have (packages/core.yaml `label`).
-enum : int { K_SHIFT = -1, K_BACK = -2, K_PAGE = -3, K_SPACE = -4, K_ENTER = -5, K_SIGNS = -6 };
-constexpr int ACCENT = 1000;  // a key of the accent strip: ACCENT + its place
-struct Entry {
-  std::string text;
-  uint8_t page = 0;   // 0 letters, 1 digits, 2 signs
-  bool shift = true;  // the next letter is a capital
-  int accents = -1;   // the letter key whose accents show, or none
-};
-inline const char *const *page_keys(uint8_t page, bool shift) {
-  static const char *const LOWER[26] = {"q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l",
-                                        "z", "x", "c", "v", "b", "n", "m"};
-  static const char *const UPPER[26] = {"Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "A", "S", "D", "F", "G", "H", "J", "K", "L",
-                                        "Z", "X", "C", "V", "B", "N", "M"};
-  static const char *const DIGITS[26] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "/", ":", ";", "(", ")", "€", "&", "@",
-                                         ".", ",", "?", "!", "'", "\"", "+"};
-  static const char *const SIGNS[26] = {"[", "]", "{", "}", "#", "%", "^", "*", "=", "_", "\\", "|", "~", "<", ">", "$", "£", "¥", "·",
-                                        ".", ",", "?", "!", "'", "°", "…"};
-  return page == 1 ? DIGITS : page == 2 ? SIGNS : shift ? UPPER : LOWER;
+// ---- The keyboard (keyboard.h, docs/KEYBOARD.md), as this card uses it: QWERTY, the blue plus that adds, and an
+// item's 120 bytes. The names below are the keyboard's, so tests/test_todo.cpp types as it did.
+using keyboard::Entry;
+using keyboard::K_SHIFT;
+using keyboard::K_BACK;
+using keyboard::K_PAGE;
+using keyboard::K_SPACE;
+using keyboard::K_ENTER;
+using keyboard::K_SIGNS;
+using keyboard::ACCENT;
+using keyboard::erase_last;
+using keyboard::reset;
+using keyboard::typed;
+inline const keyboard::Spec &keys() {
+  static const keyboard::Spec k = [] {
+    keyboard::Spec s;
+    s.send_glyph = I_PLUS;
+    s.most = TEXT_BYTES;
+    return s;
+  }();
+  return k;
 }
-// The accents of a letter key, at most six; none for a key that has none.
-inline std::vector<const char *> accents_of(int key, bool shift) {
-  struct Row { char base; const char *lower[6]; const char *upper[6]; };
-  static const Row ROWS[] = {
-      {'a', {"á", "à", "â", "ä", "ã", "å"}, {"Á", "À", "Â", "Ä", "Ã", "Å"}},
-      {'e', {"é", "è", "ê", "ë", "ę", nullptr}, {"É", "È", "Ê", "Ë", "Ę", nullptr}},
-      {'i', {"í", "ì", "î", "ï", nullptr, nullptr}, {"Í", "Ì", "Î", "Ï", nullptr, nullptr}},
-      {'o', {"ó", "ò", "ô", "ö", "õ", "ø"}, {"Ó", "Ò", "Ô", "Ö", "Õ", "Ø"}},
-      {'u', {"ú", "ù", "û", "ü", nullptr, nullptr}, {"Ú", "Ù", "Û", "Ü", nullptr, nullptr}},
-      {'c', {"ç", "ć", "č", nullptr, nullptr, nullptr}, {"Ç", "Ć", "Č", nullptr, nullptr, nullptr}},
-      {'n', {"ñ", "ń", nullptr, nullptr, nullptr, nullptr}, {"Ñ", "Ń", nullptr, nullptr, nullptr, nullptr}},
-      {'s', {"ß", "ś", "š", nullptr, nullptr, nullptr}, {"Ś", "Š", nullptr, nullptr, nullptr, nullptr}},
-      {'y', {"ý", "ÿ", nullptr, nullptr, nullptr, nullptr}, {"Ý", "Ÿ", nullptr, nullptr, nullptr, nullptr}},
-      {'z', {"ž", "ź", "ż", nullptr, nullptr, nullptr}, {"Ž", "Ź", "Ż", nullptr, nullptr, nullptr}},
-      {'l', {"ł", nullptr, nullptr, nullptr, nullptr, nullptr}, {"Ł", nullptr, nullptr, nullptr, nullptr, nullptr}},
-  };
-  std::vector<const char *> out;
-  if (key < 0 || key >= 26) return out;
-  const char base = page_keys(0, false)[key][0];
-  for (const auto &r : ROWS)
-    if (r.base == base)
-      for (const char *a : shift ? r.upper : r.lower) if (a) out.push_back(a);
-  return out;
-}
-inline void erase_last(std::string &text) {
-  if (text.empty()) return;
-  size_t at = text.size() - 1;
-  while (at > 0 && (static_cast<unsigned char>(text[at]) & 0xC0) == 0x80) --at;
-  text.erase(at);
-}
-inline void type(Entry &e, const char *s) {
-  const std::string add = s ? s : "";
-  if (add.empty() || e.text.size() + add.size() > TEXT_BYTES) return;
-  if (add == " " && (e.text.empty() || e.text.back() == ' ')) return;
-  e.text += add;
-  e.shift = false;
-}
-// A key of the keyboard: a place on the page (0..25), a key of the accent strip (ACCENT + place), or one of K_*.
-// K_ENTER is the caller's: it sends what the field holds.
-inline void press(Entry &e, int key) {
-  if (key >= ACCENT) {
-    const auto strip = accents_of(e.accents, e.shift);
-    if (size_t(key - ACCENT) < strip.size()) type(e, strip[key - ACCENT]);
-    e.accents = -1;
-    return;
-  }
-  e.accents = -1;
-  if (key >= 0 && key < 26) { type(e, page_keys(e.page, e.shift)[key]); return; }
-  if (key == K_SHIFT) e.shift = !e.shift;
-  else if (key == K_BACK) { erase_last(e.text); if (e.text.empty() && e.page == 0) e.shift = true; }
-  else if (key == K_PAGE) { e.page = e.page ? 0 : 1; }
-  else if (key == K_SIGNS) { e.page = e.page == 2 ? 1 : 2; }
-  else if (key == K_SPACE) type(e, " ");
-}
-// A long press on a letter that has accents shows them; anything else is the key itself.
-inline bool hold(Entry &e, int key) {
-  if (e.page != 0 || accents_of(key, e.shift).empty()) return false;
-  e.accents = key;
-  return true;
-}
-inline void reset(Entry &e, const std::string &text = "") {
-  e = Entry();
-  e.text = text;
-  e.shift = text.empty();
-}
-// What the field holds, ready to send: no space at either end.
-inline std::string typed(const Entry &e) {
-  size_t a = 0, b = e.text.size();
-  while (a < b && e.text[a] == ' ') ++a;
-  while (b > a && e.text[b - 1] == ' ') --b;
-  return e.text.substr(a, b - a);
-}
+inline const char *const *page_keys(uint8_t page, bool shift) { return keyboard::page_keys(keyboard::qwerty(), page, shift); }
+inline std::vector<const char *> accents_of(int key, bool shift) { return keyboard::accents_of(keyboard::qwerty(), key, shift); }
+inline void press(Entry &e, int key) { keyboard::press(e, key, keys()); }
+inline bool hold(Entry &e, int key) { return keyboard::hold(e, key, keys()); }
 
 inline char lower(char c) { return c >= 'A' && c <= 'Z' ? char(c - 'A' + 'a') : c; }
 inline bool starts(const roomy::Text &name, const std::string &with) {
@@ -340,105 +274,6 @@ inline std::vector<std::string> offers(const Data &d, const std::string &text) {
   if (!(d.may & MAY_ADD)) return out;
   for (const auto &name : d.offers)
     if (starts(name, text) && !roomy::same(name, text)) out.push_back(roomy::plain(name));
-  return out;
-}
-
-// The keyboard's sheet at the bottom of a glass of `W` x `H`, never above `top`: the field with the key that sends
-// it, the names offered, and four rows of keys. Never wider than two hands need; a key never taller than 9 mm. On
-// glass too short for keys a finger can hit below `top` it takes the whole glass (`whole`), with a key that puts it
-// away. Returns where the sheet begins.
-struct Keyboard { int top = 0; bool whole = false; };
-inline Keyboard plan_keyboard(cc::Scene &s, const cc::Measure &m, int W, int H, int top, const Entry &e,
-                              const std::vector<std::string> &offered, const std::string &hint, bool offers_row = false) {
-  Keyboard out;
-  const int sp = ui::px(10), g = std::max(3, ui::px(6)), field = ui::touch_min(), margin = ui::px(16);
-  int kw = std::min(W, ui::mm(165));
-  if (W - kw < ui::mm(24)) kw = W;
-  const bool floats = kw < W;
-  const int least = 2 * sp + field + 5 * g + 4 * ui::mm(7);
-  out.whole = H - top - (floats ? margin : 0) < least;
-  if (out.whole) top = 0;
-  const int room = H - top - (floats && !out.whole ? margin : 0);
-  // The row of offered names keeps its room while the list has any to offer, also when none begins with what is
-  // typed: the keys never move under a finger that is typing.
-  int chips = ui::mm(6) + g;
-  if ((offered.empty() && !offers_row) || (room - 2 * sp - field - chips - 5 * g) / 4 < ui::mm(13) / 2) chips = 0;
-  const int keyh = std::max(ui::px(20), std::min(ui::mm(9), (room - 2 * sp - field - chips - 5 * g) / 4));
-  const int sh = out.whole ? H : 2 * sp + field + chips + 5 * g + 4 * keyh;
-  const int sx = (W - kw) / 2, sy = out.whole ? 0 : H - sh - (floats ? margin : 0);
-  out.top = sy;
-  if (out.whole) box(s, 0, 0, W, H, 0, {cc::CARD});
-  else {
-    cc::Box b; b.x = sx; b.y = sy; b.w = kw; b.h = sh; b.radius = floats ? ui::px(20) : 0; b.paint = {cc::CARD};
-    b.border = 1; b.line = {cc::GRID};
-    s.boxes.push_back(b);
-  }
-  hit(s, out.whole ? 0 : sx, sy, out.whole ? W : kw, sh, H_PANEL);
-  const int inner = kw - 2 * sp, x0 = sx + sp;
-  // The field, the key that puts the keyboard away where it covers the page's own, and the key that sends.
-  const int fx = out.whole ? field + g : 0;
-  if (out.whole) round_key(s, m, x0, sy + sp, field, I_CLOSE, H_HIDE);
-  const int fw = inner - field - g - fx;
-  box(s, x0 + fx, sy + sp, fw, field, field / 2, {cc::TRACK});
-  const int ty = sy + sp + (field - L(m, cc::CONTROL)) / 2, pad = ui::px(16);
-  if (e.text.empty()) words(s, m, x0 + fx + pad + ui::px(6), ty, fw - 2 * pad, cc::CONTROL, {cc::SUBTLE}, hint);
-  // The end of what is typed stays in view: a long text shows its tail.
-  std::string shown = e.text;
-  while (!shown.empty() && m.width(cc::CONTROL, shown) > fw - 2 * pad - ui::px(4)) shown.erase(0, 1 + (static_cast<unsigned char>(shown[0]) >= 0xC0 ? (static_cast<unsigned char>(shown[0]) >= 0xE0 ? 2 : 1) : 0));
-  if (!shown.empty()) { cc::Text t; t.x = x0 + fx + pad; t.y = ty; t.w = fw - 2 * pad; t.face = cc::CONTROL; t.paint = {cc::INK}; t.s = shown; s.texts.push_back(std::move(t)); }
-  box(s, x0 + fx + pad + (shown.empty() ? 0 : m.width(cc::CONTROL, shown)) + ui::px(2), ty, std::max(2, ui::px(2)), L(m, cc::CONTROL), 1, {cc::ACCENT});
-  round_key(s, m, x0 + inner - field, sy + sp, field, I_PLUS, H_SEND, 0, {cc::ACCENT}, {cc::ON_NOW});
-  if (chips) {
-    int x = x0;
-    const int h = chips - g, y = sy + sp + field + g;
-    for (size_t i = 0; i < offered.size(); ++i) {
-      const int w = m.width(cc::SMALL, offered[i]) + 2 * ui::px(14);
-      if (x + w > x0 + inner) break;
-      cc::Box b; b.x = x; b.y = y; b.w = w; b.h = h; b.radius = h / 2; b.paint = {cc::CARD}; b.border = 1; b.line = {cc::GRID};
-      s.boxes.push_back(b);
-      words(s, m, x, y + (h - L(m, cc::SMALL)) / 2, w, cc::SMALL, {cc::INK}, offered[i], cc::CENTRE);
-      hit(s, x, y - g / 2, w, h + g, H_OFFER, int(i));
-      x += w + g;
-    }
-  }
-  // On the whole glass the keys stand at its bottom, where the thumbs are.
-  const int kwid = (inner - 9 * g) / 10, radius = ui::px(8);
-  const int y0 = out.whole ? std::max(sy + sp + field + chips + g + g / 2, H - sp - 4 * keyh - 3 * g) : sy + sp + field + chips + g + g / 2;
-  const cc::Face letter = keyh >= 2 * L(m, cc::HEADLINE) - ui::px(8) && kwid >= ui::mm(11) ? cc::HEADLINE : cc::CONTROL;
-  auto key = [&](int x, int y, int w, const char *label, int code, bool icon = false, cc::Paint ground = {cc::TRACK}, cc::Paint ink = {cc::INK}) {
-    box(s, x, y, w, keyh, radius, ground);
-    if (label && *label) glyph(s, m, x, y, w, keyh, icon ? cc::ICON : letter, ink, label);
-    // A key's place reaches into the gaps around it, so no touch falls between two keys.
-    hit(s, x - g / 2, y - g / 2, w + g, keyh + g, H_KEY, code);
-  };
-  const char *const *keys = page_keys(e.page, e.shift);
-  const int x2 = x0 + (kwid + g) / 2, side = (3 * kwid + g) / 2, x3 = x0 + side + g + ((inner - 2 * side - 2 * g) - (7 * kwid + 6 * g)) / 2;
-  for (int i = 0; i < 10; ++i) key(x0 + i * (kwid + g), y0, kwid, keys[i], i);
-  for (int i = 0; i < 9; ++i) key(x2 + i * (kwid + g), y0 + keyh + g, kwid, keys[10 + i], 10 + i);
-  const int y3 = y0 + 2 * (keyh + g), y4 = y0 + 3 * (keyh + g), wide = 2 * kwid + g;
-  if (e.page == 0) key(x0, y3, side, I_SHIFT, K_SHIFT, true, e.shift ? cc::Paint{cc::ACCENT_TINT} : own(C_SPECIAL));
-  else key(x0, y3, side, e.page == 1 ? "#+=" : "123", K_SIGNS, false, own(C_SPECIAL));
-  for (int i = 0; i < 7; ++i) key(x3 + i * (kwid + g), y3, kwid, keys[19 + i], 19 + i);
-  key(x0 + inner - side, y3, side, I_BACK, K_BACK, true, own(C_SPECIAL));
-  key(x0, y4, wide, e.page ? "abc" : "123", K_PAGE, false, own(C_SPECIAL));
-  key(x0 + wide + g, y4, inner - 2 * wide - 2 * g, "", K_SPACE);
-  key(x0 + inner - wide, y4, wide, I_CHECK, K_ENTER, true, own(C_SPECIAL));
-  // A letter's accents, in a strip above it: a tap takes one, a tap beside it puts the strip away.
-  const auto strip = accents_of(e.accents, e.shift);
-  if (e.page == 0 && !strip.empty()) {
-    const int row = e.accents < 10 ? 0 : e.accents < 19 ? 1 : 2, col = e.accents < 10 ? e.accents : e.accents < 19 ? e.accents - 10 : e.accents - 19;
-    const int kx = (row == 0 ? x0 : row == 1 ? x2 : x3) + col * (kwid + g), ky = y0 + row * (keyh + g);
-    const int n = int(strip.size()), w = n * kwid + 2 * g, h = keyh + 2 * g;
-    const int px = std::min(x0 + inner - w, std::max(x0, kx - g)), py = ky - h - g / 2;
-    hit(s, sx, sy, kw, sh, H_PANEL);  // a tap beside the strip takes no key under it
-    cc::Box b; b.x = px; b.y = py; b.w = w; b.h = h; b.radius = radius + g; b.paint = {cc::RAISED}; b.border = 1; b.line = {cc::RAISED_LINE};
-    s.boxes.push_back(b);
-    for (int i = 0; i < n; ++i) {
-      if (i == 0) box(s, px + g, py + g, kwid, keyh, radius, {cc::ACCENT});
-      glyph(s, m, px + g + i * kwid, py + g, kwid, keyh, letter, {i == 0 ? cc::ON_NOW : cc::INK}, strip[i]);
-      hit(s, px + g + i * kwid, py, kwid, h, H_KEY, ACCENT + i);
-    }
-  }
   return out;
 }
 
@@ -461,14 +296,21 @@ inline cc::Face full_face(int W, int H) { return W >= ui::mm(150) && H >= ui::mm
 inline int full_row(const cc::Measure &m, cc::Face face = cc::CONTROL) { return std::max(ui::touch_min(), L(m, face) + ui::px(18)); }
 inline int full_head() { return std::max(ui::px(56), ui::touch_min() + ui::px(16)); }
 inline bool is_typing(const Data &d, const Full &st) { return st.keys && (d.may & (MAY_ADD | MAY_RENAME)); }
-// The keyboard of the full screen, into the plan's overlay alone: a key that only changes what is typed plans and
-// paints nothing else (module_todo.cpp retype). Returns where the sheet begins.
-inline Keyboard plan_typing(FullPlan &p, const cc::Measure &m, int W, int H, const Data &d, const Words &wd, const Full &st) {
+// The keyboard of the full screen: what it is asked for (the hint says what was added last, the names offered while
+// adding), and where it may begin, under the head and one row of the list.
+inline keyboard::Spec typing_spec(const Data &d, const Words &wd, const Full &st) {
+  keyboard::Spec k = keys();
+  k.hint = st.renaming ? wd.rename : st.notice.empty() ? wd.add : fill(wd.added, st.notice);
+  if (!st.renaming) k.suggestions = offers(d, st.entry.text);
+  k.keep_row = !st.renaming && (d.may & MAY_ADD) && !d.offers.empty();
+  return k;
+}
+inline int typing_top(const cc::Measure &m, int W, int H) { return full_head() + full_row(m, full_face(W, H)) + ui::px(8); }
+// The keyboard into the plan's overlay, as the glass shows it (module_todo.cpp shows it with keyboard_lvgl.h, from the
+// same Spec). Returns where the sheet begins.
+inline keyboard::Place plan_typing(FullPlan &p, const cc::Measure &m, int W, int H, const Data &d, const Words &wd, const Full &st) {
   p.overlay.clear();
-  const std::string hint = st.renaming ? wd.rename : st.notice.empty() ? wd.add : fill(wd.added, st.notice);
-  const Keyboard k = plan_keyboard(p.overlay, m, W, H, full_head() + full_row(m, full_face(W, H)) + ui::px(8), st.entry,
-                                   st.renaming ? std::vector<std::string>() : offers(d, st.entry.text), hint,
-                                   !st.renaming && (d.may & MAY_ADD) && !d.offers.empty());
+  const keyboard::Place k = keyboard::plan(p.overlay, m, W, H, typing_top(m, W, H), st.entry, typing_spec(d, wd, st));
   p.covered = k.whole;
   return k;
 }
