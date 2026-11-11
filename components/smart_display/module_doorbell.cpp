@@ -79,6 +79,9 @@ int door_word_x = 0, door_word_top = 0, door_word_alone = 0;
 // The Talk key (talk_uplink.h), what it shows now, and the voice's bars at its end while it talks.
 constexpr int TALK_BARS = 5;
 lv_obj_t *talk_key = nullptr, *talk_icon = nullptr, *talk_text = nullptr, *talk_line = nullptr, *talk_bars[TALK_BARS] = {};
+// Whether the bars fit beside the words: on a narrow key (three side by side on a glass standing up) the blue key and
+// its words say it alone.
+bool talk_bars_fit = false;
 lv_timer_t *talk_timer = nullptr;
 talk_uplink::State talk_shown = talk_uplink::State::OFF;
 int talk_bar_h = 0;
@@ -218,7 +221,10 @@ lv_obj_t *pill(lv_obj_t *root, const live_view::Rect &at, lv_obj_t *&icon, lv_ob
   lv_obj_set_style_bg_opa(key, LV_OPA_COVER, 0);
   // The glyph a padding in from the left, the word a quarter of the key's height after it, both on its middle line
   // (this LVGL has no flex layout).
-  const int pad = at.h * 42 / 100, word_x = word_at(at.h);
+  // The words end a quarter of the key's height before its round end: three keys side by side under the picture of
+  // a glass standing up leave each about a fifth of the glass, and "Sound on" broke onto two lines with the glyph's
+  // padding on both sides (a render of the reTerminal D1001 standing, 2026-11-11). One line each: a longer word dots.
+  const int pad = at.h * 42 / 100, word_x = word_at(at.h), words = std::max(1, at.w - word_x - at.h / 4);
   icon = lv_label_create(key);
   if (mini_icon_font) lv_obj_set_style_text_font(icon, mini_icon_font, 0);
   lv_obj_align(icon, LV_ALIGN_LEFT_MID, pad, 0);
@@ -227,7 +233,7 @@ lv_obj_t *pill(lv_obj_t *root, const live_view::Rect &at, lv_obj_t *&icon, lv_ob
   const lv_font_t *word = title_font();
   if (word) lv_obj_set_style_text_font(text, word, 0);
   lv_label_set_long_mode(text, LV_LABEL_LONG_DOT);
-  lv_obj_set_width(text, std::max(1, at.w - word_x - pad));
+  lv_obj_set_size(text, words, word ? lv_font_get_line_height(word) : LV_SIZE_CONTENT);
   lv_obj_align(text, LV_ALIGN_LEFT_MID, word_x, 0);
   for (auto *part : {icon, text}) {
     lv_obj_remove_flag(part, LV_OBJ_FLAG_CLICKABLE);
@@ -239,7 +245,7 @@ lv_obj_t *pill(lv_obj_t *root, const live_view::Rect &at, lv_obj_t *&icon, lv_ob
     *line = lv_label_create(key);
     if (detail_font) lv_obj_set_style_text_font(*line, detail_font, 0);
     lv_label_set_long_mode(*line, LV_LABEL_LONG_DOT);
-    lv_obj_set_width(*line, std::max(1, at.w - word_x - pad));
+    lv_obj_set_size(*line, words, detail_font ? lv_font_get_line_height(detail_font) : LV_SIZE_CONTENT);
     lv_obj_remove_flag(*line, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_text_color(*line, theme::color(theme::ON_ACCENT), 0);
     const auto rows = two_rows(at.h);
@@ -295,7 +301,7 @@ void paint_talk(talk_uplink::State state) {
                                   : show == State::FAILED ? txt::doorbell_talk_failed
                                   : txt::doorbell_tap_talk));
   for (auto *bar : talk_bars) {
-    if (show == State::LIVE) lv_obj_remove_flag(bar, LV_OBJ_FLAG_HIDDEN);
+    if (show == State::LIVE && talk_bars_fit) lv_obj_remove_flag(bar, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
   }
 }
@@ -459,6 +465,19 @@ void build(lv_obj_t *root, const std::string &name) {
       lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
       talk_bars[i] = bar;
     }
+    // The words while it talks, measured as drawn, against the room the bars leave them.
+    const int room = at_key.w - word_at(at_key.h) - right - (TALK_BARS - 1) * step - thin - at_key.h / 8;
+    const auto width_of = [&](const char *words, const lv_font_t *font) {
+      auto *probe = lv_label_create(talk_key);
+      if (font) lv_obj_set_style_text_font(probe, font, 0);
+      lv_label_set_text(probe, words);
+      lv_obj_update_layout(probe);
+      const int w = lv_obj_get_width(probe);
+      lv_obj_delete(probe);
+      return w;
+    };
+    talk_bars_fit = width_of(screen_text::tr(screen_text::txt::doorbell_talking), title_font()) <= room &&
+                    width_of(screen_text::tr(screen_text::txt::doorbell_tap_stop), detail_font) <= room;
     lv_obj_add_event_cb(talk_key, [](lv_event_t *) { touch(); talk_tap(); }, LV_EVENT_SHORT_CLICKED, nullptr);
     paint_talk(talk_uplink::State::OFF);
   }

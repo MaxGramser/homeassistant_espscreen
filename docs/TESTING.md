@@ -126,6 +126,16 @@ and with `KEPT_PAGES_HOST=1`, the path a board with PSRAM takes (docs/KEPT_PAGES
 and the probe counts no new object. A host program never has PSRAM, so a Guition built plain proves the CYD's path at
 the Guition's sizes, not the kept one.
 
+### Feature pictures
+
+`tools/render/features.py` renders the to-do card, calls between screens and the doorbell's Talk on a board lying and a
+board standing up, for the website and the release notes. It drives the host program with the messages the app sends
+(the to-do round of `run.py`, the ops `call`, `contacts` and `doorbell` made by `calls.py`), answers the screen's picture
+questions from `--pictures DIR` (`caller.jpg`, `door.jpg`) and writes beside each PNG where every picture lands on the
+glass. Its own build folder carries the audio caps of a board that plays and hears (`HW_SPEAKER`, `HW_MICROPHONE`), and
+the host's stand-in microphone of `talk_uplink.h` (`USE_HOST`, the action `render_talk`) lets the Talk key show each of
+its states without a microphone.
+
 ## 4. One screen on the glass
 
 `diagnostics/send_layout.py` pushes the same demo layout to a screen over its API; `diagnostics/run_ui_test.py` runs
