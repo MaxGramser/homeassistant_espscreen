@@ -78,6 +78,29 @@ void set_muted(bool muted);
 // The voice's bar, 0 to 1, of the last few parts; when the voice was last above VOICE_DB (the main loop's clock).
 float bar();
 uint32_t voice_at();
+#elif defined(USE_HOST)
+// The host program of tools/render/host.py has no microphone: a stand-in the render sets (its action render_talk), so the
+// keys that show a talk (the doorbell's Talk, its bars) are drawn by this firmware's own code, as the SDL display stands in
+// for the glass. Nothing of it reaches a board.
+struct HostMicrophone {
+  bool present = false;  // the board hears: Talk is there
+  State state = State::OFF;
+  float bar = 0.0f;      // the voice's bar while it talks
+  uint32_t voice = 0;    // when the voice was last above VOICE_DB (the main loop's clock)
+};
+inline HostMicrophone host_microphone;
+template<class Microphone> inline void bind_microphone(Microphone *) {}
+inline bool available() { return host_microphone.present; }
+inline bool start(const std::string &) {
+  if (!host_microphone.present) return false;
+  host_microphone.state = State::CONNECTING;
+  return true;
+}
+inline void stop() { host_microphone.state = State::OFF; }
+inline State state() { return host_microphone.state; }
+inline void set_muted(bool) {}
+inline float bar() { return host_microphone.state == State::LIVE ? host_microphone.bar : 0.0f; }
+inline uint32_t voice_at() { return host_microphone.voice; }
 #else
 template<class Microphone> inline void bind_microphone(Microphone *) {}
 inline bool available() { return false; }

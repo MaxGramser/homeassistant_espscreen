@@ -154,8 +154,9 @@ The view never lays anything of LVGL over its picture: a live picture is written
 The view has a **Talk** key when Home Assistant offers two-way audio for the ring's camera (Settings > Labs > Two-way
 audio, Home Assistant 2026.11 and later) and the screen has a microphone. A tap turns it on, a tap turns it off, because a
 held finger would cover the key and a screen on the wall is tiring to hold. Connecting, the key is blue and says so; while
-it talks it says **Talking** with the level of your voice at its end, and a tap stops it. It goes off when the view closes
-and after a minute without a voice.
+it talks it says **Talking** with the level of your voice at its end, and a tap stops it. On a key too narrow for the words
+and the level side by side (three keys under the picture of a glass standing up) the level is left out. It goes off when
+the view closes and after a minute without a voice.
 
 The screen sends its microphone to the app as plain 16 kHz PCM (docs/CALLS.md, "The voice"). The app makes it 8 kHz G.711
 and sends it to the camera in a second WebRTC session of Home Assistant's, with one send-only audio track offering PCMA first
