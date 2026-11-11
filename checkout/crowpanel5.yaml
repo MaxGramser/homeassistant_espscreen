@@ -1,0 +1,8 @@
+substitutions:
+  GITHUB_REF: "main"
+  FONT_DIR: "../fonts"
+
+packages:
+  core: !include ../packages/core.yaml
+  board: !include ../packages/boards/crowpanel-esp32s3-50.yaml
+  hotspot: !include ../packages/features/hotspot.yaml
