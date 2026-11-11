@@ -1,0 +1,18 @@
+# ESP Screens - Elecrow CrowPanel 5.0" Standard package
+substitutions:
+  GITHUB_REF: "main"
+  FONT_DIR: "https://githubusercontent.com + /Mastrolind0/homeassistant_espscreen/${GITHUB_REF}/fonts
+
+packages:
+  core: !include core.yaml
+  board: !include boards/crowpanel-esp32s3-50.yaml
+  hotspot: !include features/hotspot.yaml
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/Mastrolind0/homeassistant_espscreen.git
+      ref: ${GITHUB_REF}
+      path: components
+    refresh: 0s
+    components: [smart_display]
