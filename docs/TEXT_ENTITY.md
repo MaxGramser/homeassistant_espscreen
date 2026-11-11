@@ -92,7 +92,7 @@ The keyboard lives only where something uses it (docs/KEYBOARD.md, "What a board
 the CYD's image has no symbol of `keyboard::` or `text_edit`.
 
 What every board pays for the tile itself, measured on the CYD (`tools/check.sh --firmware --board cyd`, ESPHome
-2026.9.0): 1,950,592 bytes before, 1,951,920 after, 1,328 bytes for the two types in the catalogue, the value over
+2026.9.0): 1,950,592 bytes before, 1,951,872 after, 1,280 bytes for the two types in the catalogue, the value over
 several lines on a taller card, a password's dots, the dot (•) in the five text fonts and the `form-textbox` icon. Editing would add the field
 and the keyboard: on a 10.1 inch P4 build their code is about 10.6 KB (`text_edit`) and 9.9 KB (`keyboard::`, shared
 with the to-do card), some 20 KB a 4 MB board would carry anew, on a CYD at 96 % of its slot where only fixes ship. So a
