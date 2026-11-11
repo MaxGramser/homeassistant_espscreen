@@ -362,6 +362,54 @@ class Photos(unittest.TestCase):
             self.assertEqual(state['mark'], saver_photos.mark('media-source://x/1.jpg'))
         asyncio.run(run())
 
+    def test_five_missed_photos_in_a_row_wait_and_then_recover(self):
+        async def run():
+            listing = {'children': [{'media_content_id': f'media-source://x/{i}.jpg', 'media_class': 'image'} for i in range(8)]}
+            failing = [False]
+
+            async def request(kind, **data):
+                if kind == 'media_source/browse_media':
+                    return listing
+                if failing[0]:
+                    raise TimeoutError('unavailable')
+                return {'url': '/media/local/' + data['media_content_id'].rsplit('/', 1)[1]}
+
+            async def fetch(address):
+                return jpeg((40, 30))
+
+            now = [100.0]
+            photos = saver_photos.Photos(request, fetch, clock=lambda: now[0])
+            choice = {'source': 'media-source://x', 'order': 'in_order', 'every': 60}
+            for _ in range(2):
+                photos.state('screen', choice)
+                for _ in range(5):
+                    await asyncio.sleep(0)
+            # Fail prefetch of the upcoming photo and the next four after it (MAX_MISSES in a row).
+            failing[0] = True
+            first = photos.state('screen', choice)
+            self.assertTrue(first['ready'])
+            self.assertEqual(first['mark'], saver_photos.mark('media-source://x/0.jpg'))
+            for _ in range(saver_photos.MAX_MISSES):
+                photos.state('screen', choice)
+                for _ in range(5):
+                    await asyncio.sleep(0)
+            show = photos.shows['screen']
+            self.assertEqual(show.misses, saver_photos.MAX_MISSES)
+            self.assertIsNone(show.next)
+            self.assertFalse(photos.due())
+            # Once FAIL_SECONDS elapses and the source answers again, due() wakes and rotation resumes.
+            now[0] += max(saver_photos.FAIL_SECONDS, choice['every']) + 1
+            failing[0] = False
+            self.assertTrue(photos.due())
+            for _ in range(2):
+                photos.state('screen', choice)
+                for _ in range(5):
+                    await asyncio.sleep(0)
+            second = photos.state('screen', choice)
+            self.assertTrue(second['ready'])
+            self.assertNotEqual(second['mark'], first['mark'])
+        asyncio.run(run())
+
     def test_a_heic_may_have_fewer_pixels_than_a_jpeg(self):
         # A JPEG is read small (draft); a HEIC is decoded whole, so a telephone's 48 MP passes and little more.
         from types import SimpleNamespace
