@@ -75,6 +75,8 @@
   way every control does it.
 - [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
 - [CARD_PARTS.md](CARD_PARTS.md): a card built once and painted in place when a value changes, instead of built again.
+- [KEYBOARD.md](KEYBOARD.md): the screens' own keyboard: what a caller asks of it, how it tells the caller what was
+  typed, and adding a layout (a recipe).
 - [PLUGINS.md](PLUGINS.md): plugins on the core's side: the plugin API, a plugin tile end to end, the plugins file, fetch.
 - [REPORTS.md](REPORTS.md): the troubleshooting report of a screen: what it holds, what never leaves, where it goes, how a crash is read.
 - [BUILDS.md](BUILDS.md): the one line every build waits in (updates, plugins, New screen, Firmware & USB), and how a
