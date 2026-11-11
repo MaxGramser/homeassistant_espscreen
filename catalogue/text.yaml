@@ -4,7 +4,7 @@
 # The tile shows the entity's value, dots for one in mode password. A tap opens a field with the screen's keyboard where
 # the board has the module text_edit (8 MB of flash or more); a board with 4 MB shows the value only (wishlist 109).
 domain: text
-memory: {bytes: 176, extras: false}
+memory: {bytes: 576, extras: false}   # a full value of 255 two-byte characters (docs/TEXT_ENTITY.md, "Memory")
 firmware: 0.61.0   # the first firmware that draws this type
 displays:
   standard: {}

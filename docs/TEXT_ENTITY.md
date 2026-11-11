@@ -35,8 +35,20 @@ differs from the state, and never `unknown` or `unavailable`.
   icon of its own), or one the entity or the tile chose.
 - No controls and no other face: the tile is its value, and the tap is the field.
 
-The screen keeps a text's whole value, up to 1020 bytes (255 characters of four bytes), where any other state is cut to
-160 bytes, so a field never sends back a value cut short. A text in the top bar shows its value the same way.
+A text in the top bar shows its value the same way.
+
+## Memory
+
+A board with the field (module `text_edit`) keeps a text's whole value, up to 1020 bytes (255 characters of four bytes),
+where any other state is cut to 160 bytes, so the field never sends back a value cut short. A board without it (the CYD
+and the other 4 MB boards) keeps 160 bytes, as for any state: its tile shows no more, and nothing there sends the value
+back. The add-on sends the whole value either way; the firmware cuts it as it reads it (`page_receiver.cpp`).
+
+The catalogue's price for both types, 576 bytes (docs/TILE_MEMORY.md), is a full value of 255 two-byte characters
+(accented Latin, Greek, Cyrillic: the most the screens' fonts can show), estimated by `tools/estimate_tile_memory.py`,
+which reads the firmware's cap for a text's state (`TEXT_BYTES`). A value of characters the fonts lack, three or four
+bytes each, can keep up to about 1100 bytes on a board with PSRAM, some 500 more than the price. On a board without
+the field the price is generous: such a tile keeps at most about 270 bytes (its state of 160, its entity and its name).
 
 ## The field
 

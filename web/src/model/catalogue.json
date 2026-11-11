@@ -1097,7 +1097,7 @@
   "input_text": {
    "firmware": "0.61.0",
    "memory": {
-    "bytes": 176,
+    "bytes": 576,
     "extras": false
    },
    "key": true,
@@ -2183,7 +2183,7 @@
   "text": {
    "firmware": "0.61.0",
    "memory": {
-    "bytes": 176,
+    "bytes": 576,
     "extras": false
    },
    "key": true,

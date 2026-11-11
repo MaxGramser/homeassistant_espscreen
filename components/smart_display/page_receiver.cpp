@@ -774,9 +774,14 @@ std::string receive(const std::string &payload) {
     auto a = root["a"].as<JsonObject>();
     // The fingerprint of state, attributes and extras (a vacuum's mode or water select changes only
     // there), hashed while serializing so no copy of the message stays behind.
-    // A text's value is its state (text, input_text, docs/TEXT_ENTITY.md): kept whole, up to Home Assistant's 255
-    // characters, so its field never sends back a value cut short.
+    // A text's value is its state (text, input_text, docs/TEXT_ENTITY.md): kept whole where its field can send it back
+    // (module text_edit), up to Home Assistant's 255 characters, so it never sends a value cut short. A board without
+    // the field keeps what any tile keeps: its tile shows no more.
+#ifdef SD_MOD_TEXT_EDIT
     const std::string word = string(root["state"], tile_controls::text_entity(tile.domain()) ? tile_controls::TEXT_BYTES : 160);
+#else
+    const std::string word = string(root["state"]);
+#endif
     Fingerprint state_hash;
     state_hash.add(word);
     state_hash.write('\n');

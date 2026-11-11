@@ -971,7 +971,7 @@
  },
  "text": {
   "entity": "text.living_room_floor_lamp_left",
-  "state": "Back at three, parcels go to the side door behind the garden gate",
+  "state": "Посылки оставляйте у боковой двери за калиткой, позвоните дважды и подождите. Посылки оставляйте у боковой двери за калиткой, позвоните дважды и подождите. Посылки оставляйте у боковой двери за калиткой, позвоните дважды и подождите. Посылки оставляйте у ",
   "attributes": {
    "friendly_name": "Living Room Floor Lamp Left Side",
    "mode": "text",
@@ -982,7 +982,7 @@
  },
  "input_text": {
   "entity": "input_text.living_room_floor_lamp_left",
-  "state": "Back at three, parcels go to the side door behind the garden gate",
+  "state": "Посылки оставляйте у боковой двери за калиткой, позвоните дважды и подождите. Посылки оставляйте у боковой двери за калиткой, позвоните дважды и подождите. Посылки оставляйте у боковой двери за калиткой, позвоните дважды и подождите. Посылки оставляйте у ",
   "attributes": {
    "friendly_name": "Living Room Floor Lamp Left Side",
    "mode": "password",
