@@ -265,3 +265,11 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+es3c28p:
+  file: es3c28p.yaml
+  name: Hosyond
+  model: ES3C28P
+  status: experimental
+  # LCDWiki's 2.8-inch ESP32-S3 board, sold as Hosyond: the CYD's glass on an ESP32-S3 with PSRAM, not the CYD
+  # (ESP32-2432S028). Run on two boards by a community member (docs/ES3C28P.md).

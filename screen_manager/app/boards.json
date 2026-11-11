@@ -329,6 +329,109 @@
   "wide_slots": true,
   "width": 320
  },
+ "checkout/es3c28p.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "es3c28p",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.8,
+   "model": "ES3C28P",
+   "name": "Hosyond",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 143,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "spacing": {
+   "circle": 36,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 36,
+   "radius": 18,
+   "tile_pad": 8,
+   "top": 37
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "checkout/freenovefnk0104s.yaml": {
   "alert": {
    "line": 21,
@@ -4387,6 +4490,109 @@
   "wide_slots": true,
   "width": 320
  },
+ "es3c28p": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "es3c28p",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.8,
+   "model": "ES3C28P",
+   "name": "Hosyond",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 143,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "spacing": {
+   "circle": 36,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 36,
+   "radius": 18,
+   "tile_pad": 8,
+   "top": 37
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 320
+ },
  "freenovefnk0104s": {
   "alert": {
    "line": 21,
@@ -6168,6 +6374,109 @@
   },
   "tier": "lite",
   "wide_slots": true,
+  "width": 320
+ },
+ "packages/es3c28p.yaml": {
+  "alert": {
+   "line": 16,
+   "title_line": 21
+  },
+  "battery": false,
+  "board": "es3c28p",
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 2.8,
+   "model": "ES3C28P",
+   "name": "Hosyond",
+   "order": 31,
+   "settings": [],
+   "status": "experimental",
+   "touch": "FT63X6"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 143,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 18,
+   "icon": 28,
+   "icon_home": 25,
+   "icon_mini": 18,
+   "label": 11,
+   "setpoint": 40,
+   "sublabel": 11,
+   "sublabel_big": 14,
+   "watch_icon": 12,
+   "watch_value": 22
+  },
+  "height": 240,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit"
+  ],
+  "orientations": {
+   "landscape": {
+    "columns": 2,
+    "height": 240,
+    "max": [
+     3,
+     4
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 3,
+    "width": 320
+   },
+   "portrait": {
+    "columns": 1,
+    "height": 320,
+    "max": [
+     2,
+     6
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 180,
+    "rows": 4,
+    "width": 240
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "spacing": {
+   "circle": 36,
+   "gap": 6,
+   "gap_y": 4,
+   "margin": 9,
+   "page_bar": 36,
+   "radius": 18,
+   "tile_pad": 8,
+   "top": 37
+  },
+  "tier": "full",
+  "wide_slots": false,
   "width": 320
  },
  "packages/freenovefnk0104s.yaml": {

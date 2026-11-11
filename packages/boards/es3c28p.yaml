@@ -1,0 +1,47 @@
+# ESP Screens - ES3C28P (LCDWiki/QDtech, sold as Hosyond 2.8" ESP32-S3), experimental: a 2.8-inch 240 x 320 IPS panel
+# (ILI9341V over 4-wire SPI) with FT6336G capacitive touch over I2C, on an ESP32-S3 with 16 MB flash and 8 MB octal
+# PSRAM. The CYD's glass and resolution, so the same compact look and grid, but not the CYD (ESP32-2432S028): an
+# ESP32-S3 with other pins. The ES3N28P is the same board without touch and is not this file.
+#
+# Pins from LCDWiki's pin table, run on two of these boards by a community member (docs/ES3C28P.md). Seen on the
+# board: invert_colors is required (every colour is its complement without it); the LCD's reset is tied to the chip's
+# reset (no reset_pin); after the first flash over USB the board wants one power cycle, or LVGL can hang half drawn.
+#
+# A board file declares the board's parts and the facts the shared tree takes from it (its glass and its grid); its
+# hardware is hardware/lcdwiki-es3c28p.yaml. docs/PROFILES.md says how the files of a screen fit together. Two entry
+# files include this one: checkout/es3c28p.yaml (a build on this computer) and packages/es3c28p.yaml (the package a
+# screen builds from over GitHub).
+packages:
+  hardware: !include ../hardware/lcdwiki-es3c28p.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "es3c28p"
+  DEVICE_NAME: "es3c28p-new"
+  DEVICE_FRIENDLY_NAME: "My ES3C28P"
+
+  # The glass: the panel's own pixels and its density, 400 diagonal pixels over 2.8 inches.
+  PANEL_W: "240"
+  PANEL_H: "320"
+  DISPLAY_DPI: "142.857"
+  # The LVGL angle that lays this panel out lying down (320 x 240). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up (the CYD's: the same glass).
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM; ESPHome's ledc default, as on the CYD (hardware/lcdwiki-es3c28p.yaml)
