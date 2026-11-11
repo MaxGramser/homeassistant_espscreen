@@ -17,6 +17,10 @@ The host owns transport, time and input. Firmware owns tile placement, sizing,
 colours, glyph selection, detail rendering and page transitions. No browser tile
 renderer is a fallback. There are no HTML page dots over the framebuffer.
 
+The host renderer removes ESP32 hardware, audio components and board-only RMT
+status lights from the copied package tree. It keeps the shared display backlight
+through its host output so screenshots include the same screen brightness.
+
 Taps control the Home Assistant instance connected to Screen Manager, including
 real devices if that instance has them. The host copies the firmware's existing
 ESPHome service requests into a queue, relays them through a CSRF-protected endpoint,

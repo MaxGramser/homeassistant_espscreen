@@ -171,7 +171,7 @@ What else a new board touches (the Sunton 8048S070, the Waveshare 7B and the JC8
   the preview: `web/wasm/generate_renderer_manifest.py --check` fails until it is rebuilt (`sh web/wasm/build.sh`, or
   `.github/workflows/preview.yml` on the branch).
 - `tools/render/host.py` `HARDWARE_BLOCKS`, when the board brings a hardware block the host build must take out (the
-  Waveshare 7B's `waveshare_io_ch32v003`).
+  Waveshare 7B's `waveshare_io_ch32v003`), or when it adds an ESP32-only light platform such as a WS2812 status LED.
 - A battery: a sensor in the `battery` device class (and a `battery_charging` binary sensor when the board can tell)
   in its hardware file, which the firmware finds and the top bar shows. `packages/features/battery-voltage.yaml` and
   `battery-adc.yaml` turn a voltage on a pin into one (docs/BATTERY.md).

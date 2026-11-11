@@ -1,0 +1,20 @@
+# ESP Screens - the FNK0104B's ES8311 codec and active-low speaker amplifier. Its analogue microphone and speaker
+# share the codec's I2S clocks; the microphone bus is primary and the speaker bus follows those clocks on the S3's
+# second I2S controller. The codec sits on the touch I2C bus. Freenove's example uses the same pins and codec.
+packages:
+  codec: !include parts/es8311.yaml
+  amplifier: !include parts/amplifier.yaml
+
+i2s_audio:
+  - id: ts_mic_bus
+    i2s_mclk_pin: ${AUDIO_MCLK_PIN}
+    i2s_bclk_pin: ${AUDIO_BCLK_PIN}
+    i2s_lrclk_pin: ${AUDIO_LRCLK_PIN}
+  - id: ts_speaker_bus
+    i2s_mclk_pin: ${AUDIO_MCLK_PIN}
+    i2s_bclk_pin: ${AUDIO_BCLK_PIN}
+    i2s_lrclk_pin: ${AUDIO_LRCLK_PIN}
+
+speaker:
+  - id: !extend ts_speaker_out
+    i2s_mode: secondary

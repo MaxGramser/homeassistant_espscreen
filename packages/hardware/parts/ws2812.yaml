@@ -1,0 +1,10 @@
+# ESP Screens - one addressable WS2812 light, for a board that has one. The board supplies WS2812_PIN.
+light:
+  - platform: esp32_rmt_led_strip
+    id: board_status_led
+    name: "Status LED"
+    pin: ${WS2812_PIN}
+    num_leds: 1
+    chipset: WS2812
+    rgb_order: GRB
+    restore_mode: ALWAYS_OFF
