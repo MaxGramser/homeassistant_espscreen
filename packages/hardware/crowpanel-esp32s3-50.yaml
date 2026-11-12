@@ -5,14 +5,31 @@ packages:
 substitutions:
   BACKLIGHT_DIMMABLE: "true"
 
+esphome:
+  board_build.esp-idf.memory_type: qio_opi
+  board_build.flash_mode: dio
+
 esp32:
-  flash_size: 16MB
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_RODATA: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
 
 output:
   - platform: ledc
     id: gpio_backlight_pwm
     pin: GPIO2
-    frequency: 5000Hz
+    frequency: 1220Hz
 
 i2c:
   id: touch_bus
@@ -31,6 +48,7 @@ display:
   - platform: rpi_dpi_rgb
     id: my_display
     color_order: RGB
+    invert_colors: true
     auto_clear_enabled: false
     update_interval: never
     dimensions:
