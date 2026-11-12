@@ -4,7 +4,7 @@
 # screen stays black, though the flash itself succeeds.
 #
 # Everything but the chip is the JC4880P443's (guition-jc4880p443.yaml): the glass, the grid, the pins, the audio and
-# the camera. Tried on one rev3 board (v3.2): the screen lights up; touch, Wi-Fi and the rest are in docs/JC4880P443.md.
+# the camera. Tried on one rev3 board (v3.2): picture, touch, Wi-Fi and the camera work; the audio is still untried.
 #
 # A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
 # features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
