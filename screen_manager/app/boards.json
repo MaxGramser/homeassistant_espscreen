@@ -3135,7 +3135,7 @@
   "wide_slots": false,
   "width": 800
  },
- "checkout/crowpanel5.yaml.yaml": {
+ "checkout/crowpanel5.yaml": {
   "alert": {
    "line": 27,
    "title_line": 35
