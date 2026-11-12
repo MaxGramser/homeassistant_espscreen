@@ -64,37 +64,3 @@ display:
       red:   [45, 48, 47, 21, 14]
       green: [5, 6, 7, 15, 16, 4]
       blue:  [8, 3, 46, 9, 1]
-
-
-i2c:
-  id: touch_bus
-  sda: GPIO19
-  scl: GPIO20
-  scan: true
-
-touchscreen:
-  - platform: gt911
-    id: ts_touch
-    i2c_id: touch_bus
-    display: my_display
-    update_interval: 20ms
-
-display:
-  - platform: rpi_dpi_rgb
-    id: my_display
-    color_order: RGB
-    invert_colors: true
-    auto_clear_enabled: false
-    update_interval: never
-    dimensions:
-      width: ${PANEL_W}
-      height: ${PANEL_H}
-    de_pin: GPIO40
-    hsync_pin: GPIO39
-    vsync_pin: GPIO41
-    pclk_pin: GPIO0
-    pclk_frequency: 12MHz
-    data_pins:
-      red:   [45, 48, 47, 21, 14]
-      green: [5, 6, 7, 15, 16, 4]
-      blue:  [8, 3, 46, 9, 1]
