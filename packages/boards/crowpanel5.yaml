@@ -4,7 +4,6 @@ packages:
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
-  camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
 
 substitutions:
