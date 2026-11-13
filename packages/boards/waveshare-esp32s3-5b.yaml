@@ -1,0 +1,36 @@
+# ESP Screens board profile for the Waveshare ESP32-S3-Touch-LCD-5B (1024 x 600).
+# The CH422G drives the panel and touch reset lines and the backlight.
+packages:
+  hardware: !include ../hardware/waveshare-ch422g.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  backlight_always_on: !include ../features/backlight-always-on.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+
+esp32:
+  flash_size: 16MB
+
+display:
+  - id: !extend my_display
+    model: WAVESHARE-5-1024X600
+    # The CH422G package already drives the backlight on EXIO2.
+    enable_pin: []
+
+substitutions:
+  # The catalog key reported by the firmware.
+  BOARD_ID: "waveshare5b"
+  DEVICE_NAME: "waveshare5b-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 5B"
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "237.367"
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "5"
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  LVGL_BUFFER_SIZE: "12%"

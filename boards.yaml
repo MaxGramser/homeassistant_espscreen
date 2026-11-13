@@ -158,6 +158,12 @@ waveshare5:
   model: ESP32-S3-Touch-LCD-5
   status: new
 
+waveshare5b:
+  file: waveshare-esp32s3-5b.yaml
+  name: Waveshare
+  model: ESP32-S3-Touch-LCD-5B
+  status: experimental
+
 jc8048w550ci:
   file: guition-jc8048w550c-i.yaml
   name: Guition
