@@ -3243,7 +3243,7 @@
     295
    ]
   },
-  "can_standby": false,
+  "can_standby": true,
   "catalog": {
    "calibrate": false,
    "choices": {},
@@ -9217,7 +9217,7 @@
     295
    ]
   },
-  "can_standby": false,
+  "can_standby": true,
   "catalog": {
    "calibrate": false,
    "choices": {},
@@ -11625,7 +11625,7 @@
     295
    ]
   },
-  "can_standby": false,
+  "can_standby": true,
   "catalog": {
    "calibrate": false,
    "choices": {},

@@ -5,12 +5,31 @@ packages:
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
-  backlight_always_on: !include ../features/backlight-always-on.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
 
 esp32:
   flash_size: 16MB
+
+output:
+  - id: !extend gpio_backlight_pwm
+    write_action:
+      - lambda: |-
+          // EXIO2 is binary. Only write when the requested state changes.
+          static bool lit = false;
+          const bool requested = state > 0.0f;
+          if (lit != requested) {
+            id(backlight_line).set_state(requested);
+            lit = requested;
+          }
+
+script:
+  # Avoid repeated power cycling of the backlight boost converter during alerts.
+  - id: !remove alert_flash
+  - id: alert_flash
+    mode: restart
+    then:
+      - lambda: 'ESP_LOGI("alert", "no backlight blinks on this board");'
 
 display:
   - id: !extend my_display
@@ -33,4 +52,10 @@ substitutions:
   SCREEN_MAX_TILES: "128"
   SCREEN_MAX_PAGES: "24"
   SCREEN_MAX_BAR_ITEMS: "12"
-  LVGL_BUFFER_SIZE: "12%"
+  CAN_STANDBY: "true"
+  DIM_BRIGHTNESS: "0"
+  NIGHT_DIM_BRIGHTNESS: "0"
+  APPLY_BACKLIGHT: |-
+    id(set_backlight).execute(level, 300);
+  # Keep the tested LVGL buffer size to leave internal RAM for Wi-Fi and RGB DMA.
+  LVGL_BUFFER_SIZE: "50%"
