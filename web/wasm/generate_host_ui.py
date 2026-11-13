@@ -46,11 +46,20 @@ def generate(dpi, look, profile):
     # Looks may add their own fonts. Let ESPHome merge the profile's font
     # packages, rather than assuming every font lives in the shared core.
     from esphome.components.packages import merge_config
+    from esphome.config import resolve_extend_remove
+    from esphome.config_helpers import Extend, Remove
+
+    class FontLoader(yaml.SafeLoader):
+        pass
+
+    FontLoader.add_constructor('!extend', lambda loader, node: Extend(loader.construct_scalar(node)))
+    FontLoader.add_constructor('!remove', lambda loader, node: Remove(loader.construct_scalar(node)))
     font_config = {}
     for path in profiles.files(profile):
         resolved = profiles.resolve(path.read_text(), values)
         if re.search(r'^font:\n', resolved, re.M):
-            font_config = merge_config(font_config, yaml.safe_load(section(resolved, 'font')))
+            font_config = merge_config(font_config, yaml.load(section(resolved, 'font'), Loader=FontLoader))
+    resolve_extend_remove(font_config)
     fonts = font_config['font']
     for font in fonts:
         for part in [font] + font.get('extras', []):  # the hearts come from a font of their own (firmware 0.36.0+)

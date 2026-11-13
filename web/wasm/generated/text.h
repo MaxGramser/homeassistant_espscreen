@@ -1,5 +1,5 @@
 #include <string>
-static_assert(screen_text::KEYS_HASH == 0x5F8F47F1u && screen_text::KEY_COUNT == 561,
+static_assert(screen_text::KEYS_HASH == 0xCBF6789Cu && screen_text::KEY_COUNT == 562,
               "screen_text_keys.h does not match screen_manager/translations/en.json: run tools/i18n.py header");
 namespace screen_text {
 namespace languages {
@@ -564,7 +564,8 @@ const char *const table_0[] = {
     "Verf\303\274gbar, nur Ton",
     "Im Gespr\303\244ch",
     "Offline",
-    "Verpasster Anruf"
+    "Verpasster Anruf",
+    "No other screen can be called"
 };
 int plural_0(int n) { return n == 1 ? 0 : 1; }
 const char *const table_1[] = {
@@ -1128,7 +1129,8 @@ const char *const table_1[] = {
     "Available with sound only",
     "In a call",
     "Offline",
-    "Missed call"
+    "Missed call",
+    "No other screen can be called"
 };
 int plural_1(int n) { return n == 1 ? 0 : 1; }
 const char *const table_2[] = {
@@ -1692,7 +1694,8 @@ const char *const table_2[] = {
     "Available with sound only",
     "In a call",
     "Offline",
-    "Missed call"
+    "Missed call",
+    "No other screen can be called"
 };
 int plural_2(int n) { return n == 1 ? 0 : 1; }
 const char *const table_3[] = {
@@ -2256,7 +2259,8 @@ const char *const table_3[] = {
     "Disponible, solo sonido",
     "En llamada",
     "Sin conexi\303\263n",
-    "Llamada perdida"
+    "Llamada perdida",
+    "No other screen can be called"
 };
 int plural_3(int n) { return n == 1 ? 0 : 1; }
 const char *const table_4[] = {
@@ -2820,7 +2824,8 @@ const char *const table_4[] = {
     "Disponible, son seul",
     "En communication",
     "Hors ligne",
-    "Appel manqu\303\251"
+    "Appel manqu\303\251",
+    "No other screen can be called"
 };
 int plural_4(int n) { return (n < 0 ? -n : n) <= 1 ? 0 : 1; }
 const char *const table_5[] = {
@@ -3384,7 +3389,8 @@ const char *const table_5[] = {
     "El\303\251rhet\305\221, csak hang",
     "H\303\255v\303\241sban",
     "Offline",
-    "Nem fogadott h\303\255v\303\241s"
+    "Nem fogadott h\303\255v\303\241s",
+    "No other screen can be called"
 };
 int plural_5(int n) { return n == 1 ? 0 : 1; }
 const char *const table_6[] = {
@@ -3948,7 +3954,8 @@ const char *const table_6[] = {
     "Disponibile, solo audio",
     "In chiamata",
     "Offline",
-    "Chiamata persa"
+    "Chiamata persa",
+    "No other screen can be called"
 };
 int plural_6(int n) { return n == 1 ? 0 : 1; }
 const char *const table_7[] = {
@@ -4512,7 +4519,8 @@ const char *const table_7[] = {
     "Beschikbaar, alleen geluid",
     "In gesprek",
     "Offline",
-    "Gemist gesprek"
+    "Gemist gesprek",
+    "Geen ander scherm om te bellen"
 };
 int plural_7(int n) { return n == 1 ? 0 : 1; }
 const char *const table_8[] = {
@@ -5076,7 +5084,8 @@ const char *const table_8[] = {
     "Dost\304\231pny, tylko d\305\272wi\304\231k",
     "W trakcie rozmowy",
     "Offline",
-    "Nieodebrane po\305\202\304\205czenie"
+    "Nieodebrane po\305\202\304\205czenie",
+    "No other screen can be called"
 };
 int plural_8(int n) { if (n == 1) return 0; int t = n % 10, h = n % 100; return t >= 2 && t <= 4 && (h < 12 || h > 14) ? 1 : 2; }
 const char *const table_9[] = {
@@ -5640,7 +5649,8 @@ const char *const table_9[] = {
     "Dispon\303\255vel, s\303\263 som",
     "Em chamada",
     "Offline",
-    "Chamada perdida"
+    "Chamada perdida",
+    "No other screen can be called"
 };
 int plural_9(int n) { return n == 1 ? 0 : 1; }
 const char *const table_10[] = {
@@ -6204,7 +6214,8 @@ const char *const table_10[] = {
     "\320\224\320\276\321\201\321\202\321\203\320\277\320\275\320\276, \321\202\320\276\320\273\321\214\320\272\320\276 \320\267\320\262\321\203\320\272",
     "\320\222 \321\200\320\260\320\267\320\263\320\276\320\262\320\276\321\200\320\265",
     "\320\235\320\265 \320\262 \321\201\320\265\321\202\320\270",
-    "\320\237\321\200\320\276\320\277\321\203\321\211\320\265\320\275\320\275\321\213\320\271 \320\267\320\262\320\276\320\275\320\276\320\272"
+    "\320\237\321\200\320\276\320\277\321\203\321\211\320\265\320\275\320\275\321\213\320\271 \320\267\320\262\320\276\320\275\320\276\320\272",
+    "No other screen can be called"
 };
 int plural_10(int n) { int t = n % 10, h = n % 100; if (t == 1 && h != 11) return 0; return t >= 2 && t <= 4 && (h < 12 || h > 14) ? 1 : 2; }
 struct Language { const char *code; const char *const *table; int (*plural)(int); };

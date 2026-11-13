@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Waveshare ESP32-S3-Touch-LCD-5B.** The 5-inch 1024 × 600 panel has its own experimental board profile.
+
 - **Call between your screens.** On an ESP32-P4 screen with a microphone and a speaker, a Call tile opens the list of your screens or calls one chosen screen at once. The called screen rings and shows who calls, with a switch per screen to turn the ring off. With the Screen camera plugin with Video at both ends it is a video call, with the picture beside the keys. Tried on a reTerminal D1001 and a Guition 10.1 through a Raspberry Pi based Home Assistant Yellow, 8 to 10 pictures a second.
 - **Talk back to the doorbell.** With Home Assistant's two-way audio (Settings, Labs, 2026.11 and later) the doorbell's view has a Talk key that sends your voice to the doorbell's speaker. A tap turns it on, a tap off; a doorbell that cannot do it shows no key.
 - **Pages loop.** After the last page comes the first again, and before the first the last, with a swipe and with the arrows. It is on by default, also on screens that update, and Loop pages under Screen in the settings turns it off.

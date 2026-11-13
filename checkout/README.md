@@ -13,6 +13,7 @@ holds one file per board, named after the board's key in `boards.yaml`:
 | `guition.yaml` | Guition ESP32-S3-4848S040, 4 inch |
 | `waveshare43.yaml` | Waveshare ESP32-S3-Touch-LCD-4.3 |
 | `waveshare5.yaml` | Waveshare ESP32-S3-Touch-LCD-5 (new) |
+| `waveshare5b.yaml` | Waveshare ESP32-S3-Touch-LCD-5B, 1024 × 600 (experimental) |
 | `jc8012p4a1.yaml` | Guition JC8012P4A1, 10.1 inch |
 | `jc8012p4a1v3.yaml` | Guition JC8012P4A1 V3, 10.1 inch (experimental) |
 | `tab5.yaml` | M5Stack Tab5 (ST7121 or ST7123 display), 5 inch (new) |
