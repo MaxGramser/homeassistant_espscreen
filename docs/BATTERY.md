@@ -19,7 +19,7 @@ The firmware follows Home Assistant's own convention. At boot it looks for:
 That is all. The firmware does not care how the level is measured, so every way ESPHome has works: a fuel gauge or
 power chip that gives a percentage, a voltage on a pin and a formula, or a curve of your own. A screen with such a
 sensor has the word `battery` in its **Screen features** sensor and says it when it connects, and Tessera then offers the
-item. A board whose files have a battery (`boards.json` `battery`, today the Tab5) is offered it before it ever
+item. A board whose files have a battery (`boards.json` `battery`: the Tab5, the reTerminal D1001 and the Waveshare P4 7B) is offered it before it ever
 connected. A screen without one never shows it, also when a layout copied from another screen has the item: Tessera
 leaves it out for that screen.
 
