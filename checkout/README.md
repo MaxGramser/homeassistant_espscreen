@@ -19,6 +19,8 @@ holds one file per board, named after the board's key in `boards.yaml`:
 | `waveshare7.yaml` | Waveshare ESP32-S3-Touch-LCD-7 (experimental) |
 | `waveshare4b.yaml` | Waveshare ESP32-S3-Touch-LCD-4B (experimental) |
 | `wavesharep4.yaml` | Waveshare ESP32-P4-86-Panel-ETH-2RO, 720 × 720, Wi-Fi (experimental) |
+| `crowpanel101.yaml` | Elecrow CrowPanel Advanced 10.1 ESP32-P4 (experimental) |
+| `crowpanel7.yaml` | Elecrow CrowPanel Advanced 7 ESP32-P4 (experimental) |
 
 Each file builds the same two packages a screen from ESP Screens builds (`packages/core.yaml` and the board's file
 under `packages/boards/`), with the components and fonts of this checkout instead of GitHub's.
