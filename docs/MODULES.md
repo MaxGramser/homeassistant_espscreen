@@ -65,13 +65,28 @@ the add-on and the editor offer a module's options only on boards that have it.
   and a brightness (docs/LIGHT_PRESETS.md, `module_light_presets.h`). Its screens say `light_presets` in their hello and
   ESP Screens sends them the controls `presets` and `brightness_presets`; the editor offers them where `boards.json`
   lists the module, and lite draws the brightness slider.
+- **call** (full): calls between screens (docs/CALLS.md, `module_call.cpp` with its header). Its screens say `call` in their hello
+  when they stream and have a microphone and a speaker, and ESP Screens sends them the ops `call` and `contacts`; the Call tile
+  `screen.call` is offered where `boards.json` lists the module.
 - **doorbell** (full): a doorbell's ring (the event `esp_screens_doorbell`) opens its camera full screen, live with its
   sound and a chime (docs/DOORBELL.md, `module_doorbell.cpp` with its header). Its screens say `doorbell` in their hello
   when they stream (a P4), and ESP Screens sends them the op `doorbell`; every other screen gets the camera's alert.
+- **todo** (full): the to-do card, a Home Assistant to-do list as a list to tick, its full screen, and the keyboard that
+  adds an item (docs/TODO.md, `module_todo.cpp` with its headers). Its screens say `todo_card` in their hello, with
+  `todo_items` in their caps, and ESP Screens sends them the list's items (`todo`); the editor offers to-do lists where
+  `boards.json` lists the module, and lite has no to-do tile.
+- **text_edit** (full): a Home Assistant text's field, the value with the keyboard under the page's top bar
+  (docs/TEXT_ENTITY.md, `module_text_edit.cpp` with its headers). Its screens say `text_edit` in their hello; the editor
+  reads the module in `boards.json` and says on a lite board that its text tiles show the value only, which lite draws
+  on the tile and on its plain card.
 - **dock** (full): up from the bottom edge opens the Dock, a small drawer at the bottom of the glass (at most 12 cm
   wide, the full width on a 4-inch glass) with every page as a small picture and its name, in one row or two.
   The drawer rides on the finger that opens it: its top stays under the finger until it lets go, and then a flick, or
   more than a quarter of the drawer in view, opens it the rest of the way; less, or a flick down, lets it fall back.
+  Let go, it goes on at the finger's speed and comes to rest at its place (`sheet_motion.h`). The page behind it dims in
+  one step on the moment the finger lifts: on a board with a frame buffer the pixels on the glass are darkened where
+  they are (`screen_motion.h`, to the bit what LVGL would draw), so no tile is drawn again; elsewhere, or while a stream
+  writes the glass, LVGL draws the dim once the drawer stands open.
   A tap on the page dots in the middle of the page bar opens it too: the dots are a key of their own over the inner
   ends of the two halves, so the chevrons keep the outer parts of the bar.
   Sideways leafs through the pages when they do not all fit, a tap goes to a page, a tap above the Dock or a drag

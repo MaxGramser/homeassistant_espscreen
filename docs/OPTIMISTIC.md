@@ -144,6 +144,7 @@ A wish writes its value into the tile and paints every tile and the open card of
 | `HUE` | 0-360 | a light's own colour at full saturation (its colour card) |
 | `KELVIN` | kelvin | a light's own white shade (its colour card) |
 | `PRESET` | `80\|k2700`, `60\|h280,41`, `30\|`; `0\|` for off | a light's brightness and white shade or colour at once (its presets, docs/LIGHT_PRESETS.md), sent as one `light.turn_on` with two values |
+| `TEXT` | the text | the state: text, input_text (their field, docs/TEXT_ENTITY.md) |
 
 ### Adding a field
 
@@ -162,7 +163,7 @@ a humidifier's modes (card and the tile's mode bar), a thermostat's fan and swin
 player's play, pause, mute, shuffle and repeat (card, tile over the whole page, key row and favourite), a vacuum's chips,
 every lamp of a light group's lamp page (on and off, brightness, colour, white shade), a light's colour and white shade
 on its colour card (`HUE`, `KELVIN`; its brightness row is the tile's slider) and every row of a light's effects page
-(the effect, the device's selects and numbers).
+(the effect, the device's selects and numbers), and a text's value sent from its field (docs/TEXT_ENTITY.md).
 
 Not a wish, and why:
 
@@ -174,6 +175,10 @@ Not a wish, and why:
 - the screensaver's play key: it has no tile to write into (`saver_flipped` flips its face for five seconds);
 - a player's speaker and input in the library menu: the pill shows the choice at once, and a speaker is picked through
   the add-on (an event), not through an action Home Assistant answers.
+- a tick on a to-do card (docs/TODO.md): an item of a list is no value of the entity, whose state is only the number of
+  open items, and the item is ticked through the add-on (an event), which knows its uid. The card marks the item itself
+  (`module_todo.cpp`): the tick shows at once, the item keeps its place for two seconds so the list does not move under
+  the finger, the list Home Assistant sends back squares it, and a tick unanswered for eight seconds is taken back.
 
 Not optimistic on purpose:
 

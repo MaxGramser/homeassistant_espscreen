@@ -86,8 +86,9 @@ def page_message(page, index, items, *, initial):
         if page["navigation"].get("showInDock") is False:
             message["dock"] = False
         # A page's own icon, which the Dock shows instead of its picture: its codepoint, as a tile's icon travels.
-        if page.get("icon") in tile_icons.GLYPHS:
-            message["icon"] = tile_icons.GLYPHS[page["icon"]]
+        icon = tile_icons.carried(page.get("icon"))
+        if icon:
+            message["icon"] = icon
     return message
 
 
@@ -165,7 +166,7 @@ def prepare(inbox, record, region, values, bars, bar=()):
 # own_camera: a tile of the screen's own camera is drawn on the screen from the camera itself (plugin API 0.22,
 # firmware live_view.h is_own), so the app answers such a tile "own:" (picture_service, Manager.own_camera_of).
 CAP_FLAGS = ("live", "speaker", "microphone", "echo_cancel", "camera", "own_camera")
-CAP_COUNTS = ("live_tiles", "psram_kb", "internal_kb", "text_tiles", "text_bytes")
+CAP_COUNTS = ("live_tiles", "psram_kb", "internal_kb", "text_tiles", "text_bytes", "todo_items")
 # picture_turn: the screen's glass is turned (LVGL's rotation: 90, 180 or 270 degrees) and it takes its live pictures
 # turned so, to copy them onto the glass straight (live_pictures.TURNS); 0 for one that is not, or does not say.
 PICTURE_TURNS = (90, 180, 270)

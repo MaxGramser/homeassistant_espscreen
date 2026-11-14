@@ -13,7 +13,7 @@ import secrets
 
 from i18n import t
 import tile_icons
-from core import (entity_id, plugin_entity, plugin_tile, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, HEADER_MAX_ITEMS, KEY_HOLDERS, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES,
+from core import (BUILTIN, entity_id, plugin_entity, plugin_tile, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, HEADER_MAX_ITEMS, KEY_HOLDERS, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES,
                   STORE_MAX_TILES, Grid, is_key, span_of,
                   span_offered, placed, header_items, page_target, tile_size, validate_header, validate_layout)
 
@@ -29,7 +29,7 @@ APPEARANCE = {
     "mapFollow": "follow", "mapMarkers": "markers", "mapNames": "names", "mapZones": "zones", "mapStreets": "streets",
     "mapLook": "look",
     # How the energy card shows power along a line: running dots or calm lines (catalogue/screen.yaml `energy`).
-    "energyFlow": "flow",
+    "callTo": "call_to", "callKind": "call_kind", "energyFlow": "flow",
     # The template tile (docs/TEXT_TILE.md): its template, as typed. Home Assistant renders it; it never reaches a screen.
     "textTemplate": "template",
     # A calendar card (firmware 0.56.0, calendar_feed.py): its look, its calendars and filters, how far it looks, when an
@@ -39,6 +39,9 @@ APPEARANCE = {
     "calendarPrivate": "private", "calendarAhead": "ahead", "calendarSoon": "soon", "calendarStartView": "start_view",
     "calendarWeekStart": "week_start", "calendarHours": "hours", "calendarWeekNumbers": "week_numbers",
     "calendarBookOn": "book_on", "calendarBookPlace": "book_place", "calendarBookTitle": "book_title",
+    # A to-do card (todo_feed.py): its order and what it shows and offers. All of them stay in the app.
+    "todoOrder": "todo_order", "todoCompleted": "todo_completed", "todoDue": "todo_due", "todoAdd": "todo_add",
+    "todoSuggest": "todo_suggest", "todoClear": "todo_clear",
     # A sensor's meter (firmware 0.56.0, meter.py): a ring, a tape or a bar, its own range and its colours.
     "meterStyle": "meter", "meterMin": "min", "meterMax": "max", "meterSegments": "segments", "meterColors": "colors",
     "meterThresholds": "thresholds",
@@ -220,7 +223,10 @@ def _entity(content, page_indexes, home):
         return entity
     if content["kind"] == "builtin":
         _object(content, {"kind", "name"}, {"kind", "name"})
-        if content["name"] not in ("clock", "nightstand", "settings", "map", "energy"):
+        # Every built-in tile the app knows (core.BUILTIN), a page's link apart: it is "navigation" below. A hand-kept
+        # list here forgot the template tile (GitHub #358).
+        if not isinstance(content["name"], str) or content["name"].startswith("page_") \
+                or "screen." + content["name"] not in BUILTIN:
             raise LayoutError(t('addon.errors.layout.unsupported'))
         return "screen." + content["name"]
     if content["kind"] == "navigation":
@@ -448,7 +454,7 @@ def validate_document(data, grid):
     for page in pages:
         # `icon` (optional): a pickable MDI icon by name, which the Dock shows for the page instead of its picture.
         _object(page, {"id", "navigation", "topbar", "tiles", "icon"}, {"id", "navigation", "topbar", "tiles"})
-        if "icon" in page and (not isinstance(page["icon"], str) or page["icon"] not in tile_icons.ICONS):
+        if "icon" in page and (not isinstance(page["icon"], str) or not tile_icons.known(page["icon"])):
             raise LayoutError(t('addon.errors.pages.fields'))
         _identity(page["id"], seen, page=True)
     page_ids = seen.copy()

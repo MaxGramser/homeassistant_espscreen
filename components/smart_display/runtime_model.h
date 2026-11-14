@@ -22,6 +22,9 @@
 #ifdef SD_MOD_LIGHT_PRESETS
 #include "module_light_presets.h"
 #endif
+#ifdef SD_MOD_TODO
+#include "module_todo.h"
+#endif
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -210,9 +213,17 @@ inline bool valid_entity(const std::string &entity) {
     // screen.text (module text_card, firmware 0.58.0+): a template Home Assistant renders, as rows the app sends.
     if (entity == "screen.text") return true;
 #endif
+#ifdef SD_MOD_CALL
+    // screen.call (module call): opens the list of the house's screens, or calls one (docs/CALLS.md).
+    if (entity == "screen.call") return true;
+#endif
     return page_entity(entity) && page_number(entity) <= grid.pages();
   }
   // The types the tile catalogue has (catalogue/*.yaml, tile_catalogue.h): the same list the add-on and the editor take.
+#ifndef SD_MOD_TODO
+  // A to-do list is the module todo's (docs/TODO.md): a screen without it has no such tile.
+  if (domain == "todo") return false;
+#endif
   for (const auto *allowed : tile_catalogue::DOMAINS)
     if (domain == allowed) return true;
   return false;
@@ -347,6 +358,10 @@ struct Extra {
   // A template tile's rows (module text_card, firmware 0.58.0+): its own block, kept in PSRAM.
   std::shared_ptr<const text_card::Data> text;
 #endif
+#ifdef SD_MOD_TODO
+  // A to-do card's items (module todo, firmware 0.61.0+): its own block too, kept in PSRAM.
+  std::shared_ptr<const todo::Data> todo;
+#endif
   // A vacuum card's map, rooms and routines (module vacuum, vacuum_model.h): its own block too.
   std::shared_ptr<const vacuum_model::Data> vacuum;
   uint32_t media_duration = 0, media_position = 0, media_position_at = 0;
@@ -429,6 +444,9 @@ struct Extra {
            fav_glyph.empty() && !fav_playing && !energy && !calendar && plugin_options.empty() && plugin_state.empty() && plugin_entity.empty()
 #ifdef SD_MOD_TEXT_CARD
            && !text  // a template tile's rows, even an empty list: "nothing to say" hides the card
+#endif
+#ifdef SD_MOD_TODO
+           && !todo
 #endif
            ;
   }
@@ -595,6 +613,8 @@ struct Tile {
   // Direct control set on a wide card (firmware 0.2.19+); empty keeps the plain card.
   std::string controls, device_class;
   bool muted = false;
+  // A text entity in mode password (docs/TEXT_ENTITY.md): its tile and its field show dots instead of its value.
+  bool secret = false;
   // A -/+ edit shows at once and is sent as one call after a short pause; the
   // value stays until Home Assistant reports it (or a timeout clears it).
   float edit_value = NAN; uint32_t edit_since = 0; bool edit_sent = false;
@@ -757,6 +777,9 @@ struct Tile {
   // Two built-in cards, and only one of them is a clock that has to be redrawn every minute.
   bool is_clock() const { return entity == "screen.clock"; }
   bool is_settings() const { return entity == "screen.settings"; }
+  bool is_call() const { return entity == "screen.call"; }
+  std::string call_to;           // a screen's node: a tap calls it at once; empty: a tap opens the list
+  bool call_sound_only = false;
   // The bedside clock (firmware 0.8.0+): the time as large as the page allows, with its keys under it.
   bool is_bedside() const { return entity == "screen.nightstand"; }
   // A navigation tile (screen.page_<n>, firmware 0.2.62+) and the page it goes to, counted from one.
@@ -770,8 +793,10 @@ struct Tile {
   // (hui-button-entity-row disables only an unavailable one): its state is the moment it last ran (firmware 0.2.58+).
   bool available() const {
     if (builtin()) return true;
-    if (!received || state.empty() || state == "unavailable") return false;
+    if (!received || state == "unavailable") return false;
     auto d = domain();
+    // A text's value may be empty (docs/TEXT_ENTITY.md): that is a value, not a state that is missing.
+    if (state.empty()) return d == "text" || d == "input_text";
     // A cover that cannot tell whether it is open (an awning or a blind without feedback: Home Assistant's is_closed is
     // None) reports "unknown" and still takes its keys, as in Home Assistant, where only "unavailable" turns them off
     // (frontend data/cover.ts canOpen, canClose, canStop).
@@ -784,8 +809,10 @@ struct Tile {
   // inactive. A built-in card has no state and is always active.
   bool active() const {
     if (builtin()) return true;
-    if (!received || state.empty() || state == "unavailable") return false;
+    if (!received || state == "unavailable") return false;
     auto d = domain();
+    // An empty text is a value (docs/TEXT_ENTITY.md); any other empty state is one that has not come yet.
+    if (state.empty()) return d == "text" || d == "input_text";
     if (d == "scene" || d == "button" || d == "input_button" || d == "image") return true;
     // An automation that runs on a tap is a script's button: coloured while its actions run, whether it is on or off.
     if (runs()) return running;

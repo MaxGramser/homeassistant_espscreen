@@ -14,6 +14,7 @@ import TileEnergy from "./tile/TileEnergy.vue";
 import TileLine from "./tile/TileLine.vue";
 import TileMeter from "./tile/TileMeter.vue";
 import TileText from "./tile/TileText.vue";
+import TileTodo from "./tile/TileTodo.vue";
 import TilePicture from "./tile/TilePicture.vue";
 import TilePlugin from "./tile/TilePlugin.vue";
 import TileRoundKey from "./tile/TileRoundKey.vue";
@@ -108,6 +109,7 @@ async function onKey(e: KeyboardEvent) {
     <TileEnergy v-else-if="kind === 'energy'" :card="card" />
     <TileMeter v-else-if="kind === 'meter'" :card="card" />
     <TileText v-else-if="kind === 'text'" :card="card" />
+    <TileTodo v-else-if="kind === 'todo'" :card="card" />
     <TileClockFace v-else-if="CLOCKS.includes(kind)" :card="card" />
     <TilePicture v-else-if="kind === 'favorite' || kind === 'camera'" :card="card" />
     <TileWatch v-else-if="kind === 'watch'" :card="card" />

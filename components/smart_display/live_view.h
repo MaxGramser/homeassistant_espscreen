@@ -62,6 +62,16 @@ constexpr size_t SOUND_BUFFER = 49152;  // 1.5 s at 16 kHz mono
 // sound that stays whole ("200 ms extra is fine, 3 s is not").
 constexpr size_t SOUND_LOW = SOUND_RATE * 2 * 400 / 1000;    // 400 ms
 constexpr size_t SOUND_HIGH = SOUND_RATE * 2 * 1200 / 1000;  // 1200 ms
+// In a conversation (the part's X-Sound: talk) sound is someone speaking to you: 200 ms of run-up. Above a second the oldest
+// goes. Measured on a call from a reTerminal D1001 to a Guition 10.1 (2026-11-10): with 600 ms, 5.2 s of 38 s of sound was thrown
+// away in pieces of up to 2 s, as the Wi-Fi brings sound in bursts of up to a second while pictures and sound share the link.
+// Clean sound goes first: a voice up to a second late is fine, and a voice with holes is not (docs/CALLS.md, "The voice").
+constexpr size_t SOUND_TALK_LOW = SOUND_RATE * 2 * 200 / 1000;    // 200 ms
+constexpr size_t SOUND_TALK_HIGH = SOUND_RATE * 2 * 1000 / 1000;  // 1 s
+// How long a conversation's sound may be gone before it takes a new run-up: a moment's empty buffer is normal, the speaker
+// has its own to play from, and a run-up at every one is a hole of 200 ms each time.
+constexpr uint32_t SOUND_TALK_GONE_MS = 400;
+static_assert(SOUND_TALK_LOW % 2 == 0 && SOUND_TALK_HIGH % 2 == 0 && SOUND_TALK_LOW < SOUND_TALK_HIGH, "whole samples");
 static_assert(SOUND_PART % 2 == 0 && SOUND_BUFFER % 2 == 0 && SOUND_LOW % 2 == 0 && SOUND_HIGH % 2 == 0,
               "the sound moves in whole samples, two bytes each");
 static_assert(SOUND_LOW < SOUND_HIGH && SOUND_HIGH < SOUND_BUFFER, "the sound catches up before its buffer runs full");
@@ -127,6 +137,7 @@ class Reader {
         this->still_ = h.still;
         this->has_made_ = h.has_made;
         this->made_ = h.made;
+        this->talk_ = h.talk;
         this->turn_ = h.turn;
         this->room_ = room(this->need_, this->audio_);
         this->in_body_ = true;
@@ -153,13 +164,15 @@ class Reader {
   // And when the app made it (X-Made, its own milliseconds), when it said.
   bool has_made() const { return this->has_made_; }
   uint32_t made() const { return this->made_; }
+  // And whether the part is sound of a conversation (X-Sound: talk).
+  bool talk() const { return this->talk_; }
   // And how the app turned it for a turned glass (X-Turn: 90, 180, 270), 0 upright.
   int turn() const { return this->turn_; }
 
  private:
   std::string head_;
   size_t most_ = 0;
-  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false, has_made_ = false;
+  bool answered_ = false, in_body_ = false, broken_ = false, audio_ = false, still_ = false, has_made_ = false, talk_ = false;
   uint32_t made_ = 0;
   int turn_ = 0;
   int status_ = 0;
@@ -515,7 +528,7 @@ uint32_t misses();
 // The screen's own camera on a tile of its own (plugin API 0.22, docs/PLATFORM_PLAN.md 4.11). A plugin with the camera
 // offers its frames once (own_offer, its setup), and the hello then says "own_camera", so the app answers such a tile
 // "own:". While a tile of it is open, own_wanted says so, and the plugin hands each frame to own_frame on its camera's
-// task: the tile takes one when its pace says (its share of the engine's budget, a busy screen's share of that), copies it into its card with
+// task: the tile takes one when its pace says (hw::OWN_TILE_PPS, a busy screen's share of that), copies it into its card with
 // the PPA (scaled, from the camera's YUV420 or RGB565) when the glass is free at once, and lays it onto the glass on its
 // own task. Never waits: a frame it cannot take now goes by.
 void own_offer();

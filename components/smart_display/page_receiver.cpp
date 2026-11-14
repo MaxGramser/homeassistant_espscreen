@@ -366,12 +366,33 @@ std::string receive(const std::string &payload) {
       return true;
     }
     if (op != "tile" && !transfer.active) { result = "Resend needed"; return false; }
+    if (op == "call") {
+#ifdef SD_MOD_CALL
+      // A call between screens (module call, docs/CALLS.md): `s` out, ring, live, held or end; `k` its key, `n` the other
+      // screen's name, `i` its icon, `vd` video, `l` the stream of the other, `tk` where this screen sends its voice,
+      // `pc` the other's camera is on, `w` why it ended.
+      call::on_call(string(root["s"], 8), string(root["k"], 16), string(root["n"], 60), string(root["i"], 8),
+                    root["vd"].is<unsigned>() && root["vd"].as<unsigned>() == 1, string(root["l"], 200), string(root["tk"], 200),
+                    !(root["pc"].is<unsigned>() && root["pc"].as<unsigned>() == 0), string(root["w"], 16));
+#endif
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
+    if (op == "contacts") {
+#ifdef SD_MOD_CALL
+      std::string rows;
+      serializeJson(root["r"], rows);
+      call::on_contacts(rows, root["p"].is<unsigned>() && root["p"].as<unsigned>() > 0, root["more"].is<unsigned>() && root["more"].as<unsigned>() == 1);
+#endif
+      result = model.ready() ? "Synced" : "Loading tiles";
+      return true;
+    }
     if (op == "doorbell") {
       // A ring (module doorbell, docs/DOORBELL.md): an automation fired esp_screens_doorbell, and ESP Screens names its
       // camera (`e`), its name (`n`), the ring's key (`k`), when it rang (`r`, unix time) and how long it stays untouched
       // (`t`, seconds), whether its view opens quiet (`m`) and rings without the chime (`nc`), its door when it has one
-      // (`d`: 1 a lock, with its state `ds`, 2 an action) and the stream the app made for this screen (`l`, opened at
-      // once); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
+      // (`d`: 1 a lock, with its state `ds`, 2 an action), the stream the app made for this screen (`l`, opened at
+      // once) and where it sends its voice (`tk`, its Talk key); or, with `c`, that this ring was answered on another screen or dismissed and closes here too; or, with
       // `ds` alone, its lock's new state. Only a screen whose hello says `doorbell` gets it.
 #ifdef SD_MOD_DOORBELL
       const std::string key = string(root["k"], 16);
@@ -386,7 +407,8 @@ std::string receive(const std::string &payload) {
         doorbell::ring(entity, name.empty() ? entity : name, key, root["r"].is<unsigned>() ? root["r"].as<uint32_t>() : 0,
                        root["t"].is<unsigned>() ? root["t"].as<uint32_t>() : 0, root["d"].is<unsigned>() ? root["d"].as<unsigned>() : 0,
                        string(root["ds"], 16), root["m"].is<unsigned>() && root["m"].as<unsigned>() == 1,
-                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200));
+                       !(root["nc"].is<unsigned>() && root["nc"].as<unsigned>() == 1), string(root["l"], 200),
+                       string(root["tk"], 200));
       }
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";
@@ -752,7 +774,14 @@ std::string receive(const std::string &payload) {
     auto a = root["a"].as<JsonObject>();
     // The fingerprint of state, attributes and extras (a vacuum's mode or water select changes only
     // there), hashed while serializing so no copy of the message stays behind.
+    // A text's value is its state (text, input_text, docs/TEXT_ENTITY.md): kept whole where its field can send it back
+    // (module text_edit), up to Home Assistant's 255 characters, so it never sends a value cut short. A board without
+    // the field keeps what any tile keeps: its tile shows no more.
+#ifdef SD_MOD_TEXT_EDIT
+    const std::string word = string(root["state"], tile_controls::text_entity(tile.domain()) ? tile_controls::TEXT_BYTES : 160);
+#else
     const std::string word = string(root["state"]);
+#endif
     Fingerprint state_hash;
     state_hash.add(word);
     state_hash.write('\n');
@@ -783,6 +812,9 @@ std::string receive(const std::string &payload) {
     tile.refresh = refresh == 0 || (refresh >= 5 && refresh <= 3600) ? refresh : 15;
     tile.overlay = string(options["overlay"], 8) != "none";
     tile.energy_lines = string(options["flow"], 8) == "lines";
+    // The Call tile (module call): whom a tap calls, and whether it is sound alone (docs/CALLS.md).
+    tile.call_to = string(options["call_to"], 40);
+    tile.call_sound_only = string(options["call_kind"], 8) == "sound";
     // A calendar card's choices (firmware 0.56.0+): its look, when an event "starts soon", its full screen's first view.
     tile.calendar_busy_free = string(options["style"], 12) == "busy_free";
     tile.calendar_soon = options["soon"].is<int>() ? (uint8_t) std::clamp(options["soon"].as<int>(), 0, 120) : 0;
@@ -1033,6 +1065,13 @@ std::string receive(const std::string &payload) {
     tile.step = number(a["target_temp_step"], 0.5f);
     if(tile.domain()=="number" || tile.domain()=="input_number") {
       tile.minimum=number(a["min"],0);tile.maximum=number(a["max"],100);tile.step=number(a["step"],1); }
+    // A text (firmware 0.61.0): the fewest and the most characters its field takes (Home Assistant's defaults 0 and 255)
+    // and whether it is a password.
+    tile.secret = false;
+    if (tile_controls::text_entity(tile.domain())) {
+      tile.minimum = number(a["min"], 0); tile.maximum = number(a["max"], 255);
+      tile.secret = string(a["mode"], 10) == "password";
+    }
     if(tile.domain()=="weather") {
       tile.current=number(a["temperature"]);tile.unit=string(a["temperature_unit"],12);
       tile.humidity=number(a["humidity"]);next.wind=number(a["wind_speed"]);next.wind_unit=string(a["wind_speed_unit"],8);next.feels=number(a["apparent_temperature"]);
@@ -1299,6 +1338,34 @@ std::string receive(const std::string &payload) {
         }
       }
       next.text = std::move(d);
+    }
+#endif
+#ifdef SD_MOD_TODO
+    // A to-do card (module todo, firmware 0.61.0+, app todo_feed.py): {"v":1,"f":may,"n":open,"d":done,"i":[items],
+    // "s":[names to offer]}, or {"v":1,"w":1} while the app has no list yet. An item is [number, flags, name, days?].
+    // Whatever a message says, a card keeps todo's caps, in PSRAM.
+    if (tile.domain() == "todo" && extra["todo"].is<JsonObject>() && (extra["todo"]["v"] | 0) == 1) {
+      JsonVariant list = extra["todo"];
+      auto d = std::make_shared<todo::Data>();
+      d->waiting = (list["w"] | 0) == 1;
+      d->may = static_cast<uint8_t>(list["f"] | 0u);
+      d->open = static_cast<uint16_t>(std::min<unsigned>(list["n"] | 0u, 65535));
+      d->done = static_cast<uint16_t>(std::min<unsigned>(list["d"] | 0u, 65535));
+      if (list["i"].is<JsonArray>()) for (JsonVariant row : list["i"].as<JsonArray>()) {
+        if (d->items.size() == todo::MAX_ITEMS) break;
+        if (!row.is<JsonArray>() || !row[2].is<const char *>()) continue;
+        todo::Item item;
+        item.id = row[0] | 0u;
+        item.flags = static_cast<uint8_t>((row[1] | 0u) & (todo::DONE | todo::LATE));
+        if (row[3].is<int>()) { item.days = static_cast<int16_t>(std::clamp<int>(row[3] | 0, -9999, 9999)); item.flags |= todo::HAS_DUE; }
+        item.text = roomy::text(string(row[2], todo::SUMMARY_BYTES));
+        d->items.push_back(std::move(item));
+      }
+      if (list["s"].is<JsonArray>()) for (JsonVariant name : list["s"].as<JsonArray>()) {
+        if (d->offers.size() == todo::MAX_OFFERS) break;
+        if (name.is<const char *>()) d->offers.push_back(roomy::text(string(name, 48)));
+      }
+      next.todo = std::move(d);
     }
 #endif
 #ifdef SD_MOD_VACUUM_CARD

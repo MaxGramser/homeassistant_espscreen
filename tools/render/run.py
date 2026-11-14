@@ -876,6 +876,22 @@ class Run:
         assert len(json.dumps({'n': 3, **x}, separators=(',', ':'))) <= 2600, 'the prices are larger than a tile may get'
         await self.sender.synchronize(self.inbox.object_id, record, region, values(3, x), bars)
         await self.until(lambda l: probe(l, 'tile=0 state n=3') and 'today=96 tomorrow=96' in l, 10, 'two days of prices', start)
+        # The card's own colour (plugin API 0.26, ui::set_card_color): the tile names green, the card wears the screen's
+        # green for a card in the pass that follows, and "none" gives the card back.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'green'}), bars)
+        said_card = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green', start)
+        own, named = re.search(r'own=(\w+) named=(\w+)', said_card).groups()
+        if own != named or own == 'FFFFFF':
+            self.failures.append(f'ui::card_color is not the colour the tile set: {said_card}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={own}' in l, 10, 'the card wears the tile\'s colour', start)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(5, {'card': 'none'}), bars)
+        back = await self.until(lambda l: probe(l, 'tile=0 card set none'), 10, 'the tile gave its card back', start)
+        plain = re.search(r'own=(\w+)', back).group(1)
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the person\'s again', start)
+        if plain == own:
+            self.failures.append(f'the card kept the tile\'s colour after CardColor::NONE: {back}')
         # Light and dark: on_theme, once each way.
         start = len(self.lines)
         self.client.switch_command(self.dark_switch.key, True)
@@ -2110,6 +2126,399 @@ class Run:
             await self.render('weather-card-dark')
             self.client.switch_command(self.dark_switch.key, False)
             await asyncio.sleep(1.0)
+        return 1
+
+    async def todo_panel(self, grid):
+        """The to-do card (module todo, docs/TODO.md) on this board: lists on every size of tile, a finger that ticks an
+        item on a tile, the full screen, its keyboard, a letter's accents, and a name offered while typing. The lists
+        are made up; what the screen asks (esphome.screen_todo) is done to them as Home Assistant would, with the
+        app's own todo_feed, and sent back."""
+        import profiles
+        import todo_feed
+        from core import extras, state_message
+        tz = MOMENT.tzinfo
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+
+        def item(uid, summary, done=False, due=None):
+            return {'uid': uid, 'summary': summary, 'status': 'completed' if done else 'needs_action', 'due': due}
+        day = MOMENT.date()
+        lists = {
+            'todo.shopping': [item(f's{n}', name) for n, name in enumerate(('Oat milk', 'Bananas', 'Coffee beans', 'Tomatoes', 'Dishwasher tablets', 'Olive oil', 'Sourdough bread', 'Eggs', 'Toilet paper'))]
+                             + [item('sb', 'Butter', True), item('sa', 'Apples', True), item('sy', 'Yoghurt', True)],
+            'todo.tasks': [item('t1', 'Renew passport', due=(day.replace(day=day.day - 4)).isoformat()), item('t2', 'Call the plumber', due=day.isoformat()),
+                           item('t3', 'Water the plants', due=(day.replace(day=day.day + 1)).isoformat()), item('t4', 'Return the parcel', due=(day.replace(day=day.day + 3)).isoformat()),
+                           item('t5', 'Book the dentist'), item('t6', 'Pay the invoice', True)],
+            'todo.chores': [item('c1', 'Empty the bins', True), item('c2', 'Vacuum upstairs', True)],
+        }
+        names = {'todo.shopping': 'Shopping list', 'todo.tasks': 'To do', 'todo.chores': 'Chores'}
+        numbers = todo_feed.Numbers()
+        states = {'sensor.hall': {'state': '21.5', 'attributes': {'unit_of_measurement': '°C', 'friendly_name': 'Hall'}}}
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        shown = {}
+
+        def refresh_states():
+            for entity, items in lists.items():
+                numbers.update(entity, items)
+                states[entity] = {'state': str(sum(not todo_feed.done(i) for i in items)),
+                                  'attributes': {'friendly_name': names[entity], 'supported_features': 127}}
+
+        async def send():
+            refresh_states()
+            values = []
+            for i, t in enumerate(shown['tiles']):
+                extra = extras(t, states, None, None, None, MOMENT) or {}
+                if t['entity'].startswith('todo.'):
+                    extra = {**extra, 'todo': todo_feed.card(t, lists[t['entity']], numbers.of(t['entity']), 127, tz, MOMENT)}
+                values.append(state_message(i, t, states, extra))
+            await self.sender.synchronize(self.inbox.object_id, shown['record'], region, values, shown['bars'])
+
+        async def answer():
+            """What the screen asked since the last time, done to the lists as Home Assistant does it."""
+            done = 0
+            while calls:
+                call = calls.pop(0)
+                if call.service != todo_feed.EVENT:
+                    continue
+                data = dict(call.data)
+                tile = shown['tiles'][int(data['i'])]
+                entity, items = tile['entity'], lists[tile['entity']]
+                uid = numbers.uid(entity, int(data.get('n') or 0))
+                asked = todo_feed.request(data['a'], items, uid, data.get('t'), 127)
+                print(f"    the screen asked: {data['a']} {data.get('t') or uid or ''} -> {asked}")
+                if not asked:
+                    continue
+                service, body = asked
+                if service == 'add_item':
+                    items.insert(sum(not todo_feed.done(i) for i in items), item(f'n{len(items)}{time.monotonic_ns()}', body['item']))
+                elif service == 'update_item':
+                    for it in items:
+                        if it['uid'] == body['item']:
+                            it['status'] = body.get('status', it['status'])
+                            it['summary'] = body.get('rename', it['summary'])
+                    items.sort(key=todo_feed.done)
+                elif service == 'remove_item':
+                    items[:] = [it for it in items if it['uid'] != body['item']]
+                elif service == 'remove_completed_items':
+                    items[:] = [it for it in items if not todo_feed.done(it)]
+                done += 1
+            if done:
+                await send()
+            return done
+
+        async def show(name, tiles_in, dark=True):
+            spans = {'wide': (2, 1), 'tall': (1, 2), 'square': (2, 2), 'full': (grid.columns, grid.rows)}
+            taken = set()
+            for tile in tiles_in:
+                w, h = spans.get(tile['options'].get('size'), (1, 1))
+                w, h = min(w, grid.columns), min(h, grid.rows)
+                slot = 0
+                while True:
+                    page, cell = divmod(slot, grid.slots)
+                    row, col = divmod(cell, grid.columns)
+                    cells = {(page, row + r, col + c) for r in range(h) for c in range(w)}
+                    if col + w <= grid.columns and row + h <= grid.rows and not cells & taken:
+                        break
+                    slot += 1
+                taken |= cells
+                tile['slot'] = slot
+            record = send_layout.migrate_legacy(dict(title='Kitchen', tiles=tiles_in), grid)
+            shown.update(record=record, tiles=send_layout.compile_tiles(record['layout'], grid), bars=[[{'k': 'clock'}] for _ in record['layout']['pages']])
+            await send()
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(1.0)
+            await self.render(name)
+            if dark:
+                await both(name, False)
+
+        async def both(name, light=True):
+            if light:
+                await self.render(name)
+            self.client.switch_command(self.dark_switch.key, True)
+            await asyncio.sleep(1.5)
+            await self.render(name + '-dark')
+            self.client.switch_command(self.dark_switch.key, False)
+            await asyncio.sleep(1.5)
+
+        await show('todo-sizes', [dict(entity='todo.chores', name='Chores', options={}),
+                                  dict(entity='todo.shopping', name='Shopping list', options={'size': 'wide'}),
+                                  dict(entity='todo.tasks', name='To do', options={'size': 'tall'}),
+                                  dict(entity='todo.shopping', name='Shopping list', options={'size': 'square'}),
+                                  dict(entity='sensor.hall', name='Hall', options={})])
+        await show('todo-full', [dict(entity='todo.shopping', name='Shopping list', options={'size': 'full'})])
+        width, height = self.canvas
+        spots = await self.slots()
+        if 'todo.shopping' not in spots:
+            raise RuntimeError('The to-do tile is not on the page')
+        # A finger ticks the row in the middle of the list: it shows at once, in its place, and the list closes up
+        # only when the finger has been away for a moment.
+        await self.tap(*spots['todo.shopping'])
+        await self.render('todo-ticked')
+        if await answer() != 1:
+            raise RuntimeError('A tap on a row of the to-do tile asked nothing of the app')
+        await asyncio.sleep(0.3)
+        await self.render('todo-ticked-held')
+        await asyncio.sleep(2.6)
+        await self.render('todo-settled')
+        # The board's own sizes, as module_todo.h works them out, to find the keys.
+        board = self.item.board if self.item.board.startswith('checkout/') else f'checkout/{self.item.board}.yaml'
+        subs = profiles.substitutions(board)
+        dpi = round(float(subs['DISPLAY_DPI']))
+        scale = (dpi * 100 + 85) // 170
+        px = lambda n: (n * scale + 50) // 100
+        mm = lambda n: (dpi * n + 12) // 25
+        big = width >= mm(150) and height >= mm(85)
+        key, line = mm(7), round(int(subs['FONT_HEADLINE_SIZE' if big else 'FONT_SUBLABEL_BIG_SIZE']) * 1.172)
+        head, rowh = max(px(56), key + px(16)), max(key, line + px(18))
+        # The card's head opens the full screen.
+        tile_top = int(subs['SCROLL_Y'])
+        await self.tap(width // 3, tile_top + px(14) + key // 2)
+        await asyncio.sleep(1.2)
+        await both('todo-card')
+        # A row drawn to the left shows what may be done with its item, and a tap on Remove removes it.
+        y = head + px(4) + key + px(8) + rowh * 5 // 2
+        column = min(width - 2 * px(16), px(740))
+        x = width // 2 + column // 4
+        await self.finger([(x, y)] + [(x - n * column // 40, y) for n in range(1, 15)], rest=0.1, step=0.02)
+        await asyncio.sleep(0.6)
+        await self.render('todo-swiped')
+        await self.tap(width // 2 + column // 2 - px(40), y)
+        await asyncio.sleep(0.3)
+        if await answer() != 1:
+            raise RuntimeError('A tap on Remove under a row drawn aside asked nothing of the app')
+        await asyncio.sleep(0.8)
+        await self.render('todo-removed')
+        await self.tap(width // 2, head + px(4) + key // 2)
+        await asyncio.sleep(0.8)
+        await self.render('todo-keys')
+
+        def keys(offered):
+            sp, g, field, margin = px(10), max(3, px(6)), key, px(16)
+            kw = min(width, mm(165))
+            if width - kw < mm(24):
+                kw = width
+            floats = kw < width
+            top = head + rowh + px(8)
+            whole = height - top - (margin if floats else 0) < 2 * sp + field + 5 * g + 4 * mm(7)
+            if whole:
+                top = 0
+            room = height - top - (margin if floats and not whole else 0)
+            chips = mm(6) + g
+            if not offered or (room - 2 * sp - field - chips - 5 * g) // 4 < mm(13) // 2:
+                chips = 0
+            keyh = max(px(20), min(mm(9), (room - 2 * sp - field - chips - 5 * g) // 4))
+            sh = height if whole else 2 * sp + field + chips + 5 * g + 4 * keyh
+            sx, sy = (width - kw) // 2, 0 if whole else height - sh - (margin if floats else 0)
+            inner, x0 = kw - 2 * sp, sx + sp
+            kwid, y0 = (inner - 9 * g) // 10, sy + sp + field + chips + g + g // 2
+            if whole:
+                y0 = max(y0, height - sp - 4 * keyh - 3 * g)
+            x2, side = x0 + (kwid + g) // 2, (3 * kwid + g) // 2
+            x3 = x0 + side + g + ((inner - 2 * side - 2 * g) - (7 * kwid + 6 * g)) // 2
+            spot = {}
+            for n, letter in enumerate('qwertyuiop'):
+                spot[letter] = (x0 + n * (kwid + g) + kwid // 2, y0 + keyh // 2)
+            for n, letter in enumerate('asdfghjkl'):
+                spot[letter] = (x2 + n * (kwid + g) + kwid // 2, y0 + keyh + g + keyh // 2)
+            for n, letter in enumerate('zxcvbnm'):
+                spot[letter] = (x3 + n * (kwid + g) + kwid // 2, y0 + 2 * (keyh + g) + keyh // 2)
+            spot['offer'] = (x0 + px(24), sy + sp + field + g + (chips - g) // 2)
+            spot['back'] = (x0 + inner - side // 2, y0 + 2 * (keyh + g) + keyh // 2)
+            spot['row'] = keyh
+            spot['accent'] = (min(x0 + inner - 4 * kwid - 2 * g, max(x0, spot['e'][0] - kwid // 2 - g)) + g + kwid // 2, y0 - keyh // 2 - g - g // 2)
+            spot['chips'] = chips
+            return spot
+        spot = keys(True)
+        for letter in 'bu':
+            await self.tap(*spot[letter])
+        await asyncio.sleep(0.4)
+        await self.render('todo-typed')
+        # Held, a letter shows its accents; a tap takes the first.
+        await self.hold(*spot['e'])
+        await asyncio.sleep(0.4)
+        await self.render('todo-accents')
+        await self.tap(*spot['accent'])
+        await asyncio.sleep(0.4)
+        await self.render('todo-accent-typed')
+        # Typed away again, the names of what was done before are offered, and a tap on one brings it back.
+        spot = keys(True)
+        if spot['chips']:
+            await self.call('render_finger', x=spot['back'][0], y=spot['back'][1], down=True)
+            await asyncio.sleep(1.6)
+            await self.call('render_finger', x=spot['back'][0], y=spot['back'][1], down=False)
+            await asyncio.sleep(0.5)
+            await self.render('todo-erased')
+            await self.tap(*spot['offer'])
+            await asyncio.sleep(0.3)
+            if await answer() != 1:
+                raise RuntimeError('A tap on an offered name asked nothing of the app')
+            await asyncio.sleep(0.8)
+            await self.render('todo-added')
+        return 1
+
+    async def text_panel(self, grid):
+        """A Home Assistant text on this board (text, input_text; module text_edit, docs/TEXT_ENTITY.md): tiles of every
+        size with a short value, a long one, a password and an empty one, then the field a tap opens with its keyboard,
+        a password's field, the check faded under the text's min, and a value typed and sent. The entities are made up;
+        what the screen sends (text.set_value, input_text.set_value) is done to them as Home Assistant would."""
+        import profiles
+        from core import extras, state_message
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        long = ('Back at three. Parcels go to the side door behind the garden gate, please ring twice and wait a moment '
+                'before you leave them on the bench under the window.')
+        states = {
+            'text.status': {'state': 'Back at three', 'attributes': {'friendly_name': 'Door message', 'mode': 'text', 'min': 0, 'max': 255}},
+            'text.message': {'state': long, 'attributes': {'friendly_name': 'Note for the courier', 'mode': 'text', 'min': 0, 'max': 255}},
+            'input_text.door_code': {'state': '2468', 'attributes': {'friendly_name': 'Door code', 'mode': 'password', 'min': 4, 'max': 8}},
+            'input_text.empty': {'state': '', 'attributes': {'friendly_name': 'Shopping note', 'mode': 'text', 'min': 0, 'max': 100}},
+        }
+        region = dict(keepalive=120, clock_24h=True, numbers='point', group_min=1, percent_space=False)
+        shown = {}
+
+        async def send():
+            values = [state_message(i, t, states, extras(t, states, None, None, None, MOMENT) or None) for i, t in enumerate(shown['tiles'])]
+            await self.sender.synchronize(self.inbox.object_id, shown['record'], region, values, shown['bars'])
+
+        async def both(name, light=True):
+            if light:
+                await self.render(name)
+            self.client.switch_command(self.dark_switch.key, True)
+            await asyncio.sleep(1.5)
+            await self.render(name + '-dark')
+            self.client.switch_command(self.dark_switch.key, False)
+            await asyncio.sleep(1.5)
+
+        async def show(name, tiles_in):
+            spans = {'wide': (2, 1), 'tall': (1, 2), 'square': (2, 2), 'full': (grid.columns, grid.rows)}
+            taken = set()
+            for tile in tiles_in:
+                w, h = spans.get(tile['options'].get('size'), (1, 1))
+                w, h = min(w, grid.columns), min(h, grid.rows)
+                slot = 0
+                while True:
+                    page, cell = divmod(slot, grid.slots)
+                    row, col = divmod(cell, grid.columns)
+                    cells = {(page, row + r, col + c) for r in range(h) for c in range(w)}
+                    if col + w <= grid.columns and row + h <= grid.rows and not cells & taken:
+                        break
+                    slot += 1
+                taken |= cells
+                tile['slot'] = slot
+            record = send_layout.migrate_legacy(dict(title='Hall', tiles=tiles_in), grid)
+            shown.update(record=record, tiles=send_layout.compile_tiles(record['layout'], grid), bars=[[{'k': 'clock'}] for _ in record['layout']['pages']])
+            await send()
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(1.0)
+            await both(name)
+
+        await show('text-sizes', [dict(entity='text.status', name='Door message', options={}),
+                                  dict(entity='text.message', name='Note for the courier', options={'size': 'wide'}),
+                                  dict(entity='input_text.door_code', name='Door code', options={'size': 'tall'}),
+                                  dict(entity='text.message', name='Note for the courier', options={'size': 'square'}),
+                                  dict(entity='input_text.empty', name='Shopping note', options={})])
+        width, height = self.canvas
+        spots = await self.slots()
+        # A small grid puts the tall tile on a later page: the two tiles the field is opened from, on a page of their own.
+        if 'text.message' not in spots or 'input_text.door_code' not in spots:
+            await show('text-tiles', [dict(entity='text.message', name='Note for the courier', options={}),
+                                      dict(entity='input_text.door_code', name='Door code', options={})])
+            spots = await self.slots()
+        for entity in ('text.message', 'input_text.door_code'):
+            if entity not in spots:
+                raise RuntimeError(f'The tile of {entity} is not on the page')
+        # The board's own sizes, as keyboard.h and detail_bar.h work them out, to find the keys.
+        board = self.item.board if self.item.board.startswith('checkout/') else f'checkout/{self.item.board}.yaml'
+        subs = profiles.substitutions(board)
+        dpi = round(float(subs['DISPLAY_DPI']))
+        scale = (dpi * 100 + 85) // 170
+        px = lambda n: (n * scale + 50) // 100
+        mm = lambda n: (dpi * n + 12) // 25
+        large = subs.get('LOOK', 'standard') == 'standard'
+        bar_key, bar_y = px(60 if large else 40), px(16 if large else 8)
+        bar_x = px(16 if large else 10)
+
+        def keys(field=False):
+            # The page's text area stands above the keys, so the keyboard comes without its own field
+            # (keyboard.h Spec::field), unless the glass is too short for both.
+            sp, g, margin = px(10), max(3, px(6)), px(16)
+            fieldh, gaps, keys_y = (mm(7), 5 * g, mm(7) + g + g // 2) if field else (0, 3 * g + g // 2, 0)
+            kw = min(width, mm(165))
+            if width - kw < mm(24):
+                kw = width
+            floats = kw < width
+            top = bar_y + bar_key + px(12)
+            whole = height - top - (margin if floats else 0) < 2 * sp + fieldh + gaps + 4 * mm(7)
+            if whole:
+                top = 0
+            room = height - top - (margin if floats and not whole else 0)
+            keyh = max(px(20), min(mm(9), (room - 2 * sp - fieldh - gaps) // 4))
+            sh = height if whole else 2 * sp + fieldh + gaps + 4 * keyh
+            sx, sy = (width - kw) // 2, 0 if whole else height - sh - (margin if floats else 0)
+            if not field and (whole or sy - px(12) - top < 2 * px(16) + px(20)):
+                return keys(True)
+            inner, x0 = kw - 2 * sp, sx + sp
+            kwid, y0 = (inner - 9 * g) // 10, sy + sp + keys_y
+            if whole:
+                y0 = max(y0, height - sp - 4 * keyh - 3 * g)
+            spot = {}
+            for n, letter in enumerate('qwertyuiop'):
+                spot[letter] = (x0 + n * (kwid + g) + kwid // 2, y0 + keyh // 2)
+            side, wide = (3 * kwid + g) // 2, 2 * kwid + g
+            spot['back'] = (x0 + inner - side // 2, y0 + 2 * (keyh + g) + keyh // 2)
+            spot['check'] = (x0 + inner - wide // 2, y0 + 3 * (keyh + g) + keyh // 2)
+            # The text area's first line, a third of the way in.
+            area_x = (width - (kw if kw < width else width - 2 * px(16))) // 2
+            spot['text'] = (area_x + px(16) + (inner // 3), top + px(16) + px(8))
+            spot['field'] = field
+            return spot
+        spot = keys()
+        # The long value's field: its end in view, the cursor after it.
+        await self.tap(*spots['text.message'])
+        await asyncio.sleep(1.2)
+        await both('text-field')
+        # A finger on the text puts the cursor there, and a letter goes in where it stands.
+        if not spot['field']:
+            await self.tap(*spot['text'])
+            await asyncio.sleep(0.3)
+            await self.tap(*spot['q'])
+            await asyncio.sleep(0.4)
+            await self.render('text-caret')
+        # Back sends nothing.
+        await self.tap(bar_x + bar_key // 2, bar_y + bar_key // 2)
+        await asyncio.sleep(0.8)
+        if any(c.service.endswith('.set_value') for c in calls):
+            raise RuntimeError('Back from a text\'s field sent a value')
+        # The password's field: a dot per character.
+        await self.tap(*spots['input_text.door_code'])
+        await asyncio.sleep(1.2)
+        await both('text-password')
+        # Under the door code's min of 4 the check is faded, and a tap on it sends nothing.
+        await self.tap(*spot['back'])
+        await asyncio.sleep(0.4)
+        await self.render('text-short')
+        await self.tap(*spot['check'])
+        await asyncio.sleep(0.6)
+        if any(c.service.endswith('.set_value') for c in calls):
+            raise RuntimeError('The check sent a value shorter than the text\'s min')
+        for letter in 'qw':
+            await self.tap(*spot[letter])
+        await asyncio.sleep(0.4)
+        await self.render('text-typed')
+        await self.tap(*spot['check'])
+        await asyncio.sleep(0.6)
+        sent = [c for c in calls if c.service.endswith('.set_value')]
+        if len(sent) != 1 or sent[0].service != 'input_text.set_value' or dict(sent[0].data).get('value') != '246qw':
+            raise RuntimeError(f'The check sent {[(c.service, dict(c.data)) for c in sent]}, not input_text.set_value 246qw')
+        print(f"    the screen sent: {sent[0].service} {dict(sent[0].data)}")
+        # The tile shows the new value at once; Home Assistant takes it, and its report squares the wish.
+        await self.render('text-sent')
+        states['input_text.door_code']['state'] = dict(sent[0].data)['value']
+        await send()
+        await asyncio.sleep(1.0)
+        await both('text-settled')
         return 1
 
     async def calendar_panel(self, grid):
@@ -3838,6 +4247,10 @@ class Run:
             return 1, await self.weather_panel(grid)
         if self.only == 'calendar':
             return 1, await self.calendar_panel(grid)
+        if self.only == 'todo':
+            return 1, await self.todo_panel(grid)
+        if self.only == 'text':
+            return 1, await self.text_panel(grid)
         if self.only == 'dock':
             return 1, await self.dock(pages)
         if self.only == 'plugin':
@@ -3930,7 +4343,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')

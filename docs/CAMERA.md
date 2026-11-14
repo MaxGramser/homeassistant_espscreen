@@ -255,10 +255,11 @@ the app and the screen a dozen of a tile's small pictures still fit (the app's s
 of 64 KB), and a tile that read them one by one showed pictures a second old. So a live tile asks for each picture
 instead: GET on the same link with `.jpg` for `.mjpeg`, over a kept connection (HTTP/1.1), and the app answers with the
 JPEG of the camera's newest frame once it is newer than the last it sent on that link, or 204 after 2 s, and the tile
-asks again; the link counts as a stream from its first ask until 3 s after its last answer. A tile asks at most six
+asks again; the link counts as a stream from its first ask until 3 s after its last answer. A tile asks at most ten
 times a second (hw::LIVE_TILE_PPS): the picture engine's budget of pictures a second shared among the tiles that stream
-(`picture_engine::tile_pps`, 24 on a P4, so four tiles keep six each), never fewer than two; a busy screen's tile asks
-half or a quarter of that (docs/PLATFORM_PLAN.md 4.10). An app without it answers
+(`picture_engine::tile_pps`, 40 on a P4, so four tiles keep ten each), never fewer than two; a busy screen's tile asks
+half or a quarter of that (docs/PLATFORM_PLAN.md 4.10). A tile of the screen's own camera has its own pace, at most fifteen
+times a second (hw::OWN_TILE_PPS). An app without it answers
 404, and the tile reads the stream, showing the newest picture that reached it and passing the older ones; the app
 keeps a tile's socket buffer at 16 KB. Its line in the screen's log every 10 s says how long it waited for the app,
 how long its pictures waited on the way and how many older ones it passed.
@@ -407,13 +408,30 @@ goes through the display's own rounding, as LVGL's own areas do. When a picture 
 doorbell's 16:9 snapshot first, then its 4:3 stream), LVGL draws where the last one lay again, so nothing of it stays
 beside the new one. When a stream ends, LVGL draws its room again.
 
+**A frame's restart.** A panel has no memory of its own, and ESP-IDF sends each frame as one DMA transfer whose end-of-frame
+interrupt starts the next one. That interrupt has the vertical blanking to run in: 0.59 ms on a reTerminal D1001 at
+70 MHz. When it comes later the panel misses the frame, gets nothing for a whole refresh and shows its colour for no
+data, blue, and the bridge raises no underrun flag, because the DMA was never asked for anything. Cache write-backs
+on the two cores (`esp_cache_msync` holds the interrupts off for up to 0.6 ms per chunk on a spinlock the other core
+waits for), a slow interrupt or any long critical section are enough. A bare ESP-IDF firmware with a camera on the
+glass showed it on a reTerminal D1001 (chip revision 1.3) and a Guition 10.1 V3 (revision 3.2): every frame missed
+was a flash, none of the others; interrupts held off on the other core did nothing, and the PSRAM load on its own
+brought none. So the firmware puts the panel's DMA channel in the hardware's auto-reload mode once, at the end of a
+frame (`glass_dsi_refresh.cpp`): it repeats the whole frame buffer by itself and no interrupt stands between
+two frames. With interrupts held off for 10 ms not one flash came on either chip. A real underrun (the DMA held up
+for more than 40 to 80 microseconds) still shows and still counts, and leaves the picture in its place. On a chip whose
+only frame callback was that interrupt the panel watch reads the DMA's address every 5 ms instead. A screen whose DMA
+is not set up as expected keeps ESP-IDF's restart and says so in its log. One whose DMA did not keep running on its own
+restarts without it and stays without it until the power goes off, an update or two included.
+
 **The panel's share of the memory bus.** The DSI bridge reads the frame buffer from PSRAM without pause, a frame
 every 16 ms. When another DMA holds the bus too long (the PPA scaling and turning a picture, the JPEG decoder, the
 DMA2D that copies what LVGL drew), the bridge runs dry and the panel shows a frame of blue, its colour for no data;
 ESP-IDF only logs that from its interrupt, on the UART. A tester with a Guition 10.1-inch P4 (pixel clock 70 MHz) saw
 such flashes while a camera streamed. So the firmware does two things on a P4 (`glass.h`, "The panel's share of
 the memory bus"). It watches: at the end of every frame the panel's own callback (ESP-IDF's `on_vsync`, which
-ESPHome's display leaves free) reads and clears the bridge's underrun flag, so each frame of blue is counted where it
+ESPHome's display leaves free; a read of the DMA's address every 5 ms on a chip where that callback was the frame's own
+interrupt, see "A frame's restart") reads and clears the bridge's underrun flag, so each frame of blue is counted where it
 happened, with no eye on the glass. The count of blue frames stands in every stream report (`the panel ran dry N times
 since boot`) and in Home Assistant as the diagnostic sensor "Panel misses", and once a minute the sensor "Panel watch"
 says the minute in one line: "quiet" with the frames it saw, or how many flashes (runs of blue frames) out of how many
@@ -430,7 +448,7 @@ glass with the PPA) alike, through a linker wrap of `ppa_register_client`: betwe
 bridge. LVGL took the same way for the same underrun under its own PPA draw unit (lvgl/lvgl #9590). A copy takes a
 little longer for it.
 
-**A turned copy the 2D-DMA never finishes.** The P4's picture engine (the PPA) cuts a copy into units of 64 pixels
+**A copy the 2D-DMA never finishes.** The P4's picture engine (the PPA) cuts a copy into units of 64 pixels
 by 16 rows, and when the last unit holds fewer bits than the DMA's FIFO the DMA never counts it as received: the DONE
 never comes and the task that asked waits for good on the driver's semaphore, without an error or a log line
 (Espressif's hardware bug DIG-734). ESP-IDF knows and sets "bypass macro block order" for such a block, but in the
@@ -441,11 +459,17 @@ or later one hangs, the main loop stops behind it (it holds the glass, above) an
 screen. A tester's M5Stack Tab5 (a 720x1280 panel shown as 1280x720, the one turned P4 glass) restarted every few
 minutes with two live camera tiles; its crash record showed the crashed core idle, the sign of a main loop waiting
 rather than working (2026-10-23). So the firmware guards every `ppa_do_scale_rotate_mirror` call through a linker wrap
-(`ppa_guard.h`, `ppa_guard.cpp`): it works out both rules, the hardware's and the driver's, and a turned block the
-hardware would stall on while the driver leaves the bypass off is copied in pieces, each of which the engine takes
-whole; two in almost every case, never more than six. A block the driver takes as it is costs nothing. The log names
-the first eight such copies (`ppa_guard: a turned copy of WxH would hang the 2D-DMA`); `tests/test_ppa_guard.cpp`
-proves the pieces cover the block once and land where the whole would. Copies the guard calls safe stalled a Tab5 all
+(`ppa_guard.h`, `ppa_guard.cpp`): it works out both rules, the hardware's and the driver's, and a block the hardware
+would stall on while the driver leaves the bypass off is copied in pieces, each of which the engine takes whole; two
+in almost every case, never more than six. A block the driver takes as it is costs nothing. The log names the first
+eight such copies (`ppa_guard: a copy of WxH turned A at S/16 would hang the 2D-DMA`); `tests/test_ppa_guard.cpp`
+proves the pieces cover the block once and land where the whole would. A scaled copy stalls unturned too: the driver
+counts the width's leftover on the scaled output, the hardware takes the input's last columns and scales them (a
+reTerminal D1001 restarted whenever a camera opened full screen, its picture of 450x800 at 25/16 leaving 2 columns,
+3 pixels scaled, by 25 rows, 2026-11-03), so the guard counts the leftover as the hardware does and cuts such a
+picture in two. With this firmware's bursts of 64 bytes a last unit stalls up to a little over the FIFO, 1792 bits
+(`STALL_BITS`), turned or straight: a live tile of one cell on a reTerminal D1001, its picture of 135x240 copied straight
+onto the glass, restarted the screen within minutes (2026-11-09). Copies the guard calls safe stalled a Tab5 all
 the same (docs/PLATFORM_PLAN.md 4.7), so since 2026-10-28 live pictures come turned from the app on a turned glass
 (the hello's `picture_turn`, each picture's `X-Turn`) and go onto the glass in a straight copy; a tile lays its card
 over each picture as it lies (PLATFORM_PLAN 4.12).
@@ -514,7 +538,7 @@ LVGL's core 1. The screen runs:
 
 - **One live tile at a time.** A second camera tile on the same page shows its stills. Each live tile costs about 11 KB
   of the chip's internal RAM for its connection's Wi-Fi and network buffers, and the RGB panel's S3 has little of it.
-- **Six pictures a second on that tile** at most, as on a P4; while a finger drags, the governor halves it.
+- **Six pictures a second on that tile** at most; while a finger drags, the governor halves it.
 - **A full view of at most eight pictures a second.** The tile under it stops while the view is open and comes back
   when it closes.
 - **One stream at a time, of any kind.** A live tile, a full view and a plugin's live place each count, and so does a
@@ -686,7 +710,7 @@ assistant can listen at the same time.
   the uplink stalls (four live tiles on the same screen, 2026-10-29) a picture waited in send() and the sound behind
   it, in bursts a second late at the app. Since Screen camera 0.6.10 a picture that finds the connection more than
   half full is left behind and the sound goes between the packets of a long one; since 0.6.12 and plugin API 0.23
-  the screen keeps its live tiles at a quarter while anyone hears its microphone (the governor, PLATFORM_PLAN 4.10).
+  the screen keeps its live tiles at half at least while anyone hears its microphone (the governor, PLATFORM_PLAN 4.10).
 - Internal RAM is what a P4 runs short of. The encoder keeps about 104 KB of it and Opus about 25 KB, for as long as
   the screen runs. What every connection holds unsent or unread lived there too: with live camera tiles on the glass
   and the video playing, free internal RAM fell from 160 KB to 13 KB in two seconds and the C6's driver aborted the

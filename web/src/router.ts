@@ -28,6 +28,8 @@ export const router = createRouter({
     { path: "/override/:profile?", name: "override", component: Nothing },
     // The troubleshooting report of a screen ("My screen doesn't work right"), by the screen's inbox id as above.
     { path: "/screens/:id/report", name: "report", component: Nothing },
+    // The icons a screen takes on top of the fixed set (docs/ICONS.md), by the screen's inbox id as above.
+    { path: "/screens/:id/icons", name: "icons", component: Nothing },
     { path: "/:pathMatch(.*)*", redirect: "/" },
   ],
 });
@@ -66,3 +68,4 @@ export async function restoreKeptRoute() {
 export const screenRoute = (id: string): RouteLocationRaw => ({ name: "screen", params: { id } });
 export const overrideRoute = (profile: string | null): RouteLocationRaw => ({ name: "override", params: { profile: profile ?? "" } });
 export const reportRoute = (id: string): RouteLocationRaw => ({ name: "report", params: { id } });
+export const iconsRoute = (id: string): RouteLocationRaw => ({ name: "icons", params: { id } });

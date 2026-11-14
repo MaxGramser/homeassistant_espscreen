@@ -48,6 +48,13 @@ int main() {
         if (pages.included(i)) for (int j = i + direction; j >= 0 && j < 5; j += direction)
           if (pages.included(j)) { expected = j; break; }
         assert(pages.step(i, direction) == expected);
+        // Looping: the same in the middle, and from the ends round to the first page that is in the sequence.
+        int around = i;
+        if (pages.included(i)) for (int moved = 1; moved < 5; ++moved) {
+          const int j = (i + direction * moved + 5) % 5;
+          if (pages.included(j)) { around = j; break; }
+        }
+        assert(pages.step(i, direction, true) == around);
       }
     }
     assert(pages.restore(2, true) == 1);

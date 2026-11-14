@@ -142,6 +142,10 @@ export function ownWords(domain: string, live: Live | null | undefined) {
 export function stateText(entity: string, live: Live | null | undefined, options: StateTextOptions, words: ScreenWords) {
   const domain = entity.split(".")[0], note = options.note || "";
   if (!live || NO_STATUS.includes(domain)) return note;
+  // A text's value as it is (tile_controls::text_shown, docs/TEXT_ENTITY.md): "on" stays "on", an empty value leaves the
+  // line empty, and a password is a dot per character.
+  if ((domain === "text" || domain === "input_text") && live.state !== "unavailable" && live.state !== "unknown")
+    return live.a?.mode === "password" ? "\u2022".repeat([...live.state].length) : live.state;
   const gone = isGone(live);
   // A run button says Running while its actions run and Off while nothing starts it on its own, as on the screen.
   if (options.runs && !gone) return Number(live.a?.current) > 0 ? screenText(words, "screen.script.running") : live.state === "off" ? screenText(words, "screen.ha.off") : note;
@@ -172,6 +176,9 @@ export function stateText(entity: string, live: Live | null | undefined, options
   // A calendar names the event of the moment (Home Assistant's `message`) and says Free while none runs, as its card does
   // (screen.calendar.free; the page carries the same word as editor.mockup.calendar_free).
   if (domain === "calendar") return live.state === "on" && a.message ? String(a.message) : live.state === "off" ? screenText(words, "editor.mockup.calendar_free") : word;
+  // A to-do list says how many items are open, as its card does (screen.todo.open; the page carries the same words as
+  // editor.mockup.todo_open and todo_all_done). Only a board with the to-do card has such a tile.
+  if (domain === "todo" && /^\d+$/.test(live.state)) return live.state === "0" ? screenText(words, "editor.mockup.todo_all_done") : screenText(words, "editor.mockup.todo_open").replace("{x}", live.state);
   if (domain === "sensor" || NUMERIC.includes(domain)) return ownWords(domain, live) || valueText(domain, live.state, a.unit_of_measurement, words);
   return word;
 }

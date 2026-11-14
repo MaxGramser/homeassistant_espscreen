@@ -2,7 +2,7 @@
 // the kinds and rooms with their counts, and how an entity is named and marked.
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
-import { entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, markOf, roomCounts, shortName, tileCounts,
+import { entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
   type Entry, type LibraryFilter } from "../src/model/library";
 
 const ENTRIES: Entry[] = [
@@ -39,6 +39,28 @@ describe("the library", () => {
     expect(libraryGroups(ENTRIES.slice(0, 2), false)).toEqual([{ key: "", title: "", entities: ENTRIES.slice(0, 2) }]);
   });
 
+  it("groups everything first and then lists it a part at a time, so a room's number is the whole room's", () => {
+    const rooms = ["Attic", "Hall", "Kitchen"];
+    const many: Entry[] = Array.from({ length: 300 }, (_, i) => ({ id: `light.l${i}`, name: `L${String(i).padStart(3, "0")}`, area: rooms[i % 3] }));
+    const groups = libraryGroups(many, true);
+    const first = libraryWindow(groups, 120);
+    expect(first.map((g) => [g.title, g.entities.length, g.count])).toEqual([["Attic", 100, 100], ["Hall", 20, 100]]);
+    expect(libraryWindow(groups, 300).flatMap((g) => g.entities)).toHaveLength(300);
+    expect(libraryWindow(groups, 9999).map((g) => g.count)).toEqual([100, 100, 100]);
+  });
+
+  it("finds an entity by what it is and what it measures, not only by its name", () => {
+    const found = (query: string, entries: Entry[]) => libraryBase(entries, filter({ query })).map((e) => e.id);
+    const lamp: Entry = { id: "light.x1", name: "Ceiling", area: "Kitchen" }, probe: Entry = { id: "sensor.a1", name: "A1 probe", area: "Bedroom", words: "temperature Temperatuur" };
+    expect(found(`kitchen ${t("editor.library.filters.light")}`, [lamp, probe])).toEqual(["light.x1"]);
+    expect(found("bedroom temperatuur", [lamp, probe])).toEqual(["sensor.a1"]);
+    expect(libraryMatches([lamp, { id: "light.y", name: "Lights hall" }], "", "lights").map((e) => e.name)).toEqual(["Lights hall", "Ceiling"]);
+  });
+
+  it("lists cameras and pictures under one kind", () => {
+    expect([inDomain("camera.door", "camera"), inDomain("image.map", "camera"), inDomain("light.a", "camera")]).toEqual([true, true, false]);
+  });
+
   it("counts the kinds and rooms the results hold, keeping the chosen one", () => {
     const base = libraryBase(ENTRIES, filter());
     const kinds = kindCounts(base, "lock");
@@ -56,5 +78,14 @@ describe("the library", () => {
     expect(entryDetail(ENTRIES[0], true, "Bus")).toBe("Bus");
     expect(entryDetail(ENTRIES[1], true, "")).toBe("");
     expect([entryTone(ENTRIES[4]), entryTone(ENTRIES[5]), entryTone(ENTRIES[6])]).toEqual(["on", "gone", ""]);
+  });
+});
+
+describe("the Call tile in the library", () => {
+  const entries = [{ id: "screen.call", name: "Call", tile: true }, { id: "light.a", name: "Lamp", tile: true }] as never[];
+  const base = { query: "", pages: 8, pictures: true, hidePlaced: false, counts: new Map() } as never;
+  it("is offered only to a screen that says it can call", () => {
+    expect(libraryBase(entries, { ...(base as object), callTiles: true } as never).map((e: { id: string }) => e.id)).toContain("screen.call");
+    expect(libraryBase(entries, { ...(base as object), callTiles: false } as never).map((e: { id: string }) => e.id)).not.toContain("screen.call");
   });
 });

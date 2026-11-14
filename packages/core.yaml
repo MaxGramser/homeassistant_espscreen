@@ -16,7 +16,7 @@
 # fonts/materialdesignicons-webfont.ttf (Apache 2.0, github.com/Templarian/MaterialDesign-Webfont).
 ############################################################
 substitutions:
-  SCREEN_FIRMWARE_VERSION: "0.59.0"
+  SCREEN_FIRMWARE_VERSION: "0.61.0"
   DASHBOARD_INBOX_INTERNAL: "false"
   CALIBRATION_ON_BOOT: "false"                     # a bench build: start on the touch test page
   ROOM_NAME: ""                                    # top left until ESP Screens sends the screen name
@@ -135,6 +135,7 @@ esphome:
     - <esphome/components/smart_display/screen_input.h>
     - <esphome/components/smart_display/light_controls.h>
     - <esphome/components/smart_display/alert_overlay.h>
+    - <esphome/components/smart_display/screen_motion.h>
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
   name: ${DEVICE_NAME}
@@ -373,7 +374,7 @@ esphome:
             id(display_dimmed) = false;
             id(last_touch_ms) = millis();
             plugin_host::before_update();
-            runtime_tiles::saver_wake();
+            runtime_tiles::saver_wake(true);
             lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
             ${OTA_BACKLIGHT}
           };
@@ -755,6 +756,10 @@ api:
                     #ifdef SD_MOD_DOORBELL
                     if (live_view::available()) features.add("doorbell");
                     #endif
+                    // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
+                    #ifdef SD_MOD_CALL
+                    if (live_view::available() && hw::caps().microphone && hw::caps().speaker) features.add("call");
+                    #endif
                     #ifdef SD_MOD_VACUUM_CARD
                     features.add("vacuum_card");
                     // vacuum_tile: a larger vacuum tile draws its map, its rooms or its routines beside its keys
@@ -776,6 +781,16 @@ api:
                     // Assistant rendered, so ESP Screens offers it and sends its rows (`md`); its caps say how many and how much.
                     #ifdef SD_MOD_TEXT_CARD
                     features.add("text_card");
+                    #endif
+                    // todo_card (firmware 0.61.0, module todo, docs/TODO.md): a to-do list's tile draws its items and adds
+                    // one with its keyboard, so ESP Screens sends the list (`todo`); its caps say how many items it keeps.
+                    #ifdef SD_MOD_TODO
+                    features.add("todo_card");
+                    #endif
+                    // text_edit (firmware 0.61.0, module text_edit, docs/TEXT_ENTITY.md): a tap on a text's tile opens its field
+                    // with the keyboard; a screen without it (lite) shows the value only.
+                    #ifdef SD_MOD_TEXT_EDIT
+                    features.add("text_edit");
                     #endif
                     // light_presets (module light_presets, docs/LIGHT_PRESETS.md): a light's tile and card draw the round keys of
                     // its presets, so ESP Screens sends the controls presets and brightness_presets; another screen gets the slider.
@@ -957,7 +972,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -978,7 +993,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1029,7 +1044,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1050,7 +1065,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1071,7 +1086,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1155,6 +1170,7 @@ font:
       - "\U000F17DB" # soundbar
       - "\U000F02CB" # headphones
       - "\U000F036C" # microphone
+      - "\U000F03F2" # phone
       - "\U000F067D" # piano
       - "\U000F0771" # guitar-acoustic
       - "\U000F0502" # television
@@ -1307,6 +1323,8 @@ font:
       - "\U000F024B" # folder
       - "\U000F00EE" # calendar-blank
       - "\U000F00EF" # calendar-check
+      - "\U000F10D4" # clipboard-list
+      - "\U000F060E" # form-textbox
       - "\U000F0B53" # account-arrow-right
       - "\U000F0D43" # air-filter
       - "\U000F1099" # air-humidifier
@@ -1499,6 +1517,7 @@ font:
       - "\U000F0150" # clock-outline
       - "\U000F0493" # cog
       - "\U000F034E" # map-marker
+      - "\U000F03F2" # phone
       - "\U000F0054" # arrow-right
       - "\U000F0E4F" # lightbulb-off
       - "\U000F16A7" # robot-off
@@ -1832,6 +1851,18 @@ switch:
       - lambda: 'settings_screen::set("page_buttons", 1);'
     turn_off_action:
       - lambda: 'settings_screen::set("page_buttons", 0);'
+  # On, the last page leads to the first and the first to the last, by swipe and by chevron (docs/SETTINGS.md).
+  - platform: template
+    id: setting_loop_pages
+    name: "Loop pages"
+    icon: "mdi:sync"
+    entity_category: config
+    restore_mode: DISABLED
+    lambda: return settings_screen::loop_pages != 0;
+    turn_on_action:
+      - lambda: 'settings_screen::set("loop_pages", 1);'
+    turn_off_action:
+      - lambda: 'settings_screen::set("loop_pages", 0);'
   # The house at the far left returns to the configured Home page (firmware 0.3.0+).
   # A detail page with hidden bottom navigation uses this position for Back, even when Home is disabled.
   - platform: template
@@ -2483,6 +2514,7 @@ script:
           }
           // The Page buttons setting moves the cards into the bar's room or back (firmware 0.2.69+).
           if (runtime_tiles::enabled) runtime_tiles::page_buttons_changed();
+          if (runtime_tiles::enabled) runtime_tiles::loop_pages_changed();
           settings_screen::refresh();
           // A display setting (the clock's format, say): every card drawn (firmware 0.3.2+); the minute draws the cards
           // that show the time.
@@ -2592,7 +2624,7 @@ script:
           ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
                    alert.button2.empty() ? 1 : 2);
       - script.execute: wake_display
-      - lvgl.widget.show: alert_overlay
+      - lambda: 'screen_motion::show(id(alert_overlay), id(alert_card));'
       - script.stop: alert_timeout
       - if:
           condition:

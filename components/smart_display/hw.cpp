@@ -1,10 +1,14 @@
 // The capability record (hw.h): the build's defines and the boot's findings resolved once, and written into the hello.
 #include "hw.h"
 #include "esphome/core/defines.h"
+#include "glass.h"
 #include "hw_hello.h"
 #include "live_view.h"
 #ifdef SD_MOD_TEXT_CARD
 #include "module_text_card.h"
+#endif
+#ifdef SD_MOD_TODO
+#include "module_todo.h"
 #endif
 #ifdef USE_ESP32
 #include <esp_heap_caps.h>
@@ -29,6 +33,10 @@ Facts facts() {
   f.camera = true;
 #endif
   f.live_video = live_view::available();
+  f.direct_glass = glass::direct();
+#ifdef SD_TIER_FULL
+  f.full_tier = true;
+#endif
   f.live_tiles = picture_engine::limits().live_tiles;
 #ifdef USE_ESP32
   f.psram_bytes = static_cast<uint32_t>(heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
@@ -65,6 +73,10 @@ void hello(JsonObject root) {
   // The template tiles this screen takes (module text_card): how many at once, and the bytes of rows each keeps.
   caps["text_tiles"] = text_card::MAX_TILES;
   caps["text_bytes"] = text_card::MAX_BYTES;
+#endif
+#ifdef SD_MOD_TODO
+  // The items of a to-do list this screen keeps (module todo): the app sends no more.
+  caps["todo_items"] = static_cast<unsigned>(todo::MAX_ITEMS);
 #endif
 }
 

@@ -2411,7 +2411,7 @@
               },
               "appearance": {
                 "label": "Desk",
-                "icon": "not-an-icon"
+                "icon": "Not an icon"
               },
               "interaction": {}
             }

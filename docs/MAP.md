@@ -89,6 +89,13 @@ someone moving never empties it. If Tessera cannot draw one at that moment, the 
 and then a little later each time, up to five minutes, and keeps the last map meanwhile. Older firmware asked once: a
 page with only maps then showed its plain tiles until the page was turned.
 
+A map can take a while to draw, longer on a slow host and on a large screen, whose full view has many more streets. It
+is drawn once for the screen's question, however long that takes: the screen goes on waiting and asks again after ten
+seconds, and that second question shares the drawing under way. The picture of that drawing is what the screen's first
+download gets, at once, because a download stops when its first bytes take more than four seconds. A map some streets
+were missing from is kept for a minute, so an open full view, which looks again every four seconds, does not draw it
+over and over.
+
 ## Light and dark
 
 The screen says which look it is in when it asks for its pictures, and gets the map drawn for that look, unless the tile

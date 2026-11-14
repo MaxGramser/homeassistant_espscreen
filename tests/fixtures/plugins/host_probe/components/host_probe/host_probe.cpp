@@ -18,6 +18,7 @@ class ProbeTile : public tessera::Tile {
 
   void create(const tessera::TileContext &c) override {
     tile_ = c.tile;
+    room_ = c.parent;
     word_ = c.options["word"] | "";   // copied: the context is gone after this call
     ESP_LOGI(TAG, "tile=%d create %dx%d cells=%ux%u name=[%s] word=[%s] entity=[%s]", tile_, c.width, c.height,
              (unsigned) c.columns, (unsigned) c.rows, c.name, word_.c_str(), c.entity);
@@ -86,13 +87,23 @@ class ProbeTile : public tessera::Tile {
       lv_obj_get_coords(places_[0], &a);
       ESP_LOGI(TAG, "tile=%d place0 %d,%d,%d,%d", tile_, (int) a.x1, (int) a.y1, (int) a.x2, (int) a.y2);
     }
+    // The card's own colour (0.26): the data names one, and "none" gives the card back. What the card wears after
+    // the pass that follows is in the tick's line.
+    const std::string card = data["card"] | "";
+    if (!card.empty()) {
+      const tessera::CardColor colour = card == "green" ? tessera::CardColor::GREEN : card == "red" ? tessera::CardColor::RED : tessera::CardColor::NONE;
+      ui::set_card_color(colour);
+      ESP_LOGI(TAG, "tile=%d card set %s own=%06X named=%06X", tile_, card.c_str(),
+               (unsigned) (lv_color_to_u32(ui::card_color()) & 0xFFFFFF), (unsigned) (lv_color_to_u32(ui::card_color(colour)) & 0xFFFFFF));
+    }
     // A tile of an entity gets its lists whole when they fit (0.5): how many prices of each day arrived.
     JsonObjectConst attributes = data["attributes"];
     ESP_LOGI(TAG, "tile=%d state n=%d wait=[%s] today=%u tomorrow=%u", tile_, n_, data["wait"] | "",
              (unsigned) attributes["today"].size(), (unsigned) attributes["tomorrow"].size());
   }
   void on_tick(uint32_t epoch) override {
-    ESP_LOGI(TAG, "tile=%d tick epoch=%u n=%d", tile_, (unsigned) epoch, n_);
+    ESP_LOGI(TAG, "tile=%d tick epoch=%u n=%d ground=%06X", tile_, (unsigned) epoch, n_,
+             (unsigned) (lv_color_to_u32(lv_obj_get_style_bg_color(lv_obj_get_parent(room_), LV_PART_MAIN)) & 0xFFFFFF));
     const std::string number = std::to_string(n_);
     ui::set_font(number_, ui::covers(number, Font::DIGITS) ? Font::DIGITS : Font::VALUE);
     ui::set_text(number_, number);
@@ -132,7 +143,7 @@ class ProbeTile : public tessera::Tile {
   HostProbe *plugin_;
   int tile_ = -1, n_ = -1;
   std::string word_;
-  lv_obj_t *badge_{}, *label_{}, *number_{}, *words_{};
+  lv_obj_t *room_{}, *badge_{}, *label_{}, *number_{}, *words_{};
   lv_obj_t *places_[2]{};
 };
 

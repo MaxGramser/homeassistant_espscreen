@@ -149,8 +149,28 @@ listed too, but left alone.
 The view never lays anything of LVGL over its picture: a live picture is written to the glass past LVGL
 (docs/PICTURES.md), so the keys stand beside it.
 
-## Not yet
+## Talk
 
-- **Talk.** The view has its **Talk** key already, grey and saying "Coming soon": the screen's microphone to the
-  doorbell's speaker while the key is held, through Home Assistant's two-way audio for cameras once that is there
-  (docs/PLATFORM_PLAN.md, section 5). Not every doorbell has a backchannel.
+The view has a **Talk** key when Home Assistant offers two-way audio for the ring's camera (Settings > Labs > Two-way
+audio, Home Assistant 2026.11 and later) and the screen has a microphone. A tap turns it on, a tap turns it off, because a
+held finger would cover the key and a screen on the wall is tiring to hold. Connecting, the key is blue and says so; while
+it talks it says **Talking** with the level of your voice at its end, and a tap stops it. On a key too narrow for the words
+and the level side by side (three keys under the picture of a glass standing up) the level is left out. It goes off when
+the view closes and after a minute without a voice.
+
+The screen sends its microphone to the app as plain 16 kHz PCM (docs/CALLS.md, "The voice"). The app makes it 8 kHz G.711
+and sends it to the camera in a second WebRTC session of Home Assistant's, with one send-only audio track offering PCMA first
+and PCMU second, the way Home Assistant's own apps stream a microphone (go2rtc does not transcode a client's audio, and a
+Reolink's backchannel is PCMA). The session closes as Talk goes off: a backchannel left open blocks the next talker.
+
+Not every doorbell can. The camera's stream must reach go2rtc without ffmpeg in the way: a camera orientation set in
+Home Assistant or a `generic` camera has no backchannel. One screen talks to a doorbell at a time; a second one hears that
+someone else is talking. When talk starts, the picture may hiccup for a moment, as go2rtc reconnects the camera's stream to add
+the backchannel.
+
+A doorbell's speaker can lag well behind the voice: on a Reolink a word came out about 2.6 seconds after the screen sent it
+(its own microphone heard it then, measured 2026-11-10), while the screen and the app hold the voice for at most 0.4 and 0.3
+seconds. That wait is the camera's and go2rtc's; say a sentence and wait for the answer.
+
+`diagnostics/talk_test.py` plays a sound file through the same bridge without a screen, to find out whether a doorbell
+speaks at all.

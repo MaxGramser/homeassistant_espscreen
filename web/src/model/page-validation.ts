@@ -4,7 +4,7 @@
 import { t } from '../i18n';
 import { isWideSize } from './sizes';
 import { TILE, ofType, taps as catalogueTaps } from './catalogue';
-import { PLUGIN_LIST_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
+import { PLUGIN_LIST_MAX, PLUGIN_OPTION_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
 import rules from './page-rules.json';
 import { cleanPreset, MAX as PRESETS_MAX } from './light-presets';
 import type { PageLayout, PageTile } from '../types';
@@ -25,19 +25,22 @@ const CALENDAR_FIELDS = ['calendarStyle', 'calendarEntities', 'calendarPlaces', 
   'calendarTentative', 'calendarPrivate', 'calendarAhead', 'calendarSoon', 'calendarStartView'] as const;
 // ... and its week and booking (the add-on's page_layout.APPEARANCE has them; calendar_feed.validate checks them).
 const CALENDAR_MORE = ['calendarWeekStart', 'calendarHours', 'calendarWeekNumbers', 'calendarBookOn', 'calendarBookPlace', 'calendarBookTitle'] as const;
+// A to-do card's choices (todo_feed.validate), as the page document names them.
+const TODO_FIELDS = ['todoOrder', 'todoCompleted', 'todoDue', 'todoAdd', 'todoSuggest', 'todoClear'] as const;
 // A sensor's meter (firmware 0.56.0, meter.validate), as the page document names it.
 const METER_FIELDS = ['meterStyle', 'meterMin', 'meterMax', 'meterSegments', 'meterColors', 'meterThresholds'] as const;
 const entity = (value: any, domains: string[]) => typeof value === 'string' && value.length <= 120 &&
   matches(/^[a-z0-9_]+\.[a-z0-9_]+$/, value) && domains.includes(value.split('.')[0]);
-const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value);
-// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 12, each a short text, a
+// Any icon's name: which ones a screen can draw is its own (docs/ICONS.md), and the add-on checks the name.
+const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value) || (typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value));
+// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 24, each a short text, a
 // number, true/false, a pick {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most
 // PLUGIN_OPTIONS_BYTES of JSON. Whether a value fits its option is the plugin's manifest's.
 const pluginText = (value: any, empty = true) => typeof value === 'string' && (empty || value !== '') && [...value].length <= 64;
 const pluginPick = (value: any) => !!value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).every((k) => k === 'value' || k === 'label') && pluginText(value.value, false) && pluginText(value.label ?? '');
 export function pluginOptionsShape(options: any): boolean {
-  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > 12) return false;
+  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > PLUGIN_OPTION_MAX) return false;
   for (const [key, value] of Object.entries(options)) {
     if (!/^[a-z][a-z0-9_]{0,31}$/.test(key)) return false;
     if (Array.isArray(value)) {
@@ -103,7 +106,7 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
         'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow', 'textTemplate',
-        ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...METER_FIELDS], ['label']);
+        ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...TODO_FIELDS, ...METER_FIELDS], ['label']);
       fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat', 'tilt_open', 'presets', 'preset_levels'], []);
       const content = tile.content;
       fields(content, ['kind', 'entityId', 'name', 'target', 'plugin', 'tile', 'options'], ['kind']);
@@ -201,6 +204,13 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     const whole = (value: unknown, least: number, most: number) => typeof value === 'number' && Number.isInteger(value) && value >= least && value <= most;
     if (a.calendarAhead !== undefined && (!whole(a.calendarAhead, 1, cal.ahead[1]) || a.calendarAhead === cal.ahead[0])) fail('normalization');
     if (a.calendarSoon !== undefined && (!whole(a.calendarSoon, 1, 120))) fail('normalization');
+  }
+  // A to-do card, as todo_feed.validate checks it: its own choices, a default never stored.
+  if (TODO_FIELDS.some((key) => a[key] !== undefined)) {
+    if (domain !== 'todo') fail('normalization');
+    if (a.todoOrder !== undefined && (!rules.todo.orders.includes(a.todoOrder) || a.todoOrder === rules.todo.orders[0])) fail('normalization');
+    for (const value of [a.todoCompleted, a.todoDue, a.todoAdd, a.todoSuggest, a.todoClear])
+      if (value !== undefined && value !== false) fail('normalization');
   }
   // A sensor's meter (firmware 0.56.0), as meter.validate checks it: with the meter alone, a default never stored.
   if (METER_FIELDS.some((key) => a[key] !== undefined)) {

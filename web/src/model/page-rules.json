@@ -15,6 +15,7 @@
     "input_button",
     "input_number",
     "input_select",
+    "input_text",
     "light",
     "lock",
     "media_player",
@@ -27,7 +28,9 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
+    "todo",
     "vacuum",
     "weather"
   ],
@@ -62,7 +65,9 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
+    "todo",
     "vacuum",
     "water_heater",
     "weather",
@@ -118,6 +123,9 @@
       "standard",
       "live"
     ],
+    "input_text": [
+      "standard"
+    ],
     "media_player": [
       "standard",
       "watch",
@@ -145,6 +153,12 @@
       "standard",
       "watch",
       "sunpath"
+    ],
+    "text": [
+      "standard"
+    ],
+    "todo": [
+      "standard"
     ],
     "weather": [
       "standard",
@@ -360,6 +374,7 @@
     "music-note",
     "outdoor-lamp",
     "palette",
+    "phone",
     "piano",
     "play",
     "playlist-music",
@@ -428,6 +443,7 @@
     "window-shutter-open"
   ],
   "builtins": [
+    "call",
     "clock",
     "energy",
     "map",
@@ -452,6 +468,7 @@
     "input_button",
     "input_number",
     "input_select",
+    "input_text",
     "light",
     "lock",
     "media_player",
@@ -464,7 +481,9 @@
     "sensor",
     "sun",
     "switch",
+    "text",
     "timer",
+    "todo",
     "vacuum",
     "weather"
   ],
@@ -505,6 +524,15 @@
       "monday"
     ],
     "bookText": 48
+  },
+  "todo": {
+    "orders": [
+      "none",
+      "alpha_asc",
+      "alpha_desc",
+      "duedate_asc",
+      "duedate_desc"
+    ]
   },
   "meter": {
     "styles": [

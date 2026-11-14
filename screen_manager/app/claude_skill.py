@@ -369,6 +369,7 @@ Every screen has these entities in Home Assistant, on its ESPHome device. `<scre
 | `switch.<screen>_back_to_page_1_on_standby` | On: going into standby also goes back to page 1. |
 | `switch.<screen>_swipe_between_pages` | On: swipe between pages. |
 | `switch.<screen>_page_buttons` | On: the Previous and Next bar under the tiles on a screen with more than one page. Off: no bar, the tiles take its room, and only swiping or Go to page tiles change the page. Firmware {PAGE_BUTTONS_MIN_FIRMWARE} or newer. |
+| `switch.<screen>_loop_pages` | On: past the last page comes the first and before the first the last, by swipe and by the bar. Off: the pages stop at their ends. |
 | `switch.<screen>_show_home_button` | On: the Tessera logo at the far left of the top bar (a house before firmware 0.10.0); tapping it goes back to page 1. Off: the page title starts at the margin, as before. Firmware {HOME_BUTTON_MIN_FIRMWARE} or newer. |
 | `select.<screen>_rotation` | `0°` or `180°`, a half turn that keeps the screen's grid; a square screen also `90°` and `270°`. |
 

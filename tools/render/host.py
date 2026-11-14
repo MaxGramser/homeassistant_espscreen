@@ -31,7 +31,10 @@ import profiles  # noqa: E402
 
 # Top-level blocks that are ESP32 hardware wherever they live (board file or hardware package).
 HARDWARE_BLOCKS = ('esp32', 'psram', 'spi', 'i2c', 'ch422g', 'pca9554', 'tca9554', 'waveshare_io_ch32v003', 'esp_ldo',
-                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout')
+                   'esp32_hosted', 'display', 'esp32_rmt', 'i2s_audio', 'flash_layout', 'xl9535', 'motion')
+# An item anywhere that stands on a chip of the I2C bus the host leaves out (a clock, a motion sensor, an expander's pin)
+# goes with it, and so does an item that names one of those (a clock's write).
+ON_I2C = re.compile(r'(?m)^    i2c_id: |\bxl9535: |^    (lsm6ds|motion)_id: |\bpcf8563\b')
 # The screen's audio: ESPHome's speaker, microphone and media player stand on the chip's I2S and codecs, which the host
 # has not. The host build leaves the audio packages out whole (features/audio*.yaml and a board's audio hardware under
 # hardware/, with the settings rows and the boot steps they bring), and these blocks wherever else they live (a board
@@ -135,6 +138,8 @@ def shape_error(what):
 def host_common(text):
     """Calls the host cannot make, in any file of the chain."""
     text = text.replace('esp_get_free_heap_size()', '0u')
+    # An ADC sensor's own reading (a battery measured on demand): its template stand-in has a state alone.
+    text = re.sub(r'(id\(\w+\))\.sample\(\)', r'\1.state', text)
     # The resistive panel's raw readings and its affine correction: the SDL touchscreen reports pixels.
     text = re.sub(r'id\((\w+)\)\.filtered_raw_[xy]\(\)', '0', text)
     # The partition table a 4 MB board reports (features of hardware/flash-4mb.yaml): flash_layout is ESP32 hardware,
@@ -200,6 +205,21 @@ def host_file(text, chain, rel):
             if key == 'display':
                 chain.displays += re.findall(r'(?m)^    id: (\w+)', block)
             chain.notes.append(f'{rel}: dropped {key}:')
+    for key, _, _ in top_blocks(text):
+        if key not in ('touchscreen', 'packages', 'substitutions', 'esphome'):
+            before = text
+            text = drop_items(text, key, lambda item: ON_I2C.search(item) is not None)
+            if text != before:
+                chain.notes.append(f'{rel}: dropped {key}: items on an I2C chip')
+                _, start, end = blocks_of(text, key)[0]
+                if not re.search(r'(?m)^  - ', text[start:end]):
+                    text = text[:start] + text[end:]
+    # A sensor on an ADC pin (a battery's voltage) stands as a template sensor of the same id: the host has no pins, and
+    # what reads it (the board's own measure) reads its state.
+    text, n = re.subn(r'(?m)^  - platform: adc\n((?:    [^\n]*\n|\s*\n)*?)(?=  - |\S|\Z)',
+                      lambda m: '  - platform: template\n' + re.sub(r'(?m)^    (pin|attenuation|samples):[^\n]*\n', '', m.group(1)), text)
+    if n:
+        chain.notes.append(f'{rel}: an adc sensor stands as a template sensor')
     text, removed = drop_blocks(text, 'output')
     for block in removed:
         ids = re.findall(r'(?m)^    id: (\w+)', block)
@@ -240,6 +260,22 @@ def host_file(text, chain, rel):
 INCLUDE = re.compile(r'!include\s+((?:[^\s{}]|\$\{[^{}]*\})+\.yaml)')
 
 
+def audio_fonts(source, seen=None):
+    """The `font:` blocks of an audio package and of the packages it includes (plain relative includes)."""
+    seen = set() if seen is None else seen
+    if source in seen:
+        return ''
+    seen.add(source)
+    text = source.read_text()
+    # Each block's items, without its `font:` line: the caller writes one block of them all.
+    fonts = ''.join(text[start:end].split('\n', 1)[1] for _, start, end in blocks_of(text, 'font'))
+    for include in INCLUDE.findall(text):
+        target = (source.parent / include).resolve()
+        if '${' not in include and target.is_file():
+            fonts += audio_fonts(target, seen)
+    return fonts
+
+
 def walk(tree, source, mirror, chain):
     """Write the host copy of `source` (a file under tree/packages) at the same place under `mirror`, then of every
     file it includes."""
@@ -262,6 +298,15 @@ def walk(tree, source, mirror, chain):
         if tree / 'packages' not in target.parents:
             raise SystemExit(f'{rel}: include {include} leaves packages/; the mirror cannot follow it')
         if audio_package(target.relative_to(tree / 'packages')):
+            # The glyphs an audio package adds to the shared icon fonts (the call's keys) stay: a board with that audio
+            # draws them, and the rest of the UI may name them. Everything else of it is left out.
+            fonts = audio_fonts(target)
+            if fonts:
+                kept = mirror / target.relative_to(tree / 'packages')
+                kept.parent.mkdir(parents=True, exist_ok=True)
+                kept.write_text(f'# The fonts of {target.name} alone (tools/render/host.py): the rest is audio.\nfont:\n' + fonts)
+                chain.notes.append(f'{rel}: left out {include} (audio), but for its fonts')
+                continue
             text = re.sub(rf'(?m)^[ \t]+[a-z_0-9]+: !include {re.escape(written)}[ \t]*\n', '', text)
             chain.notes.append(f'{rel}: left out {include} (audio)')
             continue
@@ -302,7 +347,9 @@ touchscreen:
         text += f'    update_interval: {chain.touch_interval}\n'
     outputs = list(dict.fromkeys(chain.outputs))
     if outputs:
-        text += '\noutput:\n' + ''.join(f"  - platform: template\n    id: {i}\n    type: float\n    write_action:\n"
+        # min_power keeps ESPHome's power scaling in the build (2026.9: set_min_power() needs it), which a board's own
+        # backlight code may call; 0 % changes nothing.
+        text += '\noutput:\n' + ''.join(f"  - platform: template\n    id: {i}\n    type: float\n    min_power: 0%\n    write_action:\n"
                                         f"      - lambda: ''\n" for i in outputs)
     return text
 
@@ -766,6 +813,32 @@ SAVER_PROBE = '''    - action: render_standby
             ESP_LOGI("render", "saver dimmed=%d keys=%s words_right=%d", (int) id(display_dimmed), keys.c_str(), (int) words.x2);
 '''
 # A board with the calibration wizard shows it on the first start; the renders skip it, as a calibrated screen does.
+# The host's microphone (talk_uplink.h under USE_HOST): whether the board hears, how far a talk is (talk_uplink::State:
+# 0 off, 1 connecting, 2 live, 3 busy, 4 failed) and its voice's bar, so the keys that show a talk are drawn by the
+# firmware's own code (tools/render/features.py).
+TALK_PROBE = '''    - action: render_talk
+      variables:
+        present: bool
+        state: int
+        bar: float
+      then:
+        - lambda: |-
+            auto &m = talk_uplink::host_microphone;
+            m.present = present;
+            m.state = static_cast<talk_uplink::State>(state);
+            m.bar = bar;
+            m.voice = esphome::millis();
+            ESP_LOGI("render", "talk present=%d state=%d", (int) present, state);
+    # The Talk key of a ring, as a tap on it does (module_doorbell.cpp, talk_toggle: the bench's own way in).
+    - action: render_talk_key
+      then:
+        - lambda: |-
+            #ifdef SD_MOD_DOORBELL
+            runtime_tiles::doorbell::talk_toggle();
+            #endif
+'''
+
+
 SKIP_CALIBRATION = '''    - action: render_skip_calibration
       then:
         - lambda: |-
@@ -779,8 +852,11 @@ SKIP_CALIBRATION = '''    - action: render_skip_calibration
 class Build:
     """The host build of one variant of one tree, under `work` (the tree's own .esphome/render/ by default)."""
 
-    def __init__(self, item, tree=REPO, work=None, esphome=('esphome',), plugin=None):
+    def __init__(self, item, tree=REPO, work=None, esphome=('esphome',), plugin=None, defines=()):
         self.variant, self.tree = item, Path(tree).resolve()
+        # Defines the program is built with on top of the board's, as a board's hardware would bring them: HW_SPEAKER and
+        # HW_MICROPHONE give the host the audio caps (hw.h) of a board that plays and hears, whose parts it leaves out.
+        self.defines = tuple(defines)
         self.work = Path(work or REPO / '.esphome' / 'render' / 'build').resolve()
         self.esphome = list(esphome)  # the command, which may be more than one word ('python -m esphome')
         # A plugin folder (docs/PLUGINS.md) built into the program, the way a screen's plugins file adds one: its
@@ -819,11 +895,15 @@ class Build:
             if 'smart_display:\n  language: ${LANGUAGE}\n' not in core:
                 shape_error('smart_display in packages/core.yaml')
             core = core.replace('smart_display:\n  language: ${LANGUAGE}\n', 'smart_display:\n  language: ${LANGUAGE}\n  flash_mb: 4\n')
+        for define in self.defines:
+            core, n = re.subn(r'(?m)^(  platformio_options:\n    build_flags:\n)', rf'\1      - -D{define}\n', core, count=1)
+            if n != 1:
+                shape_error('esphome.platformio_options.build_flags of packages/core.yaml')
         (mirror / 'core.yaml').write_text(core)
         (mirror_root / 'host-hw.yaml').write_text(host_hw(board.read_text(), chain))
         (mirror_root / 'chain.txt').write_text('\n'.join([str(f) for f in chain.files] + [''] + chain.notes) + '\n')
         chain_text = ''.join((mirror / f).read_text() for f in chain.files)
-        actions = ACTIONS + PROBES + ALARM_PROBE + MEDIA_PROBE + SAVER_PROBE + VACUUM_PROBE + (SKIP_CALIBRATION if 'screen_calibration::' in chain_text else '')
+        actions = ACTIONS + PROBES + ALARM_PROBE + MEDIA_PROBE + SAVER_PROBE + VACUUM_PROBE + TALK_PROBE + (SKIP_CALIBRATION if 'screen_calibration::' in chain_text else '')
         turned = f'\n  LVGL_ROTATION: "{item.rotation}"' if item.rotation else ''
         rel = f'host/{item.key}'
         plugin_package = plugin_component = ''

@@ -39,6 +39,10 @@ export function useInstaller() {
     // The build of this installation in the add-on's line, by its id, and the add-on's answer when it was asked, until
     // the line names it.
     build: null as number | null, asked: null as LineBuild | null,
+    // The screen Home Assistant already has for the board on the cable (its MAC, app 0.4.96), while the wizard asks
+    // whether to install that one again or to replace it; `replace` once replacing was chosen, until the add-on took
+    // the old screen out after the write.
+    known: null as KnownBoard | null, replace: null as KnownBoard | null,
   });
   // This computer (browser): the add-on builds as for Download, and this page writes the image over Web Serial, in Chrome
   // or Edge on a page served over https. The fallback for a screen that can't reach the Home Assistant machine; Download
@@ -150,6 +154,17 @@ export function useInstaller() {
   watch(() => job.value?.state, (state) => {
     if (installer.browser && afterBrowserBuild(state, flash.state.phase) === "release") flash.cancel();
   });
+  // The image is on the board of a screen Home Assistant knew under another name, and replacing was chosen: now that
+  // the old firmware is gone, the old screen leaves Home Assistant, so the new one can pair (app 0.4.96).
+  watch(() => flash.state.phase, async (phase) => {
+    const old = installer.replace;
+    if (phase !== "done" || !old || !installer.file) return;
+    installer.replace = null;
+    try {
+      await send("boards/replace", "POST", { mac: old.mac, by: installer.file });
+      ui.toast(t("editor.installer.known.replaced", { name: old.name, new: installer.friendly }));
+    } catch (err: any) { ui.toast(err.message); }
+  });
   // The memory the build has (build_memory.py, app 0.4.65): why it runs with fewer compilers, or why it stopped.
   const memory = computed(() => memoryText(job.value));
   const follow = computed<Follow>(() => ({ saved: installer.view === "done", running: running.value, waiting: waiting.value,
@@ -187,10 +202,38 @@ export function useInstaller() {
   }
   async function install() {
     status.value = "";
+    installer.known = null;
     const browser = form.target === "browser";
     // The port picker opens only from this click, so it comes before anything else waits; nothing is written or built
     // when no port is chosen, or the board on it has another chip than the chosen board (ESPHome's order).
     if (browser && !(await flash.connect(chosen.value?.chip))) return;
+    // A board Home Assistant already has as another screen (same MAC) cannot be added under a new name: the wizard
+    // asks first, with the port kept open, whether to install that screen again or to replace it (app 0.4.96).
+    if (browser && flash.state.mac && !installer.replace) {
+      try {
+        const known: KnownBoard | { known: false } | null = await send(`boards/known?mac=${encodeURIComponent(flash.state.mac)}`, "GET");
+        if (known?.known && known.node !== form.name) { installer.known = known; return; }
+      } catch (err: any) { console.error("Asking whether the board is known failed:", err); }
+    }
+    await build(browser);
+  }
+  /** Replace the screen Home Assistant has for this board with the one being made: build and write as usual, and tell
+   * the add-on once the image is on the board, so the old screen leaves Home Assistant and the new one pairs. */
+  async function replaceKnown() {
+    if (!installer.known) return;
+    installer.replace = installer.known;
+    installer.known = null;
+    await whileSubmitting(() => build(true));
+  }
+  /** Keep the screen Home Assistant has: let the port go and send the person to that screen's Firmware & USB. */
+  function keepKnown() {
+    const known = installer.known;
+    installer.known = null;
+    flash.cancel();
+    ui.toast(t("editor.installer.known.go_firmware", { name: known?.name || "" }));
+    ui.go("#firmware");
+  }
+  async function build(browser: boolean) {
     try {
       const payload = profileRequest(form, { choices: choices.value, gridChosen: gridChosen.value, wifiMissing: askWifi.value ? wifiMissing.value : null, browser });
       if (wifiOther.value) await saveWifi();
@@ -229,7 +272,7 @@ export function useInstaller() {
   function reset() {
     mode.value = "physical";
     flash.cancel();
-    Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null,
+    Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null, known: null, replace: null,
       build: null, asked: null });
     Object.assign(form, { board: boardRows.value[0]?.key || "", orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
     bestGrid();
@@ -270,9 +313,11 @@ export function useInstaller() {
     boardRows, previews, previewForm, chosen, abilities, choices, orientations, range, gridChosen, siblings, clash, wifi, askWifi, wifiMissing,
     wifiNote, goDisabled, goLabel: computed(() => goLabel(form.target)), wayHint: computed(() => wayHint(form.target, support, ports.value)),
     ways, art, running, ok, download, memory, progressTitle, progressDetail, image, progress, elapsed, artState, arrival,
-    bestGrid, submit, retry, reset, close, back, tryVirtual, realScreen, pickWay, fixWifi,
+    bestGrid, submit, retry, reset, close, back, tryVirtual, realScreen, pickWay, fixWifi, replaceKnown, keepKnown,
   });
 }
+/** What the add-on knows of the board on the cable: the screen Home Assistant has with its MAC (boards/known). */
+export type KnownBoard = { known: true; mac: string; name: string; node: string | null; screen: string | null; device_id: string; entries: string[] };
 export type Installer = ReturnType<typeof useInstaller>;
 // The steps work on the one installer of the view that holds them: InstallerView.vue provides it, a step injects it. It
 // is no prop of a step, since a step changes the form as a person fills it in, and a prop is read, never written.

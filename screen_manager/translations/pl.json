@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Głośność",
       "wake_when_moved": "Wybudź przy ruchu",
+      "backlight_pwm": "PWM podświetlenia",
+      "dimmest_level": "Najniższy poziom",
       "dark_mode": "Tryb ciemny",
       "auto_standby": "Auto czuwanie",
       "standby_after": "Czuwanie po",
@@ -204,7 +206,12 @@
       "door_confirm": "Dotknij ponownie, by otworzyć",
       "door_sent": "Wysłano",
       "talk": "Mów",
-      "coming_soon": "Wkrótce"
+      "tap_talk": "Dotknij, aby mówić",
+      "talking": "Mówisz",
+      "tap_stop": "Dotknij, aby zakończyć",
+      "connecting": "Łączenie",
+      "talk_busy": "Ktoś inny mówi",
+      "talk_failed": "Brak połączenia"
     },
     "tile": {
       "tap_to_open": "Otwórz",
@@ -647,6 +654,41 @@
       "calendars": "Kalendarze",
       "also": "+{x} teraz",
       "booked": "Zarezerwowano na ekranie"
+    },
+    "todo": {
+      "open": "{x} do zrobienia",
+      "all_done": "Wszystko zrobione",
+      "more": "+{x} więcej",
+      "completed": "Ukończone",
+      "add": "Dodaj pozycję",
+      "added": "Dodano: {x}",
+      "rename": "Zmień nazwę",
+      "remove": "Usuń",
+      "cancel": "Anuluj",
+      "clear": "Usunąć ukończone ({x})?",
+      "waiting": "Wczytywanie",
+      "empty": "Nic na liście",
+      "yesterday": "Wczoraj"
+    },
+    "call": {
+      "title": "Zadzwoń",
+      "calling": "Dzwonienie",
+      "calling_video": "Dzwonienie wideo",
+      "video": "Rozmowa wideo",
+      "audio": "Rozmowa",
+      "decline": "Odrzuć",
+      "answer": "Odbierz",
+      "ended": "Rozmowa zakończona",
+      "declined": "Odrzucono",
+      "busy": "Zajęty",
+      "no_answer": "Brak odpowiedzi",
+      "quiet": "Nie przeszkadzać",
+      "gone": "Niedostępny",
+      "available": "Dostępny",
+      "sound_only": "Dostępny, tylko dźwięk",
+      "in_call": "W trakcie rozmowy",
+      "offline": "Offline",
+      "missed_at": "Nieodebrane połączenie"
     }
   },
   "addon": {
@@ -1181,6 +1223,14 @@
           "label": "Wybudź przy ruchu",
           "hint": "Ekran wybudza się ze stanu czuwania, gdy ktoś go podniesie, przesunie lub w niego stuknie. Czuje sam ekran, nie kogoś, kto przechodzi obok."
         },
+        "backlight_pwm": {
+          "label": "PWM podświetlenia",
+          "hint": "Jak szybko podświetlenie włącza się i wyłącza, by przyciemniać. 150 Hz przyciemnia każdy egzemplarz tej płytki, ale niektóre piszczą poniżej 20 kHz: wybierz 20 kHz, gdy twój piszczy, 15 kHz, gdy 20 kHz nie przyciemnia równomiernie."
+        },
+        "dimmest_level": {
+          "label": "Najniższy poziom",
+          "hint": "Najniższy poziom podświetlenia jako część pełnej mocy. Podnieś go, gdy ekran przy najniższej jasności pozostaje czarny lub migocze."
+        },
         "microphone_gain": {
           "label": "Wzmocnienie mikrofonu",
           "hint": "Analogowe wzmocnienie mikrofonu. Początkowo 30 dB; wzmocnienie sygnału odniesienia odtwarzania pozostaje stałe."
@@ -1435,7 +1485,8 @@
         "alert_outline": "Ostrzeżenie",
         "cog": "Ustawienia",
         "broom": "Sprzątanie",
-        "diabetes": "Cukrzyca"
+        "diabetes": "Cukrzyca",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1445,7 +1496,8 @@
         "page": "Przejdź do strony {page}",
         "map": "Mapa",
         "energy": "Energia",
-        "text": "Szablon"
+        "text": "Szablon",
+        "call": "Zadzwoń"
       },
       "identify": {
         "title": "To jest {name}",
@@ -1916,7 +1968,9 @@
         "alarm_control_panel": "Alarm",
         "lock": "Zamki",
         "humidifier": "Nawilżacze",
-        "calendar": "Kalendarze"
+        "calendar": "Kalendarze",
+        "todo": "Listy zadań",
+        "text": "Teksty"
       },
       "room": "Obszar",
       "hide_placed": "Ukryj dodane",
@@ -2364,7 +2418,14 @@
       "remove": "Usuń {name}",
       "type": "Wpisz i naciśnij Enter",
       "full": "Ekran nie przyjmie więcej dla tego kafelka: jego opcje są pełne.",
-      "count": "{n} z {max}"
+      "count": "{n} z {max}",
+      "show_all": "Pokaż wszystkie encje",
+      "show_fitting": "Pokaż tylko pasujące",
+      "not_set": "Nie ustawiono",
+      "fill_device": "Wypełnij z urządzenia",
+      "fill_device_hint": "Wybierz urządzenie, a jego czujniki zostaną wpisane poniżej. Każdy możesz potem zmienić.",
+      "fill_device_none": "Żadne urządzenie nie ma dwóch lub więcej z tych czujników",
+      "fill_device_count": "1 czujnik | {n} czujniki | {n} czujników"
     },
     "memory": {
       "label": "Pamięć na kafelki",
@@ -2414,7 +2475,10 @@
       "alarm_control_panel": "Panel alarmowy",
       "lock": "Zamek",
       "humidifier": "Nawilżacz",
-      "calendar": "Kalendarz"
+      "calendar": "Kalendarz",
+      "todo": "Lista zadań",
+      "text": "Tekst",
+      "input_text": "Tekst"
     },
     "displays": {
       "standard": "standardowy",
@@ -2910,6 +2974,35 @@
           "unknown": "{id} nie istnieje w Home Assistant",
           "replace": "Zastąp przez {id}"
         }
+      },
+      "todo": {
+        "title": "Lista zadań",
+        "plain": "Ta płytka nie pokaże listy zadań: potrzebna jest płytka z 8 MB pamięci flash lub więcej. Usuń ten kafelek.",
+        "needs_firmware": "Lista zadań wymaga firmware 0.61.0 lub nowszego: po zapisaniu naciśnij Aktualizuj przy ekranie.",
+        "order": {
+          "label": "Kolejność",
+          "hint": "Tak, jak porządkuje je karta listy zadań Home Assistant",
+          "none": "Jak w Home Assistant",
+          "alpha_asc": "Nazwa, od A do Z",
+          "alpha_desc": "Nazwa, od Z do A",
+          "duedate_asc": "Termin, najbliższy najpierw",
+          "duedate_desc": "Termin, najdalszy najpierw"
+        },
+        "completed": "Ukończone pozycje",
+        "completed_hint": "Pod otwartymi, przekreślone, gdzie jest miejsce",
+        "due": "Terminy",
+        "due_hint": "Dzień obok pozycji; spóźnione na czerwono",
+        "screen": "Na ekranie",
+        "add": "Dodawanie pozycji",
+        "add_hint": "Klawisz plus na kafelku i pole na liście otwierają klawiaturę ekranu",
+        "suggest": "Podpowiadaj nazwy",
+        "suggest_hint": "Podczas pisania klawiatura proponuje to, co wcześniej odhaczono; dotknięcie przywraca to na listę",
+        "clear": "Usuwanie ukończonych",
+        "clear_hint": "Klawisz na liście usuwa po pytaniu wszystko, co odhaczone"
+      },
+      "text_entity": {
+        "edit": "Dotknięcie otwiera wartość w polu z klawiaturą ekranu. Hasło widać jako kropki.",
+        "view_only": "Ta płytka pokazuje tylko wartość: zmiana na ekranie wymaga płytki z 8 MB pamięci flash lub więcej."
       }
     },
     "precision": {
@@ -3571,6 +3664,14 @@
         "change": "Zmień Wi-Fi i zainstaluj ponownie",
         "failed": "Tessera nie może sama dodać {name} do Home Assistant. Dodaj go samodzielnie poniżej."
       },
+      "known": {
+        "title": "Ta płytka jest już w Home Assistant jako {name}",
+        "text": "Home Assistant trzyma jedno urządzenie ESPHome na płytkę (jej adres MAC), więc {new} nie da się dodać, dopóki jest {name}. Zainstaluj {name} ponownie albo zastąp: gdy firmware będzie na płytce, {name} zniknie z Home Assistant razem z encjami, a {new} zajmie jego miejsce.",
+        "reinstall": "Zainstaluj {name} ponownie",
+        "replace": "Zastąp {name} przez {new}",
+        "replaced": "{name} usunięto z Home Assistant; {new} zajmuje jego miejsce.",
+        "go_firmware": "W Firmware i USB wybierz profil {name} i „Zainstaluj z tej przeglądarki”."
+      },
       "memory": {
         "low_title": "Mało wolnej pamięci na maszynie Home Assistant",
         "low": "Wolne jest {free} pamięci, więc firmware kompiluje się mniejszą liczbą kompilatorów naraz ({jobs} zamiast {cores}). Trwa to dłużej, ale się mieści.",
@@ -3847,7 +3948,10 @@
     "mockup": {
       "home": "Dom",
       "unknown": "Nieznany",
-      "calendar_free": "Wolne"
+      "calendar_free": "Wolne",
+      "todo_open": "{x} do zrobienia",
+      "todo_all_done": "Wszystko zrobione",
+      "todo_more": "+{x} więcej"
     },
     "pages": {
       "repaired": "Strona {page}, kafelek „{tile}”: usunięto to, co nie pasowało ({what}).",

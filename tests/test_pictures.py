@@ -578,6 +578,21 @@ class Clock:
 
 
 class Links(unittest.IsolatedAsyncioTestCase):
+    async def test_a_first_load_gets_what_the_answer_painted(self):
+        """A map's second drawing outlasted the screen's four seconds on a slow host (GitHub #390)."""
+        renders = []
+
+        async def render(recipe):
+            renders.append(recipe)
+            return '"new"', b'BMagain'
+        links = picture_links.Links()
+        links.render = render
+        token = links.add(recipe='map', first=('"made"', b'BMmade'))
+        self.assertEqual((await links.serve(token))[:3], (200, b'BMmade', '"made"'))
+        self.assertEqual(renders, [])
+        self.assertEqual((await links.serve(token))[:3], (200, b'BMagain', '"new"'))
+        self.assertEqual(renders, ['map'])
+
     async def test_a_still_and_its_304(self):
         clock = Clock()
         links = picture_links.Links(clock=clock)

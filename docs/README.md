@@ -14,11 +14,17 @@
   on its tile and its card.
 - [TEXT_TILE.md](TEXT_TILE.md): the template tile, a text with Home Assistant templates in it, how to write one, its
   limits and why it is built so.
+- [TODO.md](TODO.md): the to-do card, a list to tick with a keyboard that adds an item, and how its items reach the
+  screen.
+- [TEXT_ENTITY.md](TEXT_ENTITY.md): a Home Assistant text (text, input_text) as a tile, its value edited with the
+  keyboard on the larger boards and shown only on the 4 MB ones.
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [BATTERY.md](BATTERY.md): a screen's battery in its top bar, and how a board or your own YAML measures it (also a
   recipe for the code).
 - [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md): a wall button, a temperature sensor or other parts on a screen's spare pins,
   through its Override YAML.
+- [ICONS.md](ICONS.md): the icons every screen carries, the ones you add per screen and why that takes a build (also a
+  recipe for the code).
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
   if you flash them yourself.
 
@@ -69,7 +75,10 @@
 - [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.
+- [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
 - [CARD_PARTS.md](CARD_PARTS.md): a card built once and painted in place when a value changes, instead of built again.
+- [KEYBOARD.md](KEYBOARD.md): the screens' own keyboard: what a caller asks of it, how it tells the caller what was
+  typed, and adding a layout (a recipe).
 - [PLUGINS.md](PLUGINS.md): plugins on the core's side: the plugin API, a plugin tile end to end, the plugins file, fetch.
 - [REPORTS.md](REPORTS.md): the troubleshooting report of a screen: what it holds, what never leaves, where it goes, how a crash is read.
 - [BUILDS.md](BUILDS.md): the one line every build waits in (updates, plugins, New screen, Firmware & USB), and how a

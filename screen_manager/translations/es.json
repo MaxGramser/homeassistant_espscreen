@@ -159,6 +159,8 @@
       "microphone": "Micrófono",
       "media_player": "Volumen",
       "wake_when_moved": "Despertar al moverlo",
+      "backlight_pwm": "PWM de retroiluminación",
+      "dimmest_level": "Nivel mínimo",
       "dark_mode": "Modo oscuro",
       "auto_standby": "Reposo automático",
       "standby_after": "Reposo tras",
@@ -204,7 +206,12 @@
       "door_confirm": "Toca otra vez para abrir",
       "door_sent": "Enviado",
       "talk": "Hablar",
-      "coming_soon": "Próximamente"
+      "tap_talk": "Toca para hablar",
+      "talking": "Hablando",
+      "tap_stop": "Toca para parar",
+      "connecting": "Conectando",
+      "talk_busy": "Otra persona habla",
+      "talk_failed": "Sin conexión"
     },
     "tile": {
       "tap_to_open": "Toca para abrir",
@@ -647,6 +654,41 @@
       "calendars": "Calendarios",
       "also": "+{x} ahora",
       "booked": "Reservado en la pantalla"
+    },
+    "todo": {
+      "open": "{x} pendientes",
+      "all_done": "Todo hecho",
+      "more": "+{x} más",
+      "completed": "Completado",
+      "add": "Añadir elemento",
+      "added": "{x} añadido",
+      "rename": "Renombrar",
+      "remove": "Eliminar",
+      "cancel": "Cancelar",
+      "clear": "¿Eliminar {x} completados?",
+      "waiting": "Cargando",
+      "empty": "Nada en la lista",
+      "yesterday": "Ayer"
+    },
+    "call": {
+      "title": "Llamar",
+      "calling": "Llamando",
+      "calling_video": "Videollamando",
+      "video": "Videollamada",
+      "audio": "Llamada",
+      "decline": "Rechazar",
+      "answer": "Responder",
+      "ended": "Llamada finalizada",
+      "declined": "Rechazada",
+      "busy": "En otra llamada",
+      "no_answer": "Sin respuesta",
+      "quiet": "No molestar",
+      "gone": "No disponible",
+      "available": "Disponible",
+      "sound_only": "Disponible, solo sonido",
+      "in_call": "En llamada",
+      "offline": "Sin conexión",
+      "missed_at": "Llamada perdida"
     }
   },
   "addon": {
@@ -1181,6 +1223,14 @@
           "label": "Despertar al moverlo",
           "hint": "La pantalla sale del modo de espera cuando alguien la coge, la mueve o la golpea. Siente la propia pantalla, no a alguien que pasa."
         },
+        "backlight_pwm": {
+          "label": "PWM de retroiluminación",
+          "hint": "La velocidad a la que la retroiluminación se enciende y apaga para atenuarse. 150 Hz atenúa todas las unidades de esta placa, pero algunas zumban por debajo de 20 kHz: elige 20 kHz si la tuya zumba, 15 kHz si con 20 kHz no atenúa de forma uniforme."
+        },
+        "dimmest_level": {
+          "label": "Nivel mínimo",
+          "hint": "Lo más baja que llega la retroiluminación, como parte de su potencia total. Súbelo si la pantalla se queda negra o parpadea con el brillo más bajo."
+        },
         "microphone_gain": {
           "label": "Ganancia de micrófono",
           "hint": "Ganancia analógica del micrófono. Empieza en 30 dB; la ganancia de la referencia de reproducción permanece fija."
@@ -1435,7 +1485,8 @@
         "alert_outline": "Advertencia",
         "cog": "Configuración",
         "broom": "Limpieza",
-        "diabetes": "Diabetes"
+        "diabetes": "Diabetes",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1445,7 +1496,8 @@
         "page": "Ir a la página {page}",
         "map": "Mapa",
         "energy": "Energía",
-        "text": "Plantilla"
+        "text": "Plantilla",
+        "call": "Llamar"
       },
       "identify": {
         "title": "Esta es {name}",
@@ -1916,7 +1968,9 @@
         "alarm_control_panel": "Alarma",
         "lock": "Cerraduras",
         "humidifier": "Humidificadores",
-        "calendar": "Calendarios"
+        "calendar": "Calendarios",
+        "todo": "Listas de tareas",
+        "text": "Textos"
       },
       "room": "Habitación",
       "hide_placed": "Ocultar añadidas",
@@ -2364,7 +2418,14 @@
       "remove": "Quitar {name}",
       "type": "Escribe y pulsa Intro",
       "full": "La pantalla no admite más para este mosaico: sus opciones están llenas.",
-      "count": "{n} de {max}"
+      "count": "{n} de {max}",
+      "show_all": "Mostrar todas las entidades",
+      "show_fitting": "Mostrar solo las que encajan",
+      "not_set": "Sin definir",
+      "fill_device": "Rellenar desde un dispositivo",
+      "fill_device_hint": "Elige un dispositivo y sus sensores se rellenan abajo. Después puedes cambiar cada uno.",
+      "fill_device_none": "Ningún dispositivo tiene dos o más de estos sensores",
+      "fill_device_count": "1 sensor | {n} sensores"
     },
     "memory": {
       "label": "Memoria para mosaicos",
@@ -2414,7 +2475,10 @@
       "alarm_control_panel": "Panel de alarma",
       "lock": "Cerradura",
       "humidifier": "Humidificador",
-      "calendar": "Calendario"
+      "calendar": "Calendario",
+      "todo": "Lista de tareas",
+      "text": "Texto",
+      "input_text": "Texto"
     },
     "displays": {
       "standard": "estándar",
@@ -2910,6 +2974,35 @@
           "unknown": "{id} no existe en Home Assistant",
           "replace": "Reemplazar por {id}"
         }
+      },
+      "todo": {
+        "title": "Lista de tareas",
+        "plain": "Esta placa no puede mostrar una lista de tareas: hace falta una placa con 8 MB de flash o más. Elimina esta tarjeta.",
+        "needs_firmware": "La lista de tareas necesita el firmware 0.61.0 o posterior: pulsa Actualizar en la pantalla después de guardar.",
+        "order": {
+          "label": "Orden",
+          "hint": "Como los ordena la tarjeta de lista de tareas de Home Assistant",
+          "none": "Como en Home Assistant",
+          "alpha_asc": "Nombre, A a Z",
+          "alpha_desc": "Nombre, Z a A",
+          "duedate_asc": "Vencimiento, el primero antes",
+          "duedate_desc": "Vencimiento, el último antes"
+        },
+        "completed": "Elementos completados",
+        "completed_hint": "Debajo de los pendientes, tachados, donde hay sitio",
+        "due": "Vencimientos",
+        "due_hint": "El día junto a un elemento; con retraso en rojo",
+        "screen": "En la pantalla",
+        "add": "Añadir elementos",
+        "add_hint": "Una tecla más en la tarjeta y un campo en la lista abren el teclado de la pantalla",
+        "suggest": "Sugerir nombres",
+        "suggest_hint": "Al escribir, el teclado ofrece lo que se marcó antes; un toque lo devuelve a la lista",
+        "clear": "Eliminar completados",
+        "clear_hint": "Una tecla en la lista elimina todo lo marcado, tras preguntar"
+      },
+      "text_entity": {
+        "edit": "Un toque abre el valor en un campo con el teclado de la pantalla. Una contraseña se muestra con puntos.",
+        "view_only": "Esta placa solo muestra el valor: cambiarlo en la pantalla requiere una placa con 8 MB de flash o más."
       }
     },
     "precision": {
@@ -3571,6 +3664,14 @@
         "change": "Cambiar Wi-Fi e instalar de nuevo",
         "failed": "Tessera no puede añadir {name} a Home Assistant por sí sola. Añádela tú mismo abajo."
       },
+      "known": {
+        "title": "Esta placa ya está en Home Assistant como {name}",
+        "text": "Home Assistant guarda un dispositivo ESPHome por placa (su dirección MAC), así que {new} no puede añadirse mientras {name} esté ahí. Instala {name} de nuevo, o sustitúyelo: cuando el firmware esté en la placa, {name} desaparece de Home Assistant con sus entidades y {new} ocupa su lugar.",
+        "reinstall": "Instalar {name} de nuevo",
+        "replace": "Sustituir {name} por {new}",
+        "replaced": "{name} se ha quitado de Home Assistant; {new} ocupa su lugar.",
+        "go_firmware": "En Firmware y USB, elige el perfil de {name} e «Instalar desde este navegador»."
+      },
       "memory": {
         "low_title": "Poca memoria libre en la máquina de Home Assistant",
         "low": "Hay {free} de memoria libre, así que el firmware se compila con menos compiladores a la vez ({jobs} en vez de {cores}). Tarda más, pero cabe.",
@@ -3847,7 +3948,10 @@
     "mockup": {
       "home": "Casa",
       "unknown": "Desconocido",
-      "calendar_free": "Libre"
+      "calendar_free": "Libre",
+      "todo_open": "{x} pendientes",
+      "todo_all_done": "Todo hecho",
+      "todo_more": "+{x} más"
     },
     "pages": {
       "repaired": "Página {page}, tarjeta «{tile}»: se quitó lo que no encajaba ({what}).",

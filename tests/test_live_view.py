@@ -30,7 +30,7 @@ class P4Build(unittest.TestCase):
         self.assertRegex(source, r'if CORE\.is_esp32:\n\s+await _engine\(config\)')
         engines = (COMPONENT / 'engine_build.py').read_text()
         for wrap in ('esp_lcd_new_panel_dpi', 'esp_lcd_dpi_panel_register_event_callbacks', 'ppa_register_client',
-                     'ppa_do_scale_rotate_mirror'):
+                     'ppa_do_scale_rotate_mirror', 'dw_gdma_new_channel'):
             self.assertIn(f'"{wrap}"', engines)
         self.assertIn('cg.add_build_flag(f"-Wl,--wrap={wrap}")', source)
         self.assertIn('add_idf_component(name=name, ref=ref)', source)
@@ -72,7 +72,7 @@ class P4Build(unittest.TestCase):
         self.assertIn('cg.add_build_flag(f"-Wl,--wrap={wrap}")', init)
         self.assertEqual(re.findall(r'-Wl,--wrap=(\w+)', init), [])
         defined = set()
-        for name in ('glass_dsi.cpp', 'ppa_guard.cpp', 'live_view.cpp', 'picture_engine_p4.cpp'):
+        for name in ('glass_dsi.cpp', 'glass_dsi_refresh.cpp', 'ppa_guard.cpp', 'live_view.cpp', 'picture_engine_p4.cpp'):
             defined |= set(re.findall(r'__wrap_(\w+)\(', (COMPONENT / name).read_text()))
         self.assertEqual(defined, set(engine_build.ENGINES['p4']['wraps']))
         s3 = set()
@@ -87,7 +87,7 @@ class P4Build(unittest.TestCase):
         # files, the glasses in glass.h and their own files, the streams in live_view.h and live_view.cpp.
         for define, names in (('PICTURE_ENGINE_P4', ('picture_engine.h', 'picture_engine_p4.cpp', 'ppa_guard.cpp')),
                               ('PICTURE_ENGINE_S3', ('picture_engine.h', 'picture_engine_s3.cpp')),
-                              ('GLASS_DSI', ('glass.h', 'glass_dsi.cpp')),
+                              ('GLASS_DSI', ('glass.h', 'glass_dsi.cpp', 'glass_dsi_refresh.cpp')),
                               ('GLASS_RGB', ('glass.h', 'glass_rgb.cpp')),
                               ('USE_LIVE_VIEW', ('live_view.h', 'live_view.cpp'))):
             for name in names:
@@ -110,10 +110,10 @@ class Sockets(unittest.TestCase):
 class ChipFactsBehindTheEngine(unittest.TestCase):
     """The P4's facts live behind the picture engine (docs/PLATFORM_PLAN.md 3.2): outside the engine's own files the
     code names no sixteenths, no PPA, no JPEG driver and no panel driver; it asks picture_engine (limits, fit, cut,
-    blit) and glass, whose panel files (glass_dsi.cpp, glass_rgb.cpp) are the only ones to name ESP-IDF's panels.
+    blit) and glass, whose panel files (glass_dsi.cpp, glass_dsi_refresh.cpp, glass_rgb.cpp) are the only ones to name ESP-IDF's panels.
     Comments and strings may name them."""
     ALLOWED = {'picture_engine.h', 'picture_engine_p4.cpp', 'ppa_guard.h', 'ppa_guard.cpp', 'picture_jpeg.h',
-               'glass_dsi.cpp', 'glass_rgb.cpp'}
+               'glass_dsi.cpp', 'glass_dsi_refresh.cpp', 'glass_rgb.cpp'}
     RULES = {'sixteenths': r'\bsixteenths\b', 'PPA': r'\bppa_\w+\s*\(|\bPPA_[A-Z0-9_]+',
              'JPEG driver': r'\bjpeg_(?:decoder|decode|alloc|new|del)\w*', 'MIPI': r'\bmipi\w*|\bMIPI\w*|\besp_lcd_\w+'}
 

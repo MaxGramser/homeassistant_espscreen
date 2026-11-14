@@ -88,6 +88,8 @@ struct Head {
   // screen's clock, what is left over the least of it is how long the picture waited on its way (live_view.cpp).
   bool has_made = false;
   uint32_t made = 0;
+  // X-Sound: talk, a part of sound from someone in a conversation: the screen plays it with a far smaller run-up.
+  bool talk = false;
   // X-Turn: the app turned a live picture as a turned glass is (90, 180 or 270 degrees, the hello's picture_turn), so
   // the screen copies it onto the glass straight (live_view.cpp, show); 0: upright.
   int turn = 0;
@@ -152,6 +154,8 @@ inline Head parse_head(const char *data, size_t size) {
           h.audio = ve - v >= 6 && same_ignoring_case(line + v, "audio/", 6);
         } else if (colon == 9 && same_ignoring_case(line, "x-picture", 9)) {
           h.still = ve - v == 5 && same_ignoring_case(line + v, "still", 5);
+        } else if (colon == 7 && same_ignoring_case(line, "x-sound", 7)) {
+          h.talk = ve - v == 4 && same_ignoring_case(line + v, "talk", 4);
         } else if (colon == 6 && same_ignoring_case(line, "x-made", 6)) {
           uint32_t n = 0;
           bool digits = v < ve;

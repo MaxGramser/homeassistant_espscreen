@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Hangerő",
       "wake_when_moved": "Ébresztés mozgatásra",
+      "backlight_pwm": "Háttérvilágítás PWM",
+      "dimmest_level": "Legsötétebb szint",
       "dark_mode": "Sötét mód",
       "auto_standby": "Auto készenlét",
       "standby_after": "Készenlét ennyi után",
@@ -204,7 +206,12 @@
       "door_confirm": "Koppints újra a nyitáshoz",
       "door_sent": "Elküldve",
       "talk": "Beszéd",
-      "coming_soon": "Hamarosan"
+      "tap_talk": "Koppints a beszédhez",
+      "talking": "Beszéd",
+      "tap_stop": "Koppints a leállításhoz",
+      "connecting": "Kapcsolódás",
+      "talk_busy": "Valaki más beszél",
+      "talk_failed": "Nincs kapcsolat"
     },
     "tile": {
       "tap_to_open": "Megnyitás",
@@ -647,6 +654,41 @@
       "calendars": "Naptárak",
       "also": "+{x} most",
       "booked": "A kijelzőn foglalva"
+    },
+    "todo": {
+      "open": "{x} nyitott",
+      "all_done": "Minden kész",
+      "more": "+{x} további",
+      "completed": "Kész",
+      "add": "Elem hozzáadása",
+      "added": "{x} hozzáadva",
+      "rename": "Átnevezés",
+      "remove": "Eltávolítás",
+      "cancel": "Mégse",
+      "clear": "{x} kész elem törlése?",
+      "waiting": "Betöltés",
+      "empty": "Nincs semmi a listán",
+      "yesterday": "Tegnap"
+    },
+    "call": {
+      "title": "Hívás",
+      "calling": "Hívás folyamatban",
+      "calling_video": "Videohívás folyamatban",
+      "video": "Videohívás",
+      "audio": "Hívás",
+      "decline": "Elutasítás",
+      "answer": "Felvétel",
+      "ended": "Hívás vége",
+      "declined": "Elutasítva",
+      "busy": "Másik hívásban",
+      "no_answer": "Nincs válasz",
+      "quiet": "Ne zavarjanak",
+      "gone": "Nem elérhető",
+      "available": "Elérhető",
+      "sound_only": "Elérhető, csak hang",
+      "in_call": "Hívásban",
+      "offline": "Offline",
+      "missed_at": "Nem fogadott hívás"
     }
   },
   "addon": {
@@ -1181,6 +1223,14 @@
           "label": "Ébresztés mozgatásra",
           "hint": "A kijelző felébred készenlétből, ha valaki felveszi, elmozdítja vagy megkocogtatja. Magát a kijelzőt érzékeli, nem az arra járókat."
         },
+        "backlight_pwm": {
+          "label": "Háttérvilágítás PWM",
+          "hint": "Milyen gyorsan kapcsol ki-be a háttérvilágítás a halványításhoz. 150 Hz minden ilyen panelt halványít, de néhány 20 kHz alatt sípol: válaszd a 20 kHz-et, ha a tiéd sípol, a 15 kHz-et, ha 20 kHz-en nem halványít egyenletesen."
+        },
+        "dimmest_level": {
+          "label": "Legsötétebb szint",
+          "hint": "A háttérvilágítás legalacsonyabb szintje a teljes teljesítmény arányában. Emeld meg, ha a képernyő a legkisebb fényerőn fekete marad vagy villog."
+        },
         "microphone_gain": {
           "label": "Mikrofonerősítés",
           "hint": "Analóg mikrofonerősítés. Kezdetben 30 dB; a lejátszási referencia erősítése állandó marad."
@@ -1435,7 +1485,8 @@
         "alert_outline": "Figyelmeztetés",
         "cog": "Beállítások",
         "broom": "Takarítás",
-        "diabetes": "Cukorbetegség"
+        "diabetes": "Cukorbetegség",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1445,7 +1496,8 @@
         "page": "Ugrás: {page}. oldal",
         "map": "Térkép",
         "energy": "Energia",
-        "text": "Sablon"
+        "text": "Sablon",
+        "call": "Hívás"
       },
       "identify": {
         "title": "Ez itt: {name}",
@@ -1916,7 +1968,9 @@
         "alarm_control_panel": "Riasztó",
         "lock": "Zárak",
         "humidifier": "Párásítók",
-        "calendar": "Naptárak"
+        "calendar": "Naptárak",
+        "todo": "Teendőlisták",
+        "text": "Szövegek"
       },
       "room": "Helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
@@ -2364,7 +2418,14 @@
       "remove": "{name} eltávolítása",
       "type": "Írd be, majd Enter",
       "full": "A kijelző nem fogad többet ehhez a csempéhez: a beállításai megteltek.",
-      "count": "{n} / {max}"
+      "count": "{n} / {max}",
+      "show_all": "Minden entitás megjelenítése",
+      "show_fitting": "Csak a megfelelők megjelenítése",
+      "not_set": "Nincs megadva",
+      "fill_device": "Kitöltés egy eszközről",
+      "fill_device_hint": "Válassz egy eszközt, és az érzékelői lent kitöltődnek. Utána mindegyiket módosíthatod.",
+      "fill_device_none": "Egyetlen eszköznek sincs kettő vagy több ilyen érzékelője",
+      "fill_device_count": "1 érzékelő | {n} érzékelő"
     },
     "memory": {
       "label": "Memória a csempéknek",
@@ -2414,7 +2475,10 @@
       "alarm_control_panel": "Riasztópanel",
       "lock": "Zár",
       "humidifier": "Párásító",
-      "calendar": "Naptár"
+      "calendar": "Naptár",
+      "todo": "Teendőlista",
+      "text": "Szöveg",
+      "input_text": "Szöveg"
     },
     "displays": {
       "standard": "normál",
@@ -2910,6 +2974,35 @@
           "unknown": "{id} nem létezik a Home Assistantben",
           "replace": "Csere erre: {id}"
         }
+      },
+      "todo": {
+        "title": "Teendőlista",
+        "plain": "Ez a panel nem tud teendőlistát mutatni: ehhez legalább 8 MB flash memóriájú panel kell. Távolítsd el ezt a csempét.",
+        "needs_firmware": "A teendőlistához 0.61.0-s vagy újabb firmware kell: mentés után nyomd meg a képernyőnél a Frissítés gombot.",
+        "order": {
+          "label": "Sorrend",
+          "hint": "Ahogy a Home Assistant teendőlista-kártyája rendezi",
+          "none": "Mint a Home Assistantban",
+          "alpha_asc": "Név, A-tól Z-ig",
+          "alpha_desc": "Név, Z-től A-ig",
+          "duedate_asc": "Határidő, a legkorábbi elöl",
+          "duedate_desc": "Határidő, a legkésőbbi elöl"
+        },
+        "completed": "Kész elemek",
+        "completed_hint": "A nyitottak alatt, áthúzva, ahol van hely",
+        "due": "Határidők",
+        "due_hint": "A nap az elem mellett; a késés piros",
+        "screen": "A képernyőn",
+        "add": "Elemek hozzáadása",
+        "add_hint": "A csempén egy plusz gomb, a listában egy mező nyitja meg a képernyő billentyűzetét",
+        "suggest": "Nevek felajánlása",
+        "suggest_hint": "Gépelés közben a billentyűzet felajánlja a korábban kipipáltakat; egy érintés visszateszi a listára",
+        "clear": "Készek eltávolítása",
+        "clear_hint": "A lista egy gombja kérdés után eltávolít mindent, ami ki van pipálva"
+      },
+      "text_entity": {
+        "edit": "Egy koppintás megnyitja az értéket egy mezőben a képernyő billentyűzetével. A jelszó pontokként látszik.",
+        "view_only": "Ez a panel csak az értéket mutatja: a képernyőn való módosításhoz legalább 8 MB flash memóriájú panel kell."
       }
     },
     "precision": {
@@ -3571,6 +3664,14 @@
         "change": "Wi-Fi módosítása és újratelepítés",
         "failed": "A Tessera nem tudja magától hozzáadni ezt a Home Assistanthez: {name}. Add hozzá magad lent."
       },
+      "known": {
+        "title": "Ez a panel már {name} néven szerepel a Home Assistantban",
+        "text": "A Home Assistant panelenként (MAC-cím szerint) egy ESPHome-eszközt tart, ezért {new} nem adható hozzá, amíg {name} ott van. Telepítsd újra {name} képernyőt, vagy cseréld le: amint a firmware a panelen van, {name} az entitásaival együtt eltűnik a Home Assistantból, és {new} veszi át a helyét.",
+        "reinstall": "{name} újratelepítése",
+        "replace": "{name} cseréje erre: {new}",
+        "replaced": "{name} el lett távolítva a Home Assistantból; {new} veszi át a helyét.",
+        "go_firmware": "A Firmware és USB alatt válaszd {name} profilját és a „Telepítés ebből a böngészőből” lehetőséget."
+      },
       "memory": {
         "low_title": "Kevés a szabad memória a Home Assistant gépen",
         "low": "{free} memória szabad, ezért a firmware kevesebb fordítóval készül egyszerre ({jobs} a {cores} helyett). Ez tovább tart, de így elfér.",
@@ -3847,7 +3948,10 @@
     "mockup": {
       "home": "Kezdőlap",
       "unknown": "Ismeretlen",
-      "calendar_free": "Szabad"
+      "calendar_free": "Szabad",
+      "todo_open": "{x} nyitott",
+      "todo_all_done": "Minden kész",
+      "todo_more": "+{x} további"
     },
     "pages": {
       "repaired": "{page}. oldal, „{tile}” csempe: ami nem illett, eltávolítva ({what}).",

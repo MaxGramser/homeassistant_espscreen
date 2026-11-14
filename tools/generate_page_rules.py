@@ -12,6 +12,7 @@ from core import (DOMAINS, HEADER_ONLY_DOMAINS, CAMERA_DOMAINS, HEADER_BUILTIN,
                   FAVORITE_SHUFFLES, FAVORITE_REPEATS, ENERGY_FLOWS)
 from tile_icons import ICONS
 import calendar_feed
+import todo_feed
 import meter
 
 
@@ -44,6 +45,8 @@ def rules():
                          'calendars': calendar_feed.MAX_CALENDARS - 1, 'words': calendar_feed.MAX_WORDS,
                          'ahead': [calendar_feed.AHEAD_DEFAULT, calendar_feed.AHEAD_MAX],
                          'weekStarts': list(calendar_feed.WEEK_STARTS), 'bookText': calendar_feed.BOOK_TEXT},
+            # A to-do card's orders (todo_feed.validate), Home Assistant's own, the first the one never stored.
+            'todo': {'orders': list(todo_feed.ORDERS)},
             # A sensor's meter (firmware 0.56.0, meter.validate): its looks, how many colours, the colours a segment may
             # have (Home Assistant's, by name) and the ones each count starts with, and where the thresholds start.
             'meter': {'styles': list(meter.STYLES), 'segments': list(meter.SEGMENTS),

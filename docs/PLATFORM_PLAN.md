@@ -183,7 +183,7 @@ same role replaces its holder (a second camera's full view takes over from the f
   (`lost` stops the wake word, `regained` starts it) and BOTH for a session, on tessera-plugins dev.
 - The mixer and the half-duplex interval stay as they are: the owner decides who may start; the mixer mixes the
   announcement input over the media input as before.
-- Still to do: the IN side for the doorbell's talk (section 5). Proven on the D1001 (2026-10-25): music under a ring
+- The IN side: a ring's view holds both sides from the module for as long as the ring is up (module_doorbell, since 2026-11-10), its stream claims nothing. Proven on the D1001 (2026-10-25): music under a ring
   (the ring takes the speaker, the music stays paused after it), music started during a ring (refused, paused within a
   second), a ring while the wake word listens (the wake word rests during the ring, and "Okay Nabu" opened a session
   right after it, 12:46).
@@ -192,10 +192,8 @@ same role replaces its holder (a second camera's full view takes over from the f
   stream may go on under a popup is a question of its own, for later.
 - A ring's view claims the speaker and the microphone (live_view, role DOORBELL, both sides), so the wake word rests
   during a ring and listens again after it ("doorbell took the microphone from voice", "doorbell gave the microphone
-  back: voice has it again"; the voice plugin's claims, voice_assist 0.4.0). Open: the claim lives with the ring's
-  stream, so a stream that breaks and opens again claims anew (the same role replaces itself, harmless), and one that
-  ends while the ring's view stays (stills after three breaks) lets the wake word back under an open ring. The clean
-  way is module_doorbell holding the claim for as long as the ring is up, which waits for the talk's design (section 5).
+  back: voice has it again"; the voice plugin's claims, voice_assist 0.4.0). Since 2026-11-10 module_doorbell holds the claim for as long as the ring is up, so a stream that breaks no longer lets the
+  wake word back under an open ring.
 
 ### 3.5 Allocation as a seam
 
@@ -270,7 +268,7 @@ a ceiling, not the cap.
 
 **The engine's numbers (2026-10-28).** The cap and the pace are the picture engine's (`picture_engine::limits`): its
 `live_tiles` and `tile_budget_pps`, the pictures a second all streaming tiles share (`picture_engine::tile_pps`: the
-budget over the tiles, at least 2, at most `hw::LIVE_TILE_PPS`). A P4 has 4 and 24, so its four tiles keep 6 each as
+budget over the tiles, at least 2, at most `hw::LIVE_TILE_PPS`). A P4 has 4 and 40 (24 until 2026-11-09), so its four tiles keep 10 each as
 before. An ESP32-S3 with an RGB panel has 1 and 8 (docs/CAMERA.md, "Live on an ESP32-S3"): its CPU decodes every
 picture, and each live tile took about 11 KB of internal RAM for its connection's Wi-Fi and lwIP buffers, two tiles the
 lowest down to 16 KB and three to 3 KB on a Guition 4848S040. A second S3 tile waits for those buffers in PSRAM
@@ -446,6 +444,13 @@ the tiles and LVGL (up to 0.74 s measured).
 
 ### 4.7 Open on the P4 (2026-10-27)
 
+- **A last unit a little over the FIFO stalls too, with bursts of 64 bytes (2026-11-08).** A bare ESP-IDF test on a reTerminal D1001
+  (revision 1.3), a PPA copy turned 90 beside a frame buffer copy and a cache write-back, 20 s a shape: 240x134 (1536 bits),
+  240x135 and 240x199 (1792) never came back within about 20 copies; 240x128, 129, 136 and 140 and last units of 1728, 1920 and
+  2112 bits came back thousands of times; 240x135 came back with bursts of 128 bytes and stalled at once with 32. The same
+  shapes on a Guition 10.1 V3 (revision 3.2) never stalled. `ppa_guard.h` (`STALL_BITS`) cuts a block up to 1792 bits. A straight copy with the same output stalls the same: a live tile's picture of 135x240, sent turned for a turned glass, restarted a D1001 on the real firmware (2026-11-09).
+  A lock around the 2D-DMA's clients also ended the stall in the test, but not on the real firmware, and is not in.
+
 - **LVGL's areas in blocks of 16 (`draw_rounding: 16`) are not in.** On a turned glass it leaves the PPA no thin strip
   to turn, and 40 held top bars on a reTerminal D1001 froze it no more, but the guard (`ppa_guard.h`, a last unit the
   size of the 2D-DMA's FIFO counts as a stall) did the same alone, and the watchdog on the PPA ring (`ppa_trace.h`)
@@ -516,6 +521,17 @@ the tiles and LVGL (up to 0.74 s measured).
     bad block. On the D1001 the same block came back at least 31 times, 2 ms each, before one stalled: a bad block
     stalls by chance too, only sooner. The watch caught every one: 3.1 and 3.8 s in the esp_timer task, 3.4 s (D1001)
     and 3.75 s (Guition) in its own, its words ending "esp_timer blocked".
+  - **A scaled copy stalls unturned too (2026-11-03, a user's reTerminal D1001, then the bench D1001).** A camera opened
+    full screen restarted the screen every time: "PPA copy never finished: 450x800 turned 0 to 91,15 by live_view",
+    the app's picture, turned for the glass, scaled 25/16 to fill the 800 x 1280 panel. The rig (a task copying the
+    block into the frame buffer with the glass held, 300 copies a case, the watch catching a hang): 450x800 at 25/16
+    stalled within 30 copies, three boots running; 450x790 (its rows' leftover 6, 9 scaled), 450x800 at 20/16 and
+    66x800 at 25/16 stalled too; 448x800 at 25/16 came back 5,000 times. The rule that fits: the hardware's last unit
+    is the input's leftover scaled (450 % 64 = 2 columns, 3 pixels at 25/16, by 16 rows, 25 pixels: 1200 bits, under
+    the FIFO), where the driver, master as much as 5.5.5, counts the scaled width's leftover (703 % 64 = 63 columns:
+    25,200 bits) and sets no bypass. The guard counts it the hardware's way now and cuts the picture in two (`ppa_guard.h`
+    small_leftover; before, no unturned block was ever cut, and a block whose scaled size was not whole was left alone,
+    which 450 x 25/16 = 703.125 is).
   - **Found on the way:** a build for the P4's revision 3 (the Guition 10.1 of rev 3.2, its v3 profile) runs macro
     blocks of 32 rows, the engine's register says so ("the engine's macro block: 32 rows"), and the guard took 16 on
     every build; it asks the engine now, as the driver does (`ppa_guard.h`).
@@ -646,7 +662,7 @@ a doorbell's ring, the live tiles, the screen's own camera (its video), its sens
 background (pictures fetched ahead for pages out of sight). Each has a level: 0 runs as it is, 1 does half, 2 a
 quarter; the glass, the voice and a ring are never squeezed. Since 2026-10-29 (plugin API 0.23, `heard`): while someone
 hears the screen's microphone (its video watched with its sound, Screen camera 0.6.12; a call, 5.1) the live tiles stay
-at a quarter whatever the steps say, so the conversation's uplink is not starved by them: on a reTerminal D1001 four
+at half at least whatever the steps say, so the conversation's uplink is not starved by them: on a reTerminal D1001 four
 live tiles beside its own video stalled the uplink, the sound reached the viewing screen in bursts a second late (2.4 s
 at most) and that screen cut more than half of it away.
 
@@ -707,8 +723,8 @@ cannot move out from under it. What helps is less work for it: a live tile's pic
 size is composed where it was decoded and copied once, onto the glass, with no canvas between. On the D1001 a tile then
 showed 8 to 10 pictures a second where it showed 5.3 to 6.3, its wait for the glass 22 to 30 ms instead of 60 to 84
 (the copy onto the glass 17 ms; composing, outside the lock, 31 to 35 ms of wall clock, with the tasks' CPU unchanged at
-9 %). At that rate the wake word fell behind 51 times in three minutes, so a live tile keeps to six pictures a second
-on every board (hw::LIVE_TILE_PPS), and a busy screen's tile to three or one and a half. With all of it (one copy, the
+9 %). At that rate the wake word fell behind 51 times in three minutes, so a live tile kept to six pictures a second
+on every board (hw::LIVE_TILE_PPS, ten since 2026-11-09), and a busy screen's tile to three or one and a half. With all of it (one copy, the
 newest picture below, six a second), three minutes of drags over the four tiles: the D1001's tiles at rest 5.6 to 5.7
 pictures a second, 35 to 69 ms on the way, waiting 0.5 to 2.9 ms for the glass, the cores at 59.9 and 44.8 % (the
 lowest of the day), one moment of 12 wake word resets on which the tiles gave way at once; the Guition 10.1's 5.6 a
@@ -775,7 +791,7 @@ over the network to the same screen, to be decoded there. Now the screen draws i
   ties the two.
 - **The draw.** `own:` opens a stream with no socket and no decoder (live_view.cpp, `own_stream`). While it is open
   the plugin hands each camera frame to `tessera::own_frame` on the camera's task; the tile takes one when its pace
-  says (hw::LIVE_TILE_PPS, a busy screen's share) and the glass is free at once (`glass::try_hold`: the camera's task
+  says (hw::OWN_TILE_PPS, a busy screen's share) and the glass is free at once (`glass::try_hold`: the camera's task
   never waits), and the PPA copies the part it shows into the card's canvas, scaled, from the camera's YUV420 or RGB565.
   The tile's own task composes the card over it (corners, shade, name) and lays it onto the glass in one more copy, turned.
   A frame it cannot take goes by. Covered, on a page out of sight or in standby, the tile closes as any live tile does,
@@ -788,6 +804,18 @@ over the network to the same screen, to be decoded there. Now the screen draws i
   decoder) and the Opus played through the mixer with echo cancelled (the D1001's hardware reference channel, the
   Guition's in software); ringing, answering and hanging up through the app. The picture of oneself is today's tile of
   the own camera.
+
+**Its pace (2026-11-09, a reTerminal D1001, camera at 30 frames a second, wake word on).** The tile has its own pace, not the live
+tiles' share: its frame comes over no network and is not decoded. It stays out of the count of tiles that crowd the uplink. Measured:
+alone on the page 15 pictures a second, evenly, whatever more was asked; beside three live tiles and a video viewer 8 to 10, and those
+tiles about 5; four tiles that nearly fill the glass 4 to 6.6 on the camera's and 2.3 to 4.5 on the others. What limits it is the PPA: 50 to
+60 ms a frame of 1280 x 720, every tile shares it, and a frame that takes more than the camera's 33 ms leaves every second one.
+Bursts of 128 bytes took 47 ms and let go of nothing else; leaving the glass's lock during the copy gave 9.2 for 8 on this tile and
+nothing on the others. Neither is in. No flash on the camera and no restart in any of these runs.
+
+**The live tiles' limit (2026-11-09, the same board and wake word on, four tiles and no own camera).** At a limit of 6 they reached 5.6 a
+second, at 10 about 8 and at 15 about 9 to 10, so the limit was the brake where no tile of the own camera shares the PPA. No reset of the wake word
+in these runs of 40 s a step; the limit went to 10 with a budget of 40.
 
 ### 4.12 Live pictures come turned for a turned glass (2026-10-28)
 
@@ -832,9 +860,10 @@ canvas). The turn now happens in the app, where it costs little, and the screen 
 - **What the Tab5 should show:** its two live tiles no longer turn on the chip. Whether the stall comes back is for its
   tester to say; the ring of a stall names the copy and its turn as before.
 
-## 5. The doorbell's talk-back, prepared
+## 5. The doorbell's talk-back
 
-Not built now: Home Assistant is expected to bring a two-way audio path of its own within months, and the community
+Built since 2026-11-10: docs/DOORBELL.md, "Talk" and docs/CALLS.md, "The voice". The plan as it stood, kept for why:
+Home Assistant is expected to bring a two-way audio path of its own within months, and the community
 VoIP stack (a SIP endpoint inside Home Assistant) already bridges door stations. What the firmware prepares does not
 depend on which one wins:
 

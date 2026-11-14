@@ -17,11 +17,13 @@ import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { pageReachWarning } from "../editor/pages";
 import { useUiStore } from "../stores/ui";
+import { useScreenIconsStore } from "../stores/screenIcons";
 
 const settings = useSettingsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
 const ui = useUiStore();
+const screenIcons = useScreenIconsStore();
 
 const view = computed(() => settings.settingsView());
 // The plugins this screen runs that have settings: those are in each plugin's details on the Plugins tab (docs/PLUGINS.md).
@@ -152,6 +154,18 @@ const startCalibration = () => scr.currentScreen && scr.calibrateTouch(scr.curre
             {{ text(plugin.name) }}<Icon name="arrow-right" />
           </button>
         </div>
+      </section>
+      <!-- The icons a screen takes on top of the fixed set (ScreenIconsPanel); a board with 4 MB of flash has no room for them. -->
+      <section v-if="screenIcons.view && scr.currentScreen && !scr.currentScreen.virtual" class="set-card" id="settings-icons">
+        <h4><span class="mdi">{{ glyph("F0832") }}</span>{{ t("editor.screen_icons.card_title") }}</h4>
+        <template v-if="screenIcons.view.room">
+          <p class="hint">{{ t("editor.screen_icons.card_hint", { room: screenIcons.view.room }) }}</p>
+          <p v-if="screenIcons.view.chosen.length" class="hint">{{ t("editor.screen_icons.card_count", { n: screenIcons.view.chosen.length }) }}<template v-if="screenIcons.view.waiting.length"> · {{ t("editor.screen_icons.card_waiting", { n: screenIcons.view.waiting.length }) }}</template></p>
+          <div class="s-action">
+            <button type="button" class="btn quiet" id="setting-icons" @click="ui.openIcons(scr.currentScreen!.id)">{{ t("editor.screen_icons.card_button") }}<Icon name="arrow-right" /></button>
+          </div>
+        </template>
+        <p v-else class="hint">{{ t("editor.screen_icons.card_no_room") }}</p>
       </section>
       <section v-if="view.calibrate" class="set-card" id="settings-this-screen">
         <h4><span class="mdi">{{ glyph("F02FD") }}</span>{{ t("editor.screen_settings.groups.this_screen") }}</h4>

@@ -204,6 +204,8 @@ struct Stream {
   // The main loop's own: the report of the last REPORT_MS, the first picture, its first live one and sound told, the
   // speaker started.
   bool told_first = false, told_live = false, told_sound = false, speaking = false;
+  std::atomic<bool> talking{false};  // the stream's sound is a conversation (X-Sound: talk): a far smaller run-up
+  uint32_t talk_fed_ms = 0;          // when the speaker last got a piece of it
   uint32_t reported_at = 0, reported_shown = 0, reported_bytes = 0, reported_decode = 0, reported_copy = 0,
            reported_wait = 0, reported_net = 0, reported_into = 0, reported_compose = 0, reported_onto = 0,
            reported_passed = 0, reported_pauses = 0, reported_paused = 0;
@@ -665,6 +667,17 @@ static bool ask_each(Stream &s) {
 }
 
 // The screen's own camera on a tile of its own (live_view.h, own_frame).
+// Its pace is its own: the frame reaches it over no network and is not decoded, so the pace of the tiles that are
+// (tile_gap_us) does not apply, though it counts among them for their share of the budget (tiles_open), since it takes
+// more of the PPA than any of them. It follows the governor as the camera does, and as the live tiles do while someone
+// hears the microphone: the video is what must go whole then, and the tile on the glass shares the PPA with it.
+// In a call this tile is the picture of oneself in the corner: the large picture goes first, and it gives way with the rest.
+static constexpr int64_t OWN_PACE_MARGIN_US = 4000;  // a frame a little early still counts: the camera's own gap wobbles
+static int64_t own_gap_us() {
+  const uint8_t level = std::max(pressure::level_of(pressure::OWN_CAMERA), pressure::level_of(pressure::LIVE_TILES));
+  return (static_cast<int64_t>(1000000 / hw::OWN_TILE_PPS) << level) - OWN_PACE_MARGIN_US;
+}
+
 // The open tiles of it, which the camera's task reads under own_lock while it fills one's canvas; the main loop takes a
 // tile out under it before it frees the stream. The camera's task never waits for it: a frame it cannot take goes by.
 static Stream *own_tiles[MAX_STREAMS] = {};
@@ -728,8 +741,7 @@ void own_frame(const uint8_t *data, int width, int height, bool yuv420) {
       s->skipped++;
       continue;
     }
-    // Its next frame after its pace: its share of the budget, a busy screen's tile half or a quarter of that.
-    s->own_next = now + (tile_gap_us() << pressure::level_of(pressure::LIVE_TILES));
+    s->own_next = now + own_gap_us();
     s->own_full.store(true, std::memory_order_release);
     xTaskNotifyGive(s->task.handle);
   }
@@ -871,6 +883,7 @@ static bool read_stream(Stream &s) {
           // off plays seconds of full-scale noise (a ring on a reTerminal D1001, 2026-10-25), until another odd write
           // puts it right by chance. So a part goes in whole or not at all, never cut to the room left.
           s.heard = true;
+          if (reader.talk()) s.talking.store(true, std::memory_order_relaxed);
           if (reader.has_made()) s.sound_wait.add(reader.made());
           if (length & 1) s.odd_parts.fetch_add(1, std::memory_order_relaxed);
           if (s.muted || s.yielded) return;
@@ -910,11 +923,12 @@ static void task_main(void *arg) {
 
 bool full_view() { return available() && picture_engine::limits().picture_bytes > 0; }
 
-// The live tiles on the glass now, for the governor's heard rule (pressure::live_tiles): the tile streams, not a view.
+// The live tiles on the glass now, for the governor's heard rule (pressure::live_tiles): the tile streams, not a view
+// and not a tile of the screen's own camera, which takes nothing from the network.
 static void count_tiles() {
   uint8_t n = 0;
   for (auto *s : streams)
-    if (s && !s->stopping && s->look.tile) ++n;
+    if (s && !s->stopping && s->look.tile && s->source != &OWN_CAMERA) ++n;
   pressure::live_tiles.store(n, std::memory_order_relaxed);
 }
 
@@ -1046,16 +1060,13 @@ Handle open(const std::string &url, const Rect &area, const Look &look, bool sou
   count_tiles();
   if (own) own_add(s);
   if (look.tile) tiles_open.fetch_add(1, std::memory_order_relaxed);
-  if (s->sound || role == audio_owner::Role::DOORBELL) {
+  if (s->sound && role != audio_owner::Role::DOORBELL) {
     // The camera's sound claims the speaker (audio_owner.h) in the role its opener gave: as CAMERA_SOUND music pauses
-    // for it, and a voice session or a doorbell takes it and gives it back, since the camera stays open; as DOORBELL
-    // (the view a ring opened) nothing takes it, and the ring takes the microphone too, sound or not: the wake word
-    // rests while someone is at the door (and the talk, section 5 of PLATFORM_PLAN.md, will speak into it). Given back in
-    // tick when the stream ends: a ring whose stream ends while its view stays (stills after its third break) lets the
-    // wake word listen again under the open ring, until module_doorbell holds the claim for as long as the ring is up
-    // (PLATFORM_PLAN.md 3.4).
+    // for it, and a voice session or a doorbell takes it and gives it back, since the camera stays open. A ring's view
+    // (DOORBELL) claims nothing here: module_doorbell holds both sides for as long as the ring is up, so the wake word
+    // rests under an open ring also while its stream breaks and comes back (PLATFORM_PLAN.md 3.4).
     s->sound_role = role;
-    s->claimed = role == audio_owner::Role::DOORBELL ? audio_owner::Side::BOTH : audio_owner::Side::OUT;
+    s->claimed = audio_owner::Side::OUT;
     s->claims = true;
     audio_owner::Claim claim;
     claim.role = role;
@@ -1089,6 +1100,8 @@ void mute(Handle handle, bool muted) {
 static void speak(Stream &s, bool on) {
 #ifdef USE_SPEAKER
   if (!speaker || !s.sound) return;
+  const bool talk = s.talking.load(std::memory_order_relaxed);
+  const size_t low = talk ? SOUND_TALK_LOW : SOUND_LOW, high = talk ? SOUND_TALK_HIGH : SOUND_HIGH;
   if (!on) {
     if (s.speaking) speaker->stop();
     s.speaking = false;
@@ -1096,14 +1109,14 @@ static void speak(Stream &s, bool on) {
     return;
   }
   if (!s.speaking) {
-    if (xStreamBufferBytesAvailable(s.sound) < SOUND_LOW) return;
+    if (xStreamBufferBytesAvailable(s.sound) < low) return;
     speaker->set_audio_stream_info(esphome::audio::AudioStreamInfo(16, 1, SOUND_RATE));
     speaker->start();
     s.speaking = true;
     s.dry = false;
   }
   if (s.dry) {
-    if (xStreamBufferBytesAvailable(s.sound) < SOUND_LOW) return;  // a new run-up first, as at the start
+    if (xStreamBufferBytesAvailable(s.sound) < low) return;  // a new run-up first, as at the start
     s.dry = false;
   }
   // Behind the picture (a burst after a hiccup in the stream): the oldest goes, down to SOUND_LOW, the rest of the piece
@@ -1111,11 +1124,11 @@ static void speak(Stream &s, bool on) {
   // back until the buffer runs full. Whole samples: the buffer holds only those, both marks are even, and a piece goes
   // only from a sample's first byte.
   const size_t held = xStreamBufferBytesAvailable(s.sound);
-  if (held > SOUND_HIGH && (s.piece_at & 1) == 0) {
+  if (held > high && (s.piece_at & 1) == 0) {
     ++s.caught_up;
     s.caught_up_bytes += s.piece_left;
     s.piece_left = 0;
-    for (size_t drop = held - SOUND_LOW; drop > 0;) {
+    for (size_t drop = held - low; drop > 0;) {
       const size_t n = xStreamBufferReceive(s.sound, s.sound_piece, std::min(drop, SOUND_PART), 0);
       if (n == 0) break;
       s.caught_up_bytes += n;
@@ -1128,14 +1141,18 @@ static void speak(Stream &s, bool on) {
       s.piece_at = 0;
       if (s.piece_left == 0) {
         if (rounds == 0) {  // nothing waited at all: the buffer ran dry
-          s.dry = true;
-          ++s.ran_dry;
+          // In a conversation that is only worth a new run-up once the sound has been gone for a while.
+          if (!talk || esphome::millis() - s.talk_fed_ms > SOUND_TALK_GONE_MS) {
+            s.dry = true;
+            ++s.ran_dry;
+          }
         }
         return;
       }
     }
     // Every piece is whole samples (the task writes only those); a write the speaker took an odd number of bytes of goes
     // on from the very next byte, the other half of that sample first, so its count is even again.
+    s.talk_fed_ms = esphome::millis();
     const size_t taken = speaker->play(s.sound_piece + s.piece_at, s.piece_left, 0);
     if (taken & 1) ++s.odd_taken;
     s.piece_at += taken;

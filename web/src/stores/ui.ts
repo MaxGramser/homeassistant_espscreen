@@ -10,11 +10,11 @@ import { whenBarFontsLoad } from "../model/topbar";
 import { flagSerializer, usePreference } from "../composables/usePreference";
 import { showText } from "../composables/useConfirm";
 import { atMost, useAtMost } from "../composables/useWidths";
-import { overrideRoute, reportRoute, router } from "../router";
+import { iconsRoute, overrideRoute, reportRoute, router } from "../router";
 
 // ---- Routes: the pages of the app as the code names them, "" for the main view (the open screen, else the overview) ----
 // The address itself is the router's (router.ts: #/settings, #/screens/<id>, ...); these names stay for every caller.
-export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report"] as const;
+export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;
 /** The parts of Events (#/events/<kind>): what an automation fires at the screens. */
 export const eventKinds = ["alerts", "doorbell"] as const;
 export type EventKind = (typeof eventKinds)[number];
@@ -141,6 +141,9 @@ export const useUiStore = defineStore("ui", () => {
   // The screen whose troubleshooting report is open (#/screens/<id>/report, components/ReportPanel.vue).
   const reportScreen = computed(() => current.value.name === "report" ? (String(current.value.params.id || "") || null) : null);
   function openReport(id: string) { return router.push(reportRoute(id)); }
+  // The screen whose icons are open (#/screens/<id>/icons, components/ScreenIconsPanel.vue).
+  const iconsScreen = computed(() => current.value.name === "icons" ? (String(current.value.params.id || "") || null) : null);
+  function openIcons(id: string) { return router.push(iconsRoute(id)); }
 
   // ---- The library drawer along the bottom (app 0.4.32): open or folded, remembered in this browser, and its filters ----
   const libraryOpen = usePreference("esp-screens.library-open", true, { serializer: { read: (raw) => raw !== "0", write: (open) => (open ? "1" : "0") } });
@@ -182,7 +185,7 @@ export const useUiStore = defineStore("ui", () => {
     notice, toast, dismissToast, copyText, openIntegrations,
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
-    route, go, setMainView, overrideProfile, openOverride, reportScreen, openReport, eventsKind, openEvents,
+    route, go, setMainView, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
     libraryOpen, filter, search, room, hidePlaced, growTip, growTips,
     now, fontsVersion, start,
   };

@@ -159,6 +159,8 @@
       "microphone": "Mikrofon",
       "media_player": "Lautstärke",
       "wake_when_moved": "Bei Bewegung aufwecken",
+      "backlight_pwm": "Hintergrundlicht-PWM",
+      "dimmest_level": "Dunkelste Stufe",
       "dark_mode": "Dunkler Modus",
       "auto_standby": "Auto-Standby",
       "standby_after": "Standby nach",
@@ -204,7 +206,12 @@
       "door_confirm": "Zum Öffnen erneut tippen",
       "door_sent": "Gesendet",
       "talk": "Sprechen",
-      "coming_soon": "Demnächst"
+      "tap_talk": "Tippen zum Sprechen",
+      "talking": "Sprechen",
+      "tap_stop": "Tippen zum Beenden",
+      "connecting": "Verbinden",
+      "talk_busy": "Jemand anderes spricht",
+      "talk_failed": "Keine Verbindung"
     },
     "tile": {
       "tap_to_open": "Zum Öffnen",
@@ -647,6 +654,41 @@
       "calendars": "Kalender",
       "also": "+{x} jetzt",
       "booked": "Am Bildschirm gebucht"
+    },
+    "todo": {
+      "open": "{x} offen",
+      "all_done": "Alles erledigt",
+      "more": "+{x} weitere",
+      "completed": "Erledigt",
+      "add": "Eintrag hinzufügen",
+      "added": "{x} hinzugefügt",
+      "rename": "Umbenennen",
+      "remove": "Entfernen",
+      "cancel": "Abbrechen",
+      "clear": "{x} erledigte entfernen?",
+      "waiting": "Laden",
+      "empty": "Nichts auf der Liste",
+      "yesterday": "Gestern"
+    },
+    "call": {
+      "title": "Anrufen",
+      "calling": "Ruft an",
+      "calling_video": "Videoanruf läuft",
+      "video": "Videoanruf",
+      "audio": "Anruf",
+      "decline": "Ablehnen",
+      "answer": "Annehmen",
+      "ended": "Anruf beendet",
+      "declined": "Abgelehnt",
+      "busy": "Im Gespräch",
+      "no_answer": "Keine Antwort",
+      "quiet": "Nicht stören",
+      "gone": "Nicht erreichbar",
+      "available": "Verfügbar",
+      "sound_only": "Verfügbar, nur Ton",
+      "in_call": "Im Gespräch",
+      "offline": "Offline",
+      "missed_at": "Verpasster Anruf"
     }
   },
   "addon": {
@@ -1181,6 +1223,14 @@
           "label": "Bei Bewegung aufwecken",
           "hint": "Der Bildschirm wacht aus dem Standby auf, wenn jemand ihn hochnimmt, bewegt oder anstößt. Er spürt sich selbst, nicht jemanden, der vorbeigeht."
         },
+        "backlight_pwm": {
+          "label": "Hintergrundlicht-PWM",
+          "hint": "Wie schnell das Hintergrundlicht zum Dimmen ein- und ausschaltet. 150 Hz dimmt jedes Gerät dieser Platine, manche pfeifen aber unter 20 kHz: wähle 20 kHz, wenn deins pfeift, 15 kHz, wenn 20 kHz nicht gleichmäßig dimmt."
+        },
+        "dimmest_level": {
+          "label": "Dunkelste Stufe",
+          "hint": "Die niedrigste Stufe des Hintergrundlichts, als Anteil seiner vollen Leistung. Erhöhe sie, wenn der Bildschirm bei der niedrigsten Helligkeit schwarz bleibt oder flackert."
+        },
         "microphone_gain": {
           "label": "Mikrofonverstärkung",
           "hint": "Analoge Mikrofonverstärkung. Beginnt bei 30 dB; die Verstärkung der Wiedergabereferenz bleibt fest."
@@ -1435,7 +1485,8 @@
         "alert_outline": "Warnung",
         "cog": "Einstellungen",
         "broom": "Reinigung",
-        "diabetes": "Diabetes"
+        "diabetes": "Diabetes",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1445,7 +1496,8 @@
         "page": "Zu Seite {page}",
         "map": "Karte",
         "energy": "Energie",
-        "text": "Template"
+        "text": "Template",
+        "call": "Anrufen"
       },
       "identify": {
         "title": "Das ist {name}",
@@ -1916,7 +1968,9 @@
         "alarm_control_panel": "Alarm",
         "lock": "Schlösser",
         "humidifier": "Luftbefeuchter",
-        "calendar": "Kalender"
+        "calendar": "Kalender",
+        "todo": "To-do-Listen",
+        "text": "Texte"
       },
       "room": "Bereich",
       "hide_placed": "Platzierte ausblenden",
@@ -2364,7 +2418,14 @@
       "remove": "{name} entfernen",
       "type": "Eingeben und Enter drücken",
       "full": "Der Bildschirm nimmt für diese Kachel nicht mehr auf: ihre Optionen sind voll.",
-      "count": "{n} von {max}"
+      "count": "{n} von {max}",
+      "show_all": "Alle Entitäten anzeigen",
+      "show_fitting": "Nur Passende anzeigen",
+      "not_set": "Nicht festgelegt",
+      "fill_device": "Von einem Gerät ausfüllen",
+      "fill_device_hint": "Wähle ein Gerät, und seine Sensoren werden unten eingetragen. Du kannst jeden danach noch ändern.",
+      "fill_device_none": "Kein Gerät hat zwei oder mehr dieser Sensoren",
+      "fill_device_count": "1 Sensor | {n} Sensoren"
     },
     "memory": {
       "label": "Speicher für Kacheln",
@@ -2414,7 +2475,10 @@
       "alarm_control_panel": "Alarmanlage",
       "lock": "Schloss",
       "humidifier": "Luftbefeuchter",
-      "calendar": "Kalender"
+      "calendar": "Kalender",
+      "todo": "To-do-Liste",
+      "text": "Text",
+      "input_text": "Text"
     },
     "displays": {
       "standard": "Standard",
@@ -2910,6 +2974,35 @@
           "unknown": "{id} gibt es in Home Assistant nicht",
           "replace": "Ersetzen durch {id}"
         }
+      },
+      "todo": {
+        "title": "To-do-Liste",
+        "plain": "Dieses Board kann keine To-do-Liste zeigen: dafür braucht es ein Board mit 8 MB Flash oder mehr. Entferne diese Kachel.",
+        "needs_firmware": "Die To-do-Liste braucht Firmware 0.61.0 oder neuer: nach dem Speichern beim Bildschirm auf Aktualisieren drücken.",
+        "order": {
+          "label": "Reihenfolge",
+          "hint": "Wie die To-do-Karte von Home Assistant sie ordnet",
+          "none": "Wie in Home Assistant",
+          "alpha_asc": "Name, A bis Z",
+          "alpha_desc": "Name, Z bis A",
+          "duedate_asc": "Fälligkeit, früheste zuerst",
+          "duedate_desc": "Fälligkeit, späteste zuerst"
+        },
+        "completed": "Erledigte Einträge",
+        "completed_hint": "Unter den offenen Einträgen, durchgestrichen, wo Platz ist",
+        "due": "Fälligkeiten",
+        "due_hint": "Der Tag neben einem Eintrag; überfällig ist rot",
+        "screen": "Auf dem Bildschirm",
+        "add": "Einträge hinzufügen",
+        "add_hint": "Eine Plus-Taste auf der Kachel und ein Feld in der Liste öffnen die Tastatur des Bildschirms",
+        "suggest": "Namen vorschlagen",
+        "suggest_hint": "Beim Tippen bietet die Tastatur an, was früher abgehakt wurde; ein Tipp setzt es zurück auf die Liste",
+        "clear": "Erledigte entfernen",
+        "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
+      },
+      "text_entity": {
+        "edit": "Ein Tippen öffnet den Wert in einem Feld mit der Tastatur des Bildschirms. Ein Passwort erscheint als Punkte.",
+        "view_only": "Dieses Board zeigt nur den Wert: Ändern auf dem Bildschirm braucht ein Board mit 8 MB Flash oder mehr."
       }
     },
     "precision": {
@@ -3571,6 +3664,14 @@
         "change": "WLAN ändern und neu installieren",
         "failed": "Tessera kann {name} nicht selbst zu Home Assistant hinzufügen. Füge ihn unten selbst hinzu."
       },
+      "known": {
+        "title": "Dieses Board ist in Home Assistant schon als {name} bekannt",
+        "text": "Home Assistant führt pro Board (seiner MAC-Adresse) ein ESPHome-Gerät, darum kann {new} nicht hinzukommen, solange {name} da ist. Installiere {name} erneut, oder ersetze es: sobald die Firmware auf dem Board ist, verschwindet {name} mit seinen Entitäten aus Home Assistant und {new} tritt an seine Stelle.",
+        "reinstall": "{name} erneut installieren",
+        "replace": "{name} durch {new} ersetzen",
+        "replaced": "{name} wurde aus Home Assistant entfernt; {new} tritt an seine Stelle.",
+        "go_firmware": "Wähle unter Firmware & USB das Profil von {name} und „Aus diesem Browser installieren“."
+      },
       "memory": {
         "low_title": "Wenig freier Speicher auf der Home-Assistant-Maschine",
         "low": "{free} Speicher sind frei, darum erstellt die Firmware mit weniger Compilern gleichzeitig ({jobs} statt {cores}). Das dauert länger, passt aber.",
@@ -3847,7 +3948,10 @@
     "mockup": {
       "home": "Zuhause",
       "unknown": "Unbekannt",
-      "calendar_free": "Frei"
+      "calendar_free": "Frei",
+      "todo_open": "{x} offen",
+      "todo_all_done": "Alles erledigt",
+      "todo_more": "+{x} weitere"
     },
     "pages": {
       "repaired": "Seite {page}, Kachel „{tile}“: Unpassendes entfernt ({what}).",

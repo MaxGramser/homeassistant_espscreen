@@ -17,6 +17,17 @@ int main() {
   const hw::Caps a = hw::resolve(full);
   assert(a.live_video && a.speaker && a.microphone && a.echo_cancel && a.camera);
   assert(a.live_tiles == 4);
+  // Motion is a full-tier screen with a frame buffer a task may write, and nothing less: never a lite screen (the CYD)
+  // whatever its glass, never a full one without the buffer.
+  assert(!a.motion);
+  hw::Facts moving = full;
+  moving.direct_glass = moving.full_tier = true;
+  assert(hw::resolve(moving).motion);
+  moving.full_tier = false;
+  assert(!hw::resolve(moving).motion);
+  moving.full_tier = true;
+  moving.direct_glass = false;
+  assert(!hw::resolve(moving).motion);
   assert(a.psram_bytes == 32u * 1024 * 1024 && a.internal_bytes == 768u * 1024);
 
   // An S3 board with a speaker and no live video: no live tiles, whatever else it has.

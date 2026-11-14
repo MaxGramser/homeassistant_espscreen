@@ -207,6 +207,7 @@ firmware_preview() {
   node web/wasm/test_card_parts.mjs || return 1
   node web/wasm/test_look.mjs || return 1
   node web/wasm/test_colour_card.mjs || return 1
+  node web/wasm/test_cover_keys.mjs || return 1
   node web/wasm/test_top_bar_cards.mjs || return 1
   node web/wasm/test_images.mjs || return 1
   PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.mjs || return 1

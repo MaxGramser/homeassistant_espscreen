@@ -22,6 +22,7 @@ import FavoriteSection from "./inspector/FavoriteSection.vue";
 import MapSection from "./inspector/MapSection.vue";
 import MeterSection from "./inspector/MeterSection.vue";
 import PresetsSection from "./inspector/PresetsSection.vue";
+import TodoSection from "./inspector/TodoSection.vue";
 import TextSection from "./inspector/TextSection.vue";
 import NameField from "./inspector/NameField.vue";
 import PrecisionRow from "./inspector/PrecisionRow.vue";
@@ -104,9 +105,18 @@ const mapTile = computed(() => props.tile.entity === "screen.map");
 const energyTile = computed(() => props.tile.entity === "screen.energy");
 // The template tile (docs/TEXT_TILE.md) is its template: no face, second line or tap to choose, its field in a section of its own.
 const textTile = computed(() => props.tile.entity === "screen.text");
+// The Call tile (docs/CALLS.md): whom it calls and how.
+const callTile = computed(() => props.tile.entity === "screen.call");
+const callChoices = computed<[string, string][]>(() => [["", t("editor.tile.call.everyone")],
+  ...inv.inventory.screens.filter((s) => s.call_tiles && s.id !== scr.currentScreen?.id && s.node).map((s) => [s.node as string, s.name] as [string, string])]);
+const callKinds = computed<[string, string][]>(() => [["video", t("editor.tile.call.video")], ["sound", t("editor.tile.call.sound")]]);
 // A calendar card (firmware 0.56.0) draws its own head and what its room allows: no face or second line to choose, its
 // choices in a section of their own. As a bedside clock's key it is a key like any other.
 const calendarCard = computed(() => domain.value === "calendar" && !key.value);
+// A text (docs/TEXT_ENTITY.md): a tap edits it on a board with the module text_edit, any other shows the value only.
+const textEntity = computed(() => (domain.value === "text" || domain.value === "input_text") && !key.value);
+// A to-do card draws its own list on a board that has it (docs/TODO.md): its choices in a section of their own.
+const todoCard = computed(() => domain.value === "todo" && !key.value);
 // A favourite (app 0.4.42): what it plays and on which speaker, in its own section.
 const favoriteCard = computed(() => display.value === "favorite" && domain.value === "media_player");
 // A sensor's meter (firmware 0.56.0): its look, its range and its colours, in its own sections.
@@ -272,7 +282,16 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
 
     <!-- What the card shows first, then where it stands, what a finger does to it, and last its icon and colour. -->
     <template v-if="!ui.phone || more">
+    <Section v-if="callTile" :title="t('editor.tile.call.section')">
+      <PropRow :label="t('editor.tile.call.who')" icon="phone" :hint="current('call_to', '') ? t('editor.tile.call.who_hint_one') : t('editor.tile.call.who_hint_all')">
+        <UiSelect :model-value="String(current('call_to', ''))" :options="callChoices" :aria-label="t('editor.tile.call.who')" @update:model-value="(v) => setTileOption(tile, 'call_to', v || undefined)" />
+      </PropRow>
+      <PropRow :label="t('editor.tile.call.kind')" icon="video" :hint="t('editor.tile.call.kind_hint')">
+        <UiSelect :model-value="String(current('call_kind', 'video'))" :options="callKinds" :aria-label="t('editor.tile.call.kind')" @update:model-value="(v) => setTileOption(tile, 'call_kind', v === 'video' ? undefined : v)" />
+      </PropRow>
+    </Section>
     <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard && !textTile" :title="t('editor.tile.sections.look')">
+      <p v-if="textEntity" class="hint">{{ t(scr.currentScreen?.text_edit === false ? "editor.tile.text_entity.view_only" : "editor.tile.text_entity.edit") }}</p>
       <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
         <ChoiceField :choices="flowChoices" :value="current('flow', rules.energyFlow[0])" :tile="tile" preview-key="flow" :aria-label="t('editor.tile.energy.flow.label')" @pick="(v) => setTileOption(tile, 'flow', v)" />
@@ -320,6 +339,9 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
 
     <!-- A calendar card (firmware 0.56.0): what it shows, its calendars, which events, how far ahead. -->
     <CalendarSection v-if="calendarCard" :tile="tile" />
+
+    <!-- A to-do card: its order, what it shows, and what a finger may do on the screen. -->
+    <TodoSection v-if="todoCard" :tile="tile" />
 
     <!-- A favourite (app 0.4.42): what it plays, from the player's library, and on which speaker. -->
     <FavoriteSection v-if="lookShown && favoriteCard" :tile="tile" />

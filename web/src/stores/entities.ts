@@ -2,6 +2,7 @@
 // values its second line may say), its state now (the mockup's live values, app 0.2.73), the top bar's entity texts as the
 // screen will show them, a sensor's history, and an entity's name and icon. What to ask for comes in from whoever asks
 // (the open layout, the library, the overview); the store keeps the answers and what it already asked.
+import { useScreenIconsStore } from "./screenIcons";
 import { defineStore } from "pinia";
 import { computed, ref, toRaw } from "vue";
 import { getJson, send } from "../api";
@@ -25,6 +26,7 @@ const query = (ids: string[]) => ids.map((id) => `entity=${encodeURIComponent(id
 const own = (ids: string[]) => [...new Set(ids)].filter((id) => !id.startsWith("screen."));
 
 export const useEntitiesStore = defineStore("entities", () => {
+  const screenIcons = useScreenIconsStore();
   const inv = useInventoryStore();
   const plugins = usePluginsStore();
 
@@ -39,7 +41,8 @@ export const useEntitiesStore = defineStore("entities", () => {
   // The icons the add-on offers, by name: worked out again only when it sends others (its list as a whole, not each icon
   // followed on its own).
   const iconsByName = computed<Record<string, { name: string; cp: string; label: string }>>(() =>
-    Object.fromEntries((toRaw(inv.inventory.icons)?.groups || []).flatMap((g) => g.icons.map((i) => [i.name, i]))));
+    Object.fromEntries([...(toRaw(inv.inventory.icons)?.groups || []).flatMap((g) => g.icons), ...(toRaw(inv.inventory.icons)?.more || []), ...screenIcons.own]
+      .map((i) => [i.name, i])));
   const iconNamed = (name: string | undefined) => (name ? iconsByName.value[name] : undefined);
   // What the firmware draws without a choice: Home Assistant's own icon, else the domain icon.
   function automaticIcon(id: string): string {

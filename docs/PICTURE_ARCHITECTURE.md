@@ -27,9 +27,10 @@ its chip, its panel or its sensor, and the layers below are keyed on those facts
 | `picture_fetch.cpp` | the download task and its socket, the three slots, the hand-off to the main loop | no | sockets, FreeRTOS, PSRAM; a whole JPEG through `picture_engine` (step 4) |
 | `live_view.h` | the stream's framing (`Reader`), where a rectangle lies on a turned panel (`on_panel`), how a picture fits or is cut (`fit`, `cut`), what a tile lays over a live picture (`compose`, `draw_loader`) | yes, `tests/test_live_view.cpp` | none |
 | `glass.h`, `glass_dsi.cpp` | the panel as a surface (step 3, done): its size, format and turn, the frame buffer (a linker wrap of `esp_lcd_new_panel_dpi`), the one-writer lock with LVGL's refresh hooks, the rooms LVGL keeps out of (`keep_out`), the underrun counter, the PPA burst wrap | `on_panel`, `tests/test_live_view.cpp` | DSI panel, LVGL internals |
+| `glass_dsi_refresh.h`, `.cpp` | the panel's DMA repeats the frame buffer by itself, so no interrupt stands between two frames (docs/CAMERA.md, "A frame's restart") | no, the bench with a camera on the glass | the DW-GDMA channel, through a linker wrap of `dw_gdma_new_channel` |
 | `picture_engine.h`, `picture_engine_p4.cpp` | the engine (step 4, done): the formats taken whole, the hardware JPEG decoder for stills and streams, the PPA copy through the guard, the one turn mapping (`ppa_angle`); the software engine is the stubs | `ppa_angle` and the stubs, `tests/test_picture_engine.cpp` | JPEG decoder, PPA, 2D-DMA |
 | `live_view.cpp` | the streams' tasks, the canvas of a tile and what goes over it, the camera's sound to the speaker | no | sockets, speaker |
-| `ppa_guard.h`, `.cpp` | a turned PPA copy the 2D-DMA would never finish goes in pieces (DIG-734) | yes, `tests/test_ppa_guard.cpp` | PPA, through a linker wrap |
+| `ppa_guard.h`, `.cpp` | a PPA copy the 2D-DMA would never finish, turned or straight, goes in pieces (DIG-734) | yes, `tests/test_ppa_guard.cpp` | PPA, through a linker wrap |
 | `live_spots.h` | the one machine of the live tiles and a plugin's live places: what streams, asks, stops and gives up; the full view's handle and tries (`ViewStream`) (step 5, done) | yes, `tests/test_live_spots.cpp` | none |
 | `runtime_tiles.h` (the picture parts) | the owners (the full view, the alert, the media card's cover, every tile, the library, a vacuum's map, a plugin's card and saver), the slots bound from YAML (`ImageHooks`), the store bound to PSRAM, `pictures_round`, the full view (`camera_open`, `camera_close`, `camera_answer`), what binds the live spots (which may stream, their question, their look), `drawn_over`, `live_stop_covered`, `live_tick` | no | LVGL |
 | `plugin_host.cpp` (its picture parts) | a plugin's places measured and laid, `ui::picture`, `ui::set_picture`, `ui::live`; `tessera::capturing` reports to the dot | no | LVGL |
@@ -189,7 +190,7 @@ fact of the hardware, and where:
 | the chip is an ESP32-P4 | `__init__.py` (`_esp32_p4`, `_engine`) | `P4_NETWORK`; `PICTURE_ENGINE_P4`, `GLASS_DSI`, `USE_LIVE_VIEW` and the three wraps (`engine_build.py`) |
 | the chip is an ESP32-S3 with PSRAM and LVGL | `__init__.py` (`_engine`) | `PICTURE_ENGINE_S3`, `GLASS_RGB`, `USE_LIVE_VIEW`, the esp_new_jpeg component and the wraps of its allocator and of `esp_lcd_new_rgb_panel` (`engine_build.py`) |
 | how many live tiles at once | `picture_engine::limits().live_tiles` (four on the P4, one on the S3: each tile's Wi-Fi and lwIP buffers cost the S3 about 11 KB of internal RAM, CAMERA.md "Live on an ESP32-S3") | `hw::caps`, the hello, the editor |
-| the pictures a second the live tiles share | `picture_engine::limits().tile_budget_pps` (24 on the P4, 8 on the S3), shared by `picture_engine::tile_pps` | each tile's pace (`live_view.cpp`, `tile_gap_us`) |
+| the pictures a second the live tiles share | `picture_engine::limits().tile_budget_pps` (40 on the P4, 6 on the S3), shared by `picture_engine::tile_pps` | each tile's pace (`live_view.cpp`, `tile_gap_us`) |
 | the core a stream decodes on | `picture_engine::limits().stream_core` (1 on the P4, 0 on the S3, away from LVGL) | the stream's task (`live_view::open`) |
 | whether a decode holds the glass, and a full view's pace | `picture_engine::limits()` (`decode_on_glass`: the P4's decoder runs on the 2D-DMA, the S3's on the CPU; `view_pps` 8 on the S3) | `live_view.cpp` |
 | the panel is MIPI-DSI | `glass_dsi.cpp` (the wrap of `esp_lcd_new_panel_dpi`) | a P4 with an RGB panel would find no frame buffer and show stills |
@@ -301,7 +302,7 @@ size_t held(Client client);                         // what a client's buffers h
 
 The 2D-DMA's own facts are the engine's and nobody else's: its units of 64 pixels for 16-bit output and 32 for 24- and
 32-bit, its macro block of 16 rows on every P4 build ESPHome makes (`CONFIG_ESP32P4_SELECTS_REV_LESS_V3`), its FIFO of
-1536 bits, and the turned block with a small leftover that it never finishes (DIG-734), as `ppa_guard` holds them. The
+1536 bits, and the block with a small leftover that it never finishes (DIG-734), as `ppa_guard` holds them. The
 guard is proven on glass with every turned copy forced through its planner's cuts (ten thousand pieces in three minutes,
 pieces one pixel wide among them, the chrome correct) and cleared as a cause of the restarts of October 2026 (the two
 P4 screens that restarted decoded to a blocked main loop without a line of the guard; section 8 says what blocked it):

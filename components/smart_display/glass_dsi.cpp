@@ -2,6 +2,7 @@
 // the panel ESPHome's display made, picked up as ESP-IDF makes it, its frame buffer, the panel's underrun counter and the
 // PPA bursts of every client.
 #include "glass.h"
+#include "glass_dsi_refresh.h"
 #include "picture_engine.h"
 #if defined(GLASS_DSI) && defined(SCREEN_PICTURES)
 #include <driver/ppa.h>
@@ -56,7 +57,7 @@ void *frame_buffer() {
 // panel shows its colour for no data), raised no flag; one in the last 480 lines, which blues the bottom, did. So
 // until 2026-10-29 the count saw the blue over the lower tiles (39 to 53 a minute on a D1001 with the encoder's strip
 // in PSRAM, docs/PLATFORM_PLAN.md 4.4a) and never the whole-glass flash a slider drag or a log line brought on the
-// same board, and read "the D1001 counts none" (espressif/esp-idf #19188 and jtenniswood/espcontrol #2118 saw the
+// same board, and read "the D1001 counts none" (jtenniswood/espcontrol #2118 saw the
 // same flash with the flag silent). With the mask at 0 every underrun counts; what the panel shows does not change.
 //
 // The frame callback is ESP-IDF's on_vsync, which ESPHome's display leaves free (it takes on_color_trans_done only):
@@ -76,28 +77,42 @@ static bool dry_before = false;              // the frame before ran dry too: th
 static std::atomic<bool> watching{false};    // the mask off and the flag clear (once, on the main loop)
 static esp_lcd_dpi_panel_vsync_cb_t display_vsync = nullptr;  // the display's own, when it registers one
 
-static IRAM_ATTR bool frame_done(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *data, void *ctx) {
-  if (watching.load(std::memory_order_relaxed)) {
-    frames.fetch_add(1, std::memory_order_relaxed);
-    const bool dry = MIPI_DSI_BRIDGE.int_raw.underrun_int_raw;
-    if (dry) {
-      MIPI_DSI_BRIDGE.int_clr.underrun_int_clr = 1;
-      dry_frames.fetch_add(1, std::memory_order_relaxed);
-      if (!dry_before) {
-        const uint32_t n = flashes.load(std::memory_order_relaxed);
-        began[n % BEGAN_KEPT] = {holder_now(), flushing_now()};
-        flashes.store(n + 1, std::memory_order_release);
-      }
-    }
-    dry_before = dry;
-    // The DSI host's own errors (the link to the panel: timeouts, ECC and CRC, its payload FIFO), cleared by the read.
-    const uint32_t st0 = MIPI_DSI_HOST.int_st0.val, st1 = MIPI_DSI_HOST.int_st1.val;
-    if (st0 | st1) {
-      host_errors.fetch_add(1, std::memory_order_relaxed);
-      host_bits.fetch_or(st1 | (st0 ? 1u << 31 : 0u), std::memory_order_relaxed);
+static std::atomic<bool> refresh_held{false};  // the DMA restarts itself (refresh_hold): the frames are read elsewhere
+
+// One frame of the panel: what the bridge and the DSI host say about it.
+static IRAM_ATTR void frame_seen() {
+  frames.fetch_add(1, std::memory_order_relaxed);
+  const bool dry = MIPI_DSI_BRIDGE.int_raw.underrun_int_raw;
+  if (dry) {
+    MIPI_DSI_BRIDGE.int_clr.underrun_int_clr = 1;
+    dry_frames.fetch_add(1, std::memory_order_relaxed);
+    if (!dry_before) {
+      const uint32_t n = flashes.load(std::memory_order_relaxed);
+      began[n % BEGAN_KEPT] = {holder_now(), flushing_now()};
+      flashes.store(n + 1, std::memory_order_release);
     }
   }
+  dry_before = dry;
+  // The DSI host's own errors (the link to the panel: timeouts, ECC and CRC, its payload FIFO), cleared by the read.
+  const uint32_t st0 = MIPI_DSI_HOST.int_st0.val, st1 = MIPI_DSI_HOST.int_st1.val;
+  if (st0 | st1) {
+    host_errors.fetch_add(1, std::memory_order_relaxed);
+    host_bits.fetch_or(st1 | (st0 ? 1u << 31 : 0u), std::memory_order_relaxed);
+  }
+}
+
+static IRAM_ATTR bool frame_done(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel_event_data_t *data, void *ctx) {
+  if (watching.load(std::memory_order_relaxed) && !refresh_held.load(std::memory_order_relaxed)) frame_seen();
   return display_vsync ? display_vsync(panel, data, ctx) : false;
+}
+
+// The panel's DMA repeats the frame buffer by itself (glass_dsi_refresh.cpp), so no interrupt stands between two frames. The
+// frame callback no longer comes on a chip whose only "vsync" was that interrupt: frame_seen is then called from a timer.
+static void refresh_hold() {
+  void *fb = frame_buffer();
+  if (!fb || !panel_facts.rgb565) return;
+  const size_t bytes = (size_t) panel_facts.w * panel_facts.h * 2;
+  if (hold_refresh(fb, bytes, frame_seen)) refresh_held.store(true, std::memory_order_relaxed);
 }
 
 // What the runtime notes for the watch: the log's lines (any task) and the finger (the main loop).
@@ -167,6 +182,7 @@ static void watch_tick() {
     MIPI_DSI_BRIDGE.int_clr.underrun_int_clr = 1;
     minute_from = lines_mark_at = now;
     watching.store(true, std::memory_order_relaxed);
+    refresh_hold();
     return;
   }
   const uint32_t lines = log_lines.load(std::memory_order_relaxed);

@@ -109,7 +109,7 @@ export function replacementCandidates(old: string, entities: readonly Entity[], 
       .sort((a, b) => b.score - a.score || a.index - b.index).slice(0, limit).map(({ entity }) => entity);
   }
   const found = pool.filter((entity) => matchesWords(wanted, entity.name, entity.id, entity.area, entity.device));
-  const rank = (entity: Entity) => (entity.id.startsWith(`${domain}.`) ? 0 : 3) + prefixRank(entity.name, wanted[0]);
+  const rank = (entity: Entity) => (entity.id.startsWith(`${domain}.`) ? 0 : 4) + prefixRank(entity.name, wanted[0]);
   return found.map((entity, index) => ({ entity, index })).sort((a, b) => rank(a.entity) - rank(b.entity) || a.index - b.index)
     .slice(0, limit).map(({ entity }) => entity);
 }

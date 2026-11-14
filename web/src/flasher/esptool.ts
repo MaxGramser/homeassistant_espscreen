@@ -10,7 +10,7 @@
 // esptool-js 0.7 or newer, ahead of ESPHome's own web tools (0.6): it detects a chip with GET_SECURITY_INFO and powers
 // the flash of an ESP32-P4 revision 3.1 or 3.2 (ECO6/ECO7), on which, by its changelog, 0.6 hung at the first flash
 // command. With 0.6 a JC8012P4A1 V3 behind a CH340 gave no answer at chip detection (GitHub #51).
-import { ESPLoader, Transport, UsbJtagSerialReset } from "esptool-js";
+import { ESPLoader, Transport } from "esptool-js";
 import { writtenPercent } from "./logic";
 
 export type Loader = ESPLoader;
@@ -29,6 +29,11 @@ export async function connect(loader: ESPLoader): Promise<string> {
   await loader.main();
   await loader.flashId();
   return loader.chip.CHIP_NAME;
+}
+
+/** The chip's MAC address, lower case with colons, as Home Assistant keys its ESPHome device on it (app 0.4.96). */
+export async function readMac(loader: ESPLoader): Promise<string> {
+  return (await loader.chip.readMac(loader)).toLowerCase();
 }
 
 /** ESPHome's flashFiles for one factory image at address 0: optionally erase, then write compressed and keep the
@@ -55,7 +60,6 @@ export async function writeImage(loader: ESPLoader, data: Uint8Array, erase: boo
   onProgress(100);
 }
 
-const ESPRESSIF_USB_VID = 0x303a;
 // RTC watchdog registers per chip (base + offsets), from esptool python, as ESPHome's hard-reset.ts has them.
 const WDT_RESET_CHIPS: Record<string, { wdtConfig0: number; wdtConfig1: number; wdtWProtect: number }> = {
   "ESP32-S2": { wdtConfig0: 0x3f408094, wdtConfig1: 0x3f408098, wdtWProtect: 0x3f4080ac },
@@ -101,12 +105,18 @@ async function classicHardReset(transport: Transport): Promise<void> {
   await transport.setRTS(false);
 }
 
-/** ESPHome's hardResetChip: boot the new firmware. esptool-js's own after() leaves a native USB chip in download mode. */
+/**
+ * Boot the new firmware (ESPHome's hardResetChip, but for every chip without a watchdog reset the EN pulse of
+ * classicHardReset). esptool-js's own after() and its UsbJtagSerialReset both leave a native USB chip in download
+ * mode: on a reTerminal D1001 (ESP32-P4 v1.3, USB-Serial-JTAG) the UsbJtagSerialReset sequence ends in
+ * `boot:0x207 (DOWNLOAD)`, "waiting for download", and the screen stays dark until its cable is pulled (app 0.4.94,
+ * 2026-11-03); the EN pulse ends in `boot:0x20f (SPI_FAST_FLASH_BOOT)` and the firmware runs. The S2, S3, C2 and C3
+ * take the watchdog route above, as before.
+ */
 export async function restart(loader: ESPLoader): Promise<void> {
   const transport = loader.transport;
   if (await watchdogReset(loader, transport)) return;
-  if (transport.device.getInfo().usbVendorId === ESPRESSIF_USB_VID) await new UsbJtagSerialReset(transport).reset();
-  else await classicHardReset(transport);
+  await classicHardReset(transport);
 }
 
 /** Close the port; a port that is already gone is fine. */

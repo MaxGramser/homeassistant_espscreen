@@ -73,10 +73,11 @@ class Governor {
     last_sign_ = climbed_ = changed_ = stamp(now);
   }
   // Someone hears the screen's microphone (plugin API 0.23, capturing(SOUND): its camera watched with its sound, a
-  // call): a conversation, which goes before the live tiles on the sending side too. The tiles stay at a quarter while
+  // call): a conversation, which goes before the live tiles on the sending side too. The tiles stay at half at least while
   // it lasts, whatever the steps say; the camera, sensing and the background follow the steps as before. On a
   // reTerminal D1001 four live tiles beside its own video stalled its Wi-Fi uplink and the sound reached the viewer in
-  // bursts a second late, 2.4 s at most (2026-10-29, docs/PLATFORM_PLAN.md 5.1).
+  // bursts a second late, 2.4 s at most (2026-10-29, docs/PLATFORM_PLAN.md 5.1). Half since 2026-11-09: a quarter or none made
+  // no difference to the video on the same board (11 to 12 frames a second either way), and the tiles went from 1.5 to 3.
   void heard(bool on) { heard_ = on; }
   bool heard() const { return heard_; }
   // The finger: on the glass, and whether it drags (past the tap's limit) or a page moves.
@@ -113,7 +114,7 @@ class Governor {
     const uint8_t stepped = STEPS[step_][w];
     // The live tiles give way while someone hears the microphone only when there are two or more of them: one tile
     // crowds nothing, and Max saw it squeezed for no reason (a reTerminal D1001 with one live tile, 2026-10-29).
-    const uint8_t least = w == LIVE_TILES && heard_ && live_tiles.load(std::memory_order_relaxed) >= 2 ? MOST - 1 : 0;
+    const uint8_t least = w == LIVE_TILES && heard_ && live_tiles.load(std::memory_order_relaxed) >= 2 ? 1 : 0;
     const uint8_t level = stepped > touch ? stepped : touch;
     return level > least ? level : least;
   }

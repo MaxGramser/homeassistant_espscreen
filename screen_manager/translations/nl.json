@@ -159,6 +159,8 @@
       "microphone": "Microfoon",
       "media_player": "Volume",
       "wake_when_moved": "Wakker bij bewegen",
+      "backlight_pwm": "Achtergrondlicht-PWM",
+      "dimmest_level": "Laagste stand",
       "dark_mode": "Donkere modus",
       "auto_standby": "Automatisch stand-by",
       "standby_after": "Stand-by na",
@@ -195,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Microfoongain",
       "automatic_gain": "Automatische gain",
-      "echo_cancellation": "Echo-onderdrukking"
+      "echo_cancellation": "Echo-onderdrukking",
+      "loop_pages": "Pagina's rondlopen"
     },
     "doorbell": {
       "sound_on": "Geluid aan",
@@ -204,7 +207,12 @@
       "door_confirm": "Tik nog eens om te openen",
       "door_sent": "Verstuurd",
       "talk": "Spreken",
-      "coming_soon": "Binnenkort"
+      "tap_talk": "Tik om te praten",
+      "talking": "In gesprek",
+      "tap_stop": "Tik om te stoppen",
+      "connecting": "Verbinden",
+      "talk_busy": "Iemand anders praat",
+      "talk_failed": "Geen verbinding"
     },
     "tile": {
       "tap_to_open": "Tik om te openen",
@@ -647,6 +655,42 @@
       "calendars": "Agenda's",
       "also": "+{x} nu",
       "booked": "Geboekt op het scherm"
+    },
+    "todo": {
+      "open": "{x} open",
+      "all_done": "Alles gedaan",
+      "more": "+{x} meer",
+      "completed": "Afgevinkt",
+      "add": "Item toevoegen",
+      "added": "{x} toegevoegd",
+      "rename": "Naam wijzigen",
+      "remove": "Verwijderen",
+      "cancel": "Annuleren",
+      "clear": "{x} afgevinkte verwijderen?",
+      "waiting": "Laden",
+      "empty": "Niets op de lijst",
+      "yesterday": "Gisteren"
+    },
+    "call": {
+      "title": "Bellen",
+      "calling": "Bellen",
+      "calling_video": "Videobellen",
+      "video": "Videogesprek",
+      "audio": "Gesprek",
+      "decline": "Weigeren",
+      "answer": "Opnemen",
+      "ended": "Gesprek beëindigd",
+      "declined": "Geweigerd",
+      "busy": "In gesprek",
+      "no_answer": "Geen antwoord",
+      "quiet": "Niet storen",
+      "gone": "Niet bereikbaar",
+      "available": "Beschikbaar",
+      "sound_only": "Beschikbaar, alleen geluid",
+      "in_call": "In gesprek",
+      "offline": "Offline",
+      "missed_at": "Gemist gesprek",
+      "no_screens": "Geen ander scherm om te bellen"
     }
   },
   "addon": {
@@ -1181,6 +1225,14 @@
           "label": "Wakker bij bewegen",
           "hint": "Het scherm wordt wakker uit stand-by als iemand het oppakt, verplaatst of erop tikt. Het voelt het scherm zelf, niet iemand die langsloopt."
         },
+        "backlight_pwm": {
+          "label": "Achtergrondlicht-PWM",
+          "hint": "Hoe snel het achtergrondlicht aan en uit schakelt om te dimmen. 150 Hz dimt elk exemplaar van dit bord, maar sommige piepen onder 20 kHz: kies 20 kHz als dat van jou piept, 15 kHz als 20 kHz niet gelijkmatig dimt."
+        },
+        "dimmest_level": {
+          "label": "Laagste stand",
+          "hint": "Hoe laag het achtergrondlicht gaat, als deel van zijn volle vermogen. Zet het hoger als het scherm op de laagste helderheid zwart blijft of flikkert."
+        },
         "microphone_gain": {
           "label": "Microfoongain",
           "hint": "Analoge microfoonversterking. Begint op 30 dB; de versterking van de afspeelreferentie blijft vast."
@@ -1435,7 +1487,8 @@
         "alert_outline": "Waarschuwing",
         "cog": "Instellingen",
         "broom": "Schoonmaken",
-        "diabetes": "Diabetes"
+        "diabetes": "Diabetes",
+        "phone": "Telefoon"
       }
     },
     "screen": {
@@ -1445,7 +1498,8 @@
         "page": "Ga naar pagina {page}",
         "map": "Kaart",
         "energy": "Energie",
-        "text": "Template"
+        "text": "Template",
+        "call": "Bellen"
       },
       "identify": {
         "title": "Dit is {name}",
@@ -1888,7 +1942,7 @@
     "library": {
       "title": "Bibliotheek",
       "entities": "{n} entiteit | {n} entiteiten",
-      "search": "Zoek op naam, apparaat of ruimte…",
+      "search": "Zoek op naam, ruimte, apparaat of soort…",
       "search_label": "Voeg een entiteit toe",
       "filters": {
         "all": "Alles",
@@ -1906,6 +1960,7 @@
         "vacuum": "Stofzuigers",
         "sensor": "Sensoren",
         "media_player": "Media",
+        "camera": "Camera's",
         "weather": "Weer",
         "number": "Waarden",
         "select": "Keuzelijsten",
@@ -1915,7 +1970,9 @@
         "alarm_control_panel": "Alarm",
         "lock": "Sloten",
         "humidifier": "Luchtbevochtigers",
-        "calendar": "Agenda's"
+        "calendar": "Agenda's",
+        "todo": "To-do-lijsten",
+        "text": "Teksten"
       },
       "room": "Ruimte",
       "hide_placed": "Geplaatste verbergen",
@@ -1923,6 +1980,8 @@
       "again": "Staat al op dit scherm; voeg het nog eens toe voor een extra tegel",
       "all_placed": "Alles hier staat al op dit scherm.",
       "none_found": "Geen entiteiten gevonden. Probeer een andere naam, ruimte of filter.",
+      "found_elsewhere": "Niets in deze selectie, maar 1 entiteit past in de hele bibliotheek. | Niets in deze selectie, maar {n} entiteiten passen in de hele bibliotheek.",
+      "search_everything": "Toon alles wat past",
       "full": "Op dit scherm past 1 tegel. | Op dit scherm passen {n} tegels.",
       "full_update": "Op dit scherm past 1 tegel; werk de firmware bij voor 48. | Op dit scherm passen {n} tegels; werk de firmware bij voor 48.",
       "hint": "Sleep naar een pagina, of tik op + voor de eerste vrije plek. ⌘K doorzoekt alles.",
@@ -1979,7 +2038,10 @@
       "alarm_control_panel": "Alarmpaneel",
       "lock": "Slot",
       "humidifier": "Luchtbevochtiger",
-      "calendar": "Agenda"
+      "calendar": "Agenda",
+      "todo": "To-do-lijst",
+      "text": "Tekst",
+      "input_text": "Tekst"
     },
     "displays": {
       "standard": "standaard",
@@ -2475,6 +2537,46 @@
           "unknown": "{id} bestaat niet in Home Assistant",
           "replace": "Vervang door {id}"
         }
+      },
+      "todo": {
+        "title": "To-do-lijst",
+        "plain": "Dit bord kan geen to-do-lijst tonen: dat vraagt een bord met 8 MB flash of meer. Verwijder deze tegel.",
+        "needs_firmware": "De to-do-lijst vraagt firmware 0.61.0 of nieuwer: druk na het opslaan op Bijwerken bij het scherm.",
+        "order": {
+          "label": "Volgorde",
+          "hint": "Zoals de to-do-kaart van Home Assistant ze ordent",
+          "none": "Zoals in Home Assistant",
+          "alpha_asc": "Naam, A tot Z",
+          "alpha_desc": "Naam, Z tot A",
+          "duedate_asc": "Vervaldatum, eerste eerst",
+          "duedate_desc": "Vervaldatum, laatste eerst"
+        },
+        "completed": "Afgevinkte items",
+        "completed_hint": "Onder de open items, doorgestreept, waar ruimte is",
+        "due": "Vervaldatums",
+        "due_hint": "De dag naast een item; te laat is rood",
+        "screen": "Op het scherm",
+        "add": "Items toevoegen",
+        "add_hint": "Een plusknop op de tegel en een veld in de lijst openen het toetsenbord van het scherm",
+        "suggest": "Namen voorstellen",
+        "suggest_hint": "Tijdens het typen biedt het toetsenbord aan wat eerder is afgevinkt; een tik zet het terug op de lijst",
+        "clear": "Afgevinkte verwijderen",
+        "clear_hint": "Een knop in de lijst verwijdert alles wat is afgevinkt, na een vraag"
+      },
+      "call": {
+        "section": "Bellen",
+        "who": "Belt",
+        "who_hint_all": "Een tik opent de lijst met schermen.",
+        "who_hint_one": "Een tik belt dit scherm meteen.",
+        "everyone": "Kiezen uit de lijst",
+        "kind": "Soort gesprek",
+        "kind_hint": "Video vraagt een camera op beide schermen, anders wordt het een gesprek met geluid.",
+        "video": "Video waar het kan",
+        "sound": "Alleen geluid"
+      },
+      "text_entity": {
+        "edit": "Een tik opent de waarde in een veld met het toetsenbord van het scherm. Een wachtwoord staat er als stippen.",
+        "view_only": "Dit bord toont alleen de waarde: wijzigen op het scherm vraagt een bord met 8 MB flash of meer."
       }
     },
     "precision": {
@@ -2629,7 +2731,8 @@
         "swipe_pages": "Vegen tussen pagina's",
         "page_buttons": "Paginaknoppen",
         "home_button": "Thuisknop tonen",
-        "rotation": "Rotatie"
+        "rotation": "Rotatie",
+        "loop_pages": "Pagina's rondlopen"
       },
       "actions": {
         "calibrate": {
@@ -3136,6 +3239,14 @@
         "change": "Wifi wijzigen en opnieuw installeren",
         "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
       },
+      "known": {
+        "title": "Dit bord staat al in Home Assistant als {name}",
+        "text": "Home Assistant houdt één ESPHome-apparaat per bord (zijn MAC-adres), dus {new} kan er niet bij zolang {name} er staat. Installeer {name} opnieuw, of vervang het: zodra de firmware op het bord staat, verdwijnt {name} met zijn entiteiten uit Home Assistant en komt {new} ervoor in de plaats.",
+        "reinstall": "{name} opnieuw installeren",
+        "replace": "{name} vervangen door {new}",
+        "replaced": "{name} is uit Home Assistant verwijderd; {new} komt ervoor in de plaats.",
+        "go_firmware": "Kies onder Firmware & USB het profiel van {name} en “Installeren vanuit deze browser”."
+      },
       "memory": {
         "low_title": "Weinig geheugen vrij op de Home Assistant-machine",
         "low": "Er is {free} geheugen vrij, dus de firmware bouwt met minder compilers tegelijk ({jobs} in plaats van {cores}). Dat duurt langer, maar het past.",
@@ -3412,7 +3523,10 @@
     "mockup": {
       "home": "Thuis",
       "unknown": "Onbekend",
-      "calendar_free": "Vrij"
+      "calendar_free": "Vrij",
+      "todo_open": "{x} open",
+      "todo_all_done": "Alles gedaan",
+      "todo_more": "+{x} meer"
     },
     "pages": {
       "repaired": "Pagina {page}, tegel “{tile}”: weggehaald wat niet klopte ({what}).",
@@ -4214,7 +4328,14 @@
       "remove": "{name} weghalen",
       "type": "Typ en druk op Enter",
       "full": "Het scherm neemt niet meer aan voor deze tegel: de opties zijn vol.",
-      "count": "{n} van {max}"
+      "count": "{n} van {max}",
+      "show_all": "Alle entiteiten tonen",
+      "show_fitting": "Alleen wat past tonen",
+      "not_set": "Niet ingesteld",
+      "fill_device": "Invullen vanaf een apparaat",
+      "fill_device_hint": "Kies een apparaat en de sensoren ervan worden hieronder ingevuld. Je kunt elke sensor daarna nog wijzigen.",
+      "fill_device_none": "Geen apparaat heeft twee of meer van deze sensoren",
+      "fill_device_count": "1 sensor | {n} sensoren"
     },
     "build": {
       "plugins": "Bouwt met zijn plugins",

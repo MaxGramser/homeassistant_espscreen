@@ -15,6 +15,7 @@ A build is what was asked for one profile, with the steps of its kind:
 |---|---|---|
 | `update` | Update, Update all, the nightly round, Reinstall from dev | `Updater.update_one`: install (over the bridge on a board with 4 MB when it must), wait for the screen to report the firmware, settle |
 | `plugins` | Plugins page, a screen's Plugins tab | install the screen's firmware with its plugins file, then settle the plugins (`Plugins._built`) |
+| `icons` | A screen's Icons page, Put on every screen | install the screen's firmware with its plugins file, then settle its icons (docs/ICONS.md) |
 | `install` | New screen, Firmware & USB | one ESPHome action: build, install or download |
 | `check` | Override YAML, Firmware & USB | `esphome config` |
 

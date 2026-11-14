@@ -116,12 +116,63 @@ int main() {
   for (uint32_t w : {336u, 864u, 872u, 528u, 1280u}) assert(check(block(w, 6, A90), true) >= 2);
   assert(check(block(904, 6, A90), false) == 1 && check(block(200, 6, A90), false) == 1);
 
-  // Unturned, the driver's rule is the hardware's: never a split, whatever the size.
+  // Unturned at its own size, the driver's rule is the hardware's but for a last unit from the FIFO up to STALL_BITS: a
+  // split there alone, and a few at most.
   for (uint32_t w = 1; w <= 200; ++w)
-    for (uint32_t h = 1; h <= 200; h += 3) {
-      assert(check(block(w, h, A0), false) == 1);
-      assert(check(block(w, h, A180), false) == 1);
+    for (uint32_t h = 1; h <= 200; h += 3)
+      for (Angle angle : {A0, A180}) {
+        const Block b = block(w, h, angle);
+        const bool cut = stalls(b) && !driver_bypasses(b);
+        const int n = check(b, cut);
+        assert(cut ? n >= 2 && n <= 4 : n == 1);
+      }
+  assert(check(block(96, 19, A0), true) >= 2);  // 32 x 3 x 16 bits
+  assert(check(block(97, 19, A0), true) >= 2);  // 33 x 3 x 16 bits
+  assert(check(block(112, 19, A0), false) == 1);  // 48 x 3 x 16 bits
+
+  // A turned block's last unit stalls up to a little over the FIFO with this firmware's bursts of 64 bytes (STALL_BITS,
+  // a reTerminal D1001, 2026-11-08): a live tile of 240x135 turned 90 (7 columns by 16 rows, 1792 bits) never came back
+  // beside the frame buffer copy and a cache write-back, and 240x134 (1536) and 240x199 (1792) neither; 240x136 (2048)
+  // came back thousands of times. The pieces of the cut block each came back thousands of times under the same load.
+  for (Angle angle : {A90, A270}) {
+    for (uint32_t h : {134u, 135u, 199u}) {
+      assert(stalls(block(240, h, angle)));
+      assert(check(block(240, h, angle), true) >= 2);
     }
+    assert(!stalls(block(240, 136, angle)));
+    assert(check(block(240, 136, angle), false) == 1);
+    // 492x135 (a wide tile) was cut by the old rule into 480x135, which has the same last unit: no piece may have it.
+    assert(check(block(492, 135, angle), true) >= 2);
+    assert(stalls(block(480, 135, angle)));
+  }
+  // An unturned block with the same output stalls the same: a live tile's picture of 135x240, sent turned for a turned
+  // glass and copied straight onto it, never came back on the real firmware (a reTerminal D1001, 2026-11-09).
+  assert(stalls(block(135, 240, A0)));
+  assert(check(block(135, 240, A0), true) >= 2);
+  // Past the limit an unturned block goes whole.
+  assert(!stalls(block(136, 240, A0)));
+
+  // A camera's picture scaled to fill a reTerminal D1001's full view, unturned (the app turns it for the glass):
+  // 450x800 at 25/16 stalled every time (2026-11-03), its input's last unit 2 columns by 16 rows, 3 x 25 pixels
+  // scaled, while the driver counts the scaled width's leftover, 63 columns, and sets no bypass. It goes in two
+  // pieces, each safe. 448x800 at the same scale goes whole; so does 456x800 (8 columns left, 12 scaled). 450x790
+  // (432 bits), 450x800 at 20/16 (640) and 66x800 (1200) stalled on the bench too, and are cut.
+  {
+    const Scale q{1, 9};  // 25/16
+    assert(stalls(block(450, 800, A0, q, q)) && !driver_bypasses(block(450, 800, A0, q, q)));
+    assert(check(block(450, 800, A0, q, q), true) == 2);
+    assert(check(block(448, 800, A0, q, q), false) == 1 && check(block(456, 800, A0, q, q), false) == 1);
+    assert(stalls(block(450, 790, A0, q, q)) && check(block(450, 790, A0, q, q), true) >= 2);
+    assert(stalls(block(66, 800, A0, q, q)) && check(block(66, 800, A0, q, q), true) >= 2);
+    const Scale f{1, 4};  // 20/16
+    assert(stalls(block(450, 800, A0, f, f)) && !driver_bypasses(block(450, 800, A0, f, f)));
+    assert(check(block(450, 800, A0, f, f), true) >= 2);
+    // The driver sets the bypass for the 2-column piece on its own (3 x 25 x 16 bits by its own count too).
+    assert(driver_bypasses(block(2, 800, A0, q, q)) && safe(block(2, 800, A0, q, q)));
+    // Twice: the input's 2 columns are 4 by 32 rows, 2048 bits, no stall by the hardware's count (its unscaled 512
+    // would be one).
+    assert(!stalls(block(386, 640, A0, {2, 0}, {2, 0})) && check(block(386, 640, A0, {2, 0}, {2, 0}), false) == 1);
+  }
 
   // A build for the P4's revision 3 runs macro blocks of 32 rows (the engine's register, as the driver reads it): 33x17
   // turned 270 is safe with 16 (the driver sets the bypass) and stalls with 32 (it does not), so there it goes in
@@ -216,9 +267,9 @@ int main() {
   printf("one and a half: %d of %d blocks have no plan\n", unplanned, scaled_blocks);
   assert(unplanned * 20 < scaled_blocks);
   {
-    Piece pieces[MAX_PIECES];
-    const Block odd = block(367, 66, A270, {1, 8}, {1, 8});  // 367 x 1.5 is not whole
-    assert(!exact(367, odd.sx) && plan(odd, pieces) == 1);
+    // 367 x 1.5 is not whole: the block is cut all the same, at a whole pixel, and the pieces cover its output exactly.
+    const Block odd = block(367, 66, A270, {1, 8}, {1, 8});
+    assert(!exact(367, odd.sx) && check(odd, stalls(odd) && !driver_bypasses(odd)) >= 1);
   }
 
   // An empty block or one the guard knows nothing about gives no plan.

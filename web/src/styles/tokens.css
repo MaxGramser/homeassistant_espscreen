@@ -71,6 +71,12 @@
 }
 /* The screens draw Material Design Icons; tile-icons.woff holds the same glyphs. The top bar
    mockup and its cards write in the firmware's Roboto: 400 and 500, and 700 for a card's name. */
+/* Every icon there is, behind the fixed set's font: a browser fetches it only for an icon that set lacks (docs/ICONS.md). */
+@font-face {
+  font-family: "Every Icon";
+  src: url("../assets/mdi-all.woff") format("woff");
+  font-display: block;
+}
 @font-face {
   font-family: "Tile Icons";
   src: url("../assets/tile-icons.woff") format("woff");

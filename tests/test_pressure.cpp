@@ -102,7 +102,7 @@ static void test_finger() {
   assert(g.level(OWN_CAMERA) == 2 && g.level(LIVE_TILES) == 1);
 }
 
-// While someone hears the microphone, the live tiles stay at a quarter whatever the steps and the finger say; the
+// While someone hears the microphone, the live tiles stay at half at least whatever the steps and the finger say; the
 // camera, sensing and the background follow the steps as before, and the tiles are free again once nobody hears.
 static void test_heard() {
   Governor g;
@@ -111,11 +111,11 @@ static void test_heard() {
   live_tiles.store(1);
   assert(g.level(LIVE_TILES) == 0 && g.level(OWN_CAMERA) == 0);
   live_tiles.store(2);
-  assert(g.level(LIVE_TILES) == 2 && g.level(OWN_CAMERA) == 0 && g.level(SENSING) == 0 && g.level(BACKGROUND) == 0);
+  assert(g.level(LIVE_TILES) == 1 && g.level(OWN_CAMERA) == 0 && g.level(SENSING) == 0 && g.level(BACKGROUND) == 0);
   for (Work w : {GLASS, VOICE, DOORBELL}) assert(g.level(w) == 0);
   g.signal(SLOW_LOOP, 1000);
   // The screen's own camera is the conversation: whole frames while someone hears it, whatever the step or a finger.
-  assert(g.step() == 1 && g.level(LIVE_TILES) == 2 && g.level(OWN_CAMERA) == 0);
+  assert(g.step() == 1 && g.level(LIVE_TILES) == 1 && g.level(OWN_CAMERA) == 0);
   g.touching(true, false, 1100);
   assert(g.level(OWN_CAMERA) == 0 && g.level(SENSING) == 1);
   g.touching(false, false, 1200);

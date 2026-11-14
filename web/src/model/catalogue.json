@@ -1094,6 +1094,31 @@
    "map": null,
    "keypad": null
   },
+  "input_text": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 576,
+    "extras": false
+   },
+   "key": true,
+   "features": {},
+   "actions": {
+    "set_value": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "light": {
    "firmware": null,
    "memory": {
@@ -2155,6 +2180,31 @@
    "map": null,
    "keypad": null
   },
+  "text": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 576,
+    "extras": false
+   },
+   "key": true,
+   "features": {},
+   "actions": {
+    "set_value": []
+   },
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
   "timer": {
    "firmware": "0.2.14",
    "memory": {
@@ -2193,6 +2243,37 @@
      }
     }
    ],
+   "inline": null,
+   "toggle": null,
+   "taps": [],
+   "guards": [],
+   "picture": null,
+   "map": null,
+   "keypad": null
+  },
+  "todo": {
+   "firmware": "0.61.0",
+   "memory": {
+    "bytes": 1152,
+    "extras": true
+   },
+   "key": true,
+   "features": {
+    "CREATE_TODO_ITEM": 1,
+    "DELETE_TODO_ITEM": 2,
+    "MOVE_TODO_ITEM": 8,
+    "SET_DESCRIPTION_ON_ITEM": 64,
+    "SET_DUE_DATETIME_ON_ITEM": 32,
+    "SET_DUE_DATE_ON_ITEM": 16,
+    "UPDATE_TODO_ITEM": 4
+   },
+   "actions": {},
+   "displays": [
+    {
+     "key": "standard"
+    }
+   ],
+   "controls": [],
    "inline": null,
    "toggle": null,
    "taps": [],

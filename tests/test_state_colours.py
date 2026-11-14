@@ -68,7 +68,7 @@ class StateColours(unittest.TestCase):
         self.assertNotIn('lights_up()', TILES)
         self.assertNotIn('lights_up', MODEL)
         # A camera whose picture came smaller than its card (the picture cap, firmware 0.9.0) is dark around it instead.
-        self.assertIn('press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(t.background)));', TILES)
+        self.assertIn('press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(own)));', TILES)
         self.assertIn('const uint32_t fill=slider_on?accent:theme::STATE_OFF;', TILES)
         self.assertNotIn('domain_accent', TILES)
         self.assertIn('frontend src/common/entity/state_active.ts', MODEL)

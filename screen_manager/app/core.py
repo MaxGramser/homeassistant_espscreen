@@ -11,6 +11,7 @@ import secrets
 
 from i18n import english, screen_t, t
 import calendar_feed
+import todo_feed
 import light_presets
 import meter
 import text_tile
@@ -22,7 +23,7 @@ import tile_icons
 DOMAINS = catalogue.DOMAINS
 # Built-in cards without a Home Assistant entity; firmware 0.2.14+ renders them. The names in English: a screen gets them in
 # its language and the editor in its own (builtin_name, app 0.2.90).
-BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', 'screen.energy': 'Energy', 'screen.text': 'Template', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
+BUILTIN = {'screen.clock': 'Clock', 'screen.nightstand': 'Bedside clock', 'screen.settings': 'Settings', 'screen.map': 'Map', 'screen.energy': 'Energy', 'screen.text': 'Template', 'screen.call': 'Call', **{f'screen.page_{n}': f'Go to page {n}' for n in range(1, 33)}}
 # A navigation tile (firmware 0.2.62+): screen.page_<n> goes to page n, up to page 32 on a board that holds that many
 # (firmware 0.34.0+); whether the screen has page n is the screen's Grid's to say. Firmware 0.2.65+ takes the same one on several
 # pages (a "Back to page 1" on every page), firmware 0.16.0+ any entity on several tiles (GitHub #83) but the bedside
@@ -54,6 +55,8 @@ def builtin_name(entity, text=screen_t):
         return text('addon.screen.builtin.energy')
     if entity == text_tile.TEXT_TILE:
         return text('addon.screen.builtin.text')
+    if entity == 'screen.call':
+        return text('addon.screen.builtin.call')
     return text('screen.settings.title' if entity == 'screen.settings' else 'addon.screen.builtin.clock')
 # A camera or an image entity opens full screen on a Guition with firmware 0.2.57+ (docs/PICTURES.md).
 CAMERA_DOMAINS = frozenset(('camera', 'image'))
@@ -170,7 +173,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.59.0'
+FIRMWARE_VERSION = '0.61.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -207,6 +210,13 @@ ATTRS = frozenset('brightness percentage current_position current_tilt_position 
 # and what it is doing. Other domains use the same names for other things (an automation's `mode`), so only a humidifier
 # sends them.
 HUMIDIFIER_ATTRS = frozenset('min_humidity max_humidity target_humidity_step available_modes mode action'.split())
+# A text's (text, input_text, firmware 0.61.0, docs/TEXT_ENTITY.md): password or text. Its min and max are in ATTRS;
+# its pattern stays here, as Home Assistant checks it when the screen sends a value.
+TEXT_ATTRS = frozenset(['mode'])
+TEXT_DOMAINS = ('text.', 'input_text.')
+# Home Assistant's longest state is 255 characters (MAX_LENGTH_STATE_STATE): a text's value travels whole, so its field
+# on the screen never sends back a value cut short; any other state is cut to what a tile shows.
+STATE_BYTES, TEXT_STATE_BYTES = 160, 4 * 255
 # What the weather card of a screen that draws the week shows beside the temperature, as Home Assistant's more-info
 # dialog does (its hello says weather_week): the wind's bearing, the air pressure, the visibility, and the unit of the
 # rain. Only to such a screen; an older one keeps its message as it was.
@@ -954,6 +964,7 @@ SETTING_RULES = {
     # The Previous and Next bar under the tiles (firmware 0.2.69+); off, the tiles grow into its room. Only a screen
     # that owns its settings has it, like dark_mode.
     'page_buttons': (True, None, None),
+    'loop_pages': (True, None, None),
     # The house at the far left of the top bar (firmware 0.2.100+), which takes the screen back to page 1. Page 1
     # draws none. Only a screen that owns its settings has it, like dark_mode.
     'home_button': (True, None, None),
@@ -962,7 +973,7 @@ SETTING_RULES = {
 # other size, so everything added after it travels as its own key in the layout message. Old firmware
 # ignores a key it does not know; a new screen with an old add-on keeps what it saved itself.
 # docs/SETTINGS.md walks through adding one.
-SETTINGS_BESIDE_BLOCK = ('swipe_pages', 'rotation', 'auto_home', 'auto_home_seconds', 'dark_mode', 'page_buttons',
+SETTINGS_BESIDE_BLOCK = ('swipe_pages', 'rotation', 'auto_home', 'auto_home_seconds', 'dark_mode', 'page_buttons', 'loop_pages',
                          'home_button')
 
 # ----- The screen owns its settings (firmware 0.2.49+) -----
@@ -988,6 +999,7 @@ SETTING_ENTITIES = {
     'rotation': ('select', 'Rotation'),
     'dark_mode': ('switch', 'Dark mode'),
     'page_buttons': ('switch', 'Page buttons'),
+    'loop_pages': ('switch', 'Loop pages'),
     'home_button': ('switch', 'Show home button'),
 }
 # Entities firmware 0.2.49 added; one of them on a device means the screen owns its settings. The first five
@@ -1097,7 +1109,7 @@ PLUGIN_TILE = re.compile(r'^plugin:([a-z][a-z0-9_]{0,31})\.([a-z][a-z0-9_]{0,31}
 # What a plugin tile may carry: its size, colour, icon, whether a tap reaches it, and its own options (`plugin`, the
 # manifest's options; checked against the manifest where the screen is known, plugins.check_tile).
 PLUGIN_TILE_OPTIONS = {'size', 'background', 'icon', 'tap', 'plugin', 'plugin_entity'}
-PLUGIN_OPTION_MAX = 12
+PLUGIN_OPTION_MAX = 24      # plugin API 0.26 (plugin_manifest.MAX_OPTIONS, the editor's PLUGIN_OPTION_MAX); twelve before
 PLUGIN_TEXT_MAX = 64
 # A list option's values (plugin API 0.12), and what a tile's options take together as JSON (plugin_manifest's
 # MAX_MULTIPLE and OPTIONS_BYTES, the editor's PLUGIN_OPTIONS_BYTES; a test keeps them equal).
@@ -1133,9 +1145,10 @@ def _plugin_pick(value):
 
 
 def plugin_options(value):
-    """A plugin tile's own options in their stored shape: at most 12, each a short text, a number, true/false, a pick
+    """A plugin tile's own options in their stored shape: at most 24, each a short text, a number, true/false, a pick
     {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most PLUGIN_OPTIONS_BYTES of
-    JSON. Whether a value fits its option is the manifest's (plugin_manifest.option_value)."""
+    JSON. A number that may stay empty (0.26, `optional`) is kept as no key at all. Whether a value fits its option is
+    the manifest's (plugin_manifest.option_value)."""
     if not isinstance(value, dict) or len(value) > PLUGIN_OPTION_MAX:
         return False
     for key, item in value.items():
@@ -1272,7 +1285,7 @@ def validate_header(data, most=HEADER_MAX_ITEMS):
                      'icon': item.get('icon', 'auto'), 'show': item.get('show', 'always')}
             if clean['content'] not in HEADER_CONTENTS or clean['show'] not in HEADER_SHOWS:
                 raise ValueError(t('addon.errors.top_bar.invalid_setting'))
-            if not (clean['icon'] in ('auto', 'none') or isinstance(clean['icon'], str) and clean['icon'] in tile_icons.ICONS):
+            if not (clean['icon'] in ('auto', 'none') or tile_icons.known(clean['icon'])):
                 raise ValueError(t('addon.errors.choose_icon'))
             # An item that shows its icon alone needs one.
             if clean['content'] == 'icon' and clean['icon'] == 'none':
@@ -1376,6 +1389,8 @@ TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'displa
                       'flow': 'flow',
                       # A calendar card (firmware 0.56.0): its calendars, filters and look (calendar_feed.validate).
                       **{key: key for key in calendar_feed.KEYS},
+                      # A to-do card: its order and what it shows and offers (todo_feed.validate).
+                      **{key: key for key in todo_feed.KEYS},
                       # A sensor's meter (firmware 0.56.0): its look, its range and its colours (meter.validate).
                       **{key: key for key in meter.KEYS}}
 TILE_SIZES = {'full': 'full', 'fullscreen': 'full', 'full screen': 'full', 'full-screen': 'full', 'page': 'full', 'whole page': 'full',
@@ -1485,7 +1500,7 @@ def tile_options(data, current=None):
             # A calendar week's hours: two numbers, as a list or written "8-18".
             parts = value if isinstance(value, list) else re.split(r'\s*[-–,]\s*', str(value).strip())
             options[name] = [int(p) if str(p).strip().isdigit() else p for p in parts]
-        elif name in ('all_day', 'tentative', 'private', 'week_numbers'):
+        elif name in ('all_day', 'tentative', 'private', 'week_numbers', 'todo_completed', 'todo_due', 'todo_add', 'todo_suggest', 'todo_clear'):
             options[name] = value if isinstance(value, bool) else loose(value) in ('true', 'yes', 'on', '1')
         elif name in ('ahead', 'soon'):
             options[name] = int(value) if str(value).strip().isdigit() else value
@@ -1949,7 +1964,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 raise ValueError(t('addon.errors.layout.invalid_setting', setting='tap'))
             if 'background' in options and (not isinstance(options['background'], str) or options['background'] not in TILE_BACKGROUNDS):
                 raise ValueError(t('addon.errors.layout.background'))
-            if 'icon' in options and not (options['icon'] == 'auto' or isinstance(options['icon'], str) and options['icon'] in tile_icons.ICONS):
+            if 'icon' in options and not (options['icon'] == 'auto' or tile_icons.known(options['icon'])):
                 raise ValueError(t('addon.errors.choose_icon'))
             if options:
                 item['options'] = deepcopy(options)
@@ -1957,7 +1972,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -1967,6 +1982,13 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                     raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
             else:
                 options = {k: v for k, v in options.items() if k not in calendar_feed.KEYS}
+            if tile['entity'].startswith('todo.'):
+                try:
+                    options = todo_feed.validate(options)
+                except ValueError as error:
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
+            else:
+                options = {k: v for k, v in options.items() if k not in todo_feed.KEYS}
             # A sensor's meter (firmware 0.56.0): its look, its range and its colours; another display keeps none of them.
             try:
                 options = meter.validate(options)
@@ -1979,7 +2001,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 options = {k: v for k, v in options.items() if k not in ('display', 'inline', 'controls', 'history_hours')}
             if 'background' in options and (not isinstance(options['background'],str) or options['background'] not in TILE_BACKGROUNDS):
                 raise ValueError(t('addon.errors.layout.background'))
-            if 'icon' in options and not (options['icon'] == 'auto' or isinstance(options['icon'], str) and options['icon'] in tile_icons.ICONS):
+            if 'icon' in options and not (options['icon'] == 'auto' or tile_icons.known(options['icon'])):
                 raise ValueError(t('addon.errors.choose_icon'))
             domain = tile['entity'].split('.')[0]
             # The bedside clock is the whole page, always, and the only tile with keys.
@@ -2559,9 +2581,8 @@ def tile_icon(tile, attrs, state=None, entry=None):
     """Codepoint the screen shows: the chosen icon, else HA's own mdi icon, else the icon Home Assistant's frontend shows
     for this state (app 0.2.67); None keeps the firmware default."""
     choice = tile.get('options', {}).get('icon', 'auto')
-    if choice in tile_icons.ICONS:
-        return tile_icons.ICONS[choice][0]
-    return tile_icons.ha_icon(attrs) or tile_icons.default_glyph(tile['entity'], state, attrs, entry)
+    # A chosen icon this screen's firmware does not have (yet) is left to Home Assistant's, as `auto` is (docs/ICONS.md).
+    return tile_icons.carried(choice) or tile_icons.ha_icon(attrs) or tile_icons.default_glyph(tile['entity'], state, attrs, entry)
 
 def screen_options(tile, attrs, state=None, entry=None):
     """Stored options on the wire; `icon` travels as the resolved codepoint (firmware 0.2.18+, ignored before)
@@ -2569,7 +2590,7 @@ def screen_options(tile, attrs, state=None, entry=None):
     # A map's own choices stay in the app: who is on it and how it frames them say where people are (app 0.4.33).
     # So do a favourite's own (app 0.4.42): the screen asks to play its tile, never an id.
     # A calendar's filters stay too (calendar_feed.OWN): the screen gets the events they let through.
-    options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN)}
+    options = {k: v for k, v in tile.get('options', {}).items() if k not in ('icon', 'controls', 'action', text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.OWN, *todo_feed.OWN)}
     # A meter's colours travel as numbers (firmware 0.56.0): the screen keeps no table of names.
     options = meter.screen_options(options)
     # A light preset's device settings travel as [entity, value] pairs.
@@ -2651,7 +2672,7 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     state = states.get(tile['entity'], {})
     attrs = state.get('attributes', {})
     bounded = {}
-    keys = ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS
+    keys = ATTRS | HUMIDIFIER_ATTRS if tile['entity'].startswith('humidifier.') else ATTRS | TEXT_ATTRS if tile['entity'].startswith(TEXT_DOMAINS) else ATTRS
     if week and tile['entity'].startswith('weather.'):
         keys = keys | WEATHER_WEEK_ATTRS
     for key in keys:
@@ -2685,7 +2706,8 @@ def state_message(index, tile, states, extra=None, precision=None, entry=None, u
     options = screen_options(tile, attrs, state.get('state'), entry)
     return {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'],
             'name': short(tile['name'] or attrs.get('friendly_name') or tile['entity'], 80),
-            'state': short(rounded_state(state.get('state', 'unavailable'), precision) if tile['entity'].startswith('sensor.') else state.get('state', 'unavailable'), 160), 'a': bounded,
+            'state': short(rounded_state(state.get('state', 'unavailable'), precision) if tile['entity'].startswith('sensor.') else state.get('state', 'unavailable'),
+                           TEXT_STATE_BYTES if tile['entity'].startswith(TEXT_DOMAINS) else STATE_BYTES), 'a': bounded,
             **({'o': options} if options is not None else {}), **({'x': extra} if extra else {})}
 
 def drawn_controls(message, features):
@@ -3035,8 +3057,18 @@ def unavailable_since(state):
     since = epoch(state.get('last_changed')) if state.get('state') == 'unavailable' else None
     return {'unavailable_since': since} if since is not None else {}
 
-def discover(registry, states, devices, areas):
-    """(screens, entities): the paired screens and every entity a tile or the top bar can show."""
+def kind_words(entity_id, attributes, word_sets):
+    """What an entity measures or is, for the library's search: its device class ("temperature") and Home Assistant's own
+    name of it in each language the app holds ("Temperatuur"), so a sensor is found by what it is whatever it is called."""
+    device_class = attributes.get('device_class') if isinstance(attributes, dict) else None
+    if not isinstance(device_class, str) or not device_class:
+        return ''
+    key = f"component.{entity_id.split('.', 1)[0]}.entity_component.{device_class}.name"
+    return ' '.join(dict.fromkeys([device_class.replace('_', ' '), *(words[key] for words in word_sets if isinstance(words.get(key), str))]))
+
+def discover(registry, states, devices, areas, word_sets=()):
+    """(screens, entities): the paired screens and every entity a tile or the top bar can show. `word_sets` are Home
+    Assistant's words per language (kind_words)."""
     device_map = {d['id']: d for d in devices}
     area_map = {a['area_id']: a['name'] for a in areas}
     screens = discover_screens(registry, states, devices, areas)
@@ -3054,6 +3086,7 @@ def discover(registry, states, devices, areas):
                          'state': state.get('state', 'unavailable'),
                          'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes'), item),
                          # Top-bar-only domains (a phone's tracker, a lock) stay out of the tile picker.
+                         **({'words': words} if (words := kind_words(eid, state.get('attributes'), word_sets)) else {}),
                          **({} if tile else {'tile': False}), **unavailable_since(state)})
     # YAML entities may not have an entity-registry entry. Their icon is the one the screen gets (tile_icon): Home
     # Assistant's own, else the one its frontend shows for the state, as for a registered entity (app 0.4.90; before, a
@@ -3065,6 +3098,7 @@ def discover(registry, states, devices, areas):
         if (tile or header_entity(eid)) and eid not in registered and eid not in in_registry:
             entities.append({'id': eid, 'name': state.get('attributes', {}).get('friendly_name', eid), 'device': '', 'area': '', 'state': state['state'],
                              'icon': tile_icons.ha_icon(state.get('attributes')) or tile_icons.default_glyph(eid, state.get('state'), state.get('attributes')),
+                             **({'words': words} if (words := kind_words(eid, state.get('attributes'), word_sets)) else {}),
                              **({} if tile else {'tile': False}), **unavailable_since(state)})
     return screens, sorted(entities, key=lambda e: e['name'].casefold())
 

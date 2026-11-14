@@ -67,9 +67,10 @@ The lock means two things at once, and both matter:
 - **One user of the 2D-DMA at a time.** On a P4 the JPEG decoder, the PPA and LVGL's own turned strips all share the
   2D-DMA, and two of them from different tasks is what hangs the chip (espressif/esp-idf #18999, #19108, #19096).
 
-On DSI the glass counts the panel running dry (`glass::misses`, the "Panel misses" sensor), with the chip's mask on
+On DSI the panel's DMA repeats the frame buffer by itself (`glass_dsi_refresh.cpp`, the hardware's auto-reload), so no interrupt
+stands between two frames and a busy processor cannot lose one: docs/CAMERA.md, "A frame's restart". On DSI the glass counts the panel running dry (`glass::misses`, the "Panel misses" sensor), with the chip's mask on
 that flag taken off (ESP-IDF masks underruns in the first lines of a frame, the ones that blue the whole glass), in the
-panel's own callback at each frame's end: the panel watch, which notes for each flash who held the glass and says each
+panel's own callback at each frame's end (or, where the DMA repeating its frame took that callback away, a read of the DMA's address every 5 ms): the panel watch, which notes for each flash who held the glass and says each
 minute in the "Panel watch" sensor (`glass::watch_said`), so a flash needs no eye on the glass. The runtime only tells
 it what the glass cannot see (log lines, the finger: `glass::note_log_line`, `note_finger`); an RGB
 panel's driver keeps no such count, so on an S3 a frame that shifts sideways is seen by eye only. Detail: docs/PICTURE_ARCHITECTURE.md 3.1, docs/CAMERA.md "Live on
@@ -81,8 +82,8 @@ the P4 boards" and "Live on an ESP32-S3"; tests: `tests/test_live_view.cpp` (a r
 takes. It owns every chip fact: the PPA's units, its macro block, the FIFO size and the turned block the hardware never
 finishes (DIG-734), which `ppa_guard` cuts into pieces the hardware takes whole; the S3 decoder's memory, taken from
 PSRAM first through linker wraps. Its `Limits` say what the chip affords: picture sizes, live tiles at once (P4 four,
-S3 one), whether a decode may run under the glass lock, the full view's pictures a second, the tile budget (P4 24,
-S3 8, shared as `tile_pps = clamp(budget / tiles, 2, 6)`) and which core the streams decode on (P4 1, S3 0).
+S3 one), whether a decode may run under the glass lock, the full view's pictures a second, the tile budget (P4 40,
+S3 6, shared as `tile_pps = clamp(budget / tiles, 2, 6)`) and which core the streams decode on (P4 1, S3 0).
 
 The rule the app and the engine agree on: **the app sends a live tile's picture at its card's size and turned as the
 glass is** (the hello's `picture_turn`, each picture's `X-Turn`), so an engine never scales or turns for a tile. The P4
@@ -106,7 +107,7 @@ seconds from a watch task of its own, since nothing brings the engine back witho
   name as one overlay made once per stream), copy onto the glass under the lock, only while nobody stopped the stream.
 
 A live tile is paced by time (`pace`, never by skipping decodes: the link is pull-driven, so skipping only pulls faster),
-at most `hw::LIVE_TILE_PPS` (6) a second, less on a busy screen. The full view shows the newest picture and uses the
+at most `hw::LIVE_TILE_PPS` (10) a second, less on a busy screen. A tile of the screen's own camera comes over no network and has its own pace, `hw::OWN_TILE_PPS` (15), and follows the governor as the camera does. The full view shows the newest picture and uses the
 sound as its clock. A stream's task runs at priority 2, below the wake word (3), and takes the writers' priority (5)
 only while it holds the glass.
 
@@ -150,7 +151,7 @@ buffer reset. A sign climbs one step (a burst within two seconds is one sign); t
 wake word reset climbs straight to the step that squeezes the tiles. A finger on the glass steps the camera, sensing
 and background down before any sign; a drag the tiles too; a second after release, all back. While someone hears the
 screen's microphone (a plugin's `capturing(SOUND)`, 0.23: its video watched with its sound, a call) the live tiles
-stay at a quarter whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). Each work reads its level
+stay at half at least whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). Each work reads its level
 on its own task (`level_of`); plugins read it as `tessera::squeeze` (API 0.21). Home Assistant sees it as the
 diagnostic sensor "Pressure". Detail: docs/PLATFORM_PLAN.md 4.10; test: `tests/test_pressure.cpp`.
 
@@ -166,8 +167,13 @@ and never claim. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; test: `tes
 `header_bar.h` draws what the add-on decides to show and counts its own clocks; an item may carry an end (`until`), so
 a missed doorbell ring leaves the bar after the minutes its automation chose (`keep_minutes`, default 30 for new
 automations, 0 or absent means until someone opens it). `module_doorbell` opens a camera live with a chime on a ring
-and prepares the keys; the talk-back is prepared in the audio owner and not built. Detail: docs/DOORBELL.md; tests:
+and has its keys; Talk sends the screen's voice to the camera (`talk_uplink`, the add-on's `talk_bridge`). Detail: docs/DOORBELL.md, docs/CALLS.md; tests:
 `tests/test_header_bar.cpp`, `screen_manager/tests/test_doorbell.py`.
+
+The keyboard is a part the modules share, not a module: `keyboard.h` plans it from what its caller asks (a layout, a
+hint, suggestions, the send key, the most bytes and characters, the fewest it sends, a masked field, the field itself or not, the cursor) and
+`keyboard_lvgl.h` shows it and hears the finger, telling the caller through callbacks. Both are headers, so a board
+carries it only when a module it compiles uses it (today the to-do card and a text's field, docs/TEXT_ENTITY.md). Detail: docs/KEYBOARD.md; tests: `tests/test_keyboard.cpp`, `tests/test_keyboard_glyphs.py`.
 
 ### 10. Plugins
 
@@ -191,6 +197,11 @@ docs/TROUBLESHOOTING.md.
 
 - **Nothing in the shared code reads a board, a chip or a pin.** The engine table, the modules table and `hw::caps` are
   the three places a difference between boards is written. A board file holds hardware and sizes only (AGENTS.md).
+- **A dim over the whole glass is laid on the frame buffer, not drawn** (`glass::veil`, behind `screen_motion.h`, docs/MOTION.md:
+  the Dock, alerts and plugin popups). LVGL keeps no picture of what it drew, so a dim through LVGL draws every tile again. The veil's mix is
+  LVGL's own to the bit, LVGL learns the new dim with its invalidation off, and it never runs over an armed room. It takes
+  36 ms on an 800 x 1280 P4, on one core or two (2026-11-10): the memory is the limit, so it goes through the glass in four
+  passes of every fourth row, and what shows on the way is a dim that deepens evenly.
 - **One user of the 2D-DMA at a time, under the glass lock.** Two at once from different tasks hangs the P4
   (espressif/esp-idf #18999, #19108, #19096). Copies cannot leave the hold.
 - **PSRAM shares its bus with the panel.** On a P4 the DSI panel scans PSRAM; on an S3 the RGB panel reads it through
@@ -199,8 +210,15 @@ docs/TROUBLESHOOTING.md.
 - **Nothing of ours runs above the voice (priority 3) except the glass, audio and Wi-Fi.** Streams at 2, the writers'
   priority 5 only while holding the glass. Streams above the wake word cost a reTerminal D1001 644 resets an hour
   (2026-10-28); at 2, none.
-- **A live tile shows at most 6 pictures a second, paced by time.** 10 a second on four tiles cost 51 wake word resets
-  in three minutes (2026-10-28). Skipping decodes saves nothing on a pull link.
+- **The panel's DMA repeats its frame by itself** (`glass_dsi_refresh.cpp`). With ESP-IDF's restart from the end-of-frame
+  interrupt a reTerminal D1001 with its own camera, live tiles and a video viewer showed 6 blue frames in 400 s, with the
+  repeat none (2026-11-08, a camera on the glass).
+- **A tile of the screen's own camera has its own pace**, at most 15 pictures a second (`hw::OWN_TILE_PPS`): every second
+  frame of a 30 fps camera, because the PPA takes 50 to 60 ms to bring one down (2026-11-09,
+  docs/open-issues/own-camera-tile-blit-cost.md). It gives way with the live tiles while someone hears the microphone.
+- **A live tile shows at most 10 pictures a second, paced by time.** Four tiles at that limit reached 8 a second on a
+  reTerminal D1001 with no wake word reset (2026-11-09); the same rate cost 51 resets in three minutes before (2026-10-28).
+  Skipping decodes saves nothing on a pull link.
 - **One PPA copy per tile picture.** Two copies (38 ms a picture) made four tiles wait on each other under the lock
   and froze a slider's frame blue; one copy took the picture's age on a D1001 from 1 s to 6 ms (2026-10-28).
 - **The app delivers at card size and turned as the glass is.** The engine never scales or turns for a tile; a turned
@@ -233,4 +251,4 @@ docs/PLATFORM_PLAN.md is the plan with its measurements. Its sections 3.1 to 3.4
 behind the seam, the capability record, the audio owner), 4.1 (the cap three places share), 4.4a (the PSRAM bus rule),
 4.7 (what the PPA still turns), 4.10 (the governor), 4.11 (the own camera's tile) and 4.12 (pictures turned by the app)
 are built and described above; 3.2 has its second engine, the S3. Open: a second S3 tile (Wi-Fi buffers in PSRAM,
-measured against the panel bus), the D1001's video over Wi-Fi (4.8), the sensor's binned mode (4.6), the talk-back (5).
+measured against the panel bus), the D1001's video over Wi-Fi (4.8), the sensor's binned mode (4.6).

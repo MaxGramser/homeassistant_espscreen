@@ -56,6 +56,8 @@ CONFIG_SCHEMA = cv.Schema({
 # Without it a D1001 had 12: four live tiles and the video's three viewers took them, and a fifth tile's still found no
 # connection.
 P4_STREAM_SOCKETS = 7
+# The talk uplink's own connection (talk_uplink.h): a screen's voice to the add-on, one at a time.
+TALK_SOCKETS = 1
 PICTURE_SOCKETS = 3
 
 
@@ -75,7 +77,7 @@ def _sockets(config):
     import esphome.final_validate as fv
 
     if "USE_LIVE_VIEW" in _engine_of(fv.full_config.get())["defines"]:
-        socket.consume_sockets(P4_STREAM_SOCKETS + PICTURE_SOCKETS, "smart_display")(config)
+        socket.consume_sockets(P4_STREAM_SOCKETS + PICTURE_SOCKETS + TALK_SOCKETS, "smart_display")(config)
     return config
 
 
@@ -207,7 +209,7 @@ async def _engine(config):
 # The plugin API this core offers: plugin_api.h's PLUGIN_API_MAJOR/MINOR and the add-on's plugin_manifest.PLUGIN_API
 # (a test keeps the three equal). A plugin builds on the same major from its own minor up, unless a minor between its
 # own and this one changed the meaning of a name while the major is 0 (PLUGIN_API_BREAKS, the same as plugin_manifest.py's).
-PLUGIN_API = (0, 24)
+PLUGIN_API = (0, 26)
 PLUGIN_API_BREAKS = {0: (4,)}
 PLUGIN_MANIFEST = "tessera-plugin.yaml"
 

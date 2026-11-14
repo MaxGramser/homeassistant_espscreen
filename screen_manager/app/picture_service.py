@@ -109,7 +109,10 @@ class Service:
         volatile = found.volatile
         revalidate = question.owner.kind != 'tile' or pq.serves_304(screen)
         suffix = SUFFIX.get(found.format, 'bmp')
-        token = self.links.add(recipe=Recipe(inbox, question), suffix=suffix, revalidate=revalidate) if volatile else \
+        # A picture the app draws took its time just now (a map on an old Raspberry Pi: seconds, and a screen waits four
+        # for the first bytes of its download): its first load gets what is painted, never a second drawing.
+        token = self.links.add(recipe=Recipe(inbox, question), suffix=suffix, revalidate=revalidate,
+                               first=(found.etag, found.body) if found.drawn else None) if volatile else \
             self.links.add(still=found.body, suffix=suffix, revalidate=revalidate)
         return Answer(url_of(token, suffix), found.meta, found.shown)
 
@@ -203,7 +206,8 @@ class Service:
                 self._keep(key, body)
         else:
             self.kept.move_to_end(key)
-        return Painted('ok', body, etag, meta, shown, any(r.volatile for r in resolved), fmt)
+        return Painted('ok', body, etag, meta, shown, any(r.volatile for r in resolved), fmt,
+                       any(r.state == 'ok' and str(r.mark).startswith(DRAWN) for r in resolved))
 
     def _painted(self, question, place, r: Resolved):
         """The place as its source would have it painted: a camera tile's own fit and shade, the colour beside the
@@ -238,3 +242,4 @@ class Painted:
     shown: tuple = ()
     volatile: bool = False
     format: str = 'bmp24'
+    drawn: bool = False

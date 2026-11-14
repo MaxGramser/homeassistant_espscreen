@@ -15,6 +15,7 @@
 #include "capture_dot.h"
 #include "camera_turn.h"
 #include "glass.h"
+#include "screen_motion.h"
 #include "pressure.h"
 #include "live_view.h"
 #include <algorithm>
@@ -537,6 +538,7 @@ lv_obj_t *block(lv_obj_t *parent, theme::Role fill) {
 }
 
 std::string icon(uint32_t codepoint) { return tile_icon::utf8(codepoint); }
+
 }  // namespace ui
 
 }  // namespace tessera
@@ -565,6 +567,7 @@ struct Card : tessera::InPsram {   // PSRAM first, as the plugin's own objects (
   size_t options = 0;          // and its options (a hash)
   size_t state = 0;            // the data it was last given (a hash), 0 for none yet
   bool dark = false;           // the look it last coloured itself for
+  uint32_t ground = 0;         // the colour the tile gave its card (0.26): a swatch's light value, 0 for none
   std::vector<Place> places;   // its places for pictures, in the order the tile made them
 };
 
@@ -590,6 +593,12 @@ static std::vector<Place> *saver_places();
 
 bool known(const rt::Tile &t) { return tessera::tile_type(t.entity) != nullptr; }
 
+uint32_t ground(const rt::Widgets &w) { return w.plugin ? w.plugin->ground : 0; }
+
+// Whether the host is inside render(): the card's palette is painted right after it, so a colour the tile sets there
+// needs no second pass.
+static bool rendering = false;
+
 void release(rt::Widgets &w) {
   if (!w.plugin) return;
   delete w.plugin;  // the plugin's parts are the extra layer's children: whoever releases the card cleans that
@@ -599,6 +608,10 @@ void release(rt::Widgets &w) {
 void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
   const tessera::TileType *type = tessera::tile_type(t.entity);
   if (!type || !type->make) return;
+  struct Rendering {
+    Rendering() { rendering = true; }
+    ~Rendering() { rendering = false; }
+  } in_render;
   rt::begin_extra(w, "plugin", width, height);
   const auto &extra = t.extra();
   const size_t options = (hash(extra.plugin_options) * 31u ^ hash(extra.plugin_entity)) | 1;
@@ -626,7 +639,7 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
       doc.to<JsonObject>();
     tessera::TileContext context{w.extra, width, height, static_cast<uint8_t>(t.column_span()),
                                  static_cast<uint8_t>(t.row_span()), t.name.c_str(), extra.plugin_entity.c_str(),
-                                 static_cast<int>(w.index), doc.as<JsonObjectConst>()};
+                                 static_cast<int>(w.index), doc.as<JsonObjectConst>(), t.full};
     Making call(card);
     card->tile->create(context);
   }
@@ -747,7 +760,8 @@ bool picture_ask(const rt::Widgets &w, const rt::Tile &t, tile_picture::Ask &a) 
   measure(w, parts, owners);
   if (parts.empty()) return false;
   // Behind the pictures' corners the card's own colour, as behind a tile's picture over its whole card.
-  const uint32_t ground = t.transparent ? theme::hex(theme::PAGE) : theme::surface(t.background);
+  // The colour behind the pictures' corners: the card's own, which may be the tile's (0.26, ui::set_card_color).
+  const uint32_t ground = t.transparent ? theme::hex(theme::PAGE) : theme::surface(w.plugin && w.plugin->ground ? w.plugin->ground : t.background);
   tile_picture::set_parts(a, std::move(parts), ground, rt::picture_cap());
   a.index = w.index;
   a.entity = t.entity;
@@ -1121,6 +1135,7 @@ static void popup_destroy(OpenPopup *open) {
   ++popup_calling;     // its destructor is a call into it too
   open->popup.reset();
   --popup_calling;
+  if (open->scrim && open->card) screen_motion::hide(open->scrim, open->card);
   if (open->scrim) lv_obj_delete(open->scrim);  // the card, its room and the popup's parts are the scrim's children
   delete open;
 }
@@ -1159,7 +1174,7 @@ static void popup_end(bool dismissed, const char *why) {
   if (dismissed && !popup_call(open, [](tessera::Popup &p) { p.on_dismiss(); })) return;
   popup_open = nullptr;
   if (!popup_calling) return popup_destroy(open);
-  lv_obj_add_flag(open->scrim, LV_OBJ_FLAG_HIDDEN);
+  screen_motion::hide(open->scrim, open->card);
   popup_retired.push_back(open);
 }
 
@@ -1213,6 +1228,8 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
   open->dark = theme::dark;
   const bool large = ::ui::large();
   open->scrim = lv_obj_create(lv_layer_top());
+  // Hidden until the popup has made its parts, so LVGL draws no dim over the whole glass: screen_motion::show lays it.
+  lv_obj_add_flag(open->scrim, LV_OBJ_FLAG_HIDDEN);
   lv_obj_remove_style_all(open->scrim);
   lv_obj_set_size(open->scrim, lv_pct(100), lv_pct(100));
   lv_obj_remove_flag(open->scrim, LV_OBJ_FLAG_SCROLLABLE);
@@ -1284,6 +1301,7 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
   if (!popup_call(open, [&](tessera::Popup &p) { p.open(context); })) return true;
   // Where the close key stands once the card is as high as what the popup made, for the log (and the render's taps).
   lv_obj_update_layout(open->scrim);
+  screen_motion::show(open->scrim, open->card);
   lv_area_t key;
   lv_obj_get_coords(open->close, &key);
   ESP_LOGI("plugins", "Popup of %s shows, %dx%d, close key at %d,%d", plugin->plugin_id(), width, height,
@@ -1926,6 +1944,41 @@ lv_obj_t *text(lv_obj_t *parent, Font f, theme::Role role) {
 
 bool pictures() { return rt::tile_pictures_supported(); }
 
+// A named card colour as Tile::background keeps one: the swatch's light value, 0 for NONE (theme::surface draws it).
+static uint32_t swatch_of(CardColor color) {
+  static_assert(theme::SWATCH_COUNT == 9, "CardColor names theme::SWATCHES in their order");
+  const auto i = static_cast<size_t>(color);
+  return i >= 1 && i <= theme::SWATCH_COUNT ? theme::SWATCHES[i - 1].light : 0;
+}
+
+void set_card_color(CardColor color) {
+  plugin_host::Card *card = plugin_host::making;
+  if (!card || plugin_host::placing != &card->places) {
+    ESP_LOGW("plugins", "ui::set_card_color outside a call of a tile: no card is coloured");
+    return;
+  }
+  const uint32_t ground = swatch_of(color);
+  if (card->ground == ground) return;
+  card->ground = ground;
+  // In render() the card's palette comes right after the tile's call. From any other call (a tick, a tap) the card is
+  // drawn again in the next pass.
+  if (!plugin_host::rendering && card->index < rt::model.count) {
+    rt::mark_tile(card->index);
+    if (rt::refresh) rt::refresh();
+  }
+}
+
+lv_color_t card_color() {
+  const plugin_host::Card *card = plugin_host::making;
+  if (!card || plugin_host::placing != &card->places || card->index >= rt::model.count) return theme::color(theme::CARD);
+  const rt::Tile &t = rt::model.tiles[card->index];
+  if (t.transparent) return theme::color(theme::PAGE);
+  return lv_color_hex(theme::surface(card->ground ? card->ground : t.background));
+}
+
+lv_color_t card_color(CardColor color) { return lv_color_hex(theme::surface(swatch_of(color))); }
+
+
 void takes_taps(lv_obj_t *part) {
   using plugin_host::saver_open;
   if (!part) return;
@@ -2076,6 +2129,7 @@ namespace plugin_host {
 bool known(const runtime_tiles::Tile &) { return false; }
 void render(runtime_tiles::Widgets &, const runtime_tiles::Tile &, int, int) {}
 void release(runtime_tiles::Widgets &) {}   // no plugin card is ever made in this build
+uint32_t ground(const runtime_tiles::Widgets &) { return 0; }
 void tap(runtime_tiles::Widgets &, int, int) {}
 void tick_cards(uint32_t) {}
 uint16_t bytes(const std::string &) { return PLACEHOLDER_BYTES; }

@@ -20,6 +20,7 @@ import time
 
 import camera_source
 import live_pictures
+import screen_source
 
 LOG = logging.getLogger(__name__)
 
@@ -28,6 +29,10 @@ LINK_SECONDS = 60         # a link nobody opened for this long goes; a stream ke
 FRAME_SECONDS = 15        # nothing new from the camera for this long: the stream ends and the screen asks again
 DEFAULT_PACE = 15         # picture_sources.TILE_PACE: the pace of a camera tile on a screen that does not stream
 SOUND_QUEUE = 50          # parts of sound that may wait for a screen (about a second); older ones go
+TALK_QUEUE = 60           # the same in a conversation, 20 ms parts: over a second, the screen itself cuts it back above that
+# A call's pictures share the Wi-Fi with its sound in both directions, and the sound goes first (docs/CALLS.md): at most this
+# many pictures a second, at most this long a side (the screen's PPA scales them up to the room).
+TALK_PICTURES, TALK_SIDE = 10, 720
 SEND_BUFFER = 65536       # what may wait in this host's socket for a screen: a picture, not a queue of them
 REFUSAL_LOG_SECONDS = 60  # a refused tile asks again within seconds: the log says each screen's camera once a minute
 ROOM = re.compile(r'(\d{2,4})x(\d{2,4})')  # a link made before its screen asked: the room its stream says, ?room=WxH
@@ -61,12 +66,13 @@ def made():
     return int(time.monotonic() * 1000) & 0xFFFFFFFF
 
 
-def part_head(content_type, length, still=False, turn=0):
+def part_head(content_type, length, still=False, turn=0, talk=False):
     """The head of one part of a stream: its type, whether it is a camera's still from before its stream came, how its
-    picture is turned for a turned glass (X-Turn, live_pictures.TURNS), its length and its X-Made."""
-    return b'--frame\r\nContent-Type: %s\r\n%s%sContent-Length: %d\r\nX-Made: %d\r\n\r\n' % (
-        content_type, b'X-Picture: still\r\n' if still else b'', b'X-Turn: %d\r\n' % turn if turn else b'', length,
-        made())
+    picture is turned for a turned glass (X-Turn, live_pictures.TURNS), whether sound is a conversation (X-Sound: talk,
+    live_view.h), its length and its X-Made."""
+    return b'--frame\r\nContent-Type: %s\r\n%s%s%sContent-Length: %d\r\nX-Made: %d\r\n\r\n' % (
+        content_type, b'X-Picture: still\r\n' if still else b'', b'X-Turn: %d\r\n' % turn if turn else b'',
+        b'X-Sound: talk\r\n' if talk else b'', length, made())
 
 
 def live_pace(message, tile, features):
@@ -88,9 +94,10 @@ def live_pace(message, tile, features):
 
 class Link:
     __slots__ = ('entity', 'box', 'used', 'streaming', 'made', 'cover', 'sound', 'warm', 'screen', 'tile', 'turn',
-                 'pulled', 'until', 'lease', 'held', 'began', 'sent', 'size')
+                 'pulled', 'until', 'lease', 'held', 'began', 'sent', 'size', 'talk')
 
-    def __init__(self, entity, box, now, cover=False, sound=False, warm=False, screen=None, tile=False, turn=0):
+    def __init__(self, entity, box, now, cover=False, sound=False, warm=False, screen=None, tile=False, turn=0, talk=False):
+        self.talk = talk  # the sound is a conversation (X-Sound: talk): the screen plays it with a far smaller run-up
         self.entity, self.box, self.used, self.streaming, self.made = entity, box, now, 0, now
         self.cover, self.sound, self.warm, self.screen, self.tile = cover, sound, warm, screen, tile
         # A screen whose glass is turned and that takes its live pictures so (caps picture_turn): they go out turned.
@@ -123,7 +130,7 @@ class LiveFeed:
         for token in [t for t, link in self.links.items() if not link.streaming and now - link.used > LINK_SECONDS]:
             del self.links[token]
 
-    def link(self, entity, box, cover=False, sound=False, warm=False, screen=None, tile=False, turn=0):
+    def link(self, entity, box, cover=False, sound=False, warm=False, screen=None, tile=False, turn=0, talk=False):
         """A new link's token: the full view's (`box` its room, or None for a ring's link made as the event came,
         before the screen asked: its stream says the room, ?room=WxH; `sound` with the camera's sound for a screen with a
         speaker), or a live `tile`'s (`box` its card, `cover` when its picture fills the card rather than showing whole,
@@ -132,7 +139,7 @@ class LiveFeed:
         asked."""
         self.prune()
         token = secrets.token_urlsafe(18)
-        self.links[token] = Link(entity, box, self.clock(), cover, sound, warm, screen, tile, turn)
+        self.links[token] = Link(entity, box, self.clock(), cover, sound, warm, screen, tile, turn, talk)
         return token
 
     def hold(self, link):
@@ -199,7 +206,8 @@ class LiveFeed:
     def source(self, entity):
         source = self.sources.get(entity)
         if source is None or (source.task and source.task.done() and not source.viewers):
-            source = self.sources[entity] = camera_source.Source(self, entity, self.streams(entity))
+            special = screen_source.source_for(self, entity)
+            source = self.sources[entity] = special or camera_source.Source(self, entity, self.streams(entity))
             self.pictures[entity] = live_pictures.Pictures()
         return source
 
@@ -321,23 +329,30 @@ class LiveFeed:
             link.box = room_of(request.query.get('room'))
             if link.box is None:
                 return web.Response(status=400, text='No room for its pictures (?room=WxH)')
+        if link.talk and max(link.box) > TALK_SIDE:
+            scale = TALK_SIDE / max(link.box)
+            link.box = (max(64, int(link.box[0] * scale)), max(64, int(link.box[1] * scale)))
         source = self.begin(link, sound=link.sound)
         jpegs = self.pictures_of(link.entity)
         response = web.StreamResponse(headers={'Content-Type': 'multipart/x-mixed-replace;boundary=frame',
                                                'Cache-Control': 'no-cache'})
         writing = asyncio.Lock()
-        sound = asyncio.Queue(maxsize=SOUND_QUEUE) if link.sound else None
+        # A conversation's queue is short: a voice that waits behind others only comes late (docs/CALLS.md).
+        sound = asyncio.Queue(maxsize=TALK_QUEUE if link.talk else SOUND_QUEUE) if link.sound else None
 
         async def write(head, body):
             async with writing:
                 await response.write(head + body + b'\r\n')
 
         async def pictures():
-            last = 0
+            last, shown = 0, 0.0
             while True:
                 frame = await source.next(last, FRAME_SECONDS)
                 if frame is None or request.transport is None:
                     return
+                if link.talk and time.monotonic() - shown < 1 / TALK_PICTURES:
+                    continue  # the newest again next time: a call's sound goes before its pictures
+                shown = time.monotonic()
                 last = frame.number
                 jpeg, turn = await jpegs.picture(frame, link.box, link.cover, link.turn)
                 if not jpeg:
@@ -358,9 +373,9 @@ class LiveFeed:
             # As it comes, a few parts at once: the sound never waits for a picture's turn.
             while True:
                 data = await sound.get()
-                while not sound.empty() and len(data) < 3200:
+                while not sound.empty() and len(data) < (1280 if link.talk else 3200):
                     data += sound.get_nowait()
-                await write(part_head(b'audio/x-s16le;rate=%d' % camera_source.SOUND_RATE, len(data)), data)
+                await write(part_head(b'audio/x-s16le;rate=%d' % camera_source.SOUND_RATE, len(data), talk=link.talk), data)
 
         listening = None
         try:
@@ -371,7 +386,12 @@ class LiveFeed:
             if sound is not None:
                 source.listen(sound)
                 listening = asyncio.create_task(sounds())
-            await pictures()
+            if getattr(source, 'sound_only', False):
+                # A call with sound alone: no pictures to wait for, only the end of the connection.
+                while request.transport is not None:
+                    await asyncio.sleep(0.5)
+            else:
+                await pictures()
         except (ConnectionResetError, ConnectionError, asyncio.CancelledError):
             pass
         finally:

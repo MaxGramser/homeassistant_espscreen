@@ -199,6 +199,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         reuse = not full and tile['entity'] not in dirty and dirty.isdisjoint(manager.related_entities(tile, inbox))
         if reuse and tile['entity'].startswith('weather.') and manager.forecast_due(tile['entity']): reuse = False
         if reuse and tile['entity'].startswith('calendar.') and manager.calendar_due(tile): reuse = False
+        if reuse and tile['entity'].startswith('todo.') and manager.todo_due(tile): reuse = False
         values.append(cached['values'][i] if reuse else await manager.tile_message(i, tile, lamps=lamps, features=features, inbox=inbox))
     # Each entity's item names the tile whose card it opens, to a screen that takes cards from its top bar.
     cards = bar_cards(tiles) if BAR_CARDS_FEATURE in features else None

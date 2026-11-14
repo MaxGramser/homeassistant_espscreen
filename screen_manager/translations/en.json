@@ -159,6 +159,8 @@
       "microphone": "Microphone",
       "media_player": "Volume",
       "wake_when_moved": "Wake when moved",
+      "backlight_pwm": "Backlight PWM",
+      "dimmest_level": "Dimmest level",
       "dark_mode": "Dark mode",
       "auto_standby": "Auto standby",
       "standby_after": "Standby after",
@@ -195,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Microphone gain",
       "automatic_gain": "Automatic gain",
-      "echo_cancellation": "Echo cancellation"
+      "echo_cancellation": "Echo cancellation",
+      "loop_pages": "Loop pages"
     },
     "doorbell": {
       "sound_on": "Sound on",
@@ -204,7 +207,12 @@
       "door_confirm": "Tap again to open",
       "door_sent": "Sent",
       "talk": "Talk",
-      "coming_soon": "Coming soon"
+      "tap_talk": "Tap to talk",
+      "talking": "Talking",
+      "tap_stop": "Tap to stop",
+      "connecting": "Connecting",
+      "talk_busy": "Someone else is talking",
+      "talk_failed": "No connection"
     },
     "tile": {
       "tap_to_open": "Tap to open",
@@ -647,6 +655,42 @@
       "calendars": "Calendars",
       "also": "+{x} now",
       "booked": "Booked on the screen"
+    },
+    "todo": {
+      "open": "{x} open",
+      "all_done": "All done",
+      "more": "+{x} more",
+      "completed": "Completed",
+      "add": "Add item",
+      "added": "{x} added",
+      "rename": "Rename",
+      "remove": "Remove",
+      "cancel": "Cancel",
+      "clear": "Remove {x} completed?",
+      "waiting": "Loading",
+      "empty": "Nothing on the list",
+      "yesterday": "Yesterday"
+    },
+    "call": {
+      "title": "Call",
+      "calling": "Calling",
+      "calling_video": "Calling with video",
+      "video": "Video call",
+      "audio": "Call",
+      "decline": "Decline",
+      "answer": "Answer",
+      "ended": "Call ended",
+      "declined": "Declined",
+      "busy": "In another call",
+      "no_answer": "No answer",
+      "quiet": "Do not disturb",
+      "gone": "Not reachable",
+      "available": "Available",
+      "sound_only": "Available with sound only",
+      "in_call": "In a call",
+      "offline": "Offline",
+      "missed_at": "Missed call",
+      "no_screens": "No other screen can be called"
     }
   },
   "addon": {
@@ -981,6 +1025,10 @@
         "refused": "Home Assistant refused the automation: {reason}",
         "not_ours": "That automation was not made by Tessera, so the app leaves it alone.",
         "invalid": "This automation cannot be saved ({part})."
+      },
+      "icons": {
+        "request": "That is not a list of icons.",
+        "too_many": "A screen takes at most {most} icons of its own."
       }
     },
     "status": {
@@ -1180,6 +1228,14 @@
         "wake_when_moved": {
           "label": "Wake when moved",
           "hint": "The screen wakes from standby when someone picks it up, moves it or knocks on it. It feels the screen itself, not someone walking past."
+        },
+        "backlight_pwm": {
+          "label": "Backlight PWM",
+          "hint": "How fast the backlight switches on and off to dim. 150 Hz dims every unit of this board, but some whine below 20 kHz: choose 20 kHz when yours whines, 15 kHz when 20 kHz does not dim it evenly."
+        },
+        "dimmest_level": {
+          "label": "Dimmest level",
+          "hint": "The lowest the backlight goes, as a share of its full power. Raise it when the screen stays black or flickers at its lowest brightness."
         },
         "microphone_gain": {
           "label": "Microphone gain",
@@ -1435,7 +1491,8 @@
         "alert_outline": "Warning",
         "cog": "Settings",
         "broom": "Cleaning",
-        "diabetes": "Diabetes"
+        "diabetes": "Diabetes",
+        "phone": "Phone"
       }
     },
     "screen": {
@@ -1445,7 +1502,8 @@
         "page": "Go to page {page}",
         "map": "Map",
         "energy": "Energy",
-        "text": "Template"
+        "text": "Template",
+        "call": "Call"
       },
       "identify": {
         "title": "This is {name}",
@@ -1888,7 +1946,7 @@
     "library": {
       "title": "Library",
       "entities": "{n} entity | {n} entities",
-      "search": "Search by name, device, or room…",
+      "search": "Search by name, room, device or type…",
       "search_label": "Add an entity",
       "filters": {
         "all": "All",
@@ -1906,6 +1964,7 @@
         "vacuum": "Vacuum",
         "sensor": "Sensors",
         "media_player": "Media",
+        "camera": "Cameras",
         "weather": "Weather",
         "number": "Values",
         "select": "Selects",
@@ -1915,7 +1974,9 @@
         "alarm_control_panel": "Alarm",
         "lock": "Locks",
         "humidifier": "Humidifiers",
-        "calendar": "Calendars"
+        "calendar": "Calendars",
+        "todo": "To-do lists",
+        "text": "Texts"
       },
       "room": "Room",
       "hide_placed": "Hide placed",
@@ -1923,6 +1984,8 @@
       "again": "Already on this screen; add it again for another tile",
       "all_placed": "Everything here is already on this screen.",
       "none_found": "No entities found. Try a different name, room or filter.",
+      "found_elsewhere": "Nothing in this selection, but 1 entity matches in the whole library. | Nothing in this selection, but {n} entities match in the whole library.",
+      "search_everything": "Show all matches",
       "full": "This screen holds 1 tile. | This screen holds {n} tiles.",
       "full_update": "This screen holds 1 tile; update its firmware for 48. | This screen holds {n} tiles; update its firmware for 48.",
       "hint": "Drag onto a page, or tap + to add to the first free slot. ⌘K searches everything.",
@@ -1979,7 +2042,10 @@
       "alarm_control_panel": "Alarm panel",
       "lock": "Lock",
       "humidifier": "Humidifier",
-      "calendar": "Calendar"
+      "calendar": "Calendar",
+      "todo": "To-do list",
+      "text": "Text",
+      "input_text": "Text"
     },
     "displays": {
       "standard": "standard",
@@ -2475,6 +2541,46 @@
           "unknown": "{id} is not in Home Assistant",
           "replace": "Replace with {id}"
         }
+      },
+      "todo": {
+        "title": "To-do list",
+        "plain": "This board cannot show a to-do list: it needs a board with 8 MB of flash or more. Remove this tile.",
+        "needs_firmware": "The to-do list needs firmware 0.61.0 or newer: press Update on the screen after saving.",
+        "order": {
+          "label": "Order",
+          "hint": "As Home Assistant's own to-do list card orders them",
+          "none": "As in Home Assistant",
+          "alpha_asc": "Name, A to Z",
+          "alpha_desc": "Name, Z to A",
+          "duedate_asc": "Due date, first due first",
+          "duedate_desc": "Due date, last due first"
+        },
+        "completed": "Completed items",
+        "completed_hint": "Shown under the open items, struck through, where there is room",
+        "due": "Due dates",
+        "due_hint": "The day beside an item; late is red",
+        "screen": "On the screen",
+        "add": "Add items",
+        "add_hint": "A plus key on the tile and a field in the list open the screen's keyboard",
+        "suggest": "Suggest names",
+        "suggest_hint": "While typing, the keyboard offers what was ticked off before; a tap puts it back on the list",
+        "clear": "Remove completed",
+        "clear_hint": "A key in the list removes everything that is ticked off, after asking"
+      },
+      "call": {
+        "section": "Call",
+        "who": "Calls",
+        "who_hint_all": "A tap opens the list of screens.",
+        "who_hint_one": "A tap calls this screen at once.",
+        "everyone": "Choose from the list",
+        "kind": "Kind of call",
+        "kind_hint": "Video needs a camera on both screens, otherwise it is a call with sound.",
+        "video": "Video where possible",
+        "sound": "Sound only"
+      },
+      "text_entity": {
+        "edit": "A tap opens the value in a field with the screen's keyboard. A password shows as dots.",
+        "view_only": "This board shows the value only: changing it on the screen needs a board with 8 MB of flash or more."
       }
     },
     "precision": {
@@ -2511,7 +2617,9 @@
       "search_label": "Search for an icon",
       "none_text_only": "No icon, text only",
       "aria": "Icon: {name}",
-      "none_found": "No icon found."
+      "none_found": "No icon found.",
+      "own": "Icons of this screen",
+      "more": "More icons"
     },
     "inspect": {
       "title": "Current data",
@@ -2629,7 +2737,8 @@
         "swipe_pages": "Swipe between pages",
         "page_buttons": "Page buttons",
         "home_button": "Show home button",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "loop_pages": "Loop pages"
       },
       "actions": {
         "calibrate": {
@@ -3136,6 +3245,14 @@
         "change": "Change Wi-Fi and install again",
         "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
       },
+      "known": {
+        "title": "This board is already in Home Assistant as {name}",
+        "text": "Home Assistant keeps one ESPHome device per board (its MAC address), so {new} cannot be added while {name} is there. Install {name} again, or replace it: after the firmware is on the board, {name} leaves Home Assistant with its entities and {new} takes its place.",
+        "reinstall": "Install {name} again",
+        "replace": "Replace {name} with {new}",
+        "replaced": "{name} was removed from Home Assistant; {new} takes its place.",
+        "go_firmware": "Under Firmware & USB, pick the profile of {name} and “Install from this browser”."
+      },
       "memory": {
         "low_title": "Little memory free on the Home Assistant machine",
         "low": "{free} of memory is free, so the firmware builds with fewer compilers at a time ({jobs} instead of {cores}). That takes longer, but it fits.",
@@ -3412,7 +3529,10 @@
     "mockup": {
       "home": "Home",
       "unknown": "Unknown",
-      "calendar_free": "Free"
+      "calendar_free": "Free",
+      "todo_open": "{x} open",
+      "todo_all_done": "All done",
+      "todo_more": "+{x} more"
     },
     "pages": {
       "repaired": "Page {page}, tile “{tile}”: took out what did not fit ({what}).",
@@ -3865,6 +3985,8 @@
         "title": "What it adds",
         "tile": "Tile “{name}”",
         "tile_sizes": "From {min} to {max} on a page",
+        "tile_sizes_or_page": "From {min} to {max} on a page, or the whole page",
+        "tile_only_page": "The whole page",
         "tap": "Tap action “{name}”",
         "tap_on": "On tiles of {domains}",
         "card": "“{name}”, a screen of its own on the glass",
@@ -4200,6 +4322,9 @@
       "from_fetch": "The choices come from the plugin's own data source, through Tessera.",
       "on_screen": "On the screen",
       "sizes": "From {min} to {max}; drag an edge of the tile to change its size.",
+      "sizes_or_page": "From {min} to {max}, or the whole page; drag an edge of the tile to change its size.",
+      "sizes_only_page": "This tile always takes a whole page.",
+      "whole_page": "Whole page",
       "placeholder": "The editor shows a placeholder: what the plugin draws appears on the screen itself.",
       "now": "now",
       "minutes": "{n} min",
@@ -4214,7 +4339,14 @@
       "remove": "Remove {name}",
       "type": "Type and press Enter",
       "full": "The screen takes no more for this tile: its options are full.",
-      "count": "{n} of {max}"
+      "count": "{n} of {max}",
+      "show_all": "Show all entities",
+      "show_fitting": "Show only what fits",
+      "not_set": "Not set",
+      "fill_device": "Fill from a device",
+      "fill_device_hint": "Choose a device and its sensors are filled in below. You can still change each one.",
+      "fill_device_none": "No device has two or more of these sensors",
+      "fill_device_count": "1 sensor | {n} sensors"
     },
     "build": {
       "plugins": "Building with its plugins",
@@ -4247,7 +4379,8 @@
           "fetch": "the firmware did not come back",
           "bundle": "the YAML could not be packed"
         }
-      }
+      },
+      "icons": "Building with its icons"
     },
     "grid": {
       "title": "Grid",
@@ -4545,6 +4678,44 @@
     },
     "drawer": {
       "resize": "Resize the settings: drag, or use the arrow keys; double-click to reset"
+    },
+    "screen_icons": {
+      "eyebrow": "Icons",
+      "title": "Icons of {name}",
+      "intro": "Every screen carries a fixed set of icons. Here you add up to {room} more. Icons are part of the firmware, so a change only reaches the screen after it builds again.",
+      "count": "{n} of {room} added",
+      "on_screen": "On this screen",
+      "none_yet": "None yet. Pick from the icons below.",
+      "waiting": "1 icon waits for a build | {n} icons wait for a build",
+      "leaving": "1 icon leaves with the next build | {n} icons leave with the next build",
+      "changes": "Build to put these changes on the screen. It takes a few minutes and the screen restarts.",
+      "build": "Build {name}",
+      "building": "Building with these icons…",
+      "all_up_to_date": "Everything you picked is on the screen.",
+      "everywhere": "Put on every screen",
+      "everywhere_ask": "This replaces the added icons of {n} screen and builds it. | This replaces the added icons of {n} screens and builds them one after the other. A screen with 4 MB of flash stays as it is.",
+      "everywhere_yes": "Build {n} screen | Build {n} screens",
+      "everywhere_done": "Waiting to build: {names}",
+      "everywhere_off": "Off, so not built: {names}",
+      "from_ha": "Used in your Home Assistant",
+      "from_ha_hint": "Icons your entities have that this screen cannot draw yet.",
+      "add_all": "Add all",
+      "all": "All icons",
+      "search": "Search all icons",
+      "search_label": "Search all icons",
+      "nothing": "No icon has that name.",
+      "fixed": "Already on every screen",
+      "full": "This screen has no more room.",
+      "in_use": "{icon} is on {n} tile of this screen. It shows its automatic icon after the next build. | {icon} is on {n} tiles of this screen. They show their automatic icon after the next build.",
+      "remove": "Remove",
+      "own_yaml": "This screen is built from its own YAML. Save this as {file} next to it, add the line below under packages:, and build it there.",
+      "loading": "Loading the icons…",
+      "card_title": "Icons",
+      "card_hint": "Add up to {room} icons to the ones this screen carries.",
+      "card_button": "Choose icons",
+      "card_count": "{n} added",
+      "card_waiting": "{n} waiting for a build",
+      "card_no_room": "This board has 4 MB of flash, with no room for more icons."
     }
   }
 }

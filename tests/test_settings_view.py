@@ -41,7 +41,7 @@ class SettingsView(unittest.TestCase):
     def test_the_view_switches_by_hash_and_renders_what_it_shows(self):
         ui = editor_sources.source('stores/ui.ts')
         # The address is the router's (web/src/router.ts, docs/PAGES.md "The address"): the store reads the route and pushes it.
-        for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report"] as const;',
+        for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;',
                        'const current = router.currentRoute;', 'return router.push(target === "" ? mainView() : `/${target.slice(1)}`);'):
             self.assertIn(marker, ui, marker)
         router = editor_sources.source('router.ts')

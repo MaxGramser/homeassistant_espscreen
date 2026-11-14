@@ -7,7 +7,7 @@ import { useUiStore } from "../src/stores/ui";
 import { useScreenStore } from "../src/stores/screen";
 import { useSessionStore } from "../src/stores/session";
 import { useInventoryStore } from "../src/stores/inventory";
-import { resizeChoices, resizeTile, setTileOption, tileSizeChoices } from "../src/editor/tiles";
+import { resizeChoices, resizeTile, setTileOption, startTile, tileSizeChoices } from "../src/editor/tiles";
 import { useDocumentStore } from "../src/stores/document";
 
 let doc: ReturnType<typeof useDocumentStore>;
@@ -187,6 +187,41 @@ const pluginTile = async () => {
   doc.document!.pages[0].tiles[0].content = { kind: 'plugin', plugin: 'waste_collection', tile: 'next' } as never;
   expect(tile().entity).toBe('plugin:waste_collection.next');
 };
+
+// Plugin API 0.25: the manifest says how large a tile may be, the whole page included.
+const pluginSizes = async (sizes: object, grid?: { columns: number; rows: number }) => {
+  await pluginTile();
+  const { usePluginsStore } = await import("../src/stores/plugins");
+  usePluginsStore().index = [{ id: 'waste_collection', tiles: [{ id: 'next', ...sizes }] }] as never;
+  if (grid) Object.assign(doc.editorLayout.grid, grid);
+  useInventoryStore().inventory.screens[0].tile_sizes = ['single', 'wide', 'full', 'tall', 'square', '3x2', '2x3'];
+};
+it("keeps a plugin's tile off the whole page unless its manifest allows it", async () => {
+  await pluginSizes({ min: '1x1', max: '2x2' });
+  expect(tileSizeChoices(tile())).not.toContain('full');
+});
+it("offers the whole page to a plugin's tile with full: true", async () => {
+  await pluginSizes({ min: '1x1', max: '2x2', full: true });
+  expect(tileSizeChoices(tile())).toEqual(['single', 'wide', 'tall', 'square', 'full']);
+});
+it("offers no size under a plugin's min, and 2 x 3 on this grid of 2 x 3 is the whole page", async () => {
+  await pluginSizes({ min: '2x2', max: '2x3' });
+  expect(tileSizeChoices(tile())).toEqual(['square', 'full']);
+});
+it("takes a max that reaches the grid as the whole page", async () => {
+  const { columns, rows } = doc.editorLayout.grid;
+  await pluginSizes({ min: '1x1', max: `${columns}x${rows}` });
+  expect(tileSizeChoices(tile())).toContain('full');
+});
+it("has a tile of only the whole page start as the whole page", async () => {
+  await pluginSizes({ min: null, max: null, full: true });
+  expect(tileSizeChoices(tile())).toEqual(['full']);
+  expect(startTile('plugin:waste_collection.next').options?.size).toBe('full');
+});
+it("starts a new plugin tile at the smallest size it takes", async () => {
+  await pluginSizes({ min: '2x2', max: '2x3' });
+  expect(startTile('plugin:waste_collection.next').options?.size).toBe('square');
+});
 
 it("resizes a plugin's tile by its edge without giving it controls (GitHub #224)", async () => {
   await pluginTile();
