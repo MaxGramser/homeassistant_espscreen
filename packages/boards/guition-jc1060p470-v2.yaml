@@ -31,11 +31,14 @@ substitutions:
   DEVICE_NAME: "jc1060p470v2-new"
   DEVICE_FRIENDLY_NAME: "My Guition 7 V2"
 
-  # The glass: the panel's own pixels, which the display block below always drives, and its density: 1187 diagonal
-  # pixels over 7 inches. The look scales its sizes by the exact density, the firmware by the nearest whole number.
-  PANEL_W: "1024"
+  # The glass: 1024 x 600 pixels over 154 x 86 mm, so a pixel is about 5 % wider than tall. The firmware draws a canvas
+  # of square pixels as wide as the glass at its height's density, 1074 x 600, and the display block below squeezes it
+  # into the panel's 1024 columns (logical_width), so a circle stays round. The density is that canvas's: 1230 diagonal
+  # pixels over the 7 inches it is sold as. The look scales its sizes by the exact density, the firmware by the nearest
+  # whole number.
+  PANEL_W: "1074"
   PANEL_H: "600"
-  DISPLAY_DPI: "169.548"
+  DISPLAY_DPI: "175.748"
   # The tile grid: columns and rows of cells. The shared tree places every cell from these
   # (runtime_tiles::place_page), so a board with more room states more columns or rows.
   GRID_COLS: "4"
@@ -70,16 +73,18 @@ substitutions:
 
 esphome:
   # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
-  # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker.
-  # A board file's min_version wins over the core's.
+  # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker,
+  # and its display driver, mipi_dsi_v3 below, is ESPHome 2026.9.0's. A board file's min_version wins over the core's.
   min_version: 2026.9.0
 
+# The platform is mipi_dsi_v3, the copy of ESPHome's mipi_dsi in components/ that can squeeze a wider canvas into the
+# panel (logical_width, components/mipi_dsi_v3/README.md).
 # ESPHome has no model for this panel yet (pull request 18695 adds `JC1060P470-V2`), so it is described in full:
 # the timings and the init table of Guition's own driver for the new panel (JC1060P470C_I_W_Y.zip, 2026-07-13,
 # esp_lcd_jd9165), as that pull request carries them. ESPHome adds the pixel format, the orientation and the
 # display-on commands itself.
 display:
-  - platform: mipi_dsi
+  - platform: mipi_dsi_v3
     id: my_display
     model: CUSTOM
     update_interval: never
@@ -89,6 +94,7 @@ display:
     reset_pin: GPIO0
     color_order: RGB
     dimensions: {width: 1024, height: 600}
+    logical_width: ${PANEL_W}
     lanes: 2
     lane_bit_rate: 750Mbps
     pclk_frequency: 52MHz

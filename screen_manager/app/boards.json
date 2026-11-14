@@ -808,19 +808,19 @@
  },
  "checkout/jc1060p470v2.yaml": {
   "alert": {
-   "line": 25,
-   "title_line": 32
+   "line": 26,
+   "title_line": 33
   },
   "battery": false,
   "board": "jc1060p470v2",
   "camera": {
    "full": [
-    1024,
+    1074,
     600
    ],
    "thumb": [
-    392,
-    220
+    406,
+    228
    ]
   },
   "can_standby": true,
@@ -841,7 +841,7 @@
   "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
-  "dpi": 170,
+  "dpi": 176,
   "features": [
    "speaker",
    "microphone",
@@ -851,16 +851,16 @@
   ],
   "firmware": "0.61.0",
   "fonts": {
-   "headline": 27,
-   "icon": 42,
-   "icon_home": 34,
-   "icon_mini": 26,
-   "label": 18,
-   "setpoint": 64,
-   "sublabel": 16,
-   "sublabel_big": 21,
-   "watch_icon": 18,
-   "watch_value": 38
+   "headline": 28,
+   "icon": 43,
+   "icon_home": 35,
+   "icon_mini": 27,
+   "label": 19,
+   "setpoint": 66,
+   "sublabel": 17,
+   "sublabel_big": 22,
+   "watch_icon": 19,
+   "watch_value": 39
   },
   "height": 600,
   "hotspot": true,
@@ -884,18 +884,18 @@
    "landscape": {
     "camera": {
      "full": [
-      1024,
+      1074,
       600
      ],
      "thumb": [
-      392,
-      220
+      406,
+      228
      ]
     },
     "columns": 4,
     "height": 600,
     "max": [
-     6,
+     7,
      7
     ],
     "min": [
@@ -904,21 +904,21 @@
     ],
     "rotation": 0,
     "rows": 4,
-    "width": 1024
+    "width": 1074
    },
    "portrait": {
     "camera": {
      "full": [
       600,
-      1024
+      1074
      ],
      "thumb": [
-      392,
-      220
+      406,
+      228
      ]
     },
     "columns": 2,
-    "height": 1024,
+    "height": 1074,
     "max": [
      3,
      8
@@ -935,18 +935,18 @@
   "own_icons": true,
   "rows": 4,
   "spacing": {
-   "circle": 54,
+   "circle": 56,
    "gap": 12,
    "gap_y": 12,
    "margin": 16,
-   "page_bar": 47,
-   "radius": 22,
+   "page_bar": 48,
+   "radius": 23,
    "tile_pad": 12,
-   "top": 56
+   "top": 57
   },
   "tier": "full",
   "wide_slots": false,
-  "width": 1024
+  "width": 1074
  },
  "checkout/jc3248w535.yaml": {
   "alert": {
@@ -4866,19 +4866,19 @@
  },
  "jc1060p470v2": {
   "alert": {
-   "line": 25,
-   "title_line": 32
+   "line": 26,
+   "title_line": 33
   },
   "battery": false,
   "board": "jc1060p470v2",
   "camera": {
    "full": [
-    1024,
+    1074,
     600
    ],
    "thumb": [
-    392,
-    220
+    406,
+    228
    ]
   },
   "can_standby": true,
@@ -4899,7 +4899,7 @@
   "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
-  "dpi": 170,
+  "dpi": 176,
   "features": [
    "speaker",
    "microphone",
@@ -4909,16 +4909,16 @@
   ],
   "firmware": "0.61.0",
   "fonts": {
-   "headline": 27,
-   "icon": 42,
-   "icon_home": 34,
-   "icon_mini": 26,
-   "label": 18,
-   "setpoint": 64,
-   "sublabel": 16,
-   "sublabel_big": 21,
-   "watch_icon": 18,
-   "watch_value": 38
+   "headline": 28,
+   "icon": 43,
+   "icon_home": 35,
+   "icon_mini": 27,
+   "label": 19,
+   "setpoint": 66,
+   "sublabel": 17,
+   "sublabel_big": 22,
+   "watch_icon": 19,
+   "watch_value": 39
   },
   "height": 600,
   "hotspot": true,
@@ -4942,18 +4942,18 @@
    "landscape": {
     "camera": {
      "full": [
-      1024,
+      1074,
       600
      ],
      "thumb": [
-      392,
-      220
+      406,
+      228
      ]
     },
     "columns": 4,
     "height": 600,
     "max": [
-     6,
+     7,
      7
     ],
     "min": [
@@ -4962,21 +4962,21 @@
     ],
     "rotation": 0,
     "rows": 4,
-    "width": 1024
+    "width": 1074
    },
    "portrait": {
     "camera": {
      "full": [
       600,
-      1024
+      1074
      ],
      "thumb": [
-      392,
-      220
+      406,
+      228
      ]
     },
     "columns": 2,
-    "height": 1024,
+    "height": 1074,
     "max": [
      3,
      8
@@ -4993,18 +4993,18 @@
   "own_icons": true,
   "rows": 4,
   "spacing": {
-   "circle": 54,
+   "circle": 56,
    "gap": 12,
    "gap_y": 12,
    "margin": 16,
-   "page_bar": 47,
-   "radius": 22,
+   "page_bar": 48,
+   "radius": 23,
    "tile_pad": 12,
-   "top": 56
+   "top": 57
   },
   "tier": "full",
   "wide_slots": false,
-  "width": 1024
+  "width": 1074
  },
  "jc3248w535": {
   "alert": {
@@ -6649,19 +6649,19 @@
  },
  "packages/jc1060p470v2.yaml": {
   "alert": {
-   "line": 25,
-   "title_line": 32
+   "line": 26,
+   "title_line": 33
   },
   "battery": false,
   "board": "jc1060p470v2",
   "camera": {
    "full": [
-    1024,
+    1074,
     600
    ],
    "thumb": [
-    392,
-    220
+    406,
+    228
    ]
   },
   "can_standby": true,
@@ -6682,7 +6682,7 @@
   "chip": "ESP32-P4",
   "columns": 4,
   "dimmable": true,
-  "dpi": 170,
+  "dpi": 176,
   "features": [
    "speaker",
    "microphone",
@@ -6692,16 +6692,16 @@
   ],
   "firmware": "0.61.0",
   "fonts": {
-   "headline": 27,
-   "icon": 42,
-   "icon_home": 34,
-   "icon_mini": 26,
-   "label": 18,
-   "setpoint": 64,
-   "sublabel": 16,
-   "sublabel_big": 21,
-   "watch_icon": 18,
-   "watch_value": 38
+   "headline": 28,
+   "icon": 43,
+   "icon_home": 35,
+   "icon_mini": 27,
+   "label": 19,
+   "setpoint": 66,
+   "sublabel": 17,
+   "sublabel_big": 22,
+   "watch_icon": 19,
+   "watch_value": 39
   },
   "height": 600,
   "hotspot": true,
@@ -6725,18 +6725,18 @@
    "landscape": {
     "camera": {
      "full": [
-      1024,
+      1074,
       600
      ],
      "thumb": [
-      392,
-      220
+      406,
+      228
      ]
     },
     "columns": 4,
     "height": 600,
     "max": [
-     6,
+     7,
      7
     ],
     "min": [
@@ -6745,21 +6745,21 @@
     ],
     "rotation": 0,
     "rows": 4,
-    "width": 1024
+    "width": 1074
    },
    "portrait": {
     "camera": {
      "full": [
       600,
-      1024
+      1074
      ],
      "thumb": [
-      392,
-      220
+      406,
+      228
      ]
     },
     "columns": 2,
-    "height": 1024,
+    "height": 1074,
     "max": [
      3,
      8
@@ -6776,18 +6776,18 @@
   "own_icons": true,
   "rows": 4,
   "spacing": {
-   "circle": 54,
+   "circle": 56,
    "gap": 12,
    "gap_y": 12,
    "margin": 16,
-   "page_bar": 47,
-   "radius": 22,
+   "page_bar": 48,
+   "radius": 23,
    "tile_pad": 12,
-   "top": 56
+   "top": 57
   },
   "tier": "full",
   "wide_slots": false,
-  "width": 1024
+  "width": 1074
  },
  "packages/jc3248w535.yaml": {
   "alert": {

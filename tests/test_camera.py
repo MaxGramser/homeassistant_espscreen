@@ -214,6 +214,17 @@ class Rules(unittest.TestCase):
         self.assertNotIn('camera', [name for name, *_ in ALERT_FIELDS])
         self.assertEqual(alert_reference()['camera']['name'], 'camera')
 
+    def test_a_canvas_no_orientation_of_the_board_has_is_the_full_picture(self):
+        old = {'board': 'jc1060p470v2', 'shape': {'width': 600, 'height': 1024, 'columns': 2, 'rows': 7, 'dpi': 170}}
+        self.assertEqual(pq.box(old, 'full'), (600, 1024))
+        self.assertEqual(pq.boxes(old)['thumb'], pq.boxes({'board': 'jc1060p470v2'})['thumb'])
+        # The canvas of the board itself, or nothing reported, keeps the board's boxes (within the picture cap, as ever).
+        for shape, want in (({'width': 600, 'height': 1074, 'columns': 2, 'rows': 7, 'dpi': 176}, (600, 1074)),
+                            ({'width': 1074, 'height': 600, 'columns': 4, 'rows': 4, 'dpi': 176}, (1074, 600)), (None, (1074, 600))):
+            screen = {'board': 'jc1060p470v2', 'shape': shape}
+            self.assertEqual(pq.boxes(screen)['full'], want)
+            self.assertEqual(pq.box(screen, 'full'), pq.capped(want))
+
     def test_the_boxes_are_the_profile_sizes(self):
         # The Guition's: its canvas, and the frame its alert card makes for a picture (screen_alert::layout), which
         # is the one the standard look was drawn with.
