@@ -6,7 +6,7 @@
 #include "picture_engine.h"
 #if defined(GLASS_DSI) && defined(SCREEN_PICTURES)
 #include <driver/ppa.h>
-#include "lvgl.h"  // LV_COLOR_16_SWAP, LVGL's byte order for this display
+#include "lvgl.h"  // LV_COLOR_16_SWAP or LV_COLOR_FORMAT_DEFAULT, LVGL's byte order for this display
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_attr.h>
 #include <atomic>
@@ -29,7 +29,13 @@ static void *buffer = nullptr;
 
 static void panel_made(esp_lcd_panel_handle_t made, const esp_lcd_dpi_panel_config_t *config) {
   panel_handle = made;
+  // LVGL's byte order for this display: ESPHome 2026.9 says it as LV_COLOR_16_SWAP, 2026.11 (LVGL 9.6) as the
+  // default colour format, RGB565_SWAPPED for a big-endian display.
+#ifdef LV_COLOR_16_SWAP
   panel_facts.swapped = LV_COLOR_16_SWAP;
+#else
+  panel_facts.swapped = LV_COLOR_FORMAT_DEFAULT == LV_COLOR_FORMAT_RGB565_SWAPPED;
+#endif
   panel_facts.w = config->video_timing.h_size;
   panel_facts.h = config->video_timing.v_size;
   // ESPHome names the frame buffer's format in either field, by ESP-IDF version.
