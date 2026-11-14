@@ -1,0 +1,108 @@
+# ESP Screens - Guition JC4880P443 "V3" board, EXPERIMENTAL: the 4.3-inch JC4880P443 as Guition ships it now (SKU
+# 10150002-V3), with rev3 ESP32-P4 silicon behind the same 480x800 MIPI-DSI panel (ST7701) and GT911 capacitive touch,
+# on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 800x480 at 217 dpi lying down, the glass of the Waveshare 4.3, so it takes that board's grid: 3 x 3 lying down and
+# 1 x 4 standing up. The panel itself is 480x800 (portrait); LVGL turns the picture and the touch a quarter.
+# Everything but the chip revision is the first JC4880P443's (packages/hardware/guition-jc4880p443.yaml), so this file
+# differs from guition-jc4880p443.yaml only there: rev3 silicon, the display driver that lets ESP-IDF pick the DSI
+# clock on it, and the touch bus at the 100 kHz of Guition's own P4_V3X_DEMO. A first-build firmware does not boot a
+# V3, which is how someone finds out which of the two they have; docs/JC4880P443.md has what to check on the glass.
+# The settings follow jtenniswood/espcontrol's JC4880P443 V3 profile, which runs on this board.
+# The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml) on the pins of the
+# JC-ESP32P4-M3 module board, experimental, as on the first build.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/jc4880p443v3.yaml (a build on this computer) and
+# packages/jc4880p443v3.yaml (the package a screen builds from over GitHub).
+packages:
+  # The board apart from its chip revision: the ESP32-P4 and its ESP32-C6 (shared with the 10.1-inch and the 7-inch),
+  # the touch bus, the backlight's pin and the GT911, the same as on the first build.
+  hardware: !include ../hardware/guition-jc4880p443.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The ES8311, its speaker and its microphone, on the pins of the module board below.
+  audio: !include ../hardware/guition-p4-audio.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc4880p443v3"
+  DEVICE_NAME: "jc4880p443v3-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 4.3 V3"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together, so nothing else on this board knows which way the glass hangs. 933 diagonal pixels over
+  # 4.3 inches: the look scales its sizes by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "480"
+  PANEL_H: "800"
+  DISPLAY_DPI: "216.966"
+  # The LVGL angle that lays this panel out lying down (800 x 480). Standing up is a quarter further, 180, which is
+  # the way up community configurations for this board run it.
+  ROTATION_LANDSCAPE: "90"
+  # The grid a screen starts with, lying down, as on the Waveshare 4.3 with the same glass; the owner picks another in
+  # the editor within what the glass holds (docs/RESPONSIVE.md, "The grid a screen is given").
+  GRID_COLS: "3"
+  GRID_ROWS: "3"
+  # The grid it starts with standing up: one column of four keeps the standard tile size.
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, as on the other P4 boards
+  # The Wi-Fi link at 20 MHz instead of 40: what community configurations for this board run, the V3's included.
+  HOSTED_SDIO_FREQUENCY: "20MHz"
+  # The audio on the JC-ESP32P4-M3 module board (hardware/guition-p4-audio.yaml): the microphone's data and the
+  # amplifier's enable.
+  AUDIO_DIN_PIN: GPIO48
+  AUDIO_AMPLIFIER_PIN: GPIO11
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the OmniVision OV02C10 on the MIPI-CSI port of
+  # the boards that carry one (the "C" in Guition's model name, JC4880P443C). It answers on the touch bus at 0x36,
+  # clocks itself and has no reset or power-down pin; a camera plugin drives it (screen_camera).
+  CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the sensor has its own clock
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker,
+  # and its display platform (mipi_dsi_v3 below) is a copy of 2026.9.0's mipi_dsi. A board file's min_version wins over
+  # the core's.
+  min_version: 2026.9.0
+
+# Rev3 silicon ("chip revision: v3.x" in the boot log). The first build's chips are pre-v3, which
+# packages/hardware/esp32p4-core.yaml builds for; ESP-IDF lays out memory differently for the two and a pre-v3
+# firmware does not boot a rev3 chip. This board file's value wins over that file's. The CPU stays at 360 MHz, as
+# the community configurations for this board run it.
+esp32:
+  engineering_sample: false
+
+# Guition's P4_V3X_DEMO runs the GT911 at 100 kHz, and so does the community configuration for the V3; the first
+# build's 400 kHz is not checked on it. The codec and the camera's sensor on the same bus are fine at 100 kHz.
+i2c:
+  - id: !extend touch_bus
+    frequency: 100kHz
+
+# The same panel and the same ST7701 as on the first build: ESPHome's model `JC4880P443` brings its init sequence,
+# its timings (34 MHz, 500 Mbps on two lanes, Guition's P4_V3X_DEMO) and its reset pin (GPIO5). The panel is 480x800;
+# LVGL turns it a quarter (LVGL_ROTATION).
+# The platform is mipi_dsi_v3, a copy of ESPHome 2026.9.0's mipi_dsi in components/ that lets ESP-IDF pick the DSI
+# clock. Upstream's fixed clock aborts on rev3 silicon while the display starts, so the screen restarts until safe mode
+# (as on the JC8012P4A1 V3, GitHub #52). ESPHome fixes this in 2026.9.1 (esphome/esphome#18984); then this goes back
+# to `platform: mipi_dsi` and the copy goes away (components/mipi_dsi_v3/README.md).
+display:
+  - platform: mipi_dsi_v3
+    id: my_display
+    model: JC4880P443
+    update_interval: never
+    auto_clear_enabled: false

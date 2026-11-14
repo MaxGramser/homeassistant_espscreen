@@ -1,0 +1,17 @@
+# ESP Screens - the 4.3-inch Guition JC4880P443 apart from its chip revision, for a board file that includes this one.
+#
+# Guition ships this board in two builds: the first one (guition-jc4880p443.yaml), with a pre-v3 ESP32-P4, and the
+# "V3" (SKU 10150002-V3, guition-jc4880p443-v3.yaml), with rev3 silicon. Everything else is the same board: the
+# ESP32-P4 and its ESP32-C6 (shared with the 10.1-inch and the 7-inch Guition), the ST7701 panel, the GT911 touch panel
+# and the backlight's pin. The board file adds its display and says which silicon it is built for.
+packages:
+  hardware: !include guition-esp32p4.yaml
+
+# ESPHome's own gt911 platform; the GT911 reports the panel's own pixels, so the transform stays the core's. The
+# community configurations for this board name no reset or interrupt pin for it.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
