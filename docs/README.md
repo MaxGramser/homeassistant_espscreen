@@ -37,7 +37,7 @@
 - [JC3248W535.md](JC3248W535.md): the Guition JC3248W535, 3.5 inch.
 - [JC4880P443.md](JC4880P443.md): the Guition JC4880P443, 4.3 inch, ESP32-P4.
 - [JC8048W550.md](JC8048W550.md): the Guition JC8048W550C_I, 5 inch.
-- [JC1060P470.md](JC1060P470.md): the Guition JC1060P470 and its V2, 7 inch, ESP32-P4.
+- [JC1060P470.md](JC1060P470.md): the Guition JC1060P470, its V2 and its V3, 7 inch, ESP32-P4.
 - [JC8012P4A1.md](JC8012P4A1.md): the Guition JC8012P4A1, 10.1 inch, ESP32-P4, with its V2 and V3.
 - [TAB5.md](TAB5.md): the M5Stack Tab5, 5 inch, ESP32-P4, for the confirmed ST7121 variant.
 - [WAVESHARE35.md](WAVESHARE35.md): the Waveshare ESP32-S3-Touch-LCD-3.5.

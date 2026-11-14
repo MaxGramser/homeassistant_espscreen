@@ -1,8 +1,9 @@
 # MIPI DSI for the rev3 ESP32-P4 boards
 
 ESPHome 2026.9.0's `esphome/components/mipi_dsi` (license alongside), for the boards built for rev3 ESP32-P4 silicon
-that need it: the Guition JC8012P4A1 V3 (`packages/boards/guition-jc8012p4a1-v3.yaml`) and the Waveshare
-ESP32-P4-WIFI6-Touch-LCD-7B (`packages/boards/wavesharep47b.yaml`), both `platform: mipi_dsi_v3`. It is a separate name
+that need it: the Guition JC8012P4A1 V3 (`packages/boards/guition-jc8012p4a1-v3.yaml`), the Guition JC1060P470 V3
+(`packages/boards/guition-jc1060p470-v3.yaml`) and the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B
+(`packages/boards/wavesharep47b.yaml`), all `platform: mipi_dsi_v3`. It is a separate name
 so that no other board picks it up: the first JC8012P4A1 and the JC1060P470 keep ESPHome's own driver.
 
 It differs from upstream in two lines. `mipi_dsi.cpp` leaves the DSI bus's `phy_clk_src` at zero, so ESP-IDF picks the

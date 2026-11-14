@@ -265,3 +265,12 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+jc1060p470v3:
+  file: guition-jc1060p470-v3.yaml
+  name: Guition
+  model: JC1060P470 V3
+  status: experimental
+  # Rev3 ESP32-P4 (SKU 10153004-V3) with the V2's panel: the V2's firmware leaves it dark (GitHub #397).
+  # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
+  settings: [media_player, microphone]

@@ -22,7 +22,7 @@ STILL_HELD = {
     'audio_dac': ('reterminald1001',),
     'binary_sensor': ('reterminald1001',),
     'esp32': (
-        'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
+        'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535', 'guition-jc1060p470-v3',
         'guition-jc8012p4a1-v3', 'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001', 'seeed-sensecap-indicator-d1',
         'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-43', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7', 'waveshare-esp32s3-7b', 'waveshare101', 'waveshare43c',
@@ -30,7 +30,7 @@ STILL_HELD = {
     ),
     'esp_ldo': ('crowpanel101',),
     'esphome': (
-        'crowpanel101', 'cyd-2432s028', 'cyd-2432s028-ili9342', 'guition-jc1060p470-v2', 'guition-jc1060p470',
+        'crowpanel101', 'cyd-2432s028', 'cyd-2432s028-ili9342', 'guition-jc1060p470-v2', 'guition-jc1060p470-v3', 'guition-jc1060p470',
         'guition-jc4880p443', 'hosyond40', 'seeed-sensecap-indicator-d1',
         'guition-jc8012p4a1-v2', 'guition-jc8012p4a1-v3', 'guition-jc8012p4a1', 'reterminald1001', 'tab5',
         'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7b', 'waveshare101', 'waveshare43c', 'wavesharep4', 'wavesharep47',
@@ -46,7 +46,7 @@ STILL_HELD = {
     'interval': ('reterminald1001',),
     'light': ('guition-jc8048w550c-i', 'waveshare-esp32s3-4b',),
     'logger': (
-        'guition-4848s040', 'guition-jc8048w550c-i', 'reterminald1001', 'seeed-sensecap-indicator-d1',
+        'guition-4848s040', 'guition-jc1060p470-v3', 'guition-jc8048w550c-i', 'reterminald1001', 'seeed-sensecap-indicator-d1',
         'sunton-8048s070', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7b', 'waveshare43c',
         'wavesharep47b',
     ),
@@ -78,7 +78,7 @@ STILL_HELD = {
     'xl9535': ('reterminald1001',),
     'display': (
         'crowpanel101', 'cyd-2432s028-ili9342', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040',
-        'guition-jc1060p470-v2', 'guition-jc1060p470', 'guition-jc3248w535', 'guition-jc4880p443',
+        'guition-jc1060p470-v2', 'guition-jc1060p470-v3', 'guition-jc1060p470', 'guition-jc3248w535', 'guition-jc4880p443',
         'guition-jc8012p4a1-v2', 'guition-jc8012p4a1-v3', 'guition-jc8012p4a1', 'guition-jc8048w550c-i', 'hosyond40',
         'reterminald1001', 'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'tab5', 'waveshare-esp32s3-35',
         'waveshare-esp32s3-43', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7',
