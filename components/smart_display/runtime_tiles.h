@@ -9250,7 +9250,9 @@ inline void render_slot(size_t slot) {
 #else
   const bool bare=t.transparent;
 #endif
-  const uint32_t paint=t.background|(bare?1u<<24:0);
+  // A plugin tile may give its card a colour of its own (plugin API 0.26, ui::set_card_color): it goes over the tile's.
+  const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):t.background;
+  const uint32_t paint=own|(bare?1u<<24:0);
   if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
   w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
@@ -9273,14 +9275,14 @@ inline void render_slot(size_t slot) {
   // Every card, the one over the whole page too, is white or its own pastel (firmware 0.2.77+): the state shows in the
   // icon and the controls, as on the other sizes. Firmware 0.2.62 to 0.2.76 tinted a full-page card in its state colour
   // while it was on.
-  press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(t.background)));
+  press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(own)));
   set_number(w.tile,LV_STYLE_BORDER_WIDTH,1);
   // "Background: none" hides only the card; geometry and padding stay identical, and the press still shows because
   // it lives on the PRESSED state: a shade of what the finger sees, the page there, the card everywhere else.
-  set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(bare ? theme::hex(theme::PAGE) : theme::surface(t.background))),LV_STATE_PRESSED);
+  set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(bare ? theme::hex(theme::PAGE) : theme::surface(own))),LV_STATE_PRESSED);
   set_number(w.tile,LV_STYLE_BG_OPA,bare&&!letterboxed(w) ? LV_OPA_TRANSP : LV_OPA_COVER);
   set_number(w.tile,LV_STYLE_BORDER_OPA,bare ? LV_OPA_TRANSP : LV_OPA_COVER);
-  set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(theme::outline(t.background)));
+  set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(theme::outline(own)));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
   set_color(w.icon,LV_STYLE_TEXT_COLOR,icon_color);
   // A key is its circle: the card takes the circle's colour and its press, with no border (firmware 0.8.0+).
@@ -9290,7 +9292,7 @@ inline void render_slot(size_t slot) {
     set_number(w.tile,LV_STYLE_BG_OPA,LV_OPA_COVER);set_number(w.tile,LV_STYLE_BORDER_OPA,LV_OPA_TRANSP);
   }
   auto title_color=theme::color(theme::INK);
-  auto value_color=theme::color(w.key ? theme::INK : t.background ? theme::SLATE : theme::MUTED);
+  auto value_color=theme::color(w.key ? theme::INK : own ? theme::SLATE : theme::MUTED);
   set_color(w.unit,LV_STYLE_TEXT_COLOR,theme::color(t.is_page()?theme::CHEVRON:theme::SLATE));
   set_color(w.title,LV_STYLE_TEXT_COLOR,title_color);
   set_color(w.value,LV_STYLE_TEXT_COLOR,value_color);
@@ -10175,8 +10177,9 @@ inline bool check_tile_geometry() {
         (int)content_width(w),(int)content_height(w),(int)lv_obj_get_style_space_top(w.tile,LV_PART_MAIN),l.digit_h,l.key,l.name_h);}
     }
     if(!fits)ESP_LOGE("ui_test","Tile geometry FAIL slot=%u mode=%s wide=%d title_y=%d..%d value_y=%d..%d content_y=%d..%d",(unsigned)w.index,w.extra_mode.c_str(),w.wide,(int)title.y1,(int)title.y2,(int)value.y1,(int)value.y2,(int)content.y1,(int)content.y2);
-    if(w.index<model.count && model.tiles[w.index].background){
-      bool palette_ok=lv_color_eq(lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN),lv_color_hex(theme::surface(model.tiles[w.index].background))) &&
+    if(w.index<model.count && (model.tiles[w.index].background || plugin_host::ground(w))){
+      const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):model.tiles[w.index].background;
+      bool palette_ok=lv_color_eq(lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN),lv_color_hex(theme::surface(own))) &&
         lv_color_eq(lv_obj_get_style_text_color(w.title,LV_PART_MAIN),theme::color(theme::INK));
       if(!palette_ok)ESP_LOGE("ui_test","Tile palette FAIL slot=%u",(unsigned)w.index);
       fits=fits && palette_ok;

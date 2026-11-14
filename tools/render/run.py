@@ -876,6 +876,22 @@ class Run:
         assert len(json.dumps({'n': 3, **x}, separators=(',', ':'))) <= 2600, 'the prices are larger than a tile may get'
         await self.sender.synchronize(self.inbox.object_id, record, region, values(3, x), bars)
         await self.until(lambda l: probe(l, 'tile=0 state n=3') and 'today=96 tomorrow=96' in l, 10, 'two days of prices', start)
+        # The card's own colour (plugin API 0.26, ui::set_card_color): the tile names green, the card wears the screen's
+        # green for a card in the pass that follows, and "none" gives the card back.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'green'}), bars)
+        said_card = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green', start)
+        own, named = re.search(r'own=(\w+) named=(\w+)', said_card).groups()
+        if own != named or own == 'FFFFFF':
+            self.failures.append(f'ui::card_color is not the colour the tile set: {said_card}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={own}' in l, 10, 'the card wears the tile\'s colour', start)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(5, {'card': 'none'}), bars)
+        back = await self.until(lambda l: probe(l, 'tile=0 card set none'), 10, 'the tile gave its card back', start)
+        plain = re.search(r'own=(\w+)', back).group(1)
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the person\'s again', start)
+        if plain == own:
+            self.failures.append(f'the card kept the tile\'s colour after CardColor::NONE: {back}')
         # Light and dark: on_theme, once each way.
         start = len(self.lines)
         self.client.switch_command(self.dark_switch.key, True)

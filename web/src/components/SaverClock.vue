@@ -92,7 +92,7 @@ const faceChoices = computed(() => (screensaver.facesHere ? SAVER_FACES : (["dig
 const pluginFaces = computed(() => screensaver.facesFor("clock"));
 const facesShown = computed(() => screensaver.facesHere || pluginFaces.value.length > 0);
 const pickPluginFace = (key: PluginSaverKey) => screensaver.setFace("clock", key);
-const setFaceOption = (option: PluginTileOption, value: PluginValue) => pluginFace.value && screensaver.setPluginOption(pluginFace.value, option.id, value);
+const setFaceOption = (option: PluginTileOption, value: PluginValue | undefined) => pluginFace.value && screensaver.setPluginOption(pluginFace.value, option.id, value);
 const looks2 = computed<[string, string][]>(() => [["dark", T("look_dark")], ["light", T("look_light")], ["auto", T("look_auto")]]);
 // Twelve numerals bunch on long glass, so there only none and four.
 const numeralChoices = computed<[number, string][]>(() => [[0, T("numerals_none")], [4, "4"],

@@ -9,7 +9,7 @@ import { getJson, send } from "../api";
 import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { attachLine, barItemView, barTypesOf, choiceKey, pluginSaverKey, saverTypesOf, compareUrl, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
-  text, tileTypesOf, type AppFit, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
+  text, tileTypesOf, type AppFit, type EntityFacts, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
 import type { PluginSharing, Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useInventoryStore } from "./inventory";
@@ -32,6 +32,7 @@ export type TrayGroup = { screen: Screen; plugins: Plugin[]; removes: Plugin[] }
 type Payload = {
   plugins: Plugin[]; installed: Record<string, Installed[]>; secrets: Record<string, Record<string, boolean>>;
   folders: { path: string; errors: Record<string, string> }; entities?: { id: string; name: string }[];
+  entity_facts?: EntityFacts; devices?: Record<string, string>;
   features?: Record<string, string[]>; fit?: AppFit; likes?: { consented?: boolean };
 };
 
@@ -54,6 +55,10 @@ export const usePluginsStore = defineStore("plugins", () => {
   const previews = ref<Record<string, { items: PreviewRow[]; at: number }>>({});
   // Entities of the domains the plugins name that the editor's own list lacks (a calendar), from the add-on.
   const entities = ref<{ id: string; name: string }[]>([]);
+  // What an entity option that says which entities it is for reads of them (plugin API 0.26, model/plugins.ts
+  // entityFits and deviceFills), and the names of their devices, from the add-on: only the entities that fit one.
+  const entityFacts = ref<EntityFacts>({});
+  const devices = ref<Record<string, string>>({});
   // Whether api/plugins answered once, so `entities` says which entities of a plugin's own domains there are.
   const received = ref(false);
   const pluginEntities = computed(() => new Map(entities.value.map((e) => [e.id, e])));
@@ -118,6 +123,8 @@ export const usePluginsStore = defineStore("plugins", () => {
       secrets.value = data.secrets || {};
       folders.value = data.folders || { path: "", errors: {} };
       entities.value = data.entities || [];
+      entityFacts.value = data.entity_facts || {};
+      devices.value = data.devices || {};
       received.value = true;
       features.value = data.features || {};
       likeConsent.value = Boolean(data.likes?.consented);
@@ -604,7 +611,7 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
 
   return {
-    index, installed, loaded, received, secrets, files, choices, previews, entities, pluginEntities, folders, features, likeConsent, likeAsk, sharing, appFit,
+    index, installed, loaded, received, secrets, files, choices, previews, entities, entityFacts, devices, pluginEntities, folders, features, likeConsent, likeAsk, sharing, appFit,
     values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups, forgettable, forgetLink,
     // What the Plugins page, a screen's tab and the cards read as they draw (stores/lookup.ts); choicesFor, previewFor and
     // planOn answer at once and ask the add-on for what they do not have yet.

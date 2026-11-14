@@ -16,16 +16,22 @@ export type PluginPart = { id: string; label: Texts; hint: Texts; flash_kb: numb
 // `options_from` names a fetch of the plugin, whose answer the add-on hands the inspector as a list of choices.
 // Plugin API 0.12: `multiple` keeps a list of up to that many values (texts, or picks of a choice), and `search` finds the
 // choices of `options_from` by what the person types.
+// Plugin API 0.26: an entity option says which entities it is for (`device_class`, `matches`: entityFits), an option
+// stands under a heading (`group`), and a number may stay empty (`optional`: no key in the tile's options), with
+// `placeholder_from` for the number that applies then, by the value of a choice of the same tile.
 export type PluginTileOption = {
   id: string; kind: "text" | "choice" | "number" | "toggle" | "entity"; label: Texts; hint?: Texts;
   default?: PluginValue; choices?: { value: string; label: Texts }[]; options_from?: string;
   min?: number; max?: number; step?: number; unit?: string; multiple?: number; search?: boolean;
-  domains?: string[]; attributes?: string[];
+  domains?: string[]; attributes?: string[]; device_class?: string[]; matches?: string[];
+  group?: Texts; optional?: boolean; placeholder_from?: { option: string; values: Record<string, number> };
 };
 export type PluginTile = {
   // `min` and `max` are null on a tile that only takes the whole page (plugin API 0.25, `sizes: { full: true }`).
   id: string; name: Texts; icon?: string; min: string | null; max: string | null; full?: boolean; memory: number;
   domains?: string[]; options?: PluginTileOption[]; example?: Texts;
+  // Its entity options can be filled from one Home Assistant device (plugin API 0.26, `from_device`: deviceFills).
+  from_device?: boolean;
   // The add-on draws a preview of it from its data (api/plugins/<id>/preview/<tile>): the manifest names one.
   preview?: boolean;
   // Places for pictures on the tile (plugin API 0.10, the manifest's `pictures`), shown where the screen has the
@@ -51,6 +57,105 @@ export function offeredEntities<T extends { id: string }>(all: T[], tile: Pick<P
   if (!tile.entities) return all;
   const keep = new Set([...tile.entities, chosen]);
   return all.filter((entity) => keep.has(entity.id));
+}
+
+// ---- Which entities an option is for, and a tile filled from one device (plugin API 0.26) ----
+// What the add-on says of an entity that fits such an option of some plugin (plugins.entity_facts, api/plugins'
+// `entity_facts`): its device, device class and translation key, whether it is disabled, and its category
+// (diagnostic, config). A field is there only where it says something.
+export type EntityFact = { device?: string; device_class?: string; translation_key?: string; disabled?: boolean; category?: string };
+export type EntityFacts = Record<string, EntityFact>;
+export const hasFilter = (option: Pick<PluginTileOption, "device_class" | "matches">) => Boolean(option.device_class?.length || option.matches?.length);
+/** Whether an entity is one the option is for (the add-on's plugin_manifest.entity_fits, the same rule): of its domains,
+ * and, where the option names `device_class` or `matches`, with one of those device classes, or one of those words as
+ * its translation key or as the end of its id. Only the inspector's list follows it: a tile keeps any entity chosen. */
+export function entityFits(option: Pick<PluginTileOption, "domains" | "device_class" | "matches">, id: string, fact: EntityFact = {}) {
+  if (!(option.domains || []).includes(id.split(".")[0])) return false;
+  if (!hasFilter(option)) return true;
+  return Boolean((fact.device_class && option.device_class?.includes(fact.device_class))
+    || (fact.translation_key && option.matches?.includes(fact.translation_key))
+    || option.matches?.some((word) => id.endsWith(`_${word}`)));
+}
+// "raw" as a word of an id or a translation key (raw_pm2_5, pm2_5_raw), never inside one (a drawer, a strawberry).
+const RAW = /(^|_)raw(_|$)/;
+const isRaw = (id: string, fact: EntityFact) => RAW.test(id.split(".")[1] || "") || RAW.test(fact.translation_key || "");
+/** The one of several entities of a device that an option takes: one that is not disabled, then one that is not
+ * diagnostic or a setting (no category), then one that is not a raw value, then the shortest id. */
+export function devicePick(ids: string[], facts: EntityFacts): string | undefined {
+  const rank = (id: string) => { const fact = facts[id] || {}; return [fact.disabled ? 1 : 0, fact.category ? 1 : 0, isRaw(id, fact) ? 1 : 0, id.length] as const; };
+  return [...ids].sort((a, b) => {
+    const x = rank(a), y = rank(b);
+    for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
+    return a < b ? -1 : a > b ? 1 : 0;
+  })[0];
+}
+export type DeviceFill = { id: string; name: string; fills: Record<string, string> };
+/** The devices a tile's entity options can be filled from: those with an entity for two or more of the options that say
+ * which entities they are for, each with the entity every such option gets (`fills`, by option id), the device with
+ * the most first. Choosing one sets those options once; nothing of the device is kept. */
+export function deviceFills(tile: Pick<PluginTile, "options">, facts: EntityFacts, names: Record<string, string>): DeviceFill[] {
+  const options = (tile.options || []).filter((option) => option.kind === "entity" && hasFilter(option));
+  const devices = new Map<string, Map<string, string[]>>();
+  for (const [id, fact] of Object.entries(facts)) {
+    if (!fact.device) continue;
+    for (const option of options) {
+      if (!entityFits(option, id, fact)) continue;
+      const found = devices.get(fact.device) ?? devices.set(fact.device, new Map()).get(fact.device)!;
+      found.set(option.id, [...(found.get(option.id) || []), id]);
+    }
+  }
+  return [...devices].filter(([, found]) => found.size >= 2)
+    .map(([id, found]) => ({ id, name: names[id] || id,
+      fills: Object.fromEntries(options.filter((option) => found.has(option.id)).map((option) => [option.id, devicePick(found.get(option.id)!, facts)!])) }))
+    .sort((a, b) => Object.keys(b.fills).length - Object.keys(a.fills).length || a.name.localeCompare(b.name) || (a.id < b.id ? -1 : 1));
+}
+
+// ---- Options under headings, and a number that may stay empty (plugin API 0.26) ----
+export type OptionGroup = { key: string; title: Texts; options: PluginTileOption[] };
+/** A tile's options as the inspector lays them out: those without a heading first (`plain`), then each `group` in the
+ * order the manifest first names it, by its text (two options with the same heading stand together). */
+export function optionGroups(options: PluginTileOption[] = []): { plain: PluginTileOption[]; groups: OptionGroup[] } {
+  const plain: PluginTileOption[] = [], groups = new Map<string, OptionGroup>();
+  for (const option of options) {
+    if (!option.group) { plain.push(option); continue; }
+    const key = JSON.stringify(option.group);
+    (groups.get(key) ?? groups.set(key, { key: `group-${groups.size}`, title: option.group, options: [] }).get(key)!).options.push(option);
+  }
+  return { plain, groups: [...groups.values()] };
+}
+/** Whether a person gave one of these options a value: kept with the tile, not empty, and other than its default. A
+ * group opens by itself only then. */
+export function anySet(options: PluginTileOption[], kept: Record<string, PluginValue> = {}) {
+  return options.some((option) => {
+    const value = kept[option.id];
+    if (value === undefined || value === "" || (Array.isArray(value) && !value.length)) return false;
+    return JSON.stringify(value) !== JSON.stringify(option.default);
+  });
+}
+/** What applies while an optional number is empty (`placeholder_from`): the number its manifest gives for the value the
+ * named choice has now (`values` holds the tile's options over the manifest's defaults), none where it gives none. */
+export function placeholderNumber(option: PluginTileOption, values: Record<string, PluginValue>): number | undefined {
+  const from = option.placeholder_from;
+  const chosen = from ? values[from.option] : undefined;
+  const found = from && typeof chosen === "string" && Object.hasOwn(from.values, chosen) ? from.values[chosen] : undefined;
+  return typeof found === "number" && Number.isFinite(found) ? found : undefined;
+}
+/** What a person typed in a number's field as the option keeps it: within its min and max, on its steps counted from
+ * the min; undefined for an empty field or no number (an optional number is then taken off the tile). */
+export function typedNumber(option: PluginTileOption, typed: string): number | undefined {
+  const value = Number(typed.trim().replace(",", "."));
+  if (!typed.trim() || !Number.isFinite(value)) return undefined;
+  const low = option.min ?? -Infinity, high = option.max ?? Infinity, step = option.step ?? 1;
+  const base = Number.isFinite(low) ? low : 0;
+  const snapped = step > 0 ? base + Math.round((value - base) / step) * step : value;
+  return Math.min(high, Math.max(low, Number(snapped.toFixed(6))));
+}
+/** A tile's kept options with one changed: `undefined` takes the key off (an optional number left empty). */
+export function withOption(kept: Record<string, PluginValue> | undefined, id: string, value: PluginValue | undefined): Record<string, PluginValue> {
+  const next = { ...(kept || {}) };
+  if (value === undefined) delete next[id];
+  else next[id] = value;
+  return next;
 }
 export type PluginSource = "index" | "link" | "branch" | "folder";
 export type PluginLabel = "tessera" | "community" | "test";
@@ -186,6 +291,9 @@ export const pluginDefaults = (tile: Pick<PluginTile, "options">): Record<string
 // plugin_manifest.OPTIONS_BYTES and MAX_MULTIPLE (a test keeps them equal), so the tile's data keeps most of its 4 KB.
 export const PLUGIN_OPTIONS_BYTES = 1280;
 export const PLUGIN_LIST_MAX = 16;
+// How many options a tile keeps at most (plugin API 0.26, twelve before): the add-on's core.PLUGIN_OPTION_MAX and
+// plugin_manifest.MAX_OPTIONS (the same test).
+export const PLUGIN_OPTION_MAX = 24;
 // A choice with several values, or one found by searching, keeps picks: the value and the words the person saw, since
 // such a list may be gone or other later (plugin_manifest.keeps_picks).
 export const keepsPicks = (option: PluginTileOption) => option.kind === "choice" && Boolean(option.multiple || option.search);

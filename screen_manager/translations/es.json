@@ -2418,7 +2418,14 @@
       "remove": "Quitar {name}",
       "type": "Escribe y pulsa Intro",
       "full": "La pantalla no admite más para este mosaico: sus opciones están llenas.",
-      "count": "{n} de {max}"
+      "count": "{n} de {max}",
+      "show_all": "Mostrar todas las entidades",
+      "show_fitting": "Mostrar solo las que encajan",
+      "not_set": "Sin definir",
+      "fill_device": "Rellenar desde un dispositivo",
+      "fill_device_hint": "Elige un dispositivo y sus sensores se rellenan abajo. Después puedes cambiar cada uno.",
+      "fill_device_none": "Ningún dispositivo tiene dos o más de estos sensores",
+      "fill_device_count": "1 sensor | {n} sensores"
     },
     "memory": {
       "label": "Memoria para mosaicos",

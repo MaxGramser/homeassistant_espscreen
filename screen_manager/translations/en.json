@@ -4333,7 +4333,14 @@
       "remove": "Remove {name}",
       "type": "Type and press Enter",
       "full": "The screen takes no more for this tile: its options are full.",
-      "count": "{n} of {max}"
+      "count": "{n} of {max}",
+      "show_all": "Show all entities",
+      "show_fitting": "Show only what fits",
+      "not_set": "Not set",
+      "fill_device": "Fill from a device",
+      "fill_device_hint": "Choose a device and its sensors are filled in below. You can still change each one.",
+      "fill_device_none": "No device has two or more of these sensors",
+      "fill_device_count": "1 sensor | {n} sensors"
     },
     "build": {
       "plugins": "Building with its plugins",

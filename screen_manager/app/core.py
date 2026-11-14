@@ -1109,7 +1109,7 @@ PLUGIN_TILE = re.compile(r'^plugin:([a-z][a-z0-9_]{0,31})\.([a-z][a-z0-9_]{0,31}
 # What a plugin tile may carry: its size, colour, icon, whether a tap reaches it, and its own options (`plugin`, the
 # manifest's options; checked against the manifest where the screen is known, plugins.check_tile).
 PLUGIN_TILE_OPTIONS = {'size', 'background', 'icon', 'tap', 'plugin', 'plugin_entity'}
-PLUGIN_OPTION_MAX = 12
+PLUGIN_OPTION_MAX = 24      # plugin API 0.26 (plugin_manifest.MAX_OPTIONS, the editor's PLUGIN_OPTION_MAX); twelve before
 PLUGIN_TEXT_MAX = 64
 # A list option's values (plugin API 0.12), and what a tile's options take together as JSON (plugin_manifest's
 # MAX_MULTIPLE and OPTIONS_BYTES, the editor's PLUGIN_OPTIONS_BYTES; a test keeps them equal).
@@ -1145,9 +1145,10 @@ def _plugin_pick(value):
 
 
 def plugin_options(value):
-    """A plugin tile's own options in their stored shape: at most 12, each a short text, a number, true/false, a pick
+    """A plugin tile's own options in their stored shape: at most 24, each a short text, a number, true/false, a pick
     {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most PLUGIN_OPTIONS_BYTES of
-    JSON. Whether a value fits its option is the manifest's (plugin_manifest.option_value)."""
+    JSON. A number that may stay empty (0.26, `optional`) is kept as no key at all. Whether a value fits its option is
+    the manifest's (plugin_manifest.option_value)."""
     if not isinstance(value, dict) or len(value) > PLUGIN_OPTION_MAX:
         return False
     for key, item in value.items():

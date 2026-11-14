@@ -27,6 +27,9 @@ bool known(const runtime_tiles::Tile &t);
 void render(runtime_tiles::Widgets &w, const runtime_tiles::Tile &t, int width, int height);
 // The card shows something else, or goes: its plugin tile goes with it.
 void release(runtime_tiles::Widgets &w);
+// The colour the plugin tile on this card gave its card (plugin API 0.26, ui::set_card_color): a swatch's light value as
+// Tile::background keeps one, 0 for none. The palette of the card takes it over the tile's own background.
+uint32_t ground(const runtime_tiles::Widgets &w);
 // A tap on a plugin tile's card, with the finger's place on the glass (-1,-1 unknown): the tile reads it in its own
 // pixels through tessera::tap_point().
 void tap(runtime_tiles::Widgets &w, int x, int y);

@@ -192,6 +192,22 @@ class Manifest(unittest.TestCase):
             with self.assertRaises(pm.ManifestError):
                 sizes(**wrong)
 
+    def test_a_card_colour_of_a_plugin_tile_is_one_of_the_screens_own(self):
+        """ui::set_card_color (0.26) names the swatches of theme.h in their order, so a plugin's card is drawn by the
+        same table as a tile a person coloured, in both looks; the palette takes it over the tile's own."""
+        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
+        theme = (ROOT / 'components/smart_display/theme.h').read_text()
+        host = (ROOT / 'components/smart_display/plugin_host.cpp').read_text()
+        tiles = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
+        names = re.search(r'enum class CardColor : uint8_t \{ NONE, ([A-Z, ]+) \};', header).group(1).split(', ')
+        table = theme[theme.index('inline constexpr Swatch SWATCHES[] = {'):]
+        swatches = re.findall(r'\{"([a-z]+)", 0x[0-9A-F]{6}, 0x[0-9A-F]{6}\}', table[:table.index('};')])
+        self.assertEqual([name.lower() for name in names], swatches)
+        self.assertIn('static_assert(theme::SWATCH_COUNT == 9', host)
+        self.assertIn('theme::SWATCHES[i - 1].light', host)
+        for use in ('theme::surface(own)', 'theme::outline(own)', 'theme::pressed(bare ? theme::hex(theme::PAGE) : theme::surface(own))'):
+            self.assertIn(use, tiles)
+
     def test_one_plugin_api_everywhere(self):
         header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
         major, minor = re.search(r'PLUGIN_API_MAJOR = (\d+), PLUGIN_API_MINOR = (\d+)', header).groups()
@@ -1017,6 +1033,259 @@ class EntityOptions(unittest.IsolatedAsyncioTestCase):
             {'kind': 'entity', 'domains': ['plant', 'sensor']}, {'kind': 'text'}]}], 'inputs': []}})()
         states = {'plant.fern': {'state': 'ok', 'attributes': {}}, 'sensor.moisture': {'state': '1', 'attributes': {}}}
         self.assertEqual(plugin_service.plugin_entities([entry], states), [{'id': 'plant.fern', 'name': 'plant.fern'}])
+
+
+AIR_ENGLISH = {'app': {'name': 'Air', 'summary': 'The air in a room.', 'tile': 'Air quality', 'co2': 'CO2', 'pm25': 'PM2.5',
+                       'voc': 'VOC', 'limits': 'Limits', 'standard': 'Standard', 'who': 'WHO', 'eu': 'EU',
+                       'co2_limit': 'CO2 limit', 'label': 'Label'}, 'screen': {}}
+AIR_OPTIONS = [
+    {'id': 'co2', 'kind': 'entity', 'label': 'co2', 'domains': ['sensor'], 'device_class': ['carbon_dioxide']},
+    {'id': 'pm25', 'kind': 'entity', 'label': 'pm25', 'domains': ['sensor'], 'device_class': ['pm25']},
+    {'id': 'voc', 'kind': 'entity', 'label': 'voc', 'domains': ['sensor'],
+     'matches': ['voc_index', 'total_volatile_organic_component_index']},
+    {'id': 'standard', 'kind': 'choice', 'label': 'standard', 'default': 'who',
+     'choices': [{'value': 'who', 'label': 'who'}, {'value': 'eu', 'label': 'eu'}]},
+    {'id': 'co2_limit', 'kind': 'number', 'label': 'co2_limit', 'min': 400, 'max': 5000, 'step': 50, 'unit': 'ppm',
+     'optional': True, 'group': 'limits', 'placeholder_from': {'option': 'standard', 'values': {'who': 1000, 'eu': 800}}},
+]
+
+
+def air(options=None, api='0.26', **tile):
+    """A manifest of one tile of the air in a room, with the options of plugin API 0.26."""
+    return {'id': 'air', 'version': '1.0.0', 'api': api, 'icon': 'air-filter', 'maintainer': 'someone', 'license': 'MIT',
+            'topics': ['home'], 'tiles': [{'id': 'room', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900,
+                                           'options': [dict(option) for option in (AIR_OPTIONS if options is None else options)],
+                                           **tile}]}
+
+
+def air_option(**changes):
+    """AIR_OPTIONS with one option changed, by its id; a value of None takes the field off."""
+    out = []
+    for option in AIR_OPTIONS:
+        option = dict(option)
+        if option['id'] == changes.get('id'):
+            option.update(changes)
+            option = {key: value for key, value in option.items() if value is not None}
+        out.append(option)
+    return out
+
+
+class MoreOptions(unittest.TestCase):
+    """Plugin API 0.26: an entity option that says which entities it is for, a tile filled from one device, options
+    under a heading, a number that may stay empty, and up to 24 options of a tile."""
+
+    def refuses(self, data, word=None):
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(data, AIR_ENGLISH)
+        if word:
+            self.assertIn(word, str(caught.exception))
+
+    def test_the_whole_tile_passes_and_keeps_every_field(self):
+        tile = pm.check(air(from_device=True), AIR_ENGLISH)['tiles'][0]
+        options = {option['id']: option for option in tile['options']}
+        self.assertTrue(tile['from_device'])
+        self.assertEqual(options['co2']['device_class'], ['carbon_dioxide'])
+        self.assertEqual(options['voc']['matches'], ['voc_index', 'total_volatile_organic_component_index'])
+        self.assertEqual((options['co2_limit']['optional'], options['co2_limit']['group']), (True, 'limits'))
+        self.assertEqual(options['co2_limit']['placeholder_from'], {'option': 'standard', 'values': {'who': 1000, 'eu': 800}})
+        self.assertNotIn('default', options['co2_limit'])
+        self.assertFalse(pm.check(air(), AIR_ENGLISH)['tiles'][0]['from_device'])
+
+    def test_every_new_field_belongs_to_0_26(self):
+        plain = [{'id': 'label', 'kind': 'text', 'label': 'label'}]
+        pm.check(air(plain, api='0.25'), AIR_ENGLISH)
+        for name, options, tile in (
+                ('device_class', [AIR_OPTIONS[0]], {}), ('matches', [AIR_OPTIONS[2]], {}),
+                ('group', [{**plain[0], 'group': 'limits'}], {}),
+                ('optional', [{'id': 'n', 'kind': 'number', 'label': 'label', 'min': 0, 'max': 9, 'optional': True}], {}),
+                # A number with `placeholder_from` is `optional` too, which the sentence names first.
+                ('optional', [AIR_OPTIONS[3], {k: v for k, v in AIR_OPTIONS[4].items() if k != 'group'}], {}), ('from_device', plain, {'from_device': False}),
+                ('more than 12', [{**plain[0], 'id': f'o{i}'} for i in range(13)], {})):
+            with self.subTest(name):
+                self.refuses(air(options, api='0.25', **tile), 'needs plugin API 0.26 (api: "0.26")')
+                self.refuses(air(options, api='0.15', **tile), name)
+
+    def test_which_entities_an_option_is_for(self):
+        for field in ('device_class', 'matches'):
+            for wrong in ([], ['Carbon-Dioxide'], [f'w{i}' for i in range(9)], 'pm25', [''], [3]):
+                with self.subTest(field=field, wrong=wrong):
+                    self.refuses(air(air_option(id='co2', **{'device_class': None, field: wrong})))
+            # Only an option of kind entity names them.
+            self.refuses(air([{'id': 'label', 'kind': 'text', 'label': 'label', field: ['pm25']}]), 'does not belong')
+        both = pm.check(air(air_option(id='co2', matches=['co2'])), AIR_ENGLISH)['tiles'][0]['options'][0]
+        self.assertEqual((both['device_class'], both['matches']), (['carbon_dioxide'], ['co2']))
+
+    def test_an_entity_fits_by_its_class_its_translation_key_or_the_end_of_its_id(self):
+        options = {option['id']: option for option in pm.check(air(), AIR_ENGLISH)['tiles'][0]['options']}
+        co2, voc = options['co2'], options['voc']
+        self.assertTrue(pm.entity_fits(co2, 'sensor.hall_co2', 'carbon_dioxide'))
+        self.assertFalse(pm.entity_fits(co2, 'sensor.hall_co2', 'pm25'))
+        self.assertFalse(pm.entity_fits(co2, 'sensor.hall_co2'))
+        self.assertTrue(pm.entity_fits(voc, 'sensor.hall_air', None, 'voc_index'))
+        self.assertTrue(pm.entity_fits(voc, 'sensor.hall_voc_index'))
+        self.assertTrue(pm.entity_fits(voc, 'sensor.hall_total_volatile_organic_component_index', 'aqi', 'other'))
+        self.assertFalse(pm.entity_fits(voc, 'sensor.hall_voc_index_raw'))
+        self.assertFalse(pm.entity_fits(voc, 'sensor.hallvoc_index'), 'a word of the id, never the end of another word')
+        self.assertFalse(pm.entity_fits(voc, 'sensor.hall_temperature', 'temperature', 'temperature'))
+        # Never an entity of another domain, whatever it says of itself.
+        self.assertFalse(pm.entity_fits(co2, 'number.hall_co2', 'carbon_dioxide'))
+        # An option that names neither takes every entity of its domains, as before 0.26.
+        every = {'kind': 'entity', 'domains': ['sensor', 'binary_sensor']}
+        self.assertTrue(pm.entity_fits(every, 'binary_sensor.door'))
+        self.assertFalse(pm.entity_fits(every, 'light.door'))
+        # The rule shapes the editor's list only: a value of any entity of the domains is kept.
+        self.assertEqual(pm.option_value(co2, 'sensor.hall_temperature'), 'sensor.hall_temperature')
+
+    def test_a_tile_filled_from_a_device_has_two_options_that_say_which_entities(self):
+        pm.check(air(from_device=True), AIR_ENGLISH)
+        pm.check(air([AIR_OPTIONS[0], AIR_OPTIONS[2]], from_device=True), AIR_ENGLISH)
+        any_sensor = {'id': 'other', 'kind': 'entity', 'label': 'label', 'domains': ['sensor']}
+        for options in ([AIR_OPTIONS[0]], [AIR_OPTIONS[0], any_sensor], [AIR_OPTIONS[3]], []):
+            with self.subTest(options=[o['id'] for o in options]):
+                self.refuses(air(options, from_device=True), 'from_device')
+                pm.check(air(options, from_device=False), AIR_ENGLISH)
+        self.refuses(air(from_device='yes'), 'true or false')
+
+    def test_a_group_is_a_text_of_the_plugin(self):
+        english = {**AIR_ENGLISH, 'app': {k: v for k, v in AIR_ENGLISH['app'].items() if k != 'limits'}}
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(air(), english)
+        self.assertIn('limits', str(caught.exception))
+        self.refuses(air(air_option(id='co2', group='Not a key')))
+        # Every kind of option may stand under one, a screensaver's too.
+        self.assertEqual(pm.check(air(air_option(id='co2', group='limits')), AIR_ENGLISH)['tiles'][0]['options'][0]['group'], 'limits')
+        saver = {'id': 'face', 'name': 'tile', 'step': 'clock', 'memory': 900,
+                 'options': [{'id': 'label', 'kind': 'text', 'label': 'label', 'group': 'limits'}]}
+        self.assertEqual(pm.check({**air([]), 'savers': [saver]}, AIR_ENGLISH)['savers'][0]['options'][0]['group'], 'limits')
+        self.refuses({**air([], api='0.25'), 'savers': [saver]}, '0.26')
+
+    def test_a_number_may_stay_empty(self):
+        number = lambda **given: [{'id': 'n', 'kind': 'number', 'label': 'label', 'min': 400, 'max': 5000, **given}]
+        option = pm.check(air(number(optional=True)), AIR_ENGLISH)['tiles'][0]['options'][0]
+        self.assertTrue(option['optional'])
+        self.assertNotIn('default', option)
+        for wrong in (number(optional=False), number(optional='yes'), number(optional=True, default=800),
+                      [{'id': 'label', 'kind': 'text', 'label': 'label', 'optional': True}]):
+            with self.subTest(wrong=wrong):
+                self.refuses(air(wrong))
+        # A filled value is checked as every number; an empty one is no key at all, never 0.
+        self.assertEqual(pm.option_value(option, 800), 800)
+        for wrong in (399, 5001, '', None, '800'):
+            with self.subTest(value=wrong), self.assertRaises(pm.ManifestError):
+                pm.option_value(option, wrong)
+        self.assertTrue(core.plugin_options({'co2': 'sensor.hall_co2'}))
+        self.assertFalse(core.plugin_options({'co2_limit': None}))
+
+    def test_the_values_leave_an_empty_number_out(self):
+        import plugins as plugin_service
+        tile = pm.check(air(), AIR_ENGLISH)['tiles'][0]
+        values = lambda chosen: plugin_service.Plugins.values_of(None, None, tile, chosen)
+        self.assertEqual(values({'co2': 'sensor.hall_co2'}), {'standard': 'who', 'co2': 'sensor.hall_co2'})
+        self.assertEqual(values({}), {'standard': 'who'})
+        self.assertEqual(values({'co2_limit': 900, 'standard': 'eu'}), {'standard': 'eu', 'co2_limit': 900})
+        # A value that is no number of the option (an older editor's empty text, one out of range) is left out too.
+        for wrong in ('', 0, 99999):
+            with self.subTest(value=wrong):
+                self.assertNotIn('co2_limit', values({'co2_limit': wrong}))
+
+    def test_what_applies_while_a_number_is_empty(self):
+        limit = lambda **source: air_option(id='co2_limit', placeholder_from={'option': 'standard', 'values': {'who': 1000}, **source})
+        # A value of the choice may lack a number.
+        self.assertEqual(pm.check(air(limit()), AIR_ENGLISH)['tiles'][0]['options'][4]['placeholder_from']['values'], {'who': 1000})
+        for wrong, word in ((limit(option='missing'), 'choice'), (limit(option='co2'), 'choice'), (limit(option='co2_limit'), 'choice'),
+                            (limit(values={'us': 900}), 'us'), (limit(values={'who': 'high'}), 'number'), (limit(values={}), 'values'),
+                            (limit(values=[1000]), 'mapping'), (limit(more=1), 'more'),
+                            (air_option(id='co2_limit', optional=None), 'optional'),
+                            (air_option(id='co2_limit', placeholder_from={'option': 'standard'}), 'values')):
+            with self.subTest(word=word):
+                self.refuses(air(wrong), word)
+        # The choice it names has fixed choices and keeps one value: no list from a fetch, no list of picks.
+        several = [{**AIR_OPTIONS[3], 'multiple': 2, 'default': []}, AIR_OPTIONS[4]]
+        self.refuses(air(several), 'choice')
+
+    def test_a_tile_takes_24_options_and_a_screensaver_twelve(self):
+        options = lambda n: [{'id': f'o{i}', 'kind': 'text', 'label': 'label'} for i in range(n)]
+        self.assertEqual(len(pm.check(air(options(24)), AIR_ENGLISH)['tiles'][0]['options']), 24)
+        self.refuses(air(options(25)), 'at most 24')
+        saver = lambda n: {**air([]), 'savers': [{'id': 'face', 'name': 'tile', 'step': 'clock', 'memory': 900, 'options': options(n)}]}
+        pm.check(saver(12), AIR_ENGLISH)
+        self.refuses(saver(13), 'at most 12')
+        # The layout check keeps as many, within the same bytes.
+        self.assertEqual(core.PLUGIN_OPTION_MAX, pm.MAX_OPTIONS)
+        self.assertTrue(core.plugin_options({f'o{i}': 'sensor.hall_carbon_dioxide' for i in range(24)}))
+        self.assertFalse(core.plugin_options({f'o{i}': 1 for i in range(25)}))
+        self.assertFalse(core.plugin_options({f'o{i}': 'x' * 64 for i in range(24)}), 'the 1280 bytes stay')
+        model = (ROOT / 'web/src/model/plugins.ts').read_text()
+        self.assertIn(f'PLUGIN_OPTION_MAX = {pm.MAX_OPTIONS};', model, 'the editor keeps another number of options')
+
+    def test_the_editor_gets_the_entities_that_fit_and_their_devices(self):
+        import plugins as plugin_service
+        entry = type('Entry', (), {'manifest': pm.check(air(from_device=True), AIR_ENGLISH)})()
+        registry = [
+            {'entity_id': 'sensor.one_co2', 'device_id': 'd1', 'translation_key': 'carbon_dioxide'},
+            {'entity_id': 'sensor.one_pm25', 'device_id': 'd1'},
+            {'entity_id': 'sensor.one_raw_pm25', 'device_id': 'd1', 'translation_key': 'raw_pm25', 'disabled_by': 'integration',
+             'original_device_class': 'pm25'},
+            {'entity_id': 'sensor.one_voc_index', 'device_id': 'd1', 'entity_category': 'diagnostic'},
+            {'entity_id': 'sensor.one_temperature', 'device_id': 'd1'},
+            {'entity_id': 'sensor.two_air', 'device_id': 'd2', 'translation_key': 'voc_index'},
+            {'entity_id': 'number.one_co2', 'device_id': 'd1'}]
+        states = {'sensor.one_co2': {'state': '612', 'attributes': {'device_class': 'carbon_dioxide'}},
+                  'sensor.one_pm25': {'state': '4', 'attributes': {'device_class': 'pm25'}},
+                  'sensor.one_voc_index': {'state': '90', 'attributes': {}},
+                  'sensor.one_temperature': {'state': '21', 'attributes': {'device_class': 'temperature'}},
+                  'sensor.two_air': {'state': '80', 'attributes': {}},
+                  'sensor.yaml_co2': {'state': '500', 'attributes': {'device_class': 'carbon_dioxide'}},
+                  'number.one_co2': {'state': '1', 'attributes': {'device_class': 'carbon_dioxide'}}}
+        devices = [{'id': 'd1', 'name': 'airgradient-one', 'name_by_user': 'AirGradient ONE'}, {'id': 'd2', 'name': 'Sensirion'},
+                   {'id': 'd3', 'name': 'A lamp'}]
+        facts, names = plugin_service.entity_facts([entry], states, registry, devices)
+        self.assertEqual(facts, {
+            'sensor.one_co2': {'device': 'd1', 'device_class': 'carbon_dioxide', 'translation_key': 'carbon_dioxide'},
+            'sensor.one_pm25': {'device': 'd1', 'device_class': 'pm25'},
+            'sensor.one_raw_pm25': {'device': 'd1', 'device_class': 'pm25', 'translation_key': 'raw_pm25', 'disabled': True},
+            'sensor.one_voc_index': {'device': 'd1', 'category': 'diagnostic'},
+            'sensor.two_air': {'device': 'd2', 'translation_key': 'voc_index'},
+            'sensor.yaml_co2': {'device_class': 'carbon_dioxide'}})
+        self.assertEqual(names, {'d1': 'AirGradient ONE', 'd2': 'Sensirion'})
+        # No plugin with such an option: nothing travels, however many sensors a home has.
+        plain = type('Entry', (), {'manifest': pm.check(air([{'id': 'any', 'kind': 'entity', 'label': 'label', 'domains': ['sensor']}]),
+                                                         AIR_ENGLISH)})()
+        self.assertEqual(plugin_service.entity_facts([plain], states, registry, devices), ({}, {}))
+        self.assertEqual(plugin_service.entity_facts([entry], states, None, None)[0]['sensor.one_co2'], {'device_class': 'carbon_dioxide'})
+
+    def test_the_payload_names_them_and_every_field_of_an_option(self):
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+
+        class FakeManager:
+            ha = type('HA', (), {'states': {'sensor.one_co2': {'state': '612', 'attributes': {'device_class': 'carbon_dioxide'}}},
+                                 'registry': [{'entity_id': 'sensor.one_co2', 'device_id': 'd1'}],
+                                 'devices': [{'id': 'd1', 'name': 'AirGradient ONE'}],
+                                 'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders, aliases, firmware = {}, {}, None
+            updates = type('Updates', (), {'resolve': lambda self, screen: (None, None)})()
+
+            def screens(self):
+                return []
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', Path(tmp.name) / 'esphome')
+        service._take_index({'format': 1, 'plugins': [{
+            'id': 'air', 'repo': 'https://github.com/MaxGramser/tessera-plugins', 'path': 'plugins/air', 'label': 'tessera',
+            'release': {'version': '1.0.0', 'sha': 'a' * 40, 'date': '2026-11-14'}, 'manifest': air(from_device=True),
+            'translations': {'en': AIR_ENGLISH, 'nl': {'app': {'limits': 'Grenzen'}}}}]})
+        payload = service.payload()
+        self.assertEqual(payload['entity_facts'], {'sensor.one_co2': {'device': 'd1', 'device_class': 'carbon_dioxide'}})
+        self.assertEqual(payload['devices'], {'d1': 'AirGradient ONE'})
+        tile = payload['plugins'][0]['tiles'][0]
+        options = {option['id']: option for option in tile['options']}
+        self.assertTrue(tile['from_device'])
+        self.assertEqual((options['co2']['device_class'], options['voc']['matches'][0]), (['carbon_dioxide'], 'voc_index'))
+        limit = options['co2_limit']
+        self.assertEqual(limit['group'], {'en': 'Limits', 'nl': 'Grenzen'})
+        self.assertEqual((limit['optional'], limit['placeholder_from']['values']['eu'], limit['unit']), (True, 800, 'ppm'))
+        self.assertNotIn('default', limit)
+        self.assertNotIn('group', options['co2'])
 
 
 def plugin_service_budget():
@@ -1964,6 +2233,9 @@ class JsonValues(unittest.IsolatedAsyncioTestCase):
         model = (ROOT / 'web/src/model/plugins.ts').read_text()
         self.assertTrue(f'PLUGIN_OPTIONS_BYTES = {pm.OPTIONS_BYTES}' in model, 'the editor keeps another budget')
         self.assertTrue(f'PLUGIN_LIST_MAX = {pm.MAX_MULTIPLE}' in model, 'the editor keeps another list length')
+        # How many options a tile keeps (0.26): the manifest's, the layout check's and the editor's.
+        self.assertEqual(core.PLUGIN_OPTION_MAX, pm.MAX_OPTIONS)
+        self.assertTrue(f'PLUGIN_OPTION_MAX = {pm.MAX_OPTIONS};' in model, 'the editor keeps another number of options')
 
     def test_words_and_joins(self):
         self.assertEqual(plugin_fetch.words_of({'on': True, 'off': False, 'n': 3.0, 'x': 2.5, 'pick': {'value': '7', 'label': 'L'},

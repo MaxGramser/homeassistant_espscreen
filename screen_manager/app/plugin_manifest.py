@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 25)
+PLUGIN_API = (0, 26)
 # Major 0 is the time before that promise: a minor may still change a name or a signature, or take a form away (a plugin
 # that uses it then fails in the compiler, 0.24). A minor after which an older plugin would still build but work wrongly
 # is listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so such a plugin is told so in one
@@ -89,7 +89,8 @@ MAX_ATTRIBUTES = 16
 MAX_HAS_ATTRIBUTES = 8      # attributes an entity must have to be offered for a tile
 MAX_ANSWERS = 8             # answers of Home Assistant commands a plugin maps
 MAX_TILES = 8
-MAX_OPTIONS = 12
+MAX_OPTIONS = 24            # a tile's options (0.26; twelve before, which a screensaver keeps)
+MAX_SAVER_OPTIONS = 12
 MAX_FETCHES = 8
 MAX_INPUTS = 8
 MAX_ITEMS = 48              # a list from a fetch: 24 hourly prices fit twice
@@ -114,6 +115,15 @@ SAVER_API = (0, 14)
 # An option of kind entity (0.15): a tile's own choice of a Home Assistant entity, which the app follows and sends under
 # x.entities (Plugins.tile_message). Only a tile's: a screensaver's options have no entities sent with them.
 ENTITY_OPTION_API = (0, 15)
+# More of a tile's options (0.26): up to MAX_OPTIONS of them instead of twelve, an entity option that says which entities
+# it is for (`device_class`, `matches`), a tile whose entity options one device fills (`from_device`), options under a
+# heading (`group`), and a number that may stay empty (`optional`, with `placeholder_from` for what applies then). All of
+# it shapes the editor's inspector; the screen gets the same options, an empty number as no key at all.
+OPTIONS_API = (0, 26)
+OPTIONS_BEFORE = 12         # how many options a tile had at most before OPTIONS_API
+OPTION_NEWER = ('device_class', 'matches', 'group', 'optional', 'placeholder_from')
+MAX_FILTER = 8              # device classes, or words, an entity option names
+WORD = re.compile(r'^[a-z0-9_]{1,64}$')
 
 
 class ManifestError(ValueError):
@@ -306,11 +316,12 @@ def check_savers(value, out, keys, fetch_ids, choice_lists, searched, options_of
             else:
                 raise ManifestError(f'{where}.when', 'always, data, or {state: [...]}')
         options = [check_option(option, f'{where}.options[{j}]', keys, fetch_ids)
-                   for j, option in enumerate(_list(item.get('options'), f'{where}.options', MAX_OPTIONS))]
+                   for j, option in enumerate(_list(item.get('options'), f'{where}.options', MAX_SAVER_OPTIONS))]
         _unique(options, f'{where}.options')
         if any(option['kind'] == 'entity' for option in options):
             raise ManifestError(f'{where}.options', 'an option of kind entity belongs to a tile; a screensaver step of an '
                                                     'entity names its domains')
+        check_options(options, f'{where}.options', out['api'])
         saver['options'] = options
         for option in options:
             if option.get('options_from'):
@@ -381,7 +392,8 @@ def _strings(value, where, most=32):
 
 def check_option(option, where, keys, fetch_ids):
     option = _object(option, where, {'id', 'kind', 'label', 'hint', 'default', 'choices', 'options_from', 'min',
-                                     'max', 'step', 'unit', 'multiple', 'search', 'domains', 'attributes'},
+                                     'max', 'step', 'unit', 'multiple', 'search', 'domains', 'attributes',
+                                     'device_class', 'matches', 'group', 'optional', 'placeholder_from'},
                      ('id', 'kind', 'label'))
     _id(option['id'], f'{where}.id')
     kind = option['kind']
@@ -391,6 +403,10 @@ def check_option(option, where, keys, fetch_ids):
     if 'hint' in option:
         _text_key(option['hint'], f'{where}.hint', keys)
     out = {'id': option['id'], 'kind': kind, 'label': option['label'], 'hint': option.get('hint')}
+    # The heading it stands under in the inspector (0.26): a text of the plugin, as its label. Options without one come
+    # first; a group is folded until one of its options has a value.
+    if 'group' in option:
+        out['group'] = _text_key(option['group'], f'{where}.group', keys)
     if kind == 'choice':
         if ('choices' in option) == ('options_from' in option):
             raise ManifestError(where, 'a choice has either "choices" or "options_from"')
@@ -427,6 +443,27 @@ def check_option(option, where, keys, fetch_ids):
             if not isinstance(option['unit'], str) or len(option['unit']) > 8:
                 raise ManifestError(f'{where}.unit', 'a unit of at most 8 characters')
             out['unit'] = option['unit']
+        # A number that may stay empty (0.26): no key in the tile's options then, never 0, so it has no default.
+        if 'optional' in option:
+            if option['optional'] is not True:
+                raise ManifestError(f'{where}.optional', 'true, for a number that may stay empty')
+            if 'default' in option:
+                raise ManifestError(f'{where}.default', 'a number that may stay empty has no default: empty is its start')
+            out['optional'] = True
+        # What applies while it is empty (0.26), by the value of a choice of the same tile: the editor shows that number
+        # in the empty field. Whether the choice exists is check_options's, which sees the tile's other options.
+        if 'placeholder_from' in option:
+            if not out.get('optional'):
+                raise ManifestError(f'{where}.placeholder_from', 'only a number with "optional: true" is ever empty')
+            source = _object(option['placeholder_from'], f'{where}.placeholder_from', {'option', 'values'}, ('option', 'values'))
+            values = _object(source['values'], f'{where}.placeholder_from.values',
+                             set(source['values']) if isinstance(source['values'], dict) else ())
+            if not values or len(values) > 48 or not all(isinstance(key, str) for key in values):
+                raise ManifestError(f'{where}.placeholder_from.values', 'a number per value of the choice, the value as '
+                                                                       'a text ("who": 1000), 1 to 48')
+            out['placeholder_from'] = {
+                'option': _id(source['option'], f'{where}.placeholder_from.option'),
+                'values': {key: _number(value, f'{where}.placeholder_from.values.{key}') for key, value in values.items()}}
     elif kind == 'entity':
         out['domains'] = _strings(option.get('domains'), f'{where}.domains', 8)
         if not out['domains'] or any(not ID.fullmatch(domain) for domain in out['domains']):
@@ -434,12 +471,22 @@ def check_option(option, where, keys, fetch_ids):
         out['attributes'] = _strings(option.get('attributes', []), f'{where}.attributes', MAX_ATTRIBUTES)
         if any(not ID.fullmatch(name) for name in out['attributes']):
             raise ManifestError(f'{where}.attributes', f'up to {MAX_ATTRIBUTES} attribute names')
+        # Which entities it is for (0.26, entity_fits): Home Assistant's device classes, and words for sensors that have
+        # none (an entity's translation key, or the end of its id). Only the editor's list: a tile keeps any entity of
+        # its domains a person chose.
+        for key, what in (('device_class', 'Home Assistant device classes, such as [carbon_dioxide]'),
+                          ('matches', 'words of a-z, 0-9 and _, such as [voc_index]')):
+            if key in option:
+                out[key] = _strings(option[key], f'{where}.{key}', MAX_FILTER)
+                if not out[key] or any(not WORD.match(word) for word in out[key]):
+                    raise ManifestError(f'{where}.{key}', f'1 to {MAX_FILTER} {what}')
     # A list (0.12): several texts, or several picks of a choice, in the order the person put them.
     if 'multiple' in option:
         if kind not in ('text', 'choice'):
             raise ManifestError(f'{where}.multiple', 'only a text or a choice keeps several values')
         out['multiple'] = _number(option['multiple'], f'{where}.multiple', 2, MAX_MULTIPLE, whole=True)
-    for key in ('choices', 'options_from', 'min', 'max', 'step', 'unit', 'search', 'domains', 'attributes'):
+    for key in ('choices', 'options_from', 'min', 'max', 'step', 'unit', 'search', 'domains', 'attributes',
+                'device_class', 'matches', 'optional', 'placeholder_from'):
         if key in option and key not in out:
             raise ManifestError(f'{where}.{key}', f'does not belong to an option of kind {kind}')
     if out['id'] == SEARCH and out.get('search'):
@@ -451,6 +498,51 @@ def check_option(option, where, keys, fetch_ids):
             raise ManifestError(f'{where}.default', 'a choice that keeps picks starts empty: [] or no default')
         out['default'] = option_value(out, option['default'], f'{where}.default')
     return out
+
+
+def check_options(options, where, api, most=OPTIONS_BEFORE):
+    """What the options of one tile or screensaver must be together: what a `placeholder_from` names is a choice of the
+    same tile with fixed choices, and every value it gives a number for is one of them (a value may lack one). And the
+    API that brought what they use: more than `most` of them, or a field of OPTION_NEWER, is 0.26's."""
+    by_id = {option['id']: option for option in options}
+    for i, option in enumerate(options):
+        source = option.get('placeholder_from')
+        if not source:
+            continue
+        at = f'{where}[{i}].placeholder_from'
+        choice = by_id.get(source['option'])
+        if not choice or choice['kind'] != 'choice' or not choice.get('choices') or keeps_picks(choice):
+            raise ManifestError(f'{at}.option', 'must name a choice of the same tile that has "choices" and keeps one value')
+        known = [item['value'] for item in choice['choices']]
+        for value in source['values']:
+            if value not in known:
+                raise ManifestError(f'{at}.values.{value}', f'is not one of the choices of "{choice["id"]}"')
+    newer = next((f'"{key}"' for option in options for key in OPTION_NEWER if key in option), None)
+    if newer is None and len(options) > most:
+        newer = f'more than {most} options'
+    needs_api(newer, where, api, OPTIONS_API)
+
+
+def needs_api(what, where, api, need):
+    """Refuse `what` (None: nothing to refuse) in a manifest written for an API older than the one that brought it."""
+    match = API.match(str(api or ''))
+    if what and (not match or (int(match.group(1)), int(match.group(2))) < need):
+        text = '.'.join(map(str, need))
+        raise ManifestError(where, f'{what} needs plugin API {text} (api: "{text}")')
+
+
+def entity_fits(option, entity, device_class=None, translation_key=None):
+    """Whether an entity is one an option of kind entity is for (0.26): of its domains, and, where the option names
+    `device_class` or `matches`, with one of those device classes (the state's attribute), or one of those words as its
+    translation key (the entity registry's) or as the end of its id (`sensor.hall_voc_index` for `voc_index`). The
+    editor offers these first (its entityFits, the same rule); it is no check of a value."""
+    if not isinstance(entity, str) or entity.split('.', 1)[0] not in option.get('domains', ()):
+        return False
+    classes, words = option.get('device_class') or (), option.get('matches') or ()
+    if not classes and not words:
+        return True
+    return bool((device_class and device_class in classes) or (translation_key and translation_key in words)
+                or any(entity.endswith(f'_{word}') for word in words))
 
 
 def keeps_picks(option):
@@ -815,7 +907,8 @@ def check(manifest, english=None, strict=True):
     for i, item in enumerate(_list(manifest.get('tiles'), 'tiles', MAX_TILES)):
         where = f'tiles[{i}]'
         item = _object(item, where, {'id', 'name', 'icon', 'sizes', 'memory', 'domains', 'data', 'options',
-                                     'example', 'preview', 'attributes', 'has_attributes', 'fields', 'pictures'},
+                                     'example', 'preview', 'attributes', 'has_attributes', 'fields', 'pictures',
+                                     'from_device'},
                        ('id', 'name', 'sizes', 'memory'))
         tile = {'id': _id(item['id'], f'{where}.id'), 'name': _text_key(item['name'], f'{where}.name', keys)}
         icon = item.get('icon', out['icon'])
@@ -885,7 +978,19 @@ def check(manifest, english=None, strict=True):
             if not match or (int(match.group(1)), int(match.group(2))) < ENTITY_OPTION_API:
                 need = '.'.join(map(str, ENTITY_OPTION_API))
                 raise ManifestError(f'{where}.options', f'an option of kind entity needs plugin API {need} (api: "{need}")')
+        check_options(options, f'{where}.options', out['api'])
         tile['options'] = options
+        # Its entity options filled from one device (0.26): the inspector offers the Home Assistant devices that have an
+        # entity for two or more of them, and one choice sets those options. Nothing of it is kept: the options are.
+        if 'from_device' in item:
+            if not isinstance(item['from_device'], bool):
+                raise ManifestError(f'{where}.from_device', 'true or false')
+            needs_api('"from_device"', f'{where}.from_device', out['api'], OPTIONS_API)
+            if item['from_device'] and sum(1 for option in options if option['kind'] == 'entity'
+                                           and (option.get('device_class') or option.get('matches'))) < 2:
+                raise ManifestError(f'{where}.from_device', 'needs two or more options of kind entity that say which '
+                                                            'entities they are for ("device_class" or "matches")')
+        tile['from_device'] = bool(item.get('from_device', False))
         for option in options:
             if option.get('options_from'):
                 choice_lists.add(option['options_from'])

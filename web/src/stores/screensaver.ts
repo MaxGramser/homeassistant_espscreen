@@ -11,7 +11,7 @@ import { clockSample } from "../model/clock";
 import type { SaverFaceKind } from "../model/clock-faces";
 import { moved } from "../model/reorder";
 import { itemKey } from "../model/topbar";
-import { pluginDefaults, text } from "../model/plugins";
+import { pluginDefaults, text, withOption } from "../model/plugins";
 import type { HeaderItem, PluginSaverKey, PluginValue, SaverKind, SaverPhotos, SaverPluginSetting, SaverStep, ScreensaverChoice } from "../types";
 import { useEntitiesStore } from "./entities";
 import { useInspectorStore } from "./inspector";
@@ -145,7 +145,8 @@ export const useScreensaverStore = defineStore("screensaver", () => {
     const settings = { ...(saver.value?.plugins || {}), [key]: { ...pluginSetting(key), ...patch } };
     changeSaver(withSettings({}, settings));
   }
-  const setPluginOption = (key: string, option: string, value: PluginValue) => setPluginSetting(key, { options: { ...pluginSetting(key).options, [option]: value } });
+  // `undefined` takes the option off: a number that may stay empty (plugin API 0.26) is kept as no key at all.
+  const setPluginOption = (key: string, option: string, value: PluginValue | undefined) => setPluginSetting(key, { options: withOption(pluginSetting(key).options, option, value) });
   const setPluginEntity = (key: string, entity: string) => setPluginSetting(key, { entity });
   /** The plugin faces of a step on this screen. */
   const facesFor = (step: FaceStep) => pluginSavers.value.filter((s) => s.saver.step === step);

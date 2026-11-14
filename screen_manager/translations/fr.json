@@ -2418,7 +2418,14 @@
       "remove": "Retirer {name}",
       "type": "Tapez puis Entrée",
       "full": "L'écran n'en prend pas plus pour cette tuile : ses options sont pleines.",
-      "count": "{n} sur {max}"
+      "count": "{n} sur {max}",
+      "show_all": "Afficher toutes les entités",
+      "show_fitting": "Afficher seulement celles qui conviennent",
+      "not_set": "Non défini",
+      "fill_device": "Remplir depuis un appareil",
+      "fill_device_hint": "Choisissez un appareil et ses capteurs sont renseignés ci-dessous. Vous pouvez encore changer chacun.",
+      "fill_device_none": "Aucun appareil n'a deux de ces capteurs ou plus",
+      "fill_device_count": "{n} capteur | {n} capteurs"
     },
     "memory": {
       "label": "Mémoire pour les tuiles",

@@ -4,7 +4,7 @@
 import { t } from '../i18n';
 import { isWideSize } from './sizes';
 import { TILE, ofType, taps as catalogueTaps } from './catalogue';
-import { PLUGIN_LIST_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
+import { PLUGIN_LIST_MAX, PLUGIN_OPTION_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE } from './plugins';
 import rules from './page-rules.json';
 import { cleanPreset, MAX as PRESETS_MAX } from './light-presets';
 import type { PageLayout, PageTile } from '../types';
@@ -33,14 +33,14 @@ const entity = (value: any, domains: string[]) => typeof value === 'string' && v
   matches(/^[a-z0-9_]+\.[a-z0-9_]+$/, value) && domains.includes(value.split('.')[0]);
 // Any icon's name: which ones a screen can draw is its own (docs/ICONS.md), and the add-on checks the name.
 const icon = (value: any, none = false) => value === 'auto' || (none && value === 'none') || rules.icons.includes(value) || (typeof value === 'string' && /^[a-z0-9-]{1,80}$/.test(value));
-// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 12, each a short text, a
+// A plugin tile's options in their kept shape (the add-on's core.plugin_options): at most 24, each a short text, a
 // number, true/false, a pick {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most
 // PLUGIN_OPTIONS_BYTES of JSON. Whether a value fits its option is the plugin's manifest's.
 const pluginText = (value: any, empty = true) => typeof value === 'string' && (empty || value !== '') && [...value].length <= 64;
 const pluginPick = (value: any) => !!value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).every((k) => k === 'value' || k === 'label') && pluginText(value.value, false) && pluginText(value.label ?? '');
 export function pluginOptionsShape(options: any): boolean {
-  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > 12) return false;
+  if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).length > PLUGIN_OPTION_MAX) return false;
   for (const [key, value] of Object.entries(options)) {
     if (!/^[a-z][a-z0-9_]{0,31}$/.test(key)) return false;
     if (Array.isArray(value)) {

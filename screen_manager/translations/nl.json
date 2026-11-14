@@ -4322,7 +4322,14 @@
       "remove": "{name} weghalen",
       "type": "Typ en druk op Enter",
       "full": "Het scherm neemt niet meer aan voor deze tegel: de opties zijn vol.",
-      "count": "{n} van {max}"
+      "count": "{n} van {max}",
+      "show_all": "Alle entiteiten tonen",
+      "show_fitting": "Alleen wat past tonen",
+      "not_set": "Niet ingesteld",
+      "fill_device": "Invullen vanaf een apparaat",
+      "fill_device_hint": "Kies een apparaat en de sensoren ervan worden hieronder ingevuld. Je kunt elke sensor daarna nog wijzigen.",
+      "fill_device_none": "Geen apparaat heeft twee of meer van deze sensoren",
+      "fill_device_count": "1 sensor | {n} sensoren"
     },
     "build": {
       "plugins": "Bouwt met zijn plugins",

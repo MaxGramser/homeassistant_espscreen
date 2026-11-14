@@ -2418,7 +2418,14 @@
       "remove": "{name} eltávolítása",
       "type": "Írd be, majd Enter",
       "full": "A kijelző nem fogad többet ehhez a csempéhez: a beállításai megteltek.",
-      "count": "{n} / {max}"
+      "count": "{n} / {max}",
+      "show_all": "Minden entitás megjelenítése",
+      "show_fitting": "Csak a megfelelők megjelenítése",
+      "not_set": "Nincs megadva",
+      "fill_device": "Kitöltés egy eszközről",
+      "fill_device_hint": "Válassz egy eszközt, és az érzékelői lent kitöltődnek. Utána mindegyiket módosíthatod.",
+      "fill_device_none": "Egyetlen eszköznek sincs kettő vagy több ilyen érzékelője",
+      "fill_device_count": "1 érzékelő | {n} érzékelő"
     },
     "memory": {
       "label": "Memória a csempéknek",

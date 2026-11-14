@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 25;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 26;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -255,6 +255,11 @@ enum class Tone : uint8_t { NORMAL, ACCENT, BUSY, ALERT, GOOD };
 // How a picture fills its place (0.10): COVER fills the place and cuts away what is over (a poster in a poster's
 // frame), CONTAIN shows the whole picture within it, on the card's own colour (a logo, a map).
 enum class Fit : uint8_t { COVER, CONTAIN };
+
+// A card's own colour (0.26): the named colours a person can give any tile in the editor (theme::SWATCHES). Each is a
+// pastel in the light look and a deep shade of the same hue in the dark one, chosen so the screen's ink reads on it.
+// NONE is the card as the person set it: plain, or the colour they chose.
+enum class CardColor : uint8_t { NONE, RED, ORANGE, YELLOW, GREEN, MINT, BLUE, PURPLE, PINK, GRAY };
 // How a picture turns in its place (0.10), as the covers beside the middle one of a cover flow turn to face it: the app
 // draws the whole picture in perspective within the place, its near edge the place's height and its far edge 70 % of
 // it. LEFT faces the left (its left edge far: a cover right of the middle), RIGHT faces the right (a cover left of it).
@@ -633,6 +638,20 @@ void set_fill(lv_obj_t *block, Tone tone, theme::Role normal);
 lv_color_t tone_color(Tone tone, theme::Role normal);
 // A rounded block (a line number's badge, a bar): no border, the radius of a key.
 lv_obj_t *block(lv_obj_t *parent, theme::Role fill);
+// The tile's card in a colour of its own (0.26): the whole card, its edge and its shade under a finger, in both looks,
+// over the colour the person chose for the tile in the editor; CardColor::NONE gives the card back to that choice. For a
+// tile whose colour says something (a level that is fine or off, the bin that goes out, a timer that ran out). Call it
+// in a call of the tile (create, on_state, on_tick, on_theme, on_tap): it colours the card of that tile, costs nothing
+// when the colour is the one it has, and lasts until the tile says otherwise or leaves the card. A tile whose
+// background the person set to None has no card, and stays so. Outside a tile's call it does nothing.
+void set_card_color(CardColor color);
+// The colour of the card under the tile as it is drawn now, in a call of the tile: its own (set_card_color), else the
+// person's, else the plain card; the page's colour for a tile without a card. For a part that has to go with the card:
+// a soft block is lv_color_mix(ui::color(theme::INK), ui::card_color(), 26), never a number. In a call of a card, a
+// popup or a screensaver it is the plain card's colour.
+lv_color_t card_color();
+// A named card colour as this look draws it; CardColor::NONE is the plain card.
+lv_color_t card_color(CardColor color);
 // The UTF-8 of an icon of Tessera's set by its codepoint (0xF0B5E), for a label in Font::ICON or ICON_SMALL.
 std::string icon(uint32_t codepoint);
 // A part of a screensaver a finger may tap without waking the screen (0.14): its taps go to Saver::on_tap (and a hold to

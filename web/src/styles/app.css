@@ -1228,6 +1228,8 @@ td code { white-space: nowrap; }
 .ui-picker-search input { flex: 1; min-width: 0; border: 0; padding: 0; background: none; outline: none; box-shadow: none; font-size: 13px; color: var(--ink); }
 .ui-picker-list { max-height: min(320px, calc(var(--reka-popover-content-available-height, 60vh) - 52px)); overflow-y: auto; overscroll-behavior: contain; padding: 5px; }
 .ui-picker-empty { padding: 10px 9px; color: var(--muted); font-size: 12.5px; }
+.ui-picker-foot { display: flex; padding: 2px 5px 5px; }
+.ui-picker-foot .btn { flex: 1; justify-content: flex-start; color: var(--muted); font-size: 12.5px; }
 .ui-menu-item { display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 6px; cursor: default; outline: none; user-select: none; color: var(--ink); line-height: 1.3; }
 .ui-menu-item[data-highlighted] { background: var(--seg); }
 .ui-menu-item[data-disabled] { opacity: 0.45; }
@@ -1894,6 +1896,11 @@ section.advanced code { font-size: 11.5px; }
 .plugin-tile-from .mdi { color: var(--accent); font-size: 14px; }
 .plugin-stepper { display: inline-flex; align-items: center; gap: 10px; }
 .plugin-stepper b { min-width: 52px; text-align: center; font-weight: 600; }
+/* The key that takes an option's entity away stands beside its picker, as small as it is. */
+.prop-value > .plugin-entity-clear { flex: none; align-self: center; margin-left: 6px; }
+.plugin-number { display: inline-flex; align-items: center; gap: 6px; }
+.plugin-number input { width: 108px; text-align: right; }
+.plugin-number-unit { color: var(--muted); font-size: 12.5px; }
 
 /* ---- Ready to install: Add on a plugin card, and the tray in the corner that builds each screen once ----
    Add is the store's Get: a soft pill that turns into the accent once the plugin is set aside. The tray floats over

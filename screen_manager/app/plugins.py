@@ -215,6 +215,40 @@ def plugin_entities(entries, states, most=500):
                   key=lambda e: e['name'].lower())[:most]
 
 
+def entity_facts(entries, states, registry, devices, most=2000):
+    """(facts, devices): what the editor needs to offer the entities an entity option is for (plugin API 0.26,
+    `device_class` and `matches`) and to fill a tile's options from one device (`from_device`). `facts` holds, for every
+    entity that fits such an option of a plugin the app knows (pm.entity_fits) and no other, what the rule and the pick
+    among a device's entities read: {entity id: {device, device_class, translation_key, disabled, category}}, a field
+    only where it says something. `devices` names the devices those entities belong to, {device id: name}. Both are
+    empty while no plugin has such an option, so a home's hundreds of sensors never travel for nothing."""
+    options = [option for entry in entries for tile in entry.manifest['tiles'] for option in tile.get('options', [])
+               if option.get('kind') == 'entity' and (option.get('device_class') or option.get('matches'))]
+    if not options:
+        return {}, {}
+    registered = {item['entity_id']: item for item in registry or []
+                  if isinstance(item, dict) and isinstance(item.get('entity_id'), str)}
+    facts = {}
+    for eid in sorted({*registered, *(eid for eid in states if isinstance(eid, str))}):
+        item = registered.get(eid, {})
+        attributes = (states.get(eid) or {}).get('attributes') or {}
+        # The device class as Home Assistant shows it: the state's, and for an entity without a state (a disabled one)
+        # what its registry entry says.
+        device_class = attributes.get('device_class') or item.get('device_class') or item.get('original_device_class')
+        key = item.get('translation_key')
+        if not any(pm.entity_fits(option, eid, device_class, key) for option in options):
+            continue
+        fact = {'device': item.get('device_id'), 'device_class': device_class, 'translation_key': key,
+                'disabled': bool(item.get('disabled_by')), 'category': item.get('entity_category')}
+        facts[eid] = {name: value for name, value in fact.items() if value and isinstance(value, (str, bool))}
+        if len(facts) >= most:
+            break
+    used = {fact['device'] for fact in facts.values() if fact.get('device')}
+    names = {device['id']: str(device.get('name_by_user') or device.get('name') or '')
+             for device in devices or [] if isinstance(device, dict) and device.get('id') in used}
+    return facts, names
+
+
 def trimmed(data, budget=X_BUDGET):
     """A tile's data within `budget` bytes (X_BUDGET, or less beside large options): the last items go first."""
     if not isinstance(data, dict):
@@ -920,6 +954,8 @@ class Plugins:
         words = lambda key: dict(entry.texts.get(key) or {'en': key}) if key else None
         option = lambda o: {**{k: v for k, v in o.items() if k not in ('label', 'hint', 'choices')},
                             'label': words(o['label']), 'hint': words(o.get('hint')),
+                            # The heading it stands under (0.26), in words as its label.
+                            **({'group': words(o['group'])} if o.get('group') else {}),
                             **({'choices': [{'value': c['value'], 'label': words(c['label'])} for c in o['choices']]}
                                if o.get('choices') else {})}
         return {
@@ -963,6 +999,8 @@ class Plugins:
                        **({'entities': self.entities_with(tile['domains'], tile['has_attributes'])}
                           if tile.get('has_attributes') else {}),
                        'options': [option(o) for o in tile['options']],
+                       # Its entity options can be filled from one device (0.26): the inspector offers the devices.
+                       **({'from_device': True} if tile.get('from_device') else {}),
                        'example': words(tile.get('example')), 'preview': bool(tile.get('preview')),
                        # Places for pictures on the tile (0.10), shown only where the screen has the memory for them.
                        'pictures': tile['pictures']}
@@ -1112,6 +1150,9 @@ class Plugins:
                     secrets.setdefault(entry.id, {})[item['id']] = self.secrets.has(
                         entry.id, item['id'], origin=None if entry.source == 'folder' else entry.origin)
         entities = plugin_entities(listed.values(), getattr(self.manager.ha, 'states', {}) or {})
+        # What an entity option that says which entities it is for needs of them, and their devices' names (0.26).
+        facts, devices = entity_facts(listed.values(), getattr(self.manager.ha, 'states', {}) or {},
+                                      getattr(self.manager.ha, 'registry', None), getattr(self.manager.ha, 'devices', None))
         # Per screen: the features its board and its plugins bring, and why a plugin cannot go on it when that is
         # something only the app knows (a feature nothing brings, a plugin it needs that does not fit, ESPHome too old).
         # The editor works out the board, PSRAM and room itself.
@@ -1123,7 +1164,7 @@ class Plugins:
             if reasons:
                 fit[screen['id']] = reasons
         return {'api': api_text(), 'plugins': [self.editor_plugin(entry, language) for entry in listed.values()],
-                'entities': entities,
+                'entities': entities, 'entity_facts': facts, 'devices': devices,
                 'installed': installed, 'running': running, 'secrets': secrets,
                 'features': features, 'fit': fit, 'likes': self.liker.view(),
                 'index': {'at': self.index_state['at'], 'error': self.index_state['error']},

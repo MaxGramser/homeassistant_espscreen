@@ -2418,7 +2418,14 @@
       "remove": "Usuń {name}",
       "type": "Wpisz i naciśnij Enter",
       "full": "Ekran nie przyjmie więcej dla tego kafelka: jego opcje są pełne.",
-      "count": "{n} z {max}"
+      "count": "{n} z {max}",
+      "show_all": "Pokaż wszystkie encje",
+      "show_fitting": "Pokaż tylko pasujące",
+      "not_set": "Nie ustawiono",
+      "fill_device": "Wypełnij z urządzenia",
+      "fill_device_hint": "Wybierz urządzenie, a jego czujniki zostaną wpisane poniżej. Każdy możesz potem zmienić.",
+      "fill_device_none": "Żadne urządzenie nie ma dwóch lub więcej z tych czujników",
+      "fill_device_count": "1 czujnik | {n} czujniki | {n} czujników"
     },
     "memory": {
       "label": "Pamięć na kafelki",

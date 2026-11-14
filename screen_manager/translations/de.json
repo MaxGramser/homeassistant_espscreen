@@ -2418,7 +2418,14 @@
       "remove": "{name} entfernen",
       "type": "Eingeben und Enter drücken",
       "full": "Der Bildschirm nimmt für diese Kachel nicht mehr auf: ihre Optionen sind voll.",
-      "count": "{n} von {max}"
+      "count": "{n} von {max}",
+      "show_all": "Alle Entitäten anzeigen",
+      "show_fitting": "Nur Passende anzeigen",
+      "not_set": "Nicht festgelegt",
+      "fill_device": "Von einem Gerät ausfüllen",
+      "fill_device_hint": "Wähle ein Gerät, und seine Sensoren werden unten eingetragen. Du kannst jeden danach noch ändern.",
+      "fill_device_none": "Kein Gerät hat zwei oder mehr dieser Sensoren",
+      "fill_device_count": "1 Sensor | {n} Sensoren"
     },
     "memory": {
       "label": "Speicher für Kacheln",

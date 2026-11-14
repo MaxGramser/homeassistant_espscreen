@@ -2418,7 +2418,14 @@
       "remove": "Rimuovi {name}",
       "type": "Scrivi e premi Invio",
       "full": "Lo schermo non accetta altro per questo riquadro: le sue opzioni sono piene.",
-      "count": "{n} di {max}"
+      "count": "{n} di {max}",
+      "show_all": "Mostra tutte le entità",
+      "show_fitting": "Mostra solo quelle adatte",
+      "not_set": "Non impostato",
+      "fill_device": "Compila da un dispositivo",
+      "fill_device_hint": "Scegli un dispositivo e i suoi sensori vengono compilati qui sotto. Puoi ancora cambiare ciascuno.",
+      "fill_device_none": "Nessun dispositivo ha due o più di questi sensori",
+      "fill_device_count": "1 sensore | {n} sensori"
     },
     "memory": {
       "label": "Memoria per i riquadri",
