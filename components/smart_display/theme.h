@@ -128,6 +128,14 @@ enum Role : uint8_t {
   // deep one. The disc is the light's own colour, so these stay the same in both looks.
   PRESET_INK_DARK,
   PRESET_INK_LIGHT,
+  // ---- an instrument (plugin API 0.27): a face that stays dark in both looks, as a radar scope, a night sky or a
+  // gauge's dial does, so what is lit on it reads the same by day and by night. Its ground, the lines on it (rings,
+  // a grid), its words, its quieter words and the one thing it lights (a sweep, the chosen mark).
+  INSTRUMENT,
+  INSTRUMENT_LINE,
+  INSTRUMENT_INK,
+  INSTRUMENT_MUTED,
+  INSTRUMENT_GLOW,
   ROLE_COUNT
 };
 
@@ -225,6 +233,11 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* BAUHAUS_CREAM */            {0xF2EBDD, 0x1A1A19},
   /* PRESET_INK_DARK */          {0x1B1B1B, 0x1B1B1B},
   /* PRESET_INK_LIGHT */         {0xFFFFFF, 0xFFFFFF},
+  /* INSTRUMENT */               {0x0E1621, 0x0B1119},
+  /* INSTRUMENT_LINE */          {0x2A3A4C, 0x243243},
+  /* INSTRUMENT_INK */           {0xEEF3F8, 0xDADFE5},
+  /* INSTRUMENT_MUTED */         {0x8FA0B3, 0x7F8FA1},
+  /* INSTRUMENT_GLOW */          {0x52E3A4, 0x45D196},
 };
 
 // The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the

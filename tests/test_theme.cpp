@@ -100,6 +100,16 @@ int main() {
     if (r == g && g == b && r > 0 && r < 0xFF) assert((r >> 3) * 2 == (g >> 2));
   }
 
+  // ---- an instrument (plugin API 0.27): dark in both looks, its words read on it, its lines show and stay quiet
+  for (bool d : {false, true}) {
+    auto v = [d](Role r) { return d ? ROLES[r].dark : ROLES[r].light; };
+    assert(lightness(v(INSTRUMENT)) < 40);
+    assert(contrast(v(INSTRUMENT_INK), v(INSTRUMENT)) >= 12.0);
+    assert(contrast(v(INSTRUMENT_MUTED), v(INSTRUMENT)) >= 4.5);
+    assert(contrast(v(INSTRUMENT_GLOW), v(INSTRUMENT)) >= 7.0);
+    assert(contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) >= 1.4 && contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) < 3.0);
+  }
+
   // ---- Home Assistant's colours in the dark look
   assert(state(ha::GREY) == ROLES[OFF].dark && state(0xCFCFCF) == ROLES[HISTORY_OFF].dark && state(0xE6E6E6) == ROLES[HISTORY_EMPTY].dark);
   assert(state(ha::AMBER) == ha::AMBER && state(ha::TEAL) == ha::TEAL);

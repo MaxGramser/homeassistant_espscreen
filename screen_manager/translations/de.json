@@ -2082,7 +2082,10 @@
         "ha_none": "Führt keine Aktionen in Home Assistant aus",
         "network": "Verbindet sich mit {hosts}",
         "network_none": "Baut keine Verbindungen außerhalb von Home Assistant auf",
-        "read": "Liest diese Entitäten aus Home Assistant"
+        "read": "Liest diese Entitäten aus Home Assistant",
+        "sends": "Sendet an {host}: {what}",
+        "sends_option": "{attributes} der Entität, die du für {option} wählst",
+        "sends_state": "Zustand"
       },
       "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf, und sein Build läuft in dieser App, wo er an deine Home-Assistant-Konfiguration herankommt. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
       "room": {

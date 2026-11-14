@@ -429,6 +429,44 @@ class ProbePopup : public tessera::Popup {
 };
 HostProbe *ProbePopup::plugin = nullptr;
 
+// A popup with an id of the manifest's `popups` (plugin API 0.27): a place for a picture, which the harness answers as
+// the app does, and on an instrument's ground (the roles that stay dark in both looks) a mark turned along a course.
+class ProbePicturePopup : public tessera::Popup {
+ public:
+  ~ProbePicturePopup() override { ESP_LOGI(TAG, "picture popup destroy"); }
+  void open(const tessera::PopupContext &c) override {
+    face_ = ui::block(c.parent, theme::INSTRUMENT);
+    lv_obj_set_size(face_, c.width, ui::px(60));
+    mark_ = ui::label(face_, Font::ICON, theme::INSTRUMENT_GLOW);
+    ui::set_text(mark_, ui::icon(0xF001D));   // airplane
+    lv_obj_set_pos(mark_, ui::px(8), ui::px(4));
+    ui::rotate(mark_, 90);
+    ui::rotate(mark_, 450);                   // the same course again: nothing changes
+    ESP_LOGI(TAG, "instrument ground=%06X ink=%06X turned=%d", (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT)) & 0xFFFFFF),
+             (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT_INK)) & 0xFFFFFF),
+             (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN));
+    if (!ui::pictures()) {
+      ESP_LOGI(TAG, "picture popup open pictures=0");
+      return;
+    }
+    place_ = ui::picture(c.parent);
+    lv_obj_set_size(place_, c.width, ui::px(120));
+    lv_obj_set_pos(place_, 0, ui::px(70));
+    ui::set_picture(place_, "https://image.tmdb.org/t/p/w342/probe-popup.jpg");
+    ESP_LOGI(TAG, "picture popup open pictures=1");
+  }
+  void on_picture(lv_obj_t *place, tessera::PictureState state) override {
+    if (place != place_ || state != tessera::PictureState::SHOWN) return;
+    lv_obj_update_layout(place_);
+    lv_area_t a;
+    lv_obj_get_coords(place_, &a);
+    ESP_LOGI(TAG, "picture popup shown %d,%d,%d,%d", (int) a.x1, (int) a.y1, (int) a.x2, (int) a.y2);
+  }
+
+ private:
+  lv_obj_t *face_{}, *mark_{}, *place_{};
+};
+
 void HostProbe::on_message(JsonObjectConst message) {
   // A message of the harness that asks for a closer: {"do": "<mode>", "tile": <the layout's tile it opens from>}.
   const char *what = message["do"] | "";
@@ -448,6 +486,10 @@ void HostProbe::on_message(JsonObjectConst message) {
     ProbePopup::plugin = this;
     const bool closes = std::string(what) == "popup_self";
     ESP_LOGI(TAG, "do %s shown=%d", what, (int) tessera::show_popup(this, [closes]() { return new ProbePopup(closes); }));
+    return;
+  }
+  if (std::string(what) == "popup_picture") {
+    ESP_LOGI(TAG, "do popup_picture shown=%d", (int) tessera::show_popup(this, "shot", []() { return new ProbePicturePopup(); }));
     return;
   }
   if (std::string(what) == "popup_close") {

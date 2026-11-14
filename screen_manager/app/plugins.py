@@ -81,6 +81,10 @@ SEARCH_EVERY = 600
 # first not at all, then a day of quarters twice, once, half a day.
 LIST_STEPS = (None, 192, 96, 48, 24, 16, 12, 8, 4, 2, 1, 0)
 LOOP_SECONDS = 15
+# A fetch the screen asks for (plugin API 0.27, `fetch:<id>` through tessera::send): how many a plugin on one screen may
+# ask in a minute. Each is a question of the fetcher, shared and cached as every other, so most never reach the service.
+FETCH_ASKS_PER_MINUTE = 20
+FETCH_ASK = 'fetch:'
 
 
 async def read_whole(response, limit):
@@ -311,7 +315,14 @@ class Entry:
         return next((fetch for fetch in self.manifest['fetch'] if fetch['id'] == fetch_id), None)
 
     def card(self, card_id):
-        return next((card for card in self.manifest['cards'] if card['id'] == card_id), None)
+        """A card of the manifest, or a popup's places for pictures (0.27, `popups`), which ask as a card's do (owner
+        plugin_card): {id, pictures, popup: True}. A popup is shown for no entity, so it never has Home Assistant's
+        pictures (Manager.plugin_place)."""
+        found = next((card for card in self.manifest['cards'] if card['id'] == card_id), None)
+        if found is None:
+            popup = next((p for p in self.manifest.get('popups') or () if p['id'] == card_id), None)
+            found = {**popup, 'popup': True} if popup else None
+        return found
 
     def saver(self, saver_id):
         return next((saver for saver in self.manifest.get('savers') or () if saver['id'] == saver_id), None)
@@ -378,6 +389,7 @@ class Plugins:
         self.links = {}             # id -> Entry added with a link (a release of any repository, or a branch to test)
         self.links_checked = 0.0    # when refresh_links last asked for the linked repositories' newest releases
         self.saver_cache = {}       # (inbox, key) -> the fetch's answer for a plugin's step of the screensaver (0.14)
+        self.fetch_asks = {}        # (inbox, plugin) -> the moments of its fetches the screen asked for (0.27), a minute
         self.http = None            # the session that reads the index: never the one that holds Home Assistant's token
         self.ready = False
         self._load_cached_index()
@@ -981,6 +993,8 @@ class Plugins:
             'permissions': {'home_assistant': manifest['permissions']['home_assistant_actions'] + manifest['permissions']['ha_commands'],
                             'network': manifest['permissions']['network'],
                             'read_entities': manifest['permissions']['read_entities']},
+            # What its fetches send of this Home Assistant (0.27): per host, per entity option, the attributes.
+            'sends': self.sends_of(entry),
             'privacy': manifest.get('privacy'), 'readme': entry.readme, 'changelog': entry.changelog,
             # Its picture for the Plugins page, through the app (store_image), named after its commit so a browser keeps
             # it until the plugin changes.
@@ -1020,6 +1034,29 @@ class Plugins:
             # What a person agrees to (permissions and attributes), as one fingerprint: an update with another asks again.
             'permission_hash': pm.permission_hash(manifest),
         }
+
+    @staticmethod
+    def sends_of(entry):
+        """What a plugin's fetches send of the person's Home Assistant, as the editor says it under "What it may do"
+        (0.27, pm.sends): [{host, options: [{option, label, attributes}]}], one per host in the manifest's order, the
+        option's label in words (of the first tile whose data the fetch is), its attributes in their order."""
+        manifest = entry.manifest
+        words = lambda key: dict(entry.texts.get(key) or {'en': key}) if key else None
+        out = {}
+        for item in manifest.get('sends') or pm.sends(manifest):
+            host = out.setdefault(item['host'], {'host': item['host'], 'options': []})
+            for pair in item['reads']:
+                option_id, attribute = pair.split('.', 1)
+                place = next((o for o in host['options'] if o['option'] == option_id), None)
+                if place is None:
+                    spec = next((o for t in manifest['tiles'] if t.get('data') == item['fetch'] for o in t['options']
+                                 if o['id'] == option_id), None)
+                    place = {'option': option_id, 'label': words(spec['label']) if spec else {'en': option_id},
+                             'attributes': []}
+                    host['options'].append(place)
+                if attribute not in place['attributes']:
+                    place['attributes'].append(attribute)
+        return list(out.values())
 
     def running(self):
         """What each screen's last hello said it runs: {inbox: [{id, version, tiles}]}."""
@@ -1654,11 +1691,12 @@ class Plugins:
         return chosen
 
     @staticmethod
-    def asks(fetch, chosen):
+    def asks(fetch, chosen, read=None):
         """The questions of one tile's fetch: [(values, pick)], the tile's options as words (plugin_fetch.word_of). One,
         or for a fetch with `each` (0.12) one per value of that list option, in its order, with the option's place
-        holding that one value and `pick` its {value, label}; none while the list is empty."""
-        words = plugin_fetch.words_of(chosen)
+        holding that one value and `pick` its {value, label}; none while the list is empty. `read`: the attributes of
+        the chosen entities the fetch uses (0.27, entity_values), under "option.attribute"."""
+        words = {**plugin_fetch.words_of(chosen), **(read or {})}
         each = fetch.get('each')
         if not each:
             return [(words, None)]
@@ -1668,24 +1706,60 @@ class Plugins:
             out.append(({**words, each: str(pick.get('value', ''))}, pick))
         return out
 
-    async def tile_data(self, entry, tile, chosen, ask=True, inbox=None):
+    def entity_values(self, fetch, chosen):
+        """What a fetch reads of the entities a person chose for the tile (0.27, `{place.latitude}`): {"option.attribute":
+        the value of Home Assistant's state}, `state` being its state. Left out, so fill() refuses the ask as not filled
+        in: no entity chosen, an entity of another domain (values_of drops it), an entity Home Assistant does not have or
+        calls unavailable, an attribute it lacks, a state unknown."""
+        out = {}
+        states = getattr(self.manager.ha, 'states', {}) or {}
+        for read in fetch.get('reads') or ():
+            entity = chosen.get(read['option'])
+            state = states.get(entity) if isinstance(entity, str) and entity else None
+            if not state or state.get('state') == 'unavailable':
+                continue
+            if read['attribute'] == 'state':
+                value = None if state.get('state') in (None, '', 'unknown') else state.get('state')
+            else:
+                value = (state.get('attributes') or {}).get(read['attribute'])
+            if value is not None:
+                out[f'{read["option"]}.{read["attribute"]}'] = value
+        return out
+
+    @staticmethod
+    def line_of(inbox, tile, fetch, chosen, pick=None):
+        """One tile's line of asking a fetch whose URL reads a chosen entity's attributes (0.27, plugin_fetch.Fetcher.get):
+        the screen, the tile's place, its fetch, its options and which entities they chose, and for a fetch with `each`
+        the value. It stays the same while only the attributes change (a place that moves), and is another one when a
+        person changes an option, so a new choice is asked at once. None for a fetch that reads no attribute: its URL
+        changes only when a person changes something."""
+        if not fetch.get('reads') or tile is None:
+            return None
+        return json.dumps([inbox, tile.get('slot'), tile.get('entity'), fetch['id'],
+                           sorted(plugin_fetch.words_of(chosen).items(), key=lambda kv: kv[0]),
+                           (pick or {}).get('value')], default=str)
+
+    async def tile_data(self, entry, tile, chosen, ask=True, inbox=None, placed=None):
         """What the screen gets for one tile: the mapped answer of its fetch, with "stale" or "wait". A fetch with `each`
         (0.12) puts the answers of its values together; one that has none yet is left out, one that failed makes the
-        list stale, and only when none has an answer does the tile wait."""
+        list stale, and only when none has an answer does the tile wait. `placed`: the tile of the layout (its slot), for
+        the line of a fetch that reads an entity's attributes (line_of)."""
         if not tile.get('data'):
             return None
         fetch = entry.fetch(tile['data'])
         secrets = self.secret_values(entry, inbox)
-        asks = self.asks(fetch, chosen)
+        asks = self.asks(fetch, chosen, self.entity_values(fetch, chosen))
         if not asks:
             return {'wait': 'not_filled'}
         answers, waits, stale = [], [], False
         for values, pick in asks:
+            line = self.line_of(inbox, placed, fetch, chosen, pick)
+            kwargs = {'line': line} if line else {}
             try:
                 if ask:
-                    _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets)
+                    _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets, **kwargs)
                 else:
-                    cached = self.fetcher.peek(entry.id, fetch, values, secrets)
+                    cached = self.fetcher.peek(entry.id, fetch, values, secrets, **kwargs)
             except plugin_fetch.FetchRefused as error:
                 waits.append('not_filled' if 'not filled' in str(error) else 'refused')
                 continue
@@ -1796,7 +1870,7 @@ class Plugins:
         message = {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'], 'name': core.short(name, 80),
                    'state': 'ok', 'a': {}, 'o': wire}
         if kind:
-            data = await self.tile_data(entry, kind, chosen, ask, inbox)
+            data = await self.tile_data(entry, kind, chosen, ask, inbox, tile)
             # The entities its entity options chose (0.15), under x.entities.<option id>: they share what the tile's
             # own entity and data leave of the room, so one with long attributes waits as too large on its own instead
             # of taking the whole tile with it.
@@ -1918,10 +1992,55 @@ class Plugins:
 
     # ---- A plugin's question (tessera::send) ----
 
+    async def fetch_reply(self, entry, fetch_id, data, inbox=None):
+        """The answer to a fetch the screen asks for (0.27, `{"ask": "fetch:<id>", "data": {...}}`): {"ok": True,
+        "result": the mapped answer as a tile of that fetch would get it, bounded as a command's} or {"ok": False,
+        "error": refused | not_filled | failed}. Refused: no such fetch, one without `asked`, a name of `asked` not
+        given, a name it does not have, or a value that is not a text of 1 to 64 of A-Z a-z 0-9 _ . : + - and the space
+        (a number is taken as its text). The question is the fetcher's, shared and cached as every other: an answer
+        younger than the fetch's `every` is served without asking the service, and a failure waits as always."""
+        fetch = entry.fetch(fetch_id) if entry and isinstance(fetch_id, str) else None
+        if not fetch or not fetch.get('asked') or not isinstance(data, dict) or set(data) != set(fetch['asked']):
+            return {'ok': False, 'error': 'refused'}
+        values = {}
+        for name in fetch['asked']:
+            value = data[name]
+            if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+                return {'ok': False, 'error': 'refused'}
+            word = plugin_fetch.word_of(value)
+            if not pm.ASKED_VALUE.match(word):
+                return {'ok': False, 'error': 'refused'}
+            values[name] = word
+        try:
+            _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, self.secret_values(entry, inbox))
+        except plugin_fetch.FetchRefused as error:
+            return {'ok': False, 'error': 'not_filled' if 'not filled' in str(error) else 'refused'}
+        if not cached or cached['data'] is None:
+            return {'ok': False, 'error': 'failed'}
+        try:
+            result = plugin_fetch.apply_map(fetch['map'], cached['data'], values)
+        except Exception as error:   # an answer of another shape than the map expects
+            LOG.warning('plugin %s: the answer did not fit its map (%s)', entry.id, error)
+            return {'ok': False, 'error': 'failed'}
+        if cached['stale']:
+            result['stale'] = True
+        return {'ok': True, 'result': bounded(result)}
+
+    def fetch_ask_allowed(self, inbox, plugin, now=None):
+        """Whether a plugin on this screen may ask one more of its fetches now (FETCH_ASKS_PER_MINUTE), counted."""
+        now = time.monotonic() if now is None else now
+        recent = [at for at in self.fetch_asks.get((inbox, plugin), ()) if now - at < 60]
+        if len(recent) >= FETCH_ASKS_PER_MINUTE:
+            self.fetch_asks[(inbox, plugin)] = recent
+            return False
+        self.fetch_asks[(inbox, plugin)] = recent + [now]
+        return True
+
     async def answer(self, request):
-        """One question of a plugin on a screen: a Home Assistant command its manifest names, asked on its behalf, the
-        answer sent back bounded (op "plugin"). Every command goes into the log with the screen, the plugin and the
-        command, never its values."""
+        """One question of a plugin on a screen: a Home Assistant command its manifest names, asked on its behalf, or one
+        of its own fetches with values of the screen (0.27, `fetch:<id>`, fetch_reply), the answer sent back bounded (op
+        "plugin"). Every question goes into the log with the screen, the plugin and the command or fetch, never its
+        values."""
         if not isinstance(request, dict):
             return
         inbox = getattr(self.manager, 'aliases', {}).get(request.get('inbox'), request.get('inbox'))
@@ -1939,7 +2058,15 @@ class Plugins:
         entry = self.entry_for(self.store.get(inbox, plugin))
         ask = body.get('ask')
         data = body.get('data') if isinstance(body.get('data'), dict) else {}
-        if not entry or not isinstance(ask, str) or ask not in entry.manifest['permissions']['ha_commands']:
+        if entry and isinstance(ask, str) and ask.startswith(FETCH_ASK):
+            # A fetch of its own (0.27): its host is in permissions.network already, so it needs no ha_commands.
+            fetch_id = ask[len(FETCH_ASK):]
+            if not self.fetch_ask_allowed(inbox, plugin):
+                reply.update(ok=False, error='too_often')
+            else:
+                LOG.info('Plugin %s on %s asks its fetch: %s', plugin, screen.get('name') or inbox, fetch_id[:32])
+                reply.update(await self.fetch_reply(entry, fetch_id, body.get('data'), inbox))
+        elif not entry or not isinstance(ask, str) or ask not in entry.manifest['permissions']['ha_commands']:
             reply.update(ok=False, error='not_allowed')
         else:
             LOG.info('Plugin %s on %s asks Home Assistant: %s', plugin, screen.get('name') or inbox, ask)
@@ -2082,13 +2209,18 @@ class Plugins:
             chosen = self.values_of(entry, kind, (tile.get('options') or {}).get('plugin'))
             fetch = entry.fetch(kind['data'])
             secrets = self.secret_values(entry, inbox)
-            for values, _ in self.asks(fetch, chosen):
+            for values, pick in self.asks(fetch, chosen, self.entity_values(fetch, chosen)):
+                line = self.line_of(inbox, tile, fetch, chosen, pick)
+                kwargs = {'line': line} if line else {}
                 try:
-                    before = (self.fetcher.peek(entry.id, fetch, values, secrets) or {}).get('changed')
-                    _, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets)
+                    # Which question the tile is served and how often it changed: a line that moves on to its new
+                    # question (0.27) is a change as much as a new answer is.
+                    key, cached = self.fetcher.current(entry.id, fetch, values, secrets, **kwargs)
+                    before = (key, (cached or {}).get('changed'))
+                    key, cached = await self.fetcher.get(entry.id, entry.manifest, fetch, values, secrets, **kwargs)
                 except plugin_fetch.FetchRefused:
                     continue
-                if cached['changed'] != before:
+                if (key, cached['changed']) != before:
                     changed.add(tile['entity'])
         self.fetcher.forget_unused()
         if changed:

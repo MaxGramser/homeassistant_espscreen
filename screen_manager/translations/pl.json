@@ -2082,7 +2082,10 @@
         "ha_none": "Nie wykonuje żadnych akcji w Home Assistant",
         "network": "Łączy się z {hosts}",
         "network_none": "Nie łączy się z niczym poza Home Assistant",
-        "read": "Odczytuje te encje z Home Assistant"
+        "read": "Odczytuje te encje z Home Assistant",
+        "sends": "Wysyła do {host}: {what}",
+        "sends_option": "{attributes} encji, którą wybierzesz dla {option}",
+        "sends_state": "stan"
       },
       "warning": "Wtyczka działa na Twoim ekranie z pełnym dostępem do niego, także do jego Wi-Fi i akcji, które ekran może wykonywać w Home Assistant, a jej kompilacja działa w tej aplikacji, gdzie ma dostęp do Twojej konfiguracji Home Assistant. Dodawaj tylko wtyczki od autorów, którym ufasz, albo najpierw przeczytaj kod.",
       "room": {

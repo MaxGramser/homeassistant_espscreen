@@ -3893,7 +3893,7 @@ class Manager:
         return (self.plugins.saver_kinds(inbox).get(key, (None, None))[1]) or {}
 
     def plugin_place(self, inbox, screen, question):
-        """(manifest entry, the manifest's tile, card or screensaver, of_entity) of a plugin's question: of_entity says
+        """(manifest entry, the manifest's tile, card, popup or screensaver, of_entity) of a plugin's question: of_entity says
         whether its card or step shows an entity whose Home Assistant pictures it may have (None for a tile: its manifest
         says). (None, None, False) for a plugin or place this screen does not run."""
         owner = question.owner
@@ -3908,7 +3908,10 @@ class Manager:
         if owner.kind == 'plugin_card':
             entry = self.plugins.known(parts[0], inbox) if self.plugins.store.get(inbox, parts[0]) else None
             of = bool(owner.of) and any(owner.of in (t['entity'], (t.get('options') or {}).get('plugin_entity')) for t in placed)
-            return entry, (entry.card(parts[1]) if entry else None), of
+            kind = entry.card(parts[1]) if entry else None
+            # A popup's places (plugin API 0.27) ask as a card's do; a popup is shown for no entity, so only the hosts of
+            # permissions.network.
+            return entry, kind, False if (kind or {}).get('popup') else of
         if not (0 <= owner.index < len(placed) and placed[owner.index]['entity'] == owner.key):
             return None, None, False
         entry = self.plugins.known(parts[0], inbox)

@@ -5,7 +5,7 @@
 // the one action for that screen (plugins/PluginOnScreen). Taking it off is said here, once, for either.
 import { computed, ref, watch } from "vue";
 import { editorLanguage, editorNumber, t, te } from "../i18n";
-import { changesBetween, flashShare, inEditorLanguage, text, type Plugin } from "../model/plugins";
+import { changesBetween, flashShare, inEditorLanguage, sendsLines, text, type Plugin } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import type { Screen } from "../types";
 import PluginReadme from "./PluginReadme.vue";
@@ -232,6 +232,8 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
       </span></li>
       <li v-if="plugin.permissions.read_entities?.length"><Icon name="eye-outline" /><span><b>{{ t("editor.plugins.may.read") }}</b><small><code v-for="entity in plugin.permissions.read_entities" :key="entity">{{ entity }}</code></small></span></li>
       <li><Icon name="wifi-strength-off-outline" /><span><b>{{ plugin.permissions.network.length ? t("editor.plugins.may.network", { hosts: plugin.permissions.network.join(", ") }) : t("editor.plugins.may.network_none") }}</b></span></li>
+      <!-- What its fetches send of this Home Assistant (plugin API 0.27): an attribute of an entity the person chooses. -->
+      <li v-for="line in sendsLines(plugin)" :key="`sends-${line.host}`" class="plugin-sends"><Icon name="tray-arrow-up" /><span><b>{{ line.what }}</b></span></li>
     </ul>
     <p v-if="!plugin.tessera" class="pd-warning" id="plugin-warning">{{ t("editor.plugins.warning") }}</p>
   </section>

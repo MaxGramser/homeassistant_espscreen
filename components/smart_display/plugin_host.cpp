@@ -19,6 +19,7 @@
 #include "pressure.h"
 #include "live_view.h"
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <string_view>
@@ -42,7 +43,8 @@ namespace rt = runtime_tiles;
 namespace plugin_host {
 extern tessera::Point tapped;
 // A plugin's popup (0.18), further down.
-bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()> make, tessera::PopupWidth width);
+bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()> make, tessera::PopupWidth width,
+                const std::string &key = {});
 void popup_close(const tessera::Plugin *plugin);
 bool popup_of(const tessera::Plugin *plugin);
 }  // namespace plugin_host
@@ -351,6 +353,10 @@ void close_card() { plugin_host::close_card(); }
 bool show_popup(const Plugin *plugin, std::function<Popup *()> make, PopupWidth width) {
   return plugin_host::popup_show(plugin, std::move(make), width);
 }
+bool show_popup(const Plugin *plugin, const char *popup, std::function<Popup *()> make, PopupWidth width) {
+  const std::string key = plugin && popup && *popup ? std::string("plugin:") + plugin->plugin_id() + "." + popup : std::string();
+  return plugin_host::popup_show(plugin, std::move(make), width, key);
+}
 void close_popup(const Plugin *plugin) { plugin_host::popup_close(plugin); }
 bool popup_shown(const Plugin *plugin) { return plugin_host::popup_of(plugin); }
 
@@ -588,6 +594,8 @@ struct Making {
 };
 // The places of the plugin card open over the page (0.13), nullptr when none is (defined with the cards below).
 static std::vector<Place> *card_places();
+// The places of the popup shown now (0.27), nullptr when none is (defined with the popup below).
+static std::vector<Place> *popup_places();
 // The places of the plugin's screensaver on the glass (0.14), nullptr when none is.
 static std::vector<Place> *saver_places();
 
@@ -910,6 +918,7 @@ static Place *find_place(lv_obj_t *obj) {
   });
   if (!found) if (auto *places = card_places()) for (auto &p : *places) if (p.place == obj) return &p;
   if (!found) if (auto *places = saver_places()) for (auto &p : *places) if (p.place == obj) return &p;
+  if (!found) if (auto *places = popup_places()) for (auto &p : *places) if (p.place == obj) return &p;
   return found;
 }
 
@@ -1122,8 +1131,13 @@ struct OpenPopup {
   const tessera::Plugin *plugin = nullptr;
   bool dark = false;
   lv_obj_t *scrim = nullptr, *card = nullptr, *room = nullptr, *close = nullptr;
+  std::string key;                // plugin:<plugin>.<popup id> of the manifest's `popups` (0.27), "" for a popup without
+  std::vector<Place> places;      // its places for pictures (0.27), in the order it made them
+  std::string art_key;            // the picture its places want, "" for none
 };
 static OpenPopup *popup_open = nullptr;
+std::vector<Place> *popup_places() { return popup_open ? &popup_open->places : nullptr; }
+static void popup_pictures_end(OpenPopup &open);
 // A popup that went during one of its own calls, as a card that closed in one (retired): deleted once it returned.
 static std::vector<OpenPopup *> popup_retired;
 static int popup_calling = 0;
@@ -1149,7 +1163,10 @@ static void popup_bury() {
 // One call into the popup `open`: true when it is still the popup shown afterwards.
 template <typename Run> static bool popup_call(OpenPopup *open, Run &&run) {
   ++popup_calling;
+  std::vector<Place> *had = placing;
+  placing = &open->places;   // a place the popup makes in this call is its own (ui::picture, 0.27)
   run(*open->popup);
+  placing = had;
   --popup_calling;
   const bool still = popup_open == open;
   popup_bury();
@@ -1173,6 +1190,7 @@ static void popup_end(bool dismissed, const char *why) {
   ESP_LOGI("plugins", "Popup of %s goes: %s", open->plugin->plugin_id(), why);
   if (dismissed && !popup_call(open, [](tessera::Popup &p) { p.on_dismiss(); })) return;
   popup_open = nullptr;
+  popup_pictures_end(*open);
   if (!popup_calling) return popup_destroy(open);
   screen_motion::hide(open->scrim, open->card);
   popup_retired.push_back(open);
@@ -1207,7 +1225,8 @@ static void popup_beside(lv_event_t *) {
   popup_end(true, "a tap beside it");
 }
 
-bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()> make, tessera::PopupWidth wide) {
+bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()> make, tessera::PopupWidth wide,
+                const std::string &popup_key) {
   if (!plugin || !make) return false;
   // A dark screen lights up first, as tessera::wake does (a lit one counts its standby time from now): a popup is
   // something to see.
@@ -1226,6 +1245,7 @@ bool popup_show(const tessera::Plugin *plugin, std::function<tessera::Popup *()>
   open->popup = std::move(popup);
   open->plugin = plugin;
   open->dark = theme::dark;
+  open->key = popup_key;
   const bool large = ::ui::large();
   open->scrim = lv_obj_create(lv_layer_top());
   // Hidden until the popup has made its parts, so LVGL draws no dim over the whole glass: screen_motion::show lays it.
@@ -1337,7 +1357,8 @@ static void popup_tick(uint32_t epoch) {
 // sight makes room first. When the card closes its picture goes with it, as a tile's goes with its tile; the app keeps
 // the source pictures by address, so a card that opens again, or shows the cover its tile shows, costs no fetch there.
 static const picture_loader::Owner CARD_OWNER{picture_loader::Kind::CARD, 1};
-static uint32_t card_number = 0;   // the number of the open card's last question; its answer carries it
+static uint32_t card_number = 0;   // the count of the questions of cards and popups (0.27), so each has its own number
+static uint32_t card_asked = 0;    // the number of the open card's last question; its answer carries it
 
 static bool card_ask(OpenCard &open, tile_picture::Ask &a) {
   std::vector<tile_picture::Part> parts;
@@ -1354,7 +1375,8 @@ static void card_request(const tile_picture::Ask &a, const std::string &entity) 
   if (rt::inbox.empty() || !esphome::api::global_api_server) return;
   auto q = tile_picture::question(a, picture_question::Owner::PLUGIN_CARD, a.entity, entity);
   q.cap = rt::picture_cap().bytes;
-  rt::picture_ask(q, "pcard", a.entity, ++card_number);
+  card_asked = ++card_number;
+  rt::picture_ask(q, "pcard", a.entity, card_asked);
   ESP_LOGI("camera", "asked for the pictures of the card %s", a.entity.c_str());
 }
 // The card's picture onto its places, when it is the one they want now. Until the next is here, the places keep the
@@ -1376,7 +1398,82 @@ static void card_missing(OpenCard &open, picture_loader::Outcome outcome) {
   });
 }
 
+// ---- Pictures in a plugin's popup (plugin API 0.27) ----
+// A popup shown with its id of the manifest's `popups` lays out places as a card does, and they are asked for the same
+// way: a card's question of the key plugin:<plugin>.<popup id>, which the app answers within the rights the manifest
+// gives that popup (its `pictures`, the hosts of permissions.network), as `pcard`. The popup lies on the alert's raised
+// card, so that is the colour behind its pictures' corners. It is an owner of the loader of its own, so a card under it
+// keeps its pictures; when the popup goes, its picture goes with it.
+static const picture_loader::Owner POPUP_OWNER{picture_loader::Kind::CARD, 3};
+static uint32_t popup_number = 0;   // the number of the popup's last question
+
+static void popup_place(OpenPopup &open) {
+  lv_image_dsc_t *src = rt::picture_of(open.art_key);
+  if (!src) return;
+  if (src != drawn(open.places)) slide_back(open.places);
+  lay(open.room, open.places, src);
+  ESP_LOGI("picture", "popup %s: its pictures are shown", open.key.c_str());
+  popup_call(&open, [&open](tessera::Popup &popup) {
+    tell_shown(open.places, [&popup](lv_obj_t *place, tessera::PictureState s) { popup.on_picture(place, s); });
+  });
+}
+static void popup_missing(OpenPopup &open, picture_loader::Outcome outcome) {
+  popup_call(&open, [&open, outcome](tessera::Popup &popup) {
+    tell_missing(open.places, missing_of(outcome), [&popup](lv_obj_t *place, tessera::PictureState s) { popup.on_picture(place, s); });
+  });
+}
+static void popup_picture_want() {
+  OpenPopup *open = popup_open;
+  if (!open || open->key.empty() || !open->room || !rt::tile_pictures_supported() || !rt::tiles_seen()) return;
+  std::vector<tile_picture::Part> parts;
+  std::vector<Place *> owners;
+  lv_obj_update_layout(open->scrim);
+  measure(open->room, open->places, parts, owners);
+  if (parts.empty()) {
+    if (!open->art_key.empty()) { rt::loader.release(POPUP_OWNER); open->art_key.clear(); }
+    return;
+  }
+  tile_picture::Ask a;
+  tile_picture::set_parts(a, std::move(parts), theme::hex(theme::RAISED), rt::picture_cap());
+  a.index = 0;
+  a.entity = open->key;
+  a.dark = theme::dark;
+  const std::string key = tile_picture::card_key(a, open->key, std::string());
+  if (key != open->art_key) {
+    open->art_key = key;
+    if (rt::picture_of(key)) popup_place(*open);
+  }
+  picture_loader::Want want;
+  want.key = key;
+  want.tag = tile_picture::card_tag(open->key);
+  want.slot = picture_loader::Slot::FULL;
+  want.rank = picture_loader::Rank::CARD;
+  want.drawn = true;
+  want.ask = [a] {
+    if (rt::inbox.empty() || !esphome::api::global_api_server) return;
+    auto q = tile_picture::question(a, picture_question::Owner::PLUGIN_CARD, a.entity, std::string());
+    q.cap = rt::picture_cap().bytes;
+    popup_number = ++card_number;   // one count for cards and popups, so an answer finds its asker
+    rt::picture_ask(q, "pcard", a.entity, popup_number);
+    ESP_LOGI("camera", "asked for the pictures of the popup %s", a.entity.c_str());
+  };
+  want.done = [](picture_loader::Outcome o) {
+    if (!popup_open) return;
+    if (rt::shows(o)) popup_place(*popup_open);
+    else popup_missing(*popup_open, o);
+  };
+  rt::loader.want(POPUP_OWNER, std::move(want));
+}
+static void popup_pictures_end(OpenPopup &open) {
+  for (auto &p : open.places) place_clear(p);
+  if (open.art_key.empty()) return;
+  rt::loader.release(POPUP_OWNER);
+  open.art_key.clear();
+  rt::pictures_collect();
+}
+
 void card_picture_want() {
+  popup_picture_want();
   OpenCard *open = shown;
   if (!open || !open->room || !rt::tile_pictures_supported()) return;
   // Not while the screen is dark: what it wants waits, and a download of it breaks off (not wanted this round).
@@ -1409,17 +1506,30 @@ void card_picture_want() {
 }
 
 void card_picture_answer(const std::string &card, const std::string &url, uint32_t number) {
-  if (!shown || card != shown->key || number != card_number) return;
+  // A popup's (0.27): the same answer, by its own key and question.
+  if (popup_open && card == popup_open->key && number == popup_number) {
+    if (url.empty()) ESP_LOGI("picture", "popup %s: no pictures now", card.c_str());
+    rt::loader.answer(tile_picture::card_tag(card), url, esphome::millis());
+    return;
+  }
+  if (!shown || card != shown->key || number != card_asked) return;
   if (url.empty()) ESP_LOGI("picture", "card %s: no pictures now", card.c_str());
   rt::loader.answer(tile_picture::card_tag(card), url, esphome::millis());
 }
-bool card_question(uint32_t number) { return shown && number == card_number; }
+bool card_question(uint32_t number) {
+  return (shown && number == card_asked) || (popup_open && !popup_open->key.empty() && number == popup_number);
+}
 static bool saver_draws(const void *picture);
 static void saver_letgo(const void *download);
 // The open card's places, and a screensaver's (plugin API 0.14): the store frees nothing either draws.
-bool card_draws(const void *picture) { return (shown && draws(shown->places, picture)) || saver_draws(picture); }
+bool card_draws(const void *picture) {
+  return (shown && draws(shown->places, picture)) || (popup_open && draws(popup_open->places, picture)) || saver_draws(picture);
+}
 void card_letgo(const void *download) {
   saver_letgo(download);
+  if (popup_open && download)
+    for (auto &p : popup_open->places)
+      if (p.image && rt::draws(p.image, static_cast<const lv_image_dsc_t *>(download))) place_clear(p);
   if (!shown || !download) return;
   for (auto &p : shown->places) if (p.image && rt::draws(p.image, static_cast<const lv_image_dsc_t *>(download))) place_clear(p);
 }
@@ -2042,6 +2152,18 @@ static void ripple_exec(void *obj, int32_t step) {   // step 0 to 1000: half aga
   auto *part = static_cast<lv_obj_t *>(obj);
   lv_obj_set_style_transform_scale(part, LV_SCALE_NONE + step * LV_SCALE_NONE / 2000, 0);
   lv_obj_set_style_opa(part, static_cast<lv_opa_t>(LV_OPA_COVER * (1000 - step) / 1000), 0);
+}
+
+void rotate(lv_obj_t *part, float degrees) {
+  if (!part || !std::isfinite(degrees)) return;
+  int32_t tenths = static_cast<int32_t>(lroundf(std::fmod(degrees, 360.0f) * 10));
+  if (tenths < 0) tenths += 3600;
+  if (tenths >= 3600) tenths -= 3600;
+  if (lv_obj_get_style_transform_rotation(part, LV_PART_MAIN) == tenths) return;
+  // Around its middle, whatever its size: LVGL takes the pivot as a part of the object's own width and height.
+  lv_obj_set_style_transform_pivot_x(part, lv_pct(50), 0);
+  lv_obj_set_style_transform_pivot_y(part, lv_pct(50), 0);
+  lv_obj_set_style_transform_rotation(part, tenths, 0);
 }
 
 void still(lv_obj_t *part) {

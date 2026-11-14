@@ -1288,6 +1288,489 @@ class MoreOptions(unittest.TestCase):
         self.assertNotIn('group', options['co2'])
 
 
+PLACE_ENGLISH = {'app': {'name': 'Weather', 'summary': 'The weather where you are.', 'tile': 'Weather', 'place': 'Place',
+                         'label': 'Label', 'card': 'Card'}, 'screen': {}}
+PLACE_OPTION = {'id': 'place', 'kind': 'entity', 'label': 'place', 'domains': ['zone', 'person', 'device_tracker'],
+                'attributes': ['latitude', 'longitude'], 'default': 'zone.home'}
+PLACE_URL = 'https://api.example.org/forecast?lat={place.latitude:2}&lon={place.longitude:2}'
+
+
+def place_plugin(api='0.27', url=PLACE_URL, options=None, fetch=None, tiles=None, **more):
+    """A manifest of the weather where a chosen entity is (plugin API 0.27): its fetch reads the entity's latitude and
+    longitude, and a second fetch the screen asks for, with the details of a row."""
+    data = {'id': 'weather', 'version': '1.0.0', 'api': api, 'icon': 'weather-partly-cloudy', 'maintainer': 'someone',
+            'license': 'MIT', 'topics': ['weather'], 'permissions': {'network': ['api.example.org']},
+            'attributes': ['cloud'], 'privacy': 'https://example.org/p',
+            'tiles': tiles if tiles is not None else [{'id': 'now', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 600,
+                                                       'data': 'forecast', 'options': [dict(o) for o in (options or [PLACE_OPTION])]}],
+            'fetch': [{'id': 'forecast', 'url': url, 'every': '10m',
+                       'map': {'fields': {'temp': {'path': 'current.temperature', 'as': 'number'}, 'sky': 'current.sky'}}},
+                      *(fetch or [])]}
+    data.update(more)
+    return data
+
+
+DETAIL = {'id': 'detail', 'url': 'https://api.example.org/rows/{row}?day={day}', 'every': '1m', 'asked': ['row', 'day'],
+          'map': {'fields': {'title': 'title', 'at': {'path': 'when', 'as': 'epoch'}}}}
+
+
+class FetchMore(unittest.TestCase):
+    """Plugin API 0.27, the manifest: a fetch that reads an attribute of the entity a person chose, an entity option
+    with a default, a fetch the screen asks for, twelve fields, and places for pictures in a popup."""
+
+    def refuses(self, data, word=None):
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(data, PLACE_ENGLISH)
+        if word:
+            self.assertIn(word, str(caught.exception))
+
+    def test_a_fetch_reads_the_chosen_entitys_attributes(self):
+        out = pm.check(place_plugin(), PLACE_ENGLISH)
+        fetch = out['fetch'][0]
+        self.assertEqual(fetch['reads'], [{'option': 'place', 'attribute': 'latitude', 'decimals': 2},
+                                          {'option': 'place', 'attribute': 'longitude', 'decimals': 2}])
+        self.assertEqual(fetch['placeholders'], [])
+        self.assertEqual(out['tiles'][0]['options'][0]['default'], 'zone.home')
+        self.assertEqual(out['sends'], [{'fetch': 'forecast', 'host': 'api.example.org',
+                                         'reads': ['place.latitude', 'place.longitude']}])
+        # Its state, without decimals, in a header too.
+        stated = pm.check(place_plugin(url='https://api.example.org/now', fetch=None), PLACE_ENGLISH)
+        self.assertEqual(stated['sends'], [])
+        data = place_plugin()
+        data['fetch'][0]['headers'] = {'X-Where': '{place.state}'}
+        self.assertIn({'option': 'place', 'attribute': 'state', 'decimals': None}, pm.check(data, PLACE_ENGLISH)['fetch'][0]['reads'])
+
+    def test_every_wrong_attribute_placeholder_is_named(self):
+        text = {'id': 'place', 'kind': 'text', 'label': 'place'}
+        for data, word in (
+                (place_plugin(options=[text]), 'option of kind entity'),
+                (place_plugin(url='https://api.example.org/x?a={place.altitude}'), '"altitude"'),
+                (place_plugin(url='https://{place.state}.example.org/x'), 'fixed host'),
+                (place_plugin(url='https://api.example.org:{place.state}/x'), 'fixed host'),
+                (place_plugin(url='https://{place.state}@api.example.org/x'), 'fixed host'),
+                (place_plugin(url='https://api.example.org/x?a={place.latitude:7}'), 'decimals from 0 to 6'),
+                (place_plugin(url='https://api.example.org/x?a={place.lat-x}'), 'no placeholder'),
+                (place_plugin(url='https://api.example.org/x?a={where.latitude}'), '"where"'),
+                (place_plugin(api='0.26', options=[{k: v for k, v in PLACE_OPTION.items() if k != 'default'}]),
+                 'needs plugin API 0.27 (api: "0.27")')):
+            with self.subTest(word=word, url=data['fetch'][0]['url']):
+                self.refuses(data, word)
+        # Every tile whose data the fetch is has the option: a second tile without it is refused.
+        second = {'id': 'other', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '1x1'}, 'memory': 600, 'data': 'forecast'}
+        tiles = place_plugin()['tiles'] + [second]
+        self.refuses(place_plugin(tiles=tiles), 'every tile')
+        # A fetch that fills a list of choices has no tile's entity to read.
+        choices = place_plugin(url='https://api.example.org/x', fetch=[{
+            'id': 'areas', 'url': 'https://api.example.org/areas?lat={place.latitude}', 'every': '1h',
+            'map': {'items': '$.areas[*]', 'value': 'id', 'label': 'name'}}])
+        choices['tiles'][0]['options'].append({'id': 'area', 'kind': 'choice', 'label': 'label', 'options_from': 'areas'})
+        self.refuses(choices, 'only a fetch that is a tile')
+
+    def test_an_entity_option_may_start_with_an_entity(self):
+        tile = pm.check(place_plugin(), PLACE_ENGLISH)['tiles'][0]
+        import plugins as plugin_service
+        self.assertEqual(plugin_service.Plugins.values_of(None, None, tile, {}), {'place': 'zone.home'})
+        self.assertEqual(plugin_service.Plugins.values_of(None, None, tile, {'place': 'person.someone'}), {'place': 'person.someone'})
+        self.assertEqual(plugin_service.Plugins.values_of(None, None, tile, {'place': ''}), {'place': ''}, 'taken off stays off')
+        for wrong, word in (('light.kitchen', 'domains'), ('zone', 'entity id'), (3, 'text')):
+            with self.subTest(wrong=wrong):
+                self.refuses(place_plugin(options=[{**PLACE_OPTION, 'default': wrong}]), word)
+        self.refuses(place_plugin(api='0.26', url='https://api.example.org/now'), 'needs plugin API 0.27')
+        pm.check(place_plugin(api='0.26', url='https://api.example.org/now', options=[{**PLACE_OPTION, 'default': ''}]), PLACE_ENGLISH)
+
+    def test_a_fetch_the_screen_asks_for(self):
+        out = pm.check(place_plugin(fetch=[DETAIL]), PLACE_ENGLISH)
+        detail = out['fetch'][1]
+        self.assertEqual((detail['asked'], detail['placeholders']), (['row', 'day'], ['day', 'row']))
+        secret = place_plugin(fetch=[{**DETAIL, 'headers': {'Authorization': 'Bearer {key}'}}],
+                              inputs=[{'id': 'key', 'kind': 'secret', 'label': 'label'}])
+        self.assertEqual(pm.check(secret, PLACE_ENGLISH)['fetch'][1]['placeholders'], ['day', 'key', 'row'])
+        saver = {'id': 'face', 'name': 'tile', 'step': 'own', 'memory': 600, 'data': 'detail'}
+        with_choice = place_plugin(fetch=[{**DETAIL, 'map': {'items': '$[*]', 'value': 'id', 'label': 'name'}}])
+        with_choice['tiles'][0]['options'].append({'id': 'pick', 'kind': 'choice', 'label': 'label', 'options_from': 'detail'})
+        for data, word in (
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['row', 'day', 'a', 'b', 'c']}]), 'at most 4'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': []}]), '1 to 4'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['row', 'row']}]), '1 to 4'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['Row']}]), '1 to 4'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://api.example.org/rows/{row}?day={day}&x={nope}'}]), '{nope}'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['row', 'day', 'unused']}]), '"unused"'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://api.example.org/rows/{row}?day={day}&l={place.latitude}'}]),
+                 'only a fetch that is a tile'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://{row}.example.org/{day}'}]), 'fixed host'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://elsewhere.example.org/{row}/{day}'}]), 'permissions.network'),
+                (place_plugin(fetch=[{**DETAIL, 'each': 'row'}]), 'each'),
+                (place_plugin(fetch=[DETAIL], inputs=[{'id': 'row', 'kind': 'text', 'label': 'label'}]), 'input'),
+                (place_plugin(url='https://api.example.org/now', fetch=[DETAIL],
+                              tiles=[{**place_plugin()['tiles'][0], 'data': 'detail'}]), 'no tile'),
+                ({**place_plugin(fetch=[DETAIL]), 'savers': [saver]}, 'no tile'),
+                (with_choice, 'no tile'),
+                (place_plugin(api='0.26', url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
+                              fetch=[DETAIL]), 'needs plugin API 0.27 (api: "0.27")')):
+            with self.subTest(word=word):
+                self.refuses(data, word)
+
+    def test_twelve_fields_and_the_api_that_brought_them(self):
+        fields = lambda n: {f'f{i}': f'a.f{i}' for i in range(n)}
+        plain = lambda api, n: place_plugin(api=api, url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
+                                            fetch=None) | {'fetch': [{'id': 'forecast', 'url': 'https://api.example.org/now', 'every': '10m',
+                                                                      'map': {'fields': fields(n)}}]}
+        self.assertEqual(len(pm.check(plain('0.27', 12), PLACE_ENGLISH)['fetch'][0]['map']['fields']), 12)
+        pm.check(plain('0.26', 8), PLACE_ENGLISH)
+        self.refuses(plain('0.27', 13), '1 to 12 fields')
+        self.refuses(plain('0.26', 9), 'more than 8 fields needs plugin API 0.27')
+        # An answer's fields and a tile's, the same.
+        answers = plain('0.26', 1) | {'permissions': {'network': ['api.example.org'], 'ha_commands': ['history/history_during_period']},
+                                       'answers': [{'command': 'history/history_during_period', 'fields': fields(9)}]}
+        self.refuses(answers, 'answers[0].fields')
+        pm.check(answers | {'api': '0.27'}, PLACE_ENGLISH)
+        self.assertEqual(pm.MAX_FIELDS, 12)
+
+    def test_places_for_pictures_in_a_popup(self):
+        base = place_plugin(url='https://api.example.org/now', cards=[{'id': 'sky', 'name': 'card', 'pictures': 1}])
+        out = pm.check({**base, 'popups': [{'id': 'photo', 'pictures': 2}]}, PLACE_ENGLISH)
+        self.assertEqual(out['popups'], [{'id': 'photo', 'pictures': 2}])
+        self.assertEqual(pm.check(base, PLACE_ENGLISH)['popups'], [])
+        for popups, word in (([{'id': 'sky', 'pictures': 1}], 'a card too'), ([{'id': 'photo', 'pictures': 9}], 'between 1 and 8'),
+                             ([{'id': 'photo', 'pictures': 0}], 'between 1 and 8'), ([{'id': 'photo'}], '"pictures" is required'),
+                             ([{'id': 'photo', 'pictures': 1}] * 2, 'used twice'),
+                             ([{'id': f'p{i}', 'pictures': 1} for i in range(9)], 'at most 8'),
+                             ([{'id': 'photo', 'pictures': 1, 'wide': True}], 'unknown field')):
+            with self.subTest(word=word):
+                self.refuses({**base, 'popups': popups}, word)
+        self.refuses({**base, 'api': '0.26', 'popups': [{'id': 'photo', 'pictures': 1}]}, 'needs plugin API 0.27')
+
+    def test_what_a_fetch_sends_is_part_of_the_yes(self):
+        plain = pm.check(place_plugin(url='https://api.example.org/now'), PLACE_ENGLISH)
+        reading = pm.check(place_plugin(), PLACE_ENGLISH)
+        # A plugin that sends nothing of Home Assistant keeps the fingerprint it had before 0.27.
+        import hashlib
+        before = {'permissions': {'read_entities': [], 'home_assistant_actions': [], 'network': ['api.example.org']},
+                  'attributes': ['cloud']}
+        self.assertEqual(pm.permission_hash(plain), hashlib.sha256(json.dumps(before, sort_keys=True).encode()).hexdigest()[:16])
+        self.assertNotEqual(pm.permission_hash(reading), pm.permission_hash(plain))
+        # Another attribute asks again; another name of the fetch, or other decimals, do not.
+        more = pm.check(place_plugin(url=PLACE_URL + '&s={place.state}'), PLACE_ENGLISH)
+        self.assertNotEqual(pm.permission_hash(more), pm.permission_hash(reading))
+        renamed = place_plugin(url=PLACE_URL.replace(':2}', ':3}'))
+        renamed['fetch'][0]['id'] = 'weather_now'
+        renamed['tiles'][0]['data'] = 'weather_now'
+        self.assertEqual(pm.permission_hash(pm.check(renamed, PLACE_ENGLISH)), pm.permission_hash(reading))
+
+
+class FetchFill(unittest.TestCase):
+    """Plugin API 0.27: an entity's attribute filled into a fetch, rounded, and a tile's line of asking."""
+
+    def setUp(self):
+        self.fetch = pm.check(place_plugin(), PLACE_ENGLISH)['fetch'][0]
+
+    def test_rounded_and_encoded(self):
+        url, _ = plugin_fetch.fill(self.fetch, {'place.latitude': 52.3676, 'place.longitude': '4,9041'}, {})
+        self.assertEqual(url, 'https://api.example.org/forecast?lat=52.37&lon=4.90')
+        data = place_plugin(url='https://api.example.org/x?q={place.state}&n={place.latitude:0}')
+        data['fetch'][0]['headers'] = {'X-Where': '{place.state}'}
+        fetch = pm.check(data, PLACE_ENGLISH)['fetch'][0]
+        url, headers = plugin_fetch.fill(fetch, {'place.state': 'not home/away', 'place.latitude': 52.6}, {})
+        self.assertEqual(url, 'https://api.example.org/x?q=not%20home%2Faway&n=53')
+        self.assertEqual(headers, {'X-Where': 'not home/away'})
+        # A value filled in is never a placeholder itself.
+        url, headers = plugin_fetch.fill(fetch, {'place.state': '{place.latitude:0}', 'place.latitude': 1}, {})
+        self.assertEqual(headers['X-Where'], '{place.latitude:0}')
+
+    def test_missing_or_no_number_waits_as_not_filled(self):
+        for values, word in (({}, 'place.latitude'), ({'place.latitude': 52.1}, 'place.longitude'),
+                             ({'place.latitude': 'north', 'place.longitude': 4.9}, 'place.latitude (no number)'),
+                             ({'place.latitude': float('nan'), 'place.longitude': 4.9}, 'no number'),
+                             ({'place.latitude': True, 'place.longitude': 4.9}, 'no number'),
+                             ({'place.latitude': [52], 'place.longitude': 4.9}, 'place.latitude')):
+            with self.subTest(values=values), self.assertRaises(plugin_fetch.FetchRefused) as caught:
+                plugin_fetch.fill(self.fetch, values, {})
+            self.assertIn('not filled in', str(caught.exception))
+            self.assertIn(word, str(caught.exception))
+
+    def test_a_line_asks_a_moving_place_at_most_every_interval(self):
+        clock, asked = [1000.0], []
+        fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
+
+        async def download(url, headers, network):
+            asked.append(url)
+            return {'current': {'temperature': len(asked)}}
+        fetcher.download = download
+        manifest = pm.check(place_plugin(), PLACE_ENGLISH)
+        at = lambda lat: {'place.latitude': lat, 'place.longitude': 4.9}
+
+        async def run():
+            first, entry = await fetcher.get('weather', manifest, self.fetch, at(52.1), {}, line='L')
+            self.assertEqual(len(asked), 1)
+            clock[0] += 60
+            # The place moved: the line keeps its answer until ten minutes after it last asked.
+            key, held = await fetcher.get('weather', manifest, self.fetch, at(52.2), {}, line='L')
+            self.assertEqual((key, len(asked)), (first, 1))
+            self.assertIs(fetcher.peek('weather', self.fetch, at(52.2), {}, line='L'), held)
+            clock[0] += 60
+            key, _ = await fetcher.get('weather', manifest, self.fetch, at(52.3), {}, line='L')
+            self.assertEqual((key, len(asked)), (first, 1))
+            # Another tile without a line asks the new place at once; the line takes that answer from the cache.
+            other, _ = await fetcher.get('weather', manifest, self.fetch, at(52.3), {})
+            self.assertEqual(len(asked), 2)
+            key, entry = await fetcher.get('weather', manifest, self.fetch, at(52.3), {}, line='L')
+            self.assertEqual((key, len(asked), entry['data']['current']['temperature']), (other, 2, 2))
+            clock[0] += 60
+            key, _ = await fetcher.get('weather', manifest, self.fetch, at(52.4), {}, line='L')
+            self.assertEqual(len(asked), 2, 'taking over a cached answer is not the line asking')
+            # Once ten minutes have passed since the line asked, its new question is asked.
+            clock[0] = 1000.0 + 600
+            key, entry = await fetcher.get('weather', manifest, self.fetch, at(52.4), {}, line='L')
+            self.assertEqual((len(asked), asked[-1]), (3, 'https://api.example.org/forecast?lat=52.40&lon=4.90'))
+            self.assertEqual(entry['data']['current']['temperature'], 3)
+            # A line nobody follows is forgotten with its questions.
+            clock[0] += 10_000
+            fetcher.forget_unused()
+            self.assertEqual((fetcher.lines, fetcher.cache), ({}, {}))
+        asyncio.run(run())
+
+
+def place_service(tmp, states, manifest_data=None, english=PLACE_ENGLISH):
+    """A Plugins with the place plugin in a test folder on the screen `hall`, Home Assistant's states `states`, and a
+    fetcher whose service answers with how many times it was asked."""
+    import plugins as plugin_service
+    import yaml
+    config = Path(tmp) / 'esphome'
+    config.mkdir()
+    folder = Path(tmp) / 'tessera-plugins' / 'weather'
+    (folder / 'translations').mkdir(parents=True)
+    (folder / 'tessera-plugin.yaml').write_text(yaml.safe_dump(manifest_data or place_plugin(fetch=[DETAIL])))
+    (folder / 'translations' / 'en.json').write_text(json.dumps(english))
+    sent, asked = [], []
+
+    class FakeManager:
+        ha = type('HA', (), {'states': states, 'time_zone': 'UTC', 'changed': asyncio.Event(), 'dirty': set()})()
+        page_senders, aliases, layouts = {}, {}, {}
+
+        def screen(self, inbox):
+            return {'id': inbox, 'node': inbox, 'name': 'Hall', 'board': 'guition', 'online': True}
+
+        def transport(self, inbox, screen=None):
+            return 'action'
+
+        async def send_auxiliary(self, inbox, message, action, request):
+            sent.append(message['m'])
+    service = plugin_service.Plugins(FakeManager(), Path(tmp) / 'data', config)
+    service.scan_folders()
+    service.store.put('hall', {'id': 'weather', 'source': 'folder', 'state': 'active'})
+
+    async def download(url, headers, network):
+        asked.append(url)
+        return {'current': {'temperature': len(asked), 'sky': 'clear'}, 'title': f'Row {len(asked)}', 'when': 1792389600}
+    service.fetcher.download = download
+    return service, sent, asked
+
+
+class FetchOfThePlace(unittest.IsolatedAsyncioTestCase):
+    """Plugin API 0.27, the app: a tile's fetch filled in from Home Assistant's state of the chosen entity, asked again
+    within one loop turn when it moves but never more often than `every`, and what the editor says it sends."""
+
+    async def asyncSetUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.states = {'zone.home': {'state': '1', 'attributes': {'latitude': 52.3676, 'longitude': 4.9041, 'friendly_name': 'Home'}},
+                       'person.someone': {'state': 'not_home', 'attributes': {'latitude': 51.92, 'longitude': 4.48}},
+                       'person.away': {'state': 'unavailable', 'attributes': {'latitude': 1, 'longitude': 2}}}
+        self.service, self.sent, self.asked = place_service(tmp.name, self.states)
+        self.tile = {'entity': 'plugin:weather.now', 'name': '', 'slot': 0, 'options': {'plugin': {}}}
+        self.service.manager.layouts = {'hall': {'tiles': [self.tile]}}
+
+    async def test_the_default_entity_fills_the_fetch_and_goes_with_the_tile(self):
+        message = await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(self.asked, ['https://api.example.org/forecast?lat=52.37&lon=4.90'])
+        self.assertEqual(message['x']['temp'], 1)
+        self.assertEqual(message['x']['entities']['place']['attributes'], {'latitude': 52.3676, 'longitude': 4.9041})
+        self.assertEqual(message['o']['plugin'], {'place': 'zone.home'})
+
+    async def test_no_entity_an_unavailable_one_or_a_missing_attribute_waits(self):
+        for chosen in ({'place': ''}, {'place': 'person.away'}, {'place': 'person.gone'}):
+            with self.subTest(chosen=chosen):
+                message = await self.service.tile_message(0, {**self.tile, 'options': {'plugin': chosen}}, inbox='hall')
+                self.assertEqual(message['x']['wait'], 'not_filled')
+        self.assertEqual(self.asked, [])
+        # A choice of another domain is no value of the option, as every value that does not fit: the default applies.
+        message = await self.service.tile_message(0, {**self.tile, 'options': {'plugin': {'place': 'light.kitchen'}}}, inbox='hall')
+        self.assertEqual((message['o']['plugin'], len(self.asked)), ({'place': 'zone.home'}, 1))
+        self.asked.clear()
+        self.service.fetcher.cache.clear()
+        self.states['zone.home']['attributes'].pop('longitude')
+        message = await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(message['x']['wait'], 'not_filled')
+        self.assertEqual(self.asked, [])
+
+    async def test_a_place_that_moves_is_asked_in_the_next_turn_but_never_more_often_than_every(self):
+        clock = [5000.0]
+        self.service.fetcher.clock = lambda: clock[0]
+        self.tile['options']['plugin'] = {'place': 'person.someone'}
+        await self.service.refresh_data()
+        self.assertEqual(len(self.asked), 1)
+        self.assertIn('plugin:weather.now', self.service.manager.ha.dirty)
+        self.service.manager.ha.dirty.clear()
+        # The person moves, every turn of the loop: the service is not asked again before ten minutes have passed.
+        for step in range(1, 40):
+            clock[0] += 15
+            self.states['person.someone']['attributes']['latitude'] = 51.92 + step / 100
+            await self.service.refresh_data()
+            await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(len(self.asked), 1)
+        self.assertEqual(self.service.manager.ha.dirty, set())
+        # The turn after ten minutes asks where the person is now, and sends the tile.
+        clock[0] = 5000.0 + 600
+        await self.service.refresh_data()
+        self.assertEqual(self.asked[-1], 'https://api.example.org/forecast?lat=52.31&lon=4.48')
+        self.assertEqual(len(self.asked), 2)
+        self.assertIn('plugin:weather.now', self.service.manager.ha.dirty)
+        message = await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(message['x']['temp'], 2)
+        # A person who chooses another entity is asked at once: a choice is no move.
+        self.tile['options']['plugin'] = {'place': 'zone.home'}
+        clock[0] += 15
+        await self.service.refresh_data()
+        self.assertEqual(len(self.asked), 3)
+
+    async def test_the_editor_hears_what_it_sends(self):
+        entry = self.service.listed()['weather']
+        sends = self.service.editor_plugin(entry)['sends']
+        self.assertEqual(sends, [{'host': 'api.example.org', 'options': [
+            {'option': 'place', 'label': {'en': 'Place'}, 'attributes': ['latitude', 'longitude']}]}])
+        # GET api/plugins lists editor_plugin of every plugin, and its fingerprint counts what it sends.
+        self.assertEqual(self.service.editor_plugin(entry)['permission_hash'], pm.permission_hash(entry.manifest))
+        self.assertEqual(self.service.sends_of(type('E', (), {'manifest': pm.check(place_plugin(url='https://api.example.org/now'),
+                                                                                       PLACE_ENGLISH), 'texts': {}})()), [])
+
+
+class FetchAsked(unittest.IsolatedAsyncioTestCase):
+    """Plugin API 0.27: the screen asks one of its plugin's fetches with values of its own (tessera::send with
+    `fetch:<id>`), shared and cached as every fetch, at most twenty a minute, every value checked."""
+
+    async def asyncSetUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.service, self.sent, self.asked = place_service(tmp.name, {})
+        self.re = 0
+
+    async def ask(self, ask, data=None, plugin='weather'):
+        self.re += 1
+        body = {'re': self.re, 'ask': ask, **({'data': data} if data is not None else {})}
+        await self.service.answer({'inbox': 'hall', 'plugin': plugin, 'body': json.dumps(body)})
+        return self.sent[-1] if self.sent else None
+
+    async def test_mapped_as_a_tile_would_get_it_and_cached(self):
+        with self.assertLogs('plugins', 'INFO') as logged:
+            reply = await self.ask('fetch:detail', {'row': 'KL 1234', 'day': 3})
+        self.assertEqual(reply, {'re': 1, 'ok': True, 'result': {'title': 'Row 1', 'at': 1792389600}})
+        self.assertEqual(self.asked, ['https://api.example.org/rows/KL%201234?day=3'])
+        self.assertIn('asks its fetch: detail', logged.output[0])
+        self.assertNotIn('KL', logged.output[0], 'the values stay out of the log')
+        # The same question again: from the cache, the service is not asked.
+        reply = await self.ask('fetch:detail', {'day': '3', 'row': 'KL 1234'})
+        self.assertEqual((reply['ok'], reply['result']['title'], len(self.asked)), (True, 'Row 1', 1))
+        # A tile's fetch is shared the same way: the screen's own row and a tile never ask twice for one URL.
+        self.assertEqual(len(self.service.fetcher.cache), 1)
+
+    async def test_every_value_is_checked(self):
+        for data in ({'row': 'a/b', 'day': '1'}, {'row': 'x' * 65, 'day': '1'}, {'row': '', 'day': '1'}, {'row': 'a'},
+                     {'row': 'a', 'day': '1', 'more': 'x'}, {'row': True, 'day': '1'}, {'row': ['a'], 'day': '1'},
+                     {'row': 'a?b=c', 'day': '1'}, {'row': 'ä', 'day': '1'}, 'row=a', None):
+            with self.subTest(data=data):
+                reply = await self.ask('fetch:detail', data)
+                self.assertEqual((reply['ok'], reply['error']), (False, 'refused'))
+        reply = await self.ask('fetch:detail', {'row': 'A_b.c:d+e -f', 'day': 2.0})
+        self.assertTrue(reply['ok'])
+        self.assertEqual(self.asked, ['https://api.example.org/rows/A_b.c%3Ad%2Be%20-f?day=2'])
+
+    async def test_only_a_fetch_with_asked_and_never_a_command_it_does_not_name(self):
+        for ask in ('fetch:forecast', 'fetch:nowhere', 'fetch:'):
+            with self.subTest(ask=ask):
+                reply = await self.ask(ask, {'row': 'a', 'day': '1'})
+                self.assertEqual((reply['ok'], reply['error']), (False, 'refused'))
+        reply = await self.ask('get_states')
+        self.assertEqual(reply, {'re': self.re, 'ok': False, 'error': 'not_allowed'})
+        reply = await self.ask('call_service:weather.get_forecasts', {'entity_id': 'weather.home'})
+        self.assertEqual(reply['error'], 'not_allowed')
+        self.assertEqual(self.asked, [])
+        # A plugin the screen does not run gets nothing at all.
+        count = len(self.sent)
+        await self.ask('fetch:detail', {'row': 'a', 'day': '1'}, plugin='other')
+        self.assertEqual(len(self.sent), count)
+
+    async def test_twenty_a_minute(self):
+        clock = [100.0]
+        import plugins as plugin_service
+        original = plugin_service.time.monotonic
+        plugin_service.time.monotonic = lambda: clock[0]
+        self.addCleanup(setattr, plugin_service.time, 'monotonic', original)
+        for i in range(plugin_service.FETCH_ASKS_PER_MINUTE):
+            reply = await self.ask('fetch:detail', {'row': f'r{i % 2}', 'day': '1'})
+            self.assertTrue(reply['ok'])
+        reply = await self.ask('fetch:detail', {'row': 'r0', 'day': '1'})
+        self.assertEqual((reply['ok'], reply['error']), (False, 'too_often'))
+        self.assertEqual(len(self.asked), 2, 'twenty asks of two rows asked the service twice')
+        clock[0] += 61
+        self.assertTrue((await self.ask('fetch:detail', {'row': 'r0', 'day': '1'}))['ok'])
+
+    async def test_a_failed_service_and_a_missing_secret(self):
+        async def broken(url, headers, network):
+            raise OSError('HTTP 503')
+        self.service.fetcher.download = broken
+        reply = await self.ask('fetch:detail', {'row': 'a', 'day': '1'})
+        self.assertEqual((reply['ok'], reply['error']), (False, 'failed'))
+        entry = self.service.listed()['weather']
+        secret = {**pm.check(place_plugin(fetch=[{**DETAIL, 'url': 'https://api.example.org/rows/{row}?day={day}&key={key}'}],
+                                          inputs=[{'id': 'key', 'kind': 'secret', 'label': 'label'}]), PLACE_ENGLISH)}
+        entry.manifest = secret
+        reply = await self.ask('fetch:detail', {'row': 'a', 'day': '1'})
+        self.assertEqual((reply['ok'], reply['error']), (False, 'not_filled'))
+
+
+class PopupPictures(unittest.TestCase):
+    """Plugin API 0.27: a popup's places for pictures ask as a card's do (owner plugin_card), from a host of
+    permissions.network only."""
+
+    def test_a_popup_is_found_as_a_card_and_shows_no_home_assistant_picture(self):
+        import types
+        import server
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        data = place_plugin(url='https://api.example.org/now', cards=[{'id': 'sky', 'name': 'card', 'pictures': 1}],
+                            popups=[{'id': 'photo', 'pictures': 2}])
+        service, _, _ = place_service(tmp.name, {}, data)
+        entry = service.listed()['weather']
+        self.assertEqual(entry.card('photo'), {'id': 'photo', 'pictures': 2, 'popup': True})
+        self.assertEqual(entry.card('sky')['pictures'], 1)
+        self.assertNotIn('popup', entry.card('sky'))
+        self.assertIsNone(entry.card('nowhere'))
+
+        class Fake:
+            plugin_place = server.Manager.plugin_place
+            plugin_picture_refused = server.Manager.plugin_picture_refused
+
+            def __init__(self):
+                self.plugins = service
+                self.layouts = {'hall': {'tiles': [{'entity': 'media_player.kitchen', 'options': {}}]}}
+        fake = Fake()
+        ask = lambda key, *texts: types.SimpleNamespace(owner=pq.Owner('plugin_card', key=key, of='media_player.kitchen'),
+                                                        sources=[pq.source(text) for text in texts])
+        network, home = 'https://api.example.org/p.jpg', '/api/image_proxy/media_player.kitchen'
+        popup = ask('plugin:weather.photo', network, home)
+        self.assertEqual(fake.plugin_place('hall', {}, popup)[2], False)
+        self.assertIsNone(fake.plugin_picture_refused('hall', {}, popup, popup.sources[0]))
+        self.assertIn('not an address', fake.plugin_picture_refused('hall', {}, popup, popup.sources[1]))
+        self.assertIn('no entity', fake.plugin_picture_refused('hall', {}, popup, pq.source('cover:media_player.kitchen')))
+        self.assertIn('allows 2', fake.plugin_picture_refused('hall', {}, ask('plugin:weather.photo', network, network, network),
+                                                              pq.source(network)))
+        self.assertIn('not an address', fake.plugin_picture_refused('hall', {}, popup, pq.source('https://elsewhere.example.org/p.jpg')))
+        # A card shown for an entity of the layout keeps Home Assistant's pictures, as before.
+        card = ask('plugin:weather.sky', home)
+        self.assertEqual(fake.plugin_place('hall', {}, card)[2], True)
+        self.assertIsNone(fake.plugin_picture_refused('hall', {}, card, card.sources[0]))
+
+
 def plugin_service_budget():
     import plugins as plugin_service
     return plugin_service.X_BUDGET

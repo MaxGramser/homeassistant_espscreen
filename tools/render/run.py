@@ -1256,6 +1256,37 @@ class Run:
         await self.call('dismiss_alert')
         self.warnings.append('popup: shown, ticked, tapped, closed beside, by its key, by its plugin, by itself and by an '
                              'alert; it woke a screen in standby')
+        # A popup with an id of the manifest's `popups` (plugin API 0.27): its place asks for its picture as a card's
+        # does (owner plugin_card, the popup's key), the harness answers as the app does, and the piece lands on the
+        # place; on an instrument's ground (dark in both looks) a mark turned along a course (ui::rotate).
+        start, since = len(self.lines), len(calls)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
+        made = await self.until(lambda l: probe(l, 'instrument ground='), 10, 'the picture popup opened', start)
+        ground, ink, turned = re.search(r'ground=(\w+) ink=(\w+) turned=(-?\d+)', made).groups()
+        if turned != '900' or ground == ink:
+            self.failures.append(f'ui::rotate or the instrument roles: {made}')
+        if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the popup did not ask for its picture'
+            read = questions[-1]
+            body, _ = painted(read.question, [porch(400, 400)])
+            await self.reply(read, self.pictures.url(f'{self.item.key}-popup.bmp', body))
+            shown = await self.until(lambda l: probe(l, 'picture popup shown '), 10, 'the popup\'s picture shown', start)
+            await asyncio.sleep(0.6)
+            shot = await self.render('plugin-popup-picture')
+            x1, y1, x2, y2 = (int(n) for n in shown.rsplit(' ', 1)[1].split(','))
+            colours = shot.convert('RGB').crop((x1 + 2, y1 + 2, x2 - 1, y2 - 1)).getcolors(1 << 16) or []
+            assert len(colours) > 12, f'the popup\'s place shows {len(colours)} colours, not its picture'
+            self.warnings.append('popup pictures: asked as a card\'s with the popup\'s key, shown on its place')
+        else:
+            self.warnings.append('popup pictures: none on this board (pictures=0)')
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the picture popup closed', start)
         # A slot that goes from the plugin tile to a plain card lets the plugin's object go at once (plugin_api.h), not
         # when the slot next draws a custom card; page 2 and back still show their plugin tiles, kept or made anew.
         start = len(self.lines)

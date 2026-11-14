@@ -2082,7 +2082,10 @@
         "ha_none": "N'exécute aucune action dans Home Assistant",
         "network": "Se connecte à {hosts}",
         "network_none": "Ne se connecte à rien en dehors de Home Assistant",
-        "read": "Lit ces entités dans Home Assistant"
+        "read": "Lit ces entités dans Home Assistant",
+        "sends": "Envoie à {host} : {what}",
+        "sends_option": "{attributes} de l'entité que vous choisissez pour {option}",
+        "sends_state": "état"
       },
       "warning": "Un plugin s'exécute sur votre écran avec un accès complet à celui-ci, y compris à son Wi-Fi et aux actions qu'il peut effectuer dans Home Assistant, et sa compilation s'exécute dans cette application, où il peut accéder à votre configuration Home Assistant. N'ajoutez que des plugins d'auteurs en qui vous avez confiance, ou lisez d'abord le code.",
       "room": {

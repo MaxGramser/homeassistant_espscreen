@@ -3,7 +3,7 @@
 # on the real firmware built for this computer. It is never on a screen, and never in the index.
 id: host_probe
 version: 1.0.0
-api: "0.26"
+api: "0.27"
 icon: puzzle-outline
 topics: [tech]
 maintainer: tessera
@@ -33,6 +33,9 @@ cards:
   - { id: detail, name: card, pictures: 1 }
   # A card that closes itself (or opens another) from its own calls, as the message from the harness says.
   - { id: closer, name: closer }
+# A popup that shows a picture (plugin API 0.27), from the host the probe's card uses.
+popups:
+  - { id: shot, pictures: 1 }
 tap_actions:
   - { id: open, label: open, domains: [sensor] }
 bar_items:

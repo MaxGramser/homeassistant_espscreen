@@ -1,6 +1,6 @@
 // Plugins (docs/PLUGINS.md): what the add-on says about a plugin (plugins.editor_plugin, from the index, a link or a
 // test folder), and whether it fits a screen. Pure functions only, so the Plugins page and its tests share one rule.
-import { editorLanguage, t } from "../i18n";
+import { andList, editorLanguage, t } from "../i18n";
 import type { PluginPick, PluginValue, Screen } from "../types";
 
 // A plugin's own words per language, "en" always present. In its repo they live in translations/<language>.json, in two
@@ -201,6 +201,9 @@ export type Plugin = {
   provides?: string[];                // the features it brings for other plugins
   flash_kb: number;
   permissions: { home_assistant: string[]; network: string[]; read_entities?: string[] };
+  // What its fetches send of this Home Assistant (plugin API 0.27, plugins.sends_of): per host, the entity options whose
+  // chosen entity's attributes go there (`state` its state), with the option's label.
+  sends?: PluginSends;
   readme: Texts;                      // markdown; the app shows it in the editor's language, else in English
   image?: string | null;              // its picture for the Plugins page (store.png), served by the add-on: api/plugins/<id>/image
   changelog?: Texts;                  // its CHANGELOG.md: a `## <version>` heading per release, newest first
@@ -282,6 +285,20 @@ export function saverTypesOf(index: Plugin[]) {
 // The key of one list of choices: plugin, fetch, and the other options it is asked with (the plugins store keeps the lists).
 export const choiceKey = (plugin: Plugin, option: PluginTileOption, values: Record<string, unknown>) =>
   `${plugin.id}.${option.options_from}.${JSON.stringify(Object.entries(values).filter(([k]) => k !== option.id).sort())}`;
+// ---- What a fetch sends of Home Assistant (plugin API 0.27) ----
+export type PluginSends = { host: string; options: { option: string; label: Texts; attributes: string[] }[] }[];
+/** The lines "What it may do" says for what a plugin's fetches send of Home Assistant: one per host, "Sends to
+ * api.example.org: latitude and longitude of the entity you choose for Place". An attribute is its name in words
+ * (`next_rising` is "next rising"), `state` the entity's state. */
+export function sendsLines(plugin: Pick<Plugin, "sends">): { host: string; what: string }[] {
+  const word = (attribute: string) => attribute === "state" ? t("editor.plugins.may.sends_state") : attribute.replace(/_/g, " ");
+  return (plugin.sends || []).map(({ host, options }) => ({
+    host,
+    what: t("editor.plugins.may.sends", { host, what: andList(options.map((option) =>
+      t("editor.plugins.may.sends_option", { attributes: andList(option.attributes.map(word)), option: text(option.label) }))) }),
+  }));
+}
+
 // What a plugin tile's options are when nothing is chosen yet.
 export const pluginDefaults = (tile: Pick<PluginTile, "options">): Record<string, PluginValue> =>
   Object.fromEntries((tile.options || []).filter((option) => option.default !== undefined).map((option) => [option.id, option.default!]));

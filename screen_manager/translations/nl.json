@@ -3986,7 +3986,10 @@
         "ha_none": "Voert geen acties uit in Home Assistant",
         "network": "Maakt verbinding met {hosts}",
         "network_none": "Maakt geen verbindingen buiten Home Assistant",
-        "read": "Leest deze entiteiten uit Home Assistant"
+        "read": "Leest deze entiteiten uit Home Assistant",
+        "sends": "Stuurt naar {host}: {what}",
+        "sends_option": "{attributes} van de entiteit die je kiest voor {option}",
+        "sends_state": "status"
       },
       "warning": "Een plugin draait op je scherm met volledige toegang ertoe, ook tot de Wi-Fi en de acties die het scherm in Home Assistant mag uitvoeren, en zijn build draait in deze app, waar hij bij je Home Assistant-configuratie kan. Voeg alleen plugins toe van makers die je vertrouwt, of lees eerst de code.",
       "room": {

@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 # The plugin API this core offers (components/smart_display/plugin_api.h, PLUGIN_API_MAJOR/MINOR; a test keeps them
 # equal). A plugin names the API it was written for; it builds on every core with the same major and at least its minor.
 # Something new raises the minor; a plugin builds on the same major from its own minor up. Only a break raises the major.
-PLUGIN_API = (0, 26)
+PLUGIN_API = (0, 27)
 # Major 0 is the time before that promise: a minor may still change a name or a signature, or take a form away (a plugin
 # that uses it then fails in the compiler, 0.24). A minor after which an older plugin would still build but work wrongly
 # is listed here (and in __init__.py's PLUGIN_API_BREAKS; a test keeps them equal), so such a plugin is told so in one
@@ -33,11 +33,18 @@ PLACEHOLDER = re.compile(r'\{([a-z][a-z0-9_]*)\}')
 # A placeholder of a fetch's URL and headers (0.12): `{name}`, or `{name|,}` for a list option, its values joined by the
 # separator after the bar (1 to 3 characters), as a service that takes several ids in one ask wants them.
 FETCH_PLACEHOLDER = re.compile(r'\{([a-z][a-z0-9_]*)(?:\|([^{}]{1,3}))?\}')
+# A placeholder of an entity's attribute (0.27): `{place.latitude}`, or `{place.latitude:2}` rounded to that many
+# decimals, from Home Assistant's state of the entity a person chose for the tile's entity option `place` (`state` is its
+# state). Never one of FETCH_PLACEHOLDER's: a name of that form has no dot. ATTRIBUTE_LIKE is what a maker meant as one,
+# so a mistake in it is named instead of staying in the URL as text.
+ATTRIBUTE_PLACEHOLDER = re.compile(r'\{([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)(?::(\d+))?\}')
+ATTRIBUTE_LIKE = re.compile(r'\{[a-z][a-z0-9_]*\.[^{}]*\}')
+MAX_DECIMALS = 6
 TEXT_KEY = re.compile(r'^[a-z][a-z0-9_]{0,47}$')
 
 TOP = {'id', 'version', 'api', 'icon', 'maintainer', 'license', 'stage', 'topics', 'requires', 'provides', 'boards',
        'flash_kb', 'permissions', 'attributes', 'privacy', 'inputs', 'parts', 'tiles', 'fetch', 'answers', 'cards',
-       'tap_actions', 'bar_items', 'settings', 'savers'}
+       'tap_actions', 'bar_items', 'settings', 'savers', 'popups'}
 ATTRIBUTES = ('cloud', 'commercial', 'ai-developed')
 # How far along a plugin is, in the maker's word: ready for every day, still finding its feet, or there to show what a
 # plugin can do and to learn from. The editor shows a badge for the last two; a manifest without it is beta.
@@ -94,7 +101,8 @@ MAX_SAVER_OPTIONS = 12
 MAX_FETCHES = 8
 MAX_INPUTS = 8
 MAX_ITEMS = 48              # a list from a fetch: 24 hourly prices fit twice
-MAX_FIELDS = 8
+MAX_FIELDS = 12             # a map's, a tile's and an answer's fields (0.27; eight before)
+FIELDS_BEFORE = 8
 MIN_EVERY = 30              # seconds between two asks for the same thing
 MAX_TILE_BYTES = 16384      # what one plugin tile may say it costs of the screen's tile memory
 MAX_TEXT = 64               # a text option's value, a pick's value and its label
@@ -124,6 +132,14 @@ OPTIONS_BEFORE = 12         # how many options a tile had at most before OPTIONS
 OPTION_NEWER = ('device_class', 'matches', 'group', 'optional', 'placeholder_from')
 MAX_FILTER = 8              # device classes, or words, an entity option names
 WORD = re.compile(r'^[a-z0-9_]{1,64}$')
+# What a fetch may send and do more (0.27): a placeholder of an attribute of the entity a person chose for an option
+# (`{place.latitude:2}`, ATTRIBUTE_PLACEHOLDER), a fetch the screen asks for with values of its own (`asked`, through
+# tessera::send as `fetch:<id>`), up to MAX_FIELDS fields of a mapped item instead of eight, an entity option with a
+# `default` (an entity id such as zone.home), and places for pictures in a popup (`popups`).
+FETCH_API = (0, 27)
+MAX_ASKED = 4               # names a fetch the screen asks for takes
+ASKED_VALUE = re.compile(r'^[A-Za-z0-9_.:+ -]{1,64}$')   # each value the screen gives such a fetch
+MAX_POPUPS = 8
 
 
 class ManifestError(ValueError):
@@ -291,7 +307,7 @@ def check_savers(value, out, keys, fetch_ids, choice_lists, searched, options_of
         if 'fields' in item:
             if not domains:
                 raise ManifestError(f'{where}.fields', 'only a step with "domains" belongs to an entity and gets fields')
-            saver['fields'] = check_fields(item['fields'], f'{where}.fields')
+            saver['fields'] = check_fields(item['fields'], f'{where}.fields', api=out['api'])
         else:
             saver['fields'] = {}
         if 'data' in item:
@@ -521,6 +537,11 @@ def check_options(options, where, api, most=OPTIONS_BEFORE):
     if newer is None and len(options) > most:
         newer = f'more than {most} options'
     needs_api(newer, where, api, OPTIONS_API)
+    # An entity option that starts with an entity chosen (0.27): `default: zone.home`, so a tile works before anyone
+    # opens its settings. Its domain is one of the option's (option_value, in check_option).
+    for i, option in enumerate(options):
+        if option['kind'] == 'entity' and option.get('default'):
+            needs_api('an entity option\'s "default"', f'{where}[{i}].default', api, FETCH_API)
 
 
 def needs_api(what, where, api, need):
@@ -605,12 +626,15 @@ def option_value(option, value, where='value'):
     return value
 
 
-def check_fields(fields, where, each=False):
+def check_fields(fields, where, each=False, api=None):
     """The fields of a map, of a tile of an entity or of an answer: {name: {path, as, tz}}. In a fetch that asks once per
-    value of a list (`each`, 0.12), a field may be `{each: value}` or `{each: label}`: the pick that brought the item."""
+    value of a list (`each`, 0.12), a field may be `{each: value}` or `{each: label}`: the pick that brought the item.
+    More than FIELDS_BEFORE of them is plugin API 0.27's (`api`, the manifest's; None for this core's own)."""
     fields = _object(fields, where, set(fields) if isinstance(fields, dict) else ())
     if not fields or len(fields) > MAX_FIELDS:
         raise ManifestError(where, f'1 to {MAX_FIELDS} fields')
+    if len(fields) > FIELDS_BEFORE:
+        needs_api(f'more than {FIELDS_BEFORE} fields', where, api or '.'.join(map(str, PLUGIN_API)), FETCH_API)
     out = {}
     for name, field in fields.items():
         at = f'{where}.{name}'
@@ -639,7 +663,7 @@ def check_fields(fields, where, each=False):
     return out
 
 
-def check_map(spec, where, has_items, each=False):
+def check_map(spec, where, has_items, each=False, api=None):
     spec = _object(spec, where, {'items', 'fields', 'where', 'skip', 'sort', 'limit', 'value', 'label'})
     out = {}
     if 'items' in spec:
@@ -663,7 +687,7 @@ def check_map(spec, where, has_items, each=False):
         return out
     if 'fields' not in spec:
         raise ManifestError(where, '"fields" names what the screen gets')
-    out['fields'] = check_fields(spec['fields'], f'{where}.fields', each)
+    out['fields'] = check_fields(spec['fields'], f'{where}.fields', each, api)
     for key in ('where', 'skip'):
         if key in spec:
             rules = _object(spec[key], f'{where}.{key}', set(out['fields']))
@@ -686,21 +710,32 @@ def check_map(spec, where, has_items, each=False):
     return out
 
 
-def check_fetch(fetch, where, network, inputs, options, choice_lists, searched=()):
+def check_fetch(fetch, where, network, inputs, options, choice_lists, searched=(), holders=None, used=None, api=None):
     """One fetch. `options`: {id: option} of the tiles that use it (through `data` or `options_from`); `searched`: the
-    fetches that fill a list found by searching, which may use {search}."""
-    fetch = _object(fetch, where, {'id', 'url', 'headers', 'every', 'map', 'each'}, ('id', 'url', 'every', 'map'))
+    fetches that fill a list found by searching, which may use {search}. `holders`: the options ({id: option}) of every
+    tile and screensaver whose `data` it is, each of which must have the entity option an attribute placeholder names
+    (0.27); `used`: whether any tile or screensaver uses it at all, which a fetch the screen asks for (`asked`) may not.
+    `api`: the manifest's."""
+    fetch = _object(fetch, where, {'id', 'url', 'headers', 'every', 'map', 'each', 'asked'}, ('id', 'url', 'every', 'map'))
     _id(fetch['id'], f'{where}.id')
+    api = api or '.'.join(map(str, PLUGIN_API))
+    holders = [] if holders is None else holders
     url = fetch['url']
     if not isinstance(url, str) or len(url) > 512:
         raise ManifestError(f'{where}.url', 'a URL of at most 512 characters')
     parts = urlsplit(url.replace('{', 'x').replace('}', 'x').replace('|', 'x'))
     host = urlsplit(url).hostname or ''
-    if parts.scheme not in ('https', 'http') or not host or '{' in host:
+    # Nothing filled in reaches the host, a user or a port: no placeholder of any form before the path (0.27 made sure an
+    # entity's attribute cannot choose where it goes).
+    if parts.scheme not in ('https', 'http') or not host or '{' in host or '{' in urlsplit(url).netloc:
         raise ManifestError(f'{where}.url', 'an https URL with a fixed host')
     if host not in network:
         raise ManifestError(f'{where}.url', f'the host {host} must be named in permissions.network')
-    if parts.username or parts.password or parts.port not in (None, 80, 443):
+    try:
+        port = parts.port
+    except ValueError:
+        port = -1
+    if parts.username or parts.password or port not in (None, 80, 443):
         raise ManifestError(f'{where}.url', 'no user, password or port of its own')
     headers = fetch.get('headers') or {}
     _object(headers, f'{where}.headers', set(headers) if isinstance(headers, dict) else ())
@@ -708,6 +743,24 @@ def check_fetch(fetch, where, network, inputs, options, choice_lists, searched=(
                                    for k, v in headers.items()):
         raise ManifestError(f'{where}.headers', 'at most 8 headers, each a text')
     secrets = {i['id'] for i in inputs if i['kind'] == 'secret'}
+    texts = [url, *headers.values()]
+    # A fetch the screen asks for (0.27): its names are placeholders the screen fills in with values of its own, the
+    # details of a row a finger tapped. There is no tile: no tile's data, no list of choices, no tile's options.
+    asked = None
+    if 'asked' in fetch:
+        needs_api('"asked"', f'{where}.asked', api, FETCH_API)
+        asked = _strings(fetch['asked'], f'{where}.asked', MAX_ASKED)
+        if not asked or len(set(asked)) != len(asked) or not all(ID.match(name) for name in asked):
+            raise ManifestError(f'{where}.asked', f'1 to {MAX_ASKED} different names (ids), each a placeholder of the URL or a header')
+        clash = sorted(set(asked) & ({i['id'] for i in inputs} | {SEARCH}))
+        if clash:
+            raise ManifestError(f'{where}.asked', f'"{clash[0]}" is an input of the plugin (or {SEARCH}): give the value another name')
+        if used or fetch['id'] in choice_lists:
+            raise ManifestError(f'{where}.asked', 'a fetch the screen asks for is no tile\'s or screensaver\'s "data" and '
+                                                  'fills no list of choices ("options_from")')
+        if 'each' in fetch:
+            raise ManifestError(f'{where}.each', 'a fetch the screen asks for asks once, with the values the screen gives')
+        options = {}
     option_ids = set(options)
     lists = {key for key, option in options.items() if option.get('multiple')}
     # Once per value of a list option (0.12): `{<each>}` in the URL is one of its values, and the answers come together.
@@ -717,13 +770,20 @@ def check_fetch(fetch, where, network, inputs, options, choice_lists, searched=(
             raise ManifestError(f'{where}.each', 'must name an option with "multiple" of every tile that uses this fetch')
         if fetch['id'] in choice_lists:
             raise ManifestError(f'{where}.each', 'a fetch that fills a list of choices asks once')
-    known = option_ids | {i['id'] for i in inputs} | ({SEARCH} if fetch['id'] in searched else set())
-    found = FETCH_PLACEHOLDER.findall(url) + [m for v in headers.values() for m in FETCH_PLACEHOLDER.findall(v)]
-    used = {name for name, _ in found}
-    unknown = sorted(used - known)
+    known = option_ids | {i['id'] for i in inputs} | ({SEARCH} if fetch['id'] in searched else set()) | set(asked or ())
+    found = [m for text in texts for m in FETCH_PLACEHOLDER.findall(text)]
+    used_names = {name for name, _ in found}
+    unknown = sorted(used_names - known)
     if unknown:
+        if asked is not None:
+            raise ManifestError(where, f'{{{unknown[0]}}} is no name of "asked" and no input: a fetch the screen asks for '
+                                       f'has no tile, so no tile\'s options')
         raise ManifestError(where, f'{{{unknown[0]}}} is no option of a tile that uses this fetch and no input')
-    mixed = sorted(name for name in used if options.get(name, {}).get('mixed'))
+    if asked is not None:
+        missing = [name for name in asked if name not in used_names]
+        if missing:
+            raise ManifestError(f'{where}.asked', f'"{missing[0]}" stands nowhere in the URL or a header as {{{missing[0]}}}')
+    mixed = sorted(name for name in used_names if options.get(name, {}).get('mixed'))
     if mixed:
         raise ManifestError(where, f'{{{mixed[0]}}} is a list in one tile that uses this fetch and one value in another')
     for name, joiner in found:
@@ -732,19 +792,51 @@ def check_fetch(fetch, where, network, inputs, options, choice_lists, searched=(
                                        f'asks once per value')
         if joiner and (name not in lists or name == each):
             raise ManifestError(where, f'{{{name}|{joiner}}} joins a list option that is not this fetch\'s "each"')
+    # An attribute of the entity a person chose (0.27): `{place.latitude}`, `{place.latitude:2}`. The option is an
+    # entity option of every tile whose data this is, and the attribute its `state` or one it names in `attributes`.
+    reads = []
+    for text in texts:
+        for whole in ATTRIBUTE_LIKE.findall(text):
+            match = ATTRIBUTE_PLACEHOLDER.fullmatch(whole)
+            if not match:
+                raise ManifestError(where, f'{whole} is no placeholder: an entity\'s attribute is {{option.attribute}} or '
+                                           f'{{option.attribute:decimals}}')
+            option_id, attribute, decimals = match.group(1), match.group(2), match.group(3)
+            needs_api(f'{whole}, an attribute of an entity,', where, api, FETCH_API)
+            if asked is not None or fetch['id'] in choice_lists or not holders:
+                raise ManifestError(where, f'{whole}: only a fetch that is a tile\'s "data" reads the entity a person '
+                                           f'chose for the tile')
+            for held in holders:
+                option = held.get(option_id)
+                if not option or option['kind'] != 'entity':
+                    raise ManifestError(where, f'{whole}: "{option_id}" must be an option of kind entity of every tile '
+                                               f'that uses this fetch')
+                if attribute != 'state' and attribute not in option.get('attributes', ()):
+                    raise ManifestError(where, f'{whole}: "{attribute}" is no attribute "{option_id}" names in its '
+                                               f'"attributes" (or state)')
+            if decimals is not None and not 0 <= int(decimals) <= MAX_DECIMALS:
+                raise ManifestError(where, f'{whole}: decimals from 0 to {MAX_DECIMALS}')
+            read = {'option': option_id, 'attribute': attribute, 'decimals': None if decimals is None else int(decimals)}
+            if read not in reads:
+                reads.append(read)
     path = urlsplit(url).path
     if any(name in secrets for name, _ in FETCH_PLACEHOLDER.findall(path)):
         raise ManifestError(f'{where}.url', 'a secret goes in a header or the query, never in the path')
-    if parts.scheme == 'http' and used & secrets:
+    if parts.scheme == 'http' and used_names & secrets:
         raise ManifestError(f'{where}.url', 'a fetch that carries a secret must use https')
     every = seconds(fetch['every'])
     if every is None or every < MIN_EVERY:
         raise ManifestError(f'{where}.every', f'30s or more, written as 30s, 5m, 1h or 1d')
     out = {'id': fetch['id'], 'url': url, 'headers': dict(headers), 'every': every,
-           'map': check_map(fetch['map'], f'{where}.map', fetch['id'] in choice_lists, each is not None),
-           'placeholders': sorted(used)}
+           'map': check_map(fetch['map'], f'{where}.map', fetch['id'] in choice_lists, each is not None, api),
+           'placeholders': sorted(used_names)}
     if each is not None:
         out['each'] = each
+    if asked is not None:
+        out['asked'] = asked
+    if reads:
+        # {option, attribute, decimals} of each attribute placeholder, and the host they go to (`sends`, below).
+        out['reads'] = reads
     # In `where`, `skip` and a step of `items`, a placeholder is one value: an option, an input, or the value of `each`.
     single = known - (lists - {each})
     if out['map'].get('fields') is not None:
@@ -756,6 +848,18 @@ def check_fetch(fetch, where, network, inputs, options, choice_lists, searched=(
     for step in out['map'].get('items', []):
         if step[0] == 'var' and step[1] not in single:
             raise ManifestError(f'{where}.map.items', f'{{{step[1]}}} is no option or input of one value')
+    return out
+
+
+def sends(manifest):
+    """What the plugin's fetches send of the person's Home Assistant to a web service (0.27): per fetch that reads an
+    attribute of an entity a person chose, its host and the `option.attribute` pairs its URL and headers use, in their
+    order. A person agrees to it (permission_hash), and the editor says it under "What it may do"."""
+    out = []
+    for fetch in manifest.get('fetch') or ():
+        if fetch.get('reads'):
+            pairs = list(dict.fromkeys(f'{read["option"]}.{read["attribute"]}' for read in fetch['reads']))
+            out.append({'fetch': fetch['id'], 'host': urlsplit(fetch['url']).hostname.lower(), 'reads': pairs})
     return out
 
 
@@ -960,7 +1064,7 @@ def check(manifest, english=None, strict=True):
         if 'fields' in item:
             if not domains:
                 raise ManifestError(f'{where}.fields', 'only a tile with "domains" belongs to an entity and gets fields')
-            tile['fields'] = check_fields(item['fields'], f'{where}.fields')
+            tile['fields'] = check_fields(item['fields'], f'{where}.fields', api=out['api'])
             for name in tile['fields']:
                 if name in attributes or name in ('state', 'name'):
                     raise ManifestError(f'{where}.fields.{name}', 'a field is named apart from the attributes, state and name')
@@ -1027,7 +1131,9 @@ def check(manifest, english=None, strict=True):
                     options[key] = {**option, 'multiple': None, 'mixed': True}
                 else:
                     options.setdefault(key, option)
-        fetches.append(check_fetch(item, f'fetch[{i}]', network, inputs, options, choice_lists, searched))
+        holders = [options_of[t.get('options_key', t['id'])] for t in users if t.get('data') == (item or {}).get('id')]
+        fetches.append(check_fetch(item, f'fetch[{i}]', network, inputs, options, choice_lists, searched, holders,
+                                   bool(users), out['api']))
     _unique(fetches, 'fetch')
     for fetch in fetches:
         if fetch['id'] in choice_lists and 'value' not in fetch['map']:
@@ -1036,6 +1142,7 @@ def check(manifest, english=None, strict=True):
         if fetch['id'] not in choice_lists and 'fields' not in fetch['map']:
             raise ManifestError(f'fetch.{fetch["id"]}.map', 'a fetch a tile shows maps "fields"')
     out['fetch'] = fetches
+    out['sends'] = sends(out)
     for i, tile in enumerate(tiles):
         if 'preview' not in tile:
             continue
@@ -1067,7 +1174,7 @@ def check(manifest, english=None, strict=True):
             raise ManifestError(f'{where}.command', 'must be a command of permissions.ha_commands')
         if item['command'] in [a['command'] for a in answers]:
             raise ManifestError(f'{where}.command', f'"{item["command"]}" is mapped twice')
-        answers.append({'command': item['command'], 'fields': check_fields(item['fields'], f'{where}.fields')})
+        answers.append({'command': item['command'], 'fields': check_fields(item['fields'], f'{where}.fields', api=out['api'])})
     out['answers'] = answers
 
     cards = []
@@ -1082,6 +1189,23 @@ def check(manifest, english=None, strict=True):
                       'pictures': _number(item.get('pictures', 0), f'{where}.pictures', 0, MAX_PICTURES, whole=True)})
     _unique(cards, 'cards')
     out['cards'] = cards
+    # Places for pictures in a popup (0.27): a popup's ui::picture asks as a card's does (owner plugin_card, answered as
+    # "pcard"), so a popup names its id and how many places it has, and shares the ids of the cards. Its pictures come
+    # from a host of permissions.network only: a popup is shown for no entity.
+    popups = []
+    raw_popups = _list(manifest.get('popups'), 'popups', MAX_POPUPS)
+    if raw_popups:
+        needs_api('"popups"', 'popups', out['api'], FETCH_API)
+    for i, item in enumerate(raw_popups):
+        where = f'popups[{i}]'
+        item = _object(item, where, {'id', 'pictures'}, ('id', 'pictures'))
+        popup = {'id': _id(item['id'], f'{where}.id'),
+                 'pictures': _number(item['pictures'], f'{where}.pictures', 1, MAX_PICTURES, whole=True)}
+        if popup['id'] in {card['id'] for card in cards}:
+            raise ManifestError(f'{where}.id', f'"{popup["id"]}" is a card too: a card and a popup share their ids')
+        popups.append(popup)
+    _unique(popups, 'popups')
+    out['popups'] = popups
     taps = []
     for i, item in enumerate(_list(manifest.get('tap_actions'), 'tap_actions', 8)):
         where = f'tap_actions[{i}]'
@@ -1177,4 +1301,12 @@ def permission_hash(manifest):
     first = ('read_entities', 'home_assistant_actions', 'network')
     permissions = {key: value for key, value in manifest['permissions'].items() if key in first or value}
     data = {'permissions': permissions, 'attributes': sorted(manifest['attributes'])}
+    # What its fetches send of the person's Home Assistant (0.27, sends): per host the option.attribute pairs, only when
+    # there are any, so a plugin that sends none keeps the fingerprint it had. A fetch's id is no right: a new name for
+    # the same sending asks nothing again; a new attribute, or another host, does.
+    sent = {}
+    for item in manifest.get('sends') or sends(manifest):
+        sent.setdefault(item['host'], set()).update(item['reads'])
+    if sent:
+        data['sends'] = {host: sorted(pairs) for host, pairs in sorted(sent.items())}
     return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16]

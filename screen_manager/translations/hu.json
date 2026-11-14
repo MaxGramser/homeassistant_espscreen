@@ -2082,7 +2082,10 @@
         "ha_none": "Nem futtat Home Assistant-műveleteket",
         "network": "Csatlakozik ide: {hosts}",
         "network_none": "A Home Assistanton kívül semmihez nem csatlakozik",
-        "read": "Ezeket az entitásokat olvassa a Home Assistantból"
+        "read": "Ezeket az entitásokat olvassa a Home Assistantból",
+        "sends": "Ide küld: {host}: {what}",
+        "sends_option": "a(z) {option} mezőhöz választott entitás {attributes} értéke",
+        "sends_state": "állapot"
       },
       "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat, a fordítása pedig ebben az alkalmazásban fut, ahol hozzáfér a Home Assistant konfigurációdhoz. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
       "room": {

@@ -3994,7 +3994,10 @@
         "ha_none": "Runs no Home Assistant actions",
         "network": "Connects to {hosts}",
         "network_none": "Makes no connections outside Home Assistant",
-        "read": "Reads these entities from Home Assistant"
+        "read": "Reads these entities from Home Assistant",
+        "sends": "Sends to {host}: {what}",
+        "sends_option": "{attributes} of the entity you choose for {option}",
+        "sends_state": "state"
       },
       "warning": "A plugin runs on your screen with full access to it, including its Wi-Fi and the actions it may perform in Home Assistant, and its build runs in this app, where it can reach your Home Assistant configuration. Only add plugins from makers you trust, or read the code first.",
       "room": {
