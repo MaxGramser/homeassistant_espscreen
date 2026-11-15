@@ -31,6 +31,7 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 import { useDraftsStore } from "../stores/drafts";
 import GrowTip from "./GrowTip.vue";
+import LayoutBot from "./LayoutBot.vue";
 
 const ui = useUiStore();
 const builds = useBuildsStore();
@@ -246,6 +247,8 @@ function onCanvasClick(e: MouseEvent) {
   <Teleport to="body"><div v-if="band" class="select-band" :style="{ left: `${band.left}px`, top: `${band.top}px`, width: `${band.width}px`, height: `${band.height}px` }"></div></Teleport>
   <Library v-if="doc.layout" />
   <GrowTip v-if="!ui.previewOpen" />
+  <!-- Layoutbot (docs/LAYOUTBOT.md): only where Home Assistant has an AI Task that makes data, and not on a phone. -->
+  <LayoutBot v-if="doc.layout && !ui.phone && !ui.previewOpen" />
   <NavigationPreview v-if="ui.previewOpen && doc.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />
   <PageWizard v-if="ui.pageWizardOpen" :key="scr.selected || ''" @close="ui.pageWizardOpen = false" />
   <PhonePages v-if="ui.phone && ui.pagesSheet && doc.document" @add="ui.pagesSheet = false; ui.pageWizardOpen = true" />

@@ -1628,6 +1628,16 @@
         "missed": "Nobody touched it before its timeout",
         "seen": "A missed ring was opened again from the top bar"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot needs an AI Task in Home Assistant that can generate data (Settings > Devices & services, an AI integration).",
+      "notes": {
+        "unknown": "Left out {entity}: it is not an entity of this Home Assistant.",
+        "pages_full": "This screen takes {pages} pages, so the rest was left out.",
+        "continued": "\"{page}\" was full, so the rest went on a page after it.",
+        "section_full": "The section \"{section}\" is full: {count} tiles were left out.",
+        "no_page": "There is no page {page}."
+      }
     }
   },
   "editor": {
@@ -3839,7 +3849,8 @@
         "layout_imported": "layout imported",
         "changed": "layout changed",
         "restored": "unsaved changes restored",
-        "taken_over": "changes from the other tab taken over"
+        "taken_over": "changes from the other tab taken over",
+        "layoutbot": "Layoutbot's change"
       }
     },
     "draft": {
@@ -4768,6 +4779,32 @@
       "contrast_hint": "The panel in the page's opposite colour, dark by day and light in Dark mode, so this section stands out.",
       "contrast_tiles": "Tiles in contrast too",
       "contrast_tiles_hint": "The whole section in the other look, its tiles' cards too: dark cards on a dark panel by day, light ones in Dark mode."
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Ask Layoutbot",
+      "close": "Close",
+      "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
+      "privacy": "I use {agent} from Home Assistant. Your question and the names and areas of your entities go to it.",
+      "placeholder": "Make a page with…",
+      "send": "Send",
+      "busy": "Layoutbot is arranging your pages",
+      "seconds": "{n} s",
+      "stop": "Stop",
+      "stopped": "Stopped. Nothing changed.",
+      "nothing": "Nothing changed.",
+      "stale": "The pages changed while I was thinking, so I left them as they are. Ask me again.",
+      "show": "Show",
+      "undo": "Undo",
+      "undone": "Undone",
+      "suggest": {
+        "lights_sections": "Put all the lights on one page, in a section per room",
+        "lights": "Put all the lights on one page",
+        "covers_sections": "A page with all the blinds and curtains, in two sections",
+        "covers": "A page with all the blinds and curtains",
+        "media": "A music page with all the speakers",
+        "climate": "A climate page with the heating and the temperatures"
+      }
     }
   }
 }

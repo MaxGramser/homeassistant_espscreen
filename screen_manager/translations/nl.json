@@ -1624,6 +1624,16 @@
         "missed": "Niemand raakte hem aan voor de timeout",
         "seen": "Een gemiste bel werd vanuit de bovenbalk weer geopend"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot heeft een AI Task in Home Assistant nodig die data kan maken (Instellingen > Apparaten & diensten, een AI-integratie).",
+      "notes": {
+        "unknown": "{entity} weggelaten: dat is geen entiteit van deze Home Assistant.",
+        "pages_full": "Dit scherm neemt {pages} pagina's, dus de rest is weggelaten.",
+        "continued": "\"{page}\" was vol, dus de rest staat op een pagina erna.",
+        "section_full": "De sectie \"{section}\" is vol: {count} tegels zijn weggelaten.",
+        "no_page": "Er is geen pagina {page}."
+      }
     }
   },
   "editor": {
@@ -3833,7 +3843,8 @@
         "layout_imported": "indeling geïmporteerd",
         "changed": "indeling gewijzigd",
         "restored": "niet-opgeslagen wijzigingen hersteld",
-        "taken_over": "wijzigingen uit het andere tabblad overgenomen"
+        "taken_over": "wijzigingen uit het andere tabblad overgenomen",
+        "layoutbot": "wijziging van Layoutbot"
       }
     },
     "draft": {
@@ -4717,6 +4728,32 @@
       "contrast_hint": "Het paneel in de tegenovergestelde kleur van de pagina, donker overdag en licht in de donkere modus, zodat deze sectie opvalt.",
       "contrast_tiles": "Tegels ook in contrast",
       "contrast_tiles_hint": "De hele sectie in de andere look, de kaarten van de tegels ook: donkere kaarten op een donker paneel overdag, lichte in de donkere modus."
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Vraag het Layoutbot",
+      "close": "Sluiten",
+      "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
+      "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag en de namen en ruimtes van je entiteiten gaan daarheen.",
+      "placeholder": "Maak een pagina met…",
+      "send": "Versturen",
+      "busy": "Layoutbot deelt je pagina's in",
+      "seconds": "{n} s",
+      "stop": "Stoppen",
+      "stopped": "Gestopt. Er is niets veranderd.",
+      "nothing": "Er is niets veranderd.",
+      "stale": "De pagina's veranderden terwijl ik nadacht, dus ik heb ze gelaten zoals ze waren. Vraag het nog eens.",
+      "show": "Toon",
+      "undo": "Ongedaan maken",
+      "undone": "Ongedaan gemaakt",
+      "suggest": {
+        "lights_sections": "Zet alle lampen op één pagina, met een sectie per kamer",
+        "lights": "Zet alle lampen op één pagina",
+        "covers_sections": "Een pagina met alle rolgordijnen en gordijnen, in twee secties",
+        "covers": "Een pagina met alle rolgordijnen en gordijnen",
+        "media": "Een muziekpagina met alle speakers",
+        "climate": "Een klimaatpagina met de verwarming en de temperaturen"
+      }
     }
   }
 }

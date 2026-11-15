@@ -33,6 +33,7 @@ import talk_bridge
 import calls
 import screen_source
 import claude_skill
+import layoutbot
 import screen_video
 import screen_hang
 import screen_labels
@@ -299,7 +300,9 @@ class HomeAssistant:
         # editor offers for a player at rest (GitHub #88).
         self.widen = None
 
-    async def request(self, kind, **data):
+    async def request(self, kind, wait=15, **data):
+        """One websocket command and its result. `wait`: seconds before it counts as lost; an LLM's answer (layoutbot)
+        takes longer than any other command."""
         if self.ws is None or self.ws.closed:
             raise ConnectionError("Home Assistant isn't connected.")
         self.next_id += 1
@@ -308,7 +311,7 @@ class HomeAssistant:
         self.pending[key] = future
         try:
             await self.ws.send_json({'id': key, 'type': kind, **data})
-            return await asyncio.wait_for(future, 15)
+            return await asyncio.wait_for(future, wait)
         finally:
             self.pending.pop(key, None)
 
@@ -4985,6 +4988,9 @@ def create_app(manager, development=False):
         # What's new for the Update badge: here only, not in every live update (app 0.2.78).
         payload['changelog'] = manager.updates.changelog
         payload['claude_skill'] = claude_skill.status(manager.skill_dir)
+        # Layoutbot (docs/LAYOUTBOT.md): the AI Tasks of this Home Assistant that can make data; the editor shows the bot
+        # only when there is one.
+        payload['layoutbot'] = layoutbot.agents(manager.ha.states)
         payload['video'] = manager.video_status()
         # The name in the editor's language for the library, and as the screens show it for the mockup (app 0.2.90).
         payload['builtin'] = [{'id': key, 'name': builtin_name(key, t), 'screen_name': builtin_name(key),
@@ -4992,6 +4998,36 @@ def create_app(manager, development=False):
         payload['header'] = {**header_bar.catalogue(), 'suggestions': {
             screen['id']: header_bar.suggestions(screen, entities, manager.ha.states, manager.registry_index()) for screen in payload['screens']}}
         return web.json_response(payload)
+    async def layoutbot_ask(request):
+        """Layoutbot (docs/LAYOUTBOT.md): a sentence and the editor's draft in, a proposed draft out, made by the AI
+        Task the person connected to Home Assistant. It saves nothing and calls no action but ai_task.generate_data."""
+        data = await request.json()
+        inbox = manager.aliases.get(request.match_info['inbox'], request.match_info['inbox'])
+        screen = manager.screen(inbox)
+        grid = manager.verified_grid(inbox)
+        if screen is None or grid is None:
+            raise LayoutError(t('addon.errors.not_paired'))
+        if not isinstance(data, dict) or not isinstance(data.get('prompt'), str) or not data['prompt'].strip():
+            raise ValueError(t('addon.errors.pages.fields'))
+        agents = layoutbot.agents(manager.ha.states)
+        if not agents:
+            raise ValueError(t('addon.layoutbot.none'))
+        draft = validate_document(data.get('layout'), grid)
+        agent = data.get('agent') if data.get('agent') in {a['id'] for a in agents} else await layoutbot.preferred(manager.ha.request, agents)
+        _, entities = manager.inventory()
+        sections = has_module(screen, 'sections')
+        plan, seconds = await layoutbot.ask(manager.ha.request, data['prompt'][:layoutbot.PROMPT_CHARS], draft, grid,
+                                            entities, sections, agent)
+        offers = {}
+        for entity in layoutbot.plan_entities(plan)[:128]:
+            found = await manager.ha.capabilities(entity)
+            offers[entity] = (found or {}).get('controls') or []
+        layout, notes = layoutbot.apply_plan(draft, plan, grid, entities, sections, offers)
+        LOG.info('Layoutbot answered in %.1f s with %s (%d notes)', seconds, agent, len(notes))
+        return web.json_response({'reply': plan.get('reply') if isinstance(plan.get('reply'), str) else '',
+                                  'layout': layout, 'changed': layout != draft, 'agent': agent, 'seconds': round(seconds, 1),
+                                  'notes': [t(f"addon.layoutbot.notes.{note['key']}", **{k: v for k, v in note.items() if k != 'key'})
+                                            for note in notes]})
     async def header_preview(request):
         """The top bar as a screen would draw it right now, so the editor shows unsaved changes live."""
         data = await request.json()
@@ -6196,6 +6232,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/display-precision', display_precision)
     app.router.add_put('/api/display-precision', display_precision)
     app.router.add_post('/api/header-preview', header_preview)
+    app.router.add_post('/api/screens/{inbox}/layoutbot', layoutbot_ask)
     app.router.add_post('/api/claude-skill', install_claude_skill)
     app.router.add_get('/api/claude-skill.zip', download_claude_skill)
     app.router.add_post('/api/video', install_video)
