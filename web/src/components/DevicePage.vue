@@ -12,7 +12,7 @@ import TileCard from "./TileCard.vue";
 import SectionBand from "./SectionBand.vue";
 import SectionMaker from "./SectionMaker.vue";
 import SectionMenuItems from "./SectionMenuItems.vue";
-import { canMakeSection } from "../editor/sections";
+import { addSection, canMakeSection, sectionsOffered } from "../editor/sections";
 import { glassMargins, insideMargins, OTHER_LOOK, sectionMetrics } from "../model/sections";
 import { NO_MARGINS, PLAIN_GRID, SECTION_GRID, type SectionGrid } from "../composables/useSectionGrid";
 import TopbarSvg from "./TopbarSvg.vue";
@@ -136,6 +136,11 @@ function addHere(slot: number) {
   if (ui.phone) { insp.closeInspector(); ui.addSheet = true; }
 }
 function pasteHere(slot: number) { markCell(slot); void pasteCopied(); }
+// An empty cell inside a section takes a tile, never a section of its own (a section never holds another).
+const inSection = (slot: number) => {
+  const column = slot % grid.columns, row = Math.floor(slot % grid.slots / grid.columns);
+  return blocks.value.some((b) => column >= b.column && column < b.column + b.columns && row >= b.row && row < b.row + b.rows);
+};
 // A whole page moves by its label (app 0.2.121) and leaves by the button beside its cell count (app 0.2.123). One
 // page has nowhere to go and cannot leave either, and the page a tile can start behind the last one isn't a page yet.
 const movable = computed(() => !props.preview && !props.map && props.pages > 1 && props.page < props.pages);
@@ -223,6 +228,7 @@ async function onKey(e: KeyboardEvent) {
     <SectionMenuItems v-else-if="menuFor.kind === 'section'" :id="menuFor.id" />
     <template v-else-if="menuFor.kind === 'cell'">
       <UiMenuItem class="cell-add" icon="plus" @select="addHere(menuFor.slot)">{{ t("editor.menu.add_here") }}</UiMenuItem>
+      <UiMenuItem v-if="sectionsOffered() && !inSection(menuFor.slot)" class="cell-add-section" icon="view-grid-outline" @select="addSection(page, menuFor.slot)">{{ t("editor.sections.add_here") }}</UiMenuItem>
       <UiMenuItem class="cell-paste" icon="content-paste" :hint="shortcut('V')" :disabled="!copiedTiles()" @select="pasteHere(menuFor.slot)">{{ t("editor.menu.paste_here") }}</UiMenuItem>
     </template>
     <PageMenuItems v-else-if="owned" :id="owned.id" />

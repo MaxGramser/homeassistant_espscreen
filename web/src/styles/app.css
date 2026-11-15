@@ -547,6 +547,8 @@ a:hover { text-decoration: underline; }
 .ent:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface-2); }
 .ent.active { border-color: var(--accent); box-shadow: var(--focus); }
 .ent:disabled { opacity: 0.5; cursor: default; }
+.ent-section { cursor: pointer; }
+.ent-section .av { background: var(--accent-soft); color: var(--accent); }
 .ent .av { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 15px; flex: none; }
 .ent .tx { display: grid; min-width: 0; flex: 1; }
 .ent .tx b { font-weight: 500; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

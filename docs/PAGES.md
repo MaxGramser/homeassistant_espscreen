@@ -179,6 +179,11 @@ editor's `insideMargins` in `web/src/model/sections.ts`, `web/tests/sections.spe
   the section while you type; Enter makes it, Escape leaves everything as it was. Tiles that fill a rectangle become
   that block where they stand; any other choice gets a block at its first tile, as wide as the choice, its tiles in
   reading order, and loose tiles in the way move aside as a drag moves them.
+- Or start from nothing: **Add a section** stands at the top of the library (so a click on an empty cell offers a tile
+  or a section in one place), in the right-click menu of an empty cell (**Add a section here**) and in the page's own
+  menu. The new section is empty, two by two where that fits around the cell (else two by one, one by two or one cell;
+  without a cell, on the page's first free cells), nothing moves, and its drawer opens with the name selected to type
+  over. Its empty cells take tiles as any cell does (`emptySection` in `web/src/model/sections.ts`).
 - A tile dragged onto a free cell of a section lands there; dragged onto one of its tiles, or onto a full section, it
   takes that place in the section's reading order, the tiles after it move on, and the section grows by rows, or wider
   where the page has no rows left, the loose tiles in the way making room. From the library, from the page and from

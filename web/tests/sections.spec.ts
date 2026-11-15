@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Page, PageGrid, PageLayout, PageTile } from "../src/types";
 import { adaptGrid, arrangeTiles, emptyLayout, projectLayout, removeSection, validatePages } from "../src/model/pages";
 import { createLayout, sectionTile } from "../src/model/layout";
-import { insertIntoSection, insideMargins, looseBeside, looseRowAbove, makeSection, movedSection, packTiles, resizeSection, roundDiv,
+import { emptySection, insertIntoSection, insideMargins, looseBeside, looseRowAbove, makeSection, movedSection, packTiles, resizeSection, roundDiv,
   type SectionEdit } from "../src/model/sections";
 
 const grid: PageGrid = { columns: 4, rows: 3 };
@@ -33,6 +33,30 @@ describe("the room a section takes from its own tiles", () => {
     expect(insideMargins(m, 3, 0, 2)).toEqual({ top: 49, bottom: 11 });
     expect(insideMargins(m, 1, 0, 0)).toEqual({ top: 49, bottom: 11 });
     expect([roundDiv(5, 2), roundDiv(-5, 2), roundDiv(4, 3), roundDiv(-4, 3)]).toEqual([3, -3, 1, -1]);
+  });
+});
+
+describe("adding an empty section", () => {
+  it("takes two by two around the chosen cell, shifted to stay on free cells, and moves nothing", () => {
+    const layout = layoutOf([tile("light.a", 0, 0), tile("lock.c", 2, 3)]);
+    const view = projectLayout(layout, grid);
+    const result = applied(layout, emptySection(view, grid, 0, { row: 1, column: 3 }, "New"));
+    const section = result.pages[0].sections![0];
+    expect(section).toMatchObject({ title: "New", tiles: [], placement: { row: 0, column: 2, columns: 2, rows: 2 } });
+    expect(cells(result)).toEqual(cells(layout));
+  });
+  it("gets smaller where the cell has no room around it, and refuses a page with no free cell", () => {
+    const tiles = [tile("light.a", 0, 0), tile("light.b", 0, 2), tile("light.c", 1, 0), tile("light.d", 1, 1), tile("light.e", 1, 2)];
+    const layout = layoutOf(tiles);
+    const one = emptySection(projectLayout(layout, grid), grid, 0, { row: 0, column: 1 }, "Lights");
+    expect("refused" in one ? null : one.blocks.at(-1)).toMatchObject({ row: 0, column: 1, columns: 1, rows: 1 });
+    const full = layoutOf(Array.from({ length: 12 }, (_, i) => tile(`light.f${i}`, Math.floor(i / 4), i % 4)));
+    expect(emptySection(projectLayout(full, grid), grid, 0, null, "None")).toEqual({ refused: "editor.sections.no_room" });
+  });
+  it("without a cell goes to the first free place in reading order", () => {
+    const layout = layoutOf([tile("light.a", 0, 0), tile("light.b", 0, 1)]);
+    const edit = emptySection(projectLayout(layout, grid), grid, 0, null, "Next");
+    expect("refused" in edit ? null : edit.blocks.at(-1)).toMatchObject({ row: 0, column: 2, columns: 2, rows: 2 });
   });
 });
 
