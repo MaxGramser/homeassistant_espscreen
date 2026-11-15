@@ -74,7 +74,7 @@ STRUCTURE = {
         "description": "The pages to add or change. Empty when nothing should change.",
         "required": True,
         "selector": {"object": {"multiple": True, "fields": {
-            "page": TEXT, "title": TEXT, "icon": TEXT,
+            "screen": TEXT, "page": TEXT, "title": TEXT, "icon": TEXT,
             "sections": {"selector": {"object": {"multiple": True, "fields": {
                 "title": {"required": True, **TEXT}, "icon": TEXT, "entities": {"required": True, **ENTITIES}}}}},
             "tiles": ENTITIES,
@@ -90,6 +90,8 @@ The screen: {columns} columns x {rows} rows of cells per page, at most {pages} p
 A page holds tiles; every tile shows one entity in one cell. {sections_rule}
 
 Each item of `pages` is one page:
+- screen: empty for this screen. Only when the person asks for other screens or for all of them: the name of another \
+screen from the list of other screens, or "all" for every screen, this one included.
 - page: empty for a NEW page (never a number for a new page), or the number of an existing page to add to.
 - title: the page's title (a new page always has one; for an existing page only when the person asks to rename it).
 - icon: one name from the icon list.
@@ -106,8 +108,9 @@ pages as they are unless the person asks to change them.
 
 Icons: {icons}
 
-Existing pages:
+Existing pages of this screen ("{name}"):
 {pages_text}
+{others_text}
 
 Entities (id | name | area):
 {entities_text}
@@ -150,20 +153,51 @@ def page_lines(document):
     return "\n".join(out)
 
 
-def instructions(prompt, document, grid, entities, sections=True, domains=None):
+def other_lines(others):
+    """The other screens of the home, each with its grid and pages, for a question about several or all of them."""
+    if not others:
+        return ""
+    out = ["Other screens of this home:"]
+    for other in others:
+        grid = other["grid"]
+        out.append(f'screen "{other["name"]}" ({grid.columns} x {grid.rows} cells, '
+                   f'{"sections" if other["sections"] else "no sections"}):')
+        out += ["  " + line for line in page_lines(other["document"]).splitlines()]
+    return "\n".join(out) + "\n"
+
+
+def instructions(prompt, document, grid, entities, sections=True, domains=None, name="", others=()):
     return RULES.format(columns=grid.columns, rows=grid.rows, pages=grid.page_cap, tiles=grid.tile_cap,
                         sections_rule=SECTIONS_RULE if sections else NO_SECTIONS_RULE,
-                        icons=", ".join(tile_icons.ICONS), pages_text=page_lines(document),
-                        entities_text=entity_lines(entities, domains), prompt=prompt.strip())
+                        icons=", ".join(tile_icons.ICONS), pages_text=page_lines(document), name=name,
+                        others_text=other_lines(others), entities_text=entity_lines(entities, domains),
+                        prompt=prompt.strip())
 
 
-async def ask(request, prompt, document, grid, entities, sections=True, agent=None, domains=None):
+def for_screens(plan, others):
+    """The plan split by screen: (this screen's plan, {other screen's id: its plan}). An item without `screen` (or with
+    this screen's name) is this screen's; "all" goes to every screen; a name no screen has stays with this one."""
+    names = {other["name"].strip().lower(): other["id"] for other in others}
+    here, there = {"reply": plan.get("reply"), "pages": [], "remove": plan.get("remove") or []}, {}
+    for item in plan.get("pages") or []:
+        if not isinstance(item, dict):
+            continue
+        target = (item.get("screen") or "").strip().lower() if isinstance(item.get("screen"), str) else ""
+        ids = list(names.values()) if target in ("all", "*", "every screen") else [names[target]] if target in names else []
+        if not ids or target in ("all", "*", "every screen"):
+            here["pages"].append(item)
+        for screen in ids:
+            there.setdefault(screen, {"pages": []})["pages"].append(item)
+    return here, there
+
+
+async def ask(request, prompt, document, grid, entities, sections=True, agent=None, domains=None, name="", others=()):
     """Ask Home Assistant's AI Task for a plan. `request` is the add-on's HA websocket request (HomeAssistant.request).
 
     Returns (plan, seconds). `agent`: an ai_task entity; None takes the one the person set as default in Home
     Assistant (Settings > System > General > AI suggestions), and Home Assistant refuses when there is none."""
     data = {"task_name": "ESP Screens layoutbot", "structure": STRUCTURE,
-            "instructions": instructions(prompt, document, grid, entities, sections, domains)}
+            "instructions": instructions(prompt, document, grid, entities, sections, domains, name, others)}
     if agent:
         data["entity_id"] = agent
     started = time.monotonic()
@@ -514,6 +548,16 @@ class _Plan:
             page["sections"] = [s for s in page["sections"] if s["tiles"]]
             if not page["sections"]:
                 del page["sections"]
+
+
+def summary(before, after):
+    """What a change does to a screen, in numbers the editor puts in words: pages added, tiles added and taken off, and
+    the numbers of the existing pages it changed."""
+    ids = lambda document: {t["id"] for page in document["pages"] for t in all_tiles(page)}
+    old_pages = {page["id"]: page for page in before["pages"]}
+    return {"pages": sum(1 for page in after["pages"] if page["id"] not in old_pages),
+            "added": len(ids(after) - ids(before)), "removed": len(ids(before) - ids(after)),
+            "changed": [n for n, page in enumerate(after["pages"], 1) if page["id"] in old_pages and page != old_pages[page["id"]]]}
 
 
 def plan_entities(plan):

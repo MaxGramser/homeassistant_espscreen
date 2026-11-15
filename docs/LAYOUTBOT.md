@@ -13,11 +13,15 @@ Home Assistant, and it only ever changes the draft in the editor: it never contr
 
 ## When it shows
 
-The bot floats over the lower right corner of the pages only when Home Assistant has an AI Task entity that can
-generate data (`ai_task.*` with `AITaskEntityFeature.GENERATE_DATA`, and not unavailable). The inventory lists them
-under `layoutbot`; without one the editor shows nothing of Layoutbot. Every AI integration of Home Assistant that has
-AI Tasks gives one: OpenAI, Anthropic, Google Gemini, Ollama and others. When there are several, the chat header picks
-one; it starts with the one chosen in Home Assistant for "generate data" (`ai_task/preferences/get`), else the first.
+The bot floats in the lower right corner of the editor wherever a screen is open. It works when Home Assistant has an
+AI Task entity that can generate data (`ai_task.*` with `AITaskEntityFeature.GENERATE_DATA`, and not unavailable); the
+inventory lists them under `layoutbot`. Every AI integration of Home Assistant that has AI Tasks gives one: OpenAI,
+Anthropic, Google Gemini, Ollama and others. When there are several, the chat header picks one; it starts with the one
+chosen in Home Assistant for "generate data" (`ai_task/preferences/get`), else the first.
+
+Without one the bot sleeps (its eyes closed, a small "z"), and its chat says how to connect an AI instead of taking
+questions: a button per integration starts that integration's setup in Home Assistant (a my link,
+`/_my_redirect/config_flow_start?domain=...`), and Look again reads the inventory again once one is added.
 
 ## How a question becomes a draft
 
@@ -45,6 +49,17 @@ one; it starts with the one chosen in Home Assistant for "generate data" (`ai_ta
    the editor's language. The editor takes it as one step of undo (`applyDocument`, labelled "Layoutbot's change"),
    selects the first page it made or changed, and the chat offers Show and Undo.
 
+After every answer that changed something the chat asks, by itself and never through the model, whether to send it:
+"Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft.
+An answer that was undone first is not sent.
+
+**Several screens.** The question also holds the other screens of the home, each with its grid and pages, and a page of
+the plan may name a `screen`: another screen's name, or `all` for every screen ("the alarm on page 1 of every screen").
+The add-on splits the plan by screen (`for_screens`) and makes each other screen's draft from its saved document, with
+its own grid and whether it draws sections. Those are proposals: the chat lists them ("Wallbox: 1 tile added") and saves
+them only on yes, each on the revision it was made from, so a screen changed meanwhile refuses it and says so. Taking
+tiles off (`remove`) only ever applies to the open screen.
+
 While the question is out the pages wait: a veil with a light sweeping over it covers them, a pill says how long it has
 been, and no click or key reaches the editor except Escape, which stops waiting. An answer that comes after Stop, or
 for a draft that changed meanwhile (another tab's save), is left unused and the chat says so.
@@ -53,7 +68,8 @@ for a draft that changed meanwhile (another tab's save), is left unused and the 
 
 - **Control a device.** The plan has no field for an action; the only Home Assistant action the add-on calls is
   `ai_task.generate_data`. "Turn on the living room lights" gets a sentence back and no change.
-- **Save.** The answer is a draft; the person saves it as any other edit, or undoes it.
+- **Save without a yes.** The answer is a draft, and another screen's change a proposal, until the person says yes in
+  the chat (or saves the draft as any other edit).
 - **Show an entity that does not exist, or a control an entity cannot draw.** Ids are checked against the inventory,
   controls against what the entity offers.
 
@@ -106,6 +122,8 @@ Home Assistant offers four ways to an LLM; the source of `home-assistant/core` (
 
 ## Later
 
+- Alerts on every screen ("show the doorbell alert on all my screens"): alerts are automations of the Alerts page, not
+  the layout, so a plan would need a part of its own for them.
 - An API key of its own (an OpenAI or Anthropic key in the app) for a Home Assistant without an AI Task.
 - Device classes and Home Assistant's floors in the entity lines (the auto-layout maker reads them already), so "all
   blinds" and "per floor" are sure.

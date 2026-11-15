@@ -6,8 +6,8 @@
 import { useElementBounding } from "@vueuse/core";
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useStickToBottom } from "../composables/useStickToBottom";
-import { t } from "../i18n";
-import { useLayoutbotStore } from "../stores/layoutbot";
+import { editorLanguage, t } from "../i18n";
+import { useLayoutbotStore, type Elsewhere } from "../stores/layoutbot";
 import { useScreenStore } from "../stores/screen";
 import Icon from "./ui/Icon.vue";
 import UiSelect from "./ui/UiSelect.vue";
@@ -72,11 +72,30 @@ watch(() => bot.busy, (busy) => {
 });
 onBeforeUnmount(() => clearInterval(timer));
 const elapsed = computed(() => Math.max(0, Math.floor((now.value - bot.started) / 1000)));
+const names = (list: string[]) => new Intl.ListFormat(editorLanguage(), { type: "conjunction" }).format(list);
+function whatOf(other: Elsewhere) {
+  const sum = other.summary;
+  if (!sum) return "";
+  return [sum.pages ? t("editor.layoutbot.what.pages", { n: sum.pages }, sum.pages) : "",
+    sum.added ? t("editor.layoutbot.what.added", { n: sum.added }, sum.added) : "",
+    sum.removed ? t("editor.layoutbot.what.removed", { n: sum.removed }, sum.removed) : "",
+    sum.changed.length ? t("editor.layoutbot.what.changed", { pages: names(sum.changed.map(String)) }, sum.changed.length) : ""]
+    .filter(Boolean).join(", ");
+}
+// The AI integrations of Home Assistant that give an AI Task, each started with a my link (its config flow).
+const PROVIDERS = [
+  { domain: "openai_conversation", name: "OpenAI", note: "cloud" },
+  { domain: "anthropic", name: "Anthropic", note: "cloud" },
+  { domain: "google_generative_ai_conversation", name: "Google Gemini", note: "cloud" },
+  { domain: "ollama", name: "Ollama", note: "local" },
+];
+const checking = ref(false);
+async function recheck() { checking.value = true; try { await bot.recheck(); } finally { checking.value = false; } }
 const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.name] as const));
 </script>
 
 <template>
-  <Teleport v-if="bot.available" to="body">
+  <Teleport v-if="bot.shown" to="body">
     <Transition name="bot-shine">
       <div v-if="bot.busy" class="bot-shine" :style="canvasBox" @pointerdown.stop.prevent @click.stop.prevent @wheel.prevent>
         <div class="bot-shine-sweep" aria-hidden="true"></div>
@@ -98,12 +117,26 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
           <div class="bot-title">
             <strong>{{ t("editor.layoutbot.name") }}</strong>
             <UiSelect v-if="agentChoices.length > 1 && bot.agent" v-model="bot.agent" :options="agentChoices" inline class="bot-agent" />
-            <small v-else>{{ bot.agentName }}</small>
+            <small v-else>{{ bot.ready ? bot.agentName : t("editor.layoutbot.connect.short") }}</small>
           </div>
           <button type="button" class="icon-btn" :aria-label="t('editor.layoutbot.close')" @click="bot.open = false"><Icon name="close" /></button>
         </header>
 
-        <div ref="list" class="bot-list">
+        <div v-if="!bot.ready" class="bot-list bot-connect">
+          <div class="msg bot">
+            <p><strong>{{ t("editor.layoutbot.connect.title") }}</strong></p>
+            <p>{{ t("editor.layoutbot.connect.body") }}</p>
+          </div>
+          <div class="bot-providers">
+            <a v-for="provider in PROVIDERS" :key="provider.domain" class="provider" target="_top"
+              :href="`/_my_redirect/config_flow_start?domain=${provider.domain}`">
+              <strong>{{ provider.name }}</strong><small>{{ t(`editor.layoutbot.connect.${provider.note}`) }}</small>
+            </a>
+          </div>
+          <p class="fine">{{ t("editor.layoutbot.connect.after") }}</p>
+          <button type="button" class="chip again" :disabled="checking" @click="recheck"><Icon name="refresh" />{{ t("editor.layoutbot.connect.again") }}</button>
+        </div>
+        <div v-else ref="list" class="bot-list">
           <div class="msg bot">
             <p>{{ t("editor.layoutbot.hello") }}</p>
             <p class="fine">{{ t("editor.layoutbot.privacy", { agent: bot.agentName }) }}</p>
@@ -112,27 +145,45 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
             <button v-for="text in suggestions" :key="text" type="button" :disabled="bot.busy" @click="submit(text)">{{ text }}</button>
           </div>
           <TransitionGroup name="msg">
-            <div v-for="message in bot.messages" :key="message.id" class="msg" :class="[message.from, { error: message.error }]">
-              <p>{{ message.text }}</p>
-              <ul v-if="message.notes?.length" class="notes"><li v-for="note in message.notes" :key="note">{{ note }}</li></ul>
-              <div v-if="message.page || bot.undoable(message) || message.undone" class="msg-actions">
-                <button v-if="message.page && !message.undone" type="button" class="chip" @click="bot.show(message)"><Icon name="eye-outline" />{{ t("editor.layoutbot.show") }}</button>
-                <button v-if="bot.undoable(message)" type="button" class="chip" @click="bot.undo(message)"><Icon name="undo" />{{ t("editor.layoutbot.undo") }}</button>
-                <span v-if="message.undone" class="undone">{{ t("editor.layoutbot.undone") }}</span>
+            <template v-for="message in bot.messages" :key="message.id">
+              <div class="msg" :class="[message.from, { error: message.error }]">
+                <p>{{ message.text }}</p>
+                <ul v-if="message.notes?.length" class="notes"><li v-for="note in message.notes" :key="note">{{ note }}</li></ul>
+                <ul v-if="message.elsewhere?.length" class="elsewhere">
+                  <li v-for="other in message.elsewhere" :key="other.id"><Icon name="monitor-eye" /><span><b>{{ other.name }}</b> {{ other.error || whatOf(other) }}</span></li>
+                </ul>
+                <div v-if="message.page || bot.undoable(message) || message.undone" class="msg-actions">
+                  <button v-if="message.page && !message.undone" type="button" class="chip" @click="bot.show(message)"><Icon name="eye-outline" />{{ t("editor.layoutbot.show") }}</button>
+                  <button v-if="bot.undoable(message)" type="button" class="chip" @click="bot.undo(message)"><Icon name="undo" />{{ t("editor.layoutbot.undo") }}</button>
+                  <span v-if="message.undone" class="undone">{{ t("editor.layoutbot.undone") }}</span>
+                </div>
               </div>
-            </div>
+              <!-- After every real change the editor itself asks, never the model: send it to the screens? -->
+              <div v-if="message.send && message.send !== 'declined' && (message.send !== 'ask' || bot.targets(message).length)" :key="`${message.id}-send`" class="msg bot send">
+                <template v-if="message.send === 'ask'">
+                  <p>{{ t("editor.layoutbot.send.ask", { which: names(bot.targets(message)) }, bot.targets(message).length) }}</p>
+                  <div class="msg-actions">
+                    <button type="button" class="send-yes" :disabled="bot.busy" @click="bot.deliver(message)">{{ t("editor.layoutbot.send.yes") }}</button>
+                    <button type="button" class="chip" @click="bot.decline(message)">{{ t("editor.layoutbot.send.no") }}</button>
+                  </div>
+                </template>
+                <p v-else-if="message.send === 'sending'" class="send-state"><span class="bot-spark" aria-hidden="true"></span>{{ t("editor.layoutbot.send.sending") }}</p>
+                <p v-else-if="message.send === 'sent'" class="send-state ok"><Icon name="check" />{{ t("editor.layoutbot.send.sent") }}</p>
+                <p v-else class="send-state">{{ t("editor.layoutbot.send.not_all") }}</p>
+              </div>
+            </template>
           </TransitionGroup>
           <div v-if="bot.busy" class="msg bot typing" aria-hidden="true"><i></i><i></i><i></i></div>
         </div>
 
-        <form class="bot-compose" @submit.prevent="submit()">
+        <form v-if="bot.ready" class="bot-compose" @submit.prevent="submit()">
           <textarea ref="field" v-model="draft" rows="1" :disabled="bot.busy" :placeholder="t('editor.layoutbot.placeholder')" maxlength="500" @keydown="onKey"></textarea>
           <button type="submit" class="bot-send" :disabled="bot.busy || !draft.trim()" :aria-label="t('editor.layoutbot.send')"><Icon name="arrow-up" /></button>
         </form>
       </section>
     </Transition>
 
-    <button type="button" class="bot-fab" :class="{ busy: bot.busy, open: bot.open }"
+    <button type="button" class="bot-fab" :class="{ busy: bot.busy, open: bot.open, asleep: !bot.ready }"
       :aria-label="t('editor.layoutbot.open')" :aria-expanded="bot.open" :title="t('editor.layoutbot.open')" @click="toggle">
       <span class="bot-ring" aria-hidden="true"></span>
       <svg class="bot-body" viewBox="0 0 40 40" aria-hidden="true">
@@ -142,6 +193,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
         <g class="eyes"><rect class="eye" x="12.5" y="18" width="4.5" height="7" rx="2.25" /><rect class="eye" x="23" y="18" width="4.5" height="7" rx="2.25" /></g>
         <rect class="scan" x="10" y="20.5" width="20" height="2.2" rx="1.1" />
       </svg>
+      <span v-if="!bot.ready" class="bot-z" aria-hidden="true">z</span>
     </button>
   </Teleport>
 </template>
@@ -166,6 +218,22 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
   background: conic-gradient(from 0deg, transparent 0 55%, var(--bot-c) 75%, white 82%, transparent 90%);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px)); }
+.bot-fab.asleep { animation-duration: 5.5s; filter: saturate(.75); }
+.bot-fab.asleep .eye { animation: none; transform: scaleY(.18); }
+.bot-fab.asleep .bulb { animation: none; opacity: .55; }
+.bot-z { position: absolute; top: -4px; right: -2px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); color: var(--bot-b); font-size: 12px; font-weight: 800; box-shadow: 0 2px 6px rgba(20, 24, 40, .18);
+  animation: bot-z 2.6s ease-in-out infinite; }
+@keyframes bot-z { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-3px); opacity: .6; } }
+.bot-connect { padding-bottom: 14px; }
+.bot-providers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.provider { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 14px; text-decoration: none; color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--bot-b) 30%, var(--line)); background: var(--surface); transition: border-color .15s, transform .15s, background .15s; }
+.provider:hover { border-color: var(--bot-b); background: color-mix(in srgb, var(--bot-b) 6%, var(--surface)); transform: translateY(-1px); }
+.provider strong { font-size: 13.5px; }
+.provider small { color: var(--muted); font-size: 12px; }
+.bot-connect > .fine { margin: 2px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.again { align-self: flex-start; }
 .bot-fab.busy { animation: bot-think 1.2s ease-in-out infinite; }
 .bot-fab.busy .bot-ring { opacity: 1; animation: bot-spin 1.1s linear infinite; }
 .bot-fab.busy .eyes { opacity: 0; }
@@ -235,6 +303,17 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
   border-radius: 999px; padding: 4px 10px 4px 8px; font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer; }
 .chip:hover { border-color: var(--line-strong); color: var(--ink); }
 .undone { color: var(--muted); font-size: 12.5px; }
+.elsewhere { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.elsewhere li { display: flex; gap: 6px; align-items: flex-start; }
+.elsewhere li :deep(.ui-icon) { color: var(--bot-b); margin-top: 1px; }
+.msg.send { border-color: color-mix(in srgb, var(--bot-b) 35%, var(--line)); background: color-mix(in srgb, var(--bot-b) 6%, var(--surface)); }
+.send-yes { border: 0; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 600; color: white; cursor: pointer;
+  background: linear-gradient(140deg, var(--bot-a), var(--bot-b)); box-shadow: 0 4px 12px color-mix(in srgb, var(--bot-b) 30%, transparent);
+  transition: transform .15s; }
+.send-yes:hover { transform: translateY(-1px); }
+.send-yes:disabled { opacity: .5; cursor: default; transform: none; }
+.send-state { display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.send-state.ok { color: var(--good); font-weight: 550; }
 .msg-enter-active { transition: opacity .25s, transform .3s cubic-bezier(.2, 1.2, .4, 1); }
 .msg-enter-from { opacity: 0; transform: translateY(8px) scale(.97); }
 

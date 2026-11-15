@@ -150,6 +150,32 @@ class Plans(unittest.TestCase):
         self.assertEqual(notes, [{"key": "pages_full", "pages": 2}])
 
 
+class Screens(unittest.TestCase):
+    OTHERS = [{"id": "wall", "name": "Wallbox"}, {"id": "desk", "name": "Desk"}]
+
+    def test_a_plan_is_split_by_screen(self):
+        plan = {"reply": "ok", "remove": ["light.x"], "pages": [
+            {"page": "1", "tiles": ["light.a"]}, {"screen": "wallbox", "page": "", "title": "W", "tiles": ["light.b"]},
+            {"screen": "all", "page": "1", "tiles": ["alarm_control_panel.home"]}, {"screen": "Nowhere", "tiles": ["light.c"]}]}
+        here, there = layoutbot.for_screens(plan, self.OTHERS)
+        self.assertEqual([item.get("tiles") for item in here["pages"]], [["light.a"], ["alarm_control_panel.home"], ["light.c"]])
+        self.assertEqual(here["remove"], ["light.x"])
+        self.assertEqual({k: [item["tiles"] for item in v["pages"]] for k, v in there.items()},
+                         {"wall": [["light.b"], ["alarm_control_panel.home"]], "desk": [["alarm_control_panel.home"]]})
+        self.assertNotIn("remove", there["wall"])  # taking tiles off another screen is asked for there, never implied
+
+    def test_the_other_screens_are_in_the_question(self):
+        others = [{"id": "wall", "name": "Wallbox", "grid": SMALL, "sections": False, "document": DOCUMENT}]
+        text = layoutbot.instructions("x", DOCUMENT, GRID, ENTITIES, name="Hall", others=others)
+        self.assertIn('Existing pages of this screen ("Hall")', text)
+        self.assertIn('screen "Wallbox" (2 x 3 cells, no sections):\n  page 1 "Living"; tiles: light.sofa', text)
+
+    def test_a_change_is_counted(self):
+        plan = {"pages": [{"page": "", "title": "New", "tiles": ["light.desk"]}], "remove": ["light.sofa"]}
+        after = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)[0]
+        self.assertEqual(layoutbot.summary(DOCUMENT, after), {"pages": 1, "added": 1, "removed": 1, "changed": [1]})
+
+
 class Asking(unittest.TestCase):
     def test_only_ai_tasks_that_make_data_count(self):
         states = {"ai_task.cloud": {"state": "unknown", "attributes": {"friendly_name": "Cloud", "supported_features": 7}},

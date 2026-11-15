@@ -27,16 +27,27 @@ export type BotMessage = {
   page?: string;
   error?: boolean;
   seconds?: number;
+  /** Other screens this answer changes: proposals, saved only on yes. */
+  elsewhere?: Elsewhere[];
+  /** The question after every real change, asked by the editor and not the model: send it to the screens? */
+  send?: "ask" | "sending" | "sent" | "declined" | "failed";
 };
-type Answer = { reply: string; layout: PageLayout; changed: boolean; notes: string[]; agent: string; seconds: number };
+export type Elsewhere = { id: string; name: string; layout?: PageLayout; revision?: string; error?: string; notes?: string[];
+  summary?: { pages: number; added: number; removed: number; changed: number[] } };
+type Answer = { reply: string; layout: PageLayout; changed: boolean; notes: string[]; agent: string; seconds: number; elsewhere?: Elsewhere[] };
 
 export const useLayoutbotStore = defineStore("layoutbot", () => {
   const inv = useInventoryStore();
   const scr = useScreenStore();
   const doc = useDocumentStore();
   const agents = computed(() => inv.inventory.layoutbot ?? []);
-  /** Only where Home Assistant has an AI Task that makes data, and a draft to work on. */
-  const available = computed(() => agents.value.length > 0 && Boolean(doc.document) && Boolean(scr.selected));
+  /** The bot shows wherever there is a draft; it works where Home Assistant has an AI Task that makes data, and
+   * elsewhere its chat says how to connect one. */
+  const shown = computed(() => Boolean(doc.document) && Boolean(scr.selected));
+  const ready = computed(() => agents.value.length > 0);
+  const available = computed(() => shown.value && ready.value);
+  /** Look again after the person added an AI integration in Home Assistant (the full inventory lists the AI Tasks). */
+  async function recheck() { await inv.refresh(true); }
   const open = ref(false);
   const busy = ref(false);
   const started = ref(0);
@@ -63,7 +74,7 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
 
   async function ask(prompt: string) {
     const text = prompt.trim();
-    if (!text || busy.value || !doc.document || !scr.selected) return;
+    if (!text || busy.value || !available.value || !doc.document || !scr.selected) return;
     say({ from: "you", text });
     const sent = doc.document, screen = scr.selected, mine = ++asking;
     busy.value = true;
@@ -74,8 +85,11 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
       if (mine !== asking) return;
       busy.value = false;
       const notes = answer.notes ?? [];
+      const elsewhere = answer.elsewhere ?? [];
+      const proposed = elsewhere.filter((other) => other.layout);
       if (!answer.changed) {
-        say({ from: "bot", text: answer.reply || t("editor.layoutbot.nothing"), notes, seconds: answer.seconds });
+        say({ from: "bot", text: answer.reply || t("editor.layoutbot.nothing"), notes, seconds: answer.seconds,
+          ...(elsewhere.length ? { elsewhere } : {}), ...(proposed.length ? { send: "ask" as const } : {}) });
         return;
       }
       if (scr.selected !== screen || !doc.document || !sameValue(doc.document, sent)) {
@@ -84,13 +98,12 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
       }
       const before = new Set(sent.pages.map((p) => JSON.stringify(p)));
       const page = answer.layout.pages.find((p) => !before.has(JSON.stringify(p)))?.id;
-      if (!doc.applyDocument(answer.layout, true, undefined, label("layoutbot"))) {
-        say({ from: "bot", text: answer.reply || t("editor.layoutbot.nothing"), notes, seconds: answer.seconds });
-        return;
-      }
-      const message = say({ from: "bot", text: answer.reply, notes, step: doc.undoCount, page, seconds: answer.seconds });
+      const applied = doc.applyDocument(answer.layout, true, undefined, label("layoutbot"));
+      const message = say({ from: "bot", text: answer.reply || t("editor.layoutbot.nothing"), notes, seconds: answer.seconds,
+        ...(applied ? { step: doc.undoCount, page } : {}), ...(elsewhere.length ? { elsewhere } : {}),
+        ...(applied || proposed.length ? { send: "ask" as const } : {}) });
       // The page it made or changed comes into view once it is drawn.
-      if (page) { doc.selectedPageId = page; void nextTick(() => show(message)); }
+      if (applied && page) { doc.selectedPageId = page; void nextTick(() => show(message)); }
     } catch (error: any) {
       if (mine !== asking) return;
       busy.value = false;
@@ -111,5 +124,35 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
     document.querySelector(`[data-page-id="${message.page}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }
 
-  return { agents, available, open, busy, started, agent, agentName, messages, ask, stop, undo, undoable, show };
+  /** Yes: this screen's draft is saved and sent (as Save & send does) unless it was undone, and every other screen's
+   * proposal is saved on the revision it was made from. */
+  async function deliver(message: BotMessage) {
+    if (message.send !== "ask") return;
+    message.send = "sending";
+    const failures: string[] = [];
+    try {
+      if (!message.undone && message.step !== undefined && doc.dirty && scr.selected) {
+        await doc.save();
+        if (doc.dirty) failures.push(scr.currentScreen?.name ?? "");
+      }
+      for (const other of message.elsewhere ?? []) {
+        if (!other.layout) continue;
+        try {
+          await send(`screens/${encodeURIComponent(other.id)}`, "PUT", { format: "pages-v2", revision: other.revision, layout: other.layout });
+        } catch (error: any) { failures.push(`${other.name}: ${error?.message ?? ""}`); }
+      }
+      await inv.refresh(false);
+    } finally {
+      message.send = failures.length ? "failed" : "sent";
+      if (failures.length) say({ from: "bot", text: t("editor.layoutbot.send.failed", { which: failures.join(", ") }), error: true });
+    }
+  }
+  function decline(message: BotMessage) { if (message.send === "ask") message.send = "declined"; }
+  /** Every screen a message would go to, by name: this one when its draft changed, then the others. */
+  function targets(message: BotMessage) {
+    const here = message.step !== undefined && !message.undone ? [scr.currentScreen?.name ?? ""] : [];
+    return [...here, ...(message.elsewhere ?? []).filter((other) => other.layout).map((other) => other.name)].filter(Boolean);
+  }
+
+  return { agents, shown, ready, available, recheck, open, busy, started, agent, agentName, messages, ask, stop, undo, undoable, show, deliver, decline, targets };
 });

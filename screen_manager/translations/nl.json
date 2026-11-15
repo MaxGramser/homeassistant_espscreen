@@ -4736,7 +4736,15 @@
       "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
       "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag en de namen en ruimtes van je entiteiten gaan daarheen.",
       "placeholder": "Maak een pagina met…",
-      "send": "Versturen",
+      "send": {
+        "ask": "Zal ik het naar {which} sturen?",
+        "yes": "Ja, versturen",
+        "no": "Nu niet",
+        "sending": "Versturen…",
+        "sent": "Verstuurd. Het scherm laat het zo zien.",
+        "not_all": "Niet alles is verstuurd.",
+        "failed": "Versturen naar {which} lukte niet."
+      },
       "busy": "Layoutbot deelt je pagina's in",
       "seconds": "{n} s",
       "stop": "Stoppen",
@@ -4753,6 +4761,21 @@
         "covers": "Een pagina met alle rolgordijnen en gordijnen",
         "media": "Een muziekpagina met alle speakers",
         "climate": "Een klimaatpagina met de verwarming en de temperaturen"
+      },
+      "what": {
+        "pages": "1 nieuwe pagina | {n} nieuwe pagina's",
+        "added": "1 tegel erbij | {n} tegels erbij",
+        "removed": "1 tegel eraf | {n} tegels eraf",
+        "changed": "pagina {pages} aangepast | pagina's {pages} aangepast"
+      },
+      "connect": {
+        "title": "Koppel een AI in Home Assistant",
+        "short": "Nog niet gekoppeld",
+        "body": "Ik deel de pagina's van dit scherm in vanuit één zin, zoals \"alle lampen op één pagina, een sectie per kamer\". Daarvoor gebruik ik de AI die je aan Home Assistant koppelt: voeg een van deze integraties toe en ik doe de rest.",
+        "cloud": "In de cloud, met je eigen sleutel",
+        "local": "Op je eigen computer",
+        "after": "Elke AI-integratie met AI Tasks werkt. Kijk hier opnieuw zodra die is toegevoegd.",
+        "again": "Opnieuw kijken"
       }
     }
   }

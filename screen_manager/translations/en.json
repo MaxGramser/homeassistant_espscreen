@@ -4787,7 +4787,15 @@
       "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
       "privacy": "I use {agent} from Home Assistant. Your question and the names and areas of your entities go to it.",
       "placeholder": "Make a page with…",
-      "send": "Send",
+      "send": {
+        "ask": "Shall I send it to {which}?",
+        "yes": "Yes, send it",
+        "no": "Not now",
+        "sending": "Sending…",
+        "sent": "Sent. The screen shows it in a moment.",
+        "not_all": "Not everything was sent.",
+        "failed": "Could not send to {which}."
+      },
       "busy": "Layoutbot is arranging your pages",
       "seconds": "{n} s",
       "stop": "Stop",
@@ -4804,6 +4812,21 @@
         "covers": "A page with all the blinds and curtains",
         "media": "A music page with all the speakers",
         "climate": "A climate page with the heating and the temperatures"
+      },
+      "what": {
+        "pages": "1 new page | {n} new pages",
+        "added": "1 tile added | {n} tiles added",
+        "removed": "1 tile taken off | {n} tiles taken off",
+        "changed": "page {pages} changed | pages {pages} changed"
+      },
+      "connect": {
+        "title": "Connect an AI in Home Assistant",
+        "short": "Not connected yet",
+        "body": "I arrange this screen's pages from a sentence, such as \"all the lights on one page, a section per room\". For that I use the AI you connect to Home Assistant: add one of these integrations and I do the rest.",
+        "cloud": "In the cloud, with your own key",
+        "local": "On your own computer",
+        "after": "Any AI integration with AI Tasks works. Once it is added, look again here.",
+        "again": "Look again"
       }
     }
   }
