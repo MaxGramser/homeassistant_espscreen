@@ -67,6 +67,8 @@ struct Slot {
   bool free_after = false;        // released while loading: the picture goes once the task has ended
   bool has_pending = false;       // a load asked for while one ran: it follows
   std::string pending;
+  std::string pending_etag;        // the ETag it was asked with (load with an ETag)
+  bool pending_has_etag = false;
   // What the task was given, and what it gives back (written before `state` becomes DONE).
   std::string task_url, task_etag;
   uint32_t started = 0;
@@ -307,18 +309,26 @@ static void start(Slot &slot) {
 void bind(Slot &slot, Done done) { slot.done = std::move(done); }
 bool loading(const Slot &slot) { return slot.state.load(std::memory_order_acquire) != IDLE; }
 
-void load(Slot &slot, const std::string &url) {
+static void load_with(Slot &slot, const std::string &url, const std::string *etag) {
   if (slot.state.load(std::memory_order_acquire) != IDLE) {
     // One at a time: this one follows the one on its way (a cancelled one ends at its next chunk).
     slot.pending = url;
     slot.has_pending = true;
+    slot.pending_has_etag = etag != nullptr;
+    slot.pending_etag = etag ? *etag : std::string();
     return;
   }
-  if (url != slot.url) { slot.url = url; slot.etag.clear(); }  // a new link: the ETag was the old one's
+  // A new link: the ETag was the old one's, unless the owner names the one of a picture it has.
+  if (url != slot.url) { slot.url = url; slot.etag = etag ? *etag : std::string(); }
+  else if (etag && !etag->empty()) slot.etag = *etag;
   if (picture_engine::JPEG) picture_engine::ready();  // the decoder for a JPEG, made on the main loop
   ESP_LOGD(TAG, "%s: loading %s", slot.name, url.c_str());
   start(slot);
 }
+
+void load(Slot &slot, const std::string &url) { load_with(slot, url, nullptr); }
+void load(Slot &slot, const std::string &url, const std::string &etag) { load_with(slot, url, &etag); }
+std::string etag(const Slot &slot) { return slot.etag; }
 
 static void forget_picture(Slot &slot) {
   if (slot.pixels) roomy::release(slot.pixels);
@@ -397,7 +407,7 @@ static void take_over(Slot &slot) {
   }
   if (slot.has_pending && slot.state.load() == IDLE) {
     slot.has_pending = false;
-    load(slot, slot.pending);
+    load_with(slot, slot.pending, slot.pending_has_etag ? &slot.pending_etag : nullptr);
   }
 }
 

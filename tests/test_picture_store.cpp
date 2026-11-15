@@ -213,5 +213,22 @@ int main() {
     kept.forget([](const Image *) { return false; });
     assert(live == 0);
   }
+  // The same bytes under a new key (another track of the same album came back 304): the picture its owner had, even one
+  // already retired because the owner moved on, is filed under the new key without a copy and keeps its ETag.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    Image *had = kept.adopt("track 1", download(1, 10, 10), 1, "\"abc\"");
+    assert(had && kept.entry("track 1")->etag == "\"abc\"");
+    kept.retire("track 1");
+    assert(!kept.entry("track 1") && kept.entry_any("track 1"));
+    assert(kept.rekey("track 1", "track 2", 2));
+    assert(kept.find("track 2") == had && !kept.entry_any("track 1") && kept.entry("track 2")->etag == "\"abc\"" && live == 1);
+    // Nothing to file again, or the new key had already: no change.
+    assert(!kept.rekey("track 9", "track 3", 3) && !kept.rekey("track 2", "track 2", 3));
+    kept.forget([](const Image *) { return false; });
+    assert(live == 0);
+  }
   return 0;
 }

@@ -404,6 +404,10 @@ void bind(Slot &slot, Done done);
 // Starts the download of `url` (a new link forgets the ETag of the last). While one runs, this one waits for its end:
 // a load that was released (cancelled) ends at its next chunk.
 void load(Slot &slot, const std::string &url);
+// The same with the ETag of a picture its owner already has (another link of the same picture comes back 304), "" for none.
+void load(Slot &slot, const std::string &url, const std::string &etag);
+// The ETag of the slot's last picture, "" without one.
+std::string etag(const Slot &slot);
 // Frees the picture; a download on its way is cancelled and reports nothing.
 void release(Slot &slot);
 // The store took the picture over (picture_store::adopt): the slot forgets its pixels without freeing them, and

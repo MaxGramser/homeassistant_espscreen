@@ -136,6 +136,17 @@ show the new one and goes at the next `collect`. So a picture that changes over 
 that moment, the one on the glass and the one that comes, and never three; every other moment it holds one. A slot that
 cannot give its buffer away (the editor's WASM preview) is copied once into one the store owns. A 304 for a picture the
 store let go meanwhile is loaded whole again (`runtime_tiles::picture_done`).
+
+### Unchanged pictures
+
+A still's ETag is the hash of its bytes (`picture_links.Link`), so the same picture behind another link has the same
+ETag. An owner that moves to another key (a player's next track) sends the ETag of the picture it shows with the new
+link (`picture_loader::loading_had`, `picture_fetch::load(slot, url, etag)`); when the app answers 304 the store files
+that picture under the new key (`picture_store::rekey`), so nothing is downloaded or drawn again and the card on the
+glass does not change. A track of the same album no longer fetches and repaints its cover. A 304 only ever answers an
+If-None-Match the screen itself sent, so older firmware, which never sends one across links, cannot get one; nothing is
+negotiated for it. The bytes hold everything that changes the picture (its size, the look, the ground under its corners),
+so a change of look gives other bytes and a whole picture.
 - **Two presenters**: LVGL draws a still from the store; `live_view` writes a stream past LVGL into the panel's frame
   buffer, with the rules of docs/CAMERA.md ("Nothing of LVGL's under a live picture", "One writer on the glass").
 

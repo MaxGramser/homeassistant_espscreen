@@ -11179,6 +11179,10 @@ struct ImageHooks {
   // The store took the decoded image's buffer over (picture_store::adopt): the slot lets go of it without freeing it.
   // Empty for a slot that cannot give its buffer away (the editor's WASM preview): the store gets a copy of its own.
   std::function<void()> hand_over;
+  // A load that sends the ETag of a picture its owner already has, and the ETag of the slot's last picture: the same
+  // bytes under another link come back 304 (docs/PICTURES.md, "Unchanged pictures"). Empty where the slot has no ETag.
+  std::function<void(const std::string &url, const std::string &etag)> load_as;
+  std::function<std::string()> etag;
 };
 // The page's strip (firmware 0.2.77+) comes through the third.
 inline ImageHooks camera_full, camera_thumb, camera_live;
@@ -13262,6 +13266,10 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
   // forgets its ETag (release) and the load counts as failed, so the loader fetches the picture whole.
   if (ok && cached && pictures_kept()) {
     const std::string asked = loader.loading_key(slot);
+    // The same bytes as the picture its owner had before (the ETag that went along with this link): that picture is
+    // this key's too, filed again without a copy, so the card on the glass changes nothing.
+    if (!asked.empty() && !pictures.entry(asked) && pictures.rekey(loader.loading_had(slot), asked, now))
+      ESP_LOGD("picture", "%s came back unchanged: the picture its owner showed is this one", asked.c_str());
     const lv_image_dsc_t *held = hooks.source ? hooks.source() : nullptr;
     if (!asked.empty() && !pictures.entry(asked) && !(held && held->data)) {
       ESP_LOGD("picture", "%s came back unchanged, but the store let it go: loaded again", asked.c_str());
@@ -13288,7 +13296,7 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
         std::memcpy(copy, src->data, src->data_size);
         taken.data = static_cast<const uint8_t *>(copy);
       }
-      kept = (hooks.hand_over || copy) && pictures.adopt(key, taken, now) != nullptr;
+      kept = (hooks.hand_over || copy) && pictures.adopt(key, taken, now, hooks.etag ? hooks.etag() : std::string()) != nullptr;
       if (!kept && copy) kept_free(copy);
       if (kept && hooks.hand_over) hooks.hand_over();
       else if (kept && hooks.release) hooks.release();  // the copy is the store's: the slot's own goes
@@ -13434,7 +13442,13 @@ inline void loader_bind() {
     if (slot_key[static_cast<int>(slot)] != key) slot_letgo(slot);
     picture_memory("before", key.substr(0, key.find('|')).c_str(), 0);
     auto &hooks = slot_hooks(slot);
-    if (hooks.load) hooks.load(url);
+    // The picture its owner shows until this one comes (another track, the same album): its ETag goes along, so the app
+    // answers 304 when the new link holds the same bytes, and picture_done files that picture under the new key.
+    std::string had_etag;
+    if (pictures_kept() && hooks.load_as)
+      if (auto *had = pictures.entry_any(loader.loading_had(slot))) had_etag = had->etag;
+    if (!had_etag.empty()) hooks.load_as(url, had_etag);
+    else if (hooks.load) hooks.load(url);
   };
   loader.cancel = [](picture_loader::Slot slot) {
     slot_letgo(slot);
