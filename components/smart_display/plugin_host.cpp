@@ -2058,12 +2058,40 @@ lv_obj_t *text(lv_obj_t *parent, Font f, theme::Role role) {
 
 bool pictures() { return rt::tile_pictures_supported(); }
 
+// The plugin API's card colours by the name of their swatch in theme::SWATCHES, never by position: reordering the
+// swatches cannot rename a colour, and a swatch the API does not name yet (a tenth) is simply not offered. Checked when it
+// compiles: every colour names a swatch that exists, and every colour between NONE and INSTRUMENT has its line.
+struct CardSwatch { CardColor color; const char *name; };
+constexpr CardSwatch CARD_SWATCHES[] = {
+  {CardColor::RED, "red"},   {CardColor::ORANGE, "orange"}, {CardColor::YELLOW, "yellow"},
+  {CardColor::GREEN, "green"}, {CardColor::MINT, "mint"},   {CardColor::BLUE, "blue"},
+  {CardColor::PURPLE, "purple"}, {CardColor::PINK, "pink"}, {CardColor::GRAY, "gray"},
+};
+constexpr bool same_name(const char *a, const char *b) {
+  while (*a && *a == *b) { ++a; ++b; }
+  return *a == *b;
+}
+constexpr int swatch_index(const char *name) {
+  for (size_t i = 0; i < theme::SWATCH_COUNT; ++i) if (same_name(theme::SWATCHES[i].name, name)) return static_cast<int>(i);
+  return -1;
+}
+constexpr bool card_swatches_whole() {
+  bool seen[static_cast<size_t>(CardColor::INSTRUMENT)] = {};
+  for (const auto &c : CARD_SWATCHES) {
+    const auto at = static_cast<size_t>(c.color);
+    if (c.color == CardColor::NONE || c.color == CardColor::INSTRUMENT || seen[at] || swatch_index(c.name) < 0) return false;
+    seen[at] = true;
+  }
+  for (size_t at = 1; at < static_cast<size_t>(CardColor::INSTRUMENT); ++at) if (!seen[at]) return false;
+  return true;
+}
+static_assert(card_swatches_whole(), "every CardColor names a swatch of theme::SWATCHES by its name, once");
+
 // A named card colour as Tile::background keeps one: the swatch's light value, 0 for NONE (theme::surface draws it).
 static uint32_t swatch_of(CardColor color) {
-  static_assert(theme::SWATCH_COUNT == 9, "CardColor names theme::SWATCHES in their order");
   if (color == CardColor::INSTRUMENT) return theme::instrument_ground();
-  const auto i = static_cast<size_t>(color);
-  return i >= 1 && i <= theme::SWATCH_COUNT ? theme::SWATCHES[i - 1].light : 0;
+  for (const auto &c : CARD_SWATCHES) if (c.color == color) return theme::SWATCHES[swatch_index(c.name)].light;
+  return 0;
 }
 
 void set_card_color(CardColor color) {
