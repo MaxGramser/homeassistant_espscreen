@@ -68,7 +68,8 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    `x.entities.<option id>` with the same bounded state, name and named attributes, and `updated`, when Home Assistant
    last heard from it (seconds since 1970), so a tile of several sources can say how old its values are. The chosen
    entities share what the tile's own entity and data leave of the room: one that does not fit waits as `too_large`
-   alone. The add-on follows every chosen entity (`related_entities`, with the screen's own plugin) and sends the tile
+   alone. Data of items gives way to them up to half the room (its last items go), so a long list never leaves a radar
+   or a map without its place. The add-on follows every chosen entity (`related_entities`, with the screen's own plugin) and sends the tile
    again when one changes; a choice is part of the layout, so it changes without a build. A choice of another domain
    is left out. The tile's own entity (`plugin_entity`) keeps its `x` as before, without `updated`.
 6. **On the screen** `page_receiver` keeps `o.plugin` and `x` as JSON in the tile's `Extra` (`plugin_options`,

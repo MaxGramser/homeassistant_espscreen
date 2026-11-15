@@ -1873,12 +1873,15 @@ class Plugins:
             data = await self.tile_data(entry, kind, chosen, ask, inbox, tile)
             # The entities its entity options chose (0.15), under x.entities.<option id>: they share what the tile's
             # own entity and data leave of the room, so one with long attributes waits as too large on its own instead
-            # of taking the whole tile with it.
+            # of taking the whole tile with it. Data of items gives way to them up to half the room: its last items go
+            # (trimmed), never the place a radar or a map stands on (0.27).
             picked = [(option, chosen[option['id']]) for option in kind.get('options', ())
                       if option['kind'] == 'entity' and isinstance(chosen.get(option['id']), str) and chosen[option['id']]]
             entities = {}
             if picked:
                 left = room - json_size({**(part or {}), **(data or {}), 'entities': {}})
+                if isinstance((data or {}).get('items'), list):
+                    left = max(left, (room - json_size({**(part or {}), 'entities': {}})) // 2)
                 share = left // len(picked) - max(len(option['id']) for option, _ in picked) - 4
                 for option, selected in picked:
                     _, selected_part = self.state_part(option, selected, share, updated=True)

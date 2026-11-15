@@ -1023,6 +1023,23 @@ class EntityOptions(unittest.IsolatedAsyncioTestCase):
         self.assertLess(len(x['entities']['solar']['attributes']['forecast']), 2000)
         self.assertLessEqual(len(json.dumps(x, separators=(',', ':')).encode()), plugin_service_budget())
 
+    async def test_a_place_keeps_its_room_beside_a_long_list_whose_last_items_give_way(self):
+        # A radar's sky fills the room on its own; its place (an entity option) still goes, and the sky loses items.
+        self.states['zone.home'] = {'state': '2', 'attributes': {'friendly_name': 'Home', 'latitude': 52.37, 'longitude': 4.89}}
+        self.kind['options'][0]['domains'] = ['sensor', 'zone']
+        self.kind['options'][0]['attributes'] = ['latitude', 'longitude']
+        sky = {'items': [{'hex': f'{n:06x}', 'flight': f'KLM{n:04d}', 'lat': 52.3 + n / 1000, 'lon': 4.8 + n / 1000,
+                          'alt': 30000 + n, 'gs': 420.5, 'track': 270.1, 'dst': n / 10} for n in range(40)]}
+
+        async def full_sky(*args, **kwargs):
+            return sky
+        self.service.tile_data = full_sky
+        x = (await self.message({'grid': 'zone.home'}))['x']
+        self.assertEqual(x['entities']['grid']['attributes'], {'latitude': 52.37, 'longitude': 4.89})
+        self.assertGreater(len(x['items']), 5)
+        self.assertLess(len(x['items']), 40)
+        self.assertLessEqual(len(json.dumps(x, separators=(',', ':')).encode()), plugin_service_budget())
+
     async def test_a_choice_of_another_domain_is_left_out(self):
         x = (await self.message({'grid': 'light.kitchen'})).get('x') or {}
         self.assertNotIn('entities', x)
