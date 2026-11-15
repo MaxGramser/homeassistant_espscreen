@@ -279,6 +279,21 @@ describe("the screen's memory, as Library holds an add", () => {
     const plain = make(CYD).result.tiles, barred = make({ ...CYD, topbar: bar }).result.tiles;
     expect(barred).toBeLessThan(plain);
   });
+  it("adds nothing that costs memory after a draft that is past its room, and stays within it after one past nine tenths", () => {
+    const current = emptyLayout("CYD"), room = 6000;
+    current.pages[0].tiles = Array.from({ length: 6 }, (_, i): PageTile => ({ id: `own${i}`, content: { kind: "entity", entityId: "media_player.apple_tv" },
+      placement: { row: Math.floor(i / 2), column: i % 2, columns: 1, rows: 1 }, appearance: { label: "TV" }, interaction: {} }));
+    const existing = { tiles: projectLayout(current, { ...CYD.grid, pages: 8 }).tiles, pages: current.pages };
+    const screen = (share: number): AutoScreen => {
+      const need = memoryUse(existing.tiles, { ...CYD.memory!, room }, existing.pages).need;
+      return { ...CYD, pages: 7, memory: { ...CYD.memory!, room: Math.round(need / share), used: 0 } };
+    };
+    const past = autoLayout({ ...home(HOUSE, AREAS, FLOORS), screen: screen(1.1), existing });
+    expect(past.tiles).toBe(0);
+    const close = autoLayout({ ...home(HOUSE, AREAS, FLOORS), screen: screen(0.93), existing });
+    const after = memoryUse([...existing.tiles, ...projectLayout(close.layout, { ...CYD.grid, pages: 8 }).tiles], screen(0.93).memory!, [...existing.pages, ...close.layout.pages]);
+    expect(after.level).not.toBe("over");
+  });
   it("prices the pages that stay beside the new ones when they go after them", () => {
     const current = emptyLayout("CYD");
     current.pages[0].tiles = Array.from({ length: 6 }, (_, i): PageTile => ({ id: `own${i}`, content: { kind: "entity", entityId: "media_player.apple_tv" },

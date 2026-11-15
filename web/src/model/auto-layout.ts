@@ -13,7 +13,7 @@ import { t } from "../i18n";
 import type { Capability, Entity, Page, PageGrid, PageLayout, PageTile, ScreenMemory, Section } from "../types";
 import { controlOption, displayOption, drawable, fits, growOrder, ofType } from "./catalogue";
 import { versionAtLeast } from "./layout";
-import { memoryLine, memoryUse, type PricedPage, type PricedTile } from "./memory";
+import { memoryUse, proposalHolds, type PricedPage, type PricedTile } from "./memory";
 import type { PluginTileLookup } from "./plugins";
 import { instanceId, SECTION_TITLE_BYTES, SECTIONS_MAX, copyBar, emptyPage } from "./pages";
 import rules from "./page-rules.json";
@@ -768,9 +768,9 @@ function plainSheets(list: Unit[], grid: { columns: number; rows: number }, page
  * (largest rank, latest) going first; a rich card that costs too much becomes a plain one before it goes. */
 function trim(list: Unit[], input: AutoInput, pages: number, cells: number) {
   const screen = input.screen, all = list.flatMap((unit) => unit.tiles.map((tile, order) => ({ unit, tile, order })));
-  // The memory as Library holds an add (model/memory.ts memoryLine): the whole draft after the change against the whole
-  // draft before it, the new pages' top bars included (priced at the most pages the proposal may take), and no line
-  // crossed that the editor would ask about. A screen that is still measuring its room has no say yet.
+  // The memory as a proposal holds to it (model/memory.ts proposalHolds): the whole draft after the change against the
+  // whole draft before it, the new pages' top bars included (priced at the most pages the proposal may take), no line
+  // crossed that the editor would ask about and no higher level than it started at. A screen that is still measuring its room has no say yet.
   const memory = screen.memory && screen.memory.room !== null && screen.memory.room !== undefined ? screen.memory : null;
   const existing = input.existing ?? { tiles: [], pages: [] };
   const bar = { topbar: { trailing: screen.topbar?.trailing ?? [] } };
@@ -778,7 +778,7 @@ function trim(list: Unit[], input: AutoInput, pages: number, cells: number) {
   const before = memory ? memoryUse(existing.tiles, memory, existing.pages, input.plugins) : null;
   const priced = (item: { tile: Planned }): PricedTile => ({ entity: item.tile.candidate.id, options: {} });
   const crosses = (kept: typeof all) => memory !== null && before !== null &&
-    memoryLine(before, memoryUse([...existing.tiles, ...kept.map(priced)], memory, [...existing.pages, ...newPages], input.plugins)) !== null;
+    !proposalHolds(before, memoryUse([...existing.tiles, ...kept.map(priced)], memory, [...existing.pages, ...newPages], input.plugins));
   // Cells: a page leaves room unused around sections; aim at three quarters of them.
   const room = cells * 0.75;
   let kept = all.slice();

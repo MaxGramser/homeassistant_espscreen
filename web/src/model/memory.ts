@@ -86,6 +86,15 @@ export function memoryLine(before: MemoryUse, after: MemoryUse) {
   if (after.level === "over") return before.level === "over" ? null : { line: noRoom(after) ? "none" as const : "over" as const, share: after.share };
   return after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? { line: "close" as const, share: after.share } : null;
 }
+/** Whether a proposal (a first layout, a plan of Layoutbot) may take a layout from `before` to `after`: stricter than an add,
+ * because nobody is asked on the way. It crosses no line (memoryLine) and ends no higher than it started: a layout below
+ * nine tenths stays below them, one between nine tenths and all of the room stays within the room, and one past all of it
+ * gets nothing more that costs memory. */
+export function proposalHolds(before: MemoryUse, after: MemoryUse) {
+  if (before.level === "over") return after.need <= before.need;
+  if (before.share >= NEARLY_FULL) return after.level !== "over";
+  return memoryLine(before, after) === null && after.share < NEARLY_FULL;
+}
 
 /** Kilobytes as the editor shows them: whole numbers, rounded up for what is needed, down for what there is. */
 export const kilobytes = (bytes: number, up = false) => (up ? Math.ceil(bytes / 1024) : Math.floor(bytes / 1024));

@@ -77,7 +77,9 @@ features such as `light_presets`, `vacuum_tile` and `live_camera`, its `tile_siz
 The layout stays within the screen's pages and tiles, and keeps about one tile in seven of the screen's ceiling free for
 what the person adds. On a screen that reports its memory for tiles (docs/TILE_MEMORY.md) it holds to the rule every add
 holds to, `memoryLine` in `web/src/model/memory.ts`: the whole draft after the proposal, its new pages' top bars included,
-against the whole draft before it, crossing no line the editor would ask about (nine tenths of the room, or all of it).
+against the whole draft before it, crossing no line the editor would ask about (nine tenths of the room, or all of it), and ending no higher than it started
+(`proposalHolds`): a draft past nine tenths gets pages that keep it within its room, one past its room nothing that costs
+memory.
 Pages that go after the screen's own are priced beside them. A screen still measuring its room has no say yet. When room
 runs short, the least wanted go first, in this order: binary sensors, sensors and scenes, the calendar,
 people and switches, covers, locks, cameras and lists, lights and players, and the alarm and climate last; the dialog

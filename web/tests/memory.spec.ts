@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../../tests/fixtures/memory-conformance.json";
 import { TILE, TYPES } from "../src/model/catalogue";
-import { barEntities, kilobytes, layoutCost, measuring, memoryCrossing, memoryLine, memoryUse, NEARLY_FULL, noRoom, NO_ROOM_SHARE, tileCost } from "../src/model/memory";
+import { barEntities, kilobytes, layoutCost, measuring, memoryCrossing, memoryLine, memoryUse, proposalHolds, NEARLY_FULL, noRoom, NO_ROOM_SHARE, tileCost } from "../src/model/memory";
 import type { ScreenMemory } from "../src/types";
 
 // A screen's memory for tiles (firmware 0.34.0+): priced by the tile catalogue as the screen and the add-on price it
@@ -17,6 +17,22 @@ describe("the line a change crosses", () => {
     expect(memoryLine(use(0.95, "close"), use(0.97, "close"))).toBeNull();
     expect(memoryLine(use(0.95, "close"), use(1.2, "over"))?.line).toBe("over");
     expect(memoryLine(use(1.2, "over"), use(1.4, "over"))).toBeNull();
+  });
+});
+
+describe("what a proposal may add", () => {
+  const use = (share: number, level: "fine" | "close" | "full" | "over" = "fine") => ({ need: share * 100, room: 100, share, level });
+  it("below nine tenths: stays below them", () => {
+    expect(proposalHolds(use(0.5), use(0.85, "close"))).toBe(true);
+    expect(proposalHolds(use(0.5), use(0.91, "close"))).toBe(false);
+  });
+  it("between nine tenths and all of the room: stays within the room, where an add would not be asked again", () => {
+    expect(proposalHolds(use(0.92, "close"), use(0.99, "full"))).toBe(true);
+    expect(proposalHolds(use(0.92, "close"), use(1.05, "over"))).toBe(false);
+  });
+  it("past all of the room: nothing more that costs memory", () => {
+    expect(proposalHolds(use(1.2, "over"), use(1.2, "over"))).toBe(true);
+    expect(proposalHolds(use(1.2, "over"), use(1.21, "over"))).toBe(false);
   });
 });
 
