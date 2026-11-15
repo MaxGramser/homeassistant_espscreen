@@ -18,7 +18,7 @@ import time
 
 import catalogue
 import tile_icons
-from page_layout import LayoutError, all_tiles, new_id, placed_tiles, sections_of, validate_document
+from page_layout import LayoutError, all_tiles, new_id, placed_tiles, sections_of, section_of, tiles_in, validate_document
 
 # The longest sentence the editor sends, and how long an answer may take: an AI Task of a cloud model answered in 2 to
 # 15 seconds on a home of 1000 entities (docs/LAYOUTBOT.md, "Measured"); a local model on small hardware takes longer.
@@ -153,9 +153,10 @@ def page_lines(document):
     for number, page in enumerate(document["pages"], 1):
         title = page["topbar"]["title"].get("text")
         parts = [f'page {number} "{title}"' if title else f"page {number} (no title of its own)"]
-        if page["tiles"]:
-            parts.append("tiles: " + ", ".join(map(_shown, page["tiles"])))
-        parts += [f'section "{s["title"]}": ' + ", ".join(map(_shown, s["tiles"])) for s in sections_of(page)]
+        loose = [tile for tile in page["tiles"] if section_of(page, tile) is None]
+        if loose:
+            parts.append("tiles: " + ", ".join(map(_shown, loose)))
+        parts += [f'section "{s["title"]}": ' + ", ".join(map(_shown, tiles_in(page, s))) for s in sections_of(page)]
         out.append("; ".join(parts))
     return "\n".join(out)
 
@@ -340,25 +341,26 @@ class _Plan:
             part, entities = entities[:width * rows], entities[width * rows:]
             tiles = [_tile(entity) for entity in part]
             for i, tile in enumerate(tiles):
-                tile["placement"].update(row=i // width, column=i % width)
+                tile["placement"].update(row=corner[0] + i // width, column=corner[1] + i % width)
             block = {"id": new_id(), "title": title, "placement":
-                     {"row": corner[0], "column": corner[1], "columns": width, "rows": math.ceil(len(part) / width)},
-                     "tiles": tiles}
+                     {"row": corner[0], "column": corner[1], "columns": width, "rows": math.ceil(len(part) / width)}}
             if icon:
                 block["icon"] = icon
             page.setdefault("sections", []).append(block)
+            page["tiles"] += tiles   # a section's tiles are the page's, in its block (page_layout.section_of)
         return page
 
-    def into_section(self, section, entities):
+    def into_section(self, page, section, entities):
         """More tiles in an existing section's free cells (growing it is the editor's own drop rule)."""
         p = section["placement"]
-        taken = {(t["placement"]["row"] + dr, t["placement"]["column"] + dc) for t in section["tiles"]
+        taken = {(t["placement"]["row"] + dr, t["placement"]["column"] + dc) for t in tiles_in(page, section)
                  for dr in range(t["placement"]["rows"]) for dc in range(t["placement"]["columns"])}
-        free = [(r, c) for r in range(p["rows"]) for c in range(p["columns"]) if (r, c) not in taken]
+        free = [(r, c) for r in range(p["row"], p["row"] + p["rows"]) for c in range(p["column"], p["column"] + p["columns"])
+                if (r, c) not in taken]
         for entity, (r, c) in zip(entities, free):
             tile = _tile(entity)
             tile["placement"].update(row=r, column=c)
-            section["tiles"].append(tile)
+            page["tiles"].append(tile)
         if len(entities) > len(free):
             self.note("section_full", section=section["title"], count=len(entities) - len(free))
 
@@ -400,7 +402,7 @@ class _Plan:
             # loose tile there stays where it stands (models restate a page's tiles). A page never shows it twice.
             # One the plan names in a section it already stands in stays as it is, its size and label kept: models
             # restate a section's tiles ("add the desk lamp to Lights" names every light of Lights).
-            standing = {s["title"].lower(): {t["content"].get("entityId") for t in s["tiles"]} for s in sections_of(page)}
+            standing = {s["title"].lower(): {t["content"].get("entityId") for t in tiles_in(page, s)} for s in sections_of(page)}
             moved = {e for section in item.get("sections") or [] if isinstance(section, dict)
                      for e in section.get("entities") or []
                      if e not in standing.get(_text(section.get("title"), 48).lower(), set())}
@@ -434,7 +436,7 @@ class _Plan:
                 continue
             existing = next((s for s in sections_of(page) if s["title"].lower() == name.lower()), None)
             if existing:
-                self.into_section(existing, entities)
+                self.into_section(page, existing, entities)
             else:
                 self.section(page, name or "Section", _icon(section.get("icon")), entities, grow=False)
         self.loose(page, self.entities(item.get("tiles")), grow=False)
@@ -547,14 +549,13 @@ class _Plan:
                             else:
                                 grown = True
             for title, icon, tiles, columns, rows, top, left in self.pack(here, rungs):
+                for tile in tiles:
+                    tile["placement"]["row"] += top
+                    tile["placement"]["column"] += left
+                page["tiles"] += tiles
                 if title is None:
-                    for tile in tiles:
-                        tile["placement"]["row"] += top
-                        tile["placement"]["column"] += left
-                    page["tiles"] += tiles
                     continue
-                block = {"id": new_id(), "title": title, "placement": {"row": top, "column": left, "columns": columns, "rows": rows},
-                         "tiles": tiles}
+                block = {"id": new_id(), "title": title, "placement": {"row": top, "column": left, "columns": columns, "rows": rows}}
                 if icon:
                     block["icon"] = icon
                 page.setdefault("sections", []).append(block)
@@ -573,11 +574,9 @@ class _Plan:
     def take_off(page, gone):
         if gone:
             page["tiles"] = [t for t in page["tiles"] if t["content"].get("entityId") not in gone]
-        for section in sections_of(page):
-            section["tiles"] = [t for t in section["tiles"] if t["content"].get("entityId") not in gone]
         # A section left without tiles goes, as "Remove section" leaves nothing behind.
         if "sections" in page:
-            page["sections"] = [s for s in page["sections"] if s["tiles"]]
+            page["sections"] = [s for s in page["sections"] if tiles_in(page, s)]
             if not page["sections"]:
                 del page["sections"]
 

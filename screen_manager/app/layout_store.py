@@ -17,7 +17,7 @@ import threading
 import atomic
 from i18n import t
 from core import validate_settings
-from page_layout import FORMAT, LayoutError, fingerprint, grid_of_record, new_id, screen_grid_of_record, validate_document
+from page_layout import FORMAT, LayoutError, fingerprint, flattened, grid_of_record, new_id, screen_grid_of_record, validate_document
 from layout_migrations import migrate_legacy
 
 VERSION = 3
@@ -207,9 +207,19 @@ class LayoutStore:
             self._backup(original)
             self._replace(records)
         else:
-            self._validate_records(envelope["screens"])
-            self._records = envelope["screens"]
-            self._stamp = stamp
+            # Sections that hold tiles of their own (their first form, on dev only) become the form kept now, a tile on
+            # its page at its own cell; the file as it was stays beside it as screens.v3.backup.json.
+            records, converted = envelope["screens"], False
+            for record in records.values():
+                if isinstance(record, dict) and record.get("format") == FORMAT:
+                    converted = flattened(record.get("layout"))[1] or converted
+            self._validate_records(records)
+            if converted:
+                self._backup(original, VERSION)
+                self._replace(records)
+            else:
+                self._records = records
+                self._stamp = stamp
 
     @staticmethod
     def _validate_records(records):

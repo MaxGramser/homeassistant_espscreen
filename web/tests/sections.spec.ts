@@ -1,9 +1,10 @@
 // Sections on a page (docs/PAGES.md "Sections", model/sections.ts): the rows they make, and every edit a section takes,
 // over the slot view and back into the document through arrangeTiles, as the editor does it.
 import { describe, expect, it } from "vitest";
-import type { Page, PageGrid, PageLayout, PageTile } from "../src/types";
-import { adaptGrid, arrangeTiles, emptyLayout, projectLayout, removeSection, validatePages } from "../src/model/pages";
+import type { Page, PageGrid, PageLayout, PageTile, Section } from "../src/types";
+import { adaptGrid, arrangeTiles, emptyLayout, looseTiles, projectLayout, removeSection, tilesIn, validatePages } from "../src/model/pages";
 import { createLayout, sectionTile } from "../src/model/layout";
+import { readKept } from "../src/model/kept-draft";
 import { emptySection, insertIntoSection, insideMargins, looseBeside, looseRowAbove, makeSection, movedSection, packTiles, resizeSection, roundDiv,
   type SectionEdit } from "../src/model/sections";
 
@@ -11,12 +12,22 @@ const grid: PageGrid = { columns: 4, rows: 3 };
 let n = 0;
 const tile = (entity: string, row: number, column: number, columns = 1, rows = 1): PageTile => ({ id: `t${++n}`, content: { kind: "entity", entityId: entity },
   placement: { row, column, columns, rows }, appearance: { label: entity }, interaction: {} });
-function layoutOf(tiles: PageTile[], sections?: Page["sections"], g = grid): PageLayout {
+// A test names a section with the tiles in it, each placed from the section's corner, because that reads well. The
+// document keeps none of that: every tile stands on its page at its own cell, and is its section's by lying in its block.
+type Named = Section & { tiles?: PageTile[] };
+function layoutOf(tiles: PageTile[], sections?: Named[], g = grid): PageLayout {
   const layout = emptyLayout("House");
-  layout.pages[0].tiles = tiles;
-  if (sections) layout.pages[0].sections = sections;
+  layout.pages[0].tiles = [...tiles];
+  for (const { tiles: mine = [], ...section } of sections ?? []) {
+    (layout.pages[0].sections ??= []).push(section);
+    for (const t of mine) layout.pages[0].tiles.push({ ...t, placement: { ...t.placement, row: t.placement.row + section.placement.row,
+      column: t.placement.column + section.placement.column } });
+  }
   return validatePages(layout, g);
 }
+/** A section's tiles as a test reads them: placed from the section's corner. */
+const held = (page: Page, section: Section): PageTile[] => tilesIn(page, section).map((t) => ({ ...t, placement: { ...t.placement,
+  row: t.placement.row - section.placement.row, column: t.placement.column - section.placement.column } }));
 const applied = (layout: PageLayout, edit: SectionEdit, g = grid) => {
   if ("refused" in edit) throw new Error(edit.refused);
   return arrangeTiles(layout, g, edit.entries, edit.blocks);
@@ -42,7 +53,8 @@ describe("adding an empty section", () => {
     const view = projectLayout(layout, grid);
     const result = applied(layout, emptySection(view, grid, 0, { row: 1, column: 3 }, "New"));
     const section = result.pages[0].sections![0];
-    expect(section).toMatchObject({ title: "New", tiles: [], placement: { row: 0, column: 2, columns: 2, rows: 2 } });
+    expect(section).toMatchObject({ title: "New", placement: { row: 0, column: 2, columns: 2, rows: 2 } });
+    expect(tilesIn(result.pages[0], section)).toEqual([]);
     expect(cells(result)).toEqual(cells(layout));
   });
   it("gets smaller where the cell has no room around it, and refuses a page with no free cell", () => {
@@ -68,8 +80,8 @@ describe("making a section of chosen tiles", () => {
     const result = applied(layout, makeSection(view, grid, chosen, "Lights"));
     const section = result.pages[0].sections![0];
     expect(section).toMatchObject({ title: "Lights", placement: { row: 0, column: 0, columns: 2, rows: 1 } });
-    expect(section.tiles.map((t) => t.placement)).toEqual([{ row: 0, column: 0, columns: 1, rows: 1 }, { row: 0, column: 1, columns: 1, rows: 1 }]);
-    expect(result.pages[0].tiles.map((t) => t.content)).toEqual([{ kind: "entity", entityId: "lock.c" }]);
+    expect(held(result.pages[0], section).map((t) => t.placement)).toEqual([{ row: 0, column: 0, columns: 1, rows: 1 }, { row: 0, column: 1, columns: 1, rows: 1 }]);
+    expect(looseTiles(result.pages[0]).map((t) => t.content)).toEqual([{ kind: "entity", entityId: "lock.c" }]);
     // The slots the screen gets are the ones it had: a section adds its block, never moves a tile in place.
     expect(cells(result)).toEqual(cells(layout));
   });
@@ -147,6 +159,20 @@ describe("loose tiles beside sections", () => {
   });
 });
 
+describe("a draft from the days sections held their own tiles", () => {
+  it("comes back with every tile on its page at its own cell", () => {
+    const layout = layoutOf([tile("lock.a", 0, 0)]);
+    const first = JSON.parse(JSON.stringify(layout));
+    first.pages[0].sections = [{ id: "5ec7000000000001", title: "Lights", placement: { row: 1, column: 1, columns: 2, rows: 1 },
+      tiles: [tile("light.a", 0, 0), tile("light.b", 0, 1)] }];
+    const kept = readKept(JSON.stringify({ v: 1, tab: "t", revision: null, at: 1, layout: first, grid }))!;
+    const page = validatePages(kept.layout, grid).pages[0];
+    expect(page.tiles.map((t) => [t.placement.row, t.placement.column])).toEqual([[0, 0], [1, 1], [1, 2]]);
+    expect(tilesIn(page, page.sections![0]).length).toBe(2);
+    expect("tiles" in page.sections![0]).toBe(false);
+  });
+});
+
 describe("a grid change with sections", () => {
   it("keeps a section's place where it is free and moves it whole otherwise", () => {
     const layout = layoutOf([tile("lock.a", 0, 0)], [{ id: "5ec7000000000001", title: "Lights", placement: { row: 1, column: 1, columns: 3, rows: 2 },
@@ -155,9 +181,9 @@ describe("a grid change with sections", () => {
     expect(kept.pages[0].sections![0].placement).toEqual({ row: 1, column: 1, columns: 3, rows: 2 });
     // Two columns: the section is too wide, gets narrower, and its tiles go in reading order.
     const narrow = adaptGrid(layout, grid, { columns: 2, rows: 4 });
-    const section = narrow.pages.flatMap((p) => p.sections ?? [])[0];
+    const page = narrow.pages.find((p) => p.sections?.length)!, section = page.sections![0];
     expect(section.placement.columns).toBe(2);
-    expect(section.tiles.map((t) => [t.placement.row, t.placement.column])).toEqual([[0, 0], [0, 1], [1, 0]]);
+    expect(held(page, section).map((t) => [t.placement.row, t.placement.column]).sort()).toEqual([[0, 0], [0, 1], [1, 0]]);
   });
   it("leaves a page without sections exactly as before", () => {
     const layout = layoutOf([tile("lock.a", 0, 3), tile("lock.b", 2, 2)]);
@@ -185,23 +211,23 @@ describe("a tile dropped into a section, as an app into a folder", () => {
     const result = applied(layout, insertIntoSection(view, grid, moving, "5ec7000000000001", 1));
     const lights = result.pages[0].sections![0];
     expect(lights.placement.rows).toBe(2);
-    expect(lights.tiles.map((t) => [t.content.kind === "entity" && t.content.entityId, t.placement.row, t.placement.column]))
+    expect(held(result.pages[0], lights).map((t) => [t.content.kind === "entity" && t.content.entityId, t.placement.row, t.placement.column]))
       .toEqual(expect.arrayContaining([["light.a", 0, 0], ["lock.y", 0, 1], ["light.b", 1, 0]]));
-    expect(result.pages[0].tiles.map((t) => t.content.kind === "entity" && t.content.entityId)).toEqual(["lock.x"]);
+    expect(looseTiles(result.pages[0]).map((t) => t.content.kind === "entity" && t.content.entityId)).toEqual(["lock.x"]);
   });
   it("goes from one section into another", () => {
     const layout = full(), view = projectLayout(layout, grid);
     const moving = view.tiles.find((t) => t.entity === "light.b")!;
     const result = applied(layout, insertIntoSection(view, grid, moving, "5ec7000000000002", 3));
     const doors = result.pages[0].sections![1];
-    expect(doors.tiles.map((t) => t.content.kind === "entity" && t.content.entityId).sort()).toEqual(["light.b", "lock.d"]);
-    expect(result.pages[0].sections![0].tiles.length).toBe(1);
+    expect(tilesIn(result.pages[0], doors).map((t) => t.content.kind === "entity" && t.content.entityId).sort()).toEqual(["light.b", "lock.d"]);
+    expect(tilesIn(result.pages[0], result.pages[0].sections![0]).length).toBe(1);
   });
   it("takes a new tile from the library", () => {
     const layout = full(), view = projectLayout(layout, grid);
     const fresh = { entity: "light.new", name: "New", slot: -1 };
     const result = applied(layout, insertIntoSection(view, grid, fresh, "5ec7000000000002", 3));
-    expect(result.pages[0].sections![1].tiles.map((t) => t.content.kind === "entity" && t.content.entityId)).toContain("light.new");
+    expect(tilesIn(result.pages[0], result.pages[0].sections![1]).map((t) => t.content.kind === "entity" && t.content.entityId)).toContain("light.new");
   });
 });
 

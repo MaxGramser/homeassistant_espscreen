@@ -81,7 +81,8 @@ from i18n import REQUEST_LANGUAGE, TRANSLATIONS, Region, english, screen_t, show
 from zoneinfo import ZoneInfo
 from layout_store import LayoutStore, Conflict
 from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, compile_tiles, grid_of_record, screen_grid_of_record,
-                         legacy_projection, legacy_edit, validate_document, bar_items, replace_tiles, CompiledLayouts, fingerprint)
+                         legacy_projection, legacy_edit, validate_document, bar_items, replace_tiles, CompiledLayouts, fingerprint,
+                         flattened)
 from layout_migrations import migrate_legacy
 import page_delivery
 import page_service
@@ -5079,7 +5080,7 @@ def create_app(manager, development=False):
                 raise LayoutError(t('addon.errors.layout.invalid'))
             grid = grid_of_record(source)
             record = {'format': PAGE_FORMAT, 'sourceGrid': source['sourceGrid'],
-                      'layout': validate_document(source.get('layout'), grid), 'revision': ''}
+                      'layout': validate_document(flattened(source.get('layout'))[0], grid), 'revision': ''}
             if 'editor' in source:
                 editor = source['editor']
                 if not isinstance(editor, dict) or set(editor) != {'positions'}:

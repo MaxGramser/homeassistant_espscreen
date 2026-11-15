@@ -28,7 +28,7 @@ class FirstLayouts(unittest.TestCase):
         for case in DOCUMENTS:
             for page in case['layout']['pages']:
                 for section in page_layout.sections_of(page):
-                    self.assertGreater(len(section['tiles']), 1, section['title'])
+                    self.assertGreater(len(page_layout.tiles_in(page, section)), 1, section['title'])
 
     def test_sections_only_where_the_grid_has_room(self):
         for case in DOCUMENTS:

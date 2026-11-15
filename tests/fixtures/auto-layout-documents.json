@@ -18,6 +18,110 @@
        "id": "0000000000000002",
        "content": {
         "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000003",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000004",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000005",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000006",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000007",
+       "content": {
+        "kind": "entity",
+        "entityId": "binary_sensor.balcony_door"
+       },
+       "appearance": {
+        "label": "Balcony door"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000008",
+       "content": {
+        "kind": "entity",
         "entityId": "climate.airco"
        },
        "appearance": {
@@ -34,7 +138,44 @@
        }
       },
       {
-       "id": "0000000000000003",
+       "id": "0000000000000009",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000000a",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {
+        "controls": "playback"
+       },
+       "placement": {
+        "row": 4,
+        "column": 3,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000000b",
        "content": {
         "kind": "entity",
         "entityId": "vacuum.robot"
@@ -56,7 +197,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000004",
+        "id": "000000000000000c",
         "kind": "home"
        }
       ],
@@ -66,7 +207,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000005",
+        "id": "000000000000000d",
         "type": "clock"
        }
       ]
@@ -74,7 +215,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "0000000000000006",
+       "id": "000000000000000e",
        "title": "Lights",
        "icon": "lightbulb-group",
        "summary": "sensor.living_room_temperature",
@@ -83,116 +224,10 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "0000000000000007",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness_presets"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000008",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_ceiling"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000009",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_table"
-         },
-         "appearance": {
-          "label": "Table lamp"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000000a",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000000b",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_2"
-         },
-         "appearance": {
-          "label": "Spot 2"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000000c",
-         "content": {
-          "kind": "entity",
-          "entityId": "binary_sensor.balcony_door"
-         },
-         "appearance": {
-          "label": "Balcony door"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "000000000000000d",
+       "id": "000000000000000f",
        "title": "Media",
        "icon": "music",
        "placement": {
@@ -200,46 +235,7 @@
         "column": 3,
         "columns": 2,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "000000000000000e",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_living"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "000000000000000f",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.apple_tv"
-         },
-         "appearance": {
-          "label": "Apple TV"
-         },
-         "interaction": {
-          "controls": "playback"
-         },
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -271,6 +267,75 @@
        "id": "0000000000000012",
        "content": {
         "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000013",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.garden"
+       },
+       "appearance": {
+        "label": "Garden",
+        "display": "live"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000014",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000015",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000016",
+       "content": {
+        "kind": "entity",
         "entityId": "sensor.power_consumption"
        },
        "appearance": {
@@ -287,7 +352,7 @@
        }
       },
       {
-       "id": "0000000000000013",
+       "id": "0000000000000017",
        "content": {
         "kind": "entity",
         "entityId": "calendar.birthdays"
@@ -310,7 +375,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000014",
+        "id": "0000000000000018",
         "kind": "home"
        }
       ],
@@ -320,7 +385,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000015",
+        "id": "0000000000000019",
         "type": "clock"
        }
       ]
@@ -328,7 +393,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "0000000000000016",
+       "id": "000000000000001a",
        "title": "Security",
        "icon": "shield-home",
        "placement": {
@@ -336,47 +401,10 @@
         "column": 2,
         "columns": 2,
         "rows": 5
-       },
-       "tiles": [
-        {
-         "id": "0000000000000017",
-         "content": {
-          "kind": "entity",
-          "entityId": "alarm_control_panel.house"
-         },
-         "appearance": {
-          "label": "Alarm"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000018",
-         "content": {
-          "kind": "entity",
-          "entityId": "camera.garden"
-         },
-         "appearance": {
-          "label": "Garden",
-          "display": "live"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "0000000000000019",
+       "id": "000000000000001b",
        "title": "Who is home",
        "icon": "home-account",
        "placement": {
@@ -384,43 +412,7 @@
         "column": 4,
         "columns": 1,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "000000000000001a",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ann"
-         },
-         "appearance": {
-          "label": "Ann"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000001b",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ben"
-         },
-         "appearance": {
-          "label": "Ben"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -432,6 +424,76 @@
      "tiles": [
       {
        "id": "000000000000001d",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000001e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000001f",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000020",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000021",
        "content": {
         "kind": "entity",
         "entityId": "light.hall"
@@ -446,12 +508,98 @@
         "columns": 1,
         "rows": 1
        }
+      },
+      {
+       "id": "0000000000000022",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000023",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000024",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000025",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000026",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
       }
      ],
      "topbar": {
       "leading": [
        {
-        "id": "000000000000001e",
+        "id": "0000000000000027",
         "kind": "home"
        }
       ],
@@ -461,14 +609,14 @@
       },
       "trailing": [
        {
-        "id": "000000000000001f",
+        "id": "0000000000000028",
         "type": "clock"
        }
       ]
      },
      "sections": [
       {
-       "id": "0000000000000020",
+       "id": "0000000000000029",
        "title": "Kitchen",
        "icon": "silverware-fork-knife",
        "summary": "sensor.kitchen_temperature",
@@ -477,82 +625,10 @@
         "column": 0,
         "columns": 4,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "0000000000000021",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness_presets"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000022",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_counter"
-         },
-         "appearance": {
-          "label": "Counter"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000023",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_spot"
-         },
-         "appearance": {
-          "label": "Spot"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 3,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000024",
-         "content": {
-          "kind": "entity",
-          "entityId": "switch.coffee"
-         },
-         "appearance": {
-          "label": "Coffee machine"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "0000000000000025",
+       "id": "000000000000002a",
        "title": "Bathroom",
        "icon": "shower",
        "placement": {
@@ -560,46 +636,10 @@
         "column": 4,
         "columns": 1,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "0000000000000026",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000027",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_mirror"
-         },
-         "appearance": {
-          "label": "Mirror"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "0000000000000028",
+       "id": "000000000000002b",
        "title": "Bedroom",
        "icon": "bed",
        "summary": "sensor.bedroom_temperature",
@@ -608,61 +648,7 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "0000000000000029",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_bedroom"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "000000000000002a",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bedroom"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000002b",
-         "content": {
-          "kind": "entity",
-          "entityId": "cover.curtains"
-         },
-         "appearance": {
-          "label": "Curtains"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -732,6 +718,127 @@
        "id": "0000000000000031",
        "content": {
         "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000032",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.lounge_group"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000033",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000034",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000035",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000036",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000037",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_3"
+       },
+       "appearance": {
+        "label": "Spot 3"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000038",
+       "content": {
+        "kind": "entity",
         "entityId": "climate.airco"
        },
        "appearance": {
@@ -748,7 +855,41 @@
        }
       },
       {
-       "id": "0000000000000032",
+       "id": "0000000000000039",
+       "content": {
+        "kind": "entity",
+        "entityId": "binary_sensor.balcony_door"
+       },
+       "appearance": {
+        "label": "Balcony door"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000003a",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.evening"
+       },
+       "appearance": {
+        "label": "Evening"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000003b",
        "content": {
         "kind": "entity",
         "entityId": "vacuum.robot"
@@ -767,7 +908,7 @@
        }
       },
       {
-       "id": "0000000000000033",
+       "id": "000000000000003c",
        "content": {
         "kind": "entity",
         "entityId": "sensor.power_consumption"
@@ -789,7 +930,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000034",
+        "id": "000000000000003d",
         "kind": "home"
        }
       ],
@@ -799,7 +940,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000035",
+        "id": "000000000000003e",
         "type": "clock"
        }
       ]
@@ -807,7 +948,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "0000000000000036",
+       "id": "000000000000003f",
        "title": "Lights",
        "icon": "lightbulb-group",
        "summary": "sensor.living_room_temperature",
@@ -816,133 +957,10 @@
         "column": 0,
         "columns": 5,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "0000000000000037",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness_presets"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000038",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.lounge_group"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000039",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_ceiling"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 3,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000003a",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_table"
-         },
-         "appearance": {
-          "label": "Table lamp"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 4,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000003b",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000003c",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_2"
-         },
-         "appearance": {
-          "label": "Spot 2"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 3,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000003d",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_3"
-         },
-         "appearance": {
-          "label": "Spot 3"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 4,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "000000000000003e",
+       "id": "0000000000000040",
        "title": "Devices",
        "icon": "power-plug",
        "placement": {
@@ -950,43 +968,7 @@
         "column": 2,
         "columns": 3,
         "rows": 1
-       },
-       "tiles": [
-        {
-         "id": "000000000000003f",
-         "content": {
-          "kind": "entity",
-          "entityId": "binary_sensor.balcony_door"
-         },
-         "appearance": {
-          "label": "Balcony door"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000040",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.evening"
-         },
-         "appearance": {
-          "label": "Evening"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -998,6 +980,147 @@
      "tiles": [
       {
        "id": "0000000000000042",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000043",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {
+        "controls": "playback"
+       },
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000044",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.lg_oled"
+       },
+       "appearance": {
+        "label": "LG Oled"
+       },
+       "interaction": {
+        "controls": "playback"
+       },
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000045",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000046",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000047",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.cleo"
+       },
+       "appearance": {
+        "label": "Cleo"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000048",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.dan"
+       },
+       "appearance": {
+        "label": "Dan"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000049",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.eve"
+       },
+       "appearance": {
+        "label": "Eve"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 4,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000004a",
        "content": {
         "kind": "entity",
         "entityId": "todo.shopping_list"
@@ -1014,7 +1137,7 @@
        }
       },
       {
-       "id": "0000000000000043",
+       "id": "000000000000004b",
        "content": {
         "kind": "entity",
         "entityId": "weather.home"
@@ -1035,7 +1158,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000044",
+        "id": "000000000000004c",
         "kind": "home"
        }
       ],
@@ -1045,7 +1168,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000045",
+        "id": "000000000000004d",
         "type": "clock"
        }
       ]
@@ -1053,7 +1176,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "0000000000000046",
+       "id": "000000000000004e",
        "title": "Media",
        "icon": "music",
        "placement": {
@@ -1061,68 +1184,10 @@
         "column": 0,
         "columns": 4,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "0000000000000047",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_living"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000048",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.apple_tv"
-         },
-         "appearance": {
-          "label": "Apple TV"
-         },
-         "interaction": {
-          "controls": "playback"
-         },
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000049",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.lg_oled"
-         },
-         "appearance": {
-          "label": "LG Oled"
-         },
-         "interaction": {
-          "controls": "playback"
-         },
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 2,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "000000000000004a",
+       "id": "000000000000004f",
        "title": "Who is home",
        "icon": "home-account",
        "placement": {
@@ -1130,94 +1195,7 @@
         "column": 4,
         "columns": 1,
         "rows": 5
-       },
-       "tiles": [
-        {
-         "id": "000000000000004b",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ann"
-         },
-         "appearance": {
-          "label": "Ann"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000004c",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ben"
-         },
-         "appearance": {
-          "label": "Ben"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000004d",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.cleo"
-         },
-         "appearance": {
-          "label": "Cleo"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000004e",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.dan"
-         },
-         "appearance": {
-          "label": "Dan"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 3,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000004f",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.eve"
-         },
-         "appearance": {
-          "label": "Eve"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 4,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -1226,11 +1204,64 @@
      "navigation": {
       "excludeFromPagination": false
      },
-     "tiles": [],
+     "tiles": [
+      {
+       "id": "0000000000000051",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000052",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.front"
+       },
+       "appearance": {
+        "label": "Living room",
+        "display": "live"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000053",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.garden"
+       },
+       "appearance": {
+        "label": "Garden"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ],
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000051",
+        "id": "0000000000000054",
         "kind": "home"
        }
       ],
@@ -1240,7 +1271,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000052",
+        "id": "0000000000000055",
         "type": "clock"
        }
       ]
@@ -1248,7 +1279,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "0000000000000053",
+       "id": "0000000000000056",
        "title": "Security",
        "icon": "shield-home",
        "placement": {
@@ -1256,61 +1287,7 @@
         "column": 0,
         "columns": 5,
         "rows": 5
-       },
-       "tiles": [
-        {
-         "id": "0000000000000054",
-         "content": {
-          "kind": "entity",
-          "entityId": "alarm_control_panel.house"
-         },
-         "appearance": {
-          "label": "Alarm"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000055",
-         "content": {
-          "kind": "entity",
-          "entityId": "camera.front"
-         },
-         "appearance": {
-          "label": "Living room",
-          "display": "live"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000056",
-         "content": {
-          "kind": "entity",
-          "entityId": "camera.garden"
-         },
-         "appearance": {
-          "label": "Garden"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -1322,6 +1299,76 @@
      "tiles": [
       {
        "id": "0000000000000058",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000059",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005a",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005b",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005c",
        "content": {
         "kind": "entity",
         "entityId": "light.hall"
@@ -1336,12 +1383,115 @@
         "columns": 1,
         "rows": 1
        }
+      },
+      {
+       "id": "000000000000005d",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005f",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.boiler"
+       },
+       "appearance": {
+        "label": "Boiler"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000060",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000061",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000062",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
       }
      ],
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000059",
+        "id": "0000000000000063",
         "kind": "home"
        }
       ],
@@ -1351,14 +1501,14 @@
       },
       "trailing": [
        {
-        "id": "000000000000005a",
+        "id": "0000000000000064",
         "type": "clock"
        }
       ]
      },
      "sections": [
       {
-       "id": "000000000000005b",
+       "id": "0000000000000065",
        "title": "Kitchen",
        "icon": "silverware-fork-knife",
        "summary": "sensor.kitchen_temperature",
@@ -1367,82 +1517,10 @@
         "column": 0,
         "columns": 4,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "000000000000005c",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness_presets"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "000000000000005d",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_counter"
-         },
-         "appearance": {
-          "label": "Counter"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000005e",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_spot"
-         },
-         "appearance": {
-          "label": "Spot"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 3,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000005f",
-         "content": {
-          "kind": "entity",
-          "entityId": "switch.coffee"
-         },
-         "appearance": {
-          "label": "Coffee machine"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "0000000000000060",
+       "id": "0000000000000066",
        "title": "Bathroom",
        "icon": "shower",
        "placement": {
@@ -1450,63 +1528,10 @@
         "column": 4,
         "columns": 1,
         "rows": 4
-       },
-       "tiles": [
-        {
-         "id": "0000000000000061",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000062",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_mirror"
-         },
-         "appearance": {
-          "label": "Mirror"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000063",
-         "content": {
-          "kind": "entity",
-          "entityId": "switch.boiler"
-         },
-         "appearance": {
-          "label": "Boiler"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "0000000000000064",
+       "id": "0000000000000067",
        "title": "Bedroom",
        "icon": "bed",
        "summary": "sensor.bedroom_temperature",
@@ -1515,61 +1540,7 @@
         "column": 0,
         "columns": 4,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "0000000000000065",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_bedroom"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 2
-         }
-        },
-        {
-         "id": "0000000000000066",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bedroom"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000067",
-         "content": {
-          "kind": "entity",
-          "entityId": "cover.curtains"
-         },
-         "appearance": {
-          "label": "Curtains"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 3,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -1617,12 +1588,114 @@
         "columns": 2,
         "rows": 2
        }
+      },
+      {
+       "id": "000000000000006b",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.dinner"
+       },
+       "appearance": {
+        "label": "Dinner"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006c",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.morning"
+       },
+       "appearance": {
+        "label": "Morning"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006d",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.movie"
+       },
+       "appearance": {
+        "label": "Movie"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006e",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.night"
+       },
+       "appearance": {
+        "label": "Night"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006f",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.party"
+       },
+       "appearance": {
+        "label": "Party"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000070",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.reading"
+       },
+       "appearance": {
+        "label": "Reading"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
       }
      ],
      "topbar": {
       "leading": [
        {
-        "id": "000000000000006b",
+        "id": "0000000000000071",
         "kind": "home"
        }
       ],
@@ -1632,7 +1705,7 @@
       },
       "trailing": [
        {
-        "id": "000000000000006c",
+        "id": "0000000000000072",
         "type": "clock"
        }
       ]
@@ -1640,7 +1713,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "000000000000006d",
+       "id": "0000000000000073",
        "title": "Scenes",
        "icon": "palette",
        "placement": {
@@ -1648,111 +1721,7 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "000000000000006e",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.dinner"
-         },
-         "appearance": {
-          "label": "Dinner"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000006f",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.morning"
-         },
-         "appearance": {
-          "label": "Morning"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000070",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.movie"
-         },
-         "appearance": {
-          "label": "Movie"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000071",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.night"
-         },
-         "appearance": {
-          "label": "Night"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000072",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.party"
-         },
-         "appearance": {
-          "label": "Party"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000073",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.reading"
-         },
-         "appearance": {
-          "label": "Reading"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     }
@@ -1791,12 +1760,80 @@
         "columns": 2,
         "rows": 1
        }
+      },
+      {
+       "id": "0000000000000076",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000077",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.garden"
+       },
+       "appearance": {
+        "label": "Garden"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000078",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000079",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
       }
      ],
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000076",
+        "id": "000000000000007a",
         "kind": "home"
        }
       ],
@@ -1806,7 +1843,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000077",
+        "id": "000000000000007b",
         "type": "clock"
        }
       ]
@@ -1814,7 +1851,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "0000000000000078",
+       "id": "000000000000007c",
        "title": "Security",
        "icon": "shield-home",
        "placement": {
@@ -1822,46 +1859,10 @@
         "column": 0,
         "columns": 3,
         "rows": 1
-       },
-       "tiles": [
-        {
-         "id": "0000000000000079",
-         "content": {
-          "kind": "entity",
-          "entityId": "alarm_control_panel.house"
-         },
-         "appearance": {
-          "label": "Alarm"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000007a",
-         "content": {
-          "kind": "entity",
-          "entityId": "camera.garden"
-         },
-         "appearance": {
-          "label": "Garden"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 2,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "000000000000007b",
+       "id": "000000000000007d",
        "title": "Who is home",
        "icon": "home-account",
        "placement": {
@@ -1869,43 +1870,7 @@
         "column": 0,
         "columns": 3,
         "rows": 1
-       },
-       "tiles": [
-        {
-         "id": "000000000000007c",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ann"
-         },
-         "appearance": {
-          "label": "Ann"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000007d",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ben"
-         },
-         "appearance": {
-          "label": "Ben"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -1914,11 +1879,116 @@
      "navigation": {
       "excludeFromPagination": false
      },
-     "tiles": [],
+     "tiles": [
+      {
+       "id": "000000000000007f",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000080",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000081",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000082",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000083",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000084",
+       "content": {
+        "kind": "entity",
+        "entityId": "binary_sensor.balcony_door"
+       },
+       "appearance": {
+        "label": "Balcony door"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
      "topbar": {
       "leading": [
        {
-        "id": "000000000000007f",
+        "id": "0000000000000085",
         "kind": "home"
        }
       ],
@@ -1928,7 +1998,7 @@
       },
       "trailing": [
        {
-        "id": "0000000000000080",
+        "id": "0000000000000086",
         "type": "clock"
        }
       ]
@@ -1936,7 +2006,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "0000000000000081",
+       "id": "0000000000000087",
        "title": "Lights",
        "icon": "lightbulb-group",
        "summary": "sensor.living_room_temperature",
@@ -1945,113 +2015,7 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "0000000000000082",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000083",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_ceiling"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000084",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_table"
-         },
-         "appearance": {
-          "label": "Table lamp"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000085",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000086",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_2"
-         },
-         "appearance": {
-          "label": "Spot 2"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000087",
-         "content": {
-          "kind": "entity",
-          "entityId": "binary_sensor.balcony_door"
-         },
-         "appearance": {
-          "label": "Balcony door"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2084,6 +2048,41 @@
        "id": "000000000000008a",
        "content": {
         "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000008b",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000008c",
+       "content": {
+        "kind": "entity",
         "entityId": "sensor.power_consumption"
        },
        "appearance": {
@@ -2103,7 +2102,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "000000000000008b",
+        "id": "000000000000008d",
         "kind": "home"
        }
       ],
@@ -2113,7 +2112,7 @@
       },
       "trailing": [
        {
-        "id": "000000000000008c",
+        "id": "000000000000008e",
         "type": "clock"
        }
       ]
@@ -2121,7 +2120,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "000000000000008d",
+       "id": "000000000000008f",
        "title": "Media",
        "icon": "music",
        "placement": {
@@ -2129,44 +2128,7 @@
         "column": 1,
         "columns": 2,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "000000000000008e",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_living"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000008f",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.apple_tv"
-         },
-         "appearance": {
-          "label": "Apple TV"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2178,6 +2140,76 @@
      "tiles": [
       {
        "id": "0000000000000091",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000092",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000093",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000094",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000095",
        "content": {
         "kind": "entity",
         "entityId": "light.hall"
@@ -2192,12 +2224,46 @@
         "columns": 1,
         "rows": 1
        }
+      },
+      {
+       "id": "0000000000000096",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000097",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
       }
      ],
      "topbar": {
       "leading": [
        {
-        "id": "0000000000000092",
+        "id": "0000000000000098",
         "kind": "home"
        }
       ],
@@ -2207,14 +2273,14 @@
       },
       "trailing": [
        {
-        "id": "0000000000000093",
+        "id": "0000000000000099",
         "type": "clock"
        }
       ]
      },
      "sections": [
       {
-       "id": "0000000000000094",
+       "id": "000000000000009a",
        "title": "Kitchen",
        "icon": "silverware-fork-knife",
        "summary": "sensor.kitchen_temperature",
@@ -2223,82 +2289,10 @@
         "column": 0,
         "columns": 3,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "0000000000000095",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000096",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_counter"
-         },
-         "appearance": {
-          "label": "Counter"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000097",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_spot"
-         },
-         "appearance": {
-          "label": "Spot"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "0000000000000098",
-         "content": {
-          "kind": "entity",
-          "entityId": "switch.coffee"
-         },
-         "appearance": {
-          "label": "Coffee machine"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "0000000000000099",
+       "id": "000000000000009b",
        "title": "Bathroom",
        "icon": "shower",
        "placement": {
@@ -2306,43 +2300,7 @@
         "column": 1,
         "columns": 2,
         "rows": 1
-       },
-       "tiles": [
-        {
-         "id": "000000000000009a",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "000000000000009b",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_mirror"
-         },
-         "appearance": {
-          "label": "Mirror"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2354,6 +2312,58 @@
      "tiles": [
       {
        "id": "000000000000009d",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000009e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000009f",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000a0",
        "content": {
         "kind": "entity",
         "entityId": "todo.shopping_list"
@@ -2370,7 +2380,7 @@
        }
       },
       {
-       "id": "000000000000009e",
+       "id": "00000000000000a1",
        "content": {
         "kind": "entity",
         "entityId": "vacuum.robot"
@@ -2392,7 +2402,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "000000000000009f",
+        "id": "00000000000000a2",
         "kind": "home"
        }
       ],
@@ -2402,7 +2412,7 @@
       },
       "trailing": [
        {
-        "id": "00000000000000a0",
+        "id": "00000000000000a3",
         "type": "clock"
        }
       ]
@@ -2410,7 +2420,7 @@
      "icon": "bed",
      "sections": [
       {
-       "id": "00000000000000a1",
+       "id": "00000000000000a4",
        "title": "Bedroom",
        "icon": "bed",
        "summary": "sensor.bedroom_temperature",
@@ -2419,61 +2429,7 @@
         "column": 0,
         "columns": 2,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "00000000000000a2",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_bedroom"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000a3",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bedroom"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000a4",
-         "content": {
-          "kind": "entity",
-          "entityId": "cover.curtains"
-         },
-         "appearance": {
-          "label": "Curtains"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2564,6 +2520,40 @@
        "id": "00000000000000ab",
        "content": {
         "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ac",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.front"
+       },
+       "appearance": {
+        "label": "Living room"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ad",
+       "content": {
+        "kind": "entity",
         "entityId": "sensor.power_consumption"
        },
        "appearance": {
@@ -2583,7 +2573,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000ac",
+        "id": "00000000000000ae",
         "kind": "home"
        }
       ],
@@ -2593,7 +2583,7 @@
       },
       "trailing": [
        {
-        "id": "00000000000000ad",
+        "id": "00000000000000af",
         "type": "clock"
        }
       ]
@@ -2601,7 +2591,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "00000000000000ae",
+       "id": "00000000000000b0",
        "title": "Security",
        "icon": "shield-home",
        "placement": {
@@ -2609,43 +2599,7 @@
         "column": 0,
         "columns": 3,
         "rows": 1
-       },
-       "tiles": [
-        {
-         "id": "00000000000000af",
-         "content": {
-          "kind": "entity",
-          "entityId": "alarm_control_panel.house"
-         },
-         "appearance": {
-          "label": "Alarm"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000b0",
-         "content": {
-          "kind": "entity",
-          "entityId": "camera.front"
-         },
-         "appearance": {
-          "label": "Living room"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 2,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2654,11 +2608,133 @@
      "navigation": {
       "excludeFromPagination": false
      },
-     "tiles": [],
+     "tiles": [
+      {
+       "id": "00000000000000b2",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b3",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.lounge_group"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b4",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b5",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b6",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b7",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b8",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_3"
+       },
+       "appearance": {
+        "label": "Spot 3"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000b2",
+        "id": "00000000000000b9",
         "kind": "home"
        }
       ],
@@ -2668,7 +2744,7 @@
       },
       "trailing": [
        {
-        "id": "00000000000000b3",
+        "id": "00000000000000ba",
         "type": "clock"
        }
       ]
@@ -2676,7 +2752,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "00000000000000b4",
+       "id": "00000000000000bb",
        "title": "Lights",
        "icon": "lightbulb-group",
        "summary": "sensor.living_room_temperature",
@@ -2685,130 +2761,7 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "00000000000000b5",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000b6",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.lounge_group"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000b7",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_ceiling"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000b8",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.living_room_table"
-         },
-         "appearance": {
-          "label": "Table lamp"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000b9",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000ba",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_2"
-         },
-         "appearance": {
-          "label": "Spot 2"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000bb",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.spot_3"
-         },
-         "appearance": {
-          "label": "Spot 3"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2841,6 +2794,58 @@
        "id": "00000000000000be",
        "content": {
         "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000bf",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c0",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.lg_oled"
+       },
+       "appearance": {
+        "label": "LG Oled"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c1",
+       "content": {
+        "kind": "entity",
         "entityId": "scene.evening"
        },
        "appearance": {
@@ -2855,7 +2860,7 @@
        }
       },
       {
-       "id": "00000000000000bf",
+       "id": "00000000000000c2",
        "content": {
         "kind": "entity",
         "entityId": "vacuum.robot"
@@ -2877,7 +2882,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000c0",
+        "id": "00000000000000c3",
         "kind": "home"
        }
       ],
@@ -2887,7 +2892,7 @@
       },
       "trailing": [
        {
-        "id": "00000000000000c1",
+        "id": "00000000000000c4",
         "type": "clock"
        }
       ]
@@ -2895,7 +2900,7 @@
      "icon": "sofa",
      "sections": [
       {
-       "id": "00000000000000c2",
+       "id": "00000000000000c5",
        "title": "Media",
        "icon": "music",
        "placement": {
@@ -2903,61 +2908,7 @@
         "column": 1,
         "columns": 2,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "00000000000000c3",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_living"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000c4",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.apple_tv"
-         },
-         "appearance": {
-          "label": "Apple TV"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000c5",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.lg_oled"
-         },
-         "appearance": {
-          "label": "LG Oled"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -2969,6 +2920,76 @@
      "tiles": [
       {
        "id": "00000000000000c7",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c8",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c9",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ca",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000cb",
        "content": {
         "kind": "entity",
         "entityId": "light.hall"
@@ -2985,7 +3006,7 @@
        }
       },
       {
-       "id": "00000000000000c8",
+       "id": "00000000000000cc",
        "content": {
         "kind": "entity",
         "entityId": "calendar.birthdays"
@@ -3008,7 +3029,7 @@
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000c9",
+        "id": "00000000000000cd",
         "kind": "home"
        }
       ],
@@ -3018,14 +3039,14 @@
       },
       "trailing": [
        {
-        "id": "00000000000000ca",
+        "id": "00000000000000ce",
         "type": "clock"
        }
       ]
      },
      "sections": [
       {
-       "id": "00000000000000cb",
+       "id": "00000000000000cf",
        "title": "Kitchen",
        "icon": "silverware-fork-knife",
        "summary": "sensor.kitchen_temperature",
@@ -3034,79 +3055,7 @@
         "column": 0,
         "columns": 3,
         "rows": 2
-       },
-       "tiles": [
-        {
-         "id": "00000000000000cc",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen"
-         },
-         "appearance": {
-          "label": "All lights"
-         },
-         "interaction": {
-          "controls": "brightness"
-         },
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000cd",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_counter"
-         },
-         "appearance": {
-          "label": "Counter"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000ce",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.kitchen_spot"
-         },
-         "appearance": {
-          "label": "Spot"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000cf",
-         "content": {
-          "kind": "entity",
-          "entityId": "switch.coffee"
-         },
-         "appearance": {
-          "label": "Coffee machine"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -3115,11 +3064,115 @@
      "navigation": {
       "excludeFromPagination": false
      },
-     "tiles": [],
+     "tiles": [
+      {
+       "id": "00000000000000d1",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d2",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d3",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d4",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d5",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d6",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.boiler"
+       },
+       "appearance": {
+        "label": "Boiler"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000d1",
+        "id": "00000000000000d7",
         "kind": "home"
        }
       ],
@@ -3129,14 +3182,14 @@
       },
       "trailing": [
        {
-        "id": "00000000000000d2",
+        "id": "00000000000000d8",
         "type": "clock"
        }
       ]
      },
      "sections": [
       {
-       "id": "00000000000000d3",
+       "id": "00000000000000d9",
        "title": "Bedroom",
        "icon": "bed",
        "summary": "sensor.bedroom_temperature",
@@ -3145,64 +3198,10 @@
         "column": 0,
         "columns": 2,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "00000000000000d4",
-         "content": {
-          "kind": "entity",
-          "entityId": "media_player.sonos_bedroom"
-         },
-         "appearance": {
-          "label": "Sonos",
-          "display": "cover"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 2,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000d5",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bedroom"
-         },
-         "appearance": {
-          "label": "Ceiling"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000d6",
-         "content": {
-          "kind": "entity",
-          "entityId": "cover.curtains"
-         },
-         "appearance": {
-          "label": "Curtains"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       },
       {
-       "id": "00000000000000d7",
+       "id": "00000000000000da",
        "title": "Bathroom",
        "icon": "shower",
        "placement": {
@@ -3210,60 +3209,7 @@
         "column": 2,
         "columns": 1,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "00000000000000d8",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_1"
-         },
-         "appearance": {
-          "label": "Spot 1"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000d9",
-         "content": {
-          "kind": "entity",
-          "entityId": "light.bath_mirror"
-         },
-         "appearance": {
-          "label": "Mirror"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000da",
-         "content": {
-          "kind": "entity",
-          "entityId": "switch.boiler"
-         },
-         "appearance": {
-          "label": "Boiler"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 2,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -3272,11 +3218,97 @@
      "navigation": {
       "excludeFromPagination": false
      },
-     "tiles": [],
+     "tiles": [
+      {
+       "id": "00000000000000dc",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000dd",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000de",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.cleo"
+       },
+       "appearance": {
+        "label": "Cleo"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000df",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.dan"
+       },
+       "appearance": {
+        "label": "Dan"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000e0",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.eve"
+       },
+       "appearance": {
+        "label": "Eve"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000dc",
+        "id": "00000000000000e1",
         "kind": "home"
        }
       ],
@@ -3286,7 +3318,7 @@
       },
       "trailing": [
        {
-        "id": "00000000000000dd",
+        "id": "00000000000000e2",
         "type": "clock"
        }
       ]
@@ -3294,7 +3326,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "00000000000000de",
+       "id": "00000000000000e3",
        "title": "Who is home",
        "icon": "home-account",
        "placement": {
@@ -3302,94 +3334,7 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "00000000000000df",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ann"
-         },
-         "appearance": {
-          "label": "Ann"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000e0",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.ben"
-         },
-         "appearance": {
-          "label": "Ben"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000e1",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.cleo"
-         },
-         "appearance": {
-          "label": "Cleo"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000e2",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.dan"
-         },
-         "appearance": {
-          "label": "Dan"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000e3",
-         "content": {
-          "kind": "entity",
-          "entityId": "person.eve"
-         },
-         "appearance": {
-          "label": "Eve"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     },
@@ -3461,11 +3406,114 @@
      "navigation": {
       "excludeFromPagination": false
      },
-     "tiles": [],
+     "tiles": [
+      {
+       "id": "00000000000000ea",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.dinner"
+       },
+       "appearance": {
+        "label": "Dinner"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000eb",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.morning"
+       },
+       "appearance": {
+        "label": "Morning"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ec",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.movie"
+       },
+       "appearance": {
+        "label": "Movie"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ed",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.night"
+       },
+       "appearance": {
+        "label": "Night"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ee",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.party"
+       },
+       "appearance": {
+        "label": "Party"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ef",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.reading"
+       },
+       "appearance": {
+        "label": "Reading"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
      "topbar": {
       "leading": [
        {
-        "id": "00000000000000ea",
+        "id": "00000000000000f0",
         "kind": "home"
        }
       ],
@@ -3475,7 +3523,7 @@
       },
       "trailing": [
        {
-        "id": "00000000000000eb",
+        "id": "00000000000000f1",
         "type": "clock"
        }
       ]
@@ -3483,7 +3531,7 @@
      "icon": "home",
      "sections": [
       {
-       "id": "00000000000000ec",
+       "id": "00000000000000f2",
        "title": "Scenes",
        "icon": "palette",
        "placement": {
@@ -3491,111 +3539,7 @@
         "column": 0,
         "columns": 3,
         "rows": 3
-       },
-       "tiles": [
-        {
-         "id": "00000000000000ed",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.dinner"
-         },
-         "appearance": {
-          "label": "Dinner"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000ee",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.morning"
-         },
-         "appearance": {
-          "label": "Morning"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000ef",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.movie"
-         },
-         "appearance": {
-          "label": "Movie"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 0,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000f0",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.night"
-         },
-         "appearance": {
-          "label": "Night"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 0,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000f1",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.party"
-         },
-         "appearance": {
-          "label": "Party"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 1,
-          "columns": 1,
-          "rows": 1
-         }
-        },
-        {
-         "id": "00000000000000f2",
-         "content": {
-          "kind": "entity",
-          "entityId": "scene.reading"
-         },
-         "appearance": {
-          "label": "Reading"
-         },
-         "interaction": {},
-         "placement": {
-          "row": 1,
-          "column": 2,
-          "columns": 1,
-          "rows": 1
-         }
-        }
-       ]
+       }
       }
      ]
     }

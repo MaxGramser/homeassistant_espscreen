@@ -104,7 +104,8 @@ DRAWN = dict(grid=(6, 5), sections=[
 
 
 def page_document(spec, grid):
-    """The page document of a spec: every tile loose by migrate_legacy, then each tile inside a block moved into it."""
+    """The page document of a spec: every tile on its page by migrate_legacy, and the sections as their blocks (a tile is
+    a section's by lying in its block, page_layout.section_of)."""
     columns, rows = spec['grid']
     tiles = []
     for entity, c, r, w, h in spec['tiles']:
@@ -119,12 +120,7 @@ def page_document(spec, grid):
         section = {'id': f'5ec7{n:012x}', 'title': title, **({'icon': icon} if icon else {}), **({'summary': summary} if summary else {}),
                    **({'contrast': True} if contrast and contrast[0] else {}),
                    **({'contrastTiles': True} if len(contrast) > 1 and contrast[1] else {}),
-                   'placement': {'row': r, 'column': c, 'columns': w, 'rows': h}, 'tiles': []}
-        for tile in list(page['tiles']):
-            p = tile['placement']
-            if r <= p['row'] and p['row'] + p['rows'] <= r + h and c <= p['column'] and p['column'] + p['columns'] <= c + w:
-                page['tiles'].remove(tile)
-                section['tiles'].append({**tile, 'placement': {**p, 'row': p['row'] - r, 'column': p['column'] - c}})
+                   'placement': {'row': r, 'column': c, 'columns': w, 'rows': h}}
         sections.append(section)
     if sections:
         page['sections'] = sections

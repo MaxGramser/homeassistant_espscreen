@@ -13,7 +13,7 @@ screen.
 ## What is decided
 
 - **A section is a block on the page's grid**, like one big tile: a rectangle of cells with a title, an icon and a soft
-  panel behind it, holding its own tiles placed inside it. A section never holds another section.
+  panel behind it. Its tiles are the page's own tiles that lie in the block. A section never holds another section.
 - **Loose tiles stay exactly as today**: on the page's own cells, with their row and column, gaps where they were left,
   and they never reflow. An updated layout has only loose tiles, so every screen shows what it showed, pixel for pixel.
 - **The look (C3 of the study).** The panel is the `SECTION` role (light `#F4F4F4`, dark `#101010`), its corner the
@@ -53,15 +53,16 @@ A page keeps `tiles` (its loose tiles, unchanged) and may get `sections`:
 
 - `title` 1 to 48 bytes in the text fonts' glyphs; `icon` optional, a name a page's own icon may take
   (`tile_icons.ICONS`); `summary` optional, an entity whose state the band shows.
-- `placement` is the block on the page's grid; every tile of the section lies inside it, relative to its top-left
-  corner. Sections and loose tiles never overlap; a full-page tile is never in a section.
+- `placement` is the block on the page's grid. A section keeps no tiles: every tile stands in the page's `tiles` at
+  its own cell and belongs to the section whose block it lies in (docs/PAGES.md "Sections", "The document"). A tile
+  never lies across a block's edge; a full-page tile is never in a section.
 - A page without sections has no `sections` key, so a document from before is unchanged and every compiled message and
   revision is byte for byte what it was.
 - **Storage**: the store stays at version 2 while no screen has a section, so going back to an older app costs nothing
   for anyone who never made one. The first save with a section writes `screens.v2.backup.json` beside the store and the
   store as version 3; an older app refuses version 3 without rewriting it (docs/PAGES.md "Storage and recovery").
-- **Compiling**: a section's tile gets its absolute cell (the block's corner plus its own place), so its `slot` is a
-  slot like any other, and `compile_tiles` orders all tiles by their cells as now.
+- **Compiling**: a tile's `slot` is its own cell, in a section or not, and `compile_tiles` orders all tiles by their
+  cells as now.
 - **An automation's tile command** (`tile_from_fields`, a slot) lands as a loose tile, as now; a cell a section holds is
   taken.
 

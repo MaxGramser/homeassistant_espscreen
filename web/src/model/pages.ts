@@ -15,8 +15,8 @@ import { isSize } from "./sizes";
 import { validateCardOptions, validatePageShape } from './page-validation';
 import { cleanPreset, MAX as PRESETS_MAX, type Preset } from './light-presets';
 import rules from './page-rules.json';
-import { allTiles, keepTiles, placedTiles, sectionsOf } from "./page-tiles";
-export { allTiles, keepTiles, placedTiles, sectionsOf } from "./page-tiles";
+import { allTiles, inside, keepTiles, placedTiles, sectionOf, sectionsOf, tilesIn } from "./page-tiles";
+export { allTiles, inside, keepTiles, looseTiles, placedTiles, sectionOf, sectionsOf, tilesIn } from "./page-tiles";
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 // The same document whatever the order of its keys (app 0.4.1): a tile the add-on wrote keeps its fields in another order
@@ -34,26 +34,15 @@ export const sameGrid = (a: PageGrid, b: PageGrid) => a.columns === b.columns &&
 const byteLength = (value: string) => new TextEncoder().encode(value).length;
 
 // ---- Sections (docs/PAGES.md "Sections") ----
-// A section is a block of cells on a page's grid with a title, an icon and a panel; its tiles stand inside it, placed
-// relative to its top-left corner. A page's loose tiles are `page.tiles`, exactly as before sections. The same rules
-// as the add-on's page_layout (sections_of, all_tiles, placed_tiles, _section).
+// A section is a block of cells on a page's grid with a title, an icon and a panel. It holds no tiles: every tile of a
+// page stands in `page.tiles`, and belongs to the section whose block it lies in (model/page-tiles.ts sectionOf). The
+// same rules as the add-on's page_layout (sections_of, section_of, _section).
 export const SECTIONS_MAX = 16;
 export const SECTION_TITLE_BYTES = 48;
-const inside = (block: Section["placement"], row: number, column: number, columns: number, rows: number) =>
-  row >= block.row && column >= block.column && row + rows <= block.row + block.rows && column + columns <= block.column + block.columns;
-/** A loose tile that stands wholly inside a section's block belongs to that section: it moves in, at its place in the
- * block. Every edit ends with this, so a tile dropped, pasted or moved into a section is that section's. */
+/** A page without sections has no `sections` key at all, so a document from before sections is unchanged. A tile needs
+ * no moving: it is its section's by where it stands. */
 export function rehomeSections(layout: PageLayout) {
-  for (const page of layout.pages) {
-    if (!page.sections?.length) { if (page.sections) delete page.sections; continue; }
-    page.tiles = page.tiles.filter((tile) => {
-      const { row, column, columns, rows } = tile.placement;
-      const home = page.sections!.find((section) => inside(section.placement, row, column, columns, rows));
-      if (!home) return true;
-      home.tiles.push({ ...tile, placement: { ...tile.placement, row: row - home.placement.row, column: column - home.placement.column } });
-      return false;
-    });
-  }
+  for (const page of layout.pages) if (page.sections && !page.sections.length) delete page.sections;
   return layout;
 }
 /** The sections of a layout as the slot view sees them. */
@@ -241,9 +230,18 @@ export function adaptGrid(layout: PageLayout, source: PageGrid, target: PageGrid
     }
     return Math.max(1, height);
   };
+  // While the grid changes a section travels as one block with its tiles beside it, each placed from the block's corner
+  // (`inner`); at the end every one stands on its page again at its own cell.
+  const inner = new Map<Section, PageTile[]>();
   for (const page of draft.pages) {
     const occupied = free(), pending: Unit[] = [];
-    const units: Unit[] = [...page.tiles.map((tile) => ({ tile, placement: tile.placement })),
+    for (const section of sectionsOf(page)) {
+      const mine = tilesIn(page, section);
+      for (const tile of mine) { tile.placement.row -= section.placement.row; tile.placement.column -= section.placement.column; }
+      inner.set(section, mine);
+    }
+    const held = new Set([...inner.values()].flat());
+    const units: Unit[] = [...page.tiles.filter((tile) => !held.has(tile)).map((tile) => ({ tile, placement: tile.placement })),
       ...sectionsOf(page).map((section) => ({ section, placement: section.placement }))];
     units.sort((a, b) => a.placement.row - b.placement.row || a.placement.column - b.placement.column);
     const sections: Section[] = [], loose: PageTile[] = [];
@@ -252,23 +250,25 @@ export function adaptGrid(layout: PageLayout, source: PageGrid, target: PageGrid
       if (unit.tile) resize(unit.tile, target.columns);
       else {
         const section = unit.section!, width = Math.min(section.placement.columns, target.columns);
-        let changed = false;
-        for (const tile of section.tiles) changed = resize(tile, width) || changed;
-        const fitsAsIs = section.tiles.every((tile) => tile.placement.column + tile.placement.columns <= width);
-        if (width < section.placement.columns || changed || !fitsAsIs) section.placement.rows = Math.max(1, reflow(section.tiles, width));
+        let changed = false, mine = inner.get(section) ?? [];
+        for (const tile of mine) changed = resize(tile, width) || changed;
+        const fitsAsIs = mine.every((tile) => tile.placement.column + tile.placement.columns <= width);
+        if (width < section.placement.columns || changed || !fitsAsIs) section.placement.rows = Math.max(1, reflow(mine, width));
         section.placement.columns = width;
         // Taller than a page: the rows past it become a section of their own, with the same title and icon.
         if (section.placement.rows > target.rows) {
-          const rest: Section = { ...clone({ ...section, tiles: [] }), id: instanceId(), tiles: [] };
-          section.tiles = section.tiles.filter((tile) => {
+          const rest: Section = { ...clone(section), id: instanceId() }, later: PageTile[] = [];
+          mine = mine.filter((tile) => {
             if (tile.placement.row + tile.placement.rows <= target.rows) return true;
-            rest.tiles.push(tile);
+            later.push(tile);
             return false;
           });
-          const top = Math.min(...rest.tiles.map((tile) => tile.placement.row));
-          for (const tile of rest.tiles) tile.placement.row -= top;
-          rest.placement = { row: 0, column: 0, columns: width, rows: Math.max(...rest.tiles.map((tile) => tile.placement.row + tile.placement.rows)) };
-          section.placement.rows = Math.max(1, ...section.tiles.map((tile) => tile.placement.row + tile.placement.rows));
+          inner.set(section, mine);
+          inner.set(rest, later);
+          const top = Math.min(...later.map((tile) => tile.placement.row));
+          for (const tile of later) tile.placement.row -= top;
+          rest.placement = { row: 0, column: 0, columns: width, rows: Math.max(...later.map((tile) => tile.placement.row + tile.placement.rows)) };
+          section.placement.rows = Math.max(1, ...mine.map((tile) => tile.placement.row + tile.placement.rows));
           units.splice(units.indexOf(unit) + 1, 0, { section: rest, placement: rest.placement });
         }
       }
@@ -298,6 +298,12 @@ export function adaptGrid(layout: PageLayout, source: PageGrid, target: PageGrid
       first(room, unit);
       add(unit);
     }
+  }
+  // Every section's tiles back on the page it ended on, at their own cells.
+  for (const page of out) for (const section of sectionsOf(page)) for (const tile of inner.get(section) ?? []) {
+    tile.placement.row += section.placement.row;
+    tile.placement.column += section.placement.column;
+    page.tiles.push(tile);
   }
   if (out.length > pageLimit(target))
     throw new Error(t("editor.grid.too_many_pages", { grid: `${target.columns} × ${target.rows}`, needed: out.length, most: pageLimit(target) }));
@@ -406,19 +412,23 @@ export function validatePages(layout: PageLayout, grid: PageGrid, before?: PageL
         const { row, column, columns, rows } = section.placement;
         if (![row, column, columns, rows].every(Number.isInteger) || row < 0 || column < 0 || columns < 1 || rows < 1 ||
             row + rows > grid.rows || column + columns > grid.columns) throw new Error(t("addon.errors.layout.position"));
-        for (const tile of section.tiles) {
-          const p = tile.placement;
-          if (![p.row, p.column, p.columns, p.rows].every(Number.isInteger) || p.row < 0 || p.column < 0 || p.row + p.rows > rows ||
-              p.column + p.columns > columns || tile.appearance.presentation === "full") throw new Error(t("addon.errors.pages.section_tiles"));
-        }
         for (let y = row; y < row + rows; y++) for (let x = column; x < column + columns; x++) {
           if (blocked.has(y * grid.columns + x)) throw new Error(t("addon.errors.pages.section_overlap"));
           blocked.add(y * grid.columns + x);
         }
       }
-      for (const { placement: { row, column, columns, rows } } of page.tiles)
+      // A tile stands wholly in one section's block or wholly outside every block, never across an edge; and a tile
+      // that fills its page stands in none.
+      for (const tile of page.tiles) {
+        const { row, column, columns, rows } = tile.placement;
+        if (![row, column, columns, rows].every(Number.isInteger)) continue;   // refused below, with the other tiles
+        if (sectionOf(page, tile)) {
+          if (tile.appearance.presentation === "full") throw new Error(t("addon.errors.pages.section_tiles"));
+          continue;
+        }
         for (let y = row; y < row + rows; y++) for (let x = column; x < column + columns; x++)
           if (blocked.has(y * grid.columns + x)) throw new Error(t("addon.errors.pages.section_overlap"));
+      }
     }
     for (const { tile, row, column } of placedTiles(page)) {
       identity(tile.id);
@@ -539,7 +549,7 @@ export function duplicatePage(layout: PageLayout, grid: PageGrid, pageId: string
       };
       copy.tiles = source.tiles.map(copied);
       if (source.sections?.length)
-        copy.sections = source.sections.map((section) => ({ ...clone(section), id: instanceId(), tiles: section.tiles.map(copied) }));
+        copy.sections = source.sections.map((section) => ({ ...clone(section), id: instanceId() }));
     }
     draft.pages.splice(index + 1, 0, copy);
   });
@@ -574,8 +584,8 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
     const required = Math.max(draft.pages.length, ...entries.map(({ slot }) => Math.floor(slot / cells) + 1));
     if (required > pageLimit(grid)) throw new Error(t("addon.errors.pages.pages_full"));
     while (draft.pages.length < required) draft.pages.push(emptyPage(draft.pages.at(-1)!.topbar));
-    // The sections keep their blocks, or take the ones given (a section moved, made, made wider or taken away); their
-    // tiles come back from the entries below, at their cells, and rehomeSections puts each in the block it stands in.
+    // The sections keep their blocks, or take the ones given (a section moved, made, made wider or taken away). The
+    // tiles come back from the entries below, at their cells: each is its section's by where it stands.
     if (blocks) for (const page of draft.pages) delete page.sections;
     for (const block of blocks ?? []) {
       const page = draft.pages[block.page];
@@ -583,13 +593,10 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
       const section: Section = { id: block.id, title: block.title, ...(block.icon ? { icon: block.icon } : {}),
         ...(block.summary ? { summary: block.summary } : {}), ...(block.contrast ? { contrast: true } : {}),
         ...(block.contrast && block.contrastTiles ? { contrastTiles: true } : {}),
-        placement: { row: block.row, column: block.column, columns: block.columns, rows: block.rows }, tiles: [] };
+        placement: { row: block.row, column: block.column, columns: block.columns, rows: block.rows } };
       (page.sections ??= []).push(section);
     }
-    for (const page of draft.pages) {
-      page.tiles = [];
-      for (const section of sectionsOf(page)) section.tiles = [];
-    }
+    for (const page of draft.pages) page.tiles = [];
     for (const { tile, slot } of entries) {
       if (!Number.isInteger(slot) || slot < 0) throw new Error(t("addon.errors.layout.position"));
       const old = tile.id ? existing.get(tile.id) : undefined, options = tile.options || {};
@@ -636,8 +643,7 @@ export function removeSection(layout: PageLayout, grid: PageGrid, id: string, wi
     const page = draft.pages.find((item) => item.sections?.some((section) => section.id === id));
     const section = page?.sections?.find((item) => item.id === id);
     if (!page || !section) throw new Error(t("addon.errors.pages.fields"));
-    if (!withTiles) page.tiles.push(...section.tiles.map((tile) => ({ ...tile, placement: { ...tile.placement,
-      row: tile.placement.row + section.placement.row, column: tile.placement.column + section.placement.column } })));
+    if (withTiles) page.tiles = page.tiles.filter((tile) => !inside(tile.placement, section.placement));
     page.sections = page.sections!.filter((item) => item !== section);
   });
 }

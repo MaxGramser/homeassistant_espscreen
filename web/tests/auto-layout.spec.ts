@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import type { PageLayout, PageTile } from "../src/types";
 import { autoLayout, appendPages, candidates, clusters, cutBytes, GROUP_ICONS, ICONS, labelOf, strip, type AutoInput, type AutoScreen } from "../src/model/auto-layout";
-import { allTiles, emptyLayout, validatePages } from "../src/model/pages";
+import { allTiles, emptyLayout, tilesIn, validatePages } from "../src/model/pages";
 
 import { AREAS, BUSY, CYD, FLOORS, HOUSE, MIDDLE, NOISE, TEN, home } from "./auto-layout.fixture";
 
@@ -198,7 +198,7 @@ describe("a section groups", () => {
   it("never holds a single card: a lone card stands loose on its page", () => {
     for (const screen of [TEN, MIDDLE]) for (const things of [HOUSE, BUSY]) {
       const { layout } = make(screen, things);
-      for (const section of layout.pages.flatMap((page) => page.sections ?? [])) expect(section.tiles.length, section.title).toBeGreaterThan(1);
+      for (const page of layout.pages) for (const section of page.sections ?? []) expect(tilesIn(page, section).length, section.title).toBeGreaterThan(1);
     }
     // The house's one weather and one alarm are cards of their own on the large screen.
     const { layout } = make(TEN);

@@ -201,11 +201,19 @@ the new grid has it free, else goes whole to the first free place of its page, e
 section wider than the new grid gets narrower, its tiles laid out again in reading order, and one taller than a page
 then continues as a section of its own with the same title and icon.
 
-**The document.** A page keeps `tiles` (the loose ones) and may have `sections`: each with its `id`, `title` (at most
-48 bytes), optional `icon`, `summary` (an entity), `contrast` (true) and `contrastTiles` (true, only beside `contrast`), its `placement` on the page's grid and its `tiles`, placed
-relative to the block's top left corner. A page without sections has no key, so a layout from before sections is
-unchanged, and so is every message and revision a screen gets for it (`tests/test_sections.py`). The add-on compiles a
-section's tile to its cell on the page (the block's corner plus its own place), so its slot is like any other.
+**The document.** A page keeps every one of its tiles in `tiles`, each at its own cell, exactly as before sections, and
+may have `sections`: each with its `id`, `title` (at most 48 bytes), optional `icon`, `summary` (an entity), `contrast`
+(true) and `contrastTiles` (true, only beside `contrast`), and its `placement` on the page's grid. A section holds no
+tiles of its own. A tile belongs to the section whose block it lies in, and that is said in one place per side:
+`page_layout.section_of` in the add-on, `sectionOf` in `web/src/model/page-tiles.ts` in the editor. So nothing that
+counts, finds or checks a page's tiles has to know sections, and a tile's section is never said twice. A tile stands
+wholly in one block or wholly outside every block, never across an edge, and a tile that fills its page stands in none.
+A page without sections has no key, so a layout from before sections is unchanged, and so is every message and
+revision a screen gets for it (`tests/test_sections.py`). A tile's slot is its own cell, whatever section it is in.
+
+Sections first kept their tiles inside themselves, placed from the block's corner (on dev from 2026-11-15, never
+released). A store written that way is read once, kept beside itself as `screens.v3.backup.json`, and written in the
+form above (`page_layout.flattened`, `layout_store`).
 
 **The protocol.** A screen that draws sections says `sections` in its hello's features. Its pages' messages then carry
 `"sections": [[column, row, columns, rows, icon, title, summary, options], ...]` (options as bits: 1 the contrast, 2 its tiles in it) for a

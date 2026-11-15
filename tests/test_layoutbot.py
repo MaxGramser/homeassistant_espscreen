@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 from core import Grid  # noqa: E402
 import layoutbot  # noqa: E402
-from page_layout import LayoutError, validate_document  # noqa: E402
+from page_layout import LayoutError, section_of, tiles_in, validate_document  # noqa: E402
 
 GRID = Grid(5, 5, 16, 256, 12)
 SMALL = Grid(2, 3, 8, 64, 6)
@@ -27,8 +27,13 @@ ENTITIES = [{"id": e, "name": e.split(".")[1], "area": "Living"} for e in ["ligh
 
 
 def entities_of(page):
-    return [t["content"]["entityId"] for t in page["tiles"]] + [
-        t["content"]["entityId"] for s in page.get("sections", []) for t in s["tiles"]]
+    """A page's entities: its loose tiles first, then each section's (a section's tiles are the page's, in its block)."""
+    return [t["content"]["entityId"] for t in loose(page)] + [
+        t["content"]["entityId"] for s in page.get("sections", []) for t in tiles_in(page, s)]
+
+
+def loose(page):
+    return [t for t in page["tiles"] if section_of(page, t) is None]
 
 
 class Plans(unittest.TestCase):
@@ -48,7 +53,7 @@ class Plans(unittest.TestCase):
         self.assertEqual((first["title"], first["placement"]), ("Rolgordijnen", {"row": 0, "column": 0, "columns": 4, "rows": 3}))
         self.assertEqual(second["icon"], "curtains")  # what ran on past the name is cut off
         self.assertEqual(second["placement"], {"row": 3, "column": 0, "columns": 4, "rows": 2})
-        self.assertEqual([t["appearance"].get("presentation") for t in first["tiles"]], ["square", "square", "wide", "wide"])
+        self.assertEqual([t["appearance"].get("presentation") for t in tiles_in(page, first)], ["square", "square", "wide", "wide"])
         self.assertEqual(entities_of(page), [*BLINDS, *CURTAINS])
         self.assertEqual(document["pages"][0], HOME)  # the rest stays as it was
         validate_document(document, GRID)
@@ -62,7 +67,7 @@ class Plans(unittest.TestCase):
             {"title": "Light", "entities": lights}, {"title": "Rest", "entities": ["media_player.tv", "sensor.temp", "camera.door"]}]}]}
         page = layoutbot.apply_plan(DOCUMENT, plan, GRID, home, offers=offers)[0]["pages"][1]
         faces = {t["content"]["entityId"]: (t["appearance"].get("presentation", "single"), t["interaction"].get("controls"))
-                 for s in page["sections"] for t in s["tiles"]}
+                 for s in page["sections"] for t in tiles_in(page, s)}
         # On 5 x 5 the page fills: the player 2 x 2 with both rows of controls, the camera its larger picture, the
         # lights wide with their brightness and one 2 x 2 with its presets too, the sensor wide.
         self.assertEqual(faces, {"light.l0": ("square", "brightness_presets"), "light.l1": ("wide", "brightness"),
@@ -115,20 +120,20 @@ class Plans(unittest.TestCase):
         plan = {"pages": [{"page": "1", "sections": [{"title": "Light", "entities": ["light.sofa", "light.desk"]}]}]}
         document, _ = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)
         page = document["pages"][0]
-        self.assertEqual(page["tiles"], [])
+        self.assertEqual(loose(page), [])
         self.assertEqual(entities_of(page), ["light.sofa", "light.desk"])
 
     def test_a_section_the_plan_restates_keeps_its_tiles_and_takes_the_new_one(self):
         boxed = deepcopy(DOCUMENT)
         wide = {**deepcopy(HOME["tiles"][0]), "id": "t2", "content": {"kind": "entity", "entityId": "light.desk"},
-                "placement": {"row": 0, "column": 0, "columns": 2, "rows": 1},
+                "placement": {"row": 1, "column": 0, "columns": 2, "rows": 1},
                 "appearance": {"label": "Desk", "presentation": "wide"}, "interaction": {"controls": "brightness"}}
-        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Lights", "placement": {"row": 1, "column": 0, "columns": 3, "rows": 1},
-                                          "tiles": [wide]}]
+        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Lights", "placement": {"row": 1, "column": 0, "columns": 3, "rows": 1}}]
+        boxed["pages"][0]["tiles"].append(wide)
         plan = {"pages": [{"page": "1", "sections": [{"title": "Lights", "entities": ["light.desk", "cover.blind_0"]}]}]}
         document, notes = layoutbot.apply_plan(boxed, plan, GRID, ENTITIES)
         self.assertEqual(notes, [])
-        lights = document["pages"][0]["sections"][0]["tiles"]
+        lights = tiles_in(document["pages"][0], document["pages"][0]["sections"][0])
         self.assertEqual(lights[0], wide)  # its size, label and control as they were
         # The new one in the first cell the wide tile does not cover.
         self.assertEqual((lights[1]["content"]["entityId"], lights[1]["placement"]["column"]), ("cover.blind_0", 2))
@@ -184,10 +189,10 @@ class Plans(unittest.TestCase):
 
     def test_remove_takes_tiles_off_and_an_empty_section_with_them(self):
         boxed = deepcopy(DOCUMENT)
-        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Desk", "placement": {"row": 1, "column": 0, "columns": 1, "rows": 1},
-                                          "tiles": [{**deepcopy(HOME["tiles"][0]), "id": "t2",
-                                                     "content": {"kind": "entity", "entityId": "light.desk"},
-                                                     "placement": {"row": 0, "column": 0, "columns": 1, "rows": 1}}]}]
+        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Desk", "placement": {"row": 1, "column": 0, "columns": 1, "rows": 1}}]
+        boxed["pages"][0]["tiles"].append({**deepcopy(HOME["tiles"][0]), "id": "t2",
+                                           "content": {"kind": "entity", "entityId": "light.desk"},
+                                           "placement": {"row": 1, "column": 0, "columns": 1, "rows": 1}})
         document, _ = layoutbot.apply_plan(boxed, {"pages": [], "remove": ["light.desk"]}, GRID, ENTITIES)
         self.assertNotIn("sections", document["pages"][0])
 

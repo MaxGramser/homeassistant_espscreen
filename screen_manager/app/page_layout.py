@@ -146,8 +146,6 @@ def replace_tiles(record, flat):
         for tile, row, column in placed_tiles(page):
             existing.append((tile, _tile(at_cell(tile, row, column), p, grid, indexes, result['homePageId'], set())[0]))
         page['tiles'] = []
-        for section in sections_of(page):
-            section['tiles'] = []
     page_ids = [page['id'] for page in result['pages']]
     incoming = [(wire['slot'] // grid.slots, tile_from_fields(wire, grid, page_ids), wire) for wire in flat['tiles']]
     used, assigned = set(), {}
@@ -169,17 +167,7 @@ def replace_tiles(record, flat):
             # A Home tile follows the designation, rather than becoming a fixed link.
             if old['content'] == {'kind': 'navigation', 'target': {'kind': 'home'}}:
                 tile['content'] = deepcopy(old['content'])
-        # A tile inside a section's block belongs to that section, at its place in the block (docs/PAGES.md "Sections").
-        place = tile['placement']
-        home = next((section for section in sections_of(result['pages'][p])
-                     if 0 <= place['row'] - section['placement']['row'] <= section['placement']['rows'] - place['rows']
-                     and 0 <= place['column'] - section['placement']['column'] <= section['placement']['columns'] - place['columns']), None)
-        if home is not None:
-            place['row'] -= home['placement']['row']
-            place['column'] -= home['placement']['column']
-            home['tiles'].append(tile)
-        else:
-            result['pages'][p]['tiles'].append(tile)
+        result['pages'][p]['tiles'].append(tile)
     return validate_document(attach_keys(result, keys, previous=children), grid)
 
 
@@ -202,10 +190,11 @@ def _identity(value, seen, page=False):
     return value
 
 
-# Sections (docs/PAGES.md "Sections"): a block of cells on a page's grid with a title, an icon and a panel, holding its
-# own tiles placed inside it. A page's loose tiles stay where they are; a page without sections has no key at all, so a
-# document from before is unchanged.
-SECTION_FIELDS = {"id", "title", "icon", "summary", "contrast", "contrastTiles", "placement", "tiles"}
+# Sections (docs/PAGES.md "Sections"): a block of cells on a page's grid with a title, an icon and a panel. A section
+# holds no tiles of its own: every tile of a page stands in `tiles` at its own cell, as before sections, and belongs to
+# the section whose block it lies in (section_of). So nothing that walks a page's tiles has to know sections, and a
+# tile's section is never said twice. A page without sections has no key at all, so a document from before is unchanged.
+SECTION_FIELDS = {"id", "title", "icon", "summary", "contrast", "contrastTiles", "placement"}
 SECTION_TITLE_BYTES = 48
 ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+\Z")
 
@@ -215,18 +204,49 @@ def sections_of(page):
 
 
 def all_tiles(page):
-    """Every tile object of a page: its loose tiles, then each section's, in the document's order."""
-    return [*page["tiles"], *(tile for section in sections_of(page) for tile in section["tiles"])]
+    """Every tile object of a page, in the document's order."""
+    return page["tiles"]
 
 
 def placed_tiles(page):
-    """(tile, row, column) for every tile of a page, its row and column on the page's grid, in reading order: a loose tile
-    where it stands, a section's moved by its block's corner. The tile objects are the document's own."""
-    out = [(tile, tile["placement"]["row"], tile["placement"]["column"]) for tile in page["tiles"]]
-    for section in sections_of(page):
-        top, left = section["placement"]["row"], section["placement"]["column"]
-        out += [(tile, top + tile["placement"]["row"], left + tile["placement"]["column"]) for tile in section["tiles"]]
-    return sorted(out, key=lambda item: (item[1], item[2]))
+    """(tile, row, column) for every tile of a page, in reading order. The tile objects are the document's own."""
+    return sorted(((tile, tile["placement"]["row"], tile["placement"]["column"]) for tile in page["tiles"]),
+                  key=lambda item: (item[1], item[2]))
+
+
+def inside(place, block):
+    """Whether a placement lies wholly in a block of cells (a section's)."""
+    return (block["row"] <= place["row"] and place["row"] + place["rows"] <= block["row"] + block["rows"]
+            and block["column"] <= place["column"] and place["column"] + place["columns"] <= block["column"] + block["columns"])
+
+
+def section_of(page, tile):
+    """The section a tile of the page stands in, or None: the one whose block holds its cells. The one place that says
+    what belonging to a section is, for the add-on (web/src/model/page-tiles.ts says the same for the editor)."""
+    return next((section for section in sections_of(page) if inside(tile["placement"], section["placement"])), None)
+
+
+def tiles_in(page, section):
+    """The tiles of a page that stand in a section, in the document's order."""
+    return [tile for tile in page["tiles"] if inside(tile["placement"], section["placement"])]
+
+
+def flattened(layout):
+    """A layout whose sections still hold tiles of their own (the first form of sections, on dev from 2026-11-15 and
+    never released), as it is kept now: each such tile on its page at its own cell. (layout, whether it changed)."""
+    changed = False
+    for page in layout.get("pages", ()) if isinstance(layout, dict) else ():
+        for section in page.get("sections") or () if isinstance(page, dict) else ():
+            if not isinstance(section, dict) or "tiles" not in section:
+                continue
+            changed = True
+            block = section.get("placement") or {}
+            for tile in section.pop("tiles") or ():
+                if isinstance(tile, dict) and isinstance(tile.get("placement"), dict) and isinstance(page.get("tiles"), list):
+                    tile["placement"]["row"] = tile["placement"].get("row", 0) + block.get("row", 0)
+                    tile["placement"]["column"] = tile["placement"].get("column", 0) + block.get("column", 0)
+                    page["tiles"].append(tile)
+    return layout, changed
 
 
 def at_cell(tile, row, column):
@@ -236,7 +256,7 @@ def at_cell(tile, row, column):
 
 def _section(section, grid, seen, taken):
     """Check one section of a page against the grid; mark its block's cells in `taken`."""
-    _object(section, SECTION_FIELDS, {"id", "title", "placement", "tiles"})
+    _object(section, SECTION_FIELDS, {"id", "title", "placement"})
     _identity(section["id"], seen)
     title = section["title"]
     if not isinstance(title, str) or not title.strip() or len(title.encode()) > SECTION_TITLE_BYTES:
@@ -254,17 +274,6 @@ def _section(section, grid, seen, taken):
     block = _object(section["placement"], {"row", "column", "columns", "rows"}, {"row", "column", "columns", "rows"})
     row, column = _integer(block["row"], 0, grid.rows - 1), _integer(block["column"], 0, grid.columns - 1)
     columns, rows = _integer(block["columns"], 1, grid.columns - column), _integer(block["rows"], 1, grid.rows - row)
-    if not isinstance(section["tiles"], list):
-        raise LayoutError(t('addon.errors.layout.invalid'))
-    for tile in section["tiles"]:
-        place = tile.get("placement") if isinstance(tile, dict) else None
-        if not isinstance(place, dict) or any(type(place.get(key)) is not int for key in ("row", "column", "columns", "rows")):
-            raise LayoutError(t('addon.errors.layout.position'))
-        if (place["row"] < 0 or place["column"] < 0 or place["columns"] < 1 or place["rows"] < 1
-                or place["row"] + place["rows"] > rows or place["column"] + place["columns"] > columns):
-            raise LayoutError(t('addon.errors.pages.section_tiles'))
-        if (tile.get("appearance") or {}).get("presentation") == "full":
-            raise LayoutError(t('addon.errors.pages.section_tiles'))
     cells = {(r, c) for r in range(row, row + rows) for c in range(column, column + columns)}
     if cells & taken:
         raise LayoutError(t('addon.errors.pages.section_overlap'))
@@ -581,12 +590,17 @@ def validate_document(data, grid):
             taken = set()
             for section in page["sections"]:
                 _section(section, grid, seen, taken)
+            # A tile stands wholly in one section's block or wholly outside every block, never across an edge; and a
+            # tile that fills its page stands in none.
             for tile in page["tiles"]:
                 place = tile.get("placement") if isinstance(tile, dict) else None
                 if isinstance(place, dict) and all(type(place.get(key)) is int for key in ("row", "column", "columns", "rows")):
-                    if {(r, c) for r in range(place["row"], place["row"] + place["rows"])
-                            for c in range(place["column"], place["column"] + place["columns"])} & taken:
+                    home = section_of(page, tile)
+                    if home is None and {(r, c) for r in range(place["row"], place["row"] + place["rows"])
+                                         for c in range(place["column"], place["column"] + place["columns"])} & taken:
                         raise LayoutError(t('addon.errors.pages.section_overlap'))
+                    if home is not None and (tile.get("appearance") or {}).get("presentation") == "full":
+                        raise LayoutError(t('addon.errors.pages.section_tiles'))
         for tile, row, column in placed_tiles(page):
             _tile(at_cell(tile, row, column), 0, grid, {p["id"]: i for i, p in enumerate(pages)}, data["homePageId"], seen)
     flat = {"title": data["title"], "tiles": compile_tiles(data, grid), "pages": len(pages)}
@@ -663,8 +677,6 @@ def delete_page(layout, page_id, grid):
     for page in result["pages"]:
         gone = lambda tile: tile["content"].get("target") == {"kind": "page", "pageId": page_id}
         page["tiles"] = [tile for tile in page["tiles"] if not gone(tile)]
-        for section in sections_of(page):
-            section["tiles"] = [tile for tile in section["tiles"] if not gone(tile)]
     return validate_document(result, grid)
 
 

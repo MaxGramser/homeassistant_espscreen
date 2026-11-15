@@ -5,7 +5,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { t } from "../i18n";
 import type { AutoResult } from "../model/auto-layout";
-import { placedTiles, sectionsOf, titleOf } from "../model/pages";
+import { placedTiles, sectionsOf, tilesIn, titleOf } from "../model/pages";
 import { applyLayout, draftEmpty, proposeLayout, type AutoMode } from "../editor/auto-layout";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
@@ -79,13 +79,13 @@ onMounted(() => { dialog.value?.showModal(); propose(); });
                 :style="{ gridColumn: `${section.placement.column + 1} / span ${section.placement.columns}`, gridRow: `${section.placement.row + 1} / span ${section.placement.rows}` }">
                 <span class="thumb-head">{{ section.title }}</span>
                 <div class="thumb-inner" :style="{ gridTemplateColumns: `repeat(${section.placement.columns}, 1fr)`, gridTemplateRows: `repeat(${section.placement.rows}, 1fr)` }">
-                  <div v-for="tile in section.tiles" :key="tile.id" class="thumb-tile" :title="tile.appearance.label"
-                    :style="{ gridColumn: `${tile.placement.column + 1} / span ${tile.placement.columns}`, gridRow: `${tile.placement.row + 1} / span ${tile.placement.rows}` }">
+                  <div v-for="tile in tilesIn(page, section)" :key="tile.id" class="thumb-tile" :title="tile.appearance.label"
+                    :style="{ gridColumn: `${tile.placement.column - section.placement.column + 1} / span ${tile.placement.columns}`, gridRow: `${tile.placement.row - section.placement.row + 1} / span ${tile.placement.rows}` }">
                     <span class="mdi">{{ tileIcon(entityOf(tile.content)) }}</span><span class="thumb-label">{{ tile.appearance.label }}</span>
                   </div>
                 </div>
               </div>
-              <div v-for="{ tile, row, column } in placedTiles({ ...page, sections: [] })" :key="tile.id" class="thumb-tile" :title="tile.appearance.label"
+              <div v-for="{ tile, row, column } in placedTiles(page).filter((placed) => !placed.section)" :key="tile.id" class="thumb-tile" :title="tile.appearance.label"
                 :style="{ gridColumn: `${column + 1} / span ${tile.placement.columns}`, gridRow: `${row + 1} / span ${tile.placement.rows}` }">
                 <span class="mdi">{{ tileIcon(entityOf(tile.content)) }}</span><span class="thumb-label">{{ tile.appearance.label }}</span>
               </div>

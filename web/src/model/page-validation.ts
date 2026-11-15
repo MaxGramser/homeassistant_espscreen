@@ -67,12 +67,12 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
   if (!Array.isArray(layout.pages)) fail();
   for (const page of layout.pages) {
     fields(page, ['id', 'navigation', 'topbar', 'tiles', 'icon', 'sections'], ['id', 'navigation', 'topbar', 'tiles']);
-    // A section (docs/PAGES.md "Sections"): its block and its tiles; the tiles are checked below with the loose ones.
+    // A section (docs/PAGES.md "Sections"): its block. It holds no tiles: they are the page's, checked below.
     if (page.sections !== undefined && !Array.isArray(page.sections)) fail();
     for (const section of page.sections ?? []) {
-      fields(section, ['id', 'title', 'icon', 'summary', 'contrast', 'contrastTiles', 'placement', 'tiles'], ['id', 'title', 'placement', 'tiles']);
+      fields(section, ['id', 'title', 'icon', 'summary', 'contrast', 'contrastTiles', 'placement'], ['id', 'title', 'placement']);
       fields(section.placement, ['row', 'column', 'columns', 'rows']);
-      if (!Array.isArray(section.tiles) || (section.icon !== undefined && (section.icon === 'auto' || !icon(section.icon, false))) ||
+      if ((section.icon !== undefined && (section.icon === 'auto' || !icon(section.icon, false))) ||
           (section.summary !== undefined && !/^[a-z0-9_]+\.[a-z0-9_]+$/.test(String(section.summary)))) fail();
     }
     fields(page.navigation, ['excludeFromPagination', 'showInDock'], ['excludeFromPagination']);

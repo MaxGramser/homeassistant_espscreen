@@ -814,15 +814,15 @@ export function autoLayout(input: AutoInput): AutoResult {
       if (pages.length >= pagesMax) { leftOut += sheet.sheet.blocks.reduce((sum, block) => sum + block.unit.tiles.length, 0); continue; }
       const page = pageWith(sheet.title, sheet.icon, input);
       const blocks = sheet.sheet.blocks.sort((a, b) => a.row - b.row || a.column - b.column);
-      page.tiles = blocks.filter(alone).map((block) => tileOf({ ...block.shape.places[0], row: block.row + block.shape.places[0].row,
-        column: block.column + block.shape.places[0].column }));
+      // Every tile on its page at its own cell; a block of two or more also gets a section around it.
+      page.tiles = blocks.flatMap((block) => block.shape.places.map((place) => tileOf({ ...place, row: block.row + place.row,
+        column: block.column + place.column })));
       const grouped = blocks.filter((block) => !alone(block));
       if (grouped.length) page.sections = grouped.map((block): Section => ({
         id: instanceId(), title: cutBytes(block.unit.title, SECTION_TITLE_BYTES) || "·",
         ...(block.unit.icon && ICONS.has(block.unit.icon) ? { icon: block.unit.icon } : {}),
         ...(block.unit.summary ? { summary: block.unit.summary } : {}),
         placement: { row: block.row, column: block.column, columns: block.shape.columns, rows: block.shape.rows },
-        tiles: block.shape.places.map((place) => tileOf(place)),
       }));
       sections += page.sections?.length ?? 0;
       pages.push(page);
@@ -838,7 +838,7 @@ export function autoLayout(input: AutoInput): AutoResult {
     }
   }
   if (!pages.length) pages.push(pageWith("", undefined, input));
-  const tiles = pages.reduce((sum, page) => sum + page.tiles.length + (page.sections ?? []).reduce((n, s) => n + s.tiles.length, 0), 0);
+  const tiles = pages.reduce((sum, page) => sum + page.tiles.length, 0);
   return { layout: { title: input.screen.title, homePageId: pages[0].id, pages }, tiles, sections, rooms: made.rooms, leftOut };
 }
 

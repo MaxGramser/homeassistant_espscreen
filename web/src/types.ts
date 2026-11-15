@@ -144,19 +144,19 @@ export type Page = {
   tiles: PageTile[];
   // The page's own icon by name (a pickable MDI icon), which the Dock shows instead of its picture; left out, the picture.
   icon?: string;
-  // Sections (docs/PAGES.md "Sections"): blocks of cells with a title, an icon and a panel, each holding its own tiles
-  // placed inside it. Left out on a page without any; the page's loose tiles are `tiles`, as before.
+  // Sections (docs/PAGES.md "Sections"): blocks of cells with a title, an icon and a panel. Left out on a page without
+  // any. Every tile of the page stands in `tiles`, as before sections; a tile belongs to the section whose block it lies
+  // in (model/page-tiles.ts sectionOf).
   sections?: Section[];
 };
-// A section's block on its page's grid, and its tiles relative to the block's top-left corner. `summary`: an entity whose
-// state the section's band shows at its right end.
+// A section's block on its page's grid; it holds no tiles of its own. `summary`: an entity whose state the section's
+// band shows at its right end.
 export type Section = {
   id: string; title: string; icon?: string; summary?: string;
   // The panel in the page's opposite colour, so the section stands out (off unless chosen); with `contrastTiles` the
   // whole section is a piece of the other look, its tiles' cards too.
   contrast?: boolean; contrastTiles?: boolean;
   placement: { row: number; column: number; columns: number; rows: number };
-  tiles: PageTile[];
 };
 // A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells.
 export type SectionBlock = { id: string; page: number; row: number; column: number; columns: number; rows: number;
