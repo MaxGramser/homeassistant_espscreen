@@ -1300,7 +1300,10 @@ void tick(const std::function<void(Handle, Event)> &tell) {
       // closed while the picture's room below it was drawn again, until something else drew there (2026-10-15, a P4
       // board). The redraw at closing comes while the task may still be busy with its last picture, and its first strip
       // is that bar; this one comes after. The whole glass, as the view covered all of it.
+      // A tile's stream the same, for its own room: a 10.1 inch kept a camera tile's last picture over the next page,
+      // where that page drew nothing of its own, after a swipe that ended the stream 3 s after it started (2026-11-15).
       if (!s->look.tile) glass::redraw_all();
+      else glass::redraw(s->room);
       if (s->claims) audio_owner::the().release(s->claimed, s->sound_role, static_cast<uint32_t>(slot));
       free_stream(s);
       tell(slot, turned ? Event::TURNED : ended ? Event::ENDED : Event::FAILED);

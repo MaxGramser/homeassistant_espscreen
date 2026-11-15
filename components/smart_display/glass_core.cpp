@@ -323,6 +323,10 @@ void give_back(Room room) {
   s->used = false;
   filter_when_rooms();
 }
+void redraw(Room room) {
+  RoomState *s = room_at(room);
+  if (s && !s->area.empty()) invalidate(lv_rect(s->area));
+}
 void redraw_all() {
   lv_display_t *display = lv_display_get_default();
   if (!display) return;
