@@ -161,7 +161,7 @@ that look through `CardScope` (docs/THEME.md, "A card's look") and trades the sh
 copies in the other look when it changes look (`theme::restyle_card`); the editor, whose mockup is the light look,
 draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). A picture on a card in a section (an album cover, a
 camera, still or live) rounds its corners over the section's panel, the dark one in contrast, never over the page
-(`runtime_tiles::ground_behind`): a cover asked over the page left a light frame around its card on
+(`runtime_tiles::card_ground`): a cover asked over the page left a light frame around its card on
 a contrast panel. The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
 on the glass.
 

@@ -334,21 +334,49 @@ inline uint32_t key_text(uint32_t key) {
 }
 // The key under a finger: a little darker, in both looks.
 inline uint32_t key_pressed(uint32_t key) { return mix(key, 0x000000, 210); }
-// A card's own colour (a swatch's light value, or 0 for none) as this look draws it.
-// A card that is an instrument's face (plugin API 0.28, CardColor::INSTRUMENT): the INSTRUMENT role's ground in both
-// looks, kept as its light value, as a swatch is.
-inline uint32_t instrument_ground() { return ROLES[INSTRUMENT].light; }
+// A card's own colour as a value (docs/THEME.md "A card's look"): the card (CARD), one of the swatches (a tile's
+// background, or a plugin's ui::set_card_color), or an instrument's face (plugin API 0.28, CardColor::INSTRUMENT: the
+// INSTRUMENT role in both looks). A tile keeps a swatch as its light value (tile_palette.h); Face::of reads that.
+struct Face {
+  enum Kind : uint8_t { CARD, SWATCH, INSTRUMENT };
+  Kind kind = CARD;
+  uint8_t swatch = 0;  // an index into SWATCHES, with SWATCH
+  static Face instrument() { return {INSTRUMENT, 0}; }
+  static Face of(uint32_t light) {
+    for (size_t i = 0; i < SWATCH_COUNT; ++i) if (light && SWATCHES[i].light == light) return {SWATCH, uint8_t(i)};
+    return {};
+  }
+  // Which colour it is, for a signature: 0 for the card, as a tile's background 0 was.
+  uint32_t key() const { return kind == SWATCH ? SWATCHES[swatch].light : kind == INSTRUMENT ? 1u << 24 : 0; }
+  bool operator==(const Face &o) const { return kind == o.kind && swatch == o.swatch; }
+  bool operator!=(const Face &o) const { return !(*this == o); }
+};
+// The card's colour as this look draws it.
+inline uint32_t surface(Face f) {
+  switch (f.kind) {
+    case Face::SWATCH: return dark ? SWATCHES[f.swatch].dark : SWATCHES[f.swatch].light;
+    case Face::INSTRUMENT: return hex(INSTRUMENT);
+    default: return hex(CARD);
+  }
+}
+// A colour kept as its light value (a tile's background: a swatch, or 0 for the card), as this look draws it. Any other
+// light value stands as it is in the light look and is the card in the dark one, as before Face.
 inline uint32_t surface(uint32_t own) {
   if (!own) return hex(CARD);
-  if (own == instrument_ground()) return hex(INSTRUMENT);
   if (!dark) return own;
   for (const auto &s : SWATCHES) if (s.light == own) return s.dark;
   return hex(CARD);
 }
 // The hairline around a card: the card's own colour a little darker in light, a little lighter in dark.
+inline uint32_t outline(Face f) {
+  switch (f.kind) {
+    case Face::SWATCH: return dark ? mix(surface(f), 0xFFFFFF, 232) : mix(SWATCHES[f.swatch].light, 0x000000, 220);
+    case Face::INSTRUMENT: return hex(INSTRUMENT_LINE);
+    default: return hex(LINE);
+  }
+}
 inline uint32_t outline(uint32_t own) {
   if (!own) return hex(LINE);
-  if (own == instrument_ground()) return hex(INSTRUMENT_LINE);
   return dark ? mix(surface(own), 0xFFFFFF, 232) : mix(own, 0x000000, 220);
 }
 
@@ -445,6 +473,8 @@ inline uint32_t key_on(uint32_t card, uint8_t depth) {
 // A card under a finger (firmware 0.2.95+): its own colour an eighth of the way to black in light and to white in
 // dark, the same share on white, on a pastel and on graphite, so the press reads on every card in both looks.
 inline uint32_t pressed(uint32_t card) { return mix(card, dark ? 0xFFFFFF : 0x000000, 224); }
+// A card of its own colour under a finger: an instrument's face is dark in both looks, so it goes towards white in both.
+inline uint32_t pressed(Face f) { return mix(surface(f), dark || f.kind == Face::INSTRUMENT ? 0xFFFFFF : 0x000000, 224); }
 // A calendar's own colour (Home Assistant's, from its registry or the frontend's palette) on the calendar card
 // (calendar_card.h): an event's pale block, the words on it, a progress track, and what is past, a step towards the
 // card. The same shares as Apple's and the frontend's events: the colour reads, the words stay dark (light in dark).
@@ -486,6 +516,20 @@ inline bool other_look(const lv_obj_t *obj) {
   for (; obj; obj = lv_obj_get_parent(obj)) if (lv_obj_has_flag(obj, OTHER_LOOK_FLAG)) return true;
   return false;
 }
+// The look of the card an object stands in, for a part painted outside the card's own calls (a plugin's own moment,
+// plugin_host's ui:: setters): the other look in a card that carries it; anywhere else the look painted now stays (a
+// screensaver's dark look, a card's own scope).
+#ifdef SD_MOD_SECTIONS
+struct LookOf {
+  bool on, before;
+  explicit LookOf(const lv_obj_t *obj) : on(obj && other_look(obj)), before(dark) { if (on) dark = !screen_dark; }
+  ~LookOf() { if (on) dark = before; }
+  LookOf(const LookOf &) = delete;
+  LookOf &operator=(const LookOf &) = delete;
+};
+#else
+struct LookOf { explicit LookOf(const lv_obj_t *) {} };  // no card carries another look without sections
+#endif
 
 inline lv_color_t color(Role role) { return lv_color_hex(hex(role)); }
 inline lv_color_t rgb(uint32_t value) { return lv_color_hex(value); }

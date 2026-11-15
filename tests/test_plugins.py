@@ -200,7 +200,7 @@ class Manifest(unittest.TestCase):
         names = re.search(r'enum class CardColor : uint8_t \{ NONE, ([A-Z, ]+) \};', header).group(1).split(', ')
         table = theme[theme.index('inline constexpr Swatch SWATCHES[] = {'):]
         swatches = re.findall(r'\{"([a-z]+)", 0x[0-9A-F]{6}, 0x[0-9A-F]{6}\}', table[:table.index('};')])
-        # INSTRUMENT (0.28) comes after them: the instrument roles' ground, no swatch (theme::instrument_ground).
+        # INSTRUMENT (0.28) comes after them: the instrument roles' ground, no swatch (theme::Face::instrument).
         self.assertEqual(names[-1], 'INSTRUMENT')
         # Every colour the API names is a swatch of the screen's own table, and the API names them all. How the host
         # gets from one to the other, and that the card then wears it in both looks, is not read out of the source here:

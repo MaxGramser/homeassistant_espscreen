@@ -16,14 +16,16 @@ class CardPaintTests(unittest.TestCase):
         self.assertIn('uint32_t cached_paint=UINT32_MAX;', source)
         # `bare`: "Background: none", or a template tile Home Assistant rendered empty (module text_card).
         self.assertIn('const bool bare=t.transparent;', source)
-        # The card's own colour: the tile's, or the one a plugin tile gave its card (plugin API 0.26), which counts in
-        # the cache as the tile's does.
-        self.assertIn('const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):t.background;', source)
-        paint = re.search(r'const uint32_t paint=own\|\(bare\?1u<<24:0\);\n(.*)\n(.*)\n', source)
+        # The card's own colour as a value (theme::Face): the tile's, or the one a plugin tile gave its card (plugin API
+        # 0.26), which counts in the cache as the tile's does (runtime_tiles::card_face).
+        self.assertIn('const theme::Face face=card_face(w);', source)
+        # A board without sections: the colour and `bare`; with sections also the card's look and ground.
+        paint = re.search(r'const uint32_t paint=face\.key\(\)\|\(bare\?1u<<25:0\);[^\n]*\n#endif\n(.*)\n(.*)\n', source)
         self.assertIsNotNone(paint)
         self.assertIn('w.cached_paint == paint', paint.group(1))
         self.assertIn('return;', paint.group(1))
         self.assertIn('w.cached_paint=paint;', paint.group(2))
+        self.assertIn('const uint64_t paint=uint64_t(face.key())', source)
 
     def test_the_appearance_message_repaints_through_the_card(self):
         # The message only stores the paint and asks for the card again; the cache above decides the rest.

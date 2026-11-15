@@ -94,8 +94,24 @@ changes, and `theme::dark`, the look every role and helper reads, which is the s
   reads LVGL's own object fields, so `theme.h` stops the build on an LVGL other than 9.5 until they are checked again,
   and the host build proves every trade (`theme::restyle_checked`: traded, back and again against a note of every style
   and selector; `tools/render/sections.py` fails on a mismatch).
-- `ground_behind()` is what lies behind the card in that ground's own look (a picture's corners, a bare card), and
-  `card_surface()` the card's own colour in the card's look, both answerable away from a paint.
+- **Two answers about a card's colours**, both answerable away from a paint: `runtime_tiles::card_ground(w)`, what lies
+  behind the card in that ground's own look (a picture's corners, a bare card, a plugin's `ui::card_color()` on a bare
+  card), and `runtime_tiles::card_surface(w)`, the card's own colour in the card's look. Every card colour goes through
+  them: the card's palette, its panel and sliders, a picture over the card, a meter's ground, a stream's ground, a
+  plugin tile's picture corners and `ui::card_color()`.
+- **The card's colour is a value**, `theme::Face`: the card (`CARD`), one of the swatches, or an instrument's face
+  (plugin API 0.28). `runtime_tiles::card_face(w)` gives it: what a plugin tile set with `ui::set_card_color`, else the
+  tile's background. `theme::surface`, `outline` and `pressed` take it, so an instrument's face (dark in both looks)
+  lightens under a finger in the light look too; the hex forms stay for a colour kept as its light value.
+- **A plugin tile's calls run in its card's look**: `plugin_host` opens `CardScope` beside the call of a tap, a tick and
+  a picture's arrival or loss (its render runs inside `render_slot`'s), so `on_theme` comes when the card changes look
+  (the card's look against the one it last coloured itself for). From a plugin's own moments (`on_message`,
+  `on_interval`, ...) the role-taking `ui::` setters (`label`, `set_color`, `set_tone`, `set_fill`, `block`) open
+  `theme::LookOf` on their object: the other look in a card that carries it, the look painted now anywhere else (a
+  screensaver's own look stays).
+- **A picture is asked in its card's look**: `tile_ask`, a plugin tile's `picture_ask` and a live spot open the card's
+  scope, so the question's look (part of the picture's key) and the ground behind its corners are the card's; a card
+  that changes look asks its pictures again.
 
 ## Adding a colour
 

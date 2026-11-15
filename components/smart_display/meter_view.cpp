@@ -118,7 +118,7 @@ void render(Widgets &w, const Tile &t, int width, int height) {
   const bool live = rt::fresh() && t.available();
   v.value = live ? number_of(t.state) : NAN;
   v.own = tile_controls::accent(t);
-  v.ground = theme::surface(t.background);
+  v.ground = rt::card_surface(w);
   v.background = t.background != 0;
   v.icon = rt::icon_for(t);
   // The colours: one (the tile's own unless one was chosen), or two or three segments in Home Assistant's green,

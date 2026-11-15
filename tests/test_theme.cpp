@@ -113,8 +113,13 @@ int main() {
   const bool look = dark;
   for (bool d : {false, true}) {
     dark = d;
-    assert(surface(instrument_ground()) == hex(INSTRUMENT) && outline(instrument_ground()) == hex(INSTRUMENT_LINE));
-    for (const auto &s : SWATCHES) assert(s.light != instrument_ground());
+    assert(surface(Face::instrument()) == hex(INSTRUMENT) && outline(Face::instrument()) == hex(INSTRUMENT_LINE));
+    // A press on it shows in both looks: its face is dark in both, so the press goes towards white in both.
+    assert(lightness(pressed(Face::instrument())) > lightness(hex(INSTRUMENT)));
+    // A swatch kept as its light value is that swatch; 0 and any other value is the card.
+    for (size_t i = 0; i < SWATCH_COUNT; ++i) assert(Face::of(SWATCHES[i].light) == (Face{Face::SWATCH, uint8_t(i)}));
+    assert(Face::of(0) == Face{} && surface(Face{}) == hex(CARD) && surface(0u) == hex(CARD));
+    assert(Face::instrument().key() != 0 && Face{}.key() == 0);
   }
   dark = look;
 

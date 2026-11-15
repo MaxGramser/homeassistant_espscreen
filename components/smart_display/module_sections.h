@@ -18,7 +18,7 @@
 // other look's copies by theme::restyle_card when it changes look). A picture on a card in a section (an album cover, a camera,
 // live or still) rounds its corners over the section's panel, not the page, and a card's hairline in a contrast section is the other
 // look's line, the one that sets a card off from that panel: place() gives each card its look and what lies behind it
-// (Widgets::look_other, ground_role, ground_other), which runtime_tiles' CardScope and ground_behind() read. The editor draws the same from boards.json's `section` metrics
+// (Widgets::look_other, ground_role, ground_other), which runtime_tiles' CardScope and card_ground() read. The editor draws the same from boards.json's `section` metrics
 // (tools/generate_board_shapes.py, web/src/model/sections.ts); tests/test_section_layout.cpp proves the arithmetic.
 //
 // The decorations of a page are made once, when the page is first placed (on the glass, or prepared off it), and kept:

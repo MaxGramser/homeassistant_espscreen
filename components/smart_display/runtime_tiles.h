@@ -719,21 +719,32 @@ struct Widgets {
 // look. Every path that paints into a card enters through it, with the card's Widgets or, where LVGL draws later (a
 // draw callback), with one of the card's own objects; outside one the look is the screen's. Nested scopes are fine:
 // each sets the card's look from the screen's, and gives back what was there.
+#ifdef SD_MOD_SECTIONS
 struct CardScope : theme::LookScope {
   explicit CardScope(const Widgets &w) : theme::LookScope(w.look_other) {}
   explicit CardScope(const lv_obj_t *obj) : theme::LookScope(theme::other_look(obj)) {}
 };
-// The colour behind a card: the page, or the panel of the section it stands in, in that panel's look. A picture's corners
-// are rounded over it (an album cover, a camera), and a bare card shows it: a contrast section is dark where the page is
-// light.
-inline uint32_t ground_behind(const Widgets &w) {
+#else
+// A board without sections: every card is in the screen's look, so the door costs nothing (docs/MODULES.md).
+struct CardScope {
+  explicit CardScope(const Widgets &) {}
+  explicit CardScope(const lv_obj_t *) {}
+  void end() {}
+};
+#endif
+// The two answers about a card's colours (docs/THEME.md "A card's look"), answerable at any moment, in a paint or away
+// from one (a picture's question, a plugin's call). What lies behind the card: the page, or the panel of the section it
+// stands in, in that panel's look. A picture's corners are rounded over it (an album cover, a camera), and a bare card
+// shows it: a contrast section is dark where the page is light.
+inline uint32_t card_ground(const Widgets &w) {
   return theme::hex_in(static_cast<theme::Role>(w.ground_role), theme::screen_dark != w.ground_other);
 }
-// A card's own colour as it is painted, in the card's look, also when it is asked for away from render_slot (a
-// picture's question).
-inline uint32_t card_surface(const Widgets &w, const Tile &t) {
+// The card's own colour as a value: what a plugin tile gave its card (plugin API 0.26), else the tile's background.
+inline theme::Face card_face(const Widgets &w);
+// The card's own colour as it is painted, in the card's look.
+inline uint32_t card_surface(const Widgets &w) {
   CardScope scope(w);
-  return theme::surface(t.background);
+  return theme::surface(card_face(w));
 }
 // A page is being built off the glass (warm_page): its cards ask for no pictures and wake nothing.
 inline bool warming=false;
@@ -7172,7 +7183,7 @@ inline void render_flip(Widgets &w,const Tile &t,bool large,int width,int height
 inline void paint_face(Widgets &w,lv_color_t ink,lv_color_t muted,lv_color_t accent){
   const bool flip=w.extra_mode=="flip";
   const lv_color_t block=theme::color(theme::TRACK);
-  const lv_color_t card=lv_obj_get_style_bg_opa(w.tile,LV_PART_MAIN)==LV_OPA_TRANSP?lv_color_hex(ground_behind(w)):lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN);
+  const lv_color_t card=lv_obj_get_style_bg_opa(w.tile,LV_PART_MAIN)==LV_OPA_TRANSP?lv_color_hex(card_ground(w)):lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN);
   for(unsigned i=0;i<w.parts.size();++i){
     auto *p=w.parts[i];if(!p)continue;
     if(lv_obj_check_type(p,&lv_label_class)){set_color(p,LV_STYLE_TEXT_COLOR,(flip?(i==6||i==16):(i==16||i==17))?muted:ink);continue;}
@@ -7863,10 +7874,15 @@ inline void stepper_keys(Widgets &w,int width,int height,const lv_font_t *text_f
 // for the volume; 0 lays the volume over the keys.
 // Compiled on its own (tile_panel.cpp): on Xtensa main.cpp's literal pool is at the edge of its reach.
 int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int content_h,int standing=0);
+inline theme::Face card_face(const Widgets &w) {
+  const theme::Face given = plugin_host::face(w);
+  if (given.kind != theme::Face::CARD || w.index >= model.count) return given;
+  return theme::Face::of(model.tiles[w.index].background);
+}
 // Colours follow the card palette; called with the rest of the palette when it changes.
 inline void style_panel(Widgets &w,const Tile &t,lv_color_t accent,lv_color_t text) {
   if(!w.panel || w.panel_mode.empty())return;
-  const uint32_t surface=theme::surface(t.background);
+  const uint32_t surface=card_surface(w);
   lv_color_t card=lv_color_hex(surface);
   lv_color_t key_bg=lv_color_hex(theme::key_on(surface,236));
   lv_color_t key_pressed=lv_color_hex(theme::key_on(surface,212));
@@ -8036,7 +8052,7 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   // The colour behind the cover's rounded corners: the card's own, as the palette below will paint it (firmware 0.3.2).
   // Read from the card, it was the colour of whatever the card showed before, so a new card asked for a cover with the
   // wrong corners first and for the right one after its first drawing.
-  const uint32_t ground=t.transparent?ground_behind(w):card_surface(w,t);
+  const uint32_t ground=t.transparent?card_ground(w):card_surface(w);
   const bool pictured=camera_supported()&&track&&!x.media_picture.empty();
   w.cover_entity=pictured?t.entity:std::string();w.cover_mark=pictured?x.media_picture:std::string();
   w.cover_size=l.art.w;w.cover_ground=ground;w.cover_rect=at(l.art);
@@ -8423,7 +8439,7 @@ inline void media_standing(Widgets &w,const Tile &t,int x,int y,int width,int he
     lv_obj_add_event_cb(s,slider_event,LV_EVENT_ALL,(void*)(uintptr_t)w.index);
   }
   lv_obj_set_pos(s,x,y);lv_obj_set_size(s,width,height);slider_handle_standing(s,width,height);
-  const lv_color_t fill=t.muted?theme::color(theme::OFF):w.panel_accent,card=lv_color_hex(theme::surface(t.background));
+  const lv_color_t fill=t.muted?theme::color(theme::OFF):w.panel_accent,card=lv_color_hex(card_surface(w));
   set_color(s,LV_STYLE_BG_COLOR,lv_color_mix(fill,card,51),LV_PART_MAIN);set_color(s,LV_STYLE_BG_COLOR,fill,LV_PART_INDICATOR);
   if(!lv_obj_has_state(s,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(s,slider_value(t),LV_ANIM_OFF);
   lv_obj_remove_flag(s,LV_OBJ_FLAG_HIDDEN);
@@ -9335,13 +9351,13 @@ inline void render_slot(size_t slot) {
   const bool bare=t.transparent;
 #endif
   // A plugin tile may give its card a colour of its own (plugin API 0.26, ui::set_card_color): it goes over the tile's.
-  const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):t.background;
+  const theme::Face face=card_face(w);
 #ifdef SD_MOD_SECTIONS
   // The card's look and what lies behind it are part of what it was painted for: a card that moves into or out of a
   // section whose tiles follow its contrast is painted again (sections::place traded its shared styles already).
-  const uint64_t paint=uint64_t(own)|(bare?1ull<<24:0)|(w.look_other?1ull<<25:0)|(w.ground_other?1ull<<26:0)|(uint64_t(w.ground_role)<<32);
+  const uint64_t paint=uint64_t(face.key())|(bare?1ull<<27:0)|(w.look_other?1ull<<25:0)|(w.ground_other?1ull<<26:0)|(uint64_t(w.ground_role)<<32);
 #else
-  const uint32_t paint=own|(bare?1u<<24:0);  // a board without sections: every card in the screen's look on the page
+  const uint32_t paint=face.key()|(bare?1u<<25:0);  // a board without sections: every card in the screen's look on the page
 #endif
   if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
   w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
@@ -9365,12 +9381,12 @@ inline void render_slot(size_t slot) {
   // Every card, the one over the whole page too, is white or its own pastel (firmware 0.2.77+): the state shows in the
   // icon and the controls, as on the other sizes. Firmware 0.2.62 to 0.2.76 tinted a full-page card in its state colour
   // while it was on.
-  press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(own)));
+  press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(face)));
   set_number(w.tile,LV_STYLE_BORDER_WIDTH,1);
   // "Background: none" hides only the card; geometry and padding stay identical, and the press still shows because
   // it lives on the PRESSED state: a shade of what the finger sees, what is behind the card there (the page or its
   // section), the card everywhere else.
-  set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(bare ? ground_behind(w) : theme::surface(own))),LV_STATE_PRESSED);
+  set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(bare ? theme::pressed(card_ground(w)) : theme::pressed(face)),LV_STATE_PRESSED);
   set_number(w.tile,LV_STYLE_BG_OPA,bare&&!letterboxed(w) ? LV_OPA_TRANSP : LV_OPA_COVER);
   set_number(w.tile,LV_STYLE_BORDER_OPA,bare ? LV_OPA_TRANSP : LV_OPA_COVER);
   // The hairline sets the card off from what is behind it: in a contrast section that is the other look, so a card of
@@ -9378,9 +9394,9 @@ inline void render_slot(size_t slot) {
   uint32_t line;
   {
 #ifdef SD_MOD_SECTIONS
-    theme::Flip other(!own && !w.look_other && w.ground_role == theme::SECTION_CONTRAST);
+    theme::Flip other(face.kind == theme::Face::CARD && !w.look_other && w.ground_role == theme::SECTION_CONTRAST);
 #endif
-    line = theme::outline(own);
+    line = theme::outline(face);
   }
   set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(line));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
@@ -9392,7 +9408,7 @@ inline void render_slot(size_t slot) {
     set_number(w.tile,LV_STYLE_BG_OPA,LV_OPA_COVER);set_number(w.tile,LV_STYLE_BORDER_OPA,LV_OPA_TRANSP);
   }
   auto title_color=theme::color(theme::INK);
-  auto value_color=theme::color(w.key ? theme::INK : own ? theme::SLATE : theme::MUTED);
+  auto value_color=theme::color(w.key ? theme::INK : face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
   set_color(w.unit,LV_STYLE_TEXT_COLOR,theme::color(t.is_page()?theme::CHEVRON:theme::SLATE));
   set_color(w.title,LV_STYLE_TEXT_COLOR,title_color);
   set_color(w.value,LV_STYLE_TEXT_COLOR,value_color);
@@ -10294,9 +10310,8 @@ inline bool check_tile_geometry() {
         (int)content_width(w),(int)content_height(w),(int)lv_obj_get_style_space_top(w.tile,LV_PART_MAIN),l.digit_h,l.key,l.name_h);}
     }
     if(!fits)ESP_LOGE("ui_test","Tile geometry FAIL slot=%u mode=%s wide=%d title_y=%d..%d value_y=%d..%d content_y=%d..%d",(unsigned)w.index,w.extra_mode.c_str(),w.wide,(int)title.y1,(int)title.y2,(int)value.y1,(int)value.y2,(int)content.y1,(int)content.y2);
-    if(w.index<model.count && (model.tiles[w.index].background || plugin_host::ground(w))){
-      const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):model.tiles[w.index].background;
-      bool palette_ok=lv_color_eq(lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN),lv_color_hex(theme::surface(own))) &&
+    if(w.index<model.count && card_face(w).kind!=theme::Face::CARD){
+      bool palette_ok=lv_color_eq(lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN),lv_color_hex(card_surface(w))) &&
         lv_color_eq(lv_obj_get_style_text_color(w.title,LV_PART_MAIN),theme::color(theme::INK));
       if(!palette_ok)ESP_LOGE("ui_test","Tile palette FAIL slot=%u",(unsigned)w.index);
       fits=fits && palette_ok;
@@ -11645,6 +11660,8 @@ inline bool card_open() { return detail_shown() || colour_shown() || effects_pag
 // What a card's picture is: its place measured on the card as LVGL laid it out, how the app paints it, and its pace.
 // False when the tile shows no picture, or the card has no size yet.
 inline bool tile_ask(const Widgets &w, const Tile &t, tile_picture::Ask &a) {
+  // The question's look (a.dark, part of the picture's key) and its ground are the card's (docs/THEME.md).
+  CardScope look(w);
   // A plugin tile's places (plugin API 0.10): its parts, measured by the host.
   if (w.plugin) return plugin_host::picture_ask(w, t, a);
 #ifdef SD_MOD_VACUUM_CARD
@@ -11669,7 +11686,7 @@ inline bool tile_ask(const Widgets &w, const Tile &t, tile_picture::Ask &a) {
   const int width = lv_obj_get_width(place), height = lv_obj_get_height(place);
   if (width <= 0 || height <= 0) return false;
   const int radius = art ? lv_obj_get_style_radius(w.tile, LV_PART_MAIN) : width / 6;
-  const uint32_t ground = t.transparent || art ? ground_behind(w) : card_surface(w, t);
+  const uint32_t ground = t.transparent || art ? card_ground(w) : card_surface(w);
   // An album cover and a favourite carry their words on the picture, dimmed whole as a cover over a card is.
   const int shade = art && (t.cover_tile() || t.favorite()) ? tile_picture::SHADE : 0;
   // A picture over the cap sits in the middle of its card on the dark of a camera's page, which its corners round over.
@@ -11766,7 +11783,7 @@ inline void tile_picture_place(Widgets &w, const Tile &t, int size, int x, int y
       lv_obj_move_to_index(w.picture, 0);
       // The card behind a smaller picture: dark while it is smaller, the card's own colour again once it fills it.
       const bool dark = pw < width || ph < height;
-      set_color(w.tile, LV_STYLE_BG_COLOR, dark ? theme::color(theme::CAMERA_PAGE) : lv_color_hex(theme::surface(t.background)));
+      set_color(w.tile, LV_STYLE_BG_COLOR, dark ? theme::color(theme::CAMERA_PAGE) : lv_color_hex(card_surface(w)));
       set_number(w.tile, LV_STYLE_BG_OPA, t.transparent && !dark ? LV_OPA_TRANSP : LV_OPA_COVER);
     }
     lv_obj_remove_flag(w.picture, LV_OBJ_FLAG_HIDDEN);
@@ -12252,6 +12269,7 @@ inline uint32_t live_spot_ask(const live_spots::Spot &spot) {
   }
   if (spot.index >= model.count) return 0;
   auto *place = const_cast<lv_obj_t *>(static_cast<const lv_obj_t *>(spot.place));
+  CardScope look(place);  // a plugin's live place asks in its card's look
   picture_question::Question q;
   q.owner = picture_question::Owner::PLUGIN_TILE;
   q.index = static_cast<int>(spot.index);
@@ -12284,11 +12302,12 @@ inline live_view::Handle live_spot_open(const live_spots::Spot &spot, const std:
     each_card([&](Widgets &w) { if (w.index == spot.index && spot.index < model.count && live_tile_wanted(w, model.tiles[spot.index])) card = &w; });
     if (!card) return live_spots::Spots::NOT_NOW;
     const Tile &t = model.tiles[spot.index];
+    CardScope scope(*card);  // the stream's colours (loader, name, badge, ground) in the card's look
     live_view::Look look;
     look.tile = true;
     look.contain = url.find("fit=contain") != std::string::npos;
     look.radius = lv_obj_get_style_radius(card->tile, LV_PART_MAIN);
-    look.ground = live_view::rgb565(ground_behind(*card));
+    look.ground = live_view::rgb565(card_ground(*card));
     look.fade = t.overlay;
     live_loader(look);
     lv_draw_buf_t *name = t.overlay ? live_name(look, *card, spot.room) : nullptr;
@@ -12308,11 +12327,12 @@ inline live_view::Handle live_spot_open(const live_spots::Spot &spot, const std:
   if (!card || spot.index >= model.count) return live_spots::Spots::NOT_NOW;
   const Tile &t = model.tiles[spot.index];
   auto *place = const_cast<lv_obj_t *>(static_cast<const lv_obj_t *>(spot.place));
+  CardScope scope(*card);
   live_view::Look look;
   look.tile = true;
   look.contain = url.find("fit=contain") != std::string::npos;
   look.radius = lv_obj_get_style_radius(place, LV_PART_MAIN);
-  look.ground = live_view::rgb565(t.transparent ? ground_behind(*card) : card_surface(*card, t));
+  look.ground = live_view::rgb565(t.transparent ? card_ground(*card) : card_surface(*card));
   look.fade = false;
   live_loader(look);
   return live_view::open(url, spot.room, look);

@@ -487,6 +487,7 @@ bool covers(const std::string &text, Font f) {
 }
 
 lv_obj_t *label(lv_obj_t *parent, Font f, theme::Role role) {
+  theme::LookOf look(parent);  // a role in the look of the card it stands in, from a plugin's own moment too
   lv_obj_t *l = lv_label_create(parent);
   lv_obj_remove_flag(l, LV_OBJ_FLAG_CLICKABLE);
   lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
@@ -513,11 +514,13 @@ void set_font(lv_obj_t *l, Font f) {
     lv_obj_set_height(l, lv_font_get_line_height(face));
 }
 void set_color(lv_obj_t *l, theme::Role role) {
+  theme::LookOf look(l);
   if (l) rt::set_color(l, LV_STYLE_TEXT_COLOR, theme::color(role));
 }
 
 void set_tone(lv_obj_t *l, Tone tone, theme::Role normal) {
   if (!l) return;
+  theme::LookOf look(l);
   uint32_t color = 0;
   if (!::tessera::tone_color(tone, color)) return set_color(l, normal);
   rt::set_color(l, LV_STYLE_TEXT_COLOR, lv_color_hex(color));
@@ -529,10 +532,12 @@ lv_color_t tone_color(Tone tone, theme::Role normal) {
 }
 
 void set_fill(lv_obj_t *block, Tone tone, theme::Role normal) {
+  theme::LookOf look(block);
   if (block) rt::set_color(block, LV_STYLE_BG_COLOR, tone_color(tone, normal));
 }
 
 lv_obj_t *block(lv_obj_t *parent, theme::Role fill) {
+  theme::LookOf look(parent);
   lv_obj_t *b = lv_obj_create(parent);
   lv_obj_remove_style_all(b);
   lv_obj_remove_flag(b, LV_OBJ_FLAG_CLICKABLE);
@@ -573,7 +578,7 @@ struct Card : tessera::InPsram {   // PSRAM first, as the plugin's own objects (
   size_t options = 0;          // and its options (a hash)
   size_t state = 0;            // the data it was last given (a hash), 0 for none yet
   bool dark = false;           // the look it last coloured itself for
-  uint32_t ground = 0;         // the colour the tile gave its card (0.26): a swatch's light value, 0 for none
+  theme::Face face;            // the colour the tile gave its card (0.26): a swatch, an instrument's face, or none
   std::vector<Place> places;   // its places for pictures, in the order the tile made them
 };
 
@@ -586,11 +591,18 @@ static Card *making = nullptr;
 // The places a call of the host makes pictures in (ui::picture): the tile's in a call of a tile, the open card's in a
 // call of a card (0.13), nullptr outside both.
 static std::vector<Place> *placing = nullptr;
+// The card's Widgets in that call, for its colours (runtime_tiles::card_surface, card_ground): nullptr outside one.
+static const rt::Widgets *making_widgets = nullptr;
 struct Making {
   Card *was;
   std::vector<Place> *had;
-  explicit Making(Card *card) : was(making), had(placing) { making = card; placing = card ? &card->places : nullptr; }
-  ~Making() { making = was; placing = had; }
+  const rt::Widgets *widgets_were;
+  explicit Making(Card *card, const rt::Widgets *w = nullptr) : was(making), had(placing), widgets_were(making_widgets) {
+    making = card;
+    placing = card ? &card->places : nullptr;
+    making_widgets = w;
+  }
+  ~Making() { making = was; placing = had; making_widgets = widgets_were; }
 };
 // The places of the plugin card open over the page (0.13), nullptr when none is (defined with the cards below).
 static std::vector<Place> *card_places();
@@ -601,7 +613,7 @@ static std::vector<Place> *saver_places();
 
 bool known(const rt::Tile &t) { return tessera::tile_type(t.entity) != nullptr; }
 
-uint32_t ground(const rt::Widgets &w) { return w.plugin ? w.plugin->ground : 0; }
+theme::Face face(const rt::Widgets &w) { return w.plugin ? w.plugin->face : theme::Face{}; }
 
 // Whether the host is inside render(): the card's palette is painted right after it, so a colour the tile sets there
 // needs no second pass.
@@ -648,10 +660,10 @@ void render(rt::Widgets &w, const rt::Tile &t, int width, int height) {
     tessera::TileContext context{w.extra, width, height, static_cast<uint8_t>(t.column_span()),
                                  static_cast<uint8_t>(t.row_span()), t.name.c_str(), extra.plugin_entity.c_str(),
                                  static_cast<int>(w.index), doc.as<JsonObjectConst>(), t.full};
-    Making call(card);
+    Making call(card, &w);
     card->tile->create(context);
   }
-  Making call(card);
+  Making call(card, &w);
   const size_t state = hash(extra.plugin_state);
   if (card->state != state) {
     card->state = state;
@@ -683,7 +695,8 @@ void tap(rt::Widgets &w, int x, int y) {
     lv_obj_get_coords(w.extra, &area);
     tapped = {x - area.x1, y - area.y1};
   }
-  Making call(w.plugin);
+  rt::CardScope look(w);  // a tap comes outside render_slot: the card's look (docs/THEME.md "A card's look")
+  Making call(w.plugin, &w);
   w.plugin->tile->on_tap();
 }
 
@@ -698,7 +711,8 @@ void tick_cards(uint32_t epoch) {
   for (auto &w : rt::widgets) {
     if (!w.plugin || !w.tile || !w.extra || w.extra_mode != "plugin" || w.index >= rt::model.count) continue;
     if (lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN) || lv_obj_has_flag(w.extra, LV_OBJ_FLAG_HIDDEN)) continue;
-    Making call(w.plugin);
+    rt::CardScope look(w);  // once a second, outside render_slot: the card's look
+    Making call(w.plugin, &w);
     w.plugin->tile->on_tick(epoch);
   }
 }
@@ -763,13 +777,14 @@ bool pictured(const rt::Widgets &w) {
 }
 
 bool picture_ask(const rt::Widgets &w, const rt::Tile &t, tile_picture::Ask &a) {
+  rt::CardScope look(w);  // the question's look is the card's (a.dark below), as its corners' ground is
   std::vector<tile_picture::Part> parts;
   std::vector<Place *> owners;
   measure(w, parts, owners);
   if (parts.empty()) return false;
   // Behind the pictures' corners the card's own colour, as behind a tile's picture over its whole card.
   // The colour behind the pictures' corners: the card's own, which may be the tile's (0.26, ui::set_card_color).
-  const uint32_t ground = t.transparent ? theme::hex(theme::PAGE) : theme::surface(w.plugin && w.plugin->ground ? w.plugin->ground : t.background);
+  const uint32_t ground = t.transparent ? rt::card_ground(w) : rt::card_surface(w);
   tile_picture::set_parts(a, std::move(parts), ground, rt::picture_cap());
   a.index = w.index;
   a.entity = t.entity;
@@ -879,14 +894,16 @@ void picture_place(rt::Widgets &w, void *picture) {
   if (picture != picture_drawn(w)) slide_back(w.plugin->places);
   lay(w.tile, w.plugin->places, picture);
   Card *card = w.plugin;
-  Making call(card);
+  rt::CardScope look(w);  // a picture's arrival, outside render_slot: the card's look
+  Making call(card, &w);
   tell_shown(card->places, [card](lv_obj_t *place, tessera::PictureState s) { card->tile->on_picture(place, s); });
 }
 
 void picture_outcome(rt::Widgets &w, picture_loader::Outcome outcome) {
   if (!w.plugin || rt::shows(outcome)) return;
   Card *card = w.plugin;
-  Making call(card);
+  rt::CardScope look(w);
+  Making call(card, &w);
   tell_missing(card->places, missing_of(outcome),
                [card](lv_obj_t *place, tessera::PictureState s) { card->tile->on_picture(place, s); });
 }
@@ -2055,11 +2072,13 @@ constexpr bool card_swatches_whole() {
 }
 static_assert(card_swatches_whole(), "every CardColor names a swatch of theme::SWATCHES by its name, once");
 
-// A named card colour as Tile::background keeps one: the swatch's light value, 0 for NONE (theme::surface draws it).
-static uint32_t swatch_of(CardColor color) {
-  if (color == CardColor::INSTRUMENT) return theme::instrument_ground();
-  for (const auto &c : CARD_SWATCHES) if (c.color == color) return theme::SWATCHES[swatch_index(c.name)].light;
-  return 0;
+// A named card colour as the card's colour (theme::Face): one of the swatches by its name, an instrument's face, or the
+// card for NONE.
+static theme::Face face_of(CardColor color) {
+  if (color == CardColor::INSTRUMENT) return theme::Face::instrument();
+  for (const auto &c : CARD_SWATCHES)
+    if (c.color == color) return {theme::Face::SWATCH, static_cast<uint8_t>(swatch_index(c.name))};
+  return {};
 }
 
 void set_card_color(CardColor color) {
@@ -2068,9 +2087,9 @@ void set_card_color(CardColor color) {
     ESP_LOGW("plugins", "ui::set_card_color outside a call of a tile: no card is coloured");
     return;
   }
-  const uint32_t ground = swatch_of(color);
-  if (card->ground == ground) return;
-  card->ground = ground;
+  const theme::Face face = face_of(color);
+  if (card->face == face) return;
+  card->face = face;
   // In render() the card's palette comes right after the tile's call. From any other call (a tick, a tap) the card is
   // drawn again in the next pass.
   if (!plugin_host::rendering && card->index < rt::model.count) {
@@ -2083,11 +2102,13 @@ lv_color_t card_color() {
   const plugin_host::Card *card = plugin_host::making;
   if (!card || plugin_host::placing != &card->places || card->index >= rt::model.count) return theme::color(theme::CARD);
   const rt::Tile &t = rt::model.tiles[card->index];
+  if (plugin_host::making_widgets)
+    return lv_color_hex(t.transparent ? rt::card_ground(*plugin_host::making_widgets) : rt::card_surface(*plugin_host::making_widgets));
   if (t.transparent) return theme::color(theme::PAGE);
-  return lv_color_hex(theme::surface(card->ground ? card->ground : t.background));
+  return lv_color_hex(theme::surface(card->face.kind != theme::Face::CARD ? card->face : theme::Face::of(t.background)));
 }
 
-lv_color_t card_color(CardColor color) { return lv_color_hex(theme::surface(swatch_of(color))); }
+lv_color_t card_color(CardColor color) { return lv_color_hex(theme::surface(face_of(color))); }
 
 
 void takes_taps(lv_obj_t *part) {
@@ -2281,7 +2302,7 @@ namespace plugin_host {
 bool known(const runtime_tiles::Tile &) { return false; }
 void render(runtime_tiles::Widgets &, const runtime_tiles::Tile &, int, int) {}
 void release(runtime_tiles::Widgets &) {}   // no plugin card is ever made in this build
-uint32_t ground(const runtime_tiles::Widgets &) { return 0; }
+theme::Face face(const runtime_tiles::Widgets &) { return {}; }
 void tap(runtime_tiles::Widgets &, int, int) {}
 void tick_cards(uint32_t) {}
 uint16_t bytes(const std::string &) { return PLACEHOLDER_BYTES; }
