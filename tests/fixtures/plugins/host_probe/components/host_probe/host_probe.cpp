@@ -91,7 +91,8 @@ class ProbeTile : public tessera::Tile {
     // the pass that follows is in the tick's line.
     const std::string card = data["card"] | "";
     if (!card.empty()) {
-      const tessera::CardColor colour = card == "green" ? tessera::CardColor::GREEN : card == "red" ? tessera::CardColor::RED : tessera::CardColor::NONE;
+      const tessera::CardColor colour = card == "green" ? tessera::CardColor::GREEN : card == "red" ? tessera::CardColor::RED
+                                      : card == "instrument" ? tessera::CardColor::INSTRUMENT : tessera::CardColor::NONE;
       ui::set_card_color(colour);
       ESP_LOGI(TAG, "tile=%d card set %s own=%06X named=%06X", tile_, card.c_str(),
                (unsigned) (lv_color_to_u32(ui::card_color()) & 0xFFFFFF), (unsigned) (lv_color_to_u32(ui::card_color(colour)) & 0xFFFFFF));

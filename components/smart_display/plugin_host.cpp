@@ -2057,6 +2057,7 @@ bool pictures() { return rt::tile_pictures_supported(); }
 // A named card colour as Tile::background keeps one: the swatch's light value, 0 for NONE (theme::surface draws it).
 static uint32_t swatch_of(CardColor color) {
   static_assert(theme::SWATCH_COUNT == 9, "CardColor names theme::SWATCHES in their order");
+  if (color == CardColor::INSTRUMENT) return theme::instrument_ground();
   const auto i = static_cast<size_t>(color);
   return i >= 1 && i <= theme::SWATCH_COUNT ? theme::SWATCHES[i - 1].light : 0;
 }

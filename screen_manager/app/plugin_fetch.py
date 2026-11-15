@@ -33,6 +33,7 @@ ANY_PLACEHOLDER = re.compile(f'{FETCH_PLACEHOLDER.pattern}|{ATTRIBUTE_PLACEHOLDE
 MAX_BYTES = 64 * 1024
 TIMEOUT = 10
 TEXT_BYTES = 48
+URL_BYTES = 255            # a field "as: url" (plugin API 0.28): a picture's address whole, never cut
 BACKOFF = (60, 120, 300, 900)
 FORGET_AFTER = 2           # intervals a question nobody asks for stays in the cache
 
@@ -133,6 +134,10 @@ def field_value(item, field):
         return epoch_of(value, field.get('tz'))
     if field['as'] == 'number':
         return number_of(value)
+    if field['as'] == 'url':
+        # Whole or not at all: a cut address names another file, or none.
+        ok = isinstance(value, str) and re.match(r'https?://\S+$', value) and len(value.encode()) <= URL_BYTES
+        return value if ok else None
     if value is None or isinstance(value, (dict, list)):
         return None
     return short(value)

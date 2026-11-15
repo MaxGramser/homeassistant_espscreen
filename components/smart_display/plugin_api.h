@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 27;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 28;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -261,7 +261,9 @@ enum class Fit : uint8_t { COVER, CONTAIN };
 // A card's own colour (0.26): the named colours a person can give any tile in the editor (theme::SWATCHES). Each is a
 // pastel in the light look and a deep shade of the same hue in the dark one, chosen so the screen's ink reads on it.
 // NONE is the card as the person set it: plain, or the colour they chose.
-enum class CardColor : uint8_t { NONE, RED, ORANGE, YELLOW, GREEN, MINT, BLUE, PURPLE, PINK, GRAY };
+// INSTRUMENT (0.28): the ground of the instrument roles, dark in both looks, for a tile that is an instrument's face
+// edge to edge (a radar, a night sky, a clock face); draw on it with theme::INSTRUMENT_INK and its kin.
+enum class CardColor : uint8_t { NONE, RED, ORANGE, YELLOW, GREEN, MINT, BLUE, PURPLE, PINK, GRAY, INSTRUMENT };
 // How a picture turns in its place (0.10), as the covers beside the middle one of a cover flow turn to face it: the app
 // draws the whole picture in perspective within the place, its near edge the place's height and its far edge 70 % of
 // it. LEFT faces the left (its left edge far: a cover right of the middle), RIGHT faces the right (a cover left of it).

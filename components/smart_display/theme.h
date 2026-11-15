@@ -302,8 +302,12 @@ inline uint32_t key_text(uint32_t key) {
 // The key under a finger: a little darker, in both looks.
 inline uint32_t key_pressed(uint32_t key) { return mix(key, 0x000000, 210); }
 // A card's own colour (a swatch's light value, or 0 for none) as this look draws it.
+// A card that is an instrument's face (plugin API 0.28, CardColor::INSTRUMENT): the INSTRUMENT role's ground in both
+// looks, kept as its light value, as a swatch is.
+inline uint32_t instrument_ground() { return ROLES[INSTRUMENT].light; }
 inline uint32_t surface(uint32_t own) {
   if (!own) return hex(CARD);
+  if (own == instrument_ground()) return hex(INSTRUMENT);
   if (!dark) return own;
   for (const auto &s : SWATCHES) if (s.light == own) return s.dark;
   return hex(CARD);
@@ -311,6 +315,7 @@ inline uint32_t surface(uint32_t own) {
 // The hairline around a card: the card's own colour a little darker in light, a little lighter in dark.
 inline uint32_t outline(uint32_t own) {
   if (!own) return hex(LINE);
+  if (own == instrument_ground()) return hex(INSTRUMENT_LINE);
   return dark ? mix(surface(own), 0xFFFFFF, 232) : mix(own, 0x000000, 220);
 }
 

@@ -202,7 +202,10 @@ class Manifest(unittest.TestCase):
         names = re.search(r'enum class CardColor : uint8_t \{ NONE, ([A-Z, ]+) \};', header).group(1).split(', ')
         table = theme[theme.index('inline constexpr Swatch SWATCHES[] = {'):]
         swatches = re.findall(r'\{"([a-z]+)", 0x[0-9A-F]{6}, 0x[0-9A-F]{6}\}', table[:table.index('};')])
-        self.assertEqual([name.lower() for name in names], swatches)
+        # INSTRUMENT (0.28) comes after them: the instrument roles' ground, no swatch (theme::instrument_ground).
+        self.assertEqual(names[-1], 'INSTRUMENT')
+        self.assertEqual([name.lower() for name in names[:-1]], swatches)
+        self.assertIn('if (color == CardColor::INSTRUMENT) return theme::instrument_ground();', host)
         self.assertIn('static_assert(theme::SWATCH_COUNT == 9', host)
         self.assertIn('theme::SWATCHES[i - 1].light', host)
         for use in ('theme::surface(own)', 'theme::outline(own)', 'theme::pressed(bare ? theme::hex(theme::PAGE) : theme::surface(own))'):
@@ -1447,6 +1450,23 @@ class FetchMore(unittest.TestCase):
         self.refuses(answers, 'answers[0].fields')
         pm.check(answers | {'api': '0.27'}, PLACE_ENGLISH)
         self.assertEqual(pm.MAX_FIELDS, 12)
+
+    def test_a_picture_address_comes_whole(self):
+        # A text stops at 48 bytes, which cut planespotters' addresses into ones that answer 404; `as: url` (0.28) keeps
+        # an http(s) address whole up to 255 bytes, or gives none.
+        import plugin_fetch
+        photo = 'https://t.plnspttrs.net/03074/1998710_fdd0467702_280.jpg'
+        item = {'photos': [{'thumbnail_large': {'src': photo}}]}
+        path = pm.parse_path('photos[0].thumbnail_large.src', root=False)
+        self.assertEqual(plugin_fetch.field_value(item, {'path': path, 'as': 'url'}), photo)
+        self.assertNotEqual(plugin_fetch.field_value(item, {'path': path, 'as': 'text'}), photo)
+        for wrong in ('ftp://example.org/a.jpg', 'https://example.org/' + 'a' * 300, 'not an address', 7):
+            self.assertIsNone(plugin_fetch.field_value({'src': wrong}, {'path': pm.parse_path('src', root=False), 'as': 'url'}))
+        with_url = lambda api: place_plugin(api=api, url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
+                                            fetch=None) | {'fetch': [{'id': 'forecast', 'url': 'https://api.example.org/now', 'every': '1d',
+                                                                      'map': {'fields': {'photo': {'path': 'src', 'as': 'url'}}}}]}
+        pm.check(with_url('0.28'), PLACE_ENGLISH)
+        self.refuses(with_url('0.27'), 'a field "as: url" needs plugin API 0.28')
 
     def test_places_for_pictures_in_a_popup(self):
         base = place_plugin(url='https://api.example.org/now', cards=[{'id': 'sky', 'name': 'card', 'pictures': 1}])

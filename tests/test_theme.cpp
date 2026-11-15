@@ -109,6 +109,14 @@ int main() {
     assert(contrast(v(INSTRUMENT_GLOW), v(INSTRUMENT)) >= 7.0);
     assert(contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) >= 1.4 && contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) < 3.0);
   }
+  // A card that is an instrument's face (0.28): the instrument's ground and line in both looks, apart from every swatch.
+  const bool look = dark;
+  for (bool d : {false, true}) {
+    dark = d;
+    assert(surface(instrument_ground()) == hex(INSTRUMENT) && outline(instrument_ground()) == hex(INSTRUMENT_LINE));
+    for (const auto &s : SWATCHES) assert(s.light != instrument_ground());
+  }
+  dark = look;
 
   // ---- Home Assistant's colours in the dark look
   assert(state(ha::GREY) == ROLES[OFF].dark && state(0xCFCFCF) == ROLES[HISTORY_OFF].dark && state(0xE6E6E6) == ROLES[HISTORY_EMPTY].dark);

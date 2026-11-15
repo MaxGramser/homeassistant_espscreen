@@ -885,6 +885,15 @@ class Run:
         if own != named or own == 'FFFFFF':
             self.failures.append(f'ui::card_color is not the colour the tile set: {said_card}')
         await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={own}' in l, 10, 'the card wears the tile\'s colour', start)
+        # An instrument's face edge to edge (plugin API 0.28, CardColor::INSTRUMENT): the card wears the INSTRUMENT
+        # role's ground, the same that ui::color(theme::INSTRUMENT) gives, dark in the light look too.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'instrument'}), bars)
+        said_dark = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'the tile set its card to an instrument', start)
+        dark_own = re.search(r'own=(\w+)', said_dark).group(1)
+        if dark_own != '0E1621':
+            self.failures.append(f'CardColor::INSTRUMENT is not the instrument\'s ground: {said_dark}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={dark_own}' in l, 10, 'the card wears the instrument', start)
         start = len(self.lines)
         await self.sender.synchronize(self.inbox.object_id, record, region, values(5, {'card': 'none'}), bars)
         back = await self.until(lambda l: probe(l, 'tile=0 card set none'), 10, 'the tile gave its card back', start)
