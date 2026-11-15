@@ -89,7 +89,11 @@ changes, and `theme::dark`, the look every role and helper reads, which is the s
   shared style on its objects for the other copy once (`theme::restyle_card`: each style in its place in the object's
   list, matched by pointer, its selector kept; `lv_obj_replace_style` would give it the selector it is called with), and the card is painted again because its look and ground are part of its paint signature. A colour no
   paint gives, LVGL's default theme, reaches no visible part of a card (an audit of every card kind, 2026-11-15: only the
-  scrollbar, which cards never show).
+  scrollbar, which cards never show). All of it is the sections module's (`SD_MOD_SECTIONS`): a board without it
+  compiles the plain `fill()` and `style()` and keeps no pairs, byte for byte what it had (the CYD, 2026-11-15). The trade
+  reads LVGL's own object fields, so `theme.h` stops the build on an LVGL other than 9.5 until they are checked again,
+  and the host build proves every trade (`theme::restyle_checked`: traded, back and again against a note of every style
+  and selector; `tools/render/sections.py` fails on a mismatch).
 - `ground_behind()` is what lies behind the card in that ground's own look (a picture's corners, a bare card), and
   `card_surface()` the card's own colour in the card's look, both answerable away from a paint.
 

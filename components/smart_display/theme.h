@@ -456,10 +456,26 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 }  // namespace theme
 
 #ifndef THEME_TEST
+#if __has_include("esphome/core/defines.h")
+#include "esphome/core/defines.h"  // the modules this board has (SD_MOD_SECTIONS)
+#endif
 #include "lvgl.h"
-#include "lvgl_private.h"  // restyle_card trades a style on an object in place (lv_obj_t::styles)
 #include <array>
+#ifdef SD_MOD_SECTIONS
+#include "lvgl_private.h"  // restyle_card trades a style on an object in place (lv_obj_t::styles)
 #include <vector>
+#ifdef USE_HOST
+#include "esphome/core/log.h"  // restyle_checked
+#endif
+// restyle_card reads fields that are not LVGL's API: lv_obj_t::styles and style_cnt, lv_obj_style_t::style, is_local and
+// is_trans. They were read against LVGL 9.5.0, which ESPHome brings from 2026.6.2 (the packages' min_version) to 2026.9.0.
+// Another LVGL stops here: check those fields in lv_obj_private.h and lv_obj_style_private.h, that a style's selector
+// still sits beside it (restyle_card keeps it), and that LVGL's style cache (full_cache_refresh) still only records which
+// properties a style has; then add the version.
+#if !(LVGL_VERSION_MAJOR == 9 && LVGL_VERSION_MINOR == 5)
+#error "theme::restyle_card was read against LVGL 9.5: check lv_obj_t::styles before allowing this LVGL (theme.h)"
+#endif
+#endif
 
 namespace theme {
 
@@ -513,6 +529,7 @@ inline constexpr PaintRoles PAINTS[static_cast<size_t>(Paint::COUNT)] = {
   /* calibration */         {CALIBRATION_PAGE, NONE, CALIBRATION_INK, NONE, NONE},
   /* camera */              {CAMERA_PAGE, NONE, CAMERA_NOTE, NONE, NONE},
 };
+#ifdef SD_MOD_SECTIONS
 // Fill a style with a paint in a given look. Setting a property the style already has allocates nothing.
 inline void fill_in(lv_style_t *style, Paint paint, bool in_dark) {
   const PaintRoles &p = PAINTS[static_cast<size_t>(paint)];
@@ -584,6 +601,75 @@ inline void restyle_card(lv_obj_t *obj, bool other) {
   if (changed) lv_obj_refresh_style(obj, LV_PART_ANY, LV_STYLE_PROP_ANY);
   for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) restyle_card(lv_obj_get_child(obj, int32_t(i)), other);
 }
+#ifdef USE_HOST
+// The host build proves every trade (tools/render/sections.py fails on a "restyle check FAIL" line): every style of every
+// object of the card is noted with its selector, the card traded to the look asked for and back and to it again, and
+// each step compared with the note. After the trade a style is its pair's copy of that look, or the same style where it
+// has no pair, at the same place with the same selector; after the trade back, exactly the note.
+struct StyleNote { lv_obj_t *obj; uint32_t index; const lv_style_t *style; lv_style_selector_t selector; };
+inline void note_styles(lv_obj_t *obj, std::vector<StyleNote> &out) {
+  for (uint32_t i = 0; i < obj->style_cnt; ++i) out.push_back({obj, i, obj->styles[i].style, obj->styles[i].selector});
+  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) note_styles(lv_obj_get_child(obj, int32_t(i)), out);
+}
+inline uint32_t restyle_checks = 0, restyle_failures = 0;
+inline void restyle_checked(lv_obj_t *card, bool other) {
+  std::vector<StyleNote> before, after;
+  note_styles(card, before);
+  const auto look_of = [](const lv_style_t *style, bool in_other) -> const lv_style_t * {
+    PaintPair *p = pair_of(style);
+    if (!p) return style;
+    return in_other ? other_copy(*p) : p->screen;
+  };
+  const auto compare = [&](bool in_other, const char *step) {
+    after.clear();
+    note_styles(card, after);
+    bool same = after.size() == before.size();
+    for (size_t i = 0; same && i < after.size(); ++i)
+      same = after[i].obj == before[i].obj && after[i].index == before[i].index && after[i].selector == before[i].selector &&
+             after[i].style == look_of(before[i].style, in_other);
+    if (!same) {
+      ++restyle_failures;
+      ESP_LOGE("card_look", "restyle check FAIL: %s, card %p, %u styles noted, %u now", step, (void *) card,
+               (unsigned) before.size(), (unsigned) after.size());
+    }
+  };
+  // The note is in the look the card had: its styles of that look.
+  restyle_card(card, other);
+  compare(other, "traded");
+  restyle_card(card, !other);
+  compare(!other, "traded back");
+  restyle_card(card, other);
+  compare(other, "traded again");
+  if (++restyle_checks % 20 == 1) ESP_LOGI("card_look", "restyle check: %u trades checked, %u failed", (unsigned) restyle_checks,
+                                           (unsigned) restyle_failures);
+}
+#endif
+#else
+// A board without sections (docs/MODULES.md): every card is in the screen's look, so a paint has one style.
+// Fill a style with a paint in the current look. Setting a property the style already has allocates nothing.
+inline void fill(lv_style_t *style, Paint paint) {
+  if (!style) return;
+  const PaintRoles &p = PAINTS[static_cast<size_t>(paint)];
+  if (p.bg != NONE) lv_style_set_bg_color(style, color(static_cast<Role>(p.bg)));
+  if (p.border != NONE) lv_style_set_border_color(style, color(static_cast<Role>(p.border)));
+  if (p.text != NONE) lv_style_set_text_color(style, color(static_cast<Role>(p.text)));
+  if (p.line != NONE) lv_style_set_line_color(style, color(static_cast<Role>(p.line)));
+  if (p.arc != NONE) lv_style_set_arc_color(style, color(static_cast<Role>(p.arc)));
+}
+// The board profile's styles and the paint of each, as fill() calls. Set and run once in on_boot.
+inline void (*paints)() = nullptr;
+// The firmware's own shared style for a paint, made on first use.
+inline std::array<lv_style_t *, static_cast<size_t>(Paint::COUNT)> own{};
+inline lv_style_t *style(Paint paint) {
+  auto *&s = own[static_cast<size_t>(paint)];
+  if (!s) {
+    s = new lv_style_t;
+    lv_style_init(s);
+    fill(s, paint);
+  }
+  return s;
+}
+#endif
 // What the board draws again after a change of look: the tiles, an open card, the settings page. Set by the profile.
 inline void (*redraw)() = nullptr;
 // The one way the look changes. Every paint is filled again, what code painted itself follows through redraw(), and the

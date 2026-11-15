@@ -193,6 +193,13 @@ class Sections(run.Run):
             shots += await self.covers(region, states, dark)
             shots += await self.drawn(region, states, dark)
             shots += await self.every_card(dark)
+        # Every trade of a card's shared styles between the looks was proven in the program (theme::restyle_checked).
+        failed = [line for line in self.lines if 'restyle check FAIL' in line]
+        if failed:
+            raise RuntimeError(f'a card traded its styles wrongly: {failed[0]}')
+        checked = [line for line in self.lines if 'restyle check:' in line]
+        if checked:
+            self.warnings.append(checked[-1].split('restyle check:', 1)[1].strip())
         return 1, shots
 
     async def every_card(self, dark):

@@ -114,7 +114,11 @@ inline void place(Widgets &w, int page, int32_t column, int32_t span_x, int32_t 
   if (w.look_other) lv_obj_add_flag(card, theme::OTHER_LOOK_FLAG); else lv_obj_remove_flag(card, theme::OTHER_LOOK_FLAG);
   // A card that changes look trades its shared styles for the other look's (theme::restyle_card), once; what the card
   // paints itself follows from its paint signature, which holds the look (render_slot).
+#ifdef USE_HOST
+  if (w.look_other != was_other) theme::restyle_checked(card, w.look_other);  // the trade, proven (theme.h)
+#else
   if (w.look_other != was_other) theme::restyle_card(card, w.look_other);
+#endif
   w.ground_other = in && in->follow;
   w.ground_role = !in ? theme::PAGE : in->contrast && !in->follow ? theme::SECTION_CONTRAST : theme::SECTION;
   margin(card, LV_STYLE_MARGIN_LEFT, left);

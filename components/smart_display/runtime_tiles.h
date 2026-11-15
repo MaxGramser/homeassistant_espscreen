@@ -641,7 +641,11 @@ struct Widgets {
   // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
   // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
   // which an idle timer never sends).
-  uint64_t cached_paint=UINT64_MAX;
+#ifdef SD_MOD_SECTIONS
+  uint64_t cached_paint=UINT64_MAX;  // with the card's look and ground (render_slot)
+#else
+  uint32_t cached_paint=UINT32_MAX;
+#endif
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -8881,7 +8885,9 @@ inline void render_slot(size_t slot) {
   swipe_profile::Lap lap;
   auto &w=widgets[slot];
   if(!w.tile || w.index>=model.count)return;
-  CardScope look(w);  // the card's look for the whole paint (docs/THEME.md "A card's look")
+#ifdef SD_MOD_SECTIONS
+  CardScope look(w);  // the card's look for the whole paint (docs/THEME.md "A card's look"); without sections, the screen's
+#endif
   const auto &t = model.tiles[w.index];
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
@@ -9330,9 +9336,13 @@ inline void render_slot(size_t slot) {
 #endif
   // A plugin tile may give its card a colour of its own (plugin API 0.26, ui::set_card_color): it goes over the tile's.
   const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):t.background;
+#ifdef SD_MOD_SECTIONS
   // The card's look and what lies behind it are part of what it was painted for: a card that moves into or out of a
   // section whose tiles follow its contrast is painted again (sections::place traded its shared styles already).
   const uint64_t paint=uint64_t(own)|(bare?1ull<<24:0)|(w.look_other?1ull<<25:0)|(w.ground_other?1ull<<26:0)|(uint64_t(w.ground_role)<<32);
+#else
+  const uint32_t paint=own|(bare?1u<<24:0);  // a board without sections: every card in the screen's look on the page
+#endif
   if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
   w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
