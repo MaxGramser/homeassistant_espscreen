@@ -105,6 +105,17 @@ describe("Layoutbot", () => {
     expect(doc.dirty).toBe(false);
   });
 
+  it("says that the person's own unsaved changes go along on yes", async () => {
+    const doc = useDocumentStore(), bot = useLayoutbotStore();
+    api.on("POST screens/:id/layoutbot", answering());
+    await bot.ask("Add the blind");
+    expect(bot.messages.at(-1)!.own).toBeUndefined();
+    bot.undo(bot.messages.at(-1)!);
+    doc.applyDocument(withNewPage(doc.document!));  // an edit of the person's own, not saved
+    await bot.ask("Add the blind");
+    expect(bot.messages.at(-1)!.own).toBe(true);
+  });
+
   it("asks for other screens only when the person chose all screens", async () => {
     const bot = useLayoutbotStore();
     api.on("POST screens/:id/layoutbot", answering({ plan: { pages: [], remove: [] } }));

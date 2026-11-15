@@ -175,6 +175,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
               <div v-if="message.send && (message.send !== 'ask' || bot.targets(message).length)" :key="`${message.id}-send`" class="msg bot send">
                 <template v-if="message.send === 'ask'">
                   <p>{{ t("editor.layoutbot.send.ask", { which: names(bot.targets(message)) }, bot.targets(message).length) }}</p>
+                  <p v-if="message.own && !message.undone" class="fine">{{ t("editor.layoutbot.send.own") }}</p>
                   <div class="msg-actions">
                     <button type="button" class="send-yes" :disabled="bot.busy" @click="bot.deliver(message)">{{ t("editor.layoutbot.send.yes") }}</button>
                     <button type="button" class="chip" @click="bot.decline(message)">{{ t("editor.layoutbot.send.no") }}</button>

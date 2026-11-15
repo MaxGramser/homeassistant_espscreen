@@ -89,9 +89,12 @@ describe("Layoutbot's plan on a page the person has", () => {
     }
   });
 
-  it("renames a page", () => {
+  it("renames a page only when renaming is all the plan does there", () => {
     const { layout } = applyPlan(draft(), plan([onPage(1, { title: "Lounge" })]), ctx());
     expect(layout.pages[0].topbar.title).toEqual({ source: "text", text: "Lounge" });
+    // An add-on that forgot its own rule sends a title with the tiles it adds: the person's page keeps its name.
+    const added = applyPlan(draft(), plan([onPage(1, { title: "Security", tiles: ["light.desk"] })]), ctx()).layout;
+    expect(added.pages[0].topbar.title).toEqual({ source: "text", text: "Living" });
   });
 
   it("takes tiles off, and a section left without tiles with them", () => {

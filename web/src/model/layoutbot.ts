@@ -67,7 +67,10 @@ export function applyPlan(document: PageLayout, plan: Plan, ctx: PlanContext): {
     if (item.page === "new") continue;
     const index = item.page - 1;
     if (!doc.pages[index]) { note("no_page", { page: item.page }); continue; }
-    if (item.title) edit((draft) => { draft.pages[index].topbar.title = { source: "text", text: item.title }; });
+    // A page of the person's is renamed only by an item that does nothing else (the add-on's `checked` holds to it too;
+    // a rule that protects their page is kept on this side as well, against an add-on that forgot it).
+    const adds = item.tiles.length > 0 || item.sections.some((s) => s.entities.length > 0);
+    if (item.title && !adds) edit((draft) => { draft.pages[index].topbar.title = { source: "text", text: item.title }; });
     // A section the plan names again keeps the tiles already in it (models restate a section's tiles); one standing
     // elsewhere on the page moves into it. A loose tile named again stays where it stands.
     const page = doc.pages[index];

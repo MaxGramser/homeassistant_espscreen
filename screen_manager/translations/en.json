@@ -4846,7 +4846,8 @@
         "to": "Sending to {name}",
         "not_opened": "that screen could not be opened",
         "not_saved": "it was not saved",
-        "unsaved": "the open screen has unsaved changes"
+        "unsaved": "the open screen has unsaved changes",
+        "own": "Your own changes since the last save go along."
       },
       "busy": "Layoutbot is arranging your pages",
       "seconds": "{n} s",

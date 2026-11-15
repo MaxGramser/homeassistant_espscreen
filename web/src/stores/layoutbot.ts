@@ -35,6 +35,8 @@ export type BotMessage = {
   seconds?: number;
   /** Other screens this answer changes: proposals, saved only on yes. */
   elsewhere?: Elsewhere[];
+  /** The draft held the person's own unsaved changes before this answer: yes sends them too, and the question says so. */
+  own?: boolean;
   /** The question after every real change, asked by the editor and not the model: send it to the screens? */
   send?: "ask" | "sending" | "sent" | "declined" | "failed";
 };
@@ -120,9 +122,11 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
       }
       const before = new Set(sent.pages.map((p) => JSON.stringify(p)));
       const page = placed.layout.pages.find((p) => !before.has(JSON.stringify(p)))?.id;
+      // Edits the person made by hand before asking go out with the bot's on yes: the question says so (`own`).
+      const own = doc.dirty;
       const applied = doc.applyDocument(placed.layout, true, undefined, label("layoutbot"));
       const message = say({ from: "bot", text: reply, notes, seconds: answer.seconds, ...others,
-        ...(applied ? { step: doc.undoCount, page } : {}), ...(applied || proposed ? { send: "ask" as const } : {}) });
+        ...(applied ? { step: doc.undoCount, page, ...(own ? { own: true } : {}) } : {}), ...(applied || proposed ? { send: "ask" as const } : {}) });
       // The page it made or changed comes into view once it is drawn.
       if (applied && page) { doc.selectedPageId = page; void nextTick(() => show(message)); }
     } catch (error: any) {

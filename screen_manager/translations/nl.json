@@ -4795,7 +4795,8 @@
         "to": "Versturen naar {name}",
         "not_opened": "dat scherm kon niet geopend worden",
         "not_saved": "het is niet opgeslagen",
-        "unsaved": "het open scherm heeft niet-opgeslagen wijzigingen"
+        "unsaved": "het open scherm heeft niet-opgeslagen wijzigingen",
+        "own": "Je eigen wijzigingen sinds de laatste keer opslaan gaan mee."
       },
       "busy": "Layoutbot deelt je pagina's in",
       "seconds": "{n} s",

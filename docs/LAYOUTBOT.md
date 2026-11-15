@@ -57,7 +57,8 @@ questions: a button per integration starts that integration's setup in Home Assi
    after it. The screen's tile ceiling, pages and memory hold as they hold an add from the library (`proposalHolds`,
    the draft priced with what is added). Before that, the editor takes tiles off, renames, and keeps what the plan names
    again: a tile already in the section it is named in stays as it is, one elsewhere on that page moves into it, a
-   loose tile named again stays where it stands. A section on a screen without sections is loose tiles.
+   loose tile named again stays where it stands. A section on a screen without sections is loose tiles. A page of the
+   person's is renamed only by an item that does nothing else, here as in the add-on's check.
 6. The editor takes the result as one step of undo (`applyDocument`, labelled "Layoutbot's change"), checked as any edit,
    selects the first page it made or changed, and the chat offers Show and Undo. Notes say what was left out and why.
 
@@ -66,7 +67,8 @@ An editor from before plans (one that sends no `version: 2`) is told to refresh 
 
 After every answer that changed something the chat asks, by itself and never through the model, whether to send it:
 "Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft
-and says so. An answer that was undone first is not sent.
+and says so. An answer that was undone first is not sent. When the draft held changes of the person's own before the
+answer, the question says that they go along.
 
 **Several screens.** Only when the person chose All screens in the chat. Each other screen's plan is placed by the same
 applyPlan on that screen's saved document, with what that screen takes (its grid, sizes, sections, memory), and the chat
