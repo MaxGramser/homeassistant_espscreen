@@ -5,7 +5,7 @@
 // thinks the pages wait: the editor shines and takes no edit (components/LayoutBot.vue), so the answer never lands on
 // a draft that moved under it.
 import { defineStore } from "pinia";
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { send } from "../api";
 import { t } from "../i18n";
 import { label } from "../model/change-label";
@@ -88,8 +88,9 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
         say({ from: "bot", text: answer.reply || t("editor.layoutbot.nothing"), notes, seconds: answer.seconds });
         return;
       }
-      if (page) doc.selectedPageId = page;
-      say({ from: "bot", text: answer.reply, notes, step: doc.undoCount, page, seconds: answer.seconds });
+      const message = say({ from: "bot", text: answer.reply, notes, step: doc.undoCount, page, seconds: answer.seconds });
+      // The page it made or changed comes into view once it is drawn.
+      if (page) { doc.selectedPageId = page; void nextTick(() => show(message)); }
     } catch (error: any) {
       if (mine !== asking) return;
       busy.value = false;

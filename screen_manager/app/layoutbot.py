@@ -460,16 +460,26 @@ class _Plan:
             here = blocks[:fitting]
             order = sorted({e for _, _, entities in here for e in entities},
                            key=lambda e: (RANK.get(e.split(".", 1)[0], 9), [x for _, _, es in here for x in es].index(e)))
-            grown = True
-            while grown:
-                grown = False
-                for entity in order:  # one rung for every tile before any gets two
-                    if rungs[entity] + 1 < len(self.ladder(entity)):
-                        rungs[entity] += 1
-                        if self.pack(here, rungs) is None:
-                            rungs[entity] -= 1
-                        else:
-                            grown = True
+            # Alike tiles of a block grow together first (every light of a room as large as the others), then single
+            # tiles where room is left; one rung for every group or tile before any gets two.
+            groups = {}
+            for index, (_, _, entities) in enumerate(here):
+                for entity in entities:
+                    groups.setdefault((index, entity.split(".", 1)[0]), []).append(entity)
+            alike = sorted(groups.values(), key=lambda group: order.index(group[0]))
+            for steps in (alike, [[entity] for entity in order]):
+                grown = True
+                while grown:
+                    grown = False
+                    for group in steps:
+                        if all(rungs[e] == rungs[group[0]] and rungs[e] + 1 < len(self.ladder(e)) for e in group):
+                            for e in group:
+                                rungs[e] += 1
+                            if self.pack(here, rungs) is None:
+                                for e in group:
+                                    rungs[e] -= 1
+                            else:
+                                grown = True
             for title, icon, tiles, columns, rows, top, left in self.pack(here, rungs):
                 if title is None:
                     for tile in tiles:

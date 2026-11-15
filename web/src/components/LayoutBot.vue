@@ -18,12 +18,9 @@ const canvas = ref<HTMLElement | null>(null);
 onMounted(() => { canvas.value = document.getElementById("canvas"); });
 const box = useElementBounding(canvas);
 const canvasBox = computed(() => ({ left: `${box.left.value}px`, top: `${box.top.value}px`, width: `${box.width.value}px`, height: `${box.height.value}px` }));
-// Over the pages' lower right corner, above the zoom pill; the chat opens above the bot, from it.
-const fabPlace = computed(() => ({ left: `${box.right.value - 76}px`, top: `${box.bottom.value - 128}px` }));
-const chatPlace = computed(() => {
-  const width = Math.min(380, window.innerWidth - 24);
-  return { left: `${Math.max(12, box.right.value - width - 20)}px`, bottom: `${Math.max(12, window.innerHeight - box.bottom.value + 140)}px`, width: `${width}px` };
-});
+// The bot stands in the window's lower right corner, as a chat does, and the chat opens above it with the window's
+// height; the shine covers the pages (#canvas) wherever they are.
+const chatWidth = computed(() => Math.min(380, window.innerWidth - 24));
 
 const draft = ref("");
 const field = ref<HTMLTextAreaElement | null>(null);
@@ -93,7 +90,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
     </Transition>
 
     <Transition name="bot-chat">
-      <section v-if="bot.open" class="bot-chat" :style="chatPlace" role="dialog" :aria-label="t('editor.layoutbot.name')">
+      <section v-if="bot.open" class="bot-chat" :style="{ width: `${chatWidth}px` }" role="dialog" :aria-label="t('editor.layoutbot.name')">
         <header class="bot-head">
           <span class="bot-avatar" :class="{ busy: bot.busy }" aria-hidden="true">
             <svg viewBox="0 0 40 40"><rect x="7" y="11" width="26" height="21" rx="7" class="face" /><rect class="eye" x="13" y="18" width="4" height="6" rx="2" /><rect class="eye" x="23" y="18" width="4" height="6" rx="2" /><line x1="20" y1="11" x2="20" y2="6" class="stalk" /><circle cx="20" cy="5" r="2.4" class="bulb" /></svg>
@@ -135,7 +132,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
       </section>
     </Transition>
 
-    <button type="button" class="bot-fab" :class="{ busy: bot.busy, open: bot.open }" :style="fabPlace"
+    <button type="button" class="bot-fab" :class="{ busy: bot.busy, open: bot.open }"
       :aria-label="t('editor.layoutbot.open')" :aria-expanded="bot.open" :title="t('editor.layoutbot.open')" @click="toggle">
       <span class="bot-ring" aria-hidden="true"></span>
       <svg class="bot-body" viewBox="0 0 40 40" aria-hidden="true">
@@ -151,7 +148,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
 
 <style scoped>
 /* ---- the bot ---- */
-.bot-fab { position: fixed; z-index: 60; width: 56px; height: 56px; border: 0; border-radius: 50%; padding: 0; cursor: pointer;
+.bot-fab { position: fixed; z-index: 60; right: 24px; bottom: 24px; width: 56px; height: 56px; border: 0; border-radius: 50%; padding: 0; cursor: pointer;
   display: grid; place-items: center; color: white; background: linear-gradient(140deg, var(--bot-a), var(--bot-b));
   box-shadow: 0 10px 28px color-mix(in srgb, var(--bot-b) 38%, transparent), 0 2px 6px rgba(20, 24, 40, .18);
   animation: bot-float 3.6s ease-in-out infinite; transition: transform .2s cubic-bezier(.3, 1.4, .5, 1), box-shadow .2s; }
@@ -203,7 +200,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
 .bot-shine-enter-from, .bot-shine-leave-to { opacity: 0; }
 
 /* ---- the chat ---- */
-.bot-chat { position: fixed; z-index: 61; display: flex; flex-direction: column; max-height: min(560px, calc(100vh - 160px));
+.bot-chat { position: fixed; z-index: 61; right: 24px; bottom: 92px; display: flex; flex-direction: column; max-height: min(600px, calc(100vh - 116px));
   background: var(--surface); color: var(--ink); border-radius: 20px; overflow: hidden;
   box-shadow: 0 24px 64px rgba(20, 24, 40, .22), 0 2px 8px rgba(20, 24, 40, .08), 0 0 0 1px var(--line); transform-origin: 92% 100%; }
 .bot-chat-enter-active { transition: opacity .22s, transform .32s cubic-bezier(.2, 1.3, .4, 1); }

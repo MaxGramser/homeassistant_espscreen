@@ -79,6 +79,8 @@ On a Home Assistant 2026.11.0 with the OpenAI integration's AI Task on its recom
 | Take one player off the living room page | 6.8 | exact |
 | Put the kitchen lights on page 3 in a section | 5.6 | valid; the lights moved into the new section |
 | Turn on all the lights in the living room | 1.8 to 3.1 | no change, "I can only change the layout" |
+| On a CYD (2 x 3, no sections): the living room lights on a page | 5.5 | valid; eight lights as single tiles over two pages |
+| On a CYD: a page with the speakers | 4.9 | valid; three players wide with their keys |
 
 Every answer of the last rounds gave a valid draft. What a small model gets wrong is which entity is what: a sensor of
 the same room among its lights, a blind among the curtains. Device classes in the entity lines would help it (see
