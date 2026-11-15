@@ -128,6 +128,24 @@ class Plans(unittest.TestCase):
         self.assertEqual(sum(len(entities_of(p)) for p in document["pages"][1:]), 9)
         self.assertTrue(notes)
 
+    def test_a_full_page_of_the_person_gets_a_note_and_keeps_its_number(self):
+        full = deepcopy(DOCUMENT)
+        full["pages"][0]["tiles"] = [{**deepcopy(HOME["tiles"][0]), "id": f"t{n}", "placement": {"row": n // 2, "column": n % 2, "columns": 1, "rows": 1}}
+                                     for n in range(6)]
+        for plan in ({"pages": [{"page": "1", "tiles": ["light.desk"]}]},
+                     {"pages": [{"page": "1", "sections": [{"title": "Desk", "entities": ["light.desk"]}]}]}):
+            document, notes = layoutbot.apply_plan(full, plan, SMALL, ENTITIES)
+            self.assertEqual(document, full)
+            self.assertEqual(notes, [{"key": "page_full", "page": 1, "count": 1}])
+
+    def test_the_words_for_a_page_without_a_title_never_become_its_title(self):
+        untitled = deepcopy(DOCUMENT)
+        untitled["pages"][0]["topbar"]["title"] = {"source": "screen"}
+        self.assertIn("page 1 (no title of its own); tiles: light.sofa", layoutbot.page_lines(untitled))
+        for words in ("(screen title)", "(no title of its own)"):
+            document, _ = layoutbot.apply_plan(untitled, {"pages": [{"page": "1", "title": words, "tiles": ["light.desk"]}]}, GRID, ENTITIES)
+            self.assertEqual(document["pages"][0]["topbar"]["title"], {"source": "screen"})
+
     def test_a_screen_without_sections_gets_the_tiles_loose(self):
         plan = {"pages": [{"page": "", "title": "Covers", "sections": [{"title": "Blinds", "entities": BLINDS[:2]}]}]}
         document, _ = layoutbot.apply_plan(DOCUMENT, plan, SMALL, ENTITIES, sections=False)

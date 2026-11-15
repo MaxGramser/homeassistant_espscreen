@@ -1632,7 +1632,8 @@
         "pages_full": "Dit scherm neemt {pages} pagina's, dus de rest is weggelaten.",
         "continued": "\"{page}\" was vol, dus de rest staat op een pagina erna.",
         "section_full": "De sectie \"{section}\" is vol: {count} tegels zijn weggelaten.",
-        "no_page": "Er is geen pagina {page}."
+        "no_page": "Er is geen pagina {page}.",
+        "page_full": "Pagina {page} is vol, dus {count} tegels zijn weggelaten."
       }
     }
   },

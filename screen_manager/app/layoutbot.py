@@ -145,7 +145,8 @@ def page_lines(document):
     """The existing pages, numbered as the editor numbers them, with their sections and the entities on them."""
     out = []
     for number, page in enumerate(document["pages"], 1):
-        parts = [f'page {number} "{page["topbar"]["title"].get("text") or "(screen title)"}"']
+        title = page["topbar"]["title"].get("text")
+        parts = [f'page {number} "{title}"' if title else f"page {number} (no title of its own)"]
         if page["tiles"]:
             parts.append("tiles: " + ", ".join(map(_shown, page["tiles"])))
         parts += [f'section "{s["title"]}": ' + ", ".join(map(_shown, s["tiles"])) for s in sections_of(page)]
@@ -303,7 +304,7 @@ class _Plan:
         self.note("continued", page=title)
         return following
 
-    def section(self, page, title, icon, entities):
+    def section(self, page, title, icon, entities, grow=True):
         """A new section: as wide as its tiles (at most the grid), at the first free block; what does not fit on the
         page continues as a section of the same title on a page after it (as adaptGrid does)."""
         while entities and page is not None:
@@ -318,6 +319,9 @@ class _Plan:
                 rows -= 1  # the part that fits here; the rest goes on
                 corner = _corner(free, self.grid, width, rows) if rows else None
             if corner is None:
+                if not grow:
+                    self.note("page_full", page=self.doc["pages"].index(page) + 1, count=len(entities))
+                    return page
                 page = self.continuation(page)
                 continue
             part, entities = entities[:width * rows], entities[width * rows:]
@@ -344,10 +348,15 @@ class _Plan:
         if len(entities) > len(free):
             self.note("section_full", section=section["title"], count=len(entities) - len(free))
 
-    def loose(self, page, entities):
+    def loose(self, page, entities, grow=True):
+        """Tiles in a page's free cells in reading order; what does not fit goes on a page after it (`grow`), or, on a
+        page the person already has, is left out with a note, so no page of theirs moves to another number."""
         while entities and page is not None:
             free = _cells(page, self.grid)
             if not free:
+                if not grow:
+                    self.note("page_full", page=self.doc["pages"].index(page) + 1, count=len(entities))
+                    return
                 page = self.continuation(page)
                 continue
             for entity, (r, c) in zip(list(entities), free):
@@ -359,6 +368,8 @@ class _Plan:
     def page(self, item):
         number = _text(str(item.get("page") or ""), 4)
         title, icon = _text(item.get("title"), 96), _icon(item.get("icon"))
+        if title.strip("() ").lower() in ("screen title", "no title of its own"):
+            title = ""  # the words the question uses for a page without a title, read back as one
         if number.isdigit() and int(number) > len(self.doc["pages"]):
             number = ""  # a model that numbers the page it makes: the next number is a new page
         if number.isdigit():
@@ -398,14 +409,14 @@ class _Plan:
                 continue
             name, entities = _text(section.get("title"), 48), self.entities(section.get("entities"))
             if not self.sections:
-                self.loose(page, entities)
+                self.loose(page, entities, grow=False)
                 continue
             existing = next((s for s in sections_of(page) if s["title"].lower() == name.lower()), None)
             if existing:
                 self.into_section(existing, entities)
             else:
-                self.section(page, name or "Section", _icon(section.get("icon")), entities)
-        self.loose(page, self.entities(item.get("tiles")))
+                self.section(page, name or "Section", _icon(section.get("icon")), entities, grow=False)
+        self.loose(page, self.entities(item.get("tiles")), grow=False)
 
     # ----- a new page, dressed: as many controls as fit, as large as the page allows -----
 

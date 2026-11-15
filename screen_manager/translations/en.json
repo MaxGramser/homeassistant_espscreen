@@ -1636,7 +1636,8 @@
         "pages_full": "This screen takes {pages} pages, so the rest was left out.",
         "continued": "\"{page}\" was full, so the rest went on a page after it.",
         "section_full": "The section \"{section}\" is full: {count} tiles were left out.",
-        "no_page": "There is no page {page}."
+        "no_page": "There is no page {page}.",
+        "page_full": "Page {page} is full, so {count} tiles were left out."
       }
     }
   },

@@ -5052,7 +5052,7 @@ def create_app(manager, development=False):
         LOG.info('Layoutbot answered in %.1f s with %s (%d notes, %d other screens)', seconds, agent, len(notes), len(elsewhere))
         return web.json_response({'reply': plan.get('reply') if isinstance(plan.get('reply'), str) else '',
                                   'layout': layout, 'changed': layout != draft, 'agent': agent, 'seconds': round(seconds, 1),
-                                  'notes': words(notes), 'elsewhere': elsewhere})
+                                  'notes': words(notes), 'elsewhere': elsewhere, 'plan': plan})
     async def header_preview(request):
         """The top bar as a screen would draw it right now, so the editor shows unsaved changes live."""
         data = await request.json()
