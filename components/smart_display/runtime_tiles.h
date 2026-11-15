@@ -2149,6 +2149,30 @@ inline lv_obj_t *detail_button(const char *text,int x,int y,int width,int height
   return button;
 }
 
+// A key in the last row of a card that fills the glass also takes the strip between it and the glass's bottom edge:
+// a finger aimed at a key that low lands on that strip as often as on the key (a 10.1 inch read taps on the history
+// card's week as 787-794 of 800, below the key's touch area that ended at 786). An invisible catcher from the key's
+// foot to `bottom` gives that strip to the key: it presses the key, so the key shows the press, and its tap is the
+// key's command, through the same guard (detail_command). Not a detail action of its own.
+inline void detail_reach_down(lv_obj_t *key,int command,int bottom){
+  lv_obj_update_layout(key);
+  lv_area_t a;lv_obj_get_coords(key,&a);
+  lv_area_t root;lv_obj_get_coords(detail_root,&root);
+  const int top=a.y2+1-root.y1;
+  if(bottom<=top)return;
+  auto *catcher=lv_obj_create(detail_root);lv_obj_remove_style_all(catcher);
+  lv_obj_set_pos(catcher,a.x1-root.x1,top);lv_obj_set_size(catcher,a.x2-a.x1+1,bottom-top);
+  lv_obj_add_flag(catcher,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(catcher,LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_user_data(catcher,key);
+  lv_obj_add_event_cb(catcher,[](lv_event_t *e){
+    auto *self=lv_event_get_current_target_obj(e);auto *k=static_cast<lv_obj_t*>(lv_obj_get_user_data(self));
+    const auto code=lv_event_get_code(e);
+    if(code==LV_EVENT_PRESSED)lv_obj_add_state(k,LV_STATE_PRESSED);
+    else if(code==LV_EVENT_RELEASED||code==LV_EVENT_PRESS_LOST)lv_obj_remove_state(k,LV_STATE_PRESSED);
+    else if(code==LV_EVENT_SHORT_CLICKED)detail_command((intptr_t)lv_event_get_user_data(e));
+  },LV_EVENT_ALL,(void*)(intptr_t)command);
+}
+
 // The width a line of text is drawn at, for a layout that has to know before it places it.
 inline int text_width(const std::string &text,const lv_font_t *font){
   lv_point_t size;lv_text_get_size(&size,text.c_str(),font,0,0,LV_COORD_MAX,LV_TEXT_FLAG_NONE);return size.x;
@@ -4937,8 +4961,9 @@ inline void render_history_timeline(bool large,int card_x,int card_y,int card_w,
 }
 // The range: an hour, a day or a week, as one segmented row. It asks the manager, not Home Assistant, so
 // waiting for a command does not lock it. However thin the row is drawn, each key keeps a finger's worth
-// of touch area (overlay_card::touchable), as the other segmented rows do.
-inline void history_ranges(int x,int y,int w,int h){
+// of touch area (overlay_card::touchable), as the other segmented rows do, and the strip under the row down to the
+// glass's edge (detail_reach_down, `bottom`).
+inline void history_ranges(int x,int y,int w,int h,int bottom){
   static const uint32_t hours[]={1,24,168};
   const char *const words[]={tr(txt::history_range_hour),tr(txt::history_range_day),tr(txt::history_range_week)};
   const lv_font_t *font=control_font?control_font:detail_font;
@@ -4957,6 +4982,7 @@ inline void history_ranges(int x,int y,int w,int h){
     button_words(segment,font,theme::hex(selected?theme::ON_ACCENT:theme::INK),segment_w-6);
     overlay_card::touchable(segment,h-2*inset);
     if(detail_action_count&&detail_actions[detail_action_count-1]==segment)--detail_action_count;
+    detail_reach_down(segment,160+i,bottom);
   }
 }
 inline void render_history_detail(const Tile &t,bool large,int width,int height,int pad){
@@ -5055,7 +5081,7 @@ inline void render_history_detail(const Tile &t,bool large,int width,int height,
   }
   // The graph took the glass; the keys under it keep a hand's width and stand in the middle of the card.
   const auto keys=overlay_card::reach(width,width-2*pad);
-  history_ranges(keys.x,range_y,keys.w,range_h);
+  history_ranges(keys.x,range_y,keys.w,range_h,height);
   card_shaped(t,picture_card_shape);
 }
 // ---- The media card (firmware 0.2.64+) ----
