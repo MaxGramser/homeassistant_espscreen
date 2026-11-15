@@ -5,6 +5,7 @@
 // literal pool of one object file must stay within reach of all of its code (page_receiver.cpp says how that broke).
 #include "esphome/core/log.h"
 #include "runtime_tiles.h"
+#include "draw_text.h"
 
 #include <unordered_map>
 
@@ -185,7 +186,7 @@ static void draw(lv_event_t *e) {
     dsc.font = font; dsc.color = paint(t.paint); dsc.text = t.s.c_str();
     dsc.align = t.centre ? LV_TEXT_ALIGN_CENTER : LV_TEXT_ALIGN_LEFT;
     lv_area_t box{x1, y1, x1 + t.w - 1, y1 + h - 1};
-    lv_draw_label(layer, &dsc, &box);
+    draw_text::label(layer, dsc, box);
   }
 }
 

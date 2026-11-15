@@ -228,6 +228,11 @@ docs/TROUBLESHOOTING.md.
   `live_view::open` holds it for every stream: no more at once than the engine's `streams` (an S3's 1, a full view and
   a stream still ending counted), and none that would leave less than 32 KB free (a tester's S3 aborted with a view
   beside a tile, 2026-10-30).
+- **A text a card paints itself is copied by LVGL** (`draw_text::label`, `draw_text.h`). LVGL queues a label and draws it
+  when it dispatches the layer, after the draw event has returned, from a pointer to the text. A text in a local of the
+  draw code is gone by then: a meter's icon stood in one, and its ring showed an empty disc whenever other cards were
+  drawn after it, as when a page came back, until the sensor's next value drew the card alone (a P4 with a 10.1 inch
+  panel, 2026-11-15). `tests/test_draw_text.py` keeps every `lv_draw_label` of the component in that one file.
 - **Limits are read, not inferred, in three places that agree.** The engine's `live_tiles`, the add-on's ceiling of
   eight streams over all screens (visible in the editor and the log), and the hello that carries both.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal

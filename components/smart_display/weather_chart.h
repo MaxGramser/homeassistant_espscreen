@@ -8,6 +8,7 @@
 #include <lvgl.h>
 
 #include "theme.h"
+#include "draw_text.h"
 #include "tile_controls.h"
 #include "ui_scale.h"
 #include "layout_memory.h"
@@ -165,7 +166,7 @@ inline void paint(lv_layer_t *layer, const Sink &items, int x, int y) {
         lv_draw_label_dsc_t d;
         lv_draw_label_dsc_init(&d);
         d.font = i.font; d.color = lv_color_hex(i.color); d.text = i.text; d.align = i.align;
-        lv_draw_label(layer, &d, &a);
+        draw_text::label(layer, d, a);
         break;
       }
       case Item::RECT: {

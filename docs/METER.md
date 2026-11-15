@@ -62,6 +62,6 @@ The tile's options (`screen_manager/app/meter.py` checks them and leaves out the
 The app sends the colours as numbers, so the screen keeps no table of names. The meter needs firmware 0.56.0; the app
 asks an older screen to update first. The screen plans each card in `components/smart_display/meter_card.h` and paints
 it in one object per card (`meter_paint.h`, `meter_view.cpp`), so a bar of 60 cells or a ruler of 50 marks costs one
-object. `tools/render/meter_firmware.py` renders the same planner and painter on every board's grid, every span and
+object, and draws every text through `draw_text::label`, which has LVGL keep a copy until it draws. `tools/render/meter_firmware.py` renders the same planner and painter on every board's grid, every span and
 both looks, and counts any word that had to be shortened and anything outside its card; `tests/test_meter_card.cpp`
 checks the plans on every span of the boards' grids.
