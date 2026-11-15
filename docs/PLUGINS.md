@@ -29,7 +29,7 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
 | Add-on | `screen_manager/app/plugin_pictures.py` | What a plugin's places may show (0.10 a tile, 0.13 a card, 0.14 a screensaver): the manifest's rules for its addresses and the fetching of them, kept by address. The question, the painting and the link are the one picture system's (docs/PICTURES.md). |
 | Firmware | `components/smart_display/__init__.py` | `register_plugin()`, which a plugin's `__init__.py` calls: id, version, tile memory and screen texts from its manifest. `PLUGIN_API`. |
 | Add-on | `screen_manager/app/plugin_manifest.py` | Reads and checks a manifest. Standalone: the plugins repository's `tools/check.py` runs this file. `PLUGIN_API`. |
-| Add-on | `screen_manager/app/plugin_fetch.py` | The building block `fetch`: fill in, ask, map, cache, back off. |
+| Add-on | `screen_manager/app/plugin_fetch.py` | The building block `fetch`: fill in, ask, map, cache (at most `MAX_QUESTIONS` questions, the one asked longest ago makes way, never one a tile follows), back off. |
 | Add-on | `screen_manager/app/plugin_store.py` | `/data/plugins.json` (per screen) and `/data/plugin_secrets.json` (0600). |
 | Add-on | `screen_manager/app/plugins.py` | The index and test folders, the editor's payload, the plugins file, adding and removing, a plugin tile's state message, the fetch loop. |
 | Add-on | `firmware.py` (`PLUGINS_SUFFIX`, `save_plugins`), `page_layout.py`, `core.py` (`plugin_tile`, `PLUGIN_MEMORY`), `page_delivery.py` (`plugins_of`) | The sidecar, the document, the layout check and price, the negotiation. |
@@ -59,7 +59,7 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    options with the manifest's defaults) and `x`: the mapped answer of its fetch and, for a tile of an entity
    (`Plugins.entity_part`), the entity's state, name, the attributes the manifest names and the `fields` it takes out
    of them. `x` gets what the 4 KB message leaves after the rest of it, the tile's options included, and at most 2.6 KB
-   (`X_BUDGET`): about 2 KB beside options that take their whole 1280 bytes. Bytes decide, not a count: a text is cut at 48 bytes, and lists are
+   (`X_BUDGET`): about 2 KB beside options that take their whole 1280 bytes. Bytes decide, not a count: a text is cut at 48 bytes once, where its kind is known (`plugin_fetch.field_value`: a text at `TEXT_BYTES`, an address `as: url` whole up to `URL_BYTES`; `plugins.bounded` cuts only an answer that came without a map and never guesses a kind), and lists are
    shortened, all to the same length from the end, only when together they do not fit. Two days of 96 prices fit
    whole. A list of objects never goes as it is: `fields` with `as: numbers` turns `raw_today[*].value` into one list
    of numbers.

@@ -36,6 +36,10 @@ TEXT_BYTES = 48
 URL_BYTES = 255            # a field "as: url" (plugin API 0.28): a picture's address whole, never cut
 BACKOFF = (60, 120, 300, 900)
 FORGET_AFTER = 2           # intervals a question nobody asks for stays in the cache
+# The most questions kept at once. Each holds an answer of up to MAX_BYTES, parsed, so this is about 8 MB at the very
+# worst; a fetch the screen itself asks (0.27) makes a new question for every value, and one with a long `every` would
+# keep each of them for twice that long. Past it the question asked longest ago makes way.
+MAX_QUESTIONS = 128
 
 
 class FetchRefused(ValueError):
@@ -463,6 +467,8 @@ class Fetcher:
             if old is not None and not new_fresh and now - held['at'] < every:
                 old['asked'] = held['used'] = now
                 return held['key'], old
+        if key not in self.cache:
+            self._make_room()
         entry = self.cache.setdefault(key, {'data': None, 'fetched': None, 'ok': None, 'error': None, 'stale': False,
                                             'retry': 0, 'fails': 0, 'asked': now, 'every': every, 'changed': 0})
         entry['asked'] = now
@@ -500,6 +506,18 @@ class Fetcher:
             return
         at = now if asked else held['at'] if held else (entry['fetched'] if entry['fetched'] is not None else now)
         self.lines[line] = {'key': key, 'at': at, 'used': now, 'every': every}
+
+    def _make_room(self):
+        """Room for one more question (MAX_QUESTIONS): the one asked longest ago goes, never one being fetched now or
+        one a line still follows (a tile shows it)."""
+        followed = {held['key'] for held in self.lines.values()}
+        while len(self.cache) >= MAX_QUESTIONS:
+            idle = [k for k in self.cache if k not in followed and not (k in self.locks and self.locks[k].locked())]
+            if not idle:
+                return
+            oldest = min(idle, key=lambda k: self.cache[k]['asked'])
+            self.cache.pop(oldest, None)
+            self.locks.pop(oldest, None)
 
     def forget_unused(self):
         """Drop questions no tile asked for during two of their intervals, and the lines nobody follows any more."""

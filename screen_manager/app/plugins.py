@@ -184,22 +184,24 @@ def json_size(value):
     return len(json.dumps(value, separators=(',', ':'), ensure_ascii=False).encode())
 
 
-def bounded(value, limit=3200):
-    """An answer for a screen within `limit` bytes of JSON: long texts cut to 48 bytes (an http(s) address kept whole up
-    to plugin_fetch.URL_BYTES), then lists shortened from the
-    end until it fits, each to the same length. A screen's message is at most 4 KB with everything around it. Bytes
-    decide, not a count: 96 prices of a quarter of an hour fit whole."""
+def bounded(value, limit=3200, mapped=False):
+    """An answer for a screen within `limit` bytes of JSON: lists shortened from the end until it fits, each to the same
+    length. A screen's message is at most 4 KB with everything around it. Bytes decide, not a count: 96 prices of a
+    quarter of an hour fit whole.
+
+    A text is bounded once, where its kind is known. `mapped`: the answer came through a map (a fetch's, or a command's
+    `answers`), so every text in it is a field plugin_fetch.field_value bounded by its kind (a text at TEXT_BYTES, an
+    address `as: url` whole up to URL_BYTES) and stays as it is. An answer as it came has no kinds: each text stops at
+    TEXT_BYTES. Nothing here guesses a kind from what a text looks like (until 2026-11-15 an address was guessed here a
+    second time, after a map had cut one the first time: the Plane radar's photo)."""
     def cut(node, items):
-        # An address stays whole (a field `as: url`, 0.28): cut, it names another file or none.
-        if isinstance(node, str) and len(node.encode()) <= plugin_fetch.URL_BYTES and re.match(r'https?://\S+$', node):
-            return node
         if isinstance(node, str):
-            return core.short(node, 48)
+            return node if mapped else core.short(node, plugin_fetch.TEXT_BYTES)
         if isinstance(node, list):
             return [cut(child, items) for child in (node if items is None else node[:items])]
         if isinstance(node, dict):
             return {str(key)[:32]: cut(child, items) for key, child in list(node.items())[:24]}
-        return node if isinstance(node, (int, float, bool)) or node is None else str(node)[:48]
+        return node if isinstance(node, (int, float, bool)) or node is None else str(node)[:plugin_fetch.TEXT_BYTES]
     for items in LIST_STEPS:
         shaped = cut(value, items)
         if json_size(shaped) <= limit:
@@ -1815,7 +1817,7 @@ class Plugins:
     def state_part(self, spec, entity, budget=X_BUDGET, updated=False):
         """(entity, what the screen gets of it) for a tile that belongs to an entity, or one an entity option chose
         (plugin API 0.15): its state, its name, the attributes `spec` names and the `fields` it takes out of them,
-        bounded as every tile's: a text at 48 bytes, and the lists together within `budget`, each shortened from the
+        bounded as every tile's: a text at plugin_fetch.TEXT_BYTES (an address only through `fields`, `as: url`), and the lists together within `budget`, each shortened from the
         end to the same length only when they do not fit (96 prices of a quarter of an hour fit, twice). An attribute
         named ..._at, ..._time or ...date that holds a moment goes as seconds since 1970, so the screen says it in its
         words. `updated`: also when Home Assistant last heard from the entity, in seconds since 1970 (an entity option's,
@@ -1837,17 +1839,17 @@ class Plugins:
             if isinstance(value, bool) or (isinstance(value, (int, float)) and math.isfinite(value)):
                 bounded[name] = value
             elif isinstance(value, str):
-                bounded[name] = core.short(value, 48)
+                bounded[name] = core.short(value, plugin_fetch.TEXT_BYTES)
             elif isinstance(value, list):
                 # Texts and numbers; a list of objects reaches the screen through `fields` (raw_today[*].value).
-                bounded[name] = [core.short(v, 48) if isinstance(v, str) else v for v in value[:1000]
+                bounded[name] = [core.short(v, plugin_fetch.TEXT_BYTES) if isinstance(v, str) else v for v in value[:1000]
                                  if isinstance(v, str) or (isinstance(v, (int, float)) and not isinstance(v, bool)
                                                            and math.isfinite(v))]
         zone = getattr(self.manager.ha, 'time_zone', None)
         for name, field in (spec.get('fields') or {}).items():
             bounded[name] = plugin_fetch.field_value(attrs, {**field, 'tz': field.get('tz') or zone})
         part = {'state': core.short(str(state.get('state', 'unavailable')), 160),
-                'name': core.short(attrs.get('friendly_name') or entity, 48), 'attributes': bounded}
+                'name': core.short(attrs.get('friendly_name') or entity, plugin_fetch.TEXT_BYTES), 'attributes': bounded}
         moment = plugin_fetch.epoch_of(state.get('last_updated'), zone) if updated else None
         if moment is not None:
             part['updated'] = moment
@@ -2057,7 +2059,7 @@ class Plugins:
             return {'ok': False, 'error': 'failed'}
         if cached['stale']:
             result['stale'] = True
-        return {'ok': True, 'result': bounded(result)}
+        return {'ok': True, 'result': bounded(result, mapped=True)}
 
     def fetch_ask_allowed(self, inbox, plugin, now=None):
         """Whether a plugin on this screen may ask one more of its fetches now (FETCH_ASKS_PER_MINUTE), counted."""
@@ -2119,7 +2121,7 @@ class Plugins:
                     zone = getattr(self.manager.ha, 'time_zone', None)
                     result = {name: plugin_fetch.field_value(result, {**field, 'tz': field.get('tz') or zone})
                               for name, field in spec['fields'].items()}
-                reply.update(ok=True, result=bounded(result))
+                reply.update(ok=True, result=bounded(result, mapped=bool(spec)))
             except Exception as error:   # Home Assistant said no, or did not answer
                 reply.update(ok=False, error=str(error)[:120] or type(error).__name__)
         action = self.manager.transport(inbox, screen) if hasattr(self.manager, 'transport') else None
@@ -2256,6 +2258,10 @@ class Plugins:
                 if (key, cached['changed']) != before:
                     changed.add(tile['entity'])
         self.fetcher.forget_unused()
+        # A screen or a plugin that is gone asks nothing more: its count of asks goes with its last minute.
+        now = time.monotonic()
+        for key in [k for k, asks in self.fetch_asks.items() if not any(now - at < 60 for at in asks)]:
+            self.fetch_asks.pop(key, None)
         if changed:
             self.manager.ha.dirty.update(changed)
             self.manager.ha.changed.set()

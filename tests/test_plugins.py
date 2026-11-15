@@ -1465,10 +1465,15 @@ class FetchMore(unittest.TestCase):
         with_url = lambda api: place_plugin(api=api, url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
                                             fetch=None) | {'fetch': [{'id': 'forecast', 'url': 'https://api.example.org/now', 'every': '1d',
                                                                       'map': {'fields': {'photo': {'path': 'src', 'as': 'url'}}}}]}
-        # And whole in the answer to the screen's own ask, which cuts every other long text.
+        # And whole in the answer to the screen's own ask. A text is bounded once, by its kind, in the map; the answer
+        # that came through a map is then only fitted to its bytes, and one that came as it was has no kinds, so every
+        # text in it stops at TEXT_BYTES, an address too: nothing guesses a kind from what a text looks like.
         import plugins as plugin_service
-        self.assertEqual(plugin_service.bounded({'items': [{'photo': photo, 'by': 'x' * 80}]})['items'][0],
-                         {'photo': photo, 'by': 'x' * 48})
+        spec = pm.check_map({'items': '$.list[*]', 'fields': {'photo': {'path': 'src', 'as': 'url'}, 'by': 'by'}}, 'map', False)
+        mapped = plugin_fetch.apply_map(spec, {'list': [{'src': photo, 'by': 'x' * 80}]})
+        self.assertEqual(plugin_service.bounded(mapped, mapped=True)['items'][0], {'photo': photo, 'by': 'x' * 48})
+        self.assertEqual(plugin_service.bounded({'photo': photo, 'by': 'x' * 80}),
+                         {'photo': photo[:plugin_fetch.TEXT_BYTES], 'by': 'x' * 48})
         pm.check(with_url('0.28'), PLACE_ENGLISH)
         self.refuses(with_url('0.27'), 'a field "as: url" needs plugin API 0.28')
 
@@ -1533,6 +1538,30 @@ class FetchFill(unittest.TestCase):
                 plugin_fetch.fill(self.fetch, values, {})
             self.assertIn('not filled in', str(caught.exception))
             self.assertIn(word, str(caught.exception))
+
+    def test_the_cache_keeps_a_bounded_number_of_questions(self):
+        # A fetch the screen asks makes a question per value; past MAX_QUESTIONS the one asked longest ago makes way,
+        # never the one a tile's line still follows.
+        clock = [1000.0]
+        fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
+
+        async def download(url, headers, network):
+            return {'current': {'temperature': 1}}
+        fetcher.download = download
+        manifest = pm.check(place_plugin(), PLACE_ENGLISH)
+        at = lambda n: {'place.latitude': n % 80, 'place.longitude': n // 80}   # whole degrees: each its own question
+
+        async def run():
+            followed, _ = await fetcher.get('weather', manifest, self.fetch, at(0), {}, line='L')
+            first, _ = await fetcher.get('weather', manifest, self.fetch, at(1), {})
+            for n in range(2, plugin_fetch.MAX_QUESTIONS + 20):
+                clock[0] += 1
+                await fetcher.get('weather', manifest, self.fetch, at(n), {})
+            self.assertEqual(len(fetcher.cache), plugin_fetch.MAX_QUESTIONS)
+            self.assertIn(followed, fetcher.cache)
+            self.assertNotIn(first, fetcher.cache)
+            self.assertEqual(set(fetcher.locks) - set(fetcher.cache), set())
+        asyncio.run(run())
 
     def test_a_line_asks_a_moving_place_at_most_every_interval(self):
         clock, asked = [1000.0], []
