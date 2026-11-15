@@ -715,15 +715,12 @@ struct Widgets {
   uint8_t ground_role=theme::PAGE;
 };
 // The one door into a card's paint (docs/THEME.md, "A card's look"): for as long as it lasts, the roles are the card's
-// look. Every path that paints into a card enters through it; outside one the look is the screen's. Nested scopes are
-// fine: each sets the card's look from the screen's, and gives back what was there.
-struct CardScope {
-  bool before, open=true;
-  explicit CardScope(const Widgets &w) : before(theme::dark) { theme::dark = theme::screen_dark != w.look_other; }
-  void end() { if (open) { theme::dark = before; open = false; } }
-  ~CardScope() { end(); }
-  CardScope(const CardScope &) = delete;
-  CardScope &operator=(const CardScope &) = delete;
+// look. Every path that paints into a card enters through it, with the card's Widgets or, where LVGL draws later (a
+// draw callback), with one of the card's own objects; outside one the look is the screen's. Nested scopes are fine:
+// each sets the card's look from the screen's, and gives back what was there.
+struct CardScope : theme::LookScope {
+  explicit CardScope(const Widgets &w) : theme::LookScope(w.look_other) {}
+  explicit CardScope(const lv_obj_t *obj) : theme::LookScope(theme::other_look(obj)) {}
 };
 // The colour behind a card: the page, or the panel of the section it stands in, in that panel's look. A picture's corners
 // are rounded over it (an album cover, a camera), and a bare card shows it: a contrast section is dark where the page is
@@ -6628,6 +6625,7 @@ inline void climate_circle_event(lv_event_t *e){
 inline void ring_draw(lv_event_t *e){
   auto *tile=static_cast<lv_obj_t *>(lv_event_get_current_target(e));
   if(!lv_obj_has_flag(tile,LV_OBJ_FLAG_USER_1))return;
+  CardScope look(tile);  // LVGL draws it later, outside render_slot: in the card's look
   lv_draw_rect_dsc_t ring;lv_draw_rect_dsc_init(&ring);
   ring.bg_opa=LV_OPA_TRANSP;ring.border_width=ui::px(3);ring.border_opa=LV_OPA_COVER;
   ring.border_color=theme::color(theme::ACCENT);ring.radius=lv_obj_get_style_radius(tile,LV_PART_MAIN);

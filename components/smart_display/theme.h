@@ -268,6 +268,23 @@ struct Flip {
   Flip(const Flip &) = delete;
   Flip &operator=(const Flip &) = delete;
 };
+// A card painted in the other look carries this flag on its root object (sections::place sets and clears it), so what
+// LVGL draws later, in a draw callback, finds the card's look from its own object. Cards do not nest.
+constexpr lv_obj_flag_t OTHER_LOOK_FLAG = LV_OBJ_FLAG_USER_2;
+inline bool other_look(const lv_obj_t *obj) {
+  for (; obj; obj = lv_obj_get_parent(obj)) if (lv_obj_has_flag(obj, OTHER_LOOK_FLAG)) return true;
+  return false;
+}
+// The look of a card for as long as it lasts (runtime_tiles' CardScope, docs/THEME.md "A card's look"): the screen's,
+// or the other one; then what was there before.
+struct LookScope {
+  bool before, open = true;
+  explicit LookScope(bool other) : before(dark) { dark = screen_dark != other; }
+  void end() { if (open) { dark = before; open = false; } }
+  ~LookScope() { end(); }
+  LookScope(const LookScope &) = delete;
+  LookScope &operator=(const LookScope &) = delete;
+};
 // The role a colour of the current look is, or ROLE_COUNT: what a card in the other look repaints (module sections).
 inline Role role_of(uint32_t value) {
   for (uint8_t r = 0; r < ROLE_COUNT; ++r) if (hex(static_cast<Role>(r)) == value) return static_cast<Role>(r);

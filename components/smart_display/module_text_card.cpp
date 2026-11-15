@@ -55,6 +55,7 @@ static View *view_of(lv_obj_t *canvas) {
 }
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *view = view_of(canvas);
   if (!view) return;
   lv_layer_t *layer = lv_event_get_layer(e);

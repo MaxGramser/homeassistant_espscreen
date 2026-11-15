@@ -101,6 +101,7 @@ static bool meets(const lv_area_t &clip, int x1, int y1, int x2, int y2) {
 // Only what meets the area being redrawn is handed to LVGL: a moving dot redraws a few pixels, not the card.
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *view = view_of(canvas);
   if (!view) return;
   auto *layer = lv_event_get_layer(e);

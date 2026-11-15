@@ -171,6 +171,7 @@ static uint32_t pressed(uint32_t colour, bool on) { return on ? theme::pressed(c
 // Under the map: the frame.
 static void draw_under(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  runtime_tiles::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *v = view_of(canvas);
   if (!v) return;
   lv_area_t a;
@@ -182,6 +183,7 @@ static void draw_under(lv_event_t *e) {
 // Over the map: everything else.
 static void draw_over(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  runtime_tiles::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *v = view_of(canvas);
   const Tile *tp = tile_of(canvas);
   if (!v || !tp) return;

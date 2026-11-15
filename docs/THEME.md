@@ -76,6 +76,10 @@ changes, and `theme::dark`, the look every role and helper reads, which is the s
 - **`CardScope`** is the one door into a card's paint: for as long as it lasts, `theme::dark` is the card's look, and
   after it, what it was. Every path that paints into a card enters through it, so a card outside a section, and every
   card of a board without sections, is painted exactly as before.
+- What LVGL draws later, in a draw callback (a meter, a calendar, a to-do list, a text card, the energy card, a vacuum's
+  map, a blind's slats, a favourite's ring), runs outside any paint of ours. So `sections::place` also sets
+  `theme::OTHER_LOOK_FLAG` (`LV_OBJ_FLAG_USER_2`) on a card in the other look, and each draw callback opens
+  `CardScope(obj)` on its own object, which walks up to the card that carries the flag (cards do not nest).
 - `ground_behind()` is what lies behind the card in that ground's own look (a picture's corners, a bare card), and
   `card_surface()` the card's own colour in the card's look, both answerable away from a paint.
 

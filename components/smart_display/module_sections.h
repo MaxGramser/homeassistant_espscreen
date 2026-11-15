@@ -109,6 +109,8 @@ inline void place(Widgets &w, int page, int32_t column, int32_t span_x, int32_t 
     break;
   }
   w.look_other = in && in->follow && !w.full;
+  // The same, on the card's own object, for what LVGL draws later (theme::other_look, CardScope(obj)).
+  if (w.look_other) lv_obj_add_flag(card, theme::OTHER_LOOK_FLAG); else lv_obj_remove_flag(card, theme::OTHER_LOOK_FLAG);
   w.ground_other = in && in->follow;
   w.ground_role = !in ? theme::PAGE : in->contrast && !in->follow ? theme::SECTION_CONTRAST : theme::SECTION;
   margin(card, LV_STYLE_MARGIN_LEFT, left);

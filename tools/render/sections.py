@@ -55,6 +55,13 @@ HOUSE.update({
     'media_player.kitchen': ('Kitchen', 'playing', PLAYING, {'display': 'cover'}),
     'media_player.office': ('Office', 'playing', PLAYING, {'display': 'cover'}),
     'media_player.den': ('Den', 'playing', PLAYING, {'display': 'cover'}),
+    # Cards LVGL draws itself (draw callbacks): a meter's ring and bar, a blind's slats.
+    'sensor.power': ('Power', '2.4', {'unit_of_measurement': 'kW', 'device_class': 'power', 'state_class': 'measurement'},
+                     {'display': 'meter', 'min': 0, 'max': 5, 'icon': 'flash'}),
+    'sensor.power_bar': ('Power', '3.1', {'unit_of_measurement': 'kW', 'device_class': 'power', 'state_class': 'measurement'},
+                         {'display': 'meter', 'meter': 'bar', 'min': 0, 'max': 5, 'icon': 'flash'}),
+    'cover.blinds': ('Blinds', 'open', {'current_position': 100, 'current_tilt_position': 60, 'device_class': 'blind',
+                                        'supported_features': 255}, {'controls': 'tilt', 'icon': 'blinds-open'}),
 })
 # (title, icon, summary entity, column, row, columns, rows[, contrast[, its tiles follow]]) and the tiles (entity, column, row, columns, rows) on the
 # page's grid: loose ones where no block is.
@@ -87,6 +94,13 @@ COVERS = dict(grid=(6, 5), sections=[
     ('media_player.den', 0, 3, 2, 2),
 ])
 WITH_COVERS = {'jc8012p4a1', 'reterminald1001'}
+# What LVGL draws itself in a following section and the same cards loose on the page: drawn in their card's look.
+DRAWN = dict(grid=(6, 5), sections=[
+    ('Following', 'flash', '', 0, 0, 4, 2, True, True),
+], tiles=[
+    ('sensor.power', 0, 0, 2, 2), ('sensor.power_bar', 2, 0, 1, 2), ('cover.blinds', 3, 0, 1, 2),
+    ('sensor.power', 0, 3, 2, 2), ('sensor.power_bar', 2, 3, 1, 2), ('cover.blinds', 3, 3, 1, 2),
+])
 
 
 def page_document(spec, grid):
@@ -181,7 +195,22 @@ class Sections(run.Run):
             await asyncio.sleep(0.5)
         if self.item.board in WITH_COVERS and not self.item.rotation:
             shots += await self.covers(region, states, dark)
+            shots += await self.drawn(region, states, dark)
         return 1, shots
+
+    async def drawn(self, region, states, dark):
+        """Cards whose parts LVGL draws in a draw callback (a meter, a blind's slats), in a following section and loose."""
+        record, _ = page_document(DRAWN, send_layout.Grid(*DRAWN['grid']))
+        await self.send_pages(record, region, states)
+        for look in ('light', 'dark'):
+            self.client.switch_command(dark.key, look == 'dark')
+            await asyncio.sleep(1.0)
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            await asyncio.sleep(0.8)
+            await self.render(f'drawn-{look}', timeout=6)
+        self.client.switch_command(dark.key, False)
+        return 2
 
     async def covers(self, region, states, dark):
         """Covers in sections, each look with its own question (the ground is part of it), answered as the add-on paints
