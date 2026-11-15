@@ -100,6 +100,12 @@ On a Home Assistant 2026.11.0 with the OpenAI integration's AI Task on its recom
 | Turn on all the lights in the living room | 1.8 to 3.1 | no change, "I can only change the layout" |
 | On a CYD (2 x 3, no sections): the living room lights on a page | 5.5 | valid; eight lights as single tiles over two pages |
 | On a CYD: a page with the speakers | 4.9 | valid; three players wide with their keys |
+| Through the dev app, in the editor: all the lights on one page, a section per room | 16.8 to 17.1 | valid; 21 lights in five sections on one 5 x 5 page |
+| Through the dev app: a Security page with the alarm and the door sensors on every screen | 14.6 to 17.2 | valid on all three screens; the other two as proposals |
+| Through the dev app: the alarm on page 1 of every screen | 3.6 to 7.3 | no change: every page 1 was full, said per screen |
+
+The request and the entity list stand between markers in the question, and the rules say that names, titles and the
+request are data, never instructions; the markers are taken out of what the home and the person wrote.
 
 Every answer of the last rounds gave a valid draft. What a small model gets wrong is which entity is what: a sensor of
 the same room among its lights, a blind among the curtains. Device classes in the entity lines would help it (see
