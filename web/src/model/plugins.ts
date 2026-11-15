@@ -2,6 +2,7 @@
 // test folder), and whether it fits a screen. Pure functions only, so the Plugins page and its tests share one rule.
 import { andList, editorLanguage, t } from "../i18n";
 import type { PluginPick, PluginValue, Screen } from "../types";
+import rules from "./page-rules.json";
 
 // A plugin's own words per language, "en" always present. In its repo they live in translations/<language>.json, in two
 // parts like Tessera's own files: `screen` (built into the firmware in the screen's language) and `app` (what the editor
@@ -66,7 +67,8 @@ export function offeredEntities<T extends { id: string }>(all: T[], tile: Pick<P
 export type EntityFact = { device?: string; device_class?: string; translation_key?: string; disabled?: boolean; category?: string };
 export type EntityFacts = Record<string, EntityFact>;
 export const hasFilter = (option: Pick<PluginTileOption, "device_class" | "matches">) => Boolean(option.device_class?.length || option.matches?.length);
-/** Whether an entity is one the option is for (the add-on's plugin_manifest.entity_fits, the same rule): of its domains,
+/** Whether an entity is one the option is for (the add-on's plugin_manifest.entity_fits; both answer the cases of
+ * tests/fixtures/plugin-conformance.json alike): of its domains,
  * and, where the option names `device_class` or `matches`, with one of those device classes, or one of those words as
  * its translation key or as the end of its id. Only the inspector's list follows it: a tile keeps any entity chosen. */
 export function entityFits(option: Pick<PluginTileOption, "domains" | "device_class" | "matches">, id: string, fact: EntityFact = {}) {
@@ -304,13 +306,13 @@ export const pluginDefaults = (tile: Pick<PluginTile, "options">): Record<string
   Object.fromEntries((tile.options || []).filter((option) => option.default !== undefined).map((option) => [option.id, option.default!]));
 
 // ---- Values of JSON (plugin API 0.12) ----
-// What a tile's options take together as JSON, and how many values a list keeps at most: the add-on's
-// plugin_manifest.OPTIONS_BYTES and MAX_MULTIPLE (a test keeps them equal), so the tile's data keeps most of its 4 KB.
-export const PLUGIN_OPTIONS_BYTES = 1280;
-export const PLUGIN_LIST_MAX = 16;
-// How many options a tile keeps at most (plugin API 0.26, twelve before): the add-on's core.PLUGIN_OPTION_MAX and
-// plugin_manifest.MAX_OPTIONS (the same test).
-export const PLUGIN_OPTION_MAX = 24;
+// What a tile's options take together as JSON, how many values a list keeps at most and how many options a tile
+// keeps (plugin API 0.26, twelve before), so the tile's data keeps most of its 4 KB. The numbers are the add-on's
+// (plugin_manifest.OPTIONS_BYTES, MAX_MULTIPLE, MAX_OPTIONS), read from page-rules.json, which
+// tools/generate_page_rules.py writes from them: the editor has none of its own.
+export const PLUGIN_OPTIONS_BYTES: number = rules.plugins.optionsBytes;
+export const PLUGIN_LIST_MAX: number = rules.plugins.listMax;
+export const PLUGIN_OPTION_MAX: number = rules.plugins.optionMax;
 // A choice with several values, or one found by searching, keeps picks: the value and the words the person saw, since
 // such a list may be gone or other later (plugin_manifest.keeps_picks).
 export const keepsPicks = (option: PluginTileOption) => option.kind === "choice" && Boolean(option.multiple || option.search);

@@ -1,0 +1,286 @@
+{
+  "entity_fits": [
+    {
+      "name": "an entity of the option's domain fits an option that names no more",
+      "option": {
+        "domains": [
+          "sensor",
+          "binary_sensor"
+        ]
+      },
+      "entity": "sensor.hall",
+      "fits": true
+    },
+    {
+      "name": "a second domain of the option fits too",
+      "option": {
+        "domains": [
+          "sensor",
+          "binary_sensor"
+        ]
+      },
+      "entity": "binary_sensor.door",
+      "fits": true
+    },
+    {
+      "name": "an entity of another domain does not",
+      "option": {
+        "domains": [
+          "sensor",
+          "binary_sensor"
+        ]
+      },
+      "entity": "light.hall",
+      "fits": false
+    },
+    {
+      "name": "a domain that only starts alike does not",
+      "option": {
+        "domains": [
+          "sensor",
+          "binary_sensor"
+        ]
+      },
+      "entity": "sensor_x.hall",
+      "fits": false
+    },
+    {
+      "name": "an option without domains takes nothing",
+      "option": {},
+      "entity": "sensor.hall",
+      "fits": false
+    },
+    {
+      "name": "its device class fits",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_a",
+      "device_class": "carbon_dioxide",
+      "fits": true
+    },
+    {
+      "name": "another device class does not",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_a",
+      "device_class": "temperature",
+      "fits": false
+    },
+    {
+      "name": "no device class and no word does not",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_a",
+      "fits": false
+    },
+    {
+      "name": "its translation key is one of the words",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_a",
+      "translation_key": "voc_index",
+      "fits": true
+    },
+    {
+      "name": "another translation key does not",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_a",
+      "translation_key": "pm25",
+      "fits": false
+    },
+    {
+      "name": "its id ends in one of the words",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_voc_index",
+      "fits": true
+    },
+    {
+      "name": "its id ends in a short word",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall_co2",
+      "fits": true
+    },
+    {
+      "name": "a word inside the id is not its end",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.voc_index_hall",
+      "fits": false
+    },
+    {
+      "name": "a word without the underscore before it is not its end",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.hallco2",
+      "fits": false
+    },
+    {
+      "name": "the right word in the wrong domain does not",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "number.hall_co2",
+      "fits": false
+    },
+    {
+      "name": "a device class fits whatever the id says",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "carbon_dioxide"
+        ],
+        "matches": [
+          "voc_index",
+          "co2"
+        ]
+      },
+      "entity": "sensor.anything",
+      "device_class": "carbon_dioxide",
+      "translation_key": "pm25",
+      "fits": true
+    },
+    {
+      "name": "only words, no classes: the class says nothing",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "matches": [
+          "co2"
+        ]
+      },
+      "entity": "sensor.hall",
+      "device_class": "carbon_dioxide",
+      "fits": false
+    },
+    {
+      "name": "only classes, no words: the id says nothing",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [
+          "humidity"
+        ]
+      },
+      "entity": "sensor.hall_humidity",
+      "fits": false
+    },
+    {
+      "name": "empty lists are no filter",
+      "option": {
+        "domains": [
+          "sensor"
+        ],
+        "device_class": [],
+        "matches": []
+      },
+      "entity": "sensor.hall",
+      "fits": true
+    }
+  ]
+}

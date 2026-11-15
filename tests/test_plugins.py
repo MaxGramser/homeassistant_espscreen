@@ -1240,8 +1240,6 @@ class MoreOptions(unittest.TestCase):
         self.assertTrue(core.plugin_options({f'o{i}': 'sensor.hall_carbon_dioxide' for i in range(24)}))
         self.assertFalse(core.plugin_options({f'o{i}': 1 for i in range(25)}))
         self.assertFalse(core.plugin_options({f'o{i}': 'x' * 64 for i in range(24)}), 'the 1280 bytes stay')
-        model = (ROOT / 'web/src/model/plugins.ts').read_text()
-        self.assertIn(f'PLUGIN_OPTION_MAX = {pm.MAX_OPTIONS};', model, 'the editor keeps another number of options')
 
     def test_the_editor_gets_the_entities_that_fit_and_their_devices(self):
         import plugins as plugin_service
@@ -2900,12 +2898,23 @@ class JsonValues(unittest.IsolatedAsyncioTestCase):
 
     def test_one_number_everywhere(self):
         self.assertEqual((core.PLUGIN_LIST_MAX, core.PLUGIN_OPTIONS_BYTES), (pm.MAX_MULTIPLE, pm.OPTIONS_BYTES))
-        model = (ROOT / 'web/src/model/plugins.ts').read_text()
-        self.assertTrue(f'PLUGIN_OPTIONS_BYTES = {pm.OPTIONS_BYTES}' in model, 'the editor keeps another budget')
-        self.assertTrue(f'PLUGIN_LIST_MAX = {pm.MAX_MULTIPLE}' in model, 'the editor keeps another list length')
-        # How many options a tile keeps (0.26): the manifest's, the layout check's and the editor's.
+        # How many options a tile keeps (0.26): the manifest's and the layout check's.
         self.assertEqual(core.PLUGIN_OPTION_MAX, pm.MAX_OPTIONS)
-        self.assertTrue(f'PLUGIN_OPTION_MAX = {pm.MAX_OPTIONS};' in model, 'the editor keeps another number of options')
+        # The editor has no numbers of its own: it reads the manifest's from page-rules.json, which
+        # tools/generate_page_rules.py writes and tests/test_page_conformance.py keeps current.
+        model = (ROOT / 'web/src/model/plugins.ts').read_text()
+        self.assertNotRegex(model, r'PLUGIN_(OPTIONS_BYTES|LIST_MAX|OPTION_MAX)[^=\n]*=\s*\d')
+        rules = json.loads((ROOT / 'web/src/model/page-rules.json').read_text())['plugins']
+        self.assertEqual(rules, {'optionsBytes': pm.OPTIONS_BYTES, 'listMax': pm.MAX_MULTIPLE, 'optionMax': pm.MAX_OPTIONS})
+
+    def test_the_add_on_and_the_editor_say_alike_which_entity_an_option_is_for(self):
+        # The cases the editor's entityFits answers too (web/tests/plugin-conformance.spec.ts).
+        cases = json.loads((ROOT / 'tests/fixtures/plugin-conformance.json').read_text())['entity_fits']
+        self.assertGreater(len(cases), 10)
+        for case in cases:
+            with self.subTest(case=case['name']):
+                self.assertEqual(pm.entity_fits(case['option'], case['entity'], case.get('device_class'), case.get('translation_key')),
+                                 case['fits'])
 
     def test_words_and_joins(self):
         self.assertEqual(plugin_fetch.words_of({'on': True, 'off': False, 'n': 3.0, 'x': 2.5, 'pick': {'value': '7', 'label': 'L'},
