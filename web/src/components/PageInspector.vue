@@ -61,7 +61,7 @@ watch(() => insp.naming, async (asked) => {
 }, { immediate: true });
 const orders = computed(() => (doc.document?.pages || []).map((_, at) => [at, String(at + 1)] as [number, string]));
 const barItems = computed(() => topbar.topbarItems(index.value));
-const tiles = computed(() => page.value?.tiles.length || 0);
+const tiles = computed(() => (page.value ? allTiles(page.value).length : 0));
 // The Dock, on a board that has it, for a page of the swipe: a detail page is never in it.
 const hasDock = computed(() => Boolean(scr.currentScreen?.dock && page.value && !page.value.navigation.excludeFromPagination));
 const part = computed(() => (hasDock.value && insp.pagePart === "dock" ? "dock" : "page"));

@@ -117,6 +117,7 @@ inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int3
 inline void show(int page);
 inline void summaries(int page);
 inline void forget();
+inline void gone(lv_obj_t *card);
 inline void restyle();
 }  // namespace sections
 #endif
@@ -10629,6 +10630,9 @@ inline void drop_card(Widgets &w) {
 #endif
   if (w.plugin) plugin_host::release(w);
   if (captured_slider && (captured_slider == w.slider || captured_slider == w.control_slider)) { captured_slider = nullptr; slider_changed = false; }
+#ifdef SD_MOD_SECTIONS
+  if (w.tile) ::sections::gone(w.tile);
+#endif
   if (w.tile) lv_obj_delete(w.tile);
   w = Widgets{};
 }

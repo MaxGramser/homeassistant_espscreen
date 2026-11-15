@@ -1442,10 +1442,12 @@ static void popup_picture_want() {
   if (key != open->art_key) {
     open->art_key = key;
     if (rt::picture_of(key)) popup_place(*open);
+    // A popup that closed itself, or showed another, as it heard of its picture (on_picture) is gone: `open` with it.
+    if (popup_open != open || open->art_key != key) return;
   }
   picture_loader::Want want;
   want.key = key;
-  want.tag = tile_picture::card_tag(open->key);
+  want.tag = tile_picture::card_tag(a.entity);
   want.slot = picture_loader::Slot::FULL;
   want.rank = picture_loader::Rank::CARD;
   want.drawn = true;
@@ -1488,6 +1490,8 @@ void card_picture_want() {
   if (key != open->art_key) {
     open->art_key = key;
     if (rt::picture_of(key)) card_place(*open);
+    // A card that closed itself as it heard of its picture (on_picture) is gone, and `open` with it.
+    if (shown != open || open->art_key != key) return;
   }
   picture_loader::Want want;
   want.key = key;

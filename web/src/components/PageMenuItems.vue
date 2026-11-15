@@ -23,7 +23,7 @@ const page = computed(() => doc.document?.pages[index.value]);
 const home = computed(() => doc.document?.homePageId === props.id);
 // A full copy only when the screen takes every tile on it twice (editor/pages.ts pageCopyable).
 const canCopy = computed(() => pageCopyable(page.value ? allTiles(page.value) : undefined));
-const tiles = computed(() => page.value?.tiles.length || 0);
+const tiles = computed(() => (page.value ? allTiles(page.value).length : 0));
 </script>
 
 <template>

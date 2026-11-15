@@ -208,7 +208,7 @@ class Manifest(unittest.TestCase):
         self.assertIn('if (color == CardColor::INSTRUMENT) return theme::instrument_ground();', host)
         self.assertIn('static_assert(theme::SWATCH_COUNT == 9', host)
         self.assertIn('theme::SWATCHES[i - 1].light', host)
-        for use in ('theme::surface(own)', 'theme::outline(own)', 'theme::pressed(bare ? theme::hex(theme::PAGE) : theme::surface(own))'):
+        for use in ('theme::surface(own)', 'theme::outline(own)', 'theme::pressed(bare ? ground_behind(w) : theme::surface(own))'):
             self.assertIn(use, tiles)
 
     def test_one_plugin_api_everywhere(self):
@@ -1045,8 +1045,8 @@ class EntityOptions(unittest.IsolatedAsyncioTestCase):
 
     def test_a_fetch_says_how_to_reach_the_project(self):
         # planespotters.net (and others) refuse a server's request whose User-Agent has no contact URL or email.
-        import plugin_fetch
-        self.assertRegex(plugin_fetch.Fetcher().user_agent, r'\(\+https://')
+        # The app's own fetcher, not a bare one: the app gave it a string of its own until 2026-11-15.
+        self.assertRegex(self.service.fetcher.user_agent, r'\(\+https://')
 
     async def test_a_choice_of_another_domain_is_left_out(self):
         x = (await self.message({'grid': 'light.kitchen'})).get('x') or {}

@@ -102,7 +102,8 @@ export function duplicateEditorPage(id: string, empty: boolean) {
   const doc = useDocumentStore(), document = doc.document, grid = doc.documentGrid;
   if (!document || !grid) return false;
   if (document.pages.length >= doc.editorLayout.grid.pages) { toast(t("addon.errors.pages.pages_full")); return false; }
-  const copied = empty ? 0 : (document.pages.find((page) => page.id === id)?.tiles.length || 0);
+  const source = empty ? undefined : document.pages.find((page) => page.id === id);
+  const copied = source ? pages.allTiles(source).length : 0;
   if ((doc.layout?.tiles.length || 0) + copied > doc.tileLimit) { toast(t("addon.errors.layout.tiles_max", doc.tileLimit)); return false; }
   try { return doc.applyDocument(pages.duplicatePage(document, doc.screenGridOf(grid), id, empty)); }
   catch (error: any) { toast(error.message); return false; }

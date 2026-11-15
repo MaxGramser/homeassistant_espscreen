@@ -75,7 +75,7 @@ export function describeChange(before: PageLayout, after: PageLayout, beforeGrid
   const onNewPage = (id: string) => newPages.some(({ index }) => now.get(id)!.page === index);
   if (newPages.length && added.every(onNewPage) && !removed.length) {
     const first = newPages[0];
-    return label(first.page.tiles.length ? "page_copied" : "page_added", { page: first.index + 1 });
+    return label(allTiles(first.page).length ? "page_copied" : "page_added", { page: first.index + 1 });
   }
   if (added.length === 1 && !removed.length) return label("tile_added", { name: name(now.get(added[0])!, after) });
   if (removed.length === 1 && !added.length) return label("tile_removed", { name: name(was.get(removed[0])!, before) });

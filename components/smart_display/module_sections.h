@@ -333,6 +333,13 @@ inline void summaries(int page) {
 inline void restyle() {
   for (auto &list : drawn) for (auto &d : list) paint(d);
 }
+// A card that is deleted (drop_card) is no card of a section any more: what was kept by its address goes with it, so
+// a card made later at the same address starts in no section and with no colours of the other look to give back.
+inline void gone(lv_obj_t *card) {
+  homes.erase(std::remove_if(homes.begin(), homes.end(), [card](const Home &h) { return h.card == card; }), homes.end());
+  followed.erase(std::remove_if(followed.begin(), followed.end(), [card](const auto &entry) { return entry.first == card; }),
+                 followed.end());
+}
 // Another layout or another grid: every decoration goes, and is made again when its page is next placed.
 inline void forget() {
   for (size_t page = 0; page < drawn.size(); ++page) drop(int(page));

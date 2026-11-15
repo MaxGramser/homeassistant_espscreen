@@ -377,7 +377,7 @@ class Plugins:
                 installed.setdefault(record['id'], set()).add(record_origin(record))
         self.secrets.adopt(installed)
         self.liker = plugin_likes.Likes(Path(data_dir) / 'plugin_likes.json')
-        self.fetcher = plugin_fetch.Fetcher(f'Tessera/{core.FIRMWARE_VERSION} (+plugins)', session_factory)
+        self.fetcher = plugin_fetch.Fetcher(session_factory=session_factory)
         # The pictures of plugin tiles (plugin API 0.10), through the fetcher's session, or Home Assistant's own.
         self.pictures = plugin_pictures.Pictures(self.fetcher, lambda path: self.manager.ha.entity_picture(path))
         self.index = {}             # id -> Entry, from index.json
