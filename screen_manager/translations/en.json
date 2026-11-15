@@ -4833,7 +4833,7 @@
       "open": "Ask Layoutbot",
       "close": "Close",
       "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
-      "privacy": "I use {agent} from Home Assistant. Your question and the names and areas of your entities go to it.",
+      "privacy": "I use {agent} from Home Assistant. Your question, the pages of your screens and the ids, names and areas of your entities go to it.",
       "placeholder": "Make a page with…",
       "send": {
         "ask": "Shall I send it to {which}?",

@@ -78,8 +78,8 @@ for a draft that changed meanwhile (another tab's save), is left unused and the 
 
 ## Privacy and cost
 
-With a cloud model, the question, the screen's pages and the id, name and area of every entity the editor lists go to
-that provider, as with any AI Task of Home Assistant. The chat says so in its first message, with the model's name.
+With a cloud model, the question, the pages of every screen and the id, name and area of every entity the editor lists
+go to that provider, as with any AI Task of Home Assistant. The chat says so in its first message, with the model's name.
 A home of about 1000 entities makes instructions of about 60 kB (about 15 000 tokens), so one question to a small cloud
 model costs a fraction of a cent. A local model (Ollama) keeps everything in the house.
 

@@ -1,4 +1,4 @@
-"""Layoutbot, the editor's chat prototype (screen_manager/app/layoutbot.py, docs/open-issues/layoutbot.md): a plan
+"""Layoutbot, the editor's chat (screen_manager/app/layoutbot.py, docs/LAYOUTBOT.md): a plan
 from the person's LLM becomes a valid page document, and nothing the plan says can do more than arrange tiles."""
 import asyncio
 from copy import deepcopy
@@ -117,6 +117,21 @@ class Plans(unittest.TestCase):
         page = document["pages"][0]
         self.assertEqual(page["tiles"], [])
         self.assertEqual(entities_of(page), ["light.sofa", "light.desk"])
+
+    def test_a_section_the_plan_restates_keeps_its_tiles_and_takes_the_new_one(self):
+        boxed = deepcopy(DOCUMENT)
+        wide = {**deepcopy(HOME["tiles"][0]), "id": "t2", "content": {"kind": "entity", "entityId": "light.desk"},
+                "placement": {"row": 0, "column": 0, "columns": 2, "rows": 1},
+                "appearance": {"label": "Desk", "presentation": "wide"}, "interaction": {"controls": "brightness"}}
+        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Lights", "placement": {"row": 1, "column": 0, "columns": 3, "rows": 1},
+                                          "tiles": [wide]}]
+        plan = {"pages": [{"page": "1", "sections": [{"title": "Lights", "entities": ["light.desk", "cover.blind_0"]}]}]}
+        document, notes = layoutbot.apply_plan(boxed, plan, GRID, ENTITIES)
+        self.assertEqual(notes, [])
+        lights = document["pages"][0]["sections"][0]["tiles"]
+        self.assertEqual(lights[0], wide)  # its size, label and control as they were
+        # The new one in the first cell the wide tile does not cover.
+        self.assertEqual((lights[1]["content"]["entityId"], lights[1]["placement"]["column"]), ("cover.blind_0", 2))
 
     def test_a_loose_tile_the_plan_restates_stays_where_it_stands(self):
         plan = {"pages": [{"page": "1", "tiles": ["light.sofa", "light.desk"]}]}

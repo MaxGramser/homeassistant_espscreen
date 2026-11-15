@@ -1,4 +1,4 @@
-"""Layoutbot, the editor's chat, a PROTOTYPE (docs/open-issues/layoutbot.md): one sentence in, a proposed page document
+"""Layoutbot, the editor's chat (docs/LAYOUTBOT.md): one sentence in, a proposed page document
 out, made by the LLM the person has already connected to Home Assistant.
 
 What it knows: the screen's page document and grid, the entities the inventory lists (id, name, area) and the icons a
@@ -64,7 +64,7 @@ RANK = {"media_player": 0, "climate": 0, "camera": 1, "vacuum": 1, "light": 2, "
 # `required` and `selector` (helpers/selector.py ObjectSelectorField, HA 2026.11): what each field means is said in RULES.
 #
 # Nested and declarative on purpose: a flat list of operations with optional fields made gpt-4o-mini stop after the
-# first one, writing `},{` into a text field (docs/open-issues/layoutbot.md, "Measured").
+# first one, writing `},{` into a text field (docs/LAYOUTBOT.md, "Measured").
 TEXT = {"selector": {"text": {}}}
 ENTITIES = {"selector": {"entity": {"multiple": True}}}
 STRUCTURE = {
@@ -125,7 +125,7 @@ def entity_lines(entities, domains=None):
     """One line per entity the inventory lists: `light.kitchen | Kitchen spots | Kitchen`, sorted by area then id.
 
     `domains`: only these domains (None: all). The name is left out when the id already says it, to keep the prompt
-    small; a 1000-entity home is about 60 kB of text this way (docs/open-issues/layoutbot.md, "Measured")."""
+    small; a 1000-entity home is about 60 kB of text this way (docs/LAYOUTBOT.md, "Measured")."""
     lines = []
     for item in sorted(entities, key=lambda e: (e.get("area") or "~", e["id"])):
         domain = item["id"].split(".", 1)[0]
@@ -339,7 +339,8 @@ class _Plan:
     def into_section(self, section, entities):
         """More tiles in an existing section's free cells (growing it is the editor's own drop rule)."""
         p = section["placement"]
-        taken = {(t["placement"]["row"], t["placement"]["column"]) for t in section["tiles"]}
+        taken = {(t["placement"]["row"] + dr, t["placement"]["column"] + dc) for t in section["tiles"]
+                 for dr in range(t["placement"]["rows"]) for dc in range(t["placement"]["columns"])}
         free = [(r, c) for r in range(p["rows"]) for c in range(p["columns"]) if (r, c) not in taken]
         for entity, (r, c) in zip(entities, free):
             tile = _tile(entity)
@@ -384,8 +385,12 @@ class _Plan:
                 page["topbar"]["title"] = {"source": "text", "text": title}
             # An entity this plan puts in a section of a page it already stands on moves into it; one it names as a
             # loose tile there stays where it stands (models restate a page's tiles). A page never shows it twice.
+            # One the plan names in a section it already stands in stays as it is, its size and label kept: models
+            # restate a section's tiles ("add the desk lamp to Lights" names every light of Lights).
+            standing = {s["title"].lower(): {t["content"].get("entityId") for t in s["tiles"]} for s in sections_of(page)}
             moved = {e for section in item.get("sections") or [] if isinstance(section, dict)
-                     for e in section.get("entities") or []}
+                     for e in section.get("entities") or []
+                     if e not in standing.get(_text(section.get("title"), 48).lower(), set())}
             self.take_off(page, moved)
             self.placed |= {t["content"].get("entityId") for t in all_tiles(page)} - moved
         else:

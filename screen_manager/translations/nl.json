@@ -4782,7 +4782,7 @@
       "open": "Vraag het Layoutbot",
       "close": "Sluiten",
       "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
-      "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag en de namen en ruimtes van je entiteiten gaan daarheen.",
+      "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag, de pagina's van je schermen en de id's, namen en ruimtes van je entiteiten gaan daarheen.",
       "placeholder": "Maak een pagina met…",
       "send": {
         "ask": "Zal ik het naar {which} sturen?",
