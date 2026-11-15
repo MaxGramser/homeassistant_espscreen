@@ -1465,6 +1465,10 @@ class FetchMore(unittest.TestCase):
         with_url = lambda api: place_plugin(api=api, url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
                                             fetch=None) | {'fetch': [{'id': 'forecast', 'url': 'https://api.example.org/now', 'every': '1d',
                                                                       'map': {'fields': {'photo': {'path': 'src', 'as': 'url'}}}}]}
+        # And whole in the answer to the screen's own ask, which cuts every other long text.
+        import plugins as plugin_service
+        self.assertEqual(plugin_service.bounded({'items': [{'photo': photo, 'by': 'x' * 80}]})['items'][0],
+                         {'photo': photo, 'by': 'x' * 48})
         pm.check(with_url('0.28'), PLACE_ENGLISH)
         self.refuses(with_url('0.27'), 'a field "as: url" needs plugin API 0.28')
 

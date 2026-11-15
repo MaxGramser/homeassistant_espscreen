@@ -185,10 +185,14 @@ def json_size(value):
 
 
 def bounded(value, limit=3200):
-    """An answer for a screen within `limit` bytes of JSON: long texts cut to 48 bytes, then lists shortened from the
+    """An answer for a screen within `limit` bytes of JSON: long texts cut to 48 bytes (an http(s) address kept whole up
+    to plugin_fetch.URL_BYTES), then lists shortened from the
     end until it fits, each to the same length. A screen's message is at most 4 KB with everything around it. Bytes
     decide, not a count: 96 prices of a quarter of an hour fit whole."""
     def cut(node, items):
+        # An address stays whole (a field `as: url`, 0.28): cut, it names another file or none.
+        if isinstance(node, str) and len(node.encode()) <= plugin_fetch.URL_BYTES and re.match(r'https?://\S+$', node):
+            return node
         if isinstance(node, str):
             return core.short(node, 48)
         if isinstance(node, list):
