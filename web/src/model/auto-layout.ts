@@ -461,9 +461,14 @@ function houseUnits(list: Candidate[], input: AutoInput, room: Room, areaNames: 
         : c.domain === "person" && firstNames.get(given(c)) === 1 ? cutBytes(words(c.name)[0], 80) : labelOf(c, "");
       return plan(c, label, input, room, { first, others, live: index < (input.screen.liveTiles ?? 1) });
     });
-    // The alarm and the cameras make the house's security: one section for both on a large screen.
     const title = groupTitle(group === "alarm" ? "security" : group);
     units.push({ key: `house:${group}`, title, icon: GROUP_ICONS[group], tiles, page: home, pageIcon: "home", kind: "house", room: home });
+  }
+  // The alarm and the cameras are the house's security: one section for both, the alarm first.
+  const alarm = units.find((unit) => unit.key === "house:alarm"), cameras = units.find((unit) => unit.key === "house:cameras");
+  if (alarm && cameras) {
+    alarm.tiles = [...alarm.tiles, ...cameras.tiles];
+    units.splice(units.indexOf(cameras), 1);
   }
   return units;
 }
@@ -505,10 +510,12 @@ function units(input: AutoInput, room: Room): { list: Unit[]; rooms: number } {
       host.tiles = [...host.tiles, ...singles[0].tiles];
       parts = parts.filter((part) => part !== singles[0]);
     }
-    const climate = parts.some((part) => part.group === "climate");
+    // The room's temperature on its climate section, else its first section; a lone card (a loose tile) has no title for it.
+    const titled = parts.filter((part) => part.tiles.length > 1);
+    const host = titled.find((part) => part.group === "climate") ?? titled[0];
     for (const part of parts) {
       out.push({ key: `${key}:${part.group}`, title: groupTitle(part.group), icon: GROUP_ICONS[part.group], tiles: part.tiles, page: name, pageIcon: icon,
-        summary: part.group === "climate" || (part === parts[0] && !climate) ? summary : undefined, kind: "own", room: key, floor });
+        summary: part === host ? summary : undefined, kind: "own", room: key, floor });
     }
   };
   const roomless = all.filter((c) => !c.house && !areas.has(c.area));
@@ -600,6 +607,9 @@ const claim = (sheet: Sheet, block: Block) => {
   sheet.blocks.push(block);
   for (let y = block.row; y < block.row + block.shape.rows; y++) for (let x = block.column; x < block.column + block.shape.columns; x++) sheet.taken.add(`${y}:${x}`);
 };
+/** A block of one card: it goes on the page as a loose tile. A section groups two cards or more (the owner's rule: a
+ * section is for grouping); one made by hand with one card stays as it is, only this layout never proposes one. */
+const alone = (block: Block) => block.unit.tiles.length === 1;
 /** A page's blocks grown a little, so the panels line up: each as low as the tallest block beside it (a shelf), then into a
  * gap of one column or one row that no block could fill. Their tiles laid out again on the width they have now. */
 function grow(sheet: Sheet, grid: { columns: number; rows: number }) {
@@ -607,7 +617,8 @@ function grow(sheet: Sheet, grid: { columns: number; rows: number }) {
   const take = (cells: [number, number][]) => { for (const [y, x] of cells) sheet.taken.add(`${y}:${x}`); };
   const right = (b: Block) => Array.from({ length: b.shape.rows }, (_, i) => [b.row + i, b.column + b.shape.columns] as [number, number]);
   const below = (b: Block) => Array.from({ length: b.shape.columns }, (_, i) => [b.row + b.shape.rows, b.column + i] as [number, number]);
-  const ordered = [...sheet.blocks].sort((a, b) => a.row - b.row || a.column - b.column);
+  // A lone card is a loose tile, not a section: it keeps its own size.
+  const ordered = [...sheet.blocks].filter((block) => !alone(block)).sort((a, b) => a.row - b.row || a.column - b.column);
   // A shelf: one row lower where the block beside it, at the same top, is one row lower.
   for (const block of ordered) {
     const shelf = Math.max(...sheet.blocks.filter((other) => other.row === block.row).map((other) => other.row + other.shape.rows));
@@ -802,14 +813,18 @@ export function autoLayout(input: AutoInput): AutoResult {
     for (const sheet of sectionSheets(list, grid)) {
       if (pages.length >= pagesMax) { leftOut += sheet.sheet.blocks.reduce((sum, block) => sum + block.unit.tiles.length, 0); continue; }
       const page = pageWith(sheet.title, sheet.icon, input);
-      page.sections = sheet.sheet.blocks.sort((a, b) => a.row - b.row || a.column - b.column).map((block): Section => ({
+      const blocks = sheet.sheet.blocks.sort((a, b) => a.row - b.row || a.column - b.column);
+      page.tiles = blocks.filter(alone).map((block) => tileOf({ ...block.shape.places[0], row: block.row + block.shape.places[0].row,
+        column: block.column + block.shape.places[0].column }));
+      const grouped = blocks.filter((block) => !alone(block));
+      if (grouped.length) page.sections = grouped.map((block): Section => ({
         id: instanceId(), title: cutBytes(block.unit.title, SECTION_TITLE_BYTES) || "·",
         ...(block.unit.icon && ICONS.has(block.unit.icon) ? { icon: block.unit.icon } : {}),
         ...(block.unit.summary ? { summary: block.unit.summary } : {}),
         placement: { row: block.row, column: block.column, columns: block.shape.columns, rows: block.shape.rows },
         tiles: block.shape.places.map((place) => tileOf(place)),
       }));
-      sections += page.sections.length;
+      sections += page.sections?.length ?? 0;
       pages.push(page);
     }
   } else {

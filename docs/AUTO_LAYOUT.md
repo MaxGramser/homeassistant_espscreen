@@ -47,7 +47,7 @@ It follows Home Assistant's own generated dashboards (the frontend's areas and h
 
 How a screen is filled follows its grid, from `boards.json` and its hello:
 
-- **Four by four cells and more** (the 7 and 10 inch boards): sections, one per room, several rooms on a page before the
+- **Four by four cells and more** (the 7 and 10 inch boards): sections of two cards or more, one per room, several rooms on a page before the
   next page begins; a room that fills most of a page gets pages of its own, a section per group, and a group of one small
   tile joins another. Larger cards where they pay off: a room's light group 2 × 2 with brightness and presets, the first
   thermostat 2 × 2 with setpoint and modes, the first player 2 × 2 with its album cover and the others wide with their
@@ -58,6 +58,11 @@ How a screen is filled follows its grid, from `boards.json` and its hello:
   the house to a page, continued on the next page where it runs over, the weather wide with its forecast. Rooms that each
   fill little share a page only when the screen has fewer pages than rooms, and a room that would run one or two tiles
   onto a page of its own leaves its least wanted ones to the library then.
+
+A section groups: it always holds two cards or more. A room, a group or a house's group of one card is that card alone,
+a loose tile on the page at the place its section would have had, without a title (the weather, the alarm without
+cameras, a room's only thermostat). The alarm and the cameras share one Security section. This is the first layout's own
+rule; a section of one card made by hand is the person's to keep.
 
 A section's place on a page is the first free one in reading order for any width its tiles fit, the least empty cells
 there; a page takes later units of its kind that fit before the next page begins, and the house's groups fill what is

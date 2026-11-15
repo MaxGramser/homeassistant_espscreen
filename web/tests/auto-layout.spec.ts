@@ -74,16 +74,19 @@ describe("a large screen with sections (10.1-inch, 5 x 5)", () => {
     expect(layout.pages.length).toBeLessThanOrEqual(8);
     expect(result.tiles).toBe(tilesOf(layout).length);
     expect(result.tiles).toBeLessThanOrEqual(64);
-    expect(layout.pages.every((page) => page.tiles.length === 0 && (page.sections?.length ?? 0) > 0)).toBe(true);
+    expect(layout.pages.every((page) => (page.sections?.length ?? 0) + page.tiles.length > 0)).toBe(true);
+    expect(layout.pages.some((page) => (page.sections?.length ?? 0) > 1)).toBe(true);
   });
   it("starts with the screen's own room, its groups as sections, and makes it Home", () => {
     const first = layout.pages[0];
     expect(layout.homePageId).toBe(first.id);
     expect(first.topbar.title).toEqual({ source: "text", text: "Living room" });
     const titles = first.sections!.map((s) => s.title);
-    expect(titles.slice(0, 2)).toEqual(["Lights", "Climate"]);
+    expect(titles[0]).toBe("Lights");
     expect(titles).toContain("Media");
-    expect(first.sections!.find((s) => s.title === "Climate")!.summary).toBe("sensor.living_room_temperature");
+    // The thermostat alone is a card of its own, not a section; the room's temperature goes on its first section.
+    expect(first.tiles.map((tile) => (tile.content as { entityId: string }).entityId)).toContain("climate.airco");
+    expect(first.sections![0].summary).toBe("sensor.living_room_temperature");
     expect(first.icon).toBe("sofa");
   });
   it("chooses larger tiles with more controls where they pay off", () => {
@@ -116,8 +119,9 @@ describe("a large screen with sections (10.1-inch, 5 x 5)", () => {
     expect(kitchen.icon).toBe("silverware-fork-knife");
   });
   it("keeps the house's own things together, one weather and one meter", () => {
-    const house = layout.pages.find((page) => page.sections?.some((s) => s.title === "Weather"))!;
-    expect(house.sections!.map((s) => s.title)).toEqual(expect.arrayContaining(["Security", "Who is home"]));
+    const house = layout.pages.find((page) => allTiles(page).some((tile) => (tile.content as { entityId: string }).entityId === "weather.home"))!;
+    expect(house.sections!.map((s) => s.title)).toContain("Who is home");
+    expect(allTiles(house).map((tile) => (tile.content as { entityId: string }).entityId)).toContain("alarm_control_panel.house");
     for (const id of NOISE) expect(entityIds(layout)).not.toContain(id);
     expect(entityIds(layout)).toContain("sensor.power_consumption");
     expect(tileFor(layout, "camera.garden")!.appearance.label).toBe("Garden");
@@ -190,6 +194,18 @@ describe("a home without areas", () => {
   });
 });
 
+describe("a section groups", () => {
+  it("never holds a single card: a lone card stands loose on its page", () => {
+    for (const screen of [TEN, MIDDLE]) for (const things of [HOUSE, BUSY]) {
+      const { layout } = make(screen, things);
+      for (const section of layout.pages.flatMap((page) => page.sections ?? [])) expect(section.tiles.length, section.title).toBeGreaterThan(1);
+    }
+    // The house's one weather and one alarm are cards of their own on the large screen.
+    const { layout } = make(TEN);
+    expect(layout.pages.some((page) => page.tiles.some((tile) => (tile.content as { entityId: string }).entityId === "weather.home"))).toBe(true);
+  });
+});
+
 describe("a busier home", () => {
   for (const screen of [TEN, MIDDLE, CYD]) {
     const { layout, result } = make(screen, BUSY);
@@ -203,7 +219,7 @@ describe("a busier home", () => {
   it("leaves a device's own switches without a room to the library, and keeps a thermostat without one", () => {
     expect(entityIds(layout)).not.toContain("switch.cam_privacy");
     expect(entityIds(layout)).toContain("climate.attic");
-    const home = layout.pages.find((page) => page.sections?.some((s) => s.tiles.some((t) => (t.content as { entityId: string }).entityId === "climate.attic")))!;
+    const home = layout.pages.find((page) => allTiles(page).some((t) => (t.content as { entityId: string }).entityId === "climate.attic"))!;
     expect(home.topbar.title).toEqual({ source: "text", text: "Home" });
   });
   it("names people by their first name and a room's light group as all its lights", () => {

@@ -23,6 +23,13 @@ class FirstLayouts(unittest.TestCase):
                 grid = page_layout.grid_of_record({'format': 'pages-v2', 'sourceGrid': case['grid'], 'layout': case['layout']})
                 page_layout.validate_document(case['layout'], grid)
 
+    def test_a_section_groups_two_cards_or_more(self):
+        # A lone card stands loose on its page: the first layout never proposes a section of one card.
+        for case in DOCUMENTS:
+            for page in case['layout']['pages']:
+                for section in page_layout.sections_of(page):
+                    self.assertGreater(len(section['tiles']), 1, section['title'])
+
     def test_sections_only_where_the_grid_has_room(self):
         for case in DOCUMENTS:
             sections = [s for page in case['layout']['pages'] for s in page_layout.sections_of(page)]
