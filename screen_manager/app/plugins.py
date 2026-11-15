@@ -260,17 +260,49 @@ def entity_facts(entries, states, registry, devices, most=2000):
     return facts, names
 
 
-def trimmed(data, budget=X_BUDGET):
-    """A tile's data within `budget` bytes (X_BUDGET, or less beside large options): the last items go first."""
+def fitted_data(data, budget):
+    """A tile's data (the mapped answer of its fetch) within `budget` bytes: as many whole items as fit, the last going
+    first; when it is its other lists that are too long (a day of prices beside a few fields), those shortened alike
+    from the end (LIST_STEPS). {"wait": "too_large"} when not even that fits."""
     if not isinstance(data, dict):
         return data
-    data = dict(data)
-    while len(json.dumps(data, separators=(',', ':'), ensure_ascii=False).encode()) > budget:
-        items = data.get('items')
-        if not isinstance(items, list) or not items:
-            return {'wait': 'too_large'}
-        data['items'] = items[:-1]
-    return data
+    items = data.get('items') if isinstance(data.get('items'), list) else None
+    for step in LIST_STEPS:
+        shaped = {name: value[:step] if isinstance(value, list) and name != 'items' and step is not None else value
+                  for name, value in data.items()}
+        if items is None:
+            if json_size(shaped) <= budget:
+                return shaped
+            continue
+        if json_size({**shaped, 'items': []}) > budget:
+            continue
+        low, high = 0, len(items)        # the most whole items that fit: sizes only grow with them
+        while low < high:
+            middle = (low + high + 1) // 2
+            if json_size({**shaped, 'items': items[:middle]}) <= budget:
+                low = middle
+            else:
+                high = middle - 1
+        return {**shaped, 'items': items[:low]}
+    return {'wait': 'too_large'}
+
+
+def shared(room, shapers):
+    """The one rule by which the parts of a tile's `x` share its room (a tile's own entity, the entities its options
+    chose, its fetch's data; a screensaver step's entity and data): the smallest take what they need and the rest is
+    split alike among the larger, so a part of a hundred bytes (the place a radar stands on) always goes whole and two
+    long ones (a sky of aircraft, a day of prices) each give way.
+
+    `shapers`: one per part, shape(budget) -> the part as it lies in `x` (a dict of the keys it adds), fitted to
+    `budget` bytes of JSON, its own {"wait": "too_large"} where its place is when nothing of it fits. Returns the parts
+    in the order given. Each part is asked at most twice: once for its whole size, once for its share."""
+    whole = [json_size(shape(1 << 30)) for shape in shapers]
+    parts, left = [None] * len(shapers), room
+    for at, index in enumerate(sorted(range(len(shapers)), key=whole.__getitem__)):
+        share = left // (len(shapers) - at)
+        parts[index] = shapers[index](share)
+        left -= json_size(parts[index])
+    return parts
 
 
 def store_image_ok(body):
@@ -1812,7 +1844,7 @@ class Plugins:
             return {'wait': 'failed'}
         if stale or 'failed' in waits:
             data['stale'] = True
-        return trimmed(data)
+        return data   # whole: what goes to a screen is fitted where its room is known (shared, fitted_data)
 
     def state_part(self, spec, entity, budget=X_BUDGET, updated=False):
         """(entity, what the screen gets of it) for a tile that belongs to an entity, or one an entity option chose
@@ -1892,35 +1924,43 @@ class Plugins:
         bound = (options.get('plugin_entity') or '') if kind and kind['domains'] else ''
         if bound:
             wire['pe'] = bound
-        # The data gets what the message leaves of its 4 KB (the tile's options count, a name of at most 80 bytes).
+        # `x` gets what the message leaves of its 4 KB (the tile's options count, a name of at most 80 bytes), and its
+        # parts share that room by one rule (shared): the tile's own entity, the entities its entity options chose
+        # (0.15, under x.entities.<option id>, each with its own "too_large" where it does not fit) and its data.
         room = min(X_BUDGET, page_delivery.MAX_MESSAGE - ENVELOPE - 80 - json_size(
             {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'], 'name': '', 'state': 'ok', 'a': {}, 'o': wire}))
-        entity, part = self.entity_part(kind, tile, room)
+        own = (options.get('plugin_entity') or '') if kind else ''
+        entity, whole = self.state_part(kind, own) if kind else (None, None)
         if entity:
             wire['pe'] = entity
+        data = await self.tile_data(entry, kind, chosen, ask, inbox, tile) if kind else None
+        picked = [(option, chosen[option['id']]) for option in (kind.get('options', ()) if kind else ())
+                  if option['kind'] == 'entity' and isinstance(chosen.get(option['id']), str) and chosen[option['id']]]
+        # Each part with its place in x, and how it is fitted to a budget.
+        places = []
+        if whole is not None:
+            places.append((('own',), lambda budget: self.state_part(kind, own, budget)[1]))
+        for option, selected in picked:
+            if self.state_part(option, selected, updated=True)[1] is not None:
+                # As it lies in x.entities: its key and its comma count with it.
+                places.append((option['id'], lambda budget, option=option, selected=selected: {
+                    option['id']: self.state_part(option, selected, budget - len(option['id']) - 4, updated=True)[1]}))
+        if data:
+            places.append((('data',), lambda budget: fitted_data(data, budget)))
+        # The braces of x, "entities":{} and a comma between the parts are no part's own.
+        fitted = dict(zip((place for place, _ in places),
+                          shared(room - 16 - len(places), [shape for _, shape in places])))
+        part, entities = fitted.get(('own',)), {}
+        for option, _ in picked:
+            entities.update(fitted.get(option['id']) or {})
         name = tile.get('name') or (part or {}).get('name') or (entry.text(kind['name']) if kind else tile_id)
         message = {'v': 1, 'op': 'state', 'i': index, 'entity': tile['entity'], 'name': core.short(name, 80),
                    'state': 'ok', 'a': {}, 'o': wire}
-        if kind:
-            data = await self.tile_data(entry, kind, chosen, ask, inbox, tile)
-            # The entities its entity options chose (0.15), under x.entities.<option id>: they share what the tile's
-            # own entity and data leave of the room, so one with long attributes waits as too large on its own instead
-            # of taking the whole tile with it. Data of items gives way to them up to half the room: its last items go
-            # (trimmed), never the place a radar or a map stands on (0.27).
-            picked = [(option, chosen[option['id']]) for option in kind.get('options', ())
-                      if option['kind'] == 'entity' and isinstance(chosen.get(option['id']), str) and chosen[option['id']]]
-            entities = {}
-            if picked:
-                left = room - json_size({**(part or {}), **(data or {}), 'entities': {}})
-                if isinstance((data or {}).get('items'), list):
-                    left = max(left, (room - json_size({**(part or {}), 'entities': {}})) // 2)
-                share = left // len(picked) - max(len(option['id']) for option, _ in picked) - 4
-                for option, selected in picked:
-                    _, selected_part = self.state_part(option, selected, share, updated=True)
-                    if selected_part:
-                        entities[option['id']] = selected_part
-            if part or data or entities:
-                message['x'] = trimmed({**(part or {}), **(data or {}), **({'entities': entities} if entities else {})}, room)
+        if part or fitted.get(('data',)) or entities:
+            message['x'] = {**(part or {}), **(fitted.get(('data',)) or {}), **({'entities': entities} if entities else {})}
+            if json_size(message['x']) > room:   # the rule keeps this from happening; a screen never gets more
+                LOG.error('plugin tile %s: its parts took more than their room', tile['entity'])
+                message['x'] = {'wait': 'too_large'}
         return message
 
     async def choices(self, plugin, fetch_id, values, inbox=None, search=''):
@@ -2187,7 +2227,14 @@ class Plugins:
             return None
         if isinstance(when, dict) and (states.get(entity) or {}).get('state') not in when['state']:
             return None
-        step = {**(part or {}), **(data or {})}
+        # The step's entity and its data share the room by the tiles' rule (shared), less the room of `entity` below.
+        setting_entity = setting.get('entity', '')
+        shapers = ([lambda budget: self.state_part(kind, setting_entity, budget)[1]] if part is not None else []) + \
+                  ([lambda budget: fitted_data(data, budget)] if data else [])
+        parts = shared(room - 4 - len(shapers) - (json_size({'entity': entity}) if kind['domains'] else 0), shapers)
+        if part is not None:
+            part = parts.pop(0)
+        step = {**(part or {}), **(parts.pop(0) if parts else {})}
         # The step's entity in its words (#286): the screen asks for the step's pictures `for` it, and the app shows
         # Home Assistant's own only for the entity chosen for the step. On a step of an entity it is always the app's,
         # so a field of the fetch's answer cannot stand in for it, and none while an entity of another domain waits.
@@ -2195,7 +2242,7 @@ class Plugins:
             step.pop('entity', None)
             if 'wait' not in part:
                 step['entity'] = entity
-        return trimmed(step, room)
+        return step
 
     def saver_steps(self):
         """Every plugin step of a screensaver with a fetch, on a screen whose screensaver is on: [(inbox, key, entry,

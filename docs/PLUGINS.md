@@ -29,7 +29,7 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
 | Add-on | `screen_manager/app/plugin_pictures.py` | What a plugin's places may show (0.10 a tile, 0.13 a card, 0.14 a screensaver): the manifest's rules for its addresses and the fetching of them, kept by address. The question, the painting and the link are the one picture system's (docs/PICTURES.md). |
 | Firmware | `components/smart_display/__init__.py` | `register_plugin()`, which a plugin's `__init__.py` calls: id, version, tile memory and screen texts from its manifest. `PLUGIN_API`. |
 | Add-on | `screen_manager/app/plugin_manifest.py` | Reads and checks a manifest. Standalone: the plugins repository's `tools/check.py` runs this file. `PLUGIN_API`. |
-| Add-on | `screen_manager/app/plugin_fetch.py` | The building block `fetch`: fill in, ask, map, cache (at most `MAX_QUESTIONS` questions, the one asked longest ago makes way, never one a tile follows), back off. |
+| Add-on | `screen_manager/app/plugin_fetch.py` | The building block `fetch`: fill in, ask, map, cache (at most `MAX_QUESTIONS` questions, the one asked longest ago makes way, never one a tile follows), back off (a failure per question; a service that answers 429 or 503 is left alone as a whole host for as long as its Retry-After says, `ServiceBusy`). |
 | Add-on | `screen_manager/app/plugin_store.py` | `/data/plugins.json` (per screen) and `/data/plugin_secrets.json` (0600). |
 | Add-on | `screen_manager/app/plugins.py` | The index and test folders, the editor's payload, the plugins file, adding and removing, a plugin tile's state message, the fetch loop. |
 | Add-on | `firmware.py` (`PLUGINS_SUFFIX`, `save_plugins`), `page_layout.py`, `core.py` (`plugin_tile`, `PLUGIN_MEMORY`), `page_delivery.py` (`plugins_of`) | The sidecar, the document, the layout check and price, the negotiation. |
@@ -67,9 +67,11 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    the entities of those domains in a searchable picker. The add-on adds the chosen entity under
    `x.entities.<option id>` with the same bounded state, name and named attributes, and `updated`, when Home Assistant
    last heard from it (seconds since 1970), so a tile of several sources can say how old its values are. The chosen
-   entities share what the tile's own entity and data leave of the room: one that does not fit waits as `too_large`
-   alone. Data of items gives way to them up to half the room (its last items go), so a long list never leaves a radar
-   or a map without its place. The add-on follows every chosen entity (`related_entities`, with the screen's own plugin) and sends the tile
+   entities, the tile's own entity and its data share the room by one rule (`plugins.shared`): the smallest parts go
+   whole and the rest of the room is split alike among the larger, each fitted to its share (an entity's lists
+   shortened alike, a fetch's last items first, `fitted_data`). So a place of a hundred bytes always goes whole beside a
+   sky of aircraft, two long parts each give way, and a part that cannot fit at all waits as `too_large` in its own
+   place without taking the tile with it. A screensaver step's entity and data share its room the same way. The add-on follows every chosen entity (`related_entities`, with the screen's own plugin) and sends the tile
    again when one changes; a choice is part of the layout, so it changes without a build. A choice of another domain
    is left out. The tile's own entity (`plugin_entity`) keeps its `x` as before, without `updated`.
 6. **On the screen** `page_receiver` keeps `o.plugin` and `x` as JSON in the tile's `Extra` (`plugin_options`,

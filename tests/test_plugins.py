@@ -1563,6 +1563,37 @@ class FetchFill(unittest.TestCase):
             self.assertEqual(set(fetcher.locks) - set(fetcher.cache), set())
         asyncio.run(run())
 
+    def test_a_busy_service_is_left_alone_as_a_whole(self):
+        # HTTP 429 or 503 is the host's word, not one question's: every other question of that host waits with it, for
+        # as long as its Retry-After says, and none of them reaches the service meanwhile.
+        clock, asked = [1000.0], []
+        fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
+
+        async def download(url, headers, network):
+            asked.append(url)
+            if len(asked) == 1:
+                raise plugin_fetch.ServiceBusy(429, plugin_fetch.busy_wait('300'))
+            return {'current': {'temperature': 1}}
+        fetcher.download = download
+        manifest = pm.check(place_plugin(), PLACE_ENGLISH)
+        at = lambda n: {'place.latitude': n, 'place.longitude': 4}
+
+        async def run():
+            _, first = await fetcher.get('weather', manifest, self.fetch, at(1), {})
+            self.assertEqual((len(asked), first['data']), (1, None))
+            for n in range(2, 8):
+                _, other = await fetcher.get('weather', manifest, self.fetch, at(n), {})
+                self.assertIsNone(other['data'])
+            self.assertEqual(len(asked), 1, 'six more questions, none of them asked of the busy service')
+            clock[0] += 301
+            _, again = await fetcher.get('weather', manifest, self.fetch, at(2), {})
+            self.assertEqual((len(asked), again['data']), (2, {'current': {'temperature': 1}}))
+            fetcher.forget_unused()
+            self.assertEqual(fetcher.busy, {})
+        asyncio.run(run())
+        self.assertEqual([plugin_fetch.busy_wait(v) for v in ('5', '300', '99999', None, 'Wed, 21 Oct 2026 07:28:00 GMT', 'nan')],
+                         [60, 300, 3600, 60, 60, 60])
+
     def test_a_line_asks_a_moving_place_at_most_every_interval(self):
         clock, asked = [1000.0], []
         fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
@@ -1844,6 +1875,55 @@ class PopupPictures(unittest.TestCase):
         card = ask('plugin:weather.sky', home)
         self.assertEqual(fake.plugin_place('hall', {}, card)[2], True)
         self.assertIsNone(fake.plugin_picture_refused('hall', {}, card, card.sources[0]))
+
+
+class SharedRoom(unittest.TestCase):
+    """The parts of a tile's `x` share its room by one rule (plugins.shared, docs/PLUGINS.md): the smallest whole, the
+    rest split alike among the larger."""
+
+    @staticmethod
+    def size(value):
+        return len(json.dumps(value, separators=(',', ':'), ensure_ascii=False).encode())
+
+    def test_a_small_part_goes_whole_and_two_long_ones_each_give_way(self):
+        import plugins as plugin_service
+        place = {'state': '2', 'attributes': {'latitude': 52.37, 'longitude': 4.89}}
+        sky = {'items': [{'hex': f'{n:06x}', 'flight': f'KLM{n:04d}', 'alt': 30000 + n} for n in range(200)]}
+        prices = {'prices': [n / 7 for n in range(400)]}
+        parts = plugin_service.shared(2000, [
+            lambda budget: place if self.size(place) <= budget else {'wait': 'too_large'},
+            lambda budget: plugin_service.fitted_data(sky, budget),
+            lambda budget: plugin_service.fitted_data(prices, budget)])
+        self.assertEqual(parts[0], place)
+        self.assertTrue(0 < len(parts[1]['items']) < 200)
+        self.assertTrue(0 < len(parts[2]['prices']) < 400)
+        self.assertLessEqual(sum(self.size(part) for part in parts), 2000)
+        # The two long ones got about as much each: neither starved the other.
+        self.assertLess(abs(self.size(parts[1]) - self.size(parts[2])), 700)
+
+    def test_whatever_the_sizes_the_parts_stay_within_the_room(self):
+        import plugins as plugin_service
+        for room in (0, 40, 300, 1200, 2600):
+            for lengths in ((0,), (5, 5), (1, 400), (400, 1, 400), (300, 300, 300, 300)):
+                shapers = [lambda budget, n=n: plugin_service.fitted_data({'numbers': list(range(n))}, budget) for n in lengths]
+                parts = plugin_service.shared(room, shapers)
+                used = sum(self.size(part) for part in parts)
+                waits = sum(self.size(part) for part in parts if part == {'wait': 'too_large'})
+                # A part that does not fit at all says so in its own place: that word is all that may pass the room.
+                self.assertLessEqual(used - waits, max(room, 0), (room, lengths))
+
+    def test_data_without_items_shortens_its_lists_and_with_items_loses_the_last(self):
+        import plugins as plugin_service
+        day = {'unit': 'ct', 'prices': list(range(500)), 'peaks': list(range(500))}
+        got = plugin_service.fitted_data(day, 600)
+        self.assertEqual((got['unit'], len(got['prices'])), ('ct', len(got['peaks'])))
+        self.assertTrue(0 < len(got['prices']) < 500)
+        sky = {'stale': True, 'items': [{'n': n} for n in range(100)]}
+        got = plugin_service.fitted_data(sky, 300)
+        self.assertEqual(got['items'], sky['items'][:len(got['items'])])
+        self.assertLessEqual(self.size(got), 300)
+        self.assertGreater(self.size({**got, 'items': sky['items'][:len(got['items']) + 1]}), 300)
+        self.assertEqual(plugin_service.fitted_data({'name': 'x' * 400}, 100), {'wait': 'too_large'})
 
 
 def plugin_service_budget():

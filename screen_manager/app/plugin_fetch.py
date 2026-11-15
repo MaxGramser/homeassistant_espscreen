@@ -42,6 +42,30 @@ FORGET_AFTER = 2           # intervals a question nobody asks for stays in the c
 MAX_QUESTIONS = 128
 
 
+# A service that says it is busy (HTTP 429 or 503) is left alone as a whole, not per question: a fetch the screen asks
+# makes a new question for every value, and each would otherwise be tried once. As long as its Retry-After says, within
+# these bounds; without one, BUSY_WAIT.
+BUSY_WAIT = 60
+BUSY_MOST = 3600
+
+
+class ServiceBusy(OSError):
+    """The service answered 429 or 503: `wait` seconds before anything is asked of that host again."""
+
+    def __init__(self, status, wait):
+        super().__init__(f'HTTP {status}')
+        self.wait = wait
+
+
+def busy_wait(retry_after):
+    """The seconds a Retry-After header asks for (a number of seconds; a date or nothing is BUSY_WAIT), bounded."""
+    try:
+        seconds = float(retry_after)
+    except (TypeError, ValueError):
+        seconds = BUSY_WAIT
+    return min(max(seconds, BUSY_WAIT), BUSY_MOST) if math.isfinite(seconds) else BUSY_WAIT
+
+
 class FetchRefused(ValueError):
     """A fetch the rules do not allow: the plugin's manifest or a value filled in is wrong."""
 
@@ -371,6 +395,7 @@ class Fetcher:
         self.session_factory = session_factory
         self.session = None
         self.clock = clock
+        self.busy = {}          # host -> the clock until which it asked to be left alone (ServiceBusy)
         self.cache = {}         # question -> {'data', 'at', 'ok', 'error', 'stale', 'next', 'fails', 'asked'}
         self.locks = {}
         self.lines = {}         # a tile's line of asking a fetch (get's `line`) -> {'key', 'at', 'used', 'every'}
@@ -412,6 +437,8 @@ class Fetcher:
         async with session.get(url, headers=headers, allow_redirects=False) as response:
             if response.status in (301, 302, 303, 307, 308):
                 raise OSError(f'HTTP {response.status}: redirects are not followed')
+            if response.status in (429, 503):
+                raise ServiceBusy(response.status, busy_wait(response.headers.get('Retry-After')))
             if response.status >= 400:
                 raise OSError(f'HTTP {response.status}')
             raw = bytearray()
@@ -481,7 +508,10 @@ class Fetcher:
                 self._hold(line, key, held, now, every, entry, False)
                 return key, entry
             asked_service = True
+            host = urlsplit(url).hostname or ''
             try:
+                if self.clock() < self.busy.get(host, 0):
+                    raise ServiceBusy('429 or 503 a moment ago: the service is left alone', self.busy[host] - self.clock())
                 data = await self.download(url, headers, manifest['permissions']['network'])
                 if data != entry['data']:
                     entry['changed'] += 1
@@ -491,6 +521,10 @@ class Fetcher:
             except Exception as error:   # the network, the service, its answer
                 entry['fails'] += 1
                 wait = BACKOFF[min(entry['fails'], len(BACKOFF)) - 1]
+                if isinstance(error, ServiceBusy):
+                    # The whole host waits, and this question with it, as long as the service asked.
+                    self.busy[host] = max(self.busy.get(host, 0), self.clock() + error.wait)
+                    wait = max(wait, error.wait)
                 if entry['data'] is not None and not entry['stale']:
                     entry['changed'] += 1
                 entry.update(error=redact(str(error) or type(error).__name__, secrets)[:160],
@@ -527,6 +561,8 @@ class Fetcher:
             self.locks.pop(key, None)
         for line in [k for k, held in self.lines.items() if now - held['used'] > FORGET_AFTER * held['every'] + 60]:
             self.lines.pop(line, None)
+        for host in [h for h, until in self.busy.items() if until <= now]:
+            self.busy.pop(host, None)
 
     def status(self):
         """Per question what a person may see: when it last worked, the last error. No URL, no header."""
