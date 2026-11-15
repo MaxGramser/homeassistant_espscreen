@@ -205,6 +205,15 @@ def host_file(text, chain, rel):
             if key == 'display':
                 chain.displays += re.findall(r'(?m)^    id: (\w+)', block)
             chain.notes.append(f'{rel}: dropped {key}:')
+    # A board's addressable status light has no host output. Keep the shared monochromatic backlight, which is a
+    # separate `light` item in features/backlight.yaml.
+    before = text
+    text = drop_items(text, 'light', lambda item: re.match(r'  - platform: esp32_rmt_led_strip\b', item))
+    if text != before:
+        chain.notes.append(f'{rel}: dropped light: esp32_rmt_led_strip')
+        lights = blocks_of(text, 'light')
+        if lights and not re.search(r'(?m)^  - ', text[lights[0][1]:lights[0][2]]):
+            text, _ = drop_blocks(text, 'light')
     for key, _, _ in top_blocks(text):
         if key not in ('touchscreen', 'packages', 'substitutions', 'esphome'):
             before = text

@@ -30,8 +30,9 @@ on the screen itself, and how updates work.
 
 - **One tile per cell**, across up to eight fixed pages and 64 tiles, or more on a board with PSRAM (up to 128 tiles on
   24 pages on an ESP32-S3 board, 256 on 16 pages on the larger ESP32-P4 boards, firmware 0.34.0+), as many as the screen's memory
-  holds; the editor shows how full it is ([TILE_MEMORY.md](docs/TILE_MEMORY.md)): six cells a page on a CYD, a 4-inch Guition or the
-  [experimental Waveshare 4B](docs/WAVESHARE4B.md), the [experimental Waveshare 4 V4.0](docs/WAVESHARE4V4.md), the [experimental SenseCAP Indicator](docs/SENSECAP_INDICATOR.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md) (48 tiles), nine on the
+  holds; the editor shows how full it is ([TILE_MEMORY.md](docs/TILE_MEMORY.md)): six cells a page on a CYD, the
+  [experimental Freenove FNK0104B](docs/FREENOVEFNK0104B.md), a 4-inch Guition or the [experimental Waveshare 4B](docs/WAVESHARE4B.md),
+  the [experimental Waveshare 4 V4.0](docs/WAVESHARE4V4.md), the [experimental SenseCAP Indicator](docs/SENSECAP_INDICATOR.md) and the [experimental Waveshare P4](docs/WAVESHAREP4.md). Those with eight pages hold 48 tiles; the FNK0104B has 128 tiles across 24 pages. There are nine cells on the
   [M5Stack Tab5](docs/TAB5.md), the Waveshare 4.3-inch, the [experimental Waveshare 4.3C](docs/WAVESHARE43C.md), the [Waveshare 5-inch](docs/WAVESHARE5.md), the [experimental Guition 4.3-inch](docs/JC4880P443.md) and the [experimental Guition 5-inch](docs/JC8048W550.md), twenty-five on the 10.1-inch Guition, the [experimental CrowPanel 10.1-inch](docs/CROWPANEL101.md) and the [experimental Waveshare 10.1-inch](docs/WAVESHARE101.md), sixteen on the
   [experimental Waveshare 7-inch](docs/WAVESHARE7.md), the [experimental Waveshare 7B](docs/WAVESHARE7B.md), the [experimental Waveshare P4 7B](docs/WAVESHAREP47B.md), the [experimental Waveshare P4 7-inch](docs/WAVESHAREP47.md) and the [experimental Sunton 7-inch](docs/SUNTON8048S070.md), and four on the [Waveshare 3.5-inch](docs/WAVESHARE35.md), the [experimental Freenove 4-inch](docs/FREENOVEFNK0104S.md) and the [experimental WT32-SC01 Plus](docs/WT32SC01PLUS.md) (32), lying down, where each starts (the Grid button gives
   a screen another, below). A page need not be full: every screen has eight pages from firmware 0.18.0, where

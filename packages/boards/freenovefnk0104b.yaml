@@ -1,0 +1,61 @@
+# ESP Screens - Freenove FNK0104B, experimental: a 2.8-inch 240 x 320 ILI9341 panel over SPI with FT6336 capacitive
+# touch, on an ESP32-S3 with 16 MB flash and octal PSRAM. The firmware uses its ES8311 speaker and microphone, battery
+# voltage input and one WS2812 status light. It has not been tried on the glass yet (docs/FREENOVEFNK0104B.md).
+# docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  hardware: !include ../hardware/freenove-fnk0104b.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  battery: !include ../features/battery-voltage.yaml
+  battery_adc: !include ../features/battery-adc.yaml
+  audio: !include ../features/audio.yaml
+  audio_hardware: !include ../hardware/freenove-fnk0104b-audio.yaml
+  status_led: !include ../hardware/parts/ws2812.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "freenovefnk0104b"
+  DEVICE_NAME: "freenovefnk0104b-new"
+  DEVICE_FRIENDLY_NAME: "My Freenove FNK0104B"
+
+  # The glass: the panel's own pixels and its density, 400 diagonal pixels over 2.8 inches.
+  PANEL_W: "240"
+  PANEL_H: "320"
+  DISPLAY_DPI: "142.857"
+  # The LVGL angle that lays this panel out lying down (320 x 240). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and
+  # the extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides").
+  BACKLIGHT_FREQUENCY: "20000Hz"
+
+  # The touch controller and audio codec share this I2C bus. The codec's analogue microphone and speaker use separate
+  # I2S data pins, with the microphone bus providing clocks to the speaker bus.
+  AUDIO_I2C: touch_bus
+  AUDIO_SAMPLE_RATE: "16000"
+  AUDIO_DIN_PIN: GPIO6
+  AUDIO_DOUT_PIN: GPIO8
+  AUDIO_MCLK_PIN: {number: GPIO4, allow_other_uses: true}
+  AUDIO_BCLK_PIN: {number: GPIO5, allow_other_uses: true}
+  AUDIO_LRCLK_PIN: {number: GPIO7, allow_other_uses: true}
+  AUDIO_AMPLIFIER_PIN: {number: GPIO1, inverted: true}
+  # The board's optional single-cell battery is divided by two before it reaches GPIO9.
+  BATTERY_PIN: GPIO9
+  WS2812_PIN: GPIO42
+  # The microphone bus supplies clocks to the secondary speaker bus from boot.
+  BOOT_BOARD_SETTINGS: |-
+    id(ts_microphone)->start();

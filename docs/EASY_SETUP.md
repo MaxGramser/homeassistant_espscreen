@@ -29,6 +29,7 @@ ESPHome Device Builder is optional:
 | Waveshare, 4 inch V4.0 (experimental) | ESP32-S3-Touch-LCD-4 revision 4.0 (not the 4B, not earlier revisions), 480×480, ST7701S and GT911 ([details](WAVESHARE4V4.md)) |
 | SenseCAP, 4 inch (experimental) | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
+| Freenove, 2.8 inch (experimental) | FNK0104B, 240×320, ILI9341 and capacitive FT6336; audio, battery and status light support ([details](FREENOVEFNK0104B.md)) |
 | Freenove, 4 inch (experimental) | FNK0104S (not the 2.8 or 3.5-inch boards of the series), 480×320, ST7796 and FT6336 ([details](FREENOVEFNK0104S.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
 | Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |

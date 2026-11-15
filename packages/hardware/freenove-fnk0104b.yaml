@@ -1,0 +1,64 @@
+# ESP Screens - the FNK0104B's ESP32-S3, octal PSRAM, buses, FT6336 touch, PWM backlight and ILI9341 panel. The board
+# file supplies the panel dimensions through PANEL_W and PANEL_H.
+packages:
+  build: !include esp-idf.yaml
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+spi:
+  id: lcd
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+
+i2c:
+  id: touch_bus
+  sda: GPIO16
+  scl: GPIO15
+  scan: true
+
+# GPIO45 is a strapping pin on the ESP32-S3 and drives this board's backlight.
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: GPIO17
+    reset_pin: GPIO18
+    update_interval: 20ms
+
+# ESPHome's ILI9341 model over SPI. GPIO46 is a strapping pin of the ESP32-S3 and is wired to data/command here.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ILI9341
+    spi_id: lcd
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    # Freenove's IPS panel needs inversion and BGR order; both still need acceptance on the glass.
+    color_order: bgr
+    invert_colors: true
+    dc_pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    cs_pin: GPIO10
+    spi_mode: MODE0
+    data_rate: 40MHz
+    update_interval: never
+    auto_clear_enabled: false

@@ -1,5 +1,8 @@
 ## Unreleased
 
+- **A new experimental board, the Freenove FNK0104B.** The 2.8-inch 240 x 320 ILI9341 screen has capacitive touch,
+  camera and snapshot pictures, audio, battery reporting and a controllable status light. Hardware acceptance is
+  pending; choose it under New screen to build a profile.
 - **The same cover is not fetched again.** A player whose next track shows the same album cover kept fetching and redrawing that cover on every track; the screen now asks whether its picture changed and keeps it when it did not.
 - **A meter keeps its icon.** A meter's ring could show an empty circle for up to a minute after its page came back onto the screen; it now draws its icon at once. Seen on a 10.1 inch.
 - **A first layout made for you.** A new screen asks "Shall I make a first layout for you?", and Auto layout in the toolbar does it for any screen: Tessera reads your Home Assistant areas and devices and makes pages the way Home Assistant's own dashboards group a home. Every room gets a section (or a page on a small screen) with its lights, blinds, climate and players, the house's weather, alarm, people, cameras, vacuum, lists and calendar stand together, and the screen's own room comes first. Large screens get larger tiles with more controls where it pays off, such as a room's lights 2 × 2 with presets, the album cover of a speaker, the vacuum's map and the weather's forecast; the CYD and the other small screens get plain tiles, a room to a page. Labels leave out the room's name, and what has a category, is hidden or belongs to a screen stays out. You see every page before it goes in, choose to replace the pages or add them after the ones you have, and Undo takes it back.
