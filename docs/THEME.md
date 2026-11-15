@@ -82,6 +82,14 @@ changes, and `theme::dark`, the look every role and helper reads, which is the s
   `CardScope(obj)` on its own object, which walks up to the card that carries the flag (cards do not nest).
   `tests/test_card_look.py` holds every draw callback to it: the scope in its first lines, or a reason it needs none
   (the open card, a keyboard, a colour captured in `render_slot`).
+- **Shared paints exist once per look.** Every style a paint fills (`theme::fill`, the profile's `theme::paints` and the
+  firmware's own `theme::style()`) is remembered with its paint, and gets a copy filled in the other look the first time
+  a card in the other look needs it (`theme::other_copy`), so a board without sections never makes one. Inside a card's
+  scope `theme::style()` gives the copy of the card's look; when a card changes look, `sections::place` trades every
+  shared style on its objects for the other copy once (`theme::restyle_card`: each style in its place in the object's
+  list, matched by pointer, its selector kept; `lv_obj_replace_style` would give it the selector it is called with), and the card is painted again because its look and ground are part of its paint signature. A colour no
+  paint gives, LVGL's default theme, reaches no visible part of a card (an audit of every card kind, 2026-11-15: only the
+  scrollbar, which cards never show).
 - `ground_behind()` is what lies behind the card in that ground's own look (a picture's corners, a bare card), and
   `card_surface()` the card's own colour in the card's look, both answerable away from a paint.
 

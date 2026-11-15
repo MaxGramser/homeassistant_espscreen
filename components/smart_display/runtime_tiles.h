@@ -107,10 +107,7 @@
 // Sections on a page (module sections, module_sections.h at the module site at the end of this file).
 namespace runtime_tiles { struct Widgets; }
 namespace sections {
-inline bool following(lv_obj_t *card);
-inline void follow(lv_obj_t *card, bool on);
 inline void place(runtime_tiles::Widgets &w, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y);
-inline void gone(lv_obj_t *card);
 inline void show(int page);
 inline void summaries(int page);
 inline void forget();
@@ -644,7 +641,7 @@ struct Widgets {
   // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
   // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
   // which an idle timer never sends).
-  uint32_t cached_paint=UINT32_MAX;
+  uint64_t cached_paint=UINT64_MAX;
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -8877,26 +8874,14 @@ inline std::string key_value(const Tile &t){
 // A card in a section whose tiles follow its contrast (docs/PAGES.md "Sections") is painted in the other look: every
 // role it asks for while it is drawn comes in that look, and what it takes from the shared paints is set on it in that
 // look once it is drawn (module_sections.h follow). A card that leaves such a section gives those back.
-// A card painted in its section's look (CardScope): what it takes from the shared paints is set on it in that look once
-// it is painted, and given back when it leaves the section (sections::follow).
-struct SectionLook {
-  lv_obj_t *card; bool on; CardScope scope;
-  SectionLook(Widgets &w) : card(w.tile), on(w.tile && w.look_other && !w.full), scope(w) {
-    if (on || ::sections::following(card)) { w.cached_active = -1; w.panel_dirty = true; }
-  }
-  ~SectionLook() { scope.end(); ::sections::follow(card, on); }
-  SectionLook(const SectionLook &) = delete;
-  SectionLook &operator=(const SectionLook &) = delete;
-};
+
 #endif
 inline void render_slot(size_t slot) {
   swipe_profile::SlotTimer slot_timer(slot);
   swipe_profile::Lap lap;
   auto &w=widgets[slot];
   if(!w.tile || w.index>=model.count)return;
-#ifdef SD_MOD_SECTIONS
-  SectionLook look(w);
-#endif
+  CardScope look(w);  // the card's look for the whole paint (docs/THEME.md "A card's look")
   const auto &t = model.tiles[w.index];
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
@@ -9345,7 +9330,9 @@ inline void render_slot(size_t slot) {
 #endif
   // A plugin tile may give its card a colour of its own (plugin API 0.26, ui::set_card_color): it goes over the tile's.
   const uint32_t own=plugin_host::ground(w)?plugin_host::ground(w):t.background;
-  const uint32_t paint=own|(bare?1u<<24:0);
+  // The card's look and what lies behind it are part of what it was painted for: a card that moves into or out of a
+  // section whose tiles follow its contrast is painted again (sections::place traded its shared styles already).
+  const uint64_t paint=uint64_t(own)|(bare?1ull<<24:0)|(w.look_other?1ull<<25:0)|(w.ground_other?1ull<<26:0)|(uint64_t(w.ground_role)<<32);
   if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
   w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
@@ -10639,9 +10626,6 @@ inline void drop_card(Widgets &w) {
 #endif
   if (w.plugin) plugin_host::release(w);
   if (captured_slider && (captured_slider == w.slider || captured_slider == w.control_slider)) { captured_slider = nullptr; slider_changed = false; }
-#ifdef SD_MOD_SECTIONS
-  if (w.tile) ::sections::gone(w.tile);
-#endif
   if (w.tile) lv_obj_delete(w.tile);
   w = Widgets{};
 }

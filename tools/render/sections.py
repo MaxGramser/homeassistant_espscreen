@@ -192,7 +192,37 @@ class Sections(run.Run):
         if self.item.board in WITH_COVERS and not self.item.rotation:
             shots += await self.covers(region, states, dark)
             shots += await self.drawn(region, states, dark)
+            shots += await self.every_card(dark)
         return 1, shots
+
+    async def every_card(self, dark):
+        """Every card the harness feeds (diagnostics/send_layout.py: the demo layout and the direct controls), each page
+        wrapped whole in one section: once with its tiles in the contrast (the other look), once in contrast only."""
+        from datetime import datetime, timezone
+        now = getattr(run, 'MOMENT', datetime.now(timezone.utc))
+        grid = send_layout.Grid(*COVERS['grid'])
+        shots = 0
+        for name, controls in (('demo', False), ('controls', True)):
+            record, values, bars, region = send_layout.configuration(grid, controls=controls, now=now)
+            for kind, follow in (('following', True), ('contrast', False)):
+                chosen = deepcopy(record)
+                for n, page in enumerate(chosen['layout']['pages']):
+                    page['sections'] = [{'id': f'5ec8{n:012x}', 'title': 'Everything', 'icon': 'lightbulb-group', 'contrast': True,
+                                         **({'contrastTiles': True} if follow else {}),
+                                         'placement': {'row': 0, 'column': 0, 'columns': grid.columns, 'rows': grid.rows}}]
+                sums = [[''] for _ in chosen['layout']['pages']]
+                await self.sender.synchronize(self.inbox.object_id, chosen, region, values, bars, sums=sums)
+                for page in range(len(chosen['layout']['pages'])):
+                    for look in ('light', 'dark'):
+                        self.client.switch_command(dark.key, look == 'dark')
+                        await asyncio.sleep(1.0)
+                        await self.call('render_page', page=page)
+                        await self.page_done(page)
+                        await asyncio.sleep(0.8)
+                        await self.render(f'every-{name}-{kind}-p{page}-{look}', timeout=6)
+                        shots += 1
+                self.client.switch_command(dark.key, False)
+        return shots
 
     async def drawn(self, region, states, dark):
         """Cards whose parts LVGL draws in a draw callback (a meter, a blind's slats), in a following section and loose."""

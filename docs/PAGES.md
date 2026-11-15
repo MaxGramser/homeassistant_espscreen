@@ -157,8 +157,8 @@ the page's opposite, `SECTION_CONTRAST`, and its title, icon and summary `SECTIO
 own cards. With **Tiles in contrast too** (beside it, off unless chosen) the whole section is a piece of the other look:
 its panel, its words and its tiles' cards, dark on a dark panel by day and light in Dark mode. The firmware gives each
 card its look and what lies behind it where the card is placed on its own page (`sections::place`), paints the card in
-that look through `CardScope` (docs/THEME.md, "A card's look") and sets what they take from
-the shared paints on them in the other look (`module_sections.h follow`); the editor, whose mockup is the light look,
+that look through `CardScope` (docs/THEME.md, "A card's look") and trades the shared paints on its objects for their
+copies in the other look when it changes look (`theme::restyle_card`); the editor, whose mockup is the light look,
 draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). A picture on a card in a section (an album cover, a
 camera, still or live) rounds its corners over the section's panel, the dark one in contrast, never over the page
 (`runtime_tiles::ground_behind`): a cover asked over the page left a light frame around its card on

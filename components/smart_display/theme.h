@@ -278,13 +278,6 @@ struct LookScope {
   LookScope(const LookScope &) = delete;
   LookScope &operator=(const LookScope &) = delete;
 };
-// The role a colour of the current look is, or ROLE_COUNT: what a card in the other look repaints (module sections).
-inline Role role_of(uint32_t value) {
-  for (uint8_t r = 0; r < ROLE_COUNT; ++r) if (hex(static_cast<Role>(r)) == value) return static_cast<Role>(r);
-  return ROLE_COUNT;
-}
-inline uint32_t other(Role role) { return dark ? ROLES[role].light : ROLES[role].dark; }
-
 // ---- mixing, exactly as LVGL 9 mixes two colours (lv_color_mix), so a value here is the value on the glass
 inline uint32_t mix(uint32_t first, uint32_t second, uint8_t amount) {
   uint32_t out = 0;
@@ -464,7 +457,9 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 
 #ifndef THEME_TEST
 #include "lvgl.h"
+#include "lvgl_private.h"  // restyle_card trades a style on an object in place (lv_obj_t::styles)
 #include <array>
+#include <vector>
 
 namespace theme {
 
@@ -518,19 +513,48 @@ inline constexpr PaintRoles PAINTS[static_cast<size_t>(Paint::COUNT)] = {
   /* calibration */         {CALIBRATION_PAGE, NONE, CALIBRATION_INK, NONE, NONE},
   /* camera */              {CAMERA_PAGE, NONE, CAMERA_NOTE, NONE, NONE},
 };
-// Fill a style with a paint in the current look. Setting a property the style already has allocates nothing.
+// Fill a style with a paint in a given look. Setting a property the style already has allocates nothing.
+inline void fill_in(lv_style_t *style, Paint paint, bool in_dark) {
+  const PaintRoles &p = PAINTS[static_cast<size_t>(paint)];
+  const auto in = [in_dark](uint8_t role) { return lv_color_hex(hex_in(static_cast<Role>(role), in_dark)); };
+  if (p.bg != NONE) lv_style_set_bg_color(style, in(p.bg));
+  if (p.border != NONE) lv_style_set_border_color(style, in(p.border));
+  if (p.text != NONE) lv_style_set_text_color(style, in(p.text));
+  if (p.line != NONE) lv_style_set_line_color(style, in(p.line));
+  if (p.arc != NONE) lv_style_set_arc_color(style, in(p.arc));
+}
+// A shared style and its copy in the other look (docs/THEME.md "A card's look"): every style a paint fills is
+// remembered with its paint; the copy is made the first time a card in the other look needs it, so a board without
+// sections never makes one. A card changes look by trading one for the other on its objects (restyle_card).
+struct PaintPair { lv_style_t *screen; lv_style_t *other; Paint paint; };
+inline std::vector<PaintPair> pairs;
+inline PaintPair *pair_of(const lv_style_t *style) {
+  for (auto &p : pairs) if (p.screen == style || p.other == style) return &p;
+  return nullptr;
+}
+// Fill a style with a paint in the screen's look, and its copy in the other look where one was made. The board profile's
+// paints (`styles: paint_card`, theme::paints) and the firmware's own (style()) all come through here.
 inline void fill(lv_style_t *style, Paint paint) {
   if (!style) return;
-  const PaintRoles &p = PAINTS[static_cast<size_t>(paint)];
-  if (p.bg != NONE) lv_style_set_bg_color(style, color(static_cast<Role>(p.bg)));
-  if (p.border != NONE) lv_style_set_border_color(style, color(static_cast<Role>(p.border)));
-  if (p.text != NONE) lv_style_set_text_color(style, color(static_cast<Role>(p.text)));
-  if (p.line != NONE) lv_style_set_line_color(style, color(static_cast<Role>(p.line)));
-  if (p.arc != NONE) lv_style_set_arc_color(style, color(static_cast<Role>(p.arc)));
+  fill_in(style, paint, screen_dark);
+  PaintPair *p = pair_of(style);
+  if (!p) { pairs.push_back({style, nullptr, paint}); return; }
+  p->paint = paint;
+  if (p->other) fill_in(p->other, paint, !screen_dark);
+}
+inline lv_style_t *other_copy(PaintPair &p) {
+  if (!p.other) {
+    p.other = new lv_style_t;
+    lv_style_init(p.other);
+    lv_style_copy(p.other, p.screen);
+    fill_in(p.other, p.paint, !screen_dark);
+  }
+  return p.other;
 }
 // The board profile's styles and the paint of each, as fill() calls. Set and run once in on_boot.
 inline void (*paints)() = nullptr;
-// The firmware's own shared style for a paint, made on first use.
+// The firmware's own shared style for a paint, made on first use, in the look painted now: a card in the other look
+// (CardScope) gets the copy in its look.
 inline std::array<lv_style_t *, static_cast<size_t>(Paint::COUNT)> own{};
 inline lv_style_t *style(Paint paint) {
   auto *&s = own[static_cast<size_t>(paint)];
@@ -539,7 +563,26 @@ inline lv_style_t *style(Paint paint) {
     lv_style_init(s);
     fill(s, paint);
   }
-  return s;
+  return dark == screen_dark ? s : other_copy(*pair_of(s));
+}
+// A card's objects to the shared styles of its look: each style of the screen's look traded for its copy (other), or
+// back, in its place in the object's list with its own selector, so what it applies to and its precedence stay as they
+// were (lv_obj_replace_style would give it the selector it is called with). A copy holds the same properties as its
+// original, so LVGL's cache of which properties an object has stays true. Run where a card's look changes
+// (sections::place), never on a pass.
+inline void restyle_card(lv_obj_t *obj, bool other) {
+  if (!obj) return;
+  bool changed = false;
+  for (uint32_t i = 0; i < obj->style_cnt; ++i) {
+    lv_obj_style_t &st = obj->styles[i];
+    if (st.is_local || st.is_trans) continue;
+    PaintPair *p = pair_of(st.style);
+    if (!p) continue;
+    const lv_style_t *want = other ? other_copy(*p) : p->screen;
+    if (st.style != want) { st.style = want; changed = true; }
+  }
+  if (changed) lv_obj_refresh_style(obj, LV_PART_ANY, LV_STYLE_PROP_ANY);
+  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) restyle_card(lv_obj_get_child(obj, int32_t(i)), other);
 }
 // What the board draws again after a change of look: the tiles, an open card, the settings page. Set by the profile.
 inline void (*redraw)() = nullptr;
