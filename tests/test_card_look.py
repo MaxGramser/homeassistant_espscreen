@@ -9,7 +9,7 @@ import re
 import unittest
 
 COMPONENT = Path(__file__).resolve().parents[1] / 'components/smart_display'
-REGISTERED = re.compile(r'lv_obj_add_event_cb\(\s*[^,]+,\s*([A-Za-z_][\w:]*)\s*,\s*LV_EVENT_DRAW_\w+')
+CALL = 'lv_obj_add_event_cb('
 SCOPE = re.compile(r'\b(CardScope|LookScope)\b')
 
 # A registration whose callback is a parameter: the functions handed in there, each checked like any other.
@@ -31,6 +31,27 @@ NEEDS_NONE = {
 }
 
 
+def registrations(text):
+    """Every lv_obj_add_event_cb(...) for a draw event in `text`: (callback name, None) or (None, a lambda's body)."""
+    found, at = [], 0
+    while (at := text.find(CALL, at)) >= 0:
+        depth, end = 0, at + len(CALL) - 1
+        for end in range(at + len(CALL) - 1, len(text)):
+            depth += {'(': 1, ')': -1}.get(text[end], 0)
+            if depth == 0:
+                break
+        call, at = text[at + len(CALL):end], end
+        if 'LV_EVENT_DRAW_' not in call:
+            continue
+        callback = call.split(',', 1)[1].strip() if ',' in call else ''
+        if callback.startswith('['):
+            found.append((None, callback[callback.find('{') + 1:][:600]))
+        else:
+            name = re.match(r'([A-Za-z_][\w:]*)', callback)
+            found.append((name.group(1) if name else callback[:40], None))
+    return found
+
+
 def sources():
     return {p.name: p.read_text() for p in sorted(COMPONENT.iterdir()) if p.suffix in ('.h', '.cpp')}
 
@@ -50,7 +71,11 @@ class CardLook(unittest.TestCase):
         files = sources()
         missing, seen = [], set()
         for file, text in files.items():
-            for name in REGISTERED.findall(text):
+            for name, lambda_body in registrations(text):
+                if lambda_body is not None:
+                    if not SCOPE.search(lambda_body[:400]):
+                        missing.append(f'{file}: a lambda (open CardScope in it, or give it a name and a reason)')
+                    continue
                 bare = name.split('::')[-1]
                 seen.add((file, bare))
                 if (file, bare) in NEEDS_NONE:
