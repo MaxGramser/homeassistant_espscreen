@@ -253,7 +253,8 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
 .bot-compose { display: flex; align-items: flex-end; gap: 8px; margin: 8px 10px 10px; padding: 6px 6px 6px 12px; border-radius: 16px;
   border: 1px solid var(--line-strong); background: var(--surface); transition: border-color .15s, box-shadow .15s; }
 .bot-compose:focus-within { border-color: var(--bot-b); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bot-b) 16%, transparent); }
-.bot-compose textarea { flex: 1; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit;
+.bot-compose textarea, .bot-compose textarea:hover, .bot-compose textarea:focus-visible { flex: 1; resize: none; border: 0; outline: 0;
+  box-shadow: none; border-radius: 0; min-height: 0; width: auto; background: transparent; color: var(--ink); font: inherit;
   font-size: 13.5px; line-height: 1.4; padding: 6px 0; max-height: 120px; }
 .bot-send { width: 32px; height: 32px; flex: none; border: 0; border-radius: 11px; display: grid; place-items: center; cursor: pointer;
   color: white; background: linear-gradient(140deg, var(--bot-a), var(--bot-b)); transition: opacity .15s, transform .15s; }
