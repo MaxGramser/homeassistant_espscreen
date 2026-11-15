@@ -67,7 +67,7 @@ function confirmRemove() {
   confirming.value = null;
   plugins.setAsideRemoval(ask.screens, props.plugin, [...ask.with, ...(alsoOrphans.value ? ask.orphans : [])]);
 }
-// A plugin added with a link and run by no screen is taken off the list again.
+// A plugin added with a link, or a folder someone was making, that no screen runs, is taken off the list again.
 async function forget() {
   try { await plugins.forgetLink(props.plugin); emit("close"); } catch (error: any) { ui.toast(error.message); }
 }
@@ -239,7 +239,7 @@ const history = computed(() => (!newsFrom.value ? changesBetween(text(props.plug
   </section>
 
   <section v-if="plugins.forgettable(plugin)" class="pd-section" id="plugin-forget">
-    <p class="pd-note">{{ t("editor.plugins.forget.note") }}</p>
+    <p class="pd-note">{{ plugin.source === "folder" ? t("editor.plugins.forget.note_folder", { id: plugin.id }) : t("editor.plugins.forget.note") }}</p>
     <button type="button" class="btn" id="plugin-forget-go" @click="forget"><Icon name="delete-outline" />{{ t("editor.plugins.forget.go") }}</button>
   </section>
 

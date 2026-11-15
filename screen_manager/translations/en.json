@@ -4306,7 +4306,8 @@
       },
       "forget": {
         "go": "Remove from the list",
-        "note": "No screen runs this plugin. Remove it from the list to forget the link."
+        "note": "No screen runs this plugin. Remove it from the list to forget the link.",
+        "note_folder": "No screen runs this plugin from its folder. Removing it moves the folder to config/tessera-plugins/.removed/{id}, where you can delete it for good."
       }
     },
     "plugin_tile": {

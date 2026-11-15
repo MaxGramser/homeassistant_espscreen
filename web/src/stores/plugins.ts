@@ -387,11 +387,14 @@ export const usePluginsStore = defineStore("plugins", () => {
     if (consent) likeConsent.value = true;
   }
   type Rated = { stars: number | null; rating: number | null; ratings: number; homes: number };
-  // A plugin added with a link that runs on no screen, off the Plugins page again (the add-on only keeps it in memory).
-  const runsAnywhere = (id: string) => Object.values(installed.value).some((list) => list.some((item) => item.id === id));
-  const forgettable = (plugin: Plugin) => (plugin.source === "link" || plugin.source === "branch") && !runsAnywhere(plugin.id);
-  async function forgetLink(plugin: Pick<Plugin, "id">) {
-    await send(`plugins/${plugin.id}/link`, "DELETE");
+  // A plugin added with a link, or one someone was making in a folder, that no screen runs (from that folder), off the
+  // Plugins page again: the add-on forgets the link, or moves the folder to tessera-plugins/.removed/.
+  const runsAnywhere = (id: string, source?: string) => Object.values(installed.value)
+    .some((list) => list.some((item) => item.id === id && (!source || item.source === source)));
+  const forgettable = (plugin: Plugin) => plugin.source === "folder" ? !runsAnywhere(plugin.id, "folder")
+    : (plugin.source === "link" || plugin.source === "branch") && !runsAnywhere(plugin.id);
+  async function forgetLink(plugin: Pick<Plugin, "id" | "source">) {
+    await send(`plugins/${plugin.id}/${plugin.source === "folder" ? "folder" : "link"}`, "DELETE");
     await reloadPlugins();
   }
   async function rate(plugin: Pick<Plugin, "id">, stars: number | null, screen?: string) {

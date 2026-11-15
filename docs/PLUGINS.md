@@ -117,6 +117,9 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
   failed (`failed_update`), which the editor says, offering the update again. So a failed plugin never makes the
   screen's next build fail, an update of the core or a build in Device Builder. A build the app lost (a restart during
   it) counts as failed (`settle`).
+- A plugin someone added with a link, or was making in a folder, that no screen runs (from that folder) has Remove in its
+  details on the Plugins page (`forgettable`): a link is forgotten (`forget_link`), a folder is moved to
+  `tessera-plugins/.removed/<id>` (`forget_folder`), never deleted, since it may be the only copy of someone's work.
 - Removing a screen removes its plugins and its secrets for that screen alone, and, when no screen uses a plugin any
   more, all of its secrets.
 

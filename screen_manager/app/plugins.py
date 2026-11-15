@@ -62,6 +62,7 @@ GITHUB_API = 'https://api.github.com/repos/{owner}/{repo}'
 GITHUB_REPOSITORY = 'https://api.github.com/repositories/{id}'
 GITHUB_RAW = 'https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}'
 FOLDER = 'tessera-plugins'
+REMOVED = '.removed'          # tessera-plugins/.removed/: folders taken off the Plugins page (forget_folder)
 # A plugin's picture on the Plugins page: store.png beside its manifest, made with the plugins repository's
 # tools/store_image.py or by hand (its docs/PUBLISHING.md). The app fetches it at the plugin's commit and serves it to
 # the editor itself, as the editor shows no picture from another address.
@@ -905,6 +906,31 @@ class Plugins:
             raise ValueError(t('addon.errors.plugins.forget_running'))
         del self.links[plugin]
         self._know_tiles()
+
+    def forget_folder(self, plugin):
+        """Take a plugin someone was making in tessera-plugins/<id>/ off the Plugins page. Only one no screen runs from
+        its folder (a screen that does is taken off first, or its next build would miss the folder). The folder is not
+        deleted but moved to tessera-plugins/.removed/<id>, which the scan skips: the person's own work, maybe not kept
+        anywhere else, is theirs to delete. Returns the new place."""
+        self.scan_folders()
+        entry = self.folders.get(plugin)
+        if entry is None:
+            raise ValueError(t('addon.errors.plugins.unknown', id=plugin))
+        if any(record['id'] == plugin and record.get('source') == 'folder'
+               for records in self.store.everywhere().values() for record in records):
+            raise ValueError(t('addon.errors.plugins.forget_running'))
+        root = self.folder_root()
+        folder = Path(entry.folder)
+        if folder.parent != root or folder.is_symlink() or not folder.is_dir():
+            raise ValueError(t('addon.errors.plugins.unknown', id=plugin))
+        aside = root / REMOVED
+        aside.mkdir(exist_ok=True)
+        target, n = aside / folder.name, 2
+        while target.exists():
+            target, n = aside / f'{folder.name}-{n}', n + 1
+        folder.rename(target)
+        self.scan_folders()
+        return target
 
     async def refresh_links(self, force=False):
         """A plugin added with a link follows its repository: its newest release (a link) or the newest commit of its

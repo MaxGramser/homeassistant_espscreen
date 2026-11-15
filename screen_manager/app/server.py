@@ -5966,6 +5966,12 @@ def create_app(manager, development=False):
             return web.json_response({'ok': True})
         app.router.add_delete('/api/plugins/{plugin}/link', plugins_forget)
 
+        async def plugins_forget_folder(request):
+            # A plugin someone was making, off the Plugins page: its folder goes to tessera-plugins/.removed/.
+            moved = manager.plugins.forget_folder(request.match_info['plugin'])
+            return web.json_response({'ok': True, 'moved_to': str(moved)})
+        app.router.add_delete('/api/plugins/{plugin}/folder', plugins_forget_folder)
+
         async def plugins_settings(request):
             return web.json_response(manager.plugins.settings_for(request.match_info['inbox'], REQUEST_LANGUAGE.get()))
 

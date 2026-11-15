@@ -1902,6 +1902,38 @@ class Questions(unittest.IsolatedAsyncioTestCase):
         await service.answer({'inbox': 'kitchen', 'plugin': 'other', 'body': json.dumps(body)})
         self.assertEqual(len(sent), 2)
 
+    def test_a_folder_someone_was_making_is_set_aside_not_deleted(self):
+        # The Plugins page's Remove for a folder plugin: refused while a screen runs it from the folder, then the folder
+        # moves to tessera-plugins/.removed/ (a second one beside it gets -2), and the page no longer lists it.
+        import shutil
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+        fixture = ROOT / 'tests' / 'fixtures' / 'plugins' / 'calendar_peek'
+        folders = Path(tmp.name) / 'tessera-plugins'
+        shutil.copytree(fixture, folders / 'calendar_peek')
+        service = plugin_service.Plugins(type('Manager', (), {'page_senders': {}})(), Path(tmp.name) / 'data', config)
+        service.scan_folders()
+        self.assertIn('calendar_peek', service.listed())
+        service.store.put('kitchen', {'id': 'calendar_peek', 'source': 'folder', 'state': 'active'})
+        with self.assertRaises(ValueError):
+            service.forget_folder('calendar_peek')      # a screen still builds it from the folder
+        self.assertTrue((folders / 'calendar_peek').is_dir())
+        service.store.remove('kitchen', 'calendar_peek')
+        service.store.put('hall', {'id': 'calendar_peek', 'source': 'index', 'ref': 'abc'})   # another origin is no reason
+        moved = service.forget_folder('calendar_peek')
+        self.assertEqual(moved, folders / '.removed' / 'calendar_peek')
+        self.assertTrue((moved / 'tessera-plugin.yaml').is_file())
+        self.assertFalse((folders / 'calendar_peek').exists())
+        self.assertNotIn('calendar_peek', service.folders)
+        self.assertEqual(service.folder_errors, {})
+        shutil.copytree(fixture, folders / 'calendar_peek')
+        self.assertEqual(service.forget_folder('calendar_peek'), folders / '.removed' / 'calendar_peek-2')
+        with self.assertRaises(ValueError):
+            service.forget_folder('calendar_peek')      # already gone
+
     async def test_settings_of_the_screens_own_entities_only(self):
         import shutil
         import plugins as plugin_service
