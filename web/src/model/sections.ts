@@ -171,6 +171,28 @@ export function makeSection(layout: Layout, grid: PageGrid, chosen: Tile[], titl
   });
   return { entries, blocks: [...blocks, { ...keep, ...block }] };
 }
+/** A new section with no tiles yet, named `title`, on free cells of `page` (docs/PAGES.md "Sections", "Making a
+ * section"): two by two where that fits, else two by one, one by two or one cell. With `at` (an empty cell the person
+ * chose) the block holds that cell, shifted left and up where it would leave the grid or meet a tile; without it, the
+ * first free place in reading order. Nothing moves. Its cells take tiles as any cell does: a click, a drop. */
+export function emptySection(layout: Layout, grid: PageGrid, page: number, at: Cell | null, title: string): SectionEdit {
+  if ((layout.sections ?? []).filter((b) => b.page === page).length >= 16) return { refused: "addon.errors.pages.sections_full" };
+  const taken = takenOn(layout, page, grid, () => false);
+  const sizes = [[2, 2], [2, 1], [1, 2], [1, 1]].filter(([columns, rows]) => columns <= grid.columns && rows <= grid.rows);
+  const fits = (box: Cell & { columns: number; rows: number }) => blockFree(taken, box, grid);
+  let found: (Cell & { columns: number; rows: number }) | null = null;
+  for (const [columns, rows] of sizes) {
+    const tries: Cell[] = at
+      ? [0, 1].flatMap((up) => [0, 1].map((left) => ({ row: at.row - up, column: at.column - left })))
+          .filter((c) => c.row <= at.row && at.row < c.row + rows && c.column <= at.column && at.column < c.column + columns)
+      : Array.from({ length: grid.rows * grid.columns }, (_, n) => ({ row: Math.floor(n / grid.columns), column: n % grid.columns }));
+    found = tries.map((c) => ({ ...c, columns, rows })).find(fits) ?? null;
+    if (found) break;
+  }
+  if (!found) return { refused: "editor.sections.no_room" };
+  return { entries: layout.tiles.map((tile) => ({ tile, slot: tile.slot })),
+    blocks: [...(layout.sections ?? []), { id: instanceId(), page, title: title.trim(), ...found }] };
+}
 function blockCovers(block: Cell & { columns: number; rows: number }, tile: Tile, grid: PageGrid) {
   const { row, column } = cellOf(tile.slot, grid), { columns, rows } = sizeIn(tile, grid);
   return row < block.row + block.rows && block.row < row + rows && column < block.column + block.columns && block.column < column + columns;

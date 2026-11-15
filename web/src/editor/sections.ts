@@ -59,6 +59,22 @@ export function makeSection(title: string) {
     if (made) insp.openSection(made.id);
   });
 }
+/** A new, empty section on `page`, at the empty cell `slot` when one was chosen (its menu, the library while a cell is
+ * marked), else on the first free cells of the page. Its drawer opens with the name selected, ready to be typed over;
+ * its cells then take tiles as any cell does. */
+export function addSection(page: number, slot = -1) {
+  const doc = useDocumentStore(), insp = useInspectorStore(), grid = gridOf();
+  if (!doc.layout || !grid || !sectionsOffered()) return false;
+  const local = slot >= 0 ? slot % (grid.columns * grid.rows) : -1;
+  const at = local >= 0 ? { row: Math.floor(local / grid.columns), column: local % grid.columns } : null;
+  const edit = sections.emptySection(doc.layout, grid, page, at, t("editor.sections.untitled"));
+  const before = new Set((doc.layout.sections ?? []).map((b) => b.id));
+  return apply(edit, (done) => {
+    insp.insert = null;
+    const made = done.blocks.find((b) => !before.has(b.id));
+    if (made) { insp.openSection(made.id); insp.renameSection(made.id); }
+  });
+}
 export function resizeSection(id: string, columns: number, rows: number) {
   const doc = useDocumentStore(), grid = gridOf();
   if (!doc.layout || !grid) return false;
