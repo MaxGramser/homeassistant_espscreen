@@ -1,4 +1,5 @@
 #pragma once
+#include "section_layout.h"
 #include <array>
 #include <bitset>
 #include <cstdint>
@@ -85,6 +86,10 @@ struct Page {
   bool dock = true;
   // Its own icon, an MDI codepoint (tile_icon::codepoint), which the Dock shows instead of the page's picture; 0 for none.
   uint32_t icon = 0;
+#ifdef SD_MOD_SECTIONS
+  // Its sections (module sections, docs/PAGES.md "Sections"): blocks of its cells with a title and a panel.
+  std::vector<section_layout::Section> sections;
+#endif
 };
 
 struct Pages {

@@ -1,3 +1,4 @@
+#include "esphome/components/smart_display/plugin_host.h"
 #include "host_probe.h"
 #include "esphome/core/log.h"
 #include <algorithm>
@@ -14,10 +15,14 @@ namespace ui = tessera::ui;
 class ProbeTile : public tessera::Tile {
  public:
   explicit ProbeTile(HostProbe *plugin) : plugin_(plugin) {}
-  ~ProbeTile() override { ESP_LOGI(TAG, "tile=%d destroy", tile_); }
+  ~ProbeTile() override {
+    if (tile_ == 0 && plugin_->tile0_mark_ == mark_) plugin_->tile0_mark_ = nullptr;
+    ESP_LOGI(TAG, "tile=%d destroy", tile_);
+  }
 
   void create(const tessera::TileContext &c) override {
     tile_ = c.tile;
+    room_ = c.parent;
     word_ = c.options["word"] | "";   // copied: the context is gone after this call
     ESP_LOGI(TAG, "tile=%d create %dx%d cells=%ux%u name=[%s] word=[%s] entity=[%s]", tile_, c.width, c.height,
              (unsigned) c.columns, (unsigned) c.rows, c.name, word_.c_str(), c.entity);
@@ -36,6 +41,13 @@ class ProbeTile : public tessera::Tile {
     label_ = ui::label(badge_, Font::TITLE, theme::ON_ACCENT);
     ui::set_text(label_, word_);
     lv_obj_center(label_);
+    // The part the plugin paints from its own moments (on_interval): hidden, so no picture of the probe changes.
+    if (tile_ == 0) {
+      mark_ = ui::label(c.parent, Font::TITLE, theme::INK);
+      lv_obj_add_flag(mark_, LV_OBJ_FLAG_HIDDEN);
+      plugin_->tile0_mark_ = mark_;
+      plugin_->tile0_ink_ = 0;
+    }
     // The large digits (0.9): taller than VALUE, with the digits of a value and without the letters of a word.
     ESP_LOGI(TAG, "tile=%d fonts digits=%d value=%d covers=%d,%d", tile_, ui::line_height(Font::DIGITS),
              ui::line_height(Font::VALUE), (int) ui::covers("-21,5°", Font::DIGITS), (int) ui::covers("open", Font::DIGITS));
@@ -86,13 +98,24 @@ class ProbeTile : public tessera::Tile {
       lv_obj_get_coords(places_[0], &a);
       ESP_LOGI(TAG, "tile=%d place0 %d,%d,%d,%d", tile_, (int) a.x1, (int) a.y1, (int) a.x2, (int) a.y2);
     }
+    // The card's own colour (0.26): the data names one, and "none" gives the card back. What the card wears after
+    // the pass that follows is in the tick's line.
+    const std::string card = data["card"] | "";
+    if (!card.empty()) {
+      const tessera::CardColor colour = card == "green" ? tessera::CardColor::GREEN : card == "red" ? tessera::CardColor::RED
+                                      : card == "instrument" ? tessera::CardColor::INSTRUMENT : tessera::CardColor::NONE;
+      ui::set_card_color(colour);
+      ESP_LOGI(TAG, "tile=%d card set %s own=%06X named=%06X", tile_, card.c_str(),
+               (unsigned) (lv_color_to_u32(ui::card_color()) & 0xFFFFFF), (unsigned) (lv_color_to_u32(ui::card_color(colour)) & 0xFFFFFF));
+    }
     // A tile of an entity gets its lists whole when they fit (0.5): how many prices of each day arrived.
     JsonObjectConst attributes = data["attributes"];
     ESP_LOGI(TAG, "tile=%d state n=%d wait=[%s] today=%u tomorrow=%u", tile_, n_, data["wait"] | "",
              (unsigned) attributes["today"].size(), (unsigned) attributes["tomorrow"].size());
   }
   void on_tick(uint32_t epoch) override {
-    ESP_LOGI(TAG, "tile=%d tick epoch=%u n=%d", tile_, (unsigned) epoch, n_);
+    ESP_LOGI(TAG, "tile=%d tick epoch=%u n=%d ground=%06X", tile_, (unsigned) epoch, n_,
+             (unsigned) (lv_color_to_u32(lv_obj_get_style_bg_color(lv_obj_get_parent(room_), LV_PART_MAIN)) & 0xFFFFFF));
     const std::string number = std::to_string(n_);
     ui::set_font(number_, ui::covers(number, Font::DIGITS) ? Font::DIGITS : Font::VALUE);
     ui::set_text(number_, number);
@@ -132,7 +155,7 @@ class ProbeTile : public tessera::Tile {
   HostProbe *plugin_;
   int tile_ = -1, n_ = -1;
   std::string word_;
-  lv_obj_t *badge_{}, *label_{}, *number_{}, *words_{};
+  lv_obj_t *room_{}, *badge_{}, *label_{}, *number_{}, *words_{}, *mark_{};
   lv_obj_t *places_[2]{};
 };
 
@@ -334,6 +357,15 @@ void HostProbe::on_ready() {
 void HostProbe::on_interval(uint32_t now_ms) {
   interval_ = true;
   if (!set_up_) ++early_;
+  // A role painted onto a tile's part from the plugin's own moment: said whenever the colour it got changes.
+  if (tile0_mark_) {
+    ui::set_color(tile0_mark_, theme::INK);
+    const uint32_t ink = lv_color_to_u32(lv_obj_get_style_text_color(tile0_mark_, LV_PART_MAIN)) & 0xFFFFFF;
+    if (ink != tile0_ink_) {
+      tile0_ink_ = ink;
+      ESP_LOGI(TAG, "interval painted tile=0 ink=%06X", (unsigned) ink);
+    }
+  }
   if (interval_said_) return;
   interval_said_ = true;
   ESP_LOGI(TAG, "interval first=%u", (unsigned) now_ms);
@@ -374,7 +406,7 @@ void HostProbe::ask_once() {
 // close itself in its own on_tap, so the harness sees the host delete it only after that call returned.
 class ProbePopup : public tessera::Popup {
  public:
-  explicit ProbePopup(bool closes) : closes_(closes) {}
+  explicit ProbePopup(bool closes, bool place = false) : closes_(closes), place_(place) {}
   ~ProbePopup() override { ESP_LOGI(TAG, "popup destroy"); }
   void open(const tessera::PopupContext &c) override {
     // Where the room lies on the glass, for the harness's taps on the card and beside it.
@@ -389,6 +421,14 @@ class ProbePopup : public tessera::Popup {
     lv_obj_set_pos(words_, 0, ui::line_height(Font::TITLE) + ui::px(8));
     lv_obj_set_width(words_, c.width);
     ui::set_text(words_, "A popup of a plugin, the card an alert shows, over everything but an alert");
+    // A popup without an id of the manifest's `popups` may make a place, but it has no pictures: nothing is asked.
+    if (place_ && ui::pictures()) {
+      lv_obj_t *place = ui::picture(c.parent);
+      lv_obj_set_size(place, c.width, ui::px(60));
+      lv_obj_set_pos(place, 0, ui::px(120));
+      ui::set_picture(place, "https://image.tmdb.org/t/p/w342/probe-no-id.jpg");
+      ESP_LOGI(TAG, "popup place without an id");
+    }
   }
   void on_interval(uint32_t now_ms) override {
     if (said_interval_) return;
@@ -413,10 +453,68 @@ class ProbePopup : public tessera::Popup {
   static HostProbe *plugin;
 
  private:
-  bool closes_, said_interval_ = false, said_tick_ = false;
+  bool closes_, place_, said_interval_ = false, said_tick_ = false;
   lv_obj_t *title_{}, *words_{};
 };
 HostProbe *ProbePopup::plugin = nullptr;
+
+// A popup with an id of the manifest's `popups` (plugin API 0.27): a place for a picture, which the harness answers as
+// the app does, and on an instrument's ground (the roles that stay dark in both looks) a mark turned along a course.
+class ProbePicturePopup : public tessera::Popup {
+ public:
+  explicit ProbePicturePopup(bool closes = false) : closes_(closes) {}
+  ~ProbePicturePopup() override { ESP_LOGI(TAG, "picture popup destroy"); }
+  void open(const tessera::PopupContext &c) override {
+    face_ = ui::block(c.parent, theme::INSTRUMENT);
+    lv_obj_set_size(face_, c.width, ui::px(60));
+    mark_ = ui::label(face_, Font::ICON, theme::INSTRUMENT_GLOW);
+    ui::set_text(mark_, ui::icon(0xF001D));   // airplane
+    lv_obj_set_pos(mark_, ui::px(8), ui::px(4));
+    ui::rotate(mark_, 90);
+    ui::rotate(mark_, 450);                   // the same course again: nothing changes
+    const int turned = (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN);
+    // Its turn holds through a pulse and ui::still (a plane's icon that blinks keeps its course).
+    ui::animate(mark_, tessera::Motion::PULSE, 800);
+    const int pulsed = (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN);
+    ui::still(mark_);
+    const int stilled = (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN);
+    ESP_LOGI(TAG, "instrument ground=%06X ink=%06X turned=%d pulsed=%d stilled=%d",
+             (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT)) & 0xFFFFFF),
+             (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT_INK)) & 0xFFFFFF), turned, pulsed, stilled);
+    if (!ui::pictures()) {
+      ESP_LOGI(TAG, "picture popup open pictures=0");
+      return;
+    }
+    place_ = ui::picture(c.parent);
+    lv_obj_set_size(place_, c.width, ui::px(120));
+    lv_obj_set_pos(place_, 0, ui::px(70));
+    ui::set_picture(place_, "https://image.tmdb.org/t/p/w342/probe-popup.jpg");
+    if (closes_) {  // a second place: a popup that closed on the first must not hear of it
+      second_ = ui::picture(c.parent);
+      lv_obj_set_size(second_, c.width / 2, ui::px(40));
+      lv_obj_set_pos(second_, 0, ui::px(200));
+      ui::set_picture(second_, "https://image.tmdb.org/t/p/w342/probe-popup-2.jpg");
+    }
+    ESP_LOGI(TAG, "picture popup open pictures=1");
+  }
+  void on_picture(lv_obj_t *place, tessera::PictureState state) override {
+    ESP_LOGI(TAG, "picture popup heard place=%d state=%d", place == place_ ? 1 : place == second_ ? 2 : 0, (int) state);
+    if (closes_) {
+      ESP_LOGI(TAG, "picture popup closes in on_picture");
+      tessera::close_popup(ProbePopup::plugin);
+      return;
+    }
+    if (place != place_ || state != tessera::PictureState::SHOWN) return;
+    lv_obj_update_layout(place_);
+    lv_area_t a;
+    lv_obj_get_coords(place_, &a);
+    ESP_LOGI(TAG, "picture popup shown %d,%d,%d,%d", (int) a.x1, (int) a.y1, (int) a.x2, (int) a.y2);
+  }
+
+ private:
+  bool closes_;
+  lv_obj_t *face_{}, *mark_{}, *place_{}, *second_{};
+};
 
 void HostProbe::on_message(JsonObjectConst message) {
   // A message of the harness that asks for a closer: {"do": "<mode>", "tile": <the layout's tile it opens from>}.
@@ -437,6 +535,54 @@ void HostProbe::on_message(JsonObjectConst message) {
     ProbePopup::plugin = this;
     const bool closes = std::string(what) == "popup_self";
     ESP_LOGI(TAG, "do %s shown=%d", what, (int) tessera::show_popup(this, [closes]() { return new ProbePopup(closes); }));
+    return;
+  }
+  if (std::string(what) == "popup_picture" || std::string(what) == "popup_picture_close") {
+    ProbePopup::plugin = this;
+    const bool closes = std::string(what) == "popup_picture_close";
+    ESP_LOGI(TAG, "do %s shown=%d", what, (int) tessera::show_popup(this, "shot", [closes]() { return new ProbePicturePopup(closes); }));
+    return;
+  }
+  // {"do": "turns"}: what a part's turn (ui::rotate) does through ui::animate and ui::still, on parts made for it: one
+  // turned to 90 that pulses, one that spins and is stilled, one turned again while it spins, one never turned; and how
+  // many turns the host keeps after 300 turned parts were made and deleted (none of theirs may stay).
+  if (std::string(what) == "turns") {
+    lv_obj_t *parent = lv_layer_top();
+    auto turn = [](lv_obj_t *o) { return (int) lv_obj_get_style_transform_rotation(o, LV_PART_MAIN); };
+    lv_obj_t *pulse = lv_obj_create(parent), *spin = lv_obj_create(parent), *again = lv_obj_create(parent), *plain = lv_obj_create(parent);
+    ui::rotate(pulse, 90);
+    ui::animate(pulse, tessera::Motion::PULSE, 800);
+    const int pulsing = turn(pulse);
+    ui::still(pulse);
+    const int pulsed = turn(pulse);
+    ui::rotate(spin, 90);
+    ui::animate(spin, tessera::Motion::SPIN, 800);
+    ui::still(spin);
+    const int spun = turn(spin);
+    ui::rotate(again, 90);
+    ui::animate(again, tessera::Motion::SPIN, 800);
+    ui::rotate(again, 180);
+    ui::still(again);
+    const int turned_again = turn(again);
+    ui::animate(plain, tessera::Motion::SPIN, 800);
+    ui::still(plain);
+    const int unturned = turn(plain);
+    const size_t before = plugin_host::turns_kept();
+    for (int i = 0; i < 300; ++i) {
+      lv_obj_t *o = lv_obj_create(parent);
+      ui::rotate(o, 45 + i);
+      lv_obj_delete(o);
+    }
+    const size_t after = plugin_host::turns_kept();
+    for (lv_obj_t *o : {pulse, spin, again, plain}) lv_obj_delete(o);
+    ESP_LOGI(TAG, "turns pulsing=%d pulsed=%d spun=%d again=%d unturned=%d kept=%u,%u,%u", pulsing, pulsed, spun, turned_again,
+             unturned, (unsigned) before, (unsigned) after, (unsigned) plugin_host::turns_kept());
+    return;
+  }
+  // {"do": "popup_place"}: a popup without an id that makes a place for a picture (it has none, plugin API 0.27).
+  if (std::string(what) == "popup_place") {
+    ProbePopup::plugin = this;
+    ESP_LOGI(TAG, "do popup_place shown=%d", (int) tessera::show_popup(this, []() { return new ProbePopup(false, true); }));
     return;
   }
   if (std::string(what) == "popup_close") {

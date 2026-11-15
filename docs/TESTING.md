@@ -5,6 +5,21 @@ directly, or a screen looked at once it has settled, can pass while the screen o
 after every page change (GitHub #27 was exactly that). So before calling a change tested, say which entry point was
 driven (a finger, a layout message from the add-on, an action from Home Assistant) and which moment was looked at.
 
+## A test reads behaviour, not lines
+
+Many tests here read the firmware's source, because most of it cannot run on a PC. That is right for a rule that holds
+everywhere: no colour outside the theme's table, every label a card draws itself going through `draw_text::label`,
+every draw callback opening its card's scope. Such a test names the rule, searches every file, and fails with the
+sentence that says what to do.
+
+It is wrong for behaviour. A test that looks for one line as it was written (`assertIn('theme::pressed(bare ? ...')`)
+proves that the line was not edited, not that the card is painted right: it breaks when the code is improved and keeps
+passing when the behaviour is broken somewhere else. For behaviour, in this order: a pure function with a test of its
+own (the planners, `picture_store`, `section_layout`), a case both sides answer from one fixture
+(`tests/fixtures/page-conformance.json`, `plugin-conformance.json`), a check the compiler makes (`static_assert`), the
+firmware preview (`web/wasm/test_*.mjs`, `tests/test_editor_parity.py`), the host render (`tools/render`). When code
+that a line-quoting test names is rewritten, the test is replaced by one of those, not edited to the new line.
+
 There are six levels, from fast to real. Each is a different check: a green level does not stand in for the next.
 Work on dev is proven at level 4, on the screens a change concerns; a release runs every level, the sixth included
 (docs/RELEASING.md).

@@ -254,6 +254,9 @@ using Room = int;                                     // a rectangle LVGL keeps 
 Room reserve(const Rect &area);                       //   (armed: today's `armed`, `spot`, `keep_out`, `invalidate`)
 void move(Room room, const Rect &spot);
 void give_back(Room room);                            //   LVGL draws the room again
+void redraw(Room room);                               //   once more after a tile's stream task ended (redraw_all
+                                                      //   for a full view): its last picture may land after the
+                                                      //   redraw at closing (a 10.1 inch, 2026-11-15)
 uint32_t misses();                                    // the panel ran dry since boot
 Rect on_panel(const Rect &r, int turn, int pw, int ph);  // pure, as today
 }

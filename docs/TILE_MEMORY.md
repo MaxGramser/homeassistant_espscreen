@@ -82,7 +82,9 @@ The add-on and the editor count a layout as the screen does, the keys of a bedsi
 share of the room in a thin bar beside the tile count, amber from 80 % and red when it is full. Past ten times the room,
 or with no room at all, it says "No room" in words instead of a share, and the pop-up says the same. The budget is a
 warning, not a rule (app 0.4.61): a tile that takes the layout past nine tenths of the room, or past all of it, asks
-first in a pop-up, and whoever answers yes gets it, from a click or a drag in the library alike. The add-on saves
+first in a pop-up, and whoever answers yes gets it, from a click or a drag in the library alike. A paste asks the same,
+and a first layout (docs/AUTO_LAYOUT.md) proposes nothing that crosses such a line: one rule for all three,
+`memoryLine` in `web/src/model/memory.ts`. The add-on saves
 whatever the editor sends, an automation's tile event included. A screen measured far less room than the bench screens
 the prices come from (GitHub #157), and a screen protects itself when it runs short (below), so trying is safe. A screen
 that says nothing about its memory (older firmware) is not asked: it keeps its old tile limit. While a screen is still

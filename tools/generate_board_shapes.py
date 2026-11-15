@@ -56,6 +56,17 @@ def orientations(values):
                          'min': list(least), 'max': [int(values['GRID_MAX_COLUMNS_PORTRAIT']), int(values['GRID_MAX_ROWS_PORTRAIT'])]}}
 
 
+def section_metrics(values):
+    """The band of a section's title in the glass's pixels (module_sections.h band, title_top) and the font's room above
+    its capitals: the inset is the grid's gap (the panel's padding) plus a card's own padding."""
+    core = (profiles.ROOT / 'packages/core.yaml').read_text()
+    font, size = profiles.ROOT / font_metrics.font_file(core, 'label'), int(values['FONT_LABEL_SIZE'])
+    inset = int(values['GRID_GAP_Y']) + int(values['TILE_PAD'])
+    ink = font_metrics.ink_top(font, size)
+    return {'band': inset - ink + font_metrics.line_height(font, size), 'title_top': inset - ink, 'ink_top': ink,
+            'line': font_metrics.line_height(font, size)}
+
+
 def alert_lines(values):
     """The line heights of the alert card's two fonts on this board, which its layout needs (title and subtitle)."""
     core = profiles.CORE.read_text()
@@ -173,6 +184,10 @@ def shapes():
                  # The alert card's two line heights (firmware 0.2.103+): with the canvas, the density and the look they
                  # are what screen_alert::layout needs to size an alert's picture (picture_question.alert_box).
                  'alert': alert_lines(values),
+                 # A section's band (docs/PAGES.md "Sections", module_sections.h): the title's capitals as far from the
+                 # panel's top as from its side, so the band is that inset less the font's room above its capitals,
+                 # plus the font's line. The mockup's rows and titles take these, so a card is as high as on the glass.
+                 'section': section_metrics(values),
                  # The sizes of the faces a card's controls draw their numbers in (app 0.4.32): the editor's mockup picks
                  # among them as runtime_tiles::stepper_keys does, the largest that fits, instead of sizes of its own;
                  # and the icons of a card's keys, which a thermostat's mode bar measures its words beside.

@@ -10,6 +10,9 @@
 // Home Assistant's state colours (the amber of a light that is on, the orange of heating) are not roles: they are data
 // and pass through state() on their way to the glass. The values below are free of LVGL, so tests/test_theme.cpp checks
 // the table and the contrast of both looks on a PC; the LVGL half is behind THEME_TEST.
+#if __has_include("esphome/core/defines.h")
+#include "esphome/core/defines.h"  // the modules this board has (SD_MOD_SECTIONS), and USE_HOST
+#endif
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -128,6 +131,21 @@ enum Role : uint8_t {
   // deep one. The disc is the light's own colour, so these stay the same in both looks.
   PRESET_INK_DARK,
   PRESET_INK_LIGHT,
+  // ---- an instrument (plugin API 0.27): a face that stays dark in both looks, as a radar scope, a night sky or a
+  // gauge's dial does, so what is lit on it reads the same by day and by night. Its ground, the lines on it (rings,
+  // a grid), its words, its quieter words and the one thing it lights (a sweep, the chosen mark).
+  INSTRUMENT,
+  INSTRUMENT_LINE,
+  INSTRUMENT_INK,
+  INSTRUMENT_MUTED,
+  INSTRUMENT_GLOW,
+  // The soft panel behind a section's tiles (module sections, docs/PAGES.md "Sections"): a shade between the page and a
+  // card, light and dark, so the cards stand on it as on the page.
+  SECTION,
+  // A section that stands out (its option "contrast"): the page's opposite, near black by day and near white in Dark
+  // mode, and its title, icon and summary in that panel's ink. The dark values land on one step of an RGB565 panel.
+  SECTION_CONTRAST,
+  SECTION_CONTRAST_INK,
   ROLE_COUNT
 };
 
@@ -225,13 +243,53 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* BAUHAUS_CREAM */            {0xF2EBDD, 0x1A1A19},
   /* PRESET_INK_DARK */          {0x1B1B1B, 0x1B1B1B},
   /* PRESET_INK_LIGHT */         {0xFFFFFF, 0xFFFFFF},
+  /* INSTRUMENT */               {0x0E1621, 0x0B1119},
+  /* INSTRUMENT_LINE */          {0x2A3A4C, 0x243243},
+  /* INSTRUMENT_INK */           {0xEEF3F8, 0xDADFE5},
+  /* INSTRUMENT_MUTED */         {0x8FA0B3, 0x7F8FA1},
+  /* INSTRUMENT_GLOW */          {0x52E3A4, 0x45D196},
+  /* SECTION */                  {0xF4F4F4, 0x101010},
+  /* SECTION_CONTRAST */         {0x202020, 0xE0E0E0},
+  /* SECTION_CONTRAST_INK */     {0xF0F0F0, 0x181818},
 };
 
-// The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the
-// helpers only read it.
+// The look on screen (screen_dark): the board sets it through set_dark() (below) from the Dark mode setting. And the look
+// the table and the helpers read (dark): the screen's, except while a card is painted that carries the other look (a
+// section whose tiles follow its contrast, docs/PAGES.md "Sections"): runtime_tiles' CardScope sets it to the card's look
+// for as long as the card is painted, and back.
+inline bool screen_dark = false;
 inline bool dark = false;
 inline uint32_t hex(Role role) { return dark ? ROLES[role].dark : ROLES[role].light; }
-
+// A role in a given look, whatever look is painted now.
+inline uint32_t hex_in(Role role, bool in_dark) { return in_dark ? ROLES[role].dark : ROLES[role].light; }
+// The other look for a while (a section whose tiles follow its contrast, docs/PAGES.md "Sections"): what is painted while
+// it lasts asks for every role in the other look. The shared paints keep the look of the screen.
+struct Flip {
+  bool on;
+  explicit Flip(bool flip) : on(flip) { if (on) dark = !dark; }
+  ~Flip() { if (on) dark = !dark; }
+  Flip(const Flip &) = delete;
+  Flip &operator=(const Flip &) = delete;
+};
+// The look of a card for as long as it lasts (runtime_tiles' CardScope, docs/THEME.md "A card's look"): the screen's,
+// or the other one; then what was there before. A card's flag for draw callbacks (OTHER_LOOK_FLAG) is in the LVGL half.
+// How many looks of a card are open now: set_dark() inside one would be undone when it closes (the host build says so).
+#ifdef USE_HOST
+inline int looks_open = 0;
+#define THEME_LOOK_OPENS() ++looks_open
+#define THEME_LOOK_CLOSES() --looks_open
+#else
+#define THEME_LOOK_OPENS() ((void) 0)
+#define THEME_LOOK_CLOSES() ((void) 0)
+#endif
+struct LookScope {
+  bool before, open = true;
+  explicit LookScope(bool other) : before(dark) { dark = screen_dark != other; THEME_LOOK_OPENS(); }
+  void end() { if (open) { dark = before; open = false; THEME_LOOK_CLOSES(); } }
+  ~LookScope() { end(); }
+  LookScope(const LookScope &) = delete;
+  LookScope &operator=(const LookScope &) = delete;
+};
 // ---- mixing, exactly as LVGL 9 mixes two colours (lv_color_mix), so a value here is the value on the glass
 inline uint32_t mix(uint32_t first, uint32_t second, uint8_t amount) {
   uint32_t out = 0;
@@ -288,7 +346,33 @@ inline uint32_t key_text(uint32_t key) {
 }
 // The key under a finger: a little darker, in both looks.
 inline uint32_t key_pressed(uint32_t key) { return mix(key, 0x000000, 210); }
-// A card's own colour (a swatch's light value, or 0 for none) as this look draws it.
+// A card's own colour as a value (docs/THEME.md "A card's look"): the card (CARD), one of the swatches (a tile's
+// background, or a plugin's ui::set_card_color), or an instrument's face (plugin API 0.28, CardColor::INSTRUMENT: the
+// INSTRUMENT role in both looks). A tile keeps a swatch as its light value (tile_palette.h); Face::of reads that.
+struct Face {
+  enum Kind : uint8_t { CARD, SWATCH, INSTRUMENT };
+  Kind kind = CARD;
+  uint8_t swatch = 0;  // an index into SWATCHES, with SWATCH
+  static Face instrument() { return {INSTRUMENT, 0}; }
+  static Face of(uint32_t light) {
+    for (size_t i = 0; i < SWATCH_COUNT; ++i) if (light && SWATCHES[i].light == light) return {SWATCH, uint8_t(i)};
+    return {};
+  }
+  // Which colour it is, for a signature: 0 for the card, as a tile's background 0 was.
+  uint32_t key() const { return kind == SWATCH ? SWATCHES[swatch].light : kind == INSTRUMENT ? 1u << 24 : 0; }
+  bool operator==(const Face &o) const { return kind == o.kind && swatch == o.swatch; }
+  bool operator!=(const Face &o) const { return !(*this == o); }
+};
+// The card's colour as this look draws it.
+inline uint32_t surface(Face f) {
+  switch (f.kind) {
+    case Face::SWATCH: return dark ? SWATCHES[f.swatch].dark : SWATCHES[f.swatch].light;
+    case Face::INSTRUMENT: return hex(INSTRUMENT);
+    default: return hex(CARD);
+  }
+}
+// A colour kept as its light value (a tile's background: a swatch, or 0 for the card), as this look draws it. Any other
+// light value stands as it is in the light look and is the card in the dark one, as before Face.
 inline uint32_t surface(uint32_t own) {
   if (!own) return hex(CARD);
   if (!dark) return own;
@@ -296,6 +380,13 @@ inline uint32_t surface(uint32_t own) {
   return hex(CARD);
 }
 // The hairline around a card: the card's own colour a little darker in light, a little lighter in dark.
+inline uint32_t outline(Face f) {
+  switch (f.kind) {
+    case Face::SWATCH: return dark ? mix(surface(f), 0xFFFFFF, 232) : mix(SWATCHES[f.swatch].light, 0x000000, 220);
+    case Face::INSTRUMENT: return hex(INSTRUMENT_LINE);
+    default: return hex(LINE);
+  }
+}
 inline uint32_t outline(uint32_t own) {
   if (!own) return hex(LINE);
   return dark ? mix(surface(own), 0xFFFFFF, 232) : mix(own, 0x000000, 220);
@@ -394,6 +485,8 @@ inline uint32_t key_on(uint32_t card, uint8_t depth) {
 // A card under a finger (firmware 0.2.95+): its own colour an eighth of the way to black in light and to white in
 // dark, the same share on white, on a pastel and on graphite, so the press reads on every card in both looks.
 inline uint32_t pressed(uint32_t card) { return mix(card, dark ? 0xFFFFFF : 0x000000, 224); }
+// A card of its own colour under a finger: an instrument's face is dark in both looks, so it goes towards white in both.
+inline uint32_t pressed(Face f) { return mix(surface(f), dark || f.kind == Face::INSTRUMENT ? 0xFFFFFF : 0x000000, 224); }
 // A calendar's own colour (Home Assistant's, from its registry or the frontend's palette) on the calendar card
 // (calendar_card.h): an event's pale block, the words on it, a progress track, and what is past, a step towards the
 // card. The same shares as Apple's and the frontend's events: the colour reads, the words stay dark (light in dark).
@@ -407,8 +500,45 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 #ifndef THEME_TEST
 #include "lvgl.h"
 #include <array>
+#ifdef USE_HOST
+#include "esphome/core/log.h"  // the card look's checks (restyle_checked, set_dark, runtime_tiles::set_color)
+#endif
+#ifdef SD_MOD_SECTIONS
+#include "lvgl_private.h"  // restyle_card trades a style on an object in place (lv_obj_t::styles)
+#include <vector>
+// restyle_card reads fields that are not LVGL's API: lv_obj_t::styles and style_cnt, lv_obj_style_t::style, is_local and
+// is_trans. They were read against LVGL 9.5.0, which ESPHome brings from 2026.6.2 (the packages' min_version) to 2026.9.0.
+// Another LVGL stops here: check those fields in lv_obj_private.h and lv_obj_style_private.h, that a style's selector
+// still sits beside it (restyle_card keeps it), and that LVGL's style cache (full_cache_refresh) still only records which
+// properties a style has; then add the version.
+#if !(LVGL_VERSION_MAJOR == 9 && LVGL_VERSION_MINOR == 5)
+#error "theme::restyle_card was read against LVGL 9.5: check lv_obj_t::styles before allowing this LVGL (theme.h)"
+#endif
+#endif
 
 namespace theme {
+
+// A card painted in the other look carries this flag on its root object (set and cleared where the sections module places a card), so what
+// LVGL draws later, in a draw callback, finds the card's look from its own object. Cards do not nest.
+constexpr lv_obj_flag_t OTHER_LOOK_FLAG = LV_OBJ_FLAG_USER_2;
+inline bool other_look(const lv_obj_t *obj) {
+  for (; obj; obj = lv_obj_get_parent(obj)) if (lv_obj_has_flag(obj, OTHER_LOOK_FLAG)) return true;
+  return false;
+}
+// The look of the card an object stands in, for a part painted outside the card's own calls (a plugin's own moment,
+// plugin_host's ui:: setters): the other look in a card that carries it; anywhere else the look painted now stays (a
+// screensaver's dark look, a card's own scope).
+#ifdef SD_MOD_SECTIONS
+struct LookOf {
+  bool on, before;
+  explicit LookOf(const lv_obj_t *obj) : on(obj && other_look(obj)), before(dark) { if (on) { dark = !screen_dark; THEME_LOOK_OPENS(); } }
+  ~LookOf() { if (on) { dark = before; THEME_LOOK_CLOSES(); } }
+  LookOf(const LookOf &) = delete;
+  LookOf &operator=(const LookOf &) = delete;
+};
+#else
+struct LookOf { explicit LookOf(const lv_obj_t *) {} };  // no card carries another look without sections
+#endif
 
 inline lv_color_t color(Role role) { return lv_color_hex(hex(role)); }
 inline lv_color_t rgb(uint32_t value) { return lv_color_hex(value); }
@@ -452,6 +582,123 @@ inline constexpr PaintRoles PAINTS[static_cast<size_t>(Paint::COUNT)] = {
   /* calibration */         {CALIBRATION_PAGE, NONE, CALIBRATION_INK, NONE, NONE},
   /* camera */              {CAMERA_PAGE, NONE, CAMERA_NOTE, NONE, NONE},
 };
+#ifdef SD_MOD_SECTIONS
+// Fill a style with a paint in a given look. Setting a property the style already has allocates nothing.
+inline void fill_in(lv_style_t *style, Paint paint, bool in_dark) {
+  const PaintRoles &p = PAINTS[static_cast<size_t>(paint)];
+  const auto in = [in_dark](uint8_t role) { return lv_color_hex(hex_in(static_cast<Role>(role), in_dark)); };
+  if (p.bg != NONE) lv_style_set_bg_color(style, in(p.bg));
+  if (p.border != NONE) lv_style_set_border_color(style, in(p.border));
+  if (p.text != NONE) lv_style_set_text_color(style, in(p.text));
+  if (p.line != NONE) lv_style_set_line_color(style, in(p.line));
+  if (p.arc != NONE) lv_style_set_arc_color(style, in(p.arc));
+}
+// A shared style and its copy in the other look (docs/THEME.md "A card's look"): every style a paint fills is
+// remembered with its paint; the copy is made the first time a card in the other look needs it, so a board without
+// sections never makes one. A card changes look by trading one for the other on its objects (restyle_card).
+struct PaintPair { lv_style_t *screen; lv_style_t *other; Paint paint; };
+inline std::vector<PaintPair> pairs;
+inline PaintPair *pair_of(const lv_style_t *style) {
+  for (auto &p : pairs) if (p.screen == style || p.other == style) return &p;
+  return nullptr;
+}
+// Fill a style with a paint in the screen's look, and its copy in the other look where one was made. The board profile's
+// paints (`styles: paint_card`, theme::paints) and the firmware's own (style()) all come through here.
+inline void fill(lv_style_t *style, Paint paint) {
+  if (!style) return;
+  fill_in(style, paint, screen_dark);
+  PaintPair *p = pair_of(style);
+  if (!p) { pairs.push_back({style, nullptr, paint}); return; }
+  p->paint = paint;
+  if (p->other) fill_in(p->other, paint, !screen_dark);
+}
+inline lv_style_t *other_copy(PaintPair &p) {
+  if (!p.other) {
+    p.other = new lv_style_t;
+    lv_style_init(p.other);
+    lv_style_copy(p.other, p.screen);
+    fill_in(p.other, p.paint, !screen_dark);
+  }
+  return p.other;
+}
+// The board profile's styles and the paint of each, as fill() calls. Set and run once in on_boot.
+inline void (*paints)() = nullptr;
+// The firmware's own shared style for a paint, made on first use, in the look painted now: a card in the other look
+// (CardScope) gets the copy in its look.
+inline std::array<lv_style_t *, static_cast<size_t>(Paint::COUNT)> own{};
+inline lv_style_t *style(Paint paint) {
+  auto *&s = own[static_cast<size_t>(paint)];
+  if (!s) {
+    s = new lv_style_t;
+    lv_style_init(s);
+    fill(s, paint);
+  }
+  return dark == screen_dark ? s : other_copy(*pair_of(s));
+}
+// A card's objects to the shared styles of its look: each style of the screen's look traded for its copy (other), or
+// back, in its place in the object's list with its own selector, so what it applies to and its precedence stay as they
+// were (lv_obj_replace_style would give it the selector it is called with). A copy holds the same properties as its
+// original, so LVGL's cache of which properties an object has stays true. Run where a card's look changes
+// (sections::place), never on a pass.
+inline void restyle_card(lv_obj_t *obj, bool other) {
+  if (!obj) return;
+  bool changed = false;
+  for (uint32_t i = 0; i < obj->style_cnt; ++i) {
+    lv_obj_style_t &st = obj->styles[i];
+    if (st.is_local || st.is_trans) continue;
+    PaintPair *p = pair_of(st.style);
+    if (!p) continue;
+    const lv_style_t *want = other ? other_copy(*p) : p->screen;
+    if (st.style != want) { st.style = want; changed = true; }
+  }
+  if (changed) lv_obj_refresh_style(obj, LV_PART_ANY, LV_STYLE_PROP_ANY);
+  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) restyle_card(lv_obj_get_child(obj, int32_t(i)), other);
+}
+#ifdef USE_HOST
+// The host build proves every trade (tools/render/sections.py fails on a "restyle check FAIL" line): every style of every
+// object of the card is noted with its selector, the card traded to the look asked for and back and to it again, and
+// each step compared with the note. After the trade a style is its pair's copy of that look, or the same style where it
+// has no pair, at the same place with the same selector; after the trade back, exactly the note.
+struct StyleNote { lv_obj_t *obj; uint32_t index; const lv_style_t *style; lv_style_selector_t selector; };
+inline void note_styles(lv_obj_t *obj, std::vector<StyleNote> &out) {
+  for (uint32_t i = 0; i < obj->style_cnt; ++i) out.push_back({obj, i, obj->styles[i].style, obj->styles[i].selector});
+  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) note_styles(lv_obj_get_child(obj, int32_t(i)), out);
+}
+inline uint32_t restyle_checks = 0, restyle_failures = 0;
+inline void restyle_checked(lv_obj_t *card, bool other) {
+  std::vector<StyleNote> before, after;
+  note_styles(card, before);
+  const auto look_of = [](const lv_style_t *style, bool in_other) -> const lv_style_t * {
+    PaintPair *p = pair_of(style);
+    if (!p) return style;
+    return in_other ? other_copy(*p) : p->screen;
+  };
+  const auto compare = [&](bool in_other, const char *step) {
+    after.clear();
+    note_styles(card, after);
+    bool same = after.size() == before.size();
+    for (size_t i = 0; same && i < after.size(); ++i)
+      same = after[i].obj == before[i].obj && after[i].index == before[i].index && after[i].selector == before[i].selector &&
+             after[i].style == look_of(before[i].style, in_other);
+    if (!same) {
+      ++restyle_failures;
+      ESP_LOGE("card_look", "restyle check FAIL: %s, card %p, %u styles noted, %u now", step, (void *) card,
+               (unsigned) before.size(), (unsigned) after.size());
+    }
+  };
+  // The note is in the look the card had: its styles of that look.
+  restyle_card(card, other);
+  compare(other, "traded");
+  restyle_card(card, !other);
+  compare(!other, "traded back");
+  restyle_card(card, other);
+  compare(other, "traded again");
+  ++restyle_checks;
+  ESP_LOGI("card_look", "restyle check: %u trades checked, %u failed", (unsigned) restyle_checks, (unsigned) restyle_failures);
+}
+#endif
+#else
+// A board without sections (docs/MODULES.md): every card is in the screen's look, so a paint has one style.
 // Fill a style with a paint in the current look. Setting a property the style already has allocates nothing.
 inline void fill(lv_style_t *style, Paint paint) {
   if (!style) return;
@@ -475,14 +722,18 @@ inline lv_style_t *style(Paint paint) {
   }
   return s;
 }
+#endif
 // What the board draws again after a change of look: the tiles, an open card, the settings page. Set by the profile.
 inline void (*redraw)() = nullptr;
 // The one way the look changes. Every paint is filled again, what code painted itself follows through redraw(), and the
 // glass is drawn again once, whole. A look the screen already has costs nothing, so the setting may be applied on every
 // change.
 inline void set_dark(bool on) {
-  if (on == dark) return;
-  dark = on;
+#ifdef USE_HOST
+  if (looks_open) ESP_LOGE("card_look", "set_dark FAIL: the screen's look changed inside %d open card look(s)", looks_open);
+#endif
+  if (on == screen_dark && on == dark) return;
+  screen_dark = dark = on;
   if (paints) paints();
   for (size_t i = 0; i < own.size(); ++i) if (own[i]) fill(own[i], static_cast<Paint>(i));
   // fill() only changes colours, and LVGL reads a colour when it draws: all a new colour asks of a widget is to be drawn

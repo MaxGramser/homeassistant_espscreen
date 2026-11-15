@@ -4,7 +4,7 @@
 // scrolling near an edge, the drop) is drag.ts's, which writes here; the mockup, the row of pages and the draft read it.
 import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
-import type { Tile } from "../types";
+import type { SectionBlock, Tile } from "../types";
 
 // A whole page on its way to another place in the row (app 0.2.121): where it came from, where it is heading, and the row
 // as it stands while it is in the air (`order[position]` is the page drawn there).
@@ -23,9 +23,14 @@ export const useDragStore = defineStore("drag", () => {
   const key = ref<KeyPlace | null>(null);
   // The page a tile can't land on, said as a whole (a page-filling tile over a page that has tiles).
   const refused = ref<number | null>(null);
+  // The sections as they would stand (docs/PAGES.md "Sections"): a section carried, made wider or made from chosen
+  // tiles; null while they stand as they are. `section`: the section a drag carries.
+  const previewBlocks = shallowRef<SectionBlock[] | null>(null);
+  const section = ref<string | null>(null);
   // Nothing in the air any more: a drop, a cancel, or the editor switching between the row and the map.
   function clear() {
     active.value = false; moving.value = null; preview.value = null; page.value = null; key.value = null; refused.value = null;
+    previewBlocks.value = null; section.value = null;
   }
-  return { active, moving, preview, page, key, refused, clear };
+  return { active, moving, preview, page, key, refused, previewBlocks, section, clear };
 });

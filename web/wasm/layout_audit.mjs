@@ -27,7 +27,7 @@ for (const screen of screens) {
     // A layout the firmware refuses is reported with its reason, and the next one goes on.
     try {
       const receive = connection(m, (++n).toString(16).padStart(16, '1'), (n + 1000).toString(16).padStart(16, '2'));
-      configure(receive, 'Audit', layout.pages ?? 1, layout.tiles);
+      configure(receive, 'Audit', layout.pages ?? 1, layout.tiles, layout.sections);
     } catch (error) {
       out.push({ screen: screen.key, layout: layout.key, error: String(error.message ?? error).split('\n')[0] });
       continue;

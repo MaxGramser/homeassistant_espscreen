@@ -27,6 +27,7 @@ const pagesOf = computed(() => [...new Set(tiles.value.map((tile) => pageOf(tile
 const crumbs = computed(() => [{ text: scr.currentScreen?.name || "" },
   ...(pagesOf.value.length === 1 ? [{ text: pageTitleShown(pagesOf.value[0]) || t("editor.page.label", { page: pagesOf.value[0] + 1 }) }] : [])]);
 const name = (entity: string, own: string) => own || entities.entityName(entity);
+import { canMakeSection } from "../editor/sections";
 </script>
 
 <template>
@@ -42,6 +43,7 @@ const name = (entity: string, own: string) => own || entities.entityName(entity)
     </div>
     <div class="insp-actions">
       <button type="button" class="btn quiet" id="selection-copy" :title="key('C')" @click="copyChosen"><Icon name="content-copy" />{{ t("editor.selection.copy") }}</button>
+      <button v-if="canMakeSection()" type="button" class="btn quiet" id="selection-section" @click="insp.makingSection = true"><Icon name="view-grid-outline" />{{ t("editor.sections.make") }}</button>
     </div>
     <p class="help selection-hint">{{ t("editor.selection.hint", { copy: key("C"), paste: key("V") }) }}</p>
   </div>

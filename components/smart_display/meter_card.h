@@ -179,9 +179,15 @@ inline void words(Plan &p, const Measure &m, const Data &d, int x, int y, int w,
 // ---- The ring.
 inline void ring_at(Plan &p, const Measure &m, const Data &d, int cx, int cy, int dia, int thick) {
   p.ring = true; p.cx = cx; p.cy = cy; p.d = dia; p.thick = thick; p.disc = dia * 36 / 100;
+  // The largest icon face that fits the disc and has the glyph; else the smallest that has it, never a face without it
+  // (an empty disc until the next value, on a 10.1 inch, 2026-11-15).
   p.icon = ICON_WATCH;
+  bool found = false;
   for (Face f : {ICON_BIG, ICON, ICON_MINI})
-    if (m.h(f) <= dia * 22 / 100 && m.has(f, d.icon)) { p.icon = f; break; }
+    if (m.h(f) <= dia * 22 / 100 && m.has(f, d.icon)) { p.icon = f; found = true; break; }
+  if (!found)
+    for (Face f : {ICON_MINI, ICON, ICON_WATCH, ICON_BIG})
+      if (m.has(f, d.icon)) { p.icon = f; break; }
 }
 inline void plan_ring(Plan &p, const Measure &m, const Data &d, Rect r) {
   // A long card: the ring at the left, the words beside it.

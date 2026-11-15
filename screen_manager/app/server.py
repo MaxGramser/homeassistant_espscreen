@@ -33,6 +33,7 @@ import talk_bridge
 import calls
 import screen_source
 import claude_skill
+import layoutbot
 import screen_video
 import screen_hang
 import screen_labels
@@ -59,6 +60,7 @@ import plugin_pictures
 import map_tiles
 import valetudo_map
 import tile_icons
+import home_facts
 import text_tile
 import template_service
 from updates import Updater
@@ -68,7 +70,7 @@ import plugins
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_DISMISS, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
-from core import ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, WEATHER_WEEK, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
+from core import SECTIONS_FEATURE, ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, WEATHER_WEEK, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import BAR_CARDS_FEATURE, BOARD_KEYS, has_battery, has_module, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short, plugin_tile
 from core import (FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
                   packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, update_in_tessera, version_text)
@@ -79,7 +81,8 @@ from i18n import REQUEST_LANGUAGE, TRANSLATIONS, Region, english, screen_t, show
 from zoneinfo import ZoneInfo
 from layout_store import LayoutStore, Conflict
 from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, compile_tiles, grid_of_record, screen_grid_of_record,
-                         legacy_projection, legacy_edit, validate_document, bar_items, replace_tiles, CompiledLayouts, fingerprint)
+                         legacy_projection, legacy_edit, validate_document, bar_items, replace_tiles, CompiledLayouts, fingerprint,
+                         flattened)
 from layout_migrations import migrate_legacy
 import page_delivery
 import page_service
@@ -299,7 +302,9 @@ class HomeAssistant:
         # editor offers for a player at rest (GitHub #88).
         self.widen = None
 
-    async def request(self, kind, **data):
+    async def request(self, kind, wait=15, **data):
+        """One websocket command and its result. `wait`: seconds before it counts as lost; an LLM's answer (layoutbot)
+        takes longer than any other command."""
         if self.ws is None or self.ws.closed:
             raise ConnectionError("Home Assistant isn't connected.")
         self.next_id += 1
@@ -308,7 +313,7 @@ class HomeAssistant:
         self.pending[key] = future
         try:
             await self.ws.send_json({'id': key, 'type': kind, **data})
-            return await asyncio.wait_for(future, 15)
+            return await asyncio.wait_for(future, wait)
         finally:
             self.pending.pop(key, None)
 
@@ -2875,6 +2880,13 @@ class Manager:
                 return item.get('name_by_user') or item.get('name')
         return None
 
+    def summary_text(self, entity):
+        """An entity's state as a section's band says it (docs/PAGES.md "Sections"): the top bar's words, number format
+        and unit (header_bar.value); empty for a moment, which the band does not count down."""
+        text, _ = header_bar.value(entity, self.ha.states.get(entity), self.registry_index().get(entity),
+                                   getattr(self.ha, 'units', {}), getattr(self.ha, 'time_zone', None), getattr(self.ha, 'state_words', None))
+        return text or ''
+
     def header_message(self, layout, features=None, cards=None):
         """`features`: the screen's hello (page_delivery.Sender.features); None for this app's own firmware (the preview).
         `cards`: which tile's card each entity's item opens (core.bar_cards)."""
@@ -3893,7 +3905,7 @@ class Manager:
         return (self.plugins.saver_kinds(inbox).get(key, (None, None))[1]) or {}
 
     def plugin_place(self, inbox, screen, question):
-        """(manifest entry, the manifest's tile, card or screensaver, of_entity) of a plugin's question: of_entity says
+        """(manifest entry, the manifest's tile, card, popup or screensaver, of_entity) of a plugin's question: of_entity says
         whether its card or step shows an entity whose Home Assistant pictures it may have (None for a tile: its manifest
         says). (None, None, False) for a plugin or place this screen does not run."""
         owner = question.owner
@@ -3908,7 +3920,10 @@ class Manager:
         if owner.kind == 'plugin_card':
             entry = self.plugins.known(parts[0], inbox) if self.plugins.store.get(inbox, parts[0]) else None
             of = bool(owner.of) and any(owner.of in (t['entity'], (t.get('options') or {}).get('plugin_entity')) for t in placed)
-            return entry, (entry.card(parts[1]) if entry else None), of
+            kind = entry.card(parts[1]) if entry else None
+            # A popup's places (plugin API 0.27) ask as a card's do; a popup is shown for no entity, so only the hosts of
+            # permissions.network.
+            return entry, kind, False if (kind or {}).get('popup') else of
         if not (0 <= owner.index < len(placed) and placed[owner.index]['entity'] == owner.key):
             return None, None, False
         entry = self.plugins.known(parts[0], inbox)
@@ -4870,6 +4885,10 @@ def create_app(manager, development=False):
             screen['caps'] = manager.caps_of_screen(screen)
             # The Dock (docs/MODULES.md): the editor offers "Show in Dock" on a page of a board that has it.
             screen['dock'] = has_module(screen, 'dock')
+            # Sections on a page (docs/PAGES.md "Sections"): only a board with the module sections draws them, so the editor
+            # offers them there only; `sections_drawn`: the screen's own hello says it draws them now (an older firmware does not).
+            screen['sections'] = has_module(screen, 'sections')
+            screen['sections_drawn'] = SECTIONS_FEATURE in (getattr(manager.page_senders.get(screen['id']), 'features', None) or ())
             # A vacuum's larger tile (docs/VACUUM.md, "A larger tile"): its map, rooms and routines on a board with the
             # vacuum card's module; the editor offers them there only, and a screen whose hello lacks vacuum_tile gets
             # the keys (catalogue screen else).
@@ -4971,6 +4990,9 @@ def create_app(manager, development=False):
         # What's new for the Update badge: here only, not in every live update (app 0.2.78).
         payload['changelog'] = manager.updates.changelog
         payload['claude_skill'] = claude_skill.status(manager.skill_dir)
+        # Layoutbot (docs/LAYOUTBOT.md): the AI Tasks of this Home Assistant that can make data; the editor shows the bot
+        # only when there is one.
+        payload['layoutbot'] = layoutbot.agents(manager.ha.states)
         payload['video'] = manager.video_status()
         # The name in the editor's language for the library, and as the screens show it for the mockup (app 0.2.90).
         payload['builtin'] = [{'id': key, 'name': builtin_name(key, t), 'screen_name': builtin_name(key),
@@ -4978,6 +5000,53 @@ def create_app(manager, development=False):
         payload['header'] = {**header_bar.catalogue(), 'suggestions': {
             screen['id']: header_bar.suggestions(screen, entities, manager.ha.states, manager.registry_index()) for screen in payload['screens']}}
         return web.json_response(payload)
+    # The answer Layoutbot gives the editor: 2 is a checked plan the editor places (dev 2026-11), 1 was a whole document.
+    LAYOUTBOT_PLAN = 2
+    async def layoutbot_ask(request):
+        """Layoutbot (docs/LAYOUTBOT.md): a sentence and the editor's draft in, a checked plan out (layoutbot.checked),
+        made by the AI Task the person connected to Home Assistant; the editor places it (web/src/model/layoutbot.ts).
+        Other screens only when the person chose all of them (`all_screens`). It saves nothing and calls no action but
+        ai_task.generate_data."""
+        data = await request.json()
+        inbox = manager.aliases.get(request.match_info['inbox'], request.match_info['inbox'])
+        screen = manager.screen(inbox)
+        grid = manager.verified_grid(inbox)
+        if screen is None or grid is None:
+            raise LayoutError(t('addon.errors.not_paired'))
+        if not isinstance(data, dict) or not isinstance(data.get('prompt'), str) or not data['prompt'].strip():
+            raise ValueError(t('addon.errors.pages.fields'))
+        # An editor from before plans (it applied a whole document the add-on made) would show nothing of this answer:
+        # it is told to reload, as an old tab is for a save (LAYOUTBOT_PLAN).
+        if data.get('version') != LAYOUTBOT_PLAN:
+            raise ValueError(t('addon.errors.refresh_page'))
+        agents = layoutbot.agents(manager.ha.states)
+        if not agents:
+            raise ValueError(t('addon.layoutbot.none'))
+        draft = validate_document(data.get('layout'), grid)
+        agent = data.get('agent') if data.get('agent') in {a['id'] for a in agents} else await layoutbot.preferred(manager.ha.request, agents)
+        _, entities = manager.inventory()
+        known = {entity['id'] for entity in entities}
+        name_of = lambda item: manager.labels.get(item.get('device_id')) or item['name']
+        # The other screens with a page document, described to the model only when the person chose all screens.
+        others = []
+        if data.get('all_screens') is True:
+            for other in manager.screens():
+                record = manager.store.get(other['id'])
+                other_grid = manager.verified_grid(other['id'])
+                if other['id'] == inbox or not record or record.get('format') != PAGE_FORMAT or other_grid is None:
+                    continue
+                others.append({'id': other['id'], 'name': name_of(other), 'grid': other_grid,
+                               'sections': has_module(other, 'sections'), 'document': record['layout']})
+        answer, seconds = await layoutbot.ask(manager.ha.request, data['prompt'][:layoutbot.PROMPT_CHARS], draft, grid,
+                                              entities, has_module(screen, 'sections'), agent, name=name_of(screen), others=others)
+        words = lambda notes: [t(f"addon.layoutbot.notes.{note['key']}", **{k: v for k, v in note.items() if k != 'key'}) for note in notes]
+        # Another screen's plan is checked against its saved document; the editor shows it before anything is saved.
+        plan, notes, elsewhere = layoutbot.answered(answer, draft, known, others, data.get('all_screens'))
+        elsewhere = [{**other, 'notes': words(other['notes'])} for other in elsewhere]
+        LOG.info('Layoutbot answered in %.1f s with %s (%d notes, %d other screens)', seconds, agent, len(notes), len(elsewhere))
+        return web.json_response({'version': LAYOUTBOT_PLAN, 'reply': answer.get('reply') if isinstance(answer.get('reply'), str) else '',
+                                  'plan': plan, 'notes': words(notes), 'elsewhere': elsewhere, 'agent': agent,
+                                  'seconds': round(seconds, 1)})
     async def header_preview(request):
         """The top bar as a screen would draw it right now, so the editor shows unsaved changes live."""
         data = await request.json()
@@ -4999,7 +5068,7 @@ def create_app(manager, development=False):
                 raise LayoutError(t('addon.errors.layout.invalid'))
             grid = grid_of_record(source)
             record = {'format': PAGE_FORMAT, 'sourceGrid': source['sourceGrid'],
-                      'layout': validate_document(source.get('layout'), grid), 'revision': ''}
+                      'layout': validate_document(flattened(source.get('layout'))[0], grid), 'revision': ''}
             if 'editor' in source:
                 editor = source['editor']
                 if not isinstance(editor, dict) or set(editor) != {'positions'}:
@@ -5123,6 +5192,14 @@ def create_app(manager, development=False):
         manager.ha.changed.set()
         manager.notify()
         return web.json_response({'screensaver': choice})
+    async def home_facts_view(request):
+        """The facts of Home Assistant's registries a first layout reads (home_facts.py, docs/AUTO_LAYOUT.md): every
+        tile entity's area, device, category, class and group, the areas and floors in Home Assistant's order, and which
+        entities belong to the screens themselves."""
+        ha = manager.ha
+        screens = {screen.get('device_id') for screen in manager.screens() if screen.get('device_id')}
+        return web.json_response(home_facts.facts(getattr(ha, 'registry', []), getattr(ha, 'states', {}), getattr(ha, 'devices', []),
+                                                  getattr(ha, 'areas', []), getattr(ha, 'floors', []), screens))
     async def capabilities(request):
         """What Home Assistant says each entity can do, for the tile settings (app 0.2.67). Unknown is null: the editor
         then offers what it always offered."""
@@ -5421,7 +5498,9 @@ def create_app(manager, development=False):
         bars = [manager.header_message({'header': {'items': bar_items(page)}})['items']
                 for page in record['layout']['pages']]
         region = manager.page_region()
-        begin, initial_tiles, initial_bars, states = page_delivery.prepare('', record, region, values, bars)
+        # The preview is this app's own firmware, of the full tier: it draws sections (docs/PAGES.md "Sections").
+        begin, initial_tiles, initial_bars, states = page_delivery.prepare('', record, region, values, bars, (), True,
+                                                                           page_service.section_sums(manager, record['layout']))
         revision = page_delivery.configuration(record, region)
         manager.preview_layouts[revision] = tiles
         manager.preview_layouts.move_to_end(revision)
@@ -5963,6 +6042,12 @@ def create_app(manager, development=False):
             return web.json_response({'ok': True})
         app.router.add_delete('/api/plugins/{plugin}/link', plugins_forget)
 
+        async def plugins_forget_folder(request):
+            # A plugin someone was making, off the Plugins page: its folder goes to tessera-plugins/.removed/.
+            moved = manager.plugins.forget_folder(request.match_info['plugin'])
+            return web.json_response({'ok': True, 'moved_to': str(moved)})
+        app.router.add_delete('/api/plugins/{plugin}/folder', plugins_forget_folder)
+
         async def plugins_settings(request):
             return web.json_response(manager.plugins.settings_for(request.match_info['inbox'], REQUEST_LANGUAGE.get()))
 
@@ -6148,6 +6233,7 @@ def create_app(manager, development=False):
     app.router.add_get('/', index)
     app.router.add_get('/api/inventory', inventory)
     app.router.add_get('/api/capabilities', capabilities)
+    app.router.add_get('/api/home-facts', home_facts_view)
     app.router.add_get('/api/states', states)
     app.router.add_get('/api/history-preview', preview_history)
     app.router.add_get('/api/media-art', media_art_preview)
@@ -6174,6 +6260,7 @@ def create_app(manager, development=False):
     app.router.add_get('/api/display-precision', display_precision)
     app.router.add_put('/api/display-precision', display_precision)
     app.router.add_post('/api/header-preview', header_preview)
+    app.router.add_post('/api/screens/{inbox}/layoutbot', layoutbot_ask)
     app.router.add_post('/api/claude-skill', install_claude_skill)
     app.router.add_get('/api/claude-skill.zip', download_claude_skill)
     app.router.add_post('/api/video', install_video)

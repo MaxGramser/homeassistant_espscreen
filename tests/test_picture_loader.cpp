@@ -62,6 +62,19 @@ int main() {
     b.loader.begin(); b.loader.want(CARD, b.want("cover|p|a|132", "cover|p", Rank::CARD)); b.loader.end(60000, true);
     assert(b.loads.size() == 2 && b.asked.size() == 1);
   }
+  // Another track: the download of the new cover knows the key its owner had, so its picture's ETag can go along.
+  {
+    Bench b;
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track1", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1000, true);
+    b.loader.answer("tile|p1", "http://app/1.jpg", 1050);
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track1", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1100, true);
+    assert(b.loader.loading_had(Slot::LIVE).empty());
+    b.finish(Slot::LIVE, true, 1200);
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track2", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1300, true);
+    b.loader.answer("tile|p1", "http://app/2.jpg", 1350);
+    b.loader.begin(); b.loader.want(tile(1), b.want("tile|track2", "tile|p1", Rank::PAGE, Slot::LIVE)); b.loader.end(1400, true);
+    assert(b.loader.busy() && b.loader.loading_key(Slot::LIVE) == "tile|track2" && b.loader.loading_had(Slot::LIVE) == "tile|track1");
+  }
   // A picture the store holds is there at once: nothing is asked, nothing loads.
   {
     Bench b;

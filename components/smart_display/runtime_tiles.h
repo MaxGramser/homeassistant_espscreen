@@ -103,6 +103,18 @@
 #include <new>
 #include <cstdlib>
 
+#ifdef SD_MOD_SECTIONS
+// Sections on a page (module sections, module_sections.h at the module site at the end of this file).
+namespace runtime_tiles { struct Widgets; }
+namespace sections {
+inline void place(runtime_tiles::Widgets &w, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y);
+inline void show(int page);
+inline void summaries(int page);
+inline void forget();
+inline void restyle();
+}  // namespace sections
+#endif
+
 namespace runtime_tiles {
 // What the screen says, in the language its firmware was built for (screen_text.h, app 0.2.90).
 using screen_text::fill;
@@ -353,7 +365,7 @@ inline void set_hidden(lv_obj_t *obj, bool hidden);
 inline void swipe_test(unsigned count, unsigned interval_ms, unsigned back_ms);
 #endif
 inline void refresh_header_only();
-inline void refresh_all();
+inline void refresh_all(const char *why="refresh_all");
 inline void refresh_detail(unsigned index);
 // What a finger changed, shown at once (optimistic.h, docs/OPTIMISTIC.md): Home Assistant's answers reach it from
 // watch_call; defined with the wishes below.
@@ -629,7 +641,11 @@ struct Widgets {
   // The card's paint the colours were last drawn for (its background, bit 24 for "none"), next to `cached_active`: a
   // tile whose background alone changed repaints too (firmware 0.17.0+; before, it waited for the entity's next state,
   // which an idle timer never sends).
+#ifdef SD_MOD_SECTIONS
+  uint64_t cached_paint=UINT64_MAX;  // with the card's look and ground (render_slot)
+#else
   uint32_t cached_paint=UINT32_MAX;
+#endif
   // `extra_full`: the size the parts were built for; a slot that changes between full and double width rebuilds them.
   // `base_circle`: the board's icon circle (TILE_ICON_SIZE), the one size of the head a board states.
   int base_circle=0;
@@ -691,7 +707,45 @@ struct Widgets {
 #endif
   // A plugin tile's card (docs/PLUGINS.md, plugin_host.cpp): the plugin's object; it goes with the card's extra layer.
   plugin_host::Card *plugin{};
+  // The card's look and what lies behind it, both relative to the screen's look (theme::screen_dark), so a change of
+  // Dark mode needs no card told: `look_other`, the card is painted in the other look (its section follows its contrast);
+  // `ground_role` in the look `ground_other` gives, what lies behind it (PAGE, or its section's SECTION /
+  // SECTION_CONTRAST panel). Set where the sections module places the card on its own page; a card outside a section,
+  // and every card of a board without sections, keeps the screen's look on the page.
+  bool look_other=false, ground_other=false;
+  uint8_t ground_role=theme::PAGE;
 };
+// The one door into a card's paint (docs/THEME.md, "A card's look"): for as long as it lasts, the roles are the card's
+// look. Every path that paints into a card enters through it, with the card's Widgets or, where LVGL draws later (a
+// draw callback), with one of the card's own objects; outside one the look is the screen's. Nested scopes are fine:
+// each sets the card's look from the screen's, and gives back what was there.
+#ifdef SD_MOD_SECTIONS
+struct CardScope : theme::LookScope {
+  explicit CardScope(const Widgets &w) : theme::LookScope(w.look_other) {}
+  explicit CardScope(const lv_obj_t *obj) : theme::LookScope(theme::other_look(obj)) {}
+};
+#else
+// A board without sections: every card is in the screen's look, so the door costs nothing (docs/MODULES.md).
+struct CardScope {
+  explicit CardScope(const Widgets &) {}
+  explicit CardScope(const lv_obj_t *) {}
+  void end() {}
+};
+#endif
+// The two answers about a card's colours (docs/THEME.md "A card's look"), answerable at any moment, in a paint or away
+// from one (a picture's question, a plugin's call). What lies behind the card: the page, or the panel of the section it
+// stands in, in that panel's look. A picture's corners are rounded over it (an album cover, a camera), and a bare card
+// shows it: a contrast section is dark where the page is light.
+inline uint32_t card_ground(const Widgets &w) {
+  return theme::hex_in(static_cast<theme::Role>(w.ground_role), theme::screen_dark != w.ground_other);
+}
+// The card's own colour as a value: what a plugin tile gave its card (plugin API 0.26), else the tile's background.
+inline theme::Face card_face(const Widgets &w);
+// The card's own colour as it is painted, in the card's look.
+inline uint32_t card_surface(const Widgets &w) {
+  CardScope scope(w);
+  return theme::surface(card_face(w));
+}
 // A page is being built off the glass (warm_page): its cards ask for no pictures and wake nothing.
 inline bool warming=false;
 constexpr unsigned POINT_BUFFER = 128;
@@ -1874,6 +1928,7 @@ inline lv_obj_t *ghost_slider=nullptr;
 inline void ghost_show(lv_obj_t *slider){
   if(ghost_slider==slider || lv_obj_get_style_bg_opa(slider,LV_PART_INDICATOR)!=LV_OPA_TRANSP)return;
   for(auto &w:widgets)if((w.slider==slider || w.control_slider==slider) && w.index<model.count){
+    CardScope scope(w);  // a finger on the slider, outside render_slot
     set_color(slider,LV_STYLE_BG_COLOR,lv_color_hex(theme::state(tile_controls::accent(model.tiles[w.index]))),LV_PART_INDICATOR);
     set_number(slider,LV_STYLE_BG_OPA,LV_OPA_30,LV_PART_INDICATOR);
     set_number(slider,LV_STYLE_BG_OPA,LV_OPA_60,LV_PART_KNOB);
@@ -2108,6 +2163,30 @@ inline lv_obj_t *detail_button(const char *text,int x,int y,int width,int height
   lv_obj_set_style_opa(button,LV_OPA_50,LV_STATE_DISABLED);
   if(command>=0 && detail_action_count<32)detail_actions[detail_action_count++]=button;
   return button;
+}
+
+// A key in the last row of a card that fills the glass also takes the strip between it and the glass's bottom edge:
+// a finger aimed at a key that low lands on that strip as often as on the key (a 10.1 inch read taps on the history
+// card's week as 787-794 of 800, below the key's touch area that ended at 786). An invisible catcher from the key's
+// foot to `bottom` gives that strip to the key: it presses the key, so the key shows the press, and its tap is the
+// key's command, through the same guard (detail_command). Not a detail action of its own.
+inline void detail_reach_down(lv_obj_t *key,int command,int bottom){
+  lv_obj_update_layout(key);
+  lv_area_t a;lv_obj_get_coords(key,&a);
+  lv_area_t root;lv_obj_get_coords(detail_root,&root);
+  const int top=a.y2+1-root.y1;
+  if(bottom<=top)return;
+  auto *catcher=lv_obj_create(detail_root);lv_obj_remove_style_all(catcher);
+  lv_obj_set_pos(catcher,a.x1-root.x1,top);lv_obj_set_size(catcher,a.x2-a.x1+1,bottom-top);
+  lv_obj_add_flag(catcher,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(catcher,LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_user_data(catcher,key);
+  lv_obj_add_event_cb(catcher,[](lv_event_t *e){
+    auto *self=lv_event_get_current_target_obj(e);auto *k=static_cast<lv_obj_t*>(lv_obj_get_user_data(self));
+    const auto code=lv_event_get_code(e);
+    if(code==LV_EVENT_PRESSED)lv_obj_add_state(k,LV_STATE_PRESSED);
+    else if(code==LV_EVENT_RELEASED||code==LV_EVENT_PRESS_LOST)lv_obj_remove_state(k,LV_STATE_PRESSED);
+    else if(code==LV_EVENT_SHORT_CLICKED)detail_command((intptr_t)lv_event_get_user_data(e));
+  },LV_EVENT_ALL,(void*)(intptr_t)command);
 }
 
 // The width a line of text is drawn at, for a layout that has to know before it places it.
@@ -4011,6 +4090,7 @@ inline uint32_t lock_accent(const Tile &t);
 inline void alarm_tile_look(size_t slot,const Tile *t){
   if(slot>=widgets.size()||!widgets[slot].circle)return;
   auto &w=widgets[slot];
+  CardScope scope(w);  // tick() paints the ring outside render_slot: in the card's look (docs/THEME.md "A card's look")
   // A key of a bedside clock is its circle (render_slot): the ring grows out of the round card, since the card cuts off
   // what its children draw past its edge, and a circle as large as the card has no room inside it.
   lv_obj_t *circle=widgets[slot].key?widgets[slot].tile:widgets[slot].circle;
@@ -4898,8 +4978,9 @@ inline void render_history_timeline(bool large,int card_x,int card_y,int card_w,
 }
 // The range: an hour, a day or a week, as one segmented row. It asks the manager, not Home Assistant, so
 // waiting for a command does not lock it. However thin the row is drawn, each key keeps a finger's worth
-// of touch area (overlay_card::touchable), as the other segmented rows do.
-inline void history_ranges(int x,int y,int w,int h){
+// of touch area (overlay_card::touchable), as the other segmented rows do, and the strip under the row down to the
+// glass's edge (detail_reach_down, `bottom`).
+inline void history_ranges(int x,int y,int w,int h,int bottom){
   static const uint32_t hours[]={1,24,168};
   const char *const words[]={tr(txt::history_range_hour),tr(txt::history_range_day),tr(txt::history_range_week)};
   const lv_font_t *font=control_font?control_font:detail_font;
@@ -4918,6 +4999,7 @@ inline void history_ranges(int x,int y,int w,int h){
     button_words(segment,font,theme::hex(selected?theme::ON_ACCENT:theme::INK),segment_w-6);
     overlay_card::touchable(segment,h-2*inset);
     if(detail_action_count&&detail_actions[detail_action_count-1]==segment)--detail_action_count;
+    detail_reach_down(segment,160+i,bottom);
   }
 }
 inline void render_history_detail(const Tile &t,bool large,int width,int height,int pad){
@@ -5016,7 +5098,7 @@ inline void render_history_detail(const Tile &t,bool large,int width,int height,
   }
   // The graph took the glass; the keys under it keep a hand's width and stand in the middle of the card.
   const auto keys=overlay_card::reach(width,width-2*pad);
-  history_ranges(keys.x,range_y,keys.w,range_h);
+  history_ranges(keys.x,range_y,keys.w,range_h,height);
   card_shaped(t,picture_card_shape);
 }
 // ---- The media card (firmware 0.2.64+) ----
@@ -5030,7 +5112,11 @@ inline lv_obj_t *media_total_label=nullptr;
 inline int media_bar_width=0;
 inline media_card::Rect media_art_rect;  // where the card's cover goes once it is here
 inline uint32_t media_accent(){return theme::foreground(theme::ha::LIGHT_BLUE);}
-inline const lv_font_t *tile_icon_font(){for(auto &w:widgets)if(w.icon_font)return w.icon_font;return mini_icon_font?mini_icon_font:detail_font;}
+// The tile's icon font: the one the look gives every card's icon, fixed at boot by make_cells (packages/core.yaml), as
+// every other font is. It used to be the first bound card that had one, so a card drawn while another page's cards
+// were bound measured theirs (an empty meter ring on a 10.1 inch, 2026-11-15); the scan stays only for before boot.
+inline const lv_font_t *cell_icon_font = nullptr;
+inline const lv_font_t *tile_icon_font(){if(cell_icon_font)return cell_icon_font;for(auto &w:widgets)if(w.icon_font)return w.icon_font;return mini_icon_font?mini_icon_font:detail_font;}
 // `duration`: the track's length, whose time is the widest beside the bar (firmware 0.46.0). A board that draws no
 // pictures gets no place for a cover (media_card.h).
 inline media_card::Metrics media_metrics(bool large,uint32_t duration=0){
@@ -6371,6 +6457,13 @@ inline bool wake_tap() {
 // The same guard for any local style: a page switch mostly hands a slot the colours it already has,
 // and each real set refreshes the style and invalidates the object (about 0.3 ms on the Guition).
 inline void set_color(lv_obj_t *obj, lv_style_prop_t prop, lv_color_t color, lv_style_selector_t selector) {
+#if defined(USE_HOST) && defined(SD_MOD_SECTIONS)
+  // A card in the other look is painted only inside its scope (CardScope, docs/THEME.md "A card's look"): the host
+  // build names a path that paints it in the screen's look, and the render fails on it (tools/render/run.py).
+  static unsigned outside = 0;
+  if (theme::dark == theme::screen_dark && theme::other_look(obj) && outside++ < 8)
+    ESP_LOGE("card_look", "paint outside its card's look FAIL: object %p, style property %d", (void *) obj, (int) prop);
+#endif
   lv_style_value_t current;
   if (lv_obj_get_local_style_prop(obj, prop, &current, selector) == LV_STYLE_RES_FOUND && lv_color_eq(current.color, color)) return;
   lv_style_value_t value{}; value.color = color;
@@ -6551,6 +6644,7 @@ inline void climate_circle_event(lv_event_t *e){
 inline void ring_draw(lv_event_t *e){
   auto *tile=static_cast<lv_obj_t *>(lv_event_get_current_target(e));
   if(!lv_obj_has_flag(tile,LV_OBJ_FLAG_USER_1))return;
+  CardScope look(tile);  // LVGL draws it later, outside render_slot: in the card's look
   lv_draw_rect_dsc_t ring;lv_draw_rect_dsc_init(&ring);
   ring.bg_opa=LV_OPA_TRANSP;ring.border_width=ui::px(3);ring.border_opa=LV_OPA_COVER;
   ring.border_color=theme::color(theme::ACCENT);ring.radius=lv_obj_get_style_radius(tile,LV_PART_MAIN);
@@ -6638,7 +6732,6 @@ inline void make_card(Widgets &into, size_t index, const Widgets &like) {
 // The board's own cards, one per cell of the grid the screen runs on, made at boot (packages/core.yaml) from the board's
 // icon size and the icon font. They used to be widgets in YAML, a file of them per number of cells (packages/cells/,
 // before firmware 0.53.0), which tied a screen to the grid it was built with.
-inline const lv_font_t *cell_icon_font = nullptr;
 inline int cell_circle = 0;
 inline void make_cells(const lv_font_t *icon_font, int circle_size) {
   cell_icon_font = icon_font;
@@ -7097,7 +7190,7 @@ inline void render_flip(Widgets &w,const Tile &t,bool large,int width,int height
 inline void paint_face(Widgets &w,lv_color_t ink,lv_color_t muted,lv_color_t accent){
   const bool flip=w.extra_mode=="flip";
   const lv_color_t block=theme::color(theme::TRACK);
-  const lv_color_t card=lv_obj_get_style_bg_opa(w.tile,LV_PART_MAIN)==LV_OPA_TRANSP?theme::color(theme::PAGE):lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN);
+  const lv_color_t card=lv_obj_get_style_bg_opa(w.tile,LV_PART_MAIN)==LV_OPA_TRANSP?lv_color_hex(card_ground(w)):lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN);
   for(unsigned i=0;i<w.parts.size();++i){
     auto *p=w.parts[i];if(!p)continue;
     if(lv_obj_check_type(p,&lv_label_class)){set_color(p,LV_STYLE_TEXT_COLOR,(flip?(i==6||i==16):(i==16||i==17))?muted:ink);continue;}
@@ -7788,10 +7881,15 @@ inline void stepper_keys(Widgets &w,int width,int height,const lv_font_t *text_f
 // for the volume; 0 lays the volume over the keys.
 // Compiled on its own (tile_panel.cpp): on Xtensa main.cpp's literal pool is at the edge of its reach.
 int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int content_h,int standing=0);
+inline theme::Face card_face(const Widgets &w) {
+  const theme::Face given = plugin_host::face(w);
+  if (given.kind != theme::Face::CARD || w.index >= model.count) return given;
+  return theme::Face::of(model.tiles[w.index].background);
+}
 // Colours follow the card palette; called with the rest of the palette when it changes.
 inline void style_panel(Widgets &w,const Tile &t,lv_color_t accent,lv_color_t text) {
   if(!w.panel || w.panel_mode.empty())return;
-  const uint32_t surface=theme::surface(t.background);
+  const uint32_t surface=card_surface(w);
   lv_color_t card=lv_color_hex(surface);
   lv_color_t key_bg=lv_color_hex(theme::key_on(surface,236));
   lv_color_t key_pressed=lv_color_hex(theme::key_on(surface,212));
@@ -7961,7 +8059,7 @@ inline void render_media_full(Widgets &w,const Tile &t,bool big,int content_w,in
   // The colour behind the cover's rounded corners: the card's own, as the palette below will paint it (firmware 0.3.2).
   // Read from the card, it was the colour of whatever the card showed before, so a new card asked for a cover with the
   // wrong corners first and for the right one after its first drawing.
-  const uint32_t ground=t.transparent?theme::hex(theme::PAGE):theme::surface(t.background);
+  const uint32_t ground=t.transparent?card_ground(w):card_surface(w);
   const bool pictured=camera_supported()&&track&&!x.media_picture.empty();
   w.cover_entity=pictured?t.entity:std::string();w.cover_mark=pictured?x.media_picture:std::string();
   w.cover_size=l.art.w;w.cover_ground=ground;w.cover_rect=at(l.art);
@@ -8348,7 +8446,7 @@ inline void media_standing(Widgets &w,const Tile &t,int x,int y,int width,int he
     lv_obj_add_event_cb(s,slider_event,LV_EVENT_ALL,(void*)(uintptr_t)w.index);
   }
   lv_obj_set_pos(s,x,y);lv_obj_set_size(s,width,height);slider_handle_standing(s,width,height);
-  const lv_color_t fill=t.muted?theme::color(theme::OFF):w.panel_accent,card=lv_color_hex(theme::surface(t.background));
+  const lv_color_t fill=t.muted?theme::color(theme::OFF):w.panel_accent,card=lv_color_hex(card_surface(w));
   set_color(s,LV_STYLE_BG_COLOR,lv_color_mix(fill,card,51),LV_PART_MAIN);set_color(s,LV_STYLE_BG_COLOR,fill,LV_PART_INDICATOR);
   if(!lv_obj_has_state(s,LV_STATE_PRESSED) && !(t.pending && !t.confirmed))lv_slider_set_value(s,slider_value(t),LV_ANIM_OFF);
   lv_obj_remove_flag(s,LV_OBJ_FLAG_HIDDEN);
@@ -8799,11 +8897,20 @@ inline std::string key_value(const Tile &t){
   if(t.unit=="%")return screen_text::percent((int)std::lround(number));
   return text;
 }
+#ifdef SD_MOD_SECTIONS
+// A card in a section whose tiles follow its contrast (docs/PAGES.md "Sections") is painted in the other look: every
+// role it asks for while it is drawn comes in that look, and what it takes from the shared paints is set on it in that
+// look once it is drawn (module_sections.h follow). A card that leaves such a section gives those back.
+
+#endif
 inline void render_slot(size_t slot) {
   swipe_profile::SlotTimer slot_timer(slot);
   swipe_profile::Lap lap;
   auto &w=widgets[slot];
   if(!w.tile || w.index>=model.count)return;
+#ifdef SD_MOD_SECTIONS
+  CardScope look(w);  // the card's look for the whole paint (docs/THEME.md "A card's look"); without sections, the screen's
+#endif
   const auto &t = model.tiles[w.index];
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.
@@ -9250,7 +9357,15 @@ inline void render_slot(size_t slot) {
 #else
   const bool bare=t.transparent;
 #endif
-  const uint32_t paint=t.background|(bare?1u<<24:0);
+  // A plugin tile may give its card a colour of its own (plugin API 0.26, ui::set_card_color): it goes over the tile's.
+  const theme::Face face=card_face(w);
+#ifdef SD_MOD_SECTIONS
+  // The card's look and what lies behind it are part of what it was painted for: a card that moves into or out of a
+  // section whose tiles follow its contrast is painted again (sections::place traded its shared styles already).
+  const uint64_t paint=uint64_t(face.key())|(bare?1ull<<27:0)|(w.look_other?1ull<<25:0)|(w.ground_other?1ull<<26:0)|(uint64_t(w.ground_role)<<32);
+#else
+  const uint32_t paint=face.key()|(bare?1u<<25:0);  // a board without sections: every card in the screen's look on the page
+#endif
   if (w.cached_active == palette_state && w.cached_paint == paint && !w.panel_dirty) { style_tall(w,t);ring_favorite(w,t);lap(swipe_profile::GEOMETRY); return; }
   w.cached_active = palette_state;w.cached_paint=paint;w.panel_dirty=false;
   // Home Assistant's colour for the state (tile_controls::accent), and a lamp's own colour while it is on.
@@ -9273,14 +9388,24 @@ inline void render_slot(size_t slot) {
   // Every card, the one over the whole page too, is white or its own pastel (firmware 0.2.77+): the state shows in the
   // icon and the controls, as on the other sizes. Firmware 0.2.62 to 0.2.76 tinted a full-page card in its state colour
   // while it was on.
-  press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(t.background)));
+  press_ground(w.tile,letterboxed(w)?theme::color(theme::CAMERA_PAGE):lv_color_hex(theme::surface(face)));
   set_number(w.tile,LV_STYLE_BORDER_WIDTH,1);
   // "Background: none" hides only the card; geometry and padding stay identical, and the press still shows because
-  // it lives on the PRESSED state: a shade of what the finger sees, the page there, the card everywhere else.
-  set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(theme::pressed(bare ? theme::hex(theme::PAGE) : theme::surface(t.background))),LV_STATE_PRESSED);
+  // it lives on the PRESSED state: a shade of what the finger sees, what is behind the card there (the page or its
+  // section), the card everywhere else.
+  set_color(w.tile,LV_STYLE_BG_COLOR,lv_color_hex(bare ? theme::pressed(card_ground(w)) : theme::pressed(face)),LV_STATE_PRESSED);
   set_number(w.tile,LV_STYLE_BG_OPA,bare&&!letterboxed(w) ? LV_OPA_TRANSP : LV_OPA_COVER);
   set_number(w.tile,LV_STYLE_BORDER_OPA,bare ? LV_OPA_TRANSP : LV_OPA_COVER);
-  set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(theme::outline(t.background)));
+  // The hairline sets the card off from what is behind it: in a contrast section that is the other look, so a card of
+  // the page's own colour takes the other look's line (a light line drew a white frame round a cover on a dark panel).
+  uint32_t line;
+  {
+#ifdef SD_MOD_SECTIONS
+    theme::Flip other(face.kind == theme::Face::CARD && !w.look_other && w.ground_role == theme::SECTION_CONTRAST);
+#endif
+    line = theme::outline(face);
+  }
+  set_color(w.tile,LV_STYLE_BORDER_COLOR,lv_color_hex(line));
   set_color(w.circle,LV_STYLE_BG_COLOR,circle_color);
   set_color(w.icon,LV_STYLE_TEXT_COLOR,icon_color);
   // A key is its circle: the card takes the circle's colour and its press, with no border (firmware 0.8.0+).
@@ -9290,7 +9415,7 @@ inline void render_slot(size_t slot) {
     set_number(w.tile,LV_STYLE_BG_OPA,LV_OPA_COVER);set_number(w.tile,LV_STYLE_BORDER_OPA,LV_OPA_TRANSP);
   }
   auto title_color=theme::color(theme::INK);
-  auto value_color=theme::color(w.key ? theme::INK : t.background ? theme::SLATE : theme::MUTED);
+  auto value_color=theme::color(w.key ? theme::INK : face.kind!=theme::Face::CARD ? theme::SLATE : theme::MUTED);
   set_color(w.unit,LV_STYLE_TEXT_COLOR,theme::color(t.is_page()?theme::CHEVRON:theme::SLATE));
   set_color(w.title,LV_STYLE_TEXT_COLOR,title_color);
   set_color(w.value,LV_STYLE_TEXT_COLOR,value_color);
@@ -9344,7 +9469,10 @@ inline void mark_time() {
 // because the top bar reads it: a page with a title of its own says that title (Model::title_of), so render()
 // has to know which page it is drawing.
 inline int applied_page=-1;
-inline void mark_all() { dirty_all=true; changes.mark_all(); }
+// Why every card is drawn next (mark_all's `why`): the render's log names it, so a page that seems to load again can be
+// traced to its cause (a 10.1 inch, 2026-11-15). The first reason since the last render is kept.
+inline const char *all_why=nullptr;
+inline void mark_all(const char *why="unnamed") { dirty_all=true; changes.mark_all(); if(!all_why)all_why=why; }
 inline void mark_tile(size_t index) { changes.mark_tile(index); if(index<dirty_tiles.size())dirty_tiles.set(index); else dirty_all=true; }
 inline void refresh_tile(size_t index) { mark_tile(index); if(refresh)refresh(); }
 inline void refresh_header_only() { dirty_header=true; if(refresh)refresh(); }
@@ -9357,7 +9485,7 @@ inline void mark_minute() {
   for(size_t i=0;i<model.count;++i)
     if(shows_time(model.tiles[i]) || (hour && model.tiles[i].domain()=="weather"))mark_tile(i);
 }
-inline void refresh_all() { mark_all(); if(refresh)refresh(); }
+inline void refresh_all(const char *why) { mark_all(why); if(refresh)refresh(); }
 // The starting screen (firmware 0.2.73+): what the screen waits for in the middle of the page with a spinner under it,
 // until the first layout arrives. The first render() makes it and the first layout deletes it, spinner and all.
 // Above the text stands the Tessera lockup (firmware 0.3.8+): the mosaic mark beside the name, as the website draws it.
@@ -9864,16 +9992,30 @@ inline void render(lv_obj_t *room) {
   lap(swipe_profile::HEADER);
   // A refresh that names nothing draws every card (and counts as a change of everything); a changed display setting
   // says it is only the look and the time (dirty_time), the minute marks its own cards (mark_minute).
-  if(!dirty_all && dirty_tiles.none() && !dirty_header && !dirty_time)mark_all();
+  if(!dirty_all && dirty_tiles.none() && !dirty_header && !dirty_time)mark_all("a refresh that named nothing");
   const bool all=dirty_all || dirty_time;
+  const char *why=dirty_all ? (all_why ? all_why : "unnamed") : "a display setting (dirty_time)";
+  all_why=nullptr;
   const uint32_t upto=changes.last;  // every change asked for so far is drawn below, for the cards on the glass
   const TileSet tiles=dirty_tiles;
   dirty_all=dirty_header=dirty_time=false;dirty_tiles.reset();
+  // What was drawn and how long it took, said when it was every card or a slow pass: a page that seems to load again
+  // is a pass over every card (its reason) or one card built anew (the slowest slot).
+  const uint32_t began=esphome::millis();
+  unsigned drawn=0;uint32_t slowest=0;size_t slowest_index=0;
   for (size_t slot = 0; slot < grid.slots(); ++slot) {
     const auto &w=widgets[slot];
     if(w.index>=model.count)continue;
-    if(all || tiles.test(w.index))render_slot(slot);
+    if(!(all || tiles.test(w.index)))continue;
+    const uint32_t from=esphome::millis();
+    render_slot(slot);
+    ++drawn;
+    if(esphome::millis()-from>slowest){slowest=esphome::millis()-from;slowest_index=w.index;}
   }
+  const uint32_t took=esphome::millis()-began;
+  if(all)ESP_LOGI("render","every card drawn: %s, %u cards in %u ms (slowest tile %u, %u ms)",why,drawn,(unsigned)took,(unsigned)slowest_index,(unsigned)slowest);
+  else if(took>=30)ESP_LOGI("render","%u cards drawn in %u ms, slowest tile %u (%s), %u ms",drawn,(unsigned)took,(unsigned)slowest_index,
+                           slowest_index<model.count?model.tiles[slowest_index].entity.c_str():"",(unsigned)slowest);
   // Kept pages learn nothing here: what they lack follows from the change numbers when they come back (kept_pages.h).
   glass_synced=upto;
 }
@@ -10175,8 +10317,8 @@ inline bool check_tile_geometry() {
         (int)content_width(w),(int)content_height(w),(int)lv_obj_get_style_space_top(w.tile,LV_PART_MAIN),l.digit_h,l.key,l.name_h);}
     }
     if(!fits)ESP_LOGE("ui_test","Tile geometry FAIL slot=%u mode=%s wide=%d title_y=%d..%d value_y=%d..%d content_y=%d..%d",(unsigned)w.index,w.extra_mode.c_str(),w.wide,(int)title.y1,(int)title.y2,(int)value.y1,(int)value.y2,(int)content.y1,(int)content.y2);
-    if(w.index<model.count && model.tiles[w.index].background){
-      bool palette_ok=lv_color_eq(lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN),lv_color_hex(theme::surface(model.tiles[w.index].background))) &&
+    if(w.index<model.count && card_face(w).kind!=theme::Face::CARD){
+      bool palette_ok=lv_color_eq(lv_obj_get_style_bg_color(w.tile,LV_PART_MAIN),lv_color_hex(card_surface(w))) &&
         lv_color_eq(lv_obj_get_style_text_color(w.title,LV_PART_MAIN),theme::color(theme::INK));
       if(!palette_ok)ESP_LOGE("ui_test","Tile palette FAIL slot=%u",(unsigned)w.index);
       fits=fits && palette_ok;
@@ -10320,7 +10462,11 @@ inline int place_page(int page, bool kept = false) {
       const int32_t column=w.full?0:(int32_t)(slot%grid.columns),row=w.full?0:(int32_t)(slot/grid.columns);
       const auto &tile=model.tiles[w.index];
       const int32_t span_x=tile.column_span(),span_y=tile.row_span();
+#ifdef SD_MOD_SECTIONS
+      ::sections::place(w,page,column,span_x,row,span_y);
+#else
       set_cell(w.tile,column,span_x,row,span_y);
+#endif
       lv_obj_remove_flag(w.tile,LV_OBJ_FLAG_HIDDEN);
     }
     else{lv_obj_add_flag(w.tile,LV_OBJ_FLAG_HIDDEN);hide_extra(w);hide_panel(w);}
@@ -10342,6 +10488,9 @@ inline int place_page(int page, bool kept = false) {
   show_page_keys(page,detail);
   // The dots between the two chevrons (firmware 0.2.69+): the page on screen in ink.
   if(sequential && nav_number)page_bar::dots(nav_number,model.page_data.ordinal(page),sequential_count);
+#ifdef SD_MOD_SECTIONS
+  ::sections::show(page);
+#endif
   // The cards are drawn from the sizes the grid gives them, so it lays out before anything reads one.
   if(tile_grid)lv_obj_update_layout(tile_grid);
   if(widgets[0].tile && widgets[0].index<model.count && model.tiles[widgets[0].index].is_bedside()){
@@ -10353,7 +10502,7 @@ inline int place_page(int page, bool kept = false) {
 }
 inline void apply_page(int page) {
   applied_page=place_page(page);
-  if(room_label){mark_all();render(room_label);}else refresh_all();
+  if(room_label){mark_all("a page placed");render(room_label);}else refresh_all("a page placed");
 }
 // ---- Pages kept whole: memory and the exchange of card sets (kept_pages.h) ----
 inline void *kept_allocate(size_t bytes) {
@@ -10466,7 +10615,7 @@ inline void abandon_layout() {
   transfer.begun = false;
   layout_landed_at = 0;
   memory_short_at = std::max<uint32_t>(1, esphome::millis());
-  refresh_all();
+  refresh_all("the layout dropped for memory");
 }
 // The reply to a hello or a ping carries the memory figures (packages/core.yaml); a tile's state does not need them.
 inline bool reply_memory = false;
@@ -10534,6 +10683,9 @@ inline void regrid(size_t columns, size_t rows) {
   shelf.forget();
   release_kept(0);
   for (auto &w : widgets) drop_card(w);
+#ifdef SD_MOD_SECTIONS
+  ::sections::forget();
+#endif
   grid = Grid{columns, rows};
   chosen_grids[canvas_upright ? 1 : 0] = grid;
   save_grids();
@@ -10589,6 +10741,10 @@ inline lv_obj_t *face_picture(const Widgets &w) {
 }
 inline void forget_kept() {
   shelf.forget();
+#ifdef SD_MOD_SECTIONS
+  // A new layout's sections are drawn anew when their pages are placed.
+  ::sections::forget();
+#endif
   for (auto *set : kept_sets) if (set) for (auto &w : *set) {
     end_extra(w);
     w.index = grid.max_tiles(); w.cached_active = -1; w.art_key.clear();
@@ -10860,7 +11016,7 @@ inline void tick() {
     wifi_shown = shown;
     if (shown) ESP_LOGW("wifi_status", "No Wi-Fi: the glass says how to fix it");
     else ESP_LOGI("wifi_status", "Wi-Fi back: the pages again");
-    if (room_label) { mark_all(); render(room_label); } else refresh_all();
+    if (room_label) { mark_all("Wi-Fi gone or back"); render(room_label); } else refresh_all("Wi-Fi gone or back");
   }
   if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_tile()){
     auto &t=*detail_tile();bool waiting=t.loading(esphome::millis());
@@ -10898,7 +11054,7 @@ inline void tick() {
   if(ota_status::now.phase==ota_status::Phase::failed){
     static uint32_t failed_at=0;
     if(!failed_at)failed_at=esphome::millis()|1;
-    else if(esphome::millis()-failed_at>5000){failed_at=0;ota_status::now={};ota_forget();refresh_all();}
+    else if(esphome::millis()-failed_at>5000){failed_at=0;ota_status::now={};ota_forget();refresh_all("an update's status gone");}
   }
   // The starting screen follows every step as it happens (firmware 0.38.0): drawn again whenever what it says changes,
   // the seconds of a step that takes long included.
@@ -10938,7 +11094,7 @@ inline void tick() {
   auto card=[&](size_t index){ mark_tile(index); redraw=true; };
   // HA dropping or returning and the feed timing out change every card at once.
   bool now_fresh=fresh();
-  if(now_fresh!=was_fresh){was_fresh=now_fresh;mark_all();redraw=true;}
+  if(now_fresh!=was_fresh){was_fresh=now_fresh;ESP_LOGI("render","the feed is %s (Home Assistant %s, the app's feed %s, protocol %s, transfer %s/%s, model %s)",now_fresh?"fresh again":"no longer fresh",ha_connected()?"connected":"away",feed_alive()?"alive":"silent",protocol_problem==ProtocolProblem::none?"ok":"problem",transfer.active?"active":"inactive",transfer.begun?"begun":"not begun",model.ready()?"ready":"not ready");mark_all(now_fresh?"feed fresh again":"feed no longer fresh");redraw=true;}
 #ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
   expire_calls(esphome::millis());
 #endif
@@ -11015,7 +11171,10 @@ inline void restyle() {
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
   header_renderer.restyle();
-  if (room_label) { mark_all(); render(room_label); }
+#ifdef SD_MOD_SECTIONS
+  ::sections::restyle();
+#endif
+  if (room_label) { mark_all("the look changed"); render(room_label); }
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);
   media_library::restyle();
 }
@@ -11036,6 +11195,10 @@ struct ImageHooks {
   // The store took the decoded image's buffer over (picture_store::adopt): the slot lets go of it without freeing it.
   // Empty for a slot that cannot give its buffer away (the editor's WASM preview): the store gets a copy of its own.
   std::function<void()> hand_over;
+  // A load that sends the ETag of a picture its owner already has, and the ETag of the slot's last picture: the same
+  // bytes under another link come back 304 (docs/PICTURES.md, "Unchanged pictures"). Empty where the slot has no ETag.
+  std::function<void(const std::string &url, const std::string &etag)> load_as;
+  std::function<std::string()> etag;
 };
 // The page's strip (firmware 0.2.77+) comes through the third.
 inline ImageHooks camera_full, camera_thumb, camera_live;
@@ -11504,6 +11667,8 @@ inline bool card_open() { return detail_shown() || colour_shown() || effects_pag
 // What a card's picture is: its place measured on the card as LVGL laid it out, how the app paints it, and its pace.
 // False when the tile shows no picture, or the card has no size yet.
 inline bool tile_ask(const Widgets &w, const Tile &t, tile_picture::Ask &a) {
+  // The question's look (a.dark, part of the picture's key) and its ground are the card's (docs/THEME.md).
+  CardScope look(w);
   // A plugin tile's places (plugin API 0.10): its parts, measured by the host.
   if (w.plugin) return plugin_host::picture_ask(w, t, a);
 #ifdef SD_MOD_VACUUM_CARD
@@ -11528,7 +11693,7 @@ inline bool tile_ask(const Widgets &w, const Tile &t, tile_picture::Ask &a) {
   const int width = lv_obj_get_width(place), height = lv_obj_get_height(place);
   if (width <= 0 || height <= 0) return false;
   const int radius = art ? lv_obj_get_style_radius(w.tile, LV_PART_MAIN) : width / 6;
-  const uint32_t ground = t.transparent || art ? theme::hex(theme::PAGE) : theme::surface(t.background);
+  const uint32_t ground = t.transparent || art ? card_ground(w) : card_surface(w);
   // An album cover and a favourite carry their words on the picture, dimmed whole as a cover over a card is.
   const int shade = art && (t.cover_tile() || t.favorite()) ? tile_picture::SHADE : 0;
   // A picture over the cap sits in the middle of its card on the dark of a camera's page, which its corners round over.
@@ -11576,6 +11741,7 @@ inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {
 // over the cap is smaller, on the card's dark). Without it the card keeps the one it shows of the same place (the last
 // track's cover, a map before someone moved) until the next is here.
 inline void tile_picture_place(Widgets &w, const Tile &t, int size, int x, int y) {
+  CardScope scope(w);  // also reached from a picture's arrival, outside render_slot
   w.art_size = size; w.art_x = x; w.art_y = y;
 #ifdef SD_MOD_VACUUM_CARD
   if (vacuum_face::picture(w)) { vacuum_face::picture_place(w, t); return; }
@@ -11624,7 +11790,7 @@ inline void tile_picture_place(Widgets &w, const Tile &t, int size, int x, int y
       lv_obj_move_to_index(w.picture, 0);
       // The card behind a smaller picture: dark while it is smaller, the card's own colour again once it fills it.
       const bool dark = pw < width || ph < height;
-      set_color(w.tile, LV_STYLE_BG_COLOR, dark ? theme::color(theme::CAMERA_PAGE) : lv_color_hex(theme::surface(t.background)));
+      set_color(w.tile, LV_STYLE_BG_COLOR, dark ? theme::color(theme::CAMERA_PAGE) : lv_color_hex(card_surface(w)));
       set_number(w.tile, LV_STYLE_BG_OPA, t.transparent && !dark ? LV_OPA_TRANSP : LV_OPA_COVER);
     }
     lv_obj_remove_flag(w.picture, LV_OBJ_FLAG_HIDDEN);
@@ -12110,6 +12276,7 @@ inline uint32_t live_spot_ask(const live_spots::Spot &spot) {
   }
   if (spot.index >= model.count) return 0;
   auto *place = const_cast<lv_obj_t *>(static_cast<const lv_obj_t *>(spot.place));
+  CardScope look(place);  // a plugin's live place asks in its card's look
   picture_question::Question q;
   q.owner = picture_question::Owner::PLUGIN_TILE;
   q.index = static_cast<int>(spot.index);
@@ -12142,11 +12309,12 @@ inline live_view::Handle live_spot_open(const live_spots::Spot &spot, const std:
     each_card([&](Widgets &w) { if (w.index == spot.index && spot.index < model.count && live_tile_wanted(w, model.tiles[spot.index])) card = &w; });
     if (!card) return live_spots::Spots::NOT_NOW;
     const Tile &t = model.tiles[spot.index];
+    CardScope scope(*card);  // the stream's colours (loader, name, badge, ground) in the card's look
     live_view::Look look;
     look.tile = true;
     look.contain = url.find("fit=contain") != std::string::npos;
     look.radius = lv_obj_get_style_radius(card->tile, LV_PART_MAIN);
-    look.ground = live_view::rgb565(theme::hex(theme::PAGE));
+    look.ground = live_view::rgb565(card_ground(*card));
     look.fade = t.overlay;
     live_loader(look);
     lv_draw_buf_t *name = t.overlay ? live_name(look, *card, spot.room) : nullptr;
@@ -12166,11 +12334,12 @@ inline live_view::Handle live_spot_open(const live_spots::Spot &spot, const std:
   if (!card || spot.index >= model.count) return live_spots::Spots::NOT_NOW;
   const Tile &t = model.tiles[spot.index];
   auto *place = const_cast<lv_obj_t *>(static_cast<const lv_obj_t *>(spot.place));
+  CardScope scope(*card);
   live_view::Look look;
   look.tile = true;
   look.contain = url.find("fit=contain") != std::string::npos;
   look.radius = lv_obj_get_style_radius(place, LV_PART_MAIN);
-  look.ground = live_view::rgb565(t.transparent ? theme::hex(theme::PAGE) : theme::surface(t.background));
+  look.ground = live_view::rgb565(t.transparent ? card_ground(*card) : card_surface(*card));
   look.fade = false;
   live_loader(look);
   return live_view::open(url, spot.room, look);
@@ -13118,6 +13287,10 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
   // forgets its ETag (release) and the load counts as failed, so the loader fetches the picture whole.
   if (ok && cached && pictures_kept()) {
     const std::string asked = loader.loading_key(slot);
+    // The same bytes as the picture its owner had before (the ETag that went along with this link): that picture is
+    // this key's too, filed again without a copy, so the card on the glass changes nothing.
+    if (!asked.empty() && !pictures.entry(asked) && pictures.rekey(loader.loading_had(slot), asked, now))
+      ESP_LOGD("picture", "%s came back unchanged: the picture its owner showed is this one", asked.c_str());
     const lv_image_dsc_t *held = hooks.source ? hooks.source() : nullptr;
     if (!asked.empty() && !pictures.entry(asked) && !(held && held->data)) {
       ESP_LOGD("picture", "%s came back unchanged, but the store let it go: loaded again", asked.c_str());
@@ -13144,7 +13317,7 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
         std::memcpy(copy, src->data, src->data_size);
         taken.data = static_cast<const uint8_t *>(copy);
       }
-      kept = (hooks.hand_over || copy) && pictures.adopt(key, taken, now) != nullptr;
+      kept = (hooks.hand_over || copy) && pictures.adopt(key, taken, now, hooks.etag ? hooks.etag() : std::string()) != nullptr;
       if (!kept && copy) kept_free(copy);
       if (kept && hooks.hand_over) hooks.hand_over();
       else if (kept && hooks.release) hooks.release();  // the copy is the store's: the slot's own goes
@@ -13290,7 +13463,13 @@ inline void loader_bind() {
     if (slot_key[static_cast<int>(slot)] != key) slot_letgo(slot);
     picture_memory("before", key.substr(0, key.find('|')).c_str(), 0);
     auto &hooks = slot_hooks(slot);
-    if (hooks.load) hooks.load(url);
+    // The picture its owner shows until this one comes (another track, the same album): its ETag goes along, so the app
+    // answers 304 when the new link holds the same bytes, and picture_done files that picture under the new key.
+    std::string had_etag;
+    if (pictures_kept() && hooks.load_as)
+      if (auto *had = pictures.entry_any(loader.loading_had(slot))) had_etag = had->etag;
+    if (!had_etag.empty()) hooks.load_as(url, had_etag);
+    else if (hooks.load) hooks.load(url);
   };
   loader.cancel = [](picture_loader::Slot slot) {
     slot_letgo(slot);
@@ -13974,6 +14153,9 @@ inline bool starts_on_control(int x, int y) {
 #define SMART_DISPLAY_MODULE_SITE
 #ifdef SD_MOD_DOCK
 #include "module_dock.h"
+#endif
+#ifdef SD_MOD_SECTIONS
+#include "module_sections.h"
 #endif
 #undef SMART_DISPLAY_MODULE_SITE
 namespace runtime_tiles {

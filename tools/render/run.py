@@ -876,6 +876,59 @@ class Run:
         assert len(json.dumps({'n': 3, **x}, separators=(',', ':'))) <= 2600, 'the prices are larger than a tile may get'
         await self.sender.synchronize(self.inbox.object_id, record, region, values(3, x), bars)
         await self.until(lambda l: probe(l, 'tile=0 state n=3') and 'today=96 tomorrow=96' in l, 10, 'two days of prices', start)
+        # The card's own colour (plugin API 0.26, ui::set_card_color): the tile names green, the card wears the screen's
+        # green for a card in the pass that follows, and "none" gives the card back.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'green'}), bars)
+        said_card = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green', start)
+        own, named = re.search(r'own=(\w+) named=(\w+)', said_card).groups()
+        if own != named or own == 'FFFFFF':
+            self.failures.append(f'ui::card_color is not the colour the tile set: {said_card}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={own}' in l, 10, 'the card wears the tile\'s colour', start)
+        # An instrument's face edge to edge (plugin API 0.28, CardColor::INSTRUMENT): the card wears the INSTRUMENT
+        # role's ground, the same that ui::color(theme::INSTRUMENT) gives, dark in the light look too.
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(4, {'card': 'instrument'}), bars)
+        said_dark = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'the tile set its card to an instrument', start)
+        dark_own = re.search(r'own=(\w+)', said_dark).group(1)
+        if dark_own != '0E1621':
+            self.failures.append(f'CardColor::INSTRUMENT is not the instrument\'s ground: {said_dark}')
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={dark_own}' in l, 10, 'the card wears the instrument', start)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values(5, {'card': 'none'}), bars)
+        back = await self.until(lambda l: probe(l, 'tile=0 card set none'), 10, 'the tile gave its card back', start)
+        plain = re.search(r'own=(\w+)', back).group(1)
+        await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the person\'s again', start)
+        if plain == own:
+            self.failures.append(f'the card kept the tile\'s colour after CardColor::NONE: {back}')
+        # In a section whose tiles follow its contrast (docs/THEME.md "A card's look"), on a board that draws sections: the
+        # probe's card is in the other look, so ui::card_color answers in that look (green's dark value on the light
+        # screen), the card wears it, an instrument's face is the instrument's in that look, and out of the section the
+        # card is the screen's again. A section's header changes the card's room, so the card is made anew in its look
+        # (create, not on_theme).
+        if 'sections' in json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board].get('modules', []):
+            import copy
+            following = copy.deepcopy(record)
+            following['layout']['pages'][0]['sections'] = [{'id': '5ec9000000000001', 'title': 'Following', 'contrast': True,
+                'contrastTiles': True, 'placement': {'row': 0, 'column': 0, 'columns': 1, 'rows': 1}}]
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, following, region, values(6, {'card': 'green'}), bars)
+            told = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green, following', start)
+            if 'own=243A26' not in told:
+                self.failures.append(f'ui::card_color in a following section is not green in the other look: {told}')
+            await self.until(lambda l: probe(l, 'tile=0 tick') and 'ground=243A26' in l, 10, 'the card wears green in the other look', start)
+            # A plugin-wide moment (on_interval) paints a role onto a part of the tile: the other look's INK in here.
+            await self.until(lambda l: probe(l, 'interval painted tile=0 ink=DADADA'), 10, 'on_interval paints in the card\'s look', start)
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, following, region, values(7, {'card': 'instrument'}), bars)
+            told = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'an instrument, following', start)
+            if 'own=0B1119' not in told:
+                self.failures.append(f'an instrument\'s face in a following section is not the instrument in the other look: {told}')
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(8, {'card': 'none'}), bars)
+            await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the screen\'s again', start)
+            await self.until(lambda l: probe(l, 'interval painted tile=0 ink=1B1B1B'), 10, 'on_interval paints in the screen\'s look again', start)
+            self.warnings.append('plugin card in a following section: green and the instrument in the other look, back again')
         # Light and dark: on_theme, once each way.
         start = len(self.lines)
         self.client.switch_command(self.dark_switch.key, True)
@@ -1050,6 +1103,31 @@ class Run:
                 stored = await self.until(lambda l: 'store:' in l and 'pcard' in l, 10, 'the card\'s picture in the store', start)
                 self.warnings.append(f'card picture kept: {stored.split("store:", 1)[1].strip()[:80]}')
             self.warnings.append('card pictures: asked once, answered as pcard, shown on its place')
+            # A popup over the card with pictures of its own: each is an owner of the loader, so the card keeps its
+            # picture while the popup comes, shows and goes, and asks for nothing again.
+            start_popup, since_popup = len(self.lines), len(calls)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since_popup) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the popup over the card did not ask for its picture'
+            body, _ = painted(questions[-1].question, [porch(400, 400)])
+            await self.reply(questions[-1], self.pictures.url(f'{self.item.key}-popup-over-card.bmp', body))
+            await self.until(lambda l: probe(l, 'picture popup shown '), 10, 'the popup\'s picture over the card', start_popup)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+            await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the popup over the card closed', start_popup)
+            await asyncio.sleep(1.5)
+            again = [read.data for _, read in self.unanswered(calls, since_popup) if read.owner.kind == 'plugin_card'
+                     and read.owner.key == 'plugin:host_probe.detail']
+            assert not again, f'the card asked again for its picture after a popup over it: {again}'
+            assert not [l for l in self.lines[start_popup:] if probe(l, 'card destroy')], 'the popup closed the card'
+            shot = await self.render('plugin-card-after-popup')
+            colours = shot.convert('RGB').crop((x1 + 2, y1 + 2, x2 - 1, y2 - 1)).getcolors(1 << 16) or []
+            assert len(colours) > 12, f'after a popup over it the card\'s place shows {len(colours)} colours, not its picture'
+            self.warnings.append('card pictures: kept through a popup with pictures over the card')
         await self.render('plugin-card')
         # A tap on the card's room (plugin API 0.12): on_tap through the touch filter, where in the card's own pixels;
         # a tap on another spot right after it counts too (a list's next row), the same spot again is a bounce.
@@ -1240,6 +1318,82 @@ class Run:
         await self.call('dismiss_alert')
         self.warnings.append('popup: shown, ticked, tapped, closed beside, by its key, by its plugin, by itself and by an '
                              'alert; it woke a screen in standby')
+        # A popup with an id of the manifest's `popups` (plugin API 0.27): its place asks for its picture as a card's
+        # does (owner plugin_card, the popup's key), the harness answers as the app does, and the piece lands on the
+        # place; on an instrument's ground (dark in both looks) a mark turned along a course (ui::rotate).
+        start, since = len(self.lines), len(calls)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
+        made = await self.until(lambda l: probe(l, 'instrument ground='), 10, 'the picture popup opened', start)
+        ground, ink, turned, pulsed, stilled = re.search(r'ground=(\w+) ink=(\w+) turned=(-?\d+) pulsed=(-?\d+) stilled=(-?\d+)', made).groups()
+        if turned != '900' or ground == ink:
+            self.failures.append(f'ui::rotate or the instrument roles: {made}')
+        # A turned part keeps its turn through ui::animate and ui::still (a plane's icon that blinks keeps its course).
+        if pulsed != '900' or stilled != '900':
+            self.failures.append(f'a turned part lost its turn to ui::animate or ui::still: {made}')
+        if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the popup did not ask for its picture'
+            read = questions[-1]
+            body, _ = painted(read.question, [porch(400, 400)])
+            await self.reply(read, self.pictures.url(f'{self.item.key}-popup.bmp', body))
+            shown = await self.until(lambda l: probe(l, 'picture popup shown '), 10, 'the popup\'s picture shown', start)
+            await asyncio.sleep(0.6)
+            shot = await self.render('plugin-popup-picture')
+            x1, y1, x2, y2 = (int(n) for n in shown.rsplit(' ', 1)[1].split(','))
+            colours = shot.convert('RGB').crop((x1 + 2, y1 + 2, x2 - 1, y2 - 1)).getcolors(1 << 16) or []
+            assert len(colours) > 12, f'the popup\'s place shows {len(colours)} colours, not its picture'
+            self.warnings.append('popup pictures: asked as a card\'s with the popup\'s key, shown on its place')
+        else:
+            self.warnings.append('popup pictures: none on this board (pictures=0)')
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the picture popup closed', start)
+        # A popup that closes itself as it hears of its first picture: it hears of nothing more (its second place is never
+        # told of), its places are not read again, and the screen goes on.
+        if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
+            start, since = len(self.lines), len(calls)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture_close'}})
+            await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'the closing popup opened', start)
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the closing popup did not ask for its pictures'
+            read = questions[-1]
+            body, _ = painted(read.question, [porch(400, 400), porch(200, 200)])
+            await self.reply(read, self.pictures.url(f'{self.item.key}-popup-close.bmp', body))
+            await self.until(lambda l: probe(l, 'picture popup closes in on_picture'), 10, 'the popup closed in on_picture', start)
+            await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the popup that closed itself went', start)
+            await asyncio.sleep(1.0)
+            heard = [l for l in self.lines[start:] if probe(l, 'picture popup heard ')]
+            assert len(heard) == 1, f'a popup that closed in on_picture heard more: {heard}'
+            self.warnings.append('popup pictures: one that closes in on_picture hears nothing more')
+        # A part's turn through ui::animate and ui::still, and none kept for a part that is gone (plugin_api.h, ui::rotate).
+        start = len(self.lines)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'turns'}})
+        line = await self.until(lambda l: probe(l, 'turns pulsing='), 10, 'the turns of parts', start)
+        got = dict(re.findall(r'(\w+)=([\d,]+)', line.split('turns ', 1)[1]))
+        before, after, end = (int(n) for n in got['kept'].split(','))
+        if (got['pulsing'], got['pulsed'], got['spun'], got['again'], got['unturned']) != ('900', '900', '900', '1800', '0') \
+                or after != before or end != before - 3:
+            self.failures.append(f'a part\'s turn through animate and still, or the turns kept: {line}')
+        self.warnings.append(f'part turns: {line.split("turns ", 1)[1]}')
+        # A popup without an id may make a place, but it has no pictures: it asks for nothing.
+        start, since = len(self.lines), len(calls)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_place'}})
+        await self.until(lambda l: probe(l, 'do popup_place shown=1'), 10, 'the popup without an id', start)
+        await asyncio.sleep(2.5)
+        asked = [read.data for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card']
+        assert not asked, f'a popup without an id asked for pictures: {asked}'
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the popup without an id closed', start)
+        self.warnings.append('popup without an id: its place asks for nothing')
         # A slot that goes from the plugin tile to a plain card lets the plugin's object go at once (plugin_api.h), not
         # when the slot next draws a custom card; page 2 and back still show their plugin tiles, kept or made anew.
         start = len(self.lines)
@@ -4284,6 +4438,11 @@ class Run:
         self.process = subprocess.Popen([str(self.build.program)], stdout=log, stderr=subprocess.STDOUT, cwd=self.build.work)
         try:
             pages, checks = await self.drive()
+            # The card look's own checks in the program (docs/THEME.md "A card's look"): a card painted outside its look,
+            # the look changed inside a card's scope, a trade of a card's styles that does not undo exactly.
+            failed = [line for line in self.lines if '[card_look' in line and 'FAIL' in line]
+            if failed:
+                raise RuntimeError(f'card look: {failed[0]} ({len(failed)} in all)')
             return f'{pages} pages, {checks} page checks'
         finally:
             try:

@@ -20,13 +20,18 @@ line in its file. A host build (the renders) has no `esp32` block, so `tools/ren
 
 ## A module
 
-A module is listed in `components/smart_display/modules.py` with the lowest tier that has it and its define:
+A module is listed in `components/smart_display/modules.py` with the lowest tier that has it, its define, and whether
+the editor's firmware preview is built with it:
 
 ```python
 MODULES = {
-    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK"},
+    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK", "preview": False},
 }
 ```
+
+`preview` is the one place that says what the preview in the editor draws (`web/wasm/build.py` and
+`generate_renderer_manifest.py` read it): a module that draws from what the add-on sends is in it, one that needs a
+part the browser has none of (an edge swipe, live pictures, a microphone) is not.
 
 Its code lives in `components/smart_display/module_<name>.h` (and a `module_<name>.cpp` if it needs one, wrapped
 whole in its `#ifdef`). It stays in the component's own folder: ESPHome copies no folders inside it. The shared code
@@ -38,7 +43,8 @@ the add-on and the editor offer a module's options only on boards that have it.
 
 ## Adding a module
 
-1. Add it to `MODULES` in `modules.py`.
+1. Add it to `MODULES` in `modules.py`, with `preview` true when the editor's firmware preview should draw it; the
+   preview is then rebuilt (`web/wasm/build.sh`, or CI after the push).
 2. Put its code in `components/smart_display/module_<name>.h`.
 3. Reach it from the shared code only inside `#ifdef` of its define, and keep the lite behaviour in the other branch.
 4. If the add-on or the editor offers something for it, check the board's `modules` in `boards.json`.
@@ -96,3 +102,7 @@ the add-on and the editor offer a module's options only on boards that have it.
   icon of its own (`icon` in the page document, one of the pickable MDI icons, sent as its codepoint): the Dock then
   shows that icon instead of the page's picture. On lite, up from
   the bottom goes home.
+- **sections** (full): sections on a page, blocks of cells with a title, an icon, a panel and a summary (docs/PAGES.md
+  "Sections", `module_sections.h`, with the pure `section_layout.h` beside it). Its screens say `sections` in their
+  hello and ESP Screens sends them each page's sections and their summaries (`sums`); the editor offers sections where
+  `boards.json` lists the module, and lite gets the same tiles in the same cells without them.

@@ -35,6 +35,11 @@ Three rules keep this safe:
   drawn again when it comes back only when its tile took a later number. A drawing that was asked for before a page was
   built, and ran after, is then no change that page lacks; the flags this replaced got that wrong.
 
+A page's sections (docs/PAGES.md "Sections") are drawn once, when the page is first placed on the glass or prepared off
+it, and kept: their panels, titles and icons are hidden while another page is on the glass and shown with their page, so
+a page switch stays a switch. They are made again when what they show changes, and a new layout or grid lets them go
+(`module_sections.h`).
+
 A layout change forgets every kept page (`forget_kept`); the sets stay and are reused for the next pages, and their
 pictures go with what they showed, and so do the cards' own drawings (their custom parts, their points, a calendar's
 events, a meter's texts: `end_extra`). A card that next shows a tile without custom parts would only hide them

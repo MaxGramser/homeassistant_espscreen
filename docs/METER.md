@@ -14,7 +14,8 @@ sensor whose state is a number can show it (the same sensors that can show a gra
 
 Every look takes the largest of the board's fixed fonts that fits, up to the large digits of the thermostat's
 setpoint, so a meter on a large card is readable across a room. Nothing else is drawn: no numbers along a percentage,
-no gradients, no extra lines.
+no gradients, no extra lines. The ring's icon takes its size from the card's own icon font, never from another card on
+the glass, and always a face that has the glyph: the largest that fits the circle, else the smallest that has it.
 
 ## The range
 
@@ -61,6 +62,6 @@ The tile's options (`screen_manager/app/meter.py` checks them and leaves out the
 The app sends the colours as numbers, so the screen keeps no table of names. The meter needs firmware 0.56.0; the app
 asks an older screen to update first. The screen plans each card in `components/smart_display/meter_card.h` and paints
 it in one object per card (`meter_paint.h`, `meter_view.cpp`), so a bar of 60 cells or a ruler of 50 marks costs one
-object. `tools/render/meter_firmware.py` renders the same planner and painter on every board's grid, every span and
+object, and draws every text through `draw_text::label`, which has LVGL keep a copy until it draws. `tools/render/meter_firmware.py` renders the same planner and painter on every board's grid, every span and
 both looks, and counts any word that had to be shortened and anything outside its card; `tests/test_meter_card.cpp`
 checks the plans on every span of the boards' grids.

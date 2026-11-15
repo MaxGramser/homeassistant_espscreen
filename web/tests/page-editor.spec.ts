@@ -475,6 +475,23 @@ describe("revisions and portable layouts", () => {
     expect(doc.document!.pages[0].id).not.toBe(source.layout.pages[0].id);
     expect(doc.document!.pages[0].tiles[0].content).toEqual({ kind: "navigation", target: { kind: "page", pageId: doc.document!.pages[1].id } });
   });
+  it("holds a layout copied to a screen whose board draws no sections to its tiles alone", () => {
+    const screens = useInventoryStore().inventory.screens;
+    screens.push(screenFixture({ ...screens[0], id: "source", name: "Source" }));
+    const source = screens[1].page_document as PageDocument, first = source.layout.pages[0];
+    const block = { ...first.tiles[0].placement };
+    first.sections = [{ id: "5ec7000000000001", title: "Lights", placement: block }];
+    // This screen's board draws none (no `sections` in what the add-on says of it): the tiles come, the section does not.
+    expect(useScreenStore().currentScreen?.sections).not.toBe(true);
+    doc.copyLayoutFrom("source");
+    expect(doc.document!.pages.some((page) => page.sections)).toBe(false);
+    expect(doc.document!.pages[0].tiles.length).toBe(first.tiles.length);
+    expect(doc.layout!.sections).toBeUndefined();
+    // On a screen that draws them the same copy keeps its section.
+    (useScreenStore().currentScreen as any).sections = true;
+    doc.copyLayoutFrom("source");
+    expect(doc.document!.pages[0].sections?.map((section) => section.title)).toEqual(["Lights"]);
+  });
   it("does not apply an import response to a different screen opened while it was checked", async () => {
     let resolve!: (value: Response) => void;
     const imported = documentFixture({ title: "Imported", tiles: [] });

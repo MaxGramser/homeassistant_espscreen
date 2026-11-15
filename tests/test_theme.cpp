@@ -100,6 +100,29 @@ int main() {
     if (r == g && g == b && r > 0 && r < 0xFF) assert((r >> 3) * 2 == (g >> 2));
   }
 
+  // ---- an instrument (plugin API 0.27): dark in both looks, its words read on it, its lines show and stay quiet
+  for (bool d : {false, true}) {
+    auto v = [d](Role r) { return d ? ROLES[r].dark : ROLES[r].light; };
+    assert(lightness(v(INSTRUMENT)) < 40);
+    assert(contrast(v(INSTRUMENT_INK), v(INSTRUMENT)) >= 12.0);
+    assert(contrast(v(INSTRUMENT_MUTED), v(INSTRUMENT)) >= 4.5);
+    assert(contrast(v(INSTRUMENT_GLOW), v(INSTRUMENT)) >= 7.0);
+    assert(contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) >= 1.4 && contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) < 3.0);
+  }
+  // A card that is an instrument's face (0.28): the instrument's ground and line in both looks, apart from every swatch.
+  const bool look = dark;
+  for (bool d : {false, true}) {
+    dark = d;
+    assert(surface(Face::instrument()) == hex(INSTRUMENT) && outline(Face::instrument()) == hex(INSTRUMENT_LINE));
+    // A press on it shows in both looks: its face is dark in both, so the press goes towards white in both.
+    assert(lightness(pressed(Face::instrument())) > lightness(hex(INSTRUMENT)));
+    // A swatch kept as its light value is that swatch; 0 and any other value is the card.
+    for (size_t i = 0; i < SWATCH_COUNT; ++i) assert(Face::of(SWATCHES[i].light) == (Face{Face::SWATCH, uint8_t(i)}));
+    assert(Face::of(0) == Face{} && surface(Face{}) == hex(CARD) && surface(0u) == hex(CARD));
+    assert(Face::instrument().key() != 0 && Face{}.key() == 0);
+  }
+  dark = look;
+
   // ---- Home Assistant's colours in the dark look
   assert(state(ha::GREY) == ROLES[OFF].dark && state(0xCFCFCF) == ROLES[HISTORY_OFF].dark && state(0xE6E6E6) == ROLES[HISTORY_EMPTY].dark);
   assert(state(ha::AMBER) == ha::AMBER && state(ha::TEAL) == ha::TEAL);
@@ -119,5 +142,30 @@ int main() {
   assert(pressed(hex(CARD)) == mix(hex(CARD), 0xFFFFFF, 224) && lightness(pressed(hex(CARD))) > lightness(hex(CARD)));
   assert(lightness(outline(0xFADADD)) > lightness(surface(0xFADADD)));
   assert(fill_opacity() < 51);
+
+  // ---- a card's look (docs/THEME.md "A card's look"): a scope is the screen's look or the other, then gives back what
+  // was there, nested or not; the screen's own look never moves
+  for (bool screen : {false, true}) {
+    screen_dark = dark = screen;
+    {
+      LookScope other(true);
+      assert(dark == !screen && screen_dark == screen);
+      {
+        LookScope plain(false);
+        assert(dark == screen);
+        {
+          LookScope again(true);
+          assert(dark == !screen);
+        }
+        assert(dark == screen);
+      }
+      assert(dark == !screen);
+      other.end();
+      assert(dark == screen);
+    }
+    assert(dark == screen && screen_dark == screen);
+    assert(hex_in(CARD, true) == ROLES[CARD].dark && hex_in(CARD, false) == ROLES[CARD].light);
+  }
+  screen_dark = dark = false;
   return 0;
 }

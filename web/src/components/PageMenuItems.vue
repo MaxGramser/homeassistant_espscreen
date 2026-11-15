@@ -1,15 +1,17 @@
 <script setup lang="ts">
 // Everything you do to a page as a whole: behind its ··· (app 0.3.19) and on the right mouse button anywhere on the page
-// that is not a tile or an empty cell (docs/PAGES.md, "Menus"): its settings, its top bar, making it Home, a copy, and
-// removing it.
+// that is not a tile or an empty cell (docs/PAGES.md, "Menus"): its settings, its top bar, a new section where the screen
+// draws them, making it Home, a copy, and removing it.
 import { computed } from "vue";
 import { t } from "../i18n";
 import UiMenuItem from "./ui/UiMenuItem.vue";
 import UiMenuSeparator from "./ui/UiMenuSeparator.vue";
 import { useScreenStore } from "../stores/screen";
 import { duplicateEditorPage, pageCopyable, removePage, setHomePage } from "../editor/pages";
+import { addSection, sectionsOffered } from "../editor/sections";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { allTiles } from "../model/page-tiles";
 
 const scr = useScreenStore();
 const doc = useDocumentStore();
@@ -20,8 +22,8 @@ const index = computed(() => doc.document?.pages.findIndex((page) => page.id ===
 const page = computed(() => doc.document?.pages[index.value]);
 const home = computed(() => doc.document?.homePageId === props.id);
 // A full copy only when the screen takes every tile on it twice (editor/pages.ts pageCopyable).
-const canCopy = computed(() => pageCopyable(page.value?.tiles));
-const tiles = computed(() => page.value?.tiles.length || 0);
+const canCopy = computed(() => pageCopyable(page.value ? allTiles(page.value) : undefined));
+const tiles = computed(() => (page.value ? allTiles(page.value).length : 0));
 </script>
 
 <template>
@@ -29,6 +31,7 @@ const tiles = computed(() => page.value?.tiles.length || 0);
     <UiMenuItem icon="cog-outline" @select="insp.openPage(id)">{{ t("editor.pages.page_settings") }}</UiMenuItem>
     <UiMenuItem class="page-rename" icon="pencil-outline" @select="insp.renamePage(id)">{{ t("editor.naming.rename") }}</UiMenuItem>
     <UiMenuItem icon="page-layout-header" @select="insp.openBar(0, index)">{{ t("editor.page.edit_bar") }}</UiMenuItem>
+    <UiMenuItem v-if="sectionsOffered()" class="page-add-section" icon="view-grid-outline" @select="addSection(index)">{{ t("editor.sections.add") }}</UiMenuItem>
     <UiMenuSeparator />
     <UiMenuItem icon="home-outline" :disabled="home || !scr.pageReady" @select="setHomePage(id)">{{ t(home ? "editor.pages.is_home" : "editor.pages.set_home") }}</UiMenuItem>
     <UiMenuItem v-if="canCopy" icon="content-duplicate" @select="duplicateEditorPage(id, false)">{{ t("editor.pages.duplicate") }}</UiMenuItem>

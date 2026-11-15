@@ -12,7 +12,7 @@ import { usePointerDrag } from "./usePointerDrag";
 
 export type Band = { left: number; top: number; width: number; height: number };
 // What a band never starts on: the things that have a press of their own.
-const OWN_PRESS = ".tile, .round-tile, .bar-wrap, .page-head, .map-scroll, .editor-toolbar, .notice, .library, .drawer, .phone-pager, .page-pills, .ghost, a, input, select, textarea, [role='menu'], button:not(.cell)";
+const OWN_PRESS = ".tile, .round-tile, .section-head, .section-panel, .section-grip, .section-maker, .bar-wrap, .page-head, .map-scroll, .editor-toolbar, .notice, .library, .drawer, .phone-pager, .page-pills, .ghost, a, input, select, textarea, [role='menu'], button:not(.cell)";
 
 /** Whether two rectangles share any point. */
 export function touches(a: { left: number; top: number; right: number; bottom: number }, b: { left: number; top: number; right: number; bottom: number }) {
