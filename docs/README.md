@@ -72,6 +72,8 @@
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
 - [SETTINGS.md](SETTINGS.md): the screen settings, and adding one; a board's own settings (Extras), and adding one.
 - [PAGES.md](PAGES.md): the page model, tile sizes, navigation, storage and the message rules.
+- [AUTO_LAYOUT.md](AUTO_LAYOUT.md): the first layout the editor makes from a home's areas and devices, how it groups,
+  sizes and labels tiles per screen, and the places a change of it touches.
 - [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.

@@ -3839,7 +3839,8 @@
         "layout_imported": "layout imported",
         "changed": "layout changed",
         "restored": "unsaved changes restored",
-        "taken_over": "changes from the other tab taken over"
+        "taken_over": "changes from the other tab taken over",
+        "auto_layout": "the layout made for you"
       }
     },
     "draft": {
@@ -4768,6 +4769,52 @@
       "contrast_hint": "The panel in the page's opposite colour, dark by day and light in Dark mode, so this section stands out.",
       "contrast_tiles": "Tiles in contrast too",
       "contrast_tiles_hint": "The whole section in the other look, its tiles' cards too: dark cards on a dark panel by day, light ones in Dark mode."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lights",
+        "covers": "Blinds & windows",
+        "climate": "Climate",
+        "media": "Media",
+        "security": "Security",
+        "actions": "Scenes",
+        "others": "Devices",
+        "weather": "Weather",
+        "people": "Who is home",
+        "energy": "Energy",
+        "cameras": "Cameras",
+        "vacuum": "Vacuum",
+        "todo": "Lists",
+        "calendar": "Calendar"
+      },
+      "home": "Home",
+      "all_lights": "All lights",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} and {n} more",
+      "button": "Auto layout",
+      "button_title": "Make pages from your Home Assistant rooms and devices",
+      "title": "Make a layout for you",
+      "intro": "Tessera looks at your Home Assistant areas and devices and makes pages for this screen: a page or section per room, the house's weather, alarm, people and cameras together, larger tiles where this screen has room for them. You can undo it and change anything afterwards.",
+      "reading": "Reading your home…",
+      "failed": "Your home could not be read: {error}",
+      "nothing": "Tessera found nothing for this screen to show yet. Give your devices an area in Home Assistant, or add tiles from the library.",
+      "nothing_new": "Everything Tessera would put on this screen is on it already.",
+      "summary": "{pages} page · {tiles} tiles | {pages} pages · {tiles} tiles",
+      "summary_sections": "{n} section in it | {n} sections in it",
+      "from_rooms": "from one room | from {n} rooms",
+      "left_out": "One more entity found no room on this screen; the library has it. | {n} more entities found no room on this screen; the library has them.",
+      "replace": "Replace the pages",
+      "replace_hint": "The screen gets these pages instead of the ones it has now.",
+      "append": "Add after the current pages",
+      "append_hint": "The pages it has stay, the new ones come after them with what is not on the screen yet.",
+      "append_full": "This screen has no pages or tiles left for more. Replace the pages, or make room first.",
+      "make": "Make the layout",
+      "made": "A layout of {pages} page is ready. Undo takes it back. | A layout of {pages} pages is ready. Undo takes it back.",
+      "offer_title": "Shall I make a first layout for you?",
+      "offer_text": "Tessera can lay out this screen from your Home Assistant rooms and devices. You can change everything afterwards.",
+      "offer_make": "Make a first layout",
+      "offer_empty": "Start empty"
     }
   }
 }

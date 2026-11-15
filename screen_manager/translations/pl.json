@@ -4261,7 +4261,8 @@
         "layout_imported": "zaimportowano układ",
         "changed": "zmieniono układ",
         "restored": "przywrócono niezapisane zmiany",
-        "taken_over": "przejęto zmiany z innej karty"
+        "taken_over": "przejęto zmiany z innej karty",
+        "auto_layout": "układ utworzony dla Ciebie"
       }
     },
     "draft": {
@@ -4700,6 +4701,52 @@
       "contrast_hint": "Panel w kolorze przeciwnym do strony, ciemny za dnia i jasny w trybie ciemnym, aby ta sekcja się wyróżniała.",
       "contrast_tiles": "Kafelki też w kontraście",
       "contrast_tiles_hint": "Cała sekcja w drugim wyglądzie, również karty kafelków: ciemne karty na ciemnym panelu za dnia, jasne w trybie ciemnym."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Światła",
+        "covers": "Rolety i okna",
+        "climate": "Klimat",
+        "media": "Multimedia",
+        "security": "Bezpieczeństwo",
+        "actions": "Sceny",
+        "others": "Urządzenia",
+        "weather": "Pogoda",
+        "people": "Kto jest w domu",
+        "energy": "Energia",
+        "cameras": "Kamery",
+        "vacuum": "Odkurzacz",
+        "todo": "Listy",
+        "calendar": "Kalendarz"
+      },
+      "home": "Dom",
+      "all_lights": "Wszystkie światła",
+      "two_rooms": "{a} i {b}",
+      "room_list": "{list} i {last}",
+      "more_rooms": "{a} i {n} więcej",
+      "button": "Układ automatyczny",
+      "button_title": "Utwórz strony z obszarów i urządzeń Home Assistant",
+      "title": "Utworzyć układ dla Ciebie",
+      "intro": "Tessera sprawdza Twoje obszary i urządzenia w Home Assistant i tworzy strony dla tego ekranu: stronę lub sekcję na pomieszczenie, pogodę, alarm, osoby i kamery domu razem, większe kafelki tam, gdzie ekran ma na nie miejsce. Możesz to cofnąć i potem wszystko zmienić.",
+      "reading": "Odczytywanie Twojego domu…",
+      "failed": "Nie udało się odczytać Twojego domu: {error}",
+      "nothing": "Tessera nie znalazła jeszcze nic do pokazania na tym ekranie. Przypisz urządzeniom obszar w Home Assistant albo dodaj kafelki z biblioteki.",
+      "nothing_new": "Wszystko, co Tessera umieściłaby na tym ekranie, już na nim jest.",
+      "summary": "{pages} strona · kafelki: {tiles} | {pages} strony · kafelki: {tiles} | {pages} stron · kafelki: {tiles}",
+      "summary_sections": "{n} sekcja | {n} sekcje | {n} sekcji",
+      "from_rooms": "z {n} pomieszczenia | z {n} pomieszczeń | z {n} pomieszczeń",
+      "left_out": "Jeszcze {n} encja nie zmieściła się na tym ekranie; jest w bibliotece. | Jeszcze {n} encje nie zmieściły się na tym ekranie; są w bibliotece. | Jeszcze {n} encji nie zmieściło się na tym ekranie; są w bibliotece.",
+      "replace": "Zastąp strony",
+      "replace_hint": "Ekran dostanie te strony zamiast obecnych.",
+      "append": "Dodaj po obecnych stronach",
+      "append_hint": "Obecne strony zostają, nowe pojawią się po nich z tym, czego jeszcze nie ma na ekranie.",
+      "append_full": "Na tym ekranie nie zostało wolnych stron ani kafelków. Zastąp strony albo najpierw zrób miejsce.",
+      "make": "Utwórz układ",
+      "made": "Układ z {pages} stroną jest gotowy. Cofnij go wycofa. | Układ z {pages} stronami jest gotowy. Cofnij go wycofa. | Układ z {pages} stronami jest gotowy. Cofnij go wycofa.",
+      "offer_title": "Czy mam utworzyć pierwszy układ?",
+      "offer_text": "Tessera może ułożyć ten ekran na podstawie obszarów i urządzeń z Home Assistant. Potem możesz wszystko zmienić.",
+      "offer_make": "Utwórz pierwszy układ",
+      "offer_empty": "Zacznij od pustego"
     }
   }
 }

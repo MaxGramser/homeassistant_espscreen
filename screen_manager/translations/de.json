@@ -4261,7 +4261,8 @@
         "layout_imported": "Layout importiert",
         "changed": "Layout geändert",
         "restored": "nicht gespeicherte Änderungen wiederhergestellt",
-        "taken_over": "Änderungen aus dem anderen Tab übernommen"
+        "taken_over": "Änderungen aus dem anderen Tab übernommen",
+        "auto_layout": "das für dich erstellte Layout"
       }
     },
     "draft": {
@@ -4700,6 +4701,52 @@
       "contrast_hint": "Das Feld in der Gegenfarbe der Seite, dunkel am Tag und hell im Dunkelmodus, damit dieser Bereich hervorsticht.",
       "contrast_tiles": "Kacheln auch im Kontrast",
       "contrast_tiles_hint": "Der ganze Bereich im anderen Aussehen, die Karten der Kacheln auch: dunkle Karten auf dunklem Feld am Tag, helle im Dunkelmodus."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Licht",
+        "covers": "Rollos & Fenster",
+        "climate": "Klima",
+        "media": "Medien",
+        "security": "Sicherheit",
+        "actions": "Szenen",
+        "others": "Geräte",
+        "weather": "Wetter",
+        "people": "Wer ist zu Hause",
+        "energy": "Energie",
+        "cameras": "Kameras",
+        "vacuum": "Staubsauger",
+        "todo": "Listen",
+        "calendar": "Kalender"
+      },
+      "home": "Zuhause",
+      "all_lights": "Alle Lichter",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} und {n} weitere",
+      "button": "Automatisches Layout",
+      "button_title": "Seiten aus deinen Home-Assistant-Bereichen und -Geräten erstellen",
+      "title": "Ein Layout für dich erstellen",
+      "intro": "Tessera sieht sich deine Bereiche und Geräte in Home Assistant an und erstellt Seiten für diesen Bildschirm: eine Seite oder einen Abschnitt pro Raum, Wetter, Alarm, Personen und Kameras des Hauses zusammen, größere Kacheln, wo dieser Bildschirm Platz dafür hat. Du kannst es rückgängig machen und danach alles ändern.",
+      "reading": "Dein Zuhause wird gelesen…",
+      "failed": "Dein Zuhause konnte nicht gelesen werden: {error}",
+      "nothing": "Tessera hat noch nichts für diesen Bildschirm gefunden. Gib deinen Geräten in Home Assistant einen Bereich oder füge Kacheln aus der Bibliothek hinzu.",
+      "nothing_new": "Alles, was Tessera auf diesen Bildschirm setzen würde, ist schon darauf.",
+      "summary": "{pages} Seite · {tiles} Kacheln | {pages} Seiten · {tiles} Kacheln",
+      "summary_sections": "{n} Abschnitt | {n} Abschnitte",
+      "from_rooms": "aus einem Raum | aus {n} Räumen",
+      "left_out": "Eine weitere Entität fand keinen Platz auf diesem Bildschirm; sie ist in der Bibliothek. | {n} weitere Entitäten fanden keinen Platz auf diesem Bildschirm; sie sind in der Bibliothek.",
+      "replace": "Seiten ersetzen",
+      "replace_hint": "Der Bildschirm bekommt diese Seiten statt der jetzigen.",
+      "append": "Nach den jetzigen Seiten hinzufügen",
+      "append_hint": "Die jetzigen Seiten bleiben, die neuen kommen danach, mit dem, was noch nicht auf dem Bildschirm ist.",
+      "append_full": "Auf diesem Bildschirm sind keine Seiten oder Kacheln mehr frei. Ersetze die Seiten oder schaffe zuerst Platz.",
+      "make": "Layout erstellen",
+      "made": "Ein Layout mit {pages} Seite ist fertig. Rückgängig nimmt es zurück. | Ein Layout mit {pages} Seiten ist fertig. Rückgängig nimmt es zurück.",
+      "offer_title": "Soll ich ein erstes Layout für dich erstellen?",
+      "offer_text": "Tessera kann diesen Bildschirm aus deinen Home-Assistant-Bereichen und -Geräten einrichten. Danach kannst du alles ändern.",
+      "offer_make": "Erstes Layout erstellen",
+      "offer_empty": "Leer beginnen"
     }
   }
 }

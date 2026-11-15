@@ -4261,7 +4261,8 @@
         "layout_imported": "mise en page importée",
         "changed": "mise en page modifiée",
         "restored": "modifications non enregistrées restaurées",
-        "taken_over": "reprise des modifications de l'autre onglet"
+        "taken_over": "reprise des modifications de l'autre onglet",
+        "auto_layout": "la disposition créée pour vous"
       }
     },
     "draft": {
@@ -4700,6 +4701,52 @@
       "contrast_hint": "Le panneau dans la couleur opposée de la page, sombre le jour et clair en mode sombre, pour faire ressortir cette section.",
       "contrast_tiles": "Tuiles en contraste aussi",
       "contrast_tiles_hint": "Toute la section dans l'autre apparence, les cartes des tuiles aussi : cartes sombres sur panneau sombre le jour, claires en mode sombre."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lumières",
+        "covers": "Volets & fenêtres",
+        "climate": "Climat",
+        "media": "Médias",
+        "security": "Sécurité",
+        "actions": "Scènes",
+        "others": "Appareils",
+        "weather": "Météo",
+        "people": "Qui est à la maison",
+        "energy": "Énergie",
+        "cameras": "Caméras",
+        "vacuum": "Aspirateur",
+        "todo": "Listes",
+        "calendar": "Agenda"
+      },
+      "home": "Maison",
+      "all_lights": "Toutes les lumières",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} et {n} de plus",
+      "button": "Disposition auto",
+      "button_title": "Créer des pages à partir de vos pièces et appareils Home Assistant",
+      "title": "Créer une disposition pour vous",
+      "intro": "Tessera regarde vos pièces et appareils dans Home Assistant et crée des pages pour cet écran : une page ou une section par pièce, la météo, l'alarme, les personnes et les caméras de la maison ensemble, des tuiles plus grandes là où cet écran a la place. Vous pouvez l'annuler et tout modifier ensuite.",
+      "reading": "Lecture de votre maison…",
+      "failed": "Votre maison n'a pas pu être lue : {error}",
+      "nothing": "Tessera n'a encore rien trouvé à afficher sur cet écran. Donnez une pièce à vos appareils dans Home Assistant, ou ajoutez des tuiles depuis la bibliothèque.",
+      "nothing_new": "Tout ce que Tessera mettrait sur cet écran y est déjà.",
+      "summary": "{pages} page · {tiles} tuiles | {pages} pages · {tiles} tuiles",
+      "summary_sections": "{n} section | {n} sections",
+      "from_rooms": "d'une pièce | de {n} pièces",
+      "left_out": "Une entité de plus n'a pas trouvé de place sur cet écran ; elle est dans la bibliothèque. | {n} entités de plus n'ont pas trouvé de place sur cet écran ; elles sont dans la bibliothèque.",
+      "replace": "Remplacer les pages",
+      "replace_hint": "L'écran reçoit ces pages à la place des actuelles.",
+      "append": "Ajouter après les pages actuelles",
+      "append_hint": "Les pages actuelles restent, les nouvelles viennent après, avec ce qui n'est pas encore sur l'écran.",
+      "append_full": "Cet écran n'a plus de pages ni de tuiles libres. Remplacez les pages, ou faites d'abord de la place.",
+      "make": "Créer la disposition",
+      "made": "Une disposition de {pages} page est prête. Annuler la retire. | Une disposition de {pages} pages est prête. Annuler la retire.",
+      "offer_title": "Voulez-vous que je crée une première disposition ?",
+      "offer_text": "Tessera peut organiser cet écran à partir de vos pièces et appareils Home Assistant. Vous pourrez tout modifier ensuite.",
+      "offer_make": "Créer une première disposition",
+      "offer_empty": "Commencer vide"
     }
   }
 }

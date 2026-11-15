@@ -14,6 +14,9 @@ The library lists everything a tile can show: the rows come as the list is scrol
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.
 
+**Auto layout** in the toolbar makes a whole layout from the home's areas and devices, and a screen without tiles
+offers it at once; it lands as one edit to undo or change (docs/AUTO_LAYOUT.md).
+
 Explicitly adding a page opens a compact setup dialog for its title, Home control,
 clock and optional Home Assistant entities. Cancelling leaves the document unchanged;
 creating the page is one undo step. Dragging a tile onto a new page skips the dialog.

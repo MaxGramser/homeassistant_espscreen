@@ -59,6 +59,7 @@ import plugin_pictures
 import map_tiles
 import valetudo_map
 import tile_icons
+import home_facts
 import text_tile
 import template_service
 from updates import Updater
@@ -5137,6 +5138,14 @@ def create_app(manager, development=False):
         manager.ha.changed.set()
         manager.notify()
         return web.json_response({'screensaver': choice})
+    async def home_facts_view(request):
+        """The facts of Home Assistant's registries a first layout reads (home_facts.py, docs/AUTO_LAYOUT.md): every
+        tile entity's area, device, category, class and group, the areas and floors in Home Assistant's order, and which
+        entities belong to the screens themselves."""
+        ha = manager.ha
+        screens = {screen.get('device_id') for screen in manager.screens() if screen.get('device_id')}
+        return web.json_response(home_facts.facts(getattr(ha, 'registry', []), getattr(ha, 'states', {}), getattr(ha, 'devices', []),
+                                                  getattr(ha, 'areas', []), getattr(ha, 'floors', []), screens))
     async def capabilities(request):
         """What Home Assistant says each entity can do, for the tile settings (app 0.2.67). Unknown is null: the editor
         then offers what it always offered."""
@@ -6170,6 +6179,7 @@ def create_app(manager, development=False):
     app.router.add_get('/', index)
     app.router.add_get('/api/inventory', inventory)
     app.router.add_get('/api/capabilities', capabilities)
+    app.router.add_get('/api/home-facts', home_facts_view)
     app.router.add_get('/api/states', states)
     app.router.add_get('/api/history-preview', preview_history)
     app.router.add_get('/api/media-art', media_art_preview)

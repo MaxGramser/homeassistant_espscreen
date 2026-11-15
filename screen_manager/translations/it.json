@@ -4261,7 +4261,8 @@
         "layout_imported": "disposizione importata",
         "changed": "disposizione cambiata",
         "restored": "modifiche non salvate ripristinate",
-        "taken_over": "modifiche dell'altra scheda riprese qui"
+        "taken_over": "modifiche dell'altra scheda riprese qui",
+        "auto_layout": "il layout creato per te"
       }
     },
     "draft": {
@@ -4700,6 +4701,52 @@
       "contrast_hint": "Il pannello nel colore opposto della pagina, scuro di giorno e chiaro in modalità scura, perché questa sezione risalti.",
       "contrast_tiles": "Riquadri anche a contrasto",
       "contrast_tiles_hint": "L'intera sezione nell'altro aspetto, anche le schede dei riquadri: schede scure su pannello scuro di giorno, chiare in modalità scura."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Luci",
+        "covers": "Tapparelle e finestre",
+        "climate": "Clima",
+        "media": "Media",
+        "security": "Sicurezza",
+        "actions": "Scene",
+        "others": "Dispositivi",
+        "weather": "Meteo",
+        "people": "Chi è in casa",
+        "energy": "Energia",
+        "cameras": "Telecamere",
+        "vacuum": "Aspirapolvere",
+        "todo": "Liste",
+        "calendar": "Calendario"
+      },
+      "home": "Casa",
+      "all_lights": "Tutte le luci",
+      "two_rooms": "{a} e {b}",
+      "room_list": "{list} e {last}",
+      "more_rooms": "{a} e altri {n}",
+      "button": "Layout automatico",
+      "button_title": "Crea pagine dalle tue aree e dai tuoi dispositivi di Home Assistant",
+      "title": "Creare un layout per te",
+      "intro": "Tessera guarda le tue aree e i tuoi dispositivi in Home Assistant e crea pagine per questo schermo: una pagina o sezione per stanza, il meteo, l'allarme, le persone e le telecamere della casa insieme, riquadri più grandi dove lo schermo ha spazio. Puoi annullare e cambiare tutto dopo.",
+      "reading": "Lettura della tua casa…",
+      "failed": "Non è stato possibile leggere la tua casa: {error}",
+      "nothing": "Tessera non ha ancora trovato nulla da mostrare su questo schermo. Assegna un'area ai tuoi dispositivi in Home Assistant o aggiungi riquadri dalla libreria.",
+      "nothing_new": "Tutto ciò che Tessera metterebbe su questo schermo c'è già.",
+      "summary": "{pages} pagina · {tiles} riquadri | {pages} pagine · {tiles} riquadri",
+      "summary_sections": "{n} sezione | {n} sezioni",
+      "from_rooms": "da una stanza | da {n} stanze",
+      "left_out": "Un'altra entità non ha trovato posto su questo schermo; è nella libreria. | Altre {n} entità non hanno trovato posto su questo schermo; sono nella libreria.",
+      "replace": "Sostituire le pagine",
+      "replace_hint": "Lo schermo riceve queste pagine al posto di quelle attuali.",
+      "append": "Aggiungere dopo le pagine attuali",
+      "append_hint": "Le pagine attuali restano, le nuove vengono dopo, con ciò che non è ancora sullo schermo.",
+      "append_full": "Su questo schermo non restano pagine o riquadri liberi. Sostituisci le pagine o fai prima spazio.",
+      "make": "Crea il layout",
+      "made": "Un layout di {pages} pagina è pronto. Annulla lo toglie. | Un layout di {pages} pagine è pronto. Annulla lo toglie.",
+      "offer_title": "Vuoi che crei un primo layout per te?",
+      "offer_text": "Tessera può organizzare questo schermo con le tue aree e i tuoi dispositivi di Home Assistant. Dopo puoi cambiare tutto.",
+      "offer_make": "Crea un primo layout",
+      "offer_empty": "Inizia vuoto"
     }
   }
 }

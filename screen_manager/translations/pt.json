@@ -4261,7 +4261,8 @@
         "layout_imported": "layout importado",
         "changed": "layout alterado",
         "restored": "alterações não guardadas restauradas",
-        "taken_over": "alterações do outro separador trazidas para aqui"
+        "taken_over": "alterações do outro separador trazidas para aqui",
+        "auto_layout": "o esquema criado para si"
       }
     },
     "draft": {
@@ -4700,6 +4701,52 @@
       "contrast_hint": "O painel na cor oposta da página, escuro de dia e claro no modo escuro, para que esta secção se destaque.",
       "contrast_tiles": "Mosaicos também em contraste",
       "contrast_tiles_hint": "Toda a secção no outro aspeto, também os cartões dos mosaicos: cartões escuros num painel escuro de dia, claros no modo escuro."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Luzes",
+        "covers": "Estores e janelas",
+        "climate": "Clima",
+        "media": "Multimédia",
+        "security": "Segurança",
+        "actions": "Cenas",
+        "others": "Dispositivos",
+        "weather": "Meteorologia",
+        "people": "Quem está em casa",
+        "energy": "Energia",
+        "cameras": "Câmaras",
+        "vacuum": "Aspirador",
+        "todo": "Listas",
+        "calendar": "Calendário"
+      },
+      "home": "Casa",
+      "all_lights": "Todas as luzes",
+      "two_rooms": "{a} e {b}",
+      "room_list": "{list} e {last}",
+      "more_rooms": "{a} e mais {n}",
+      "button": "Esquema automático",
+      "button_title": "Criar páginas a partir das suas áreas e dispositivos do Home Assistant",
+      "title": "Criar um esquema para si",
+      "intro": "O Tessera olha para as suas áreas e dispositivos no Home Assistant e cria páginas para este ecrã: uma página ou secção por divisão, a meteorologia, o alarme, as pessoas e as câmaras da casa juntos, mosaicos maiores onde este ecrã tem espaço. Pode desfazer e alterar tudo depois.",
+      "reading": "A ler a sua casa…",
+      "failed": "Não foi possível ler a sua casa: {error}",
+      "nothing": "O Tessera ainda não encontrou nada para mostrar neste ecrã. Dê uma área aos seus dispositivos no Home Assistant ou adicione mosaicos a partir da biblioteca.",
+      "nothing_new": "Tudo o que o Tessera poria neste ecrã já lá está.",
+      "summary": "{pages} página · {tiles} mosaicos | {pages} páginas · {tiles} mosaicos",
+      "summary_sections": "{n} secção | {n} secções",
+      "from_rooms": "de uma divisão | de {n} divisões",
+      "left_out": "Mais uma entidade não coube neste ecrã; está na biblioteca. | Mais {n} entidades não couberam neste ecrã; estão na biblioteca.",
+      "replace": "Substituir as páginas",
+      "replace_hint": "O ecrã recebe estas páginas em vez das atuais.",
+      "append": "Adicionar depois das páginas atuais",
+      "append_hint": "As páginas atuais ficam e as novas vêm depois, com o que ainda não está no ecrã.",
+      "append_full": "Este ecrã já não tem páginas nem mosaicos livres. Substitua as páginas ou faça espaço primeiro.",
+      "make": "Criar o esquema",
+      "made": "Um esquema de {pages} página está pronto. Desfazer retira-o. | Um esquema de {pages} páginas está pronto. Desfazer retira-o.",
+      "offer_title": "Quer que crie um primeiro esquema para si?",
+      "offer_text": "O Tessera pode organizar este ecrã com as suas áreas e dispositivos do Home Assistant. Depois pode alterar tudo.",
+      "offer_make": "Criar um primeiro esquema",
+      "offer_empty": "Começar vazio"
     }
   }
 }

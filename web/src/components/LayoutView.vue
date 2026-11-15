@@ -12,6 +12,7 @@ import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
 import PhonePages from "./PhonePages.vue";
 import PageWizard from "./PageWizard.vue";
+import AutoLayoutDialog from "./AutoLayoutDialog.vue";
 import DevicePage from "./DevicePage.vue";
 import Library from "./Library.vue";
 import PageMap from "./PageMap.vue";
@@ -109,6 +110,11 @@ const pages = computed(() => pageCount(entries.value, layout.value.pages));
 const shown = computed(() => pagesShown());
 const canAdd = computed(() => pages.value < grid.pages);
 const focused = computed(() => doc.document?.pages.findIndex((page) => page.id === doc.focusedPageId) ?? -1);
+// A screen without a single tile (a new one) is offered a first layout at once (docs/AUTO_LAYOUT.md); Start empty puts
+// the offer away for that screen while the editor is open.
+const offerSkipped = ref(new Set<string>());
+const offerFirst = computed(() => !layout.value.tiles.length && Boolean(scr.selected) && !offerSkipped.value.has(scr.selected!));
+const skipOffer = () => { offerSkipped.value = new Set([...offerSkipped.value, scr.selected!]); };
 const positionsHint = computed(() => hasGaps(layout.value.tiles) && !scr.supports(0, 2, 26)
   ? t("editor.layout.positions_hint", { firmware: scr.currentScreen?.firmware || t("editor.common.unknown") })
   : "");
@@ -147,6 +153,7 @@ function onCanvasClick(e: MouseEvent) {
         <button type="button" id="redo" class="icon-btn" :disabled="!doc.redoCount" :aria-label="redoText" :title="`${redoText} · ⇧⌘Z`" @click="doc.redo"><Icon name="redo" /></button>
       </div>
       <button type="button" class="btn quiet" :title="t('editor.pages.try_navigation')" @click="ui.previewOpen = true"><Icon name="play" />{{ t('editor.pages.preview') }}</button>
+      <button type="button" id="toolbar-auto-layout" class="btn quiet" :title="t('editor.auto.button_title')" @click="ui.autoLayoutOpen = true"><Icon name="auto-fix" />{{ t('editor.auto.button') }}</button>
       <button type="button" id="toolbar-add-page" class="btn quiet" :disabled="!canAdd" :title="canAdd ? '' : t('editor.layout.max_pages', grid.pages)" @click="ui.pageWizardOpen = true"><Icon name="plus" />{{ t('editor.layout.add_page') }}</button>
       <span class="spacer"></span>
       <span id="count" class="toolbar-count">{{ t("editor.layout.count", { tiles: layout.tiles.length, limit: doc.tileLimit }, pages) }}</span>
@@ -205,7 +212,14 @@ function onCanvasClick(e: MouseEvent) {
     <div v-if="doc.gridChanged" class="notice warn" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
     <div v-if="positionsHint" id="positions-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ positionsHint }}</span></div>
     <div v-if="reachHint" id="page-reach-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ reachHint }}</span></div>
-    <div v-if="!layout.tiles.length" id="no-tiles" class="notice" role="status"><Icon name="plus" /><span class="notice-text">{{ t("editor.layout.no_tiles") }}</span></div>
+    <!-- A new screen: the first layout offered at once (docs/AUTO_LAYOUT.md). -->
+    <div v-if="offerFirst" id="auto-layout-offer" class="notice choice offer" role="status">
+      <span class="offer-mark"><Icon name="auto-fix" /></span>
+      <span class="notice-text"><strong>{{ t('editor.auto.offer_title') }}</strong>{{ t('editor.auto.offer_text') }}</span>
+      <button type="button" id="auto-layout-skip" class="btn quiet mini" @click="skipOffer">{{ t('editor.auto.offer_empty') }}</button>
+      <button type="button" id="auto-layout-start" class="btn primary mini" @click="ui.autoLayoutOpen = true"><Icon name="auto-fix" />{{ t('editor.auto.offer_make') }}</button>
+    </div>
+    <div v-else-if="!layout.tiles.length" id="no-tiles" class="notice" role="status"><Icon name="plus" /><span class="notice-text">{{ t("editor.layout.no_tiles") }}</span></div>
     <template v-if="mode === 'advanced' && focused >= 0">
       <button type="button" class="btn quiet back-map" @click="doc.focusedPageId = null"><Icon name="arrow-left" />{{ t('editor.pages.back_map') }}</button>
       <div class="pages focused-page"><DevicePage :page="focused" :entries="entries" :pages="pages" :moving="dragging.moving" map /></div>
@@ -247,12 +261,14 @@ function onCanvasClick(e: MouseEvent) {
   <Library v-if="doc.layout" />
   <GrowTip v-if="!ui.previewOpen" />
   <NavigationPreview v-if="ui.previewOpen && doc.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />
+  <AutoLayoutDialog v-if="ui.autoLayoutOpen && doc.document" :key="scr.selected || ''" @close="ui.autoLayoutOpen = false" />
   <PageWizard v-if="ui.pageWizardOpen" :key="scr.selected || ''" @close="ui.pageWizardOpen = false" />
   <PhonePages v-if="ui.phone && ui.pagesSheet && doc.document" @add="ui.pagesSheet = false; ui.pageWizardOpen = true" />
   <GridReview v-if="doc.gridReview" />
 </template>
 
 <style scoped>
+.offer .offer-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); flex: none; }
 .select-band { position: fixed; z-index: 40; pointer-events: none; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 3px; }
 .focused-page { padding: 18px 0; justify-content: center; }
 .back-map { align-self: flex-start; }

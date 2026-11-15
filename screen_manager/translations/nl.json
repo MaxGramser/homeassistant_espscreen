@@ -3833,7 +3833,8 @@
         "layout_imported": "indeling geïmporteerd",
         "changed": "indeling gewijzigd",
         "restored": "niet-opgeslagen wijzigingen hersteld",
-        "taken_over": "wijzigingen uit het andere tabblad overgenomen"
+        "taken_over": "wijzigingen uit het andere tabblad overgenomen",
+        "auto_layout": "de indeling die voor je gemaakt is"
       }
     },
     "draft": {
@@ -4717,6 +4718,52 @@
       "contrast_hint": "Het paneel in de tegenovergestelde kleur van de pagina, donker overdag en licht in de donkere modus, zodat deze sectie opvalt.",
       "contrast_tiles": "Tegels ook in contrast",
       "contrast_tiles_hint": "De hele sectie in de andere look, de kaarten van de tegels ook: donkere kaarten op een donker paneel overdag, lichte in de donkere modus."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lampen",
+        "covers": "Raambekleding & ramen",
+        "climate": "Klimaat",
+        "media": "Media",
+        "security": "Beveiliging",
+        "actions": "Scènes",
+        "others": "Apparaten",
+        "weather": "Weer",
+        "people": "Wie is thuis",
+        "energy": "Energie",
+        "cameras": "Camera's",
+        "vacuum": "Stofzuiger",
+        "todo": "Lijsten",
+        "calendar": "Agenda"
+      },
+      "home": "Huis",
+      "all_lights": "Alle lampen",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} en nog {n}",
+      "button": "Automatische indeling",
+      "button_title": "Maak pagina's van je Home Assistant-ruimtes en -apparaten",
+      "title": "Een indeling voor je maken",
+      "intro": "Tessera kijkt naar je ruimtes en apparaten in Home Assistant en maakt pagina's voor dit scherm: een pagina of sectie per ruimte, het weer, het alarm, de personen en de camera's van het huis bij elkaar, grotere tegels waar dit scherm er ruimte voor heeft. Je kunt het ongedaan maken en daarna alles aanpassen.",
+      "reading": "Je huis wordt gelezen…",
+      "failed": "Je huis kon niet worden gelezen: {error}",
+      "nothing": "Tessera vond nog niets om op dit scherm te tonen. Geef je apparaten een ruimte in Home Assistant, of voeg tegels toe uit de bibliotheek.",
+      "nothing_new": "Alles wat Tessera op dit scherm zou zetten, staat er al.",
+      "summary": "{pages} pagina · {tiles} tegels | {pages} pagina's · {tiles} tegels",
+      "summary_sections": "{n} sectie | {n} secties",
+      "from_rooms": "uit één ruimte | uit {n} ruimtes",
+      "left_out": "Nog één entiteit kreeg geen plek op dit scherm; je vindt hem in de bibliotheek. | Nog {n} entiteiten kregen geen plek op dit scherm; je vindt ze in de bibliotheek.",
+      "replace": "De pagina's vervangen",
+      "replace_hint": "Het scherm krijgt deze pagina's in plaats van de huidige.",
+      "append": "Na de huidige pagina's toevoegen",
+      "append_hint": "De huidige pagina's blijven; de nieuwe komen erna, met wat nog niet op het scherm staat.",
+      "append_full": "Dit scherm heeft geen pagina's of tegels meer over. Vervang de pagina's, of maak eerst ruimte.",
+      "make": "Indeling maken",
+      "made": "Een indeling van {pages} pagina staat klaar. Ongedaan maken draait het terug. | Een indeling van {pages} pagina's staat klaar. Ongedaan maken draait het terug.",
+      "offer_title": "Zal ik een eerste indeling voor je maken?",
+      "offer_text": "Tessera kan dit scherm indelen met je ruimtes en apparaten uit Home Assistant. Daarna kun je alles aanpassen.",
+      "offer_make": "Eerste indeling maken",
+      "offer_empty": "Leeg beginnen"
     }
   }
 }

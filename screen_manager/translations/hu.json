@@ -4261,7 +4261,8 @@
         "layout_imported": "elrendezés importálva",
         "changed": "elrendezés módosítva",
         "restored": "nem mentett módosítások visszaállítva",
-        "taken_over": "a másik lap módosításai átvéve"
+        "taken_over": "a másik lap módosításai átvéve",
+        "auto_layout": "a neked készített elrendezés"
       }
     },
     "draft": {
@@ -4700,6 +4701,52 @@
       "contrast_hint": "A panel az oldal ellentétes színében, nappal sötét, sötét módban világos, hogy ez a szakasz kiemelkedjen.",
       "contrast_tiles": "A csempék is kontrasztban",
       "contrast_tiles_hint": "Az egész szakasz a másik megjelenésben, a csempék kártyái is: nappal sötét kártyák sötét panelen, sötét módban világosak."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lámpák",
+        "covers": "Redőnyök és ablakok",
+        "climate": "Klíma",
+        "media": "Média",
+        "security": "Biztonság",
+        "actions": "Jelenetek",
+        "others": "Eszközök",
+        "weather": "Időjárás",
+        "people": "Ki van otthon",
+        "energy": "Energia",
+        "cameras": "Kamerák",
+        "vacuum": "Porszívó",
+        "todo": "Listák",
+        "calendar": "Naptár"
+      },
+      "home": "Otthon",
+      "all_lights": "Összes lámpa",
+      "two_rooms": "{a} és {b}",
+      "room_list": "{list} és {last}",
+      "more_rooms": "{a} és még {n}",
+      "button": "Automatikus elrendezés",
+      "button_title": "Oldalak készítése a Home Assistant területeidből és eszközeidből",
+      "title": "Elrendezés készítése neked",
+      "intro": "A Tessera megnézi a Home Assistant területeidet és eszközeidet, és oldalakat készít ehhez a kijelzőhöz: helyiségenként egy oldalt vagy szakaszt, a ház időjárását, riasztóját, személyeit és kameráit együtt, nagyobb csempéket ott, ahol a kijelzőn van hely. Visszavonhatod, és utána bármit módosíthatsz.",
+      "reading": "Az otthonod beolvasása…",
+      "failed": "Az otthonodat nem sikerült beolvasni: {error}",
+      "nothing": "A Tessera még nem talált semmit, amit ezen a kijelzőn mutathatna. Adj területet az eszközeidnek a Home Assistantban, vagy adj hozzá csempéket a könyvtárból.",
+      "nothing_new": "Minden, amit a Tessera erre a kijelzőre tenne, már rajta van.",
+      "summary": "{pages} oldal · {tiles} csempe | {pages} oldal · {tiles} csempe",
+      "summary_sections": "{n} szakasz | {n} szakasz",
+      "from_rooms": "egy helyiségből | {n} helyiségből",
+      "left_out": "Még egy entitás nem fért el ezen a kijelzőn; a könyvtárban megtalálod. | Még {n} entitás nem fért el ezen a kijelzőn; a könyvtárban megtalálod őket.",
+      "replace": "Oldalak cseréje",
+      "replace_hint": "A kijelző ezeket az oldalakat kapja a mostaniak helyett.",
+      "append": "Hozzáadás a mostani oldalak után",
+      "append_hint": "A mostani oldalak maradnak, az újak utánuk jönnek azzal, ami még nincs a kijelzőn.",
+      "append_full": "Ezen a kijelzőn nem maradt szabad oldal vagy csempe. Cseréld le az oldalakat, vagy előbb csinálj helyet.",
+      "make": "Elrendezés készítése",
+      "made": "Elkészült egy {pages} oldalas elrendezés. A visszavonás visszaállítja. | Elkészült egy {pages} oldalas elrendezés. A visszavonás visszaállítja.",
+      "offer_title": "Készítsek neked egy első elrendezést?",
+      "offer_text": "A Tessera elrendezheti ezt a kijelzőt a Home Assistant területeid és eszközeid alapján. Utána mindent módosíthatsz.",
+      "offer_make": "Első elrendezés készítése",
+      "offer_empty": "Üres kezdés"
     }
   }
 }
