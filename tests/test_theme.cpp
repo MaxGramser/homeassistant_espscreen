@@ -137,5 +137,30 @@ int main() {
   assert(pressed(hex(CARD)) == mix(hex(CARD), 0xFFFFFF, 224) && lightness(pressed(hex(CARD))) > lightness(hex(CARD)));
   assert(lightness(outline(0xFADADD)) > lightness(surface(0xFADADD)));
   assert(fill_opacity() < 51);
+
+  // ---- a card's look (docs/THEME.md "A card's look"): a scope is the screen's look or the other, then gives back what
+  // was there, nested or not; the screen's own look never moves
+  for (bool screen : {false, true}) {
+    screen_dark = dark = screen;
+    {
+      LookScope other(true);
+      assert(dark == !screen && screen_dark == screen);
+      {
+        LookScope plain(false);
+        assert(dark == screen);
+        {
+          LookScope again(true);
+          assert(dark == !screen);
+        }
+        assert(dark == screen);
+      }
+      assert(dark == !screen);
+      other.end();
+      assert(dark == screen);
+    }
+    assert(dark == screen && screen_dark == screen);
+    assert(hex_in(CARD, true) == ROLES[CARD].dark && hex_in(CARD, false) == ROLES[CARD].light);
+  }
+  screen_dark = dark = false;
   return 0;
 }

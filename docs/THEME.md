@@ -80,6 +80,8 @@ changes, and `theme::dark`, the look every role and helper reads, which is the s
   map, a blind's slats, a favourite's ring), runs outside any paint of ours. So `sections::place` also sets
   `theme::OTHER_LOOK_FLAG` (`LV_OBJ_FLAG_USER_2`) on a card in the other look, and each draw callback opens
   `CardScope(obj)` on its own object, which walks up to the card that carries the flag (cards do not nest).
+  `tests/test_card_look.py` holds every draw callback to it: the scope in its first lines, or a reason it needs none
+  (the open card, a keyboard, a colour captured in `render_slot`).
 - `ground_behind()` is what lies behind the card in that ground's own look (a picture's corners, a bare card), and
   `card_surface()` the card's own colour in the card's look, both answerable away from a paint.
 

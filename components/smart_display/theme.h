@@ -268,15 +268,8 @@ struct Flip {
   Flip(const Flip &) = delete;
   Flip &operator=(const Flip &) = delete;
 };
-// A card painted in the other look carries this flag on its root object (sections::place sets and clears it), so what
-// LVGL draws later, in a draw callback, finds the card's look from its own object. Cards do not nest.
-constexpr lv_obj_flag_t OTHER_LOOK_FLAG = LV_OBJ_FLAG_USER_2;
-inline bool other_look(const lv_obj_t *obj) {
-  for (; obj; obj = lv_obj_get_parent(obj)) if (lv_obj_has_flag(obj, OTHER_LOOK_FLAG)) return true;
-  return false;
-}
 // The look of a card for as long as it lasts (runtime_tiles' CardScope, docs/THEME.md "A card's look"): the screen's,
-// or the other one; then what was there before.
+// or the other one; then what was there before. A card's flag for draw callbacks (OTHER_LOOK_FLAG) is in the LVGL half.
 struct LookScope {
   bool before, open = true;
   explicit LookScope(bool other) : before(dark) { dark = screen_dark != other; }
@@ -474,6 +467,14 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 #include <array>
 
 namespace theme {
+
+// A card painted in the other look carries this flag on its root object (sections::place sets and clears it), so what
+// LVGL draws later, in a draw callback, finds the card's look from its own object. Cards do not nest.
+constexpr lv_obj_flag_t OTHER_LOOK_FLAG = LV_OBJ_FLAG_USER_2;
+inline bool other_look(const lv_obj_t *obj) {
+  for (; obj; obj = lv_obj_get_parent(obj)) if (lv_obj_has_flag(obj, OTHER_LOOK_FLAG)) return true;
+  return false;
+}
 
 inline lv_color_t color(Role role) { return lv_color_hex(hex(role)); }
 inline lv_color_t rgb(uint32_t value) { return lv_color_hex(value); }
