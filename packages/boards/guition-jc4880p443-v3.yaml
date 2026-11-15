@@ -98,3 +98,8 @@ touchscreen:
     i2c_id: touch_bus
     display: my_display
     update_interval: 20ms
+
+# The log over the USB-C port marked full speed, the chip's own USB-Serial/JTAG (303a:1001), where flashing happens:
+# on the core's UART0 it goes to the CN2 connector only, and `esphome logs` over USB stays empty. As on the Tab5.
+logger:
+  hardware_uart: USB_SERIAL_JTAG

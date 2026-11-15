@@ -47,9 +47,9 @@ STILL_HELD = {
     'interval': ('reterminald1001',),
     'light': ('guition-jc8048w550c-i', 'waveshare-esp32s3-4b',),
     'logger': (
-        'guition-4848s040', 'guition-jc8048w550c-i', 'reterminald1001', 'seeed-sensecap-indicator-d1',
-        'sunton-8048s070', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7b', 'waveshare43c',
-        'wavesharep47b',
+        'guition-4848s040', 'guition-jc4880p443-v3', 'guition-jc8048w550c-i', 'reterminald1001',
+        'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4',
+        'waveshare-esp32s3-7b', 'waveshare43c', 'wavesharep47b',
     ),
     'microphone': ('crowpanel101',),
     'motion': ('reterminald1001',),
