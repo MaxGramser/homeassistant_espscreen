@@ -1040,6 +1040,11 @@ class EntityOptions(unittest.IsolatedAsyncioTestCase):
         self.assertLess(len(x['items']), 40)
         self.assertLessEqual(len(json.dumps(x, separators=(',', ':')).encode()), plugin_service_budget())
 
+    def test_a_fetch_says_how_to_reach_the_project(self):
+        # planespotters.net (and others) refuse a server's request whose User-Agent has no contact URL or email.
+        import plugin_fetch
+        self.assertRegex(plugin_fetch.Fetcher().user_agent, r'\(\+https://')
+
     async def test_a_choice_of_another_domain_is_left_out(self):
         x = (await self.message({'grid': 'light.kitchen'})).get('x') or {}
         self.assertNotIn('entities', x)

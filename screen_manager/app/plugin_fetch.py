@@ -348,11 +348,16 @@ class PublicResolver:
         await self.inner.close()
 
 
+# Who asks, with a way to reach the project: services such as planespotters.net refuse a server's request without a
+# contact URL in its User-Agent.
+USER_AGENT = 'Tessera (+https://github.com/MaxGramser/homeassistant_espscreen)'
+
+
 class Fetcher:
     """Every plugin fetch of the add-on: one cache, one schedule, one session of its own (never the one that holds
     Home Assistant's token)."""
 
-    def __init__(self, user_agent='Tessera (+plugins)', session_factory=None, clock=time.monotonic):
+    def __init__(self, user_agent=USER_AGENT, session_factory=None, clock=time.monotonic):
         self.user_agent = user_agent
         self.session_factory = session_factory
         self.session = None
