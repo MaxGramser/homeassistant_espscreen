@@ -150,7 +150,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
                 <p>{{ message.text }}</p>
                 <ul v-if="message.notes?.length" class="notes"><li v-for="note in message.notes" :key="note">{{ note }}</li></ul>
                 <ul v-if="message.elsewhere?.length" class="elsewhere">
-                  <li v-for="other in message.elsewhere" :key="other.id"><Icon name="monitor-eye" /><span><b>{{ other.name }}</b> {{ other.error || whatOf(other) }}</span></li>
+                  <li v-for="other in message.elsewhere" :key="other.id"><Icon name="monitor-eye" /><span><b>{{ other.name }}</b> {{ [other.error, whatOf(other), ...(other.notes ?? [])].filter(Boolean).join(" ") }}</span></li>
                 </ul>
                 <div v-if="message.page || bot.undoable(message) || message.undone" class="msg-actions">
                   <button v-if="message.page && !message.undone" type="button" class="chip" @click="bot.show(message)"><Icon name="eye-outline" />{{ t("editor.layoutbot.show") }}</button>

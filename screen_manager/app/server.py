@@ -5049,6 +5049,8 @@ def create_app(manager, development=False):
             if changed != other['document']:
                 elsewhere.append({'id': other['id'], 'name': other['name'], 'layout': changed, 'revision': other['revision'],
                                   'summary': layoutbot.summary(other['document'], changed), 'notes': words(other_notes)})
+            elif other_notes:  # nothing to send, but why (a full page) is said
+                elsewhere.append({'id': other['id'], 'name': other['name'], 'notes': words(other_notes)})
         LOG.info('Layoutbot answered in %.1f s with %s (%d notes, %d other screens)', seconds, agent, len(notes), len(elsewhere))
         return web.json_response({'reply': plan.get('reply') if isinstance(plan.get('reply'), str) else '',
                                   'layout': layout, 'changed': layout != draft, 'agent': agent, 'seconds': round(seconds, 1),

@@ -146,6 +146,12 @@ class Plans(unittest.TestCase):
             document, _ = layoutbot.apply_plan(untitled, {"pages": [{"page": "1", "title": words, "tiles": ["light.desk"]}]}, GRID, ENTITIES)
             self.assertEqual(document["pages"][0]["topbar"]["title"], {"source": "screen"})
 
+    def test_a_page_of_the_person_is_renamed_only_by_a_rename(self):
+        added, _ = layoutbot.apply_plan(DOCUMENT, {"pages": [{"page": "1", "title": "Security", "tiles": ["light.desk"]}]}, GRID, ENTITIES)
+        self.assertEqual(added["pages"][0]["topbar"]["title"], {"source": "text", "text": "Living"})
+        renamed, _ = layoutbot.apply_plan(DOCUMENT, {"pages": [{"page": "1", "title": "Lounge", "tiles": [], "sections": []}]}, GRID, ENTITIES)
+        self.assertEqual(renamed["pages"][0]["topbar"]["title"], {"source": "text", "text": "Lounge"})
+
     def test_a_screen_without_sections_gets_the_tiles_loose(self):
         plan = {"pages": [{"page": "", "title": "Covers", "sections": [{"title": "Blinds", "entities": BLINDS[:2]}]}]}
         document, _ = layoutbot.apply_plan(DOCUMENT, plan, SMALL, ENTITIES, sections=False)

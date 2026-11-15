@@ -377,7 +377,10 @@ class _Plan:
                 self.note("no_page", page=number)
                 return
             page = self.doc["pages"][int(number) - 1]
-            if title:
+            # A title for a page the person has only when renaming is all the item does: models put a title on every
+            # page they add to ("the alarm on page 1" renamed every page 1 "Security").
+            adds = item.get("tiles") or any(isinstance(x, dict) and x.get("entities") for x in item.get("sections") or [])
+            if title and not adds:
                 page["topbar"]["title"] = {"source": "text", "text": title}
             # An entity this plan puts in a section of a page it already stands on moves into it; one it names as a
             # loose tile there stays where it stands (models restate a page's tiles). A page never shows it twice.
