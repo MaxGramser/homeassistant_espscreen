@@ -70,7 +70,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -126,6 +127,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 27,
+   "ink_top": 3,
+   "line": 14,
+   "title_top": 13
+  },
   "spacing": {
    "circle": 37,
    "gap": 8,
@@ -223,6 +230,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -315,6 +328,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -382,7 +401,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -418,6 +438,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 35,
+   "ink_top": 3,
+   "line": 18,
+   "title_top": 17
+  },
   "spacing": {
    "circle": 46,
    "gap": 10,
@@ -498,7 +524,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -554,6 +581,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -646,6 +679,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 37,
    "gap": 6,
@@ -736,7 +775,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -792,6 +832,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -878,7 +924,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -934,6 +981,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -1011,7 +1064,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1067,6 +1121,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -1153,7 +1213,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1209,6 +1270,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 49,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -1295,7 +1362,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1351,6 +1419,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -1437,7 +1511,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1493,6 +1568,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -1579,7 +1660,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1635,6 +1717,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -1712,7 +1800,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1768,6 +1857,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -1855,7 +1950,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1911,6 +2007,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 60,
    "gap": 12,
@@ -1978,7 +2080,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2014,6 +2117,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 55,
    "gap": 12,
@@ -2091,7 +2200,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2147,6 +2257,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -2239,7 +2355,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2295,6 +2412,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 62,
+   "ink_top": 7,
+   "line": 36,
+   "title_top": 26
+  },
   "spacing": {
    "circle": 93,
    "gap": 12,
@@ -2383,7 +2506,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2439,6 +2563,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -2506,7 +2636,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2542,6 +2673,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -2624,7 +2761,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2680,6 +2818,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -2757,7 +2901,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2813,6 +2958,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -2890,7 +3041,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2946,6 +3098,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3023,7 +3181,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3079,6 +3238,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3156,7 +3321,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3212,6 +3378,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -3289,7 +3461,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3345,6 +3518,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -3422,7 +3601,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3478,6 +3658,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3566,7 +3752,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3622,6 +3809,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 55,
+   "ink_top": 7,
+   "line": 32,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 81,
    "gap": 12,
@@ -3710,7 +3903,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3766,6 +3960,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 48,
+   "ink_top": 5,
+   "line": 26,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 67,
    "gap": 12,
@@ -3854,7 +4054,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3910,6 +4111,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3987,7 +4194,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4043,6 +4251,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -4128,7 +4342,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4184,6 +4399,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 27,
+   "ink_top": 3,
+   "line": 14,
+   "title_top": 13
+  },
   "spacing": {
    "circle": 37,
    "gap": 8,
@@ -4281,6 +4502,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -4373,6 +4600,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -4440,7 +4673,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4476,6 +4710,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 35,
+   "ink_top": 3,
+   "line": 18,
+   "title_top": 17
+  },
   "spacing": {
    "circle": 46,
    "gap": 10,
@@ -4556,7 +4796,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4612,6 +4853,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -4704,6 +4951,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 37,
    "gap": 6,
@@ -4794,7 +5047,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4850,6 +5104,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -4936,7 +5196,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4992,6 +5253,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -5069,7 +5336,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5125,6 +5393,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -5211,7 +5485,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5267,6 +5542,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 49,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -5353,7 +5634,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5409,6 +5691,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -5495,7 +5783,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5551,6 +5840,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -5637,7 +5932,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5693,6 +5989,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -5770,7 +6072,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5826,6 +6129,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -5911,7 +6220,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5967,6 +6277,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 27,
+   "ink_top": 3,
+   "line": 14,
+   "title_top": 13
+  },
   "spacing": {
    "circle": 37,
    "gap": 8,
@@ -6064,6 +6380,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -6156,6 +6478,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -6223,7 +6551,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6259,6 +6588,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 35,
+   "ink_top": 3,
+   "line": 18,
+   "title_top": 17
+  },
   "spacing": {
    "circle": 46,
    "gap": 10,
@@ -6339,7 +6674,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6395,6 +6731,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6487,6 +6829,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 37,
    "gap": 6,
@@ -6577,7 +6925,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6633,6 +6982,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6719,7 +7074,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6775,6 +7131,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6852,7 +7214,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6908,6 +7271,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -6994,7 +7363,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7050,6 +7420,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 49,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -7136,7 +7512,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7192,6 +7569,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -7278,7 +7661,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7334,6 +7718,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -7420,7 +7810,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7476,6 +7867,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -7553,7 +7950,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7609,6 +8007,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -7696,7 +8100,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7752,6 +8157,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 60,
    "gap": 12,
@@ -7819,7 +8230,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7855,6 +8267,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 55,
    "gap": 12,
@@ -7932,7 +8350,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7988,6 +8407,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -8080,7 +8505,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8136,6 +8562,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 62,
+   "ink_top": 7,
+   "line": 36,
+   "title_top": 26
+  },
   "spacing": {
    "circle": 93,
    "gap": 12,
@@ -8224,7 +8656,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8280,6 +8713,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -8347,7 +8786,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8383,6 +8823,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -8465,7 +8911,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8521,6 +8968,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -8598,7 +9051,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8654,6 +9108,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -8731,7 +9191,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8787,6 +9248,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -8864,7 +9331,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8920,6 +9388,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -8997,7 +9471,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9053,6 +9528,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -9130,7 +9611,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9186,6 +9668,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -9263,7 +9751,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9319,6 +9808,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -9407,7 +9902,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9463,6 +9959,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 55,
+   "ink_top": 7,
+   "line": 32,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 81,
    "gap": 12,
@@ -9551,7 +10053,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9607,6 +10110,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 48,
+   "ink_top": 5,
+   "line": 26,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 67,
    "gap": 12,
@@ -9695,7 +10204,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9751,6 +10261,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -9828,7 +10344,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9884,6 +10401,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -9971,7 +10494,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10027,6 +10551,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 60,
    "gap": 12,
@@ -10094,7 +10624,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10130,6 +10661,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 55,
    "gap": 12,
@@ -10207,7 +10744,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10263,6 +10801,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -10355,7 +10899,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10411,6 +10956,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 62,
+   "ink_top": 7,
+   "line": 36,
+   "title_top": 26
+  },
   "spacing": {
    "circle": 93,
    "gap": 12,
@@ -10499,7 +11050,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10555,6 +11107,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -10622,7 +11180,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10658,6 +11217,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -10740,7 +11305,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10796,6 +11362,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -10873,7 +11445,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10929,6 +11502,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -11006,7 +11585,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11062,6 +11642,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -11139,7 +11725,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11195,6 +11782,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -11272,7 +11865,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11328,6 +11922,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -11405,7 +12005,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11461,6 +12062,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -11538,7 +12145,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11594,6 +12202,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -11682,7 +12296,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11738,6 +12353,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 55,
+   "ink_top": 7,
+   "line": 32,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 81,
    "gap": 12,
@@ -11826,7 +12447,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11882,6 +12504,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 48,
+   "ink_top": 5,
+   "line": 26,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 67,
    "gap": 12,
@@ -11970,7 +12598,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -12026,6 +12655,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -12103,7 +12738,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -12159,6 +12795,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,

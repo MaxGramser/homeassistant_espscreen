@@ -88,7 +88,16 @@ export const keysOf = (layout: Layout | null | undefined, holder: Tile) =>
   (layout?.tiles || []).filter((tile) => tile.in === holder.entity).sort((a, b) => (a.key ?? 0) - (b.key ?? 0));
 
 /** A document-owned view of placement rules. Reading a new shape is synchronous. */
-export function createLayout(shape: () => PageGrid, pageLimit: () => number | undefined = () => undefined) {
+export type Block = { id: string; page: number; row: number; column: number; columns: number; rows: number };
+/** A moving section is carried as a tile of its block's size whose entity names it (drag.ts, editor/sections.ts). */
+export const SECTION_ENTITY = "section:";
+export const sectionTile = (block: Block, slot: number): Tile =>
+  ({ id: SECTION_ENTITY + block.id, entity: SECTION_ENTITY + block.id, name: "", slot, options: { size: `${block.columns}x${block.rows}` } });
+
+/** A document-owned view of placement rules. Reading a new shape is synchronous. `blocks`: the sections of the document
+ * (docs/PAGES.md "Sections"), so a tile is never put half in a section and a tile pushed aside stays where it was, in its
+ * section or loose. */
+export function createLayout(shape: () => PageGrid, pageLimit: () => number | undefined = () => undefined, blocks: () => Block[] = () => []) {
   const grid = {
     get columns() { return shape().columns; },
     get rows() { return shape().rows; },
@@ -163,6 +172,21 @@ export function createLayout(shape: () => PageGrid, pageLimit: () => number | un
     for (let slot = from; slot < grid.maxSlots; slot++) if (fits(taken, slot, size)) return slot;
     return -1;
   }
+  // Where a tile of `size` at `slot` stands: in a section (its id), loose (""), or half in one (null). `except`: a
+  // section being carried, which is not where it was any more.
+  function regionOf(slot: number, size: SizeLike, except = ""): string | null {
+    const cells = cellsOf(slot, size), page = pageOf(slot);
+    for (const block of blocks()) {
+      if (block.page !== page || block.id === except) continue;
+      const inside = cells.filter((cell) => {
+        const local = cell % grid.slots, row = Math.floor(local / grid.columns), column = local % grid.columns;
+        return row >= block.row && row < block.row + block.rows && column >= block.column && column < block.column + block.columns;
+      }).length;
+      if (inside === cells.length) return block.id;
+      if (inside) return null;
+    }
+    return "";
+  }
   // The free position closest to `origin`; on a tie the later one, so a nudged tile moves down, not up.
   function nearestFree(taken: Set<number>, size: SizeLike, origin: number) {
     let best = -1;
@@ -179,6 +203,10 @@ export function createLayout(shape: () => PageGrid, pageLimit: () => number | un
     const size = sizeOf(moving);
     target = startOf(target, size);
     if (!fits(new Set(), target, size)) return null;
+    // A section carried whole lands only where no other section is; a tile lands loose or wholly in one section.
+    const carried = moving.entity.startsWith(SECTION_ENTITY) ? moving.entity.slice(SECTION_ENTITY.length) : "";
+    const landing = regionOf(target, size, carried);
+    if (landing === null || (carried && landing !== "")) return null;
     const footprint = cellsOf(target, size);
     const vacated = tiles.includes(moving) ? cellsOf(moving.slot, size) : [];
     const result: Entry[] = [{ tile: moving, slot: target }];
@@ -189,13 +217,15 @@ export function createLayout(shape: () => PageGrid, pageLimit: () => number | un
       else result.push({ tile, slot: tile.slot });
     }
     for (const tile of displaced) {
-      const w = sizeOf(tile), taken = occupied(result);
-      let slot = vacated.map((c) => startOf(c, w)).find((c) => fits(taken, c, w));
+      const w = sizeOf(tile), taken = occupied(result), home = regionOf(tile.slot, w, carried);
+      // A tile pushed aside stays in its own section, or loose: never into another, and never into the carried block.
+      const ok = (c: number) => fits(taken, c, w) && regionOf(c, w, carried) === home;
+      let slot = vacated.map((c) => startOf(c, w)).find(ok);
       if (slot === undefined) {
         const page = pageOf(tile.slot);
         slot = -1;
         for (let cell = page * grid.slots; cell < (page + 1) * grid.slots; cell++)
-          if (fits(taken, cell, w) && (slot < 0 || Math.abs(cell - tile.slot) < Math.abs(slot - tile.slot))) slot = cell;
+          if (ok(cell) && (slot < 0 || Math.abs(cell - tile.slot) < Math.abs(slot - tile.slot))) slot = cell;
       }
       if (slot < 0) return null;
       result.push({ tile, slot });
@@ -253,7 +283,7 @@ export function createLayout(shape: () => PageGrid, pageLimit: () => number | un
     if (versionAtLeast(firmware, "0.18.0")) return Math.min(FIRMWARE_MAX_TILES, grid.maxSlots);
     return versionAtLeast(firmware, "0.2.62") ? legacyPages(grid) * grid.slots : versionAtLeast(firmware, "0.2.7") ? 20 : 10;
   }
-  return { grid, dimensions: tileDimensions, pageStart, rowStart, pageOf, spanOf, cellsOf, startOf, anchorAt, packSlots, hasGaps, normalize, occupied, fits, firstFree, nearestFree, arrange, reorderPages, pageCount, strandedPages, tileLimit };
+  return { grid, regionOf, dimensions: tileDimensions, pageStart, rowStart, pageOf, spanOf, cellsOf, startOf, anchorAt, packSlots, hasGaps, normalize, occupied, fits, firstFree, nearestFree, arrange, reorderPages, pageCount, strandedPages, tileLimit };
 }
 
 // New tiles start with the card that shows the entity best. `covers`: the screen draws an album cover on a tile (a board

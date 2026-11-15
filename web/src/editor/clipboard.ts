@@ -70,8 +70,8 @@ export function removeTiles(tiles: readonly Tile[], said = "editor.layout.remove
   if (!ids.size) return false;
   const done = doc.editDocument((draft) => {
     for (const page of draft.pages) {
-      page.tiles = page.tiles.filter((item) => !ids.has(item.id));
-      for (const item of page.tiles) if (item.children) {
+      pages.keepTiles(page, (item) => !ids.has(item.id));
+      for (const item of pages.allTiles(page)) if (item.children) {
         item.children = item.children.filter((child) => !ids.has(child.id));
         if (!item.children.length) delete item.children;
       }
@@ -96,7 +96,7 @@ export async function pasteCopied(): Promise<boolean> {
     // An entity the screen takes once (a bedside clock, or every tile on older firmware) is left out where it stands.
     allowed: (tile, entity, layout) => {
       if (tile.content.kind === "plugin" && !usePluginsStore().pluginTileOf(entity)) return false;
-      const here = layout.pages.some((page) => page.tiles.some((item) => item !== tile && pages.entityOf(layout, item) === entity));
+      const here = layout.pages.some((page) => pages.allTiles(page).some((item) => item !== tile && pages.entityOf(layout, item) === entity));
       return !here || (scr.repeatable(entity) && !(entity in pageRules.keyHolders));
     },
     sizes: (tile, entity) => tileSizeChoices({ entity, name: "", slot: 0, options: { display: tile.appearance.display } } as Tile),

@@ -67,6 +67,11 @@ which cell a card takes and how many it spans: `lv_obj_set_grid_cell(tile, STRET
 a wide card two columns, the 0.3.1 taller cards two rows, and a full card the whole page. No coordinate is computed in C++ any more, and the cards grow
 by themselves when the page bar goes (the container then reaches the bottom edge, keeping the side margin).
 
+A page with sections (docs/PAGES.md "Sections") keeps the same rows: a section's title and padding come out of its own
+cards as margins (`section_layout.h inside`, `module_sections.h place`), so no tile outside it changes. The editor's
+card room takes the same margins (`inner`, `margin` in `card-layout.ts`), so its cards are as high as the glass makes
+them.
+
 The cards themselves are made in C++ at boot (firmware 0.53.0+): `runtime_tiles::make_cells` builds one per cell of
 the grid the screen runs on, in the four card styles of `packages/core.yaml` and with the board's `TILE_ICON_SIZE`,
 and `make_card` builds the cards of a kept page the same way. Before, they were YAML widgets, one file per number of

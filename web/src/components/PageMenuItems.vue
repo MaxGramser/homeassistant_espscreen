@@ -10,6 +10,7 @@ import { useScreenStore } from "../stores/screen";
 import { duplicateEditorPage, pageCopyable, removePage, setHomePage } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { allTiles } from "../model/page-tiles";
 
 const scr = useScreenStore();
 const doc = useDocumentStore();
@@ -20,7 +21,7 @@ const index = computed(() => doc.document?.pages.findIndex((page) => page.id ===
 const page = computed(() => doc.document?.pages[index.value]);
 const home = computed(() => doc.document?.homePageId === props.id);
 // A full copy only when the screen takes every tile on it twice (editor/pages.ts pageCopyable).
-const canCopy = computed(() => pageCopyable(page.value?.tiles));
+const canCopy = computed(() => pageCopyable(page.value ? allTiles(page.value) : undefined));
 const tiles = computed(() => page.value?.tiles.length || 0);
 </script>
 

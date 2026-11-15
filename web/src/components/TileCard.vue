@@ -25,6 +25,8 @@ import { useUiStore } from "../stores/ui";
 import { placeTile, removeTile } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { PLAIN_GRID, useSectionGrid } from "../composables/useSectionGrid";
+import { glassMargins } from "../model/sections";
 
 const ui = useUiStore();
 const doc = useDocumentStore();
@@ -64,9 +66,13 @@ const classes = computed(() => {
     glass: !!card.head, bare: props.tile.options?.background === "none", placeholder: props.placeholder || (!card.live && !card.foreign), chosen: card.chosen,
     "just-added": !props.preview && !!props.tile.id && doc.justAdded === props.tile.id };
 });
+// A page with sections (docs/PAGES.md "Sections"): the card's rows with the bands and edges between them, and the panel's
+// padding at a block's side, as the glass lays it out (module_sections.h place).
+const sections = useSectionGrid();
 const style = computed(() => {
-  const background = card.background;
-  return { gridColumn: `${props.at % card.grid.columns + 1} / span ${card.shape.columns}`, gridRow: `${Math.floor(props.at % card.grid.slots / card.grid.columns) + 1} / span ${card.shape.rows}`,
+  const background = card.background, column = props.at % card.grid.columns, row = Math.floor(props.at % card.grid.slots / card.grid.columns);
+  const sg = sections?.value ?? PLAIN_GRID, m = sg.margins(column, row, card.shape.columns, card.shape.rows);
+  return { gridColumn: `${column + 1} / span ${card.shape.columns}`, gridRow: `${row + 1} / span ${card.shape.rows}`, ...glassMargins(m),
     ...card.glassStyle.frame, ...(background && props.tile.options?.background !== "none" ? { backgroundColor: background } : {}),
     "--tile-cols": card.shape.columns, "--tile-icon": card.palette.icon, "--tile-circle": card.palette.circle, "--tile-accent": card.palette.accent, ...(card.watchStyle?.pad ?? {}) };
 });

@@ -23,6 +23,7 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 import { useEntitiesStore } from "../stores/entities";
 import { glyph } from "../model/topbar";
+import { allTiles } from "../model/page-tiles";
 
 const scr = useScreenStore();
 const topbar = useTopbarStore();
@@ -39,7 +40,7 @@ const home = computed(() => doc.document?.homePageId === props.id);
 const point = computed(() => doc.workspacePositions()[props.id] || { x: 0, y: 0 });
 const routes = computed(() => doc.document ? connections(doc.document).filter((route) => route.from === props.id || route.to === props.id) : []);
 const name = (id: string) => { const page = doc.document?.pages.find((item) => item.id === id); return page ? titleOf(doc.document!, page) : ""; };
-const canCopy = computed(() => pageCopyable(page.value?.tiles));
+const canCopy = computed(() => pageCopyable(page.value ? allTiles(page.value) : undefined));
 function editRoute(tileId: string) { const tile = doc.layout?.tiles.find((item) => item.id === tileId); if (tile) insp.openTile(tile); }
 // One page and the screen's title are one thing: a single field. A page that kept a title of its own from a longer
 // row keeps its own field, so nothing is set that nobody can see.

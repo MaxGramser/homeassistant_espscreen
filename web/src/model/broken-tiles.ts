@@ -8,6 +8,7 @@
 import { t } from "../i18n";
 import { matchesWords, prefixRank, queryWords } from "./search";
 import type { Entity, PageLayout, Screen } from "../types";
+import { allTiles } from "./page-tiles";
 
 export const UNAVAILABLE_MS = 5 * 60_000;
 export type Health = { kind: "missing" } | { kind: "unavailable"; since: number };
@@ -42,7 +43,7 @@ export function tileEntities(layout: PageLayout): TileEntity[] {
   layout.pages.forEach((page, index) => {
     // A page with a title of its own is named by it, one with the screen's title by its number.
     const where = { pageId: page.id, page: index, pageTitle: page.topbar.title.source === "text" ? page.topbar.title.text : "" };
-    for (const tile of page.tiles) {
+    for (const tile of allTiles(page)) {
       const content = tile.content;
       if (content.kind === "entity") out.push({ ...where, tileId: tile.id, entity: content.entityId, label: tile.appearance.label });
       else if (content.kind === "plugin" && content.entityId) out.push({ ...where, tileId: tile.id, entity: content.entityId, label: tile.appearance.label, plugin: true });

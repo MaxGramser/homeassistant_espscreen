@@ -8,6 +8,7 @@ import { PLUGIN_LIST_MAX, PLUGIN_OPTION_MAX, PLUGIN_OPTIONS_BYTES, PLUGIN_TILE }
 import rules from './page-rules.json';
 import { cleanPreset, MAX as PRESETS_MAX } from './light-presets';
 import type { PageLayout, PageTile } from '../types';
+import { allTiles } from './page-tiles';
 
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 const matches = (pattern: RegExp, value: string) => value.match(pattern)?.[0] === value;
@@ -65,7 +66,15 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
     throw new Error(t('addon.errors.layout.title'));
   if (!Array.isArray(layout.pages)) fail();
   for (const page of layout.pages) {
-    fields(page, ['id', 'navigation', 'topbar', 'tiles', 'icon'], ['id', 'navigation', 'topbar', 'tiles']);
+    fields(page, ['id', 'navigation', 'topbar', 'tiles', 'icon', 'sections'], ['id', 'navigation', 'topbar', 'tiles']);
+    // A section (docs/PAGES.md "Sections"): its block and its tiles; the tiles are checked below with the loose ones.
+    if (page.sections !== undefined && !Array.isArray(page.sections)) fail();
+    for (const section of page.sections ?? []) {
+      fields(section, ['id', 'title', 'icon', 'summary', 'contrast', 'placement', 'tiles'], ['id', 'title', 'placement', 'tiles']);
+      fields(section.placement, ['row', 'column', 'columns', 'rows']);
+      if (!Array.isArray(section.tiles) || (section.icon !== undefined && (section.icon === 'auto' || !icon(section.icon, false))) ||
+          (section.summary !== undefined && !/^[a-z0-9_]+\.[a-z0-9_]+$/.test(String(section.summary)))) fail();
+    }
     fields(page.navigation, ['excludeFromPagination', 'showInDock'], ['excludeFromPagination']);
     const bar = page.topbar;
     fields(bar, ['leading', 'title', 'trailing']);
@@ -101,7 +110,7 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
       if (seen.has(key)) throw new Error(t('addon.errors.top_bar.twice'));
       seen.add(key);
     }
-    for (const tile of page.tiles) {
+    for (const tile of allTiles(page)) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction', 'children'], ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
       fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',

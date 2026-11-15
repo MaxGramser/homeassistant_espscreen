@@ -12,6 +12,7 @@ import type { PageLayout, Screen } from "../types";
 import type { Texts } from "../model/plugins";
 import { useInventoryStore } from "../stores/inventory";
 import { useDocumentStore } from "../stores/document";
+import { allTiles } from "../model/page-tiles";
 
 const inv = useInventoryStore();
 const doc = useDocumentStore();
@@ -297,7 +298,8 @@ function refreshLiveState() {
 function entityQuery() {
   const entities = new Set<string>();
   for (const page of layout()?.pages ?? []) {
-    for (const tile of page.tiles) if (tile.content.kind === 'entity') entities.add(tile.content.entityId);
+    for (const tile of allTiles(page)) if (tile.content.kind === 'entity') entities.add(tile.content.entityId);
+    for (const section of page.sections ?? []) if (section.summary) entities.add(section.summary);
     for (const item of page.topbar.trailing) if (item.entity) entities.add(item.entity);
   }
   return [...entities].sort().map(entity => `entity=${encodeURIComponent(entity)}`).join('&');

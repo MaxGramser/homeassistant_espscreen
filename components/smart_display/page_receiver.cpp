@@ -305,6 +305,22 @@ std::string receive(const std::string &payload) {
       result = "Synced";
       return true;
     }
+#ifdef SD_MOD_SECTIONS
+    // A page's section summaries anew (`t`, one text per section, in its order), as their entities change.
+    if (op == "sums") {
+      if (!transfer.active || !root["p"].is<unsigned>() || root["p"].as<unsigned>() >= model.page_data.records.size() ||
+          !root["t"].is<JsonArray>()) return false;
+      const unsigned index = root["p"].as<unsigned>();
+      auto &sections = model.page_data.records[index].sections;
+      if (root["t"].as<JsonArray>().size() != sections.size()) return false;
+      size_t i = 0;
+      for (JsonVariant text : root["t"].as<JsonArray>()) sections[i++].summary = string(text, section_layout::SUMMARY_BYTES);
+      ::sections::summaries(int(index));
+      last_received = esphome::millis();
+      result = "Synced";
+      return true;
+    }
+#endif
     if (op == "page" || op == "bar") {
       if (!root["p"].is<unsigned>() || root["p"].as<unsigned>() >= model.page_data.records.size()) return false;
       const unsigned index = root["p"].as<unsigned>();
@@ -323,6 +339,28 @@ std::string receive(const std::string &payload) {
         next.excluded = root["excluded"].as<bool>();
         if (root["dock"].is<bool>()) next.dock = root["dock"].as<bool>();
         if (root["icon"].is<const char *>()) next.icon = tile_icon::codepoint(root["icon"].as<std::string>());
+#ifdef SD_MOD_SECTIONS
+        // Its sections (docs/PAGES.md "Sections"): [column, row, columns, rows, icon, title, summary, options] each, checked whole
+        // against the grid before the page is taken; a page whose blocks leave the grid or cover each other is refused.
+        if (!root["sections"].isNull()) {
+          if (!root["sections"].is<JsonArray>() || root["sections"].as<JsonArray>().size() > section_layout::MAX) return false;
+          for (JsonVariant item : root["sections"].as<JsonArray>()) {
+            if (!item.is<JsonArray>() || item.as<JsonArray>().size() < 6) { result = "Error: sections"; return false; }
+            JsonArray fields = item.as<JsonArray>();
+            for (size_t i = 0; i < 4; ++i) if (!fields[i].is<unsigned>() || fields[i].as<unsigned>() > section_layout::DIM) { result = "Error: sections"; return false; }
+            section_layout::Section section;
+            section.column = uint8_t(fields[0].as<unsigned>()); section.row = uint8_t(fields[1].as<unsigned>());
+            section.columns = uint8_t(fields[2].as<unsigned>()); section.rows = uint8_t(fields[3].as<unsigned>());
+            section.icon = tile_icon::codepoint(string(fields[4], 8));
+            section.title = string(fields[5], section_layout::TITLE_BYTES);
+            if (fields.size() > 6) section.summary = string(fields[6], section_layout::SUMMARY_BYTES);
+            // Its options as bits (8th field): 1 the panel in contrast.
+            if (fields.size() > 7 && fields[7].is<unsigned>()) section.contrast = (fields[7].as<unsigned>() & 1) != 0;
+            next.sections.push_back(std::move(section));
+          }
+          if (!section_layout::valid(next.sections, grid.columns, grid.rows)) { result = "Error: sections"; return false; }
+        }
+#endif
         if (!transfer.page(index)) return false;
         model.page_data.records[index] = std::move(next);
       } else {

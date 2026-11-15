@@ -4134,5 +4134,1202 @@
         }
       ]
     }
+  },
+  {
+    "name": "a section's tiles stand at its block's corner plus their own place",
+    "valid": true,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "compiled": [
+      [
+        "lock.front",
+        0
+      ],
+      [
+        "light.ceiling",
+        1
+      ],
+      [
+        "light.sofa",
+        2
+      ],
+      [
+        "light.desk",
+        5
+      ],
+      [
+        "media_player.tv",
+        11
+      ]
+    ]
+  },
+  {
+    "name": "a loose tile inside a section's block is refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "hall",
+              "content": {
+                "kind": "entity",
+                "entityId": "light.hall"
+              },
+              "placement": {
+                "row": 1,
+                "column": 2,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Hall"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "a section's tile outside its block is refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "hall",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.hall"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 2,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Hall"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "a section past the grid's edge is refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 3,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "two sections over the same cells are refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            },
+            {
+              "id": "5ec7000000000002",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 1,
+                "column": 2,
+                "columns": 2,
+                "rows": 1
+              },
+              "tiles": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "a section without a title is refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": " ",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "a section's malformed icon is refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "Not an icon!",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "ceiling",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "a section's tile shares an id with a loose tile and is refused",
+    "valid": false,
+    "grid": {
+      "columns": 4,
+      "rows": 3
+    },
+    "document": {
+      "title": "House",
+      "homePageId": "0000000000000001",
+      "pages": [
+        {
+          "id": "0000000000000001",
+          "navigation": {
+            "excludeFromPagination": false
+          },
+          "topbar": {
+            "title": {
+              "source": "screen"
+            },
+            "leading": [
+              {
+                "id": "home",
+                "kind": "home"
+              }
+            ],
+            "trailing": [
+              {
+                "id": "clock",
+                "type": "clock"
+              }
+            ]
+          },
+          "tiles": [
+            {
+              "id": "lock",
+              "content": {
+                "kind": "entity",
+                "entityId": "lock.front"
+              },
+              "placement": {
+                "row": 0,
+                "column": 0,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Front"
+              },
+              "interaction": {}
+            },
+            {
+              "id": "tv",
+              "content": {
+                "kind": "entity",
+                "entityId": "media_player.tv"
+              },
+              "placement": {
+                "row": 2,
+                "column": 3,
+                "columns": 1,
+                "rows": 1
+              },
+              "appearance": {
+                "label": "Tv"
+              },
+              "interaction": {}
+            }
+          ],
+          "sections": [
+            {
+              "id": "5ec7000000000001",
+              "title": "Lights",
+              "icon": "lightbulb-group",
+              "summary": "sensor.outside",
+              "placement": {
+                "row": 0,
+                "column": 1,
+                "columns": 2,
+                "rows": 2
+              },
+              "tiles": [
+                {
+                  "id": "lock",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.ceiling"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 0,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Ceiling"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "sofa",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.sofa"
+                  },
+                  "placement": {
+                    "row": 0,
+                    "column": 1,
+                    "columns": 1,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Sofa"
+                  },
+                  "interaction": {}
+                },
+                {
+                  "id": "desk",
+                  "content": {
+                    "kind": "entity",
+                    "entityId": "light.desk"
+                  },
+                  "placement": {
+                    "row": 1,
+                    "column": 0,
+                    "columns": 2,
+                    "rows": 1
+                  },
+                  "appearance": {
+                    "label": "Desk",
+                    "presentation": "wide"
+                  },
+                  "interaction": {}
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
   }
 ]

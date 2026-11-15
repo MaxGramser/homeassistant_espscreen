@@ -96,3 +96,7 @@ the add-on and the editor offer a module's options only on boards that have it.
   icon of its own (`icon` in the page document, one of the pickable MDI icons, sent as its codepoint): the Dock then
   shows that icon instead of the page's picture. On lite, up from
   the bottom goes home.
+- **sections** (full): sections on a page, blocks of cells with a title, an icon, a panel and a summary (docs/PAGES.md
+  "Sections", `module_sections.h`, with the pure `section_layout.h` beside it). Its screens say `sections` in their
+  hello and ESP Screens sends them each page's sections and their summaries (`sums`); the editor offers sections where
+  `boards.json` lists the module, and lite gets the same tiles in the same cells without them.

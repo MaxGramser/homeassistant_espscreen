@@ -6,6 +6,7 @@
 // `nameOf`, which the store hands in.
 import type { ChildTile, Page, PageGrid, PageLayout, PageTile } from "../types";
 import { sameValue } from "./pages";
+import { allTiles } from "./page-tiles";
 
 /** A change's words: a key under editor.undo.what, its values, and the count for a text with plural forms. */
 export type ChangeLabel = { key: string; named?: Record<string, unknown>; count?: number };
@@ -20,7 +21,7 @@ type Placed = { tile: PageTile | ChildTile; page: number; holder?: string; key?:
 function placedTiles(layout: PageLayout) {
   const placed = new Map<string, Placed>();
   layout.pages.forEach((page, index) => {
-    for (const tile of page.tiles) {
+    for (const tile of allTiles(page)) {
       placed.set(tile.id, { tile, page: index });
       tile.children?.forEach((child, key) => placed.set(child.id, { tile: child, page: index, holder: tile.id, key }));
     }

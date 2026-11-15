@@ -49,6 +49,7 @@ import { moveTileAndFollow, otherPages, removeTile, retargetPageTile, setTileOpt
 import TileMenuItems from "./TileMenuItems.vue";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { allTiles } from "../model/page-tiles";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -209,7 +210,7 @@ const backgrounds = computed(() => Object.entries(inv.inventory.backgrounds || {
 const fromHA = computed(() => Boolean(inv.entityOf(props.tile.entity)?.icon));
 const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
 // The way up in the head: the page the tile stands on opens that page's settings.
-const pageId = computed(() => doc.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
+const pageId = computed(() => doc.document?.pages.find((page) => allTiles(page).some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => insp.openPage(pageId.value!) : undefined },
   ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entities.entityName(holder.value.entity), open: () => insp.openTile(holder.value!) }] : []),

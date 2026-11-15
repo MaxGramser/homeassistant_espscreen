@@ -37,6 +37,9 @@ MODULES = {
     "todo": {"min_tier": "full", "define": "SD_MOD_TODO"},
     # A text's field: a Home Assistant text or input_text edited with the keyboard; lite shows the value only.
     "text_edit": {"min_tier": "full", "define": "SD_MOD_TEXT_EDIT"},
+    # Sections on a page (docs/PAGES.md "Sections"): blocks of cells with a title, an icon and a panel; lite gets the
+    # same tiles in the same cells, without the sections.
+    "sections": {"min_tier": "full", "define": "SD_MOD_SECTIONS"},
 }
 
 

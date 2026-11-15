@@ -5,6 +5,7 @@
 // one. A tile larger than the grid it lands on takes the largest size that grid has for it; a page-filling tile stays
 // one. Pure functions over the page document; editor/clipboard.ts brings the stores.
 import { clone, emptyPage, footprintSize, instanceId } from "./pages";
+import { placedTiles, sectionsOf } from "./page-tiles";
 import { validateCardOptions } from "./page-validation";
 import { spanOffered } from "./sizes";
 import type { Size } from "./layout";
@@ -27,7 +28,9 @@ export type Pasted = { layout: PageLayout; added: string[]; skipped: number; new
 export function copyTiles(layout: PageLayout, grid: { columns: number; rows: number }, ids: readonly string[]): CopiedTiles {
   const wanted = new Set(ids), tiles: CopiedTile[] = [];
   layout.pages.forEach((page, index) => {
-    for (const tile of page.tiles) if (wanted.has(tile.id)) tiles.push({ tile: clone(tile), page: index });
+    // A section's tile is copied as it stands on the page: its place in the block moved by the block's corner.
+    for (const { tile, row, column } of placedTiles(page)) if (wanted.has(tile.id))
+      tiles.push({ tile: { ...clone(tile), placement: { ...tile.placement, row, column } }, page: index });
   });
   tiles.sort((a, b) => a.page - b.page || a.tile.placement.row - b.tile.placement.row || a.tile.placement.column - b.tile.placement.column);
   return { tiles, grid: { columns: grid.columns, rows: grid.rows } };
@@ -66,7 +69,8 @@ export function fitTile(tile: PageTile, grid: PageGrid, entity: string, sizes: r
 // The cells of a page that tiles stand on.
 function takenOn(page: Page, grid: PageGrid) {
   const taken = new Set<number>();
-  for (const { placement: p } of page.tiles)
+  // A section's block is taken whole: pasted tiles stand loose beside it, never half in it.
+  for (const p of [...page.tiles.map((tile) => tile.placement), ...sectionsOf(page).map((section) => section.placement)])
     for (let y = p.row; y < p.row + p.rows; y++) for (let x = p.column; x < p.column + p.columns; x++) taken.add(y * grid.columns + x);
   return taken;
 }

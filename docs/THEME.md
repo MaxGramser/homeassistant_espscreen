@@ -59,6 +59,11 @@ not were found by comparing a screen that switched with one that booted in that 
 worked out from coordinates LVGL had not laid out yet (they read 0 until its next pass: use the size
 you set), and a palette pass that overwrote a colour the sun path had chosen itself.
 
+`SECTION` is the soft panel behind a section's tiles (docs/PAGES.md "Sections"): light `#F4F4F4`, a shade between the
+page and a card, and dark `#101010`, so the cards stand on it as they stand on the page. A section in contrast takes
+`SECTION_CONTRAST` (light `#202020`, dark `#E0E0E0`) and its words `SECTION_CONTRAST_INK` (light `#F0F0F0`, dark
+`#181818`); both dark values land on one step of an RGB565 panel, so they stay neutral.
+
 ## Adding a colour
 
 1. **A role**: one line in `enum Role` and one row in `ROLES`, in the same order (the tests read

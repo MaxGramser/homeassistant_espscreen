@@ -144,7 +144,22 @@ export type Page = {
   tiles: PageTile[];
   // The page's own icon by name (a pickable MDI icon), which the Dock shows instead of its picture; left out, the picture.
   icon?: string;
+  // Sections (docs/PAGES.md "Sections"): blocks of cells with a title, an icon and a panel, each holding its own tiles
+  // placed inside it. Left out on a page without any; the page's loose tiles are `tiles`, as before.
+  sections?: Section[];
 };
+// A section's block on its page's grid, and its tiles relative to the block's top-left corner. `summary`: an entity whose
+// state the section's band shows at its right end.
+export type Section = {
+  id: string; title: string; icon?: string; summary?: string;
+  // The panel in the page's opposite colour, so the section stands out (off unless chosen).
+  contrast?: boolean;
+  placement: { row: number; column: number; columns: number; rows: number };
+  tiles: PageTile[];
+};
+// A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells.
+export type SectionBlock = { id: string; page: number; row: number; column: number; columns: number; rows: number;
+  title: string; icon?: string; summary?: string; contrast?: boolean };
 export type PageLayout = { title: string; homePageId: string; pages: Page[] };
 export type PageWorkspace = { revision: string; positions: Record<string, { x: number; y: number }> };
 export type PageDocument = {
@@ -161,6 +176,8 @@ export type Layout = {
   page_titles?: string[];
   header?: { items: HeaderItem[] };
   settings?: Record<string, any>;
+  // Every page's sections, with their page (projectLayout), so the mockup draws them where the tiles are.
+  sections?: SectionBlock[];
   [key: string]: unknown;
 };
 export type UpdateInfo = {
@@ -327,7 +344,12 @@ export type Screen = {
       watch_icon?: number; setpoint?: number; icon?: number };
     // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74, a
     // card's corner and its icon's face (fonts.icon) from app 0.4.90.
-    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number } } | null;
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
+    // A section's band on this glass (boards.json, module_sections.h): its height and its title's top in it.
+    section?: { band: number; title_top: number; ink_top?: number; line?: number } } | null;
+  // Sections on a page (docs/PAGES.md "Sections"): its board has the module (the full tier), and its own hello says it
+  // draws them now (an older firmware does not, and gets the same tiles without them).
+  sections?: boolean; sections_drawn?: boolean;
   // Which way it was built to hang (app 0.2.107): a screen standing up has another canvas and another grid, and
   // while it is offline only the YAML of its own profile says so.
   orientation?: Orientation;

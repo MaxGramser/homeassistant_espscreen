@@ -299,6 +299,10 @@ FIRMWARE_MAX_BAR_ITEMS = 6
 # layout made for a board with more pages still loads whatever is connected, and a save is held to the screen's own.
 STORE_MAX_PAGES = 32
 STORE_MAX_TILES = 1024
+# A page holds at most this many sections (docs/PAGES.md "Sections"), and a screen that draws them names this feature in
+# its hello (firmware module sections, the full tier only).
+STORE_MAX_SECTIONS = 16
+SECTIONS_FEATURE = 'sections'
 STORE_MAX_BAR_ITEMS = 16
 
 class Grid:

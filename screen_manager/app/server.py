@@ -68,7 +68,7 @@ import plugins
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, WSMsgType, web
 from core import alarm_extras, lock_extras, ALERT_EVENT, board_of, BROADCAST_DISMISS, BROADCAST_EVENTS, BROADCAST_SHOW, BUILTIN, CAMERA_DOMAINS, entity_id, SETTINGS_BESIDE_BLOCK, TILE_EVENTS, TILE_RESULT_EVENT, layout_snapshot, match_screen, HEADER_MIN_FIRMWARE, NAME_TILE_SETTINGS, TRANSPORT_MIN_FIRMWARE, alert_action, alert_camera, alert_choice, alert_data, choice_service, ALERT_CHOICE_ACTION, ALERT_CHOICE_MIN_FIRMWARE, parse_firmware, alert_reference, alert_screen_choice, alert_screen_names, alert_service, alert_targets, backgrounds, builtin_name, controls_catalogue, device_prefixes, discover, discover_screens, encode, entity_slug, extras, media_cover, media_extras, forecast_kinds, header_items, inbox_prefix, message_action, min_firmware, name_clash, packets, revision, screen_items, state_message, validate_header, validate_layout, validate_settings
-from core import ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, WEATHER_WEEK, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
+from core import SECTIONS_FEATURE, ENERGY_TILE, MAP_TILE_MIN_FIRMWARE, WEATHER_WEEK, calibrate_entity, can_standby, dimmable, SETTING_ENTITIES, SETTING_RULES, STANDBY_KEYS, setting_action, setting_entities, setting_from_state, state_word
 from core import BAR_CARDS_FEATURE, BOARD_KEYS, has_battery, has_module, is_key, drawn_controls, FAVORITE_KINDS, SCREENSAVER_MIN_FIRMWARE, short, plugin_tile
 from core import (FIRMWARE_MAX_BAR_ITEMS, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, Grid, page_target, PAGE_TILE_REPEAT_MIN_FIRMWARE, ENTITY_REPEAT_MIN_FIRMWARE, ROTATION_MIN_FIRMWARE, SHAPES, firmware_features, grid_of, orientation_at,
                   packed_slots, run_tile_event, screen_firmware, shape_of, turns_of, update_in_tessera, version_text)
@@ -2875,6 +2875,13 @@ class Manager:
                 return item.get('name_by_user') or item.get('name')
         return None
 
+    def summary_text(self, entity):
+        """An entity's state as a section's band says it (docs/PAGES.md "Sections"): the top bar's words, number format
+        and unit (header_bar.value); empty for a moment, which the band does not count down."""
+        text, _ = header_bar.value(entity, self.ha.states.get(entity), self.registry_index().get(entity),
+                                   getattr(self.ha, 'units', {}), getattr(self.ha, 'time_zone', None), getattr(self.ha, 'state_words', None))
+        return text or ''
+
     def header_message(self, layout, features=None, cards=None):
         """`features`: the screen's hello (page_delivery.Sender.features); None for this app's own firmware (the preview).
         `cards`: which tile's card each entity's item opens (core.bar_cards)."""
@@ -4873,6 +4880,10 @@ def create_app(manager, development=False):
             screen['caps'] = manager.caps_of_screen(screen)
             # The Dock (docs/MODULES.md): the editor offers "Show in Dock" on a page of a board that has it.
             screen['dock'] = has_module(screen, 'dock')
+            # Sections on a page (docs/PAGES.md "Sections"): only a board with the module sections draws them, so the editor
+            # offers them there only; `sections_drawn`: the screen's own hello says it draws them now (an older firmware does not).
+            screen['sections'] = has_module(screen, 'sections')
+            screen['sections_drawn'] = SECTIONS_FEATURE in (getattr(manager.page_senders.get(screen['id']), 'features', None) or ())
             # A vacuum's larger tile (docs/VACUUM.md, "A larger tile"): its map, rooms and routines on a board with the
             # vacuum card's module; the editor offers them there only, and a screen whose hello lacks vacuum_tile gets
             # the keys (catalogue screen else).
@@ -5424,7 +5435,9 @@ def create_app(manager, development=False):
         bars = [manager.header_message({'header': {'items': bar_items(page)}})['items']
                 for page in record['layout']['pages']]
         region = manager.page_region()
-        begin, initial_tiles, initial_bars, states = page_delivery.prepare('', record, region, values, bars)
+        # The preview is this app's own firmware, of the full tier: it draws sections (docs/PAGES.md "Sections").
+        begin, initial_tiles, initial_bars, states = page_delivery.prepare('', record, region, values, bars, (), True,
+                                                                           page_service.section_sums(manager, record['layout']))
         revision = page_delivery.configuration(record, region)
         manager.preview_layouts[revision] = tiles
         manager.preview_layouts.move_to_end(revision)

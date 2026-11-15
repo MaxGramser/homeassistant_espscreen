@@ -93,6 +93,8 @@
 - [PLATFORM_PLAN.md](PLATFORM_PLAN.md): what Tessera builds next on the ESP32-P4 and in what order: the hardware layer
   (parts, the capability record `hw::caps()`, the audio owner), memory and live cameras with limits, the doorbell's
   talk-back prepared; each section says what is built and what is left.
+- [SECTIONS_PLAN.md](SECTIONS_PLAN.md): the build plan for sections, titled groups of tiles on a page drawn as a
+  soft panel: storage, placement, protocol, firmware, editor and the order of the steps; a plan, nothing of it built yet.
 - [DOORBELL.md](DOORBELL.md): a doorbell's ring from an automation, its camera live with sound on the P4 screens, and
   the Events page's wizards that add such automations to Home Assistant.
 - [MAP.md](MAP.md): the map card, drawn by the add-on and sent as a picture.

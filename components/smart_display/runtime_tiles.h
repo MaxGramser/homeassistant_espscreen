@@ -103,6 +103,17 @@
 #include <new>
 #include <cstdlib>
 
+#ifdef SD_MOD_SECTIONS
+// Sections on a page (module sections, module_sections.h at the module site at the end of this file).
+namespace sections {
+inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y);
+inline void show(int page);
+inline void summaries(int page);
+inline void forget();
+inline void restyle();
+}  // namespace sections
+#endif
+
 namespace runtime_tiles {
 // What the screen says, in the language its firmware was built for (screen_text.h, app 0.2.90).
 using screen_text::fill;
@@ -10323,7 +10334,11 @@ inline int place_page(int page, bool kept = false) {
       const int32_t column=w.full?0:(int32_t)(slot%grid.columns),row=w.full?0:(int32_t)(slot/grid.columns);
       const auto &tile=model.tiles[w.index];
       const int32_t span_x=tile.column_span(),span_y=tile.row_span();
+#ifdef SD_MOD_SECTIONS
+      ::sections::place(w.tile,page,column,span_x,row,span_y);
+#else
       set_cell(w.tile,column,span_x,row,span_y);
+#endif
       lv_obj_remove_flag(w.tile,LV_OBJ_FLAG_HIDDEN);
     }
     else{lv_obj_add_flag(w.tile,LV_OBJ_FLAG_HIDDEN);hide_extra(w);hide_panel(w);}
@@ -10345,6 +10360,9 @@ inline int place_page(int page, bool kept = false) {
   show_page_keys(page,detail);
   // The dots between the two chevrons (firmware 0.2.69+): the page on screen in ink.
   if(sequential && nav_number)page_bar::dots(nav_number,model.page_data.ordinal(page),sequential_count);
+#ifdef SD_MOD_SECTIONS
+  ::sections::show(page);
+#endif
   // The cards are drawn from the sizes the grid gives them, so it lays out before anything reads one.
   if(tile_grid)lv_obj_update_layout(tile_grid);
   if(widgets[0].tile && widgets[0].index<model.count && model.tiles[widgets[0].index].is_bedside()){
@@ -10537,6 +10555,9 @@ inline void regrid(size_t columns, size_t rows) {
   shelf.forget();
   release_kept(0);
   for (auto &w : widgets) drop_card(w);
+#ifdef SD_MOD_SECTIONS
+  ::sections::forget();
+#endif
   grid = Grid{columns, rows};
   chosen_grids[canvas_upright ? 1 : 0] = grid;
   save_grids();
@@ -10592,6 +10613,10 @@ inline lv_obj_t *face_picture(const Widgets &w) {
 }
 inline void forget_kept() {
   shelf.forget();
+#ifdef SD_MOD_SECTIONS
+  // A new layout's sections are drawn anew when their pages are placed.
+  ::sections::forget();
+#endif
   for (auto *set : kept_sets) if (set) for (auto &w : *set) {
     end_extra(w);
     w.index = grid.max_tiles(); w.cached_active = -1; w.art_key.clear();
@@ -11018,6 +11043,9 @@ inline void restyle() {
   if (nav_number && applied_bar && applied_page >= 0)
     page_bar::dots(nav_number, model.page_data.ordinal(applied_page), model.page_data.count());
   header_renderer.restyle();
+#ifdef SD_MOD_SECTIONS
+  ::sections::restyle();
+#endif
   if (room_label) { mark_all(); render(room_label); }
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);
   media_library::restyle();
@@ -13977,6 +14005,9 @@ inline bool starts_on_control(int x, int y) {
 #define SMART_DISPLAY_MODULE_SITE
 #ifdef SD_MOD_DOCK
 #include "module_dock.h"
+#endif
+#ifdef SD_MOD_SECTIONS
+#include "module_sections.h"
 #endif
 #undef SMART_DISPLAY_MODULE_SITE
 namespace runtime_tiles {

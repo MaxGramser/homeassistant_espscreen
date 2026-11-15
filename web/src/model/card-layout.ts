@@ -46,11 +46,14 @@ export function cardPadY(shape: Shape, down: number) {
 
 /** Where a card stands on its page and the room inside it, in glass pixels: `columns` x `rows` of the page's `across` x
  * `down` cells from (`column`, `row`), with the page bar under the grid when the layout has one. */
-export type CardPlace = { across: number; down: number; column: number; row: number; columns: number; rows: number; paged: boolean };
+// In a section (docs/PAGES.md "Sections"): `inner` what the card's height gains (less than nothing: the room the
+// section's header and padding take from it), `margin` the panel's padding at the card's sides together.
+export type CardPlace = { across: number; down: number; column: number; row: number; columns: number; rows: number; paged: boolean;
+  inner?: number; margin?: number };
 export function cardRoom(shape: Shape, p: CardPlace) {
   const padY = cardPadY(shape, p.down), pad = frameOf(shape).tile_pad;
-  const height = cardHeight(shape, p.down, p.rows, p.row, p.paged);
-  return { pad, padY, width: cardContent(shape, p.across, p.columns, p.column), height: Math.max(0, height - 2 - 2 * padY), outer: height };
+  const height = cardHeight(shape, p.down, p.rows, p.row, p.paged) + (p.inner ?? 0);
+  return { pad, padY, width: cardContent(shape, p.across, p.columns, p.column) - (p.margin ?? 0), height: Math.max(0, height - 2 - 2 * padY), outer: height };
 }
 
 export type TextBox = { x: number; y: number; width: number; size: number; line: number; weight: number; center?: boolean };

@@ -722,6 +722,11 @@ api:
                     // types (plugin_host::hello).
                     features.add("plugins");
                     plugin_host::hello(root);
+                    #ifdef SD_MOD_SECTIONS
+                    // sections (module sections, docs/PAGES.md "Sections"): blocks of a page's cells with a title, an
+                    // icon and a panel, in the page's message, and their summaries in the op "sums".
+                    features.add("sections");
+                    #endif
                     // caps (hw.h, docs/PLATFORM_PLAN.md 3.3): what this screen's hardware can do, in one record: live
                     // video, speaker, microphone, echo cancellation, a camera of its own, the live tiles it runs at
                     // once, its memory. ESP Screens reads it where it reads a screen's features; the features "live"

@@ -136,6 +136,13 @@ enum Role : uint8_t {
   INSTRUMENT_INK,
   INSTRUMENT_MUTED,
   INSTRUMENT_GLOW,
+  // The soft panel behind a section's tiles (module sections, docs/PAGES.md "Sections"): a shade between the page and a
+  // card, light and dark, so the cards stand on it as on the page.
+  SECTION,
+  // A section that stands out (its option "contrast"): the page's opposite, near black by day and near white in Dark
+  // mode, and its title, icon and summary in that panel's ink. The dark values land on one step of an RGB565 panel.
+  SECTION_CONTRAST,
+  SECTION_CONTRAST_INK,
   ROLE_COUNT
 };
 
@@ -238,6 +245,9 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* INSTRUMENT_INK */           {0xEEF3F8, 0xDADFE5},
   /* INSTRUMENT_MUTED */         {0x8FA0B3, 0x7F8FA1},
   /* INSTRUMENT_GLOW */          {0x52E3A4, 0x45D196},
+  /* SECTION */                  {0xF4F4F4, 0x101010},
+  /* SECTION_CONTRAST */         {0x202020, 0xE0E0E0},
+  /* SECTION_CONTRAST_INK */     {0xF0F0F0, 0x181818},
 };
 
 // The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the

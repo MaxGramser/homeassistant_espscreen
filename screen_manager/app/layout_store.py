@@ -20,7 +20,10 @@ from core import validate_settings
 from page_layout import FORMAT, LayoutError, fingerprint, grid_of_record, new_id, screen_grid_of_record, validate_document
 from layout_migrations import migrate_legacy
 
-VERSION = 2
+VERSION = 3
+# The store stays at version 2 while no layout has a section (docs/PAGES.md "Sections"), so an older app still reads it;
+# the first save with a section keeps the version 2 file as screens.v2.backup.json and writes version 3.
+PLAIN_VERSION = 2
 LEGACY = "legacy-v1"
 
 
@@ -109,8 +112,22 @@ class LayoutStore:
         finally:
             os.close(descriptor)
 
+    @staticmethod
+    def _version_for(records):
+        return VERSION if any(page.get("sections") for record in records.values() if isinstance(record.get("layout"), dict)
+                              for page in record["layout"].get("pages", ())) else PLAIN_VERSION
+
     def _replace(self, records):
-        payload = json.dumps({"version": VERSION, "screens": records}, ensure_ascii=False,
+        version = self._version_for(records)
+        if version == VERSION and self.path.exists():
+            original = self.path.read_bytes()
+            try:
+                before = json.loads(original).get("version")
+            except (ValueError, AttributeError):
+                before = None
+            if before == PLAIN_VERSION:
+                self._backup(original, PLAIN_VERSION)
+        payload = json.dumps({"version": version, "screens": records}, ensure_ascii=False,
                              allow_nan=False, separators=(",", ":")) + "\n"
         # Whole or not at all (atomic.write_text); the folder's sync is this store's own, so an uncertain one is reported.
         atomic.write_text(self.path, payload, sync_folder=False)
@@ -121,14 +138,15 @@ class LayoutStore:
         except OSError as error:
             raise CommitUncertain("Storage was replaced; reread its revision before retrying") from error
 
-    def _backup(self, original):
-        backup = self.path.with_name(self.path.stem + ".v1.backup.json")
+    def _backup(self, original, version=1):
+        """Keep the store as it was before it moves on from `version` (1 before pages, 2 before sections)."""
+        backup = self.path.with_name(self.path.stem + f".v{version}.backup.json")
         if backup.exists():
             if backup.read_bytes() == original:
                 return
             # A deliberate restore followed by more v1 edits deserves its own
             # backup; the first pre-migration backup is never overwritten.
-            backup = self.path.with_name(self.path.stem + ".v1." + fingerprint(original.decode("utf8")) + ".backup.json")
+            backup = self.path.with_name(self.path.stem + f".v{version}." + fingerprint(original.decode("utf8")) + ".backup.json")
             if backup.exists():
                 if backup.read_bytes() != original:
                     raise LayoutError(t('addon.errors.pages.backup_conflict'))
@@ -179,7 +197,7 @@ class LayoutStore:
         # Converted documents still pass strict validation and finite JSON writes.
         envelope = _json(text, legacy=True)
         if (not isinstance(envelope, dict) or set(envelope) != {"version", "screens"}
-                or type(envelope.get("version")) is not int or envelope["version"] not in (1, VERSION)
+                or type(envelope.get("version")) is not int or envelope["version"] not in (1, PLAIN_VERSION, VERSION)
                 or not isinstance(envelope.get("screens"), dict)):
             raise LayoutError(t('addon.errors.pages.storage_version'))
         if envelope["version"] == 1:

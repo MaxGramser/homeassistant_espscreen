@@ -53,7 +53,7 @@ export function removePage(page: number) {
 export function setHomePage(id: string) { return useDocumentStore().editDocument((draft) => { draft.homePageId = id; }); }
 export function connectTile(tileId: string, target: string | "home") {
   return useDocumentStore().editDocument((draft) => {
-    const tile = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tileId);
+    const tile = draft.pages.flatMap(pages.allTiles).find((item) => item.id === tileId);
     if (tile?.content.kind !== "navigation") throw new Error(t("addon.errors.pages.select_link"));
     tile.content.target = target === "home" ? { kind: "home" } : { kind: "page", pageId: target };
   });

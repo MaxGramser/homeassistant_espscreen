@@ -115,7 +115,7 @@ export const useDocumentStore = defineStore("document", () => {
     return upright !== null && (shape.height > shape.width) !== upright ? { ...shape, width: shape.height, height: shape.width } : shape;
   });
   // The cells, pages and arrangements of the draft's grid (model/layout.ts), read through it as it changes.
-  const editorLayout = markRaw(createLayout(() => documentGrid.value ?? screenShape.value, () => scr.currentScreen?.page_limit));
+  const editorLayout = markRaw(createLayout(() => documentGrid.value ?? screenShape.value, () => scr.currentScreen?.page_limit, () => layout.value?.sections ?? []));
   // What the screen holds and draws, as the add-on says (app 0.2.78), so a screen whose version Home Assistant can't
   // report for a moment keeps its 48 tiles instead of dropping to ten, and a copied or imported layout isn't cut to ten.
   const tileLimit = computed(() => {
@@ -204,7 +204,7 @@ export const useDocumentStore = defineStore("document", () => {
     // A key under a bedside clock is a child of its clock: a change to it keeps it chosen like any tile. A tile that went
     // is no longer chosen, and its drawer closes (stores/inspector.ts follows the chosen tile).
     const selected = selectedTileId.value;
-    if (selected && !next.pages.some((page) => page.tiles.some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
+    if (selected && !next.pages.some((page) => pages.allTiles(page).some((tile) => tile.id === selected || tile.children?.some((child) => child.id === selected))))
       selectedTileId.value = null;
     markEdited();
     return true;

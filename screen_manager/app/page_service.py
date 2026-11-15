@@ -8,9 +8,9 @@ import time
 import picture_question
 import page_delivery
 from doorbell import FEATURE as DOORBELL_FEATURE, with_missed
-from core import bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
+from core import SECTIONS_FEATURE, bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
 from i18n import t, shown, english
-from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, bar_items, compile_tiles,
+from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, bar_items, compile_tiles, sections_of,
                          grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document)
 
 
@@ -163,6 +163,21 @@ def grow_record(manager, inbox, record):
     return record
 
 
+def section_sums(manager, layout):
+    """Each page's section summaries (docs/PAGES.md "Sections"): the state of the entity a section names, in the words
+    and units the top bar gives it (header_bar), or empty; a page without sections has none."""
+    out = []
+    for page in layout['pages']:
+        texts = []
+        for section in sections_of(page):
+            text = ''
+            if section.get('summary'):
+                text = manager.summary_text(section['summary'])
+            texts.append(text.encode()[:48].decode('utf8', 'ignore'))
+        out.append(texts)
+    return out
+
+
 def top_bar_tiles(record, tiles, sender, features):
     """The tiles of the top bar a screen gets (core.BAR_CARDS_FEATURE): to one whose hello names them, a tile without a
     cell for each entity in a top bar that is on no tile, after `tiles`, as many as its tile ceiling leaves room for. An
@@ -213,14 +228,15 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         saved = manager.store.get(inbox)
         return saved is not None and saved.get('revision') == expected
     before = sender.confirmed
-    wanted = page_delivery.configuration(record, manager.page_region(inbox), bar)
+    wanted = page_delivery.configuration(record, manager.page_region(inbox), bar, SECTIONS_FEATURE in features)
     # A layout this screen already refused is refused again without a word to it (Sender.failed_revision): the status keeps
     # the reason, instead of saying Applying on every pass and pushing the editor each time.
     if before != wanted and sender.failed_revision != wanted:
         manager.status[inbox] = 'Applying'
         manager.notify()
     try:
-        rev = await sender.synchronize(inbox, record, manager.page_region(inbox), values, bars, current, bar)
+        rev = await sender.synchronize(inbox, record, manager.page_region(inbox), values, bars, current, bar,
+                                       section_sums(manager, record['layout']) if SECTIONS_FEATURE in features else None)
     except page_delivery.Superseded:
         manager.ha.changed.set()
         return True
