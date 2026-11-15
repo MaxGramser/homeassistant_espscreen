@@ -371,7 +371,7 @@ inline void set_hidden(lv_obj_t *obj, bool hidden);
 inline void swipe_test(unsigned count, unsigned interval_ms, unsigned back_ms);
 #endif
 inline void refresh_header_only();
-inline void refresh_all();
+inline void refresh_all(const char *why="refresh_all");
 inline void refresh_detail(unsigned index);
 // What a finger changed, shown at once (optimistic.h, docs/OPTIMISTIC.md): Home Assistant's answers reach it from
 // watch_call; defined with the wishes below.
@@ -9439,7 +9439,10 @@ inline void mark_time() {
 // because the top bar reads it: a page with a title of its own says that title (Model::title_of), so render()
 // has to know which page it is drawing.
 inline int applied_page=-1;
-inline void mark_all() { dirty_all=true; changes.mark_all(); }
+// Why every card is drawn next (mark_all's `why`): the render's log names it, so a page that seems to load again can be
+// traced to its cause (a 10.1 inch, 2026-11-15). The first reason since the last render is kept.
+inline const char *all_why=nullptr;
+inline void mark_all(const char *why="unnamed") { dirty_all=true; changes.mark_all(); if(!all_why)all_why=why; }
 inline void mark_tile(size_t index) { changes.mark_tile(index); if(index<dirty_tiles.size())dirty_tiles.set(index); else dirty_all=true; }
 inline void refresh_tile(size_t index) { mark_tile(index); if(refresh)refresh(); }
 inline void refresh_header_only() { dirty_header=true; if(refresh)refresh(); }
@@ -9452,7 +9455,7 @@ inline void mark_minute() {
   for(size_t i=0;i<model.count;++i)
     if(shows_time(model.tiles[i]) || (hour && model.tiles[i].domain()=="weather"))mark_tile(i);
 }
-inline void refresh_all() { mark_all(); if(refresh)refresh(); }
+inline void refresh_all(const char *why) { mark_all(why); if(refresh)refresh(); }
 // The starting screen (firmware 0.2.73+): what the screen waits for in the middle of the page with a spinner under it,
 // until the first layout arrives. The first render() makes it and the first layout deletes it, spinner and all.
 // Above the text stands the Tessera lockup (firmware 0.3.8+): the mosaic mark beside the name, as the website draws it.
@@ -9959,16 +9962,30 @@ inline void render(lv_obj_t *room) {
   lap(swipe_profile::HEADER);
   // A refresh that names nothing draws every card (and counts as a change of everything); a changed display setting
   // says it is only the look and the time (dirty_time), the minute marks its own cards (mark_minute).
-  if(!dirty_all && dirty_tiles.none() && !dirty_header && !dirty_time)mark_all();
+  if(!dirty_all && dirty_tiles.none() && !dirty_header && !dirty_time)mark_all("a refresh that named nothing");
   const bool all=dirty_all || dirty_time;
+  const char *why=dirty_all ? (all_why ? all_why : "unnamed") : "a display setting (dirty_time)";
+  all_why=nullptr;
   const uint32_t upto=changes.last;  // every change asked for so far is drawn below, for the cards on the glass
   const TileSet tiles=dirty_tiles;
   dirty_all=dirty_header=dirty_time=false;dirty_tiles.reset();
+  // What was drawn and how long it took, said when it was every card or a slow pass: a page that seems to load again
+  // is a pass over every card (its reason) or one card built anew (the slowest slot).
+  const uint32_t began=esphome::millis();
+  unsigned drawn=0;uint32_t slowest=0;size_t slowest_index=0;
   for (size_t slot = 0; slot < grid.slots(); ++slot) {
     const auto &w=widgets[slot];
     if(w.index>=model.count)continue;
-    if(all || tiles.test(w.index))render_slot(slot);
+    if(!(all || tiles.test(w.index)))continue;
+    const uint32_t from=esphome::millis();
+    render_slot(slot);
+    ++drawn;
+    if(esphome::millis()-from>slowest){slowest=esphome::millis()-from;slowest_index=w.index;}
   }
+  const uint32_t took=esphome::millis()-began;
+  if(all)ESP_LOGI("render","every card drawn: %s, %u cards in %u ms (slowest tile %u, %u ms)",why,drawn,(unsigned)took,(unsigned)slowest_index,(unsigned)slowest);
+  else if(took>=30)ESP_LOGI("render","%u cards drawn in %u ms, slowest tile %u (%s), %u ms",drawn,(unsigned)took,(unsigned)slowest_index,
+                           slowest_index<model.count?model.tiles[slowest_index].entity.c_str():"",(unsigned)slowest);
   // Kept pages learn nothing here: what they lack follows from the change numbers when they come back (kept_pages.h).
   glass_synced=upto;
 }
@@ -10456,7 +10473,7 @@ inline int place_page(int page, bool kept = false) {
 }
 inline void apply_page(int page) {
   applied_page=place_page(page);
-  if(room_label){mark_all();render(room_label);}else refresh_all();
+  if(room_label){mark_all("a page placed");render(room_label);}else refresh_all("a page placed");
 }
 // ---- Pages kept whole: memory and the exchange of card sets (kept_pages.h) ----
 inline void *kept_allocate(size_t bytes) {
@@ -10569,7 +10586,7 @@ inline void abandon_layout() {
   transfer.begun = false;
   layout_landed_at = 0;
   memory_short_at = std::max<uint32_t>(1, esphome::millis());
-  refresh_all();
+  refresh_all("the layout dropped for memory");
 }
 // The reply to a hello or a ping carries the memory figures (packages/core.yaml); a tile's state does not need them.
 inline bool reply_memory = false;
@@ -10970,7 +10987,7 @@ inline void tick() {
     wifi_shown = shown;
     if (shown) ESP_LOGW("wifi_status", "No Wi-Fi: the glass says how to fix it");
     else ESP_LOGI("wifi_status", "Wi-Fi back: the pages again");
-    if (room_label) { mark_all(); render(room_label); } else refresh_all();
+    if (room_label) { mark_all("Wi-Fi gone or back"); render(room_label); } else refresh_all("Wi-Fi gone or back");
   }
   if(detail_root && !lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN) && detail_tile()){
     auto &t=*detail_tile();bool waiting=t.loading(esphome::millis());
@@ -11008,7 +11025,7 @@ inline void tick() {
   if(ota_status::now.phase==ota_status::Phase::failed){
     static uint32_t failed_at=0;
     if(!failed_at)failed_at=esphome::millis()|1;
-    else if(esphome::millis()-failed_at>5000){failed_at=0;ota_status::now={};ota_forget();refresh_all();}
+    else if(esphome::millis()-failed_at>5000){failed_at=0;ota_status::now={};ota_forget();refresh_all("an update's status gone");}
   }
   // The starting screen follows every step as it happens (firmware 0.38.0): drawn again whenever what it says changes,
   // the seconds of a step that takes long included.
@@ -11048,7 +11065,7 @@ inline void tick() {
   auto card=[&](size_t index){ mark_tile(index); redraw=true; };
   // HA dropping or returning and the feed timing out change every card at once.
   bool now_fresh=fresh();
-  if(now_fresh!=was_fresh){was_fresh=now_fresh;mark_all();redraw=true;}
+  if(now_fresh!=was_fresh){was_fresh=now_fresh;ESP_LOGI("render","the feed is %s (Home Assistant %s, the app's feed %s)",now_fresh?"fresh again":"no longer fresh",ha_connected()?"connected":"away",feed_alive()?"alive":"silent");mark_all(now_fresh?"feed fresh again":"feed no longer fresh");redraw=true;}
 #ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
   expire_calls(esphome::millis());
 #endif
@@ -11128,7 +11145,7 @@ inline void restyle() {
 #ifdef SD_MOD_SECTIONS
   ::sections::restyle();
 #endif
-  if (room_label) { mark_all(); render(room_label); }
+  if (room_label) { mark_all("the look changed"); render(room_label); }
   if (detail_root && !lv_obj_has_flag(detail_root, LV_OBJ_FLAG_HIDDEN) && detail_tile()) show_detail(detail_index);
   media_library::restyle();
 }

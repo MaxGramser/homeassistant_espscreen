@@ -66,7 +66,7 @@ std::string receive(const std::string &payload) {
   const bool accepted = esphome::json::parse_json(payload, [&](JsonObject root) -> bool {
     if (root["v"].as<int>() != page_protocol::VERSION) {
       const auto problem = root["v"].is<unsigned>() && root["v"].as<unsigned>() == 1 ? ProtocolProblem::old_addon : ProtocolProblem::unsupported;
-      if (protocol_problem != problem) { protocol_problem = problem; cancel_layout_input(false); refresh_all(); }
+      if (protocol_problem != problem) { protocol_problem = problem; cancel_layout_input(false); refresh_all("a protocol problem"); }
       result = problem == ProtocolProblem::old_addon ? "Configuration problem. Update add-on." : "Error: protocol version";
       return false;
     }
@@ -168,7 +168,7 @@ std::string receive(const std::string &payload) {
         protocol_problem = ProtocolProblem::none;
         last_received = esphome::millis();
         keepalive_seconds = root["keepalive"].as<unsigned>();
-        if (was_problem) refresh_all();
+        if (was_problem) refresh_all("a protocol problem over");
         result = "Synced"; return true;
       }
       if (upright != canvas_upright) {
@@ -192,7 +192,7 @@ std::string receive(const std::string &payload) {
       if (!model.begin(root["tiles"].as<unsigned>(), root["pages"].as<unsigned>(), string(root["title"], 96), [] { cancel_layout_input(); })) {
         // The layout of the old grid cannot stay on the new one: the screen says it has none (the refusal stays).
         if (regridded) { const std::string refusal = model.refusal; model.begin(0, 1, ""); model.refusal = refusal; transfer.begun = false; }
-        refresh_all(); result = model.refusal.empty() ? "Error: layout" : model.refusal; return false;
+        refresh_all("a layout refused"); result = model.refusal.empty() ? "Error: layout" : model.refusal; return false;
       }
       transfer = candidate;
       protocol_problem = ProtocolProblem::none;
@@ -209,7 +209,7 @@ std::string receive(const std::string &payload) {
         numbers = (numbers & ~0x30u) | (root["group_min"].as<unsigned>() << 4);
       if (root["percent_space"].is<bool>()) numbers = (numbers & ~0xC0u) | ((root["percent_space"].as<bool>() ? 2u : 1u) << 6);
       if (numbers != screen_text_numbers()) { screen_text_numbers(numbers); numbers_preference.save(&numbers); }
-      refresh_all();
+      refresh_all("a new layout");
       result = "Loading tiles";
       return true;
     }
@@ -398,7 +398,7 @@ std::string receive(const std::string &payload) {
       last_received = esphome::millis();
       // The room is sampled once this layout has settled (tile_memory::SETTLE_MS, firmware 0.51.0).
       layout_landed_at = std::max<uint32_t>(1, last_received);
-      refresh_all();
+      refresh_all("a layout complete");
 #ifdef USE_ESP32
       // Building every tile inside the API's call is the deepest the loop task goes; this is the figure the
       // loop_task_stack_size in hardware/esp-idf.yaml is sized from (firmware 0.3.1+).
