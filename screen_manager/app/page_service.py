@@ -8,10 +8,10 @@ import time
 import picture_question
 import page_delivery
 from doorbell import FEATURE as DOORBELL_FEATURE, with_missed
-from core import SECTIONS_FEATURE, bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
+from core import SECTIONS_FEATURE, has_module, bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
 from i18n import t, shown, english
-from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, bar_items, compile_tiles, sections_of,
-                         grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document)
+from page_layout import (FORMAT as PAGE_FORMAT, SECTION_SUMMARY_BYTES, LayoutError, bar_items, compile_tiles, sections_of,
+                         grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document, without_sections)
 
 
 def preflight_update(manager, inbox):
@@ -70,6 +70,10 @@ def save_pages(manager, inbox, data):
         if not previous or previous['format'] != PAGE_FORMAT or adaptation != expected or manager.verified_grid(inbox) is None:
             raise LayoutError(t('addon.errors.pages.adaptation'))
     document = validate_document(data.get('layout'), grid)
+    # A screen whose board draws no sections keeps none: the tiles stay where they stand. The editor holds a draft to
+    # the same (stores/document.ts held), so this only meets a layout that came another way.
+    if not has_module(screen, 'sections'):
+        document = without_sections(document)
     candidate = {'format': PAGE_FORMAT, 'sourceGrid': {'columns': grid.columns, 'rows': grid.rows}, 'layout': document}
     sender = manager.page_sender(inbox, screen)
     verified_protocol = (sender.protocol if sender.protocol is not None else sender.last_protocol) if sender else None
@@ -173,7 +177,7 @@ def section_sums(manager, layout):
             text = ''
             if section.get('summary'):
                 text = manager.summary_text(section['summary'])
-            texts.append(text.encode()[:48].decode('utf8', 'ignore'))
+            texts.append(text.encode()[:SECTION_SUMMARY_BYTES].decode('utf8', 'ignore'))
         out.append(texts)
     return out
 

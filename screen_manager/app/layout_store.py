@@ -126,7 +126,7 @@ class LayoutStore:
             except (ValueError, AttributeError):
                 before = None
             if before == PLAIN_VERSION:
-                self._backup(original, PLAIN_VERSION)
+                self._backup(original, PLAIN_VERSION, repeats=True)
         payload = json.dumps({"version": version, "screens": records}, ensure_ascii=False,
                              allow_nan=False, separators=(",", ":")) + "\n"
         # Whole or not at all (atomic.write_text); the folder's sync is this store's own, so an uncertain one is reported.
@@ -138,11 +138,34 @@ class LayoutStore:
         except OSError as error:
             raise CommitUncertain("Storage was replaced; reread its revision before retrying") from error
 
-    def _backup(self, original, version=1):
-        """Keep the store as it was before it moves on from `version` (1 before pages, 2 before sections)."""
+    def _latest(self, version, original):
+        """The store as it last was before a move that repeats, whole or not at all, in the place of the one before."""
+        latest = self.path.with_name(self.path.stem + f".v{version}.latest.backup.json")
+        descriptor, name = tempfile.mkstemp(prefix=latest.name + ".", suffix=".tmp", dir=self.path.parent)
+        try:
+            with os.fdopen(descriptor, "wb") as output:
+                os.fchmod(output.fileno(), 0o600)
+                output.write(original)
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(name, latest)
+        except BaseException:
+            if os.path.exists(name):
+                os.unlink(name)
+            raise
+
+    def _backup(self, original, version=1, repeats=False):
+        """Keep the store as it was before it moves on from `version` (1 before pages, 2 before sections).
+
+        `repeats`: a move that can happen any number of times (the store goes back to version 2 when its last section
+        goes, and on to 3 with the next one). Then two files are kept and no more: the store as it first was, and as it
+        last was (`.v2.latest.backup.json`, replaced each time), which is the one an older app would want back."""
         backup = self.path.with_name(self.path.stem + f".v{version}.backup.json")
         if backup.exists():
             if backup.read_bytes() == original:
+                return
+            if repeats:
+                self._latest(version, original)
                 return
             # A deliberate restore followed by more v1 edits deserves its own
             # backup; the first pre-migration backup is never overwritten.

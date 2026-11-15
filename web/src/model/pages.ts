@@ -45,11 +45,30 @@ export function rehomeSections(layout: PageLayout) {
   for (const page of layout.pages) if (page.sections && !page.sections.length) delete page.sections;
   return layout;
 }
+/** A layout for a screen whose board draws no sections: its sections go, its tiles stay where they stand. The layout
+ * itself when it has none (page_layout.without_sections says the same for the add-on). */
+export function withoutSections(layout: PageLayout): PageLayout {
+  if (!layout.pages.some((page) => page.sections?.length)) return layout;
+  return { ...layout, pages: layout.pages.map(({ sections: _gone, ...page }) => page) };
+}
 /** The sections of a layout as the slot view sees them. */
-export const sectionBlocks = (layout: PageLayout): SectionBlock[] => layout.pages.flatMap((page, index) => sectionsOf(page).map((section) => ({
-  id: section.id, page: index, ...section.placement, title: section.title,
-  ...(section.icon ? { icon: section.icon } : {}), ...(section.summary ? { summary: section.summary } : {}),
-  ...(section.contrast ? { contrast: true } : {}), ...(section.contrast && section.contrastTiles ? { contrastTiles: true } : {}) })));
+export const sectionBlocks = (layout: PageLayout): SectionBlock[] => layout.pages.flatMap((page, index) => sectionsOf(page).map((section) => blockOfSection(section, index)));
+/** A section's own fields as the document keeps them: what is off or empty is left out, and its tiles follow the
+ * contrast only beside the contrast itself. The one place that says which fields a section has besides its block. */
+function ownFields<T extends Partial<Section>>(fields: T): T {
+  const kept = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined && value !== false && value !== "")) as T;
+  if (!kept.contrast) delete kept.contrastTiles;
+  return kept;
+}
+/** A section of the document as the slot view has it, and back. Every field goes both ways without being named here. */
+export function blockOfSection(section: Section, page: number): SectionBlock {
+  const { placement, ...own } = section;
+  return { ...ownFields(own), page, ...placement };
+}
+export function sectionOfBlock(block: SectionBlock): Section {
+  const { page: _page, row, column, columns, rows, ...own } = block;
+  return { ...ownFields(own), placement: { row, column, columns, rows } };
+}
 
 export function emptyPage(bar?: Page["topbar"]): Page {
   return {
@@ -590,11 +609,7 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
     for (const block of blocks ?? []) {
       const page = draft.pages[block.page];
       if (!page) throw new Error(t("addon.errors.pages.page_missing"));
-      const section: Section = { id: block.id, title: block.title, ...(block.icon ? { icon: block.icon } : {}),
-        ...(block.summary ? { summary: block.summary } : {}), ...(block.contrast ? { contrast: true } : {}),
-        ...(block.contrast && block.contrastTiles ? { contrastTiles: true } : {}),
-        placement: { row: block.row, column: block.column, columns: block.columns, rows: block.rows } };
-      (page.sections ??= []).push(section);
+      (page.sections ??= []).push(sectionOfBlock(block));
     }
     for (const page of draft.pages) page.tiles = [];
     for (const { tile, slot } of entries) {

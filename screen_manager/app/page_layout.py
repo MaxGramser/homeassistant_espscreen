@@ -196,6 +196,9 @@ def _identity(value, seen, page=False):
 # tile's section is never said twice. A page without sections has no key at all, so a document from before is unchanged.
 SECTION_FIELDS = {"id", "title", "icon", "summary", "contrast", "contrastTiles", "placement"}
 SECTION_TITLE_BYTES = 48
+# A section's summary on the wire (section_layout.h SUMMARY_BYTES): the entity's state as the band says it, cut here so
+# that a long state can never make a page's message too large for a screen (tests/test_sections.py holds the worst page).
+SECTION_SUMMARY_BYTES = 48
 ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+\Z")
 
 
@@ -229,6 +232,14 @@ def section_of(page, tile):
 def tiles_in(page, section):
     """The tiles of a page that stand in a section, in the document's order."""
     return [tile for tile in page["tiles"] if inside(tile["placement"], section["placement"])]
+
+
+def without_sections(layout):
+    """A layout for a screen whose board draws no sections (docs/PAGES.md "Sections"): its sections go, its tiles stay
+    where they stand. The layout itself when it has none."""
+    if not any(sections_of(page) for page in layout["pages"]):
+        return layout
+    return {**layout, "pages": [{key: value for key, value in page.items() if key != "sections"} for page in layout["pages"]]}
 
 
 def flattened(layout):

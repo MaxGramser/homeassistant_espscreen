@@ -158,9 +158,10 @@ export type Section = {
   contrast?: boolean; contrastTiles?: boolean;
   placement: { row: number; column: number; columns: number; rows: number };
 };
-// A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells.
-export type SectionBlock = { id: string; page: number; row: number; column: number; columns: number; rows: number;
-  title: string; icon?: string; summary?: string; contrast?: boolean; contrastTiles?: boolean };
+// A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells, and every
+// field a section has. Made from Section, so a field added there is here too (model/pages.ts blockOfSection and
+// sectionOfBlock are the one way from one to the other).
+export type SectionBlock = Omit<Section, "placement"> & Section["placement"] & { page: number };
 export type PageLayout = { title: string; homePageId: string; pages: Page[] };
 export type PageWorkspace = { revision: string; positions: Record<string, { x: number; y: number }> };
 export type PageDocument = {

@@ -74,7 +74,10 @@ export const useDocumentStore = defineStore("document", () => {
   const justAdded = ref<string | null>(null);
 
   // The draft as the mockup draws it: a projection worked out again when the draft changes, never edited itself.
-  const layout = computed<Layout | null>(() => document.value && documentGrid.value ? pages.projectLayout(document.value, documentGrid.value) : null);
+  // What the editor shows and what it makes are held to the screen: a board that draws no sections (docs/PAGES.md
+  // "Sections") has none in its draft, whichever way a layout came in (a copy from another screen, a file, an old save).
+  const held = (layout: PageLayout) => (scr.currentScreen?.sections === true ? layout : pages.withoutSections(layout));
+  const layout = computed<Layout | null>(() => document.value && documentGrid.value ? pages.projectLayout(held(document.value), documentGrid.value) : null);
   // The chosen page by its place in the row, for the parts that still count pages.
   const barPage = computed(() => Math.max(0, document.value?.pages.findIndex((page) => page.id === selectedPageId.value) ?? 0));
   // The tile chosen, as the draft has it now.
@@ -185,6 +188,7 @@ export const useDocumentStore = defineStore("document", () => {
   // when anything changed. A change of a page's top bar is the top bar store's (stores/topbar.ts).
   function applyDocument(next: PageLayout, remember = true, nextGrid = documentGrid.value, said?: ChangeLabel) {
     if (!document.value || !documentGrid.value || !nextGrid) return false;
+    next = held(next);
     pages.validatePages(next, screenGridOf(nextGrid), document.value);
     if (pages.sameValue(next, document.value) && pages.sameGrid(nextGrid, documentGrid.value)) return false;
     if (remember) {

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 from core import Grid  # noqa: E402
 import page_delivery  # noqa: E402
-from page_layout import FORMAT, LayoutError, compile_tiles, flattened, section_of, tiles_in, validate_document  # noqa: E402
+from page_layout import FORMAT, LayoutError, compile_tiles, flattened, section_of, tiles_in, validate_document, without_sections  # noqa: E402
 from layout_store import LayoutStore  # noqa: E402
 
 CASES = {case['name']: case for case in json.loads((ROOT / 'tests/fixtures/page-conformance.json').read_text())}
@@ -64,6 +64,29 @@ class Sections(unittest.TestCase):
         self.assertEqual(tiles, prepared(record, True)[1])
         self.assertNotEqual(page_delivery.configuration(record, REGION, (), True), page_delivery.configuration(record, REGION))
 
+    def test_the_fullest_page_of_sections_fits_a_screens_message(self):
+        # Sixteen sections, each with the longest title and summary a section may have, in letters of three bytes: the
+        # page's message stays within what a screen takes, with room to spare for its top bar.
+        import core
+        import page_layout
+        record = record_of(SECTIONED)
+        record['sourceGrid'] = {'columns': 8, 'rows': 8}
+        page = record['layout']['pages'][0]
+        page['tiles'] = []
+        title = '\u20ac' * (page_layout.SECTION_TITLE_BYTES // 3)
+        page['sections'] = [{'id': f'5ec7{n:012x}', 'title': title, 'icon': 'lightbulb', 'contrast': True, 'contrastTiles': True,
+                             'summary': f'sensor.s{n}', 'placement': {'row': n // 8, 'column': n % 8, 'columns': 1, 'rows': 1}}
+                            for n in range(core.STORE_MAX_SECTIONS)]
+        validate_document(record['layout'], Grid(8, 8, 8, 64))
+        sums = ['\u20ac' * (page_layout.SECTION_SUMMARY_BYTES // 3)] * core.STORE_MAX_SECTIONS
+        message = page_delivery.page_message(page, 0, [], initial=True, sections=True, sums=sums)
+        size = len(json.dumps(message, ensure_ascii=False, separators=(',', ':')).encode())
+        self.assertEqual(len(message['sections']), 16)
+        self.assertLess(size, page_delivery.MAX_MESSAGE - 1024, 'a kilobyte stays for the page\'s top bar items')
+        self.assertEqual(page_delivery.bounded(message), message)
+        update = {'op': 'sums', 'p': 0, 't': sums}
+        self.assertEqual(page_delivery.bounded(update), update)
+
     def test_summaries_go_only_when_they_change(self):
         pages = record_of(SECTIONED)['layout']['pages']
         self.assertEqual(page_delivery.sums_messages(pages, [['8.6 °C']], [['8.6 °C']]), [])
@@ -81,9 +104,32 @@ class Sections(unittest.TestCase):
             self.assertEqual(json.loads(path.read_text())['version'], 3)
             backup = path.with_name('screens.v2.backup.json')
             self.assertEqual(json.loads(backup.read_text())['version'], 2)
+            # The store goes back to version 2 when its last section goes, and on to 3 with the next one, any number of
+            # times: beside it stay the store as it first was and as it last was, never a file per time.
+            for round_ in range(3):
+                renamed = deepcopy(plain)
+                renamed['layout']['title'] = f'House {round_}'
+                store._replace({'text.screen': renamed})
+                self.assertEqual(json.loads(path.read_text())['version'], 2)
+                store._replace({'text.screen': sectioned})
+            kept = sorted(p.name for p in Path(temp).glob('*.backup.json'))
+            self.assertEqual(kept, ['screens.v2.backup.json', 'screens.v2.latest.backup.json'])
+            self.assertEqual(json.loads(backup.read_text())['screens']['text.screen']['layout']['title'], plain['layout']['title'])
+            self.assertEqual(json.loads((Path(temp) / 'screens.v2.latest.backup.json').read_text())['screens']['text.screen']['layout']['title'], 'House 2')
             # Read again, version 3 is taken and every document still validates.
             again = LayoutStore(path, lambda inbox: Grid(**sectioned['sourceGrid']))
             validate_document(again.get('text.screen')['layout'], Grid(**sectioned['sourceGrid']))
+
+    def test_a_screen_whose_board_draws_no_sections_keeps_its_tiles_and_no_sections(self):
+        layout = record_of(SECTIONED)['layout']
+        plain = without_sections(layout)
+        self.assertFalse(any('sections' in page for page in plain['pages']))
+        self.assertEqual(plain['pages'][0]['tiles'], layout['pages'][0]['tiles'])
+        self.assertIn('sections', layout['pages'][0], 'the layout given is left as it was')
+        grid = Grid(**SECTIONED['grid'])
+        self.assertEqual(compile_tiles(validate_document(plain, grid), grid), compile_tiles(layout, grid))
+        # A layout without any is the same object: nothing is copied for the screens that never had one.
+        self.assertIs(without_sections(plain), plain)
 
     def test_a_tile_belongs_to_the_section_whose_block_it_lies_in(self):
         page = record_of(SECTIONED)['layout']['pages'][0]
