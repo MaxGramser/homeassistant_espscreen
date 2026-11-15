@@ -709,7 +709,7 @@ struct Widgets {
   // The card's look and what lies behind it, both relative to the screen's look (theme::screen_dark), so a change of
   // Dark mode needs no card told: `look_other`, the card is painted in the other look (its section follows its contrast);
   // `ground_role` in the look `ground_other` gives, what lies behind it (PAGE, or its section's SECTION /
-  // SECTION_CONTRAST panel). Set where the card is placed on its own page (sections::place); a card outside a section,
+  // SECTION_CONTRAST panel). Set where the sections module places the card on its own page; a card outside a section,
   // and every card of a board without sections, keeps the screen's look on the page.
   bool look_other=false, ground_other=false;
   uint8_t ground_role=theme::PAGE;

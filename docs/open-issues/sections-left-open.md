@@ -22,23 +22,15 @@ is worth a tile, a section gets a price in `ui_scale.h`'s tile memory table and 
 ### Pointers
 `module_sections.h` (`make`, `drop`, `forget`), docs/TILE_MEMORY.md, `web/src/model/memory.ts`.
 
-## The header's height is worked out three times
+## The header's height was worked out three times
 
-### The symptom
-None seen. The height of a section's header is worked out by the firmware from its fonts
-(`module_sections.h` `header`, `title_top`), again by `tools/generate_board_shapes.py` with Pillow for `boards.json`'s
-`section`, and read from there by the editor (`web/src/model/sections.ts` `sectionMetrics`, with a fallback of its own
-for a board without the numbers). They were matched by hand once, against the host render's log line
-`[sections] band ...` on the 10.1 inch.
-
-### The deciding experiment
-A check that fails when they differ: the host render prints the header and the title's top for each look, and a test
-compares them with `boards.json` for every board shape of the full tier, as `tests/test_editor_parity.py` does for the
-other sizes. The editor's fallback then goes, since every board that draws sections has the numbers.
-
-### Pointers
-`module_sections.h:57-82`, `tools/generate_board_shapes.py` (`section`), `web/src/model/sections.ts`,
-`tests/test_editor_parity.py`.
+Solved 2026-11-15. The firmware works a section's header out from its fonts, `tools/generate_board_shapes.py` works the
+same out for `boards.json`, and the editor draws from that; they had been matched by hand once. `tests/test_editor_parity.py`
+(`Sections`) now lays a card out in a section in the firmware preview on every board shape that draws sections and holds
+the editor's numbers to the same pixels, and the editor's guess for a board without the numbers is gone. Writing that
+check showed that the preview drew no sections at all (its build named three modules by hand): the modules the preview
+is built with are now a column of `components/smart_display/modules.py`. One difference is left and named in the test:
+the JC4880P443 shares the preview's 217 dpi look with the Waveshare 4.3 inch, whose rows stand a pixel further apart.
 
 ## Not tested at the receiver
 

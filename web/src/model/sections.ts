@@ -12,14 +12,16 @@ import { instanceId } from "./pages";
 import { sizeFor } from "./sizes";
 
 export type SectionMetrics = { header: number; titleTop: number; inset: number; pad: number };
-type ShapeLike = { section?: { band: number; title_top: number }; spacing?: { gap_y?: number; gap: number; tile_pad: number } };
+type ShapeLike = { section: { band: number; title_top: number }; spacing: { gap_y?: number; gap: number; tile_pad: number } };
 
 /** The header of a section (the title's top, its line and a gap), the title's top in it, the inset of its title and
- * its padding, in glass pixels (module_sections.h header, title_top, inset, gap). */
+ * its padding, in glass pixels (module_sections.h header, title_top, inset, gap). The numbers are the board's own, from
+ * boards.json (`section`, `spacing`): there is no guess here for a board without them, and
+ * tests/test_editor_parity.py (Sections) holds them to what the firmware preview lays out on every board that draws
+ * sections. */
 export function sectionMetrics(shape: ShapeLike): SectionMetrics {
-  const gap = shape.spacing?.gap_y ?? shape.spacing?.gap ?? 12, pad = shape.spacing?.tile_pad ?? 12;
-  const band = shape.section?.band ?? gap + pad + 19;
-  return { header: band + gap, titleTop: shape.section?.title_top ?? gap + pad - 3, inset: gap + pad, pad: gap };
+  const gap = shape.spacing.gap_y ?? shape.spacing.gap, pad = shape.spacing.tile_pad;
+  return { header: shape.section.band + gap, titleTop: shape.section.title_top, inset: gap + pad, pad: gap };
 }
 /** n / d rounded half away from zero, in whole numbers (section_layout.h round_div). */
 export const roundDiv = (n: number, d: number) => (n >= 0 ? Math.floor((2 * n + d) / (2 * d)) : -Math.floor((-2 * n + d) / (2 * d)));

@@ -468,7 +468,7 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 
 namespace theme {
 
-// A card painted in the other look carries this flag on its root object (sections::place sets and clears it), so what
+// A card painted in the other look carries this flag on its root object (set and cleared where the sections module places a card), so what
 // LVGL draws later, in a draw callback, finds the card's look from its own object. Cards do not nest.
 constexpr lv_obj_flag_t OTHER_LOOK_FLAG = LV_OBJ_FLAG_USER_2;
 inline bool other_look(const lv_obj_t *obj) {
