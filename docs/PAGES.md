@@ -147,7 +147,11 @@ font and ink, its capitals as far from the panel's top as from its side; its ico
 before it, centred on the capitals; the summary, one entity's state in the words of the top bar, stands at the title's
 right end in the small grey font. A section can stand out (**Contrast background**, off unless chosen): its panel takes
 the page's opposite, `SECTION_CONTRAST`, and its title, icon and summary `SECTION_CONTRAST_INK`; its tiles keep their
-own cards. The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
+own cards. With **Tiles in contrast too** (beside it, off unless chosen) the whole section is a piece of the other look:
+its panel, its words and its tiles' cards, dark on a dark panel by day and light in Dark mode. The firmware paints those
+cards with the look turned for as long as each is drawn (`theme::Flip` in `render_slot`) and sets what they take from
+the shared paints on them in the other look (`module_sections.h follow`); the editor, whose mockup is the light look,
+draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
 on the glass.
 
 **Room.** Adding a section changes no tile outside it: the page's rows stay what they are, and a loose tile keeps its
@@ -182,13 +186,13 @@ section wider than the new grid gets narrower, its tiles laid out again in readi
 then continues as a section of its own with the same title and icon.
 
 **The document.** A page keeps `tiles` (the loose ones) and may have `sections`: each with its `id`, `title` (at most
-48 bytes), optional `icon`, `summary` (an entity) and `contrast` (true), its `placement` on the page's grid and its `tiles`, placed
+48 bytes), optional `icon`, `summary` (an entity), `contrast` (true) and `contrastTiles` (true, only beside `contrast`), its `placement` on the page's grid and its `tiles`, placed
 relative to the block's top left corner. A page without sections has no key, so a layout from before sections is
 unchanged, and so is every message and revision a screen gets for it (`tests/test_sections.py`). The add-on compiles a
 section's tile to its cell on the page (the block's corner plus its own place), so its slot is like any other.
 
 **The protocol.** A screen that draws sections says `sections` in its hello's features. Its pages' messages then carry
-`"sections": [[column, row, columns, rows, icon, title, summary, options], ...]` (options as bits, 1 the contrast) for a
+`"sections": [[column, row, columns, rows, icon, title, summary, options], ...]` (options as bits: 1 the contrast, 2 its tiles in it) for a
 page that has some, and a summary that
 changes comes as `{"op": "sums", "p": page, "t": [...]}`. A screen without the feature gets the same tiles in the same
 cells, without the sections; the editor says the screen needs an update to show them. A screen that starts to draw

@@ -26,7 +26,7 @@ import { placeTile, removeTile } from "../editor/tiles";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 import { PLAIN_GRID, useSectionGrid } from "../composables/useSectionGrid";
-import { glassMargins } from "../model/sections";
+import { glassMargins, OTHER_LOOK } from "../model/sections";
 
 const ui = useUiStore();
 const doc = useDocumentStore();
@@ -73,6 +73,7 @@ const style = computed(() => {
   const background = card.background, column = props.at % card.grid.columns, row = Math.floor(props.at % card.grid.slots / card.grid.columns);
   const sg = sections?.value ?? PLAIN_GRID, m = sg.margins(column, row, card.shape.columns, card.shape.rows);
   return { gridColumn: `${column + 1} / span ${card.shape.columns}`, gridRow: `${row + 1} / span ${card.shape.rows}`, ...glassMargins(m),
+    ...(sg.otherLook(column, row, card.shape.columns, card.shape.rows) ? { filter: OTHER_LOOK } : {}),
     ...card.glassStyle.frame, ...(background && props.tile.options?.background !== "none" ? { backgroundColor: background } : {}),
     "--tile-cols": card.shape.columns, "--tile-icon": card.palette.icon, "--tile-circle": card.palette.circle, "--tile-accent": card.palette.accent, ...(card.watchStyle?.pad ?? {}) };
 });

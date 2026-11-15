@@ -5,7 +5,7 @@ A plan for titled groups of tiles on the larger screens, written 2026-11-15 afte
 docs/PAGES.md "Sections" and the other documents named at the end, and this file keeps the reasoning and what is still
 open. Changed after the plan (the maintainer, 2026-11-15): no band across the page; a section takes its header and
 padding from its own cells, so tiles outside it keep their height (docs/PAGES.md "Sections", "Room"); and a per-section
-contrast background, off by default. Built beyond this plan: a tile dropped onto a section goes in as an app goes into a folder, the section growing by
+contrast background, off by default, with an option to turn the section's tiles with it. Built beyond this plan: a tile dropped onto a section goes in as an app goes into a folder, the section growing by
 rows, or wider where the page has no rows left. Still open: the grid control beside the pages (it stays in the screen's
 settings), a section's price in the memory budget, and a rename through the `appearance` packet without the loading
 screen.

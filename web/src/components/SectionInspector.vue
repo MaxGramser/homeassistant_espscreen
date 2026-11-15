@@ -99,7 +99,9 @@ const needsUpdate = computed(() => Boolean(scr.currentScreen?.online) && scr.cur
           <small class="help">{{ t("editor.sections.summary_hint") }}</small>
         </div>
         <SwitchRow class="section-contrast" :label="t('editor.sections.contrast')" :description="t('editor.sections.contrast_hint')"
-          :model-value="Boolean(block.contrast)" @update:model-value="(on: boolean) => setSectionFields(id, { contrast: on || undefined })" />
+          :model-value="Boolean(block.contrast)" @update:model-value="(on: boolean) => setSectionFields(id, { contrast: on || undefined, ...(on ? {} : { contrastTiles: undefined }) })" />
+        <SwitchRow v-if="block.contrast" class="section-contrast-tiles" :label="t('editor.sections.contrast_tiles')" :description="t('editor.sections.contrast_tiles_hint')"
+          :model-value="Boolean(block.contrastTiles)" @update:model-value="(on: boolean) => setSectionFields(id, { contrastTiles: on || undefined })" />
       </Section>
       <Section :title="t('editor.sections.size')" icon="view-grid-outline">
         <div class="section-size">

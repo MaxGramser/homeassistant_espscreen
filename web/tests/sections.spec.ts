@@ -180,3 +180,12 @@ describe("a tile dropped into a section, as an app into a folder", () => {
     expect(result.pages[0].sections![1].tiles.map((t) => t.content.kind === "entity" && t.content.entityId)).toContain("light.new");
   });
 });
+
+describe("a section whose tiles follow its contrast", () => {
+  it("is only taken beside the contrast itself, and the slot view carries it", () => {
+    const section = { id: "5ec7000000000001", title: "Doors", placement: { row: 0, column: 0, columns: 2, rows: 1 }, tiles: [tile("lock.a", 0, 0)] };
+    expect(() => layoutOf([], [{ ...section, contrastTiles: true }])).toThrow();
+    const layout = layoutOf([], [{ ...section, contrast: true, contrastTiles: true }]);
+    expect(projectLayout(layout, grid).sections![0]).toMatchObject({ contrast: true, contrastTiles: true });
+  });
+});

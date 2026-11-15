@@ -105,7 +105,11 @@
 
 #ifdef SD_MOD_SECTIONS
 // Sections on a page (module sections, module_sections.h at the module site at the end of this file).
+namespace runtime_tiles { struct Widgets; }
 namespace sections {
+inline bool flips(const runtime_tiles::Widgets &w, size_t slot);
+inline bool following(lv_obj_t *card);
+inline void follow(lv_obj_t *card, bool on);
 inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y);
 inline void show(int page);
 inline void summaries(int page);
@@ -8810,11 +8814,29 @@ inline std::string key_value(const Tile &t){
   if(t.unit=="%")return screen_text::percent((int)std::lround(number));
   return text;
 }
+#ifdef SD_MOD_SECTIONS
+// A card in a section whose tiles follow its contrast (docs/PAGES.md "Sections") is painted in the other look: every
+// role it asks for while it is drawn comes in that look, and what it takes from the shared paints is set on it in that
+// look once it is drawn (module_sections.h follow). A card that leaves such a section gives those back.
+struct SectionLook {
+  lv_obj_t *card; bool on;
+  SectionLook(Widgets &w, size_t slot) : card(w.tile), on(::sections::flips(w, slot)) {
+    if (on || ::sections::following(card)) { w.cached_active = -1; w.panel_dirty = true; }
+    if (on) theme::dark = !theme::dark;
+  }
+  ~SectionLook() { if (on) theme::dark = !theme::dark; ::sections::follow(card, on); }
+  SectionLook(const SectionLook &) = delete;
+  SectionLook &operator=(const SectionLook &) = delete;
+};
+#endif
 inline void render_slot(size_t slot) {
   swipe_profile::SlotTimer slot_timer(slot);
   swipe_profile::Lap lap;
   auto &w=widgets[slot];
   if(!w.tile || w.index>=model.count)return;
+#ifdef SD_MOD_SECTIONS
+  SectionLook look(w, slot);
+#endif
   const auto &t = model.tiles[w.index];
   auto d=t.domain();
   // A slot is another tile on another page: only a camera card that waits for its picture keeps a spinner.

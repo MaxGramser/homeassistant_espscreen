@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Supprimer la section et les tuiles",
       "settings": "Réglages de la section",
       "contrast": "Fond contrasté",
-      "contrast_hint": "Le panneau dans la couleur opposée de la page, sombre le jour et clair en mode sombre, pour faire ressortir cette section."
+      "contrast_hint": "Le panneau dans la couleur opposée de la page, sombre le jour et clair en mode sombre, pour faire ressortir cette section.",
+      "contrast_tiles": "Tuiles en contraste aussi",
+      "contrast_tiles_hint": "Toute la section dans l'autre apparence, les cartes des tuiles aussi : cartes sombres sur panneau sombre le jour, claires en mode sombre."
     }
   }
 }

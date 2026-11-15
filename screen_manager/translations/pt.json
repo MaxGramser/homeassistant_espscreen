@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Remover secção e mosaicos",
       "settings": "Definições da secção",
       "contrast": "Fundo em contraste",
-      "contrast_hint": "O painel na cor oposta da página, escuro de dia e claro no modo escuro, para que esta secção se destaque."
+      "contrast_hint": "O painel na cor oposta da página, escuro de dia e claro no modo escuro, para que esta secção se destaque.",
+      "contrast_tiles": "Mosaicos também em contraste",
+      "contrast_tiles_hint": "Toda a secção no outro aspeto, também os cartões dos mosaicos: cartões escuros num painel escuro de dia, claros no modo escuro."
     }
   }
 }

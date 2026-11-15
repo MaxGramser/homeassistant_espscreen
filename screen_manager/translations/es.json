@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Eliminar sección y mosaicos",
       "settings": "Ajustes de la sección",
       "contrast": "Fondo de contraste",
-      "contrast_hint": "El panel en el color opuesto de la página, oscuro de día y claro en modo oscuro, para que esta sección destaque."
+      "contrast_hint": "El panel en el color opuesto de la página, oscuro de día y claro en modo oscuro, para que esta sección destaque.",
+      "contrast_tiles": "Mosaicos también en contraste",
+      "contrast_tiles_hint": "Toda la sección con el otro aspecto, también las tarjetas de los mosaicos: tarjetas oscuras sobre panel oscuro de día, claras en modo oscuro."
     }
   }
 }

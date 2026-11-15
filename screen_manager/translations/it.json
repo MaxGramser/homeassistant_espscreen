@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Rimuovi sezione e riquadri",
       "settings": "Impostazioni della sezione",
       "contrast": "Sfondo a contrasto",
-      "contrast_hint": "Il pannello nel colore opposto della pagina, scuro di giorno e chiaro in modalità scura, perché questa sezione risalti."
+      "contrast_hint": "Il pannello nel colore opposto della pagina, scuro di giorno e chiaro in modalità scura, perché questa sezione risalti.",
+      "contrast_tiles": "Riquadri anche a contrasto",
+      "contrast_tiles_hint": "L'intera sezione nell'altro aspetto, anche le schede dei riquadri: schede scure su pannello scuro di giorno, chiare in modalità scura."
     }
   }
 }

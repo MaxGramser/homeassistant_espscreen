@@ -254,6 +254,21 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
 // helpers only read it.
 inline bool dark = false;
 inline uint32_t hex(Role role) { return dark ? ROLES[role].dark : ROLES[role].light; }
+// The other look for a while (a section whose tiles follow its contrast, docs/PAGES.md "Sections"): what is painted while
+// it lasts asks for every role in the other look. The shared paints keep the look of the screen.
+struct Flip {
+  bool on;
+  explicit Flip(bool flip) : on(flip) { if (on) dark = !dark; }
+  ~Flip() { if (on) dark = !dark; }
+  Flip(const Flip &) = delete;
+  Flip &operator=(const Flip &) = delete;
+};
+// The role a colour of the current look is, or ROLE_COUNT: what a card in the other look repaints (module sections).
+inline Role role_of(uint32_t value) {
+  for (uint8_t r = 0; r < ROLE_COUNT; ++r) if (hex(static_cast<Role>(r)) == value) return static_cast<Role>(r);
+  return ROLE_COUNT;
+}
+inline uint32_t other(Role role) { return dark ? ROLES[role].light : ROLES[role].dark; }
 
 // ---- mixing, exactly as LVGL 9 mixes two colours (lv_color_mix), so a value here is the value on the glass
 inline uint32_t mix(uint32_t first, uint32_t second, uint8_t amount) {

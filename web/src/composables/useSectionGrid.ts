@@ -10,8 +10,10 @@ export type SectionGrid = {
   // a section's sides, and the header and padding its section takes from its rows (negative where a card reaches into
   // the gap below its cell).
   margins(column: number, row: number, columns: number, rows: number): CellMargins;
+  // Whether a card there stands in a section whose tiles follow its contrast: drawn in the other look.
+  otherLook(column: number, row: number, columns: number, rows: number): boolean;
 };
 export const NO_MARGINS: CellMargins = { left: 0, right: 0, top: 0, bottom: 0 };
-export const PLAIN_GRID: SectionGrid = { margins: () => NO_MARGINS };
+export const PLAIN_GRID: SectionGrid = { margins: () => NO_MARGINS, otherLook: () => false };
 export const SECTION_GRID: InjectionKey<ComputedRef<SectionGrid>> = Symbol("section-grid");
 export const useSectionGrid = () => inject(SECTION_GRID, null);

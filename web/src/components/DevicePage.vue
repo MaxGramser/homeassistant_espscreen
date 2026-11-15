@@ -13,7 +13,7 @@ import SectionBand from "./SectionBand.vue";
 import SectionMaker from "./SectionMaker.vue";
 import SectionMenuItems from "./SectionMenuItems.vue";
 import { canMakeSection } from "../editor/sections";
-import { glassMargins, insideMargins, sectionMetrics } from "../model/sections";
+import { glassMargins, insideMargins, OTHER_LOOK, sectionMetrics } from "../model/sections";
 import { NO_MARGINS, PLAIN_GRID, SECTION_GRID, type SectionGrid } from "../composables/useSectionGrid";
 import TopbarSvg from "./TopbarSvg.vue";
 import PageNavigation from './PageNavigation.vue';
@@ -74,9 +74,12 @@ const sectionGrid = computed<SectionGrid>(() => {
   const list = blocks.value;
   if (!list.length) return PLAIN_GRID;
   const m = metrics.value;
+  const at = (column: number, row: number, columns: number, n: number) =>
+    list.find((b) => column >= b.column && column + columns <= b.column + b.columns && row >= b.row && row + n <= b.row + b.rows);
   return {
+    otherLook: (column, row, columns, n) => Boolean(at(column, row, columns, n)?.contrastTiles),
     margins: (column, row, columns, n) => {
-      const b = list.find((b) => column >= b.column && column + columns <= b.column + b.columns && row >= b.row && row + n <= b.row + b.rows);
+      const b = at(column, row, columns, n);
       if (!b) return NO_MARGINS;
       const inside = insideMargins(m, b.rows, row - b.row, row + n - 1 - b.row);
       return { left: column === b.column ? m.pad : 0, right: column + columns === b.column + b.columns ? m.pad : 0, ...inside };
@@ -86,7 +89,8 @@ const sectionGrid = computed<SectionGrid>(() => {
 provide(SECTION_GRID, sectionGrid);
 const cellStyle = (slot: number) => {
   const column = slot % grid.columns, row = Math.floor(slot % grid.slots / grid.columns);
-  return { gridColumn: column + 1, gridRow: row + 1, ...glassMargins(sectionGrid.value.margins(column, row, 1, 1)) };
+  return { gridColumn: column + 1, gridRow: row + 1, ...glassMargins(sectionGrid.value.margins(column, row, 1, 1)),
+    ...(sectionGrid.value.otherLook(column, row, 1, 1) ? { filter: OTHER_LOOK } : {}) };
 };
 function pickCell(slot: number) {
   doc.selectedPageId = owned.value?.id || doc.selectedPageId;

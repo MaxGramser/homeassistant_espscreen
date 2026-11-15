@@ -152,14 +152,15 @@ export type Page = {
 // state the section's band shows at its right end.
 export type Section = {
   id: string; title: string; icon?: string; summary?: string;
-  // The panel in the page's opposite colour, so the section stands out (off unless chosen).
-  contrast?: boolean;
+  // The panel in the page's opposite colour, so the section stands out (off unless chosen); with `contrastTiles` the
+  // whole section is a piece of the other look, its tiles' cards too.
+  contrast?: boolean; contrastTiles?: boolean;
   placement: { row: number; column: number; columns: number; rows: number };
   tiles: PageTile[];
 };
 // A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells.
 export type SectionBlock = { id: string; page: number; row: number; column: number; columns: number; rows: number;
-  title: string; icon?: string; summary?: string; contrast?: boolean };
+  title: string; icon?: string; summary?: string; contrast?: boolean; contrastTiles?: boolean };
 export type PageLayout = { title: string; homePageId: string; pages: Page[] };
 export type PageWorkspace = { revision: string; positions: Record<string, { x: number; y: number }> };
 export type PageDocument = {

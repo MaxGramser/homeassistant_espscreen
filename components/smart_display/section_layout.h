@@ -28,6 +28,7 @@ struct Section {
   std::string title;
   std::string summary;      // an entity's state at the title's right end, as the add-on formats it; empty for none
   bool contrast = false;    // the panel in the page's opposite colour, its words in its ink (off unless chosen)
+  bool follow = false;      // with contrast: the whole section in the other look, its tiles' cards too
 };
 
 // Every block inside a grid of `columns` x `rows`, none over another, at most MAX of them.

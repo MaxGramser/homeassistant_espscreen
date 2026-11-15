@@ -48,6 +48,12 @@ class Sections(unittest.TestCase):
         contrast = deepcopy(record)
         contrast['layout']['pages'][0]['sections'][0]['contrast'] = True
         self.assertEqual(prepared(contrast, True, [['']])[2][0]['sections'][0][7], 1)
+        contrast['layout']['pages'][0]['sections'][0]['contrastTiles'] = True
+        self.assertEqual(prepared(contrast, True, [['']])[2][0]['sections'][0][7], 3)
+        # Tiles that follow a contrast the section does not have are refused.
+        del contrast['layout']['pages'][0]['sections'][0]['contrast']
+        with self.assertRaises(ValueError):
+            validate_document(contrast['layout'], Grid(**contrast['sourceGrid']))
         self.assertTrue(pages[0]['sections'][0][4], 'the icon travels as its codepoint')
         # A screen without the feature gets the same tiles, without the sections.
         _, tiles, plain, _ = prepared(record, False)

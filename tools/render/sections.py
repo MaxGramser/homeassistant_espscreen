@@ -47,12 +47,12 @@ HOUSE = {
     'cover.living_blinds': ('Living room', 'open', {'current_position': 100, 'device_class': 'blind', 'supported_features': 15}, {'icon': 'blinds-open'}),
     'cover.kitchen_blinds': ('Kitchen', 'open', {'current_position': 60, 'device_class': 'blind', 'supported_features': 15}, {'icon': 'blinds-open'}),
 }
-# (title, icon, summary entity, column, row, columns, rows[, contrast]) and the tiles (entity, column, row, columns, rows) on the
+# (title, icon, summary entity, column, row, columns, rows[, contrast[, its tiles follow]]) and the tiles (entity, column, row, columns, rows) on the
 # page's grid: loose ones where no block is.
 TEN = dict(grid=(6, 5), sections=[
     ('Lights', 'lightbulb-group', 'sensor.outside', 0, 1, 2, 3),
     ('Climate', 'thermometer', 'sensor.bedroom', 2, 1, 2, 3),
-    ('Security', 'shield-home', '', 4, 1, 2, 3, True),
+    ('Security', 'shield-home', '', 4, 1, 2, 3, True, True),
 ], tiles=[
     ('lock.front', 0, 0, 1, 1), ('media_player.tv', 1, 0, 1, 1), ('binary_sensor.motion', 2, 0, 1, 1),
     ('light.ceiling', 0, 1, 1, 1), ('light.dining', 1, 1, 1, 1), ('light.sofa', 0, 2, 1, 1), ('light.kitchen', 1, 2, 1, 1),
@@ -82,6 +82,7 @@ def page_document(spec, grid):
     for n, (title, icon, summary, c, r, w, h, *contrast) in enumerate(spec['sections']):
         section = {'id': f'5ec7{n:012x}', 'title': title, **({'icon': icon} if icon else {}), **({'summary': summary} if summary else {}),
                    **({'contrast': True} if contrast and contrast[0] else {}),
+                   **({'contrastTiles': True} if len(contrast) > 1 and contrast[1] else {}),
                    'placement': {'row': r, 'column': c, 'columns': w, 'rows': h}, 'tiles': []}
         for tile in list(page['tiles']):
             p = tile['placement']

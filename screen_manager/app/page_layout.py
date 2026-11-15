@@ -205,7 +205,7 @@ def _identity(value, seen, page=False):
 # Sections (docs/PAGES.md "Sections"): a block of cells on a page's grid with a title, an icon and a panel, holding its
 # own tiles placed inside it. A page's loose tiles stay where they are; a page without sections has no key at all, so a
 # document from before is unchanged.
-SECTION_FIELDS = {"id", "title", "icon", "summary", "contrast", "placement", "tiles"}
+SECTION_FIELDS = {"id", "title", "icon", "summary", "contrast", "contrastTiles", "placement", "tiles"}
 SECTION_TITLE_BYTES = 48
 ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+\Z")
 
@@ -247,6 +247,9 @@ def _section(section, grid, seen, taken):
         raise LayoutError(t('addon.errors.pages.fields'))
     # The panel in the page's opposite colour (off unless chosen; a section without the key has it off).
     if "contrast" in section and type(section["contrast"]) is not bool:
+        raise LayoutError(t('addon.errors.pages.fields'))
+    # Its tiles follow the contrast (the whole section in the other look): only beside the contrast itself.
+    if "contrastTiles" in section and (type(section["contrastTiles"]) is not bool or not section.get("contrast")):
         raise LayoutError(t('addon.errors.pages.fields'))
     block = _object(section["placement"], {"row", "column", "columns", "rows"}, {"row", "column", "columns", "rows"})
     row, column = _integer(block["row"], 0, grid.rows - 1), _integer(block["column"], 0, grid.columns - 1)

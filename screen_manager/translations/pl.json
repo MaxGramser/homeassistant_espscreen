@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Usuń sekcję i kafelki",
       "settings": "Ustawienia sekcji",
       "contrast": "Kontrastowe tło",
-      "contrast_hint": "Panel w kolorze przeciwnym do strony, ciemny za dnia i jasny w trybie ciemnym, aby ta sekcja się wyróżniała."
+      "contrast_hint": "Panel w kolorze przeciwnym do strony, ciemny za dnia i jasny w trybie ciemnym, aby ta sekcja się wyróżniała.",
+      "contrast_tiles": "Kafelki też w kontraście",
+      "contrast_tiles_hint": "Cała sekcja w drugim wyglądzie, również karty kafelków: ciemne karty na ciemnym panelu za dnia, jasne w trybie ciemnym."
     }
   }
 }

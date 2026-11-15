@@ -31,6 +31,10 @@ export function insideMargins(m: SectionMetrics, rows: number, first: number, la
   return { top: roundDiv(m.header * n - first * total, n), bottom: roundDiv((last + 1) * total - m.header * n, n) };
 }
 
+/** A card in a section whose tiles follow its contrast, drawn in the other look: the mockup draws its cards in the light
+ * look, and this turns one into the dark one's values closely (a white card to #1A1A1A, ink #1B1B1B to #D0D0D0, a
+ * hairline #DDDDDD to #353535; the firmware's are #1A1A1A, #DADADA and #292929), its hues kept. */
+export const OTHER_LOOK = "invert(0.9) hue-rotate(180deg)";
 /** A card's margins in the mockup's CSS: glass pixels times the page's zoom (`--glass`). */
 export function glassMargins(m: { left: number; right: number; top: number; bottom: number }) {
   const css = (n: number) => `calc(var(--glass) * ${n}px)`;

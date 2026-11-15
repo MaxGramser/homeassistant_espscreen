@@ -37,10 +37,13 @@ const role = (name: string, dark = false) => `#${theme.roles[name][dark ? "dark"
 // the section's first row of tiles gives it (module_sections.h header).
 const area = computed(() => ({ gridColumn: `${props.block.column + 1} / span ${props.block.columns}`, gridRow: `${props.block.row + 1} / span ${props.block.rows}` }));
 // A section in contrast takes the page's opposite and its words that panel's ink (SECTION_CONTRAST, _INK).
-const ink = computed(() => role(props.block.contrast ? "SECTION_CONTRAST_INK" : "INK"));
-const muted = computed(() => role(props.block.contrast ? "SECTION_CONTRAST_INK" : "MUTED"));
+// Its tiles following the contrast, the whole section is the other look: its own panel, ink and muted words there (the
+// mockup is the light look, so the dark one's).
+const follow = computed(() => Boolean(props.block.contrast && props.block.contrastTiles));
+const ink = computed(() => (follow.value ? role("INK", true) : role(props.block.contrast ? "SECTION_CONTRAST_INK" : "INK")));
+const muted = computed(() => (follow.value ? role("MUTED", true) : role(props.block.contrast ? "SECTION_CONTRAST_INK" : "MUTED")));
 const panelStyle = computed(() => ({ ...area.value, borderRadius: `calc(var(--glass) * ${radius.value}px)`,
-  background: role(props.block.contrast ? "SECTION_CONTRAST" : "SECTION") }));
+  background: follow.value ? role("SECTION", true) : role(props.block.contrast ? "SECTION_CONTRAST" : "SECTION") }));
 const headStyle = computed(() => ({ ...area.value, height: `calc(var(--glass) * ${props.metrics.header - props.metrics.pad}px)` }));
 const chosen = computed(() => insp.inspector?.kind === "section" && insp.inspector.id === props.block.id);
 

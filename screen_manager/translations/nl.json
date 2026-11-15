@@ -4714,7 +4714,9 @@
       "remove_with_tiles": "Sectie en tegels verwijderen",
       "settings": "Instellingen van de sectie",
       "contrast": "Contrastachtergrond",
-      "contrast_hint": "Het paneel in de tegenovergestelde kleur van de pagina, donker overdag en licht in de donkere modus, zodat deze sectie opvalt."
+      "contrast_hint": "Het paneel in de tegenovergestelde kleur van de pagina, donker overdag en licht in de donkere modus, zodat deze sectie opvalt.",
+      "contrast_tiles": "Tegels ook in contrast",
+      "contrast_tiles_hint": "De hele sectie in de andere look, de kaarten van de tegels ook: donkere kaarten op een donker paneel overdag, lichte in de donkere modus."
     }
   }
 }

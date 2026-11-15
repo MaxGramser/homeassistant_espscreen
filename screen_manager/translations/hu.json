@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Szakasz és csempék törlése",
       "settings": "Szakasz beállításai",
       "contrast": "Kontrasztos háttér",
-      "contrast_hint": "A panel az oldal ellentétes színében, nappal sötét, sötét módban világos, hogy ez a szakasz kiemelkedjen."
+      "contrast_hint": "A panel az oldal ellentétes színében, nappal sötét, sötét módban világos, hogy ez a szakasz kiemelkedjen.",
+      "contrast_tiles": "A csempék is kontrasztban",
+      "contrast_tiles_hint": "Az egész szakasz a másik megjelenésben, a csempék kártyái is: nappal sötét kártyák sötét panelen, sötét módban világosak."
     }
   }
 }

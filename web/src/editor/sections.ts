@@ -79,7 +79,7 @@ export function looseRowAbove(page: number) {
   return apply(sections.looseRowAbove(doc.layout, grid, page));
 }
 /** A section's own fields: its title, its icon, the entity its band sums up. Undefined takes one away. */
-export function setSectionFields(id: string, fields: Partial<Pick<Section, "title" | "icon" | "summary" | "contrast">>, field?: string) {
+export function setSectionFields(id: string, fields: Partial<Pick<Section, "title" | "icon" | "summary" | "contrast" | "contrastTiles">>, field?: string) {
   return useDocumentStore().editDocument((draft) => {
     const section = draft.pages.flatMap((page) => page.sections ?? []).find((item) => item.id === id);
     if (!section) throw new Error(t("addon.errors.pages.fields"));

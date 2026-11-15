@@ -4697,7 +4697,9 @@
       "remove_with_tiles": "Bereich und Kacheln entfernen",
       "settings": "Bereichseinstellungen",
       "contrast": "Kontrasthintergrund",
-      "contrast_hint": "Das Feld in der Gegenfarbe der Seite, dunkel am Tag und hell im Dunkelmodus, damit dieser Bereich hervorsticht."
+      "contrast_hint": "Das Feld in der Gegenfarbe der Seite, dunkel am Tag und hell im Dunkelmodus, damit dieser Bereich hervorsticht.",
+      "contrast_tiles": "Kacheln auch im Kontrast",
+      "contrast_tiles_hint": "Der ganze Bereich im anderen Aussehen, die Karten der Kacheln auch: dunkle Karten auf dunklem Feld am Tag, helle im Dunkelmodus."
     }
   }
 }

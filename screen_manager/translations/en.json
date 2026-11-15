@@ -4765,7 +4765,9 @@
       "remove_with_tiles": "Remove section and tiles",
       "settings": "Section settings",
       "contrast": "Contrast background",
-      "contrast_hint": "The panel in the page's opposite colour, dark by day and light in Dark mode, so this section stands out."
+      "contrast_hint": "The panel in the page's opposite colour, dark by day and light in Dark mode, so this section stands out.",
+      "contrast_tiles": "Tiles in contrast too",
+      "contrast_tiles_hint": "The whole section in the other look, its tiles' cards too: dark cards on a dark panel by day, light ones in Dark mode."
     }
   }
 }

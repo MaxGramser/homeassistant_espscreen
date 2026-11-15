@@ -13,7 +13,9 @@
 // title is the tile name's font and ink, its capitals as far from the panel's top as from its side; the icon (the small
 // icon font) stands before it, centred on the capitals; the summary is the small grey font on the title's line, at the
 // right. A section in contrast takes the page's opposite (SECTION_CONTRAST) and its words SECTION_CONTRAST_INK; its
-// tiles keep their own cards. The editor draws the same from boards.json's `section` metrics
+// tiles keep their own cards, unless its tiles follow the contrast: then the whole section is a piece of the other look,
+// its panel, its words and its cards (painted in the other look by render_slot, theme::Flip; what a card takes from the
+// shared paints is set on it in the other look, follow()). The editor draws the same from boards.json's `section` metrics
 // (tools/generate_board_shapes.py, web/src/model/sections.ts); tests/test_section_layout.cpp proves the arithmetic.
 //
 // The decorations of a page are made once, when the page is first placed (on the glass, or prepared off it), and kept:
@@ -27,7 +29,7 @@
 namespace sections {
 using namespace runtime_tiles;
 
-struct Drawn { lv_obj_t *panel = nullptr, *icon = nullptr, *title = nullptr, *summary = nullptr; bool contrast = false; };
+struct Drawn { lv_obj_t *panel = nullptr, *icon = nullptr, *title = nullptr, *summary = nullptr; bool contrast = false, follow = false; };
 inline std::array<std::vector<Drawn>, page_protocol::MAX_PAGES> drawn{};
 // What each page's decorations were made from (signature): a page placed before its sections arrived, or placed again
 // after a layout changed them, makes them anew.
@@ -43,7 +45,7 @@ inline uint32_t signature(int page) {
   uint32_t h = 2166136261u;
   auto add = [&h](uint32_t v) { h = (h ^ v) * 16777619u; };
   for (const auto &s : of(page)) {
-    add(s.column); add(s.row); add(s.columns); add(s.rows); add(s.icon); add(s.contrast);
+    add(s.column); add(s.row); add(s.columns); add(s.rows); add(s.icon); add(s.contrast); add(s.follow);
     for (unsigned char c : s.title) add(c);
     add(0xFF);
   }
@@ -104,6 +106,62 @@ inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int3
   margin(card, LV_STYLE_MARGIN_BOTTOM, bottom);
 }
 
+// ---- A card in a section whose tiles follow its contrast ----
+// Whether the card in `slot` of the page being placed stands in such a section.
+inline bool flips(const Widgets &w, size_t slot) {
+  if (!w.tile || w.full || w.index >= model.count || slot >= grid.slots()) return false;
+  const auto &t = model.tiles[w.index];
+  const int32_t column = int32_t(slot % grid.columns), row = int32_t(slot / grid.columns), span_x = t.column_span(), span_y = t.row_span();
+  for (const auto &s : of(applied_page))
+    if (column >= s.column && column + span_x <= s.column + s.columns && row >= s.row && row + span_y <= s.row + s.rows) return s.follow;
+  return false;
+}
+// What follow() set on a card, by card, so it goes again when the card is painted anew or shows another tile.
+struct Override { lv_obj_t *obj; lv_style_prop_t prop; lv_style_selector_t part; };
+inline std::vector<std::pair<lv_obj_t *, std::vector<Override>>> followed;
+inline void collect(lv_obj_t *obj, std::vector<std::pair<Override, uint32_t>> &found) {
+  static constexpr lv_style_prop_t PROPS[] = {LV_STYLE_BG_COLOR, LV_STYLE_BORDER_COLOR, LV_STYLE_TEXT_COLOR, LV_STYLE_LINE_COLOR, LV_STYLE_ARC_COLOR};
+  static constexpr lv_part_t PARTS[] = {LV_PART_MAIN, LV_PART_INDICATOR, LV_PART_KNOB};
+  for (auto part : PARTS)
+    for (auto prop : PROPS) {
+      lv_style_value_t mine;
+      // What the code painted (in the other look already, under theme::Flip) is the card's own: left as it is.
+      if (lv_obj_get_local_style_prop(obj, prop, &mine, part) == LV_STYLE_RES_FOUND) continue;
+      if (prop == LV_STYLE_BG_COLOR && lv_obj_get_style_bg_opa(obj, part) == LV_OPA_TRANSP) continue;
+      if (prop == LV_STYLE_BORDER_COLOR && lv_obj_get_style_border_width(obj, part) == 0) continue;
+      const uint32_t now = theme::of(lv_obj_get_style_prop(obj, part, prop).color);
+      const theme::Role role = theme::role_of(now);
+      if (role == theme::ROLE_COUNT || theme::other(role) == now) continue;
+      found.push_back({Override{obj, prop, part}, theme::other(role)});
+    }
+  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) collect(lv_obj_get_child(obj, int32_t(i)), found);
+}
+inline bool following(lv_obj_t *card) {
+  return std::any_of(followed.begin(), followed.end(), [card](const auto &entry) { return entry.first == card; });
+}
+// The card's colours that come from the shared paints, set on it in the other look (on), or given back (off).
+inline void follow(lv_obj_t *card, bool on) {
+  if (!card) return;
+  auto it = std::find_if(followed.begin(), followed.end(), [card](const auto &entry) { return entry.first == card; });
+  if (it != followed.end()) {
+    for (const auto &o : it->second) if (lv_obj_is_valid(o.obj)) lv_obj_remove_local_style_prop(o.obj, o.prop, o.part);
+    followed.erase(it);
+  }
+  if (!on) return;
+  // Read every colour before any is set: a child's inherited text must not take its parent's new one for a paint.
+  std::vector<std::pair<Override, uint32_t>> found;
+  collect(card, found);
+  std::vector<Override> set;
+  set.reserve(found.size());
+  for (const auto &[o, value] : found) {
+    lv_style_value_t v;
+    v.color = theme::rgb(value);
+    lv_obj_set_local_style_prop(o.obj, o.prop, v, o.part);
+    set.push_back(o);
+  }
+  followed.emplace_back(card, std::move(set));
+}
+
 // ---- The decorations ----
 inline lv_obj_t *text(const std::string &value, const lv_font_t *font) {
   auto *l = lv_label_create(tile_grid);
@@ -130,6 +188,14 @@ inline void fit_title(const section_layout::Section &s, Drawn &d) {
   lv_obj_set_style_margin_right(d.title, right, 0);
 }
 inline void paint(Drawn &d) {
+  // A section whose tiles follow its contrast is the other look whole: its own panel, ink and muted words there.
+  theme::Flip other(d.follow);
+  if (d.follow) {
+    if (d.panel) lv_obj_set_style_bg_color(d.panel, theme::color(theme::SECTION), 0);
+    for (lv_obj_t *obj : {d.icon, d.title}) if (obj) lv_obj_set_style_text_color(obj, theme::color(theme::INK), 0);
+    if (d.summary) lv_obj_set_style_text_color(d.summary, theme::color(theme::MUTED), 0);
+    return;
+  }
   const theme::Role ink = d.contrast ? theme::SECTION_CONTRAST_INK : theme::INK;
   if (d.panel) lv_obj_set_style_bg_color(d.panel, theme::color(d.contrast ? theme::SECTION_CONTRAST : theme::SECTION), 0);
   if (d.icon) lv_obj_set_style_text_color(d.icon, theme::color(ink), 0);
@@ -142,6 +208,7 @@ inline void make(int page) {
   for (const auto &s : of(page)) {
     Drawn d;
     d.contrast = s.contrast;
+    d.follow = s.follow;
     // The panel behind the cards: exactly the section's cells.
     d.panel = lv_obj_create(tile_grid);
     lv_obj_remove_style_all(d.panel);
@@ -222,6 +289,9 @@ inline void restyle() {
 // Another layout or another grid: every decoration goes, and is made again when its page is next placed.
 inline void forget() {
   for (size_t page = 0; page < drawn.size(); ++page) drop(int(page));
+  for (auto &[card, set] : followed)
+    for (const auto &o : set) if (lv_obj_is_valid(o.obj)) lv_obj_remove_local_style_prop(o.obj, o.prop, o.part);
+  followed.clear();
   shown = -1;
 }
 }  // namespace sections

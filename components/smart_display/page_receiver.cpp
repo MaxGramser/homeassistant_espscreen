@@ -355,7 +355,11 @@ std::string receive(const std::string &payload) {
             section.title = string(fields[5], section_layout::TITLE_BYTES);
             if (fields.size() > 6) section.summary = string(fields[6], section_layout::SUMMARY_BYTES);
             // Its options as bits (8th field): 1 the panel in contrast.
-            if (fields.size() > 7 && fields[7].is<unsigned>()) section.contrast = (fields[7].as<unsigned>() & 1) != 0;
+            if (fields.size() > 7 && fields[7].is<unsigned>()) {
+              section.contrast = (fields[7].as<unsigned>() & 1) != 0;
+              // 2: its tiles follow the contrast, the whole section in the other look.
+              section.follow = section.contrast && (fields[7].as<unsigned>() & 2) != 0;
+            }
             next.sections.push_back(std::move(section));
           }
           if (!section_layout::valid(next.sections, grid.columns, grid.rows)) { result = "Error: sections"; return false; }

@@ -60,7 +60,7 @@ export function rehomeSections(layout: PageLayout) {
 export const sectionBlocks = (layout: PageLayout): SectionBlock[] => layout.pages.flatMap((page, index) => sectionsOf(page).map((section) => ({
   id: section.id, page: index, ...section.placement, title: section.title,
   ...(section.icon ? { icon: section.icon } : {}), ...(section.summary ? { summary: section.summary } : {}),
-  ...(section.contrast ? { contrast: true } : {}) })));
+  ...(section.contrast ? { contrast: true } : {}), ...(section.contrast && section.contrastTiles ? { contrastTiles: true } : {}) })));
 
 export function emptyPage(bar?: Page["topbar"]): Page {
   return {
@@ -401,6 +401,8 @@ export function validatePages(layout: PageLayout, grid: PageGrid, before?: PageL
         if (typeof section.title !== "string" || !section.title.trim() || byteLength(section.title) > SECTION_TITLE_BYTES)
           throw new Error(t("addon.errors.pages.section_title"));
         if (section.contrast !== undefined && typeof section.contrast !== "boolean") throw new Error(t("addon.errors.pages.fields"));
+        if (section.contrastTiles !== undefined && (typeof section.contrastTiles !== "boolean" || !section.contrast))
+          throw new Error(t("addon.errors.pages.fields"));
         const { row, column, columns, rows } = section.placement;
         if (![row, column, columns, rows].every(Number.isInteger) || row < 0 || column < 0 || columns < 1 || rows < 1 ||
             row + rows > grid.rows || column + columns > grid.columns) throw new Error(t("addon.errors.layout.position"));
@@ -580,6 +582,7 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
       if (!page) throw new Error(t("addon.errors.pages.page_missing"));
       const section: Section = { id: block.id, title: block.title, ...(block.icon ? { icon: block.icon } : {}),
         ...(block.summary ? { summary: block.summary } : {}), ...(block.contrast ? { contrast: true } : {}),
+        ...(block.contrast && block.contrastTiles ? { contrastTiles: true } : {}),
         placement: { row: block.row, column: block.column, columns: block.columns, rows: block.rows }, tiles: [] };
       (page.sections ??= []).push(section);
     }

@@ -81,10 +81,11 @@ def appearance_configuration(record, region, initial_tiles):
 def section_wire(page, sums=None):
     """A page's sections as its message carries them to a screen that draws them (docs/PAGES.md "Sections"): [column,
     row, columns, rows, icon codepoint, title, summary, options] each, the summary as the add-on formatted its entity's
-    state, the options as bits (1: the panel in contrast)."""
+    state, the options as bits (1: the panel in contrast, 2: its tiles follow it, the whole section in the other look)."""
     sums = sums or []
     return [[s["placement"]["column"], s["placement"]["row"], s["placement"]["columns"], s["placement"]["rows"],
-             tile_icons.carried(s.get("icon")) or "", s["title"], sums[i] if i < len(sums) else "", 1 if s.get("contrast") else 0]
+             tile_icons.carried(s.get("icon")) or "", s["title"], sums[i] if i < len(sums) else "",
+             (1 if s.get("contrast") else 0) | (2 if s.get("contrast") and s.get("contrastTiles") else 0)]
             for i, s in enumerate(sections_of(page))]
 
 
