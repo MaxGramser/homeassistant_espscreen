@@ -3773,6 +3773,7 @@
       "packet_error": "Firmware rejected a preview packet: {message}",
       "stopped": "Firmware preview stopped: {message}",
       "action_error": "Home Assistant command failed: {message}",
+      "stale": "This preview is older than the firmware: it was built on {date} and the firmware has changed since, so a screen may draw something this does not show yet.",
       "remove": "The preview and its saved layout in this browser.",
       "save": "Save preview",
       "saved": "Saved in this browser",

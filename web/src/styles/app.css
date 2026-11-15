@@ -354,6 +354,7 @@ a:hover { text-decoration: underline; }
 .firmware-preview.still { pointer-events: none; }
 .firmware-preview canvas { display: block; width: 100%; height: 100%; image-rendering: auto; }
 .firmware-preview-error { margin-top: 8px; font-size: 12.5px; color: var(--danger); }
+.firmware-preview-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
 .page { flex: 0 0 var(--mockup-width, 292px); display: grid; gap: 8px; }
 /* The head of a page (app 0.3.19): its handle with its number, its title, Home when it is Home, the cells in use and
    one menu for everything else. */
