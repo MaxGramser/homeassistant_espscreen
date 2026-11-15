@@ -17,7 +17,7 @@ import type { PricedPage, PricedTile } from "./memory";
 import type { PluginTileLookup } from "./plugins";
 import { copyBar, emptyPage } from "./pages";
 import rules from "./page-rules.json";
-import { ICONS, placeUnits, type PlaceTile, type PlaceUnit } from "./placement";
+import { ICONS, placeUnits, type Face, type PlaceTarget, type PlaceTile, type PlaceUnit } from "./placement";
 import { sizeFor, sizesOn } from "./sizes";
 
 // ---- What goes in ----
@@ -544,6 +544,60 @@ function units(input: AutoInput, room: Room): { list: Unit[]; rooms: number } {
 
 // ---- On the pages: model/placement.ts places the units ----
 
+/** The room a screen's grid gives a card: larger cards on four by four cells and up (rich), wide and tall ones on three
+ * by three (roomy), one cell elsewhere (plain); and the sizes its hello names. */
+function roomOf(screen: AutoScreen): Room {
+  const grid = screen.grid, least = Math.min(grid.columns, grid.rows);
+  return { grid, sizes: new Set(screen.sizes?.length ? screen.sizes : sizesOn(grid)), level: least >= 4 ? "rich" : least >= 3 ? "roomy" : "plain" };
+}
+/** What a screen holds for a proposal (model/placement.ts PlaceTarget): sections where the board draws them and a page has
+ * room for more than one (three by three cells and up), about one tile in seven of its ceiling kept free for what the
+ * person adds, three quarters of the pages' cells (room around sections), its memory with what stays of the draft. */
+export function placeTarget(input: AutoInput): PlaceTarget<PlaceTile> {
+  const screen = input.screen, grid = screen.grid;
+  return { grid, pages: Math.max(1, screen.pages), tiles: screen.tiles - Math.min(Math.round(screen.tiles * 0.15), Math.max(0, screen.tiles - 1)),
+    sections: screen.sections && roomOf(screen).level !== "plain", memory: screen.memory, existing: input.existing, plugins: input.plugins,
+    topbar: screen.topbar, fill: 0.75 };
+}
+
+/** A tile for an entity a caller was given (Layoutbot), at its plainest card with the others it may grow into
+ * (PlaceTarget.grow): facesFor as a PlaceTile. Null where the screen draws no tile of it. */
+export function placeTileFor(entityId: string, input: AutoInput, role: { first?: boolean; context?: string; others?: string[] } = {}): PlaceTile | null {
+  const found = facesFor(entityId, input, role);
+  if (!found) return null;
+  const plain = found.faces[0];
+  return { tile: plain.tile, columns: plain.columns, rows: plain.rows, rank: found.rank, entity: entityId, faces: found.faces, face: 0, alike: found.alike };
+}
+/** The cards an entity can take on this screen, plainest first (one cell), and the one the first layout gives it (`want`),
+ * with how much it matters (`rank`) and the kind of tile it is (`alike`: a light group, a light, a player, ...), for a
+ * caller that places entities it was given (Layoutbot) as the first layout dresses its own: the same sizes, controls and
+ * displays, from the catalogue and the entity's capabilities, the album cover where the screen draws pictures. Null for
+ * an entity the screen draws no tile of. `role.first`: the first of its kind in its group (a larger card); `context`:
+ * the name its label drops (its room or section); `others`: a calendar card's other calendars. */
+export function facesFor(entityId: string, input: AutoInput, role: { first?: boolean; context?: string; others?: string[] } = {}):
+  { faces: Face[]; want: number; rank: number; alike: string; entity: string } | null {
+  const entity = input.entities.find((e) => e.id === entityId), domain = domainOf(entityId);
+  if (!entity || entity.tile === false || entityId.startsWith("screen.") || !typeDrawn(domain, input.screen.firmware)) return null;
+  const fact = input.facts.entities.find((f) => f.id === entityId) ?? { id: entityId };
+  // A kind it would leave out of a first layout is still a tile when asked for, among the devices; a camera or a list
+  // only where the board draws them.
+  if ((domain === "camera" && !input.screen.pictures) || (domain === "todo" && !input.screen.todoLists)) return null;
+  const group = groupOf(domain, fact, input.screen) ?? "others";
+  const device = fact.device ?? "", known = input.facts.devices[device];
+  const c: Candidate = { id: entityId, domain, name: entity.name || entityId, area: fact.area ?? "", device, deviceName: known?.name ?? entity.device ?? "",
+    maker: known?.maker ?? "", fact, entity, group, house: HOUSE_WIDE.has(group) };
+  const label = labelOf(c, role.context ?? ""), room = roomOf(input.screen), first = role.first ?? true;
+  // One cell, then the wide or tall card of a screen of three by three, then the screen's own: as far as its grid goes.
+  const levels: Room["level"][] = room.level === "rich" ? ["plain", "roomy", "rich"] : room.level === "roomy" ? ["plain", "roomy"] : ["plain"];
+  const planned = levels.map((level) => plan(c, label, input, { ...room, level }, { first, others: role.others }));
+  const faces: Face[] = [];
+  for (const p of planned) {
+    const face = { columns: p.columns, rows: p.rows, tile: p.tile };
+    if (!faces.some((f) => JSON.stringify(f) === JSON.stringify(face))) faces.push(face);
+  }
+  return { faces, want: faces.length - 1, rank: planned.at(-1)!.rank, alike: domain === "light" && fact.members?.length ? "light:group" : domain, entity: entityId };
+}
+
 /** A page's title and icon from its units: its first one's for the house and a room of its own; for rooms sharing a page
  * their names ("Kitchen & Hall"), their floor's when there are more of one floor, else the first and how many more. */
 function titleOf(units: Unit[]): { title: string; icon?: string } {
@@ -570,20 +624,10 @@ const placing = (unit: Unit): Placing => ({
 /** The first layout for a screen: every room, the house and what has no room, as the screen's grid, sizes, sections,
  * memory and limits take them. */
 export function autoLayout(input: AutoInput): AutoResult {
-  const grid = input.screen.grid;
-  const level = Math.min(grid.columns, grid.rows) >= 4 ? "rich" : Math.min(grid.columns, grid.rows) >= 3 ? "roomy" : "plain";
-  const room: Room = { grid, sizes: new Set(input.screen.sizes?.length ? input.screen.sizes : sizesOn(grid)), level };
-  // Sections where the board draws them and a page has room for more than one: three by three cells and up.
-  const sectioned = input.screen.sections && level !== "plain";
-  const made = units({ ...input, screen: { ...input.screen, sections: sectioned } }, room);
-  const screen = input.screen, most = Math.max(1, screen.pages);
-  // Some room left for what the person adds: about one tile in seven of the screen's ceiling stays free; and the pages'
-  // cells leave room around sections: three quarters of them.
-  const placed = placeUnits(made.list.map(placing), {
-    grid, pages: most, tiles: screen.tiles - Math.min(Math.round(screen.tiles * 0.15), Math.max(0, screen.tiles - 1)), sections: sectioned,
-    memory: screen.memory, existing: input.existing, plugins: input.plugins, topbar: screen.topbar, fill: 0.75,
-    title: (units) => titleOf(units.map((unit) => (unit as Placing).source)),
-  });
+  const room = roomOf(input.screen), target = placeTarget(input);
+  const made = units({ ...input, screen: { ...input.screen, sections: target.sections } }, room);
+  const screen = input.screen;
+  const placed = placeUnits(made.list.map(placing), { ...target, title: (units) => titleOf(units.map((unit) => (unit as Placing).source)) });
   const pages = placed.pages.length ? placed.pages : [emptyPage(screen.topbar ? copyBar(screen.topbar) : undefined)];
   const tiles = pages.reduce((sum, page) => sum + page.tiles.length, 0);
   return { layout: { title: screen.title, homePageId: pages[0].id, pages }, tiles, sections: placed.sections, rooms: made.rooms, leftOut: placed.left.length };

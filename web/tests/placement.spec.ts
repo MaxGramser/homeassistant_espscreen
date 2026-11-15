@@ -92,3 +92,44 @@ describe("what the screen holds", () => {
     expect(use.share).toBeLessThan(NEARLY_FULL);
   });
 });
+
+describe("growing into larger faces", () => {
+  const faced = (alike: string | undefined, ...sizes: [number, number][]): PlaceTile => {
+    const base = tile();
+    return { ...base, faces: sizes.map(([columns, rows]) => ({ columns, rows, tile: { ...base.tile, appearance: { ...base.tile.appearance, presentation: undefined } } })), face: 0, alike };
+  };
+  const sizes = (pages: PageLayout["pages"]) => pages.flatMap((page) => page.tiles.map((x) => `${x.placement.columns}x${x.placement.rows}`));
+  it("steps alike tiles up together while the page holds everything", () => {
+    const { pages } = placeUnits([unit("Lights", Array.from({ length: 4 }, () => faced("light", [1, 1], [2, 2])))], target({ grow: true }));
+    expect(sizes(pages)).toEqual(["2x2", "2x2", "2x2", "2x2"]);
+    valid(pages, target());
+  });
+  it("grows alike tiles together first; where not all of them fit larger, then one at a time where room is left", () => {
+    const { pages } = placeUnits([unit("Lights", Array.from({ length: 3 }, () => faced("light", [1, 1], [3, 3])))], target({ grow: true }));
+    expect(sizes(pages).sort()).toEqual(["1x1", "1x1", "3x3"]);
+    expect(pages).toHaveLength(1);
+  });
+  it("then grows single tiles, the smaller rank first, only through the faces given", () => {
+    const first = { ...faced(undefined, [1, 1], [5, 3]), rank: 0 }, second = { ...faced(undefined, [1, 1], [5, 3]), rank: 1 };
+    const { pages } = placeUnits([unit("A", [second, first])], target({ grow: true }));
+    const grownOne = pages[0].tiles.find((x) => (x.content as { entityId: string }).entityId === first.entity)!;
+    expect(`${grownOne.placement.columns}x${grownOne.placement.rows}`).toBe("5x3");
+    expect(pages).toHaveLength(1);
+    expect(sizes(pages).sort()).toEqual(["1x1", "5x3"]);
+  });
+  it("is off unless asked, and works on a screen without sections", () => {
+    expect(sizes(placeUnits([unit("A", [faced("x", [1, 1], [2, 1]), faced("x", [1, 1], [2, 1])])], target()).pages)).toEqual(["1x1", "1x1"]);
+    const plain = target({ grid: { columns: 2, rows: 3 }, sections: false, grow: true });
+    const { pages } = placeUnits([unit("A", [faced("x", [1, 1], [2, 1]), faced("x", [1, 1], [2, 1]), faced("y", [1, 1], [2, 1])])], plain);
+    expect(sizes(pages)).toEqual(["2x1", "2x1", "2x1"]);
+    valid(pages, plain);
+  });
+});
+
+describe("a loose unit", () => {
+  it("never gets a section", () => {
+    const { pages, sections } = placeUnits([unit("A", [tile(), tile(), tile()], { loose: true })], target());
+    expect(sections).toBe(0);
+    expect(pages[0].tiles).toHaveLength(3);
+  });
+});

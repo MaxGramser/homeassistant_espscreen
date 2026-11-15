@@ -3,7 +3,7 @@
 // one (3 x 3) and the CYD (2 x 3, no sections, little memory). Every layout must pass the editor's own validation.
 import { describe, expect, it } from "vitest";
 import type { PageLayout, PageTile } from "../src/types";
-import { autoLayout, appendPages, candidates, clusters, cutBytes, GROUP_ICONS, ICONS, labelOf, strip, type AutoInput, type AutoScreen } from "../src/model/auto-layout";
+import { autoLayout, appendPages, candidates, facesFor, placeTileFor, clusters, cutBytes, GROUP_ICONS, ICONS, labelOf, strip, type AutoInput, type AutoScreen } from "../src/model/auto-layout";
 import { allTiles, emptyLayout, projectLayout, tilesIn, validatePages } from "../src/model/pages";
 import { memoryLine, memoryUse, NEARLY_FULL } from "../src/model/memory";
 
@@ -302,6 +302,27 @@ describe("the screen's memory, as Library holds an add", () => {
     const alone = autoLayout({ ...home(HOUSE, AREAS, FLOORS), screen: { ...CYD, pages: 7 } }).tiles;
     const beside = autoLayout({ ...home(HOUSE, AREAS, FLOORS), screen: { ...CYD, pages: 7 }, existing }).tiles;
     expect(beside).toBeLessThan(alone);
+  });
+});
+
+describe("the cards an entity can take, for a caller that was given it", () => {
+  it("are the first layout's own: plainest first, the one it gives wanted", () => {
+    const input = (screen: AutoScreen): AutoInput => ({ ...home(HOUSE, AREAS, FLOORS), screen });
+    const group = facesFor("light.living_room", input(TEN), { context: "Living room" })!;
+    expect(group.faces.map((f) => `${f.columns}x${f.rows}`)).toEqual(["1x1", "2x1", "2x2"]);
+    expect(group.want).toBe(2);
+    expect(group.faces[2].tile.interaction.controls).toBe("brightness_presets");
+    expect(group.faces[2].tile.appearance.label).toBe("All lights");
+    expect(group.alike).toBe("light:group");
+    expect(facesFor("media_player.sonos_living", input(TEN))!.faces.at(-1)!.tile.appearance.display).toBe("cover");
+    const tile = placeTileFor("light.living_room", input(TEN), { context: "Living room" })!;
+    expect([tile.columns, tile.rows, tile.face, tile.faces!.length, tile.alike]).toEqual([1, 1, 0, 3, "light:group"]);
+    const cyd = facesFor("light.living_room", input(CYD))!;
+    expect([cyd.faces.length, cyd.want]).toEqual([1, 0]);
+    // A kind the first layout leaves out is a plain tile when asked for; one the screen draws no tile of is null.
+    expect(facesFor("script.bedtime", input(TEN))!.faces).toHaveLength(1);
+    expect(facesFor("camera.garden", input(CYD))).toBeNull();
+    expect(facesFor("light.nowhere", input(TEN))).toBeNull();
   });
 });
 

@@ -13,18 +13,24 @@ import type { PluginTileLookup } from "./plugins";
 /** The icons a section or a page may take: the fixed set every screen carries (tile_icons.ICONS). */
 export const ICONS: ReadonlySet<string> = new Set(rules.icons);
 
+/** A card a tile can take: its size and what it shows. */
+export type Face = { columns: number; rows: number; tile: Omit<PageTile, "id" | "placement"> };
 /** One tile to place: what it is and shows (`tile`), its size in cells, and how much it matters (a smaller `rank` stays
- * when room runs short). `entity`: what its memory is priced by. */
-export type PlaceTile = { tile: Omit<PageTile, "id" | "placement">; columns: number; rows: number; rank: number; entity: string };
+ * when room runs short). `entity`: what its memory is priced by. With `PlaceTarget.grow`, `faces` are the cards it may
+ * grow into (plainest first, `face` the one it has now) and `alike` the tiles that grow together (every light of a room
+ * as large as the others). */
+export type PlaceTile = { tile: Omit<PageTile, "id" | "placement">; columns: number; rows: number; rank: number; entity: string;
+  faces?: Face[]; face?: number; alike?: string };
 /** A group of tiles that stand together: a section with its `title` (and `icon`, `summary`) where it holds two tiles or
  * more and the screen draws sections, else loose tiles side by side.
  * - `page`: the title and icon of the page it heads for (a page of several units is named by `PlaceTarget.title`).
  * - `share`: units of one share may stand on one page; another share starts a new page.
  * - `run`: on a screen without sections, the units of one run follow each other as one row of tiles over its pages.
  * - `fills`: it may also fill what is left of a page of another share (the weather beside a room).
- * - `waits`: when its own share's page is full it waits for what later pages leave, before it gets a page of its own. */
+ * - `waits`: when its own share's page is full it waits for what later pages leave, before it gets a page of its own.
+ * - `loose`: its tiles stand loose, never in a section of their own. */
 export type PlaceUnit<T extends PlaceTile = PlaceTile> = {
-  key: string; title: string; icon?: string; summary?: string; tiles: T[];
+  key: string; title: string; icon?: string; summary?: string; tiles: T[]; loose?: boolean;
   page: { title: string; icon?: string }; share: string; run: string; fills?: boolean; waits?: boolean;
 };
 export type PlaceTarget<T extends PlaceTile = PlaceTile> = {
@@ -44,6 +50,10 @@ export type PlaceTarget<T extends PlaceTile = PlaceTile> = {
   fill?: number;
   /** A page's title and icon from the units that stand on it; left out, its first unit's page. */
   title?: (units: PlaceUnit<T>[]) => { title: string; icon?: string };
+  /** After placing, every new page's tiles step up through their `faces` while the page still holds everything: alike
+   * tiles together first, then single tiles, the smaller rank first. Only the faces given, never a size made up to fill
+   * a hole. */
+  grow?: boolean;
 };
 /** A tile that found no room, with its unit and why: the screen's tile ceiling (`tiles`), the pages' cells (`cells`), its
  * memory (`memory`) or its pages (`pages`). Data, so each caller says it in its own words. */
@@ -125,7 +135,7 @@ const claim = <T extends PlaceTile>(sheet: Sheet<T>, block: Block<T>) => {
 };
 /** A block of one tile: it goes on the page as a loose tile. A section groups two tiles or more (the owner's rule: a
  * section is for grouping); one made by hand with one tile stays as it is, only a placement never proposes one. */
-const alone = (block: Block<PlaceTile>) => block.unit.tiles.length === 1;
+const alone = (block: Block<PlaceTile>) => block.unit.tiles.length === 1 || Boolean(block.unit.loose);
 /** A page's blocks grown a little, so the panels line up: one row lower where the block beside it at the same top is one
  * row lower (a shelf), then into a gap of one column or one row that no block could fill. Their tiles laid out again on
  * the width they have now; a lone tile keeps its own size. */
@@ -245,6 +255,36 @@ function plainSheets<T extends PlaceTile>(list: PlaceUnit<T>[], grid: Grid, page
   return { sheets: out, dropped };
 }
 
+// ---- Growing into larger faces ----
+
+/** One page's units with their tiles grown: a group of alike tiles (or a single tile) takes its next face together, kept
+ * where the page still `holds` every unit, until none can grow; alike groups first, then single tiles, the smaller rank
+ * first. The tiles are copies; the units given are not changed. */
+function grown<T extends PlaceTile>(units: PlaceUnit<T>[], holds: (units: PlaceUnit<T>[]) => boolean): PlaceUnit<T>[] {
+  const out = units.map((unit) => ({ ...unit, tiles: unit.tiles.map((tile) => ({ ...tile, face: tile.face ?? 0 })) }));
+  const tiles = out.flatMap((unit) => unit.tiles).filter((tile) => (tile.faces?.length ?? 0) > 1);
+  const step = (tile: T, by: number) => {
+    const face = tile.faces![tile.face! + by];
+    Object.assign(tile, { face: tile.face! + by, columns: face.columns, rows: face.rows, tile: face.tile });
+  };
+  const byRank = (group: T[]) => Math.min(...group.map((tile) => tile.rank));
+  const alike = new Map<string, T[]>();
+  for (const tile of tiles) if (tile.alike) alike.set(tile.alike, [...(alike.get(tile.alike) ?? []), tile]);
+  const phases = [[...alike.values()].sort((a, b) => byRank(a) - byRank(b)), tiles.map((tile) => [tile]).sort((a, b) => byRank(a) - byRank(b))];
+  for (const groups of phases) {
+    for (let changed = true; changed;) {
+      changed = false;
+      for (const group of groups) {
+        if (!group.every((tile) => tile.face === group[0].face && tile.face! + 1 < tile.faces!.length)) continue;
+        group.forEach((tile) => step(tile, 1));
+        if (holds(out)) changed = true;
+        else group.forEach((tile) => step(tile, -1));
+      }
+    }
+  }
+  return out;
+}
+
 // ---- What the screen holds ----
 
 /** The units trimmed to what the screen holds: its tile ceiling, the cells the pages offer and its memory as a proposal
@@ -306,7 +346,14 @@ export function placeUnits<T extends PlaceTile>(units: PlaceUnit<T>[], target: P
   const leftOut = [...left];
   let sections = 0;
   if (target.sections) {
-    for (const sheet of blockSheets(list, grid)) {
+    // One page's units, with sections: still one page with every tile on it.
+    const one = (units: PlaceUnit<T>[]) => blockSheets(units.map((unit) => ({ ...unit, share: "", fills: false, waits: false })), grid);
+    const holds = (units: PlaceUnit<T>[]) => {
+      const sheets = one(units);
+      return sheets.length === 1 && sheets[0].sheet.blocks.reduce((n, block) => n + block.unit.tiles.length, 0) === units.reduce((n, unit) => n + unit.tiles.length, 0);
+    };
+    for (let sheet of blockSheets(list, grid)) {
+      if (target.grow) sheet = { ...one(grown(sheet.units, holds))[0], units: sheet.units };
       if (pages.length >= most) { for (const block of sheet.sheet.blocks) leftOut.push(...block.unit.tiles.map((tile) => ({ tile, unit: block.unit.key, why: "pages" as const }))); continue; }
       const page = newPage(sheet.units, target);
       const blocks = sheet.sheet.blocks.sort((a, b) => a.row - b.row || a.column - b.column);
@@ -324,8 +371,15 @@ export function placeUnits<T extends PlaceTile>(units: PlaceUnit<T>[], target: P
   } else {
     const plain = plainSheets(list, grid, most);
     leftOut.push(...plain.dropped);
-    for (const sheet of plain.sheets) {
+    const holds = (units: PlaceUnit<T>[]) => pack(units.flatMap((unit) => unit.tiles), grid.columns).rows <= grid.rows;
+    for (let sheet of plain.sheets) {
       if (pages.length >= most) { leftOut.push(...sheet.places.map((place) => ({ tile: place.tile, unit: sheet.units.find((u) => u.tiles.includes(place.tile))?.key ?? "", why: "pages" as const }))); continue; }
+      // A page grows only once it is one that stays.
+      if (target.grow) {
+        const tiles = new Set(sheet.places.map((place) => place.tile));
+        const units = grown(sheet.units.map((unit) => ({ ...unit, tiles: unit.tiles.filter((tile) => tiles.has(tile)) })).filter((unit) => unit.tiles.length), holds);
+        sheet = { ...sheet, places: pack(units.flatMap((unit) => unit.tiles), grid.columns).places };
+      }
       const page = newPage(sheet.units, target);
       page.tiles = sheet.places.map((place) => tileAt(place, place.row, place.column));
       pages.push(page);

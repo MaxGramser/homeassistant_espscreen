@@ -79,6 +79,17 @@ groups) take what is left of another share's page. A unit taller than a page is 
 section then grows a row to meet the one beside it, and into a gap of one column or row. Without sections each run (a
 room, the house) gets pages of its own, and neighbouring pages are put together only when the screen has fewer pages.
 
+A unit marked `loose` never gets a section. With `grow` (Layoutbot asks for it, the first layout does not), a new page's
+tiles then step up through the larger cards they were given while the page still holds everything: alike tiles together
+first (every light of a room as large as the others), then single tiles where room is left, the more wanted first;
+never a size made up to fill a hole. `placeUnits` makes new pages only: a page the person already has changes through
+the editor's own edits (a free cell, a new section, a drop into a section), as Layoutbot does it.
+
+What a caller gives each tile comes from `auto-layout.ts`: `facesFor` says the cards an entity can take on the screen,
+plainest first (one cell, then wide or tall, then the large card), and the one the first layout gives it; `placeTileFor`
+makes that a tile at its plainest card with the others to grow into. So Layoutbot dresses the entities it was given
+exactly as the first layout dresses its own. `placeTarget` says what a screen holds for a proposal.
+
 Auto layout's own part is which units there are: a room or a group is a unit, the house's groups share pages and wait for
 the rooms' holes, a room of its own shares its pages with nothing else, and a page of several rooms is named after them.
 
