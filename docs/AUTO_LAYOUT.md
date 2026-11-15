@@ -64,9 +64,23 @@ a loose tile on the page at the place its section would have had, without a titl
 cameras, a room's only thermostat). The alarm and the cameras share one Security section. This is the first layout's own
 rule; a section of one card made by hand is the person's to keep.
 
-A section's place on a page is the first free one in reading order for any width its tiles fit, the least empty cells
-there; a page takes later units of its kind that fit before the next page begins, and the house's groups fill what is
-left of a room's page. A section then grows a row to meet the one beside it, and into a gap of one column or row.
+## Placing
+
+The groups go on the pages through `placeUnits` in `web/src/model/placement.ts` (tests: `web/tests/placement.spec.ts`),
+the one path that puts groups of tiles on pages, which Layoutbot uses too. It knows no rooms and no home: units of tiles
+come in, each with a title, an icon, its tiles' sizes and how much each matters, the page it heads for and which units
+may share a page; pages come out with every tile at its own cell and a section block around each group of two tiles or
+more, held to the screen's grid, pages, tiles and memory (`proposalHolds`). What found no room comes back as data, each
+tile with its unit and why (the tile ceiling, the cells, the memory, the pages), so each caller says it in its own words.
+
+A unit's place on a page is the first free one in reading order for any width its tiles fit, the least empty cells
+there; a page takes later units of its share that fit before the next page begins, and units that fill (the house's own
+groups) take what is left of another share's page. A unit taller than a page is cut into parts with the same title. A
+section then grows a row to meet the one beside it, and into a gap of one column or row. Without sections each run (a
+room, the house) gets pages of its own, and neighbouring pages are put together only when the screen has fewer pages.
+
+Auto layout's own part is which units there are: a room or a group is a unit, the house's groups share pages and wait for
+the rooms' holes, a room of its own shares its pages with nothing else, and a page of several rooms is named after them.
 
 What a card shows comes from the catalogue, never from this model: a control set or display is chosen only where the
 entity's capabilities offer it, the catalogue says it fits the card's size and the screen draws it (its firmware, its
@@ -99,6 +113,8 @@ sensor. A page of one room takes its name, one of several rooms their names or t
 
 ## Places a change touches
 
+- `web/src/model/placement.ts` and `web/tests/placement.spec.ts` for how units go on pages (Layoutbot places by it too: ask
+  whoever works on Layoutbot before changing what it takes or gives).
 - `web/src/model/auto-layout.ts` and its test with the fake homes; run `npx vitest run tests/auto-layout.spec.ts -u`
   after a change that moves tiles, so the documents the add-on's test checks follow.
 - `screen_manager/app/home_facts.py` and `tests/test_home_facts.py` for a new fact of the registries.

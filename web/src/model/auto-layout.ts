@@ -10,13 +10,14 @@
 // words its names share, then by device, then by kind. What a tile can show comes from the catalogue and the capabilities,
 // never from a rule of this file: a richer control or display is only chosen where both say it is drawn.
 import { t } from "../i18n";
-import type { Capability, Entity, Page, PageGrid, PageLayout, PageTile, ScreenMemory, Section } from "../types";
+import type { Capability, Entity, Page, PageGrid, PageLayout, PageTile, ScreenMemory } from "../types";
 import { controlOption, displayOption, drawable, fits, growOrder, ofType } from "./catalogue";
 import { versionAtLeast } from "./layout";
-import { memoryUse, proposalHolds, type PricedPage, type PricedTile } from "./memory";
+import type { PricedPage, PricedTile } from "./memory";
 import type { PluginTileLookup } from "./plugins";
-import { instanceId, SECTION_TITLE_BYTES, SECTIONS_MAX, copyBar, emptyPage } from "./pages";
+import { copyBar, emptyPage } from "./pages";
 import rules from "./page-rules.json";
+import { ICONS, placeUnits, type PlaceTile, type PlaceUnit } from "./placement";
 import { sizeFor, sizesOn } from "./sizes";
 
 // ---- What goes in ----
@@ -73,8 +74,7 @@ export type AutoResult = {
 
 // ---- Which entities, and how they group ----
 
-/** The icons a section (and here a page) may take: the fixed set every screen carries (tile_icons.ICONS). */
-export const ICONS: ReadonlySet<string> = new Set(rules.icons);
+export { ICONS };
 
 /** The groups of a room, in the order Home Assistant's area view shows them (areas/area-view-strategy.ts). */
 export const ROOM_GROUPS = ["lights", "covers", "climate", "media", "security", "actions", "others"] as const;
@@ -227,7 +227,7 @@ export function labelOf(c: Pick<Candidate, "name" | "deviceName" | "maker" | "do
 
 // ---- A tile's size and what it shows ----
 
-type Planned = { candidate: Candidate; columns: number; rows: number; tile: Omit<PageTile, "id" | "placement">; rank: number };
+type Planned = PlaceTile & { candidate: Candidate };
 
 /** How much a kind matters on a wall (Home Assistant's order of what an area shows first): a smaller rank stays when room
  * runs short. */
@@ -330,7 +330,7 @@ function plan(c: Candidate, label: string, input: AutoInput, room: Room, role: {
   }
   // The house's meter counts as much as a list; a room's other sensors less.
   const rank = c.group === "energy" ? 3 : RANKS[c.domain] ?? 5;
-  return { candidate: c, columns, rows, tile: { content: { kind: "entity", entityId: c.id }, appearance, interaction }, rank };
+  return { candidate: c, entity: c.id, columns, rows, tile: { content: { kind: "entity", entityId: c.id }, appearance, interaction }, rank };
 }
 
 // ---- Units: what becomes one section (or one page on a screen without sections) ----
@@ -542,166 +542,8 @@ function units(input: AutoInput, room: Room): { list: Unit[]; rooms: number } {
   return { list: out, rooms };
 }
 
-// ---- Packing ----
+// ---- On the pages: model/placement.ts places the units ----
 
-type Place = { tile: Planned; row: number; column: number };
-/** Tiles in reading order into `columns` columns from the top, each at the first place it fits. */
-function pack(tiles: Planned[], columns: number) {
-  const taken = new Set<string>(), places: Place[] = [];
-  let height = 0;
-  for (const tile of tiles) {
-    const w = Math.min(tile.columns, columns);
-    for (let row = 0; ; row++) {
-      let column = -1;
-      for (let c = 0; c + w <= columns && column < 0; c++) {
-        let free = true;
-        for (let y = row; y < row + tile.rows && free; y++) for (let x = c; x < c + w; x++) if (taken.has(`${y}:${x}`)) { free = false; break; }
-        if (free) column = c;
-      }
-      if (column < 0) continue;
-      for (let y = row; y < row + tile.rows; y++) for (let x = column; x < column + w; x++) taken.add(`${y}:${x}`);
-      places.push({ tile, row, column });
-      height = Math.max(height, row + tile.rows);
-      break;
-    }
-  }
-  return { places, rows: height };
-}
-type Shape = { columns: number; rows: number; places: Place[]; waste: number };
-/** The shapes a unit's block may take on a grid: each width its tiles fit, the rows they then take. */
-function shapes(unit: Unit, grid: { columns: number; rows: number }): Shape[] {
-  const widest = Math.max(...unit.tiles.map((tile) => tile.columns));
-  const area = unit.tiles.reduce((sum, tile) => sum + tile.columns * tile.rows, 0);
-  const out: Shape[] = [];
-  for (let columns = Math.min(widest, grid.columns); columns <= grid.columns; columns++) {
-    const { places, rows } = pack(unit.tiles, columns);
-    if (rows <= grid.rows && !out.some((shape) => shape.rows === rows)) out.push({ columns, rows, places, waste: columns * rows - area });
-  }
-  return out;
-}
-/** A unit cut into parts that each fit a page: the tiles in reading order on the page's width, a page high each. */
-function split(unit: Unit, grid: { columns: number; rows: number }): Unit[] {
-  if (shapes(unit, grid).length) return [unit];
-  const parts: Unit[] = [];
-  let current: Planned[] = [];
-  for (const tile of unit.tiles) {
-    if (current.length && pack([...current, tile], grid.columns).rows > grid.rows) { parts.push({ ...unit, tiles: current }); current = []; }
-    current.push(tile);
-  }
-  if (current.length) parts.push({ ...unit, tiles: current });
-  return parts.map((part, i) => ({ ...part, key: `${unit.key}:${i}` }));
-}
-
-type Block = { unit: Unit; row: number; column: number; shape: Shape };
-type Sheet = { blocks: Block[]; taken: Set<string> };
-const freeAt = (sheet: Sheet, row: number, column: number, shape: { columns: number; rows: number }, grid: { columns: number; rows: number }) => {
-  if (row + shape.rows > grid.rows || column + shape.columns > grid.columns) return false;
-  for (let y = row; y < row + shape.rows; y++) for (let x = column; x < column + shape.columns; x++) if (sheet.taken.has(`${y}:${x}`)) return false;
-  return true;
-};
-/** Where a unit goes on a page: the first free place in reading order for any of its shapes, the least waste there. */
-function placeOn(sheet: Sheet, unit: Unit, grid: { columns: number; rows: number }): Block | null {
-  const options = shapes(unit, grid);
-  for (let row = 0; row < grid.rows; row++) for (let column = 0; column < grid.columns; column++) {
-    const fitting = options.filter((shape) => freeAt(sheet, row, column, shape, grid)).sort((a, b) => a.waste - b.waste || b.columns - a.columns);
-    if (fitting.length) return { unit, row, column, shape: fitting[0] };
-  }
-  return null;
-}
-const claim = (sheet: Sheet, block: Block) => {
-  sheet.blocks.push(block);
-  for (let y = block.row; y < block.row + block.shape.rows; y++) for (let x = block.column; x < block.column + block.shape.columns; x++) sheet.taken.add(`${y}:${x}`);
-};
-/** A block of one card: it goes on the page as a loose tile. A section groups two cards or more (the owner's rule: a
- * section is for grouping); one made by hand with one card stays as it is, only this layout never proposes one. */
-const alone = (block: Block) => block.unit.tiles.length === 1;
-/** A page's blocks grown a little, so the panels line up: each as low as the tallest block beside it (a shelf), then into a
- * gap of one column or one row that no block could fill. Their tiles laid out again on the width they have now. */
-function grow(sheet: Sheet, grid: { columns: number; rows: number }) {
-  const free = (y: number, x: number) => y >= 0 && x >= 0 && y < grid.rows && x < grid.columns && !sheet.taken.has(`${y}:${x}`);
-  const take = (cells: [number, number][]) => { for (const [y, x] of cells) sheet.taken.add(`${y}:${x}`); };
-  const right = (b: Block) => Array.from({ length: b.shape.rows }, (_, i) => [b.row + i, b.column + b.shape.columns] as [number, number]);
-  const below = (b: Block) => Array.from({ length: b.shape.columns }, (_, i) => [b.row + b.shape.rows, b.column + i] as [number, number]);
-  // A lone card is a loose tile, not a section: it keeps its own size.
-  const ordered = [...sheet.blocks].filter((block) => !alone(block)).sort((a, b) => a.row - b.row || a.column - b.column);
-  // A shelf: one row lower where the block beside it, at the same top, is one row lower.
-  for (const block of ordered) {
-    const shelf = Math.max(...sheet.blocks.filter((other) => other.row === block.row).map((other) => other.row + other.shape.rows));
-    if (shelf === block.row + block.shape.rows + 1 && below(block).every(([y, x]) => free(y, x))) {
-      take(below(block)); block.shape = { ...block.shape, rows: block.shape.rows + 1 };
-    }
-  }
-  // A gap of one column to the right or one row below that stays empty otherwise.
-  for (const block of ordered) {
-    const column = right(block);
-    if (column.every(([y, x]) => free(y, x)) && column.every(([y, x]) => !free(y, x + 1))) { take(column); block.shape = { ...block.shape, columns: block.shape.columns + 1 }; }
-    const row = below(block);
-    if (row.every(([y, x]) => free(y, x)) && row.every(([y, x]) => !free(y + 1, x))) { take(row); block.shape = { ...block.shape, rows: block.shape.rows + 1 }; }
-  }
-  for (const block of ordered) {
-    const again = pack(block.unit.tiles, block.shape.columns);
-    if (again.rows <= block.shape.rows) block.shape = { ...block.shape, places: again.places };
-  }
-}
-
-/** Pages of sections: each unit at the first free place of its page, a few later ones of the same kind pulled forward to
- * fill a page before the next begins; a room of its own on pages of its own. */
-function sectionSheets(list: Unit[], grid: { columns: number; rows: number }) {
-  type Sheet2 = { sheet: Sheet; units: Unit[]; kind: Unit["kind"]; room: string };
-  const sheets: Sheet2[] = [];
-  const queue = list.flatMap((unit) => split(unit, grid));
-  const same = (page: Sheet2, unit: Unit) => page.kind === unit.kind && (unit.kind !== "own" || page.room === unit.room);
-  let current: Sheet2 | null = null;
-  const room = (page: Sheet2) => page.sheet.blocks.length < SECTIONS_MAX;
-  const deferred = new Set<Unit>();
-  // What is left of a room's page takes the house's own groups that fit there, the largest first (the weather beside a
-  // room, as a person would put it).
-  const area = (unit: Unit) => unit.tiles.reduce((n, x) => n + x.columns * x.rows, 0);
-  const close = () => {
-    if (!current) return;
-    const page: Sheet2 = current;
-    if (page.kind !== "house")
-      for (const next of queue.filter((item) => item.kind === "house" && item.key.startsWith("house:") && HOUSE_WIDE.has(item.key.split(":")[1] as Group))
-        .sort((a, b) => area(b) - area(a))) {
-        const fits = room(page) ? placeOn(page.sheet, next, grid) : null;
-        if (!fits) continue;
-        claim(page.sheet, fits);
-        page.units.push(next);
-        queue.splice(queue.indexOf(next), 1);
-      }
-    grow(page.sheet, grid);
-    sheets.push(page);
-    current = null;
-  };
-  while (queue.length) {
-    const unit = queue[0];
-    // Closing a page may take house groups out of the queue for its holes: then look at the queue's head again.
-    if (current && !same(current, unit)) { close(); continue; }
-    if (!current) current = { sheet: { blocks: [], taken: new Set() }, units: [], kind: unit.kind, room: unit.room };
-    const block = room(current) ? placeOn(current.sheet, unit, grid) : null;
-    if (block) { claim(current.sheet, block); current.units.push(unit); queue.shift(); continue; }
-    // A later unit of the same kind that fits fills the page first (at most four ahead).
-    const page: Sheet2 = current;
-    const ahead = queue.slice(1, 5).findIndex((next) => same(page, next) && room(page) && placeOn(page.sheet, next, grid));
-    if (ahead >= 0) {
-      const next = queue.splice(ahead + 1, 1)[0];
-      claim(page.sheet, placeOn(page.sheet, next, grid)!);
-      page.units.push(next);
-      continue;
-    }
-    if (!current.sheet.blocks.length) { queue.shift(); continue; }
-    // The house's groups that find no room on its page wait for the holes of the rooms' pages, and get a page of their
-    // own only when none takes them.
-    if (page.kind === "house" && !deferred.has(unit)) {
-      const later = queue.filter((item) => item.kind === "house");
-      later.forEach((item) => deferred.add(item));
-      queue.splice(0, queue.length, ...queue.filter((item) => item.kind !== "house"), ...later);
-    }
-    close();
-  }
-  close();
-  return sheets.map((page) => ({ sheet: page.sheet, ...titleOf(page.units) }));
-}
 /** A page's title and icon from its units: its first one's for the house and a room of its own; for rooms sharing a page
  * their names ("Kitchen & Hall"), their floor's when there are more of one floor, else the first and how many more. */
 function titleOf(units: Unit[]): { title: string; icon?: string } {
@@ -715,98 +557,15 @@ function titleOf(units: Unit[]): { title: string; icon?: string } {
   const all = t("editor.auto.room_list", { list: names.slice(0, -1).join(", "), last: names.at(-1) });
   return { title: all.length <= 40 ? all : t("editor.auto.more_rooms", { a: names[0], n: names.length - 1 }) };
 }
-
-/** Pages of plain tiles (no sections): a room or group on a page of its own, continued on the next where it runs over;
- * rooms that each fill little share a page when the screen has fewer pages than rooms. */
-function plainSheets(list: Unit[], grid: { columns: number; rows: number }, pages: number) {
-  type Plain = { title: string; icon?: string; places: Place[]; rooms: string[] };
-  // A unit's tiles: the house's groups together on its own pages, every other unit on its own.
-  const merged: Unit[] = [];
-  for (const unit of list) {
-    const last = merged.at(-1);
-    if (last && last.room === unit.room) last.tiles = [...last.tiles, ...unit.tiles];
-    else merged.push({ ...unit, tiles: [...unit.tiles] });
-  }
-  // A room that runs a tile or two onto a page of its own, where the screen has fewer pages than that takes: those last
-  // tiles, the least wanted of it, go to the library instead.
-  const cells = grid.columns * grid.rows, size = (tiles: Planned[]) => tiles.reduce((n, tile) => n + tile.columns * tile.rows, 0);
-  let dropped = 0;
-  if (merged.reduce((n, unit) => n + Math.ceil(size(unit.tiles) / cells), 0) > pages)
-    for (const unit of merged) {
-      const over = size(unit.tiles) % cells;
-      if (size(unit.tiles) <= cells || over === 0 || over > Math.max(1, Math.floor(cells / 3))) continue;
-      const worst = [...unit.tiles].map((tile, i) => ({ tile, i })).sort((a, b) => b.tile.rank - a.tile.rank || b.i - a.i);
-      let freed = 0;
-      const gone = new Set<Planned>();
-      for (const { tile } of worst) { if (freed >= over) break; gone.add(tile); freed += tile.columns * tile.rows; }
-      unit.tiles = unit.tiles.filter((tile) => !gone.has(tile));
-      dropped += gone.size;
-    }
-  let out: Plain[] = merged.flatMap((unit) => split({ ...unit, tiles: unit.tiles }, grid).map((part) => ({
-    title: unit.page, icon: unit.pageIcon, places: pack(part.tiles, grid.columns).places, rooms: [unit.room] })));
-  // Too many pages: two neighbouring pages whose tiles fit one page become one, the smallest pair first.
-  while (out.length > pages) {
-    let best = -1, least = Infinity;
-    for (let i = 0; i + 1 < out.length; i++) {
-      const tiles = [...out[i].places, ...out[i + 1].places].map((place) => place.tile);
-      const fit = pack(tiles, grid.columns).rows <= grid.rows;
-      if (fit && tiles.length < least) { best = i; least = tiles.length; }
-    }
-    if (best < 0) break;
-    const a = out[best], b = out[best + 1];
-    const names = [...new Set([a.title, b.title])];
-    const title = names.length === 1 ? names[0] : t("editor.auto.two_rooms", { a: names[0], b: names[1] });
-    out = [...out.slice(0, best), { title, icon: names.length === 1 ? a.icon : undefined, places: pack([...a.places, ...b.places].map((p) => p.tile), grid.columns).places,
-      rooms: [...a.rooms, ...b.rooms] }, ...out.slice(best + 2)];
-  }
-  return { sheets: out, dropped };
-}
-
-// ---- Room on the screen: tiles, pages, memory ----
-
-/** The candidates' planned tiles trimmed to what the screen holds: its tile ceiling and its memory, the least wanted
- * (largest rank, latest) going first; a rich card that costs too much becomes a plain one before it goes. */
-function trim(list: Unit[], input: AutoInput, pages: number, cells: number) {
-  const screen = input.screen, all = list.flatMap((unit) => unit.tiles.map((tile, order) => ({ unit, tile, order })));
-  // The memory as a proposal holds to it (model/memory.ts proposalHolds): the whole draft after the change against the
-  // whole draft before it, the new pages' top bars included (priced at the most pages the proposal may take), no line
-  // crossed that the editor would ask about and no higher level than it started at. A screen that is still measuring its room has no say yet.
-  const memory = screen.memory && screen.memory.room !== null && screen.memory.room !== undefined ? screen.memory : null;
-  const existing = input.existing ?? { tiles: [], pages: [] };
-  const bar = { topbar: { trailing: screen.topbar?.trailing ?? [] } };
-  const newPages = Array.from({ length: pages }, () => bar);
-  const before = memory ? memoryUse(existing.tiles, memory, existing.pages, input.plugins) : null;
-  const priced = (item: { tile: Planned }): PricedTile => ({ entity: item.tile.candidate.id, options: {} });
-  const crosses = (kept: typeof all) => memory !== null && before !== null &&
-    !proposalHolds(before, memoryUse([...existing.tiles, ...kept.map(priced)], memory, [...existing.pages, ...newPages], input.plugins));
-  // Cells: a page leaves room unused around sections; aim at three quarters of them.
-  const room = cells * 0.75;
-  let kept = all.slice();
-  // Some room left for what the person adds: about one tile in seven of the screen's ceiling stays free.
-  const ceiling = screen.tiles - Math.min(Math.round(screen.tiles * 0.15), Math.max(0, screen.tiles - 1));
-  const over = () => kept.length > ceiling || kept.reduce((sum, item) => sum + item.tile.columns * item.tile.rows, 0) > room || crosses(kept);
-  const index = new Map(all.map((item, i) => [item, i]));
-  while (kept.length && over()) {
-    // The least wanted: the largest rank, then the latest unit.
-    const drop = kept.reduce((worst, item) => item.tile.rank > worst.tile.rank || (item.tile.rank === worst.tile.rank && index.get(item)! > index.get(worst)!) ? item : worst);
-    kept = kept.filter((item) => item !== drop);
-  }
-  const left = all.length - kept.length;
-  const keep = new Set(kept.map((item) => item.tile));
-  return { list: list.map((unit) => ({ ...unit, tiles: unit.tiles.filter((tile) => keep.has(tile)) })).filter((unit) => unit.tiles.length), left };
-}
-
-const tileOf = (place: Place, offset = { row: 0, column: 0 }): PageTile => ({
-  id: instanceId(), ...JSON.parse(JSON.stringify(place.tile.tile)),
-  placement: { row: place.row - offset.row, column: place.column - offset.column, columns: place.tile.columns, rows: place.tile.rows },
+/** A unit as the placement takes it: the house's groups share pages and wait for the rooms' holes, its own groups fill
+ * them (the weather beside a room); a room of its own shares pages with nothing else; on a screen without sections a
+ * room (or the house) is one run of tiles. */
+type Placing = PlaceUnit<Planned> & { source: Unit };
+const placing = (unit: Unit): Placing => ({
+  key: unit.key, title: unit.title, icon: unit.icon, summary: unit.summary, tiles: unit.tiles, page: { title: unit.page, icon: unit.pageIcon },
+  share: unit.kind === "own" ? `own:${unit.room}` : unit.kind, run: unit.room, waits: unit.kind === "house",
+  fills: unit.kind === "house" && unit.key.startsWith("house:") && HOUSE_WIDE.has(unit.key.split(":")[1] as Group), source: unit,
 });
-function pageWith(title: string, icon: string | undefined, input: AutoInput): Page {
-  const page = emptyPage(input.screen.topbar ? copyBar(input.screen.topbar) : undefined);
-  const text = cutBytes(title, 96);
-  page.topbar.title = text ? { source: "text", text } : { source: "screen" };
-  if (icon && ICONS.has(icon)) page.icon = icon;
-  return page;
-}
 
 /** The first layout for a screen: every room, the house and what has no room, as the screen's grid, sizes, sections,
  * memory and limits take them. */
@@ -817,41 +576,17 @@ export function autoLayout(input: AutoInput): AutoResult {
   // Sections where the board draws them and a page has room for more than one: three by three cells and up.
   const sectioned = input.screen.sections && level !== "plain";
   const made = units({ ...input, screen: { ...input.screen, sections: sectioned } }, room);
-  const pagesMax = Math.max(1, input.screen.pages);
-  const { list, left } = trim(made.list, input, pagesMax, pagesMax * grid.columns * grid.rows);
-  const pages: Page[] = [];
-  let leftOut = left, sections = 0;
-  if (sectioned) {
-    for (const sheet of sectionSheets(list, grid)) {
-      if (pages.length >= pagesMax) { leftOut += sheet.sheet.blocks.reduce((sum, block) => sum + block.unit.tiles.length, 0); continue; }
-      const page = pageWith(sheet.title, sheet.icon, input);
-      const blocks = sheet.sheet.blocks.sort((a, b) => a.row - b.row || a.column - b.column);
-      // Every tile on its page at its own cell; a block of two or more also gets a section around it.
-      page.tiles = blocks.flatMap((block) => block.shape.places.map((place) => tileOf({ ...place, row: block.row + place.row,
-        column: block.column + place.column })));
-      const grouped = blocks.filter((block) => !alone(block));
-      if (grouped.length) page.sections = grouped.map((block): Section => ({
-        id: instanceId(), title: cutBytes(block.unit.title, SECTION_TITLE_BYTES) || "·",
-        ...(block.unit.icon && ICONS.has(block.unit.icon) ? { icon: block.unit.icon } : {}),
-        ...(block.unit.summary ? { summary: block.unit.summary } : {}),
-        placement: { row: block.row, column: block.column, columns: block.shape.columns, rows: block.shape.rows },
-      }));
-      sections += page.sections?.length ?? 0;
-      pages.push(page);
-    }
-  } else {
-    const plain = plainSheets(list, grid, pagesMax);
-    leftOut += plain.dropped;
-    for (const sheet of plain.sheets) {
-      if (pages.length >= pagesMax) { leftOut += sheet.places.length; continue; }
-      const page = pageWith(sheet.title, sheet.icon, input);
-      page.tiles = sheet.places.map((place) => tileOf(place));
-      pages.push(page);
-    }
-  }
-  if (!pages.length) pages.push(pageWith("", undefined, input));
+  const screen = input.screen, most = Math.max(1, screen.pages);
+  // Some room left for what the person adds: about one tile in seven of the screen's ceiling stays free; and the pages'
+  // cells leave room around sections: three quarters of them.
+  const placed = placeUnits(made.list.map(placing), {
+    grid, pages: most, tiles: screen.tiles - Math.min(Math.round(screen.tiles * 0.15), Math.max(0, screen.tiles - 1)), sections: sectioned,
+    memory: screen.memory, existing: input.existing, plugins: input.plugins, topbar: screen.topbar, fill: 0.75,
+    title: (units) => titleOf(units.map((unit) => (unit as Placing).source)),
+  });
+  const pages = placed.pages.length ? placed.pages : [emptyPage(screen.topbar ? copyBar(screen.topbar) : undefined)];
   const tiles = pages.reduce((sum, page) => sum + page.tiles.length, 0);
-  return { layout: { title: input.screen.title, homePageId: pages[0].id, pages }, tiles, sections, rooms: made.rooms, leftOut };
+  return { layout: { title: screen.title, homePageId: pages[0].id, pages }, tiles, sections: placed.sections, rooms: made.rooms, leftOut: placed.left.length };
 }
 
 /** The pages of a first layout after the pages a screen has (made with what the screen still takes): Home stays where it was. */

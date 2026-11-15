@@ -29,7 +29,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | give a board a setting of its own (Extras: on the screen, in the app, in Home Assistant) | docs/SETTINGS.md, "A board's own settings" | `boards.yaml` `settings`, the board's `BOOT_BOARD_SETTINGS`, `entity_settings.py` |
 | add a board | docs/ADDING_A_BOARD.md, then docs/BOARD_RELEASES.md | `boards.yaml`, `packages/boards/<file>.yaml` |
 | change sections on a page (titled groups of tiles) | docs/PAGES.md, "Sections" | `section_layout.h`, `module_sections.h`, `page_layout.py` (`sections_of`), `web/src/model/sections.ts` |
-| change the first layout the editor makes from a home (Auto layout) | docs/AUTO_LAYOUT.md | `web/src/model/auto-layout.ts`, `screen_manager/app/home_facts.py` |
+| change the first layout the editor makes from a home (Auto layout), or how groups of tiles are placed on pages | docs/AUTO_LAYOUT.md | `web/src/model/auto-layout.ts`, `web/src/model/placement.ts`, `screen_manager/app/home_facts.py` |
 | add a part of the UI that only the larger boards get | docs/MODULES.md | `components/smart_display/modules.py`, `module_<name>.h` |
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
