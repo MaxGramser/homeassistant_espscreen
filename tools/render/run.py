@@ -917,6 +917,8 @@ class Run:
             if 'own=243A26' not in told:
                 self.failures.append(f'ui::card_color in a following section is not green in the other look: {told}')
             await self.until(lambda l: probe(l, 'tile=0 tick') and 'ground=243A26' in l, 10, 'the card wears green in the other look', start)
+            # A plugin-wide moment (on_interval) paints a role onto a part of the tile: the other look's INK in here.
+            await self.until(lambda l: probe(l, 'interval painted tile=0 ink=DADADA'), 10, 'on_interval paints in the card\'s look', start)
             start = len(self.lines)
             await self.sender.synchronize(self.inbox.object_id, following, region, values(7, {'card': 'instrument'}), bars)
             told = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'an instrument, following', start)
@@ -925,6 +927,7 @@ class Run:
             start = len(self.lines)
             await self.sender.synchronize(self.inbox.object_id, record, region, values(8, {'card': 'none'}), bars)
             await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the screen\'s again', start)
+            await self.until(lambda l: probe(l, 'interval painted tile=0 ink=1B1B1B'), 10, 'on_interval paints in the screen\'s look again', start)
             self.warnings.append('plugin card in a following section: green and the instrument in the other look, back again')
         # Light and dark: on_theme, once each way.
         start = len(self.lines)

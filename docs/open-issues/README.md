@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [card-look-on-glass.md](card-look-on-glass.md) | A card's look (sections whose tiles follow the contrast) is proven on the host and in the preview, not yet seen on glass; the file holds what to look at | 2026-11-15 |
 | [render-swipe-past-excluded-pages.md](render-swipe-past-excluded-pages.md) | Host render checks that fail on dev: the swipe past excluded pages (it stops the full stage list), and the automation, remote and bars stages | 2026-11-15 |
 | [sections-left-open.md](sections-left-open.md) | What sections leave open: their price in the memory budget and the receiver untested on its own (the header height: solved) | 2026-11-15 |
 | [slow-single-cards.md](slow-single-cards.md) | A scene card draws in 17 to 18 ms and a light card once in 44 ms, where most cards take 2 to 8 | 2026-11-15 |

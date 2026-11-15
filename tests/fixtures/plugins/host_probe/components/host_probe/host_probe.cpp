@@ -15,7 +15,10 @@ namespace ui = tessera::ui;
 class ProbeTile : public tessera::Tile {
  public:
   explicit ProbeTile(HostProbe *plugin) : plugin_(plugin) {}
-  ~ProbeTile() override { ESP_LOGI(TAG, "tile=%d destroy", tile_); }
+  ~ProbeTile() override {
+    if (tile_ == 0 && plugin_->tile0_mark_ == mark_) plugin_->tile0_mark_ = nullptr;
+    ESP_LOGI(TAG, "tile=%d destroy", tile_);
+  }
 
   void create(const tessera::TileContext &c) override {
     tile_ = c.tile;
@@ -38,6 +41,13 @@ class ProbeTile : public tessera::Tile {
     label_ = ui::label(badge_, Font::TITLE, theme::ON_ACCENT);
     ui::set_text(label_, word_);
     lv_obj_center(label_);
+    // The part the plugin paints from its own moments (on_interval): hidden, so no picture of the probe changes.
+    if (tile_ == 0) {
+      mark_ = ui::label(c.parent, Font::TITLE, theme::INK);
+      lv_obj_add_flag(mark_, LV_OBJ_FLAG_HIDDEN);
+      plugin_->tile0_mark_ = mark_;
+      plugin_->tile0_ink_ = 0;
+    }
     // The large digits (0.9): taller than VALUE, with the digits of a value and without the letters of a word.
     ESP_LOGI(TAG, "tile=%d fonts digits=%d value=%d covers=%d,%d", tile_, ui::line_height(Font::DIGITS),
              ui::line_height(Font::VALUE), (int) ui::covers("-21,5°", Font::DIGITS), (int) ui::covers("open", Font::DIGITS));
@@ -145,7 +155,7 @@ class ProbeTile : public tessera::Tile {
   HostProbe *plugin_;
   int tile_ = -1, n_ = -1;
   std::string word_;
-  lv_obj_t *room_{}, *badge_{}, *label_{}, *number_{}, *words_{};
+  lv_obj_t *room_{}, *badge_{}, *label_{}, *number_{}, *words_{}, *mark_{};
   lv_obj_t *places_[2]{};
 };
 
@@ -347,6 +357,15 @@ void HostProbe::on_ready() {
 void HostProbe::on_interval(uint32_t now_ms) {
   interval_ = true;
   if (!set_up_) ++early_;
+  // A role painted onto a tile's part from the plugin's own moment: said whenever the colour it got changes.
+  if (tile0_mark_) {
+    ui::set_color(tile0_mark_, theme::INK);
+    const uint32_t ink = lv_color_to_u32(lv_obj_get_style_text_color(tile0_mark_, LV_PART_MAIN)) & 0xFFFFFF;
+    if (ink != tile0_ink_) {
+      tile0_ink_ = ink;
+      ESP_LOGI(TAG, "interval painted tile=0 ink=%06X", (unsigned) ink);
+    }
+  }
   if (interval_said_) return;
   interval_said_ = true;
   ESP_LOGI(TAG, "interval first=%u", (unsigned) now_ms);
