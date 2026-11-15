@@ -13,7 +13,8 @@ import { t } from "../i18n";
 import type { Capability, Entity, Page, PageGrid, PageLayout, PageTile, ScreenMemory, Section } from "../types";
 import { controlOption, displayOption, drawable, fits, growOrder, ofType } from "./catalogue";
 import { versionAtLeast } from "./layout";
-import { pageCost, tileCost } from "./memory";
+import { memoryLine, memoryUse, type PricedPage, type PricedTile } from "./memory";
+import type { PluginTileLookup } from "./plugins";
 import { instanceId, SECTION_TITLE_BYTES, SECTIONS_MAX, copyBar, emptyPage } from "./pages";
 import rules from "./page-rules.json";
 import { sizeFor, sizesOn } from "./sizes";
@@ -59,6 +60,10 @@ export type AutoInput = {
   screen: AutoScreen;
   /** Entities left out: those already on the screen, when the pages go after its own. */
   exclude?: ReadonlySet<string>;
+  /** What stays of the draft beside the new pages (its tiles and pages when they go after its own, nothing when they
+   * replace them), priced with the new ones against the screen's memory; `plugins` prices a plugin tile among them. */
+  existing?: { tiles: readonly PricedTile[]; pages: readonly PricedPage[] };
+  plugins?: PluginTileLookup;
 };
 export type AutoResult = {
   layout: PageLayout;
@@ -761,18 +766,25 @@ function plainSheets(list: Unit[], grid: { columns: number; rows: number }, page
 
 /** The candidates' planned tiles trimmed to what the screen holds: its tile ceiling and its memory, the least wanted
  * (largest rank, latest) going first; a rich card that costs too much becomes a plain one before it goes. */
-function trim(list: Unit[], screen: AutoScreen, pages: number, cells: number) {
-  const all = list.flatMap((unit) => unit.tiles.map((tile, order) => ({ unit, tile, order })));
+function trim(list: Unit[], input: AutoInput, pages: number, cells: number) {
+  const screen = input.screen, all = list.flatMap((unit) => unit.tiles.map((tile, order) => ({ unit, tile, order })));
+  // The memory as Library holds an add (model/memory.ts memoryLine): the whole draft after the change against the whole
+  // draft before it, the new pages' top bars included (priced at the most pages the proposal may take), and no line
+  // crossed that the editor would ask about. A screen that is still measuring its room has no say yet.
   const memory = screen.memory && screen.memory.room !== null && screen.memory.room !== undefined ? screen.memory : null;
-  const cost = (tile: Planned) => memory ? tileCost({ entity: tile.candidate.id, options: {} }, memory) : 0;
-  const budget = memory ? (memory.room ?? 0) * 0.9 - pages * pageCost({ topbar: { trailing: [] } }, memory) : Infinity;
+  const existing = input.existing ?? { tiles: [], pages: [] };
+  const bar = { topbar: { trailing: screen.topbar?.trailing ?? [] } };
+  const newPages = Array.from({ length: pages }, () => bar);
+  const before = memory ? memoryUse(existing.tiles, memory, existing.pages, input.plugins) : null;
+  const priced = (item: { tile: Planned }): PricedTile => ({ entity: item.tile.candidate.id, options: {} });
+  const crosses = (kept: typeof all) => memory !== null && before !== null &&
+    memoryLine(before, memoryUse([...existing.tiles, ...kept.map(priced)], memory, [...existing.pages, ...newPages], input.plugins)) !== null;
   // Cells: a page leaves room unused around sections; aim at three quarters of them.
   const room = cells * 0.75;
   let kept = all.slice();
   // Some room left for what the person adds: about one tile in seven of the screen's ceiling stays free.
   const ceiling = screen.tiles - Math.min(Math.round(screen.tiles * 0.15), Math.max(0, screen.tiles - 1));
-  const over = () => kept.length > ceiling || kept.reduce((sum, item) => sum + cost(item.tile), 0) > budget
-    || kept.reduce((sum, item) => sum + item.tile.columns * item.tile.rows, 0) > room;
+  const over = () => kept.length > ceiling || kept.reduce((sum, item) => sum + item.tile.columns * item.tile.rows, 0) > room || crosses(kept);
   const index = new Map(all.map((item, i) => [item, i]));
   while (kept.length && over()) {
     // The least wanted: the largest rank, then the latest unit.
@@ -806,7 +818,7 @@ export function autoLayout(input: AutoInput): AutoResult {
   const sectioned = input.screen.sections && level !== "plain";
   const made = units({ ...input, screen: { ...input.screen, sections: sectioned } }, room);
   const pagesMax = Math.max(1, input.screen.pages);
-  const { list, left } = trim(made.list, input.screen, pagesMax, pagesMax * grid.columns * grid.rows);
+  const { list, left } = trim(made.list, input, pagesMax, pagesMax * grid.columns * grid.rows);
   const pages: Page[] = [];
   let leftOut = left, sections = 0;
   if (sectioned) {

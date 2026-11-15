@@ -4,7 +4,8 @@
 import { describe, expect, it } from "vitest";
 import type { PageLayout, PageTile } from "../src/types";
 import { autoLayout, appendPages, candidates, clusters, cutBytes, GROUP_ICONS, ICONS, labelOf, strip, type AutoInput, type AutoScreen } from "../src/model/auto-layout";
-import { allTiles, emptyLayout, tilesIn, validatePages } from "../src/model/pages";
+import { allTiles, emptyLayout, projectLayout, tilesIn, validatePages } from "../src/model/pages";
+import { memoryLine, memoryUse, NEARLY_FULL } from "../src/model/memory";
 
 import { AREAS, BUSY, CYD, FLOORS, HOUSE, MIDDLE, NOISE, TEN, home } from "./auto-layout.fixture";
 
@@ -259,6 +260,33 @@ describe("the add-on takes every first layout", () => {
     const documents = [TEN, MIDDLE, CYD].flatMap((screen) => [HOUSE, BUSY].map((things) => ({
       grid: screen.grid, layout: numbered(make(screen, things).layout) })));
     await expect(JSON.stringify(documents, null, 1) + "\n").toMatchFileSnapshot("../../tests/fixtures/auto-layout-documents.json");
+  });
+});
+
+describe("the screen's memory, as Library holds an add", () => {
+  const use = (layout: PageLayout, screen: AutoScreen) => memoryUse(projectLayout(layout, { ...screen.grid, pages: screen.pages }).tiles, screen.memory!, layout.pages);
+  const nothing = (screen: AutoScreen) => memoryUse([], screen.memory!, []);
+  it("never takes a new screen past a line the editor would ask about", () => {
+    for (const screen of [CYD, { ...CYD, memory: { ...CYD.memory!, room: 6000 } }, TEN]) for (const things of [HOUSE, BUSY]) {
+      const { layout } = make(screen, things);
+      expect(memoryLine(nothing(screen), use(layout, screen))).toBeNull();
+      expect(use(layout, screen).share).toBeLessThan(NEARLY_FULL);
+    }
+  });
+  it("counts the new pages' top bars", () => {
+    const bar = emptyLayout("CYD").pages[0].topbar;
+    bar.trailing = ["sensor.a", "sensor.b", "sensor.c", "sensor.d"].map((entity, i) => ({ id: `b${i}`, type: "entity", entity, content: "state", icon: "auto", show: "always" }));
+    const plain = make(CYD).result.tiles, barred = make({ ...CYD, topbar: bar }).result.tiles;
+    expect(barred).toBeLessThan(plain);
+  });
+  it("prices the pages that stay beside the new ones when they go after them", () => {
+    const current = emptyLayout("CYD");
+    current.pages[0].tiles = Array.from({ length: 6 }, (_, i): PageTile => ({ id: `own${i}`, content: { kind: "entity", entityId: "media_player.apple_tv" },
+      placement: { row: Math.floor(i / 2), column: i % 2, columns: 1, rows: 1 }, appearance: { label: "TV" }, interaction: {} }));
+    const existing = { tiles: projectLayout(current, { ...CYD.grid, pages: 8 }).tiles, pages: current.pages };
+    const alone = autoLayout({ ...home(HOUSE, AREAS, FLOORS), screen: { ...CYD, pages: 7 } }).tiles;
+    const beside = autoLayout({ ...home(HOUSE, AREAS, FLOORS), screen: { ...CYD, pages: 7 }, existing }).tiles;
+    expect(beside).toBeLessThan(alone);
   });
 });
 

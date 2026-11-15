@@ -78,7 +78,11 @@ export const noRoom = (use: MemoryUse) => use.room === 0 || use.share >= NO_ROOM
  * rule: the editor asks once at each line, and yes may be the answer (GitHub #157). */
 export function memoryCrossing(tiles: readonly PricedTile[], tile: PricedTile, memory: ScreenMemory, pages: readonly PricedPage[] = [],
   plugins: PluginTileLookup = noPluginTiles) {
-  const before = memoryUse(tiles, memory, pages, plugins), after = memoryUse([...tiles, tile], memory, pages, plugins);
+  return memoryLine(memoryUse(tiles, memory, pages, plugins), memoryUse([...tiles, tile], memory, pages, plugins));
+}
+/** The line a change takes a layout past, from what it took before to what it takes after: the one rule every add holds
+ * to (a tile from the library, a paste, a first layout). Null when it crosses none, also when it was past that line already. */
+export function memoryLine(before: MemoryUse, after: MemoryUse) {
   if (after.level === "over") return before.level === "over" ? null : { line: noRoom(after) ? "none" as const : "over" as const, share: after.share };
   return after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? { line: "close" as const, share: after.share } : null;
 }

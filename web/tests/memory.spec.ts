@@ -1,13 +1,24 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../../tests/fixtures/memory-conformance.json";
 import { TILE, TYPES } from "../src/model/catalogue";
-import { barEntities, kilobytes, layoutCost, measuring, memoryCrossing, memoryUse, NEARLY_FULL, noRoom, NO_ROOM_SHARE, tileCost } from "../src/model/memory";
+import { barEntities, kilobytes, layoutCost, measuring, memoryCrossing, memoryLine, memoryUse, NEARLY_FULL, noRoom, NO_ROOM_SHARE, tileCost } from "../src/model/memory";
 import type { ScreenMemory } from "../src/types";
 
 // A screen's memory for tiles (firmware 0.34.0+): priced by the tile catalogue as the screen and the add-on price it
 // (tile_memory::cost, core.tile_cost), so the meter says what a save will meet.
 const said: ScreenMemory = { room: 10000, used: 3000, psram: true, tile: 524, extra: 1056 };
 const price = (domain: string) => TYPES[domain].memory.bytes;
+
+describe("the line a change crosses", () => {
+  const use = (share: number, level: "fine" | "close" | "full" | "over" = "fine") => ({ need: share * 100, room: 100, share, level });
+  it("is the one rule of an add, a paste and a first layout: close at nine tenths, over past all, nothing once past", () => {
+    expect(memoryLine(use(0.5), use(0.8, "close"))).toBeNull();
+    expect(memoryLine(use(0.5), use(0.92, "close"))?.line).toBe("close");
+    expect(memoryLine(use(0.95, "close"), use(0.97, "close"))).toBeNull();
+    expect(memoryLine(use(0.95, "close"), use(1.2, "over"))?.line).toBe("over");
+    expect(memoryLine(use(1.2, "over"), use(1.4, "over"))).toBeNull();
+  });
+});
 
 describe("the memory a layout takes", () => {
   it("answers every case the screen and the add-on answer", () => {

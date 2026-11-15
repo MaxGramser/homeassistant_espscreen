@@ -6,12 +6,12 @@ import { t } from "../i18n";
 import { appendPages, autoLayout, candidates, type AutoInput, type AutoResult, type AutoScreen, type HomeFacts } from "../model/auto-layout";
 import { featuresOf } from "../model/catalogue";
 import { label } from "../model/change-label";
-import { layoutCost } from "../model/memory";
 import * as pages from "../model/pages";
 import { sizesOn } from "../model/sizes";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
 import { useInventoryStore } from "../stores/inventory";
+import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useUiStore } from "../stores/ui";
 
@@ -30,8 +30,8 @@ export function openScreen(mode: AutoMode): AutoScreen | null {
   if (!screen || !document || !grid) return null;
   const append = mode === "append";
   const tilesNow = append ? doc.layout?.tiles.length ?? 0 : 0, pagesNow = append ? document.pages.length : 0;
-  let memory = scr.memoryMeasuring ? null : scr.screenMemory;
-  if (memory && append && doc.layout) memory = { ...memory, room: Math.max(0, (memory.room ?? 0) - layoutCost(doc.layout.tiles, memory, document.pages)) };
+  // The screen's memory as it is: the draft that stays is priced beside the new pages (proposeLayout's `existing`).
+  const memory = scr.memoryMeasuring ? null : scr.screenMemory;
   const home = document.pages.find((page) => page.id === document.homePageId) ?? document.pages[0];
   return {
     grid: { columns: grid.columns, rows: grid.rows },
@@ -53,7 +53,9 @@ export async function proposeLayout(mode: AutoMode): Promise<AutoResult> {
   if (!screen) throw new Error(t("editor.pages.wait_grid"));
   const facts = await getJson<HomeFacts>("home-facts");
   const exclude = mode === "append" ? new Set((doc.layout?.tiles ?? []).map((tile) => tile.entity)) : undefined;
-  const input: AutoInput = { entities: inv.inventory.entities, facts, capabilities: {}, screen, exclude };
+  // What stays of the draft, priced with the new pages as Library prices an add: all of it beside pages that go after it.
+  const existing = mode === "append" && doc.layout && doc.document ? { tiles: doc.layout.tiles, pages: doc.document.pages } : undefined;
+  const input: AutoInput = { entities: inv.inventory.entities, facts, capabilities: {}, screen, exclude, existing, plugins: usePluginsStore().pluginTileOf };
   await entities.loadCapabilities(candidates(input).map((c) => c.id));
   return autoLayout({ ...input, capabilities: entities.capabilities });
 }

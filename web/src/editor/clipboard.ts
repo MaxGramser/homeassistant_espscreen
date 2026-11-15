@@ -4,7 +4,7 @@
 // one, and the pasted tiles are chosen afterwards, so a second paste or a drag carries on from there.
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { memoryUse, NEARLY_FULL, noRoom } from "../model/memory";
+import { memoryLine, memoryUse } from "../model/memory";
 import { suggestedPageTitle } from "../model/page-naming";
 import * as pages from "../model/pages";
 import { copyTiles, pasteTiles as placeCopied, type CopiedTiles } from "../model/tile-clipboard";
@@ -114,8 +114,7 @@ export async function pasteCopied(): Promise<boolean> {
     const plugins = usePluginsStore().pluginTileOf;
     const before = memoryUse(doc.layout.tiles, memory, doc.document.pages, plugins);
     const after = memoryUse(pages.projectLayout(result.layout, doc.documentGrid).tiles, memory, result.layout.pages, plugins);
-    const line = after.level === "over" && before.level !== "over" ? (noRoom(after) ? "none" : "over")
-      : after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? "close" : null;
+    const line = memoryLine(before, after)?.line;
     if (line && !(await askConfirm(t(`editor.memory.confirm_${line}`, { n: Math.min(999, Math.round(after.share * 100)) }), { confirm: t("editor.confirm.add_anyway") })))
       return false;
   }
