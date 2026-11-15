@@ -6,7 +6,7 @@
 // mockup draws of a drag is the drag store's (stores/drag.ts); the pointer's own bookkeeping
 // (the hold, the ghost, the scrolling near an edge) stays here, outside any store.
 import type { ObjectDirective } from "vue";
-import { entriesOf, pageOrder } from "./model/layout";
+import { entriesOf, pageOrder, sizeOf } from "./model/layout";
 import { commitArrangement, confirmMemory, keyToCell, placeKey, startTile } from "./editor/tiles";
 import { movePage, pagesShown } from "./editor/pages";
 import type { Tile } from "./types";
@@ -23,8 +23,10 @@ type Drag = {
   source: DragSource | null; element: HTMLElement | null; ghost: HTMLElement | null; timer: number;
   start: { x: number; y: number } | null; offset: { x: number; y: number }; pointerId: number | null;
   suppressUntil: number; last: { x: number; y: number } | null; scroller: number; target: number | null; lastSlot: number | null;
+  // The cell of the carried tile it was taken by, from its top left (grabbedCell): that cell lands under the pointer.
+  grab: { column: number; row: number };
 };
-const drag: Drag = { source: null, element: null, ghost: null, timer: 0, start: null, offset: { x: 0, y: 0 }, pointerId: null, suppressUntil: 0, last: null, scroller: 0, target: null, lastSlot: null };
+const drag: Drag = { source: null, element: null, ghost: null, timer: 0, start: null, offset: { x: 0, y: 0 }, pointerId: null, suppressUntil: 0, last: null, scroller: 0, target: null, lastSlot: null, grab: { column: 0, row: 0 } };
 
 export const vDrag: ObjectDirective<HTMLElement, DragSource | null> = {
   mounted(element, binding) {
@@ -105,6 +107,8 @@ function beginDrag(e: PointerEvent) {
   ghost.style.width = `${rect.width}px`;
   ghost.style.height = `${rect.height}px`;
   drag.offset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  // Where the press was, not where the drag began a few pixels later: the cell a finger or the mouse took the tile by.
+  drag.grab = source.kind === "tile" ? grabbedCell(drag.element, drag.start.x, drag.start.y) : { column: 0, row: 0 };
   document.body.append(ghost);
   drag.ghost = ghost;
   // The mockup re-renders while hovering, so the pointer is followed on the document, not the card.
@@ -126,6 +130,14 @@ function beginDrag(e: PointerEvent) {
   }, 16);
   if (!dragging.page) setTarget(-1);
   moveDrag(e);
+}
+// The cell of a card that a point is on, from the card's top left, by the cells it covers (its data-columns and
+// data-rows, as slotAt reads them): a 2 x 2 card taken by its lower right quarter is held by its cell (1, 1).
+export function grabbedCell(card: HTMLElement, x: number, y: number) {
+  const r = card.getBoundingClientRect();
+  const columns = Number(card.dataset.columns || 1), rows = Number(card.dataset.rows || 1);
+  const along = (offset: number, size: number, count: number) => size > 0 ? Math.max(0, Math.min(count - 1, Math.floor(offset / size * count))) : 0;
+  return { column: along(x - r.left, r.width, columns), row: along(y - r.top, r.height, rows) };
 }
 // True when the element scrolls along that axis: more content than room, and an overflow that lets it scroll.
 export function scrollsAlong(element: Element | null, axis: "x" | "y") {
@@ -240,9 +252,12 @@ function setPageTarget(place: number) {
   page.order = pageOrder(pagesShown(), page.from, to);
   dragging.preview = doc.editorLayout.reorderPages(entriesOf(doc.layout), page.order);
 }
-function setTarget(slot: number) {
-  const dragging = useDragStore(), doc = useDocumentStore(), moving = dragging.moving, { arrange, pageOf } = doc.editorLayout;
-  if (drag.target === slot || !doc.layout || !moving) return;
+function setTarget(pointed: number) {
+  const dragging = useDragStore(), doc = useDocumentStore(), moving = dragging.moving, { anchorAt, arrange, pageOf } = doc.editorLayout;
+  if (!doc.layout || !moving) return;
+  // The cell under the pointer is the cell the tile was taken by; its first cell lies that far up and to the left.
+  const slot = anchorAt(pointed, sizeOf(moving), drag.grab);
+  if (drag.target === slot) return;
   drag.target = slot;
   // A key leaves its clock for an empty cell only: the drop shows nothing moving aside.
   if (moving.in !== undefined) { dragging.preview = null; return; }
@@ -264,7 +279,7 @@ function endDrag(drop: boolean) {
   try { document.documentElement.releasePointerCapture(drag.pointerId!); } catch { /* no longer captured */ }
   drag.ghost?.remove();
   drag.lastSlot = drag.target;
-  Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null });
+  Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null, grab: { column: 0, row: 0 } });
   clearInterval(drag.scroller);
   dragging.clear();
   // A page lands exactly where the row showed it; the move takes its title and its Go to page tiles with it.
@@ -307,5 +322,5 @@ export const dragSuppressed = () => Date.now() < drag.suppressUntil;
 export function resetDrag() {
   clearTimeout(drag.timer);
   if (drag.ghost) endDrag(false);
-  Object.assign(drag, { source: null, element: null, ghost: null, start: null, pointerId: null, suppressUntil: 0, last: null, target: null, lastSlot: null });
+  Object.assign(drag, { source: null, element: null, ghost: null, start: null, pointerId: null, suppressUntil: 0, last: null, target: null, lastSlot: null, grab: { column: 0, row: 0 } });
 }

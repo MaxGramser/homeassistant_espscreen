@@ -109,6 +109,18 @@ export function createLayout(shape: () => PageGrid, pageLimit: () => number | un
   const startOf = (slot: number, size: SizeLike) => asSize(size) === "full" ? pageStart(slot)
     : rowStart(slot) + Math.min(slot % grid.columns, Math.max(0, grid.columns - tileDimensions(size).columns));
 
+  // Where a tile's own first cell goes when the pointer is over `slot` and the tile is held by its cell `grab` (column
+  // and row of the tile, from its top left): the cell it was taken by stays under the pointer, so a large tile taken
+  // by its lower right corner lands with that corner where it is let go. It stays on the pointer's page and inside it,
+  // the way a wide tile keeps to its row (startOf). A page-filling tile has one place on a page.
+  const anchorAt = (slot: number, size: SizeLike, grab: { column: number; row: number }) => {
+    if (slot < 0 || asSize(size) === "full") return slot;
+    const d = tileDimensions(size), page = pageStart(slot), inPage = slot - page;
+    const column = Math.max(0, Math.min(grid.columns - d.columns, inPage % grid.columns - grab.column));
+    const row = Math.max(0, Math.min(grid.rows - d.rows, Math.floor(inPage / grid.columns) - grab.row));
+    return page + row * grid.columns + column;
+  };
+
   // In-order packing: the rule before positions existed, and what firmware below 0.2.26 still draws.
   function packSlots(tiles: Tile[]) {
     let position = 0;
@@ -241,7 +253,7 @@ export function createLayout(shape: () => PageGrid, pageLimit: () => number | un
     if (versionAtLeast(firmware, "0.18.0")) return Math.min(FIRMWARE_MAX_TILES, grid.maxSlots);
     return versionAtLeast(firmware, "0.2.62") ? legacyPages(grid) * grid.slots : versionAtLeast(firmware, "0.2.7") ? 20 : 10;
   }
-  return { grid, dimensions: tileDimensions, pageStart, rowStart, pageOf, spanOf, cellsOf, startOf, packSlots, hasGaps, normalize, occupied, fits, firstFree, nearestFree, arrange, reorderPages, pageCount, strandedPages, tileLimit };
+  return { grid, dimensions: tileDimensions, pageStart, rowStart, pageOf, spanOf, cellsOf, startOf, anchorAt, packSlots, hasGaps, normalize, occupied, fits, firstFree, nearestFree, arrange, reorderPages, pageCount, strandedPages, tileLimit };
 }
 
 // New tiles start with the card that shows the entity best. `covers`: the screen draws an album cover on a tile (a board

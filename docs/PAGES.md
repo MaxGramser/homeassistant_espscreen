@@ -21,6 +21,11 @@ The new page gets a title from its shared HA area, or from its entity domain whe
 there is no shared area. Mixed content without a common area uses the screen title.
 Suggestions are applied only at creation and never rename an existing page.
 
+A tile is held by the cell you take it by: a large tile taken by its lower right corner lands with that
+corner on the cell where you let it go, and one taken by its top left lands as before. It stays on the page under the
+pointer, moved just inside it when part of it would fall off, instead of being refused (`anchorAt` in
+`web/src/model/layout.ts`, `grabbedCell` in `web/src/drag.ts`).
+
 Several tiles can be chosen at once: hold ⌘ (Ctrl on Windows and Linux) or Shift and click them, drag a band with the
 mouse from beside the tiles, or press ⌘A for every tile of the chosen page. The inspector then lists them, with Copy and
 Remove. ⌘C copies them with every setting and ⌘X cuts them. ⌘V pastes them on the chosen page, at the empty cell marked

@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **A large tile lands where you let it go.** Dragging a tile of more than one cell now keeps the spot you took it by under the pointer: take a 2 × 2 tile by its lower right corner and it lands with that corner on the cell you drop it on. Before, it always landed as if held by its top left, so it ended up one cell off or was refused near the bottom of a page.
 - **Plugin photos load.** A picture's address from a plugin's web request was cut at 48 characters, so services answered "not found" and a plane's photo never came; a field can now carry an address whole (`as: url`, plugin API 0.28).
 - **A plugin tile can be an instrument edge to edge.** Plugin API 0.28 lets a plugin give its tile's card the dark ground of an instrument in both looks, so a radar or a night sky fills the whole tile.
 - **Plugins reach services that ask who is calling.** The app's requests for plugins now name the project with a link, as services such as planespotters.net require; without it they refused, so a plane's photo seldom came.
