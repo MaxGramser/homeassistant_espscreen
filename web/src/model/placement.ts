@@ -24,14 +24,19 @@ export type PlaceTile = { tile: Omit<PageTile, "id" | "placement">; columns: num
 /** A group of tiles that stand together: a section with its `title` (and `icon`, `summary`) where it holds two tiles or
  * more and the screen draws sections, else loose tiles side by side.
  * - `page`: the title and icon of the page it heads for (a page of several units is named by `PlaceTarget.title`).
- * - `share`: units of one share may stand on one page; another share starts a new page.
- * - `run`: on a screen without sections, the units of one run follow each other as one row of tiles over its pages.
+ * - `share`: units of one share may stand on one page; another share starts a new page. With sections, a share's units
+ *   are blocks side by side; without them, a share's units follow each other as one row of tiles over its pages. A
+ *   caller that groups otherwise at the two densities (rooms together in sections, a room to its own pages without)
+ *   gives the share that fits the screen.
  * - `fills`: it may also fill what is left of a page of another share (the weather beside a room).
  * - `waits`: when its own share's page is full it waits for what later pages leave, before it gets a page of its own.
+ *   The two stay two: `waits` says when a unit is placed (after the other shares' pages), `fills` where it may go (into
+ *   their free cells). Auto layout gives the house's groups without a room both the first and not the second, so they
+ *   never stand under a room's page title.
  * - `loose`: its tiles stand loose, never in a section of their own. */
 export type PlaceUnit<T extends PlaceTile = PlaceTile> = {
   key: string; title: string; icon?: string; summary?: string; tiles: T[]; loose?: boolean;
-  page: { title: string; icon?: string }; share: string; run: string; fills?: boolean; waits?: boolean;
+  page: { title: string; icon?: string }; share: string; fills?: boolean; waits?: boolean;
 };
 export type PlaceTarget<T extends PlaceTile = PlaceTile> = {
   grid: { columns: number; rows: number };
@@ -223,7 +228,7 @@ function blockSheets<T extends PlaceTile>(list: PlaceUnit<T>[], grid: Grid) {
   return sheets;
 }
 
-/** Pages of loose tiles (no sections): each run on pages of its own, continued on the next where it runs over; when the
+/** Pages of loose tiles (no sections): each share's units as one run on pages of its own, continued on the next where it runs over; when the
  * screen has fewer pages than that, a run that spills a tile or two onto a page leaves its least wanted ones, and
  * neighbouring pages whose tiles fit one page become one, the smallest pair first. */
 function plainSheets<T extends PlaceTile>(list: PlaceUnit<T>[], grid: Grid, pages: number) {
@@ -231,7 +236,7 @@ function plainSheets<T extends PlaceTile>(list: PlaceUnit<T>[], grid: Grid, page
   const runs: { units: PlaceUnit<T>[]; tiles: T[] }[] = [];
   for (const unit of list) {
     const last = runs.at(-1);
-    if (last && last.units[0].run === unit.run) { last.units.push(unit); last.tiles.push(...unit.tiles); }
+    if (last && last.units[0].share === unit.share) { last.units.push(unit); last.tiles.push(...unit.tiles); }
     else runs.push({ units: [unit], tiles: [...unit.tiles] });
   }
   const cells = grid.columns * grid.rows, size = (tiles: T[]) => tiles.reduce((n, tile) => n + tile.columns * tile.rows, 0);
@@ -344,7 +349,7 @@ function newPage<T extends PlaceTile>(units: PlaceUnit<T>[], target: PlaceTarget
 }
 
 /** Units of tiles on new pages: trimmed to what the screen holds, then with sections (the screen draws them) each unit a
- * block at the first free place of a page of its share, or without them each run on pages of its own. Every tile stands
+ * block at the first free place of a page of its share, or without them each share's run on pages of its own. Every tile stands
  * in its page's tiles at its own cell; a block of two tiles or more gets a section around it. `left`: the tiles that found
  * no room, each with why. */
 export function placeUnits<T extends PlaceTile>(units: PlaceUnit<T>[], target: PlaceTarget<T>): Placed<T> {

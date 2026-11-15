@@ -105,8 +105,8 @@ export function applyPlan(document: PageLayout, plan: Plan, ctx: PlanContext): {
     if (item.page !== "new") return;
     const page = { title: item.title, ...(item.icon ? { icon: item.icon } : {}) }, share = `${n}`;
     item.sections.forEach((s, k) => units.push({ key: `${n}:${k}`, title: s.title, ...(s.icon ? { icon: s.icon } : {}),
-      tiles: tilesOf(s.entities, s.title, `${n}:${k}`, ctx, note), page, share, run: share, ...(ctx.input.screen.sections ? {} : { loose: true }) }));
-    if (item.tiles.length) units.push({ key: `${n}:loose`, title: "", tiles: tilesOf(item.tiles, "", `${n}:loose`, ctx, note), loose: true, page, share, run: share });
+      tiles: tilesOf(s.entities, s.title, `${n}:${k}`, ctx, note), page, share, ...(ctx.input.screen.sections ? {} : { loose: true }) }));
+    if (item.tiles.length) units.push({ key: `${n}:loose`, title: "", tiles: tilesOf(item.tiles, "", `${n}:loose`, ctx, note), loose: true, page, share });
   });
   const placing = units.filter((unit) => unit.tiles.length);
   if (placing.length) {

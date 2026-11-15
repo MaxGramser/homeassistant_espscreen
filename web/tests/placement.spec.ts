@@ -11,7 +11,7 @@ let n = 0;
 const tile = (columns = 1, rows = 1, rank = 1, entity = `light.t${++n}`): PlaceTile => ({
   tile: { content: { kind: "entity", entityId: entity }, appearance: { label: entity.split(".")[1] }, interaction: {} }, columns, rows, rank, entity });
 const unit = (key: string, tiles: PlaceTile[], extra: Partial<PlaceUnit> = {}): PlaceUnit => ({
-  key, title: key, tiles, page: { title: key }, share: key, run: key, ...extra });
+  key, title: key, tiles, page: { title: key }, share: key, ...extra });
 const target = (extra: Partial<PlaceTarget> = {}): PlaceTarget => ({ grid: { columns: 5, rows: 5 }, pages: 8, tiles: 64, sections: true, ...extra });
 const valid = (pages: PageLayout["pages"], t: PlaceTarget) => validatePages({ title: "T", homePageId: pages[0].id, pages }, { ...t.grid, pages: t.pages });
 const titles = (pages: PageLayout["pages"]) => pages.map((page) => page.topbar.title.source === "text" ? page.topbar.title.text : "");
@@ -69,8 +69,8 @@ describe("units on pages", () => {
 
 describe("a screen without sections", () => {
   const t = target({ grid: { columns: 2, rows: 3 }, sections: false, pages: 3 });
-  it("gives each run pages of its own, loose tiles only", () => {
-    const { pages } = placeUnits([unit("A", [tile(), tile()], { run: "a" }), unit("A2", [tile()], { run: "a" }), unit("B", [tile()], { run: "b" })], { ...t, pages: 8 });
+  it("gives each share's run pages of its own, loose tiles only", () => {
+    const { pages } = placeUnits([unit("A", [tile(), tile()], { share: "a" }), unit("A2", [tile()], { share: "a" }), unit("B", [tile()], { share: "b" })], { ...t, pages: 8 });
     valid(pages, { ...t, pages: 8 });
     expect(pages.every((page) => !page.sections)).toBe(true);
     expect(titles(pages)).toEqual(["A", "B"]);

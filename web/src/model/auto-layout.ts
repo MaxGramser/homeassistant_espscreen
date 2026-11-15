@@ -611,13 +611,13 @@ function titleOf(units: Unit[]): { title: string; icon?: string } {
   const all = t("editor.auto.room_list", { list: names.slice(0, -1).join(", "), last: names.at(-1) });
   return { title: all.length <= 40 ? all : t("editor.auto.more_rooms", { a: names[0], n: names.length - 1 }) };
 }
-/** A unit as the placement takes it: the house's groups share pages and wait for the rooms' holes, its own groups fill
- * them (the weather beside a room); a room of its own shares pages with nothing else; on a screen without sections a
- * room (or the house) is one run of tiles. */
+/** A unit as the placement takes it. With sections the house's groups share pages and wait for the rooms' holes, its own
+ * groups fill them (the weather beside a room), the other rooms share pages, and a room of its own shares its pages with
+ * nothing else; without them a room (or the house) is one run of tiles on pages of its own. */
 type Placing = PlaceUnit<Planned> & { source: Unit };
-const placing = (unit: Unit): Placing => ({
+const placing = (sectioned: boolean) => (unit: Unit): Placing => ({
   key: unit.key, title: unit.title, icon: unit.icon, summary: unit.summary, tiles: unit.tiles, page: { title: unit.page, icon: unit.pageIcon },
-  share: unit.kind === "own" ? `own:${unit.room}` : unit.kind, run: unit.room, waits: unit.kind === "house",
+  share: !sectioned ? unit.room : unit.kind === "own" ? `own:${unit.room}` : unit.kind, waits: unit.kind === "house",
   fills: unit.kind === "house" && unit.key.startsWith("house:") && HOUSE_WIDE.has(unit.key.split(":")[1] as Group), source: unit,
 });
 
@@ -627,7 +627,7 @@ export function autoLayout(input: AutoInput): AutoResult {
   const room = roomOf(input.screen), target = placeTarget(input);
   const made = units({ ...input, screen: { ...input.screen, sections: target.sections } }, room);
   const screen = input.screen;
-  const placed = placeUnits(made.list.map(placing), { ...target, title: (units) => titleOf(units.map((unit) => (unit as Placing).source)) });
+  const placed = placeUnits(made.list.map(placing(target.sections)), { ...target, title: (units) => titleOf(units.map((unit) => (unit as Placing).source)) });
   const pages = placed.pages.length ? placed.pages : [emptyPage(screen.topbar ? copyBar(screen.topbar) : undefined)];
   const tiles = pages.reduce((sum, page) => sum + page.tiles.length, 0);
   return { layout: { title: screen.title, homePageId: pages[0].id, pages }, tiles, sections: placed.sections, rooms: made.rooms, leftOut: placed.left.length };

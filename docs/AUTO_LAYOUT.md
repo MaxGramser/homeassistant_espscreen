@@ -76,8 +76,9 @@ tile with its unit and why (the tile ceiling, the cells, the memory, the pages),
 A unit's place on a page is the first free one in reading order for any width its tiles fit, the least empty cells
 there; a page takes later units of its share that fit before the next page begins, and units that fill (the house's own
 groups) take what is left of another share's page. A unit taller than a page is cut into parts with the same title. A
-section then grows a row to meet the one beside it, and into a gap of one column or row. Without sections each run (a
-room, the house) gets pages of its own, and neighbouring pages are put together only when the screen has fewer pages.
+section then grows a row to meet the one beside it, and into a gap of one column or row. Without sections each share's
+tiles run on pages of their own (Auto layout gives each room, and the house, its own share there), and neighbouring
+pages are put together only when the screen has fewer pages.
 
 A unit marked `loose` never gets a section. With `grow` (Layoutbot asks for it, the first layout does not), a new page's
 tiles then step up through the larger cards they were given while the page still holds everything: alike tiles together
