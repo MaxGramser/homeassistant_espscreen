@@ -1,10 +1,19 @@
-# The host render's navigation check fails: "swipe must stop before excluded pages"
+# Host render checks that fail on dev: the swipe past excluded pages, and three stages
 
 ## The symptom
 
 `tools/render/run.py jc8012p4a1` (the full stage list, the demo layout's page navigation round in `run.py`, about
 line 747) stops with `AssertionError: swipe must stop before excluded pages` and reports the variant as FAIL. Every
 stage after it in the same run is skipped; a stage run alone with `--only <stage>` is not affected.
+
+Three more stages of the same run stop on their own checks, also on plain dev (2026-11-15, 19904265, jc8012p4a1, each
+with `--only`):
+
+- `automation`: `the screen never sent automation.toggle: ['automation.turn_off']`;
+- `remote`: `the screen never sent remote.toggle: ['remote.turn_off']`;
+- `bars`: `bars: group: no pager` and `bars: group-2: no pager`.
+
+The cards of these stages are drawn before the check stops them.
 
 ## What we know
 
@@ -22,13 +31,16 @@ stage after it in the same run is skipped; a stage run alone with `--only <stage
 
 ## Candidates
 
+For automation and remote: the card's tap now sends turn_off where the harness expects toggle (the tap rule changed, or
+the harness's expectation is older than it). For bars: the group card's pager moved or is drawn only on another condition.
+
 - The swipe or page code changed what a swipe does at the last included page (a wrap, or a step onto an excluded page).
 - The check's own setup (which pages it marks excluded, the swipe setting it switches on) no longer matches the layout
   it builds.
 
 ## The deciding experiment
 
-`git bisect` between f6c155f2 and origin/dev with `python3 tools/render/run.py jc8012p4a1` as the test (about four
+For each stage alone, the same as for the swipe: `git bisect` between f6c155f2 and origin/dev with `python3 tools/render/run.py jc8012p4a1` as the test (about four
 minutes a step), then read the first commit that fails against `swipe_pages` and the page navigation in
 `runtime_tiles.h`.
 
