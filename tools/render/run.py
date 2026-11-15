@@ -1075,6 +1075,31 @@ class Run:
                 stored = await self.until(lambda l: 'store:' in l and 'pcard' in l, 10, 'the card\'s picture in the store', start)
                 self.warnings.append(f'card picture kept: {stored.split("store:", 1)[1].strip()[:80]}')
             self.warnings.append('card pictures: asked once, answered as pcard, shown on its place')
+            # A popup over the card with pictures of its own: each is an owner of the loader, so the card keeps its
+            # picture while the popup comes, shows and goes, and asks for nothing again.
+            start_popup, since_popup = len(self.lines), len(calls)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since_popup) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the popup over the card did not ask for its picture'
+            body, _ = painted(questions[-1].question, [porch(400, 400)])
+            await self.reply(questions[-1], self.pictures.url(f'{self.item.key}-popup-over-card.bmp', body))
+            await self.until(lambda l: probe(l, 'picture popup shown '), 10, 'the popup\'s picture over the card', start_popup)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+            await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the popup over the card closed', start_popup)
+            await asyncio.sleep(1.5)
+            again = [read.data for _, read in self.unanswered(calls, since_popup) if read.owner.kind == 'plugin_card'
+                     and read.owner.key == 'plugin:host_probe.detail']
+            assert not again, f'the card asked again for its picture after a popup over it: {again}'
+            assert not [l for l in self.lines[start_popup:] if probe(l, 'card destroy')], 'the popup closed the card'
+            shot = await self.render('plugin-card-after-popup')
+            colours = shot.convert('RGB').crop((x1 + 2, y1 + 2, x2 - 1, y2 - 1)).getcolors(1 << 16) or []
+            assert len(colours) > 12, f'after a popup over it the card\'s place shows {len(colours)} colours, not its picture'
+            self.warnings.append('card pictures: kept through a popup with pictures over the card')
         await self.render('plugin-card')
         # A tap on the card's room (plugin API 0.12): on_tap through the touch filter, where in the card's own pixels;
         # a tap on another spot right after it counts too (a list's next row), the same spot again is a bounce.
@@ -1271,9 +1296,12 @@ class Run:
         start, since = len(self.lines), len(calls)
         await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture'}})
         made = await self.until(lambda l: probe(l, 'instrument ground='), 10, 'the picture popup opened', start)
-        ground, ink, turned = re.search(r'ground=(\w+) ink=(\w+) turned=(-?\d+)', made).groups()
+        ground, ink, turned, pulsed, stilled = re.search(r'ground=(\w+) ink=(\w+) turned=(-?\d+) pulsed=(-?\d+) stilled=(-?\d+)', made).groups()
         if turned != '900' or ground == ink:
             self.failures.append(f'ui::rotate or the instrument roles: {made}')
+        # A turned part keeps its turn through ui::animate and ui::still (a plane's icon that blinks keeps its course).
+        if pulsed != '900' or stilled != '900':
+            self.failures.append(f'a turned part lost its turn to ui::animate or ui::still: {made}')
         if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
             for _ in range(24):
                 questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
@@ -1296,6 +1324,48 @@ class Run:
             self.warnings.append('popup pictures: none on this board (pictures=0)')
         await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
         await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the picture popup closed', start)
+        # A popup that closes itself as it hears of its first picture: it hears of nothing more (its second place is never
+        # told of), its places are not read again, and the screen goes on.
+        if 'pictures=1' in (await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'its pictures', start)):
+            start, since = len(self.lines), len(calls)
+            await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_picture_close'}})
+            await self.until(lambda l: probe(l, 'picture popup open pictures='), 10, 'the closing popup opened', start)
+            for _ in range(24):
+                questions = [read for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card'
+                             and read.owner.key == 'plugin:host_probe.shot']
+                if questions:
+                    break
+                await asyncio.sleep(0.5)
+            assert questions, 'the closing popup did not ask for its pictures'
+            read = questions[-1]
+            body, _ = painted(read.question, [porch(400, 400), porch(200, 200)])
+            await self.reply(read, self.pictures.url(f'{self.item.key}-popup-close.bmp', body))
+            await self.until(lambda l: probe(l, 'picture popup closes in on_picture'), 10, 'the popup closed in on_picture', start)
+            await self.until(lambda l: probe(l, 'picture popup destroy'), 10, 'the popup that closed itself went', start)
+            await asyncio.sleep(1.0)
+            heard = [l for l in self.lines[start:] if probe(l, 'picture popup heard ')]
+            assert len(heard) == 1, f'a popup that closed in on_picture heard more: {heard}'
+            self.warnings.append('popup pictures: one that closes in on_picture hears nothing more')
+        # A part's turn through ui::animate and ui::still, and none kept for a part that is gone (plugin_api.h, ui::rotate).
+        start = len(self.lines)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'turns'}})
+        line = await self.until(lambda l: probe(l, 'turns pulsing='), 10, 'the turns of parts', start)
+        got = dict(re.findall(r'(\w+)=([\d,]+)', line.split('turns ', 1)[1]))
+        before, after, end = (int(n) for n in got['kept'].split(','))
+        if (got['pulsing'], got['pulsed'], got['spun'], got['again'], got['unturned']) != ('900', '900', '900', '1800', '0') \
+                or after != before or end != before - 3:
+            self.failures.append(f'a part\'s turn through animate and still, or the turns kept: {line}')
+        self.warnings.append(f'part turns: {line.split("turns ", 1)[1]}')
+        # A popup without an id may make a place, but it has no pictures: it asks for nothing.
+        start, since = len(self.lines), len(calls)
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_place'}})
+        await self.until(lambda l: probe(l, 'do popup_place shown=1'), 10, 'the popup without an id', start)
+        await asyncio.sleep(2.5)
+        asked = [read.data for _, read in self.unanswered(calls, since) if read.owner.kind == 'plugin_card']
+        assert not asked, f'a popup without an id asked for pictures: {asked}'
+        await self.send({'v': 2, 'op': 'plugin', 'p': 'host_probe', 'm': {'do': 'popup_close'}})
+        await self.until(lambda l: probe(l, 'popup destroy'), 10, 'the popup without an id closed', start)
+        self.warnings.append('popup without an id: its place asks for nothing')
         # A slot that goes from the plugin tile to a plain card lets the plugin's object go at once (plugin_api.h), not
         # when the slot next draws a custom card; page 2 and back still show their plugin tiles, kept or made anew.
         start = len(self.lines)

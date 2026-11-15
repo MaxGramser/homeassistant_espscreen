@@ -94,6 +94,8 @@ bool saver_backdrop(const std::string &key);
 void saver_show(lv_obj_t *root, const std::string &key, const roomy::Text &data, int level, bool night);
 void saver_state(const roomy::Text &data);
 void saver_refresh();
+// How many parts' turns (ui::rotate) the host keeps: a test hook, so the host probe proves a deleted part leaves none.
+size_t turns_kept();
 void saver_hide();
 // Its pictures, as a card's: what it wants this round, the app's answer ("psaver"), and whether a number is its question's.
 void saver_picture_want();

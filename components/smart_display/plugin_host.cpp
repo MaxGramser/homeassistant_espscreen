@@ -1349,130 +1349,153 @@ static void popup_tick(uint32_t epoch) {
   if (OpenPopup *open = popup_open) popup_call(open, [&](tessera::Popup &p) { p.on_tick(epoch); });
 }
 
-// ---- Pictures on a plugin's card (plugin API 0.13) ----
-// The places a card lays out in its room come the way a plugin tile's do: one question for all of them (the atlas of
-// their frames from the room's top left, tile_picture::set_parts), the app fetches each address within the manifest's
-// rights and paints the frames, the loader downloads it as the media card's cover goes (Rank::CARD, the full view's
-// slot), and the store keeps it beside the page's pictures: what the glass under the card shows stays, a page out of
-// sight makes room first. When the card closes its picture goes with it, as a tile's goes with its tile; the app keeps
-// the source pictures by address, so a card that opens again, or shows the cover its tile shows, costs no fetch there.
-static const picture_loader::Owner CARD_OWNER{picture_loader::Kind::CARD, 1};
-static uint32_t card_number = 0;   // the count of the questions of cards and popups (0.27), so each has its own number
-static uint32_t card_asked = 0;    // the number of the open card's last question; its answer carries it
+// ---- Pictures in places that are not a tile's: a card's, a popup's, a screensaver's (plugin API 0.13, 0.14, 0.27) ----
+// All three go one way. The places lay out in a room of their own; one question covers every place (the atlas of their
+// frames from the room's top left, tile_picture::set_parts), the app fetches each address within the manifest's rights and
+// paints the frames, the loader downloads it as the media card's cover goes (Rank::CARD, the full view's slot), and the
+// store keeps it beside the page's pictures. When the card, the popup or the saver goes, its picture goes with it, as a
+// tile's goes with its tile. What differs between them is a PictureSide: the loader's owner, the kind of question and its
+// answer, and the count its questions are numbered by. Each is an owner of the loader of its own, so a popup over a card
+// leaves the card's pictures where they are.
+struct PictureSide {
+  picture_loader::Owner owner;
+  picture_question::Owner asks;  // PLUGIN_CARD for a card and a popup, PLUGIN_SAVER for a screensaver
+  const char *answer;            // the answer's kind ("pcard", "psaver")
+  const char *what;              // for the log
+  uint32_t *count;               // the questions' count: cards and popups share one, so an answer finds its asker
+  uint32_t asked = 0;            // the number of the last question; its answer carries it
+};
+static uint32_t card_count = 0, saver_count = 0;
+static PictureSide card_side{{picture_loader::Kind::CARD, 1}, picture_question::Owner::PLUGIN_CARD, "pcard", "card", &card_count};
+static PictureSide saver_side{{picture_loader::Kind::CARD, 2}, picture_question::Owner::PLUGIN_SAVER, "psaver", "screensaver", &saver_count};
+static PictureSide popup_side{{picture_loader::Kind::CARD, 3}, picture_question::Owner::PLUGIN_CARD, "pcard", "popup", &card_count};
 
-static bool card_ask(OpenCard &open, tile_picture::Ask &a) {
+// What came of each place's picture, told to the plugin one place at a time through its own guard (`tell`: call,
+// popup_call, saver_call), which says whether the card, popup or saver is still open afterwards. One that closed itself
+// in on_picture hears nothing more, and its places are not read again: they went with it.
+template <typename Tell>
+static void pictures_tell(std::vector<Place> &places, tessera::PictureState state, Tell &&tell) {
+  const bool shown_state = state == tessera::PictureState::SHOWN;
+  for (size_t i = 0; i < places.size(); ++i) {  // by index: a place made in on_picture is added to the end
+    Place &p = places[i];
+    if (!p.place || p.url.empty() || p.laid != shown_state || p.told == static_cast<int8_t>(state)) continue;
+    p.told = static_cast<int8_t>(state);
+    lv_obj_t *place = p.place;
+    if (!tell([place, state](auto &plugin) { plugin.on_picture(place, state); })) return;
+  }
+}
+// The places' picture onto them, when it is the one they want now (`key`). Until the next is here they keep the one they
+// show of the same layout (a card that steps to the next item), as a tile's do. The plugin hears of it last.
+template <typename Tell>
+static void pictures_show(const PictureSide &side, lv_obj_t *room, std::vector<Place> &places, const std::string &key,
+                          const std::string &name, Tell &&tell) {
+  lv_image_dsc_t *src = rt::picture_of(key);
+  if (!src) return;
+  if (src != drawn(places)) slide_back(places);
+  lay(room, places, src);
+  ESP_LOGI("picture", "%s %s: its pictures are shown", side.what, name.c_str());
+  pictures_tell(places, tessera::PictureState::SHOWN, tell);
+}
+template <typename Tell>
+static void pictures_missing(std::vector<Place> &places, picture_loader::Outcome outcome, Tell &&tell) {
+  pictures_tell(places, missing_of(outcome), tell);
+}
+// What the places want this round. `ask` is their question (tile_picture::Ask, its parts measured), `key` and `tag` the
+// loader's, `entity` the entity the app reads the pictures of ("" for none). `show` lays a picture the store has already
+// and tells the plugin; `here` says whether the same card, popup or saver is still open after that (it may close itself
+// in on_picture): the one place that guard lives. `done` places or tells what is missing when a download ends.
+static void pictures_want(PictureSide &side, std::string &art_key, const tile_picture::Ask &ask, const std::string &key,
+                          const std::string &tag, const std::string &entity, const std::function<void()> &show,
+                          const std::function<bool()> &here, std::function<void(picture_loader::Outcome)> done) {
+  if (key != art_key) {
+    art_key = key;
+    if (rt::picture_of(key)) show();
+    if (!here() || art_key != key) return;
+  }
+  picture_loader::Want want;
+  want.key = key;
+  want.tag = tag;
+  want.slot = picture_loader::Slot::FULL;
+  want.rank = picture_loader::Rank::CARD;
+  want.drawn = true;  // the app fetches them: an answer without a picture (a slow host) is asked again, later each time
+  PictureSide *s = &side;
+  want.ask = [s, ask, entity] {
+    if (rt::inbox.empty() || !esphome::api::global_api_server) return;
+    auto q = tile_picture::question(ask, s->asks, ask.entity, entity);
+    q.cap = rt::picture_cap().bytes;
+    s->asked = ++*s->count;
+    rt::picture_ask(q, s->answer, ask.entity, s->asked);
+    ESP_LOGI("camera", "asked for the pictures of the %s %s", s->what, ask.entity.c_str());
+  };
+  want.done = std::move(done);
+  rt::loader.want(side.owner, std::move(want));
+}
+// No place with an address now (it took its picture away): its last picture goes.
+static void pictures_none(PictureSide &side, std::string &art_key) {
+  if (art_key.empty()) return;
+  rt::loader.release(side.owner);
+  art_key.clear();
+}
+// The card, popup or saver goes: its places let go of their picture and the loader of its question, so the store frees it.
+static void pictures_end(PictureSide &side, std::vector<Place> &places, std::string &art_key) {
+  for (auto &p : places) place_clear(p);
+  if (art_key.empty()) return;
+  rt::loader.release(side.owner);
+  art_key.clear();
+  rt::pictures_collect();
+}
+// Measured into a question: the places' frames over `ground` (the colour behind their corners), drawn in `dark`.
+static bool pictures_ask(lv_obj_t *room, std::vector<Place> &places, uint32_t ground, bool dark, const std::string &name,
+                         size_t index, tile_picture::Ask &a) {
   std::vector<tile_picture::Part> parts;
   std::vector<Place *> owners;
-  measure(open.room, open.places, parts, owners);
+  measure(room, places, parts, owners);
   if (parts.empty()) return false;
-  tile_picture::set_parts(a, std::move(parts), theme::hex(theme::PAGE), rt::picture_cap());
-  a.index = open.tile >= 0 ? static_cast<size_t>(open.tile) : 0;
-  a.entity = open.key;
-  a.dark = theme::dark;
+  tile_picture::set_parts(a, std::move(parts), ground, rt::picture_cap());
+  a.index = index;
+  a.entity = name;
+  a.dark = dark;
   return true;
 }
-static void card_request(const tile_picture::Ask &a, const std::string &entity) {
-  if (rt::inbox.empty() || !esphome::api::global_api_server) return;
-  auto q = tile_picture::question(a, picture_question::Owner::PLUGIN_CARD, a.entity, entity);
-  q.cap = rt::picture_cap().bytes;
-  card_asked = ++card_number;
-  rt::picture_ask(q, "pcard", a.entity, card_asked);
-  ESP_LOGI("camera", "asked for the pictures of the card %s", a.entity.c_str());
-}
-// The card's picture onto its places, when it is the one they want now. Until the next is here, the places keep the
-// one they show of the same layout (a card that steps to the next item), as a tile's do.
+
+// ---- A card's pictures (0.13): over the page's ground ----
 static void card_place(OpenCard &open) {
-  lv_image_dsc_t *src = rt::picture_of(open.art_key);
-  if (!src) return;
-  if (src != drawn(open.places)) slide_back(open.places);
-  lay(open.room, open.places, src);
-  ESP_LOGI("picture", "card %s: its pictures are shown", open.key.c_str());
-  // Last: the card may close itself from on_picture, and `open` is gone after that.
-  call(&open, [&open](tessera::Card &card) {
-    tell_shown(open.places, [&card](lv_obj_t *place, tessera::PictureState s) { card.on_picture(place, s); });
-  });
+  pictures_show(card_side, open.room, open.places, open.art_key, open.key, [&open](auto &&on) { return call(&open, on); });
 }
 static void card_missing(OpenCard &open, picture_loader::Outcome outcome) {
-  call(&open, [&open, outcome](tessera::Card &card) {
-    tell_missing(open.places, missing_of(outcome), [&card](lv_obj_t *place, tessera::PictureState s) { card.on_picture(place, s); });
-  });
+  pictures_missing(open.places, outcome, [&open](auto &&on) { return call(&open, on); });
 }
 
-// ---- Pictures in a plugin's popup (plugin API 0.27) ----
+// ---- A popup's pictures (0.27) ----
 // A popup shown with its id of the manifest's `popups` lays out places as a card does, and they are asked for the same
 // way: a card's question of the key plugin:<plugin>.<popup id>, which the app answers within the rights the manifest
 // gives that popup (its `pictures`, the hosts of permissions.network), as `pcard`. The popup lies on the alert's raised
-// card, so that is the colour behind its pictures' corners. It is an owner of the loader of its own, so a card under it
-// keeps its pictures; when the popup goes, its picture goes with it.
-static const picture_loader::Owner POPUP_OWNER{picture_loader::Kind::CARD, 3};
-static uint32_t popup_number = 0;   // the number of the popup's last question
-
+// card, so that is the colour behind its pictures' corners. A popup without an id has no pictures.
 static void popup_place(OpenPopup &open) {
-  lv_image_dsc_t *src = rt::picture_of(open.art_key);
-  if (!src) return;
-  if (src != drawn(open.places)) slide_back(open.places);
-  lay(open.room, open.places, src);
-  ESP_LOGI("picture", "popup %s: its pictures are shown", open.key.c_str());
-  popup_call(&open, [&open](tessera::Popup &popup) {
-    tell_shown(open.places, [&popup](lv_obj_t *place, tessera::PictureState s) { popup.on_picture(place, s); });
-  });
+  pictures_show(popup_side, open.room, open.places, open.art_key, open.key, [&open](auto &&on) { return popup_call(&open, on); });
 }
 static void popup_missing(OpenPopup &open, picture_loader::Outcome outcome) {
-  popup_call(&open, [&open, outcome](tessera::Popup &popup) {
-    tell_missing(open.places, missing_of(outcome), [&popup](lv_obj_t *place, tessera::PictureState s) { popup.on_picture(place, s); });
-  });
+  pictures_missing(open.places, outcome, [&open](auto &&on) { return popup_call(&open, on); });
 }
 static void popup_picture_want() {
   OpenPopup *open = popup_open;
   if (!open || open->key.empty() || !open->room || !rt::tile_pictures_supported() || !rt::tiles_seen()) return;
-  std::vector<tile_picture::Part> parts;
-  std::vector<Place *> owners;
   lv_obj_update_layout(open->scrim);
-  measure(open->room, open->places, parts, owners);
-  if (parts.empty()) {
-    if (!open->art_key.empty()) { rt::loader.release(POPUP_OWNER); open->art_key.clear(); }
+  tile_picture::Ask a;
+  if (!pictures_ask(open->room, open->places, theme::hex(theme::RAISED), theme::dark, open->key, 0, a)) {
+    pictures_none(popup_side, open->art_key);
     return;
   }
-  tile_picture::Ask a;
-  tile_picture::set_parts(a, std::move(parts), theme::hex(theme::RAISED), rt::picture_cap());
-  a.index = 0;
-  a.entity = open->key;
-  a.dark = theme::dark;
   const std::string key = tile_picture::card_key(a, open->key, std::string());
-  if (key != open->art_key) {
-    open->art_key = key;
-    if (rt::picture_of(key)) popup_place(*open);
-    // A popup that closed itself, or showed another, as it heard of its picture (on_picture) is gone: `open` with it.
-    if (popup_open != open || open->art_key != key) return;
-  }
-  picture_loader::Want want;
-  want.key = key;
-  want.tag = tile_picture::card_tag(a.entity);
-  want.slot = picture_loader::Slot::FULL;
-  want.rank = picture_loader::Rank::CARD;
-  want.drawn = true;
-  want.ask = [a] {
-    if (rt::inbox.empty() || !esphome::api::global_api_server) return;
-    auto q = tile_picture::question(a, picture_question::Owner::PLUGIN_CARD, a.entity, std::string());
-    q.cap = rt::picture_cap().bytes;
-    popup_number = ++card_number;   // one count for cards and popups, so an answer finds its asker
-    rt::picture_ask(q, "pcard", a.entity, popup_number);
-    ESP_LOGI("camera", "asked for the pictures of the popup %s", a.entity.c_str());
-  };
-  want.done = [](picture_loader::Outcome o) {
-    if (!popup_open) return;
-    if (rt::shows(o)) popup_place(*popup_open);
-    else popup_missing(*popup_open, o);
-  };
-  rt::loader.want(POPUP_OWNER, std::move(want));
+  pictures_want(popup_side, open->art_key, a, key, tile_picture::card_tag(a.entity), std::string(),
+                [open] { popup_place(*open); }, [open, key] { return popup_open == open && open->art_key == key; },
+                [](picture_loader::Outcome o) {
+                  if (!popup_open) return;
+                  if (rt::shows(o)) popup_place(*popup_open);
+                  else popup_missing(*popup_open, o);
+                });
 }
-static void popup_pictures_end(OpenPopup &open) {
-  for (auto &p : open.places) place_clear(p);
-  if (open.art_key.empty()) return;
-  rt::loader.release(POPUP_OWNER);
-  open.art_key.clear();
-  rt::pictures_collect();
-}
+static void popup_pictures_end(OpenPopup &open) { pictures_end(popup_side, open.places, open.art_key); }
 
 void card_picture_want() {
   popup_picture_want();
@@ -1481,47 +1504,34 @@ void card_picture_want() {
   // Not while the screen is dark: what it wants waits, and a download of it breaks off (not wanted this round).
   if (!rt::tiles_seen()) return;
   tile_picture::Ask a;
-  if (!card_ask(*open, a)) {
-    // No place with an address now (a card that took its picture away): its last picture goes.
-    if (!open->art_key.empty()) { rt::loader.release(CARD_OWNER); open->art_key.clear(); }
+  if (!pictures_ask(open->room, open->places, theme::hex(theme::PAGE), theme::dark, open->key,
+                    open->tile >= 0 ? static_cast<size_t>(open->tile) : 0, a)) {
+    pictures_none(card_side, open->art_key);
     return;
   }
   const std::string key = tile_picture::card_key(a, open->key, open->entity);
-  if (key != open->art_key) {
-    open->art_key = key;
-    if (rt::picture_of(key)) card_place(*open);
-    // A card that closed itself as it heard of its picture (on_picture) is gone, and `open` with it.
-    if (shown != open || open->art_key != key) return;
-  }
-  picture_loader::Want want;
-  want.key = key;
-  want.tag = tile_picture::card_tag(open->key);
-  want.slot = picture_loader::Slot::FULL;
-  want.rank = picture_loader::Rank::CARD;
-  want.drawn = true;  // the app fetches them: an answer without a picture (a slow host) is asked again, later each time
-  const std::string entity = open->entity;
-  want.ask = [a, entity] { card_request(a, entity); };
-  want.done = [](picture_loader::Outcome o) {
-    if (!shown) return;
-    if (rt::shows(o)) card_place(*shown);
-    else card_missing(*shown, o);
-  };
-  rt::loader.want(CARD_OWNER, std::move(want));
+  pictures_want(card_side, open->art_key, a, key, tile_picture::card_tag(open->key), open->entity,
+                [open] { card_place(*open); }, [open, key] { return shown == open && open->art_key == key; },
+                [](picture_loader::Outcome o) {
+                  if (!shown) return;
+                  if (rt::shows(o)) card_place(*shown);
+                  else card_missing(*shown, o);
+                });
 }
 
 void card_picture_answer(const std::string &card, const std::string &url, uint32_t number) {
   // A popup's (0.27): the same answer, by its own key and question.
-  if (popup_open && card == popup_open->key && number == popup_number) {
+  if (popup_open && card == popup_open->key && number == popup_side.asked) {
     if (url.empty()) ESP_LOGI("picture", "popup %s: no pictures now", card.c_str());
     rt::loader.answer(tile_picture::card_tag(card), url, esphome::millis());
     return;
   }
-  if (!shown || card != shown->key || number != card_asked) return;
+  if (!shown || card != shown->key || number != card_side.asked) return;
   if (url.empty()) ESP_LOGI("picture", "card %s: no pictures now", card.c_str());
   rt::loader.answer(tile_picture::card_tag(card), url, esphome::millis());
 }
 bool card_question(uint32_t number) {
-  return (shown && number == card_asked) || (popup_open && !popup_open->key.empty() && number == popup_number);
+  return (shown && number == card_side.asked) || (popup_open && !popup_open->key.empty() && number == popup_side.asked);
 }
 static bool saver_draws(const void *picture);
 static void saver_letgo(const void *download);
@@ -1538,13 +1548,7 @@ void card_letgo(const void *download) {
   for (auto &p : shown->places) if (p.image && rt::draws(p.image, static_cast<const lv_image_dsc_t *>(download))) place_clear(p);
 }
 // The card closes: its places let go of their picture and the loader of its question, so the store frees it now.
-static void card_pictures_end(OpenCard &open) {
-  for (auto &p : open.places) place_clear(p);
-  if (open.art_key.empty()) return;
-  rt::loader.release(CARD_OWNER);
-  open.art_key.clear();
-  rt::pictures_collect();
-}
+static void card_pictures_end(OpenCard &open) { pictures_end(card_side, open.places, open.art_key); }
 
 // ---- A plugin's screensaver (plugin API 0.14, docs/PLUGINS.md "A screensaver") ----
 // runtime_tiles shows the screensaver (saver_show, saver_hide, saver_sync); when the app's word names a plugin's saver
@@ -1684,16 +1688,12 @@ void saver_state(const roomy::Text &data) {
 }
 void saver_refresh() { saver_feed(false); }
 
-static const picture_loader::Owner SAVER_OWNER{picture_loader::Kind::CARD, 2};
-static uint32_t saver_number = 0;   // the number of the saver's last question for its pictures
-
 static void saver_end() {
   OpenSaver *open = saver_open;
   saver_open = nullptr;
   saver_gone = false;
   if (!open) return;
-  for (auto &p : open->places) place_clear(p);
-  if (!open->art_key.empty()) { rt::loader.release(SAVER_OWNER); rt::pictures_collect(); }
+  pictures_end(saver_side, open->places, open->art_key);
   ++saver_calling;
   open->saver.reset();   // its parts are the stage's children, deleted with the glass by runtime_tiles
   --saver_calling;
@@ -1739,76 +1739,41 @@ static void saver_touch(lv_event_t *event) {
   saver_call([](tessera::Saver &s) { s.on_tap(); });
 }
 
-// ---- A screensaver's pictures (as a card's: one question for every place, the app paints the frames) ----
-static bool saver_ask(OpenSaver &open, tile_picture::Ask &a) {
-  std::vector<tile_picture::Part> parts;
-  std::vector<Place *> owners;
-  measure(open.stage, open.places, parts, owners);
-  if (parts.empty()) return false;
-  tile_picture::set_parts(a, std::move(parts), theme::hex(theme::CAMERA_PAGE), rt::picture_cap());
-  a.index = 0;
-  a.entity = open.key;
-  a.dark = true;  // drawn in the dark look (saver_call)
-  return true;
-}
-static void saver_request(const tile_picture::Ask &a, const std::string &entity) {
-  if (rt::inbox.empty() || !esphome::api::global_api_server) return;
-  auto q = tile_picture::question(a, picture_question::Owner::PLUGIN_SAVER, a.entity, entity);
-  q.cap = rt::picture_cap().bytes;
-  rt::picture_ask(q, "psaver", a.entity, ++saver_number);
-  ESP_LOGI("camera", "asked for the pictures of the screensaver %s", a.entity.c_str());
-}
+// ---- A screensaver's pictures (0.14), the way a card's go: drawn in the dark look over the camera page's ground ----
 static void saver_place(OpenSaver &open) {
-  lv_image_dsc_t *src = rt::picture_of(open.art_key);
-  if (!src) return;
-  if (src != drawn(open.places)) slide_back(open.places);
-  lay(open.stage, open.places, src);
-  auto &places = open.places;
-  saver_call([&places](tessera::Saver &saver) {
-    tell_shown(places, [&saver](lv_obj_t *place, tessera::PictureState s) { saver.on_picture(place, s); });
-  });
+  OpenSaver *self = &open;
+  pictures_show(saver_side, open.stage, open.places, open.art_key, open.key,
+                [self](auto &&on) { saver_call(on); return saver_open == self && !saver_gone; });
 }
 static void saver_missing(OpenSaver &open, picture_loader::Outcome outcome) {
-  auto &places = open.places;
-  saver_call([&places, outcome](tessera::Saver &saver) {
-    tell_missing(places, missing_of(outcome), [&saver](lv_obj_t *place, tessera::PictureState s) { saver.on_picture(place, s); });
-  });
+  OpenSaver *self = &open;
+  pictures_missing(open.places, outcome, [self](auto &&on) { saver_call(on); return saver_open == self && !saver_gone; });
 }
 void saver_picture_want() {
   OpenSaver *open = saver_open;
   if (!open || !open->stage || !rt::tile_pictures_supported()) return;
   tile_picture::Ask a;
-  if (!saver_ask(*open, a)) {
-    if (!open->art_key.empty()) { rt::loader.release(SAVER_OWNER); open->art_key.clear(); }
+  if (!pictures_ask(open->stage, open->places, theme::hex(theme::CAMERA_PAGE), true, open->key, 0, a)) {
+    pictures_none(saver_side, open->art_key);
     return;
   }
   // The step's picture changes under the same address ("step:"): its mark is part of the key.
   const std::string key = "psaver|" + tile_picture::card_key(a, open->key, open->entity) + "|" + open->mark;
-  if (key != open->art_key) {
-    open->art_key = key;
-    if (rt::picture_of(key)) saver_place(*open);
-  }
-  picture_loader::Want want;
-  want.key = key;
-  want.tag = "psaver|" + open->key;
-  want.slot = picture_loader::Slot::FULL;
-  want.rank = picture_loader::Rank::CARD;
-  want.drawn = true;
   const std::string entity = open->step == tessera::SaverStep::OWN ? open->entity : std::string();
-  want.ask = [a, entity] { saver_request(a, entity); };
-  want.done = [](picture_loader::Outcome o) {
-    if (!saver_open) return;
-    if (rt::shows(o)) saver_place(*saver_open);
-    else saver_missing(*saver_open, o);
-  };
-  rt::loader.want(SAVER_OWNER, std::move(want));
+  pictures_want(saver_side, open->art_key, a, key, "psaver|" + open->key, entity, [open] { saver_place(*open); },
+                [open, key] { return saver_open == open && open->art_key == key; },
+                [](picture_loader::Outcome o) {
+                  if (!saver_open) return;
+                  if (rt::shows(o)) saver_place(*saver_open);
+                  else saver_missing(*saver_open, o);
+                });
 }
 void saver_picture_answer(const std::string &key, const std::string &url, uint32_t number) {
-  if (!saver_open || key != saver_open->key || number != saver_number) return;
+  if (!saver_open || key != saver_open->key || number != saver_side.asked) return;
   if (url.empty()) ESP_LOGI("picture", "screensaver %s: no pictures now", key.c_str());
   rt::loader.answer("psaver|" + key, url, esphome::millis());
 }
-bool saver_question(uint32_t number) { return saver_open && number == saver_number; }
+bool saver_question(uint32_t number) { return saver_open && number == saver_side.asked; }
 static bool saver_draws(const void *picture) { return saver_open && draws(saver_open->places, picture); }
 static void saver_letgo(const void *download) {
   if (!saver_open || !download) return;
@@ -2050,6 +2015,7 @@ void hello(JsonObject root) {
 }  // namespace plugin_host
 
 namespace tessera::ui {
+size_t turns_count();
 lv_obj_t *text(lv_obj_t *parent, Font f, theme::Role role) {
   // A label's dots (LV_LABEL_LONG_DOT) wrap at the width and end the last line that fits the height with dots: two
   // lines to start with, the plugin's height after that.
@@ -2299,7 +2265,11 @@ void live(lv_obj_t *place, bool on) {
   }
   p->live = on;
 }
+size_t turns_count() { return turns.size(); }
 }  // namespace tessera::ui
+namespace plugin_host {
+size_t turns_kept() { return tessera::ui::turns_count(); }
+}  // namespace plugin_host
 #else
 #include <cstdio>
 #include "plugin_host.h"
@@ -2336,6 +2306,7 @@ bool saver_backdrop(const std::string &) { return false; }
 void saver_show(lv_obj_t *, const std::string &, const roomy::Text &, int, bool) {}
 void saver_state(const roomy::Text &) {}
 void saver_refresh() {}
+size_t turns_kept() { return 0; }
 void saver_hide() {}
 void saver_picture_want() {}
 void saver_picture_answer(const std::string &, const std::string &, uint32_t) {}

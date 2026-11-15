@@ -1,3 +1,4 @@
+#include "esphome/components/smart_display/plugin_host.h"
 #include "host_probe.h"
 #include "esphome/core/log.h"
 #include <algorithm>
@@ -386,7 +387,7 @@ void HostProbe::ask_once() {
 // close itself in its own on_tap, so the harness sees the host delete it only after that call returned.
 class ProbePopup : public tessera::Popup {
  public:
-  explicit ProbePopup(bool closes) : closes_(closes) {}
+  explicit ProbePopup(bool closes, bool place = false) : closes_(closes), place_(place) {}
   ~ProbePopup() override { ESP_LOGI(TAG, "popup destroy"); }
   void open(const tessera::PopupContext &c) override {
     // Where the room lies on the glass, for the harness's taps on the card and beside it.
@@ -401,6 +402,14 @@ class ProbePopup : public tessera::Popup {
     lv_obj_set_pos(words_, 0, ui::line_height(Font::TITLE) + ui::px(8));
     lv_obj_set_width(words_, c.width);
     ui::set_text(words_, "A popup of a plugin, the card an alert shows, over everything but an alert");
+    // A popup without an id of the manifest's `popups` may make a place, but it has no pictures: nothing is asked.
+    if (place_ && ui::pictures()) {
+      lv_obj_t *place = ui::picture(c.parent);
+      lv_obj_set_size(place, c.width, ui::px(60));
+      lv_obj_set_pos(place, 0, ui::px(120));
+      ui::set_picture(place, "https://image.tmdb.org/t/p/w342/probe-no-id.jpg");
+      ESP_LOGI(TAG, "popup place without an id");
+    }
   }
   void on_interval(uint32_t now_ms) override {
     if (said_interval_) return;
@@ -425,7 +434,7 @@ class ProbePopup : public tessera::Popup {
   static HostProbe *plugin;
 
  private:
-  bool closes_, said_interval_ = false, said_tick_ = false;
+  bool closes_, place_, said_interval_ = false, said_tick_ = false;
   lv_obj_t *title_{}, *words_{};
 };
 HostProbe *ProbePopup::plugin = nullptr;
@@ -434,6 +443,7 @@ HostProbe *ProbePopup::plugin = nullptr;
 // the app does, and on an instrument's ground (the roles that stay dark in both looks) a mark turned along a course.
 class ProbePicturePopup : public tessera::Popup {
  public:
+  explicit ProbePicturePopup(bool closes = false) : closes_(closes) {}
   ~ProbePicturePopup() override { ESP_LOGI(TAG, "picture popup destroy"); }
   void open(const tessera::PopupContext &c) override {
     face_ = ui::block(c.parent, theme::INSTRUMENT);
@@ -443,9 +453,15 @@ class ProbePicturePopup : public tessera::Popup {
     lv_obj_set_pos(mark_, ui::px(8), ui::px(4));
     ui::rotate(mark_, 90);
     ui::rotate(mark_, 450);                   // the same course again: nothing changes
-    ESP_LOGI(TAG, "instrument ground=%06X ink=%06X turned=%d", (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT)) & 0xFFFFFF),
-             (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT_INK)) & 0xFFFFFF),
-             (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN));
+    const int turned = (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN);
+    // Its turn holds through a pulse and ui::still (a plane's icon that blinks keeps its course).
+    ui::animate(mark_, tessera::Motion::PULSE, 800);
+    const int pulsed = (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN);
+    ui::still(mark_);
+    const int stilled = (int) lv_obj_get_style_transform_rotation(mark_, LV_PART_MAIN);
+    ESP_LOGI(TAG, "instrument ground=%06X ink=%06X turned=%d pulsed=%d stilled=%d",
+             (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT)) & 0xFFFFFF),
+             (unsigned) (lv_color_to_u32(ui::color(theme::INSTRUMENT_INK)) & 0xFFFFFF), turned, pulsed, stilled);
     if (!ui::pictures()) {
       ESP_LOGI(TAG, "picture popup open pictures=0");
       return;
@@ -454,9 +470,21 @@ class ProbePicturePopup : public tessera::Popup {
     lv_obj_set_size(place_, c.width, ui::px(120));
     lv_obj_set_pos(place_, 0, ui::px(70));
     ui::set_picture(place_, "https://image.tmdb.org/t/p/w342/probe-popup.jpg");
+    if (closes_) {  // a second place: a popup that closed on the first must not hear of it
+      second_ = ui::picture(c.parent);
+      lv_obj_set_size(second_, c.width / 2, ui::px(40));
+      lv_obj_set_pos(second_, 0, ui::px(200));
+      ui::set_picture(second_, "https://image.tmdb.org/t/p/w342/probe-popup-2.jpg");
+    }
     ESP_LOGI(TAG, "picture popup open pictures=1");
   }
   void on_picture(lv_obj_t *place, tessera::PictureState state) override {
+    ESP_LOGI(TAG, "picture popup heard place=%d state=%d", place == place_ ? 1 : place == second_ ? 2 : 0, (int) state);
+    if (closes_) {
+      ESP_LOGI(TAG, "picture popup closes in on_picture");
+      tessera::close_popup(ProbePopup::plugin);
+      return;
+    }
     if (place != place_ || state != tessera::PictureState::SHOWN) return;
     lv_obj_update_layout(place_);
     lv_area_t a;
@@ -465,7 +493,8 @@ class ProbePicturePopup : public tessera::Popup {
   }
 
  private:
-  lv_obj_t *face_{}, *mark_{}, *place_{};
+  bool closes_;
+  lv_obj_t *face_{}, *mark_{}, *place_{}, *second_{};
 };
 
 void HostProbe::on_message(JsonObjectConst message) {
@@ -489,8 +518,52 @@ void HostProbe::on_message(JsonObjectConst message) {
     ESP_LOGI(TAG, "do %s shown=%d", what, (int) tessera::show_popup(this, [closes]() { return new ProbePopup(closes); }));
     return;
   }
-  if (std::string(what) == "popup_picture") {
-    ESP_LOGI(TAG, "do popup_picture shown=%d", (int) tessera::show_popup(this, "shot", []() { return new ProbePicturePopup(); }));
+  if (std::string(what) == "popup_picture" || std::string(what) == "popup_picture_close") {
+    ProbePopup::plugin = this;
+    const bool closes = std::string(what) == "popup_picture_close";
+    ESP_LOGI(TAG, "do %s shown=%d", what, (int) tessera::show_popup(this, "shot", [closes]() { return new ProbePicturePopup(closes); }));
+    return;
+  }
+  // {"do": "turns"}: what a part's turn (ui::rotate) does through ui::animate and ui::still, on parts made for it: one
+  // turned to 90 that pulses, one that spins and is stilled, one turned again while it spins, one never turned; and how
+  // many turns the host keeps after 300 turned parts were made and deleted (none of theirs may stay).
+  if (std::string(what) == "turns") {
+    lv_obj_t *parent = lv_layer_top();
+    auto turn = [](lv_obj_t *o) { return (int) lv_obj_get_style_transform_rotation(o, LV_PART_MAIN); };
+    lv_obj_t *pulse = lv_obj_create(parent), *spin = lv_obj_create(parent), *again = lv_obj_create(parent), *plain = lv_obj_create(parent);
+    ui::rotate(pulse, 90);
+    ui::animate(pulse, tessera::Motion::PULSE, 800);
+    const int pulsing = turn(pulse);
+    ui::still(pulse);
+    const int pulsed = turn(pulse);
+    ui::rotate(spin, 90);
+    ui::animate(spin, tessera::Motion::SPIN, 800);
+    ui::still(spin);
+    const int spun = turn(spin);
+    ui::rotate(again, 90);
+    ui::animate(again, tessera::Motion::SPIN, 800);
+    ui::rotate(again, 180);
+    ui::still(again);
+    const int turned_again = turn(again);
+    ui::animate(plain, tessera::Motion::SPIN, 800);
+    ui::still(plain);
+    const int unturned = turn(plain);
+    const size_t before = plugin_host::turns_kept();
+    for (int i = 0; i < 300; ++i) {
+      lv_obj_t *o = lv_obj_create(parent);
+      ui::rotate(o, 45 + i);
+      lv_obj_delete(o);
+    }
+    const size_t after = plugin_host::turns_kept();
+    for (lv_obj_t *o : {pulse, spin, again, plain}) lv_obj_delete(o);
+    ESP_LOGI(TAG, "turns pulsing=%d pulsed=%d spun=%d again=%d unturned=%d kept=%u,%u,%u", pulsing, pulsed, spun, turned_again,
+             unturned, (unsigned) before, (unsigned) after, (unsigned) plugin_host::turns_kept());
+    return;
+  }
+  // {"do": "popup_place"}: a popup without an id that makes a place for a picture (it has none, plugin API 0.27).
+  if (std::string(what) == "popup_place") {
+    ProbePopup::plugin = this;
+    ESP_LOGI(TAG, "do popup_place shown=%d", (int) tessera::show_popup(this, []() { return new ProbePopup(false, true); }));
     return;
   }
   if (std::string(what) == "popup_close") {
