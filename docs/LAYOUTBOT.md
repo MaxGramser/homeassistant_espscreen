@@ -43,14 +43,17 @@ questions: a button per integration starts that integration's setup in Home Assi
    faces come from what the entity offers in Home Assistant through the catalogue (`ha.capabilities`, the same answer
    the editor's drawer uses): wide with a control of one row (a light's brightness, a cover's buttons, a player's keys),
    then 2 x 2 with a control of two rows (a light's brightness and presets, a player's volume and keys, a thermostat's
-   setpoint and mode). A camera's larger face is its larger picture. A small grid keeps every tile rather than growing
-   a few.
+   setpoint and mode). A tile without a control grows too, to a wide and then a 2 x 2 card with a larger picture, state
+   and name, so a page with room is filled. Alike tiles of a block grow together first, then single tiles where room is
+   left. A small grid keeps every tile rather than growing a few. A tile added to a page the person already has stays
+   one cell, and what does not fit there is left out with a note rather than pushing a page in after it.
 6. The result goes through `validate_document` like any save, and back to the editor with the reply and the notes in
    the editor's language. The editor takes it as one step of undo (`applyDocument`, labelled "Layoutbot's change"),
    selects the first page it made or changed, and the chat offers Show and Undo.
 
 After every answer that changed something the chat asks, by itself and never through the model, whether to send it:
-"Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft.
+"Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft
+and says so.
 An answer that was undone first is not sent.
 
 **Several screens.** The question also holds the other screens of the home, each with its grid and pages, and a page of

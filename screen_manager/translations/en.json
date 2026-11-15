@@ -4842,7 +4842,8 @@
         "sending": "Sending…",
         "sent": "Sent. The screen shows it in a moment.",
         "not_all": "Not everything was sent.",
-        "failed": "Could not send to {which}."
+        "failed": "Could not send to {which}.",
+        "declined": "Not sent. Save & send does it whenever you like."
       },
       "busy": "Layoutbot is arranging your pages",
       "seconds": "{n} s",

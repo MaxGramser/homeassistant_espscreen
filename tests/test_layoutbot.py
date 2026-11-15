@@ -44,9 +44,11 @@ class Plans(unittest.TestCase):
         self.assertEqual(page["topbar"]["trailing"][0]["type"], "clock")  # the Home page's bar, its own ids
         self.assertNotEqual(page["topbar"]["trailing"][0]["id"], "clock1")
         first, second = page["sections"]
-        self.assertEqual((first["title"], first["placement"]), ("Rolgordijnen", {"row": 0, "column": 0, "columns": 4, "rows": 1}))
+        # The page is filled: without controls a card grows to a larger state and name (wide, then 2 x 2).
+        self.assertEqual((first["title"], first["placement"]), ("Rolgordijnen", {"row": 0, "column": 0, "columns": 4, "rows": 3}))
         self.assertEqual(second["icon"], "curtains")  # what ran on past the name is cut off
-        self.assertEqual(second["placement"], {"row": 1, "column": 0, "columns": 3, "rows": 1})
+        self.assertEqual(second["placement"], {"row": 3, "column": 0, "columns": 4, "rows": 2})
+        self.assertEqual([t["appearance"].get("presentation") for t in first["tiles"]], ["square", "square", "wide", "wide"])
         self.assertEqual(entities_of(page), [*BLINDS, *CURTAINS])
         self.assertEqual(document["pages"][0], HOME)  # the rest stays as it was
         validate_document(document, GRID)
@@ -61,11 +63,11 @@ class Plans(unittest.TestCase):
         page = layoutbot.apply_plan(DOCUMENT, plan, GRID, home, offers=offers)[0]["pages"][1]
         faces = {t["content"]["entityId"]: (t["appearance"].get("presentation", "single"), t["interaction"].get("controls"))
                  for s in page["sections"] for t in s["tiles"]}
-        # On 5 x 5 everything gets its richest face: the lights and the player 2 x 2 with both rows of controls, the
-        # camera its larger picture; a sensor stays one cell.
-        self.assertEqual(faces, {"light.l0": ("square", "brightness_presets"), "light.l1": ("square", "brightness_presets"),
+        # On 5 x 5 the page fills: the player 2 x 2 with both rows of controls, the camera its larger picture, the
+        # lights wide with their brightness and one 2 x 2 with its presets too, the sensor wide.
+        self.assertEqual(faces, {"light.l0": ("square", "brightness_presets"), "light.l1": ("wide", "brightness"),
                                  "light.l2": ("wide", "brightness"), "media_player.tv": ("square", "volume_playback"),
-                                 "sensor.temp": ("single", None), "camera.door": ("square", None)})
+                                 "sensor.temp": ("wide", None), "camera.door": ("square", None)})
         self.assertEqual(sum(s["placement"]["rows"] for s in page["sections"]), 5)
         validate_document(layoutbot.apply_plan(DOCUMENT, plan, GRID, home, offers=offers)[0], GRID)
 
@@ -81,11 +83,18 @@ class Plans(unittest.TestCase):
         self.assertEqual([(t["appearance"].get("presentation"), t["interaction"].get("controls")) for t in fewer["pages"][1]["tiles"]],
                          [("square", "brightness_presets"), ("wide", "brightness")])
 
-    def test_narrow_sections_stand_side_by_side_and_a_numbered_new_page_is_new(self):
+    def test_a_numbered_new_page_is_new(self):
         plan = {"pages": [{"page": "2", "title": "Covers", "sections": [
             {"title": "Blinds", "entities": BLINDS}, {"title": "Desk", "entities": ["light.desk"]}]}]}
         document, notes = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)
         self.assertEqual(notes, [])
+        self.assertEqual(document["pages"][0], HOME)
+        self.assertEqual([s["title"] for s in document["pages"][1]["sections"]], ["Blinds", "Desk"])
+
+    def test_narrow_sections_of_a_new_page_stand_side_by_side(self):
+        plan = {"pages": [{"page": "", "title": "Covers", "sections": [
+            {"title": "Blinds", "entities": BLINDS}, {"title": "Desk", "entities": ["light.desk"]}]}]}
+        document, _ = layoutbot.apply_plan(DOCUMENT, plan, Grid(5, 1, 16, 256, 12), ENTITIES)
         self.assertEqual([(s["title"], s["placement"]) for s in document["pages"][1]["sections"]],
                          [("Blinds", {"row": 0, "column": 0, "columns": 4, "rows": 1}),
                           ("Desk", {"row": 0, "column": 4, "columns": 1, "rows": 1})])

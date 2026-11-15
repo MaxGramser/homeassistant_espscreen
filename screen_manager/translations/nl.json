@@ -4791,7 +4791,8 @@
         "sending": "Versturen…",
         "sent": "Verstuurd. Het scherm laat het zo zien.",
         "not_all": "Niet alles is verstuurd.",
-        "failed": "Versturen naar {which} lukte niet."
+        "failed": "Versturen naar {which} lukte niet.",
+        "declined": "Niet verstuurd. Opslaan & versturen kan altijd nog."
       },
       "busy": "Layoutbot deelt je pagina's in",
       "seconds": "{n} s",

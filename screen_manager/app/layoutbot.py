@@ -430,14 +430,14 @@ class _Plan:
         domain = entity.split(".", 1)[0]
         offered = (self.offers or {}).get(entity)
         steps = [("single", None)]
-        if self.grid.columns >= 2 and domain in PICTURES:
-            steps.append(("wide", None))
-            if self.grid.rows >= 2:
-                steps.append(("square", None))
+        keys = [key for key in catalogue.control_keys(domain) if key in (offered or ())] if domain not in PICTURES else []
+        if not keys:
+            # Without a control a larger card is a larger picture, state or name: wide, then 2 x 2, where there is room.
+            if self.grid.columns >= 2:
+                steps.append(("wide", None))
+                if self.grid.rows >= 2:
+                    steps.append(("square", None))
             return steps
-        if not offered:
-            return steps
-        keys = [key for key in catalogue.control_keys(domain) if key in offered]
         two = [key for key in keys if (catalogue.option(domain, "controls", key) or {}).get("rows") == 2]
         one = [key for key in PREFERRED.get(domain, ()) if key in keys] or [key for key in keys if key not in two]
         if self.grid.columns >= 2 and one:
