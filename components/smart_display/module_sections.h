@@ -154,14 +154,12 @@ inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int3
 }
 
 // ---- A card in a section whose tiles follow its contrast ----
-// Whether the card in `slot` of the page being placed stands in such a section.
-inline bool flips(const Widgets &w, size_t slot) {
-  if (!w.tile || w.full || w.index >= model.count || slot >= grid.slots()) return false;
-  const auto &t = model.tiles[w.index];
-  const int32_t column = int32_t(slot % grid.columns), row = int32_t(slot / grid.columns), span_x = t.column_span(), span_y = t.row_span();
-  for (const auto &s : of(applied_page))
-    if (column >= s.column && column + span_x <= s.column + s.columns && row >= s.row && row + span_y <= s.row + s.rows) return s.follow;
-  return false;
+// Whether the card stands in such a section, on its own page: the one place() put it on (homes), which is not the page
+// on the glass while a kept page is prepared off it.
+inline bool flips(const Widgets &w) {
+  if (!w.tile || w.full || w.index >= model.count) return false;
+  const auto *s = section_of(w.tile);
+  return s && s->follow;
 }
 // What follow() set on a card, by card, so it goes again when the card is painted anew or shows another tile.
 struct Override { lv_obj_t *obj; lv_style_prop_t prop; lv_style_selector_t part; };

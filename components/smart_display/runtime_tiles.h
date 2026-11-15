@@ -107,7 +107,7 @@
 // Sections on a page (module sections, module_sections.h at the module site at the end of this file).
 namespace runtime_tiles { struct Widgets; }
 namespace sections {
-inline bool flips(const runtime_tiles::Widgets &w, size_t slot);
+inline bool flips(const runtime_tiles::Widgets &w);
 inline bool following(lv_obj_t *card);
 inline void follow(lv_obj_t *card, bool on);
 inline bool follows(lv_obj_t *card);
@@ -8871,7 +8871,7 @@ inline std::string key_value(const Tile &t){
 // look once it is drawn (module_sections.h follow). A card that leaves such a section gives those back.
 struct SectionLook {
   lv_obj_t *card; bool on;
-  SectionLook(Widgets &w, size_t slot) : card(w.tile), on(::sections::flips(w, slot)) {
+  SectionLook(Widgets &w) : card(w.tile), on(::sections::flips(w)) {
     if (on || ::sections::following(card)) { w.cached_active = -1; w.panel_dirty = true; }
     if (on) { theme::dark = !theme::dark; section_look_on = true; }
   }
@@ -8886,7 +8886,7 @@ inline void render_slot(size_t slot) {
   auto &w=widgets[slot];
   if(!w.tile || w.index>=model.count)return;
 #ifdef SD_MOD_SECTIONS
-  SectionLook look(w, slot);
+  SectionLook look(w);
 #endif
   const auto &t = model.tiles[w.index];
   auto d=t.domain();
