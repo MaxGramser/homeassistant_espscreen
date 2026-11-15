@@ -2180,9 +2180,32 @@ void slide_pictures(int dx, uint32_t ms) {
   }
 }
 
-// The motions of ui::animate (0.18), each an LVGL animation of the part's own style, deleted with the part.
+// A part's turn (ui::rotate, in tenths of a degree): kept apart from LVGL's rotation, which a spin also writes, so the
+// turn holds through ui::animate and ui::still. Forgotten with the part.
+static std::vector<std::pair<const lv_obj_t *, int32_t>> turns;
+static int32_t turn_of(const lv_obj_t *part) {
+  for (const auto &t : turns) if (t.first == part) return t.second;
+  return 0;
+}
+static void set_turn(lv_obj_t *part, int32_t tenths) {
+  for (auto &t : turns) if (t.first == part) { t.second = tenths; return; }
+  if (!tenths) return;
+  turns.emplace_back(part, tenths);
+  lv_obj_add_event_cb(part, [](lv_event_t *e) {
+    const auto *gone = static_cast<const lv_obj_t *>(lv_event_get_current_target(e));
+    turns.erase(std::remove_if(turns.begin(), turns.end(), [gone](const auto &t) { return t.first == gone; }), turns.end());
+  }, LV_EVENT_DELETE, nullptr);
+}
+static bool spinning(lv_obj_t *part);
+
+// The motions of ui::animate (0.18), each an LVGL animation of the part's own style, deleted with the part. A spin
+// turns from the part's own turn; a pulse and a ripple leave it as it is.
 static void pulse_exec(void *obj, int32_t opa) { lv_obj_set_style_opa(static_cast<lv_obj_t *>(obj), opa, 0); }
-static void spin_exec(void *obj, int32_t angle) { lv_obj_set_style_transform_rotation(static_cast<lv_obj_t *>(obj), angle, 0); }
+static void spin_exec(void *obj, int32_t angle) {
+  auto *part = static_cast<lv_obj_t *>(obj);
+  lv_obj_set_style_transform_rotation(part, (turn_of(part) + angle) % 3600, 0);
+}
+static bool spinning(lv_obj_t *part) { return lv_anim_get(part, spin_exec) != nullptr; }
 static void ripple_exec(void *obj, int32_t step) {   // step 0 to 1000: half again its size, and from whole to gone
   auto *part = static_cast<lv_obj_t *>(obj);
   lv_obj_set_style_transform_scale(part, LV_SCALE_NONE + step * LV_SCALE_NONE / 2000, 0);
@@ -2194,18 +2217,20 @@ void rotate(lv_obj_t *part, float degrees) {
   int32_t tenths = static_cast<int32_t>(lroundf(std::fmod(degrees, 360.0f) * 10));
   if (tenths < 0) tenths += 3600;
   if (tenths >= 3600) tenths -= 3600;
-  if (lv_obj_get_style_transform_rotation(part, LV_PART_MAIN) == tenths) return;
+  if (turn_of(part) == tenths && (spinning(part) || lv_obj_get_style_transform_rotation(part, LV_PART_MAIN) == tenths)) return;
+  set_turn(part, tenths);
   // Around its middle, whatever its size: LVGL takes the pivot as a part of the object's own width and height.
   lv_obj_set_style_transform_pivot_x(part, lv_pct(50), 0);
   lv_obj_set_style_transform_pivot_y(part, lv_pct(50), 0);
-  lv_obj_set_style_transform_rotation(part, tenths, 0);
+  // A part that spins takes the new turn at its next frame (spin_exec).
+  if (!spinning(part)) lv_obj_set_style_transform_rotation(part, tenths, 0);
 }
 
 void still(lv_obj_t *part) {
   if (!part) return;
   for (auto exec : {pulse_exec, spin_exec, ripple_exec}) lv_anim_delete(part, exec);
   lv_obj_set_style_opa(part, LV_OPA_COVER, 0);
-  lv_obj_set_style_transform_rotation(part, 0, 0);
+  lv_obj_set_style_transform_rotation(part, turn_of(part), 0);  // its own turn (ui::rotate), upright without one
   lv_obj_set_style_transform_scale(part, LV_SCALE_NONE, 0);
 }
 

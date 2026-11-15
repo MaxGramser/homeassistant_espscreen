@@ -713,11 +713,13 @@ void slide_pictures(int dx, uint32_t ms = 300);
 // still, since the screen draws the part again in every frame while it moves. Keep a part that moves small: it is drawn
 // anew each frame, and a part that spins or ripples through a layer of its own.
 void animate(lv_obj_t *part, Motion motion, uint32_t period_ms, uint32_t delay_ms = 0);
-// The part stops moving and shows as it was laid out: whole, upright, at its size.
+// The part stops moving and shows as it was laid out: whole, at its size, at its own turn (ui::rotate) or upright.
 void still(lv_obj_t *part);
 // A part turned by `degrees` clockwise around its middle (0.27): a plane's icon along its course, a compass needle, a
 // wind arrow. 0 is as it is drawn; the same angle again costs nothing, so call it on every tick. LVGL draws a turned
-// part on a layer of its own each time it changes, so turn small parts (an icon, a short line), not a whole card.
+// part on a layer of its own each time it changes, so turn small parts (an icon, a short line), not a whole card. The
+// turn holds through ui::animate and ui::still: a part that pulses or ripples keeps pointing where it was turned, one
+// that spins turns from there, and a turn given while it spins counts from its next frame.
 void rotate(lv_obj_t *part, float degrees);
 // A tile's place shows its camera live (0.17): a place whose address is `camera:<entity>` of the tile's own entity
 // streams on a screen that streams (the ESP32-P4 boards) while it is on the glass, the page stands still and nothing
