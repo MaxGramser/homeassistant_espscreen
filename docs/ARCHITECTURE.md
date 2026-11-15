@@ -235,6 +235,10 @@ docs/TROUBLESHOOTING.md.
   panel, 2026-11-15). `tests/test_draw_text.py` keeps every `lv_draw_label` of the component in that one file.
 - **Limits are read, not inferred, in three places that agree.** The engine's `live_tiles`, the add-on's ceiling of
   eight streams over all screens (visible in the editor and the log), and the hello that carries both.
+- **A card is painted in its own look, through one door** (`CardScope`, docs/THEME.md "A card's look"). The look every
+  colour reads (`theme::dark`) is the screen's (`theme::screen_dark`) except inside a card's scope; a card holds its look
+  and its ground relative to the screen's, set where it is placed. A card in a following section painted outside its
+  scope took the screen's look for a part of it.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal
   build, PERF optimisation was taken because it measured). Tests on a device run an hour at most.
 

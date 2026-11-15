@@ -64,6 +64,21 @@ page and a card, and dark `#101010`, so the cards stand on it as they stand on t
 `SECTION_CONTRAST` (light `#202020`, dark `#E0E0E0`) and its words `SECTION_CONTRAST_INK` (light `#F0F0F0`, dark
 `#181818`); both dark values land on one step of an RGB565 panel, so they stay neutral.
 
+## A card's look
+
+A card may be painted in the other look than the screen's: a card in a section whose tiles follow its contrast
+(docs/PAGES.md "Sections"). So the theme keeps two looks: `theme::screen_dark`, the screen's, which only `set_dark()`
+changes, and `theme::dark`, the look every role and helper reads, which is the screen's except while a card is painted.
+
+- A card holds its look and what lies behind it, relative to the screen's look (`Widgets::look_other`, `ground_role`,
+  `ground_other` in `runtime_tiles.h`), set where the card is placed on its own page (`sections::place`). A change of
+  Dark mode needs no card told: each card's look follows from the screen's.
+- **`CardScope`** is the one door into a card's paint: for as long as it lasts, `theme::dark` is the card's look, and
+  after it, what it was. Every path that paints into a card enters through it, so a card outside a section, and every
+  card of a board without sections, is painted exactly as before.
+- `ground_behind()` is what lies behind the card in that ground's own look (a picture's corners, a bare card), and
+  `card_surface()` the card's own colour in the card's look, both answerable away from a paint.
+
 ## Adding a colour
 
 1. **A role**: one line in `enum Role` and one row in `ROLES`, in the same order (the tests read

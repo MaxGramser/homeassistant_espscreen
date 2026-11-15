@@ -107,17 +107,13 @@
 // Sections on a page (module sections, module_sections.h at the module site at the end of this file).
 namespace runtime_tiles { struct Widgets; }
 namespace sections {
-inline bool flips(const runtime_tiles::Widgets &w);
 inline bool following(lv_obj_t *card);
 inline void follow(lv_obj_t *card, bool on);
-inline bool follows(lv_obj_t *card);
-inline bool stands_out(lv_obj_t *card);
-inline bool ground(lv_obj_t *card, uint32_t &colour);
-inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y);
+inline void place(runtime_tiles::Widgets &w, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y);
+inline void gone(lv_obj_t *card);
 inline void show(int page);
 inline void summaries(int page);
 inline void forget();
-inline void gone(lv_obj_t *card);
 inline void restyle();
 }  // namespace sections
 #endif
@@ -710,26 +706,35 @@ struct Widgets {
 #endif
   // A plugin tile's card (docs/PLUGINS.md, plugin_host.cpp): the plugin's object; it goes with the card's extra layer.
   plugin_host::Card *plugin{};
+  // The card's look and what lies behind it, both relative to the screen's look (theme::screen_dark), so a change of
+  // Dark mode needs no card told: `look_other`, the card is painted in the other look (its section follows its contrast);
+  // `ground_role` in the look `ground_other` gives, what lies behind it (PAGE, or its section's SECTION /
+  // SECTION_CONTRAST panel). Set where the card is placed on its own page (sections::place); a card outside a section,
+  // and every card of a board without sections, keeps the screen's look on the page.
+  bool look_other=false, ground_other=false;
+  uint8_t ground_role=theme::PAGE;
 };
-#ifdef SD_MOD_SECTIONS
-// A card of a section whose tiles follow its contrast is being painted in the other look (SectionLook, render_slot).
-inline bool section_look_on = false;
-#endif
-// The colour behind a card: the panel of the section it stands in, else the page. A picture's corners are rounded over
-// it (an album cover, a camera), and a bare card shows it: a contrast section is dark where the page is light.
+// The one door into a card's paint (docs/THEME.md, "A card's look"): for as long as it lasts, the roles are the card's
+// look. Every path that paints into a card enters through it; outside one the look is the screen's. Nested scopes are
+// fine: each sets the card's look from the screen's, and gives back what was there.
+struct CardScope {
+  bool before, open=true;
+  explicit CardScope(const Widgets &w) : before(theme::dark) { theme::dark = theme::screen_dark != w.look_other; }
+  void end() { if (open) { theme::dark = before; open = false; } }
+  ~CardScope() { end(); }
+  CardScope(const CardScope &) = delete;
+  CardScope &operator=(const CardScope &) = delete;
+};
+// The colour behind a card: the page, or the panel of the section it stands in, in that panel's look. A picture's corners
+// are rounded over it (an album cover, a camera), and a bare card shows it: a contrast section is dark where the page is
+// light.
 inline uint32_t ground_behind(const Widgets &w) {
-#ifdef SD_MOD_SECTIONS
-  uint32_t colour = 0;
-  if (w.tile && ::sections::ground(w.tile, colour)) return colour;
-#endif
-  return theme::hex(theme::PAGE);
+  return theme::hex_in(static_cast<theme::Role>(w.ground_role), theme::screen_dark != w.ground_other);
 }
-// A card's own colour as it is painted: in a section whose tiles follow its contrast, the other look's, also when it is
-// asked for away from render_slot (a picture's question).
+// A card's own colour as it is painted, in the card's look, also when it is asked for away from render_slot (a
+// picture's question).
 inline uint32_t card_surface(const Widgets &w, const Tile &t) {
-#ifdef SD_MOD_SECTIONS
-  theme::Flip other(!section_look_on && w.tile && ::sections::follows(w.tile));
-#endif
+  CardScope scope(w);
   return theme::surface(t.background);
 }
 // A page is being built off the glass (warm_page): its cards ask for no pictures and wake nothing.
@@ -1914,6 +1919,7 @@ inline lv_obj_t *ghost_slider=nullptr;
 inline void ghost_show(lv_obj_t *slider){
   if(ghost_slider==slider || lv_obj_get_style_bg_opa(slider,LV_PART_INDICATOR)!=LV_OPA_TRANSP)return;
   for(auto &w:widgets)if((w.slider==slider || w.control_slider==slider) && w.index<model.count){
+    CardScope scope(w);  // a finger on the slider, outside render_slot
     set_color(slider,LV_STYLE_BG_COLOR,lv_color_hex(theme::state(tile_controls::accent(model.tiles[w.index]))),LV_PART_INDICATOR);
     set_number(slider,LV_STYLE_BG_OPA,LV_OPA_30,LV_PART_INDICATOR);
     set_number(slider,LV_STYLE_BG_OPA,LV_OPA_60,LV_PART_KNOB);
@@ -4075,6 +4081,7 @@ inline uint32_t lock_accent(const Tile &t);
 inline void alarm_tile_look(size_t slot,const Tile *t){
   if(slot>=widgets.size()||!widgets[slot].circle)return;
   auto &w=widgets[slot];
+  CardScope scope(w);  // tick() paints the ring outside render_slot: in the card's look (docs/THEME.md "A card's look")
   // A key of a bedside clock is its circle (render_slot): the ring grows out of the round card, since the card cuts off
   // what its children draw past its edge, and a circle as large as the card has no room inside it.
   lv_obj_t *circle=widgets[slot].key?widgets[slot].tile:widgets[slot].circle;
@@ -8872,13 +8879,14 @@ inline std::string key_value(const Tile &t){
 // A card in a section whose tiles follow its contrast (docs/PAGES.md "Sections") is painted in the other look: every
 // role it asks for while it is drawn comes in that look, and what it takes from the shared paints is set on it in that
 // look once it is drawn (module_sections.h follow). A card that leaves such a section gives those back.
+// A card painted in its section's look (CardScope): what it takes from the shared paints is set on it in that look once
+// it is painted, and given back when it leaves the section (sections::follow).
 struct SectionLook {
-  lv_obj_t *card; bool on;
-  SectionLook(Widgets &w) : card(w.tile), on(::sections::flips(w)) {
+  lv_obj_t *card; bool on; CardScope scope;
+  SectionLook(Widgets &w) : card(w.tile), on(w.tile && w.look_other && !w.full), scope(w) {
     if (on || ::sections::following(card)) { w.cached_active = -1; w.panel_dirty = true; }
-    if (on) { theme::dark = !theme::dark; section_look_on = true; }
   }
-  ~SectionLook() { if (on) { theme::dark = !theme::dark; section_look_on = false; } ::sections::follow(card, on); }
+  ~SectionLook() { scope.end(); ::sections::follow(card, on); }
   SectionLook(const SectionLook &) = delete;
   SectionLook &operator=(const SectionLook &) = delete;
 };
@@ -9375,7 +9383,7 @@ inline void render_slot(size_t slot) {
   uint32_t line;
   {
 #ifdef SD_MOD_SECTIONS
-    theme::Flip other(!own && ::sections::stands_out(w.tile));
+    theme::Flip other(!own && !w.look_other && w.ground_role == theme::SECTION_CONTRAST);
 #endif
     line = theme::outline(own);
   }
@@ -10438,7 +10446,7 @@ inline int place_page(int page, bool kept = false) {
       const auto &tile=model.tiles[w.index];
       const int32_t span_x=tile.column_span(),span_y=tile.row_span();
 #ifdef SD_MOD_SECTIONS
-      ::sections::place(w.tile,page,column,span_x,row,span_y);
+      ::sections::place(w,page,column,span_x,row,span_y);
 #else
       set_cell(w.tile,column,span_x,row,span_y);
 #endif
@@ -11713,6 +11721,7 @@ inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {
 // over the cap is smaller, on the card's dark). Without it the card keeps the one it shows of the same place (the last
 // track's cover, a map before someone moved) until the next is here.
 inline void tile_picture_place(Widgets &w, const Tile &t, int size, int x, int y) {
+  CardScope scope(w);  // also reached from a picture's arrival, outside render_slot
   w.art_size = size; w.art_x = x; w.art_y = y;
 #ifdef SD_MOD_VACUUM_CARD
   if (vacuum_face::picture(w)) { vacuum_face::picture_place(w, t); return; }

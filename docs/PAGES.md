@@ -155,12 +155,13 @@ before it, centred on the capitals; the summary, one entity's state in the words
 right end in the small grey font. A section can stand out (**Contrast background**, off unless chosen): its panel takes
 the page's opposite, `SECTION_CONTRAST`, and its title, icon and summary `SECTION_CONTRAST_INK`; its tiles keep their
 own cards. With **Tiles in contrast too** (beside it, off unless chosen) the whole section is a piece of the other look:
-its panel, its words and its tiles' cards, dark on a dark panel by day and light in Dark mode. The firmware paints those
-cards with the look turned for as long as each is drawn (`theme::Flip` in `render_slot`) and sets what they take from
+its panel, its words and its tiles' cards, dark on a dark panel by day and light in Dark mode. The firmware gives each
+card its look and what lies behind it where the card is placed on its own page (`sections::place`), paints the card in
+that look through `CardScope` (docs/THEME.md, "A card's look") and sets what they take from
 the shared paints on them in the other look (`module_sections.h follow`); the editor, whose mockup is the light look,
 draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). A picture on a card in a section (an album cover, a
 camera, still or live) rounds its corners over the section's panel, the dark one in contrast, never over the page
-(`runtime_tiles::ground_behind`, `sections::ground`): a cover asked over the page left a light frame around its card on
+(`runtime_tiles::ground_behind`): a cover asked over the page left a light frame around its card on
 a contrast panel. The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
 on the glass.
 

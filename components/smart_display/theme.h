@@ -250,10 +250,15 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
   /* SECTION_CONTRAST_INK */     {0xF0F0F0, 0x181818},
 };
 
-// The look on screen. The board sets it through set_dark() (below) from the Dark mode setting; the table and the
-// helpers only read it.
+// The look on screen (screen_dark): the board sets it through set_dark() (below) from the Dark mode setting. And the look
+// the table and the helpers read (dark): the screen's, except while a card is painted that carries the other look (a
+// section whose tiles follow its contrast, docs/PAGES.md "Sections"): runtime_tiles' CardScope sets it to the card's look
+// for as long as the card is painted, and back.
+inline bool screen_dark = false;
 inline bool dark = false;
 inline uint32_t hex(Role role) { return dark ? ROLES[role].dark : ROLES[role].light; }
+// A role in a given look, whatever look is painted now.
+inline uint32_t hex_in(Role role, bool in_dark) { return in_dark ? ROLES[role].dark : ROLES[role].light; }
 // The other look for a while (a section whose tiles follow its contrast, docs/PAGES.md "Sections"): what is painted while
 // it lasts asks for every role in the other look. The shared paints keep the look of the screen.
 struct Flip {
@@ -524,8 +529,8 @@ inline void (*redraw)() = nullptr;
 // glass is drawn again once, whole. A look the screen already has costs nothing, so the setting may be applied on every
 // change.
 inline void set_dark(bool on) {
-  if (on == dark) return;
-  dark = on;
+  if (on == screen_dark && on == dark) return;
+  screen_dark = dark = on;
   if (paints) paints();
   for (size_t i = 0; i < own.size(); ++i) if (own[i]) fill(own[i], static_cast<Paint>(i));
   // fill() only changes colours, and LVGL reads a colour when it draws: all a new colour asks of a widget is to be drawn
