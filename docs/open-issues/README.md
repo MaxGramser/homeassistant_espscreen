@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [slow-single-cards.md](slow-single-cards.md) | A scene card draws in 17 to 18 ms and a light card once in 44 ms, where most cards take 2 to 8 | 2026-11-15 |
 | [camera-tile-picture-left-on-the-next-page.md](camera-tile-picture-left-on-the-next-page.md) | A camera tile's last picture stayed on the next page where that page drew nothing; a redraw at the stream's end is in, not yet proven | 2026-11-15 |
 | [veil-holds-an-s3-loop.md](veil-holds-an-s3-loop.md) | The dim laid on the glass holds an ESP32-S3's main loop about 60 ms, over the 50 ms limit, and the governor steps down for a moment | 2026-11-10 |
 | [p4-panel-underrun.md](p4-panel-underrun.md) | A real underrun of the panel on an ESP32-P4: one counted flash now and then (GitHub #379), not reproduced on the bench | 2026-11-09 |

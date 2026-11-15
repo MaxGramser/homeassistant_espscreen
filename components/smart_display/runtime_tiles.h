@@ -11072,7 +11072,7 @@ inline void tick() {
   auto card=[&](size_t index){ mark_tile(index); redraw=true; };
   // HA dropping or returning and the feed timing out change every card at once.
   bool now_fresh=fresh();
-  if(now_fresh!=was_fresh){was_fresh=now_fresh;ESP_LOGI("render","the feed is %s (Home Assistant %s, the app's feed %s)",now_fresh?"fresh again":"no longer fresh",ha_connected()?"connected":"away",feed_alive()?"alive":"silent");mark_all(now_fresh?"feed fresh again":"feed no longer fresh");redraw=true;}
+  if(now_fresh!=was_fresh){was_fresh=now_fresh;ESP_LOGI("render","the feed is %s (Home Assistant %s, the app's feed %s, protocol %s, transfer %s/%s, model %s)",now_fresh?"fresh again":"no longer fresh",ha_connected()?"connected":"away",feed_alive()?"alive":"silent",protocol_problem==ProtocolProblem::none?"ok":"problem",transfer.active?"active":"inactive",transfer.begun?"begun":"not begun",model.ready()?"ready":"not ready");mark_all(now_fresh?"feed fresh again":"feed no longer fresh");redraw=true;}
 #ifdef USE_API_HOMEASSISTANT_ACTION_RESPONSES
   expire_calls(esphome::millis());
 #endif
