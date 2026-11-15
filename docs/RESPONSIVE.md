@@ -237,7 +237,10 @@ behind it. The effects page and the colour card do the same on their own roots.
 
 Anything a finger must hit keeps at least `ui::touch_min()` (7 mm of glass, from the board's density) as its
 touch area, however thin it is drawn: `overlay_card::touchable(object, drawn_thickness)` grows the click area
-instead of the drawing, so a blind's slider on a small panel stays usable.
+instead of the drawing, so a blind's slider on a small panel stays usable. A key in the last row of a card that
+fills the glass also takes the strip between it and the glass's bottom edge (`detail_reach_down`): a finger aimed
+that low lands on the strip as often as on the key, and a touch panel reads a press near its edge a few pixels
+further out. The history card's range keys do this.
 
 ## Designing a card or a page here
 

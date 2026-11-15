@@ -144,6 +144,10 @@ exactly as before sections, and never reflow. A section never holds another sect
 draw sections (docs/MODULES.md, module `sections`); the editor offers them nowhere else, so a CYD or another board
 with 4 MB of flash gets none of it.
 
+A section is for grouping: what the app proposes by itself (a first layout made for a screen) puts two or more cards
+in each section and leaves a lone card loose. A user may still make a section of one card, or keep one; nothing warns
+or refuses it.
+
 **The look** (`components/smart_display/module_sections.h`): the panel covers exactly the section's cells, the
 `SECTION` role, its corner the card's radius plus the padding. The title stands in the panel's top, in the tile name's
 font and ink, its capitals as far from the panel's top as from its side; its icon from the small icon font stands
@@ -154,7 +158,10 @@ own cards. With **Tiles in contrast too** (beside it, off unless chosen) the who
 its panel, its words and its tiles' cards, dark on a dark panel by day and light in Dark mode. The firmware paints those
 cards with the look turned for as long as each is drawn (`theme::Flip` in `render_slot`) and sets what they take from
 the shared paints on them in the other look (`module_sections.h follow`); the editor, whose mockup is the light look,
-draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
+draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). A picture on a card in a section (an album cover, a
+camera, still or live) rounds its corners over the section's panel, the dark one in contrast, never over the page
+(`runtime_tiles::ground_behind`, `sections::ground`): a cover asked over the page left a light frame around its card on
+a contrast panel. The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
 on the glass.
 
 **Room.** Adding a section changes no tile outside it: the page's rows stay what they are, and a loose tile keeps its

@@ -15,7 +15,9 @@
 // right. A section in contrast takes the page's opposite (SECTION_CONTRAST) and its words SECTION_CONTRAST_INK; its
 // tiles keep their own cards, unless its tiles follow the contrast: then the whole section is a piece of the other look,
 // its panel, its words and its cards (painted in the other look by render_slot, theme::Flip; what a card takes from the
-// shared paints is set on it in the other look, follow()). The editor draws the same from boards.json's `section` metrics
+// shared paints is set on it in the other look, follow()). A picture on a card in a section (an album cover, a camera,
+// live or still) rounds its corners over the section's panel, not the page (ground(), runtime_tiles::ground_behind), and a card's
+// hairline in a contrast section is the other look's line, the one that sets a card off from that panel (stands_out()). The editor draws the same from boards.json's `section` metrics
 // (tools/generate_board_shapes.py, web/src/model/sections.ts); tests/test_section_layout.cpp proves the arithmetic.
 //
 // The decorations of a page are made once, when the page is first placed (on the glass, or prepared off it), and kept:
@@ -87,11 +89,55 @@ inline void margin(lv_obj_t *card, lv_style_prop_t prop, int32_t value) {
   v.num = value;
   lv_obj_set_local_style_prop(card, prop, v, LV_PART_MAIN);
 }
+// The section each placed card stands in (its page and the section's index there, -1 for none), so a picture's corners
+// can be cut over the panel behind the card instead of the page (ground()).
+struct Home { lv_obj_t *card; int page; int index; };
+inline std::vector<Home> homes;
+inline void remember(lv_obj_t *card, int page, int index) {
+  for (auto &h : homes) if (h.card == card) { h.page = page; h.index = index; return; }
+  if (index >= 0) homes.push_back({card, page, index});
+}
+inline const section_layout::Section *section_of(lv_obj_t *card) {
+  for (const auto &h : homes) {
+    if (h.card != card) continue;
+    if (h.index < 0 || h.page < 0 || size_t(h.page) >= drawn.size()) return nullptr;
+    const auto &list = of(h.page);
+    return size_t(h.index) < list.size() ? &list[h.index] : nullptr;
+  }
+  return nullptr;
+}
+// Whether the card stands in a section whose tiles follow its contrast.
+inline bool follows(lv_obj_t *card) {
+  const auto *s = section_of(card);
+  return s && s->follow;
+}
+// Whether the card stands in a contrast section whose tiles keep their own look: what lies behind it is the other look.
+inline bool stands_out(lv_obj_t *card) {
+  const auto *s = section_of(card);
+  return s && s->contrast && !s->follow;
+}
+// The colour behind the card, as paint() gives its section's panel, in the look the caller is in: while a card of a
+// following section is painted (runtime_tiles::section_look_on) the look is already the other one. False outside a
+// section, where the page is behind the card.
+inline bool ground(lv_obj_t *card, uint32_t &colour) {
+  const auto *s = section_of(card);
+  if (!s) return false;
+  if (s->follow) {
+    theme::Flip other(!runtime_tiles::section_look_on);
+    colour = theme::hex(theme::SECTION);
+  } else {
+    colour = theme::hex(s->contrast ? theme::SECTION_CONTRAST : theme::SECTION);
+  }
+  return true;
+}
 inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int32_t row, int32_t span_y) {
   set_cell(card, column, span_x, row, span_y);
   int32_t left = 0, right = 0, top = 0, bottom = 0;
+  int index = -1, at = -1;
   for (const auto &s : of(page)) {
+    ++at;
     if (column < s.column || column + span_x > s.column + s.columns || row < s.row || row + span_y > s.row + s.rows) continue;
+    index = at;
     const int g = gap();
     if (column == s.column) left = g;
     if (column + span_x == s.column + s.columns) right = g;
@@ -100,6 +146,7 @@ inline void place(lv_obj_t *card, int page, int32_t column, int32_t span_x, int3
     bottom = room.bottom;
     break;
   }
+  remember(card, page, index);
   margin(card, LV_STYLE_MARGIN_LEFT, left);
   margin(card, LV_STYLE_MARGIN_RIGHT, right);
   margin(card, LV_STYLE_MARGIN_TOP, top);
@@ -292,6 +339,7 @@ inline void forget() {
   for (auto &[card, set] : followed)
     for (const auto &o : set) if (lv_obj_is_valid(o.obj)) lv_obj_remove_local_style_prop(o.obj, o.prop, o.part);
   followed.clear();
+  homes.clear();
   shown = -1;
 }
 }  // namespace sections

@@ -1624,6 +1624,17 @@
         "missed": "Niemand raakte hem aan voor de timeout",
         "seen": "Een gemiste bel werd vanuit de bovenbalk weer geopend"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot heeft een AI Task in Home Assistant nodig die data kan maken (Instellingen > Apparaten & diensten, een AI-integratie).",
+      "notes": {
+        "unknown": "{entity} weggelaten: dat is geen entiteit van deze Home Assistant.",
+        "pages_full": "Dit scherm neemt {pages} pagina's, dus de rest is weggelaten.",
+        "continued": "\"{page}\" was vol, dus de rest staat op een pagina erna.",
+        "section_full": "De sectie \"{section}\" is vol: {count} tegels zijn weggelaten.",
+        "no_page": "Er is geen pagina {page}.",
+        "page_full": "Pagina {page} is vol, dus {count} tegels zijn weggelaten."
+      }
     }
   },
   "editor": {
@@ -3834,7 +3845,8 @@
         "changed": "indeling gewijzigd",
         "restored": "niet-opgeslagen wijzigingen hersteld",
         "taken_over": "wijzigingen uit het andere tabblad overgenomen",
-        "auto_layout": "de indeling die voor je gemaakt is"
+        "auto_layout": "de indeling die voor je gemaakt is",
+        "layoutbot": "wijziging van Layoutbot"
       }
     },
     "draft": {
@@ -4764,6 +4776,55 @@
       "offer_text": "Tessera kan dit scherm indelen met je ruimtes en apparaten uit Home Assistant. Daarna kun je alles aanpassen.",
       "offer_make": "Eerste indeling maken",
       "offer_empty": "Leeg beginnen"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Vraag het Layoutbot",
+      "close": "Sluiten",
+      "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
+      "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag en de namen en ruimtes van je entiteiten gaan daarheen.",
+      "placeholder": "Maak een pagina met…",
+      "send": {
+        "ask": "Zal ik het naar {which} sturen?",
+        "yes": "Ja, versturen",
+        "no": "Nu niet",
+        "sending": "Versturen…",
+        "sent": "Verstuurd. Het scherm laat het zo zien.",
+        "not_all": "Niet alles is verstuurd.",
+        "failed": "Versturen naar {which} lukte niet."
+      },
+      "busy": "Layoutbot deelt je pagina's in",
+      "seconds": "{n} s",
+      "stop": "Stoppen",
+      "stopped": "Gestopt. Er is niets veranderd.",
+      "nothing": "Er is niets veranderd.",
+      "stale": "De pagina's veranderden terwijl ik nadacht, dus ik heb ze gelaten zoals ze waren. Vraag het nog eens.",
+      "show": "Toon",
+      "undo": "Ongedaan maken",
+      "undone": "Ongedaan gemaakt",
+      "suggest": {
+        "lights_sections": "Zet alle lampen op één pagina, met een sectie per kamer",
+        "lights": "Zet alle lampen op één pagina",
+        "covers_sections": "Een pagina met alle rolgordijnen en gordijnen, in twee secties",
+        "covers": "Een pagina met alle rolgordijnen en gordijnen",
+        "media": "Een muziekpagina met alle speakers",
+        "climate": "Een klimaatpagina met de verwarming en de temperaturen"
+      },
+      "what": {
+        "pages": "1 nieuwe pagina | {n} nieuwe pagina's",
+        "added": "1 tegel erbij | {n} tegels erbij",
+        "removed": "1 tegel eraf | {n} tegels eraf",
+        "changed": "pagina {pages} aangepast | pagina's {pages} aangepast"
+      },
+      "connect": {
+        "title": "Koppel een AI in Home Assistant",
+        "short": "Nog niet gekoppeld",
+        "body": "Ik deel de pagina's van dit scherm in vanuit één zin, zoals \"alle lampen op één pagina, een sectie per kamer\". Daarvoor gebruik ik de AI die je aan Home Assistant koppelt: voeg een van deze integraties toe en ik doe de rest.",
+        "cloud": "In de cloud, met je eigen sleutel",
+        "local": "Op je eigen computer",
+        "after": "Elke AI-integratie met AI Tasks werkt. Kijk hier opnieuw zodra die is toegevoegd.",
+        "again": "Opnieuw kijken"
+      }
     }
   }
 }

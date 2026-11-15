@@ -1628,6 +1628,17 @@
         "missed": "Nobody touched it before its timeout",
         "seen": "A missed ring was opened again from the top bar"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot needs an AI Task in Home Assistant that can generate data (Settings > Devices & services, an AI integration).",
+      "notes": {
+        "unknown": "Left out {entity}: it is not an entity of this Home Assistant.",
+        "pages_full": "This screen takes {pages} pages, so the rest was left out.",
+        "continued": "\"{page}\" was full, so the rest went on a page after it.",
+        "section_full": "The section \"{section}\" is full: {count} tiles were left out.",
+        "no_page": "There is no page {page}.",
+        "page_full": "Page {page} is full, so {count} tiles were left out."
+      }
     }
   },
   "editor": {
@@ -3840,7 +3851,8 @@
         "changed": "layout changed",
         "restored": "unsaved changes restored",
         "taken_over": "changes from the other tab taken over",
-        "auto_layout": "the layout made for you"
+        "auto_layout": "the layout made for you",
+        "layoutbot": "Layoutbot's change"
       }
     },
     "draft": {
@@ -4815,6 +4827,55 @@
       "offer_text": "Tessera can lay out this screen from your Home Assistant rooms and devices. You can change everything afterwards.",
       "offer_make": "Make a first layout",
       "offer_empty": "Start empty"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Ask Layoutbot",
+      "close": "Close",
+      "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
+      "privacy": "I use {agent} from Home Assistant. Your question and the names and areas of your entities go to it.",
+      "placeholder": "Make a page with…",
+      "send": {
+        "ask": "Shall I send it to {which}?",
+        "yes": "Yes, send it",
+        "no": "Not now",
+        "sending": "Sending…",
+        "sent": "Sent. The screen shows it in a moment.",
+        "not_all": "Not everything was sent.",
+        "failed": "Could not send to {which}."
+      },
+      "busy": "Layoutbot is arranging your pages",
+      "seconds": "{n} s",
+      "stop": "Stop",
+      "stopped": "Stopped. Nothing changed.",
+      "nothing": "Nothing changed.",
+      "stale": "The pages changed while I was thinking, so I left them as they are. Ask me again.",
+      "show": "Show",
+      "undo": "Undo",
+      "undone": "Undone",
+      "suggest": {
+        "lights_sections": "Put all the lights on one page, in a section per room",
+        "lights": "Put all the lights on one page",
+        "covers_sections": "A page with all the blinds and curtains, in two sections",
+        "covers": "A page with all the blinds and curtains",
+        "media": "A music page with all the speakers",
+        "climate": "A climate page with the heating and the temperatures"
+      },
+      "what": {
+        "pages": "1 new page | {n} new pages",
+        "added": "1 tile added | {n} tiles added",
+        "removed": "1 tile taken off | {n} tiles taken off",
+        "changed": "page {pages} changed | pages {pages} changed"
+      },
+      "connect": {
+        "title": "Connect an AI in Home Assistant",
+        "short": "Not connected yet",
+        "body": "I arrange this screen's pages from a sentence, such as \"all the lights on one page, a section per room\". For that I use the AI you connect to Home Assistant: add one of these integrations and I do the rest.",
+        "cloud": "In the cloud, with your own key",
+        "local": "On your own computer",
+        "after": "Any AI integration with AI Tasks works. Once it is added, look again here.",
+        "again": "Look again"
+      }
     }
   }
 }

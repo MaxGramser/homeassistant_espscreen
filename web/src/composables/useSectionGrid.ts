@@ -12,8 +12,11 @@ export type SectionGrid = {
   margins(column: number, row: number, columns: number, rows: number): CellMargins;
   // Whether a card there stands in a section whose tiles follow its contrast: drawn in the other look.
   otherLook(column: number, row: number, columns: number, rows: number): boolean;
+  // Whether a card there stands in a contrast section whose tiles keep their own look: its hairline is the other look's
+  // line, the one that sets it off from that panel (module_sections.h stands_out).
+  standsOut(column: number, row: number, columns: number, rows: number): boolean;
 };
 export const NO_MARGINS: CellMargins = { left: 0, right: 0, top: 0, bottom: 0 };
-export const PLAIN_GRID: SectionGrid = { margins: () => NO_MARGINS, otherLook: () => false };
+export const PLAIN_GRID: SectionGrid = { margins: () => NO_MARGINS, otherLook: () => false, standsOut: () => false };
 export const SECTION_GRID: InjectionKey<ComputedRef<SectionGrid>> = Symbol("section-grid");
 export const useSectionGrid = () => inject(SECTION_GRID, null);

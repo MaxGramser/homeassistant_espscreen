@@ -17,7 +17,8 @@ built in and the seams between them.
 
 - **Place**: where a picture lands. A rectangle of an owner on the glass: a tile's card, the icon's circle, the full
   view, an open card, the screensaver, an alert's frame, a place a plugin laid out. A place has a size in pixels, a
-  corner radius, the colour behind its corners (its ground) and how the picture fills it.
+  corner radius, the colour behind its corners (its ground: what lies behind the card, the page or the panel of the
+  section the card stands in) and how the picture fills it.
 - **Source**: what a picture is of, as a typed address (below). The screen names the source; ESP Screen Manager alone
   knows how to get it, and whether this screen may have it.
 - **Question**: what a screen asks for one owner: its places, a source per place, how each is painted, and how it

@@ -47,6 +47,15 @@ HOUSE = {
     'cover.living_blinds': ('Living room', 'open', {'current_position': 100, 'device_class': 'blind', 'supported_features': 15}, {'icon': 'blinds-open'}),
     'cover.kitchen_blinds': ('Kitchen', 'open', {'current_position': 60, 'device_class': 'blind', 'supported_features': 15}, {'icon': 'blinds-open'}),
 }
+# A player with its album cover over the whole card (display: cover), its picture answered as the add-on paints it.
+PLAYING = {'volume_level': 0.42, 'media_title': 'Evening Drive', 'media_artist': 'Nova Coast', 'media_album_name': 'Low Sun',
+           'supported_features': 8321599, 'entity_picture': '/api/media_player_proxy/media_player.x?token=x&cache=ram'}
+HOUSE.update({
+    'media_player.living': ('Living room', 'playing', PLAYING, {'display': 'cover'}),
+    'media_player.kitchen': ('Kitchen', 'playing', PLAYING, {'display': 'cover'}),
+    'media_player.office': ('Office', 'playing', PLAYING, {'display': 'cover'}),
+    'media_player.den': ('Den', 'playing', PLAYING, {'display': 'cover'}),
+})
 # (title, icon, summary entity, column, row, columns, rows[, contrast[, its tiles follow]]) and the tiles (entity, column, row, columns, rows) on the
 # page's grid: loose ones where no block is.
 TEN = dict(grid=(6, 5), sections=[
@@ -65,6 +74,19 @@ FOUR = dict(grid=(2, 3), sections=[('Lights', 'lightbulb-group', 'sensor.outside
     ('light.ceiling', 0, 1, 1, 1), ('light.sofa', 1, 1, 1, 1), ('light.desk', 0, 2, 1, 1), ('light.kitchen', 1, 2, 1, 1),
 ])
 PAGES = {'jc8012p4a1': TEN, 'guition': FOUR, 'reterminald1001': TEN}
+# Pictures in sections: a cover's corners are rounded over what is behind its card, the page, a section's panel, a
+# contrast section's dark panel, and the other look's panel where the tiles follow the contrast.
+COVERS = dict(grid=(6, 5), sections=[
+    ('Music', 'music', '', 0, 0, 2, 3, True),
+    ('Following', 'music', '', 2, 0, 2, 3, True, True),
+    ('Plain', 'speaker', '', 4, 0, 2, 3),
+], tiles=[
+    ('media_player.living', 0, 0, 2, 2), ('media_player.tv', 0, 2, 2, 1),
+    ('media_player.kitchen', 2, 0, 2, 2), ('light.ceiling', 2, 2, 2, 1),
+    ('media_player.office', 4, 0, 2, 2), ('light.desk', 4, 2, 1, 1),
+    ('media_player.den', 0, 3, 2, 2),
+])
+WITH_COVERS = {'jc8012p4a1', 'reterminald1001'}
 
 
 def page_document(spec, grid):
@@ -99,10 +121,17 @@ class Sections(run.Run):
     def __init__(self, build, out, pictures):
         super().__init__(build, out, pictures, (1280, 800))
 
-    async def send(self, record, region, states):
+    async def send_pages(self, record, region, states):
         grid = send_layout.Grid(record['sourceGrid']['columns'], record['sourceGrid']['rows'])
         compiled = send_layout.compile_tiles(record['layout'], grid)
-        values = [send_layout.state_message(i, tile, states) for i, tile in enumerate(compiled)]
+        from core import extras
+        import media_library
+        values = [send_layout.state_message(i, tile, states, extras(tile, states)) for i, tile in enumerate(compiled)]
+        # A player's cover and its two colours, as the add-on sends them with the state.
+        for value in values:
+            attributes = states.get(value['entity'], {}).get('attributes', {})
+            if attributes.get('entity_picture'):
+                value.setdefault('x', {}).update(media_library.player_extras(attributes, 0, '2B484F,121E20'))
         bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
         # The summaries as the add-on words them: the entity's state with its unit.
         sums = [[(f"{states[s['summary']]['state']} {states[s['summary']]['attributes'].get('unit_of_measurement', '')}".strip()
@@ -139,7 +168,7 @@ class Sections(run.Run):
         record, plain = page_document(spec, grid)
         shots = 0
         for name, chosen in (('sections', record), ('plain', plain)):
-            await self.send(chosen, region, states)
+            await self.send_pages(chosen, region, states)
             for look in ('light', 'dark'):
                 self.client.switch_command(dark.key, look == 'dark')
                 await asyncio.sleep(1.0)
@@ -150,7 +179,41 @@ class Sections(run.Run):
                 shots += 1
             self.client.switch_command(dark.key, False)
             await asyncio.sleep(0.5)
+        if self.item.board in WITH_COVERS and not self.item.rotation:
+            shots += await self.covers(region, states, dark)
         return 1, shots
+
+    async def covers(self, region, states, dark):
+        """Covers in sections, each look with its own question (the ground is part of it), answered as the add-on paints
+        it: the corners must take the colour behind the card, never a light frame on a dark panel."""
+        import media_art
+        calls = []
+        self.client.subscribe_service_calls(calls.append)
+        record, _ = page_document(COVERS, send_layout.Grid(*COVERS['grid']))
+        shots, served = 0, 0
+        # One cover at a time (the host keeps few pictures): the others play without a picture.
+        for player, look in [(p, l) for p in ('media_player.living', 'media_player.kitchen') for l in ('light', 'dark')]:
+            alone = {e: ({**v, 'attributes': {k: a for k, a in v['attributes'].items() if k != 'entity_picture'}}
+                         if e.startswith('media_player.') and e != player else v) for e, v in states.items()}
+            await self.send_pages(record, region, alone)
+            self.client.switch_command(dark.key, look == 'dark')
+            await asyncio.sleep(1.0)
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            end = time.monotonic() + 8
+            while time.monotonic() < end:
+                for call, read in self.unanswered(calls):
+                    body, question = run.painted(read.question, [media_art.png(served % 4, 640)])
+                    grounds = sorted({f'{p.ground:06X}' for p in question.places if getattr(p, 'ground', None) is not None})
+                    print(f'covers {look}: {read.what} asked over {grounds}', flush=True)
+                    await self.reply(read, self.pictures.url(f'{self.item.key}-cover-{served}.bmp', body))
+                    call.data['_answered'] = '1'
+                    served += 1
+                await asyncio.sleep(0.1)
+            await self.render(f'covers-{player.split(".")[1]}-{look}', timeout=6)
+            shots += 1
+        self.client.switch_command(dark.key, False)
+        return shots
 
 
 def main():

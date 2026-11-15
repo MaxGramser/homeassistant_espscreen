@@ -137,6 +137,9 @@ void give_back(Room room);
 // LVGL draws the whole glass again (a full view's stream gone for good, its room drawn again while its task may still
 // have been busy with its last picture).
 void redraw_all();
+// LVGL draws a room's area again, armed or not: a tile's stream gone for good, as redraw_all for a full view. A 10.1
+// inch kept a camera tile's last picture over the next page where nothing of that page drew (2026-11-15).
+void redraw(Room room);
 // Every pixel of the glass outside `keep` (a rectangle of the screen as LVGL lays it out, empty for none) goes under a
 // veil of `scrim` at `opa`, or comes out from under it, in the frame buffer itself, without LVGL: what a dim over the
 // whole glass would cost LVGL a whole redraw for. Row by row in four passes through the glass, so what the panel shows
@@ -200,6 +203,7 @@ inline void disarm(Room, bool) {}
 inline void follow(Room) {}
 inline void give_back(Room) {}
 inline void redraw_all() {}
+inline void redraw(Room) {}
 inline bool veil(const Rect &, uint16_t, uint8_t, bool) { return false; }
 inline bool veilable() { return false; }
 inline bool drawing() { return false; }
