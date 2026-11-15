@@ -26,6 +26,8 @@ const draft = ref("");
 const field = ref<HTMLTextAreaElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 useStickToBottom(list, () => bot.messages.length + (bot.busy ? 1 : 0));
+// A new message grows into place (its enter transition): follow it to the end once it stands.
+watch(() => bot.messages.length, () => setTimeout(() => list.value?.scrollTo({ top: list.value.scrollHeight, behavior: "smooth" }), 340));
 
 const sections = computed(() => Boolean(scr.currentScreen?.sections));
 const suggestions = computed(() => (sections.value
@@ -159,7 +161,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
                 </div>
               </div>
               <!-- After every real change the editor itself asks, never the model: send it to the screens? -->
-              <div v-if="message.send && message.send !== 'declined' && (message.send !== 'ask' || bot.targets(message).length)" :key="`${message.id}-send`" class="msg bot send">
+              <div v-if="message.send && (message.send !== 'ask' || bot.targets(message).length)" :key="`${message.id}-send`" class="msg bot send">
                 <template v-if="message.send === 'ask'">
                   <p>{{ t("editor.layoutbot.send.ask", { which: names(bot.targets(message)) }, bot.targets(message).length) }}</p>
                   <div class="msg-actions">
@@ -169,6 +171,7 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
                 </template>
                 <p v-else-if="message.send === 'sending'" class="send-state"><span class="bot-spark" aria-hidden="true"></span>{{ t("editor.layoutbot.send.sending") }}</p>
                 <p v-else-if="message.send === 'sent'" class="send-state ok"><Icon name="check" />{{ t("editor.layoutbot.send.sent") }}</p>
+                <p v-else-if="message.send === 'declined'" class="send-state">{{ t("editor.layoutbot.send.declined") }}</p>
                 <p v-else class="send-state">{{ t("editor.layoutbot.send.not_all") }}</p>
               </div>
             </template>

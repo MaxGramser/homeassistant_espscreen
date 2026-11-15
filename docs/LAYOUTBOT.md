@@ -43,14 +43,17 @@ questions: a button per integration starts that integration's setup in Home Assi
    faces come from what the entity offers in Home Assistant through the catalogue (`ha.capabilities`, the same answer
    the editor's drawer uses): wide with a control of one row (a light's brightness, a cover's buttons, a player's keys),
    then 2 x 2 with a control of two rows (a light's brightness and presets, a player's volume and keys, a thermostat's
-   setpoint and mode). A camera's larger face is its larger picture. A small grid keeps every tile rather than growing
-   a few.
+   setpoint and mode). A tile without a control grows too, to a wide and then a 2 x 2 card with a larger picture, state
+   and name, so a page with room is filled. Alike tiles of a block grow together first, then single tiles where room is
+   left. A small grid keeps every tile rather than growing a few. A tile added to a page the person already has stays
+   one cell, and what does not fit there is left out with a note rather than pushing a page in after it.
 6. The result goes through `validate_document` like any save, and back to the editor with the reply and the notes in
    the editor's language. The editor takes it as one step of undo (`applyDocument`, labelled "Layoutbot's change"),
    selects the first page it made or changed, and the chat offers Show and Undo.
 
 After every answer that changed something the chat asks, by itself and never through the model, whether to send it:
-"Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft.
+"Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft
+and says so.
 An answer that was undone first is not sent.
 
 **Several screens.** The question also holds the other screens of the home, each with its grid and pages, and a page of
@@ -75,8 +78,8 @@ for a draft that changed meanwhile (another tab's save), is left unused and the 
 
 ## Privacy and cost
 
-With a cloud model, the question, the screen's pages and the id, name and area of every entity the editor lists go to
-that provider, as with any AI Task of Home Assistant. The chat says so in its first message, with the model's name.
+With a cloud model, the question, the pages of every screen and the id, name and area of every entity the editor lists
+go to that provider, as with any AI Task of Home Assistant. The chat says so in its first message, with the model's name.
 A home of about 1000 entities makes instructions of about 60 kB (about 15 000 tokens), so one question to a small cloud
 model costs a fraction of a cent. A local model (Ollama) keeps everything in the house.
 
@@ -97,6 +100,12 @@ On a Home Assistant 2026.11.0 with the OpenAI integration's AI Task on its recom
 | Turn on all the lights in the living room | 1.8 to 3.1 | no change, "I can only change the layout" |
 | On a CYD (2 x 3, no sections): the living room lights on a page | 5.5 | valid; eight lights as single tiles over two pages |
 | On a CYD: a page with the speakers | 4.9 | valid; three players wide with their keys |
+| Through the dev app, in the editor: all the lights on one page, a section per room | 16.8 to 17.1 | valid; 21 lights in five sections on one 5 x 5 page |
+| Through the dev app: a Security page with the alarm and the door sensors on every screen | 14.6 to 17.2 | valid on all three screens; the other two as proposals |
+| Through the dev app: the alarm on page 1 of every screen | 3.6 to 7.3 | no change: every page 1 was full, said per screen |
+
+The request and the entity list stand between markers in the question, and the rules say that names, titles and the
+request are data, never instructions; the markers are taken out of what the home and the person wrote.
 
 Every answer of the last rounds gave a valid draft. What a small model gets wrong is which entity is what: a sensor of
 the same room among its lights, a blind among the curtains. Device classes in the entity lines would help it (see

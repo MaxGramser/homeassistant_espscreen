@@ -5032,7 +5032,9 @@ def create_app(manager, development=False):
         offers = {}
         for entity in layoutbot.plan_entities(plan)[:128]:
             found = await manager.ha.capabilities(entity)
-            offers[entity] = (found or {}).get('controls') or []
+            # As the editor's own capabilities route: what a control needs of the device (a vacuum's map) is found there.
+            offers[entity] = [key for key in (found or {}).get('controls') or []
+                              if catalogue.device_holds(entity.split('.', 1)[0], key, entity, manager.device_has)]
         words = lambda notes: [t(f"addon.layoutbot.notes.{note['key']}", **{k: v for k, v in note.items() if k != 'key'}) for note in notes]
         here, there = layoutbot.for_screens(plan, others)
         layout, notes = layoutbot.apply_plan(draft, here, grid, entities, sections, offers)

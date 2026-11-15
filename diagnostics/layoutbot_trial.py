@@ -1,4 +1,4 @@
-"""Try layoutbot, the editor's chat prototype (screen_manager/app/layoutbot.py) against a real Home Assistant.
+"""Try Layoutbot, the editor's chat (screen_manager/app/layoutbot.py) against a real Home Assistant.
 
 Reads only: the app's inventory through its ingress (the screens' documents and the entities), and asks the AI Task
 for a plan per prompt. Nothing is saved, no action other than `ai_task.generate_data` is called. The result of each
