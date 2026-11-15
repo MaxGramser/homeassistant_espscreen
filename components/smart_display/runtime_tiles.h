@@ -5096,7 +5096,11 @@ inline lv_obj_t *media_total_label=nullptr;
 inline int media_bar_width=0;
 inline media_card::Rect media_art_rect;  // where the card's cover goes once it is here
 inline uint32_t media_accent(){return theme::foreground(theme::ha::LIGHT_BLUE);}
-inline const lv_font_t *tile_icon_font(){for(auto &w:widgets)if(w.icon_font)return w.icon_font;return mini_icon_font?mini_icon_font:detail_font;}
+// The tile's icon font: the one the look gives every card's icon, fixed at boot by make_cells (packages/core.yaml), as
+// every other font is. It used to be the first bound card that had one, so a card drawn while another page's cards
+// were bound measured theirs (an empty meter ring on a 10.1 inch, 2026-11-15); the scan stays only for before boot.
+inline const lv_font_t *cell_icon_font = nullptr;
+inline const lv_font_t *tile_icon_font(){if(cell_icon_font)return cell_icon_font;for(auto &w:widgets)if(w.icon_font)return w.icon_font;return mini_icon_font?mini_icon_font:detail_font;}
 // `duration`: the track's length, whose time is the widest beside the bar (firmware 0.46.0). A board that draws no
 // pictures gets no place for a cover (media_card.h).
 inline media_card::Metrics media_metrics(bool large,uint32_t duration=0){
@@ -6704,7 +6708,6 @@ inline void make_card(Widgets &into, size_t index, const Widgets &like) {
 // The board's own cards, one per cell of the grid the screen runs on, made at boot (packages/core.yaml) from the board's
 // icon size and the icon font. They used to be widgets in YAML, a file of them per number of cells (packages/cells/,
 // before firmware 0.53.0), which tied a screen to the grid it was built with.
-inline const lv_font_t *cell_icon_font = nullptr;
 inline int cell_circle = 0;
 inline void make_cells(const lv_font_t *icon_font, int circle_size) {
   cell_icon_font = icon_font;

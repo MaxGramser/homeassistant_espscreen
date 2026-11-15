@@ -132,7 +132,9 @@ the glass in `packages/looks/shared/digits.yaml`. A new card takes the largest s
 board's flash, the 4 MB boards have no room to spare, and the CYD runs close to its budget (docs/RELEASING.md).
 `tests/test_font_set.py` fails on a font that slips in with a feature, so adding one is a deliberate change to that
 set. `tools/font_metrics.py` reads a font's line height from the TrueType file, for a check that needs the height LVGL
-will get without building.
+will get without building. Code asks for a font by its role, never by looking at another card: the tile's icon font is
+`runtime_tiles::tile_icon_font()`, fixed at boot (`materialdesign_icons`, handed to `make_cells`), so a card drawn while
+another page's cards are bound measures the same font.
 
 The five text fonts carry the same characters (firmware 0.36.0+): every printable ASCII character, the letters European
 languages write with, and three hearts (♡ ♥ ❤) from `fonts/NotoSansSymbols2-hearts.ttf` through ESPHome's `extras:`,
