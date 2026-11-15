@@ -48,6 +48,8 @@ When updating firmware:
 Changes to renderer internals normally compile directly. Changes to hardware APIs or
 ESPHome's code-generation shape may require an adapter/generator update; these should
 fail the build, rather than loading a stale imitation. Resolution and grid are runtime
-inputs. Font/style density profiles are generated at build time.
+inputs. Font/style density profiles are generated at build time. A feature may add glyphs
+to a shared font with `- id: !extend <font id>` in its `font:` list; the generator merges
+that item into the font with that id, as ESPHome does, and fails when no font has it.
 
 See [the build instructions and current limitations](../web/wasm/README.md).
