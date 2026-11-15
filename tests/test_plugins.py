@@ -197,19 +197,17 @@ class Manifest(unittest.TestCase):
         same table as a tile a person coloured, in both looks; the palette takes it over the tile's own."""
         header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
         theme = (ROOT / 'components/smart_display/theme.h').read_text()
-        host = (ROOT / 'components/smart_display/plugin_host.cpp').read_text()
-        tiles = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
         names = re.search(r'enum class CardColor : uint8_t \{ NONE, ([A-Z, ]+) \};', header).group(1).split(', ')
         table = theme[theme.index('inline constexpr Swatch SWATCHES[] = {'):]
         swatches = re.findall(r'\{"([a-z]+)", 0x[0-9A-F]{6}, 0x[0-9A-F]{6}\}', table[:table.index('};')])
         # INSTRUMENT (0.28) comes after them: the instrument roles' ground, no swatch (theme::instrument_ground).
         self.assertEqual(names[-1], 'INSTRUMENT')
-        self.assertEqual([name.lower() for name in names[:-1]], swatches)
-        self.assertIn('if (color == CardColor::INSTRUMENT) return theme::instrument_ground();', host)
-        self.assertIn('static_assert(theme::SWATCH_COUNT == 9', host)
-        self.assertIn('theme::SWATCHES[i - 1].light', host)
-        for use in ('theme::surface(own)', 'theme::outline(own)', 'theme::pressed(bare ? ground_behind(w) : theme::surface(own))'):
-            self.assertIn(use, tiles)
+        # Every colour the API names is a swatch of the screen's own table, and the API names them all. How the host
+        # gets from one to the other, and that the card then wears it in both looks, is not read out of the source here:
+        # the host build checks the pairing when it compiles, and tools/render/run.py's plugin round sets a colour and
+        # reads the card's ground on the glass (docs/TESTING.md, "A test reads behaviour, not lines").
+        self.assertEqual({name.lower() for name in names[:-1]}, set(swatches))
+        self.assertEqual(len(names) - 1, len(swatches))
 
     def test_one_plugin_api_everywhere(self):
         header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
