@@ -63,27 +63,35 @@ export type Placed<T extends PlaceTile = PlaceTile> = { pages: Page[]; sections:
 // ---- One group's block ----
 
 export type Place<T extends PlaceTile = PlaceTile> = { tile: T; row: number; column: number };
-/** Tiles in reading order into `columns` columns from the top, each at the first place it fits. */
-export function pack<T extends PlaceTile>(tiles: T[], columns: number) {
-  const taken = new Set<string>(), places: Place<T>[] = [];
+/** Items in reading order into `columns` columns from the top, each at the first place it fits, at the size `fit` gives
+ * it for that width: the one packer of the editor. A group's block here (tiles at their own size, no wider than the
+ * block) and a section's tiles in model/sections.ts packTiles (a tile wider than its section shrunk to the size the grid
+ * names for what is left) differ only in that rule. */
+export function packInOrder<I>(items: readonly I[], columns: number, fit: (item: I) => { columns: number; rows: number }) {
+  const taken = new Set<string>(), places: { item: I; row: number; column: number; columns: number; rows: number }[] = [];
   let height = 0;
-  for (const tile of tiles) {
-    const w = Math.min(tile.columns, columns);
+  for (const item of items) {
+    const { columns: w, rows: h } = fit(item);
     for (let row = 0; ; row++) {
       let column = -1;
       for (let c = 0; c + w <= columns && column < 0; c++) {
         let free = true;
-        for (let y = row; y < row + tile.rows && free; y++) for (let x = c; x < c + w; x++) if (taken.has(`${y}:${x}`)) { free = false; break; }
+        for (let y = row; y < row + h && free; y++) for (let x = c; x < c + w; x++) if (taken.has(`${y}:${x}`)) { free = false; break; }
         if (free) column = c;
       }
       if (column < 0) continue;
-      for (let y = row; y < row + tile.rows; y++) for (let x = column; x < column + w; x++) taken.add(`${y}:${x}`);
-      places.push({ tile, row, column });
-      height = Math.max(height, row + tile.rows);
+      for (let y = row; y < row + h; y++) for (let x = column; x < column + w; x++) taken.add(`${y}:${x}`);
+      places.push({ item, row, column, columns: w, rows: h });
+      height = Math.max(height, row + h);
       break;
     }
   }
   return { places, rows: height };
+}
+/** Tiles in reading order into `columns` columns from the top, each at the first place it fits, at its own size. */
+export function pack<T extends PlaceTile>(tiles: T[], columns: number) {
+  const packed = packInOrder(tiles, columns, (tile) => ({ columns: Math.min(tile.columns, columns), rows: tile.rows }));
+  return { places: packed.places.map(({ item, row, column }): Place<T> => ({ tile: item, row, column })), rows: packed.rows };
 }
 type Grid = { columns: number; rows: number };
 type Shape<T extends PlaceTile> = { columns: number; rows: number; places: Place<T>[]; waste: number };

@@ -9,6 +9,7 @@
 import type { Layout, PageGrid, SectionBlock, Tile } from "../types";
 import { dimensions, isKey, sizeOf, type Size } from "./layout";
 import { instanceId } from "./pages";
+import { packInOrder } from "./placement";
 import { sizeFor } from "./sizes";
 
 export type SectionMetrics = { header: number; titleTop: number; inset: number; pad: number };
@@ -65,28 +66,18 @@ export function blockOf(layout: Layout, tile: Tile, grid: PageGrid): SectionBloc
   return (layout.sections ?? []).find((b) => b.page === page && inBlock(b, row, column));
 }
 /** Tiles in reading order, packed into `columns` columns from the top: each at the first place it fits, shrunk to
- * the width where it is wider. Their places relative to the block, and the rows they take. */
+ * the width where it is wider (model/placement.ts packInOrder, with this shrinking as its rule). Their places relative
+ * to the block, and the rows they take. */
 export function packTiles(tiles: Tile[], columns: number, grid: PageGrid) {
-  const taken = new Set<string>(), places = new Map<Tile, { row: number; column: number; size: Size }>();
-  let height = 0;
-  for (const tile of tiles) {
+  const sizes = new Map<Tile, Size>();
+  const packed = packInOrder(tiles, columns, (tile) => {
     let { columns: w, rows: h } = sizeIn(tile, grid), size = sizeOf(tile);
     if (w > columns) { w = columns; size = sizeFor(w, h, grid) ?? "single"; if (size === "single") h = 1; }
-    for (let row = 0; ; row++) {
-      let column = -1;
-      for (let c = 0; c + w <= columns && column < 0; c++) {
-        let free = true;
-        for (let y = row; y < row + h && free; y++) for (let x = c; x < c + w; x++) if (taken.has(`${y}:${x}`)) { free = false; break; }
-        if (free) column = c;
-      }
-      if (column < 0) continue;
-      for (let y = row; y < row + h; y++) for (let x = column; x < column + w; x++) taken.add(`${y}:${x}`);
-      places.set(tile, { row, column, size });
-      height = Math.max(height, row + h);
-      break;
-    }
-  }
-  return { places, rows: Math.max(1, height) };
+    sizes.set(tile, size);
+    return { columns: w, rows: h };
+  });
+  const places = new Map(packed.places.map(({ item, row, column }) => [item, { row, column, size: sizes.get(item)! }] as const));
+  return { places, rows: Math.max(1, packed.rows) };
 }
 const withSize = (tile: Tile, size: Size): Tile => size === sizeOf(tile) ? tile
   : { ...tile, options: { ...(tile.options || {}), ...(size === "single" ? { size: undefined } : { size }) } };

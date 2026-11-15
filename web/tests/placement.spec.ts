@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { PageLayout, ScreenMemory } from "../src/types";
 import { memoryUse, NEARLY_FULL } from "../src/model/memory";
 import { projectLayout, sectionOf, tilesIn, validatePages } from "../src/model/pages";
-import { placeUnits, type PlaceTarget, type PlaceTile, type PlaceUnit } from "../src/model/placement";
+import { packInOrder, placeUnits, type PlaceTarget, type PlaceTile, type PlaceUnit } from "../src/model/placement";
 
 let n = 0;
 const tile = (columns = 1, rows = 1, rank = 1, entity = `light.t${++n}`): PlaceTile => ({
@@ -15,6 +15,18 @@ const unit = (key: string, tiles: PlaceTile[], extra: Partial<PlaceUnit> = {}): 
 const target = (extra: Partial<PlaceTarget> = {}): PlaceTarget => ({ grid: { columns: 5, rows: 5 }, pages: 8, tiles: 64, sections: true, ...extra });
 const valid = (pages: PageLayout["pages"], t: PlaceTarget) => validatePages({ title: "T", homePageId: pages[0].id, pages }, { ...t.grid, pages: t.pages });
 const titles = (pages: PageLayout["pages"]) => pages.map((page) => page.topbar.title.source === "text" ? page.topbar.title.text : "");
+
+describe("the one packer", () => {
+  it("puts items in reading order at the first place each fits, at the size its rule gives for the width", () => {
+    const items = [{ c: 2, r: 2 }, { c: 1, r: 1 }, { c: 3, r: 1 }, { c: 1, r: 1 }];
+    const own = packInOrder(items, 3, (i) => ({ columns: Math.min(i.c, 3), rows: i.r }));
+    expect(own.places.map((p) => [p.row, p.column, p.columns, p.rows])).toEqual([[0, 0, 2, 2], [0, 2, 1, 1], [2, 0, 3, 1], [1, 2, 1, 1]]);
+    expect(own.rows).toBe(3);
+    // Another rule, as a section shrinks a tile wider than itself: the same order and places for what it gives.
+    const narrow = packInOrder(items, 2, (i) => (i.c > 2 ? { columns: 2, rows: 1 } : { columns: i.c, rows: i.r }));
+    expect(narrow.places.map((p) => [p.row, p.column, p.columns])).toEqual([[0, 0, 2], [2, 0, 1], [3, 0, 2], [2, 1, 1]]);
+  });
+});
 
 describe("a section groups", () => {
   it("two tiles or more; a lone tile stands loose", () => {
