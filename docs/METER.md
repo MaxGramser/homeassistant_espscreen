@@ -14,7 +14,8 @@ sensor whose state is a number can show it (the same sensors that can show a gra
 
 Every look takes the largest of the board's fixed fonts that fits, up to the large digits of the thermostat's
 setpoint, so a meter on a large card is readable across a room. Nothing else is drawn: no numbers along a percentage,
-no gradients, no extra lines.
+no gradients, no extra lines. The ring's icon takes its size from the card's own icon font, never from another card on
+the glass, and always a face that has the glyph: the largest that fits the circle, else the smallest that has it.
 
 ## The range
 
