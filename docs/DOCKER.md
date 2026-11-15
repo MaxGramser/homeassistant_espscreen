@@ -196,9 +196,10 @@ screen would stay on dev.
 
 | Setting | What it does |
 | --- | --- |
-| `SCREEN_DEV: "1"` | Runs the app outside the Supervisor: it reads the token from `HA_TOKEN_FILE` and serves its page on 127.0.0.1 only (camera images still on port 8098 for the screens) |
+| `SCREEN_DEV: "1"` | Runs the app outside the Supervisor: it reads the token from `HA_TOKEN` or `HA_TOKEN_FILE` and serves its page on 127.0.0.1 only (camera images still on port 8098 for the screens) |
 | `HA_API` | Home Assistant's address, ending in `/api` |
 | `HA_TOKEN_FILE` | The token file inside the container (the `ha_token` secret) |
+| `HA_TOKEN` | Optional: the long-lived access token itself, when not using `HA_TOKEN_FILE`. Useful on container managers without file secrets, such as Unraid (set `Display: Password` on the variable to mask it in the UI) |
 | `ESPHOME_CONFIG` | The ESPHome folder inside the container |
 | `SCREEN_DATA` | Layouts, update settings, and build caches |
 | `SCREEN_CAMERA_URL` | Optional: where screens load camera images, such as `http://192.168.1.20:8098`; by default Home Assistant's own LAN address |
