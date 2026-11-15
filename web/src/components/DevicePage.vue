@@ -78,6 +78,7 @@ const sectionGrid = computed<SectionGrid>(() => {
     list.find((b) => column >= b.column && column + columns <= b.column + b.columns && row >= b.row && row + n <= b.row + b.rows);
   return {
     otherLook: (column, row, columns, n) => Boolean(at(column, row, columns, n)?.contrastTiles),
+    standsOut: (column, row, columns, n) => { const b = at(column, row, columns, n); return Boolean(b?.contrast && !b.contrastTiles); },
     margins: (column, row, columns, n) => {
       const b = at(column, row, columns, n);
       if (!b) return NO_MARGINS;
