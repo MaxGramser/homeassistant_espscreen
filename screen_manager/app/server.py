@@ -5000,9 +5000,13 @@ def create_app(manager, development=False):
         payload['header'] = {**header_bar.catalogue(), 'suggestions': {
             screen['id']: header_bar.suggestions(screen, entities, manager.ha.states, manager.registry_index()) for screen in payload['screens']}}
         return web.json_response(payload)
+    # The answer Layoutbot gives the editor: 2 is a checked plan the editor places (dev 2026-11), 1 was a whole document.
+    LAYOUTBOT_PLAN = 2
     async def layoutbot_ask(request):
-        """Layoutbot (docs/LAYOUTBOT.md): a sentence and the editor's draft in, a proposed draft out, made by the AI
-        Task the person connected to Home Assistant. It saves nothing and calls no action but ai_task.generate_data."""
+        """Layoutbot (docs/LAYOUTBOT.md): a sentence and the editor's draft in, a checked plan out (layoutbot.checked),
+        made by the AI Task the person connected to Home Assistant; the editor places it (web/src/model/layoutbot.ts).
+        Other screens only when the person chose all of them (`all_screens`). It saves nothing and calls no action but
+        ai_task.generate_data."""
         data = await request.json()
         inbox = manager.aliases.get(request.match_info['inbox'], request.match_info['inbox'])
         screen = manager.screen(inbox)
@@ -5011,54 +5015,38 @@ def create_app(manager, development=False):
             raise LayoutError(t('addon.errors.not_paired'))
         if not isinstance(data, dict) or not isinstance(data.get('prompt'), str) or not data['prompt'].strip():
             raise ValueError(t('addon.errors.pages.fields'))
+        # An editor from before plans (it applied a whole document the add-on made) would show nothing of this answer:
+        # it is told to reload, as an old tab is for a save (LAYOUTBOT_PLAN).
+        if data.get('version') != LAYOUTBOT_PLAN:
+            raise ValueError(t('addon.errors.refresh_page'))
         agents = layoutbot.agents(manager.ha.states)
         if not agents:
             raise ValueError(t('addon.layoutbot.none'))
         draft = validate_document(data.get('layout'), grid)
         agent = data.get('agent') if data.get('agent') in {a['id'] for a in agents} else await layoutbot.preferred(manager.ha.request, agents)
         _, entities = manager.inventory()
-        sections = has_module(screen, 'sections')
+        known = {entity['id'] for entity in entities}
         name_of = lambda item: manager.labels.get(item.get('device_id')) or item['name']
-        # The other screens with a page document, for a question about several or all of them: their saved documents.
+        # The other screens with a page document, described to the model only when the person chose all screens.
         others = []
-        for other in manager.screens():
-            record = manager.store.get(other['id'])
-            other_grid = manager.verified_grid(other['id'])
-            if other['id'] == inbox or not record or record.get('format') != PAGE_FORMAT or other_grid is None:
-                continue
-            others.append({'id': other['id'], 'name': name_of(other), 'grid': other_grid, 'sections': has_module(other, 'sections'),
-                           'document': record['layout'], 'revision': record['revision']})
-        plan, seconds = await layoutbot.ask(manager.ha.request, data['prompt'][:layoutbot.PROMPT_CHARS], draft, grid,
-                                            entities, sections, agent, name=name_of(screen), others=others)
-        offers = {}
-        for entity in layoutbot.plan_entities(plan)[:128]:
-            found = await manager.ha.capabilities(entity)
-            # As the editor's own capabilities route: what a control needs of the device (a vacuum's map) is found there.
-            offers[entity] = [key for key in (found or {}).get('controls') or []
-                              if catalogue.device_holds(entity.split('.', 1)[0], key, entity, manager.device_has)]
+        if data.get('all_screens') is True:
+            for other in manager.screens():
+                record = manager.store.get(other['id'])
+                other_grid = manager.verified_grid(other['id'])
+                if other['id'] == inbox or not record or record.get('format') != PAGE_FORMAT or other_grid is None:
+                    continue
+                others.append({'id': other['id'], 'name': name_of(other), 'grid': other_grid,
+                               'sections': has_module(other, 'sections'), 'document': record['layout']})
+        answer, seconds = await layoutbot.ask(manager.ha.request, data['prompt'][:layoutbot.PROMPT_CHARS], draft, grid,
+                                              entities, has_module(screen, 'sections'), agent, name=name_of(screen), others=others)
         words = lambda notes: [t(f"addon.layoutbot.notes.{note['key']}", **{k: v for k, v in note.items() if k != 'key'}) for note in notes]
-        here, there = layoutbot.for_screens(plan, others)
-        layout, notes = layoutbot.apply_plan(draft, here, grid, entities, sections, offers)
-        # Another screen's change is a proposal the editor saves only when the person says yes.
-        elsewhere = []
-        for other in others:
-            if other['id'] not in there:
-                continue
-            try:
-                changed, other_notes = layoutbot.apply_plan(other['document'], there[other['id']], other['grid'], entities,
-                                                            other['sections'], offers)
-            except LayoutError as error:
-                elsewhere.append({'id': other['id'], 'name': other['name'], 'error': str(error)})
-                continue
-            if changed != other['document']:
-                elsewhere.append({'id': other['id'], 'name': other['name'], 'layout': changed, 'revision': other['revision'],
-                                  'summary': layoutbot.summary(other['document'], changed), 'notes': words(other_notes)})
-            elif other_notes:  # nothing to send, but why (a full page) is said
-                elsewhere.append({'id': other['id'], 'name': other['name'], 'notes': words(other_notes)})
+        # Another screen's plan is checked against its saved document; the editor shows it before anything is saved.
+        plan, notes, elsewhere = layoutbot.answered(answer, draft, known, others, data.get('all_screens'))
+        elsewhere = [{**other, 'notes': words(other['notes'])} for other in elsewhere]
         LOG.info('Layoutbot answered in %.1f s with %s (%d notes, %d other screens)', seconds, agent, len(notes), len(elsewhere))
-        return web.json_response({'reply': plan.get('reply') if isinstance(plan.get('reply'), str) else '',
-                                  'layout': layout, 'changed': layout != draft, 'agent': agent, 'seconds': round(seconds, 1),
-                                  'notes': words(notes), 'elsewhere': elsewhere, 'plan': plan})
+        return web.json_response({'version': LAYOUTBOT_PLAN, 'reply': answer.get('reply') if isinstance(answer.get('reply'), str) else '',
+                                  'plan': plan, 'notes': words(notes), 'elsewhere': elsewhere, 'agent': agent,
+                                  'seconds': round(seconds, 1)})
     async def header_preview(request):
         """The top bar as a screen would draw it right now, so the editor shows unsaved changes live."""
         data = await request.json()

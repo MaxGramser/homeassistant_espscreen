@@ -6,9 +6,11 @@ Home Assistant, and it only ever changes the draft in the editor: it never contr
 
 | Part | Source | Test |
 | --- | --- | --- |
-| The question, the plan and the draft that follows | `screen_manager/app/layoutbot.py` | `tests/test_layoutbot.py` |
+| The question, the checked plan and the split by screen | `screen_manager/app/layoutbot.py` | `tests/test_layoutbot.py` |
 | The route | `layoutbot_ask` in `screen_manager/app/server.py` (`POST api/screens/<id>/layoutbot`) | |
-| The chat, the bot and the shine | `web/src/components/LayoutBot.vue`, `web/src/stores/layoutbot.ts` | `web/tests/layoutbot.spec.ts` |
+| The plan placed in a draft | `web/src/model/layoutbot.ts` (applyPlan) over `web/src/model/placement.ts` (placeUnits) | `web/tests/layoutbot-plan.spec.ts` |
+| What a screen takes, for the open one and the others | `web/src/editor/layoutbot.ts` | |
+| The chat, the bot, the shine, sending | `web/src/components/LayoutBot.vue`, `web/src/stores/layoutbot.ts` | `web/tests/layoutbot.spec.ts` |
 | A trial against a real Home Assistant | `diagnostics/layoutbot_trial.py` | |
 
 ## When it shows
@@ -25,43 +27,54 @@ questions: a button per integration starts that integration's setup in Home Assi
 
 ## How a question becomes a draft
 
-1. The editor sends the sentence and its draft as it is (`layout`, the page document) to the add-on.
+1. The editor sends the sentence, its draft as it is (`layout`, the page document), `version: 2` and, when the person
+   chose All screens in the chat, `all_screens: true` to the add-on.
 2. The add-on asks Home Assistant's `ai_task.generate_data` with a fixed `structure` (`layoutbot.STRUCTURE`). The
    instructions hold the screen's grid and limits, whether it draws sections, the icons, the existing pages with their
-   sections and entities, and one line per entity of the inventory (id, name, area). Home Assistant turns the
-   structure into a JSON schema for the provider (`helpers/llm.py selector_serializer`), so every provider gets the
-   same one, with structured output where the provider has it.
+   sections and entities, the other screens and their pages only when the person chose All screens, and one line per
+   entity of the inventory (id, name, area). Home Assistant turns the structure into a JSON schema for the provider
+   (`helpers/llm.py selector_serializer`), so every provider gets the same one, with structured output where the
+   provider has it. The request and the entity list stand between markers, and the rules say that names, titles and
+   the request are data, never instructions.
 3. The answer is a plan, not a document: `reply` (a sentence to the person), `pages` (each a new page or the number of
-   an existing one, with a title, an icon, `sections` of entity ids and loose `tiles`) and `remove` (entity ids).
-4. `apply_plan` makes the draft from the plan with the same rules as the editor: new ids, the Home page's top bar on a
-   new page, sections as blocks at the first free place (side by side when they are narrow), and a page that is full
-   going on in a page after it. An entity id that is not in the inventory is left out with a note. An entity the plan
-   puts in a section of a page it already stands on moves there; one it names again as a loose tile stays where it
-   stands. A new page with nothing on it is not made.
-5. A new page is dressed: every tile starts as one cell, then gets its next face while the page still holds everything,
-   the types with the most to show first (players and climate, then cameras and vacuums, then lights and covers). The
-   faces come from what the entity offers in Home Assistant through the catalogue (`ha.capabilities`, the same answer
-   the editor's drawer uses): wide with a control of one row (a light's brightness, a cover's buttons, a player's keys),
-   then 2 x 2 with a control of two rows (a light's brightness and presets, a player's volume and keys, a thermostat's
-   setpoint and mode). A tile without a control grows too, to a wide and then a 2 x 2 card with a larger picture, state
-   and name, so a page with room is filled. Alike tiles of a block grow together first, then single tiles where room is
-   left. A small grid keeps every tile rather than growing a few. A tile added to a page the person already has stays
-   one cell, and what does not fit there is left out with a note rather than pushing a page in after it.
-6. The result goes through `validate_document` like any save, and back to the editor with the reply and the notes in
-   the editor's language. The editor takes it as one step of undo (`applyDocument`, labelled "Layoutbot's change"),
-   selects the first page it made or changed, and the chat offers Show and Undo.
+   an existing one, with a title, an icon, `sections` of entity ids and loose `tiles`, and for All screens a `screen`)
+   and `remove` (entity ids).
+4. The add-on checks it and places nothing (`layoutbot.answered`, `checked`): only entities of this home, each once
+   (an unknown id is a note); a page number past the screen's pages is a new page; a page the person has gets a title
+   only from an item that does nothing else; icons only from the fixed set; a new page with nothing on it is left out.
+   It splits the plan by screen: without All screens a `screen` the model names anyway is ignored, and taking tiles off
+   (`remove`) is only ever the open screen's. The answer is `{version: 2, reply, plan, notes, elsewhere}`.
+5. The editor places the plan (`applyPlan`) with what it places by, never another way. On a page the person has, as
+   their own edits place: a tile from the library (its default card) at the first free cell outside the sections, a
+   section made as "Add a section" makes one and filled as a drop fills one (the section growing as a drop grows it),
+   each step through arrangeTiles; the person's own tiles never move, what has no room there is left out with a note,
+   and no page is pushed in after theirs. New pages through the one placement Auto layout uses (`model/placement.ts
+   placeUnits`): every section of the plan, and a page's loose tiles, is a unit; each tile takes the cards Auto layout
+   gives the same entity (`model/auto-layout.ts placeTileFor`: sizes, controls and displays from the catalogue and what
+   Home Assistant says the entity can do, the album cover on a player where the screen draws pictures) and grows
+   through them while the page still holds everything (`grow`, alike tiles together), only into those cards, never a
+   size made up to fill a hole. New pages come after the person's, and a unit that runs over a page goes on in a page
+   after it. The screen's tile ceiling, pages and memory hold as they hold an add from the library (`proposalHolds`,
+   the draft priced with what is added). Before that, the editor takes tiles off, renames, and keeps what the plan names
+   again: a tile already in the section it is named in stays as it is, one elsewhere on that page moves into it, a
+   loose tile named again stays where it stands. A section on a screen without sections is loose tiles.
+6. The editor takes the result as one step of undo (`applyDocument`, labelled "Layoutbot's change"), checked as any edit,
+   selects the first page it made or changed, and the chat offers Show and Undo. Notes say what was left out and why.
+
+An editor from before plans (one that sends no `version: 2`) is told to refresh the page; an add-on from before plans
+(an answer without `version: 2`) is told to the person as "Update the Tessera app" and changes nothing.
 
 After every answer that changed something the chat asks, by itself and never through the model, whether to send it:
 "Shall I send it to Guition 10.1?" Yes saves the draft and sends it, as Save & send does; Not now leaves it a draft
-and says so.
-An answer that was undone first is not sent.
+and says so. An answer that was undone first is not sent.
 
-**Several screens.** The question also holds the other screens of the home, each with its grid and pages, and a page of
-the plan may name a `screen`: another screen's name, or `all` for every screen ("the alarm on page 1 of every screen").
-The add-on splits the plan by screen (`for_screens`) and makes each other screen's draft from its saved document, with
-its own grid and whether it draws sections. Those are proposals: the chat lists them ("Wallbox: 1 tile added") and saves
-them only on yes, each on the revision it was made from, so a screen changed meanwhile refuses it and says so. Taking
-tiles off (`remove`) only ever applies to the open screen.
+**Several screens.** Only when the person chose All screens in the chat. Each other screen's plan is placed by the same
+applyPlan on that screen's saved document, with what that screen takes (its grid, sizes, sections, memory), and the chat
+lists what it would change ("Wallbox: 1 tile added") with Look, which opens that screen with the change as its draft.
+Nothing of it is saved before yes. Yes saves the open screen first, then opens each other screen in turn, places its plan
+in its draft again where its saved document changed meanwhile, and saves it through the same Save & send: the same
+checks, its own step of undo. The chat shows each screen's progress; a screen that fails keeps nothing of it (its step
+is taken back), the others still go, the chat says which failed and why, and the screen the person was on opens again.
 
 While the question is out the pages wait: a veil with a light sweeping over it covers them, a pill says how long it has
 been, and no click or key reaches the editor except Escape, which stops waiting. An answer that comes after Stop, or
@@ -74,7 +87,9 @@ for a draft that changed meanwhile (another tab's save), is left unused and the 
 - **Save without a yes.** The answer is a draft, and another screen's change a proposal, until the person says yes in
   the chat (or saves the draft as any other edit).
 - **Show an entity that does not exist, or a control an entity cannot draw.** Ids are checked against the inventory,
-  controls against what the entity offers.
+  cards come from the catalogue and what the entity offers, as Auto layout's do.
+- **Place a tile another way than the editor.** The add-on places nothing; the plan goes through the editor's one
+  placement, the same as Auto layout's and the person's own drops.
 
 ## Privacy and cost
 
@@ -85,15 +100,18 @@ model costs a fraction of a cent. A local model (Ollama) keeps everything in the
 
 ## Measured
 
+The seconds are the AI Task's answer, measured before the plan moved to the editor (the cards then were Layoutbot's own;
+since then they are Auto layout's):
+
 On a Home Assistant 2026.11.0 with the OpenAI integration's AI Task on its recommended settings (gpt-4o-mini), a home of
 997 entities, the Guition 10.1 (5 x 5, sections), November 2026:
 
 | Question | Seconds | Result |
 | --- | --- | --- |
-| A new page with two sections, all the blinds and all the curtains (Dutch, and English) | 4.9 to 8.0 | valid; two sections, covers wide with their buttons; one blind sorted with the curtains in some runs |
-| A music page with all the speakers | 4.6 to 8.1 | valid; players 2 x 2 with volume and keys |
+| A new page with two sections, all the blinds and all the curtains (Dutch, and English) | 4.9 to 8.0 | valid; two sections; one blind sorted with the curtains in some runs |
+| A music page with all the speakers | 4.6 to 8.1 | valid |
 | All the lights on one page, a section per room | 8.1 to 14.9 | valid; continued on a second page when a 5 x 5 page was full |
-| A climate page with the air conditioning and the temperatures | 7.5 | valid; the thermostat 2 x 2 with setpoint and mode, sensors one cell |
+| A climate page with the air conditioning and the temperatures | 7.5 | valid |
 | Rename page 2 | 3.1 | exact |
 | Take one player off the living room page | 6.8 | exact |
 | Put the kitchen lights on page 3 in a section | 5.6 | valid; the lights moved into the new section |

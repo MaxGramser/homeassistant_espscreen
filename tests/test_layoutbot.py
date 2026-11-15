@@ -36,171 +36,56 @@ def loose(page):
     return [t for t in page["tiles"] if section_of(page, t) is None]
 
 
-class Plans(unittest.TestCase):
-    def test_the_example_two_sections_on_a_new_page(self):
-        plan = {"reply": "Done.", "pages": [{"page": "", "title": "Zonwering", "icon": "blinds", "sections": [
+class Checked(unittest.TestCase):
+    """What the add-on checks before the editor places a plan (layoutbot.checked). Where the tiles go is the editor's,
+    and its tests are web/tests/layoutbot-plan.spec.ts."""
+    KNOWN = {e["id"] for e in ENTITIES}
+
+    def check(self, plan, document=DOCUMENT):
+        return layoutbot.checked(plan, document, self.KNOWN)
+
+    def test_the_example_is_one_new_page_with_two_sections(self):
+        plan, notes = self.check({"reply": "Done.", "pages": [{"page": "", "title": "Zonwering", "icon": "blinds", "sections": [
+            {"title": "Rolgordijnen", "icon": "blinds", "entities": BLINDS}, {"title": "Gordijnen", "icon": "curtains},{", "entities": CURTAINS}]}]})
+        self.assertEqual(notes, [])
+        self.assertEqual(plan, {"remove": [], "pages": [{"page": "new", "title": "Zonwering", "icon": "blinds", "tiles": [], "sections": [
             {"title": "Rolgordijnen", "icon": "blinds", "entities": BLINDS},
-            {"title": "Gordijnen", "icon": "curtains},{", "entities": CURTAINS}]}]}
-        document, notes = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)
-        self.assertEqual(notes, [])
-        self.assertEqual(len(document["pages"]), 2)
-        page = document["pages"][1]
-        self.assertEqual(page["topbar"]["title"], {"source": "text", "text": "Zonwering"})
-        self.assertEqual(page["topbar"]["trailing"][0]["type"], "clock")  # the Home page's bar, its own ids
-        self.assertNotEqual(page["topbar"]["trailing"][0]["id"], "clock1")
-        first, second = page["sections"]
-        # The page is filled: without controls a card grows to a larger state and name (wide, then 2 x 2).
-        self.assertEqual((first["title"], first["placement"]), ("Rolgordijnen", {"row": 0, "column": 0, "columns": 4, "rows": 3}))
-        self.assertEqual(second["icon"], "curtains")  # what ran on past the name is cut off
-        self.assertEqual(second["placement"], {"row": 3, "column": 0, "columns": 4, "rows": 2})
-        self.assertEqual([t["appearance"].get("presentation") for t in tiles_in(page, first)], ["square", "square", "wide", "wide"])
-        self.assertEqual(entities_of(page), [*BLINDS, *CURTAINS])
-        self.assertEqual(document["pages"][0], HOME)  # the rest stays as it was
-        validate_document(document, GRID)
+            {"title": "Gordijnen", "icon": "curtains", "entities": CURTAINS}]}]})  # what ran on past the icon is cut off
 
-    def test_a_new_page_shows_as_many_controls_as_fit(self):
-        lights = [f"light.l{n}" for n in range(3)]
-        home = [{"id": e, "name": "", "area": ""} for e in [*lights, "media_player.tv", "sensor.temp", "camera.door"]] + ENTITIES
-        offers = {**{e: ["toggle", "brightness", "presets", "brightness_presets"] for e in lights},
-                  "media_player.tv": ["volume", "playback", "volume_playback"], "sensor.temp": []}
-        plan = {"pages": [{"page": "", "title": "Room", "sections": [
-            {"title": "Light", "entities": lights}, {"title": "Rest", "entities": ["media_player.tv", "sensor.temp", "camera.door"]}]}]}
-        page = layoutbot.apply_plan(DOCUMENT, plan, GRID, home, offers=offers)[0]["pages"][1]
-        faces = {t["content"]["entityId"]: (t["appearance"].get("presentation", "single"), t["interaction"].get("controls"))
-                 for s in page["sections"] for t in tiles_in(page, s)}
-        # On 5 x 5 the page fills: the player 2 x 2 with both rows of controls, the camera its larger picture, the
-        # lights wide with their brightness and one 2 x 2 with its presets too, the sensor wide.
-        self.assertEqual(faces, {"light.l0": ("square", "brightness_presets"), "light.l1": ("wide", "brightness"),
-                                 "light.l2": ("wide", "brightness"), "media_player.tv": ("square", "volume_playback"),
-                                 "sensor.temp": ("wide", None), "camera.door": ("square", None)})
-        self.assertEqual(sum(s["placement"]["rows"] for s in page["sections"]), 5)
-        validate_document(layoutbot.apply_plan(DOCUMENT, plan, GRID, home, offers=offers)[0], GRID)
-
-    def test_a_small_page_keeps_every_tile_rather_than_growing_some(self):
-        lights = [f"light.l{n}" for n in range(6)]
-        home = [{"id": e, "name": "", "area": ""} for e in lights] + ENTITIES
-        offers = {e: ["toggle", "brightness", "presets", "brightness_presets"] for e in lights}
-        plan = {"pages": [{"page": "", "title": "Lights", "tiles": lights}]}
-        document = layoutbot.apply_plan(DOCUMENT, plan, SMALL, home, offers=offers)[0]
-        self.assertEqual(len(document["pages"]), 2)
-        self.assertEqual({t["appearance"].get("presentation", "single") for t in document["pages"][1]["tiles"]}, {"single"})
-        fewer = layoutbot.apply_plan(DOCUMENT, {"pages": [{"page": "", "title": "L", "tiles": lights[:2]}]}, SMALL, home, offers=offers)[0]
-        self.assertEqual([(t["appearance"].get("presentation"), t["interaction"].get("controls")) for t in fewer["pages"][1]["tiles"]],
-                         [("square", "brightness_presets"), ("wide", "brightness")])
-
-    def test_a_numbered_new_page_is_new(self):
-        plan = {"pages": [{"page": "2", "title": "Covers", "sections": [
-            {"title": "Blinds", "entities": BLINDS}, {"title": "Desk", "entities": ["light.desk"]}]}]}
-        document, notes = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)
-        self.assertEqual(notes, [])
-        self.assertEqual(document["pages"][0], HOME)
-        self.assertEqual([s["title"] for s in document["pages"][1]["sections"]], ["Blinds", "Desk"])
-
-    def test_narrow_sections_of_a_new_page_stand_side_by_side(self):
-        plan = {"pages": [{"page": "", "title": "Covers", "sections": [
-            {"title": "Blinds", "entities": BLINDS}, {"title": "Desk", "entities": ["light.desk"]}]}]}
-        document, _ = layoutbot.apply_plan(DOCUMENT, plan, Grid(5, 1, 16, 256, 12), ENTITIES)
-        self.assertEqual([(s["title"], s["placement"]) for s in document["pages"][1]["sections"]],
-                         [("Blinds", {"row": 0, "column": 0, "columns": 4, "rows": 1}),
-                          ("Desk", {"row": 0, "column": 4, "columns": 1, "rows": 1})])
-
-    def test_unknown_entities_and_actions_never_reach_the_document(self):
-        plan = {"reply": "", "pages": [{"page": "", "title": "X", "tiles": ["light.desk", "light.made_up",
-                                                                             "script.turn_on", 7]}]}
-        document, notes = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)
-        self.assertEqual(entities_of(document["pages"][1]), ["light.desk"])
+    def test_unknown_entities_and_actions_never_reach_the_plan(self):
+        plan, notes = self.check({"pages": [{"page": "", "title": "X", "tiles": ["light.desk", "light.made_up", "script.turn_on", 7]}],
+                                  "remove": ["light.made_up"]})
+        self.assertEqual(plan["pages"][0]["tiles"], ["light.desk"])
+        self.assertEqual(plan["remove"], [])
         self.assertEqual(notes, [{"key": "unknown", "entity": "light.made_up"}, {"key": "unknown", "entity": "script.turn_on"}])
 
-    def test_nothing_to_do_changes_nothing(self):
-        for plan in ({"reply": "I cannot switch lights.", "pages": []},
-                     {"reply": "", "pages": [{"page": "", "title": "Empty", "sections": [], "tiles": []}]}):
-            self.assertEqual(layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)[0], DOCUMENT)
+    def test_an_entity_is_named_once_and_an_empty_new_page_is_left_out(self):
+        plan, _ = self.check({"pages": [{"page": "", "title": "A", "tiles": ["light.desk"]}, {"page": "", "title": "B", "tiles": ["light.desk"]},
+                                        {"page": "", "title": "Empty", "sections": [{"title": "S", "entities": []}]}]})
+        self.assertEqual([page["title"] for page in plan["pages"]], ["A"])
 
-    def test_an_existing_page_moves_a_tile_instead_of_doubling_it(self):
-        plan = {"pages": [{"page": "1", "sections": [{"title": "Light", "entities": ["light.sofa", "light.desk"]}]}]}
-        document, _ = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)
-        page = document["pages"][0]
-        self.assertEqual(loose(page), [])
-        self.assertEqual(entities_of(page), ["light.sofa", "light.desk"])
+    def test_nothing_to_do_is_an_empty_plan(self):
+        self.assertEqual(self.check({"reply": "I cannot switch lights.", "pages": []}), ({"pages": [], "remove": []}, []))
 
-    def test_a_section_the_plan_restates_keeps_its_tiles_and_takes_the_new_one(self):
-        boxed = deepcopy(DOCUMENT)
-        wide = {**deepcopy(HOME["tiles"][0]), "id": "t2", "content": {"kind": "entity", "entityId": "light.desk"},
-                "placement": {"row": 1, "column": 0, "columns": 2, "rows": 1},
-                "appearance": {"label": "Desk", "presentation": "wide"}, "interaction": {"controls": "brightness"}}
-        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Lights", "placement": {"row": 1, "column": 0, "columns": 3, "rows": 1}}]
-        boxed["pages"][0]["tiles"].append(wide)
-        plan = {"pages": [{"page": "1", "sections": [{"title": "Lights", "entities": ["light.desk", "cover.blind_0"]}]}]}
-        document, notes = layoutbot.apply_plan(boxed, plan, GRID, ENTITIES)
-        self.assertEqual(notes, [])
-        lights = tiles_in(document["pages"][0], document["pages"][0]["sections"][0])
-        self.assertEqual(lights[0], wide)  # its size, label and control as they were
-        # The new one in the first cell the wide tile does not cover.
-        self.assertEqual((lights[1]["content"]["entityId"], lights[1]["placement"]["column"]), ("cover.blind_0", 2))
+    def test_a_numbered_page_past_the_screens_pages_is_new(self):
+        plan, _ = self.check({"pages": [{"page": "2", "title": "Covers", "tiles": BLINDS[:1]}]})
+        self.assertEqual((plan["pages"][0]["page"], plan["pages"][0]["title"]), ("new", "Covers"))
 
-    def test_a_loose_tile_the_plan_restates_stays_where_it_stands(self):
-        plan = {"pages": [{"page": "1", "tiles": ["light.sofa", "light.desk"]}]}
-        page = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)[0]["pages"][0]
-        self.assertEqual([(t["content"]["entityId"], t["placement"]["column"]) for t in page["tiles"]],
-                         [("light.sofa", 0), ("light.desk", 1)])
-
-    def test_a_new_page_of_what_stands_elsewhere_already_is_not_made(self):
-        plan = {"pages": [{"page": "", "title": "A", "tiles": ["light.desk"]}, {"page": "", "title": "B", "tiles": ["light.desk"]}]}
-        self.assertEqual(len(layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)[0]["pages"]), 2)
-
-    def test_a_full_page_continues_on_a_page_after_it(self):
-        many = [{"id": f"light.l{n}", "name": "", "area": ""} for n in range(9)]
-        plan = {"pages": [{"page": "", "title": "Lights", "sections": [{"title": "All", "entities": [e["id"] for e in many]}]}]}
-        document, notes = layoutbot.apply_plan(DOCUMENT, plan, SMALL, many + ENTITIES)
-        self.assertEqual([p["topbar"]["title"].get("text") for p in document["pages"]], ["Living", "Lights", "Lights 2"])
-        self.assertEqual([s["title"] for p in document["pages"][1:] for s in p["sections"]], ["All", "All"])
-        self.assertEqual(sum(len(entities_of(p)) for p in document["pages"][1:]), 9)
-        self.assertTrue(notes)
-
-    def test_a_full_page_of_the_person_gets_a_note_and_keeps_its_number(self):
-        full = deepcopy(DOCUMENT)
-        full["pages"][0]["tiles"] = [{**deepcopy(HOME["tiles"][0]), "id": f"t{n}", "placement": {"row": n // 2, "column": n % 2, "columns": 1, "rows": 1}}
-                                     for n in range(6)]
-        for plan in ({"pages": [{"page": "1", "tiles": ["light.desk"]}]},
-                     {"pages": [{"page": "1", "sections": [{"title": "Desk", "entities": ["light.desk"]}]}]}):
-            document, notes = layoutbot.apply_plan(full, plan, SMALL, ENTITIES)
-            self.assertEqual(document, full)
-            self.assertEqual(notes, [{"key": "page_full", "page": 1, "count": 1}])
+    def test_a_page_of_the_person_is_renamed_only_by_a_rename(self):
+        added, _ = self.check({"pages": [{"page": "1", "title": "Security", "tiles": ["light.desk"]}]})
+        self.assertEqual(added["pages"], [{"page": 1, "title": "", "icon": None, "sections": [], "tiles": ["light.desk"]}])
+        renamed, _ = self.check({"pages": [{"page": "1", "title": "Lounge", "tiles": [], "sections": []}]})
+        self.assertEqual(renamed["pages"][0]["title"], "Lounge")
 
     def test_the_words_for_a_page_without_a_title_never_become_its_title(self):
+        for words in ("(screen title)", "(no title of its own)"):
+            plan, _ = self.check({"pages": [{"page": "1", "title": words}]})
+            self.assertEqual(plan["pages"], [])
+
+    def test_the_words_for_a_page_without_a_title_are_what_the_question_says(self):
         untitled = deepcopy(DOCUMENT)
         untitled["pages"][0]["topbar"]["title"] = {"source": "screen"}
         self.assertIn("page 1 (no title of its own); tiles: light.sofa", layoutbot.page_lines(untitled))
-        for words in ("(screen title)", "(no title of its own)"):
-            document, _ = layoutbot.apply_plan(untitled, {"pages": [{"page": "1", "title": words, "tiles": ["light.desk"]}]}, GRID, ENTITIES)
-            self.assertEqual(document["pages"][0]["topbar"]["title"], {"source": "screen"})
-
-    def test_a_page_of_the_person_is_renamed_only_by_a_rename(self):
-        added, _ = layoutbot.apply_plan(DOCUMENT, {"pages": [{"page": "1", "title": "Security", "tiles": ["light.desk"]}]}, GRID, ENTITIES)
-        self.assertEqual(added["pages"][0]["topbar"]["title"], {"source": "text", "text": "Living"})
-        renamed, _ = layoutbot.apply_plan(DOCUMENT, {"pages": [{"page": "1", "title": "Lounge", "tiles": [], "sections": []}]}, GRID, ENTITIES)
-        self.assertEqual(renamed["pages"][0]["topbar"]["title"], {"source": "text", "text": "Lounge"})
-
-    def test_a_screen_without_sections_gets_the_tiles_loose(self):
-        plan = {"pages": [{"page": "", "title": "Covers", "sections": [{"title": "Blinds", "entities": BLINDS[:2]}]}]}
-        document, _ = layoutbot.apply_plan(DOCUMENT, plan, SMALL, ENTITIES, sections=False)
-        self.assertNotIn("sections", document["pages"][1])
-        self.assertEqual(entities_of(document["pages"][1]), BLINDS[:2])
-
-    def test_remove_takes_tiles_off_and_an_empty_section_with_them(self):
-        boxed = deepcopy(DOCUMENT)
-        boxed["pages"][0]["sections"] = [{"id": "s1", "title": "Desk", "placement": {"row": 1, "column": 0, "columns": 1, "rows": 1}}]
-        boxed["pages"][0]["tiles"].append({**deepcopy(HOME["tiles"][0]), "id": "t2",
-                                           "content": {"kind": "entity", "entityId": "light.desk"},
-                                           "placement": {"row": 1, "column": 0, "columns": 1, "rows": 1}})
-        document, _ = layoutbot.apply_plan(boxed, {"pages": [], "remove": ["light.desk"]}, GRID, ENTITIES)
-        self.assertNotIn("sections", document["pages"][0])
-
-    def test_past_the_page_ceiling_is_a_note_not_a_broken_document(self):
-        plan = {"pages": [{"page": "", "title": f"P{n}", "tiles": ["light.desk"]} for n in range(3)]}
-        document, notes = layoutbot.apply_plan(DOCUMENT, plan, Grid(5, 5, 2, 256, 12), ENTITIES)
-        self.assertEqual(len(document["pages"]), 2)
-        self.assertEqual(notes, [{"key": "pages_full", "pages": 2}])
 
 
 class Screens(unittest.TestCase):
@@ -223,10 +108,34 @@ class Screens(unittest.TestCase):
         self.assertIn('Existing pages of this screen ("Hall")', text)
         self.assertIn('screen "Wallbox" (2 x 3 cells, no sections):\n  page 1 "Living"; tiles: light.sofa', text)
 
-    def test_a_change_is_counted(self):
-        plan = {"pages": [{"page": "", "title": "New", "tiles": ["light.desk"]}], "remove": ["light.sofa"]}
-        after = layoutbot.apply_plan(DOCUMENT, plan, GRID, ENTITIES)[0]
-        self.assertEqual(layoutbot.summary(DOCUMENT, after), {"pages": 1, "added": 1, "removed": 1, "changed": [1]})
+    def test_without_all_screens_every_item_is_this_screens(self):
+        plan = {"pages": [{"screen": "Wallbox", "page": "", "title": "W", "tiles": ["light.b"]}, {"screen": "all", "tiles": ["light.c"]}]}
+        here, there = layoutbot.for_screens(plan, [])
+        self.assertEqual([item["tiles"] for item in here["pages"]], [["light.b"], ["light.c"]])
+        self.assertEqual(there, {})
+
+
+class Answered(unittest.TestCase):
+    KNOWN = {e["id"] for e in ENTITIES} | {"alarm_control_panel.home"}
+    OTHERS = [{"id": "wall", "name": "Wallbox", "document": DOCUMENT}]
+    ANSWER = {"reply": "ok", "remove": ["light.sofa"], "pages": [
+        {"screen": "Wallbox", "page": "", "title": "Alarm", "tiles": ["alarm_control_panel.home"]},
+        {"screen": "all", "page": "1", "tiles": ["light.desk"]}]}
+
+    def test_other_screens_only_when_the_person_chose_all_screens(self):
+        plan, notes, elsewhere = layoutbot.answered(self.ANSWER, DOCUMENT, self.KNOWN, self.OTHERS, False)
+        self.assertEqual(elsewhere, [])
+        self.assertEqual([page["tiles"] for page in plan["pages"]], [["alarm_control_panel.home"], ["light.desk"]])
+        self.assertEqual(layoutbot.answered(self.ANSWER, DOCUMENT, self.KNOWN, self.OTHERS, "yes")[2], [])  # only a true
+
+    def test_with_all_screens_each_gets_its_own_checked_plan_and_remove_stays_here(self):
+        plan, _, elsewhere = layoutbot.answered(self.ANSWER, DOCUMENT, self.KNOWN, self.OTHERS, True)
+        self.assertEqual(plan["remove"], ["light.sofa"])
+        self.assertEqual([page["tiles"] for page in plan["pages"]], [["light.desk"]])
+        (wall,) = elsewhere
+        self.assertEqual((wall["id"], wall["plan"]["remove"]), ("wall", []))
+        self.assertEqual([(page["page"], page["tiles"]) for page in wall["plan"]["pages"]],
+                         [("new", ["alarm_control_panel.home"]), (1, ["light.desk"])])
 
 
 class Asking(unittest.TestCase):

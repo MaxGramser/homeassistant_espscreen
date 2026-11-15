@@ -1,8 +1,9 @@
 """Try Layoutbot, the editor's chat (screen_manager/app/layoutbot.py) against a real Home Assistant.
 
 Reads only: the app's inventory through its ingress (the screens' documents and the entities), and asks the AI Task
-for a plan per prompt. Nothing is saved, no action other than `ai_task.generate_data` is called. The result of each
-prompt (plan, notes, the proposed document, seconds) goes to --out as JSON; tokens are never printed.
+for a plan per prompt, checked as the add-on checks it (layoutbot.answered). Nothing is placed or saved (the editor
+places a plan, web/src/model/layoutbot.ts), no action other than `ai_task.generate_data` is called. The result of each
+prompt (the answer, the checked plan, notes, seconds) goes to --out as JSON; tokens are never printed.
 
     uv run --with aiohttp python diagnostics/layoutbot_trial.py --screen "Guition 10.1" --out /tmp/trial.json \
         "Maak een nieuwe pagina met alle lampen van de woonkamer"
@@ -23,7 +24,6 @@ import aiohttp
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "screen_manager/app"))
 from core import Grid  # noqa: E402
-import ha_catalogue  # noqa: E402
 import layoutbot  # noqa: E402
 
 FAKE_COVERS = [
@@ -85,44 +85,18 @@ class HA:
             return json.loads(await response.text())
 
 
-def face(tile):
-    p, size = tile["placement"], tile["appearance"].get("presentation", "")
-    control = tile["interaction"].get("controls")
-    return tile["content"].get("entityId", "?").split(".", 1)[1] + (f" {p['columns']}x{p['rows']}" if size else "") + (f" {control}" if control else "")
-
-
-async def offers_of(ha, entities):
-    """What each entity offers, as the add-on asks it (HomeAssistant.capabilities): its actions from Home Assistant,
-    through the catalogue. A made-up entity (--covers) offers what a cover with buttons and a position does."""
-    if not hasattr(ha, "services"):
-        ha.services = await ha.request("get_services")
-        ha.states = {s["entity_id"]: s for s in await ha.request("get_states")}
-    found = {}
-    for entity in entities:
-        state = ha.states.get(entity)
-        if state is None:
-            found[entity] = ["buttons", "position"] if entity.startswith("cover.") else []
-            continue
-        actions = await ha.request("get_services_for_target", target={"entity_id": [entity]}, expand_group=False)
-        found[entity] = ha_catalogue.capabilities(entity, frozenset(actions), state, ha.services).get("controls") or []
-    return found
-
-
-def summary(before, after):
-    """What changed, page by page: new pages, their sections and tile counts."""
-    old = {p["id"] for p in before["pages"]}
+def summary(plan):
+    """The checked plan in one line per page: where it goes, its sections and loose tiles."""
     out = []
-    for number, page in enumerate(after["pages"], 1):
-        mark = "NEW" if page["id"] not in old else "   "
-        title = page["topbar"]["title"].get("text") or "(screen title)"
-        parts = [f'{mark} page {number} "{title}" {len(page["tiles"])} loose']
-        for s in page.get("sections") or []:
-            p = s["placement"]
-            parts.append(f'[{s["title"]} {p["columns"]}x{p["rows"]}@{p["row"]},{p["column"]}: '
-                         + ", ".join(face(t) for t in s["tiles"]) + "]")
+    for page in plan["pages"]:
+        where = "NEW" if page["page"] == "new" else f"page {page['page']}"
+        parts = [f'{where} "{page["title"]}"']
+        parts += [f'[{s["title"]}: ' + ", ".join(e.split(".", 1)[1] for e in s["entities"]) + "]" for s in page["sections"]]
         if page["tiles"]:
-            parts.append("loose: " + ", ".join(face(t) for t in page["tiles"]))
+            parts.append("loose: " + ", ".join(e.split(".", 1)[1] for e in page["tiles"]))
         out.append(" ".join(parts))
+    if plan["remove"]:
+        out.append("remove: " + ", ".join(plan["remove"]))
     return out
 
 
@@ -157,17 +131,16 @@ async def main():
             try:
                 plan, seconds = await layoutbot.ask(ha.request, prompt, record["layout"], grid, entities,
                                                            sections, args.agent, domains)
-                entry.update(plan=plan, seconds=round(seconds, 1))
-                offers = await offers_of(ha, layoutbot.plan_entities(plan))
-                document, notes = layoutbot.apply_plan(record["layout"], plan, grid, entities, sections, offers)
-                entry.update(valid=True, notes=notes, summary=summary(record["layout"], document), document=document)
+                entry.update(answer=plan, seconds=round(seconds, 1))
+                checked, notes, _ = layoutbot.answered(plan, record["layout"], {e["id"] for e in entities}, [], False)
+                entry.update(valid=True, notes=notes, summary=summary(checked), plan=checked)
             except Exception as error:  # noqa: BLE001 - a trial reports every failure and goes on
                 entry.update(valid=False, error=f"{type(error).__name__}: {error}")
             entry["total_seconds"] = round(time.monotonic() - started, 1)
             results.append(entry)
             print(json.dumps({k: entry.get(k) for k in ("prompt", "seconds", "valid", "error", "notes", "summary")},
                              ensure_ascii=False, indent=1), flush=True)
-            print("reply:", (entry.get("plan") or {}).get("reply"), flush=True)
+            print("reply:", (entry.get("answer") or {}).get("reply"), flush=True)
         pathlib.Path(args.out).write_text(json.dumps(results, ensure_ascii=False, indent=1))
 
 

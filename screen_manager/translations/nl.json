@@ -1629,11 +1629,7 @@
       "none": "Layoutbot heeft een AI Task in Home Assistant nodig die data kan maken (Instellingen > Apparaten & diensten, een AI-integratie).",
       "notes": {
         "unknown": "{entity} weggelaten: dat is geen entiteit van deze Home Assistant.",
-        "pages_full": "Dit scherm neemt {pages} pagina's, dus de rest is weggelaten.",
-        "continued": "\"{page}\" was vol, dus de rest staat op een pagina erna.",
-        "section_full": "De sectie \"{section}\" is vol: {count} tegels zijn weggelaten.",
-        "no_page": "Er is geen pagina {page}.",
-        "page_full": "Pagina {page} is vol, dus {count} tegels zijn weggelaten."
+        "no_page": "Er is geen pagina {page}."
       }
     }
   },
@@ -4795,7 +4791,11 @@
         "sent": "Verstuurd. Het scherm laat het zo zien.",
         "not_all": "Niet alles is verstuurd.",
         "failed": "Versturen naar {which} lukte niet.",
-        "declined": "Niet verstuurd. Opslaan & versturen kan altijd nog."
+        "declined": "Niet verstuurd. Opslaan & versturen kan altijd nog.",
+        "to": "Versturen naar {name}",
+        "not_opened": "dat scherm kon niet geopend worden",
+        "not_saved": "het is niet opgeslagen",
+        "unsaved": "het open scherm heeft niet-opgeslagen wijzigingen"
       },
       "busy": "Layoutbot deelt je pagina's in",
       "seconds": "{n} s",
@@ -4828,7 +4828,20 @@
         "local": "Op je eigen computer",
         "after": "Elke AI-integratie met AI Tasks werkt. Kijk hier opnieuw zodra die is toegevoegd.",
         "again": "Opnieuw kijken"
-      }
+      },
+      "notes": {
+        "page_full": "Pagina {page} is vol, dus {count} tegel is weggelaten. | Pagina {page} is vol, dus {count} tegels zijn weggelaten.",
+        "memory_full": "Het geheugen van het scherm is vol, dus {count} tegel is weggelaten. | Het geheugen van het scherm is vol, dus {count} tegels zijn weggelaten.",
+        "left_out": "Het scherm had geen ruimte voor nog {count} tegel. | Het scherm had geen ruimte voor nog {count} tegels.",
+        "no_page": "Er is geen pagina {page}.",
+        "not_drawn": "Het scherm tekent geen tegel van {count} entiteit. | Het scherm tekent geen tegel van {count} entiteiten."
+      },
+      "update_app": "Werk de Tessera-app bij: deze editor plaatst de plannen van Layoutbot zelf.",
+      "scope": {
+        "here": "Dit scherm",
+        "all": "Alle schermen"
+      },
+      "preview": "Bekijk"
     }
   }
 }

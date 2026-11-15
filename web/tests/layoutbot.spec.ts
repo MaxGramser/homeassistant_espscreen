@@ -1,6 +1,7 @@
 // Layoutbot (docs/LAYOUTBOT.md, stores/layoutbot.ts, components/LayoutBot.vue): shown only where Home Assistant has an
-// AI Task that makes data; a question sends the draft as it is, the answer becomes the draft as one step of undo that the
-// chat can take back, and while it thinks the pages take no edit.
+// AI Task that makes data; a question sends the draft as it is, the add-on answers with a checked plan, the editor places
+// it (model/layoutbot.ts, its own tests in layoutbot-plan.spec.ts) as one step of undo that the chat can take back, and
+// while it thinks the pages take no edit.
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import LayoutBot from "../src/components/LayoutBot.vue";
@@ -8,9 +9,11 @@ import { clone, emptyPage, instanceId } from "../src/model/pages";
 import { useDocumentStore } from "../src/stores/document";
 import { useInventoryStore } from "../src/stores/inventory";
 import { useLayoutbotStore } from "../src/stores/layoutbot";
+import { failure } from "./helpers/fake-api";
 import type { PageLayout } from "../src/types";
 import { fakeApi, type FakeApi } from "./helpers/fake-api";
 import { openScreen, screenFixture } from "./helpers/fixtures";
+import { useScreenStore } from "../src/stores/screen";
 
 const hall = () => screenFixture({ id: "hall", name: "Hall", online: true,
   layout: { title: "Hall", tiles: [{ entity: "light.a", name: "", slot: 0 }] } } as any);
@@ -26,13 +29,17 @@ function withNewPage(layout: PageLayout): PageLayout {
 }
 
 let api: FakeApi;
-const answering = (body: Record<string, unknown>) => (request: any) => ({ reply: "Done", changed: true, notes: [], agent: "a", seconds: 1,
-  layout: withNewPage(request.body.layout), ...body });
+// The add-on's answer: a checked plan, here a cover on the screen's first page.
+const PLAN = { pages: [{ page: 1, title: "", icon: null, sections: [], tiles: ["cover.blind"] }], remove: [] };
+const answering = (body: Record<string, unknown> = {}) => () => ({ version: 2, reply: "Done", plan: PLAN, notes: [], agent: "a", seconds: 1, ...body });
 beforeEach(async () => {
-  api = fakeApi({ "inventory": { screens: [], entities: [] }, "PUT screens/:id": (request: any) =>
+  // The add-on's inventory as the store holds it: a refresh after a save reads the same screens back.
+  api = fakeApi({ "inventory": () => ({ screens: clone(useInventoryStore().inventory.screens), entities: useInventoryStore().inventory.entities }), "capabilities": { capabilities: {} }, "home-facts": { entities: [], areas: [], floors: [], devices: {} }, "PUT screens/:id": (request: any) =>
     ({ saved: true, document: { format: "pages-v2", revision: "r2", layout: request.body.layout, sourceGrid: { columns: 2, rows: 3 } } }) });
   await openScreen(hall());
   useInventoryStore().inventory.layoutbot = AGENTS;
+  // The home's entities as the inventory lists them: a tile is placed only of an entity the home has.
+  useInventoryStore().inventory.entities = ["light.a", "light.x", "cover.blind"].map((id) => ({ id, name: id.split(".")[1], state: "off", area: "" })) as any;
 });
 afterEach(() => { document.body.replaceChildren(); });
 
@@ -56,17 +63,16 @@ describe("Layoutbot", () => {
     wrapper.unmount();
   });
 
-  it("sends the draft, takes the answer as one step of undo and can take it back", async () => {
+  it("sends the draft, places the plan as one step of undo and can take it back", async () => {
     const doc = useDocumentStore(), bot = useLayoutbotStore(), before = clone(doc.document!);
-    api.on("POST screens/:id/layoutbot", answering({ reply: "Made a page for your covers." }));
-    await bot.ask("A page with the covers");
+    api.on("POST screens/:id/layoutbot", answering({ reply: "Added the blind." }));
+    await bot.ask("Add the blind");
     const [asked] = api.asked("POST screens/:id/layoutbot");
     expect(asked.params.id).toBe("hall");
-    expect(asked.body).toMatchObject({ prompt: "A page with the covers", layout: before, agent: "ai_task.cloud" });
-    expect(doc.document!.pages).toHaveLength(2);
-    expect(doc.selectedPageId).toBe(doc.document!.pages[1].id);
+    expect(asked.body).toEqual({ version: 2, prompt: "Add the blind", layout: before, agent: "ai_task.cloud" });
+    expect(doc.document!.pages[0].tiles.map((tile) => (tile.content as any).entityId)).toEqual(["light.a", "cover.blind"]);
     const answer = bot.messages.at(-1)!;
-    expect(answer.text).toBe("Made a page for your covers.");
+    expect(answer.text).toBe("Added the blind.");
     expect(bot.undoable(answer)).toBe(true);
     bot.undo(answer);
     expect(doc.document).toEqual(before);
@@ -74,41 +80,67 @@ describe("Layoutbot", () => {
     expect(bot.undoable(answer)).toBe(false);
   });
 
-  it("asks to send after a real change, and yes saves this screen and the others it changed", async () => {
+  it("tells the person to update the app when the add-on answers in the old way", async () => {
+    const doc = useDocumentStore(), bot = useLayoutbotStore(), before = clone(doc.document!);
+    api.on("POST screens/:id/layoutbot", () => ({ reply: "Done", layout: withNewPage(before), changed: true, notes: [] }));
+    await bot.ask("Covers");
+    expect(doc.document).toEqual(before);
+    expect(bot.messages.at(-1)).toMatchObject({ error: true, text: "Update the Tessera app: this editor places Layoutbot's plans itself." });
+  });
+
+  it("asks to send after a real change and nothing else, and yes saves and sends this screen", async () => {
     const doc = useDocumentStore(), bot = useLayoutbotStore();
-    const wall = withNewPage(doc.document!);
-    api.on("POST screens/:id/layoutbot", answering({
-      elsewhere: [{ id: "wall", name: "Wallbox", layout: wall, revision: "r7", summary: { pages: 1, added: 1, removed: 0, changed: [] } }] }));
-    await bot.ask("The alarm on every screen");
+    api.on("POST screens/:id/layoutbot", answering({ reply: "I only arrange pages.", plan: { pages: [], remove: [] } }));
+    await bot.ask("Turn the lights on");
+    expect(bot.messages.at(-1)!.send).toBeUndefined();
+    api.on("POST screens/:id/layoutbot", answering());
+    await bot.ask("Add the blind");
     const message = bot.messages.at(-1)!;
     expect(message.send).toBe("ask");
-    expect(bot.targets(message)).toEqual(["Hall", "Wallbox"]);
+    expect(bot.targets(message)).toEqual(["Hall"]);
     expect(api.count("PUT screens/:id")).toBe(0);  // nothing saved before yes
     await bot.deliver(message);
-    const puts = api.asked("PUT screens/:id");
-    expect(puts.map((put) => put.params.id)).toEqual(["hall", "wall"]);
-    expect(puts[1].body).toEqual({ format: "pages-v2", revision: "r7", layout: wall });
+    expect(api.asked("PUT screens/:id").map((put) => put.params.id)).toEqual(["hall"]);
     expect(message.send).toBe("sent");
     expect(doc.dirty).toBe(false);
   });
 
-  it("asks nothing when nothing changed, and an undone change only sends the other screens", async () => {
-    const doc = useDocumentStore(), bot = useLayoutbotStore();
-    api.on("POST screens/:id/layoutbot", answering({ reply: "I only arrange pages.", changed: false, layout: doc.document }));
-    await bot.ask("Turn the lights on");
-    expect(bot.messages.at(-1)!.send).toBeUndefined();
-    api.on("POST screens/:id/layoutbot", (request: any) => answering({ elsewhere: [{ id: "wall", name: "Wallbox", layout: withNewPage(request.body.layout), revision: "r1" }] })(request));
+  it("asks for other screens only when the person chose all screens", async () => {
+    const bot = useLayoutbotStore();
+    api.on("POST screens/:id/layoutbot", answering({ plan: { pages: [], remove: [] } }));
+    await bot.ask("Covers");
+    bot.allScreens = true;
     await bot.ask("Covers everywhere");
+    expect(api.asked("POST screens/:id/layoutbot").map((call) => call.body.all_screens)).toEqual([undefined, true]);
+  });
+
+  it("shows another screen's change before anything is saved, sends each on yes and comes back", async () => {
+    const inv = useInventoryStore(), bot = useLayoutbotStore(), scr = useScreenStore();
+    const other = (id: string, name: string) => screenFixture({ id, name, online: true, layout: { title: name, tiles: [{ entity: "light.x", name: "", slot: 0 }] } } as any);
+    inv.inventory.screens.push(other("wall", "Wallbox"), other("desk", "Desk"));
+    bot.allScreens = true;
+    api.on("POST screens/:id/layoutbot", answering({ elsewhere: [{ id: "wall", name: "Wallbox", plan: PLAN, notes: [] }, { id: "desk", name: "Desk", plan: PLAN, notes: [] }] }));
+    api.on("PUT screens/wall", failure(409, "Changed in another tab"));
+    await bot.ask("The blind on every screen");
     const message = bot.messages.at(-1)!;
-    bot.undo(message);
-    expect(bot.targets(message)).toEqual(["Wallbox"]);
+    expect(message.elsewhere!.map((o) => [o.name, o.summary])).toEqual([
+      ["Wallbox", { pages: 0, added: 1, removed: 0, changed: [1] }], ["Desk", { pages: 0, added: 1, removed: 0, changed: [1] }]]);
+    expect(bot.targets(message)).toEqual(["Hall", "Wallbox", "Desk"]);
+    expect(api.count("PUT screens/:id")).toBe(0);  // nothing saved before yes
     await bot.deliver(message);
-    expect(api.asked("PUT screens/:id").map((put) => put.params.id)).toEqual(["wall"]);
+    // Each through the editor's own Save & send, one after the other; the one that failed keeps nothing, the others go.
+    expect(api.asked("PUT screens/:id").map((put) => put.path)).toEqual(["screens/hall", "screens/wall", "screens/desk"]);
+    expect(api.asked("PUT screens/:id")[2].body.layout.pages[0].tiles.map((tile: any) => tile.content.entityId)).toEqual(["light.x", "cover.blind"]);
+    expect(message.elsewhere!.map((o) => o.sent)).toEqual(["failed", "sent"]);
+    expect(message.send).toBe("failed");
+    expect(bot.messages.at(-1)!.text).toContain("Wallbox");
+    expect(scr.selected).toBe("hall");
+    expect(useDocumentStore().dirty).toBe(false);
   });
 
   it("leaves a draft that moved while it thought as it is", async () => {
     const doc = useDocumentStore(), bot = useLayoutbotStore();
-    api.on("POST screens/:id/layoutbot", answering({}));
+    api.on("POST screens/:id/layoutbot", answering());
     const held = api.defer("POST screens/:id/layoutbot");
     const asked = bot.ask("Covers");
     expect(bot.busy).toBe(true);
@@ -123,7 +155,7 @@ describe("Layoutbot", () => {
   it("shines over the pages and lets no key through while it thinks; Escape stops waiting", async () => {
     document.body.innerHTML = '<div id="canvas"></div>';
     const bot = useLayoutbotStore();
-    api.on("POST screens/:id/layoutbot", answering({}));
+    api.on("POST screens/:id/layoutbot", answering());
     api.defer("POST screens/:id/layoutbot");
     const wrapper = mount(LayoutBot, { attachTo: document.body });
     await flushPromises();

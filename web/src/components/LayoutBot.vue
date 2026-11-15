@@ -11,6 +11,8 @@ import { useLayoutbotStore, type Elsewhere } from "../stores/layoutbot";
 import { useScreenStore } from "../stores/screen";
 import Icon from "./ui/Icon.vue";
 import UiSelect from "./ui/UiSelect.vue";
+import Segmented from "./Segmented.vue";
+import { useInventoryStore } from "../stores/inventory";
 
 const bot = useLayoutbotStore();
 const scr = useScreenStore();
@@ -93,17 +95,21 @@ const PROVIDERS = [
 ];
 const checking = ref(false);
 async function recheck() { checking.value = true; try { await bot.recheck(); } finally { checking.value = false; } }
+// "This screen" or "All screens", where there is another screen with pages to change.
+const inv = useInventoryStore();
+const otherScreens = computed(() => inv.inventory.screens.some((screen) => screen.id !== scr.selected && screen.page_document?.format === "pages-v2"));
+const scopes = computed(() => [[false, t("editor.layoutbot.scope.here")], [true, t("editor.layoutbot.scope.all")]] as const);
 const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.name] as const));
 </script>
 
 <template>
   <Teleport v-if="bot.shown" to="body">
     <Transition name="bot-shine">
-      <div v-if="bot.busy" class="bot-shine" :style="canvasBox" @pointerdown.stop.prevent @click.stop.prevent @wheel.prevent>
+      <div v-if="bot.busy || bot.delivering" class="bot-shine" :style="canvasBox" @pointerdown.stop.prevent @click.stop.prevent @wheel.prevent>
         <div class="bot-shine-sweep" aria-hidden="true"></div>
         <div class="bot-shine-pill" role="status" aria-live="polite">
           <span class="bot-spark" aria-hidden="true"></span>
-          <span>{{ t("editor.layoutbot.busy") }}</span>
+          <span>{{ bot.delivering ? t("editor.layoutbot.send.to", { name: bot.delivering }) : t("editor.layoutbot.busy") }}</span>
           <span class="bot-secs">{{ t("editor.layoutbot.seconds", { n: elapsed }) }}</span>
           <button type="button" class="bot-stop" @click="bot.stop()">{{ t("editor.layoutbot.stop") }}</button>
         </div>
@@ -152,7 +158,12 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
                 <p>{{ message.text }}</p>
                 <ul v-if="message.notes?.length" class="notes"><li v-for="note in message.notes" :key="note">{{ note }}</li></ul>
                 <ul v-if="message.elsewhere?.length" class="elsewhere">
-                  <li v-for="other in message.elsewhere" :key="other.id"><Icon name="monitor-eye" /><span><b>{{ other.name }}</b> {{ [other.error, whatOf(other), ...(other.notes ?? [])].filter(Boolean).join(" ") }}</span></li>
+                  <li v-for="other in message.elsewhere" :key="other.id" :class="other.sent">
+                    <Icon :name="other.sent === 'sent' ? 'check' : 'monitor-eye'" />
+                    <span><b>{{ other.name }}</b> {{ [other.error, whatOf(other), ...(other.notes ?? []), other.sent === "failed" ? other.why : ""].filter(Boolean).join(" ") }}
+                      <em v-if="other.sent === 'sending'">{{ t("editor.layoutbot.send.sending") }}</em></span>
+                    <button v-if="other.layout && !other.sent && message.send === 'ask'" type="button" class="chip mini" :disabled="bot.busy" @click="bot.preview(other)">{{ t("editor.layoutbot.preview") }}</button>
+                  </li>
                 </ul>
                 <div v-if="message.page || bot.undoable(message) || message.undone" class="msg-actions">
                   <button v-if="message.page && !message.undone" type="button" class="chip" @click="bot.show(message)"><Icon name="eye-outline" />{{ t("editor.layoutbot.show") }}</button>
@@ -179,6 +190,8 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
           <div v-if="bot.busy" class="msg bot typing" aria-hidden="true"><i></i><i></i><i></i></div>
         </div>
 
+        <!-- Other screens only when the person chooses them (the add-on's layoutbot.answered holds to it). -->
+        <Segmented v-if="bot.ready && otherScreens" class="bot-scope" :choices="scopes" :value="bot.allScreens" :disabled="bot.busy" @pick="bot.allScreens = $event" />
         <form v-if="bot.ready" class="bot-compose" @submit.prevent="submit()">
           <textarea ref="field" v-model="draft" rows="1" :disabled="bot.busy" :placeholder="t('editor.layoutbot.placeholder')" maxlength="500" @keydown="onKey"></textarea>
           <button type="submit" class="bot-send" :disabled="bot.busy || !draft.trim()" :aria-label="t('editor.layoutbot.send')"><Icon name="arrow-up" /></button>
@@ -309,6 +322,12 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
 .elsewhere { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
 .elsewhere li { display: flex; gap: 6px; align-items: flex-start; }
 .elsewhere li :deep(.ui-icon) { color: var(--bot-b); margin-top: 1px; }
+.elsewhere li.sent :deep(.ui-icon) { color: var(--good); }
+.elsewhere li.failed { color: var(--danger); }
+.elsewhere li > span { flex: 1; }
+.elsewhere em { font-style: normal; color: var(--muted); margin-left: 4px; }
+.chip.mini { padding: 2px 8px; font-size: 12px; flex: none; }
+.bot-scope { margin: 6px 10px 0; align-self: flex-start; }
 .msg.send { border-color: color-mix(in srgb, var(--bot-b) 35%, var(--line)); background: color-mix(in srgb, var(--bot-b) 6%, var(--surface)); }
 .send-yes { border: 0; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 600; color: white; cursor: pointer;
   background: linear-gradient(140deg, var(--bot-a), var(--bot-b)); box-shadow: 0 4px 12px color-mix(in srgb, var(--bot-b) 30%, transparent);
