@@ -193,14 +193,52 @@ class Sections(run.Run):
             shots += await self.covers(region, states, dark)
             shots += await self.drawn(region, states, dark)
             shots += await self.every_card(dark)
+            shots += await self.kept_page(dark)
         # Every trade of a card's shared styles between the looks was proven in the program (theme::restyle_checked).
-        failed = [line for line in self.lines if 'restyle check FAIL' in line]
-        if failed:
-            raise RuntimeError(f'a card traded its styles wrongly: {failed[0]}')
+        # A failed trade fails the run (run.Run.run, with the card look's other checks).
         checked = [line for line in self.lines if 'restyle check:' in line]
         if checked:
             self.warnings.append(checked[-1].split('restyle check:', 1)[1].strip())
         return 1, shots
+
+    def trades(self):
+        """How many times a card has traded its styles between the looks so far (theme::restyle_checked's count)."""
+        counts = [int(line.split('restyle check:', 1)[1].split()[0]) for line in self.lines if 'restyle check:' in line]
+        return counts[-1] if counts else 0
+
+    async def kept_page(self, dark):
+        """A kept page with a following section (docs/KEPT_PAGES.md): turning to another page and back trades no card's
+        styles again and draws the page as it was, pixel for pixel."""
+        from datetime import datetime, timezone
+        grid = send_layout.Grid(*COVERS['grid'])
+        record, values, bars, region = send_layout.configuration(grid, pages=2, now=getattr(run, 'MOMENT', datetime.now(timezone.utc)))
+        page = record['layout']['pages'][0]
+        page['sections'] = [{'id': '5eca000000000001', 'title': 'Kept', 'icon': 'lightbulb-group', 'contrast': True, 'contrastTiles': True,
+                             'placement': {'row': 0, 'column': 0, 'columns': grid.columns, 'rows': grid.rows}}]
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars, sums=[[''], []])
+        async def turn():
+            for to in (1, 0):
+                await self.call('render_page', page=to)
+                await self.page_done(to)
+                await asyncio.sleep(0.8)
+        # The first turn to page 2 may find it not yet prepared and take page 1's cards for it; after it both are kept.
+        await self.call('render_page', page=0)
+        await self.page_done(0)
+        await turn()
+        await asyncio.sleep(3.0)
+        before, traded = await self.render('kept-before', timeout=6), self.trades()
+        await turn()
+        after = await self.render('kept-after', timeout=6)
+        # Kept (KEPT_PAGES_HOST=1, the path of a board with PSRAM): no card trades again. Without it the host keeps no
+        # page and each turn hands the cards to the other page, trading as they go (each trade proven by restyle_checked).
+        kept = os.environ.get('KEPT_PAGES_HOST') == '1'
+        if kept and self.trades() != traded:
+            raise RuntimeError(f'a kept page traded its cards\' styles again on its way back: {traded} -> {self.trades()} trades')
+        if before.tobytes() != after.tobytes():
+            raise RuntimeError('a kept page with a following section came back drawn otherwise')
+        self.warnings.append(f'page with a following section turned and back: the same pixels, {self.trades() - traded} trades on the way'
+                             + (' (kept: none)' if kept else ' (no page kept on this host)'))
+        return 2
 
     async def every_card(self, dark):
         """Every card the harness feeds (diagnostics/send_layout.py: the demo layout and the direct controls), each page

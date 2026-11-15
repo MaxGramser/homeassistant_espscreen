@@ -10,6 +10,9 @@
 // Home Assistant's state colours (the amber of a light that is on, the orange of heating) are not roles: they are data
 // and pass through state() on their way to the glass. The values below are free of LVGL, so tests/test_theme.cpp checks
 // the table and the contrast of both looks on a PC; the LVGL half is behind THEME_TEST.
+#if __has_include("esphome/core/defines.h")
+#include "esphome/core/defines.h"  // the modules this board has (SD_MOD_SECTIONS), and USE_HOST
+#endif
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -270,10 +273,19 @@ struct Flip {
 };
 // The look of a card for as long as it lasts (runtime_tiles' CardScope, docs/THEME.md "A card's look"): the screen's,
 // or the other one; then what was there before. A card's flag for draw callbacks (OTHER_LOOK_FLAG) is in the LVGL half.
+// How many looks of a card are open now: set_dark() inside one would be undone when it closes (the host build says so).
+#ifdef USE_HOST
+inline int looks_open = 0;
+#define THEME_LOOK_OPENS() ++looks_open
+#define THEME_LOOK_CLOSES() --looks_open
+#else
+#define THEME_LOOK_OPENS() ((void) 0)
+#define THEME_LOOK_CLOSES() ((void) 0)
+#endif
 struct LookScope {
   bool before, open = true;
-  explicit LookScope(bool other) : before(dark) { dark = screen_dark != other; }
-  void end() { if (open) { dark = before; open = false; } }
+  explicit LookScope(bool other) : before(dark) { dark = screen_dark != other; THEME_LOOK_OPENS(); }
+  void end() { if (open) { dark = before; open = false; THEME_LOOK_CLOSES(); } }
   ~LookScope() { end(); }
   LookScope(const LookScope &) = delete;
   LookScope &operator=(const LookScope &) = delete;
@@ -486,17 +498,14 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 }  // namespace theme
 
 #ifndef THEME_TEST
-#if __has_include("esphome/core/defines.h")
-#include "esphome/core/defines.h"  // the modules this board has (SD_MOD_SECTIONS)
-#endif
 #include "lvgl.h"
 #include <array>
+#ifdef USE_HOST
+#include "esphome/core/log.h"  // the card look's checks (restyle_checked, set_dark, runtime_tiles::set_color)
+#endif
 #ifdef SD_MOD_SECTIONS
 #include "lvgl_private.h"  // restyle_card trades a style on an object in place (lv_obj_t::styles)
 #include <vector>
-#ifdef USE_HOST
-#include "esphome/core/log.h"  // restyle_checked
-#endif
 // restyle_card reads fields that are not LVGL's API: lv_obj_t::styles and style_cnt, lv_obj_style_t::style, is_local and
 // is_trans. They were read against LVGL 9.5.0, which ESPHome brings from 2026.6.2 (the packages' min_version) to 2026.9.0.
 // Another LVGL stops here: check those fields in lv_obj_private.h and lv_obj_style_private.h, that a style's selector
@@ -522,8 +531,8 @@ inline bool other_look(const lv_obj_t *obj) {
 #ifdef SD_MOD_SECTIONS
 struct LookOf {
   bool on, before;
-  explicit LookOf(const lv_obj_t *obj) : on(obj && other_look(obj)), before(dark) { if (on) dark = !screen_dark; }
-  ~LookOf() { if (on) dark = before; }
+  explicit LookOf(const lv_obj_t *obj) : on(obj && other_look(obj)), before(dark) { if (on) { dark = !screen_dark; THEME_LOOK_OPENS(); } }
+  ~LookOf() { if (on) { dark = before; THEME_LOOK_CLOSES(); } }
   LookOf(const LookOf &) = delete;
   LookOf &operator=(const LookOf &) = delete;
 };
@@ -684,8 +693,8 @@ inline void restyle_checked(lv_obj_t *card, bool other) {
   compare(!other, "traded back");
   restyle_card(card, other);
   compare(other, "traded again");
-  if (++restyle_checks % 20 == 1) ESP_LOGI("card_look", "restyle check: %u trades checked, %u failed", (unsigned) restyle_checks,
-                                           (unsigned) restyle_failures);
+  ++restyle_checks;
+  ESP_LOGI("card_look", "restyle check: %u trades checked, %u failed", (unsigned) restyle_checks, (unsigned) restyle_failures);
 }
 #endif
 #else
@@ -720,6 +729,9 @@ inline void (*redraw)() = nullptr;
 // glass is drawn again once, whole. A look the screen already has costs nothing, so the setting may be applied on every
 // change.
 inline void set_dark(bool on) {
+#ifdef USE_HOST
+  if (looks_open) ESP_LOGE("card_look", "set_dark FAIL: the screen's look changed inside %d open card look(s)", looks_open);
+#endif
   if (on == screen_dark && on == dark) return;
   screen_dark = dark = on;
   if (paints) paints();

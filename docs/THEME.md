@@ -105,13 +105,29 @@ changes, and `theme::dark`, the look every role and helper reads, which is the s
   lightens under a finger in the light look too; the hex forms stay for a colour kept as its light value.
 - **A plugin tile's calls run in its card's look**: `plugin_host` opens `CardScope` beside the call of a tap, a tick and
   a picture's arrival or loss (its render runs inside `render_slot`'s), so `on_theme` comes when the card changes look
-  (the card's look against the one it last coloured itself for). From a plugin's own moments (`on_message`,
+  (the card's look against the one it last coloured itself for). A tile moved into or out of a section is usually made
+  anew instead (the section's header changes its room): its `create` then runs in the new look and no `on_theme` comes. From a plugin's own moments (`on_message`,
   `on_interval`, ...) the role-taking `ui::` setters (`label`, `set_color`, `set_tone`, `set_fill`, `block`) open
   `theme::LookOf` on their object: the other look in a card that carries it, the look painted now anywhere else (a
   screensaver's own look stays).
 - **A picture is asked in its card's look**: `tile_ask`, a plugin tile's `picture_ask` and a live spot open the card's
   scope, so the question's look (part of the picture's key) and the ground behind its corners are the card's; a card
   that changes look asks its pictures again.
+
+What proves the card's look, without eyes:
+
+- The host build stops a render on a card painted outside its look (`runtime_tiles::set_color` on a card that carries
+  the other look while the screen's look is painted), on the look changed inside an open card's scope
+  (`theme::set_dark`), and on a trade of a card's styles that does not undo exactly (`theme::restyle_checked`);
+  `tools/render/run.py` fails on any such `card_look` line.
+- `tools/render/sections.py`: every card the harness feeds in a following and a contrast section, light and dark; a
+  kept page with a following section that comes back without a trade and with the same pixels.
+- `tools/render/run.py --plugin tests/fixtures/plugins/host_probe` on a board with sections: the probe's card in a
+  following section gets `on_theme` both ways, `ui::card_color()` answers in the card's look, an instrument's face is
+  the instrument's there.
+- `web/wasm/test_card_paint.mjs` in the firmware preview: a background from the editor (an `appearance` message alone)
+  repaints the card, a card into a following section and out again wears the other look and then its own, and Dark mode
+  turns it. `tests/test_theme.cpp`: `LookScope` nests, `Face` and an instrument's press.
 
 ## Adding a colour
 

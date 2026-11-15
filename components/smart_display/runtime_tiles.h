@@ -6457,6 +6457,13 @@ inline bool wake_tap() {
 // The same guard for any local style: a page switch mostly hands a slot the colours it already has,
 // and each real set refreshes the style and invalidates the object (about 0.3 ms on the Guition).
 inline void set_color(lv_obj_t *obj, lv_style_prop_t prop, lv_color_t color, lv_style_selector_t selector) {
+#if defined(USE_HOST) && defined(SD_MOD_SECTIONS)
+  // A card in the other look is painted only inside its scope (CardScope, docs/THEME.md "A card's look"): the host
+  // build names a path that paints it in the screen's look, and the render fails on it (tools/render/run.py).
+  static unsigned outside = 0;
+  if (theme::dark == theme::screen_dark && theme::other_look(obj) && outside++ < 8)
+    ESP_LOGE("card_look", "paint outside its card's look FAIL: object %p, style property %d", (void *) obj, (int) prop);
+#endif
   lv_style_value_t current;
   if (lv_obj_get_local_style_prop(obj, prop, &current, selector) == LV_STYLE_RES_FOUND && lv_color_eq(current.color, color)) return;
   lv_style_value_t value{}; value.color = color;

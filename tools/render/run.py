@@ -901,6 +901,31 @@ class Run:
         await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the person\'s again', start)
         if plain == own:
             self.failures.append(f'the card kept the tile\'s colour after CardColor::NONE: {back}')
+        # In a section whose tiles follow its contrast (docs/THEME.md "A card's look"), on a board that draws sections: the
+        # probe's card is in the other look, so ui::card_color answers in that look (green's dark value on the light
+        # screen), the card wears it, an instrument's face is the instrument's in that look, and out of the section the
+        # card is the screen's again. A section's header changes the card's room, so the card is made anew in its look
+        # (create, not on_theme).
+        if 'sections' in json.loads((REPO / 'screen_manager/app/boards.json').read_text())[self.item.board].get('modules', []):
+            import copy
+            following = copy.deepcopy(record)
+            following['layout']['pages'][0]['sections'] = [{'id': '5ec9000000000001', 'title': 'Following', 'contrast': True,
+                'contrastTiles': True, 'placement': {'row': 0, 'column': 0, 'columns': 1, 'rows': 1}}]
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, following, region, values(6, {'card': 'green'}), bars)
+            told = await self.until(lambda l: probe(l, 'tile=0 card set green'), 10, 'the tile set its card green, following', start)
+            if 'own=243A26' not in told:
+                self.failures.append(f'ui::card_color in a following section is not green in the other look: {told}')
+            await self.until(lambda l: probe(l, 'tile=0 tick') and 'ground=243A26' in l, 10, 'the card wears green in the other look', start)
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, following, region, values(7, {'card': 'instrument'}), bars)
+            told = await self.until(lambda l: probe(l, 'tile=0 card set instrument'), 10, 'an instrument, following', start)
+            if 'own=0B1119' not in told:
+                self.failures.append(f'an instrument\'s face in a following section is not the instrument in the other look: {told}')
+            start = len(self.lines)
+            await self.sender.synchronize(self.inbox.object_id, record, region, values(8, {'card': 'none'}), bars)
+            await self.until(lambda l: probe(l, 'tile=0 tick') and f'ground={plain}' in l, 10, 'the card is the screen\'s again', start)
+            self.warnings.append('plugin card in a following section: green and the instrument in the other look, back again')
         # Light and dark: on_theme, once each way.
         start = len(self.lines)
         self.client.switch_command(self.dark_switch.key, True)
@@ -4410,6 +4435,11 @@ class Run:
         self.process = subprocess.Popen([str(self.build.program)], stdout=log, stderr=subprocess.STDOUT, cwd=self.build.work)
         try:
             pages, checks = await self.drive()
+            # The card look's own checks in the program (docs/THEME.md "A card's look"): a card painted outside its look,
+            # the look changed inside a card's scope, a trade of a card's styles that does not undo exactly.
+            failed = [line for line in self.lines if '[card_look' in line and 'FAIL' in line]
+            if failed:
+                raise RuntimeError(f'card look: {failed[0]} ({len(failed)} in all)')
             return f'{pages} pages, {checks} page checks'
         finally:
             try:
