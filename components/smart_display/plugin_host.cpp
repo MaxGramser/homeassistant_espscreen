@@ -1575,11 +1575,13 @@ template <typename Run> static void saver_call(Run &&run) {
   ++saver_calling;
   std::vector<Place> *had = placing;
   placing = &saver_open->places;  // a place the saver makes in this call is its own (ui::picture)
-  // The dark look in every call of a saver, whatever the screen's (plugin_api.h): its roles are white on black.
-  const bool look = theme::dark;
-  theme::dark = true;
-  run(*saver_open->saver);
-  theme::dark = look;
+  // The dark look in every call of a saver, whatever the screen's (plugin_api.h): its roles are white on black. A scope,
+  // so a call that ends early still gives the look back. LookScope takes "the other look than the screen's": the other
+  // one exactly when the screen is light, so !screen_dark is dark in either case.
+  {
+    theme::LookScope look(!theme::screen_dark);
+    run(*saver_open->saver);
+  }
   placing = had;
   --saver_calling;
   if (!saver_calling && saver_gone) saver_end();
