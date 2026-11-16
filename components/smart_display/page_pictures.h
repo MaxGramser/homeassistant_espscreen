@@ -191,14 +191,26 @@ constexpr bool affords(size_t psram_free, size_t psram_total, size_t bytes) {
   return psram_free >= bytes && psram_free - bytes >= reserve(psram_total);
 }
 // Page pictures are the first thing a screen gives up when its PSRAM runs short: a cover, a camera's full view, a live
-// stream, a call and a plugin's picture all matter more. A picture goes, the farthest from the glass first
-// (Shelf::let_go), when an allocation from PSRAM was refused since the last look (`refused` against `seen`: the heap
-// watch counts every one, heap_watch.h) or when less is free than the kept pages' reserve. After that no picture takes
-// memory again for YIELD_REST_MS, so what was refused has its turn first.
+// stream, a call and a plugin's picture all matter more. One picture goes, the farthest from the glass first
+// (Shelf::let_go):
+//   for a refusal   an allocation from PSRAM was refused since the last look (the heap watch counts every one and
+//                   keeps the last one's size, heap_watch.h), and letting go could have helped it: it asked for no more
+//                   than what is free and what the pictures hold together. One refusal costs one picture; whoever asked
+//                   asks again, and a second refusal costs the next. An ask no picture could help (40 MB on a board
+//                   with 20 free and 4 held) costs none.
+//   under the floor less PSRAM is free than the kept pages' reserve: one picture each look, until it is not.
+// After that no picture takes memory again for YIELD_REST_MS, so what was refused has its turn first.
 constexpr uint32_t YIELD_REST_MS = 30000;
-constexpr bool must_yield(uint32_t refused, uint32_t seen, size_t psram_free) {
-  return refused != seen || psram_free < kept_pages::KEEP_RESERVE;
-}
+struct Yield {
+  uint32_t seen = 0;  // the refusals answered so far
+  // Whether one picture goes now. `refused` and `refused_bytes` are the heap watch's count and its last size, `held`
+  // the bytes the page pictures hold.
+  bool due(uint32_t refused, size_t refused_bytes, size_t psram_free, size_t held) {
+    const bool fresh = refused != seen;
+    seen = refused;  // answered, whatever the answer: the same refusal never costs a second picture
+    return (fresh && held > 0 && refused_bytes <= psram_free + held) || psram_free < kept_pages::KEEP_RESERVE;
+  }
+};
 // How far two pages lie apart, as someone pages from one to the other: around the end too when the pages loop.
 constexpr int apart(int a, int b, int pages, bool loop) {
   const int d = a > b ? a - b : b - a;

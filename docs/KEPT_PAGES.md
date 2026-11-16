@@ -162,13 +162,29 @@ whose tile takes a number between the put and that redraw is drawn with its chan
 ### How many, and where
 
 Two bytes a pixel of the panel, PSRAM only: 2 MB a page on a glass of 1280 x 800. Page pictures may take a quarter of
-the board's PSRAM (`page_pictures::share`, 8 MB of 32: four pages), each picture's memory is taken when its page first
+the board's PSRAM as its heap reports it (`page_pictures::share`: a P4 board's 32 MB chip gives a heap of about 29 MB,
+so 7.2 MB, three pages), each picture's memory is taken when its page first
 rests on the glass, and only while the picture store's whole budget and the kept pages' reserve stay free after it
 (`page_pictures::reserve`). A board that cannot keep two keeps none. They are also the first thing a screen gives
-up (`page_pictures::must_yield`): when an allocation from PSRAM is refused anywhere (the heap watch counts every one,
-`heap_watch::psram_refused`: a cover, a camera's full view, a stream, a call, a plugin's picture) or less is free than
-the kept pages' reserve, the picture of the page farthest from the glass gives its memory back, one a step, and none
-takes memory again for 30 seconds. The governor's first step already stops any take. The page on the glass takes the place of the
+up (`page_pictures::Yield`), one picture at a time, the page farthest from the glass first:
+
+- **For a refusal.** When an allocation from PSRAM is refused anywhere (a cover, a camera's full view, a stream, a
+  call, a plugin's picture: the heap watch counts every one and keeps its size, `heap_watch::psram_refused`), and the
+  ask was for no more than what is free and what the pictures hold together, one picture goes. One refusal costs one
+  picture; whoever asked asks again, and a second refusal costs the next. An ask that no picture could help costs
+  none: 40 MB refused on a board with 20 MB free and 4 MB of pictures let both pictures go before this was the rule
+  (a Guition 10.1, 2026-11-16).
+- **Under the floor.** While less PSRAM is free than the kept pages' reserve (2 MB), one picture goes each second.
+  With 17 MB held on that board, 1.0 MB was free, one picture went, 3.1 MB were free and the other two stayed.
+
+After either, no picture takes memory again for 30 seconds. The governor's first step already stops any take.
+
+**A walk through all the pages has few puts, and that is the rule working.** A picture comes only from a page that
+was on the glass, and the page farthest from the glass lets go first. With six pages and three pictures, walking the
+pages in order never turns to a kept page (the page ahead was on the glass five turns ago), while going back and forth
+between neighbours has a put at every turn. Keeping the pages ahead in the direction of travel would not change that:
+what lies ahead in a loop is exactly what was seen longest ago. Only a picture for every page does (a larger share, or
+a picture made off the glass: docs/open-issues/page-pictures-step-two.md). The page on the glass takes the place of the
 page farthest from it, counted around the end when the pages loop, so the neighbours of the page in sight stay.
 Inside the chip the whole of it is one pointer, one LVGL timer and one event hook.
 
@@ -205,6 +221,11 @@ that scrolls, and a live camera tile, 2026-11-16, with the profiler:
   2 MB from 50 to 39 ms. It is not used: the calls are marked as not for applications, they change a setting both
   cores share, and 11 ms is not worth finding out over months what that costs.
 - Three pictures took 6.0 MB of PSRAM (20.3 MB free with the layout, 14.2 MB with them).
+- On a Guition 10.1 with rev 3.2 silicon, a normal build, a layout of six pages with sections and a live camera tile,
+  from one start: internal RAM 417,984 B free without page pictures (lowest 394,568) and 417,540 B (lowest 394,084)
+  with three kept, 444 B less; PSRAM 24,988,528 B free without and 18,827,260 B with, and all of it back when they
+  were switched off. Puts of 216 of 240 blocks in 40.7 ms and, on the live camera's page, 83 in 15.7 ms, each with 0
+  pixels differing.
 
 ### The proof on a board
 

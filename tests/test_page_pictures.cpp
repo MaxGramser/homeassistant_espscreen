@@ -162,8 +162,19 @@ int main() {
   assert(count(32 * MB, 480u * 480 * 2, 20) == MAX_KEPT);
   assert(affords(20 * MB, 32 * MB, one) && !affords(9 * MB, 32 * MB, one) && !affords(MB, 32 * MB, one));
   assert(reserve(32 * MB) == picture_store::budget_for(32 * MB) + kept_pages::KEEP_RESERVE);  // asked, not written again
-  // Short of memory a picture goes: when PSRAM refused someone since the last look, or under the kept pages' reserve.
-  assert(must_yield(3, 2, 20 * MB) && must_yield(2, 2, MB) && !must_yield(2, 2, 3 * MB));
+  // Short of memory a picture goes. One refusal costs one picture, never a second (a board let both of its pictures
+  // go for one refused ask, 2026-11-16): the next look finds it answered.
+  Yield yield;
+  assert(!yield.due(0, 0, 20 * MB, 2 * one));
+  assert(yield.due(1, 3 * MB, MB * 5 / 2, 2 * one));   // 3 MB refused with 2.5 free and 4 held: letting go helps
+  assert(!yield.due(1, 3 * MB, 5 * MB, one));          // the same refusal again: answered
+  assert(yield.due(2, 3 * MB, 5 * MB, one));           // refused once more: the next picture
+  // An ask no picture could help costs none: 40 MB with 20 free and 4 held.
+  assert(!yield.due(3, 40 * MB, 20 * MB, 2 * one) && !yield.due(3, 40 * MB, 20 * MB, 2 * one));
+  // Nothing held: nothing to give.
+  assert(!yield.due(4, MB, 3 * MB, 0));
+  // Under the kept pages' reserve one goes at every look, refusal or not, until it is over it.
+  assert(yield.due(4, 0, MB, 2 * one) && yield.due(4, 0, MB, one) && !yield.due(4, 0, 3 * MB, one));
 
   // ---- Which pages ----
   assert(apart(0, 7, 8, false) == 7 && apart(0, 7, 8, true) == 1 && apart(2, 5, 8, true) == 3 && apart(3, 3, 8, true) == 0);

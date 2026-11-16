@@ -39,9 +39,10 @@ struct PagePictures {
   int taking = -1;           // the page a take is on its way for, for its log line
   uint32_t take_began = 0, take_bytes = 0, take_steps = 0, take_us = 0;
   const char *refused = nullptr;  // why the last put or take did not happen, said once
-  // Giving memory up (page_pictures::must_yield): the PSRAM refusals seen so far, when the free PSRAM was last read, and
+  // Giving memory up (page_pictures::Yield): the PSRAM refusals seen so far, when the free PSRAM was last read, and
   // when a picture last went, after which none takes memory for a while.
-  uint32_t refusals_seen = 0, looked_at = 0, yielded_at = 0;
+  page_pictures::Yield yield;
+  uint32_t looked_at = 0, yielded_at = 0;
 };
 inline PagePictures *page_pics = nullptr;
 inline bool page_pictures_on = true;  // a diagnostic build's A/B (page_receiver.cpp, op "page_pictures")
@@ -351,9 +352,10 @@ inline void page_pictures_step(lv_timer_t *) {
     const uint32_t refusals = heap_watch::psram_refused(), at = esphome::millis();
     const bool look = at - all.looked_at >= 1000;
     if (look) all.looked_at = at;
-    if (refusals != all.refusals_seen || look) {
+    if (refusals != all.yield.seen || look) {
       const size_t free = psram_free();
-      if (page_pictures::must_yield(refusals, all.refusals_seen, free)) {
+      const size_t held = all.shelf.pages() * page_picture_bytes();
+      if (all.yield.due(refusals, heap_watch::psram_refused_bytes(), free, held)) {
         const size_t gone = all.shelf.let_go(applied_page, static_cast<int>(page_count()), settings_screen::loop_pages != 0);
         if (gone != page_pictures::NONE) {
           page_picture_free(gone);
@@ -361,10 +363,8 @@ inline void page_pictures_step(lv_timer_t *) {
           all.yielded_at = at ? at : 1;
           ESP_LOGI("page_pic", "memory is short (%u B of PSRAM free, %u asks refused): a page's picture goes, %u kept",
                    (unsigned) free, (unsigned) refusals, (unsigned) all.shelf.pages());
-          if (all.shelf.pages()) return;  // the next one in the next step, should it still be short
         }
       }
-      all.refusals_seen = refusals;
     }
   }
   if (applied_page < 0 || !room_label || !page_pictures_on) return;

@@ -53,6 +53,7 @@ void tick(uint32_t now);
 // How many allocations from PSRAM found no room since boot (any task): what gives memory up first looks at this
 // (page_pictures.h), so no one polls a heap for it.
 uint32_t psram_refused();
+uint32_t psram_refused_bytes();  // the size of the last of them
 // With the config dump: the previous boot's record, and this boot's so far.
 void dump();
 
