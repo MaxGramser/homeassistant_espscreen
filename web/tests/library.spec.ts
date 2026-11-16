@@ -84,6 +84,8 @@ describe("the library", () => {
 describe("a remote in the library (firmware 0.22.0)", () => {
   it("is a kind of its own to filter on", () => {
     expect(FILTERS).toContain("remote");
+    // The screen's own cards (a page's key, the clock) and timers have filters of their own too.
+    expect(FILTERS).toEqual(expect.arrayContaining(["timer", "screen"]));
     expect(inDomain("remote.living_room", "remote")).toBe(true);
     expect(kindCounts([{ id: "remote.living_room", name: "TV" }], "").find(([kind]) => kind === "remote")?.[1]).toBe(1);
   });
