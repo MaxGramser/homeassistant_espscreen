@@ -32,8 +32,7 @@ The remote package is `packages/es3c28p.yaml` and the checkout entry `checkout/e
 - The panel needs inverted colours (without them every colour is its complement); the board file sets them. RGB order
   is right as it is.
 - The USB-C port is the chip's own USB-Serial-JTAG, so the log goes there (`logger: hardware_uart: USB_SERIAL_JTAG`).
-- No camera package yet: camera tiles, snapshots and media artwork are not included. The board has the PSRAM for them,
-  but nobody has tried them on it.
+- No camera package: camera tiles, snapshots and media artwork are not included, and none is planned for this board.
 
 GPIO45 and GPIO46 are strapping pins of the ESP32-S3. On this board they are wired to the backlight and to the panel's
 data/command line, so the board file tells ESPHome not to warn about them. The LCD's reset is tied to the chip's reset,
@@ -57,5 +56,4 @@ From LCDWiki's pin table, confirmed by an owner's ESPHome configuration that run
 
 [@StefanHAJ](https://github.com/StefanHAJ) ran this board file on two ES3C28P boards with Tessera (firmware 0.59.0 and
 0.60.0, built from his fork with ESPHome 2026.10): the screen joined Home Assistant, showed its pages lying down with the
-right colours, and touch, the backlight and page switching worked. Not tried yet: standing up, camera pictures and a long
-run.
+right colours, and touch, the backlight and page switching worked, lying down and standing up. Not tried yet: a long run.
