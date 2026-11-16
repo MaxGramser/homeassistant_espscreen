@@ -2122,8 +2122,11 @@ inline void render_slot(size_t slot) {
   bool custom=clock||forecast||sunpath||bedside||energy||plugin||calendar||meter||vacuum||text||todo_list;
   if(!large_tile)pad_vertical(w.tile,watch||custom||graph?2:4);
   // A big value that stepped up to the setpoint's digits (the watch block below) keeps them until that block
-  // decides again, so a card is not restyled twice a render.
-  if(!(watch && setpoint_font && lv_obj_get_style_text_font(w.value,LV_PART_MAIN)==setpoint_font))
+  // decides again, so a card is not restyled twice a render. Only a card that goes through that block: a full card
+  // (render_full) never decides again, and kept the digits of what its cell showed before, 30 px too tall, its value
+  // under the card (the layout audit on the 3.5-inch, 2026-11-16; a redraw between two layouts used to hide it).
+  const bool full_card=w.full && !bedside;
+  if(!(watch && !full_card && setpoint_font && lv_obj_get_style_text_font(w.value,LV_PART_MAIN)==setpoint_font))
     set_font(w.value,watch && watch_value_font ? watch_value_font : w.value_font);
   // Both text boxes are one line high; the sizes come from the styles, not from a layout pass.
   int title_height=lv_font_get_line_height(lv_obj_get_style_text_font(w.title,LV_PART_MAIN));
