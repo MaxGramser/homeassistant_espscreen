@@ -40,6 +40,14 @@ and then in Dark mode:
 
 When all eight look right, this file gets its "Solved" section with the build that was looked at.
 
+### 2026-11-16: a first walk on glass
+
+On a 10-inch Waveshare P4 board on USB, with a camera on the glass, a build of dev from the same day: a section in
+contrast with its tiles following and one without, a drawn meter and a bar, Dark mode on and back off, page turns and
+the pressed colour all looked right (items 1, 2, 4, 6 and 7, and item 5 without an album cover). Not yet looked at: the
+knob of a switch or slider (3), a cover in a contrast section (5) and a plugin tile (8). The file stays open until those
+are seen and the look is judged by eye on the screen it was made for.
+
 ## Pointers
 
 docs/THEME.md "A card's look", docs/PAGES.md "Sections", `runtime_tiles.h` (`CardScope`, `card_surface`,
