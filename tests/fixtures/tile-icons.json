@@ -1,0 +1,59 @@
+{
+ "defaults": {
+  "light": "F0335",
+  "climate": "F001B",
+  "humidifier": "F1099",
+  "vacuum": "F070D",
+  "fan": "F0210",
+  "cover": "F111C",
+  "scene": "F04B9",
+  "script": "F04B9",
+  "automation": "F06A9",
+  "remote": "F0454",
+  "sensor": "F029A",
+  "binary_sensor": "F029A",
+  "timer": "F051B",
+  "person": "F0004",
+  "camera": "F07AE",
+  "image": "F07AE",
+  "screen": "F0150"
+ },
+ "builtin": {
+  "screen.clock": "F0150",
+  "screen.settings": "F0493",
+  "screen.map": "F034E",
+  "screen.call": "F03F2",
+  "screen.page_1": "F0054",
+  "screen.page_2": "F0054",
+  "screen.page_3": "F0054",
+  "screen.page_4": "F0054",
+  "screen.page_5": "F0054",
+  "screen.page_6": "F0054",
+  "screen.page_7": "F0054",
+  "screen.page_8": "F0054",
+  "screen.energy": "F140B",
+  "screen.text": "F0279"
+ },
+ "weather": {
+  "sunny": "F0599",
+  "clear-night": "F0594",
+  "cloudy": "F0590",
+  "partlycloudy": "F0595",
+  "rainy": "F0597",
+  "pouring": "F0596",
+  "snowy": "F0598",
+  "snowy-rainy": "F067F",
+  "fog": "F0591",
+  "hail": "F0592",
+  "lightning": "F0593",
+  "lightning-rainy": "F067E",
+  "windy": "F059D",
+  "windy-variant": "F059D",
+  "exceptional": "F05D6"
+ },
+ "sun": {
+  "above_horizon": "F059B",
+  "below_horizon": "F059C"
+ },
+ "fallback": "F0425"
+}
