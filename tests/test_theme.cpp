@@ -169,3 +169,16 @@ int main() {
   screen_dark = dark = false;
   return 0;
 }
+
+// Home Assistant's palette (frontend src/resources/theme/color/color.globals.ts, as its 2026.9 frontend serves it): the
+// state colours every card takes are these, value for value.
+namespace palette_check {
+using namespace theme::ha;
+static_assert(RED == 0xF44336 && PURPLE == 0x926BC7 && DEEP_PURPLE == 0x6E41AB && INDIGO == 0x3F51B5 && BLUE == 0x2196F3,
+              "theme.h ha:: must hold Home Assistant's palette");
+static_assert(LIGHT_BLUE == 0x03A9F4 && CYAN == 0x00BCD4 && TEAL == 0x009688 && GREEN == 0x4CAF50 && LIME == 0xCDDC39,
+              "theme.h ha:: must hold Home Assistant's palette");
+static_assert(YELLOW == 0xFFEB3B && AMBER == 0xFFC107 && ORANGE == 0xFF9800 && DEEP_ORANGE == 0xFF6F22 && LIGHT_GREY == 0xBDBDBD,
+              "theme.h ha:: must hold Home Assistant's palette");
+static_assert(GREY == 0x9E9E9E && BLUE_GREY == 0x607D8B && ICE == 0xC0E0FF, "theme.h ha:: must hold Home Assistant's palette");
+}  // namespace palette_check

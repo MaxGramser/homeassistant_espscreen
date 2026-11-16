@@ -51,4 +51,42 @@ assert.deepEqual([hex(socket.color), hex(socket.circle)], [hex(OFF.icon), hex(OF
 assert.notEqual(hex(socketOn.color), hex(OFF.icon), 'a switch that is on is not grey');
 assert.equal(socket.glyph, socketOn.glyph, 'a switch keeps its icon off and on: only a light crosses out its bulb');
 
-console.log('state look: off is grey and the bulb crossed out, on is coloured, every domain alike');
+// More cards on a screen of their own: a light's slider, a lamp's own colour by Home Assistant's contrast rule, an airco
+// that is off, and a card over the whole page.
+async function screen(tiles) {
+  const n = await createModule({ wasmBinary });
+  assert.equal(n._preview_init(480, 480, 170, 3, 3), 1);
+  let t = 0;
+  configure(connection(n), 'Look', 1, tiles);
+  for (let i = 0; i < 8; i++) { t += 64; n._preview_time(t, 1789401840, 7200); n._preview_render(); }
+  const layout = JSON.parse(n.ccall('preview_layout', 'string', [], []));
+  return (entity) => {
+    const card = layout.cards.findIndex((c) => c.entity === entity);
+    assert.ok(card >= 0, `${entity} is on the glass`);
+    const own = layout.objects.filter((o) => o.card === card);
+    return { card: layout.objects.find((o) => o.id === layout.cards[card].object), icon: own.find((o) => o.icon),
+      slider: own.find((o) => o.type === 'slider'), words: own.filter((o) => o.type === 'label' && !o.icon).map((o) => o.text) };
+  };
+}
+const lamp = (hs) => ({ supported_color_modes: ['hs'], color_mode: 'hs', brightness: 200, hs_color: hs });
+const more = await screen([
+  { entity: 'light.slider_off', name: 'Desk', state: 'off', a: { supported_color_modes: ['brightness'] }, slot: 0, o: { inline: 'slider' } },
+  { entity: 'light.slider_on', name: 'Desk', state: 'on', a: { supported_color_modes: ['brightness'], brightness: 128 }, slot: 1, o: { inline: 'slider' } },
+  { entity: 'light.blue', name: 'Blue', state: 'on', a: lamp([200, 60]), slot: 2, o: {} },
+  { entity: 'light.pale', name: 'Pale', state: 'on', a: lamp([200, 5]), slot: 3, o: {} },
+  { entity: 'climate.airco', name: 'Airco', state: 'off', unit: '°C', slot: 4, o: {},
+    a: { temperature: 21, current_temperature: 19, hvac_modes: ['off', 'cool'], min_temp: 16, max_temp: 30, target_temp_step: 1 } },
+]);
+// Home Assistant's grey itself (theme.h ha::GREY) and its amber (ha::AMBER) on a slider's fill.
+assert.equal(hex(more('light.slider_off').slider.fill), '#9e9e9e', 'the slider of a light that is off is grey');
+assert.equal(hex(more('light.slider_on').slider.fill), '#ffc107', 'the slider of a light that is on is its amber');
+assert.notEqual(hex(more('light.blue').icon.color), hex(on.color), 'a lamp that is on shows its own colour');
+assert.equal(hex(more('light.pale').icon.color), hex(on.color), 'a lamp too pale to lift keeps the amber of a lamp that is on');
+const airco = more('climate.airco').words.find((w) => w !== 'Airco');
+assert.ok(airco?.startsWith('Off'), `an airco that is off says so first, before its temperatures (${airco})`);
+assert.ok(!airco.includes('21'), 'and shows no setpoint');
+// A card over the whole page is the card like every other, on or off: its state shows in its icon and controls.
+const whole = await screen([{ entity: 'light.whole', name: 'Whole', state: 'on', a: { supported_color_modes: ['brightness'], brightness: 200 }, slot: 0, o: { size: 'full' } }]);
+assert.equal(hex(whole('light.whole').card.bg), '#ffffff', 'a light that is on over the whole page is a white card');
+
+console.log('state look: off is grey and the bulb crossed out, on is coloured, every domain alike; sliders, lamp colours, an airco, a whole page');

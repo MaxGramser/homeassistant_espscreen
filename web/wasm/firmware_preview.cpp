@@ -269,6 +269,9 @@ const char *preview_layout() {
       o["dots"] = mode == LV_LABEL_LONG_DOT && n >= 3 && std::strcmp(text + n - 3, "...") == 0;
       o["icon"] = n >= 4 && static_cast<unsigned char>(text[0]) == 0xF3;
     } else {
+      // A slider's fill (its indicator's ground), as the firmware set it.
+      if (lv_obj_check_type(object, &lv_slider_class))
+        o["fill"] = lv_color_to_u32(lv_obj_get_style_bg_color(object, LV_PART_INDICATOR)) & 0xFFFFFF;
       o["type"] = lv_obj_check_type(object, &lv_image_class) ? "image" : lv_obj_check_type(object, &lv_slider_class) ? "slider"
                 : lv_obj_check_type(object, &lv_arc_class) ? "arc" : lv_obj_check_type(object, &lv_button_class) ? "button" : "object";
     }
