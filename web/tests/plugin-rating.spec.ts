@@ -90,13 +90,24 @@ describe("stars card", () => {
   });
 
   it("moves the stars with the arrow keys", async () => {
-    const card = mount(PluginRatingCard, { props: { screen: screen() }, attachTo: document.body });
-    await card.find('[data-star="3"]').trigger("click");
-    (card.find('[data-star="3"]').element as HTMLElement).focus();
-    await card.find('[data-star="3"]').trigger("keydown", { key: "ArrowRight" });
-    await flushPromises();
-    expect(document.activeElement).toBe(card.find('[data-star="4"]').element);
-    expect(card.find('[data-star="4"]').attributes("aria-checked")).toBe("true");
-    expect(card.findAll('.star[data-state="active"]')).toHaveLength(4);
+    // Reka's radio item checks the star the arrow key focused one timer later (RadioGroupItem's handleFocus clicks it in
+    // a setTimeout 0), and flushPromises waits with setImmediate: which of the two runs first is up to how busy the
+    // machine is. The test runs that timer itself, so the order is always the browser's.
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      const card = mount(PluginRatingCard, { props: { screen: screen() }, attachTo: document.body });
+      await card.find('[data-star="3"]').trigger("click");
+      (card.find('[data-star="3"]').element as HTMLElement).focus();
+      await card.find('[data-star="3"]').trigger("keydown", { key: "ArrowRight" });
+      await flushPromises();
+      expect(document.activeElement).toBe(card.find('[data-star="4"]').element);
+      await vi.runOnlyPendingTimersAsync();
+      await card.find('[data-star="4"]').trigger("keyup", { key: "ArrowRight" });
+      await flushPromises();
+      expect(card.find('[data-star="4"]').attributes("aria-checked")).toBe("true");
+      expect(card.findAll('.star[data-state="active"]')).toHaveLength(4);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
