@@ -141,18 +141,8 @@ class LayoutStore:
     def _latest(self, version, original):
         """The store as it last was before a move that repeats, whole or not at all, in the place of the one before."""
         latest = self.path.with_name(self.path.stem + f".v{version}.latest.backup.json")
-        descriptor, name = tempfile.mkstemp(prefix=latest.name + ".", suffix=".tmp", dir=self.path.parent)
-        try:
-            with os.fdopen(descriptor, "wb") as output:
-                os.fchmod(output.fileno(), 0o600)
-                output.write(original)
-                output.flush()
-                os.fsync(output.fileno())
-            os.replace(name, latest)
-        except BaseException:
-            if os.path.exists(name):
-                os.unlink(name)
-            raise
+        # The store is UTF-8 JSON (it was read as JSON just before), so its text is its bytes.
+        atomic.write_text(latest, original.decode("utf8"))
 
     def _backup(self, original, version=1, repeats=False):
         """Keep the store as it was before it moves on from `version` (1 before pages, 2 before sections).
