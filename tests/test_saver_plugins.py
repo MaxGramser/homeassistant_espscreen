@@ -12,9 +12,11 @@ docs/SCREENSAVER.md "Photos").
 import asyncio
 import io
 import json
+import re
 from pathlib import Path
 import sys
 import types
+from unittest import mock
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,7 +84,19 @@ class Options(unittest.TestCase):
         self.assertEqual(options('green'), {'colour': 'green'})
         self.assertNotEqual(options('green'), options('blue'))
 
+    def test_the_screen_reads_every_field_of_a_plugins_face(self):
+        # The protocol both ways (AGENTS.md, "Compatibility"): what the app sends of a plugin's face (`pf`), the screen
+        # reads, and nothing else.
+        choice = {'show': True, 'order': ['clock', 'media', 'photos', 'camera'], 'face': DIAL, 'plugins': {DIAL: {'options': {'colour': 'green'}}}}
+        sent = set(message(choice, {}, plugins={'faces': {DIAL: 'clock'}, 'steps': {}}, faces=True)['pf'])
+        receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
+        self.assertEqual(set(re.findall(r'\bpf\["(\w+)"\]', receiver)), sent,
+                         'the saver\'s `pf` the app sends (screen_saver.plugin_face) and the fields page_receiver.cpp reads '
+                         'of it are the same: change both')
+
     def test_the_screen_makes_the_saver_anew_for_other_options(self):
+        # Left as it was: whether a face is painted in place or made anew is decided in runtime_tiles.h, which is being
+        # split into *_lvgl.h files. Once the decision is a function of its own, a C++ test of it takes this one's place.
         receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
         self.assertIn('serializeJson(pf["o"], next.plugin_options);', receiver)
         runtime = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
@@ -369,9 +383,13 @@ class Photos(unittest.TestCase):
         self.assertEqual(saver_photos.pixel_limit(SimpleNamespace(format='HEIF')), saver_photos.MAX_PIXELS_HEIF)
         self.assertGreaterEqual(saver_photos.MAX_PIXELS_HEIF, 48_000_000)
         self.assertLess(saver_photos.MAX_PIXELS_HEIF, saver_photos.MAX_PIXELS)
-        # The painter reads the same limit, so a photo readable() let through is not refused later.
-        source = (ROOT / 'screen_manager/app/picture_paint.py').read_text()
-        self.assertIn('saver_photos.pixel_limit(source)', source)
+        # The painter reads the same limit, so a photo readable() let through is not refused later: with a limit of a
+        # hundred pixels, it refuses a photo of 40 x 30 it paints otherwise.
+        raw = jpeg((40, 30))
+        picture_paint.paint(photo_question((80, 48)), [raw])
+        with mock.patch.object(saver_photos, 'pixel_limit', lambda image: 100):
+            with self.assertRaisesRegex(ValueError, 'too large'):
+                picture_paint.paint(photo_question((80, 48)), [raw])
 
     def test_a_crafted_picture_of_too_many_pixels_is_refused(self):
         from PIL import Image
