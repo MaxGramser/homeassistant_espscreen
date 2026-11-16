@@ -25,6 +25,10 @@ no such guard, so the same depth there would corrupt memory without a word.
 - main (0.4.97) has the same design at about 14.9 KB of 16 KB by statics with a large layout on a P4, unproven on a
   board.
 
+On main (0.4.97) the sensor cherry-picks cleanly; the fix does not (dev has ops main lacks) but applies as the same
+mechanical change to main's own page_receiver.cpp: 9.5 KB on the P4 and the S3, 8.1 KB on the CYD. It goes with the next
+release instead of a hotfix (2026-11-16).
+
 ## Ruled out
 
 - The live stream's decode: it runs in the stream's own task, not on the loop (its log line just stood before the
