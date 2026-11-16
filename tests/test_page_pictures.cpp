@@ -173,6 +173,9 @@ int main() {
   assert(reserve(heap32, 100 * MB) == kept_pages::KEEP_RESERVE);                                  // a full store: its reserve is spent
   // The buffer a page is drawn into for a moment needs the kept pages' reserve only.
   assert(affords_scratch(free_loaded - one, one) && !affords_scratch(3 * MB, one));
+  // A page gets a picture made ahead when it has none, when its picture never left the glass, and when everything
+  // was asked to be drawn again since (the look changed while the page was away), not for a card or two.
+  assert(lacks(false, false, false) && lacks(true, false, false) && lacks(true, true, true) && !lacks(true, true, false));
   // A take under the governor: at rest; at the first step when only the loop was held up (a page turn's own doing);
   // never for a dry panel or a wake word that fell behind, never from the second step.
   assert(take_may(0, false) && take_may(1, true) && !take_may(1, false) && !take_may(2, true));

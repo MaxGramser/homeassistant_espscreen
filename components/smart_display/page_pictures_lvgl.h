@@ -472,10 +472,9 @@ inline bool page_pictures_ahead(uint32_t now) {
   const int page = all.shelf.next_ahead(applied_page, pages, loop, [&](int candidate) {
     if (!shelf.keeps(candidate)) return false;
     auto *have = page_picture_of(candidate);
-    if (!have || !have->left) return true;
-    // Nothing true because everything was asked to be drawn since (another look): made again, once.
     const size_t entry = all.shelf.held(candidate);
-    return !have->map.true_blocks() && entry != page_pictures::NONE && changes.all_after(all.shelf.entries[entry].synced);
+    return page_pictures::lacks(have != nullptr, have && have->left,
+                                entry != page_pictures::NONE && changes.all_after(all.shelf.entries[entry].synced));
   });
   if (page < 0) { page_picture_scratch_free(); return false; }
   if (!layout_landed_at || now - layout_landed_at < PICTURE_AHEAD_START_MS) return false;

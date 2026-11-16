@@ -238,6 +238,11 @@ constexpr bool affords(size_t psram_free, size_t psram_total, size_t bytes, size
 constexpr bool affords_scratch(size_t psram_free, size_t bytes) {
   return psram_free >= bytes && psram_free - bytes >= kept_pages::KEEP_RESERVE;
 }
+// Whether a page off the glass lacks a picture and gets one made ahead: it has none, or one that never left the glass
+// through a turn, or everything was asked to be drawn again since it was made (another look: Home Assistant gone or
+// back): then no block of it will be put, whatever its map still says, since the map only learns that at a turn.
+// A picture with a card or two untrue is not remade: its page turns with those drawn by LVGL.
+constexpr bool lacks(bool has, bool left, bool all_asked_since) { return !has || !left || all_asked_since; }
 // Whether a take may run under the governor (pressure.h). A take is a few steps of about 10 ms; it holds the loop up
 // for nobody. At rest it runs; at the governor's first step it still runs when the only sign was the main loop held
 // up, which on a loaded screen is what every page turn itself brings (a Guition 10.1 with a camera, the wake word and
