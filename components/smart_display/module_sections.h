@@ -33,6 +33,15 @@ namespace sections {
 using namespace runtime_tiles;
 
 struct Drawn { lv_obj_t *panel = nullptr, *icon = nullptr, *title = nullptr, *summary = nullptr; bool contrast = false, follow = false; };
+// What a section keeps inside the chip (docs/TILE_MEMORY.md "Sections"): its place in its page's list and in this one,
+// both reserved exactly, and its title and summary, each a heap block once it is longer than a string keeps inline (at
+// most 48 bytes each, plus the heap's overhead). Its LVGL objects live in PSRAM, where LVGL allocates on these boards.
+// On the 32-bit chips the price covers that; a host build's 64-bit pointers make it larger and are not priced.
+#if UINTPTR_MAX == 0xFFFFFFFFu
+static_assert(sizeof(section_layout::Section) + sizeof(Drawn) + 2 * (4 * ((section_layout::TITLE_BYTES + 1 + 3) / 4) + 16) <=
+                  tile_catalogue::SECTION_BYTES,
+              "a section keeps more inside the chip than its price (catalogue/_tile.yaml memory.section)");
+#endif
 inline std::array<std::vector<Drawn>, page_protocol::MAX_PAGES> drawn{};
 // What each page's decorations were made from (signature): a page placed before its sections arrived, or placed again
 // after a layout changed them, makes them anew.
@@ -170,6 +179,7 @@ inline void paint(Drawn &d) {
 }
 inline void make(int page) {
   auto &list = drawn[page];
+  list.reserve(of(page).size());  // exactly its room, as the page's own list (tile_catalogue::SECTION_BYTES)
   const int32_t top = title_top(), corner = radius() + gap();
   for (const auto &s : of(page)) {
     Drawn d;

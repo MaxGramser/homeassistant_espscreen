@@ -368,6 +368,8 @@ std::string receive(const std::string &payload) {
         // against the grid before the page is taken; a page whose blocks leave the grid or cover each other is refused.
         if (!root["sections"].isNull()) {
           if (!root["sections"].is<JsonArray>() || root["sections"].as<JsonArray>().size() > section_layout::MAX) return false;
+          // Exactly its room: a page's sections stay inside the chip as long as the layout (tile_catalogue::SECTION_BYTES).
+          next.sections.reserve(root["sections"].as<JsonArray>().size());
           for (JsonVariant item : root["sections"].as<JsonArray>()) {
             if (!item.is<JsonArray>() || item.as<JsonArray>().size() < 6) { result = "Error: sections"; return false; }
             JsonArray fields = item.as<JsonArray>();

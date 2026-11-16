@@ -1417,8 +1417,10 @@ class Manager:
         sender = self.page_senders.get(inbox)
         live = getattr(sender, 'memory', None)
         memory = live or getattr(sender, 'last_memory', None)
-        # Whether its tiles of the top bar count too (core.layout_cost): a screen that takes cards from its top bar.
-        return {**memory, 'live': live is not None, 'bar_cards': BAR_CARDS_FEATURE in (getattr(sender, 'features', None) or ())} if memory else None
+        # Whether its tiles of the top bar count too (core.layout_cost): a screen that takes cards from its top bar; and its
+        # pages' sections: a screen that draws them (any other is sent none).
+        features = getattr(sender, 'features', None) or ()
+        return {**memory, 'live': live is not None, 'bar_cards': BAR_CARDS_FEATURE in features, 'sections': SECTIONS_FEATURE in features} if memory else None
 
     def _discovered(self, inbox):
         """The screen as discovery sees it now, or None while it is not in Home Assistant's registry."""

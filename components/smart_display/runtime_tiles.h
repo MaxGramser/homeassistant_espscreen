@@ -3658,12 +3658,17 @@ inline size_t layout_cost() {
     if (t.is_plugin()) sum += plugin_host::bytes(t.entity) + (board.psram ? 0 : board.tile_bytes + board.extra_bytes);
     else sum += tile_memory::cost(t.entity, tile_memory::own_action(t.tap), tile_memory::own_line(t.subtitle), board);
   }
-  // And its pages: a page's title, and each item of its top bar that shows an entity (a text or a moment).
+  // And its pages: a page's title, each item of its top bar that shows an entity (a text or a moment), its sections.
   for (const auto &page : model.page_data.records) {
     unsigned entities = 0;
     for (size_t i = 0; i < page.bar.count && i < page.bar.items.size(); ++i)
       entities += page.bar.items[i].kind == header_bar::Kind::text || page.bar.items[i].kind == header_bar::Kind::ago;
-    sum += tile_memory::page_cost(entities, board);
+#ifdef SD_MOD_SECTIONS
+    const unsigned sections = unsigned(page.sections.size());
+#else
+    const unsigned sections = 0;
+#endif
+    sum += tile_memory::page_cost(entities, sections, board);
   }
   return sum;
 }

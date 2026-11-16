@@ -24,8 +24,8 @@ export function tileCost(tile: PricedTile, memory: Pick<ScreenMemory, "psram" | 
   return bytes;
 }
 
-/** A page as its price counts it: its top bar's items, of which the entity items keep a text. */
-export type PricedPage = { topbar: { trailing: readonly { type: string; entity?: string }[] } };
+/** A page as its price counts it: its top bar's items, of which the entity items keep a text, and its sections. */
+export type PricedPage = { topbar: { trailing: readonly { type: string; entity?: string }[] }; sections?: readonly unknown[] };
 
 /** The entities in the pages' top bars that are on none of `tiles`, once each: the tiles of the top bar a screen that takes
  * cards from its top bar gets (firmware 0.56.0), one without a cell for each, so a tap on its item opens its card. Only a
@@ -39,9 +39,11 @@ export function barEntities(pages: readonly PricedPage[], tiles: readonly Priced
   return out;
 }
 
-/** What one page costs: its title, each entity item of its top bar, and on a board without PSRAM its own record. */
-export const pageCost = (page: PricedPage, memory: Pick<ScreenMemory, "psram" | "page">) =>
-  TILE.memory.page + page.topbar.trailing.filter((item) => item.type === "entity").length * TILE.memory.bar_text + (memory.psram ? 0 : memory.page ?? 0);
+/** What one page costs: its title, each entity item of its top bar, each of its sections on a screen that draws them (any
+ * other is sent none), and on a board without PSRAM its own record. */
+export const pageCost = (page: PricedPage, memory: Pick<ScreenMemory, "psram" | "page" | "sections">) =>
+  TILE.memory.page + page.topbar.trailing.filter((item) => item.type === "entity").length * TILE.memory.bar_text +
+  (memory.sections ? (page.sections?.length ?? 0) * TILE.memory.section : 0) + (memory.psram ? 0 : memory.page ?? 0);
 
 /** What these tiles (the keys of a bedside clock included) and pages take together, with the tiles of the top bar on a
  * screen that gets them (`bar_cards`, barEntities). */

@@ -873,12 +873,14 @@ def tile_cost(tile, memory):
     return cost
 
 def page_cost(page, memory):
-    """What one page of a pages-v2 document takes inside the screen's chip: the catalogue's price of a page (its title)
-    and of each item of its top bar that shows an entity (its text), and on a board without PSRAM the page's own record,
-    whose size the screen gave (`page`). The screen counts its text and moment items, which are the entity items."""
+    """What one page of a pages-v2 document takes inside the screen's chip: the catalogue's price of a page (its title),
+    of each item of its top bar that shows an entity (its text) and, on a screen that draws sections (memory `sections`,
+    its hello), of each of its sections; and on a board without PSRAM the page's own record, whose size the screen gave
+    (`page`). The screen counts its text and moment items, which are the entity items, and the sections it was given."""
     entities = sum(1 for item in page.get('topbar', {}).get('trailing', []) if isinstance(item, dict) and item.get('type') == 'entity')
+    sections = len(page.get('sections') or []) if memory.get('sections') else 0
     return (catalogue.CHOICE_MEMORY['page'] + entities * catalogue.CHOICE_MEMORY['bar_text']
-            + (0 if memory['psram'] else memory.get('page', 0)))
+            + sections * catalogue.CHOICE_MEMORY['section'] + (0 if memory['psram'] else memory.get('page', 0)))
 
 def layout_cost(tiles, memory, pages=()):
     """What `tiles` (a flat layout's, the keys of a bedside clock included) and the document's `pages` take together

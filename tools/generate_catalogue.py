@@ -297,9 +297,9 @@ def normalise(tile, types, translations, facts, commands=None):
         }
     check_keys('catalogue/_tile.yaml', tile, {'taps', 'sizes', 'history_hours', 'memory'})
     choice = tile.get('memory')
-    if not isinstance(choice, dict) or set(choice) != {'action', 'line', 'page', 'bar_text'} or \
+    if not isinstance(choice, dict) or set(choice) != {'action', 'line', 'page', 'bar_text', 'section'} or \
             not all(type(choice[k]) is int and 0 <= choice[k] <= MOST_BYTES for k in choice):
-        fail('catalogue/_tile.yaml memory', f'needs action, line, page and bar_text, in bytes (0 to {MOST_BYTES})')
+        fail('catalogue/_tile.yaml memory', f'needs action, line, page, bar_text and section, in bytes (0 to {MOST_BYTES})')
     return {'version': 1, 'ha': facts['source'], 'tile': tile, 'domains': domains}
 
 
@@ -321,6 +321,8 @@ def header(catalogue):
               f'inline constexpr uint16_t ACTION_BYTES = {catalogue["tile"]["memory"]["action"]}, LINE_BYTES = {catalogue["tile"]["memory"]["line"]};',
               '// What a page keeps (its title) and an item of its top bar that shows an entity (its text).',
               f'inline constexpr uint16_t PAGE_BYTES = {catalogue["tile"]["memory"]["page"]}, BAR_TEXT_BYTES = {catalogue["tile"]["memory"]["bar_text"]};',
+              '// What a section of a page keeps (its place in two lists, its title and summary; module sections, docs/TILE_MEMORY.md).',
+              f'inline constexpr uint16_t SECTION_BYTES = {catalogue["tile"]["memory"]["section"]};',
               'inline constexpr Memory MEMORY[] = {' + ', '.join(
                   f'{{"{d}", {data["memory"]["bytes"]}, {"true" if data["memory"]["extras"] else "false"}}}'
                   for d, data in catalogue['domains'].items()) + '};',

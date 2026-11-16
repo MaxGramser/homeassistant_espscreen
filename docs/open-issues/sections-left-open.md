@@ -22,6 +22,17 @@ is worth a tile, a section gets a price in `ui_scale.h`'s tile memory table and 
 ### Pointers
 `module_sections.h` (`make`, `drop`, `forget`), docs/TILE_MEMORY.md, `web/src/model/memory.ts`.
 
+### Solved
+2026-11-16. Measured by the sizes on the chip (riscv32 build of the records): a section keeps 60 bytes in its page's
+list and 20 in the list of what is drawn, both now reserved exactly (`page_receiver.cpp`, `sections::make`), and its title
+and summary, a heap block each once longer than 15 bytes, at most 216 bytes inside the chip. Its four LVGL objects are
+about 1 KB in PSRAM, where LVGL allocates on the boards that draw sections, and stay out of the budget. A section costs
+224 bytes (`catalogue/_tile.yaml` `section`, `tile_memory::page_cost`, `core.page_cost`, `pageCost` in
+`web/src/model/memory.ts`), counted where the screen's hello says it draws sections; `tests/fixtures/memory-conformance.json`
+holds the three to the same answers and `module_sections.h` stops a 32-bit build whose sizes outgrow the price
+(docs/TILE_MEMORY.md, "The memory budget"). The heap tour on a 10.1 inch was not run: what a section keeps is fixed by
+its records, not by its contents, so the sizes say it.
+
 ## The header's height was worked out three times
 
 Solved 2026-11-15. The firmware works a section's header out from its fonts, `tools/generate_board_shapes.py` works the

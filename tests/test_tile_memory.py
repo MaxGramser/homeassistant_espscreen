@@ -19,7 +19,7 @@ class Prices(unittest.TestCase):
         for domain, data in catalogue.TYPES.items():
             self.assertEqual(set(data['memory']), {'bytes', 'extras'}, domain)
             self.assertGreater(data['memory']['bytes'], 0, domain)
-        self.assertEqual(set(catalogue.CHOICE_MEMORY), {'action', 'line', 'page', 'bar_text'})
+        self.assertEqual(set(catalogue.CHOICE_MEMORY), {'action', 'line', 'page', 'bar_text', 'section'})
 
     def test_a_tile_costs_its_type_its_choices_and_without_psram_itself(self):
         weather, switch = catalogue.MEMORY['weather'], catalogue.MEMORY['switch']

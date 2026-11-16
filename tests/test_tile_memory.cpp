@@ -38,8 +38,10 @@ int main() {
   assert(own_action("action") && !own_action("toggle") && own_line("attr:battery") && !own_line("text:Hi") && !own_line("auto"));
   assert(domain_of("light.kitchen") == "light" && domain_of("screen.page_12") == "screen");
   // A page: its title, each entity item of its bar, and on a board without PSRAM its record.
-  assert(page_cost(0, psram) == tile_catalogue::PAGE_BYTES);
-  assert(page_cost(3, inside) == tile_catalogue::PAGE_BYTES + 3u * tile_catalogue::BAR_TEXT_BYTES + 336u);
+  assert(page_cost(0, 0, psram) == tile_catalogue::PAGE_BYTES);
+  assert(page_cost(3, 0, inside) == tile_catalogue::PAGE_BYTES + 3u * tile_catalogue::BAR_TEXT_BYTES + 336u);
+  // A section (module sections) keeps its place in two lists, its title and its summary inside the chip.
+  assert(page_cost(0, 2, psram) == tile_catalogue::PAGE_BYTES + 2u * tile_catalogue::SECTION_BYTES);
   // The room counts what the tiles on the screen already take, less the reserve, and never goes below nothing.
   assert(room(100 * 1024, 0) == 100 * 1024 - RESERVE);
   assert(room(30 * 1024, 20 * 1024) == 50 * 1024 - RESERVE);
@@ -76,7 +78,9 @@ int main() {
     const Board board{field(line, "psram") == "true", static_cast<uint32_t>(std::stoul(field(line, "tile"))),
                       static_cast<uint32_t>(std::stoul(field(line, "extra"))), static_cast<uint32_t>(std::stoul(field(line, "page")))};
     const uint32_t want = static_cast<uint32_t>(std::stoul(field(line, "cost")));
-    const uint32_t got = page ? page_cost(static_cast<unsigned>(std::stoul(field(line, "page_entities"))), board)
+    // A screen keeps the sections of a page only when it draws them (the add-on sends none to any other).
+    const unsigned sections = page && field(line, "sections") == "true" ? static_cast<unsigned>(std::stoul(field(line, "page_sections"))) : 0;
+    const uint32_t got = page ? page_cost(static_cast<unsigned>(std::stoul(field(line, "page_entities"))), sections, board)
                               : cost(field(line, "domain"), field(line, "action") == "true", field(line, "line") == "true", board);
     if (got != want) { std::printf("%s: %u, the fixture says %u\n", line.c_str(), got, want); return 1; }
     ++cases;
