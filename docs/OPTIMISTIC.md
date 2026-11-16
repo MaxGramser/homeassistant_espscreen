@@ -189,6 +189,14 @@ Not optimistic on purpose:
 - next and previous track, turning a player or thermostat on, a scene, script or button: nothing the screen could show
   is known before Home Assistant reports it.
 
+A tile that runs something (a scene, a script, a button) has no wish: its tap waits for Home Assistant instead
+(`Tile::waiting`, `runtime_model.h`). The wait ends when a state follows, which for these is always a new one (a scene's
+and a button's state is the moment it ran, a script's `last` from the app), or `BUSY_AFTER_ANSWER` (800 ms) after
+Home Assistant's "it worked" when none follows. Meanwhile the tile's sheet swallows taps, and the 600 ms guard keeps a
+bounce from running it twice. Home Assistant answers in 342 to 599 ms, so a finger that taps once a second runs it
+every time (`web/wasm/test_page_frame.mjs`); only an answer that comes seconds late leaves the next tap under the
+sheet.
+
 ## A cover on its way
 
 A blind, a curtain or a garage door takes seconds to get where it was sent, and Home Assistant reports it on the way:
