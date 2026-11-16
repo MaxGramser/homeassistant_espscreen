@@ -243,7 +243,7 @@ esphome:
             runtime_tiles::hide_detail();
             screen_hooks::run_cards_closed();
           };
-          runtime_tiles::layout_changed = []() { id(show_tile_page).execute(); };
+          runtime_tiles::layout_changed = []() { id(show_tile_page).execute(); id(loop_stack_free).update(); };
           ${BOOT_PAGE_GESTURE}
           ${BOOT_CAMERA_HOOKS}
           runtime_tiles::refresh = []() { if (!id(ui_refresh).is_running()) id(ui_refresh).execute(); };
@@ -1615,6 +1615,23 @@ sensor:
         return heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
       #else
         return 0;
+      #endif
+  # The least stack the loop task ever had left since boot, in bytes (docs/ARCHITECTURE.md, "The loop's stack"): the
+  # loop task runs LVGL, every card and the API, and a layout's build and a page of live tiles run deepest. A screen not
+  # on USB says it here and in a troubleshooting report; it is read with the health report and right after a layout
+  # lands (layout_changed). The figure of the health line loop_stack_min_free.
+  - platform: template
+    name: "Loop Stack Free"
+    id: loop_stack_free
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    update_interval: 300s
+    lambda: |-
+      #ifdef USE_ESP32
+        return uxTaskGetStackHighWaterMark(nullptr);
+      #else
+        return {};
       #endif
   # A picture needs one block, not a total: 2 MB free in ten pieces holds no 2 MB picture.
   # Read only while the glass is dark (firmware 0.3.2+): finding the largest block walks the whole PSRAM heap with its
