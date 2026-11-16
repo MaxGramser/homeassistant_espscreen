@@ -256,6 +256,14 @@ actions) and `navigation_ready()` (turning pages) both ask it. Before firmware o
 `begun`, so each start of the app greyed the values for a moment and drew every card twice. The host render's
 `hello_again` round proves the rule with a second sender over the same screen.
 
+On glass (2026-11-16): a Waveshare ESP32-P4 10.1 inch (chip revision 3.2) with one Home Assistant and one app, a
+layout of three pages with a live camera tile on the glass, its whole log read over the API. The app was stopped and
+started again twice, and each time the log was watched for a minute after the screen had its layout again. Neither time
+did "the feed is no longer fresh" or "every card drawn" appear, while the log kept coming (69 lines in the second
+minute, among them the camera tile's stream starting again about a quarter of a second after it was asked). Before the
+change, the same restart on the same board logged "no longer fresh (... transfer active/not begun ...)" and every card
+drawn twice.
+
 ## Storage and recovery
 
 Layouts live in the add-on's `/data/screens.json`. Wi-Fi, API and OTA keys remain in the screen's ESPHome configuration. Layout exports contain no connection credentials.

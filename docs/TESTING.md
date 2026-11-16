@@ -148,6 +148,10 @@ For each variant it:
   compare with an earlier commit, render a checkout of it with `--tree <checkout> --out .esphome/render/base` and run
   `tools/compare_renders.py` on the two folders.
 
+`--tree` also shows that a new check fails before its fix: run this checkout's `run.py` with `--tree` set to a worktree
+of the commit before the fix and `--work` set to a folder of its own, so the two builds do not share one. The harness
+is today's, the firmware the older one. The `hello_again` round was shown failing that way before its fix went in.
+
 What it cannot show: colours and timing of a real panel, a real finger on real glass, memory and heat, and anything a
 real Home Assistant or camera adds.
 
