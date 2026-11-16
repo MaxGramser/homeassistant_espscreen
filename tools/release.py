@@ -469,6 +469,11 @@ def candidate(args):
     return 0
 
 
+def tag_of(version):
+    """The tag a release of this app version gets, the ref a stable app builds its screens from (core.release_ref)."""
+    return f'screens-v{version}'
+
+
 def publish(args):
     fetch()
     head = git('rev-parse', 'HEAD')
@@ -493,7 +498,7 @@ def publish(args):
     found = section(changelog, version)
     if not first or not found or first.group(0) != found[0]:
         problems.append(f'the newest CHANGELOG heading is not {version}, the version in {CONFIG}')
-    tag = f'screens-v{version}'
+    tag = tag_of(version)
     if has(f'refs/tags/{tag}') or git('ls-remote', '--tags', 'origin', f'refs/tags/{tag}'):
         problems.append(f'the tag {tag} exists already')
     lint = subprocess.run([sys.executable, '-m', 'unittest', '-q', 'tests.test_release_lint'], cwd=ROOT,
