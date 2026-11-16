@@ -67,21 +67,31 @@ class CoverTests(unittest.TestCase):
         message.setdefault('x', {})['covers'] = covers
         self.assertLessEqual(len(encode(message).encode()), 4096)
 
-    def test_a_tap_on_a_card_toggles_as_home_assistant_does(self):
-        # cover.toggle in Home Assistant: a moving cover stops where STOP is supported, a closed one opens, else close.
+    def test_a_tap_on_a_card_is_home_assistants_toggle(self):
+        # Rule: the card keeps no toggle rule of its own; Home Assistant's cover.toggle decides (cover/entity.py,
+        # _get_toggle_function), as for a cover tile set to toggle (tests/test_tile_controls.cpp, issue #7). The module
+        # is not in the preview (modules.py, preview False).
+        # glass: a group card of a cover that is closing without STOP opens again; one stopped half way after closing opens.
         module = (ROOT / 'components/smart_display/module_cover_groups.h').read_text()
         event = module[module.index('inline void blind_card_event('):module.index('inline void blind_slider_event(')]
-        self.assertIn('b->state == "opening" || b->state == "closing"', event)
-        self.assertIn('(b->supported & tile_controls::feature::COVER_STOP) ? tile_controls::COVER_STOP', event)
-        self.assertIn('b->state == "closed" ? tile_controls::COVER_OPEN : tile_controls::COVER_CLOSE', event)
+        self.assertIn('emit("cover.toggle", b->entity, "", "");', event, "a card's tap is cover.toggle, decided by Home Assistant")
+        self.assertNotIn('tile_controls::COVER_', event, 'and the card picks no open, close or stop of its own')
 
     def test_the_firmware_reads_what_the_app_sends(self):
-        # The keys page_receiver.cpp reads for a cover of a group, and the feature its hello says.
+        # Rule: every key the add-on sends for a cover of a group (cover_groups.covers) is one page_receiver.cpp reads,
+        # and the screen's hello names the feature the add-on waits for. The module is not in the preview.
         receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
-        for key in ('"e"', '"n"', '"s"', '"dc"', '"u"', '"f"', '"p"', '"t"'):
-            self.assertIn(f'c[{key}]', receiver)
-        self.assertIn('extra["covers"]', receiver)
-        self.assertIn(f'features.add("{cover_groups.FEATURE}")', (ROOT / 'packages/core.yaml').read_text())
+        states = {'cover.house': {'state': 'open', 'attributes': {'entity_id': ['cover.a', 'cover.b']}},
+                  'cover.b': {'state': 'unavailable', 'attributes': {'friendly_name': 'B'}},
+                  'cover.a': {'state': 'open', 'attributes': {'friendly_name': 'A', 'device_class': 'blind', 'current_position': 40,
+                                                              'current_tilt_position': 20, 'supported_features': 255}}}
+        sent = {key for cover in cover_groups.covers('cover.house', states) for key in cover}
+        self.assertEqual(sent, {'e', 'n', 's', 'dc', 'u', 'f', 'p', 't'}, 'every key cover_groups.covers sends, read below')
+        for key in sorted(sent):
+            self.assertIn(f'c["{key}"]', receiver, f'the add-on sends "{key}" for a cover of a group: page_receiver.cpp reads it')
+        self.assertIn('extra["covers"]', receiver, 'page_receiver.cpp reads the covers where the add-on puts them')
+        self.assertIn(f'features.add("{cover_groups.FEATURE}")', (ROOT / 'packages/core.yaml').read_text(),
+                      'core.yaml announces the feature, or the add-on sends no covers')
 
 
 if __name__ == '__main__':

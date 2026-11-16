@@ -212,6 +212,10 @@ slider, its open and close keys, its slats) starts a **travel** (`components/sma
 
 The open and close keys of a cover without positions show only the way ("Opening"), never a position.
 
+A tap on a cover's card on a cover group's page, like a cover tile set to toggle, is Home Assistant's `cover.toggle`
+itself and starts no travel: Home Assistant decides whether the cover stops, opens or closes, from what the screen
+cannot know (the way a cover stopped half way went last), and the card shows the cover as Home Assistant reports it.
+
 ## Testing
 
 - `tests/test_optimistic.cpp` runs every rule on the host: bursts, stale reports, refusals, "it worked" without a
