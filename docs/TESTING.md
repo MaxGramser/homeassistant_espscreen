@@ -97,7 +97,9 @@ A test imports its helpers (`firmware_sources`, `manager_fixtures`, the fakes of
 and none puts `tests/` on `sys.path` itself. The way of running puts it there: discover and a file run alone by their
 own rules, and `tests/__init__.py` for `tests.X`. A test that needs the add-on or the tools puts
 `screen_manager/app` in front and appends `tools/` after it (`sys.path.append`): both folders have an `i18n.py` and
-a `build_cache.py`, and the tools' must not hide the add-on's. A test that only passes after another test has imported
+a `build_cache.py`, and the tools' must not hide the add-on's. A test that means the tools' own script of such a name
+asks for it by path, `tool_modules.tool('i18n')`, which loads it as `tools_i18n`: a plain `import i18n` gives the tool
+when the test runs alone and the add-on's in the whole run. A test that only passes after another test has imported
 something for it is a broken test. Run a file alone to see whether it stands on its own.
 
 ## 2. Firmware builds

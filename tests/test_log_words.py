@@ -4,13 +4,13 @@ The translations' lint (tools/i18n.py lint) leaves them out by rule, so a log's 
 That rule may hide nothing a screen shows: here, a *_log.h knows nothing that draws or translates, and every other
 header is still read by the lint."""
 import re
-import sys
 import unittest
 from pathlib import Path
 
+from tool_modules import tool
+
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.append(str(ROOT / 'tools'))  # after the app: tools/i18n.py is not the app's i18n
-import i18n  # noqa: E402
+i18n = tool('i18n')  # the lint's script, not the app's module of the same name
 
 COMPONENT = ROOT / 'components' / 'smart_display'
 # What a header needs to put words on the glass: LVGL, the translations (tr(), txt::), or another part of the firmware
