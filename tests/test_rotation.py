@@ -6,7 +6,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'tools'))
 import profiles  # noqa: E402
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_portal
 from core import turns_of, validate_settings
 

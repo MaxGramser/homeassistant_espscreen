@@ -19,7 +19,6 @@ import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import tile_icons  # noqa: E402
 from core import ALERT_CHOICE_ORDER, ALERT_ENDINGS, ALERT_EVENT, ALERT_FALLBACK_ICON, ALERT_FIELDS  # noqa: E402
-sys.path.insert(0, str(ROOT / 'tests'))
 import package_yaml  # noqa: E402
 
 CORE = package_yaml.load(package_yaml.CORE)

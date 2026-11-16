@@ -16,7 +16,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import (PAGE_TILE_REPEAT_MIN_FIRMWARE, TILE_RESULT_EVENT, apply_tile_event, layout_snapshot, min_firmware,  # noqa: E402
                   run_tile_event, validate_layout)
 

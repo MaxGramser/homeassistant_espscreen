@@ -14,7 +14,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(1, str(ROOT / 'tests'))
 import yaml  # noqa: E402
 import core  # noqa: E402
 from core import REPO, channel_of, installation_yaml, set_channel  # noqa: E402

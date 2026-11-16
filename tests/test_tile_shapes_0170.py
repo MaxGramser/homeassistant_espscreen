@@ -7,7 +7,6 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import NIGHTSTAND, Grid, validate_layout  # noqa: E402
 from firmware_sources import runtime_source  # noqa: E402
 from layout_migrations import migrate_legacy  # noqa: E402

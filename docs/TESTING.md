@@ -73,6 +73,33 @@ fontTools and jinja2, and stops when one is missing, because a skipped test prov
   rebuilds and commits it when the firmware sources move; locally, `sh web/wasm/build.sh` with Emscripten does the
   same.
 
+### Running a test
+
+Every Python test runs in each of these ways, from the root of a working copy:
+
+```bash
+python -m unittest discover -s tests
+```
+
+```bash
+python -m unittest tests.test_wifi_chip
+```
+
+```bash
+python -m unittest tests.test_wifi_chip.TheRestart.test_the_c6_reset_line_is_left_to_esp_hosted
+```
+
+```bash
+python tests/test_wifi_chip.py
+```
+
+A test imports its helpers (`firmware_sources`, `manager_fixtures`, the fakes of another test) by their plain name,
+and none puts `tests/` on `sys.path` itself. The way of running puts it there: discover and a file run alone by their
+own rules, and `tests/__init__.py` for `tests.X`. A test that needs the add-on or the tools puts
+`screen_manager/app` in front and appends `tools/` after it (`sys.path.append`): both folders have an `i18n.py` and
+a `build_cache.py`, and the tools' must not hide the add-on's. A test that only passes after another test has imported
+something for it is a broken test. Run a file alone to see whether it stands on its own.
+
 ## 2. Firmware builds
 
 `tools/check.sh --firmware` compiles boards the way their owners build them: from the checkout entries, with

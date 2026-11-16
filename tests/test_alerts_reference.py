@@ -21,7 +21,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import package_yaml  # noqa: E402
 import tile_icons  # noqa: E402
 from core import (ALERT_CHOICE_ORDER, ALERT_ENDINGS, ALERT_LIMITS, ALERT_MAX_TIMEOUT, ALERT_MIN_FIRMWARE, FIRMWARE_VERSION,  # noqa: E402

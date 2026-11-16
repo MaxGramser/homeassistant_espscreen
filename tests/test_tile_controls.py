@@ -8,7 +8,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import CONTROLS, controls_catalogue, min_firmware, packets, resolve_controls, screen_options, state_message, validate_layout
 import tile_icons
 import test_portal

@@ -19,7 +19,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import ATTRS, cover_related, discover_screens, extras, state_message  # noqa: E402
 import core  # noqa: E402
 import page_layout  # noqa: E402

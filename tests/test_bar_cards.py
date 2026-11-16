@@ -9,7 +9,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import header_bar  # noqa: E402
 from core import BAR_CARDS_FEATURE, Grid, bar_cards, bar_entities, layout_cost  # noqa: E402
 from layout_migrations import migrate_legacy  # noqa: E402

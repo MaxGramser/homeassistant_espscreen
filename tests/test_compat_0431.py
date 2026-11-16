@@ -13,7 +13,6 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'tests'))
 import compat_corpus  # noqa: E402
 
 GOLDEN = ROOT / 'tests/fixtures/compat/golden-0.4.31.json.gz'

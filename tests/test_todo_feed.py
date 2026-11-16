@@ -240,7 +240,6 @@ class Manager(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
         import tempfile
-        sys.path.insert(0, str(ROOT / 'tests'))
         import test_scaling
         from manager_fixtures import with_screen_grid
         from server import Manager as AppManager

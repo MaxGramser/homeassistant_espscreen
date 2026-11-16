@@ -25,7 +25,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import core  # noqa: E402
 from core import (FIRMWARE_VERSION, SETTING_ENTITIES, SETTING_ENTITIES_MIN_FIRMWARE, SETTING_RULES, forecast_kinds,  # noqa: E402
                   setting_action, setting_entities, setting_from_state, validate_settings)
