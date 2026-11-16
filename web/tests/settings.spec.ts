@@ -44,3 +44,11 @@ describe("the screen's settings", () => {
     expect(momentText(30, false)).toBe("12:30 AM");
   });
 });
+
+describe("Dark mode in the editor (firmware 0.2.54)", () => {
+  it("is a switch right under Brightness and above standby, as on the screen", () => {
+    const rows = SETTING_GROUPS.find((g) => g.group === "brightness")!.rows.map((r) => r.key as string);
+    expect(rows.slice(0, 3)).toEqual(["brightness", "dark_mode", "standby_enabled"]);
+    expect(SETTING_GROUPS.flatMap((g) => g.rows as readonly SettingRow[]).find((r) => r.key === "dark_mode")?.kind).toBe("toggle");
+  });
+});
