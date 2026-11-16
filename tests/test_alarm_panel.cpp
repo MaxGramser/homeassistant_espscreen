@@ -42,6 +42,42 @@ static void test_codes() {
   assert(code_typable(number) && !code_typable(Codes{"text", true, false}));
 }
 
+// Home Assistant's ALARM_MODES (frontend src/data/alarm_control_panel.ts) in its order, each with its action, the bit of
+// AlarmControlPanelEntityFeature it needs (core, alarm_control_panel/const.py) and its icon (icons.json); trigger is a
+// feature, never a mode.
+constexpr bool same(const char *a, const char *b) { return *a == *b && (!*a || same(a + 1, b + 1)); }
+struct HaMode { const char *state, *service; uint32_t bit; const char *icon; };
+constexpr HaMode HA_MODES[] = {
+    {"armed_home", "alarm_control_panel.alarm_arm_home", 1, "\U000F068A"},
+    {"armed_away", "alarm_control_panel.alarm_arm_away", 2, "\U000F099D"},
+    {"armed_night", "alarm_control_panel.alarm_arm_night", 4, "\U000F1828"},
+    {"armed_vacation", "alarm_control_panel.alarm_arm_vacation", 32, "\U000F06BB"},
+    {"armed_custom_bypass", "alarm_control_panel.alarm_arm_custom_bypass", 16, "\U000F0483"},
+    {"disarmed", "alarm_control_panel.alarm_disarm", 0, "\U000F099E"},
+};
+constexpr bool modes_are_home_assistants() {
+  if (MODE_COUNT != sizeof(HA_MODES) / sizeof(HA_MODES[0])) return false;
+  for (unsigned i = 0; i < MODE_COUNT; ++i)
+    if (!same(MODES[i].state, HA_MODES[i].state) || !same(MODES[i].service, HA_MODES[i].service) ||
+        MODES[i].feature != HA_MODES[i].bit || !same(MODES[i].icon, HA_MODES[i].icon)) return false;
+  return true;
+}
+static_assert(modes_are_home_assistants(), "MODES is Home Assistant's ALARM_MODES: order, action, feature bit and icon");
+static_assert(feature::TRIGGER == 8, "AlarmControlPanelEntityFeature.TRIGGER");
+
+// Every state's colour (--state-alarm_control_panel-*-color) and icon (icons.json): green armed, orange on its way,
+// red triggered; disarmed is inactive (grey on the tile, Tile::active in tests/test_tile_controls.cpp).
+static void test_home_assistants_looks() {
+  struct { const char *state; uint32_t colour; const char *icon; } looks[] = {
+      {"armed_home", theme::ha::GREEN, "\U000F068A"}, {"armed_away", theme::ha::GREEN, "\U000F099D"},
+      {"armed_night", theme::ha::GREEN, "\U000F1828"}, {"armed_vacation", theme::ha::GREEN, "\U000F06BB"},
+      {"armed_custom_bypass", theme::ha::GREEN, "\U000F0483"}, {"arming", theme::ha::ORANGE, "\U000F0498"},
+      {"pending", theme::ha::ORANGE, "\U000F0499"}, {"disarming", theme::ha::ORANGE, "\U000F0498"},
+      {"triggered", theme::ha::RED, "\U000F009E"}};
+  for (const auto &l : looks) assert(color(l.state) == l.colour && std::strcmp(icon(l.state), l.icon) == 0);
+  assert(std::strcmp(icon("disarmed"), "\U000F099E") == 0);
+}
+
 static void test_states() {
   assert(armed("armed_away") && !armed("arming") && !armed("disarmed"));
   assert(urgent("arming") && urgent("pending") && urgent("triggered") && !urgent("disarming") && !urgent("armed_home"));
@@ -152,6 +188,7 @@ static void test_layouts() {
 
 int main() {
   test_modes();
+  test_home_assistants_looks();
   test_codes();
   test_states();
   test_attempt();

@@ -348,6 +348,17 @@ describe("a lock's colours (firmware 0.5.0)", () => {
   });
 });
 
+describe("an alarm panel's colours (firmware 0.3.3)", () => {
+  it("paints it as Home Assistant does: green armed, orange on its way, red triggered, grey disarmed", async () => {
+    const { tilePalette } = await import("../src/model/tile-palette");
+    for (const state of ["armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass"])
+      expect(tilePalette("alarm_control_panel.a", { state }).accent).toBe("#4caf50");
+    for (const state of ["arming", "pending", "disarming"]) expect(tilePalette("alarm_control_panel.a", { state }).accent).toBe("#ff9800");
+    expect(tilePalette("alarm_control_panel.a", { state: "triggered" }).accent).toBe("#f44336");
+    expect(tilePalette("alarm_control_panel.a", { state: "disarmed" }).accent).toBe("#9e9e9e");
+  });
+});
+
 describe("an automation's colours (GitHub #62)", () => {
   it("paints it as Home Assistant does: on amber, off grey; a run button only while its actions run", async () => {
     const { tilePalette, tileActive } = await import("../src/model/tile-palette");

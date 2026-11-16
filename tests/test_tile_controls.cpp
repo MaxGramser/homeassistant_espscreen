@@ -427,6 +427,9 @@ int main() {
     lock.tap = "none";
     assert(tap_route(lock, false).route == TapRoute::NONE);
     assert(!make("lock.a", "locked").active() && make("lock.a", "unlocked").active() && make("lock.a", "jammed").active());
+    // An alarm panel is active unless disarmed (stateActive in Home Assistant's frontend).
+    assert(!make("alarm_control_panel.a", "disarmed").active() && make("alarm_control_panel.a", "armed_away").active() &&
+           make("alarm_control_panel.a", "triggered").active());
     assert(accent(make("lock.a", "locked")) == theme::ha::GREEN && accent(make("lock.a", "unlocking")) == theme::ha::ORANGE &&
            accent(make("lock.a", "jammed")) == theme::ha::RED && accent(make("lock.a", "open")) == theme::ha::RED);
   }
