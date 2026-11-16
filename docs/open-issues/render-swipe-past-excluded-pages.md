@@ -57,3 +57,11 @@ did: on the guition host build, a swipe from the last included page went to the 
 to an excluded one. 0239533f makes the round state the rule both ways: with Loop pages on, the swipe comes round to
 the first page; with the "Loop pages" switch off, it stops at the last included page. The guition host render passes
 whole (51 page checks). The automation, remote and bars stages above are still open.
+
+## Solved: automation, remote and bars (2026-11-16)
+
+Automation and remote were the checks', not the firmware's. A tap on a switching tile sends what Home Assistant's own
+toggle sends, `turn_on` or `turn_off` by the state the tile shows and never `toggle` (`optimistic_lvgl.h`,
+`toggle_tap`); automation and remote follow that rule since 0.4.38, and the checks still waited for `toggle` from
+0.4.11. They now wait for `turn_off` and `turn_on`, and the check that holding a tile switches nothing looks for all
+three. Bars passes on dev's tip as it is. Both whole renders pass: guition and jc8012p4a1, 55 page checks each.
