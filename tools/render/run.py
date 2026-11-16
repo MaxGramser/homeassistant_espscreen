@@ -744,7 +744,7 @@ class Run:
         await probe(-1)
 
     async def detail_navigation(self, grid, entities):
-        """Real touchscreen taps, nested Back, hidden footer and excluded swipes.
+        """Real touchscreen taps, nested Back, hidden footer, and swipes past excluded pages with Loop pages on and off.
 
         This replaces the demo only after its render checks. There are no HA
         actions: every card navigates to a page. No test hooks ship on a board.
@@ -789,6 +789,7 @@ class Run:
         assert await self.sender.ping(), 'The original configuration must remain active after refusal'
         buttons = next(e for e in entities if getattr(e, 'name', '') == 'Page buttons')
         home = next(e for e in entities if getattr(e, 'name', '') == 'Show home button')
+        loop = next(e for e in entities if getattr(e, 'name', '') == 'Loop pages')
         self.client.switch_command(self.swipe_switch.key, True)
         for footer in (True, False):
             self.client.switch_command(buttons.key, footer)
@@ -811,7 +812,15 @@ class Run:
             await self.call('show_page', page=1)
             await self.page_done(0)
             assert (await self.swipe(True))[-1]['page'] == home_page, 'swipe must stay within included pages'
-            assert (await self.swipe(True))[-1]['page'] == home_page, 'swipe must stop before excluded pages'
+            # Loop pages (on by default, docs/SETTINGS.md): past the last included page comes the first, never an
+            # excluded one (PageData::step); off, the swipe stops at the last included page.
+            assert (await self.swipe(True))[-1]['page'] == 0, 'past the last page a swipe comes round to the first, past excluded pages'
+            self.client.switch_command(loop.key, False)
+            await self.call('show_page', page=home_page + 1)
+            await self.page_done(home_page)
+            await asyncio.sleep(0.3)
+            assert (await self.swipe(True))[-1]['page'] == home_page, 'without Loop pages a swipe stops before excluded pages'
+            self.client.switch_command(loop.key, True)
             await self.call('show_page', page=detail_page + 1)
             await self.page_done(detail_page)
             assert (await self.swipe(False))[-1]['page'] == detail_page, 'detail pages have no sequential exit'
