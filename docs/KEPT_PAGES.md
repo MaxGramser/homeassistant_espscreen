@@ -159,15 +159,45 @@ whose tile takes a number between the put and that redraw is drawn with its chan
 - **Where it was not put**, the glass keeps what the page before showed until LVGL draws there, as the whole glass did
   before. Chosen over a blank ground and over putting nothing: nothing is made up, and the rest of the page is there.
 
+### Made ahead
+
+A picture from the glass needs its page to have been on the glass. So a page that lacks one is made ahead, off the
+glass, the way the kept pages build the cards of pages nobody has opened: in idle moments, nearest to the glass first
+(the page after, the page before, and outward; `Shelf::next_ahead`), one page a step. `warm_page` puts the page's
+kept cards in the glass's place with LVGL's invalidation off and brings them up to date; LVGL then draws the screen
+into a buffer in PSRAM instead of the panel (`lv_snapshot_take_to_draw_buf`, which every board with pictures has
+compiled in), and the page's room goes into the picture turned as the panel is (`page_pictures::turned`, the inverse
+of `glass::on_panel`). The buffer is 2 MB more, held while pages still lack a picture and given back after.
+
+- **When.** Not before a layout has stood for 15 seconds (its values, covers and first pictures are still arriving)
+  and its pages are prepared; never while the glass is dark, the screensaver shows or LVGL is paused; then three
+  seconds after the last touch, pages settled, nothing over the page, no stream writing the glass, the governor at
+  rest, at most one page a second. Each is logged with what it held the main loop for ("page 3 made ahead: ... ms of
+  the loop"), and the governor hears a loop held up that long as it hears any other. One page is one draw LVGL cannot be stopped in, about as long as a page
+  turn's own; a touch that comes meanwhile waits for it. After a start that is once per page, after another look once
+  more.
+- **What is true in it.** Everything but the cards nobody has watched stand still: a card that shows time (a playing
+  track, a clock, a timer: `shows_time`) and a plugin's tile are left to LVGL, since a bar drawn a while ago would be
+  a stale value. Its change number is the one of that moment, so a tile that changes before the page is ever seen
+  makes its card untrue, by the same rule as any other.
+- **Not remade for a part.** A picture with some blocks untrue stays as it is until its page is on the glass; only a
+  page with no picture, or with nothing true after everything was asked to be drawn again, is made ahead.
+- **Its proof.** The compare at the first turn to that page (below), and `{"v":2,"op":"page_pictures","prove":1}`,
+  which makes the picture of the page on the glass the off-glass way and compares it with the glass at once.
+- **Off until proven.** LVGL draws a whole page from inside a timer of the loop task, and the loop task's stack had no
+  room to spare on a real layout (2026-11-16). Until boards have shown what that draw needs, pictures are made ahead
+  only after `{"v":2,"op":"page_pictures","ahead":1}` with Debug mode on, until the next start; each page made logs
+  the stack's low mark before and after. Without it a page gets its picture when it has rested on the glass once.
+
 ### How many, and where
 
 Two bytes a pixel of the panel, PSRAM only: 2 MB a page on a glass of 1280 x 800. A layout has a picture for every
 page, as it has the cards of every page, under one ceiling: page pictures never hold more than half of the PSRAM heap
 (`page_pictures::share`), so the kept cards, LVGL's objects, the picture store and the streams always have the other
 half. A P4 board's 32 MB chip gives a heap of about 29.3 MB: 14.6 MB, seven pages, so a layout of six has all of them
-(12.3 MB) and a layout of sixteen keeps the seven nearest the glass (14.3 MB); a heap of 16 MB holds three. Each
-picture's memory is taken when it is first made, and only while the picture store's whole budget and the kept pages'
-reserve stay free after it (`page_pictures::reserve`: 7.9 MB on that board). A board that cannot keep two keeps none. They are also the first thing a screen gives
+and a layout of sixteen keeps the seven nearest the glass; a heap of 16 MB holds three. Each picture's memory is taken
+when it is first made, and only while the picture store's whole budget and the kept pages' reserve stay free after it
+(`page_pictures::reserve`: 7.9 MB on that board). A board that cannot keep two keeps none. They are also the first thing a screen gives
 up (`page_pictures::Yield`), one picture at a time, the page farthest from the glass first:
 
 - **For a refusal.** When an allocation from PSRAM is refused anywhere (a cover, a camera's full view, a stream, a
@@ -181,11 +211,16 @@ up (`page_pictures::Yield`), one picture at a time, the page farthest from the g
 
 After either, no picture takes memory again for 30 seconds. The governor's first step already stops any take.
 
-**Why a picture for every page.** A picture comes from a page that was on the glass, and the page farthest from the
-glass lets go first. With a quarter of the heap, as it was at first, six pages had three pictures, and walking the
-pages in order never turned to a kept page (the page ahead was on the glass five turns ago): 57 puts in 142 random
-turns on a Guition 10.1 (2026-11-16). With a picture for every page, each page has rested on the glass once and from
-then on every turn is a put, whichever way one walks. The page on the glass takes the place of the
+**Why a picture for every page.** A picture taken from the glass needs its page to have been there, and the page
+farthest from the glass lets go first. With a quarter of the heap, as it was at first, six pages had three pictures,
+and walking the pages in order never turned to a kept page (the page ahead was on the glass five turns ago): 57 puts
+in 142 random turns on a Guition 10.1 (2026-11-16). With a picture for every page, each page has rested on the glass
+once and from then on every turn is a put, whichever way one walks; made ahead ("Made ahead" above), not even that
+first rest is needed.
+
+**A layout with more pages than pictures.** A page is made ahead only where that takes no nearer page's picture. With
+sixteen pages and seven pictures the glass's page and the three on each side have one; walking on, the page that comes
+into reach is made ahead and the one that falls out of reach lets go. The page on the glass takes the place of the
 page farthest from it, counted around the end when the pages loop, so the neighbours of the page in sight stay.
 Inside the chip the whole of it is one pointer, one LVGL timer and one event hook.
 
@@ -227,6 +262,10 @@ that scrolls, and a live camera tile, 2026-11-16, with the profiler:
   with three kept, 444 B less; PSRAM 24,988,528 B free without and 18,827,260 B with, and all of it back when they
   were switched off. Puts of 216 of 240 blocks in 40.7 ms and, on the live camera's page, 83 in 15.7 ms, each with 0
   pixels differing.
+- The same board, ten minutes of turns to a random other page every 2 to 6 seconds while the house did what it does (a
+  live camera tile, a player playing), three pictures for six pages as the share then was: 142 turns, 57 puts, every
+  one of the 57 compares 0 pixels differing; a put took 44.4 ms (12.3 to 47.3); the panel never ran dry, no allocation
+  was refused, the governor at rest at the end, no restart; internal RAM 415,056 B free, 386,248 B at its lowest.
 
 ### The proof on a board
 
@@ -245,6 +284,8 @@ refused, read from the heaps' counters at once):
 | --- | --- |
 | `{"v":2,"op":"page_pictures"}` | The report alone |
 | `{"v":2,"op":"page_pictures","n":0}` | Page pictures off (`1`: on again), for an A/B on one firmware: a turn's time, the internal RAM |
+| `{"v":2,"op":"page_pictures","ahead":1}` | Pictures made ahead on (`0`: off) until the next start |
+| `{"v":2,"op":"page_pictures","prove":1}` | Draws the page on the glass off the glass and compares it with the glass: the proof of "Made ahead" |
 | `{"v":2,"op":"page_pictures","mb":20,"s":60}` | Holds 20 MB of PSRAM for 60 s, to watch the pictures give memory up and come back; more than is free is refused, which is the other way a picture goes |
 
  What step two would take, LVGL

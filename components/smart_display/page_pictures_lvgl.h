@@ -34,6 +34,11 @@ struct PagePictures {
   int turned = -1;
   uint32_t turned_at = 0;
   bool compare = false;      // proving: the glass against the picture once that redraw is done
+  // Made ahead: the buffer LVGL draws a page into off the glass (the screen as LVGL lays it out), held while pages
+  // still lack a picture, and when the last one was made.
+  uint8_t *scratch = nullptr;
+  uint32_t ahead_at = 0;
+  PagePicture *drawing_ahead = nullptr;  // the picture warm_page's pass is being drawn for
   void *held_memory = nullptr;  // a diagnostic's PSRAM (page_pictures_hold)
   lv_timer_t *hold_timer = nullptr;
   int taking = -1;           // the page a take is on its way for, for its log line
@@ -53,6 +58,9 @@ struct PagePictures {
 };
 inline PagePictures *page_pics = nullptr;
 inline bool page_pictures_on = true;  // a diagnostic build's A/B (page_receiver.cpp, op "page_pictures")
+// Pictures made ahead, off the glass: off until a board has shown what they need of the loop task's stack; switched on
+// for a run by a Debug-mode message (page_receiver.cpp, "ahead"), off again at the next start.
+inline bool page_pictures_ahead_on = false;
 // A page rests this long before its picture is taken, and a take copies at most this much in one step of the main loop
 // (docs/KEPT_PAGES.md has what a step costs).
 constexpr uint32_t PICTURE_QUIET_MS = 1000, PICTURE_STEP_MS = 50;
@@ -113,14 +121,13 @@ inline bool page_picture_shaped(PagePicture &picture) {
   if (picture.map.fits(p.w, p.h, glass::turn(), room)) return true;
   return picture.map.shape(p.w, p.h, glass::turn(), room);
 }
-// The picture of the page on the glass, made when it has none yet and the board has the room: the entry of the page
-// farthest from it gives its picture up for it.
-inline PagePicture *page_picture_for_glass() {
+// The shelf as the layout and the memory have it now; false without room for any picture.
+inline bool page_pictures_shelf() {
   const size_t capacity = page_pictures_capacity();
-  if (!capacity || applied_page < 0) return nullptr;
+  if (!capacity || applied_page < 0) return false;
   if (!page_pics) {
     void *memory = kept_allocate(sizeof(PagePictures));
-    if (!memory) return nullptr;
+    if (!memory) return false;
     page_pics = new (memory) PagePictures();
   }
   auto &all = *page_pics;
@@ -129,32 +136,39 @@ inline PagePicture *page_picture_for_glass() {
     all.shelf.forget(capacity);
     all.shelf.capacity = capacity;
   }
-  bool fresh = false;
-  const size_t at = all.shelf.take(applied_page, static_cast<int>(page_count()), settings_screen::loop_pages != 0, fresh);
-  if (at == page_pictures::NONE) return nullptr;
+  return true;
+}
+// The picture of entry `at`, its memory taken when it has none yet and `extra` more bytes would still be free beside
+// it: the picture store's budget and a full camera's room must stay free after it (page_pictures::reserve); free sizes
+// only, the PSRAM heap is never walked while the glass is lit. `fresh`: the entry holds nothing of its page yet.
+inline PagePicture *page_picture_at(size_t at, bool fresh, size_t extra = 0) {
+  auto &all = *page_pics;
   if (!all.held[at]) {
     // Not right after memory was short: what was refused has its turn first.
-    if (all.yielded_at && esphome::millis() - all.yielded_at < page_pictures::YIELD_REST_MS) {
-      all.shelf.entries[at] = page_pictures::Shelf::Entry{};
-      return nullptr;
-    }
+    const bool resting = all.yielded_at && esphome::millis() - all.yielded_at < page_pictures::YIELD_REST_MS;
     const size_t bytes = page_picture_bytes(), head = (sizeof(PagePicture) + 63) / 64 * 64;
-    // The picture store's budget and a full camera's room must stay free after it (page_pictures::reserve); free sizes
-    // only, the PSRAM heap is never walked while the glass is lit.
-    void *memory = page_pictures::affords(psram_free(), hw::caps().psram_bytes, bytes + head)
+    void *memory = !resting && page_pictures::affords(psram_free(), hw::caps().psram_bytes, bytes + head + extra)
                        ? heap_caps_aligned_alloc(64, head + bytes, MALLOC_CAP_SPIRAM) : nullptr;
     if (!memory) {
       all.shelf.entries[at] = page_pictures::Shelf::Entry{};
-      page_pictures_say(page_pictures_log::NO_MEMORY);
+      if (!resting) page_pictures_say(page_pictures_log::NO_MEMORY);
       return nullptr;
     }
     all.held[at] = new (memory) PagePicture();
     all.held[at]->pixels = reinterpret_cast<uint16_t *>(static_cast<uint8_t *>(memory) + head);
     ESP_LOGI("page_pic", "memory for another page's picture (%u of %u, %u KB), PSRAM free %u B", (unsigned) at + 1,
-             (unsigned) capacity, (unsigned) (bytes >> 10), (unsigned) psram_free());
+             (unsigned) all.shelf.capacity, (unsigned) (bytes >> 10), (unsigned) psram_free());
   }
   if (fresh) { all.held[at]->map = page_pictures::Map{}; all.held[at]->left = false; all.held[at]->card_count = 0; all.held[at]->still = page_pictures::Stillness{}; }
   return page_picture_shaped(*all.held[at]) ? all.held[at] : nullptr;
+}
+// The picture of the page on the glass, made when it has none yet and the board has the room: the entry of the page
+// farthest from it gives its picture up for it.
+inline PagePicture *page_picture_for_glass() {
+  if (!page_pictures_shelf()) return nullptr;
+  bool fresh = false;
+  const size_t at = page_pics->shelf.take(applied_page, static_cast<int>(page_count()), settings_screen::loop_pages != 0, fresh);
+  return at == page_pictures::NONE ? nullptr : page_picture_at(at, fresh);
 }
 // The cards on the glass, each with the tile it shows and where it lies on the panel, with the gap around it: whatever
 // a card draws around itself (a shadow, a ring) lies in the gap to the next card.
@@ -285,6 +299,7 @@ inline void page_pictures_forget() {
   page_pics->turned = page_pics->taking = -1;
   page_pics->compare = false;
   for (size_t i = page_pictures_capacity(); i < page_pics->held.size(); ++i) page_picture_free(i);
+  if (page_pics->scratch) { heap_caps_free(page_pics->scratch); page_pics->scratch = nullptr; }
 }
 // A diagnostic build's A/B on one firmware (page_receiver.cpp, op "page_pictures").
 inline void page_pictures_switch(bool on) {
@@ -324,6 +339,8 @@ inline void page_pictures_report() {
         truths += page_pics->held[i]->map.true_blocks();
         of += page_pics->held[i]->map.room_blocks();
       }
+  ESP_LOGI("page_pic", "report: made ahead %s, the loop stack's low mark %u B", page_pictures_ahead_on ? "on" : "off",
+           static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
   ESP_LOGI("page_pic", "report: %s, %u pictures kept of %u at most (%u KB each, %u of %u blocks true), internal RAM %u B free "
            "(lowest %u), PSRAM %u B free, %u PSRAM asks refused, a record is %u B",
            page_pictures_on ? "on" : "off", kept, (unsigned) page_pictures_capacity(), (unsigned) (page_picture_bytes() >> 10), truths, of,
@@ -350,6 +367,132 @@ inline void page_pictures_hold(unsigned mb, unsigned seconds) {
   if (!page_pics->held_memory) return;
   page_pics->hold_timer = lv_timer_create(page_pictures_hold_end, std::min(seconds, 600u) * 1000u, nullptr);
 }
+// ---- Made ahead: a page that was never on the glass gets its picture off it ----
+// As the kept pages have the cards of every page before anyone turns to it, a layout has the picture of every page:
+// in idle moments LVGL draws a page that lacks one into a buffer instead of the panel (its snapshot, which a board
+// with pictures has compiled in), and the page's room goes into the picture turned as the panel is. One page is one
+// draw LVGL cannot be stopped in, about as long as a page turn's; so it starts only on a screen nobody uses, and a
+// touch that comes meanwhile waits for it.
+#if LV_USE_SNAPSHOT
+constexpr uint32_t PICTURE_AHEAD_QUIET_MS = 3000, PICTURE_AHEAD_GAP_MS = 1000;
+// Not in the first moments of a layout: its values, its covers and its first pictures are still arriving.
+constexpr uint32_t PICTURE_AHEAD_START_MS = 15000;
+inline void page_picture_scratch_free() {
+  if (page_pics && page_pics->scratch) { heap_caps_free(page_pics->scratch); page_pics->scratch = nullptr; }
+}
+// LVGL draws the screen as it stands now into the scratch buffer; the room of it goes into `picture`, turned.
+inline bool page_picture_drawn(PagePicture &picture, uint32_t &drew_us, uint32_t &turned_us) {
+  auto *display = lv_display_get_default();
+  const int sw = lv_display_get_horizontal_resolution(display), sh = lv_display_get_vertical_resolution(display);
+  const auto p = glass::panel();
+  const size_t bytes = static_cast<size_t>(sw) * sh * 2;
+  if (!page_pics->scratch && page_pictures::affords(psram_free(), hw::caps().psram_bytes, bytes))
+    page_pics->scratch = static_cast<uint8_t *>(heap_caps_aligned_alloc(64, bytes, MALLOC_CAP_SPIRAM));
+  if (!page_pics->scratch) return false;
+  lv_draw_buf_t buffer;
+  if (lv_draw_buf_init(&buffer, sw, sh, LV_COLOR_FORMAT_RGB565, sw * 2, page_pics->scratch, bytes) != LV_RESULT_OK) return false;
+  const uint32_t began = esphome::micros();
+  lv_obj_update_layout(lv_screen_active());
+  if (lv_snapshot_take_to_draw_buf(lv_screen_active(), LV_COLOR_FORMAT_RGB565, &buffer) != LV_RESULT_OK) return false;
+  const uint32_t drew = esphome::micros();
+  page_pictures::turned(buffer.data, sw, sh, buffer.header.stride, picture.pixels, p.w, p.h, glass::turn(), picture.map.room, p.swapped);
+  drew_us = drew - began;
+  turned_us = esphome::micros() - drew;
+  return true;
+}
+// warm_page has the page's cards on the glass's place and up to date, with LVGL's invalidation off: now it is drawn.
+inline void page_picture_ahead_drawn(int page) {
+  auto *picture = page_pics ? page_pics->drawing_ahead : nullptr;
+  if (!picture) return;
+  page_pics->drawing_ahead = nullptr;
+  uint32_t drew = 0, turn = 0;
+  picture->map.untrue_all();
+  if (!page_picture_shaped(*picture) || !page_picture_drawn(*picture, drew, turn)) return;
+  auto &map = picture->map;
+  for (int row = 0; row < map.rows; ++row) map.took(row, map.in_room[row]);
+  // What nobody has watched stand still is left to LVGL: a card that shows time (a playing track's bar, a clock, a
+  // timer) was drawn a while before anyone turns to it, and a plugin's tile draws by rules of its own.
+  picture->card_count = page_picture_cards(picture->cards);
+  for (auto &w : widgets) {
+    if (!w.tile || w.index >= model.count || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN)) continue;
+    if (!w.plugin && !shows_time(model.tiles[w.index])) continue;
+    for (size_t i = 0; i < picture->card_count; ++i)
+      if (picture->cards[i].tile == w.index) map.untrue(picture->cards[i].at);
+  }
+  picture->still = page_pictures::Stillness{};
+  picture->left = true;
+  const size_t at = page_pics->shelf.held(page);
+  if (at != page_pictures::NONE) page_pics->shelf.entries[at].synced = changes.last;
+  ESP_LOGI("page_pic", "page %d made ahead, off the glass: drawn in %.1f ms, turned in %.1f ms, %u of %u blocks true, %u pictures kept",
+           page + 1, drew / 1000.0, turn / 1000.0, map.true_blocks(), map.room_blocks(), (unsigned) page_pics->shelf.pages());
+}
+// A step of making ahead: the nearest page that lacks a picture, when the screen is idle. True when it made one.
+inline bool page_pictures_ahead(uint32_t now) {
+  if (!page_pictures_shelf()) return false;
+  auto &all = *page_pics;
+  const int pages = static_cast<int>(page_count());
+  const bool loop = settings_screen::loop_pages != 0;
+  // A page lacks one when it has none, or one with nothing true (another look since); and only a kept page can be
+  // drawn off the glass, as its cards are what is drawn.
+  const int page = all.shelf.next_ahead(applied_page, pages, loop, [&](int candidate) {
+    if (!shelf.keeps(candidate)) return false;
+    auto *have = page_picture_of(candidate);
+    if (!have || !have->left) return true;
+    // Nothing true because everything was asked to be drawn since (another look): made again, once.
+    const size_t entry = all.shelf.held(candidate);
+    return !have->map.true_blocks() && entry != page_pictures::NONE && changes.all_after(all.shelf.entries[entry].synced);
+  });
+  if (page < 0) { page_picture_scratch_free(); return false; }
+  if (!layout_landed_at || now - layout_landed_at < PICTURE_AHEAD_START_MS) return false;
+  if (now - all.ahead_at < PICTURE_AHEAD_GAP_MS || !prepare_idle(now, PICTURE_AHEAD_QUIET_MS)) return false;
+  if (glass::streaming(nullptr, 0) || !page_room_clear()) return false;
+  all.ahead_at = now;
+  bool fresh = false;
+  const size_t at = all.shelf.take_for(page, applied_page, pages, loop, fresh);
+  if (at == page_pictures::NONE) return false;
+  // The scratch buffer comes on top of the picture's own memory, while the round lasts.
+  auto *picture = page_picture_at(at, fresh, all.scratch ? 0 : page_picture_bytes());
+  if (!picture) return false;
+  all.drawing_ahead = picture;
+  warm_drawn = page_picture_ahead_drawn;
+  // The least the loop task's stack ever had free, before and after: LVGL draws a whole page from inside this timer,
+  // and whether that goes deeper than a refresh does is read from these two numbers.
+  const unsigned stack_before = static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr));
+  const uint32_t began = esphome::micros();
+  warm_page(page);
+  warm_drawn = nullptr;
+  all.drawing_ahead = nullptr;
+  ESP_LOGI("page_pic", "page %d made ahead: the loop stack's low mark %u B before, %u B after", page + 1, stack_before,
+           static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+  // The whole of what the main loop was held for, on every board that does it: the governor hears a loop held up this
+  // long the way it hears any other (ESPHome's own warning, pressure_lvgl.h).
+  ESP_LOGI("page_pic", "page %d made ahead: %.1f ms of the loop", page + 1, (esphome::micros() - began) / 1000.0);
+  return true;
+}
+// The proof that a page drawn off the glass is the page on the glass: the picture of the page on the glass is made the
+// off-glass way and compared with the glass at once (page_receiver.cpp, with Debug mode on). It is true no more after:
+// the next take makes it from the glass again.
+inline void page_pictures_prove() {
+  auto *picture = page_picture_for_glass();
+  if (!picture) { ESP_LOGI("page_pic", "prove: no picture for the page on the glass"); return; }
+  uint32_t drew = 0, turn = 0;
+  picture->map.untrue_all();
+  const unsigned stack_before = static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr));
+  if (!page_picture_drawn(*picture, drew, turn)) { ESP_LOGI("page_pic", "prove: LVGL could not draw into a buffer"); return; }
+  ESP_LOGI("page_pic", "prove: the loop stack's low mark %u B before the draw, %u B after", stack_before,
+           static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+  for (int row = 0; row < picture->map.rows; ++row) picture->map.took(row, picture->map.in_room[row]);
+  ESP_LOGI("page_pic", "prove: page %d drawn off the glass in %.1f ms and turned in %.1f ms; against the glass:", applied_page + 1,
+           drew / 1000.0, turn / 1000.0);
+  page_picture_compare(*picture, applied_page);
+  picture->map.untrue_all();
+  picture->left = false;
+  page_picture_scratch_free();
+}
+#else
+inline bool page_pictures_ahead(uint32_t) { return false; }
+inline void page_pictures_prove() {}
+#endif
 // Every PICTURE_STEP_MS: a step of the take for the page on the glass, while it rests and nothing lies over it.
 inline void page_pictures_step(lv_timer_t *) {
   // Memory is short: a page's picture is the first thing to go, the farthest from the glass first, one a step. A
@@ -364,6 +507,7 @@ inline void page_pictures_step(lv_timer_t *) {
       const size_t free = psram_free();
       const size_t held = all.shelf.pages() * page_picture_bytes();
       if (all.yield.due(refusals, heap_watch::psram_refused_bytes(), free, held)) {
+        if (all.scratch) { heap_caps_free(all.scratch); all.scratch = nullptr; }  // the buffer pages are drawn into ahead, too
         const size_t gone = all.shelf.let_go(applied_page, static_cast<int>(page_count()), settings_screen::loop_pages != 0);
         if (gone != page_pictures::NONE) {
           page_picture_free(gone);
@@ -390,7 +534,13 @@ inline void page_pictures_step(lv_timer_t *) {
     bool any = false;
     for (int row = 0; row < have->map.rows && !any; ++row)
       any = have->map.wanted(row, have->still.moving(row, now, PICTURE_STILL_MS)) != 0;
-    if (!any) return;
+    if (!any) {
+      // The glass's own page has its picture: the pages that lack one are made ahead, the nearest first.
+      if (model.configured && model.ready() && !preparing.active && protocol_problem == ProtocolProblem::none && tiles_seen() &&
+          pressure::level_of(pressure::BACKGROUND) == 0 && page_pictures_ahead_on)
+        page_pictures_ahead(now);
+      return;
+    }
   }
   if (!model.configured || !model.ready() || preparing.active || protocol_problem != ProtocolProblem::none) return;
   if (!tiles_seen() || !prepare_idle(now, PICTURE_QUIET_MS) || pressure::level_of(pressure::BACKGROUND) != 0) return;
@@ -462,6 +612,7 @@ inline void page_pictures_forget() {}
 inline void page_pictures_switch(bool) {}
 inline void page_pictures_report() {}
 inline void page_pictures_hold(unsigned, unsigned) {}
+inline void page_pictures_prove() {}
 inline unsigned page_pictures_count() { return 0; }
 #endif
 }  // namespace runtime_tiles

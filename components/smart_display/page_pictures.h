@@ -153,6 +153,32 @@ struct Stillness {
   }
 };
 
+// A picture made off the glass (page_pictures_lvgl.h, made ahead): LVGL drew the screen as it lays it out, `sw` x `sh`
+// with `stride` bytes a row, and the page's room goes into a buffer laid out as the panel's frame buffer is, turned as
+// the panel is: the pixel LVGL has at (x, y) lands where glass::on_panel puts it, as ESPHome's flush would have put it.
+// `swap` swaps a pixel's two bytes for a panel that takes them so. Block by block, so one side's strides stay in the
+// cache.
+inline void turned(const uint8_t *screen, int sw, int sh, size_t stride, uint16_t *panel, int pw, int ph, int turn,
+                   const Rect &room, bool swap) {
+  const Rect inside = common(room, Rect{0, 0, pw, ph});
+  for (int by = inside.y; by < inside.y + inside.h; by += BLOCK)
+    for (int bx = inside.x; bx < inside.x + inside.w; bx += BLOCK) {
+      const int y_end = by + BLOCK < inside.y + inside.h ? by + BLOCK : inside.y + inside.h;
+      const int x_end = bx + BLOCK < inside.x + inside.w ? bx + BLOCK : inside.x + inside.w;
+      for (int py = by; py < y_end; ++py)
+        for (int px = bx; px < x_end; ++px) {
+          int x = px, y = py;
+          if (turn == 90) { x = py; y = pw - 1 - px; }
+          else if (turn == 180) { x = pw - 1 - px; y = ph - 1 - py; }
+          else if (turn == 270) { x = ph - 1 - py; y = px; }
+          if (x < 0 || y < 0 || x >= sw || y >= sh) continue;
+          const uint8_t *from = screen + static_cast<size_t>(y) * stride + static_cast<size_t>(x) * 2;
+          const uint16_t pixel = static_cast<uint16_t>(from[0] | from[1] << 8);
+          panel[static_cast<size_t>(py) * pw + px] = swap ? static_cast<uint16_t>(pixel << 8 | pixel >> 8) : pixel;
+        }
+    }
+}
+
 // A card of the page: the tile it shows and where it lies on the panel (with whatever it draws around itself).
 struct Card {
   uint32_t tile = 0;
@@ -235,29 +261,59 @@ struct Shelf {
       if (page >= 0 && entries[i].page == page) return i;
     return NONE;
   }
-  // The entry for the page on the glass: its own, a free one, or the one of the page farthest from it (of two as far,
-  // the one on the glass longest ago), which lets its picture go. NONE without room. `fresh` says the entry holds
-  // nothing of this page yet.
-  size_t take(int page, int pages, bool loop, bool &fresh) {
+  // The entry for `page` while `glass` is the page on the glass: its own, a free one, or the one of the page farthest
+  // from the glass (of two as far, the one on the glass longest ago), which lets its picture go, but never a page
+  // that lies nearer the glass than `page` itself. NONE without room. `fresh` says the entry holds nothing of this
+  // page yet.
+  size_t take_for(int page, int glass, int pages, bool loop, bool &fresh) {
     fresh = false;
     if (!capacity || page < 0) return NONE;
     size_t at = held(page);
+    if (at != NONE) return at;
+    const size_t room = capacity < MAX_KEPT ? capacity : MAX_KEPT;
+    for (size_t i = 0; i < room && at == NONE; ++i) if (entries[i].page < 0) at = i;
     if (at == NONE) {
-      fresh = true;
-      const size_t room = capacity < MAX_KEPT ? capacity : MAX_KEPT;
-      for (size_t i = 0; i < room && at == NONE; ++i) if (entries[i].page < 0) at = i;
-      if (at == NONE) {
-        at = 0;
-        for (size_t i = 1; i < room; ++i) {
-          const int far = apart(entries[i].page, page, pages, loop), farthest = apart(entries[at].page, page, pages, loop);
-          if (far > farthest || (far == farthest && entries[i].used < entries[at].used)) at = i;
-        }
+      at = 0;
+      for (size_t i = 1; i < room; ++i) {
+        const int far = apart(entries[i].page, glass, pages, loop), farthest = apart(entries[at].page, glass, pages, loop);
+        if (far > farthest || (far == farthest && entries[i].used < entries[at].used)) at = i;
       }
-      entries[at] = Entry{};
-      entries[at].page = page;
+      if (apart(entries[at].page, glass, pages, loop) <= apart(page, glass, pages, loop)) return NONE;
     }
-    entries[at].used = ++turns;
+    fresh = true;
+    entries[at] = Entry{};
+    entries[at].page = page;
     return at;
+  }
+  // Whether take_for would find `page` an entry, asked without changing anything.
+  bool room_for(int page, int glass, int pages, bool loop) const {
+    if (!capacity || page < 0) return false;
+    const size_t room = capacity < MAX_KEPT ? capacity : MAX_KEPT;
+    const int far = apart(page, glass, pages, loop);
+    for (size_t i = 0; i < room; ++i)
+      if (entries[i].page < 0 || entries[i].page == page || apart(entries[i].page, glass, pages, loop) > far) return true;
+    return false;
+  }
+  // The entry for the page on the glass, which always finds one where there is room at all.
+  size_t take(int page, int pages, bool loop, bool &fresh) {
+    const size_t at = take_for(page, page, pages, loop, fresh);
+    if (at != NONE) entries[at].used = ++turns;
+    return at;
+  }
+  // The next page to make a picture of ahead, off the glass: the nearest to the glass that `lacks(page)` one (the
+  // page after before the page before, as far as the pages loop or reach), and that an entry could be found for
+  // without taking a nearer page's. -1 when every page that can have one has it.
+  template <typename Lacks> int next_ahead(int glass, int pages, bool loop, Lacks lacks) const {
+    if (!capacity || glass < 0 || pages < 2) return -1;
+    for (int d = 1; d < pages; ++d)
+      for (int side : {1, -1}) {
+        int page = glass + side * d;
+        if (loop) page = ((page % pages) + pages) % pages;
+        if (page < 0 || page >= pages || page == glass || apart(page, glass, pages, loop) != d || !lacks(page)) continue;
+        if (side == -1 && loop && ((glass + d) % pages) == page) continue;  // the same page both ways round
+        if (room_for(page, glass, pages, loop)) return page;
+      }
+    return -1;
   }
   // The entry whose picture goes when memory is short: of the page farthest from the one on the glass (of two as far,
   // the one on the glass longest ago), the glass's own last. NONE when no page holds one. Its entry is free after.

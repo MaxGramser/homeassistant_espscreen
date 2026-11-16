@@ -85,7 +85,9 @@ std::string receive(const std::string &payload) {
     // them (2), and `mb` MB of PSRAM held for `s` seconds to watch them give memory up.
     if (op == "page_pictures" && settings_screen::debug_mode) return [&]() __attribute__((noinline)) -> bool {
       const int n = root["n"] | 2;
-      if (root["mb"].is<unsigned>()) page_pictures_hold(root["mb"] | 0u, root["s"] | 60u);
+      if (root["ahead"].is<int>()) page_pictures_ahead_on = (root["ahead"] | 0) == 1;
+      if ((root["prove"] | 0) == 1) page_pictures_prove();
+      else if (root["mb"].is<unsigned>()) page_pictures_hold(root["mb"] | 0u, root["s"] | 60u);
       else if (n == 0 || n == 1) page_pictures_switch(n == 1);
       page_pictures_report();
       result = "Page pictures";

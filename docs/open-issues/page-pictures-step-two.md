@@ -8,8 +8,10 @@ before: 296 ms from the swipe until LVGL is done. Until then the main loop does 
 read once per loop, so a second swipe within that time waits for it, and someone paging quickly through three pages
 still feels LVGL's pace from the second turn on. Step two would let LVGL leave alone what the picture already put.
 
-A second limit of step one: a picture comes only from the glass. A page that was never shown since the layout came, or
-whose values all moved while it was away, has no true block and turns as before.
+Since 2026-11-16 a page that was never on the glass can have its picture made ahead, off the glass (docs/KEPT_PAGES.md,
+"Made ahead"): built, switched off by default, and not yet seen on a board when this was written; it goes on once a
+board has shown that the draw is exact and what it needs of the loop task's stack. A page whose cards changed while it was away still has
+those cards drawn by LVGL at the turn.
 
 ## What is known (Waveshare ESP32-P4 10.1 inch, 1280 x 800, chip revision 3.2, ESPHome 2026.9.0, LVGL 9.5, 2026-11-16)
 
@@ -38,10 +40,10 @@ whose values all moved while it was away, has no true block and turns as before.
    lies inside goes. The same cut against a picture's true blocks, for the one refresh that follows a put, leaves LVGL
    the top bar, the page bar and the blocks that were not put. The pieces must fit LVGL's list of 32 areas
    (`LV_INV_BUF_SIZE`), so runs of blocks have to be joined into few rectangles, or the list made longer.
-2. **A picture made off the glass.** LVGL can draw a page into a buffer in PSRAM instead of the panel (a second display,
-   or `lv_snapshot` of the grid), while the screen is idle, as `warm_page` already places a page off the glass. That
-   gives pages never shown a picture, and gives a kept page that was brought up to date a true picture again. On a
-   turned glass the picture must be turned as ESPHome's flush turns it (the PPA, under the glass lock).
+2. **A picture made off the glass, for a changed card too.** Pages never shown get their picture this way now. The
+   same draw could give a kept page that was brought up to date a whole picture again, at about a page turn's time of
+   the main loop each; whether that is worth it for a sensor that changes every half minute is the question, and
+   drawing one card's rectangle instead of the screen is the cheaper form.
 3. **Both**: then a turn to any page whose cards are up to date is a copy and a top bar.
 
 ## The experiment that decides

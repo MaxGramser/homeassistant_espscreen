@@ -809,6 +809,9 @@ inline void page_pictures_forget();
 inline void page_pictures_switch(bool on);
 inline void page_pictures_report();
 inline void page_pictures_hold(unsigned mb, unsigned seconds);
+inline void page_pictures_prove();
+// warm_page says when the page it works on stands drawn in its cards, off the glass (page_pictures_lvgl.h, made ahead).
+inline void (*warm_drawn)(int page) = nullptr;
 inline unsigned page_pictures_count();
 inline void live_tile_answer(size_t index, const std::string &url);  // the last page turn: pictures wait until the pages stand still (camera_view::settled)
 inline uint32_t touched_at = 0;    // the last finger on the glass: pages are prepared in the background only after a pause
@@ -3955,6 +3958,7 @@ inline bool warm_page(int page) {
       const auto &w = widgets[slot];
       if (w.tile && w.index < model.count && (all || changes.tile_after(w.index, visit.synced))) render_slot(slot);
     }
+    if (warm_drawn) warm_drawn(page);
     keep_page(glass, changes.last);  // the glass's own cards come back; the page stays on the shelf, drawn up to now
     applied_page = place_page(glass, true);
   }

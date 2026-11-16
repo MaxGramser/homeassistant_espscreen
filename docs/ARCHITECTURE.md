@@ -241,7 +241,9 @@ binder and wants cutting next is in docs/open-issues/binder-still-large.md.
   47 ms (a Waveshare ESP32-P4 10.1 inch, 2026-11-16); LVGL then draws the page as ever. A picture is true per block of 64 pixels: untrue wherever LVGL drew
   since it was taken, wherever a tile took a change number while its page was away, and everywhere after another look,
   layout, grid or turn; an untrue block is never put. It is taken only from a page at rest with nothing over it, never
-  in a turn, never under a stream's room. Over a hundred turns with a live camera tile and playing tracks beside it: no dry frame, and LVGL's redraw changed 0 pixels of what was put.
+  in a turn, never under a stream's room. A layout has a picture for every page within half of the PSRAM heap; a
+  page that was never on the glass can have its picture drawn off the glass in an idle moment, which stays switched
+  off until boards have shown what that draw needs of the loop task's stack. Over a hundred turns with a live camera tile and playing tracks beside it: no dry frame, and LVGL's redraw changed 0 pixels of what was put.
 - **One user of the 2D-DMA at a time, under the glass lock.** Two at once from different tasks hangs the P4
   (espressif/esp-idf #18999, #19108, #19096). Copies cannot leave the hold.
 - **PSRAM shares its bus with the panel.** On a P4 the DSI panel scans PSRAM; on an S3 the RGB panel reads it through

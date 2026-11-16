@@ -206,6 +206,64 @@ int main() {
   tie.capacity = 2;
   tie.take(2, 8, false, fresh); tie.take(4, 8, false, fresh);
   assert(tie.take(3, 8, false, fresh) == 0 && tie.held(4) == 1);
+  // ---- Made ahead ----
+  // After a start page 0 is on the glass and no page has a picture: the nearest first, the page after before the page
+  // before, around the end when the pages loop.
+  {
+    Shelf ahead;
+    ahead.capacity = 6;
+    bool f = false;
+    auto lacks = [&](int page) { return ahead.held(page) == NONE; };
+    std::vector<int> order;
+    ahead.take(0, 6, true, f);
+    for (int page; (page = ahead.next_ahead(0, 6, true, lacks)) >= 0;) { order.push_back(page); assert(ahead.take_for(page, 0, 6, true, f) != NONE && f); }
+    assert((order == std::vector<int>{1, 5, 2, 4, 3}) && ahead.pages() == 6);
+    // Without the loop from page 0 there is only the way forward.
+    Shelf line2;
+    line2.capacity = 6;
+    order.clear();
+    auto lacks2 = [&](int page) { return line2.held(page) == NONE; };
+    line2.take(0, 6, false, f);
+    for (int page; (page = line2.next_ahead(0, 6, false, lacks2)) >= 0;) { order.push_back(page); line2.take_for(page, 0, 6, false, f); }
+    assert((order == std::vector<int>{1, 2, 3, 4, 5}));
+    // Sixteen pages and room for seven: the glass's page and the three each side, and then nothing more is made: a
+    // farther page never takes a nearer one's picture.
+    Shelf few;
+    few.capacity = 7;
+    order.clear();
+    auto lacks3 = [&](int page) { return few.held(page) == NONE; };
+    few.take(8, 16, true, f);
+    for (int page; (page = few.next_ahead(8, 16, true, lacks3)) >= 0;) { order.push_back(page); few.take_for(page, 8, 16, true, f); }
+    assert((order == std::vector<int>{9, 7, 10, 6, 11, 5}) && few.take_for(12, 8, 16, true, f) == NONE);
+    // The glass moves on to page 11: page 12 comes ahead now and the farthest (5) gives its entry up for it.
+    assert(few.take(11, 16, true, f) != NONE && !f);
+    assert(few.next_ahead(11, 16, true, lacks3) == 12 && few.take_for(12, 11, 16, true, f) != NONE && few.held(5) == NONE);
+    // A page whose picture has nothing true is made again, though it holds an entry.
+    assert(few.next_ahead(11, 16, true, [&](int page) { return page == 10 || few.held(page) == NONE; }) == 10);
+  }
+  // A picture drawn off the glass lands where the glass would have it, however the panel is turned: every pixel of the
+  // screen at (x, y) is on the panel where glass::on_panel puts it.
+  for (int turn : {0, 90, 180, 270}) {
+    const int sw = turn % 180 ? 96 : 160, sh = turn % 180 ? 160 : 96, pw = 160, ph = 96;
+    std::vector<uint8_t> screen(static_cast<size_t>(sw) * sh * 2 + 64);
+    const size_t stride = static_cast<size_t>(sw) * 2;
+    auto value = [&](int x, int y) { return static_cast<uint16_t>(x * 251 + y * 7 + 1); };
+    for (int y = 0; y < sh; ++y) for (int x = 0; x < sw; ++x) { screen[y * stride + x * 2] = value(x, y) & 0xFF; screen[y * stride + x * 2 + 1] = value(x, y) >> 8; }
+    const Rect screen_room{8, 16, sw - 24, sh - 40}, panel_room = glass::on_panel(screen_room, turn, pw, ph);
+    std::vector<uint16_t> out(static_cast<size_t>(pw) * ph, 0xDEAD);
+    page_pictures::turned(screen.data(), sw, sh, stride, out.data(), pw, ph, turn, panel_room, false);
+    for (int y = 0; y < sh; ++y)
+      for (int x = 0; x < sw; ++x) {
+        const Rect at = glass::on_panel(Rect{x, y, 1, 1}, turn, pw, ph);
+        const bool in_room = x >= screen_room.x && x < screen_room.x + screen_room.w && y >= screen_room.y && y < screen_room.y + screen_room.h;
+        assert(out[static_cast<size_t>(at.y) * pw + at.x] == (in_room ? value(x, y) : 0xDEAD));
+      }
+    page_pictures::turned(screen.data(), sw, sh, stride, out.data(), pw, ph, turn, panel_room, true);
+    const Rect corner = glass::on_panel(Rect{screen_room.x, screen_room.y, 1, 1}, turn, pw, ph);
+    const uint16_t v = value(screen_room.x, screen_room.y);
+    assert(out[static_cast<size_t>(corner.y) * pw + corner.x] == static_cast<uint16_t>(v << 8 | v >> 8));
+  }
+
   // Memory is short: the page farthest from the glass lets go first, the glass's own last, and then there is none.
   Shelf yields;
   yields.capacity = 4;
