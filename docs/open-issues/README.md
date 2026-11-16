@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [lvgl-replace-style-selector.md](lvgl-replace-style-selector.md) | LVGL 9.5's lv_obj_replace_style with LV_PART_ANY \| LV_STATE_ANY overwrites each replaced style's selector; the report LVGL could get, not sent | 2026-11-16 |
 | [card-look-on-glass.md](card-look-on-glass.md) | A card's look (sections whose tiles follow the contrast) is proven on the host and in the preview, not yet seen on glass; the file holds what to look at | 2026-11-15 |
 | [render-swipe-past-excluded-pages.md](render-swipe-past-excluded-pages.md) | Host render checks that fail on dev: the swipe past excluded pages (it stops the full stage list), and the automation, remote and bars stages | 2026-11-15 |
 | [sections-left-open.md](sections-left-open.md) | What sections leave open: their price in the memory budget and the receiver untested on its own (the header height: solved) | 2026-11-15 |

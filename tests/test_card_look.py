@@ -91,6 +91,21 @@ class CardLook(unittest.TestCase):
         stale = sorted(set(NEEDS_NONE) - seen)
         self.assertEqual(stale, [], 'NEEDS_NONE names a draw callback that is no longer registered')
 
+    def test_only_the_style_trade_reads_lvgls_styles_of_an_object(self):
+        # look_trade.h is the one file that reads lv_obj_t::styles (LVGL's lv_obj_replace_style writes the selector it is
+        # called with, look_trade.h's head says why). A new reader of those fields goes there instead.
+        readers = [name for name, text in sources().items()
+                   if name != 'look_trade.h' and re.search(r'->styles\[|\bstyle_cnt\b', text)]
+        self.assertEqual(readers, [], 'only look_trade.h reads an object\'s styles (docs/THEME.md "A card\'s look")')
+        # LVGL's private headers, and why each file needs them; a new one names its reason here.
+        allowed = {
+            'look_trade.h': "the trade of a card's styles (lv_obj_t::styles)",
+            'touch_feedback_lvgl.h': "an event's filter (lv_event_dsc_t)",
+            'glass_core.cpp': "lv_inv_area, lv_area_intersect and the display's list",
+        }
+        private = sorted(name for name, text in sources().items() if '#include "lvgl_private.h"' in text)
+        self.assertEqual(private, sorted(allowed), 'a file includes lvgl_private.h without a reason named in this test')
+
     def test_the_card_carries_its_look_for_what_lvgl_draws(self):
         sections = (COMPONENT / 'module_sections.h').read_text()
         self.assertIn('lv_obj_add_flag(card, theme::OTHER_LOOK_FLAG)', sections)

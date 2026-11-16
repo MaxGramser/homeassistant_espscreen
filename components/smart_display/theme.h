@@ -504,16 +504,8 @@ inline uint32_t calendar_past(uint32_t c) { return mix(c, hex(CARD), 130); }
 #include "esphome/core/log.h"  // the card look's checks (restyle_checked, set_dark, runtime_tiles::set_color)
 #endif
 #ifdef SD_MOD_SECTIONS
-#include "lvgl_private.h"  // restyle_card trades a style on an object in place (lv_obj_t::styles)
+#include "look_trade.h"  // the trade of a card's shared styles, the one place that reads LVGL's styles of an object
 #include <vector>
-// restyle_card reads fields that are not LVGL's API: lv_obj_t::styles and style_cnt, lv_obj_style_t::style, is_local and
-// is_trans. They were read against LVGL 9.5.0, which ESPHome brings from 2026.6.2 (the packages' min_version) to 2026.9.0.
-// Another LVGL stops here: check those fields in lv_obj_private.h and lv_obj_style_private.h, that a style's selector
-// still sits beside it (restyle_card keeps it), and that LVGL's style cache (full_cache_refresh) still only records which
-// properties a style has; then add the version.
-#if !(LVGL_VERSION_MAJOR == 9 && LVGL_VERSION_MINOR == 5)
-#error "theme::restyle_card was read against LVGL 9.5: check lv_obj_t::styles before allowing this LVGL (theme.h)"
-#endif
 #endif
 
 namespace theme {
@@ -635,67 +627,22 @@ inline lv_style_t *style(Paint paint) {
   }
   return dark == screen_dark ? s : other_copy(*pair_of(s));
 }
+// The style of a card's look a shared style is: its pair's copy in the other look, or the screen's; any other style is
+// itself.
+inline const lv_style_t *style_in(const lv_style_t *style, bool other) {
+  PaintPair *p = pair_of(style);
+  if (!p) return style;
+  return other ? other_copy(*p) : p->screen;
+}
 // A card's objects to the shared styles of its look: each style of the screen's look traded for its copy (other), or
-// back, in its place in the object's list with its own selector, so what it applies to and its precedence stay as they
-// were (lv_obj_replace_style would give it the selector it is called with). A copy holds the same properties as its
-// original, so LVGL's cache of which properties an object has stays true. Run where a card's look changes
-// (sections::place), never on a pass.
+// back, in its place with its own selector (look_trade.h says why LVGL's lv_obj_replace_style cannot do it). Run where a
+// card's look changes (sections::place), never on a pass.
 inline void restyle_card(lv_obj_t *obj, bool other) {
-  if (!obj) return;
-  bool changed = false;
-  for (uint32_t i = 0; i < obj->style_cnt; ++i) {
-    lv_obj_style_t &st = obj->styles[i];
-    if (st.is_local || st.is_trans) continue;
-    PaintPair *p = pair_of(st.style);
-    if (!p) continue;
-    const lv_style_t *want = other ? other_copy(*p) : p->screen;
-    if (st.style != want) { st.style = want; changed = true; }
-  }
-  if (changed) lv_obj_refresh_style(obj, LV_PART_ANY, LV_STYLE_PROP_ANY);
-  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) restyle_card(lv_obj_get_child(obj, int32_t(i)), other);
+  look_trade::trade(obj, [other](const lv_style_t *s) { return style_in(s, other); });
 }
 #ifdef USE_HOST
-// The host build proves every trade (tools/render/sections.py fails on a "restyle check FAIL" line): every style of every
-// object of the card is noted with its selector, the card traded to the look asked for and back and to it again, and
-// each step compared with the note. After the trade a style is its pair's copy of that look, or the same style where it
-// has no pair, at the same place with the same selector; after the trade back, exactly the note.
-struct StyleNote { lv_obj_t *obj; uint32_t index; const lv_style_t *style; lv_style_selector_t selector; };
-inline void note_styles(lv_obj_t *obj, std::vector<StyleNote> &out) {
-  for (uint32_t i = 0; i < obj->style_cnt; ++i) out.push_back({obj, i, obj->styles[i].style, obj->styles[i].selector});
-  for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) note_styles(lv_obj_get_child(obj, int32_t(i)), out);
-}
-inline uint32_t restyle_checks = 0, restyle_failures = 0;
-inline void restyle_checked(lv_obj_t *card, bool other) {
-  std::vector<StyleNote> before, after;
-  note_styles(card, before);
-  const auto look_of = [](const lv_style_t *style, bool in_other) -> const lv_style_t * {
-    PaintPair *p = pair_of(style);
-    if (!p) return style;
-    return in_other ? other_copy(*p) : p->screen;
-  };
-  const auto compare = [&](bool in_other, const char *step) {
-    after.clear();
-    note_styles(card, after);
-    bool same = after.size() == before.size();
-    for (size_t i = 0; same && i < after.size(); ++i)
-      same = after[i].obj == before[i].obj && after[i].index == before[i].index && after[i].selector == before[i].selector &&
-             after[i].style == look_of(before[i].style, in_other);
-    if (!same) {
-      ++restyle_failures;
-      ESP_LOGE("card_look", "restyle check FAIL: %s, card %p, %u styles noted, %u now", step, (void *) card,
-               (unsigned) before.size(), (unsigned) after.size());
-    }
-  };
-  // The note is in the look the card had: its styles of that look.
-  restyle_card(card, other);
-  compare(other, "traded");
-  restyle_card(card, !other);
-  compare(!other, "traded back");
-  restyle_card(card, other);
-  compare(other, "traded again");
-  ++restyle_checks;
-  ESP_LOGI("card_look", "restyle check: %u trades checked, %u failed", (unsigned) restyle_checks, (unsigned) restyle_failures);
-}
+// The same trade, proven (look_trade::checked); the host build runs this one.
+inline void restyle_checked(lv_obj_t *card, bool other) { look_trade::checked(card, other, style_in); }
 #endif
 #else
 // A board without sections (docs/MODULES.md): every card is in the screen's look, so a paint has one style.
