@@ -24,7 +24,7 @@ inline bool pictures_kept() {
     // page of five 2x2 cameras of about 300 KB each and keeps more pages. Pictures on a card are never let go for the
     // budget; it says how much is kept beside them.
     const size_t psram = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
-    pictures.budget = std::min<size_t>(6u << 20, psram / 5);
+    pictures.budget = picture_store::budget_for(psram);
 #elif defined(KEPT_PAGES_HOST)
     // tools/render with KEPT_PAGES_HOST=1 draws as a board with PSRAM, its pictures too: the store of a 4-inch Guition.
     // Without it the host keeps one download at a time, and a page of several pictured tiles shows only the last.

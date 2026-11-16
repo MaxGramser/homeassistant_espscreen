@@ -164,15 +164,20 @@ whose tile takes a number between the put and that redraw is drawn with its chan
 Two bytes a pixel of the panel, PSRAM only: 2 MB a page on a glass of 1280 x 800. Page pictures may take a quarter of
 the board's PSRAM (`page_pictures::share`, 8 MB of 32: four pages), each picture's memory is taken when its page first
 rests on the glass, and only while the picture store's whole budget and the kept pages' reserve stay free after it
-(`page_pictures::reserve`). A board that cannot keep two keeps none. The page on the glass takes the place of the
+(`page_pictures::reserve`). A board that cannot keep two keeps none. They are also the first thing a screen gives
+up (`page_pictures::must_yield`): when an allocation from PSRAM is refused anywhere (the heap watch counts every one,
+`heap_watch::psram_refused`: a cover, a camera's full view, a stream, a call, a plugin's picture) or less is free than
+the kept pages' reserve, the picture of the page farthest from the glass gives its memory back, one a step, and none
+takes memory again for 30 seconds. The governor's first step already stops any take. The page on the glass takes the place of the
 page farthest from it, counted around the end when the pages loop, so the neighbours of the page in sight stay.
 Inside the chip the whole of it is one pointer, one LVGL timer and one event hook.
 
 A screen has page pictures when `hw::caps().page_pictures` says so: a screen with motion (docs/MOTION.md) whose glass
 is steady (`glass::steady`), which today is a MIPI-DSI panel, every ESP32-P4 board. Its DMA repeats the frame by
-itself, and 2 MB copied under the glass lock cost no dry frame (below). An ESP32-S3's RGB panel refills its bounce
-buffer from an interrupt and reads PSRAM through it; nobody measured a copy of a whole glass there, so those boards
-turn their pages as before, and so does every screen without the room.
+itself, and 2 MB copied under the glass lock cost no dry frame (below). The ESP32-S3 boards with an RGB panel are left
+out on purpose: their panel is fed from an interrupt and must never be held up, their screens are small enough for LVGL
+to draw in time, and their PSRAM is the pictures'. They, and every other board, carry none of this code and turn
+their pages as before.
 
 ### Measured
 

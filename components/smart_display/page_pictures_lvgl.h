@@ -36,6 +36,9 @@ struct PagePictures {
   int taking = -1;           // the page a take is on its way for, for its log line
   uint32_t take_began = 0, take_bytes = 0, take_steps = 0, take_us = 0;
   const char *refused = nullptr;  // why the last put or take did not happen, said once
+  // Giving memory up (page_pictures::must_yield): the PSRAM refusals seen so far, when the free PSRAM was last read, and
+  // when a picture last went, after which none takes memory for a while.
+  uint32_t refusals_seen = 0, looked_at = 0, yielded_at = 0;
 };
 inline PagePictures *page_pics = nullptr;
 inline bool page_pictures_on = true;  // a diagnostic build's A/B (page_receiver.cpp, op "page_pictures")
@@ -110,6 +113,11 @@ inline PagePicture *page_picture_for_glass() {
   const size_t at = all.shelf.take(applied_page, static_cast<int>(page_count()), settings_screen::loop_pages != 0, fresh);
   if (at == page_pictures::NONE) return nullptr;
   if (!all.held[at]) {
+    // Not right after memory was short: what was refused has its turn first.
+    if (all.yielded_at && esphome::millis() - all.yielded_at < page_pictures::YIELD_REST_MS) {
+      all.shelf.entries[at] = page_pictures::Shelf::Entry{};
+      return nullptr;
+    }
     const size_t bytes = page_picture_bytes(), head = (sizeof(PagePicture) + 63) / 64 * 64;
     // The picture store's budget and a full camera's room must stay free after it (page_pictures::reserve); free sizes
     // only, the PSRAM heap is never walked while the glass is lit.
@@ -289,6 +297,30 @@ inline void page_picture_compare(PagePicture &picture, int page) {
 #endif
 // Every PICTURE_STEP_MS: a step of the take for the page on the glass, while it rests and nothing lies over it.
 inline void page_pictures_step(lv_timer_t *) {
+  // Memory is short: a page's picture is the first thing to go, the farthest from the glass first, one a step. A
+  // refusal is known from the heap watch's count, which costs nothing to read; the free PSRAM is the heap's own
+  // counter (no walk of the heap, docs/KEPT_PAGES.md), read once a second.
+  if (page_pics) {
+    auto &all = *page_pics;
+    const uint32_t refusals = heap_watch::psram_refused(), at = esphome::millis();
+    const bool look = at - all.looked_at >= 1000;
+    if (look) all.looked_at = at;
+    if (refusals != all.refusals_seen || look) {
+      const size_t free = psram_free();
+      if (page_pictures::must_yield(refusals, all.refusals_seen, free)) {
+        const size_t gone = all.shelf.let_go(applied_page, static_cast<int>(page_count()), settings_screen::loop_pages != 0);
+        if (gone != page_pictures::NONE) {
+          page_picture_free(gone);
+          all.turned = all.taking = -1;
+          all.yielded_at = at ? at : 1;
+          ESP_LOGI("page_pic", "memory is short (%u B of PSRAM free, %u asks refused): a page's picture goes, %u kept",
+                   (unsigned) free, (unsigned) refusals, (unsigned) all.shelf.pages());
+          if (all.shelf.pages()) return;  // the next one in the next step, should it still be short
+        }
+      }
+      all.refusals_seen = refusals;
+    }
+  }
   if (applied_page < 0 || !room_label || !page_pictures_on) return;
   if (page_pics && page_pics->turned >= 0) return;  // LVGL still owes the turn's redraw
   if (!glass::drawing()) return;

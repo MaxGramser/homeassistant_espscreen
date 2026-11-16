@@ -64,6 +64,7 @@
 #include "talk_uplink.h"
 #include "hw.h"
 #include "boot_trial.h"
+#include "heap_watch.h"
 #include "kept_pages.h"
 #include "page_pictures.h"
 #include "tile_memory.h"
@@ -3696,9 +3697,7 @@ inline void abandon_layout() {
 // The reply to a hello or a ping carries the memory figures (packages/core.yaml); a tile's state does not need them.
 inline bool reply_memory = false;
 
-// PSRAM another kept page may never take: the pictures (picture_store.h), a camera full screen and an alert's picture
-// live there too. Measured on the 4-inch Guition (2026-09-26): about 5.6 MB of its 8 MB are free with a layout loaded.
-constexpr size_t KEEP_RESERVE = 2u << 20;
+using kept_pages::KEEP_RESERVE;  // PSRAM another kept page may never take (kept_pages.h)
 // How many pages the board keeps beside the one on the glass: none without PSRAM (the CYD), every other page with it,
 // and no new set once PSRAM runs short of KEEP_RESERVE (the sets already made stay in use). A host build keeps none
 // unless kept_limit asks for some, so the renders in tools/render stay what they were.

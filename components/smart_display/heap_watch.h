@@ -50,6 +50,9 @@ struct LowWater {
 void setup();
 // Every turn of the main loop: the lowest and the failures since the last turn, logged.
 void tick(uint32_t now);
+// How many allocations from PSRAM found no room since boot (any task): what gives memory up first looks at this
+// (page_pictures.h), so no one polls a heap for it.
+uint32_t psram_refused();
 // With the config dump: the previous boot's record, and this boot's so far.
 void dump();
 

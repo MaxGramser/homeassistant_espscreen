@@ -263,9 +263,9 @@ inline void engine_took(uint32_t) {}
 
 // A long copy by the processor to or from the frame buffer leaves the panel in peace: a MIPI-DSI panel's DMA repeats its
 // frame by itself with no interrupt between two frames (glass_dsi_refresh.cpp), and 2 MB copied under the glass lock
-// cost no dry frame (docs/KEPT_PAGES.md, "Page pictures", measured 2026-11-16). An RGB panel refills its bounce buffer
-// from an interrupt and reads PSRAM through it, the class that shifts a frame; nobody measured a copy of a whole glass
-// there, so it is not steady until someone does. Page pictures are built only for a steady glass.
+// cost no dry frame (docs/KEPT_PAGES.md, "Page pictures", measured 2026-11-16). An RGB panel is fed from an interrupt
+// and must never be held up, so it is not steady. Page pictures are built only for a steady glass: a build without one
+// has none of their code.
 #if defined(GLASS_DSI) && defined(SCREEN_PICTURES)
 #define GLASS_STEADY 1
 inline bool steady() { return direct(); }

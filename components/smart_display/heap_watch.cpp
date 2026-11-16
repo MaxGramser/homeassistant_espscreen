@@ -4,6 +4,7 @@
 #include "glass.h"
 #include "esphome/core/defines.h"
 #ifdef USE_ESP32
+#include <atomic>
 #include <cstring>
 
 #include "esphome/core/log.h"
@@ -38,6 +39,8 @@ uint32_t logged_failures = 0, logged_fell_back = 0, checked_at = 0, counted_at =
 uint32_t internal_total = 0;  // all the internal RAM there is, read once at boot
 constexpr uint32_t COUNT_MS = 5 * 60 * 1000;  // how often the tasks and the two heaps are logged: a leak shows as a trend
 
+std::atomic<uint32_t> psram_refusals{0};
+
 uint32_t internal_free() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
 uint32_t internal_lowest() { return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL); }
 
@@ -54,6 +57,7 @@ void failed(size_t size, uint32_t caps, const char *function) {
     record.fell_back_size = static_cast<uint32_t>(size);
     return;
   }
+  if (caps & MALLOC_CAP_SPIRAM) psram_refusals.fetch_add(1, std::memory_order_relaxed);
   record.failures++;
   record.size = size;
   record.caps = caps;
@@ -77,6 +81,8 @@ void log_failure(const Record &r, bool previous_boot) {
 }
 
 }  // namespace
+
+uint32_t psram_refused() { return psram_refusals.load(std::memory_order_relaxed); }
 
 void setup() {
   if (record.magic == MAGIC) {
@@ -142,6 +148,7 @@ void dump() {
 }  // namespace heap_watch
 #else
 namespace heap_watch {
+uint32_t psram_refused() { return 0; }
 void setup() {}
 void tick(uint32_t) {}
 void dump() {}

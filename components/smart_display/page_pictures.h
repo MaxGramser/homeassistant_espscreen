@@ -25,6 +25,7 @@
 
 #include "glass.h"
 #include "kept_pages.h"
+#include "picture_store.h"
 #include "page_protocol.h"
 
 namespace page_pictures {
@@ -173,11 +174,9 @@ constexpr size_t MAX_KEPT = page_protocol::MAX_PAGES;
 constexpr size_t NONE = MAX_KEPT;
 // The PSRAM page pictures may take: a quarter of what the board has (8 MB of a P4 board's 32).
 constexpr size_t share(size_t psram_total) { return psram_total / 4; }
-// What must stay free after a picture's memory is taken: the picture store's whole budget (a fifth of the PSRAM, at
-// most 6 MB: picture_store_lvgl.h) and the room the kept pages leave for a full camera and an alert (2 MB).
-constexpr size_t reserve(size_t psram_total) {
-  return (psram_total / 5 < (6u << 20) ? psram_total / 5 : (6u << 20)) + (2u << 20);
-}
+// What must stay free after a picture's memory is taken: the picture store's whole budget and the room the kept pages
+// leave for a full camera and an alert, each asked where it is written (picture_store.h, kept_pages.h).
+constexpr size_t reserve(size_t psram_total) { return picture_store::budget_for(psram_total) + kept_pages::KEEP_RESERVE; }
 // How many pictures of `bytes` each a board with that PSRAM keeps for a layout of `pages`: none when not even two fit
 // (one picture alone is never turned to: it is of the page on the glass).
 constexpr size_t count(size_t psram_total, size_t bytes, unsigned pages) {
@@ -190,6 +189,15 @@ constexpr size_t count(size_t psram_total, size_t bytes, unsigned pages) {
 // Whether another picture's memory may be taken now.
 constexpr bool affords(size_t psram_free, size_t psram_total, size_t bytes) {
   return psram_free >= bytes && psram_free - bytes >= reserve(psram_total);
+}
+// Page pictures are the first thing a screen gives up when its PSRAM runs short: a cover, a camera's full view, a live
+// stream, a call and a plugin's picture all matter more. A picture goes, the farthest from the glass first
+// (Shelf::let_go), when an allocation from PSRAM was refused since the last look (`refused` against `seen`: the heap
+// watch counts every one, heap_watch.h) or when less is free than the kept pages' reserve. After that no picture takes
+// memory again for YIELD_REST_MS, so what was refused has its turn first.
+constexpr uint32_t YIELD_REST_MS = 30000;
+constexpr bool must_yield(uint32_t refused, uint32_t seen, size_t psram_free) {
+  return refused != seen || psram_free < kept_pages::KEEP_RESERVE;
 }
 // How far two pages lie apart, as someone pages from one to the other: around the end too when the pages loop.
 constexpr int apart(int a, int b, int pages, bool loop) {
@@ -234,6 +242,19 @@ struct Shelf {
       entries[at].page = page;
     }
     entries[at].used = ++turns;
+    return at;
+  }
+  // The entry whose picture goes when memory is short: of the page farthest from the one on the glass (of two as far,
+  // the one on the glass longest ago), the glass's own last. NONE when no page holds one. Its entry is free after.
+  size_t let_go(int glass, int pages, bool loop) {
+    size_t at = NONE;
+    for (size_t i = 0; i < capacity && i < MAX_KEPT; ++i) {
+      if (entries[i].page < 0) continue;
+      if (at == NONE) { at = i; continue; }
+      const int far = apart(entries[i].page, glass, pages, loop), farthest = apart(entries[at].page, glass, pages, loop);
+      if (far > farthest || (far == farthest && entries[i].used < entries[at].used)) at = i;
+    }
+    if (at != NONE) entries[at] = Entry{};
     return at;
   }
   // Another layout or grid: no picture is of a page any more. Entries past a smaller capacity go too.

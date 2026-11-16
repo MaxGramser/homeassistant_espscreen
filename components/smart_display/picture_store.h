@@ -44,6 +44,10 @@ constexpr size_t MAX_BYTES = 1024 * 640 * 2;
 // glass's 1280x800 at its own pixels, for a camera over the whole page, the full view and the screensaver. A board with
 // 8 MB keeps the cap above. ESP Screen Manager honours the same side (picture_question.LARGE_SIDE).
 constexpr int LARGE_SIDE = 2048;
+// The store's whole budget on a board with that much PSRAM: a fifth of it, at most 6 MB (about 1.2 MB of a board's
+// 8 MB heap of 6, 6 MB of a P4 board's 32). The one place this is written: the store asks it, and so does whatever
+// leaves the store its room (page_pictures::reserve).
+constexpr size_t budget_for(size_t psram_total) { return psram_total / 5 < (6u << 20) ? psram_total / 5 : (6u << 20); }
 struct Cap {
   int side = MAX_SIDE;
   size_t bytes = MAX_BYTES;

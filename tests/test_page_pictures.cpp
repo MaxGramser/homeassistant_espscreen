@@ -98,6 +98,25 @@ int main() {
   turned.untrue(glass::on_panel(Rect{100, 100, 200, 100}, 90, 1280, 800));  // x 1080..1179, y 100..299 on the panel
   assert(!turned.is_true(16, 1) && !turned.is_true(18, 4) && turned.is_true(15, 1) && turned.is_true(19, 1) && turned.is_true(16, 5));
 
+  // ---- A take in steps, with a value that changes between two of them ----
+  // The first step copies the upper rows; then LVGL draws a card anew, one that reaches from rows already copied into
+  // rows still to come; the later steps copy the rest and the card's blocks again. No block holds half of a drawing:
+  // the picture is the glass, pixel for pixel, in every block that is true.
+  {
+    Map steps;
+    assert(steps.shape(1280, 800, 0, room));
+    Glass g(1280, 800, 0x1111), p(1280, 800, 0);
+    for (int row = 0; row < 4; ++row) { copy(steps, row, steps.wanted(row), g, p); steps.took(row, steps.wanted(row)); }
+    const Rect changed{300, 150, 200, 250};  // rows 2 to 6 of blocks: 2 and 3 are copied, 4 to 6 are not yet
+    g.fill(changed, 0x7777);                 // LVGL draws the new value...
+    steps.untrue(changed);                   // ...and its refresh says so before the next step
+    assert(!steps.is_true(4, 2) && !steps.is_true(7, 3) && steps.is_true(3, 2));
+    take(steps, g, p);
+    assert(steps.whole());
+    for (int y = 56; y < 730; ++y)
+      for (int x = 0; x < 1280; ++x) assert(p.px[static_cast<size_t>(y) * 1280 + x] == g.px[static_cast<size_t>(y) * 1280 + x]);
+  }
+
   // ---- A block is taken once it stood still ----
   // A card that draws every second is never still for a second and a half: its blocks wait, the rest is taken.
   Stillness still;
@@ -142,6 +161,9 @@ int main() {
   assert(count(16 * MB, one, 8) == 2 && count(8 * MB, one, 8) == 0 && count(0, one, 8) == 0 && count(32 * MB, 0, 8) == 0);  // one picture alone is none
   assert(count(32 * MB, 480u * 480 * 2, 20) == MAX_KEPT);
   assert(affords(20 * MB, 32 * MB, one) && !affords(9 * MB, 32 * MB, one) && !affords(MB, 32 * MB, one));
+  assert(reserve(32 * MB) == picture_store::budget_for(32 * MB) + kept_pages::KEEP_RESERVE);  // asked, not written again
+  // Short of memory a picture goes: when PSRAM refused someone since the last look, or under the kept pages' reserve.
+  assert(must_yield(3, 2, 20 * MB) && must_yield(2, 2, MB) && !must_yield(2, 2, 3 * MB));
 
   // ---- Which pages ----
   assert(apart(0, 7, 8, false) == 7 && apart(0, 7, 8, true) == 1 && apart(2, 5, 8, true) == 3 && apart(3, 3, 8, true) == 0);
@@ -170,6 +192,13 @@ int main() {
   tie.capacity = 2;
   tie.take(2, 8, false, fresh); tie.take(4, 8, false, fresh);
   assert(tie.take(3, 8, false, fresh) == 0 && tie.held(4) == 1);
+  // Memory is short: the page farthest from the glass lets go first, the glass's own last, and then there is none.
+  Shelf yields;
+  yields.capacity = 4;
+  for (int page : {0, 1, 2, 5}) yields.take(page, 8, false, fresh);
+  assert(yields.let_go(1, 8, false) == 3 && yields.held(5) == NONE && yields.pages() == 3);  // page 5 is 4 away
+  assert(yields.let_go(1, 8, false) == 0 && yields.held(0) == NONE);  // 0 and 2 are as far: 0 was on the glass longer ago
+  assert(yields.let_go(1, 8, false) == 2 && yields.let_go(1, 8, false) == 1 && yields.let_go(1, 8, false) == NONE);
   // The number the page left at stays with its entry; another layout forgets every page.
   shelf.entries[1].synced = 42;
   assert(shelf.take(1, 8, false, fresh) == 1 && !fresh && shelf.entries[1].synced == 42);

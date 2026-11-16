@@ -129,7 +129,11 @@ alert, the screensaver) is that stream's newest frame, not another snapshot from
 - **Page pictures** (`page_pictures.h`, docs/KEPT_PAGES.md "Page pictures") are not the store's: a whole page's pixels
   as LVGL drew them, 2 bytes a pixel of the panel, on a screen with a steady glass. They have a share of their own from
   the same PSRAM figure, a quarter of it, and a picture's memory is taken only while the store's whole budget and the
-  kept pages' reserve stay free after it, so the store never has less for them.
+  kept pages' reserve stay free after it, so the store never has less for them. With 32 MB of PSRAM that is 8 MB,
+  four pages of a 1280 x 800 glass (2 MB each) with 8 MB kept free; with 16 MB it is 4 MB, two pages, with 5.2 MB kept
+  free; under that a board keeps none. The store, a camera's full view, the live streams and a call always go before
+  them: when PSRAM refuses an allocation, or under 2 MB of it are free, the page pictures give their memory back, the
+  farthest page first (`page_pictures::must_yield`).
 
 ### Memory
 
