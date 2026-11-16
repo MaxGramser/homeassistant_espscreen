@@ -6,7 +6,6 @@ own part, one button or two as asked and a title one line high however long, is 
 (tools/render/run.py, alert_words_faults). Standby waiting while an alert shows, and the standby time starting again when
 it ends, are tests/test_wake_sleep.py's. Here: the contract with Home Assistant and the app, and the rules over the
 packages that only reading them states."""
-from firmware_sources import runtime_source
 import json
 import re
 import sys
@@ -213,16 +212,6 @@ class TheLimits(unittest.TestCase):
         show = ''.join(values(package_yaml.script('alert_show')))
         for key in LIMITS:
             self.assertIn(f'${{{key}}}', show, f'alert_show cuts the alert\'s texts at the look\'s {key} (screen_alert::make)')
-
-    def test_the_title_is_one_line_high_so_a_long_title_ends_in_an_ellipsis(self):
-        # LVGL 9.5 only puts the ellipsis on a DOT label whose wrapped text is taller than the label. Without a height
-        # the label grows with its lines instead, and a long title ran into the subtitle. The height is the title font's
-        # own line (firmware 0.2.103+): screen_alert::layout takes it as title_h (tests/test_alert_overlay.cpp), and
-        # alert_place gives the label the font it draws with. The render's alert round sees it on every board.
-        # These two lines are in runtime_tiles.h, which is being split into *_lvgl.h files: left as they are until then.
-        tiles = runtime_source()
-        self.assertIn('lv_font_get_line_height(lv_obj_get_style_text_font(p.title, LV_PART_MAIN))', tiles)
-        self.assertIn('lv_obj_set_size(p.title, l.text_w, l.title_h);', tiles)
 
     def test_the_card_fits_every_board(self):
         # Every board's glass, lying down and standing up, with its words above its button (screen_alert::layout, which
