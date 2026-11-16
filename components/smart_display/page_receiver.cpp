@@ -128,7 +128,7 @@ std::string receive(const std::string &payload) {
     const auto packet = transfer.packet(lease, packet_sequence, packet_hash.value);
     if (packet == page_protocol::Packet::reject) { result = "Error: obsolete message"; return false; }
     if (packet == page_protocol::Packet::duplicate) {
-      result = transfer.active && model.ready() ? "Synced" : "Loading tiles";
+      result = transfer.whole(model.ready()) ? "Synced" : "Loading tiles";
       return true;
     }
     sequenced = true;
@@ -158,7 +158,7 @@ std::string receive(const std::string &payload) {
           root["tiles"].as<unsigned>() > target.max_tiles() || root["home"].as<unsigned>() >= root["pages"].as<unsigned>() ||
           !root["keepalive"].is<unsigned>() || root["keepalive"].as<unsigned>() < 5 || root["keepalive"].as<unsigned>() > 3600)
         return false;
-      const bool was_active = transfer.active && model.ready();
+      const bool was_active = transfer.whole(model.ready());
       auto candidate = transfer;
       const auto begin = candidate.begin(revision, root["pages"].as<unsigned>(), root["tiles"].as<unsigned>());
       if (begin == page_protocol::Begin::reject) return false;
@@ -215,7 +215,7 @@ std::string receive(const std::string &payload) {
     }
     if (op == "appearance") {
       uint64_t base;
-      if (!transfer.active || !model.ready() || !page_protocol::key(string(root["base"]), base) ||
+      if (!transfer.whole(model.ready()) || !page_protocol::key(string(root["base"]), base) ||
           !transfer.matches(base) || !root["title"].is<const char *>() ||
           root["title"].as<std::string>().size() > 96 || !root["pages"].is<JsonArray>() || !root["tiles"].is<JsonArray>()) return false;
       const auto pages = root["pages"].as<JsonArray>(), tiles = root["tiles"].as<JsonArray>();
@@ -266,7 +266,7 @@ std::string receive(const std::string &payload) {
     if (!transfer.matches(revision)) { result = "Resend needed"; return false; }
     if (op == "ping") {
       last_received = esphome::millis();
-      result = transfer.active && model.ready() ? "Synced" : "Resend needed";
+      result = transfer.whole(model.ready()) ? "Synced" : "Resend needed";
       return true;
     }
     if (op == "bar_value") {
@@ -381,7 +381,7 @@ std::string receive(const std::string &payload) {
     if (op == "commit") {
       // A retried commit with a new sequence acknowledges the same document.
       // It must not navigate back to the page shown before the transfer.
-      if (transfer.active && model.ready()) {
+      if (transfer.whole(model.ready())) {
         last_received = esphome::millis(); result = "Synced"; return true;
       }
       // Every key stands under a bedside clock of this layout (firmware 0.8.0+): a key of anything else has no place.

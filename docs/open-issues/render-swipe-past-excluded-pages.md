@@ -48,3 +48,12 @@ minutes a step), then read the first commit that fails against `swipe_pages` and
 
 `tools/render/run.py` (the navigation round, `swipe()`), `settings_screen::swipe_pages`, `go_to_page` and the page
 navigation in `components/smart_display/runtime_tiles.h`, docs/PAGES.md "The address" and "Navigation".
+
+## Solved: the swipe (2026-11-16)
+
+The check was older than the rule, and the firmware was right. Loop pages (2afbe908, 2026-11-10, on by default) says
+that past the last page comes the first, skipping the excluded pages (`PageData::step`), and that is what the screen
+did: on the guition host build, a swipe from the last included page went to the first included page (page 0), never
+to an excluded one. 0239533f makes the round state the rule both ways: with Loop pages on, the swipe comes round to
+the first page; with the "Loop pages" switch off, it stops at the last included page. The guition host render passes
+whole (51 page checks). The automation, remote and bars stages above are still open.

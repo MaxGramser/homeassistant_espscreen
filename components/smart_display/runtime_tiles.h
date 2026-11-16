@@ -241,9 +241,10 @@ inline ProtocolProblem protocol_problem = ProtocolProblem::none;
 struct Preparing { bool active = false, foreground = false; unsigned done = 0, total = 0; lv_timer_t *timer = nullptr; };
 inline Preparing preparing;
 inline bool prepare_busy() { return preparing.active; }
-// Pages turn once the layout is complete, and not while the "Preparing pages" screen covers them.
+// Pages turn once the layout is whole (transfer.whole, the same rule as fresh()), and not while the "Preparing pages"
+// screen covers them.
 inline bool navigation_ready() {
-  return protocol_problem == ProtocolProblem::none && transfer.active && model.ready() && !preparing.foreground;
+  return protocol_problem == ProtocolProblem::none && transfer.whole(model.ready()) && !preparing.foreground;
 }
 // A page Home Assistant asked for (show_page) before the layout was ready, 1 up, 0 for none: a layout that came while the
 // screen stood dark is prepared once it is lit, and the page opens then (core.yaml's open_page, from the 1 s interval).
@@ -889,7 +890,11 @@ inline bool ha_connected() { return esphome::api_is_connected(); }
 // The manager repeats the whole layout every keepalive; one missed round plus its 20 s
 // loop slack and the sending itself are tolerated before the feed counts as gone.
 inline bool feed_alive() { return esphome::millis() - last_received < keepalive_seconds * 2000 + 60000; }
-inline bool fresh() { return protocol_problem == ProtocolProblem::none && transfer.active && transfer.begun && model.ready() && ha_connected() && feed_alive(); }
+// Values may be trusted and actions sent: a whole layout (transfer.whole, the same rule as navigation_ready()), Home
+// Assistant connected and the app's feed alive. Not transfer.begun: a hello from an app that starts again clears it
+// while the layout held stays true, and asking it greyed every value and drew every card twice at each start of the
+// app (docs/PAGES.md, "A hello"; the host render's hello_again round).
+inline bool fresh() { return protocol_problem == ProtocolProblem::none && transfer.whole(model.ready()) && ha_connected() && feed_alive(); }
 // The number a tile's own tap is known by to the bounce guard: far above the numbers of the buttons on a card or a
 // control (300+, 400+, 2000+ ...), so a screen of hundreds of tiles never shares one with them (firmware 0.34.0+).
 constexpr int TILE_TOUCH = 100000;
@@ -10902,7 +10907,7 @@ inline void prepare_done() {
   if (shown) refresh_header_only();
 }
 inline void prepare_step(lv_timer_t *) {
-  if (protocol_problem != ProtocolProblem::none || !transfer.active || !model.ready()) return;
+  if (protocol_problem != ProtocolProblem::none || !transfer.whole(model.ready())) return;
   const uint32_t now = esphome::millis();
   int page = next_to_prepare(true);
   if (page >= 0) {

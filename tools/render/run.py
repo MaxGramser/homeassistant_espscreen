@@ -743,6 +743,43 @@ class Run:
         await self.render('appearance-card-kept-open')
         await probe(-1)
 
+    async def hello_again(self, grid):
+        """A restarted app over the layout the screen holds: a new Sender, so a new hello and a new lease, with the same
+        layout. It costs the glass nothing: the feed stays fresh and no card is drawn again. Another layout after it is
+        exchanged whole, as always. A Guition 10.1 greyed its values and drew every card twice at each rebuild of the
+        app (2026-11-16, then reproduced on a Waveshare 10.1 by restarting the app); docs/PAGES.md, "A hello"."""
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+
+        async def whole(tiles, pages, what):
+            end = time.monotonic() + 30
+            while (p := await self.probe())[3] != tiles or p[5] != pages or p[1] != 0:
+                if time.monotonic() > end: raise AssertionError(f'{what} never landed whole: {p}')
+                await asyncio.sleep(0.2)
+        await whole(len(values), len(record['layout']['pages']), 'the layout')
+        await asyncio.sleep(1)
+        before, start = self.sender, len(self.lines)
+        # As the app does when it starts (server.probe_pages): a hello to learn what the screen can do, then the layout
+        # once Home Assistant's states are read, seconds later on a real house.
+        self.sender = send_layout.api_sender(self.client, list(self.services.values()))
+        await self.sender.probe()
+        await asyncio.sleep(3)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        assert self.sender.session and self.sender.session != before.session, 'a restarted app takes a new lease'
+        assert self.sender.confirmed == before.confirmed, 'the same layout keeps its revision'
+        await asyncio.sleep(1.5)
+        cost = [line for line in self.lines[start:] if 'the feed is no longer fresh' in line or 'every card drawn' in line]
+        assert not cost, f'a hello over the same layout changed the glass: {cost}'
+        await whole(len(values), len(record['layout']['pages']), 'the same layout after a hello')
+        # Another layout from the restarted app: one page fewer, exchanged whole like any new layout.
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES[:-1])
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        await self.until(lambda line: 'every card drawn: a new layout' in line, 10, 'the new layout', start)
+        await whole(len(values), len(record['layout']['pages']), 'another layout after a hello')
+        self.warnings.append('A hello: the same layout costs nothing, another one is exchanged whole')
+        return 2
+
     async def detail_navigation(self, grid, entities):
         """Real touchscreen taps, nested Back, hidden footer, and swipes past excluded pages with Loop pages on and off.
 
@@ -4613,6 +4650,7 @@ class Run:
         await self.render('page-1-dark')
         self.client.switch_command(dark.key, False)
         await self.appearance_edits(grid)
+        checks += await self.hello_again(grid)
         checks += await self.detail_navigation(grid, entities)
         checks += await self.rectangular_tiles(grid)
         checks += await self.bedside_clock(grid)

@@ -237,6 +237,24 @@ An unsaved editor draft remains a draft during an update. Updating one screen do
 
 The add-on checks the saved layout before installing new firmware. An external firmware update cannot perform that preflight. Missing grid information or invalid old references are shown as specific migration problems and must be resolved before that layout can activate.
 
+## A hello
+
+The app opens every session with a hello, and the screen answers with a new lease (`page_protocol::Transfer::grant`).
+That happens each time the app starts: after an update, a restart or a rebuild. A hello alone costs the glass nothing.
+The layout the screen holds stays whole and its values stay trusted, because nothing has said otherwise: while the app
+was gone the screen already kept them for its keepalive, and between the hello and the session's begin no value can
+land, because the old lease is refused and the new one is not yet begun. The begin then decides:
+
+- **The same layout** (the same revision) is `Begin::unchanged`: nothing is drawn again and no value turns grey.
+- **Another layout** is `Begin::replace`: the screen holds no whole layout until its last tile, the loading cover goes
+  over the glass, and the new layout comes in whole, as any new layout does.
+
+`begun` says only that the lease has had its one begin. What decides whether the screen shows a whole layout, and
+trusts its values, is `Transfer::whole()`: the transfer is active and the model has every tile. `fresh()` (values and
+actions) and `navigation_ready()` (turning pages) both ask it. Before firmware of 2026-11-16, `fresh()` also asked for
+`begun`, so each start of the app greyed the values for a moment and drew every card twice. The host render's
+`hello_again` round proves the rule with a second sender over the same screen.
+
 ## Storage and recovery
 
 Layouts live in the add-on's `/data/screens.json`. Wi-Fi, API and OTA keys remain in the screen's ESPHome configuration. Layout exports contain no connection credentials.
