@@ -24,7 +24,7 @@ const field = ref<HTMLTextAreaElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 useStickToBottom(list, () => bot.messages.length + (bot.busy ? 1 : 0));
 // A new message grows into place (its enter transition): follow it to the end once it stands.
-watch(() => bot.messages.length, () => setTimeout(() => list.value?.scrollTo({ top: list.value.scrollHeight, behavior: "smooth" }), 340));
+watch(() => bot.messages.length, () => setTimeout(() => list.value?.scrollTo?.({ top: list.value.scrollHeight, behavior: "smooth" }), 340));
 const focus = () => { if (!props.phone) nextTick(() => field.value?.focus()); };
 // The field in view once the keyboard is up. The sheet stands on the keyboard where the page learns of it (UiSheet, the
 // visual viewport), but inside Home Assistant's frame (its Companion app) the frame may never hear of the keyboard: the
