@@ -139,7 +139,7 @@ describe("Layoutbot on a phone", () => {
     api.on("POST screens/:id/layoutbot", answer({ elsewhere: [{ id: "wall", name: "Wallbox", plan: PLAN, notes: [] }] }));
     await bot.ask("Lights everywhere");
     await flushPromises();
-    const visited: string[] = [];
+    const visited: string[] = [], entries = window.history.length;
     const stop = router.afterEach((to) => { visited.push(to.fullPath); });
     button("Yes, send")!.click();
     await flushPromises();
@@ -150,6 +150,28 @@ describe("Layoutbot on a phone", () => {
     expect(scr.selected).toBe("hall");
     expect(bot.messages.at(-1)!.send).toBe("sent");
     expect(sheet()).not.toBeNull();
+    // The screens it passed through took the browser's entry in place: Back closes the chat on the screen the person was
+    // on, as before the question, and never lands on Wallbox.
+    expect(window.history.length).toBe(entries);
+    router.back();
+    await new Promise((resolve) => window.addEventListener("popstate", resolve, { once: true }));
+    await flushPromises();
+    expect(router.currentRoute.value.fullPath).toBe("/screens/hall");
+    expect(scr.selected).toBe("hall");
+    expect(sheet()).toBeNull();
+  });
+
+  it("brings the field into view when it takes focus, also where the frame never hears of the keyboard", async () => {
+    await phone();
+    useLayoutbotStore().open = true;
+    await flushPromises();
+    const asked: Element[] = [];
+    Element.prototype.scrollIntoView = function (this: Element) { asked.push(this); };
+    document.querySelector<HTMLTextAreaElement>(".bot-compose textarea")!.dispatchEvent(new FocusEvent("focus"));
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    expect(asked.length).toBeGreaterThan(0);
+    expect(asked.every((element) => element.classList.contains("bot-compose"))).toBe(true);
+    expect(sheet()!.classList.contains("typing")).toBe(false);  // no visual viewport here: the sheet knew nothing
   });
 
   it("sleeps without an AI Task and its sheet says how to connect one", async () => {

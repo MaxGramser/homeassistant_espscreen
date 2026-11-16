@@ -131,8 +131,11 @@ export const useUiStore = defineStore("ui", () => {
   // this store needs no screen store (which needs this one).
   let mainView: () => RouteLocationRaw = () => "/";
   function setMainView(view: () => RouteLocationRaw) { mainView = view; }
-  function go(target: Route) {
-    return router.push(target === "" ? withChat(mainView()) : `/${target.slice(1)}`);
+  // `replace`: in place of the entry the browser has (Layoutbot's Yes on its way through other screens), so Back goes where
+  // the person was before, never to a screen only passed through.
+  function go(target: Route, { replace = false } = {}) {
+    const to = target === "" ? withChat(mainView()) : `/${target.slice(1)}`;
+    return replace ? router.replace(to) : router.push(to);
   }
   // Layoutbot's chat (docs/LAYOUTBOT.md): open while the address says so, `#/screens/<id>?chat=layoutbot`, so Back closes
   // it and a reload opens it again. It stays open while the main view moves to another screen (go(""), as its Yes does on

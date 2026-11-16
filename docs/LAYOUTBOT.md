@@ -33,7 +33,8 @@ Whether the chat is open is in the editor's address, as everything that is open 
 `#/screens/<id>?chat=layoutbot`. The bot's key pushes it, so the browser's Back (or a phone's back gesture) closes the
 chat, and a reload or a kept link opens it again. Moving to another screen keeps the chat open (`ui.go("")` carries
 the query), which is what Yes does on its way through the other screens and home again; the overview and the pages of
-the app close it.
+the app close it. Yes opens the screens it passes through in place of the browser's entry (`session.select(id, { replace:
+true })`), so after it Back goes where the person was before, and never to a screen Yes only passed through.
 
 ### On a phone
 
@@ -50,8 +51,23 @@ below it:
   sheet's bottom is the keyboard's top and it takes the room above, so the field stays in sight. The field takes no
   focus by itself on a phone, so the keyboard comes only when the person taps the field, and it is 16 px, so a
   phone's browser does not zoom the page when the field takes focus.
+- Inside Home Assistant's frame, and in its Companion app, the frame may never learn of the keyboard (its visual
+  viewport keeps its height). The sheet does not count on it: when the field takes focus the browser is also asked to
+  bring the field into view (`scrollIntoView`, which works through the frame as for any field), and the conversation
+  scrolls inside the sheet whatever its height.
 - Its texts and buttons are a size larger than on a wider page; the conversation, the choices and the connect hint
   are the same component (`LayoutBotChat`).
+
+What was tested and what was not: every control at 375 px wide in a desktop browser, light and dark, with the keyboard
+imitated by a shorter visual viewport (`web/tests/layoutbot-phone.spec.ts` holds the same). Not tested: a real phone,
+and the editor inside Home Assistant's Companion app, where how the frame meets the keyboard is the phone's. That
+check is for a phone in the Companion app: open a screen, tap the bot, tap the field, and see that the field stays
+above the keyboard while typing.
+
+`UiSheet` (`web/src/components/ui/UiSheet.vue`) is the editor's one wrapper for a sheet from the bottom of a phone, on
+Reka UI. The phone's other sheets are still built by hand (a `.sheet-dim` and a panel of their own) and are its next
+users: the pages of a screen (`PhonePages.vue`), Add tile (`Library.vue` on a phone), a tile's settings (`Drawer.vue`
+on a phone) and the sidebar from the left (`App.vue`, `Sidebar` with `.sheet`).
 
 ## How a question becomes a draft
 

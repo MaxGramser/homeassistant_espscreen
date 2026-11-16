@@ -14,6 +14,7 @@ import type { PageLayout } from "../src/types";
 import { fakeApi, type FakeApi } from "./helpers/fake-api";
 import { openScreen, screenFixture } from "./helpers/fixtures";
 import { useScreenStore } from "../src/stores/screen";
+import { router } from "../src/router";
 
 const hall = () => screenFixture({ id: "hall", name: "Hall", online: true,
   layout: { title: "Hall", tiles: [{ entity: "light.a", name: "", slot: 0 }] } } as any);
@@ -138,6 +139,7 @@ describe("Layoutbot", () => {
       ["Wallbox", { pages: 0, added: 1, removed: 0, changed: [1] }], ["Desk", { pages: 0, added: 1, removed: 0, changed: [1] }]]);
     expect(bot.targets(message)).toEqual(["Hall", "Wallbox", "Desk"]);
     expect(api.count("PUT screens/:id")).toBe(0);  // nothing saved before yes
+    const entries = window.history.length;
     await bot.deliver(message);
     // Each through the editor's own Save & send, one after the other; the one that failed keeps nothing, the others go.
     expect(api.asked("PUT screens/:id").map((put) => put.path)).toEqual(["screens/hall", "screens/wall", "screens/desk"]);
@@ -147,6 +149,9 @@ describe("Layoutbot", () => {
     expect(bot.messages.at(-1)!.text).toContain("Wallbox");
     expect(scr.selected).toBe("hall");
     expect(useDocumentStore().dirty).toBe(false);
+    // Wallbox and Desk were passed through in place of the browser's entry: Back goes where the person was before.
+    expect(window.history.length).toBe(entries);
+    expect(router.currentRoute.value.path).toBe("/screens/hall");
   });
 
   it("leaves a draft that moved while it thought as it is", async () => {

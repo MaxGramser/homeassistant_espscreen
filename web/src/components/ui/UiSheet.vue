@@ -6,6 +6,7 @@
 // height, and another gives it back. A field in it is 16 px or more, so focusing it never zooms the page.
 // It lies above the phone's dock (25) and its other sheets (41), below a picker or menu (.ui-popover, 80), a toast (85)
 // and a confirm (90).
+// Layoutbot's chat is its first user; the phone's other sheets, still built by hand, are its next (docs/LAYOUTBOT.md).
 import { useEventListener } from "@vueuse/core";
 import { DialogContent, DialogPortal, DialogRoot, DialogTitle } from "reka-ui";
 import { computed, ref, watch } from "vue";

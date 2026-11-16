@@ -26,6 +26,14 @@ useStickToBottom(list, () => bot.messages.length + (bot.busy ? 1 : 0));
 // A new message grows into place (its enter transition): follow it to the end once it stands.
 watch(() => bot.messages.length, () => setTimeout(() => list.value?.scrollTo({ top: list.value.scrollHeight, behavior: "smooth" }), 340));
 const focus = () => { if (!props.phone) nextTick(() => field.value?.focus()); };
+// The field in view once the keyboard is up. The sheet stands on the keyboard where the page learns of it (UiSheet, the
+// visual viewport), but inside Home Assistant's frame (its Companion app) the frame may never hear of the keyboard: the
+// browser is asked as well to bring the field into view, through the frame, as it does for any field.
+const compose = ref<HTMLFormElement | null>(null);
+function inView() {
+  if (!props.phone) return;
+  for (const ms of [320, 700]) setTimeout(() => compose.value?.scrollIntoView?.({ block: "nearest" }), ms);
+}
 onMounted(focus);
 watch(() => bot.busy, (busy) => { if (!busy) focus(); });
 
@@ -152,8 +160,8 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
 
     <!-- Other screens only when the person chooses them (the add-on's layoutbot.answered holds to it). -->
     <Segmented v-if="bot.ready && otherScreens" class="bot-scope" :choices="scopes" :value="bot.allScreens" :disabled="bot.busy" @pick="bot.allScreens = $event" />
-    <form v-if="bot.ready" class="bot-compose" @submit.prevent="submit()">
-      <textarea ref="field" v-model="draft" rows="1" :disabled="bot.busy" :placeholder="t('editor.layoutbot.placeholder')" maxlength="500" @keydown="onKey"></textarea>
+    <form v-if="bot.ready" ref="compose" class="bot-compose" @submit.prevent="submit()">
+      <textarea ref="field" v-model="draft" rows="1" :disabled="bot.busy" :placeholder="t('editor.layoutbot.placeholder')" maxlength="500" @keydown="onKey" @focus="inView"></textarea>
       <button type="submit" class="bot-send" :disabled="bot.busy || !draft.trim()" :aria-label="t('editor.layoutbot.ask')"><Icon name="arrow-up" /></button>
     </form>
   </div>
