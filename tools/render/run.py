@@ -1706,6 +1706,118 @@ class Run:
                 'title': m[4], 'status': m[5], 'line': m[6], 'modes': points(m[7]), 'keys': points(m[8]), 'faults': m[9],
                 'locked': int(m[10])}
 
+    async def standby_state(self):
+        """What ui_state says of standby and pages: the standby clock (idle), the page clock (use), dimmed and the page."""
+        start = len(self.lines)
+        await self.call('ui_state')
+        line = await self.until(lambda l: 'ui_diag' in l and 'use_idle_ms=' in l, 10, 'ui_state', start)
+        nav = await self.until(lambda l: 'ui_diag' in l and 'navigation page=' in l, 10, 'ui_state navigation', start)
+        found = re.search(r'idle_ms=(\d+) use_idle_ms=(\d+) dimmed=(\d+)', line)
+        return dict(idle=int(found[1]), use=int(found[2]), dimmed=found[3] == '1',
+                    page=int(re.search(r'navigation page=(\d+)', nav)[1]))
+
+    async def standby_round(self):
+        """Wake and Sleep for Home Assistant automations (docs/SETTINGS.md), on the real firmware: Sleep dims now and holds
+        whatever turns Auto standby off; Wake lights a dimmed screen and only restarts the standby time of a lit one, and
+        is no touch, so it never holds up Back to page 1; a tap on the dimmed glass and Wake take the same way out; Sleep
+        closes an alert from Home Assistant's side; a setting the screen changes itself reaches Home Assistant. Took the
+        place of quotes of core.yaml (tests/test_wake_sleep.py, tests/test_screen_owned_settings.py)."""
+        entities = {getattr(e, 'name', ''): e for e in (await self.client.list_entities_services())[0]}
+        wake, sleep, auto = entities['Wake'], entities['Sleep'], entities['Auto standby']
+        failed = lambda what: self.failures.append(f'standby: {what}')  # noqa: E731
+        width, height = self.canvas
+
+        async def press(button, log):
+            start = len(self.lines)
+            self.client.button_command(button.key)
+            await self.until(lambda l: log in l, 10, f'the {button.name} button', start)
+            await asyncio.sleep(0.6)
+            return await self.standby_state()
+
+        self.client.switch_command(auto.key, True)
+        await asyncio.sleep(0.6)
+        state = await press(sleep, 'Sleep from Home Assistant')
+        if not state['dimmed']:
+            failed('Sleep did not dim the screen')
+        # Auto standby turned off, which applies the settings again: a Sleep holds.
+        self.client.switch_command(auto.key, False)
+        await asyncio.sleep(1.2)
+        state = await self.standby_state()
+        if not state['dimmed']:
+            failed('turning Auto standby off undid a Sleep')
+        # Wake on a dimmed screen lights it, and is no touch: the page clock goes on.
+        await asyncio.sleep(1.5)
+        state = await press(wake, 'Wake from Home Assistant, screen in standby')
+        if state['dimmed']:
+            failed('Wake did not light a dimmed screen')
+        if state['use'] < 1500:
+            failed(f'Wake restarted the page clock ({state["use"]} ms): it would hold up Back to page 1')
+        # Wake on a lit screen restarts the standby time alone.
+        await asyncio.sleep(1.5)
+        state = await press(wake, 'Wake from Home Assistant, screen on')
+        if state['dimmed'] or state['idle'] > 1500 or state['use'] < 3000:
+            failed(f'Wake on a lit screen: {state} (lit, the standby clock restarted, the page clock not)')
+        # Auto standby turned on counts the standby time from that moment, and is no touch either.
+        await asyncio.sleep(1.5)
+        self.client.switch_command(auto.key, True)
+        await asyncio.sleep(0.6)
+        state = await self.standby_state()
+        if state['idle'] > 1500 or state['use'] < 3000:
+            failed(f'Auto standby turned on: {state} (the standby clock restarts, the page clock goes on)')
+        # A tap on the dimmed glass ends a Sleep the way Wake does.
+        await press(sleep, 'Sleep from Home Assistant')
+        await self.tap(width // 2, height // 2)
+        await asyncio.sleep(0.6)
+        state = await self.standby_state()
+        if state['dimmed']:
+            failed('a tap on the dimmed glass did not end a Sleep')
+        if state['use'] > 1500:
+            failed(f'a tap is a touch: the page clock starts from it ({state})')
+        # Sleep closes an alert, said to Home Assistant as closed from its side.
+        start = len(self.lines)
+        await self.call('show_alert', title='Washing done', subtitle='', icon='', color='', button_text='', timeout=0, flash=False)
+        await self.until(lambda l: '[alert' in l and 'show "' in l, 10, 'the alert before Sleep', start)
+        start = len(self.lines)
+        self.client.button_command(sleep.key)
+        await self.until(lambda l: 'dismissed: remote' in l, 10, 'Sleep did not close the alert as closed from Home Assistant', start)
+        await press(wake, 'Wake from Home Assistant')
+        # Back to page 1 counts from the last touch: page 2 opened from Home Assistant, Wake pressed every few seconds,
+        # and the page still goes home once its time is over.
+        home, after = entities['Back to page 1'], entities['Back to page 1 after']
+        self.client.switch_command(auto.key, False)
+        self.client.number_command(after.key, 30)
+        self.client.switch_command(home.key, True)
+        await asyncio.sleep(0.6)
+        await self.call('show_page', page=2)
+        await asyncio.sleep(1)
+        state = await self.standby_state()
+        if state['page'] != 1 or state['use'] > 1500:
+            failed(f'show_page 2: {state} (page index 1, the page clock started from it)')
+        for _ in range(7):
+            await asyncio.sleep(4)
+            self.client.button_command(wake.key)
+        end = time.monotonic() + 12
+        while (state := await self.standby_state())['page'] != 0 and time.monotonic() < end:
+            await asyncio.sleep(1)
+        if state['page'] != 0:
+            failed(f'Back to page 1 never came while Wake was pressed every 4 s: {state}')
+        self.client.switch_command(home.key, False)
+        # Home Assistant sees every setting change the screen makes itself: a brightness under the standby brightness
+        # pulls that one down, and its entity follows without anyone setting it (apply_screen_settings publishes it).
+        states = {}
+        self.client.subscribe_states(lambda update: states.__setitem__(getattr(update, 'key', None), getattr(update, 'state', None)))
+        normal, dimmed = entities['Normal brightness'], entities['Standby brightness']
+        self.client.number_command(dimmed.key, 30)
+        self.client.number_command(normal.key, 80)
+        await asyncio.sleep(1)
+        self.client.number_command(normal.key, 10)
+        end = time.monotonic() + 5
+        while states.get(dimmed.key) != 10 and time.monotonic() < end:
+            await asyncio.sleep(0.2)
+        if states.get(dimmed.key) != 10:
+            failed(f'the standby brightness the screen pulled down to 10 reached Home Assistant as {states.get(dimmed.key)}')
+        return 'standby round'
+
     async def tap(self, x, y):
         await self.call('render_finger', x=x, y=y, down=True)
         await asyncio.sleep(0.15)
@@ -4409,6 +4521,8 @@ class Run:
             return 1, await self.dock(pages)
         if self.only == 'plugin':
             return 1, await self.plugin_round(grid)
+        if self.only == 'standby':
+            return 1, await self.standby_round()
         checks = await self.self_test()
         await self.moments(pages)
         await self.dock(pages)
@@ -4502,7 +4616,7 @@ def main():
     parser.add_argument('--out', type=Path, default=REPO / '.esphome' / 'render' / 'out')
     parser.add_argument('--work', type=Path, help='where the host builds go (default: .esphome/render/build)')
     parser.add_argument('--camera', default='960x540', help='the camera picture of the camera alert, WxH')
-    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell'], help='after the demo layout arrives, run only this stage')
+    parser.add_argument('--only', choices=['alarm', 'lock', 'automation', 'remote', 'bedside', 'media', 'mediatiles', 'saver', 'humidifier', 'weather', 'calendar', 'todo', 'text', 'bars', 'dock', 'vacuum', 'vacuumtile', 'doorbell', 'standby'], help='after the demo layout arrives, run only this stage')
     parser.add_argument('--plugin', type=Path, help='a plugin folder (docs/PLUGINS.md) to build into the variants, then run the plugin '
                         'round alone: tests/fixtures/plugins/host_probe proves the plugin host on the real firmware')
     parser.add_argument('--port-base', type=int, help='the first API port (default host.PORT_BASE); another worktree may use it')
