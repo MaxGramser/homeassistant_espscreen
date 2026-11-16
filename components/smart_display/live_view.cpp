@@ -58,7 +58,6 @@ constexpr int64_t PACE_GAP_US = 2000000;
 constexpr uint32_t STALE_MS = 150;
 constexpr uint32_t PAUSE_STEP_MS = 20;
 constexpr uint32_t STACK_BYTES = 6144;  // a stream task's stack (psram_task.h), its high water logged as it ends
-constexpr unsigned STREAM_PRIORITY = 2;  // below the wake word's inference (3), above the main loop (1): take_glass
 constexpr uint32_t WAIT_MS = 500;  // a read waits this long, so a stop is seen within it
 // ---- The glass (glass.h): the panel, its frame buffer, the one-writer lock and the rooms LVGL keeps out of ----
 bool available() { return glass::direct(); }
@@ -323,19 +322,11 @@ static bool lay_loader(Stream &s) {
 }
 // Its next turn, between the stills: the square as composed again, the loader over it, and that square alone onto the
 // glass, every LOADER_STEP_MS while the task waits for the stream's next bytes.
-// A stream's task runs below the voice assistant's wake word (STREAM_PRIORITY), and asks for and holds the glass at
-// glass::WRITER_PRIORITY, in turn with the other streams and a still's download (picture_engine::decode), then goes back:
-// composing a picture and reading the app run below the voice. At WRITER_PRIORITY throughout, four tiles' composing (30
-// ms of wall clock a picture on a reTerminal D1001) and the screen's own video (priority 4) left the wake word's
-// inference (ESPHome's micro_wake_word, priority 3) behind 644 times in an hour at rest (2026-10-28).
-static uint32_t take_glass() {
-  vTaskPrioritySet(nullptr, glass::WRITER_PRIORITY);
-  return glass::hold_counted();
-}
-static void give_glass() {
-  glass::release();
-  vTaskPrioritySet(nullptr, STREAM_PRIORITY);
-}
+// A stream's task runs at STREAM_PRIORITY, below the voice assistant's wake word, and waits for and holds the glass at
+// glass::WRITER_PRIORITY, then goes back (live_view.h says why, glass::wait_as_writer how).
+static void set_priority(unsigned priority) { vTaskPrioritySet(nullptr, priority); }
+static uint32_t take_glass() { return glass::wait_as_writer(STREAM_PRIORITY, set_priority, glass::hold_counted); }
+static void give_glass() { glass::leave_as_writer(STREAM_PRIORITY, set_priority, glass::release); }
 
 static void turn_loader(Stream &s) {
   const uint32_t now = esphome::millis();
@@ -927,14 +918,9 @@ static_assert(picture_engine::limits().streams <= MAX_STREAMS, "the engine's str
 constexpr size_t STREAM_INTERNAL_BYTES = 11 * 1024;
 constexpr size_t INTERNAL_FLOOR_BYTES = 32 * 1024;
 
-static int held() {
-  int n = 0;
-  for (auto *s : streams)
-    if (s) ++n;
-  return n;
-}
-bool room_for_another() { return held() < picture_engine::limits().streams; }
-bool beside() { return picture_engine::limits().streams > 1; }
+// Every stream counts, of every kind, and one still ending too (live_view.h, Census).
+bool room_for_another() { return room_for(census(streams), picture_engine::limits().streams); }
+bool beside() { return beside(picture_engine::limits().streams); }
 
 Handle open(const std::string &url, const Rect &area, const Look &look, bool sound, audio_owner::Role role) {
   if (!available() || area.empty() || (!look.tile && !full_view())) return -1;
@@ -1110,11 +1096,7 @@ void close(Handle handle) {
   glass::disarm(s.room, true);
 }
 
-bool ending() {
-  for (Stream *s : streams)
-    if (s && s->stopping.load(std::memory_order_relaxed)) return true;
-  return false;
-}
+bool ending() { return census(streams).ending > 0; }
 
 static void report(int slot, Stream &s, uint32_t now, bool last) {
   const uint32_t span = now - s.reported_at;

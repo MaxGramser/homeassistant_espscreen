@@ -100,6 +100,19 @@ constexpr int MAX_ROOMS = 8;
 // The FreeRTOS priority a writer waits for the glass at: a stream's task runs at it, and a still's download waits at it
 // in turn with them (picture_engine::decode), as a mutex goes to its highest waiter.
 constexpr unsigned WRITER_PRIORITY = 5;
+// How a writer waits for the glass and lets go of it, pure (tests/test_live_view.cpp): raised to WRITER_PRIORITY before
+// it asks, never lowered (a task above it stays where it is), and back at its own priority `own` only once it let go.
+// A still's download that waited at its own priority 1 waited behind four live tiles for up to two minutes (a
+// reTerminal D1001, 2026-10-25, "11011 ms waiting for the glass, 2 ms holding it"). `set` sets the calling task's
+// priority (vTaskPrioritySet); `hold` asks for the glass (hold, hold_counted) and `release` gives it back.
+template<typename Set, typename Hold> auto wait_as_writer(unsigned own, Set set, Hold hold) -> decltype(hold()) {
+  if (own < WRITER_PRIORITY) set(WRITER_PRIORITY);
+  return hold();
+}
+template<typename Set, typename Release> void leave_as_writer(unsigned own, Set set, Release release) {
+  release();
+  if (own < WRITER_PRIORITY) set(own);
+}
 
 #if (defined(GLASS_DSI) || defined(GLASS_RGB)) && defined(SCREEN_PICTURES)
 // LVGL, which says how the glass is turned (smart_display/__init__.py binds it at boot), and whether it is bound yet (a

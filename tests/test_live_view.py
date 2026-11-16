@@ -1,11 +1,22 @@
 """The build facts of the pictures (components/smart_display/p4_build.py and engine_build.py; docs/PICTURE_ARCHITECTURE.md,
 section 3.9): the network options a P4 gets less the screen's own, which picture engine, glass and streams a build gets
 from the chip, LVGL and PSRAM (never a board), and that the wraps the P4 engine and the glass need are the ones the build
-adds and the ones the code defines."""
+adds and the ones the code defines.
+
+What the component adds to a build is read by running its own to_code() and _sockets() on a stand-in for ESPHome
+(FakeBuild), for a P4, an S3 with and without PSRAM, a plain ESP32 and a host build. How a writer waits for the glass and
+how the streams are counted is tests/test_live_view.cpp (glass::wait_as_writer, live_view::Census)."""
+import asyncio
+import contextlib
 import importlib.util
 import re
+import sys
+import types
 import unittest
 from pathlib import Path
+from unittest import mock
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / 'components' / 'smart_display'
@@ -17,32 +28,143 @@ engine_build = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(engine_build)
 
 
+class _Loader(yaml.SafeLoader):
+    """ESPHome's own tags (!include, !lambda, !secret) read as plain values: the structure is what is checked."""
+
+
+_Loader.add_multi_constructor('!', lambda loader, suffix, node: loader.construct_scalar(node)
+                              if isinstance(node, yaml.ScalarNode) else None)
+
+
+class FakeBuild:
+    """What the component asks of ESPHome while it is built for one chip, written down: the defines, the build flags,
+    the sdkconfig options, the IDF components, the code it adds and the sockets it counts. `variant` as ESPHome names it
+    ('ESP32P4'), or None for a host build."""
+
+    def __init__(self, variant, lvgl=True, psram=True, own=None):
+        self.defines, self.flags, self.components, self.added, self.sockets = [], [], [], [], []
+        self.sdkconfig = {}
+        config = {}
+        if variant:
+            config['esp32'] = {'framework': {'sdkconfig_options': dict(own or {})}}
+        if lvgl:
+            config['lvgl'] = [{'id': 'lvgl_component'}]
+        if psram:
+            config['psram'] = {}
+        self.config = config
+        core = types.SimpleNamespace(is_esp32=variant is not None, config=config,
+                                     data={'esp32': {'flash_size': '16MB'}})
+        codegen = types.SimpleNamespace(
+            add_define=lambda name, value=None: self.defines.append(name),
+            add_build_flag=self.flags.append, add_global=lambda statement: None, RawStatement=lambda text: text,
+            RawExpression=lambda text: text, add=self.added.append, get_variable=self._variable)
+        validation = types.SimpleNamespace(Schema=lambda schema: schema, Optional=lambda key, default=None: key,
+                                           positive_int=int, string_strict=str, int_=int, Invalid=ValueError)
+        esp32 = types.SimpleNamespace(
+            get_esp32_variant=lambda: variant, KEY_ESP32='esp32', KEY_FLASH_SIZE='flash_size',
+            add_idf_sdkconfig_option=self.sdkconfig.__setitem__,
+            add_idf_component=lambda name, ref: self.components.append((name, ref)))
+        socket = types.SimpleNamespace(consume_sockets=lambda count, owner: lambda conf: self.sockets.append(count))
+        names = {
+            'esphome': {}, 'esphome.codegen': vars(codegen), 'esphome.config_validation': vars(validation),
+            'esphome.core': {'CORE': core, 'ID': object, 'HexInt': int},
+            'esphome.components': {}, 'esphome.components.socket': vars(socket), 'esphome.components.esp32': vars(esp32),
+            'esphome.components.esp32.const': {'VARIANT_ESP32P4': 'ESP32P4'},
+            'esphome.final_validate': {'full_config': types.SimpleNamespace(get=lambda: config)},
+            'esphome.const': {'CONF_ID': 'id'},
+        }
+        self.modules = {name: types.ModuleType(name) for name in names}
+        for name, attributes in names.items():
+            for key, value in attributes.items():
+                setattr(self.modules[name], key, value)
+            parent, _, child = name.rpartition('.')
+            if parent:
+                setattr(self.modules[parent], child, self.modules[name])
+
+    @staticmethod
+    async def _variable(name):
+        return name
+
+    @contextlib.contextmanager
+    def component(self):
+        """components/smart_display as ESPHome loads it, with this build's ESPHome standing in."""
+        with mock.patch.dict(sys.modules, self.modules):
+            spec = importlib.util.spec_from_file_location('smart_display_under_test', COMPONENT / '__init__.py',
+                                                          submodule_search_locations=[str(COMPONENT)])
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[spec.name] = module
+            spec.loader.exec_module(module)
+            yield module
+
+    def run(self):
+        with self.component() as component:
+            asyncio.run(component.to_code({'language': 'en', 'camera_orientation': 0}))
+            component.FINAL_VALIDATE_SCHEMA({})
+            self.diagnostic = component.DIAGNOSTIC_WRAPS
+        return self
+
+
+def wraps(names):
+    return [f'-Wl,--wrap={name}' for name in names]
+
+
 class P4Build(unittest.TestCase):
     def test_the_component_applies_them_on_a_p4_alone(self):
-        # The P4 boards build with the larger TCP window and the live view, keyed on the chip in the component.
-        source = (COMPONENT / '__init__.py').read_text()
-        facts = (COMPONENT / 'p4_build.py').read_text()
-        self.assertIn('"CONFIG_LWIP_TCP_WND_DEFAULT": 65534', facts)
-        self.assertRegex(source, r'if _esp32_p4\(\):\n\s+_p4\(config\)')
-        self.assertIn('return get_esp32_variant() == VARIANT_ESP32P4', source)
-        # The engine on every ESP32 build, from the table (engine_build.py); its wraps the panel as ESP-IDF makes it and
-        # the panel watch's frame callback and every PPA burst shorter (glass_dsi.cpp), a turned copy in pieces (ppa_guard.cpp).
-        self.assertRegex(source, r'if CORE\.is_esp32:\n\s+await _engine\(config\)')
-        engines = (COMPONENT / 'engine_build.py').read_text()
-        for wrap in ('esp_lcd_new_panel_dpi', 'esp_lcd_dpi_panel_register_event_callbacks', 'ppa_register_client',
-                     'ppa_do_scale_rotate_mirror', 'dw_gdma_new_channel'):
-            self.assertIn(f'"{wrap}"', engines)
-        self.assertIn('cg.add_build_flag(f"-Wl,--wrap={wrap}")', source)
-        self.assertIn('add_idf_component(name=name, ref=ref)', source)
+        # A P4 with LVGL and PSRAM: its network, the P4 engine's defines and wraps, LVGL bound to the glass.
+        p4 = FakeBuild('ESP32P4').run()
+        self.assertEqual(p4.sdkconfig, p4_build.P4_NETWORK)
+        engine = engine_build.ENGINES['p4']
+        for define in engine['defines']:
+            self.assertIn(define, p4.defines)
+        self.assertEqual(p4.flags, wraps(p4.diagnostic) + wraps(engine['wraps']), 'the wraps come from the tables alone')
+        self.assertEqual(p4.components, [])
+        self.assertEqual(p4.added, ['glass::bind(lvgl_component)'])
+        # An S3 with LVGL and PSRAM: the S3 engine and its decoder component, none of the P4's network.
+        s3 = FakeBuild('ESP32S3').run()
+        self.assertEqual(s3.sdkconfig, {})
+        self.assertEqual(s3.flags, wraps(s3.diagnostic) + wraps(engine_build.ENGINES['s3']['wraps']))
+        self.assertEqual(s3.components, [('espressif/esp_new_jpeg', '1.0.2')])
+        self.assertEqual(s3.added, ['glass::bind(lvgl_component)'])
+        # Without PSRAM, a plain ESP32 (a CYD) and a host build: no engine, no glass, no streams.
+        for build in (FakeBuild('ESP32S3', psram=False), FakeBuild('ESP32'), FakeBuild('ESP32P4', lvgl=False)):
+            build.run()
+            self.assertEqual(build.flags, wraps(build.diagnostic), 'every ESP32 keeps what an abort said')
+            self.assertFalse(set(build.defines) & {'USE_LIVE_VIEW', 'PICTURE_ENGINE_P4', 'PICTURE_ENGINE_S3', 'GLASS_DSI',
+                                                   'GLASS_RGB'})
+            self.assertEqual((build.components, build.added), ([], []))
+        self.assertEqual(FakeBuild('ESP32P4', lvgl=False).run().sdkconfig, p4_build.P4_NETWORK,
+                         'the network is the chip\'s, LVGL or not')
+        host = FakeBuild(None).run()
+        self.assertEqual((host.flags, host.sdkconfig, host.components, host.added), ([], {}, [], []))
+        # A screen's own sdkconfig_options keep the last word.
+        own = FakeBuild('ESP32P4', own={'CONFIG_LWIP_TCP_WND_DEFAULT': '32768'}).run()
+        self.assertNotIn('CONFIG_LWIP_TCP_WND_DEFAULT', own.sdkconfig)
+        self.assertEqual(own.sdkconfig['CONFIG_LWIP_TCP_SND_BUF_DEFAULT'], 65534)
+
+    def test_every_p4_board_waits_twenty_seconds_on_its_main_loop(self):
         # The main loop's waits for the C6's answers (5 s each in esp_hosted) must fit the task watchdog, or a busy SDIO
         # link restarts the screen instead of failing a call (2026-10-24, the D1001, a Tab5 and a Guition 10.1).
-        hardware = (ROOT / 'packages/hardware/esp32p4-core.yaml').read_text()
-        self.assertRegex(hardware, r'(?m)^esp32:\n(?:  .*\n)*?  watchdog_timeout: 20s\n', 'every P4 board waits 20 s on its main loop')
-        # A screen's own sdkconfig_options keep the last word.
-        self.assertIn('if name not in own', facts)
+        core = yaml.load((ROOT / 'packages/hardware/esp32p4-core.yaml').read_text(), Loader=_Loader)
+        self.assertEqual(core['esp32'].get('watchdog_timeout'), '20s',
+                         'packages/hardware/esp32p4-core.yaml sets the task watchdog to 20s for every P4 board')
+        # A board is a P4 only through that file, so none goes without it, and none sets a watchdog of its own.
+        for package in sorted((ROOT / 'packages').rglob('*.yaml')):
+            parsed = yaml.load(package.read_text(), Loader=_Loader)
+            esp32 = parsed.get('esp32') if isinstance(parsed, dict) else None
+            if not isinstance(esp32, dict) or package.name == 'esp32p4-core.yaml':
+                continue
+            self.assertNotEqual(str(esp32.get('variant', '')).lower(), 'esp32p4',
+                                f'{package.relative_to(ROOT)} names the P4 itself: a P4 board includes '
+                                'packages/hardware/esp32p4-core.yaml instead, which names the chip and its watchdog')
+            if 'esp32p4-core.yaml' in str(parsed.get('packages')):
+                self.assertNotIn('watchdog_timeout', esp32, f'{package.relative_to(ROOT)} keeps the task watchdog '
+                                                            'esp32p4-core.yaml sets')
 
     def test_the_screens_own_options_keep_the_last_word(self):
         self.assertEqual(p4_build.network_options({}), p4_build.P4_NETWORK)
+        # The window and the send buffer of 64 KB, all of it in PSRAM first, and each packet copied out of the driver's.
+        self.assertEqual(p4_build.P4_NETWORK['CONFIG_LWIP_TCP_WND_DEFAULT'], 65534)
+        self.assertTrue(p4_build.P4_NETWORK['CONFIG_LWIP_L2_TO_L3_COPY'])
         own = {'CONFIG_LWIP_TCP_WND_DEFAULT': '32768', 'CONFIG_SOMETHING_ELSE': 'y'}
         got = p4_build.network_options(own)
         self.assertNotIn('CONFIG_LWIP_TCP_WND_DEFAULT', got)
@@ -65,12 +187,8 @@ class P4Build(unittest.TestCase):
         self.assertEqual(engine_build.ENGINES['software'], {'defines': (), 'wraps': (), 'components': ()})
 
     def test_the_wraps_are_the_engines_and_the_glasss(self):
-        # __init__.py adds the wraps an engine names, from the table and nowhere else; the engine's and the glass's own
-        # files define them, and no file defines one the table does not name.
-        init = (COMPONENT / '__init__.py').read_text()
-        self.assertIn('for wrap in engine["wraps"]:', init)
-        self.assertIn('cg.add_build_flag(f"-Wl,--wrap={wrap}")', init)
-        self.assertEqual(re.findall(r'-Wl,--wrap=(\w+)', init), [])
+        # The build adds the wraps the tables name and nothing else (test_the_component_applies_them_on_a_p4_alone); the
+        # engine's and the glass's own files define them, and no file defines one the table does not name.
         defined = set()
         for name in ('glass_dsi.cpp', 'glass_dsi_refresh.cpp', 'ppa_guard.cpp', 'live_view.cpp', 'picture_engine_p4.cpp'):
             defined |= set(re.findall(r'__wrap_(\w+)\(', (COMPONENT / name).read_text()))
@@ -80,9 +198,9 @@ class P4Build(unittest.TestCase):
             s3 |= set(re.findall(r'__wrap_(\w+)\(', (COMPONENT / name).read_text()))
         self.assertEqual(s3, set(engine_build.ENGINES['s3']['wraps']))
         # The diagnostic wraps every ESP32 gets come from their own table, and abort_record.cpp defines exactly those.
-        self.assertIn('for wrap in DIAGNOSTIC_WRAPS:', init)
-        diagnostic = set(re.findall(r'__wrap_(\w+)\(', (COMPONENT / 'abort_record.cpp').read_text()))
-        self.assertEqual(diagnostic, set(re.search(r'DIAGNOSTIC_WRAPS = \(([^)]*)\)', init)[1].replace('"', '').replace(',', ' ').split()))
+        with FakeBuild('ESP32').component() as component:
+            diagnostic = set(component.DIAGNOSTIC_WRAPS)
+        self.assertEqual(set(re.findall(r'__wrap_(\w+)\(', (COMPONENT / 'abort_record.cpp').read_text())), diagnostic)
         # The defines the table gives are the ones the code builds under: the engines in picture_engine.h and their own
         # files, the glasses in glass.h and their own files, the streams in live_view.h and live_view.cpp.
         for define, names in (('PICTURE_ENGINE_P4', ('picture_engine.h', 'picture_engine_p4.cpp', 'ppa_guard.cpp')),
@@ -95,16 +213,21 @@ class P4Build(unittest.TestCase):
 
 
 class Sockets(unittest.TestCase):
-    """A P4 screen counts its streams and downloads into ESPHome's socket total (smart_display/__init__.py, _sockets):
-    the count follows live_view.h's MAX_STREAMS, and the downloads are picture_fetch's three slots."""
+    """A screen that streams counts its streams, downloads and talk into ESPHome's socket total (smart_display/__init__.py,
+    _sockets): the count follows live_view.h's MAX_STREAMS, and the downloads are picture_fetch's slots."""
 
     def test_the_count_follows_the_code(self):
-        init = (COMPONENT / '__init__.py').read_text()
+        p4, s3 = FakeBuild('ESP32P4').run(), FakeBuild('ESP32S3').run()
+        with FakeBuild('ESP32P4').component() as component:
+            counts = (component.P4_STREAM_SOCKETS, component.PICTURE_SOCKETS, component.TALK_SOCKETS)
+        self.assertEqual(p4.sockets, [sum(counts)])
+        self.assertEqual(s3.sockets, [sum(counts)], 'an S3 that streams counts the same sockets')
+        for build in (FakeBuild('ESP32'), FakeBuild('ESP32S3', psram=False), FakeBuild(None)):
+            self.assertEqual(build.run().sockets, [], 'a screen without streams counts none')
         streams = re.search(r'constexpr int MAX_STREAMS = (\d+);', (COMPONENT / 'live_view.h').read_text())
-        self.assertIn(f'P4_STREAM_SOCKETS = {streams[1]}', init)
+        self.assertEqual(counts[0], int(streams[1]), 'P4_STREAM_SOCKETS is live_view::MAX_STREAMS')
         slots = re.findall(r'^Slot &(\w+)\(\);', (COMPONENT / 'picture_fetch.h').read_text(), re.M)
-        self.assertIn(f'PICTURE_SOCKETS = {len(slots)}', init)
-        self.assertIn('FINAL_VALIDATE_SCHEMA = _sockets', init)
+        self.assertEqual(counts[1], len(slots), 'PICTURE_SOCKETS is picture_fetch\'s slots, one download each')
 
 
 class ChipFactsBehindTheEngine(unittest.TestCase):
@@ -134,37 +257,64 @@ class ChipFactsBehindTheEngine(unittest.TestCase):
         self.assertEqual(found, [])
 
 
-
 class GlassTurns(unittest.TestCase):
     """The glass is a mutex FreeRTOS gives to its highest waiter (glass.h): a still's download, at priority 1, waited
     for it behind four live tiles for up to two minutes (a reTerminal D1001, 2026-10-25, "11011 ms waiting for the
-    glass, 2 ms holding it"). Every writer waits at one priority."""
+    glass, 2 ms holding it"). Every writer waits at one priority: the order is glass::wait_as_writer and leave_as_writer,
+    and the priorities live_view.h's static_asserts, both proven by tests/test_live_view.cpp. Here: that every writer
+    goes through them."""
 
-    def test_a_still_waits_at_the_streams_priority(self):
-        self.assertIn('constexpr unsigned WRITER_PRIORITY = 5;', (COMPONENT / 'glass.h').read_text())
-        live = (COMPONENT / 'live_view.cpp').read_text()
-        # A stream's task runs below the wake word and asks for the glass at the writers' priority, back once it let go.
-        self.assertIn('constexpr unsigned STREAM_PRIORITY = 2;', live)
-        self.assertIn('"live_view", STACK_BYTES, s, STREAM_PRIORITY,\n                          picture_engine::limits().stream_core)', live)
-        take = live[live.index('static uint32_t take_glass() {'):live.index('static void turn_loader(Stream &s) {')]
-        steps = ['vTaskPrioritySet(nullptr, glass::WRITER_PRIORITY);', 'glass::hold_counted();', 'glass::release();',
-                 'vTaskPrioritySet(nullptr, STREAM_PRIORITY);']
-        self.assertEqual([take.index(step) for step in steps], sorted(take.index(step) for step in steps))
-        engine = (COMPONENT / 'picture_engine_p4.cpp').read_text()
-        decode = engine[engine.index('uint8_t *decode('):engine.index('// ---- The PPA ----')]
-        # Raised before the wait, held only around the glass, and back at its own once it let go.
-        order = ['vTaskPrioritySet(nullptr, glass::WRITER_PRIORITY);', 'glass::hold();', 'glass::release();',
-                 'vTaskPrioritySet(nullptr, own);']
-        self.assertEqual([decode.index(step) for step in order], sorted(decode.index(step) for step in order))
-        # A slow still says where its time went.
+    def code(self, name):
+        return ChipFactsBehindTheEngine.code((COMPONENT / name).read_text())
+
+    def test_every_writer_of_the_glass_waits_at_the_writers_priority(self):
+        # A task's priority changes only in the glass's writer helpers: anywhere else it would wait for the glass at its
+        # own priority again, or stay raised after it let go.
+        for path in sorted(COMPONENT.glob('*.[hc]*')):
+            if path.suffix in ('.h', '.cpp') and 'vTaskPrioritySet' in self.code(path.name):
+                for call in re.finditer(r'vTaskPrioritySet\(', self.code(path.name)):
+                    line = self.code(path.name)[:call.start()].rsplit('\n', 1)[-1] + \
+                        self.code(path.name)[call.start():].split('\n', 1)[0]
+                    self.assertRegex(line, r'set_priority|\[\]\(unsigned priority\)',
+                                     f'{path.name}: a task\'s priority is set only by the `set` it hands '
+                                     'glass::wait_as_writer and leave_as_writer')
+        for name, hold in (('live_view.cpp', 'glass::hold_counted'), ('picture_engine_p4.cpp', 'glass::hold();')):
+            body = self.code(name)
+            self.assertIn('glass::wait_as_writer(', body, f'{name} waits for the glass through glass::wait_as_writer')
+            self.assertIn('glass::leave_as_writer(', body, f'{name} lets go of the glass through glass::leave_as_writer')
+            self.assertEqual(body.count(hold), 1, f'{name} asks for the glass in one place, inside wait_as_writer')
+
+    def test_a_streams_task_runs_at_the_streams_priority(self):
+        # Every task live_view.cpp starts runs at STREAM_PRIORITY, below the wake word (live_view.h).
+        live = self.code('live_view.cpp')
+        starts = []
+        for call in re.finditer(r'(?:psram_task::start|xTaskCreate\w*)\(', live):
+            depth, at = 1, call.end()
+            while depth:
+                depth += {'(': 1, ')': -1}.get(live[at], 0)
+                at += 1
+            starts.append(live[call.end():at - 1])
+        self.assertTrue(starts, 'live_view.cpp starts its streams\' tasks')
+        for arguments in starts:
+            self.assertIn('STREAM_PRIORITY', arguments, 'a stream\'s task starts at live_view::STREAM_PRIORITY')
+
+    # glass: a still that took long on a P4 with live tiles says in the log how long it waited for the glass and how
+    # long it held it, so a wait behind the streams shows.
+    def test_a_slow_still_says_where_its_time_went(self):
         fetch = (COMPONENT / 'picture_fetch.cpp').read_text()
-        self.assertIn('waiting for the glass, %u ms holding it)', fetch)
+        slow = re.search(r'if \(took > SLOW_MS\)\s*ESP_LOGW\(([^;]*)\);', fetch)
+        self.assertTrue(slow, 'picture_fetch.cpp warns of a still slower than SLOW_MS')
+        for field in ('slot.waited_ms', 'slot.held_ms'):
+            self.assertIn(field, slow.group(1), f'the slow still\'s line says {field}')
 
 
 class LiveTileName(unittest.TestCase):
     """A live tile's name lies over its pictures as the picture card lays it (render_camera_card): the tile's font, left,
     at the bottom of the card's content, in the picture's ink. A copy of the card's own label lay dark and halfway up
-    over every picture of a card that had no still yet and stood in its plain layout (a wallbox, 2026-10-28)."""
+    over every picture of a card that had no still yet and stood in its plain layout (a wallbox, 2026-10-28).
+
+    runtime_tiles.h is being split into *_lvgl.h files: these quotes stay as they are until live_name and the picture
+    card's layout have a pure helper of their own."""
 
     def test_the_name_is_drawn_as_the_picture_card_lays_it(self):
         tiles = (COMPONENT / 'runtime_tiles.h').read_text()
@@ -185,9 +335,19 @@ class LiveTileName(unittest.TestCase):
 class OneConnectionAtATime(unittest.TestCase):
     """A camera opened full screen streams after the page's live tiles have ended, never beside them: an S3 has internal
     RAM for one stream's network buffers (docs/CAMERA.md, "Live on an ESP32-S3"). The full view is always the stream;
-    stills only when it cannot open, and the log says so."""
+    stills only when it cannot open, and the log says so. How the streams are counted (one still ending counts, a second
+    only where the engine holds one) is live_view::Census, room_for and beside, proven by tests/test_live_view.cpp."""
+
+    def test_the_streams_are_counted_by_the_tested_rules(self):
+        live = GlassTurns.code(self, 'live_view.cpp')
+        for function, rule in (('bool room_for_another()', 'room_for(census(streams)'), ('bool beside()', 'beside(picture_engine'),
+                               ('bool ending()', 'census(streams).ending')):
+            body = re.search(re.escape(function) + r' \{([^\n]*)\}', live)
+            self.assertTrue(body and rule in body.group(1), f'live_view.cpp\'s {function} answers through {rule}')
 
     def test_the_full_view_waits_for_the_tiles_streams_to_end(self):
+        # runtime_tiles.h is being split into *_lvgl.h files: these quotes of live_begin and live_tick stay as they are
+        # until the full view's wait has a pure helper of its own.
         tiles = (COMPONENT / 'runtime_tiles.h').read_text()
         begin = tiles[tiles.index('inline void live_begin(const std::string &link) {'):]
         begin = begin[:begin.index('\n}\n')]
@@ -200,16 +360,10 @@ class OneConnectionAtATime(unittest.TestCase):
         # A view beside a stream still ending only where the engine holds a second (a P4); an S3 waits (2026-10-30).
         self.assertIn('return !live_view::ending() || (live_view::beside() && now - live_link_waiting_at >= LIVE_LINK_WAIT_MS);',
                       tiles)
-        self.assertIn('bool beside() { return picture_engine::limits().streams > 1; }',
-                      (COMPONENT / 'live_view.cpp').read_text())
         self.assertIn('the full view could not stream', begin)
         self.assertIn('constexpr uint32_t LIVE_LINK_WAIT_MS = 2000;', tiles)
         tick = tiles[tiles.index('inline void live_tick() {'):]
         self.assertIn('live_begin(live_link_waiting);', tick[:tick.index('live_view::tick(')])
-        # A closed stream counts until the tick frees it, its connection and its memory with it.
-        live = (COMPONENT / 'live_view.cpp').read_text()
-        ending = live[live.index('bool ending() {'):live.index('static void report(')]
-        self.assertIn('s->stopping.load(', ending)
 
 
 if __name__ == '__main__':

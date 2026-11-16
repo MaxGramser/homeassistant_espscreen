@@ -612,6 +612,36 @@ inline void draw_loader(uint16_t *px, int stride, int x, int y, const Look &look
 // ---- The streams, on a P4 (live_view.cpp); elsewhere nothing streams ----
 // The full view and the live tiles of the page on the glass, each in a task of its own.
 constexpr int MAX_STREAMS = 7;
+// A stream's task runs below the voice assistant's wake word (ESPHome's micro_wake_word inference, priority 3) and above
+// the main loop (1), and waits for and holds the glass at glass::WRITER_PRIORITY (glass::wait_as_writer), in turn with
+// the other streams and a still's download, then goes back: composing a picture and reading the app run below the
+// voice. At WRITER_PRIORITY throughout, four tiles' composing (30 ms of wall clock a picture on a reTerminal D1001) and
+// the screen's own video (priority 4) left the wake word's inference behind 644 times in an hour at rest (2026-10-28).
+constexpr unsigned STREAM_PRIORITY = 2;
+static_assert(STREAM_PRIORITY > 1 && STREAM_PRIORITY < 3, "between the main loop (1) and the wake word's inference (3)");
+static_assert(STREAM_PRIORITY < glass::WRITER_PRIORITY, "a stream is raised to the writers' priority only for the glass");
+
+// The streams the main loop holds, as open() and tick() count them, pure (tests/test_live_view.cpp). A stream counts from
+// open() until the tick that frees it, also once it was closed (`ending`): its task may still hold its connection and
+// its memory until then. Another may open while fewer than the engine's `most` (picture_engine::limits().streams) are
+// held, one still ending counted: a full view beside a live tile that had not ended took a tester's S3 down
+// (2026-10-30). beside(): whether the engine holds a second stream at all; an S3 does not, so its full view waits for
+// the page's stream to end however long it takes.
+struct Census {
+  int held = 0, ending = 0;
+};
+template<typename Streams> Census census(const Streams &streams) {
+  Census c;
+  for (const auto *s : streams) {
+    if (!s) continue;
+    ++c.held;
+    if (s->stopping) ++c.ending;
+  }
+  return c;
+}
+inline bool room_for(const Census &c, int most) { return c.held < most; }
+inline bool beside(int most) { return most > 1; }
+
 using Handle = int;  // -1: none
 enum class Event : uint8_t {
   NONE,
