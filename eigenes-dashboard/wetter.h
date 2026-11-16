@@ -330,4 +330,79 @@ inline std::string warn_icon(std::string name) {
   return "\U000F0026";
 }
 
+
+// ---------------------------------------------------------------- Raumklima (zweite Seite)
+
+// CO2 in ppm nach der Skala von ELV: 0 Hervorragend, 1 Gut, 2 Befriedigend, 3 Mittel (Lüften empfohlen),
+// 4 Schlecht (Lüften erforderlich). Die Grenzen liegen in der Mitte zwischen den Hunderterstufen der Skala.
+// -1 heißt: kein Wert.
+inline int co2_stufe(float ppm) {
+  if (std::isnan(ppm)) return -1;
+  if (ppm < 650) return 0;
+  if (ppm < 850) return 1;
+  if (ppm < 1050) return 2;
+  if (ppm < 1550) return 3;
+  return 4;
+}
+inline std::string co2_name(int s) {
+  static const char *const n[] = {"Hervorragend", "Gut", "Befriedigend", "Mittel", "Schlecht"};
+  return s < 0 ? std::string("--") : std::string(n[s > 4 ? 4 : s]);
+}
+inline uint32_t co2_hex(int s) {
+  static const uint32_t c[] = {0x1E7A3C, 0x2E9E4F, 0x7DBB42, 0xF2C230, 0xE8542C};
+  return s < 0 ? 0x5F6B80 : c[s > 4 ? 4 : s];
+}
+inline lv_color_t co2_color(int s) { return lv_color_hex(co2_hex(s)); }
+inline lv_color_t co2_text_color(int s) { return lv_color_hex(s == 3 ? 0x3A2A00 : 0xFFFFFF); }
+// Skala von 400 bis 2000 ppm über "breite" Pixel; gibt die linke Kante des 12 px breiten Markers zurück.
+inline int co2_marker_x(float ppm, int breite) {
+  float f = std::isnan(ppm) ? 0 : (ppm - 400.0f) / 1600.0f;
+  f = f < 0 ? 0 : f > 1 ? 1 : f;
+  return (int) lroundf(f * breite) - 6;
+}
+
+// Zahl mit Komma, z. B. 21,4
+inline std::string komma(float v, int stellen = 1) {
+  if (std::isnan(v)) return "--";
+  char b[16];
+  snprintf(b, sizeof(b), "%.*f", stellen, v);
+  std::string out = strcmp(b, "-0.0") == 0 ? std::string("0.0") : std::string(b);
+  size_t dot = out.find('.');
+  if (dot != std::string::npos) out[dot] = ',';
+  return out;
+}
+
+// Relative Luftfeuchte nach dem Umweltbundesamt: 40 bis 60 % ideal (grün), 30 bis 40 und 60 bis 70 % gelb,
+// darunter zu trocken und darüber Schimmelgefahr (rot).
+inline lv_color_t feuchte_color(float v) {
+  if (std::isnan(v)) return lv_color_hex(0x5F6B80);
+  if (v >= 40 && v <= 60) return lv_color_hex(0x2E9E4F);
+  if (v >= 30 && v <= 70) return lv_color_hex(0xD9A400);
+  return lv_color_hex(0xE8542C);
+}
+
+// Feinstaub in µg/m³: PM1 und PM2.5 nach den Grenzen für PM2.5 (gut bis 15, mäßig bis 25), PM4 und PM10 nach
+// denen für PM10 (gut bis 45, mäßig bis 80). Gibt 0 gut, 1 mäßig, 2 schlecht zurück.
+inline int pm_stufe(float v, bool grob) {
+  if (std::isnan(v)) return 0;
+  float g1 = grob ? 45 : 15, g2 = grob ? 80 : 25;
+  return v <= g1 ? 0 : v <= g2 ? 1 : 2;
+}
+// VOC-Index (Sensirion, 1 bis 500): normal bis 150, erhöht bis 250, hoch darüber.
+// NOx-Index (1 bis 500): normal bis 20, erhöht bis 150, hoch darüber.
+inline int voc_stufe(float v) { return std::isnan(v) ? 0 : v <= 150 ? 0 : v <= 250 ? 1 : 2; }
+inline int nox_stufe(float v) { return std::isnan(v) ? 0 : v <= 20 ? 0 : v <= 150 ? 1 : 2; }
+inline std::string gas_name(int s) { return s == 0 ? "normal" : s == 1 ? "erhöht" : "hoch"; }
+// Ampelfarben der Balken: grün, gelb/orange, rot. "gelb" für Feinstaub (mäßig), orange für die Gase (erhöht).
+inline lv_color_t ampel(int s, bool gelb = true) {
+  if (s <= 0) return lv_color_hex(0x2E9E4F);
+  if (s == 1) return lv_color_hex(gelb ? 0xF2C230 : 0xF08A24);
+  return lv_color_hex(0xE8542C);
+}
+inline int balken(float v, float voll) {
+  if (std::isnan(v) || voll <= 0) return 0;
+  float f = v / voll * 100;
+  return f < 0 ? 0 : f > 100 ? 100 : (int) lroundf(f);
+}
+
 }  // namespace wx

@@ -14,6 +14,24 @@ substitutions:
   # die Wetter-Entität (DWD oder Met.no) und der Sensor aus home-assistant/wetter_display.yaml
   wetter_entity: weather.dwd_wetter
   vorhersage_entity: sensor.display_wetter
+  # Raumklima (zweite Seite): Platzhalter, bis die drei Sensoren gebaut sind
+  co2_wohnzimmer: sensor.luft_wohnzimmer_co2
+  temp_wohnzimmer: sensor.luft_wohnzimmer_temperatur
+  feuchte_wohnzimmer: sensor.luft_wohnzimmer_luftfeuchte
+  co2_schlafzimmer: sensor.luft_schlafzimmer_co2
+  temp_schlafzimmer: sensor.luft_schlafzimmer_temperatur
+  feuchte_schlafzimmer: sensor.luft_schlafzimmer_luftfeuchte
+  co2_buero: sensor.luft_buero_co2
+  temp_buero: sensor.luft_buero_temperatur
+  feuchte_buero: sensor.luft_buero_luftfeuchte
+  pm1_buero: sensor.luft_buero_pm1
+  pm25_buero: sensor.luft_buero_pm2_5
+  pm4_buero: sensor.luft_buero_pm4
+  pm10_buero: sensor.luft_buero_pm10
+  voc_buero: sensor.luft_buero_voc_index
+  nox_buero: sensor.luft_buero_nox_index
+  # Sekunden, nach denen das Display zwischen Wetter und Raumklima wechselt
+  seitenwechsel: 45s
 
 esphome:
   name: ${name}
@@ -263,6 +281,53 @@ script:
           id: lbl_hoch_4
           y: !lambda 'return wx::punkt_y(4) - 28;'
 
+  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab der Stufe "Mittel"
+  - id: innen_status
+    then:
+      - if:
+          condition:
+            lambda: |-
+              float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+              return wx::co2_stufe(m) >= 3;
+          then:
+            - lvgl.obj.update:
+                id: rahmen_innen
+                border_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_color(wx::co2_stufe(m));
+            - lvgl.obj.update:
+                id: pill_innen
+                bg_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_color(wx::co2_stufe(m));
+            - lvgl.label.update:
+                id: lbl_pill_innen_icon
+                text_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_text_color(wx::co2_stufe(m));
+            - lvgl.label.update:
+                id: lbl_pill_innen
+                text: !lambda |-
+                  float a = id(co2_wohnzimmer).state, b = id(co2_schlafzimmer).state, c = id(co2_buero).state;
+                  float m = fmaxf(fmaxf(a, b), c);
+                  if (m == c) return std::string("Büro lüften");
+                  if (m == b) return std::string("Schlafzimmer lüften");
+                  return std::string("Wohnzimmer lüften");
+                text_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_text_color(wx::co2_stufe(m));
+            - lvgl.widget.show: [rahmen_innen, pill_innen]
+          else:
+            - lvgl.widget.hide: [rahmen_innen, pill_innen]
+
+# alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln
+interval:
+  - interval: ${seitenwechsel}
+    then:
+      - lvgl.page.next:
+          animation: MOVE_LEFT
+          time: 400ms
+
 # ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
 spi:
   id: lcd_spi
@@ -361,9 +426,14 @@ font:
   - {file: fonts/Poppins-500.ttf, id: f_13m, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
   - {file: fonts/Poppins-400.ttf, id: f_13, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
   - {file: fonts/Poppins-400.ttf, id: f_12, size: 12, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-300.ttf, id: f_co2, size: 52, bpp: 4, glyphs: "-0123456789"}
+  - {file: fonts/Poppins-500.ttf, id: f_28m, size: 28, bpp: 4, glyphs: "-0123456789,.°% "}
+  - {file: fonts/Poppins-600.ttf, id: f_22b, size: 22, bpp: 4, glyphs: "-0123456789,.°% "}
+  - {file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: "-0123456789,.°% "}
+  - {file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B"]}
-  - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F11DC", "\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
 
 # ---------------- Wetterbilder (werkzeuge/bilder.py zeichnet sie) ----------------
 image:
@@ -699,6 +769,201 @@ sensor:
             id: lbl_uv_text
             text: !lambda 'return wx::uv_text(x);'
             text_color: !lambda 'return wx::uv_color(x);'
+
+  - platform: homeassistant
+    id: co2_wohnzimmer
+    entity_id: ${co2_wohnzimmer}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_co2_wohnzimmer
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.obj.update:
+            id: stufe_wohnzimmer
+            bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - lvgl.label.update:
+            id: lbl_stufe_wohnzimmer
+            text: !lambda 'return wx::co2_name(wx::co2_stufe(x));'
+            text_color: !lambda 'return wx::co2_text_color(wx::co2_stufe(x));'
+        - lvgl.widget.update:
+            id: marker_wohnzimmer
+            x: !lambda 'return 16 + wx::co2_marker_x(x, 117);'
+        - script.execute: innen_status
+  - platform: homeassistant
+    id: temp_wohnzimmer
+    entity_id: ${temp_wohnzimmer}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_temp_wohnzimmer
+            text: !lambda 'return wx::komma(x) + "°";'
+  - platform: homeassistant
+    id: feuchte_wohnzimmer
+    entity_id: ${feuchte_wohnzimmer}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_feuchte_wohnzimmer
+            text: !lambda 'return wx::zahl(x);'
+            text_color: !lambda 'return wx::feuchte_color(x);'
+  - platform: homeassistant
+    id: co2_schlafzimmer
+    entity_id: ${co2_schlafzimmer}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_co2_schlafzimmer
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.obj.update:
+            id: stufe_schlafzimmer
+            bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - lvgl.label.update:
+            id: lbl_stufe_schlafzimmer
+            text: !lambda 'return wx::co2_name(wx::co2_stufe(x));'
+            text_color: !lambda 'return wx::co2_text_color(wx::co2_stufe(x));'
+        - lvgl.widget.update:
+            id: marker_schlafzimmer
+            x: !lambda 'return 173 + wx::co2_marker_x(x, 117);'
+        - script.execute: innen_status
+  - platform: homeassistant
+    id: temp_schlafzimmer
+    entity_id: ${temp_schlafzimmer}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_temp_schlafzimmer
+            text: !lambda 'return wx::komma(x) + "°";'
+  - platform: homeassistant
+    id: feuchte_schlafzimmer
+    entity_id: ${feuchte_schlafzimmer}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_feuchte_schlafzimmer
+            text: !lambda 'return wx::zahl(x);'
+            text_color: !lambda 'return wx::feuchte_color(x);'
+  - platform: homeassistant
+    id: co2_buero
+    entity_id: ${co2_buero}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_co2_buero
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.obj.update:
+            id: stufe_buero
+            bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - lvgl.label.update:
+            id: lbl_stufe_buero
+            text: !lambda 'return wx::co2_name(wx::co2_stufe(x));'
+            text_color: !lambda 'return wx::co2_text_color(wx::co2_stufe(x));'
+        - lvgl.widget.update:
+            id: marker_buero
+            x: !lambda 'return 331 + wx::co2_marker_x(x, 117);'
+        - script.execute: innen_status
+  - platform: homeassistant
+    id: temp_buero
+    entity_id: ${temp_buero}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_temp_buero
+            text: !lambda 'return wx::komma(x) + "°";'
+  - platform: homeassistant
+    id: feuchte_buero
+    entity_id: ${feuchte_buero}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_feuchte_buero
+            text: !lambda 'return wx::zahl(x);'
+            text_color: !lambda 'return wx::feuchte_color(x);'
+  - platform: homeassistant
+    id: pm1_buero
+    entity_id: ${pm1_buero}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_pm1
+            value: !lambda 'return wx::balken(x, 50);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::pm_stufe(x, false));'
+        - lvgl.label.update:
+            id: lbl_pm1
+            text: !lambda 'return wx::zahl(x);'
+  - platform: homeassistant
+    id: pm25_buero
+    entity_id: ${pm25_buero}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_pm25
+            value: !lambda 'return wx::balken(x, 50);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::pm_stufe(x, false));'
+        - lvgl.label.update:
+            id: lbl_pm25
+            text: !lambda 'return wx::zahl(x);'
+  - platform: homeassistant
+    id: pm4_buero
+    entity_id: ${pm4_buero}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_pm4
+            value: !lambda 'return wx::balken(x, 120);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::pm_stufe(x, true));'
+        - lvgl.label.update:
+            id: lbl_pm4
+            text: !lambda 'return wx::zahl(x);'
+  - platform: homeassistant
+    id: pm10_buero
+    entity_id: ${pm10_buero}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_pm10
+            value: !lambda 'return wx::balken(x, 120);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::pm_stufe(x, true));'
+        - lvgl.label.update:
+            id: lbl_pm10
+            text: !lambda 'return wx::zahl(x);'
+  - platform: homeassistant
+    id: voc_buero
+    entity_id: ${voc_buero}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_voc
+            value: !lambda 'return wx::balken(x, 500);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::voc_stufe(x), false);'
+        - lvgl.label.update:
+            id: lbl_voc
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.label.update:
+            id: lbl_voc_stufe
+            text: !lambda 'return wx::gas_name(wx::voc_stufe(x));'
+            text_color: !lambda 'return wx::ampel(wx::voc_stufe(x), false);'
+  - platform: homeassistant
+    id: nox_buero
+    entity_id: ${nox_buero}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_nox
+            value: !lambda 'return wx::balken(x, 500);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::nox_stufe(x), false);'
+        - lvgl.label.update:
+            id: lbl_nox
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.label.update:
+            id: lbl_nox_stufe
+            text: !lambda 'return wx::gas_name(wx::nox_stufe(x));'
+            text_color: !lambda 'return wx::ampel(wx::nox_stufe(x), false);'
 
 # ---------------- Oberfläche ----------------
 lvgl:
@@ -1721,3 +1986,963 @@ lvgl:
                   text_font: f_14m
                   text_color: 0x14213D
                   text_align: RIGHT
+    - id: seite_innen
+      bg_color: 0xF3F5F9
+      bg_opa: COVER
+      scrollable: false
+      pad_all: 0
+      widgets:
+        - obj:
+            id: panel_innen
+            x: 8
+            y: 8
+            width: 464
+            height: 212
+            bg_color: 0x2C5194
+            bg_grad_color: 0x0F2148
+            bg_grad_dir: VER
+            bg_opa: COVER
+            border_width: 0
+            radius: 22
+            clip_corner: true
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 12
+                  text: "Raumklima"
+                  text_font: f_ort
+                  text_color: 0xFFFFFF
+              - obj:
+                  id: pill_innen
+                  hidden: true
+                  align: TOP_RIGHT
+                  x: -16
+                  y: 17
+                  height: 24
+                  width: SIZE_CONTENT
+                  radius: 12
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_left: 7
+                  pad_right: 10
+                  pad_top: 0
+                  pad_bottom: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  widgets:
+                      - label:
+                          id: lbl_pill_innen_icon
+                          text: "\U000F11DC"
+                          text_font: i_warn
+                          text_color: 0x3A2A00
+                      - label:
+                          id: lbl_pill_innen
+                          text: ""
+                          text_font: f_pill
+                          text_color: 0x3A2A00
+              - label:
+                  x: 16
+                  y: 45
+                  text: "CO"
+                  text_font: f_16
+                  text_color: 0xB4C3DF
+              - label:
+                  x: 41
+                  y: 53
+                  text: "2"
+                  text_font: f_12
+                  text_color: 0xB4C3DF
+              - label:
+                  x: 48
+                  y: 45
+                  text: " in den Räumen"
+                  text_font: f_16
+                  text_color: 0xB4C3DF
+              - obj:
+                  x: 181
+                  y: 46
+                  height: 20
+                  width: SIZE_CONTENT
+                  radius: 10
+                  bg_color: 0xFFFFFF
+                  bg_opa: 16%
+                  border_width: 0
+                  pad_left: 8
+                  pad_right: 8
+                  pad_top: 0
+                  pad_bottom: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: CENTER
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                  widgets:
+                      - label:
+                          text: "ppm"
+                          text_font: f_14m
+                          text_color: 0xFFFFFF
+              - label:
+                  x: 16
+                  y: 81
+                  text: "Wohnzimmer"
+                  text_font: f_14
+                  text_color: 0xB4C3DF
+              - label:
+                  id: lbl_co2_wohnzimmer
+                  x: 13
+                  y: 90
+                  text: "--"
+                  text_font: f_co2
+                  text_color: 0xFFFFFF
+              - obj:
+                  id: stufe_wohnzimmer
+                  x: 16
+                  y: 160
+                  height: 22
+                  width: SIZE_CONTENT
+                  radius: 11
+                  bg_color: 0x5F6B80
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_left: 9
+                  pad_right: 9
+                  pad_top: 0
+                  pad_bottom: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: CENTER
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                  widgets:
+                      - label:
+                          id: lbl_stufe_wohnzimmer
+                          text: "--"
+                          text_font: f_13b
+                          text_color: 0xFFFFFF
+              - obj:
+                  x: 16
+                  y: 194
+                  width: 18
+                  height: 6
+                  bg_color: 0x1E7A3C
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 3
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 36
+                  y: 194
+                  width: 13
+                  height: 6
+                  bg_color: 0x2E9E4F
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 51
+                  y: 194
+                  width: 13
+                  height: 6
+                  bg_color: 0x7DBB42
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 66
+                  y: 194
+                  width: 34
+                  height: 6
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 102
+                  y: 194
+                  width: 31
+                  height: 6
+                  bg_color: 0xE8542C
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 3
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  id: marker_wohnzimmer
+                  x: 10
+                  y: 191
+                  width: 12
+                  height: 12
+                  radius: 6
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 0
+                  shadow_width: 6
+                  shadow_color: 0x000000
+                  shadow_opa: 35%
+                  shadow_offset_y: 1
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 153
+                  y: 82
+                  width: 1
+                  height: 120
+                  bg_color: 0xFFFFFF
+                  bg_opa: 15%
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  x: 173
+                  y: 81
+                  text: "Schlafzimmer"
+                  text_font: f_14
+                  text_color: 0xB4C3DF
+              - label:
+                  id: lbl_co2_schlafzimmer
+                  x: 170
+                  y: 90
+                  text: "--"
+                  text_font: f_co2
+                  text_color: 0xFFFFFF
+              - obj:
+                  id: stufe_schlafzimmer
+                  x: 173
+                  y: 160
+                  height: 22
+                  width: SIZE_CONTENT
+                  radius: 11
+                  bg_color: 0x5F6B80
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_left: 9
+                  pad_right: 9
+                  pad_top: 0
+                  pad_bottom: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: CENTER
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                  widgets:
+                      - label:
+                          id: lbl_stufe_schlafzimmer
+                          text: "--"
+                          text_font: f_13b
+                          text_color: 0xFFFFFF
+              - obj:
+                  x: 173
+                  y: 194
+                  width: 18
+                  height: 6
+                  bg_color: 0x1E7A3C
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 3
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 193
+                  y: 194
+                  width: 13
+                  height: 6
+                  bg_color: 0x2E9E4F
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 208
+                  y: 194
+                  width: 13
+                  height: 6
+                  bg_color: 0x7DBB42
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 223
+                  y: 194
+                  width: 34
+                  height: 6
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 259
+                  y: 194
+                  width: 31
+                  height: 6
+                  bg_color: 0xE8542C
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 3
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  id: marker_schlafzimmer
+                  x: 167
+                  y: 191
+                  width: 12
+                  height: 12
+                  radius: 6
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 0
+                  shadow_width: 6
+                  shadow_color: 0x000000
+                  shadow_opa: 35%
+                  shadow_offset_y: 1
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 311
+                  y: 82
+                  width: 1
+                  height: 120
+                  bg_color: 0xFFFFFF
+                  bg_opa: 15%
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  x: 331
+                  y: 81
+                  text: "Büro"
+                  text_font: f_14
+                  text_color: 0xB4C3DF
+              - label:
+                  id: lbl_co2_buero
+                  x: 328
+                  y: 90
+                  text: "--"
+                  text_font: f_co2
+                  text_color: 0xFFFFFF
+              - obj:
+                  id: stufe_buero
+                  x: 331
+                  y: 160
+                  height: 22
+                  width: SIZE_CONTENT
+                  radius: 11
+                  bg_color: 0x5F6B80
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_left: 9
+                  pad_right: 9
+                  pad_top: 0
+                  pad_bottom: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: CENTER
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                  widgets:
+                      - label:
+                          id: lbl_stufe_buero
+                          text: "--"
+                          text_font: f_13b
+                          text_color: 0xFFFFFF
+              - obj:
+                  x: 331
+                  y: 194
+                  width: 18
+                  height: 6
+                  bg_color: 0x1E7A3C
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 3
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 351
+                  y: 194
+                  width: 13
+                  height: 6
+                  bg_color: 0x2E9E4F
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 366
+                  y: 194
+                  width: 13
+                  height: 6
+                  bg_color: 0x7DBB42
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 381
+                  y: 194
+                  width: 34
+                  height: 6
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  x: 417
+                  y: 194
+                  width: 31
+                  height: 6
+                  bg_color: 0xE8542C
+                  bg_opa: COVER
+                  border_width: 0
+                  radius: 3
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  id: marker_buero
+                  x: 325
+                  y: 191
+                  width: 12
+                  height: 12
+                  radius: 6
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 0
+                  shadow_width: 6
+                  shadow_color: 0x000000
+                  shadow_opa: 35%
+                  shadow_offset_y: 1
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  id: rahmen_innen
+                  x: 0
+                  y: 0
+                  width: 464
+                  height: 212
+                  bg_opa: TRANSP
+                  border_width: 4
+                  border_color: 0xF2C230
+                  radius: 22
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  hidden: true
+        - obj:
+            id: kachel_wohnzimmer
+            x: 8
+            y: 228
+            width: 149
+            height: 96
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 9
+                  text: "Wohnzimmer"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - label:
+                  id: lbl_temp_wohnzimmer
+                  x: 16
+                  y: 27
+                  text: "--"
+                  text_font: f_28m
+                  text_color: 0x14213D
+              - obj:
+                  x: 16
+                  y: 62
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 2
+                  widgets:
+                      - label:
+                          id: lbl_feuchte_wohnzimmer
+                          text: "--"
+                          text_font: f_22b
+                          text_color: 0x5F6B80
+                      - label:
+                          text: "%"
+                          text_font: f_16
+                          text_color: 0x5F6B80
+                          pad_bottom: 3
+        - obj:
+            id: kachel_schlafzimmer
+            x: 165
+            y: 228
+            width: 149
+            height: 96
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 9
+                  text: "Schlafzimmer"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - label:
+                  id: lbl_temp_schlafzimmer
+                  x: 16
+                  y: 27
+                  text: "--"
+                  text_font: f_28m
+                  text_color: 0x14213D
+              - obj:
+                  x: 16
+                  y: 62
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 2
+                  widgets:
+                      - label:
+                          id: lbl_feuchte_schlafzimmer
+                          text: "--"
+                          text_font: f_22b
+                          text_color: 0x5F6B80
+                      - label:
+                          text: "%"
+                          text_font: f_16
+                          text_color: 0x5F6B80
+                          pad_bottom: 3
+        - obj:
+            id: kachel_buero
+            x: 323
+            y: 228
+            width: 149
+            height: 96
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 9
+                  text: "Büro"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - label:
+                  id: lbl_temp_buero
+                  x: 16
+                  y: 27
+                  text: "--"
+                  text_font: f_28m
+                  text_color: 0x14213D
+              - obj:
+                  x: 16
+                  y: 62
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 2
+                  widgets:
+                      - label:
+                          id: lbl_feuchte_buero
+                          text: "--"
+                          text_font: f_22b
+                          text_color: 0x5F6B80
+                      - label:
+                          text: "%"
+                          text_font: f_16
+                          text_color: 0x5F6B80
+                          pad_bottom: 3
+        - obj:
+            id: karte_feinstaub
+            x: 8
+            y: 332
+            width: 228
+            height: 140
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 16
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 10
+                  text: "Feinstaub"
+                  text_font: f_17m
+                  text_color: 0x14213D
+              - obj:
+                  x: -16
+                  y: 13
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  align: TOP_RIGHT
+                  widgets:
+                      - label:
+                          text: "Büro · µg/m³"
+                          text_font: f_13
+                          text_color: 0x5F6B80
+              - label:
+                  x: 16
+                  y: 42
+                  width: 44
+                  text: "PM1"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_pm1
+                  x: 70
+                  y: 46
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0xE9EDF4
+                  bg_opa: COVER
+                  indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
+              - label:
+                  id: lbl_pm1
+                  x: 178
+                  y: 42
+                  width: 34
+                  text: "--"
+                  text_font: f_14m
+                  text_color: 0x14213D
+                  text_align: RIGHT
+              - label:
+                  x: 16
+                  y: 64
+                  width: 44
+                  text: "PM2.5"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_pm25
+                  x: 70
+                  y: 68
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0xE9EDF4
+                  bg_opa: COVER
+                  indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
+              - label:
+                  id: lbl_pm25
+                  x: 178
+                  y: 64
+                  width: 34
+                  text: "--"
+                  text_font: f_14m
+                  text_color: 0x14213D
+                  text_align: RIGHT
+              - label:
+                  x: 16
+                  y: 86
+                  width: 44
+                  text: "PM4"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_pm4
+                  x: 70
+                  y: 90
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0xE9EDF4
+                  bg_opa: COVER
+                  indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
+              - label:
+                  id: lbl_pm4
+                  x: 178
+                  y: 86
+                  width: 34
+                  text: "--"
+                  text_font: f_14m
+                  text_color: 0x14213D
+                  text_align: RIGHT
+              - label:
+                  x: 16
+                  y: 108
+                  width: 44
+                  text: "PM10"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_pm10
+                  x: 70
+                  y: 112
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0xE9EDF4
+                  bg_opa: COVER
+                  indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
+              - label:
+                  id: lbl_pm10
+                  x: 178
+                  y: 108
+                  width: 34
+                  text: "--"
+                  text_font: f_14m
+                  text_color: 0x14213D
+                  text_align: RIGHT
+        - obj:
+            id: karte_gase
+            x: 244
+            y: 332
+            width: 228
+            height: 140
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 16
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 10
+                  text: "Gase"
+                  text_font: f_17m
+                  text_color: 0x14213D
+              - obj:
+                  x: -16
+                  y: 13
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  align: TOP_RIGHT
+                  widgets:
+                      - label:
+                          text: "Büro · 3D-Drucker"
+                          text_font: f_13
+                          text_color: 0x5F6B80
+              - label:
+                  x: 16
+                  y: 41
+                  text: "VOC-Index"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - label:
+                  id: lbl_voc_stufe
+                  x: 16
+                  y: 41
+                  width: 196
+                  text: ""
+                  text_font: f_pill
+                  text_color: 0x2E9E4F
+                  text_align: RIGHT
+              - label:
+                  id: lbl_voc
+                  x: 16
+                  y: 62
+                  width: 44
+                  text: "--"
+                  text_font: f_20m
+                  text_color: 0x14213D
+              - bar:
+                  id: bar_voc
+                  x: 70
+                  y: 70
+                  width: 142
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0xE9EDF4
+                  bg_opa: COVER
+                  indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
+              - label:
+                  x: 16
+                  y: 89
+                  text: "NOx-Index"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - label:
+                  id: lbl_nox_stufe
+                  x: 16
+                  y: 89
+                  width: 196
+                  text: ""
+                  text_font: f_pill
+                  text_color: 0x2E9E4F
+                  text_align: RIGHT
+              - label:
+                  id: lbl_nox
+                  x: 16
+                  y: 110
+                  width: 44
+                  text: "--"
+                  text_font: f_20m
+                  text_color: 0x14213D
+              - bar:
+                  id: bar_nox
+                  x: 70
+                  y: 118
+                  width: 142
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0xE9EDF4
+                  bg_opa: COVER
+                  indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}

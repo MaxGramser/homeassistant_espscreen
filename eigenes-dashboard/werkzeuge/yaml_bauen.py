@@ -43,7 +43,7 @@ LINIE, TRACK, FILL = "0x1E3A6E", "0x2F6FED", "0x5B8FF5"
 COND = ["F0599", "F0594", "F0595", "F0590", "F0591", "F0592", "F0593", "F067E", "F0596", "F0597", "F0598",
         "F067F", "F059D", "F059E", "F0F2F"]
 UI = ["F059D", "F054A", "F058E", "F05A8", "F059C", "F059B"]
-WARN = ["F0026", "F1A71", "F0D64", "F0591", "F0593", "F059D", "F0596", "F0F36", "F18D6"]
+WARN = ["F11DC", "F0026", "F1A71", "F0D64", "F0591", "F0593", "F059D", "F0596", "F0F36", "F18D6"]
 TAG_BILDER = ["sunny", "partlycloudy", "cloudy", "fog", "rainy", "pouring", "lightning", "lightning-rainy", "snowy",
               "snowy-rainy", "hail", "windy", "windy-variant", "exceptional"]
 NACHT_BILDER = ["wolke"] + [k for k in TAG_BILDER if k not in ("sunny", "partlycloudy", "cloudy")]
@@ -145,6 +145,24 @@ substitutions:
   # die Wetter-Entität (DWD oder Met.no) und der Sensor aus home-assistant/wetter_display.yaml
   wetter_entity: weather.dwd_wetter
   vorhersage_entity: sensor.display_wetter
+  # Raumklima (zweite Seite): Platzhalter, bis die drei Sensoren gebaut sind
+  co2_wohnzimmer: sensor.luft_wohnzimmer_co2
+  temp_wohnzimmer: sensor.luft_wohnzimmer_temperatur
+  feuchte_wohnzimmer: sensor.luft_wohnzimmer_luftfeuchte
+  co2_schlafzimmer: sensor.luft_schlafzimmer_co2
+  temp_schlafzimmer: sensor.luft_schlafzimmer_temperatur
+  feuchte_schlafzimmer: sensor.luft_schlafzimmer_luftfeuchte
+  co2_buero: sensor.luft_buero_co2
+  temp_buero: sensor.luft_buero_temperatur
+  feuchte_buero: sensor.luft_buero_luftfeuchte
+  pm1_buero: sensor.luft_buero_pm1
+  pm25_buero: sensor.luft_buero_pm2_5
+  pm4_buero: sensor.luft_buero_pm4
+  pm10_buero: sensor.luft_buero_pm10
+  voc_buero: sensor.luft_buero_voc_index
+  nox_buero: sensor.luft_buero_nox_index
+  # Sekunden, nach denen das Display zwischen Wetter und Raumklima wechselt
+  seitenwechsel: 45s
 
 esphome:
   name: ${{name}}
@@ -283,6 +301,54 @@ for d in range(5):
           y: !lambda 'return wx::punkt_y({d}) - 28;'""")
 w("")
 
+w("""  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab der Stufe "Mittel"
+  - id: innen_status
+    then:
+      - if:
+          condition:
+            lambda: |-
+              float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+              return wx::co2_stufe(m) >= 3;
+          then:
+            - lvgl.obj.update:
+                id: rahmen_innen
+                border_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_color(wx::co2_stufe(m));
+            - lvgl.obj.update:
+                id: pill_innen
+                bg_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_color(wx::co2_stufe(m));
+            - lvgl.label.update:
+                id: lbl_pill_innen_icon
+                text_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_text_color(wx::co2_stufe(m));
+            - lvgl.label.update:
+                id: lbl_pill_innen
+                text: !lambda |-
+                  float a = id(co2_wohnzimmer).state, b = id(co2_schlafzimmer).state, c = id(co2_buero).state;
+                  float m = fmaxf(fmaxf(a, b), c);
+                  if (m == c) return std::string("Büro lüften");
+                  if (m == b) return std::string("Schlafzimmer lüften");
+                  return std::string("Wohnzimmer lüften");
+                text_color: !lambda |-
+                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
+                  return wx::co2_text_color(wx::co2_stufe(m));
+            - lvgl.widget.show: [rahmen_innen, pill_innen]
+          else:
+            - lvgl.widget.hide: [rahmen_innen, pill_innen]
+
+# alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln
+interval:
+  - interval: ${seitenwechsel}
+    then:
+      - lvgl.page.next:
+          animation: MOVE_LEFT
+          time: 400ms
+""")
+
 w(open(HW).read())
 
 w(f"""# ---------------- Schriften: Poppins (wie im Entwurf), Icons von Material Design ----------------
@@ -300,6 +366,11 @@ font:
   - {{file: fonts/Poppins-500.ttf, id: f_13m, size: 13, bpp: 4, glyphs: {q(LATIN)}}}
   - {{file: fonts/Poppins-400.ttf, id: f_13, size: 13, bpp: 4, glyphs: {q(LATIN)}}}
   - {{file: fonts/Poppins-400.ttf, id: f_12, size: 12, bpp: 4, glyphs: {q(LATIN)}}}
+  - {{file: fonts/Poppins-300.ttf, id: f_co2, size: 52, bpp: 4, glyphs: "-0123456789"}}
+  - {{file: fonts/Poppins-500.ttf, id: f_28m, size: 28, bpp: 4, glyphs: {q(ZIFFERN)}}}
+  - {{file: fonts/Poppins-600.ttf, id: f_22b, size: 22, bpp: 4, glyphs: {q(ZIFFERN)}}}
+  - {{file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: {q(ZIFFERN)}}}
+  - {{file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: {q(LATIN)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: {mdi(COND)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: {mdi(UI)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: {mdi(WARN)}}}
@@ -475,6 +546,93 @@ sensor:
             text_color: !lambda 'return wx::uv_color(x);'
 """)
 
+# ---- Raumklima: Maße (wie im Entwurf) und Sensoren
+RAEUME = [("wohnzimmer", "Wohnzimmer"), ("schlafzimmer", "Schlafzimmer"), ("buero", "Büro")]
+TW = (W - 2 * G) / 3                      # drei Spalten: Panel und Kacheln stehen übereinander
+SKALA_W = round(TW - 2 * P)
+TILE2_H = 96
+CARD2_Y = TILE_Y + TILE2_H + G
+CARD2_H = 480 - M - CARD2_Y
+PM = [("pm1", "PM1", 50, "false"), ("pm25", "PM2.5", 50, "false"), ("pm4", "PM4", 120, "true"),
+      ("pm10", "PM10", 120, "true")]
+GASE = [("voc", "VOC-Index", "voc_stufe"), ("nox", "NOx-Index", "nox_stufe")]
+
+
+def spalte(i):
+    return round(P + i * (TW + G))
+
+
+for i, (r, name) in enumerate(RAEUME):
+    w(f"""  - platform: homeassistant
+    id: co2_{r}
+    entity_id: ${{co2_{r}}}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_co2_{r}
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.obj.update:
+            id: stufe_{r}
+            bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - lvgl.label.update:
+            id: lbl_stufe_{r}
+            text: !lambda 'return wx::co2_name(wx::co2_stufe(x));'
+            text_color: !lambda 'return wx::co2_text_color(wx::co2_stufe(x));'
+        - lvgl.widget.update:
+            id: marker_{r}
+            x: !lambda 'return {spalte(i)} + wx::co2_marker_x(x, {SKALA_W});'
+        - script.execute: innen_status
+  - platform: homeassistant
+    id: temp_{r}
+    entity_id: ${{temp_{r}}}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_temp_{r}
+            text: !lambda 'return wx::komma(x) + "°";'
+  - platform: homeassistant
+    id: feuchte_{r}
+    entity_id: ${{feuchte_{r}}}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_feuchte_{r}
+            text: !lambda 'return wx::zahl(x);'
+            text_color: !lambda 'return wx::feuchte_color(x);'""")
+for k, lab, voll, grob in PM:
+    w(f"""  - platform: homeassistant
+    id: {k}_buero
+    entity_id: ${{{k}_buero}}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_{k}
+            value: !lambda 'return wx::balken(x, {voll});'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::pm_stufe(x, {grob}));'
+        - lvgl.label.update:
+            id: lbl_{k}
+            text: !lambda 'return wx::zahl(x);'""")
+for k, lab, fn in GASE:
+    w(f"""  - platform: homeassistant
+    id: {k}_buero
+    entity_id: ${{{k}_buero}}
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_{k}
+            value: !lambda 'return wx::balken(x, 500);'
+            indicator:
+              bg_color: !lambda 'return wx::ampel(wx::{fn}(x), false);'
+        - lvgl.label.update:
+            id: lbl_{k}
+            text: !lambda 'return wx::zahl(x);'
+        - lvgl.label.update:
+            id: lbl_{k}_stufe
+            text: !lambda 'return wx::gas_name(wx::{fn}(x));'
+            text_color: !lambda 'return wx::ampel(wx::{fn}(x), false);'""")
+w("")
+
 # ---------------------------------------------------------------- Oberfläche
 
 TILE = dict(bg_color=CARD, bg_opa="COVER", border_width=0, radius=14, shadow_width=18, shadow_color=LINIE,
@@ -594,6 +752,104 @@ for h in range(5):
     kids.append(label(C, f"lbl_std_wert_{h}", P + 54 + bar_w + 10, y(r, 16, 14), "", "f_14m", INK, width=34,
                       align="RIGHT"))
 w(box(I, "karte_regen", M + CARD2 + G, CARD_Y, CARD2, CARD_H, CARDSTYLE, kids))
+
+# ================================================================ Seite 2: Raumklima
+from PIL import ImageFont  # nur zum Ausmessen eines festen Textes (Lage der "ppm"-Pille)
+_f16 = ImageFont.truetype(os.path.join(os.path.dirname(HIER), "fonts", "Poppins-400.ttf"), 16)
+_f12 = ImageFont.truetype(os.path.join(os.path.dirname(HIER), "fonts", "Poppins-400.ttf"), 12)
+UNTER = round(_f16.getlength("CO") + _f12.getlength("2") + _f16.getlength(" in den Räumen"))
+
+w(f"""    - id: seite_innen
+      bg_color: {BG}
+      bg_opa: COVER
+      scrollable: false
+      pad_all: 0
+      widgets:""")
+
+kids = [label(C, None, P, y(14, 30, 24), "Raumklima", "f_ort", "0xFFFFFF")]
+kids.append(widget("obj", C, dict(
+    id="pill_innen", hidden="true", align="TOP_RIGHT", x=-P, y=17, height=24, width="SIZE_CONTENT", radius=12,
+    bg_color="0xF2C230", bg_opa="COVER", border_width=0, pad_left=7, pad_right=10, pad_top=0, pad_bottom=0,
+    scrollable="false", clickable="false",
+    layout="\n  type: FLEX\n  flex_flow: ROW\n  flex_align_main: START\n  flex_align_cross: CENTER\n"
+           "  flex_align_track: CENTER\n  pad_column: 5"),
+    [label(C + 8, "lbl_pill_innen_icon", None, None, "\\U000F11DC", "i_warn", "0x3A2A00"),
+     label(C + 8, "lbl_pill_innen", None, None, "", "f_pill", "0x3A2A00")]))
+# Untertitel "CO2 in den Räumen" mit tiefgestellter 2 (Poppins hat kein ₂) und die Pille "ppm"
+ux = P
+for text, font, top in (("CO", "f_16", y(46, 20, 16)), ("2", "f_12", y(46, 20, 16) + 8),
+                        (" in den Räumen", "f_16", y(46, 20, 16))):
+    kids.append(label(C, None, ux, top, text, font, PMUTED))
+    ux += round((_f16 if font == "f_16" else _f12).getlength(text))
+kids.append(widget("obj", C, dict(
+    x=P + UNTER + 8, y=46, height=20, width="SIZE_CONTENT", radius=10, bg_color="0xFFFFFF", bg_opa="16%",
+    border_width=0, pad_left=8, pad_right=8, pad_top=0, pad_bottom=0, scrollable="false", clickable="false",
+    layout="\n  type: FLEX\n  flex_flow: ROW\n  flex_align_main: CENTER\n  flex_align_cross: CENTER\n"
+           "  flex_align_track: CENTER"),
+    [label(C + 8, None, None, None, "ppm", "f_14m", "0xFFFFFF")]))
+SEG = [400, 650, 850, 1050, 1550, 2000]
+for i, (r, name) in enumerate(RAEUME):
+    x = spalte(i)
+    if i:
+        kids.append(box(C, None, round(i * (TW + G) - G / 2), 82, 1, 120,
+                        dict(bg_color="0xFFFFFF", bg_opa="15%", border_width=0, radius=0)))
+    kids.append(label(C, None, x, 81, name, "f_14", PMUTED))
+    kids.append(label(C, f"lbl_co2_{r}", x - 3, y(96, 60, 52), "--", "f_co2", "0xFFFFFF"))
+    kids.append(widget("obj", C, dict(
+        id=f"stufe_{r}", x=x, y=160, height=22, width="SIZE_CONTENT", radius=11, bg_color="0x5F6B80",
+        bg_opa="COVER", border_width=0, pad_left=9, pad_right=9, pad_top=0, pad_bottom=0, scrollable="false",
+        clickable="false",
+        layout="\n  type: FLEX\n  flex_flow: ROW\n  flex_align_main: CENTER\n  flex_align_cross: CENTER\n"
+               "  flex_align_track: CENTER"),
+        [label(C + 8, f"lbl_stufe_{r}", None, None, "--", "f_13b", "0xFFFFFF")]))
+    for k in range(5):
+        a = round((SEG[k] - 400) / 1600 * SKALA_W)
+        b = round((SEG[k + 1] - 400) / 1600 * SKALA_W)
+        gap = 2 if k else 0
+        rad = 3 if k in (0, 4) else 0
+        kids.append(box(C, None, x + a + gap, 194, b - a - gap, 6,
+                        dict(bg_color="0x" + ["1E7A3C", "2E9E4F", "7DBB42", "F2C230", "E8542C"][k], bg_opa="COVER",
+                             border_width=0, radius=rad)))
+    kids.append(box(C, f"marker_{r}", x - 6, 191, 12, 12, dict(radius=6, bg_color="0xFFFFFF", bg_opa="COVER",
+                                                                border_width=0, shadow_width=6, shadow_color="0x000000",
+                                                                shadow_opa="35%", shadow_offset_y=1)))
+kids.append(box(C, "rahmen_innen", 0, 0, W, PANEL_H, dict(bg_opa="TRANSP", border_width=4, border_color="0xF2C230",
+                                                         radius=22), hidden="true"))
+w(box(I, "panel_innen", M, M, W, PANEL_H, dict(bg_color=PANEL_TAG[0], bg_grad_color=PANEL_TAG[1], bg_grad_dir="VER",
+                                              bg_opa="COVER", border_width=0, radius=22, clip_corner="true"), kids))
+
+# Kacheln: Temperatur groß, darunter die Luftfeuchte in Ampelfarbe
+for i, (r, name) in enumerate(RAEUME):
+    x = round(M + i * (TW + G))
+    kids = [label(C, None, P, y(11, 16, 14), name, "f_14", MUTED),
+            label(C, f"lbl_temp_{r}", P, 27, "--", "f_28m", INK),
+            row(C, None, P, 62, [label(C + 8, f"lbl_feuchte_{r}", None, None, "--", "f_22b", MUTED),
+                                 label(C + 8, None, None, None, "%", "f_16", MUTED, pad_bottom=3)], 2, cross="END")]
+    w(box(I, f"kachel_{r}", x, TILE_Y, round(TW), TILE2_H, TILE, kids))
+
+# Karte Feinstaub (Büro): Zeilen wie die Regenkarte
+kids = kopf("Feinstaub", [label(C + 8, None, None, None, "Büro · µg/m³", "f_13", MUTED)])
+for n, (k, lab, voll, grob) in enumerate(PM):
+    r = 44 + n * 22
+    kids.append(label(C, None, P, y(r, 16, 14), lab, "f_14", MUTED, width=44))
+    kids.append(widget("bar", C, dict(id=f"bar_{k}", x=P + 54, y=r + 2, width=bar_w, height=12, min_value=0,
+                                      max_value=100, value=0, radius=6, bg_color="0xE9EDF4", bg_opa="COVER",
+                                      indicator="{radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}")))
+    kids.append(label(C, f"lbl_{k}", P + 54 + bar_w + 10, y(r, 16, 14), "--", "f_14m", INK, width=34,
+                      align="RIGHT"))
+w(box(I, "karte_feinstaub", M, CARD2_Y, CARD2, CARD2_H, CARDSTYLE, kids))
+
+# Karte Gase (Büro): VOC- und NOx-Index mit Einstufung
+kids = kopf("Gase", [label(C + 8, None, None, None, "Büro · 3D-Drucker", "f_13", MUTED)])
+for n, (k, lab, fn) in enumerate(GASE):
+    r = 40 + n * 48
+    kids.append(label(C, None, P, y(r, 21, 14), lab, "f_14", MUTED))
+    kids.append(label(C, f"lbl_{k}_stufe", P, y(r, 21, 14), "", "f_pill", "0x2E9E4F", width=inner, align="RIGHT"))
+    kids.append(label(C, f"lbl_{k}", P, y(r + 23, 26, 20), "--", "f_20m", INK, width=44))
+    kids.append(widget("bar", C, dict(id=f"bar_{k}", x=P + 54, y=r + 30, width=inner - 54, height=12, min_value=0,
+                                      max_value=100, value=0, radius=6, bg_color="0xE9EDF4", bg_opa="COVER",
+                                      indicator="{radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}")))
+w(box(I, "karte_gase", M + CARD2 + G, CARD2_Y, CARD2, CARD2_H, CARDSTYLE, kids))
 
 open(ZIEL, "w").write("\n".join(out) + "\n")
 print("geschrieben:", ZIEL)

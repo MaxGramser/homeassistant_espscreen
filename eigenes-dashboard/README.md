@@ -1,9 +1,11 @@
 # Wetter-Display (eigenes ESPHome-Dashboard)
 
 Ein eigenständiges Dashboard für das **Guition ESP32-S3-4848S040** (4 Zoll, 480 × 480, Touch), direkt mit ESPHome
-und LVGL gebaut. Es braucht weder Tessera noch das ESP-Screen-Manager-Add-on.
+und LVGL gebaut. Es braucht weder Tessera noch das ESP-Screen-Manager-Add-on. Es hat zwei Seiten, Wetter und
+Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in `wetter-display.yaml`).
 
 ![Entwurf bei Tag](vorschau-tag.png) ![Entwurf bei Nacht mit Warnung](vorschau-nacht.png)
+![Entwurf Raumklima](vorschau-innen.png)
 
 *Die Bilder sind die abgestimmten Entwürfe (im Browser gezeichnet, mit Beispieldaten). Auf dem Display zeichnet LVGL,
 das kann um wenige Pixel abweichen.*
@@ -22,6 +24,29 @@ das kann um wenige Pixel abweichen.*
 
 Regen erscheint in Prozent, wenn der Wetterdienst eine Wahrscheinlichkeit liefert (DWD), sonst in Millimetern
 (Met.no); die Balken zeigen dann die Menge (4 mm = voll).
+
+### Seite 2: Raumklima
+
+Für drei Luftsensoren (Wohnzimmer, Schlafzimmer, Büro; SHT45 und SCD41, im Büro zusätzlich ein SEN55):
+
+- **Panel**: CO₂ je Raum mit Einstufung und Farbskala von 400 bis 2000 ppm. Ab „Mittel“ erscheinen rechts oben ein
+  Hinweis „<Raum> lüften“ und ein Rahmen in der Farbe der Stufe (der Raum mit dem meisten CO₂ zählt).
+- **Kacheln**: Temperatur und Luftfeuchte je Raum; die Luftfeuchte in Ampelfarbe.
+- **Feinstaub (Büro)**: PM1, PM2.5, PM4, PM10 als Balken in Ampelfarbe.
+- **Gase (Büro)**: VOC- und NOx-Index mit Einstufung.
+
+| Wert | grün | gelb/orange | rot |
+|---|---|---|---|
+| CO₂ (ppm, Skala nach ELV) | Hervorragend unter 650, Gut unter 850, Befriedigend unter 1050 | Mittel unter 1550 (Lüften empfohlen) | Schlecht ab 1550 (Lüften erforderlich) |
+| Luftfeuchte (Umweltbundesamt) | 40 bis 60 % | 30 bis 40 und 60 bis 70 % | unter 30 oder über 70 % |
+| PM1 und PM2.5 (µg/m³, WHO) | bis 15 | bis 25 | darüber |
+| PM4 und PM10 (µg/m³) | bis 45 | bis 80 | darüber |
+| VOC-Index (Sensirion) | bis 150 | bis 250 | darüber |
+| NOx-Index (Sensirion) | bis 20 | bis 150 | darüber |
+
+Die Entitäten der Sensoren stehen als Platzhalter oben in `wetter-display.yaml` (`co2_wohnzimmer`,
+`temp_wohnzimmer`, ..., `voc_buero`, `nox_buero`). Sobald die Sensoren in Home Assistant sind, dort ihre echten
+Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
 
 ## Dateien
 
@@ -88,5 +113,6 @@ Die Konfiguration verlangt ESPHome 2026.6.2 oder neuer.
   Sonnenzeiten, Regenwerte, Kurve, Warn-Icons.
 - Die Vorlagen des Home-Assistant-Pakets sind mit Beispieldaten durchgerechnet, auch nachts, ohne Stundenvorhersage
   und ohne Warnung.
+- Die Stufen der Raumklima-Seite sind an allen Grenzwerten getestet.
 - **Nicht geprüft**: auf dem echten Display ist die Firmware noch nicht gelaufen, und die Entitäten der
-  DWD-Integrationen sind Platzhalter, bis sie in deinem Home Assistant eingerichtet sind.
+  DWD-Integrationen und der Luftsensoren sind Platzhalter, bis sie in deinem Home Assistant eingerichtet sind.
