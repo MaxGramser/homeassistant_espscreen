@@ -54,7 +54,7 @@ class WhatAChangeReaches(unittest.TestCase):
             self.assertIn(board, boards, name)
             self.assertNotEqual(boards, EVERY, name)
         self.assertEqual(reach('components/mipi_dsi_v3/display.py')['components/mipi_dsi_v3/display.py'],
-                         {'jc8012p4a1v3', 'wavesharep47b'})
+                         {'jc8012p4a1v3', 'waveshare101v3', 'wavesharep47b'})
 
     def test_a_package_reaches_the_boards_that_include_it(self):
         """A feature, look, hardware or cells file reaches exactly the boards whose chain names it."""

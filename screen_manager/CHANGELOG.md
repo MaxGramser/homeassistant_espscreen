@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **The Waveshare 10.1 inch with the newer chip.** Waveshare now ships its ESP32-P4-WIFI6-Touch-LCD-10.1 with a newer revision of the chip, on which the firmware of the first board stayed dark. New screen has it as its own board, ending in V3; the USB log's first lines say which one you have ("chip revision: v3"). Tried on a board: picture, touch, sections and page changes; its speaker and microphones are still to be tried.
 - **An automation that is unavailable looks it.** Its tile shows Home Assistant's confused robot instead of the plain one, as Home Assistant's own dashboards do.
 - **A tap on a blind in a cover group does what Home Assistant does.** On a cover group's page a tap on a cover's card now asks Home Assistant to toggle it, so it decides as everywhere else: a blind that is closing without a stop opens again, and one stopped half way on its way down goes back up. Before, the screen decided and closed both.
 - **The same cover is not fetched again.** A player whose next track shows the same album cover kept fetching and redrawing that cover on every track; the screen now asks whether its picture changed and keeps it when it did not.

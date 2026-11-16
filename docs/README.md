@@ -49,7 +49,8 @@
 - [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
 - [WAVESHAREP47B.md](WAVESHAREP47B.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, 7 inch, rev3 ESP32-P4.
 - [WAVESHAREP47.md](WAVESHAREP47.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7, 7 inch, 1280 × 720.
-- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800.
+- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800, with pre-v3 or rev3
+  silicon.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
