@@ -20,16 +20,16 @@
 # tools/render/run.py renders the clock on every board, and the screen's self test fails one where the digits fit no
 # arrangement.
 substitutions:
-  DISPLAY_CARD_W: ${ ([PANEL_W | int, PANEL_H | int] | min) - 2 * (GRID_MARGIN | int) - 2 - 2 * (TILE_PAD | int) }
+  DISPLAY_CARD_W: ${ ([PANEL_W | int, PANEL_H | int] | min) - 2 * ((GRID_MARGIN | int) + (SAFE_INSET | int)) - 2 - 2 * (TILE_PAD | int) }
   DISPLAY_BLOCK_W: ${ ((DISPLAY_CARD_W | float) - [6 * (LOOK_SCALE | float), (DISPLAY_CARD_W | float) / 36] | max) / 2 }
   FONT_DISPLAY_SIZE: ${ [8, (0.84 * (DISPLAY_BLOCK_W | float) / 1.124) | int] | max }
   BEDSIDE_NAMES: ${ (BEDSIDE_WITH_NAMES | float) * (8 * (LOOK_SCALE | float) + 1.17 * (FONT_SUBLABEL_SIZE | float)) }
   BEDSIDE_MM7: ${ (DISPLAY_DPI | float) * 7 / 25 }
   BEDSIDE_MM12: ${ (DISPLAY_DPI | float) * 12 / 25 }
-  BEDSIDE_LW: ${ ([PANEL_W | int, PANEL_H | int] | max) - 2 * (GRID_MARGIN | int) - 2 - 2 * (TILE_PAD | int) }
-  BEDSIDE_LC: ${ ([PANEL_W | int, PANEL_H | int] | min) - (SCROLL_Y | int) - (PAGE_BAR_H | int) - 2 }
-  BEDSIDE_PW: ${ ([PANEL_W | int, PANEL_H | int] | min) - 2 * (GRID_MARGIN | int) - 2 - 2 * (TILE_PAD | int) }
-  BEDSIDE_PC: ${ ([PANEL_W | int, PANEL_H | int] | max) - (SCROLL_Y | int) - (PAGE_BAR_H | int) - 2 }
+  BEDSIDE_LW: ${ ([PANEL_W | int, PANEL_H | int] | max) - 2 * ((GRID_MARGIN | int) + (SAFE_INSET | int)) - 2 - 2 * (TILE_PAD | int) }
+  BEDSIDE_LC: ${ ([PANEL_W | int, PANEL_H | int] | min) - (SCROLL_Y | int) - (PAGE_BAR_H | int) - 2 - 2 * (SAFE_INSET | int) }
+  BEDSIDE_PW: ${ ([PANEL_W | int, PANEL_H | int] | min) - 2 * ((GRID_MARGIN | int) + (SAFE_INSET | int)) - 2 - 2 * (TILE_PAD | int) }
+  BEDSIDE_PC: ${ ([PANEL_W | int, PANEL_H | int] | max) - (SCROLL_Y | int) - (PAGE_BAR_H | int) - 2 - 2 * (SAFE_INSET | int) }
   BEDSIDE_LD: ${ [BEDSIDE_MM7 | float, [BEDSIDE_MM12 | float, 0.28 * ((BEDSIDE_LC | float) - 2 * (TILE_PAD | int))] | min] | max }
   BEDSIDE_PD: ${ [BEDSIDE_MM7 | float, [BEDSIDE_MM12 | float, 0.28 * ((BEDSIDE_PC | float) - 2 * (TILE_PAD | int))] | min] | max }
   BEDSIDE_LG: ${ (BEDSIDE_LC | float) - (BEDSIDE_LD | float) - (BEDSIDE_NAMES | float) - 3 * ([8 * (LOOK_SCALE | float), 0.07 * (BEDSIDE_LC | float)] | max) }

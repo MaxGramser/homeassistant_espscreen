@@ -48,6 +48,9 @@ namespace runtime_tiles {
 // GRID_COLS_PORTRAIT x GRID_ROWS_PORTRAIT when it stands up (firmware 0.2.92+). Both arrive as build flags. The
 // screen picks one at boot from the canvas LVGL hands it (grid_select) and everything below counts with that
 // one, so the same firmware serves a board either way round and nothing here knows which board it is.
+#ifndef SAFE_INSET
+#define SAFE_INSET 0  // a round panel's safe area (looks/*.yaml); 0 on a rectangular panel
+#endif
 #ifndef GRID_COLS
 #define GRID_COLS 2
 #endif

@@ -1362,14 +1362,17 @@ describe("the orientation of a new screen", () => {
   it("offers the Waveshare P4 separately from the S3 and installs the selected P4 profile", async () => {
     const view = await installer();
     const card = (key: string) => view.get(`input[name="board"][value="${key}"]`).element.closest("label")!;
-    expect(card("wavesharep4").textContent).toContain("ESP32-P4-86-Panel-ETH-2RO");
+    // The square 86 panel and the round 4C share a card (one main board, 720 × 720 at 4 inches); the model is asked next.
+    expect(card("wavesharep4").textContent).toContain("2 models");
     expect(card("wavesharep4").textContent).toContain("720 × 720");
     expect(card("wavesharep4").textContent).not.toContain("480 × 480");
     expect(card("waveshare4b").textContent).toContain("480 × 480");
     expect(card("wavesharep4")).not.toBe(card("waveshare4b"));
     await view.get('input[name="board"][value="wavesharep4"]').setValue();
     await view.get("#setup-next").trigger("click");
-    expect(view.find("#board-model").exists()).toBe(false);
+    const models = view.findAll("#board-model .model");
+    expect(models.map((row) => row.find("b").text())).toEqual(["ESP32-P4-86-Panel-ETH-2RO", "ESP32-P4-WIFI6-Touch-LCD-4C"]);
+    await models[0].find("input").setValue();
     expect(view.get(".make-caption").text()).toContain("ESP32-P4-86-Panel-ETH-2RO");
     await view.get("#friendly_name").setValue("Hall");
     await view.get("#install-form").trigger("submit");

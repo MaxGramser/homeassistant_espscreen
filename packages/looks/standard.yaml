@@ -25,6 +25,9 @@ substitutions:
   # Spacing (firmware 0.14.0+): the margin to the glass and the gaps between the cards keep their millimetres on
   # every glass, but never take more pixels than they had (16, 12 and 12 at this look's own density), so no tile gets smaller.
   GRID_MARGIN: ${ [(16 * LOOK_SCALE | float) | round | int, 16] | min }
+  # Round glass: how far every edge of the page (top bar, tiles, page bar) keeps inside the panel's square, so a
+  # circle's curve cuts none of it. 0 on a rectangular panel; a round board states its own (waveshare4c).
+  SAFE_INSET: "0"
   GRID_GAP_X: ${ [(12 * LOOK_SCALE | float) | round | int, 12] | min }
   GRID_GAP_Y: ${ [(12 * LOOK_SCALE | float) | round | int, 12] | min }
 
@@ -64,7 +67,7 @@ substitutions:
   # The top bar and where the tiles start, after the sizes they are made of (ESPHome works substitutions out in order):
   # the bar keeps the tiles' margin from the glass, sides and top (firmware 0.14.0+), and the tiles start BAR_SPACE
   # below its band.
-  HEADER_INSET: ${GRID_MARGIN}
+  HEADER_INSET: ${ (GRID_MARGIN | int) + (SAFE_INSET | int) }
   # The bar's band (firmware 0.15.0+): the key, or the name's capitals centred on it with the tails of g, p, y and
   # commas below them, whichever reaches lower. Roboto's capitals are 0.711 of the font size and its tails 0.21, so
   # the band follows from the fonts and not from the title on the page (GitHub #90).

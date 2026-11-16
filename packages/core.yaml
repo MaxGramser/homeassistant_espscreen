@@ -114,6 +114,8 @@ esphome:
       - -DLV_USE_SLIDER=1
       # The band of a heat/cool range in the thermostat card (firmware 0.25.0) is LVGL's scale; the YAML names none.
       - -DLV_USE_SCALE=1
+      # A round panel's safe area (looks/*.yaml SAFE_INSET): runtime_tiles::grid_bind and page_bar keep inside it.
+      - -DSAFE_INSET=${SAFE_INSET}
       - -DGRID_COLS=${GRID_COLS}
       - -DGRID_ROWS=${GRID_ROWS}
       # The cells of a page when this screen stands up (firmware 0.2.92+). A board states both grids and the
@@ -2242,9 +2244,9 @@ lvgl:
         - obj:
             id: page_prev
             align: BOTTOM_LEFT
-            x: 0
-            y: 0
-            width: 50%
+            x: ${ SAFE_INSET | int }
+            y: ${ -(SAFE_INSET | int) }
+            width: ${ '50%' if (SAFE_INSET | int) == 0 else ((PANEL_W | int) // 2 - (SAFE_INSET | int)) }
             height: ${PAGE_BAR_H}
             pad_all: 0
             radius: 0
@@ -2275,7 +2277,7 @@ lvgl:
         - obj:
             id: page_number
             align: BOTTOM_MID
-            y: 0
+            y: ${ -(SAFE_INSET | int) }
             width: ${PAGE_NUMBER_W}
             height: ${PAGE_BAR_H}
             pad_all: 0
@@ -2286,9 +2288,9 @@ lvgl:
         - obj:
             id: page_next
             align: BOTTOM_RIGHT
-            x: 0
-            y: 0
-            width: 50%
+            x: ${ -(SAFE_INSET | int) }
+            y: ${ -(SAFE_INSET | int) }
+            width: ${ '50%' if (SAFE_INSET | int) == 0 else ((PANEL_W | int) // 2 - (SAFE_INSET | int)) }
             height: ${PAGE_BAR_H}
             pad_all: 0
             radius: 0

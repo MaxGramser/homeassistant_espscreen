@@ -346,7 +346,9 @@ export type Screen = {
       watch_icon?: number; setpoint?: number; icon?: number };
     // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74, a
     // card's corner and its icon's face (fonts.icon) from app 0.4.90.
-    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
+    // `safe` is a round glass's safe area on every side (SAFE_INSET), only on a board that has one.
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number;
+      safe?: number };
     // A section's band on this glass (boards.json, module_sections.h): its height and its title's top in it.
     section?: { band: number; title_top: number; ink_top?: number; line?: number } } | null;
   // Sections on a page (docs/PAGES.md "Sections"): its board has the module (the full tier), and its own hello says it
