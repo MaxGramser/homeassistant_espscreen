@@ -200,12 +200,12 @@ inline void control_event(lv_event_t *e) {
   // A range (firmware 0.19.0): the chip switches the end the -/+ move, heat or cool; the -/+ move that end.
   if(command==tile_controls::RANGE_SWITCH&&tile_controls::climate_range(t)){
     t.range_end=t.range_end==tile_controls::RANGE_HIGH?tile_controls::RANGE_LOW:tile_controls::RANGE_HIGH;
-    refresh_tile(w.index);return;
+    refresh_tile(w.index,redraw_log::TileWhy::finger);return;
   }
   if(step&&tile_controls::climate_range(t)){
     range_step(t,command==tile_controls::STEP_UP?1:-1);
     if(detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)&&detail_index==w.index)climate_paint_ends(t);
-    refresh_tile(w.index);return;
+    refresh_tile(w.index,redraw_log::TileWhy::finger);return;
   }
   if(step){
     // Local at once, tap after tap; tick() sends the last value after a short pause.
@@ -506,7 +506,7 @@ inline void cover_tile_key_event(lv_event_t *e){
   const auto &t=model.tiles[w.index];
   if(part==15){
     if(!enabled||!screen_input::touch_guard.accept(esphome::millis(),600+tag))return;
-    cover_swapped[w.index]^=1;w.cached_active=-1;refresh_tile(w.index);return;
+    cover_swapped[w.index]^=1;w.cached_active=-1;refresh_tile(w.index,redraw_log::TileWhy::finger);return;
   }
   // The cards of this layout: the tilt cards and, since the one-row cards (0.57.0), the 1x1 with buttons or a
   // position, whose keys answered nothing while this asked for the slats alone (GitHub #363).

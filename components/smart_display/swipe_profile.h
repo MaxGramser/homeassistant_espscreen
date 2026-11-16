@@ -22,8 +22,8 @@
 namespace swipe_profile {
 // Steps of a content pass; `Lap` adds the time since its previous lap.
 enum Part { TEXT, BUSY, LAYOUT, CUSTOM, PANEL, GEOMETRY, PALETTE, PLACE, HEADER, PARTS };
-#ifdef SWIPE_PROFILE
 inline const char *const PART_NAMES[PARTS] = {"text", "busy", "layout", "custom", "panel", "geometry", "palette", "place", "header"};
+#ifdef SWIPE_PROFILE
 struct Frame { int64_t start = 0, render_start = 0, flush_start = 0; uint32_t layout = 0, render = 0, flush = 0, flushes = 0, pixels = 0; };
 struct Swipe {
   bool active = false, complete = false, done = false;
@@ -135,8 +135,15 @@ inline void picture(unsigned put, unsigned of) { if (swipe.active) { swipe.pictu
 #else
 inline void begin(int, int) {}
 struct FillTimer { FillTimer() {} };
-struct SlotTimer { explicit SlotTimer(size_t) {} };
-struct Lap { void operator()(Part) {} };
+// Without the profile, one card's paint is still split into its steps, in ms by LVGL's tick, for render()'s slow-pass
+// line (runtime_tiles.h): kept in statics, so the loop task's stack carries nothing more (the structs stay empty).
+inline uint32_t slot_steps[PARTS] = {};
+inline uint32_t lap_at = 0;
+struct SlotTimer { explicit SlotTimer(size_t) { for (auto &step : slot_steps) step = 0; } };
+struct Lap {
+  Lap() { lap_at = lv_tick_get(); }
+  void operator()(Part part) { const uint32_t t = lv_tick_get(); slot_steps[part] += t - lap_at; lap_at = t; }
+};
 inline void content_complete() {}
 inline void picture(unsigned, unsigned) {}
 #endif

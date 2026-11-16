@@ -240,7 +240,7 @@ inline void tile_picture_want(Widgets &w, bool glass) {
   const std::string key = tile_picture::key(a);
   if (key != w.art_key) {
     w.art_key = key;
-    if (picture_of(key) && !draws(w.picture, picture_of(key))) refresh_tile(w.index);
+    if (picture_of(key) && !draws(w.picture, picture_of(key))) refresh_tile(w.index, redraw_log::TileWhy::picture);
   }
   // A page out of sight has what does not change by itself fetched ahead; its cameras load when it comes back, showing
   // their last picture meanwhile.

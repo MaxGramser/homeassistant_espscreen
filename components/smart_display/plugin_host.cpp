@@ -412,7 +412,7 @@ void refresh() {
   bool marked = false;
   for (auto &w : rt::widgets)
     if (w.plugin && w.index < rt::model.count) {
-      rt::mark_tile(w.index);
+      rt::mark_tile(w.index, redraw_log::TileWhy::plugin);
       marked = true;
     }
   // No plugin tile on the glass (a plugin with only a top bar item or a popup, or its tiles on other pages): the top
@@ -2093,7 +2093,7 @@ void set_card_color(CardColor color) {
   // In render() the card's palette comes right after the tile's call. From any other call (a tick, a tap) the card is
   // drawn again in the next pass.
   if (!plugin_host::rendering && card->index < rt::model.count) {
-    rt::mark_tile(card->index);
+    rt::mark_tile(card->index, redraw_log::TileWhy::plugin);
     if (rt::refresh) rt::refresh();
   }
 }

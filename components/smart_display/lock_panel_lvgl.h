@@ -41,7 +41,7 @@ inline void lock_end_asks(size_t keep=SIZE_MAX){
     auto &t=model.tiles[i];
     if(i==keep||t.ask_act<0)continue;
     t.ask_act=-1;
-    if(!t.ask_card)refresh_tile(i);
+    if(!t.ask_card)refresh_tile(i,redraw_log::TileWhy::tick);
     else if(detail_index==i&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))redraw_detail();
   }
 }
@@ -109,14 +109,14 @@ inline void lock_do(unsigned index,lock_panel::Act act,bool card){
     if(!second){
       lock_waits=true;
       ESP_LOGI("lock","%s: tap again to %s",t.entity.c_str(),act==OPEN?"open":"unlock");
-      if(card)redraw_detail();else refresh_tile(index);
+      if(card)redraw_detail();else refresh_tile(index,redraw_log::TileWhy::finger);
       return;
     }
   }
   t.ask_act=-1;
   alarm_attempt.begin(act,false,now);alarm_attempt_entity=t.entity;
   action(service(act),t.entity);
-  if(card)redraw_detail();else refresh_tile(index);
+  if(card)redraw_detail();else refresh_tile(index,redraw_log::TileWhy::finger);
 }
 // A finger on the tile (tile_controls::TapRoute::LOCK).
 inline void lock_tap(unsigned index){
@@ -124,7 +124,7 @@ inline void lock_tap(unsigned index){
   auto &t=model.tiles[index];
   const auto act=lock_panel::tap(lock_of(t),lock_guard(t));
   if(act==lock_panel::NONE){
-    if(t.state=="locked"&&lock_guard(t)==lock_panel::Guard::LOCK_ONLY){t.noted_at=std::max<uint32_t>(1,esphome::millis());refresh_tile(index);}
+    if(t.state=="locked"&&lock_guard(t)==lock_panel::Guard::LOCK_ONLY){t.noted_at=std::max<uint32_t>(1,esphome::millis());refresh_tile(index,redraw_log::TileWhy::finger);}
     return;
   }
   lock_do(index,act,false);
@@ -294,7 +294,7 @@ inline void lock_tick(){
     if(t.ask_act<0)continue;
     if(awake()&&lock_ask_of(t).any(now)){waiting=true;continue;}
     t.ask_act=-1;
-    if(!t.ask_card)refresh_tile(i);
+    if(!t.ask_card)refresh_tile(i,redraw_log::TileWhy::tick);
     else if(detail_index==i&&detail_root&&!lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN))redraw_detail();
   }
   lock_waits=waiting;

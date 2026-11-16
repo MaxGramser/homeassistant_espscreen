@@ -100,7 +100,7 @@ inline void picture_let_go(const lv_image_dsc_t *image) {
     if (plugin_host::picture_let_go(w, image)) took = true;
     if (!took) continue;
     if (w.extra_mode == "media") w.cover_shown.clear();
-    if (w.index < model.count) mark_tile(w.index);
+    if (w.index < model.count) mark_tile(w.index, redraw_log::TileWhy::picture);
   }
 #else
   (void) image;
@@ -264,7 +264,7 @@ inline bool on_glass(const Widgets &w) {
 inline void tile_cover_arrived(size_t index) {
   each_card([&](Widgets &w) {
     if (w.index != index || w.extra_mode != "media" || w.cover_entity.empty()) return;
-    if (on_glass(w)) { refresh_tile(index); return; }
+    if (on_glass(w)) { refresh_tile(index, redraw_log::TileWhy::picture); return; }
     const std::string key = cover_key(w);
     if (auto *src = picture_of(key)) {
       w.parts[MEDIA_PICTURE] = media_picture_show(w.extra, w.parts[MEDIA_PICTURE], w.cover_rect, src);

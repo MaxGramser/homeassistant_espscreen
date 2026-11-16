@@ -190,7 +190,7 @@ inline void climate_circle_event(lv_event_t *e){
   if(!tile_controls::thermostat(t)||!t.available()||t.waiting(now))return;
   if(!allowed(now,2000+slot,"power "+std::to_string(slot)))return;
   climate_power(t);
-  refresh_tile(w.index);
+  refresh_tile(w.index, redraw_log::TileWhy::finger);
 }
 // The ring of a favourite that plays (ring_favorite marks the card with LV_OBJ_FLAG_USER_1): the accent along the
 // card's own edge and corners, over everything the card holds, inside the card's box. Nothing of the card moves.

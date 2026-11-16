@@ -188,7 +188,7 @@ inline bool wish_card_open(const std::string &entity) {
 inline void wish_refresh(const std::string &entity, bool card) {
   bool told = false;
   for (size_t i = 0; i < model.count; ++i) if (model.tiles[i].entity == entity) {
-    refresh_tile(i);
+    refresh_tile(i, redraw_log::TileWhy::wish);
     // The pages over a card (a group's lamps, a light's effects) paint themselves from the tile (detail_update).
     if (!told) { detail_update(model.tiles[i]); told = true; }
   }
@@ -208,7 +208,7 @@ inline void wish_revert(const optimistic::Wish &w, bool refused, bool unanswered
   if (refused) for (size_t i = 0; i < model.count; ++i) if (model.tiles[i].entity == w.entity) {
     model.tiles[i].refused_at = std::max<uint32_t>(1, now);
     model.tiles[i].unanswered = unanswered;
-    if (!show) refresh_tile(i);
+    if (!show) refresh_tile(i, redraw_log::TileWhy::wish);
   }
   if (show) wish_show(w.entity, w.field, w.before, w.item);
   ESP_LOGI("wish", "%s back to '%s'%s", w.entity.c_str(), w.before.c_str(), refused ? (unanswered ? " (no answer)" : " (refused)") : "");
@@ -319,7 +319,7 @@ inline void cover_go(Tile &t, const tile_controls::Action &a, float to, int dir,
     o.release_travel();
     if (!stop) o.travel_start(now, to, dir, tilt);
     o.refused_at = 0;
-    refresh_tile(i);
+    refresh_tile(i, redraw_log::TileWhy::finger);
   }
   action(a.service, entity, a.key, a.value, true, "", "", false);
 }

@@ -270,12 +270,12 @@ std::string receive(const std::string &payload) {
         auto &tile = model.tiles[index];
         const std::string name = string(item["name"], 80);
         // A key's name stands under it on its clock, which draws it (firmware 0.8.0+).
-        if (tile.is_key() && name != tile.name) refresh_tile(tile.parent);
+        if (tile.is_key() && name != tile.name) refresh_tile(tile.parent, redraw_log::TileWhy::appearance);
         tile.name = name;
         const std::string background = string(item["background"], 16);
         tile.background = tile_palette::color(background);
         tile.transparent = tile_palette::transparent(background);
-        refresh_tile(index);
+        refresh_tile(index, redraw_log::TileWhy::appearance);
         if (active_index == static_cast<int>(index)) detail_update(tile);
         refresh_detail(index);
       }
@@ -1117,7 +1117,7 @@ std::string receive(const std::string &payload) {
       if (glyph && has_icon_glyph(glyph)) next.fav_glyph = tile_icon::utf8(glyph);
     }
     const std::string name = string(root["name"], 80);
-    if (!initial && tile.is_key() && name != tile.name) refresh_tile(tile.parent);
+    if (!initial && tile.is_key() && name != tile.name) refresh_tile(tile.parent, redraw_log::TileWhy::appearance);
     tile.name = name;
     const std::string before = tile.state;
     tile.state = word;
@@ -1517,7 +1517,7 @@ std::string receive(const std::string &payload) {
       result = "Loading tiles";
       return true;
     }
-    refresh_tile(index);
+    refresh_tile(index, redraw_log::TileWhy::state);
     if (active_index == static_cast<int>(index)) detail_update(tile);
     if (tile.domain() == "alarm_control_panel") alarm_state_arrived(index, before);
     if (tile.domain() == "lock") lock_state_arrived(index, before);

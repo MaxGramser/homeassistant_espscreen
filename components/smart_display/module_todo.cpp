@@ -248,7 +248,7 @@ static const Tile *tile_open() {
 }
 static void apply(bool keep_scroll);
 static void repaint(const std::string &entity) {
-  for (size_t i = 0; i < rt::model.count; ++i) if (rt::model.tiles[i].entity == entity) rt::refresh_tile(i);
+  for (size_t i = 0; i < rt::model.count; ++i) if (rt::model.tiles[i].entity == entity) rt::refresh_tile(i, redraw_log::TileWhy::state);
   if (is_open() && full.entity == entity) apply(true);
 }
 // Where a layer's plan begins on the glass: each covers the glass from its corner, the list from where it scrolls to.

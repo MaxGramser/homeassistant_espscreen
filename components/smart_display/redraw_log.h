@@ -50,6 +50,40 @@ constexpr const char *WORDS[] = {
 };
 static_assert(sizeof(WORDS) / sizeof(WORDS[0]) == static_cast<size_t>(Why::count), "every reason has its words");
 
+// Why one card was marked to be drawn again (runtime_tiles::mark_tile): render()'s slow-pass line names it for its
+// slowest card, so a card drawn slowly on its own is traced to what asked for it (a 10.1 inch, 2026-11-16).
+enum class TileWhy : uint8_t {
+  unnamed,     // a caller that gave no reason
+  state,       // a state of its entity arrived
+  appearance,  // its name or its ground changed
+  wish,        // a wish was shown, squared or put back (docs/OPTIMISTIC.md)
+  answer,      // Home Assistant answered, refused or said nothing to an action
+  wait,        // its wait for Home Assistant began or ended (the busy sheet)
+  picture,     // its picture or its cover arrived or went
+  minute,      // the minute turned and it shows the time
+  finger,      // a finger on one of its controls
+  tick,        // the loop's tick (a favourite, a lock's ask, a timer)
+  plugin,      // its plugin drew new content
+  count,
+};
+constexpr const char *TILE_WORDS[] = {
+    "unnamed",
+    "a state",
+    "its name or ground",
+    "a wish",
+    "Home Assistant's answer",
+    "its wait",
+    "a picture",
+    "the minute",
+    "a finger",
+    "the tick",
+    "its plugin",
+};
+static_assert(sizeof(TILE_WORDS) / sizeof(TILE_WORDS[0]) == static_cast<size_t>(TileWhy::count), "every reason has its words");
+constexpr const char *words(TileWhy why) {
+  return static_cast<size_t>(why) < static_cast<size_t>(TileWhy::count) ? TILE_WORDS[static_cast<size_t>(why)] : TILE_WORDS[0];
+}
+
 constexpr const char *words(Why why) {
   return static_cast<size_t>(why) < static_cast<size_t>(Why::count) ? WORDS[static_cast<size_t>(why)] : WORDS[0];
 }

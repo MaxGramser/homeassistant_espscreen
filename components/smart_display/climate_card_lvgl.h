@@ -107,7 +107,7 @@ inline void climate_step(Tile &t,int direction){
   if(tile_controls::climate_range(t)){
     range_step(t,direction);
     climate_paint_ends(t);
-    if(detail_index<model.count)refresh_tile(detail_index);
+    if(detail_index<model.count)refresh_tile(detail_index,redraw_log::TileWhy::finger);
     return;
   }
   const uint32_t now=esphome::millis();
