@@ -1,41 +1,12 @@
 # ESP Screens board profile for the Waveshare ESP32-S3-Touch-LCD-5B (1024 x 600).
 # The CH422G drives the panel and touch reset lines and the backlight.
 packages:
-  hardware: !include ../hardware/waveshare-ch422g.yaml
+  hardware: !include ../hardware/waveshare-esp32s3-5b.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
   backlight: !include ../features/backlight.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
-
-esp32:
-  flash_size: 16MB
-
-output:
-  - id: !extend gpio_backlight_pwm
-    write_action:
-      - lambda: |-
-          // EXIO2 is binary. Only write when the requested state changes.
-          static bool lit = false;
-          const bool requested = state > 0.0f;
-          if (lit != requested) {
-            id(backlight_line).set_state(requested);
-            lit = requested;
-          }
-
-script:
-  # Avoid repeated power cycling of the backlight boost converter during alerts.
-  - id: !remove alert_flash
-  - id: alert_flash
-    mode: restart
-    then:
-      - lambda: 'ESP_LOGI("alert", "no backlight blinks on this board");'
-
-display:
-  - id: !extend my_display
-    model: WAVESHARE-5-1024X600
-    # The CH422G package already drives the backlight on EXIO2.
-    enable_pin: []
 
 substitutions:
   # The catalog key reported by the firmware.
