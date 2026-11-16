@@ -1,14 +1,21 @@
 # Home-Assistant-Paket für das Wetter-Display (README.md, Schritt 1).
 #
-# Erstellt sensor.display_wetter. Seine Attribute tragen, was das Display für die Vorhersage braucht, je ein kurzer
-# Text pro Tag und pro Stunde:
-#   tag_0 ... tag_4       "Heute;rainy;11;4;60;1.2"  Name; Zustand; Höchst; Tiefst; Regen-%; Regen-mm
-#   stunde_0 ... stunde_5 "14;cloudy;9;20"            Stunde; Zustand; Temperatur; Regen-%
-#   sonne                 "unter;16:38"               nächstes Ereignis (auf/unter); Uhrzeit
+# Erstellt sensor.display_wetter. Seine Attribute tragen, was das Display für Vorhersage, Sonne und Warnungen braucht,
+# je ein kurzer Text mit Semikolons (ESPHome überträgt einen Text mit höchstens 255 Zeichen):
+#   tag_0 ... tag_4        "Heute;rainy;11;4;60;1.2"   Name; Zustand; Höchst; Tiefst; Regen-%; Regen-mm
+#   stunde_0 ... stunde_4  "15;40;0.6"                 Stunde; Regen-%; Regen-mm (die nächsten 10 Stunden in
+#                                                      2-Stunden-Schritten)
+#   sonne                  "1763276520;1763309880"     Aufgang; Untergang als Unix-Zeit. Tagsüber der Aufgang von
+#                                                      heute, nachts die nächsten beiden Ereignisse.
+#   warnung                "2;Sturmböen;STURMBÖEN"     höchste aktuelle Warnstufe (1 bis 4); Name zum Anzeigen;
+#                                                      Name wie vom DWD (für das Icon). Leer, wenn keine Warnung gilt.
 # Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
 # über die Aktion weather.get_forecasts. Dieser Sensor fragt sie alle 15 Minuten ab.
 #
-# Andere Wetter-Entität? Nur die Zeile "wetter:" unten ändern.
+# Anpassen: die beiden Zeilen "wetter:" und "warnungen:" unten.
+#   wetter     die Wetter-Entität, z. B. vom DWD (HACS-Integration "DWD Weather") oder Met.no
+#   warnungen  der Sensor "aktuelle Warnstufe" der Integration "Deutscher Wetterdienst (DWD) Weather Warnings";
+#              ohne DWD-Warnungen einfach so lassen, das Display zeigt dann keine Warnung.
 
 template:
   - triggers:
@@ -20,10 +27,14 @@ template:
         minutes: "/15"
       - trigger: state
         entity_id: sun.sun
+      - trigger: state
+        entity_id: sensor.dwd_warnungen_aktuelle_warnstufe
     actions:
       - variables:
-          wetter: weather.forecast_home
+          wetter: weather.dwd_wetter
+          warnungen: sensor.dwd_warnungen_aktuelle_warnstufe
       - action: weather.get_forecasts
+        continue_on_error: true
         target:
           entity_id: "{{ wetter }}"
         data:
@@ -40,7 +51,7 @@ template:
           tage: >
             {% set namen = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
             {% set ns = namespace(liste=[]) %}
-            {% set fc = taeglich[wetter].forecast if taeglich is defined and wetter in taeglich else [] %}
+            {% set fc = taeglich[wetter].forecast if taeglich is defined and taeglich and wetter in taeglich else [] %}
             {% for f in fc[:5] %}
               {% set d = as_local(as_datetime(f.datetime)) %}
               {% set name = 'Heute' if d.date() == now().date() else namen[d.weekday()] %}
@@ -50,24 +61,58 @@ template:
               {% set mm = f.get('precipitation') %}
               {% set ns.liste = ns.liste + [
                    name ~ ';' ~ f.condition
-                   ~ ';' ~ ((hoch | round(0) | int) if hoch is not none else '')
-                   ~ ';' ~ ((tief | round(0) | int) if tief is not none else '')
-                   ~ ';' ~ ((prozent | round(0) | int) if prozent is not none else '')
-                   ~ ';' ~ ((mm | round(1)) if mm is not none else '')] %}
+                   ~ ';' ~ ((hoch | round(0) | int) if hoch is number else '')
+                   ~ ';' ~ ((tief | round(0) | int) if tief is number else '')
+                   ~ ';' ~ ((prozent | round(0) | int) if prozent is number else '')
+                   ~ ';' ~ ((mm | round(1)) if mm is number else '')] %}
             {% endfor %}
             {{ ns.liste }}
           stunden: >
             {% set ns = namespace(liste=[]) %}
             {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
-            {% for f in fc[1:13:2] %}
-              {% set t = f.get('temperature') %}
+            {% for f in fc[1:11:2] %}
               {% set prozent = f.get('precipitation_probability') %}
+              {% set mm = f.get('precipitation') %}
               {% set ns.liste = ns.liste + [
-                   as_local(as_datetime(f.datetime)).strftime('%H') ~ ';' ~ f.condition
-                   ~ ';' ~ ((t | round(0) | int) if t is not none else '')
-                   ~ ';' ~ ((prozent | round(0) | int) if prozent is not none else '')] %}
+                   as_local(as_datetime(f.datetime)).strftime('%H')
+                   ~ ';' ~ ((prozent | round(0) | int) if prozent is number else '')
+                   ~ ';' ~ ((mm | round(1)) if mm is number else '')] %}
             {% endfor %}
             {{ ns.liste }}
+          # Tagsüber zeigt das Display den Aufgang von heute ("vor 5 Std"). sun.sun kennt nur den nächsten Aufgang,
+          # darum merkt sich der Sensor den Moment, in dem die Sonne aufgeht. Nach einem Neustart am Tag fehlt
+          # er bis zum nächsten Morgen; bis dahin gilt der nächste Aufgang minus einen Tag (wenige Minuten daneben).
+          sonne: >
+            {% set auf = as_timestamp(state_attr('sun.sun', 'next_rising'), 0) | int %}
+            {% set unter = as_timestamp(state_attr('sun.sun', 'next_setting'), 0) | int %}
+            {% if is_state('sun.sun', 'above_horizon') %}
+              {% set aufgang = trigger.to_state.state if trigger is defined and trigger.platform == 'state'
+                                 and trigger.entity_id == 'sun.sun' and trigger.from_state is not none
+                                 and trigger.from_state.state == 'below_horizon' else '' %}
+              {% set gemerkt = (this.attributes.get('aufgang_heute', 0) | int(0)) if this is defined else 0 %}
+              {% if aufgang %}
+                {% set heute = as_timestamp(now()) | int %}
+              {% elif gemerkt and as_local(as_datetime(gemerkt)).date() == now().date() %}
+                {% set heute = gemerkt %}
+              {% else %}
+                {% set heute = auf - 86400 %}
+              {% endif %}
+              {{ heute }};{{ unter }}
+            {% else %}
+              {{ auf }};{{ unter }}
+            {% endif %}
+          warnung: >
+            {% set ns = namespace(stufe=0, name='', roh='') %}
+            {% set n = state_attr(warnungen, 'warning_count') | int(0) %}
+            {% for i in range(1, n + 1) %}
+              {% set stufe = state_attr(warnungen, 'warning_' ~ i ~ '_level') | int(0) %}
+              {% if stufe > ns.stufe %}
+                {% set ns.stufe = stufe %}
+                {% set ns.roh = state_attr(warnungen, 'warning_' ~ i ~ '_name') | string %}
+                {% set ns.name = ns.roh | lower | title %}
+              {% endif %}
+            {% endfor %}
+            {{ (ns.stufe ~ ';' ~ ns.name ~ ';' ~ ns.roh) if ns.stufe > 0 else '' }}
     sensor:
       - name: Display Wetter
         unique_id: display_wetter_vorhersage
@@ -84,10 +129,6 @@ template:
           stunde_2: "{{ stunden[2] if stunden | count > 2 else '' }}"
           stunde_3: "{{ stunden[3] if stunden | count > 3 else '' }}"
           stunde_4: "{{ stunden[4] if stunden | count > 4 else '' }}"
-          stunde_5: "{{ stunden[5] if stunden | count > 5 else '' }}"
-          sonne: >
-            {% if is_state('sun.sun', 'above_horizon') %}
-              unter;{{ as_timestamp(state_attr('sun.sun', 'next_setting')) | timestamp_custom('%H:%M') }}
-            {% else %}
-              auf;{{ as_timestamp(state_attr('sun.sun', 'next_rising')) | timestamp_custom('%H:%M') }}
-            {% endif %}
+          sonne: "{{ sonne | trim }}"
+          aufgang_heute: "{{ (sonne | trim).split(';')[0] if is_state('sun.sun', 'above_horizon') else 0 }}"
+          warnung: "{{ warnung | trim }}"

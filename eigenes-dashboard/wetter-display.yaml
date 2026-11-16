@@ -1,15 +1,18 @@
 # Wetter-Dashboard für das Guition ESP32-S3-4848S040 (480 x 480, ST7701S + GT911).
 # Eigenständige ESPHome-Konfiguration mit LVGL, ohne Tessera. README.md erklärt die Einrichtung.
+# Diese Datei schreibt werkzeuge/yaml_bauen.py; Änderungen am Aufbau dort machen, Einstellungen hier oben.
 #
-# Home Assistant liefert:
-#   - die Wetter-Entität direkt (aktuelles Wetter)
-#   - sensor.display_wetter aus home-assistant/wetter_display.yaml (Vorhersage, Sonne)
+# Oben ein blaues Panel: Ort, Datum, Kalenderwoche, Temperatur, Sonnenauf- und -untergang, großes Wetterbild
+# (nachts die Mondphase mit dem Wetter klein daneben), Wettertext, Hoch und Tief. Bei einer DWD-Warnung ein Rahmen
+# und ein Hinweis in der Farbe der Warnstufe. Darunter vier Kacheln (Wind, Regen heute, Luftfeuchte, UV-Index),
+# die Temperaturkurve der 5 Tage und der Regen der nächsten Stunden.
 
 substitutions:
   name: wetter-display
   friendly_name: Wetter-Display
   ort: Sassenberg
-  wetter_entity: weather.forecast_home
+  # die Wetter-Entität (DWD oder Met.no) und der Sensor aus home-assistant/wetter_display.yaml
+  wetter_entity: weather.dwd_wetter
   vorhersage_entity: sensor.display_wetter
 
 esphome:
@@ -67,20 +70,198 @@ time:
     on_time_sync:
       then:
         - script.execute: uhr_zeichnen
+        - script.execute: jetzt_zeichnen
     on_time:
       - seconds: 0
         then:
           - script.execute: uhr_zeichnen
+      - seconds: 0
+        minutes: 0
+        then:
+          - script.execute: jetzt_zeichnen   # die Mondphase wechselt langsam: einmal pro Stunde reicht
 
 script:
+  # jede Minute: Datum, Kalenderwoche, "vor/in ... Std" bei der Sonne
   - id: uhr_zeichnen
     then:
       - lvgl.label.update:
-          id: lbl_uhr
-          text: !lambda 'return wx::uhrzeit(id(ha_time).now());'
-      - lvgl.label.update:
           id: lbl_datum
           text: !lambda 'return wx::datum(id(ha_time).now());'
+      - lvgl.label.update:
+          id: lbl_kw
+          text: !lambda 'return wx::kw(id(ha_time).now());'
+      - lvgl.label.update:
+          id: lbl_auf_wann
+          text: !lambda 'return wx::wann(wx::part(id(wetter_sonne).state, 0), wx::part(id(wetter_sonne).state, 1), id(ha_time).now());'
+      - lvgl.label.update:
+          id: lbl_unter_wann
+          text: !lambda 'return wx::wann(wx::part(id(wetter_sonne).state, 1), wx::part(id(wetter_sonne).state, 0), id(ha_time).now());'
+  # das große Bild: am Tag das Wetter, nachts die Mondphase und das Wetter klein daneben; dazu die Panelfarbe
+  - id: jetzt_zeichnen
+    then:
+      - lvgl.image.update:
+          id: bild_jetzt
+          src: !lambda |-
+              auto c = id(wetter_zustand).state;
+              if (id(sonne_zustand).state == "below_horizon" || c == "clear-night") {
+                int m = id(ha_time).now().is_valid() ? wx::mondphase(id(ha_time).now().timestamp) : 4;
+              if (m == 0) return id(img_mond_0);
+              if (m == 1) return id(img_mond_1);
+              if (m == 2) return id(img_mond_2);
+              if (m == 3) return id(img_mond_3);
+              if (m == 4) return id(img_mond_4);
+              if (m == 5) return id(img_mond_5);
+              if (m == 6) return id(img_mond_6);
+                return id(img_mond_7);
+              }
+              if (c == "sunny") return id(img_tag_sunny);
+              if (c == "partlycloudy") return id(img_tag_partlycloudy);
+              if (c == "cloudy") return id(img_tag_cloudy);
+              if (c == "fog") return id(img_tag_fog);
+              if (c == "rainy") return id(img_tag_rainy);
+              if (c == "pouring") return id(img_tag_pouring);
+              if (c == "lightning") return id(img_tag_lightning);
+              if (c == "lightning-rainy") return id(img_tag_lightning_rainy);
+              if (c == "snowy") return id(img_tag_snowy);
+              if (c == "snowy-rainy") return id(img_tag_snowy_rainy);
+              if (c == "hail") return id(img_tag_hail);
+              if (c == "windy") return id(img_tag_windy);
+              if (c == "windy-variant") return id(img_tag_windy_variant);
+              if (c == "exceptional") return id(img_tag_exceptional);
+              return id(img_tag_cloudy);
+      - lvgl.image.update:
+          id: bild_klein
+          src: !lambda |-
+              auto a = wx::nacht_art(id(wetter_zustand).state);
+              if (a == "wolke") return id(img_nacht_wolke);
+              if (a == "fog") return id(img_nacht_fog);
+              if (a == "rainy") return id(img_nacht_rainy);
+              if (a == "pouring") return id(img_nacht_pouring);
+              if (a == "lightning") return id(img_nacht_lightning);
+              if (a == "lightning-rainy") return id(img_nacht_lightning_rainy);
+              if (a == "snowy") return id(img_nacht_snowy);
+              if (a == "snowy-rainy") return id(img_nacht_snowy_rainy);
+              if (a == "hail") return id(img_nacht_hail);
+              if (a == "windy") return id(img_nacht_windy);
+              if (a == "windy-variant") return id(img_nacht_windy_variant);
+              if (a == "exceptional") return id(img_nacht_exceptional);
+              return id(img_nacht_wolke);
+      - if:
+          condition:
+            lambda: |-
+              return id(sonne_zustand).state == "below_horizon" && !wx::nacht_art(id(wetter_zustand).state).empty();
+          then:
+            - lvgl.widget.show: bild_klein
+          else:
+            - lvgl.widget.hide: bild_klein
+      - lvgl.obj.update:
+          id: panel
+          bg_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x1B2D57 : 0x2C5194);'
+          bg_grad_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x070F26 : 0x0F2148);'
+  # die Temperaturkurve, ihre Punkte und Werte; läuft, wenn ein Tag neue Daten hat
+  - id: kurve_zeichnen
+    mode: restart
+    then:
+      - delay: 300ms  # die fünf Tage kommen kurz nacheinander: einmal zeichnen
+      - lvgl.line.update:
+          id: kurve
+          points:
+            - x: !lambda 'return wx::kurve_x(0);'
+              y: !lambda 'return wx::kurve_y(0);'
+            - x: !lambda 'return wx::kurve_x(1);'
+              y: !lambda 'return wx::kurve_y(1);'
+            - x: !lambda 'return wx::kurve_x(2);'
+              y: !lambda 'return wx::kurve_y(2);'
+            - x: !lambda 'return wx::kurve_x(3);'
+              y: !lambda 'return wx::kurve_y(3);'
+            - x: !lambda 'return wx::kurve_x(4);'
+              y: !lambda 'return wx::kurve_y(4);'
+            - x: !lambda 'return wx::kurve_x(5);'
+              y: !lambda 'return wx::kurve_y(5);'
+            - x: !lambda 'return wx::kurve_x(6);'
+              y: !lambda 'return wx::kurve_y(6);'
+            - x: !lambda 'return wx::kurve_x(7);'
+              y: !lambda 'return wx::kurve_y(7);'
+            - x: !lambda 'return wx::kurve_x(8);'
+              y: !lambda 'return wx::kurve_y(8);'
+            - x: !lambda 'return wx::kurve_x(9);'
+              y: !lambda 'return wx::kurve_y(9);'
+            - x: !lambda 'return wx::kurve_x(10);'
+              y: !lambda 'return wx::kurve_y(10);'
+            - x: !lambda 'return wx::kurve_x(11);'
+              y: !lambda 'return wx::kurve_y(11);'
+            - x: !lambda 'return wx::kurve_x(12);'
+              y: !lambda 'return wx::kurve_y(12);'
+            - x: !lambda 'return wx::kurve_x(13);'
+              y: !lambda 'return wx::kurve_y(13);'
+            - x: !lambda 'return wx::kurve_x(14);'
+              y: !lambda 'return wx::kurve_y(14);'
+            - x: !lambda 'return wx::kurve_x(15);'
+              y: !lambda 'return wx::kurve_y(15);'
+            - x: !lambda 'return wx::kurve_x(16);'
+              y: !lambda 'return wx::kurve_y(16);'
+            - x: !lambda 'return wx::kurve_x(17);'
+              y: !lambda 'return wx::kurve_y(17);'
+            - x: !lambda 'return wx::kurve_x(18);'
+              y: !lambda 'return wx::kurve_y(18);'
+            - x: !lambda 'return wx::kurve_x(19);'
+              y: !lambda 'return wx::kurve_y(19);'
+            - x: !lambda 'return wx::kurve_x(20);'
+              y: !lambda 'return wx::kurve_y(20);'
+            - x: !lambda 'return wx::kurve_x(21);'
+              y: !lambda 'return wx::kurve_y(21);'
+            - x: !lambda 'return wx::kurve_x(22);'
+              y: !lambda 'return wx::kurve_y(22);'
+            - x: !lambda 'return wx::kurve_x(23);'
+              y: !lambda 'return wx::kurve_y(23);'
+            - x: !lambda 'return wx::kurve_x(24);'
+              y: !lambda 'return wx::kurve_y(24);'
+            - x: !lambda 'return wx::kurve_x(25);'
+              y: !lambda 'return wx::kurve_y(25);'
+            - x: !lambda 'return wx::kurve_x(26);'
+              y: !lambda 'return wx::kurve_y(26);'
+            - x: !lambda 'return wx::kurve_x(27);'
+              y: !lambda 'return wx::kurve_y(27);'
+            - x: !lambda 'return wx::kurve_x(28);'
+              y: !lambda 'return wx::kurve_y(28);'
+            - x: !lambda 'return wx::kurve_x(29);'
+              y: !lambda 'return wx::kurve_y(29);'
+            - x: !lambda 'return wx::kurve_x(30);'
+              y: !lambda 'return wx::kurve_y(30);'
+            - x: !lambda 'return wx::kurve_x(31);'
+              y: !lambda 'return wx::kurve_y(31);'
+            - x: !lambda 'return wx::kurve_x(32);'
+              y: !lambda 'return wx::kurve_y(32);'
+      - lvgl.widget.update:
+          id: punkt_0
+          y: !lambda 'return wx::punkt_y(0) - 5;'
+      - lvgl.widget.update:
+          id: lbl_hoch_0
+          y: !lambda 'return wx::punkt_y(0) - 28;'
+      - lvgl.widget.update:
+          id: punkt_1
+          y: !lambda 'return wx::punkt_y(1) - 5;'
+      - lvgl.widget.update:
+          id: lbl_hoch_1
+          y: !lambda 'return wx::punkt_y(1) - 28;'
+      - lvgl.widget.update:
+          id: punkt_2
+          y: !lambda 'return wx::punkt_y(2) - 5;'
+      - lvgl.widget.update:
+          id: lbl_hoch_2
+          y: !lambda 'return wx::punkt_y(2) - 28;'
+      - lvgl.widget.update:
+          id: punkt_3
+          y: !lambda 'return wx::punkt_y(3) - 5;'
+      - lvgl.widget.update:
+          id: lbl_hoch_3
+          y: !lambda 'return wx::punkt_y(3) - 28;'
+      - lvgl.widget.update:
+          id: punkt_4
+          y: !lambda 'return wx::punkt_y(4) - 5;'
+      - lvgl.widget.update:
+          id: lbl_hoch_4
+          y: !lambda 'return wx::punkt_y(4) - 28;'
 
 # ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
 spi:
@@ -164,48 +345,62 @@ touchscreen:
       y_min: 0
       y_max: 480
 
-# ---------------- Schriften ----------------
+
+# ---------------- Schriften: Poppins (wie im Entwurf), Icons von Material Design ----------------
 font:
-  - file: fonts/Roboto-700.ttf
-    id: f_temp
-    size: 80
-    bpp: 4
-    glyphs: "-0123456789°"
-  - file: fonts/Roboto-700.ttf
-    id: f_uhr
-    size: 40
-    bpp: 4
-    glyphs: "0123456789:-"
-  - file: fonts/Roboto-500.ttf
-    id: f_22
-    size: 22
-    bpp: 4
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"
-  - file: fonts/Roboto-500.ttf
-    id: f_18
-    size: 18
-    bpp: 4
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"
-  - file: fonts/Roboto-400.ttf
-    id: f_15
-    size: 15
-    bpp: 4
-    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"
-  - file: fonts/materialdesignicons-webfont.ttf
-    id: i_gross
-    size: 104
-    bpp: 4
-    glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]
-  - file: fonts/materialdesignicons-webfont.ttf
-    id: i_mittel
-    size: 34
-    bpp: 4
-    glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]
-  - file: fonts/materialdesignicons-webfont.ttf
-    id: i_klein
-    size: 22
-    bpp: 4
-    glyphs: ["\U000F058E", "\U000F059D", "\U000F054A", "\U000F059C", "\U000F059B", "\U000F034E"]
+  - {file: fonts/Poppins-300.ttf, id: f_temp, size: 76, bpp: 4, glyphs: "-0123456789"}
+  - {file: fonts/Poppins-300.ttf, id: f_grad, size: 36, bpp: 4, glyphs: "°C"}
+  - {file: fonts/Poppins-600.ttf, id: f_ort, size: 24, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-600.ttf, id: f_pill, size: 14, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-500.ttf, id: f_wert, size: 22, bpp: 4, glyphs: "-0123456789,.°% "}
+  - {file: fonts/Poppins-500.ttf, id: f_17m, size: 17, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-500.ttf, id: f_16m, size: 16, bpp: 4, glyphs: "-0123456789,.°% "}
+  - {file: fonts/Poppins-400.ttf, id: f_16, size: 16, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-500.ttf, id: f_14m, size: 14, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-400.ttf, id: f_14, size: 14, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-500.ttf, id: f_13m, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-400.ttf, id: f_13, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-400.ttf, id: f_12, size: 12, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
+
+# ---------------- Wetterbilder (werkzeuge/bilder.py zeichnet sie) ----------------
+image:
+  - {file: bilder/tag_sunny.png, id: img_tag_sunny, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_partlycloudy.png, id: img_tag_partlycloudy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_cloudy.png, id: img_tag_cloudy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_fog.png, id: img_tag_fog, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_rainy.png, id: img_tag_rainy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_pouring.png, id: img_tag_pouring, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_lightning.png, id: img_tag_lightning, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_lightning_rainy.png, id: img_tag_lightning_rainy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_snowy.png, id: img_tag_snowy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_snowy_rainy.png, id: img_tag_snowy_rainy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_hail.png, id: img_tag_hail, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_windy.png, id: img_tag_windy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_windy_variant.png, id: img_tag_windy_variant, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/tag_exceptional.png, id: img_tag_exceptional, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_0.png, id: img_mond_0, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_1.png, id: img_mond_1, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_2.png, id: img_mond_2, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_3.png, id: img_mond_3, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_4.png, id: img_mond_4, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_5.png, id: img_mond_5, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_6.png, id: img_mond_6, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/mond_7.png, id: img_mond_7, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_wolke.png, id: img_nacht_wolke, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_fog.png, id: img_nacht_fog, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_rainy.png, id: img_nacht_rainy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_pouring.png, id: img_nacht_pouring, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_lightning.png, id: img_nacht_lightning, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_lightning_rainy.png, id: img_nacht_lightning_rainy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_snowy.png, id: img_nacht_snowy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_snowy_rainy.png, id: img_nacht_snowy_rainy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_hail.png, id: img_nacht_hail, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_windy.png, id: img_nacht_windy, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_windy_variant.png, id: img_nacht_windy_variant, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/nacht_exceptional.png, id: img_nacht_exceptional, type: RGB565, transparency: alpha_channel}
 
 # ---------------- Daten aus Home Assistant ----------------
 text_sensor:
@@ -214,127 +409,170 @@ text_sensor:
     entity_id: ${wetter_entity}
     on_value:
       then:
-        - lvgl.label.update:
-            id: lbl_icon_jetzt
-            text: !lambda 'return wx::icon(x);'
-            text_color: !lambda 'return wx::color(x);'
+        - script.execute: jetzt_zeichnen
         - lvgl.label.update:
             id: lbl_zustand
             text: !lambda 'return wx::text(x);'
+  - platform: homeassistant
+    id: sonne_zustand
+    entity_id: sun.sun
+    on_value:
+      then:
+        - script.execute: jetzt_zeichnen
   - platform: homeassistant
     id: wetter_sonne
     entity_id: ${vorhersage_entity}
     attribute: sonne
     on_value:
       then:
+        - script.execute: uhr_zeichnen
         - lvgl.label.update:
-            id: lbl_sonne_icon
-            text: !lambda 'return wx::part(x, 0) == "auf" ? "\U000F059C" : "\U000F059B";'
+            id: lbl_auf
+            text: !lambda 'return wx::uhr_epoch(wx::part(x, 0));'
         - lvgl.label.update:
-            id: lbl_sonne
-            text: !lambda 'auto t = wx::part(x, 1); return t.empty() ? std::string("--:--") : t;'
-
+            id: lbl_unter
+            text: !lambda 'return wx::uhr_epoch(wx::part(x, 1));'
+  - platform: homeassistant
+    id: wetter_warnung
+    entity_id: ${vorhersage_entity}
+    attribute: warnung
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: 'return wx::num(wx::part(x, 0)) >= 1;'
+            then:
+              - lvgl.obj.update:
+                  id: rahmen
+                  border_color: !lambda 'return wx::warn_color((int) wx::num(wx::part(x, 0)));'
+              - lvgl.obj.update:
+                  id: warn_pill
+                  bg_color: !lambda 'return wx::warn_color((int) wx::num(wx::part(x, 0)));'
+              - lvgl.label.update:
+                  id: lbl_warn_icon
+                  text: !lambda 'return wx::warn_icon(wx::part(x, 2));'
+                  text_color: !lambda 'return wx::warn_text_color((int) wx::num(wx::part(x, 0)));'
+              - lvgl.label.update:
+                  id: lbl_warn
+                  text: !lambda 'return wx::part(x, 1);'
+                  text_color: !lambda 'return wx::warn_text_color((int) wx::num(wx::part(x, 0)));'
+              - lvgl.widget.show: [rahmen, warn_pill]
+            else:
+              - lvgl.widget.hide: [rahmen, warn_pill]
   - platform: homeassistant
     id: tag_0
     entity_id: ${vorhersage_entity}
     attribute: tag_0
     on_value:
       then:
+        - lambda: 'wx::hoch[0] = wx::num(wx::part(x, 2));'
+        - script.execute: kurve_zeichnen
         - lvgl.label.update:
-            id: lbl_tag_0_name
-            text: !lambda 'return wx::part(x, 0);'
-        - lvgl.label.update:
-            id: lbl_tag_0_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_tag_0_hoch
+            id: lbl_hoch_0
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_tag_0_tief
-            text: !lambda 'return wx::deg(wx::part(x, 3));'
+            id: lbl_regen_0
+            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
-            id: lbl_heute_hochtief
-            text: !lambda 'return wx::deg(wx::part(x, 2)) + "  /  " + wx::deg(wx::part(x, 3));'
+            id: lbl_icon_0
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::icon_color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_name_0
+            text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_hochtief
+            text: !lambda 'return "Hoch " + wx::deg(wx::part(x, 2)) + " · Tief " + wx::deg(wx::part(x, 3));'
         - lvgl.label.update:
             id: lbl_regen
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
+        - lvgl.label.update:
+            id: lbl_regen_einheit
+            text: !lambda 'return wx::rain_unit(wx::part(x, 4), wx::part(x, 5));'
   - platform: homeassistant
     id: tag_1
     entity_id: ${vorhersage_entity}
     attribute: tag_1
     on_value:
       then:
+        - lambda: 'wx::hoch[1] = wx::num(wx::part(x, 2));'
+        - script.execute: kurve_zeichnen
         - lvgl.label.update:
-            id: lbl_tag_1_name
-            text: !lambda 'return wx::part(x, 0);'
-        - lvgl.label.update:
-            id: lbl_tag_1_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_tag_1_hoch
+            id: lbl_hoch_1
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_tag_1_tief
-            text: !lambda 'return wx::deg(wx::part(x, 3));'
+            id: lbl_regen_1
+            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+        - lvgl.label.update:
+            id: lbl_icon_1
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::icon_color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_name_1
+            text: !lambda 'return wx::part(x, 0);'
   - platform: homeassistant
     id: tag_2
     entity_id: ${vorhersage_entity}
     attribute: tag_2
     on_value:
       then:
+        - lambda: 'wx::hoch[2] = wx::num(wx::part(x, 2));'
+        - script.execute: kurve_zeichnen
         - lvgl.label.update:
-            id: lbl_tag_2_name
-            text: !lambda 'return wx::part(x, 0);'
-        - lvgl.label.update:
-            id: lbl_tag_2_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_tag_2_hoch
+            id: lbl_hoch_2
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_tag_2_tief
-            text: !lambda 'return wx::deg(wx::part(x, 3));'
+            id: lbl_regen_2
+            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+        - lvgl.label.update:
+            id: lbl_icon_2
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::icon_color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_name_2
+            text: !lambda 'return wx::part(x, 0);'
   - platform: homeassistant
     id: tag_3
     entity_id: ${vorhersage_entity}
     attribute: tag_3
     on_value:
       then:
+        - lambda: 'wx::hoch[3] = wx::num(wx::part(x, 2));'
+        - script.execute: kurve_zeichnen
         - lvgl.label.update:
-            id: lbl_tag_3_name
-            text: !lambda 'return wx::part(x, 0);'
-        - lvgl.label.update:
-            id: lbl_tag_3_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_tag_3_hoch
+            id: lbl_hoch_3
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_tag_3_tief
-            text: !lambda 'return wx::deg(wx::part(x, 3));'
+            id: lbl_regen_3
+            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+        - lvgl.label.update:
+            id: lbl_icon_3
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::icon_color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_name_3
+            text: !lambda 'return wx::part(x, 0);'
   - platform: homeassistant
     id: tag_4
     entity_id: ${vorhersage_entity}
     attribute: tag_4
     on_value:
       then:
+        - lambda: 'wx::hoch[4] = wx::num(wx::part(x, 2));'
+        - script.execute: kurve_zeichnen
         - lvgl.label.update:
-            id: lbl_tag_4_name
-            text: !lambda 'return wx::part(x, 0);'
-        - lvgl.label.update:
-            id: lbl_tag_4_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_tag_4_hoch
+            id: lbl_hoch_4
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_tag_4_tief
-            text: !lambda 'return wx::deg(wx::part(x, 3));'
+            id: lbl_regen_4
+            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+        - lvgl.label.update:
+            id: lbl_icon_4
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::icon_color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_name_4
+            text: !lambda 'return wx::part(x, 0);'
   - platform: homeassistant
     id: stunde_0
     entity_id: ${vorhersage_entity}
@@ -342,15 +580,14 @@ text_sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: lbl_std_0_zeit
+            id: lbl_std_0
             text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.bar.update:
+            id: bar_std_0
+            value: !lambda 'return wx::rain_bar(wx::part(x, 1), wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_std_0_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_std_0_temp
-            text: !lambda 'return wx::deg(wx::part(x, 2));'
+            id: lbl_std_wert_0
+            text: !lambda 'return wx::part(x, 0).empty() ? std::string("") : wx::rain(wx::part(x, 1), wx::part(x, 2));'
   - platform: homeassistant
     id: stunde_1
     entity_id: ${vorhersage_entity}
@@ -358,15 +595,14 @@ text_sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: lbl_std_1_zeit
+            id: lbl_std_1
             text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.bar.update:
+            id: bar_std_1
+            value: !lambda 'return wx::rain_bar(wx::part(x, 1), wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_std_1_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_std_1_temp
-            text: !lambda 'return wx::deg(wx::part(x, 2));'
+            id: lbl_std_wert_1
+            text: !lambda 'return wx::part(x, 0).empty() ? std::string("") : wx::rain(wx::part(x, 1), wx::part(x, 2));'
   - platform: homeassistant
     id: stunde_2
     entity_id: ${vorhersage_entity}
@@ -374,15 +610,14 @@ text_sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: lbl_std_2_zeit
+            id: lbl_std_2
             text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.bar.update:
+            id: bar_std_2
+            value: !lambda 'return wx::rain_bar(wx::part(x, 1), wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_std_2_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_std_2_temp
-            text: !lambda 'return wx::deg(wx::part(x, 2));'
+            id: lbl_std_wert_2
+            text: !lambda 'return wx::part(x, 0).empty() ? std::string("") : wx::rain(wx::part(x, 1), wx::part(x, 2));'
   - platform: homeassistant
     id: stunde_3
     entity_id: ${vorhersage_entity}
@@ -390,15 +625,14 @@ text_sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: lbl_std_3_zeit
+            id: lbl_std_3
             text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.bar.update:
+            id: bar_std_3
+            value: !lambda 'return wx::rain_bar(wx::part(x, 1), wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_std_3_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_std_3_temp
-            text: !lambda 'return wx::deg(wx::part(x, 2));'
+            id: lbl_std_wert_3
+            text: !lambda 'return wx::part(x, 0).empty() ? std::string("") : wx::rain(wx::part(x, 1), wx::part(x, 2));'
   - platform: homeassistant
     id: stunde_4
     entity_id: ${vorhersage_entity}
@@ -406,31 +640,14 @@ text_sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: lbl_std_4_zeit
+            id: lbl_std_4
             text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.bar.update:
+            id: bar_std_4
+            value: !lambda 'return wx::rain_bar(wx::part(x, 1), wx::part(x, 2));'
         - lvgl.label.update:
-            id: lbl_std_4_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_std_4_temp
-            text: !lambda 'return wx::deg(wx::part(x, 2));'
-  - platform: homeassistant
-    id: stunde_5
-    entity_id: ${vorhersage_entity}
-    attribute: stunde_5
-    on_value:
-      then:
-        - lvgl.label.update:
-            id: lbl_std_5_zeit
-            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
-        - lvgl.label.update:
-            id: lbl_std_5_icon
-            text: !lambda 'return wx::icon(wx::part(x, 1));'
-            text_color: !lambda 'return wx::color(wx::part(x, 1));'
-        - lvgl.label.update:
-            id: lbl_std_5_temp
-            text: !lambda 'return wx::deg(wx::part(x, 2));'
+            id: lbl_std_wert_4
+            text: !lambda 'return wx::part(x, 0).empty() ? std::string("") : wx::rain(wx::part(x, 1), wx::part(x, 2));'
 
 sensor:
   - platform: homeassistant
@@ -441,16 +658,7 @@ sensor:
       then:
         - lvgl.label.update:
             id: lbl_temp
-            text: !lambda 'return wx::deg(x);'
-  - platform: homeassistant
-    id: wetter_gefuehlt
-    entity_id: ${wetter_entity}
-    attribute: apparent_temperature
-    on_value:
-      then:
-        - lvgl.label.update:
-            id: lbl_gefuehlt
-            text: !lambda 'return std::isnan(x) ? std::string("") : "Gefühlt " + wx::deg(x);'
+            text: !lambda 'return wx::zahl(x);'
   - platform: homeassistant
     id: wetter_feuchte
     entity_id: ${wetter_entity}
@@ -468,7 +676,7 @@ sensor:
       then:
         - lvgl.label.update:
             id: lbl_wind
-            text: !lambda 'return wx::wind(x, id(wetter_windrichtung).state);'
+            text: !lambda 'return wx::percent(x);'
   - platform: homeassistant
     id: wetter_windrichtung
     entity_id: ${wetter_entity}
@@ -476,618 +684,1040 @@ sensor:
     on_value:
       then:
         - lvgl.label.update:
-            id: lbl_wind
-            text: !lambda 'return wx::wind(id(wetter_wind).state, x);'
+            id: lbl_wind_titel
+            text: !lambda 'auto r = wx::richtung(x); return r.empty() ? std::string("Wind") : "Wind " + r;'
+  - platform: homeassistant
+    id: wetter_uv
+    entity_id: ${wetter_entity}
+    attribute: uv_index
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_uv
+            text: !lambda 'return wx::percent(x);'
+        - lvgl.label.update:
+            id: lbl_uv_text
+            text: !lambda 'return wx::uv_text(x);'
+            text_color: !lambda 'return wx::uv_color(x);'
 
 # ---------------- Oberfläche ----------------
 lvgl:
   displays: [my_display]
   touchscreens: [ts_touch]
   buffer_size: 25%
-  default_font: f_18
-  theme:
-    label:
-      text_color: 0xF2F5F9
+  default_font: f_14
   pages:
     - id: seite_wetter
-      bg_color: 0x0C131D
+      bg_color: 0xF3F5F9
       bg_opa: COVER
       scrollable: false
       pad_all: 0
       widgets:
-        - label:
-            id: lbl_ort
-            x: 16
-            y: 10
-            width: 280
-            text: "${ort}"
-            text_font: f_22
-            text_color: 0xF2F5F9
-            text_align: LEFT
-        - label:
-            id: lbl_datum
-            x: 16
-            y: 38
-            width: 300
-            text: ""
-            text_font: f_15
-            text_color: 0x8C9DB5
-            text_align: LEFT
-        - label:
-            id: lbl_uhr
-            x: 304
-            y: 12
-            width: 160
-            text: "--:--"
-            text_font: f_uhr
-            text_color: 0xF2F5F9
-            text_align: RIGHT
         - obj:
-            id: karte_jetzt
-            x: 12
-            y: 66
-            width: 456
-            height: 150
-            bg_color: 0x172233
+            id: panel
+            x: 8
+            y: 8
+            width: 464
+            height: 212
+            bg_color: 0x2C5194
+            bg_grad_color: 0x0F2148
+            bg_grad_dir: VER
             bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
+            border_width: 0
+            radius: 22
+            clip_corner: true
             pad_all: 0
             scrollable: false
             clickable: false
             widgets:
-              - label:
-                  id: lbl_icon_jetzt
-                  x: 10
-                  y: 18
-                  width: 130
-                  text: ""
-                  text_font: i_gross
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_temp
-                  x: 144
-                  y: 14
-                  width: 180
-                  text: "--°"
-                  text_font: f_temp
-                  text_color: 0xF2F5F9
-                  text_align: LEFT
+              - obj:
+                  x: 16
+                  y: 12
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 12
+                  widgets:
+                      - label:
+                          id: lbl_ort
+                          text: "${ort}"
+                          text_font: f_ort
+                          text_color: 0xFFFFFF
+                      - obj:
+                          id: warn_pill
+                          hidden: true
+                          height: 24
+                          width: SIZE_CONTENT
+                          radius: 12
+                          bg_color: 0xF08A24
+                          bg_opa: COVER
+                          border_width: 0
+                          pad_left: 7
+                          pad_right: 10
+                          pad_top: 0
+                          pad_bottom: 0
+                          scrollable: false
+                          clickable: false
+                          layout: 
+                              type: FLEX
+                              flex_flow: ROW
+                              flex_align_main: START
+                              flex_align_cross: CENTER
+                              flex_align_track: CENTER
+                              pad_column: 5
+                          widgets:
+                          - label:
+                              id: lbl_warn_icon
+                              text: "\U000F0026"
+                              text_font: i_warn
+                              text_color: 0xFFFFFF
+                          - label:
+                              id: lbl_warn
+                              text: ""
+                              text_font: f_pill
+                              text_color: 0xFFFFFF
+              - obj:
+                  x: 16
+                  y: 45
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 8
+                  widgets:
+                      - label:
+                          id: lbl_datum
+                          text: ""
+                          text_font: f_16
+                          text_color: 0xB4C3DF
+                      - obj:
+                          height: 20
+                          width: SIZE_CONTENT
+                          radius: 10
+                          bg_color: 0xFFFFFF
+                          bg_opa: 16%
+                          border_width: 0
+                          pad_left: 8
+                          pad_right: 8
+                          pad_top: 0
+                          pad_bottom: 0
+                          scrollable: false
+                          clickable: false
+                          layout: 
+                              type: FLEX
+                              flex_flow: ROW
+                              flex_align_main: CENTER
+                              flex_align_cross: CENTER
+                              flex_align_track: CENTER
+                          widgets:
+                          - label:
+                              id: lbl_kw
+                              text: "KW --"
+                              text_font: f_14m
+                              text_color: 0xFFFFFF
+              - obj:
+                  x: 12
+                  y: 65
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: START
+                      flex_align_track: START
+                      pad_column: 0
+                  widgets:
+                      - label:
+                          id: lbl_temp
+                          text: "--"
+                          text_font: f_temp
+                          text_color: 0xFFFFFF
+                      - label:
+                          text: "°C"
+                          text_font: f_grad
+                          text_color: 0xFFFFFF
+                          pad_top: 12
+                          pad_left: 2
+              - obj:
+                  x: 16
+                  y: 172
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 6
+                  widgets:
+                      - label:
+                          text: "\U000F059C"
+                          text_font: i_ui
+                          text_color: 0xFFD27A
+                      - label:
+                          id: lbl_auf
+                          text: "--:--"
+                          text_font: f_17m
+                          text_color: 0xFFFFFF
+                      - label:
+                          id: lbl_auf_wann
+                          text: ""
+                          text_font: f_12
+                          text_color: 0xB4C3DF
+                      - obj:
+                          width: 6
+                          height: 1
+                          bg_opa: TRANSP
+                          border_width: 0
+                      - label:
+                          text: "\U000F059B"
+                          text_font: i_ui
+                          text_color: 0xFFD27A
+                      - label:
+                          id: lbl_unter
+                          text: "--:--"
+                          text_font: f_17m
+                          text_color: 0xFFFFFF
+                      - label:
+                          id: lbl_unter_wann
+                          text: ""
+                          text_font: f_12
+                          text_color: 0xB4C3DF
+              - image:
+                  id: bild_jetzt
+                  x: 311
+                  y: 5
+                  src: img_tag_cloudy
+              - image:
+                  id: bild_klein
+                  x: 372
+                  y: 66
+                  src: img_nacht_wolke
+                  hidden: true
               - label:
                   id: lbl_zustand
-                  x: 148
-                  y: 106
-                  width: 296
-                  text: "Warte auf Daten"
-                  text_font: f_22
-                  text_color: 0xF2F5F9
-                  text_align: LEFT
-                  long_mode: DOT
-              - label:
-                  id: lbl_heute_hochtief
-                  x: 292
-                  y: 30
-                  width: 150
+                  x: 284
+                  y: 148
+                  width: 164
                   text: ""
-                  text_font: f_22
-                  text_color: 0xF2F5F9
+                  text_font: f_17m
+                  text_color: 0xFFFFFF
                   text_align: RIGHT
+                  long_mode: DOT
               - label:
-                  id: lbl_gefuehlt
-                  x: 292
-                  y: 62
-                  width: 150
+                  id: lbl_hochtief
+                  x: 284
+                  y: 174
+                  width: 164
                   text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
+                  text_font: f_14
+                  text_color: 0xB4C3DF
                   text_align: RIGHT
-        - obj:
-            id: chip_feuchte
-            x: 12
-            y: 224
-            width: 100
-            height: 52
-            bg_color: 0x172233
-            bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
-            pad_all: 0
-            scrollable: false
-            clickable: false
-            widgets:
-              - label:
-                  id: lbl_feuchte_icon
-                  x: 8
-                  y: 13
-                  width: 26
-                  text: "\U000F058E"
-                  text_font: i_klein
-                  text_color: 0x6EC3FF
-                  text_align: CENTER
-              - label:
-                  id: lbl_feuchte
-                  x: 36
-                  y: 15
-                  width: 58
-                  text: "--"
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: LEFT
-                  long_mode: DOT
-        - obj:
-            id: chip_wind
-            x: 120
-            y: 224
-            width: 132
-            height: 52
-            bg_color: 0x172233
-            bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
-            pad_all: 0
-            scrollable: false
-            clickable: false
-            widgets:
-              - label:
-                  id: lbl_wind_icon
-                  x: 8
-                  y: 13
-                  width: 26
-                  text: "\U000F059D"
-                  text_font: i_klein
-                  text_color: 0x6EC3FF
-                  text_align: CENTER
-              - label:
-                  id: lbl_wind
-                  x: 36
-                  y: 15
-                  width: 90
-                  text: "--"
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: LEFT
-                  long_mode: DOT
-        - obj:
-            id: chip_regen
-            x: 260
-            y: 224
-            width: 100
-            height: 52
-            bg_color: 0x172233
-            bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
-            pad_all: 0
-            scrollable: false
-            clickable: false
-            widgets:
-              - label:
-                  id: lbl_regen_icon
-                  x: 8
-                  y: 13
-                  width: 26
-                  text: "\U000F054A"
-                  text_font: i_klein
-                  text_color: 0x6EC3FF
-                  text_align: CENTER
-              - label:
-                  id: lbl_regen
-                  x: 36
-                  y: 15
-                  width: 58
-                  text: "--"
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: LEFT
-                  long_mode: DOT
-        - obj:
-            id: chip_sonne
-            x: 368
-            y: 224
-            width: 100
-            height: 52
-            bg_color: 0x172233
-            bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
-            pad_all: 0
-            scrollable: false
-            clickable: false
-            widgets:
-              - label:
-                  id: lbl_sonne_icon
-                  x: 8
-                  y: 13
-                  width: 26
-                  text: "\U000F059B"
-                  text_font: i_klein
-                  text_color: 0x6EC3FF
-                  text_align: CENTER
-              - label:
-                  id: lbl_sonne
-                  x: 36
-                  y: 15
-                  width: 58
-                  text: "--:--"
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: LEFT
-                  long_mode: DOT
-        - obj:
-            id: karte_stunden
-            x: 12
-            y: 284
-            width: 456
-            height: 86
-            bg_color: 0x172233
-            bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
-            pad_all: 0
-            scrollable: false
-            clickable: false
-            widgets:
-              - label:
-                  id: lbl_std_0_zeit
+              - obj:
+                  id: rahmen
                   x: 0
-                  y: 8
-                  width: 76
-                  text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
+                  y: 0
+                  width: 464
+                  height: 212
+                  bg_opa: TRANSP
+                  border_width: 4
+                  border_color: 0xF08A24
+                  radius: 22
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  hidden: true
+        - obj:
+            id: kachel_wind
+            x: 8
+            y: 228
+            width: 110
+            height: 62
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
               - label:
-                  id: lbl_std_0_icon
-                  x: 0
+                  id: lbl_wind_titel
+                  x: 16
+                  y: 9
+                  text: "Wind"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - obj:
+                  x: 15
                   y: 28
-                  width: 76
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 3
+                  widgets:
+                      - label:
+                          text: "\U000F059D"
+                          text_font: i_ui
+                          text_color: 0x2F6FED
+                          pad_right: 3
+                          pad_bottom: 4
+                      - label:
+                          id: lbl_wind
+                          text: "--"
+                          text_font: f_wert
+                          text_color: 0x14213D
+                      - label:
+                          text: "km/h"
+                          text_font: f_14
+                          text_color: 0x5F6B80
+                          pad_bottom: 3
+        - obj:
+            id: kachel_regen
+            x: 126
+            y: 228
+            width: 110
+            height: 62
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
               - label:
-                  id: lbl_std_0_temp
-                  x: 0
-                  y: 62
-                  width: 76
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_1_zeit
-                  x: 76
-                  y: 8
-                  width: 76
-                  text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_1_icon
-                  x: 76
+                  x: 16
+                  y: 9
+                  text: "Regen heute"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - obj:
+                  x: 15
                   y: 28
-                  width: 76
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 3
+                  widgets:
+                      - label:
+                          text: "\U000F054A"
+                          text_font: i_ui
+                          text_color: 0x2F6FED
+                          pad_right: 3
+                          pad_bottom: 4
+                      - label:
+                          id: lbl_regen
+                          text: "--"
+                          text_font: f_wert
+                          text_color: 0x14213D
+                      - label:
+                          id: lbl_regen_einheit
+                          text: "%"
+                          text_font: f_14
+                          text_color: 0x5F6B80
+                          pad_bottom: 3
+        - obj:
+            id: kachel_feuchte
+            x: 244
+            y: 228
+            width: 110
+            height: 62
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
               - label:
-                  id: lbl_std_1_temp
-                  x: 76
-                  y: 62
-                  width: 76
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_2_zeit
-                  x: 152
-                  y: 8
-                  width: 76
-                  text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_2_icon
-                  x: 152
+                  x: 16
+                  y: 9
+                  text: "Luftfeuchte"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - obj:
+                  x: 15
                   y: 28
-                  width: 76
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 3
+                  widgets:
+                      - label:
+                          text: "\U000F058E"
+                          text_font: i_ui
+                          text_color: 0x2F6FED
+                          pad_right: 3
+                          pad_bottom: 4
+                      - label:
+                          id: lbl_feuchte
+                          text: "--"
+                          text_font: f_wert
+                          text_color: 0x14213D
+                      - label:
+                          text: "%"
+                          text_font: f_14
+                          text_color: 0x5F6B80
+                          pad_bottom: 3
+        - obj:
+            id: kachel_uv
+            x: 362
+            y: 228
+            width: 110
+            height: 62
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 14
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
               - label:
-                  id: lbl_std_2_temp
-                  x: 152
-                  y: 62
-                  width: 76
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_3_zeit
-                  x: 228
-                  y: 8
-                  width: 76
-                  text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_3_icon
-                  x: 228
+                  x: 16
+                  y: 9
+                  text: "UV-Index"
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - obj:
+                  x: 15
                   y: 28
-                  width: 76
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_3_temp
-                  x: 228
-                  y: 62
-                  width: 76
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_4_zeit
-                  x: 304
-                  y: 8
-                  width: 76
-                  text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_4_icon
-                  x: 304
-                  y: 28
-                  width: 76
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_4_temp
-                  x: 304
-                  y: 62
-                  width: 76
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_5_zeit
-                  x: 380
-                  y: 8
-                  width: 76
-                  text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_5_icon
-                  x: 380
-                  y: 28
-                  width: 76
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_std_5_temp
-                  x: 380
-                  y: 62
-                  width: 76
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: END
+                      flex_align_track: END
+                      pad_column: 3
+                  widgets:
+                      - label:
+                          text: "\U000F05A8"
+                          text_font: i_ui
+                          text_color: 0x2F6FED
+                          pad_right: 3
+                          pad_bottom: 4
+                      - label:
+                          id: lbl_uv
+                          text: "--"
+                          text_font: f_wert
+                          text_color: 0x14213D
+                      - label:
+                          id: lbl_uv_text
+                          text: ""
+                          text_font: f_14m
+                          text_color: 0x2EAF6A
+                          pad_bottom: 3
         - obj:
             id: karte_tage
-            x: 12
-            y: 378
-            width: 456
-            height: 94
-            bg_color: 0x172233
+            x: 8
+            y: 298
+            width: 228
+            height: 174
+            bg_color: 0xFFFFFF
             bg_opa: COVER
-            border_width: 1
-            border_color: 0x22324A
-            radius: 18
+            border_width: 0
+            radius: 16
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
             pad_all: 0
             scrollable: false
             clickable: false
             widgets:
               - label:
-                  id: lbl_tag_0_name
-                  x: 0
-                  y: 8
-                  width: 91
+                  x: 16
+                  y: 10
+                  text: "5 Tage"
+                  text_font: f_17m
+                  text_color: 0x14213D
+              - obj:
+                  x: -16
+                  y: 13
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  align: TOP_RIGHT
+                  widgets:
+                      - obj:
+                          width: 10
+                          height: 3
+                          radius: 2
+                          bg_color: 0x1E3A6E
+                          bg_opa: COVER
+                          border_width: 0
+                      - label:
+                          text: "Temp"
+                          text_font: f_13
+                          text_color: 0x5F6B80
+                      - label:
+                          text: "%"
+                          text_font: f_13m
+                          text_color: 0x2F6FED
+                          pad_left: 6
+                      - label:
+                          text: "Regen"
+                          text_font: f_13
+                          text_color: 0x5F6B80
+              - obj:
+                  x: 16
+                  y: 106
+                  width: 196
+                  height: 1
+                  bg_color: 0x1E3A6E
+                  bg_opa: 14%
+                  border_width: 0
+                  radius: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - line:
+                  id: kurve
+                  points: [[36, 80], [40, 80], [45, 80], [50, 80], [55, 80], [60, 80], [65, 80], [70, 80], [75, 80], [80, 80], [85, 80], [90, 80], [94, 80], [99, 80], [104, 80], [109, 80], [114, 80], [119, 80], [124, 80], [129, 80], [134, 80], [138, 80], [143, 80], [148, 80], [153, 80], [158, 80], [163, 80], [168, 80], [173, 80], [178, 80], [183, 80], [188, 80], [192, 80]]
+                  line_color: 0x1E3A6E
+                  line_width: 3
+                  line_rounded: true
+              - obj:
+                  id: punkt_0
+                  x: 31
+                  y: 75
+                  width: 10
+                  height: 10
+                  radius: 5
+                  bg_color: 0x2F6FED
+                  bg_opa: COVER
+                  border_width: 3
+                  border_color: 0x2F6FED
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  id: lbl_hoch_0
+                  x: 16
+                  y: 50
+                  width: 40
                   text: ""
-                  text_font: f_15
-                  text_color: 0x6EC3FF
+                  text_font: f_16m
+                  text_color: 0x2F6FED
                   text_align: CENTER
               - label:
-                  id: lbl_tag_0_icon
-                  x: 0
-                  y: 28
-                  width: 91
+                  id: lbl_regen_0
+                  x: 16
+                  y: 111
+                  width: 40
                   text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
+                  text_font: f_13m
+                  text_color: 0x2F6FED
                   text_align: CENTER
               - label:
-                  id: lbl_tag_0_hoch
-                  x: 4
-                  y: 66
-                  width: 43
+                  id: lbl_icon_0
+                  x: 16
+                  y: 128
+                  width: 40
                   text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
+                  text_font: i_tag
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - label:
+                  id: lbl_name_0
+                  x: 14
+                  y: 148
+                  width: 44
+                  text: ""
+                  text_font: f_14m
+                  text_color: 0x2F6FED
+                  text_align: CENTER
+              - obj:
+                  id: punkt_1
+                  x: 70
+                  y: 75
+                  width: 10
+                  height: 10
+                  radius: 5
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 3
+                  border_color: 0x2F6FED
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  id: lbl_hoch_1
+                  x: 55
+                  y: 50
+                  width: 40
+                  text: ""
+                  text_font: f_16m
+                  text_color: 0x14213D
+                  text_align: CENTER
+              - label:
+                  id: lbl_regen_1
+                  x: 55
+                  y: 111
+                  width: 40
+                  text: ""
+                  text_font: f_13m
+                  text_color: 0x2F6FED
+                  text_align: CENTER
+              - label:
+                  id: lbl_icon_1
+                  x: 55
+                  y: 128
+                  width: 40
+                  text: ""
+                  text_font: i_tag
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - label:
+                  id: lbl_name_1
+                  x: 53
+                  y: 148
+                  width: 44
+                  text: ""
+                  text_font: f_14
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - obj:
+                  id: punkt_2
+                  x: 109
+                  y: 75
+                  width: 10
+                  height: 10
+                  radius: 5
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 3
+                  border_color: 0x2F6FED
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  id: lbl_hoch_2
+                  x: 94
+                  y: 50
+                  width: 40
+                  text: ""
+                  text_font: f_16m
+                  text_color: 0x14213D
+                  text_align: CENTER
+              - label:
+                  id: lbl_regen_2
+                  x: 94
+                  y: 111
+                  width: 40
+                  text: ""
+                  text_font: f_13m
+                  text_color: 0x2F6FED
+                  text_align: CENTER
+              - label:
+                  id: lbl_icon_2
+                  x: 94
+                  y: 128
+                  width: 40
+                  text: ""
+                  text_font: i_tag
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - label:
+                  id: lbl_name_2
+                  x: 92
+                  y: 148
+                  width: 44
+                  text: ""
+                  text_font: f_14
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - obj:
+                  id: punkt_3
+                  x: 148
+                  y: 75
+                  width: 10
+                  height: 10
+                  radius: 5
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 3
+                  border_color: 0x2F6FED
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  id: lbl_hoch_3
+                  x: 133
+                  y: 50
+                  width: 40
+                  text: ""
+                  text_font: f_16m
+                  text_color: 0x14213D
+                  text_align: CENTER
+              - label:
+                  id: lbl_regen_3
+                  x: 133
+                  y: 111
+                  width: 40
+                  text: ""
+                  text_font: f_13m
+                  text_color: 0x2F6FED
+                  text_align: CENTER
+              - label:
+                  id: lbl_icon_3
+                  x: 133
+                  y: 128
+                  width: 40
+                  text: ""
+                  text_font: i_tag
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - label:
+                  id: lbl_name_3
+                  x: 131
+                  y: 148
+                  width: 44
+                  text: ""
+                  text_font: f_14
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - obj:
+                  id: punkt_4
+                  x: 187
+                  y: 75
+                  width: 10
+                  height: 10
+                  radius: 5
+                  bg_color: 0xFFFFFF
+                  bg_opa: COVER
+                  border_width: 3
+                  border_color: 0x2F6FED
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - label:
+                  id: lbl_hoch_4
+                  x: 172
+                  y: 50
+                  width: 40
+                  text: ""
+                  text_font: f_16m
+                  text_color: 0x14213D
+                  text_align: CENTER
+              - label:
+                  id: lbl_regen_4
+                  x: 172
+                  y: 111
+                  width: 40
+                  text: ""
+                  text_font: f_13m
+                  text_color: 0x2F6FED
+                  text_align: CENTER
+              - label:
+                  id: lbl_icon_4
+                  x: 172
+                  y: 128
+                  width: 40
+                  text: ""
+                  text_font: i_tag
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+              - label:
+                  id: lbl_name_4
+                  x: 170
+                  y: 148
+                  width: 44
+                  text: ""
+                  text_font: f_14
+                  text_color: 0x5F6B80
+                  text_align: CENTER
+        - obj:
+            id: karte_regen
+            x: 244
+            y: 298
+            width: 228
+            height: 174
+            bg_color: 0xFFFFFF
+            bg_opa: COVER
+            border_width: 0
+            radius: 16
+            shadow_width: 18
+            shadow_color: 0x1E3A6E
+            shadow_opa: 10%
+            shadow_offset_y: 4
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  x: 16
+                  y: 10
+                  text: "Regen"
+                  text_font: f_17m
+                  text_color: 0x14213D
+              - obj:
+                  x: -16
+                  y: 13
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  align: TOP_RIGHT
+                  widgets:
+                      - label:
+                          text: "nächste Stunden"
+                          text_font: f_13
+                          text_color: 0x5F6B80
+              - label:
+                  id: lbl_std_0
+                  x: 16
+                  y: 48
+                  width: 44
+                  text: ""
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_std_0
+                  x: 70
+                  y: 52
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0x2F6FED
+                  bg_opa: 12%
+                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
+              - label:
+                  id: lbl_std_wert_0
+                  x: 178
+                  y: 48
+                  width: 34
+                  text: ""
+                  text_font: f_14m
+                  text_color: 0x14213D
                   text_align: RIGHT
               - label:
-                  id: lbl_tag_0_tief
-                  x: 49
-                  y: 66
-                  width: 39
+                  id: lbl_std_1
+                  x: 16
+                  y: 72
+                  width: 44
                   text: ""
-                  text_font: f_18
-                  text_color: 0x8C9DB5
-                  text_align: LEFT
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_std_1
+                  x: 70
+                  y: 76
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0x2F6FED
+                  bg_opa: 12%
+                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
               - label:
-                  id: lbl_tag_1_name
-                  x: 91
-                  y: 8
-                  width: 91
+                  id: lbl_std_wert_1
+                  x: 178
+                  y: 72
+                  width: 34
                   text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_1_icon
-                  x: 91
-                  y: 28
-                  width: 91
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_1_hoch
-                  x: 95
-                  y: 66
-                  width: 43
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
+                  text_font: f_14m
+                  text_color: 0x14213D
                   text_align: RIGHT
               - label:
-                  id: lbl_tag_1_tief
-                  x: 140
-                  y: 66
-                  width: 39
+                  id: lbl_std_2
+                  x: 16
+                  y: 96
+                  width: 44
                   text: ""
-                  text_font: f_18
-                  text_color: 0x8C9DB5
-                  text_align: LEFT
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_std_2
+                  x: 70
+                  y: 100
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0x2F6FED
+                  bg_opa: 12%
+                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
               - label:
-                  id: lbl_tag_2_name
-                  x: 182
-                  y: 8
-                  width: 91
+                  id: lbl_std_wert_2
+                  x: 178
+                  y: 96
+                  width: 34
                   text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_2_icon
-                  x: 182
-                  y: 28
-                  width: 91
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_2_hoch
-                  x: 186
-                  y: 66
-                  width: 43
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
+                  text_font: f_14m
+                  text_color: 0x14213D
                   text_align: RIGHT
               - label:
-                  id: lbl_tag_2_tief
-                  x: 231
-                  y: 66
-                  width: 39
+                  id: lbl_std_3
+                  x: 16
+                  y: 120
+                  width: 44
                   text: ""
-                  text_font: f_18
-                  text_color: 0x8C9DB5
-                  text_align: LEFT
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_std_3
+                  x: 70
+                  y: 124
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0x2F6FED
+                  bg_opa: 12%
+                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
               - label:
-                  id: lbl_tag_3_name
-                  x: 273
-                  y: 8
-                  width: 91
+                  id: lbl_std_wert_3
+                  x: 178
+                  y: 120
+                  width: 34
                   text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_3_icon
-                  x: 273
-                  y: 28
-                  width: 91
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_3_hoch
-                  x: 277
-                  y: 66
-                  width: 43
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
+                  text_font: f_14m
+                  text_color: 0x14213D
                   text_align: RIGHT
               - label:
-                  id: lbl_tag_3_tief
-                  x: 322
-                  y: 66
-                  width: 39
+                  id: lbl_std_4
+                  x: 16
+                  y: 144
+                  width: 44
                   text: ""
-                  text_font: f_18
-                  text_color: 0x8C9DB5
-                  text_align: LEFT
+                  text_font: f_14
+                  text_color: 0x5F6B80
+              - bar:
+                  id: bar_std_4
+                  x: 70
+                  y: 148
+                  width: 98
+                  height: 12
+                  min_value: 0
+                  max_value: 100
+                  value: 0
+                  radius: 6
+                  bg_color: 0x2F6FED
+                  bg_opa: 12%
+                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
               - label:
-                  id: lbl_tag_4_name
-                  x: 364
-                  y: 8
-                  width: 91
+                  id: lbl_std_wert_4
+                  x: 178
+                  y: 144
+                  width: 34
                   text: ""
-                  text_font: f_15
-                  text_color: 0x8C9DB5
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_4_icon
-                  x: 364
-                  y: 28
-                  width: 91
-                  text: ""
-                  text_font: i_mittel
-                  text_color: 0xF2F5F9
-                  text_align: CENTER
-              - label:
-                  id: lbl_tag_4_hoch
-                  x: 368
-                  y: 66
-                  width: 43
-                  text: ""
-                  text_font: f_18
-                  text_color: 0xF2F5F9
+                  text_font: f_14m
+                  text_color: 0x14213D
                   text_align: RIGHT
-              - label:
-                  id: lbl_tag_4_tief
-                  x: 413
-                  y: 66
-                  width: 39
-                  text: ""
-                  text_font: f_18
-                  text_color: 0x8C9DB5
-                  text_align: LEFT
