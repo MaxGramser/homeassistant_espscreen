@@ -4,11 +4,12 @@
 // quoted the store's lines (tests/test_editor_live.py).
 import { describe, expect, it, vi } from "vitest";
 import { useEntitiesStore } from "../src/stores/entities";
+import type { Screen } from "../src/types";
 
 // The app as the page reaches it (api/states?entity=...): `answer` says what Home Assistant has for the ids asked.
 const ids = (url: string) => new URLSearchParams(url.split("?")[1]).getAll("entity");
 function app(answer: (id: string) => object | Promise<object>) {
-  const fetch = vi.fn(async (url: string) => {
+  const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (url) => {
     const states = Object.fromEntries(await Promise.all(ids(String(url)).map(async (id) => [id, await answer(id)])));
     return new Response(JSON.stringify({ states }), { status: 200, headers: { "Content-Type": "application/json" } });
   });
@@ -51,15 +52,16 @@ describe("the mockup's live values", () => {
 describe("identify and the test alert (app 0.2.73)", () => {
   it("asks the app to blink a screen, and sends a test alert to one screen or all", async () => {
     const { useScreenStore } = await import("../src/stores/screen");
-    const fetch = vi.fn(async () => new Response(JSON.stringify({ sent: 1, failed: 0, skipped: 0 }), { status: 200 }));
+    const fetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
+      async () => new Response(JSON.stringify({ sent: 1, failed: 0, skipped: 0 }), { status: 200 }));
     vi.stubGlobal("fetch", fetch);
     const screens = useScreenStore();
-    await screens.identify({ id: "text.hall screen", name: "Hall" } as any);
+    await screens.identify({ id: "text.hall screen", name: "Hall" } as Screen);
     expect(fetch.mock.calls[0][0]).toBe("api/screens/text.hall%20screen/identify");
-    expect((fetch.mock.calls[0][1] as RequestInit).method).toBe("POST");
+    expect(fetch.mock.calls[0][1]?.method).toBe("POST");
     const answer = await screens.sendTestAlert("all", { title: "Test" });
     expect(fetch.mock.calls[1][0]).toBe("api/alerts/test");
-    expect(JSON.parse(String((fetch.mock.calls[1][1] as RequestInit).body))).toEqual({ screen: "all", data: { title: "Test" } });
+    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toEqual({ screen: "all", data: { title: "Test" } });
     expect(answer.sent).toBe(1);
   });
 });
