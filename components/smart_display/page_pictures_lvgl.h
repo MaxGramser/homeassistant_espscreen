@@ -41,6 +41,13 @@ struct PagePictures {
   const char *refused = nullptr;  // why the last put or take did not happen, said once
   // Giving memory up (page_pictures::Yield): the PSRAM refusals seen so far, when the free PSRAM was last read, and
   // when a picture last went, after which none takes memory for a while.
+  // What the functions below work with, here and not on the loop task's stack: they run in its deepest chains (a page
+  // turn inside a layout's apply, LVGL's refresh), where that stack has no kilobyte to spare. One task, so one of each.
+  std::array<page_pictures::Card, CELLS_MAX> cards{};          // the cards on the glass (page_picture_turned)
+  glass::Rect areas[glass::MAX_WAITING] = {};                  // what LVGL has waiting to draw
+  glass::Rect spots[glass::MAX_ROOMS] = {};                    // where streams write the glass
+  std::array<uint32_t, page_pictures::MAX_SIDE> skip{};        // the blocks a take leaves out this step
+  page_pictures::Map compared;                                 // the map a compare goes by
   page_pictures::Yield yield;
   uint32_t looked_at = 0, yielded_at = 0;
 };
@@ -173,7 +180,7 @@ inline bool page_room_clear() {
 // What LVGL is about to draw (or has waiting to draw) makes the blocks under it untrue (`untrue`; not in the turn's own
 // redraw), and is when those blocks last moved.
 inline void page_picture_areas(PagePicture &picture, bool untrue = true) {
-  glass::Rect areas[glass::MAX_WAITING];
+  glass::Rect *areas = page_pics->areas;
   const int n = glass::waiting(areas, glass::MAX_WAITING);
   const uint32_t now = esphome::millis();
   for (int i = 0; i < n && i < glass::MAX_WAITING; ++i) {
@@ -185,7 +192,7 @@ inline void page_picture_areas(PagePicture &picture, bool untrue = true) {
 // The turn's own redraw: LVGL draws the page the picture was put for, pixel for pixel what the put blocks hold, so they
 // stay true; but a card whose tile took a change number after the put is drawn with that change, and is not.
 inline void page_picture_turned(PagePicture &picture) {
-  std::array<page_pictures::Card, CELLS_MAX> cards;
+  auto &cards = page_pics->cards;
   const size_t n = page_picture_cards(cards);
   page_pictures::settle(picture.map, cards.data(), n, changes, page_pics->turned_at);
 }
@@ -215,7 +222,7 @@ inline void page_pictures_leave() {
     if (tile_grid) lv_obj_update_layout(tile_grid);
     if (all.turned == applied_page) page_picture_turned(*picture);  // turned away before LVGL drew it
     else page_picture_areas(*picture);
-    glass::Rect spots[glass::MAX_ROOMS];
+    glass::Rect *spots = all.spots;
     const int streams = glass::streaming(spots, glass::MAX_ROOMS);
     for (int i = 0; i < streams && i < glass::MAX_ROOMS; ++i) picture->map.untrue(panel_rect(spots[i]));
     // A plugin's tile is never put: a plugin draws by rules of its own, with timers of its own.
@@ -288,8 +295,9 @@ inline void page_pictures_switch(bool on) {
 // glass. 0 pixels is what "LVGL draws the page underneath and changes no pixel" means.
 inline void page_picture_compare(PagePicture &picture, int page) {
   // What LVGL has waiting to draw is about to be untrue, and is on the glass as it was: left out.
-  page_pictures::Map map = picture.map;
-  glass::Rect areas[glass::MAX_WAITING];
+  page_pictures::Map &map = page_pics->compared;
+  map = picture.map;
+  glass::Rect *areas = page_pics->areas;
   const int waiting = glass::waiting(areas, glass::MAX_WAITING);
   for (int i = 0; i < waiting && i < glass::MAX_WAITING; ++i) map.untrue(panel_rect(areas[i]));
   uint32_t differ = 0;
@@ -395,12 +403,13 @@ inline void page_pictures_step(lv_timer_t *) {
   glass::hold();
   // Where a stream writes the glass, the glass is not LVGL's: those blocks wait until the stream is gone. And what LVGL
   // has waiting to draw is about to change: those wait for it, so a card that never stands still never holds up the rest.
-  std::array<uint32_t, page_pictures::MAX_SIDE> skip{};
-  glass::Rect areas[glass::MAX_WAITING];
+  auto &skip = all.skip;
+  skip.fill(0);
+  glass::Rect *areas = all.areas;
   const int waiting = glass::waiting(areas, glass::MAX_WAITING);
   for (int i = 0; i < waiting && i < glass::MAX_WAITING; ++i)
     map.blocks_of(panel_rect(areas[i]), [&](int row, uint32_t across) { skip[row] |= across; });
-  glass::Rect spots[glass::MAX_ROOMS];
+  glass::Rect *spots = all.spots;
   const int streams = glass::streaming(spots, glass::MAX_ROOMS);
   for (int i = 0; i < streams && i < glass::MAX_ROOMS; ++i)
     map.blocks_of(panel_rect(spots[i]), [&](int row, uint32_t across) { skip[row] |= across; });
