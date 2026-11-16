@@ -167,5 +167,50 @@ class PackageTests(unittest.TestCase):
         self.assertIn("for section in ('sensor', 'binary_sensor', 'text_sensor'):", source)
 
 
+
+class BoardRules(unittest.TestCase):
+    """Rules every board keeps, read from its whole package chain (profiles.resolved): what the hardware packages share
+    reaches each board that uses them, and nothing of one kind of hardware reaches another."""
+    TEXTS = {board: profiles.resolved(profile) for board, _, profile in profiles.BOARD_TABLE}
+    RGB_PANEL = re.compile(r'platform: (?:st7701s|mipi_rgb)\b')
+
+    def test_every_rgb_panel_board_has_the_shared_esp32_s3_panel_settings(self):
+        # packages/hardware/esp32s3-rgb.yaml (firmware 0.3.1): the panel's interrupt in IRAM, the 64-byte data cache line
+        # and code run from PSRAM, or an RGB panel tears while flash is written.
+        for board, text in self.TEXTS.items():
+            if not self.RGB_PANEL.search(text):
+                continue
+            for needed in ('CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"', 'CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"', 'execute_from_psram: true'):
+                self.assertIn(needed, text, f'{board} has an RGB panel: include packages/hardware/esp32s3-rgb.yaml, which sets {needed}')
+
+    def test_no_board_restarts_the_rgb_panel_in_vsync(self):
+        # Only ever named in a comment (packages/hardware/esp32s3-rgb.yaml says why it stays off).
+        for board, text in self.TEXTS.items():
+            self.assertNotRegex(text, r'(?m)^\s*CONFIG_LCD_RGB_RESTART_IN_VSYNC:',
+                                f'{board} sets CONFIG_LCD_RGB_RESTART_IN_VSYNC: leave it off, packages/hardware/esp32s3-rgb.yaml says why')
+
+    def test_only_a_resistive_touch_is_corrected_from_raw_values(self):
+        # The affine correction is applied once, on filtered raw values of a resistive panel (AGENTS.md, "Touch and
+        # navigation"); a capacitive one reports pixels and is never corrected (docs/CALIBRATING.md).
+        for board, text in self.TEXTS.items():
+            if 'set_raw_correction' in text:
+                self.assertIn('platform: xpt2046', text, f'{board} corrects raw touch values but has no resistive XPT2046: a capacitive panel needs none')
+
+    def test_square_glass_has_the_same_cells_either_way_it_hangs(self):
+        # A square board hangs the same way whichever way it is screwed to the wall, so its page has the same cells
+        # standing up and it is never asked about (core.board_shape).
+        for board, _, profile in profiles.BOARD_TABLE:
+            values = profiles.substitutions(profile)
+            if values.get('PANEL_W') != values.get('PANEL_H'):
+                continue
+            self.assertEqual((values.get('GRID_COLS_PORTRAIT', values['GRID_COLS']), values.get('GRID_ROWS_PORTRAIT', values['GRID_ROWS'])),
+                             (values['GRID_COLS'], values['GRID_ROWS']), f'{board} is square: give it the same grid standing up as lying down')
+
+    def test_every_board_waits_ten_minutes_before_standby(self):
+        # The default standby is at least 600 seconds (AGENTS.md, "Touch and navigation").
+        for board, profile in ((board, profile) for board, _, profile in profiles.BOARD_TABLE):
+            seconds = int(profiles.substitutions(profile)['AUTO_DIM_TIMEOUT'])
+            self.assertGreaterEqual(seconds, 600, f'{board} goes to standby after {seconds} s: the default is at least 600')
+
 if __name__ == '__main__':
     unittest.main()
