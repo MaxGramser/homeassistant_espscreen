@@ -156,10 +156,13 @@ int main() {
 
   // ---- How many ----
   const size_t MB = 1u << 20, one = 1280u * 800 * 2;
-  assert(share(32 * MB) == 8 * MB && reserve(32 * MB) == 8 * MB && reserve(8 * MB) == 8 * MB / 5 + 2 * MB);
-  assert(count(32 * MB, one, 8) == 4 && count(32 * MB, one, 3) == 3 && count(32 * MB, one, 1) == 0);
-  assert(count(16 * MB, one, 8) == 2 && count(8 * MB, one, 8) == 0 && count(0, one, 8) == 0 && count(32 * MB, 0, 8) == 0);  // one picture alone is none
-  assert(count(32 * MB, 480u * 480 * 2, 20) == MAX_KEPT);
+  // A picture for every page of the layout, within half of the PSRAM heap: the 29.3 MB a 32 MB chip gives hold seven
+  // pages of a 1280 x 800 glass, so six pages all have one and a layout of sixteen keeps seven; 16 MB hold three.
+  const size_t heap32 = 29320u << 10;
+  assert(share(32 * MB) == 16 * MB && reserve(32 * MB) == 8 * MB && reserve(8 * MB) == 8 * MB / 5 + 2 * MB);
+  assert(count(heap32, one, 6) == 6 && count(heap32, one, 7) == 7 && count(heap32, one, 16) == 7 && count(heap32, one, 1) == 0);
+  assert(count(16 * MB, one, 8) == 4 && count(8 * MB, one, 8) == 2 && count(4 * MB, one, 8) == 0 && count(0, one, 8) == 0 && count(32 * MB, 0, 8) == 0);  // one picture alone is none
+  assert(count(32 * MB, 480u * 480 * 2, 20) == (MAX_KEPT < 20 ? MAX_KEPT : 20));
   assert(affords(20 * MB, 32 * MB, one) && !affords(9 * MB, 32 * MB, one) && !affords(MB, 32 * MB, one));
   assert(reserve(32 * MB) == picture_store::budget_for(32 * MB) + kept_pages::KEEP_RESERVE);  // asked, not written again
   // Short of memory a picture goes. One refusal costs one picture, never a second (a board let both of its pictures

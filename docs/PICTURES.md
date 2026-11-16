@@ -127,12 +127,13 @@ alert, the screensaver) is that stream's newest frame, not another snapshot from
   PSRAM. The streams that run take their share of the same budget (`live_view::held_bytes`, at most half of it), and no
   picture is ever larger than the store can keep (`picture_store::cap_for`).
 - **Page pictures** (`page_pictures.h`, docs/KEPT_PAGES.md "Page pictures") are not the store's: a whole page's pixels
-  as LVGL drew them, 2 bytes a pixel of the panel, on a screen with a steady glass. They have a share of their own from
-  the same PSRAM figure, a quarter of it, and a picture's memory is taken only while the store's whole budget and the
+  as LVGL drew them, 2 bytes a pixel of the panel, on a screen with a steady glass. They have a ceiling of their own from
+  the same PSRAM figure, half of it (`picture_store::page_pictures_ceiling`, written beside the store's budget), and a picture's memory is taken only while the store's whole budget and the
   kept pages' reserve stay free after it, so the store never has less for them. The figure is the PSRAM heap as the chip reports
-  it: a 32 MB chip gives about 29 MB (29,320 KB on a Guition 10.1), so 7.2 MB, three pages of a 1280 x 800 glass (2 MB
-  each) with 7.7 MB kept free; a heap of 16 MB gives 4 MB, two pages, with 5.2 MB kept free; under that a board keeps
-  none. The store, a camera's full view, the live streams and a call always go before them: for a refused allocation
+  it: a 32 MB chip gives about 29.3 MB (29,320 KB on a Guition 10.1), so at most 14.6 MB, seven pages of a 1280 x 800
+  glass (2 MB each), each taken only while 7.9 MB stay free after it; a heap of 16 MB gives at most 8 MB, three pages,
+  with 5.2 MB kept free; a board that could not keep two keeps none. A layout of sixteen pages keeps the seven nearest
+  the glass. The store, a camera's full view, the live streams and a call always go before them: for a refused allocation
   that letting go could have helped, or under 2 MB free, one page picture gives its memory back, the farthest page
   first (`page_pictures::Yield`, docs/KEPT_PAGES.md).
 

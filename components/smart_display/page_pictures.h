@@ -172,8 +172,11 @@ inline bool settle(Map &map, const Card *cards, size_t count, const kept_pages::
 // ---- How many, and which pages ----
 constexpr size_t MAX_KEPT = page_protocol::MAX_PAGES;
 constexpr size_t NONE = MAX_KEPT;
-// The PSRAM page pictures may take: a quarter of what the board has (8 MB of a P4 board's 32).
-constexpr size_t share(size_t psram_total) { return psram_total / 4; }
+// The most PSRAM page pictures may ever hold: half of the heap (14.6 MB of the 29.3 MB a P4 board's 32 MB chip gives).
+// The other half is always there for the kept pages' cards, LVGL's objects, the picture store and the streams. Within
+// it a layout has a picture for every page, as it has the cards of every page (kept_pages.h).
+// Written where the board's picture budget is (picture_store.h), with the store's own.
+constexpr size_t share(size_t psram_total) { return picture_store::page_pictures_ceiling(psram_total); }
 // What must stay free after a picture's memory is taken: the picture store's whole budget and the room the kept pages
 // leave for a full camera and an alert, each asked where it is written (picture_store.h, kept_pages.h).
 constexpr size_t reserve(size_t psram_total) { return picture_store::budget_for(psram_total) + kept_pages::KEEP_RESERVE; }

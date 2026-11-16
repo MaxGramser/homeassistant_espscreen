@@ -161,11 +161,13 @@ whose tile takes a number between the put and that redraw is drawn with its chan
 
 ### How many, and where
 
-Two bytes a pixel of the panel, PSRAM only: 2 MB a page on a glass of 1280 x 800. Page pictures may take a quarter of
-the board's PSRAM as its heap reports it (`page_pictures::share`: a P4 board's 32 MB chip gives a heap of about 29 MB,
-so 7.2 MB, three pages), each picture's memory is taken when its page first
-rests on the glass, and only while the picture store's whole budget and the kept pages' reserve stay free after it
-(`page_pictures::reserve`). A board that cannot keep two keeps none. They are also the first thing a screen gives
+Two bytes a pixel of the panel, PSRAM only: 2 MB a page on a glass of 1280 x 800. A layout has a picture for every
+page, as it has the cards of every page, under one ceiling: page pictures never hold more than half of the PSRAM heap
+(`page_pictures::share`), so the kept cards, LVGL's objects, the picture store and the streams always have the other
+half. A P4 board's 32 MB chip gives a heap of about 29.3 MB: 14.6 MB, seven pages, so a layout of six has all of them
+(12.3 MB) and a layout of sixteen keeps the seven nearest the glass (14.3 MB); a heap of 16 MB holds three. Each
+picture's memory is taken when it is first made, and only while the picture store's whole budget and the kept pages'
+reserve stay free after it (`page_pictures::reserve`: 7.9 MB on that board). A board that cannot keep two keeps none. They are also the first thing a screen gives
 up (`page_pictures::Yield`), one picture at a time, the page farthest from the glass first:
 
 - **For a refusal.** When an allocation from PSRAM is refused anywhere (a cover, a camera's full view, a stream, a
@@ -179,12 +181,11 @@ up (`page_pictures::Yield`), one picture at a time, the page farthest from the g
 
 After either, no picture takes memory again for 30 seconds. The governor's first step already stops any take.
 
-**A walk through all the pages has few puts, and that is the rule working.** A picture comes only from a page that
-was on the glass, and the page farthest from the glass lets go first. With six pages and three pictures, walking the
-pages in order never turns to a kept page (the page ahead was on the glass five turns ago), while going back and forth
-between neighbours has a put at every turn. Keeping the pages ahead in the direction of travel would not change that:
-what lies ahead in a loop is exactly what was seen longest ago. Only a picture for every page does (a larger share, or
-a picture made off the glass: docs/open-issues/page-pictures-step-two.md). The page on the glass takes the place of the
+**Why a picture for every page.** A picture comes from a page that was on the glass, and the page farthest from the
+glass lets go first. With a quarter of the heap, as it was at first, six pages had three pictures, and walking the
+pages in order never turned to a kept page (the page ahead was on the glass five turns ago): 57 puts in 142 random
+turns on a Guition 10.1 (2026-11-16). With a picture for every page, each page has rested on the glass once and from
+then on every turn is a put, whichever way one walks. The page on the glass takes the place of the
 page farthest from it, counted around the end when the pages loop, so the neighbours of the page in sight stay.
 Inside the chip the whole of it is one pointer, one LVGL timer and one event hook.
 
