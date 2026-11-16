@@ -128,6 +128,8 @@ What proves the card's look, without eyes:
 - `web/wasm/test_card_paint.mjs` in the firmware preview: a background from the editor (an `appearance` message alone)
   repaints the card, a card into a following section and out again wears the other look and then its own, and Dark mode
   turns it. `tests/test_theme.cpp`: `LookScope` nests, `Face` and an instrument's press.
+- `web/wasm/test_state_look.mjs` in the firmware preview: an entity that is off is Home Assistant's grey (its icon and
+  its circle), one that is on is not, every domain alike, and a light that is off shows the crossed-out bulb.
 
 ## Adding a colour
 

@@ -20,6 +20,10 @@ own (the planners, `picture_store`, `section_layout`), a case both sides answer 
 firmware preview (`web/wasm/test_*.mjs`, `tests/test_editor_parity.py`), the host render (`tools/render`). When code
 that a line-quoting test names is rewritten, the test is replaced by one of those, not edited to the new line.
 
+The firmware preview's `preview_layout()` gives what a test needs to read a card without its lines: every object's box,
+its ground (`bg`), and for a label its text and its ink (`color`), as the firmware set them. An icon is a label whose
+text is its glyph (`icon`). `web/wasm/test_state_look.mjs` reads a card's state that way.
+
 There are six levels, from fast to real. Each is a different check: a green level does not stand in for the next.
 Work on dev is proven at level 4, on the screens a change concerns; a release runs every level, the sixth included
 (docs/RELEASING.md).
