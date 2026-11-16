@@ -141,9 +141,7 @@ static void date_of(int z, int &m, int &d) {
 static const td::Words &words() {
   using namespace rt;
   static td::Words w;
-  w.open = tr(txt::todo_open); w.all_done = tr(txt::todo_all_done); w.more = tr(txt::todo_more); w.completed = tr(txt::todo_completed);
-  w.add = tr(txt::todo_add); w.added = tr(txt::todo_added); w.rename = tr(txt::todo_rename); w.remove = tr(txt::todo_remove);
-  w.cancel = tr(txt::todo_cancel); w.clear = tr(txt::todo_clear); w.waiting = tr(txt::todo_waiting); w.empty = tr(txt::todo_empty);
+  w = td::screen_words();
   w.day = [](int days) -> std::string {
     if (days == 0) return tr(txt::calendar_today);
     if (days == 1) return tr(txt::calendar_tomorrow);
@@ -186,6 +184,7 @@ static View *view_of(lv_obj_t *canvas) {
 }
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *view = view_of(canvas);
   if (!view) return;
   lv_area_t a;

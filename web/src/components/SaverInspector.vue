@@ -7,7 +7,7 @@
 import { computed } from "vue";
 import { t } from "../i18n";
 import { useSortableRows } from "../composables/useSortableRows";
-import { text, type PluginTileOption } from "../model/plugins";
+import { anySet, optionGroups, text, type PluginTileOption } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import type { PluginValue, SaverPhotos as Photos, SaverStep } from "../types";
 import SaverPhotos from "./SaverPhotos.vue";
@@ -67,7 +67,11 @@ const entityItems = computed(() => plugins.entitiesIn(known.value?.saver.domains
 // The options of the plugin face or step that is open, and where a change goes.
 const optionsKey = computed(() => pluginKey.value || faceKey.value);
 const optionsOf = computed(() => (pluginKey.value ? known.value : facePlugin.value));
-const setOption = (option: PluginTileOption, value: PluginValue) => optionsKey.value && screensaver.setPluginOption(optionsKey.value, option.id, value);
+// Its options as the inspector lays them out (plugin API 0.26): those without a heading, then each group, folded until
+// one of its options has a value.
+const optionsLaidOut = computed(() => optionGroups(optionsOf.value?.saver.options));
+const optionsKept = computed(() => (optionsKey.value ? screensaver.pluginSetting(optionsKey.value).options : {}));
+const setOption = (option: PluginTileOption, value: PluginValue | undefined) => optionsKey.value && screensaver.setPluginOption(optionsKey.value, option.id, value);
 const shown = computed(() => playerSort.live.value || screensaver.players);
 const free = computed(() => screensaver.entitiesOf("media", screensaver.players));
 const freeItems = computed(() => free.value.map((e) => ({ id: e.id, name: e.name, hint: e.area })));
@@ -157,9 +161,14 @@ const playerSort = useSortableRows<string>({ rows: "#saver-players > .item", ite
       <small v-if="facePlugin?.saver.example" class="help">{{ text(facePlugin.saver.example) }}</small>
     </Section>
     <!-- The options of the plugin's face or step that is open. -->
-    <Section v-if="optionsKey && optionsOf?.saver.options?.length" :title="t('editor.plugin_tile.options')">
-      <PluginOptions :plugin="optionsOf.plugin" :options="optionsOf.saver.options" :values="screensaver.pluginValues(optionsKey)" @change="setOption" />
-    </Section>
+    <template v-if="optionsKey && optionsOf">
+      <Section v-if="optionsLaidOut.plain.length" :title="t('editor.plugin_tile.options')">
+        <PluginOptions :plugin="optionsOf.plugin" :options="optionsLaidOut.plain" :values="screensaver.pluginValues(optionsKey)" @change="setOption" />
+      </Section>
+      <Section v-for="group in optionsLaidOut.groups" :key="`${optionsKey}-${group.key}`" :title="text(group.title)" foldable :open="anySet(group.options, optionsKept)">
+        <PluginOptions :plugin="optionsOf.plugin" :options="group.options" :values="screensaver.pluginValues(optionsKey)" @change="setOption" />
+      </Section>
+    </template>
 
   </div>
   <div class="dr-foot">

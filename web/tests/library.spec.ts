@@ -2,7 +2,7 @@
 // the kinds and rooms with their counts, and how an entity is named and marked.
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
-import { entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
+import { FILTERS, entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
   type Entry, type LibraryFilter } from "../src/model/library";
 
 const ENTRIES: Entry[] = [
@@ -78,6 +78,16 @@ describe("the library", () => {
     expect(entryDetail(ENTRIES[0], true, "Bus")).toBe("Bus");
     expect(entryDetail(ENTRIES[1], true, "")).toBe("");
     expect([entryTone(ENTRIES[4]), entryTone(ENTRIES[5]), entryTone(ENTRIES[6])]).toEqual(["on", "gone", ""]);
+  });
+});
+
+describe("a remote in the library (firmware 0.22.0)", () => {
+  it("is a kind of its own to filter on", () => {
+    expect(FILTERS).toContain("remote");
+    // The screen's own cards (a page's key, the clock) and timers have filters of their own too.
+    expect(FILTERS).toEqual(expect.arrayContaining(["timer", "screen"]));
+    expect(inDomain("remote.living_room", "remote")).toBe(true);
+    expect(kindCounts([{ id: "remote.living_room", name: "TV" }], "").find(([kind]) => kind === "remote")?.[1]).toBe(1);
   });
 });
 

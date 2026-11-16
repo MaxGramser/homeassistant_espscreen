@@ -4,6 +4,7 @@
 // shares with Home Assistant inside its iframe, so a draft is written without spaces, one screen's at a time, and goes
 // after two weeks or when more than a few screens keep one. Pure: what is read is checked here, the reading and writing
 // is the store's.
+import { flattenSections } from "./page-tiles";
 import type { PageGrid, PageLayout } from "../types";
 import { clockText, dateText } from "./topbar";
 
@@ -39,7 +40,7 @@ export function readKept(raw: string | null): KeptDraft | null {
     const value = JSON.parse(raw);
     if (value?.v !== 1 || typeof value.tab !== "string" || typeof value.at !== "number" || !isLayout(value.layout) || !isGrid(value.grid)) return null;
     if (value.revision !== null && typeof value.revision !== "string") return null;
-    return { v: 1, tab: value.tab, revision: value.revision, at: value.at, layout: value.layout, grid: { columns: value.grid.columns, rows: value.grid.rows },
+    return { v: 1, tab: value.tab, revision: value.revision, at: value.at, layout: flattenSections(value.layout), grid: { columns: value.grid.columns, rows: value.grid.rows },
       upright: typeof value.upright === "boolean" ? value.upright : null };
   } catch { return null; }
 }

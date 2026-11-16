@@ -21,6 +21,8 @@ class PageConformanceTests(unittest.TestCase):
                     self.assertEqual(validate_document(doc, grid), doc)
                     if 'pagination' in case:
                         self.assertEqual([doc['pages'][i]['id'] for i in pagination(doc)], case['pagination'])
+                    if 'compiled' in case:
+                        self.assertEqual([[t['entity'], t['slot']] for t in compile_tiles(doc, grid)], case['compiled'])
                     if 'delete' in case:
                         result = delete_page(doc, case['delete']['id'], grid)
                         self.assertEqual([t['entity'] for t in compile_tiles(result, grid)], case['delete']['entities'])

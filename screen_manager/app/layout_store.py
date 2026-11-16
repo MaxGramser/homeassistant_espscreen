@@ -17,10 +17,13 @@ import threading
 import atomic
 from i18n import t
 from core import validate_settings
-from page_layout import FORMAT, LayoutError, fingerprint, grid_of_record, new_id, screen_grid_of_record, validate_document
+from page_layout import FORMAT, LayoutError, fingerprint, flattened, grid_of_record, new_id, screen_grid_of_record, validate_document
 from layout_migrations import migrate_legacy
 
-VERSION = 2
+VERSION = 3
+# The store stays at version 2 while no layout has a section (docs/PAGES.md "Sections"), so an older app still reads it;
+# the first save with a section keeps the version 2 file as screens.v2.backup.json and writes version 3.
+PLAIN_VERSION = 2
 LEGACY = "legacy-v1"
 
 
@@ -109,8 +112,22 @@ class LayoutStore:
         finally:
             os.close(descriptor)
 
+    @staticmethod
+    def _version_for(records):
+        return VERSION if any(page.get("sections") for record in records.values() if isinstance(record.get("layout"), dict)
+                              for page in record["layout"].get("pages", ())) else PLAIN_VERSION
+
     def _replace(self, records):
-        payload = json.dumps({"version": VERSION, "screens": records}, ensure_ascii=False,
+        version = self._version_for(records)
+        if version == VERSION and self.path.exists():
+            original = self.path.read_bytes()
+            try:
+                before = json.loads(original).get("version")
+            except (ValueError, AttributeError):
+                before = None
+            if before == PLAIN_VERSION:
+                self._backup(original, PLAIN_VERSION, repeats=True)
+        payload = json.dumps({"version": version, "screens": records}, ensure_ascii=False,
                              allow_nan=False, separators=(",", ":")) + "\n"
         # Whole or not at all (atomic.write_text); the folder's sync is this store's own, so an uncertain one is reported.
         atomic.write_text(self.path, payload, sync_folder=False)
@@ -121,14 +138,28 @@ class LayoutStore:
         except OSError as error:
             raise CommitUncertain("Storage was replaced; reread its revision before retrying") from error
 
-    def _backup(self, original):
-        backup = self.path.with_name(self.path.stem + ".v1.backup.json")
+    def _latest(self, version, original):
+        """The store as it last was before a move that repeats, whole or not at all, in the place of the one before."""
+        latest = self.path.with_name(self.path.stem + f".v{version}.latest.backup.json")
+        # The store is UTF-8 JSON (it was read as JSON just before), so its text is its bytes.
+        atomic.write_text(latest, original.decode("utf8"))
+
+    def _backup(self, original, version=1, repeats=False):
+        """Keep the store as it was before it moves on from `version` (1 before pages, 2 before sections).
+
+        `repeats`: a move that can happen any number of times (the store goes back to version 2 when its last section
+        goes, and on to 3 with the next one). Then two files are kept and no more: the store as it first was, and as it
+        last was (`.v2.latest.backup.json`, replaced each time), which is the one an older app would want back."""
+        backup = self.path.with_name(self.path.stem + f".v{version}.backup.json")
         if backup.exists():
             if backup.read_bytes() == original:
                 return
+            if repeats:
+                self._latest(version, original)
+                return
             # A deliberate restore followed by more v1 edits deserves its own
             # backup; the first pre-migration backup is never overwritten.
-            backup = self.path.with_name(self.path.stem + ".v1." + fingerprint(original.decode("utf8")) + ".backup.json")
+            backup = self.path.with_name(self.path.stem + f".v{version}." + fingerprint(original.decode("utf8")) + ".backup.json")
             if backup.exists():
                 if backup.read_bytes() != original:
                     raise LayoutError(t('addon.errors.pages.backup_conflict'))
@@ -179,7 +210,7 @@ class LayoutStore:
         # Converted documents still pass strict validation and finite JSON writes.
         envelope = _json(text, legacy=True)
         if (not isinstance(envelope, dict) or set(envelope) != {"version", "screens"}
-                or type(envelope.get("version")) is not int or envelope["version"] not in (1, VERSION)
+                or type(envelope.get("version")) is not int or envelope["version"] not in (1, PLAIN_VERSION, VERSION)
                 or not isinstance(envelope.get("screens"), dict)):
             raise LayoutError(t('addon.errors.pages.storage_version'))
         if envelope["version"] == 1:
@@ -189,9 +220,19 @@ class LayoutStore:
             self._backup(original)
             self._replace(records)
         else:
-            self._validate_records(envelope["screens"])
-            self._records = envelope["screens"]
-            self._stamp = stamp
+            # Sections that hold tiles of their own (their first form, on dev only) become the form kept now, a tile on
+            # its page at its own cell; the file as it was stays beside it as screens.v3.backup.json.
+            records, converted = envelope["screens"], False
+            for record in records.values():
+                if isinstance(record, dict) and record.get("format") == FORMAT:
+                    converted = flattened(record.get("layout"))[1] or converted
+            self._validate_records(records)
+            if converted:
+                self._backup(original, VERSION)
+                self._replace(records)
+            else:
+                self._records = records
+                self._stamp = stamp
 
     @staticmethod
     def _validate_records(records):

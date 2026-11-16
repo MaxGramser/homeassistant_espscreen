@@ -158,9 +158,11 @@ diagnostic sensor "Pressure". Detail: docs/PLATFORM_PLAN.md 4.10; test: `tests/t
 ### 8. The audio owner
 
 `audio_owner.h`: one speaker, one microphone, several claimants. Every one of them claims a side (OUT, IN, BOTH) in a
-role, like an audio session on a phone: DOORBELL > VOICE > CAMERA_SOUND > MEDIA. A higher role takes the side and hands
-it back afterwards to whoever asked to have it back; a plugin's short sounds and announcements mix over whatever plays
-and never claim. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; test: `tests/test_audio_owner.cpp`.
+role, like an audio session on a phone: DOORBELL > CALL > VOICE > CAMERA_SOUND > MEDIA. A higher role takes the side and
+hands it back afterwards to whoever asked to have it back; a plugin's short sounds and announcements mix over whatever
+plays and never claim. A live camera's sound claims through `live_view.h`'s `SoundClaim` and reaches the speaker through
+its `SoundPump`. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; tests: `tests/test_audio_owner.cpp`,
+`tests/test_live_sound.cpp`.
 
 ### 9. The top bar, the doorbell, the modules
 
@@ -192,6 +194,29 @@ stack at a task watchdog, kept across the reset), `ppa_trace.h` (the last PPA ca
 RAM with its time), `screen_diagnostics.h` (what the troubleshooting report and the API log carry: pictures a second,
 glass waits, misses, pressure), and Debug mode (quiet by default; a report switches it on). Detail: docs/REPORTS.md,
 docs/TROUBLESHOOTING.md.
+
+### 12. The binder and its parts
+
+`runtime_tiles.h` is the binder: the model's glue, a tile's widgets, the pass that renders a tile (`render_slot`), the
+pages and the loop. What draws one kind of thing with LVGL stands in a file of its own beside it, named after the plain
+rules it draws from: `media_card.h` holds what a media card is and is tested on a PC (`tests/test_media_card.cpp`),
+`media_card_lvgl.h` draws it. There are thirty-three such parts: the cards that open from a tile (weather, select,
+vacuum, cover, the remote, light and fan, climate, the alarm panel, the lock, history, media, the colour card) with
+opening a card (`detail_show_lvgl.h`) and the open card's own keys and sliders (`detail_lvgl.h`); what a tile itself
+is made of and draws (its widgets, its tap and hold, its icon and words, its direct controls, the clock, the weather);
+the optimistic wish and a cover's travel stripe; the pictures (the camera's state, the store, a tile's own, the rounds,
+the full view, what an answer with a picture does); the live view and the live spots; the governor; and the
+screensaver with its state.
+
+A `*_lvgl.h` part is not a header on its own. It belongs to the binder's translation unit and is included there in its
+place, after what it uses, so there is one copy of every inline function and one order of definitions, as when all of
+it was one file of 14,333 lines (until 2026-11-16). That is also why the split could be proven to change nothing: the
+parts read back in their places give the old file line for line, and the tests that read the firmware's source read
+it that way (`tests/firmware_sources.py`).
+
+When you add to a card, add to its part, and put a rule that needs no LVGL in the plain header beside it, with a test.
+A part that grows past about a thousand lines wants a second plain header, not a second part. What is still in the
+binder and wants cutting next is in docs/open-issues/binder-still-large.md.
 
 ## The hard rules, and the measurement behind each
 
@@ -228,8 +253,17 @@ docs/TROUBLESHOOTING.md.
   `live_view::open` holds it for every stream: no more at once than the engine's `streams` (an S3's 1, a full view and
   a stream still ending counted), and none that would leave less than 32 KB free (a tester's S3 aborted with a view
   beside a tile, 2026-10-30).
+- **A text a card paints itself is copied by LVGL** (`draw_text::label`, `draw_text.h`). LVGL queues a label and draws it
+  when it dispatches the layer, after the draw event has returned, from a pointer to the text. A text in a local of the
+  draw code is gone by then: a meter's icon stood in one, and its ring showed an empty disc whenever other cards were
+  drawn after it, as when a page came back, until the sensor's next value drew the card alone (a P4 with a 10.1 inch
+  panel, 2026-11-15). `tests/test_draw_text.py` keeps every `lv_draw_label` of the component in that one file.
 - **Limits are read, not inferred, in three places that agree.** The engine's `live_tiles`, the add-on's ceiling of
   eight streams over all screens (visible in the editor and the log), and the hello that carries both.
+- **A card is painted in its own look, through one door** (`CardScope`, docs/THEME.md "A card's look"). The look every
+  colour reads (`theme::dark`) is the screen's (`theme::screen_dark`) except inside a card's scope; a card holds its look
+  and its ground relative to the screen's, set where it is placed. A card in a following section painted outside its
+  scope took the screen's look for a part of it.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal
   build, PERF optimisation was taken because it measured). Tests on a device run an hour at most.
 

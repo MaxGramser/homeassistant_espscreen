@@ -45,6 +45,20 @@ static void sound(const Layout &l, int width, int height, bool art = true, const
 }
 
 int main() {
+  // The cover grows with the room past the look's own size, up to a third of the width or half the height, and never
+  // past cover_max(), the largest square the app serves (picture_legacy.COVER_SIZES[1], tests/test_media_card.py).
+  {
+    Metrics m;
+    assert(m.art_cap(480, 300) == m.max_art());                    // a card of the Guition stays on its look's size
+    assert(m.art_cap(1200, 800) == Metrics::cover_max());           // a third of 1200 is past what the app serves
+    assert(m.art_cap(780, 1000) == 260);                            // a third of the width, under the ceiling
+    for (int w : {480, 800, 1024, 1280, 1920}) for (int h : {300, 600, 800, 1200}) {
+      const Layout l = layout(m, w, h);
+      assert(l.art.w <= Metrics::cover_max() && l.art.w <= m.art_cap(w, h));
+    }
+    const Layout big = layout(m, 1280, 800);
+    assert(big.art.w > m.max_art());                                // the room is used, not the look's size alone
+  }
   // The Guition's card: 480 wide under its top bar, a tall area, so everything stacks under the art.
   {
     Metrics m; Layout l = layout(m, 480, 396);

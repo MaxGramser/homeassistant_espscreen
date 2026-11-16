@@ -54,7 +54,7 @@ class WhatAChangeReaches(unittest.TestCase):
             self.assertIn(board, boards, name)
             self.assertNotEqual(boards, EVERY, name)
         self.assertEqual(reach('components/mipi_dsi_v3/display.py')['components/mipi_dsi_v3/display.py'],
-                         {'jc8012p4a1v3', 'wavesharep47b'})
+                         {'jc8012p4a1v3', 'waveshare101v3', 'wavesharep47b'})
 
     def test_a_package_reaches_the_boards_that_include_it(self):
         """A feature, look, hardware or cells file reaches exactly the boards whose chain names it."""
@@ -88,9 +88,10 @@ class WhatAChangeReaches(unittest.TestCase):
         changed = now.replace('BOARD_ID: "waveshare4b"', 'BOARD_ID: "waveshare4b"\n  EXTRA: "1"', 1)
         with mock.patch.object(affected_boards, 'git', return_value=changed):
             self.assertEqual(affected_boards.sort([name], 'base')[name], {'waveshare4b'})
+        # A line that starts as a comment does but is the preprocessor's, in a lambda: code.
         core = (ROOT / 'packages/core.yaml').read_text()
-        self.assertIn('#ifdef USE_ESP32', core)
-        with mock.patch.object(affected_boards, 'git', return_value=core.replace('#ifdef USE_ESP32', '#ifdef USE_X', 1)):
+        inside = re.sub(r'lambda: \|-\n( +)', r'lambda: |-\n\1#ifdef USE_X\n\1#endif\n\1', core, count=1)
+        with mock.patch.object(affected_boards, 'git', return_value=inside):
             self.assertEqual(affected_boards.sort(['packages/core.yaml'], 'base')['packages/core.yaml'], EVERY)
         # A new file (not in the base) is never comments alone.
         with mock.patch.object(affected_boards, 'git', side_effect=affected_boards.subprocess.CalledProcessError(128, 'git')):
@@ -251,9 +252,12 @@ class TheOlderESPHome(unittest.TestCase):
         self.assertEqual(affected_boards.older_sample(reach('packages/core.yaml', 'docs/TESTING.md')), ['guition'])
 
     def test_check_sh_builds_it_on_an_older_esphome(self):
+        # A rule of the script: its --firmware --affected build on the packages' min_version asks this tool which boards.
         script = (ROOT / 'tools/check.sh').read_text()
-        self.assertIn('affected_boards.py --older-sample', script)
-        self.assertIn('older_version "$running" "$pinned"', script)
+        self.assertIn('affected_boards.py --older-sample', script,
+                      'tools/check.sh builds the older ESPHome\'s boards from affected_boards.py --older-sample')
+        self.assertIn('older_version "$running" "$pinned"', script,
+                      'tools/check.sh tells an older running ESPHome from the pinned one before it picks that sample')
 
 
 class AForgottenNumber(unittest.TestCase):

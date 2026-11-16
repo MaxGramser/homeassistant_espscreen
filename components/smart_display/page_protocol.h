@@ -1,4 +1,5 @@
 #pragma once
+#include "section_layout.h"
 #include <array>
 #include <bitset>
 #include <cstdint>
@@ -85,6 +86,10 @@ struct Page {
   bool dock = true;
   // Its own icon, an MDI codepoint (tile_icon::codepoint), which the Dock shows instead of the page's picture; 0 for none.
   uint32_t icon = 0;
+#ifdef SD_MOD_SECTIONS
+  // Its sections (module sections, docs/PAGES.md "Sections"): blocks of its cells with a title and a panel.
+  std::vector<section_layout::Section> sections;
+#endif
 };
 
 struct Pages {
@@ -211,6 +216,12 @@ struct Transfer {
     return Begin::replace;
   }
   bool matches(uint64_t rev) const { return begun && revision == rev; }
+  // Whether the screen holds a whole layout, the one question fresh() (values and actions) and navigation_ready()
+  // (turning pages) ask of the transfer (docs/PAGES.md, "A hello"): it is active and the model has every tile. `begun`
+  // is not part of it: it says only that this lease has had its one begin. A hello grants a new lease and clears
+  // `begun`, but the layout held stays whole and true until a begin says otherwise; a begin of another layout clears
+  // `active` until its last tile.
+  bool whole(bool model_ready) const { return active && model_ready; }
   bool page(unsigned index) {
     if (!begun || active || index >= expected_pages || (pages & (uint32_t{1} << index))) return false;
     pages |= uint32_t{1} << index;

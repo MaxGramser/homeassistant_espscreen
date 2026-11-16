@@ -293,17 +293,138 @@ class Legacy(unittest.TestCase):
         self.assertIsNone(picture_legacy.read({'entity': 'camera.porch'}, None))
 
 
+def live_lines(text, defined, undefined):
+    """The lines of a C++ source a build compiles, with the macros in `defined` set and those in `undefined` not: a
+    condition that names any other macro, a value or a __has_include could go either way, and its lines count as
+    compiled (so a rule over what is compiled errs towards finding a line)."""
+    import re
+
+    def value(expression):
+        # True, False, or None where this build cannot tell.
+        tokens = re.findall(r'defined\s*\(\s*\w+\s*\)|defined\s+\w+|&&|\|\||!|\(|\)|\S+', expression)
+        at = 0
+
+        def peek():
+            return tokens[at] if at < len(tokens) else None
+
+        def take():
+            nonlocal at
+            at += 1
+            return tokens[at - 1]
+
+        def either():
+            out = both()
+            while peek() == '||':
+                take()
+                right = both()
+                out = True if True in (out, right) else (None if None in (out, right) else False)
+            return out
+
+        def both():
+            out = one()
+            while peek() == '&&':
+                take()
+                right = one()
+                out = False if False in (out, right) else (None if None in (out, right) else True)
+            return out
+
+        def one():
+            token = take() if peek() is not None else ''
+            if token == '!':
+                inner = one()
+                return None if inner is None else not inner
+            if token == '(':
+                inner = either()
+                if peek() == ')':
+                    take()
+                return inner
+            name = re.match(r'defined\s*\(?\s*(\w+)', token)
+            if name:
+                return True if name.group(1) in defined else False if name.group(1) in undefined else None
+            if token.isdigit():
+                return token != '0'
+            # A macro's value, a comparison, __has_include: this build cannot tell; skip what belongs to it.
+            while peek() not in (None, '&&', '||', ')'):
+                take()
+            return None
+        out = either()
+        return None if at < len(tokens) else out
+
+    lines, stack = [], []  # stack: (parent compiled, this branch compiled, a branch before was surely taken)
+    compiled = True
+    for line in text.splitlines():
+        directive = re.match(r'\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b(.*)', line)
+        if not directive:
+            if compiled:
+                lines.append(line.split('//', 1)[0])
+            continue
+        kind, rest = directive.group(1), directive.group(2).split('//', 1)[0].strip()
+        if kind in ('if', 'ifdef', 'ifndef'):
+            cond = (value(rest) if kind == 'if' else
+                    value(f'defined({rest})') if kind == 'ifdef' else value(f'!defined({rest})'))
+            stack.append((compiled, cond is not False, cond is True))
+            compiled = compiled and cond is not False
+        elif kind == 'elif':
+            parent, _, taken = stack[-1]
+            cond = False if taken else value(rest)
+            stack[-1] = (parent, cond is not False, taken or cond is True)
+            compiled = parent and cond is not False
+        elif kind == 'else':
+            parent, _, taken = stack[-1]
+            stack[-1] = (parent, not taken, True)
+            compiled = parent and not taken
+        else:
+            compiled = stack.pop()[0]
+    return lines
+
+
 class Firmware(unittest.TestCase):
+    """A board without pictures (the CYD, built without SCREEN_PICTURES, packages/features/camera.yaml) asks for none and
+    keeps none: its flash is close to full (docs/RELEASING.md step 2). The host builds (the render, the WASM preview)
+    ask as a board with pictures."""
+    CYD = {'USE_ESP32'}, {'SCREEN_PICTURES', 'USE_HOST', 'ESP_SCREEN_HOST', 'USE_LIVE_VIEW', 'GLASS_DSI', 'GLASS_RGB',
+                          'PICTURE_ENGINE_P4', 'PICTURE_ENGINE_S3'}
+    PICTURES = {'USE_ESP32', 'SCREEN_PICTURES'}, {'USE_HOST', 'ESP_SCREEN_HOST'}
+    HOST = {'USE_HOST', 'ESP_SCREEN_HOST'}, {'USE_ESP32'}
+    ASKS = ('picture_question::json(', 'picture_question::legacy(')
+
+    def asking(self, build):
+        """Where the firmware, as `build` compiles it, turns a question into its text."""
+        found = []
+        for path in sorted((ROOT / 'components/smart_display').glob('*.[hc]*')):
+            if path.name == 'picture_question.h' or path.suffix not in ('.h', '.cpp'):
+                continue  # where the question's text is made, not asked
+            for line in live_lines(path.read_text(), *build):
+                found += [f'{path.name}: {line.strip()}' for ask in self.ASKS if ask in line]
+        return found
+
     def test_a_board_without_pictures_asks_for_none(self):
-        # The CYD's flash (docs/RELEASING.md step 2): the question's text is built only where a picture can show, as the
-        # picture store keeps none there (picture_store.h); the host builds (the render, the WASM preview) still ask.
-        tiles = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
-        ask = tiles[tiles.index('inline void picture_ask('):]
-        ask = ask[:ask.index('\n}\n')]
-        self.assertIn('#if defined(USE_ESP32) && !defined(SCREEN_PICTURES)', ask)
-        self.assertLess(ask.index('#if defined(USE_ESP32) && !defined(SCREEN_PICTURES)'), ask.index('picture_question::json(asked)'))
-        store = (ROOT / 'components/smart_display/picture_store.h').read_text()
-        self.assertIn('#if defined(USE_ESP32) && !defined(SCREEN_PICTURES)', store)
+        self.assertEqual(self.asking(self.CYD), [],
+                         'a board built without SCREEN_PICTURES (the CYD) never shows a picture: every place that turns a '
+                         'question into its text (picture_question::json, legacy) stands behind '
+                         '#if defined(USE_ESP32) && !defined(SCREEN_PICTURES), as picture_ask does')
+        self.assertTrue(self.asking(self.PICTURES), 'a board with pictures asks for them')
+        self.assertTrue(self.asking(self.HOST), 'the host builds (the render, the WASM preview) ask for pictures')
+
+    def test_a_board_without_pictures_keeps_none(self):
+        import os
+        import shutil
+        import subprocess
+        import tempfile
+        compiler = shutil.which(os.environ.get('CXX', 'clang++')) or shutil.which('g++')
+        if not compiler:
+            raise unittest.SkipTest('no C++ compiler')
+        with tempfile.TemporaryDirectory() as tmp:
+            for flags, check in ((['-DUSE_ESP32'], 'picture_store::ENTRIES == 1'),
+                                 (['-DUSE_ESP32', '-DSCREEN_PICTURES'], 'picture_store::ENTRIES > 1'),
+                                 ([], 'picture_store::ENTRIES > 1')):
+                source = Path(tmp) / 'entries.cpp'
+                source.write_text('#include "components/smart_display/picture_store.h"\n'
+                                  f'static_assert({check}, "picture_store::ENTRIES");\n')
+                run = subprocess.run([compiler, '-std=c++17', '-fsyntax-only', f'-I{ROOT}', *flags, str(source)],
+                                     capture_output=True, text=True)
+                self.assertEqual(run.returncode, 0, f'{" ".join(flags) or "the host"}: {check} (picture_store.h keeps one '
+                                 f'place for a board without SCREEN_PICTURES, every place elsewhere)\n{run.stderr}')
 
 
 class Frames(unittest.TestCase):

@@ -14,12 +14,20 @@ The library lists everything a tile can show: the rows come as the list is scrol
 
 The navigation preview runs locally. It does not switch entities in Home Assistant. Entity values and available history come from Home Assistant; unavailable history is left empty.
 
+**Auto layout** in the toolbar makes a whole layout from the home's areas and devices, and a screen without tiles
+offers it at once; it lands as one edit to undo or change (docs/AUTO_LAYOUT.md).
+
 Explicitly adding a page opens a compact setup dialog for its title, Home control,
 clock and optional Home Assistant entities. Cancelling leaves the document unchanged;
 creating the page is one undo step. Dragging a tile onto a new page skips the dialog.
 The new page gets a title from its shared HA area, or from its entity domain when
 there is no shared area. Mixed content without a common area uses the screen title.
 Suggestions are applied only at creation and never rename an existing page.
+
+A tile is held by the cell you take it by: a large tile taken by its lower right corner lands with that
+corner on the cell where you let it go, and one taken by its top left lands as before. It stays on the page under the
+pointer, moved just inside it when part of it would fall off, instead of being refused (`anchorAt` in
+`web/src/model/layout.ts`, `grabbedCell` in `web/src/drag.ts`).
 
 Several tiles can be chosen at once: hold ⌘ (Ctrl on Windows and Linux) or Shift and click them, drag a band with the
 mouse from beside the tiles, or press ⌘A for every tile of the chosen page. The inspector then lists them, with Copy and
@@ -128,6 +136,92 @@ Update the screen before choosing a taller size. Its supported sizes are negotia
 
 Add-ons older than 0.3.1 cannot read version 2 storage at all, so going back needs the pre-upgrade backup (see Storage and recovery). There is no public 0.3.0 release: it was the internal page-owned development round, and its test results are linked below.
 
+## Sections
+
+A section is a block of cells on a page's grid, like one large tile, with a title, an icon and a soft panel behind its
+tiles; its tiles stand inside it. A page's other tiles are loose: they stay on the page's own cells, gaps and all,
+exactly as before sections, and never reflow. A section never holds another section. Only screens of the full tier
+draw sections (docs/MODULES.md, module `sections`); the editor offers them nowhere else, so a CYD or another board
+with 4 MB of flash gets none of it.
+
+A section is for grouping: what the app proposes by itself (a first layout made for a screen) puts two or more cards
+in each section and leaves a lone card loose. A user may still make a section of one card, or keep one; nothing warns
+or refuses it.
+
+**The look** (`components/smart_display/module_sections.h`): the panel covers exactly the section's cells, the
+`SECTION` role, its corner the card's radius plus the padding. The title stands in the panel's top, in the tile name's
+font and ink, its capitals as far from the panel's top as from its side; its icon from the small icon font stands
+before it, centred on the capitals; the summary, one entity's state in the words of the top bar, stands at the title's
+right end in the small grey font. A section can stand out (**Contrast background**, off unless chosen): its panel takes
+the page's opposite, `SECTION_CONTRAST`, and its title, icon and summary `SECTION_CONTRAST_INK`; its tiles keep their
+own cards. With **Tiles in contrast too** (beside it, off unless chosen) the whole section is a piece of the other look:
+its panel, its words and its tiles' cards, dark on a dark panel by day and light in Dark mode. The firmware gives each
+card its look and what lies behind it where the card is placed on its own page (`sections::place`), paints the card in
+that look through `CardScope` (docs/THEME.md, "A card's look") and trades the shared paints on its objects for their
+copies in the other look when it changes look (`theme::restyle_card`); the editor, whose mockup is the light look,
+draws them close to the dark look's values (`OTHER_LOOK` in `web/src/model/sections.ts`). A picture on a card in a section (an album cover, a
+camera, still or live) rounds its corners over the section's panel, the dark one in contrast, never over the page
+(`runtime_tiles::card_ground`): a cover asked over the page left a light frame around its card on
+a contrast panel. The editor draws the same from `boards.json`'s `section` metrics, so a page built in the editor is the page
+on the glass.
+
+**Room.** Adding a section changes no tile outside it: the page's rows stay what they are, and a loose tile keeps its
+full height. The room the title takes (the header: the title's top, its line and a gap) and the padding under the last
+row come out of the section's own tiles, shared evenly by its rows, so every tile inside is the same height and the
+panel's top and foot stay on the rows beside it. A tile of rows `k1` to `k2` of a section of `n` rows gets the margins
+`header - k1·d` above and `(k2 + 1)·d - header` below, `d = (header + gap) / n`, rounded half away from zero in whole
+pixels, and the grid's gap at the section's sides (`section_layout.h inside`, `tests/test_section_layout.cpp`; the
+editor's `insideMargins` in `web/src/model/sections.ts`, `web/tests/sections.spec.ts`, the same cases).
+
+**Making and changing a section** (editor):
+
+- Choose tiles (⌘ or Ctrl and a click, Shift and a click, or a frame drawn over the page) and click **Make a section**
+  beside them, or in the drawer of the chosen tiles, or in their menu. A name field opens at once and the page shows
+  the section while you type; Enter makes it, Escape leaves everything as it was. Tiles that fill a rectangle become
+  that block where they stand; any other choice gets a block at its first tile, as wide as the choice, its tiles in
+  reading order, and loose tiles in the way move aside as a drag moves them.
+- Or start from nothing: **Add a section** stands at the top of the library (so a click on an empty cell offers a tile
+  or a section in one place), in the right-click menu of an empty cell (**Add a section here**) and in the page's own
+  menu. The new section is empty, two by two where that fits around the cell (else two by one, one by two or one cell;
+  without a cell, on the page's first free cells), nothing moves, and its drawer opens with the name selected to type
+  over. Its empty cells take tiles as any cell does (`emptySection` in `web/src/model/sections.ts`).
+- A tile dragged onto a free cell of a section lands there; dragged onto one of its tiles, or onto a full section, it
+  takes that place in the section's reading order, the tiles after it move on, and the section grows by rows, or wider
+  where the page has no rows left, the loose tiles in the way making room. From the library, from the page and from
+  another section alike. A tile dragged out of a section is loose again.
+- A section is dragged by its title row, as one block; loose tiles in its way make room. The grips at its right and bottom
+  edges make it wider, narrower, taller or lower; a section that gets too narrow for its tiles lays them out again in
+  reading order. A click on the title row opens its drawer: name, icon, summary, contrast background, size, and Remove section (its tiles stay,
+  loose, where they are) or Remove section and tiles. A click on the title names it in place.
+- Hints, never blocks: loose tiles beside a section get the offer to make them a row of their own above the sections,
+  and on a grid of three rows or fewer the drawer says how high the tiles of a section become.
+
+**A grid change or a turn** (`adaptGrid`): a section takes part as one unit of its cells. It keeps its place where
+the new grid has it free, else goes whole to the first free place of its page, else to a new page after it; only a
+section wider than the new grid gets narrower, its tiles laid out again in reading order, and one taller than a page
+then continues as a section of its own with the same title and icon.
+
+**The document.** A page keeps every one of its tiles in `tiles`, each at its own cell, exactly as before sections, and
+may have `sections`: each with its `id`, `title` (at most 48 bytes), optional `icon`, `summary` (an entity), `contrast`
+(true) and `contrastTiles` (true, only beside `contrast`), and its `placement` on the page's grid. A section holds no
+tiles of its own. A tile belongs to the section whose block it lies in, and that is said in one place per side:
+`page_layout.section_of` in the add-on, `sectionOf` in `web/src/model/page-tiles.ts` in the editor. So nothing that
+counts, finds or checks a page's tiles has to know sections, and a tile's section is never said twice. A tile stands
+wholly in one block or wholly outside every block, never across an edge, and a tile that fills its page stands in none.
+A page without sections has no key, so a layout from before sections is unchanged, and so is every message and
+revision a screen gets for it (`tests/test_sections.py`). A tile's slot is its own cell, whatever section it is in.
+
+Sections first kept their tiles inside themselves, placed from the block's corner (on dev from 2026-11-15, never
+released). A store written that way is read once, kept beside itself as `screens.v3.backup.json`, and written in the
+form above (`page_layout.flattened`, `layout_store`).
+
+**The protocol.** A screen that draws sections says `sections` in its hello's features. Its pages' messages then carry
+`"sections": [[column, row, columns, rows, icon, title, summary, options], ...]` (options as bits: 1 the contrast, 2 its tiles in it) for a
+page that has some, and a summary that
+changes comes as `{"op": "sums", "p": page, "t": [...]}`. A screen without the feature gets the same tiles in the same
+cells, without the sections; the editor says the screen needs an update to show them. A screen that starts to draw
+sections gets the layout again with them (the revision counts the feature only for a layout that has sections).
+
 ## Updating at different times
 
 Update the add-on and screens in either order. Screens are negotiated individually.
@@ -142,6 +236,24 @@ Update the add-on and screens in either order. Screens are negotiated individual
 An unsaved editor draft remains a draft during an update. Updating one screen does not change the capabilities of another. A firmware downgrade cannot represent features its version never supported; the saved document is retained instead of being flattened.
 
 The add-on checks the saved layout before installing new firmware. An external firmware update cannot perform that preflight. Missing grid information or invalid old references are shown as specific migration problems and must be resolved before that layout can activate.
+
+## A hello
+
+The app opens every session with a hello, and the screen answers with a new lease (`page_protocol::Transfer::grant`).
+That happens each time the app starts: after an update, a restart or a rebuild. A hello alone costs the glass nothing.
+The layout the screen holds stays whole and its values stay trusted, because nothing has said otherwise: while the app
+was gone the screen already kept them for its keepalive, and between the hello and the session's begin no value can
+land, because the old lease is refused and the new one is not yet begun. The begin then decides:
+
+- **The same layout** (the same revision) is `Begin::unchanged`: nothing is drawn again and no value turns grey.
+- **Another layout** is `Begin::replace`: the screen holds no whole layout until its last tile, the loading cover goes
+  over the glass, and the new layout comes in whole, as any new layout does.
+
+`begun` says only that the lease has had its one begin. What decides whether the screen shows a whole layout, and
+trusts its values, is `Transfer::whole()`: the transfer is active and the model has every tile. `fresh()` (values and
+actions) and `navigation_ready()` (turning pages) both ask it. Before firmware of 2026-11-16, `fresh()` also asked for
+`begun`, so each start of the app greyed the values for a moment and drew every card twice. The host render's
+`hello_again` round proves the rule with a second sender over the same screen.
 
 ## Storage and recovery
 
@@ -182,6 +294,10 @@ index and value before updating the existing records. Open cards, page history
 and tile storage remain in place. Structural changes, older peers and edits
 that exceed one bounded packet use the full transaction. No second layout or
 compatibility decoder is stored on the screen.
+
+The store stays at version 2 while no screen has a section, so an older app reads it as before. The first save with
+a section keeps the version 2 file as `screens.v2.backup.json` beside the store (never overwritten, as the version 1
+backup) and writes version 3, which an older app refuses without rewriting it: going back needs that backup.
 
 Keep the pre-upgrade backup if an older add-on must be restored. Older add-ons cannot read version 2. Stop the add-on before restoring a backup; restoring it deliberately discards changes made after that backup. Unknown future storage versions are refused without rewriting them.
 

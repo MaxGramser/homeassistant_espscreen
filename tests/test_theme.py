@@ -21,6 +21,9 @@ from core import DARK_MODE_MIN_FIRMWARE, FIRMWARE_VERSION, SETTING_ENTITIES, SET
 
 COMPONENT = ROOT / 'components/smart_display'
 THEME = (COMPONENT / 'theme.h').read_text()
+# What a change of look draws again, as the firmware preview binds it (web/wasm/firmware_preview.cpp, theme::redraw).
+_PREVIEW = (ROOT / 'web/wasm/firmware_preview.cpp').read_text()
+PREVIEW_REDRAW = re.findall(r'(\w+::\w*restyle)\(\);', _PREVIEW.split('theme::redraw = [] {', 1)[1].split('};', 1)[0])
 PROFILES = list(profiles.NAMES)
 HEX = re.compile(r'0x[0-9A-Fa-f]{6}\b')
 # What may still carry a number that looks like a colour: the light's colour picker shows the colours a light can take,
@@ -107,50 +110,37 @@ class Paints(unittest.TestCase):
                           f'{path}: the paints filled, then the saved look, before the first frame')
             apply = text.split('  - id: apply_screen_settings\n', 1)[1].split('\n  - id: ', 1)[0]
             self.assertIn('theme::set_dark(settings_screen::dark_mode != 0);', apply, f'{path}: a change of the setting')
+            # Rule: the shared core redraws what the preview redraws (web/wasm/firmware_preview.cpp binds the same), and
+            # the preview proves it draws a switched screen as one that booted dark (web/wasm/test_dark_switch.mjs).
             redraw = text.split('theme::redraw = []() {', 1)[1].split('};', 1)[0]
-            # The computed cards (the thermostat, the blind, the robot) are drawn again by runtime_tiles::restyle.
-            for needle in ('runtime_tiles::restyle();', 'runtime_tiles::colour_restyle();', 'settings_screen::restyle();',
-                           'theme::surface(id(alert_card_color))'):
-                self.assertIn(needle, redraw, f'{path}: {needle}')
+            self.assertEqual(re.findall(r'(\w+::\w*restyle)\(\);', redraw), PREVIEW_REDRAW,
+                             f'{path}: theme::redraw calls what the preview\'s does, in its order')
+            # The alert card is no part of the preview: core.yaml paints it again itself.
+            self.assertIn('theme::surface(id(alert_card_color))', redraw, f'{path}: the alert card is painted again')
             self.assertIn('id(alert_card_color) = alert.color;', text)
             self.assertIn('lv_color_hex(theme::surface(alert.color))', text)
 
     def test_the_firmware_draws_long_lived_parts_with_paints(self):
+        # Rule: a part that lives across a change of look wears a paint, which theme.h fills again, never a colour.
         tiles = runtime_source()
         for needle in ('lv_obj_add_style(w.slider,theme::style(theme::Paint::knob),LV_PART_KNOB);',
                        'lv_obj_add_style(w.busy,theme::style(theme::Paint::veil),0);',
-                       'lv_obj_add_style(spinner, theme::style(theme::Paint::spinner), LV_PART_MAIN);',
-                       'inline void restyle() {'):
-            self.assertIn(needle, tiles)
+                       'lv_obj_add_style(spinner, theme::style(theme::Paint::spinner), LV_PART_MAIN);'):
+            self.assertIn(needle, tiles, f'a long-lived part wears its paint: {needle}')
         self.assertIn('lv_obj_add_style(part, theme::style(theme::Paint::slate), 0);',
-                      (COMPONENT / 'page_header.h').read_text())
-        # Dark mode is kept in a preference of its own, next to the others outside the frozen settings block.
-        self.assertIn('make_preference<uint32_t>(0x44524B31)', tiles)
-        self.assertIn('inline void restyle() {', (COMPONENT / 'settings_screen.h').read_text())
-        # The colour card is built when it opens, so a change of look draws it again (runtime_tiles::colour_restyle).
-        self.assertIn('inline void colour_restyle() {', tiles)
+                      (COMPONENT / 'page_header.h').read_text(), 'the page header wears the slate paint')
+        # Rule: Dark mode is kept in a preference of its own, next to the others outside the frozen settings block.
+        self.assertIn('make_preference<uint32_t>(0x44524B31)', tiles, "Dark mode's preference key never changes")
 
 
 class RedrawnTheSame(unittest.TestCase):
-    """A change of look draws again what was drawn, and the renders compare a screen that switched with one that
-    booted in that look. Two differences they found were older than Dark mode: what a page showed depended on the
-    order it was drawn in."""
+    """A change of look draws again what was drawn: web/wasm/test_dark_switch.mjs compares a screen switched to Dark mode
+    with one that booted in it, pixel for pixel, on a page of computed cards (the sun path keeps its sunny fill) and on
+    the settings page with its switches (their knobs follow the size they were given)."""
 
-    def test_a_switch_knob_follows_the_size_it_was_given(self):
-        page = (COMPONENT / 'settings_screen.h').read_text()
-        move = page.split('inline void move_knob(', 1)[1].split('\n}\n', 1)[0]
-        # draw() ends in refresh() before LVGL has laid the new rows out, when coordinates still read 0.
-        self.assertNotIn('lv_obj_get_width', move)
-        self.assertNotIn('lv_obj_get_height', move)
-        self.assertIn('knob_x(lv_obj_get_style_width(track, LV_PART_MAIN), lv_obj_get_style_height(track, LV_PART_MAIN), on)', move)
-        pill = page.split('inline lv_obj_t *pill(', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('plain(track, knob_x(w, h, on), inset, size, size)', pill)
-
-    def test_the_sun_path_keeps_its_own_fill_after_a_palette_change(self):
-        tiles = runtime_source()
-        self.assertIn('w.fill_color=lv_color_hex(theme::ha::SUNNY);', tiles)
-        self.assertIn('if(w.extra_mode!="sunpath")w.fill_color=color;', tiles)
-        self.assertEqual(len(re.findall(r'\bw\.fill_color=', tiles)), 2, 'the sun path and the palette are the only two')
+    def test_only_the_sun_path_and_the_palette_set_a_cards_fill(self):
+        # Rule: a card's fill is the palette's, but for the sun path's own; a third writer would be lost on a change.
+        self.assertEqual(len(re.findall(r'\bw\.fill_color=', runtime_source())), 2, 'the sun path and the palette are the only two')
 
 
 class Setting(unittest.TestCase):
@@ -160,16 +150,10 @@ class Setting(unittest.TestCase):
         self.assertEqual(SETTING_ENTITIES['dark_mode'], ('switch', 'Dark mode'))
         self.assertEqual(DARK_MODE_MIN_FIRMWARE, '0.2.54')
         self.assertLessEqual(tuple(map(int, DARK_MODE_MIN_FIRMWARE.split('.'))), tuple(map(int, FIRMWARE_VERSION.split('.'))))
-        page = (COMPONENT / 'settings_screen.h').read_text()
-        self.assertIn('toggle(screen_text::txt::settings_dark_mode, []() -> int32_t { return dark_mode; },', page)
-        self.assertIn('else if (key == "dark_mode") reported = dark_mode = flag(value);', page)
-        editor = (ROOT / 'web/src/model/settings.ts').read_text()
-        self.assertIn('{ key: "dark_mode", kind: "toggle" },', editor)
+        # The screen's row and its key: tests/test_settings_screen.cpp; the editor's row under Brightness:
+        # web/tests/settings.spec.ts.
         texts = json.loads((ROOT / 'screen_manager/translations/en.json').read_text(encoding='utf-8'))['editor']
         self.assertEqual(texts['screen_settings']['rows']['dark_mode'], 'Dark mode')
-        brightness = editor.split('{ group: "brightness"', 1)[1].split('] },', 1)[0]
-        self.assertLess(brightness.index('"brightness"'), brightness.index('"dark_mode"'), 'right under Brightness, as on the screen')
-        self.assertLess(brightness.index('"dark_mode"'), brightness.index('"standby_enabled"'))
 
 
 if __name__ == '__main__':

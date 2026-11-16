@@ -70,7 +70,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -126,6 +127,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 27,
+   "ink_top": 3,
+   "line": 14,
+   "title_top": 13
+  },
   "spacing": {
    "circle": 37,
    "gap": 8,
@@ -223,6 +230,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -315,6 +328,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -382,7 +401,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -418,6 +438,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 35,
+   "ink_top": 3,
+   "line": 18,
+   "title_top": 17
+  },
   "spacing": {
    "circle": 46,
    "gap": 10,
@@ -498,7 +524,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -554,6 +581,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -646,6 +679,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 37,
    "gap": 6,
@@ -736,7 +775,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -792,6 +832,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -878,7 +924,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -934,6 +981,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -1011,7 +1064,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1067,6 +1121,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -1153,7 +1213,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1209,6 +1270,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 49,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -1295,7 +1362,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1351,6 +1419,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -1437,7 +1511,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1493,6 +1568,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -1579,7 +1660,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1635,6 +1717,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -1712,7 +1800,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1768,6 +1857,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -1855,7 +1950,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1911,6 +2007,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 60,
    "gap": 12,
@@ -1978,7 +2080,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2014,6 +2117,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 55,
    "gap": 12,
@@ -2091,7 +2200,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2147,6 +2257,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -2239,7 +2355,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2295,6 +2412,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 62,
+   "ink_top": 7,
+   "line": 36,
+   "title_top": 26
+  },
   "spacing": {
    "circle": 93,
    "gap": 12,
@@ -2383,7 +2506,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2439,6 +2563,163 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "radius": 19,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
+ "checkout/waveshare101v3.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "waveshare101v3",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
+   "name": "Waveshare",
+   "order": 31,
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
+   "status": "new",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 24,
+   "icon": 37,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "own_icons": true,
+  "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -2506,7 +2787,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2542,6 +2824,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -2624,7 +2912,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2680,6 +2969,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -2718,7 +3013,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -2757,7 +3052,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2813,6 +3109,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -2890,7 +3192,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -2946,6 +3249,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3023,7 +3332,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3079,6 +3389,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3156,7 +3472,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3212,6 +3529,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -3289,7 +3612,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3345,6 +3669,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 52,
+   "ink_top": 6,
+   "line": 29,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 75,
    "gap": 12,
@@ -3422,7 +3752,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3478,6 +3809,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -3555,7 +3892,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3611,6 +3949,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -3699,7 +4043,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3755,6 +4100,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 55,
+   "ink_top": 7,
+   "line": 32,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 81,
    "gap": 12,
@@ -3843,7 +4194,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -3899,6 +4251,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 48,
+   "ink_top": 5,
+   "line": 26,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 67,
    "gap": 12,
@@ -3987,7 +4345,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4043,6 +4402,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -4120,7 +4485,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4176,6 +4542,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -4261,7 +4633,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4317,6 +4690,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 27,
+   "ink_top": 3,
+   "line": 14,
+   "title_top": 13
+  },
   "spacing": {
    "circle": 37,
    "gap": 8,
@@ -4414,6 +4793,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -4506,6 +4891,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -4573,7 +4964,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4609,6 +5001,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 35,
+   "ink_top": 3,
+   "line": 18,
+   "title_top": 17
+  },
   "spacing": {
    "circle": 46,
    "gap": 10,
@@ -4689,7 +5087,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4745,6 +5144,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -4837,6 +5242,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 37,
    "gap": 6,
@@ -4927,7 +5338,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -4983,6 +5395,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -5069,7 +5487,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5125,6 +5544,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -5202,7 +5627,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5258,6 +5684,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -5344,7 +5776,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5400,6 +5833,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 49,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -5486,7 +5925,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5542,6 +5982,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -5628,7 +6074,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5684,6 +6131,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -5770,7 +6223,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5826,6 +6280,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -5903,7 +6363,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -5959,6 +6420,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -6044,7 +6511,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6100,6 +6568,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 27,
+   "ink_top": 3,
+   "line": 14,
+   "title_top": 13
+  },
   "spacing": {
    "circle": 37,
    "gap": 8,
@@ -6197,6 +6671,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -6289,6 +6769,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 36,
    "gap": 6,
@@ -6356,7 +6842,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6392,6 +6879,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 35,
+   "ink_top": 3,
+   "line": 18,
+   "title_top": 17
+  },
   "spacing": {
    "circle": 46,
    "gap": 10,
@@ -6472,7 +6965,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6528,6 +7022,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6620,6 +7120,12 @@
   },
   "own_icons": false,
   "rows": 3,
+  "section": {
+   "band": 22,
+   "ink_top": 3,
+   "line": 13,
+   "title_top": 9
+  },
   "spacing": {
    "circle": 37,
    "gap": 6,
@@ -6710,7 +7216,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6766,6 +7273,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6852,7 +7365,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6908,6 +7422,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6985,7 +7505,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7041,6 +7562,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -7127,7 +7654,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7183,6 +7711,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 49,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -7269,7 +7803,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7325,6 +7860,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -7411,7 +7952,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7467,6 +8009,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -7553,7 +8101,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7609,6 +8158,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -7686,7 +8241,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7742,6 +8298,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -7829,7 +8391,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7885,6 +8448,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 60,
    "gap": 12,
@@ -7952,7 +8521,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -7988,6 +8558,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 55,
    "gap": 12,
@@ -8065,7 +8641,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8121,6 +8698,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -8213,7 +8796,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8269,6 +8853,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 62,
+   "ink_top": 7,
+   "line": 36,
+   "title_top": 26
+  },
   "spacing": {
    "circle": 93,
    "gap": 12,
@@ -8357,7 +8947,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8413,6 +9004,163 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "radius": 19,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
+ "packages/waveshare101v3.yaml": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "waveshare101v3",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
+   "name": "Waveshare",
+   "order": 31,
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
+   "status": "new",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 24,
+   "icon": 37,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "own_icons": true,
+  "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -8480,7 +9228,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8516,6 +9265,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -8598,7 +9353,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8654,6 +9410,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -8692,7 +9454,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -8731,7 +9493,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8787,6 +9550,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -8864,7 +9633,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8920,6 +9690,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -8997,7 +9773,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9053,6 +9830,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -9130,7 +9913,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9186,6 +9970,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -9263,7 +10053,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9319,6 +10110,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 52,
+   "ink_top": 6,
+   "line": 29,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 75,
    "gap": 12,
@@ -9396,7 +10193,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9452,6 +10250,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -9529,7 +10333,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9585,6 +10390,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -9673,7 +10484,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9729,6 +10541,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 55,
+   "ink_top": 7,
+   "line": 32,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 81,
    "gap": 12,
@@ -9817,7 +10635,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -9873,6 +10692,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 48,
+   "ink_top": 5,
+   "line": 26,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 67,
    "gap": 12,
@@ -9961,7 +10786,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10017,6 +10843,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -10094,7 +10926,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10150,6 +10983,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -10237,7 +11076,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10293,6 +11133,12 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 60,
    "gap": 12,
@@ -10360,7 +11206,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10396,6 +11243,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 55,
    "gap": 12,
@@ -10473,7 +11326,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10529,6 +11383,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -10621,7 +11481,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10677,6 +11538,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 62,
+   "ink_top": 7,
+   "line": 36,
+   "title_top": 26
+  },
   "spacing": {
    "circle": 93,
    "gap": 12,
@@ -10765,7 +11632,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10821,6 +11689,163 @@
   },
   "own_icons": true,
   "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
+  "spacing": {
+   "circle": 47,
+   "gap": 11,
+   "gap_y": 11,
+   "margin": 14,
+   "page_bar": 41,
+   "radius": 19,
+   "tile_pad": 11,
+   "top": 50
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1280
+ },
+ "waveshare101v3": {
+  "alert": {
+   "line": 21,
+   "title_line": 28
+  },
+  "battery": false,
+  "board": "waveshare101v3",
+  "camera": {
+   "full": [
+    1280,
+    800
+   ],
+   "thumb": [
+    343,
+    193
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 10.1,
+   "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
+   "name": "Waveshare",
+   "order": 31,
+   "settings": [
+    "media_player",
+    "microphone",
+    "microphone_gain",
+    "automatic_gain",
+    "echo_cancellation"
+   ],
+   "status": "new",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-P4",
+  "columns": 5,
+  "dimmable": true,
+  "dpi": 149,
+  "features": [
+   "speaker",
+   "microphone",
+   "media_player",
+   "bluetooth"
+  ],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 24,
+   "icon": 37,
+   "icon_home": 30,
+   "icon_mini": 23,
+   "label": 16,
+   "setpoint": 56,
+   "sublabel": 14,
+   "sublabel_big": 18,
+   "watch_icon": 16,
+   "watch_value": 33
+  },
+  "height": 800,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 16,
+  "max_tiles": 256,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1280,
+      800
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 800,
+    "max": [
+     8,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 270,
+    "rows": 5,
+    "width": 1280
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      800,
+      1280
+     ],
+     "thumb": [
+      343,
+      193
+     ]
+    },
+    "columns": 5,
+    "height": 1280,
+    "max": [
+     6,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 5,
+    "width": 800
+   }
+  },
+  "own_icons": true,
+  "rows": 5,
+  "section": {
+   "band": 38,
+   "ink_top": 3,
+   "line": 19,
+   "title_top": 19
+  },
   "spacing": {
    "circle": 47,
    "gap": 11,
@@ -10888,7 +11913,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -10924,6 +11950,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,
@@ -11006,7 +12038,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11062,6 +12095,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -11100,7 +12139,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -11139,7 +12178,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11195,6 +12235,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 50,
+   "ink_top": 5,
+   "line": 27,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 69,
    "gap": 12,
@@ -11272,7 +12318,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11328,6 +12375,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -11405,7 +12458,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11461,6 +12515,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -11538,7 +12598,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11594,6 +12655,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 43,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 59,
    "gap": 12,
@@ -11671,7 +12738,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11727,6 +12795,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 52,
+   "ink_top": 6,
+   "line": 29,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 75,
    "gap": 12,
@@ -11804,7 +12878,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11860,6 +12935,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 31,
+   "ink_top": 3,
+   "line": 16,
+   "title_top": 15
+  },
   "spacing": {
    "circle": 42,
    "gap": 9,
@@ -11937,7 +13018,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -11993,6 +13075,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -12081,7 +13169,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -12137,6 +13226,12 @@
   },
   "own_icons": true,
   "rows": 3,
+  "section": {
+   "band": 55,
+   "ink_top": 7,
+   "line": 32,
+   "title_top": 23
+  },
   "spacing": {
    "circle": 81,
    "gap": 12,
@@ -12225,7 +13320,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -12281,6 +13377,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 48,
+   "ink_top": 5,
+   "line": 26,
+   "title_top": 22
+  },
   "spacing": {
    "circle": 67,
    "gap": 12,
@@ -12369,7 +13471,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -12425,6 +13528,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -12502,7 +13611,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -12558,6 +13668,12 @@
   },
   "own_icons": true,
   "rows": 2,
+  "section": {
+   "band": 40,
+   "ink_top": 4,
+   "line": 20,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 52,
    "gap": 12,

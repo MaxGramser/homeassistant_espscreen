@@ -37,7 +37,7 @@ namespace tessera {
 // minor after which an older plugin would still build but work wrongly (0.4, where on_tick changed its meaning): such a
 // plugin is refused in one sentence. What each minor brought and took away: the plugins repository's
 // docs/FIRMWARE_API.md, "Versions".
-constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 25;
+constexpr uint8_t PLUGIN_API_MAJOR = 0, PLUGIN_API_MINOR = 28;
 
 // The screen's fixed fonts, largest first. A tile takes the largest that fits; a plugin brings no font of its own.
 // VALUE is the big number of a watch card, HEADLINE a card's large words, TITLE a card's name, BODY its second line,
@@ -190,6 +190,8 @@ class Popup : public InPsram {
   // It goes by itself (its close key, a tap beside it, the screen going dark, an update, an alert, another plugin's
   // popup): the last call before it is deleted. Not when its own plugin closed it or showed another.
   virtual void on_dismiss() {}
+  // What came of a place's picture (0.27, a popup with an id of the manifest's `popups`), as a card's on_picture.
+  virtual void on_picture(lv_obj_t *place, PictureState state) {}
 };
 
 // A tap action on a tile of Home Assistant's own (a thermostat that opens the plugin's schedule): what it was tapped on.
@@ -255,6 +257,13 @@ enum class Tone : uint8_t { NORMAL, ACCENT, BUSY, ALERT, GOOD };
 // How a picture fills its place (0.10): COVER fills the place and cuts away what is over (a poster in a poster's
 // frame), CONTAIN shows the whole picture within it, on the card's own colour (a logo, a map).
 enum class Fit : uint8_t { COVER, CONTAIN };
+
+// A card's own colour (0.26): the named colours a person can give any tile in the editor (theme::SWATCHES). Each is a
+// pastel in the light look and a deep shade of the same hue in the dark one, chosen so the screen's ink reads on it.
+// NONE is the card as the person set it: plain, or the colour they chose.
+// INSTRUMENT (0.28): the ground of the instrument roles, dark in both looks, for a tile that is an instrument's face
+// edge to edge (a radar, a night sky, a clock face); draw on it with theme::INSTRUMENT_INK and its kin.
+enum class CardColor : uint8_t { NONE, RED, ORANGE, YELLOW, GREEN, MINT, BLUE, PURPLE, PINK, GRAY, INSTRUMENT };
 // How a picture turns in its place (0.10), as the covers beside the middle one of a cover flow turn to face it: the app
 // draws the whole picture in perspective within the place, its near edge the place's height and its far edge 70 % of
 // it. LEFT faces the left (its left edge far: a cover right of the middle), RIGHT faces the right (a cover left of it).
@@ -481,6 +490,10 @@ void close_card();
 // now. A dark screen lights up first, as wake() does: a popup is something to see. Call it from the plugin's own calls
 // (the screen's loop). False when nothing could show (`make` returned none).
 bool show_popup(const Plugin *plugin, std::function<Popup *()> make, PopupWidth width = PopupWidth::ALERT);
+// The same with the popup's id of the manifest's `popups` (0.27): such a popup may show pictures (ui::picture and
+// ui::set_picture in its open() and later calls), as many as the manifest's `pictures` of it, from the hosts of
+// permissions.network. A popup shown without an id shows none: its places stay blocks.
+bool show_popup(const Plugin *plugin, const char *popup, std::function<Popup *()> make, PopupWidth width = PopupWidth::ALERT);
 // Close this plugin's popup, if it shows one (it hears no on_dismiss).
 void close_popup(const Plugin *plugin);
 // Whether a popup of this plugin shows.
@@ -633,6 +646,20 @@ void set_fill(lv_obj_t *block, Tone tone, theme::Role normal);
 lv_color_t tone_color(Tone tone, theme::Role normal);
 // A rounded block (a line number's badge, a bar): no border, the radius of a key.
 lv_obj_t *block(lv_obj_t *parent, theme::Role fill);
+// The tile's card in a colour of its own (0.26): the whole card, its edge and its shade under a finger, in both looks,
+// over the colour the person chose for the tile in the editor; CardColor::NONE gives the card back to that choice. For a
+// tile whose colour says something (a level that is fine or off, the bin that goes out, a timer that ran out). Call it
+// in a call of the tile (create, on_state, on_tick, on_theme, on_tap): it colours the card of that tile, costs nothing
+// when the colour is the one it has, and lasts until the tile says otherwise or leaves the card. A tile whose
+// background the person set to None has no card, and stays so. Outside a tile's call it does nothing.
+void set_card_color(CardColor color);
+// The colour of the card under the tile as it is drawn now, in a call of the tile: its own (set_card_color), else the
+// person's, else the plain card; the page's colour for a tile without a card. For a part that has to go with the card:
+// a soft block is lv_color_mix(ui::color(theme::INK), ui::card_color(), 26), never a number. In a call of a card, a
+// popup or a screensaver it is the plain card's colour.
+lv_color_t card_color();
+// A named card colour as this look draws it; CardColor::NONE is the plain card.
+lv_color_t card_color(CardColor color);
 // The UTF-8 of an icon of Tessera's set by its codepoint (0xF0B5E), for a label in Font::ICON or ICON_SMALL.
 std::string icon(uint32_t codepoint);
 // A part of a screensaver a finger may tap without waking the screen (0.14): its taps go to Saver::on_tap (and a hold to
@@ -686,8 +713,14 @@ void slide_pictures(int dx, uint32_t ms = 300);
 // still, since the screen draws the part again in every frame while it moves. Keep a part that moves small: it is drawn
 // anew each frame, and a part that spins or ripples through a layer of its own.
 void animate(lv_obj_t *part, Motion motion, uint32_t period_ms, uint32_t delay_ms = 0);
-// The part stops moving and shows as it was laid out: whole, upright, at its size.
+// The part stops moving and shows as it was laid out: whole, at its size, at its own turn (ui::rotate) or upright.
 void still(lv_obj_t *part);
+// A part turned by `degrees` clockwise around its middle (0.27): a plane's icon along its course, a compass needle, a
+// wind arrow. 0 is as it is drawn; the same angle again costs nothing, so call it on every tick. LVGL draws a turned
+// part on a layer of its own each time it changes, so turn small parts (an icon, a short line), not a whole card. The
+// turn holds through ui::animate and ui::still: a part that pulses or ripples keeps pointing where it was turned, one
+// that spins turns from there, and a turn given while it spins counts from its next frame.
+void rotate(lv_obj_t *part, float degrees);
 // A tile's place shows its camera live (0.17): a place whose address is `camera:<entity>` of the tile's own entity
 // streams on a screen that streams (the ESP32-P4 boards) while it is on the glass, the page stands still and nothing
 // lies over it, exactly as a camera tile set to Live does (docs/PICTURES.md); everywhere else, and until its first live

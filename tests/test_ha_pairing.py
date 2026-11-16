@@ -19,7 +19,6 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import ha_pairing  # noqa: E402
 from ha_pairing import Pairing, discovered_node, usable_key  # noqa: E402
 

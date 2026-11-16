@@ -14,3 +14,8 @@ declare module "virtual:esp-screens-languages" {
   const languages: Record<string, { name: string; english: string; script?: string; plural: string; clock?: string; checked: boolean }>;
   export default languages;
 }
+declare module "virtual:esp-screens-preview-age" {
+  // Whether the firmware preview this editor ships is older than the firmware (web/preview-age.ts), and their dates.
+  const age: { stale: boolean; firmware: string | null; preview: string | null };
+  export default age;
+}

@@ -149,7 +149,7 @@ A wish writes its value into the tile and paints every tile and the open card of
 ### Adding a field
 
 1. Add it to `optimistic::Field` in `optimistic.h`.
-2. Read and write it in `wish_read` and `wish_write` in `runtime_tiles.h`, in the same words Home Assistant reports.
+2. Read and write it in `wish_read` and `wish_write` in `optimistic_lvgl.h`, in the same words Home Assistant reports.
    A write that touches more than the value (the progress bar under `PLAYING`) does it there, once.
 3. If a key of a tile's key row wishes it, say so in `tile_controls::wanted`.
 4. Add it to the table above. `tests/test_optimistic_rule.py` fails while the table and the enum differ.
@@ -189,6 +189,14 @@ Not optimistic on purpose:
 - next and previous track, turning a player or thermostat on, a scene, script or button: nothing the screen could show
   is known before Home Assistant reports it.
 
+A tile that runs something (a scene, a script, a button) has no wish: its tap waits for Home Assistant instead
+(`Tile::waiting`, `runtime_model.h`). The wait ends when a state follows, which for these is always a new one (a scene's
+and a button's state is the moment it ran, a script's `last` from the app), or `BUSY_AFTER_ANSWER` (800 ms) after
+Home Assistant's "it worked" when none follows. Meanwhile the tile's sheet swallows taps, and the 600 ms guard keeps a
+bounce from running it twice. Home Assistant answers in 342 to 599 ms, so a finger that taps once a second runs it
+every time (`web/wasm/test_page_frame.mjs`); only an answer that comes seconds late leaves the next tap under the
+sheet.
+
 ## A cover on its way
 
 A blind, a curtain or a garage door takes seconds to get where it was sent, and Home Assistant reports it on the way:
@@ -211,6 +219,10 @@ slider, its open and close keys, its slats) starts a **travel** (`components/sma
   after `QUIET` (10 s); a cover on its way that goes silent after `SILENT` (60 s); none outlives `CAP` (3 min).
 
 The open and close keys of a cover without positions show only the way ("Opening"), never a position.
+
+A tap on a cover's card on a cover group's page, like a cover tile set to toggle, is Home Assistant's `cover.toggle`
+itself and starts no travel: Home Assistant decides whether the cover stops, opens or closes, from what the screen
+cannot know (the way a cover stopped half way went last), and the card shows the cover as Home Assistant reports it.
 
 ## Testing
 

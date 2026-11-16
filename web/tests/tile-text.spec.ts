@@ -40,6 +40,11 @@ describe("the line under a card's name", () => {
     expect(stateText("climate.living", climate("cool", {}), { controlled: true }, en)).toBe("Cool");
   });
 
+  it("names the activity a remote runs, as the screen does (firmware 0.22.0)", () => {
+    expect(stateText("remote.hub", { state: "on", a: { current_activity: "Watch TV" } }, {}, en)).toBe("Watch TV");
+    expect(stateText("remote.hub", { state: "off", a: { current_activity: "Watch TV" } }, {}, en)).not.toBe("Watch TV");
+  });
+
   it("says what a humidifier is doing and the humidity it measures (climate_card_status, brief)", () => {
     expect(stateText("humidifier.h", climate("on", { action: "humidifying", current_humidity: 41.5 }), {}, en)).toBe("Humidifying · 41.5%");
     expect(stateText("humidifier.h", climate("off", { action: "humidifying" }), {}, en)).toBe("Off");

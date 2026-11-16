@@ -1,11 +1,16 @@
 """A remote as a tile (firmware 0.22.0, GitHub #117): its card switches it on and off and lists its activities, as Home
-Assistant's dialog does, and its keys are tiles that perform remote.send_command. tests/test_tile_controls.cpp checks
-the firmware's routes and colours; these keep the app, the firmware and the editor in step with each other and with Home
-Assistant (2026.10 core and frontend: remote/icons.json, remote/services.yaml, state_color.ts, more-info-remote.ts).
+Assistant's dialog does, and its keys are tiles that perform remote.send_command (2026.10 core and frontend:
+remote/icons.json, remote/services.yaml, state_color.ts, more-info-remote.ts). Here: the add-on's side. The firmware is
+read from its real cards in web/wasm/test_remote_card.mjs (the tile's icon and activity, the dialog's activities and
+power key, the keypad's commands, every clean tap) and checked in tests/test_tile_controls.cpp (routes, keys, amber
+while on); the editor in web/tests (layout.spec.ts: colours; tile-text.spec.ts: the activity; library.spec.ts: the
+filter; tile-options.spec.ts: the commands offered for Send command).
 """
-from firmware_sources import firmware_domains, runtime_source
+from firmware_sources import firmware_domains
+import importlib.util
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,14 +22,7 @@ import ha_catalogue  # noqa: E402
 import header_bar  # noqa: E402
 import tile_icons  # noqa: E402
 
-COMPONENT = ROOT / 'components/smart_display'
-MODEL = (COMPONENT / 'runtime_model.h').read_text()
-CONTROLS = (COMPONENT / 'tile_controls.h').read_text()
-RECEIVER = (COMPONENT / 'page_receiver.cpp').read_text()
-TILES = runtime_source()
-CARD = (ROOT / 'web/src/model/tile-text.ts').read_text()
-PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
-LIBRARY = (ROOT / 'web/src/model/library.ts').read_text()
+HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 
 ACTIONS = {'remote.turn_on', 'remote.turn_off', 'remote.toggle', 'remote.send_command', 'remote.learn_command',
            'remote.delete_command'}
@@ -80,9 +78,6 @@ class TheApp(unittest.TestCase):
         # A remote without activities (Broadlink, Apple TV) sends neither.
         plain = core.state_message(0, {'entity': 'remote.ir', 'name': ''}, {'remote.ir': {'state': 'on', 'attributes': {}}})['a']
         self.assertNotIn('activity_list', plain)
-        self.assertIn('if (a["activity_list"].is<JsonArray>())', RECEIVER)
-        self.assertIn('next.activity=string(a["current_activity"],48);', RECEIVER)
-        self.assertIn('activity.empty()', MODEL)
 
 
 class CommandsFromTheSource(unittest.TestCase):
@@ -117,7 +112,6 @@ class CommandsFromTheSource(unittest.TestCase):
         self.assertIn('DPAD_CENTER', catalogue.remote_commands('androidtv_remote'))
         # Android's keyboard and game pad keys are no TV remote's.
         self.assertFalse({'A', 'F1', 'BUTTON_A', 'NUMPAD_1', 'CTRL_LEFT'} & set(catalogue.remote_commands('androidtv_remote')))
-        self.assertIn('field.suggestions?.length', (ROOT / 'web/src/components/ActionPicker.vue').read_text())
 
 
 class Keypad(unittest.TestCase):
@@ -146,42 +140,32 @@ class Keypad(unittest.TestCase):
         with self.assertRaises(module.CatalogueError):
             module.keypad('remote', {'harmony': {'up': 'up'}}, commands)
 
-    def test_the_screen_gets_and_sends_it(self):
-        server = (ROOT / 'screen_manager/app/server.py').read_text()
-        self.assertIn("keys=catalogue.remote_keypad((entry or {}).get('platform'))", server)
-        self.assertIn('if (extra["keys"].is<JsonArray>())', RECEIVER)
-        self.assertIn('step_action("remote.send_command", entity, "command", command);', TILES)
-        # Every clean tap counts, as on the -/+ keys, and a key does not wait for a state that never comes.
-        self.assertIn('touch_guard.accept_repeat(esphome::millis(),300+cmd))return;\n    remote_key(t.entity,keys[i]);', TILES)
+
+
+@unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
+class KeypadReachesTheScreen(unittest.IsolatedAsyncioTestCase):
+    async def test_a_remote_with_a_keypad_sends_its_integrations_keys(self):
+        import test_scaling
+        from manager_fixtures import with_screen_grid
+        from server import Manager
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = test_scaling.fake_ha(firmware='0.22.0')
+            ha.registry = ha.registry + [{'entity_id': 'remote.box', 'platform': 'apple_tv'},
+                                         {'entity_id': 'remote.ir', 'platform': 'broadlink'}]
+            ha.states.update({'remote.box': {'state': 'on', 'attributes': {}}, 'remote.ir': {'state': 'on', 'attributes': {}}})
+            m = Manager(with_screen_grid(ha), Path(tmp) / 'screens.json')
+            m.save('text.screen', {'title': 'Home', 'tiles': [{'entity': 'remote.box', 'name': ''}, {'entity': 'remote.ir', 'name': ''}]})
+            box, ir = m.layouts['text.screen']['tiles']
+            self.assertEqual((await m.tile_message(0, box))['x']['keys'], catalogue.remote_keypad('apple_tv'))
+            self.assertNotIn('keys', (await m.tile_message(1, ir)).get('x', {}), 'an integration without a keypad sends none')
 
 
 class HomeAssistantsWay(unittest.TestCase):
     def test_icons(self):
-        # remote/icons.json: mdi:remote, mdi:remote-off while off.
+        # remote/icons.json: mdi:remote, mdi:remote-off while off; the firmware draws them (test_remote_card.mjs).
         self.assertEqual((tile_icons.GLYPHS['remote'], tile_icons.GLYPHS['remote-off']), ('F0454', 'F0EC4'))
         self.assertEqual(tile_icons.DEFAULTS['remote'], 'remote')
-        self.assertIn('if (d == "remote" && tile.state == "off") return "\\U000F0EC4";', TILES)
-        self.assertIn('if (d == "remote") return "\\U000F0454";', TILES)
         self.assertIn('remote-off', tile_icons.BIG_GLYPHS)
-
-    def test_colours(self):
-        # state_color.ts colours a remote by state with no variable of its own: on is --state-active-color (amber).
-        self.assertIn('d == "automation" || d == "remote" || d == "timer"', CONTROLS)
-        self.assertIn('"automation", "remote", "timer", "camera"].includes(domain)) return c.AMBER', PALETTE)
-
-    def test_the_card_is_home_assistants_dialog(self):
-        # more-info-remote.ts: on and off, and the activities, each of which is remote.turn_on with `activity`.
-        self.assertIn('d == "remote";', CONTROLS)
-        self.assertIn('render_remote_detail(t,large,width,height,pad,top,bar,bar_x,bar_y);', TILES)
-        self.assertIn('wish(t,optimistic::Field::ACTIVITY,option,"remote.turn_on","activity",option);', TILES)
-        self.assertIn('render_select_detail(t,large,width,height,pad,top,on?t.extra().activity:std::string());', TILES)
-        # The power key: in the top bar beside the activities, alone and large in the middle without them.
-        self.assertIn('lv_obj_move_to_index(key,2);', TILES)
-        self.assertIn('if(t.extra().options.empty()){', TILES)
-        # The tile names the activity it runs, on the screen and in the editor's mockup.
-        self.assertIn('value = t.extra().activity;', TILES)
-        self.assertIn('if (domain === "remote" && live.state === "on" && a.current_activity)', CARD)
-        self.assertIn('"remote"', LIBRARY)
 
 
 if __name__ == '__main__':

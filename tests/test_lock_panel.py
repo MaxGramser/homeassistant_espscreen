@@ -1,7 +1,9 @@
 """The lock (firmware 0.5.0): a lock entity as a tile that locks with one tap and asks before it unlocks, and a card
 with Home Assistant's keys and code dialog. tests/test_lock_panel.cpp checks the logic of
-components/smart_display/lock_panel.h; these keep the app, the firmware and the editor in step with each other and with
-Home Assistant (its 2026.9 core and frontend), and hold the rules that keep a code private.
+components/smart_display/lock_panel.h (colours, icons, actions, which acts confirm) and tests/test_tile_controls.cpp
+when a lock is active; web/wasm/test_lock_card.mjs reads the real cards (icons and colours, one tap locks, unlocking
+asks per tile, lock only, the keypad and a refused code); the editor's colours and guards are in web/tests (layout.spec,
+pages.spec). Here: the app's side, and the rules that keep a code private.
 """
 from firmware_sources import firmware_domains, runtime_source
 import json
@@ -15,12 +17,8 @@ import core  # noqa: E402
 import page_layout  # noqa: E402
 
 COMPONENT = ROOT / 'components/smart_display'
-PANEL = (COMPONENT / 'lock_panel.h').read_text()
-MODEL = (COMPONENT / 'runtime_model.h').read_text()
 RECEIVER = (COMPONENT / 'page_receiver.cpp').read_text()
 TILES = runtime_source()
-PALETTE = (ROOT / 'web/src/model/tile-palette.ts').read_text()
-VALIDATION = (ROOT / 'web/src/model/page-validation.ts').read_text()
 
 
 def section():
@@ -54,8 +52,10 @@ class TheApp(unittest.TestCase):
         self.assertEqual(lock['a']['supported_features'], 1)
         # assumed_state only travels for a lock, whose keys need it.
         self.assertNotIn('assumed_state', core.state_message(0, {'entity': 'light.a', 'name': ''}, states)['a'])
-        # The firmware reads a regular expression up to 48 characters, which the app sends whole.
-        self.assertIn('next.code_format = string(a["code_format"], 48);', RECEIVER)
+        # Rule between the two sides: the firmware keeps a regular expression of up to 48 characters, which the app
+        # sends whole.
+        self.assertIn('next.code_format = string(a["code_format"], 48);', RECEIVER,
+                      'page_receiver.cpp keeps 48 characters of code_format, as the app sends it')
 
     def test_the_guard_option(self):
         def layout(entity, guard):
@@ -67,11 +67,10 @@ class TheApp(unittest.TestCase):
         for bad in (layout('lock.front', 'never'), layout('light.a', 'lock_only')):
             with self.assertRaises(ValueError):
                 core.validate_layout(bad)
-        # The page document carries it as an interaction, and the editor validates the same two choices (the catalogue's).
+        # The page document carries it as an interaction (the editor validates the same two choices: pages.spec.ts), and
+        # a lock without one asks before it unlocks (test_lock_card.mjs).
         self.assertEqual(page_layout.INTERACTION['guard'], 'guard')
         self.assertEqual(list(core.LOCK_GUARDS), ['confirm', 'lock_only'])
-        self.assertIn('[i.guard, ofType(domain)?.guards ?? []]', VALIDATION)
-        self.assertIn('tile.guard = string(options["guard"], 16); if (tile.guard.empty()) tile.guard="confirm";', RECEIVER)
 
     def test_a_layout_with_a_lock_waits_for_its_firmware_and_the_newest_gate_wins(self):
         self.assertEqual(core.min_firmware({'tiles': [{'entity': 'lock.front'}]}), core.LOCK_MIN_FIRMWARE)
@@ -83,50 +82,24 @@ class TheApp(unittest.TestCase):
 
 
 class TheFirmware(unittest.TestCase):
-    def test_home_assistants_colours_icons_and_actions(self):
-        # --state-lock-*-color and icons.json of the lock integration.
-        for text in ('if (state == "locked") return GREEN;', 'if (moving(state)) return ORANGE;', 'return RED;',
-                     'LOCK = "\\U000F033E"', 'LOCK_OPEN = "\\U000F0FC6"', 'LOCK_CLOCK = "\\U000F097F"',
-                     'LOCK_ALERT = "\\U000F08EE"', '{"lock.lock", "lock.unlock", "lock.open"}'):
-            self.assertIn(text, PANEL)
-        self.assertIn('if (d == "lock") return state != "locked";', MODEL)
-        # The editor's preview colours the same way.
-        self.assertIn('if (domain === "lock") return state === "locked" ? c.GREEN', PALETTE)
-
     def test_the_screen_never_logs_or_keeps_a_code(self):
         lock = section()
+        # Rule: no log line of the lock names its code. The keypad sending the code with lock.unlock, and a refused code
+        # as esphome.screen_lock_code_refused without it, are read from the real firmware in test_lock_card.mjs.
         for line in lock.splitlines():
             if 'ESP_LOG' in line:
-                self.assertNotIn('code', line.replace('alarm_card_note', ''))
-        # A lock with a code opens the alarm panel's keypad, which sends the code once and wipes it (test_alarm_panel).
-        self.assertIn('alarm_pad.open=true;alarm_pad.mode=act;', lock)
-        self.assertIn('lock_panel::service((lock_panel::Act)alarm_pad.mode)', TILES)
-        # Its wrong codes have an event of their own, with the same three values and never the code.
-        self.assertIn('"esphome.screen_lock_code_refused"', TILES)
-
-    def test_unlocking_never_goes_out_on_one_tap(self):
-        lock = section()
-        do = lock.split('inline void lock_do(', 1)[1].split('\n}\n', 1)[0]
-        # A code comes first; then an action that confirms waits for the second tap before anything is sent.
-        self.assertLess(do.index('needs_code('), do.index('if(confirms(act)){'))
-        self.assertLess(do.index('const bool second=c.press(act,now);'), do.index('if(!second){'))
-        self.assertLess(do.index('if(!second){'), do.index('action(service(act),t.entity);'))
-        # The wait belongs to the tile (firmware 0.16.0+): a first tap ends every other tile's, so a second tap on another
-        # tile of the same lock is a first tap there and never unlocks.
-        self.assertLess(do.index('lock_end_asks(index);'), do.index('const bool second=c.press(act,now);'))
-        self.assertIn('int8_t ask_act = -1;', MODEL)
-        self.assertIn('inline bool confirms(Act a) { return a == UNLOCK || a == OPEN; }', PANEL)
+                self.assertNotIn('code', line.replace('alarm_card_note', ''), f'a log line names a code: {line.strip()}')
 
     def test_a_heartbeat_travels_with_its_card(self):
         # A kept page's cards leave the glass and come back by swapping places (keep_page). The heartbeat of a lock or an
         # alarm panel belongs to the card, so a card whose lock settled while it was away does not keep beating (firmware
-        # 0.16.0; a lock on several pages showed it).
-        self.assertIn('uint8_t alarm_look=0; uint32_t alarm_mark=0;', TILES)
-        self.assertNotIn('alarm_tile_looks', TILES)
-        self.assertNotIn('alarm_tile_marks', TILES)
+        # 0.16.0; a lock on several pages showed it). Rule: the look lives on the card's widgets, never in a table of tiles.
+        self.assertIn('uint8_t alarm_look=0; uint32_t alarm_mark=0;', TILES, "the heartbeat's look and mark are the card's widgets'")
+        for table in ('alarm_tile_looks', 'alarm_tile_marks'):
+            self.assertNotIn(table, TILES, f'{table}: a table per tile would stay behind when the card moves')
         look = TILES.split('inline void alarm_tile_look(', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('if(want==w.alarm_look)return;', look)
-        self.assertIn('std::swap(widgets[i], (*set)[i]);', TILES)
+        self.assertIn('if(want==w.alarm_look)return;', look, "the look is read from the card it is on")
+        self.assertIn('std::swap(widgets[i], (*set)[i]);', TILES, 'a kept page swaps whole widgets, the look with them')
 
 
 if __name__ == '__main__':

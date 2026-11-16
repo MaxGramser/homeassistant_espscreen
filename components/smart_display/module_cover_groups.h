@@ -64,17 +64,15 @@ inline void paint_blind(Card &c, const Blind &b, bool fresh_card) {
   }
   lv_obj_set_style_opa(c.box, b.unavailable ? LV_OPA_50 : LV_OPA_COVER, 0);
 }
-// A tap on a cover's card does what Home Assistant's cover.toggle does (its _get_toggle_function): a cover on its way
-// stops where it can stop, a closed one opens, any other closes.
+// A tap on a cover's card is Home Assistant's cover.toggle itself, as a cover tile set to toggle is (tile_controls::tap_route):
+// Home Assistant decides (cover/entity.py, _get_toggle_function), from what the screen cannot know, such as the way a
+// cover went last before it stopped half way. Nothing is shown before it reports: the card has no value it could know.
 inline void blind_card_event(lv_event_t *e) {
   const int i = card_index(e);
   if (!effects_page::steady() || i < 0 || i >= static_cast<int>(cards.size())) return;
   const Blind *b = blind_of(cards[i].entity);
   if (!b || b->unavailable) return;
-  const bool moving = b->state == "opening" || b->state == "closing";
-  const int command = moving && (b->supported & tile_controls::feature::COVER_STOP) ? tile_controls::COVER_STOP
-                    : b->state == "closed" ? tile_controls::COVER_OPEN : tile_controls::COVER_CLOSE;
-  cover_key(b->entity, command);
+  emit("cover.toggle", b->entity, "", "");
 }
 inline void blind_slider_event(lv_event_t *e) {
   const int i = card_index(e);

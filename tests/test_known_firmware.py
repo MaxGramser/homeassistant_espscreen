@@ -17,7 +17,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import picture_question  # noqa: E402
 from core import (alert_targets, discover_screens, firmware_features, known_firmware, parse_firmware, registry_firmware,  # noqa: E402
                   screen_firmware, tile_limit)

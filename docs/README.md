@@ -49,7 +49,8 @@
 - [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
 - [WAVESHAREP47B.md](WAVESHAREP47B.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, 7 inch, rev3 ESP32-P4.
 - [WAVESHAREP47.md](WAVESHAREP47.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7, 7 inch, 1280 × 720.
-- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800.
+- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800, with pre-v3 or rev3
+  silicon.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
@@ -72,6 +73,9 @@
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
 - [SETTINGS.md](SETTINGS.md): the screen settings, and adding one; a board's own settings (Extras), and adding one.
 - [PAGES.md](PAGES.md): the page model, tile sizes, navigation, storage and the message rules.
+- [AUTO_LAYOUT.md](AUTO_LAYOUT.md): the first layout the editor makes from a home's areas and devices, how it groups,
+  sizes and labels tiles per screen, and the places a change of it touches.
+- [LAYOUTBOT.md](LAYOUTBOT.md): the editor's chat that arranges pages with the AI connected to Home Assistant.
 - [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.

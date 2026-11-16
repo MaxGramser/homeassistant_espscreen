@@ -197,7 +197,7 @@ has.
   new for the list. A screen whose hello also lists `saver_keys` (firmware 0.33.0) gets two more fields with a
   player: `s`, its state (`playing` or `paused`), `f`, Home Assistant's `supported_features`, and `m: 1` while it is muted. For such a screen a
   player paused less than `PAUSED_SECONDS` ago counts after every player that plays.
-- **The keys** (`saver_keys_draw`, `saver_key_event` in `runtime_tiles.h`) are the only clickable objects of the
+- **The keys** (`saver_keys_draw`, `saver_key_event` in `saver_lvgl.h`) are the only clickable objects of the
   screensaver, so their tap never reaches the dim overlay and the screen stays in standby. A tap goes through the touch
   guard like every key and sends `media_player.media_play_pause`, `volume_up` or `volume_down` for the player on the
   glass. Volume down held for `SAVER_MUTE_HOLD_MS` sends `volume_mute` where `f` has VOLUME_MUTE, and a tap on a
@@ -205,7 +205,7 @@ has.
   at once and Home Assistant's word follows. Where they stand is
   `saver_view::keys`: the play key needs PLAY or PAUSE in `f`, the volume keys VOLUME_SET or VOLUME_STEP. A camera adds `e` and `n`. The screen says it takes the message
   with `screensaver` in the feature list of its hello; a screen without it never gets one.
-- **On the screen** (`runtime_tiles.h`, "The screensaver") the last word is kept until the screen goes into standby.
+- **On the screen** (`saver_lvgl.h`) the last word is kept until the screen goes into standby.
   Then `apply_screen_settings` sets the standby level as before and `saver_sync` draws it, when that level is above 0,
   on LVGL's top layer, under an alert, with no clickable object: the touch falls through to the dim overlay, which
   wakes the screen, and `wake_tap` leaves the tile under it alone. A new word in standby redraws at once.

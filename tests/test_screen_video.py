@@ -6,19 +6,57 @@ Screen camera's part Video, through the integration's own config flow, and takes
 that lost the video. A device the app does not know keeps its entry. The integration and the firmware work the stream's
 password out of the screen's API key the same way (Screen camera's components/screen_video/__init__.py).
 """
+import ast
 import asyncio
-import hashlib
+import importlib
+import importlib.util
 import json
 from pathlib import Path
 import sys
 import tempfile
+import types
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import screen_video  # noqa: E402
 
+HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
+if HAS_AIOHTTP:
+    from aiohttp.test_utils import TestClient, TestServer
+    from server import Manager, create_app
+
 INTEGRATION = ROOT / 'screen_manager/app/ha_integration/tessera_video'
+
+
+def integration_camera():
+    """The integration's camera.py as Home Assistant loads it, with the few names it takes from Home Assistant stood in
+    for: what it works out of a screen's ESPHome entry is plain Python."""
+    class Camera:
+        def __init__(self):
+            pass
+
+    names = {
+        'homeassistant': {}, 'homeassistant.components': {}, 'homeassistant.helpers': {},
+        'homeassistant.components.camera': {'Camera': Camera, 'CameraEntityFeature': types.SimpleNamespace(STREAM=2)},
+        'homeassistant.components.ffmpeg': {'async_get_image': None},
+        'homeassistant.config_entries': {'ConfigEntry': object},
+        'homeassistant.core': {'HomeAssistant': object},
+        'homeassistant.exceptions': {'ConfigEntryNotReady': Exception},
+        'homeassistant.helpers.device_registry': {'CONNECTION_NETWORK_MAC': 'mac', 'DeviceInfo': dict},
+        'homeassistant.helpers.entity_platform': {'AddEntitiesCallback': object},
+    }
+    stubs = {name: types.ModuleType(name) for name in names}
+    for name, attributes in names.items():
+        for key, value in attributes.items():
+            setattr(stubs[name], key, value)
+    stubs['homeassistant.helpers'].device_registry = stubs['homeassistant.helpers.device_registry']
+    package = types.ModuleType('tessera_video_under_test')
+    package.__path__ = [str(INTEGRATION)]
+    stubs['tessera_video_under_test'] = package
+    with mock.patch.dict(sys.modules, stubs):
+        return importlib.import_module('tessera_video_under_test.camera')
 
 
 class FakeStore:
@@ -132,17 +170,21 @@ class Install(unittest.TestCase):
             {x for k, v in d.items() if isinstance(v, dict) for x in keys(v, p + k + '.')}
         self.assertEqual(keys(dutch), keys(english))
 
-    def test_the_password_is_the_firmwares(self):
-        # Screen camera's components/screen_video/__init__.py: sha256("tessera-video:" + key), its first 24 hex digits.
-        const = (INTEGRATION / 'const.py').read_text()
-        self.assertIn('PASSWORD_SALT = "tessera-video:"', const)
-        self.assertIn('PASSWORD_LENGTH = 24', const)
-        self.assertIn('PORT = 8554', const)
-        self.assertIn('USER = "tessera"', const)
-        camera = (INTEGRATION / 'camera.py').read_text()
-        self.assertIn('hashlib.sha256((PASSWORD_SALT + (key or "")).encode()).hexdigest()[:PASSWORD_LENGTH]', camera)
+    def test_the_stream_is_the_one_the_firmware_serves(self):
+        # Screen camera's components/screen_video/__init__.py works the password out of the screen's API key when it is
+        # built (sha256 of "tessera-video:" and the key, its first 24 hex digits) and serves the stream as user tessera
+        # on port 8554. These are its answers for this key and for none; the integration must ask with the same.
+        camera = integration_camera()
         key = 'MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI='
-        self.assertEqual(len(hashlib.sha256(('tessera-video:' + key).encode()).hexdigest()[:24]), 24)
+        self.assertEqual(camera.password(key), '1c013c2215e26f7ce1ca2da3')
+        self.assertEqual(camera.password(None), '0f2f6ecab7ca79bec56631db')
+        esphome = types.SimpleNamespace(data={'host': '192.0.2.7', 'noise_psk': key})
+        video = camera.ScreenVideo('AA:BB:CC:DD:EE:FF', esphome)
+        self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:1c013c2215e26f7ce1ca2da3@192.0.2.7:8554/')
+        self.assertEqual(video._attr_unique_id, 'AA:BB:CC:DD:EE:FF-video')
+        # Read each time: Home Assistant changes the host and the key in the ESPHome entry.
+        esphome.data = {'host': '192.0.2.8'}
+        self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:0f2f6ecab7ca79bec56631db@192.0.2.8:8554/')
 
 
 class Screens(unittest.TestCase):
@@ -199,23 +241,65 @@ class Sync(unittest.TestCase):
             self.assertEqual(len(ha.entries), 1)
 
 
-class Wiring(unittest.TestCase):
-    def test_the_app_routes_and_the_editor(self):
-        server = (ROOT / 'screen_manager/app/server.py').read_text()
-        for needle in ("app.router.add_post('/api/video', install_video)", "app.router.add_post('/api/video/restart',",
-                       "payload['video'] = manager.video_status()", 'manager.video_loop()',
-                       "call_service('homeassistant', 'restart', {})"):
-            self.assertIn(needle, server)
-        view = (ROOT / 'web/src/components/AppSettingsView.vue').read_text()
-        self.assertIn('id="video-install"', view)
-        self.assertIn('id="video-restart"', view)
-        # A P4's network buffers: the video's send buffer, and all of it in PSRAM first (docs/CAMERA.md,
-        # components/smart_display/p4_build.py).
-        component = (ROOT / 'components/smart_display/p4_build.py').read_text()
-        self.assertIn('"CONFIG_LWIP_TCP_SND_BUF_DEFAULT": 65534', component)
-        self.assertIn('"CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP": True', component)
-        # Nothing restarts Home Assistant without the person's yes.
-        self.assertIn('confirm(t("editor.settings.video.restart_confirm")', view)
+@unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
+class Endpoint(unittest.IsolatedAsyncioTestCase):
+    """Settings, Video in Home Assistant, through the app's own routes. The editor's buttons, and that the restart waits
+    for the person's yes, are web/tests/video-settings.spec.ts."""
+
+    async def test_the_inventory_says_install_writes_and_restart_asks_home_assistant(self):
+        class HA:
+            online = True
+            registry, devices, areas, states = [], [], [], {}
+            changed = asyncio.Event()
+            calls = []
+            closes = False
+
+            async def call_service(self, domain, service, data):
+                self.calls.append((domain, service, data))
+                if self.closes:
+                    raise ConnectionError('Home Assistant went away: it restarts')
+
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = HA()
+            manager = Manager(ha, Path(tmp) / 'data' / 'screens.json')
+            manager.videos = screen_video.Videos(screen_video.target(Path(tmp) / 'config'))
+            async with TestClient(TestServer(create_app(manager, True))) as client:
+                full = await (await client.get('/api/inventory')).json()
+                self.assertEqual(full['video'], {**screen_video.status(manager.videos.directory), 'loaded': None,
+                                                 'screens': [], 'entries': 0})
+                self.assertFalse(full['video']['installed'])
+                csrf = {'X-Screen-CSRF': full['csrf']}
+                # Nothing restarts Home Assistant for a video it has not got.
+                refused = await client.post('/api/video/restart', headers=csrf)
+                self.assertEqual(refused.status, 409)
+                self.assertEqual(ha.calls, [])
+                self.assertEqual((await client.post('/api/video')).status, 403, 'CSRF like every other change')
+                self.assertFalse(manager.videos.directory.exists(), 'written only on request')
+                done = await (await client.post('/api/video', headers=csrf)).json()
+                self.assertTrue(done['installed'] and done['current'] and done['restart'])
+                self.assertTrue((manager.videos.directory / 'manifest.json').is_file())
+                # Restarted as Home Assistant's own Restart does, which checks the configuration first; Home Assistant
+                # may close the connection before it answers.
+                for closes in (False, True):
+                    ha.closes = closes
+                    restarted = await client.post('/api/video/restart', headers=csrf)
+                    self.assertEqual(await restarted.json(), {'restarting': True})
+                self.assertEqual(ha.calls, [('homeassistant', 'restart', {})] * 2)
+
+
+class Loops(unittest.TestCase):
+    def test_the_app_runs_every_loop_of_its_manager(self):
+        # A loop of the Manager that main() does not start never runs: the screens' video entries would never be kept.
+        tree = ast.parse((ROOT / 'screen_manager/app/server.py').read_text())
+        manager = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Manager')
+        loops = {f.name for f in manager.body if isinstance(f, ast.AsyncFunctionDef) and f.name.endswith('_loop')}
+        main = next(node for node in tree.body if isinstance(node, ast.AsyncFunctionDef) and node.name == 'main')
+        started = {call.func.attr for call in ast.walk(main) if isinstance(call, ast.Call)
+                   and isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name)
+                   and call.func.value.id == 'manager'}
+        self.assertIn('video_loop', loops)
+        self.assertEqual(loops - started, set(), 'every Manager.*_loop is started in server.py main(), in its asyncio.gather '
+                                                 'with the others')
 
 
 if __name__ == '__main__':

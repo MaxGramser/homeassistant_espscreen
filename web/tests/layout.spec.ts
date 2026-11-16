@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ACTS_ON_TAP, createLayout, legacyPages, controlsLabel, holdHintKey, defaultOptions, effectiveControls, newTile, pageOrder, pagePlaces, pageTarget, reorderTitles, retargetedPage, sizeOf, versionAtLeast } from "../src/model/layout";
 let shape = { columns: 2, rows: 3 };
 const setGrid = (columns = 2, rows = 3) => { shape = { columns, rows }; };
-const { arrange, cellsOf, firstFree, fits, grid, hasGaps, nearestFree, normalize, occupied, packSlots, pageCount, pageStart, reorderPages, rowStart, spanOf, strandedPages, tileLimit } = createLayout(() => shape);
+const { anchorAt, arrange, cellsOf, firstFree, fits, grid, hasGaps, nearestFree, normalize, occupied, packSlots, pageCount, pageStart, reorderPages, rowStart, spanOf, strandedPages, tileLimit } = createLayout(() => shape);
 import type { Inventory, Layout, Tile } from "../src/types";
 import { readdirSync, readFileSync } from "node:fs";
 
@@ -97,6 +97,33 @@ describe("the grid of the screen being edited", () => {
   it("comes back to two columns and three rows for the boards that shipped first", () => {
     setGrid(undefined, undefined);
     expect([grid.slots, grid.pages, grid.maxSlots, spanOf("full")]).toEqual([6, 8, 48, 6]);
+  });
+});
+
+// A large tile is held by the cell it was taken by: taken by its lower right corner, it lands with that
+// corner under the pointer, not with its top left.
+describe("the cell a tile is held by", () => {
+  it("puts the held cell under the pointer", () => {
+    setGrid(6, 5);
+    // A 2 x 2 tile taken by its lower right cell, let go over row 3, column 4: its top left is row 2, column 3.
+    expect(anchorAt(3 * 6 + 4, "square", { column: 1, row: 1 })).toBe(2 * 6 + 3);
+    // Taken by its top left it lands as before.
+    expect(anchorAt(3 * 6 + 4, "square", { column: 0, row: 0 })).toBe(3 * 6 + 4);
+    // A 3 x 2 span taken by its middle bottom cell.
+    expect(anchorAt(4 * 6 + 2, "3x2", { column: 1, row: 1 })).toBe(3 * 6 + 1);
+  });
+  it("keeps the tile on the pointer's page and inside it", () => {
+    setGrid(6, 5);
+    // Taken by its lower right but let go in the top left corner: it stays on the page, at its top left.
+    expect(anchorAt(0, "square", { column: 1, row: 1 })).toBe(0);
+    // Taken by its top left and let go on the bottom row: it lifts to fit instead of being refused.
+    expect(anchorAt(4 * 6 + 5, "square", { column: 0, row: 0 })).toBe(3 * 6 + 4);
+    // On the second page it stays on the second page.
+    expect(anchorAt(30 + 3 * 6 + 4, "square", { column: 1, row: 1 })).toBe(30 + 2 * 6 + 3);
+    // Off the grid stays off the grid; a page-filling tile has one place.
+    expect(anchorAt(-1, "square", { column: 1, row: 1 })).toBe(-1);
+    expect(anchorAt(7, "full", { column: 0, row: 0 })).toBe(7);
+    setGrid(2, 3);
   });
 });
 
@@ -301,6 +328,34 @@ describe("the alarm panel's colours (app 0.3.8)", () => {
     expect(accent("triggered")).toBe("#f44336");
     expect(tileActive("alarm_control_panel.house", { state: "disarmed" })).toBe(false);
     expect(accent("disarmed")).toBe("#9e9e9e");
+  });
+});
+
+describe("a remote's colours (firmware 0.22.0)", () => {
+  it("paints it as Home Assistant does: amber while on, grey while off (state_color.ts: --state-active-color)", async () => {
+    const { tilePalette } = await import("../src/model/tile-palette");
+    expect(tilePalette("remote.a", { state: "on" }).accent).toBe("#ffc107");
+    expect(tilePalette("remote.a", { state: "off" }).accent).toBe("#9e9e9e");
+  });
+});
+
+describe("a lock's colours (firmware 0.5.0)", () => {
+  it("paints it as Home Assistant does: green locked, orange on its way, red otherwise (--state-lock-*-color)", async () => {
+    const { tilePalette } = await import("../src/model/tile-palette");
+    expect(tilePalette("lock.a", { state: "locked" }).accent).toBe("#4caf50");
+    for (const state of ["locking", "unlocking", "opening"]) expect(tilePalette("lock.a", { state }).accent).toBe("#ff9800");
+    for (const state of ["unlocked", "open", "jammed"]) expect(tilePalette("lock.a", { state }).accent).toBe("#f44336");
+  });
+});
+
+describe("an alarm panel's colours (firmware 0.3.3)", () => {
+  it("paints it as Home Assistant does: green armed, orange on its way, red triggered, grey disarmed", async () => {
+    const { tilePalette } = await import("../src/model/tile-palette");
+    for (const state of ["armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass"])
+      expect(tilePalette("alarm_control_panel.a", { state }).accent).toBe("#4caf50");
+    for (const state of ["arming", "pending", "disarming"]) expect(tilePalette("alarm_control_panel.a", { state }).accent).toBe("#ff9800");
+    expect(tilePalette("alarm_control_panel.a", { state: "triggered" }).accent).toBe("#f44336");
+    expect(tilePalette("alarm_control_panel.a", { state: "disarmed" }).accent).toBe("#9e9e9e");
   });
 });
 

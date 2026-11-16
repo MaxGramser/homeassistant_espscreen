@@ -9,6 +9,7 @@
 #endif
 #ifdef SD_MOD_TEXT_CARD
 #include "runtime_tiles.h"
+#include "draw_text.h"
 #include "module_text_card.h"
 #include "module_text_card_view.h"
 
@@ -54,6 +55,7 @@ static View *view_of(lv_obj_t *canvas) {
 }
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *view = view_of(canvas);
   if (!view) return;
   lv_layer_t *layer = lv_event_get_layer(e);
@@ -85,7 +87,7 @@ static void draw(lv_event_t *e) {
     d.align = piece.align == tc::RIGHT ? LV_TEXT_ALIGN_RIGHT : LV_TEXT_ALIGN_LEFT;
     // The plan already fitted the line to its box; a glyph's overhang may not wrap a left-aligned line onto a second.
     if (piece.align == tc::LEFT) d.flag = LV_TEXT_FLAG_EXPAND;
-    lv_draw_label(layer, &d, &r);
+    draw_text::label(layer, d, r);
   }
 }
 void release(Widgets &w) {

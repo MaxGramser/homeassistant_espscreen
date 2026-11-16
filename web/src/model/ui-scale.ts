@@ -3,7 +3,7 @@
 // draws them at the size the glass does instead of sizes of its own.
 export type Shape = { width?: number; height?: number; dpi?: number; look?: string;
   fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; watch_icon?: number; setpoint?: number; icon?: number };
-  spacing?: Spacing };
+  spacing?: Spacing; section?: { band: number; title_top: number } };
 // The glass's grid (boards.json "spacing"): its margin, the gaps between columns and between rows, a card's padding, where
 // the tile area starts under the top bar (SCROLL_Y), the page bar's height (PAGE_BAR_H), a card's icon circle and its
 // corner (TILE_RADIUS).

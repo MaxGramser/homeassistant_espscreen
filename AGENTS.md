@@ -28,6 +28,8 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | add a screen setting | docs/SETTINGS.md | `settings_screen.h`, `SETTING_RULES` in `screen_manager/app/core.py` |
 | give a board a setting of its own (Extras: on the screen, in the app, in Home Assistant) | docs/SETTINGS.md, "A board's own settings" | `boards.yaml` `settings`, the board's `BOOT_BOARD_SETTINGS`, `entity_settings.py` |
 | add a board | docs/ADDING_A_BOARD.md, then docs/BOARD_RELEASES.md | `boards.yaml`, `packages/boards/<file>.yaml` |
+| change sections on a page (titled groups of tiles) | docs/PAGES.md, "Sections" | `section_layout.h`, `module_sections.h`, `page_layout.py` (`sections_of`), `web/src/model/sections.ts` |
+| change the first layout the editor makes from a home (Auto layout), or how groups of tiles are placed on pages | docs/AUTO_LAYOUT.md | `web/src/model/auto-layout.ts`, `web/src/model/placement.ts`, `screen_manager/app/home_facts.py` |
 | add a part of the UI that only the larger boards get | docs/MODULES.md | `components/smart_display/modules.py`, `module_<name>.h` |
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
@@ -36,11 +38,12 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
 | add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
+| change Layoutbot, the editor's chat that arranges pages | docs/LAYOUTBOT.md | `screen_manager/app/layoutbot.py`, `web/src/stores/layoutbot.ts` |
 | change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
 | give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
-| make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `runtime_tiles.h` |
+| make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |

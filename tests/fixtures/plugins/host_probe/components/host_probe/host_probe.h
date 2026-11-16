@@ -27,6 +27,10 @@ class HostProbe : public Component, public tessera::Plugin {
   bool ready_ = false, interval_ = false, set_up_ = false;
   int updates_ = 0, early_ = 0;   // early_: moments of the plugin that came before its setup()
   unsigned rows_ = 0;
+  // A hidden part of tile 0 the plugin paints from its own moment (on_interval), not a call of the tile: the role it
+  // asks for is in the look of the card the part stands in (docs/THEME.md "A card's look", ui::set_color's LookOf).
+  lv_obj_t *tile0_mark_ = nullptr;
+  uint32_t tile0_ink_ = 0;
 
  private:
   bool asked_ = false, interval_said_ = false, bar_said_ = false, toggle_ = false;

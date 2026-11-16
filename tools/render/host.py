@@ -658,6 +658,10 @@ PROBES = '''    - action: render_finger
                      (int) name.x2, (int) name.y2);
             const auto &p = runtime_tiles::alert_parts;
             const bool on = id(alert_active) && p.card && !lv_obj_has_flag(lv_obj_get_parent(p.card), LV_OBJ_FLAG_HIDDEN);
+            // The words of the card as its labels hold them (LVGL ends a DOT label's text in dots where it is cut), before
+            // the boxes: the harness reads both once the boxes' line is in.
+            const auto words = [](lv_obj_t *label) { return label ? lv_label_get_text(label) : ""; };
+            ESP_LOGI("render", "alert words title=[%s] button=[%s] button2=[%s]", words(p.title), words(p.label), words(p.label2));
             const lv_area_t card = box(p.card), frame = box(runtime_tiles::alert_frame), icon = box(p.icon), title = box(p.title),
                             subtitle = box(p.subtitle), button = box(p.button), button2 = box(p.button2);
             ESP_LOGI("render", "alert on=%d card=%d,%d,%d,%d frame=%d,%d,%d,%d icon=%d,%d,%d,%d title=%d,%d,%d,%d "

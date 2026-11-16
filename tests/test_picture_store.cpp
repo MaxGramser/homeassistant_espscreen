@@ -213,5 +213,50 @@ int main() {
     kept.forget([](const Image *) { return false; });
     assert(live == 0);
   }
+  // The same bytes under a new key (another track of the same album came back 304): the picture its owner had, even one
+  // already retired because the owner moved on, is filed under the new key without a copy and keeps its ETag.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    Image *had = kept.adopt("track 1", download(1, 10, 10), 1, "\"abc\"");
+    assert(had && kept.entry("track 1")->etag == "\"abc\"");
+    kept.retire("track 1");
+    assert(!kept.entry("track 1") && kept.entry_any("track 1"));
+    assert(kept.rekey("track 1", "track 2", 2));
+    assert(kept.find("track 2") == had && !kept.entry_any("track 1") && kept.entry("track 2")->etag == "\"abc\"" && live == 1);
+    // Nothing to file again, or the new key had already: no change.
+    assert(!kept.rekey("track 9", "track 3", 3) && !kept.rekey("track 2", "track 2", 3));
+    kept.forget([](const Image *) { return false; });
+    assert(live == 0);
+  }
+  // Two tiles of one player show the same key; the first moves to the next track and its 304 files the picture under the
+  // new key. The second still draws the same pixels (the buffer is not freed or moved, so its card shows a picture, never
+  // an empty place), and the old key is no longer had, so the loader asks for it again and gets a picture of its own.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    Image *shared = kept.adopt("track 1", download(3, 10, 10), 1, "\"same\"");
+    const uint8_t *pixels = shared->data;
+    assert(kept.rekey("track 1", "track 2", 2));
+    assert(shared->data == pixels && live == 1 && !kept.find("track 1") && kept.find("track 2") == shared);
+    // The second tile's own download of the old key comes in beside it.
+    assert(kept.adopt("track 1", download(3, 10, 10), 3, "\"same\"") && live == 2 && kept.find("track 1") != shared);
+    kept.forget([](const Image *) { return false; });
+    assert(live == 0);
+  }
+  // The ETag went along, but the old picture was collected before the 304 came (a kept page off the glass): there is
+  // nothing to file again, so rekey says no and runtime_tiles::picture_done loads the picture whole, the slot's ETag
+  // forgotten with its release; with no old picture left, the next link goes without an ETag and cannot answer 304 again.
+  {
+    picture_store::Store<Image> kept;
+    kept.release = [](void *p) { --live; std::free(p); };
+    kept.budget = 1000;
+    kept.adopt("track 1", download(4, 10, 10), 1, "\"gone\"");
+    kept.retire("track 1");
+    kept.collect([](const Image *) { return false; });
+    assert(live == 0 && !kept.entry_any("track 1") && !kept.rekey("track 1", "track 2", 2) && !kept.find("track 2"));
+  }
   return 0;
 }

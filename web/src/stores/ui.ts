@@ -101,6 +101,8 @@ export const useUiStore = defineStore("ui", () => {
   const pagesSheet = ref(false);
   const previewOpen = ref(false);
   const pageWizardOpen = ref(false);
+  // The first layout's dialog (components/AutoLayoutDialog.vue, docs/AUTO_LAYOUT.md).
+  const autoLayoutOpen = ref(false);
 
   // ---- The phone (app 0.4.40) ----
   // A page as narrow as a phone gets the editor of everyday changes: the screen itself, one button to add a tile, a tile's
@@ -183,7 +185,7 @@ export const useUiStore = defineStore("ui", () => {
 
   return {
     notice, toast, dismissToast, copyText, openIntegrations,
-    tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen,
+    tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen, autoLayoutOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
     route, go, setMainView, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
     libraryOpen, filter, search, room, hidePlaced, growTip, growTips,

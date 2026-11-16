@@ -12,7 +12,6 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "screen_manager/app"))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import (NIGHTSTAND, NIGHTSTAND_MIN_FIRMWARE, Grid, layout_snapshot, min_firmware, run_tile_event, screen_options,
                   state_message, validate_layout)
 from layout_migrations import migrate_legacy

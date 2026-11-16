@@ -9,7 +9,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from firmware_sources import runtime_source  # noqa: E402
 
 TEXT = {'sublabel', 'label', 'sublabel_big', 'headline', 'watch_value'}          # S, M, L, XL and the large value

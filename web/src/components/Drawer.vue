@@ -11,6 +11,7 @@ import TopbarInspector from "./TopbarInspector.vue";
 import SaverClock from "./SaverClock.vue";
 import SaverInspector from "./SaverInspector.vue";
 import InspectPanel from "./InspectPanel.vue";
+import SectionInspector from "./SectionInspector.vue";
 import PageInspector from "./PageInspector.vue";
 import SelectionInspector from "./SelectionInspector.vue";
 import { useUiStore } from "../stores/ui";
@@ -63,6 +64,7 @@ function resizeKey(event: KeyboardEvent) {
         :index="insp.inspector.kind === 'saver-item' ? insp.inspector.index : -1" :adding="insp.inspector.kind === 'saver-add'" />
       <SaverInspector v-else-if="insp.inspector.kind === 'saver'" :key="insp.inspector.step" :step="insp.inspector.step" />
       <PageInspector v-else-if="insp.inspector.kind === 'page'" :id="insp.inspector.id" />
+      <SectionInspector v-else-if="insp.inspector.kind === 'section'" :key="insp.inspector.id" :id="insp.inspector.id" />
       <InspectPanel v-else-if="insp.inspector.kind === 'inspect'" :entity="insp.inspector.entity" :at="insp.inspector.slot" :tile-key="insp.inspector.key" />
     </div>
   </aside>

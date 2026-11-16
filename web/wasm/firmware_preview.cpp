@@ -245,6 +245,9 @@ const char *preview_layout() {
     o["clips"] = !lv_obj_has_flag(object, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     o["radius"] = lv_obj_get_style_radius(object, LV_PART_MAIN);
     o["opa"] = lv_obj_get_style_opa(object, LV_PART_MAIN);
+    // Its ground where it has one (0xRRGGBB), as the firmware set it: a card's, a circle's, a key's.
+    if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP)
+      o["bg"] = lv_color_to_u32(lv_obj_get_style_bg_color(object, LV_PART_MAIN)) & 0xFFFFFF;
     if (lv_obj_check_type(object, &lv_label_class)) {
       const char *text = lv_label_get_text(object);
       const lv_font_t *font = lv_obj_get_style_text_font(object, LV_PART_MAIN);
@@ -255,6 +258,8 @@ const char *preview_layout() {
       lv_text_get_size(&one, text, font, letters, lines, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
       lv_text_get_size(&wrapped, text, font, letters, lines, width, LV_TEXT_FLAG_NONE);
       o["type"] = "label"; o["text"] = text;
+      // Its ink as the firmware set it (0xRRGGBB), so a test reads a card's colours from the firmware, not from its lines.
+      o["color"] = lv_color_to_u32(lv_obj_get_style_text_color(object, LV_PART_MAIN)) & 0xFFFFFF;
       o["mode"] = mode == LV_LABEL_LONG_DOT ? "dots" : mode == LV_LABEL_LONG_SCROLL_CIRCULAR || mode == LV_LABEL_LONG_SCROLL ? "marquee"
                 : mode == LV_LABEL_LONG_CLIP ? "clip" : "wrap";
       o["text_width"] = one.x; o["text_height"] = one.y; o["wrapped_height"] = wrapped.y;
@@ -264,6 +269,9 @@ const char *preview_layout() {
       o["dots"] = mode == LV_LABEL_LONG_DOT && n >= 3 && std::strcmp(text + n - 3, "...") == 0;
       o["icon"] = n >= 4 && static_cast<unsigned char>(text[0]) == 0xF3;
     } else {
+      // A slider's fill (its indicator's ground), as the firmware set it.
+      if (lv_obj_check_type(object, &lv_slider_class))
+        o["fill"] = lv_color_to_u32(lv_obj_get_style_bg_color(object, LV_PART_INDICATOR)) & 0xFFFFFF;
       o["type"] = lv_obj_check_type(object, &lv_image_class) ? "image" : lv_obj_check_type(object, &lv_slider_class) ? "slider"
                 : lv_obj_check_type(object, &lv_arc_class) ? "arc" : lv_obj_check_type(object, &lv_button_class) ? "button" : "object";
     }

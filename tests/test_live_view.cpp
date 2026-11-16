@@ -1,6 +1,7 @@
 // clang++ -std=c++17 -Wall -Wextra -Werror -I. tests/test_live_view.cpp -o /tmp/test_live_view && /tmp/test_live_view
 // The parts of the P4's live camera a PC can check (live_view.h): the stream's framing in any pieces, where a
-// rectangle of the screen lies on a turned panel (ESPHome's own sums for LVGL's flushes), and where a picture goes.
+// rectangle of the screen lies on a turned panel (ESPHome's own sums for LVGL's flushes), and where a picture goes; how
+// a writer waits for the glass (glass.h) and how the streams are counted (Census).
 #include "../components/smart_display/live_view.h"
 #include <cassert>
 #include <cstdio>
@@ -402,7 +403,96 @@ static void composing() {
   }
 }
 
+// A writer of the glass (glass::wait_as_writer, leave_as_writer), as a stream's task and a still's download use it:
+// raised to WRITER_PRIORITY before it asks for the glass, back at its own only once it let go, and a task already above
+// it never lowered. The steps are logged in the order they happen.
+static void writing() {
+  std::vector<std::string> steps;
+  unsigned priority = 1;
+  auto set = [&](unsigned p) {
+    priority = p;
+    steps.push_back("priority " + std::to_string(p));
+  };
+  auto hold = [&] {
+    steps.push_back("hold at " + std::to_string(priority));
+    return 7u;  // as hold_counted: the microseconds it waited
+  };
+  auto release = [&] { steps.push_back("release at " + std::to_string(priority)); };
+  const std::string w = std::to_string(glass::WRITER_PRIORITY);
+  // A still's download at the main loop's priority 1, and a stream's task at STREAM_PRIORITY.
+  for (unsigned own : {1u, STREAM_PRIORITY}) {
+    steps.clear();
+    priority = own;
+    assert(glass::wait_as_writer(own, set, hold) == 7u);
+    glass::leave_as_writer(own, set, release);
+    assert((steps == std::vector<std::string>{"priority " + w, "hold at " + w, "release at " + w,
+                                              "priority " + std::to_string(own)}));
+    assert(priority == own);
+  }
+  // A task above the writers (the screen's own video, say) keeps its own priority throughout.
+  steps.clear();
+  const unsigned above = glass::WRITER_PRIORITY + 1;
+  priority = above;
+  glass::wait_as_writer(above, set, [&] { steps.push_back("hold"); });
+  glass::leave_as_writer(above, set, release);
+  assert((steps == std::vector<std::string>{"hold", "release at " + std::to_string(above)}));
+  static_assert(STREAM_PRIORITY < glass::WRITER_PRIORITY, "a stream is raised only to wait for the glass");
+}
+
+// The streams counted (Census): a stream from open until the tick frees it, a closed one as ending and still held, so
+// another opens only beside fewer than the engine's most; and a second at all only where the engine holds more than one.
+struct Counted {
+  bool stopping = false;
+};
+static void counting() {
+  const Counted open, closed{true};
+  const Counted *none[MAX_STREAMS] = {};
+  Census c = census(none);
+  assert(c.held == 0 && c.ending == 0 && room_for(c, 1) && !room_for(c, 0));
+  const Counted *one[MAX_STREAMS] = {&open};
+  c = census(one);
+  assert(c.held == 1 && c.ending == 0 && !room_for(c, 1) && room_for(c, 7));
+  // An S3 (one stream at once): a full view waits while the page's tile still ends.
+  const Counted *ending_one[MAX_STREAMS] = {nullptr, &closed};
+  c = census(ending_one);
+  assert(c.held == 1 && c.ending == 1 && !room_for(c, 1));
+  // A P4 (seven): six held, one of them ending, leave room for one more, and seven none.
+  const Counted *six[MAX_STREAMS] = {&open, &open, &closed, &open, &open, &open};
+  c = census(six);
+  assert(c.held == 6 && c.ending == 1 && room_for(c, 7));
+  const Counted *seven[MAX_STREAMS] = {&open, &open, &open, &open, &open, &open, &open};
+  assert(!room_for(census(seven), 7));
+  assert(!beside(0) && !beside(1) && beside(2) && beside(7));
+}
+
+// The full view waits for the page's streams to end (ViewWait): one connection at a time, beside a stream still
+// ending only where the engine holds a second, after WAIT_MS; and it opens with its own copy of the link.
+static void waiting() {
+  // No stream ending: it opens at once with the link it was given.
+  ViewWait w;
+  auto b = w.begin("rtsp://door", 100, false, false);
+  assert(b.open && b.url == "rtsp://door" && !w.waiting());
+  // A stream of the page still ending on an S3 (no second): it waits, however long, and keeps the link.
+  b = w.begin("rtsp://door", 1000, true, false);
+  assert(!b.open && w.waiting() && w.link == "rtsp://door" && w.since == 1000);
+  assert(!ViewWait::may_open(true, false, 60000));
+  b = w.begin(w.link, 61000, true, false);
+  assert(!b.open && w.since == 1000);  // asked again by live_tick, the wait counts from the first ask
+  // The stream ended: live_tick asks with the waiting link itself, which is cleared on the way, and the view opens with
+  // that link, not an empty one (the ":80" of 0.4.91 and 0.4.92).
+  b = w.begin(w.link, 62000, false, false);
+  assert(b.open && b.url == "rtsp://door" && !w.waiting());
+  // On a P4 (a second stream): it waits WAIT_MS, then opens beside the one still ending.
+  ViewWait p;
+  assert(!p.begin("rtsp://door", 5000, true, true).open);
+  assert(!p.begin(p.link, 5000 + ViewWait::WAIT_MS - 1, true, true).open);
+  b = p.begin(p.link, 5000 + ViewWait::WAIT_MS, true, true);
+  assert(b.open && b.url == "rtsp://door" && !p.waiting());
+  static_assert(ViewWait::may_open(false, false, 0) && ViewWait::may_open(true, true, ViewWait::WAIT_MS));
+}
+
 int main() {
+  waiting();
   none();
   framing();
   marking();
@@ -415,6 +505,8 @@ int main() {
   cutting();
   turning();
   composing();
+  writing();
+  counting();
   std::puts("live_view: ok");
   return 0;
 }

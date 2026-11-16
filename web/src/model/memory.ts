@@ -78,9 +78,22 @@ export const noRoom = (use: MemoryUse) => use.room === 0 || use.share >= NO_ROOM
  * rule: the editor asks once at each line, and yes may be the answer (GitHub #157). */
 export function memoryCrossing(tiles: readonly PricedTile[], tile: PricedTile, memory: ScreenMemory, pages: readonly PricedPage[] = [],
   plugins: PluginTileLookup = noPluginTiles) {
-  const before = memoryUse(tiles, memory, pages, plugins), after = memoryUse([...tiles, tile], memory, pages, plugins);
+  return memoryLine(memoryUse(tiles, memory, pages, plugins), memoryUse([...tiles, tile], memory, pages, plugins));
+}
+/** The line a change takes a layout past, from what it took before to what it takes after: the one rule every add holds
+ * to (a tile from the library, a paste, a first layout). Null when it crosses none, also when it was past that line already. */
+export function memoryLine(before: MemoryUse, after: MemoryUse) {
   if (after.level === "over") return before.level === "over" ? null : { line: noRoom(after) ? "none" as const : "over" as const, share: after.share };
   return after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? { line: "close" as const, share: after.share } : null;
+}
+/** Whether a proposal (a first layout, a plan of Layoutbot) may take a layout from `before` to `after`: stricter than an add,
+ * because nobody is asked on the way. It crosses no line (memoryLine) and ends no higher than it started: a layout below
+ * nine tenths stays below them, one between nine tenths and all of the room stays within the room, and one past all of it
+ * gets nothing more that costs memory. */
+export function proposalHolds(before: MemoryUse, after: MemoryUse) {
+  if (before.level === "over") return after.need <= before.need;
+  if (before.share >= NEARLY_FULL) return after.level !== "over";
+  return memoryLine(before, after) === null && after.share < NEARLY_FULL;
 }
 
 /** Kilobytes as the editor shows them: whole numbers, rounded up for what is needed, down for what there is. */

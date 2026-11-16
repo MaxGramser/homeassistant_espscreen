@@ -148,6 +148,14 @@ int main() {
     for (auto &t : tape.texts) if (t.s == "400" || t.s == "1600") ++named;
     assert(named == 2);
     for (auto &t : percent.texts) assert(t.s != "0" && t.s != "100");
+    // The ring's icon is drawn in a face that has its glyph: when the faces that fit the disc lack it (a tile icon font
+    // larger than this card's, a big font with a few icons), it takes the smallest that has it, never an empty disc.
+    Measure only_mini = m;
+    only_mini.covers = [](Face f, const std::string &s) { return s != "\xF3\xB0\x9F\xA4" || f == ICON_MINI; };
+    only_mini.line[ICON_MINI] = 1000;  // too tall for any disc
+    Plan lacking;
+    plan(lacking, only_mini, sensors[0], RING, 300, 300, 1200);
+    assert(lacking.ring && lacking.icon == ICON_MINI);
   }
   // The colours: one (the tile's own unless chosen), or segments up to their thresholds, which start at 80 % and 90 %.
   {

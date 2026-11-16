@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <type_traits>
 
 using namespace theme;
 
@@ -27,7 +28,7 @@ static int channel_gap(uint32_t a, uint32_t b) {
   for (int shift = 0; shift <= 16; shift += 8) gap = std::max(gap, std::abs(int(a >> shift & 0xFF) - int(b >> shift & 0xFF)));
   return gap;
 }
-static void look(bool on) { dark = on; }
+static void look(bool on) { TestLook::set(on, on); }
 
 int main() {
   // ---- the light look is the design as it was
@@ -100,6 +101,29 @@ int main() {
     if (r == g && g == b && r > 0 && r < 0xFF) assert((r >> 3) * 2 == (g >> 2));
   }
 
+  // ---- an instrument (plugin API 0.27): dark in both looks, its words read on it, its lines show and stay quiet
+  for (bool d : {false, true}) {
+    auto v = [d](Role r) { return d ? ROLES[r].dark : ROLES[r].light; };
+    assert(lightness(v(INSTRUMENT)) < 40);
+    assert(contrast(v(INSTRUMENT_INK), v(INSTRUMENT)) >= 12.0);
+    assert(contrast(v(INSTRUMENT_MUTED), v(INSTRUMENT)) >= 4.5);
+    assert(contrast(v(INSTRUMENT_GLOW), v(INSTRUMENT)) >= 7.0);
+    assert(contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) >= 1.4 && contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) < 3.0);
+  }
+  // A card that is an instrument's face (0.28): the instrument's ground and line in both looks, apart from every swatch.
+  const bool was = dark;
+  for (bool d : {false, true}) {
+    look(d);
+    assert(surface(Face::instrument()) == hex(INSTRUMENT) && outline(Face::instrument()) == hex(INSTRUMENT_LINE));
+    // A press on it shows in both looks: its face is dark in both, so the press goes towards white in both.
+    assert(lightness(pressed(Face::instrument())) > lightness(hex(INSTRUMENT)));
+    // A swatch kept as its light value is that swatch; 0 and any other value is the card.
+    for (size_t i = 0; i < SWATCH_COUNT; ++i) assert(Face::of(SWATCHES[i].light) == (Face{Face::SWATCH, uint8_t(i)}));
+    assert(Face::of(0) == Face{} && surface(Face{}) == hex(CARD) && surface(0u) == hex(CARD));
+    assert(Face::instrument().key() != 0 && Face{}.key() == 0);
+  }
+  look(was);
+
   // ---- Home Assistant's colours in the dark look
   assert(state(ha::GREY) == ROLES[OFF].dark && state(0xCFCFCF) == ROLES[HISTORY_OFF].dark && state(0xE6E6E6) == ROLES[HISTORY_EMPTY].dark);
   assert(state(ha::AMBER) == ha::AMBER && state(ha::TEAL) == ha::TEAL);
@@ -119,5 +143,56 @@ int main() {
   assert(pressed(hex(CARD)) == mix(hex(CARD), 0xFFFFFF, 224) && lightness(pressed(hex(CARD))) > lightness(hex(CARD)));
   assert(lightness(outline(0xFADADD)) > lightness(surface(0xFADADD)));
   assert(fill_opacity() < 51);
+
+  // ---- the look is read here and written only by set_dark() and a card's scope (theme.h, Looks)
+  static_assert(std::is_same<decltype(dark), const bool &>::value && std::is_same<decltype(screen_dark), const bool &>::value,
+                "theme::dark and theme::screen_dark are read-only");
+  assert(&dark == &Looks::now && &screen_dark == &Looks::screen);
+
+  // ---- a card's look (docs/THEME.md "A card's look"): a scope is the screen's look or the other, then gives back what
+  // was there, nested or not; the screen's own look never moves
+  for (bool screen : {false, true}) {
+    TestLook::set(screen, screen);
+    {
+      LookScope other(true);
+      assert(dark == !screen && screen_dark == screen);
+      {
+        LookScope plain(false);
+        assert(dark == screen);
+        {
+          LookScope again(true);
+          assert(dark == !screen);
+        }
+        assert(dark == screen);
+      }
+      assert(dark == !screen);
+      other.end();
+      assert(dark == screen);
+    }
+    assert(dark == screen && screen_dark == screen);
+    // A scope that ends early inside another gives back the look it found, not the screen's.
+    {
+      LookScope outer(true);
+      LookScope inner(false);
+      inner.end();
+      assert(dark == !screen);
+    }
+    assert(dark == screen);
+    assert(hex_in(CARD, true) == ROLES[CARD].dark && hex_in(CARD, false) == ROLES[CARD].light);
+  }
+  look(false);
   return 0;
 }
+
+// Home Assistant's palette (frontend src/resources/theme/color/color.globals.ts, as its 2026.9 frontend serves it): the
+// state colours every card takes are these, value for value.
+namespace palette_check {
+using namespace theme::ha;
+static_assert(RED == 0xF44336 && PURPLE == 0x926BC7 && DEEP_PURPLE == 0x6E41AB && INDIGO == 0x3F51B5 && BLUE == 0x2196F3,
+              "theme.h ha:: must hold Home Assistant's palette");
+static_assert(LIGHT_BLUE == 0x03A9F4 && CYAN == 0x00BCD4 && TEAL == 0x009688 && GREEN == 0x4CAF50 && LIME == 0xCDDC39,
+              "theme.h ha:: must hold Home Assistant's palette");
+static_assert(YELLOW == 0xFFEB3B && AMBER == 0xFFC107 && ORANGE == 0xFF9800 && DEEP_ORANGE == 0xFF6F22 && LIGHT_GREY == 0xBDBDBD,
+              "theme.h ha:: must hold Home Assistant's palette");
+static_assert(GREY == 0x9E9E9E && BLUE_GREY == 0x607D8B && ICE == 0xC0E0FF, "theme.h ha:: must hold Home Assistant's palette");
+}  // namespace palette_check

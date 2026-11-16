@@ -25,8 +25,8 @@ its chip, its panel or its sensor, and the layers below are keyed on those facts
 | `picture_jpeg.h` | the JPEG a screen takes: whole MCUs, the decoder's stride, the notes (`TSSR`) and the corners made exact; one profile with the app's `picture_paint` (step 2, done) | yes, `tests/test_picture_jpeg.cpp` | none |
 | `picture_fetch.h` | the link, an answer's head, the BMP decoder row by row, the gatherer of a whole JPEG | yes, `tests/test_picture_fetch.cpp` | none |
 | `picture_fetch.cpp` | the download task and its socket, the three slots, the hand-off to the main loop | no | sockets, FreeRTOS, PSRAM; a whole JPEG through `picture_engine` (step 4) |
-| `live_view.h` | the stream's framing (`Reader`), where a rectangle lies on a turned panel (`on_panel`), how a picture fits or is cut (`fit`, `cut`), what a tile lays over a live picture (`compose`, `draw_loader`) | yes, `tests/test_live_view.cpp` | none |
-| `glass.h`, `glass_dsi.cpp` | the panel as a surface (step 3, done): its size, format and turn, the frame buffer (a linker wrap of `esp_lcd_new_panel_dpi`), the one-writer lock with LVGL's refresh hooks, the rooms LVGL keeps out of (`keep_out`), the underrun counter, the PPA burst wrap | `on_panel`, `tests/test_live_view.cpp` | DSI panel, LVGL internals |
+| `live_view.h` | the stream's framing (`Reader`), where a rectangle lies on a turned panel (`on_panel`), how a picture fits or is cut (`fit`, `cut`), what a tile lays over a live picture (`compose`, `draw_loader`), how the streams are counted (`Census`, `room_for`, `beside`), the sound's rules (`sound_part`, `SoundPump`, `SoundClaim`) | yes, `tests/test_live_view.cpp`, `tests/test_live_sound.cpp` | none |
+| `glass.h`, `glass_dsi.cpp` | the panel as a surface (step 3, done): its size, format and turn, the frame buffer (a linker wrap of `esp_lcd_new_panel_dpi`), the one-writer lock with LVGL's refresh hooks, the rooms LVGL keeps out of (`keep_out`), the underrun counter, the PPA burst wrap; how a writer waits for the glass at `WRITER_PRIORITY` (`wait_as_writer`, `leave_as_writer`) | `on_panel`, the writers' turn, `tests/test_live_view.cpp` | DSI panel, LVGL internals |
 | `glass_dsi_refresh.h`, `.cpp` | the panel's DMA repeats the frame buffer by itself, so no interrupt stands between two frames (docs/CAMERA.md, "A frame's restart") | no, the bench with a camera on the glass | the DW-GDMA channel, through a linker wrap of `dw_gdma_new_channel` |
 | `picture_engine.h`, `picture_engine_p4.cpp` | the engine (step 4, done): the formats taken whole, the hardware JPEG decoder for stills and streams, the PPA copy through the guard, the one turn mapping (`ppa_angle`); the software engine is the stubs | `ppa_angle` and the stubs, `tests/test_picture_engine.cpp` | JPEG decoder, PPA, 2D-DMA |
 | `live_view.cpp` | the streams' tasks, the canvas of a tile and what goes over it, the camera's sound to the speaker | no | sockets, speaker |
@@ -254,6 +254,9 @@ using Room = int;                                     // a rectangle LVGL keeps 
 Room reserve(const Rect &area);                       //   (armed: today's `armed`, `spot`, `keep_out`, `invalidate`)
 void move(Room room, const Rect &spot);
 void give_back(Room room);                            //   LVGL draws the room again
+void redraw(Room room);                               //   once more after a tile's stream task ended (redraw_all
+                                                      //   for a full view): its last picture may land after the
+                                                      //   redraw at closing (a 10.1 inch, 2026-11-15)
 uint32_t misses();                                    // the panel ran dry since boot
 Rect on_panel(const Rect &r, int turn, int pw, int ph);  // pure, as today
 }
