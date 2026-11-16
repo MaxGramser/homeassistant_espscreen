@@ -3058,7 +3058,7 @@ inline void slow_pass_log(unsigned drawn,uint32_t took,size_t index,uint32_t slo
   static uint32_t objects;objects=0;
   lv_obj_tree_walk(lv_screen_active(),[](lv_obj_t *,void *)->lv_obj_tree_walk_res_t{++objects;return LV_OBJ_TREE_WALK_NEXT;},nullptr);
   ESP_LOGI("render","%u cards drawn in %u ms, slowest tile %u (%s), %u ms: %s ms, marked by %s; %u objects on the screen",drawn,(unsigned)took,
-           (unsigned)index,index<model.count?model.tiles[index].entity.c_str():"",(unsigned)slowest,at?line:"no step",
+           (unsigned)index,index<model.count?model.tiles[index].entity.c_str():"",(unsigned)slowest,at?line:redraw_log::NO_STEP,
            redraw_log::words(static_cast<redraw_log::TileWhy>(index<tile_why.size()?tile_why[index]:0)),(unsigned)objects);
 }
 inline void render(lv_obj_t *room) {

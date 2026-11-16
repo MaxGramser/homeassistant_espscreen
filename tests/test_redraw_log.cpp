@@ -31,5 +31,6 @@ int main() {
   }
   static_assert(std::string_view(redraw_log::words(TileWhy::state)) == "a state");
   assert(std::strcmp(redraw_log::words(static_cast<TileWhy>(200)), "unnamed") == 0);
+  static_assert(std::string_view(redraw_log::NO_STEP) == "no step");
   std::cout << "redraw log: " << static_cast<int>(Why::count) << " reasons, each with words of its own\n";
 }

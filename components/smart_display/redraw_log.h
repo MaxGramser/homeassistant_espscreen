@@ -80,6 +80,8 @@ constexpr const char *TILE_WORDS[] = {
     "its plugin",
 };
 static_assert(sizeof(TILE_WORDS) / sizeof(TILE_WORDS[0]) == static_cast<size_t>(TileWhy::count), "every reason has its words");
+// What the slow-pass line says of a card whose paint took under a millisecond in every step.
+constexpr const char *NO_STEP = "no step";
 constexpr const char *words(TileWhy why) {
   return static_cast<size_t>(why) < static_cast<size_t>(TileWhy::count) ? TILE_WORDS[static_cast<size_t>(why)] : TILE_WORDS[0];
 }
