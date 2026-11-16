@@ -246,9 +246,10 @@ constexpr bool lacks(bool has, bool left, bool all_asked_since) { return !has ||
 // Whether a take may run under the governor (pressure.h). A take is a few steps of about 10 ms; it holds the loop up
 // for nobody. At rest it runs; at the governor's first step it still runs when the only sign was the main loop held
 // up, which on a loaded screen is what every page turn itself brings (a Guition 10.1 with a camera, the wake word and
-// Bluetooth read "the main loop held up" after every turn and so never took a picture, 2026-11-16); for a panel that
-// ran dry or a wake word that fell behind, and from the second step on, it waits.
-constexpr bool take_may(uint8_t step, bool only_the_loop_held_up) { return step == 0 || (step == 1 && only_the_loop_held_up); }
+// Bluetooth read "the main loop held up" after every turn and so never took a picture, 2026-11-16), at whatever step:
+// a walk through the pages brings that sign turn after turn and the second step with it, and a screen that took no
+// picture then had none to turn to (2026-11-17). For a panel that ran dry or a wake word that fell behind it waits.
+constexpr bool take_may(uint8_t step, bool only_the_loop_held_up) { return step == 0 || only_the_loop_held_up; }
 // Page pictures are the first thing a screen gives up when its PSRAM runs short: a cover, a camera's full view, a live
 // stream, a call and a plugin's picture all matter more. One picture goes, the farthest from the glass first
 // (Shelf::let_go):

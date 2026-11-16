@@ -173,8 +173,11 @@ of `glass::on_panel`). The buffer is 2 MB more, held while pages still lack a pi
   and its pages are prepared; never while the glass is dark, the screensaver shows or LVGL is paused; then three
   seconds after the last touch, pages settled, nothing over the page, no stream writing the glass, the governor at
   rest, at most one page a second. Each is logged with what it held the main loop for ("page 3 made ahead: ... ms of
-  the loop"), and the governor hears a loop held up that long as it hears any other. One page is one draw LVGL cannot be stopped in, about as long as a page
-  turn's own; a touch that comes meanwhile waits for it. After a start that is once per page, after another look once
+  the loop"). The governor is told the hold was the screen's own choice (`Governor::own_work`): the held-up loop
+  reported right after it is no sign of a busy screen. Before that was so, pages made ahead a second apart raised the
+  governor's step by their own doing, and it held the rest of them back, and with them every take, for as long as
+  someone kept turning pages (a Guition 10.1 after a second change of look, 2026-11-17). One page is one draw LVGL
+  cannot be stopped in, about as long as a page turn's own; a touch that comes meanwhile waits for it. After a start that is once per page, after another look once
   more.
 - **What is true in it.** Everything but the cards that may look otherwise on the glass, by one rule
   (`page_picture_ahead_true`): a plugin's tile; a card that shows time (a playing track, a clock, a timer:
@@ -260,9 +263,10 @@ others turn as before. Two rules were wrong for such a screen and are right now:
   the glass is held for moments and needs only the kept pages' reserve beside it (`affords_scratch`).
 - **A take is not held back by the turn that came before it.** On that screen every page turn holds the main loop up
   long enough for the governor's first step ("the main loop held up"), which rests ten seconds, so no page was ever
-  taken. A take is five steps of about 10 ms and holds the loop up for nobody: it runs at rest, and at the first step
-  when the main loop held up is the only sign (`page_pictures::take_may`). For a panel that ran dry or a wake word
-  that fell behind, and from the second step on, it waits. A picture made ahead is a whole draw and waits for rest.
+  taken. A take is five steps of about 10 ms and holds the loop up for nobody: it runs at rest, and at any step when
+  the main loop held up is the sign (`page_pictures::take_may`), which a walk through the pages brings turn after
+  turn. For a panel that ran dry or a wake word that fell behind it waits. A picture made ahead is a whole draw and
+  waits for rest.
 
 ### Measured
 

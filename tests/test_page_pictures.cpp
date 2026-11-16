@@ -176,9 +176,9 @@ int main() {
   // A page gets a picture made ahead when it has none, when its picture never left the glass, and when everything
   // was asked to be drawn again since (the look changed while the page was away), not for a card or two.
   assert(lacks(false, false, false) && lacks(true, false, false) && lacks(true, true, true) && !lacks(true, true, false));
-  // A take under the governor: at rest; at the first step when only the loop was held up (a page turn's own doing);
-  // never for a dry panel or a wake word that fell behind, never from the second step.
-  assert(take_may(0, false) && take_may(1, true) && !take_may(1, false) && !take_may(2, true));
+  // A take under the governor: at rest, and at any step when the loop held up is the sign (a page turn's own doing,
+  // turn after turn in a walk); never for a dry panel or a wake word that fell behind.
+  assert(take_may(0, false) && take_may(1, true) && take_may(3, true) && !take_may(1, false) && !take_may(2, false));
   // Short of memory a picture goes. One refusal costs one picture, never a second (a board let both of its pictures
   // go for one refused ask, 2026-11-16): the next look finds it answered.
   Yield yield;

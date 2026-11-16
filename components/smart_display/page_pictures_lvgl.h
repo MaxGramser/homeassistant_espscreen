@@ -501,9 +501,9 @@ inline bool page_pictures_ahead(uint32_t now) {
   all.drawing_ahead = nullptr;
   ESP_LOGI("page_pic", "page %d made ahead: the loop stack's low mark %u B before, %u B after", page + 1, stack_before,
            static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
-  // The whole of what the main loop was held for, on every board that does it: the governor hears a loop held up this
-  // long the way it hears any other (ESPHome's own warning, pressure_lvgl.h).
+  // The whole of what the main loop was held for, on every board that does it.
   ESP_LOGI("page_pic", "page %d made ahead: %.1f ms of the loop", page + 1, (esphome::micros() - began) / 1000.0);
+  governor.own_work(esphome::millis());  // this hold was the screen's own choice, not a busy screen (pressure.h)
   return true;
 }
 // The proof that a page drawn off the glass is the page on the glass: the picture of the page on the glass is made the
@@ -531,6 +531,7 @@ inline void page_pictures_prove() {
   picture->map.untrue_all();
   picture->left = false;
   page_picture_scratch_free();
+  governor.own_work(esphome::millis());
 }
 #else
 inline bool page_pictures_ahead(uint32_t) { return false; }
