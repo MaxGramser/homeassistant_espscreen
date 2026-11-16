@@ -83,14 +83,22 @@ Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
 
 ### 2. ESPHome: Display bauen und flashen
 
-1. Den ganzen Ordner `eigenes-dashboard/` in deinen ESPHome-Konfigurationsordner kopieren (in Home Assistant meist
-   `config/esphome/`). `wetter.h`, `bilder/` und `fonts/` müssen neben `wetter-display.yaml` liegen.
-2. Die Einträge aus `secrets.example.yaml` in die `secrets.yaml` von ESPHome übernehmen und eigene Werte eintragen.
+1. Den **Inhalt** von `eigenes-dashboard/` (`wetter-display.yaml`, `wetter.h`, `bilder/`, `fonts/`) direkt nach
+   `config/esphome/` kopieren, z. B. mit dem Samba- oder dem Studio-Code-Server-Add-on. Das ESPHome-Dashboard zeigt
+   nur YAML-Dateien, die direkt in diesem Ordner liegen, keine aus Unterordnern.
+2. Die Einträge aus `secrets.example.yaml` in `config/esphome/secrets.yaml` übernehmen und eigene Werte eintragen.
 3. Oben in `wetter-display.yaml` `ort`, `wetter_entity` (dieselbe Wetter-Entität wie im Paket) und
    `vorhersage_entity` anpassen.
-4. Das erste Mal per USB-C flashen (ESPHome-Dashboard → Install → Plug into this computer). Danach geht es per WLAN.
-5. Home Assistant findet das Gerät „Wetter-Display“. Beim Hinzufügen den API-Schlüssel aus `secrets.yaml` angeben und
-   unter den Geräteoptionen erlauben, dass das Gerät Home-Assistant-Daten lesen darf.
+4. Das erste Mal per USB-C flashen, danach geht es per WLAN. Läuft Home Assistant in einer VM (z. B. unter Proxmox),
+   ist der einfachste Weg: im ESPHome-Dashboard bei „Wetter-Display“ ⋮ → Install → Manual download → „Factory
+   format“ wählen, die `.bin` herunterladen und am eigenen PC in Chrome oder Edge auf https://web.esphome.io mit
+   dem per USB angesteckten Display flashen. Den USB-Anschluss an die VM durchzureichen geht auch, ist aber
+   umständlicher.
+5. Home Assistant findet das Gerät „Wetter-Display“ (Einstellungen → Geräte & Dienste). Beim Hinzufügen den
+   API-Schlüssel aus `secrets.yaml` angeben. Das Display liest nur Zustände; die Option, Aktionen ausführen zu dürfen,
+   braucht es nicht.
+
+Der erste Build dauert in der VM 10 bis 20 Minuten und braucht Arbeitsspeicher: Gib der VM mindestens 4 GB.
 
 Die Konfiguration verlangt ESPHome 2026.6.2 oder neuer.
 
