@@ -472,7 +472,9 @@ for d in range(5):
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_{d}
-            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda |-
+              auto v = wx::rain_value(wx::part(x, 4), wx::part(x, 5));
+              return wx::rain_unit(wx::part(x, 4), wx::part(x, 5)) == "%" ? v + "%" : v;
         - lvgl.label.update:
             id: lbl_icon_{d}
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -738,6 +740,8 @@ kids.append(box(C, None, P, 106, CARD2 - 2 * P, 1, dict(bg_color=LINIE, bg_opa="
 pts = ", ".join(f"[{round(16 + 19.6 + i * 39.2 / 8)}, 80]" for i in range(33))
 kids.append(widget("line", C, dict(id="kurve", points=f"[{pts}]", line_color=LINIE, line_width=3,
                                    line_rounded="true")))
+# das Icon mittig zwischen Regenwert (Oberkante 106, 18 hoch) und Wochentag, 22 px hoch
+ICON_Y = round((106 + 18 + y(149, 18, 14)) / 2 - 11)
 for d in range(5):
     cx = round(16 + 39.2 * (d + .5))
     heute = d == 0
@@ -746,7 +750,7 @@ for d in range(5):
     kids.append(label(C, f"lbl_hoch_{d}", cx - 20, 50, "", "f_16m", GOLD if heute else INK, width=40, align="CENTER"))
     kids.append(label(C, f"lbl_regen_{d}", cx - 20, 106, "", "f_13m", GOLD, width=40, align="CENTER",
                       long_mode="CLIP"))
-    kids.append(label(C, f"lbl_icon_{d}", cx - 20, 131, "", "i_tag", MUTED, width=40, align="CENTER"))
+    kids.append(label(C, f"lbl_icon_{d}", cx - 20, ICON_Y, "", "i_tag", MUTED, width=40, align="CENTER"))
     kids.append(label(C, f"lbl_name_{d}", cx - 22, y(149, 18, 14), "", "f_14m" if heute else "f_14",
                       GOLD if heute else MUTED, width=44, align="CENTER"))
 w(box(I, "karte_tage", M, CARD_Y, CARD2, CARD_H, CARDSTYLE, kids))
