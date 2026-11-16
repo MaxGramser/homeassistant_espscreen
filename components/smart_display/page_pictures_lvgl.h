@@ -419,6 +419,23 @@ inline bool page_picture_drawn(PagePicture &picture, uint32_t &drew_us, uint32_t
   turned_us = esphome::micros() - drew;
   return true;
 }
+// Whether anything on a card moves by itself: an animation runs on one of its objects (a spinner, a label that scrolls).
+inline bool page_picture_moves(lv_obj_t *o, int depth = 0) {
+  if (!o || lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return false;
+  if (lv_anim_get(o, nullptr)) return true;
+  if (depth >= 8) return true;  // deeper than a card goes: not known to stand still
+  for (uint32_t i = 0; i < lv_obj_get_child_count(o); ++i)
+    if (page_picture_moves(lv_obj_get_child(o, i), depth + 1)) return true;
+  return false;
+}
+// The one rule for what of a page drawn off the glass is true: a card that will look on the glass exactly as it was
+// drawn here. Not a plugin's tile (it draws by rules of its own), not a card that shows time (drawn a while before
+// anyone turns to it: a playing track's bar, a clock, a timer), not a tile whose look depends on being seen (a camera,
+// an image, a player, anything with a picture: Tile::seen_to_look_right; five camera tiles made ahead differed from
+// the glass in 40 pixels on a Guition 10.1, 2026-11-16), and not a card on which anything moves by itself.
+inline bool page_picture_ahead_true(const Widgets &w, const Tile &t) {
+  return !w.plugin && !shows_time(t) && !t.seen_to_look_right() && !page_picture_moves(w.tile);
+}
 // warm_page has the page's cards on the glass's place and up to date, with LVGL's invalidation off: now it is drawn.
 inline void page_picture_ahead_drawn(int page) {
   auto *picture = page_pics ? page_pics->drawing_ahead : nullptr;
@@ -429,12 +446,11 @@ inline void page_picture_ahead_drawn(int page) {
   if (!page_picture_shaped(*picture) || !page_picture_drawn(*picture, drew, turn)) return;
   auto &map = picture->map;
   for (int row = 0; row < map.rows; ++row) map.took(row, map.in_room[row]);
-  // What nobody has watched stand still is left to LVGL: a card that shows time (a playing track's bar, a clock, a
-  // timer) was drawn a while before anyone turns to it, and a plugin's tile draws by rules of its own.
+  // What the glass may show otherwise is left to LVGL (page_picture_ahead_true): the rest of the page is true.
   picture->card_count = page_picture_cards(picture->cards);
   for (auto &w : widgets) {
     if (!w.tile || w.index >= model.count || lv_obj_has_flag(w.tile, LV_OBJ_FLAG_HIDDEN)) continue;
-    if (!w.plugin && !shows_time(model.tiles[w.index])) continue;
+    if (page_picture_ahead_true(w, model.tiles[w.index])) continue;
     for (size_t i = 0; i < picture->card_count; ++i)
       if (picture->cards[i].tile == w.index) map.untrue(picture->cards[i].at);
   }

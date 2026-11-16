@@ -176,9 +176,13 @@ of `glass::on_panel`). The buffer is 2 MB more, held while pages still lack a pi
   the loop"), and the governor hears a loop held up that long as it hears any other. One page is one draw LVGL cannot be stopped in, about as long as a page
   turn's own; a touch that comes meanwhile waits for it. After a start that is once per page, after another look once
   more.
-- **What is true in it.** Everything but the cards nobody has watched stand still: a card that shows time (a playing
-  track, a clock, a timer: `shows_time`) and a plugin's tile are left to LVGL, since a bar drawn a while ago would be
-  a stale value. Its change number is the one of that moment, so a tile that changes before the page is ever seen
+- **What is true in it.** Everything but the cards that may look otherwise on the glass, by one rule
+  (`page_picture_ahead_true`): a plugin's tile; a card that shows time (a playing track, a clock, a timer:
+  `shows_time`), since a bar drawn a while ago would be a stale value; a tile whose look depends on being seen
+  (`Tile::seen_to_look_right`: a camera, an image, a player, anything with a picture, since pictures load and spinners
+  turn only while their card is seen); and a card on which anything moves by itself. A page of five camera tiles made
+  ahead and called whole differed from the glass in 40 pixels at its first turn (a Guition 10.1, 2026-11-16); that is
+  what the third part of the rule is for. Its change number is the one of that moment, so a tile that changes before the page is ever seen
   makes its card untrue, by the same rule as any other.
 - **Not remade for a part.** A picture with some blocks untrue stays as it is until its page is on the glass; only a
   page with no picture, or with nothing true after everything was asked to be drawn again, is made ahead.
