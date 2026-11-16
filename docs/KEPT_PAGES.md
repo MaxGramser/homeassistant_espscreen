@@ -231,6 +231,23 @@ out on purpose: their panel is fed from an interrupt and must never be held up, 
 to draw in time, and their PSRAM is the pictures'. They, and every other board, carry none of this code and turn
 their pages as before.
 
+### On a loaded screen
+
+A screen that runs a camera with video, a wake word and Bluetooth has less of everything, and page pictures are what
+it has less of first. A Guition 10.1 with those three plugins had 11.7 to 16.3 MB of PSRAM free where it has 25 MB
+without them (2026-11-16), so of seven pages it keeps the pictures of two to four, the nearest to the glass, and the
+others turn as before. Two rules were wrong for such a screen and are right now:
+
+- **The store's own use is in its budget.** A picture's memory is taken while the rest of the store's budget and the
+  kept pages' reserve stay free after it (`page_pictures::reserve` with what the store holds), not the whole budget
+  on top of what the store already holds; that kept all but one picture out. The buffer a page is drawn into off
+  the glass is held for moments and needs only the kept pages' reserve beside it (`affords_scratch`).
+- **A take is not held back by the turn that came before it.** On that screen every page turn holds the main loop up
+  long enough for the governor's first step ("the main loop held up"), which rests ten seconds, so no page was ever
+  taken. A take is five steps of about 10 ms and holds the loop up for nobody: it runs at rest, and at the first step
+  when the main loop held up is the only sign (`page_pictures::take_may`). For a panel that ran dry or a wake word
+  that fell behind, and from the second step on, it waits. A picture made ahead is a whole draw and waits for rest.
+
 ### Measured
 
 A Waveshare ESP32-P4 10.1 inch (1280 x 800, chip revision 3.2, ESPHome 2026.9.0, LVGL 9.5, a draw buffer of half the

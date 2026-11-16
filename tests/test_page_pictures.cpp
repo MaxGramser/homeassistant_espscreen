@@ -165,6 +165,17 @@ int main() {
   assert(count(32 * MB, 480u * 480 * 2, 20) == (MAX_KEPT < 20 ? MAX_KEPT : 20));
   assert(affords(20 * MB, 32 * MB, one) && !affords(9 * MB, 32 * MB, one) && !affords(MB, 32 * MB, one));
   assert(reserve(32 * MB) == picture_store::budget_for(32 * MB) + kept_pages::KEEP_RESERVE);  // asked, not written again
+  // What the store already holds is not kept free a second time: a loaded board with 11.7 MB free and a store holding
+  // 4 MB of its 5.9 has room for more than one picture (it had room for one, a Guition 10.1 with three plugins).
+  const size_t free_loaded = 11731620;
+  assert(affords(free_loaded, heap32, one) && !affords(free_loaded - one, heap32, one));          // an empty store: one
+  assert(affords(free_loaded - one, heap32, one, 4 * MB) && affords(free_loaded - 2 * one, heap32, one, 4 * MB));
+  assert(reserve(heap32, 100 * MB) == kept_pages::KEEP_RESERVE);                                  // a full store: its reserve is spent
+  // The buffer a page is drawn into for a moment needs the kept pages' reserve only.
+  assert(affords_scratch(free_loaded - one, one) && !affords_scratch(3 * MB, one));
+  // A take under the governor: at rest; at the first step when only the loop was held up (a page turn's own doing);
+  // never for a dry panel or a wake word that fell behind, never from the second step.
+  assert(take_may(0, false) && take_may(1, true) && !take_may(1, false) && !take_may(2, true));
   // Short of memory a picture goes. One refusal costs one picture, never a second (a board let both of its pictures
   // go for one refused ask, 2026-11-16): the next look finds it answered.
   Yield yield;

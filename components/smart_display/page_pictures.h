@@ -205,7 +205,12 @@ constexpr size_t NONE = MAX_KEPT;
 constexpr size_t share(size_t psram_total) { return picture_store::page_pictures_ceiling(psram_total); }
 // What must stay free after a picture's memory is taken: the picture store's whole budget and the room the kept pages
 // leave for a full camera and an alert, each asked where it is written (picture_store.h, kept_pages.h).
-constexpr size_t reserve(size_t psram_total) { return picture_store::budget_for(psram_total) + kept_pages::KEEP_RESERVE; }
+// What the store already holds is in its budget, not on top of it: only the rest of the budget is kept free for it
+// (`store_held`), so a store that is full costs the page pictures nothing more.
+constexpr size_t reserve(size_t psram_total, size_t store_held = 0) {
+  return picture_store::budget_for(psram_total) - (store_held < picture_store::budget_for(psram_total) ? store_held : picture_store::budget_for(psram_total)) +
+         kept_pages::KEEP_RESERVE;
+}
 // How many pictures of `bytes` each a board with that PSRAM keeps for a layout of `pages`: none when not even two fit
 // (one picture alone is never turned to: it is of the page on the glass).
 constexpr size_t count(size_t psram_total, size_t bytes, unsigned pages) {
@@ -216,9 +221,20 @@ constexpr size_t count(size_t psram_total, size_t bytes, unsigned pages) {
   return n >= 2 ? n : 0;
 }
 // Whether another picture's memory may be taken now.
-constexpr bool affords(size_t psram_free, size_t psram_total, size_t bytes) {
-  return psram_free >= bytes && psram_free - bytes >= reserve(psram_total);
+constexpr bool affords(size_t psram_free, size_t psram_total, size_t bytes, size_t store_held = 0) {
+  return psram_free >= bytes && psram_free - bytes >= reserve(psram_total, store_held);
 }
+// The buffer a page is drawn into off the glass is held for moments, not kept: it needs only the kept pages' reserve
+// free beside it.
+constexpr bool affords_scratch(size_t psram_free, size_t bytes) {
+  return psram_free >= bytes && psram_free - bytes >= kept_pages::KEEP_RESERVE;
+}
+// Whether a take may run under the governor (pressure.h). A take is a few steps of about 10 ms; it holds the loop up
+// for nobody. At rest it runs; at the governor's first step it still runs when the only sign was the main loop held
+// up, which on a loaded screen is what every page turn itself brings (a Guition 10.1 with a camera, the wake word and
+// Bluetooth read "the main loop held up" after every turn and so never took a picture, 2026-11-16); for a panel that
+// ran dry or a wake word that fell behind, and from the second step on, it waits.
+constexpr bool take_may(uint8_t step, bool only_the_loop_held_up) { return step == 0 || (step == 1 && only_the_loop_held_up); }
 // Page pictures are the first thing a screen gives up when its PSRAM runs short: a cover, a camera's full view, a live
 // stream, a call and a plugin's picture all matter more. One picture goes, the farthest from the glass first
 // (Shelf::let_go):

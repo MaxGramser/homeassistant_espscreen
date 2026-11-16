@@ -147,7 +147,7 @@ inline PagePicture *page_picture_at(size_t at, bool fresh, size_t extra = 0) {
     // Not right after memory was short: what was refused has its turn first.
     const bool resting = all.yielded_at && esphome::millis() - all.yielded_at < page_pictures::YIELD_REST_MS;
     const size_t bytes = page_picture_bytes(), head = (sizeof(PagePicture) + 63) / 64 * 64;
-    void *memory = !resting && page_pictures::affords(psram_free(), hw::caps().psram_bytes, bytes + head + extra)
+    void *memory = !resting && page_pictures::affords(psram_free(), hw::caps().psram_bytes, bytes + head + extra, pictures.size())
                        ? heap_caps_aligned_alloc(64, head + bytes, MALLOC_CAP_SPIRAM) : nullptr;
     if (!memory) {
       all.shelf.entries[at] = page_pictures::Shelf::Entry{};
@@ -386,14 +386,30 @@ inline bool page_picture_drawn(PagePicture &picture, uint32_t &drew_us, uint32_t
   const int sw = lv_display_get_horizontal_resolution(display), sh = lv_display_get_vertical_resolution(display);
   const auto p = glass::panel();
   const size_t bytes = static_cast<size_t>(sw) * sh * 2;
-  if (!page_pics->scratch && page_pictures::affords(psram_free(), hw::caps().psram_bytes, bytes))
+  // Each way this can fail says so, with its numbers: the buffer's memory, LVGL's own buffer record, LVGL's draw.
+  if (!page_pics->scratch && page_pictures::affords_scratch(psram_free(), bytes))
     page_pics->scratch = static_cast<uint8_t *>(heap_caps_aligned_alloc(64, bytes, MALLOC_CAP_SPIRAM));
-  if (!page_pics->scratch) return false;
+  if (!page_pics->scratch) {
+    ESP_LOGI("page_pic", "off the glass: no memory for the buffer of %u B (%u B of PSRAM free, %u B must stay free beside it)",
+             (unsigned) bytes, (unsigned) psram_free(), (unsigned) kept_pages::KEEP_RESERVE);
+    return false;
+  }
   lv_draw_buf_t buffer;
-  if (lv_draw_buf_init(&buffer, sw, sh, LV_COLOR_FORMAT_RGB565, sw * 2, page_pics->scratch, bytes) != LV_RESULT_OK) return false;
+  const lv_result_t made = lv_draw_buf_init(&buffer, sw, sh, LV_COLOR_FORMAT_RGB565, sw * 2, page_pics->scratch, bytes);
+  if (made != LV_RESULT_OK) {
+    ESP_LOGI("page_pic", "off the glass: LVGL takes no buffer of %d x %d RGB565, stride %d, %u B (result %d)", sw, sh, sw * 2,
+             (unsigned) bytes, (int) made);
+    return false;
+  }
   const uint32_t began = esphome::micros();
   lv_obj_update_layout(lv_screen_active());
-  if (lv_snapshot_take_to_draw_buf(lv_screen_active(), LV_COLOR_FORMAT_RGB565, &buffer) != LV_RESULT_OK) return false;
+  const lv_result_t drawn = lv_snapshot_take_to_draw_buf(lv_screen_active(), LV_COLOR_FORMAT_RGB565, &buffer);
+  if (drawn != LV_RESULT_OK) {
+    ESP_LOGI("page_pic", "off the glass: LVGL did not draw the screen (result %d): screen %d x %d, buffer %u x %u, stride %u, %u B",
+             (int) drawn, sw, sh, (unsigned) buffer.header.w, (unsigned) buffer.header.h, (unsigned) buffer.header.stride,
+             (unsigned) buffer.data_size);
+    return false;
+  }
   const uint32_t drew = esphome::micros();
   page_pictures::turned(buffer.data, sw, sh, buffer.header.stride, picture.pixels, p.w, p.h, glass::turn(), picture.map.room, p.swapped);
   drew_us = drew - began;
@@ -474,7 +490,13 @@ inline bool page_pictures_ahead(uint32_t now) {
 // the next take makes it from the glass again.
 inline void page_pictures_prove() {
   auto *picture = page_picture_for_glass();
-  if (!picture) { ESP_LOGI("page_pic", "prove: no picture for the page on the glass"); return; }
+  if (!picture) {
+    ESP_LOGI("page_pic", "prove: no picture for the page on the glass: %u B of PSRAM free, a picture is %u B and %u B must stay "
+             "free after it (the store holds %u B of its budget); %u kept of %u at most", (unsigned) psram_free(),
+             (unsigned) page_picture_bytes(), (unsigned) page_pictures::reserve(hw::caps().psram_bytes, pictures.size()),
+             (unsigned) pictures.size(), page_pictures_count(), (unsigned) page_pictures_capacity());
+    return;
+  }
   uint32_t drew = 0, turn = 0;
   picture->map.untrue_all();
   const unsigned stack_before = static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr));
@@ -543,7 +565,8 @@ inline void page_pictures_step(lv_timer_t *) {
     }
   }
   if (!model.configured || !model.ready() || preparing.active || protocol_problem != ProtocolProblem::none) return;
-  if (!tiles_seen() || !prepare_idle(now, PICTURE_QUIET_MS) || pressure::level_of(pressure::BACKGROUND) != 0) return;
+  if (!tiles_seen() || !prepare_idle(now, PICTURE_QUIET_MS)) return;
+  if (!page_pictures::take_may(governor.step(), governor.cause() == pressure::SLOW_LOOP)) return;
   if (!page_room_clear()) { page_pictures_say(drawn_over_by ? drawn_over_by : page_pictures_log::COVERED); return; }
   auto *picture = page_picture_for_glass();
   if (!picture) return;
