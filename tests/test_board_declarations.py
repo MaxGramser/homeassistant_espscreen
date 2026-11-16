@@ -26,7 +26,7 @@ STILL_HELD = {
         'guition-jc8012p4a1-v3', 'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001', 'seeed-sensecap-indicator-d1',
         'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-43', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7', 'waveshare-esp32s3-7b', 'waveshare101', 'waveshare43c',
-        'wavesharep4', 'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
+        'wavesharep4', 'wavesharep47', 'wavesharep47b', 'wt32sc01', 'wt32sc01plus',
     ),
     'esp_ldo': ('crowpanel101',),
     'esphome': (
@@ -40,7 +40,7 @@ STILL_HELD = {
     'i2c': (
         'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535', 'guition-jc8048w550c-i', 'reterminald1001',
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',
-        'waveshare-esp32s3-4v4', 'wt32sc01plus',
+        'waveshare-esp32s3-4v4', 'wt32sc01', 'wt32sc01plus',
     ),
     'i2s_audio': ('crowpanel101', 'reterminald1001',),
     'interval': ('reterminald1001',),
@@ -56,17 +56,17 @@ STILL_HELD = {
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
         'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001', 'seeed-sensecap-indicator-d1', 'sunton-8048s070',
         'waveshare-esp32s3-35', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare101', 'wavesharep4',
-        'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
+        'wavesharep47', 'wavesharep47b', 'wt32sc01', 'wt32sc01plus',
     ),
     'pca9554': ('seeed-sensecap-indicator-d1', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',),
-    'psram': ('freenove-fnk0104s', 'guition-jc3248w535', 'waveshare-esp32s3-35', 'wt32sc01plus',),
+    'psram': ('freenove-fnk0104s', 'guition-jc3248w535', 'waveshare-esp32s3-35', 'wt32sc01', 'wt32sc01plus',),
     'script': ('reterminald1001',),
     'sensor': ('reterminald1001',),
     'speaker': ('crowpanel101',),
     'spi': (
         'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535', 'hosyond40',
         'seeed-sensecap-indicator-d1', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4',
-        'wt32sc01plus',
+        'wt32sc01', 'wt32sc01plus',
     ),
     'switch': (
         'crowpanel101', 'reterminald1001', 'seeed-sensecap-indicator-d1', 'tab5', 'waveshare-esp32s3-4v4',
@@ -83,13 +83,14 @@ STILL_HELD = {
         'reterminald1001', 'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'tab5', 'waveshare-esp32s3-35',
         'waveshare-esp32s3-43', 'waveshare-esp32s3-4b', 'waveshare-esp32s3-4v4', 'waveshare-esp32s3-7',
         'waveshare-esp32s3-7b', 'waveshare101', 'waveshare43c', 'wavesharep4', 'wavesharep47', 'wavesharep47b',
-        'wt32sc01plus',
+        'wt32sc01', 'wt32sc01plus',
     ),
     'touchscreen': (
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
         'guition-jc4880p443', 'guition-jc8012p4a1', 'guition-jc8048w550c-i', 'hosyond40', 'reterminald1001',
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'tab5', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',
-        'waveshare-esp32s3-4v4', 'waveshare101', 'wavesharep4', 'wavesharep47', 'wavesharep47b', 'wt32sc01plus',
+        'waveshare-esp32s3-4v4', 'waveshare101', 'wavesharep4', 'wavesharep47', 'wavesharep47b', 'wt32sc01',
+        'wt32sc01plus',
     ),
 }
 

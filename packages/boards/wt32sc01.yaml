@@ -1,0 +1,132 @@
+# ESP Screens - Wireless-Tag WT32-SC01, experimental: a 3.5-inch 480 x 320 panel (ST7796S over SPI) with FT6336U
+# capacitive touch over I2C, on an ESP32 (WROVER: 4 MB of usable PSRAM) with 16 MB flash. Not the WT32-SC01 Plus, which
+# has an ESP32-S3 and an 8-bit panel bus (packages/boards/wt32sc01plus.yaml).
+#
+# The pins come from a community ESPHome configuration that runs on the board (ili9xxx ST7796, ft63x6). A community
+# member ran this file on the board (docs/WT32SC01.md); the project has not tried it on one.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/wt32sc01.yaml (a build on this computer) and packages/wt32sc01.yaml (the package a screen builds from over
+# GitHub).
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  # Camera stills, alert snapshots and covers, kept in the PSRAM picture store. The classic ESP32 has no JPEG engine
+  # (engine_build.picture_engine): it takes BMP, decoded row by row as it arrives.
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  # No snapshot: it needs a second frame of the whole screen, and the internal heap left beside Wi-Fi, the API and LVGL
+  # is about 159 KB.
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "wt32sc01"
+  DEVICE_NAME: "wt32sc01-new"
+  DEVICE_FRIENDLY_NAME: "My WT32-SC01"
+
+  # The glass: the panel's own pixels and its density, 577 diagonal pixels over 3.5 inches.
+  PANEL_W: "320"
+  PANEL_H: "480"
+  DISPLAY_DPI: "164.825"
+  # The LVGL angle that lays this panel out lying down (480 x 320). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "3"
+  # LVGL's draw buffer as a share of the screen: an eighth (38 KB of 320 x 480), as on the Hosyond, which has the same
+  # glass on a classic ESP32. It stays in the chip's own memory when a block that size is free, where the SPI bus
+  # reads it fastest; a quarter would land in the slower PSRAM.
+  LVGL_BUFFER_SIZE: "8%"
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and
+  # the extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  DISPLAY_MODEL: "ST7796"                       # ESPHome's mipi_spi model of the display controller
+  DISPLAY_DATA_RATE: "40MHz"                    # the display's SPI clock
+  DISPLAY_INVERT_COLORS: "false"
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp-wrover-kit
+  variant: esp32
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    advanced:
+      # ESPHome recommends this itself in the boot log: about 40 KB more IRAM and a smaller binary, as on the CYD.
+      sram1_as_iram: true
+
+# The WROVER's PSRAM, as the configuration this file started from runs it.
+psram:
+  mode: quad
+  speed: 80MHz
+
+# The display's bus. MISO is wired but the panel is only written to.
+spi:
+  id: lcd_spi
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  miso_pin: GPIO12
+
+# The FT6336U capacitive touch, at 0x38.
+i2c:
+  id: touch_bus
+  sda: GPIO18
+  scl: GPIO19
+  frequency: 400kHz
+
+# The backlight, a PWM pin (features/backlight.yaml makes it the light); zero_means_zero keeps a dark standby dark.
+output:
+  - platform: ledc
+    pin: GPIO23
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true
+
+# ESPHome's ft63x6 platform, with the touch panel's interrupt on GPIO39 (input only), read every 20 ms as on the other
+# boards (a finger that moves between reads is what LVGL counts as a swipe). The panel reports pixels of the glass
+# standing up; LVGL turns them with the picture (ROTATION_LANDSCAPE). The configuration this file started from drew the
+# display swapped (480 x 320) and read the touch swapped and mirrored in Y, which is the glass's own X mirrored here.
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    address: 0x38
+    # GPIO39 is input only, with no internal pull-up: ESPHome's ft63x6 asks for one anyway, and ESP-IDF logs
+    # "gpio_pullup_en ... input-only pad has no internal PU" once at boot. Harmless; the board pulls the line up itself.
+    interrupt_pin: GPIO39
+    update_interval: 20ms
+    transform:
+      mirror_x: true
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    spi_id: lcd_spi
+    model: ${DISPLAY_MODEL}
+    data_rate: ${DISPLAY_DATA_RATE}
+    cs_pin: GPIO15
+    dc_pin: GPIO21
+    reset_pin: GPIO22
+    invert_colors: ${DISPLAY_INVERT_COLORS}
+    update_interval: never
+    auto_clear_enabled: false
+    # Native panel dimensions (portrait); LVGL turns the picture (ROTATION_LANDSCAPE), never a display transform.
+    dimensions:
+      width: 320
+      height: 480
