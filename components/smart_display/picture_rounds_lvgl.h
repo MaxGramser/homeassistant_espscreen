@@ -156,7 +156,7 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
     if (!asked.empty() && !pictures.entry(asked) && pictures.rekey(loader.loading_had(slot), asked, now))
       ESP_LOGD("picture", "%s came back unchanged: the picture its owner showed is this one", asked.c_str());
     const lv_image_dsc_t *held = hooks.source ? hooks.source() : nullptr;
-    if (!asked.empty() && !pictures.entry(asked) && !(held && held->data)) {
+    if (picture_store::load_again(true, ok, cached, !asked.empty(), !asked.empty() && pictures.entry(asked), held && held->data)) {
       ESP_LOGD("picture", "%s came back unchanged, but the store let it go: loaded again", asked.c_str());
       if (hooks.release) hooks.release();
       ok = cached = false;
@@ -168,10 +168,11 @@ inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {
     const int s = static_cast<int>(slot);
     bool kept = false;
     if (src) picture_memory("after", key.substr(0, key.find('|')).c_str(), src->header.w * src->header.h);
-    if (pictures_kept() && cached && pictures.entry(key)) {
+    const auto arrival = picture_store::arrival(pictures_kept(), cached, pictures.entry(key) != nullptr, src && src->data);
+    if (arrival == picture_store::Arrival::touch) {
       pictures.touch(key, now);
       kept = true;
-    } else if (pictures_kept() && src && src->data) {
+    } else if (arrival == picture_store::Arrival::adopt) {
       // One picture in memory once (docs/PICTURES.md, "Memory"): the store takes the download's own buffer and the slot
       // lets go of it; no copy, and the picture on the glass until now goes once its cards show this one. A slot that
       // cannot give its buffer away is copied once into one the store owns.
@@ -368,7 +369,7 @@ inline void pictures_round() {
   // for a page on its way past. Asking the app is an event and goes at once.
   auto *input = lv_indev_get_next(nullptr);
   const bool pressed = input && lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED;
-  loader.end(now, !pressed && camera_view::settled(now, last_turn_ms));
+  loader.end(now, camera_view::may_load(pressed, now, last_turn_ms));
   // The full view's buffer is freed once it closed and nothing loads into it (camera_close).
   if (camera_release_due && !camera_root && !loader.slot_busy(picture_loader::Slot::FULL)) camera_release();
   pictures_rounding = false;

@@ -22,7 +22,9 @@ constexpr uint32_t PENDING_MS = 20000;     // an alert's camera announced this l
 // download never lands between two quick page turns and holds the next one up. Asking the app for a link is an event
 // and costs the screen nothing; only the download waits.
 constexpr uint32_t SETTLE_MS = 800;
-inline bool settled(uint32_t now, uint32_t last_turn) { return now - last_turn >= SETTLE_MS; }
+constexpr bool settled(uint32_t now, uint32_t last_turn) { return now - last_turn >= SETTLE_MS; }
+// Whether a picture may start loading this round (pictures_round): never under a finger, and not while the pages turn.
+constexpr bool may_load(bool pressed, uint32_t now, uint32_t last_turn) { return !pressed && settled(now, last_turn); }
 // Whether the tiles are there to be seen (firmware 0.40.0+, GitHub #161), and so whether their pictures (a page's live
 // pictures, a media card's cover) keep loading: a screen in use, or one in standby that still shows its dimmed tiles. A
 // screensaver over them (the clock too) hides them, and below SEEN_LEVEL % of brightness nobody reads a picture. Before,

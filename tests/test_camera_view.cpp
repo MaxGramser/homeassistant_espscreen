@@ -22,6 +22,9 @@ int main() {
   // A failed load is tried again after the gap, and a link that fails MAX_FAILURES times in a row is asked for anew:
   // the loader's rules, whose numbers come from here.
   assert(GAP_MS < REFRESH_MS && ASK_AGAIN_MS > REFRESH_MS && ASK_AGAIN_MAX_MS > ASK_AGAIN_MS && MAX_FAILURES >= 2);
+  // A picture starts loading only with no finger down and the pages standing still for SETTLE_MS.
+  static_assert(may_load(false, 10000, 10000 - SETTLE_MS) && !may_load(true, 10000, 0));
+  static_assert(!may_load(false, 10000, 10000 - SETTLE_MS + 1));
   // The tiles' pictures (GitHub #161): those on the glass load while the tiles are seen and nothing covers them...
   static_assert(pictures_on_glass(true, false, false));
   static_assert(!pictures_on_glass(true, true, false) && !pictures_on_glass(true, false, true));  // a card, a full view

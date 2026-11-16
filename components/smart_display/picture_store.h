@@ -214,4 +214,19 @@ template <class Image> struct Store {
     e = Entry{};
   }
 };
+
+// What picture_done does with a picture its slot finished (docs/PICTURES.md, "Memory" and "Unchanged pictures").
+// A 304 (`cached`) for a picture the store let go meanwhile, whose pixels no slot holds either, leaves nothing to show:
+// it is loaded again, whole. `asked` is whether the slot knew which picture it loaded; `in_store` is asked after the
+// store had the chance to file the owner's previous picture under it (rekey).
+constexpr bool load_again(bool store, bool ok, bool cached, bool asked, bool in_store, bool slot_holds) {
+  return store && ok && cached && asked && !in_store && !slot_holds;
+}
+// Then: a 304 for a picture the store has is touched (nothing downloaded or drawn again); a download with pixels goes
+// into the store, its own buffer and no copy, where the slot can hand it over (adopt); anything else is drawn from its
+// slot. The view and an alert draw the store's copy, which a download that breaks off halfway cannot take away (0.13.0).
+enum class Arrival : uint8_t { touch, adopt, slot };
+constexpr Arrival arrival(bool store, bool cached, bool in_store, bool has_pixels) {
+  return store && cached && in_store ? Arrival::touch : store && has_pixels ? Arrival::adopt : Arrival::slot;
+}
 }  // namespace picture_store

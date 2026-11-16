@@ -258,5 +258,25 @@ int main() {
     kept.collect([](const Image *) { return false; });
     assert(live == 0 && !kept.entry_any("track 1") && !kept.rekey("track 1", "track 2", 2) && !kept.find("track 2"));
   }
+  // What picture_done does with a finished picture (load_again, arrival).
+  {
+    using picture_store::Arrival;
+    using picture_store::arrival;
+    using picture_store::load_again;
+    // A 304 for a picture the store let go, whose pixels the slot does not hold either: loaded again, whole.
+    static_assert(load_again(true, true, true, true, false, false));
+    static_assert(!load_again(true, true, true, true, true, false));   // the store has it (also after a rekey)
+    static_assert(!load_again(true, true, true, true, false, true));   // the slot still holds its pixels
+    static_assert(!load_again(true, true, false, true, false, false)); // a whole download is no 304
+    static_assert(!load_again(true, false, true, true, false, false)); // a failed load is the loader's to try again
+    static_assert(!load_again(false, true, true, true, false, false)); // no store (a board without one)
+    static_assert(!load_again(true, true, true, false, false, false)); // a slot that did not know what it loaded
+    // A 304 the store has is touched; a download with pixels goes into the store; anything else stays in its slot.
+    static_assert(arrival(true, true, true, true) == Arrival::touch && arrival(true, true, true, false) == Arrival::touch);
+    static_assert(arrival(true, false, true, true) == Arrival::adopt);  // a new download of a key the store has
+    static_assert(arrival(true, true, false, true) == Arrival::adopt);  // a 304 whose picture the slot still holds
+    static_assert(arrival(true, false, false, false) == Arrival::slot); // nothing to take
+    static_assert(arrival(false, false, false, true) == Arrival::slot && arrival(false, true, true, true) == Arrival::slot);
+  }
   return 0;
 }

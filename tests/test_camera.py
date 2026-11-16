@@ -3,7 +3,7 @@ port; the screen asks with esphome.screen_camera and downloads the link in a tas
 In the app every picture takes one way (docs/PICTURES.md): the question (picture_question, or picture_legacy for the
 shapes of older firmware), its sources (picture_sources), the one painter (picture_paint), the links on the camera port
 (picture_links) and the service between them (picture_service)."""
-from firmware_sources import firmware_domains, runtime_source
+from firmware_sources import firmware_domains
 from manager_fixtures import with_screen_grid, seed_layout
 import asyncio
 import contextlib
@@ -42,7 +42,6 @@ if HAS_AIOHTTP:
     from server import HomeAssistant, Manager
 
 PROFILE = profiles.text('checkout/guition.yaml')
-TILES = runtime_source()
 PACKAGES = ROOT / 'packages'
 
 
@@ -354,56 +353,37 @@ class Rules(unittest.TestCase):
                          f'screen_manager/config.yaml publishes the camera port, {picture_links.PORT}/tcp')
 
     def test_the_first_picture_waits_for_no_tick(self):
-        # Firmware 0.2.73+: the camera asks when it opens and loads the link when it comes, not on the next 250 ms tick;
-        # the spinner turns until the first picture or a note is there.
-        opened = TILES.split('inline void camera_open(const std::string &entity, const std::string &name, int map_index, const std::string &focus) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('camera_spinner = spinner_create(camera_root,', opened)
-        # Opened, it says what it wants at once (one round of the picture route, firmware 0.52.0): the loader asks then.
-        self.assertTrue(opened.rstrip().endswith('pictures_round();'))
-        # pictures_awake: awake, or the screensaver's picture in standby (firmware 0.29.0+).
-        want = TILES.split('inline void camera_want() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('if (!camera_root || !camera.open() || !pictures_awake()) return;', want)
-        # The answer starts the download in the same round, not on the next tick.
-        answer = TILES.split('inline void camera_answer(const std::string &view, const std::string &entity, const std::string &url, uint32_t number) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertTrue(answer.rstrip().endswith('pictures_round();'))
-        # Never under a finger, and not while the pages turn: the round tells the loader whether it may load.
-        round_ = TILES.split('inline void pictures_round() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('const bool pressed = input && lv_indev_get_state(input) == LV_INDEV_STATE_PRESSED;', round_)
-        self.assertIn('loader.end(now, !pressed && camera_view::settled(now, last_turn_ms));', round_)
-        note = TILES.split('inline void camera_note_text(const char *text) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('lv_obj_delete(camera_spinner);', note)
-        self.assertNotIn('Loading image', TILES)
+        """Firmware 0.2.73+: the camera asks when it opens and loads the link when it comes, not on the next 250 ms tick;
+        the spinner turns until the first picture or a note is there. A picture starts loading only with no finger down
+        and the pages standing still: camera_view::may_load, which pictures_round asks, proven by
+        tests/test_camera_view.cpp. That a full view asks for its picture and draws the answer is the host render's
+        doorbell round (tools/render/run.py, doorbell_round: "the view asked for no picture" fails it). The view's words
+        come from the translations: English on the glass ("Loading image") is what tools/i18n.py lint refuses."""
+        # glass: a camera opened full screen asks for its picture at once and shows it the moment the answer's picture
+        # has loaded, with the spinner turning until then (the log's "live link N ms after the camera opened" for a
+        # stream, the first picture well under a second after the answer for stills).
+        parts = {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
+        self.assertTrue([name for name, code in parts.items() if 'camera_view::may_load(' in code],
+                        'pictures_round asks camera_view::may_load')
 
     def test_the_full_screen_draws_a_copy_a_broken_download_cannot_take_away(self):
-        # Firmware 0.13.0: a download that broke off halfway made online_image free the buffer the view still drew, and
-        # every part of the glass drawn again after that (a tile below going unavailable) came out black. The view draws
-        # the store's copy, which the store keeps while it is on the glass and lets go of once the view closes.
-        # Every download goes into the store under its picture's key (picture_done, firmware 0.52.0); a 304 keeps what the
-        # store has. The store takes the download's own buffer, never a copy of it (docs/PICTURES.md, "Memory"), and the
-        # slot lets go of it, keeping its ETag; a 304 for a picture the store let go meanwhile is loaded whole.
-        done = TILES.split('inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('if (pictures_kept() && cached && pictures.entry(key)) {\n      pictures.touch(key, now);', done)
-        # The ETag goes into the store with the picture since 006b6944 (docs/PICTURES.md, "Unchanged pictures"): the call's
-        # start, until this test reads behaviour after runtime_tiles.h is split (it is a B with no replacement yet).
-        self.assertIn('pictures.adopt(key, taken, now', done)
-        self.assertIn('if (kept && hooks.hand_over) hooks.hand_over();', done)
-        self.assertIn('if (!asked.empty() && !pictures.entry(asked) && !(held && held->data)) {', done)
-        # That the store keeps the download's own pixels, and no copy, is tests/test_picture_store.cpp's: adopt keeps the
-        # buffer it was given and the count of live buffers does not grow.
-        # A picture the store has no room for is drawn from the download, and says so in the log.
-        self.assertIn('ESP_LOGW("picture", "no room to keep %s", key.c_str());', done)
-        self.assertIn('if (!kept) { slot_key[s] = key; slot_at[s] = now; }', done)
-        view = TILES.split('inline void view_done(picture_loader::Outcome outcome) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('lv_image_dsc_t *src = picture_of(camera_key());', view)
-        self.assertIn('camera_show(camera_root, camera_picture, src, outcome == picture_loader::Outcome::LOADED);', view)
-        self.assertNotIn('camera_show(camera_root, camera_picture, camera_full.source()', TILES)
-        shown = TILES.split('inline bool picture_shown(const lv_image_dsc_t *image) {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('on(camera_picture);', shown)
-        self.assertIn('on(alert_picture);', shown)
-        closed = TILES.split('inline void camera_close() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('loader.release(owners::VIEW);', closed)
-        # Let go before the camera is forgotten, or the key would name no camera.
-        self.assertLess(closed.index('loader.release('), closed.index('camera = ViewPicture{};'))
+        """Firmware 0.13.0: a download that broke off halfway made online_image free the buffer the view still drew, and
+        every part of the glass drawn again after that (a tile below going unavailable) came out black. The view draws the
+        store's copy, which the store keeps while it is on the glass and lets go of once the view closes.
+
+        What becomes of a finished picture (a 304 the store has is touched, a download goes into the store as its own
+        buffer, a 304 whose picture the store let go is loaded again whole, the rest stays in its slot) is
+        picture_store::arrival and load_again, which picture_done asks; that the store keeps the download's own pixels
+        and no copy, files a picture under another key and keeps what is on the glass is the store's. Both are proven by
+        tests/test_picture_store.cpp. Here: the rule that the view never draws a slot's own download."""
+        # glass: with the full view open, a picture whose download breaks off leaves the view's picture as it was, and a
+        # tile below that goes unavailable is drawn normally (not black).
+        parts = {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
+        for name, code in parts.items():
+            self.assertNotIn('camera_show(camera_root, camera_picture, camera_full.source()', code,
+                             f'{name}: the full view draws the store\'s copy (picture_of), never the slot\'s own download')
+        self.assertTrue([name for name, code in parts.items() if 'picture_store::arrival(' in code],
+                        'picture_done asks picture_store::arrival')
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
