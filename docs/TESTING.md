@@ -102,8 +102,11 @@ A build that passes says the YAML and the C++ compile and fit their slot. It say
 the glass, with an SDL surface in place of the panel and the touch chip. Lying down, and standing up where the glass is
 not square. `tools/check.sh --render` does it for every board, and `tools/check.sh --render --sample` for the three of
 `RENDER_SAMPLE` in `tools/profiles.py` (the smallest, a middle and the largest glass). It needs SDL2 and ESPHome's
-Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. For each
-variant it:
+Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. It needs the
+ESPHome of the app (`screen_manager/Dockerfile`) or newer, and refuses an older one before it builds: an older ESPHome
+fails the host build on what it lacks, which reads as a broken test. Without one installed, uv brings it:
+`uv run --no-project --python 3.13 --with esphome==<the app's version> --with pillow python tools/render/run.py guition`.
+For each variant it:
 
 - sends the demo layout through the screen's inbox, as the add-on does, with a title per page;
 - runs the firmware's own self test (`ui_self_test`): every page and overlay, each page's cards and bar, and the check

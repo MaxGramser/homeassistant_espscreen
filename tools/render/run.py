@@ -260,6 +260,21 @@ def painted(question, raws, said=None):
     return picture_paint.paint(question, raws), question
 
 
+def too_old(esphome):
+    """Refuse an ESPHome older than the app's (screen_manager/Dockerfile): an older one fails the host build on what it
+    lacks (the SDL display's set_headless, before 2026.9), which reads as a broken test. docs/TESTING.md, section 3."""
+    wanted = re.search(r'esphome/esphome:(\d+\.\d+\.\d+)', (REPO / 'screen_manager/Dockerfile').read_text())[1]
+    try:
+        said = subprocess.run([*esphome, 'version'], capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise SystemExit(f'{" ".join(esphome)} does not run ({error}); set ESPHOME to an ESPHome {wanted}') from error
+    found = re.search(r'(\d+)\.(\d+)\.(\d+)', said)
+    if not found or tuple(map(int, found.groups())) < tuple(map(int, wanted.split('.'))):
+        raise SystemExit(f'The host renders need ESPHome {wanted} or newer (the app\'s) and {" ".join(esphome)} is '
+                         f'{found[0] if found else "unknown"}: run uv run --no-project --python 3.13 --with esphome=={wanted} '
+                         f'--with pillow python tools/render/run.py {" ".join(sys.argv[1:])}')
+
+
 def free(port):
     with socket.socket() as probe:
         return probe.connect_ex(('127.0.0.1', port)) != 0
@@ -4633,6 +4648,7 @@ def main():
     if busy:
         raise SystemExit(f'ports {", ".join(busy)} are in use; stop what listens there first')
     esphome = shlex.split(os.environ.get('ESPHOME', 'esphome'))
+    too_old(esphome)
     camera = tuple(int(n) for n in args.camera.split('x'))
     pictures = Pictures()
     results, failed = {}, []
