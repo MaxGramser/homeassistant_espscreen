@@ -186,11 +186,18 @@ of `glass::on_panel`). The buffer is 2 MB more, held while pages still lack a pi
   makes its card untrue, by the same rule as any other.
 - **Not remade for a part.** A picture with some blocks untrue stays as it is until its page is on the glass; only a
   page with no picture, or with nothing true after everything was asked to be drawn again, is made ahead.
-- **What it costs.** On a Guition 10.1 with rev 3.2 silicon (2026-11-16): the page drawn off the glass in 97 ms, 240 B
-  more of the loop task's stack than anything before it (its low mark went from 10,108 to 9,868 B), and 0 pixels
-  differing from the glass in all 240 blocks. Turning it into the panel's lie took 116 ms when each pixel's place was
-  worked out on its own; with the sums per row (`page_pictures::turned`) the same copy is 3.2 to 4.1 times as fast on
-  a PC, and on the board it is bound by the memory at about what a put takes.
+- **What it costs.** On a Guition 10.1 with rev 3.2 silicon, seven pages, no plugins (2026-11-16): a page made ahead
+  holds the main loop for 147 to 220 ms, 60 to 131 ms drawing it and 66 ms turning it into the panel's lie (109 ms
+  while each pixel's place was worked out on its own; with the sums per row, `page_pictures::turned`, 3.2 to 4.1 times
+  as fast on a PC and 40 % less on the board, where the memory is the rest). Six pages were made in six seconds. The
+  loop task's stack was untouched (its low mark 10,108 B before and after every page; one draw of a page on the glass
+  the off-glass way took it from 10,108 to 9,868 B), internal RAM within 100 B, and seven pictures hold 12.3 MB of
+  PSRAM.
+- **Proven so.** Then twice round the seven pages in order: 14 turns, 14 puts, 14 compares, every one 0 pixels
+  differing, the first turn to a page of five camera tiles among them (55 of its 240 blocks were true: the ground
+  around the tiles). No dry frame, no restart.
+- **Not while a sound plays.** A loop held for a fifth of a second is the class that made a sound stutter, so nothing
+  is made ahead while the speaker or the microphone is held (`audio_owner`).
 - **Its proof.** The compare at the first turn to that page (below), and `{"v":2,"op":"page_pictures","prove":1}`,
   which makes the picture of the page on the glass the off-glass way and compares it with the glass at once.
 - **Off until proven.** LVGL draws a whole page from inside a timer of the loop task, and the loop task's stack had no

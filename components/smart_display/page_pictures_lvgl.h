@@ -481,6 +481,9 @@ inline bool page_pictures_ahead(uint32_t now) {
   if (!layout_landed_at || now - layout_landed_at < PICTURE_AHEAD_START_MS) return false;
   if (now - all.ahead_at < PICTURE_AHEAD_GAP_MS || !prepare_idle(now, PICTURE_AHEAD_QUIET_MS)) return false;
   if (glass::streaming(nullptr, 0) || !page_room_clear()) return false;
+  // Not while the speaker plays or the microphone is heard (a track, a camera's sound, the voice, a call): a loop held
+  // for a fifth of a second is the class that made a sound stutter (docs/KEPT_PAGES.md, "Prepared pages").
+  if (audio_owner::the().held(audio_owner::Side::BOTH)) return false;
   all.ahead_at = now;
   bool fresh = false;
   const size_t at = all.shelf.take_for(page, applied_page, pages, loop, fresh);

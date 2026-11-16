@@ -9,8 +9,11 @@ read once per loop, so a second swipe within that time waits for it, and someone
 still feels LVGL's pace from the second turn on. Step two would let LVGL leave alone what the picture already put.
 
 Since 2026-11-16 a page that was never on the glass can have its picture made ahead, off the glass (docs/KEPT_PAGES.md,
-"Made ahead"): built, switched off by default, and not yet seen on a board when this was written; it goes on once a
-board has shown that the draw is exact and what it needs of the loop task's stack. A page whose cards changed while it was away still has
+"Made ahead"): built and proven on a Guition 10.1 without plugins (six pages made in six seconds at 147 to 220 ms of
+the loop each, then 14 turns in order with 14 puts and 0 pixels differing, the loop task's stack untouched), and
+switched off by default until the owner decides. Not yet seen: a screen with a camera plugin, the wake word and
+Bluetooth making pictures ahead (its PSRAM leaves room for two pictures, so little is made there), and a sound
+playing through an idle screen at the moment a page is made (the rule keeps the two apart; nobody has listened). A page whose cards changed while it was away still has
 those cards drawn by LVGL at the turn.
 
 ## What is known (Waveshare ESP32-P4 10.1 inch, 1280 x 800, chip revision 3.2, ESPHome 2026.9.0, LVGL 9.5, 2026-11-16)
