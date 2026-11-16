@@ -34,6 +34,7 @@
 #include <vector>
 #ifdef USE_HOST
 #include "esphome/core/log.h"
+#include "look_trade_log.h"
 #endif
 
 #if !(LVGL_VERSION_MAJOR == 9 && LVGL_VERSION_MINOR == 5)
@@ -86,11 +87,11 @@ template <class In> inline void checked(lv_obj_t *card, bool other, const In &in
   };
   const auto to = [&](bool look) { trade(card, [&](const lv_style_t *s) { return in(s, look); }); };
   to(other);
-  compare(other, "traded");
+  compare(other, look_trade_log::TRADED);
   to(!other);
-  compare(!other, "traded back");
+  compare(!other, look_trade_log::TRADED_BACK);
   to(other);
-  compare(other, "traded again");
+  compare(other, look_trade_log::TRADED_AGAIN);
   ++checks;
   ESP_LOGI("card_look", "restyle check: %u trades checked, %u failed", (unsigned) checks, (unsigned) failures);
 }
