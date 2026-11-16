@@ -4,6 +4,7 @@ The add-on reads it from the screen's own diagnostic sensor, so the editor draws
 the screen in front of it instead of guessing from the board it was built for. Firmware from before says
 nothing, and then the two boards that shipped first decide.
 """
+import re
 import unittest
 from pathlib import Path
 
@@ -62,12 +63,19 @@ class Shape(unittest.TestCase):
         # are read off the display and the live grid, so a screen standing up reports its own numbers with no new
         # sensor and no new format for ESP Screens to learn.
         core_yaml = (ROOT / 'packages' / 'core.yaml').read_text()
-        self.assertIn('name: "Screen layout"', core_yaml)
-        self.assertIn('runtime_tiles::grid.columns', core_yaml)
-        self.assertIn('lv_display_get_horizontal_resolution', core_yaml)
-        self.assertIn('"%dx%d %dx%d %ddpi %s"', core_yaml)
-        self.assertIn('Screen layout', str(core.NAME_SCREEN_LAYOUT))
-        self.assertIn('Screen layout', core.SCREEN_ENTITY_NAMES)
+        # A rule between the two sides: the sensor the firmware names is the one the manager looks for, and what it
+        # writes the manager reads back whole.
+        names = re.findall(r'name: "(Screen layout)"', core_yaml)
+        self.assertEqual(len(names), 1, 'packages/core.yaml must publish one sensor named "Screen layout"')
+        self.assertIn(names[0], str(core.NAME_SCREEN_LAYOUT))
+        self.assertIn(names[0], core.SCREEN_ENTITY_NAMES)
+        formats = re.findall(r'"(%dx%d %dx%d %ddpi %s)"', core_yaml)
+        self.assertEqual(len(formats), 1, 'the Screen layout sensor writes "<w>x<h> <columns>x<rows> <dpi>dpi <look>"')
+        self.assertEqual(core.parse_shape(formats[0] % (800, 480, 3, 3, 217, 'standard')),
+                         {'width': 800, 'height': 480, 'columns': 3, 'rows': 3, 'dpi': 217, 'look': 'standard'},
+                         'core.parse_shape must read back what the firmware writes (SHAPE_TEXT)')
+        # glass: on a screen that stands up, the Screen layout sensor reports the canvas and grid it shows now
+        # (read off the display and the live grid, not the board's numbers).
 
 
 if __name__ == '__main__':
