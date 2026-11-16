@@ -223,6 +223,12 @@ changes comes as `{"op": "sums", "p": page, "t": [...]}`. A screen without the f
 cells, without the sections; the editor says the screen needs an update to show them. A screen that starts to draw
 sections gets the layout again with them (the revision counts the feature only for a layout that has sections).
 
+The screen takes a page's sections whole or refuses the page with "Error: sections": a list that is not one or has more
+than sixteen, a section of fewer than six fields, a place that is not a number or leaves the grid, two sections over each
+other, a section without a title. A `sums` update needs one text for each section of its page and changes nothing
+otherwise. `tools/render/sections.py` sends each of these to the real firmware on the host as the add-on's Sender sends
+them (its receiver round), with a layout from an app that knows no sections and back.
+
 ## Updating at different times
 
 Update the add-on and screens in either order. Screens are negotiated individually.

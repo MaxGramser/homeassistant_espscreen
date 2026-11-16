@@ -50,6 +50,19 @@ and the change of a screen's hello in the middle of a delivery (`page_delivery.p
 are only exercised whole, by `tools/render/sections.py`. A malformed `sections` array, a section past the grid and a
 `sums` update for a page without sections have no test of their own.
 
+Solved 2026-11-16. `tools/render/sections.py` has a receiver round: on the real firmware on the host, sent as the add-on's
+Sender sends them, a page with two sections is drawn with two; a `sums` update is taken, and one with a count that is not
+the page's, one for a page without sections, one for a page that is not there and one that is not a list are refused and
+change nothing; a page whose sections are not a list, have a section of five fields, a place that is text or past any
+grid, a section past the grid, two sections over each other, a section without a title or seventeen sections is refused
+with "Error: sections" (a list that was not one, or too long, said "invalid message" before) and the layout comes back
+whole with its next delivery; a layout from an app that knows no sections (its hello says none) leaves page 0 without
+decorations, and sections come back after it. The round failed when the receiver's check of the blocks was taken out.
+The hello that changes in the middle of a delivery has its own test, `tests/test_sections.py` (`HelloInTheRound`): a
+screen last heard without sections that now draws them gets its pages with them in the same round, and one flashed back
+gets them without and no summaries, each under the revision of what it got; both fail without that switch in
+`page_delivery.py`.
+
 ## Smaller things the plan named
 
 - A section's title changed through the `appearance` packet, without the loading screen a new layout brings.

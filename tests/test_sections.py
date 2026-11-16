@@ -168,5 +168,40 @@ class Sections(unittest.TestCase):
             self.assertEqual(len(list(Path(temp).glob('*.backup.json'))), 1)
 
 
+
+class HelloInTheRound(unittest.IsolatedAsyncioTestCase):
+    """The screen's hello in the middle of a delivery decides (page_delivery.Sender.synchronize): a screen last heard
+    without sections that now draws them gets its pages with them in the same round, and one flashed back to firmware
+    without them gets its pages without; the revision follows, so neither is sent the layout twice."""
+    async def deliver(self, said, draws):
+        from test_page_delivery import Screen
+        peer = Screen()
+        async def screen(message):
+            answer = await peer.send(message)
+            if message['op'] == 'hello':
+                answer.update(features=['sections'] if draws else [], tile_keys=1)
+            return answer
+        sender = page_delivery.Sender(screen)
+        sender.features = {'sections'} if said else set()  # what its last hello said
+        record = record_of(SECTIONED)
+        grid = Grid(**record['sourceGrid'])
+        tiles = compile_tiles(record['layout'], grid)
+        values = [{'v': 1, 'op': 'state', 'i': i, 'entity': t['entity'], 'name': t['entity'], 'state': 'on', 'a': {},
+                   **({'o': t['options']} if t.get('options') else {})} for i, t in enumerate(tiles)]
+        bars = [[{'k': 'clock'}] for _ in record['layout']['pages']]
+        await sender.synchronize('text.screen', record, REGION, values, bars, sums=[['8.6 °C']])
+        return peer, sender, record
+
+    async def test_a_screen_that_now_draws_sections_gets_them_in_the_same_round(self):
+        peer, sender, record = await self.deliver(said=False, draws=True)
+        self.assertEqual(peer.pages[0]['sections'][0][5:7], ['Lights', '8.6 °C'])
+        self.assertEqual(sender.confirmed, page_delivery.configuration(record, REGION, (), True))
+
+    async def test_a_screen_that_no_longer_draws_them_gets_its_pages_without(self):
+        peer, sender, record = await self.deliver(said=True, draws=False)
+        self.assertNotIn('sections', peer.pages[0])
+        self.assertEqual(sender.confirmed, page_delivery.configuration(record, REGION))
+        self.assertFalse([m for m in peer.messages if m['op'] == 'sums'], 'no summaries to a screen without sections')
+
 if __name__ == '__main__':
     unittest.main()

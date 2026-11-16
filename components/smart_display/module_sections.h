@@ -229,6 +229,9 @@ inline void make(int page) {
   // The header's numbers, which the editor's boards.json `section` holds too (tools/generate_board_shapes.py).
   if (!list.empty()) ESP_LOGI("sections", "page %d: %u drawn, header %d, title top %d, ink top %d", page, (unsigned) list.size(),
                               (int) header(), (int) title_top(), ink_top(label_font));
+#ifdef USE_HOST
+  else ESP_LOGI("sections", "page %d: none drawn", page);  // tools/render/sections.py's receiver round reads both
+#endif
 }
 inline void hide(int page, bool hidden) {
   if (page < 0 || size_t(page) >= drawn.size()) return;
@@ -258,6 +261,11 @@ inline void summaries(int page) {
     if (d.summary) lv_label_set_text(d.summary, sections[i].summary.c_str());
     if (d.title) fit_title(sections[i], d);
   }
+#ifdef USE_HOST
+  std::string texts;
+  for (const auto &s : sections) texts += (texts.empty() ? "" : "|") + s.summary;
+  ESP_LOGI("sections", "page %d: summaries %s", page, texts.c_str());
+#endif
 }
 inline void restyle() {
   for (auto &list : drawn) for (auto &d : list) paint(d);

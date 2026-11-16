@@ -11,7 +11,9 @@ render of the same layout from before).
 """
 import argparse
 import asyncio
+import json
 import os
+import re
 import shlex
 import sys
 import time
@@ -194,6 +196,7 @@ class Sections(run.Run):
             shots += await self.drawn(region, states, dark)
             shots += await self.every_card(dark)
             shots += await self.kept_page(dark)
+            await self.receiver()
         # Every trade of a card's shared styles between the looks was proven in the program (theme::restyle_checked).
         # A failed trade fails the run (run.Run.run, with the card look's other checks).
         checked = [line for line in self.lines if 'restyle check:' in line]
@@ -239,6 +242,122 @@ class Sections(run.Run):
         self.warnings.append(f'page with a following section turned and back: the same pixels, {self.trades() - traded} trades on the way'
                              + (' (kept: none)' if kept else ' (no page kept on this host)'))
         return 2
+
+    async def receiver(self):
+        """The screen's own reading of a page's sections and of their summaries (page_receiver.cpp), case by case, each
+        sent as the add-on's Sender sends it, with the page message changed on its way where a case asks: what it places
+        (module_sections.h's "page N: K drawn" and, on the host, "none drawn"), what it refuses ("Error: sections", the layout before it
+        staying whole), a `sums` update right or wrong, and a layout from an app that knows no sections."""
+        from datetime import datetime, timezone
+        grid = send_layout.Grid(*COVERS['grid'])
+        record, values, bars, region = send_layout.configuration(grid, pages=2, now=getattr(run, 'MOMENT', datetime.now(timezone.utc)))
+        page = record['layout']['pages'][0]
+        page['sections'] = [
+            {'id': '5ecb000000000001', 'title': 'Living room downstairs', 'icon': 'sofa', 'summary': 'sensor.outside',
+             'placement': {'row': 0, 'column': 0, 'columns': 3, 'rows': 2}},
+            {'id': '5ecb000000000002', 'title': 'Kitchen', 'contrast': True, 'contrastTiles': True,
+             'placement': {'row': 0, 'column': 3, 'columns': 3, 'rows': 2}}]
+        sums = [['8.6 °C', ''], []]
+        service = self.services['screen_message']
+        change = {}  # 'page': how a page message is changed on its way; 'unknowing': the hello says no `sections`
+
+        async def send(message):
+            if change.get('page') and message.get('op') == 'page' and message.get('p') == 0:
+                message = change['page'](deepcopy(message))
+            answer = await self.client.execute_service(service, {'message': json.dumps(message, ensure_ascii=False, separators=(',', ':'))},
+                                                       return_response=True)
+            if answer is None or not answer.success:
+                raise RuntimeError(answer.error_message if answer else 'No screen response')
+            data = json.loads(answer.response_data)
+            if change.get('unknowing') and message.get('op') == 'hello' and isinstance(data.get('features'), list):
+                data['features'] = [name for name in data['features'] if name != 'sections']
+            return data
+        sender = send_layout.Sender(send)
+        revision = [0]
+
+        async def deliver(what):
+            """The layout sent whole again under a new revision (another page title, through a fresh session, so not as a
+            paint update), its page 0 placed; the line that says what it drew."""
+            revision[0] += 1
+            sender.session = sender.confirmed = None
+            page['topbar']['title'] = {'source': 'text', 'text': f'Sections {revision[0]}'}
+            start = len(self.lines)
+            await sender.synchronize(self.inbox.object_id, record, region, values, bars, sums=sums)
+            await self.call('render_page', page=1)
+            await self.call('render_page', page=0)
+            await self.page_done(0)
+            said = lambda line: re.search(r'sections.*page 0: (\d+ drawn|none drawn)', line)
+            await self.until(said, 10, what, start)
+            # The page may be placed more than once on its way (prepared, then shown): what it ends with counts.
+            await asyncio.sleep(1.0)
+            self.said = [line for line in self.lines[start:] if 'sections' in line and 'page 0' in line]
+            return [line for line in self.lines[start:] if said(line)][-1]
+
+        def drawn(line):
+            found = re.search(r'page 0: (\d+|none) drawn', line)
+            return 0 if found[1] == 'none' else int(found[1])
+
+        checked = []
+        # 1. A page with two sections: both drawn.
+        if drawn(await deliver('a page with two sections')) != 2:
+            raise RuntimeError(f'receiver: a page with two sections was not drawn with two: {self.said}')
+        checked.append('placed')
+        # 2. Its summaries anew, one text each; a count that is not the page's, a page without sections and a page that is
+        # not there are refused, and leave the summaries as they were.
+        start = len(self.lines)
+        await sender._packet({'op': 'sums', 'p': 0, 't': ['9.1 °C', 'Busy']}, sender.confirmed)
+        await self.until(lambda line: 'page 0: summaries 9.1 °C|Busy' in line, 5, 'a sums update', start)
+        for wrong in ({'p': 0, 't': ['only one']}, {'p': 1, 't': ['no sections here']}, {'p': 7, 't': []}, {'p': 0, 't': 'text'}):
+            try:
+                await sender._packet({'op': 'sums', **wrong}, sender.confirmed)
+            except Exception:
+                continue
+            raise RuntimeError(f'receiver: a sums update was taken that should not be: {wrong}')
+        if any('summaries' in line and 'page 0' in line for line in self.lines[start:] if '9.1 °C|Busy' not in line):
+            raise RuntimeError('receiver: a refused sums update changed the summaries')
+        checked.append('sums')
+
+        # 3. Page messages whose sections the screen must refuse, whole: what does not fit, what is not a section.
+        def sections_as(value):
+            def changed(message):
+                message['sections'] = value(message['sections']) if callable(value) else value
+                return message
+            return changed
+        bad = {
+            'not a list': sections_as('two'),
+            'a section of five fields': sections_as(lambda wire: [wire[0][:5], wire[1]]),
+            'a column that is text': sections_as(lambda wire: [['0', *wire[0][1:]], wire[1]]),
+            'a column past any grid': sections_as(lambda wire: [[9, *wire[0][1:]], wire[1]]),
+            'a section past the grid': sections_as(lambda wire: [wire[0], [4, 0, 3, 2, *wire[1][4:]]]),
+            'two sections over each other': sections_as(lambda wire: [wire[0], [2, 1, 2, 2, *wire[1][4:]]]),
+            'a section without a title': sections_as(lambda wire: [[*wire[0][:5], '', *wire[0][6:]], wire[1]]),
+            'seventeen sections': sections_as(lambda wire: [[c % 6, c // 6, 1, 1, '', f'S{c}'] for c in range(17)]),
+        }
+        for what, how in bad.items():
+            change['page'] = how
+            try:
+                await deliver(what)
+            except Exception as error:
+                if 'Error: sections' not in str(error):
+                    raise RuntimeError(f'receiver: {what}: refused otherwise than "Error: sections": {error}')
+            else:
+                raise RuntimeError(f'receiver: {what}: the screen took it')
+            change.pop('page')
+            checked.append(what)
+        # The layout before them is whole again with its next delivery: both sections drawn.
+        if drawn(await deliver('the layout after the refused ones')) != 2:
+            raise RuntimeError(f'receiver: after the refused pages the layout did not come back with its two sections: {self.said}')
+        # 4. An app that knows no sections (its pages say none, as every app before them): the page has none, its
+        # decorations go; and back.
+        change['unknowing'] = True
+        # (deliver starts a new session: its hello now names no sections)
+        if drawn(await deliver('a layout from an app that knows no sections')) != 0:
+            raise RuntimeError(f'receiver: a layout without sections kept the decorations of the one before: {self.said}')
+        change.pop('unknowing')
+        if drawn(await deliver('sections again')) != 2:
+            raise RuntimeError(f'receiver: sections did not come back after a layout without them: {self.said}')
+        checked.append('an app without sections')
+        self.warnings.append(f'receiver: {len(checked)} section cases held ({", ".join(checked)})')
 
     async def every_card(self, dark):
         """Every card the harness feeds (diagnostics/send_layout.py: the demo layout and the direct controls), each page
