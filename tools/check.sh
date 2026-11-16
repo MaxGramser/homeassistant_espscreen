@@ -217,6 +217,7 @@ firmware_preview() {
   node web/wasm/test_remote_card.mjs || return 1
   node web/wasm/test_media_library.mjs || return 1
   node web/wasm/test_history_card.mjs || return 1
+  node web/wasm/test_tile_shapes.mjs || return 1
   node web/wasm/test_look.mjs || return 1
   node web/wasm/test_colour_card.mjs || return 1
   node web/wasm/test_cover_keys.mjs || return 1
