@@ -223,6 +223,7 @@ firmware_preview() {
   node web/wasm/test_media_card.mjs || return 1
   node web/wasm/test_automation_tile.mjs || return 1
   node web/wasm/test_dark_switch.mjs || return 1
+  node web/wasm/test_cover_card.mjs || return 1
   node web/wasm/test_look.mjs || return 1
   node web/wasm/test_colour_card.mjs || return 1
   node web/wasm/test_cover_keys.mjs || return 1
