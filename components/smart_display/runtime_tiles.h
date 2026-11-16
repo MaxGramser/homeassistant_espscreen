@@ -68,6 +68,7 @@
 #include "heap_watch.h"
 #include "kept_pages.h"
 #include "page_pictures.h"
+#include "page_pictures_log.h"
 #include "tile_memory.h"
 #include "wifi_status.h"
 #include "ota_status.h"

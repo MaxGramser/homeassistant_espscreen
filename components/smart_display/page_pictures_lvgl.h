@@ -145,7 +145,7 @@ inline PagePicture *page_picture_for_glass() {
                        ? heap_caps_aligned_alloc(64, head + bytes, MALLOC_CAP_SPIRAM) : nullptr;
     if (!memory) {
       all.shelf.entries[at] = page_pictures::Shelf::Entry{};
-      page_pictures_say("no PSRAM to spare for another picture");
+      page_pictures_say(page_pictures_log::NO_MEMORY);
       return nullptr;
     }
     all.held[at] = new (memory) PagePicture();
@@ -246,16 +246,16 @@ inline bool page_pictures_put(int page) {
   const size_t at = all.shelf.held(page);
   auto *picture = at == page_pictures::NONE ? nullptr : all.held[at];
   if (!picture || !picture->map.shaped() || !picture->left) return false;
-  if (!glass::drawing()) { page_pictures_say("LVGL is paused"); return false; }
+  if (!glass::drawing()) { page_pictures_say(page_pictures_log::PAUSED); return false; }
   if (!page_picture_shaped(*picture) || !picture->map.true_blocks()) return false;  // another room, turn or panel
-  if (!page_room_clear()) { page_pictures_say(drawn_over_by ? drawn_over_by : "something over the page"); return false; }
+  if (!page_room_clear()) { page_pictures_say(drawn_over_by ? drawn_over_by : page_pictures_log::COVERED); return false; }
   // What the page lacks since it left: the cards whose tile changed, and everything when everything was asked for.
   if (!page_pictures::settle(picture->map, picture->cards.data(), picture->card_count, changes, all.shelf.entries[at].synced)) return false;
   const uint32_t began = esphome::micros();
   glass::hold();
   if (glass::streaming(nullptr, 0)) {  // a stream still writes the glass: its picture would land over the page's
     glass::release();
-    page_pictures_say("a stream writes the glass");
+    page_pictures_say(page_pictures_log::STREAMING);
     return false;
   }
   const uint32_t held = esphome::micros();
@@ -394,7 +394,7 @@ inline void page_pictures_step(lv_timer_t *) {
   }
   if (!model.configured || !model.ready() || preparing.active || protocol_problem != ProtocolProblem::none) return;
   if (!tiles_seen() || !prepare_idle(now, PICTURE_QUIET_MS) || pressure::level_of(pressure::BACKGROUND) != 0) return;
-  if (!page_room_clear()) { page_pictures_say(drawn_over_by ? drawn_over_by : "something over the page"); return; }
+  if (!page_room_clear()) { page_pictures_say(drawn_over_by ? drawn_over_by : page_pictures_log::COVERED); return; }
   auto *picture = page_picture_for_glass();
   if (!picture) return;
   auto &all = *page_pics;
