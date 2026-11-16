@@ -8,6 +8,7 @@ import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ActionPicker from "../src/components/ActionPicker.vue";
+import UiSuggest from "../src/components/ui/UiSuggest.vue";
 import Drawer from "../src/components/Drawer.vue";
 import TileInspector from "../src/components/TileInspector.vue";
 import MapSection from "../src/components/inspector/MapSection.vue";
@@ -145,6 +146,23 @@ describe("the tile panel", () => {
     await panel.findAll("button").find((b) => b.text() === "Open control")!.trigger("click");
     expect(current(tile)!.options?.tap).toBe("detail");
     expect(current(tile)!.options?.action).toBeUndefined();
+  });
+
+  it("offers a remote's commands for Send command, and still takes typed text (firmware 0.22.0)", async () => {
+    useEntitiesStore().entityActions["remote.tv"] = [{ action: "remote.send_command", name: "Send command", description: "", fields: [
+      { key: "command", name: "Command", required: true, selector: { object: {} }, suggestions: ["play", "volume_up"] },
+      { key: "device", name: "Device", required: false, selector: { text: {} } },
+    ] }] as any;
+    const tile: Tile = { entity: "remote.tv", name: "", slot: 0 };
+    appendTiles(tile);
+    const panel = mount(TileInspector, { props: { tile: current(tile)! } });
+    await panel.findAll("button").find((b) => b.text() === "Perform action")!.trigger("click");
+    await panel.findComponent(ActionPicker).find(".action-choice").trigger("click");
+    await panel.setProps({ tile: current(tile)! });
+    const suggest = panel.findComponent(UiSuggest);
+    expect(suggest.exists()).toBe(true);
+    expect(suggest.props("suggestions")).toEqual(["play", "volume_up"]);
+    expect(panel.findAllComponents(UiSuggest)).toHaveLength(1);
   });
 
   it("starts another tile's settings with its choosers closed (the drawer keys the panel by the tile)", async () => {

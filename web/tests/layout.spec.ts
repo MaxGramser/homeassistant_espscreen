@@ -331,6 +331,14 @@ describe("the alarm panel's colours (app 0.3.8)", () => {
   });
 });
 
+describe("a remote's colours (firmware 0.22.0)", () => {
+  it("paints it as Home Assistant does: amber while on, grey while off (state_color.ts: --state-active-color)", async () => {
+    const { tilePalette } = await import("../src/model/tile-palette");
+    expect(tilePalette("remote.a", { state: "on" }).accent).toBe("#ffc107");
+    expect(tilePalette("remote.a", { state: "off" }).accent).toBe("#9e9e9e");
+  });
+});
+
 describe("an automation's colours (GitHub #62)", () => {
   it("paints it as Home Assistant does: on amber, off grey; a run button only while its actions run", async () => {
     const { tilePalette, tileActive } = await import("../src/model/tile-palette");
