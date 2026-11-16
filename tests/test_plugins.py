@@ -1,5 +1,10 @@
 """Plugins (docs/PLUGINS.md): the manifest check, the map language, fetch's rules, the plugins file, a plugin tile in a
-layout, and one plugin API version in the firmware, the component and the add-on."""
+layout, and one plugin API version in the firmware, the component and the add-on.
+
+What reads the firmware's source here is a rule over it (docs/TESTING.md, "A test reads behaviour, not lines"): one API
+version everywhere, every CardColor a swatch, a number both sides write the same (SameNumbers), a name that must stay
+gone. What the firmware does with them is the host probe's (tools/render/run.py's plugin round) and plugin_host.cpp's
+static_assert on the card colours."""
 import asyncio
 import json
 import re
@@ -24,6 +29,37 @@ from firmware import Firmware  # noqa: E402
 from page_delivery import plugins_of  # noqa: E402
 
 SCREEN = {'board': 'guition', 'firmware': '0.50.0'}   # 480 x 480 glass
+FIRMWARE = ROOT / 'components' / 'smart_display'
+
+
+def cpp_number(file, name):
+    """The number a firmware header gives a constant (`constexpr <type> NAME = 8;`, also one of several in a line), read
+    by its name wherever it stands outside a comment, or None."""
+    code = re.sub(r'//[^\n]*|/\*.*?\*/', '', (FIRMWARE / file).read_text(), flags=re.S)
+    found = re.search(rf'\b{name}\s*=\s*(\d+)\b', code)
+    return int(found.group(1)) if found else None
+
+
+def cpp_block(text, opening):
+    """What lies between the braces of the first block `opening` (a regex ending before its `{`) starts, braces counted,
+    or None."""
+    found = re.search(opening + r'[^;{]*\{', text)
+    if not found:
+        return None
+    depth, at = 1, found.end()
+    while depth and at < len(text):
+        depth += {'{': 1, '}': -1}.get(text[at], 0)
+        at += 1
+    return text[found.end():at - 1]
+
+
+def python_value(path, name):
+    """The value a module assigns to a name at its top (`NAME = (0, 28)`), read by parsing it, not by its spelling."""
+    import ast
+    for node in ast.parse(path.read_text()).body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            return ast.literal_eval(node.value)
+    return None
 
 
 def refused(question, manifest, tile, of_entity=None):
@@ -193,35 +229,48 @@ class Manifest(unittest.TestCase):
                 sizes(**wrong)
 
     def test_a_card_colour_of_a_plugin_tile_is_one_of_the_screens_own(self):
-        """ui::set_card_color (0.26) names the swatches of theme.h in their order, so a plugin's card is drawn by the
-        same table as a tile a person coloured, in both looks; the palette takes it over the tile's own."""
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        theme = (ROOT / 'components/smart_display/theme.h').read_text()
-        names = re.search(r'enum class CardColor : uint8_t \{ NONE, ([A-Z, ]+) \};', header).group(1).split(', ')
-        table = theme[theme.index('inline constexpr Swatch SWATCHES[] = {'):]
-        swatches = re.findall(r'\{"([a-z]+)", 0x[0-9A-F]{6}, 0x[0-9A-F]{6}\}', table[:table.index('};')])
+        """ui::set_card_color (0.26) names every swatch of theme.h, each once, so a plugin's card is drawn by the same
+        table as a tile a person coloured, in both looks; the palette takes it over the tile's own."""
+        enum = cpp_block((FIRMWARE / 'plugin_api.h').read_text(), r'enum\s+class\s+CardColor\b')
+        table = cpp_block((FIRMWARE / 'theme.h').read_text(), r'\bSWATCHES\s*\[\s*\]\s*=')
+        self.assertTrue(enum and table, 'plugin_api.h has an `enum class CardColor` and theme.h a `SWATCHES[]` table: '
+                                        'this rule reads both, so name the new places here when they move')
+        names = [part.split('=')[0].strip() for part in enum.split(',') if part.strip()]
+        swatches = re.findall(r'\{\s*"([^"]+)"', table)
+        self.assertEqual(names[0], 'NONE', 'CardColor starts with NONE, which gives the card back to the colour the '
+                                           'person chose for the tile')
         # INSTRUMENT (0.28) comes after them: the instrument roles' ground, no swatch (theme::Face::instrument).
-        self.assertEqual(names[-1], 'INSTRUMENT')
+        self.assertEqual(names[-1], 'INSTRUMENT', 'CardColor ends with INSTRUMENT, the one colour that is no swatch: a new '
+                                                  'swatch goes in before it')
         # Every colour the API names is a swatch of the screen's own table, and the API names them all. How the host
-        # gets from one to the other, and that the card then wears it in both looks, is not read out of the source here:
-        # the host build checks the pairing when it compiles, and tools/render/run.py's plugin round sets a colour and
+        # gets from one to the other is plugin_host.cpp's static_assert (card_swatches_whole), checked when it compiles,
+        # and that the card then wears it in both looks is tools/render/run.py's plugin round, which sets a colour and
         # reads the card's ground on the glass (docs/TESTING.md, "A test reads behaviour, not lines").
-        self.assertEqual({name.lower() for name in names[:-1]}, set(swatches))
-        self.assertEqual(len(names) - 1, len(swatches))
+        self.assertEqual(sorted(name.lower() for name in names[1:-1]), sorted(swatches),
+                         'every swatch of theme::SWATCHES is a CardColor of the plugin API by its name, once, and every '
+                         'CardColor between NONE and INSTRUMENT is a swatch: a new swatch gets its CardColor (before '
+                         'INSTRUMENT) and its line in plugin_host.cpp\'s CARD_SWATCHES, and raises the API\'s minor')
 
     def test_one_plugin_api_everywhere(self):
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        major, minor = re.search(r'PLUGIN_API_MAJOR = (\d+), PLUGIN_API_MINOR = (\d+)', header).groups()
-        component = (ROOT / 'components/smart_display/__init__.py').read_text()
-        self.assertIn(f'PLUGIN_API = ({major}, {minor})', component)
-        self.assertEqual(pm.PLUGIN_API, (int(major), int(minor)))
-        self.assertIn(f'PLUGIN_API_BREAKS = {pm.PLUGIN_API_BREAKS!r}', component)
-        # The docs name the same number, once, and the host probe is written for it: it uses the newest moments.
+        """One plugin API version: plugin_api.h, the component's __init__.py, the add-on's manifest check, the docs and
+        the host probe, which is written for the newest API and uses its newest moments."""
+        api = (cpp_number('plugin_api.h', 'PLUGIN_API_MAJOR'), cpp_number('plugin_api.h', 'PLUGIN_API_MINOR'))
+        self.assertNotIn(None, api, 'plugin_api.h states PLUGIN_API_MAJOR and PLUGIN_API_MINOR')
+        version = f'{api[0]}.{api[1]}'
+        raise_all = (f'plugin_api.h says {version}: a new API raises PLUGIN_API_MINOR there, PLUGIN_API in '
+                     'components/smart_display/__init__.py and screen_manager/app/plugin_manifest.py, "the plugin API '
+                     'is X.Y now" in docs/PLUGINS.md and the host probe\'s `api`, together')
+        component = FIRMWARE / '__init__.py'
+        self.assertEqual(python_value(component, 'PLUGIN_API'), api, raise_all)
+        self.assertEqual(pm.PLUGIN_API, api, raise_all)
+        self.assertEqual(python_value(component, 'PLUGIN_API_BREAKS'), pm.PLUGIN_API_BREAKS,
+                         'PLUGIN_API_BREAKS is the same in components/smart_display/__init__.py (which refuses a plugin '
+                         'when it is built) and screen_manager/app/plugin_manifest.py (which refuses it in the app)')
         doc = (ROOT / 'docs/PLUGINS.md').read_text()
-        self.assertEqual(re.findall(r'the plugin API is (\d+\.\d+) now', doc), [f'{major}.{minor}'])
+        self.assertEqual(re.findall(r'the plugin API is (\d+\.\d+) now', doc), [version], raise_all)
         import yaml
         probe = yaml.safe_load((ROOT / 'tests/fixtures/plugins/host_probe/tessera-plugin.yaml').read_text())
-        self.assertEqual(probe['api'], f'{major}.{minor}')
+        self.assertEqual(probe['api'], version, raise_all)
 
     def test_a_tile_may_have_places_for_pictures(self):
         """`pictures` (0.10): how many places a tile has at most, 0 without; the screen asks for as many at most."""
@@ -234,19 +283,38 @@ class Manifest(unittest.TestCase):
             with self.assertRaises(pm.ManifestError) as caught:
                 pm.check(manifest(tiles=tiles), ENGLISH)
             self.assertIn('tiles[0].pictures', str(caught.exception))
-        header = (ROOT / 'components/smart_display/tile_picture.h').read_text()
-        self.assertIn(f'constexpr size_t MAX_PARTS = {pm.MAX_PICTURES};', header)
 
     def test_the_two_ticks_have_two_names(self):
-        """A plugin's 250 ms moment with millis() is on_interval; on_tick is a tile's or a card's second with the clock."""
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        plugin = header[header.index('class Plugin {'):header.index('// The register.')]
-        self.assertIn('virtual void on_interval(uint32_t now_ms)', plugin)
-        self.assertNotIn('void on_tick', plugin)
+        """A plugin's 250 ms moment with millis() is on_interval; on_tick is a tile's or a card's second with the clock.
+        That the screen calls on_interval is the host probe's (it overrides it, and tools/render/run.py's plugin round
+        reads `interval=1` among the moments of boot); here, the name that must stay gone."""
+        plugin = cpp_block((FIRMWARE / 'plugin_api.h').read_text(), r'\bclass\s+Plugin\b')
+        self.assertIsNotNone(plugin, 'plugin_api.h defines tessera::Plugin, the class a plugin derives from')
+        self.assertIsNone(re.search(r'\bon_tick\b', re.sub(r'//[^\n]*|/\*.*?\*/', '', plugin, flags=re.S)),
+                          'tessera::Plugin has no on_tick: before 0.4 that was its 250 ms moment, and a plugin of then '
+                          'that overrides it must fail to build instead of being called once a second. The plugin\'s '
+                          'moment is on_interval; on_tick belongs to a tile and a card')
 
-    def test_placeholder_price_is_the_screens(self):
-        host = (ROOT / 'components/smart_display/plugin_host.h').read_text()
-        self.assertIn(f'PLACEHOLDER_BYTES = {core.PLUGIN_PLACEHOLDER_BYTES};', host)
+
+class SameNumbers(unittest.TestCase):
+    """A number the add-on and the firmware both use, written in each (they cannot share a file): the same on both
+    sides, read by its name in the header, whatever line it stands in."""
+    NUMBERS = [
+        # (the add-on's value, its name, the firmware header, the constant there, what the number is)
+        (pm.MAX_PICTURES, 'plugin_manifest.MAX_PICTURES', 'tile_picture.h', 'MAX_PARTS',
+         'how many places for pictures a tile may have, which the screen asks for at most'),
+        (core.PLUGIN_PLACEHOLDER_BYTES, 'core.PLUGIN_PLACEHOLDER_BYTES', 'plugin_host.h', 'PLACEHOLDER_BYTES',
+         'what a tile of a plugin the screen does not have costs of the layout memory'),
+        (picture_paint.MIRROR_PERCENT, 'picture_paint.MIRROR_PERCENT', 'plugin_api.h', 'MIRROR_PERCENT',
+         'the share of a picture\'s height its reflection takes, which the plugin keeps room for and the app paints'),
+    ]
+
+    def test_the_add_on_and_the_firmware_say_the_same(self):
+        for value, python, header, name, what in self.NUMBERS:
+            with self.subTest(name):
+                self.assertEqual(cpp_number(header, name), value,
+                                 f'{name} in components/smart_display/{header} and {python} in the add-on are {what}: '
+                                 'change both together')
 
 
 class Pictures(unittest.IsolatedAsyncioTestCase):
@@ -292,10 +360,6 @@ class Pictures(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(self.question(**bad), bad)
         # Covers of different tiles still never overlap.
         self.assertIsNone(picture_legacy.frames('[[0,0,60,90,6,0],[40,0,60,90,6,0]]', (480, 480), 2))
-
-    def test_the_reflection_is_the_screens_share(self):
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        self.assertIn(f'constexpr int MIRROR_PERCENT = {picture_paint.MIRROR_PERCENT};', header)
 
     @unittest.skipUnless(__import__('importlib').util.find_spec('PIL'), 'Pillow')
     def test_layers_overlap_turn_and_mirror(self):
@@ -2900,8 +2964,13 @@ class JsonValues(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(core.PLUGIN_OPTION_MAX, pm.MAX_OPTIONS)
         # The editor has no numbers of its own: it reads the manifest's from page-rules.json, which
         # tools/generate_page_rules.py writes and tests/test_page_conformance.py keeps current.
-        model = (ROOT / 'web/src/model/plugins.ts').read_text()
-        self.assertNotRegex(model, r'PLUGIN_(OPTIONS_BYTES|LIST_MAX|OPTION_MAX)[^=\n]*=\s*\d')
+        for source in sorted((ROOT / 'web/src').rglob('*')):
+            if source.suffix in ('.ts', '.vue'):
+                with self.subTest(source.name):
+                    self.assertIsNone(re.search(r'PLUGIN_(OPTIONS_BYTES|LIST_MAX|OPTION_MAX)[^=\n]*=\s*\d', source.read_text()),
+                                      f'{source.relative_to(ROOT)} writes a plugin option number by hand: the editor '
+                                      'reads it from page-rules.json (rules.plugins), which tools/generate_page_rules.py '
+                                      'writes from the manifest\'s')
         rules = json.loads((ROOT / 'web/src/model/page-rules.json').read_text())['plugins']
         self.assertEqual(rules, {'optionsBytes': pm.OPTIONS_BYTES, 'listMax': pm.MAX_MULTIPLE, 'optionMax': pm.MAX_OPTIONS})
 
