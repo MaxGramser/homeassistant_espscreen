@@ -926,7 +926,11 @@
         "destination_exists": "A célkijelzőnek már van mentett elrendezése",
         "update_tall": "Ezekhez a csempeméretekhez frissítsd a kijelzőt",
         "memory": "A kijelzőn nincs elég szabad memória ehhez az elrendezéshez. Csökkentsd a csempék számát.",
-        "grid_range": "Ez a kijelző nem fogad el ekkora rácsot. Válassz másik rácsot az előnézet mellett."
+        "grid_range": "Ez a kijelző nem fogad el ekkora rácsot. Válassz másik rácsot az előnézet mellett.",
+        "section_title": "Egy szakasznak legfeljebb 48 bájtos név kell.",
+        "section_tiles": "Egy szakasz csempéinek benne kell lenniük, és egy egész oldalas csempe sosem lehet szakaszban.",
+        "section_overlap": "Szakaszok és szabad csempék nem állhatnak ugyanazokon a cellákon.",
+        "sections_full": "Egy oldalon legfeljebb 16 szakasz lehet."
       },
       "feedback": {
         "invalid": "Ez a válasz nem osztható meg. Válaszd az igent vagy a nem egészent, és csak a felsorolt problémákat.",
@@ -1969,7 +1973,8 @@
         "lock": "Zárak",
         "humidifier": "Párásítók",
         "calendar": "Naptárak",
-        "todo": "Teendőlisták"
+        "todo": "Teendőlisták",
+        "text": "Szövegek"
       },
       "room": "Helyiség",
       "hide_placed": "Elhelyezettek elrejtése",
@@ -2081,7 +2086,10 @@
         "ha_none": "Nem futtat Home Assistant-műveleteket",
         "network": "Csatlakozik ide: {hosts}",
         "network_none": "A Home Assistanton kívül semmihez nem csatlakozik",
-        "read": "Ezeket az entitásokat olvassa a Home Assistantból"
+        "read": "Ezeket az entitásokat olvassa a Home Assistantból",
+        "sends": "Ide küld: {host}: {what}",
+        "sends_option": "a(z) {option} mezőhöz választott entitás {attributes} értéke",
+        "sends_state": "állapot"
       },
       "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat, a fordítása pedig ebben az alkalmazásban fut, ahol hozzáfér a Home Assistant konfigurációdhoz. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
       "room": {
@@ -2417,7 +2425,14 @@
       "remove": "{name} eltávolítása",
       "type": "Írd be, majd Enter",
       "full": "A kijelző nem fogad többet ehhez a csempéhez: a beállításai megteltek.",
-      "count": "{n} / {max}"
+      "count": "{n} / {max}",
+      "show_all": "Minden entitás megjelenítése",
+      "show_fitting": "Csak a megfelelők megjelenítése",
+      "not_set": "Nincs megadva",
+      "fill_device": "Kitöltés egy eszközről",
+      "fill_device_hint": "Válassz egy eszközt, és az érzékelői lent kitöltődnek. Utána mindegyiket módosíthatod.",
+      "fill_device_none": "Egyetlen eszköznek sincs kettő vagy több ilyen érzékelője",
+      "fill_device_count": "1 érzékelő | {n} érzékelő"
     },
     "memory": {
       "label": "Memória a csempéknek",
@@ -2468,7 +2483,9 @@
       "lock": "Zár",
       "humidifier": "Párásító",
       "calendar": "Naptár",
-      "todo": "Teendőlista"
+      "todo": "Teendőlista",
+      "text": "Szöveg",
+      "input_text": "Szöveg"
     },
     "displays": {
       "standard": "normál",
@@ -2989,6 +3006,10 @@
         "suggest_hint": "Gépelés közben a billentyűzet felajánlja a korábban kipipáltakat; egy érintés visszateszi a listára",
         "clear": "Készek eltávolítása",
         "clear_hint": "A lista egy gombja kérdés után eltávolít mindent, ami ki van pipálva"
+      },
+      "text_entity": {
+        "edit": "Egy koppintás megnyitja az értéket egy mezőben a képernyő billentyűzetével. A jelszó pontokként látszik.",
+        "view_only": "Ez a panel csak az értéket mutatja: a képernyőn való módosításhoz legalább 8 MB flash memóriájú panel kell."
       }
     },
     "precision": {
@@ -4240,7 +4261,8 @@
         "layout_imported": "elrendezés importálva",
         "changed": "elrendezés módosítva",
         "restored": "nem mentett módosítások visszaállítva",
-        "taken_over": "a másik lap módosításai átvéve"
+        "taken_over": "a másik lap módosításai átvéve",
+        "auto_layout": "a neked készített elrendezés"
       }
     },
     "draft": {
@@ -4629,6 +4651,105 @@
     },
     "drawer": {
       "resize": "A beállítások szélessége: húzd, vagy használd a nyilakat; dupla kattintás visszaállítja"
+    },
+    "sections": {
+      "untitled": "Szakasz",
+      "kind": "Szakasz",
+      "choose_tiles": "Először válaszd ki a szakasz csempéit.",
+      "one_page": "Egy szakasz csempéi egy oldalon vannak: egy oldal csempéit válaszd.",
+      "already_in": "Ezek közül az egyik csempe már egy szakaszban van. Előbb vedd ki, vagy válassz szabad csempéket.",
+      "no_full": "Egy egész oldalas csempe nem lehet szakaszban.",
+      "too_tall": "Ezeknek a csempéknek több sor kell, mint amennyi az oldalon van. Válassz kevesebbet, vagy tedd szélesebbé a szakaszt.",
+      "no_room": "Itt nincs hely: más csempék vagy szakaszok vannak útban.",
+      "no_room_page": "Nincs hely a szakasznak a(z) {page}. oldalon.",
+      "removed": "Szakasz törölve, a csempéi a helyükön maradnak",
+      "removed_with_tiles": "Szakasz törölve a csempéivel együtt",
+      "resize_columns": "A szakasz szélesítése vagy keskenyítése",
+      "resize_rows": "A szakasz magasítása vagy alacsonyítása",
+      "head_title": "Húzd a szakasz áthelyezéséhez, kattints a beállításaiért",
+      "aria": "Szakasz: {title}",
+      "rename": "Szakasz átnevezése",
+      "title": "Név",
+      "make": "Szakasz létrehozása",
+      "add": "Szakasz hozzáadása",
+      "add_here": "Szakasz hozzáadása ide",
+      "library_hint": "Csempék címmel ellátott csoportja",
+      "make_now": "Szakasz létrehozása",
+      "name_placeholder": "Név, például Lámpák",
+      "in_section": "Ebben a szakaszban",
+      "update_screen": "Ennek a kijelzőnek a firmware-e még nem rajzol szakaszokat: ugyanazokat a csempéket mutatja nélkülük. Frissítsd a kijelzőt, hogy lásd őket.",
+      "head": "Cím",
+      "no_icon": "Nincs ikon",
+      "summary": "Összegzés",
+      "summary_none": "Nincs",
+      "summary_search": "Entitások keresése",
+      "summary_none_found": "Nincs találat",
+      "summary_clear": "Nincs összegzés",
+      "summary_hint": "Egy entitás állapota a cím jobb oldalán, például egy hőmérséklet vagy hogy hány lámpa ég.",
+      "size": "Méret",
+      "columns": "Oszlopok",
+      "rows": "Sorok",
+      "narrower": "Keskenyebb",
+      "wider": "Szélesebb",
+      "lower": "Alacsonyabb",
+      "taller": "Magasabb",
+      "size_hint": "Egy szakasz csak üres cellákba nő. Ha túl keskeny lesz a csempéinek, azok olvasási sorrendben továbbcsúsznak.",
+      "loose_hint": "1 szabad csempe áll egy szakasz mellett. A szabad csempék legjobban külön sorban olvashatók a szakaszok fölött. | {n} szabad csempe áll egy szakasz mellett. A szabad csempék legjobban külön sorban olvashatók a szakaszok fölött.",
+      "loose_row": "Legyen belőle sor",
+      "short_grid": "Egy {rows} soros rácson a szakasz címe sok helyet vesz el a csempéitől: mindegyik kb. {with} mm magas {without} mm helyett. A szakaszon kívüli csempék megtartják a magasságukat.",
+      "remove": "Szakasz törlése",
+      "remove_with_tiles": "Szakasz és csempék törlése",
+      "settings": "Szakasz beállításai",
+      "contrast": "Kontrasztos háttér",
+      "contrast_hint": "A panel az oldal ellentétes színében, nappal sötét, sötét módban világos, hogy ez a szakasz kiemelkedjen.",
+      "contrast_tiles": "A csempék is kontrasztban",
+      "contrast_tiles_hint": "Az egész szakasz a másik megjelenésben, a csempék kártyái is: nappal sötét kártyák sötét panelen, sötét módban világosak."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lámpák",
+        "covers": "Redőnyök és ablakok",
+        "climate": "Klíma",
+        "media": "Média",
+        "security": "Biztonság",
+        "actions": "Jelenetek",
+        "others": "Eszközök",
+        "weather": "Időjárás",
+        "people": "Ki van otthon",
+        "energy": "Energia",
+        "cameras": "Kamerák",
+        "vacuum": "Porszívó",
+        "todo": "Listák",
+        "calendar": "Naptár"
+      },
+      "home": "Otthon",
+      "all_lights": "Összes lámpa",
+      "two_rooms": "{a} és {b}",
+      "room_list": "{list} és {last}",
+      "more_rooms": "{a} és még {n}",
+      "button": "Automatikus elrendezés",
+      "button_title": "Oldalak készítése a Home Assistant területeidből és eszközeidből",
+      "title": "Elrendezés készítése neked",
+      "intro": "A Tessera megnézi a Home Assistant területeidet és eszközeidet, és oldalakat készít ehhez a kijelzőhöz: helyiségenként egy oldalt vagy szakaszt, a ház időjárását, riasztóját, személyeit és kameráit együtt, nagyobb csempéket ott, ahol a kijelzőn van hely. Visszavonhatod, és utána bármit módosíthatsz.",
+      "reading": "Az otthonod beolvasása…",
+      "failed": "Az otthonodat nem sikerült beolvasni: {error}",
+      "nothing": "A Tessera még nem talált semmit, amit ezen a kijelzőn mutathatna. Adj területet az eszközeidnek a Home Assistantban, vagy adj hozzá csempéket a könyvtárból.",
+      "nothing_new": "Minden, amit a Tessera erre a kijelzőre tenne, már rajta van.",
+      "summary": "{pages} oldal · {tiles} csempe | {pages} oldal · {tiles} csempe",
+      "summary_sections": "{n} szakasz | {n} szakasz",
+      "from_rooms": "egy helyiségből | {n} helyiségből",
+      "left_out": "Még egy entitás nem fért el ezen a kijelzőn; a könyvtárban megtalálod. | Még {n} entitás nem fért el ezen a kijelzőn; a könyvtárban megtalálod őket.",
+      "replace": "Oldalak cseréje",
+      "replace_hint": "A kijelző ezeket az oldalakat kapja a mostaniak helyett.",
+      "append": "Hozzáadás a mostani oldalak után",
+      "append_hint": "A mostani oldalak maradnak, az újak utánuk jönnek azzal, ami még nincs a kijelzőn.",
+      "append_full": "Ezen a kijelzőn nem maradt szabad oldal vagy csempe. Cseréld le az oldalakat, vagy előbb csinálj helyet.",
+      "make": "Elrendezés készítése",
+      "made": "Elkészült egy {pages} oldalas elrendezés. A visszavonás visszaállítja. | Elkészült egy {pages} oldalas elrendezés. A visszavonás visszaállítja.",
+      "offer_title": "Készítsek neked egy első elrendezést?",
+      "offer_text": "A Tessera elrendezheti ezt a kijelzőt a Home Assistant területeid és eszközeid alapján. Utána mindent módosíthatsz.",
+      "offer_make": "Első elrendezés készítése",
+      "offer_empty": "Üres kezdés"
     }
   }
 }

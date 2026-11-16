@@ -926,7 +926,11 @@
         "destination_exists": "L’écran de destination possède déjà une disposition enregistrée",
         "update_tall": "Mettez l’écran à jour pour utiliser ces tailles de tuiles",
         "memory": "L’écran ne dispose pas de suffisamment de mémoire libre pour cette disposition. Utilisez moins de tuiles.",
-        "grid_range": "Cet écran n’accepte pas une grille de cette taille. Choisissez une autre grille à côté de l’aperçu."
+        "grid_range": "Cet écran n’accepte pas une grille de cette taille. Choisissez une autre grille à côté de l’aperçu.",
+        "section_title": "Une section a besoin d'un nom de 48 octets au plus.",
+        "section_tiles": "Les tuiles d'une section doivent être à l'intérieur, et une tuile sur toute la page n'est jamais dans une section.",
+        "section_overlap": "Les sections et les tuiles libres ne peuvent pas occuper les mêmes cellules.",
+        "sections_full": "Une page compte au plus 16 sections."
       },
       "feedback": {
         "invalid": "Cette réponse ne peut pas être partagée. Choisissez oui ou pas vraiment, et seulement les problèmes proposés.",
@@ -1969,7 +1973,8 @@
         "lock": "Serrures",
         "humidifier": "Humidificateurs",
         "calendar": "Calendriers",
-        "todo": "Listes de tâches"
+        "todo": "Listes de tâches",
+        "text": "Textes"
       },
       "room": "Pièce",
       "hide_placed": "Masquer celles déjà placées",
@@ -2081,7 +2086,10 @@
         "ha_none": "N'exécute aucune action dans Home Assistant",
         "network": "Se connecte à {hosts}",
         "network_none": "Ne se connecte à rien en dehors de Home Assistant",
-        "read": "Lit ces entités dans Home Assistant"
+        "read": "Lit ces entités dans Home Assistant",
+        "sends": "Envoie à {host} : {what}",
+        "sends_option": "{attributes} de l'entité que vous choisissez pour {option}",
+        "sends_state": "état"
       },
       "warning": "Un plugin s'exécute sur votre écran avec un accès complet à celui-ci, y compris à son Wi-Fi et aux actions qu'il peut effectuer dans Home Assistant, et sa compilation s'exécute dans cette application, où il peut accéder à votre configuration Home Assistant. N'ajoutez que des plugins d'auteurs en qui vous avez confiance, ou lisez d'abord le code.",
       "room": {
@@ -2417,7 +2425,14 @@
       "remove": "Retirer {name}",
       "type": "Tapez puis Entrée",
       "full": "L'écran n'en prend pas plus pour cette tuile : ses options sont pleines.",
-      "count": "{n} sur {max}"
+      "count": "{n} sur {max}",
+      "show_all": "Afficher toutes les entités",
+      "show_fitting": "Afficher seulement celles qui conviennent",
+      "not_set": "Non défini",
+      "fill_device": "Remplir depuis un appareil",
+      "fill_device_hint": "Choisissez un appareil et ses capteurs sont renseignés ci-dessous. Vous pouvez encore changer chacun.",
+      "fill_device_none": "Aucun appareil n'a deux de ces capteurs ou plus",
+      "fill_device_count": "{n} capteur | {n} capteurs"
     },
     "memory": {
       "label": "Mémoire pour les tuiles",
@@ -2468,7 +2483,9 @@
       "lock": "Serrure",
       "humidifier": "Humidificateur",
       "calendar": "Calendrier",
-      "todo": "Liste de tâches"
+      "todo": "Liste de tâches",
+      "text": "Texte",
+      "input_text": "Texte"
     },
     "displays": {
       "standard": "standard",
@@ -2989,6 +3006,10 @@
         "suggest_hint": "Pendant la saisie, le clavier propose ce qui a déjà été coché ; un appui le remet sur la liste",
         "clear": "Supprimer les terminés",
         "clear_hint": "Une touche dans la liste supprime tout ce qui est coché, après confirmation"
+      },
+      "text_entity": {
+        "edit": "Un appui ouvre la valeur dans un champ avec le clavier de l'écran. Un mot de passe s'affiche en points.",
+        "view_only": "Cette carte affiche seulement la valeur : la modifier sur l'écran demande une carte avec 8 Mo de flash ou plus."
       }
     },
     "precision": {
@@ -4240,7 +4261,8 @@
         "layout_imported": "mise en page importée",
         "changed": "mise en page modifiée",
         "restored": "modifications non enregistrées restaurées",
-        "taken_over": "reprise des modifications de l'autre onglet"
+        "taken_over": "reprise des modifications de l'autre onglet",
+        "auto_layout": "la disposition créée pour vous"
       }
     },
     "draft": {
@@ -4629,6 +4651,105 @@
     },
     "drawer": {
       "resize": "Largeur des réglages : faites glisser ou utilisez les flèches ; double-cliquez pour réinitialiser"
+    },
+    "sections": {
+      "untitled": "Section",
+      "kind": "Section",
+      "choose_tiles": "Choisissez d'abord les tuiles de la section.",
+      "one_page": "Les tuiles d'une section sont sur une seule page : choisissez des tuiles d'une même page.",
+      "already_in": "L'une de ces tuiles est déjà dans une section. Sortez-la d'abord, ou choisissez des tuiles libres.",
+      "no_full": "Une tuile sur toute la page ne peut pas être dans une section.",
+      "too_tall": "Ces tuiles ont besoin de plus de rangées que la page n'en a. Choisissez-en moins, ou élargissez la section.",
+      "no_room": "Pas de place ici : d'autres tuiles ou sections sont dans le chemin.",
+      "no_room_page": "Pas de place pour la section sur la page {page}.",
+      "removed": "Section supprimée, ses tuiles restent en place",
+      "removed_with_tiles": "Section supprimée avec ses tuiles",
+      "resize_columns": "Élargir ou rétrécir la section",
+      "resize_rows": "Agrandir ou réduire la hauteur de la section",
+      "head_title": "Faites glisser pour déplacer la section, cliquez pour ses réglages",
+      "aria": "Section {title}",
+      "rename": "Renommer la section",
+      "title": "Nom",
+      "make": "Créer une section",
+      "add": "Ajouter une section",
+      "add_here": "Ajouter une section ici",
+      "library_hint": "Un groupe de tuiles avec un titre",
+      "make_now": "Créer la section",
+      "name_placeholder": "Nom, par exemple Lumières",
+      "in_section": "Dans cette section",
+      "update_screen": "Le micrologiciel de cet écran ne dessine pas encore les sections : il affiche les mêmes tuiles sans elles. Mettez l'écran à jour pour les voir.",
+      "head": "Titre",
+      "no_icon": "Pas d'icône",
+      "summary": "Résumé",
+      "summary_none": "Aucun",
+      "summary_search": "Rechercher des entités",
+      "summary_none_found": "Aucune entité trouvée",
+      "summary_clear": "Pas de résumé",
+      "summary_hint": "L'état d'une entité à droite du titre, comme une température ou le nombre de lumières allumées.",
+      "size": "Taille",
+      "columns": "Colonnes",
+      "rows": "Rangées",
+      "narrower": "Plus étroite",
+      "wider": "Plus large",
+      "lower": "Plus basse",
+      "taller": "Plus haute",
+      "size_hint": "Une section ne s'agrandit que dans des cellules vides. Si elle devient trop étroite pour ses tuiles, elles se décalent dans l'ordre de lecture.",
+      "loose_hint": "1 tuile libre est à côté d'une section. Les tuiles libres se lisent mieux en une rangée à elles au-dessus des sections. | {n} tuiles libres sont à côté d'une section. Les tuiles libres se lisent mieux en une rangée à elles au-dessus des sections.",
+      "loose_row": "En faire une rangée",
+      "short_grid": "Sur une grille de {rows} rangées, le titre d'une section prend beaucoup de place à ses tuiles : chacune fait alors environ {with} mm de haut au lieu de {without} mm. Les tuiles hors des sections gardent leur hauteur.",
+      "remove": "Supprimer la section",
+      "remove_with_tiles": "Supprimer la section et les tuiles",
+      "settings": "Réglages de la section",
+      "contrast": "Fond contrasté",
+      "contrast_hint": "Le panneau dans la couleur opposée de la page, sombre le jour et clair en mode sombre, pour faire ressortir cette section.",
+      "contrast_tiles": "Tuiles en contraste aussi",
+      "contrast_tiles_hint": "Toute la section dans l'autre apparence, les cartes des tuiles aussi : cartes sombres sur panneau sombre le jour, claires en mode sombre."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lumières",
+        "covers": "Volets & fenêtres",
+        "climate": "Climat",
+        "media": "Médias",
+        "security": "Sécurité",
+        "actions": "Scènes",
+        "others": "Appareils",
+        "weather": "Météo",
+        "people": "Qui est à la maison",
+        "energy": "Énergie",
+        "cameras": "Caméras",
+        "vacuum": "Aspirateur",
+        "todo": "Listes",
+        "calendar": "Agenda"
+      },
+      "home": "Maison",
+      "all_lights": "Toutes les lumières",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} et {n} de plus",
+      "button": "Disposition auto",
+      "button_title": "Créer des pages à partir de vos pièces et appareils Home Assistant",
+      "title": "Créer une disposition pour vous",
+      "intro": "Tessera regarde vos pièces et appareils dans Home Assistant et crée des pages pour cet écran : une page ou une section par pièce, la météo, l'alarme, les personnes et les caméras de la maison ensemble, des tuiles plus grandes là où cet écran a la place. Vous pouvez l'annuler et tout modifier ensuite.",
+      "reading": "Lecture de votre maison…",
+      "failed": "Votre maison n'a pas pu être lue : {error}",
+      "nothing": "Tessera n'a encore rien trouvé à afficher sur cet écran. Donnez une pièce à vos appareils dans Home Assistant, ou ajoutez des tuiles depuis la bibliothèque.",
+      "nothing_new": "Tout ce que Tessera mettrait sur cet écran y est déjà.",
+      "summary": "{pages} page · {tiles} tuiles | {pages} pages · {tiles} tuiles",
+      "summary_sections": "{n} section | {n} sections",
+      "from_rooms": "d'une pièce | de {n} pièces",
+      "left_out": "Une entité de plus n'a pas trouvé de place sur cet écran ; elle est dans la bibliothèque. | {n} entités de plus n'ont pas trouvé de place sur cet écran ; elles sont dans la bibliothèque.",
+      "replace": "Remplacer les pages",
+      "replace_hint": "L'écran reçoit ces pages à la place des actuelles.",
+      "append": "Ajouter après les pages actuelles",
+      "append_hint": "Les pages actuelles restent, les nouvelles viennent après, avec ce qui n'est pas encore sur l'écran.",
+      "append_full": "Cet écran n'a plus de pages ni de tuiles libres. Remplacez les pages, ou faites d'abord de la place.",
+      "make": "Créer la disposition",
+      "made": "Une disposition de {pages} page est prête. Annuler la retire. | Une disposition de {pages} pages est prête. Annuler la retire.",
+      "offer_title": "Voulez-vous que je crée une première disposition ?",
+      "offer_text": "Tessera peut organiser cet écran à partir de vos pièces et appareils Home Assistant. Vous pourrez tout modifier ensuite.",
+      "offer_make": "Créer une première disposition",
+      "offer_empty": "Commencer vide"
     }
   }
 }

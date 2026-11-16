@@ -68,6 +68,19 @@ using runtime_tiles::Tile;
 // modes as the mode bar and the card's mode keys, and its circle or power key switches it. `thermostat` names both.
 inline bool humidifier(const Tile &t) { return t.domain() == "humidifier"; }
 inline bool thermostat(const Tile &t) { return t.domain() == "climate" || humidifier(t); }
+// A text of Home Assistant (text, input_text; docs/TEXT_ENTITY.md): its state is its value, any text up to 255
+// characters, an empty one included. The tile shows it as it is, never as a state word, and a password as a dot per
+// character, as Home Assistant's own field does. "unknown" (no value yet) and "unavailable" are state words as anywhere.
+inline bool text_entity(const std::string &domain) { return domain == "text" || domain == "input_text"; }
+// The most bytes of a text's value the screen keeps: Home Assistant's 255 characters, each at most four bytes.
+constexpr size_t TEXT_BYTES = 1020;
+inline bool text_value(const Tile &t) { return text_entity(t.domain()) && t.state != "unknown" && t.available(); }
+inline std::string text_shown(const Tile &t) {
+  if (!t.secret) return t.state;
+  std::string dots;
+  for (unsigned char c : t.state) if ((c & 0xC0) != 0x80) dots += "\xE2\x80\xA2";  // a dot (U+2022) per character
+  return dots;
+}
 
 // Panel kinds: keys (a row of pill buttons), stepper (-/+ pill), slider, toggle, run.
 inline bool is_key_row(const std::string &c) { return c == "buttons" || c == "playback" || c == "chevrons"; }
@@ -978,7 +991,9 @@ inline bool runtime_card_domain(const std::string &d) {
          d == "calendar" ||
          // A remote opens its card, as Home Assistant's tile card opens its dialog: the power key and its activities
          // (firmware 0.22.0+). The tap option `toggle` switches it instead.
-         d == "remote";
+         d == "remote" ||
+         // A text opens its field with the keyboard (module text_edit), or its plain card on a board without it.
+         d == "text" || d == "input_text";
 }
 // Whether a light offers a colour or a colour temperature, and so opens the colour card instead of the card
 // with the brightness slider. The modes come from Home Assistant as one string (`supported_color_modes`) and

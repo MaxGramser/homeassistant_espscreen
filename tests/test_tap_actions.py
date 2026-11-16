@@ -14,7 +14,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import ha_catalogue  # noqa: E402
 from core import (action_for_screen, apply_tile_event, layout_snapshot, screen_options, state_message,  # noqa: E402
                   validate_layout, validate_tap_action)

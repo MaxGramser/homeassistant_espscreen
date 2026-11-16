@@ -118,4 +118,14 @@ inline Offset drift(int minute_of_day, int radius) {
   return {(int) std::lround(std::cos(a) * radius), (int) std::lround(std::sin(a) * radius)};
 }
 
+// A plugin's saver on the glass when the app's next word comes (saver_sync): painted in place with the new word
+// (on_state), or made anew. In place only while it is shown, for the same plugin's saver of the same step, with the same
+// options and a plugin on this screen that draws it: other options make it anew, as a tile's options do and as
+// Tessera's own face is drawn again for another look (docs/PLUGINS.md), since a saver reads its options in show().
+// `Choice` is the app's word (runtime_tiles' SaverChoice): its plugin, kind and plugin_options, compared with ==.
+template <class Choice> bool paints_in_place(const Choice &now, const Choice &next, bool shown, bool next_drawn) {
+  return shown && !now.plugin.empty() && next.plugin == now.plugin && next.kind == now.kind &&
+         next.plugin_options == now.plugin_options && next_drawn;
+}
+
 }  // namespace saver_view

@@ -926,7 +926,11 @@
         "destination_exists": "Lo schermo di destinazione ha già una disposizione salvata",
         "update_tall": "Aggiorna lo schermo per usare queste dimensioni di tessera",
         "memory": "Lo schermo non ha abbastanza memoria libera per questo layout. Usa meno riquadri.",
-        "grid_range": "Questo schermo non accetta una griglia di queste dimensioni. Scegli un’altra griglia accanto all’anteprima."
+        "grid_range": "Questo schermo non accetta una griglia di queste dimensioni. Scegli un’altra griglia accanto all’anteprima.",
+        "section_title": "Una sezione ha bisogno di un nome di al massimo 48 byte.",
+        "section_tiles": "I riquadri di una sezione devono stare al suo interno, e un riquadro a pagina intera non sta mai in una sezione.",
+        "section_overlap": "Sezioni e riquadri liberi non possono occupare le stesse celle.",
+        "sections_full": "Una pagina ha al massimo 16 sezioni."
       },
       "feedback": {
         "invalid": "Questa risposta non può essere condivisa. Scegli sì o non del tutto, e solo i problemi elencati.",
@@ -1969,7 +1973,8 @@
         "lock": "Serrature",
         "humidifier": "Umidificatori",
         "calendar": "Calendari",
-        "todo": "Liste di cose da fare"
+        "todo": "Liste di cose da fare",
+        "text": "Testi"
       },
       "room": "Area",
       "hide_placed": "Nascondi quelle già inserite",
@@ -2081,7 +2086,10 @@
         "ha_none": "Non esegue azioni in Home Assistant",
         "network": "Si collega a {hosts}",
         "network_none": "Non si collega a nulla al di fuori di Home Assistant",
-        "read": "Legge queste entità da Home Assistant"
+        "read": "Legge queste entità da Home Assistant",
+        "sends": "Invia a {host}: {what}",
+        "sends_option": "{attributes} dell'entità che scegli per {option}",
+        "sends_state": "stato"
       },
       "warning": "Un plugin gira sul tuo schermo con pieno accesso, compresi il Wi-Fi e le azioni che lo schermo può eseguire in Home Assistant, e la sua compilazione gira in questa app, dove può accedere alla tua configurazione di Home Assistant. Aggiungi solo plugin di autori di cui ti fidi, o leggi prima il codice.",
       "room": {
@@ -2417,7 +2425,14 @@
       "remove": "Rimuovi {name}",
       "type": "Scrivi e premi Invio",
       "full": "Lo schermo non accetta altro per questo riquadro: le sue opzioni sono piene.",
-      "count": "{n} di {max}"
+      "count": "{n} di {max}",
+      "show_all": "Mostra tutte le entità",
+      "show_fitting": "Mostra solo quelle adatte",
+      "not_set": "Non impostato",
+      "fill_device": "Compila da un dispositivo",
+      "fill_device_hint": "Scegli un dispositivo e i suoi sensori vengono compilati qui sotto. Puoi ancora cambiare ciascuno.",
+      "fill_device_none": "Nessun dispositivo ha due o più di questi sensori",
+      "fill_device_count": "1 sensore | {n} sensori"
     },
     "memory": {
       "label": "Memoria per i riquadri",
@@ -2468,7 +2483,9 @@
       "lock": "Serratura",
       "humidifier": "Umidificatore",
       "calendar": "Calendario",
-      "todo": "Lista di cose da fare"
+      "todo": "Lista di cose da fare",
+      "text": "Testo",
+      "input_text": "Testo"
     },
     "displays": {
       "standard": "standard",
@@ -2989,6 +3006,10 @@
         "suggest_hint": "Mentre scrivi, la tastiera propone ciò che è stato spuntato prima; un tocco lo rimette nella lista",
         "clear": "Rimuovi completati",
         "clear_hint": "Un tasto nella lista rimuove tutto ciò che è spuntato, dopo una conferma"
+      },
+      "text_entity": {
+        "edit": "Un tocco apre il valore in un campo con la tastiera dello schermo. Una password appare come punti.",
+        "view_only": "Questa scheda mostra solo il valore: per cambiarlo sullo schermo serve una scheda con 8 MB di flash o più."
       }
     },
     "precision": {
@@ -4240,7 +4261,8 @@
         "layout_imported": "disposizione importata",
         "changed": "disposizione cambiata",
         "restored": "modifiche non salvate ripristinate",
-        "taken_over": "modifiche dell'altra scheda riprese qui"
+        "taken_over": "modifiche dell'altra scheda riprese qui",
+        "auto_layout": "il layout creato per te"
       }
     },
     "draft": {
@@ -4629,6 +4651,105 @@
     },
     "drawer": {
       "resize": "Larghezza delle impostazioni: trascina o usa le frecce; doppio clic per ripristinare"
+    },
+    "sections": {
+      "untitled": "Sezione",
+      "kind": "Sezione",
+      "choose_tiles": "Scegli prima i riquadri della sezione.",
+      "one_page": "I riquadri di una sezione stanno su una pagina: scegli riquadri di una pagina.",
+      "already_in": "Uno di questi riquadri è già in una sezione. Toglilo prima, o scegli riquadri liberi.",
+      "no_full": "Un riquadro a pagina intera non può stare in una sezione.",
+      "too_tall": "Questi riquadri richiedono più righe di quelle della pagina. Scegline meno o allarga la sezione.",
+      "no_room": "Qui non c'è spazio: altri riquadri o sezioni sono d'intralcio.",
+      "no_room_page": "Nessuno spazio per la sezione a pagina {page}.",
+      "removed": "Sezione rimossa, i suoi riquadri restano al loro posto",
+      "removed_with_tiles": "Sezione rimossa con i suoi riquadri",
+      "resize_columns": "Rendi la sezione più larga o più stretta",
+      "resize_rows": "Rendi la sezione più alta o più bassa",
+      "head_title": "Trascina per spostare la sezione, clicca per le impostazioni",
+      "aria": "Sezione {title}",
+      "rename": "Rinomina la sezione",
+      "title": "Nome",
+      "make": "Crea una sezione",
+      "add": "Aggiungi una sezione",
+      "add_here": "Aggiungi una sezione qui",
+      "library_hint": "Un gruppo di riquadri con un titolo",
+      "make_now": "Crea la sezione",
+      "name_placeholder": "Nome, per esempio Luci",
+      "in_section": "In questa sezione",
+      "update_screen": "Il firmware di questo schermo non disegna ancora le sezioni: mostra gli stessi riquadri senza di esse. Aggiorna lo schermo per vederle.",
+      "head": "Titolo",
+      "no_icon": "Nessuna icona",
+      "summary": "Riepilogo",
+      "summary_none": "Nessuno",
+      "summary_search": "Cerca entità",
+      "summary_none_found": "Nessuna entità trovata",
+      "summary_clear": "Nessun riepilogo",
+      "summary_hint": "Lo stato di un'entità a destra del titolo, come una temperatura o quante luci sono accese.",
+      "size": "Dimensione",
+      "columns": "Colonne",
+      "rows": "Righe",
+      "narrower": "Più stretta",
+      "wider": "Più larga",
+      "lower": "Più bassa",
+      "taller": "Più alta",
+      "size_hint": "Una sezione cresce solo nelle celle vuote. Se diventa troppo stretta per i suoi riquadri, scorrono in ordine di lettura.",
+      "loose_hint": "1 riquadro libero sta accanto a una sezione. I riquadri liberi si leggono meglio in una riga propria sopra le sezioni. | {n} riquadri liberi stanno accanto a una sezione. I riquadri liberi si leggono meglio in una riga propria sopra le sezioni.",
+      "loose_row": "Fanne una riga",
+      "short_grid": "Su una griglia di {rows} righe il titolo di una sezione toglie molto spazio ai suoi riquadri: ognuno è alto circa {with} mm invece di {without} mm. I riquadri fuori dalle sezioni mantengono la loro altezza.",
+      "remove": "Rimuovi sezione",
+      "remove_with_tiles": "Rimuovi sezione e riquadri",
+      "settings": "Impostazioni della sezione",
+      "contrast": "Sfondo a contrasto",
+      "contrast_hint": "Il pannello nel colore opposto della pagina, scuro di giorno e chiaro in modalità scura, perché questa sezione risalti.",
+      "contrast_tiles": "Riquadri anche a contrasto",
+      "contrast_tiles_hint": "L'intera sezione nell'altro aspetto, anche le schede dei riquadri: schede scure su pannello scuro di giorno, chiare in modalità scura."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Luci",
+        "covers": "Tapparelle e finestre",
+        "climate": "Clima",
+        "media": "Media",
+        "security": "Sicurezza",
+        "actions": "Scene",
+        "others": "Dispositivi",
+        "weather": "Meteo",
+        "people": "Chi è in casa",
+        "energy": "Energia",
+        "cameras": "Telecamere",
+        "vacuum": "Aspirapolvere",
+        "todo": "Liste",
+        "calendar": "Calendario"
+      },
+      "home": "Casa",
+      "all_lights": "Tutte le luci",
+      "two_rooms": "{a} e {b}",
+      "room_list": "{list} e {last}",
+      "more_rooms": "{a} e altri {n}",
+      "button": "Layout automatico",
+      "button_title": "Crea pagine dalle tue aree e dai tuoi dispositivi di Home Assistant",
+      "title": "Creare un layout per te",
+      "intro": "Tessera guarda le tue aree e i tuoi dispositivi in Home Assistant e crea pagine per questo schermo: una pagina o sezione per stanza, il meteo, l'allarme, le persone e le telecamere della casa insieme, riquadri più grandi dove lo schermo ha spazio. Puoi annullare e cambiare tutto dopo.",
+      "reading": "Lettura della tua casa…",
+      "failed": "Non è stato possibile leggere la tua casa: {error}",
+      "nothing": "Tessera non ha ancora trovato nulla da mostrare su questo schermo. Assegna un'area ai tuoi dispositivi in Home Assistant o aggiungi riquadri dalla libreria.",
+      "nothing_new": "Tutto ciò che Tessera metterebbe su questo schermo c'è già.",
+      "summary": "{pages} pagina · {tiles} riquadri | {pages} pagine · {tiles} riquadri",
+      "summary_sections": "{n} sezione | {n} sezioni",
+      "from_rooms": "da una stanza | da {n} stanze",
+      "left_out": "Un'altra entità non ha trovato posto su questo schermo; è nella libreria. | Altre {n} entità non hanno trovato posto su questo schermo; sono nella libreria.",
+      "replace": "Sostituire le pagine",
+      "replace_hint": "Lo schermo riceve queste pagine al posto di quelle attuali.",
+      "append": "Aggiungere dopo le pagine attuali",
+      "append_hint": "Le pagine attuali restano, le nuove vengono dopo, con ciò che non è ancora sullo schermo.",
+      "append_full": "Su questo schermo non restano pagine o riquadri liberi. Sostituisci le pagine o fai prima spazio.",
+      "make": "Crea il layout",
+      "made": "Un layout di {pages} pagina è pronto. Annulla lo toglie. | Un layout di {pages} pagine è pronto. Annulla lo toglie.",
+      "offer_title": "Vuoi che crei un primo layout per te?",
+      "offer_text": "Tessera può organizzare questo schermo con le tue aree e i tuoi dispositivi di Home Assistant. Dopo puoi cambiare tutto.",
+      "offer_make": "Crea un primo layout",
+      "offer_empty": "Inizia vuoto"
     }
   }
 }

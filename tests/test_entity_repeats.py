@@ -15,7 +15,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import (ENTITY_REPEAT_MIN_FIRMWARE, NIGHTSTAND, Grid, firmware_features, layout_snapshot, min_firmware,  # noqa: E402
                   run_tile_event, state_message, validate_layout)
 from layout_migrations import migrate_legacy  # noqa: E402

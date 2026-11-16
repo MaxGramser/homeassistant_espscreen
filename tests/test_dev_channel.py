@@ -1,8 +1,11 @@
 """The dev channel (docs/RELEASING.md, "Testing dev"): an app added from the repository's `#dev` URL builds every screen
 from dev, its packages, components and fonts, and offers to reinstall the newest dev. The plain URL keeps main, and an
 app added from anywhere else leaves a screen's `ref:` as it is."""
+import argparse
 import asyncio
+import contextlib
 import hashlib
+import io
 import sys
 import tempfile
 import unittest
@@ -11,7 +14,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(1, str(ROOT / 'tests'))
 import yaml  # noqa: E402
 import core  # noqa: E402
 from core import REPO, channel_of, installation_yaml, set_channel  # noqa: E402
@@ -84,9 +86,11 @@ class Channel(unittest.TestCase):
         self.assertIn('dev', workflow[True]['push']['branches'])
         self.assertIn('screen_manager/**', workflow[True]['push']['paths'])
         build = workflow['jobs']['image']['steps'][-1]['with']['build-args']
-        self.assertIn("CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || '' }}", build)
+        self.assertIn("CHANNEL=${{ github.ref == 'refs/heads/dev' && 'dev' || '' }}", build,
+                      'docker.yml builds the image of a push to dev with CHANNEL=dev and every other one without')
         dockerfile = (ROOT / 'screen_manager/Dockerfile').read_text()
-        self.assertRegex(dockerfile, r'ARG CHANNEL=""\nENV SCREEN_CHANNEL="\$\{CHANNEL\}"\n')
+        self.assertRegex(dockerfile, r'ARG CHANNEL=""\nENV SCREEN_CHANNEL="\$\{CHANNEL\}"\n',
+                         'the Dockerfile keeps the build\'s CHANNEL as SCREEN_CHANNEL, which core.start_channel reads')
 
     def test_a_new_screen_builds_from_the_channel(self):
         data = {'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'}
@@ -220,13 +224,11 @@ class Release(unittest.TestCase):
                 self.assertEqual(core.ref(), 'main')
 
     def test_the_tag_is_the_one_a_release_makes(self):
-        # tools/release.py publish tags screens-v<config.yaml's version>, the version the Supervisor reports.
-        source = (ROOT / 'tools/release.py').read_text()
-        self.assertIn("tag = f'screens-v{version}'", source)
+        # tools/release.py publish tags its config.yaml version, the version the Supervisor reports, as the app asks.
         version = yaml.safe_load((ROOT / 'screen_manager/config.yaml').read_text())['version']
         core.set_version(version)
         self.assertRegex(core.release_ref(), core.RELEASE_TAG)
-        self.assertEqual(core.release_ref(), f'screens-v{version}')
+        self.assertEqual(core.release_ref(), release_tool().tag_of(version))
 
     def test_main_moves_to_the_tag_and_on_to_the_next(self):
         path = self.write(SCREEN)
@@ -289,9 +291,51 @@ class Release(unittest.TestCase):
         self.assertEqual(load(path.read_text())['packages']['display']['ref'], 'screens-v0.4.85')
 
     def test_a_publish_pushes_main_and_its_tag_together(self):
-        source = (ROOT / 'tools/release.py').read_text()
-        self.assertIn("git('push', '--quiet', '--atomic', 'origin', f'{head}:refs/heads/{RELEASES}', f'refs/tags/{tag}')", source)
-        self.assertNotIn("git('push', '--quiet', 'origin', f'refs/tags/{tag}')", source, 'never the tag on its own')
+        # tools/release.py publish run with git, gh and the checks faked: main and the tag go in one atomic push, never
+        # the tag alone, and a push that fails takes the local tag away again so the next try is not refused for it.
+        release = release_tool()
+        version = yaml.safe_load((ROOT / 'screen_manager/config.yaml').read_text())['version']
+        texts = {release.CONFIG: release.with_name((ROOT / release.CONFIG).read_text(), dev=False),
+                 release.CHANGELOG: f'## {version} (firmware 0.99.0)\n\n- A fix.\n'}
+        head, tag = 'a' * 40, release.tag_of(version)
+        for fails in (False, True):
+            calls = []
+
+            def git(*args, **_):
+                calls.append(args)
+                if fails and args[0] == 'push':
+                    raise release.subprocess.CalledProcessError(1, 'git push')
+                return head if args == ('rev-parse', 'HEAD') else 'origin/hotfix-x' if args[0] == 'branch' else ''
+
+            with tempfile.TemporaryDirectory() as folder, \
+                    unittest.mock.patch.multiple(release, git=git, fetch=lambda: None, branch=lambda: 'hotfix-x',
+                                                 clean=lambda: True, ancestor=lambda *_: True, has=lambda _: False,
+                                                 gh=lambda *_: None, read=lambda path: texts[path]), \
+                    unittest.mock.patch.object(release.subprocess, 'run',
+                                               return_value=release.subprocess.CompletedProcess([], 0, '', '')), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                notes = Path(folder) / 'notes.md'
+                notes.write_text('- A fix.\n')
+                args = argparse.Namespace(notes=str(notes), without_ci=True, without_upgrade_test=True,
+                                          without_plugins=True, yes=True)
+                if fails:
+                    with self.assertRaises(release.subprocess.CalledProcessError):
+                        release.publish(args)
+                else:
+                    release.publish(args)
+            pushes = [call for call in calls if call[0] == 'push']
+            with self.subTest(fails=fails):
+                self.assertEqual(pushes[0], ('push', '--quiet', '--atomic', 'origin', f'{head}:refs/heads/main', f'refs/tags/{tag}'))
+                self.assertFalse(any(call[-1] == f'refs/tags/{tag}' and '--atomic' not in call for call in pushes),
+                                 'never the tag on its own')
+                self.assertEqual(('tag', '-d', tag) in calls, fails)
+
+
+def release_tool():
+    """tools/release.py, imported where it is wanted (it reads the tree's paths when it loads)."""
+    sys.path.insert(0, str(ROOT / 'tools'))
+    import release
+    return release
 
 
 try:

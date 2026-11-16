@@ -9,6 +9,7 @@ describe('shared canonical page documents', () => {
     if (example.valid) {
       expect(validatePages(doc, example.grid)).toEqual(doc);
       if ('pagination' in example) expect(pagination(doc)).toEqual(example.pagination);
+      if ('compiled' in example) expect(projectLayout(doc, example.grid).tiles.map(t => [t.entity, t.slot])).toEqual(example.compiled);
       if ('delete' in example) {
         const operation = example.delete as { id: string; entities: string[] };
         const result = deletePage(doc, example.grid, operation.id);

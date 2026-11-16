@@ -66,7 +66,7 @@ std::string receive(const std::string &payload) {
   const bool accepted = esphome::json::parse_json(payload, [&](JsonObject root) -> bool {
     if (root["v"].as<int>() != page_protocol::VERSION) {
       const auto problem = root["v"].is<unsigned>() && root["v"].as<unsigned>() == 1 ? ProtocolProblem::old_addon : ProtocolProblem::unsupported;
-      if (protocol_problem != problem) { protocol_problem = problem; cancel_layout_input(false); refresh_all(); }
+      if (protocol_problem != problem) { protocol_problem = problem; cancel_layout_input(false); refresh_all(redraw_log::Why::protocol_problem); }
       result = problem == ProtocolProblem::old_addon ? "Configuration problem. Update add-on." : "Error: protocol version";
       return false;
     }
@@ -128,7 +128,7 @@ std::string receive(const std::string &payload) {
     const auto packet = transfer.packet(lease, packet_sequence, packet_hash.value);
     if (packet == page_protocol::Packet::reject) { result = "Error: obsolete message"; return false; }
     if (packet == page_protocol::Packet::duplicate) {
-      result = transfer.active && model.ready() ? "Synced" : "Loading tiles";
+      result = transfer.whole(model.ready()) ? "Synced" : "Loading tiles";
       return true;
     }
     sequenced = true;
@@ -158,7 +158,7 @@ std::string receive(const std::string &payload) {
           root["tiles"].as<unsigned>() > target.max_tiles() || root["home"].as<unsigned>() >= root["pages"].as<unsigned>() ||
           !root["keepalive"].is<unsigned>() || root["keepalive"].as<unsigned>() < 5 || root["keepalive"].as<unsigned>() > 3600)
         return false;
-      const bool was_active = transfer.active && model.ready();
+      const bool was_active = transfer.whole(model.ready());
       auto candidate = transfer;
       const auto begin = candidate.begin(revision, root["pages"].as<unsigned>(), root["tiles"].as<unsigned>());
       if (begin == page_protocol::Begin::reject) return false;
@@ -168,7 +168,7 @@ std::string receive(const std::string &payload) {
         protocol_problem = ProtocolProblem::none;
         last_received = esphome::millis();
         keepalive_seconds = root["keepalive"].as<unsigned>();
-        if (was_problem) refresh_all();
+        if (was_problem) refresh_all(redraw_log::Why::protocol_problem_over);
         result = "Synced"; return true;
       }
       if (upright != canvas_upright) {
@@ -192,7 +192,7 @@ std::string receive(const std::string &payload) {
       if (!model.begin(root["tiles"].as<unsigned>(), root["pages"].as<unsigned>(), string(root["title"], 96), [] { cancel_layout_input(); })) {
         // The layout of the old grid cannot stay on the new one: the screen says it has none (the refusal stays).
         if (regridded) { const std::string refusal = model.refusal; model.begin(0, 1, ""); model.refusal = refusal; transfer.begun = false; }
-        refresh_all(); result = model.refusal.empty() ? "Error: layout" : model.refusal; return false;
+        refresh_all(redraw_log::Why::layout_refused); result = model.refusal.empty() ? "Error: layout" : model.refusal; return false;
       }
       transfer = candidate;
       protocol_problem = ProtocolProblem::none;
@@ -209,13 +209,13 @@ std::string receive(const std::string &payload) {
         numbers = (numbers & ~0x30u) | (root["group_min"].as<unsigned>() << 4);
       if (root["percent_space"].is<bool>()) numbers = (numbers & ~0xC0u) | ((root["percent_space"].as<bool>() ? 2u : 1u) << 6);
       if (numbers != screen_text_numbers()) { screen_text_numbers(numbers); numbers_preference.save(&numbers); }
-      refresh_all();
+      refresh_all(redraw_log::Why::new_layout);
       result = "Loading tiles";
       return true;
     }
     if (op == "appearance") {
       uint64_t base;
-      if (!transfer.active || !model.ready() || !page_protocol::key(string(root["base"]), base) ||
+      if (!transfer.whole(model.ready()) || !page_protocol::key(string(root["base"]), base) ||
           !transfer.matches(base) || !root["title"].is<const char *>() ||
           root["title"].as<std::string>().size() > 96 || !root["pages"].is<JsonArray>() || !root["tiles"].is<JsonArray>()) return false;
       const auto pages = root["pages"].as<JsonArray>(), tiles = root["tiles"].as<JsonArray>();
@@ -266,7 +266,7 @@ std::string receive(const std::string &payload) {
     if (!transfer.matches(revision)) { result = "Resend needed"; return false; }
     if (op == "ping") {
       last_received = esphome::millis();
-      result = transfer.active && model.ready() ? "Synced" : "Resend needed";
+      result = transfer.whole(model.ready()) ? "Synced" : "Resend needed";
       return true;
     }
     if (op == "bar_value") {
@@ -305,6 +305,22 @@ std::string receive(const std::string &payload) {
       result = "Synced";
       return true;
     }
+#ifdef SD_MOD_SECTIONS
+    // A page's section summaries anew (`t`, one text per section, in its order), as their entities change.
+    if (op == "sums") {
+      if (!transfer.active || !root["p"].is<unsigned>() || root["p"].as<unsigned>() >= model.page_data.records.size() ||
+          !root["t"].is<JsonArray>()) return false;
+      const unsigned index = root["p"].as<unsigned>();
+      auto &sections = model.page_data.records[index].sections;
+      if (root["t"].as<JsonArray>().size() != sections.size()) return false;
+      size_t i = 0;
+      for (JsonVariant text : root["t"].as<JsonArray>()) sections[i++].summary = string(text, section_layout::SUMMARY_BYTES);
+      ::sections::summaries(int(index));
+      last_received = esphome::millis();
+      result = "Synced";
+      return true;
+    }
+#endif
     if (op == "page" || op == "bar") {
       if (!root["p"].is<unsigned>() || root["p"].as<unsigned>() >= model.page_data.records.size()) return false;
       const unsigned index = root["p"].as<unsigned>();
@@ -323,6 +339,32 @@ std::string receive(const std::string &payload) {
         next.excluded = root["excluded"].as<bool>();
         if (root["dock"].is<bool>()) next.dock = root["dock"].as<bool>();
         if (root["icon"].is<const char *>()) next.icon = tile_icon::codepoint(root["icon"].as<std::string>());
+#ifdef SD_MOD_SECTIONS
+        // Its sections (docs/PAGES.md "Sections"): [column, row, columns, rows, icon, title, summary, options] each, checked whole
+        // against the grid before the page is taken; a page whose blocks leave the grid or cover each other is refused.
+        if (!root["sections"].isNull()) {
+          if (!root["sections"].is<JsonArray>() || root["sections"].as<JsonArray>().size() > section_layout::MAX) return false;
+          for (JsonVariant item : root["sections"].as<JsonArray>()) {
+            if (!item.is<JsonArray>() || item.as<JsonArray>().size() < 6) { result = "Error: sections"; return false; }
+            JsonArray fields = item.as<JsonArray>();
+            for (size_t i = 0; i < 4; ++i) if (!fields[i].is<unsigned>() || fields[i].as<unsigned>() > section_layout::DIM) { result = "Error: sections"; return false; }
+            section_layout::Section section;
+            section.column = uint8_t(fields[0].as<unsigned>()); section.row = uint8_t(fields[1].as<unsigned>());
+            section.columns = uint8_t(fields[2].as<unsigned>()); section.rows = uint8_t(fields[3].as<unsigned>());
+            section.icon = tile_icon::codepoint(string(fields[4], 8));
+            section.title = string(fields[5], section_layout::TITLE_BYTES);
+            if (fields.size() > 6) section.summary = string(fields[6], section_layout::SUMMARY_BYTES);
+            // Its options as bits (8th field): 1 the panel in contrast.
+            if (fields.size() > 7 && fields[7].is<unsigned>()) {
+              section.contrast = (fields[7].as<unsigned>() & 1) != 0;
+              // 2: its tiles follow the contrast, the whole section in the other look.
+              section.follow = section.contrast && (fields[7].as<unsigned>() & 2) != 0;
+            }
+            next.sections.push_back(std::move(section));
+          }
+          if (!section_layout::valid(next.sections, grid.columns, grid.rows)) { result = "Error: sections"; return false; }
+        }
+#endif
         if (!transfer.page(index)) return false;
         model.page_data.records[index] = std::move(next);
       } else {
@@ -339,7 +381,7 @@ std::string receive(const std::string &payload) {
     if (op == "commit") {
       // A retried commit with a new sequence acknowledges the same document.
       // It must not navigate back to the page shown before the transfer.
-      if (transfer.active && model.ready()) {
+      if (transfer.whole(model.ready())) {
         last_received = esphome::millis(); result = "Synced"; return true;
       }
       // Every key stands under a bedside clock of this layout (firmware 0.8.0+): a key of anything else has no place.
@@ -356,7 +398,7 @@ std::string receive(const std::string &payload) {
       last_received = esphome::millis();
       // The room is sampled once this layout has settled (tile_memory::SETTLE_MS, firmware 0.51.0).
       layout_landed_at = std::max<uint32_t>(1, last_received);
-      refresh_all();
+      refresh_all(redraw_log::Why::layout_complete);
 #ifdef USE_ESP32
       // Building every tile inside the API's call is the deepest the loop task goes; this is the figure the
       // loop_task_stack_size in hardware/esp-idf.yaml is sized from (firmware 0.3.1+).
@@ -774,7 +816,14 @@ std::string receive(const std::string &payload) {
     auto a = root["a"].as<JsonObject>();
     // The fingerprint of state, attributes and extras (a vacuum's mode or water select changes only
     // there), hashed while serializing so no copy of the message stays behind.
+    // A text's value is its state (text, input_text, docs/TEXT_ENTITY.md): kept whole where its field can send it back
+    // (module text_edit), up to Home Assistant's 255 characters, so it never sends a value cut short. A board without
+    // the field keeps what any tile keeps: its tile shows no more.
+#ifdef SD_MOD_TEXT_EDIT
+    const std::string word = string(root["state"], tile_controls::text_entity(tile.domain()) ? tile_controls::TEXT_BYTES : 160);
+#else
     const std::string word = string(root["state"]);
+#endif
     Fingerprint state_hash;
     state_hash.add(word);
     state_hash.write('\n');
@@ -1058,6 +1107,13 @@ std::string receive(const std::string &payload) {
     tile.step = number(a["target_temp_step"], 0.5f);
     if(tile.domain()=="number" || tile.domain()=="input_number") {
       tile.minimum=number(a["min"],0);tile.maximum=number(a["max"],100);tile.step=number(a["step"],1); }
+    // A text (firmware 0.61.0): the fewest and the most characters its field takes (Home Assistant's defaults 0 and 255)
+    // and whether it is a password.
+    tile.secret = false;
+    if (tile_controls::text_entity(tile.domain())) {
+      tile.minimum = number(a["min"], 0); tile.maximum = number(a["max"], 255);
+      tile.secret = string(a["mode"], 10) == "password";
+    }
     if(tile.domain()=="weather") {
       tile.current=number(a["temperature"]);tile.unit=string(a["temperature_unit"],12);
       tile.humidity=number(a["humidity"]);next.wind=number(a["wind_speed"]);next.wind_unit=string(a["wind_speed_unit"],8);next.feels=number(a["apparent_temperature"]);

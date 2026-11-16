@@ -117,6 +117,14 @@ const global = globalThis as Record<string, unknown>;
 /** Puts what jsdom lacks in place, once per test file (tests/setup.ts). */
 export function installBrowser() {
   global.EventSource ??= FakeEventSource;
+  // Node from 25 on has a localStorage and sessionStorage of its own, which without a file to keep them in have no
+  // getItem or setItem, and they stand in the way of jsdom's: every test of something the browser keeps failed there
+  // ("localStorage.setItem is not a function"). The page's storage is jsdom's, on whatever Node the tests run.
+  const page = (global.jsdom as { window?: Window } | undefined)?.window;
+  for (const name of ["localStorage", "sessionStorage"] as const) {
+    if (page && typeof (global[name] as Storage | undefined)?.getItem !== "function")
+      Object.defineProperty(globalThis, name, { configurable: true, get: () => page[name] });
+  }
   // Node has a BroadcastChannel of its own, between threads: the tests take the one above, which they can see into.
   global.BroadcastChannel = FakeBroadcastChannel;
   global.ResizeObserver ??= class extends InertObserver {};

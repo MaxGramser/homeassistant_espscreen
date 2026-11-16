@@ -14,7 +14,7 @@ import secrets
 from i18n import t
 import tile_icons
 from core import (BUILTIN, entity_id, plugin_entity, plugin_tile, FIRMWARE_MAX_PAGES, FIRMWARE_MAX_TILES, HEADER_MAX_ITEMS, KEY_HOLDERS, STORE_MAX_BAR_ITEMS, STORE_MAX_PAGES,
-                  STORE_MAX_TILES, Grid, is_key, span_of,
+                  STORE_MAX_SECTIONS, STORE_MAX_TILES, Grid, is_key, span_of,
                   span_offered, placed, header_items, page_target, tile_size, validate_header, validate_layout)
 
 FORMAT = "pages-v2"
@@ -96,6 +96,9 @@ def legacy_edit(record, data):
     Old clients identify tiles by entity/slot and cannot safely express structural
     page edits. Keep page-specific fields verbatim and require a reload for those.
     """
+    # An old client knows no sections: it reloads before it edits a layout that has them.
+    if any(sections_of(page) for page in record["layout"]["pages"]):
+        raise LayoutError(t('addon.errors.editor_reload'))
     before = legacy_projection(record, require_representable=False)
     grid = grid_of_record(record)
     after = validate_layout(data, grid=grid)
@@ -131,7 +134,7 @@ def replace_tiles(record, flat):
     grid = grid_of_record(record)
     flat = validate_layout(flat, grid=grid)
     keys, flat = [tile for tile in flat['tiles'] if is_key(tile)], {**flat, 'tiles': placed(flat['tiles'])}
-    children = [child for page in record['layout']['pages'] for tile in page['tiles'] for child in tile.get('children', ())]
+    children = [child for page in record['layout']['pages'] for tile in all_tiles(page) for child in tile.get('children', ())]
     result = deepcopy(record['layout'])
     used = max((tile['slot'] + grid.cells(tile_size(tile)) for tile in flat['tiles']), default=0)
     count = max(1, flat.get('pages', 1), (used + grid.slots - 1) // grid.slots)
@@ -140,8 +143,8 @@ def replace_tiles(record, flat):
     existing = []
     indexes = {page['id']: i for i, page in enumerate(result['pages'])}
     for p, page in enumerate(result['pages']):
-        for tile in page['tiles']:
-            existing.append((tile, _tile(tile, p, grid, indexes, result['homePageId'], set())[0]))
+        for tile, row, column in placed_tiles(page):
+            existing.append((tile, _tile(at_cell(tile, row, column), p, grid, indexes, result['homePageId'], set())[0]))
         page['tiles'] = []
     page_ids = [page['id'] for page in result['pages']]
     incoming = [(wire['slot'] // grid.slots, tile_from_fields(wire, grid, page_ids), wire) for wire in flat['tiles']]
@@ -185,6 +188,107 @@ def _identity(value, seen, page=False):
         raise LayoutError(t('addon.errors.pages.identity'))
     seen.add(value)
     return value
+
+
+# Sections (docs/PAGES.md "Sections"): a block of cells on a page's grid with a title, an icon and a panel. A section
+# holds no tiles of its own: every tile of a page stands in `tiles` at its own cell, as before sections, and belongs to
+# the section whose block it lies in (section_of). So nothing that walks a page's tiles has to know sections, and a
+# tile's section is never said twice. A page without sections has no key at all, so a document from before is unchanged.
+SECTION_FIELDS = {"id", "title", "icon", "summary", "contrast", "contrastTiles", "placement"}
+SECTION_TITLE_BYTES = 48
+# A section's summary on the wire (section_layout.h SUMMARY_BYTES): the entity's state as the band says it, cut here so
+# that a long state can never make a page's message too large for a screen (tests/test_sections.py holds the worst page).
+SECTION_SUMMARY_BYTES = 48
+ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+\Z")
+
+
+def sections_of(page):
+    return page.get("sections") or []
+
+
+def all_tiles(page):
+    """Every tile object of a page, in the document's order."""
+    return page["tiles"]
+
+
+def placed_tiles(page):
+    """(tile, row, column) for every tile of a page, in reading order. The tile objects are the document's own."""
+    return sorted(((tile, tile["placement"]["row"], tile["placement"]["column"]) for tile in page["tiles"]),
+                  key=lambda item: (item[1], item[2]))
+
+
+def inside(place, block):
+    """Whether a placement lies wholly in a block of cells (a section's)."""
+    return (block["row"] <= place["row"] and place["row"] + place["rows"] <= block["row"] + block["rows"]
+            and block["column"] <= place["column"] and place["column"] + place["columns"] <= block["column"] + block["columns"])
+
+
+def section_of(page, tile):
+    """The section a tile of the page stands in, or None: the one whose block holds its cells. The one place that says
+    what belonging to a section is, for the add-on (web/src/model/page-tiles.ts says the same for the editor)."""
+    return next((section for section in sections_of(page) if inside(tile["placement"], section["placement"])), None)
+
+
+def tiles_in(page, section):
+    """The tiles of a page that stand in a section, in the document's order."""
+    return [tile for tile in page["tiles"] if inside(tile["placement"], section["placement"])]
+
+
+def without_sections(layout):
+    """A layout for a screen whose board draws no sections (docs/PAGES.md "Sections"): its sections go, its tiles stay
+    where they stand. The layout itself when it has none."""
+    if not any(sections_of(page) for page in layout["pages"]):
+        return layout
+    return {**layout, "pages": [{key: value for key, value in page.items() if key != "sections"} for page in layout["pages"]]}
+
+
+def flattened(layout):
+    """A layout whose sections still hold tiles of their own (the first form of sections, on dev from 2026-11-15 and
+    never released), as it is kept now: each such tile on its page at its own cell. (layout, whether it changed)."""
+    changed = False
+    for page in layout.get("pages", ()) if isinstance(layout, dict) else ():
+        for section in page.get("sections") or () if isinstance(page, dict) else ():
+            if not isinstance(section, dict) or "tiles" not in section:
+                continue
+            changed = True
+            block = section.get("placement") or {}
+            for tile in section.pop("tiles") or ():
+                if isinstance(tile, dict) and isinstance(tile.get("placement"), dict) and isinstance(page.get("tiles"), list):
+                    tile["placement"]["row"] = tile["placement"].get("row", 0) + block.get("row", 0)
+                    tile["placement"]["column"] = tile["placement"].get("column", 0) + block.get("column", 0)
+                    page["tiles"].append(tile)
+    return layout, changed
+
+
+def at_cell(tile, row, column):
+    """A shallow copy of a tile standing at a cell of the page (its children kept)."""
+    return {**tile, "placement": {**tile["placement"], "row": row, "column": column}}
+
+
+def _section(section, grid, seen, taken):
+    """Check one section of a page against the grid; mark its block's cells in `taken`."""
+    _object(section, SECTION_FIELDS, {"id", "title", "placement"})
+    _identity(section["id"], seen)
+    title = section["title"]
+    if not isinstance(title, str) or not title.strip() or len(title.encode()) > SECTION_TITLE_BYTES:
+        raise LayoutError(t('addon.errors.pages.section_title'))
+    if "icon" in section and (not isinstance(section["icon"], str) or section["icon"] not in tile_icons.ICONS):
+        raise LayoutError(t('addon.errors.pages.fields'))
+    if "summary" in section and (not isinstance(section["summary"], str) or not ENTITY_ID.match(section["summary"])):
+        raise LayoutError(t('addon.errors.pages.fields'))
+    # The panel in the page's opposite colour (off unless chosen; a section without the key has it off).
+    if "contrast" in section and type(section["contrast"]) is not bool:
+        raise LayoutError(t('addon.errors.pages.fields'))
+    # Its tiles follow the contrast (the whole section in the other look): only beside the contrast itself.
+    if "contrastTiles" in section and (type(section["contrastTiles"]) is not bool or not section.get("contrast")):
+        raise LayoutError(t('addon.errors.pages.fields'))
+    block = _object(section["placement"], {"row", "column", "columns", "rows"}, {"row", "column", "columns", "rows"})
+    row, column = _integer(block["row"], 0, grid.rows - 1), _integer(block["column"], 0, grid.columns - 1)
+    columns, rows = _integer(block["columns"], 1, grid.columns - column), _integer(block["rows"], 1, grid.rows - row)
+    cells = {(r, c) for r in range(row, row + rows) for c in range(column, column + columns)}
+    if cells & taken:
+        raise LayoutError(t('addon.errors.pages.section_overlap'))
+    taken |= cells
 
 
 def grid_of_record(record):
@@ -257,7 +361,7 @@ def grown(layout, source, target):
     layout = deepcopy(layout)
     sizes = {"single": (1, 1), "wide": (target.wide_span, 1), "tall": (1, 2), "square": (2, 2), "full": (target.columns, target.rows)}
     for page in layout["pages"]:
-        for tile in page["tiles"]:
+        for tile in all_tiles(page):
             placement, appearance = tile["placement"], tile["appearance"]
             size = footprint_size(placement["columns"], placement["rows"], source, appearance.get("presentation"))
             # A span keeps its own rectangle on the bigger grid (app 0.4.32).
@@ -340,7 +444,7 @@ def attach_keys(layout, keys, id_factory=None, previous=None):
         old.setdefault(child["content"]["entityId"], []).append(child["id"])
     holders = {}
     for p, page in enumerate(layout["pages"]):
-        for tile in page["tiles"]:
+        for tile in all_tiles(page):
             entity = _entity(tile["content"], {page["id"]: i for i, page in enumerate(layout["pages"])}, layout["homePageId"])
             tile.pop("children", None)
             holders[entity] = tile
@@ -431,8 +535,8 @@ def compile_tiles(layout, grid):
     seen = set(indexes)
     tiles, keys = [], []
     for i, page in enumerate(layout["pages"]):
-        for tile in sorted(page["tiles"], key=lambda t: (t["placement"]["row"], t["placement"]["column"])):
-            compiled, under = _tile(tile, i, grid, indexes, layout["homePageId"], seen)
+        for tile, row, column in placed_tiles(page):
+            compiled, under = _tile(at_cell(tile, row, column), i, grid, indexes, layout["homePageId"], seen)
             tiles.append(compiled)
             keys += under
     # The keys follow the placed tiles, so every placed tile keeps its index on the screen.
@@ -453,7 +557,7 @@ def validate_document(data, grid):
     seen = set()
     for page in pages:
         # `icon` (optional): a pickable MDI icon by name, which the Dock shows for the page instead of its picture.
-        _object(page, {"id", "navigation", "topbar", "tiles", "icon"}, {"id", "navigation", "topbar", "tiles"})
+        _object(page, {"id", "navigation", "topbar", "tiles", "icon", "sections"}, {"id", "navigation", "topbar", "tiles"})
         if "icon" in page and (not isinstance(page["icon"], str) or not tile_icons.known(page["icon"])):
             raise LayoutError(t('addon.errors.pages.fields'))
         _identity(page["id"], seen, page=True)
@@ -491,8 +595,25 @@ def validate_document(data, grid):
         bar_items(page, grid.bar_items)
         if not isinstance(page["tiles"], list):
             raise LayoutError(t('addon.errors.layout.invalid'))
-        for tile in page["tiles"]:
-            _tile(tile, 0, grid, {p["id"]: i for i, p in enumerate(pages)}, data["homePageId"], seen)
+        if "sections" in page:
+            if not isinstance(page["sections"], list) or len(page["sections"]) > STORE_MAX_SECTIONS:
+                raise LayoutError(t('addon.errors.pages.sections_full'))
+            taken = set()
+            for section in page["sections"]:
+                _section(section, grid, seen, taken)
+            # A tile stands wholly in one section's block or wholly outside every block, never across an edge; and a
+            # tile that fills its page stands in none.
+            for tile in page["tiles"]:
+                place = tile.get("placement") if isinstance(tile, dict) else None
+                if isinstance(place, dict) and all(type(place.get(key)) is int for key in ("row", "column", "columns", "rows")):
+                    home = section_of(page, tile)
+                    if home is None and {(r, c) for r in range(place["row"], place["row"] + place["rows"])
+                                         for c in range(place["column"], place["column"] + place["columns"])} & taken:
+                        raise LayoutError(t('addon.errors.pages.section_overlap'))
+                    if home is not None and (tile.get("appearance") or {}).get("presentation") == "full":
+                        raise LayoutError(t('addon.errors.pages.section_tiles'))
+        for tile, row, column in placed_tiles(page):
+            _tile(at_cell(tile, row, column), 0, grid, {p["id"]: i for i, p in enumerate(pages)}, data["homePageId"], seen)
     flat = {"title": data["title"], "tiles": compile_tiles(data, grid), "pages": len(pages)}
     checked = validate_layout(flat, grid=grid)
     # The legacy validator sorts by slot and normalizes documented defaults.
@@ -521,7 +642,8 @@ def legacy_compatible(layout, grid):
                     not in ('tall', 'square') and not span_of(footprint_size(tile['placement']['columns'], tile['placement']['rows'], grid, tile['appearance'].get('presentation')))
                     and tile['interaction'].get('controls') not in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode', 'volume_playback')
                     and not tile.get('children')
-                    for page in pages for tile in page['tiles']))
+                    for page in pages for tile in all_tiles(page))
+            and not any(sections_of(page) for page in pages))
 
 
 def legacy_projection(record, require_representable=True):
@@ -564,7 +686,8 @@ def delete_page(layout, page_id, grid):
     if result["homePageId"] == page_id:
         result["homePageId"] = result["pages"][0]["id"]
     for page in result["pages"]:
-        page["tiles"] = [tile for tile in page["tiles"] if tile["content"].get("target") != {"kind": "page", "pageId": page_id}]
+        gone = lambda tile: tile["content"].get("target") == {"kind": "page", "pageId": page_id}
+        page["tiles"] = [tile for tile in page["tiles"] if not gone(tile)]
     return validate_document(result, grid)
 
 
@@ -578,13 +701,14 @@ def copy_page(layout, page_id, grid, empty=False, id_factory=new_id):
     copied["id"] = id_factory()
     if empty:
         copied["tiles"] = []
+        copied.pop("sections", None)
         copied["navigation"]["excludeFromPagination"] = False
-    for item in copied["topbar"]["leading"] + copied["topbar"]["trailing"] + copied["tiles"]:
+    for item in copied["topbar"]["leading"] + copied["topbar"]["trailing"] + sections_of(copied) + all_tiles(copied):
         item["id"] = id_factory()
-    for tile in copied["tiles"]:
+    for tile in all_tiles(copied):
         for child in tile.get("children", ()):
             child["id"] = id_factory()
-    for tile in copied["tiles"]:
+    for tile in all_tiles(copied):
         if tile["content"].get("target") == {"kind": "page", "pageId": page_id}:
             tile["content"]["target"]["pageId"] = copied["id"]
     result["pages"].insert(result["pages"].index(source) + 1, copied)

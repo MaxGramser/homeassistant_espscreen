@@ -33,6 +33,7 @@ import { usePluginsStore } from "../stores/plugins";
 import { useRegionStore } from "../stores/region";
 import { useScreenStore } from "../stores/screen";
 import { useUiStore } from "../stores/ui";
+import { useSectionGrid } from "./useSectionGrid";
 import type { FavoritePlay, Tile } from "../types";
 
 // `grid`: another screen's grid, for a card of that screen's home page on the overview (app 0.4.0); the editor's own
@@ -48,6 +49,8 @@ export function useTileCard(props: TileCardProps) {
   const ui = useUiStore(), region = useRegionStore(), entities = useEntitiesStore(), plugins = usePluginsStore(), scr = useScreenStore();
   const inv = useInventoryStore(), canvas = useCanvasStore(), doc = useDocumentStore(), insp = useInspectorStore();
   const { grid: editorGrid } = doc.editorLayout;
+  // The rows of the page this card stands on, with its sections' bands (DevicePage, useSectionGrid).
+  const sections = useSectionGrid();
 
   const grid = computed(() => props.grid ?? editorGrid);
   // A card of another screen, on the overview: drawn only, never picked up, focused or opened.
@@ -185,9 +188,12 @@ export function useTileCard(props: TileCardProps) {
   const look = computed(() => cardLook(doc.screenShape));
   const room = computed(() => {
     if (foreign.value || props.round || props.at < 0) return null;
-    const g = grid.value, cell = props.at % g.slots;
-    return cardRoom(doc.screenShape, { across: g.columns, down: g.rows, column: cell % g.columns, row: Math.floor(cell / g.columns),
-      columns: shape.value.columns, rows: shape.value.rows, paged: canvas.pageBarShown });
+    const g = grid.value, cell = props.at % g.slots, column = cell % g.columns, row = Math.floor(cell / g.columns);
+    // A page with sections gives its tile rows less room, and a card at a block's side its padding (model/sections.ts).
+    const m = sections?.value.margins(column, row, shape.value.columns, shape.value.rows);
+    return cardRoom(doc.screenShape, { across: g.columns, down: g.rows, column, row,
+      columns: shape.value.columns, rows: shape.value.rows, paged: canvas.pageBarShown,
+      inner: m ? -(m.top + m.bottom) : 0, margin: m ? m.left + m.right : 0 });
   });
   // The control a wide card draws at its right (runtime_tiles layout_panel), by the kind of its parts.
   const panelKind = computed<PanelKind | null>(() => {

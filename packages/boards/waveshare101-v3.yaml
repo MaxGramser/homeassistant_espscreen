@@ -1,0 +1,90 @@
+# ESP Screens - Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 with rev3 silicon, new: the 10.1-inch 800 x 1280
+# MIPI-DSI panel (JD9365) with GT911-family capacitive touch, on an ESP32-P4 of chip revision v3.x with an ESP32-C6 for
+# Wi-Fi, which is what Waveshare ships now.
+# Hardware reference: https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-X
+#
+# 1280 x 800 at 149 dpi, the standard look, a grid of 5 x 5 cells either way it hangs: the same glass as the 10.1-inch
+# Guition JC8012P4A1. The panel itself is 800 x 1280 (portrait); LVGL turns the picture and the touch together. The
+# display, touch and backlight settings are the ones of packages/boards/waveshare101.yaml, the board with pre-v3
+# silicon, and everything but the chip revision and the display platform is shared with it
+# (packages/hardware/waveshare101.yaml). A pre-v3 firmware does not start a rev3 chip, and the other way round. On rev3
+# silicon ESPHome's own display driver aborts while the display starts (seen on this board, 2026-11-16:
+# `esp_lcd_new_dsi_bus`, at once after "Performing bus recovery", over and over); the display below says why this board
+# takes the repository's copy of it for now. With that copy the board starts, shows its pages and takes touches (the
+# same day, a unit of chip revision v3.2). The speaker (ES8311 and its amplifier) and the two microphones (ES7210) are on the main board this
+# 10.1-inch shares with the 7-inch ESP32-P4-WIFI6-Touch-LCD-7, wired as on the Waveshare P4 86 panel (Waveshare's
+# schematic), so they take its audio: hardware/wavesharep4-audio.yaml, with echo cancellation by default. Experimental:
+# nobody has tried the audio on this board yet. The microSD slot and the MIPI-CSI camera port are not configured.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/waveshare101v3.yaml (a build on this computer) and
+# packages/waveshare101v3.yaml (the package a screen builds from over GitHub).
+packages:
+  # The board apart from its chip revision and its display driver: the ESP32-P4 and its ESP32-C6, the flash, the touch
+  # panel and the backlight, shared with the board with pre-v3 silicon (waveshare101.yaml).
+  hardware: !include ../hardware/waveshare101.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
+  # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
+  audio: !include ../hardware/wavesharep4-audio.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare101v3"
+  DEVICE_NAME: "waveshare101v3-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare 10 V3"
+
+  # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
+  # touch together. 1509 diagonal pixels over 10.1 inches.
+  PANEL_W: "800"
+  PANEL_H: "1280"
+  DISPLAY_DPI: "149.449"
+  # The LVGL angle that lays this panel out lying down (1280 x 800), with the camera at the top as the community
+  # configuration hangs it. Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "270"
+  # The tile grid: columns and rows of cells, the 10.1-inch Guition's five by five, the same 25 cells either way up.
+  GRID_COLS: "5"
+  GRID_ROWS: "5"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, in PSRAM
+
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "20000Hz"                # the backlight's PWM (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers, the echo cancellation's audio stack) is built and tried on 2026.9.0,
+  # as on the Waveshare P4 86 panel, and its display platform, components/mipi_dsi_v3, is ESPHome 2026.9.0's mipi_dsi
+  # with one line changed. A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+esp32:
+  # Rev3 silicon: a pre-v3 firmware does not boot it, and the other way round (docs/WAVESHARE101.md).
+  engineering_sample: false
+
+# ESPHome's panel model `WAVESHARE-P4-NANO-10.1` brings the JD9365's init sequence and timings for two lanes; the reset
+# pin is this board's own, GPIO27, without which the panel never answers. The platform is the repository's mipi_dsi_v3
+# copy (components/mipi_dsi_v3): it leaves the DSI clock for ESP-IDF to choose, where the stock driver's fixed clock
+# aborts on rev3 silicon while the display starts (packages/boards/guition-jc8012p4a1-v3.yaml, GitHub #52).
+display:
+  - platform: mipi_dsi_v3
+    id: my_display
+    model: WAVESHARE-P4-NANO-10.1
+    reset_pin: GPIO27
+    dimensions: {width: 800, height: 1280}
+    update_interval: never
+    auto_clear_enabled: false

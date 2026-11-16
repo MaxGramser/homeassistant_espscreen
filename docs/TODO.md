@@ -47,9 +47,10 @@ keyboard with the item's name in the field.
 
 ## The keyboard
 
-The first keyboard of the firmware. It is a sheet at the bottom of the glass, never wider than 16.5 cm, with keys of at
-most 9 mm; on glass too short to keep the list above it, it takes the whole glass, so its keys stay at least 6.5 mm
-high.
+The screens' own keyboard (docs/KEYBOARD.md), with what this card asks of it: the blue plus as its send key, the
+names offered as its suggestions, and an item's 120 bytes. It is a sheet at the bottom of the glass, never wider than
+16.5 cm, with keys of at most 9 mm; on glass too short to keep the list above it, it takes the whole glass, so its keys
+stay at least 6.5 mm high.
 
 - One layout, QWERTY, with a page of digits (`123`) and a page of signs (`#+=`).
 - Holding a letter shows its accents in a strip above it (é è ê ë for e); a tap takes one.
@@ -111,12 +112,13 @@ screen: a tap, the keyboard ── event esphome.screen_todo ──> app ── 
 
 | Part | File |
 |---|---|
-| The views, the full screen and the keyboard, planned | `components/smart_display/module_todo.h` |
+| The views and the full screen, planned, and what it asks of the keyboard (`typing_spec`) | `components/smart_display/module_todo.h` |
 | Painting a plan, the finger, the requests | `components/smart_display/module_todo.cpp`, `module_todo_view.h` |
+| The keyboard (docs/KEYBOARD.md) | `components/smart_display/keyboard.h`, `keyboard_lvgl.h` |
 | Ordering, packing, the items' numbers, the subscriptions, a request's action | `screen_manager/app/todo_feed.py` |
 | The type | `catalogue/todo.yaml` |
 | The inspector's section | `web/src/components/inspector/TodoSection.vue` |
-| Tests | `tests/test_todo.cpp`, `tests/test_todo_feed.py` |
+| Tests | `tests/test_todo.cpp`, `tests/test_todo_feed.py`; the keyboard alone: `tests/test_keyboard.cpp` |
 | The real firmware drawing and tapping it on the host | `tools/render/run.py --only todo` |
 
 ## The places a change touches
@@ -124,7 +126,7 @@ screen: a tap, the keyboard ── event esphome.screen_todo ──> app ── 
 | Part | Files |
 |---|---|
 | Add-on | `todo_feed.py`, `server.py` (`subscribe_todo`, `todo_loop`, `answer_todo`, `sync_todos`, `todo_extras`, the `todo_lists` flag), `core.py` (the options), `page_layout.py`, `page_delivery.py` (`todo_items` in caps), `page_service.py` (`todo_due`) |
-| Firmware | `modules.py`, `module_todo.h`, `module_todo.cpp`, `module_todo_view.h`, `runtime_model.h`, `page_receiver.cpp` (`x.todo`), `runtime_tiles.h` (render, tap, full screen, close), `hw.cpp` (caps), `packages/core.yaml` (hello `todo_card`) |
+| Firmware | `modules.py`, `module_todo.h`, `module_todo.cpp`, `module_todo_view.h`, the keyboard's own (docs/KEYBOARD.md), `runtime_model.h`, `page_receiver.cpp` (`x.todo`), `runtime_tiles.h` (render, tap, full screen, close), `hw.cpp` (caps), `packages/core.yaml` (hello `todo_card`) |
 | Catalogue | `catalogue/todo.yaml`, `catalogue/_ha.json`, `tile_icons.py` (the icon) |
 | Editor | `TodoSection.vue`, `TileInspector.vue`, `model/tile-options.ts`, `pages.ts`, `page-validation.ts`, `layout.ts`, `library.ts`, `tile-text.ts`, `types.ts` |
 | Texts | `screen.todo`, `editor.tile.todo`, `editor.domains.todo`, `editor.library.filters.todo`, `editor.mockup.todo_*` |

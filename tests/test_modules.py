@@ -45,6 +45,7 @@ class ModuleTests(unittest.TestCase):
             self.assertIn(module['min_tier'], modules.TIERS, name)
             self.assertTrue((COMPONENT / f'module_{name}.h').exists(), f'module_{name}.h is missing')
             self.assertRegex(module['define'], r'^SD_MOD_[A-Z_]+$')
+            self.assertIs(type(module['preview']), bool, f'{name}: say whether the editor\'s firmware preview is built with it')
 
     def test_no_module_is_reached_outside_its_guard(self):
         # The code of the core, the board files and the packages: a module's namespace or header named anywhere
@@ -78,6 +79,23 @@ class ModuleTests(unittest.TestCase):
         self.assertEqual(modules.tier_for_flash(4), 'lite')
         self.assertEqual(modules.tier_for_flash(8), 'full')
         self.assertEqual(modules.tier_for_flash(None), 'full')
+
+
+class Preview(unittest.TestCase):
+    """The editor's firmware preview is built with the modules the table says, by the table (web/wasm/build.py)."""
+
+    def test_the_preview_build_names_no_module_by_hand(self):
+        root = COMPONENT.parents[1]
+        for script in ('web/wasm/build.py', 'web/wasm/generate_renderer_manifest.py'):
+            text = (root / script).read_text()
+            self.assertNotRegex(text, r"SD_MOD_[A-Z]", f'{script} names a module: it reads modules.py\'s preview column')
+            self.assertNotRegex(text, r'module_[a-z_]+\.cpp"', f'{script} names a module\'s source file by hand')
+            self.assertIn('preview_modules()', text)
+
+    def test_what_the_app_says_the_preview_draws_it_is_built_with(self):
+        # The add-on tells the editor that its preview draws sections (server.py, the preview's pages carry them).
+        self.assertIn('sections', modules.preview_modules())
+        self.assertEqual(modules.preview_modules(), [name for name, module in modules.MODULES.items() if module['preview']])
 
 
 if __name__ == '__main__':

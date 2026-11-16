@@ -30,4 +30,10 @@ constexpr int SEEN_LEVEL = 5;
 inline bool tiles_seen(bool awake, bool screensaver, int standby_level) {
   return awake || (!screensaver && standby_level >= SEEN_LEVEL);
 }
+// Where a picture card's name lies (render_camera_card) and where the live picture's copy of it lies (live_name): left,
+// as wide as the card's content, one line of the tile's font high, at the bottom. One place for both, so the name over a
+// live picture lies where the card's own did; a copy of the card's label once lay halfway up (a wallbox, 2026-10-28).
+struct NameBox { int x, y, w, h; };
+constexpr NameBox name_box(int width, int height, int line_h) { return {0, height - line_h, width, line_h}; }
+
 }  // namespace camera_view

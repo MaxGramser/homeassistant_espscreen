@@ -5,7 +5,7 @@ from a web service, hardware on one board, a feature not everyone needs. How to 
 [github.com/MaxGramser/tessera-plugins](https://github.com/MaxGramser/tessera-plugins) (its `docs/` and `AGENTS.md`).
 This page is the core's side: what the firmware, the add-on and the editor do, and the rules a change here keeps.
 
-Plugins are on in every app since 0.4.87 (the plugin API is 0.25 now); before, only in the dev app.
+Plugins are on in every app since 0.4.87 (the plugin API is 0.28 now); before, only in the dev app.
 `core.plugins_enabled()` is the one switch: false takes the Plugins page, its routes and its loops out of the app.
 
 **The API's number.** A plugin builds on every core with the same major and at least its minor. From 1.0 on that is a
@@ -29,7 +29,7 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
 | Add-on | `screen_manager/app/plugin_pictures.py` | What a plugin's places may show (0.10 a tile, 0.13 a card, 0.14 a screensaver): the manifest's rules for its addresses and the fetching of them, kept by address. The question, the painting and the link are the one picture system's (docs/PICTURES.md). |
 | Firmware | `components/smart_display/__init__.py` | `register_plugin()`, which a plugin's `__init__.py` calls: id, version, tile memory and screen texts from its manifest. `PLUGIN_API`. |
 | Add-on | `screen_manager/app/plugin_manifest.py` | Reads and checks a manifest. Standalone: the plugins repository's `tools/check.py` runs this file. `PLUGIN_API`. |
-| Add-on | `screen_manager/app/plugin_fetch.py` | The building block `fetch`: fill in, ask, map, cache, back off. |
+| Add-on | `screen_manager/app/plugin_fetch.py` | The building block `fetch`: fill in, ask, map, cache (at most `MAX_QUESTIONS` questions, the one asked longest ago makes way, never one a tile follows), back off (a failure per question; a service that answers 429 or 503 is left alone as a whole host for as long as its Retry-After says, `ServiceBusy`). |
 | Add-on | `screen_manager/app/plugin_store.py` | `/data/plugins.json` (per screen) and `/data/plugin_secrets.json` (0600). |
 | Add-on | `screen_manager/app/plugins.py` | The index and test folders, the editor's payload, the plugins file, adding and removing, a plugin tile's state message, the fetch loop. |
 | Add-on | `firmware.py` (`PLUGINS_SUFFIX`, `save_plugins`), `page_layout.py`, `core.py` (`plugin_tile`, `PLUGIN_MEMORY`), `page_delivery.py` (`plugins_of`) | The sidecar, the document, the layout check and price, the negotiation. |
@@ -42,7 +42,8 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    the protocol and the layout check see it, that is `entity: "plugin:ov_departures.next"` with `options.plugin`.
    `core.entity_id()` is unchanged (commands and events use it); `core.plugin_tile()` is the second kind a layout takes.
 2. **The layout check** keeps only the shape of a plugin tile: its size, colour, icon, `tap` (auto or none) and at most
-   twelve options of its own, each a short text, a number, true/false, a pick, an entity or a list (0.12, "Values of JSON" below),
+   24 options of its own (12 before plugin API 0.26; `core.PLUGIN_OPTION_MAX`, a test keeps it equal with the manifest
+   check's and the editor's), each a short text, a number, true/false, a pick, an entity or a list (0.12, "Values of JSON" below),
    together at most 1280 bytes of JSON (`core.plugin_options`, the editor's `pluginOptionsShape`). Whether a value fits
    its option is the manifest's (`plugin_manifest.option_value`, in `Plugins.values_of`). A saved layout never becomes
    unreadable because a plugin left a screen.
@@ -58,7 +59,7 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    options with the manifest's defaults) and `x`: the mapped answer of its fetch and, for a tile of an entity
    (`Plugins.entity_part`), the entity's state, name, the attributes the manifest names and the `fields` it takes out
    of them. `x` gets what the 4 KB message leaves after the rest of it, the tile's options included, and at most 2.6 KB
-   (`X_BUDGET`): about 2 KB beside options that take their whole 1280 bytes. Bytes decide, not a count: a text is cut at 48 bytes, and lists are
+   (`X_BUDGET`): about 2 KB beside options that take their whole 1280 bytes. Bytes decide, not a count: a text is cut at 48 bytes once, where its kind is known (`plugin_fetch.field_value`: a text at `TEXT_BYTES`, an address `as: url` whole up to `URL_BYTES`; `plugins.bounded` cuts only an answer that came without a map and never guesses a kind), and lists are
    shortened, all to the same length from the end, only when together they do not fit. Two days of 96 prices fit
    whole. A list of objects never goes as it is: `fields` with `as: numbers` turns `raw_today[*].value` into one list
    of numbers.
@@ -66,8 +67,11 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    the entities of those domains in a searchable picker. The add-on adds the chosen entity under
    `x.entities.<option id>` with the same bounded state, name and named attributes, and `updated`, when Home Assistant
    last heard from it (seconds since 1970), so a tile of several sources can say how old its values are. The chosen
-   entities share what the tile's own entity and data leave of the room: one that does not fit waits as `too_large`
-   alone. The add-on follows every chosen entity (`related_entities`, with the screen's own plugin) and sends the tile
+   entities, the tile's own entity and its data share the room by one rule (`plugins.shared`): the smallest parts go
+   whole and the rest of the room is split alike among the larger, each fitted to its share (an entity's lists
+   shortened alike, a fetch's last items first, `fitted_data`). So a place of a hundred bytes always goes whole beside a
+   sky of aircraft, two long parts each give way, and a part that cannot fit at all waits as `too_large` in its own
+   place without taking the tile with it. A screensaver step's entity and data share its room the same way. The add-on follows every chosen entity (`related_entities`, with the screen's own plugin) and sends the tile
    again when one changes; a choice is part of the layout, so it changes without a build. A choice of another domain
    is left out. The tile's own entity (`plugin_entity`) keeps its `x` as before, without `updated`.
 6. **On the screen** `page_receiver` keeps `o.plugin` and `x` as JSON in the tile's `Extra` (`plugin_options`,
@@ -115,6 +119,9 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
   failed (`failed_update`), which the editor says, offering the update again. So a failed plugin never makes the
   screen's next build fail, an update of the core or a build in Device Builder. A build the app lost (a restart during
   it) counts as failed (`settle`).
+- A plugin someone added with a link, or was making in a folder, that no screen runs (from that folder) has Remove in its
+  details on the Plugins page (`forgettable`): a link is forgotten (`forget_link`), a folder is moved to
+  `tessera-plugins/.removed/<id>` (`forget_folder`), never deleted, since it may be the only copy of someone's work.
 - Removing a screen removes its plugins and its secrets for that screen alone, and, when no screen uses a plugin any
   more, all of its secrets.
 
@@ -216,6 +223,14 @@ beside it, read again a few times after a press, so a test can say how it went. 
 |---|---|---|---|
 | A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector, `preview` drawn from the data |
 | How large a tile is (0.25) | `TileContext::full`, the tile is the whole page; `columns` and `rows` are then the grid's | the manifest's `sizes`: `min` and `max`, `full: true` for the whole page beside them, or `full: true` alone for a tile that only takes the whole page (`plugin_manifest`, `min` and `max` then `None`); no layout check, a saved layout stays readable | `tileSizeChoices`: the rectangles from `min` to `max`, and the whole page with `full: true` or where `max` reaches the grid (a rectangle that fills the grid is called `full`, never a span). A new tile starts at the smallest size it takes (`startTile`); the inspector's Whole page switch, because a tile of at most 2 x 2 has no way there along its edges |
+| A card's own colour (0.26) | `ui::set_card_color(CardColor)` in a call of the tile: the host keeps the colour with the plugin's card (`Card::ground`, a swatch's light value as `Tile::background` keeps one), `render_slot`'s palette takes it over the tile's own (`plugin_host::ground`) for the card, its hairline, its shade under a finger and the corners of its pictures, and a call outside `render()` (a tick, a tap) marks the tile for the next pass. `ui::card_color()` is the card as it is drawn, `ui::card_color(CardColor)` a named colour in this look. A tile with background None keeps no card. | nothing | nothing: the mockup draws the plain card |
+| Entities of one kind, and a device that fills them (0.26) | nothing: the tile reads `x.entities.<option id>` as since 0.15 | an entity option's `device_class` and `matches` (`plugin_manifest.check_option`, `entity_fits`: the entity's device class, its registry translation key, or the end of its id), a tile's `from_device` (`check_tile`: at least two such options); `Plugins.payload` gains `entity_facts` (per fitting entity its device, device class, translation key, whether it is disabled or a diagnostic; `plugins.entity_facts`, at most 2000) and `devices` (their names), from the registries the add-on already reads. The layout check does not use the filter: an entity that does not fit stays valid | `PluginOptions.vue`: the picker offers what fits, with a key under the list for every entity of the domains (`UiPicker`'s `foot`); `PluginTileInspector.vue`: "Fill from a device", the devices with entities for at least two options, most first, and the pick per option (`model/plugins.ts`: enabled, no diagnostic, no `raw` between underscores, then the shortest id) |
+| Options in a group, a number that may stay empty, 24 options (0.26) | nothing: an empty optional number is absent from `TileContext::options` | an option's `group` (a text key), a number's `optional` and `placeholder_from` (`check_option`, `check_options`: the option named is a choice of the same tile with fixed `choices`); `MAX_OPTIONS` 24 for a tile, 12 for a screensaver; `needs_api` refuses each in a manifest of an `api` before 0.26 | a group is a folded `Section` after the options without one, open once one of its options has a value; an optional number is a field that may be empty, with the number of `placeholder_from` for the choice now set as its placeholder |
+| Pictures in a popup (0.27) | `show_popup(plugin, id, make, width)`: the host keeps the popup's key (`plugin:<plugin>.<id>`) and its places (`OpenPopup::places`, `popup_call` points `placing` at them), asks for them as a card's question of that key (`popup_picture_want`, from `card_picture_want`; `POPUP_OWNER`, `Kind::CARD` 3, ground `RAISED`), takes the answer `pcard` by key and number (`card_picture_answer`, `card_question`; one count `card_number` for cards and popups), and lets the picture go when the popup goes (`popup_pictures_end`); `Popup::on_picture` | the manifest's `popups` (`{id, pictures}`, ids apart from the cards'); `Manager.plugin_place` finds a popup as a card for its rights: the hosts of `permissions.network`, never Home Assistant's pictures | nothing |
+| A part turned along a course (0.27) | `ui::rotate(part, degrees)`: LVGL's transform rotation around the part's middle (pivot 50 %), set only when it differs | nothing | nothing |
+| A picture's address in a fetch (0.28) | nothing: the screen gets the address as any text and hands it to `ui::set_picture` | `as: url` in a map's fields (`FIELD_KINDS`, `URL_API`): `plugin_fetch.field_value` keeps an http(s) address whole up to `URL_BYTES` (255), or gives none, where a text stops at 48 bytes and a cut address names another file | nothing |
+| A card that is an instrument's face (0.28) | `ui::set_card_color(CardColor::INSTRUMENT)`: `face_of` gives `theme::Face::instrument()`, and `theme::surface`, `outline` and `pressed` draw it as `INSTRUMENT` and `INSTRUMENT_LINE` in both looks, its press towards white in both (`tests/test_theme.cpp`) | nothing | nothing: the mockup draws the plain card |
+| An instrument's roles (0.27) | `theme::INSTRUMENT`, `INSTRUMENT_LINE`, `INSTRUMENT_INK`, `INSTRUMENT_MUTED`, `INSTRUMENT_GLOW`: dark in both looks (`tests/test_theme.cpp` holds their contrast) | nothing | nothing |
 | Values of JSON (0.12) | `TileContext::options` holds lists and picks; `tessera::action` with a JSON object | `multiple`, `search`, `each`, `{name\|,}`; above | `PluginListOption.vue` |
 | A tile of an entity | `TileContext.entity`, `tessera::action` | the manifest's `domains`, `attributes` and `fields`; `Plugins.entity_part` (state, name, named attributes, fields), `related_entities`; `has_attributes` through `Plugins.entities_with` | entity picker of those domains, also ones Tessera draws no tile for; with `has_attributes` only the entities that have them, and always the one chosen (`offeredEntities`) |
 | A card | `Card`, `add_card`, `open_card`; closed by `hide_detail`; `on_tap` (0.12): a short tap on its room through the tiles' guard (`rt::allowed`), keyed by an 8 mm spot so a bounce on one row is one tap and the next row its own, with `tap_point()` in the room's pixels (`card_tap`) | nothing | nothing |

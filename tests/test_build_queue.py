@@ -9,7 +9,6 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_queue import BuildQueue, Round  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None

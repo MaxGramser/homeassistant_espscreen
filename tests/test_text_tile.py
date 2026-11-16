@@ -149,8 +149,12 @@ class Limits(unittest.TestCase):
         budgets = [int(n) for n in re.findall(r'constexpr unsigned MAX_BYTES = (\d+);', header)]
         self.assertEqual(sorted(budgets), [text_tile.DEFAULT_BYTES, text_tile.MAX_BYTES])  # an S3's and a P4's
         self.assertLessEqual(text_tile.MAX_BYTES + 512, page_delivery.MAX_MESSAGE)
-        self.assertIn(f'MAX_TILES = {text_tile.DEFAULT_TILES};', header)
-        self.assertIn(f'MAX_ROWS = {text_tile.MAX_ROWS}, MAX_CELLS = {text_tile.MAX_COLUMNS}, MAX_RUNS = {text_tile.MAX_RUNS};', header)
+        # A rule between the two sides: each number the screen holds is the app's, whatever else the header says.
+        numbers = dict(re.findall(r'\b(MAX_TILES|MAX_ROWS|MAX_CELLS|MAX_RUNS) = (\d+)', header))
+        self.assertEqual({key: int(value) for key, value in numbers.items()},
+                         {'MAX_TILES': text_tile.DEFAULT_TILES, 'MAX_ROWS': text_tile.MAX_ROWS, 'MAX_CELLS': text_tile.MAX_COLUMNS,
+                          'MAX_RUNS': text_tile.MAX_RUNS},
+                         'module_text_card.h and text_tile.py hold one set of numbers: change both')
 
     def test_the_fullest_tile_fits_a_message(self):
         tile = {'entity': 'screen.text', 'name': 'x' * 80, 'options': {'size': '4x4'}}

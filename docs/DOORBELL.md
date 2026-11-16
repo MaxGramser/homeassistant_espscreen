@@ -143,6 +143,7 @@ listed too, but left alone.
 | The missed ring in the top bar | `page_service.sync_pages` (`with_missed`), the item's `b`, and its `x` (`Doorbells.bar_item`; the screen's `header_bar::shown_at`, tests/test_header_bar.cpp) |
 | The op `doorbell` | `page_receiver.cpp` |
 | The view, the chime, the times | `module_doorbell.cpp` (module doorbell), hooked into the camera full view of `runtime_tiles.h` |
+| How long a ring stays, its chime and sound, which keys the view has | `doorbell_ring.h` (tests/test_doorbell_ring.cpp), which `module_doorbell.cpp` asks; tests/test_doorbell.py keeps its times and the door's numbers equal to the app's |
 | The door key: its two taps, which lock states open, its looks | `doorbell_door.h` (tests/test_doorbell_door.cpp); the app's `Manager.doorbell_open_door` and `doorbell_follow_lock` |
 | The report of how a ring ended | `doorbell_report` in `packages/core.yaml`, the event `esphome.screen_doorbell` |
 
@@ -154,8 +155,9 @@ The view never lays anything of LVGL over its picture: a live picture is written
 The view has a **Talk** key when Home Assistant offers two-way audio for the ring's camera (Settings > Labs > Two-way
 audio, Home Assistant 2026.11 and later) and the screen has a microphone. A tap turns it on, a tap turns it off, because a
 held finger would cover the key and a screen on the wall is tiring to hold. Connecting, the key is blue and says so; while
-it talks it says **Talking** with the level of your voice at its end, and a tap stops it. It goes off when the view closes
-and after a minute without a voice.
+it talks it says **Talking** with the level of your voice at its end, and a tap stops it. On a key too narrow for the words
+and the level side by side (three keys under the picture of a glass standing up) the level is left out. It goes off when
+the view closes and after a minute without a voice.
 
 The screen sends its microphone to the app as plain 16 kHz PCM (docs/CALLS.md, "The voice"). The app makes it 8 kHz G.711
 and sends it to the camera in a second WebRTC session of Home Assistant's, with one send-only audio track offering PCMA first

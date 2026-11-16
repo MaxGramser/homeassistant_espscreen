@@ -7,7 +7,6 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "screen_manager/app"))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import NO_TITLE_MIN_FIRMWARE, Grid, firmware_features, min_firmware, validate_layout
 from layout_migrations import migrate_legacy
 from page_layout import compile_tiles, validate_document

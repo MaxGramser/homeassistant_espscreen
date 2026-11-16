@@ -7,6 +7,7 @@ const row = (key: string) => SETTING_GROUPS.flatMap((group) => group.rows as rea
 
 describe("the screen's settings", () => {
   it("steps a duration as settings_screen.h: half minutes low down, half hours up top", () => {
+    // The same edges tests/test_settings_screen.cpp steps the firmware's ladder_step over.
     expect([299, 300, 899, 900, 3599, 3600, 7199, 7200].map(ladderStep)).toEqual([30, 60, 60, 300, 300, 900, 900, 1800]);
     const standby = row("standby_seconds");
     expect(steppedSetting(standby, 270, 1, false, {})).toBe(300);
@@ -41,5 +42,13 @@ describe("the screen's settings", () => {
     expect(rowText(row("night_end"), { night_end: null }, true)).toBe("—");
     expect([45, 120, 7200].map(durationText)).toEqual(["45 sec", "2 min", "2 h"]);
     expect(momentText(30, false)).toBe("12:30 AM");
+  });
+});
+
+describe("Dark mode in the editor (firmware 0.2.54)", () => {
+  it("is a switch right under Brightness and above standby, as on the screen", () => {
+    const rows = SETTING_GROUPS.find((g) => g.group === "brightness")!.rows.map((r) => r.key as string);
+    expect(rows.slice(0, 3)).toEqual(["brightness", "dark_mode", "standby_enabled"]);
+    expect(SETTING_GROUPS.flatMap((g) => g.rows as readonly SettingRow[]).find((r) => r.key === "dark_mode")?.kind).toBe("toggle");
   });
 });

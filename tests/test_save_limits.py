@@ -18,7 +18,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import (ACTION_MAX_BYTES, MAX_TILES, apply_tile_event, encode, layout_snapshot, pack_slots, packed_slots,  # noqa: E402
                   validate_layout, validate_tap_action, action_for_screen)
 

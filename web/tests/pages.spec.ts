@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { validateCardOptions } from "../src/model/page-validation";
 import { i18n, loadLanguage } from '../src/i18n';
 import type { Page, PageGrid, PageLayout, PageTile } from "../src/types";
 import { arrangeTiles, changePages, clone, connections, deletePage, duplicatePage, emptyLayout, emptyPage,
@@ -290,5 +291,25 @@ describe("page-owned document operations", () => {
     expect(Object.keys(positions)).toHaveLength(3);
     expect(new Set(Object.values(positions).map((p) => `${p.x}:${p.y}`)).size).toBe(3);
     expect(layout).toEqual(before);
+  });
+});
+
+describe("a lock's guard (firmware 0.5.0)", () => {
+  const lock = (guard: string, entityId = "lock.front"): PageTile => ({ id: "lock-card", content: { kind: "entity", entityId },
+    placement: { row: 0, column: 0, rows: 1, columns: 1 }, appearance: { label: "" }, interaction: { guard } } as PageTile);
+  it("takes the catalogue's two choices for a lock and nothing else", () => {
+    expect(() => validateCardOptions(lock("lock_only"), "lock.front", "single")).not.toThrow();
+    expect(() => validateCardOptions(lock("confirm"), "lock.front", "single")).not.toThrow();
+    expect(() => validateCardOptions(lock("never"), "lock.front", "single")).toThrow();
+    expect(() => validateCardOptions(lock("lock_only", "light.a"), "light.a", "single")).toThrow();
+  });
+});
+
+describe("an automation's run tap (firmware 0.7.0)", () => {
+  const card = (entityId: string, tap: string): PageTile => ({ id: "auto-card", content: { kind: "entity", entityId },
+    placement: { row: 0, column: 0, rows: 1, columns: 1 }, appearance: { label: "" }, interaction: { tap } } as PageTile);
+  it("is a choice of an automation alone, from the catalogue", () => {
+    expect(() => validateCardOptions(card("automation.a", "run"), "automation.a", "single")).not.toThrow();
+    for (const entity of ["script.a", "switch.a", "scene.a"]) expect(() => validateCardOptions(card(entity, "run"), entity, "single")).toThrow();
   });
 });

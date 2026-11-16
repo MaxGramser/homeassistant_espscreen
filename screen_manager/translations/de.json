@@ -926,7 +926,11 @@
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
         "update_tall": "Aktualisiere den Bildschirm, um diese Kachelgrößen zu verwenden",
         "memory": "Der Bildschirm hat nicht genug freien Speicher für dieses Layout. Verwende weniger Kacheln.",
-        "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster."
+        "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster.",
+        "section_title": "Ein Bereich braucht einen Namen von höchstens 48 Bytes.",
+        "section_tiles": "Die Kacheln eines Bereichs müssen in ihm stehen, und eine Kachel über die ganze Seite steht nie in einem Bereich.",
+        "section_overlap": "Bereiche und lose Kacheln dürfen nicht auf denselben Zellen stehen.",
+        "sections_full": "Eine Seite hat höchstens 16 Bereiche."
       },
       "feedback": {
         "invalid": "Diese Antwort kann nicht geteilt werden. Wähle Ja oder Nicht ganz und nur die genannten Probleme.",
@@ -1969,7 +1973,8 @@
         "lock": "Schlösser",
         "humidifier": "Luftbefeuchter",
         "calendar": "Kalender",
-        "todo": "To-do-Listen"
+        "todo": "To-do-Listen",
+        "text": "Texte"
       },
       "room": "Bereich",
       "hide_placed": "Platzierte ausblenden",
@@ -2081,7 +2086,10 @@
         "ha_none": "Führt keine Aktionen in Home Assistant aus",
         "network": "Verbindet sich mit {hosts}",
         "network_none": "Baut keine Verbindungen außerhalb von Home Assistant auf",
-        "read": "Liest diese Entitäten aus Home Assistant"
+        "read": "Liest diese Entitäten aus Home Assistant",
+        "sends": "Sendet an {host}: {what}",
+        "sends_option": "{attributes} der Entität, die du für {option} wählst",
+        "sends_state": "Zustand"
       },
       "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf, und sein Build läuft in dieser App, wo er an deine Home-Assistant-Konfiguration herankommt. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
       "room": {
@@ -2417,7 +2425,14 @@
       "remove": "{name} entfernen",
       "type": "Eingeben und Enter drücken",
       "full": "Der Bildschirm nimmt für diese Kachel nicht mehr auf: ihre Optionen sind voll.",
-      "count": "{n} von {max}"
+      "count": "{n} von {max}",
+      "show_all": "Alle Entitäten anzeigen",
+      "show_fitting": "Nur Passende anzeigen",
+      "not_set": "Nicht festgelegt",
+      "fill_device": "Von einem Gerät ausfüllen",
+      "fill_device_hint": "Wähle ein Gerät, und seine Sensoren werden unten eingetragen. Du kannst jeden danach noch ändern.",
+      "fill_device_none": "Kein Gerät hat zwei oder mehr dieser Sensoren",
+      "fill_device_count": "1 Sensor | {n} Sensoren"
     },
     "memory": {
       "label": "Speicher für Kacheln",
@@ -2468,7 +2483,9 @@
       "lock": "Schloss",
       "humidifier": "Luftbefeuchter",
       "calendar": "Kalender",
-      "todo": "To-do-Liste"
+      "todo": "To-do-Liste",
+      "text": "Text",
+      "input_text": "Text"
     },
     "displays": {
       "standard": "Standard",
@@ -2989,6 +3006,10 @@
         "suggest_hint": "Beim Tippen bietet die Tastatur an, was früher abgehakt wurde; ein Tipp setzt es zurück auf die Liste",
         "clear": "Erledigte entfernen",
         "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
+      },
+      "text_entity": {
+        "edit": "Ein Tippen öffnet den Wert in einem Feld mit der Tastatur des Bildschirms. Ein Passwort erscheint als Punkte.",
+        "view_only": "Dieses Board zeigt nur den Wert: Ändern auf dem Bildschirm braucht ein Board mit 8 MB Flash oder mehr."
       }
     },
     "precision": {
@@ -4240,7 +4261,8 @@
         "layout_imported": "Layout importiert",
         "changed": "Layout geändert",
         "restored": "nicht gespeicherte Änderungen wiederhergestellt",
-        "taken_over": "Änderungen aus dem anderen Tab übernommen"
+        "taken_over": "Änderungen aus dem anderen Tab übernommen",
+        "auto_layout": "das für dich erstellte Layout"
       }
     },
     "draft": {
@@ -4629,6 +4651,105 @@
     },
     "drawer": {
       "resize": "Breite der Einstellungen: ziehen oder die Pfeiltasten nutzen; Doppelklick setzt sie zurück"
+    },
+    "sections": {
+      "untitled": "Bereich",
+      "kind": "Bereich",
+      "choose_tiles": "Wähle zuerst die Kacheln für den Bereich.",
+      "one_page": "Die Kacheln eines Bereichs stehen auf einer Seite: Wähle Kacheln einer Seite.",
+      "already_in": "Eine dieser Kacheln steht schon in einem Bereich. Nimm sie zuerst heraus oder wähle lose Kacheln.",
+      "no_full": "Eine Kachel über die ganze Seite kann nicht in einem Bereich stehen.",
+      "too_tall": "Diese Kacheln brauchen mehr Zeilen, als die Seite hat. Wähle weniger oder mache den Bereich breiter.",
+      "no_room": "Dafür ist hier kein Platz: Andere Kacheln oder Bereiche stehen im Weg.",
+      "no_room_page": "Kein Platz für den Bereich auf Seite {page}.",
+      "removed": "Bereich entfernt, seine Kacheln bleiben stehen",
+      "removed_with_tiles": "Bereich mit seinen Kacheln entfernt",
+      "resize_columns": "Bereich breiter oder schmaler machen",
+      "resize_rows": "Bereich höher oder niedriger machen",
+      "head_title": "Ziehen, um den Bereich zu verschieben, klicken für seine Einstellungen",
+      "aria": "Bereich {title}",
+      "rename": "Bereich umbenennen",
+      "title": "Name",
+      "make": "Bereich erstellen",
+      "add": "Abschnitt hinzufügen",
+      "add_here": "Abschnitt hier hinzufügen",
+      "library_hint": "Eine Gruppe von Kacheln mit Titel",
+      "make_now": "Bereich erstellen",
+      "name_placeholder": "Name, zum Beispiel Licht",
+      "in_section": "In diesem Bereich",
+      "update_screen": "Die Firmware dieses Bildschirms zeichnet noch keine Bereiche: Er zeigt dieselben Kacheln ohne sie. Aktualisiere den Bildschirm, um sie zu sehen.",
+      "head": "Titel",
+      "no_icon": "Kein Symbol",
+      "summary": "Zusammenfassung",
+      "summary_none": "Keine",
+      "summary_search": "Entitäten suchen",
+      "summary_none_found": "Keine Entität gefunden",
+      "summary_clear": "Keine Zusammenfassung",
+      "summary_hint": "Der Zustand einer Entität rechts neben dem Titel, etwa eine Temperatur oder wie viele Lampen an sind.",
+      "size": "Größe",
+      "columns": "Spalten",
+      "rows": "Zeilen",
+      "narrower": "Schmaler",
+      "wider": "Breiter",
+      "lower": "Niedriger",
+      "taller": "Höher",
+      "size_hint": "Ein Bereich wächst nur in leere Zellen. Wird er zu schmal für seine Kacheln, rücken sie in Lesereihenfolge nach.",
+      "loose_hint": "1 lose Kachel steht neben einem Bereich. Lose Kacheln lesen sich am besten als eigene Zeile über den Bereichen. | {n} lose Kacheln stehen neben einem Bereich. Lose Kacheln lesen sich am besten als eigene Zeile über den Bereichen.",
+      "loose_row": "Zur Zeile machen",
+      "short_grid": "Auf einem Raster mit {rows} Zeilen nimmt der Titel eines Bereichs seinen Kacheln viel Platz: Jede ist dann etwa {with} mm statt {without} mm hoch. Kacheln außerhalb von Bereichen behalten ihre Höhe.",
+      "remove": "Bereich entfernen",
+      "remove_with_tiles": "Bereich und Kacheln entfernen",
+      "settings": "Bereichseinstellungen",
+      "contrast": "Kontrasthintergrund",
+      "contrast_hint": "Das Feld in der Gegenfarbe der Seite, dunkel am Tag und hell im Dunkelmodus, damit dieser Bereich hervorsticht.",
+      "contrast_tiles": "Kacheln auch im Kontrast",
+      "contrast_tiles_hint": "Der ganze Bereich im anderen Aussehen, die Karten der Kacheln auch: dunkle Karten auf dunklem Feld am Tag, helle im Dunkelmodus."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Licht",
+        "covers": "Rollos & Fenster",
+        "climate": "Klima",
+        "media": "Medien",
+        "security": "Sicherheit",
+        "actions": "Szenen",
+        "others": "Geräte",
+        "weather": "Wetter",
+        "people": "Wer ist zu Hause",
+        "energy": "Energie",
+        "cameras": "Kameras",
+        "vacuum": "Staubsauger",
+        "todo": "Listen",
+        "calendar": "Kalender"
+      },
+      "home": "Zuhause",
+      "all_lights": "Alle Lichter",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} und {n} weitere",
+      "button": "Automatisches Layout",
+      "button_title": "Seiten aus deinen Home-Assistant-Bereichen und -Geräten erstellen",
+      "title": "Ein Layout für dich erstellen",
+      "intro": "Tessera sieht sich deine Bereiche und Geräte in Home Assistant an und erstellt Seiten für diesen Bildschirm: eine Seite oder einen Abschnitt pro Raum, Wetter, Alarm, Personen und Kameras des Hauses zusammen, größere Kacheln, wo dieser Bildschirm Platz dafür hat. Du kannst es rückgängig machen und danach alles ändern.",
+      "reading": "Dein Zuhause wird gelesen…",
+      "failed": "Dein Zuhause konnte nicht gelesen werden: {error}",
+      "nothing": "Tessera hat noch nichts für diesen Bildschirm gefunden. Gib deinen Geräten in Home Assistant einen Bereich oder füge Kacheln aus der Bibliothek hinzu.",
+      "nothing_new": "Alles, was Tessera auf diesen Bildschirm setzen würde, ist schon darauf.",
+      "summary": "{pages} Seite · {tiles} Kacheln | {pages} Seiten · {tiles} Kacheln",
+      "summary_sections": "{n} Abschnitt | {n} Abschnitte",
+      "from_rooms": "aus einem Raum | aus {n} Räumen",
+      "left_out": "Eine weitere Entität fand keinen Platz auf diesem Bildschirm; sie ist in der Bibliothek. | {n} weitere Entitäten fanden keinen Platz auf diesem Bildschirm; sie sind in der Bibliothek.",
+      "replace": "Seiten ersetzen",
+      "replace_hint": "Der Bildschirm bekommt diese Seiten statt der jetzigen.",
+      "append": "Nach den jetzigen Seiten hinzufügen",
+      "append_hint": "Die jetzigen Seiten bleiben, die neuen kommen danach, mit dem, was noch nicht auf dem Bildschirm ist.",
+      "append_full": "Auf diesem Bildschirm sind keine Seiten oder Kacheln mehr frei. Ersetze die Seiten oder schaffe zuerst Platz.",
+      "make": "Layout erstellen",
+      "made": "Ein Layout mit {pages} Seite ist fertig. Rückgängig nimmt es zurück. | Ein Layout mit {pages} Seiten ist fertig. Rückgängig nimmt es zurück.",
+      "offer_title": "Soll ich ein erstes Layout für dich erstellen?",
+      "offer_text": "Tessera kann diesen Bildschirm aus deinen Home-Assistant-Bereichen und -Geräten einrichten. Danach kannst du alles ändern.",
+      "offer_make": "Erstes Layout erstellen",
+      "offer_empty": "Leer beginnen"
     }
   }
 }

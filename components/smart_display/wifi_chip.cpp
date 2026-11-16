@@ -25,16 +25,10 @@ void reset_whole_system() { esp_rom_software_reset_system(); }
 // Before app_main, so before every other handler: esp_restart() runs them newest first, this one last.
 __attribute__((constructor)) void restart_whole() { esp_register_shutdown_handler(reset_whole_system); }
 
-std::string told;
+FirmwareOnce once;
 
-}  // namespace
-
-std::string firmware() {
-  if (!told.empty())
-    return told;
-  auto *wifi = esphome::wifi::global_wifi_component;
-  if (wifi == nullptr || !wifi->is_connected())
-    return "unknown";
+// One RPC over the link: the C6's own version, beside the host driver's this firmware was built with.
+std::string ask_c6() {
   esp_hosted_coprocessor_fwver_t ver{};
   char text[64];
   if (esp_hosted_get_coprocessor_fwversion(&ver) == ESP_OK) {
@@ -45,9 +39,19 @@ std::string firmware() {
     snprintf(text, sizeof(text), "ESP-Hosted unknown (host %d.%d.%d)", ESP_HOSTED_VERSION_MAJOR_1,
              ESP_HOSTED_VERSION_MINOR_1, ESP_HOSTED_VERSION_PATCH_1);
   }
-  told = text;
   ESP_LOGI(TAG, "Wi-Fi co-processor: %s", text);
-  return told;
+  return text;
+}
+
+}  // namespace
+
+std::string firmware() {
+  return once.get(
+      [] {
+        auto *wifi = esphome::wifi::global_wifi_component;
+        return wifi != nullptr && wifi->is_connected();
+      },
+      ask_c6);
 }
 
 }  // namespace wifi_chip

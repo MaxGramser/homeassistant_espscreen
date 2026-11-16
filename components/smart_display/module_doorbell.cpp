@@ -24,6 +24,7 @@
 #include "runtime_tiles.h"
 #include "module_doorbell.h"
 #include "doorbell_door.h"
+#include "doorbell_ring.h"
 #include "hw.h"
 #include "plugin_host.h"
 #include "settings_screen.h"
@@ -45,7 +46,7 @@ const char *const MICROPHONE = "\U000F036C";
 // Nobody touched it: it closes the ring's timeout after the last ring (the event's, a minute unless it says). Someone did:
 // five minutes after the last touch or ring, as a battery doorbell stops streaming after a few minutes anyway.
 constexpr uint32_t ANSWERED_MS = 300000;
-uint32_t untouched_ms = 60000;
+uint32_t untouched_ms = doorbell_ring::untouched_ms(0);
 // The ring around the disc while it rings.
 constexpr uint32_t RINGING_MS = 15000;
 // Talk turns itself off after a minute without a voice, and a key that could not connect says so for a moment.
@@ -79,6 +80,9 @@ int door_word_x = 0, door_word_top = 0, door_word_alone = 0;
 // The Talk key (talk_uplink.h), what it shows now, and the voice's bars at its end while it talks.
 constexpr int TALK_BARS = 5;
 lv_obj_t *talk_key = nullptr, *talk_icon = nullptr, *talk_text = nullptr, *talk_line = nullptr, *talk_bars[TALK_BARS] = {};
+// Whether the bars fit beside the words: on a narrow key (three side by side on a glass standing up) the blue key and
+// its words say it alone.
+bool talk_bars_fit = false;
 lv_timer_t *talk_timer = nullptr;
 talk_uplink::State talk_shown = talk_uplink::State::OFF;
 int talk_bar_h = 0;
@@ -218,7 +222,10 @@ lv_obj_t *pill(lv_obj_t *root, const live_view::Rect &at, lv_obj_t *&icon, lv_ob
   lv_obj_set_style_bg_opa(key, LV_OPA_COVER, 0);
   // The glyph a padding in from the left, the word a quarter of the key's height after it, both on its middle line
   // (this LVGL has no flex layout).
-  const int pad = at.h * 42 / 100, word_x = word_at(at.h);
+  // The words end a quarter of the key's height before its round end: three keys side by side under the picture of
+  // a glass standing up leave each about a fifth of the glass, and "Sound on" broke onto two lines with the glyph's
+  // padding on both sides (a render of the reTerminal D1001 standing, 2026-11-11). One line each: a longer word dots.
+  const int pad = at.h * 42 / 100, word_x = word_at(at.h), words = std::max(1, at.w - word_x - at.h / 4);
   icon = lv_label_create(key);
   if (mini_icon_font) lv_obj_set_style_text_font(icon, mini_icon_font, 0);
   lv_obj_align(icon, LV_ALIGN_LEFT_MID, pad, 0);
@@ -227,7 +234,7 @@ lv_obj_t *pill(lv_obj_t *root, const live_view::Rect &at, lv_obj_t *&icon, lv_ob
   const lv_font_t *word = title_font();
   if (word) lv_obj_set_style_text_font(text, word, 0);
   lv_label_set_long_mode(text, LV_LABEL_LONG_DOT);
-  lv_obj_set_width(text, std::max(1, at.w - word_x - pad));
+  lv_obj_set_size(text, words, word ? lv_font_get_line_height(word) : LV_SIZE_CONTENT);
   lv_obj_align(text, LV_ALIGN_LEFT_MID, word_x, 0);
   for (auto *part : {icon, text}) {
     lv_obj_remove_flag(part, LV_OBJ_FLAG_CLICKABLE);
@@ -239,7 +246,7 @@ lv_obj_t *pill(lv_obj_t *root, const live_view::Rect &at, lv_obj_t *&icon, lv_ob
     *line = lv_label_create(key);
     if (detail_font) lv_obj_set_style_text_font(*line, detail_font, 0);
     lv_label_set_long_mode(*line, LV_LABEL_LONG_DOT);
-    lv_obj_set_width(*line, std::max(1, at.w - word_x - pad));
+    lv_obj_set_size(*line, words, detail_font ? lv_font_get_line_height(detail_font) : LV_SIZE_CONTENT);
     lv_obj_remove_flag(*line, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_text_color(*line, theme::color(theme::ON_ACCENT), 0);
     const auto rows = two_rows(at.h);
@@ -295,7 +302,7 @@ void paint_talk(talk_uplink::State state) {
                                   : show == State::FAILED ? txt::doorbell_talk_failed
                                   : txt::doorbell_tap_talk));
   for (auto *bar : talk_bars) {
-    if (show == State::LIVE) lv_obj_remove_flag(bar, LV_OBJ_FLAG_HIDDEN);
+    if (show == State::LIVE && talk_bars_fit) lv_obj_remove_flag(bar, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
   }
 }
@@ -411,11 +418,12 @@ void build(lv_obj_t *root, const std::string &name) {
     if (active && !ended) { touched = ended = true; say("closed"); }
     lv_async_call([](void *) { camera_close(); }, nullptr);
   });
-  // The keys: Door when the ring has one, Talk where the screen hears (not yet), Sound where it plays; a key it cannot
-  // use is not there at all.
-  const bool has_door = door.kind != doorbell_door::Kind::NONE, plays = hw::caps().speaker,
-             hears = hw::caps().microphone && talk_uplink::available() && !now_ring.talk.empty();
-  const int keys = has_door + hears + plays;
+  // The keys: Door when the ring has one, Talk where the screen hears, Sound where it plays; a key it cannot use is not
+  // there at all (doorbell_ring::keys).
+  const auto have = doorbell_ring::keys(door.kind != doorbell_door::Kind::NONE, hw::caps().microphone, talk_uplink::available(),
+                                        !now_ring.talk.empty(), hw::caps().speaker);
+  const bool has_door = have.door, hears = have.talk, plays = have.sound;
+  const int keys = have.count();
   int at = 0;
   if (has_door) {
     // Two taps open the door (doorbell_door.h); the second says "door", and ESP Screens performs it.
@@ -459,6 +467,19 @@ void build(lv_obj_t *root, const std::string &name) {
       lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
       talk_bars[i] = bar;
     }
+    // The words while it talks, measured as drawn, against the room the bars leave them.
+    const int room = at_key.w - word_at(at_key.h) - right - (TALK_BARS - 1) * step - thin - at_key.h / 8;
+    const auto width_of = [&](const char *words, const lv_font_t *font) {
+      auto *probe = lv_label_create(talk_key);
+      if (font) lv_obj_set_style_text_font(probe, font, 0);
+      lv_label_set_text(probe, words);
+      lv_obj_update_layout(probe);
+      const int w = lv_obj_get_width(probe);
+      lv_obj_delete(probe);
+      return w;
+    };
+    talk_bars_fit = width_of(screen_text::tr(screen_text::txt::doorbell_talking), title_font()) <= room &&
+                    width_of(screen_text::tr(screen_text::txt::doorbell_tap_stop), detail_font) <= room;
     lv_obj_add_event_cb(talk_key, [](lv_event_t *) { touch(); talk_tap(); }, LV_EVENT_SHORT_CLICKED, nullptr);
     paint_talk(talk_uplink::State::OFF);
   }
@@ -583,9 +604,11 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;
-  untouched_ms = std::max<uint32_t>(10, std::min<uint32_t>(600, untouched_s ? untouched_s : 60)) * 1000;
-  if (active && camera_root && camera.entity == camera_entity &&
-      doorbell_door::kind_of(door_kind) == door.kind) {
+  untouched_ms = doorbell_ring::untouched_ms(untouched_s);
+  const auto what = doorbell_ring::ring(active && camera_root && camera.entity == camera_entity &&
+                                            doorbell_door::kind_of(door_kind) == door.kind,
+                                        quiet, chimes);
+  if (what.again) {
     // It rings again while it shows (and with the same door): the chime again, the moment it rang, its ring around the disc.
     now_ring.key = key;
     now_ring.rang = rang;
@@ -595,7 +618,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
     door.set_state(door_state_now);
     last_ring = now_ring;
     ended = false;
-    if (chimes) chime();
+    if (what.chime) chime();
     tick(now);
     return;
   }
@@ -603,7 +626,8 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   if (plugin_host::wake) plugin_host::wake("doorbell");
   settings_screen::close();
   camera_close();
-  camera_muted = quiet;  // a ring is to be heard, unless its automation says the screen stands somewhere quiet
+  // A ring is to be heard, unless its automation says the screen stands somewhere quiet.
+  if (what.sets_sound) camera_muted = what.muted;
   now_ring = last_ring = Ring{camera_entity, name, key, rang, door_kind, door_state_now, quiet, link, talk};
   take_door(now_ring);
   claim_ring();
@@ -615,7 +639,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   // The ring's view claims the speaker as DOORBELL when its stream opens (runtime_tiles live_begin, audio_owner.h): music
   // pauses, a camera's sound and the voice assistant step back, and nothing takes it from a ring. The chime itself goes
   // through the announcement input and mixes; an automation with `chime: false` rings without it.
-  if (chimes) chime();
+  if (what.chime) chime();
 }
 
 void door_state(const std::string &key, const std::string &state) {

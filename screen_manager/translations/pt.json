@@ -926,7 +926,11 @@
         "destination_exists": "O ecrã de destino já tem uma disposição guardada",
         "update_tall": "Atualiza o ecrã para usar estes tamanhos de cartão",
         "memory": "O ecrã não tem memória livre suficiente para esta disposição. Use menos blocos.",
-        "grid_range": "Este ecrã não aceita uma grelha deste tamanho. Escolha outra grelha ao lado da pré-visualização."
+        "grid_range": "Este ecrã não aceita uma grelha deste tamanho. Escolha outra grelha ao lado da pré-visualização.",
+        "section_title": "Uma secção precisa de um nome com no máximo 48 bytes.",
+        "section_tiles": "Os mosaicos de uma secção têm de estar dentro dela, e um mosaico de página inteira nunca está numa secção.",
+        "section_overlap": "Secções e mosaicos soltos não podem ocupar as mesmas células.",
+        "sections_full": "Uma página tem no máximo 16 secções."
       },
       "feedback": {
         "invalid": "Esta resposta não pode ser partilhada. Escolha sim ou não totalmente, e apenas os problemas indicados.",
@@ -1969,7 +1973,8 @@
         "lock": "Fechaduras",
         "humidifier": "Humidificadores",
         "calendar": "Calendários",
-        "todo": "Listas de tarefas"
+        "todo": "Listas de tarefas",
+        "text": "Textos"
       },
       "room": "Divisão",
       "hide_placed": "Ocultar adicionadas",
@@ -2081,7 +2086,10 @@
         "ha_none": "Não executa ações no Home Assistant",
         "network": "Liga-se a {hosts}",
         "network_none": "Não faz ligações fora do Home Assistant",
-        "read": "Lê estas entidades do Home Assistant"
+        "read": "Lê estas entidades do Home Assistant",
+        "sends": "Envia para {host}: {what}",
+        "sends_option": "{attributes} da entidade que escolheres para {option}",
+        "sends_state": "estado"
       },
       "warning": "Um plugin corre no seu ecrã com acesso total ao mesmo, incluindo à rede Wi-Fi e às ações que o ecrã pode executar no Home Assistant, e a sua compilação corre nesta app, onde pode aceder à sua configuração do Home Assistant. Adicione apenas plugins de autores em quem confia, ou leia primeiro o código.",
       "room": {
@@ -2417,7 +2425,14 @@
       "remove": "Remover {name}",
       "type": "Escreva e prima Enter",
       "full": "O ecrã não aceita mais para este mosaico: as opções estão cheias.",
-      "count": "{n} de {max}"
+      "count": "{n} de {max}",
+      "show_all": "Mostrar todas as entidades",
+      "show_fitting": "Mostrar só as que servem",
+      "not_set": "Não definido",
+      "fill_device": "Preencher a partir de um dispositivo",
+      "fill_device_hint": "Escolha um dispositivo e os sensores dele são preenchidos abaixo. Pode ainda alterar cada um.",
+      "fill_device_none": "Nenhum dispositivo tem dois ou mais destes sensores",
+      "fill_device_count": "1 sensor | {n} sensores"
     },
     "memory": {
       "label": "Memória para mosaicos",
@@ -2468,7 +2483,9 @@
       "lock": "Fechadura",
       "humidifier": "Humidificador",
       "calendar": "Calendário",
-      "todo": "Lista de tarefas"
+      "todo": "Lista de tarefas",
+      "text": "Texto",
+      "input_text": "Texto"
     },
     "displays": {
       "standard": "padrão",
@@ -2989,6 +3006,10 @@
         "suggest_hint": "Ao escrever, o teclado oferece o que foi assinalado antes; um toque volta a pô-lo na lista",
         "clear": "Remover concluídos",
         "clear_hint": "Uma tecla na lista remove tudo o que está assinalado, depois de perguntar"
+      },
+      "text_entity": {
+        "edit": "Um toque abre o valor num campo com o teclado do ecrã. Uma palavra-passe aparece como pontos.",
+        "view_only": "Esta placa mostra apenas o valor: alterá-lo no ecrã precisa de uma placa com 8 MB de flash ou mais."
       }
     },
     "precision": {
@@ -4240,7 +4261,8 @@
         "layout_imported": "layout importado",
         "changed": "layout alterado",
         "restored": "alterações não guardadas restauradas",
-        "taken_over": "alterações do outro separador trazidas para aqui"
+        "taken_over": "alterações do outro separador trazidas para aqui",
+        "auto_layout": "o esquema criado para si"
       }
     },
     "draft": {
@@ -4629,6 +4651,105 @@
     },
     "drawer": {
       "resize": "Largura das definições: arraste ou use as setas; duplo clique para repor"
+    },
+    "sections": {
+      "untitled": "Secção",
+      "kind": "Secção",
+      "choose_tiles": "Escolha primeiro os mosaicos da secção.",
+      "one_page": "Os mosaicos de uma secção ficam numa página: escolha mosaicos de uma página.",
+      "already_in": "Um destes mosaicos já está numa secção. Retire-o primeiro ou escolha mosaicos soltos.",
+      "no_full": "Um mosaico de página inteira não pode estar numa secção.",
+      "too_tall": "Estes mosaicos precisam de mais linhas do que a página tem. Escolha menos ou alargue a secção.",
+      "no_room": "Não há espaço aqui: outros mosaicos ou secções estão no caminho.",
+      "no_room_page": "Sem espaço para a secção na página {page}.",
+      "removed": "Secção removida, os mosaicos ficam onde estão",
+      "removed_with_tiles": "Secção removida com os mosaicos",
+      "resize_columns": "Tornar a secção mais larga ou mais estreita",
+      "resize_rows": "Tornar a secção mais alta ou mais baixa",
+      "head_title": "Arraste para mover a secção, clique para as definições",
+      "aria": "Secção {title}",
+      "rename": "Mudar o nome da secção",
+      "title": "Nome",
+      "make": "Criar uma secção",
+      "add": "Adicionar uma secção",
+      "add_here": "Adicionar uma secção aqui",
+      "library_hint": "Um grupo de mosaicos com título",
+      "make_now": "Criar a secção",
+      "name_placeholder": "Nome, por exemplo Luzes",
+      "in_section": "Nesta secção",
+      "update_screen": "O firmware deste ecrã ainda não desenha secções: mostra os mesmos mosaicos sem elas. Atualize o ecrã para as ver.",
+      "head": "Título",
+      "no_icon": "Sem ícone",
+      "summary": "Resumo",
+      "summary_none": "Nenhum",
+      "summary_search": "Procurar entidades",
+      "summary_none_found": "Nenhuma entidade encontrada",
+      "summary_clear": "Sem resumo",
+      "summary_hint": "O estado de uma entidade à direita do título, como uma temperatura ou quantas luzes estão acesas.",
+      "size": "Tamanho",
+      "columns": "Colunas",
+      "rows": "Linhas",
+      "narrower": "Mais estreita",
+      "wider": "Mais larga",
+      "lower": "Mais baixa",
+      "taller": "Mais alta",
+      "size_hint": "Uma secção só cresce para células vazias. Se ficar estreita demais para os mosaicos, eles avançam na ordem de leitura.",
+      "loose_hint": "1 mosaico solto está ao lado de uma secção. Mosaicos soltos leem-se melhor numa linha própria acima das secções. | {n} mosaicos soltos estão ao lado de uma secção. Mosaicos soltos leem-se melhor numa linha própria acima das secções.",
+      "loose_row": "Fazer uma linha",
+      "short_grid": "Numa grelha de {rows} linhas o título de uma secção tira muito espaço aos seus mosaicos: cada um fica com cerca de {with} mm em vez de {without} mm. Os mosaicos fora das secções mantêm a altura.",
+      "remove": "Remover secção",
+      "remove_with_tiles": "Remover secção e mosaicos",
+      "settings": "Definições da secção",
+      "contrast": "Fundo em contraste",
+      "contrast_hint": "O painel na cor oposta da página, escuro de dia e claro no modo escuro, para que esta secção se destaque.",
+      "contrast_tiles": "Mosaicos também em contraste",
+      "contrast_tiles_hint": "Toda a secção no outro aspeto, também os cartões dos mosaicos: cartões escuros num painel escuro de dia, claros no modo escuro."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Luzes",
+        "covers": "Estores e janelas",
+        "climate": "Clima",
+        "media": "Multimédia",
+        "security": "Segurança",
+        "actions": "Cenas",
+        "others": "Dispositivos",
+        "weather": "Meteorologia",
+        "people": "Quem está em casa",
+        "energy": "Energia",
+        "cameras": "Câmaras",
+        "vacuum": "Aspirador",
+        "todo": "Listas",
+        "calendar": "Calendário"
+      },
+      "home": "Casa",
+      "all_lights": "Todas as luzes",
+      "two_rooms": "{a} e {b}",
+      "room_list": "{list} e {last}",
+      "more_rooms": "{a} e mais {n}",
+      "button": "Esquema automático",
+      "button_title": "Criar páginas a partir das suas áreas e dispositivos do Home Assistant",
+      "title": "Criar um esquema para si",
+      "intro": "O Tessera olha para as suas áreas e dispositivos no Home Assistant e cria páginas para este ecrã: uma página ou secção por divisão, a meteorologia, o alarme, as pessoas e as câmaras da casa juntos, mosaicos maiores onde este ecrã tem espaço. Pode desfazer e alterar tudo depois.",
+      "reading": "A ler a sua casa…",
+      "failed": "Não foi possível ler a sua casa: {error}",
+      "nothing": "O Tessera ainda não encontrou nada para mostrar neste ecrã. Dê uma área aos seus dispositivos no Home Assistant ou adicione mosaicos a partir da biblioteca.",
+      "nothing_new": "Tudo o que o Tessera poria neste ecrã já lá está.",
+      "summary": "{pages} página · {tiles} mosaicos | {pages} páginas · {tiles} mosaicos",
+      "summary_sections": "{n} secção | {n} secções",
+      "from_rooms": "de uma divisão | de {n} divisões",
+      "left_out": "Mais uma entidade não coube neste ecrã; está na biblioteca. | Mais {n} entidades não couberam neste ecrã; estão na biblioteca.",
+      "replace": "Substituir as páginas",
+      "replace_hint": "O ecrã recebe estas páginas em vez das atuais.",
+      "append": "Adicionar depois das páginas atuais",
+      "append_hint": "As páginas atuais ficam e as novas vêm depois, com o que ainda não está no ecrã.",
+      "append_full": "Este ecrã já não tem páginas nem mosaicos livres. Substitua as páginas ou faça espaço primeiro.",
+      "make": "Criar o esquema",
+      "made": "Um esquema de {pages} página está pronto. Desfazer retira-o. | Um esquema de {pages} páginas está pronto. Desfazer retira-o.",
+      "offer_title": "Quer que crie um primeiro esquema para si?",
+      "offer_text": "O Tessera pode organizar este ecrã com as suas áreas e dispositivos do Home Assistant. Depois pode alterar tudo.",
+      "offer_make": "Criar um primeiro esquema",
+      "offer_empty": "Começar vazio"
     }
   }
 }

@@ -7,10 +7,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'tools'))
-import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import CONTROLS, controls_catalogue, min_firmware, packets, resolve_controls, screen_options, state_message, validate_layout
 import tile_icons
 import test_portal
@@ -92,11 +89,8 @@ class ControlChoices(unittest.TestCase):
         self.assertTrue(used <= carried, used - carried)
         self.assertTrue(set(tile_icons.CONTROL_GLYPHS) <= set(tile_icons.GLYPHS))
         self.assertEqual(set(tile_icons.editor()['controls']), set(tile_icons.CONTROL_GLYPHS))
-        for name in ('checkout/guition.yaml', 'checkout/cyd.yaml', 'packages/guition.yaml', 'packages/cyd.yaml'):
-            text = profiles.text(name)
-            for code in used:
-                self.assertIn(f'"\\U000{code}"', text, (name, code))
-            self.assertIn('runtime_tiles::control_font = id(sublabel_big)->get_lv_font();', text, name)
+        # Every board's fonts carry GLYPHS (tools/generate_icons.py --check); the keys drawn in the control font are read
+        # from the real firmware in web/wasm/test_cover_keys.mjs.
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')

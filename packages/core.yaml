@@ -722,6 +722,11 @@ api:
                     // types (plugin_host::hello).
                     features.add("plugins");
                     plugin_host::hello(root);
+                    #ifdef SD_MOD_SECTIONS
+                    // sections (module sections, docs/PAGES.md "Sections"): blocks of a page's cells with a title, an
+                    // icon and a panel, in the page's message, and their summaries in the op "sums".
+                    features.add("sections");
+                    #endif
                     // caps (hw.h, docs/PLATFORM_PLAN.md 3.3): what this screen's hardware can do, in one record: live
                     // video, speaker, microphone, echo cancellation, a camera of its own, the live tiles it runs at
                     // once, its memory. ESP Screens reads it where it reads a screen's features; the features "live"
@@ -786,6 +791,11 @@ api:
                     // one with its keyboard, so ESP Screens sends the list (`todo`); its caps say how many items it keeps.
                     #ifdef SD_MOD_TODO
                     features.add("todo_card");
+                    #endif
+                    // text_edit (firmware 0.61.0, module text_edit, docs/TEXT_ENTITY.md): a tap on a text's tile opens its field
+                    // with the keyboard; a screen without it (lite) shows the value only.
+                    #ifdef SD_MOD_TEXT_EDIT
+                    features.add("text_edit");
                     #endif
                     // light_presets (module light_presets, docs/LIGHT_PRESETS.md): a light's tile and card draw the round keys of
                     // its presets, so ESP Screens sends the controls presets and brightness_presets; another screen gets the slider.
@@ -967,7 +977,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -988,7 +998,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1039,7 +1049,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1060,7 +1070,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1081,7 +1091,7 @@ font:
     glyphs: ['<','>','—','&','@','!',',','.','?','"','%','(',')','+','-','_',':','°','0','1','2','3','4','5',
              '6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T',
              'U','V','W','X','Y','Z',' ','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q',
-             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…',
+             'r','s','t','u','v','w','x','y','z','/','·',"'",';','…','•',
              '#','$','*','=','^','~','|','`','[',']','{','}',"\\",
              'À','Á','Â','Ã','Ä','Å','Æ','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ð','Ñ','Ò','Ó','Ô','Õ','Ö','Ø',
              'Ù','Ú','Û','Ü','Ý','Þ','ß','à','á','â','ã','ä','å','æ','ç','è','é','ê','ë','ì','í','î','ï','ð',
@@ -1319,6 +1329,7 @@ font:
       - "\U000F00EE" # calendar-blank
       - "\U000F00EF" # calendar-check
       - "\U000F10D4" # clipboard-list
+      - "\U000F060E" # form-textbox
       - "\U000F0B53" # account-arrow-right
       - "\U000F0D43" # air-filter
       - "\U000F1099" # air-humidifier
@@ -1515,6 +1526,7 @@ font:
       - "\U000F0054" # arrow-right
       - "\U000F0E4F" # lightbulb-off
       - "\U000F16A7" # robot-off
+      - "\U000F169F" # robot-confused
       - "\U000F0EC4" # remote-off
       - "\U000F1466" # air-humidifier-off
       - "\U000F00EF" # calendar-check

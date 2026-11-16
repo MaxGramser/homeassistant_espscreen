@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { t } from '../i18n';
-import { titleOf } from '../model/pages';
+import { placedTiles, sectionsOf, titleOf } from '../model/pages';
 import { useDocumentStore } from "../stores/document";
 
 const doc = useDocumentStore();
@@ -23,7 +23,12 @@ onMounted(() => dialog.value?.showModal());
           <small>{{ shape(version.grid) }}</small>
           <p v-if="!version.page" class="new-page">{{ t('editor.grid.new_page') }}</p>
           <div v-else class="placement-grid" :style="{ gridTemplateColumns: `repeat(${version.grid.columns}, 1fr)`, gridTemplateRows: `repeat(${version.grid.rows}, 44px)` }">
-            <div v-for="(tile, tileIndex) in version.page.tiles" :key="tile.id" :style="{ gridColumn: `${tile.placement.column + 1} / span ${tile.placement.columns}`, gridRow: `${tile.placement.row + 1} / span ${tile.placement.rows}` }"
+            <!-- A section (docs/PAGES.md "Sections") as its block behind its tiles, named: it moves as one. -->
+            <div v-for="section in sectionsOf(version.page)" :key="section.id" class="review-section"
+              :style="{ gridColumn: `${section.placement.column + 1} / span ${section.placement.columns}`, gridRow: `${section.placement.row + 1} / span ${section.placement.rows}` }"
+              :title="section.title"><span>{{ section.title }}</span></div>
+            <div v-for="({ tile, row, column }, tileIndex) in placedTiles(version.page)" :key="tile.id" class="review-tile"
+              :style="{ gridColumn: `${column + 1} / span ${tile.placement.columns}`, gridRow: `${row + 1} / span ${tile.placement.rows}` }"
               :title="tile.appearance.label">{{ tileIndex + 1 }} · {{ tile.appearance.label || (tile.content.kind === 'entity' ? tile.content.entityId : '') }}</div>
           </div>
         </div>
@@ -40,6 +45,9 @@ section { margin: 20px 0; }
 .grid-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px; }
 .placement-grid { display: grid; gap: 4px; padding: 5px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
 .new-page { margin-top: 6px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; font-size: 12px; }
-.placement-grid > div { background: var(--surface-2); border: 1px solid var(--accent); border-radius: 5px; padding: 5px; overflow: hidden; font-size: 11px; }
+.placement-grid > .review-tile { background: var(--surface-2); border: 1px solid var(--accent); border-radius: 5px; padding: 5px; overflow: hidden; font-size: 11px; position: relative; }
+.placement-grid > .review-section { margin: -2px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 10%, transparent); border: 1px dashed var(--accent); position: relative; }
+.placement-grid { row-gap: 16px; }
+.review-section span { position: absolute; top: -15px; left: 4px; font-size: 10px; font-weight: 600; color: var(--accent); white-space: nowrap; }
 footer { display: flex; justify-content: flex-end; gap: 10px; }
 </style>

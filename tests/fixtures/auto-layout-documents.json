@@ -1,0 +1,4587 @@
+[
+ {
+  "grid": {
+   "columns": 5,
+   "rows": 5
+  },
+  "layout": {
+   "title": "Hall",
+   "homePageId": "0000000000000001",
+   "pages": [
+    {
+     "id": "0000000000000001",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000002",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000003",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000004",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000005",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000006",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000007",
+       "content": {
+        "kind": "entity",
+        "entityId": "binary_sensor.balcony_door"
+       },
+       "appearance": {
+        "label": "Balcony door"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000008",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.airco"
+       },
+       "appearance": {
+        "label": "Airco"
+       },
+       "interaction": {
+        "controls": "setpoint_mode"
+       },
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000009",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000000a",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {
+        "controls": "playback"
+       },
+       "placement": {
+        "row": 4,
+        "column": 3,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000000b",
+       "content": {
+        "kind": "entity",
+        "entityId": "vacuum.robot"
+       },
+       "appearance": {
+        "label": "Robbie"
+       },
+       "interaction": {
+        "controls": "map_rooms"
+       },
+       "placement": {
+        "row": 3,
+        "column": 0,
+        "columns": 3,
+        "rows": 2
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000000c",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "000000000000000d",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "000000000000000e",
+       "title": "Lights",
+       "icon": "lightbulb-group",
+       "summary": "sensor.living_room_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      },
+      {
+       "id": "000000000000000f",
+       "title": "Media",
+       "icon": "music",
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 2,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000010",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000011",
+       "content": {
+        "kind": "entity",
+        "entityId": "weather.home"
+       },
+       "appearance": {
+        "label": "Home",
+        "display": "forecast"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000012",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000013",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.garden"
+       },
+       "appearance": {
+        "label": "Garden",
+        "display": "live"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000014",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000015",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000016",
+       "content": {
+        "kind": "entity",
+        "entityId": "sensor.power_consumption"
+       },
+       "appearance": {
+        "label": "Power consumption",
+        "display": "graph",
+        "historyHours": 24
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000017",
+       "content": {
+        "kind": "entity",
+        "entityId": "calendar.birthdays"
+       },
+       "appearance": {
+        "label": "Calendar",
+        "calendarEntities": [
+         "calendar.family"
+        ]
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000018",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000019",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "000000000000001a",
+       "title": "Security",
+       "icon": "shield-home",
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 5
+       }
+      },
+      {
+       "id": "000000000000001b",
+       "title": "Who is home",
+       "icon": "home-account",
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 2
+       }
+      }
+     ]
+    },
+    {
+     "id": "000000000000001c",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000001d",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000001e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000001f",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000020",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000021",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.hall"
+       },
+       "appearance": {
+        "label": "Hall"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000022",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000023",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000024",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000025",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000026",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000027",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Kitchen, Hall, Bedroom & Bathroom"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000028",
+        "type": "clock"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "id": "0000000000000029",
+       "title": "Kitchen",
+       "icon": "silverware-fork-knife",
+       "summary": "sensor.kitchen_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 4,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000002a",
+       "title": "Bathroom",
+       "icon": "shower",
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000002b",
+       "title": "Bedroom",
+       "icon": "bed",
+       "summary": "sensor.bedroom_temperature",
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "000000000000002c",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000002d",
+       "content": {
+        "kind": "entity",
+        "entityId": "todo.shopping_list"
+       },
+       "appearance": {
+        "label": "Shopping list"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 3
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000002e",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "000000000000002f",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home"
+    }
+   ]
+  }
+ },
+ {
+  "grid": {
+   "columns": 5,
+   "rows": 5
+  },
+  "layout": {
+   "title": "Hall",
+   "homePageId": "0000000000000030",
+   "pages": [
+    {
+     "id": "0000000000000030",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000031",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000032",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.lounge_group"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000033",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000034",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000035",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000036",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000037",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_3"
+       },
+       "appearance": {
+        "label": "Spot 3"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000038",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.airco"
+       },
+       "appearance": {
+        "label": "Airco"
+       },
+       "interaction": {
+        "controls": "setpoint_mode"
+       },
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000039",
+       "content": {
+        "kind": "entity",
+        "entityId": "binary_sensor.balcony_door"
+       },
+       "appearance": {
+        "label": "Balcony door"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000003a",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.evening"
+       },
+       "appearance": {
+        "label": "Evening"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000003b",
+       "content": {
+        "kind": "entity",
+        "entityId": "vacuum.robot"
+       },
+       "appearance": {
+        "label": "Robbie"
+       },
+       "interaction": {
+        "controls": "map_rooms"
+       },
+       "placement": {
+        "row": 3,
+        "column": 2,
+        "columns": 3,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000003c",
+       "content": {
+        "kind": "entity",
+        "entityId": "sensor.power_consumption"
+       },
+       "appearance": {
+        "label": "Power consumption",
+        "display": "graph",
+        "historyHours": 24
+       },
+       "interaction": {},
+       "placement": {
+        "row": 4,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000003d",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "000000000000003e",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "000000000000003f",
+       "title": "Lights",
+       "icon": "lightbulb-group",
+       "summary": "sensor.living_room_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 5,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000040",
+       "title": "Devices",
+       "icon": "power-plug",
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 3,
+        "rows": 1
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000041",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000042",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000043",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {
+        "controls": "playback"
+       },
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000044",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.lg_oled"
+       },
+       "appearance": {
+        "label": "LG Oled"
+       },
+       "interaction": {
+        "controls": "playback"
+       },
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000045",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000046",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000047",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.cleo"
+       },
+       "appearance": {
+        "label": "Cleo"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000048",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.dan"
+       },
+       "appearance": {
+        "label": "Dan"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000049",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.eve"
+       },
+       "appearance": {
+        "label": "Eve"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 4,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000004a",
+       "content": {
+        "kind": "entity",
+        "entityId": "todo.shopping_list"
+       },
+       "appearance": {
+        "label": "Shopping list"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 3
+       }
+      },
+      {
+       "id": "000000000000004b",
+       "content": {
+        "kind": "entity",
+        "entityId": "weather.home"
+       },
+       "appearance": {
+        "label": "Home",
+        "display": "forecast"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000004c",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "000000000000004d",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "000000000000004e",
+       "title": "Media",
+       "icon": "music",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 4,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000004f",
+       "title": "Who is home",
+       "icon": "home-account",
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 5
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000050",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000051",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000052",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.front"
+       },
+       "appearance": {
+        "label": "Living room",
+        "display": "live"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000053",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.garden"
+       },
+       "appearance": {
+        "label": "Garden"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000054",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000055",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "0000000000000056",
+       "title": "Security",
+       "icon": "shield-home",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 5,
+        "rows": 5
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000057",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000058",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness_presets"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000059",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005a",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005b",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005c",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.hall"
+       },
+       "appearance": {
+        "label": "Hall"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005d",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000005f",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.boiler"
+       },
+       "appearance": {
+        "label": "Boiler"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 4,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000060",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000061",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000062",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 3,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000063",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Kitchen, Hall, Bedroom & Bathroom"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000064",
+        "type": "clock"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "id": "0000000000000065",
+       "title": "Kitchen",
+       "icon": "silverware-fork-knife",
+       "summary": "sensor.kitchen_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 4,
+        "rows": 2
+       }
+      },
+      {
+       "id": "0000000000000066",
+       "title": "Bathroom",
+       "icon": "shower",
+       "placement": {
+        "row": 1,
+        "column": 4,
+        "columns": 1,
+        "rows": 4
+       }
+      },
+      {
+       "id": "0000000000000067",
+       "title": "Bedroom",
+       "icon": "bed",
+       "summary": "sensor.bedroom_temperature",
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 4,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000068",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000069",
+       "content": {
+        "kind": "entity",
+        "entityId": "calendar.birthdays"
+       },
+       "appearance": {
+        "label": "Calendar",
+        "calendarEntities": [
+         "calendar.family"
+        ]
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000006a",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.attic"
+       },
+       "appearance": {
+        "label": "Attic heat pump"
+       },
+       "interaction": {
+        "controls": "setpoint_mode"
+       },
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 2,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000006b",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.dinner"
+       },
+       "appearance": {
+        "label": "Dinner"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006c",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.morning"
+       },
+       "appearance": {
+        "label": "Morning"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006d",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.movie"
+       },
+       "appearance": {
+        "label": "Movie"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006e",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.night"
+       },
+       "appearance": {
+        "label": "Night"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000006f",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.party"
+       },
+       "appearance": {
+        "label": "Party"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000070",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.reading"
+       },
+       "appearance": {
+        "label": "Reading"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 3,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000071",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000072",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "0000000000000073",
+       "title": "Scenes",
+       "icon": "palette",
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "grid": {
+   "columns": 3,
+   "rows": 3
+  },
+  "layout": {
+   "title": "Hall",
+   "homePageId": "0000000000000074",
+   "pages": [
+    {
+     "id": "0000000000000074",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000075",
+       "content": {
+        "kind": "entity",
+        "entityId": "weather.home"
+       },
+       "appearance": {
+        "label": "Home",
+        "display": "forecast"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000076",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000077",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.garden"
+       },
+       "appearance": {
+        "label": "Garden"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000078",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000079",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000007a",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "000000000000007b",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "000000000000007c",
+       "title": "Security",
+       "icon": "shield-home",
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 3,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000007d",
+       "title": "Who is home",
+       "icon": "home-account",
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 3,
+        "rows": 1
+       }
+      }
+     ]
+    },
+    {
+     "id": "000000000000007e",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000007f",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000080",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000081",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000082",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000083",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000084",
+       "content": {
+        "kind": "entity",
+        "entityId": "binary_sensor.balcony_door"
+       },
+       "appearance": {
+        "label": "Balcony door"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000085",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000086",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "0000000000000087",
+       "title": "Lights",
+       "icon": "lightbulb-group",
+       "summary": "sensor.living_room_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000088",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000089",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.airco"
+       },
+       "appearance": {
+        "label": "Airco"
+       },
+       "interaction": {
+        "controls": "setpoint_mode"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000008a",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000008b",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000008c",
+       "content": {
+        "kind": "entity",
+        "entityId": "sensor.power_consumption"
+       },
+       "appearance": {
+        "label": "Power consumption",
+        "display": "graph",
+        "historyHours": 24
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000008d",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "000000000000008e",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "000000000000008f",
+       "title": "Media",
+       "icon": "music",
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ]
+    },
+    {
+     "id": "0000000000000090",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000091",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000092",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000093",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000094",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000095",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.hall"
+       },
+       "appearance": {
+        "label": "Hall"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000096",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000097",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000098",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Kitchen, Hall & Bathroom"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000099",
+        "type": "clock"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "id": "000000000000009a",
+       "title": "Kitchen",
+       "icon": "silverware-fork-knife",
+       "summary": "sensor.kitchen_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 2
+       }
+      },
+      {
+       "id": "000000000000009b",
+       "title": "Bathroom",
+       "icon": "shower",
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ]
+    },
+    {
+     "id": "000000000000009c",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000009d",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000009e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000009f",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000a0",
+       "content": {
+        "kind": "entity",
+        "entityId": "todo.shopping_list"
+       },
+       "appearance": {
+        "label": "Shopping list"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 2
+       }
+      },
+      {
+       "id": "00000000000000a1",
+       "content": {
+        "kind": "entity",
+        "entityId": "vacuum.robot"
+       },
+       "appearance": {
+        "label": "Robbie"
+       },
+       "interaction": {
+        "controls": "buttons"
+       },
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000a2",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Bedroom"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000a3",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "bed",
+     "sections": [
+      {
+       "id": "00000000000000a4",
+       "title": "Bedroom",
+       "icon": "bed",
+       "summary": "sensor.bedroom_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000a5",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000a6",
+       "content": {
+        "kind": "entity",
+        "entityId": "calendar.birthdays"
+       },
+       "appearance": {
+        "label": "Calendar",
+        "calendarEntities": [
+         "calendar.family"
+        ]
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000a7",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000a8",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home"
+    }
+   ]
+  }
+ },
+ {
+  "grid": {
+   "columns": 3,
+   "rows": 3
+  },
+  "layout": {
+   "title": "Hall",
+   "homePageId": "00000000000000a9",
+   "pages": [
+    {
+     "id": "00000000000000a9",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000aa",
+       "content": {
+        "kind": "entity",
+        "entityId": "weather.home"
+       },
+       "appearance": {
+        "label": "Home",
+        "display": "forecast"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ab",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ac",
+       "content": {
+        "kind": "entity",
+        "entityId": "camera.front"
+       },
+       "appearance": {
+        "label": "Living room"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ad",
+       "content": {
+        "kind": "entity",
+        "entityId": "sensor.power_consumption"
+       },
+       "appearance": {
+        "label": "Power consumption",
+        "display": "graph",
+        "historyHours": 24
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000ae",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000af",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "00000000000000b0",
+       "title": "Security",
+       "icon": "shield-home",
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 3,
+        "rows": 1
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000b1",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000b2",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b3",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.lounge_group"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b4",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b5",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b6",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b7",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000b8",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_3"
+       },
+       "appearance": {
+        "label": "Spot 3"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000b9",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000ba",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "00000000000000bb",
+       "title": "Lights",
+       "icon": "lightbulb-group",
+       "summary": "sensor.living_room_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000bc",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000bd",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.airco"
+       },
+       "appearance": {
+        "label": "Airco"
+       },
+       "interaction": {
+        "controls": "setpoint_mode"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 2
+       }
+      },
+      {
+       "id": "00000000000000be",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000bf",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c0",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.lg_oled"
+       },
+       "appearance": {
+        "label": "LG Oled"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c1",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.evening"
+       },
+       "appearance": {
+        "label": "Evening"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c2",
+       "content": {
+        "kind": "entity",
+        "entityId": "vacuum.robot"
+       },
+       "appearance": {
+        "label": "Robbie"
+       },
+       "interaction": {
+        "controls": "buttons"
+       },
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000c3",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000c4",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa",
+     "sections": [
+      {
+       "id": "00000000000000c5",
+       "title": "Media",
+       "icon": "music",
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 2,
+        "rows": 2
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000c6",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000c7",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {
+        "controls": "brightness"
+       },
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c8",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000c9",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ca",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.coffee"
+       },
+       "appearance": {
+        "label": "Coffee machine"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000cb",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.hall"
+       },
+       "appearance": {
+        "label": "Hall"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000cc",
+       "content": {
+        "kind": "entity",
+        "entityId": "calendar.birthdays"
+       },
+       "appearance": {
+        "label": "Calendar",
+        "calendarEntities": [
+         "calendar.family"
+        ]
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 2,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000cd",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Kitchen & Hall"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000ce",
+        "type": "clock"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "id": "00000000000000cf",
+       "title": "Kitchen",
+       "icon": "silverware-fork-knife",
+       "summary": "sensor.kitchen_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 2
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000d0",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000d1",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos",
+        "display": "cover"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d2",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d3",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d4",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d5",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000d6",
+       "content": {
+        "kind": "entity",
+        "entityId": "switch.boiler"
+       },
+       "appearance": {
+        "label": "Boiler"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000d7",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Bedroom & Bathroom"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000d8",
+        "type": "clock"
+       }
+      ]
+     },
+     "sections": [
+      {
+       "id": "00000000000000d9",
+       "title": "Bedroom",
+       "icon": "bed",
+       "summary": "sensor.bedroom_temperature",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 3
+       }
+      },
+      {
+       "id": "00000000000000da",
+       "title": "Bathroom",
+       "icon": "shower",
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000db",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000dc",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ann"
+       },
+       "appearance": {
+        "label": "Ann"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000dd",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.ben"
+       },
+       "appearance": {
+        "label": "Ben"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000de",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.cleo"
+       },
+       "appearance": {
+        "label": "Cleo"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000df",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.dan"
+       },
+       "appearance": {
+        "label": "Dan"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000e0",
+       "content": {
+        "kind": "entity",
+        "entityId": "person.eve"
+       },
+       "appearance": {
+        "label": "Eve"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000e1",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000e2",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "00000000000000e3",
+       "title": "Who is home",
+       "icon": "home-account",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      }
+     ]
+    },
+    {
+     "id": "00000000000000e4",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000e5",
+       "content": {
+        "kind": "entity",
+        "entityId": "todo.shopping_list"
+       },
+       "appearance": {
+        "label": "Shopping list"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 2
+       }
+      },
+      {
+       "id": "00000000000000e6",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.attic"
+       },
+       "appearance": {
+        "label": "Attic heat pump"
+       },
+       "interaction": {
+        "controls": "setpoint_mode"
+       },
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 2
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000e7",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000e8",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home"
+    },
+    {
+     "id": "00000000000000e9",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000ea",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.dinner"
+       },
+       "appearance": {
+        "label": "Dinner"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000eb",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.morning"
+       },
+       "appearance": {
+        "label": "Morning"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ec",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.movie"
+       },
+       "appearance": {
+        "label": "Movie"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ed",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.night"
+       },
+       "appearance": {
+        "label": "Night"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ee",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.party"
+       },
+       "appearance": {
+        "label": "Party"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ef",
+       "content": {
+        "kind": "entity",
+        "entityId": "scene.reading"
+       },
+       "appearance": {
+        "label": "Reading"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 2,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000f0",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000f1",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home",
+     "sections": [
+      {
+       "id": "00000000000000f2",
+       "title": "Scenes",
+       "icon": "palette",
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 3,
+        "rows": 3
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "grid": {
+   "columns": 2,
+   "rows": 3
+  },
+  "layout": {
+   "title": "Kitchen",
+   "homePageId": "00000000000000f3",
+   "pages": [
+    {
+     "id": "00000000000000f3",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000f4",
+       "content": {
+        "kind": "entity",
+        "entityId": "weather.home"
+       },
+       "appearance": {
+        "label": "Home",
+        "display": "forecast"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000f5",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000f6",
+       "content": {
+        "kind": "entity",
+        "entityId": "vacuum.robot"
+       },
+       "appearance": {
+        "label": "Robbie"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "00000000000000f7",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "00000000000000f8",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home"
+    },
+    {
+     "id": "00000000000000f9",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "00000000000000fa",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000fb",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000fc",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000fd",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000fe",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "00000000000000ff",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.airco"
+       },
+       "appearance": {
+        "label": "Airco"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000100",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000101",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa"
+    },
+    {
+     "id": "0000000000000102",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000103",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000104",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000105",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000106",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa"
+    },
+    {
+     "id": "0000000000000107",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000108",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000109",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000010a",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000010b",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Kitchen"
+      },
+      "trailing": [
+       {
+        "id": "000000000000010c",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "silverware-fork-knife"
+    },
+    {
+     "id": "000000000000010d",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000010e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.hall"
+       },
+       "appearance": {
+        "label": "Hall"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000010f",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Hall"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000110",
+        "type": "clock"
+       }
+      ]
+     }
+    },
+    {
+     "id": "0000000000000111",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000112",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000113",
+       "content": {
+        "kind": "entity",
+        "entityId": "cover.curtains"
+       },
+       "appearance": {
+        "label": "Curtains"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000114",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_bedroom"
+       },
+       "appearance": {
+        "label": "Sonos"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000115",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Bedroom"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000116",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "bed"
+    },
+    {
+     "id": "0000000000000117",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000118",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000119",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bath_mirror"
+       },
+       "appearance": {
+        "label": "Mirror"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000011a",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Bathroom"
+      },
+      "trailing": [
+       {
+        "id": "000000000000011b",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "shower"
+    }
+   ]
+  }
+ },
+ {
+  "grid": {
+   "columns": 2,
+   "rows": 3
+  },
+  "layout": {
+   "title": "Kitchen",
+   "homePageId": "000000000000011c",
+   "pages": [
+    {
+     "id": "000000000000011c",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000011d",
+       "content": {
+        "kind": "entity",
+        "entityId": "weather.home"
+       },
+       "appearance": {
+        "label": "Home",
+        "display": "forecast"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 2,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000011e",
+       "content": {
+        "kind": "entity",
+        "entityId": "alarm_control_panel.house"
+       },
+       "appearance": {
+        "label": "Alarm"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000011f",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.attic"
+       },
+       "appearance": {
+        "label": "Attic heat pump"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000120",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Home"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000121",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "home"
+    },
+    {
+     "id": "0000000000000122",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000123",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000124",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.lounge_group"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000125",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_ceiling"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000126",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.living_room_table"
+       },
+       "appearance": {
+        "label": "Table lamp"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000127",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_1"
+       },
+       "appearance": {
+        "label": "Spot 1"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000128",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_2"
+       },
+       "appearance": {
+        "label": "Spot 2"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000129",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "000000000000012a",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa"
+    },
+    {
+     "id": "000000000000012b",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000012c",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.spot_3"
+       },
+       "appearance": {
+        "label": "Spot 3"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000012d",
+       "content": {
+        "kind": "entity",
+        "entityId": "climate.airco"
+       },
+       "appearance": {
+        "label": "Airco"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000012e",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.sonos_living"
+       },
+       "appearance": {
+        "label": "Sonos"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "000000000000012f",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.apple_tv"
+       },
+       "appearance": {
+        "label": "Apple TV"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000130",
+       "content": {
+        "kind": "entity",
+        "entityId": "media_player.lg_oled"
+       },
+       "appearance": {
+        "label": "LG Oled"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 2,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000131",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Living room"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000132",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "sofa"
+    },
+    {
+     "id": "0000000000000133",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "0000000000000134",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen"
+       },
+       "appearance": {
+        "label": "All lights"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000135",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_counter"
+       },
+       "appearance": {
+        "label": "Counter"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 1,
+        "columns": 1,
+        "rows": 1
+       }
+      },
+      {
+       "id": "0000000000000136",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.kitchen_spot"
+       },
+       "appearance": {
+        "label": "Spot"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 1,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "0000000000000137",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Kitchen"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000138",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "silverware-fork-knife"
+    },
+    {
+     "id": "0000000000000139",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000013a",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.hall"
+       },
+       "appearance": {
+        "label": "Hall"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000013b",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Hall"
+      },
+      "trailing": [
+       {
+        "id": "000000000000013c",
+        "type": "clock"
+       }
+      ]
+     }
+    },
+    {
+     "id": "000000000000013d",
+     "navigation": {
+      "excludeFromPagination": false
+     },
+     "tiles": [
+      {
+       "id": "000000000000013e",
+       "content": {
+        "kind": "entity",
+        "entityId": "light.bedroom"
+       },
+       "appearance": {
+        "label": "Ceiling"
+       },
+       "interaction": {},
+       "placement": {
+        "row": 0,
+        "column": 0,
+        "columns": 1,
+        "rows": 1
+       }
+      }
+     ],
+     "topbar": {
+      "leading": [
+       {
+        "id": "000000000000013f",
+        "kind": "home"
+       }
+      ],
+      "title": {
+       "source": "text",
+       "text": "Bedroom"
+      },
+      "trailing": [
+       {
+        "id": "0000000000000140",
+        "type": "clock"
+       }
+      ]
+     },
+     "icon": "bed"
+    }
+   ]
+  }
+ }
+]

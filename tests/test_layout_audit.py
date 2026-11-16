@@ -119,6 +119,9 @@ KINDS = {
                      'attributes': {'min': 10, 'max': 30, 'step': 0.5, 'unit_of_measurement': '°C'}},
     'input_select': {'entity': 'input_select.audit', 'state': 'Comfort with a rather long name',
                      'attributes': {'options': ['Eco', 'Comfort with a rather long name', 'Boost']}},
+    # A text (docs/TEXT_ENTITY.md): a long value, and a password that shows as dots.
+    'input_text': {'entity': 'input_text.audit', 'state': 'The door code is in the drawer under the hall table, left side',
+                   'attributes': {'mode': 'password', 'min': 0, 'max': 100}},
     'light': {'entity': 'light.audit', 'state': 'on',
               'attributes': {'brightness': 200, 'color_mode': 'brightness', 'supported_color_modes': ['brightness']}},
     'lock': {'entity': 'lock.audit', 'state': 'locked', 'attributes': {'supported_features': 1}},
@@ -187,6 +190,8 @@ KINDS = {
                  {'uid': 'e', 'summary': 'Sourdough bread', 'status': 'needs_action'},
                  {'uid': 'f', 'summary': 'Butter', 'status': 'completed'},
                  {'uid': 'g', 'summary': 'Apples', 'status': 'completed'}]},
+    'text': {'entity': 'text.audit', 'state': 'Back at three, parcels go to the side door behind the garden gate',
+             'attributes': {'mode': 'text', 'min': 0, 'max': 255}},
     'weather': {'entity': 'weather.audit', 'state': 'partlycloudy',
                 'attributes': {'temperature': 18.4, 'temperature_unit': '°C', 'humidity': 92, 'wind_speed': 12.2,
                                'wind_speed_unit': 'km/h', 'apparent_temperature': 17.1, 'supported_features': 3},
@@ -384,7 +389,7 @@ KNOWN = [
     {'layout': r': sun-sunpath ', 'problem': r"^text '.+' is cut without dots",
      'cause': 'the sun path\'s name is a part_label (runtime_tiles.h:5007), which is LV_LABEL_LONG_CLIP '
               '(runtime_tiles.h:4291): a long name is cut, not dotted'},
-    {'layout': r'^(jc8012p4a1|waveshare101)-portrait: input_number ', 'problem': r"^text '[\d.]+ °C' is cut without dots",
+    {'layout': r'^(jc8012p4a1|waveshare101|waveshare101v3)-portrait: input_number ', 'problem': r"^text '[\d.]+ °C' is cut without dots",
      'cause': 'the stepper falls back to text_font when no face fits its room (runtime_tiles.h:5153 stepper_keys), and the '
               'number is clipped: "21.5 °C" in 45 px between the keys; the Waveshare 10.1-inch is the same glass'},
     {'layout': r'^(jc3248w535|waveshare35|wt32sc01plus)-landscape: weather-watch full ', 'problem': r"^text '[\d.]+ °C' (leaves its card by \d+ px|is -\d+ px from its card's edge)$",

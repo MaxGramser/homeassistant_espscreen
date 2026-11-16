@@ -1,0 +1,106 @@
+{
+ "entity": "media_player.spotify",
+ "features": 444983,
+ "x": {
+  "so": "Kitchen",
+  "sl": [
+   "Bedroom",
+   "Kitchen"
+  ],
+  "sh": 0,
+  "rp": "off",
+  "lb": 1
+ },
+ "top": {
+  "v": 1,
+  "op": "browse",
+  "e": "media_player.spotify",
+  "f": 0,
+  "t": "Media Library",
+  "i": 0,
+  "n": 1,
+  "c": 8,
+  "k": [
+   [
+    1,
+    "Playlists",
+    2,
+    "F0CB8"
+   ],
+   [
+    2,
+    "Artists",
+    2,
+    "F0803"
+   ],
+   [
+    3,
+    "Albums",
+    2,
+    "F0025"
+   ],
+   [
+    4,
+    "Liked songs",
+    2,
+    "F0387"
+   ],
+   [
+    5,
+    "Podcasts",
+    2,
+    "F0994"
+   ],
+   [
+    6,
+    "Recently played",
+    2,
+    "F0387"
+   ],
+   [
+    7,
+    "Top Artists",
+    2,
+    "F0803"
+   ],
+   [
+    8,
+    "Top Tracks",
+    2,
+    "F0387"
+   ]
+  ]
+ },
+ "albums": {
+  "v": 1,
+  "op": "browse",
+  "e": "media_player.spotify",
+  "f": 3,
+  "t": "Albums",
+  "i": 0,
+  "n": 1,
+  "c": 3,
+  "k": [
+   [
+    9,
+    "An album with a long title that goes on 0",
+    3,
+    "F0025"
+   ],
+   [
+    10,
+    "An album with a long title that goes on 1",
+    3,
+    "F0025"
+   ],
+   [
+    11,
+    "An album with a long title that goes on 2",
+    3,
+    "F0025"
+   ]
+  ]
+ },
+ "browse": "esphome.screen_browse",
+ "play": "esphome.screen_play"
+}

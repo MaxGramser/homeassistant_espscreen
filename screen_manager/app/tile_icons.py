@@ -278,6 +278,8 @@ HA_DEFAULTS = (
     ('calendar-check', 'F00EF'),
     # Home Assistant's to-do list icon (homeassistant/components/todo/icons.json).
     ('clipboard-list', 'F10D4'),
+    # A text's (text/icons.json; an input_text has none of its own and takes its frontend's FALLBACK_DOMAIN_ICONS one).
+    ('form-textbox', 'F060E'),
     ('account-arrow-right', 'F0B53'),
     ('air-filter', 'F0D43'),
     ('air-humidifier', 'F1099'),
@@ -486,7 +488,7 @@ FALLBACK = 'power'
 # The large icon font of a card that takes the whole page (firmware 0.2.62+): what the screen draws on its own for a
 # domain, a state or a built-in card, at 64 px on the Guition and 40 px on the CYD. Kept to these so the CYD's flash
 # stays free; a chosen icon outside this set shows at its usual size in the big circle.
-BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.values()) + ['lightbulb-off', 'robot-off', 'remote-off', 'air-humidifier-off', 'calendar-check', 'calendar-blank', FALLBACK] +
+BIG_GLYPHS = tuple(dict.fromkeys(list(DEFAULTS.values()) + list(BUILTIN_TILES.values()) + ['lightbulb-off', 'robot-off', 'robot-confused', 'remote-off', 'air-humidifier-off', 'calendar-check', 'calendar-blank', FALLBACK] +
                                  ['weather-sunny', 'weather-night', 'weather-cloudy', 'weather-partly-cloudy', 'weather-rainy',
                                   'weather-pouring', 'weather-snowy', 'weather-snowy-rainy', 'weather-fog', 'weather-hail',
                                   'weather-lightning', 'weather-lightning-rainy', 'weather-windy', 'alert-circle-outline',
@@ -503,6 +505,9 @@ WEATHER = {'sunny': 'weather-sunny', 'clear-night': 'weather-night', 'cloudy': '
 
 # Domains whose icon the screen draws from the state itself: a weather condition, the sun above or below the horizon.
 OWN_ICON_DOMAINS = frozenset(('weather', 'sun', 'screen', 'calendar'))
+# Home Assistant's frontend's FALLBACK_DOMAIN_ICONS (src/data/icons.ts), for the types whose integration has no icon of
+# its own in its icons.json: the last step of its domainIcon before the bookmark.
+FALLBACK_DOMAIN_ICONS = {'input_text': 'form-textbox', 'text': 'form-textbox'}
 # Home Assistant's icon resources ({'entity_component': ..., 'entity': ...}), set by the app when it reads them; empty keeps
 # the tables of earlier releases.
 HA_ICONS = {}
@@ -583,6 +588,8 @@ def ha_default_icon(entity_id, state, attributes, entry, icons):
         component = (icons.get('entity_component') or {}).get(domain) or {}
         device_class = (attributes or {}).get('device_class')
         icon = icon_for_state(state, (isinstance(device_class, str) and component.get(device_class)) or component.get('_'))
+    if not icon and domain in FALLBACK_DOMAIN_ICONS:
+        return FALLBACK_DOMAIN_ICONS[domain]
     return icon[4:] if isinstance(icon, str) and icon.startswith('mdi:') else None
 
 def default_glyph(entity_id, state, attributes, entry=None, icons=None):

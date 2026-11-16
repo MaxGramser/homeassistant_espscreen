@@ -5,6 +5,25 @@ directly, or a screen looked at once it has settled, can pass while the screen o
 after every page change (GitHub #27 was exactly that). So before calling a change tested, say which entry point was
 driven (a finger, a layout message from the add-on, an action from Home Assistant) and which moment was looked at.
 
+## A test reads behaviour, not lines
+
+Many tests here read the firmware's source, because most of it cannot run on a PC. That is right for a rule that holds
+everywhere: no colour outside the theme's table, every label a card draws itself going through `draw_text::label`,
+every draw callback opening its card's scope. Such a test names the rule, searches every file, and fails with the
+sentence that says what to do.
+
+It is wrong for behaviour. A test that looks for one line as it was written (`assertIn('theme::pressed(bare ? ...')`)
+proves that the line was not edited, not that the card is painted right: it breaks when the code is improved and keeps
+passing when the behaviour is broken somewhere else. For behaviour, in this order: a pure function with a test of its
+own (the planners, `picture_store`, `section_layout`), a case both sides answer from one fixture
+(`tests/fixtures/page-conformance.json`, `plugin-conformance.json`), a check the compiler makes (`static_assert`), the
+firmware preview (`web/wasm/test_*.mjs`, `tests/test_editor_parity.py`), the host render (`tools/render`). When code
+that a line-quoting test names is rewritten, the test is replaced by one of those, not edited to the new line.
+
+The firmware preview's `preview_layout()` gives what a test needs to read a card without its lines: every object's box,
+its ground (`bg`), and for a label its text and its ink (`color`), as the firmware set them. An icon is a label whose
+text is its glyph (`icon`). `web/wasm/test_state_look.mjs` reads a card's state that way.
+
 There are six levels, from fast to real. Each is a different check: a green level does not stand in for the next.
 Work on dev is proven at level 4, on the screens a change concerns; a release runs every level, the sixth included
 (docs/RELEASING.md).
@@ -54,6 +73,33 @@ fontTools and jinja2, and stops when one is missing, because a skipped test prov
   rebuilds and commits it when the firmware sources move; locally, `sh web/wasm/build.sh` with Emscripten does the
   same.
 
+### Running a test
+
+Every Python test runs in each of these ways, from the root of a working copy:
+
+```bash
+python -m unittest discover -s tests
+```
+
+```bash
+python -m unittest tests.test_wifi_chip
+```
+
+```bash
+python -m unittest tests.test_wifi_chip.TheRestart.test_the_c6_reset_line_is_left_to_esp_hosted
+```
+
+```bash
+python tests/test_wifi_chip.py
+```
+
+A test imports its helpers (`firmware_sources`, `manager_fixtures`, the fakes of another test) by their plain name,
+and none puts `tests/` on `sys.path` itself. The way of running puts it there: discover and a file run alone by their
+own rules, and `tests/__init__.py` for `tests.X`. A test that needs the add-on or the tools puts
+`screen_manager/app` in front and appends `tools/` after it (`sys.path.append`): both folders have an `i18n.py` and
+a `build_cache.py`, and the tools' must not hide the add-on's. A test that only passes after another test has imported
+something for it is a broken test. Run a file alone to see whether it stands on its own.
+
 ## 2. Firmware builds
 
 `tools/check.sh --firmware` compiles boards the way their owners build them: from the checkout entries, with
@@ -83,8 +129,11 @@ A build that passes says the YAML and the C++ compile and fit their slot. It say
 the glass, with an SDL surface in place of the panel and the touch chip. Lying down, and standing up where the glass is
 not square. `tools/check.sh --render` does it for every board, and `tools/check.sh --render --sample` for the three of
 `RENDER_SAMPLE` in `tools/profiles.py` (the smallest, a middle and the largest glass). It needs SDL2 and ESPHome's
-Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. For each
-variant it:
+Python and takes long, so it runs by hand when a change reaches what a screen draws. CI does not run it. It needs the
+ESPHome of the app (`screen_manager/Dockerfile`) or newer, and refuses an older one before it builds: an older ESPHome
+fails the host build on what it lacks, which reads as a broken test. Without one installed, uv brings it:
+`uv run --no-project --python 3.13 --with esphome==<the app's version> --with pillow python tools/render/run.py guition`.
+For each variant it:
 
 - sends the demo layout through the screen's inbox, as the add-on does, with a title per page;
 - runs the firmware's own self test (`ui_self_test`): every page and overlay, each page's cards and bar, and the check
@@ -125,6 +174,16 @@ fields (docs/PLUGINS.md): plain, where every host program makes a card anew when
 and with `KEPT_PAGES_HOST=1`, the path a board with PSRAM takes (docs/KEPT_PAGES.md), where the kept card shows again
 and the probe counts no new object. A host program never has PSRAM, so a Guition built plain proves the CYD's path at
 the Guition's sizes, not the kept one.
+
+### Feature pictures
+
+`tools/render/features.py` renders the to-do card, calls between screens and the doorbell's Talk on a board lying and a
+board standing up, for the website and the release notes. It drives the host program with the messages the app sends
+(the to-do round of `run.py`, the ops `call`, `contacts` and `doorbell` made by `calls.py`), answers the screen's picture
+questions from `--pictures DIR` (`caller.jpg`, `door.jpg`) and writes beside each PNG where every picture lands on the
+glass. Its own build folder carries the audio caps of a board that plays and hears (`HW_SPEAKER`, `HW_MICROPHONE`), and
+the host's stand-in microphone of `talk_uplink.h` (`USE_HOST`, the action `render_talk`) lets the Talk key show each of
+its states without a microphone.
 
 ## 4. One screen on the glass
 

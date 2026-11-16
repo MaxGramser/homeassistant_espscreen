@@ -928,7 +928,11 @@
         "destination_exists": "Het doelscherm heeft al een opgeslagen indeling",
         "update_tall": "Werk het scherm bij om deze tegelmaten te gebruiken",
         "memory": "Het scherm heeft onvoldoende vrij geheugen voor deze indeling. Gebruik minder tegels.",
-        "grid_range": "Dit scherm neemt geen raster van deze grootte aan. Kies een ander raster naast het voorbeeld."
+        "grid_range": "Dit scherm neemt geen raster van deze grootte aan. Kies een ander raster naast het voorbeeld.",
+        "section_title": "Een sectie heeft een naam van hoogstens 48 bytes nodig.",
+        "section_tiles": "De tegels van een sectie moeten erbinnen staan, en een tegel over de hele pagina staat nooit in een sectie.",
+        "section_overlap": "Secties en losse tegels mogen niet op dezelfde cellen staan.",
+        "sections_full": "Een pagina heeft hoogstens 16 secties."
       },
       "feedback": {
         "invalid": "Dit antwoord kan niet gedeeld worden. Kies ja of niet helemaal, en alleen de genoemde problemen.",
@@ -1620,6 +1624,13 @@
         "missed": "Niemand raakte hem aan voor de timeout",
         "seen": "Een gemiste bel werd vanuit de bovenbalk weer geopend"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot heeft een AI Task in Home Assistant nodig die data kan maken (Instellingen > Apparaten & diensten, een AI-integratie).",
+      "notes": {
+        "unknown": "{entity} weggelaten: dat is geen entiteit van deze Home Assistant.",
+        "no_page": "Er is geen pagina {page}."
+      }
     }
   },
   "editor": {
@@ -1971,7 +1982,8 @@
         "lock": "Sloten",
         "humidifier": "Luchtbevochtigers",
         "calendar": "Agenda's",
-        "todo": "To-do-lijsten"
+        "todo": "To-do-lijsten",
+        "text": "Teksten"
       },
       "room": "Ruimte",
       "hide_placed": "Geplaatste verbergen",
@@ -2038,7 +2050,9 @@
       "lock": "Slot",
       "humidifier": "Luchtbevochtiger",
       "calendar": "Agenda",
-      "todo": "To-do-lijst"
+      "todo": "To-do-lijst",
+      "text": "Tekst",
+      "input_text": "Tekst"
     },
     "displays": {
       "standard": "standaard",
@@ -2570,6 +2584,10 @@
         "kind_hint": "Video vraagt een camera op beide schermen, anders wordt het een gesprek met geluid.",
         "video": "Video waar het kan",
         "sound": "Alleen geluid"
+      },
+      "text_entity": {
+        "edit": "Een tik opent de waarde in een veld met het toetsenbord van het scherm. Een wachtwoord staat er als stippen.",
+        "view_only": "Dit bord toont alleen de waarde: wijzigen op het scherm vraagt een bord met 8 MB flash of meer."
       }
     },
     "precision": {
@@ -3822,7 +3840,9 @@
         "layout_imported": "indeling geïmporteerd",
         "changed": "indeling gewijzigd",
         "restored": "niet-opgeslagen wijzigingen hersteld",
-        "taken_over": "wijzigingen uit het andere tabblad overgenomen"
+        "taken_over": "wijzigingen uit het andere tabblad overgenomen",
+        "auto_layout": "de indeling die voor je gemaakt is",
+        "layoutbot": "wijziging van Layoutbot"
       }
     },
     "draft": {
@@ -3979,7 +3999,10 @@
         "ha_none": "Voert geen acties uit in Home Assistant",
         "network": "Maakt verbinding met {hosts}",
         "network_none": "Maakt geen verbindingen buiten Home Assistant",
-        "read": "Leest deze entiteiten uit Home Assistant"
+        "read": "Leest deze entiteiten uit Home Assistant",
+        "sends": "Stuurt naar {host}: {what}",
+        "sends_option": "{attributes} van de entiteit die je kiest voor {option}",
+        "sends_state": "status"
       },
       "warning": "Een plugin draait op je scherm met volledige toegang ertoe, ook tot de Wi-Fi en de acties die het scherm in Home Assistant mag uitvoeren, en zijn build draait in deze app, waar hij bij je Home Assistant-configuratie kan. Voeg alleen plugins toe van makers die je vertrouwt, of lees eerst de code.",
       "room": {
@@ -4315,7 +4338,14 @@
       "remove": "{name} weghalen",
       "type": "Typ en druk op Enter",
       "full": "Het scherm neemt niet meer aan voor deze tegel: de opties zijn vol.",
-      "count": "{n} van {max}"
+      "count": "{n} van {max}",
+      "show_all": "Alle entiteiten tonen",
+      "show_fitting": "Alleen wat past tonen",
+      "not_set": "Niet ingesteld",
+      "fill_device": "Invullen vanaf een apparaat",
+      "fill_device_hint": "Kies een apparaat en de sensoren ervan worden hieronder ingevuld. Je kunt elke sensor daarna nog wijzigen.",
+      "fill_device_none": "Geen apparaat heeft twee of meer van deze sensoren",
+      "fill_device_count": "1 sensor | {n} sensoren"
     },
     "build": {
       "plugins": "Bouwt met zijn plugins",
@@ -4646,6 +4676,173 @@
     },
     "drawer": {
       "resize": "Breedte van de instellingen: sleep, of gebruik de pijltjestoetsen; dubbelklik om terug te zetten"
+    },
+    "sections": {
+      "untitled": "Sectie",
+      "kind": "Sectie",
+      "choose_tiles": "Kies eerst de tegels voor de sectie.",
+      "one_page": "De tegels van een sectie staan op één pagina: kies tegels van één pagina.",
+      "already_in": "Een van deze tegels staat al in een sectie. Haal hem er eerst uit, of kies losse tegels.",
+      "no_full": "Een tegel over de hele pagina kan niet in een sectie staan.",
+      "too_tall": "Deze tegels hebben meer rijen nodig dan de pagina heeft. Kies er minder, of maak de sectie breder.",
+      "no_room": "Daar is geen ruimte voor: andere tegels of secties staan in de weg.",
+      "no_room_page": "Geen ruimte voor de sectie op pagina {page}.",
+      "removed": "Sectie verwijderd, de tegels blijven staan",
+      "removed_with_tiles": "Sectie met tegels verwijderd",
+      "resize_columns": "Maak de sectie breder of smaller",
+      "resize_rows": "Maak de sectie hoger of lager",
+      "head_title": "Sleep om de sectie te verplaatsen, klik voor de instellingen",
+      "aria": "Sectie {title}",
+      "rename": "Sectie hernoemen",
+      "title": "Naam",
+      "make": "Maak een sectie",
+      "add": "Sectie toevoegen",
+      "add_here": "Sectie hier toevoegen",
+      "library_hint": "Een groep tiles met een titel",
+      "make_now": "Maak de sectie",
+      "name_placeholder": "Naam, bijvoorbeeld Lampen",
+      "in_section": "In deze sectie",
+      "update_screen": "De firmware van dit scherm tekent nog geen secties: het toont dezelfde tegels zonder. Werk het scherm bij om ze te zien.",
+      "head": "Titel",
+      "no_icon": "Geen icoon",
+      "summary": "Samenvatting",
+      "summary_none": "Geen",
+      "summary_search": "Entiteiten zoeken",
+      "summary_none_found": "Geen entiteit gevonden",
+      "summary_clear": "Geen samenvatting",
+      "summary_hint": "De status van één entiteit rechts van de titel, zoals een temperatuur of hoeveel lampen aan zijn.",
+      "size": "Grootte",
+      "columns": "Kolommen",
+      "rows": "Rijen",
+      "narrower": "Smaller",
+      "wider": "Breder",
+      "lower": "Lager",
+      "taller": "Hoger",
+      "size_hint": "Een sectie groeit alleen in lege cellen. Wordt ze te smal voor haar tegels, dan schuiven die op in leesvolgorde.",
+      "loose_hint": "1 losse tegel staat naast een sectie. Losse tegels lezen het best als een eigen rij boven de secties. | {n} losse tegels staan naast een sectie. Losse tegels lezen het best als een eigen rij boven de secties.",
+      "loose_row": "Maak er een rij van",
+      "short_grid": "Op een raster van {rows} rijen neemt de titel van een sectie veel ruimte van haar tegels: elke tegel is dan ongeveer {with} mm hoog in plaats van {without} mm. Tegels buiten secties houden hun hoogte.",
+      "remove": "Sectie verwijderen",
+      "remove_with_tiles": "Sectie en tegels verwijderen",
+      "settings": "Instellingen van de sectie",
+      "contrast": "Contrastachtergrond",
+      "contrast_hint": "Het paneel in de tegenovergestelde kleur van de pagina, donker overdag en licht in de donkere modus, zodat deze sectie opvalt.",
+      "contrast_tiles": "Tegels ook in contrast",
+      "contrast_tiles_hint": "De hele sectie in de andere look, de kaarten van de tegels ook: donkere kaarten op een donker paneel overdag, lichte in de donkere modus."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lampen",
+        "covers": "Raambekleding & ramen",
+        "climate": "Klimaat",
+        "media": "Media",
+        "security": "Beveiliging",
+        "actions": "Scènes",
+        "others": "Apparaten",
+        "weather": "Weer",
+        "people": "Wie is thuis",
+        "energy": "Energie",
+        "cameras": "Camera's",
+        "vacuum": "Stofzuiger",
+        "todo": "Lijsten",
+        "calendar": "Agenda"
+      },
+      "home": "Huis",
+      "all_lights": "Alle lampen",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} en nog {n}",
+      "button": "Automatische indeling",
+      "button_title": "Maak pagina's van je Home Assistant-ruimtes en -apparaten",
+      "title": "Een indeling voor je maken",
+      "intro": "Tessera kijkt naar je ruimtes en apparaten in Home Assistant en maakt pagina's voor dit scherm: een pagina of sectie per ruimte, het weer, het alarm, de personen en de camera's van het huis bij elkaar, grotere tegels waar dit scherm er ruimte voor heeft. Je kunt het ongedaan maken en daarna alles aanpassen.",
+      "reading": "Je huis wordt gelezen…",
+      "failed": "Je huis kon niet worden gelezen: {error}",
+      "nothing": "Tessera vond nog niets om op dit scherm te tonen. Geef je apparaten een ruimte in Home Assistant, of voeg tegels toe uit de bibliotheek.",
+      "nothing_new": "Alles wat Tessera op dit scherm zou zetten, staat er al.",
+      "summary": "{pages} pagina · {tiles} tegels | {pages} pagina's · {tiles} tegels",
+      "summary_sections": "{n} sectie | {n} secties",
+      "from_rooms": "uit één ruimte | uit {n} ruimtes",
+      "left_out": "Nog één entiteit kreeg geen plek op dit scherm; je vindt hem in de bibliotheek. | Nog {n} entiteiten kregen geen plek op dit scherm; je vindt ze in de bibliotheek.",
+      "replace": "De pagina's vervangen",
+      "replace_hint": "Het scherm krijgt deze pagina's in plaats van de huidige.",
+      "append": "Na de huidige pagina's toevoegen",
+      "append_hint": "De huidige pagina's blijven; de nieuwe komen erna, met wat nog niet op het scherm staat.",
+      "append_full": "Dit scherm heeft geen pagina's of tegels meer over. Vervang de pagina's, of maak eerst ruimte.",
+      "make": "Indeling maken",
+      "made": "Een indeling van {pages} pagina staat klaar. Ongedaan maken draait het terug. | Een indeling van {pages} pagina's staat klaar. Ongedaan maken draait het terug.",
+      "offer_title": "Zal ik een eerste indeling voor je maken?",
+      "offer_text": "Tessera kan dit scherm indelen met je ruimtes en apparaten uit Home Assistant. Daarna kun je alles aanpassen.",
+      "offer_make": "Eerste indeling maken",
+      "offer_empty": "Leeg beginnen"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Vraag het Layoutbot",
+      "close": "Sluiten",
+      "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
+      "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag, de pagina's van je schermen en de id's, namen en ruimtes van je entiteiten gaan daarheen.",
+      "placeholder": "Maak een pagina met…",
+      "send": {
+        "ask": "Zal ik het naar {which} sturen?",
+        "yes": "Ja, versturen",
+        "no": "Nu niet",
+        "sending": "Versturen…",
+        "sent": "Verstuurd. Het scherm laat het zo zien.",
+        "not_all": "Niet alles is verstuurd.",
+        "failed": "Versturen naar {which} lukte niet.",
+        "declined": "Niet verstuurd. Opslaan & versturen kan altijd nog.",
+        "to": "Versturen naar {name}",
+        "not_opened": "dat scherm kon niet geopend worden",
+        "not_saved": "het is niet opgeslagen",
+        "unsaved": "het open scherm heeft niet-opgeslagen wijzigingen",
+        "own": "Je eigen wijzigingen sinds de laatste keer opslaan gaan mee."
+      },
+      "busy": "Layoutbot deelt je pagina's in",
+      "seconds": "{n} s",
+      "stop": "Stoppen",
+      "stopped": "Gestopt. Er is niets veranderd.",
+      "nothing": "Er is niets veranderd.",
+      "stale": "De pagina's veranderden terwijl ik nadacht, dus ik heb ze gelaten zoals ze waren. Vraag het nog eens.",
+      "show": "Toon",
+      "undo": "Ongedaan maken",
+      "undone": "Ongedaan gemaakt",
+      "suggest": {
+        "lights_sections": "Zet alle lampen op één pagina, met een sectie per kamer",
+        "lights": "Zet alle lampen op één pagina",
+        "covers_sections": "Een pagina met alle rolgordijnen en gordijnen, in twee secties",
+        "covers": "Een pagina met alle rolgordijnen en gordijnen",
+        "media": "Een muziekpagina met alle speakers",
+        "climate": "Een klimaatpagina met de verwarming en de temperaturen"
+      },
+      "what": {
+        "pages": "1 nieuwe pagina | {n} nieuwe pagina's",
+        "added": "1 tegel erbij | {n} tegels erbij",
+        "removed": "1 tegel eraf | {n} tegels eraf",
+        "changed": "pagina {pages} aangepast | pagina's {pages} aangepast"
+      },
+      "connect": {
+        "title": "Koppel een AI in Home Assistant",
+        "short": "Nog niet gekoppeld",
+        "body": "Ik deel de pagina's van dit scherm in vanuit één zin, zoals \"alle lampen op één pagina, een sectie per kamer\". Daarvoor gebruik ik de AI die je aan Home Assistant koppelt: voeg een van deze integraties toe en ik doe de rest.",
+        "cloud": "In de cloud, met je eigen sleutel",
+        "local": "Op je eigen computer",
+        "after": "Elke AI-integratie met AI Tasks werkt. Kijk hier opnieuw zodra die is toegevoegd.",
+        "again": "Opnieuw kijken"
+      },
+      "notes": {
+        "page_full": "Pagina {page} is vol, dus {count} tegel is weggelaten. | Pagina {page} is vol, dus {count} tegels zijn weggelaten.",
+        "memory_full": "Het geheugen van het scherm is vol, dus {count} tegel is weggelaten. | Het geheugen van het scherm is vol, dus {count} tegels zijn weggelaten.",
+        "left_out": "Het scherm had geen ruimte voor nog {count} tegel. | Het scherm had geen ruimte voor nog {count} tegels.",
+        "no_page": "Er is geen pagina {page}.",
+        "not_drawn": "Het scherm tekent geen tegel van {count} entiteit. | Het scherm tekent geen tegel van {count} entiteiten."
+      },
+      "update_app": "Werk de Tessera-app bij: deze editor plaatst de plannen van Layoutbot zelf.",
+      "scope": {
+        "here": "Dit scherm",
+        "all": "Alle schermen"
+      },
+      "preview": "Bekijk"
     }
   }
 }

@@ -926,7 +926,11 @@
         "destination_exists": "La pantalla de destino ya tiene una distribución guardada",
         "update_tall": "Actualiza la pantalla para usar estos tamaños de tarjeta",
         "memory": "La pantalla no tiene suficiente memoria libre para este diseño. Usa menos tarjetas.",
-        "grid_range": "Esta pantalla no admite una cuadrícula de ese tamaño. Elige otra cuadrícula junto a la vista previa."
+        "grid_range": "Esta pantalla no admite una cuadrícula de ese tamaño. Elige otra cuadrícula junto a la vista previa.",
+        "section_title": "Una sección necesita un nombre de 48 bytes como máximo.",
+        "section_tiles": "Los mosaicos de una sección deben estar dentro de ella, y un mosaico de página completa nunca está en una sección.",
+        "section_overlap": "Las secciones y los mosaicos sueltos no pueden ocupar las mismas celdas.",
+        "sections_full": "Una página tiene como máximo 16 secciones."
       },
       "feedback": {
         "invalid": "Esta respuesta no se puede compartir. Elige sí o no del todo, y solo los problemas indicados.",
@@ -1969,7 +1973,8 @@
         "lock": "Cerraduras",
         "humidifier": "Humidificadores",
         "calendar": "Calendarios",
-        "todo": "Listas de tareas"
+        "todo": "Listas de tareas",
+        "text": "Textos"
       },
       "room": "Habitación",
       "hide_placed": "Ocultar añadidas",
@@ -2081,7 +2086,10 @@
         "ha_none": "No ejecuta acciones en Home Assistant",
         "network": "Se conecta a {hosts}",
         "network_none": "No se conecta a nada fuera de Home Assistant",
-        "read": "Lee estas entidades de Home Assistant"
+        "read": "Lee estas entidades de Home Assistant",
+        "sends": "Envía a {host}: {what}",
+        "sends_option": "{attributes} de la entidad que elijas para {option}",
+        "sends_state": "estado"
       },
       "warning": "Un plugin se ejecuta en tu pantalla con acceso total a ella, incluidas su Wi-Fi y las acciones que puede realizar en Home Assistant, y su compilación se ejecuta en esta app, donde puede acceder a tu configuración de Home Assistant. Añade solo plugins de autores en los que confíes, o lee antes el código.",
       "room": {
@@ -2417,7 +2425,14 @@
       "remove": "Quitar {name}",
       "type": "Escribe y pulsa Intro",
       "full": "La pantalla no admite más para este mosaico: sus opciones están llenas.",
-      "count": "{n} de {max}"
+      "count": "{n} de {max}",
+      "show_all": "Mostrar todas las entidades",
+      "show_fitting": "Mostrar solo las que encajan",
+      "not_set": "Sin definir",
+      "fill_device": "Rellenar desde un dispositivo",
+      "fill_device_hint": "Elige un dispositivo y sus sensores se rellenan abajo. Después puedes cambiar cada uno.",
+      "fill_device_none": "Ningún dispositivo tiene dos o más de estos sensores",
+      "fill_device_count": "1 sensor | {n} sensores"
     },
     "memory": {
       "label": "Memoria para mosaicos",
@@ -2468,7 +2483,9 @@
       "lock": "Cerradura",
       "humidifier": "Humidificador",
       "calendar": "Calendario",
-      "todo": "Lista de tareas"
+      "todo": "Lista de tareas",
+      "text": "Texto",
+      "input_text": "Texto"
     },
     "displays": {
       "standard": "estándar",
@@ -2989,6 +3006,10 @@
         "suggest_hint": "Al escribir, el teclado ofrece lo que se marcó antes; un toque lo devuelve a la lista",
         "clear": "Eliminar completados",
         "clear_hint": "Una tecla en la lista elimina todo lo marcado, tras preguntar"
+      },
+      "text_entity": {
+        "edit": "Un toque abre el valor en un campo con el teclado de la pantalla. Una contraseña se muestra con puntos.",
+        "view_only": "Esta placa solo muestra el valor: cambiarlo en la pantalla requiere una placa con 8 MB de flash o más."
       }
     },
     "precision": {
@@ -4240,7 +4261,8 @@
         "layout_imported": "diseño importado",
         "changed": "diseño cambiado",
         "restored": "cambios sin guardar restaurados",
-        "taken_over": "cambios de la otra pestaña traídos aquí"
+        "taken_over": "cambios de la otra pestaña traídos aquí",
+        "auto_layout": "el diseño creado para ti"
       }
     },
     "draft": {
@@ -4629,6 +4651,105 @@
     },
     "drawer": {
       "resize": "Ancho de los ajustes: arrastra o usa las flechas; doble clic para restablecer"
+    },
+    "sections": {
+      "untitled": "Sección",
+      "kind": "Sección",
+      "choose_tiles": "Elige primero los mosaicos de la sección.",
+      "one_page": "Los mosaicos de una sección están en una sola página: elige mosaicos de una página.",
+      "already_in": "Uno de estos mosaicos ya está en una sección. Sácalo primero o elige mosaicos sueltos.",
+      "no_full": "Un mosaico de página completa no puede estar en una sección.",
+      "too_tall": "Estos mosaicos necesitan más filas de las que tiene la página. Elige menos o haz la sección más ancha.",
+      "no_room": "No hay sitio aquí: otros mosaicos o secciones estorban.",
+      "no_room_page": "No hay sitio para la sección en la página {page}.",
+      "removed": "Sección eliminada, sus mosaicos se quedan donde están",
+      "removed_with_tiles": "Sección eliminada con sus mosaicos",
+      "resize_columns": "Hacer la sección más ancha o más estrecha",
+      "resize_rows": "Hacer la sección más alta o más baja",
+      "head_title": "Arrastra para mover la sección, haz clic para sus ajustes",
+      "aria": "Sección {title}",
+      "rename": "Renombrar la sección",
+      "title": "Nombre",
+      "make": "Crear una sección",
+      "add": "Añadir una sección",
+      "add_here": "Añadir una sección aquí",
+      "library_hint": "Un grupo de mosaicos con título",
+      "make_now": "Crear la sección",
+      "name_placeholder": "Nombre, por ejemplo Luces",
+      "in_section": "En esta sección",
+      "update_screen": "El firmware de esta pantalla aún no dibuja secciones: muestra los mismos mosaicos sin ellas. Actualiza la pantalla para verlas.",
+      "head": "Título",
+      "no_icon": "Sin icono",
+      "summary": "Resumen",
+      "summary_none": "Ninguno",
+      "summary_search": "Buscar entidades",
+      "summary_none_found": "No se encontró ninguna entidad",
+      "summary_clear": "Sin resumen",
+      "summary_hint": "El estado de una entidad a la derecha del título, como una temperatura o cuántas luces están encendidas.",
+      "size": "Tamaño",
+      "columns": "Columnas",
+      "rows": "Filas",
+      "narrower": "Más estrecha",
+      "wider": "Más ancha",
+      "lower": "Más baja",
+      "taller": "Más alta",
+      "size_hint": "Una sección solo crece en celdas vacías. Si se queda demasiado estrecha para sus mosaicos, estos avanzan en orden de lectura.",
+      "loose_hint": "1 mosaico suelto está junto a una sección. Los mosaicos sueltos se leen mejor en una fila propia encima de las secciones. | {n} mosaicos sueltos están junto a una sección. Los mosaicos sueltos se leen mejor en una fila propia encima de las secciones.",
+      "loose_row": "Hacer una fila",
+      "short_grid": "En una cuadrícula de {rows} filas el título de una sección quita mucho espacio a sus mosaicos: cada uno mide unos {with} mm en lugar de {without} mm. Los mosaicos fuera de secciones conservan su altura.",
+      "remove": "Eliminar sección",
+      "remove_with_tiles": "Eliminar sección y mosaicos",
+      "settings": "Ajustes de la sección",
+      "contrast": "Fondo de contraste",
+      "contrast_hint": "El panel en el color opuesto de la página, oscuro de día y claro en modo oscuro, para que esta sección destaque.",
+      "contrast_tiles": "Mosaicos también en contraste",
+      "contrast_tiles_hint": "Toda la sección con el otro aspecto, también las tarjetas de los mosaicos: tarjetas oscuras sobre panel oscuro de día, claras en modo oscuro."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Luces",
+        "covers": "Persianas y ventanas",
+        "climate": "Clima",
+        "media": "Multimedia",
+        "security": "Seguridad",
+        "actions": "Escenas",
+        "others": "Dispositivos",
+        "weather": "Tiempo",
+        "people": "Quién está en casa",
+        "energy": "Energía",
+        "cameras": "Cámaras",
+        "vacuum": "Aspiradora",
+        "todo": "Listas",
+        "calendar": "Calendario"
+      },
+      "home": "Casa",
+      "all_lights": "Todas las luces",
+      "two_rooms": "{a} y {b}",
+      "room_list": "{list} y {last}",
+      "more_rooms": "{a} y {n} más",
+      "button": "Diseño automático",
+      "button_title": "Crea páginas a partir de tus áreas y dispositivos de Home Assistant",
+      "title": "Crear un diseño para ti",
+      "intro": "Tessera mira tus áreas y dispositivos de Home Assistant y crea páginas para esta pantalla: una página o sección por habitación, el tiempo, la alarma, las personas y las cámaras de la casa juntos, y mosaicos más grandes donde esta pantalla tiene sitio. Puedes deshacerlo y cambiar todo después.",
+      "reading": "Leyendo tu casa…",
+      "failed": "No se pudo leer tu casa: {error}",
+      "nothing": "Tessera aún no encontró nada que mostrar en esta pantalla. Asigna un área a tus dispositivos en Home Assistant o añade mosaicos desde la biblioteca.",
+      "nothing_new": "Todo lo que Tessera pondría en esta pantalla ya está en ella.",
+      "summary": "{pages} página · {tiles} mosaicos | {pages} páginas · {tiles} mosaicos",
+      "summary_sections": "{n} sección | {n} secciones",
+      "from_rooms": "de una habitación | de {n} habitaciones",
+      "left_out": "Una entidad más no cupo en esta pantalla; está en la biblioteca. | {n} entidades más no cupieron en esta pantalla; están en la biblioteca.",
+      "replace": "Reemplazar las páginas",
+      "replace_hint": "La pantalla recibe estas páginas en lugar de las actuales.",
+      "append": "Añadir tras las páginas actuales",
+      "append_hint": "Las páginas actuales se quedan y las nuevas van después, con lo que aún no está en la pantalla.",
+      "append_full": "A esta pantalla no le quedan páginas ni mosaicos libres. Reemplaza las páginas o haz sitio primero.",
+      "make": "Crear el diseño",
+      "made": "Un diseño de {pages} página está listo. Deshacer lo quita. | Un diseño de {pages} páginas está listo. Deshacer lo quita.",
+      "offer_title": "¿Quieres que cree un primer diseño?",
+      "offer_text": "Tessera puede organizar esta pantalla con tus áreas y dispositivos de Home Assistant. Después puedes cambiarlo todo.",
+      "offer_make": "Crear un primer diseño",
+      "offer_empty": "Empezar vacío"
     }
   }
 }

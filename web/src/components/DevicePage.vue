@@ -2,13 +2,19 @@
 
 // One page of the screen as the mockup draws it: the top bar and the screen's own grid of cells.
 import { useEventListener } from "@vueuse/core";
-import { computed, nextTick, ref, shallowRef } from "vue";
+import { computed, nextTick, provide, ref, shallowRef } from "vue";
 import { useGesture } from "../composables/useGesture";
 import { vDrag } from "../drag";
 import { t } from "../i18n";
 import { sizeOf } from "../model/layout";
 import type { Tile } from "../types";
 import TileCard from "./TileCard.vue";
+import SectionBand from "./SectionBand.vue";
+import SectionMaker from "./SectionMaker.vue";
+import SectionMenuItems from "./SectionMenuItems.vue";
+import { addSection, canMakeSection, sectionsOffered } from "../editor/sections";
+import { glassMargins, insideMargins, OTHER_LOOK, sectionMetrics } from "../model/sections";
+import { NO_MARGINS, PLAIN_GRID, SECTION_GRID, type SectionGrid } from "../composables/useSectionGrid";
 import TopbarSvg from "./TopbarSvg.vue";
 import PageNavigation from './PageNavigation.vue';
 import PageMenu from './PageMenu.vue';
@@ -50,7 +56,7 @@ const owned = computed(() => doc.pageAt(props.page));
 function pageClick(event: MouseEvent) {
   if (props.preview || !owned.value) return;
   const target = event.target as HTMLElement;
-  if (target.closest(".tile, .cell, .bar-wrap, .home-chip, a, input, [role='menu'], [role='menuitem'], button:not(.grab)")) return;
+  if (target.closest(".tile, .cell, .bar-wrap, .home-chip, .section-panel, .section-head, .section-maker, a, input, [role='menu'], [role='menuitem'], button:not(.grab)")) return;
   insp.openPage(owned.value.id);
 }
 const isHome = computed(() => owned.value?.id === doc.document?.homePageId);
@@ -60,7 +66,33 @@ const covered = computed(() => new Set(props.entries.flatMap((e) => cellsOf(e.sl
 const cells = computed(() => Array.from({ length: grid.slots }, (_, cell) => props.page * grid.slots + cell).filter((slot) => !covered.value.has(slot)));
 const barSelected = computed(() => doc.barPage === props.page && (insp.inspector?.kind === "bar" || insp.inspector?.kind === "bar-add"));
 const filled = computed(() => props.entries.filter((e) => pageOf(e.slot) === props.page).reduce((n, e) => n + spanOf(sizeOf(e.tile)), 0));
-const cellStyle = (slot: number) => ({ gridColumn: slot % grid.columns + 1, gridRow: Math.floor(slot % grid.slots / grid.columns) + 1 });
+// ---- Sections (docs/PAGES.md "Sections"): the room they take from their own cards, as the glass lays them out ----
+// The sections as they stand, or as a drag, a grip or "Make a section" would leave them (the drag store's preview).
+const blocks = computed(() => (dragging.previewBlocks ?? doc.layout?.sections ?? []).filter((block) => block.page === props.page));
+const metrics = computed(() => sectionMetrics(doc.screenShape as Parameters<typeof sectionMetrics>[0]));
+const sectionGrid = computed<SectionGrid>(() => {
+  const list = blocks.value;
+  if (!list.length) return PLAIN_GRID;
+  const m = metrics.value;
+  const at = (column: number, row: number, columns: number, n: number) =>
+    list.find((b) => column >= b.column && column + columns <= b.column + b.columns && row >= b.row && row + n <= b.row + b.rows);
+  return {
+    otherLook: (column, row, columns, n) => Boolean(at(column, row, columns, n)?.contrastTiles),
+    standsOut: (column, row, columns, n) => { const b = at(column, row, columns, n); return Boolean(b?.contrast && !b.contrastTiles); },
+    margins: (column, row, columns, n) => {
+      const b = at(column, row, columns, n);
+      if (!b) return NO_MARGINS;
+      const inside = insideMargins(m, b.rows, row - b.row, row + n - 1 - b.row);
+      return { left: column === b.column ? m.pad : 0, right: column + columns === b.column + b.columns ? m.pad : 0, ...inside };
+    },
+  };
+});
+provide(SECTION_GRID, sectionGrid);
+const cellStyle = (slot: number) => {
+  const column = slot % grid.columns, row = Math.floor(slot % grid.slots / grid.columns);
+  return { gridColumn: column + 1, gridRow: row + 1, ...glassMargins(sectionGrid.value.margins(column, row, 1, 1)),
+    ...(sectionGrid.value.otherLook(column, row, 1, 1) ? { filter: OTHER_LOOK } : {}) };
+};
 function pickCell(slot: number) {
   doc.selectedPageId = owned.value?.id || doc.selectedPageId;
   const marked = insp.insertAt === slot && !ui.phone;
@@ -75,20 +107,22 @@ function pickCell(slot: number) {
 // filled, from the library or with what was copied; it shows as marked while its menu is open and is marked only by
 // what is chosen there, since a marked cell opens the library's search (Library.vue), which would take the menu's
 // focus. Anywhere else the page gets its own menu, its ···, and its settings open.
-type MenuFor = { kind: "tile"; tile: Tile; several: boolean } | { kind: "cell"; slot: number } | { kind: "page" };
+type MenuFor = { kind: "tile"; tile: Tile; several: boolean } | { kind: "cell"; slot: number } | { kind: "section"; id: string } | { kind: "page" };
 const menuFor = shallowRef<MenuFor>({ kind: "page" });
 function aim(e: MouseEvent) {
   const under = e.target as HTMLElement;
   const card = under.closest<HTMLElement>("[data-tile-id]:not(.placeholder)");
   const tile = card ? doc.layout?.tiles.find((item) => item.id === card.dataset.tileId) : undefined;
   const cell = under.closest<HTMLElement>(".cell[data-slot]");
+  const section = under.closest<HTMLElement>("[data-section-id]")?.dataset.sectionId;
   menuFor.value = tile ? { kind: "tile", tile, several: insp.isPicked(tile) && insp.chosenTiles.length > 1 }
-    : cell ? { kind: "cell", slot: Number(cell.dataset.slot) } : { kind: "page" };
+    : cell ? { kind: "cell", slot: Number(cell.dataset.slot) } : section ? { kind: "section", id: section } : { kind: "page" };
 }
 function menuOpened(open: boolean) {
   const aimed = menuFor.value;
   if (!open || !owned.value) return;
   if (aimed.kind === "tile" && !aimed.several && !doc.isSelected(aimed.tile)) insp.openTile(aimed.tile);
+  else if (aimed.kind === "section") insp.openSection(aimed.id);
   else if (aimed.kind === "page") insp.openPage(owned.value.id);
 }
 const menuOpen = ref(false);
@@ -102,6 +136,11 @@ function addHere(slot: number) {
   if (ui.phone) { insp.closeInspector(); ui.addSheet = true; }
 }
 function pasteHere(slot: number) { markCell(slot); void pasteCopied(); }
+// An empty cell inside a section takes a tile, never a section of its own (a section never holds another).
+const inSection = (slot: number) => {
+  const column = slot % grid.columns, row = Math.floor(slot % grid.slots / grid.columns);
+  return blocks.value.some((b) => column >= b.column && column < b.column + b.columns && row >= b.row && row < b.row + b.rows);
+};
 // A whole page moves by its label (app 0.2.121) and leaves by the button beside its cell count (app 0.2.123). One
 // page has nowhere to go and cannot leave either, and the page a tile can start behind the last one isn't a page yet.
 const movable = computed(() => !props.preview && !props.map && props.pages > 1 && props.page < props.pages);
@@ -161,6 +200,8 @@ async function onKey(e: KeyboardEvent) {
         <button v-if="preview && (backInHeader || topbar.homeKeyShown(page))" type="button" class="preview-home" :aria-label="backInHeader ? region.screenText('screen.navigation.back') : t('editor.pages.go_home')" @click.stop="emit('navigate', { kind: backInHeader ? 'back' : 'home' })"></button>
       </div>
       <div class="tiles">
+        <SectionBand v-for="block in blocks" :key="block.id" :block="block" :metrics="metrics" :preview="preview"
+          :carried="dragging.section === block.id" />
         <template v-for="slot in cells" :key="slot">
           <TileCard v-if="bySlot.get(slot)" :tile="preview ? bySlot.get(slot)!.tile : insp.previewed(bySlot.get(slot)!.tile)" :at="slot" :placeholder="bySlot.get(slot)!.tile === moving" :preview="preview" @navigate="emit('navigate', { kind: 'tile', tileId: $event })" />
           <span v-else-if="preview" class="cell preview-empty" :style="cellStyle(slot)"></span>
@@ -170,6 +211,7 @@ async function onKey(e: KeyboardEvent) {
             <span>+</span><small>{{ insp.insertAt === slot ? t("editor.page.cell.next") : t("editor.page.cell.empty") }}</small>
           </button>
         </template>
+        <SectionMaker v-if="!preview" :page="page" />
       </div>
       <PageNavigation v-if="owned" :page-id="owned.id" :interactive="preview" :can-go-back="canGoBack" @navigate="emit('navigate', { kind: $event })" />
     </div>
@@ -178,12 +220,15 @@ async function onKey(e: KeyboardEvent) {
     <template v-if="menuFor.kind === 'tile' && menuFor.several">
       <UiMenuItem class="tiles-copy" icon="content-copy" :hint="shortcut('C')" @select="copyChosen">{{ t("editor.selection.copy") }}</UiMenuItem>
       <UiMenuItem class="tiles-cut" icon="content-cut" :hint="shortcut('X')" @select="cutChosen">{{ t("editor.menu.cut") }}</UiMenuItem>
+      <UiMenuItem v-if="canMakeSection()" class="tiles-section" icon="view-grid-outline" @select="insp.makingSection = true">{{ t("editor.sections.make") }}</UiMenuItem>
       <UiMenuSeparator />
       <UiMenuItem class="tiles-remove" icon="delete-outline" danger hint="⌫" @select="removeTiles(insp.chosenTiles)">{{ t("editor.selection.remove", { n: insp.chosenTiles.length }, insp.chosenTiles.length) }}</UiMenuItem>
     </template>
     <TileMenuItems v-else-if="menuFor.kind === 'tile'" :tile="menuFor.tile" />
+    <SectionMenuItems v-else-if="menuFor.kind === 'section'" :id="menuFor.id" />
     <template v-else-if="menuFor.kind === 'cell'">
       <UiMenuItem class="cell-add" icon="plus" @select="addHere(menuFor.slot)">{{ t("editor.menu.add_here") }}</UiMenuItem>
+      <UiMenuItem v-if="sectionsOffered() && !inSection(menuFor.slot)" class="cell-add-section" icon="view-grid-outline" @select="addSection(page, menuFor.slot)">{{ t("editor.sections.add_here") }}</UiMenuItem>
       <UiMenuItem class="cell-paste" icon="content-paste" :hint="shortcut('V')" :disabled="!copiedTiles()" @select="pasteHere(menuFor.slot)">{{ t("editor.menu.paste_here") }}</UiMenuItem>
     </template>
     <PageMenuItems v-else-if="owned" :id="owned.id" />

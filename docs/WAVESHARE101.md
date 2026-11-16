@@ -1,4 +1,4 @@
-# Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, experimental
+# Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1
 
 This is the **ESP32-P4-WIFI6-Touch-LCD-10.1** (SKU 33150), the 10.1-inch board of Waveshare's ESP32-P4-WIFI6-Touch-LCD
 7, 8 and 10.1-inch series: an 800 x 1280 panel with a JD9365 MIPI-DSI driver, GT9271 capacitive touch, an ESP32-P4 with
@@ -6,28 +6,44 @@ This is the **ESP32-P4-WIFI6-Touch-LCD-10.1** (SKU 33150), the 10.1-inch board o
 five by five cells, the glass and grid of the 10.1-inch Guition JC8012P4A1.
 
 Its display, touch and backlight settings are those of a configuration a community member runs on the board (see "Where
-it comes from" below). Nobody has reported running this board file itself on one, and the project has not tried it, so
-the board is **experimental**.
+it comes from" below). Nobody has reported running the pre-v3 board file itself on one, and the project has only tried the V3 board file, on
+one unit with rev3 silicon (below), so the pre-v3 board is **experimental** and the V3 board is **new**: tried on glass, not yet in every part.
 
 ## Which silicon
 
-Waveshare's ESP32-P4 boards come with two revisions of the chip, and firmware for one does not start on the other. This
-board file builds for the earlier silicon ("chip revision: v1.3" in the first lines of the USB log), which the board the
-configuration runs on has. A board that reports v3.0 or higher needs this in its screen's Override YAML:
+Waveshare's ESP32-P4 boards come with two revisions of the chip, and firmware for one does not start on the other. The
+first lines of the USB log name it: "chip revision: v1.3", or "chip revision: v3.x". So this board is two boards in
+Tessera:
 
-```yaml
-esp32:
-  engineering_sample: false
-```
+| Board in New screen | Chip | Board file |
+|---|---|---|
+| Waveshare, ESP32-P4-WIFI6-Touch-LCD-10.1 | pre-v3 ("chip revision: v1.3") | `packages/boards/waveshare101.yaml` |
+| Waveshare, ESP32-P4-WIFI6-Touch-LCD-10.1 V3 | rev3 ("chip revision: v3.x"), what Waveshare ships now | `packages/boards/waveshare101-v3.yaml` |
+
+The two differ in two lines: the chip revision, and the display driver. On rev3 silicon ESPHome's own MIPI-DSI driver
+stops the chip while the display starts, so the V3 board takes the repository's copy of it, `components/mipi_dsi_v3`,
+as the Guition JC8012P4A1 V3 and the Waveshare 7B do. Everything else, the flash, the touch panel and the backlight,
+stands once in `packages/hardware/waveshare101.yaml`.
+
+Choosing the wrong one does no harm and shows at once: the screen stays dark and the USB log repeats its first lines
+over and over. A pre-v3 firmware on a rev3 chip restarts straight after the bootloader; a firmware with only the chip
+revision changed (`engineering_sample: false` in an Override YAML, without the other display driver) gets as far as
+"Performing bus recovery" and then stops in `esp_lcd_new_dsi_bus`, again and again. Install the other board.
+
+**Seen on glass, rev3:** one unit with chip revision v3.2 (a board sold as SKU 33672) starts with the V3 board file,
+joins Wi-Fi, shows its pages lying down and the right way up, and takes touches where the finger is. Sections, Dark
+mode and page changes were looked at on it. Not yet tried on it: the speaker and microphones, a camera on the MIPI-CSI
+port, standby and night mode over a day, an update over the air.
 
 ## Install
 
-Update Tessera Screen Manager and choose **Waveshare · 10.1 inch, ESP32-P4-WIFI6-Touch-LCD-10.1** (marked
-Experimental) in **New screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi
+Update Tessera Screen Manager and choose **Waveshare · 10.1 inch, ESP32-P4-WIFI6-Touch-LCD-10.1**, or the one that
+ends in **V3** for a board with rev3 silicon (marked New; the first is marked Experimental), in **New screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi
 references and unique API/OTA keys. Keep an existing working profile if the board is already installed.
 
-The remote package is `packages/waveshare101.yaml` and the checkout entry `checkout/waveshare101.yaml`. Both combine
-`packages/core.yaml` with the board file `packages/boards/waveshare101.yaml`.
+The remote package is `packages/waveshare101.yaml` and the checkout entry `checkout/waveshare101.yaml` (for rev3
+silicon `packages/waveshare101v3.yaml` and `checkout/waveshare101v3.yaml`). Each combines `packages/core.yaml` with its
+board file.
 
 ## Layout and capabilities
 

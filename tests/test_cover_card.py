@@ -10,7 +10,6 @@
 from firmware_sources import runtime_source
 from manager_fixtures import with_screen_grid
 import importlib.util
-import re
 import sys
 import tempfile
 import unittest
@@ -20,14 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import ATTRS, cover_related, discover_screens, extras, state_message  # noqa: E402
 import core  # noqa: E402
 import page_layout  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 RUNTIME = runtime_source()
-RECEIVER = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
 PROFILES = {name: profiles.text(name) for name in ('checkout/guition.yaml', 'checkout/cyd.yaml', 'packages/guition.yaml', 'packages/cyd.yaml')}
 BLIND = 'cover.venetianblind_0001'
 
@@ -128,68 +125,36 @@ class SlatsOpenAt(unittest.TestCase):
         states = {'cover.blind': {'state': 'open', 'attributes': {'current_tilt_position': 50, 'supported_features': 255}}}
         message = core.state_message(0, {'entity': 'cover.blind', 'name': '', 'options': {'tilt_open': '50'}}, states)
         self.assertEqual(message['o']['tilt_open'], '50')
-        self.assertIn('tile.tilt_middle = string(options["tilt_open"], 4) == "50";', RECEIVER)
+        # The screen takes it: web/wasm/test_cover_card.mjs (slats open at 50 have their end stop there).
 
 
 class Firmware(unittest.TestCase):
-    def test_a_tap_on_a_cover_opens_the_cover_card(self):
-        event = RUNTIME[RUNTIME.index('inline void event(lv_event_t *event) {'):]
-        event = event[:event.index('\n}\n')]
-        # Since firmware 0.2.58 tile_controls::tap_route decides and event() carries the route out.
-        controls = (ROOT / 'components/smart_display/tile_controls.h').read_text()
-        cards = controls[controls.index('inline bool runtime_card_domain('):]
-        cards = cards[:cards.index('\n}\n')]
-        self.assertIn('d == "cover"', cards, 'covers go to show_detail with the other runtime cards')
-        self.assertIn('d == "climate"', cards, 'a thermostat opens the computed card too (firmware 0.2.80)')
-        self.assertIn('if (runtime_card_domain(d)) return {TapRoute::CARD, "", true};', controls)
-        # Firmware 0.2.80: only a light with a colour still opens the board's own card; the rest is the runtime's.
-        self.assertIn('return light_colour(t) ? Tap{TapRoute::OVERLAY', controls, "not to the board's value overlay any more")
-        self.assertIn('d == "light" || d == "fan" ? Tap{TapRoute::CARD, "", true}', controls)
-        self.assertIn('case tile_controls::TapRoute::CARD:', event)
-        # One way to a card (firmware 0.56.0): the tile's tap, its hold and the top bar all go through hold_card.
-        self.assertIn('hold_card(w.index);', event)
-        hold = RUNTIME[RUNTIME.index('inline void hold_card('):]
-        self.assertIn('show_detail(index);', hold[:hold.index('\n}\n')])
-        self.assertIn('}else if(d=="cover"){', RUNTIME)
-        self.assertIn('render_cover_detail(t,large,width,height,pad,columns);', RUNTIME)
-        # Firmware 0.2.80: the preview asks the firmware's own routing instead of listing domains, so it opens whatever
-        # a hold opens - the runtime's card for a cover, a light that dims and a fan, the colour card for a light with a
-        # colour. One function since app 0.4.86, shared by the screen's action and the browser preview.
-        hold = RUNTIME[RUNTIME.index('inline void hold_card(size_t index) {'):]
-        self.assertIn('if (tile_controls::tap_route(tile, true).route == tile_controls::TapRoute::OVERLAY) {', hold[:600])
-        self.assertIn('show_detail(index);', hold[:700])
+    """The cover's card is read from the real firmware in web/wasm/test_cover_card.mjs: a tap and a hold open it, its
+    status line (with the tilt the app sends) survives the tick, the slider sends set_cover_position once on release, a
+    key acts, a key at its end stop is faded, and tilt_open 50 moves the slats' end stop. tests/test_tile_controls.cpp
+    holds every domain's tap and hold route, and the percentage helper's directions and masks."""
+
+    def test_the_preview_opens_the_card_a_hold_opens(self):
+        # Rule: the profiles hand the browser preview the firmware's own way to a card (app 0.4.86).
         for name, text in PROFILES.items():
             self.assertIn('runtime_tiles::hold_card(index);', text, f'{name}: the preview opens the card a hold opens')
 
     def test_the_swap_key_starts_over_with_a_new_layout(self):
-        # The swap stands by tile index; a new layout may put another cover at that index (cancel_layout_input).
+        # Kept as a quote until a preview test swaps a small cover tile and sends another layout (the swap key shows on
+        # the smallest cover tiles only): the swap stands by tile index, and a new layout may put another cover at that
+        # index (cancel_layout_input).
         cancel = RUNTIME[RUNTIME.index('inline void cancel_layout_input(bool invalidate_widgets) {'):]
         cancel = cancel[:cancel.index('\n}\n')]
-        self.assertIn('cover_swapped.fill(0);', cancel)
-        self.assertLess(cancel.index('if (invalidate_widgets) {'), cancel.index('cover_swapped.fill(0);'))
+        self.assertIn('cover_swapped.fill(0);', cancel, 'a new layout forgets every swap')
+        self.assertLess(cancel.index('if (invalidate_widgets) {'), cancel.index('cover_swapped.fill(0);'), 'when its cards go')
 
-    def test_the_card_commits_on_release_and_keeps_its_status_line(self):
-        # Both views dispatch through the capability-checked percentage helper.
-        # Percentage direction and all feature masks are exercised in C++.
-        event = RUNTIME[RUNTIME.index('inline void cover_slider_event('):RUNTIME.index('inline lv_obj_t *cover_slider(')]
-        self.assertIn('code!=LV_EVENT_RELEASED', event)
-        self.assertIn('const int raw=lv_slider_get_value(slider);', event)
-        self.assertIn('tile_controls::cover_position_action(t,raw,tilt)', event)
-        # The command goes out as a travel (cover_travel.h): the card shows where the cover goes until it gets there.
-        self.assertIn('cover_go(t,call,tilt?percent:100-percent,0,tilt);', event)
-        self.assertIn('if(cmd>=70 && cmd<130){if(t.domain()=="cover")cover_key(t,cmd-70);}', RUNTIME)
-        # The once-a-second tick of an open card must not replace "Open · 60% · Tilt 40%" with the raw state.
-        tick = RUNTIME[RUNTIME.index('inline void tick() {'):]
-        self.assertIn('card_status(t,detail_status_brief)', tick[:tick.index('if(!enabled)return;')])
-        # A key the cover cannot use stays disabled: it paints itself faded at its end stop, also after the card waited
-        # (docs/CARD_PARTS.md: the tick touches the keys only when the wait changes, then the card paints again).
-        self.assertIn('paint_state(button,LV_STATE_DISABLED,card_blocked||key->disabled);', RUNTIME)
-        self.assertIn('card_bind(button,t,cover_key_paint,"",key.command);', RUNTIME)
-        # Track and fill share one radius: no layer per redraw on the CYD.
-        self.assertIn('lv_obj_set_style_radius(slider,radius,LV_PART_MAIN);lv_obj_set_style_radius(slider,radius,LV_PART_INDICATOR);', RUNTIME)
-        self.assertIn('next.tilt = number(a["current_tilt_position"]);', RUNTIME)
+    def test_a_slider_has_one_radius(self):
+        # Rule: track and fill share one radius, so the CYD draws no layer for each redraw.
+        self.assertIn('lv_obj_set_style_radius(slider,radius,LV_PART_MAIN);lv_obj_set_style_radius(slider,radius,LV_PART_INDICATOR);', RUNTIME,
+                      "a cover slider's track and fill take one radius")
 
     def test_every_setting_number_publishes_a_value_home_assistant_lacks(self):
+        # Rule (core.yaml, which the preview does not run): a setting's number publishes only a value Home Assistant lacks.
         for name, text in PROFILES.items():
             script = text[text.index('- id: apply_screen_settings'):]
             script = script[:script.index('\n  - id: ', 10)]

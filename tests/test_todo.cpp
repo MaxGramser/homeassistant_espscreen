@@ -2,6 +2,7 @@
 // The to-do card's plans (components/smart_display/module_todo.h, module todo) on the faces of the boards of the full
 // tier: the view a room gets, every piece inside its room, keys a finger can hit, what a tick shows before Home
 // Assistant confirms it, and what the keyboard types.
+#include "screen_text_en.h"
 #define SD_MOD_TODO
 #include "../components/smart_display/module_todo.h"
 #include <cassert>
@@ -61,7 +62,7 @@ static Data shopping() {
   return d;
 }
 static Words english() {
-  Words w;
+  Words w = screen_words();  // screen.todo, from the English table (screen_text_en.h)
   w.day = [](int days) { return days == 0 ? std::string("Today") : days == 1 ? std::string("Tomorrow") : std::to_string(days) + " d"; };
   return w;
 }

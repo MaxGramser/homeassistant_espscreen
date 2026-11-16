@@ -4,6 +4,7 @@
 // scrolls inside the window. Typing narrows it by name or by the hint (an area), the arrows walk it, Enter or a click picks.
 // `remote`: the list comes from elsewhere for what is typed (a plugin's search, plugin API 0.12): the picker says what is
 // typed (`search`) and shows the items it gets as they are, with `busy` while they are on their way.
+// `foot`: a quiet line under the list that stays while it scrolls, for a key that changes what the list holds.
 import { computed, ref, watch } from "vue";
 import { ListboxContent, ListboxFilter, ListboxItem, ListboxRoot, PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from "reka-ui";
 import { matchesWords, queryWords } from "../../model/search";
@@ -51,6 +52,7 @@ function toggle(value: boolean) {
             </ListboxItem>
             <div v-if="!shown.length && !busy" class="ui-picker-empty">{{ empty }}</div>
           </ListboxContent>
+          <div v-if="$slots.foot" class="ui-picker-foot"><slot name="foot" /></div>
         </ListboxRoot>
       </PopoverContent>
     </PopoverPortal>

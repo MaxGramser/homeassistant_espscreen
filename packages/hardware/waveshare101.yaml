@@ -1,0 +1,35 @@
+# ESP Screens - the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 apart from its chip revision and its display driver: the
+# flash, the touch panel and the backlight, the same on a board with pre-v3 silicon (packages/boards/waveshare101.yaml)
+# and one with rev3 silicon (packages/boards/waveshare101-v3.yaml). Each of those states its chip revision and the
+# display platform that starts on it; everything else of the board stands here once.
+# Hardware reference: https://docs.waveshare.com/ESP32-P4-WIFI6-Touch-LCD-X
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the other Waveshare P4 panels'.
+  hardware: !include esp32p4-c6.yaml
+
+esp32:
+  flash_size: 32MB
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+# The touch panel's interrupt and reset are not wired to the P4, so it is read by polling, without a reset pin. LVGL
+# turns the touch with the picture (LVGL_ROTATION): the panel reports its own pixels.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    update_interval: 20ms
+
+# The backlight, a PWM pin that is not inverted on this board (features/backlight.yaml makes it the light). 20 kHz and a
+# lowest level of 1 % are what the community configuration that runs on this board uses (website wish 125); the 1 kHz
+# and 15 % of pull request #281 are not in it (15 % is the 86 panel's floor). zero_means_zero keeps 0 dark for standby.
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    frequency: ${BACKLIGHT_FREQUENCY}
+    min_power: 0.01
+    zero_means_zero: true

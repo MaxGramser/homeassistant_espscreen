@@ -22,6 +22,7 @@ inline uint32_t slats() { return theme::tint(ACCENT, 80); }
 // open at 50 (the tile's tilt_open option).
 inline void slats_draw(lv_event_t *e) {
   auto *slider = lv_event_get_target_obj(e);
+  theme::LookScope look(theme::other_look(slider));  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   lv_area_t a;
   lv_obj_get_coords(slider, &a);
   const float tilt = std::clamp(lv_slider_get_value(slider) / 10.0f, 0.0f, 100.0f);

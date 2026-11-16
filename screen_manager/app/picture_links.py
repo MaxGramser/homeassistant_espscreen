@@ -10,6 +10,7 @@ address the links carry, where the screens reach this app, is lan_address's.
 """
 import hashlib
 from email.utils import formatdate
+import logging
 import os
 import secrets
 import time
@@ -120,3 +121,18 @@ def port():
     except ValueError:
         return PORT
     return value if 0 < value < 65536 else PORT
+
+
+async def open_port(runner, host='0.0.0.0', number=None):
+    """The camera port for `runner` (web_app's, set up), at `number` (port() when None): its site, or None when another
+    program holds the port. Everything else of this app still works then; only camera images stay away, and the log
+    says why (tests/test_camera.py, App)."""
+    from aiohttp import web
+    number = port() if number is None else number
+    site = web.TCPSite(runner, host, number)
+    try:
+        await site.start()
+    except OSError as error:
+        logging.getLogger('screen_manager').error('Camera images are off: port %d is not available (%s)', number, error)
+        return None
+    return site

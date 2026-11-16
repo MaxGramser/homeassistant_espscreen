@@ -2,6 +2,7 @@
 // clang++ -std=c++17 -Wall -Wextra -Werror -I. tests/test_saver_view.cpp -o /tmp/test_saver_view && /tmp/test_saver_view
 #include "../components/smart_display/saver_view.h"
 #include <cassert>
+#include <string>
 #include <cstdio>
 
 using namespace saver_view;
@@ -111,7 +112,21 @@ static void drift_moves_within_its_circle() {
   assert(drift(-1, radius).x == 0 && drift(-1, radius).y == 0);  // no clock yet: it stands where it is drawn
 }
 
+// A plugin's saver is painted in place for a new word, and made anew for other options (saver_sync).
+struct Word { std::string plugin, kind, plugin_options; };
+static void a_plugin_saver_is_painted_in_place_or_made_anew() {
+  const Word now{"plugin:deck.spin", "media", "{\"spin\":true}"};
+  assert(paints_in_place(now, now, true, true));                                   // the next track: on_state
+  assert(!paints_in_place(now, Word{now.plugin, now.kind, "{\"spin\":false}"}, true, true));  // other options: anew
+  assert(!paints_in_place(now, Word{"plugin:deck.still", now.kind, now.plugin_options}, true, true));  // another saver
+  assert(!paints_in_place(now, Word{now.plugin, "clock", now.plugin_options}, true, true));  // another step
+  assert(!paints_in_place(now, now, false, true));                                 // nothing shown: it is made
+  assert(!paints_in_place(now, now, true, false));                                 // the plugin left this screen
+  assert(!paints_in_place(Word{"", "clock", ""}, Word{"", "clock", ""}, true, true));  // Tessera's own face
+}
+
 int main() {
+  a_plugin_saver_is_painted_in_place_or_made_anew();
   drift_moves_within_its_circle();
   words_on_every_glass();
   keys_on_every_glass();

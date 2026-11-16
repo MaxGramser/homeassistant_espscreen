@@ -16,6 +16,13 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [lvgl-replace-style-selector.md](lvgl-replace-style-selector.md) | LVGL 9.5's lv_obj_replace_style with LV_PART_ANY \| LV_STATE_ANY overwrites each replaced style's selector; the report LVGL could get, not sent | 2026-11-16 |
+| [card-look-on-glass.md](card-look-on-glass.md) | A card's look (sections whose tiles follow the contrast) is proven on the host and in the preview, not yet seen on glass; the file holds what to look at | 2026-11-15 |
+| [render-swipe-past-excluded-pages.md](render-swipe-past-excluded-pages.md) | Host render checks that fail on dev: the automation, remote and bars stages. The swipe past excluded pages solved 2026-11-16 | 2026-11-15 |
+| [binder-still-large.md](binder-still-large.md) | runtime_tiles.h went from 14,333 lines to 4,550 in thirty-three parts; what is left in it, and server.py, still want cutting | 2026-11-16 |
+| [sections-left-open.md](sections-left-open.md) | What sections leave open: their price in the memory budget and the receiver untested on its own (the header height: solved) | 2026-11-15 |
+| [slow-single-cards.md](slow-single-cards.md) | A scene card draws in 17 to 18 ms and a light card once in 44 ms, where most cards take 2 to 8 | 2026-11-15 |
+| [camera-tile-picture-left-on-the-next-page.md](camera-tile-picture-left-on-the-next-page.md) | A camera tile's last picture stayed on the next page where that page drew nothing; a redraw at the stream's end is in, not yet proven | 2026-11-15 |
 | [veil-holds-an-s3-loop.md](veil-holds-an-s3-loop.md) | The dim laid on the glass holds an ESP32-S3's main loop about 60 ms, over the 50 ms limit, and the governor steps down for a moment | 2026-11-10 |
 | [p4-panel-underrun.md](p4-panel-underrun.md) | A real underrun of the panel on an ESP32-P4: one counted flash now and then (GitHub #379), not reproduced on the bench | 2026-11-09 |
 | [own-camera-tile-blit-cost.md](own-camera-tile-blit-cost.md) | A tile of the screen's own camera costs 50 to 60 ms of the PPA a frame, which limits every tile beside it | 2026-11-09 |

@@ -1,11 +1,12 @@
 import type { Entity, Page } from '../types';
 import { domainInfo } from './layout';
+import { allTiles } from './page-tiles';
 
 /** Suggest once, at creation. Later changes never overwrite a user's title.
  * Prefer a shared HA area, then a shared domain. Mixed content keeps the screen title.
  */
 export function suggestedPageTitle(page: Page, entities: Entity[]): string | undefined {
-  const ids = page.tiles.flatMap(tile => tile.content.kind === 'entity' ? [tile.content.entityId] : []);
+  const ids = allTiles(page).flatMap(tile => tile.content.kind === 'entity' ? [tile.content.entityId] : []);
   if (!ids.length) return;
   const byId = new Map(entities.map(entity => [entity.id, entity]));
   const areas = ids.map(id => byId.get(id)?.area?.trim());

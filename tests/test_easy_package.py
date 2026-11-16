@@ -50,9 +50,12 @@ class PackageTests(unittest.TestCase):
             # From main, unless the screen's own YAML names another branch (GITHUB_REF, the app's dev channel).
             self.assertIn('GITHUB_REF: "main"', package)
             self.assertIn('FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/${GITHUB_REF}/fonts"', package)
-            # The fonts of the shared core come from that place; a checkout entry takes them from the checkout's own fonts/.
-            self.assertIn('file: "${FONT_DIR}/Roboto-500.ttf"', profiles.CORE.read_text())
+            # A checkout entry takes the fonts from the checkout's own fonts/.
             self.assertIn('FONT_DIR: "../fonts"', (ROOT / BOARDS[board]).read_text())
+        # Every font a package names comes from that place, so a published screen and a checkout build the same letters.
+        for path in sorted((ROOT / 'packages').rglob('*.yaml')):
+            for line in re.findall(r'(?m)^\s*-?\s*file:\s*"?([^"\s]+\.(?:ttf|otf))', path.read_text()):
+                self.assertTrue(line.startswith('${FONT_DIR}/'), f'{path.name}: read the font {line} from ${{FONT_DIR}}/')
 
     def test_no_secret_or_local_path_under_packages(self):
         for path in sorted((ROOT / 'packages').rglob('*.yaml')):
@@ -76,7 +79,11 @@ class PackageTests(unittest.TestCase):
             else:
                 self.assertIsNone(block, f'{path.name} has a wifi: block')
         # The YAML ESP Screens writes says so too (since app 0.2.24), so an older package changes nothing for those.
-        self.assertIn('  power_save_mode: none\n', (ROOT / 'screen_manager/app/core.py').read_text())
+        sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+        import core
+        screen = core.installation_yaml({'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'})
+        wifi = re.search(r'^wifi:\n(.*?)(?=^[a-zA-Z_]+:|\Z)', screen, re.M | re.S)[1]
+        self.assertIn('  power_save_mode: none\n', wifi)
 
     def test_the_manual_profile_is_gone_from_profiles_and_packages(self):
         for board, name in BOARDS.items():
@@ -119,16 +126,14 @@ class PackageTests(unittest.TestCase):
         for board, can in seen.items():
             self.assertEqual(shapes[board]['can_standby'], can, board)
 
-    def test_runtime_tiles_keep_what_they_bind_and_open(self):
-        for board in BOARDS:
-            package = profiles.text(f'packages/{board}.yaml')
-            # The cards of the grid, made at boot (firmware 0.53.0+), and the parts every screen has.
-            for key in ['runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), ${TILE_ICON_SIZE});', 'runtime_tiles::enabled = true;', 'runtime_tiles::bind_pages();',
-                        'id: ui_refresh', 'runtime_tiles::render(id(lbl_room));']:
-                self.assertIn(key, package, board)
-        # The CYD keeps its resistive calibration on the screen itself; the Guition's GT911 needs none.
-        self.assertIn('screen_calibration::setup(', profiles.resolved('packages/cyd.yaml'))
-        self.assertNotIn('screen_calibration::setup(', profiles.resolved('packages/guition.yaml'))
+    def test_a_resistive_panel_and_no_other_sets_up_its_calibration(self):
+        # The cards of the grid made at boot, bound and drawn (firmware 0.53.0+) are the real boot's: tools/render/run.py
+        # starts each board's firmware and its self test checks every page's cells (page_check).
+        # A resistive panel keeps its calibration on the screen itself; a capacitive one reports pixels and needs none.
+        for board in profiles.BOARDS:
+            resistive = 'resistive-touch.yaml' in [path.name for path in profiles.chain(profiles.BOARDS[board])]
+            self.assertEqual('screen_calibration::setup(' in profiles.resolved(f'packages/{board}.yaml'), resistive,
+                             f'{board}: set the calibration up exactly on a resistive panel (features/resistive-touch.yaml)')
 
     def test_the_core_carries_no_board_number_and_every_board_the_same_names(self):
         core = profiles.CORE.read_text()
@@ -161,11 +166,50 @@ class PackageTests(unittest.TestCase):
             # and touch bus, hardware/esp32p4-c6.yaml).
             self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$)', n) for n in own), f'{board}: {sorted(own)}')
 
-    def test_the_checker_refuses_a_fixed_home_assistant_subscription(self):
-        source = (ROOT / 'tools/check_packages.py').read_text()
-        self.assertIn("re.search(r'^  - platform: homeassistant$', match[0], re.M)", source)
-        self.assertIn("for section in ('sensor', 'binary_sensor', 'text_sensor'):", source)
 
+class BoardRules(unittest.TestCase):
+    """Rules every board keeps, read from its whole package chain (profiles.resolved): what the hardware packages share
+    reaches each board that uses them, and nothing of one kind of hardware reaches another."""
+    TEXTS = {board: profiles.resolved(profile) for board, _, profile in profiles.BOARD_TABLE}
+    RGB_PANEL = re.compile(r'platform: (?:st7701s|mipi_rgb)\b')
+
+    def test_every_rgb_panel_board_has_the_shared_esp32_s3_panel_settings(self):
+        # packages/hardware/esp32s3-rgb.yaml (firmware 0.3.1): the panel's interrupt in IRAM, the 64-byte data cache line
+        # and code run from PSRAM, or an RGB panel tears while flash is written.
+        for board, text in self.TEXTS.items():
+            if not self.RGB_PANEL.search(text):
+                continue
+            for needed in ('CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"', 'CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"', 'execute_from_psram: true'):
+                self.assertIn(needed, text, f'{board} has an RGB panel: include packages/hardware/esp32s3-rgb.yaml, which sets {needed}')
+
+    def test_no_board_restarts_the_rgb_panel_in_vsync(self):
+        # Only ever named in a comment (packages/hardware/esp32s3-rgb.yaml says why it stays off).
+        for board, text in self.TEXTS.items():
+            self.assertNotRegex(text, r'(?m)^\s*CONFIG_LCD_RGB_RESTART_IN_VSYNC:',
+                                f'{board} sets CONFIG_LCD_RGB_RESTART_IN_VSYNC: leave it off, packages/hardware/esp32s3-rgb.yaml says why')
+
+    def test_only_a_resistive_touch_is_corrected_from_raw_values(self):
+        # The affine correction is applied once, on filtered raw values of a resistive panel (AGENTS.md, "Touch and
+        # navigation"); a capacitive one reports pixels and is never corrected (docs/CALIBRATING.md).
+        for board, text in self.TEXTS.items():
+            if 'set_raw_correction' in text:
+                self.assertIn('platform: xpt2046', text, f'{board} corrects raw touch values but has no resistive XPT2046: a capacitive panel needs none')
+
+    def test_square_glass_has_the_same_cells_either_way_it_hangs(self):
+        # A square board hangs the same way whichever way it is screwed to the wall, so its page has the same cells
+        # standing up and it is never asked about (core.board_shape).
+        for board, _, profile in profiles.BOARD_TABLE:
+            values = profiles.substitutions(profile)
+            if values.get('PANEL_W') != values.get('PANEL_H'):
+                continue
+            self.assertEqual((values.get('GRID_COLS_PORTRAIT', values['GRID_COLS']), values.get('GRID_ROWS_PORTRAIT', values['GRID_ROWS'])),
+                             (values['GRID_COLS'], values['GRID_ROWS']), f'{board} is square: give it the same grid standing up as lying down')
+
+    def test_every_board_waits_ten_minutes_before_standby(self):
+        # The default standby is at least 600 seconds (AGENTS.md, "Touch and navigation").
+        for board, profile in ((board, profile) for board, _, profile in profiles.BOARD_TABLE):
+            seconds = int(profiles.substitutions(profile)['AUTO_DIM_TIMEOUT'])
+            self.assertGreaterEqual(seconds, 600, f'{board} goes to standby after {seconds} s: the default is at least 600')
 
 if __name__ == '__main__':
     unittest.main()

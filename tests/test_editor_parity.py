@@ -31,12 +31,13 @@ sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import core  # noqa: E402
 import profiles  # noqa: E402
+from firmware_sources import runtime_source  # noqa: E402
 
 WEB = ROOT / 'web'
 VITE_NODE = WEB / 'node_modules/.bin/vite-node'
 WASM = WEB / 'src/wasm/firmware_preview.wasm'
 # A tile's panel is compiled on its own (tile_panel.cpp): read with the header, as it was part of it.
-TILES = (ROOT / 'components/smart_display/runtime_tiles.h').read_text() + (ROOT / 'components/smart_display/tile_panel.cpp').read_text()
+TILES = runtime_source() + (ROOT / 'components/smart_display/tile_panel.cpp').read_text()
 
 
 def need(found, what):
@@ -140,6 +141,7 @@ import {{ climateLayout, tallAction, tallLayout }} from "{model / 'tall-layout'}
 import {{ mediaLayout }} from "{model / 'media-layout'}";
 import {{ vacuumLayout, vacuumMetrics }} from "{model / 'vacuum-tile'}";
 import {{ hsRgb, kelvinRgb, levelShown, luminosity, presetSizes, row as presetRow, shows }} from "{model / 'light-presets'}";
+import {{ insideMargins, sectionMetrics }} from "{model / 'sections'}";
 const DATA = JSON.parse(readFileSync("{Path(tmp) / 'data.json'}", "utf8"));
 {body}
 ''')
@@ -336,6 +338,78 @@ console.log(JSON.stringify(DATA.shapes.map((shape: any) => ({
                 self.assertNotEqual(ts['full'], ts['px'][1 if big else 0], f'{key} is fixed: take it out of Grid.KNOWN')
                 continue
             self.assertEqual(ts['full'], ts['px'][1 if big else 0], f'{key}: the full card keys are panel_metrics_full({big})')
+
+
+class Sections(unittest.TestCase):
+    """The room a section takes from the tiles in it (docs/PAGES.md "Sections"): the firmware works its header out from
+    its fonts as it runs (module_sections.h header, title_top, inset), tools/generate_board_shapes.py works the same out
+    with Pillow for boards.json, and the editor draws from that (model/sections.ts sectionMetrics, insideMargins). Here
+    the firmware preview lays a card out in a section on every board shape that draws sections, and the editor's
+    numbers must put the card on the same pixels."""
+
+    @classmethod
+    def setUpClass(cls):
+        need(shutil.which('node'), 'node')
+        need(WASM if WASM.exists() else None, 'web/src/wasm/firmware_preview.wasm')
+        cls.shapes = [(key, board, shape) for key, board, shape in SHAPES
+                      if 'sections' in core.SHAPES[board].get('modules', ()) and shape['columns'] >= 2]
+        tile = [{'entity': 'switch.parity', 'name': 'Lamp', 'state': 'on', 'a': {}, 'slot': 0,
+                 'o': core.screen_options({'entity': 'switch.parity', 'options': {}}, {}, 'on') or {}}]
+        screens = []
+        for key, _, shape in cls.shapes:
+            # The same card loose, in a section of one row, and in the first row of a section of two.
+            layouts = [{'key': 'loose', 'tiles': tile}, {'key': 'rows1', 'tiles': tile, 'sections': [[0, 0, 2, 1, '', 'Lights', '', 0]]}]
+            if shape['rows'] >= 2:
+                layouts.append({'key': 'rows2', 'tiles': tile, 'sections': [[0, 0, 2, 2, '', 'Lights', '', 0]]})
+            screens.append({'key': key, 'width': shape['width'], 'height': shape['height'], 'columns': shape['columns'],
+                            'rows': shape['rows'], 'dpi': shape['dpi'], 'layouts': layouts})
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'screens.json'
+            path.write_text(json.dumps(screens))
+            out = subprocess.run(['node', str(WEB / 'wasm/layout_audit.mjs'), str(path)], check=True, capture_output=True, text=True).stdout
+        cls.cards = {}
+        for report in json.loads(out):
+            if 'error' in report:
+                raise AssertionError(f"{report['screen']}: {report['error']}")
+            objects = {o['id']: o for o in report['objects']}
+            box = objects[report['cards'][0]['object']]
+            cls.cards[(report['screen'], report['layout'])] = (box['x1'], box['y1'], box['x2'], box['y2'])
+        with tempfile.TemporaryDirectory() as tmp:
+            cls.ts = run_ts('''
+console.log(JSON.stringify(DATA.shapes.map((shape: any) => {
+  const m = sectionMetrics(shape);
+  return { left: m.pad, rows1: insideMargins(m, 1, 0, 0), rows2: insideMargins(m, 2, 0, 0) };
+})));''', {'shapes': [shape for _, _, shape in cls.shapes]}, tmp)
+
+    def test_every_board_that_draws_sections_is_here(self):
+        self.assertGreater(len(self.shapes), 10)
+        for key, board, shape in self.shapes:
+            self.assertIn('section', shape, f'{key}: boards.json has no section numbers for it, so the editor would guess')
+
+    # The preview has one look per density (web/wasm/preview_profiles.py), made from the first board that has it. The
+    # experimental 4.3-inch JC4880P443 shares 217 dpi with the Waveshare 4.3-inch, whose rows stand 13 pixels apart where
+    # its own stand 12, so the preview draws this board's rows a pixel further apart than its glass does. That is the
+    # preview's, not the editor's: the editor's numbers are the board's own. Kept here so a fix shows up.
+    KNOWN = {'jc4880p443-landscape'}
+
+    def test_a_card_in_a_section_stands_where_the_firmware_puts_it(self):
+        for (key, _, shape), ts in zip(self.shapes, self.ts):
+            loose = self.cards[(key, 'loose')]
+            for rows in ('rows1', 'rows2'):
+                if (key, rows) not in self.cards:
+                    continue
+                x1, y1, _, y2 = self.cards[(key, rows)]
+                if key in self.KNOWN:
+                    self.assertNotEqual((x1 - loose[0], y1 - loose[1], loose[3] - y2), (ts['left'], ts[rows]['top'], ts[rows]['bottom']),
+                                        f'{key} is fixed: take it out of Sections.KNOWN')
+                    continue
+                # The card's left edge moves in by the section's padding, its top down by the room above it (the header
+                # for the first row), and its bottom by the room below it, which is negative where a later row gives
+                # some of its own (insideMargins shares the header evenly over the section's rows).
+                with self.subTest(shape=key, section=rows):
+                    self.assertEqual((x1 - loose[0], y1 - loose[1], loose[3] - y2), (ts['left'], ts[rows]['top'], ts[rows]['bottom']),
+                                     f'{key} {rows}: the padding at the section\'s side, the room above the card (its header) '
+                                     'and the room below it: the firmware preview first, the editor second')
 
 
 class WatchCard(unittest.TestCase):

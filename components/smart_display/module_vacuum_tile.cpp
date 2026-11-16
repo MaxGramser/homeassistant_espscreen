@@ -16,6 +16,7 @@
 #ifdef SD_MOD_VACUUM_CARD
 #include "esphome/core/log.h"
 #include "runtime_tiles.h"
+#include "draw_text.h"
 #include "vacuum_tile.h"
 #include "battery_status.h"
 
@@ -141,15 +142,12 @@ struct Pen {
     d.font = font;
     d.color = lv_color_hex(colour);
     d.text = s.c_str();
-    // LVGL draws later, when it dispatches the layer; the string here is often a temporary (fit(), std::to_string),
-    // gone by then. So LVGL takes a copy of its own: without it the loop task drew freed memory for ever (task
-    // watchdog, a boot loop with a vacuum tile on page 1).
-    d.text_local = 1;
+    // The string here is often a temporary (fit(), std::to_string): draw_text::label has LVGL copy it.
     d.align = align;
     if (align == LV_TEXT_ALIGN_LEFT) d.flag = LV_TEXT_FLAG_EXPAND;
     const int h = lv_font_get_line_height(font);
     lv_area_t a{ox + x, oy + y, ox + x + w - 1, oy + y + h - 1};
-    lv_draw_label(layer, &d, &a);
+    draw_text::label(layer, d, a);
   }
   // A glyph in the middle of a box.
   void glyph(vt::Face f, const std::string &g, const vt::Box &b, uint32_t colour) const {
@@ -173,6 +171,7 @@ static uint32_t pressed(uint32_t colour, bool on) { return on ? theme::pressed(c
 // Under the map: the frame.
 static void draw_under(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  runtime_tiles::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *v = view_of(canvas);
   if (!v) return;
   lv_area_t a;
@@ -184,6 +183,7 @@ static void draw_under(lv_event_t *e) {
 // Over the map: everything else.
 static void draw_over(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  runtime_tiles::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *v = view_of(canvas);
   const Tile *tp = tile_of(canvas);
   if (!v || !tp) return;

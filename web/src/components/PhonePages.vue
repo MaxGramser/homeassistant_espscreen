@@ -9,6 +9,7 @@ import MemoryMeter from "./MemoryMeter.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { movePage } from "../editor/pages";
+import { allTiles } from "../model/page-tiles";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
@@ -19,7 +20,7 @@ const insp = useInspectorStore();
 const emit = defineEmits<{ add: [] }>();
 const list = computed(() => doc.document?.pages || []);
 const canAdd = computed(() => list.value.length < doc.editorLayout.grid.pages);
-const tiles = computed(() => list.value.reduce((n, page) => n + page.tiles.length, 0));
+const tiles = computed(() => list.value.reduce((n, page) => n + allTiles(page).length, 0));
 function close() { ui.pagesSheet = false; }
 function choose(id: string) { doc.selectedPageId = id; insp.forgetCell(); close(); }
 watch(() => insp.inspector, (open) => { if (open) close(); });
@@ -66,7 +67,7 @@ const shift = (index: number) => {
           <span class="num">{{ index + 1 }}</span>
           <span class="tx">
             <b>{{ titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }}<span v-if="page.id === doc.document!.homePageId" class="home-tag">{{ t("editor.pages.home_chip") }}</span></b>
-            <small>{{ t("editor.phone.page_tiles", page.tiles.length) }}</small>
+            <small>{{ t("editor.phone.page_tiles", allTiles(page).length) }}</small>
           </span>
         </button>
         <PageMenu :id="page.id" />

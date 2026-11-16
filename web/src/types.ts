@@ -144,7 +144,24 @@ export type Page = {
   tiles: PageTile[];
   // The page's own icon by name (a pickable MDI icon), which the Dock shows instead of its picture; left out, the picture.
   icon?: string;
+  // Sections (docs/PAGES.md "Sections"): blocks of cells with a title, an icon and a panel. Left out on a page without
+  // any. Every tile of the page stands in `tiles`, as before sections; a tile belongs to the section whose block it lies
+  // in (model/page-tiles.ts sectionOf).
+  sections?: Section[];
 };
+// A section's block on its page's grid; it holds no tiles of its own. `summary`: an entity whose state the section's
+// band shows at its right end.
+export type Section = {
+  id: string; title: string; icon?: string; summary?: string;
+  // The panel in the page's opposite colour, so the section stands out (off unless chosen); with `contrastTiles` the
+  // whole section is a piece of the other look, its tiles' cards too.
+  contrast?: boolean; contrastTiles?: boolean;
+  placement: { row: number; column: number; columns: number; rows: number };
+};
+// A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells, and every
+// field a section has. Made from Section, so a field added there is here too (model/pages.ts blockOfSection and
+// sectionOfBlock are the one way from one to the other).
+export type SectionBlock = Omit<Section, "placement"> & Section["placement"] & { page: number };
 export type PageLayout = { title: string; homePageId: string; pages: Page[] };
 export type PageWorkspace = { revision: string; positions: Record<string, { x: number; y: number }> };
 export type PageDocument = {
@@ -161,6 +178,8 @@ export type Layout = {
   page_titles?: string[];
   header?: { items: HeaderItem[] };
   settings?: Record<string, any>;
+  // Every page's sections, with their page (projectLayout), so the mockup draws them where the tiles are.
+  sections?: SectionBlock[];
   [key: string]: unknown;
 };
 export type UpdateInfo = {
@@ -327,7 +346,12 @@ export type Screen = {
       watch_icon?: number; setpoint?: number; icon?: number };
     // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74, a
     // card's corner and its icon's face (fonts.icon) from app 0.4.90.
-    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number } } | null;
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
+    // A section's band on this glass (boards.json, module_sections.h): its height and its title's top in it.
+    section?: { band: number; title_top: number; ink_top?: number; line?: number } } | null;
+  // Sections on a page (docs/PAGES.md "Sections"): its board has the module (the full tier), and its own hello says it
+  // draws them now (an older firmware does not, and gets the same tiles without them).
+  sections?: boolean; sections_drawn?: boolean;
   // Which way it was built to hang (app 0.2.107): a screen standing up has another canvas and another grid, and
   // while it is offline only the YAML of its own profile says so.
   orientation?: Orientation;
@@ -346,6 +370,9 @@ export type Screen = {
   // Whether its board has the to-do card (boards.json `modules` has todo, docs/TODO.md): 8 MB of flash or more. The
   // library offers to-do lists there only.
   todo_lists?: boolean;
+  // Whether its board edits a text with the keyboard (boards.json `modules` has text_edit, docs/TEXT_ENTITY.md): elsewhere
+  // a text's tile shows its value only, and the editor says so.
+  text_edit?: boolean;
   // Whether its board draws a light's presets (boards.json `modules` has light_presets, docs/LIGHT_PRESETS.md).
   light_presets?: boolean;
   /** Streams a camera live (a P4 whose hello says `live`, or such a board while it is offline): Live is a camera tile's
@@ -447,6 +474,8 @@ export type Inventory = {
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
   claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };
+  // Layoutbot (docs/LAYOUTBOT.md): the AI Tasks of Home Assistant that can make data; none, no bot.
+  layoutbot?: { id: string; name: string }[];
   // Video in Home Assistant (Settings, screen_video.py): the tessera_video integration in Home Assistant's folder, the
   // version Home Assistant runs (null until it restarted with it), and the screens with Screen camera's part Video.
   video?: VideoIntegration;

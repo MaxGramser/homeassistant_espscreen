@@ -2,36 +2,25 @@
 
 Home Assistant's own light icon is a bulb that is crossed out while off (`mdi:lightbulb-off`), and every entity that is
 off is grey. An icon of its own, or one chosen in ESP Screens, stays the same and turns grey, as in Home Assistant.
+
+What the screen draws is read from the real firmware in web/wasm/test_state_look.mjs (the crossed-out bulb, the grey of
+an off light and of every other off entity, the colour of one that is on). Here: the glyph the fonts must carry, and the
+top bar, which the add-on draws the same way.
 """
-from firmware_sources import runtime_source
 import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'tools'))
-import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import header_bar  # noqa: E402
 import tile_icons  # noqa: E402
 
-TILES = runtime_source()
-THEME = (ROOT / 'components/smart_display/theme.h').read_text()
-
 
 class OffLook(unittest.TestCase):
     def test_the_fonts_carry_the_bulb_that_is_off(self):
+        # Every board's icon fonts are written from GLYPHS (tools/generate_icons.py, checked by `--check`).
         self.assertEqual(tile_icons.GLYPHS['lightbulb-off'], 'F0E4F')
-        for name in ('checkout/guition.yaml', 'checkout/cyd.yaml', 'packages/cyd.yaml', 'packages/guition.yaml'):
-            self.assertIn('"\\U000F0E4F" # lightbulb-off', profiles.text(name), name)
-
-    def test_the_screen_crosses_out_its_own_bulb_and_greys_what_is_off(self):
-        self.assertIn('if (d == "light" && tile.state == "off") return "\\U000F0E4F";', TILES)
-        # Since firmware 0.2.71 every tile follows Home Assistant's stateActive() (Tile::active), not a list of domains.
-        self.assertIn('bool on = t.builtin() || (fresh() && t.active());', TILES)
-        self.assertIn('uint32_t state_color=on?accent:theme::STATE_OFF;', TILES)
-        self.assertIn('constexpr uint32_t STATE_OFF = ha::GREY;', THEME)
-        self.assertIn('constexpr uint32_t GREY = 0x9E9E9E;', THEME)
 
     def test_the_top_bar_does_the_same(self):
         light = lambda state, **attrs: {'state': state, 'attributes': attrs}

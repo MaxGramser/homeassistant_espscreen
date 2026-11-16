@@ -222,9 +222,13 @@ by a board fact rather than written into one board file: `shown` on the row, and
 
 - `tests/test_settings_screen.cpp` (`clang++ -std=c++17 -Wall -Wextra -Werror -I.`) walks every page and
   every row, and checks `set()`: add the key to its table of clamps.
-- `tests/test_screen_owned_settings.py` checks the entities in both profiles, `SETTING_ENTITIES`, the editor
-  rows (labels, steps and the duration ladder against `settings_screen.h`) and the add-on's calls;
-  `tests/test_settings_view.py` and `tests/test_layout.py` cover the rest of the add-on side.
+- `tests/test_screen_owned_settings.py` checks the entities on every board, `SETTING_ENTITIES`, the editor
+  rows against the rows of `settings_screen.h` and the add-on's calls; `tests/test_settings_view.py` and
+  `tests/test_layout.py` cover the rest of the add-on side. The duration ladder and the -/+ steps are run on both
+  sides over the same edges (`web/tests/settings.spec.ts`, `tests/test_settings_screen.cpp`), and
+  `web/wasm/test_settings_tile.mjs` taps the settings card with the link down in the firmware preview.
+- `tools/render/run.py guition --only standby` runs Wake, Sleep, Auto standby, Back to page 1 and a setting the
+  screen changes itself on the real firmware (a host build), and reads its clocks, pages and entities back.
 - Look at it before believing it: `tools/render/run.py <board>` builds the real firmware of a board as a program
   for this computer (`tools/render/host.py`, SDL2) and drives it over its API (docs/TESTING.md). It renders the
   tile pages, the cards and the alerts, not the settings pages, so walk every settings page on a screen as well,

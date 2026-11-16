@@ -86,13 +86,15 @@ class TheBoards(unittest.TestCase):
                                     'a PWM output beside a camera clock stands on channel 2 or higher')
 
     def test_a_board_without_extras_has_no_page_and_no_row(self):
-        # The core's hooks are empty: a screen whose files add nothing has no Extras page (settings_screen.h).
-        core_yaml = (ROOT / 'packages/core.yaml').read_text()
-        self.assertIn('  BOOT_AUDIO: ""', core_yaml)
-        self.assertIn('  BOOT_BOARD_SETTINGS: ""', core_yaml)
-        header = (ROOT / 'components/smart_display/settings_screen.h').read_text()
-        self.assertIn('page_row(screen_text::txt::settings_extras, "\\U000F0493", BOARD_PAGE, has_board_rows)', header)
-        self.assertNotIn('board_rows.push_back', profiles.resolved('packages/cyd.yaml'))
+        # The core's hooks are empty, so only a board that lists settings (boards.yaml `settings`) adds rows; that the
+        # Extras page then shows exactly when there are rows is tests/test_settings_screen.cpp (has_board_rows).
+        core = profiles.substitutions_of(profiles.CORE)
+        for hook in ('BOOT_AUDIO', 'BOOT_BOARD_SETTINGS'):
+            self.assertEqual(core.get(hook), '', f'packages/core.yaml sets {hook}: it is a board\'s hook, empty in the core')
+        for board in profiles.BOARDS:
+            listed = bool(profiles.CATALOG[board].get('settings'))
+            rows = 'board_rows.push_back' in profiles.resolved(f'packages/{board}.yaml')
+            self.assertEqual(rows, listed, f'{board}: a board adds Extras rows exactly when boards.yaml lists its settings')
 
 
 class HA:

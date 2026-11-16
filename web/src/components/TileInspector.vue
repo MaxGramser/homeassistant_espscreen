@@ -49,6 +49,7 @@ import { moveTileAndFollow, otherPages, removeTile, retargetPageTile, setTileOpt
 import TileMenuItems from "./TileMenuItems.vue";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
+import { allTiles } from "../model/page-tiles";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -113,6 +114,8 @@ const callKinds = computed<[string, string][]>(() => [["video", t("editor.tile.c
 // A calendar card (firmware 0.56.0) draws its own head and what its room allows: no face or second line to choose, its
 // choices in a section of their own. As a bedside clock's key it is a key like any other.
 const calendarCard = computed(() => domain.value === "calendar" && !key.value);
+// A text (docs/TEXT_ENTITY.md): a tap edits it on a board with the module text_edit, any other shows the value only.
+const textEntity = computed(() => (domain.value === "text" || domain.value === "input_text") && !key.value);
 // A to-do card draws its own list on a board that has it (docs/TODO.md): its choices in a section of their own.
 const todoCard = computed(() => domain.value === "todo" && !key.value);
 // A favourite (app 0.4.42): what it plays and on which speaker, in its own section.
@@ -207,7 +210,7 @@ const backgrounds = computed(() => Object.entries(inv.inventory.backgrounds || {
 const fromHA = computed(() => Boolean(inv.entityOf(props.tile.entity)?.icon));
 const showIcon = computed(() => Boolean(inv.inventory.icons) && (domain.value !== "screen" || goesTo.value > 0) && !["forecast", "sunpath"].includes(display.value));
 // The way up in the head: the page the tile stands on opens that page's settings.
-const pageId = computed(() => doc.document?.pages.find((page) => page.tiles.some((item) => item.id === (holder.value || props.tile).id))?.id);
+const pageId = computed(() => doc.document?.pages.find((page) => allTiles(page).some((item) => item.id === (holder.value || props.tile).id))?.id);
 const crumbs = computed(() => [
   { text: t("editor.page.label", { page: pageHere.value }), open: pageId.value ? () => insp.openPage(pageId.value!) : undefined },
   ...(holder.value ? [{ text: holder.value.name || region.screenBuiltinName(holder.value.entity) || entities.entityName(holder.value.entity), open: () => insp.openTile(holder.value!) }] : []),
@@ -289,6 +292,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       </PropRow>
     </Section>
     <Section v-if="(lookShown || (!bedside && !key)) && !calendarCard && !textTile" :title="t('editor.tile.sections.look')">
+      <p v-if="textEntity" class="hint">{{ t(scr.currentScreen?.text_edit === false ? "editor.tile.text_entity.view_only" : "editor.tile.text_entity.edit") }}</p>
       <p v-if="energyTile" class="hint">{{ t(scr.supports(0, 47, 0) ? "editor.tile.energy.hint" : "editor.tile.energy.needs_firmware") }}</p>
       <PropRow v-if="energyTile" :label="t('editor.tile.energy.flow.label')" icon="flash" :hint="t('editor.tile.energy.flow.hint')">
         <ChoiceField :choices="flowChoices" :value="current('flow', rules.energyFlow[0])" :tile="tile" preview-key="flow" :aria-label="t('editor.tile.energy.flow.label')" @pick="(v) => setTileOption(tile, 'flow', v)" />
