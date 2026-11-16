@@ -1383,6 +1383,7 @@ inline bool card_repaint(const Tile &t) {
 #include "optimistic_lvgl.h"
 #include "travel_stripe_lvgl.h"
 #include "detail_lvgl.h"
+#include "card_parts_lvgl.h"
 #include "weather_card_lvgl.h"
 #include "select_card_lvgl.h"
 #include "vacuum_card_lvgl.h"

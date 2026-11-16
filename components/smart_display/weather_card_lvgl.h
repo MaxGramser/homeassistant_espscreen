@@ -13,31 +13,13 @@ namespace runtime_tiles {
 // chart beside it draws its marks in.
 inline uint32_t weather_color_raw(const std::string &c) { return tile_controls::weather_sky(c); }
 inline uint32_t weather_accent(const std::string &c) { return theme::foreground(weather_color_raw(c)); }
-inline lv_obj_t *detail_text(lv_obj_t *parent,const std::string &text,int x,int y,int width,const lv_font_t *font,lv_text_align_t align,uint32_t color){
-  auto *l=detail_label(parent,text,x,y,std::max(1,width));lv_obj_set_style_text_font(l,font,0);lv_obj_set_height(l,lv_font_get_line_height(font));
-  lv_obj_set_style_text_align(l,align,0);lv_obj_set_style_text_color(l,lv_color_hex(color),0);return l;
-}
-inline lv_obj_t *detail_text(lv_obj_t *parent,const std::string &text,int x,int y,int width,const lv_font_t *font,lv_text_align_t align,theme::Role role){
-  return detail_text(parent,text,x,y,width,font,align,theme::hex(role));
-}
 inline std::string degrees(float value){ if(!std::isfinite(value))return "--"; char b[16];snprintf(b,sizeof(b),"%.0f°",value);return b; }
-inline lv_obj_t *detail_card(int x,int y,int w,int h){
-  auto *card=lv_obj_create(detail_root);lv_obj_remove_style_all(card);lv_obj_remove_flag(card,LV_OBJ_FLAG_SCROLLABLE);lv_obj_remove_flag(card,LV_OBJ_FLAG_CLICKABLE);
-  lv_obj_set_pos(card,x,y);lv_obj_set_size(card,w,h);
-  lv_obj_set_style_bg_color(card,theme::color(theme::CARD),0);lv_obj_set_style_bg_opa(card,LV_OPA_COVER,0);
-  lv_obj_set_style_radius(card,lv_obj_get_style_radius(widgets[0].tile,LV_PART_MAIN),0);
-  lv_obj_set_style_border_width(card,1,0);lv_obj_set_style_border_color(card,theme::color(theme::LINE),0);
-  return card;
-}
-// A font's line height as an int: LVGL gives an int32_t, which is a long on the ESP32 and std::max wants one type.
-inline int line_of(const lv_font_t *f){return f?(int)lv_font_get_line_height(f):0;}
 // ---- The weather card (design study 10-09, weather_chart.h): what a tap on a weather tile opens ----
 // Home Assistant's more-info dialog in its order: the weather now (its icon, the temperature, the condition, today's
 // high and low, feels like), the attributes the entity has (humidity, wind with its direction, air pressure,
 // visibility), and the forecast under a Daily | Hourly key, the days as columns in a light grid over one chart. The
 // arrangement follows the forecast: the richest one that leaves the chart its highest tier (weather_week.h) wins, so a
 // small glass drops the attributes to one line, then that line, then moves the key into the top card.
-inline bool face_covers(const lv_font_t *face,const std::string &text);
 inline int weather_view=0;   // 0 daily, 1 hourly
 inline uint32_t weather_page_shown(){return (uint32_t)weather_view;}
 // The chart's faces, from the smallest step up: the look's fonts, never a size of the chart's own.

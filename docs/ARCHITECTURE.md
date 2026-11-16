@@ -204,9 +204,11 @@ docs/TROUBLESHOOTING.md.
 `runtime_tiles.h` is the binder: the model's glue, a tile's widgets, the pass that renders a tile (`render_slot`), the
 pages and the loop. What draws one kind of thing with LVGL stands in a file of its own beside it, named after the plain
 rules it draws from: `media_card.h` holds what a media card is and is tested on a PC (`tests/test_media_card.cpp`),
-`media_card_lvgl.h` draws it. There are thirty-four such parts: the cards that open from a tile (weather, select,
+`media_card_lvgl.h` draws it. There are thirty-five such parts: the cards that open from a tile (weather, select,
 vacuum, cover, the remote, light and fan, climate, the alarm panel, the lock, history, media, the colour card) with
-opening a card (`detail_show_lvgl.h`) and the open card's own keys and sliders (`detail_lvgl.h`); what a tile itself
+opening a card (`detail_show_lvgl.h`), the open card's own keys and sliders (`detail_lvgl.h`) and what several cards
+share, before the first of them (`card_parts_lvgl.h`: a card's frame and words, its shapes, words that fit their room,
+the segmented control, the status line and the round key); what a tile itself
 is made of and draws (its widgets, its tap and hold, its icon and words, its direct controls, the clock, the weather);
 the optimistic wish and a cover's travel stripe; the pictures (the camera's state, the store, a tile's own, the rounds,
 the full view, what an answer with a picture does); the live view and the live spots; the governor; the page
