@@ -1,0 +1,1093 @@
+# Wetter-Dashboard für das Guition ESP32-S3-4848S040 (480 x 480, ST7701S + GT911).
+# Eigenständige ESPHome-Konfiguration mit LVGL, ohne Tessera. README.md erklärt die Einrichtung.
+#
+# Home Assistant liefert:
+#   - die Wetter-Entität direkt (aktuelles Wetter)
+#   - sensor.display_wetter aus home-assistant/wetter_display.yaml (Vorhersage, Sonne)
+
+substitutions:
+  name: wetter-display
+  friendly_name: Wetter-Display
+  ort: Sassenberg
+  wetter_entity: weather.forecast_home
+  vorhersage_entity: sensor.display_wetter
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.6.2
+  includes:
+    - wetter.h
+  on_boot:
+    priority: -100
+    then:
+      - light.turn_on:
+          id: hintergrundlicht
+          brightness: 80%
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    advanced:
+      execute_from_psram: true
+    sdkconfig_options:
+      CONFIG_LCD_RGB_ISR_IRAM_SAFE: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  hardware_uart: UART0
+
+api:
+  encryption:
+    key: !secret wetter_display_api_key
+
+ota:
+  - platform: esphome
+    password: !secret wetter_display_ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Wetter-Display Setup"
+
+captive_portal:
+
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      then:
+        - script.execute: uhr_zeichnen
+    on_time:
+      - seconds: 0
+        then:
+          - script.execute: uhr_zeichnen
+
+script:
+  - id: uhr_zeichnen
+    then:
+      - lvgl.label.update:
+          id: lbl_uhr
+          text: !lambda 'return wx::uhrzeit(id(ha_time).now());'
+      - lvgl.label.update:
+          id: lbl_datum
+          text: !lambda 'return wx::datum(id(ha_time).now());'
+
+# ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
+spi:
+  id: lcd_spi
+  clk_pin: GPIO48
+  mosi_pin: GPIO47
+
+i2c:
+  id: touch_bus
+  sda: GPIO19
+  scl:
+    number: GPIO45
+    ignore_strapping_warning: true
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_pwm
+    # 150 Hz dimmt auf allen Chargen dieses Boards; falls es fiept, auf 20 kHz stellen.
+    frequency: 150 Hz
+    min_power: 0.01
+    zero_means_zero: true
+
+light:
+  - platform: monochromatic
+    id: hintergrundlicht
+    name: Hintergrundlicht
+    output: backlight_pwm
+    restore_mode: ALWAYS_ON
+    default_transition_length: 300ms
+
+display:
+  - platform: st7701s
+    id: my_display
+    dimensions: {width: 480, height: 480}
+    spi_id: lcd_spi
+    spi_mode: MODE0
+    data_rate: 2MHz
+    color_order: RGB
+    invert_colors: false
+    cs_pin: 39
+    de_pin: 18
+    hsync_pin: 16
+    vsync_pin: 17
+    pclk_pin: 21
+    pclk_frequency: 16MHz
+    pclk_inverted: false
+    hsync_front_porch: 10
+    hsync_pulse_width: 8
+    hsync_back_porch: 50
+    vsync_front_porch: 10
+    vsync_pulse_width: 8
+    vsync_back_porch: 20
+    init_sequence:
+      - 1
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10]
+      - [0xCD, 0x00]
+      - [0xC7, 0x00]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+      - [0x3A, 0x60]
+      - [0x36, 0x00]
+      - [0x20]
+      - [0x11]
+      - delay 120ms
+    data_pins:
+      red: [11, 12, 13, 14, 0]
+      green: [8, 20, 3, 46, 9, 10]
+      blue: [4, 5, 6, 7, 15]
+    update_interval: never
+    auto_clear_enabled: false
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: 480
+      y_min: 0
+      y_max: 480
+
+# ---------------- Schriften ----------------
+font:
+  - file: fonts/Roboto-700.ttf
+    id: f_temp
+    size: 80
+    bpp: 4
+    glyphs: "-0123456789°"
+  - file: fonts/Roboto-700.ttf
+    id: f_uhr
+    size: 40
+    bpp: 4
+    glyphs: "0123456789:-"
+  - file: fonts/Roboto-500.ttf
+    id: f_22
+    size: 22
+    bpp: 4
+    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"
+  - file: fonts/Roboto-500.ttf
+    id: f_18
+    size: 18
+    bpp: 4
+    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"
+  - file: fonts/Roboto-400.ttf
+    id: f_15
+    size: 15
+    bpp: 4
+    glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"
+  - file: fonts/materialdesignicons-webfont.ttf
+    id: i_gross
+    size: 104
+    bpp: 4
+    glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]
+  - file: fonts/materialdesignicons-webfont.ttf
+    id: i_mittel
+    size: 34
+    bpp: 4
+    glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]
+  - file: fonts/materialdesignicons-webfont.ttf
+    id: i_klein
+    size: 22
+    bpp: 4
+    glyphs: ["\U000F058E", "\U000F059D", "\U000F054A", "\U000F059C", "\U000F059B", "\U000F034E"]
+
+# ---------------- Daten aus Home Assistant ----------------
+text_sensor:
+  - platform: homeassistant
+    id: wetter_zustand
+    entity_id: ${wetter_entity}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_icon_jetzt
+            text: !lambda 'return wx::icon(x);'
+            text_color: !lambda 'return wx::color(x);'
+        - lvgl.label.update:
+            id: lbl_zustand
+            text: !lambda 'return wx::text(x);'
+  - platform: homeassistant
+    id: wetter_sonne
+    entity_id: ${vorhersage_entity}
+    attribute: sonne
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_sonne_icon
+            text: !lambda 'return wx::part(x, 0) == "auf" ? "\U000F059C" : "\U000F059B";'
+        - lvgl.label.update:
+            id: lbl_sonne
+            text: !lambda 'auto t = wx::part(x, 1); return t.empty() ? std::string("--:--") : t;'
+
+  - platform: homeassistant
+    id: tag_0
+    entity_id: ${vorhersage_entity}
+    attribute: tag_0
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_tag_0_name
+            text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_tag_0_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_tag_0_hoch
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+        - lvgl.label.update:
+            id: lbl_tag_0_tief
+            text: !lambda 'return wx::deg(wx::part(x, 3));'
+        - lvgl.label.update:
+            id: lbl_heute_hochtief
+            text: !lambda 'return wx::deg(wx::part(x, 2)) + "  /  " + wx::deg(wx::part(x, 3));'
+        - lvgl.label.update:
+            id: lbl_regen
+            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+  - platform: homeassistant
+    id: tag_1
+    entity_id: ${vorhersage_entity}
+    attribute: tag_1
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_tag_1_name
+            text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_tag_1_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_tag_1_hoch
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+        - lvgl.label.update:
+            id: lbl_tag_1_tief
+            text: !lambda 'return wx::deg(wx::part(x, 3));'
+  - platform: homeassistant
+    id: tag_2
+    entity_id: ${vorhersage_entity}
+    attribute: tag_2
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_tag_2_name
+            text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_tag_2_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_tag_2_hoch
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+        - lvgl.label.update:
+            id: lbl_tag_2_tief
+            text: !lambda 'return wx::deg(wx::part(x, 3));'
+  - platform: homeassistant
+    id: tag_3
+    entity_id: ${vorhersage_entity}
+    attribute: tag_3
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_tag_3_name
+            text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_tag_3_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_tag_3_hoch
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+        - lvgl.label.update:
+            id: lbl_tag_3_tief
+            text: !lambda 'return wx::deg(wx::part(x, 3));'
+  - platform: homeassistant
+    id: tag_4
+    entity_id: ${vorhersage_entity}
+    attribute: tag_4
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_tag_4_name
+            text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_tag_4_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_tag_4_hoch
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+        - lvgl.label.update:
+            id: lbl_tag_4_tief
+            text: !lambda 'return wx::deg(wx::part(x, 3));'
+  - platform: homeassistant
+    id: stunde_0
+    entity_id: ${vorhersage_entity}
+    attribute: stunde_0
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_std_0_zeit
+            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.label.update:
+            id: lbl_std_0_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_std_0_temp
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+  - platform: homeassistant
+    id: stunde_1
+    entity_id: ${vorhersage_entity}
+    attribute: stunde_1
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_std_1_zeit
+            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.label.update:
+            id: lbl_std_1_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_std_1_temp
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+  - platform: homeassistant
+    id: stunde_2
+    entity_id: ${vorhersage_entity}
+    attribute: stunde_2
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_std_2_zeit
+            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.label.update:
+            id: lbl_std_2_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_std_2_temp
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+  - platform: homeassistant
+    id: stunde_3
+    entity_id: ${vorhersage_entity}
+    attribute: stunde_3
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_std_3_zeit
+            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.label.update:
+            id: lbl_std_3_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_std_3_temp
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+  - platform: homeassistant
+    id: stunde_4
+    entity_id: ${vorhersage_entity}
+    attribute: stunde_4
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_std_4_zeit
+            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.label.update:
+            id: lbl_std_4_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_std_4_temp
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+  - platform: homeassistant
+    id: stunde_5
+    entity_id: ${vorhersage_entity}
+    attribute: stunde_5
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_std_5_zeit
+            text: !lambda 'auto t = wx::part(x, 0); return t.empty() ? t : t + " Uhr";'
+        - lvgl.label.update:
+            id: lbl_std_5_icon
+            text: !lambda 'return wx::icon(wx::part(x, 1));'
+            text_color: !lambda 'return wx::color(wx::part(x, 1));'
+        - lvgl.label.update:
+            id: lbl_std_5_temp
+            text: !lambda 'return wx::deg(wx::part(x, 2));'
+
+sensor:
+  - platform: homeassistant
+    id: wetter_temp
+    entity_id: ${wetter_entity}
+    attribute: temperature
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_temp
+            text: !lambda 'return wx::deg(x);'
+  - platform: homeassistant
+    id: wetter_gefuehlt
+    entity_id: ${wetter_entity}
+    attribute: apparent_temperature
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_gefuehlt
+            text: !lambda 'return std::isnan(x) ? std::string("") : "Gefühlt " + wx::deg(x);'
+  - platform: homeassistant
+    id: wetter_feuchte
+    entity_id: ${wetter_entity}
+    attribute: humidity
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_feuchte
+            text: !lambda 'return wx::percent(x);'
+  - platform: homeassistant
+    id: wetter_wind
+    entity_id: ${wetter_entity}
+    attribute: wind_speed
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_wind
+            text: !lambda 'return wx::wind(x, id(wetter_windrichtung).state);'
+  - platform: homeassistant
+    id: wetter_windrichtung
+    entity_id: ${wetter_entity}
+    attribute: wind_bearing
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_wind
+            text: !lambda 'return wx::wind(id(wetter_wind).state, x);'
+
+# ---------------- Oberfläche ----------------
+lvgl:
+  displays: [my_display]
+  touchscreens: [ts_touch]
+  buffer_size: 25%
+  default_font: f_18
+  theme:
+    label:
+      text_color: 0xF2F5F9
+  pages:
+    - id: seite_wetter
+      bg_color: 0x0C131D
+      bg_opa: COVER
+      scrollable: false
+      pad_all: 0
+      widgets:
+        - label:
+            id: lbl_ort
+            x: 16
+            y: 10
+            width: 280
+            text: "${ort}"
+            text_font: f_22
+            text_color: 0xF2F5F9
+            text_align: LEFT
+        - label:
+            id: lbl_datum
+            x: 16
+            y: 38
+            width: 300
+            text: ""
+            text_font: f_15
+            text_color: 0x8C9DB5
+            text_align: LEFT
+        - label:
+            id: lbl_uhr
+            x: 304
+            y: 12
+            width: 160
+            text: "--:--"
+            text_font: f_uhr
+            text_color: 0xF2F5F9
+            text_align: RIGHT
+        - obj:
+            id: karte_jetzt
+            x: 12
+            y: 66
+            width: 456
+            height: 150
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_icon_jetzt
+                  x: 10
+                  y: 18
+                  width: 130
+                  text: ""
+                  text_font: i_gross
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_temp
+                  x: 144
+                  y: 14
+                  width: 180
+                  text: "--°"
+                  text_font: f_temp
+                  text_color: 0xF2F5F9
+                  text_align: LEFT
+              - label:
+                  id: lbl_zustand
+                  x: 148
+                  y: 106
+                  width: 296
+                  text: "Warte auf Daten"
+                  text_font: f_22
+                  text_color: 0xF2F5F9
+                  text_align: LEFT
+                  long_mode: DOT
+              - label:
+                  id: lbl_heute_hochtief
+                  x: 292
+                  y: 30
+                  width: 150
+                  text: ""
+                  text_font: f_22
+                  text_color: 0xF2F5F9
+                  text_align: RIGHT
+              - label:
+                  id: lbl_gefuehlt
+                  x: 292
+                  y: 62
+                  width: 150
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: RIGHT
+        - obj:
+            id: chip_feuchte
+            x: 12
+            y: 224
+            width: 100
+            height: 52
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_feuchte_icon
+                  x: 8
+                  y: 13
+                  width: 26
+                  text: "\U000F058E"
+                  text_font: i_klein
+                  text_color: 0x6EC3FF
+                  text_align: CENTER
+              - label:
+                  id: lbl_feuchte
+                  x: 36
+                  y: 15
+                  width: 58
+                  text: "--"
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: LEFT
+                  long_mode: DOT
+        - obj:
+            id: chip_wind
+            x: 120
+            y: 224
+            width: 132
+            height: 52
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_wind_icon
+                  x: 8
+                  y: 13
+                  width: 26
+                  text: "\U000F059D"
+                  text_font: i_klein
+                  text_color: 0x6EC3FF
+                  text_align: CENTER
+              - label:
+                  id: lbl_wind
+                  x: 36
+                  y: 15
+                  width: 90
+                  text: "--"
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: LEFT
+                  long_mode: DOT
+        - obj:
+            id: chip_regen
+            x: 260
+            y: 224
+            width: 100
+            height: 52
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_regen_icon
+                  x: 8
+                  y: 13
+                  width: 26
+                  text: "\U000F054A"
+                  text_font: i_klein
+                  text_color: 0x6EC3FF
+                  text_align: CENTER
+              - label:
+                  id: lbl_regen
+                  x: 36
+                  y: 15
+                  width: 58
+                  text: "--"
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: LEFT
+                  long_mode: DOT
+        - obj:
+            id: chip_sonne
+            x: 368
+            y: 224
+            width: 100
+            height: 52
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_sonne_icon
+                  x: 8
+                  y: 13
+                  width: 26
+                  text: "\U000F059B"
+                  text_font: i_klein
+                  text_color: 0x6EC3FF
+                  text_align: CENTER
+              - label:
+                  id: lbl_sonne
+                  x: 36
+                  y: 15
+                  width: 58
+                  text: "--:--"
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: LEFT
+                  long_mode: DOT
+        - obj:
+            id: karte_stunden
+            x: 12
+            y: 284
+            width: 456
+            height: 86
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_std_0_zeit
+                  x: 0
+                  y: 8
+                  width: 76
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_0_icon
+                  x: 0
+                  y: 28
+                  width: 76
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_0_temp
+                  x: 0
+                  y: 62
+                  width: 76
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_1_zeit
+                  x: 76
+                  y: 8
+                  width: 76
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_1_icon
+                  x: 76
+                  y: 28
+                  width: 76
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_1_temp
+                  x: 76
+                  y: 62
+                  width: 76
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_2_zeit
+                  x: 152
+                  y: 8
+                  width: 76
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_2_icon
+                  x: 152
+                  y: 28
+                  width: 76
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_2_temp
+                  x: 152
+                  y: 62
+                  width: 76
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_3_zeit
+                  x: 228
+                  y: 8
+                  width: 76
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_3_icon
+                  x: 228
+                  y: 28
+                  width: 76
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_3_temp
+                  x: 228
+                  y: 62
+                  width: 76
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_4_zeit
+                  x: 304
+                  y: 8
+                  width: 76
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_4_icon
+                  x: 304
+                  y: 28
+                  width: 76
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_4_temp
+                  x: 304
+                  y: 62
+                  width: 76
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_5_zeit
+                  x: 380
+                  y: 8
+                  width: 76
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_5_icon
+                  x: 380
+                  y: 28
+                  width: 76
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_std_5_temp
+                  x: 380
+                  y: 62
+                  width: 76
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+        - obj:
+            id: karte_tage
+            x: 12
+            y: 378
+            width: 456
+            height: 94
+            bg_color: 0x172233
+            bg_opa: COVER
+            border_width: 1
+            border_color: 0x22324A
+            radius: 18
+            pad_all: 0
+            scrollable: false
+            clickable: false
+            widgets:
+              - label:
+                  id: lbl_tag_0_name
+                  x: 0
+                  y: 8
+                  width: 91
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x6EC3FF
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_0_icon
+                  x: 0
+                  y: 28
+                  width: 91
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_0_hoch
+                  x: 4
+                  y: 66
+                  width: 43
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: RIGHT
+              - label:
+                  id: lbl_tag_0_tief
+                  x: 49
+                  y: 66
+                  width: 39
+                  text: ""
+                  text_font: f_18
+                  text_color: 0x8C9DB5
+                  text_align: LEFT
+              - label:
+                  id: lbl_tag_1_name
+                  x: 91
+                  y: 8
+                  width: 91
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_1_icon
+                  x: 91
+                  y: 28
+                  width: 91
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_1_hoch
+                  x: 95
+                  y: 66
+                  width: 43
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: RIGHT
+              - label:
+                  id: lbl_tag_1_tief
+                  x: 140
+                  y: 66
+                  width: 39
+                  text: ""
+                  text_font: f_18
+                  text_color: 0x8C9DB5
+                  text_align: LEFT
+              - label:
+                  id: lbl_tag_2_name
+                  x: 182
+                  y: 8
+                  width: 91
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_2_icon
+                  x: 182
+                  y: 28
+                  width: 91
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_2_hoch
+                  x: 186
+                  y: 66
+                  width: 43
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: RIGHT
+              - label:
+                  id: lbl_tag_2_tief
+                  x: 231
+                  y: 66
+                  width: 39
+                  text: ""
+                  text_font: f_18
+                  text_color: 0x8C9DB5
+                  text_align: LEFT
+              - label:
+                  id: lbl_tag_3_name
+                  x: 273
+                  y: 8
+                  width: 91
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_3_icon
+                  x: 273
+                  y: 28
+                  width: 91
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_3_hoch
+                  x: 277
+                  y: 66
+                  width: 43
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: RIGHT
+              - label:
+                  id: lbl_tag_3_tief
+                  x: 322
+                  y: 66
+                  width: 39
+                  text: ""
+                  text_font: f_18
+                  text_color: 0x8C9DB5
+                  text_align: LEFT
+              - label:
+                  id: lbl_tag_4_name
+                  x: 364
+                  y: 8
+                  width: 91
+                  text: ""
+                  text_font: f_15
+                  text_color: 0x8C9DB5
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_4_icon
+                  x: 364
+                  y: 28
+                  width: 91
+                  text: ""
+                  text_font: i_mittel
+                  text_color: 0xF2F5F9
+                  text_align: CENTER
+              - label:
+                  id: lbl_tag_4_hoch
+                  x: 368
+                  y: 66
+                  width: 43
+                  text: ""
+                  text_font: f_18
+                  text_color: 0xF2F5F9
+                  text_align: RIGHT
+              - label:
+                  id: lbl_tag_4_tief
+                  x: 413
+                  y: 66
+                  width: 39
+                  text: ""
+                  text_font: f_18
+                  text_color: 0x8C9DB5
+                  text_align: LEFT
