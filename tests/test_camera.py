@@ -383,7 +383,9 @@ class Rules(unittest.TestCase):
         # slot lets go of it, keeping its ETag; a 304 for a picture the store let go meanwhile is loaded whole.
         done = TILES.split('inline void picture_done(picture_loader::Slot slot, bool ok, bool cached) {', 1)[1].split('\n}\n', 1)[0]
         self.assertIn('if (pictures_kept() && cached && pictures.entry(key)) {\n      pictures.touch(key, now);', done)
-        self.assertIn('pictures.adopt(key, taken, now)', done)
+        # The ETag goes into the store with the picture since 006b6944 (docs/PICTURES.md, "Unchanged pictures"): the call's
+        # start, until this test reads behaviour after runtime_tiles.h is split (it is a B with no replacement yet).
+        self.assertIn('pictures.adopt(key, taken, now', done)
         self.assertIn('if (kept && hooks.hand_over) hooks.hand_over();', done)
         self.assertIn('if (!asked.empty() && !pictures.entry(asked) && !(held && held->data)) {', done)
         # That the store keeps the download's own pixels, and no copy, is tests/test_picture_store.cpp's: adopt keeps the
