@@ -4,7 +4,6 @@ Two halves have to agree without ever seeing each other: the row table in settin
 that only mean something if ESP Screens knows them, and the eleven-key `settings` block older firmware
 insists on may never grow. Both are checked here, against the real files.
 """
-from firmware_sources import runtime_source
 import importlib.util
 import json
 import re
@@ -23,8 +22,6 @@ from core import (BUILTIN, SETTING_RULES, SETTINGS_BESIDE_BLOCK, entity_id, min_
                   validate_settings)
 
 SCREEN = (ROOT / 'components/smart_display/settings_screen.h').read_text()
-RUNTIME = runtime_source()
-CORE = (ROOT / 'packages/core.yaml').read_text()
 # The keys the firmware's own block still carries; everything newer travels as its own key.
 FROZEN = {'standby_enabled', 'standby_seconds', 'brightness', 'standby_brightness', 'night_enabled',
           'night_start', 'night_end', 'night_brightness', 'show_clock', 'clock_24h', 'home_on_standby'}
@@ -45,7 +42,10 @@ class SettingsPage(unittest.TestCase):
         # Firmware before 0.2.44 refuses a `settings` object of any other size; that is why the newer
         # settings travel as their own keys.
         self.assertEqual(len(FROZEN), 11)
-        self.assertNotIn('parse_settings(', RUNTIME, 'new firmware has no legacy settings decoder')
+        # Legacy delivery stays in the add-on, never as a second decoder on the screen (AGENTS.md, "Compatibility").
+        for path in sorted((ROOT / 'components/smart_display').rglob('*')):
+            if path.suffix in ('.h', '.cpp', '.py'):
+                self.assertNotIn('parse_settings(', path.read_text(), f'{path.name}: the firmware has no legacy settings decoder')
         self.assertEqual(FROZEN, set(SETTING_RULES) & FROZEN)
 
     def test_new_settings_default_and_validate(self):
@@ -90,21 +90,20 @@ class Firmware(unittest.TestCase):
     """The board profiles have to carry the page, its way in, and the timer that closes it."""
 
     def setUp(self):
-        self.profiles = {name: profiles.text(name)
-                         for name in ('checkout/cyd.yaml', 'checkout/guition.yaml')}
+        self.profiles = {name: profiles.text(name) for name in profiles.PROFILES}
 
-    def test_both_boards_wire_the_page_and_its_gesture(self):
+    def test_every_board_wires_the_page_and_its_gesture(self):
+        # The page, its hold, its report, the Home timer and the colour card in C++ come from packages/core.yaml and reach
+        # every board (the version each builds is test_updates.py's rule).
         for name, text in self.profiles.items():
-            self.assertIn('settings_screen::attach_hold', text, name)
-            self.assertIn('settings_screen::report', text, name)
-            self.assertIn('settings_screen::may_open', text, name)
-            self.assertIn('- action: open_settings', text, name)
-            self.assertIn('- id: go_home', text, name)
-            self.assertIn('runtime_tiles::auto_home', text, name)
-            version = re.search(r'SCREEN_FIRMWARE_VERSION: "([0-9.]+)"', text)[1]
-            self.assertGreaterEqual(tuple(map(int, version.split('.'))), (0, 2, 44), name)
+            for wiring in ('settings_screen::attach_hold', 'settings_screen::report', 'settings_screen::may_open',
+                           '- action: open_settings', '- id: go_home', 'runtime_tiles::auto_home'):
+                self.assertIn(wiring, text, f'{name}: {wiring} of packages/core.yaml does not reach it')
+            self.assertNotIn('color_detail_overlay', text, f'{name}: the colour card is made in C++ since app 0.4.86, not in YAML')
 
     def test_every_plain_setting_is_loaded_at_boot_and_saved_with_the_rest(self):
+        # glass: change each of these settings on the screen, restart it, and see the setting kept (load_settings and
+        # persist_settings run on the device's flash; the preview keeps no preferences across a start).
         # The home button (0.2.122) got its set() branch, its row and its entity but no preference, so a screen that
         # restarted showed it again and reported it on (GitHub #319, firmware 0.60.0). Each of the values beside the
         # frozen block has a record of its own in load_settings() and persist_settings() (docs/SETTINGS.md).
@@ -121,7 +120,8 @@ class Firmware(unittest.TestCase):
     def test_the_hold_strip_covers_the_top_bar_and_no_more(self):
         """The strip is as wide as the glass less the band it starts in on each side, measured on the live canvas
         (overlay_card::screen_width), so it is right whichever way the screen was built to hang."""
-        self.assertIn('overlay_card::screen_width() - ${SETTINGS_HOLD_X} * 2, ${SCROLL_Y}', CORE)
+        # The strip on the glass (the top bar less the side bands, under every card) is web/wasm/test_settings_hold.mjs;
+        # here every board's numbers leave it room.
         for name, text in self.profiles.items():
             values = profiles.substitutions(name)
             # The narrowest canvas this board can be built with: the shorter side of its panel.
@@ -135,19 +135,10 @@ class Firmware(unittest.TestCase):
             if 'EDGE_SWIPE_BAND_PX' in values and 'without_sides()' not in values.get('BOOT_TOUCH', ''):
                 self.assertGreaterEqual(x, int(values['EDGE_SWIPE_BAND_PX']), name)
 
-    def test_the_hold_strip_lies_under_every_card(self):
-        # Firmware 0.2.44-0.2.47 created the strip after the cards, so it lay on top of them: a card's
-        # back button and its action at the top right lost their taps to it. (The wake overlay of a dimmed
-        # screen was not affected: apply_screen_settings moves it to the foreground.)
-        self.assertIn('lv_obj_move_to_index(hold_area, lv_obj_get_index(below));', SCREEN)
-        # Every card is made in C++ since app 0.4.86 (the colour card was the last one in YAML): each is made the
-        # first time it opens and comes to the front when it does, so the strip made at boot lies under all of them.
-        for root in ('detail_root', 'colour_root'):
-            self.assertIn(f'lv_obj_move_foreground({root});', RUNTIME, root)
+    def test_the_wake_overlay_lies_over_the_page_controls(self):
+        # glass: let the screen go to standby, tap a page key: the screen wakes and stays on its page.
+        # (That the hold strip lies under every card is web/wasm/test_settings_hold.mjs.)
         for name, text in self.profiles.items():
-            call = re.search(r'settings_screen::attach_hold\(id\(home_page\)->obj, [^;]*\);', text)
-            self.assertTrue(call, f'{name}: the hold strip is attached')
-            self.assertNotIn('color_detail_overlay', text, name)
             page = text[text.index('- id: home_page'):]
             self.assertLess(page.index('id: page_next\n'), page.index('id: dim_wake_overlay\n'), f'{name}: the page controls stay under the wake overlay')
 
