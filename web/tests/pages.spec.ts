@@ -304,3 +304,12 @@ describe("a lock's guard (firmware 0.5.0)", () => {
     expect(() => validateCardOptions(lock("lock_only", "light.a"), "light.a", "single")).toThrow();
   });
 });
+
+describe("an automation's run tap (firmware 0.7.0)", () => {
+  const card = (entityId: string, tap: string): PageTile => ({ id: "auto-card", content: { kind: "entity", entityId },
+    placement: { row: 0, column: 0, rows: 1, columns: 1 }, appearance: { label: "" }, interaction: { tap } } as PageTile);
+  it("is a choice of an automation alone, from the catalogue", () => {
+    expect(() => validateCardOptions(card("automation.a", "run"), "automation.a", "single")).not.toThrow();
+    for (const entity of ["script.a", "switch.a", "scene.a"]) expect(() => validateCardOptions(card(entity, "run"), entity, "single")).toThrow();
+  });
+});
