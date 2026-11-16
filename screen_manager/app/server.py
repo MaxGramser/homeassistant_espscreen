@@ -6328,11 +6328,8 @@ async def main():
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
         cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live, manager.talks), access_log=None)
         await cameras.setup()
-        try:
-            await web.TCPSite(cameras, '0.0.0.0', picture_links.port()).start()
-        except OSError as error:
-            # Everything else still works; only camera images stay away.
-            LOG.error('Camera images are off: port %d is not available (%s)', picture_links.port(), error)
+        # A port another program holds turns camera images off, and nothing else.
+        await picture_links.open_port(cameras)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
                                  manager.alert_loop(), manager.doorbell_loop(), manager.call_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
