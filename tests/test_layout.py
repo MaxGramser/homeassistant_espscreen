@@ -58,10 +58,11 @@ class LayoutTests(unittest.TestCase):
 
     def test_the_top_bar_and_the_page_keys_keep_the_tiles_margin(self):
         """One margin all round (firmware 0.14.0+): the top bar from the sides and the top, the tiles, and the ink of
-        the page keys' chevrons all keep GRID_MARGIN."""
+        the page keys' chevrons all keep GRID_MARGIN. A round glass adds its safe area (SAFE_INSET, 0 on the others)."""
         for look in ('standard', 'compact'):
             text = (ROOT / 'packages' / 'looks' / f'{look}.yaml').read_text()
-            self.assertIn('HEADER_INSET: ${GRID_MARGIN}', text, look)
+            self.assertIn('HEADER_INSET: ${ (GRID_MARGIN | int) + (SAFE_INSET | int) }', text, look)
+            self.assertIn('SAFE_INSET: "0"', text, look)
             self.assertNotIn('PAGE_CHEVRON_INSET', text, look)
         # On the glass: web/wasm/test_page_frame.mjs reads the title, the tiles and the chevrons' ink at one margin.
 
@@ -141,14 +142,17 @@ class LayoutTests(unittest.TestCase):
 
     def test_page_keys_are_the_halves_of_the_band_under_the_tiles(self):
         """Firmware 0.2.69+: a chevron in each half of the band, the dots between them take no touches. The half is
-        half of the glass, said as a percentage, so it is still half after the screen is built standing up."""
+        half of the glass, said as a percentage, so it is still half after the screen is built standing up. A round
+        glass (SAFE_INSET) is the same either way up, and its halves stop at its safe area, in pixels."""
         for name in profiles.PROFILES:
             source = profiles.resolved(name)
             values = profiles.substitutions(name)
             band = int(values['PAGE_BAR_H'])
+            safe = int(values.get('SAFE_INSET', '0').strip('"'))
+            width = '50%' if not safe else str(int(values['PANEL_W'].strip('"')) // 2 - safe)
             for key, glyph in (('page_prev', 'F0141'), ('page_next', 'F0142')):
                 block = source.split(f'            id: {key}\n', 1)[1].split('\n        - ', 1)[0]
-                self.assertIn('width: 50%\n', block, f'{name} {key}')
+                self.assertIn(f'width: {width}\n', block, f'{name} {key}')
                 self.assertIn(f'height: {band}\n', block, f'{name} {key}')
                 # Firmware 0.3.1: the half takes the touch but stays clear; the press shows around the chevron only.
                 self.assertIn('pressed:\n              bg_opa: TRANSP', block, f'{name} {key}: the half stays clear under a finger')

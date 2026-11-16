@@ -837,12 +837,22 @@ inline void grid_bind(lv_obj_t *container, int margin, int page_bar_height) {
   const int canvas_w = lv_display_get_horizontal_resolution(display);
   const int canvas_h = lv_display_get_vertical_resolution(display);
   grid_select(canvas_w, canvas_h);
-  lv_obj_set_width(container, canvas_w);
+  // A round panel's safe area (SAFE_INSET, looks/*.yaml): the area keeps that far inside the panel's square on
+  // every side, so the circle's curve cuts no card. 0 on a rectangular panel, where this is the full width.
+  const int safe = SAFE_INSET;
+  lv_obj_set_width(container, canvas_w - 2 * safe);
+  lv_obj_set_x(container, safe);
   // Where the area starts is the height of the top bar, which the board states as the object's y. It has to be
   // laid out before that coordinate means anything: read straight after boot it is still zero, and the tile
   // area then runs a top bar too far down, over the page bar.
   lv_obj_update_layout(container);
-  grid_base_height = canvas_h - lv_obj_get_y(container) - page_bar_height;
+  static bool safe_applied = false;  // grid_bind runs once at boot; the inset must not move the area twice
+  if (safe > 0 && !safe_applied) {
+    safe_applied = true;
+    lv_obj_set_y(container, lv_obj_get_y(container) + safe);
+    lv_obj_update_layout(container);
+  }
+  grid_base_height = canvas_h - lv_obj_get_y(container) - page_bar_height - safe;
   lv_obj_set_height(container, grid_base_height);
   grid_cells();
 }
@@ -3256,7 +3266,7 @@ inline bool check_tile_geometry() {
       const int margin=grid_margin;
       bool placed=card.y1>=area.y1 && card.y2<=area.y2 && area.y2<=screen.y2-margin && (!w.full || card.y2==area.y2);
       if(applied_bar && nav_next){lv_area_t nav;lv_obj_get_coords(nav_next,&nav);placed=placed && area.y2<nav.y1;}
-      if(!applied_bar)placed=placed && area.y2>=screen.y2-margin-3;
+      if(!applied_bar)placed=placed && area.y2>=screen.y2-margin-SAFE_INSET-3;  // a round panel's safe area at the foot
       if(!placed){fits=false;ESP_LOGE("ui_test","Card place FAIL slot=%u card=%d..%d area=%d..%d screen_bottom=%d bar=%d",(unsigned)w.index,(int)card.y1,(int)card.y2,(int)area.y1,(int)area.y2,(int)screen.y2,applied_bar);}
     }
     // A centred stack (a built-in action, or an on/off card with its switch under the name). Only with its name on the
@@ -3511,7 +3521,7 @@ inline int place_page(int page, bool kept = false) {
   // between a sequential page and a detail page never changes tile geometry.
   if(tile_grid){
     auto *screen=lv_obj_get_parent(tile_grid);
-    const int height=bar||!screen?grid_base_height:lv_obj_get_height(screen)-lv_obj_get_y(tile_grid)-grid_margin;
+    const int height=bar||!screen?grid_base_height:lv_obj_get_height(screen)-lv_obj_get_y(tile_grid)-grid_margin-SAFE_INSET;  // a round panel's safe area at the foot too
     if(lv_obj_get_style_height(tile_grid,LV_PART_MAIN)!=height)lv_obj_set_height(tile_grid,height);
   }
   std::array<size_t,CELLS_MAX> shown;shown.fill(grid.max_tiles());

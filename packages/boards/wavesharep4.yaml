@@ -25,6 +25,7 @@ packages:
   # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
   # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
   audio: !include ../hardware/wavesharep4-audio.yaml
+  touch_backlight: !include ../hardware/wavesharep4-4inch.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -65,29 +66,6 @@ esp32:
     advanced:
       # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
       enable_idf_experimental_features: true
-
-# TP_INT ends at a test point, so the touch panel is read by polling.
-touchscreen:
-  - platform: gt911
-    id: ts_touch
-    display: my_display
-    i2c_id: touch_bus
-    reset_pin: GPIO23
-    update_interval: 20ms
-
-# The backlight, an inverted PWM pin (features/backlight.yaml makes it the light). BL_EN (GPIO33, the display's
-# enable_pin below) powers its boost converter. At most 80 % of the PWM range, as in the community configuration
-# Waveshare links to; the screen's brightness setting covers 0 to 100 % of that. Below 15 % the glass was too dark to
-# read, so the lowest level is 15 %, and zero_means_zero keeps 0 dark for standby (GitHub #209).
-output:
-  - platform: ledc
-    id: gpio_backlight_pwm
-    pin: GPIO26
-    frequency: ${BACKLIGHT_FREQUENCY}
-    inverted: true
-    max_power: 0.8
-    min_power: 0.15
-    zero_means_zero: true
 
 # ESPHome's own mipi_dsi platform knows the panel by name: the ST7703's init sequence and timings come with it.
 display:

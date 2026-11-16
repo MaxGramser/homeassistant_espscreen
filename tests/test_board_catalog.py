@@ -53,10 +53,10 @@ class Catalog(unittest.TestCase):
     def test_what_the_files_say_is_worked_out_not_written(self):
         for board in profiles.CATALOG:
             catalog, values = SHAPES[board]['catalog'], profiles.board_values(board)
-            # The glass: its diagonal in pixels over its density.
+            # The glass: its diagonal in pixels over its density; a round glass (a SAFE_INSET) across, over its density.
             side = SHAPES[board]['orientations']['landscape']
-            self.assertAlmostEqual(catalog['inch'], (side['width'] ** 2 + side['height'] ** 2) ** 0.5 / float(values['DISPLAY_DPI']),
-                                   delta=0.05, msg=board)
+            across = side['width'] if int(values.get('SAFE_INSET', '0')) else (side['width'] ** 2 + side['height'] ** 2) ** 0.5
+            self.assertAlmostEqual(catalog['inch'], across / float(values['DISPLAY_DPI']), delta=0.05, msg=board)
             # A resistive panel is measured on the glass on the first start; a capacitive one reports pixels.
             chain = [path.name for path in profiles.chain(profiles.BOARDS[board])]
             self.assertEqual(catalog['calibrate'], 'resistive-touch.yaml' in chain, board)

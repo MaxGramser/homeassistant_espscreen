@@ -82,7 +82,7 @@ STATUSES = ('stable', 'new', 'experimental')
 def catalog_of(board, values, lying):
     """What New screen and the screen list say about a board: its entry in boards.yaml, with what its files say.
 
-    The size in inches is the glass's diagonal over its density, the touch controller the platform of its
+    The size in inches is the glass's diagonal over its density (a round glass, one with a SAFE_INSET, is measured across), the touch controller the platform of its
     touchscreen, and a board that reads a resistive panel asks for a touch calibration on its first start
     (features/resistive-touch.yaml). A choice is a substitution the board file offers, whose first value is the one
     the board file sets; a choice that is not, or an unknown status, stops the build of this file.
@@ -116,7 +116,8 @@ def catalog_of(board, values, lying):
             raise SystemExit(f'boards.yaml: {board} lists the setting {key}, which no entity of its files is named')
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
             'status': entry['status'],
-            'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
+            'inch': round((lying['width'] if int(values.get('SAFE_INSET', '0').strip('"')) > 0
+                           else math.hypot(lying['width'], lying['height'])) / float(values['DISPLAY_DPI']), 1),
             # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
             'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),
             'calibrate': any(path.name == 'resistive-touch.yaml' for path in chain),
@@ -218,7 +219,10 @@ def shapes():
                  'spacing': {name: int(values[key]) for name, key in (('margin', 'GRID_MARGIN'), ('gap', 'GRID_GAP_X'),
                                                                   ('gap_y', 'GRID_GAP_Y'), ('tile_pad', 'TILE_PAD'),
                                                                   ('top', 'SCROLL_Y'), ('page_bar', 'PAGE_BAR_H'),
-                                                                  ('circle', 'TILE_ICON_SIZE'), ('radius', 'TILE_RADIUS'))},
+                                                                  ('circle', 'TILE_ICON_SIZE'), ('radius', 'TILE_RADIUS'))}
+                            # A round glass's safe area (SAFE_INSET), which the page keeps on every side: only a board
+                            # that has one says so.
+                            | ({'safe': int(values['SAFE_INSET'])} if int(values.get('SAFE_INSET', '0')) else {}),
                  # What New screen offers and the screen list names (boards.yaml with what the board's files say).
                  'catalog': catalog_of(board, values, lying),
                  # The chip it is built for, for the browser flasher's check of the board on the cable.

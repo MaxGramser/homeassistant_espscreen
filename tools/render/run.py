@@ -592,7 +592,7 @@ class Run:
             return
         # A tap on the page dots in the middle of the page bar opens it too; a tap above it closes it again.
         start = len(self.lines)
-        await self.finger([(width // 2, height - 12), (width // 2, height - 12)], rest=0.1)
+        await self.finger([(width // 2, height - 12 - self.safe), (width // 2, height - 12 - self.safe)], rest=0.1)
         await self.until(lambda l: 'page dots: dock' in l, 6, 'a tap on the page dots never opened the dock', start)
         await asyncio.sleep(0.8)
         await self.finger([(width // 2, 4), (width // 2, 4)], rest=0.1)
@@ -4581,6 +4581,9 @@ class Run:
         pages = p[5]
         self.canvas = (side['width'], side['height'])
         self.hello_record()
+        # A round board's safe area (looks/*.yaml SAFE_INSET): the page bar stands that far above the glass's foot.
+        m = re.search(r'^  SAFE_INSET: "(\d+)"', (host.REPO / 'packages/boards' / self.item.file).read_text(), re.M)
+        self.safe = int(m[1]) if m else 0
         if self.only == 'alarm':
             return 1, await self.alarm_panel(grid)
         if self.only == 'lock':

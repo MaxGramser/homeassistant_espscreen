@@ -22,6 +22,11 @@
 #include "theme.h"
 #include "ui_scale.h"
 
+// A round panel's safe area in pixels (looks/*.yaml SAFE_INSET, a build flag); 0 on a rectangular panel.
+#ifndef SAFE_INSET
+#define SAFE_INSET 0
+#endif
+
 namespace page_bar {
 
 // The chevrons' font, and the words' past eight pages; set once by the core (packages/core.yaml).
@@ -241,8 +246,10 @@ inline Bar make_in(lv_obj_t *parent, int x, int y, int w, int h, Step step, int 
 // the glass, not in the card, so a card centred on the glass leaves it where it is (FLOATING, overlay_card::centre).
 inline Bar make(lv_obj_t *parent, Step step) {
   const int h = height();
-  Bar bar = make_in(parent, overlay_card::glass_left(parent), overlay_card::glass_top(parent) + overlay_card::screen_height() - h,
-                 overlay_card::screen_width(), h, step, inset());
+  const int safe = SAFE_INSET;  // a round panel's safe area (looks/*.yaml): the bar keeps inside the circle
+  Bar bar = make_in(parent, overlay_card::glass_left(parent) + safe,
+                 overlay_card::glass_top(parent) + overlay_card::screen_height() - h - safe,
+                 overlay_card::screen_width() - 2 * safe, h, step, inset());
   for (auto *part : {bar.prev, bar.dots, bar.next}) lv_obj_add_flag(part, LV_OBJ_FLAG_FLOATING);
   return bar;
 }

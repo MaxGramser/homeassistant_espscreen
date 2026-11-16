@@ -1,0 +1,27 @@
+# ESP Screens - the touch panel and the backlight of the Waveshare ESP32-P4 4-inch boards that wire them alike: the
+# square ESP32-P4-86-Panel-ETH-2RO / ESP32-P4-WIFI6-Touch-LCD-4B and the round ESP32-P4-WIFI6-Touch-LCD-4C.
+
+# A GT911 on the touch panel's I2C bus, its reset on GPIO23. TP_INT ends at a test point, so the touch panel is read
+# by polling.
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    display: my_display
+    i2c_id: touch_bus
+    reset_pin: GPIO23
+    update_interval: 20ms
+
+# The backlight, an inverted PWM pin on GPIO26 (features/backlight.yaml makes it the light); the square board powers
+# its boost converter with BL_EN (GPIO33, the enable_pin of its display), the 4C has none. At most 80 % of the PWM
+# range, as in the community configuration Waveshare links to; the screen's brightness setting covers 0 to 100 % of
+# that. Below 15 % the glass was too dark to read, so the lowest level is 15 %, and zero_means_zero keeps 0 dark for
+# standby (GitHub #209).
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO26
+    frequency: ${BACKLIGHT_FREQUENCY}
+    inverted: true
+    max_power: 0.8
+    min_power: 0.15
+    zero_means_zero: true

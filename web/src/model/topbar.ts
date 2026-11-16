@@ -109,7 +109,7 @@ export const LOOK_BARS: Record<Look, BarMetrics & { dpi: number }> = {
   compact: { width: 302, top: 24, name: 18, text: 14, icon: 18, inset: 9, mark: 18, dpi: 143 },
 };
 export type ShapeLike = { width: number; look?: string; dpi?: number; fonts?: { headline?: number; sublabel_big?: number; icon_mini?: number; icon_home?: number };
-  spacing?: { margin: number } };
+  spacing?: { margin: number; safe?: number } };
 // Python's round(), which ESPHome's substitutions round with: a half goes to the even neighbour.
 const roundHalfEven = (x: number) => { const f = Math.floor(x), d = x - f; return d > 0.5 || (d === 0.5 && f % 2 !== 0) ? f + 1 : f; };
 // The bar for a screen of this shape. A board's own sizes where the add-on gives them (boards.json): the
@@ -122,7 +122,8 @@ export function barMetricsFor(shape: ShapeLike): BarMetrics {
   const base = LOOK_BARS[shape.look === "compact" || (!shape.look && shape.width < 400) ? "compact" : "standard"];
   const f = (shape.dpi && shape.dpi > 0 ? shape.dpi : base.dpi) / base.dpi;
   const px = (n: number) => Math.round(n * f), fonts = shape.fonts ?? {};
-  const inset = shape.spacing?.margin ?? Math.min(px(base.inset), base.inset);
+  // A round glass keeps its safe area inside the margin (HEADER_INSET is GRID_MARGIN + SAFE_INSET).
+  const inset = (shape.spacing?.margin ?? Math.min(px(base.inset), base.inset)) + (shape.spacing?.safe ?? 0);
   return { width: shape.width - 2 * inset, top: px(base.top), name: fonts.headline ?? px(base.name), text: fonts.sublabel_big ?? px(base.text),
            icon: fonts.icon_mini ?? px(base.icon), inset, mark: fonts.icon_home ? roundHalfEven((fonts.icon_home * 17) / 24) : px(base.mark) };
 }

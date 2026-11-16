@@ -1,0 +1,70 @@
+# ESP Screens - waveshare4c: the Waveshare ESP32-P4-WIFI6-Touch-LCD-4C, a round 4-inch 720 x 720 panel (docs/WAVESHARE4C.md).
+# Written by tools/new_board.py from the wavesharep4 board, whose main board it shares: the chip, the Wi-Fi, the touch
+# panel, the backlight and the audio are wired alike; the glass, its JD9365 driver and the round safe area are its own.
+# docs/PROFILES.md says how the files of a screen fit together.
+packages:
+  # The ESP32-P4, its memory, the ESP32-C6 for Wi-Fi and the touch bus, pin for pin the Guition P4 panels' own.
+  hardware: !include ../hardware/esp32p4-c6.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The speaker and the microphones as on the Waveshare P4 86 panel, declared once for the boards wired the same way
+  # (hardware/wavesharep4-audio.yaml): the codecs, the transport, the microphone settings and the amplifier.
+  audio: !include ../hardware/wavesharep4-audio.yaml
+  touch_backlight: !include ../hardware/wavesharep4-4inch.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "waveshare4c"
+  DEVICE_NAME: "waveshare4c-new"
+  DEVICE_FRIENDLY_NAME: "My Waveshare P4 4C"
+
+  # The glass: the panel's own pixels and its density, a round glass 720 pixels and 4.0 inches across (the catalog
+  # measures a glass with a SAFE_INSET across, not along the diagonal of its square canvas).
+  PANEL_W: "720"
+  PANEL_H: "720"
+  DISPLAY_DPI: "180.000"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  # Round glass (720 px circle): the page keeps 96 px inside the square on every side (looks/*.yaml SAFE_INSET),
+  # close to the inscribed square's (720 - 720/sqrt2)/2 = 105; the cards round their corners, so a little less will do.
+  SAFE_INSET: "96"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM, as on the square Guition: the memory budget
+  # (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # Hardware a screen's own YAML may change (docs/EASY_SETUP.md, "Hardware-specific YAML overrides")
+  BACKLIGHT_FREQUENCY: "200Hz"                  # the backlight's PWM: at 100 Hz grey areas flickered (GitHub #209)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its display model,
+  # `WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-4C` below, is in 2026.9.0, the release this board was tried on. A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+esp32:
+  flash_size: 32MB
+  framework:
+    advanced:
+      # ESPHome asks for this ESP-IDF option for update slots on more than 16 MB of flash.
+      enable_idf_experimental_features: true
+
+# ESPHome's own mipi_dsi platform knows the panel by name: the round JD9365's init sequence and timings come with it.
+# No enable_pin: the square board's GPIO33 boost enable is not wired on the 4C.
+display:
+  - platform: mipi_dsi
+    id: my_display
+    model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-4C
+    reset_pin: GPIO27
+    update_interval: never
+    auto_clear_enabled: false
