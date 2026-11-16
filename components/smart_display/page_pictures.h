@@ -158,25 +158,34 @@ struct Stillness {
 // the panel is: the pixel LVGL has at (x, y) lands where glass::on_panel puts it, as ESPHome's flush would have put it.
 // `swap` swaps a pixel's two bytes for a panel that takes them so. Block by block, so one side's strides stay in the
 // cache.
-inline void turned(const uint8_t *screen, int sw, int sh, size_t stride, uint16_t *panel, int pw, int ph, int turn,
+inline bool turned(const uint8_t *screen, int sw, int sh, size_t stride, uint16_t *panel, int pw, int ph, int turn,
                    const Rect &room, bool swap) {
+  // The screen LVGL drew is the panel, turned: anything else is no picture of this glass.
+  const bool sideways = turn == 90 || turn == 270;
+  if (turn % 90 || (sideways ? sw != ph || sh != pw : sw != pw || sh != ph)) return false;
   const Rect inside = common(room, Rect{0, 0, pw, ph});
+  // Along a row of the panel the screen's pixel moves by one constant step: a pixel on, a pixel back, a row down or a
+  // row up. So the sums are per row and the loop per pixel is a read, a step and a write: at the 127 ns a pixel of
+  // working out each pixel's place (116 ms for a glass of 1280 x 800 on a P4, 2026-11-16) the arithmetic cost more
+  // than the memory.
+  const ptrdiff_t row = static_cast<ptrdiff_t>(stride);
+  const ptrdiff_t step = turn == 0 ? 2 : turn == 90 ? -row : turn == 180 ? -2 : row;
   for (int by = inside.y; by < inside.y + inside.h; by += BLOCK)
     for (int bx = inside.x; bx < inside.x + inside.w; bx += BLOCK) {
       const int y_end = by + BLOCK < inside.y + inside.h ? by + BLOCK : inside.y + inside.h;
       const int x_end = bx + BLOCK < inside.x + inside.w ? bx + BLOCK : inside.x + inside.w;
-      for (int py = by; py < y_end; ++py)
-        for (int px = bx; px < x_end; ++px) {
-          int x = px, y = py;
-          if (turn == 90) { x = py; y = pw - 1 - px; }
-          else if (turn == 180) { x = pw - 1 - px; y = ph - 1 - py; }
-          else if (turn == 270) { x = ph - 1 - py; y = px; }
-          if (x < 0 || y < 0 || x >= sw || y >= sh) continue;
-          const uint8_t *from = screen + static_cast<size_t>(y) * stride + static_cast<size_t>(x) * 2;
-          const uint16_t pixel = static_cast<uint16_t>(from[0] | from[1] << 8);
-          panel[static_cast<size_t>(py) * pw + px] = swap ? static_cast<uint16_t>(pixel << 8 | pixel >> 8) : pixel;
-        }
+      for (int py = by; py < y_end; ++py) {
+        const int x = turn == 0 ? bx : turn == 90 ? py : turn == 180 ? pw - 1 - bx : ph - 1 - py;
+        const int y = turn == 0 ? py : turn == 90 ? pw - 1 - bx : turn == 180 ? ph - 1 - py : bx;
+        const uint8_t *from = screen + static_cast<ptrdiff_t>(y) * row + static_cast<ptrdiff_t>(x) * 2;
+        uint16_t *to = panel + static_cast<size_t>(py) * pw + bx;
+        if (swap)
+          for (int n = x_end - bx; n > 0; --n, from += step) *to++ = static_cast<uint16_t>(from[0] << 8 | from[1]);
+        else
+          for (int n = x_end - bx; n > 0; --n, from += step) *to++ = static_cast<uint16_t>(from[0] | from[1] << 8);
+      }
     }
+  return true;
 }
 
 // A card of the page: the tile it shows and where it lies on the panel (with whatever it draws around itself).

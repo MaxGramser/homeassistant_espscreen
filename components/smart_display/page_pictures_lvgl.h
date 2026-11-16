@@ -411,7 +411,10 @@ inline bool page_picture_drawn(PagePicture &picture, uint32_t &drew_us, uint32_t
     return false;
   }
   const uint32_t drew = esphome::micros();
-  page_pictures::turned(buffer.data, sw, sh, buffer.header.stride, picture.pixels, p.w, p.h, glass::turn(), picture.map.room, p.swapped);
+  if (!page_pictures::turned(buffer.data, sw, sh, buffer.header.stride, picture.pixels, p.w, p.h, glass::turn(), picture.map.room, p.swapped)) {
+    ESP_LOGI("page_pic", "off the glass: the screen LVGL drew (%d x %d) is not the panel (%d x %d) turned %d", sw, sh, p.w, p.h, glass::turn());
+    return false;
+  }
   drew_us = drew - began;
   turned_us = esphome::micros() - drew;
   return true;

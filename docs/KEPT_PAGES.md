@@ -182,6 +182,11 @@ of `glass::on_panel`). The buffer is 2 MB more, held while pages still lack a pi
   makes its card untrue, by the same rule as any other.
 - **Not remade for a part.** A picture with some blocks untrue stays as it is until its page is on the glass; only a
   page with no picture, or with nothing true after everything was asked to be drawn again, is made ahead.
+- **What it costs.** On a Guition 10.1 with rev 3.2 silicon (2026-11-16): the page drawn off the glass in 97 ms, 240 B
+  more of the loop task's stack than anything before it (its low mark went from 10,108 to 9,868 B), and 0 pixels
+  differing from the glass in all 240 blocks. Turning it into the panel's lie took 116 ms when each pixel's place was
+  worked out on its own; with the sums per row (`page_pictures::turned`) the same copy is 3.2 to 4.1 times as fast on
+  a PC, and on the board it is bound by the memory at about what a put takes.
 - **Its proof.** The compare at the first turn to that page (below), and `{"v":2,"op":"page_pictures","prove":1}`,
   which makes the picture of the page on the glass the off-glass way and compares it with the glass at once.
 - **Off until proven.** LVGL draws a whole page from inside a timer of the loop task, and the loop task's stack had no
