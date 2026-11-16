@@ -149,7 +149,7 @@ A wish writes its value into the tile and paints every tile and the open card of
 ### Adding a field
 
 1. Add it to `optimistic::Field` in `optimistic.h`.
-2. Read and write it in `wish_read` and `wish_write` in `runtime_tiles.h`, in the same words Home Assistant reports.
+2. Read and write it in `wish_read` and `wish_write` in `optimistic_lvgl.h`, in the same words Home Assistant reports.
    A write that touches more than the value (the progress bar under `PLAYING`) does it there, once.
 3. If a key of a tile's key row wishes it, say so in `tile_controls::wanted`.
 4. Add it to the table above. `tests/test_optimistic_rule.py` fails while the table and the enum differ.

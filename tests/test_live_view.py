@@ -18,6 +18,8 @@ from unittest import mock
 
 import yaml
 
+from firmware_sources import runtime_source
+
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / 'components' / 'smart_display'
 spec = importlib.util.spec_from_file_location('smart_display_p4_build', COMPONENT / 'p4_build.py')
@@ -317,7 +319,7 @@ class LiveTileName(unittest.TestCase):
     card's layout have a pure helper of their own."""
 
     def test_the_name_is_drawn_as_the_picture_card_lays_it(self):
-        tiles = (COMPONENT / 'runtime_tiles.h').read_text()
+        tiles = runtime_source()
         opened = tiles[tiles.index('inline live_view::Handle live_spot_open('):]
         opened = opened[:opened.index('\n  Widgets *card = nullptr;')]
         self.assertIn('live_name(look, *card, spot.room)', opened)
@@ -348,7 +350,7 @@ class OneConnectionAtATime(unittest.TestCase):
     def test_the_full_view_waits_for_the_tiles_streams_to_end(self):
         # runtime_tiles.h is being split into *_lvgl.h files: these quotes of live_begin and live_tick stay as they are
         # until the full view's wait has a pure helper of its own.
-        tiles = (COMPONENT / 'runtime_tiles.h').read_text()
+        tiles = runtime_source()
         begin = tiles[tiles.index('inline void live_begin(const std::string &link) {'):]
         begin = begin[:begin.index('\n}\n')]
         # Its own copy of the link first: live_tick hands it live_link_waiting, which it clears before it opens, and

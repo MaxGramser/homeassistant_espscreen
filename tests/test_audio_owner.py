@@ -10,6 +10,8 @@ from pathlib import Path
 
 import yaml
 
+from firmware_sources import runtime_source
+
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / 'components' / 'smart_display'
 LIVE = COMPONENT / 'live_view.cpp'
@@ -73,7 +75,7 @@ class Claims(unittest.TestCase):
         # runtime_tiles.h is being split into *_lvgl.h files: this quote stays until live_begin's role has a helper of
         # its own. A ring's view opens as DOORBELL, so it claims nothing of its own and the ring's claim stands
         # (tests/test_live_sound.cpp, SoundClaim).
-        runtime = (COMPONENT / 'runtime_tiles.h').read_text()
+        runtime = runtime_source()
         self.assertIn('if (doorbell::shown()) role = audio_owner::Role::DOORBELL;', runtime)
         self.assertIn('live_view::has_speaker(), role));', runtime)
 

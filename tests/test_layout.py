@@ -132,7 +132,7 @@ class LayoutTests(unittest.TestCase):
         for name, made in (('settings_screen.h', 'page_bar::make(root, pager_step)'), ('group_page.h', 'page_bar::make(root, pager_step)'),
                            ('media_library.cpp', 'page_bar::make(root, pager_step)'), ('media_library.cpp', 'page_bar::make(menu_root, menu_pager_step)'),
                            ('runtime_tiles.h', 'page_bar::make(detail_root,select_pager_step)')):
-            self.assertIn(made, (smart / name).read_text(), name)
+            self.assertIn(made, runtime_source() if name == 'runtime_tiles.h' else (smart / name).read_text(), name)
         for path in smart.glob('*.[hc]*'):
             if path.name == 'page_bar.h':
                 continue

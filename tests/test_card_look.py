@@ -24,10 +24,10 @@ NEEDS_NONE = {
     ('module_clock_faces.cpp', 'paint_draw'): 'its colours are captured when render_slot paints the face',
     ('module_text_edit.cpp', 'area_draw'): 'the text editor, no card',
     ('keyboard_lvgl.h', 'draw'): 'the keyboard, no card',
-    ('runtime_tiles.h', 'draw'): "the travel stripe's colour is a constant",
-    ('runtime_tiles.h', 'history_fill'): 'the history graph of the open card',
-    ('runtime_tiles.h', 'history_bar'): 'the history timeline of the open card',
-    ('runtime_tiles.h', 'extra_draw'): 'its fill colour is captured in render_slot, inside the card scope',
+    ('travel_stripe_lvgl.h', 'draw'): "the travel stripe's colour is a constant",
+    ('history_card_lvgl.h', 'history_fill'): 'the history graph of the open card',
+    ('history_card_lvgl.h', 'history_bar'): 'the history timeline of the open card',
+    ('tile_widgets_lvgl.h', 'extra_draw'): 'its fill colour is captured in render_slot, inside the card scope',
 }
 
 

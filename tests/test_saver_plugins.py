@@ -32,6 +32,7 @@ import plugin_pictures  # noqa: E402
 import saver_photos  # noqa: E402
 import screen_saver  # noqa: E402
 from core import media_extras, short  # noqa: E402
+from firmware_sources import runtime_source  # noqa: E402
 
 PLAYER = 'media_player.living_room'
 PLAYING = {'state': 'playing', 'attributes': {'friendly_name': 'Living room', 'media_title': 'Song', 'media_artist': 'Band',
@@ -99,7 +100,7 @@ class Options(unittest.TestCase):
         # split into *_lvgl.h files. Once the decision is a function of its own, a C++ test of it takes this one's place.
         receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
         self.assertIn('serializeJson(pf["o"], next.plugin_options);', receiver)
-        runtime = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
+        runtime = runtime_source()
         in_place = runtime[runtime.index('// The same plugin\'s saver for the same step with a new word'):]
         in_place = in_place[:in_place.index('{\n')]
         self.assertIn('saver_next.plugin_options == saver_now.plugin_options', in_place)

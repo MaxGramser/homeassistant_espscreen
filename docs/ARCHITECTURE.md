@@ -195,6 +195,29 @@ RAM with its time), `screen_diagnostics.h` (what the troubleshooting report and 
 glass waits, misses, pressure), and Debug mode (quiet by default; a report switches it on). Detail: docs/REPORTS.md,
 docs/TROUBLESHOOTING.md.
 
+### 12. The binder and its parts
+
+`runtime_tiles.h` is the binder: the model's glue, a tile's widgets, the pass that renders a tile (`render_slot`), the
+pages and the loop. What draws one kind of thing with LVGL stands in a file of its own beside it, named after the plain
+rules it draws from: `media_card.h` holds what a media card is and is tested on a PC (`tests/test_media_card.cpp`),
+`media_card_lvgl.h` draws it. There are thirty-three such parts: the cards that open from a tile (weather, select,
+vacuum, cover, the remote, light and fan, climate, the alarm panel, the lock, history, media, the colour card) with
+opening a card (`detail_show_lvgl.h`) and the open card's own keys and sliders (`detail_lvgl.h`); what a tile itself
+is made of and draws (its widgets, its tap and hold, its icon and words, its direct controls, the clock, the weather);
+the optimistic wish and a cover's travel stripe; the pictures (the camera's state, the store, a tile's own, the rounds,
+the full view, what an answer with a picture does); the live view and the live spots; the governor; and the
+screensaver with its state.
+
+A `*_lvgl.h` part is not a header on its own. It belongs to the binder's translation unit and is included there in its
+place, after what it uses, so there is one copy of every inline function and one order of definitions, as when all of
+it was one file of 14,333 lines (until 2026-11-16). That is also why the split could be proven to change nothing: the
+parts read back in their places give the old file line for line, and the tests that read the firmware's source read
+it that way (`tests/firmware_sources.py`).
+
+When you add to a card, add to its part, and put a rule that needs no LVGL in the plain header beside it, with a test.
+A part that grows past about a thousand lines wants a second plain header, not a second part. What is still in the
+binder and wants cutting next is in docs/open-issues/binder-still-large.md.
+
 ## The hard rules, and the measurement behind each
 
 - **Nothing in the shared code reads a board, a chip or a pin.** The engine table, the modules table and `hw::caps` are

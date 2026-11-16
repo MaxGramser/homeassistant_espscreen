@@ -388,7 +388,7 @@ from that tile has its sound at once.
 
 **Nothing of LVGL's under a live picture.** A live picture writes past LVGL, so it stops the moment anything LVGL draws
 lies over its room, and starts again once nothing does. What counts follows LVGL's own order of drawing
-(`drawn_over` in `runtime_tiles.h`): on the way from the tile or the camera view up to its screen or layer, every object
+(`drawn_over` in `live_view_lvgl.h`): on the way from the tile or the camera view up to its screen or layer, every object
 that comes after it (a card opened on the page itself, as a lamp's colour card is); for a tile, anything on the top
 layer (the update's progress, an alert, the camera full screen, the screensaver) and its page no longer on the glass;
 and anything on the system layer. A plain, clear container is not in the way by itself, only what it holds. No list of
@@ -794,7 +794,7 @@ assistant can listen at the same time.
   where a picture lies on a turned panel, how it is scaled, cut into a card and what is laid over it;
   `tests/test_live_sound.cpp` how its sound goes into its buffer, reaches the speaker and claims it);
   `live_spots.h`: the one machine of the live tiles and a plugin's live places (what streams, asks, stops and gives up;
-  `tests/test_live_spots.cpp`), and the full view's handle and tries; `runtime_tiles.h` (`live_tiles_round`,
+  `tests/test_live_spots.cpp`), and the full view's handle and tries; `live_spots_lvgl.h` (`live_tiles_round`,
   `live_spot_ask`, `live_spot_open`, `live_stop_covered`, `live_tick`) binds it: which spots may stream, their question,
   their look.
 - Every step of every picture is in the screen's log at DEBUG (`logger: level: DEBUG` in a screen's Override YAML),

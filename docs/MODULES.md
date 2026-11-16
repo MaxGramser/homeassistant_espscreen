@@ -61,7 +61,7 @@ the add-on and the editor offer a module's options only on boards that have it.
   "A cover's controls by its room"). Its screens say `group_covers` in their hello and ESP Screens sends them the
   group's covers (`covers`, `cover_groups.py`); lite keeps the cover card alone.
 - **clock_faces** (full): the screensaver's clock faces Glass, Classic and Bauhaus beside the digital clock
-  (docs/SCREENSAVER.md, "Clock faces", `module_clock_faces.h`, included by `runtime_tiles.h` before `saver_clock_draw`).
+  (docs/SCREENSAVER.md, "Clock faces", `module_clock_faces.h`, included by `saver_lvgl.h` before `saver_clock_draw`).
   Its screens say `clock_faces` in their hello and ESP Screens sends them the face (`cf`); the editor offers faces only
   where `boards.json` lists the module, and lite keeps the digital clock.
 - **text_card** (full): the template tile, `screen.text` (docs/TEXT_TILE.md, `module_text_card.cpp` with its headers).

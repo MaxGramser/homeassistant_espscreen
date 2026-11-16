@@ -31,12 +31,13 @@ sys.path.insert(0, str(ROOT / 'tools'))
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import core  # noqa: E402
 import profiles  # noqa: E402
+from firmware_sources import runtime_source  # noqa: E402
 
 WEB = ROOT / 'web'
 VITE_NODE = WEB / 'node_modules/.bin/vite-node'
 WASM = WEB / 'src/wasm/firmware_preview.wasm'
 # A tile's panel is compiled on its own (tile_panel.cpp): read with the header, as it was part of it.
-TILES = (ROOT / 'components/smart_display/runtime_tiles.h').read_text() + (ROOT / 'components/smart_display/tile_panel.cpp').read_text()
+TILES = runtime_source() + (ROOT / 'components/smart_display/tile_panel.cpp').read_text()
 
 
 def need(found, what):

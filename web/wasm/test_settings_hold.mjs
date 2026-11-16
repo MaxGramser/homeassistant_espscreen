@@ -40,7 +40,7 @@ for (const key of ['cyd', 'guition', 'jc8012p4a1']) {
   }
   // With no card open, a hold on the top bar opens Settings; with a card open it does not: the strip lies under the card.
   {
-    const { m, settingsShown, hold } = await start();
+    const { settingsShown, hold } = await start();
     hold(width / 2, 8);
     assert.ok(settingsShown(), `${key}: a hold on the top bar opens Settings`);
   }
