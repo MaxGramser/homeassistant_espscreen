@@ -339,6 +339,15 @@ describe("a remote's colours (firmware 0.22.0)", () => {
   });
 });
 
+describe("a lock's colours (firmware 0.5.0)", () => {
+  it("paints it as Home Assistant does: green locked, orange on its way, red otherwise (--state-lock-*-color)", async () => {
+    const { tilePalette } = await import("../src/model/tile-palette");
+    expect(tilePalette("lock.a", { state: "locked" }).accent).toBe("#4caf50");
+    for (const state of ["locking", "unlocking", "opening"]) expect(tilePalette("lock.a", { state }).accent).toBe("#ff9800");
+    for (const state of ["unlocked", "open", "jammed"]) expect(tilePalette("lock.a", { state }).accent).toBe("#f44336");
+  });
+});
+
 describe("an automation's colours (GitHub #62)", () => {
   it("paints it as Home Assistant does: on amber, off grey; a run button only while its actions run", async () => {
     const { tilePalette, tileActive } = await import("../src/model/tile-palette");
