@@ -19,7 +19,13 @@ HEADER = runtime_source()
 
 class IconSetTests(unittest.TestCase):
     def test_set_is_complete_and_carried_by_every_icon_font(self):
-        self.assertEqual(len(tile_icons.ICONS), 154)
+        # The pickable icons counted from the table itself, never a number written down: each one once among the groups,
+        # each carried by the fonts (GLYPHS), and the editor offers exactly them.
+        picked = [name for _, icons in tile_icons.GROUPS for name, _, _ in icons]
+        self.assertEqual(len(picked), len(set(picked)), 'an icon stands in two groups of tile_icons.GROUPS')
+        self.assertEqual(set(picked), set(tile_icons.ICONS))
+        self.assertLessEqual(set(tile_icons.ICONS), set(tile_icons.GLYPHS))
+        self.assertEqual({icon['name'] for group in tile_icons.editor()['groups'] for icon in group['icons']}, set(tile_icons.ICONS))
         self.assertTrue(any(group == 'Media and music' and len(icons) >= 20 for group, icons in tile_icons.GROUPS))
         self.assertEqual(len(set(tile_icons.GLYPHS.values())), len(tile_icons.GLYPHS))
         for code in tile_icons.GLYPHS.values():
