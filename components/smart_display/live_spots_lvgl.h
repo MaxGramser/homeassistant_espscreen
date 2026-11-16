@@ -121,7 +121,9 @@ inline lv_draw_buf_t *live_name(live_view::Look &look, const Widgets &card, cons
   if (!text || !*text) return nullptr;
   lv_area_t content;
   lv_obj_get_content_coords(card.tile, &content);
-  const int32_t w = lv_area_get_width(&content), h = lv_font_get_line_height(card.title_font);
+  const auto box = camera_view::name_box(lv_area_get_width(&content), lv_area_get_height(&content),
+                                         lv_font_get_line_height(card.title_font));
+  const int32_t w = box.w, h = box.h;
   lv_obj_t *off = lv_obj_create(nullptr);  // a screen never shown: the name is drawn for the snapshot alone
   lv_obj_t *label = lv_label_create(off);
   lv_obj_set_style_text_font(label, card.title_font, 0);
@@ -140,8 +142,8 @@ inline lv_draw_buf_t *live_name(live_view::Look &look, const Widgets &card, cons
   look.name_w = drawn->header.w;
   look.name_h = drawn->header.h;
   look.name_stride = drawn->header.stride / 4;
-  look.name_x = content.x1 - ext - room.x;
-  look.name_y = content.y2 + 1 - h - ext - room.y;
+  look.name_x = content.x1 + box.x - ext - room.x;
+  look.name_y = content.y1 + box.y - ext - room.y;
   return drawn;
 #else
   return nullptr;
@@ -373,17 +375,17 @@ inline void live_tick() {
     lv_display_add_event_cb(lv_display_get_default(), [](lv_event_t *) { live_stop_covered(); }, LV_EVENT_REFR_START, nullptr);
   }
   live_stop_covered();
-  if (!live_link_waiting.empty()) {
+  if (view_wait.waiting()) {
     const uint32_t now = esphome::millis();
     static uint32_t told_at = 0;
     if (!camera_root || !live_wanted() || camera.stream.live) {
-      live_link_waiting.clear();  // the view closed meanwhile
-    } else if (live_link_may_open(now)) {
-      live_begin(live_link_waiting);
-    } else if (now - live_link_waiting_at >= LIVE_LINK_WAIT_MS && told_at != live_link_waiting_at) {
-      told_at = live_link_waiting_at;
+      view_wait.link.clear();  // the view closed meanwhile
+    } else if (live_view::ViewWait::may_open(live_view::ending(), live_view::beside(), now - view_wait.since)) {
+      live_begin(view_wait.link);
+    } else if (now - view_wait.since >= live_view::ViewWait::WAIT_MS && told_at != view_wait.since) {
+      told_at = view_wait.since;
       ESP_LOGW("camera", "the page's stream did not end in %u ms: the full view waits for it (one stream at once)",
-               (unsigned) LIVE_LINK_WAIT_MS);
+               (unsigned) live_view::ViewWait::WAIT_MS);
     }
   }
   live_view::tick([](live_view::Handle handle, live_view::Event event) {

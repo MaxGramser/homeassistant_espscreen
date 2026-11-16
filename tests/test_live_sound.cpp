@@ -240,6 +240,11 @@ int main() {
     camera.release(owner);
     assert(owner.holder(Side::OUT) == Role::DOORBELL);
   }
+  // The role a full view's sound claims (live_begin): a ring's view the ring's, a call's the call's, any other a camera's.
+  static_assert(view_role(false, false) == Role::CAMERA_SOUND);
+  static_assert(view_role(true, false) == Role::DOORBELL);
+  static_assert(view_role(false, true) == Role::CALL);
+  static_assert(view_role(true, true) == Role::CALL, "a call over a ring is the call");
   std::puts("live sound: whole samples, run-up, catching up, claimed and given back");
   return 0;
 }

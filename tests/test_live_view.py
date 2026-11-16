@@ -18,7 +18,6 @@ from unittest import mock
 
 import yaml
 
-from firmware_sources import runtime_source
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / 'components' / 'smart_display'
@@ -315,23 +314,19 @@ class LiveTileName(unittest.TestCase):
     at the bottom of the card's content, in the picture's ink. A copy of the card's own label lay dark and halfway up
     over every picture of a card that had no still yet and stood in its plain layout (a wallbox, 2026-10-28).
 
-    runtime_tiles.h is being split into *_lvgl.h files: these quotes stay as they are until live_name and the picture
-    card's layout have a pure helper of their own."""
+    The place is camera_view::name_box, which both the card and the live picture's copy ask, proven by
+    tests/test_camera_view.cpp. Here: the rule that both ask it and that the copy is never the card's own label."""
 
-    def test_the_name_is_drawn_as_the_picture_card_lays_it(self):
-        tiles = runtime_source()
-        opened = tiles[tiles.index('inline live_view::Handle live_spot_open('):]
-        opened = opened[:opened.index('\n  Widgets *card = nullptr;')]
-        self.assertIn('live_name(look, *card, spot.room)', opened)
-        self.assertNotIn('lv_snapshot_take(card->title', opened)
-        name = tiles[tiles.index('inline lv_draw_buf_t *live_name('):tiles.index('// A tile\'s spot: its card\'s room')]
-        for step in ('theme::color(theme::CAMERA_INK)', 'LV_TEXT_ALIGN_LEFT', 'lv_obj_get_content_coords(card.tile, &content)',
-                     'look.name_y = content.y2 + 1 - h - ext - room.y;', 'lv_obj_delete(off);'):
-            self.assertIn(step, name)
-        # The picture card lays its name the same way.
-        camera = tiles[tiles.index('inline bool render_camera_card('):]
-        self.assertIn('set_text_align(w.title,LV_TEXT_ALIGN_LEFT);', camera)
-        self.assertIn('lv_obj_set_pos(w.title,0,height-name_h);', camera)
+    def test_the_card_and_the_live_name_lay_the_name_in_one_place(self):
+        parts = {path.name: path.read_text() for path in COMPONENT.glob('*.h')}
+        askers = sorted(name for name, code in parts.items() if 'camera_view::name_box(' in code)
+        self.assertEqual(askers, ['live_spots_lvgl.h', 'runtime_tiles.h'],
+                         'the picture card (render_camera_card) and the live name (live_name) both ask camera_view::name_box')
+        # glass: on a screen with a live tile that has no still yet, its name lies at the bottom left over the picture in
+        # the picture's ink, not dark and halfway up.
+        for name, code in parts.items():
+            self.assertNotIn('lv_snapshot_take(card->title', code, f'{name}: the live name is drawn off the glass, never a '
+                                                                   'copy of the card\'s own label')
 
 
 class OneConnectionAtATime(unittest.TestCase):
@@ -347,26 +342,16 @@ class OneConnectionAtATime(unittest.TestCase):
             body = re.search(re.escape(function) + r' \{([^\n]*)\}', live)
             self.assertTrue(body and rule in body.group(1), f'live_view.cpp\'s {function} answers through {rule}')
 
-    def test_the_full_view_waits_for_the_tiles_streams_to_end(self):
-        # runtime_tiles.h is being split into *_lvgl.h files: these quotes of live_begin and live_tick stay as they are
-        # until the full view's wait has a pure helper of its own.
-        tiles = runtime_source()
-        begin = tiles[tiles.index('inline void live_begin(const std::string &link) {'):]
-        begin = begin[:begin.index('\n}\n')]
-        # Its own copy of the link first: live_tick hands it live_link_waiting, which it clears before it opens, and
-        # opened with the cleared one the view asked ":80" and tried again 10 s later (0.4.91, 0.4.92).
-        steps = ['const std::string url = link;', 'live_tiles_halt();', 'if (live_view::ending()) {',
-                 'live_link_waiting = url;', 'live_link_waiting.clear();', 'camera.stream.opened(live_view::open(url,']
-        self.assertEqual([begin.index(step) for step in steps], sorted(begin.index(step) for step in steps))
-        self.assertNotIn('open(link', begin)
-        # A view beside a stream still ending only where the engine holds a second (a P4); an S3 waits (2026-10-30).
-        self.assertIn('return !live_view::ending() || (live_view::beside() && now - live_link_waiting_at >= LIVE_LINK_WAIT_MS);',
-                      tiles)
-        self.assertIn('the full view could not stream', begin)
-        self.assertIn('constexpr uint32_t LIVE_LINK_WAIT_MS = 2000;', tiles)
-        tick = tiles[tiles.index('inline void live_tick() {'):]
-        self.assertIn('live_begin(live_link_waiting);', tick[:tick.index('live_view::tick(')])
-
+    def test_the_full_view_waits_by_the_tested_rule(self):
+        # The wait itself (at once with no stream ending, beside one still ending only on a P4 and after 2 s, its own
+        # copy of the link so it never opens an empty one) is live_view::ViewWait, proven by tests/test_live_view.cpp.
+        # glass: a camera opened full screen from a page with a live tile streams once the tile's stream has ended, and
+        # the page's tiles stop before the view's stream opens (live_begin halts them, then reads ending()); on an S3 the
+        # log says the view waits, on a P4 that it opened beside the stream after 2 s.
+        parts = {path.name: path.read_text() for path in COMPONENT.glob('*.h')}
+        self.assertFalse([name for name, code in parts.items() if re.search(r'\blive_link_waiting\b', code)],
+                         "the full view's waiting link lives in live_view::ViewWait alone")
+        self.assertTrue([name for name, code in parts.items() if 'view_wait.begin(' in code], 'live_begin asks ViewWait::begin')
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,7 +2,8 @@
 
 The owner's behaviour and its ranking are tests/test_audio_owner.cpp. A live camera's sound, what it lets into its
 buffer, how it reaches the speaker and what it claims and gives back, is live_view.h's SoundPart, SoundPump and
-SoundClaim, which tests/test_live_sound.cpp drives with an owner of its own. Here: the rules over the files that claim,
+SoundClaim, which tests/test_live_sound.cpp drives with an owner of its own, and the role a full view claims in
+(live_view::view_role: a ring's view the ring's, a call's the call's), which it proves too. Here: the rules over the files that claim,
 and what only a screen can show."""
 import re
 import unittest
@@ -10,7 +11,6 @@ from pathlib import Path
 
 import yaml
 
-from firmware_sources import runtime_source
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / 'components' / 'smart_display'
@@ -71,13 +71,6 @@ class Claims(unittest.TestCase):
             self.assertTrue(role and role.group(1) == 'audio_owner::Role::CAMERA_SOUND',
                             'live_view::open\'s role defaults to CAMERA_SOUND, in both its declarations')
 
-    def test_a_rings_view_opens_as_the_doorbell(self):
-        # runtime_tiles.h is being split into *_lvgl.h files: this quote stays until live_begin's role has a helper of
-        # its own. A ring's view opens as DOORBELL, so it claims nothing of its own and the ring's claim stands
-        # (tests/test_live_sound.cpp, SoundClaim).
-        runtime = runtime_source()
-        self.assertIn('if (doorbell::shown()) role = audio_owner::Role::DOORBELL;', runtime)
-        self.assertIn('live_view::has_speaker(), role));', runtime)
 
 
 class Music(unittest.TestCase):

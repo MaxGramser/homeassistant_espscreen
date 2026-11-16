@@ -465,7 +465,34 @@ static void counting() {
   assert(!beside(0) && !beside(1) && beside(2) && beside(7));
 }
 
+// The full view waits for the page's streams to end (ViewWait): one connection at a time, beside a stream still
+// ending only where the engine holds a second, after WAIT_MS; and it opens with its own copy of the link.
+static void waiting() {
+  // No stream ending: it opens at once with the link it was given.
+  ViewWait w;
+  auto b = w.begin("rtsp://door", 100, false, false);
+  assert(b.open && b.url == "rtsp://door" && !w.waiting());
+  // A stream of the page still ending on an S3 (no second): it waits, however long, and keeps the link.
+  b = w.begin("rtsp://door", 1000, true, false);
+  assert(!b.open && w.waiting() && w.link == "rtsp://door" && w.since == 1000);
+  assert(!ViewWait::may_open(true, false, 60000));
+  b = w.begin(w.link, 61000, true, false);
+  assert(!b.open && w.since == 1000);  // asked again by live_tick, the wait counts from the first ask
+  // The stream ended: live_tick asks with the waiting link itself, which is cleared on the way, and the view opens with
+  // that link, not an empty one (the ":80" of 0.4.91 and 0.4.92).
+  b = w.begin(w.link, 62000, false, false);
+  assert(b.open && b.url == "rtsp://door" && !w.waiting());
+  // On a P4 (a second stream): it waits WAIT_MS, then opens beside the one still ending.
+  ViewWait p;
+  assert(!p.begin("rtsp://door", 5000, true, true).open);
+  assert(!p.begin(p.link, 5000 + ViewWait::WAIT_MS - 1, true, true).open);
+  b = p.begin(p.link, 5000 + ViewWait::WAIT_MS, true, true);
+  assert(b.open && b.url == "rtsp://door" && !p.waiting());
+  static_assert(ViewWait::may_open(false, false, 0) && ViewWait::may_open(true, true, ViewWait::WAIT_MS));
+}
+
 int main() {
+  waiting();
   none();
   framing();
   marking();

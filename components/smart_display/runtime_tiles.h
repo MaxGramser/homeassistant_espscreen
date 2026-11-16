@@ -1483,9 +1483,9 @@ inline bool render_camera_card(Widgets &w,const Tile &t,int width,int height){
   // A map carries its name in the picture (on a pill in the card's own colours), so the label only stands in while the
   // picture is on its way.
   lv_obj_add_flag(w.circle,LV_OBJ_FLAG_HIDDEN);set_hidden(w.value,true);set_hidden(w.title,!t.overlay||(photo&&t.is_map()));
-  const int name_h=lv_font_get_line_height(w.title_font);
+  const auto name=camera_view::name_box(width,height,lv_font_get_line_height(w.title_font));
   set_font(w.title,w.title_font);set_text_align(w.title,LV_TEXT_ALIGN_LEFT);
-  lv_obj_set_pos(w.title,0,height-name_h);lv_obj_set_size(w.title,width,name_h);
+  lv_obj_set_pos(w.title,name.x,name.y);lv_obj_set_size(w.title,name.w,name.h);
   return true;
 }
 // False only for a full-page cover whose slat group cannot be drawn here (no tilt, or too little room): the caller

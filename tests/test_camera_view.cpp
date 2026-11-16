@@ -22,5 +22,8 @@ int main() {
   // A failed load is tried again after the gap, and a link that fails MAX_FAILURES times in a row is asked for anew:
   // the loader's rules, whose numbers come from here.
   assert(GAP_MS < REFRESH_MS && ASK_AGAIN_MS > REFRESH_MS && ASK_AGAIN_MAX_MS > ASK_AGAIN_MS && MAX_FAILURES >= 2);
+  // A picture card's name and the live picture's copy of it: left, as wide as the content, one line high, at the bottom.
+  static_assert(name_box(200, 120, 20).x == 0 && name_box(200, 120, 20).y == 100);
+  static_assert(name_box(200, 120, 20).w == 200 && name_box(200, 120, 20).h == 20);
   return 0;
 }

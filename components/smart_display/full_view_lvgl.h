@@ -112,7 +112,7 @@ inline void camera_close() {
 #endif
   // A live picture stops first: nothing of it writes the glass once LVGL draws the page there again.
   live_view::close(camera.stream.handle);
-  live_link_waiting.clear();
+  view_wait.link.clear();
   camera_ram_low();  // a view that never streamed ends its watch too
   lv_obj_delete(camera_root);
   camera_root = camera_picture = camera_note = camera_back = camera_title = camera_spinner = map_card_obj = nullptr;

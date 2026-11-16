@@ -172,6 +172,43 @@ struct SoundPump {
   }
 };
 
+// The full view's link while the streams of the page under it end (live_begin, live_tick): one connection at a time,
+// since an S3 has internal RAM for one stream's network buffers (docs/CAMERA.md, "Live on an ESP32-S3").
+// tests/test_live_view.cpp.
+struct ViewWait {
+  // A stream that will not end by then: the view opens beside it, where the engine holds a second (a P4). An S3 holds
+  // one (picture_engine::limits().streams): its view waits on, showing the stills meanwhile, as one opened beside a
+  // tile's took a tester's Guition 4848S040 down (2026-10-30).
+  static constexpr uint32_t WAIT_MS = 2000;
+  std::string link;    // the view's link while it waits, empty when none
+  uint32_t since = 0;  // since when it waits
+  bool waiting() const { return !link.empty(); }
+  // Whether the view opens now: at once when no stream of the page is ending; beside one still ending only where the
+  // engine holds a second (`beside`) and once it has waited WAIT_MS.
+  static constexpr bool may_open(bool ending, bool beside, uint32_t waited) {
+    return !ending || (beside && waited >= WAIT_MS);
+  }
+  struct Begin { bool open = false; std::string url; };
+  // live_begin: the view asks to open `asked`, with `ending` read after the page's tiles were told to stop. Either the
+  // link to open, or nothing while it waits, kept here. `asked` is copied first: live_tick asks with `link` itself,
+  // which is cleared on the way, and opened with the cleared one the view asked ":80" and tried again 10 s later
+  // (0.4.91 and 0.4.92, docs/open-issues/full-view-first-link-empty-host.md).
+  Begin begin(const std::string &asked, uint32_t now, bool ending, bool beside) {
+    Begin b{true, asked};
+    if (ending && link.empty()) since = now;
+    if (ending && !may_open(ending, beside, now - since)) { link = b.url; return {}; }
+    link.clear();
+    return b;
+  }
+};
+
+// The role a full view's sound claims (live_begin): the view a ring opened holds the speaker as the ring (DOORBELL),
+// which nothing takes from it, and so claims nothing of its own (SoundClaim); a call's view as the call; any other full
+// view as a camera's sound, which the voice assistant may borrow and a ring takes (audio_owner.h). A call over a ring is
+// the call. tests/test_live_sound.cpp.
+constexpr audio_owner::Role view_role(bool ring_shown, bool call_shown) {
+  return call_shown ? audio_owner::Role::CALL : ring_shown ? audio_owner::Role::DOORBELL : audio_owner::Role::CAMERA_SOUND;
+}
 // The stream's sound and the audio owner (audio_owner.h, docs/PLATFORM_PLAN.md 3.4). A stream with sound claims the
 // speaker in the role its opener gave: as CAMERA_SOUND music pauses for it, and a voice session or a doorbell takes it
 // and gives it back, since the camera stays open. Taken, its sound is held back as when muted (`yielded`, and `drop`

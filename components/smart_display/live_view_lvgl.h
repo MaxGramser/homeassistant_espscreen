@@ -163,52 +163,40 @@ inline void camera_warm(bool on) {
   lv_obj_remove_flag(camera_warm_spinner, LV_OBJ_FLAG_HIDDEN);
 }
 inline void live_tiles_halt();
-// The full view's link while the streams of the page under it end (live_view::ending), and since when; live_tick opens
-// it once they are gone.
-inline std::string live_link_waiting;
-inline uint32_t live_link_waiting_at = 0;
-// A stream that will not end by then: the view opens beside it, where the engine holds a second (a P4). An S3 holds one
-// (picture_engine::limits().streams): its view waits on, showing the stills meanwhile, as one opened beside a tile's
-// took a tester's Guition 4848S040 down (2026-10-30).
-constexpr uint32_t LIVE_LINK_WAIT_MS = 2000;
-inline bool live_link_may_open(uint32_t now) {
-  return !live_view::ending() || (live_view::beside() && now - live_link_waiting_at >= LIVE_LINK_WAIT_MS);
-}
+// The full view's link while the streams of the page under it end, and since when (live_view::ViewWait); live_tick
+// opens it once they are gone.
+inline live_view::ViewWait view_wait;
 inline void live_begin(const std::string &link) {
-  // Its own copy: live_tick hands it live_link_waiting itself, which is cleared below. Opened with the cleared one, the
-  // view asked ":80", failed, and its next try came 10 s later: 11 s from a tap on a live tile to its picture full
-  // screen (0.4.91 and 0.4.92, docs/open-issues/full-view-first-link-empty-host.md).
-  const std::string url = link;
   const uint32_t now = esphome::millis();
-  if (live_link_waiting.empty()) ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (now - camera_opened_at));
+  const bool was_waiting = view_wait.waiting();
+  const uint32_t since = view_wait.since;
+  if (!was_waiting) ESP_LOGI("camera", "live link %u ms after the camera opened", (unsigned) (now - camera_opened_at));
   // The live tiles and places of the page under the view stop before the view's stream exists, not at the next
   // drawing (live_stop_covered): a tile's task could still copy its picture into the frame buffer after LVGL had drawn
   // the view over the page, and a band of it stayed under the view's top bar until the view's first picture (2026-10-24,
   // the reTerminal D1001, two live tiles). A page under a full view never streams anyway.
   live_tiles_halt();
-  // And the view's stream opens once theirs are gone, never beside them: one connection at a time (live_view::ending).
-  if (live_view::ending()) {
-    if (live_link_waiting.empty()) live_link_waiting_at = now;
-    if (!live_link_may_open(now)) {
-      live_link_waiting = url;
-      return;
-    }
-    ESP_LOGW("camera", "the page's streams did not end in %u ms: the full view opens beside them", (unsigned) LIVE_LINK_WAIT_MS);
-  }
-  if (!live_link_waiting.empty()) {
-    ESP_LOGI("camera", "live link opened %u ms later, after the page's streams ended", (unsigned) (now - live_link_waiting_at));
-    live_link_waiting.clear();
-  }
-  // The view a ring opened (module doorbell) holds the speaker as the ring, which nothing takes it from; any other
-  // full view as a camera's sound, which the voice assistant may borrow and a ring takes (audio_owner.h).
-  audio_owner::Role role = audio_owner::Role::CAMERA_SOUND;
+  // And the view's stream opens once theirs are gone, never beside them: one connection at a time (live_view::ending,
+  // read after the halt, and live_view::ViewWait, which keeps its own copy of the link).
+  const bool ending = live_view::ending();
+  const auto begun = view_wait.begin(link, now, ending, live_view::beside());
+  if (!begun.open) return;
+  const std::string &url = begun.url;
+  if (ending)
+    ESP_LOGW("camera", "the page's streams did not end in %u ms: the full view opens beside them",
+             (unsigned) live_view::ViewWait::WAIT_MS);
+  if (was_waiting) ESP_LOGI("camera", "live link opened %u ms later, after the page's streams ended", (unsigned) (now - since));
+  // The role its sound claims: a ring's view as the ring, a call's as the call, any other as a camera's sound
+  // (live_view::view_role).
+  bool ring = false, call_up = false;
 #ifdef SD_MOD_DOORBELL
-  if (doorbell::shown()) role = audio_owner::Role::DOORBELL;
+  ring = doorbell::shown();
 #endif
 #ifdef SD_MOD_CALL
-  if (call::shown()) role = audio_owner::Role::CALL;
+  call_up = call::shown();
 #endif
-  camera.stream.opened(live_view::open(url, live_area(), live_view::Look{}, live_view::has_speaker(), role));
+  camera.stream.opened(live_view::open(url, live_area(), live_view::Look{}, live_view::has_speaker(),
+                                       live_view::view_role(ring, call_up)));
   if (camera.stream.live) {
     if (camera_muted) live_view::mute(camera.stream.handle, true);
     return;
