@@ -208,10 +208,24 @@ that scrolls, and a live camera tile, 2026-11-16, with the profiler:
 
 ### The proof on a board
 
-A build with `-DSWIPE_PROFILE=1` compares the glass with the picture after every turn's redraw, block by block, and
-says how many pixels differ (`page_pic`, "compared with the glass after LVGL drew it: 0 px differ"). The `swipe_prof`
-line has `picture` (ms from the swipe to the picture on the glass) and `put` (true blocks of the room's). The message
-`{"v":2,"op":"page_pictures","n":0}` switches them off for an A/B on one firmware. What step two would take, LVGL
+With Debug mode on (and in a build with `-DSWIPE_PROFILE=1`) the screen compares the glass with the picture after every
+turn's redraw, block by block, and says how many pixels differ (`page_pic`, "compared with the glass after LVGL drew
+it: 0 px differ"); a line that is not 0 names the rectangle on the panel. That costs about 50 ms of the main loop after
+a turn, which is why it is Debug mode's. The log's `page_pic` lines say each put ("page 2: 232 of 240 blocks put in
+45.2 ms") and each take ("page 2 taken: ..."). A profiling build's `swipe_prof` line also has `picture` (ms from the
+swipe to the picture on the glass) and `put` (true blocks of the room's).
+
+Three messages through the `screen_message` action, on a screen with page pictures and only with Debug mode on, each
+answered by one `report:` line (pictures kept, blocks true, internal RAM free and its lowest, PSRAM free, PSRAM asks
+refused, read from the heaps' counters at once):
+
+| Message | What it does |
+| --- | --- |
+| `{"v":2,"op":"page_pictures"}` | The report alone |
+| `{"v":2,"op":"page_pictures","n":0}` | Page pictures off (`1`: on again), for an A/B on one firmware: a turn's time, the internal RAM |
+| `{"v":2,"op":"page_pictures","mb":20,"s":60}` | Holds 20 MB of PSRAM for 60 s, to watch the pictures give memory up and come back; more than is free is refused, which is the other way a picture goes |
+
+ What step two would take, LVGL
 leaving the true blocks alone, is in docs/open-issues/page-pictures-step-two.md.
 
 ## Never walk the PSRAM heap while the glass is lit
@@ -236,7 +250,6 @@ action, outside the add-on's session so a bench script can send them:
 | `{"v":2,"op":"swipe_test","n":12,"ms":700}` | Page switches without a finger |
 | `{"v":2,"op":"kept_pages","n":0}` | At most `n` pages kept (`-1`: as many as fit), for an A/B on one firmware |
 | `{"v":2,"op":"heap_walk"}` | How long one walk of each heap takes, and how many blocks it has |
-| `{"v":2,"op":"page_pictures","n":0}` | Page pictures off (`0`) or on (`1`), for an A/B on one firmware |
 
 `swipe_test` does not count as using the screen, so "Back to page 1" takes a screen that nobody touched since its start
 back home in the middle of a test. The screen's own `show_page` action does count: a tour through it measures the same

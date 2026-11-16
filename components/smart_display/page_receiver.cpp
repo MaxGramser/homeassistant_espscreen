@@ -72,6 +72,19 @@ std::string receive(const std::string &payload) {
     }
     auto op = string(root["op"]);
     reply_memory = op == "hello" || op == "ping";
+#ifdef GLASS_STEADY
+    // Page pictures' diagnostics (docs/KEPT_PAGES.md, "The proof on a board"), on a screen that has them and only with
+    // Debug mode on: off (0) or on (1) for an A/B on one firmware, a report of what they hold and the memory beside
+    // them (2), and `mb` MB of PSRAM held for `s` seconds to watch them give memory up.
+    if (op == "page_pictures" && settings_screen::debug_mode) {
+      const int n = root["n"] | 2;
+      if (root["mb"].is<unsigned>()) page_pictures_hold(root["mb"] | 0u, root["s"] | 60u);
+      else if (n == 0 || n == 1) page_pictures_switch(n == 1);
+      page_pictures_report();
+      result = "Page pictures";
+      return true;
+    }
+#endif
 #ifdef SWIPE_PROFILE
     // Diagnostic builds only, and outside the add-on's session so a bench script can send them (docs/SWIPE_PROFILE.md).
     if (op == "swipe_test") {
@@ -105,13 +118,7 @@ std::string receive(const std::string &payload) {
       result = "Kept pages set";
       return true;
     }
-    if (op == "page_pictures") {
-      // Page pictures on (1) or off (0), for an A/B of a page turn on one firmware (docs/KEPT_PAGES.md).
-      page_pictures_switch((root["n"] | 1) != 0);
-      ESP_LOGI("swipe_prof", "page pictures: %s", (root["n"] | 1) != 0 ? "on" : "off");
-      result = "Page pictures set";
-      return true;
-    }
+
 #endif
     if (op == "hello") {
       uint64_t request;

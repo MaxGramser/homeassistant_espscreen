@@ -805,6 +805,8 @@ inline bool page_pictures_put(int page);
 inline void page_pictures_untrue(int page);
 inline void page_pictures_forget();
 inline void page_pictures_switch(bool on);
+inline void page_pictures_report();
+inline void page_pictures_hold(unsigned mb, unsigned seconds);
 inline unsigned page_pictures_count();
 inline void live_tile_answer(size_t index, const std::string &url);  // the last page turn: pictures wait until the pages stand still (camera_view::settled)
 inline uint32_t touched_at = 0;    // the last finger on the glass: pages are prepared in the background only after a pause

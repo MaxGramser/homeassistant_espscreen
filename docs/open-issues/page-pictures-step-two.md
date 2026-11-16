@@ -46,8 +46,8 @@ whose values all moved while it was away, has no true block and turns as before.
 
 ## The experiment that decides
 
-Candidate 1 is right only if the redraw it skips would have changed nothing, every time. The profiling build measures
-exactly that: after every turn's redraw it compares the glass with the picture, block by block, and logs the pixels
+Candidate 1 is right only if the redraw it skips would have changed nothing, every time. Debug mode measures exactly
+that on any screen with page pictures: after every turn's redraw it compares the glass with the picture, block by block, and logs the pixels
 that differ (`page_pic`, "compared with the glass after LVGL drew it"). Run it for days on screens in use, with every
 card type, plugins, a screensaver and both looks, and collect the lines. If it reads 0 every time, the cut is safe and
 the turn becomes the put plus what LVGL has left. A single line that is not 0 names the rectangle on the panel and so

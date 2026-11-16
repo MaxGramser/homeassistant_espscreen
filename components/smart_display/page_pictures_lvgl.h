@@ -8,8 +8,9 @@
 // (glass::waiting: LVGL's own list is the glass's to read).
 // What it knows nothing of: the rules (which blocks are true, which pages hold a picture, how many), which are plain
 // C++ in page_pictures.h; the frame buffer's memory and its cache, which are the glass's (glass.h, taken and laid).
-// What proves it: tests/test_page_pictures.cpp for the rules; on a board, a build with -DSWIPE_PROFILE=1 compares the
-// glass with the picture after every turn's redraw and says how many pixels differ (docs/KEPT_PAGES.md).
+// What proves it: tests/test_page_pictures.cpp for the rules; on a board, Debug mode (or a build with
+// -DSWIPE_PROFILE=1) compares the glass with the picture after every turn's redraw and says how many pixels differ
+// (docs/KEPT_PAGES.md, "The proof on a board").
 #ifdef RUNTIME_TILES_PARTS
 namespace runtime_tiles {
 #ifdef GLASS_STEADY
@@ -32,7 +33,9 @@ struct PagePictures {
   // The turn whose redraw LVGL still owes: the page a picture was put for, and the change number at the put.
   int turned = -1;
   uint32_t turned_at = 0;
-  bool compare = false;      // a profiling build: the glass against the picture once that redraw is done
+  bool compare = false;      // proving: the glass against the picture once that redraw is done
+  void *held_memory = nullptr;  // a diagnostic's PSRAM (page_pictures_hold)
+  lv_timer_t *hold_timer = nullptr;
   int taking = -1;           // the page a take is on its way for, for its log line
   uint32_t take_began = 0, take_bytes = 0, take_steps = 0, take_us = 0;
   const char *refused = nullptr;  // why the last put or take did not happen, said once
@@ -50,10 +53,19 @@ constexpr uint32_t PICTURE_QUIET_MS = 1000, PICTURE_STEP_MS = 50;
 constexpr uint32_t PICTURE_STILL_MS = 1500;
 constexpr size_t PICTURE_SLICE_BYTES = 400u << 10;
 
+// Whether every put is proven afterwards (page_picture_compare): in a profiling build, and with Debug mode on, where
+// the 50 ms it takes after a turn are what someone asked for.
+inline bool page_pictures_proving() {
+#ifdef SWIPE_PROFILE
+  return true;
+#else
+  return settings_screen::debug_mode != 0;
+#endif
+}
 inline void page_pictures_say(const char *why) {
   if (!page_pics || page_pics->refused == why) return;
   page_pics->refused = why;
-  if (why) ESP_LOGD("page_pic", "none now: %s", why);
+  if (why) ESP_LOGI("page_pic", "none now: %s", why);
 }
 inline glass::Rect panel_rect(const glass::Rect &on_screen) {
   const auto p = glass::panel();
@@ -184,9 +196,7 @@ inline void page_pictures_drawing(lv_event_t *) {
   if (all.turned >= 0 && all.turned == applied_page && picture) {
     page_picture_turned(*picture);
     page_picture_areas(*picture, false);
-#ifdef SWIPE_PROFILE
-    all.compare = true;
-#endif
+    all.compare = page_pictures_proving();
   } else if (picture) {
     page_picture_areas(*picture);
   }
@@ -251,7 +261,7 @@ inline bool page_pictures_put(int page) {
   all.refused = nullptr;
   const uint32_t done = esphome::micros();
   swipe_profile::picture(map.true_blocks(), map.room_blocks());
-  ESP_LOGD("page_pic", "page %d: %u of %u blocks put in %.1f ms (%.1f waiting for the glass)", page + 1, map.true_blocks(),
+  ESP_LOGI("page_pic", "page %d: %u of %u blocks put in %.1f ms (%.1f waiting for the glass)", page + 1, map.true_blocks(),
            map.room_blocks(), (done - held) / 1000.0, (held - began) / 1000.0);
   return true;
 }
@@ -273,8 +283,7 @@ inline void page_pictures_switch(bool on) {
   page_pictures_on = on;
   page_pictures_forget();
 }
-#ifdef SWIPE_PROFILE
-// The proof of a put, in a profiling build: once LVGL has drawn the page, every block still true is compared with the
+// The proof of a put (page_pictures_proving): once LVGL has drawn the page, every block still true is compared with the
 // glass. 0 pixels is what "LVGL draws the page underneath and changes no pixel" means.
 inline void page_picture_compare(PagePicture &picture, int page) {
   // What LVGL has waiting to draw is about to be untrue, and is on the glass as it was: left out.
@@ -294,7 +303,44 @@ inline void page_picture_compare(PagePicture &picture, int page) {
   ESP_LOGI("page_pic", "page %d compared with the glass after LVGL drew it: %u px differ in %u true blocks", page + 1,
            (unsigned) differ, map.true_blocks());
 }
-#endif
+// ---- Diagnostics over the screen_message action, with Debug mode on (page_receiver.cpp; docs/KEPT_PAGES.md) ----
+// What page pictures hold now, and the memory beside them, in one line: the heaps' own counters, read at once, so an A/B
+// of the internal RAM needs no wait for a sensor.
+inline void page_pictures_report() {
+  unsigned kept = 0, truths = 0, of = 0;
+  if (page_pics)
+    for (size_t i = 0; i < page_pics->held.size(); ++i)
+      if (page_pics->held[i] && page_pics->shelf.entries[i].page >= 0) {
+        ++kept;
+        truths += page_pics->held[i]->map.true_blocks();
+        of += page_pics->held[i]->map.room_blocks();
+      }
+  ESP_LOGI("page_pic", "report: %s, %u pictures kept of %u at most (%u KB each, %u of %u blocks true), internal RAM %u B free "
+           "(lowest %u), PSRAM %u B free, %u PSRAM asks refused, a record is %u B",
+           page_pictures_on ? "on" : "off", kept, (unsigned) page_pictures_capacity(), (unsigned) (page_picture_bytes() >> 10), truths, of,
+           (unsigned) heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned) heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
+           (unsigned) psram_free(), (unsigned) heap_watch::psram_refused(), (unsigned) sizeof(PagePicture));
+}
+// `mb` MB of PSRAM held for `seconds`, so what gives memory up first can be watched; more than there is asks and is
+// refused, which is the other way a picture goes. 0 MB lets go at once.
+inline void page_pictures_hold_end(lv_timer_t *) {
+  if (!page_pics) return;
+  if (page_pics->held_memory) kept_free(page_pics->held_memory);
+  page_pics->held_memory = nullptr;
+  if (page_pics->hold_timer) lv_timer_delete(page_pics->hold_timer);
+  page_pics->hold_timer = nullptr;
+  ESP_LOGI("page_pic", "hold: let go, PSRAM %u B free", (unsigned) psram_free());
+}
+inline void page_pictures_hold(unsigned mb, unsigned seconds) {
+  if (!page_pics) { ESP_LOGI("page_pic", "hold: no page pictures yet"); return; }
+  page_pictures_hold_end(nullptr);
+  if (!mb) return;
+  page_pics->held_memory = kept_allocate(static_cast<size_t>(mb) << 20);
+  ESP_LOGI("page_pic", "hold: %u MB of PSRAM for %u s %s, PSRAM %u B free", mb, seconds, page_pics->held_memory ? "held" : "refused",
+           (unsigned) psram_free());
+  if (!page_pics->held_memory) return;
+  page_pics->hold_timer = lv_timer_create(page_pictures_hold_end, std::min(seconds, 600u) * 1000u, nullptr);
+}
 // Every PICTURE_STEP_MS: a step of the take for the page on the glass, while it rests and nothing lies over it.
 inline void page_pictures_step(lv_timer_t *) {
   // Memory is short: a page's picture is the first thing to go, the farthest from the glass first, one a step. A
@@ -324,13 +370,11 @@ inline void page_pictures_step(lv_timer_t *) {
   if (applied_page < 0 || !room_label || !page_pictures_on) return;
   if (page_pics && page_pics->turned >= 0) return;  // LVGL still owes the turn's redraw
   if (!glass::drawing()) return;
-#ifdef SWIPE_PROFILE
   if (page_pics && page_pics->compare) {
     page_pics->compare = false;
     if (auto *picture = page_picture_of(applied_page)) page_picture_compare(*picture, applied_page);
     return;
   }
-#endif
   // The cheap question first: a picture with nothing left to take, or only what does not stand still, costs a step
   // nothing.
   const uint32_t now = esphome::millis();
@@ -379,7 +423,7 @@ inline void page_pictures_step(lv_timer_t *) {
   ++all.take_steps;
   all.refused = nullptr;
   if (!more) {
-    ESP_LOGD("page_pic", "page %d taken: %u KB in %u steps, %.1f ms of the loop over %u ms, %u of %u blocks true, %u pictures kept",
+    ESP_LOGI("page_pic", "page %d taken: %u KB in %u steps, %.1f ms of the loop over %u ms, %u of %u blocks true, %u pictures kept",
              applied_page + 1, (unsigned) (all.take_bytes >> 10), (unsigned) all.take_steps, all.take_us / 1000.0,
              (unsigned) (esphome::millis() - all.take_began), map.true_blocks(), map.room_blocks(), (unsigned) all.shelf.pages());
     all.taking = -1;
@@ -407,6 +451,8 @@ inline bool page_pictures_put(int) { return false; }
 inline void page_pictures_untrue(int) {}
 inline void page_pictures_forget() {}
 inline void page_pictures_switch(bool) {}
+inline void page_pictures_report() {}
+inline void page_pictures_hold(unsigned, unsigned) {}
 inline unsigned page_pictures_count() { return 0; }
 #endif
 }  // namespace runtime_tiles
