@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [main-host-render-min-power.md](main-host-render-min-power.md) | main's host render does not build on ESPHome 2026.9.0 (set_min_power without power scaling); fixed on dev by df32c78b, one line for a hotfix. Solved on dev 2026-11-16 | 2026-11-16 |
 | [loop-stack-margin.md](loop-stack-margin.md) | The loop task's stack: a Guition 10.1 with a large layout overflowed it; fixed in b8e887c6, three boards read about 10 KB free; the screensaver and a night are still to read | 2026-11-16 |
 | [page-pictures-step-two.md](page-pictures-step-two.md) | A page's picture is on the glass in 47 ms, but LVGL still draws the whole page after it (296 ms until it is done); what letting LVGL skip it takes | 2026-11-16 |
 | [lvgl-replace-style-selector.md](lvgl-replace-style-selector.md) | LVGL 9.5's lv_obj_replace_style with LV_PART_ANY \| LV_STATE_ANY overwrites each replaced style's selector; the report LVGL could get, not sent | 2026-11-16 |
