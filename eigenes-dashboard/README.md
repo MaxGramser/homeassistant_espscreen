@@ -107,7 +107,7 @@ Die Konfiguration verlangt ESPHome 2026.6.2 oder neuer.
 
 ## Stand der Prüfung
 
-- `esphome config` und `esphome compile` laufen fehlerfrei (ESPHome 2026.10.2; Firmware rund 2,9 MB, 36 % der
+- `esphome config` und `esphome compile` laufen fehlerfrei, mit beiden Seiten (ESPHome 2026.10.2; Firmware rund 3,0 MB, 37 % der
   App-Partition).
 - `wetter.h` ist mit einem Test auf dem PC geprüft: Kalenderwoche (auch an Jahreswechseln mit 53 Wochen), Mondphase,
   Sonnenzeiten, Regenwerte, Kurve, Warn-Icons.
