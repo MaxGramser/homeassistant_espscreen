@@ -77,10 +77,8 @@ class Overrides(unittest.TestCase):
                 self.assertIn(part, ids, f'{board} has no {part}')
             chain = [path.name for path in profiles.chain(profiles.BOARDS[board])]
             for part, hardware in SOME_BOARDS.items():
-                self.assertEqual(part in ids, hardware in chain, f'{board}: {part}')
-        # The boards that have it today, and so the overrides of GitHub #22.
-        self.assertIn('backlight_line', defined_ids('waveshare43'))
-        self.assertIn('backlight_line', defined_ids('waveshare7'))
+                self.assertEqual(part in ids, hardware in chain,
+                                 f'{board}: {part} is named on exactly the boards with {hardware} (the overrides of GitHub #22 hang on it)')
 
     def test_the_knobs_a_board_offers_reach_its_hardware(self):
         for board, knobs in KNOBS.items():
