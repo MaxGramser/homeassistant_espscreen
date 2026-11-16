@@ -1,5 +1,5 @@
 // An automation as a tile (firmware 0.7.0, GitHub #62), read from the real firmware, no line of it quoted: Home
-// Assistant's icons (automation/icons.json: robot, robot-off); a tap switches it, and a tile set to
+// Assistant's icons (automation/icons.json: robot, robot-off, robot-confused); a tap switches it, and a tile set to
 // run runs its actions with automation.trigger and the entity alone (more-info-automation.ts: skip_condition true is
 // Home Assistant's default); a run button is coloured while its actions run (`run` from the app), grey otherwise.
 import assert from 'node:assert/strict';
@@ -8,9 +8,9 @@ import createModule from '../src/wasm/firmware_preview.js';
 import { connection, configure } from './test_protocol.mjs';
 
 const wasmBinary = readFileSync(new URL('../src/wasm/firmware_preview.wasm', import.meta.url));
-const ROBOT = 0xf06a9, ROBOT_OFF = 0xf16a7;
+const ROBOT = 0xf06a9, ROBOT_OFF = 0xf16a7, ROBOT_CONFUSED = 0xf169f;
 const auto = (entity, state, o = {}, x) => ({ entity, name: entity.split('.')[1], state, o, a: {}, ...(x ? { x } : {}) });
-const TILES = [auto('automation.on', 'on'), auto('automation.off', 'off'), auto('automation.button', 'on', { tap: 'run' }), auto('automation.busy', 'on', { tap: 'run' }, { run: true })].map((t, slot) => ({ ...t, slot }));
+const TILES = [auto('automation.on', 'on'), auto('automation.off', 'off'), auto('automation.button', 'on', { tap: 'run' }), auto('automation.busy', 'on', { tap: 'run' }, { run: true }), auto('automation.gone', 'unavailable')].map((t, slot) => ({ ...t, slot }));
 
 const m = await createModule({ wasmBinary });
 assert.equal(m._preview_init(1280, 800, 149, 4, 3), 1);
@@ -30,6 +30,7 @@ const grey = (rgb) => { const r = rgb >> 16 & 255, g = rgb >> 8 & 255, b = rgb &
 
 assert.equal(icon(0).text.codePointAt(0), ROBOT, 'on: mdi:robot');
 assert.equal(icon(1).text.codePointAt(0), ROBOT_OFF, 'off: mdi:robot-off');
+assert.equal(icon(4).text.codePointAt(0), ROBOT_CONFUSED, 'unavailable: mdi:robot-confused');
 assert.ok(!grey(icon(0).color) && grey(icon(1).color), 'coloured while on, grey while off');
 assert.ok(grey(icon(2).color), 'a run button is grey while nothing runs, though the automation is on');
 assert.ok(!grey(icon(3).color), 'and coloured while its actions run');

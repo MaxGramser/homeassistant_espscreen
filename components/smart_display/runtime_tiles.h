@@ -6005,8 +6005,9 @@ inline const char *icon_for(const Tile &tile) {
   if (d == "fan") return "\U000F0210";
   if (d == "cover") return "\U000F111C";
   if (d == "scene" || d == "script") return "\U000F04B9";
-  // Home Assistant's automation icons (automation/icons.json): a robot, crossed out while off.
+  // Home Assistant's automation icons (automation/icons.json): a robot, crossed out while off, confused while unavailable.
   if (d == "automation" && tile.state == "off") return "\U000F16A7";
+  if (d == "automation" && tile.state == "unavailable") return "\U000F169F";
   if (d == "automation") return "\U000F06A9";
   // Home Assistant's remote icons (remote/icons.json), crossed out while off (firmware 0.22.0+).
   if (d == "remote" && tile.state == "off") return "\U000F0EC4";
