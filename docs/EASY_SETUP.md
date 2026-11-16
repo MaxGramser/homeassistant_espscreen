@@ -29,6 +29,7 @@ ESPHome Device Builder is optional:
 | Waveshare, 4 inch V4.0 (experimental) | ESP32-S3-Touch-LCD-4 revision 4.0 (not the 4B, not earlier revisions), 480×480, ST7701S and GT911 ([details](WAVESHARE4V4.md)) |
 | SenseCAP, 4 inch (experimental) | Seeed SenseCAP Indicator D1, D1S, D1L or D1Pro with the GX panel, 480×480, ST7701S and FT6336U ([details](SENSECAP_INDICATOR.md)) |
 | Waveshare, 3.5 inch (new) | ESP32-S3-Touch-LCD-3.5, 480×320, ST7796 and FT6336 ([details](WAVESHARE35.md)) |
+| LCDWiki, 2.8 inch (experimental) | ES3C28P (ESP32-S3; not the CYD ESP32-2432S028), 320×240, ILI9341V and FT6336G ([details](ES3C28P.md)) |
 | Freenove, 4 inch (experimental) | FNK0104S (not the 2.8 or 3.5-inch boards of the series), 480×320, ST7796 and FT6336 ([details](FREENOVEFNK0104S.md)) |
 | Hosyond, 4 inch (experimental) | ESP32-32E 4.0 inch (E32R40T), 480×320, ST7796 and XPT2046 ([details](HOSYOND40.md)) |
 | Guition, 3.5 inch (new) | JC3248W535, 480×320, AXS15231B QSPI and AXS15231B touch ([details](JC3248W535.md)) |
@@ -303,8 +304,8 @@ Click **Save & send** to send your changes.
   browse the player, the library key beside it opens its library down to a page of covers, and a tap plays one (firmware 0.24.0+, boards with camera
   pictures). **Display → Favourite** makes the tile play one playlist, album or artist you pick from that library, on
   the speaker you choose. A new media tile shows its cover by default on a board with pictures.
-- Camera or image (every board except the CYD, the Hosyond 4-inch, the Waveshare 3.5-inch, the SenseCAP Indicator
-  and the Freenove FNK0104S): tap for the
+- Camera or image (every board except the CYD, the Hosyond 4-inch, the Waveshare 3.5-inch, the SenseCAP Indicator,
+  the Freenove FNK0104S and the LCDWiki ES3C28P): tap for the
   picture full screen, refreshed every four seconds. **Display → Live picture** fills the tile itself, on every size, and refreshes every 5, 10, 15 or 30 seconds (firmware 0.3.7+, [CAMERA.md](CAMERA.md)).
 - Alarm panel: tap for its card with a key per mode, and a keypad when the panel asks for a code (firmware 0.3.3+).
 - A *Go to page* tile: tap to open its page.

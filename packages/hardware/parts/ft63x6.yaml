@@ -1,0 +1,12 @@
+# ESP Screens - an FT6336 (ESPHome's ft63x6) capacitive touch panel on the board's touch_bus (a part: docs/PROFILES.md,
+# "Parts"). The board declares the panel's interrupt and reset pins (TOUCH_INTERRUPT_PIN, TOUCH_RESET_PIN), which a
+# part cannot know, so a board that forgets one does not build; the panel is read every 20 ms as on the other boards.
+# The Freenove FNK0104S and the LCDWiki ES3C28P include it.
+touchscreen:
+  - platform: ft63x6
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    interrupt_pin: ${TOUCH_INTERRUPT_PIN}
+    reset_pin: ${TOUCH_RESET_PIN}
+    update_interval: 20ms

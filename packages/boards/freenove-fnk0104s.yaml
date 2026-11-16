@@ -13,6 +13,7 @@ packages:
   build: !include ../hardware/esp-idf.yaml
   look: !include ../looks/standard.yaml
   touch: !include ../features/capacitive-touch.yaml
+  touch_panel: !include ../hardware/parts/ft63x6.yaml
   backlight: !include ../features/backlight.yaml
   self_test: !include ../features/self-test.yaml
 
@@ -33,6 +34,9 @@ substitutions:
   GRID_ROWS: "2"
   GRID_COLS_PORTRAIT: "1"
   GRID_ROWS_PORTRAIT: "4"
+  # The touch panel's pins (hardware/parts/ft63x6.yaml).
+  TOUCH_INTERRUPT_PIN: GPIO17
+  TOUCH_RESET_PIN: GPIO18
   LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
 
   # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
@@ -80,16 +84,6 @@ output:
       ignore_strapping_warning: true
     id: gpio_backlight_pwm
     frequency: ${BACKLIGHT_FREQUENCY}
-
-# ESPHome's ft63x6 platform, with the touch panel's interrupt and reset wired to the chip.
-touchscreen:
-  - platform: ft63x6
-    id: ts_touch
-    i2c_id: touch_bus
-    display: my_display
-    interrupt_pin: GPIO17
-    reset_pin: GPIO18
-    update_interval: 20ms
 
 # ESPHome's own ST7796 model over SPI. GPIO46 (the panel's data/command line) is a strapping pin of the ESP32-S3, wired
 # to the panel on this board.

@@ -265,3 +265,11 @@ waveshare43c:
   status: experimental
   # The 4.3's glass with Waveshare's CH32V003 expander in place of the CH422G (website discussion 10): a 4.3C built
   # from the 4.3's board file starts with its touch chip in reset.
+
+es3c28p:
+  file: es3c28p.yaml
+  name: LCDWiki
+  model: ES3C28P
+  status: experimental
+  # LCDWiki's (QDtech's) 2.8-inch ESP32-S3 board with capacitive touch: the CYD's glass, not the CYD's chip or pins. Its
+  # touch panel and backlight are wired as on the Freenove FNK0104S (hardware/parts/ft63x6.yaml).

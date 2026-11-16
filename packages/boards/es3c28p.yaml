@@ -1,0 +1,109 @@
+# ESP Screens - LCDWiki/QDtech ES3C28P, experimental: a 2.8-inch 240 x 320 IPS panel (ILI9341V over 4-wire SPI) with
+# FT6336G capacitive touch over I2C, on an ESP32-S3 with 16 MB flash and 8 MB octal PSRAM. The same glass and
+# resolution as the CYD, so the same compact look and grid; not the CYD (ESP32-2432S028), which has an ESP32 and other
+# pins. ES3N28P is the same board without touch. Pins from LCDWiki's pin table, confirmed by an owner's ESPHome config
+# that runs on the board.
+#
+# Quirks seen on the board: invert_colors is required (every colour is its complement without it); the LCD's reset is
+# tied to the chip's reset (no reset_pin); after flashing over USB the board wants one power cycle, or LVGL can hang
+# half drawn.
+packages:
+  build: !include ../hardware/esp-idf.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  touch_panel: !include ../hardware/parts/ft63x6.yaml
+  backlight: !include ../features/backlight.yaml
+  self_test: !include ../features/self-test.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "es3c28p"
+  DEVICE_NAME: "es3c28p-new"
+  DEVICE_FRIENDLY_NAME: "My ES3C28P"
+
+  # The glass: the panel's own pixels and its density, 400 diagonal pixels over 2.8 inches.
+  PANEL_W: "240"
+  PANEL_H: "320"
+  DISPLAY_DPI: "142.857"
+  # The LVGL angle that lays this panel out lying down (320 x 240). Standing up is a quarter further.
+  ROTATION_LANDSCAPE: "90"
+  # The tile grid: columns and rows of cells lying down, and standing up.
+  GRID_COLS: "2"
+  GRID_ROWS: "3"
+  GRID_COLS_PORTRAIT: "1"
+  GRID_ROWS_PORTRAIT: "4"
+  # The touch panel's pins (hardware/parts/ft63x6.yaml).
+  TOUCH_INTERRUPT_PIN: GPIO17
+  TOUCH_RESET_PIN: GPIO18
+  LVGL_BUFFER_SIZE: "12%"                       # LVGL's draw buffer as a share of the screen
+
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): the tile list, the cards and the
+  # extras live in PSRAM here, and the memory budget (tile_memory.h) says how many of them a layout really takes.
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  BACKLIGHT_FREQUENCY: "1000Hz"                 # the backlight's PWM; ESPHome's ledc default, as on the CYD (see the output block)
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+# The 8 MB of octal PSRAM in the module.
+psram:
+  mode: octal
+  speed: 80MHz
+
+# The native USB-C port is the chip's USB-Serial-JTAG: without this no log reaches the USB port.
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+# One SPI bus for the display.
+spi:
+  id: lcd
+  clk_pin: GPIO12
+  mosi_pin: GPIO11
+  miso_pin: GPIO13   # wired; the write-only display doesn't read it
+
+# The FT6336G capacitive touch, at 0x38.
+i2c:
+  id: touch_bus
+  sda: GPIO16
+  scl: GPIO15
+  frequency: 400kHz
+
+# The backlight, a PWM pin, high is lit (features/backlight.yaml makes it the light); zero_means_zero keeps a dark
+# standby dark. GPIO45 is a strapping pin of the ESP32-S3, wired to the backlight on this board.
+output:
+  - platform: ledc
+    pin:
+      number: GPIO45
+      ignore_strapping_warning: true
+    id: gpio_backlight_pwm
+    frequency: ${BACKLIGHT_FREQUENCY}
+    zero_means_zero: true
+
+# ESPHome's mipi_spi driver covers the ILI9341 natively. The LCD's reset hangs on the chip's reset: no reset_pin.
+# GPIO46 is a strapping pin of the ESP32-S3, wired to the panel's DC line on this board.
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: ILI9341
+    spi_id: lcd
+    cs_pin: GPIO10
+    dc_pin:
+      number: GPIO46
+      ignore_strapping_warning: true
+    invert_colors: true   # required on this board: without it every colour is its complement
+    data_rate: 40MHz
+    # Native panel dimensions (portrait); LVGL rotates (ROTATION_LANDSCAPE).
+    dimensions:
+      width: 240
+      height: 320
+    update_interval: never
+    auto_clear_enabled: false
