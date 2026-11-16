@@ -1583,8 +1583,9 @@ sensor:
             // runs deepest. loop_task_stack_size in hardware/esp-idf.yaml is sized from this line (firmware 0.3.1+).
             ESP_LOGI("health", "loop_stack_min_free=%u", (unsigned) uxTaskGetStackHighWaterMark(nullptr));
             // Pages kept whole and pictures kept (firmware 0.3.2+): what they hold, and the PSRAM left beside them.
-            ESP_LOGI("health", "kept_pages=%u pictures=%u B psram_free=%u", runtime_tiles::kept_count(),
-                     (unsigned) runtime_tiles::pictures.size(), (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+            ESP_LOGI("health", "kept_pages=%u page_pictures=%u pictures=%u B psram_free=%u", runtime_tiles::kept_count(),
+                     runtime_tiles::page_pictures_count(), (unsigned) runtime_tiles::pictures.size(),
+                     (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
             #endif
     fragmentation:
       name: "Heap Fragmentation"

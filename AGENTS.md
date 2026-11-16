@@ -39,7 +39,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change Layoutbot, the editor's chat that arranges pages | docs/LAYOUTBOT.md | `screen_manager/app/layoutbot.py`, `web/src/stores/layoutbot.ts` |
-| change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
+| change how pages are kept or prepared, or how a page's picture is taken and put | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_pictures.h`, `page_protocol.h` |
 | give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
@@ -107,6 +107,9 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   frontend. Never write a value into the model before an action, never add a hold or flag of a control's own, and
   never show a value the screen cannot know (a lock's end state, the next track). A card binds the parts that show a
   value and is painted in place, never built again for a change of value (docs/CARD_PARTS.md).
+- **Page pictures** (docs/KEPT_PAGES.md, "Page pictures"): a page's picture is put only where it is true. Whatever
+  changes a card off the glass takes a change number or says so (`page_pictures_untrue`), and nothing writes the
+  frame buffer past LVGL without the glass knowing (a room, the veil).
 - **Kept pages** (docs/KEPT_PAGES.md): a card is drawn only while it is on the glass, a card set is exchanged whole,
   and what a kept page lacks follows from change numbers (`kept_pages::Changes`), never from flags handed around.
 - **Memory.** Never walk the PSRAM heap (`heap_caps_get_largest_free_block`, `heap_caps_get_info`) while an RGB panel

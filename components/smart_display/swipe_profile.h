@@ -4,6 +4,7 @@
 // One INFO line per page switch, tag `swipe_prof`, times in ms from the swipe (show_page):
 //   fill   CPU in the content pass (the placement and every card of the page)
 //   first  swipe -> first frame on the glass  done   swipe -> frame that completes the content
+//   picture swipe -> the page's picture on the glass (page_pictures_lvgl.h), -1 without; put: its true blocks of all
 //   gap    longest main-loop gap (touch is polled once per loop) from the swipe until done
 //   frames per LVGL refresh: +start:layout/render/flush ms, flush calls, pixels
 //   slots  CPU per slot in the content passes
@@ -27,7 +28,8 @@ struct Frame { int64_t start = 0, render_start = 0, flush_start = 0; uint32_t la
 struct Swipe {
   bool active = false, complete = false, done = false;
   int from = -1, to = -1;
-  int64_t t0 = 0, first = 0, finished = 0, last_probe = 0;
+  int64_t t0 = 0, first = 0, finished = 0, last_probe = 0, pictured = 0;
+  unsigned put = 0, put_of = 0;
   uint32_t fill = 0, max_gap = 0;
   std::array<uint32_t, 6> slots{};
   std::array<uint32_t, PARTS> parts{};
@@ -54,8 +56,8 @@ inline void emit(const char *outcome) {
   for (unsigned i = 0; i < s.slots.size(); ++i) { snprintf(b, sizeof(b), "%s%.1f", i ? "," : "", ms(s.slots[i])); slots += b; }
   std::string parts;
   for (unsigned i = 0; i < PARTS; ++i) { snprintf(b, sizeof(b), "%s%s:%.1f", i ? "," : "", PART_NAMES[i], ms(s.parts[i])); parts += b; }
-  ESP_LOGI("swipe_prof", "%s %d->%d fill=%.1f first=%.0f done=%.0f gap=%.0f frames=%s%s slots=%s parts=%s", outcome, s.from, s.to,
-           ms(s.fill), s.first ? ms(s.first - s.t0) : -1.0, s.finished ? ms(s.finished - s.t0) : -1.0,
+  ESP_LOGI("swipe_prof", "%s %d->%d fill=%.1f picture=%.0f put=%u/%u first=%.0f done=%.0f gap=%.0f frames=%s%s slots=%s parts=%s", outcome, s.from, s.to,
+           ms(s.fill), s.pictured ? ms(s.pictured - s.t0) : -1.0, s.put, s.put_of, s.first ? ms(s.first - s.t0) : -1.0, s.finished ? ms(s.finished - s.t0) : -1.0,
            ms(s.max_gap), frames.c_str(), s.dropped ? "+more" : "", slots.c_str(), parts.c_str());
   s.active = false;
 }
@@ -128,11 +130,14 @@ struct Lap {
 };
 // The page's content is complete once the pass that just ran reaches the screen.
 inline void content_complete() { if (swipe.active) swipe.complete = true; }
+// The page's picture is on the glass: `put` of its `of` blocks.
+inline void picture(unsigned put, unsigned of) { if (swipe.active) { swipe.pictured = now_us(); swipe.put = put; swipe.put_of = of; } }
 #else
 inline void begin(int, int) {}
 struct FillTimer { FillTimer() {} };
 struct SlotTimer { explicit SlotTimer(size_t) {} };
 struct Lap { void operator()(Part) {} };
 inline void content_complete() {}
+inline void picture(unsigned, unsigned) {}
 #endif
 }  // namespace swipe_profile

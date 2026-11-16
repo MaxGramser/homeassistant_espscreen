@@ -15,6 +15,8 @@ measure it again. ESPHome 2026.6.2, LVGL 9.5, bench boards on USB.
   longest main-loop gap until then (touch is polled once per loop), `frames` per LVGL refresh
   `+start:layout/render/flush:flush calls:pixels`, `slots` CPU per card, `parts` CPU per step
   of the passes. The first swipe also logs the object count (Guition: 251 on the screen).
+- On a screen with page pictures (docs/KEPT_PAGES.md) the line also has `picture`, ms from the swipe to the page's
+  picture on the glass (-1 without), and `put`, its true blocks of the room's.
 - Render and flush come from `lv_display_add_event_cb` (`LV_EVENT_RENDER_START/READY`,
   `LV_EVENT_FLUSH_START/FINISH`); the loop gap from an `lv_timer` that runs at the start of
   every `lv_timer_handler` call. ESPHome's "took a long time" warning only fires on a new

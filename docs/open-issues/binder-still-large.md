@@ -2,7 +2,7 @@
 
 ## Where it stands
 `components/smart_display/runtime_tiles.h` was one file of 14,333 lines. On 2026-11-16 its sections moved
-into thirty-three `*_lvgl.h` parts beside it (docs/ARCHITECTURE.md, "The binder and its parts"), which left about 4,550 lines.
+into thirty-three `*_lvgl.h` parts (thirty-four with the page pictures) beside it (docs/ARCHITECTURE.md, "The binder and its parts"), which left about 4,550 lines.
 Only the sections whose every line is what their heading says were moved. A first cut by every heading put the
 widgets of a tile, the settings and a page's history into a file named after card parts, and the main loop's tick into
 one named after prepared pages, so those stayed.

@@ -126,6 +126,10 @@ alert, the screensaver) is that stream's newest frame, not another snapshot from
 - **The store** (`picture_store.h`): every still on the glass and on kept pages, within one budget from the board's
   PSRAM. The streams that run take their share of the same budget (`live_view::held_bytes`, at most half of it), and no
   picture is ever larger than the store can keep (`picture_store::cap_for`).
+- **Page pictures** (`page_pictures.h`, docs/KEPT_PAGES.md "Page pictures") are not the store's: a whole page's pixels
+  as LVGL drew them, 2 bytes a pixel of the panel, on a screen with a steady glass. They have a share of their own from
+  the same PSRAM figure, a quarter of it, and a picture's memory is taken only while the store's whole budget and the
+  kept pages' reserve stay free after it, so the store never has less for them.
 
 ### Memory
 

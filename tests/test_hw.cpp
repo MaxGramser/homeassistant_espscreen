@@ -29,6 +29,19 @@ int main() {
   moving.direct_glass = false;
   assert(!hw::resolve(moving).motion);
   assert(a.psram_bytes == 32u * 1024 * 1024 && a.internal_bytes == 768u * 1024);
+  // Page pictures are a screen with motion whose glass a long copy leaves in peace (a MIPI-DSI panel), with PSRAM to
+  // keep them in: never an RGB panel's glass, which nobody measured such a copy on, and never a lite screen.
+  hw::Facts pictured = full;
+  pictured.direct_glass = pictured.full_tier = pictured.steady_glass = true;
+  assert(hw::resolve(pictured).page_pictures);
+  pictured.steady_glass = false;
+  assert(hw::resolve(pictured).motion && !hw::resolve(pictured).page_pictures);
+  pictured.steady_glass = true;
+  pictured.full_tier = false;
+  assert(!hw::resolve(pictured).page_pictures);
+  pictured.full_tier = true;
+  pictured.psram_bytes = 0;
+  assert(!hw::resolve(pictured).page_pictures);
 
   // An S3 board with a speaker and no live video: no live tiles, whatever else it has.
   hw::Facts still = full;

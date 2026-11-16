@@ -105,6 +105,13 @@ std::string receive(const std::string &payload) {
       result = "Kept pages set";
       return true;
     }
+    if (op == "page_pictures") {
+      // Page pictures on (1) or off (0), for an A/B of a page turn on one firmware (docs/KEPT_PAGES.md).
+      page_pictures_switch((root["n"] | 1) != 0);
+      ESP_LOGI("swipe_prof", "page pictures: %s", (root["n"] | 1) != 0 ? "on" : "off");
+      result = "Page pictures set";
+      return true;
+    }
 #endif
     if (op == "hello") {
       uint64_t request;
@@ -316,6 +323,7 @@ std::string receive(const std::string &payload) {
       size_t i = 0;
       for (JsonVariant text : root["t"].as<JsonArray>()) sections[i++].summary = string(text, section_layout::SUMMARY_BYTES);
       ::sections::summaries(int(index));
+      page_pictures_untrue(int(index));  // a summary takes no change number: the page's picture is of the old one
       last_received = esphome::millis();
       result = "Synced";
       return true;

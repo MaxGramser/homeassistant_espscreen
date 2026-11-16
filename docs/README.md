@@ -76,7 +76,7 @@
 - [AUTO_LAYOUT.md](AUTO_LAYOUT.md): the first layout the editor makes from a home's areas and devices, how it groups,
   sizes and labels tiles per screen, and the places a change of it touches.
 - [LAYOUTBOT.md](LAYOUTBOT.md): the editor's chat that arranges pages with the AI connected to Home Assistant.
-- [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
+- [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, pictures kept until they change, and a page's picture put on the glass at a turn.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.
 - [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.
