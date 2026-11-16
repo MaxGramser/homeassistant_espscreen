@@ -587,6 +587,21 @@ class Run:
             self.warnings.append(f'swipe to page {target + 1}: title {final!r}, {len(seen)} read-backs')
         return count
 
+    def hello_record(self):
+        """The hardware record of the screen's hello (hw.cpp, hw::hello), as the app's own Sender read it from the host build:
+        the firmware writes it (live_tiles and the memory are only there when it does), and a template tile's numbers come
+        with the module that has them, small enough for one state message."""
+        import page_delivery
+        caps = getattr(self.sender, 'caps', None) or {}
+        if caps.get('live_tiles') is None or not isinstance(caps.get('psram_kb'), int) or not isinstance(caps.get('internal_kb'), int):
+            self.failures.append(f'hello: no hardware record (hw::hello) in the screen\'s hello: {caps}')
+            return
+        if caps.get('text_tiles') is not None and not (isinstance(caps.get('text_bytes'), int)
+                                                       and caps['text_bytes'] + 512 <= page_delivery.MAX_MESSAGE):
+            self.failures.append(f'hello: the template tile\'s numbers do not fit a state message: {caps}')
+        self.warnings.append(f'hello record: {page_delivery.caps_line(caps)}'
+                             + (f', {caps["text_tiles"]} template tiles of {caps["text_bytes"]} B' if caps.get('text_tiles') else ''))
+
     async def self_test(self):
         start = len(self.lines)
         await self.call('ui_self_test')
@@ -4355,6 +4370,7 @@ class Run:
             await asyncio.sleep(0.2)
         pages = p[5]
         self.canvas = (side['width'], side['height'])
+        self.hello_record()
         if self.only == 'alarm':
             return 1, await self.alarm_panel(grid)
         if self.only == 'lock':

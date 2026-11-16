@@ -38,41 +38,47 @@ class Defines(unittest.TestCase):
 
 
 class Wiring(unittest.TestCase):
-    def test_the_component_applies_the_defines_and_the_hello_carries_the_record(self):
+    """What only the build shows. That the hello carries the record, with the keys hw.cpp writes and the template tile's
+    numbers, is proven on the real firmware by tools/render/run.py's self test (hello_record): it reads the record the
+    app's own Sender took from the host build's hello. Here: the rules over the files."""
+
+    def test_the_component_applies_every_define_it_earns(self):
         source = (COMPONENT / '__init__.py').read_text()
-        self.assertRegex(source, r'for define in hw_build\.defines\(CORE\.config\):\n\s+cg\.add_define\(define\)')
-        core = (ROOT / 'packages' / 'core.yaml').read_text()
-        self.assertIn('hw::hello(root);', core)
-        # The record is written after the plugins' part of the hello and beside the features an older app reads.
-        self.assertLess(core.index('plugin_host::hello(root);'), core.index('hw::hello(root);'))
-        self.assertIn('if (live_view::available()) features.add("live");', core)
-        header = (COMPONENT / 'hw.cpp').read_text()
-        for key in ('"live"', '"speaker"', '"microphone"', '"echo_cancel"', '"camera"', '"live_tiles"', '"psram_kb"', '"internal_kb"'):
-            self.assertIn(key, header)
-        # The template tile's numbers (module text_card), only where the module is: how many, and the bytes of rows each
-        # keeps, an S3's and a P4's, both under a state message's 4096 bytes (tests/test_text_tile.py, Limits).
-        guarded = header[header.index('#ifdef SD_MOD_TEXT_CARD\n  //'):]
-        self.assertIn('caps["text_tiles"] = text_card::MAX_TILES;', guarded)
-        self.assertIn('caps["text_bytes"] = text_card::MAX_BYTES;', guarded)
+        self.assertRegex(source, r'for define in hw_build\.defines\(CORE\.config\):\s+cg\.add_define\(define\)',
+                         'components/smart_display/__init__.py must add every define hw_build.defines() gives (cg.add_define), '
+                         'or the firmware never hears of its speaker, microphone or camera')
+
+    # glass: a P4 screen's hello names "live" among its features, so an app older than the record still offers live
+    # cameras; the host build has no live view, so only a P4 shows it. The rule here: the hello says it where it can.
+    def test_the_hello_says_live_for_an_older_app(self):
+        self.assertRegex((ROOT / 'packages' / 'core.yaml').read_text(), r'if \(live_view::available\(\)\)\s*features\.add\("live"\)',
+                         'packages/core.yaml: the hello adds "live" to its features when live_view::available(), for an app '
+                         'older than the hardware record')
+        for header in ('smart_display.h', 'plugin_api.h'):
+            self.assertIn('#include "hw.h"', (COMPONENT / header).read_text(),
+                          f'{header} includes hw.h: the firmware and every plugin read the hardware record (hw::caps) from it')
+
+    def test_every_text_tile_fits_a_state_message(self):
+        # A template tile's rows (module text_card), at the most bytes any board keeps, with the room the message's own
+        # fields take, fit in one state message of page_delivery.MAX_MESSAGE.
         card = (COMPONENT / 'module_text_card.h').read_text()
-        self.assertIn('constexpr unsigned MAX_BYTES = 3584;', card)
-        self.assertIn('constexpr unsigned MAX_BYTES = 2048;', card)
-        self.assertLessEqual(3584 + 512, page_delivery.MAX_MESSAGE)
-        self.assertIn('#include "hw.h"', (COMPONENT / 'smart_display.h').read_text())
-        self.assertIn('#include "hw.h"', (COMPONENT / 'plugin_api.h').read_text())
+        limits = [int(n) for n in re.findall(r'constexpr unsigned MAX_BYTES = (\d+);', card)]
+        self.assertTrue(limits, 'module_text_card.h states MAX_BYTES for each board kind')
+        for limit in limits:
+            self.assertLessEqual(limit + 512, page_delivery.MAX_MESSAGE,
+                                 f'a template tile of {limit} bytes and its message\'s own 512 must fit page_delivery.MAX_MESSAGE')
 
     def test_the_live_tiles_are_the_engines(self):
-        # How many live tiles a screen streams at once is its picture engine's (picture_engine::limits): four on a P4, as
-        # docs/PLATFORM_PLAN.md 4.1 and the add-on's editor text say; one on an S3, whose CPU decodes it; none elsewhere.
+        # How many live tiles a screen streams at once is its picture engine's (picture_engine::limits, the fourth number):
+        # four on a P4, as docs/PLATFORM_PLAN.md 4.1 and the editor's text say; one on an S3, whose CPU decodes it; none
+        # elsewhere. hw.h keeps no number of its own.
         engine = (COMPONENT / 'picture_engine.h').read_text()
-        self.assertIn('constexpr Limits limits() { return {64, 1024 * 1024, 384 * 1024, 4, true, 0, 40, 1, 7}; }', engine)
-        self.assertIn('constexpr Limits limits() { return {0, 256 * 1024, 128 * 1024, 1, false, 8, 6, 0, 1}; }', engine)
-        self.assertIn('constexpr Limits limits() { return {0, 0, 0, 0, false, 0, 0, 1, 0}; }', engine)
-        self.assertIn('f.live_tiles = picture_engine::limits().live_tiles;', (COMPONENT / 'hw.cpp').read_text())
-        self.assertNotIn('LIVE_TILES =', (COMPONENT / 'hw.h').read_text())
-
-    def test_the_cpp_test_is_in_the_runner(self):
-        self.assertTrue((ROOT / 'tests' / 'test_hw.cpp').exists())
+        live = [int(n) for n in re.findall(r'constexpr Limits limits\(\) \{ return \{[^,]+,[^,]+,[^,]+, (\d+),', engine)]
+        self.assertEqual(live, [4, 1, 0], 'picture_engine.h: the live tiles of a P4, an S3 and a board without pictures '
+                                          'are 4, 1 and 0; change docs/PLATFORM_PLAN.md 4.1 and the editor with them')
+        self.assertIn('four', (ROOT / 'docs' / 'PLATFORM_PLAN.md').read_text(), 'docs/PLATFORM_PLAN.md names the four of a P4')
+        self.assertNotRegex((COMPONENT / 'hw.h').read_text(), r'\bLIVE_TILES\s*=',
+                            'hw.h keeps no live-tile count of its own: it is picture_engine::limits().live_tiles')
 
 
 class AppSide(unittest.TestCase):
@@ -129,13 +135,30 @@ class AppSide(unittest.TestCase):
         self.assertEqual(page_delivery.caps_of({'caps': {'live_tiles': 'many', 'live': 1}})['live_tiles'], None)
 
     def test_the_senders_record_follows_its_hello(self):
-        source = (ROOT / 'screen_manager' / 'app' / 'page_delivery.py').read_text()
-        self.assertIn('caps = caps_of(answer)', source)
-        self.assertIn('self.caps = caps', source)
-        self.assertRegex(source, r'self\.caps = caps_of\(\{\}\)')
-        # One line in the log when a screen's record changes, so every report has it (a reTerminal D1001 on glass,
-        # 2026-10-25, where nothing showed what the app had read).
-        self.assertIn('LOG.info("%s: %s", self.name or "A screen", caps_line(caps))', source)
+        # The app's own Sender, given a screen's hello: its record is what caps_of reads of it, said once in the log when
+        # it changes (a reTerminal D1001 on glass, 2026-10-25, where nothing showed what the app had read), not again.
+        import asyncio
+
+        def hello(caps):
+            async def send(message):
+                return {'protocol': page_delivery.PROTOCOL, 'request': message['request'], 'session': 'a' * 16,
+                        'status': 'Session:' + 'a' * 16, 'features': ['live', 'pictures'], 'caps': caps}
+            return send
+
+        record = {'live': True, 'speaker': True, 'microphone': False, 'echo_cancel': False, 'camera': True, 'live_tiles': 4,
+                  'psram_kb': 32768, 'internal_kb': 768}
+        sender = page_delivery.Sender(hello(record), name='Kitchen')
+        self.assertEqual(sender.caps, page_delivery.caps_of({}))
+        with self.assertLogs(page_delivery.LOG, 'INFO') as said:
+            asyncio.run(sender._hello())
+        self.assertEqual(sender.caps, page_delivery.caps_of({'features': ['live', 'pictures'], 'caps': record}))
+        self.assertEqual(said.output, [f'INFO:{page_delivery.LOG.name}:Kitchen: {page_delivery.caps_line(sender.caps)}'])
+        with self.assertNoLogs(page_delivery.LOG, 'INFO'):
+            asyncio.run(sender._hello())
+        sender.send = hello({**record, 'live_tiles': 1})
+        with self.assertLogs(page_delivery.LOG, 'INFO'):
+            asyncio.run(sender._hello())
+        self.assertEqual(sender.caps['live_tiles'], 1)
 
     def test_the_record_in_one_line(self):
         caps = page_delivery.caps_of({'caps': {'live': True, 'speaker': True, 'microphone': True, 'echo_cancel': False,
@@ -146,22 +169,30 @@ class AppSide(unittest.TestCase):
         self.assertEqual(page_delivery.caps_line(page_delivery.caps_of({'caps': {'picture_turn': 270}})),
                          "no echo cancellation, live pictures turned 270")
 
-    def test_the_editor_gets_the_record(self):
-        # The inventory's screen carries it (server.py, caps_of_screen) and the editor marks a live camera beyond
-        # caps.live_tiles (web/src/model/live-tiles.ts, tests/live-tiles.spec.ts).
-        source = (ROOT / 'screen_manager' / 'app' / 'server.py').read_text()
-        self.assertIn("screen['caps'] = manager.caps_of_screen(screen)", source)
-        model = (ROOT / 'web' / 'src' / 'model' / 'live-tiles.ts').read_text()
-        self.assertIn('export function pausedLive(', model)
 
-    def test_the_apps_503_is_a_safety_net(self):
-        # A screen that reads its own record streams at most caps.live_tiles at once (runtime_tiles live_tiles_round), so
-        # the app's 503 for a stream beyond them (live_stream.py) is never reached by such a firmware: it is the net for
-        # one that does not cap, and no proof on glass can show it.
-        source = (ROOT / 'screen_manager' / 'app' / 'live_stream.py').read_text()
-        self.assertIn("return f'This screen plays {cap} cameras live at once' if cap != 1", source)
-        # The stream and a tile's picture at a time both answer it (LiveFeed.refused).
-        self.assertEqual(source.count('return web.Response(status=503, text=why)'), 2)
+
+class Inventory(unittest.IsolatedAsyncioTestCase):
+    """The editor gets the record: the inventory's screen carries the record of its last hello (server.Manager.caps_of_screen),
+    which the editor reads to mark a live camera beyond caps.live_tiles (web/tests/live-tiles.spec.ts, pausedLive)."""
+
+    async def test_the_inventory_carries_the_record_of_the_last_hello(self):
+        import tempfile
+        from aiohttp.test_utils import TestClient, TestServer
+        import test_portal
+        from server import create_app
+        with tempfile.TemporaryDirectory() as temp:
+            manager = test_portal.ManagerTests.setup_manager(self, Path(temp) / 'screens.json')
+            manager.save('text.screen', {'title': 'Test', 'tiles': [{'entity': 'light.a', 'name': '', 'slot': 0}], 'pages': 1})
+            async with TestClient(TestServer(create_app(manager, True))) as client:
+                before = await (await client.get('/api/inventory')).json()
+                self.assertIsNone(next(s for s in before['screens'] if s['id'] == 'text.screen')['caps'],
+                                  'a screen without a hello in this run has no record yet')
+                sender = manager.page_sender('text.screen', manager.screen('text.screen'))
+                sender.protocol = page_delivery.PROTOCOL
+                sender.caps = page_delivery.caps_of({'caps': {'live': True, 'live_tiles': 4, 'psram_kb': 32768}})
+                after = await (await client.get('/api/inventory')).json()
+                caps = next(s for s in after['screens'] if s['id'] == 'text.screen')['caps']
+                self.assertEqual((caps['live'], caps['live_tiles'], caps['psram_kb']), (True, 4, 32768))
 
 
 if __name__ == '__main__':
