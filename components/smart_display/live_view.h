@@ -17,8 +17,10 @@
 // so every display platform on a P4 serves, and nothing of ESPHome's own classes is read.
 //
 // What a PC can check is here, free of sockets, LVGL and ESP-IDF (tests/test_live_view.cpp): the stream's framing,
-// where a rectangle of the screen lies on the panel, and where a picture goes. live_view.cpp has the task.
+// where a rectangle of the screen lies on the panel, and where a picture goes; and the rules of its sound
+// (tests/test_live_sound.cpp). live_view.cpp has the task.
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -75,6 +77,138 @@ static_assert(SOUND_TALK_LOW % 2 == 0 && SOUND_TALK_HIGH % 2 == 0 && SOUND_TALK_
 static_assert(SOUND_PART % 2 == 0 && SOUND_BUFFER % 2 == 0 && SOUND_LOW % 2 == 0 && SOUND_HIGH % 2 == 0,
               "the sound moves in whole samples, two bytes each");
 static_assert(SOUND_LOW < SOUND_HIGH && SOUND_HIGH < SOUND_BUFFER, "the sound catches up before its buffer runs full");
+
+// ---- A stream's sound, its rules pure (tests/test_live_sound.cpp drives them with a buffer, a speaker and an owner of
+// its own); live_view.cpp hands them FreeRTOS's stream buffer, the board's speaker and audio_owner::the() ----
+
+// What the stream's task puts into the sound buffer of a part of `length` bytes, with `space` bytes free in it: nothing
+// while the sound is held back (muted, or the speaker someone else's), and whole samples only, all of them or none.
+// The buffer, every piece read from it and every write to the speaker stay on a sample's first byte: a speaker one byte
+// off plays seconds of full-scale noise (a ring on a reTerminal D1001, 2026-10-25), and a part cut to the room left was
+// an odd count that put every later sample a byte off. `full`: a part left out for want of room, counted.
+struct SoundPart {
+  size_t send = 0;
+  bool full = false;
+};
+inline SoundPart sound_part(size_t length, size_t space, bool held_back) {
+  if (held_back) return {};
+  const size_t whole = length & ~static_cast<size_t>(1);
+  if (space < whole) return {0, true};
+  return {whole, false};
+}
+// Whether the main loop hands the sound to the speaker now: not once the stream stops, and held back while muted or
+// while the speaker is someone else's, as in the task.
+inline bool sound_on(bool stopping, bool muted, bool yielded) { return !stopping && !muted && !yielded; }
+
+// The main loop's half: from the buffer to the speaker, every tick. It starts once SOUND_LOW waits (so it does not
+// stutter at its first gap), and after the buffer ran dry waits for that again instead of playing each part as it
+// trickles in (snippets out of joint, 2026-10-29); a conversation's sound (X-Sound: talk) has the smaller run-up and is
+// only dry once it has been gone SOUND_TALK_GONE_MS. Behind the picture (more than SOUND_HIGH held, a burst after a
+// hiccup in the stream) the oldest goes, down to SOUND_LOW, and the rest of the piece the speaker had not taken first:
+// before the speaker is fed, so a speaker that is full does not hold the catching up back until the buffer runs full.
+// Whole samples throughout: a piece goes only from a sample's first byte, and a write the speaker took an odd number of
+// bytes of goes on from the very next byte.
+// `Buffer`: held() the bytes waiting, take(into, most) takes up to `most` of them. `Speaker`: start(), stop(), and
+// play(data, n), which returns what it took. `piece` holds SOUND_PART bytes.
+struct SoundPump {
+  bool speaking = false, dry = false;
+  size_t piece_left = 0, piece_at = 0;  // what the speaker took part of, the rest of it next tick
+  uint32_t fed_ms = 0;                  // when the speaker last got a piece
+  // For the stream's last line: the times the oldest was left out and how much, the times the buffer ran dry while
+  // speaking, and writes the speaker took an odd number of bytes of (which should be none).
+  uint32_t caught_up = 0, caught_up_bytes = 0, ran_dry = 0, odd_taken = 0;
+
+  template<typename Buffer, typename Speaker>
+  void tick(bool on, bool talk, uint32_t now_ms, uint8_t *piece, Buffer &buffer, Speaker &speaker) {
+    const size_t low = talk ? SOUND_TALK_LOW : SOUND_LOW, high = talk ? SOUND_TALK_HIGH : SOUND_HIGH;
+    if (!on) {
+      if (this->speaking) speaker.stop();
+      this->speaking = false;
+      this->piece_left = 0;
+      return;
+    }
+    if (!this->speaking) {
+      if (buffer.held() < low) return;
+      speaker.start();
+      this->speaking = true;
+      this->dry = false;
+    }
+    if (this->dry) {
+      if (buffer.held() < low) return;  // a new run-up first, as at the start
+      this->dry = false;
+    }
+    const size_t held = buffer.held();
+    if (held > high && (this->piece_at & 1) == 0) {
+      ++this->caught_up;
+      this->caught_up_bytes += this->piece_left;
+      this->piece_left = 0;
+      for (size_t drop = held - low; drop > 0;) {
+        const size_t n = buffer.take(piece, std::min(drop, SOUND_PART));
+        if (n == 0) break;
+        this->caught_up_bytes += n;
+        drop -= n;
+      }
+    }
+    for (int rounds = 0; rounds < 8; ++rounds) {
+      if (this->piece_left == 0) {
+        this->piece_left = buffer.take(piece, SOUND_PART);
+        this->piece_at = 0;
+        if (this->piece_left == 0) {
+          // Nothing waited at all: the buffer ran dry; in a conversation only once the sound has been gone a while.
+          if (rounds == 0 && (!talk || now_ms - this->fed_ms > SOUND_TALK_GONE_MS)) {
+            this->dry = true;
+            ++this->ran_dry;
+          }
+          return;
+        }
+      }
+      this->fed_ms = now_ms;
+      const size_t taken = speaker.play(piece + this->piece_at, this->piece_left);
+      if (taken & 1) ++this->odd_taken;
+      this->piece_at += taken;
+      this->piece_left -= taken;
+      if (taken == 0) return;  // the speaker's own buffer is full: the rest next tick
+    }
+  }
+};
+
+// The stream's sound and the audio owner (audio_owner.h, docs/PLATFORM_PLAN.md 3.4). A stream with sound claims the
+// speaker in the role its opener gave: as CAMERA_SOUND music pauses for it, and a voice session or a doorbell takes it
+// and gives it back, since the camera stays open. Taken, its sound is held back as when muted (`yielded`, and `drop`
+// empties what waited, stale by the time the speaker is back); given back, it plays again. A ring's view (DOORBELL)
+// claims nothing here: module_doorbell holds both sides for as long as the ring is up, so the wake word rests under an
+// open ring also while its stream breaks and comes back, and closing the view leaves the ring's claim alone. Released
+// as claimed, before the stream is freed.
+struct SoundClaim {
+  bool claims = false;
+  audio_owner::Role role = audio_owner::Role::CAMERA_SOUND;
+  audio_owner::Side side = audio_owner::Side::OUT;
+  uint32_t id = 0;
+  // Set on the main loop (the owner's callbacks), read by the stream's task.
+  std::atomic<bool> yielded{false};
+
+  void claim(audio_owner::Owner &owner, bool sound, audio_owner::Role opened_as, uint32_t slot,
+             std::function<void()> drop) {
+    if (!sound || opened_as == audio_owner::Role::DOORBELL) return;
+    this->claims = true;
+    this->role = opened_as;
+    this->side = audio_owner::Side::OUT;
+    this->id = slot;
+    audio_owner::Claim c;
+    c.role = this->role;
+    c.id = this->id;
+    c.lost = [this, drop]() {
+      this->yielded = true;
+      if (drop) drop();
+    };
+    c.regained = [this]() { this->yielded = false; };
+    owner.claim(this->side, c);
+  }
+  void release(audio_owner::Owner &owner) {
+    if (this->claims) owner.release(this->side, this->role, this->id);
+    this->claims = false;
+  }
+};
 
 // The app's answer for a live tile of this screen's own camera (plugin API 0.22): no link, the tile is drawn from the
 // camera's frames on the screen itself (open, own_frame). "own:", with "?fit=contain" as any tile's link may have.

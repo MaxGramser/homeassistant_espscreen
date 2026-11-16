@@ -158,9 +158,11 @@ diagnostic sensor "Pressure". Detail: docs/PLATFORM_PLAN.md 4.10; test: `tests/t
 ### 8. The audio owner
 
 `audio_owner.h`: one speaker, one microphone, several claimants. Every one of them claims a side (OUT, IN, BOTH) in a
-role, like an audio session on a phone: DOORBELL > VOICE > CAMERA_SOUND > MEDIA. A higher role takes the side and hands
-it back afterwards to whoever asked to have it back; a plugin's short sounds and announcements mix over whatever plays
-and never claim. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; test: `tests/test_audio_owner.cpp`.
+role, like an audio session on a phone: DOORBELL > CALL > VOICE > CAMERA_SOUND > MEDIA. A higher role takes the side and
+hands it back afterwards to whoever asked to have it back; a plugin's short sounds and announcements mix over whatever
+plays and never claim. A live camera's sound claims through `live_view.h`'s `SoundClaim` and reaches the speaker through
+its `SoundPump`. Detail: docs/PLATFORM_PLAN.md 3.4, docs/P4_AUDIO.md; tests: `tests/test_audio_owner.cpp`,
+`tests/test_live_sound.cpp`.
 
 ### 9. The top bar, the doorbell, the modules
 

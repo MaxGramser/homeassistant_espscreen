@@ -791,7 +791,8 @@ assistant can listen at the same time.
   (`tests/test_live_pictures.py`); `live_stream.py`: the links, the stream and a tile's pace (`live_pace`)
   (`tests/test_live_stream.py`); `components/smart_display/live_view.h` and
   `live_view.cpp`: the screen's streams, up to seven at once (`tests/test_live_view.cpp` checks the stream's framing,
-  where a picture lies on a turned panel, how it is scaled, cut into a card and what is laid over it);
+  where a picture lies on a turned panel, how it is scaled, cut into a card and what is laid over it;
+  `tests/test_live_sound.cpp` how its sound goes into its buffer, reaches the speaker and claims it);
   `live_spots.h`: the one machine of the live tiles and a plugin's live places (what streams, asks, stops and gives up;
   `tests/test_live_spots.cpp`), and the full view's handle and tries; `runtime_tiles.h` (`live_tiles_round`,
   `live_spot_ask`, `live_spot_open`, `live_stop_covered`, `live_tick`) binds it: which spots may stream, their question,

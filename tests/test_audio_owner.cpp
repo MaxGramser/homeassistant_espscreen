@@ -154,6 +154,24 @@ int main() {
     assert(o.holder(Side::OUT) == Role::DOORBELL && !o.held(Side::IN));
   }
 
+  // 8. The ranking, highest first: DOORBELL, CALL, VOICE, CAMERA_SOUND, MEDIA (docs/PLATFORM_PLAN.md 3.4, a call
+  //    between screens below the door). Each role takes both sides from every lower one, and is refused against every
+  //    higher one.
+  {
+    const Role ranked[] = {Role::MEDIA, Role::CAMERA_SOUND, Role::VOICE, Role::CALL, Role::DOORBELL};
+    for (int lower = 0; lower < 5; ++lower)
+      for (int higher = lower + 1; higher < 5; ++higher) {
+        Owner o;
+        Log log;
+        assert(o.claim(Side::BOTH, make(ranked[lower], 1, log.say("lower lost"))));
+        assert(o.claim(Side::BOTH, make(ranked[higher], 2, {})));
+        assert(log.joined() == "lower lost,lower lost");  // told for each side it lost
+        assert(o.holder(Side::OUT) == ranked[higher] && o.holder(Side::IN) == ranked[higher]);
+        assert(!o.claim(Side::OUT, make(ranked[lower], 3, {})) && !o.would_grant(Side::IN, ranked[lower]));
+        assert(o.holder(Side::OUT) == ranked[higher]);
+      }
+  }
+
   std::puts("test_audio_owner: ok");
   return 0;
 }
