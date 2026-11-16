@@ -6,7 +6,9 @@ real firmware for the host, starts it, and drives it over its API with no Home A
 - the demo layout of diagnostics/send_layout.py (every kind of card, fixed states at a fixed moment);
 - the firmware's own self test (ui_self_test): every page and overlay rendered, each page's cards and bar checked,
   and on every board the geometry check that nothing falls outside its area. A FAIL fails the run;
-- PNGs of every page, of the alerts (plain, long, with a button, with two buttons and button colors), of an alert with a camera picture
+- PNGs of every page, of the alerts (plain, long, with a button, with two buttons and button colors; each checked for its
+  parts inside the card and apart, its words on their own parts, one button or two as asked and a title one line high),
+  of an alert with a camera picture
   (one button and two) on the boards
   that draw pictures (sized by the add-on's own picture_question.alert_box for the frame this screen's card makes for it
   and painted by its picture_paint), and of page 1 in Dark mode.
@@ -97,6 +99,7 @@ HEADER = re.compile(r'state page=(-?\d+) name=\[(.*?)\] shown=\[(.*?)\] name_box
 NAVIGATION = re.compile(r'navigation page=(-?\d+) footer=(\d) back=(\d) grid_height=(\d+) tile=(-?\d+),(-?\d+) prev=(-?\d+),(-?\d+) header=(-?\d+),(-?\d+)')
 ALERT = re.compile(r'alert on=(\d) ' + ' '.join(f'{part}=(-?\\d+),(-?\\d+),(-?\\d+),(-?\\d+)'
                                               for part in ('card', 'frame', 'icon', 'title', 'subtitle', 'button', 'button2')))
+ALERT_WORDS = re.compile(r'alert words title=\[(.*?)\] button=\[(.*?)\] button2=\[(.*?)\]')
 # A page's own title (app 0.2.123): a long one among them, the kind that stood in dots after a page change (GitHub #27).
 PAGE_TITLES = ['Demo cards', 'Living room downstairs', 'Kitchen']
 DOCK_TITLES = ['Home', 'Living room', 'Kitchen', 'Bedroom', 'Garden', 'Climate', 'Media', 'Energy']
@@ -121,6 +124,35 @@ def alert_faults(state):
         for other in names[i + 1:]:
             if overlap(parts[one], parts[other]):
                 faults.append(f'{one} {parts[one]} over {other} {parts[other]}')
+    return faults
+
+
+def shown_as(words, given):
+    """Whether a label shows `given`: whole, or cut short and ended in dots (screen_alert::clipped, or LVGL's long mode
+    DOT, which writes its dots into the label's text)."""
+    return words == given or (words.endswith('...') and given.startswith(words[:-3]))
+
+
+def alert_words_faults(given, state, title_h):
+    """What an alert shows wrongly of what Home Assistant gave it: each text on its own part (the title on the title, the
+    first button's words on the first button, the second's on the second: screen_alert::make in alert_show), one button
+    or two as it asked (alert_two_buttons, before alert_place lays the row out), and a title one line high however long
+    it is (`title_h`, the height of the first alert's title), so a long one ends in dots instead of running into the
+    subtitle."""
+    faults, boxes = [], state['boxes']
+    title, button, button2 = state['words']
+    if not shown_as(title, given['title'].strip()):
+        faults.append(f'the title shows [{title}], not [{given["title"]}]')
+    if not shown_as(button, given.get('button_text', '').strip() or 'OK'):
+        faults.append(f'the button shows [{button}], not [{given.get("button_text") or "OK"}]')
+    two = bool(given.get('button2_text', '').strip())
+    if (boxes['button2'][2] >= boxes['button2'][0]) != two:
+        faults.append('no second button where one was asked for' if two else 'a second button nobody asked for')
+    if two and not shown_as(button2, given['button2_text'].strip()):
+        faults.append(f'the second button shows [{button2}], not [{given["button2_text"]}]')
+    height = boxes['title'][3] - boxes['title'][1] + 1
+    if height != title_h:
+        faults.append(f'the title is {height} px high, not one line ({title_h} px)')
     return faults
 
 
@@ -288,6 +320,7 @@ class Run:
         self.only = only
         self.screen = screen_of(build.variant)
         self.lines, self.warnings, self.failures = [], [], []
+        self.alert_title_h = None  # the first alert's title, one line high: every alert's title is as high
 
     async def call(self, name, **args):
         await self.client.execute_service(self.services[name], args)
@@ -420,6 +453,9 @@ class Run:
         await self.until(lambda l: '[alert' in l and 'show "' in l, 10, f'{name}: the alert never showed', start)
         state = await self.state()
         self.failures += [f'{name}, as it opens: {fault}' for fault in alert_faults(state['boxes'])]
+        if self.alert_title_h is None:
+            self.alert_title_h = state['boxes']['title'][3] - state['boxes']['title'][1] + 1
+        self.failures += [f'{name}: {fault}' for fault in alert_words_faults(args, state, self.alert_title_h)]
         if name.startswith('alert-camera'):
             if state['boxes']['frame'][2] < state['boxes']['frame'][0]:
                 self.failures.append(f'{name}: no frame for the picture while it loads')
@@ -452,9 +488,10 @@ class Run:
         await self.call('render_state')
         line = await self.until(lambda l: ALERT.search(l), 10, 'render_state', start)
         header = next(HEADER.search(l) for l in self.lines[start:] if HEADER.search(l))
+        words = next(ALERT_WORDS.search(l) for l in self.lines[start:] if ALERT_WORDS.search(l)).groups()
         values = [int(v) for v in ALERT.search(line).groups()]
         boxes = {name: tuple(values[1 + 4 * i:5 + 4 * i]) for i, name in enumerate(('card', 'frame', 'icon', 'title', 'subtitle', 'button', 'button2'))}
-        return {'page': int(header[1]), 'name': header[2], 'shown': header[3], 'alert': values[0], 'boxes': boxes}
+        return {'page': int(header[1]), 'name': header[2], 'shown': header[3], 'alert': values[0], 'boxes': boxes, 'words': words}
 
     async def swipe(self, forward):
         """A finger across the tiles, the way a page is changed on the glass; returns the title label as it was read back
