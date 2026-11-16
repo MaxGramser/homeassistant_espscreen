@@ -261,8 +261,8 @@ function onCanvasClick(e: MouseEvent) {
   <Teleport to="body"><div v-if="band" class="select-band" :style="{ left: `${band.left}px`, top: `${band.top}px`, width: `${band.width}px`, height: `${band.height}px` }"></div></Teleport>
   <Library v-if="doc.layout" />
   <GrowTip v-if="!ui.previewOpen" />
-  <!-- Layoutbot (docs/LAYOUTBOT.md): only where Home Assistant has an AI Task that makes data, and not on a phone. -->
-  <LayoutBot v-if="doc.layout && !ui.phone && !ui.previewOpen" />
+  <!-- Layoutbot (docs/LAYOUTBOT.md): on every page width; on a phone its key stands in the dock (ScreenView.vue). -->
+  <LayoutBot v-if="doc.layout && !ui.previewOpen" />
   <NavigationPreview v-if="ui.previewOpen && doc.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />
   <AutoLayoutDialog v-if="ui.autoLayoutOpen && doc.document" :key="scr.selected || ''" @close="ui.autoLayoutOpen = false" />
   <PageWizard v-if="ui.pageWizardOpen" :key="scr.selected || ''" @close="ui.pageWizardOpen = false" />

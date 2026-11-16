@@ -1556,7 +1556,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .toast { left: 16px; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); transform: none; max-width: none; justify-content: space-between; border-radius: 14px;
   padding: 13px 16px; font-size: 14.5px; }
 /* With a sheet open the word goes to the top, clear of the sheet's buttons. */
-.app.phone:has(.drawer, .library.open, .phone-sheet) .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 85; }
+.app.phone:has(.drawer, .library.open, .phone-sheet) .toast, body:has(.ui-sheet) .app.phone .toast { top: calc(12px + env(safe-area-inset-top)); bottom: auto; z-index: 85; }
 
 /* Sheets: from the bottom, over a dimmed page; a tap on the dim closes them. */
 .sheet-dim { position: fixed; inset: 0; z-index: 40; background: rgba(10, 12, 18, 0.32); }

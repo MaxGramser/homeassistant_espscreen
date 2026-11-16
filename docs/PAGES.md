@@ -60,7 +60,8 @@ editor's own controls are Material Design Icons, listed in `web/src/model/ui-ico
 What is open is in the page's address, and nowhere else: the editor has one router (vue-router with a hash history,
 `web/src/router.ts`, since the page lives in Home Assistant's ingress iframe where only the hash is the page's own).
 `#/` is the overview, `#/screens/<inbox id>` a screen, `#/settings`, `#/new-screen`, `#/firmware`, `#/alerts` and
-`#/plugins` the pages of the app, and `#/override/<profile>` a screen's Override YAML. A reload opens the same again
+`#/plugins` the pages of the app, `#/override/<profile>` a screen's Override YAML, and `?chat=layoutbot` on a screen's
+address its open Layoutbot chat (docs/LAYOUTBOT.md, "Where the chat stands"). A reload opens the same again
 once the inventory has arrived (the session follows the address, `followAddress`), the browser's Back and Forward
 walk through what was open, a link to a screen can be kept, and the addresses from before the router (`#settings`)
 still work. Home Assistant's sidebar shows the editor in a frame whose address nobody sees, and makes it anew on a

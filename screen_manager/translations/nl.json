@@ -1648,6 +1648,8 @@
       "read_current_data": "Actuele gegevens lezen",
       "results": "1 resultaat. Typ verder om te verfijnen. | {n} resultaten. Typ verder om te verfijnen.",
       "close": "Sluiten",
+      "expand": "Meer tonen",
+      "collapse": "Minder tonen",
       "remove": "Verwijderen",
       "loading": "Laden…",
       "back": "← Terug",
@@ -4783,6 +4785,7 @@
       "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
       "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag, de pagina's van je schermen en de id's, namen en ruimtes van je entiteiten gaan daarheen.",
       "placeholder": "Maak een pagina met…",
+      "ask": "Vragen",
       "send": {
         "ask": "Zal ik het naar {which} sturen?",
         "yes": "Ja, versturen",

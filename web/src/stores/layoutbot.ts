@@ -17,6 +17,7 @@ import { useDocumentStore } from "./document";
 import { useInventoryStore } from "./inventory";
 import { useScreenStore } from "./screen";
 import { useSessionStore } from "./session";
+import { useUiStore } from "./ui";
 
 /** The answer the editor understands (the add-on's LAYOUTBOT_PLAN): a checked plan to place. */
 export const PLAN_VERSION = 2;
@@ -54,6 +55,7 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   const inv = useInventoryStore();
   const scr = useScreenStore();
   const doc = useDocumentStore();
+  const ui = useUiStore();
   const agents = computed(() => inv.inventory.layoutbot ?? []);
   /** The bot shows wherever there is a draft; it works where Home Assistant has an AI Task that makes data, and
    * elsewhere its chat says how to connect one. */
@@ -62,7 +64,8 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   const available = computed(() => shown.value && ready.value);
   /** Look again after the person added an AI integration in Home Assistant (the full inventory lists the AI Tasks). */
   async function recheck() { await inv.refresh(true); }
-  const open = ref(false);
+  // Whether the chat is open is the address's (ui.chatOpen, `?chat=layoutbot`), never this store's.
+  const open = computed({ get: () => ui.chatOpen, set: (value: boolean) => { void ui.openChat(value); } });
   const busy = ref(false);
   const started = ref(0);
   const agent = ref<string | null>(null);

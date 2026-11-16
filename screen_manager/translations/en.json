@@ -1652,6 +1652,8 @@
       "read_current_data": "Read current data",
       "results": "1 result. Keep typing to narrow it down. | {n} results. Keep typing to narrow it down.",
       "close": "Close",
+      "expand": "Show more",
+      "collapse": "Show less",
       "remove": "Remove",
       "loading": "Loading…",
       "back": "← Back",
@@ -4835,6 +4837,7 @@
       "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
       "privacy": "I use {agent} from Home Assistant. Your question, the pages of your screens and the ids, names and areas of your entities go to it.",
       "placeholder": "Make a page with…",
+      "ask": "Ask",
       "send": {
         "ask": "Shall I send it to {which}?",
         "yes": "Yes, send it",

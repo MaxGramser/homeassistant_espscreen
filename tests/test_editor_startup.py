@@ -36,7 +36,7 @@ class Startup(unittest.TestCase):
             body = bot[bot.index(f'async function {function}('):]
             self.assertIn(f'select({argument})', body[:body.index('\n  }\n')], f'layoutbot opens {argument} only in {function}')
         self.assertEqual(len(re.findall(r'select\((?:other\.id|home)\)', SCRIPT)), 3, 'layoutbot opens another screen in preview and deliver only')
-        chat = editor_sources.component('LayoutBot')
+        chat = editor_sources.component('LayoutBotChat')
         self.assertEqual(re.findall(r'bot\.(preview|deliver)\(', SCRIPT), ['preview', 'deliver'],
                          'Show and Yes in the chat are the only ways into preview and deliver')
         self.assertIn('@click="bot.preview(other)"', chat)

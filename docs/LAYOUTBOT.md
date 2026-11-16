@@ -10,12 +10,14 @@ Home Assistant, and it only ever changes the draft in the editor: it never contr
 | The route | `layoutbot_ask` in `screen_manager/app/server.py` (`POST api/screens/<id>/layoutbot`) | |
 | The plan placed in a draft | `web/src/model/layoutbot.ts` (applyPlan) over `web/src/model/placement.ts` (placeUnits) | `web/tests/layoutbot-plan.spec.ts` |
 | What a screen takes, for the open one and the others | `web/src/editor/layoutbot.ts` | |
-| The chat, the bot, the shine, sending | `web/src/components/LayoutBot.vue`, `web/src/stores/layoutbot.ts` | `web/tests/layoutbot.spec.ts` |
+| The chat, the bot, the shine, sending | `web/src/components/LayoutBot.vue` (the shine, and where the chat stands), `LayoutBotChat.vue`, `LayoutBotKey.vue`, `web/src/stores/layoutbot.ts` | `web/tests/layoutbot.spec.ts` |
+| On a phone: the key in the dock, the chat in a sheet | `web/src/components/ui/UiSheet.vue`, `ScreenView.vue` (`.phone-dock`) | `web/tests/layoutbot-phone.spec.ts` |
 | A trial against a real Home Assistant | `diagnostics/layoutbot_trial.py` | |
 
 ## When it shows
 
-The bot floats in the lower right corner of the editor wherever a screen is open. It works when Home Assistant has an
+The bot floats in the lower right corner of the editor wherever a screen is open, and on a phone it stands in the dock
+at the bottom, before Add tile (see "On a phone" below). It works when Home Assistant has an
 AI Task entity that can generate data (`ai_task.*` with `AITaskEntityFeature.GENERATE_DATA`, and not unavailable); the
 inventory lists them under `layoutbot`. Every AI integration of Home Assistant that has AI Tasks gives one: OpenAI,
 Anthropic, Google Gemini, Ollama and others. When there are several, the chat header picks one; it starts with the one
@@ -24,6 +26,32 @@ chosen in Home Assistant for "generate data" (`ai_task/preferences/get`), else t
 Without one the bot sleeps (its eyes closed, a small "z"), and its chat says how to connect an AI instead of taking
 questions: a button per integration starts that integration's setup in Home Assistant (a my link,
 `/_my_redirect/config_flow_start?domain=...`), and Look again reads the inventory again once one is added.
+
+## Where the chat stands
+
+Whether the chat is open is in the editor's address, as everything that is open is (docs/PAGES.md, "The address"):
+`#/screens/<id>?chat=layoutbot`. The bot's key pushes it, so the browser's Back (or a phone's back gesture) closes the
+chat, and a reload or a kept link opens it again. Moving to another screen keeps the chat open (`ui.go("")` carries
+the query), which is what Yes does on its way through the other screens and home again; the overview and the pages of
+the app close it.
+
+### On a phone
+
+On a phone (the editor of everyday changes, `ui.phone`) nothing floats over the page. The bot's key stands in the dock
+at the bottom, before Add tile and Save & send, as tall as they are and within reach of a thumb. The chat is a sheet
+from the bottom (`UiSheet`, Reka UI's Dialog, not modal), in the look of the phone's other sheets, with the safe area
+below it:
+
+- It rests at a lower height (under half the window) while the bot thinks or sends, and while its question (send it
+  to the screen?) waits. The page above then shows what the answer did, since the page the answer made or changed is
+  the one shown, and Show, Undo, Yes and Not now are at the bottom of the window. A tap on the grab gives the sheet its
+  other height.
+- It stands on the on-screen keyboard: while the keyboard is up (the visual viewport is shorter than the window) the
+  sheet's bottom is the keyboard's top and it takes the room above, so the field stays in sight. The field takes no
+  focus by itself on a phone, so the keyboard comes only when the person taps the field, and it is 16 px, so a
+  phone's browser does not zoom the page when the field takes focus.
+- Its texts and buttons are a size larger than on a wider page; the conversation, the choices and the connect hint
+  are the same component (`LayoutBotChat`).
 
 ## How a question becomes a draft
 

@@ -132,7 +132,24 @@ export const useUiStore = defineStore("ui", () => {
   let mainView: () => RouteLocationRaw = () => "/";
   function setMainView(view: () => RouteLocationRaw) { mainView = view; }
   function go(target: Route) {
-    return router.push(target === "" ? mainView() : `/${target.slice(1)}`);
+    return router.push(target === "" ? withChat(mainView()) : `/${target.slice(1)}`);
+  }
+  // Layoutbot's chat (docs/LAYOUTBOT.md): open while the address says so, `#/screens/<id>?chat=layoutbot`, so Back closes
+  // it and a reload opens it again. It stays open while the main view moves to another screen (go(""), as its Yes does on
+  // its way through the screens and home again), and closes with the screen (the overview, a page of the app).
+  const chatOpen = computed(() => current.value.name === "screen" && current.value.query.chat === "layoutbot");
+  function withChat(view: RouteLocationRaw): RouteLocationRaw {
+    return chatOpen.value && typeof view === "object" && "name" in view && view.name === "screen" ? { ...view, query: { chat: "layoutbot" } } : view;
+  }
+  function openChat(open: boolean) {
+    const here = current.value;
+    if (open === chatOpen.value || here.name !== "screen") return;
+    const { chat: _, ...query } = here.query;
+    if (open) return router.push({ name: "screen", params: here.params, query: { ...query, chat: "layoutbot" } });
+    // Closed the way it was opened where it can be (Back, the history the address bar walks), else in place.
+    const back = (window.history.state as { back?: string | null } | null)?.back;
+    const without = router.resolve({ name: "screen", params: here.params, query }).fullPath;
+    return back === without ? router.back() : router.replace({ name: "screen", params: here.params, query });
   }
   // The screen whose Override YAML is open (#/override/<profile>): the profile is in the address, so a reload keeps it.
   const overrideProfile = computed(() => current.value.name === "override" ? (String(current.value.params.profile || "") || null) : null);
@@ -187,7 +204,7 @@ export const useUiStore = defineStore("ui", () => {
     notice, toast, dismissToast, copyText, openIntegrations,
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen, autoLayoutOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
-    route, go, setMainView, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
+    route, go, setMainView, chatOpen, openChat, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
     libraryOpen, filter, search, room, hidePlaced, growTip, growTips,
     now, fontsVersion, start,
   };
