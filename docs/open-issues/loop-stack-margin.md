@@ -32,19 +32,31 @@ no such guard, so the same depth there would corrupt memory without a word.
 - A stack in PSRAM for the loop task: ESP-IDF asserts that the stack is internal whenever the cache is off
   (`esp_mmu_map`, OTA's mmap), on the P4 and the S3.
 
+## Readings on boards (2026-11-16)
+
+"Loop Stack Free" in bytes, the low mark since boot, each board with its everyday layout:
+
+| Board | Before the fix | After b8e887c6 |
+|---|---|---|
+| Guition 10.1 (ESP32-P4), seven pages, 54 tiles, three plugins (a camera with video, a voice assistant, a Bluetooth proxy) | 40 after a layout's commit, then a stack overflow when a page of five camera tiles opened | 10,796 after the commit; 10,268 with that page open (four tiles live at 7 to 8.6 pictures a second each, no restart, no panel misses); 9,976 with Home Assistant asking for the screen's own video nine times beside the four streams |
+| Guition 4 inch (ESP32-S3, RGB panel) | 1,234 (firmware e2e114b9, the sensor without the fix) | 10,130 |
+| CYD (ESP32, no PSRAM) | not read on the board; about 13.2 KB deep by the compiler's sums | 10,507 |
+
+The deepest any board went after the fix is about 6.4 KB of 16 KB, LVGL's own depth included; nothing reads under 4 KB,
+so the stack stays 16 KB. The S3 was at 1.2 KB with an ordinary layout before, on a chip with no hardware guard: the
+risk was not the P4's alone.
+
 ## Candidates
 
-- LVGL's draw depth under a page of live tiles is what is left between 9.7 KB and the end; a reading decides it.
 - The screensaver's build: the saver op calls `saver_changed`, which may build the screensaver on top of the op's
   1,152-byte frame inside the API's call.
 
 ## The deciding experiment
 
-The home Guition 10.1, the 4-inch Guition (S3) and the CYD, each with its largest layout (on the 10.1 the three
-plugins and the page of four live tiles), read "Loop Stack Free" in Home Assistant (firmware e2e114b9+) before the fix
-and after it, after a layout lands, a page of live tiles opens and the screensaver comes. At least 4 KB left on each:
-the 16 KB stays. Less: `loop_task_stack_size` is sized from that reading for that chip (32 KB is ESPHome's ceiling),
-and a budget in `tools/stack_chains.py --budget` goes into the checks.
+Still to read on the same three boards: the low mark after the screensaver has come (the saver op's build, above) and
+after a night of use. At least 4 KB left on each: the 16 KB stays and this file is solved. Less: `loop_task_stack_size`
+is sized from that reading for that chip (32 KB is ESPHome's ceiling), and a budget in `tools/stack_chains.py
+--budget` goes into the checks.
 
 ## Pointers
 

@@ -16,7 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
-| [loop-stack-margin.md](loop-stack-margin.md) | The loop task's stack: a Guition 10.1 with a large layout overflowed it; the parser and the page's build are fixed, the margin with LVGL's own depth is read on boards | 2026-11-16 |
+| [loop-stack-margin.md](loop-stack-margin.md) | The loop task's stack: a Guition 10.1 with a large layout overflowed it; fixed in b8e887c6, three boards read about 10 KB free; the screensaver and a night are still to read | 2026-11-16 |
 | [page-pictures-step-two.md](page-pictures-step-two.md) | A page's picture is on the glass in 47 ms, but LVGL still draws the whole page after it (296 ms until it is done); what letting LVGL skip it takes | 2026-11-16 |
 | [lvgl-replace-style-selector.md](lvgl-replace-style-selector.md) | LVGL 9.5's lv_obj_replace_style with LV_PART_ANY \| LV_STATE_ANY overwrites each replaced style's selector; the report LVGL could get, not sent | 2026-11-16 |
 | [card-look-on-glass.md](card-look-on-glass.md) | A card's look (sections whose tiles follow the contrast) is proven on the host and in the preview, not yet seen on glass; the file holds what to look at | 2026-11-15 |
