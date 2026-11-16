@@ -28,11 +28,11 @@ template:
       - trigger: state
         entity_id: sun.sun
       - trigger: state
-        entity_id: sensor.dwd_warnungen_aktuelle_warnstufe
+        entity_id: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
     actions:
       - variables:
-          wetter: weather.dwd_wetter
-          warnungen: sensor.dwd_warnungen_aktuelle_warnstufe
+          wetter: weather.controlroom_sassenberg
+          warnungen: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
       - action: weather.get_forecasts
         continue_on_error: true
         target:

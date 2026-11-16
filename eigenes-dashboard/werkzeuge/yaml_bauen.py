@@ -143,7 +143,7 @@ substitutions:
   friendly_name: Wetter-Display
   ort: Sassenberg
   # die Wetter-Entität (DWD oder Met.no) und der Sensor aus home-assistant/wetter_display.yaml
-  wetter_entity: weather.dwd_wetter
+  wetter_entity: weather.controlroom_sassenberg
   vorhersage_entity: sensor.display_wetter
   # Raumklima (zweite Seite): Platzhalter, bis die drei Sensoren gebaut sind
   co2_wohnzimmer: sensor.luft_wohnzimmer_co2
