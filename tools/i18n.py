@@ -250,29 +250,36 @@ LINT_FILES = ('components/smart_display/*.h', 'packages/core.yaml', 'packages/bo
               'packages/features/*.yaml', 'packages/hardware/*.yaml')
 
 
+def linted_files():
+    """The files lint() reads. Left out: lab boards (packages/boards/lab-*.yaml), which the responsive lab writes and
+    never releases, and every log-only header (*_log.h, such as redraw_log.h): its words are what a developer reads in
+    the log, never what a screen shows, so they stay English without a line each in LINT_KEEP.
+    tests/test_log_words.py holds that a *_log.h knows nothing that draws or translates."""
+    for pattern in LINT_FILES:
+        for path in sorted(ROOT.glob(pattern)):
+            if not path.name.startswith('lab-') and not path.name.endswith('_log.h'):
+                yield path
+
+
 def lint():
     """English words in the firmware's code that should be a key of the translations' `screen` section."""
     literal = re.compile(r'"((?:[^"\\]|\\.)*)"')
     found = []
-    for pattern in LINT_FILES:
-        for path in sorted(ROOT.glob(pattern)):
-            # Lab boards (packages/boards/lab-*.yaml) are written by the responsive lab and never released.
-            if path.name.startswith('lab-'):
+    for path in linted_files():
+        for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+            stripped = line.strip()
+            # Comments, logs, and Home Assistant's entity names (renaming one gives it a new entity id).
+            if stripped.startswith(('//', '#', '*')) or 'ESP_LOG' in line or 'static_assert' in line or re.match(r'\s*name: "', line):
                 continue
-            for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
-                stripped = line.strip()
-                # Comments, logs, and Home Assistant's entity names (renaming one gives it a new entity id).
-                if stripped.startswith(('//', '#', '*')) or 'ESP_LOG' in line or 'static_assert' in line or re.match(r'\s*name: "', line):
+            code = line.split('//')[0]
+            if path.suffix == '.yaml':
+                code = re.split(r'\s#', code)[0]
+            for match in literal.finditer(code):
+                text = match.group(1)
+                if text in LINT_KEEP or re.search(r'[();]|::|->|\$\{', text):
                     continue
-                code = line.split('//')[0]
-                if path.suffix == '.yaml':
-                    code = re.split(r'\s#', code)[0]
-                for match in literal.finditer(code):
-                    text = match.group(1)
-                    if text in LINT_KEEP or re.search(r'[();]|::|->|\$\{', text):
-                        continue
-                    if re.match(r'^[A-Z][a-z]', text) or re.search(r'[A-Za-z]{2,} [a-z]{2,}', text):
-                        found.append(f'{path.relative_to(ROOT)}:{number}: "{text}"')
+                if re.match(r'^[A-Z][a-z]', text) or re.search(r'[A-Za-z]{2,} [a-z]{2,}', text):
+                    found.append(f'{path.relative_to(ROOT)}:{number}: "{text}"')
     for line in found:
         print('English in the firmware (a key of screen_manager/translations/en.json, or tools/i18n.py LINT_KEEP):', line)
     return 1 if found else 0
