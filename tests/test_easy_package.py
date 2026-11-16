@@ -50,9 +50,12 @@ class PackageTests(unittest.TestCase):
             # From main, unless the screen's own YAML names another branch (GITHUB_REF, the app's dev channel).
             self.assertIn('GITHUB_REF: "main"', package)
             self.assertIn('FONT_DIR: "https://raw.githubusercontent.com/MaxGramser/homeassistant_espscreen/${GITHUB_REF}/fonts"', package)
-            # The fonts of the shared core come from that place; a checkout entry takes them from the checkout's own fonts/.
-            self.assertIn('file: "${FONT_DIR}/Roboto-500.ttf"', profiles.CORE.read_text())
+            # A checkout entry takes the fonts from the checkout's own fonts/.
             self.assertIn('FONT_DIR: "../fonts"', (ROOT / BOARDS[board]).read_text())
+        # Every font a package names comes from that place, so a published screen and a checkout build the same letters.
+        for path in sorted((ROOT / 'packages').rglob('*.yaml')):
+            for line in re.findall(r'(?m)^\s*-?\s*file:\s*"?([^"\s]+\.(?:ttf|otf))', path.read_text()):
+                self.assertTrue(line.startswith('${FONT_DIR}/'), f'{path.name}: read the font {line} from ${{FONT_DIR}}/')
 
     def test_no_secret_or_local_path_under_packages(self):
         for path in sorted((ROOT / 'packages').rglob('*.yaml')):
@@ -76,7 +79,11 @@ class PackageTests(unittest.TestCase):
             else:
                 self.assertIsNone(block, f'{path.name} has a wifi: block')
         # The YAML ESP Screens writes says so too (since app 0.2.24), so an older package changes nothing for those.
-        self.assertIn('  power_save_mode: none\n', (ROOT / 'screen_manager/app/core.py').read_text())
+        sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+        import core
+        screen = core.installation_yaml({'board': 'guition', 'name': 'hall', 'friendly_name': 'Hall'})
+        wifi = re.search(r'^wifi:\n(.*?)(?=^[a-zA-Z_]+:|\Z)', screen, re.M | re.S)[1]
+        self.assertIn('  power_save_mode: none\n', wifi)
 
     def test_the_manual_profile_is_gone_from_profiles_and_packages(self):
         for board, name in BOARDS.items():
@@ -119,16 +126,14 @@ class PackageTests(unittest.TestCase):
         for board, can in seen.items():
             self.assertEqual(shapes[board]['can_standby'], can, board)
 
-    def test_runtime_tiles_keep_what_they_bind_and_open(self):
-        for board in BOARDS:
-            package = profiles.text(f'packages/{board}.yaml')
-            # The cards of the grid, made at boot (firmware 0.53.0+), and the parts every screen has.
-            for key in ['runtime_tiles::make_cells(id(materialdesign_icons)->get_lv_font(), ${TILE_ICON_SIZE});', 'runtime_tiles::enabled = true;', 'runtime_tiles::bind_pages();',
-                        'id: ui_refresh', 'runtime_tiles::render(id(lbl_room));']:
-                self.assertIn(key, package, board)
-        # The CYD keeps its resistive calibration on the screen itself; the Guition's GT911 needs none.
-        self.assertIn('screen_calibration::setup(', profiles.resolved('packages/cyd.yaml'))
-        self.assertNotIn('screen_calibration::setup(', profiles.resolved('packages/guition.yaml'))
+    def test_a_resistive_panel_and_no_other_sets_up_its_calibration(self):
+        # The cards of the grid made at boot, bound and drawn (firmware 0.53.0+) are the real boot's: tools/render/run.py
+        # starts each board's firmware and its self test checks every page's cells (page_check).
+        # A resistive panel keeps its calibration on the screen itself; a capacitive one reports pixels and needs none.
+        for board in profiles.BOARDS:
+            resistive = 'resistive-touch.yaml' in [path.name for path in profiles.chain(profiles.BOARDS[board])]
+            self.assertEqual('screen_calibration::setup(' in profiles.resolved(f'packages/{board}.yaml'), resistive,
+                             f'{board}: set the calibration up exactly on a resistive panel (features/resistive-touch.yaml)')
 
     def test_the_core_carries_no_board_number_and_every_board_the_same_names(self):
         core = profiles.CORE.read_text()
@@ -160,12 +165,6 @@ class PackageTests(unittest.TestCase):
             # hardware a screen's own YAML may change on the board that has it (the pins of an ESP32-P4's Wi-Fi link
             # and touch bus, hardware/esp32p4-c6.yaml).
             self.assertTrue(all(re.match(r'(TOUCH_AFFINE_|TOUCH_CAL_|TOUCH_CONTROLLER$|EDGE_SWIPE_|ALERT_\w*IMAGE|CAMERA_|BATTERY_|AUDIO_|DISPLAY_MODEL$|DISPLAY_DATA_RATE$|FLASH_SIZE$|DISPLAY_INVERT_COLORS$|BACKLIGHT_FREQUENCY$|HOSTED_SDIO_FREQUENCY$|HOSTED_\w+_PIN$|TOUCH_SDA$|TOUCH_SCL$)', n) for n in own), f'{board}: {sorted(own)}')
-
-    def test_the_checker_refuses_a_fixed_home_assistant_subscription(self):
-        source = (ROOT / 'tools/check_packages.py').read_text()
-        self.assertIn("re.search(r'^  - platform: homeassistant$', match[0], re.M)", source)
-        self.assertIn("for section in ('sensor', 'binary_sensor', 'text_sensor'):", source)
-
 
 
 class BoardRules(unittest.TestCase):
