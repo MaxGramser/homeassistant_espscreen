@@ -45,6 +45,7 @@ esphome:
       - light.turn_on:
           id: hintergrundlicht
           brightness: 80%
+      - script.execute: seite_weiter
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -174,8 +175,8 @@ script:
             - lvgl.widget.hide: bild_klein
       - lvgl.obj.update:
           id: panel
-          bg_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x1B2D57 : 0x2C5194);'
-          bg_grad_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x070F26 : 0x0F2148);'
+          bg_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x0B3A26 : 0x14583A);'
+          bg_grad_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x021A10 : 0x004225);'
   # die Temperaturkurve, ihre Punkte und Werte; läuft, wenn ein Tag neue Daten hat
   - id: kurve_zeichnen
     mode: restart
@@ -320,13 +321,15 @@ script:
           else:
             - lvgl.widget.hide: [rahmen_innen, pill_innen]
 
-# alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln
-interval:
-  - interval: ${seitenwechsel}
+  # alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und startet die Zeit neu
+  - id: seite_weiter
+    mode: restart
     then:
+      - delay: ${seitenwechsel}
       - lvgl.page.next:
           animation: MOVE_LEFT
           time: 400ms
+      - script.execute: seite_weiter
 
 # ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
 spi:
@@ -409,6 +412,12 @@ touchscreen:
       x_max: 480
       y_min: 0
       y_max: 480
+    # ein Tippen wechselt die Seite sofort; die Zeit bis zum nächsten Wechsel beginnt neu
+    on_release:
+      - lvgl.page.next:
+          animation: MOVE_LEFT
+          time: 400ms
+      - script.execute: seite_weiter
 
 
 # ---------------- Schriften: Poppins (wie im Entwurf), Icons von Material Design ----------------
@@ -542,7 +551,7 @@ text_sensor:
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_0
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
             id: lbl_icon_0
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -550,6 +559,9 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_name_0
             text: !lambda 'return wx::part(x, 0);'
+        - lvgl.label.update:
+            id: lbl_legende_einheit
+            text: !lambda 'auto u = wx::rain_unit(wx::part(x, 4), wx::part(x, 5)); return u.empty() ? std::string("%") : u;'
         - lvgl.label.update:
             id: lbl_hochtief
             text: !lambda 'return "Hoch " + wx::deg(wx::part(x, 2)) + " · Tief " + wx::deg(wx::part(x, 3));'
@@ -572,7 +584,7 @@ text_sensor:
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_1
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
             id: lbl_icon_1
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -593,7 +605,7 @@ text_sensor:
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_2
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
             id: lbl_icon_2
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -614,7 +626,7 @@ text_sensor:
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_3
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
             id: lbl_icon_3
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -635,7 +647,7 @@ text_sensor:
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_4
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
             id: lbl_icon_4
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -984,8 +996,8 @@ lvgl:
             y: 8
             width: 464
             height: 212
-            bg_color: 0x2C5194
-            bg_grad_color: 0x0F2148
+            bg_color: 0x14583A
+            bg_grad_color: 0x004225
             bg_grad_dir: VER
             bg_opa: COVER
             border_width: 0
@@ -1073,7 +1085,7 @@ lvgl:
                           id: lbl_datum
                           text: ""
                           text_font: f_16
-                          text_color: 0xB4C3DF
+                          text_color: 0xB9CFC2
                       - obj:
                           height: 20
                           width: SIZE_CONTENT
@@ -1159,7 +1171,7 @@ lvgl:
                           id: lbl_auf_wann
                           text: ""
                           text_font: f_12
-                          text_color: 0xB4C3DF
+                          text_color: 0xB9CFC2
                       - obj:
                           width: 6
                           height: 1
@@ -1178,7 +1190,7 @@ lvgl:
                           id: lbl_unter_wann
                           text: ""
                           text_font: f_12
-                          text_color: 0xB4C3DF
+                          text_color: 0xB9CFC2
               - image:
                   id: bild_jetzt
                   x: 311
@@ -1207,7 +1219,7 @@ lvgl:
                   width: 164
                   text: ""
                   text_font: f_14
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
                   text_align: RIGHT
               - obj:
                   id: rahmen
@@ -1234,7 +1246,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -1269,7 +1281,7 @@ lvgl:
                       - label:
                           text: "\U000F059D"
                           text_font: i_ui
-                          text_color: 0x2F6FED
+                          text_color: 0xB8862B
                           pad_right: 3
                           pad_bottom: 4
                       - label:
@@ -1293,7 +1305,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -1327,7 +1339,7 @@ lvgl:
                       - label:
                           text: "\U000F054A"
                           text_font: i_ui
-                          text_color: 0x2F6FED
+                          text_color: 0xB8862B
                           pad_right: 3
                           pad_bottom: 4
                       - label:
@@ -1352,7 +1364,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -1386,7 +1398,7 @@ lvgl:
                       - label:
                           text: "\U000F058E"
                           text_font: i_ui
-                          text_color: 0x2F6FED
+                          text_color: 0xB8862B
                           pad_right: 3
                           pad_bottom: 4
                       - label:
@@ -1410,7 +1422,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -1444,7 +1456,7 @@ lvgl:
                       - label:
                           text: "\U000F05A8"
                           text_font: i_ui
-                          text_color: 0x2F6FED
+                          text_color: 0xB8862B
                           pad_right: 3
                           pad_bottom: 4
                       - label:
@@ -1469,7 +1481,7 @@ lvgl:
             border_width: 0
             radius: 16
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -1505,7 +1517,7 @@ lvgl:
                           width: 10
                           height: 3
                           radius: 2
-                          bg_color: 0x1E3A6E
+                          bg_color: 0x6B5420
                           bg_opa: COVER
                           border_width: 0
                       - label:
@@ -1513,9 +1525,10 @@ lvgl:
                           text_font: f_13
                           text_color: 0x5F6B80
                       - label:
+                          id: lbl_legende_einheit
                           text: "%"
                           text_font: f_13m
-                          text_color: 0x2F6FED
+                          text_color: 0xB8862B
                           pad_left: 6
                       - label:
                           text: "Regen"
@@ -1526,7 +1539,7 @@ lvgl:
                   y: 106
                   width: 196
                   height: 1
-                  bg_color: 0x1E3A6E
+                  bg_color: 0x6B5420
                   bg_opa: 14%
                   border_width: 0
                   radius: 0
@@ -1536,7 +1549,7 @@ lvgl:
               - line:
                   id: kurve
                   points: [[36, 80], [40, 80], [45, 80], [50, 80], [55, 80], [60, 80], [65, 80], [70, 80], [75, 80], [80, 80], [85, 80], [90, 80], [94, 80], [99, 80], [104, 80], [109, 80], [114, 80], [119, 80], [124, 80], [129, 80], [134, 80], [138, 80], [143, 80], [148, 80], [153, 80], [158, 80], [163, 80], [168, 80], [173, 80], [178, 80], [183, 80], [188, 80], [192, 80]]
-                  line_color: 0x1E3A6E
+                  line_color: 0x6B5420
                   line_width: 3
                   line_rounded: true
               - obj:
@@ -1546,10 +1559,10 @@ lvgl:
                   width: 10
                   height: 10
                   radius: 5
-                  bg_color: 0x2F6FED
+                  bg_color: 0xB8862B
                   bg_opa: COVER
                   border_width: 3
-                  border_color: 0x2F6FED
+                  border_color: 0xB8862B
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1560,21 +1573,22 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_16m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
               - label:
                   id: lbl_regen_0
                   x: 16
-                  y: 111
+                  y: 106
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
+                  long_mode: CLIP
               - label:
                   id: lbl_icon_0
                   x: 16
-                  y: 128
+                  y: 131
                   width: 40
                   text: ""
                   text_font: i_tag
@@ -1587,7 +1601,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
               - obj:
                   id: punkt_1
@@ -1599,7 +1613,7 @@ lvgl:
                   bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
-                  border_color: 0x2F6FED
+                  border_color: 0xB8862B
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1615,16 +1629,17 @@ lvgl:
               - label:
                   id: lbl_regen_1
                   x: 55
-                  y: 111
+                  y: 106
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
+                  long_mode: CLIP
               - label:
                   id: lbl_icon_1
                   x: 55
-                  y: 128
+                  y: 131
                   width: 40
                   text: ""
                   text_font: i_tag
@@ -1649,7 +1664,7 @@ lvgl:
                   bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
-                  border_color: 0x2F6FED
+                  border_color: 0xB8862B
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1665,16 +1680,17 @@ lvgl:
               - label:
                   id: lbl_regen_2
                   x: 94
-                  y: 111
+                  y: 106
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
+                  long_mode: CLIP
               - label:
                   id: lbl_icon_2
                   x: 94
-                  y: 128
+                  y: 131
                   width: 40
                   text: ""
                   text_font: i_tag
@@ -1699,7 +1715,7 @@ lvgl:
                   bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
-                  border_color: 0x2F6FED
+                  border_color: 0xB8862B
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1715,16 +1731,17 @@ lvgl:
               - label:
                   id: lbl_regen_3
                   x: 133
-                  y: 111
+                  y: 106
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
+                  long_mode: CLIP
               - label:
                   id: lbl_icon_3
                   x: 133
-                  y: 128
+                  y: 131
                   width: 40
                   text: ""
                   text_font: i_tag
@@ -1749,7 +1766,7 @@ lvgl:
                   bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
-                  border_color: 0x2F6FED
+                  border_color: 0xB8862B
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1765,16 +1782,17 @@ lvgl:
               - label:
                   id: lbl_regen_4
                   x: 172
-                  y: 111
+                  y: 106
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0x2F6FED
+                  text_color: 0xB8862B
                   text_align: CENTER
+                  long_mode: CLIP
               - label:
                   id: lbl_icon_4
                   x: 172
-                  y: 128
+                  y: 131
                   width: 40
                   text: ""
                   text_font: i_tag
@@ -1800,7 +1818,7 @@ lvgl:
             border_width: 0
             radius: 16
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -1848,24 +1866,25 @@ lvgl:
                   id: bar_std_0
                   x: 70
                   y: 52
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0x2F6FED
+                  bg_color: 0xB8862B
                   bg_opa: 12%
-                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
+                  indicator: {radius: 6, bg_color: 0xD4A548, bg_opa: COVER}
               - label:
                   id: lbl_std_wert_0
-                  x: 178
+                  x: 156
                   y: 48
-                  width: 34
+                  width: 56
                   text: ""
                   text_font: f_14m
                   text_color: 0x14213D
                   text_align: RIGHT
+                  long_mode: CLIP
               - label:
                   id: lbl_std_1
                   x: 16
@@ -1878,24 +1897,25 @@ lvgl:
                   id: bar_std_1
                   x: 70
                   y: 76
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0x2F6FED
+                  bg_color: 0xB8862B
                   bg_opa: 12%
-                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
+                  indicator: {radius: 6, bg_color: 0xD4A548, bg_opa: COVER}
               - label:
                   id: lbl_std_wert_1
-                  x: 178
+                  x: 156
                   y: 72
-                  width: 34
+                  width: 56
                   text: ""
                   text_font: f_14m
                   text_color: 0x14213D
                   text_align: RIGHT
+                  long_mode: CLIP
               - label:
                   id: lbl_std_2
                   x: 16
@@ -1908,24 +1928,25 @@ lvgl:
                   id: bar_std_2
                   x: 70
                   y: 100
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0x2F6FED
+                  bg_color: 0xB8862B
                   bg_opa: 12%
-                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
+                  indicator: {radius: 6, bg_color: 0xD4A548, bg_opa: COVER}
               - label:
                   id: lbl_std_wert_2
-                  x: 178
+                  x: 156
                   y: 96
-                  width: 34
+                  width: 56
                   text: ""
                   text_font: f_14m
                   text_color: 0x14213D
                   text_align: RIGHT
+                  long_mode: CLIP
               - label:
                   id: lbl_std_3
                   x: 16
@@ -1938,24 +1959,25 @@ lvgl:
                   id: bar_std_3
                   x: 70
                   y: 124
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0x2F6FED
+                  bg_color: 0xB8862B
                   bg_opa: 12%
-                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
+                  indicator: {radius: 6, bg_color: 0xD4A548, bg_opa: COVER}
               - label:
                   id: lbl_std_wert_3
-                  x: 178
+                  x: 156
                   y: 120
-                  width: 34
+                  width: 56
                   text: ""
                   text_font: f_14m
                   text_color: 0x14213D
                   text_align: RIGHT
+                  long_mode: CLIP
               - label:
                   id: lbl_std_4
                   x: 16
@@ -1968,24 +1990,25 @@ lvgl:
                   id: bar_std_4
                   x: 70
                   y: 148
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0x2F6FED
+                  bg_color: 0xB8862B
                   bg_opa: 12%
-                  indicator: {radius: 6, bg_color: 0x5B8FF5, bg_opa: COVER}
+                  indicator: {radius: 6, bg_color: 0xD4A548, bg_opa: COVER}
               - label:
                   id: lbl_std_wert_4
-                  x: 178
+                  x: 156
                   y: 144
-                  width: 34
+                  width: 56
                   text: ""
                   text_font: f_14m
                   text_color: 0x14213D
                   text_align: RIGHT
+                  long_mode: CLIP
     - id: seite_innen
       bg_color: 0xF3F5F9
       bg_opa: COVER
@@ -1998,8 +2021,8 @@ lvgl:
             y: 8
             width: 464
             height: 212
-            bg_color: 0x2C5194
-            bg_grad_color: 0x0F2148
+            bg_color: 0x14583A
+            bg_grad_color: 0x004225
             bg_grad_dir: VER
             bg_opa: COVER
             border_width: 0
@@ -2056,19 +2079,19 @@ lvgl:
                   y: 45
                   text: "CO"
                   text_font: f_16
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
               - label:
                   x: 41
                   y: 53
                   text: "2"
                   text_font: f_12
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
               - label:
                   x: 48
                   y: 45
                   text: " in den Räumen"
                   text_font: f_16
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
               - obj:
                   x: 181
                   y: 46
@@ -2100,7 +2123,7 @@ lvgl:
                   y: 81
                   text: "Wohnzimmer"
                   text_font: f_14
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
               - label:
                   id: lbl_co2_wohnzimmer
                   x: 13
@@ -2230,7 +2253,7 @@ lvgl:
                   y: 81
                   text: "Schlafzimmer"
                   text_font: f_14
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
               - label:
                   id: lbl_co2_schlafzimmer
                   x: 170
@@ -2360,7 +2383,7 @@ lvgl:
                   y: 81
                   text: "Büro"
                   text_font: f_14
-                  text_color: 0xB4C3DF
+                  text_color: 0xB9CFC2
               - label:
                   id: lbl_co2_buero
                   x: 328
@@ -2498,7 +2521,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -2557,7 +2580,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -2616,7 +2639,7 @@ lvgl:
             border_width: 0
             radius: 14
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -2675,7 +2698,7 @@ lvgl:
             border_width: 0
             radius: 16
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
@@ -2722,7 +2745,7 @@ lvgl:
                   id: bar_pm1
                   x: 70
                   y: 46
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
@@ -2733,7 +2756,7 @@ lvgl:
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
                   id: lbl_pm1
-                  x: 178
+                  x: 156
                   y: 42
                   width: 34
                   text: "--"
@@ -2751,7 +2774,7 @@ lvgl:
                   id: bar_pm25
                   x: 70
                   y: 68
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
@@ -2762,7 +2785,7 @@ lvgl:
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
                   id: lbl_pm25
-                  x: 178
+                  x: 156
                   y: 64
                   width: 34
                   text: "--"
@@ -2780,7 +2803,7 @@ lvgl:
                   id: bar_pm4
                   x: 70
                   y: 90
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
@@ -2791,7 +2814,7 @@ lvgl:
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
                   id: lbl_pm4
-                  x: 178
+                  x: 156
                   y: 86
                   width: 34
                   text: "--"
@@ -2809,7 +2832,7 @@ lvgl:
                   id: bar_pm10
                   x: 70
                   y: 112
-                  width: 98
+                  width: 76
                   height: 12
                   min_value: 0
                   max_value: 100
@@ -2820,7 +2843,7 @@ lvgl:
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
                   id: lbl_pm10
-                  x: 178
+                  x: 156
                   y: 108
                   width: 34
                   text: "--"
@@ -2838,7 +2861,7 @@ lvgl:
             border_width: 0
             radius: 16
             shadow_width: 18
-            shadow_color: 0x1E3A6E
+            shadow_color: 0x6B5420
             shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0

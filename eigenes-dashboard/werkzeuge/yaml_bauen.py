@@ -35,10 +35,11 @@ BADGE = 86
 BADGE_OFF = round(58 / 140 * BILD)  # 61
 
 # ---- Farben
-BG, CARD, INK, MUTED, BLUE = "0xF3F5F9", "0xFFFFFF", "0x14213D", "0x5F6B80", "0x2F6FED"
-PANEL_TAG, PANEL_NACHT = ("0x2C5194", "0x0F2148"), ("0x1B2D57", "0x070F26")
-PMUTED, SONNE = "0xB4C3DF", "0xFFD27A"
-LINIE, TRACK, FILL = "0x1E3A6E", "0x2F6FED", "0x5B8FF5"
+BG, CARD, INK, MUTED, GOLD = "0xF3F5F9", "0xFFFFFF", "0x14213D", "0x5F6B80", "0xB8862B"
+# Panel in British Racing Green, Akzente in Gold
+PANEL_TAG, PANEL_NACHT = ("0x14583A", "0x004225"), ("0x0B3A26", "0x021A10")
+PMUTED, SONNE = "0xB9CFC2", "0xFFD27A"
+LINIE, TRACK, FILL = "0x6B5420", "0xB8862B", "0xD4A548"
 
 COND = ["F0599", "F0594", "F0595", "F0590", "F0591", "F0592", "F0593", "F067E", "F0596", "F0597", "F0598",
         "F067F", "F059D", "F059E", "F0F2F"]
@@ -176,6 +177,7 @@ esphome:
       - light.turn_on:
           id: hintergrundlicht
           brightness: 80%
+      - script.execute: seite_weiter
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -340,13 +342,15 @@ w("""  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab
           else:
             - lvgl.widget.hide: [rahmen_innen, pill_innen]
 
-# alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln
-interval:
-  - interval: ${seitenwechsel}
+  # alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und startet die Zeit neu
+  - id: seite_weiter
+    mode: restart
     then:
+      - delay: ${seitenwechsel}
       - lvgl.page.next:
           animation: MOVE_LEFT
           time: 400ms
+      - script.execute: seite_weiter
 """)
 
 w(open(HW).read())
@@ -458,7 +462,7 @@ for d in range(5):
             text: !lambda 'return wx::deg(wx::part(x, 2));'
         - lvgl.label.update:
             id: lbl_regen_{d}
-            text: !lambda 'return wx::rain(wx::part(x, 4), wx::part(x, 5));'
+            text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
         - lvgl.label.update:
             id: lbl_icon_{d}
             text: !lambda 'return wx::icon(wx::part(x, 1));'
@@ -468,6 +472,9 @@ for d in range(5):
             text: !lambda 'return wx::part(x, 0);'""")
     if d == 0:
         w("""        - lvgl.label.update:
+            id: lbl_legende_einheit
+            text: !lambda 'auto u = wx::rain_unit(wx::part(x, 4), wx::part(x, 5)); return u.empty() ? std::string("%") : u;'
+        - lvgl.label.update:
             id: lbl_hochtief
             text: !lambda 'return "Hoch " + wx::deg(wx::part(x, 2)) + " · Tief " + wx::deg(wx::part(x, 3));'
         - lvgl.label.update:
@@ -707,7 +714,7 @@ for k, (name, ic, titel, unit, tid) in enumerate(tiles):
                         pad_bottom=3))
     kids = [label(C, tid, P, y(11, 16, 14), titel, "f_14", MUTED),
             row(C, None, P - 1, 28, [
-                label(C + 8, None, None, None, ic, "i_ui", BLUE, pad_right=3, pad_bottom=4),
+                label(C + 8, None, None, None, ic, "i_ui", GOLD, pad_right=3, pad_bottom=4),
                 label(C + 8, f"lbl_{name}", None, None, "--", "f_wert", INK),
                 unit_label], 3, cross="END")]
     w(box(I, f"kachel_{name}", x, TILE_Y, COL, TILE_H, TILE, kids))
@@ -721,7 +728,7 @@ def kopf(titel, rechts):
 
 legende = [widget("obj", C + 8, dict(width=10, height=3, radius=2, bg_color=LINIE, bg_opa="COVER", border_width=0)),
            label(C + 8, None, None, None, "Temp", "f_13", MUTED),
-           label(C + 8, None, None, None, "%", "f_13m", BLUE, pad_left=6),
+           label(C + 8, "lbl_legende_einheit", None, None, "%", "f_13m", GOLD, pad_left=6),
            label(C + 8, None, None, None, "Regen", "f_13", MUTED)]
 kids = kopf("5 Tage", legende)
 kids.append(box(C, None, P, 106, CARD2 - 2 * P, 1, dict(bg_color=LINIE, bg_opa="14%", border_width=0, radius=0)))
@@ -731,26 +738,28 @@ kids.append(widget("line", C, dict(id="kurve", points=f"[{pts}]", line_color=LIN
 for d in range(5):
     cx = round(16 + 39.2 * (d + .5))
     heute = d == 0
-    kids.append(box(C, f"punkt_{d}", cx - 5, 75, 10, 10, dict(radius=5, bg_color=BLUE if heute else CARD,
-                                                              bg_opa="COVER", border_width=3, border_color=BLUE)))
-    kids.append(label(C, f"lbl_hoch_{d}", cx - 20, 50, "", "f_16m", BLUE if heute else INK, width=40, align="CENTER"))
-    kids.append(label(C, f"lbl_regen_{d}", cx - 20, y(111, 18, 13), "", "f_13m", BLUE, width=40, align="CENTER"))
-    kids.append(label(C, f"lbl_icon_{d}", cx - 20, 128, "", "i_tag", MUTED, width=40, align="CENTER"))
+    kids.append(box(C, f"punkt_{d}", cx - 5, 75, 10, 10, dict(radius=5, bg_color=GOLD if heute else CARD,
+                                                              bg_opa="COVER", border_width=3, border_color=GOLD)))
+    kids.append(label(C, f"lbl_hoch_{d}", cx - 20, 50, "", "f_16m", GOLD if heute else INK, width=40, align="CENTER"))
+    kids.append(label(C, f"lbl_regen_{d}", cx - 20, 106, "", "f_13m", GOLD, width=40, align="CENTER",
+                      long_mode="CLIP"))
+    kids.append(label(C, f"lbl_icon_{d}", cx - 20, 131, "", "i_tag", MUTED, width=40, align="CENTER"))
     kids.append(label(C, f"lbl_name_{d}", cx - 22, y(149, 18, 14), "", "f_14m" if heute else "f_14",
-                      BLUE if heute else MUTED, width=44, align="CENTER"))
+                      GOLD if heute else MUTED, width=44, align="CENTER"))
 w(box(I, "karte_tage", M, CARD_Y, CARD2, CARD_H, CARDSTYLE, kids))
 
 kids = kopf("Regen", [label(C + 8, None, None, None, "nächste Stunden", "f_13", MUTED)])
 inner = CARD2 - 2 * P
-bar_w = inner - 44 - 34 - 20
+WERT_W = 56  # "0,3 mm" ist 53 px breit (Poppins 500, 14 px)
+bar_w = inner - 44 - WERT_W - 20
 for h in range(5):
     r = 50 + h * 24
     kids.append(label(C, f"lbl_std_{h}", P, y(r, 16, 14), "", "f_14", MUTED, width=44))
     kids.append(widget("bar", C, dict(id=f"bar_std_{h}", x=P + 54, y=r + 2, width=bar_w, height=12, min_value=0,
                                       max_value=100, value=0, radius=6, bg_color=TRACK, bg_opa="12%",
                                       indicator="{radius: 6, bg_color: " + FILL + ", bg_opa: COVER}")))
-    kids.append(label(C, f"lbl_std_wert_{h}", P + 54 + bar_w + 10, y(r, 16, 14), "", "f_14m", INK, width=34,
-                      align="RIGHT"))
+    kids.append(label(C, f"lbl_std_wert_{h}", P + 54 + bar_w + 10, y(r, 16, 14), "", "f_14m", INK, width=WERT_W,
+                      align="RIGHT", long_mode="CLIP"))
 w(box(I, "karte_regen", M + CARD2 + G, CARD_Y, CARD2, CARD_H, CARDSTYLE, kids))
 
 # ================================================================ Seite 2: Raumklima

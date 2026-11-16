@@ -79,4 +79,10 @@ touchscreen:
       x_max: 480
       y_min: 0
       y_max: 480
+    # ein Tippen wechselt die Seite sofort; die Zeit bis zum nächsten Wechsel beginnt neu
+    on_release:
+      - lvgl.page.next:
+          animation: MOVE_LEFT
+          time: 400ms
+      - script.execute: seite_weiter
 

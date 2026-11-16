@@ -2,7 +2,8 @@
 
 Ein eigenständiges Dashboard für das **Guition ESP32-S3-4848S040** (4 Zoll, 480 × 480, Touch), direkt mit ESPHome
 und LVGL gebaut. Es braucht weder Tessera noch das ESP-Screen-Manager-Add-on. Es hat zwei Seiten, Wetter und
-Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in `wetter-display.yaml`).
+Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in `wetter-display.yaml`). Ein Tippen
+aufs Display wechselt sofort die Seite; die 45 Sekunden beginnen dann neu.
 
 ![Entwurf bei Tag](vorschau-tag.png) ![Entwurf bei Nacht mit Warnung](vorschau-nacht.png)
 ![Entwurf Raumklima](vorschau-innen.png)
@@ -12,7 +13,7 @@ das kann um wenige Pixel abweichen.*
 
 ## Was das Display zeigt
 
-- **Panel oben** (tagsüber blau, nachts dunkler): Ort, Datum und Kalenderwoche, die Temperatur, Sonnenaufgang und
+- **Panel oben** (British Racing Green, nachts dunkler; Akzente in Gold): Ort, Datum und Kalenderwoche, die Temperatur, Sonnenaufgang und
   -untergang mit „vor/in … Std“, ein großes Wetterbild, der Wettertext, Hoch und Tief von heute.
 - **Nachts** zeigt das große Bild die Mondphase (8 Stufen, auf dem Display berechnet) und klein daneben das aktuelle
   Wetter, z. B. eine Regenwolke.
@@ -66,7 +67,8 @@ Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
 
 1. **Vorhersage vom DWD**: die Integration „DWD Weather“ über HACS installieren und die nächstgelegene Station
    wählen. Sie legt eine Wetter-Entität an (z. B. `weather.<station>`). Met.no geht auch, dann ohne
-   Regenwahrscheinlichkeit.
+   Regenwahrscheinlichkeit. Die Option „Erzwinge die stündliche Aktualisierung“ der DWD-Integration ausgeschaltet
+   lassen: Mit ihr fehlt die Regenwahrscheinlichkeit, und das Display zeigt Regen in Millimetern.
 2. **Warnungen vom DWD**: unter Einstellungen → Geräte & Dienste → Integration hinzufügen → „Deutscher Wetterdienst
    (DWD) Weather Warnings“ den Warnbereich eintragen (für Sassenberg der Kreis Warendorf). Gebraucht wird der Sensor
    der *aktuellen* Warnstufe.
