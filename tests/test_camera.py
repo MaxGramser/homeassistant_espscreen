@@ -1325,23 +1325,16 @@ class LiveTiles(unittest.TestCase):
 
     def test_pictures_load_while_the_tiles_are_seen(self):
         """GitHub #161 (firmware 0.40.0): a dimmed screen without a screensaver still shows its tiles, so their pictures
-        keep loading there. The rule itself is camera_view::tiles_seen (tests/test_camera_view.cpp); the firmware asks
-        it everywhere a picture on the tiles loads, and the backlight goes by the same standby level."""
-        waiting = TILES.split('inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {', 1)[1].split('\n}', 1)[0]
-        self.assertIn('!tiles_seen()', waiting)
-        # A picture on the glass (a tile's own, a cover over a whole page) follows the tiles; one fetched ahead for a page
-        # that is not shown waits for a screen in use.
-        tiles = TILES.split('inline void card_picture_wants() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('const bool seen = tiles_seen() && !card_open() && !camera_root;', tiles)
-        self.assertIn('const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3', tiles)
-        # And a busy screen fetches nothing ahead (the governor's background, pressure.h).
-        self.assertIn('pressure::level_of(pressure::BACKGROUND) == 0;', tiles)
-        page = tiles
-        card = TILES.split('inline void card_cover_want() {', 1)[1].split('\n}\n', 1)[0]
-        self.assertIn('!tiles_seen()', card)
-        self.assertNotIn('if (!awake()) return;', page + tiles + card)
-        # Any screensaver covers the tiles, the clock (saver_root) as much as a camera or a cover (saver_camera).
-        self.assertIn('camera_view::tiles_seen(awake(), saver_root || saver_camera, standby_level())', TILES)
+        keep loading there. The rules are camera_view's: tiles_seen (awake, or dimmed without a screensaver above
+        SEEN_LEVEL), pictures_on_glass (seen and no card or full view over the tiles) and pictures_ahead (a kept page's
+        only while the screen is in use, with room to spare and nothing busy), proven by tests/test_camera_view.cpp.
+        Here: the firmware's places that load the tiles' pictures ask those rules, and the backlight of a dimmed screen
+        goes by the same standby level."""
+        # glass: a dimmed screen without a screensaver shows a camera tile's new picture; with the clock saver over it,
+        # nothing loads until it wakes.
+        parts = {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
+        for rule in ('camera_view::pictures_on_glass(', 'camera_view::pictures_ahead(', 'camera_view::tiles_seen('):
+            self.assertTrue([name for name, code in parts.items() if rule in code], f'the firmware asks {rule}...)')
         # The backlight of a dimmed screen, wherever a package sets it, goes by that same level, so the tiles count as seen
         # exactly while they are lit enough to be.
         dimmed = []

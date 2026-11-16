@@ -91,7 +91,8 @@ inline void tile_picture_request(const tile_picture::Ask &a) {
 // restart, before the app has sent the layout again; Home Assistant away) waits for nothing: the card shows its head as
 // every card does then, not a spinner that never ends.
 inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {
-  if (!tile_pictures_supported() || !fresh() || !tiles_seen() || card_open() || camera_root || !t.pictured()) return false;
+  if (!tile_pictures_supported() || !fresh() || !t.pictured() ||
+      !camera_view::pictures_on_glass(tiles_seen(), card_open(), camera_root != nullptr)) return false;
   if (w.picture && !lv_obj_has_flag(w.picture, LV_OBJ_FLAG_HIDDEN)) return false;
   const auto owner = owners::tile(w.index);
   return !loader.has(owner) || !loader.settled_for(owner);

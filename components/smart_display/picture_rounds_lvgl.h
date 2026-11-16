@@ -262,11 +262,10 @@ inline void tile_picture_want(Widgets &w, bool glass) {
 // broken off for it, so the page shows it the moment it comes back (firmware 0.3.2+). A media card that shows another
 // track than it was drawn with asks once it is drawn again.
 inline void card_picture_wants() {
-  const bool seen = tiles_seen() && !card_open() && !camera_root;
-  // Ahead only while the store has room to spare: over its budget a page out of sight lets its pictures go
-  // (picture_away), and fetching them ahead again would only send them round.
-  const bool ahead = awake() && pictures_kept() && !prepare_busy() && pictures.size() < pictures.budget / 4 * 3 &&
-                     pressure::level_of(pressure::BACKGROUND) == 0;  // a busy screen fetches nothing ahead
+  // On the glass while the tiles are seen; ahead only while the store has room to spare and the screen is not busy.
+  const bool seen = camera_view::pictures_on_glass(tiles_seen(), card_open(), camera_root != nullptr);
+  const bool ahead = camera_view::pictures_ahead(awake(), pictures_kept(), prepare_busy(), pictures.size(), pictures.budget,
+                                                 pressure::level_of(pressure::BACKGROUND));
   const bool tiles = tile_pictures_supported() && model.ready();
   each_card([&](Widgets &w) {
 #if LV_USE_IMAGE
