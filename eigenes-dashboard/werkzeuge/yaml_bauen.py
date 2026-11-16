@@ -145,6 +145,8 @@ substitutions:
   ort: Sassenberg
   # die Wetter-Entität (DWD oder Met.no) und der Sensor aus home-assistant/wetter_display.yaml
   wetter_entity: weather.controlroom_sassenberg
+  # UV-Index von der Integration OpenUV (die DWD-Integration liefert ihn nicht mehr)
+  uv_entity: sensor.controlroom_openuv_aktueller_uv_index
   vorhersage_entity: sensor.display_wetter
   # Raumklima (zweite Seite): Platzhalter, bis die drei Sensoren gebaut sind
   co2_wohnzimmer: sensor.luft_wohnzimmer_co2
@@ -284,6 +286,14 @@ w(f"""              return id(img_nacht_wolke);
           id: panel
           bg_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? {PANEL_NACHT[0]} : {PANEL_TAG[0]});'
           bg_grad_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? {PANEL_NACHT[1]} : {PANEL_TAG[1]});'
+      # UV-Index: OpenUV wird nur tagsüber abgefragt; nachts ist er 0
+      - lvgl.label.update:
+          id: lbl_uv
+          text: !lambda 'return id(sonne_zustand).state == "below_horizon" ? std::string("0") : wx::percent(id(wetter_uv).state);'
+      - lvgl.label.update:
+          id: lbl_uv_text
+          text: !lambda 'return wx::uv_text(id(sonne_zustand).state == "below_horizon" ? 0.0f : id(wetter_uv).state);'
+          text_color: !lambda 'return wx::uv_color(id(sonne_zustand).state == "below_horizon" ? 0.0f : id(wetter_uv).state);'
   # die Temperaturkurve, ihre Punkte und Werte; läuft, wenn ein Tag neue Daten hat
   - id: kurve_zeichnen
     mode: restart
@@ -540,17 +550,10 @@ sensor:
             text: !lambda 'auto r = wx::richtung(x); return r.empty() ? std::string("Wind") : "Wind " + r;'
   - platform: homeassistant
     id: wetter_uv
-    entity_id: ${wetter_entity}
-    attribute: uv_index
+    entity_id: ${uv_entity}
     on_value:
       then:
-        - lvgl.label.update:
-            id: lbl_uv
-            text: !lambda 'return wx::percent(x);'
-        - lvgl.label.update:
-            id: lbl_uv_text
-            text: !lambda 'return wx::uv_text(x);'
-            text_color: !lambda 'return wx::uv_color(x);'
+        - script.execute: jetzt_zeichnen
 """)
 
 # ---- Raumklima: Maße (wie im Entwurf) und Sensoren

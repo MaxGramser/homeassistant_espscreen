@@ -16,6 +16,10 @@
 #   wetter     die Wetter-Entität, z. B. vom DWD (HACS-Integration "DWD Weather") oder Met.no
 #   warnungen  der Sensor "aktuelle Warnstufe" der Integration "Deutscher Wetterdienst (DWD) Weather Warnings";
 #              ohne DWD-Warnungen einfach so lassen, das Display zeigt dann keine Warnung.
+#
+# Dazu eine Automation für den UV-Index von OpenUV (die DWD-Integration liefert ihn nicht mehr). OpenUV fragt nicht
+# von selbst ab und erlaubt mit dem kostenlosen Schlüssel 50 Abfragen am Tag: Die Automation fragt tagsüber alle
+# 30 Minuten (im Sommer gut 30-mal am Tag). Die Entität unten bei "entity_id" anpassen.
 
 template:
   - triggers:
@@ -132,3 +136,22 @@ template:
           sonne: "{{ sonne | trim }}"
           aufgang_heute: "{{ (sonne | trim).split(';')[0] if is_state('sun.sun', 'above_horizon') else 0 }}"
           warnung: "{{ warnung | trim }}"
+
+automation:
+  - id: wetter_display_openuv
+    alias: "Wetter-Display: OpenUV aktualisieren"
+    mode: single
+    triggers:
+      - trigger: time_pattern
+        minutes: "/30"
+      - trigger: state
+        entity_id: sun.sun
+        to: above_horizon
+    conditions:
+      - condition: state
+        entity_id: sun.sun
+        state: above_horizon
+    actions:
+      - action: homeassistant.update_entity
+        target:
+          entity_id: sensor.controlroom_openuv_aktueller_uv_index

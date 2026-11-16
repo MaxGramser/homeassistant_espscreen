@@ -19,7 +19,7 @@ das kann um wenige Pixel abweichen.*
   Wetter, z. B. eine Regenwolke.
 - **Warnungen des DWD**: ein Rahmen um das Panel und ein Hinweis neben dem Ort, in der Farbe der Warnstufe:
   1 gelb, 2 orange, 3 rot, 4 violett. Bei mehreren Warnungen zählt die höchste.
-- **Vier Kacheln**: Wind mit Richtung, Regen heute, Luftfeuchte, UV-Index mit Einstufung (niedrig bis extrem).
+- **Vier Kacheln**: Wind mit Richtung, Regen heute, Luftfeuchte, UV-Index von OpenUV mit Einstufung (niedrig bis extrem; nachts 0).
 - **5 Tage**: Kurve der Tageshöchstwerte, darunter Regen, Wetter-Icon und Tag.
 - **Regen**: die nächsten 10 Stunden in 2-Stunden-Schritten als Balken.
 
@@ -69,18 +69,22 @@ Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
    wählen. Sie legt eine Wetter-Entität an (z. B. `weather.<station>`). Met.no geht auch, dann ohne
    Regenwahrscheinlichkeit. Die Option „Erzwinge die stündliche Aktualisierung“ der DWD-Integration ausgeschaltet
    lassen: Mit ihr fehlt die Regenwahrscheinlichkeit, und das Display zeigt Regen in Millimetern.
-2. **Warnungen vom DWD**: unter Einstellungen → Geräte & Dienste → Integration hinzufügen → „Deutscher Wetterdienst
+2. **UV-Index von OpenUV**: auf openuv.io kostenlos registrieren und den API-Schlüssel kopieren. Unter
+   Einstellungen → Geräte & Dienste → Integration hinzufügen → „OpenUV“ den Schlüssel eintragen. Gebraucht wird die
+   Entität „Aktueller UV-Index“. Das Paket unten enthält eine Automation, die sie tagsüber alle 30 Minuten abfragt
+   (der kostenlose Schlüssel erlaubt 50 Abfragen am Tag).
+3. **Warnungen vom DWD**: unter Einstellungen → Geräte & Dienste → Integration hinzufügen → „Deutscher Wetterdienst
    (DWD) Weather Warnings“ den Warnbereich eintragen (für Sassenberg der Kreis Warendorf). Gebraucht wird der Sensor
    der *aktuellen* Warnstufe.
-3. In `configuration.yaml` Pakete einschalten, falls noch nicht geschehen:
+4. In `configuration.yaml` Pakete einschalten, falls noch nicht geschehen:
    ```yaml
    homeassistant:
      packages: !include_dir_named packages
    ```
-4. `home-assistant/wetter_display.yaml` nach `config/packages/wetter_display.yaml` kopieren und darin die beiden
+5. `home-assistant/wetter_display.yaml` nach `config/packages/wetter_display.yaml` kopieren und darin die beiden
    Zeilen `wetter:` und `warnungen:` auf deine Entitäten setzen (die Warnungs-Entität steht außerdem einmal bei den
-   Auslösern oben).
-5. Home Assistant neu starten. Danach gibt es `sensor.display_wetter` mit den Attributen `tag_0` bis `tag_4`,
+   Auslösern oben); ganz unten in der Automation die OpenUV-Entität.
+6. Home Assistant neu starten. Danach gibt es `sensor.display_wetter` mit den Attributen `tag_0` bis `tag_4`,
    `stunde_0` bis `stunde_4`, `sonne` und `warnung` (Entwicklerwerkzeuge → Zustände).
 
 ### 2. ESPHome: Display bauen und flashen
@@ -89,7 +93,7 @@ Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
    `config/esphome/` kopieren, z. B. mit dem Samba- oder dem Studio-Code-Server-Add-on. Das ESPHome-Dashboard zeigt
    nur YAML-Dateien, die direkt in diesem Ordner liegen, keine aus Unterordnern.
 2. Die Einträge aus `secrets.example.yaml` in `config/esphome/secrets.yaml` übernehmen und eigene Werte eintragen.
-3. Oben in `wetter-display.yaml` `ort`, `wetter_entity` (dieselbe Wetter-Entität wie im Paket) und
+3. Oben in `wetter-display.yaml` `ort`, `wetter_entity` (dieselbe Wetter-Entität wie im Paket), `uv_entity` (OpenUV) und
    `vorhersage_entity` anpassen.
 4. Das erste Mal per USB-C flashen, danach geht es per WLAN. Läuft Home Assistant in einer VM (z. B. unter Proxmox),
    ist der einfachste Weg: im ESPHome-Dashboard bei „Wetter-Display“ ⋮ → Install → Manual download → „Factory
