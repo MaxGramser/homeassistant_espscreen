@@ -32,7 +32,6 @@ import plugin_pictures  # noqa: E402
 import saver_photos  # noqa: E402
 import screen_saver  # noqa: E402
 from core import media_extras, short  # noqa: E402
-from firmware_sources import runtime_source  # noqa: E402
 
 PLAYER = 'media_player.living_room'
 PLAYING = {'state': 'playing', 'attributes': {'friendly_name': 'Living room', 'media_title': 'Song', 'media_artist': 'Band',
@@ -96,14 +95,12 @@ class Options(unittest.TestCase):
                          'of it are the same: change both')
 
     def test_the_screen_makes_the_saver_anew_for_other_options(self):
-        # Left as it was: whether a face is painted in place or made anew is decided in runtime_tiles.h, which is being
-        # split into *_lvgl.h files. Once the decision is a function of its own, a C++ test of it takes this one's place.
+        # The screen keeps a saver's options (`pf.o`) apart from the rest of its word, and paints a saver in place only
+        # for the same options: other options make it anew. That decision is saver_view::paints_in_place, which
+        # saver_sync asks and tests/test_saver_view.cpp proves (a new word, other options, another saver or step,
+        # nothing shown, a plugin that left). Here: the options the app sends are the ones the screen compares.
         receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
         self.assertIn('serializeJson(pf["o"], next.plugin_options);', receiver)
-        runtime = runtime_source()
-        in_place = runtime[runtime.index('// The same plugin\'s saver for the same step with a new word'):]
-        in_place = in_place[:in_place.index('{\n')]
-        self.assertIn('saver_next.plugin_options == saver_now.plugin_options', in_place)
 
 
 class Pick(unittest.TestCase):

@@ -385,8 +385,7 @@ inline void saver_sync(bool lit) {
   if (shown && saver_next == saver_now && (saver_now.kind != "clock" || !saver_now.plugin.empty())) return;
   // The same plugin's saver for the same step with a new word: it paints that in place (on_state). Other options make
   // it anew, as Tessera's own face is drawn again for another look: a saver reads its options in show().
-  if (saver_root && !saver_now.plugin.empty() && saver_next.plugin == saver_now.plugin && saver_next.kind == saver_now.kind &&
-      saver_next.plugin_options == saver_now.plugin_options && saver_plugin_draws(saver_next)) {
+  if (saver_view::paints_in_place(saver_now, saver_next, saver_root != nullptr, saver_plugin_draws(saver_next))) {
     // Its backdrop follows the next cover or photo as Tessera's own face does (the last stays until it comes).
     if (saver_bare && camera_root && camera_picture && (saver_next.entity != saver_now.entity ||
         saver_next.picture != saver_now.picture || saver_next.motion != saver_now.motion)) saver_follow();
