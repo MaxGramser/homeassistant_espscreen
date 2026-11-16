@@ -122,11 +122,21 @@ struct Timer {
   explicit Timer(uint32_t *target) : into(swipe.active && !swipe.done ? target : nullptr), start(now_us()) {}
   ~Timer() { if (into) *into += now_us() - start; }
 };
+// One card's steps in ms, for render()'s slow-pass line (runtime_tiles.h), as the build without the profile keeps them:
+// a profiling build failed to compile without this since that line came (2026-11-16).
+inline uint32_t slot_steps[PARTS] = {};
 struct FillTimer : Timer { FillTimer() : Timer(&swipe.fill) {} };
-struct SlotTimer : Timer { explicit SlotTimer(size_t slot) : Timer(slot < swipe.slots.size() ? &swipe.slots[slot] : nullptr) {} };
+struct SlotTimer : Timer {
+  explicit SlotTimer(size_t slot) : Timer(slot < swipe.slots.size() ? &swipe.slots[slot] : nullptr) { for (auto &step : slot_steps) step = 0; }
+};
 struct Lap {
   int64_t last = now_us();
-  void operator()(Part part) { int64_t t = now_us(); if (swipe.active && !swipe.done) swipe.parts[part] += t - last; last = t; }
+  void operator()(Part part) {
+    int64_t t = now_us();
+    slot_steps[part] += static_cast<uint32_t>((t - last) / 1000);
+    if (swipe.active && !swipe.done) swipe.parts[part] += t - last;
+    last = t;
+  }
 };
 // The page's content is complete once the pass that just ran reaches the screen.
 inline void content_complete() { if (swipe.active) swipe.complete = true; }
