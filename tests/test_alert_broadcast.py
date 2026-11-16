@@ -3,14 +3,12 @@ esp_screens_dismiss_alert, and the app calls that action on each screen that can
 import asyncio
 import importlib.util
 from pathlib import Path
-import re
 import sys
 import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import (ALERT_EVENT, ALERT_FIELDS, ALERT_MAX_TIMEOUT, BROADCAST_DISMISS, BROADCAST_EVENTS, BROADCAST_SHOW,  # noqa: E402
                   alert_action, alert_data, alert_reference, alert_screen_choice, alert_screen_names, alert_targets)
 
@@ -18,8 +16,6 @@ HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 if HAS_AIOHTTP:
     from aiohttp import WSMsgType
     from server import HomeAssistant, Manager
-
-STATIC = ROOT / 'screen_manager/app/static'
 
 
 class AlertData(unittest.TestCase):
@@ -50,9 +46,9 @@ class AlertData(unittest.TestCase):
         self.assertEqual(unusable, ['icon', 'button_text', 'timeout', 'flash'])
         self.assertEqual(alert_data({'timeout': float('nan')})[1], ['timeout'])
 
-    def test_limits_follow_the_firmware(self):
-        header = (ROOT / 'components/smart_display/alert_overlay.h').read_text()
-        self.assertEqual(int(re.search(r'MAX_TIMEOUT_SECONDS = (\d+);', header)[1]), ALERT_MAX_TIMEOUT)
+    def test_the_events_and_their_actions(self):
+        # That ALERT_MAX_TIMEOUT is the firmware's MAX_TIMEOUT_SECONDS is tests/test_alerts_reference.py's, compiled.
+        self.assertEqual(alert_data({'timeout': ALERT_MAX_TIMEOUT + 1})[0]['timeout'], ALERT_MAX_TIMEOUT)
         self.assertEqual(BROADCAST_EVENTS, {'esp_screens_show_alert': 'show_alert', 'esp_screens_dismiss_alert': 'dismiss_alert'})
         self.assertEqual(alert_reference()['broadcast'], {'show': BROADCAST_SHOW, 'dismiss': BROADCAST_DISMISS})
 
@@ -331,7 +327,6 @@ class Broadcast(unittest.IsolatedAsyncioTestCase):
                     await asyncio.sleep(0.01)
             task.cancel()
             self.assertIn(('script.open_gate', {}), m.ha.calls)
-            self.assertIn("ALERT_EVENT, *TILE_EVENTS", (ROOT / 'screen_manager/app/server.py').read_text(), 'subscribed on connect')
 
     async def test_the_loop_keeps_the_order_and_survives_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -373,26 +368,50 @@ class Broadcast(unittest.IsolatedAsyncioTestCase):
             await ha.read()
         self.assertEqual([ha.broadcasts.get_nowait() for _ in range(ha.broadcasts.qsize())],
                          [(BROADCAST_SHOW, {'title': 'Mail!'}), (ALERT_EVENT, {'action': 'ok', 'title': 'Mail!', 'screen': 'hall'}), (BROADCAST_DISMISS, {})])
-        self.assertIn('*BROADCAST_EVENTS', (ROOT / 'screen_manager/app/server.py').read_text(), 'subscribed on connect')
+
+    async def test_home_assistant_is_asked_for_the_events_on_connect(self):
+        """The app connects to Home Assistant (HomeAssistant.run) and subscribes to the broadcast events and the screens'
+        reports of an alert's end, or it would hear neither."""
+        class Stop(BaseException):
+            """Ends the connection where the test has seen what it needs: no reconnect, no sleep."""
+
+        class Socket:
+            closed = False
+            def __init__(self): self.answers = [{'type': 'auth_required'}, {'type': 'auth_ok'}]
+            async def receive_json(self, timeout=None): return self.answers.pop(0)
+            async def send_json(self, data): pass
+            def exception(self): return None
+            def __aiter__(self): return self
+            async def __anext__(self): await asyncio.Event().wait()
+
+        class Session:
+            def ws_connect(self, url, **options):
+                socket = Socket()
+
+                class Connection:
+                    async def __aenter__(self): return socket
+                    async def __aexit__(self, *error): return False
+                return Connection()
+
+        ha = HomeAssistant(Session(), 'http://ha/api', 'token')
+        subscribed = []
+
+        async def request(kind, wait=15, **data):
+            if kind == 'subscribe_events':
+                subscribed.append(data['event_type'])
+            if kind == 'get_states':
+                raise Stop
+            return {}
+        ha.request = request
+        with self.assertRaises(Stop):
+            await ha.run()
+        for event in (*BROADCAST_EVENTS, ALERT_EVENT):
+            self.assertIn(event, subscribed, f'the app subscribes to {event} when it connects to Home Assistant')
 
 
-class Page(unittest.TestCase):
-    def test_cheatsheet_explains_the_event(self):
-        import editor_sources
-        cheatsheet = editor_sources.component('AlertsView')
-        for marker in ('id="alerts-all"', '"alerts-all",', 'id="alerts-all-example"', 'id="alerts-all-copy"',
-                       'esp_screens_show_alert', 'esp_screens_dismiss_alert', 'editor.alerts.tips.claude'):
-            self.assertIn(marker, cheatsheet, marker)
-        # The words are in en.json (app 0.2.90).
-        self.assertEqual(editor_sources.text('alerts.nav.all'), 'All screens')
-        self.assertIn('Settings → Claude', editor_sources.text('alerts.tips.claude'))
-        for marker in ('const allYaml = computed', 'broadcast?.show', 'copyText(allYaml, undefined, \'yaml\')'):
-            self.assertIn(marker, cheatsheet, marker)
-        # One screen through the same event (app 0.2.133): what goes after `screen:` for every screen, and an example.
-        for marker in ('id="alerts-one"', '"alerts-one",', 'id="alerts-one-table"', 'id="alerts-one-example"', 'alert-screen-value',
-                       "copyText(screenValue(screen), undefined, 'screen_name')"):
-            self.assertIn(marker, cheatsheet, marker)
-        self.assertEqual(editor_sources.text('alerts.nav.one'), 'One screen')
+# What the editor's Alerts page explains of the event for every screen and for one screen, which this file once read from
+# the editor's source, is web/tests/alerts-cheatsheet.spec.ts and web/tests/components.spec.ts ("Alerts: one screen
+# through the event"), which mount the page.
 
 
 if __name__ == '__main__':
