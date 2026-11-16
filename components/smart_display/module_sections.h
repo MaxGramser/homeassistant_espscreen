@@ -153,8 +153,9 @@ inline void fit_title(const section_layout::Section &s, Drawn &d) {
   lv_obj_set_style_margin_right(d.title, right, 0);
 }
 inline void paint(Drawn &d) {
-  // A section whose tiles follow its contrast is the other look whole: its own panel, ink and muted words there.
-  theme::Flip other(d.follow);
+  // A section whose tiles follow its contrast is the other look whole: its own panel, ink and muted words there. The
+  // rest is the screen's look.
+  theme::LookScope look(d.follow);
   if (d.follow) {
     if (d.panel) lv_obj_set_style_bg_color(d.panel, theme::color(theme::SECTION), 0);
     for (lv_obj_t *obj : {d.icon, d.title}) if (obj) lv_obj_set_style_text_color(obj, theme::color(theme::INK), 0);

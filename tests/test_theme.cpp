@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <type_traits>
 
 using namespace theme;
 
@@ -27,7 +28,7 @@ static int channel_gap(uint32_t a, uint32_t b) {
   for (int shift = 0; shift <= 16; shift += 8) gap = std::max(gap, std::abs(int(a >> shift & 0xFF) - int(b >> shift & 0xFF)));
   return gap;
 }
-static void look(bool on) { dark = on; }
+static void look(bool on) { TestLook::set(on, on); }
 
 int main() {
   // ---- the light look is the design as it was
@@ -110,9 +111,9 @@ int main() {
     assert(contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) >= 1.4 && contrast(v(INSTRUMENT_LINE), v(INSTRUMENT)) < 3.0);
   }
   // A card that is an instrument's face (0.28): the instrument's ground and line in both looks, apart from every swatch.
-  const bool look = dark;
+  const bool was = dark;
   for (bool d : {false, true}) {
-    dark = d;
+    look(d);
     assert(surface(Face::instrument()) == hex(INSTRUMENT) && outline(Face::instrument()) == hex(INSTRUMENT_LINE));
     // A press on it shows in both looks: its face is dark in both, so the press goes towards white in both.
     assert(lightness(pressed(Face::instrument())) > lightness(hex(INSTRUMENT)));
@@ -121,7 +122,7 @@ int main() {
     assert(Face::of(0) == Face{} && surface(Face{}) == hex(CARD) && surface(0u) == hex(CARD));
     assert(Face::instrument().key() != 0 && Face{}.key() == 0);
   }
-  dark = look;
+  look(was);
 
   // ---- Home Assistant's colours in the dark look
   assert(state(ha::GREY) == ROLES[OFF].dark && state(0xCFCFCF) == ROLES[HISTORY_OFF].dark && state(0xE6E6E6) == ROLES[HISTORY_EMPTY].dark);
@@ -143,10 +144,15 @@ int main() {
   assert(lightness(outline(0xFADADD)) > lightness(surface(0xFADADD)));
   assert(fill_opacity() < 51);
 
+  // ---- the look is read here and written only by set_dark() and a card's scope (theme.h, Looks)
+  static_assert(std::is_same<decltype(dark), const bool &>::value && std::is_same<decltype(screen_dark), const bool &>::value,
+                "theme::dark and theme::screen_dark are read-only");
+  assert(&dark == &Looks::now && &screen_dark == &Looks::screen);
+
   // ---- a card's look (docs/THEME.md "A card's look"): a scope is the screen's look or the other, then gives back what
   // was there, nested or not; the screen's own look never moves
   for (bool screen : {false, true}) {
-    screen_dark = dark = screen;
+    TestLook::set(screen, screen);
     {
       LookScope other(true);
       assert(dark == !screen && screen_dark == screen);
@@ -164,9 +170,17 @@ int main() {
       assert(dark == screen);
     }
     assert(dark == screen && screen_dark == screen);
+    // A scope that ends early inside another gives back the look it found, not the screen's.
+    {
+      LookScope outer(true);
+      LookScope inner(false);
+      inner.end();
+      assert(dark == !screen);
+    }
+    assert(dark == screen);
     assert(hex_in(CARD, true) == ROLES[CARD].dark && hex_in(CARD, false) == ROLES[CARD].light);
   }
-  screen_dark = dark = false;
+  look(false);
   return 0;
 }
 

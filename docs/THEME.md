@@ -69,6 +69,9 @@ page and a card, and dark `#101010`, so the cards stand on it as they stand on t
 A card may be painted in the other look than the screen's: a card in a section whose tiles follow its contrast
 (docs/PAGES.md "Sections"). So the theme keeps two looks: `theme::screen_dark`, the screen's, which only `set_dark()`
 changes, and `theme::dark`, the look every role and helper reads, which is the screen's except while a card is painted.
+Both are read-only: they are views of values private to `theme::Looks`, which only `set_dark()`, `LookScope` (under
+`CardScope`) and `LookOf` write, so no code can leave a look behind. A part that needs a role in another look for a
+moment opens a `LookScope` or asks `hex_in(role, dark)`; `tests/test_card_look.py` holds that no file assigns either.
 
 - A card holds its look and what lies behind it, relative to the screen's look (`Widgets::look_other`, `ground_role`,
   `ground_other` in `runtime_tiles.h`), set where the card is placed on its own page (`sections::place`). A change of
@@ -128,7 +131,8 @@ What proves the card's look, without eyes:
   the instrument's there.
 - `web/wasm/test_card_paint.mjs` in the firmware preview: a background from the editor (an `appearance` message alone)
   repaints the card, a card into a following section and out again wears the other look and then its own, and Dark mode
-  turns it. `tests/test_theme.cpp`: `LookScope` nests, `Face` and an instrument's press.
+  turns it. `tests/test_theme.cpp`: `LookScope` nests, an early end inside another gives back the look it found, the two
+  looks are read-only, `Face` and an instrument's press.
 - `web/wasm/test_state_look.mjs` in the firmware preview: an entity that is off is Home Assistant's grey (its icon and
   its circle), one that is on is not, every domain alike, and a light that is off shows the crossed-out bulb.
 

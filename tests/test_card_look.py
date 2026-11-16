@@ -106,6 +106,44 @@ class CardLook(unittest.TestCase):
         private = sorted(name for name, text in sources().items() if '#include "lvgl_private.h"' in text)
         self.assertEqual(private, sorted(allowed), 'a file includes lvgl_private.h without a reason named in this test')
 
+    def test_only_the_scopes_and_set_dark_write_the_look(self):
+        # theme::dark and theme::screen_dark are read-only views of Looks' private values (theme.h); the compiler refuses
+        # a write through them. This keeps the way round it out too: no file assigns either, casts one to a writable
+        # bool, or reaches Looks' values, and in theme.h only LookScope, LookOf, set_dark() and the test's TestLook
+        # write them.
+        # In theme.h (namespace theme) the bare names; anywhere else theme::dark, a bare `dark` there is a name of its own.
+        inside = re.compile(r'(?<![\w.>&])(screen_)?dark\s*=(?!=)')
+        outside = re.compile(r'\btheme::(screen_)?dark\s*=(?!=)')
+        written = []
+        for name, text in sources().items():
+            for number, line in enumerate(text.splitlines(), 1):
+                code = line.split('//')[0]
+                if (inside if name == 'theme.h' else outside).search(code):
+                    written.append(f'{name}:{number}: {line.strip()}')
+                if re.search(r'const_cast<[^>]*>\s*\(\s*(theme::)?(screen_)?dark\b', code) or (
+                        name != 'theme.h' and re.search(r'\bLooks::\w+_\b|\bTestLook\b', code)):
+                    written.append(f'{name}:{number}: {line.strip()}')
+        self.assertEqual(written, [], 'the look is set by set_dark() and a card\'s scope only (docs/THEME.md "A card\'s look")')
+        theme = (COMPONENT / 'theme.h').read_text()
+        self.assertIn('inline const bool &screen_dark = Looks::screen;', theme)
+        self.assertIn('inline const bool &dark = Looks::now;', theme)
+        writers, owner = set(), None
+        for line in theme.splitlines():
+            start = re.match(r'(struct (LookScope|LookOf|TestLook)\b|inline void (set_dark)\()', line)
+            if start:
+                owner = start.group(2) or start.group(3)
+            if re.search(r'Looks::(now|screen)_\s*=(?!=)', line):
+                writers.add(owner)
+            if line.startswith('}') or (start and line.rstrip().endswith('}')):
+                owner = None  # the end of a block at the left margin, or of a one-line one
+        self.assertEqual(writers, {'LookScope', 'LookOf', 'set_dark', 'TestLook'})
+        # And no new way in: Looks' friends are exactly those four.
+        looks = re.search(r'^class Looks \{\n(.*?)^\};', theme, re.S | re.M)
+        self.assertIsNotNone(looks, 'theme.h keeps the looks in class Looks')
+        friends = re.findall(r'\bfriend\s+(?:struct|class)?\s*(?:void\s+)?(\w+)', looks.group(1))
+        self.assertEqual(sorted(friends), sorted(['LookScope', 'LookOf', 'set_dark', 'TestLook']),
+                         'only the scopes, set_dark() and the test write the look (theme.h, Looks)')
+
     def test_the_card_carries_its_look_for_what_lvgl_draws(self):
         sections = (COMPONENT / 'module_sections.h').read_text()
         self.assertIn('lv_obj_add_flag(card, theme::OTHER_LOOK_FLAG)', sections)

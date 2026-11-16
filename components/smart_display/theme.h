@@ -255,22 +255,36 @@ inline constexpr Pair ROLES[ROLE_COUNT] = {
 
 // The look on screen (screen_dark): the board sets it through set_dark() (below) from the Dark mode setting. And the look
 // the table and the helpers read (dark): the screen's, except while a card is painted that carries the other look (a
-// section whose tiles follow its contrast, docs/PAGES.md "Sections"): runtime_tiles' CardScope sets it to the card's look
-// for as long as the card is painted, and back.
-inline bool screen_dark = false;
-inline bool dark = false;
+// section whose tiles follow its contrast, docs/PAGES.md "Sections"): a LookScope (runtime_tiles' CardScope) or a LookOf
+// sets it to the card's look for as long as the card is painted, and back.
+//
+// Everyone reads both; only those three write them, so a look can never be left behind by code that forgot to give it
+// back. The two values are private to Looks, whose friends are the scopes and set_dark(); theme::dark and
+// theme::screen_dark are read-only views of them. tests/test_card_look.py holds that no file of the component assigns
+// either, and tests/test_theme.cpp sets a look through TestLook, which only a THEME_TEST build (no LVGL half, so never
+// firmware) declares.
+struct LookScope;
+struct LookOf;
+#ifdef THEME_TEST
+struct TestLook;
+#endif
+class Looks {
+  static inline bool screen_ = false, now_ = false;
+  friend struct LookScope;
+  friend struct LookOf;
+  friend void set_dark(bool on);
+#ifdef THEME_TEST
+  friend struct TestLook;
+#endif
+
+ public:
+  static inline const bool &screen = screen_, &now = now_;
+};
+inline const bool &screen_dark = Looks::screen;
+inline const bool &dark = Looks::now;
 inline uint32_t hex(Role role) { return dark ? ROLES[role].dark : ROLES[role].light; }
 // A role in a given look, whatever look is painted now.
 inline uint32_t hex_in(Role role, bool in_dark) { return in_dark ? ROLES[role].dark : ROLES[role].light; }
-// The other look for a while (a section whose tiles follow its contrast, docs/PAGES.md "Sections"): what is painted while
-// it lasts asks for every role in the other look. The shared paints keep the look of the screen.
-struct Flip {
-  bool on;
-  explicit Flip(bool flip) : on(flip) { if (on) dark = !dark; }
-  ~Flip() { if (on) dark = !dark; }
-  Flip(const Flip &) = delete;
-  Flip &operator=(const Flip &) = delete;
-};
 // The look of a card for as long as it lasts (runtime_tiles' CardScope, docs/THEME.md "A card's look"): the screen's,
 // or the other one; then what was there before. A card's flag for draw callbacks (OTHER_LOOK_FLAG) is in the LVGL half.
 // How many looks of a card are open now: set_dark() inside one would be undone when it closes (the host build says so).
@@ -284,12 +298,18 @@ inline int looks_open = 0;
 #endif
 struct LookScope {
   bool before, open = true;
-  explicit LookScope(bool other) : before(dark) { dark = screen_dark != other; THEME_LOOK_OPENS(); }
-  void end() { if (open) { dark = before; open = false; THEME_LOOK_CLOSES(); } }
+  explicit LookScope(bool other) : before(Looks::now_) { Looks::now_ = Looks::screen_ != other; THEME_LOOK_OPENS(); }
+  void end() { if (open) { Looks::now_ = before; open = false; THEME_LOOK_CLOSES(); } }
   ~LookScope() { end(); }
   LookScope(const LookScope &) = delete;
   LookScope &operator=(const LookScope &) = delete;
 };
+#ifdef THEME_TEST
+// A test's own look (tests/test_theme.cpp): the screen's and the one painted now, as set_dark() and a scope leave them.
+struct TestLook {
+  static void set(bool screen, bool now) { Looks::screen_ = screen; Looks::now_ = now; }
+};
+#endif
 // ---- mixing, exactly as LVGL 9 mixes two colours (lv_color_mix), so a value here is the value on the glass
 inline uint32_t mix(uint32_t first, uint32_t second, uint8_t amount) {
   uint32_t out = 0;
@@ -523,8 +543,10 @@ inline bool other_look(const lv_obj_t *obj) {
 #ifdef SD_MOD_SECTIONS
 struct LookOf {
   bool on, before;
-  explicit LookOf(const lv_obj_t *obj) : on(obj && other_look(obj)), before(dark) { if (on) { dark = !screen_dark; THEME_LOOK_OPENS(); } }
-  ~LookOf() { if (on) { dark = before; THEME_LOOK_CLOSES(); } }
+  explicit LookOf(const lv_obj_t *obj) : on(obj && other_look(obj)), before(Looks::now_) {
+    if (on) { Looks::now_ = !Looks::screen_; THEME_LOOK_OPENS(); }
+  }
+  ~LookOf() { if (on) { Looks::now_ = before; THEME_LOOK_CLOSES(); } }
   LookOf(const LookOf &) = delete;
   LookOf &operator=(const LookOf &) = delete;
 };
@@ -680,7 +702,7 @@ inline void set_dark(bool on) {
   if (looks_open) ESP_LOGE("card_look", "set_dark FAIL: the screen's look changed inside %d open card look(s)", looks_open);
 #endif
   if (on == screen_dark && on == dark) return;
-  screen_dark = dark = on;
+  Looks::screen_ = Looks::now_ = on;
   if (paints) paints();
   for (size_t i = 0; i < own.size(); ++i) if (own[i]) fill(own[i], static_cast<Paint>(i));
   // fill() only changes colours, and LVGL reads a colour when it draws: all a new colour asks of a widget is to be drawn

@@ -2462,7 +2462,7 @@ inline void render_slot(size_t slot) {
   uint32_t line;
   {
 #ifdef SD_MOD_SECTIONS
-    theme::Flip other(face.kind == theme::Face::CARD && !w.look_other && w.ground_role == theme::SECTION_CONTRAST);
+    theme::LookScope line_look(w.look_other || (face.kind == theme::Face::CARD && w.ground_role == theme::SECTION_CONTRAST));
 #endif
     line = theme::outline(face);
   }
