@@ -18,6 +18,11 @@ int main() {
   // ---- the duration ladder: seconds low down, quarters of an hour up top, and symmetric ----
   assert(ladder_step(60) == 30 && ladder_step(600) == 60 && ladder_step(1800) == 300);
   assert(ladder_step(3600) == 900 && ladder_step(36000) == 1800);
+  // The same edges web/tests/settings.spec.ts steps the editor's ladderStep over: the two ladders are one.
+  {
+    const int32_t edges[] = {299, 300, 899, 900, 3599, 3600, 7199, 7200}, steps[] = {30, 60, 60, 300, 300, 900, 900, 1800};
+    for (int i = 0; i < 8; i++) assert(ladder_step(edges[i]) == steps[i]);
+  }
   Row timeout = duration(screen_text::txt::settings_after, nullptr, nullptr, 30, 3600);
   assert(stepped(timeout, 120, 1) == 150 && stepped(timeout, 120, -1) == 90);
   assert(stepped(timeout, 300, 1) == 360 && stepped(timeout, 360, -1) == 300);

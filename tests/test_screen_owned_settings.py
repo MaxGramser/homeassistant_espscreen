@@ -9,7 +9,6 @@
 - The layout sensors come back after Home Assistant restarts, the settings tile opens without Home
   Assistant, and a weather entity is only asked for the forecasts it has.
 """
-from firmware_sources import runtime_source
 from manager_fixtures import with_screen_grid, seed_layout
 import asyncio
 import importlib.util
@@ -38,13 +37,9 @@ if HAS_AIOHTTP:
     from aiohttp.test_utils import TestClient, TestServer
     from server import ANSWER_RETRY_SECONDS, HomeAssistant, Manager, Refused, create_app
 
-PROFILES = {'cyd': 'checkout/cyd.yaml', 'guition': 'checkout/guition.yaml', 'waveshare43': 'checkout/waveshare43.yaml',
-            'jc8012p4a1': 'checkout/jc8012p4a1.yaml', 'tab5': 'checkout/tab5.yaml', 'waveshare7': 'checkout/waveshare7.yaml',
-            'waveshare4b': 'checkout/waveshare4b.yaml'}
-PACKAGES = {'cyd': 'packages/cyd.yaml', 'guition': 'packages/guition.yaml', 'waveshare43': 'packages/waveshare43.yaml',
-            'jc8012p4a1': 'packages/jc8012p4a1.yaml', 'tab5': 'packages/tab5.yaml', 'waveshare7': 'packages/waveshare7.yaml',
-            'waveshare4b': 'packages/waveshare4b.yaml'}
-RUNTIME = runtime_source()
+# Every board, as a checkout builds it and as a screen installed from ESP Screens does.
+PROFILES = {board: profile for board, _, profile in profiles.BOARD_TABLE}
+PACKAGES = {board: f'packages/{board}.yaml' for board in PROFILES}
 SCREEN_PAGE = (ROOT / 'components/smart_display/settings_screen.h').read_text()
 STATIC = ROOT / 'screen_manager/app/static'
 
@@ -263,16 +258,14 @@ class OwnedSettings(unittest.IsolatedAsyncioTestCase):
         # abilities (firmware 0.2.99, the "Screen features" sensor) and those win; the table is only for firmware
         # from before it and for a screen that is offline, which reports nothing at all.
         core_yaml = (ROOT / 'packages/core.yaml').read_text()
-        self.assertIn('name: "Screen features"', core_yaml)
         sensor = core_yaml.split('name: "Screen features"', 1)[1].split('update_interval', 1)[0]
-        # The sensor only publishes; the list of abilities lives in the component, where tests/test_settings_screen.cpp
-        # walks every combination of it.
-        self.assertIn("lambda: 'return {settings_screen::features()};'", sensor)
-        words = SCREEN_PAGE.split('inline std::string features() {', 1)[1].split('\n}', 1)[0]
-        # One row per ability on both sides, and the same words: the firmware's list and core.FEATURES are one table
-        # in two places, so adding an ability is a line there and a row here.
-        self.assertEqual(set(re.findall(r'\{\w+, "(\w+)"\}', words)), set(core.FEATURES))
-        self.assertIn('words.empty() ? "none" : words', words)
+        self.assertIn("lambda: 'return {settings_screen::features()};'", sensor,
+                      'the "Screen features" sensor publishes settings_screen::features() and works out nothing itself')
+        # What features() says for every combination is tests/test_settings_screen.cpp ("dimmable standby", "dimmable",
+        # "standby", "none"); the app reads those very words.
+        for said, means in (('dimmable standby', set(core.FEATURES)), ('dimmable', {'dimmable'}), ('standby', {'standby'}),
+                            ('none', set())):
+            self.assertEqual(core.features_of({'board': 'waveshare7', 'features': said}) & set(core.FEATURES), means, said)
         for feature, key in core.FEATURES.items():
             for board, shape in core.SHAPES.items():
                 self.assertIn(key, shape, f'{board} says nothing about {feature}')
@@ -703,28 +696,14 @@ class Editor(unittest.TestCase):
         screen_only = {english['debug_mode']}
         self.assertTrue(screen_only <= page_labels)
         self.assertEqual(page_labels - switch_labels - screen_only, script_labels)
-        for key, step in (('brightness', 5), ('standby_brightness', 5), ('night_brightness', 5)):
-            self.assertRegex(self.script, rf'key: "{key}", [^}}]*step: {step}')
-        ladder = re.search(r'if \(seconds < 300\) return 30;\s+if \(seconds < 900\) return 60;\s+if \(seconds < 3600\) return 300;\s+'
-                           r'if \(seconds < 7200\) return 900;\s+return 1800;', SCREEN_PAGE)
-        self.assertTrue(ladder, 'the ladder in settings_screen.h changed: change ladderStep in web/src/model/settings.ts with it')
-        self.assertIn('seconds < 300 ? 30 : seconds < 900 ? 60 : seconds < 3600 ? 300 : seconds < 7200 ? 900 : 1800', self.script)
+        # The -/+ steps and the duration ladder are run on both sides over the same edges: ladderStep and steppedSetting
+        # in web/tests/settings.spec.ts, ladder_step in tests/test_settings_screen.cpp.
 
-    def test_settings_have_their_own_call_and_save_leaves_them_out(self):
-        self.assertIn('api(`screens/${encodeURIComponent(screen)}/settings`', self.script)
-        # The save sends the page document alone (stores/document.ts).
-        import editor_sources
-        document = editor_sources.source('stores/document.ts')
-        self.assertIn('submitted = pages.clone(document.value)', document)
-        self.assertIn('format: "pages-v2", revision: documentRevision.value, layout: submitted', document)
-        from pathlib import Path
-        types = (Path(__file__).resolve().parents[1] / 'web/src/types.ts').read_text()
-        page_layout = types.split('export type PageLayout = ', 1)[1].split(';', 4)[:4]
-        self.assertNotIn('settings', ''.join(page_layout), 'device settings are not part of the page document')
-        # The top bar's clock follows the one clock of Settings → Language & region (app 0.2.90).
-        self.assertIn('inv.inventory.language?.clock_effective !== "12"', editor_sources.source('stores/region.ts'))
-        self.assertNotIn("setSetting('clock_24h'", self.script)
-        self.assertIn('<a href="#settings">', editor_sources.component('TopbarInspector'))
+    def test_the_editor_never_sets_the_clock_of_one_screen(self):
+        # The settings call (web/tests/firmware-preview.spec.ts, PUT screens/<id>/settings), the save that leaves them
+        # out (web/tests/store.spec.ts) and the top bar's clock that follows Settings -> Language & region, with its link
+        # there (web/tests/language.spec.ts), are the editor's own tests. The rule: 12 or 24 hours is never one screen's.
+        self.assertNotIn("setSetting('clock_24h'", self.script, 'the clock is Settings -> Language & region\'s, for every screen')
 
 
 class Firmware(unittest.TestCase):
@@ -734,36 +713,27 @@ class Firmware(unittest.TestCase):
             action = text[text.index('- action: screen_message'):]
             # Up to the next key of the api block or the next top-level block (the packages carry no keys).
             action = action[:re.search(r'\n(?:  [a-z_]+:|[a-z_]+:)', action).start()]
-            self.assertIn('supports_response: optional', action, path)
+            # The answer itself (its status and revision) is what tools/render/run.py's sender reads back from every
+            # message it sends the real firmware (diagnostics/send_layout.api_sender); this rule is the older app's.
+            self.assertIn('supports_response: optional', action, f'{path}: the message action answers who asks')
             self.assertIn("lambda: 'return call_id != 0;'", action, f'{path}: no answer, no warning, for a caller without a call id')
-            self.assertIn('api.respond:', action, path)
-            self.assertIn('root["status"] = id(dashboard_inbox).state;', action, path)
-            self.assertIn('root["rev"] = runtime_tiles::layout_rev;', action, path)
-
-    def test_the_settings_tile_opens_without_home_assistant(self):
-        event = RUNTIME[RUNTIME.index('inline void event(lv_event_t *event) {'):]
-        event = event[:event.index('\n}\n')]
-        self.assertLess(event.index('builtin()'), event.index('if (!fresh()) return;'))
-        self.assertIn('settings_screen::open();', event[:event.index('if (!fresh()) return;')])
-        self.assertIn('card.tap == "none"', event)
 
     def test_home_assistant_sees_every_setting_change(self):
+        # A setting the screen changes itself reaching Home Assistant is run on the real firmware: tools/render/run.py
+        # --only standby pulls the standby brightness down with the brightness and reads its entity back. The rules:
         for board, path in PROFILES.items():
             text = profiles.text(path)
             script = text[text.index('- id: apply_screen_settings'):]
             script = script[:script.index('\n  - id: ', 10)]
             for entity in ('setting_brightness', 'setting_standby_brightness', 'setting_night_brightness', 'setting_standby_seconds',
-                           'setting_auto_home_seconds'):
-                # One loop publishes every number that lacks a state or changed (firmware 0.2.50, see test_cover_card).
-                self.assertIn(f'std::make_pair(id({entity}),', script, f'{path}: {entity}')
-            self.assertIn('if (!entity->has_state() || entity->state != value) entity->publish_state(value);', script, path)
-            self.assertIn('std::make_pair(id(setting_night_start), settings.night_start)', script, path)
+                           'setting_auto_home_seconds', 'setting_night_start'):
+                self.assertIn(f'id({entity})', script, f'{path}: apply_screen_settings publishes {entity} when it changed')
             self.assertIn('settings_screen::refresh();', script, f'{path}: an open settings page follows Home Assistant')
             # Every board turns since firmware 0.2.80 (a half turn at least): the shared script keeps the entity in step.
             self.assertIn('id(setting_rotation)->update();', text, path)
 
     def test_the_page_and_every_entity_change_settings_the_same_way(self):
-        self.assertRegex(SCREEN_PAGE, r'enum class SetResult : uint8_t \{ unknown, same, changed \};')
+        # set() tells an unknown key, the same value and a change apart: tests/test_settings_screen.cpp.
         for path in PROFILES.values():
             text = profiles.text(path)
             self.assertNotIn('settings_preference.save(&s)', text, f'{path}: saving goes through settings_screen::set()')

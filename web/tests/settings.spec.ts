@@ -7,6 +7,7 @@ const row = (key: string) => SETTING_GROUPS.flatMap((group) => group.rows as rea
 
 describe("the screen's settings", () => {
   it("steps a duration as settings_screen.h: half minutes low down, half hours up top", () => {
+    // The same edges tests/test_settings_screen.cpp steps the firmware's ladder_step over.
     expect([299, 300, 899, 900, 3599, 3600, 7199, 7200].map(ladderStep)).toEqual([30, 60, 60, 300, 300, 900, 900, 1800]);
     const standby = row("standby_seconds");
     expect(steppedSetting(standby, 270, 1, false, {})).toBe(300);
