@@ -17,14 +17,6 @@ output:
             lit = requested;
           }
 
-script:
-  # Avoid repeated power cycling of the backlight boost converter during alerts.
-  - id: !remove alert_flash
-  - id: alert_flash
-    mode: restart
-    then:
-      - lambda: 'ESP_LOGI("alert", "no backlight blinks on this board");'
-
 display:
   - id: !extend my_display
     model: WAVESHARE-5-1024X600

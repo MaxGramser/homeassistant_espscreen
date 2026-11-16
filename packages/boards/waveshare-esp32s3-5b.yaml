@@ -7,6 +7,7 @@ packages:
   backlight: !include ../features/backlight.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
+  alert_backlight: !include ../hardware/parts/waveshare5b-alert-backlight.yaml
 
 substitutions:
   # The catalog key reported by the firmware.

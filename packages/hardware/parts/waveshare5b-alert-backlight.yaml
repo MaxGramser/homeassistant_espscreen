@@ -1,0 +1,7 @@
+# Include after the backlight feature to avoid cycling the boost converter during alerts.
+script:
+  - id: !remove alert_flash
+  - id: alert_flash
+    mode: restart
+    then:
+      - lambda: 'ESP_LOGI("alert", "no backlight blinks on this board");'
