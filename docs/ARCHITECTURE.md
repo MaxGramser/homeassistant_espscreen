@@ -279,6 +279,18 @@ binder and wants cutting next is in docs/open-issues/binder-still-large.md.
   colour reads (`theme::dark`) is the screen's (`theme::screen_dark`) except inside a card's scope; a card holds its look
   and its ground relative to the screen's, set where it is placed. A card in a following section painted outside its
   scope took the screen's look for a part of it.
+- **The loop's stack: no page is built at the bottom of an API call, and no message pays another's frame.** The loop
+  task runs LVGL, every card, the API and the page's build on 16 KB (`loop_task_stack_size`, packages/hardware/esp-idf.yaml).
+  On a Guition 10.1 with a large layout a layout's commit left 40 bytes, and a page of live tiles then overflowed it
+  (2026-11-16): the parser was one function of 9,456 bytes for every message (a tile's Extra alone is 1,284), and the
+  commit built the page and its cards on top of it, inside the API's call. Now each message type is its own function
+  (`noinline`, page_receiver.cpp), a tile's Extra lives on the heap while its tile is redrawn, and a page asked for by the
+  app or Home Assistant (a layout's commit, `show_page`, `open_settings`) is built on the loop's next pass
+  (`show_tile_page_soon`, `open_page`, `go_home` start with `delay: 0ms`). `tools/stack_chains.py <board>` builds a board
+  with the compiler's frame sizes and prints the chains: a message's deepest path is 9.7 KB on a P4 and an S3 and 8.2 KB
+  on the CYD, a page from the loop 5.6 to 5.9 KB, with LVGL's own depth on top. Under 2 KB left at any time the health
+  line warns (`loop_stack.h`) and every screen reports it as "Loop Stack Free". An S3 and a classic ESP32 have no
+  hardware stack guard: an overflow there corrupts memory without a word, so their margin counts as much as a P4's.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal
   build, PERF optimisation was taken because it measured). Tests on a device run an hour at most.
 

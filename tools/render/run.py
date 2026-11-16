@@ -780,6 +780,39 @@ class Run:
         self.warnings.append('A hello: the same layout costs nothing, another one is exchanged whole')
         return 2
 
+    async def pages_from_the_loop(self, grid):
+        """A page is built on the loop's next pass, never at the bottom of the API's call that asked for it
+        (docs/ARCHITECTURE.md, "The loop's stack"): a layout's commit answers as it did, a state that comes right after
+        it shows on the page built after it, and two show_page calls in a row land on the last, each turn seen once."""
+        # Another layout than the one on the glass (hello_again left PAGE_TITLES[:-1]), so the commit builds a page.
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES)
+        sensor = next((i for i, v in enumerate(values) if str(v.get('entity', '')).startswith('sensor.')), None)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        if sensor is not None:
+            # Straight after the commit's answer, before the loop's pass that builds the page.
+            # A state message carries no options or slot: those are the tile's first message's (page_receiver.cpp).
+            changed = {**{k: v for k, v in values[sensor].items() if k not in ('o', 'slot')}, 'op': 'state', 'state': '77'}
+            await self.sender._packet(changed, self.sender.confirmed)
+        await self.until(lambda line: 'every card drawn: a layout complete' in line, 10, 'the new layout', start)
+        await self.page_done(0)
+        if sensor is not None:
+            entity = values[sensor]['entity']
+            end = time.monotonic() + 3  # a state's redraw comes with ui_refresh, 100 ms after it
+            while '77' not in (cards := await self.cards()).get(entity, {}).get('value', '') and time.monotonic() < end:
+                await asyncio.sleep(0.2)
+            assert entity in cards and '77' in cards[entity]['value'], f'the state after the commit is on the page: {cards.get(entity)}'
+        # Two pages asked at once: the last one opens, and the first at most once before it.
+        start = len(self.lines)
+        await asyncio.gather(self.call('show_page', page=2), self.call('show_page', page=3))
+        await self.page_done(2)
+        opened = [line for line in self.lines[start:] if 'open from Home Assistant' in line]
+        assert opened and 'page 3 of' in opened[-1] and len(opened) <= 2, opened
+        await self.call('show_page', page=1)
+        await self.page_done(0)
+        self.warnings.append(f'Pages from the loop: the commit, the state after it, then the page; {len(opened)} turn(s) for two asks')
+        return 2
+
     async def detail_navigation(self, grid, entities):
         """Real touchscreen taps, nested Back, hidden footer, and swipes past excluded pages with Loop pages on and off.
 
@@ -4651,6 +4684,7 @@ class Run:
         self.client.switch_command(dark.key, False)
         await self.appearance_edits(grid)
         checks += await self.hello_again(grid)
+        checks += await self.pages_from_the_loop(grid)
         checks += await self.detail_navigation(grid, entities)
         checks += await self.rectangular_tiles(grid)
         checks += await self.bedside_clock(grid)

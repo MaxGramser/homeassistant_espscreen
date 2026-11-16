@@ -9,6 +9,7 @@
 #include <string_view>
 #include "runtime_model.h"
 #include "redraw_log.h"
+#include "loop_stack.h"
 #ifdef ESP_SCREEN_HOST
 #include "host_shims.h"
 #else

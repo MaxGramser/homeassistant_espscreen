@@ -7,6 +7,8 @@ into a screen's YAML.
 """
 import logging
 
+import os
+
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import socket
@@ -90,6 +92,12 @@ DIAGNOSTIC_WRAPS = ("panic_abort",)
 
 
 async def to_code(config):
+    # Every C++ function's stack frame and its calls, for tools/stack_chains.py (docs/ARCHITECTURE.md, "The loop's
+    # stack"), only when SCREEN_STACK_USAGE is set: ESPHome passes nothing but -D and -W from build_flags to an ESP-IDF
+    # build, so the flags come from here. They change no code, only write a .su and a .ci beside every object.
+    if os.environ.get('SCREEN_STACK_USAGE'):
+        cg.add_cxx_build_flag('-fstack-usage')
+        cg.add_cxx_build_flag('-fcallgraph-info=su')
     wanted = config[CONF_LANGUAGE]
     cg.add_define("SCREEN_CAMERA_ORIENTATION", config[CONF_CAMERA_ORIENTATION])
     language, code = screen_text_gen.definitions(wanted)

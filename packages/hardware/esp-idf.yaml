@@ -11,8 +11,11 @@ esp32:
     version: recommended
     advanced:
       assertion_level: SILENT
-      # The loop task runs LVGL, every tile and the API. Replacing a layout builds all tiles inside the API's call and
-      # needs about 8.1-8.3 KB of stack on the CYD and the Guition (firmware 0.3.1, measured with the health line
-      # loop_stack_min_free), past ESPHome's 8 KB default: the Guition rebooted with a stack overflow on its first
-      # 2x2 save. 16 KB keeps half of it spare for what comes next; the CYD still had 145 KB of heap free with it.
+      # The loop task runs LVGL, every tile and the API. 16 KB since firmware 0.3.1, when replacing a layout took
+      # 8.1-8.3 KB on the CYD and the Guition. By 2026-11 the parser and the page built inside the API's call took a
+      # Guition 10.1 to 40 bytes from the end, and a page of live tiles over it. Since then a message pays only its own
+      # op and a page is built from the loop's next pass: tools/stack_chains.py measures 9.7 KB for a message's deepest
+      # path on a P4 and an S3 and 8.2 KB on the CYD, 5.6-5.9 KB for a page, before LVGL's own depth. The size stays
+      # until a board's "Loop Stack Free" with its largest layout says less than 4 KB is left (docs/ARCHITECTURE.md,
+      # "The loop's stack"); then it is sized from that reading. Every KB here is a KB of internal RAM, in .bss.
       loop_task_stack_size: 16384

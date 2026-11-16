@@ -243,7 +243,7 @@ esphome:
             runtime_tiles::hide_detail();
             screen_hooks::run_cards_closed();
           };
-          runtime_tiles::layout_changed = []() { id(show_tile_page).execute(); id(loop_stack_free).update(); };
+          runtime_tiles::layout_changed = []() { id(show_tile_page_soon).execute(); };
           ${BOOT_PAGE_GESTURE}
           ${BOOT_CAMERA_HOOKS}
           runtime_tiles::refresh = []() { if (!id(ui_refresh).is_running()) id(ui_refresh).execute(); };
@@ -1581,7 +1581,8 @@ sensor:
               ESP_LOGI("health", "free_8bit=%u room=measuring", (unsigned) heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
             // The least stack the loop task (LVGL, the tiles, the API) ever had left since boot: a layout replacement
             // runs deepest. loop_task_stack_size in hardware/esp-idf.yaml is sized from this line (firmware 0.3.1+).
-            ESP_LOGI("health", "loop_stack_min_free=%u", (unsigned) uxTaskGetStackHighWaterMark(nullptr));
+            // Under loop_stack::FLOOR it warns, so it shows without Debug mode (loop_stack.h).
+            loop_stack::report("", (unsigned) uxTaskGetStackHighWaterMark(nullptr));
             // Pages kept whole and pictures kept (firmware 0.3.2+): what they hold, and the PSRAM left beside them.
             ESP_LOGI("health", "kept_pages=%u page_pictures=%u pictures=%u B psram_free=%u", runtime_tiles::kept_count(),
                      runtime_tiles::page_pictures_count(), (unsigned) runtime_tiles::pictures.size(),
@@ -1618,8 +1619,8 @@ sensor:
       #endif
   # The least stack the loop task ever had left since boot, in bytes (docs/ARCHITECTURE.md, "The loop's stack"): the
   # loop task runs LVGL, every card and the API, and a layout's build and a page of live tiles run deepest. A screen not
-  # on USB says it here and in a troubleshooting report; it is read with the health report and right after a layout
-  # lands (layout_changed). The figure of the health line loop_stack_min_free.
+  # on USB says it here and in a troubleshooting report; it is read with the health report and right after a layout's
+  # page is built (show_tile_page_soon). The figure of the health line loop_stack_min_free.
   - platform: template
     name: "Loop Stack Free"
     id: loop_stack_free
@@ -2454,10 +2455,16 @@ script:
   # A page opened for someone to look at (show_page, which also starts Back to page 1's clock): the settings page and
   # every card close, as go_home does, and the page is drawn the way a swipe draws it. 1 is the first page, and a number
   # past the last page lands on the last page, never outside.
+  # Both run from the loop's next pass (delay 0ms), never at the bottom of the API's call that asked for them (the
+  # show_page action, a layout's commit): a page and its cards are the deepest the loop task builds, and on top of the
+  # API and the parser they came within 40 bytes of its 16 KB on a Guition 10.1 (2026-11-16; docs/ARCHITECTURE.md,
+  # "The loop's stack"). The latest ask wins (restart).
   - id: open_page
+    mode: restart
     parameters:
       page: int
     then:
+      - delay: 0ms
       - lambda: |-
           settings_screen::close();
           const int pages = runtime_tiles::enabled ? std::max(1, (int) runtime_tiles::page_count())
@@ -2465,6 +2472,13 @@ script:
           runtime_tiles::go_to_page(std::clamp((int) page, 1, pages) - 1, false);
           ESP_LOGI("navigation", "page %d of %d open from Home Assistant", id(tile_page) + 1, pages);
 
+  - id: show_tile_page_soon
+    mode: restart
+    then:
+      - delay: 0ms
+      - script.execute: show_tile_page
+      # The page a layout brought is the deepest the loop task builds: Loop Stack Free says how much it left.
+      - component.update: loop_stack_free
   - id: show_tile_page
     then:
       - lambda: |-
@@ -2554,8 +2568,11 @@ script:
 
   # Everything back to the overview: the settings page, every card and the first page of tiles.
   # Used by standby, by the "Back to page 1" timeout and by the Home Assistant action.
+  # From the loop's next pass too, like open_page: open_settings from Home Assistant goes home from inside the API's call.
   - id: go_home
+    mode: restart
     then:
+      - delay: 0ms
       - lambda: 'settings_screen::close();'
       - script.execute: close_cards
       - lambda: 'runtime_tiles::navigation_history.clear(); id(tile_page) = runtime_tiles::home_page();'
