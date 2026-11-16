@@ -210,6 +210,7 @@ firmware_preview() {
   node web/wasm/test_page_keys.mjs || return 1
   node web/wasm/test_quiet_resync.mjs || return 1
   node web/wasm/test_state_look.mjs || return 1
+  node web/wasm/test_binary_words.mjs || return 1
   node web/wasm/test_look.mjs || return 1
   node web/wasm/test_colour_card.mjs || return 1
   node web/wasm/test_cover_keys.mjs || return 1
