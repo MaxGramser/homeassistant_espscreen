@@ -24,6 +24,7 @@
 #include "runtime_tiles.h"
 #include "module_doorbell.h"
 #include "doorbell_door.h"
+#include "doorbell_ring.h"
 #include "hw.h"
 #include "plugin_host.h"
 #include "settings_screen.h"
@@ -45,7 +46,7 @@ const char *const MICROPHONE = "\U000F036C";
 // Nobody touched it: it closes the ring's timeout after the last ring (the event's, a minute unless it says). Someone did:
 // five minutes after the last touch or ring, as a battery doorbell stops streaming after a few minutes anyway.
 constexpr uint32_t ANSWERED_MS = 300000;
-uint32_t untouched_ms = 60000;
+uint32_t untouched_ms = doorbell_ring::untouched_ms(0);
 // The ring around the disc while it rings.
 constexpr uint32_t RINGING_MS = 15000;
 // Talk turns itself off after a minute without a voice, and a key that could not connect says so for a moment.
@@ -417,11 +418,12 @@ void build(lv_obj_t *root, const std::string &name) {
     if (active && !ended) { touched = ended = true; say("closed"); }
     lv_async_call([](void *) { camera_close(); }, nullptr);
   });
-  // The keys: Door when the ring has one, Talk where the screen hears (not yet), Sound where it plays; a key it cannot
-  // use is not there at all.
-  const bool has_door = door.kind != doorbell_door::Kind::NONE, plays = hw::caps().speaker,
-             hears = hw::caps().microphone && talk_uplink::available() && !now_ring.talk.empty();
-  const int keys = has_door + hears + plays;
+  // The keys: Door when the ring has one, Talk where the screen hears, Sound where it plays; a key it cannot use is not
+  // there at all (doorbell_ring::keys).
+  const auto have = doorbell_ring::keys(door.kind != doorbell_door::Kind::NONE, hw::caps().microphone, talk_uplink::available(),
+                                        !now_ring.talk.empty(), hw::caps().speaker);
+  const bool has_door = have.door, hears = have.talk, plays = have.sound;
+  const int keys = have.count();
   int at = 0;
   if (has_door) {
     // Two taps open the door (doorbell_door.h); the second says "door", and ESP Screens performs it.
@@ -602,9 +604,11 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;
-  untouched_ms = std::max<uint32_t>(10, std::min<uint32_t>(600, untouched_s ? untouched_s : 60)) * 1000;
-  if (active && camera_root && camera.entity == camera_entity &&
-      doorbell_door::kind_of(door_kind) == door.kind) {
+  untouched_ms = doorbell_ring::untouched_ms(untouched_s);
+  const auto what = doorbell_ring::ring(active && camera_root && camera.entity == camera_entity &&
+                                            doorbell_door::kind_of(door_kind) == door.kind,
+                                        quiet, chimes);
+  if (what.again) {
     // It rings again while it shows (and with the same door): the chime again, the moment it rang, its ring around the disc.
     now_ring.key = key;
     now_ring.rang = rang;
@@ -614,7 +618,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
     door.set_state(door_state_now);
     last_ring = now_ring;
     ended = false;
-    if (chimes) chime();
+    if (what.chime) chime();
     tick(now);
     return;
   }
@@ -622,7 +626,8 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   if (plugin_host::wake) plugin_host::wake("doorbell");
   settings_screen::close();
   camera_close();
-  camera_muted = quiet;  // a ring is to be heard, unless its automation says the screen stands somewhere quiet
+  // A ring is to be heard, unless its automation says the screen stands somewhere quiet.
+  if (what.sets_sound) camera_muted = what.muted;
   now_ring = last_ring = Ring{camera_entity, name, key, rang, door_kind, door_state_now, quiet, link, talk};
   take_door(now_ring);
   claim_ring();
@@ -634,7 +639,7 @@ void ring(const std::string &camera_entity, const std::string &name, const std::
   // The ring's view claims the speaker as DOORBELL when its stream opens (runtime_tiles live_begin, audio_owner.h): music
   // pauses, a camera's sound and the voice assistant step back, and nothing takes it from a ring. The chime itself goes
   // through the announcement input and mixes; an automation with `chime: false` rings without it.
-  if (chimes) chime();
+  if (what.chime) chime();
 }
 
 void door_state(const std::string &key, const std::string &state) {

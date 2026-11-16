@@ -143,6 +143,7 @@ listed too, but left alone.
 | The missed ring in the top bar | `page_service.sync_pages` (`with_missed`), the item's `b`, and its `x` (`Doorbells.bar_item`; the screen's `header_bar::shown_at`, tests/test_header_bar.cpp) |
 | The op `doorbell` | `page_receiver.cpp` |
 | The view, the chime, the times | `module_doorbell.cpp` (module doorbell), hooked into the camera full view of `runtime_tiles.h` |
+| How long a ring stays, its chime and sound, which keys the view has | `doorbell_ring.h` (tests/test_doorbell_ring.cpp), which `module_doorbell.cpp` asks; tests/test_doorbell.py keeps its times and the door's numbers equal to the app's |
 | The door key: its two taps, which lock states open, its looks | `doorbell_door.h` (tests/test_doorbell_door.cpp); the app's `Manager.doorbell_open_door` and `doorbell_follow_lock` |
 | The report of how a ring ended | `doorbell_report` in `packages/core.yaml`, the event `esphome.screen_doorbell` |
 
