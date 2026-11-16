@@ -27,11 +27,15 @@ invalidates the object, and LVGL 9.5 then walks every object on the screen and i
 (objects on the screen), and with kept pages the objects of every page stay on the screen. The preview did not grow
 with six pages of tiles, so the 33 ms is not proven from it yet.
 
-What the board's line says now: a pass of 30 ms or more names its slowest card's steps in ms (render_slot's laps:
+What the board's line says now: a pass of 30 ms or more (10 ms in Debug mode) names its slowest card's steps in ms (render_slot's laps:
 text, busy, layout, custom, panel, geometry, palette), what asked for that card to be drawn (`redraw_log::TileWhy`: a
 state, a wish, a picture, the minute, its wait, a finger, ...), and how many objects stand on the screen:
 "N cards drawn in T ms, slowest tile I (entity), S ms: <step> <ms>, ... ms, marked by <reason>; O objects on the
 screen". A playing player shows the time (`shows_time`), so the minute marks it too.
+
+On the build with the loop's stack fix (b8e887c6: a page opened from Home Assistant is built from the loop, not inside
+the service call) the same page 5 logged no pass of 30 ms in two tries of two minutes each, at the minute either. The
+draw is either gone or under 30 ms now, so Debug mode's threshold went to 10 ms to tell which.
 
 ## Pointers
 `runtime_tiles.h` `render()` (the log line), `render_slot`, `card_shaped()`, docs/CARD_PARTS.md.

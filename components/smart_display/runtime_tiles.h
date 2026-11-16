@@ -3049,10 +3049,10 @@ inline void ota_draw() {
   lv_refr_now(nullptr);
 }
 // Before the first layout the screen is starting: HA connects, then ESP Screens sends the tiles.
-// A pass that drew a few cards slowly (docs/open-issues/slow-single-cards.md): its slowest card, the steps of its paint
-// in ms (render_slot's laps), what asked for it to be drawn (tile_why), and how many objects stand on the screen, which
-// every invalidation walks (LVGL 9.5 looks for a blurred object over the area it invalidates). The words and the count
-// are made only here, in statics, for a pass of 30 ms or more.
+// A pass that drew a few cards slowly (30 ms, 10 in Debug mode; docs/open-issues/slow-single-cards.md): its slowest
+// card, the steps of its paint in ms (render_slot's laps), what asked for it to be drawn (tile_why), and how many objects
+// stand on the screen, which every invalidation walks (LVGL 9.5 looks for a blurred object over the area it
+// invalidates). The words and the count are made only here, in statics, for a slow pass.
 inline void slow_pass_log(unsigned drawn,uint32_t took,size_t index,uint32_t slowest,const uint32_t *steps){
   static char line[128];
   size_t at=0;line[0]=0;
@@ -3124,7 +3124,9 @@ inline void render(lv_obj_t *room) {
   }
   const uint32_t took=esphome::millis()-began;
   if(all)ESP_LOGI("render","every card drawn: %s, %u cards in %u ms (slowest tile %u, %u ms)",why,drawn,(unsigned)took,(unsigned)slowest_index,(unsigned)slowest);
-  else if(took>=30)slow_pass_log(drawn,took,slowest_index,slowest,slowest_steps);
+  // In Debug mode a pass of 10 ms already says its slowest card, so a card that drew in 33 ms once and now under 30 is
+  // still seen; without it the logger stands at WARN and the line is never written anyway.
+  else if(took>=(settings_screen::debug_mode?10u:30u))slow_pass_log(drawn,took,slowest_index,slowest,slowest_steps);
   // Kept pages learn nothing here: what they lack follows from the change numbers when they come back (kept_pages.h).
   glass_synced=upto;
 }
