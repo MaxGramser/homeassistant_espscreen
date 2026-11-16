@@ -155,7 +155,12 @@ buffer reset. A sign climbs one step (a burst within two seconds is one sign); t
 wake word reset climbs straight to the step that squeezes the tiles. A finger on the glass steps the camera, sensing
 and background down before any sign; a drag the tiles too; a second after release, all back. While someone hears the
 screen's microphone (a plugin's `capturing(SOUND)`, 0.23: its video watched with its sound, a call) the live tiles
-stay at half at least whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). Each work reads its level
+stay at half at least whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). One held-up loop is no sign: the one the screen
+chose itself in an idle moment, a page drawn off the glass (`Governor::own_work`, docs/KEPT_PAGES.md "Made ahead").
+The report of a held-up loop that comes within 600 ms of such work is that work, once: a second report, a later one, a
+panel that ran dry and a wake word that fell behind count as ever, so nothing that holds the loop up for a camera tile,
+the screen's own camera or the voice can hide behind it; without it the governor stepped up for its own screen's doing
+and held the page pictures back. Each work reads its level
 on its own task (`level_of`); plugins read it as `tessera::squeeze` (API 0.21). Home Assistant sees it as the
 diagnostic sensor "Pressure". Detail: docs/PLATFORM_PLAN.md 4.10; test: `tests/test_pressure.cpp`.
 

@@ -11,7 +11,9 @@ still feels LVGL's pace from the second turn on. Step two would let LVGL leave a
 Since 2026-11-16 a page that was never on the glass can have its picture made ahead, off the glass (docs/KEPT_PAGES.md,
 "Made ahead"): built and proven on a Guition 10.1 without plugins (six pages made in six seconds at 147 to 220 ms of
 the loop each, then 14 turns in order with 14 puts and 0 pixels differing, the loop task's stack untouched), and
-switched off by default until the owner decides. Not yet seen: a screen with a camera plugin, the wake word and
+after two changes of look in a row (six pages made again each time, 14 puts of 14 turns, 0 pixels differing), and
+switched off by default until the owner decides. Not yet seen: its start by itself after a boot or a new layout, a
+screen with a camera plugin, the wake word and
 Bluetooth making pictures ahead (its PSRAM leaves room for two pictures, so little is made there), and a sound
 playing through an idle screen at the moment a page is made (the rule keeps the two apart; nobody has listened). A page whose cards changed while it was away still has
 those cards drawn by LVGL at the turn.

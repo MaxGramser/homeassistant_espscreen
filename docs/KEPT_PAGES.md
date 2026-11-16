@@ -199,6 +199,11 @@ of `glass::on_panel`). The buffer is 2 MB more, held while pages still lack a pi
 - **Proven so.** Then twice round the seven pages in order: 14 turns, 14 puts, 14 compares, every one 0 pixels
   differing, the first turn to a page of five camera tiles among them (55 of its 240 blocks were true: the ground
   around the tiles). No dry frame, no restart.
+- **After another look.** Dark mode switched off and on again on that board, each followed by a walk twice round:
+  six pages made ahead each time, 14 puts and 14 compares each time, all 0 pixels differing, the governor's "main loop
+  held up" five times in each stretch (the page turns' own), seven pictures kept at the end, no dry frame, no restart
+  (2026-11-17). The loop task's stack read 9,528 B at its lowest after the night's runs on that layout, 10,108 at
+  their start: worth watching that it settles.
 - **Not while a sound plays.** A loop held for a fifth of a second is the class that made a sound stutter, so nothing
   is made ahead while the speaker or the microphone is held (`audio_owner`).
 - **Its proof.** The compare at the first turn to that page (below), and `{"v":2,"op":"page_pictures","prove":1}`,
