@@ -45,6 +45,11 @@ PROFILE = profiles.text('checkout/guition.yaml')
 PACKAGES = ROOT / 'packages'
 
 
+
+def firmware_headers():
+    """Every header of the firmware's component, by name: the rules below hold over all of them."""
+    return {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
+
 class _Loader(yaml.SafeLoader):
     """ESPHome's own tags (!include, !lambda, !secret, !extend) read as plain values: the structure is what is checked."""
 
@@ -362,9 +367,8 @@ class Rules(unittest.TestCase):
         # glass: a camera opened full screen asks for its picture at once and shows it the moment the answer's picture
         # has loaded, with the spinner turning until then (the log's "live link N ms after the camera opened" for a
         # stream, the first picture well under a second after the answer for stills).
-        parts = {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
-        self.assertTrue([name for name, code in parts.items() if 'camera_view::may_load(' in code],
-                        'pictures_round asks camera_view::may_load')
+        asked = [name for name, code in firmware_headers().items() if 'camera_view::may_load(' in code]
+        self.assertEqual(asked, ['picture_rounds_lvgl.h'], 'pictures_round (picture_rounds_lvgl.h) asks camera_view::may_load')
 
     def test_the_full_screen_draws_a_copy_a_broken_download_cannot_take_away(self):
         """Firmware 0.13.0: a download that broke off halfway made online_image free the buffer the view still drew, and
@@ -378,12 +382,14 @@ class Rules(unittest.TestCase):
         tests/test_picture_store.cpp. Here: the rule that the view never draws a slot's own download."""
         # glass: with the full view open, a picture whose download breaks off leaves the view's picture as it was, and a
         # tile below that goes unavailable is drawn normally (not black).
-        parts = {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
-        for name, code in parts.items():
+        for name, code in firmware_headers().items():
             self.assertNotIn('camera_show(camera_root, camera_picture, camera_full.source()', code,
                              f'{name}: the full view draws the store\'s copy (picture_of), never the slot\'s own download')
-        self.assertTrue([name for name, code in parts.items() if 'picture_store::arrival(' in code],
-                        'picture_done asks picture_store::arrival')
+
+    def test_a_finished_picture_goes_by_the_stores_tested_rules(self):
+        # picture_store::load_again and arrival, proven by tests/test_picture_store.cpp.
+        asked = [name for name, code in firmware_headers().items() if 'picture_store::arrival(' in code]
+        self.assertEqual(asked, ['picture_rounds_lvgl.h'], 'picture_done (picture_rounds_lvgl.h) asks picture_store::arrival')
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
@@ -1312,9 +1318,11 @@ class LiveTiles(unittest.TestCase):
         goes by the same standby level."""
         # glass: a dimmed screen without a screensaver shows a camera tile's new picture; with the clock saver over it,
         # nothing loads until it wakes.
-        parts = {path.name: path.read_text() for path in (ROOT / 'components/smart_display').glob('*.h')}
+        parts = firmware_headers()
         for rule in ('camera_view::pictures_on_glass(', 'camera_view::pictures_ahead(', 'camera_view::tiles_seen('):
             self.assertTrue([name for name, code in parts.items() if rule in code], f'the firmware asks {rule}...)')
+
+    def test_a_dimmed_screens_backlight_goes_by_the_level_the_tiles_are_seen_at(self):
         # The backlight of a dimmed screen, wherever a package sets it, goes by that same level, so the tiles count as seen
         # exactly while they are lit enough to be.
         dimmed = []
