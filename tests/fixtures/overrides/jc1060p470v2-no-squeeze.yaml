@@ -1,0 +1,5 @@
+# The V2 drawn straight onto its panel's 1024 x 600 pixels, without the pixel shape correction (docs/JC1060P470.md,
+# "Turning the correction off").
+substitutions:
+  PANEL_W: "1024"
+  DISPLAY_DPI: "169.548"
