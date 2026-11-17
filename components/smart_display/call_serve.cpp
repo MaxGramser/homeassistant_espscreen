@@ -47,7 +47,7 @@ struct Run {
   picture_engine::Client ppa = nullptr;
   uint8_t *pixels = nullptr, *jpeg = nullptr;
   size_t pixels_size = 0, jpeg_size = 0;
-  Size size{0, 0, 0};
+  Size size{0, 0};
   std::atomic<int> picture{EMPTY};
   int64_t next_us = 0;
   uint32_t since = 0, pictures = 0, sounds = 0, skipped = 0, encode_us = 0, blit_us = 0;

@@ -26,13 +26,15 @@ int main() {
     assert(!asks_for(bad.data(), bad.size(), token));
   assert(!asks_for(good.data(), good.size(), ""));   // no call, no stream
 
-  // 1280 x 720 from the camera: nine sixteenths, in whole blocks of 16.
+  // 1280 x 720 from the camera: 720 a side at most, in whole blocks of 16.
   Size s = picture_size(1280, 720);
-  assert(s.w == 720 && s.h == 400 && s.sixteenths == 9);
+  assert(s.w == 720 && s.h == 400);
   s = picture_size(640, 480);
-  assert(s.w == 640 && s.h == 480 && s.sixteenths == 16);   // never larger than the frame
+  assert(s.w == 640 && s.h == 480);   // never larger than the frame
   s = picture_size(1920, 1080);
-  assert(s.w == 720 && s.h == 400 && s.sixteenths == 6);
+  assert(s.w == 720 && s.h == 400);
+  s = picture_size(720, 1280);
+  assert(s.w == 400 && s.h == 720);   // a standing frame alike
   assert(picture_size(16, 16).w == 0);
   std::puts("PASS: part heads as a live view reads them, a request answered only under the call's token, picture sizes in whole blocks");
   return 0;

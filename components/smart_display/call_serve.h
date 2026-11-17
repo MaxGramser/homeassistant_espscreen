@@ -24,8 +24,7 @@ constexpr int PICTURE_SIDE = 720;               // a call's pictures at most thi
 constexpr size_t HEAD = 128;                    // room for a part's head
 
 inline const char *answer() {
-  return "HTTP/1.0 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=frame\r\nCache-Control: no-store\r\n"
-         "Connection: close\r\n\r\n";
+  return "HTTP/1.0 200 OK\r\nContent-Type: multipart/x-mixed-replace;boundary=frame\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
 }
 inline const char *refusal() { return "HTTP/1.0 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"; }
 
@@ -56,15 +55,15 @@ inline bool asks_for(const char *request, size_t length, const std::string &toke
   return differs == 0;
 }
 
-// A camera frame's size for a call: the largest whole sixteenth of it that fits PICTURE_SIDE a side, in whole blocks
-// of 16 pixels (the JPEG encoder's), never larger than the frame. {0, 0, 0} for a frame too small to send.
-struct Size { int w, h, sixteenths; };
+// A camera frame's size for a call: its own shape at most PICTURE_SIDE a side, in whole blocks of 16 pixels (the JPEG
+// encoder's), never larger than the frame. How the frame is scaled into it is the picture engine's (its cut). {0, 0}
+// for a frame too small to send.
+struct Size { int w, h; };
 inline Size picture_size(int width, int height) {
-  if (width < 32 || height < 32) return {0, 0, 0};
-  int s = 16;
-  while (s > 1 && (width * s / 16 > PICTURE_SIDE || height * s / 16 > PICTURE_SIDE)) --s;
-  const int w = (width * s / 16) & ~15, h = (height * s / 16) & ~15;
-  return w >= 16 && h >= 16 ? Size{w, h, s} : Size{0, 0, 0};
+  if (width < 32 || height < 32) return {0, 0};
+  const int longest = width > height ? width : height, side = longest < PICTURE_SIDE ? longest : PICTURE_SIDE;
+  const int w = (width * side / longest) & ~15, h = (height * side / longest) & ~15;
+  return w >= 16 && h >= 16 ? Size{w, h} : Size{0, 0};
 }
 
 // The task's side (call_serve.cpp), from the main loop unless said otherwise.
