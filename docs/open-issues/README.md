@@ -16,6 +16,7 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [calls-found-on-the-bench.md](calls-found-on-the-bench.md) | Calls on two boards: the first call after a restart can stall, a sound takes a second there and back, the canceller relearns for a minute after two boards shared a desk, the Guition's microphone is noisy, a live view aborts when internal RAM runs out, and one old-protocol message leaves a screen at "Configuration problem" | 2026-11-17 |
 | [waveshare-7-inch-rev3.md](waveshare-7-inch-rev3.md) | The Waveshare 7-inch P4 has no proven rev3 firmware: its old advice (`engineering_sample: false`) was not enough on the 10.1; what a report from a rev3 owner needs | 2026-11-16 |
 | [main-host-render-min-power.md](main-host-render-min-power.md) | main's host render does not build on ESPHome 2026.9.0 (set_min_power without power scaling); fixed on dev by df32c78b, one line for a hotfix. Solved on dev 2026-11-16 | 2026-11-16 |
 | [loop-stack-margin.md](loop-stack-margin.md) | The loop task's stack: a Guition 10.1 with a large layout overflowed it; fixed in b8e887c6, three boards read about 10 KB free; the screensaver and a night are still to read | 2026-11-16 |
