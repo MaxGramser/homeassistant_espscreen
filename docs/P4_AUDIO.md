@@ -15,18 +15,41 @@ and the [ESP32-P4-WIFI6-Touch-LCD-10.1](WAVESHARE101.md). All three are experime
 | --- | --- | --- | --- | --- |
 | Waveshare 86 panel, LCD-7B, LCD-7, LCD-10.1 | ES8311 + ES7210 | AEC by default, half-duplex I2S optional | Yes (ES7210 MIC3 reference) | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation |
 | M5Stack Tab5 | ES8388 + ES7210 | AEC by default, half-duplex I2S optional | Yes | Volume, Microphone, Echo cancellation |
-| Guition JC8012P4A1 (all builds), JC1060P470 (both), JC4880P443 | ES8311 alone | Full duplex at 16 kHz: two I2S ports on the codec's one bus | No (no reference input) | Volume, Microphone |
+| Guition JC8012P4A1 (all builds), JC1060P470 (both), JC4880P443 | ES8311 alone | Full duplex at 16 kHz: two I2S ports on the codec's one bus, or the AEC transport by choice | By choice: the codec's own feedback is the reference (below) | Volume, Microphone; with the AEC transport also Echo cancellation |
 | CrowPanel Advanced 10.1 | NS4168 amplifier, PDM microphone | Two I2S buses | No | Volume, Microphone |
 | reTerminal D1001 | ES8311 + ES7210 | Two I2S buses | No | Volume, Microphone |
 
 The Guition panels' one ES8311 plays the speaker and reads an analogue microphone on its own input
-(`packages/hardware/guition-p4-audio.yaml`). ESPHome never turns on that codec's internal loopback, so there is
-no playback reference and no echo cancellation. The speaker and the microphone still work at the same time: two of
+(`packages/hardware/guition-p4-audio.yaml`, the part `parts/es8311-voice.yaml`). It has two transports, as the ES7210's
+part has. The plain one, the default: the speaker and the microphone work at the same time without echo cancelling, two of
 the chip's I2S ports share the codec's clock pins, the microphone's port giving the clocks (ESPHome's `primary`)
 and the speaker's following them (`secondary`), as [@Eugen417](https://github.com/Eugen417) runs it on a
 JC8012P4A1 V3 (#259). ESPHome runs a microphone only while something listens, so the board listens from the
 start to keep the clocks running for the speaker. The Guition pages ([JC8012P4A1](JC8012P4A1.md),
 [JC1060P470](JC1060P470.md), [JC4880P443](JC4880P443.md)) have the wiring and the sources.
+
+### The ES8311's own reference
+
+The ES8311 needs no wire for a playback reference: with its register 0x44 at 0x58 it sends two slots, the microphone
+on the left and, on the right, the right slot of what it was given to play, sample for sample (Espressif's
+`esp_codec_dev` sets the same). `AUDIO_TRANSPORT: "aec"` in a screen's Override YAML picks the transport built on it
+(`parts/es8311/aec.yaml`): the pinned audio stack on the one bus, two slots each way, and the same echo cancelling as
+the boards with an ES7210 (`parts/echo-cancel.yaml`). The reference is taken before the codec's volume.
+
+Measured on a Guition JC8012P4A1 V3 with a firmware of nothing but this path (2026-11-17): noise under 4 kHz from the
+board's own speaker, the level left in the microphone after the canceller, at rest and at work.
+
+| Speaker volume | Canceller at rest | Canceller at work | Taken away |
+| --- | --- | --- | --- |
+| 15 % | -55.1 dBFS | -65.8 dBFS | 11 dB, down to the room's own noise |
+| 20 % | -50.7 dBFS | -67.7 dBFS | 17 dB, down to the room's own noise |
+| 25 % | -45.1 dBFS | -70.4 dBFS | 25 dB |
+| 30 % | -38.6 dBFS | -75.8 dBFS | 37 dB |
+| 75 % | -0.4 dBFS, clipped | -6.0 dBFS | 6 dB: the microphone was at its top |
+
+So it works where the microphone does not clip, and at this microphone gain (24 dB before the canceller) it clips from
+about half volume. Not measured: the volumes between 30 % and 75 %, a voice at the same time as the far end, and the
+other Guition panels. Until those are, the plain transport stays the default.
 
 ## Interfaces and settings
 
