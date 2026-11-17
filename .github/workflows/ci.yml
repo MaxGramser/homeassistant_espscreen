@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     # The Python tests alone take about 16 minutes since the layout audit covers every card on every board shape (963 s
     # on the Mac mini at 0.4.88), so 20 minutes stopped every run from 10-12 on, and with it the firmware builds.
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       # The whole history: the firmware number check compares with the commit before this push, or the pull request's
       # base (CHECK_BASE below, docs/BOARD_RELEASES.md).
