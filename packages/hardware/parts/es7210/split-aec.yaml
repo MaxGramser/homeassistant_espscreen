@@ -9,6 +9,8 @@ packages:
 
 substitutions:
   AUDIO_HALF_DUPLEX: "false"
+  # As the ES8311's transport, where it was measured (parts/es8311/aec.yaml); on this one it was heard in a call only.
+  AUDIO_ECHO_LEVEL: "normal"
 
 i2s_audio:
   - id: ts_speaker_bus

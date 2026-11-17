@@ -84,6 +84,27 @@ distortion is the amplifier's or the loudspeaker's, and a canceller cannot work 
 way. So on these panels the canceller needs a microphone gain of 12 dB or less, and at the top volume voice switching
 is what keeps the echo away (docs/CALLS.md, "Echo"). Not measured: the volumes between 60 % and 75 %.
 
+### A voice beside the board
+
+What a canceller does to the voice of whoever stands at the board matters as much as the echo it takes away. Measured
+on the Guition with the same firmware, a voice counting aloud beside it (a laptop's loudspeaker), microphone gain 12 dB,
+speaker at half volume, the level at the canceller's output:
+
+| | Canceller's level aggressive (the library's own) | normal |
+| --- | --- | --- |
+| The voice alone, canceller at rest | -47.5 dBFS | -44.5 dBFS |
+| The voice alone, canceller at work | -46.1 dBFS | -43.2 dBFS |
+| The voice while the board's speaker plays noise, canceller at work | -52.0 and -47.2 dBFS | -44.9 and -45.4 dBFS |
+| The same with the canceller at rest (voice and echo together) | -25.2 dBFS | -29.1 dBFS |
+
+So a silent far end costs the voice nothing at either level, and while the far end sounds the voice loses about 6 dB at
+aggressive and about 2 dB at normal, with the echo still under the voice. The two runs were not at the same distance
+from the laptop, so compare within a column. The transports of this section run at normal (`AUDIO_ECHO_LEVEL`).
+
+Two things heard in a call between this Guition and a reTerminal D1001 in another room (2026-11-17): with the microphone
+at 12 dB and nothing given back, the voice beside the Guition was too soft at the other end, so the 12 dB are given back
+after the canceller (`AUDIO_VOICE_GAIN`); and with echo cancelling on and voice switching off the call sounded best.
+
 ## Interfaces and settings
 
 The board keeps `ts_microphone`, `ts_speaker` and `ts_media_player`. Its new transport replaces

@@ -8,6 +8,10 @@
 substitutions:
   # What a transport does at start to make its reference (the ES8311 turns its feedback on); none where the wiring is it.
   AUDIO_REFERENCE_BOOT: ""
+  # How hard the canceller presses down what its filter leaves (ESP-SR's NLP level: normal, aggressive,
+  # very_aggressive). Aggressive is the library's own and what the boards with an ES7210 on the speaker's bus were
+  # measured with; a transport measured at another level says its own.
+  AUDIO_ECHO_LEVEL: "aggressive"
   # The settings page's echo cancellation row, after the microphone controls (packages/core.yaml, BOOT_MICROPHONE_PART).
   BOOT_MICROPHONE_PART: |-
     ${AUDIO_REFERENCE_BOOT}
@@ -33,6 +37,7 @@ esp_aec:
   sample_rate: 16000
   mode: fd_low_cost
   filter_length: 4
+  nlp_level: ${AUDIO_ECHO_LEVEL}
 
 switch:
   - platform: template

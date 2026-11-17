@@ -17,6 +17,8 @@ Local changes:
 - Provide a live output bypass for AEC on/off. The DSP keeps adapting while bypassed;
   re-enabling changes the output selection on the next frame without replacing the handle.
   This saves neither DSP CPU nor firmware space. Incomplete DSP frames emit silence.
+- `nlp_level` (normal, aggressive, very_aggressive): ESP-SR's level for how hard the residual is pressed down, set with
+  `aec_set_nlp_level` on every handle the library makes. Left out, the library's own stays (aggressive in 2.5.5).
 - Reset the startup guard when the DSP handle is replaced. The diagnostic counter
   `startup_silence_frames()` counts skipped initial frames.
 

@@ -7,6 +7,8 @@
 
 #if !defined(CLANG_TIDY) && __has_include(<esp_afe_aec.h>)
 #include <esp_afe_aec.h>
+#include <esp_aec.h>
+#define ESP_AEC_HAS_NLP_LEVEL 1
 #else
 using afe_aec_handle_t = void;
 using afe_mode_t = int;
@@ -30,6 +32,18 @@ void afe_aec_destroy(afe_aec_handle_t *handle);
 namespace esphome::esp_aec {
 
 static const char *const TAG = "esp_aec";
+
+void EspAec::apply_nlp_level_(void *handle) {
+#ifdef ESP_AEC_HAS_NLP_LEVEL
+  if (this->nlp_level_ < 0 || handle == nullptr) return;
+  auto *afe = static_cast<afe_aec_handle_t *>(handle);
+  if (afe->handle == nullptr) return;
+  const aec_nlp_level_t set = aec_set_nlp_level(afe->handle, static_cast<aec_nlp_level_t>(this->nlp_level_));
+  ESP_LOGI(TAG, "NLP level: %s", aec_get_nlp_string(set));
+#else
+  (void) handle;
+#endif
+}
 
 // esp-sr HIGH_PERF modes silently calloc the FFT cos/sin tables in
 // DMA-capable internal RAM and return a half-init handle on OOM, which
@@ -105,6 +119,7 @@ void EspAec::setup() {
     this->mark_failed();
     return;
   }
+  this->apply_nlp_level_(this->handle_);
   this->cached_frame_size_ = afe_aec_get_chunksize(static_cast<afe_aec_handle_t *>(this->handle_));
   const size_t input_bytes = static_cast<size_t>(this->cached_frame_size_) * 2 * sizeof(int16_t);
   this->input_frame_ =
@@ -293,6 +308,7 @@ bool EspAec::reinit_(int new_mode) {
     ESP_LOGE(TAG, "Failed to create new AEC instance, keeping previous mode=%s", get_mode_name(old_mode));
     return false;
   }
+  this->apply_nlp_level_(new_handle);
   int new_frame_size = afe_aec_get_chunksize(new_handle);
   const size_t input_bytes = static_cast<size_t>(new_frame_size) * 2 * sizeof(int16_t);
   int16_t *new_input_frame =
