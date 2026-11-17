@@ -198,27 +198,25 @@ def test_a_side_with_its_own_canceller_is_never_turned_down():
     assert level_of(s.feed('b', tone(3000), 0.02)) > 2900
 
 
-def test_a_person_turns_the_switching_off_for_their_own_microphone_and_on_again():
+def test_voice_switching_and_echo_cancelling_are_the_calls_choices_for_both_screens():
     s = calls.VoiceSwitch('a', 'b', cancels=['a'])
-    assert s.offered('b') and s.switching('b')
-    assert not s.offered('a')                    # cancels echo itself: no key for it, and turning it does nothing
-    s.turn('a', True)
+    assert s.keys() == {'vs': 1, 'ec': 1}
+    assert s.switching('b') and not s.switching('a')      # a's canceller is at work: a is not turned down
     s.feed('a', tone(5000), 0.0)
     s.feed('b', tone(3000), 0.01)                # the part in which the level goes down
     assert level_of(s.feed('b', tone(3000), 0.02)) < 3000 * calls.DUCK * 1.1
-    s.turn('b', False)
-    assert not s.switching('b')
+    s.turn('switch', False)                      # off for the call: nobody is turned down
+    assert s.keys() == {'vs': 0, 'ec': 1}
     assert level_of(s.feed('b', tone(3000), 0.04)) > 2900    # at once, with no ramp left from before
-    s.turn('b', True)
-    s.feed('b', tone(3000), 0.06)
-    assert level_of(s.feed('b', tone(3000), 0.08)) < 3000 * calls.DUCK * 1.1
+    s.turn('switch', True)
+    s.turn('echo', False)                        # the canceller rests: a is switched as b is
+    assert s.keys() == {'vs': 1, 'ec': 0} and s.switching('a')
+    # A call of two screens without a canceller has no key for echo cancelling.
+    assert calls.VoiceSwitch('a', 'b').keys() == {'vs': 1}
 
 
-def test_the_live_message_says_whether_this_screens_microphone_is_switched():
-    live = calls.Say('a', 'k', calls.LIVE, 'b', True)
-    assert 'vs' not in calls.message(live)
-    assert calls.message(live, voice_switch=True)['vs'] == 1
-    assert calls.message(live, voice_switch=False)['vs'] == 0
+def test_the_calls_choices_go_out_as_a_message_of_their_own():
+    assert calls.choices_message('k', {'vs': 0, 'ec': 1}) == {'v': 1, 'op': 'call', 'k': 'k', 's': 'set', 'vs': 0, 'ec': 1}
 
 
 def test_do_not_disturb_is_the_screens_own_switch_read_from_home_assistant():

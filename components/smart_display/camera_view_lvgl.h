@@ -176,6 +176,15 @@ template<class Speaker> inline void call_audio(Speaker *speaker, std::function<f
   (void) speaker; (void) volume_get; (void) volume_set; (void) ring_on; (void) switch_on; (void) ring_top;
 #endif
 }
+// A board with an echo canceller hands it to a call (parts/es7210/aec.yaml): to work or to rest, and what its switch says.
+inline void call_echo_cancel(std::function<void(bool)> set, std::function<bool()> is) {
+#ifdef SD_MOD_CALL
+  call::echo_cancel = std::move(set);
+  call::echo_cancel_is = std::move(is);
+#else
+  (void) set; (void) is;
+#endif
+}
 inline void doorbell_reports(std::function<void(const std::string &, const std::string &)> report) {
 #ifdef SD_MOD_DOORBELL
   doorbell::report = std::move(report);

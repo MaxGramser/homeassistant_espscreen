@@ -60,19 +60,22 @@ once, and **Kind of call**, video where both ends can or sound only.
 
 ## Echo
 
-While one side speaks the other side's microphone goes down by 18 dB, for a quarter of a second after the last word (`calls.VoiceSwitch`).
-It keeps a voice from coming back out of the other loudspeaker, at a price: the two cannot speak at once. So it is a person's choice,
-for their own microphone:
+Two things keep a voice from coming back out of the other loudspeaker, and both are a call's own choices, the same on both screens:
 
-- The switch **Call voice switching** of each screen (in Home Assistant, under its configuration) is what a call starts with. On, as
-  it comes.
-- A key in the call (one person speaking, `mdi:account-voice`) turns it off and on for that call. Off, this screen's microphone
-  stays open whoever speaks.
+- **Voice switching.** While one side speaks the other side's microphone goes down by 18 dB, for a quarter of a second after the last
+  word (`calls.VoiceSwitch`). Its price: the two cannot speak at once.
+- **Echo cancelling**, on a board with a canceller (`echo_cancel` in its capabilities). A side whose canceller is at work is not
+  switched.
 
-The screen says both with the action `switch` of `esphome.screen_call` (`video` 1 for on), and the op `call` of a live call tells the
-screen whether its microphone is switched (`vs`). A screen that cancels echo itself (`echo_cancel` in its capabilities) is never
-switched: its message has no `vs`, and it shows no key. An app from before the key sends no `vs` either. The doorbell's Talk is
-always switched.
+Each has a small key in the call, in the top corner on the keys' side, smaller and quieter than the keys a call is run with: one
+person speaking (`mdi:account-voice`) for voice switching, an ear (`mdi:ear-hearing`) for echo cancelling, which is there only when a
+side of the call has a canceller. A press on either screen changes it for the call: the screen says `switch` or `echo` with
+`esphome.screen_call` (`video` 1 for on), and ESP Screens tells both screens with the op `call` in the state `set` (`vs`, `ec`), as
+the live message does when the call starts. A board with a canceller puts it to work or to rest as the call says and leaves it as
+it found it when the call ends.
+
+The switch **Call voice switching** of each screen (in Home Assistant, under its configuration; on as it comes) says what its calls
+start with: off on either screen, the call starts without it. The doorbell's Talk is always switched.
 
 ### Without the add-on in the middle
 

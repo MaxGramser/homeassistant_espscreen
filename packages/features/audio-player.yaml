@@ -65,9 +65,9 @@ substitutions:
 # A call's keys (module call, docs/CALLS.md): glyphs only a board with sound needs, so a CYD pays nothing for them.
 font:
   - id: !extend materialdesign_icons
-    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4"]
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4", "\U000F0A45"]
   - id: !extend materialdesign_icons_mini
-    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4"]
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4", "\U000F0A45"]
 
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
@@ -89,9 +89,9 @@ switch:
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
-  # Whether a call starts with voice switching for this screen's microphone (docs/CALLS.md, "Echo"): on, it goes down
-  # while the other side speaks, so their voice does not come back to them; off, it stays open and both can speak at once.
-  # The key in a call changes it for that call. A screen that cancels echo itself is never switched, whatever this says.
+  # Whether this screen's calls start with voice switching (docs/CALLS.md, "Echo"): on, the microphone of the side that
+  # listens goes down, so a voice does not come back; off, both stay open and both can speak at once. A small key in the
+  # call changes it for that call, on both screens.
   - platform: template
     id: ts_call_voice_switching
     name: "Call voice switching"

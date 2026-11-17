@@ -7,6 +7,6 @@
 - **Ringing at night.** A screen in standby rings at full volume. The switch Do not disturb refuses calls (docs/CALLS.md), and an
   automation can turn it on at night; whether a screen should also have quiet hours of its own is a question for the owner.
 - **Measured on two boards only**, a reTerminal D1001 and a Guition 10.1. The ring's loudness through the speaker's own volume has not been
-  heard: the ring was off when it was made. Voice switching has not been judged by ear; a person can turn it off for their own microphone (docs/CALLS.md, "Echo"), and that key has not been pressed in a real call: one board with calls was at hand when it was made. Hardware echo references (docs/CALLS.md, "Echo"),
+  heard: the ring was off when it was made. Voice switching has not been judged by ear; a small key turns it off for the call (docs/CALLS.md, "Echo"). Hardware echo references (docs/CALLS.md, "Echo"),
   the Calls settings on the screen's own settings page and the editor's Calls card are not built; Do not disturb and the voice
   switching's choice are switches of the screen in Home Assistant for now.

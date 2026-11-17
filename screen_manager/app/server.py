@@ -4629,11 +4629,10 @@ class Manager:
                     message['pc'] = int(bool(video))
                     talk = self.talks.link(f'call:{out.node}', screen=mine['screen']['id'], into=self.call_voice_to(out.node, out.key, known))
                     message['tk'] = f'{base}/camera/{talk}/talk'
-                    # Whether this screen's microphone is switched, for its key (docs/CALLS.md, "Echo"); none for a screen
-                    # that cancels echo itself.
+                    # The call's voice switching and echo cancelling, for the small keys (docs/CALLS.md, "Echo").
                     switch = self.call_switch(out.key, known)
-                    if switch is not None and switch.offered(out.node):
-                        message['vs'] = int(switch.switching(out.node))
+                    if switch is not None:
+                        message.update(switch.keys())
             await self.send_auxiliary(mine['screen']['id'], message, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
 
     def call_switch(self, key, known):
@@ -4684,12 +4683,18 @@ class Manager:
             if call:
                 self.call_cameras_off.discard(call.caller)
                 self.call_cameras_off.discard(call.callee)
-        elif action == 'switch':
-            # The key for voice switching, or the screen's own switch as the call goes live: this screen's microphone only.
+        elif action in ('switch', 'echo'):
+            # A small key of the call (voice switching, echo cancelling), or a screen's own switch as the call goes live:
+            # for the call, so both screens hear it.
             call = self.calls.of(node)
             switch = self.call_switches.get(call.key) if call else None
             if switch is not None:
-                switch.turn(node, video)
+                switch.turn(action, video)
+                for each in (call.caller, call.callee):
+                    mine = known.get(each)
+                    if mine:
+                        await self.send_auxiliary(mine['screen']['id'], calls.choices_message(call.key, switch.keys()),
+                                                  self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
         elif action == 'camera':
             call = self.calls.of(node)
             if call:

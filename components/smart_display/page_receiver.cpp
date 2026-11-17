@@ -440,11 +440,12 @@ std::string receive(const std::string &payload) {
 #ifdef SD_MOD_CALL
       // A call between screens (module call, docs/CALLS.md): `s` out, ring, live, held or end; `k` its key, `n` the other
       // screen's name, `i` its icon, `vd` video, `l` the stream of the other, `tk` where this screen sends its voice,
-      // `pc` the other's camera is on, `w` why it ended, `vs` whether this screen's microphone is switched (absent: never).
+      // `pc` the other's camera is on, `w` why it ended, `vs` and `ec` the call's voice switching and echo cancelling (docs/CALLS.md, "Echo"; the state `set` brings only these).
       call::on_call(string(root["s"], 8), string(root["k"], 16), string(root["n"], 60), string(root["i"], 8),
                     root["vd"].is<unsigned>() && root["vd"].as<unsigned>() == 1, string(root["l"], 200), string(root["tk"], 200),
                     !(root["pc"].is<unsigned>() && root["pc"].as<unsigned>() == 0), string(root["w"], 16),
-                    root["vs"].is<unsigned>() ? static_cast<int>(root["vs"].as<unsigned>() == 1) : -1);
+                    root["vs"].is<unsigned>() ? static_cast<int>(root["vs"].as<unsigned>() == 1) : -1,
+                    root["ec"].is<unsigned>() ? static_cast<int>(root["ec"].as<unsigned>() == 1) : -1);
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;

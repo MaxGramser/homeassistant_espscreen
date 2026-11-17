@@ -14,6 +14,10 @@ substitutions:
     settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_echo_cancellation,
         []() -> int32_t { return id(board_echo_cancellation).state ? 1 : 0; },
         [](int32_t on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); }));
+    // A call's small key puts the canceller to work or to rest for both screens (docs/CALLS.md, "Echo").
+    runtime_tiles::call_echo_cancel(
+        [](bool on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); },
+        []() -> bool { return id(board_echo_cancellation).state; });
 
 external_components:
   - source:
