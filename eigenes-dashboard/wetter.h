@@ -505,4 +505,35 @@ inline int balken(float v, float voll) {
   return f < 0 ? 0 : f > 100 ? 100 : (int) lroundf(f);
 }
 
+
+// ---------------------------------------------------------------- Hunderunde (Easter Egg, Doppeltipp)
+// Der Text kommt aus Home Assistant: "icon;klein;groß;slots;tipp;plan;jetzt" (home-assistant/wetter_display.yaml).
+inline void sichtbar(lv_obj_t *o, bool an) {
+  if (an) lv_obj_clear_flag(o, LV_OBJ_FLAG_HIDDEN);
+  else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
+}
+inline uint32_t hund_farbe(char c) {
+  switch (c) {
+    case 't': return 0xFFD27A;   // trocken
+    case 'n': return 0x5FA8FF;   // nass
+    case 'h': return 0xFF7A45;   // heiß (ab 25 °C)
+    default: return 0x5E7F6E;    // keine Vorhersage (vergangene Stunden)
+  }
+}
+// Tagesstreifen 6 bis 22 Uhr: 16 Felder, die Stunden vor jetzt blass; der Strich steht auf der aktuellen Minute
+inline void hund_streifen(const std::string &x, lv_obj_t *const *feld, lv_obj_t *strich, int x0, int breite,
+                          int minute) {
+  std::string plan = part(x, 5);
+  std::string j = part(x, 6);
+  int jetzt = j.empty() ? -1 : atoi(j.c_str());
+  for (int i = 0; i < 16; i++) {
+    char c = i < (int) plan.size() ? plan[i] : '-';
+    lv_obj_set_style_bg_color(feld[i], lv_color_hex(hund_farbe(c)), 0);
+    lv_obj_set_style_bg_opa(feld[i], (jetzt >= 0 && i < jetzt) ? LV_OPA_40 : LV_OPA_COVER, 0);
+  }
+  bool an = jetzt >= 0 && jetzt < 16;
+  sichtbar(strich, an);
+  if (an) lv_obj_set_x(strich, x0 + (jetzt * 60 + minute) * breite / (16 * 60) - 1);
+}
+
 }  // namespace wx

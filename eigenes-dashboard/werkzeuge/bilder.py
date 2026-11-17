@@ -6,13 +6,17 @@ Aufruf aus eigenes-dashboard/:  python3 werkzeuge/bilder.py   (braucht: pip inst
 - tag_<zustand>.png   160 x 160  das große Bild bei Tag, je Wetterzustand von Home Assistant
 - mond_<0..7>.png     160 x 160  die Mondphase bei Nacht (0 Neumond, 4 Vollmond, im Uhrzeigersinn zunehmend)
 - nacht_<art>.png      93 x  93  das kleine Wetterbild, das nachts unten rechts auf dem Mond liegt (bei x 66, y 66)
+- hund*.png, hr_*.png            das Easter Egg Hunderunde: der Hund (aus werkzeuge/hund_vorlage.png) und seine Wetterzeichen
 Alle Zeichnungen nutzen einen viewBox von 0 bis 140. Das Display zeigt die Bilder in voller Größe, solange keine
 Warnung gilt, und verkleinert sie auf 85 %, sobald darunter eine Warnung steht.
 """
 import math
 import os
 
+import io
+
 import cairosvg
+from PIL import Image, ImageFilter
 
 HIER = os.path.dirname(os.path.abspath(__file__))
 ZIEL = os.path.join(os.path.dirname(HIER), "bilder")
@@ -155,6 +159,72 @@ def schreibe(name, body, size):
                      output_width=size, output_height=size)
 
 
+# ---------- Hunderunde (Easter Egg, Doppeltipp) ----------
+def schneeflocke(cx=70, cy=70, r=40, col="#D6EAFF"):
+    arme = []
+    for k in range(6):
+        g = [f'<line x1="{cx}" y1="{cy}" x2="{cx}" y2="{cy - r}"/>']
+        for t, l in ((.45, .3), (.74, .22)):
+            y = cy - r * t
+            g.append(f'<line x1="{cx}" y1="{y}" x2="{cx - r * l:.1f}" y2="{y - r * l:.1f}"/>'
+                     f'<line x1="{cx}" y1="{y}" x2="{cx + r * l:.1f}" y2="{y - r * l:.1f}"/>')
+        arme.append(f'<g transform="rotate({k * 60} {cx} {cy})">' + "".join(g) + "</g>")
+    return f'<g stroke="{col}" stroke-width="6.5" stroke-linecap="round">' + "".join(arme) + "</g>"
+
+
+def ohne_schein(body):
+    """Die Sonne ohne ihren Schein (der Kreis mit url(#glow))."""
+    import re
+    return re.sub(r'<circle[^>]*fill="url\(#glow\)"/>', "", body)
+
+
+def schirm():
+    """Großer Schirm über dem Hund (240 x 200), Regen links und rechts daneben, der Stiel endet über dem Rücken."""
+    ca = "M10 72 Q120 -14 230 72 Q202.5 58 175 72 Q147.5 58 120 72 Q92.5 58 65 72 Q37.5 58 10 72Z"
+    body = ('<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE27A"/>'
+            '<stop offset="1" stop-color="#FFB224"/></linearGradient></defs>'
+            '<line x1="120" y1="22" x2="120" y2="12" stroke="#FFB224" stroke-width="5" stroke-linecap="round"/>'
+            '<line x1="120" y1="70" x2="120" y2="108" stroke="#FFD27A" stroke-width="5" stroke-linecap="round"/>'
+            f'<path d="{ca}" fill="url(#sg)"/>'
+            '<path d="M120 26 Q80 40 65 72 M120 26 Q160 40 175 72 M120 26 V72" fill="none" stroke="#C98A12" '
+            'stroke-width="2.5" stroke-opacity=".5"/>')
+    regen = "".join(drops(x, y, 1, sc=.75) for x, y in ((4, 92), (20, 128), (4, 150), (222, 96), (206, 132), (224, 150)))
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="240" height="200" viewBox="0 0 240 200">'
+            f'{DEFS}{body}{regen}</svg>')
+
+
+def png(text, w, h):
+    return Image.open(io.BytesIO(cairosvg.svg2png(bytestring=text.encode(), output_width=w, output_height=h))).convert("RGBA")
+
+
+def mit_rand(im, staerke=2):
+    """Dezenter dunkler Rand um ein Zeichen (dunkles Grün, gut halb deckend)."""
+    a = im.split()[3].point(lambda v: 255 if v > 40 else 0)
+    rand = a.filter(ImageFilter.MaxFilter(2 * staerke + 1)).filter(ImageFilter.GaussianBlur(.5))
+    out = Image.new("RGBA", im.size, (6, 30, 18, 0))
+    out.putalpha(rand.point(lambda v: v * 150 // 255))
+    out.alpha_composite(im)
+    return out
+
+
+def hunderunde():
+    vorlage = Image.open(os.path.join(HIER, "hund_vorlage.png")).convert("RGBA")
+    for name, breite in (("hund", 160), ("hund_klein", 128)):
+        hoehe = round(vorlage.height * breite / vorlage.width)
+        vorlage.resize((breite, hoehe), Image.LANCZOS).save(os.path.join(ZIEL, name + ".png"))
+    # Zeichen in doppelter Größe gezeichnet, damit der Rand fein wird, dann verkleinert
+    for name, body, px, rand in (("hr_sonne", ohne_schein(sun(70, 70, 30)), 84, True),
+                                 ("hr_mix", ohne_schein(picture("partlycloudy")), 96, True),
+                                 ("hr_flocke", schneeflocke(), 60, False),
+                                 ("hr_flocke_m", schneeflocke(), 34, False),
+                                 ("hr_flocke_s", schneeflocke(), 24, False)):
+        im = png(svg(body), 2 * px, 2 * px)
+        if rand:
+            im = mit_rand(im, 2)
+        im.resize((px, px), Image.LANCZOS).save(os.path.join(ZIEL, name + ".png"))
+    png(schirm(), 420, 350).resize((210, 175), Image.LANCZOS).save(os.path.join(ZIEL, "hr_schirm.png"))
+
+
 if __name__ == "__main__":
     for k in TAG:
         schreibe("tag_" + k.replace("-", "_"), picture(k), GROSS)
@@ -162,4 +232,5 @@ if __name__ == "__main__":
         schreibe(f"mond_{i}", moon(i / 8), GROSS)
     for k, body in NACHT.items():
         schreibe("nacht_" + k.replace("-", "_"), body, KLEIN)
+    hunderunde()
     print("Bilder geschrieben nach", ZIEL)

@@ -18,6 +18,7 @@
 #   regen_satz             "Trocken bis;17 Uhr"        Kopf der Regen-Karte: wann der Regen beginnt oder aufhört
 #                                                      (ab 60 % Wahrscheinlichkeit, ohne Prozente ab 0,3 mm), in den
 #                                                      nächsten 12 Stunden. Der zweite Teil steht in Gold.
+#   hunderunde             "mix;Trocken raus;14 – 17 Uhr;…"  Easter Egg (Doppeltipp): trockene Zeiten für den Hund
 # Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
 # über die Aktion weather.get_forecasts. Dieser Sensor fragt sie alle 15 Minuten ab.
 #
@@ -178,6 +179,87 @@ template:
               {% for x in ns.nass %}{% if x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
               {% if ns.k < 0 %}Kein Regen;in Sicht{% else %}Trocken bis;{{ as_local(as_datetime(fc[ns.k].datetime)).hour }} Uhr{% endif %}
             {% endif %}
+          # Easter Egg Hunderunde (Doppeltipp am Display): trockene Zeiten zwischen 6 und 22 Uhr, ab 21 Uhr für morgen.
+          # "icon;klein;groß;slots;tipp;plan;jetzt": plan hat je Stunde 6..21 ein Zeichen (t trocken, n nass,
+          # h heiß ab 25 °C, - keine Vorhersage), jetzt ist die Stunde von 6 an gezählt (-1: morgen, kein Strich).
+          hunderunde: >
+            {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
+            {% set morgen = now().hour >= 21 %}
+            {% set tag = (now() + timedelta(days=1)).date() if morgen else now().date() %}
+            {% set jetzt = -1 if morgen else now().hour - 6 %}
+            {% set ns = namespace(plan='', tmin=99, tmax=-99, schnee=false, wind=[], temp=[]) %}
+            {% for h in range(6, 22) %}
+              {% set ns.c = '-' %}{% set ns.w = '' %}{% set ns.t = '' %}
+              {% for f in fc %}
+                {% set d = as_local(as_datetime(f.datetime)) %}
+                {% if d.date() == tag and d.hour == h %}
+                  {% set p = f.get('precipitation_probability') %}
+                  {% set mm = f.get('precipitation') %}
+                  {% set t = f.get('temperature') %}
+                  {% set nass = (p >= 60) if p is number else ((mm >= 0.3) if mm is number else false) %}
+                  {% set ns.c = 'n' if nass else ('h' if t is number and t >= 25 else 't') %}
+                  {% if t is number %}
+                    {% set ns.tmin = [ns.tmin, t] | min %}{% set ns.tmax = [ns.tmax, t] | max %}
+                    {% set ns.t = t | round(0) | int %}
+                  {% endif %}
+                  {% set ns.w = f.get('wind_speed') | round(0) | int if f.get('wind_speed') is number else '' %}
+                  {% if f.condition in ['snowy', 'snowy-rainy'] %}{% set ns.schnee = true %}{% endif %}
+                {% endif %}
+              {% endfor %}
+              {% set ns.plan = ns.plan ~ ns.c %}
+              {% set ns.wind = ns.wind + [ns.w] %}{% set ns.temp = ns.temp + [ns.t] %}
+            {% endfor %}
+            {% set ns.slots = [] %}{% set ns.von = -1 %}
+            {% for c in (ns.plan ~ 'x') %}
+              {% set i = loop.index0 %}
+              {% if c == 't' and i >= jetzt and ns.von < 0 %}{% set ns.von = i %}{% endif %}
+              {% if c != 't' and ns.von >= 0 %}
+                {% set ns.slots = ns.slots + [{'von': ns.von, 'bis': i, 'lang': i - ns.von}] %}{% set ns.von = -1 %}
+              {% endif %}
+            {% endfor %}
+            {% set slots = (ns.slots | sort(attribute='lang', reverse=true))[:3] | sort(attribute='von') %}
+            {% set start = [jetzt, 0] | max %}
+            {% set rest = ns.plan[start:] | replace('-', '') %}
+            {% set warn = ((warnung | default('')) ~ (vorwarnung | default(''))) | lower %}
+            {% set frost = ns.tmin <= 1 or ns.schnee or 'glätte' in warn or 'glatteis' in warn or 'frost' in warn %}
+            {% set heiss = 'h' in rest %}
+            {% set i0 = slots[0].von if slots else start %}
+            {% set temp = ns.temp[i0] if ns.temp[i0] != '' else '' %}
+            {% set wind = (' · Wind ' ~ ns.wind[i0] ~ ' km/h') if ns.wind[i0] != '' else '' %}
+            {% macro zeit(s, eng) %}{{ s.von + 6 }}{{ '–' if eng else ' – ' }}{{ s.bis + 6 }}{% endmacro %}
+            {% if rest == '' %}
+              {% set icon, klein, gross, tipp = 'mix', 'Hunderunde', '–', 'Keine stündliche Vorhersage' %}
+            {% elif slots | count == 1 and rest == 't' * (rest | count) %}
+              {% set icon = 'sonne' %}
+              {% set klein = 'Morgen den ganzen Tag' if morgen else ('Den ganzen Tag' if start == 0 else 'Bis zum Abend') %}
+              {% set gross, tipp = 'trocken!', 'Zeit für die große Runde · ' ~ temp ~ '°' %}
+            {% elif slots | count == 0 %}
+              {% set icon = 'sonne' if heiss else 'schirm' %}
+              {% set klein = ('Morgen zu heiß' if morgen else 'Heute zu heiß') if heiss and 'n' not in rest else (('Morgen' if morgen else 'Heute') ~ ' gibt's keine Lücke') %}
+              {% set gross = 'Kurz raus!' if heiss and 'n' not in rest else 'Schirm mit!' %}
+              {% set tipp = '…und das Hundehandtuch an die Tür legen' %}
+            {% else %}
+              {% set icon = 'sonne' if heiss else 'mix' %}
+              {% set klein = ('Morgen mittags zu heiß' if morgen else 'Mittags zu heiß') if heiss else ('Morgen trocken raus' if morgen else 'Trocken raus') %}
+              {% set ns.g = [] %}
+              {% for s in slots %}{% set ns.g = ns.g + [zeit(s, slots | count > 1)] %}{% endfor %}
+              {% set gross = ns.g | join(' · ') ~ ' Uhr' %}
+              {% if slots | count == 1 %}
+                {% set tipp = ('Danach Regen · ' if 'n' in ns.plan[slots[0].bis:] else '') ~ temp ~ '°' ~ wind %}
+              {% elif slots | count == 2 and slots[0].lang != slots[1].lang %}
+                {% set l = (slots | sort(attribute='lang', reverse=true))[0] %}
+                {% set tipp = 'Längste Lücke ' ~ zeit(l, false) ~ ' Uhr · ' ~ temp ~ '°' %}
+              {% else %}
+                {% set tipp = 'Wechselhaft · ' ~ temp ~ '°' ~ wind %}
+              {% endif %}
+            {% endif %}
+            {% if heiss %}
+              {% set tipp = (ns.tmax | round(0) | int) ~ '° · Asphalt-Test: 5 Sek. Handrücken · Wasser mit' %}
+            {% elif frost %}
+              {% set icon = 'frost' if icon != 'schirm' else icon %}
+              {% set tipp = (ns.tmin | round(0) | int) ~ '° · Pfoten nach der Runde abspülen (Streusalz)' %}
+            {% endif %}
+            {{ icon }};{{ klein }};{{ gross }};{{ slots | count }};{{ tipp }};{{ ns.plan }};{{ jetzt }}
     sensor:
       - name: Display Wetter
         unique_id: display_wetter_vorhersage
@@ -199,6 +281,7 @@ template:
           warnung: "{{ warnung | trim }}"
           vorwarnung: "{{ vorwarnung | trim }}"
           regen_satz: "{{ regen_satz | trim }}"
+          hunderunde: "{{ hunderunde | trim }}"
 
 automation:
   - id: wetter_display_openuv

@@ -69,7 +69,11 @@ ROLLE = {INK: "s_ink", MUTED: "s_muted", GOLD: "s_gold"}   # Textfarben, die mit
 COND = ["F0599", "F0594", "F0595", "F0590", "F0591", "F0592", "F0593", "F067E", "F0596", "F0597", "F0598",
         "F067F", "F059D", "F059E", "F0F2F"]
 UI = ["F059D", "F054A", "F058E", "F05A8", "F059C", "F059B", "F005D", "F0045", "F0054"]   # zuletzt: CO2-Trend
-KLEIN_ICONS = ["F0164", "F0717"]   # Wolke durchgestrichen (keine Verbindung), Eiskristall (Frost)
+KLEIN_ICONS = ["F0164", "F0717", "F03E9"]   # Wolke durchgestrichen (keine Verbindung), Eiskristall (Frost), Pfote
+# Hunderunde: die großen Texte (Zeiten oder ein Wort) brauchen nur diese Zeichen
+HUND_GROSS = "".join(sorted(set("0123456789–· Uhr trocken! Schirm mit! Kurz raus!")))
+HUND_FELD = 400 // 16 * 16     # Tagesstreifen 6 bis 22 Uhr: 16 Felder zu 25 px
+HUND_X = (480 - HUND_FELD) // 2
 WARN = ["F11DC", "F0026", "F1A71", "F0D64", "F0591", "F0593", "F059D", "F0596", "F0F36", "F18D6"]
 TAG_BILDER = ["sunny", "partlycloudy", "cloudy", "fog", "rainy", "pouring", "lightning", "lightning-rainy", "snowy",
               "snowy-rainy", "hail", "windy", "windy-variant", "exceptional"]
@@ -168,7 +172,8 @@ w(f"""# Wetter-Dashboard für das Guition ESP32-S3-4848S040 (480 x 480, ST7701S 
 # (nachts die Mondphase mit dem Wetter klein daneben), Hoch und Tief. Bei einer DWD-Warnung oder Vorwarnung wird das
 # Bild kleiner und darunter steht ein Hinweis in der Farbe der Stufe. Darunter vier Kacheln (Wind mit Böen, Regen
 # heute, Luftfeuchte, UV-Index), die Temperaturkurve der 5 Tage und der Regen der nächsten Stunden. Nachts (bis
-# 30 Minuten vor Sonnenaufgang) ist alles dunkel.
+# 30 Minuten vor Sonnenaufgang) ist alles dunkel. Ein Doppeltipp zeigt das Easter Egg "Hunderunde": wann man heute
+# (ab 21 Uhr: morgen) trocken mit dem Hund rauskommt.
 
 substitutions:
   name: wetter-display
@@ -200,6 +205,8 @@ substitutions:
   seitenwechsel: "45"
   # Minuten, die das Display an bleibt, wenn man es im Nachtmodus mit einem Tippen weckt
   weckdauer: "10"
+  # Millisekunden, in denen der zweite Tipp eines Doppeltipps kommen muss (so lange wartet ein einfaches Tippen)
+  doppeltipp: "350"
 
 esphome:
   name: ${{name}}
@@ -291,6 +298,19 @@ number:
                 id: hintergrundlicht
                 brightness: !lambda return id(helligkeit);
                 transition_length: 200ms
+
+  - platform: template
+    id: nr_doppeltipp
+    name: Doppeltipp-Zeit
+    icon: mdi:gesture-double-tap
+    entity_category: config
+    unit_of_measurement: ms
+    min_value: 200
+    max_value: 800
+    step: 50
+    initial_value: ${{doppeltipp}}
+    optimistic: true
+    restore_value: true
 
 button:
   - platform: restart
@@ -558,19 +578,91 @@ w("""  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima
                         - script.execute: seite_weiter
                 else:
                   - if:
-                      # gehaltene Seite: jede Berührung zeigt kurz das Schloss, ein Tippen wechselt nicht
                       condition:
-                        lambda: return id(seite_gehalten);
+                        lambda: return art == 0;
                       then:
-                        - script.execute: schloss_zeigen
+                        - if:
+                            # die Hunderunde ist offen: Tippen schließt sie
+                            condition:
+                              lambda: return !lv_obj_has_flag(id(hunderunde), LV_OBJ_FLAG_HIDDEN);
+                            then:
+                              - script.execute: hunderunde_schliessen
+                            else:
+                              - if:
+                                  # zweiter Tipp kurz nach dem ersten: Doppeltipp, die Hunderunde erscheint
+                                  condition:
+                                    script.is_running: tipp_warten
+                                  then:
+                                    - script.stop: tipp_warten
+                                    - script.execute: hunderunde_zeigen
+                                  else:
+                                    - script.execute: tipp_warten
                       else:
                         - if:
+                            # gehaltene Seite: Wischen zeigt kurz das Schloss
                             condition:
-                              lambda: return art == 0;
+                              lambda: return id(seite_gehalten);
                             then:
-                              - script.execute: seite_wechseln
-                              - script.execute: seite_weiter
-""")
+                              - script.execute: schloss_zeigen
+
+  # einfaches Tippen: erst nach der Doppeltipp-Zeit, falls kein zweiter Tipp kommt. Auf einer gehaltenen Seite zeigt
+  # es nur das Schloss, sonst wechselt es die Seite.
+  - id: tipp_warten
+    then:
+      - delay: !lambda 'return (uint32_t) id(nr_doppeltipp).state;'
+      - if:
+          condition:
+            lambda: return id(seite_gehalten);
+          then:
+            - script.execute: schloss_zeigen
+          else:
+            - script.execute: seite_wechseln
+            - script.execute: seite_weiter
+
+  # Easter Egg Hunderunde: über beiden Seiten, schließt sich nach 15 s oder mit einem Tippen
+  - id: hunderunde_zeigen
+    mode: restart
+    then:
+      - script.execute: hund_zeichnen
+      - lvgl.widget.show: hunderunde
+      - lambda: lv_obj_fade_in(id(hunderunde), 250, 0);
+      - delay: 15s
+      - lambda: lv_obj_fade_out(id(hunderunde), 400, 0);
+      - delay: 400ms
+      - lvgl.widget.hide: hunderunde
+  - id: hunderunde_schliessen
+    then:
+      - script.stop: hunderunde_zeigen
+      - lambda: lv_obj_fade_out(id(hunderunde), 250, 0);
+      - delay: 250ms
+      - lvgl.widget.hide: hunderunde
+  - id: hund_zeichnen
+    then:
+      - lambda: |-
+          std::string x = id(wetter_hunderunde).state;
+          if (wx::part(x, 0).empty()) x = "mix;Hunderunde;–;0;Noch keine Daten aus Home Assistant;;-1";
+          std::string ic = wx::part(x, 0);
+          bool schirm = ic == "schirm", frost = ic == "frost";
+          wx::sichtbar(id(hr_sonne), ic == "sonne");
+          wx::sichtbar(id(hr_mix), ic == "mix");
+          wx::sichtbar(id(hr_schirm), schirm);
+          wx::sichtbar(id(hr_hund), !schirm);
+          wx::sichtbar(id(hr_hund_klein), schirm);
+          for (lv_obj_t *f : {(lv_obj_t *) id(hr_flocke_0), (lv_obj_t *) id(hr_flocke_1), (lv_obj_t *) id(hr_flocke_2),
+                              (lv_obj_t *) id(hr_flocke_3)})
+            wx::sichtbar(f, frost);
+          int n = atoi(wx::part(x, 3).c_str());
+          std::string g = wx::part(x, 2);
+          lv_label_set_text(id(hr_klein), wx::part(x, 1).c_str());
+          lv_label_set_text(id(hr_gross44), g.c_str());
+          lv_label_set_text(id(hr_gross32), g.c_str());
+          wx::sichtbar(id(hr_gross44), n < 2);
+          wx::sichtbar(id(hr_gross32), n >= 2);
+          lv_label_set_text(id(hr_tipp), wx::part(x, 4).c_str());
+"""
+  + "          lv_obj_t *feld[16] = {" + ", ".join(f"id(hr_feld_{i})" for i in range(16)) + "};\n"
+  + f"          wx::hund_streifen(x, feld, id(hr_strich), {HUND_X}, {HUND_FELD},\n"
+  + "                            id(ha_time).now().is_valid() ? id(ha_time).now().minute : 0);\n")
 
 
 # ---- Skripte für Thema, Warnung, Wind, Seitenpunkte und Verbindung
@@ -681,6 +773,8 @@ font:
   - {{file: fonts/Poppins-600.ttf, id: f_22b, size: 22, bpp: 4, glyphs: {q(ZIFFERN)}}}
   - {{file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: {q(ZIFFERN)}}}
   - {{file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: {q(LATIN)}}}
+  - {{file: fonts/Poppins-500.ttf, id: f_hund44, size: 44, bpp: 4, glyphs: {q(HUND_GROSS)}}}
+  - {{file: fonts/Poppins-500.ttf, id: f_hund32, size: 32, bpp: 4, glyphs: {q(HUND_GROSS)}}}
   - {{file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: {q("HochTief0123456789-°· ")}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: {mdi(COND)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: {mdi(UI)}}}
@@ -696,6 +790,9 @@ for i in range(8):
     w(f"  - {{file: bilder/mond_{i}.png, id: img_mond_{i}, type: RGB565, transparency: alpha_channel}}")
 for k in NACHT_BILDER:
     w(f"  - {{file: bilder/nacht_{ident(k)}.png, id: img_nacht_{ident(k)}, type: RGB565, transparency: alpha_channel}}")
+w("  # Hunderunde (Easter Egg): der Hund und seine Wetterzeichen")
+for k in ("hund", "hund_klein", "hr_sonne", "hr_mix", "hr_schirm", "hr_flocke", "hr_flocke_m", "hr_flocke_s"):
+    w(f"  - {{file: bilder/{k}.png, id: img_{k}, type: RGB565, transparency: alpha_channel}}")
 w("")
 
 w("""interval:
@@ -797,7 +894,18 @@ text_sensor:
             text: !lambda 'auto a = wx::part(x, 0); return a.empty() ? std::string("Regen") : a;'
         - lvgl.label.update:
             id: lbl_satz_b
-            text: !lambda 'return wx::part(x, 1);'""")
+            text: !lambda 'return wx::part(x, 1);'
+  - platform: homeassistant
+    id: wetter_hunderunde
+    entity_id: ${{vorhersage_entity}}
+    attribute: hunderunde
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return !lv_obj_has_flag(id(hunderunde), LV_OBJ_FLAG_HIDDEN);
+            then:
+              - script.execute: hund_zeichnen""")
 for d in range(5):
     w(f"""  - platform: homeassistant
     id: tag_{d}
@@ -1034,6 +1142,44 @@ def stil_definitionen():
     return "\n".join(zeilen)
 
 
+# Easter Egg Hunderunde (Doppeltipp): eine Karte über beiden Seiten. Die Texte setzt das Skript hund_zeichnen.
+def hund_ebene():
+    K = 12
+    bild = lambda i, x, y_, src, **e: widget("image", K, dict(id=i, x=x, y=y_, src=src, hidden="true", **e))
+    kids = [
+        row(K, None, 0, 24, [label(K + 6, None, None, None, "\\U000F03E9", "i_klein", SONNE),
+                             label(K + 6, None, None, None, "HUNDERUNDE", "f_13b", SONNE, text_letter_space=3)],
+            6, align="TOP_MID"),
+        box(K, None, 160, 221, 170, 10, dict(bg_color="0x000000", bg_opa="20%", radius=5, border_width=0)),
+        bild("hr_schirm", 135, 42, "img_hr_schirm"),
+        bild("hr_sonne", 326, 34, "img_hr_sonne"),
+        bild("hr_mix", 322, 30, "img_hr_mix"),
+        bild("hr_flocke_0", 328, 40, "img_hr_flocke"),
+        bild("hr_flocke_1", 112, 70, "img_hr_flocke_m"),
+        bild("hr_flocke_2", 116, 168, "img_hr_flocke_s", opa="60%"),
+        bild("hr_flocke_3", 356, 156, "img_hr_flocke_s", opa="50%"),
+        bild("hr_hund", 158, 86, "img_hund"),
+        bild("hr_hund_klein", 180, 112, "img_hund_klein"),
+        label(K, "hr_klein", 0, 244, "Hunderunde", "f_17m", PMUTED, width=480, align="CENTER"),
+        label(K, "hr_gross44", 0, 262, "", "f_hund44", "0xFFFFFF", width=480, align="CENTER"),
+        label(K, "hr_gross32", 0, 270, "", "f_hund32", "0xFFFFFF", width=480, align="CENTER", hidden="true"),
+    ]
+    feld = HUND_FELD // 16
+    kids.append(box(K, None, HUND_X, 330, HUND_FELD, 12,
+                    dict(bg_opa="TRANSP", radius=6, clip_corner="true", border_width=0),
+                    [box(K + 6, f"hr_feld_{i}", i * feld, 0, feld if i == 15 else feld - 2, 12,
+                         dict(bg_color="0x5E7F6E", bg_opa="COVER", radius=0, border_width=0)) for i in range(16)]))
+    kids.append(box(K, "hr_strich", HUND_X, 324, 3, 24, dict(bg_color="0xFFFFFF", bg_opa="COVER", radius=2,
+                    border_width=0, outline_width=2, outline_color="0x0B4A2E", outline_opa="COVER"), hidden="true"))
+    for h in (6, 9, 12, 15, 18, 21):
+        kids.append(label(K, None, HUND_X + (h - 6) * feld - 20, 350, str(h), "f_12", PMUTED, width=40, align="CENTER"))
+    kids += [label(K, "hr_tipp", 20, 384, "", "f_16", "0xE4EAE6", width=440, align="CENTER", long_mode="WRAP"),
+             label(K, None, 0, 446, "Tippen zum Schließen", "f_12", PMUTED, width=480, align="CENTER",
+                   text_opa="60%")]
+    return box(6, "hunderunde", 0, 0, 480, 480, dict(styles="s_panel", bg_grad_dir="VER", bg_opa="COVER",
+               border_width=0, radius=0), kids, hidden="true")
+
+
 w(f"""# ---------------- Oberfläche ----------------
 lvgl:
   displays: [my_display]
@@ -1045,6 +1191,7 @@ lvgl:
   # das Schloss (Seite festgehalten) erscheint kurz in der Mitte über beiden Seiten und blendet sich wieder aus
   top_layer:
     widgets:
+{hund_ebene()}
       - obj:
           id: schloss
           hidden: true

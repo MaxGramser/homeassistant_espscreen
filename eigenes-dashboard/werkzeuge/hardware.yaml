@@ -80,7 +80,7 @@ touchscreen:
       x_max: 480
       y_min: 0
       y_max: 480
-    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, lange drücken = Seite halten,
+    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, Doppeltipp = Hunderunde, lange drücken = Seite halten,
     # Wischen hoch/runter = heller/dunkler; im Nachtmodus weckt jede Berührung das Display
     on_touch:
       - lambda: |-

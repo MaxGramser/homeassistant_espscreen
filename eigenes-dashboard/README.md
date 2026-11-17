@@ -8,7 +8,13 @@ Zwei Punkte unten im grünen Panel zeigen, auf welcher Seite du bist.
 
 **Bedienung:**
 
-- **Tippen**: sofort die nächste Seite; die 45 Sekunden beginnen neu.
+- **Tippen**: die nächste Seite; die 45 Sekunden beginnen neu. Das Display wartet dafür 0,35 s, ob ein zweiter Tipp
+  kommt (Regler „Doppeltipp-Zeit“).
+- **Doppeltipp** (Easter Egg „Hunderunde“): Eine Karte über das ganze Display zeigt, wann man heute trocken mit dem
+  Hund rauskommt, ab 21 Uhr für morgen. Bis zu drei trockene Zeiten, darunter ein Streifen von 6 bis 22 Uhr (gelb
+  trocken, blau Regen, orange ab 25 °C, die Stunden vor jetzt blass, der weiße Strich ist jetzt) und ein Tipp:
+  Wind und Temperatur, bei Frost, Schnee oder einer Glätte-Warnung der Hinweis auf Streusalz, ab 25 °C der
+  Asphalt-Test. Ohne Lücke steht der Hund unter einem Schirm. Die Karte schließt sich nach 15 s oder mit einem Tippen.
 - **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, in der Mitte erscheint für ein paar Sekunden ein
   goldenes Schloss. Bei jeder Berührung einer gehaltenen Seite erscheint es kurz wieder; ein Tippen wechselt dann
   nicht. Nur ein erneuter langer Druck gibt die Seite frei.
@@ -21,6 +27,7 @@ Zwei Punkte unten im grünen Panel zeigen, auf welcher Seite du bist.
 
 ![Entwurf bei Tag](vorschau-tag.png) ![Entwurf mit Warnung](vorschau-warnung.png)
 ![Entwurf bei Nacht mit Vorwarnung](vorschau-nacht.png) ![Entwurf Raumklima](vorschau-innen.png)
+![Entwurf Hunderunde](vorschau-hunderunde.png)
 
 *Die Bilder sind die abgestimmten Entwürfe (im Browser gezeichnet, mit Beispieldaten). Auf dem Display zeichnet LVGL,
 das kann um wenige Pixel abweichen.*
@@ -81,7 +88,7 @@ Namen eintragen. Fehlt ein einzelner Sensor, zeigt das Display „--“.
 |---|---|
 | `wetter-display.yaml` | die ESPHome-Konfiguration (geschrieben von `werkzeuge/yaml_bauen.py`) |
 | `wetter.h` | C++-Hilfen: Texte, Kalenderwoche, Mondphase, Sonnenzeiten, Kurve, UV- und Warnfarben |
-| `bilder/` | die Wetterbilder als PNG, dazu ihre SVG-Quellen (geschrieben von `werkzeuge/bilder.py`) |
+| `bilder/` | die Wetterbilder als PNG, dazu ihre SVG-Quellen, und der Hund der Hunderunde (geschrieben von `werkzeuge/bilder.py`, der Hund aus `werkzeuge/hund_vorlage.png`) |
 | `fonts/` | Poppins und Material Design Icons (Lizenzen liegen bei) |
 | `home-assistant/wetter_display.yaml` | Template-Sensor für Home Assistant: Vorhersage, Sonne, Warnungen |
 | `werkzeuge/` | die beiden Generatoren und der Hardware-Teil der Konfiguration |
@@ -111,7 +118,8 @@ Namen eintragen. Fehlt ein einzelner Sensor, zeigt das Display „--“.
    `wetter:`, `warnungen:` und `vorwarnungen:` auf deine Entitäten setzen (die beiden Warn-Entitäten stehen außerdem
    bei den Auslösern oben); ganz unten in den Automationen die OpenUV-Entität und den Schalter für den Nachtmodus.
 6. Home Assistant neu starten. Danach gibt es `sensor.display_wetter` mit den Attributen `tag_0` bis `tag_4`,
-   `stunde_0` bis `stunde_4`, `sonne`, `warnung`, `vorwarnung` und `regen_satz` (Entwicklerwerkzeuge → Zustände).
+   `stunde_0` bis `stunde_4`, `sonne`, `warnung`, `vorwarnung`, `regen_satz` und `hunderunde`
+   (Entwicklerwerkzeuge → Zustände).
 
 ### 2. ESPHome: Display bauen und flashen
 
@@ -141,20 +149,22 @@ Die Konfiguration verlangt ESPHome 2026.6.2 oder neuer.
 - **Wetterbilder**: in `werkzeuge/bilder.py` zeichnen und `python3 werkzeuge/bilder.py` ausführen (braucht
   `pip install cairosvg`).
 - **In Home Assistant** (Gerät „Wetter-Display“): die Regler „Seitenwechsel“ (Sekunden), „Weckdauer im Nachtmodus“
-  (Minuten) und „Helligkeit“, der Schalter „Nachtmodus“, unter Diagnose „WLAN-Signal“ und „Laufzeit“ sowie der Knopf
-  „Neustart“. `seitenwechsel` und `weckdauer` oben in `wetter-display.yaml` sind nur die Startwerte.
+  (Minuten), „Helligkeit“ und „Doppeltipp-Zeit“ (Millisekunden), der Schalter „Nachtmodus“, unter Diagnose „WLAN-Signal“ und „Laufzeit“ sowie der Knopf
+  „Neustart“. `seitenwechsel`, `weckdauer` und `doppeltipp` oben in `wetter-display.yaml` sind nur die Startwerte.
 - **Fiepen**: Manche Boards fiepen bei 150 Hz PWM. Dann in `werkzeuge/hardware.yaml` `frequency: 20kHz` setzen; bei
   einigen Chargen wird es damit in niedrigen Stufen dunkel.
 
 ## Stand der Prüfung
 
-- `esphome config` und `esphome compile` laufen fehlerfrei, mit beiden Seiten (ESPHome 2026.10.2; Firmware rund 3,3 MB, 41 % der
-  App-Partition).
+- `esphome config` und `esphome compile` laufen fehlerfrei, mit beiden Seiten und der Hunderunde (ESPHome 2026.10.2;
+  Firmware rund 3,7 MB, 45 % der App-Partition).
 - `wetter.h` ist mit einem Test auf dem PC geprüft: Kalenderwoche (auch an Jahreswechseln mit 53 Wochen), Mondphase,
   Sonnenzeiten, Regenwerte, Kurve, Warn-Icons.
 - Die Vorlagen des Home-Assistant-Pakets sind mit Beispieldaten durchgerechnet, auch nachts, ohne Stundenvorhersage
-  und ohne Warnung; Regensatz und Vorwarnung mit trockenen, nassen und gemischten Stunden.
+  und ohne Warnung; Regensatz und Vorwarnung mit trockenen, nassen und gemischten Stunden; die Hunderunde mit einer,
+  zwei, drei und vier Lücken, ganz trocken, ganz nass, Frost, Glätte-Warnung, Hitze, morgens vor 6, ab 21 Uhr und
+  ohne Stundenvorhersage.
 - Die Stufen der Raumklima-Seite sind an allen Grenzwerten getestet.
 - Auf dem echten Display laufen Wetterseite, Warnungen, Gesten und Nachtmodus. **Noch nicht auf dem Display
   geprüft**: dunkles Design, Vorwarnung, Regensatz, Böen, Frost, Seitenpunkte, die Anzeige ohne Verbindung, der
-  CO₂-Trend und die Regler. Die Luftsensoren sind Platzhalter, bis sie in Home Assistant eingerichtet sind.
+  CO₂-Trend, die Regler und die Hunderunde mit dem Doppeltipp. Die Luftsensoren sind Platzhalter, bis sie in Home Assistant eingerichtet sind.

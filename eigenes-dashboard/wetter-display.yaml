@@ -6,7 +6,8 @@
 # (nachts die Mondphase mit dem Wetter klein daneben), Hoch und Tief. Bei einer DWD-Warnung oder Vorwarnung wird das
 # Bild kleiner und darunter steht ein Hinweis in der Farbe der Stufe. Darunter vier Kacheln (Wind mit Böen, Regen
 # heute, Luftfeuchte, UV-Index), die Temperaturkurve der 5 Tage und der Regen der nächsten Stunden. Nachts (bis
-# 30 Minuten vor Sonnenaufgang) ist alles dunkel.
+# 30 Minuten vor Sonnenaufgang) ist alles dunkel. Ein Doppeltipp zeigt das Easter Egg "Hunderunde": wann man heute
+# (ab 21 Uhr: morgen) trocken mit dem Hund rauskommt.
 
 substitutions:
   name: wetter-display
@@ -38,6 +39,8 @@ substitutions:
   seitenwechsel: "45"
   # Minuten, die das Display an bleibt, wenn man es im Nachtmodus mit einem Tippen weckt
   weckdauer: "10"
+  # Millisekunden, in denen der zweite Tipp eines Doppeltipps kommen muss (so lange wartet ein einfaches Tippen)
+  doppeltipp: "350"
 
 esphome:
   name: ${name}
@@ -129,6 +132,19 @@ number:
                 id: hintergrundlicht
                 brightness: !lambda return id(helligkeit);
                 transition_length: 200ms
+
+  - platform: template
+    id: nr_doppeltipp
+    name: Doppeltipp-Zeit
+    icon: mdi:gesture-double-tap
+    entity_category: config
+    unit_of_measurement: ms
+    min_value: 200
+    max_value: 800
+    step: 50
+    initial_value: ${doppeltipp}
+    optimistic: true
+    restore_value: true
 
 button:
   - platform: restart
@@ -507,18 +523,90 @@ script:
                         - script.execute: seite_weiter
                 else:
                   - if:
-                      # gehaltene Seite: jede Berührung zeigt kurz das Schloss, ein Tippen wechselt nicht
                       condition:
-                        lambda: return id(seite_gehalten);
+                        lambda: return art == 0;
                       then:
-                        - script.execute: schloss_zeigen
+                        - if:
+                            # die Hunderunde ist offen: Tippen schließt sie
+                            condition:
+                              lambda: return !lv_obj_has_flag(id(hunderunde), LV_OBJ_FLAG_HIDDEN);
+                            then:
+                              - script.execute: hunderunde_schliessen
+                            else:
+                              - if:
+                                  # zweiter Tipp kurz nach dem ersten: Doppeltipp, die Hunderunde erscheint
+                                  condition:
+                                    script.is_running: tipp_warten
+                                  then:
+                                    - script.stop: tipp_warten
+                                    - script.execute: hunderunde_zeigen
+                                  else:
+                                    - script.execute: tipp_warten
                       else:
                         - if:
+                            # gehaltene Seite: Wischen zeigt kurz das Schloss
                             condition:
-                              lambda: return art == 0;
+                              lambda: return id(seite_gehalten);
                             then:
-                              - script.execute: seite_wechseln
-                              - script.execute: seite_weiter
+                              - script.execute: schloss_zeigen
+
+  # einfaches Tippen: erst nach der Doppeltipp-Zeit, falls kein zweiter Tipp kommt. Auf einer gehaltenen Seite zeigt
+  # es nur das Schloss, sonst wechselt es die Seite.
+  - id: tipp_warten
+    then:
+      - delay: !lambda 'return (uint32_t) id(nr_doppeltipp).state;'
+      - if:
+          condition:
+            lambda: return id(seite_gehalten);
+          then:
+            - script.execute: schloss_zeigen
+          else:
+            - script.execute: seite_wechseln
+            - script.execute: seite_weiter
+
+  # Easter Egg Hunderunde: über beiden Seiten, schließt sich nach 15 s oder mit einem Tippen
+  - id: hunderunde_zeigen
+    mode: restart
+    then:
+      - script.execute: hund_zeichnen
+      - lvgl.widget.show: hunderunde
+      - lambda: lv_obj_fade_in(id(hunderunde), 250, 0);
+      - delay: 15s
+      - lambda: lv_obj_fade_out(id(hunderunde), 400, 0);
+      - delay: 400ms
+      - lvgl.widget.hide: hunderunde
+  - id: hunderunde_schliessen
+    then:
+      - script.stop: hunderunde_zeigen
+      - lambda: lv_obj_fade_out(id(hunderunde), 250, 0);
+      - delay: 250ms
+      - lvgl.widget.hide: hunderunde
+  - id: hund_zeichnen
+    then:
+      - lambda: |-
+          std::string x = id(wetter_hunderunde).state;
+          if (wx::part(x, 0).empty()) x = "mix;Hunderunde;–;0;Noch keine Daten aus Home Assistant;;-1";
+          std::string ic = wx::part(x, 0);
+          bool schirm = ic == "schirm", frost = ic == "frost";
+          wx::sichtbar(id(hr_sonne), ic == "sonne");
+          wx::sichtbar(id(hr_mix), ic == "mix");
+          wx::sichtbar(id(hr_schirm), schirm);
+          wx::sichtbar(id(hr_hund), !schirm);
+          wx::sichtbar(id(hr_hund_klein), schirm);
+          for (lv_obj_t *f : {(lv_obj_t *) id(hr_flocke_0), (lv_obj_t *) id(hr_flocke_1), (lv_obj_t *) id(hr_flocke_2),
+                              (lv_obj_t *) id(hr_flocke_3)})
+            wx::sichtbar(f, frost);
+          int n = atoi(wx::part(x, 3).c_str());
+          std::string g = wx::part(x, 2);
+          lv_label_set_text(id(hr_klein), wx::part(x, 1).c_str());
+          lv_label_set_text(id(hr_gross44), g.c_str());
+          lv_label_set_text(id(hr_gross32), g.c_str());
+          wx::sichtbar(id(hr_gross44), n < 2);
+          wx::sichtbar(id(hr_gross32), n >= 2);
+          lv_label_set_text(id(hr_tipp), wx::part(x, 4).c_str());
+          lv_obj_t *feld[16] = {id(hr_feld_0), id(hr_feld_1), id(hr_feld_2), id(hr_feld_3), id(hr_feld_4), id(hr_feld_5), id(hr_feld_6), id(hr_feld_7), id(hr_feld_8), id(hr_feld_9), id(hr_feld_10), id(hr_feld_11), id(hr_feld_12), id(hr_feld_13), id(hr_feld_14), id(hr_feld_15)};
+          wx::hund_streifen(x, feld, id(hr_strich), 40, 400,
+                            id(ha_time).now().is_valid() ? id(ha_time).now().minute : 0);
 
   # Tag oder Nacht neu bestimmen (jede Minute und wenn sich die Sonne ändert); bei einem Wechsel Thema und Bild
   - id: tag_pruefen
@@ -729,7 +817,7 @@ touchscreen:
       x_max: 480
       y_min: 0
       y_max: 480
-    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, lange drücken = Seite halten,
+    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, Doppeltipp = Hunderunde, lange drücken = Seite halten,
     # Wischen hoch/runter = heller/dunkler; im Nachtmodus weckt jede Berührung das Display
     on_touch:
       - lambda: |-
@@ -777,10 +865,12 @@ font:
   - {file: fonts/Poppins-600.ttf, id: f_22b, size: 22, bpp: 4, glyphs: "-0123456789,.°% "}
   - {file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: "-0123456789,.°% "}
   - {file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-500.ttf, id: f_hund44, size: 44, bpp: 4, glyphs: " !0123456789KSUacehikmnorstuz·–"}
+  - {file: fonts/Poppins-500.ttf, id: f_hund32, size: 32, bpp: 4, glyphs: " !0123456789KSUacehikmnorstuz·–"}
   - {file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: "HochTief0123456789-°· "}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B", "\U000F005D", "\U000F0045", "\U000F0054"]}
-  - {file: fonts/materialdesignicons-webfont.ttf, id: i_klein, size: 13, bpp: 4, glyphs: ["\U000F0164", "\U000F0717"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_klein, size: 13, bpp: 4, glyphs: ["\U000F0164", "\U000F0717", "\U000F03E9"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_lock, size: 32, bpp: 4, glyphs: ["󰌾"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F11DC", "\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
 
@@ -820,6 +910,15 @@ image:
   - {file: bilder/nacht_windy.png, id: img_nacht_windy, type: RGB565, transparency: alpha_channel}
   - {file: bilder/nacht_windy_variant.png, id: img_nacht_windy_variant, type: RGB565, transparency: alpha_channel}
   - {file: bilder/nacht_exceptional.png, id: img_nacht_exceptional, type: RGB565, transparency: alpha_channel}
+  # Hunderunde (Easter Egg): der Hund und seine Wetterzeichen
+  - {file: bilder/hund.png, id: img_hund, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hund_klein.png, id: img_hund_klein, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hr_sonne.png, id: img_hr_sonne, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hr_mix.png, id: img_hr_mix, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hr_schirm.png, id: img_hr_schirm, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hr_flocke.png, id: img_hr_flocke, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hr_flocke_m.png, id: img_hr_flocke_m, type: RGB565, transparency: alpha_channel}
+  - {file: bilder/hr_flocke_s.png, id: img_hr_flocke_s, type: RGB565, transparency: alpha_channel}
 
 interval:
   # Verbindung zu Home Assistant: fehlt sie länger als eine Minute, zeigt das Display das an
@@ -918,6 +1017,17 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_satz_b
             text: !lambda 'return wx::part(x, 1);'
+  - platform: homeassistant
+    id: wetter_hunderunde
+    entity_id: ${vorhersage_entity}
+    attribute: hunderunde
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return !lv_obj_has_flag(id(hunderunde), LV_OBJ_FLAG_HIDDEN);
+            then:
+              - script.execute: hund_zeichnen
   - platform: homeassistant
     id: tag_0
     entity_id: ${vorhersage_entity}
@@ -1474,6 +1584,451 @@ lvgl:
   # das Schloss (Seite festgehalten) erscheint kurz in der Mitte über beiden Seiten und blendet sich wieder aus
   top_layer:
     widgets:
+      - obj:
+          id: hunderunde
+          x: 0
+          y: 0
+          width: 480
+          height: 480
+          styles: s_panel
+          bg_grad_dir: VER
+          bg_opa: COVER
+          border_width: 0
+          radius: 0
+          pad_all: 0
+          scrollable: false
+          clickable: false
+          hidden: true
+          widgets:
+            - obj:
+                x: 0
+                y: 24
+                width: SIZE_CONTENT
+                height: SIZE_CONTENT
+                bg_opa: TRANSP
+                border_width: 0
+                pad_all: 0
+                scrollable: false
+                clickable: false
+                layout: 
+                    type: FLEX
+                    flex_flow: ROW
+                    flex_align_main: START
+                    flex_align_cross: CENTER
+                    flex_align_track: CENTER
+                    pad_column: 6
+                align: TOP_MID
+                widgets:
+                  - label:
+                      text: "\U000F03E9"
+                      text_font: i_klein
+                      text_color: 0xFFD27A
+                  - label:
+                      text: "HUNDERUNDE"
+                      text_font: f_13b
+                      text_color: 0xFFD27A
+                      text_letter_space: 3
+            - obj:
+                x: 160
+                y: 221
+                width: 170
+                height: 10
+                bg_color: 0x000000
+                bg_opa: 20%
+                radius: 5
+                border_width: 0
+                pad_all: 0
+                scrollable: false
+                clickable: false
+            - image:
+                id: hr_schirm
+                x: 135
+                y: 42
+                src: img_hr_schirm
+                hidden: true
+            - image:
+                id: hr_sonne
+                x: 326
+                y: 34
+                src: img_hr_sonne
+                hidden: true
+            - image:
+                id: hr_mix
+                x: 322
+                y: 30
+                src: img_hr_mix
+                hidden: true
+            - image:
+                id: hr_flocke_0
+                x: 328
+                y: 40
+                src: img_hr_flocke
+                hidden: true
+            - image:
+                id: hr_flocke_1
+                x: 112
+                y: 70
+                src: img_hr_flocke_m
+                hidden: true
+            - image:
+                id: hr_flocke_2
+                x: 116
+                y: 168
+                src: img_hr_flocke_s
+                hidden: true
+                opa: 60%
+            - image:
+                id: hr_flocke_3
+                x: 356
+                y: 156
+                src: img_hr_flocke_s
+                hidden: true
+                opa: 50%
+            - image:
+                id: hr_hund
+                x: 158
+                y: 86
+                src: img_hund
+                hidden: true
+            - image:
+                id: hr_hund_klein
+                x: 180
+                y: 112
+                src: img_hund_klein
+                hidden: true
+            - label:
+                id: hr_klein
+                x: 0
+                y: 244
+                width: 480
+                text: "Hunderunde"
+                text_font: f_17m
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                id: hr_gross44
+                x: 0
+                y: 262
+                width: 480
+                text: ""
+                text_font: f_hund44
+                text_color: 0xFFFFFF
+                text_align: CENTER
+            - label:
+                id: hr_gross32
+                x: 0
+                y: 270
+                width: 480
+                text: ""
+                text_font: f_hund32
+                text_color: 0xFFFFFF
+                text_align: CENTER
+                hidden: true
+            - obj:
+                x: 40
+                y: 330
+                width: 400
+                height: 12
+                bg_opa: TRANSP
+                radius: 6
+                clip_corner: true
+                border_width: 0
+                pad_all: 0
+                scrollable: false
+                clickable: false
+                widgets:
+                  - obj:
+                      id: hr_feld_0
+                      x: 0
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_1
+                      x: 25
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_2
+                      x: 50
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_3
+                      x: 75
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_4
+                      x: 100
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_5
+                      x: 125
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_6
+                      x: 150
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_7
+                      x: 175
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_8
+                      x: 200
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_9
+                      x: 225
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_10
+                      x: 250
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_11
+                      x: 275
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_12
+                      x: 300
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_13
+                      x: 325
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_14
+                      x: 350
+                      y: 0
+                      width: 23
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+                  - obj:
+                      id: hr_feld_15
+                      x: 375
+                      y: 0
+                      width: 25
+                      height: 12
+                      bg_color: 0x5E7F6E
+                      bg_opa: COVER
+                      radius: 0
+                      border_width: 0
+                      pad_all: 0
+                      scrollable: false
+                      clickable: false
+            - obj:
+                id: hr_strich
+                x: 40
+                y: 324
+                width: 3
+                height: 24
+                bg_color: 0xFFFFFF
+                bg_opa: COVER
+                radius: 2
+                border_width: 0
+                outline_width: 2
+                outline_color: 0x0B4A2E
+                outline_opa: COVER
+                pad_all: 0
+                scrollable: false
+                clickable: false
+                hidden: true
+            - label:
+                x: 20
+                y: 350
+                width: 40
+                text: "6"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                x: 95
+                y: 350
+                width: 40
+                text: "9"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                x: 170
+                y: 350
+                width: 40
+                text: "12"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                x: 245
+                y: 350
+                width: 40
+                text: "15"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                x: 320
+                y: 350
+                width: 40
+                text: "18"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                x: 395
+                y: 350
+                width: 40
+                text: "21"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+            - label:
+                id: hr_tipp
+                x: 20
+                y: 384
+                width: 440
+                text: ""
+                text_font: f_16
+                text_color: 0xE4EAE6
+                text_align: CENTER
+                long_mode: WRAP
+            - label:
+                x: 0
+                y: 446
+                width: 480
+                text: "Tippen zum Schließen"
+                text_font: f_12
+                text_color: 0xB9CFC2
+                text_align: CENTER
+                text_opa: 60%
       - obj:
           id: schloss
           hidden: true
