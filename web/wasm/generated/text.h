@@ -171,7 +171,7 @@ const char *const table_0[] = {
     "Mikrofonverst\303\244rkung",
     "Automatische Verst\303\244rkung",
     "Echounterdr\303\274ckung",
-    "Loop pages",
+    "Seiten im Kreis",
     "Ton an",
     "Ton aus",
     "T\303\274r",
@@ -565,7 +565,7 @@ const char *const table_0[] = {
     "Im Gespr\303\244ch",
     "Offline",
     "Verpasster Anruf",
-    "No other screen can be called"
+    "Kein Bildschirm zum Anrufen"
 };
 int plural_0(int n) { return n == 1 ? 0 : 1; }
 const char *const table_1[] = {
@@ -1866,7 +1866,7 @@ const char *const table_3[] = {
     "Ganancia de micr\303\263fono",
     "Ganancia autom\303\241tica",
     "Cancelaci\303\263n de eco",
-    "Loop pages",
+    "P\303\241ginas en bucle",
     "Sonido activado",
     "Sonido desactivado",
     "Puerta",
@@ -2260,7 +2260,7 @@ const char *const table_3[] = {
     "En llamada",
     "Sin conexi\303\263n",
     "Llamada perdida",
-    "No other screen can be called"
+    "No hay otra pantalla a la que llamar"
 };
 int plural_3(int n) { return n == 1 ? 0 : 1; }
 const char *const table_4[] = {
@@ -2431,7 +2431,7 @@ const char *const table_4[] = {
     "Gain du microphone",
     "Gain automatique",
     "Annulation d'\303\251cho",
-    "Loop pages",
+    "Pages en boucle",
     "Son activ\303\251",
     "Son coup\303\251",
     "Porte",
@@ -2825,7 +2825,7 @@ const char *const table_4[] = {
     "En communication",
     "Hors ligne",
     "Appel manqu\303\251",
-    "No other screen can be called"
+    "Aucun autre \303\251cran \303\240 appeler"
 };
 int plural_4(int n) { return (n < 0 ? -n : n) <= 1 ? 0 : 1; }
 const char *const table_5[] = {
@@ -2996,7 +2996,7 @@ const char *const table_5[] = {
     "Mikrofoner\305\221s\303\255t\303\251s",
     "Automatikus er\305\221s\303\255t\303\251s",
     "Visszhangsz\305\261r\303\251s",
-    "Loop pages",
+    "K\303\266rbelapoz\303\241s",
     "Hang be",
     "Hang ki",
     "Ajt\303\263",
@@ -3390,7 +3390,7 @@ const char *const table_5[] = {
     "H\303\255v\303\241sban",
     "Offline",
     "Nem fogadott h\303\255v\303\241s",
-    "No other screen can be called"
+    "Nincs m\303\241sik h\303\255vhat\303\263 kijelz\305\221"
 };
 int plural_5(int n) { return n == 1 ? 0 : 1; }
 const char *const table_6[] = {
@@ -3561,7 +3561,7 @@ const char *const table_6[] = {
     "Guadagno microfono",
     "Guadagno automatico",
     "Cancellazione eco",
-    "Loop pages",
+    "Pagine in ciclo",
     "Audio attivo",
     "Audio disattivato",
     "Porta",
@@ -3955,7 +3955,7 @@ const char *const table_6[] = {
     "In chiamata",
     "Offline",
     "Chiamata persa",
-    "No other screen can be called"
+    "Nessun altro schermo da chiamare"
 };
 int plural_6(int n) { return n == 1 ? 0 : 1; }
 const char *const table_7[] = {
@@ -4691,7 +4691,7 @@ const char *const table_8[] = {
     "Wzmocnienie mikrofonu",
     "Automatyczne wzmocnienie",
     "Usuwanie echa",
-    "Loop pages",
+    "Strony w p\304\231tli",
     "D\305\272wi\304\231k w\305\202.",
     "D\305\272wi\304\231k wy\305\202.",
     "Drzwi",
@@ -5085,7 +5085,7 @@ const char *const table_8[] = {
     "W trakcie rozmowy",
     "Offline",
     "Nieodebrane po\305\202\304\205czenie",
-    "No other screen can be called"
+    "Brak innego ekranu do po\305\202\304\205czenia"
 };
 int plural_8(int n) { if (n == 1) return 0; int t = n % 10, h = n % 100; return t >= 2 && t <= 4 && (h < 12 || h > 14) ? 1 : 2; }
 const char *const table_9[] = {
@@ -5256,7 +5256,7 @@ const char *const table_9[] = {
     "Ganho do microfone",
     "Ganho autom\303\241tico",
     "Cancelamento eco",
-    "Loop pages",
+    "P\303\241ginas em ciclo",
     "Som ligado",
     "Som desligado",
     "Porta",
@@ -5650,7 +5650,7 @@ const char *const table_9[] = {
     "Em chamada",
     "Offline",
     "Chamada perdida",
-    "No other screen can be called"
+    "Nenhum outro ecr\303\243 para ligar"
 };
 int plural_9(int n) { return n == 1 ? 0 : 1; }
 const char *const table_10[] = {
@@ -5821,7 +5821,7 @@ const char *const table_10[] = {
     "\320\243\321\201\320\270\320\273\320\265\320\275\320\270\320\265 \320\274\320\270\320\272\321\200\320\276\321\204\320\276\320\275\320\260",
     "\320\220\320\262\321\202\320\276\321\203\321\201\320\270\320\273\320\265\320\275\320\270\320\265",
     "\320\237\320\276\320\264\320\260\320\262\320\273\320\265\320\275\320\270\320\265 \321\215\321\205\320\260",
-    "Loop pages",
+    "\320\233\320\270\321\201\321\202\320\260\321\202\321\214 \320\277\320\276 \320\272\321\200\321\203\320\263\321\203",
     "\320\227\320\262\321\203\320\272 \320\262\320\272\320\273.",
     "\320\227\320\262\321\203\320\272 \320\262\321\213\320\272\320\273.",
     "\320\224\320\262\320\265\321\200\321\214",
@@ -6215,7 +6215,7 @@ const char *const table_10[] = {
     "\320\222 \321\200\320\260\320\267\320\263\320\276\320\262\320\276\321\200\320\265",
     "\320\235\320\265 \320\262 \321\201\320\265\321\202\320\270",
     "\320\237\321\200\320\276\320\277\321\203\321\211\320\265\320\275\320\275\321\213\320\271 \320\267\320\262\320\276\320\275\320\276\320\272",
-    "No other screen can be called"
+    "\320\235\320\265\321\202 \320\264\321\200\321\203\320\263\320\270\321\205 \321\215\320\272\321\200\320\260\320\275\320\276\320\262 \320\264\320\273\321\217 \320\267\320\262\320\276\320\275\320\272\320\260"
 };
 int plural_10(int n) { int t = n % 10, h = n % 100; if (t == 1 && h != 11) return 0; return t >= 2 && t <= 4 && (h < 12 || h > 14) ? 1 : 2; }
 struct Language { const char *code; const char *const *table; int (*plural)(int); };
