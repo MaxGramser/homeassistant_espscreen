@@ -17,7 +17,7 @@
 #                                                      wie warnung, aus den Vorwarnungen des DWD; vor dem Namen der
 #                                                      Tag, an dem sie beginnt. Das Display zeigt sie nur ohne Warnung.
 #   regen_satz             "Trocken bis;17 Uhr"        Kopf der Regen-Karte: wann der Regen beginnt oder aufhört
-#                                                      (ab 60 % Wahrscheinlichkeit, ohne Prozente ab 0,3 mm), in den
+#                                                      (Zustand Regen/Schnee, ab 60 % oder ab 0,3 mm), in den
 #                                                      nächsten 12 Stunden. Der zweite Teil steht in Gold.
 #   hunderunde             "mix;Trocken raus;14 – 17 Uhr;…"  Easter Egg (Doppeltipp): trockene Zeiten für den Hund
 # Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
@@ -162,22 +162,31 @@ template:
           # Regen in den nächsten 12 Stunden als Satz: Ab wann regnet es, oder bis wann noch?
           regen_satz: >
             {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
-            {% set ns = namespace(nass=[]) %}
+            {% set ns = namespace(nass=[], uhr=[]) %}
+            {% set regen = ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy', 'snowy', 'hail'] %}
+            {% set jetzt_nass = states(wetter) in regen %}
             {% for f in fc[:12] %}
               {% set p = f.get('precipitation_probability') %}
               {% set mm = f.get('precipitation') %}
-              {% set ns.nass = ns.nass + [(p >= 60) if p is number else ((mm >= 0.3) if mm is number else false)] %}
+              {% set h = as_local(as_datetime(f.datetime)).hour %}
+              {% set nass = f.get('condition') in regen or (p is number and p >= 60) or (mm is number and mm >= 0.3) %}
+              {# regnet es gerade laut Wetter-Entität, zählt die laufende Stunde als nass #}
+              {% if loop.first and jetzt_nass %}
+                {% if h == now().hour %}{% set nass = true %}
+                {% else %}{% set ns.nass = [true] %}{% set ns.uhr = [now().hour] %}{% endif %}
+              {% endif %}
+              {% set ns.nass = ns.nass + [nass] %}{% set ns.uhr = ns.uhr + [h] %}
             {% endfor %}
             {% if ns.nass | count == 0 %}
               Regen;
             {% elif ns.nass[0] %}
               {% set ns.k = -1 %}
               {% for x in ns.nass %}{% if not x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
-              {% if ns.k < 0 %}Dauerregen;{% else %}Regen bis;{{ as_local(as_datetime(fc[ns.k].datetime)).hour }} Uhr{% endif %}
+              {% if ns.k < 0 %}Dauerregen;{% else %}Regen bis;{{ ns.uhr[ns.k] }} Uhr{% endif %}
             {% else %}
               {% set ns.k = -1 %}
               {% for x in ns.nass %}{% if x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
-              {% if ns.k < 0 %}Kein Regen;in Sicht{% else %}Trocken bis;{{ as_local(as_datetime(fc[ns.k].datetime)).hour }} Uhr{% endif %}
+              {% if ns.k < 0 %}Kein Regen;in Sicht{% else %}Trocken bis;{{ ns.uhr[ns.k] }} Uhr{% endif %}
             {% endif %}
           # Easter Egg Hunderunde (Doppeltipp am Display): trockene Zeiten zwischen 6 und 22 Uhr, ab 21 Uhr für morgen.
           # "icon;klein;groß;slots;tipp;plan;jetzt": plan hat je Stunde 6..21 ein Zeichen (t trocken, n nass,
@@ -187,6 +196,7 @@ template:
             {% set morgen = now().hour >= 21 %}
             {% set tag = (now() + timedelta(days=1)).date() if morgen else now().date() %}
             {% set jetzt = -1 if morgen else now().hour - 6 %}
+            {% set regen = ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy', 'snowy', 'hail'] %}
             {% set ns = namespace(plan='', tmin=99, tmax=-99, schnee=false, wind=[], temp=[]) %}
             {% for h in range(6, 22) %}
               {% set ns.c = '-' %}{% set ns.w = '' %}{% set ns.t = '' %}
@@ -196,7 +206,8 @@ template:
                   {% set p = f.get('precipitation_probability') %}
                   {% set mm = f.get('precipitation') %}
                   {% set t = f.get('temperature') %}
-                  {% set nass = (p >= 60) if p is number else ((mm >= 0.3) if mm is number else false) %}
+                  {% set nass = f.get('condition') in regen or (p is number and p >= 60) or (mm is number and mm >= 0.3)
+                                or (d.date() == now().date() and h == now().hour and states(wetter) in regen) %}
                   {% set ns.c = 'n' if nass else ('h' if t is number and t >= 25 else 't') %}
                   {% if t is number %}
                     {% set ns.tmin = [ns.tmin, t] | min %}{% set ns.tmax = [ns.tmax, t] | max %}
@@ -206,6 +217,8 @@ template:
                   {% if f.condition in ['snowy', 'snowy-rainy'] %}{% set ns.schnee = true %}{% endif %}
                 {% endif %}
               {% endfor %}
+              {# regnet es gerade laut Wetter-Entität, ist die laufende Stunde nass, auch ohne Vorhersage dafür #}
+              {% if not morgen and h == now().hour and states(wetter) in regen %}{% set ns.c = 'n' %}{% endif %}
               {% set ns.plan = ns.plan ~ ns.c %}
               {% set ns.wind = ns.wind + [ns.w] %}{% set ns.temp = ns.temp + [ns.t] %}
             {% endfor %}

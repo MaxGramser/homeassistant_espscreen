@@ -49,7 +49,7 @@ das kann um wenige Pixel abweichen.*
 - **5 Tage**: Kurve der Tageshöchstwerte, darunter Regen, Wetter-Icon und Tag. Liegt das Tief eines Tages unter 0 °,
   sitzt ein kleiner Eiskristall am Icon (Frost).
 - **Regen**: oben ein Satz wie „Trocken bis 17 Uhr“, „Regen bis 21 Uhr“ oder „Kein Regen in Sicht“ (als Regen zählt
-  eine Stunde ab 60 % Wahrscheinlichkeit, in den nächsten 12 Stunden), darunter die nächsten 10 Stunden in
+  eine Stunde, wenn der DWD Regen oder Schnee meldet, ab 60 % Wahrscheinlichkeit oder ab 0,3 mm, und die laufende Stunde, wenn es gerade regnet; in den nächsten 12 Stunden), darunter die nächsten 10 Stunden in
   2-Stunden-Schritten als Balken.
 - **Keine Verbindung**: Fehlt die Verbindung zu Home Assistant länger als eine Minute, werden die Werte blass, und
   unten im Panel steht statt der Seitenpunkte eine durchgestrichene Wolke mit der Uhrzeit, seit der sie fehlt. Das
