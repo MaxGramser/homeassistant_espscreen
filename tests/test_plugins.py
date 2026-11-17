@@ -623,7 +623,7 @@ class Links(unittest.IsolatedAsyncioTestCase):
 
     async def test_the_index_an_app_reads_is_the_version_a_screen_gets_back_and_forth(self):
         """The dev app reads the plugins index of the dev branch, the stable app that of main (Plugins.index_branches):
-        a screen moved to dev and back (the deploy-home skill) takes each index's version through the same update,
+        a screen moved to dev and back takes each index's version through the same update,
         the newer one on dev and the older one again on main, so a lower version is an update too."""
         import plugins as plugin_service
         tmp = tempfile.TemporaryDirectory()

@@ -23,8 +23,10 @@ packages:
   battery_adc: !include ../features/battery-adc.yaml
   # The RGB LED beside the camera, as a light in Home Assistant (outputs below).
   rgb_led: !include ../features/rgb-led.yaml
-  # The two microphones and the loudspeaker as the screen's audio (features/audio.yaml): its hardware below.
-  audio: !include ../features/audio.yaml
+  # The two microphones (an ES7210 on a bus of its own) and the loudspeaker (an ES8311) as the screen's audio: parts,
+  # with their wiring below (docs/PROFILES.md, "Parts").
+  microphones: !include ../hardware/parts/es7210.yaml
+  speaker: !include ../hardware/parts/es8311.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
@@ -75,12 +77,22 @@ substitutions:
     if (x < t[0]) return 0.0f; for (int i = 1; i < 21; i++) if (x < t[i]) return (i - 1) * 5.0f + 5.0f * (x - t[i - 1]) / (t[i] - t[i - 1]);
     return 100.0f; })(v)
 
-  # The audio's data lines (features/audio.yaml); the buses and the two chips are below. The ES8311 turns ESPHome's
-  # volume into its DAC register from 0 (-95.5 dB) to 255 (+32 dB), half a decibel a step.
-  AUDIO_DOUT_PIN: GPIO30
+  # The audio: two I2S buses, one for the ES7210 that reads the two microphones and one for the ES8311 that drives the
+  # NS4150B amplifier, so the screen can listen and speak at the same time. Both chips sit on board_bus. The ES7210's
+  # MIC3 has the ES8311's line output on it, straight (Seeed's schematic, "Loopback"), so the playback reference needs
+  # no gain, and echo is cancelled with it; AUDIO_TRANSPORT "split" in a screen's Override YAML leaves that out
+  # (docs/P4_AUDIO.md).
+  AUDIO_I2C: board_bus
+  AUDIO_TRANSPORT: "split-aec"
+  AUDIO_MIC_MCLK_PIN: GPIO29
+  AUDIO_MIC_BCLK_PIN: GPIO28
+  AUDIO_MIC_LRCLK_PIN: GPIO27
   AUDIO_DIN_PIN: GPIO26
-  AUDIO_DAC_DB_AT_0: "-95.5"
-  AUDIO_DAC_DB_AT_1: "32"
+  AUDIO_MCLK_PIN: GPIO33
+  AUDIO_BCLK_PIN: GPIO32
+  AUDIO_LRCLK_PIN: GPIO31
+  AUDIO_DOUT_PIN: GPIO30
+  AUDIO_REFERENCE_GAIN: "0dB"
 
   # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the SC2356 on the MIPI-CSI port answers on the
   # touch bus, and its clock (CAMERA_XCLK_PIN) is its own. The board powers it (switches below); a camera plugin drives
@@ -237,36 +249,6 @@ output:
     pin: GPIO23
     id: output_blue
     inverted: true
-
-# The audio: two I2S buses, one for the ES7210 that reads the two microphones and one for the ES8311 that drives the
-# NS4150B amplifier, so the screen can listen and speak at the same time. Both chips sit on board_bus.
-i2s_audio:
-  - id: ts_mic_bus
-    i2s_mclk_pin: GPIO29
-    i2s_bclk_pin: GPIO28
-    i2s_lrclk_pin: GPIO27
-  - id: ts_speaker_bus
-    i2s_mclk_pin: GPIO33
-    i2s_bclk_pin: GPIO32
-    i2s_lrclk_pin: GPIO31
-
-audio_adc:
-  - platform: es7210
-    id: ts_audio_adc
-    i2c_id: board_bus
-    address: 0x40
-    sample_rate: 16000
-    bits_per_sample: 16bit
-    mic_gain: 30db
-
-audio_dac:
-  - platform: es8311
-    id: ts_audio_dac
-    i2c_id: board_bus
-    address: 0x18
-    sample_rate: 48000
-    bits_per_sample: 16bit
-    use_mclk: true
 
 # The LSM6DS3TR-C motion sensor, four times a second: a change of its acceleration means the board moved (Wake when
 # moved), and the temperature it measures on its own chip, averaged over a minute, is warmer than the room the board

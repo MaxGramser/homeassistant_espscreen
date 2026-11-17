@@ -748,7 +748,8 @@ class Run:
         layout. It costs the glass nothing: the feed stays fresh and no card is drawn again. Another layout after it is
         exchanged whole, as always. A Guition 10.1 greyed its values and drew every card twice at each rebuild of the
         app (2026-11-16, then reproduced on a Waveshare 10.1 by restarting the app); docs/PAGES.md, "A hello"."""
-        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES)
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES,
+                                                                 pages=len(PAGE_TITLES))  # a page each, whatever the grid
         await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
 
         async def whole(tiles, pages, what):
@@ -772,12 +773,56 @@ class Run:
         assert not cost, f'a hello over the same layout changed the glass: {cost}'
         await whole(len(values), len(record['layout']['pages']), 'the same layout after a hello')
         # Another layout from the restarted app: one page fewer, exchanged whole like any new layout.
-        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES[:-1])
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES[:-1],
+                                                                 pages=len(PAGE_TITLES) - 1)
         start = len(self.lines)
         await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
         await self.until(lambda line: 'every card drawn: a new layout' in line, 10, 'the new layout', start)
         await whole(len(values), len(record['layout']['pages']), 'another layout after a hello')
         self.warnings.append('A hello: the same layout costs nothing, another one is exchanged whole')
+        return 2
+
+    async def pages_from_the_loop(self, grid):
+        """A page is built on the loop's next pass, never at the bottom of the API's call that asked for it
+        (docs/ARCHITECTURE.md, "The loop's stack"): a layout's commit answers as it did, a state that comes right after
+        it shows on the page built after it, and two show_page calls in a row land on the last, each turn seen once."""
+        # Another layout than the one on the glass (hello_again left PAGE_TITLES[:-1]), so the commit builds a page.
+        record, values, bars, region = send_layout.configuration(grid, now=MOMENT, titles=PAGE_TITLES,
+                                                                 pages=len(PAGE_TITLES))
+        sensor = next((i for i, v in enumerate(values) if str(v.get('entity', '')).startswith('sensor.')), None)
+        start = len(self.lines)
+        await self.sender.synchronize(self.inbox.object_id, record, region, values, bars)
+        if sensor is not None:
+            # Straight after the commit's answer, before the loop's pass that builds the page.
+            # A state message carries no options or slot: those are the tile's first message's (page_receiver.cpp). Every
+            # tile of the entity gets it, as the app sends it (a layout of several pages repeats the demo's tiles).
+            for value in values:
+                if value.get('entity') == values[sensor]['entity']:
+                    changed = {**{k: v for k, v in value.items() if k not in ('o', 'slot')}, 'op': 'state', 'state': '77'}
+                    await self.sender._packet(changed, self.sender.confirmed)
+        # Landed whole: every tile, every page, the page placed. Not a log line: the render log keeps a redraw's first
+        # reason only, and a feed that was not fresh while the layout was exchanged may come first.
+        end = time.monotonic() + 30
+        while (p := await self.probe())[3] != len(values) or p[5] != len(record['layout']['pages']) or p[1] != 0:
+            if time.monotonic() > end:
+                raise AssertionError(f'the new layout never landed whole: {p}')
+            await asyncio.sleep(0.2)
+        await self.page_done(0)
+        if sensor is not None:
+            entity = values[sensor]['entity']
+            end = time.monotonic() + 3  # a state's redraw comes with ui_refresh, 100 ms after it
+            while '77' not in (cards := await self.cards()).get(entity, {}).get('value', '') and time.monotonic() < end:
+                await asyncio.sleep(0.2)
+            assert entity in cards and '77' in cards[entity]['value'], f'the state after the commit is on the page: {cards.get(entity)}'
+        # Two pages asked at once: the last one opens, and the first at most once before it.
+        start = len(self.lines)
+        await asyncio.gather(self.call('show_page', page=2), self.call('show_page', page=3))
+        await self.page_done(2)
+        opened = [line for line in self.lines[start:] if 'open from Home Assistant' in line]
+        assert opened and 'page 3 of' in opened[-1] and len(opened) <= 2, opened
+        await self.call('show_page', page=1)
+        await self.page_done(0)
+        self.warnings.append(f'Pages from the loop: the commit, the state after it, then the page; {len(opened)} turn(s) for two asks')
         return 2
 
     async def detail_navigation(self, grid, entities):
@@ -3416,11 +3461,12 @@ class Run:
             sent = await call_for('remote.send_command', since)
             sent_as(sent, {'entity_id': 'remote.bluray_ir', 'command': 'play', 'device': 'bluray'})
             answer(sent)
-        # Set to On / off, a tap switches it.
+        # Set to On / off, a tap switches it, as Home Assistant's toggle sends it: turn_on or turn_off by the state the
+        # tile shows, never toggle (optimistic_lvgl.h, toggle_tap). The Shield is on.
         if 'remote.shield' in spots:
             since = len(calls)
             await self.tap(*spots['remote.shield'])
-            sent = await call_for('remote.toggle', since)
+            sent = await call_for('remote.turn_off', since)
             sent_as(sent, {'entity_id': 'remote.shield'})
             answer(sent)
         # The keypad: power in the bar, four arrows and OK, Back, Home, Play/Pause, the volume.
@@ -4164,10 +4210,11 @@ class Run:
         # Unavailable: in the unavailable grey, not the colour of an automation that is on, and taps send nothing.
         if 'automation.garden' in start and start['automation.garden']['circle'] == start['automation.curtains']['circle']:
             faults.append('start: an unavailable automation is coloured like one that is on')
-        # Tap on an automation that switches: it turns off at once (optimistic) and automation.toggle goes out.
+        # Tap on an automation that switches: it turns off at once (optimistic) and automation.turn_off goes out, as Home
+        # Assistant's toggle sends it (turn_on or turn_off by the state shown, never toggle; optimistic_lvgl.h, toggle_tap).
         since = len(calls)
         await self.tap(*spots['automation.curtains'])
-        sent = await call_for('automation.toggle', since)
+        sent = await call_for('automation.turn_off', since)
         sent_only(sent, 'automation.curtains')
         await asyncio.sleep(0.1)
         await expect('automation.curtains', 'Off', False, where='right after the tap')
@@ -4180,7 +4227,7 @@ class Run:
         # Tap again: back on.
         since = len(calls)
         await self.tap(*spots['automation.curtains'])
-        sent = await call_for('automation.toggle', since)
+        sent = await call_for('automation.turn_on', since)
         answer(sent)
         states['automation.curtains'] = automation('on', 'Curtains')
         await push()
@@ -4191,7 +4238,7 @@ class Run:
         await self.hold(*spots['automation.curtains'])
         sent = await call_for('automation.trigger', since)
         sent_only(sent, 'automation.curtains')
-        if [c for c in calls[since:] if c.service == 'automation.toggle']:
+        if [c for c in calls[since:] if c.service in ('automation.toggle', 'automation.turn_on', 'automation.turn_off')]:
             faults.append('holding a switching tile also switched it')
         answer(sent)
         await asyncio.sleep(0.4)
@@ -4218,7 +4265,7 @@ class Run:
         # Hold the run button: it switches off, at once, and says Off.
         since = len(calls)
         await self.hold(*spots['automation.doorbell'])
-        sent = await call_for('automation.toggle', since)
+        sent = await call_for('automation.turn_off', since)
         sent_only(sent, 'automation.doorbell')
         if [c for c in calls[since:] if c.service == 'automation.trigger']:
             faults.append('holding a run button also ran it')
@@ -4651,6 +4698,7 @@ class Run:
         self.client.switch_command(dark.key, False)
         await self.appearance_edits(grid)
         checks += await self.hello_again(grid)
+        checks += await self.pages_from_the_loop(grid)
         checks += await self.detail_navigation(grid, entities)
         checks += await self.rectangular_tiles(grid)
         checks += await self.bedside_clock(grid)

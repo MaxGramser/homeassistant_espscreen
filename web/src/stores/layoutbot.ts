@@ -17,6 +17,7 @@ import { useDocumentStore } from "./document";
 import { useInventoryStore } from "./inventory";
 import { useScreenStore } from "./screen";
 import { useSessionStore } from "./session";
+import { useUiStore } from "./ui";
 
 /** The answer the editor understands (the add-on's LAYOUTBOT_PLAN): a checked plan to place. */
 export const PLAN_VERSION = 2;
@@ -54,6 +55,7 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   const inv = useInventoryStore();
   const scr = useScreenStore();
   const doc = useDocumentStore();
+  const ui = useUiStore();
   const agents = computed(() => inv.inventory.layoutbot ?? []);
   /** The bot shows wherever there is a draft; it works where Home Assistant has an AI Task that makes data, and
    * elsewhere its chat says how to connect one. */
@@ -62,7 +64,8 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   const available = computed(() => shown.value && ready.value);
   /** Look again after the person added an AI integration in Home Assistant (the full inventory lists the AI Tasks). */
   async function recheck() { await inv.refresh(true); }
-  const open = ref(false);
+  // Whether the chat is open is the address's (ui.chatOpen, `?chat=layoutbot`), never this store's.
+  const open = computed({ get: () => ui.chatOpen, set: (value: boolean) => { void ui.openChat(value); } });
   const busy = ref(false);
   const started = ref(0);
   const agent = ref<string | null>(null);
@@ -178,7 +181,9 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   /** Yes: this screen's draft is saved and sent (as Save & send does) unless it was undone; then each other screen in
    * turn is opened, its plan placed in its draft (again, where its saved document changed since) and saved through the
    * same Save & send, with its own validation and undo. A screen that fails keeps nothing of it (its step is undone) and
-   * the others still go; the chat says which failed and why, and the screen the person was on opens again. */
+   * the others still go; the chat says which failed and why, and the screen the person was on opens again. The screens it
+   * passes through take the browser's entry in place (select's `replace`), so Back afterwards goes where the person was
+   * before, never to one of them. */
   async function deliver(message: BotMessage) {
     if (message.send !== "ask") return;
     message.send = "sending";
@@ -195,7 +200,7 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
         delivering.value = other.name;
         try {
           if (doc.dirty) throw new Error(t("editor.layoutbot.send.unsaved"));
-          await session.select(other.id);
+          await session.select(other.id, { replace: true });
           if (scr.selected !== other.id || !doc.document || !doc.documentGrid) throw new Error(t("editor.layoutbot.send.not_opened"));
           const layout = doc.documentRevision === other.revision ? other.layout!
             : (await placePlan(scr.currentScreen!, doc.document, doc.screenGridOf(doc.documentGrid), other.plan)).layout;
@@ -210,7 +215,7 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
         }
       }
     } finally {
-      if (home && scr.selected !== home && !doc.dirty) await session.select(home);
+      if (home && scr.selected !== home && !doc.dirty) await session.select(home, { replace: true });
       delivering.value = null;
       await inv.refresh(false);
       message.send = failures.length ? "failed" : "sent";

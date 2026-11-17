@@ -23,6 +23,9 @@ substitutions:
   AUDIO_SAMPLE_RATE: "48000"
   AUDIO_HALF_DUPLEX: "false"
   AUDIO_MIC_BUS: ts_mic_bus
+  # What a call's and the doorbell's voice is multiplied by on its way out (talk_uplink.h): these boards' microphones
+  # are quiet. A transport that keeps its microphone lower for its echo canceller makes it up here.
+  AUDIO_VOICE_GAIN: "4"
   # The volume as ears hear it: Home Assistant's 0 to 100 % runs evenly in decibels, from AUDIO_VOLUME_DB_LOW (5 % is
   # just audible beside the screen) to AUDIO_VOLUME_DB_HIGH (the DAC's full scale, without a digital gain that clips);
   # 0 % mutes. The media player maps its volume onto that part of the DAC's range (volume_min and volume_max below).
@@ -39,7 +42,7 @@ substitutions:
     // over it rather than into it, and the volume under Extras holds for it too.
     live_view::bind_speaker(id(ts_media_speaker));
     // The screen's voice to the app, for the doorbell's Talk and a call (talk_uplink.h).
-    talk_uplink::bind_microphone(id(ts_microphone));
+    talk_uplink::bind_microphone(id(ts_microphone), ${AUDIO_VOICE_GAIN});
     // The ring's loudness is the speaker's own, never the media player's: Home Assistant does not see it and nothing keeps it.
     // Its top is the same top the media player has, the DAC's full scale without digital gain.
     // What a finger does in a call goes to ESP Screens (module call, esphome.screen_call).
@@ -47,6 +50,7 @@ substitutions:
     runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_speaker_out)->get_volume(); },
                               [](float volume) { id(ts_speaker_out)->set_volume(volume); },
                               []() { return id(ts_call_ringtone).state; },
+                              []() { return id(ts_call_voice_switching).state; },
                               ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }f);
     if (!${AUDIO_HALF_DUPLEX}) {
       id(ts_speaker_out)->set_audio_stream_info(audio::AudioStreamInfo(16, 1, ${AUDIO_SAMPLE_RATE}));
@@ -58,15 +62,25 @@ substitutions:
     settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_microphone,
         []() -> int32_t { return id(ts_microphone_on).state ? 1 : 0; },
         [](int32_t on) { if (on) id(ts_microphone_on).turn_on(); else id(ts_microphone_on).turn_off(); }));
+    // A call's settings (docs/CALLS.md): the same three switches Home Assistant and the app show.
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_call_ringtone,
+        []() -> int32_t { return id(ts_call_ringtone).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_ringtone).turn_on(); else id(ts_call_ringtone).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_do_not_disturb,
+        []() -> int32_t { return id(ts_call_do_not_disturb).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_do_not_disturb).turn_on(); else id(ts_call_do_not_disturb).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_call_voice_switching,
+        []() -> int32_t { return id(ts_call_voice_switching).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_voice_switching).turn_on(); else id(ts_call_voice_switching).turn_off(); }));
     // The doorbell's chime (module doorbell, docs/DOORBELL.md) on the speaker for announcements.
     runtime_tiles::doorbell_audio(id(ts_speaker));
 
 # A call's keys (module call, docs/CALLS.md): glyphs only a board with sound needs, so a CYD pays nothing for them.
 font:
   - id: !extend materialdesign_icons
-    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568"]
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4", "\U000F0A45"]
   - id: !extend materialdesign_icons_mini
-    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568"]
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4", "\U000F0A45"]
 
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
@@ -76,6 +90,25 @@ switch:
     id: ts_call_ringtone
     name: "Call ringtone"
     icon: "mdi:phone-ring"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  # Do not disturb (docs/CALLS.md): on, a call to this screen is refused at once and the caller reads why. ESP Screens reads
+  # the switch from Home Assistant; the doorbell is not a call and still rings.
+  - platform: template
+    id: ts_call_do_not_disturb
+    name: "Do not disturb"
+    icon: "mdi:bell-off"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  # Whether this screen's calls start with voice switching (docs/CALLS.md, "Echo"): on, the microphone of the side that
+  # listens goes down, so a voice does not come back; off, both stay open and both can speak at once. A small key in the
+  # call changes it for that call, on both screens.
+  - platform: template
+    id: ts_call_voice_switching
+    name: "Call voice switching"
+    icon: "mdi:account-voice"
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON

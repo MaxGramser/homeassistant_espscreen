@@ -34,6 +34,7 @@ Facts facts() {
 #endif
   f.live_video = live_view::available();
   f.direct_glass = glass::direct();
+  f.steady_glass = glass::steady();
 #ifdef SD_TIER_FULL
   f.full_tier = true;
 #endif

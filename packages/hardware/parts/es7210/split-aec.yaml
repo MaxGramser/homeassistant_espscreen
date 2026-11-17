@@ -1,0 +1,55 @@
+# The ES7210 on a bus of its own, with echo cancellation (parts/es7210.yaml, AUDIO_TRANSPORT "split-aec"). The
+# microphones' bus runs in TDM through the pinned audio stack, receive only: the voice and the reference (MIC3, the
+# speaker's signal as the board wires it) arrive in the same frames, so they stay aligned whatever the speaker's bus
+# does. The speaker keeps ESPHome's own I2S on its bus (features/audio-speaker.yaml). The reference is electrical and
+# taken after the speaker codec's volume: it is as loud as the speaker is.
+packages:
+  speaker: !include ../../../features/audio-speaker.yaml
+  echo_cancel: !include ../echo-cancel.yaml
+
+substitutions:
+  AUDIO_HALF_DUPLEX: "false"
+  # As the ES8311's transport, where it was measured (parts/es8311/aec.yaml); on this one it was heard in a call only.
+  AUDIO_ECHO_LEVEL: "normal"
+  AUDIO_ECHO_ON_DEMAND: "true"
+
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: ${AUDIO_MCLK_PIN}
+    i2s_bclk_pin: ${AUDIO_BCLK_PIN}
+    i2s_lrclk_pin: ${AUDIO_LRCLK_PIN}
+
+# MIC3 is the playback reference, its gain the board's (AUDIO_REFERENCE_GAIN) and independent of the microphones' ALC.
+audio_adc:
+  - id: !extend ts_audio_adc
+    sample_rate: 16000
+    tdm: true
+    reference:
+      channel: 3
+      gain: ${AUDIO_REFERENCE_GAIN}
+
+esp_audio_stack:
+  id: board_audio_stack
+  # ESPHome's speaker bus has the first I2S port.
+  i2s_num: 1
+  sample_rate: 16000
+  bits_per_sample: 16
+  slot_bit_width: 16
+  rx_slot_mode: stereo
+  mic_channel: left
+  i2s_mclk_pin: ${AUDIO_MIC_MCLK_PIN}
+  i2s_bclk_pin: ${AUDIO_MIC_BCLK_PIN}
+  i2s_lrclk_pin: ${AUDIO_MIC_LRCLK_PIN}
+  i2s_din_pin: ${AUDIO_DIN_PIN}
+  processor_id: board_aec
+  # ES7210 SDOUT1: MIC1, MIC3 (reference), MIC2, MIC4. Nothing is sent on this bus; its slot is the one left over.
+  use_tdm_reference: true
+  tdm_total_slots: 4
+  tdm_mic_slot: ${AUDIO_MIC_SLOT}
+  tdm_ref_slot: 1
+  tdm_tx_slot: 3
+  i2s_comm_fmt: philips
+
+microphone:
+  - platform: esp_audio_stack
+    id: ts_microphone

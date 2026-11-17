@@ -60,7 +60,8 @@ editor's own controls are Material Design Icons, listed in `web/src/model/ui-ico
 What is open is in the page's address, and nowhere else: the editor has one router (vue-router with a hash history,
 `web/src/router.ts`, since the page lives in Home Assistant's ingress iframe where only the hash is the page's own).
 `#/` is the overview, `#/screens/<inbox id>` a screen, `#/settings`, `#/new-screen`, `#/firmware`, `#/alerts` and
-`#/plugins` the pages of the app, and `#/override/<profile>` a screen's Override YAML. A reload opens the same again
+`#/plugins` the pages of the app, `#/override/<profile>` a screen's Override YAML, and `?chat=layoutbot` on a screen's
+address its open Layoutbot chat (docs/LAYOUTBOT.md, "Where the chat stands"). A reload opens the same again
 once the inventory has arrived (the session follows the address, `followAddress`), the browser's Back and Forward
 walk through what was open, a link to a screen can be kept, and the addresses from before the router (`#settings`)
 still work. Home Assistant's sidebar shows the editor in a frame whose address nobody sees, and makes it anew on a
@@ -222,6 +223,12 @@ changes comes as `{"op": "sums", "p": page, "t": [...]}`. A screen without the f
 cells, without the sections; the editor says the screen needs an update to show them. A screen that starts to draw
 sections gets the layout again with them (the revision counts the feature only for a layout that has sections).
 
+The screen takes a page's sections whole or refuses the page with "Error: sections": a list that is not one or has more
+than sixteen, a section of fewer than six fields, a place that is not a number or leaves the grid, two sections over each
+other, a section without a title. A `sums` update needs one text for each section of its page and changes nothing
+otherwise. `tools/render/sections.py` sends each of these to the real firmware on the host as the add-on's Sender sends
+them (its receiver round), with a layout from an app that knows no sections and back.
+
 ## Updating at different times
 
 Update the add-on and screens in either order. Screens are negotiated individually.
@@ -254,6 +261,14 @@ trusts its values, is `Transfer::whole()`: the transfer is active and the model 
 actions) and `navigation_ready()` (turning pages) both ask it. Before firmware of 2026-11-16, `fresh()` also asked for
 `begun`, so each start of the app greyed the values for a moment and drew every card twice. The host render's
 `hello_again` round proves the rule with a second sender over the same screen.
+
+On glass (2026-11-16): a Waveshare ESP32-P4 10.1 inch (chip revision 3.2) with one Home Assistant and one app, a
+layout of three pages with a live camera tile on the glass, its whole log read over the API. The app was stopped and
+started again twice, and each time the log was watched for a minute after the screen had its layout again. Neither time
+did "the feed is no longer fresh" or "every card drawn" appear, while the log kept coming (69 lines in the second
+minute, among them the camera tile's stream starting again about a quarter of a second after it was asked). Before the
+change, the same restart on the same board logged "no longer fresh (... transfer active/not begun ...)" and every card
+drawn twice.
 
 ## Storage and recovery
 

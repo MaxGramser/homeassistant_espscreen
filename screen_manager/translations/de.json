@@ -197,7 +197,11 @@
       "plugins": "Plugins",
       "microphone_gain": "Mikrofonverstärkung",
       "automatic_gain": "Automatische Verstärkung",
-      "echo_cancellation": "Echounterdrückung"
+      "call_ringtone": "Klingelton",
+      "do_not_disturb": "Nicht stören",
+      "call_voice_switching": "Sprachumschaltung",
+      "echo_cancellation": "Echounterdrückung",
+      "loop_pages": "Seiten im Kreis"
     },
     "doorbell": {
       "sound_on": "Ton an",
@@ -688,7 +692,8 @@
       "sound_only": "Verfügbar, nur Ton",
       "in_call": "Im Gespräch",
       "offline": "Offline",
-      "missed_at": "Verpasster Anruf"
+      "missed_at": "Verpasster Anruf",
+      "no_screens": "Kein Bildschirm zum Anrufen"
     }
   },
   "addon": {
@@ -1027,6 +1032,10 @@
         "refused": "Home Assistant hat die Automatisierung abgelehnt: {reason}",
         "not_ours": "Diese Automatisierung wurde nicht von Tessera erstellt, die App lässt sie in Ruhe.",
         "invalid": "Diese Automatisierung kann nicht gespeichert werden ({part})."
+      },
+      "icons": {
+        "request": "Das ist keine Liste von Symbolen.",
+        "too_many": "Ein Bildschirm fasst höchstens {most} eigene Symbole."
       }
     },
     "status": {
@@ -1242,6 +1251,18 @@
         "automatic_gain": {
           "label": "Automatische Verstärkung",
           "hint": "Der Mikrofoncodec regelt den Aufnahmepegel automatisch. Unabhängig von der Echounterdrückung."
+        },
+        "call_ringtone": {
+          "label": "Klingelton",
+          "hint": "Aus: Bei einem Anruf leuchtet der Bildschirm auf und zeigt, wer anruft, ohne Ton."
+        },
+        "do_not_disturb": {
+          "label": "Nicht stören",
+          "hint": "Ein: Ein Anruf an diesen Bildschirm wird sofort abgelehnt und der Anrufer liest, warum. Die Türklingel läutet weiterhin."
+        },
+        "call_voice_switching": {
+          "label": "Sprachumschaltung",
+          "hint": "Ein: Das Mikrofon der Seite, die zuhört, wird leise, damit eine Stimme nicht als Echo zurückkommt. Aus: Beide Seiten können gleichzeitig sprechen. Eine kleine Taste im Anruf ändert es für diesen Anruf."
         },
         "echo_cancellation": {
           "label": "Echounterdrückung",
@@ -1622,6 +1643,13 @@
         "missed": "Niemand hat es vor dem Timeout berührt",
         "seen": "Ein verpasstes Klingeln wurde aus der oberen Leiste wieder geöffnet"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot braucht einen AI Task in Home Assistant, der Daten erzeugen kann (Einstellungen > Geräte & Dienste, eine KI-Integration).",
+      "notes": {
+        "unknown": "{entity} ausgelassen: Das ist keine Entität dieses Home Assistant.",
+        "no_page": "Es gibt keine Seite {page}."
+      }
     }
   },
   "editor": {
@@ -1639,6 +1667,8 @@
       "read_current_data": "Aktuelle Daten abrufen",
       "results": "1 Ergebnis. Tippe weiter, um die Suche einzugrenzen. | {n} Ergebnisse. Tippe weiter, um die Suche einzugrenzen.",
       "close": "Schließen",
+      "expand": "Mehr anzeigen",
+      "collapse": "Weniger anzeigen",
       "remove": "Entfernen",
       "loading": "Wird geladen…",
       "back": "← Zurück",
@@ -1963,6 +1993,7 @@
         "vacuum": "Staubsauger",
         "sensor": "Sensoren",
         "media_player": "Medien",
+        "camera": "Kameras",
         "weather": "Wetter",
         "number": "Werte",
         "select": "Auswahl",
@@ -1982,6 +2013,8 @@
       "again": "Schon auf diesem Bildschirm; nochmal hinzufügen für eine weitere Kachel",
       "all_placed": "Alles hier ist schon auf diesem Bildschirm.",
       "none_found": "Keine Entitäten gefunden. Versuche einen anderen Namen, Bereich oder Filter.",
+      "found_elsewhere": "Nichts in dieser Auswahl, aber 1 Entität passt in der ganzen Bibliothek. | Nichts in dieser Auswahl, aber {n} Entitäten passen in der ganzen Bibliothek.",
+      "search_everything": "Alle Treffer anzeigen",
       "full": "Dieser Bildschirm fasst 1 Kachel. | Dieser Bildschirm fasst {n} Kacheln.",
       "full_update": "Dieser Bildschirm fasst 1 Kachel; mit einem Firmware-Update sind es 48. | Dieser Bildschirm fasst {n} Kacheln; mit einem Firmware-Update sind es 48.",
       "hint": "Ziehe eine Entität auf eine Seite oder tippe auf +, um sie auf den ersten freien Platz zu setzen. ⌘K durchsucht alles.",
@@ -2073,6 +2106,8 @@
         "title": "Was es hinzufügt",
         "tile": "Kachel „{name}“",
         "tile_sizes": "Von {min} bis {max} auf einer Seite",
+        "tile_sizes_or_page": "Von {min} bis {max} auf einer Seite, oder die ganze Seite",
+        "tile_only_page": "Die ganze Seite",
         "tap": "Tippaktion „{name}“",
         "tap_on": "Auf Kacheln von {domains}",
         "card": "„{name}“, eine eigene Ansicht auf dem Bildschirm",
@@ -2398,7 +2433,8 @@
       },
       "forget": {
         "go": "Aus der Liste entfernen",
-        "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen."
+        "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen.",
+        "note_folder": "Kein Bildschirm nutzt dieses Plugin aus seinem Ordner. Beim Entfernen wandert der Ordner nach config/tessera-plugins/.removed/{id}, wo du ihn endgültig löschen kannst."
       }
     },
     "plugin_tile": {
@@ -2411,6 +2447,9 @@
       "from_fetch": "Die Auswahl kommt aus der eigenen Datenquelle des Plugins, über Tessera.",
       "on_screen": "Auf dem Bildschirm",
       "sizes": "Von {min} bis {max}; zieh an einem Rand der Kachel, um ihre Größe zu ändern.",
+      "sizes_or_page": "Von {min} bis {max}, oder die ganze Seite; zieh an einem Rand der Kachel, um ihre Größe zu ändern.",
+      "sizes_only_page": "Diese Kachel nimmt immer eine ganze Seite ein.",
+      "whole_page": "Ganze Seite",
       "placeholder": "Der Editor zeigt einen Platzhalter: Was das Plugin zeichnet, erscheint auf dem Bildschirm selbst.",
       "now": "jetzt",
       "minutes": "{n} Min.",
@@ -3007,6 +3046,17 @@
         "clear": "Erledigte entfernen",
         "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
       },
+      "call": {
+        "section": "Anruf",
+        "who": "Ruft an",
+        "who_hint_all": "Ein Tippen öffnet die Liste der Bildschirme.",
+        "who_hint_one": "Ein Tippen ruft diesen Bildschirm sofort an.",
+        "everyone": "Aus der Liste wählen",
+        "kind": "Art des Anrufs",
+        "kind_hint": "Video braucht das Plugin Screen camera mit dem Teil Video auf beiden Bildschirmen, sonst wird es ein Anruf mit Ton.",
+        "video": "Video, wo möglich",
+        "sound": "Nur Ton"
+      },
       "text_entity": {
         "edit": "Ein Tippen öffnet den Wert in einem Feld mit der Tastatur des Bildschirms. Ein Passwort erscheint als Punkte.",
         "view_only": "Dieses Board zeigt nur den Wert: Ändern auf dem Bildschirm braucht ein Board mit 8 MB Flash oder mehr."
@@ -3046,7 +3096,9 @@
       "search_label": "Symbol suchen",
       "none_text_only": "Kein Symbol, nur Text",
       "aria": "Symbol: {name}",
-      "none_found": "Kein Symbol gefunden."
+      "none_found": "Kein Symbol gefunden.",
+      "own": "Symbole dieses Bildschirms",
+      "more": "Mehr Symbole"
     },
     "inspect": {
       "title": "Aktuelle Daten",
@@ -3164,7 +3216,8 @@
         "swipe_pages": "Zwischen Seiten wischen",
         "page_buttons": "Seitentasten",
         "home_button": "Home-Taste zeigen",
-        "rotation": "Drehung"
+        "rotation": "Drehung",
+        "loop_pages": "Seiten im Kreis"
       },
       "actions": {
         "calibrate": {
@@ -4188,6 +4241,7 @@
       "packet_error": "Die Firmware hat ein Vorschaupaket abgelehnt: {message}",
       "stopped": "Firmware-Vorschau angehalten: {message}",
       "action_error": "Home Assistant-Befehl fehlgeschlagen: {message}",
+      "stale": "Diese Vorschau ist älter als die Firmware: Sie wurde am {date} erstellt und die Firmware hat sich seitdem geändert, also zeichnet ein Bildschirm vielleicht etwas, das hier noch nicht zu sehen ist.",
       "remove": "Die Vorschau und ihr gespeichertes Layout in diesem Browser.",
       "save": "Vorschau speichern",
       "saved": "In diesem Browser gespeichert",
@@ -4262,7 +4316,8 @@
         "changed": "Layout geändert",
         "restored": "nicht gespeicherte Änderungen wiederhergestellt",
         "taken_over": "Änderungen aus dem anderen Tab übernommen",
-        "auto_layout": "das für dich erstellte Layout"
+        "auto_layout": "das für dich erstellte Layout",
+        "layoutbot": "Änderung von Layoutbot"
       }
     },
     "draft": {
@@ -4353,7 +4408,8 @@
           "fetch": "die Firmware ist nicht zurückgekommen",
           "bundle": "das YAML konnte nicht gepackt werden"
         }
-      }
+      },
+      "icons": "Baut mit seinen Symbolen"
     },
     "grid": {
       "title": "Raster",
@@ -4652,6 +4708,44 @@
     "drawer": {
       "resize": "Breite der Einstellungen: ziehen oder die Pfeiltasten nutzen; Doppelklick setzt sie zurück"
     },
+    "screen_icons": {
+      "eyebrow": "Symbole",
+      "title": "Symbole von {name}",
+      "intro": "Jeder Bildschirm bringt einen festen Satz Symbole mit. Hier fügst du bis zu {room} weitere hinzu. Symbole sind Teil der Firmware, eine Änderung kommt also erst auf den Bildschirm, wenn er neu erstellt wird.",
+      "count": "{n} von {room} hinzugefügt",
+      "on_screen": "Auf diesem Bildschirm",
+      "none_yet": "Noch keine. Wähle aus den Symbolen unten.",
+      "waiting": "1 Symbol wartet auf das Erstellen | {n} Symbole warten auf das Erstellen",
+      "leaving": "1 Symbol verschwindet beim nächsten Erstellen | {n} Symbole verschwinden beim nächsten Erstellen",
+      "changes": "Erstelle die Firmware neu, um diese Änderungen auf den Bildschirm zu bringen. Das dauert ein paar Minuten, und der Bildschirm startet neu.",
+      "build": "{name} erstellen",
+      "building": "Wird mit diesen Symbolen erstellt…",
+      "all_up_to_date": "Alles, was du gewählt hast, ist auf dem Bildschirm.",
+      "everywhere": "Auf jeden Bildschirm bringen",
+      "everywhere_ask": "Das ersetzt die hinzugefügten Symbole von {n} Bildschirm und erstellt ihn neu. | Das ersetzt die hinzugefügten Symbole von {n} Bildschirmen und erstellt sie nacheinander neu. Ein Bildschirm mit 4 MB Flash bleibt, wie er ist.",
+      "everywhere_yes": "{n} Bildschirm erstellen | {n} Bildschirme erstellen",
+      "everywhere_done": "Warten auf das Erstellen: {names}",
+      "everywhere_off": "Aus, daher nicht erstellt: {names}",
+      "from_ha": "In deinem Home Assistant verwendet",
+      "from_ha_hint": "Symbole deiner Entitäten, die dieser Bildschirm noch nicht zeichnen kann.",
+      "add_all": "Alle hinzufügen",
+      "all": "Alle Symbole",
+      "search": "Alle Symbole durchsuchen",
+      "search_label": "Alle Symbole durchsuchen",
+      "nothing": "Kein Symbol hat diesen Namen.",
+      "fixed": "Schon auf jedem Bildschirm",
+      "full": "Dieser Bildschirm hat keinen Platz mehr.",
+      "in_use": "{icon} ist auf {n} Kachel dieses Bildschirms. Sie zeigt nach dem nächsten Erstellen ihr automatisches Symbol. | {icon} ist auf {n} Kacheln dieses Bildschirms. Sie zeigen nach dem nächsten Erstellen ihr automatisches Symbol.",
+      "remove": "Entfernen",
+      "own_yaml": "Dieser Bildschirm wird aus seinem eigenen YAML erstellt. Speichere dies als {file} daneben, füge die Zeile unten unter packages: ein und erstelle ihn dort.",
+      "loading": "Symbole werden geladen…",
+      "card_title": "Symbole",
+      "card_hint": "Füge zu den Symbolen dieses Bildschirms bis zu {room} weitere hinzu.",
+      "card_button": "Symbole wählen",
+      "card_count": "{n} hinzugefügt",
+      "card_waiting": "{n} warten auf das Erstellen",
+      "card_no_room": "Dieses Board hat 4 MB Flash und keinen Platz für weitere Symbole."
+    },
     "sections": {
       "untitled": "Bereich",
       "kind": "Bereich",
@@ -4750,6 +4844,75 @@
       "offer_text": "Tessera kann diesen Bildschirm aus deinen Home-Assistant-Bereichen und -Geräten einrichten. Danach kannst du alles ändern.",
       "offer_make": "Erstes Layout erstellen",
       "offer_empty": "Leer beginnen"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Layoutbot fragen",
+      "close": "Schließen",
+      "hello": "Hi! Sag mir, was dieser Bildschirm zeigen soll, und ich richte seine Seiten ein. Ich ändere nur das Layout, nie deine Geräte.",
+      "privacy": "Ich nutze {agent} aus Home Assistant. Deine Frage, die Seiten deiner Bildschirme und die IDs, Namen und Bereiche deiner Entitäten gehen dorthin.",
+      "placeholder": "Erstelle eine Seite mit…",
+      "ask": "Fragen",
+      "send": {
+        "ask": "Soll ich es an {which} senden?",
+        "yes": "Ja, senden",
+        "no": "Nicht jetzt",
+        "sending": "Wird gesendet…",
+        "sent": "Gesendet. Der Bildschirm zeigt es gleich.",
+        "not_all": "Nicht alles wurde gesendet.",
+        "failed": "Senden an {which} fehlgeschlagen.",
+        "declined": "Nicht gesendet. Mit Speichern & senden geht das jederzeit.",
+        "to": "Senden an {name}",
+        "not_opened": "dieser Bildschirm konnte nicht geöffnet werden",
+        "not_saved": "es wurde nicht gespeichert",
+        "unsaved": "der geöffnete Bildschirm hat nicht gespeicherte Änderungen",
+        "own": "Deine eigenen Änderungen seit dem letzten Speichern gehen mit."
+      },
+      "busy": "Layoutbot richtet deine Seiten ein",
+      "seconds": "{n} s",
+      "stop": "Stopp",
+      "stopped": "Gestoppt. Nichts wurde geändert.",
+      "nothing": "Nichts wurde geändert.",
+      "stale": "Die Seiten haben sich geändert, während ich nachdachte, also habe ich sie gelassen, wie sie sind. Frag mich noch einmal.",
+      "show": "Zeigen",
+      "undo": "Rückgängig",
+      "undone": "Rückgängig gemacht",
+      "suggest": {
+        "lights_sections": "Setz alle Leuchten auf eine Seite, mit einem Bereich pro Raum",
+        "lights": "Setz alle Leuchten auf eine Seite",
+        "covers_sections": "Eine Seite mit allen Jalousien und Vorhängen, in zwei Bereichen",
+        "covers": "Eine Seite mit allen Jalousien und Vorhängen",
+        "media": "Eine Musikseite mit allen Lautsprechern",
+        "climate": "Eine Klimaseite mit der Heizung und den Temperaturen"
+      },
+      "what": {
+        "pages": "1 neue Seite | {n} neue Seiten",
+        "added": "1 Kachel hinzugefügt | {n} Kacheln hinzugefügt",
+        "removed": "1 Kachel entfernt | {n} Kacheln entfernt",
+        "changed": "Seite {pages} geändert | Seiten {pages} geändert"
+      },
+      "connect": {
+        "title": "Verbinde eine KI in Home Assistant",
+        "short": "Noch nicht verbunden",
+        "body": "Ich richte die Seiten dieses Bildschirms aus einem Satz ein, etwa „alle Leuchten auf eine Seite, ein Bereich pro Raum“. Dafür nutze ich die KI, die du mit Home Assistant verbindest: Füge eine dieser Integrationen hinzu, und ich erledige den Rest.",
+        "cloud": "In der Cloud, mit deinem eigenen Schlüssel",
+        "local": "Auf deinem eigenen Computer",
+        "after": "Jede KI-Integration mit AI Tasks funktioniert. Sobald sie hinzugefügt ist, schau hier erneut nach.",
+        "again": "Erneut prüfen"
+      },
+      "notes": {
+        "page_full": "Seite {page} ist voll, daher wurde {count} Kachel ausgelassen. | Seite {page} ist voll, daher wurden {count} Kacheln ausgelassen.",
+        "memory_full": "Der Speicher des Bildschirms ist voll, daher wurde {count} Kachel ausgelassen. | Der Speicher des Bildschirms ist voll, daher wurden {count} Kacheln ausgelassen.",
+        "left_out": "Der Bildschirm hatte keinen Platz für {count} weitere Kachel. | Der Bildschirm hatte keinen Platz für {count} weitere Kacheln.",
+        "no_page": "Es gibt keine Seite {page}.",
+        "not_drawn": "Der Bildschirm zeichnet keine Kachel für {count} Entität. | Der Bildschirm zeichnet keine Kachel für {count} Entitäten."
+      },
+      "update_app": "Aktualisiere die Tessera-App: Dieser Editor platziert die Pläne von Layoutbot selbst.",
+      "scope": {
+        "here": "Dieser Bildschirm",
+        "all": "Alle Bildschirme"
+      },
+      "preview": "Ansehen"
     }
   }
 }

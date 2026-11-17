@@ -1,0 +1,59 @@
+# The ES8311's transport with echo cancellation (parts/es8311-voice.yaml, AUDIO_TRANSPORT "aec"): one I2S bus both ways
+# at once, run by the pinned audio stack around Espressif's AEC (parts/echo-cancel.yaml). The reference is the codec's
+# own: with its register 0x44 at 0x58 ("ADCL + DACR", as Espressif's esp_codec_dev sets it) the codec sends two slots,
+# the microphone on the left and, on the right, the right slot of what it was given to play. So the bus carries two
+# slots each way and the stack plays the one sound on both. The reference is taken before the codec's volume: turning
+# the speaker down does not turn the reference down, which the canceller's own filter makes up for.
+#
+# The codec's I2C control stays with ESPHome's es8311 (parts/es8311.yaml), which never writes that register, so the
+# stack declares no codec owner of its own.
+packages:
+  player: !include ../../../features/audio-player.yaml
+  echo_cancel: !include ../echo-cancel.yaml
+
+substitutions:
+  AUDIO_HALF_DUPLEX: "false"
+  # The microphone hears the board's own speaker, and what clips cannot be cancelled: at 24 dB a Guition 10.1 clipped at
+  # 60 % volume and the canceller took 13 dB away, at 12 dB it took 34 (docs/P4_AUDIO.md).
+  AUDIO_MIC_GAIN: "12DB"
+  # The 12 dB taken off before the canceller are given back after it, on the voice's way out (talk_uplink.h): with
+  # them off and nothing given back, a voice beside a Guition 10.1 reached the other screen too soft to follow.
+  AUDIO_VOICE_GAIN: "16"
+  # At normal a voice beside a Guition 10.1 kept its level while the board's own speaker played (2 dB lower; 6 dB lower
+  # at aggressive), and the speaker's sound still came out under the voice (docs/P4_AUDIO.md).
+  AUDIO_ECHO_LEVEL: "normal"
+  # Only a call needs it here; between calls the processor is the page's.
+  AUDIO_ECHO_ON_DEMAND: "true"
+  AUDIO_SPEAKER_BUFFER: "100ms"
+  AUDIO_REFERENCE_BOOT: |-
+    if (!id(ts_audio_dac).write_byte(0x44, 0x58)) ESP_LOGW("audio", "The codec did not take its playback reference");
+
+esp_audio_stack:
+  id: board_audio_stack
+  sample_rate: ${AUDIO_SAMPLE_RATE}
+  bits_per_sample: 16
+  slot_bit_width: 16
+  num_channels: 2
+  mic_channel: left
+  use_stereo_aec_reference: true
+  reference_channel: right
+  speaker_channels: 1
+  i2s_mclk_pin: ${AUDIO_MCLK_PIN}
+  i2s_bclk_pin: ${AUDIO_BCLK_PIN}
+  i2s_lrclk_pin: ${AUDIO_LRCLK_PIN}
+  i2s_din_pin: ${AUDIO_DIN_PIN}
+  i2s_dout_pin: ${AUDIO_DOUT_PIN}
+  processor_id: board_aec
+
+microphone:
+  - platform: esp_audio_stack
+    id: ts_microphone
+
+speaker:
+  - platform: esp_audio_stack
+    id: ts_speaker_out
+    audio_dac: ts_audio_dac
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16
+    buffer_duration: ${AUDIO_SPEAKER_BUFFER}
+    timeout: never

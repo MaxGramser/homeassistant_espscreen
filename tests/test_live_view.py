@@ -220,7 +220,8 @@ class Sockets(unittest.TestCase):
     def test_the_count_follows_the_code(self):
         p4, s3 = FakeBuild('ESP32P4').run(), FakeBuild('ESP32S3').run()
         with FakeBuild('ESP32P4').component() as component:
-            counts = (component.P4_STREAM_SOCKETS, component.PICTURE_SOCKETS, component.TALK_SOCKETS)
+            # The streams, the downloads, the talk, and a direct call's own server (call_serve.h): its door and its viewer.
+            counts = (component.P4_STREAM_SOCKETS, component.PICTURE_SOCKETS, component.TALK_SOCKETS, component.CALL_SOCKETS)
         self.assertEqual(p4.sockets, [sum(counts)])
         self.assertEqual(s3.sockets, [sum(counts)], 'an S3 that streams counts the same sockets')
         for build in (FakeBuild('ESP32'), FakeBuild('ESP32S3', psram=False), FakeBuild(None)):

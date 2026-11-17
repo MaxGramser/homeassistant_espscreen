@@ -41,7 +41,7 @@ class SettingsView(unittest.TestCase):
         ui = editor_sources.source('stores/ui.ts')
         # The address is the router's (web/src/router.ts, docs/PAGES.md "The address"): the store reads the route and pushes it.
         for marker in ('export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;',
-                       'const current = router.currentRoute;', 'return router.push(target === "" ? mainView() : `/${target.slice(1)}`);'):
+                       'const current = router.currentRoute;', 'const to = target === "" ? withChat(mainView()) : `/${target.slice(1)}`;'):
             self.assertIn(marker, ui, marker)
         router = editor_sources.source('router.ts')
         for marker in ('createWebHashHistory()', '{ path: "/settings", name: "settings"', '{ path: "/screens/:id", name: "screen"',

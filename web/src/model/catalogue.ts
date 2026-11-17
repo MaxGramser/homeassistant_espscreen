@@ -21,7 +21,7 @@ type Type = { firmware: string | null; key: boolean; memory: TypeMemory; cards?:
 type Attributes = Record<string, any>;
 
 export const TYPES = data.domains as unknown as Record<string, Type>;
-export const TILE = data.tile as { taps: string[]; sizes: string[]; history_hours: number[]; memory: { action: number; line: number; page: number; bar_text: number } };
+export const TILE = data.tile as { taps: string[]; sizes: string[]; history_hours: number[]; memory: { action: number; line: number; page: number; bar_text: number; section: number } };
 export const DOMAINS = new Set(Object.keys(TYPES));
 
 export const ofType = (domain: string): Type | undefined => TYPES[domain];

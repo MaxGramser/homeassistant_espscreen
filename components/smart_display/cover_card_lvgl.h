@@ -17,24 +17,6 @@ namespace runtime_tiles {
 inline constexpr uint32_t COVER_ACCENT = cover_paint::ACCENT;
 inline uint32_t cover_track(){return cover_paint::track();}
 inline lv_obj_t *cover_values[2]{};
-inline std::string alarm_card_line(const Tile &t);
-inline std::string lock_card_line(const Tile &t);
-inline std::string cover_status_line(const Tile &t){return t.available()?tile_controls::cover_card_status(t):tr(txt::ha_unavailable);}
-// The line under a card's name: the domain that writes its own says it here, so the card, its refresh and the
-// second-by-second tick all show the same words.
-inline std::string card_status(const Tile &t,bool brief=false){
-  // A wish Home Assistant takes long to square says so on every card, as on its tile (docs/OPTIMISTIC.md).
-  if(wish_slow(t.entity,esphome::millis()))return tr(txt::tile_updating);
-  const auto d=t.domain();
-  if(d=="cover")return cover_status_line(t);
-  if(d=="climate"||d=="humidifier")return tile_controls::climate_card_status(t,brief);
-  if(d=="alarm_control_panel")return alarm_card_line(t);
-  if(d=="lock")return lock_card_line(t);
-  return detail_state(t);
-}
-// Set while the state line lives in a smaller place than its own line (the climate card's caption), so the
-// second-by-second refresh writes the same short form the card drew.
-inline bool detail_status_brief=false;
 inline void cover_slider_event(lv_event_t *e){
   auto *slider=lv_event_get_target_obj(e);auto code=lv_event_get_code(e);
   const bool tilt=(uintptr_t)lv_event_get_user_data(e)==1;
@@ -212,7 +194,6 @@ inline uint32_t cover_card_shape(const Tile &t){
   add(std::isfinite(t.battery)?std::to_string((int)std::lround(t.battery)):"");
   return f.value;
 }
-inline lv_obj_t *climate_round_key(const climate_card::Rect &r,const char *icon,const lv_font_t *font,theme::Role fill,theme::Role ink,int command);
 inline void render_cover_detail(Tile &t,bool large,int width,int height,int pad,int columns=1){
   auto card=tile_controls::cover_card(t);
   cover_battery(t,large,width);
@@ -309,21 +290,6 @@ inline void render_cover_detail(Tile &t,bool large,int width,int height,int pad,
     if(tilt_count)cover_key_row(t,tilt_keys,tilt_count,keys_x,y,keys_w,key_h,gap,key_icons);
   }
   card_shaped(t,cover_card_shape);
-}
-// A round key of a card: the - and the + beside a thermostat's setpoint, and the power key in the top bar
-// of the thermostat and of a light or fan. It takes a climate_card::Rect because that card asked first;
-// every card's rectangle is the same four numbers.
-inline lv_obj_t *climate_round_key(const climate_card::Rect &r,const char *icon,const lv_font_t *font,theme::Role fill,theme::Role ink,int command){
-  auto *key=detail_button("",r.x,r.y,r.w,r.h,command);
-  lv_obj_set_style_radius(key,LV_RADIUS_CIRCLE,0);
-  lv_obj_set_style_bg_color(key,theme::color(fill),0);
-  lv_obj_set_style_bg_color(key,theme::color(theme::KEY_PRESSED),LV_STATE_PRESSED);
-  auto *glyph=lv_obj_get_child(key,0);
-  if(font)lv_obj_set_style_text_font(glyph,font,0);
-  lv_label_set_text(glyph,icon);
-  lv_obj_set_style_text_color(glyph,theme::color(ink),0);
-  lv_obj_set_size(glyph,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(glyph);
-  return key;
 }
 }  // namespace runtime_tiles
 #endif  // RUNTIME_TILES_PARTS

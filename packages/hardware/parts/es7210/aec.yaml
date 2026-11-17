@@ -4,25 +4,12 @@
 # parts, so the stack declares no codec owners of its own.
 packages:
   player: !include ../../../features/audio-player.yaml
+  echo_cancel: !include ../echo-cancel.yaml
 
 substitutions:
   # Playback at the codec's rate; only the microphone and the reference are converted for the AEC.
   AUDIO_SAMPLE_RATE: "48000"
   AUDIO_HALF_DUPLEX: "false"
-  # The settings page's echo cancellation row, after the microphone controls (packages/core.yaml, BOOT_MICROPHONE_PART).
-  BOOT_MICROPHONE_PART: |-
-    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_echo_cancellation,
-        []() -> int32_t { return id(board_echo_cancellation).state ? 1 : 0; },
-        [](int32_t on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); }));
-
-external_components:
-  - source:
-      type: git
-      url: https://github.com/n-IA-hane/esphome-audio-stack
-      ref: 0482d741a938378ef948e3b8f3dd31536f9f2cc9
-      path: esphome/components
-    components: [esp_audio_stack]
-    refresh: never
 
 # MIC3 is the playback reference, its gain the board's (AUDIO_REFERENCE_GAIN) and independent of the microphones' ALC.
 audio_adc:
@@ -32,12 +19,6 @@ audio_adc:
     reference:
       channel: 3
       gain: ${AUDIO_REFERENCE_GAIN}
-
-esp_aec:
-  id: board_aec
-  sample_rate: 16000
-  mode: fd_low_cost
-  filter_length: 4
 
 esp_audio_stack:
   id: board_audio_stack
@@ -78,31 +59,3 @@ speaker:
     buffer_duration: ${AUDIO_SPEAKER_BUFFER}
     timeout: never
 
-switch:
-  - platform: template
-    id: board_echo_cancellation
-    name: "Echo cancellation"
-    entity_category: config
-    restore_mode: RESTORE_DEFAULT_ON
-    lambda: |-
-      if (id(board_aec).is_failed()) return {};
-      return id(board_aec).enabled();
-    turn_on_action:
-      - lambda: |-
-          if (id(board_aec).set_feature(esp_audio_stack::AudioFeature::AEC, true))
-            id(board_echo_cancellation).publish_state(true);
-    turn_off_action:
-      - lambda: |-
-          if (id(board_aec).set_feature(esp_audio_stack::AudioFeature::AEC, false))
-            id(board_echo_cancellation).publish_state(false);
-
-text_sensor:
-  - platform: template
-    id: board_aec_status
-    name: "Echo cancellation status"
-    entity_category: diagnostic
-    update_interval: 2s
-    lambda: |-
-      if (id(board_aec).is_failed()) return {"Error"};
-      if (!id(board_aec).is_initialized()) return {"Starting"};
-      return id(board_aec).enabled() ? std::string("Enabled") : std::string("Bypass");

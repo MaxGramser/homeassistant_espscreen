@@ -39,7 +39,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
 | change a colour | docs/THEME.md | `components/smart_display/theme.h` |
 | change Layoutbot, the editor's chat that arranges pages | docs/LAYOUTBOT.md | `screen_manager/app/layoutbot.py`, `web/src/stores/layoutbot.ts` |
-| change how pages are kept or prepared | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_protocol.h` |
+| change how pages are kept or prepared, or how a page's picture is taken and put | docs/KEPT_PAGES.md, docs/PAGES.md | `kept_pages.h`, `page_pictures.h`, `page_protocol.h` |
 | give a part of the UI a keyboard, or add a keyboard layout | docs/KEYBOARD.md | `keyboard.h`, `keyboard_lvgl.h` |
 | make a control click or buzz as a finger presses or drags it | docs/PLUGINS.md, "Touch feedback" | `touch_feedback.h`, `touch_feedback_lvgl.h` |
 | change what a troubleshooting report holds, or how a crash is read | docs/REPORTS.md | `reports.py`, `redaction.py`, `ReportPanel.vue`, the website's `AddonReportController` |
@@ -107,6 +107,9 @@ Most of these are guarded by a test; the test names the doc to read when it fail
   frontend. Never write a value into the model before an action, never add a hold or flag of a control's own, and
   never show a value the screen cannot know (a lock's end state, the next track). A card binds the parts that show a
   value and is painted in place, never built again for a change of value (docs/CARD_PARTS.md).
+- **Page pictures** (docs/KEPT_PAGES.md, "Page pictures"): a page's picture is put only where it is true. Whatever
+  changes a card off the glass takes a change number or says so (`page_pictures_untrue`), and nothing writes the
+  frame buffer past LVGL without the glass knowing (a room, the veil).
 - **Kept pages** (docs/KEPT_PAGES.md): a card is drawn only while it is on the glass, a card set is exchanged whole,
   and what a kept page lacks follows from change numbers (`kept_pages::Changes`), never from flags handed around.
 - **Memory.** Never walk the PSRAM heap (`heap_caps_get_largest_free_block`, `heap_caps_get_info`) while an RGB panel
@@ -141,18 +144,20 @@ How much is checked follows the branch (next section): work on dev moves fast an
 release is checked fully, once a week. docs/TESTING.md says what each layer proves.
 
 - **On dev the proof is the bench**: the owner's home Home Assistant is the test Home Assistant (since 2026-10-29),
-  with the owner's real screens and the bench boards on the Mac mini's USB as screens of it. The bench HA VM and
-  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house with the
-  deploy-home skill (`deploy_home.py dev`, after a push to `origin dev`), whose builds run on the Mac mini as the app's
-  build server, flash the change to the boards it concerns, and have the owner look and tap. Run a single test when
+  with the owner's real screens and the bench boards as screens of it. The bench HA VM and
+  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house from the machine
+  you work on, over Home Assistant's own API (after a push to `origin dev`: the dev app rebuilt, its screens
+  reinstalled from dev); the builds run on the app's build server, which is the only thing that machine does: run
+  nothing else there. Flash the change to the boards it concerns, and have the owner look and tap. After a release
+  the house runs the released app from main again. Run a single test when
   that is the quickest way to see a piece of logic work. No
   `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI but the Docker
   image `:dev` when `screen_manager/` changed (docs/DOCKER.md, "Testing dev"). After a change
   under `web/src`, `cd web && npm run build` (the app serves that build) and commit `screen_manager/app/static` with it.
 - **At a release** (and a hotfix) everything runs, on the commit that goes out: `tools/check.sh`, CI on that commit
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
-  draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"; the deploy-home skill's
-  `release-test`). What fails there is fixed in the release.
+  draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"). What fails there is fixed
+  in the release.
 - `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
   and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches

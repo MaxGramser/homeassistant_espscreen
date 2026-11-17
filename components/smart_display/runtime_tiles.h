@@ -9,6 +9,7 @@
 #include <string_view>
 #include "runtime_model.h"
 #include "redraw_log.h"
+#include "loop_stack.h"
 #ifdef ESP_SCREEN_HOST
 #include "host_shims.h"
 #else
@@ -64,7 +65,10 @@
 #include "talk_uplink.h"
 #include "hw.h"
 #include "boot_trial.h"
+#include "heap_watch.h"
 #include "kept_pages.h"
+#include "page_pictures.h"
+#include "page_pictures_log.h"
 #include "tile_memory.h"
 #include "wifi_status.h"
 #include "ota_status.h"
@@ -361,7 +365,7 @@ inline int standby_level() { return screen_settings::current.dim_level(minute_of
 // The tiles are there to be seen, so their pictures load (camera_view::tiles_seen, firmware 0.40.0+).
 inline bool tiles_seen() { return camera_view::tiles_seen(awake(), saver_root || saver_camera, standby_level()); }
 inline void tick();
-inline void refresh_tile(size_t index);
+inline void refresh_tile(size_t index, redraw_log::TileWhy why = redraw_log::TileWhy::unnamed);
 // Style setters that only touch a property when it changes (defined with the card renderers below).
 inline void set_color(lv_obj_t *obj, lv_style_prop_t prop, lv_color_t color, lv_style_selector_t selector = 0);
 inline void set_number(lv_obj_t *obj, lv_style_prop_t prop, int32_t number, lv_style_selector_t selector = 0);
@@ -796,6 +800,19 @@ struct CardLook { lv_style_t *tile = nullptr, *circle = nullptr, *title = nullpt
 inline CardLook card_look;
 inline uint32_t last_turn_ms = 0;
 inline void live_tiles_halt();  // live tiles stop at once (a page turns; live_tiles_round)
+// Page pictures (page_pictures_lvgl.h): a page's picture from the glass, put back on it when the screen turns to it.
+inline void page_pictures_start();
+inline void page_pictures_leave();
+inline bool page_pictures_put(int page);
+inline void page_pictures_untrue(int page);
+inline void page_pictures_forget();
+inline void page_pictures_switch(bool on);
+inline void page_pictures_report();
+inline void page_pictures_hold(unsigned mb, unsigned seconds);
+inline void page_pictures_prove();
+// warm_page says when the page it works on stands drawn in its cards, off the glass (page_pictures_lvgl.h, made ahead).
+inline void (*warm_drawn)(int page) = nullptr;
+inline unsigned page_pictures_count();
 inline void live_tile_answer(size_t index, const std::string &url);  // the last page turn: pictures wait until the pages stand still (camera_view::settled)
 inline uint32_t touched_at = 0;    // the last finger on the glass: pages are prepared in the background only after a pause
 inline int kept_limit = -1;        // at most this many pages kept, -1 for as many as fit (a diagnostic build's A/B)
@@ -967,7 +984,7 @@ inline void busy_watch(lv_timer_t *) {
     if (!t.pending) continue;
     if (!t.waiting(now) && !t.confirmed) end_wait(w.index);
     any = any || t.pending;
-    if (t.loading(now) != w.busy_drawn) refresh_tile(w.index);
+    if (t.loading(now) != w.busy_drawn) refresh_tile(w.index, redraw_log::TileWhy::wait);
   }
   if (!any && busy_timer) { lv_timer_delete(busy_timer); busy_timer = nullptr; }
 }
@@ -1016,7 +1033,7 @@ inline bool watch_call(esphome::api::HomeassistantActionRequest &request, const 
         t.release_travel();
         t.refused_at = std::max<uint32_t>(1, esphome::millis());
         t.unanswered = true;
-        refresh_tile(i);
+        refresh_tile(i, redraw_log::TileWhy::answer);
       }
       silent = wish_unanswered(entity) || silent;
       if (silent) ESP_LOGW("runtime_action", "Home Assistant neither answered nor acted on %s: may this screen perform actions?", entity.c_str());
@@ -1046,7 +1063,7 @@ inline bool watch_call(esphome::api::HomeassistantActionRequest &request, const 
       model.tiles[i].release_travel();
       model.tiles[i].refused_at = std::max<uint32_t>(1, esphome::millis());
       model.tiles[i].unanswered = false;
-      refresh_tile(i);
+      refresh_tile(i, redraw_log::TileWhy::answer);
     }
   });
   return true;
@@ -1066,7 +1083,7 @@ inline void expire_calls(uint32_t now) {
 // Returns whether Home Assistant will answer it (watch_call).
 inline bool send_action(esphome::api::HomeassistantActionRequest &request, const std::string &entity, bool watch, bool busy = true) {
   if (busy) {
-    for(size_t i=0;i<model.tiles.size();++i) if(model.tiles[i].entity==entity){model.tiles[i].begin(esphome::millis());model.tiles[i].refused_at=0;refresh_tile(i);}
+    for(size_t i=0;i<model.tiles.size();++i) if(model.tiles[i].entity==entity){model.tiles[i].begin(esphome::millis());model.tiles[i].refused_at=0;refresh_tile(i,redraw_log::TileWhy::wait);}
     watch_busy();
   }
   bool watched = false;
@@ -1371,6 +1388,7 @@ inline bool card_repaint(const Tile &t) {
 #include "optimistic_lvgl.h"
 #include "travel_stripe_lvgl.h"
 #include "detail_lvgl.h"
+#include "card_parts_lvgl.h"
 #include "weather_card_lvgl.h"
 #include "select_card_lvgl.h"
 #include "vacuum_card_lvgl.h"
@@ -1430,7 +1448,7 @@ inline void favorite_tap(size_t index){
   if(index<TILES_MAX)favorite_started_at[index]=std::max<uint32_t>(1,esphome::millis());
   library_event("esphome.screen_play",{{"entity",t.entity},{"tile",std::to_string(index)}});
   ESP_LOGI("library","Play favourite %u of %s",(unsigned)index,t.entity.c_str());
-  refresh_tile(index);
+  refresh_tile(index,redraw_log::TileWhy::finger);
 }
 inline void favorite_key_event(lv_event_t *e){
   const unsigned slot=(uintptr_t)lv_event_get_user_data(e);
@@ -2122,8 +2140,11 @@ inline void render_slot(size_t slot) {
   bool custom=clock||forecast||sunpath||bedside||energy||plugin||calendar||meter||vacuum||text||todo_list;
   if(!large_tile)pad_vertical(w.tile,watch||custom||graph?2:4);
   // A big value that stepped up to the setpoint's digits (the watch block below) keeps them until that block
-  // decides again, so a card is not restyled twice a render.
-  if(!(watch && setpoint_font && lv_obj_get_style_text_font(w.value,LV_PART_MAIN)==setpoint_font))
+  // decides again, so a card is not restyled twice a render. Only a card that goes through that block: a full card
+  // (render_full) never decides again, and kept the digits of what its cell showed before, 30 px too tall, its value
+  // under the card (the layout audit on the 3.5-inch, 2026-11-16; a redraw between two layouts used to hide it).
+  const bool full_card=w.full && !bedside;
+  if(!(watch && !full_card && setpoint_font && lv_obj_get_style_text_font(w.value,LV_PART_MAIN)==setpoint_font))
     set_font(w.value,watch && watch_value_font ? watch_value_font : w.value_font);
   // Both text boxes are one line high; the sizes come from the styles, not from a layout pass.
   int title_height=lv_font_get_line_height(lv_obj_get_style_text_font(w.title,LV_PART_MAIN));
@@ -2536,8 +2557,13 @@ inline int applied_page=-1;
 // words live in redraw_log.h, log words the translations' lint leaves alone by rule.
 inline const char *all_why=nullptr;
 inline void mark_all(redraw_log::Why why=redraw_log::Why::unnamed) { dirty_all=true; changes.mark_all(); if(!all_why)all_why=redraw_log::words(why); }
-inline void mark_tile(size_t index) { changes.mark_tile(index); if(index<dirty_tiles.size())dirty_tiles.set(index); else dirty_all=true; }
-inline void refresh_tile(size_t index) { mark_tile(index); if(refresh)refresh(); }
+// What last asked for each card to be drawn (redraw_log::TileWhy), for render()'s slow-pass line: a byte a tile.
+inline std::array<uint8_t, TILES_MAX> tile_why{};
+inline void mark_tile(size_t index, redraw_log::TileWhy why = redraw_log::TileWhy::unnamed) {
+  changes.mark_tile(index); if(index<dirty_tiles.size())dirty_tiles.set(index); else dirty_all=true;
+  if(index<tile_why.size())tile_why[index]=static_cast<uint8_t>(why);
+}
+inline void refresh_tile(size_t index, redraw_log::TileWhy why) { mark_tile(index, why); if(refresh)refresh(); }
 inline void refresh_header_only() { dirty_header=true; if(refresh)refresh(); }
 // The minute turned, or Home Assistant set the clock: the top bar's clock and the cards that show the time, on the glass
 // now and on a kept page when it comes back. Not every card: on a 10-inch that redrew the whole glass twice a minute
@@ -2546,7 +2572,7 @@ inline void mark_minute() {
   dirty_header=true;
   const bool hour=minute_of_day()%60==0;
   for(size_t i=0;i<model.count;++i)
-    if(shows_time(model.tiles[i]) || (hour && model.tiles[i].domain()=="weather"))mark_tile(i);
+    if(shows_time(model.tiles[i]) || (hour && model.tiles[i].domain()=="weather"))mark_tile(i, redraw_log::TileWhy::minute);
 }
 inline void refresh_all(redraw_log::Why why) { mark_all(why); if(refresh)refresh(); }
 // The starting screen (firmware 0.2.73+): what the screen waits for in the middle of the page with a spinner under it,
@@ -3023,9 +3049,25 @@ inline void ota_draw() {
   lv_refr_now(nullptr);
 }
 // Before the first layout the screen is starting: HA connects, then ESP Screens sends the tiles.
+// A pass that drew a few cards slowly (30 ms, 10 in Debug mode; docs/open-issues/slow-single-cards.md): its slowest
+// card, the steps of its paint in ms (render_slot's laps), what asked for it to be drawn (tile_why), and how many objects
+// stand on the screen, which every invalidation walks (LVGL 9.5 looks for a blurred object over the area it
+// invalidates). The words and the count are made only here, in statics, for a slow pass.
+inline void slow_pass_log(unsigned drawn,uint32_t took,size_t index,uint32_t slowest,const uint32_t *steps){
+  static char line[128];
+  size_t at=0;line[0]=0;
+  for(unsigned i=0;i<swipe_profile::PARTS&&at<sizeof(line);++i)
+    if(steps[i])at+=snprintf(line+at,sizeof(line)-at,"%s%s %u",at?", ":"",swipe_profile::PART_NAMES[i],(unsigned)steps[i]);
+  static uint32_t objects;objects=0;
+  lv_obj_tree_walk(lv_screen_active(),[](lv_obj_t *,void *)->lv_obj_tree_walk_res_t{++objects;return LV_OBJ_TREE_WALK_NEXT;},nullptr);
+  ESP_LOGI("render","%u cards drawn in %u ms, slowest tile %u (%s), %u ms: %s ms, marked by %s; %u objects on the screen",drawn,(unsigned)took,
+           (unsigned)index,index<model.count?model.tiles[index].entity.c_str():"",(unsigned)slowest,at?line:redraw_log::NO_STEP,
+           redraw_log::words(static_cast<redraw_log::TileWhy>(index<tile_why.size()?tile_why[index]:0)),(unsigned)objects);
+}
 inline void render(lv_obj_t *room) {
   if (!enabled) return;
   room_label=room; swipe_profile::Lap lap;
+  page_pictures_start();
   ota_status::watch();
   ota_status::draw = ota_draw;
   if (const auto wifi = wifi_status::problem(); wifi.shown) {
@@ -3066,6 +3108,8 @@ inline void render(lv_obj_t *room) {
   // is a pass over every card (its reason) or one card built anew (the slowest slot).
   const uint32_t began=esphome::millis();
   unsigned drawn=0;uint32_t slowest=0;size_t slowest_index=0;
+  // The steps of the slowest card's paint (swipe_profile's laps, in statics: nothing more on the loop task's stack).
+  static uint32_t slowest_steps[swipe_profile::PARTS];
   for (size_t slot = 0; slot < grid.slots(); ++slot) {
     const auto &w=widgets[slot];
     if(w.index>=model.count)continue;
@@ -3073,12 +3117,16 @@ inline void render(lv_obj_t *room) {
     const uint32_t from=esphome::millis();
     render_slot(slot);
     ++drawn;
-    if(esphome::millis()-from>slowest){slowest=esphome::millis()-from;slowest_index=w.index;}
+    if(esphome::millis()-from>slowest){
+      slowest=esphome::millis()-from;slowest_index=w.index;
+      std::copy(std::begin(swipe_profile::slot_steps),std::end(swipe_profile::slot_steps),std::begin(slowest_steps));
+    }
   }
   const uint32_t took=esphome::millis()-began;
   if(all)ESP_LOGI("render","every card drawn: %s, %u cards in %u ms (slowest tile %u, %u ms)",why,drawn,(unsigned)took,(unsigned)slowest_index,(unsigned)slowest);
-  else if(took>=30)ESP_LOGI("render","%u cards drawn in %u ms, slowest tile %u (%s), %u ms",drawn,(unsigned)took,(unsigned)slowest_index,
-                           slowest_index<model.count?model.tiles[slowest_index].entity.c_str():"",(unsigned)slowest);
+  // In Debug mode a pass of 10 ms already says its slowest card, so a card that drew in 33 ms once and now under 30 is
+  // still seen; without it the logger stands at WARN and the line is never written anyway.
+  else if(took>=(settings_screen::debug_mode?10u:30u))slow_pass_log(drawn,took,slowest_index,slowest,slowest_steps);
   // Kept pages learn nothing here: what they lack follows from the change numbers when they come back (kept_pages.h).
   glass_synced=upto;
 }
@@ -3612,12 +3660,17 @@ inline size_t layout_cost() {
     if (t.is_plugin()) sum += plugin_host::bytes(t.entity) + (board.psram ? 0 : board.tile_bytes + board.extra_bytes);
     else sum += tile_memory::cost(t.entity, tile_memory::own_action(t.tap), tile_memory::own_line(t.subtitle), board);
   }
-  // And its pages: a page's title, and each item of its top bar that shows an entity (a text or a moment).
+  // And its pages: a page's title, each item of its top bar that shows an entity (a text or a moment), its sections.
   for (const auto &page : model.page_data.records) {
     unsigned entities = 0;
     for (size_t i = 0; i < page.bar.count && i < page.bar.items.size(); ++i)
       entities += page.bar.items[i].kind == header_bar::Kind::text || page.bar.items[i].kind == header_bar::Kind::ago;
-    sum += tile_memory::page_cost(entities, board);
+#ifdef SD_MOD_SECTIONS
+    const unsigned sections = unsigned(page.sections.size());
+#else
+    const unsigned sections = 0;
+#endif
+    sum += tile_memory::page_cost(entities, sections, board);
   }
   return sum;
 }
@@ -3683,9 +3736,7 @@ inline void abandon_layout() {
 // The reply to a hello or a ping carries the memory figures (packages/core.yaml); a tile's state does not need them.
 inline bool reply_memory = false;
 
-// PSRAM another kept page may never take: the pictures (picture_store.h), a camera full screen and an alert's picture
-// live there too. Measured on the 4-inch Guition (2026-09-26): about 5.6 MB of its 8 MB are free with a layout loaded.
-constexpr size_t KEEP_RESERVE = 2u << 20;
+using kept_pages::KEEP_RESERVE;  // PSRAM another kept page may never take (kept_pages.h)
 // How many pages the board keeps beside the one on the glass: none without PSRAM (the CYD), every other page with it,
 // and no new set once PSRAM runs short of KEEP_RESERVE (the sets already made stay in use). A host build keeps none
 // unless kept_limit asks for some, so the renders in tools/render stay what they were.
@@ -3744,6 +3795,7 @@ inline std::function<void()> grid_changed;
 inline void regrid(size_t columns, size_t rows) {
   if (columns == grid.columns && rows == grid.rows) return;
   shelf.forget();
+  page_pictures_forget();
   release_kept(0);
   for (auto &w : widgets) drop_card(w);
 #ifdef SD_MOD_SECTIONS
@@ -3804,6 +3856,7 @@ inline lv_obj_t *face_picture(const Widgets &w) {
 }
 inline void forget_kept() {
   shelf.forget();
+  page_pictures_forget();
 #ifdef SD_MOD_SECTIONS
   // A new layout's sections are drawn anew when their pages are placed.
   ::sections::forget();
@@ -3843,6 +3896,10 @@ inline void show_page(int &page, lv_obj_t *previous, lv_obj_t *next, lv_obj_t *n
   swipe_profile::FillTimer timer;
   last_turn_ms=esphome::millis();
   live_tiles_halt();  // a live tile's picture never stays where its card left
+  // The page's picture, where it is still true, goes on the glass before a card is exchanged, placed or drawn
+  // (page_pictures_lvgl.h); what follows draws the page as ever, underneath.
+  page_pictures_leave();
+  page_pictures_put(page);
   const auto kept=keep_page(page,glass_synced);
   applied_page=place_page(page,kept.kept);
   // A page with a title of its own carries it into the top bar with the same frame as its tiles, not a tick later.
@@ -3908,6 +3965,7 @@ inline bool warm_page(int page) {
       const auto &w = widgets[slot];
       if (w.tile && w.index < model.count && (all || changes.tile_after(w.index, visit.synced))) render_slot(slot);
     }
+    if (warm_drawn) warm_drawn(page);
     keep_page(glass, changes.last);  // the glass's own cards come back; the page stays on the shelf, drawn up to now
     applied_page = place_page(glass, true);
   }
@@ -4154,7 +4212,7 @@ inline void tick() {
   media_library::tick(esphome::millis());
   // Only the cards that change are drawn again: a clock or a finished command redraws its own card.
   bool redraw=false;
-  auto card=[&](size_t index){ mark_tile(index); redraw=true; };
+  auto card=[&](size_t index){ mark_tile(index, redraw_log::TileWhy::tick); redraw=true; };
   // HA dropping or returning and the feed timing out change every card at once.
   bool now_fresh=fresh();
   if(now_fresh!=was_fresh){was_fresh=now_fresh;ESP_LOGI("render","the feed is %s (Home Assistant %s, the app's feed %s, protocol %s, transfer %s/%s, model %s)",now_fresh?"fresh again":"no longer fresh",ha_connected()?"connected":"away",feed_alive()?"alive":"silent",protocol_problem==ProtocolProblem::none?"ok":"problem",transfer.active?"active":"inactive",transfer.begun?"begun":"not begun",model.ready()?"ready":"not ready");mark_all(now_fresh?redraw_log::Why::feed_fresh_again:redraw_log::Why::feed_no_longer_fresh);redraw=true;}
@@ -4215,7 +4273,7 @@ inline void tick() {
       if(w.extra_mode=="media" && w.extra && !lv_obj_has_flag(w.extra,LV_OBJ_FLAG_HIDDEN) && w.parts[5] && !lv_obj_has_flag(w.parts[5],LV_OBJ_FLAG_HIDDEN) && media_card::has_track(t.state))media_progress(t,w.parts[5],w.parts[6],w.media_bar_w);
       // A cover kept while the next one was on its way, whose wait ran out: the card draws itself again without it. A
       // stream that just became one (media_live) draws it again with "Live".
-      if(w.extra_mode=="media" && ((w.cover_hold && static_cast<int32_t>(esphome::millis()-w.cover_hold)>=0) || media_live(t)!=w.media_live))refresh_tile(w.index);
+      if(w.extra_mode=="media" && ((w.cover_hold && static_cast<int32_t>(esphome::millis()-w.cover_hold)>=0) || media_live(t)!=w.media_live))refresh_tile(w.index, redraw_log::TileWhy::picture);
       // The second hand moves on its own: only its line is redrawn, and it hides during standby. Only while the
       // slot's parts are a dial: right after a page switch the slot already names the clock while its parts still
       // belong to the card drawn before (a forecast's hour labels take part 18 too), until the fill draws the dial.
@@ -4259,6 +4317,7 @@ inline void restyle() {
 #include "pressure_lvgl.h"
 #include "camera_answer_lvgl.h"
 #include "picture_rounds_lvgl.h"
+#include "page_pictures_lvgl.h"
 #include "saver_state_lvgl.h"
 namespace runtime_tiles {
 #ifdef SD_MOD_CLOCK_FACES

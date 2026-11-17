@@ -44,6 +44,13 @@ constexpr size_t MAX_BYTES = 1024 * 640 * 2;
 // glass's 1280x800 at its own pixels, for a camera over the whole page, the full view and the screensaver. A board with
 // 8 MB keeps the cap above. ESP Screen Manager honours the same side (picture_question.LARGE_SIDE).
 constexpr int LARGE_SIDE = 2048;
+// The store's whole budget on a board with that much PSRAM: a fifth of it, at most 6 MB (about 1.2 MB of a board's
+// 8 MB heap of 6, 6 MB of a P4 board's 32). The one place this is written: the store asks it, and so does whatever
+// leaves the store its room (page_pictures::reserve).
+constexpr size_t budget_for(size_t psram_total) { return psram_total / 5 < (6u << 20) ? psram_total / 5 : (6u << 20); }
+// The most page pictures may ever hold beside the store (page_pictures.h): half of the PSRAM heap, so the kept pages'
+// cards, LVGL's objects, this store and the streams always have the other half.
+constexpr size_t page_pictures_ceiling(size_t psram_total) { return psram_total / 2; }
 struct Cap {
   int side = MAX_SIDE;
   size_t bytes = MAX_BYTES;
@@ -214,4 +221,19 @@ template <class Image> struct Store {
     e = Entry{};
   }
 };
+
+// What picture_done does with a picture its slot finished (docs/PICTURES.md, "Memory" and "Unchanged pictures").
+// A 304 (`cached`) for a picture the store let go meanwhile, whose pixels no slot holds either, leaves nothing to show:
+// it is loaded again, whole. `asked` is whether the slot knew which picture it loaded; `in_store` is asked after the
+// store had the chance to file the owner's previous picture under it (rekey).
+constexpr bool load_again(bool store, bool ok, bool cached, bool asked, bool in_store, bool slot_holds) {
+  return store && ok && cached && asked && !in_store && !slot_holds;
+}
+// Then: a 304 for a picture the store has is touched (nothing downloaded or drawn again); a download with pixels goes
+// into the store, its own buffer and no copy, where the slot can hand it over (adopt); anything else is drawn from its
+// slot. The view and an alert draw the store's copy, which a download that breaks off halfway cannot take away (0.13.0).
+enum class Arrival : uint8_t { touch, adopt, slot };
+constexpr Arrival arrival(bool store, bool cached, bool in_store, bool has_pixels) {
+  return store && cached && in_store ? Arrival::touch : store && has_pixels ? Arrival::adopt : Arrival::slot;
+}
 }  // namespace picture_store

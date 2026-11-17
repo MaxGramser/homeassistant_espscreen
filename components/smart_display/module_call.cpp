@@ -15,6 +15,9 @@
 #include "plugin_host.h"
 #include "settings_screen.h"
 #include "talk_uplink.h"
+#include "picture_engine.h"
+#include "call_serve.h"
+#include "picture_fetch.h"
 #ifdef USE_SPEAKER
 #include "plugin_sound.h"
 #include "roomy.h"
@@ -27,6 +30,10 @@ std::function<void(const std::string &, const std::string &, bool, const std::st
 std::function<float()> volume_get;
 std::function<void(float)> volume_set;
 std::function<bool()> ring_on;
+std::function<bool()> switch_on;
+std::function<void(bool)> echo_cancel;
+std::function<bool()> echo_cancel_is;
+std::function<void(int)> echo_level;
 float ring_top = 1.0f;
 
 namespace {
@@ -34,6 +41,8 @@ const char *const TAG = "call";
 const char *const PHONE = "\U000F03F2", *const HANGUP = "\U000F03F5", *const VIDEO = "\U000F0567", *const VIDEO_OFF = "\U000F0568";
 const char *const MIC = "\U000F036C", *const MIC_OFF = "\U000F036D", *const SPEAKER = "\U000F057E", *const SILENT = "\U000F0581";
 const char *const CLOSE = "\U000F0156", *const MISSED = "\U000F03FA";
+// The call's two choices (docs/CALLS.md, "Echo"): voice switching, one speaks at a time, and echo cancelling.
+const char *const TURNS = "\U000F05CB", *const TURNS_OFF = "\U000F0ED4", *const ECHO = "\U000F07C5", *const ECHO_OFF = "\U000F0A45";
 const char *const FAKE_CAMERA = "camera.tessera_call";
 constexpr uint32_t CLAIM_ID = 78, END_SHOWN_MS = 2500, RING_EVERY_MS = 3000, RING_GONE_MS = 60000;
 // A key's disc a quarter larger than a tile's circle, on a dark ground (the study's key_d).
@@ -42,12 +51,24 @@ int key_d() { return std::max(ui::touch_min(), detail_bar::metrics().key * 5 / 4
 enum class Stage : uint8_t { NONE, OUT, RING, LIVE, ENDED };
 Stage stage = Stage::NONE;
 std::string call_key, peer_name, peer_icon, stream_link, talk_link, end_why;
+// A direct call (call_serve.h): the token this screen serves under, when it began to, and whether it already said that
+// the other screen does not come for it.
+std::string serve_token;
+uint32_t serve_since = 0;
+bool serve_failed = false;
+constexpr uint32_t SERVE_WAIT_MS = 4000;
+void serve_says();  // below, with the rest of the call's own server
 bool with_video = false, peer_films = true, mic_off = false, camera_off = false, on_hold = false;
+// The call's choices (docs/CALLS.md, "Echo"), the same on both screens: voice switching and echo cancelling, each with
+// whether ESP Screens offers it (a small key then) and whether it is on.
+bool can_switch = false, switching = true, can_cancel = false, cancelling = true;
+// What the board's echo canceller did before the call took it: the call's end brings that back.
+bool echo_taken = false, echo_before = true;
 uint32_t live_since = 0, end_at = 0, last_ring = 0, ring_since = 0;
 // The call that is not on the camera's view: going out, coming in, how it ended. On the top layer.
 lv_obj_t *card = nullptr, *list = nullptr;
 lv_obj_t *timer_label = nullptr, *mic_key = nullptr, *mic_glyph = nullptr, *speaker_key = nullptr, *speaker_glyph = nullptr,
-         *camera_key_obj = nullptr, *camera_glyph = nullptr;
+         *camera_key_obj = nullptr, *camera_glyph = nullptr, *turns_key = nullptr, *turns_glyph = nullptr, *echo_key = nullptr, *echo_glyph = nullptr;
 std::string timer_said;
 live_view::Rect room{};
 
@@ -196,8 +217,13 @@ void who(lv_obj_t *root, const std::string &line, bool rings) {
 }
 
 // ---- Going out, coming in, how it ended ----
+// A finger ended the call: ESP Screens is told, and answers with the call's end. Should no answer come (it started again
+// in the middle of the call, the network is gone), the screen ends the call itself: nobody stays in a call they left.
+uint32_t hung_up_at = 0;
+constexpr uint32_t HUNG_UP_WAIT_MS = 2500;
 void hang_up_cb(lv_event_t *) {
   say(stage == Stage::RING ? "decline" : stage == Stage::OUT ? "cancel" : "end");
+  if (!hung_up_at) hung_up_at = esphome::millis() | 1;
 }
 void answer_cb(lv_event_t *) { say("answer"); }
 
@@ -260,6 +286,14 @@ void paint_keys() {
     lv_label_set_text(speaker_glyph, camera_muted ? SILENT : SPEAKER);
     lv_obj_set_style_text_color(speaker_glyph, lv_color_hex(camera_muted ? dark : ink), 0);
   }
+  // The small keys stay quiet: the same disc on or off, the glyph says which, dimmer when off.
+  const auto small = [](lv_obj_t *key, lv_obj_t *glyph, bool on, const char *is_on, const char *is_off) {
+    if (!key) return;
+    lv_label_set_text(glyph, on ? is_on : is_off);
+    lv_obj_set_style_text_color(glyph, theme::color(on ? theme::CAMERA_INK : theme::CAMERA_NOTE), 0);
+  };
+  small(turns_key, turns_glyph, switching, TURNS, TURNS_OFF);
+  small(echo_key, echo_glyph, cancelling, ECHO, ECHO_OFF);
   if (camera_key_obj) {
     lv_obj_set_style_bg_color(camera_key_obj, lv_color_hex(on_off(camera_off)), 0);
     lv_label_set_text(camera_glyph, camera_off ? VIDEO_OFF : VIDEO);
@@ -270,6 +304,7 @@ void paint_keys() {
 void mic_cb(lv_event_t *) {
   mic_off = !mic_off;
   talk_uplink::set_muted(mic_off);
+  serve_says();
   say("mic", "", !mic_off);
   paint_keys();
 }
@@ -278,8 +313,33 @@ void speaker_cb(lv_event_t *) {
   live_view::mute(camera.stream.handle, camera_muted);
   paint_keys();
 }
+// The board's echo canceller follows the call's choice while the call is up, and its own switch again after it.
+void apply_echo() {
+  if (!echo_cancel || !can_cancel) return;
+  if (!echo_taken) {
+    echo_taken = true;
+    echo_before = echo_cancel_is ? echo_cancel_is() : true;
+  }
+  echo_cancel(cancelling);
+}
+void restore_echo() {
+  if (echo_taken && echo_cancel) echo_cancel(echo_before);
+  echo_taken = can_cancel = false;
+}
+void turns_cb(lv_event_t *) {
+  switching = !switching;
+  say("switch", "", switching);
+  paint_keys();
+}
+void echo_cb(lv_event_t *) {
+  cancelling = !cancelling;
+  apply_echo();
+  say("echo", "", cancelling);
+  paint_keys();
+}
 void camera_cb(lv_event_t *) {
   camera_off = !camera_off;
+  serve_says();
   say("camera", "", !camera_off);
   paint_keys();
 }
@@ -310,8 +370,49 @@ std::string timer_text() {
 }
 
 void forget_view_parts() {
-  timer_label = mic_key = mic_glyph = speaker_key = speaker_glyph = camera_key_obj = camera_glyph = nullptr;
+  timer_label = mic_key = mic_glyph = speaker_key = speaker_glyph = camera_key_obj = camera_glyph = turns_key = turns_glyph = echo_key = echo_glyph = nullptr;
   room = {};
+}
+
+// The call's own server, where this build has one: started for a direct call, told what the keys say, stopped otherwise.
+void serve_says() {
+#ifdef CALL_SERVE
+  call_serve::set_muted(mic_off || on_hold);
+  call_serve::set_picture(with_video && !camera_off && !on_hold);
+#endif
+}
+void serve_start() {
+#ifdef CALL_SERVE
+  if (serve_token.empty()) {
+    call_serve::stop();
+    return;
+  }
+  const auto peer = picture_fetch::split(stream_link);
+  if (!call_serve::start(serve_token, peer.ok ? peer.host : "")) ESP_LOGW(TAG, "could not serve this call");
+  serve_says();
+#endif
+}
+void serve_stop() {
+#ifdef CALL_SERVE
+  call_serve::stop();
+#endif
+  serve_token.clear();
+}
+// The other screen has not come for this screen's stream: said once, and ESP Screens takes the call's media over.
+void serve_watch(uint32_t now) {
+#ifdef CALL_SERVE
+  if (serve_token.empty() || serve_failed || stage != Stage::LIVE || on_hold) return;
+  if (call_serve::viewed()) {
+    serve_since = now;
+    return;
+  }
+  if (now - serve_since < SERVE_WAIT_MS) return;
+  serve_failed = true;
+  ESP_LOGW(TAG, "the other screen does not come for this call's stream: through ESP Screens");
+  say("direct", "", false);
+#else
+  (void) now;
+#endif
 }
 
 void talk_up() {
@@ -330,6 +431,8 @@ void open_live_view() {
 }
 
 void leave_call() {
+  restore_echo();
+  serve_stop();
   talk_uplink::stop();
   on_hold = false;
   release_audio();
@@ -498,7 +601,16 @@ void on_contacts(const std::string &text_rows, bool append, bool more) {
 }
 
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
-             const std::string &new_link, const std::string &talk, bool films, const std::string &why) {
+             const std::string &new_link, const std::string &talk, bool films, const std::string &why, int voice_switch, int echo, const std::string &serve) {
+  if (state == "set") {
+    // The call's choices, changed on either screen: nothing else of the call moves.
+    if (key != call_key || stage != Stage::LIVE) return;
+    if (voice_switch >= 0) switching = voice_switch == 1;
+    if (echo >= 0) cancelling = echo == 1;
+    apply_echo();
+    paint_keys();
+    return;
+  }
   ESP_LOGI(TAG, "%s %s", state.c_str(), name.c_str());
   if (state != "ring") ring_stop();
   if (state == "end") {
@@ -517,6 +629,7 @@ void on_call(const std::string &state, const std::string &key, const std::string
   call_key = key;
   peer_name = name;
   if (!icon.empty()) peer_icon = icon;
+  const bool video_before = with_video;
   with_video = video;
   peer_films = films;
   if (state == "out") {
@@ -540,13 +653,35 @@ void on_call(const std::string &state, const std::string &key, const std::string
     claim_audio();
   } else if (state == "live") {
     const bool again = stage == Stage::LIVE && camera_root;
-    bool changed = new_link != stream_link;
+    // The other's stream is another one, or the call turned between sound alone and pictures: the view is made again.
+    bool changed = new_link != stream_link || (again && video != video_before);
     stream_link = new_link;
     talk_link = talk;
     on_hold = false;
-    if (!again) live_since = esphome::millis();
+    // Direct, this screen serves its own camera and voice under `serve`; said again without it, ESP Screens took over.
+    if (serve != serve_token) {
+      serve_token = serve;
+      serve_since = esphome::millis();
+      serve_failed = false;
+    }
+    serve_start();
+    if (!again) {
+      live_since = esphome::millis();
+      // The call's choices as ESP Screens has them. A screen whose own switch says its calls start without voice switching
+      // turns it off for the call, and both screens hear so.
+      can_switch = voice_switch >= 0;
+      switching = voice_switch == 1;
+      can_cancel = echo >= 0;
+      cancelling = echo == 1;
+      apply_echo();
+      if (can_switch && switching && switch_on && !switch_on()) {
+        switching = false;
+        say("switch", "", false);
+      }
+    }
     stage = Stage::LIVE;
     if (again && !changed) {
+      serve_says();
       talk_uplink::set_muted(mic_off);
       if (!camera_muted) live_view::mute(camera.stream.handle, false);
       return;
@@ -554,6 +689,7 @@ void on_call(const std::string &state, const std::string &key, const std::string
     open_live_view();
   } else if (state == "held") {
     on_hold = true;
+    serve_says();
     talk_uplink::set_muted(true);
     if (camera_root) live_view::mute(camera.stream.handle, true);
   }
@@ -568,9 +704,9 @@ void sound_changed() { paint_keys(); }
 void build(lv_obj_t *root, const std::string &name) {
   forget_view_parts();
   const auto m = detail_bar::metrics();
-  const int w = overlay_card::screen_width(), h = overlay_card::screen_height(), d = key_d(), gap = m.gap * 2;
+  const int w = overlay_card::screen_width(), h = overlay_card::screen_height(), d = key_d();
   const bool lying = w * 10 > h * 12;
-  const int keys = with_video ? 4 : 3;
+  const int keys = with_video ? 4 : 3, gap = m.gap * 2;
   if (with_video) {
     // The other's picture in the room beside or above the keys (the doorbell's way, until the overlay of the next step).
     if (lying) room = {m.x, m.y, w - 3 * m.x - d, h - 2 * m.y};
@@ -596,6 +732,22 @@ void build(lv_obj_t *root, const std::string &name) {
     const KeySpots at{(w - keys * d - (keys - 1) * gap) / 2, h - 2 * m.y - d, d + gap, 0};
     lay_keys(root, at, d);
   }
+  // The call's two choices: small keys in the top corner on the keys' side, away from the keys a call is run with. On a
+  // lying glass with a picture they stand under the timer, in the keys' column; elsewhere side by side at the top right.
+  const int s = ui::touch_min(), between = m.gap;
+  const bool column = with_video && lying;
+  int at = 0;
+  const auto small_key = [&](bool there, lv_event_cb_t cb, lv_obj_t **key, lv_obj_t **glyph) {
+    if (!there) return;
+    const int line = detail_font ? lv_font_get_line_height(detail_font) : 20;
+    const int x = column ? w - m.x - d + (d - s) / 2 : w - m.x - s - at * (s + between);
+    const int y = column ? m.y + line + between + at * (s + between) : m.y;
+    *key = round_key(root, x, y, s, theme::hex(theme::CAMERA_TRACK), TURNS, cb, glyph);
+    ++at;
+  };
+  small_key(can_switch, turns_cb, &turns_key, &turns_glyph);
+  small_key(can_cancel, echo_cb, &echo_key, &echo_glyph);
+  paint_keys();
   if (camera_spinner) lv_obj_add_flag(camera_spinner, LV_OBJ_FLAG_HIDDEN);
   tick(esphome::millis());
 }
@@ -610,6 +762,7 @@ void tick(uint32_t now) {
 #ifdef USE_SPEAKER
   player.loop();
 #endif
+  serve_watch(now);
   // The add-on ends a ring after 45 s; if it went away meanwhile nobody says so, and a ring must not go on by itself.
   if (stage == Stage::RING && now - ring_since > RING_GONE_MS) {
     ESP_LOGW(TAG, "the ring was never ended");
@@ -622,6 +775,12 @@ void tick(uint32_t now) {
   if (stage == Stage::RING && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
     last_ring = now;
     ring_once();
+  }
+  if (hung_up_at && (stage == Stage::NONE || stage == Stage::ENDED)) hung_up_at = 0;
+  if (hung_up_at && now - hung_up_at >= HUNG_UP_WAIT_MS) {
+    ESP_LOGW(TAG, "no answer to the end of the call: ended here");
+    hung_up_at = 0;
+    on_call("end", call_key, "", "", false, "", "", true, "gone");
   }
   if (stage == Stage::ENDED && now - end_at >= END_SHOWN_MS) {
     free_card();
@@ -637,6 +796,13 @@ void tick(uint32_t now) {
   }
 }
 
+bool direct() {
+#ifdef CALL_SERVE
+  return talk_uplink::available();
+#else
+  return false;
+#endif
+}
 void dial(const std::string &to, bool video) { say("dial", to, video); }
 void bench_dial(const std::string &to, bool video) { say("dial", to, video); }
 void bench_answer() { say("answer"); }

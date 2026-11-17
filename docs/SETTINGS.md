@@ -264,12 +264,12 @@ What the boards have today:
 
 | Board | Extras | Where it comes from |
 |---|---|---|
-| reTerminal D1001 | Volume, Microphone, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
+| reTerminal D1001 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
 | Guition 4-inch (4848S040) | Backlight PWM, Dimmest level | the board file: its backlight's PWM (150 Hz dims every batch, some whine under 20 kHz, GitHub #327) and the floor it dims to (1 % is under some drivers' start, GitHub #337) |
-| Waveshare ESP32-P4 86 panel, ESP32-P4-WIFI6-Touch-LCD-7B, -7 and -10.1 | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio.yaml` (its parts in `hardware/parts/`) and the shared audio player |
-| M5Stack Tab5 | Volume, Microphone, Echo cancellation (AEC transport) | `hardware/parts/es7210.yaml` and `es8388.yaml` and the shared audio player |
-| CrowPanel Advanced 10.1 | Volume, Microphone | `features/audio.yaml` |
-| Guition JC8012P4A1 (and its V2 and V3), JC1060P470 (and its V2), JC4880P443 | Volume, Microphone | `hardware/guition-p4-audio.yaml` and `features/audio.yaml` |
+| Waveshare ESP32-P4 86 panel, ESP32-P4-WIFI6-Touch-LCD-7B, -7 and -10.1 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio.yaml` (its parts in `hardware/parts/`) and the shared audio player |
+| M5Stack Tab5 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching, Echo cancellation (AEC transport) | `hardware/parts/es7210.yaml` and `es8388.yaml` and the shared audio player |
+| CrowPanel Advanced 10.1 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching | `features/audio.yaml` |
+| Guition JC8012P4A1 (and its V2 and V3), JC1060P470 (and its V2), JC4880P443 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching | `hardware/guition-p4-audio.yaml` and `features/audio.yaml` |
 
 A plugin's settings work the same way, from its own ESPHome entities, on its own settings page and in its details on
 the screen's Plugins tab (docs/PLUGINS.md); the code that finds and changes them is one module for both.

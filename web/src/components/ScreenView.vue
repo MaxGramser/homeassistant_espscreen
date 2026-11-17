@@ -6,6 +6,7 @@ import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
+import LayoutBotKey from "./LayoutBotKey.vue";
 import LayoutView from "./LayoutView.vue";
 import SettingsTab from "./SettingsTab.vue";
 import ScreenPluginsTab from "./ScreenPluginsTab.vue";
@@ -229,8 +230,10 @@ useEventListener(document, "keydown", onKey);
     </div>
     <Drawer />
   </div>
-  <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. -->
+  <!-- The phone's one button (app 0.4.40): add a tile, and once something changed, send it to the screen. Layoutbot's key
+       stands before it (docs/LAYOUTBOT.md). -->
   <div v-if="ui.phone && ui.tab === 'layout' && doc.layout" class="phone-dock">
+    <LayoutBotKey v-if="!ui.previewOpen" docked />
     <button type="button" id="phone-add" class="btn" :class="doc.dirty ? 'soft square' : 'primary'" :disabled="full"
       :aria-label="t('editor.phone.add_tile')" :title="full ? t('editor.library.full', doc.tileLimit) : ''" @click="phoneAdd">
       <Icon name="plus" /><span v-if="!doc.dirty">{{ t("editor.phone.add_tile") }}</span>

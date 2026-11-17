@@ -57,10 +57,20 @@ What a tile costs comes from the tile catalogue, the one place every type is des
   (`cards`), counted by its entity first: the energy card (docs/ENERGY.md).
 - `catalogue/_tile.yaml` states what a tile's own choices add: `action` for a tap that runs an action of its own, `line`
   for a second line set to one of its values. Each also keeps a block of extras on a tile whose type keeps none. It also
-  states what a page keeps (`page`, its title) and an item of its top bar that shows an entity (`bar_text`, its text).
+  states what a page keeps (`page`, its title), an item of its top bar that shows an entity (`bar_text`, its text) and a
+  section of a page (`section`, below).
 - On a board with PSRAM a tile costs its type's bytes plus what its choices add. On a board without PSRAM it also pays
   the tile itself and, where it keeps one, its block of extras, which live inside the chip there. Their sizes are the
   firmware's (`sizeof(Tile)`, `sizeof(Extra)`), so the screen says them.
+
+A **section** (docs/PAGES.md "Sections", the boards of the full tier) costs 224 bytes inside the chip, on a screen that
+draws sections: its place in the page's list (`section_layout::Section`, 60 bytes on a 32-bit chip) and in the list of
+what is drawn (`sections::Drawn`, 20 bytes), both reserved exactly, and its title and summary, which keep a heap block
+each once they are longer than 15 bytes (at most 48 bytes each). Its four LVGL objects (panel, icon, title, summary) are
+about 1 KB, in PSRAM, where LVGL allocates on these boards, and stay out of the budget: sixteen sections on each of
+sixteen pages take some 256 KB of a P4's 29 MB. `module_sections.h` stops a 32-bit build whose sizes outgrow the price. A
+screen that does not draw sections is sent none, so the add-on and the editor count them only where its hello says
+`sections` (the memory figures carry it, beside `bar_cards`).
 
 The firmware, the add-on and the editor price a tile with this one rule (`tile_memory::cost`, `core.tile_cost`,
 `web/src/model/memory.ts`), and `tests/fixtures/memory-conformance.json` holds the cases all three must answer alike.
@@ -176,8 +186,10 @@ room the editor is told.
 - A type's price: `catalogue/<type>.yaml` (`memory`), what a tile's choices add: `catalogue/_tile.yaml`. Then
   `tools/generate_catalogue.py` (it writes the prices into `tile_catalogue.h` and both `catalogue.json` files) and
   `python tests/memory_conformance.py` (it rewrites `tests/fixtures/memory-conformance.json`).
-- The rule: `components/smart_display/tile_memory.h` (`cost`, the reserve, the low water), `screen_manager/app/core.py`
-  (`tile_cost`), `web/src/model/memory.ts` (`tileCost`); the fixture holds all three to the same answers.
+- The rule: `components/smart_display/tile_memory.h` (`cost`, `page_cost`, the reserve, the low water),
+  `screen_manager/app/core.py` (`tile_cost`, `page_cost`), `web/src/model/memory.ts` (`tileCost`, `pageCost`); the fixture
+  holds all three to the same answers. A section's price: `catalogue/_tile.yaml` (`section`), checked against its sizes
+  in `module_sections.h`.
 - The screen: `components/smart_display/page_protocol.h` (the ceilings), `runtime_tiles.h` (`layout_cost`,
   `memory_room`, `spare_tiles`), `runtime_model.h` (the extras in PSRAM, `heap_room`), `page_receiver.cpp` (the lean
   state), `packages/core.yaml` (build flags, the hello reply, the health line), the board files (`SCREEN_MAX_*`).

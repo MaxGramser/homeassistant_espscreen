@@ -7,6 +7,8 @@ into a screen's YAML.
 """
 import logging
 
+import os
+
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import socket
@@ -58,6 +60,8 @@ CONFIG_SCHEMA = cv.Schema({
 P4_STREAM_SOCKETS = 7
 # The talk uplink's own connection (talk_uplink.h): a screen's voice to the add-on, one at a time.
 TALK_SOCKETS = 1
+# A direct call's own server (call_serve.h): its door and the other screen.
+CALL_SOCKETS = 2
 PICTURE_SOCKETS = 3
 
 
@@ -77,7 +81,7 @@ def _sockets(config):
     import esphome.final_validate as fv
 
     if "USE_LIVE_VIEW" in _engine_of(fv.full_config.get())["defines"]:
-        socket.consume_sockets(P4_STREAM_SOCKETS + PICTURE_SOCKETS + TALK_SOCKETS, "smart_display")(config)
+        socket.consume_sockets(P4_STREAM_SOCKETS + PICTURE_SOCKETS + TALK_SOCKETS + CALL_SOCKETS, "smart_display")(config)
     return config
 
 
@@ -90,6 +94,12 @@ DIAGNOSTIC_WRAPS = ("panic_abort",)
 
 
 async def to_code(config):
+    # Every C++ function's stack frame and its calls, for tools/stack_chains.py (docs/ARCHITECTURE.md, "The loop's
+    # stack"), only when SCREEN_STACK_USAGE is set: ESPHome passes nothing but -D and -W from build_flags to an ESP-IDF
+    # build, so the flags come from here. They change no code, only write a .su and a .ci beside every object.
+    if os.environ.get('SCREEN_STACK_USAGE'):
+        cg.add_cxx_build_flag('-fstack-usage')
+        cg.add_cxx_build_flag('-fcallgraph-info=su')
     wanted = config[CONF_LANGUAGE]
     cg.add_define("SCREEN_CAMERA_ORIENTATION", config[CONF_CAMERA_ORIENTATION])
     language, code = screen_text_gen.definitions(wanted)

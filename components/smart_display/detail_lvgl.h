@@ -180,7 +180,7 @@ inline void ghost_show(lv_obj_t *slider){
 inline void ghost_end(lv_obj_t *slider){
   if(ghost_slider!=slider)return;
   ghost_slider=nullptr;
-  for(auto &w:widgets)if(w.slider==slider || w.control_slider==slider){w.cached_active=-1;refresh_tile(w.index);return;}
+  for(auto &w:widgets)if(w.slider==slider || w.control_slider==slider){w.cached_active=-1;refresh_tile(w.index,redraw_log::TileWhy::finger);return;}
 }
 inline void slider_event(lv_event_t *e){
   auto *slider=lv_event_get_target_obj(e);auto code=lv_event_get_code(e);
@@ -300,7 +300,7 @@ inline void detail_command(int cmd){
     auto &tile=model.tiles[detail_index];
     tile.range_end=cmd==CLIMATE_END_HIGH?tile_controls::RANGE_HIGH:tile_controls::RANGE_LOW;
     climate_paint_ends(tile);
-    refresh_tile(detail_index);   // the tile's chip says the same end
+    refresh_tile(detail_index,redraw_log::TileWhy::finger);   // the tile's chip says the same end
     return;
   }
   if(cmd==CLIMATE_DOWN||cmd==CLIMATE_UP){

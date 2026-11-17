@@ -60,6 +60,10 @@ define per module (docs/MODULES.md).
 `glass.h` is what the panel is as ESP-IDF made it (size, pixel format, turn), the frame buffer, one lock and the rooms
 LVGL keeps out of while a stream writes there. The glass knows nothing of pictures, streams or decoders.
 
+The glass also copies a rectangle of the frame buffer to and from a buffer laid out like it, by the processor and with
+the cache syncs a panel's DMA needs (`taken`, `laid`, `shown`), and says what LVGL has waiting to draw (`waiting`):
+what the page pictures are made with (section 12, docs/KEPT_PAGES.md).
+
 The lock means two things at once, and both matter:
 
 - **One writer at a time.** LVGL holds it for each refresh (REFR_START to REFR_READY); a stream's task holds it for each
@@ -151,7 +155,12 @@ buffer reset. A sign climbs one step (a burst within two seconds is one sign); t
 wake word reset climbs straight to the step that squeezes the tiles. A finger on the glass steps the camera, sensing
 and background down before any sign; a drag the tiles too; a second after release, all back. While someone hears the
 screen's microphone (a plugin's `capturing(SOUND)`, 0.23: its video watched with its sound, a call) the live tiles
-stay at half at least whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). Each work reads its level
+stay at half at least whatever else: a conversation goes before the tiles on the sending side too (PLATFORM_PLAN 5.1). One held-up loop is no sign: the one the screen
+chose itself in an idle moment, a page drawn off the glass (`Governor::own_work`, docs/KEPT_PAGES.md "Made ahead").
+The report of a held-up loop that comes within 600 ms of such work is that work, once: a second report, a later one, a
+panel that ran dry and a wake word that fell behind count as ever, so nothing that holds the loop up for a camera tile,
+the screen's own camera or the voice can hide behind it; without it the governor stepped up for its own screen's doing
+and held the page pictures back. Each work reads its level
 on its own task (`level_of`); plugins read it as `tessera::squeeze` (API 0.21). Home Assistant sees it as the
 diagnostic sensor "Pressure". Detail: docs/PLATFORM_PLAN.md 4.10; test: `tests/test_pressure.cpp`.
 
@@ -200,13 +209,15 @@ docs/TROUBLESHOOTING.md.
 `runtime_tiles.h` is the binder: the model's glue, a tile's widgets, the pass that renders a tile (`render_slot`), the
 pages and the loop. What draws one kind of thing with LVGL stands in a file of its own beside it, named after the plain
 rules it draws from: `media_card.h` holds what a media card is and is tested on a PC (`tests/test_media_card.cpp`),
-`media_card_lvgl.h` draws it. There are thirty-three such parts: the cards that open from a tile (weather, select,
+`media_card_lvgl.h` draws it. There are thirty-five such parts: the cards that open from a tile (weather, select,
 vacuum, cover, the remote, light and fan, climate, the alarm panel, the lock, history, media, the colour card) with
-opening a card (`detail_show_lvgl.h`) and the open card's own keys and sliders (`detail_lvgl.h`); what a tile itself
+opening a card (`detail_show_lvgl.h`), the open card's own keys and sliders (`detail_lvgl.h`) and what several cards
+share, before the first of them (`card_parts_lvgl.h`: a card's frame and words, its shapes, words that fit their room,
+the segmented control, the status line and the round key); what a tile itself
 is made of and draws (its widgets, its tap and hold, its icon and words, its direct controls, the clock, the weather);
 the optimistic wish and a cover's travel stripe; the pictures (the camera's state, the store, a tile's own, the rounds,
-the full view, what an answer with a picture does); the live view and the live spots; the governor; and the
-screensaver with its state.
+the full view, what an answer with a picture does); the live view and the live spots; the governor; the page
+pictures; and the screensaver with its state.
 
 A `*_lvgl.h` part is not a header on its own. It belongs to the binder's translation unit and is included there in its
 place, after what it uses, so there is one copy of every inline function and one order of definitions, as when all of
@@ -227,6 +238,17 @@ binder and wants cutting next is in docs/open-issues/binder-still-large.md.
   LVGL's own to the bit, LVGL learns the new dim with its invalidation off, and it never runs over an armed room. It takes
   36 ms on an 800 x 1280 P4, on one core or two (2026-11-10): the memory is the limit, so it goes through the glass in four
   passes of every fourth row, and what shows on the way is a dim that deepens evenly.
+- **A page's picture is put where it is true, and nowhere else** (`page_pictures.h`, docs/KEPT_PAGES.md "Page
+  pictures"). LVGL keeps no picture of what it drew, so a page turn draws a million pixels in software on a 10.1-inch
+  glass: 248 ms from the swipe to the page, with the cards kept. A screen with a steady glass
+  (`hw::caps().page_pictures`: a MIPI-DSI panel, whose DMA repeats its frame by itself) keeps the pixels of the pages
+  it has shown in PSRAM and copies them onto the glass at a turn, by the processor and under the glass lock, in
+  47 ms (a Waveshare ESP32-P4 10.1 inch, 2026-11-16); LVGL then draws the page as ever. A picture is true per block of 64 pixels: untrue wherever LVGL drew
+  since it was taken, wherever a tile took a change number while its page was away, and everywhere after another look,
+  layout, grid or turn; an untrue block is never put. It is taken only from a page at rest with nothing over it, never
+  in a turn, never under a stream's room. A layout has a picture for every page within half of the PSRAM heap; a
+  page that was never on the glass can have its picture drawn off the glass in an idle moment, which stays switched
+  off until boards have shown what that draw needs of the loop task's stack. Over a hundred turns with a live camera tile and playing tracks beside it: no dry frame, and LVGL's redraw changed 0 pixels of what was put.
 - **One user of the 2D-DMA at a time, under the glass lock.** Two at once from different tasks hangs the P4
   (espressif/esp-idf #18999, #19108, #19096). Copies cannot leave the hold.
 - **PSRAM shares its bus with the panel.** On a P4 the DSI panel scans PSRAM; on an S3 the RGB panel reads it through
@@ -264,6 +286,18 @@ binder and wants cutting next is in docs/open-issues/binder-still-large.md.
   colour reads (`theme::dark`) is the screen's (`theme::screen_dark`) except inside a card's scope; a card holds its look
   and its ground relative to the screen's, set where it is placed. A card in a following section painted outside its
   scope took the screen's look for a part of it.
+- **The loop's stack: no page is built at the bottom of an API call, and no message pays another's frame.** The loop
+  task runs LVGL, every card, the API and the page's build on 16 KB (`loop_task_stack_size`, packages/hardware/esp-idf.yaml).
+  On a Guition 10.1 with a large layout a layout's commit left 40 bytes, and a page of live tiles then overflowed it
+  (2026-11-16): the parser was one function of 9,456 bytes for every message (a tile's Extra alone is 1,284), and the
+  commit built the page and its cards on top of it, inside the API's call. Now each message type is its own function
+  (`noinline`, page_receiver.cpp), a tile's Extra lives on the heap while its tile is redrawn, and a page asked for by the
+  app or Home Assistant (a layout's commit, `show_page`, `open_settings`) is built on the loop's next pass
+  (`show_tile_page_soon`, `open_page`, `go_home` start with `delay: 0ms`). `tools/stack_chains.py <board>` builds a board
+  with the compiler's frame sizes and prints the chains: a message's deepest path is 9.7 KB on a P4 and an S3 and 8.2 KB
+  on the CYD, a page from the loop 5.6 to 5.9 KB, with LVGL's own depth on top. Under 2 KB left at any time the health
+  line warns (`loop_stack.h`) and every screen reports it as "Loop Stack Free". An S3 and a classic ESP32 have no
+  hardware stack guard: an overflow there corrupts memory without a word, so their margin counts as much as a P4's.
 - **Measure, keep what works.** A change that measures nothing is not taken (the L2 cache size, esp_hosted's internal
   build, PERF optimisation was taken because it measured). Tests on a device run an hour at most.
 

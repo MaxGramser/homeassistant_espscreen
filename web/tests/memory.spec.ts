@@ -108,11 +108,14 @@ describe("the memory a layout takes", () => {
 describe("the memory of pages", () => {
   it("answers every page case the screen and the add-on answer", async () => {
     const { pageCost } = await import("../src/model/memory");
-    const cases = (fixture as Record<string, unknown>[]).filter((c) => "page_entities" in c) as { page_entities: number; psram: boolean; page: number; cost: number }[];
+    const cases = (fixture as Record<string, unknown>[]).filter((c) => "page_entities" in c) as
+      { page_entities: number; page_sections: number; sections: boolean; psram: boolean; page: number; cost: number }[];
     expect(cases.length).toBeGreaterThan(5);
+    expect(cases.some((c) => c.sections && c.page_sections > 0)).toBe(true);
     for (const c of cases) {
       const trailing = [{ type: "clock" }, { type: "clock" }, ...Array.from({ length: c.page_entities }, () => ({ type: "entity" }))];
-      expect(pageCost({ topbar: { trailing } }, c), JSON.stringify(c)).toBe(c.cost);
+      const sections = Array.from({ length: c.page_sections }, (_, n) => ({ title: `Section ${n}` }));
+      expect(pageCost({ topbar: { trailing }, sections }, c), JSON.stringify(c)).toBe(c.cost);
     }
   });
 });

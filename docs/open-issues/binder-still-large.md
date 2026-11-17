@@ -2,7 +2,7 @@
 
 ## Where it stands
 `components/smart_display/runtime_tiles.h` was one file of 14,333 lines. On 2026-11-16 its sections moved
-into thirty-three `*_lvgl.h` parts beside it (docs/ARCHITECTURE.md, "The binder and its parts"), which left about 4,550 lines.
+into thirty-three `*_lvgl.h` parts (thirty-four with the page pictures) beside it (docs/ARCHITECTURE.md, "The binder and its parts"), which left about 4,550 lines.
 Only the sections whose every line is what their heading says were moved. A first cut by every heading put the
 widgets of a tile, the settings and a page's history into a file named after card parts, and the main loop's tick into
 one named after prepared pages, so those stayed.
@@ -27,17 +27,26 @@ much in the middle of its file to move without changing the order of definitions
   the busy sheet (50), the cover tile's layout.
 - `detail_lvgl.h`: a tile strip's slider (about 130 lines in the middle), `travel_look`, `key_press`.
 - `camera_view_lvgl.h`: the alert card's layout (70) and the doorbell's and a call's bindings (50).
-- `vacuum_card_lvgl.h`: the segmented control every card uses (55), `fit_value`, `detail_shape`.
+- `vacuum_card_lvgl.h`: `vacuum_chip_paint` and `vacuum_segments`, the vacuum's own wrappers of the segmented control.
 - `weather_tile_lvgl.h`: a sensor's graph on a tile and the sun tile (56). `optimistic_lvgl.h`: `cover_go` and
   `cover_key` (34), which send a plain action. `picture_store_lvgl.h`: the map view's state (43).
   `picture_rounds_lvgl.h`: the screensaver's drift (33).
-- A few lines each: `card_status` and `climate_round_key` in the cover card, `detail_text` and `detail_card` in the
-  weather card, `power_key_paint` in the select card, `security_card_shape` in the lock panel, the icon fonts in the
+- A few lines each: `power_key_paint` in the select card, `security_card_shape` in the lock panel, the icon fonts in the
   media card, `detail_shown` in a tile's picture, `bind_pages` in the colour card.
 
-Most of these are helpers several cards share. They want one part of their own (`card_parts_lvgl.h`: the status line,
-the round key, the segmented control, the text and frame of a card) placed before the first card, which changes the
-order and so is proven by the builds and the layout audit, not by the line-for-line comparison.
+### Solved: the helpers several cards share (2026-11-16)
+`card_parts_lvgl.h`, included before the first card, holds what several cards share: `detail_text`, `detail_card` and
+`line_of` (from the weather card), `detail_shape`, `face_covers`, `fit_value`, `button_words` and the segmented control
+(from the vacuum card), and `card_status` with `climate_round_key` (from the cover card). It is a move of 149 lines in
+seven blocks, with two forward declarations dropped, that changes the order of definitions. A script proved the move:
+every line taken from the three parts is in the new part, in order, and every other line is as it was. No moved name
+has a second definition that an earlier place could now pick. The builds of tools/profiles.py SAMPLE on ESPHome
+2026.9.0 gave the same size to the byte for the Guition, the jc8012p4a1 and the Waveshare 7. The CYD came out 16 bytes
+smaller: two functions each 4 bytes shorter, which is Xtensa's call and literal relaxation over a new layout. On the
+packages' min_version (2026.6.2, an older compiler) the Guition grew by 1,472 bytes. Every symbol has the same count,
+and their sizes changed by a few bytes each, also in code that calls no moved helper (the doorbell, the colour card,
+`camera_open`). That is the older compiler's code depending on the order it reads, not a call resolved differently.
+The preview's WASM kept its size to the byte, and the layout audit and all 32 preview tests passed before and after.
 
 ## What to do
 - Read each of those, cut it where it is one thing, and prove the cut the way the first was proven: the parts read

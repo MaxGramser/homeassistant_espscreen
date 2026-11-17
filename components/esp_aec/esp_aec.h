@@ -37,6 +37,22 @@ class EspAec final : public Component, public AudioProcessor {
   void set_sample_rate(int sample_rate) { this->sample_rate_ = sample_rate; }
   void set_filter_length(int filter_length) { this->filter_length_ = filter_length; }
   void set_mode(int mode) { this->mode_ = mode; }
+  // How hard the canceller presses down what its filter leaves (ESP-SR's NLP level, the FD modes): 0 normal, 1
+  // aggressive, 2 very aggressive; -1 leaves the library's own (aggressive in ESP-SR 2.5.5).
+  void set_nlp_level(int level) { this->nlp_level_ = level; }
+  // On demand: the canceller works only while something needs it (a call, the doorbell's Talk: set_needed), and at
+  // rest it hands the microphone on untouched without running the DSP at all, which is what costs the processor. Not
+  // on demand, it works whenever the microphone runs, as it always did.
+  void set_on_demand(bool on_demand) {
+    this->on_demand_ = on_demand;
+    this->needed_.store(!on_demand, std::memory_order_relaxed);
+  }
+  void set_needed(bool needed) {
+    if (this->on_demand_) this->needed_.store(needed, std::memory_order_relaxed);
+  }
+  bool at_work() const { return this->needed_.load(std::memory_order_relaxed) && this->enabled(); }
+  // The same while it runs (a measurement that compares the levels in one call): kept for every handle made after.
+  void set_nlp_level_now(int level);
 
   // AudioProcessor interface
   bool is_initialized() const override { return this->handle_ != nullptr; }
@@ -69,6 +85,9 @@ class EspAec final : public Component, public AudioProcessor {
   int filter_length_{4};
   int cached_frame_size_{512};
   int mode_{0};
+  int nlp_level_{-1};
+  // The level set on a handle the library just made (after every create: a mode change makes another).
+  void apply_nlp_level_(void *handle);
   std::atomic<uint32_t> frame_spec_revision_{0};
   int last_frame_size_{0};
   // ESP-SR 2.5.5 P4 FD-low-cost workaround for all-zero initial input.
@@ -76,6 +95,8 @@ class EspAec final : public Component, public AudioProcessor {
   std::atomic<uint32_t> startup_silence_frames_{0};
   // Output bypass: keep the adaptive filter current while disabled, without resetting the I2S stream.
   std::atomic<bool> enabled_{true};
+  bool on_demand_{false};
+  std::atomic<bool> needed_{true};
 };
 
 // Action: esp_aec.set_mode

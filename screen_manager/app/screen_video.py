@@ -116,16 +116,31 @@ class Videos:
             return {'added': [], 'removed': []}
         entries = [e for e in await ha.request('config_entries/get', domain=DOMAIN) or [] if isinstance(e, dict)]
         self.entries = len(entries)
-        # Which screen an entry is for: Home Assistant's list of entries leaves their unique id out, so the device
-        # registry says it, through the camera the entry put on the screen's device. An entry on no device yet (its
-        # screen's ESPHome device is not there) is left alone, and the flow below says it is there already.
+        # Which screen an entry is for: Home Assistant's list of entries leaves their unique id out, so the entity
+        # registry says it, through the camera the entry made, which sits on the screen's device. Never through the
+        # entries a device holds: from Home Assistant 2026.11 a device belongs to one entry, the ESPHome one. An entry
+        # whose camera is not on a device yet is left alone, and the flow below says it is there already.
         ours = {e.get('entry_id'): e for e in entries}
         have = {}
-        for device in getattr(ha, 'devices', None) or []:
-            for entry_id in (device or {}).get('config_entries') or []:
-                if entry_id in ours:
-                    have[device.get('id')] = ours[entry_id]
+        for entity in getattr(ha, 'registry', None) or []:
+            if isinstance(entity, dict) and entity.get('platform') == DOMAIN and entity.get('config_entry_id') in ours \
+                    and entity.get('device_id'):
+                have[entity['device_id']] = ours[entity['config_entry_id']]
+        # An entry that waits for its screen goes: the integration says so itself (ConfigEntryNotReady, state
+        # setup_retry) when the screen's ESPHome device is gone, because the screen was removed from Home Assistant or
+        # added again, which makes another device with another key (a Guition 10.1, 2026-11-16: its video said "wrong
+        # user/pass" until the entry was made again). The screen's device of today gets its entry below, in the same
+        # look. What Home Assistant says of the entry decides, never a guess from the registries: such a guess took a
+        # good entry away on Home Assistant 2026.11.
+        orphans = [(next((device for device, entry in have.items() if entry is e), None), e)
+                   for e in entries if e.get('state') == 'setup_retry']
+        have = {device: entry for device, entry in have.items() if entry.get('state') != 'setup_retry'}
         added, removed, now = [], [], time.monotonic()
+        for device, entry in orphans:
+            if entry.get('entry_id'):
+                await ha.delete_config_entry(entry['entry_id'])
+                removed.append(device or entry['entry_id'])
+                LOG.info('%s: its video left Home Assistant (it waited for a screen that is not there any more)', entry.get('title') or device)
         for device, name in wanted.items():
             if device in have or now < self.tried.get(device, 0):
                 continue

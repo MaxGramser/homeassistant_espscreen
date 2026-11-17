@@ -1,0 +1,77 @@
+# ESP Screens - echo cancelling, for a microphone part whose transport has a playback reference (a part: docs/PROFILES.md,
+# "Parts"; docs/P4_AUDIO.md). Espressif's AEC inside the pinned audio stack, the same for every codec: the ES7210's MIC3
+# (es7210/aec.yaml) and the ES8311's own feedback (es8311/aec.yaml) both end here. The transport that includes this part
+# declares the bus (`esp_audio_stack`, id board_audio_stack, `processor_id: board_aec`) and where the reference is; this
+# part brings what a person and the firmware see of it: the switch Echo cancellation (in Home Assistant, in the app and
+# on the screen's settings page), its status, and the canceller handed to a call (docs/CALLS.md, "Echo"). A firmware
+# built with it says `echo_cancel` in its capabilities (hw_build.py: the component esp_aec), and nothing asks which board.
+substitutions:
+  # What a transport does at start to make its reference (the ES8311 turns its feedback on); none where the wiring is it.
+  AUDIO_REFERENCE_BOOT: ""
+  # How hard the canceller presses down what its filter leaves (ESP-SR's NLP level: normal, aggressive,
+  # very_aggressive). Aggressive is the library's own and what the boards with an ES7210 on the speaker's bus were
+  # measured with; a transport measured at another level says its own.
+  AUDIO_ECHO_LEVEL: "aggressive"
+  # Whether the canceller works only while this screen's voice goes out to a far end (a call, the doorbell's Talk), and
+  # costs the processor nothing otherwise. Off, it works whenever the microphone runs, also for a voice assistant that
+  # listens while the screen plays, as the boards with an ES7210 on the speaker's bus have always had it.
+  AUDIO_ECHO_ON_DEMAND: "false"
+  # The settings page's echo cancellation row, after the microphone controls (packages/core.yaml, BOOT_MICROPHONE_PART).
+  BOOT_MICROPHONE_PART: |-
+    ${AUDIO_REFERENCE_BOOT}
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_echo_cancellation,
+        []() -> int32_t { return id(board_echo_cancellation).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); }));
+    // A call's small key puts the canceller to work or to rest for both screens (docs/CALLS.md, "Echo").
+    runtime_tiles::call_echo_cancel(
+        [](bool on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); },
+        []() -> bool { return id(board_echo_cancellation).state; },
+        [](int level) { id(board_aec).set_nlp_level_now(level); });
+    talk_uplink::bind_echo([](bool needed) { id(board_aec).set_needed(needed); });
+
+external_components:
+  - source:
+      type: git
+      url: https://github.com/n-IA-hane/esphome-audio-stack
+      ref: 0482d741a938378ef948e3b8f3dd31536f9f2cc9
+      path: esphome/components
+    components: [esp_audio_stack]
+    refresh: never
+
+esp_aec:
+  id: board_aec
+  sample_rate: 16000
+  mode: fd_low_cost
+  filter_length: 4
+  nlp_level: ${AUDIO_ECHO_LEVEL}
+  on_demand: ${AUDIO_ECHO_ON_DEMAND}
+
+switch:
+  - platform: template
+    id: board_echo_cancellation
+    name: "Echo cancellation"
+    entity_category: config
+    restore_mode: RESTORE_DEFAULT_ON
+    lambda: |-
+      if (id(board_aec).is_failed()) return {};
+      return id(board_aec).enabled();
+    turn_on_action:
+      - lambda: |-
+          if (id(board_aec).set_feature(esp_audio_stack::AudioFeature::AEC, true))
+            id(board_echo_cancellation).publish_state(true);
+    turn_off_action:
+      - lambda: |-
+          if (id(board_aec).set_feature(esp_audio_stack::AudioFeature::AEC, false))
+            id(board_echo_cancellation).publish_state(false);
+
+text_sensor:
+  - platform: template
+    id: board_aec_status
+    name: "Echo cancellation status"
+    entity_category: diagnostic
+    update_interval: 2s
+    lambda: |-
+      if (id(board_aec).is_failed()) return {"Error"};
+      if (!id(board_aec).is_initialized()) return {"Starting"};
+      if (!id(board_aec).enabled()) return {"Bypass"};
+      return id(board_aec).at_work() ? std::string("Enabled") : std::string("Resting");

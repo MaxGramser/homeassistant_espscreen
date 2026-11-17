@@ -24,7 +24,7 @@ inline bool pictures_kept() {
     // page of five 2x2 cameras of about 300 KB each and keeps more pages. Pictures on a card are never let go for the
     // budget; it says how much is kept beside them.
     const size_t psram = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
-    pictures.budget = std::min<size_t>(6u << 20, psram / 5);
+    pictures.budget = picture_store::budget_for(psram);
 #elif defined(KEPT_PAGES_HOST)
     // tools/render with KEPT_PAGES_HOST=1 draws as a board with PSRAM, its pictures too: the store of a 4-inch Guition.
     // Without it the host keeps one download at a time, and a page of several pictured tiles shows only the last.
@@ -100,7 +100,7 @@ inline void picture_let_go(const lv_image_dsc_t *image) {
     if (plugin_host::picture_let_go(w, image)) took = true;
     if (!took) continue;
     if (w.extra_mode == "media") w.cover_shown.clear();
-    if (w.index < model.count) mark_tile(w.index);
+    if (w.index < model.count) mark_tile(w.index, redraw_log::TileWhy::picture);
   }
 #else
   (void) image;
@@ -264,12 +264,13 @@ inline bool on_glass(const Widgets &w) {
 inline void tile_cover_arrived(size_t index) {
   each_card([&](Widgets &w) {
     if (w.index != index || w.extra_mode != "media" || w.cover_entity.empty()) return;
-    if (on_glass(w)) { refresh_tile(index); return; }
+    if (on_glass(w)) { refresh_tile(index, redraw_log::TileWhy::picture); return; }
     const std::string key = cover_key(w);
     if (auto *src = picture_of(key)) {
       w.parts[MEDIA_PICTURE] = media_picture_show(w.extra, w.parts[MEDIA_PICTURE], w.cover_rect, src);
       w.cover_shown = key;
       w.cover_hold = 0;
+      changes.mark_tile(index);  // the card changed off the glass: its page's picture shows it without this cover
     }
   });
 }

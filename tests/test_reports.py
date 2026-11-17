@@ -313,14 +313,16 @@ class DeviceSensors(unittest.TestCase):
         registry = [{'entity_id': 'sensor.a_heap_free', 'original_name': 'Heap Free', 'device_id': 'a'},
                     {'entity_id': 'text_sensor.a_wifi_co_processor', 'original_name': 'Wi-Fi co-processor', 'device_id': 'a'},
                     {'entity_id': 'text_sensor.b_wifi_co_processor', 'original_name': 'Wi-Fi co-processor', 'device_id': 'b'},
+                    {'entity_id': 'sensor.a_loop_stack_free', 'original_name': 'Loop Stack Free', 'device_id': 'a'},
                     {'entity_id': 'sensor.a_other', 'original_name': 'Something else', 'device_id': 'a'}]
-        states = {'sensor.a_heap_free': {'state': '236132.0'},
+        states = {'sensor.a_heap_free': {'state': '236132.0'}, 'sensor.a_loop_stack_free': {'state': '152.0'},
                   'text_sensor.a_wifi_co_processor': {'state': 'ESP-Hosted 2.3.2 (host 2.12.12)'},
                   'text_sensor.b_wifi_co_processor': {'state': 'ESP-Hosted 2.12.12 (host 2.12.12)'}}
         service = reports.Reports.__new__(reports.Reports)
         service.manager = types.SimpleNamespace(ha=types.SimpleNamespace(registry=registry, states=states))
         self.assertEqual(service._device_sensors({'device_id': 'a'}),
-                         {'heap free': '236132.0', 'wi-fi co-processor': 'ESP-Hosted 2.3.2 (host 2.12.12)'})
+                         {'heap free': '236132.0', 'wi-fi co-processor': 'ESP-Hosted 2.3.2 (host 2.12.12)',
+                          'loop stack free': '152.0'})
 
 
 class TheRoute(unittest.IsolatedAsyncioTestCase):

@@ -197,7 +197,11 @@
       "plugins": "Plugins",
       "microphone_gain": "Ganho do microfone",
       "automatic_gain": "Ganho automático",
-      "echo_cancellation": "Cancelamento eco"
+      "call_ringtone": "Toque de chamada",
+      "do_not_disturb": "Não incomodar",
+      "call_voice_switching": "Alternância de voz",
+      "echo_cancellation": "Cancelamento eco",
+      "loop_pages": "Páginas em ciclo"
     },
     "doorbell": {
       "sound_on": "Som ligado",
@@ -688,7 +692,8 @@
       "sound_only": "Disponível, só som",
       "in_call": "Em chamada",
       "offline": "Offline",
-      "missed_at": "Chamada perdida"
+      "missed_at": "Chamada perdida",
+      "no_screens": "Nenhum outro ecrã para ligar"
     }
   },
   "addon": {
@@ -1027,6 +1032,10 @@
         "refused": "O Home Assistant recusou a automação: {reason}",
         "not_ours": "Essa automação não foi criada pelo Tessera, por isso a app não lhe toca.",
         "invalid": "Esta automação não pode ser guardada ({part})."
+      },
+      "icons": {
+        "request": "Isto não é uma lista de ícones.",
+        "too_many": "Um ecrã aceita no máximo {most} ícones próprios."
       }
     },
     "status": {
@@ -1242,6 +1251,18 @@
         "automatic_gain": {
           "label": "Ganho automático",
           "hint": "Permite que o codec do microfone ajuste o nível de gravação. Independente do cancelamento de eco."
+        },
+        "call_ringtone": {
+          "label": "Toque de chamada",
+          "hint": "Desligado: numa chamada o ecrã acende e mostra quem liga, sem som."
+        },
+        "do_not_disturb": {
+          "label": "Não incomodar",
+          "hint": "Ligado: uma chamada para este ecrã é recusada de imediato e quem liga lê porquê. A campainha continua a tocar."
+        },
+        "call_voice_switching": {
+          "label": "Alternância de voz",
+          "hint": "Ligado: o microfone do lado que ouve baixa, para que uma voz não volte como eco. Desligado: os dois lados podem falar ao mesmo tempo. Uma tecla pequena na chamada muda-o para essa chamada."
         },
         "echo_cancellation": {
           "label": "Cancelamento eco",
@@ -1622,6 +1643,13 @@
         "missed": "Ninguém tocou antes do tempo limite",
         "seen": "Um toque perdido foi reaberto a partir da barra superior"
       }
+    },
+    "layoutbot": {
+      "none": "O Layoutbot precisa de um AI Task no Home Assistant que consiga gerar dados (Definições > Dispositivos e serviços, uma integração de IA).",
+      "notes": {
+        "unknown": "{entity} ficou de fora: não é uma entidade deste Home Assistant.",
+        "no_page": "Não existe a página {page}."
+      }
     }
   },
   "editor": {
@@ -1639,6 +1667,8 @@
       "read_current_data": "Ler dados atuais",
       "results": "{n} resultado. Continue a escrever para filtrar. | {n} resultados. Continue a escrever para filtrar.",
       "close": "Fechar",
+      "expand": "Mostrar mais",
+      "collapse": "Mostrar menos",
       "remove": "Remover",
       "loading": "A carregar…",
       "back": "← Voltar",
@@ -1963,6 +1993,7 @@
         "vacuum": "Aspirador",
         "sensor": "Sensores",
         "media_player": "Multimédia",
+        "camera": "Câmaras",
         "weather": "Clima",
         "number": "Valores",
         "select": "Seletores",
@@ -1982,6 +2013,8 @@
       "again": "Já está neste ecrã; adicione-o de novo para outro mosaico",
       "all_placed": "Tudo o que está aqui já está neste ecrã.",
       "none_found": "Nenhuma entidade encontrada. Experimente outro nome, divisão ou filtro.",
+      "found_elsewhere": "Nada nesta seleção, mas 1 entidade corresponde em toda a biblioteca. | Nada nesta seleção, mas {n} entidades correspondem em toda a biblioteca.",
+      "search_everything": "Mostrar todas as correspondências",
       "full": "Neste ecrã cabe {n} mosaico. | Neste ecrã cabem {n} mosaicos.",
       "full_update": "Neste ecrã cabe {n} mosaico; atualize o firmware para ter 48. | Neste ecrã cabem {n} mosaicos; atualize o firmware para ter 48.",
       "hint": "Arraste para uma página ou toque em + para adicionar ao primeiro espaço livre. ⌘K procura em tudo.",
@@ -2073,6 +2106,8 @@
         "title": "O que adiciona",
         "tile": "Mosaico «{name}»",
         "tile_sizes": "De {min} a {max} numa página",
+        "tile_sizes_or_page": "De {min} a {max} numa página, ou a página inteira",
+        "tile_only_page": "A página inteira",
         "tap": "Ação ao tocar «{name}»",
         "tap_on": "Em mosaicos de {domains}",
         "card": "«{name}», uma vista própria no ecrã",
@@ -2398,7 +2433,8 @@
       },
       "forget": {
         "go": "Remover da lista",
-        "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação."
+        "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação.",
+        "note_folder": "Nenhum ecrã usa este plugin a partir da sua pasta. Ao removê-lo, a pasta passa para config/tessera-plugins/.removed/{id}, onde a pode apagar de vez."
       }
     },
     "plugin_tile": {
@@ -2411,6 +2447,9 @@
       "from_fetch": "As opções vêm da fonte de dados do próprio plugin, através do Tessera.",
       "on_screen": "No ecrã",
       "sizes": "De {min} a {max}; arraste uma margem do mosaico para mudar o tamanho.",
+      "sizes_or_page": "De {min} a {max}, ou a página inteira; arraste uma margem do mosaico para mudar o tamanho.",
+      "sizes_only_page": "Este mosaico ocupa sempre uma página inteira.",
+      "whole_page": "Página inteira",
       "placeholder": "O editor mostra um marcador de posição: o que o plugin desenha aparece no próprio ecrã.",
       "now": "agora",
       "minutes": "{n} min",
@@ -3007,6 +3046,17 @@
         "clear": "Remover concluídos",
         "clear_hint": "Uma tecla na lista remove tudo o que está assinalado, depois de perguntar"
       },
+      "call": {
+        "section": "Chamada",
+        "who": "Liga a",
+        "who_hint_all": "Um toque abre a lista de ecrãs.",
+        "who_hint_one": "Um toque liga de imediato a este ecrã.",
+        "everyone": "Escolher da lista",
+        "kind": "Tipo de chamada",
+        "kind_hint": "O vídeo precisa do plugin Screen camera com a sua parte Video nos dois ecrãs; caso contrário, é uma chamada com som.",
+        "video": "Vídeo sempre que possível",
+        "sound": "Apenas som"
+      },
       "text_entity": {
         "edit": "Um toque abre o valor num campo com o teclado do ecrã. Uma palavra-passe aparece como pontos.",
         "view_only": "Esta placa mostra apenas o valor: alterá-lo no ecrã precisa de uma placa com 8 MB de flash ou mais."
@@ -3046,7 +3096,9 @@
       "search_label": "Procurar um ícone",
       "none_text_only": "Sem ícone, só texto",
       "aria": "Ícone: {name}",
-      "none_found": "Nenhum ícone encontrado."
+      "none_found": "Nenhum ícone encontrado.",
+      "own": "Ícones deste ecrã",
+      "more": "Mais ícones"
     },
     "inspect": {
       "title": "Dados atuais",
@@ -3164,7 +3216,8 @@
         "swipe_pages": "Deslizar entre páginas",
         "page_buttons": "Botões de página",
         "home_button": "Mostrar o botão de início",
-        "rotation": "Rotação"
+        "rotation": "Rotação",
+        "loop_pages": "Páginas em ciclo"
       },
       "actions": {
         "calibrate": {
@@ -4188,6 +4241,7 @@
       "packet_error": "O firmware rejeitou um pacote de pré-visualização: {message}",
       "stopped": "Pré-visualização do firmware parada: {message}",
       "action_error": "O comando do Home Assistant falhou: {message}",
+      "stale": "Esta pré-visualização é mais antiga do que o firmware: foi compilada em {date} e o firmware mudou desde então, por isso um ecrã pode desenhar algo que aqui ainda não aparece.",
       "remove": "A pré-visualização e a sua disposição guardada neste navegador.",
       "save": "Guardar pré-visualização",
       "saved": "Guardado neste navegador",
@@ -4262,7 +4316,8 @@
         "changed": "layout alterado",
         "restored": "alterações não guardadas restauradas",
         "taken_over": "alterações do outro separador trazidas para aqui",
-        "auto_layout": "o esquema criado para si"
+        "auto_layout": "o esquema criado para si",
+        "layoutbot": "alteração do Layoutbot"
       }
     },
     "draft": {
@@ -4353,7 +4408,8 @@
           "fetch": "o firmware não voltou",
           "bundle": "não foi possível empacotar o YAML"
         }
-      }
+      },
+      "icons": "A compilar com os seus ícones"
     },
     "grid": {
       "title": "Grelha",
@@ -4652,6 +4708,44 @@
     "drawer": {
       "resize": "Largura das definições: arraste ou use as setas; duplo clique para repor"
     },
+    "screen_icons": {
+      "eyebrow": "Ícones",
+      "title": "Ícones de {name}",
+      "intro": "Cada ecrã traz um conjunto fixo de ícones. Aqui adiciona até {room} mais. Os ícones fazem parte do firmware, por isso uma alteração só chega ao ecrã depois de este ser compilado novamente.",
+      "count": "{n} de {room} adicionados",
+      "on_screen": "Neste ecrã",
+      "none_yet": "Ainda nenhum. Escolha entre os ícones abaixo.",
+      "waiting": "1 ícone aguarda uma compilação | {n} ícones aguardam uma compilação",
+      "leaving": "1 ícone sai com a próxima compilação | {n} ícones saem com a próxima compilação",
+      "changes": "Compile para pôr estas alterações no ecrã. Demora alguns minutos e o ecrã reinicia.",
+      "build": "Compilar {name}",
+      "building": "A compilar com estes ícones…",
+      "all_up_to_date": "Tudo o que escolheu está no ecrã.",
+      "everywhere": "Pôr em todos os ecrãs",
+      "everywhere_ask": "Isto substitui os ícones adicionados de {n} ecrã e compila-o. | Isto substitui os ícones adicionados de {n} ecrãs e compila-os um a seguir ao outro. Um ecrã com 4 MB de flash fica como está.",
+      "everywhere_yes": "Compilar {n} ecrã | Compilar {n} ecrãs",
+      "everywhere_done": "A aguardar compilação: {names}",
+      "everywhere_off": "Desligados, por isso não compilados: {names}",
+      "from_ha": "Usados no seu Home Assistant",
+      "from_ha_hint": "Ícones das suas entidades que este ecrã ainda não consegue desenhar.",
+      "add_all": "Adicionar todos",
+      "all": "Todos os ícones",
+      "search": "Procurar em todos os ícones",
+      "search_label": "Procurar em todos os ícones",
+      "nothing": "Nenhum ícone tem esse nome.",
+      "fixed": "Já está em todos os ecrãs",
+      "full": "Este ecrã já não tem espaço.",
+      "in_use": "{icon} está em {n} mosaico deste ecrã. Mostrará o seu ícone automático depois da próxima compilação. | {icon} está em {n} mosaicos deste ecrã. Mostrarão o seu ícone automático depois da próxima compilação.",
+      "remove": "Remover",
+      "own_yaml": "Este ecrã é compilado a partir do seu próprio YAML. Guarde isto como {file} ao lado dele, adicione a linha abaixo em packages: e compile-o aí.",
+      "loading": "A carregar os ícones…",
+      "card_title": "Ícones",
+      "card_hint": "Adicione até {room} ícones aos que este ecrã já traz.",
+      "card_button": "Escolher ícones",
+      "card_count": "{n} adicionados",
+      "card_waiting": "{n} a aguardar compilação",
+      "card_no_room": "Esta placa tem 4 MB de flash, sem espaço para mais ícones."
+    },
     "sections": {
       "untitled": "Secção",
       "kind": "Secção",
@@ -4750,6 +4844,75 @@
       "offer_text": "O Tessera pode organizar este ecrã com as suas áreas e dispositivos do Home Assistant. Depois pode alterar tudo.",
       "offer_make": "Criar um primeiro esquema",
       "offer_empty": "Começar vazio"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Perguntar ao Layoutbot",
+      "close": "Fechar",
+      "hello": "Olá! Diga-me o que este ecrã deve mostrar e eu organizo as páginas. Só altero o layout, nunca os seus dispositivos.",
+      "privacy": "Uso {agent} do Home Assistant. A sua pergunta, as páginas dos seus ecrãs e os ids, nomes e áreas das suas entidades vão para lá.",
+      "placeholder": "Cria uma página com…",
+      "ask": "Perguntar",
+      "send": {
+        "ask": "Envio para {which}?",
+        "yes": "Sim, enviar",
+        "no": "Agora não",
+        "sending": "A enviar…",
+        "sent": "Enviado. O ecrã mostra-o daqui a pouco.",
+        "not_all": "Nem tudo foi enviado.",
+        "failed": "Não foi possível enviar para {which}.",
+        "declined": "Não enviado. Guardar e enviar fá-lo quando quiser.",
+        "to": "A enviar para {name}",
+        "not_opened": "não foi possível abrir esse ecrã",
+        "not_saved": "não foi guardado",
+        "unsaved": "o ecrã aberto tem alterações não guardadas",
+        "own": "As suas próprias alterações desde a última gravação vão junto."
+      },
+      "busy": "O Layoutbot está a organizar as suas páginas",
+      "seconds": "{n} s",
+      "stop": "Parar",
+      "stopped": "Parado. Nada mudou.",
+      "nothing": "Nada mudou.",
+      "stale": "As páginas mudaram enquanto eu pensava, por isso deixei-as como estão. Pergunte-me outra vez.",
+      "show": "Mostrar",
+      "undo": "Desfazer",
+      "undone": "Desfeito",
+      "suggest": {
+        "lights_sections": "Põe todas as luzes numa página, com uma secção por divisão",
+        "lights": "Põe todas as luzes numa página",
+        "covers_sections": "Uma página com todos os estores e cortinas, em duas secções",
+        "covers": "Uma página com todos os estores e cortinas",
+        "media": "Uma página de música com todas as colunas",
+        "climate": "Uma página de clima com o aquecimento e as temperaturas"
+      },
+      "what": {
+        "pages": "1 página nova | {n} páginas novas",
+        "added": "1 mosaico adicionado | {n} mosaicos adicionados",
+        "removed": "1 mosaico retirado | {n} mosaicos retirados",
+        "changed": "página {pages} alterada | páginas {pages} alteradas"
+      },
+      "connect": {
+        "title": "Ligue uma IA no Home Assistant",
+        "short": "Ainda não ligado",
+        "body": "Organizo as páginas deste ecrã a partir de uma frase, como «todas as luzes numa página, uma secção por divisão». Para isso uso a IA que ligar ao Home Assistant: adicione uma destas integrações e eu faço o resto.",
+        "cloud": "Na nuvem, com a sua própria chave",
+        "local": "No seu próprio computador",
+        "after": "Qualquer integração de IA com AI Tasks serve. Depois de adicionada, volte a verificar aqui.",
+        "again": "Verificar de novo"
+      },
+      "notes": {
+        "page_full": "A página {page} está cheia, por isso {count} mosaico ficou de fora. | A página {page} está cheia, por isso {count} mosaicos ficaram de fora.",
+        "memory_full": "A memória do ecrã está cheia, por isso {count} mosaico ficou de fora. | A memória do ecrã está cheia, por isso {count} mosaicos ficaram de fora.",
+        "left_out": "O ecrã não tinha espaço para mais {count} mosaico. | O ecrã não tinha espaço para mais {count} mosaicos.",
+        "no_page": "Não existe a página {page}.",
+        "not_drawn": "O ecrã não desenha nenhum mosaico de {count} entidade. | O ecrã não desenha nenhum mosaico de {count} entidades."
+      },
+      "update_app": "Atualize a app Tessera: este editor coloca ele próprio os planos do Layoutbot.",
+      "scope": {
+        "here": "Este ecrã",
+        "all": "Todos os ecrãs"
+      },
+      "preview": "Ver"
     }
   }
 }

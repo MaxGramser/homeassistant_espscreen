@@ -50,9 +50,11 @@ inline uint32_t cost(const std::string &what, bool action, bool line, const Boar
   return bytes;
 }
 // What one page costs: what it keeps (its title), what each item of its top bar that shows an entity keeps (its text),
-// and on a board without PSRAM the page's own record (sizeof(page_protocol::Page)), which holds its bar.
-inline uint32_t page_cost(unsigned entity_items, const Board &board) {
-  return tile_catalogue::PAGE_BYTES + entity_items * tile_catalogue::BAR_TEXT_BYTES + (board.psram ? 0 : board.page_bytes);
+// what each of its sections keeps (on a screen that draws them: any other gets none), and on a board without PSRAM the
+// page's own record (sizeof(page_protocol::Page)), which holds its bar.
+inline uint32_t page_cost(unsigned entity_items, unsigned sections, const Board &board) {
+  return tile_catalogue::PAGE_BYTES + entity_items * tile_catalogue::BAR_TEXT_BYTES + sections * tile_catalogue::SECTION_BYTES +
+         (board.psram ? 0 : board.page_bytes);
 }
 // A tile's own choices as the cost counts them: the tap option "action", and a second line "attr:<name>".
 inline bool own_action(const std::string &tap) { return tap == "action"; }

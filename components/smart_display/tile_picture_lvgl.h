@@ -91,7 +91,8 @@ inline void tile_picture_request(const tile_picture::Ask &a) {
 // restart, before the app has sent the layout again; Home Assistant away) waits for nothing: the card shows its head as
 // every card does then, not a spinner that never ends.
 inline bool tile_picture_waiting(const Widgets &w, const Tile &t) {
-  if (!tile_pictures_supported() || !fresh() || !tiles_seen() || card_open() || camera_root || !t.pictured()) return false;
+  if (!tile_pictures_supported() || !fresh() || !t.pictured() ||
+      !camera_view::pictures_on_glass(tiles_seen(), card_open(), camera_root != nullptr)) return false;
   if (w.picture && !lv_obj_has_flag(w.picture, LV_OBJ_FLAG_HIDDEN)) return false;
   const auto owner = owners::tile(w.index);
   return !loader.has(owner) || !loader.settled_for(owner);
@@ -204,7 +205,7 @@ inline void tile_picture_done(size_t index, picture_loader::Outcome outcome) {
       tile_picture_place(w, model.tiles[index], w.art_size, w.art_x, w.art_y);
       ESP_LOGD("picture", "tile %u: %s on its card %s", (unsigned) index, w.art_key.c_str(), on_glass(w) ? "on the glass" : "of a kept page");
     });
-  refresh_tile(index);
+  refresh_tile(index, redraw_log::TileWhy::picture);
 }
 // The app's answer to a tile's question, found by the question's number: a link, or "" when it has no picture.
 inline void tile_picture_answer(uint32_t number, const std::string &url, uint32_t now) {
@@ -238,7 +239,7 @@ inline void tile_pictures_letgo() {
         lv_obj_add_flag(picture, LV_OBJ_FLAG_HIDDEN);
         took = true;
       }
-    if (took && w.index < model.count) refresh_tile(w.index);
+    if (took && w.index < model.count) refresh_tile(w.index, redraw_log::TileWhy::picture);
   });
 #endif
 }

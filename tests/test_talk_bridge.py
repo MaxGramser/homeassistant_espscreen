@@ -106,3 +106,11 @@ def test_a_voice_leaves_in_whole_parts_however_the_network_cut_it():
         voice.feed(piece)
     assert all(len(part) == tb.Voice.PART for part in got)
     assert b''.join(got) == data[:len(got) * tb.Voice.PART]
+
+
+def load_tests(loader, tests, pattern):
+    """The functions above as unittest's tests: the check runs `unittest discover`, which finds classes only, and passed
+    these by until 2026-11-17."""
+    import unittest
+    return unittest.TestSuite(unittest.FunctionTestCase(test) for name, test in sorted(globals().items())
+                              if name.startswith('test_') and callable(test))
