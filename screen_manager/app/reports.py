@@ -899,7 +899,9 @@ class Reports:
             name = value[len('!secret'):].strip()
             try:
                 import yaml
-                secrets_data = yaml.safe_load((self.manager.firmware.root / 'secrets.yaml').read_text()) or {}
+                import firmware
+                root = self.manager.firmware.root
+                secrets_data = firmware.read_secrets((root / 'secrets.yaml').read_text(), root) or {}
                 value = secrets_data.get(name)
             except Exception:  # noqa: BLE001
                 return None

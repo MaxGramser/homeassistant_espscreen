@@ -808,7 +808,10 @@ struct Tile {
     // A cover that cannot tell whether it is open (an awning or a blind without feedback: Home Assistant's is_closed is
     // None) reports "unknown" and still takes its keys, as in Home Assistant, where only "unavailable" turns them off
     // (frontend data/cover.ts canOpen, canClose, canStop).
-    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover";
+    // A remote that never reports on or off (Home Assistant's Android TV integration over ADB: always "unknown") still
+    // sends its keys, as in Home Assistant, whose toggle shows both keys for "unknown" and turns them off only for
+    // "unavailable" (frontend components/entity/ha-entity-toggle.ts; GitHub #387).
+    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover" || d == "remote";
   }
   // Home Assistant's stateActive() (frontend src/common/entity/state_active.ts), the rule its cards colour by: an
   // entity it calls inactive is grey, such as an airco that is off, a closed blind, a docked robot, a player in

@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
+import firmware
 from firmware import Firmware
 
 class WifiReuse(unittest.TestCase):
@@ -175,3 +176,36 @@ class WifiReuse(unittest.TestCase):
             self.assertEqual(f.wifi_status()['state'], 'ready')
             (Path(tmp) / 'secrets.yaml').write_text('wifi_ssid: [invalid')
             self.assertEqual(f.wifi_status(), {'state': 'invalid'})
+
+    def test_secrets_shared_with_home_assistant_through_an_include_count(self):
+        # One file of secrets for Home Assistant and ESPHome (GitHub #351): ESPHome's secrets.yaml is
+        # `<<: !include ../secrets.yaml`, which ESPHome reads, so the Wi-Fi is there and nothing is written.
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp) / 'esphome'
+            folder.mkdir()
+            (Path(tmp) / 'secrets.yaml').write_text('wifi_ssid: shared-network\nwifi_password: shared-password\napi_key: k\n')
+            own = folder / 'secrets.yaml'
+            own.write_text('<<: !include ../secrets.yaml\n')
+            f = Firmware(folder, folder)
+            self.assertEqual(f.wifi_status(), {'state': 'ready', 'missing': []})
+            self.assertNotIn('shared-', json.dumps(f.status()))
+            f.create({'board': 'cyd', 'name': 'screen', 'friendly_name': 'Screen'})
+            self.assertEqual(own.read_text(), '<<: !include ../secrets.yaml\n')
+            # A key of the file's own wins over the included one, and a key only the included file lacks is added here.
+            (Path(tmp) / 'secrets.yaml').write_text('wifi_ssid: shared-network\n')
+            self.assertEqual(f.wifi_status(), {'state': 'missing', 'missing': ['wifi_password']})
+            f.store_wifi({'wifi_password': 'pw'})
+            self.assertEqual(own.read_text(), '<<: !include ../secrets.yaml\nwifi_password: pw\n')
+            self.assertEqual(firmware.read_secrets(own.read_text(), folder),
+                             {'wifi_ssid': 'shared-network', 'wifi_password': 'pw'})
+            own.write_text('wifi_ssid: own-network\n<<: !include ../secrets.yaml\n')
+            self.assertEqual(firmware.read_secrets(own.read_text(), folder)['wifi_ssid'], 'own-network')
+            # An include that is not there, or files that include each other, is a file the app leaves alone.
+            own.write_text('<<: !include ../gone.yaml\n')
+            self.assertEqual(f.wifi_status(), {'state': 'invalid'})
+            (Path(tmp) / 'secrets.yaml').write_text('<<: !include esphome/secrets.yaml\n')
+            own.write_text('<<: !include ../secrets.yaml\n')
+            self.assertEqual(f.wifi_status(), {'state': 'invalid'})
+            # A key whose whole value is an include is not a text: it reads as missing, never as an error.
+            own.write_text('wifi_ssid: !include ../name.txt\nwifi_password: pw\n')
+            self.assertEqual(f.wifi_status(), {'state': 'missing', 'missing': ['wifi_ssid']})

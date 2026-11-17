@@ -479,6 +479,12 @@ int main() {
   // tap option "toggle" switches it. Amber while on, grey while off (state_color.ts: --state-active-color).
   {
     Tile remote = make("remote.living_room", "on");
+    // A remote that never reports on or off (Android TV over ADB: always "unknown") keeps its keys, as in Home
+    // Assistant; only "unavailable" takes them away (GitHub #387).
+    Tile adb = make("remote.fire_tv", "unknown");
+    assert(adb.available());
+    adb.state = "unavailable";
+    assert(!adb.available());
     assert(runtime_tiles::valid_entity("remote.living_room"));
     Tap tap = tap_route(remote, false), held = tap_route(remote, true);
     assert(tap.route == TapRoute::CARD && held.route == TapRoute::CARD);
