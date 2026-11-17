@@ -230,6 +230,21 @@ def test_every_event_of_a_call_carries_the_calls_own_key():
     assert len(fired) >= 3 and all(o.data['key'] == key for o in fired)
 
 
+def test_a_direct_call_has_a_token_for_each_direction_and_the_port_the_screens_serve_on():
+    tokens = calls.direct_tokens('a', 'b')
+    assert set(tokens) == {'a', 'b'} and tokens['a'] != tokens['b'] and all(len(t) >= 16 for t in tokens.values())
+    assert calls.direct_link('192.0.2.7', 'tok') == 'http://192.0.2.7:8555/call/tok.mjpeg'
+    header = (pathlib.Path(__file__).resolve().parents[1] / 'components/smart_display/call_serve.h').read_text()
+    assert f'constexpr uint16_t PORT = {calls.DIRECT_PORT};' in header
+
+
+def test_direct_calls_are_the_screens_own_switch_off_as_it_comes():
+    items = [{'platform': 'esphome', 'entity_id': 'switch.hall_direct_calls', 'original_name': 'Direct calls'}]
+    assert calls.switch_on(items, {'switch.hall_direct_calls': {'state': 'on'}}, calls.DIRECT_SWITCH)
+    assert not calls.switch_on(items, {'switch.hall_direct_calls': {'state': 'off'}}, calls.DIRECT_SWITCH)
+    assert not calls.switch_on([], {'switch.hall_direct_calls': {'state': 'on'}}, calls.DIRECT_SWITCH)   # firmware from before it
+
+
 def test_do_not_disturb_is_the_screens_own_switch_read_from_home_assistant():
     items = [{'platform': 'esphome', 'entity_id': 'switch.hall_do_not_disturb', 'original_name': 'Do not disturb'},
              {'platform': 'esphome', 'entity_id': 'switch.hall_call_ringtone', 'original_name': 'Call ringtone'},

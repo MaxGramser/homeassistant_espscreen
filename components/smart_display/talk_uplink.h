@@ -76,6 +76,12 @@ bool available();
 bool start(const std::string &url);
 void stop();
 State state();
+// The microphone's parts for someone else as well (a direct call's own server, call_serve.h): every whole part the
+// microphone gives is also put into `buffer`, or left out whole when it has no room, and the microphone runs while it is
+// tapped. From the main loop; one tap at a time, and not beside a talk that goes up (a direct call has none).
+void tap(void *stream_buffer);
+void untap();
+
 // While muted the microphone's parts go up as silence, so the stream on the far side stays alive (docs/CALLS.md).
 void set_muted(bool muted);
 // The voice's bar, 0 to 1, of the last few parts; when the voice was last above VOICE_DB (the main loop's clock).

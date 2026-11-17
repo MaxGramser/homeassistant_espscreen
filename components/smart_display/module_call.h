@@ -43,10 +43,15 @@ extern std::function<void(int)> echo_level;
 
 // `voice_switch` and `echo`: the call's voice switching and echo cancelling (1 or 0), -1 where the message does not say
 // (no key then: echo cancelling in a call of two screens without a canceller). The state `set` brings only these two.
+// `serve`: the token this screen serves under in a direct call (docs/CALLS.md, "Screen to screen"); empty, the call's
+// media go through ESP Screens.
 // The op `call` (state out, ring, live, held, end) and the op `contacts`: the list, as a JSON text of rows, in parts
 // for a house with many screens (`append` a later part, `more` a part still to come).
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
-             const std::string &link, const std::string &talk, bool peer_camera, const std::string &why, int voice_switch = -1, int echo = -1);
+             const std::string &link, const std::string &talk, bool peer_camera, const std::string &why, int voice_switch = -1, int echo = -1,
+             const std::string &serve = "");
+// Whether this screen can serve its own camera and voice to the other screen of a call (the hello's `call_direct`).
+bool direct();
 void on_contacts(const std::string &rows, bool append, bool more);
 // The Call tile's tap.
 void open_list();

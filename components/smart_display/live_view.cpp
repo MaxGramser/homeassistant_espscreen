@@ -22,6 +22,7 @@
 #include "picture_engine.h"
 #include "hw.h"
 #include "pressure.h"
+#include "call_serve.h"
 #if defined(USE_LIVE_VIEW) && defined(SCREEN_PICTURES)
 #include <algorithm>
 #include <atomic>
@@ -669,7 +670,13 @@ static std::atomic<int> own_open{0};
 
 void own_offer() { offered.store(true, std::memory_order_release); }
 bool own_offered() { return offered.load(std::memory_order_acquire) && available(); }
-bool own_wanted() { return own_open.load(std::memory_order_relaxed) > 0; }
+bool own_wanted() {
+#ifdef CALL_SERVE
+  // A direct call sends this screen's camera to the other one (call_serve.h), whether or not a tile shows it here.
+  if (call_serve::wants_picture()) return true;
+#endif
+  return own_open.load(std::memory_order_relaxed) > 0;
+}
 
 static void own_add(Stream *s) {
   if (!own_lock) own_lock = xSemaphoreCreateMutex();
@@ -694,7 +701,11 @@ static void own_remove(Stream *s) {
 }
 
 void own_frame(const uint8_t *data, int width, int height, bool yuv420) {
-  if (!data || width <= 0 || height <= 0 || !own_wanted() || !own_lock) return;
+  if (!data || width <= 0 || height <= 0) return;
+#ifdef CALL_SERVE
+  call_serve::frame(data, width, height, yuv420);  // its own lock and pace, apart from the tiles'
+#endif
+  if (own_open.load(std::memory_order_relaxed) <= 0 || !own_lock) return;
   if (xSemaphoreTake(own_lock, 0) != pdTRUE) return;
   const int64_t now = esp_timer_get_time();
   for (Stream *s : own_tiles) {

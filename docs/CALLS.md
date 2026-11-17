@@ -79,41 +79,37 @@ Two screens that both cancel echo start without it, and either key brings it. Th
 (in Home Assistant, under its configuration; on as it comes) lets a screen say it never wants its calls to start with it. The
 doorbell's Talk is always switched.
 
-### Without the add-on in the middle
+## Screen to screen
 
-Not built. What a look at it found (2026-11-17), for whoever takes it up:
+A call's media can go straight between the two screens, with ESP Screens only connecting them. Each screen serves its
+own camera and voice to the other one and takes the other's the same way (`call_serve.h`): a small server on port 8555
+answers `GET /call/<token>.mjpeg` with the stream a live view already plays, pictures as JPEG and the voice as `audio/L16`
+parts every 20 ms, the heads of its parts as ESP Screens writes them. The pictures are the camera's frames the screen is
+handed for its own view, scaled to at most 720 pixels a side and made into JPEG by the chip's own encoder
+(`picture_engine::encode`), ten a second at most; the voice is the microphone's parts after the board's own processing.
 
-- An ESP32-P4 does not decode H.264 in hardware: the block encodes only. Espressif's software decoder reaches 7 to 10 pictures a second
-  at 1280x720 with both cores to itself (its own figures), which a screen that also draws does not have.
-- JPEG both ways is the route, and the one Espressif's own call between two P4 boards takes: the hardware codec encodes and decodes
-  720p far faster than a call needs, one direction at a time behind one lock, about a fifth of a second of codec time a second for
-  ten pictures each way.
-- The catch is the camera's frame format: the JPEG encoder takes the Video part's YUV420 frames only on chip revision 3 and later, so
-  an older chip needs a pass of the PPA first, the device the picture engine already shares.
-- Sound stays plain PCM (the firmware has no Opus decoder), and the voice switch would move onto the screens.
-- The add-on's route stays as the fallback: client isolation, guest networks and VLANs keep two screens from reaching each other.
-- What decides it: PPA plus JPEG time a frame on a sending screen that also shows the other's picture, and screen to screen throughput
-  through one access point, which carries every picture twice.
+- **Who may.** A screen says `call_direct` in its hello (a P4 with a microphone), and has the switch **Direct calls** (in
+  Home Assistant, under its configuration), off as it comes while the route is new. A call goes direct only between two
+  screens that both say it and both have it on.
+- **The token.** ESP Screens makes one for each direction of each call. The live message brings a screen the token it
+  serves under (`ds`) and, as `l`, the other screen's address with the other's token; there is no `tk`. A screen answers
+  only under its token, only the other screen's address, and only while the call is live.
+- **The fall back.** A screen whose stream the other one does not come for within four seconds says `direct` with
+  `video` 0 in `esphome.screen_call`; ESP Screens then sends both the live message again with its own links, and that
+  call goes through it from there. Two addresses that cannot reach each other (a guest network, client isolation, a
+  VLAN) cannot be told from here, so the attempt decides.
 
-## Measuring a call from a desk
+Not run on a board yet (2026-11-17): it compiles for a Guition JC8012P4A1 V3 and a reTerminal D1001. Voice switching
+on the screens themselves is not built, so a direct call relies on the boards' echo cancelling. What a look before it
+found, for the measurements still to make:
 
-Whether a voice comes back is heard by the person at the other end, which makes every change a walk to another room. Two
-things take that out:
-
-- A call can be run without touching glass: fire `esphome.screen_call` in Home Assistant as a finger would (`dial`,
-  `answer` with the call's `key` from `esp_screens_call_started`, `end`, `switch`, `echo`).
-- With Debug mode on, a screen takes the op `call_bench` in `esphome.<node>_screen_message` (`v` 2): the op `call` as
-  it is, outside the app's feed, with `l` and `tk` naming a computer. That computer serves the stream of a far end (a
-  known voice as `audio/L16` parts, as `live_stream.part_head` writes them) and takes the screen's own voice on `tk`, so
-  it holds exactly what the far end would hear: the echo with the canceller at work and at rest (`s` `set`, `ec`), how
-  late it is, and what is left of a voice beside the board while the far end speaks.
-
-## The ring
-
-The screen rings on its own speaker, at full volume whatever its volume is set to, and goes back to its volume when the ring
-ends. 1.4 and 1.9 kHz: what these small speakers carry best.
-
-The switch **Call ringtone** of each screen (in Home Assistant, under its configuration) turns the ring off: the screen still lights up and shows who calls.
+- An ESP32-P4 does not decode H.264 in hardware: the block encodes only. Espressif's software decoder reaches 7 to 10
+  pictures a second at 1280x720 with both cores to itself (its own figures), which a screen that also draws does not have.
+- JPEG both ways is the route Espressif's own call between two P4 boards takes: the hardware codec encodes and decodes
+  720p far faster than a call needs, one direction at a time behind one lock.
+- The camera's frames are scaled by the PPA on the way, the device the picture engine already shares.
+- Through the app a call between these two boards showed 7 to 8 pictures a second each way, and once 3 from the
+  Guition while it also showed the other's picture: the number a direct call has to beat.
 
 ## Do not disturb
 

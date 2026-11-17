@@ -205,17 +205,26 @@ def scaled(data, gain, end=None):
 # Do not disturb (docs/CALLS.md): the screen's own switch, kept by the screen and read from Home Assistant. On, a call to it
 # is refused at once and the caller reads that it does not want to be disturbed; the doorbell is not a call and still rings.
 QUIET_SWITCH = ('switch', 'Do not disturb')
+# Direct calls (docs/CALLS.md, "Screen to screen"): the screen's own switch as well, off as it comes while the route is
+# new. A call goes direct only between two screens that both say `call_direct` and both have it on.
+DIRECT_SWITCH = ('switch', 'Direct calls')
 
 
-def quiet(items, states):
-    """Whether a screen's Do not disturb is on: `items` are the registry entries of its device, `states` Home Assistant's
-    states. A screen without the switch (no speaker, or firmware from before it) is never quiet."""
-    domain, name = QUIET_SWITCH
+def switch_on(items, states, switch):
+    """Whether a screen's own switch (domain, name) is on: `items` are the registry entries of its device, `states` Home
+    Assistant's states. A screen without the switch (firmware from before it, a board without the part) has it off."""
+    domain, name = switch
     for item in items or []:
         entity = item.get('entity_id') or ''
         if item.get('platform') == 'esphome' and item.get('original_name') == name and entity.split('.', 1)[0] == domain:
             return ((states or {}).get(entity) or {}).get('state') == 'on'
     return False
+
+
+def quiet(items, states):
+    """Whether a screen's Do not disturb is on. A screen without the switch (no speaker, or firmware from before it) is
+    never quiet."""
+    return switch_on(items, states, QUIET_SWITCH)
 
 
 class VoiceSwitch:
@@ -280,6 +289,23 @@ def contacts_messages(rows):
     short = [{**row, 'n': row['n'][:NAME_MOST]} for row in rows]
     parts = [short[i:i + ROWS_A_MESSAGE] for i in range(0, len(short), ROWS_A_MESSAGE)] or [[]]
     return [{'v': 1, 'op': 'contacts', 'r': part, 'p': i, 'more': int(i < len(parts) - 1)} for i, part in enumerate(parts)]
+
+
+# Direct media (docs/CALLS.md, "Screen to screen"): a screen that says `call_direct` in its hello serves its own camera
+# and microphone to the other screen of a call, on DIRECT_PORT, under a token ESP Screens makes for that call and that
+# direction. ESP Screens then only signals; its own route stays for every call that cannot go direct.
+DIRECT_FEATURE = 'call_direct'
+DIRECT_PORT = 8555      # call_serve.h PORT; tests/test_calls.py holds the two together
+
+
+def direct_tokens(a, b, new=lambda: secrets.token_urlsafe(16)):
+    """{node: the token that screen serves under} for one call."""
+    return {a: new(), b: new()}
+
+
+def direct_link(ip, token):
+    """Where a screen fetches the other screen's stream of a direct call."""
+    return f'http://{ip}:{DIRECT_PORT}/call/{token}.mjpeg'
 
 
 SET = 'set'     # the op `call` that only brings the call's choices (`vs`, `ec`) to a screen that is in it

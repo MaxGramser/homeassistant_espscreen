@@ -60,6 +60,8 @@ CONFIG_SCHEMA = cv.Schema({
 P4_STREAM_SOCKETS = 7
 # The talk uplink's own connection (talk_uplink.h): a screen's voice to the add-on, one at a time.
 TALK_SOCKETS = 1
+# A direct call's own server (call_serve.h): its door and the other screen.
+CALL_SOCKETS = 2
 PICTURE_SOCKETS = 3
 
 
@@ -79,7 +81,7 @@ def _sockets(config):
     import esphome.final_validate as fv
 
     if "USE_LIVE_VIEW" in _engine_of(fv.full_config.get())["defines"]:
-        socket.consume_sockets(P4_STREAM_SOCKETS + PICTURE_SOCKETS + TALK_SOCKETS, "smart_display")(config)
+        socket.consume_sockets(P4_STREAM_SOCKETS + PICTURE_SOCKETS + TALK_SOCKETS + CALL_SOCKETS, "smart_display")(config)
     return config
 
 

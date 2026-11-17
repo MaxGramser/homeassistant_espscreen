@@ -763,7 +763,12 @@ api:
                     #endif
                     // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
                     #ifdef SD_MOD_CALL
-                    if (live_view::available() && hw::caps().microphone && hw::caps().speaker) features.add("call");
+                    if (live_view::available() && hw::caps().microphone && hw::caps().speaker) {
+                      features.add("call");
+                      // call_direct: this screen serves its own camera and voice to the other screen of a call
+                      // (call_serve.h), so ESP Screens only signals where both screens say so.
+                      if (runtime_tiles::call::direct()) features.add("call_direct");
+                    }
                     #endif
                     #ifdef SD_MOD_VACUUM_CARD
                     features.add("vacuum_card");

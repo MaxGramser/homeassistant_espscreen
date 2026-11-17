@@ -47,12 +47,16 @@ std::atomic<State> now{State::OFF};
 std::atomic<float> shown_bar{0.0f};
 std::atomic<uint32_t> last_voice{0};
 std::atomic<bool> muted_now{false};
+std::atomic<StreamBufferHandle_t> tapped{nullptr};
 
 // The microphone's task: a whole part or none.
 void on_samples(const std::vector<uint8_t> &data) {
-  Run *r = run;
-  if (!r || r->stopping.load(std::memory_order_relaxed) || !r->buffer || data.empty()) return;
+  if (data.empty()) return;
   const size_t whole = data.size() & ~static_cast<size_t>(1);
+  if (StreamBufferHandle_t t = tapped.load(std::memory_order_acquire))
+    if (xStreamBufferSpacesAvailable(t) >= whole) xStreamBufferSend(t, data.data(), whole, 0);
+  Run *r = run;
+  if (!r || r->stopping.load(std::memory_order_relaxed) || !r->buffer) return;
   if (xStreamBufferSpacesAvailable(r->buffer) >= whole) xStreamBufferSend(r->buffer, data.data(), whole, 0);
 }
 
@@ -227,6 +231,18 @@ void stop() {
 }
 
 void set_muted(bool muted) { muted_now.store(muted, std::memory_order_relaxed); }
+
+void tap(void *stream_buffer) {
+  if (!source || !stream_buffer) return;
+  tapped.store(static_cast<StreamBufferHandle_t>(stream_buffer), std::memory_order_release);
+  source->start();
+}
+void untap() {
+  if (!tapped.exchange(nullptr, std::memory_order_acq_rel)) return;
+  // The microphone's task may be inside on_samples with the buffer it read a moment ago: it writes without waiting, and
+  // whoever tapped frees the buffer only after its own task is done, which is later than this by a part.
+  if (source && !run) source->stop();
+}
 
 float bar() { return shown_bar.load(std::memory_order_relaxed); }
 uint32_t voice_at() { return last_voice.load(std::memory_order_relaxed); }

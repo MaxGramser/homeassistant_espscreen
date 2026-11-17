@@ -1200,6 +1200,8 @@ class Manager:
         self.calls = calls.Calls()
         self.call_cameras_off = set()  # nodes in a call whose camera is off
         self.call_switches = {}        # the voice switch of each call that is up, by its key
+        self.call_direct = {}          # {node: token} of each call whose media go straight between its screens, by its key
+        self.call_relayed = set()      # keys of calls a screen could not reach the other for: through this app from then on
         screen_source.provider = self.call_rtsp
         self.store = LayoutStore(self.path, self.record_grid)
         # An app from before Language & region (app 0.2.90): its screens keep the 24 hours they show, until Home Assistant
@@ -4566,16 +4568,22 @@ class Manager:
                          'icon': CALL_ICON, 'hears': bool(caps.get('microphone')), 'speaks': bool(caps.get('speaker')),
                          'shows': bool(caps.get('live')),
                          'films': bool(caps.get('camera') and self.call_can_film(node)),
-                         'online': bool(screen.get('online')), 'quiet': self.call_quiet(screen)}
+                         'online': bool(screen.get('online')), 'quiet': self.call_quiet(screen),
+                         'direct': calls.DIRECT_FEATURE in features and self.call_switch_on(screen, calls.DIRECT_SWITCH),
+                         'ip': screen.get('ip') or ''}
         return out
 
-    def call_quiet(self, screen):
-        """Whether the screen's switch Do not disturb is on (calls.quiet)."""
+    def call_switch_on(self, screen, switch):
+        """Whether one of the screen's own call switches is on (calls.switch_on)."""
         device = screen.get('device_id')
         if not device:
             return False
-        return calls.quiet([item for item in getattr(self.ha, 'registry', None) or [] if isinstance(item, dict) and item.get('device_id') == device],
-                           getattr(self.ha, 'states', None))
+        return calls.switch_on([item for item in getattr(self.ha, 'registry', None) or [] if isinstance(item, dict) and item.get('device_id') == device],
+                               getattr(self.ha, 'states', None), switch)
+
+    def call_quiet(self, screen):
+        """Whether the screen's switch Do not disturb is on."""
+        return self.call_switch_on(screen, calls.QUIET_SWITCH)
 
     def call_can_film(self, node):
         return screen_source.url_of(screen_source.PREFIX + node) is not None
@@ -4613,12 +4621,29 @@ class Manager:
                 continue
             if out.state == calls.END:
                 self.call_switches.pop(out.key, None)
+                self.call_direct.pop(out.key, None)
+                self.call_relayed.discard(out.key)
             mine = known.get(out.node)
             if not mine:
                 continue
             peer = known.get(out.peer) or {}
             message = calls.message(out, name=peer.get('name', out.peer), icon=glyph_of(peer.get('icon') or CALL_ICON))
-            if out.state == calls.LIVE:
+            # Straight between the two screens where both can and neither said it could not reach the other
+            # (docs/CALLS.md, "Screen to screen"): each serves under its token and fetches the other's. Whether two
+            # addresses reach each other cannot be told from here, so the attempt decides and a screen says `direct`.
+            direct = (out.state == calls.LIVE and out.key not in self.call_relayed and mine.get('direct') and peer.get('direct')
+                      and mine.get('ip') and peer.get('ip'))
+            if direct:
+                tokens = self.call_direct.setdefault(out.key, calls.direct_tokens(out.node, out.peer))
+                video = out.video and out.peer not in self.call_cameras_off and peer.get('films')
+                message['ds'] = tokens[out.node]
+                message['l'] = calls.direct_link(peer['ip'], tokens[out.peer])
+                message['vd'] = int(bool(video))
+                message['pc'] = int(bool(video))
+                switch = self.call_switch(out.key, known)
+                if switch is not None:
+                    message.update(switch.keys())
+            elif out.state == calls.LIVE:
                 base = await self.link_base(mine['screen'])
                 if base:
                     video = out.video and out.peer not in self.call_cameras_off and peer.get('films')
@@ -4695,6 +4720,15 @@ class Manager:
                     if mine:
                         await self.send_auxiliary(mine['screen']['id'], calls.choices_message(call.key, switch.keys()),
                                                   self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
+        elif action == 'direct' and not video:
+            # A screen could not reach the other, or nothing came from it: the call goes on through this app.
+            call = self.calls.of(node)
+            if call and call.key not in self.call_relayed:
+                LOG.info('Call %s: %s could not reach the other screen, its media go through the app', call.key, node)
+                self.call_relayed.add(call.key)
+                self.call_direct.pop(call.key, None)
+                await self.call_send([calls.Say(call.caller, call.key, calls.LIVE, call.callee, call.video),
+                                      calls.Say(call.callee, call.key, calls.LIVE, call.caller, call.video)])
         elif action == 'camera':
             call = self.calls.of(node)
             if call:
