@@ -21,9 +21,10 @@ Zwei Punkte unten im grünen Panel zeigen, auf welcher Seite du bist.
 - **Wischen nach oben/unten**: heller/dunkler in 20-%-Schritten (10 bis 100 %); bleibt nach einem Neustart erhalten
   und steht auch im Regler „Helligkeit“ in Home Assistant.
 - **Nachtmodus**: Der Schalter „Nachtmodus“ des Geräts in Home Assistant schaltet das Licht aus. Eine Berührung weckt
-  das Display dann für 10 Minuten (Regler „Weckdauer im Nachtmodus“), jede weitere Berührung startet die Zeit neu. Wann es Nacht ist,
-  bestimmt eine Automation in Home Assistant (Beispiel in `home-assistant/wetter_display.yaml`, dort Zeiten, Anwesenheit
-  oder Sonnenstand eintragen).
+  das Display dann für 10 Minuten (Regler „Weckdauer im Nachtmodus“), jede weitere Berührung startet die Zeit neu. Wann das
+  Display aus ist, bestimmt die Automation in `home-assistant/automation_display_nachtruhe.yaml` (für
+  `automations.yaml`): aus von 23 bis 6 Uhr und wenn niemand zu Hause ist; nachts weckt Bewegung im Flur es für
+  20 Minuten mit 20 %, tagsüber schaltet Bewegung es wieder ein.
 
 ![Entwurf bei Tag](vorschau-tag.png) ![Entwurf mit Warnung](vorschau-warnung.png)
 ![Entwurf bei Nacht mit Vorwarnung](vorschau-nacht.png) ![Entwurf Raumklima](vorschau-innen.png)
@@ -116,7 +117,7 @@ Namen eintragen. Fehlt ein einzelner Sensor, zeigt das Display „--“.
    ```
 5. `home-assistant/wetter_display.yaml` nach `config/packages/wetter_display.yaml` kopieren und darin die Zeilen
    `wetter:`, `warnungen:` und `vorwarnungen:` auf deine Entitäten setzen (die beiden Warn-Entitäten stehen außerdem
-   bei den Auslösern oben); ganz unten in den Automationen die OpenUV-Entität und den Schalter für den Nachtmodus.
+   bei den Auslösern oben); ganz unten in der Automation die OpenUV-Entität.
 6. Home Assistant neu starten. Danach gibt es `sensor.display_wetter` mit den Attributen `tag_0` bis `tag_4`,
    `stunde_0` bis `stunde_4`, `sonne`, `warnung`, `vorwarnung`, `regen_satz` und `hunderunde`
    (Entwicklerwerkzeuge → Zustände).

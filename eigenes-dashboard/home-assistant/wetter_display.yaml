@@ -32,9 +32,8 @@
 # von selbst ab und erlaubt mit dem kostenlosen Schlüssel 50 Abfragen am Tag: Die Automation fragt tagsüber alle
 # 30 Minuten (im Sommer gut 30-mal am Tag). Die Entität unten bei "entity_id" anpassen.
 #
-# Und eine Beispiel-Automation für den Nachtmodus: Sie schaltet den Schalter "Nachtmodus" des Displays ein (Licht aus,
-# eine Berührung weckt es für 10 Minuten) und morgens wieder aus. Zeiten frei anpassen oder andere Auslöser nehmen,
-# z. B. Anwesenheit oder Sonnenstand. Die Entität des Schalters steht in Einstellungen > Geräte > Wetter-Display.
+# Wann das Display nachts oder bei Abwesenheit aus ist, steuert eine eigene Automation für automations.yaml:
+# home-assistant/automation_display_nachtruhe.yaml (Nachtruhe 23–6 Uhr, Anwesenheit, Bewegung im Flur).
 
 template:
   - triggers:
@@ -301,18 +300,3 @@ automation:
       - action: homeassistant.update_entity
         target:
           entity_id: sensor.controlroom_openuv_aktueller_uv_index
-
-  - id: wetter_display_nachtmodus
-    alias: "Wetter-Display: Nachtmodus"
-    mode: single
-    triggers:
-      - trigger: time
-        at: "23:00:00"
-        id: nacht
-      - trigger: time
-        at: "06:00:00"
-        id: tag
-    actions:
-      - action: "switch.turn_{{ 'on' if trigger.id == 'nacht' else 'off' }}"
-        target:
-          entity_id: switch.wetter_display_nachtmodus
