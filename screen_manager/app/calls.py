@@ -182,7 +182,8 @@ class Calls:
 
 
 # Voice switching (docs/CALLS.md): while one side speaks the other side's microphone goes down by about 18 dB, so a voice does
-# not come back from the other loudspeaker; a screen with an echo canceller of its own needs none of it.
+# not come back from the other loudspeaker; a screen with an echo canceller of its own needs none of it, and a person turns it
+# off for their own microphone on the screen, for the call (its key) or for good (the screen's switch).
 HOLD_SECONDS, DUCK, FLOOR = 0.25, 0.125, 380
 
 
@@ -199,14 +200,47 @@ def scaled(data, gain, end=None):
     return array.array('h', (int(v * (gain + (end - gain) * i / n)) for i, v in enumerate(samples))).tobytes()
 
 
+# Do not disturb (docs/CALLS.md): the screen's own switch, kept by the screen and read from Home Assistant. On, a call to it
+# is refused at once and the caller reads that it does not want to be disturbed; the doorbell is not a call and still rings.
+QUIET_SWITCH = ('switch', 'Do not disturb')
+
+
+def quiet(items, states):
+    """Whether a screen's Do not disturb is on: `items` are the registry entries of its device, `states` Home Assistant's
+    states. A screen without the switch (no speaker, or firmware from before it) is never quiet."""
+    domain, name = QUIET_SWITCH
+    for item in items or []:
+        entity = item.get('entity_id') or ''
+        if item.get('platform') == 'esphome' and item.get('original_name') == name and entity.split('.', 1)[0] == domain:
+            return ((states or {}).get(entity) or {}).get('state') == 'on'
+    return False
+
+
 class VoiceSwitch:
     """One call's two microphones. `feed(node, part, now)` is the part as it should go on. The one who speaks first holds the
-    line until HOLD_SECONDS after their last word; a side with its own echo canceller (`cancels`) is never turned down."""
+    line until HOLD_SECONDS after their last word; a side with its own echo canceller (`cancels`) is never turned down, and
+    neither is a side whose person turned the switching off (`turn`)."""
 
     def __init__(self, a, b, cancels=()):
-        self.nodes, self.cancels = (a, b), set(cancels)
+        self.nodes, self.cancels, self.open = (a, b), set(cancels), set()
         self.last, self.noise, self.gain = {a: 0.0, b: 0.0}, {a: FLOOR, b: FLOOR}, {a: 1.0, b: 1.0}
         self.talker = None
+
+    def offered(self, node):
+        """Whether `node` has the switching at all (a key for it on its glass): not with an echo canceller of its own."""
+        return node in self.nodes and node not in self.cancels
+
+    def switching(self, node):
+        """Whether `node`'s microphone goes down while the other side speaks."""
+        return self.offered(node) and node not in self.open
+
+    def turn(self, node, on):
+        """The person at `node` turned the switching on or off for their own microphone."""
+        if not self.offered(node):
+            return
+        (self.open.discard if on else self.open.add)(node)
+        if not on:
+            self.gain[node] = 1.0
 
     def feed(self, node, data, now):
         samples = array.array('h')
@@ -219,7 +253,7 @@ class VoiceSwitch:
             self.last[node] = now
         if self.talker is None or now - self.last[self.talker] > HOLD_SECONDS:
             self.talker = node if loud else None
-        held = self.talker is not None and self.talker != node and node not in self.cancels
+        held = self.talker is not None and self.talker != node and self.switching(node)
         target = DUCK if held else 1.0
         out = scaled(data, self.gain[node], target) if self.gain[node] != 1.0 or target != 1.0 else bytes(data)
         self.gain[node] = target
@@ -240,8 +274,9 @@ def contacts_messages(rows):
     return [{'v': 1, 'op': 'contacts', 'r': part, 'p': i, 'more': int(i < len(parts) - 1)} for i, part in enumerate(parts)]
 
 
-def message(say, name='', icon='', link='', peer_camera=True):
-    """The op `call` for a `Say` (docs/CALLS.md): additive fields, a screen without the feature never gets it."""
+def message(say, name='', icon='', link='', peer_camera=True, voice_switch=None):
+    """The op `call` for a `Say` (docs/CALLS.md): additive fields, a screen without the feature never gets it. `voice_switch`
+    is whether this screen's microphone is switched (`vs`), None for a screen that is never switched: it gets no key for it."""
     out = {'v': 1, 'op': 'call', 'k': say.key, 's': say.state, 'n': name[:60], 'vd': int(say.video)}
     if icon:
         out['i'] = icon
@@ -249,6 +284,8 @@ def message(say, name='', icon='', link='', peer_camera=True):
         out['l'] = link
     if say.state == LIVE:
         out['pc'] = int(peer_camera)
+        if voice_switch is not None:
+            out['vs'] = int(voice_switch)
     if say.state == END:
         out['w'] = say.why
     return out

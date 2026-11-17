@@ -4566,8 +4566,16 @@ class Manager:
                          'icon': CALL_ICON, 'hears': bool(caps.get('microphone')), 'speaks': bool(caps.get('speaker')),
                          'shows': bool(caps.get('live')),
                          'films': bool(caps.get('camera') and self.call_can_film(node)),
-                         'online': bool(screen.get('online')), 'quiet': False}
+                         'online': bool(screen.get('online')), 'quiet': self.call_quiet(screen)}
         return out
+
+    def call_quiet(self, screen):
+        """Whether the screen's switch Do not disturb is on (calls.quiet)."""
+        device = screen.get('device_id')
+        if not device:
+            return False
+        return calls.quiet([item for item in getattr(self.ha, 'registry', None) or [] if isinstance(item, dict) and item.get('device_id') == device],
+                           getattr(self.ha, 'states', None))
 
     def call_can_film(self, node):
         return screen_source.url_of(screen_source.PREFIX + node) is not None
@@ -4621,15 +4629,24 @@ class Manager:
                     message['pc'] = int(bool(video))
                     talk = self.talks.link(f'call:{out.node}', screen=mine['screen']['id'], into=self.call_voice_to(out.node, out.key, known))
                     message['tk'] = f'{base}/camera/{talk}/talk'
+                    # Whether this screen's microphone is switched, for its key (docs/CALLS.md, "Echo"); none for a screen
+                    # that cancels echo itself.
+                    switch = self.call_switch(out.key, known)
+                    if switch is not None and switch.offered(out.node):
+                        message['vs'] = int(switch.switching(out.node))
             await self.send_auxiliary(mine['screen']['id'], message, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
 
-    def call_voice_to(self, node, key, known):
-        """Where `node`'s voice goes: through the call's voice switch, to whichever stream of it the other end listens to."""
+    def call_switch(self, key, known):
+        """The voice switch of the call `key`, made when its first end goes live; None once the call is gone."""
         call = self.calls.calls.get(key)
         if key not in self.call_switches and call:
             cancels = [each for each in (call.caller, call.callee) if ((self.caps_of_screen(known[each]['screen']) or {}).get('echo_cancel') if each in known else False)]
             self.call_switches[key] = calls.VoiceSwitch(call.caller, call.callee, cancels)
-        switch = self.call_switches.get(key)
+        return self.call_switches.get(key)
+
+    def call_voice_to(self, node, key, known):
+        """Where `node`'s voice goes: through the call's voice switch, to whichever stream of it the other end listens to."""
+        switch = self.call_switch(key, known)
 
         def feed(data):
             part = switch.feed(node, data, time.monotonic()) if switch else data
@@ -4667,6 +4684,12 @@ class Manager:
             if call:
                 self.call_cameras_off.discard(call.caller)
                 self.call_cameras_off.discard(call.callee)
+        elif action == 'switch':
+            # The key for voice switching, or the screen's own switch as the call goes live: this screen's microphone only.
+            call = self.calls.of(node)
+            switch = self.call_switches.get(call.key) if call else None
+            if switch is not None:
+                switch.turn(node, video)
         elif action == 'camera':
             call = self.calls.of(node)
             if call:

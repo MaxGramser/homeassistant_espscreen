@@ -198,6 +198,44 @@ def test_a_side_with_its_own_canceller_is_never_turned_down():
     assert level_of(s.feed('b', tone(3000), 0.02)) > 2900
 
 
+def test_a_person_turns_the_switching_off_for_their_own_microphone_and_on_again():
+    s = calls.VoiceSwitch('a', 'b', cancels=['a'])
+    assert s.offered('b') and s.switching('b')
+    assert not s.offered('a')                    # cancels echo itself: no key for it, and turning it does nothing
+    s.turn('a', True)
+    s.feed('a', tone(5000), 0.0)
+    s.feed('b', tone(3000), 0.01)                # the part in which the level goes down
+    assert level_of(s.feed('b', tone(3000), 0.02)) < 3000 * calls.DUCK * 1.1
+    s.turn('b', False)
+    assert not s.switching('b')
+    assert level_of(s.feed('b', tone(3000), 0.04)) > 2900    # at once, with no ramp left from before
+    s.turn('b', True)
+    s.feed('b', tone(3000), 0.06)
+    assert level_of(s.feed('b', tone(3000), 0.08)) < 3000 * calls.DUCK * 1.1
+
+
+def test_the_live_message_says_whether_this_screens_microphone_is_switched():
+    live = calls.Say('a', 'k', calls.LIVE, 'b', True)
+    assert 'vs' not in calls.message(live)
+    assert calls.message(live, voice_switch=True)['vs'] == 1
+    assert calls.message(live, voice_switch=False)['vs'] == 0
+
+
+def test_do_not_disturb_is_the_screens_own_switch_read_from_home_assistant():
+    items = [{'platform': 'esphome', 'entity_id': 'switch.hall_do_not_disturb', 'original_name': 'Do not disturb'},
+             {'platform': 'esphome', 'entity_id': 'switch.hall_call_ringtone', 'original_name': 'Call ringtone'},
+             {'platform': 'other', 'entity_id': 'switch.something_do_not_disturb', 'original_name': 'Do not disturb'}]
+    assert calls.quiet(items, {'switch.hall_do_not_disturb': {'state': 'on'}})
+    assert not calls.quiet(items, {'switch.hall_do_not_disturb': {'state': 'off'}, 'switch.something_do_not_disturb': {'state': 'on'}})
+    assert not calls.quiet(items, {})                       # Home Assistant has no state yet
+    assert not calls.quiet(items[1:], {'switch.something_do_not_disturb': {'state': 'on'}})   # a screen without the switch
+    # A quiet screen refuses the call at once, and the caller reads why.
+    m = machine()
+    out = m.dial('a', 'b', False, 0.0, quiet=True)
+    assert [(o.node, o.state, o.why) for o in out if isinstance(o, calls.Say)] == [('a', calls.END, calls.QUIET)]
+    assert not m.calls
+
+
 def test_the_rooms_noise_is_no_voice():
     s = calls.VoiceSwitch('a', 'b')
     for n in range(40):
@@ -218,3 +256,11 @@ def test_a_screen_without_the_feature_gets_no_call_tile():
 def test_with_no_call_up_the_app_only_waits():
     source = (pathlib.Path(__file__).resolve().parent.parent / 'screen_manager/app/server.py').read_text()
     assert 'asyncio.wait_for(self.ha.call_events.get(), 1 if self.calls.calls else None)' in source
+
+
+def load_tests(loader, tests, pattern):
+    """The functions above as unittest's tests: the check runs `unittest discover`, which finds classes only, and passed
+    these by until 2026-11-17."""
+    import unittest
+    return unittest.TestSuite(unittest.FunctionTestCase(test) for name, test in sorted(globals().items())
+                              if name.startswith('test_') and callable(test))

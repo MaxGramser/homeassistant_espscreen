@@ -47,6 +47,7 @@ substitutions:
     runtime_tiles::call_audio(id(ts_speaker), []() { return id(ts_speaker_out)->get_volume(); },
                               [](float volume) { id(ts_speaker_out)->set_volume(volume); },
                               []() { return id(ts_call_ringtone).state; },
+                              []() { return id(ts_call_voice_switching).state; },
                               ${ ((AUDIO_VOLUME_DB_HIGH | float) - (AUDIO_DAC_DB_AT_0 | float)) / ((AUDIO_DAC_DB_AT_1 | float) - (AUDIO_DAC_DB_AT_0 | float)) }f);
     if (!${AUDIO_HALF_DUPLEX}) {
       id(ts_speaker_out)->set_audio_stream_info(audio::AudioStreamInfo(16, 1, ${AUDIO_SAMPLE_RATE}));
@@ -64,9 +65,9 @@ substitutions:
 # A call's keys (module call, docs/CALLS.md): glyphs only a board with sound needs, so a CYD pays nothing for them.
 font:
   - id: !extend materialdesign_icons
-    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568"]
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4"]
   - id: !extend materialdesign_icons_mini
-    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568"]
+    glyphs: ["\U000F036D", "\U000F03F5", "\U000F03FA", "\U000F0567", "\U000F0568", "\U000F05CB", "\U000F0ED4"]
 
 # Whether the microphone listens: off mutes it for everything that reads it, kept over a restart. The same switch in
 # Home Assistant, in the app (boards.yaml `settings`) and on the screen's settings page.
@@ -76,6 +77,25 @@ switch:
     id: ts_call_ringtone
     name: "Call ringtone"
     icon: "mdi:phone-ring"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  # Do not disturb (docs/CALLS.md): on, a call to this screen is refused at once and the caller reads why. ESP Screens reads
+  # the switch from Home Assistant; the doorbell is not a call and still rings.
+  - platform: template
+    id: ts_call_do_not_disturb
+    name: "Do not disturb"
+    icon: "mdi:bell-off"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+  # Whether a call starts with voice switching for this screen's microphone (docs/CALLS.md, "Echo"): on, it goes down
+  # while the other side speaks, so their voice does not come back to them; off, it stays open and both can speak at once.
+  # The key in a call changes it for that call. A screen that cancels echo itself is never switched, whatever this says.
+  - platform: template
+    id: ts_call_voice_switching
+    name: "Call voice switching"
+    icon: "mdi:account-voice"
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON

@@ -27,6 +27,7 @@ std::function<void(const std::string &, const std::string &, bool, const std::st
 std::function<float()> volume_get;
 std::function<void(float)> volume_set;
 std::function<bool()> ring_on;
+std::function<bool()> switch_on;
 float ring_top = 1.0f;
 
 namespace {
@@ -34,6 +35,7 @@ const char *const TAG = "call";
 const char *const PHONE = "\U000F03F2", *const HANGUP = "\U000F03F5", *const VIDEO = "\U000F0567", *const VIDEO_OFF = "\U000F0568";
 const char *const MIC = "\U000F036C", *const MIC_OFF = "\U000F036D", *const SPEAKER = "\U000F057E", *const SILENT = "\U000F0581";
 const char *const CLOSE = "\U000F0156", *const MISSED = "\U000F03FA";
+const char *const TURNS = "\U000F05CB", *const TURNS_OFF = "\U000F0ED4";  // voice switching: one speaks at a time
 const char *const FAKE_CAMERA = "camera.tessera_call";
 constexpr uint32_t CLAIM_ID = 78, END_SHOWN_MS = 2500, RING_EVERY_MS = 3000, RING_GONE_MS = 60000;
 // A key's disc a quarter larger than a tile's circle, on a dark ground (the study's key_d).
@@ -43,11 +45,13 @@ enum class Stage : uint8_t { NONE, OUT, RING, LIVE, ENDED };
 Stage stage = Stage::NONE;
 std::string call_key, peer_name, peer_icon, stream_link, talk_link, end_why;
 bool with_video = false, peer_films = true, mic_off = false, camera_off = false, on_hold = false;
+// Voice switching (docs/CALLS.md, "Echo"): whether ESP Screens offers it for this screen's microphone, and whether it is on.
+bool can_switch = false, switching = true;
 uint32_t live_since = 0, end_at = 0, last_ring = 0, ring_since = 0;
 // The call that is not on the camera's view: going out, coming in, how it ended. On the top layer.
 lv_obj_t *card = nullptr, *list = nullptr;
 lv_obj_t *timer_label = nullptr, *mic_key = nullptr, *mic_glyph = nullptr, *speaker_key = nullptr, *speaker_glyph = nullptr,
-         *camera_key_obj = nullptr, *camera_glyph = nullptr;
+         *camera_key_obj = nullptr, *camera_glyph = nullptr, *turns_key = nullptr, *turns_glyph = nullptr;
 std::string timer_said;
 live_view::Rect room{};
 
@@ -260,6 +264,11 @@ void paint_keys() {
     lv_label_set_text(speaker_glyph, camera_muted ? SILENT : SPEAKER);
     lv_obj_set_style_text_color(speaker_glyph, lv_color_hex(camera_muted ? dark : ink), 0);
   }
+  if (turns_key) {
+    lv_obj_set_style_bg_color(turns_key, lv_color_hex(on_off(!switching)), 0);
+    lv_label_set_text(turns_glyph, switching ? TURNS : TURNS_OFF);
+    lv_obj_set_style_text_color(turns_glyph, lv_color_hex(switching ? ink : dark), 0);
+  }
   if (camera_key_obj) {
     lv_obj_set_style_bg_color(camera_key_obj, lv_color_hex(on_off(camera_off)), 0);
     lv_label_set_text(camera_glyph, camera_off ? VIDEO_OFF : VIDEO);
@@ -276,6 +285,11 @@ void mic_cb(lv_event_t *) {
 void speaker_cb(lv_event_t *) {
   camera_muted = !camera_muted;
   live_view::mute(camera.stream.handle, camera_muted);
+  paint_keys();
+}
+void turns_cb(lv_event_t *) {
+  switching = !switching;
+  say("switch", "", switching);
   paint_keys();
 }
 void camera_cb(lv_event_t *) {
@@ -296,6 +310,8 @@ void lay_keys(lv_obj_t *root, const KeySpots &at, int d) {
   };
   mic_key = place(mic_cb, MIC, on_off(false), &mic_glyph);
   speaker_key = place(speaker_cb, SPEAKER, on_off(false), &speaker_glyph);
+  turns_key = turns_glyph = nullptr;
+  if (can_switch) turns_key = place(turns_cb, TURNS, on_off(false), &turns_glyph);
   camera_key_obj = camera_glyph = nullptr;
   if (with_video) camera_key_obj = place(camera_cb, VIDEO, on_off(false), &camera_glyph);
   place(hang_up_cb, HANGUP, red(), nullptr);
@@ -310,7 +326,7 @@ std::string timer_text() {
 }
 
 void forget_view_parts() {
-  timer_label = mic_key = mic_glyph = speaker_key = speaker_glyph = camera_key_obj = camera_glyph = nullptr;
+  timer_label = mic_key = mic_glyph = speaker_key = speaker_glyph = camera_key_obj = camera_glyph = turns_key = turns_glyph = nullptr;
   room = {};
 }
 
@@ -498,7 +514,7 @@ void on_contacts(const std::string &text_rows, bool append, bool more) {
 }
 
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
-             const std::string &new_link, const std::string &talk, bool films, const std::string &why) {
+             const std::string &new_link, const std::string &talk, bool films, const std::string &why, int voice_switch) {
   ESP_LOGI(TAG, "%s %s", state.c_str(), name.c_str());
   if (state != "ring") ring_stop();
   if (state == "end") {
@@ -544,7 +560,16 @@ void on_call(const std::string &state, const std::string &key, const std::string
     stream_link = new_link;
     talk_link = talk;
     on_hold = false;
-    if (!again) live_since = esphome::millis();
+    if (!again) {
+      live_since = esphome::millis();
+      // The call starts as the screen's own switch says; where that differs from what ESP Screens starts with, it hears so.
+      can_switch = voice_switch >= 0;
+      switching = voice_switch == 1;
+      if (can_switch && switch_on && switch_on() != switching) {
+        switching = !switching;
+        say("switch", "", switching);
+      }
+    }
     stage = Stage::LIVE;
     if (again && !changed) {
       talk_uplink::set_muted(mic_off);
@@ -568,9 +593,14 @@ void sound_changed() { paint_keys(); }
 void build(lv_obj_t *root, const std::string &name) {
   forget_view_parts();
   const auto m = detail_bar::metrics();
-  const int w = overlay_card::screen_width(), h = overlay_card::screen_height(), d = key_d(), gap = m.gap * 2;
+  const int w = overlay_card::screen_width(), h = overlay_card::screen_height(), d = key_d();
   const bool lying = w * 10 > h * 12;
-  const int keys = with_video ? 4 : 3;
+  const int keys = (with_video ? 4 : 3) + (can_switch ? 1 : 0);
+  // The keys stand a double gap apart, and closer where the glass is too short for them all (five with video and voice
+  // switching): the column of a lying glass shares its side with the timer.
+  const int line = detail_font ? lv_font_get_line_height(detail_font) : 20;
+  const int along = with_video && lying ? h - 2 * m.y - line : w - 2 * m.x;
+  const int gap = std::max(m.gap / 2, std::min(m.gap * 2, (along - keys * d) / (keys - 1)));
   if (with_video) {
     // The other's picture in the room beside or above the keys (the doorbell's way, until the overlay of the next step).
     if (lying) room = {m.x, m.y, w - 3 * m.x - d, h - 2 * m.y};

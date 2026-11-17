@@ -61,7 +61,34 @@ once, and **Kind of call**, video where both ends can or sound only.
 ## Echo
 
 While one side speaks the other side's microphone goes down by 18 dB, for a quarter of a second after the last word (`calls.VoiceSwitch`).
-A screen that cancels echo itself (`echo_cancel` in its capabilities) is left alone. The doorbell's Talk is always switched.
+It keeps a voice from coming back out of the other loudspeaker, at a price: the two cannot speak at once. So it is a person's choice,
+for their own microphone:
+
+- The switch **Call voice switching** of each screen (in Home Assistant, under its configuration) is what a call starts with. On, as
+  it comes.
+- A key in the call (one person speaking, `mdi:account-voice`) turns it off and on for that call. Off, this screen's microphone
+  stays open whoever speaks.
+
+The screen says both with the action `switch` of `esphome.screen_call` (`video` 1 for on), and the op `call` of a live call tells the
+screen whether its microphone is switched (`vs`). A screen that cancels echo itself (`echo_cancel` in its capabilities) is never
+switched: its message has no `vs`, and it shows no key. An app from before the key sends no `vs` either. The doorbell's Talk is
+always switched.
+
+### Without the add-on in the middle
+
+Not built. What a look at it found (2026-11-17), for whoever takes it up:
+
+- An ESP32-P4 does not decode H.264 in hardware: the block encodes only. Espressif's software decoder reaches 7 to 10 pictures a second
+  at 1280x720 with both cores to itself (its own figures), which a screen that also draws does not have.
+- JPEG both ways is the route, and the one Espressif's own call between two P4 boards takes: the hardware codec encodes and decodes
+  720p far faster than a call needs, one direction at a time behind one lock, about a fifth of a second of codec time a second for
+  ten pictures each way.
+- The catch is the camera's frame format: the JPEG encoder takes the Video part's YUV420 frames only on chip revision 3 and later, so
+  an older chip needs a pass of the PPA first, the device the picture engine already shares.
+- Sound stays plain PCM (the firmware has no Opus decoder), and the voice switch would move onto the screens.
+- The add-on's route stays as the fallback: client isolation, guest networks and VLANs keep two screens from reaching each other.
+- What decides it: PPA plus JPEG time a frame on a sending screen that also shows the other's picture, and screen to screen throughput
+  through one access point, which carries every picture twice.
 
 ## The ring
 
@@ -69,6 +96,13 @@ The screen rings on its own speaker, at full volume whatever its volume is set t
 ends. 1.4 and 1.9 kHz: what these small speakers carry best.
 
 The switch **Call ringtone** of each screen (in Home Assistant, under its configuration) turns the ring off: the screen still lights up and shows who calls.
+
+## Do not disturb
+
+The switch **Do not disturb** of each screen (in Home Assistant, under its configuration; off as it comes, kept by the screen). On, a
+call to the screen is refused at once: nothing rings or lights up there, the caller reads that the screen does not want to be
+disturbed, and the list of screens shows it. ESP Screens reads the switch from Home Assistant (`calls.quiet`). The doorbell is not a
+call and still rings. As a switch it takes an automation: on at night, off in the morning.
 
 ## The picture in a call
 

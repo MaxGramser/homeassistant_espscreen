@@ -30,11 +30,16 @@ extern std::function<float()> volume_get;
 extern std::function<void(float)> volume_set;
 // The switch "Call ringtone": off, a call lights the screen up and shows who calls, without a sound.
 extern std::function<bool()> ring_on;
+// The switch "Call voice switching" (docs/CALLS.md, "Echo"): what a call starts with for this screen's microphone. Its key
+// in the call changes it for that call.
+extern std::function<bool()> switch_on;
 
+// `voice_switch`: whether ESP Screens switches this screen's microphone (1 or 0), -1 when it never does (a screen that
+// cancels echo itself, or an app from before the key): no key then.
 // The op `call` (state out, ring, live, held, end) and the op `contacts`: the list, as a JSON text of rows, in parts
 // for a house with many screens (`append` a later part, `more` a part still to come).
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
-             const std::string &link, const std::string &talk, bool peer_camera, const std::string &why);
+             const std::string &link, const std::string &talk, bool peer_camera, const std::string &why, int voice_switch = -1);
 void on_contacts(const std::string &rows, bool append, bool more);
 // The Call tile's tap.
 void open_list();
