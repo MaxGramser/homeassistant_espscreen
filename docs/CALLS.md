@@ -74,8 +74,10 @@ side of the call has a canceller. A press on either screen changes it for the ca
 the live message does when the call starts. A board with a canceller puts it to work or to rest as the call says and leaves it as
 it found it when the call ends.
 
-The switch **Call voice switching** of each screen (in Home Assistant, under its configuration; on as it comes) says what its calls
-start with: off on either screen, the call starts without it. The doorbell's Talk is always switched.
+A call starts with echo cancelling on, and with voice switching only where it is needed: when one of its screens has no canceller.
+Two screens that both cancel echo start without it, and either key brings it. The switch **Call voice switching** of each screen
+(in Home Assistant, under its configuration; on as it comes) lets a screen say it never wants its calls to start with it. The
+doorbell's Talk is always switched.
 
 ### Without the add-on in the middle
 

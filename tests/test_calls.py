@@ -199,6 +199,8 @@ def test_a_side_with_its_own_canceller_is_never_turned_down():
 
 
 def test_voice_switching_and_echo_cancelling_are_the_calls_choices_for_both_screens():
+    # Two screens that both cancel echo start without voice switching; one that cannot brings it from the start.
+    assert calls.VoiceSwitch('a', 'b', cancels=['a', 'b']).keys() == {'vs': 0, 'ec': 1}
     s = calls.VoiceSwitch('a', 'b', cancels=['a'])
     assert s.keys() == {'vs': 1, 'ec': 1}
     assert s.switching('b') and not s.switching('a')      # a's canceller is at work: a is not turned down

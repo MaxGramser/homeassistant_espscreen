@@ -99,6 +99,9 @@ std::string receive(const std::string &payload) {
     // add-on's session: the op `call` as it is, with links to a computer that plays the other screen, so what a screen
     // sends back of the far end's voice is measured instead of listened for.
     if (op == "call_bench" && settings_screen::debug_mode) return [&]() __attribute__((noinline)) -> bool {
+      // `nl`: the canceller's level for this measurement (0 normal, 1 aggressive, 2 very aggressive), until a restart.
+      if (root["nl"].is<unsigned>() && call::echo_level) call::echo_level(root["nl"].as<unsigned>());
+      if (string(root["s"], 8).empty()) { result = "Call bench"; return true; }
       call::on_call(string(root["s"], 8), string(root["k"], 16), string(root["n"], 60), string(root["i"], 8),
                     root["vd"].is<unsigned>() && root["vd"].as<unsigned>() == 1, string(root["l"], 200), string(root["tk"], 200),
                     !(root["pc"].is<unsigned>() && root["pc"].as<unsigned>() == 0), string(root["w"], 16),

@@ -731,7 +731,8 @@
    "order": 9,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -879,7 +880,8 @@
    "order": 10,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -1168,7 +1170,8 @@
    "order": 21,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -1317,7 +1320,8 @@
    "order": 4,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "new",
    "touch": "GSL3670"
@@ -1466,7 +1470,8 @@
    "order": 15,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3680"
@@ -1615,7 +1620,8 @@
    "order": 5,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3680"
@@ -1905,7 +1911,8 @@
    "settings": [
     "media_player",
     "microphone",
-    "wake_when_moved"
+    "wake_when_moved",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3670"
@@ -5154,7 +5161,8 @@
    "order": 9,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -5302,7 +5310,8 @@
    "order": 10,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -5591,7 +5600,8 @@
    "order": 21,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -5740,7 +5750,8 @@
    "order": 4,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "new",
    "touch": "GSL3670"
@@ -5889,7 +5900,8 @@
    "order": 15,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3680"
@@ -6038,7 +6050,8 @@
    "order": 5,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3680"
@@ -7032,7 +7045,8 @@
    "order": 9,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -7180,7 +7194,8 @@
    "order": 10,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -7469,7 +7484,8 @@
    "order": 21,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -7618,7 +7634,8 @@
    "order": 4,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "new",
    "touch": "GSL3670"
@@ -7767,7 +7784,8 @@
    "order": 15,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3680"
@@ -7916,7 +7934,8 @@
    "order": 5,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3680"
@@ -8206,7 +8225,8 @@
    "settings": [
     "media_player",
     "microphone",
-    "wake_when_moved"
+    "wake_when_moved",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3670"
@@ -10751,7 +10771,8 @@
    "settings": [
     "media_player",
     "microphone",
-    "wake_when_moved"
+    "wake_when_moved",
+    "echo_cancellation"
    ],
    "status": "experimental",
    "touch": "GSL3670"

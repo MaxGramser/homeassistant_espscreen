@@ -33,6 +33,14 @@ namespace esphome::esp_aec {
 
 static const char *const TAG = "esp_aec";
 
+void EspAec::set_nlp_level_now(int level) {
+  if (level < 0 || level > 2) return;
+  this->nlp_level_ = level;
+  if (this->handle_mutex_ == nullptr) return;
+  esp_audio_stack::ScopedLock lock(this->handle_mutex_);
+  if (lock) this->apply_nlp_level_(this->handle_);
+}
+
 void EspAec::apply_nlp_level_(void *handle) {
 #ifdef ESP_AEC_HAS_NLP_LEVEL
   if (this->nlp_level_ < 0 || handle == nullptr) return;

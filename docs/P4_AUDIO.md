@@ -15,13 +15,14 @@ and the [ESP32-P4-WIFI6-Touch-LCD-10.1](WAVESHARE101.md). All three are experime
 | --- | --- | --- | --- | --- |
 | Waveshare 86 panel, LCD-7B, LCD-7, LCD-10.1 | ES8311 + ES7210 | AEC by default, half-duplex I2S optional | Yes (ES7210 MIC3 reference) | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation |
 | M5Stack Tab5 | ES8388 + ES7210 | AEC by default, half-duplex I2S optional | Yes | Volume, Microphone, Echo cancellation |
-| Guition JC8012P4A1 (all builds), JC1060P470 (both), JC4880P443 | ES8311 alone | Full duplex at 16 kHz: two I2S ports on the codec's one bus, or the AEC transport by choice | By choice: the codec's own feedback is the reference (below) | Volume, Microphone; with the AEC transport also Echo cancellation |
+| Guition JC8012P4A1 (all builds), JC1060P470 (both), JC4880P443 | ES8311 alone | AEC by default on the codec's one bus; two I2S ports on it without the AEC libraries by choice | Yes: the codec's own feedback is the reference (below) | Volume, Microphone, Echo cancellation |
 | CrowPanel Advanced 10.1 | NS4168 amplifier, PDM microphone | Two I2S buses | No | Volume, Microphone |
-| reTerminal D1001 | ES8311 + ES7210 | Two I2S buses, or the same with the AEC transport by choice | By choice: the ES7210's MIC3 carries the ES8311's line output (below) | Volume, Microphone; with the AEC transport also Echo cancellation |
+| reTerminal D1001 | ES8311 + ES7210 | Two I2S buses, the microphones' with AEC by default | Yes: the ES7210's MIC3 carries the ES8311's line output (below) | Volume, Microphone, Wake when moved, Echo cancellation |
 
 The Guition panels' one ES8311 plays the speaker and reads an analogue microphone on its own input
 (`packages/hardware/guition-p4-audio.yaml`, the part `parts/es8311-voice.yaml`). It has two transports, as the ES7210's
-part has. The plain one, the default: the speaker and the microphone work at the same time without echo cancelling, two of
+part has. The one with echo cancelling is the default ("The ES8311's own reference" below). The plain one, `AUDIO_TRANSPORT: "i2s"`
+in a screen's Override YAML: the speaker and the microphone work at the same time without echo cancelling, two of
 the chip's I2S ports share the codec's clock pins, the microphone's port giving the clocks (ESPHome's `primary`)
 and the speaker's following them (`secondary`), as [@Eugen417](https://github.com/Eugen417) runs it on a
 JC8012P4A1 V3 (#259). ESPHome runs a microphone only while something listens, so the board listens from the
@@ -32,8 +33,7 @@ start to keep the clocks running for the speaker. The Guition pages ([JC8012P4A1
 
 The ES8311 needs no wire for a playback reference: with its register 0x44 at 0x58 it sends two slots, the microphone
 on the left and, on the right, the right slot of what it was given to play, sample for sample (Espressif's
-`esp_codec_dev` sets the same). `AUDIO_TRANSPORT: "aec"` in a screen's Override YAML picks the transport built on it
-(`parts/es8311/aec.yaml`): the pinned audio stack on the one bus, two slots each way, and the same echo cancelling as
+`esp_codec_dev` sets the same). The default transport is built on it (`parts/es8311/aec.yaml`, `AUDIO_TRANSPORT: "aec"`): the pinned audio stack on the one bus, two slots each way, and the same echo cancelling as
 the boards with an ES7210 (`parts/echo-cancel.yaml`). The reference is taken before the codec's volume.
 
 Measured on a Guition JC8012P4A1 V3 with a firmware of nothing but this path (2026-11-17): noise under 4 kHz from the
@@ -49,13 +49,13 @@ board's own speaker, the level left in the microphone after the canceller, at re
 
 So it works where the microphone does not clip, and at this microphone gain (24 dB before the canceller) it clips from
 about half volume. Not measured: the volumes between 30 % and 75 %, a voice at the same time as the far end, and the
-other Guition panels. Until those are, the plain transport stays the default.
+other Guition panels: the 7-inch and the 4.3-inch have the same codec and wiring and get the same transport on that ground, unmeasured.
 
 ### A microphone chip on a bus of its own
 
 The reTerminal D1001 has the ES7210 on one I2S bus and the ES8311 on another, and Seeed's schematic puts the ES8311's
-line output straight on the ES7210's MIC3. `AUDIO_TRANSPORT: "split-aec"` in a screen's Override YAML picks the
-transport built on it (`parts/es7210/split-aec.yaml`): the microphones' bus in TDM through the pinned audio stack,
+line output straight on the ES7210's MIC3. The default transport is built on it (`parts/es7210/split-aec.yaml`;
+`AUDIO_TRANSPORT: "split"` in a screen's Override YAML leaves the canceller out): the microphones' bus in TDM through the pinned audio stack,
 receive only, so the voice and the reference arrive in the same frames; the speaker keeps ESPHome's own I2S on its bus.
 This reference is electrical and after the codec's volume, so it is as loud as the speaker is.
 

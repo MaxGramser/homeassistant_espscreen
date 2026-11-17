@@ -30,6 +30,7 @@ std::function<bool()> ring_on;
 std::function<bool()> switch_on;
 std::function<void(bool)> echo_cancel;
 std::function<bool()> echo_cancel_is;
+std::function<void(int)> echo_level;
 float ring_top = 1.0f;
 
 namespace {

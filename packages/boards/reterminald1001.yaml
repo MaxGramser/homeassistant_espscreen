@@ -80,9 +80,10 @@ substitutions:
   # The audio: two I2S buses, one for the ES7210 that reads the two microphones and one for the ES8311 that drives the
   # NS4150B amplifier, so the screen can listen and speak at the same time. Both chips sit on board_bus. The ES7210's
   # MIC3 has the ES8311's line output on it, straight (Seeed's schematic, "Loopback"), so the playback reference needs
-  # no gain; AUDIO_TRANSPORT "split-aec" in a screen's Override YAML cancels echo with it (docs/P4_AUDIO.md).
+  # no gain, and echo is cancelled with it; AUDIO_TRANSPORT "split" in a screen's Override YAML leaves that out
+  # (docs/P4_AUDIO.md).
   AUDIO_I2C: board_bus
-  AUDIO_TRANSPORT: "split"
+  AUDIO_TRANSPORT: "split-aec"
   AUDIO_MIC_MCLK_PIN: GPIO29
   AUDIO_MIC_BCLK_PIN: GPIO28
   AUDIO_MIC_LRCLK_PIN: GPIO27

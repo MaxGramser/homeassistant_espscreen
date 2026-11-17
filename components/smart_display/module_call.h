@@ -37,6 +37,9 @@ extern std::function<bool()> switch_on;
 // `echo_cancel_is()` is whether it works now. A call takes it for as long as it is up and leaves it as it found it.
 extern std::function<void(bool)> echo_cancel;
 extern std::function<bool()> echo_cancel_is;
+// How hard the canceller presses down what is left (0 normal, 1 aggressive, 2 very aggressive), for the bench alone
+// (the op call_bench's `nl`): a measurement compares the levels in one call.
+extern std::function<void(int)> echo_level;
 
 // `voice_switch` and `echo`: the call's voice switching and echo cancelling (1 or 0), -1 where the message does not say
 // (no key then: echo cancelling in a call of two screens without a canceller). The state `set` brings only these two.

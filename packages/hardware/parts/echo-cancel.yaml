@@ -21,7 +21,8 @@ substitutions:
     // A call's small key puts the canceller to work or to rest for both screens (docs/CALLS.md, "Echo").
     runtime_tiles::call_echo_cancel(
         [](bool on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); },
-        []() -> bool { return id(board_echo_cancellation).state; });
+        []() -> bool { return id(board_echo_cancellation).state; },
+        [](int level) { id(board_aec).set_nlp_level_now(level); });
 
 external_components:
   - source:

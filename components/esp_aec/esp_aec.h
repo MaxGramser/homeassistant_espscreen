@@ -40,6 +40,8 @@ class EspAec final : public Component, public AudioProcessor {
   // How hard the canceller presses down what its filter leaves (ESP-SR's NLP level, the FD modes): 0 normal, 1
   // aggressive, 2 very aggressive; -1 leaves the library's own (aggressive in ESP-SR 2.5.5).
   void set_nlp_level(int level) { this->nlp_level_ = level; }
+  // The same while it runs (a measurement that compares the levels in one call): kept for every handle made after.
+  void set_nlp_level_now(int level);
 
   // AudioProcessor interface
   bool is_initialized() const override { return this->handle_ != nullptr; }

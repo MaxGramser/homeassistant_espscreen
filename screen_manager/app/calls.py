@@ -221,11 +221,14 @@ def quiet(items, states):
 class VoiceSwitch:
     """One call's two microphones. `feed(node, part, now)` is the part as it should go on. The one who speaks first holds the
     line until HOLD_SECONDS after their last word. `duck`: voice switching is on for the call; `aec`: echo cancelling is on for
-    the call, on the sides that have a canceller (`cancels`), which are not turned down while it is."""
+    the call, on the sides that have a canceller (`cancels`), which are not turned down while it is.
+
+    A call starts with echo cancelling on, and with voice switching on only where it is needed: when a side has no
+    canceller. Two screens that both cancel echo start without it, and either key brings it."""
 
     def __init__(self, a, b, cancels=()):
         self.nodes, self.cancels = (a, b), set(cancels)
-        self.duck, self.aec = True, True
+        self.duck, self.aec = not self.cancels.issuperset(self.nodes), True
         self.last, self.noise, self.gain = {a: 0.0, b: 0.0}, {a: FLOOR, b: FLOOR}, {a: 1.0, b: 1.0}
         self.talker = None
 
