@@ -1,0 +1,46 @@
+# ESP Screens - Elecrow CrowPanel Advanced 7-inch ESP32-P4 (DHE04107D), EXPERIMENTAL: a 7-inch 1024x600 MIPI-DSI
+# panel (EK79007) with GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# 1024x600 at 170 dpi, the standard look, a grid of 4 x 4 cells lying down and 2 x 7 standing up, as on the Waveshare
+# ESP32-P4-WIFI6-Touch-LCD-7B, the same panel at the same size. The panel is 1024x600 itself, so it lies down without a
+# turn. The hardware is the CrowPanel Advanced P4 family's (packages/hardware/crowpanel-p4.yaml): Elecrow's own ESPHome
+# example serves the 7, 9 and 10.1-inch boards alike, and the 10.1 ran on it (GitHub #116). Not yet tried on this glass;
+# docs/CROWPANEL7.md says what to check.
+#
+# A board file is the board's hardware, the facts the shared tree takes from it (its glass and its grid), and the
+# features it has; docs/PROFILES.md says how the files of a screen fit together, docs/ADDING_A_BOARD.md how a board
+# is added. Two entry files include this one: checkout/crowpanel7.yaml (a build on this computer) and
+# packages/crowpanel7.yaml (the package a screen builds from over GitHub).
+packages:
+  # The ESP32-P4, its ESP32-C6, the panel, the touch, the backlight and the audio of every CrowPanel Advanced P4.
+  hardware: !include ../hardware/crowpanel-p4.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The loudspeaker and the microphone as the screen's audio (features/audio.yaml), and its amplifier following the
+  # sound (features/audio-amplifier.yaml): its hardware in the family file.
+  audio: !include ../features/audio.yaml
+  audio_amplifier: !include ../features/audio-amplifier.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "crowpanel7"
+  DEVICE_NAME: "crowpanel7-new"
+  DEVICE_FRIENDLY_NAME: "My CrowPanel 7"
+
+  # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 7 inches. The look scales its sizes
+  # by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "169.548"
+  # The grid a screen starts with lying down, four by four as on the Waveshare 7B of the same glass; the owner picks
+  # another in the editor within what the glass holds (docs/RESPONSIVE.md, "The grid a screen is given").
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  # Standing up, two columns of seven, as on the Waveshare 7B.
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen, as on the other P4 boards
