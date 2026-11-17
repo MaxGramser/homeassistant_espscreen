@@ -42,8 +42,9 @@ Regen erscheint in Prozent, wenn der Wetterdienst eine Wahrscheinlichkeit liefer
 
 Für drei Luftsensoren (Wohnzimmer, Schlafzimmer, Büro; SHT45 und SCD41, im Büro zusätzlich ein SEN55):
 
-- **Panel**: CO₂ je Raum mit Einstufung und Farbskala von 400 bis 2000 ppm. Ab „Mittel“ (lüften empfohlen) liegt die
-  Zahl des Raums in einem Block in der Farbe der Stufe: gelb bei „Mittel“, rot bei „Schlecht“.
+- **Panel**: CO₂ je Raum mit einer Farbskala von 400 bis 2000 ppm darunter; der Punkt auf der Skala hat die Farbe
+  der Stufe. Ab „Mittel“ (lüften empfohlen) liegt die Zahl des Raums in einem Block in der Farbe der Stufe: gelb bei
+  „Mittel“, rot bei „Schlecht“.
 - **Kacheln**: Temperatur und Luftfeuchte je Raum; die Luftfeuchte in Ampelfarbe.
 - **Feinstaub (Büro)**: PM1, PM2.5, PM4, PM10 als Balken in Ampelfarbe.
 - **Gase (Büro)**: VOC- und NOx-Index mit Einstufung.

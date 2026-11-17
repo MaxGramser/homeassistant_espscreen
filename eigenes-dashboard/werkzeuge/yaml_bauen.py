@@ -677,6 +677,8 @@ sensor:
 RAEUME = [("wohnzimmer", "Wohnzimmer"), ("schlafzimmer", "Schlafzimmer"), ("buero", "Büro")]
 TW = (W - 2 * G) / 3                      # drei Spalten: Panel und Kacheln stehen übereinander
 SKALA_W = round(TW - 2 * P)
+# CO2-Skala unter der Zahl: mittig zwischen Zahl (Block bis 152) und Panelunterkante (212)
+SKALA_Y, SKALA_H, MARKER_D = 176, 12, 22
 TILE2_H = 96
 CARD2_Y = TILE_Y + TILE2_H + G
 CARD2_H = 480 - M - CARD2_Y
@@ -715,15 +717,9 @@ for i, (r, name) in enumerate(RAEUME):
               lv_obj_set_style_text_color(l, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
             }}
         - lvgl.obj.update:
-            id: stufe_{r}
-            bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
-        - lvgl.label.update:
-            id: lbl_stufe_{r}
-            text: !lambda 'return wx::co2_name(wx::co2_stufe(x));'
-            text_color: !lambda 'return wx::co2_text_color(wx::co2_stufe(x));'
-        - lvgl.widget.update:
             id: marker_{r}
-            x: !lambda 'return {spalte(i)} + wx::co2_marker_x(x, {SKALA_W});'
+            x: !lambda 'return {spalte(i)} + wx::co2_marker_x(x, {SKALA_W}) + 6 - {MARKER_D // 2};'
+            bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
   - platform: homeassistant
     id: temp_{r}
     entity_id: ${{temp_{r}}}
@@ -963,24 +959,19 @@ for i, (r, name) in enumerate(RAEUME):
                                                                         bg_opa="COVER", border_width=0),
                     hidden="true"))
     kids.append(label(C, f"lbl_co2_{r}", x - 3, y(96, 60, 52), "--", "f_co2", "0xFFFFFF"))
-    kids.append(widget("obj", C, dict(
-        id=f"stufe_{r}", x=x, y=160, height=22, width="SIZE_CONTENT", radius=11, bg_color="0x5F6B80",
-        bg_opa="COVER", border_width=0, pad_left=9, pad_right=9, pad_top=0, pad_bottom=0, scrollable="false",
-        clickable="false",
-        layout="\n  type: FLEX\n  flex_flow: ROW\n  flex_align_main: CENTER\n  flex_align_cross: CENTER\n"
-               "  flex_align_track: CENTER"),
-        [label(C + 8, f"lbl_stufe_{r}", None, None, "--", "f_13b", "0xFFFFFF")]))
     for k in range(5):
         a = round((SEG[k] - 400) / 1600 * SKALA_W)
         b = round((SEG[k + 1] - 400) / 1600 * SKALA_W)
         gap = 2 if k else 0
-        rad = 3 if k in (0, 4) else 0
-        kids.append(box(C, None, x + a + gap, 194, b - a - gap, 6,
+        rad = SKALA_H // 2 if k in (0, 4) else 0
+        kids.append(box(C, None, x + a + gap, SKALA_Y, b - a - gap, SKALA_H,
                         dict(bg_color="0x" + ["1E7A3C", "2E9E4F", "7DBB42", "F2C230", "E8542C"][k], bg_opa="COVER",
                              border_width=0, radius=rad)))
-    kids.append(box(C, f"marker_{r}", x - 6, 191, 12, 12, dict(radius=6, bg_color="0xFFFFFF", bg_opa="COVER",
-                                                                border_width=0, shadow_width=6, shadow_color="0x000000",
-                                                                shadow_opa="35%", shadow_offset_y=1)))
+    # Marker: Kreis in der Farbe der Stufe mit weißem Ring
+    kids.append(box(C, f"marker_{r}", x - MARKER_D // 2, SKALA_Y + SKALA_H // 2 - MARKER_D // 2, MARKER_D, MARKER_D,
+                    dict(radius=MARKER_D // 2, bg_color="0x5F6B80", bg_opa="COVER", border_width=3,
+                         border_color="0xFFFFFF", shadow_width=8, shadow_color="0x000000", shadow_opa="40%",
+                         shadow_offset_y=1)))
 w(box(I, "panel_innen", M, M, W, PANEL_H, dict(bg_color=PANEL_TAG[0], bg_grad_color=PANEL_TAG[1], bg_grad_dir="VER",
                                               bg_opa="COVER", border_width=0, radius=22, clip_corner="true"), kids))
 
