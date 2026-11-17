@@ -73,6 +73,7 @@ inline std::array<lv_obj_t *, light_presets::MAX> colour_dots{};
 // The card drawn anew, for `title` with the values `v`: the page under it covers the glass and takes every press, so
 // nothing leaks through to the tiles and the page keys (firmware 0.2.82); the card inside keeps a hand's width and
 // stands in the middle, like every other card.
+inline void colour_step(int direction);
 inline void colour_draw(const std::string &title, const light_controls::Values &v) {
   if (colour_root) { lv_obj_delete(colour_root); light_controls::forget(); }
   colour_root = lv_obj_create(lv_screen_active());
@@ -110,7 +111,7 @@ inline void colour_draw(const std::string &title, const light_controls::Values &
   shown(colour_bar.right[1], group_page::offered(colour_entity));
   if (light_controls::demo) lv_obj_add_flag(colour_bar.back, LV_OBJ_FLAG_HIDDEN);
   detail_bar::place(card, colour_bar);
-  light_controls::setup(card, small_font, rows_width, overlay_card::screen_height(), mini_icon_font);
+  light_controls::setup(card, small_font, rows_width, overlay_card::view_height(), mini_icon_font);
   colour_commits();
   const int below = light_controls::place(v);
   light_controls::paint(v, true);
@@ -121,16 +122,26 @@ inline void colour_draw(const std::string &title, const light_controls::Values &
     // Read from the styles place() set: the coordinates follow only at LVGL's next layout pass.
     for (auto &row : light_controls::rows)
       if (row.box && !lv_obj_has_flag(row.box, LV_OBJ_FLAG_HIDDEN)) top = std::min(top, (int) lv_obj_get_style_y(row.box, LV_PART_MAIN));
-    colour_presets_draw(card, beside, top, below - light_controls::row_gap, below);
+    if (light_controls::extra_visible(v)) colour_presets_draw(card, beside, top, below - light_controls::row_gap, below);
     const int i = colour_index();
     if (i >= 0) colour_presets_paint(model.tiles[i]);
   }
 #else
   (void) below;
 #endif
+  if (ui::round()) page_bar::show(page_bar::make(card, colour_step), light_controls::page, light_controls::pages(v));
   lv_obj_move_foreground(colour_root);
 }
+inline void colour_step(int direction) {
+  const int i = colour_index();
+  if (i < 0) return;
+  const auto &t = model.tiles[i];
+  const auto values = colour_values(t);
+  light_controls::page = std::clamp(light_controls::page + direction, 0, light_controls::pages(values) - 1);
+  colour_draw(t.name.empty() ? t.entity : t.name, values);
+}
 inline void colour_open(Tile &t) {
+  light_controls::page = 0;
   colour_entity = t.entity;
 #ifdef SD_MOD_LIGHT_PRESETS
   colour_presets = t.presets;

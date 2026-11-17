@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager' / 'app'))
 import alert_layout  # noqa: E402
 import font_metrics  # noqa: E402
+import display_shape  # noqa: E402
 import profiles  # noqa: E402
 
 OUT = profiles.ROOT / 'screen_manager' / 'app' / 'boards.json'
@@ -116,7 +117,9 @@ def catalog_of(board, values, lying):
             raise SystemExit(f'boards.yaml: {board} lists the setting {key}, which no entity of its files is named')
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
             'status': entry['status'],
-            'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
+            'inch': (round(max(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 2)
+                     if values.get('DISPLAY_SHAPE', '').strip('"') == 'round' else
+                     round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1)),
             # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
             'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),
             'calibrate': any(path.name == 'resistive-touch.yaml' for path in chain),
@@ -254,6 +257,17 @@ def shapes():
                  # a fix for this board alone went out after it (docs/BOARD_RELEASES.md). The
                  # update offer goes by it, so a fix for one board is not an update for every other one.
                  'firmware': values['SCREEN_FIRMWARE_VERSION'].strip('"')}
+        if values.get('DISPLAY_SHAPE', '').strip('"') == 'round':
+            if lying['width'] != lying['height']:
+                raise SystemExit(f'{board}: round glass needs a square canvas')
+            core = (profiles.ROOT / 'packages/core.yaml').read_text()
+            face = profiles.ROOT / font_metrics.font_file(core, 'sublabel_big')
+            line = font_metrics.line_height(face, int(values['FONT_SUBLABEL_BIG_SIZE']))
+            frame = display_shape.board_frame(values, line)
+            shape['form'] = 'round'
+            shape['round_frame'] = frame
+            shape['spacing'].update(margin=frame['grid']['x'], top=frame['grid']['y'],
+                                    page_bar=frame['footer']['h'], bottom=lying['height'] - frame['grid']['y'] - frame['grid']['h'])
         # A board that draws camera pictures includes features/camera.yaml, which states the canvas they fill
         # (CAMERA_FULL_*). Without it the board has no camera at all, like the CYD: the manager then refuses a camera
         # tile instead of sending a picture that never arrives.

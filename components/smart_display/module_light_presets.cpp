@@ -120,7 +120,7 @@ void colour_presets_paint(const Tile &t) {
 // Whether the presets stand beside the rows, and the column's width.
 int colour_column() { return light_presets::card_key() + 2 * light_controls::row_inset; }
 bool colour_beside() {
-  const int w = overlay_card::screen_width(), h = overlay_card::screen_height();
+  const int w = overlay_card::view_width(), h = overlay_card::view_height();
   return colour_presets && colour_presets->count && w * 2 >= h * 3 &&
          w >= ui::touch_min() * 5 + ui::px(ui::large() ? 18 : 10) * 2 + light_presets::card_key();
 }

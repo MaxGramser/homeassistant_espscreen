@@ -1904,6 +1904,162 @@
   "wide_slots": false,
   "width": 800
  },
+ "checkout/lilygo175.yaml": {
+  "alert": {
+   "line": 30,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "lilygo175",
+  "camera": {
+   "full": [
+    466,
+    466
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 1.75,
+   "model": "T-Display-S3 AMOLED 1.75 (H0175Y003AM)",
+   "name": "LILYGO",
+   "order": 32,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST9217"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 266,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 34,
+   "icon": 52,
+   "icon_home": 47,
+   "icon_mini": 34,
+   "label": 20,
+   "setpoint": 74,
+   "sublabel": 20,
+   "sublabel_big": 26,
+   "watch_icon": 22,
+   "watch_value": 41
+  },
+  "form": "round",
+  "height": 466,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      466,
+      466
+     ]
+    },
+    "columns": 2,
+    "height": 466,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 466
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      466,
+      466
+     ]
+    },
+    "columns": 2,
+    "height": 466,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 466
+   }
+  },
+  "own_icons": true,
+  "round_frame": {
+   "footer": {
+    "h": 74,
+    "w": 266,
+    "x": 100,
+    "y": 336
+   },
+   "grid": {
+    "h": 197,
+    "w": 384,
+    "x": 41,
+    "y": 123
+   },
+   "heading": {
+    "h": 33,
+    "w": 308,
+    "x": 79,
+    "y": 74
+   },
+   "status": {
+    "h": 30,
+    "w": 218,
+    "x": 124,
+    "y": 40
+   }
+  },
+  "rows": 2,
+  "section": {
+   "band": 37,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 14
+  },
+  "spacing": {
+   "bottom": 146,
+   "circle": 67,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 41,
+   "page_bar": 74,
+   "radius": 34,
+   "tile_pad": 15,
+   "top": 123
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 466
+ },
  "checkout/reterminald1001.yaml": {
   "alert": {
    "line": 27,
@@ -6376,6 +6532,162 @@
   "wide_slots": false,
   "width": 800
  },
+ "lilygo175": {
+  "alert": {
+   "line": 30,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "lilygo175",
+  "camera": {
+   "full": [
+    466,
+    466
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 1.75,
+   "model": "T-Display-S3 AMOLED 1.75 (H0175Y003AM)",
+   "name": "LILYGO",
+   "order": 32,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST9217"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 266,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 34,
+   "icon": 52,
+   "icon_home": 47,
+   "icon_mini": 34,
+   "label": 20,
+   "setpoint": 74,
+   "sublabel": 20,
+   "sublabel_big": 26,
+   "watch_icon": 22,
+   "watch_value": 41
+  },
+  "form": "round",
+  "height": 466,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      466,
+      466
+     ]
+    },
+    "columns": 2,
+    "height": 466,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 466
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      466,
+      466
+     ]
+    },
+    "columns": 2,
+    "height": 466,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 466
+   }
+  },
+  "own_icons": true,
+  "round_frame": {
+   "footer": {
+    "h": 74,
+    "w": 266,
+    "x": 100,
+    "y": 336
+   },
+   "grid": {
+    "h": 197,
+    "w": 384,
+    "x": 41,
+    "y": 123
+   },
+   "heading": {
+    "h": 33,
+    "w": 308,
+    "x": 79,
+    "y": 74
+   },
+   "status": {
+    "h": 30,
+    "w": 218,
+    "x": 124,
+    "y": 40
+   }
+  },
+  "rows": 2,
+  "section": {
+   "band": 37,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 14
+  },
+  "spacing": {
+   "bottom": 146,
+   "circle": 67,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 41,
+   "page_bar": 74,
+   "radius": 34,
+   "tile_pad": 15,
+   "top": 123
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 466
+ },
  "packages/crowpanel101.yaml": {
   "alert": {
    "line": 18,
@@ -8280,6 +8592,162 @@
   "tier": "full",
   "wide_slots": false,
   "width": 800
+ },
+ "packages/lilygo175.yaml": {
+  "alert": {
+   "line": 30,
+   "title_line": 40
+  },
+  "battery": false,
+  "board": "lilygo175",
+  "camera": {
+   "full": [
+    466,
+    466
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 1.75,
+   "model": "T-Display-S3 AMOLED 1.75 (H0175Y003AM)",
+   "name": "LILYGO",
+   "order": 32,
+   "settings": [],
+   "status": "experimental",
+   "touch": "CST9217"
+  },
+  "chip": "ESP32-S3",
+  "columns": 2,
+  "dimmable": true,
+  "dpi": 266,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 34,
+   "icon": 52,
+   "icon_home": 47,
+   "icon_mini": 34,
+   "label": 20,
+   "setpoint": 74,
+   "sublabel": 20,
+   "sublabel_big": 26,
+   "watch_icon": 22,
+   "watch_value": 41
+  },
+  "form": "round",
+  "height": 466,
+  "hotspot": true,
+  "look": "compact",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      466,
+      466
+     ]
+    },
+    "columns": 2,
+    "height": 466,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 466
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      466,
+      466
+     ]
+    },
+    "columns": 2,
+    "height": 466,
+    "max": [
+     2,
+     2
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 2,
+    "width": 466
+   }
+  },
+  "own_icons": true,
+  "round_frame": {
+   "footer": {
+    "h": 74,
+    "w": 266,
+    "x": 100,
+    "y": 336
+   },
+   "grid": {
+    "h": 197,
+    "w": 384,
+    "x": 41,
+    "y": 123
+   },
+   "heading": {
+    "h": 33,
+    "w": 308,
+    "x": 79,
+    "y": 74
+   },
+   "status": {
+    "h": 30,
+    "w": 218,
+    "x": 124,
+    "y": 40
+   }
+  },
+  "rows": 2,
+  "section": {
+   "band": 37,
+   "ink_top": 5,
+   "line": 23,
+   "title_top": 14
+  },
+  "spacing": {
+   "bottom": 146,
+   "circle": 67,
+   "gap": 8,
+   "gap_y": 4,
+   "margin": 41,
+   "page_bar": 74,
+   "radius": 34,
+   "tile_pad": 15,
+   "top": 123
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 466
  },
  "packages/reterminald1001.yaml": {
   "alert": {

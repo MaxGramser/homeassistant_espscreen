@@ -93,6 +93,7 @@ for name, source_path in [('adapter', ROOT / 'web/wasm/firmware_preview.cpp'),
     run(['em++', *flags, '-std=c++17', '-c', source_path, '-o', obj])
     compiled.append(obj)
 exports = ['init', 'receive', 'next_action', 'action_response', 'time', 'touch', 'cancel', 'render', 'frame', 'page', 'diagnostics', 'layout']
+exports += ['shape']
 exports += ['next_image', 'image_buffer', 'image_ready', 'pictures', 'card', 'card_builds', 'dark', 'language']
 exports += ['settings', 'extras', 'settings_controls', 'next_setting']
 out = ROOT / 'web/src/wasm'

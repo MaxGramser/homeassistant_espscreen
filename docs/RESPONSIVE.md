@@ -1,5 +1,11 @@
 # One firmware, any board: how the screens fit their glass
 
+Circular panels declare `DISPLAY_SHAPE: "round"`. The shared `display_shape.h` frame measures safe chords for the
+status, room, tile grid and native page bar, and an inscribed workspace for native overlay content. The physical
+display and touch coordinates stay unchanged. `tools/display_shape.py` supplies the same frame to board metadata;
+the editor consumes it and the WASM renderer uses the firmware code. Rectangular builds discard the circular paths
+through `SCREEN_ROUND=0`. [LILYGO175.md](LILYGO175.md) describes the first experimental round profile and its checks.
+
 Since app 0.2.94 (firmware 0.2.80) a board says what its glass is and the firmware, the add-on and the editor
 follow: the tile grid, the size of everything drawn, the cards a tap opens. The CYD and the Guition were the
 first two boards and render as they did before; the Waveshare ESP32-S3-Touch-LCD-4.3 (800 x 480, three by

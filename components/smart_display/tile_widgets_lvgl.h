@@ -136,6 +136,12 @@ inline HeadRow head_row(const Widgets &w, bool large, int circle, int room, int 
   h.title_y = std::max(0, (room - (title_h + (value_h ? head_gap(large) + value_h : 0))) / 2);
   h.value_y = h.title_y + title_h + head_gap(large);
   h.text_x = head_text_x(h.circle, large);
+  if (ui::round() && content_width(w) < ui::mm(20)) {
+    // The tile remains the finger-sized target; its decorative badge yields room to the existing name font.
+    h.circle = std::min(h.circle, ui::mm(5));
+    h.circle_y = (room - h.circle) / 2;
+    h.text_x = h.circle + ui::px(3);
+  }
   return h;
 }
 // A card's strip is thin (8 px on a CYD card), so the whole card belongs to it: a finger that lands above the strip

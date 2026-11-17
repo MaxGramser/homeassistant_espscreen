@@ -1,5 +1,9 @@
 # Adding a board
 
+For circular glass, `tools/new_board.py --shape round` interprets `--inch` as the diameter, requires a square pixel
+canvas and writes `DISPLAY_SHAPE: "round"`. Select a grid that fits the safe tile chord, then verify it in the native
+renderer. The layout belongs to the shared frame, not board-specific widgets. See [LILYGO175.md](LILYGO175.md).
+
 To request a board, search [New boards on the wishlist](https://tessera-maxgramser.on-forge.com/wishlist?category=board) and upvote an existing request or add one. This guide is for implementing board support. Link that wish in your pull request to `dev`.
 
 The recipe, in the order the work actually goes: the hardware is looked up, the layout is computed, and only the

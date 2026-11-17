@@ -181,7 +181,7 @@ def generate(dpi, look, profile):
     paints = re.search(r'theme::paints = \[\]\(\) \{(.*?)\n\s*\};', core, re.S)[1]
     paints = re.sub(r'id\((\w+)\)', r'\1', paints)
     # The fonts the core hands the shared code: the runtime's, every page's top bar (detail_bar) and the effects page's.
-    bindings = re.findall(r'(?:runtime_tiles|detail_bar|effects_page|settings_screen)::\w+ = id\(\w+\)->get_lv_(?:font|image_dsc)\(\);', core)
+    bindings = re.findall(r'(?:runtime_tiles|detail_bar|page_bar|effects_page|settings_screen)::\w+ = id\(\w+\)->get_lv_(?:font|image_dsc)\(\);', core)
     # Settings use the same fonts and long-press strip as the physical screen. Keep its geometry and
     # touch tolerances sourced from the resolved boot code, so profile updates also reach the preview.
     settings_hold = re.search(r'settings_screen::attach_hold\([^;]+;', core)[0]

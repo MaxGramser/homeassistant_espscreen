@@ -234,9 +234,10 @@ export type BoardCatalog = {
   // Its extras under Screen settings (boards.yaml `settings`, docs/SETTINGS.md "A board's own settings").
   settings?: string[];
 };
+export type RoundFrame = Record<"status" | "heading" | "grid" | "footer", { x: number; y: number; w: number; h: number }>;
 export type BoardChoice = BoardCatalog & {
   square: boolean; orientations: Partial<Record<Orientation, BoardOrientation>>;
-  width: number; height: number; dpi: number; look?: string; camera: boolean; dimmable: boolean; can_standby: boolean;
+  width: number; height: number; dpi: number; look?: string; form?: "round" | "rectangle"; round_frame?: RoundFrame; camera: boolean; dimmable: boolean; can_standby: boolean;
   // Its fonts and its grid's sizes in glass pixels (boards.json, app 0.4.74), for a preview screen's mockup.
   fonts?: NonNullable<Screen["shape"]>["fonts"]; spacing?: NonNullable<Screen["shape"]>["spacing"];
   // The chip its firmware is built for, as esptool names it ("ESP32-S3"): the browser flasher checks the board on the cable.
@@ -342,12 +343,12 @@ export type Screen = {
   language?: string | null;
   // What the screen looks like (app 0.2.94): the glass it draws on, the cells of one page, its density and its look,
   // from the screen itself (firmware 0.2.80) or from the board it was built for (core.shape_of); the editor draws it.
-  shape?: { width: number; height: number; columns: number; rows: number; dpi?: number; look?: string; catalog?: BoardCatalog;
+  shape?: { width: number; height: number; columns: number; rows: number; dpi?: number; look?: string; form?: "round" | "rectangle"; round_frame?: RoundFrame; catalog?: BoardCatalog;
     fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; icon_home?: number;
       watch_icon?: number; setpoint?: number; icon?: number };
     // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74, a
     // card's corner and its icon's face (fonts.icon) from app 0.4.90.
-    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; bottom?: number; circle?: number; radius?: number };
     // A section's band on this glass (boards.json, module_sections.h): its height and its title's top in it.
     section?: { band: number; title_top: number; ink_top?: number; line?: number } } | null;
   // Sections on a page (docs/PAGES.md "Sections"): its board has the module (the full tier), and its own hello says it

@@ -1,5 +1,9 @@
 {
   "firmware": "0.61.0",
+  "forms": [
+    "rectangle",
+    "round"
+  ],
   "profiles": [
     {
       "dpi": 118,
@@ -60,6 +64,10 @@
     {
       "dpi": 255,
       "look": "standard"
+    },
+    {
+      "dpi": 266,
+      "look": "compact"
     },
     {
       "dpi": 294,

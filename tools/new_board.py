@@ -86,6 +86,7 @@ def main():
     ap.add_argument('--portrait-rows', dest='portrait_rows', type=int)
     ap.add_argument('--rotation', type=int, default=0, choices=(0, 90, 180, 270))
     ap.add_argument('--dpi', type=float)
+    ap.add_argument('--shape', choices=('rectangle', 'round'), default='rectangle')
     ap.add_argument('--look', choices=('standard', 'compact'))
     ap.add_argument('--title', help='what people call the board (boards.yaml name); the template\'s by default')
     ap.add_argument('--model', help='what is printed on the board (boards.yaml model); NAME in capitals by default')
@@ -100,12 +101,16 @@ def main():
     template = profiles.BOARDS[a.template]
     source = template.read_text()
     W, H = a.width, a.height
-    dpi = a.dpi or math.hypot(W, H) / a.inch
+    if a.shape == 'round' and W != H:
+        raise SystemExit('Circular glass needs a square pixel canvas; --inch is its diameter.')
+    diagonal = max(W, H) if a.shape == 'round' else math.hypot(W, H)
+    dpi = a.dpi or diagonal / a.inch
+    proposal_inch = a.inch * math.sqrt(2) if a.shape == 'round' else a.inch
     look = a.look or profiles.evaluate(profiles.raw_substitutions(template))['LOOK']
     if a.cols and a.rows:
         cols, rows = a.cols, a.rows
     else:
-        lying = propose_grid.propose(W, H, a.inch, look=look)
+        lying = propose_grid.propose(W, H, proposal_inch, look=look)
         cols, rows = lying['cols'], lying['rows']
     # The grid of a page when this screen stands up: the same proposal for the turned canvas, which on square glass
     # is the same answer again. A card keeps its size in millimetres, so glass that holds three columns lying down
@@ -113,7 +118,7 @@ def main():
     if a.portrait_cols and a.portrait_rows:
         tall_cols, tall_rows = a.portrait_cols, a.portrait_rows
     else:
-        tall = propose_grid.propose(H, W, a.inch, look=look)
+        tall = propose_grid.propose(H, W, proposal_inch, look=look)
         tall_cols, tall_rows = tall['cols'], tall['rows']
     if W == H:
         tall_cols, tall_rows = cols, rows
@@ -134,11 +139,13 @@ def main():
         f'  DEVICE_NAME: "{a.name}-new"',
         f'  DEVICE_FRIENDLY_NAME: "My {a.name}"',
         '',
-        f'  # The glass: the panel\'s own pixels and its density, {math.hypot(W, H):.0f} diagonal pixels over {a.inch} inches.',
+        f'  # The glass: {diagonal:.0f} {"diameter" if a.shape == "round" else "diagonal"} pixels over {a.inch} inches.',
         f'  PANEL_W: "{native_w}"',
         f'  PANEL_H: "{native_h}"',
         f'  DISPLAY_DPI: "{dpi:.3f}"',
     ]
+    if a.shape == 'round':
+        lines += ['  DISPLAY_SHAPE: "round"']
     if a.rotation:
         lines += [f'  # The LVGL angle that lays this panel out lying down ({W} x {H}). Standing up is a quarter further.',
                   f'  ROTATION_LANDSCAPE: "{a.rotation}"']

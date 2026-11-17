@@ -20,11 +20,20 @@ enum class Look : uint8_t { standard, compact };
 inline Look look = Look::standard;
 inline int dpi = 170;
 inline int scale_pct = 100;
+inline bool circular = false;
+#ifdef SCREEN_ROUND
+// A physical board's shape is fixed, so rectangular/lite builds discard the circular layout code at compile time.
+inline constexpr bool round() { return SCREEN_ROUND != 0; }
+#else
+// The native browser renderer shares one binary between physical shapes.
+inline bool round() { return circular; }
+#endif
 inline int reference_dpi(Look l) { return l == Look::compact ? 143 : 170; }
-inline void configure(int display_dpi, const std::string &look_name) {
+inline void configure(int display_dpi, const std::string &look_name, const std::string &shape_name = "rectangle") {
   look = look_name == "compact" ? Look::compact : Look::standard;
   dpi = display_dpi > 0 ? display_dpi : reference_dpi(look);
   scale_pct = (dpi * 100 + reference_dpi(look) / 2) / reference_dpi(look);
+  circular = shape_name == "round";
 }
 // A size of the reference look, in this board's pixels.
 inline int px(int n) {

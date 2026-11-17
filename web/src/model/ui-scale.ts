@@ -1,13 +1,13 @@
 // The firmware's sizes in the editor's mockup (app 0.4.32): ui_scale.h's px() and the -/+ pill of a card's controls
 // (runtime_tiles panel_metrics, stepper_keys), computed the same way from the board's density and look, so the mockup
 // draws them at the size the glass does instead of sizes of its own.
-export type Shape = { width?: number; height?: number; dpi?: number; look?: string;
+export type Shape = { width?: number; height?: number; dpi?: number; look?: string; form?: "round" | "rectangle";
   fonts?: { watch_value?: number; sublabel_big?: number; sublabel?: number; icon_mini?: number; label?: number; headline?: number; watch_icon?: number; setpoint?: number; icon?: number };
   spacing?: Spacing; section?: { band: number; title_top: number } };
 // The glass's grid (boards.json "spacing"): its margin, the gaps between columns and between rows, a card's padding, where
 // the tile area starts under the top bar (SCROLL_Y), the page bar's height (PAGE_BAR_H), a card's icon circle and its
 // corner (TILE_RADIUS).
-type Spacing = { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
+type Spacing = { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; bottom?: number; circle?: number; radius?: number };
 
 /** ui::configure and ui::px: a size of the reference look (170 dpi standard, 143 dpi compact) in this board's pixels. */
 export function uiScale(shape: Shape) {
@@ -70,7 +70,8 @@ const spacingOf = (shape: Shape) => shape.spacing ?? (uiScale(shape).compact ? {
 export function frameOf(shape: Shape): Required<Spacing> {
   const s = spacingOf(shape), { compact, px } = uiScale(shape), dpi = shape.dpi || (compact ? 143 : 170);
   return { ...s, gap_y: s.gap_y ?? Math.min(px(compact ? 6 : 12), compact ? 4 : 12), top: s.top ?? px(compact ? 37 : 56),
-    page_bar: s.page_bar ?? Math.min(px(compact ? 36 : 60), Math.round((dpi * 7) / 25.4)), circle: s.circle ?? px(compact ? 36 : 54),
+    page_bar: s.page_bar ?? Math.min(px(compact ? 36 : 60), Math.round((dpi * 7) / 25.4)),
+    bottom: s.bottom ?? s.page_bar ?? Math.min(px(compact ? 36 : 60), Math.round((dpi * 7) / 25.4)), circle: s.circle ?? px(compact ? 36 : 54),
     radius: s.radius ?? px(compact ? 18 : 22) };
 }
 
@@ -80,7 +81,7 @@ export function frameOf(shape: Shape): Required<Spacing> {
  * page_protocol.h footer), else to the margin (runtime_tiles place_page). */
 export function cardHeight(shape: Shape, down: number, rows: number, start = 0, paged = false) {
   const s = frameOf(shape), n = Math.max(1, down);
-  let free = Math.max(0, (shape.height ?? 240) - s.top - (paged ? s.page_bar : s.margin) - (n - 1) * s.gap_y), height = 0;
+  let free = Math.max(0, (shape.height ?? 240) - s.top - (shape.form === "round" ? s.bottom : paged ? s.page_bar : s.margin) - (n - 1) * s.gap_y), height = 0;
   for (let i = 0, left = n; i < n; ++i, --left) {
     const track = Math.floor((free + Math.floor(left / 2)) / left);
     free -= track;

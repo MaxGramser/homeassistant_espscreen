@@ -36,7 +36,7 @@ inline bool (*allowed)(int key) = nullptr;
 constexpr uint32_t PREV = 0xF0141, NEXT = 0xF0142;  // mdi:chevron-left, mdi:chevron-right
 constexpr int MOST_DOTS = 8;
 
-inline int height() { return band > 0 ? band : ui::px(ui::large() ? 60 : 36); }
+inline int height() { return ui::round() ? ui::touch_min() : band > 0 ? band : ui::px(ui::large() ? 60 : 36); }
 inline int inset() { return margin > 0 ? margin : ui::px(ui::large() ? 16 : 10); }
 
 // What a key shows: its chevron, the first label whose text is one. Not its first child: that is the patch behind it.
@@ -142,7 +142,8 @@ inline void dots(lv_obj_t *row, int current, int total) {
   const bool large = ui::large();
   const int dot = ui::px(large ? 8 : 6), gap = ui::px(large ? 10 : 7);
   total = std::max(total, 0);
-  const bool words = total > MOST_DOTS;
+  const int natural = total * dot + std::max(0, total - 1) * gap;
+  const bool words = total > MOST_DOTS || (ui::round() && natural > lv_obj_get_style_width(row, LV_PART_MAIN));
   lv_obj_t *label = nullptr;
   int count = 0;
   for (int i = 0; i < (int) lv_obj_get_child_count(row); ++i) {
@@ -241,10 +242,35 @@ inline Bar make_in(lv_obj_t *parent, int x, int y, int w, int h, Step step, int 
 // the glass, not in the card, so a card centred on the glass leaves it where it is (FLOATING, overlay_card::centre).
 inline Bar make(lv_obj_t *parent, Step step) {
   const int h = height();
+  if (ui::round()) {
+    const auto area = display_shape::footer(overlay_card::glass_width(), overlay_card::glass_height(), ui::mm(1), h);
+    Bar bar = make_in(parent, overlay_card::physical_left(parent) + area.x, overlay_card::physical_top(parent) + area.y,
+                      area.w, area.h, step, inset());
+    for (auto *part : {bar.prev, bar.dots, bar.next}) lv_obj_add_flag(part, LV_OBJ_FLAG_FLOATING);
+    return bar;
+  }
   Bar bar = make_in(parent, overlay_card::glass_left(parent), overlay_card::glass_top(parent) + overlay_card::screen_height() - h,
                  overlay_card::screen_width(), h, step, inset());
   for (auto *part : {bar.prev, bar.dots, bar.next}) lv_obj_add_flag(part, LV_OBJ_FLAG_FLOATING);
   return bar;
+}
+// The core declares the dashboard's three objects. Give them the very same circular band as make() gives a card.
+// Only the full-tier dashboard has a clickable centre (Dock); read-only dots stay over two half-width keys.
+inline void place_round(lv_obj_t *previous, lv_obj_t *next, lv_obj_t *number, int total) {
+  if (!ui::round() || !previous || !next || !number) return;
+  auto *parent = lv_obj_get_parent(previous);
+  auto area = display_shape::footer(overlay_card::glass_width(), overlay_card::glass_height(), ui::mm(1), height());
+  area.x += overlay_card::physical_left(parent); area.y += overlay_card::physical_top(parent);
+  const bool choose = lv_obj_has_flag(number, LV_OBJ_FLAG_CLICKABLE) && !lv_obj_has_flag(number, LV_OBJ_FLAG_HIDDEN);
+  const int dot = ui::px(ui::large() ? 8 : 6), gap = ui::px(ui::large() ? 10 : 7);
+  int middle = std::max(ui::touch_min(), total * dot + std::max(0, total - 1) * gap);
+  if (total > MOST_DOTS || middle > area.w - 2 * ui::touch_min()) middle = std::min(area.w - 2 * ui::touch_min(), ui::px(54));
+  const int left = choose ? (area.w - middle) / 2 : area.w / 2;
+  auto put = [&](lv_obj_t *o, int x, int w) { lv_obj_set_align(o, LV_ALIGN_TOP_LEFT); lv_obj_set_pos(o, x, area.y); lv_obj_set_size(o, w, area.h); };
+  put(previous, area.x, left);
+  put(next, area.x + (choose ? left + middle : area.w - left), choose ? area.w - left - middle : left);
+  put(number, choose ? area.x + left : area.x, choose ? middle : area.w);
+  align(previous, true, inset()); align(next, false, inset());
 }
 // Page `page` of `count`: the keys dimmed at the ends, the dots, and nothing at all for a single page.
 inline void show(const Bar &bar, int page, int count) {

@@ -281,6 +281,7 @@ inline bool header_back() {
 }
 inline lv_obj_t *time_label = nullptr;
 inline const lv_font_t *header_text_font = nullptr, *header_icon_font = nullptr;
+inline const void *header_home_mark = nullptr;  // the Tessera mark of the home key, an lv_image_dsc_t
 inline void render_header();
 inline std::function<esphome::ESPTime()> now_time;
 // True while the screen is in use: the profile reports standby (also the night level) as not awake.
@@ -845,6 +846,16 @@ inline void grid_bind(lv_obj_t *container, int margin, int page_bar_height) {
   const int canvas_w = lv_display_get_horizontal_resolution(display);
   const int canvas_h = lv_display_get_vertical_resolution(display);
   grid_select(canvas_w, canvas_h);
+  if (ui::round()) {
+    const auto frame = page_header::round_frame(canvas_w, canvas_h, header_text_font, header_home_mark);
+    lv_obj_set_align(container, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(container, frame.grid.x - margin, frame.grid.y);
+    lv_obj_set_width(container, frame.grid.w + 2 * margin);
+    grid_base_height = frame.grid.h;
+    lv_obj_set_height(container, grid_base_height);
+    grid_cells();
+    return;
+  }
   lv_obj_set_width(container, canvas_w);
   // Where the area starts is the height of the top bar, which the board states as the object's y. It has to be
   // laid out before that coordinate means anything: read straight after boot it is still zero, and the tile
@@ -3132,7 +3143,6 @@ inline void render(lv_obj_t *room) {
 }
 
 // The page owns the header data; this adapter resolves navigation and settings.
-inline const void *header_home_mark = nullptr;  // the Tessera mark of the home key, an lv_image_dsc_t
 inline const lv_font_t *header_back_font = nullptr;
 inline const lv_font_t *header_status_font = nullptr;  // the Wi-Fi item's bars (firmware 0.38.0)
 inline std::function<void()> back_home;
@@ -3546,7 +3556,7 @@ inline int place_page(int page, bool kept = false) {
   // between a sequential page and a detail page never changes tile geometry.
   if(tile_grid){
     auto *screen=lv_obj_get_parent(tile_grid);
-    const int height=bar||!screen?grid_base_height:lv_obj_get_height(screen)-lv_obj_get_y(tile_grid)-grid_margin;
+    const int height=ui::round()||bar||!screen?grid_base_height:lv_obj_get_height(screen)-lv_obj_get_y(tile_grid)-grid_margin;
     if(lv_obj_get_style_height(tile_grid,LV_PART_MAIN)!=height)lv_obj_set_height(tile_grid,height);
   }
   std::array<size_t,CELLS_MAX> shown;shown.fill(grid.max_tiles());
@@ -3584,6 +3594,7 @@ inline int place_page(int page, bool kept = false) {
   }
   set_hidden(nav_prev,!(sequential || detail));
   for(auto *control:{nav_next,nav_number})set_hidden(control,!sequential);
+  page_bar::place_round(nav_prev,nav_next,nav_number,sequential_count);
   if(nav_back_label){
     set_hidden(nav_back_label,!detail);
     if(detail){

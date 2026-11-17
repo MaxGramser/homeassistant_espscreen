@@ -1,3 +1,7 @@
+## Unreleased
+
+- **Experimental round LILYGO AMOLED.** Adds the T-Display-S3 AMOLED 1.75 (H0175Y003AM, 466 × 466), with a circular frame around the existing Tessera tiles and cards. Status sits above the room, four tiles fit the middle, and light controls and weather use native paging. The editor and firmware share the circular bounds. The existing Rotation setting offers 90° and 270° on this square pixel canvas. Physical panel, touch and wake acceptance is still pending.
+
 ## 0.4.98 (firmware 0.61.0)
 
 - **A call always lets you out.** When the app restarted in the middle of a call between screens, both screens stayed in the call and the hang-up key did nothing. The app now answers the end of a call it no longer holds, and a screen ends the call itself when its hang-up gets no answer.

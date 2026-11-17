@@ -19,7 +19,7 @@ const inv = useInventoryStore();
 const doc = useDocumentStore();
 
 const props = withDefaults(defineProps<{
-  width: number; height: number; dpi?: number; columns: number; rows: number;
+  width: number; height: number; dpi?: number; columns: number; rows: number; form?: "round" | "rectangle";
   layout?: PageLayout | null; still?: boolean; controls?: boolean;
   // Whether the board draws pictures (stores/screen.ts drawsPictures): a CYD's preview has no square for an album cover.
   pictures?: boolean;
@@ -342,6 +342,7 @@ onMounted(async () => {
     const loaded = await loadFirmware();
     if (disposed) return;
     module = loaded;
+    module._preview_shape?.(props.form === "round" ? 1 : 0);
     if (!module._preview_init(props.width, props.height, props.dpi ?? 170, props.columns, props.rows)) {
       throw new Error(t("editor.preview.invalid_shape"));
     }
@@ -376,7 +377,7 @@ const staleSince = age.preview ? new Date(age.preview).toLocaleDateString() : ""
 </script>
 
 <template>
-  <div class="firmware-preview" :class="{ still }" :style="{ aspectRatio: `${width} / ${height}` }">
+  <div class="firmware-preview" :class="{ still }" :style="{ aspectRatio: `${width} / ${height}`, borderRadius: form === 'round' ? '50%' : undefined, overflow: form === 'round' ? 'hidden' : undefined }">
     <canvas ref="canvas" :width="width" :height="height" :aria-label="t('editor.preview.canvas')"
       @pointerdown.prevent="contact" @pointermove="contact" @pointerup="contact" @pointercancel="cancel" @lostpointercapture="cancel"></canvas>
   </div>

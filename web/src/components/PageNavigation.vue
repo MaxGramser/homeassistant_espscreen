@@ -24,7 +24,8 @@ defineExpose({ visible });
     <button v-if="detail" type="button" class="page-back" :disabled="!interactive || canGoBack === false" @click="emit('navigate', 'back')">‹ <span>{{ region.screenText('screen.navigation.back') }}</span></button>
     <template v-else-if="sequential">
       <button type="button" :disabled="!interactive || (!looping && index === 0)" :aria-label="t('editor.pages.previous')" @click="emit('navigate', 'previous')">‹</button>
-      <span>{{ index + 1 }} / {{ sequence.length }}</span>
+      <span v-if="doc.screenShape.form === 'round' && sequence.length <= 8" class="page-dots" aria-hidden="true"><i v-for="(_, i) in sequence" :key="i" :class="{ current: i === index }"></i></span>
+      <span v-else>{{ index + 1 }} / {{ sequence.length }}</span>
       <button type="button" :disabled="!interactive || (!looping && index === sequence.length - 1)" :aria-label="t('editor.pages.next')" @click="emit('navigate', 'next')">›</button>
     </template>
   </div>
@@ -34,6 +35,9 @@ defineExpose({ visible });
 /* Its chevrons at most as high as the page bar of the glass (--frame-bar, DevicePage): on a 10-inch it is 15 px. */
 button { border: 0; background: transparent; color: inherit; font-size: min(24px, var(--frame-bar, 24px)); width: 40px; line-height: 1; }
 button:disabled { opacity: .3; cursor: default; }
+.page-dots { display: flex; gap: calc(7 * var(--glass, 1) * 1px); }
+.page-dots i { width: calc(7 * var(--glass, 1) * 1px); height: calc(7 * var(--glass, 1) * 1px); border-radius: 50%; background: currentColor; opacity: .3; }
+.page-dots i.current { opacity: 1; }
 .page-back { display: flex; align-items: center; gap: 6px; width: 50%; text-align: left; }
 .page-back span { font-size: 11px; }
 .page-back:disabled { opacity: 1; }

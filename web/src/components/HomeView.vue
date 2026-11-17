@@ -85,7 +85,7 @@ onMounted(entities.loadOverview);
         :aria-label="t('editor.home.open', { name: screen.name })" @click="session.select(screen.id)" @keydown.enter.prevent="session.select(screen.id)" @keydown.space.prevent="session.select(screen.id)">
         <span class="home-stage">
           <span v-if="live && layout && !failed.has(screen.id)" class="home-live" :style="{ width: liveWidth(live) }" aria-hidden="true">
-            <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi"
+            <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi" :form="live.form"
               :columns="live.columns" :rows="live.rows" :layout="layout" :pictures="drawsPictures(screen)" :dark="screen.settings?.values?.dark_mode === true" still
               @ready="drawn.add(screen.id)" @failed="failed.add(screen.id)" />
           </span>

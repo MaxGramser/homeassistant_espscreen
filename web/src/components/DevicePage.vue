@@ -193,7 +193,7 @@ async function onKey(e: KeyboardEvent) {
         <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
-    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames }">
+    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames, round: doc.screenShape.form === "round" }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && insp.openBar(0, page)" @keydown.enter.prevent="!preview && insp.openBar(0, page)">
         <TopbarSvg :items="topbar.topbarItems(page)" :name-text="pageTitleShown(page)" :home="topbar.homeKeyShown(page)" :back="backInHeader" />
@@ -243,6 +243,8 @@ async function onKey(e: KeyboardEvent) {
    against its page as the screen draws it. */
 .device { padding: 0 var(--frame-side, 10px) var(--frame-bottom, 10px); gap: 0; grid-template-rows: var(--frame-top, 48px) minmax(0, 1fr); }
 .device:has(.page-navigation) { grid-template-rows: var(--frame-top, 48px) minmax(0, 1fr) var(--frame-bar, 32px); }
+.device.round { border-radius: 50%; overflow: hidden; }
+.device.round :deep(.page-navigation) { width: var(--round-nav-width); height: var(--round-nav-height); margin-top: var(--round-nav-gap); justify-self: center; }
 .tiles { gap: var(--frame-gap-y, 8px) var(--frame-gap-x, 8px); }
 .bar-wrap { position: relative; min-height: 0; }
 .preview-home { position: absolute; inset: 0 auto 0 0; width: 30px; border: 0; background: transparent; }

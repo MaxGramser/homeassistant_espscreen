@@ -59,7 +59,7 @@ onBeforeUnmount(() => previouslyFocused?.focus());
     <template v-if="live && !failed">
       <p>{{ t('editor.preview.hint') }}</p>
       <div class="preview-live" :style="{ width: liveWidth }">
-        <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows" :pictures="drawsPictures(scr.currentScreen)"
+        <FirmwarePreview :width="live.width" :height="live.height" :dpi="live.dpi" :form="live.form" :columns="live.columns" :rows="live.rows" :pictures="drawsPictures(scr.currentScreen)"
           :dark="scr.currentScreen?.settings?.values?.dark_mode === true" :screen="scr.currentScreen" :layout="doc.document" :controls="controls" @failed="failed = true" />
       </div>
       <SwitchRow v-model="controls" class="preview-controls" :label="t('editor.preview.control')" :description="t('editor.preview.control_hint')" />

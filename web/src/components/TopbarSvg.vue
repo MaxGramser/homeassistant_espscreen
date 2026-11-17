@@ -26,8 +26,8 @@ const lay = computed(() => {
                    Boolean(props.home) && !props.single, Boolean(props.back) && !props.single);
 });
 const m = computed(() => lay.value.metrics);
-const height = computed(() => (props.single ? Math.round(m.value.text * 1.4) : m.value.top + Math.round(m.value.name * 0.45)));
-const baseline = computed(() => (props.single ? Math.round(m.value.text * 1.05) : m.value.top));
+const height = computed(() => (props.single ? Math.round(m.value.text * 1.4) : m.value.round?.grid.y ?? m.value.top + Math.round(m.value.name * 0.45)));
+const baseline = computed(() => (props.single ? Math.round(m.value.text * 1.05) : m.value.round ? m.value.round.status.y + m.value.round.status.h / 2 - (lay.value.zero.top + lay.value.zero.bottom) / 2 : m.value.top));
 const parts = computed<BarPart[]>(() => {
   if (!props.single) return lay.value.placed;
   const part = lay.value.parts[0];
@@ -41,8 +41,10 @@ const capMiddle = computed(() => baseline.value + (lay.value.zero.top + lay.valu
 // The home key stands on the capitals' baseline of the name, not on the digits of the items: the screens place it
 // that way. Back's chevron sits in the middle of the same slot.
 const nameCap = computed(() => inkOf("H", lay.value.fonts.name));
-const markY = computed(() => baseline.value + nameCap.value.bottom - lay.value.key!.size);
-const backY = computed(() => baseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
+const nameBaseline = computed(() => m.value.round ? m.value.round.heading.y + (m.value.round.heading.h - nameCap.value.top - nameCap.value.bottom) / 2 : m.value.top);
+const titleX = computed(() => m.value.round ? (m.value.width - Math.min(m.value.round.heading.w, lay.value.natural + lay.value.homeShift)) / 2 : 0);
+const markY = computed(() => nameBaseline.value + nameCap.value.bottom - lay.value.key!.size);
+const backY = computed(() => nameBaseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
 const backX = computed(() => (lay.value.key!.size - (lay.value.key!.ink.right - lay.value.key!.ink.left)) / 2 - lay.value.key!.ink.left);
 const name = computed(() => dotted(lay.value.nameText, lay.value.fonts.name, Math.min(lay.value.natural, lay.value.nameRoom)));
 // The clock item's hands at the editor's one clock (model/clock.ts), as long as the screen draws them.
@@ -62,9 +64,9 @@ defineExpose({ lay });
 
 <template>
   <svg :viewBox="viewBox" role="img" :aria-label="single ? t('editor.topbar.live.looks') : t('editor.topbar.aria', { name: lay.nameText })" :style="single ? { width: singleWidth } : undefined">
-    <TesseraMark v-if="lay.key?.mark" x="0" :y="markY" :width="lay.key.size" :height="lay.key.size" />
-    <text v-else-if="lay.key" :x="backX" :y="backY" fill="#46525e" :style="{ font: lay.fonts.icon }">{{ lay.key.glyph }}</text>
-    <text v-if="!single" :x="lay.homeShift" :y="m.top" fill="#1b1b1b" :style="{ font: lay.fonts.name }">{{ name }}</text>
+    <TesseraMark v-if="lay.key?.mark" :x="titleX" :y="markY" :width="lay.key.size" :height="lay.key.size" />
+    <text v-else-if="lay.key" :x="titleX + backX" :y="backY" fill="#46525e" :style="{ font: lay.fonts.icon }">{{ lay.key.glyph }}</text>
+    <text v-if="!single" :x="titleX + lay.homeShift" :y="nameBaseline" fill="#1b1b1b" :style="{ font: lay.fonts.name }">{{ name }}</text>
     <g>
       <template v-for="p in parts" :key="p.index">
         <template v-if="p.dial">

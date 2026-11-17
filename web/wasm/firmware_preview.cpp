@@ -23,6 +23,7 @@ std::vector<uint32_t> draw_buffer, framebuffer;
 int width{}, height{}, page{};
 lv_point_t position{};
 bool pressed = false, dirty = true;
+bool circular = false;
 uint32_t epoch = 0, epoch_at = 1000;
 int utc_offset = 0;
 std::string last_result, diagnostics, outgoing_action;
@@ -56,6 +57,8 @@ void nav(lv_event_t *event) {
 }
 
 extern "C" {
+// Shape is a runtime input, independent of the compiled density/font profile. Keep preview_init's ABI unchanged.
+void preview_shape(int round) { if (!display) circular = round != 0; }
 // Whether the previewed board draws pictures (firmware 0.46.0): a board without PSRAM, such as the CYD, has no camera
 // hooks, so its media card keeps no square for a cover; the preview drops them the same way after preview_init.
 void preview_pictures(int on) {
@@ -80,7 +83,7 @@ int preview_init(int w, int h, int display_dpi, int columns, int rows) {
   firmware = setup_firmware_ui(lv_screen_active(), display_dpi);
   if (!firmware.room) return 0;
   runtime_tiles::grid = {size_t(columns), size_t(rows)};
-  ui::configure(display_dpi, firmware.look);
+  ui::configure(display_dpi, firmware.look, circular ? "round" : "rectangle");
   firmware.bind();
   preview_images::bind();
   firmware.cells();

@@ -22,19 +22,31 @@
 #include <cstdint>
 #include "lvgl.h"
 #include "ui_scale.h"
+#include "display_shape.h"
 
 namespace overlay_card {
 
 // `controls` is capped to a hand's width, `picture` and `graph` fill the glass (see above).
 enum Kind { controls, picture, graph };
 
-inline int screen_width() { return lv_display_get_horizontal_resolution(lv_display_get_default()); }
-inline int screen_height() { return lv_display_get_vertical_resolution(lv_display_get_default()); }
+inline int glass_width() { return lv_display_get_horizontal_resolution(lv_display_get_default()); }
+inline int glass_height() { return lv_display_get_vertical_resolution(lv_display_get_default()); }
+inline display_shape::Rect workspace() {
+  return ui::round() ? display_shape::workspace(glass_width(), glass_height(), ui::mm(1))
+                     : display_shape::Rect{0, 0, glass_width(), glass_height()};
+}
+inline int screen_width() { return glass_width(); }
+inline int screen_height() { return glass_height(); }
+// Physical screen coordinates remain the display/input contract. Only native overlay layout uses this workspace.
+inline int view_width() { return workspace().w; }
+inline int view_height() { return workspace().h; }
+inline int physical_left(const lv_obj_t *parent);
+inline int physical_top(const lv_obj_t *parent);
 
 // The width a card's content may take: capped for controls, the whole glass for a picture. A card in two
 // columns may take twice the cap, so each column keeps its own reach.
 inline int content_width(Kind kind = controls, int columns = 1) {
-  const int room = screen_width();
+  const int room = view_width();
   if (kind != controls) return room;
   return std::min(room, columns * ui::control_max_width() + (columns - 1) * ui::column_gap());
 }
@@ -52,9 +64,9 @@ inline int pad() { return ui::px(ui::large() ? 20 : 10); }
 // stack and lets the card give room in its own order, as the two first boards always did. Glass too
 // narrow for two columns keeps one as well.
 inline int columns(int need_height, int min_column) {
-  if (need_height <= screen_height()) return 1;
-  if (screen_width() * 2 < screen_height() * 3) return 1;
-  return screen_width() >= 2 * min_column + ui::column_gap() ? 2 : 1;
+  if (need_height <= view_height()) return 1;
+  if (view_width() * 2 < view_height() * 3) return 1;
+  return view_width() >= 2 * min_column + ui::column_gap() ? 2 : 1;
 }
 
 // Give a card's root its room and put it in the middle of the glass, left to right. The root covers the glass and its
@@ -62,7 +74,19 @@ inline int columns(int need_height, int min_column) {
 // padding to the glass's own edges, so its keys stay put whatever width the card under it has.
 inline void frame(lv_obj_t *root, Kind kind = controls, int columns = 1) {
   if (!root) return;
-  const int side = (screen_width() - content_width(kind, columns)) / 2;
+  const int side = (view_width() - content_width(kind, columns)) / 2;
+  if (ui::round()) {
+    const auto room = workspace();
+    // Keep the backdrop on the whole glass and put native content in an inscribed workspace. A floating page bar
+    // can still use the wider lower chord. No font, widget, input or entity state is copied for a circular board.
+    lv_obj_set_pos(root, physical_left(lv_obj_get_parent(root)), physical_top(lv_obj_get_parent(root)));
+    lv_obj_set_size(root, glass_width(), glass_height());
+    lv_obj_set_style_pad_left(root, room.x + side, 0);
+    lv_obj_set_style_pad_right(root, glass_width() - room.x - room.w + side, 0);
+    lv_obj_set_style_pad_top(root, room.y, 0);
+    lv_obj_set_style_pad_bottom(root, glass_height() - room.y - room.h, 0);
+    return;
+  }
   lv_obj_set_pos(root, 0, 0);
   lv_obj_set_width(root, screen_width());
   lv_obj_set_style_pad_left(root, side, 0);
@@ -73,20 +97,22 @@ inline void frame(lv_obj_t *root, Kind kind = controls, int columns = 1) {
 // what stands on the glass rather than in a card (the top bar, the page bar) is placed with these on any page's root,
 // capped by its padding or by its place. Read from the styles, not from the coordinates: those follow only at LVGL's
 // next layout pass, and a page is built before that.
-inline int glass_left(const lv_obj_t *parent) {
+inline int physical_left(const lv_obj_t *parent) {
   int x = 0;
   for (const lv_obj_t *o = parent; o && lv_obj_get_parent(o); o = lv_obj_get_parent(o))
     x += lv_obj_get_style_x(o, LV_PART_MAIN) + lv_obj_get_style_pad_left(o, LV_PART_MAIN) +
          lv_obj_get_style_border_width(o, LV_PART_MAIN);
   return -x;
 }
-inline int glass_top(const lv_obj_t *parent) {
+inline int physical_top(const lv_obj_t *parent) {
   int y = 0;
   for (const lv_obj_t *o = parent; o && lv_obj_get_parent(o); o = lv_obj_get_parent(o))
     y += lv_obj_get_style_y(o, LV_PART_MAIN) + lv_obj_get_style_pad_top(o, LV_PART_MAIN) +
          lv_obj_get_style_border_width(o, LV_PART_MAIN);
   return -y;
 }
+inline int glass_left(const lv_obj_t *parent) { return physical_left(parent) + workspace().x; }
+inline int glass_top(const lv_obj_t *parent) { return physical_top(parent) + workspace().y; }
 
 // Once a card is drawn, put its content in the middle of the glass from top to bottom as well. The first
 // `pinned` children are the card's own top bar (the back key and the name): those stay where they are, at the
@@ -96,7 +122,7 @@ inline int glass_top(const lv_obj_t *parent) {
 inline void centre(lv_obj_t *root, uint32_t pinned = 0) {
   if (!root) return;
   lv_obj_update_layout(root);
-  int bar = 0, foot = screen_height(), top = INT32_MAX, bottom = 0;
+  int bar = 0, foot = view_height(), top = INT32_MAX, bottom = 0;
   for (uint32_t i = 0; i < lv_obj_get_child_count(root); ++i) {
     lv_obj_t *child = lv_obj_get_child(root, i);
     if (!child || lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) continue;

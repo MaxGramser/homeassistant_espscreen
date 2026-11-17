@@ -2,6 +2,8 @@
 #include "header_bar.h"
 #include "theme.h"
 #include "tile_icon.h"
+#include "display_shape.h"
+#include "ui_scale.h"
 #include "esphome/core/time.h"
 #include <algorithm>
 #include <array>
@@ -14,6 +16,12 @@
 // Runtime selects the View and supplies a guarded action for the leading key.
 namespace page_header {
 enum class Leading { none, home, back };
+inline display_shape::Home round_frame(int w, int h, const lv_font_t *font, const void *mark) {
+  const int line = font ? lv_font_get_line_height(font) : ui::px(17);
+  const int image = mark ? static_cast<const lv_image_dsc_t *>(mark)->header.h : ui::px(25) * 17 / 24;
+  return display_shape::home(w, h, ui::mm(1), ui::touch_min(), line, image,
+                            std::max(ui::px(2), (ui::dpi * 15 + 127) / 254), std::min(ui::px(3), 4));
+}
 
 // One item drawn the bar's way, apart from its widgets, so the screensaver clock's row (firmware 0.50.0+) is the bar's
 // own: the same words, the same ink-to-ink gaps, the same middle line.
@@ -252,12 +260,22 @@ public:
       lv_label_set_long_mode(room_label, LV_LABEL_LONG_DOT);
     }
     // Geometry from the profile's own widgets: the name's margin and baseline, the clock's right margin.
+    if (ui::round()) set_font(room_label, header_text_font);
     const lv_font_t *name_font = lv_obj_get_style_text_font(room_label, LV_PART_MAIN);
     int page_w = lv_obj_get_width(page), left = lv_obj_get_x(room_label);
+    const auto round = ui::round() ? round_frame(page_w, lv_obj_get_height(page), header_text_font, home_mark) : display_shape::Home{};
     // int32_t is long on the ESP32 toolchain: keep the arithmetic in int.
     int width = std::max(0, page_w + static_cast<int>(lv_obj_get_style_x(time_label, LV_PART_MAIN)) - left);
     // The name's margin from the side of the glass, as the profile placed it before the key moved it along.
     if (header_name_owner != room_label) { header_name_owner = room_label; header_name_left = left; }
+    if (ui::round()) {
+      const int mark_w = home_mark ? home_mark->header.w : ui::px(25) * 17 / 24;
+      const int title = text_ink(name_font, header_name).advance;
+      const int group = std::min(round.heading.w, title + (view.leading == Leading::none ? 0 : mark_w + ui::px(5)));
+      header_name_left = (page_w - group) / 2;
+      left = header_name_left;
+    }
+    const int header_top = ui::round() ? round.heading.y : header_name_left;
     // The key's slot: the mark's picture, or the house of the icon font. Back takes the same slot, so the title and
     // the finger's area stay where they are when a detail page swaps the key for a chevron.
     int slot_w = 0, slot_h = 0;
@@ -269,7 +287,7 @@ public:
     // (GitHub #90), so the name and the key share one middle line whatever the fonts, and the bar stays put when the
     // key is switched off.
     if (slot_h && lv_font_get_glyph_dsc(name_font, &cap, 'H', 0) && cap.box_h)
-      lv_obj_set_y(room_label, header_name_left + (slot_h + cap.box_h) / 2 + cap.ofs_y - (name_font->line_height - name_font->base_line));
+      lv_obj_set_y(room_label, header_top + (slot_h + cap.box_h) / 2 + cap.ofs_y - (name_font->line_height - name_font->base_line));
     int baseline = lv_obj_get_y(room_label) + (name_font->line_height - name_font->base_line);
     lv_obj_set_pos(header_root, 0, 0);
     lv_obj_set_size(header_root, page_w, baseline + name_font->line_height);
@@ -278,7 +296,7 @@ public:
     // Every part of the bar shares the key's middle line (firmware 0.15.0+): the name's capitals, the items' digits,
     // their icons and the dial. Twice the middle keeps the halves exact. Without a key, the digits' own middle on the
     // name's line.
-    int middle2 = slot_h ? 2 * header_name_left + slot_h : 2 * (baseline - zero.ofs_y) - zero.box_h;
+    int middle2 = ui::round() ? 2 * round.status.y + round.status.h : slot_h ? 2 * header_name_left + slot_h : 2 * (baseline - zero.ofs_y) - zero.box_h;
     // The items' words put their digits on that line; their baseline follows from the digits.
     const int item_baseline = digits_baseline(header_text_font, middle2);
     auto gaps = header_bar::gaps(zero.box_h);
@@ -331,7 +349,7 @@ public:
     if (view.leading != Leading::none && slot_w && slot_h &&
         (draw_mark || (lv_font_get_glyph_dsc(leading_font, &leading, leading_glyph, 0) && leading.box_w))) {
       // The key fills its slot from the bar's top margin down; the name's capitals are centred on it.
-      const int ink_bottom = header_name_left + slot_h;
+      const int ink_bottom = header_top + slot_h;
       if (draw_mark) {
         lv_obj_set_pos(header_home_mark, left, ink_bottom - slot_h);
         mark_on = true;
@@ -350,11 +368,11 @@ public:
       const int pad = gaps.item / 2;
       // The band above the tiles, which the board states as the grid's own y; without it the name's line.
       const int band = tile_grid && lv_obj_get_y(tile_grid) > 0 ? lv_obj_get_y(tile_grid) : baseline + name_font->line_height;
-      lv_obj_set_pos(header_home_tap, std::max(0, left - pad), 0);
-      lv_obj_set_size(header_home_tap, slot_w + 2 * pad, band);
+      lv_obj_set_pos(header_home_tap, std::max(0, left - pad), ui::round() ? round.heading.y : 0);
+      lv_obj_set_size(header_home_tap, slot_w + 2 * pad, ui::round() ? round.heading.h : band);
       // The same air on both sides of the key: the margin the board keeps from the edge of the glass stands between
       // the key and the name as well, measured ink to ink like every other gap in this bar.
-      const int shift = slot_w + header_name_left;
+      const int shift = slot_w + (ui::round() ? ui::px(5) : header_name_left);
       left += shift;
       width -= shift;
       home_on = true;
@@ -366,21 +384,21 @@ public:
     lv_obj_set_x(room_label, home_on ? left - text_ink(name_font, header_name.c_str()).left : left);
     lv_point_t name_size;
     lv_text_get_size(&name_size, header_name.c_str(), name_font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
-    auto placement = header_bar::place(widths.data(), count, gaps, width, name_size.x);
-    lv_obj_set_width(room_label, std::max(1, std::min<int>(name_size.x, placement.name_room)));
+    auto placement = header_bar::place(widths.data(), count, gaps, ui::round() ? round.status.w : width, ui::round() ? 0 : name_size.x);
+    lv_obj_set_width(room_label, std::max(1, std::min<int>(name_size.x, ui::round() ? round.heading.x + round.heading.w - left : placement.name_room)));
     lv_obj_set_height(room_label, lv_font_get_line_height(name_font));
 
     std::array<bool, header_bar::MAX_ITEMS> icon_on{}, text_on{}, tap_on{};
     // The finger's area of the items: the whole height of the bar and half an item's gap either side, as the home key's.
     const int tap_pad = gaps.item / 2;
-    const int tap_band = tile_grid && lv_obj_get_y(tile_grid) > 0 ? lv_obj_get_y(tile_grid) : baseline + name_font->line_height;
+    const int tap_band = ui::round() ? round.status.h : tile_grid && lv_obj_get_y(tile_grid) > 0 ? lv_obj_get_y(tile_grid) : baseline + name_font->line_height;
     bool dial_on = false;
     // The screen's own items on the bar, left edge to right edge, for the finger's area over them.
     int status_left = -1, status_right = -1;
     for (size_t k = placement.first; k < count; ++k) {
       const auto &p = parts[k];
       auto &slot = header_slots[k];
-      int x = left + placement.x[k];
+      int x = (ui::round() ? round.status.x : left) + placement.x[k];
       const auto kind = bar.items[p.item].kind;
       if (kind == header_bar::Kind::wifi || kind == header_bar::Kind::link || kind == header_bar::Kind::battery) {
         if (status_left < 0) status_left = x;
@@ -388,7 +406,7 @@ public:
       }
       // An entity's item that opens a card, while Home Assistant's values show: a tap opens it.
       if (live && item_action && bar.items[p.item].card != header_bar::NO_CARD && item_taps[k]) {
-        lv_obj_set_pos(item_taps[k], std::max(0, x - tap_pad), 0);
+        lv_obj_set_pos(item_taps[k], std::max(0, x - tap_pad), ui::round() ? round.status.y : 0);
         lv_obj_set_size(item_taps[k], p.width + 2 * tap_pad, tap_band);
         lv_obj_set_user_data(item_taps[k], reinterpret_cast<void *>(static_cast<uintptr_t>(p.item)));
         tap_on[k] = true;
@@ -447,12 +465,17 @@ public:
         // The whole height of the bar and half an item's gap either side, as the home key's area.
         const int pad = gaps.item / 2;
         const int band = tile_grid && lv_obj_get_y(tile_grid) > 0 ? lv_obj_get_y(tile_grid) : baseline + name_font->line_height;
-        lv_obj_set_pos(status_tap, std::max(0, status_left - pad), 0);
-        lv_obj_set_size(status_tap, status_right - status_left + 2 * pad, band);
+        lv_obj_set_pos(status_tap, std::max(0, status_left - pad), ui::round() ? round.status.y : 0);
+        lv_obj_set_size(status_tap, status_right - status_left + 2 * pad, ui::round() ? round.status.h : band);
       }
       set_visible(status_tap, on);
     }
     set_visible(header_ring, dial_on);
+    if (ui::round() && surface.hold_area) {
+      const auto hold = display_shape::band(page_w, lv_obj_get_height(page), ui::mm(1), round.status.y, round.grid.y);
+      lv_obj_set_pos(surface.hold_area, hold.x, hold.y);
+      lv_obj_set_size(surface.hold_area, hold.w, hold.h);
+    }
     for (auto *hand : header_hands) set_visible(hand, dial_on);
   }
 };
