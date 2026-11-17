@@ -136,6 +136,10 @@ inline void weather_chip(lv_obj_t *p,int x,int y,int w,const WeatherAttribute &a
 }
 inline void render_weather_detail(const Tile &t,bool large,int width,int height,int){
   const Extra &x=t.extra();
+  // The Daily | Hourly key is there only for a forecast that has hours, as Home Assistant's own card offers a kind of
+  // forecast only where the entity has it (a provider with days alone: the key opened an empty chart, 2026-11-17).
+  const bool by_hour=!x.hours.empty();
+  if(!by_hour)weather_view=0;
   if(detail_status){lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);detail_status=nullptr;}
   const int pad=overlay_card::pad(),gap=ui::px(large?12:6),gi=ui::px(large?12:6),card_pad=ui::px(large?16:8);
   const int top=detail_bar::bottom()+gap;
@@ -170,11 +174,11 @@ inline void render_weather_detail(const Tile &t,bool large,int width,int height,
   const auto edge=detail_bar::right_slot(detail_root);
   const int key_x=edge.x+edge.w-weather_key_w(),middle=detail_bar::glass_left(detail_root)+overlay_card::screen_width()/2;
   const lv_font_t *heading=watch_font?watch_font:detail_font;
-  const bool key_top=middle+text_width(t.name,heading)/2+gap<=key_x;
+  const bool key_top=by_hour&&middle+text_width(t.name,heading)/2+gap<=key_x;
   if(key_top)weather_key(detail_root,key_x,edge.y+(edge.h-weather_key_h())/2,weather_view==1);
-  const bool title=!key_top;
+  const bool title=by_hour&&!key_top;
   const Option options[]={{beside?std::max(0,weather_chip_h()-hero):-1,title,false,true},{n?gi+tiles_h:-1,title,false,false},
-                          {line.empty()?-1:line_of(small)+ui::px(4),title,false,false},{0,title,false,false},{0,false,!key_top,false}};
+                          {line.empty()?-1:line_of(small)+ui::px(4),title,false,false},{0,title,false,false},{0,false,by_hour&&!key_top,false}};
   const auto chart_proto=weather_chart_of(t,false);
   // The richest arrangement whose forecast still reaches the rain row (or the most the forecast can reach at all);
   // where none shows anything, the one that leaves the forecast the most room.
