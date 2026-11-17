@@ -16,6 +16,9 @@ substitutions:
   # The microphone hears the board's own speaker, and what clips cannot be cancelled: at 24 dB a Guition 10.1 clipped at
   # 60 % volume and the canceller took 13 dB away, at 12 dB it took 34 (docs/P4_AUDIO.md).
   AUDIO_MIC_GAIN: "12DB"
+  # The 12 dB taken off before the canceller are given back after it, on the voice's way out (talk_uplink.h): with
+  # them off and nothing given back, a voice beside a Guition 10.1 reached the other screen too soft to follow.
+  AUDIO_VOICE_GAIN: "16"
   AUDIO_SPEAKER_BUFFER: "100ms"
   AUDIO_REFERENCE_BOOT: |-
     if (!id(ts_audio_dac).write_byte(0x44, 0x58)) ESP_LOGW("audio", "The codec did not take its playback reference");

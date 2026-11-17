@@ -166,10 +166,10 @@ void task_main(void *arg) {
 }
 }  // namespace
 
-void bind_microphone(esphome::microphone::Microphone *m) {
+void bind_microphone(esphome::microphone::Microphone *m, int gain) {
   microphone = m;
   if (!m) return;
-  source = new esphome::microphone::MicrophoneSource(m, 16, GAIN, false);
+  source = new esphome::microphone::MicrophoneSource(m, 16, gain, false);
   source->add_channel(0);
   source->add_data_callback(on_samples);
 }
