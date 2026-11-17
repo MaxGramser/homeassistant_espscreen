@@ -1352,7 +1352,8 @@ WERT_W = 56  # "0,3 mm" ist 53 px breit (Poppins 500, 14 px)
 bar_w = inner - 44 - WERT_W - 20
 for h in range(5):
     r = 50 + h * 24
-    kids.append(label(C, f"lbl_std_{h}", P, y(r, 16, 14), "", "f_14", MUTED, width=44))
+    # "00 Uhr" ist 45 px breit; 52 px bis knapp vor den Balken, nie umbrechen
+    kids.append(label(C, f"lbl_std_{h}", P, y(r, 16, 14), "", "f_14", MUTED, width=52, long_mode="CLIP"))
     kids.append(widget("bar", C, dict(id=f"bar_std_{h}", x=P + 54, y=r + 2, width=bar_w, height=12, min_value=0,
                                       max_value=100, value=0, radius=6, bg_color=TRACK, bg_opa="12%",
                                       indicator="{radius: 6, bg_color: " + FILL + ", bg_opa: COVER}")))

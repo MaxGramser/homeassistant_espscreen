@@ -2995,10 +2995,11 @@ lvgl:
                   id: lbl_std_0
                   x: 16
                   y: 48
-                  width: 44
+                  width: 52
                   text: ""
                   text_font: f_14
                   styles: s_muted
+                  long_mode: CLIP
               - bar:
                   id: bar_std_0
                   x: 70
@@ -3026,10 +3027,11 @@ lvgl:
                   id: lbl_std_1
                   x: 16
                   y: 72
-                  width: 44
+                  width: 52
                   text: ""
                   text_font: f_14
                   styles: s_muted
+                  long_mode: CLIP
               - bar:
                   id: bar_std_1
                   x: 70
@@ -3057,10 +3059,11 @@ lvgl:
                   id: lbl_std_2
                   x: 16
                   y: 96
-                  width: 44
+                  width: 52
                   text: ""
                   text_font: f_14
                   styles: s_muted
+                  long_mode: CLIP
               - bar:
                   id: bar_std_2
                   x: 70
@@ -3088,10 +3091,11 @@ lvgl:
                   id: lbl_std_3
                   x: 16
                   y: 120
-                  width: 44
+                  width: 52
                   text: ""
                   text_font: f_14
                   styles: s_muted
+                  long_mode: CLIP
               - bar:
                   id: bar_std_3
                   x: 70
@@ -3119,10 +3123,11 @@ lvgl:
                   id: lbl_std_4
                   x: 16
                   y: 144
-                  width: 44
+                  width: 52
                   text: ""
                   text_font: f_14
                   styles: s_muted
+                  long_mode: CLIP
               - bar:
                   id: bar_std_4
                   x: 70
