@@ -23,7 +23,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone",
@@ -365,7 +365,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 25,
+   "order": 26,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -1176,7 +1176,7 @@
    "inch": 4.3,
    "model": "JC4880P443",
    "name": "Guition",
-   "order": 21,
+   "order": 22,
    "settings": [
     "media_player",
     "microphone",
@@ -1788,7 +1788,7 @@
    "inch": 5.0,
    "model": "JC8048W550C_I",
    "name": "Guition",
-   "order": 18,
+   "order": 19,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -1928,7 +1928,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 20,
+   "order": 21,
    "settings": [
     "media_player",
     "microphone",
@@ -2072,7 +2072,7 @@
    "inch": 4.0,
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
-   "order": 24,
+   "order": 25,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -2490,7 +2490,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "settings": [
     "media_player",
     "microphone",
@@ -2644,7 +2644,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "settings": [
     "media_player",
     "microphone",
@@ -3053,7 +3053,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3333,7 +3333,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
-   "order": 23,
+   "order": 24,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3588,6 +3588,146 @@
   "tier": "full",
   "wide_slots": false,
   "width": 800
+ },
+ "checkout/waveshare5b.yaml": {
+  "alert": {
+   "line": 34,
+   "title_line": 45
+  },
+  "battery": false,
+  "board": "waveshare5b",
+  "camera": {
+   "full": [
+    1024,
+    600
+   ],
+   "thumb": [
+    525,
+    295
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "ESP32-S3-Touch-LCD-5B",
+   "name": "Waveshare",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": false,
+  "dpi": 237,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 38,
+   "icon": 59,
+   "icon_home": 47,
+   "icon_mini": 36,
+   "label": 25,
+   "setpoint": 89,
+   "sublabel": 22,
+   "sublabel_big": 29,
+   "watch_icon": 25,
+   "watch_value": 53
+  },
+  "height": 600,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1024,
+      600
+     ],
+     "thumb": [
+      525,
+      295
+     ]
+    },
+    "columns": 3,
+    "height": 600,
+    "max": [
+     5,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 1024
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      600,
+      1024
+     ],
+     "thumb": [
+      498,
+      280
+     ]
+    },
+    "columns": 1,
+    "height": 1024,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 600
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "section": {
+   "band": 52,
+   "ink_top": 6,
+   "line": 29,
+   "title_top": 23
+  },
+  "spacing": {
+   "circle": 75,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 65,
+   "radius": 31,
+   "tile_pad": 17,
+   "top": 68
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1024
  },
  "checkout/waveshare7.yaml": {
   "alert": {
@@ -3893,7 +4033,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -4047,7 +4187,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "settings": [
     "media_player",
     "microphone",
@@ -4201,7 +4341,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "settings": [
     "media_player",
     "microphone",
@@ -4355,7 +4495,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -4495,7 +4635,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone",
@@ -4837,7 +4977,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 25,
+   "order": 26,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -5648,7 +5788,7 @@
    "inch": 4.3,
    "model": "JC4880P443",
    "name": "Guition",
-   "order": 21,
+   "order": 22,
    "settings": [
     "media_player",
     "microphone",
@@ -6260,7 +6400,7 @@
    "inch": 5.0,
    "model": "JC8048W550C_I",
    "name": "Guition",
-   "order": 18,
+   "order": 19,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -6400,7 +6540,7 @@
    "inch": 10.1,
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
-   "order": 22,
+   "order": 23,
    "settings": [
     "media_player",
     "microphone",
@@ -6742,7 +6882,7 @@
    "inch": 4.0,
    "model": "FNK0104S",
    "name": "Freenove",
-   "order": 25,
+   "order": 26,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -7553,7 +7693,7 @@
    "inch": 4.3,
    "model": "JC4880P443",
    "name": "Guition",
-   "order": 21,
+   "order": 22,
    "settings": [
     "media_player",
     "microphone",
@@ -8165,7 +8305,7 @@
    "inch": 5.0,
    "model": "JC8048W550C_I",
    "name": "Guition",
-   "order": 18,
+   "order": 19,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -8305,7 +8445,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 20,
+   "order": 21,
    "settings": [
     "media_player",
     "microphone",
@@ -8449,7 +8589,7 @@
    "inch": 4.0,
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
-   "order": 24,
+   "order": 25,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -8867,7 +9007,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "settings": [
     "media_player",
     "microphone",
@@ -9021,7 +9161,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "settings": [
     "media_player",
     "microphone",
@@ -9430,7 +9570,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -9710,7 +9850,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
-   "order": 23,
+   "order": 24,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -9965,6 +10105,146 @@
   "tier": "full",
   "wide_slots": false,
   "width": 800
+ },
+ "packages/waveshare5b.yaml": {
+  "alert": {
+   "line": 34,
+   "title_line": 45
+  },
+  "battery": false,
+  "board": "waveshare5b",
+  "camera": {
+   "full": [
+    1024,
+    600
+   ],
+   "thumb": [
+    525,
+    295
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "ESP32-S3-Touch-LCD-5B",
+   "name": "Waveshare",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": false,
+  "dpi": 237,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 38,
+   "icon": 59,
+   "icon_home": 47,
+   "icon_mini": 36,
+   "label": 25,
+   "setpoint": 89,
+   "sublabel": 22,
+   "sublabel_big": 29,
+   "watch_icon": 25,
+   "watch_value": 53
+  },
+  "height": 600,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1024,
+      600
+     ],
+     "thumb": [
+      525,
+      295
+     ]
+    },
+    "columns": 3,
+    "height": 600,
+    "max": [
+     5,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 1024
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      600,
+      1024
+     ],
+     "thumb": [
+      498,
+      280
+     ]
+    },
+    "columns": 1,
+    "height": 1024,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 600
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "section": {
+   "band": 52,
+   "ink_top": 6,
+   "line": 29,
+   "title_top": 23
+  },
+  "spacing": {
+   "circle": 75,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 65,
+   "radius": 31,
+   "tile_pad": 17,
+   "top": 68
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1024
  },
  "packages/waveshare7.yaml": {
   "alert": {
@@ -10270,7 +10550,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -10424,7 +10704,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "settings": [
     "media_player",
     "microphone",
@@ -10578,7 +10858,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "settings": [
     "media_player",
     "microphone",
@@ -10732,7 +11012,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -10872,7 +11152,7 @@
    "inch": 8.0,
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
-   "order": 20,
+   "order": 21,
    "settings": [
     "media_player",
     "microphone",
@@ -11016,7 +11296,7 @@
    "inch": 4.0,
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
-   "order": 24,
+   "order": 25,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -11434,7 +11714,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
-   "order": 29,
+   "order": 30,
    "settings": [
     "media_player",
     "microphone",
@@ -11588,7 +11868,7 @@
    "inch": 10.1,
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
-   "order": 30,
+   "order": 31,
    "settings": [
     "media_player",
     "microphone",
@@ -11997,7 +12277,7 @@
    "inch": 4.3,
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
-   "order": 31,
+   "order": 32,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -12277,7 +12557,7 @@
    "inch": 4.0,
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
-   "order": 23,
+   "order": 24,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -12532,6 +12812,146 @@
   "tier": "full",
   "wide_slots": false,
   "width": 800
+ },
+ "waveshare5b": {
+  "alert": {
+   "line": 34,
+   "title_line": 45
+  },
+  "battery": false,
+  "board": "waveshare5b",
+  "camera": {
+   "full": [
+    1024,
+    600
+   ],
+   "thumb": [
+    525,
+    295
+   ]
+  },
+  "can_standby": true,
+  "catalog": {
+   "calibrate": false,
+   "choices": {},
+   "inch": 5.0,
+   "model": "ESP32-S3-Touch-LCD-5B",
+   "name": "Waveshare",
+   "order": 18,
+   "settings": [],
+   "status": "experimental",
+   "touch": "GT911"
+  },
+  "chip": "ESP32-S3",
+  "columns": 3,
+  "dimmable": false,
+  "dpi": 237,
+  "features": [],
+  "firmware": "0.61.0",
+  "fonts": {
+   "headline": 38,
+   "icon": 59,
+   "icon_home": 47,
+   "icon_mini": 36,
+   "label": 25,
+   "setpoint": 89,
+   "sublabel": 22,
+   "sublabel_big": 29,
+   "watch_icon": 25,
+   "watch_value": 53
+  },
+  "height": 600,
+  "hotspot": true,
+  "look": "standard",
+  "max_bar_items": 12,
+  "max_pages": 24,
+  "max_tiles": 128,
+  "modules": [
+   "dock",
+   "vacuum_card",
+   "cover_groups",
+   "clock_faces",
+   "doorbell",
+   "call",
+   "text_card",
+   "light_presets",
+   "todo",
+   "text_edit",
+   "sections"
+  ],
+  "orientations": {
+   "landscape": {
+    "camera": {
+     "full": [
+      1024,
+      600
+     ],
+     "thumb": [
+      525,
+      295
+     ]
+    },
+    "columns": 3,
+    "height": 600,
+    "max": [
+     5,
+     5
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 0,
+    "rows": 3,
+    "width": 1024
+   },
+   "portrait": {
+    "camera": {
+     "full": [
+      600,
+      1024
+     ],
+     "thumb": [
+      498,
+      280
+     ]
+    },
+    "columns": 1,
+    "height": 1024,
+    "max": [
+     2,
+     8
+    ],
+    "min": [
+     1,
+     1
+    ],
+    "rotation": 90,
+    "rows": 5,
+    "width": 600
+   }
+  },
+  "own_icons": true,
+  "rows": 3,
+  "section": {
+   "band": 52,
+   "ink_top": 6,
+   "line": 29,
+   "title_top": 23
+  },
+  "spacing": {
+   "circle": 75,
+   "gap": 12,
+   "gap_y": 12,
+   "margin": 16,
+   "page_bar": 65,
+   "radius": 31,
+   "tile_pad": 17,
+   "top": 68
+  },
+  "tier": "full",
+  "wide_slots": false,
+  "width": 1024
  },
  "waveshare7": {
   "alert": {
@@ -12837,7 +13257,7 @@
    "inch": 4.0,
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
-   "order": 19,
+   "order": 20,
    "settings": [
     "media_player",
     "microphone",
@@ -12991,7 +13411,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
-   "order": 28,
+   "order": 29,
    "settings": [
     "media_player",
     "microphone",
@@ -13145,7 +13565,7 @@
    "inch": 7.0,
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
-   "order": 27,
+   "order": 28,
    "settings": [
     "media_player",
     "microphone",
@@ -13299,7 +13719,7 @@
    "inch": 3.5,
    "model": "WT32-SC01 Plus",
    "name": "WT32",
-   "order": 26,
+   "order": 27,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"

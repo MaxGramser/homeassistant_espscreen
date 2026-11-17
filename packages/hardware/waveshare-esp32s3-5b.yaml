@@ -1,0 +1,24 @@
+# The Waveshare 5B uses the CH422G base, with 1024 x 600 glass and binary backlight control.
+packages:
+  base: !include waveshare-ch422g.yaml
+
+esp32:
+  flash_size: 16MB
+
+output:
+  - id: !extend gpio_backlight_pwm
+    write_action:
+      - lambda: |-
+          // EXIO2 is binary. Only write when the requested state changes.
+          static bool lit = false;
+          const bool requested = state > 0.0f;
+          if (lit != requested) {
+            id(backlight_line).set_state(requested);
+            lit = requested;
+          }
+
+display:
+  - id: !extend my_display
+    model: WAVESHARE-5-1024X600
+    # The CH422G package already drives the backlight on EXIO2.
+    enable_pin: []
