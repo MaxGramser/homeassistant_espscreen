@@ -197,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Gain du microphone",
       "automatic_gain": "Gain automatique",
-      "echo_cancellation": "Annulation d'écho"
+      "echo_cancellation": "Annulation d'écho",
+      "loop_pages": "Pages en boucle"
     },
     "doorbell": {
       "sound_on": "Son activé",
@@ -688,7 +689,8 @@
       "sound_only": "Disponible, son seul",
       "in_call": "En communication",
       "offline": "Hors ligne",
-      "missed_at": "Appel manqué"
+      "missed_at": "Appel manqué",
+      "no_screens": "Aucun autre écran à appeler"
     }
   },
   "addon": {
@@ -1027,6 +1029,10 @@
         "refused": "Home Assistant a refusé l'automatisation : {reason}",
         "not_ours": "Cette automatisation n'a pas été créée par Tessera, l'application n'y touche pas.",
         "invalid": "Cette automatisation ne peut pas être enregistrée ({part})."
+      },
+      "icons": {
+        "request": "Ce n'est pas une liste d'icônes.",
+        "too_many": "Un écran accepte au plus {most} icônes à lui."
       }
     },
     "status": {
@@ -1622,6 +1628,13 @@
         "missed": "Personne ne l'a touchée avant son délai",
         "seen": "Une sonnerie manquée a été rouverte depuis la barre du haut"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot a besoin d'un AI Task dans Home Assistant capable de générer des données (Paramètres > Appareils et services, une intégration d'IA).",
+      "notes": {
+        "unknown": "{entity} laissé de côté : ce n'est pas une entité de ce Home Assistant.",
+        "no_page": "Il n'y a pas de page {page}."
+      }
     }
   },
   "editor": {
@@ -1639,6 +1652,8 @@
       "read_current_data": "Lire les données actuelles",
       "results": "{n} résultat. Continuez la saisie pour affiner la liste. | {n} résultats. Continuez la saisie pour affiner la liste.",
       "close": "Fermer",
+      "expand": "Afficher plus",
+      "collapse": "Afficher moins",
       "remove": "Retirer",
       "loading": "Chargement…",
       "back": "← Retour",
@@ -1963,6 +1978,7 @@
         "vacuum": "Aspirateurs",
         "sensor": "Capteurs",
         "media_player": "Médias",
+        "camera": "Caméras",
         "weather": "Météo",
         "number": "Valeurs",
         "select": "Sélecteurs",
@@ -1982,6 +1998,8 @@
       "again": "Déjà sur cet écran ; ajoutez-le encore pour une autre tuile",
       "all_placed": "Tout ce qui est ici est déjà sur cet écran.",
       "none_found": "Aucune entité trouvée. Essayez un autre nom, une autre pièce ou un autre filtre.",
+      "found_elsewhere": "Rien dans cette sélection, mais {n} entité correspond dans toute la bibliothèque. | Rien dans cette sélection, mais {n} entités correspondent dans toute la bibliothèque.",
+      "search_everything": "Afficher toutes les correspondances",
       "full": "Cet écran peut contenir {n} tuile. | Cet écran peut contenir {n} tuiles.",
       "full_update": "Cet écran peut contenir {n} tuile ; mettez à jour son firmware pour en avoir 48. | Cet écran peut contenir {n} tuiles ; mettez à jour son firmware pour en avoir 48.",
       "hint": "Faites glisser sur une page, ou appuyez sur + pour ajouter au premier emplacement libre. ⌘K recherche partout.",
@@ -2073,6 +2091,8 @@
         "title": "Ce qu'il ajoute",
         "tile": "Tuile « {name} »",
         "tile_sizes": "De {min} à {max} sur une page",
+        "tile_sizes_or_page": "De {min} à {max} sur une page, ou la page entière",
+        "tile_only_page": "La page entière",
         "tap": "Action au toucher « {name} »",
         "tap_on": "Sur les tuiles de {domains}",
         "card": "« {name} », sa propre vue sur l'écran",
@@ -2398,7 +2418,8 @@
       },
       "forget": {
         "go": "Retirer de la liste",
-        "note": "Aucun écran n'utilise ce plugin. Retirez-le de la liste pour oublier le lien."
+        "note": "Aucun écran n'utilise ce plugin. Retirez-le de la liste pour oublier le lien.",
+        "note_folder": "Aucun écran n'utilise ce plugin depuis son dossier. Le retirer déplace le dossier vers config/tessera-plugins/.removed/{id}, où vous pouvez le supprimer pour de bon."
       }
     },
     "plugin_tile": {
@@ -2411,6 +2432,9 @@
       "from_fetch": "Les choix viennent de la propre source de données du plugin, via Tessera.",
       "on_screen": "Sur l'écran",
       "sizes": "De {min} à {max} ; faites glisser un bord de la tuile pour changer sa taille.",
+      "sizes_or_page": "De {min} à {max}, ou la page entière ; faites glisser un bord de la tuile pour changer sa taille.",
+      "sizes_only_page": "Cette tuile prend toujours une page entière.",
+      "whole_page": "Page entière",
       "placeholder": "L'éditeur affiche un espace réservé : ce que le plugin dessine apparaît sur l'écran lui-même.",
       "now": "maintenant",
       "minutes": "{n} min",
@@ -3007,6 +3031,17 @@
         "clear": "Supprimer les terminés",
         "clear_hint": "Une touche dans la liste supprime tout ce qui est coché, après confirmation"
       },
+      "call": {
+        "section": "Appel",
+        "who": "Appelle",
+        "who_hint_all": "Un appui ouvre la liste des écrans.",
+        "who_hint_one": "Un appui appelle cet écran aussitôt.",
+        "everyone": "Choisir dans la liste",
+        "kind": "Type d'appel",
+        "kind_hint": "La vidéo demande une caméra sur les deux écrans, sinon c'est un appel avec le son.",
+        "video": "Vidéo si possible",
+        "sound": "Son seulement"
+      },
       "text_entity": {
         "edit": "Un appui ouvre la valeur dans un champ avec le clavier de l'écran. Un mot de passe s'affiche en points.",
         "view_only": "Cette carte affiche seulement la valeur : la modifier sur l'écran demande une carte avec 8 Mo de flash ou plus."
@@ -3046,7 +3081,9 @@
       "search_label": "Rechercher une icône",
       "none_text_only": "Aucune icône, texte seul",
       "aria": "Icône : {name}",
-      "none_found": "Aucune icône trouvée."
+      "none_found": "Aucune icône trouvée.",
+      "own": "Icônes de cet écran",
+      "more": "Plus d'icônes"
     },
     "inspect": {
       "title": "Données actuelles",
@@ -3164,7 +3201,8 @@
         "swipe_pages": "Balayer entre les pages",
         "page_buttons": "Boutons de page",
         "home_button": "Afficher le bouton accueil",
-        "rotation": "Rotation"
+        "rotation": "Rotation",
+        "loop_pages": "Pages en boucle"
       },
       "actions": {
         "calibrate": {
@@ -4188,6 +4226,7 @@
       "packet_error": "Le firmware a refusé un paquet d’aperçu : {message}",
       "stopped": "Aperçu du firmware arrêté : {message}",
       "action_error": "Échec de la commande Home Assistant : {message}",
+      "stale": "Cet aperçu est plus ancien que le firmware : il a été compilé le {date} et le firmware a changé depuis, un écran peut donc dessiner quelque chose que ceci ne montre pas encore.",
       "remove": "L’aperçu et sa disposition enregistrée dans ce navigateur.",
       "save": "Enregistrer l’aperçu",
       "saved": "Enregistré dans ce navigateur",
@@ -4262,7 +4301,8 @@
         "changed": "mise en page modifiée",
         "restored": "modifications non enregistrées restaurées",
         "taken_over": "reprise des modifications de l'autre onglet",
-        "auto_layout": "la disposition créée pour vous"
+        "auto_layout": "la disposition créée pour vous",
+        "layoutbot": "modification de Layoutbot"
       }
     },
     "draft": {
@@ -4353,7 +4393,8 @@
           "fetch": "le firmware n'est pas revenu",
           "bundle": "le YAML n'a pas pu être préparé"
         }
-      }
+      },
+      "icons": "Compilation avec ses icônes"
     },
     "grid": {
       "title": "Grille",
@@ -4652,6 +4693,44 @@
     "drawer": {
       "resize": "Largeur des réglages : faites glisser ou utilisez les flèches ; double-cliquez pour réinitialiser"
     },
+    "screen_icons": {
+      "eyebrow": "Icônes",
+      "title": "Icônes de {name}",
+      "intro": "Chaque écran embarque un jeu fixe d'icônes. Ici, vous en ajoutez jusqu'à {room} de plus. Les icônes font partie du firmware, un changement n'arrive donc sur l'écran qu'après une nouvelle compilation.",
+      "count": "{n} sur {room} ajoutées",
+      "on_screen": "Sur cet écran",
+      "none_yet": "Aucune pour l'instant. Choisissez parmi les icônes ci-dessous.",
+      "waiting": "{n} icône attend une compilation | {n} icônes attendent une compilation",
+      "leaving": "{n} icône part à la prochaine compilation | {n} icônes partent à la prochaine compilation",
+      "changes": "Compilez pour mettre ces changements sur l'écran. Cela prend quelques minutes et l'écran redémarre.",
+      "build": "Compiler {name}",
+      "building": "Compilation avec ces icônes…",
+      "all_up_to_date": "Tout ce que vous avez choisi est sur l'écran.",
+      "everywhere": "Mettre sur tous les écrans",
+      "everywhere_ask": "Cela remplace les icônes ajoutées de {n} écran et le compile. | Cela remplace les icônes ajoutées de {n} écrans et les compile l'un après l'autre. Un écran avec 4 Mo de flash reste tel quel.",
+      "everywhere_yes": "Compiler {n} écran | Compiler {n} écrans",
+      "everywhere_done": "En attente de compilation : {names}",
+      "everywhere_off": "Éteints, donc non compilés : {names}",
+      "from_ha": "Utilisées dans votre Home Assistant",
+      "from_ha_hint": "Icônes de vos entités que cet écran ne peut pas encore dessiner.",
+      "add_all": "Tout ajouter",
+      "all": "Toutes les icônes",
+      "search": "Rechercher dans toutes les icônes",
+      "search_label": "Rechercher dans toutes les icônes",
+      "nothing": "Aucune icône ne porte ce nom.",
+      "fixed": "Déjà sur tous les écrans",
+      "full": "Cet écran n'a plus de place.",
+      "in_use": "{icon} est sur {n} tuile de cet écran. Elle affichera son icône automatique après la prochaine compilation. | {icon} est sur {n} tuiles de cet écran. Elles afficheront leur icône automatique après la prochaine compilation.",
+      "remove": "Retirer",
+      "own_yaml": "Cet écran est compilé à partir de son propre YAML. Enregistrez ceci sous {file} à côté de lui, ajoutez la ligne ci-dessous sous packages:, et compilez-le là.",
+      "loading": "Chargement des icônes…",
+      "card_title": "Icônes",
+      "card_hint": "Ajoutez jusqu'à {room} icônes à celles que cet écran embarque.",
+      "card_button": "Choisir des icônes",
+      "card_count": "{n} ajoutées",
+      "card_waiting": "{n} en attente de compilation",
+      "card_no_room": "Cette carte a 4 Mo de flash, sans place pour d'autres icônes."
+    },
     "sections": {
       "untitled": "Section",
       "kind": "Section",
@@ -4750,6 +4829,75 @@
       "offer_text": "Tessera peut organiser cet écran à partir de vos pièces et appareils Home Assistant. Vous pourrez tout modifier ensuite.",
       "offer_make": "Créer une première disposition",
       "offer_empty": "Commencer vide"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Demander à Layoutbot",
+      "close": "Fermer",
+      "hello": "Bonjour ! Dites-moi ce que cet écran doit afficher et j'organise ses pages. Je ne change que la mise en page, jamais vos appareils.",
+      "privacy": "J'utilise {agent} de Home Assistant. Votre question, les pages de vos écrans et les identifiants, noms et pièces de vos entités lui sont envoyés.",
+      "placeholder": "Crée une page avec…",
+      "ask": "Demander",
+      "send": {
+        "ask": "Je l'envoie à {which} ?",
+        "yes": "Oui, envoyer",
+        "no": "Pas maintenant",
+        "sending": "Envoi…",
+        "sent": "Envoyé. L'écran l'affiche dans un instant.",
+        "not_all": "Tout n'a pas été envoyé.",
+        "failed": "Envoi impossible vers {which}.",
+        "declined": "Non envoyé. Enregistrer et envoyer le fait quand vous voulez.",
+        "to": "Envoi vers {name}",
+        "not_opened": "cet écran n'a pas pu être ouvert",
+        "not_saved": "il n'a pas été enregistré",
+        "unsaved": "l'écran ouvert a des modifications non enregistrées",
+        "own": "Vos propres modifications depuis le dernier enregistrement partent avec."
+      },
+      "busy": "Layoutbot organise vos pages",
+      "seconds": "{n} s",
+      "stop": "Arrêter",
+      "stopped": "Arrêté. Rien n'a changé.",
+      "nothing": "Rien n'a changé.",
+      "stale": "Les pages ont changé pendant que je réfléchissais, je les ai donc laissées telles quelles. Redemandez-moi.",
+      "show": "Afficher",
+      "undo": "Annuler",
+      "undone": "Annulé",
+      "suggest": {
+        "lights_sections": "Mets toutes les lumières sur une page, avec une section par pièce",
+        "lights": "Mets toutes les lumières sur une page",
+        "covers_sections": "Une page avec tous les stores et rideaux, en deux sections",
+        "covers": "Une page avec tous les stores et rideaux",
+        "media": "Une page musique avec toutes les enceintes",
+        "climate": "Une page climat avec le chauffage et les températures"
+      },
+      "what": {
+        "pages": "{n} nouvelle page | {n} nouvelles pages",
+        "added": "{n} tuile ajoutée | {n} tuiles ajoutées",
+        "removed": "{n} tuile retirée | {n} tuiles retirées",
+        "changed": "page {pages} modifiée | pages {pages} modifiées"
+      },
+      "connect": {
+        "title": "Connectez une IA dans Home Assistant",
+        "short": "Pas encore connecté",
+        "body": "J'organise les pages de cet écran à partir d'une phrase, comme « toutes les lumières sur une page, une section par pièce ». Pour cela, j'utilise l'IA que vous connectez à Home Assistant : ajoutez l'une de ces intégrations et je fais le reste.",
+        "cloud": "Dans le cloud, avec votre propre clé",
+        "local": "Sur votre propre ordinateur",
+        "after": "Toute intégration d'IA avec AI Tasks convient. Une fois ajoutée, revérifiez ici.",
+        "again": "Revérifier"
+      },
+      "notes": {
+        "page_full": "La page {page} est pleine, {count} tuile a donc été laissée de côté. | La page {page} est pleine, {count} tuiles ont donc été laissées de côté.",
+        "memory_full": "La mémoire de l'écran est pleine, {count} tuile a donc été laissée de côté. | La mémoire de l'écran est pleine, {count} tuiles ont donc été laissées de côté.",
+        "left_out": "L'écran n'avait pas de place pour {count} tuile de plus. | L'écran n'avait pas de place pour {count} tuiles de plus.",
+        "no_page": "Il n'y a pas de page {page}.",
+        "not_drawn": "L'écran ne dessine aucune tuile pour {count} entité. | L'écran ne dessine aucune tuile pour {count} entités."
+      },
+      "update_app": "Mettez à jour l'app Tessera : cet éditeur place lui-même les plans de Layoutbot.",
+      "scope": {
+        "here": "Cet écran",
+        "all": "Tous les écrans"
+      },
+      "preview": "Voir"
     }
   }
 }

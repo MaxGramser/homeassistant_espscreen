@@ -197,7 +197,8 @@
       "plugins": "Plugins",
       "microphone_gain": "Ganancia de micrófono",
       "automatic_gain": "Ganancia automática",
-      "echo_cancellation": "Cancelación de eco"
+      "echo_cancellation": "Cancelación de eco",
+      "loop_pages": "Páginas en bucle"
     },
     "doorbell": {
       "sound_on": "Sonido activado",
@@ -688,7 +689,8 @@
       "sound_only": "Disponible, solo sonido",
       "in_call": "En llamada",
       "offline": "Sin conexión",
-      "missed_at": "Llamada perdida"
+      "missed_at": "Llamada perdida",
+      "no_screens": "No hay otra pantalla a la que llamar"
     }
   },
   "addon": {
@@ -1027,6 +1029,10 @@
         "refused": "Home Assistant rechazó la automatización: {reason}",
         "not_ours": "Esa automatización no la creó Tessera, así que la app no la toca.",
         "invalid": "Esta automatización no se puede guardar ({part})."
+      },
+      "icons": {
+        "request": "Eso no es una lista de iconos.",
+        "too_many": "Una pantalla admite como máximo {most} iconos propios."
       }
     },
     "status": {
@@ -1622,6 +1628,13 @@
         "missed": "Nadie la tocó antes de su tiempo límite",
         "seen": "Una llamada perdida se abrió de nuevo desde la barra superior"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot necesita un AI Task en Home Assistant que pueda generar datos (Ajustes > Dispositivos y servicios, una integración de IA).",
+      "notes": {
+        "unknown": "Se omitió {entity}: no es una entidad de este Home Assistant.",
+        "no_page": "No hay página {page}."
+      }
     }
   },
   "editor": {
@@ -1639,6 +1652,8 @@
       "read_current_data": "Leer datos actuales",
       "results": "1 resultado. Sigue escribiendo para acotar. | {n} resultados. Sigue escribiendo para acotar.",
       "close": "Cerrar",
+      "expand": "Mostrar más",
+      "collapse": "Mostrar menos",
       "remove": "Eliminar",
       "loading": "Cargando…",
       "back": "← Volver",
@@ -1963,6 +1978,7 @@
         "vacuum": "Aspiradora",
         "sensor": "Sensores",
         "media_player": "Multimedia",
+        "camera": "Cámaras",
         "weather": "Clima",
         "number": "Valores",
         "select": "Selectores",
@@ -1982,6 +1998,8 @@
       "again": "Ya está en esta pantalla; añádelo de nuevo para otro mosaico",
       "all_placed": "Todo lo de aquí ya está en esta pantalla.",
       "none_found": "No se han encontrado entidades. Prueba con otro nombre, habitación o filtro.",
+      "found_elsewhere": "Nada en esta selección, pero 1 entidad coincide en toda la biblioteca. | Nada en esta selección, pero {n} entidades coinciden en toda la biblioteca.",
+      "search_everything": "Mostrar todas las coincidencias",
       "full": "En esta pantalla cabe 1 mosaico. | En esta pantalla caben {n} mosaicos.",
       "full_update": "En esta pantalla cabe 1 mosaico; actualiza su firmware para tener 48. | En esta pantalla caben {n} mosaicos; actualiza su firmware para tener 48.",
       "hint": "Arrastra a una página o toca + para añadir al primer hueco libre. ⌘K busca en todo.",
@@ -2073,6 +2091,8 @@
         "title": "Qué añade",
         "tile": "Mosaico «{name}»",
         "tile_sizes": "De {min} a {max} en una página",
+        "tile_sizes_or_page": "De {min} a {max} en una página, o la página entera",
+        "tile_only_page": "La página entera",
         "tap": "Acción al tocar «{name}»",
         "tap_on": "En mosaicos de {domains}",
         "card": "«{name}», una vista propia en la pantalla",
@@ -2398,7 +2418,8 @@
       },
       "forget": {
         "go": "Quitar de la lista",
-        "note": "Ninguna pantalla usa este plugin. Quítalo de la lista para olvidar el enlace."
+        "note": "Ninguna pantalla usa este plugin. Quítalo de la lista para olvidar el enlace.",
+        "note_folder": "Ninguna pantalla usa este plugin desde su carpeta. Al quitarlo, la carpeta pasa a config/tessera-plugins/.removed/{id}, donde puedes borrarla del todo."
       }
     },
     "plugin_tile": {
@@ -2411,6 +2432,9 @@
       "from_fetch": "Las opciones vienen de la propia fuente de datos del plugin, a través de Tessera.",
       "on_screen": "En la pantalla",
       "sizes": "De {min} a {max}; arrastra un borde del mosaico para cambiar su tamaño.",
+      "sizes_or_page": "De {min} a {max}, o la página entera; arrastra un borde del mosaico para cambiar su tamaño.",
+      "sizes_only_page": "Este mosaico ocupa siempre una página entera.",
+      "whole_page": "Página entera",
       "placeholder": "El editor muestra un marcador de posición: lo que dibuja el plugin aparece en la propia pantalla.",
       "now": "ahora",
       "minutes": "{n} min",
@@ -3007,6 +3031,17 @@
         "clear": "Eliminar completados",
         "clear_hint": "Una tecla en la lista elimina todo lo marcado, tras preguntar"
       },
+      "call": {
+        "section": "Llamada",
+        "who": "Llama a",
+        "who_hint_all": "Un toque abre la lista de pantallas.",
+        "who_hint_one": "Un toque llama a esta pantalla al instante.",
+        "everyone": "Elegir de la lista",
+        "kind": "Tipo de llamada",
+        "kind_hint": "El vídeo necesita una cámara en ambas pantallas; si no, es una llamada con sonido.",
+        "video": "Vídeo cuando sea posible",
+        "sound": "Solo sonido"
+      },
       "text_entity": {
         "edit": "Un toque abre el valor en un campo con el teclado de la pantalla. Una contraseña se muestra con puntos.",
         "view_only": "Esta placa solo muestra el valor: cambiarlo en la pantalla requiere una placa con 8 MB de flash o más."
@@ -3046,7 +3081,9 @@
       "search_label": "Buscar un icono",
       "none_text_only": "Sin icono, solo texto",
       "aria": "Icono: {name}",
-      "none_found": "No se ha encontrado ningún icono."
+      "none_found": "No se ha encontrado ningún icono.",
+      "own": "Iconos de esta pantalla",
+      "more": "Más iconos"
     },
     "inspect": {
       "title": "Datos actuales",
@@ -3164,7 +3201,8 @@
         "swipe_pages": "Deslizar entre páginas",
         "page_buttons": "Botones de página",
         "home_button": "Mostrar el botón de inicio",
-        "rotation": "Rotación"
+        "rotation": "Rotación",
+        "loop_pages": "Páginas en bucle"
       },
       "actions": {
         "calibrate": {
@@ -4188,6 +4226,7 @@
       "packet_error": "El firmware rechazó un paquete de vista previa: {message}",
       "stopped": "Vista previa del firmware detenida: {message}",
       "action_error": "Falló el comando de Home Assistant: {message}",
+      "stale": "Esta vista previa es más antigua que el firmware: se compiló el {date} y el firmware ha cambiado desde entonces, así que una pantalla puede dibujar algo que aquí aún no se ve.",
       "remove": "La vista previa y su diseño guardado en este navegador.",
       "save": "Guardar vista previa",
       "saved": "Guardado en este navegador",
@@ -4262,7 +4301,8 @@
         "changed": "diseño cambiado",
         "restored": "cambios sin guardar restaurados",
         "taken_over": "cambios de la otra pestaña traídos aquí",
-        "auto_layout": "el diseño creado para ti"
+        "auto_layout": "el diseño creado para ti",
+        "layoutbot": "cambio de Layoutbot"
       }
     },
     "draft": {
@@ -4353,7 +4393,8 @@
           "fetch": "el firmware no volvió",
           "bundle": "no se pudo empaquetar el YAML"
         }
-      }
+      },
+      "icons": "Compilando con sus iconos"
     },
     "grid": {
       "title": "Cuadrícula",
@@ -4652,6 +4693,44 @@
     "drawer": {
       "resize": "Ancho de los ajustes: arrastra o usa las flechas; doble clic para restablecer"
     },
+    "screen_icons": {
+      "eyebrow": "Iconos",
+      "title": "Iconos de {name}",
+      "intro": "Cada pantalla lleva un conjunto fijo de iconos. Aquí añades hasta {room} más. Los iconos forman parte del firmware, así que un cambio solo llega a la pantalla cuando se compila de nuevo.",
+      "count": "{n} de {room} añadidos",
+      "on_screen": "En esta pantalla",
+      "none_yet": "Ninguno todavía. Elige entre los iconos de abajo.",
+      "waiting": "1 icono espera una compilación | {n} iconos esperan una compilación",
+      "leaving": "1 icono se quita con la próxima compilación | {n} iconos se quitan con la próxima compilación",
+      "changes": "Compila para llevar estos cambios a la pantalla. Tarda unos minutos y la pantalla se reinicia.",
+      "build": "Compilar {name}",
+      "building": "Compilando con estos iconos…",
+      "all_up_to_date": "Todo lo que elegiste está en la pantalla.",
+      "everywhere": "Poner en todas las pantallas",
+      "everywhere_ask": "Esto sustituye los iconos añadidos de {n} pantalla y la compila. | Esto sustituye los iconos añadidos de {n} pantallas y las compila una tras otra. Una pantalla con 4 MB de flash se queda como está.",
+      "everywhere_yes": "Compilar {n} pantalla | Compilar {n} pantallas",
+      "everywhere_done": "En espera de compilar: {names}",
+      "everywhere_off": "Apagadas, así que no se compilan: {names}",
+      "from_ha": "Usados en tu Home Assistant",
+      "from_ha_hint": "Iconos de tus entidades que esta pantalla aún no puede dibujar.",
+      "add_all": "Añadir todos",
+      "all": "Todos los iconos",
+      "search": "Buscar en todos los iconos",
+      "search_label": "Buscar en todos los iconos",
+      "nothing": "Ningún icono tiene ese nombre.",
+      "fixed": "Ya está en todas las pantallas",
+      "full": "Esta pantalla ya no tiene sitio.",
+      "in_use": "{icon} está en {n} mosaico de esta pantalla. Mostrará su icono automático tras la próxima compilación. | {icon} está en {n} mosaicos de esta pantalla. Mostrarán su icono automático tras la próxima compilación.",
+      "remove": "Eliminar",
+      "own_yaml": "Esta pantalla se compila desde su propio YAML. Guarda esto como {file} junto a él, añade la línea de abajo bajo packages: y compílala allí.",
+      "loading": "Cargando los iconos…",
+      "card_title": "Iconos",
+      "card_hint": "Añade hasta {room} iconos a los que ya lleva esta pantalla.",
+      "card_button": "Elegir iconos",
+      "card_count": "{n} añadidos",
+      "card_waiting": "{n} en espera de compilación",
+      "card_no_room": "Esta placa tiene 4 MB de flash, sin sitio para más iconos."
+    },
     "sections": {
       "untitled": "Sección",
       "kind": "Sección",
@@ -4750,6 +4829,75 @@
       "offer_text": "Tessera puede organizar esta pantalla con tus áreas y dispositivos de Home Assistant. Después puedes cambiarlo todo.",
       "offer_make": "Crear un primer diseño",
       "offer_empty": "Empezar vacío"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Preguntar a Layoutbot",
+      "close": "Cerrar",
+      "hello": "¡Hola! Dime qué debe mostrar esta pantalla y organizo sus páginas. Solo cambio el diseño, nunca tus dispositivos.",
+      "privacy": "Uso {agent} de Home Assistant. Tu pregunta, las páginas de tus pantallas y los ids, nombres y áreas de tus entidades van allí.",
+      "placeholder": "Haz una página con…",
+      "ask": "Preguntar",
+      "send": {
+        "ask": "¿Lo envío a {which}?",
+        "yes": "Sí, enviar",
+        "no": "Ahora no",
+        "sending": "Enviando…",
+        "sent": "Enviado. La pantalla lo muestra en un momento.",
+        "not_all": "No se envió todo.",
+        "failed": "No se pudo enviar a {which}.",
+        "declined": "No enviado. Guardar y enviar lo hace cuando quieras.",
+        "to": "Enviando a {name}",
+        "not_opened": "no se pudo abrir esa pantalla",
+        "not_saved": "no se guardó",
+        "unsaved": "la pantalla abierta tiene cambios no guardados",
+        "own": "Tus propios cambios desde el último guardado van incluidos."
+      },
+      "busy": "Layoutbot está organizando tus páginas",
+      "seconds": "{n} s",
+      "stop": "Detener",
+      "stopped": "Detenido. No cambió nada.",
+      "nothing": "No cambió nada.",
+      "stale": "Las páginas cambiaron mientras pensaba, así que las dejé como están. Pregúntame otra vez.",
+      "show": "Mostrar",
+      "undo": "Deshacer",
+      "undone": "Deshecho",
+      "suggest": {
+        "lights_sections": "Pon todas las luces en una página, con una sección por habitación",
+        "lights": "Pon todas las luces en una página",
+        "covers_sections": "Una página con todas las persianas y cortinas, en dos secciones",
+        "covers": "Una página con todas las persianas y cortinas",
+        "media": "Una página de música con todos los altavoces",
+        "climate": "Una página de clima con la calefacción y las temperaturas"
+      },
+      "what": {
+        "pages": "1 página nueva | {n} páginas nuevas",
+        "added": "1 mosaico añadido | {n} mosaicos añadidos",
+        "removed": "1 mosaico quitado | {n} mosaicos quitados",
+        "changed": "página {pages} cambiada | páginas {pages} cambiadas"
+      },
+      "connect": {
+        "title": "Conecta una IA en Home Assistant",
+        "short": "Aún sin conectar",
+        "body": "Organizo las páginas de esta pantalla a partir de una frase, como «todas las luces en una página, una sección por habitación». Para eso uso la IA que conectes a Home Assistant: añade una de estas integraciones y yo hago el resto.",
+        "cloud": "En la nube, con tu propia clave",
+        "local": "En tu propio ordenador",
+        "after": "Sirve cualquier integración de IA con AI Tasks. Cuando esté añadida, vuelve a mirar aquí.",
+        "again": "Volver a mirar"
+      },
+      "notes": {
+        "page_full": "La página {page} está llena, así que se omitió {count} mosaico. | La página {page} está llena, así que se omitieron {count} mosaicos.",
+        "memory_full": "La memoria de la pantalla está llena, así que se omitió {count} mosaico. | La memoria de la pantalla está llena, así que se omitieron {count} mosaicos.",
+        "left_out": "La pantalla no tenía sitio para {count} mosaico más. | La pantalla no tenía sitio para {count} mosaicos más.",
+        "no_page": "No hay página {page}.",
+        "not_drawn": "La pantalla no dibuja ningún mosaico de {count} entidad. | La pantalla no dibuja ningún mosaico de {count} entidades."
+      },
+      "update_app": "Actualiza la app Tessera: este editor coloca él mismo los planes de Layoutbot.",
+      "scope": {
+        "here": "Esta pantalla",
+        "all": "Todas las pantallas"
+      },
+      "preview": "Ver"
     }
   }
 }

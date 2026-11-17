@@ -1029,6 +1029,10 @@
         "refused": "Home Assistant weigerde de automatisering: {reason}",
         "not_ours": "Die automatisering is niet door Tessera gemaakt, dus de app laat hem met rust.",
         "invalid": "Deze automatisering kan niet worden opgeslagen ({part})."
+      },
+      "icons": {
+        "request": "Dat is geen lijst met iconen.",
+        "too_many": "Een scherm kan hooguit {most} eigen iconen hebben."
       }
     },
     "status": {
@@ -2626,7 +2630,9 @@
       "search_label": "Zoek een icoon",
       "none_text_only": "Geen icoon, alleen tekst",
       "aria": "Icoon: {name}",
-      "none_found": "Geen icoon gevonden."
+      "none_found": "Geen icoon gevonden.",
+      "own": "Iconen van dit scherm",
+      "more": "Meer iconen"
     },
     "inspect": {
       "title": "Actuele gegevens",
@@ -3769,6 +3775,7 @@
       "packet_error": "Firmware heeft een voorbeeldpakket geweigerd: {message}",
       "stopped": "Firmwarevoorbeeld gestopt: {message}",
       "action_error": "Home Assistant-opdracht mislukt: {message}",
+      "stale": "Deze voorvertoning is ouder dan de firmware: ze is gebouwd op {date} en de firmware is sindsdien veranderd, dus een scherm kan iets tekenen dat je hier nog niet ziet.",
       "remove": "Het voorbeeld en de opgeslagen indeling in deze browser.",
       "save": "Voorbeeld opslaan",
       "saved": "Opgeslagen in deze browser",
@@ -3988,6 +3995,8 @@
         "title": "Wat hij toevoegt",
         "tile": "Tegel “{name}”",
         "tile_sizes": "Van {min} tot {max} op een pagina",
+        "tile_sizes_or_page": "Van {min} tot {max} op een pagina, of de hele pagina",
+        "tile_only_page": "De hele pagina",
         "tap": "Tikactie “{name}”",
         "tap_on": "Op tegels van {domains}",
         "card": "“{name}”, een eigen scherm op het glas",
@@ -4313,7 +4322,8 @@
       },
       "forget": {
         "go": "Uit de lijst halen",
-        "note": "Geen enkel scherm gebruikt deze plugin. Haal hem uit de lijst om de link te vergeten."
+        "note": "Geen enkel scherm gebruikt deze plugin. Haal hem uit de lijst om de link te vergeten.",
+        "note_folder": "Geen enkel scherm gebruikt deze plugin vanuit zijn map. Als je hem verwijdert, gaat de map naar config/tessera-plugins/.removed/{id}, waar je hem voorgoed kunt wissen."
       }
     },
     "plugin_tile": {
@@ -4326,6 +4336,9 @@
       "from_fetch": "De keuzes komen uit de eigen gegevensbron van de plugin, via Tessera.",
       "on_screen": "Op het scherm",
       "sizes": "Van {min} tot {max}; sleep aan een rand van de tegel om de maat te wijzigen.",
+      "sizes_or_page": "Van {min} tot {max}, of de hele pagina; sleep aan een rand van de tegel om de maat te wijzigen.",
+      "sizes_only_page": "Deze tegel neemt altijd een hele pagina in.",
+      "whole_page": "Hele pagina",
       "placeholder": "De editor toont een plaatshouder: wat de plugin tekent, zie je op het scherm zelf.",
       "now": "nu",
       "minutes": "{n} min",
@@ -4380,7 +4393,8 @@
           "fetch": "de firmware kwam niet terug",
           "bundle": "de YAML kon niet worden ingepakt"
         }
-      }
+      },
+      "icons": "Bouwt met zijn iconen"
     },
     "grid": {
       "title": "Raster",
@@ -4678,6 +4692,44 @@
     },
     "drawer": {
       "resize": "Breedte van de instellingen: sleep, of gebruik de pijltjestoetsen; dubbelklik om terug te zetten"
+    },
+    "screen_icons": {
+      "eyebrow": "Iconen",
+      "title": "Iconen van {name}",
+      "intro": "Elk scherm heeft een vaste set iconen. Hier voeg je er tot {room} aan toe. Iconen zitten in de firmware, dus een wijziging staat pas op het scherm nadat het opnieuw is gebouwd.",
+      "count": "{n} van {room} toegevoegd",
+      "on_screen": "Op dit scherm",
+      "none_yet": "Nog geen. Kies uit de iconen hieronder.",
+      "waiting": "1 icoon wacht op een build | {n} iconen wachten op een build",
+      "leaving": "1 icoon verdwijnt bij de volgende build | {n} iconen verdwijnen bij de volgende build",
+      "changes": "Bouw om deze wijzigingen op het scherm te zetten. Dat duurt een paar minuten en het scherm start opnieuw op.",
+      "build": "{name} bouwen",
+      "building": "Wordt gebouwd met deze iconen…",
+      "all_up_to_date": "Alles wat je koos staat op het scherm.",
+      "everywhere": "Op elk scherm zetten",
+      "everywhere_ask": "Dit vervangt de toegevoegde iconen van {n} scherm en bouwt het. | Dit vervangt de toegevoegde iconen van {n} schermen en bouwt ze een voor een. Een scherm met 4 MB flash blijft zoals het is.",
+      "everywhere_yes": "{n} scherm bouwen | {n} schermen bouwen",
+      "everywhere_done": "Wachten op bouwen: {names}",
+      "everywhere_off": "Uit, dus niet gebouwd: {names}",
+      "from_ha": "Gebruikt in je Home Assistant",
+      "from_ha_hint": "Iconen van je entiteiten die dit scherm nog niet kan tekenen.",
+      "add_all": "Alles toevoegen",
+      "all": "Alle iconen",
+      "search": "Zoek in alle iconen",
+      "search_label": "Zoek in alle iconen",
+      "nothing": "Geen icoon heeft die naam.",
+      "fixed": "Staat al op elk scherm",
+      "full": "Dit scherm heeft geen ruimte meer.",
+      "in_use": "{icon} staat op {n} tegel van dit scherm. Die toont na de volgende build zijn automatische icoon. | {icon} staat op {n} tegels van dit scherm. Die tonen na de volgende build hun automatische icoon.",
+      "remove": "Verwijderen",
+      "own_yaml": "Dit scherm wordt gebouwd vanuit zijn eigen YAML. Sla dit op als {file} ernaast, zet de regel hieronder onder packages: en bouw het daar.",
+      "loading": "Iconen laden…",
+      "card_title": "Iconen",
+      "card_hint": "Voeg tot {room} iconen toe aan de iconen die dit scherm al heeft.",
+      "card_button": "Iconen kiezen",
+      "card_count": "{n} toegevoegd",
+      "card_waiting": "{n} wachten op een build",
+      "card_no_room": "Dit bord heeft 4 MB flash, zonder ruimte voor meer iconen."
     },
     "sections": {
       "untitled": "Sectie",
