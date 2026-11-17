@@ -235,7 +235,7 @@ template:
               {% set gross, tipp = 'trocken!', 'Zeit für die große Runde · ' ~ temp ~ '°' %}
             {% elif slots | count == 0 %}
               {% set icon = 'sonne' if heiss else 'schirm' %}
-              {% set klein = ('Morgen zu heiß' if morgen else 'Heute zu heiß') if heiss and 'n' not in rest else (('Morgen' if morgen else 'Heute') ~ ' gibt's keine Lücke') %}
+              {% set klein = ('Morgen zu heiß' if morgen else 'Heute zu heiß') if heiss and 'n' not in rest else (('Morgen' if morgen else 'Heute') ~ " gibt's keine Lücke") %}
               {% set gross = 'Kurz raus!' if heiss and 'n' not in rest else 'Schirm mit!' %}
               {% set tipp = '…und das Hundehandtuch an die Tür legen' %}
             {% else %}
