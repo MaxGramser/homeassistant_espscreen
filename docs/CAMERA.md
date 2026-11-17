@@ -691,6 +691,13 @@ browser as WebRTC without transcoding. Stills come from the same stream. Both en
 Home Assistant already keeps for the screen (`sha256("tessera-video:" + key)`, its first 24 hexadecimal digits), user
 `tessera`.
 
+The key is the screen's ESPHome entry's, asked from Home Assistant every time a stream or a still is wanted
+(integration 1.0.2), never kept: a screen that is removed from Home Assistant and added again gets another entry and
+another key. While that entry is gone the camera is unavailable and its own entry waits for the screen. A video entry
+left on a device that is no ESPHome device any more is taken away by the app, which gives the screen's device of today
+an entry in the same look (`screen_video.Videos.sync`); before that, such a camera went on asking with the old key and
+Home Assistant's go2rtc said "wrong user/pass" for it.
+
 **What changes on the screen.** The camera runs from boot, in its raw mode. Its JPEG pictures are gone, and so is the
 camera "Camera" of the screen's device: "Video" gives the stills now. Light level and motion of Screen camera keep
 working: they read the same frames the video gets. The dot in the top right corner is solid while anyone watches and a

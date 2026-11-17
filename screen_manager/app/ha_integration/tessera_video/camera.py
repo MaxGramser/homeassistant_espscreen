@@ -46,7 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, add: AddEnt
     for other in dr.async_entries_for_config_entry(registry, entry.entry_id):
         if esphome.entry_id not in other.config_entries:
             registry.async_update_device(other.id, remove_config_entry_id=entry.entry_id)
-    add([ScreenVideo(mac, esphome)])
+    add([ScreenVideo(mac, esphome, entry.entry_id)])
 
 
 class ScreenVideo(Camera):
@@ -54,22 +54,49 @@ class ScreenVideo(Camera):
     _attr_translation_key = "video"
     _attr_supported_features = CameraEntityFeature.STREAM
 
-    def __init__(self, mac: str, esphome: ConfigEntry) -> None:
+    def __init__(self, mac: str, esphome: ConfigEntry, own: str | None = None) -> None:
         super().__init__()
+        # The screen's ESPHome entry is asked for by its id every time, never kept: Home Assistant changes the host and
+        # the key in it, and takes it away when the screen is removed or added again (which makes another entry, with
+        # another key). A camera that kept the entry it was made with went on asking a screen with the key of an entry
+        # that was gone, and the screen answered "wrong user/pass" for as long as Home Assistant ran (2026-11-16).
         self._esphome = esphome
+        self._esphome_id = getattr(esphome, "entry_id", None)
+        self._own = own
+        self._gone = False
         self._attr_unique_id = f"{mac}-video"
         # Its MAC puts the camera on the screen's ESPHome device, beside its other entities.
         self._attr_device_info = DeviceInfo(connections={(dr.CONNECTION_NETWORK_MAC, mac)})
 
-    def _url(self) -> str:
-        # Read each time: Home Assistant keeps the host and key in the ESPHome entry and changes them there.
-        host = self._esphome.data.get("host")
-        return f"rtsp://{USER}:{password(self._esphome.data.get('noise_psk'))}@{host}:{PORT}/"
+    def _entry(self):
+        """The screen's ESPHome entry as Home Assistant has it now, or None once it is gone. The first time it is gone
+        this entry is set up again, so it waits for the screen (ConfigEntryNotReady) where everyone can see it."""
+        hass = getattr(self, "hass", None)
+        if hass is None or self._esphome_id is None:
+            return self._esphome
+        entry = hass.config_entries.async_get_entry(self._esphome_id)
+        if entry is None and not self._gone and self._own is not None:
+            self._gone = True
+            hass.config_entries.async_schedule_reload(self._own)
+        return entry
+
+    @property
+    def available(self) -> bool:
+        return self._entry() is not None
+
+    def _url(self) -> str | None:
+        entry = self._entry()
+        if entry is None:
+            return None
+        return f"rtsp://{USER}:{password(entry.data.get('noise_psk'))}@{entry.data.get('host')}:{PORT}/"
 
     async def stream_source(self) -> str | None:
         return self._url()
 
     async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
+        url = self._url()
+        if url is None:
+            return None
         # A still from the stream go2rtc already has open, so the screen serves one connection for everything; ffmpeg,
         # which opens one of its own, only without go2rtc.
         provider = getattr(self, "_webrtc_provider", None)
@@ -78,4 +105,4 @@ class ScreenVideo(Camera):
                 return await provider.async_get_image(self, width=width, height=height)
             except Exception as error:  # noqa: BLE001 - go2rtc not ready yet: the stream answers below
                 LOG.debug("No still from go2rtc: %s", error)
-        return await async_get_image(self.hass, self._url(), width=width, height=height)
+        return await async_get_image(self.hass, url, width=width, height=height)

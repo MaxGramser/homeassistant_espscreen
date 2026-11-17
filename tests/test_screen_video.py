@@ -81,19 +81,23 @@ class FakeHA:
         self.entries = [{k: v for k, v in e.items() if k != 'unique_id'} for e in entries]
         self.held = {e['entry_id']: e.get('unique_id') for e in entries}
         self.deleted, self.flows = [], {}
+        self.gone = set()   # devices whose ESPHome entry is gone: the screen was removed, or added again as another
 
     @property
     def devices(self):
         if getattr(self, 'no_devices', False):
             return []
-        return [{'id': device, 'config_entries': ['esphome-' + device, entry]} for entry, device in self.held.items()
-                if device and any(e['entry_id'] == entry for e in self.entries)]
+        return [{'id': device, 'config_entries': ([] if device in self.gone else ['esphome-' + device]) + [entry]}
+                for entry, device in self.held.items() if device and any(e['entry_id'] == entry for e in self.entries)]
 
     async def request(self, kind, **data):
         if kind == 'manifest/get':
             if self.loaded is None:
                 raise ConnectionError('Integration not found')
             return {'domain': data['integration'], 'version': self.loaded}
+        if kind == 'config_entries/get' and data['domain'] == 'esphome':
+            return [{'entry_id': 'esphome-' + device, 'domain': 'esphome'} for device in self.held.values()
+                    if device and device not in self.gone]
         if kind == 'config_entries/get':
             return [e for e in self.entries if e.get('domain', 'tessera_video') == data['domain']]
         raise AssertionError(kind)
@@ -186,6 +190,26 @@ class Install(unittest.TestCase):
         esphome.data = {'host': '192.0.2.8'}
         self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:0f2f6ecab7ca79bec56631db@192.0.2.8:8554/')
 
+    def test_the_camera_asks_home_assistant_for_its_screens_entry_and_says_when_it_is_gone(self):
+        # The entry the camera was made with is never kept: asked by its id, so the key of a screen that was added again
+        # is never the old one. Once Home Assistant has no such entry the camera is unavailable, hands out no address,
+        # and its own entry is set up again, once, to wait for the screen where a person sees it.
+        camera = integration_camera()
+        key = 'MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI='
+        made_with = types.SimpleNamespace(entry_id='esphome-1', data={'host': '192.0.2.7', 'noise_psk': 'an old key'})
+        entries = {'esphome-1': types.SimpleNamespace(entry_id='esphome-1', data={'host': '192.0.2.9', 'noise_psk': key})}
+        reloads = []
+        video = camera.ScreenVideo('AA:BB:CC:DD:EE:FF', made_with, 'video-1')
+        video.hass = types.SimpleNamespace(config_entries=types.SimpleNamespace(
+            async_get_entry=entries.get, async_schedule_reload=reloads.append))
+        self.assertTrue(video.available)
+        self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:1c013c2215e26f7ce1ca2da3@192.0.2.9:8554/')
+        del entries['esphome-1']
+        self.assertFalse(video.available)
+        self.assertIsNone(asyncio.run(video.stream_source()))
+        self.assertIsNone(asyncio.run(video.async_camera_image()))
+        self.assertEqual(reloads, ['video-1'])
+
 
 class Screens(unittest.TestCase):
     def test_which_screens_have_the_video(self):
@@ -230,6 +254,19 @@ class Sync(unittest.TestCase):
             # Again: nothing more to do.
             again = asyncio.run(videos.sync(ha, *screen_video.video_screens(FakePlugins(RECORDS), screens())))
             self.assertEqual(again, {'added': [], 'removed': []})
+
+    def test_an_entry_whose_device_is_no_screen_any_more_goes_and_the_screen_of_today_gets_one(self):
+        # The tablet was added to Home Assistant again: another device, another key. Its old entry sits on the old
+        # device, which no ESPHome entry holds any more, and would ask the screen with the old key for good.
+        with tempfile.TemporaryDirectory() as folder:
+            ha = FakeHA(entries=[{'entry_id': 'stale', 'unique_id': 'dev-tablet-before', 'title': 'Tablet'},
+                                 {'entry_id': 'mine', 'unique_id': 'dev-elsewhere', 'title': 'Built elsewhere'}])
+            ha.gone = {'dev-tablet-before'}
+            videos, done = self.run_sync(ha, folder)
+            self.assertEqual(done, {'added': ['dev-tablet'], 'removed': ['dev-tablet-before']})
+            self.assertEqual(ha.deleted, ['stale'])
+            # A screen built elsewhere and added by hand is an ESPHome device: its entry stays.
+            self.assertEqual(sorted(ha.held[e['entry_id']] for e in ha.entries), ['dev-elsewhere', 'dev-tablet'])
 
     def test_an_entry_on_no_device_yet_is_not_added_twice(self):
         with tempfile.TemporaryDirectory() as folder:

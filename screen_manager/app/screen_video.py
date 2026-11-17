@@ -120,12 +120,26 @@ class Videos:
         # registry says it, through the camera the entry put on the screen's device. An entry on no device yet (its
         # screen's ESPHome device is not there) is left alone, and the flow below says it is there already.
         ours = {e.get('entry_id'): e for e in entries}
-        have = {}
+        # An entry whose device is no ESPHome device any more goes: its screen was removed from Home Assistant, or added
+        # again, which makes another device with another key, and the entry would wait for the old one for good (a
+        # Guition 10.1, 2026-11-16: its video said "wrong user/pass" until the entry was made again). The screen's
+        # device of today gets its entry below, in the same look.
+        esphome = {e.get('entry_id') for e in await ha.request('config_entries/get', domain='esphome') or [] if isinstance(e, dict)}
+        have, orphans = {}, []
         for device in getattr(ha, 'devices', None) or []:
-            for entry_id in (device or {}).get('config_entries') or []:
+            held = (device or {}).get('config_entries') or []
+            for entry_id in held:
                 if entry_id in ours:
-                    have[device.get('id')] = ours[entry_id]
+                    if esphome.isdisjoint(held):
+                        orphans.append((device.get('id'), ours[entry_id]))
+                    else:
+                        have[device.get('id')] = ours[entry_id]
         added, removed, now = [], [], time.monotonic()
+        for device, entry in orphans:
+            if entry.get('entry_id'):
+                await ha.delete_config_entry(entry['entry_id'])
+                removed.append(device)
+                LOG.info('%s: its video left Home Assistant (its device is no screen there any more)', entry.get('title') or device)
         for device, name in wanted.items():
             if device in have or now < self.tried.get(device, 0):
                 continue
