@@ -91,9 +91,10 @@ parts every 20 ms, the heads of its parts as ESP Screens writes them. The pictur
 handed for its own view, scaled to at most 720 pixels a side and made into JPEG by the chip's own encoder
 (`picture_engine::encode`), ten a second at most; the voice is the microphone's parts after the board's own processing.
 
-- **Who may.** A screen says `call_direct` in its hello (a P4 with a microphone), and has the switch **Direct calls** (in
-  Home Assistant, under its configuration), off as it comes while the route is new. A call goes direct only between two
-  screens that both say it and both have it on.
+- **Who may.** A screen says `call_direct` in its hello (a P4 with a microphone). A call goes direct only between two
+  screens that both say it and both have their switch **Direct calls** on (`calls.DIRECT_SWITCH`). No firmware has that
+  switch yet: the route has not run on a board, so until it has, every call goes through ESP Screens. The switch comes
+  back (`packages/features/audio-player.yaml`, a template switch named Direct calls, off as it comes) with the proof.
 - **The token.** ESP Screens makes one for each direction of each call. The live message brings a screen the token it
   serves under (`ds`) and, as `l`, the other screen's address with the other's token; there is no `tk`. A screen answers
   only under its token, only the other screen's address, and only while the call is live.

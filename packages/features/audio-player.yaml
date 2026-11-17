@@ -92,16 +92,6 @@ switch:
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
-  # Direct calls (docs/CALLS.md, "Screen to screen"): on, a call with another screen that has it on sends its camera and
-  # voice straight to that screen and takes the other's the same way, and ESP Screens only connects the two. Off as it
-  # comes while the route is new; a call that cannot go direct goes through ESP Screens as before.
-  - platform: template
-    id: ts_call_direct
-    name: "Direct calls"
-    icon: "mdi:lan-connect"
-    entity_category: config
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
   # Whether this screen's calls start with voice switching (docs/CALLS.md, "Echo"): on, the microphone of the side that
   # listens goes down, so a voice does not come back; off, both stay open and both can speak at once. A small key in the
   # call changes it for that call, on both screens.
