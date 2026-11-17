@@ -197,6 +197,9 @@
       "plugins": "Wtyczki",
       "microphone_gain": "Wzmocnienie mikrofonu",
       "automatic_gain": "Automatyczne wzmocnienie",
+      "call_ringtone": "Dzwonek",
+      "do_not_disturb": "Nie przeszkadzać",
+      "call_voice_switching": "Przełączanie głosu",
       "echo_cancellation": "Usuwanie echa",
       "loop_pages": "Strony w pętli"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Automatyczne wzmocnienie",
           "hint": "Pozwala kodekowi mikrofonu regulować poziom nagrania. Niezależne od usuwania echa."
+        },
+        "call_ringtone": {
+          "label": "Dzwonek",
+          "hint": "Wyłączone: przy połączeniu ekran zapala się i pokazuje, kto dzwoni, bez dźwięku."
+        },
+        "do_not_disturb": {
+          "label": "Nie przeszkadzać",
+          "hint": "Włączone: połączenie do tego ekranu jest od razu odrzucane, a dzwoniący czyta dlaczego. Dzwonek do drzwi nadal dzwoni."
+        },
+        "call_voice_switching": {
+          "label": "Przełączanie głosu",
+          "hint": "Włączone: mikrofon strony, która słucha, cichnie, aby głos nie wracał jako echo. Wyłączone: obie strony mogą mówić jednocześnie. Mały klawisz w rozmowie zmienia to dla tej rozmowy."
         },
         "echo_cancellation": {
           "label": "Usuwanie echa",
@@ -3038,7 +3053,7 @@
         "who_hint_one": "Dotknięcie od razu dzwoni do tego ekranu.",
         "everyone": "Wybór z listy",
         "kind": "Rodzaj połączenia",
-        "kind_hint": "Wideo wymaga kamery na obu ekranach, w przeciwnym razie jest to połączenie z dźwiękiem.",
+        "kind_hint": "Wideo wymaga wtyczki Screen camera z jej częścią Video na obu ekranach, w przeciwnym razie jest to połączenie z dźwiękiem.",
         "video": "Wideo, gdy to możliwe",
         "sound": "Tylko dźwięk"
       },

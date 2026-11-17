@@ -62,6 +62,16 @@ substitutions:
     settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_microphone,
         []() -> int32_t { return id(ts_microphone_on).state ? 1 : 0; },
         [](int32_t on) { if (on) id(ts_microphone_on).turn_on(); else id(ts_microphone_on).turn_off(); }));
+    // A call's settings (docs/CALLS.md): the same three switches Home Assistant and the app show.
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_call_ringtone,
+        []() -> int32_t { return id(ts_call_ringtone).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_ringtone).turn_on(); else id(ts_call_ringtone).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_do_not_disturb,
+        []() -> int32_t { return id(ts_call_do_not_disturb).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_do_not_disturb).turn_on(); else id(ts_call_do_not_disturb).turn_off(); }));
+    settings_screen::board_rows.push_back(settings_screen::toggle(screen_text::txt::settings_call_voice_switching,
+        []() -> int32_t { return id(ts_call_voice_switching).state ? 1 : 0; },
+        [](int32_t on) { if (on) id(ts_call_voice_switching).turn_on(); else id(ts_call_voice_switching).turn_off(); }));
     // The doorbell's chime (module doorbell, docs/DOORBELL.md) on the speaker for announcements.
     runtime_tiles::doorbell_audio(id(ts_speaker));
 

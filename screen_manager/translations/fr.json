@@ -197,6 +197,9 @@
       "plugins": "Plugins",
       "microphone_gain": "Gain du microphone",
       "automatic_gain": "Gain automatique",
+      "call_ringtone": "Sonnerie",
+      "do_not_disturb": "Ne pas déranger",
+      "call_voice_switching": "Alternance des voix",
       "echo_cancellation": "Annulation d'écho",
       "loop_pages": "Pages en boucle"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Gain automatique",
           "hint": "Laisse le codec du microphone ajuster le niveau d'enregistrement. Indépendant de l'annulation d'écho."
+        },
+        "call_ringtone": {
+          "label": "Sonnerie",
+          "hint": "Désactivé : lors d'un appel, l'écran s'allume et montre qui appelle, sans son."
+        },
+        "do_not_disturb": {
+          "label": "Ne pas déranger",
+          "hint": "Activé : un appel vers cet écran est refusé aussitôt et l'appelant lit pourquoi. La sonnette sonne toujours."
+        },
+        "call_voice_switching": {
+          "label": "Alternance des voix",
+          "hint": "Activé : le micro du côté qui écoute se fait discret, pour qu'une voix ne revienne pas en écho. Désactivé : les deux côtés peuvent parler en même temps. Une petite touche pendant l'appel le change pour cet appel."
         },
         "echo_cancellation": {
           "label": "Annulation d'écho",
@@ -3038,7 +3053,7 @@
         "who_hint_one": "Un appui appelle cet écran aussitôt.",
         "everyone": "Choisir dans la liste",
         "kind": "Type d'appel",
-        "kind_hint": "La vidéo demande une caméra sur les deux écrans, sinon c'est un appel avec le son.",
+        "kind_hint": "La vidéo demande le plugin Screen camera avec sa partie Video sur les deux écrans, sinon c'est un appel avec le son.",
         "video": "Vidéo si possible",
         "sound": "Son seulement"
       },

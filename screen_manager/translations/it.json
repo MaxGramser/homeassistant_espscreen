@@ -197,6 +197,9 @@
       "plugins": "Plugin",
       "microphone_gain": "Guadagno microfono",
       "automatic_gain": "Guadagno automatico",
+      "call_ringtone": "Suoneria",
+      "do_not_disturb": "Non disturbare",
+      "call_voice_switching": "Alternanza voce",
       "echo_cancellation": "Cancellazione eco",
       "loop_pages": "Pagine in ciclo"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Guadagno automatico",
           "hint": "Consente al codec del microfono di regolare il livello di registrazione. Indipendente dalla cancellazione dell'eco."
+        },
+        "call_ringtone": {
+          "label": "Suoneria",
+          "hint": "Disattivata: a una chiamata lo schermo si accende e mostra chi chiama, senza suono."
+        },
+        "do_not_disturb": {
+          "label": "Non disturbare",
+          "hint": "Attivo: una chiamata a questo schermo viene rifiutata subito e chi chiama legge il motivo. Il campanello suona comunque."
+        },
+        "call_voice_switching": {
+          "label": "Alternanza voce",
+          "hint": "Attiva: il microfono del lato che ascolta si abbassa, così una voce non torna come eco. Disattivata: entrambi i lati possono parlare insieme. Un piccolo tasto nella chiamata la cambia per quella chiamata."
         },
         "echo_cancellation": {
           "label": "Cancellazione eco",
@@ -3038,7 +3053,7 @@
         "who_hint_one": "Un tocco chiama subito questo schermo.",
         "everyone": "Scegli dall'elenco",
         "kind": "Tipo di chiamata",
-        "kind_hint": "Il video richiede una telecamera su entrambi gli schermi, altrimenti è una chiamata con audio.",
+        "kind_hint": "Il video richiede il plugin Screen camera con la sua parte Video su entrambi gli schermi, altrimenti è una chiamata con audio.",
         "video": "Video dove possibile",
         "sound": "Solo audio"
       },

@@ -197,6 +197,9 @@
       "plugins": "Bővítmények",
       "microphone_gain": "Mikrofonerősítés",
       "automatic_gain": "Automatikus erősítés",
+      "call_ringtone": "Csengőhang",
+      "do_not_disturb": "Ne zavarjanak",
+      "call_voice_switching": "Hangváltás",
       "echo_cancellation": "Visszhangszűrés",
       "loop_pages": "Körbelapozás"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Automatikus erősítés",
           "hint": "A mikrofon kodekje automatikusan állítja a felvétel szintjét. Független a visszhangszűréstől."
+        },
+        "call_ringtone": {
+          "label": "Csengőhang",
+          "hint": "Kikapcsolva: híváskor a kijelző felvillan és megmutatja, ki hív, hang nélkül."
+        },
+        "do_not_disturb": {
+          "label": "Ne zavarjanak",
+          "hint": "Bekapcsolva: az erre a kijelzőre érkező hívás azonnal elutasításra kerül, és a hívó olvassa, miért. Az ajtócsengő továbbra is szól."
+        },
+        "call_voice_switching": {
+          "label": "Hangváltás",
+          "hint": "Bekapcsolva: a hallgató oldal mikrofonja lehalkul, így a hang nem jön vissza visszhangként. Kikapcsolva: mindkét oldal egyszerre beszélhet. A hívásban egy kis gomb arra a hívásra átváltja."
         },
         "echo_cancellation": {
           "label": "Visszhangszűrés",
@@ -3038,7 +3053,7 @@
         "who_hint_one": "Egy koppintás azonnal hívja ezt a kijelzőt.",
         "everyone": "Választás a listából",
         "kind": "Hívás típusa",
-        "kind_hint": "A videóhoz mindkét kijelzőn kamera kell, különben hanghívás lesz.",
+        "kind_hint": "A videóhoz mindkét kijelzőn a Screen camera bővítmény kell a Video részével, különben hanghívás lesz.",
         "video": "Videó, ahol lehet",
         "sound": "Csak hang"
       },

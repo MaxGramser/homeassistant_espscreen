@@ -197,6 +197,9 @@
       "plugins": "Plugins",
       "microphone_gain": "Mikrofonverstärkung",
       "automatic_gain": "Automatische Verstärkung",
+      "call_ringtone": "Klingelton",
+      "do_not_disturb": "Nicht stören",
+      "call_voice_switching": "Sprachumschaltung",
       "echo_cancellation": "Echounterdrückung",
       "loop_pages": "Seiten im Kreis"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Automatische Verstärkung",
           "hint": "Der Mikrofoncodec regelt den Aufnahmepegel automatisch. Unabhängig von der Echounterdrückung."
+        },
+        "call_ringtone": {
+          "label": "Klingelton",
+          "hint": "Aus: Bei einem Anruf leuchtet der Bildschirm auf und zeigt, wer anruft, ohne Ton."
+        },
+        "do_not_disturb": {
+          "label": "Nicht stören",
+          "hint": "Ein: Ein Anruf an diesen Bildschirm wird sofort abgelehnt und der Anrufer liest, warum. Die Türklingel läutet weiterhin."
+        },
+        "call_voice_switching": {
+          "label": "Sprachumschaltung",
+          "hint": "Ein: Das Mikrofon der Seite, die zuhört, wird leise, damit eine Stimme nicht als Echo zurückkommt. Aus: Beide Seiten können gleichzeitig sprechen. Eine kleine Taste im Anruf ändert es für diesen Anruf."
         },
         "echo_cancellation": {
           "label": "Echounterdrückung",
@@ -3038,7 +3053,7 @@
         "who_hint_one": "Ein Tippen ruft diesen Bildschirm sofort an.",
         "everyone": "Aus der Liste wählen",
         "kind": "Art des Anrufs",
-        "kind_hint": "Video braucht eine Kamera an beiden Bildschirmen, sonst wird es ein Anruf mit Ton.",
+        "kind_hint": "Video braucht das Plugin Screen camera mit dem Teil Video auf beiden Bildschirmen, sonst wird es ein Anruf mit Ton.",
         "video": "Video, wo möglich",
         "sound": "Nur Ton"
       },

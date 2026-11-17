@@ -23,7 +23,8 @@ class TheBoards(unittest.TestCase):
     def test_every_listed_setting_is_an_entity_a_screen_row_and_words(self):
         listed = {board: shape['catalog'].get('settings') or [] for board, shape in SHAPES.items()
                   if not board.startswith(('checkout/', 'packages/'))}
-        self.assertEqual(listed['reterminald1001'], ['media_player', 'microphone', 'wake_when_moved', 'echo_cancellation'])
+        self.assertEqual(listed['reterminald1001'], ['media_player', 'microphone', 'call_ringtone', 'do_not_disturb', 'call_voice_switching', 'wake_when_moved',
+                          'echo_cancellation'])
         # The 4-inch Guition's backlight: its PWM (a choice) and its floor (a number), which differ between batches.
         self.assertEqual(listed['guition'], ['backlight_pwm', 'dimmest_level'])
         labels = SCREEN_TEXT['addon']['labels']['extras']
@@ -131,13 +132,18 @@ class TheApp(unittest.TestCase):
         manager.screen = lambda inbox: {**original(inbox), 'online': False}
         manager.package_of = lambda screen: 'packages/reterminald1001.yaml'
         rows = entity_settings.extras_for(manager, 'text.hall_tiles')
-        self.assertEqual([row['key'] for row in rows], ['media_player', 'microphone', 'wake_when_moved', 'echo_cancellation'])
+        self.assertEqual([row['key'] for row in rows], ['media_player', 'microphone', 'call_ringtone', 'do_not_disturb', 'call_voice_switching', 'wake_when_moved',
+                          'echo_cancellation'])
         self.assertTrue(all(not row['available'] for row in rows))
 
     def test_the_rows_are_the_boards_entities_in_its_order_with_the_apps_words(self):
         rows = entity_settings.extras_for(Manager('reterminald1001'), 'text.hall_tiles', 'nl')
-        # The fourth, echo cancellation, is a row of this board too; this Home Assistant has no entity for it.
-        self.assertEqual([r['key'] for r in rows[3:]], ['echo_cancellation'])
+        # A call's three switches and echo cancellation are rows of this board too; this Home Assistant has no entity
+        # for them.
+        calls = ['call_ringtone', 'do_not_disturb', 'call_voice_switching']
+        self.assertEqual([r['key'] for r in rows[2:5]], calls)
+        self.assertEqual(rows[-1]['key'], 'echo_cancellation')
+        rows = [r for r in rows if r['key'] not in calls + ['echo_cancellation']]
         self.assertEqual([(r['key'], r['entity'], r['kind'], r['value'], r['available']) for r in rows[:3]],
                          [('media_player', 'media_player.hall_media_player', 'number', 45, True),
                           ('microphone', 'switch.hall_microphone', 'switch', True, True),

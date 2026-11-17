@@ -28,6 +28,8 @@ frame and a smaller JPEG when the add-on falls behind.
 
 ## Media
 
+A call has video only between screens that both run the Screen camera plugin with its part Video: that plugin is the
+screen's video server, and without it a call is sound only (the editor says so under the Call tile's Kind of call).
 A call's picture is read straight from the other screen's own video server (RTSP over TCP, `screen_source.py`, video only),
 decoded by the add-on and sent to the glass as a JPEG for its size, as any live camera's. A D1001 to a Guition 10.1, both
 directions at once (2026-11-10): about 290 ms glass to glass with 13 pictures a second, against 230 ms for one direction
@@ -117,7 +119,8 @@ found, for the measurements still to make:
 
 ## Do not disturb
 
-The switch **Do not disturb** of each screen (in Home Assistant, under its configuration; off as it comes, kept by the screen). On, a
+The switch **Do not disturb** of each screen (on the screen's settings page under Extras, in the app's Extras card and in Home
+Assistant, as the ringtone and the voice switching's choice are: docs/SETTINGS.md; off as it comes, kept by the screen). On, a
 call to the screen is refused at once: nothing rings or lights up there, the caller reads that the screen does not want to be
 disturbed, and the list of screens shows it. ESP Screens reads the switch from Home Assistant (`calls.quiet`). The doorbell is not a
 call and still rings. As a switch it takes an automation: on at night, off in the morning.

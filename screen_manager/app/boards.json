@@ -26,7 +26,10 @@
    "order": 22,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -732,6 +735,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -881,6 +887,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -1171,6 +1180,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -1321,6 +1333,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "new",
@@ -1471,6 +1486,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -1621,6 +1639,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -1911,6 +1932,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "wake_when_moved",
     "echo_cancellation"
    ],
@@ -2317,6 +2341,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "new",
@@ -2467,6 +2494,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -2618,6 +2648,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -3864,6 +3897,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -4015,6 +4051,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -4166,6 +4205,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -4456,7 +4498,10 @@
    "order": 22,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -5162,6 +5207,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -5311,6 +5359,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -5601,6 +5652,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -5751,6 +5805,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "new",
@@ -5901,6 +5958,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -6051,6 +6111,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -6340,7 +6403,10 @@
    "order": 22,
    "settings": [
     "media_player",
-    "microphone"
+    "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching"
    ],
    "status": "experimental",
    "touch": "GT911"
@@ -7046,6 +7112,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -7195,6 +7264,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -7485,6 +7557,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -7635,6 +7710,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "new",
@@ -7785,6 +7863,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -7935,6 +8016,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "experimental",
@@ -8225,6 +8309,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "wake_when_moved",
     "echo_cancellation"
    ],
@@ -8631,6 +8718,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "new",
@@ -8781,6 +8871,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -8932,6 +9025,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -10178,6 +10274,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -10329,6 +10428,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -10480,6 +10582,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -10771,6 +10876,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "wake_when_moved",
     "echo_cancellation"
    ],
@@ -11177,6 +11285,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "echo_cancellation"
    ],
    "status": "new",
@@ -11327,6 +11438,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -11478,6 +11592,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -12724,6 +12841,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -12875,6 +12995,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"
@@ -13026,6 +13149,9 @@
    "settings": [
     "media_player",
     "microphone",
+    "call_ringtone",
+    "do_not_disturb",
+    "call_voice_switching",
     "microphone_gain",
     "automatic_gain",
     "echo_cancellation"

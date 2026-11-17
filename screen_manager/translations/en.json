@@ -197,6 +197,9 @@
       "plugins": "Plugins",
       "microphone_gain": "Microphone gain",
       "automatic_gain": "Automatic gain",
+      "call_ringtone": "Call ringtone",
+      "do_not_disturb": "Do not disturb",
+      "call_voice_switching": "Call voice switching",
       "echo_cancellation": "Echo cancellation",
       "loop_pages": "Loop pages"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Automatic gain",
           "hint": "Let the microphone codec adjust the recording level. Independent of echo cancellation."
+        },
+        "call_ringtone": {
+          "label": "Call ringtone",
+          "hint": "Off, a call lights the screen up and shows who is calling, without a sound."
+        },
+        "do_not_disturb": {
+          "label": "Do not disturb",
+          "hint": "On, a call to this screen is refused at once and the caller reads why. The doorbell still rings."
+        },
+        "call_voice_switching": {
+          "label": "Call voice switching",
+          "hint": "On, the microphone of the side that listens goes quiet, so a voice does not come back as an echo. Off, both sides can speak at once. A small key in a call changes it for that call."
         },
         "echo_cancellation": {
           "label": "Echo cancellation",
@@ -2587,7 +2602,7 @@
         "who_hint_one": "A tap calls this screen at once.",
         "everyone": "Choose from the list",
         "kind": "Kind of call",
-        "kind_hint": "Video needs a camera on both screens, otherwise it is a call with sound.",
+        "kind_hint": "Video needs the Screen camera plugin with its part Video on both screens, otherwise it is a call with sound.",
         "video": "Video where possible",
         "sound": "Sound only"
       },

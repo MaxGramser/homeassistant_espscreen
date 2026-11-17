@@ -62,7 +62,7 @@ jc8012p4a1:
   model: JC8012P4A1
   status: new
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 jc8012p4a1v3:
   file: guition-jc8012p4a1-v3.yaml
@@ -70,7 +70,7 @@ jc8012p4a1v3:
   model: JC8012P4A1 V3
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 waveshare7:
   file: waveshare-esp32s3-7.yaml
@@ -99,7 +99,7 @@ jc1060p470:
     # In a black case or on a yellow board without one (GitHub #289): the yellow one's touch lies half a turn round.
     BOARD_VARIANT: [black, yellow]
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 jc1060p470v2:
   file: guition-jc1060p470-v2.yaml
@@ -107,7 +107,7 @@ jc1060p470v2:
   model: JC1060P470 V2
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 hosyond40:
   file: hosyond40.yaml
@@ -139,7 +139,7 @@ jc8012p4a1v2:
   model: JC8012P4A1 V2
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 tab5:
   file: tab5.yaml
@@ -150,7 +150,7 @@ tab5:
     # The display and touch controller (GitHub #240): the factory log says which, "Detected ST7123 touch controller".
     DISPLAY_MODEL: [ST7121, ST7123]
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 waveshare5:
   file: waveshare-esp32s3-5.yaml
@@ -170,7 +170,7 @@ wavesharep4:
   model: ESP32-P4-86-Panel-ETH-2RO
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
 reterminald1001:
   file: reterminald1001.yaml
@@ -178,7 +178,7 @@ reterminald1001:
   model: reTerminal D1001
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, wake_when_moved, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, wake_when_moved, echo_cancellation]
 
 jc4880p443:
   file: guition-jc4880p443.yaml
@@ -186,7 +186,7 @@ jc4880p443:
   model: JC4880P443
   status: experimental
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
 crowpanel101:
   file: crowpanel101.yaml
@@ -196,7 +196,7 @@ crowpanel101:
   # Elecrow's CrowPanel Advanced 10.1-inch (DHE04310D), from Elecrow's ESPHome example and a V1.2 board a community
   # member ran it on (GitHub #116).
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching]
 
 waveshare4v4:
   file: waveshare-esp32s3-4v4.yaml
@@ -236,7 +236,7 @@ wavesharep47b:
   # The ESP32-P4 7B with rev3 silicon (GitHub #271), not the ESP32-S3-Touch-LCD-7B. Its speaker and microphones are the
   # Waveshare P4 86 panel's audio (docs/WAVESHAREP47B.md).
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
 wavesharep47:
   file: wavesharep47.yaml
@@ -246,7 +246,7 @@ wavesharep47:
   # The 7-inch 720 x 1280 board of the ESP32-P4-WIFI6-Touch-LCD 7, 8 and 10.1-inch series (GitHub #274), pre-v3 silicon.
   # Not the 7B. Its speaker and microphones are the Waveshare P4 86 panel's audio (docs/WAVESHAREP47.md).
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
 waveshare101:
   file: waveshare101.yaml
@@ -256,7 +256,7 @@ waveshare101:
   # The 10.1-inch board of the same series (GitHub #281), pre-v3 silicon, from a community configuration that runs on
   # one (website wish 125). Its speaker and microphones are the Waveshare P4 86 panel's audio, not yet tried on it.
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
 waveshare101v3:
   file: waveshare101-v3.yaml
@@ -266,7 +266,7 @@ waveshare101v3:
   # The same board with rev3 silicon ("chip revision: v3.x" in the USB log), which Waveshare ships now: it starts only
   # with the repository's display driver (docs/WAVESHARE101.md). Seen on glass on one unit: picture, touch, pages.
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
-  settings: [media_player, microphone, microphone_gain, automatic_gain, echo_cancellation]
+  settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 
 waveshare43c:
   file: waveshare43c.yaml

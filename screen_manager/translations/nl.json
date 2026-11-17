@@ -197,6 +197,9 @@
       "plugins": "Plugins",
       "microphone_gain": "Microfoongain",
       "automatic_gain": "Automatische gain",
+      "call_ringtone": "Beltoon",
+      "do_not_disturb": "Niet storen",
+      "call_voice_switching": "Stemschakeling",
       "echo_cancellation": "Echo-onderdrukking",
       "loop_pages": "Pagina's rondlopen"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Automatische gain",
           "hint": "Laat de microfooncodec het opnameniveau bijregelen. Staat los van echo-onderdrukking."
+        },
+        "call_ringtone": {
+          "label": "Beltoon",
+          "hint": "Uit: bij een oproep licht het scherm op en toont het wie er belt, zonder geluid."
+        },
+        "do_not_disturb": {
+          "label": "Niet storen",
+          "hint": "Aan: een oproep naar dit scherm wordt meteen geweigerd en de beller leest waarom. De deurbel gaat nog wel."
+        },
+        "call_voice_switching": {
+          "label": "Stemschakeling",
+          "hint": "Aan: de microfoon van de kant die luistert gaat zacht, zodat een stem niet als echo terugkomt. Uit: beide kanten kunnen tegelijk praten. Een kleine toets in het gesprek verandert het voor dat gesprek."
         },
         "echo_cancellation": {
           "label": "Echo-onderdrukking",
@@ -2587,7 +2602,7 @@
         "who_hint_one": "Een tik belt dit scherm meteen.",
         "everyone": "Kiezen uit de lijst",
         "kind": "Soort gesprek",
-        "kind_hint": "Video vraagt een camera op beide schermen, anders wordt het een gesprek met geluid.",
+        "kind_hint": "Video vraagt de plugin Screen camera met het onderdeel Video op beide schermen, anders wordt het een gesprek met geluid.",
         "video": "Video waar het kan",
         "sound": "Alleen geluid"
       },

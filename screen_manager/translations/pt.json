@@ -197,6 +197,9 @@
       "plugins": "Plugins",
       "microphone_gain": "Ganho do microfone",
       "automatic_gain": "Ganho automático",
+      "call_ringtone": "Toque de chamada",
+      "do_not_disturb": "Não incomodar",
+      "call_voice_switching": "Alternância de voz",
       "echo_cancellation": "Cancelamento eco",
       "loop_pages": "Páginas em ciclo"
     },
@@ -1248,6 +1251,18 @@
         "automatic_gain": {
           "label": "Ganho automático",
           "hint": "Permite que o codec do microfone ajuste o nível de gravação. Independente do cancelamento de eco."
+        },
+        "call_ringtone": {
+          "label": "Toque de chamada",
+          "hint": "Desligado: numa chamada o ecrã acende e mostra quem liga, sem som."
+        },
+        "do_not_disturb": {
+          "label": "Não incomodar",
+          "hint": "Ligado: uma chamada para este ecrã é recusada de imediato e quem liga lê porquê. A campainha continua a tocar."
+        },
+        "call_voice_switching": {
+          "label": "Alternância de voz",
+          "hint": "Ligado: o microfone do lado que ouve baixa, para que uma voz não volte como eco. Desligado: os dois lados podem falar ao mesmo tempo. Uma tecla pequena na chamada muda-o para essa chamada."
         },
         "echo_cancellation": {
           "label": "Cancelamento eco",
@@ -3038,7 +3053,7 @@
         "who_hint_one": "Um toque liga de imediato a este ecrã.",
         "everyone": "Escolher da lista",
         "kind": "Tipo de chamada",
-        "kind_hint": "O vídeo precisa de uma câmara nos dois ecrãs; caso contrário, é uma chamada com som.",
+        "kind_hint": "O vídeo precisa do plugin Screen camera com a sua parte Video nos dois ecrãs; caso contrário, é uma chamada com som.",
         "video": "Vídeo sempre que possível",
         "sound": "Apenas som"
       },
