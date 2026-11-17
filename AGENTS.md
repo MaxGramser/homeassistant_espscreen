@@ -144,18 +144,20 @@ How much is checked follows the branch (next section): work on dev moves fast an
 release is checked fully, once a week. docs/TESTING.md says what each layer proves.
 
 - **On dev the proof is the bench**: the owner's home Home Assistant is the test Home Assistant (since 2026-10-29),
-  with the owner's real screens and the bench boards on the Mac mini's USB as screens of it. The bench HA VM and
-  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house with the
-  deploy-home skill (`deploy_home.py dev`, after a push to `origin dev`), whose builds run on the Mac mini as the app's
-  build server, flash the change to the boards it concerns, and have the owner look and tap. Run a single test when
+  with the owner's real screens and the bench boards as screens of it. The bench HA VM and
+  `.esphome/bench/bench.py` are gone: never start, reset or deploy to that VM. Put dev on the house from the machine
+  you work on, over Home Assistant's own API (after a push to `origin dev`: the dev app rebuilt, its screens
+  reinstalled from dev); the builds run on the app's build server, which is the only thing that machine does: run
+  nothing else there. Flash the change to the boards it concerns, and have the owner look and tap. After a release
+  the house runs the released app from main again. Run a single test when
   that is the quickest way to see a piece of logic work. No
   `tools/check.sh`, no builds of other boards and no renders on dev, and a push to dev starts no CI but the Docker
   image `:dev` when `screen_manager/` changed (docs/DOCKER.md, "Testing dev"). After a change
   under `web/src`, `cd web && npm run build` (the app serves that build) and commit `screen_manager/app/static` with it.
 - **At a release** (and a hotfix) everything runs, on the commit that goes out: `tools/check.sh`, CI on that commit
   (`tools/release.py ci`: every board on both ESPHome versions), the renders when the release changes what screens
-  draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"; the deploy-home skill's
-  `release-test`). What fails there is fixed in the release.
+  draw, and the upgrade test on the home Home Assistant (docs/TESTING.md, "6. The upgrade"). What fails there is fixed
+  in the release.
 - `tools/check.sh`: Python and C++ tests, package and generator checks, translations, the editor's tests, lint, types
   and build, the WASM preview tests and the layout audit of every card on every board shape.
 - Its firmware builds: `tools/check.sh --firmware --affected` builds the boards a change reaches; a change that reaches
