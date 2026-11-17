@@ -8,13 +8,13 @@ Zwei Punkte unten im grünen Panel zeigen, auf welcher Seite du bist.
 
 **Bedienung:**
 
-- **Tippen**: die nächste Seite; die 45 Sekunden beginnen neu. Das Display wartet dafür 0,35 s, ob ein zweiter Tipp
+- **Tippen**: die nächste Seite (mit einer kurzen Blende); die 45 Sekunden beginnen neu. Das Display wartet dafür 0,35 s, ob ein zweiter Tipp
   kommt (Regler „Doppeltipp-Zeit“).
 - **Doppeltipp** (Easter Egg „Hunderunde“): Eine Karte über das ganze Display zeigt, wann man heute trocken mit dem
   Hund rauskommt, ab 21 Uhr für morgen. Bis zu drei trockene Zeiten, darunter ein Streifen von 6 bis 22 Uhr (gelb
   trocken, blau Regen, orange ab 25 °C, die Stunden vor jetzt blass, der weiße Strich ist jetzt) und ein Tipp:
   Wind und Temperatur, bei Frost, Schnee oder einer Glätte-Warnung der Hinweis auf Streusalz, ab 25 °C der
-  Asphalt-Test. Ohne Lücke steht der Hund unter einem Schirm. Die Karte schließt sich nach 15 s oder mit einem Tippen.
+  Asphalt-Test. Beim Öffnen springt der Hund zweimal kurz hoch, ohne Lücke steht er unter einem Schirm. Die Karte schließt sich nach 15 s oder mit einem Tippen.
 - **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, in der Mitte erscheint für ein paar Sekunden ein
   goldenes Schloss. Bei jeder Berührung einer gehaltenen Seite erscheint es kurz wieder; ein Tippen wechselt dann
   nicht. Nur ein erneuter langer Druck gibt die Seite frei.

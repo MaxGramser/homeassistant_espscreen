@@ -74,6 +74,15 @@ KLEIN_ICONS = ["F0164", "F0717", "F03E9"]   # Wolke durchgestrichen (keine Verbi
 HUND_GROSS = "".join(sorted(set("0123456789–· Uhr trocken! Schirm mit! Kurz raus!")))
 HUND_FELD = 400 // 16 * 16     # Tagesstreifen 6 bis 22 Uhr: 16 Felder zu 25 px
 HUND_X = (480 - HUND_FELD) // 2
+HUND_Y, HUND_KLEIN_Y = 86, 112      # der Hund (160 px) und der kleine unter dem Schirm (128 px)
+SCHATTEN_X, SCHATTEN_W = 160, 170   # sein Schatten unter den Pfoten
+
+
+def hund_zahlen(text):
+    """Setzt die Lagen von Hund und Schatten in die Skripte ein (die stehen dort nicht als f-String)."""
+    for k in ("HUND_KLEIN_Y", "HUND_Y", "SCHATTEN_X", "SCHATTEN_W"):
+        text = text.replace(k, str(globals()[k]))
+    return text
 WARN = ["F11DC", "F0026", "F1A71", "F0D64", "F0591", "F0593", "F059D", "F0596", "F0F36", "F18D6"]
 TAG_BILDER = ["sunny", "partlycloudy", "cloudy", "fog", "rainy", "pouring", "lightning", "lightning-rainy", "snowy",
               "snowy-rainy", "hail", "windy", "windy-variant", "exceptional"]
@@ -466,7 +475,7 @@ for d in range(5):
           y: !lambda 'return wx::punkt_y({d}) - 28;'""")
 w("")
 
-w("""  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und
+w(hund_zahlen("""  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und
   # startet die Zeit neu
   - id: seite_weiter
     mode: restart
@@ -489,8 +498,8 @@ w("""  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima
                      id(seite_innen)->is_showing();
           then:
             - lvgl.page.next:
-                animation: MOVE_LEFT
-                time: 400ms
+                animation: FADE_IN
+                time: 300ms
 
   # Nachtmodus: nach der Weckdauer (Regler, Minuten) ohne Berührung geht das Licht wieder aus
   - id: nacht_wecken
@@ -625,7 +634,11 @@ w("""  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima
     then:
       - script.execute: hund_zeichnen
       - lvgl.widget.show: hunderunde
-      - lambda: lv_obj_fade_in(id(hunderunde), 250, 0);
+      - lambda: |-
+          lv_obj_fade_in(id(hunderunde), 250, 0);
+          bool klein = !lv_obj_has_flag(id(hr_hund_klein), LV_OBJ_FLAG_HIDDEN);
+          wx::hund_huepfen(klein ? id(hr_hund_klein) : id(hr_hund), klein ? HUND_KLEIN_Y : HUND_Y, id(hr_schatten),
+                           SCHATTEN_X, SCHATTEN_W);
       - delay: 15s
       - lambda: lv_obj_fade_out(id(hunderunde), 400, 0);
       - delay: 400ms
@@ -662,7 +675,7 @@ w("""  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima
 """
   + "          lv_obj_t *feld[16] = {" + ", ".join(f"id(hr_feld_{i})" for i in range(16)) + "};\n"
   + f"          wx::hund_streifen(x, feld, id(hr_strich), {HUND_X}, {HUND_FELD},\n"
-  + "                            id(ha_time).now().is_valid() ? id(ha_time).now().minute : 0);\n")
+  + "                            id(ha_time).now().is_valid() ? id(ha_time).now().minute : 0);\n"))
 
 
 # ---- Skripte für Thema, Warnung, Wind, Seitenpunkte und Verbindung
@@ -1150,7 +1163,7 @@ def hund_ebene():
         row(K, None, 0, 24, [label(K + 6, None, None, None, "\\U000F03E9", "i_klein", SONNE),
                              label(K + 6, None, None, None, "HUNDERUNDE", "f_13b", SONNE, text_letter_space=3)],
             6, align="TOP_MID"),
-        box(K, None, 160, 221, 170, 10, dict(bg_color="0x000000", bg_opa="20%", radius=5, border_width=0)),
+        box(K, "hr_schatten", SCHATTEN_X, 221, SCHATTEN_W, 10, dict(bg_color="0x000000", bg_opa="20%", radius=5, border_width=0)),
         bild("hr_schirm", 135, 42, "img_hr_schirm"),
         bild("hr_sonne", 326, 34, "img_hr_sonne"),
         bild("hr_mix", 322, 30, "img_hr_mix"),
@@ -1158,8 +1171,8 @@ def hund_ebene():
         bild("hr_flocke_1", 112, 70, "img_hr_flocke_m"),
         bild("hr_flocke_2", 116, 168, "img_hr_flocke_s", opa="60%"),
         bild("hr_flocke_3", 356, 156, "img_hr_flocke_s", opa="50%"),
-        bild("hr_hund", 158, 86, "img_hund"),
-        bild("hr_hund_klein", 180, 112, "img_hund_klein"),
+        bild("hr_hund", 158, HUND_Y, "img_hund"),
+        bild("hr_hund_klein", 180, HUND_KLEIN_Y, "img_hund_klein"),
         label(K, "hr_klein", 0, 244, "Hunderunde", "f_17m", PMUTED, width=480, align="CENTER"),
         label(K, "hr_gross44", 0, 262, "", "f_hund44", "0xFFFFFF", width=480, align="CENTER"),
         label(K, "hr_gross32", 0, 270, "", "f_hund32", "0xFFFFFF", width=480, align="CENTER", hidden="true"),

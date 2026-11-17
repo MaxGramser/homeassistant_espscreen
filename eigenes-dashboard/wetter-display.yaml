@@ -434,8 +434,8 @@ script:
                      id(seite_innen)->is_showing();
           then:
             - lvgl.page.next:
-                animation: MOVE_LEFT
-                time: 400ms
+                animation: FADE_IN
+                time: 300ms
 
   # Nachtmodus: nach der Weckdauer (Regler, Minuten) ohne Berührung geht das Licht wieder aus
   - id: nacht_wecken
@@ -570,7 +570,11 @@ script:
     then:
       - script.execute: hund_zeichnen
       - lvgl.widget.show: hunderunde
-      - lambda: lv_obj_fade_in(id(hunderunde), 250, 0);
+      - lambda: |-
+          lv_obj_fade_in(id(hunderunde), 250, 0);
+          bool klein = !lv_obj_has_flag(id(hr_hund_klein), LV_OBJ_FLAG_HIDDEN);
+          wx::hund_huepfen(klein ? id(hr_hund_klein) : id(hr_hund), klein ? 112 : 86, id(hr_schatten),
+                           160, 170);
       - delay: 15s
       - lambda: lv_obj_fade_out(id(hunderunde), 400, 0);
       - delay: 400ms
@@ -1629,6 +1633,7 @@ lvgl:
                       text_color: 0xFFD27A
                       text_letter_space: 3
             - obj:
+                id: hr_schatten
                 x: 160
                 y: 221
                 width: 170

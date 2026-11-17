@@ -536,4 +536,39 @@ inline void hund_streifen(const std::string &x, lv_obj_t *const *feld, lv_obj_t 
   if (an) lv_obj_set_x(strich, x0 + (jetzt * 60 + minute) * breite / (16 * 60) - 1);
 }
 
+// Der Hund springt beim Öffnen zweimal kurz hoch; sein Schatten wird schmaler, solange er in der Luft ist
+inline int hund_schatten_mitte = 0;
+inline void hund_y_setzen(void *o, int32_t v) { lv_obj_set_y((lv_obj_t *) o, v); }
+inline void hund_schatten_setzen(void *o, int32_t w) {
+  lv_obj_set_width((lv_obj_t *) o, w);
+  lv_obj_set_x((lv_obj_t *) o, hund_schatten_mitte - w / 2);
+}
+inline void hund_huepfen(lv_obj_t *hund, int y0, lv_obj_t *schatten, int sx0, int sw0) {
+  lv_anim_delete(hund, hund_y_setzen);
+  lv_anim_delete(schatten, hund_schatten_setzen);
+  lv_obj_set_y(hund, y0);
+  lv_obj_set_width(schatten, sw0);
+  lv_obj_set_x(schatten, sx0);
+  hund_schatten_mitte = sx0 + sw0 / 2;
+  for (int k = 0; k < 2; k++) {
+    lv_anim_t a;
+    lv_anim_init(&a);
+    if (k == 0) {
+      lv_anim_set_var(&a, hund);
+      lv_anim_set_values(&a, y0, y0 - 14);
+      lv_anim_set_exec_cb(&a, hund_y_setzen);
+    } else {
+      lv_anim_set_var(&a, schatten);
+      lv_anim_set_values(&a, sw0, sw0 - 40);
+      lv_anim_set_exec_cb(&a, hund_schatten_setzen);
+    }
+    lv_anim_set_duration(&a, 180);
+    lv_anim_set_reverse_duration(&a, 180);
+    lv_anim_set_repeat_count(&a, 2);
+    lv_anim_set_delay(&a, 150);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_start(&a);
+  }
+}
+
 }  // namespace wx
