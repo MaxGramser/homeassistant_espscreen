@@ -7,8 +7,11 @@
 #                                                      2-Stunden-Schritten)
 #   sonne                  "1763276520;1763309880"     Aufgang; Untergang als Unix-Zeit. Tagsüber der Aufgang von
 #                                                      heute, nachts die nächsten beiden Ereignisse.
-#   warnung                "2;Sturmböen;STURMBÖEN"     höchste aktuelle Warnstufe (1 bis 4); Name zum Anzeigen;
-#                                                      Name wie vom DWD (für das Icon). Leer, wenn keine Warnung gilt.
+#   warnung                "3;Orkanböen · Glätte;ORKANBÖEN"
+#                                                      höchste aktuelle Warnstufe (1 bis 4); alle Warnungen zum
+#                                                      Anzeigen, die höchste zuerst (das Display lässt sie als
+#                                                      Lauftext laufen, wenn sie nicht passen); Name der höchsten wie
+#                                                      vom DWD (für das Icon). Leer, wenn keine Warnung gilt.
 # Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
 # über die Aktion weather.get_forecasts. Dieser Sensor fragt sie alle 15 Minuten ab.
 #
@@ -110,17 +113,20 @@ template:
               {{ auf }};{{ unter }}
             {% endif %}
           warnung: >
-            {% set ns = namespace(stufe=0, name='', roh='') %}
+            {% set ns = namespace(liste=[]) %}
             {% set n = state_attr(warnungen, 'warning_count') | int(0) %}
             {% for i in range(1, n + 1) %}
               {% set stufe = state_attr(warnungen, 'warning_' ~ i ~ '_level') | int(0) %}
-              {% if stufe > ns.stufe %}
-                {% set ns.stufe = stufe %}
-                {% set ns.roh = state_attr(warnungen, 'warning_' ~ i ~ '_name') | string %}
-                {% set ns.name = ns.roh | lower | title %}
+              {% set roh = state_attr(warnungen, 'warning_' ~ i ~ '_name') | string %}
+              {% if stufe > 0 %}
+                {% set ns.liste = ns.liste + [{'stufe': stufe, 'roh': roh}] %}
               {% endif %}
             {% endfor %}
-            {{ (ns.stufe ~ ';' ~ ns.name ~ ';' ~ ns.roh) if ns.stufe > 0 else '' }}
+            {% set liste = ns.liste | sort(attribute='stufe', reverse=true) %}
+            {% if liste | count > 0 %}
+              {% set namen = liste | map(attribute='roh') | map('lower') | map('title') | unique | list %}
+              {{ liste[0].stufe }};{{ namen | join(' · ') | truncate(180, true, '…') }};{{ liste[0].roh }}
+            {% endif %}
     sensor:
       - name: Display Wetter
         unique_id: display_wetter_vorhersage

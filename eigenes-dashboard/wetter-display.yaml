@@ -615,7 +615,8 @@ font:
   - {file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: "-0123456789,.°% "}
   - {file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
-  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B", "\U000F033E"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_lock, size: 32, bpp: 4, glyphs: ["󰌾"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F11DC", "\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
 
 # ---------------- Wetterbilder (werkzeuge/bilder.py zeichnet sie) ----------------
@@ -709,6 +710,13 @@ text_sensor:
                   id: lbl_warn
                   text: !lambda 'return wx::part(x, 1);'
                   text_color: !lambda 'return wx::warn_text_color((int) wx::num(wx::part(x, 0)));'
+              # mehrere Warnungen: passt der Text nicht neben den Ort, läuft er als Lauftext durch den Hinweis
+              - lambda: |-
+                  lv_obj_t *l = id(lbl_warn);
+                  lv_point_t sz;
+                  lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
+                                   LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+                  lv_obj_set_width(l, sz.x > 112 ? 112 : LV_SIZE_CONTENT);
               - lvgl.widget.show: [rahmen, warn_pill]
             else:
               - lvgl.widget.hide: [rahmen, warn_pill]
@@ -1160,20 +1168,23 @@ lvgl:
   touchscreens: [ts_touch]
   buffer_size: 25%
   default_font: f_14
-  # das Schloss (Seite festgehalten) liegt über beiden Seiten, oben in der Mitte des Panels
+  # das Schloss (Seite festgehalten) erscheint kurz in der Mitte über beiden Seiten und blendet sich wieder aus
   top_layer:
     widgets:
       - obj:
           id: schloss
           hidden: true
-          x: 225
-          y: 22
-          width: 30
-          height: 30
-          radius: 15
+          align: CENTER
+          width: 60
+          height: 60
+          radius: 30
           bg_color: 0xB8862B
           bg_opa: COVER
-          border_width: 0
+          border_width: 3
+          border_color: 0xFFFFFF
+          shadow_width: 24
+          shadow_color: 0x000000
+          shadow_opa: 35%
           pad_all: 0
           clickable: false
           scrollable: false
@@ -1181,7 +1192,7 @@ lvgl:
             - label:
                 align: CENTER
                 text: "\U000F033E"
-                text_font: i_ui
+                text_font: i_lock
                 text_color: 0x0B3A26
   pages:
     - id: seite_wetter
@@ -1263,6 +1274,7 @@ lvgl:
                               text: ""
                               text_font: f_pill
                               text_color: 0xFFFFFF
+                              long_mode: SCROLL_CIRCULAR
               - obj:
                   x: 16
                   y: 45

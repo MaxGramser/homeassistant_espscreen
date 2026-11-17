@@ -7,8 +7,8 @@ Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in
 **Bedienung:**
 
 - **Tippen**: sofort die nächste Seite; die 45 Sekunden beginnen neu.
-- **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, oben in der Mitte erscheint für ein paar Sekunden
-  ein goldenes Schloss. Bei jeder Berührung einer gehaltenen Seite erscheint es kurz wieder; ein Tippen wechselt dann
+- **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, in der Mitte erscheint für ein paar Sekunden ein
+  goldenes Schloss. Bei jeder Berührung einer gehaltenen Seite erscheint es kurz wieder; ein Tippen wechselt dann
   nicht. Nur ein erneuter langer Druck gibt die Seite frei.
 - **Wischen nach oben/unten**: heller/dunkler in 20-%-Schritten (10 bis 100 %); bleibt nach einem Neustart erhalten.
 - **Nachtmodus**: Der Schalter „Nachtmodus“ des Geräts in Home Assistant schaltet das Licht aus. Eine Berührung weckt
@@ -29,7 +29,8 @@ das kann um wenige Pixel abweichen.*
 - **Nachts** zeigt das große Bild die Mondphase (8 Stufen, auf dem Display berechnet) und klein daneben das aktuelle
   Wetter, z. B. eine Regenwolke.
 - **Warnungen des DWD**: ein Rahmen um das Panel und ein Hinweis neben dem Ort, in der Farbe der Warnstufe:
-  1 gelb, 2 orange, 3 rot, 4 violett. Bei mehreren Warnungen zählt die höchste.
+  1 gelb, 2 orange, 3 rot, 4 violett. Bei mehreren Warnungen bestimmt die höchste Farbe und Icon, im Hinweis stehen
+  alle (die höchste zuerst); passen sie nicht neben den Ort, laufen sie als Lauftext durch.
 - **Vier Kacheln**: Wind mit Richtung, Regen heute, Luftfeuchte, UV-Index von OpenUV mit Einstufung (niedrig bis extrem; nachts 0).
 - **5 Tage**: Kurve der Tageshöchstwerte, darunter Regen, Wetter-Icon und Tag.
 - **Regen**: die nächsten 10 Stunden in 2-Stunden-Schritten als Balken.

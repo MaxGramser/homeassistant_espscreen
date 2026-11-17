@@ -19,6 +19,8 @@ ZIFFERN = "-0123456789,.°% "
 
 # ---- Raster
 M, G, P = 8, 8, 16
+# breiter darf der Warntext neben dem Ort nicht werden (bis zum Wetterbild); längerer Text läuft durch
+WARN_MAX = 112
 W = 480 - 2 * M                     # 464
 COL = (W - 3 * G) // 4              # 110
 CARD2 = 2 * COL + G                 # 228
@@ -43,7 +45,7 @@ LINIE, TRACK, FILL = "0x6B5420", "0xB8862B", "0xD4A548"
 
 COND = ["F0599", "F0594", "F0595", "F0590", "F0591", "F0592", "F0593", "F067E", "F0596", "F0597", "F0598",
         "F067F", "F059D", "F059E", "F0F2F"]
-UI = ["F059D", "F054A", "F058E", "F05A8", "F059C", "F059B", "F033E"]   # zuletzt: Schloss
+UI = ["F059D", "F054A", "F058E", "F05A8", "F059C", "F059B"]
 WARN = ["F11DC", "F0026", "F1A71", "F0D64", "F0591", "F0593", "F059D", "F0596", "F0F36", "F18D6"]
 TAG_BILDER = ["sunny", "partlycloudy", "cloudy", "fog", "rainy", "pouring", "lightning", "lightning-rainy", "snowy",
               "snowy-rainy", "hail", "windy", "windy-variant", "exceptional"]
@@ -530,6 +532,7 @@ font:
   - {{file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: {q(LATIN)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: {mdi(COND)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: {mdi(UI)}}}
+  - {{file: fonts/materialdesignicons-webfont.ttf, id: i_lock, size: 32, bpp: 4, glyphs: ["\U000F033E"]}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: {mdi(WARN)}}}
 
 # ---------------- Wetterbilder (werkzeuge/bilder.py zeichnet sie) ----------------
@@ -598,6 +601,13 @@ text_sensor:
                   id: lbl_warn
                   text: !lambda 'return wx::part(x, 1);'
                   text_color: !lambda 'return wx::warn_text_color((int) wx::num(wx::part(x, 0)));'
+              # mehrere Warnungen: passt der Text nicht neben den Ort, läuft er als Lauftext durch den Hinweis
+              - lambda: |-
+                  lv_obj_t *l = id(lbl_warn);
+                  lv_point_t sz;
+                  lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
+                                   LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+                  lv_obj_set_width(l, sz.x > {WARN_MAX} ? {WARN_MAX} : LV_SIZE_CONTENT);
               - lvgl.widget.show: [rahmen, warn_pill]
             else:
               - lvgl.widget.hide: [rahmen, warn_pill]""")
@@ -800,20 +810,23 @@ lvgl:
   touchscreens: [ts_touch]
   buffer_size: 25%
   default_font: f_14
-  # das Schloss (Seite festgehalten) liegt über beiden Seiten, oben in der Mitte des Panels
+  # das Schloss (Seite festgehalten) erscheint kurz in der Mitte über beiden Seiten und blendet sich wieder aus
   top_layer:
     widgets:
       - obj:
           id: schloss
           hidden: true
-          x: 225
-          y: 22
-          width: 30
-          height: 30
-          radius: 15
+          align: CENTER
+          width: 60
+          height: 60
+          radius: 30
           bg_color: {GOLD}
           bg_opa: COVER
-          border_width: 0
+          border_width: 3
+          border_color: 0xFFFFFF
+          shadow_width: 24
+          shadow_color: 0x000000
+          shadow_opa: 35%
           pad_all: 0
           clickable: false
           scrollable: false
@@ -821,7 +834,7 @@ lvgl:
             - label:
                 align: CENTER
                 text: "\\U000F033E"
-                text_font: i_ui
+                text_font: i_lock
                 text_color: {PANEL_NACHT[0]}
   pages:
     - id: seite_wetter
@@ -841,7 +854,7 @@ pill = widget("obj", C + 8, dict(
     layout="\n  type: FLEX\n  flex_flow: ROW\n  flex_align_main: START\n  flex_align_cross: CENTER\n"
            "  flex_align_track: CENTER\n  pad_column: 5"),
     [label(C + 12, "lbl_warn_icon", None, None, "\\U000F0026", "i_warn", "0xFFFFFF"),
-     label(C + 12, "lbl_warn", None, None, "", "f_pill", "0xFFFFFF")])
+     label(C + 12, "lbl_warn", None, None, "", "f_pill", "0xFFFFFF", long_mode="SCROLL_CIRCULAR")])
 kids.append(row(C, None, P, y(14, 30, 24), [label(C + 8, "lbl_ort", None, None, "${ort}", "f_ort", "0xFFFFFF"), pill],
                 12))
 kw_pill = widget("obj", C + 8, dict(
