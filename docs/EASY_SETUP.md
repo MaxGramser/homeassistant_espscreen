@@ -90,7 +90,9 @@ Use the GitHub version for updates; a local test add-on is a separate app.
    the screen uses them automatically. If they're missing, or the file doesn't
    exist yet, the Set up step asks for them once and Tessera only adds the
    missing lines to `secrets.yaml`; comments and other secrets are left
-   alone. If `secrets.yaml` isn't valid YAML, fix that yourself first.
+   alone. If `secrets.yaml` isn't valid YAML, fix that yourself first. A `secrets.yaml` that takes its keys
+   from Home Assistant's with `<<: !include ../secrets.yaml` is read as ESPHome reads it: the Wi-Fi in the
+   included file counts, and a key of the file's own wins.
 4. **Install**: choose **USB on Home Assistant** (the port it found has a green light) and click
    **Install**. Tessera stores the profile (`kitchen.yaml`, with unique
    API and OTA keys) in the ESPHome folder, builds the firmware, and writes it
@@ -288,7 +290,9 @@ Click **Save & send** to send your changes.
   Assistant (its conditions are skipped). Under **On tap**, **Run automation actions** swaps the two: a tap runs it and holding the
   tile turns it on or off. The tile then looks like a script's button, coloured while the actions run (firmware 0.7.0+).
 - Remote: tap for its card with the power key and, where the remote has them, its activities, or for an Apple TV,
-  Android TV, Roku and others a keypad with arrows, OK, Back, Home and the volume (firmware 0.22.0+). For
+  Android TV, Roku and others a keypad with arrows, OK, Back, Home and the volume (firmware 0.22.0+). A remote
+  that reports no state ("unknown", as Home Assistant's Android TV integration over ADB does) keeps its keys;
+  only an unavailable one is switched off. For
   a key such as Play or Menu, add the remote again with **On tap** set to **Perform action** and **Send command**, and
   pick the command from the list under the field (Android TV, Apple TV, Roku and others) or type it as Home Assistant
   knows it (Harmony, Broadlink).

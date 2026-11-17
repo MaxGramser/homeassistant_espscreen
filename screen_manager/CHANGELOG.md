@@ -1,3 +1,8 @@
+## Unreleased
+
+- **Wi-Fi secrets shared with Home Assistant are found.** When ESPHome's `secrets.yaml` takes its keys from Home Assistant's with `<<: !include ../secrets.yaml`, New screen said the Wi-Fi was not there and the file was not valid. Tessera now reads the file the way ESPHome does, so the Wi-Fi from the included file counts and nothing is written twice (GitHub #351).
+- **An Android TV remote that reports no state keeps its keys.** A remote from Home Assistant's Android TV integration (ADB, a Fire TV for example) is always "unknown" in Home Assistant, and its tile showed as unavailable, so its keypad never opened. It now stays usable, as in Home Assistant, where only "unavailable" turns a remote off (GitHub #387).
+
 ## 0.4.98 (firmware 0.61.0)
 
 - **A call always lets you out.** When the app restarted in the middle of a call between screens, both screens stayed in the call and the hang-up key did nothing. The app now answers the end of a call it no longer holds, and a screen ends the call itself when its hang-up gets no answer.
