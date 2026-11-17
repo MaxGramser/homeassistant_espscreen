@@ -101,16 +101,25 @@ class Calls:
         return [Say(call.caller, key, LIVE, call.callee, call.video), Say(call.callee, key, LIVE, call.caller, call.video),
                 self._event(ANSWERED, call)]
 
+    def gone_for(self, key, node):
+        """A screen spoke of a call that is not there (this app started again in the middle of it, or the call ended a
+        moment before): the screen is told it ended, so it never stays in a call nobody holds."""
+        return [Say(node, key, END, '', False, GONE)]
+
     def decline(self, key, node, now):
         call = self.calls.get(key)
-        if call is None or call.callee != node or call.answered is not None:
+        if call is None:
+            return self.gone_for(key, node)
+        if call.callee != node or call.answered is not None:
             return []
         return self._close(call, DECLINED, DECLINED, now)
 
     def hang_up(self, key, node, now):
         """`end`, or `cancel` by the caller while it rings: the other end is told."""
         call = self.calls.get(key)
-        if call is None or not call.has(node):
+        if call is None:
+            return self.gone_for(key, node)
+        if not call.has(node):
             return []
         if call.answered is None:
             # Called off before an answer: for the one who was rung, a missed call.

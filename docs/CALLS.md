@@ -53,6 +53,9 @@ The add-on answers with the op `call` (`s`: out, ring, live, held, end) and the 
 rows so a house of thirty screens fits. Home Assistant gets one event per call: `esp_screens_call_started`, `_answered`,
 `_missed` and `_ended` (from, to, video, seconds, and `key`, the same in every event of one call).
 
+A screen always gets out of a call. ESP Screens answers the end or the decline of a call it does not hold (it started again in the
+middle of one) with that call's end, and a screen whose hang-up gets no answer within two and a half seconds ends the call itself.
+
 ## The Call tile
 
 `screen.call`, on a board with the module `call`. In its inspector: **Calls**, the list of screens or one screen that a tap calls at

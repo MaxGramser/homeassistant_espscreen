@@ -217,8 +217,13 @@ void who(lv_obj_t *root, const std::string &line, bool rings) {
 }
 
 // ---- Going out, coming in, how it ended ----
+// A finger ended the call: ESP Screens is told, and answers with the call's end. Should no answer come (it started again
+// in the middle of the call, the network is gone), the screen ends the call itself: nobody stays in a call they left.
+uint32_t hung_up_at = 0;
+constexpr uint32_t HUNG_UP_WAIT_MS = 2500;
 void hang_up_cb(lv_event_t *) {
   say(stage == Stage::RING ? "decline" : stage == Stage::OUT ? "cancel" : "end");
+  if (!hung_up_at) hung_up_at = esphome::millis() | 1;
 }
 void answer_cb(lv_event_t *) { say("answer"); }
 
@@ -770,6 +775,12 @@ void tick(uint32_t now) {
   if (stage == Stage::RING && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
     last_ring = now;
     ring_once();
+  }
+  if (hung_up_at && (stage == Stage::NONE || stage == Stage::ENDED)) hung_up_at = 0;
+  if (hung_up_at && now - hung_up_at >= HUNG_UP_WAIT_MS) {
+    ESP_LOGW(TAG, "no answer to the end of the call: ended here");
+    hung_up_at = 0;
+    on_call("end", call_key, "", "", false, "", "", true, "gone");
   }
   if (stage == Stage::ENDED && now - end_at >= END_SHOWN_MS) {
     free_card();

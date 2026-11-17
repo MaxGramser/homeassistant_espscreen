@@ -221,6 +221,17 @@ def test_the_calls_choices_go_out_as_a_message_of_their_own():
     assert calls.choices_message('k', {'vs': 0, 'ec': 1}) == {'v': 1, 'op': 'call', 'k': 'k', 's': 'set', 'vs': 0, 'ec': 1}
 
 
+def test_a_screen_that_ends_a_call_nobody_holds_is_told_it_ended():
+    # The app started again in the middle of a call: it knows nothing of it, and the screens must still get out.
+    m = machine()
+    for said in (m.hang_up('lost', 'a', 5.0), m.decline('lost', 'a', 5.0)):
+        assert [(o.node, o.key, o.state, o.why) for o in said] == [('a', 'lost', calls.END, calls.GONE)]
+    # Someone else's call is not theirs to end.
+    out = m.dial('a', 'b', False, 0.0)
+    key = next(o.key for o in out if isinstance(o, calls.Say))
+    assert m.hang_up(key, 'c', 1.0) == []
+
+
 def test_every_event_of_a_call_carries_the_calls_own_key():
     m = machine()
     out = m.dial('a', 'b', True, 0.0)
