@@ -23,7 +23,8 @@
 # Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
 # über die Aktion weather.get_forecasts. Dieser Sensor fragt sie alle 15 Minuten ab.
 #
-# Anpassen: die Zeilen "wetter:", "warnungen:" und "vorwarnungen:" unten.
+# Anpassen: die Zeilen "wetter:", "warnungen:" und "vorwarnungen:" unten (die Wetter-Entität und die beiden
+# Warn-Sensoren stehen außerdem bei den Auslösern oben).
 #   wetter     die Wetter-Entität, z. B. vom DWD (HACS-Integration "DWD Weather") oder Met.no
 #   warnungen  der Sensor "aktuelle Warnstufe" der Integration "Deutscher Wetterdienst (DWD) Weather Warnings";
 #              ohne DWD-Warnungen einfach so lassen, das Display zeigt dann keine Warnung.
@@ -46,6 +47,10 @@ template:
         minutes: "/15"
       - trigger: state
         entity_id: sun.sun
+      # sobald der DWD den Zustand ändert (z. B. auf regnerisch), nicht erst nach 15 Minuten
+      - trigger: state
+        entity_id: weather.controlroom_sassenberg
+        to: ~
       - trigger: state
         entity_id: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
       - trigger: state
