@@ -430,6 +430,17 @@ w("""  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab
                 id: geste
                 art: 3
 
+  # Schloss kurz zeigen (sanft ein- und ausblenden); jede Berührung einer gehaltenen Seite startet es neu
+  - id: schloss_zeigen
+    mode: restart
+    then:
+      - lvgl.widget.show: schloss
+      - lambda: lv_obj_fade_in(id(schloss), 200, 0);
+      - delay: 3s
+      - lambda: lv_obj_fade_out(id(schloss), 600, 0);
+      - delay: 600ms
+      - lvgl.widget.hide: schloss
+
   # Gesten: 0 = Tippen (nächste Seite), 1 = Wischen hoch (heller), 2 = Wischen runter (dunkler), 3 = lang (Seite halten)
   - id: geste
     parameters:
@@ -463,28 +474,36 @@ w("""  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab
                       transition_length: 200ms
             - if:
                 condition:
-                  lambda: return art == 3 || (art == 0 && id(seite_gehalten));
+                  lambda: return art == 3;
                 then:
-                  # festhalten oder freigeben; ein Tippen auf eine gehaltene Seite gibt sie nur frei
+                  # langer Druck: festhalten oder freigeben
                   - lambda: id(seite_gehalten) = !id(seite_gehalten);
                   - if:
                       condition:
                         lambda: return id(seite_gehalten);
                       then:
                         - script.stop: seite_weiter
-                        - lvgl.widget.show: schloss
+                        - script.execute: schloss_zeigen
                       else:
+                        - script.stop: schloss_zeigen
                         - lvgl.widget.hide: schloss
                         - script.execute: seite_weiter
                 else:
                   - if:
+                      # gehaltene Seite: jede Berührung zeigt kurz das Schloss, ein Tippen wechselt nicht
                       condition:
-                        lambda: return art == 0;
+                        lambda: return id(seite_gehalten);
                       then:
-                        - lvgl.page.next:
-                            animation: MOVE_LEFT
-                            time: 400ms
-                        - script.execute: seite_weiter
+                        - script.execute: schloss_zeigen
+                      else:
+                        - if:
+                            condition:
+                              lambda: return art == 0;
+                            then:
+                              - lvgl.page.next:
+                                  animation: MOVE_LEFT
+                                  time: 400ms
+                              - script.execute: seite_weiter
 """)
 
 w(open(HW).read())

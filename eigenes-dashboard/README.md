@@ -7,8 +7,9 @@ Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in
 **Bedienung:**
 
 - **Tippen**: sofort die nächste Seite; die 45 Sekunden beginnen neu.
-- **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, oben in der Mitte erscheint ein goldenes Schloss.
-  Ein Tippen oder noch ein langer Druck gibt sie wieder frei.
+- **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, oben in der Mitte erscheint für ein paar Sekunden
+  ein goldenes Schloss. Bei jeder Berührung einer gehaltenen Seite erscheint es kurz wieder; ein Tippen wechselt dann
+  nicht. Nur ein erneuter langer Druck gibt die Seite frei.
 - **Wischen nach oben/unten**: heller/dunkler in 20-%-Schritten (10 bis 100 %); bleibt nach einem Neustart erhalten.
 - **Nachtmodus**: Der Schalter „Nachtmodus“ des Geräts in Home Assistant schaltet das Licht aus. Eine Berührung weckt
   das Display dann für 10 Minuten (`weckdauer`), jede weitere Berührung startet die 10 Minuten neu. Wann es Nacht ist,
