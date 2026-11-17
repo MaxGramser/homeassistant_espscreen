@@ -2,10 +2,13 @@
 # "Parts"). A board names it and declares its wiring: the I2C bus (AUDIO_I2C), the one I2S bus it shares with the
 # speaker's codec (AUDIO_MCLK_PIN, AUDIO_BCLK_PIN, AUDIO_LRCLK_PIN, AUDIO_DOUT_PIN, AUDIO_DIN_PIN), the input the voice
 # microphone is on (AUDIO_MIC_INPUT) and the reference's gain (AUDIO_REFERENCE_GAIN, the board's attenuator). The part
-# turns that into the microphone `ts_microphone` and the speaker `ts_speaker_out` the features build on, over one of two
-# transports: "aec" (es7210/aec.yaml), both ways at once with echo cancellation, which the reference makes possible and
-# so the default; or "i2s" (es7210/i2s.yaml), ESPHome's own I2S bus one way at a time, without the AEC libraries
-# (docs/P4_AUDIO.md). A screen's Override YAML picks the other with AUDIO_TRANSPORT.
+# turns that into the microphone `ts_microphone` and the speaker `ts_speaker_out` the features build on, over a
+# transport. On the bus it shares with the speaker's codec: "aec" (es7210/aec.yaml), both ways at once with echo
+# cancellation, which the reference makes possible and so the default; or "i2s" (es7210/i2s.yaml), ESPHome's own I2S bus
+# one way at a time, without the AEC libraries. On a bus of its own beside the speaker's (the board also declares
+# AUDIO_MIC_MCLK_PIN, AUDIO_MIC_BCLK_PIN and AUDIO_MIC_LRCLK_PIN): "split" (es7210/split.yaml), ESPHome's own I2S on
+# both buses, both ways at once without echo cancelling; or "split-aec" (es7210/split-aec.yaml), the same with the
+# reference and echo cancelling. A screen's Override YAML picks another with AUDIO_TRANSPORT (docs/P4_AUDIO.md).
 packages:
   transport: !include es7210/${AUDIO_TRANSPORT}.yaml
 

@@ -17,7 +17,7 @@ and the [ESP32-P4-WIFI6-Touch-LCD-10.1](WAVESHARE101.md). All three are experime
 | M5Stack Tab5 | ES8388 + ES7210 | AEC by default, half-duplex I2S optional | Yes | Volume, Microphone, Echo cancellation |
 | Guition JC8012P4A1 (all builds), JC1060P470 (both), JC4880P443 | ES8311 alone | Full duplex at 16 kHz: two I2S ports on the codec's one bus, or the AEC transport by choice | By choice: the codec's own feedback is the reference (below) | Volume, Microphone; with the AEC transport also Echo cancellation |
 | CrowPanel Advanced 10.1 | NS4168 amplifier, PDM microphone | Two I2S buses | No | Volume, Microphone |
-| reTerminal D1001 | ES8311 + ES7210 | Two I2S buses | No | Volume, Microphone |
+| reTerminal D1001 | ES8311 + ES7210 | Two I2S buses, or the same with the AEC transport by choice | By choice: the ES7210's MIC3 carries the ES8311's line output (below) | Volume, Microphone; with the AEC transport also Echo cancellation |
 
 The Guition panels' one ES8311 plays the speaker and reads an analogue microphone on its own input
 (`packages/hardware/guition-p4-audio.yaml`, the part `parts/es8311-voice.yaml`). It has two transports, as the ES7210's
@@ -50,6 +50,39 @@ board's own speaker, the level left in the microphone after the canceller, at re
 So it works where the microphone does not clip, and at this microphone gain (24 dB before the canceller) it clips from
 about half volume. Not measured: the volumes between 30 % and 75 %, a voice at the same time as the far end, and the
 other Guition panels. Until those are, the plain transport stays the default.
+
+### A microphone chip on a bus of its own
+
+The reTerminal D1001 has the ES7210 on one I2S bus and the ES8311 on another, and Seeed's schematic puts the ES8311's
+line output straight on the ES7210's MIC3. `AUDIO_TRANSPORT: "split-aec"` in a screen's Override YAML picks the
+transport built on it (`parts/es7210/split-aec.yaml`): the microphones' bus in TDM through the pinned audio stack,
+receive only, so the voice and the reference arrive in the same frames; the speaker keeps ESPHome's own I2S on its bus.
+This reference is electrical and after the codec's volume, so it is as loud as the speaker is.
+
+Measured on a reTerminal D1001 with a firmware of nothing but this path (2026-11-17), as on the Guition above:
+
+| Speaker volume | Canceller at rest | Canceller at work | Taken away |
+| --- | --- | --- | --- |
+| 45 % | -39.2 dBFS | -62.6 dBFS | 23 dB |
+| 65 % | -44.5 dBFS | -74.4 dBFS | 30 dB |
+| 75 %, the media player's top | -31.4 dBFS | -87.9 dBFS | 56 dB |
+
+The row at 55 % read 17 dB lower at rest than its neighbours and is left out: the series is not clean, so take the
+direction from it, not each number. A level of -88 dBFS is close to digital silence, which says the canceller also
+gates; what that does to a voice that speaks at the same time as the far end is not measured.
+
+The same series on the Guition at the volumes of a call:
+
+| Speaker volume | Microphone gain | Canceller at rest | Canceller at work | Taken away |
+| --- | --- | --- | --- | --- |
+| 60 % | 12 dB | -12.4 dBFS | -46.6 dBFS | 34 dB |
+| 60 % | 24 dB | -2.9 dBFS, clipped | -16.3 dBFS | 13 dB |
+| 75 % | 0 to 24 dB | -18.4 to -0.4 dBFS | 6 to 7 dB lower | 6 to 7 dB at every gain |
+
+At the top volume the microphone does not clip with its gain down and the canceller still takes little away: the
+distortion is the amplifier's or the loudspeaker's, and a canceller cannot work out a sound that is distorted on its
+way. So on these panels the canceller needs a microphone gain of 12 dB or less, and at the top volume voice switching
+is what keeps the echo away (docs/CALLS.md, "Echo"). Not measured: the volumes between 60 % and 75 %.
 
 ## Interfaces and settings
 

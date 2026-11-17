@@ -1,0 +1,22 @@
+# ESPHome's I2S speaker for the shared audio graph (audio-player.yaml), on the bus ts_speaker_bus. features/audio.yaml
+# adds ESPHome's I2S microphone to it; a transport whose microphone comes another way (parts/es7210/split-aec.yaml)
+# includes this file alone.
+packages:
+  player: !include audio-player.yaml
+
+speaker:
+  # The DAC, the one speaker that reaches the glass's loudspeaker.
+  - platform: i2s_audio
+    id: ts_speaker_out
+    i2s_audio_id: ts_speaker_bus
+    i2s_dout_pin: ${AUDIO_DOUT_PIN}
+    dac_type: external
+    audio_dac: ts_audio_dac
+    sample_rate: ${AUDIO_SAMPLE_RATE}
+    bits_per_sample: 16bit
+    channel: mono
+    buffer_duration: 100ms
+    # The bus keeps running in silence from the start (BOOT_AUDIO), as Home Assistant's Voice PE keeps it: a DAC that
+    # lost its clock pops through the amplifier when it gets it back, before every sound. A bus the microphone shares is
+    # let go after half a second, so the microphone gets its turn.
+    timeout: ${ "500ms" if (AUDIO_HALF_DUPLEX | string | lower) == "true" else "never" }

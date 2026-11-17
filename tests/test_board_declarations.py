@@ -18,8 +18,6 @@ BOARDS = ROOT / 'packages' / 'boards'
 DECLARATIONS = {'packages', 'substitutions'}
 # Per top-level key, the board files (their names without .yaml) that still hold it, panels and touch last.
 STILL_HELD = {
-    'audio_adc': ('reterminald1001',),
-    'audio_dac': ('reterminald1001',),
     'binary_sensor': ('reterminald1001',),
     'esp32': (
         'crowpanel101', 'cyd-2432s028', 'freenove-fnk0104s', 'guition-4848s040', 'guition-jc3248w535',
@@ -42,7 +40,7 @@ STILL_HELD = {
         'seeed-sensecap-indicator-d1', 'sunton-8048s070', 'waveshare-esp32s3-35', 'waveshare-esp32s3-4b',
         'waveshare-esp32s3-4v4', 'wt32sc01plus',
     ),
-    'i2s_audio': ('crowpanel101', 'reterminald1001',),
+    'i2s_audio': ('crowpanel101',),
     'interval': ('reterminald1001',),
     'light': ('guition-jc8048w550c-i', 'waveshare-esp32s3-4b',),
     'logger': (
