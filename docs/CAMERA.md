@@ -694,9 +694,16 @@ Home Assistant already keeps for the screen (`sha256("tessera-video:" + key)`, i
 The key is the screen's ESPHome entry's, asked from Home Assistant every time a stream or a still is wanted
 (integration 1.0.2), never kept: a screen that is removed from Home Assistant and added again gets another entry and
 another key. While that entry is gone the camera is unavailable and its own entry waits for the screen. A video entry
-left on a device that is no ESPHome device any more is taken away by the app, which gives the screen's device of today
+that Home Assistant says is waiting (`setup_retry`) is taken away by the app, which gives the screen's device of today
 an entry in the same look (`screen_video.Videos.sync`); before that, such a camera went on asking with the old key and
-Home Assistant's go2rtc said "wrong user/pass" for it.
+Home Assistant's go2rtc said "wrong user/pass" for it. Only Home Assistant's own word takes an entry away, never a
+guess from the registries.
+
+The camera sits on the screen's ESPHome device by naming that device itself (`Entity.device_entry`, as Home Assistant's
+own helpers do; integration 1.0.3, Home Assistant 2025.8 and later). From Home Assistant 2026.11 a device belongs to one
+integration, so a camera that named the screen by its MAC got a second device with the screen's name. Such a device
+lets go once the camera has moved, and the camera keeps its entity id. The app reads which screen an entry is for from
+the entity registry, through the camera's device.
 
 **What changes on the screen.** The camera runs from boot, in its raw mode. Its JPEG pictures are gone, and so is the
 camera "Camera" of the screen's device: "Video" gives the stills now. Light level and motion of Screen camera keep

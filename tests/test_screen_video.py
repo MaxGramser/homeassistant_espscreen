@@ -37,11 +37,15 @@ def integration_camera():
         def __init__(self):
             pass
 
+        async def async_added_to_hass(self):
+            pass
+
     names = {
         'homeassistant': {}, 'homeassistant.components': {}, 'homeassistant.helpers': {},
         'homeassistant.components.camera': {'Camera': Camera, 'CameraEntityFeature': types.SimpleNamespace(STREAM=2)},
         'homeassistant.components.ffmpeg': {'async_get_image': None},
         'homeassistant.config_entries': {'ConfigEntry': object},
+        'homeassistant.const': {'MAJOR_VERSION': 2026, 'MINOR_VERSION': 11},
         'homeassistant.core': {'HomeAssistant': object},
         'homeassistant.exceptions': {'ConfigEntryNotReady': Exception},
         'homeassistant.helpers.device_registry': {'CONNECTION_NETWORK_MAC': 'mac', 'DeviceInfo': dict},
@@ -77,27 +81,36 @@ class FakeHA:
 
     def __init__(self, loaded='1.0.0', entries=()):
         self.loaded = loaded
-        # Home Assistant's list of entries has no unique id: the device registry says which device holds an entry.
-        self.entries = [{k: v for k, v in e.items() if k != 'unique_id'} for e in entries]
+        # Home Assistant's list of entries has no unique id: the entity registry says which device an entry's camera
+        # is on. As Home Assistant 2026.11 answers: a device belongs to one entry, the ESPHome one.
+        self.entries = [{'state': 'loaded', **{k: v for k, v in e.items() if k != 'unique_id'}} for e in entries]
         self.held = {e['entry_id']: e.get('unique_id') for e in entries}
         self.deleted, self.flows = [], {}
-        self.gone = set()   # devices whose ESPHome entry is gone: the screen was removed, or added again as another
+        self.apart = set()  # entries whose camera sits on a device of its own (an integration before 1.0.3 on 2026.11)
+
+    def waits(self, entry_id):
+        """The entry's screen is gone from ESPHome: the integration says ConfigEntryNotReady, and no camera is made."""
+        next(e for e in self.entries if e['entry_id'] == entry_id)['state'] = 'setup_retry'
 
     @property
     def devices(self):
-        if getattr(self, 'no_devices', False):
+        return [{'id': device, 'config_entries': ['esphome-' + device], 'primary_config_entry': 'esphome-' + device}
+                for device in self.held.values() if device]
+
+    @property
+    def registry(self):
+        if getattr(self, 'no_cameras', False):
             return []
-        return [{'id': device, 'config_entries': ([] if device in self.gone else ['esphome-' + device]) + [entry]}
-                for entry, device in self.held.items() if device and any(e['entry_id'] == entry for e in self.entries)]
+        return [{'entity_id': f'camera.{entry}_video', 'platform': 'tessera_video', 'config_entry_id': entry,
+                 'device_id': 'own-' + entry if entry in self.apart else device}
+                for entry, device in self.held.items()
+                if device and any(e['entry_id'] == entry and e['state'] == 'loaded' for e in self.entries)]
 
     async def request(self, kind, **data):
         if kind == 'manifest/get':
             if self.loaded is None:
                 raise ConnectionError('Integration not found')
             return {'domain': data['integration'], 'version': self.loaded}
-        if kind == 'config_entries/get' and data['domain'] == 'esphome':
-            return [{'entry_id': 'esphome-' + device, 'domain': 'esphome'} for device in self.held.values()
-                    if device and device not in self.gone]
         if kind == 'config_entries/get':
             return [e for e in self.entries if e.get('domain', 'tessera_video') == data['domain']]
         raise AssertionError(kind)
@@ -112,7 +125,7 @@ class FakeHA:
             device = data['device']
             if device in self.held.values():
                 return {'type': 'abort', 'reason': 'already_configured'}
-            self.entries.append({'entry_id': 'e' + device, 'title': device})
+            self.entries.append({'entry_id': 'e' + device, 'title': device, 'state': 'loaded'})
             self.held['e' + device] = device
             return {'type': 'create_entry', 'result': {'entry_id': 'e' + device}}
         if method == 'delete':
@@ -255,27 +268,59 @@ class Sync(unittest.TestCase):
             again = asyncio.run(videos.sync(ha, *screen_video.video_screens(FakePlugins(RECORDS), screens())))
             self.assertEqual(again, {'added': [], 'removed': []})
 
-    def test_an_entry_whose_device_is_no_screen_any_more_goes_and_the_screen_of_today_gets_one(self):
-        # The tablet was added to Home Assistant again: another device, another key. Its old entry sits on the old
-        # device, which no ESPHome entry holds any more, and would ask the screen with the old key for good.
+    def test_an_entry_that_waits_for_a_screen_that_is_gone_goes_and_the_screen_of_today_gets_one(self):
+        # The tablet was added to Home Assistant again: another device, another key. Its old entry names the old
+        # device, which ESPHome holds no more, and Home Assistant says the entry waits (setup_retry).
         with tempfile.TemporaryDirectory() as folder:
             ha = FakeHA(entries=[{'entry_id': 'stale', 'unique_id': 'dev-tablet-before', 'title': 'Tablet'},
                                  {'entry_id': 'mine', 'unique_id': 'dev-elsewhere', 'title': 'Built elsewhere'}])
-            ha.gone = {'dev-tablet-before'}
+            ha.waits('stale')
             videos, done = self.run_sync(ha, folder)
-            self.assertEqual(done, {'added': ['dev-tablet'], 'removed': ['dev-tablet-before']})
+            self.assertEqual(done, {'added': ['dev-tablet'], 'removed': ['stale']})
             self.assertEqual(ha.deleted, ['stale'])
-            # A screen built elsewhere and added by hand is an ESPHome device: its entry stays.
+            # A screen built elsewhere and added by hand has a working entry: it stays.
             self.assertEqual(sorted(ha.held[e['entry_id']] for e in ha.entries), ['dev-elsewhere', 'dev-tablet'])
 
-    def test_an_entry_on_no_device_yet_is_not_added_twice(self):
+    def test_a_working_entry_whose_camera_sits_on_a_device_of_its_own_stays(self):
+        # Home Assistant 2026.11 with an integration before 1.0.3: the camera is on a second device with the screen's
+        # name, which no ESPHome entry holds. The entry works, and nothing but Home Assistant's own word that an entry
+        # waits takes one away (a guess from the registries took this one away, again and again, 2026-11-17).
         with tempfile.TemporaryDirectory() as folder:
-            # The tablet's entry is there, but its camera is on no device yet (the ESPHome device is not loaded).
-            ha = FakeHA(entries=[{'entry_id': 'waiting', 'unique_id': 'dev-tablet', 'title': 'Tablet'}])
-            ha.no_devices = True
+            ha = FakeHA(entries=[{'entry_id': 'works', 'unique_id': 'dev-tablet', 'title': 'Tablet'}])
+            ha.apart = {'works'}
+            _, done = self.run_sync(ha, folder)
+            self.assertEqual(done, {'added': [], 'removed': []})
+            self.assertEqual(ha.deleted, [])
+            self.assertEqual(len(ha.entries), 1)
+
+    def test_an_entry_whose_camera_is_not_there_yet_is_not_added_twice(self):
+        with tempfile.TemporaryDirectory() as folder:
+            # The tablet's entry is there, but its camera is in no registry yet (Home Assistant is starting).
+            ha = FakeHA(entries=[{'entry_id': 'starting', 'unique_id': 'dev-tablet', 'title': 'Tablet'}])
+            ha.no_cameras = True
             _, done = self.run_sync(ha, folder)
             self.assertEqual(done, {'added': [], 'removed': []})
             self.assertEqual(len(ha.entries), 1)
+
+    def test_the_camera_names_the_screens_device_and_second_devices_let_go_after_it_moved(self):
+        # From Home Assistant 2025.8 the camera names the screen's device itself and hands out no device of its own;
+        # a device this entry made before lets go of the entry once the camera is on the screen's device.
+        camera = integration_camera()
+        self.assertTrue(camera.NAMES_ITS_DEVICE)
+        screen = types.SimpleNamespace(id='dev-tablet', config_entry_id='esphome-1')
+        self.assertEqual(camera._entries_of(screen), {'esphome-1'})
+        self.assertEqual(camera._entries_of(types.SimpleNamespace(config_entries={'esphome-1', 'video-1'})),
+                         {'esphome-1', 'video-1'})
+        video = camera.ScreenVideo('AA:BB:CC:DD:EE:FF', types.SimpleNamespace(entry_id='esphome-1', data={}), 'video-1', screen)
+        self.assertIs(video.device_entry, screen)
+        self.assertFalse(hasattr(video, '_attr_device_info'))
+        let_go = []
+        registry = types.SimpleNamespace(async_update_device=lambda device, remove_config_entry_id: let_go.append((device, remove_config_entry_id)))
+        camera.dr.async_get = lambda hass: registry
+        camera.dr.async_entries_for_config_entry = lambda registry, entry: [screen, types.SimpleNamespace(id='second')]
+        video.hass = object()
+        asyncio.run(video.async_added_to_hass())
+        self.assertEqual(let_go, [('second', 'video-1')])
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
