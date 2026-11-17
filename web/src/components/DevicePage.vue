@@ -193,7 +193,7 @@ async function onKey(e: KeyboardEvent) {
         <PageMenu v-if="owned" :id="owned.id" />
       </span>
     </div>
-    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames, round: doc.screenShape.form === "round" }">
+    <div class="device" :class="{ compact: canvas.isCompact, roomy: canvas.roomyNames, round: doc.screenShape.form === 'round' }">
       <div class="bar-wrap" :class="{ selected: !preview && barSelected }" :title="preview ? undefined : t('editor.page.edit_bar')" :role="preview ? undefined : 'button'" :tabindex="preview ? undefined : 0"
         @click="!preview && insp.openBar(0, page)" @keydown.enter.prevent="!preview && insp.openBar(0, page)">
         <TopbarSvg :items="topbar.topbarItems(page)" :name-text="pageTitleShown(page)" :home="topbar.homeKeyShown(page)" :back="backInHeader" />

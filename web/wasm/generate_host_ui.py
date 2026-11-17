@@ -188,13 +188,14 @@ def generate(dpi, look, profile):
     settings_hold = settings_hold.replace('id(home_page)->obj', 'lv_screen_active()')
     settings_limits = re.findall(r'settings_screen::(?:hold_limit|tap_limit) = [^;]+;', core)
     touch = re.findall(r'screen_input::(?:touch_guard|edge_swipe)\.configure\([^;]+\);|screen_input::edge_snap_band = [^;]+;', values.get('BOOT_TOUCH', ''))
+    dots_open = re.sub(r'id\((\w+)\)', r'\1', re.search(r'runtime_tiles::page_dots_open\([^;]+;', core)[0])
     output += ['static void bind_firmware_ui() {', 'theme::paints = []() {' + paints + '};', 'theme::paints();',
                *[re.sub(r'id\((\w+)\)->get_lv_(?:font|image_dsc)\(\)', r'\1', b) for b in bindings],
                *touch,
                *settings_limits, settings_hold,
                'lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_CLICKABLE);',
                'lv_obj_remove_flag(tile_scroll, LV_OBJ_FLAG_CLICKABLE);',
-               f'runtime_tiles::grid_bind(tile_scroll, {values["GRID_MARGIN"]}, {values["PAGE_BAR_H"]});', '}']
+               f'runtime_tiles::grid_bind(tile_scroll, {values["GRID_MARGIN"]}, {values["PAGE_BAR_H"]});', dots_open, '}']
     (OUT / 'ui.h').write_text('\n'.join(line.rstrip() for line in '\n'.join(output).splitlines()) + '\n')
     # Every language, one chosen while the preview runs (preview_language): the editor shows the screens' own.
     (OUT.parent / 'text.h').write_text('#include <string>\n' + screen_text_gen.host_definitions())

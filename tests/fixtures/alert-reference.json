@@ -146,7 +146,8 @@
  "limit_boards": {
   "compact": [
    "CYD",
-   "Hosyond"
+   "Hosyond",
+   "LILYGO"
   ],
   "standard": [
    "Guition",

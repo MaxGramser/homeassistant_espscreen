@@ -1892,11 +1892,14 @@ inline void render_full(Widgets &w,const Tile &t,bool custom,bool clock,bool sun
   int value_h=lv_font_get_line_height(lv_obj_get_style_text_font(w.value,LV_PART_MAIN));
   int gap=ui::px(big?12:6);
   // A media player that answers gets the media card under its head (firmware 0.2.64+); unavailable, it is the plain card.
-  const bool media=t.domain()=="media_player" && fresh() && t.available();
+  const bool compact_media=ui::round() && t.domain()=="media_player" && content_h<3*ui::touch_min();
+  const bool media=t.domain()=="media_player" && fresh() && t.available() && !compact_media;
+  if(compact_media){with_panel=false;mini=false;}  // The native details keep controls that do not fit on the tile.
   if(!mini && !with_panel && !graph && !media){
     hide_extra(w);hide_panel(w);lv_obj_add_flag(w.slider,LV_OBJ_FLAG_HIDDEN);
     const lv_font_t *name_font=room_label?lv_obj_get_style_text_font(room_label,LV_PART_MAIN):w.title_font;
     int name_h=lv_font_get_line_height(name_font),circle=ui::px(big?128:64);
+    if(ui::round())circle=std::min(circle,std::max(1,content_h-gap-name_h-2-value_h));
     int block=circle+gap+name_h+2+value_h,top=std::max(0,(content_h-block)/2);
     lv_obj_set_size(w.circle,circle,circle);lv_obj_set_pos(w.circle,std::max(0,(content_w-circle)/2),top);
     tile_picture_place(w,t,circle,std::max(0,(content_w-circle)/2),top);

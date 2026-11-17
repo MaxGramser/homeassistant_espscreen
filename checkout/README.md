@@ -10,6 +10,7 @@ holds one file per board, named after the board's key in `boards.yaml`:
 |---|---|
 | `cyd.yaml` | CYD, ESP32-2432S028 |
 | `cyd9342.yaml` | CYD, ESP32-2432S028 with an ILI9342 display controller (experimental) |
+| `lilygo175.yaml` | LILYGO T-Display-S3 AMOLED 1.75, H0175Y003AM (experimental) |
 | `guition.yaml` | Guition ESP32-S3-4848S040, 4 inch |
 | `waveshare43.yaml` | Waveshare ESP32-S3-Touch-LCD-4.3 |
 | `waveshare5.yaml` | Waveshare ESP32-S3-Touch-LCD-5 (new) |

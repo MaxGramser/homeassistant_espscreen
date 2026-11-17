@@ -378,7 +378,7 @@ inline bool build(bool finger) {
   const int rows = rows_of(cols), band = rows * item_h + (rows - 1) * gap;
   drawer_h = drawer_of(cols);
   // The drawer reaches below the glass by its corner and the overshoot's way, so the bottom never shows a gap.
-  below = std::max(ui::mm(5), drawer_h / 8);
+  below = ui::round() ? 0 : std::max(ui::mm(5), drawer_h / 8);
   corner = ui::mm(6);
 
   drawer = lv_obj_create(root);

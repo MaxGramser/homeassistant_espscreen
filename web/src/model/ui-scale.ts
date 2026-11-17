@@ -32,7 +32,7 @@ export function tallKeys(shape: Shape) {
  * diameter (stepper_keys), and the faces its number is drawn in (watch_value first, then sublabel_big, then sublabel). */
 export function pillMetrics(shape: Shape) {
   const { large, px } = uiScale(shape);
-  const height = px(large ? 46 : 34) + 2, inset = Math.max(2, px(large ? 4 : 3)), key = Math.max(1, height - 2 * inset);
+  const height = Math.max(px(large ? 46 : 34), shape.form === "round" ? touchMin(shape) : 0) + 2, inset = Math.max(2, px(large ? 4 : 3)), key = Math.max(1, height - 2 * inset);
   const fonts = shape.fonts || {};
   return { height, inset, key, faces: [fonts.watch_value, fonts.sublabel_big, fonts.sublabel].filter((size): size is number => Boolean(size)) };
 }
@@ -54,7 +54,7 @@ export function widestSetpoint(a: Record<string, any>) {
  * and how wide the bar is. `place`: beside the name on a card of one row, over the card on a taller one or the page. */
 export function modeBar(shape: Shape, place: "row" | "tall" | "full", reach: number, modes: number) {
   const { large, compact, px } = uiScale(shape);
-  const finger = place === "tall" ? Math.max(touchMin(shape), px(large ? 48 : 34)) : place === "full" ? px(large ? 84 : 44) : px(large ? 46 : 34);
+  const finger = place === "tall" ? Math.max(touchMin(shape), px(large ? 48 : 34)) : place === "full" ? px(large ? 84 : 44) : Math.max(px(large ? 46 : 34), shape.form === "round" ? touchMin(shape) : 0);
   const inset = Math.max(2, px(large ? 4 : 3));
   reach = Math.min(reach, px(compact ? 620 : 740));
   const fit = modes >= 2 ? Math.min(modes, Math.floor((reach - 2 * inset) / finger)) : 0;

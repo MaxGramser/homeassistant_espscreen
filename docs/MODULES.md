@@ -25,13 +25,13 @@ the editor's firmware preview is built with it:
 
 ```python
 MODULES = {
-    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK", "preview": False},
+    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK", "preview": True},
 }
 ```
 
 `preview` is the one place that says what the preview in the editor draws (`web/wasm/build.py` and
 `generate_renderer_manifest.py` read it): a module that draws from what the add-on sends is in it, one that needs a
-part the browser has none of (an edge swipe, live pictures, a microphone) is not.
+part the browser has none of (live pictures or a microphone) is not. The preview includes the native Dock and light presets; its pointer events feed the same edge-swipe detector.
 
 Its code lives in `components/smart_display/module_<name>.h` (and a `module_<name>.cpp` if it needs one, wrapped
 whole in its `#ifdef`). It stays in the component's own folder: ESPHome copies no folders inside it. The shared code

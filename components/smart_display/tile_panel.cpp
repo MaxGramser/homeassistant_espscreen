@@ -48,6 +48,9 @@ int layout_panel(Widgets &w,const Tile &t,bool large,int content_w,int content_h
     m.toggle_w=std::min(m.toggle_w,content_w);
   }
   const int fill=(w.full||taller)?m.pill_w:rest_content_width(w);
+  if(ui::round() && (mode=="setpoint"||mode=="stepper") && fill<3*ui::touch_min()){
+    hide_panel(w);return 0;  // Keep two native keys and a readable value, or leave this control to its detail card.
+  }
   // That room follows the card's width (GitHub #250): a slot that showed a card of another width builds its parts again,
   // as a taller card does when it is resized.
   if(!w.full&&!taller){

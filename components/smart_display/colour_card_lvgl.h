@@ -76,6 +76,9 @@ inline std::array<lv_obj_t *, light_presets::MAX> colour_dots{};
 inline void colour_step(int direction);
 inline void colour_draw(const std::string &title, const light_controls::Values &v) {
   if (colour_root) { lv_obj_delete(colour_root); light_controls::forget(); }
+#ifdef SD_MOD_LIGHT_PRESETS
+  colour_dots.fill(nullptr);  // A page without presets must never paint keys from the deleted page.
+#endif
   colour_root = lv_obj_create(lv_screen_active());
   lv_obj_remove_style_all(colour_root);
   lv_obj_set_size(colour_root, lv_pct(100), lv_pct(100));
@@ -93,7 +96,10 @@ inline void colour_draw(const std::string &title, const light_controls::Values &
   // The presets beside the rows take a column at their right, the card as much wider as the glass has room for; else a
   // fourth row the three share the room with.
   const bool beside = !light_controls::demo && colour_beside();
+  const int preset_capacity = ui::round() ? std::max(1, (rows_width - 2 * ui::px(12) - 2 * ui::px(10) + light_presets::gap()) /
+                                                       (ui::touch_min() + light_presets::gap())) : light_presets::MAX;
   light_controls::extra = !light_controls::demo && colour_presets && colour_presets->count && !beside ? 1 : 0;
+  if (ui::round() && light_controls::extra) light_controls::extra = (colour_presets->count + preset_capacity - 1) / preset_capacity;
   if (beside) {
     const int column = colour_column() + ui::px(ui::large() ? 12 : 5);
     const int whole = std::min(overlay_card::screen_width(), rows_width + column);
@@ -122,7 +128,9 @@ inline void colour_draw(const std::string &title, const light_controls::Values &
     // Read from the styles place() set: the coordinates follow only at LVGL's next layout pass.
     for (auto &row : light_controls::rows)
       if (row.box && !lv_obj_has_flag(row.box, LV_OBJ_FLAG_HIDDEN)) top = std::min(top, (int) lv_obj_get_style_y(row.box, LV_PART_MAIN));
-    if (light_controls::extra_visible(v)) colour_presets_draw(card, beside, top, below - light_controls::row_gap, below);
+    const int first = ui::round() ? std::max(0, light_controls::page * light_controls::per_page -
+                                              ((v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1)) * preset_capacity : 0;
+    if (light_controls::extra_visible(v)) colour_presets_draw(card, beside, top, below - light_controls::row_gap, below, first);
     const int i = colour_index();
     if (i >= 0) colour_presets_paint(model.tiles[i]);
   }

@@ -7,12 +7,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'tools'))
 import profiles  # noqa: E402
 import test_portal
-from core import turns_of, validate_settings
+from core import SHAPES, turns_of, validate_settings
 
 class RotationTests(unittest.IsolatedAsyncioTestCase):
     def test_the_turns_a_screen_takes_follow_its_glass(self):
         # A half turn keeps the canvas and the grid, so any glass takes it; a quarter turn only a square one.
         self.assertEqual(turns_of({'width': 480, 'height': 480}), (0, 90, 180, 270))
+        self.assertEqual(turns_of(SHAPES['lilygo175']), (0, 90, 180, 270))
         self.assertEqual(turns_of({'width': 800, 'height': 480}), (0, 180))
         self.assertEqual(turns_of({'width': 320, 'height': 240}), (0, 180))
         # A screen built standing up is glass that is not square either, so it takes the half turn and no more:

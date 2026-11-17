@@ -12,6 +12,12 @@
 #include "generated/text.h"
 #include "image_transport.h"
 #include "settings_transport.h"
+#include "hw.h"
+
+// The browser has no physical panel or direct-glass engine. Native motion uses its ordinary LVGL fallback.
+namespace hw {
+const Caps &caps() { static const Caps value = resolve(Facts{}); return value; }
+}
 
 static_assert(ESP_SCREEN_RENDERER_ABI == 3, "Update the host adapter for the renderer ABI change");
 
@@ -113,8 +119,13 @@ int preview_init(int w, int h, int display_dpi, int columns, int rows) {
   };
   runtime_tiles::refresh = [] { dirty = true; };
   runtime_tiles::layout_changed = show_page;
-  runtime_tiles::dismiss = [] { runtime_tiles::hide_detail(); dirty = true; };
-  runtime_tiles::back_home = [] { runtime_tiles::hide_detail(); runtime_tiles::navigation_history.clear(); page = runtime_tiles::home_page(); show_page(); };
+  runtime_tiles::dismiss = [] {
+    effects_page::close(); group_page::close(); runtime_tiles::hide_detail(); screen_hooks::run_cards_closed(); dirty = true;
+  };
+  runtime_tiles::back_home = [] {
+    if (runtime_tiles::dismiss) runtime_tiles::dismiss();
+    runtime_tiles::navigation_history.clear(); page = runtime_tiles::home_page(); show_page();
+  };
   runtime_tiles::touch_input::turn_page = [](int target) { page = target; show_page(); };
   lv_obj_add_event_cb(firmware.prev, nav, LV_EVENT_CLICKED, reinterpret_cast<void *>(-1));
   lv_obj_add_event_cb(firmware.next, nav, LV_EVENT_CLICKED, reinterpret_cast<void *>(1));
@@ -245,6 +256,9 @@ const char *preview_layout() {
     o["id"] = id; o["parent"] = parent; o["card"] = card;
     o["x1"] = box.x1; o["y1"] = box.y1; o["x2"] = box.x2; o["y2"] = box.y2;
     o["clickable"] = lv_obj_has_flag(object, LV_OBJ_FLAG_CLICKABLE);
+    lv_area_t click; lv_obj_get_click_area(object, &click);
+    o["click_pad"] = box.x1 - click.x1;
+    o["disabled"] = lv_obj_has_state(object, LV_STATE_DISABLED);
     o["clips"] = !lv_obj_has_flag(object, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
     o["radius"] = lv_obj_get_style_radius(object, LV_PART_MAIN);
     o["opa"] = lv_obj_get_style_opa(object, LV_PART_MAIN);
@@ -278,9 +292,24 @@ const char *preview_layout() {
       o["type"] = lv_obj_check_type(object, &lv_image_class) ? "image" : lv_obj_check_type(object, &lv_slider_class) ? "slider"
                 : lv_obj_check_type(object, &lv_arc_class) ? "arc" : lv_obj_check_type(object, &lv_button_class) ? "button" : "object";
     }
+    // Observe the real chart and its cached draw commands; forecasts are painted, not LVGL labels.
+    for (uint32_t i = 0; i < lv_obj_get_event_count(object); ++i) {
+      if (lv_event_dsc_get_cb(lv_obj_get_event_dsc(object, i)) != weather_chart::draw_event) continue;
+      const auto *holder = static_cast<weather_chart::Holder *>(lv_obj_get_user_data(object));
+      if (!holder) continue;
+      auto chart = o["forecast"].to<JsonObject>();
+      chart["hourly"] = holder->chart.hourly;
+      auto days = chart["days"].to<JsonArray>();
+      for (const auto &day : holder->chart.days) days.add(day.name);
+      auto hours = chart["hours"].to<JsonArray>();
+      for (const auto &hour : holder->chart.hours) hours.add(hour.at);
+      auto drawn = chart["drawn"].to<JsonArray>();
+      for (const auto &item : holder->items) if (item.kind == weather_chart::Item::TEXT) drawn.add(item.text);
+    }
     for (uint32_t i = 0; i < lv_obj_get_child_count(object); ++i) walk(lv_obj_get_child(object, i), id, card);
   };
   walk(lv_screen_active(), -1, -1);
+  if (lv_obj_get_child_count(lv_layer_top())) walk(lv_layer_top(), -1, -1);
   diagnostics.clear(); serializeJson(doc, diagnostics);
   return diagnostics.c_str();
 }

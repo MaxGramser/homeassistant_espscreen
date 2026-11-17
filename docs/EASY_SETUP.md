@@ -15,6 +15,7 @@ ESPHome Device Builder is optional:
 | --- | --- |
 | CYD, 2.8 inch | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
 | CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
+| LILYGO, round 1.75 inch (experimental) | T-Display-S3 AMOLED 1.75, H0175Y003AM only, 466×466, CO5300 QSPI and CST9217, ESP32-S3; hardware acceptance pending ([details](LILYGO175.md)) |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911, 16 MB or 8 MB flash (New screen asks which) |
 | Waveshare, 4.3 inch 4.3C (experimental) | ESP32-S3-Touch-LCD-4.3C (not the 4.3), 800×480, ST7262 and GT911, CH32V003 expander ([details](WAVESHARE43C.md)) |

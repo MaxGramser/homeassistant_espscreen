@@ -125,7 +125,7 @@ int preset_panel(Widgets &w, const Tile &t, const PanelMetrics &m, bool taller, 
 void colour_presets_paint(const Tile &t);
 int colour_column();
 bool colour_beside();
-void colour_presets_draw(lv_obj_t *card, bool beside, int top, int bottom, int y);
+void colour_presets_draw(lv_obj_t *card, bool beside, int top, int bottom, int y, int first = 0);
 void light_card_presets(const Tile &t, int x, int y, int width, int height, bool left);
 #endif
 // What decides the light card's parts: whether it dims. On and off, the level and the colour are painted.

@@ -3,7 +3,9 @@
 //
 // Compiled on its own, as module_vacuum_tile.cpp is: on Xtensa the literal pool of one object file must stay within reach
 // of all of its code, and main.cpp is at that edge.
+#ifndef ESP_SCREEN_HOST
 #include "esphome/core/defines.h"
+#endif
 #ifdef SD_MOD_LIGHT_PRESETS
 #include "esphome/core/log.h"
 #include "runtime_tiles.h"
@@ -125,7 +127,7 @@ bool colour_beside() {
          w >= ui::touch_min() * 5 + ui::px(ui::large() ? 18 : 10) * 2 + light_presets::card_key();
 }
 // The presets' card: under the rows at `y`, or beside them from `top` to `bottom`.
-void colour_presets_draw(lv_obj_t *card, bool beside, int top, int bottom, int y) {
+void colour_presets_draw(lv_obj_t *card, bool beside, int top, int bottom, int y, int first) {
   colour_dots.fill(nullptr);
   if (!colour_presets || !colour_presets->count) return;
   const auto *ps = colour_presets.get();
@@ -174,13 +176,15 @@ void colour_presets_draw(lv_obj_t *card, bool beside, int top, int bottom, int y
     lv_obj_set_pos(label, text_x, light_controls::row_text_y);
     const int head = light_controls::row_text_y + text_h + under;
     const int room = light_controls::row_h - head - ui::px(ui::large() ? 8 : 4);
-    const auto r = light_presets::row(light_controls::row_w - 2 * inset, room, ps->count, size, light_presets::least(), gap);
+    const auto r = light_presets::row(light_controls::row_w - 2 * inset, room, ps->count - first, size,
+                                    ui::round() ? ui::touch_min() : light_presets::least(), gap);
     y0 = head + (room - r.size) / 2;
     for (int n = 0; n < r.count; ++n) {
-      colour_dots[n] = light_presets::key(box, ps->items[n], r.size, font, colour_preset_event, (void *) (uintptr_t) n,
-                                          ps->label(ps->items[n]));
-      lv_obj_set_pos(colour_dots[n], inset + n * (r.size + r.gap), y0);
-      light_presets::reach(colour_dots[n], r.size, r.gap);
+      const int index = first + n;
+      colour_dots[index] = light_presets::key(box, ps->items[index], r.size, font, colour_preset_event, (void *) (uintptr_t) index,
+                                              ps->label(ps->items[index]));
+      lv_obj_set_pos(colour_dots[index], inset + n * (r.size + r.gap), y0);
+      light_presets::reach(colour_dots[index], r.size, r.gap);
     }
   }
   (void) column;

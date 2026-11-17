@@ -170,7 +170,7 @@ const out = DATA.shapes.map((shape: any) => {
   return { px: DATA.px.map(px), large, pill: pillMetrics(shape), tall: tallKeys(shape), bars };
 });
 console.log(JSON.stringify(out));''', {'shapes': [s for _, _, s in SHAPES], 'px': PX, 'reaches': REACHES, 'modes': list(MODES)}, tmp)
-            looks = ',\n'.join(f'  {{{shape["dpi"]}, "{shape["look"]}"}}' for _, _, shape in SHAPES)
+            looks = ',\n'.join(f'  {{{shape["dpi"]}, "{shape["look"]}", "{shape.get("form", "rectangle")}"}}' for _, _, shape in SHAPES)
             cls.cpp = build_and_run(f'''#include "screen_text_en.h"
 #define THEME_TEST
 #include "components/smart_display/ui_scale.h"
@@ -178,7 +178,7 @@ console.log(JSON.stringify(out));''', {'shapes': [s for _, _, s in SHAPES], 'px'
 #include <cstdio>
 #include <string>
 {panel_source()}
-struct Look {{ int dpi; const char *look; }};
+struct Look {{ int dpi; const char *look; const char *shape; }};
 static const Look LOOKS[] = {{
 {looks}
 }};
@@ -187,7 +187,7 @@ static const int REACHES[] = {{{', '.join(map(str, REACHES))}}};
 using namespace runtime_tiles;
 int main() {{
   for (const auto &l : LOOKS) {{
-    ui::configure(l.dpi, l.look);
+    ui::configure(l.dpi, l.look, l.shape);
     std::printf("look %d %d %d %d %d", ui::large() ? 1 : 0, ui::touch_min(), ui::control_max_width(), ui::column_gap(), ui::cell_height());
     for (int mm = 0; mm <= 40; ++mm) std::printf(" %d", ui::mm(mm));
     std::printf("\\npx");
@@ -287,7 +287,7 @@ class Grid(unittest.TestCase):
                                    'o': core.screen_options({'entity': 'switch.parity', 'options': {'size': size}}, {}, 'on') or {}}]
             sizes = ['single', 'full'] + (['wide'] if shape['columns'] >= 2 else [])
             screens.append({'key': key, 'width': shape['width'], 'height': shape['height'], 'columns': shape['columns'],
-                            'rows': shape['rows'], 'dpi': shape['dpi'], 'layouts': [{'key': size, 'tiles': tiles(size)} for size in sizes]})
+                            'rows': shape['rows'], 'dpi': shape['dpi'], 'form': shape.get('form'), 'layouts': [{'key': size, 'tiles': tiles(size)} for size in sizes]})
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screens.json'
             path.write_text(json.dumps(screens))
@@ -334,6 +334,9 @@ console.log(JSON.stringify(DATA.shapes.map((shape: any) => ({
     def test_a_full_cards_finger_follows_its_cell(self):
         for (key, _, shape), ts in zip(SHAPES, self.ts):
             big = self.cards[(key, 'single')][1] > 80
+            if shape.get('form') == 'round':
+                # Full-card controls use their whole content's 56 mm reach, not the height of one cell.
+                big = max(self.cards[(key, 'full')]) >= (shape['dpi'] * 56 + 12) // 25
             if key in self.KNOWN:
                 self.assertNotEqual(ts['full'], ts['px'][1 if big else 0], f'{key} is fixed: take it out of Grid.KNOWN')
                 continue
@@ -362,7 +365,7 @@ class Sections(unittest.TestCase):
             if shape['rows'] >= 2:
                 layouts.append({'key': 'rows2', 'tiles': tile, 'sections': [[0, 0, 2, 2, '', 'Lights', '', 0]]})
             screens.append({'key': key, 'width': shape['width'], 'height': shape['height'], 'columns': shape['columns'],
-                            'rows': shape['rows'], 'dpi': shape['dpi'], 'layouts': layouts})
+                            'rows': shape['rows'], 'dpi': shape['dpi'], 'form': shape.get('form'), 'layouts': layouts})
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screens.json'
             path.write_text(json.dumps(screens))
@@ -469,7 +472,7 @@ class WatchCard(unittest.TestCase):
                                 layouts.append({'key': str(len(cls.cases)), 'pages': pages, 'tiles': tiles})
                                 cls.cases.append(case)
                 screens.append({'key': f'{key}-{down}', 'width': shape['width'], 'height': shape['height'],
-                                'columns': shape['columns'], 'rows': down, 'dpi': shape['dpi'], 'layouts': layouts})
+                                'columns': shape['columns'], 'rows': down, 'dpi': shape['dpi'], 'form': shape.get('form'), 'layouts': layouts})
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screens.json'
             path.write_text(json.dumps(screens))
@@ -566,8 +569,10 @@ const places = DATA.scenarios.map((s: any) => {
   const items = s.items.map((_: any, i: number) => ({ type: "text", id: String(i) }));
   const bar = barLayout(items, metrics[s.shape], s.name, (item: any) => views[Number(item.id)], s.home, s.back);
   const shown = bar.parts.filter((p) => p.shown);
-  return { widths: shown.map((p) => p.width), cap: bar.cap, width: bar.metrics.width - bar.homeShift, natural: bar.natural,
-           shift: bar.homeShift, first: bar.dropped.size, xs: bar.placed.map((p) => p.x), room: bar.nameRoom };
+  const round = bar.metrics.round;
+  return { widths: shown.map((p) => p.width), cap: bar.cap, width: round?.status.w ?? bar.metrics.width - bar.homeShift, natural: round ? 0 : bar.natural,
+           shift: round ? round.status.x - bar.metrics.inset : bar.homeShift, titleShift: bar.homeShift, shape: s.shape, round: Boolean(round),
+           first: bar.dropped.size, xs: bar.placed.map((p) => p.x), room: bar.nameRoom };
 });
 console.log(JSON.stringify({ metrics, gaps, places }));''', {'shapes': [s for _, _, s in cls.boards], 'scenarios': scenarios}, tmp)
             rows = ',\n'.join(f'  {{{p["cap"]}, {p["width"]}, {p["natural"]}, {len(p["widths"])}, {{{", ".join(map(str, p["widths"])) or "0"}}}}}'
@@ -597,8 +602,9 @@ int main() {{
         values = {}
         for (key, board, shape), bar in zip(self.boards, self.ts['metrics']):
             v = values.setdefault(board, profiles.board_values(board))
-            inset = int(v['HEADER_INSET'])
-            wanted = {'name': int(v['FONT_HEADLINE_SIZE']), 'text': int(v['FONT_SUBLABEL_BIG_SIZE']), 'icon': int(v['FONT_ICON_MINI_SIZE']),
+            circular = shape.get('form') == 'round'
+            inset = shape['spacing']['margin'] if circular else int(v['HEADER_INSET'])
+            wanted = {'name': int(v['FONT_SUBLABEL_BIG_SIZE'] if circular else v['FONT_HEADLINE_SIZE']), 'text': int(v['FONT_SUBLABEL_BIG_SIZE']), 'icon': int(v['FONT_ICON_MINI_SIZE']),
                       'inset': inset, 'mark': round(int(v['FONT_ICON_HOME_SIZE']) * 17 / 24), 'width': shape['width'] - 2 * inset}
             self.assertEqual({k: bar[k] for k in wanted}, wanted, key)
 
@@ -612,7 +618,13 @@ int main() {{
         for mine, (first, room, *xs) in zip(self.ts['places'], firmware):
             # The firmware places beside the home key (page_header.h: `left += shift; width -= shift`); the mockup from
             # the bar's own left edge.
-            self.assertEqual((mine['first'], mine['room'], mine['xs']), (first, room, [x + mine['shift'] for x in xs]), mine)
+            self.assertEqual((mine['first'], mine['xs']), (first, [x + mine['shift'] for x in xs]), mine)
+            if mine['round']:
+                # The room title and status use separate chords on circular glass.
+                shape = self.boards[mine['shape']][2]
+                self.assertEqual(mine['room'], shape['round_frame']['heading']['w'] - mine['titleShift'], mine)
+            else:
+                self.assertEqual(mine['room'], room, mine)
 
 
 class TileSizes(unittest.TestCase):
@@ -1194,7 +1206,7 @@ class CardHead(unittest.TestCase):
                     layouts.append({'key': str(len(cls.cases)), 'tiles': [{'entity': 'light.parity', 'name': name, 'state': 'on', 'a': attrs, 'slot': 0, 'o': o}]})
                     cls.cases.append({'key': f'{key} {size} {name[:8]}', 'shape': mine, 'columns': columns, 'name': name})
             screens.append({'key': key, 'width': shape['width'], 'height': shape['height'], 'columns': shape['columns'],
-                            'rows': shape['rows'], 'dpi': shape['dpi'], 'layouts': layouts})
+                            'rows': shape['rows'], 'dpi': shape['dpi'], 'form': shape.get('form'), 'layouts': layouts})
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'screens.json'
             path.write_text(json.dumps(screens))

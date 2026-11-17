@@ -423,6 +423,7 @@ while it keeps your country's clock and numbers.
 | --- | --- | --- |
 | [CYD ESP32-2432S028](https://tessera-maxgramser.on-forge.com/screens/cyd) | 320 × 240, 2 × 3 tiles | ILI9341 / resistive XPT2046 |
 | CYD ESP32-2432S028 with ILI9342 (experimental) | 320 × 240, 2 × 3 tiles | ILI9342 / resistive XPT2046; hardware acceptance pending |
+| LILYGO T-Display-S3 AMOLED 1.75 (experimental) | Round 466 × 466, 2 × 2 tiles | H0175Y003AM only, CO5300 QSPI / CST9217, ESP32-S3; physical panel, brightness, rotated touch and standby/wake acceptance pending ([details](docs/LILYGO175.md)) |
 | [Guition ESP32-S3-4848S040](https://tessera-maxgramser.on-forge.com/screens/guition), 4 inch | 480 × 480, 2 × 3 tiles | ST7701S RGB / capacitive GT911 |
 | [Waveshare ESP32-S3-Touch-LCD-4.3](https://tessera-maxgramser.on-forge.com/screens/waveshare43) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911 (backlight always on: no standby, no night) |
 | Waveshare ESP32-S3-Touch-LCD-4.3C (experimental) | 800 × 480, 3 × 3 tiles | ST7262 RGB / capacitive GT911, CH32V003 expander (not the 4.3's CH422G); dimmable backlight, hardware acceptance pending ([details](docs/WAVESHARE43C.md)) |

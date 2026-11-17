@@ -17,11 +17,11 @@ its native card, subject to the usual availability and touch guards.
 The shared circular frame puts configured status items above the smaller, centered room title. Four tiles occupy the
 wide middle chord. Native overlay content uses an inscribed square, while Back and page keys use wider safe chords.
 The bounds include the complete key rectangles and a 1 mm edge margin. With this density, the native 7 mm touch minimum
-is 75 pixels; a default tile is about 188 × 97 pixels. A decorative badge may be smaller, since the entire tile is the
-touch target. Icons keep the native visible-ink centering.
+is 74 pixels; a default tile is about 188 × 97 pixels. A decorative badge may be smaller, since the entire tile is the
+touch target. Icons keep the native visible-ink centering. Long names keep native dots. A Full card shrinks its decorative badge before its text can leave the card; inline controls that do not fit remain available in the native detail card.
 
-The light card pages its existing colour, white-temperature and brightness rows when they cannot fit together.
-The weather card pages current conditions, available attributes and all supplied forecast days, and keeps the native
+The light card pages its existing colour, white-temperature and brightness rows when they cannot fit together. Preset keys get further native pages, keeping every configured preset reachable.
+The weather card pages current conditions, available attributes, all supplied forecast days and up to 48 forecast hours, and keeps the native
 Daily/Hourly key and forecast chart. Each uses the same native chevrons and dots as other paged cards.
 
 The native entity catalogue and board capability gates still apply. This S3/QSPI profile does not add a speaker,
@@ -45,7 +45,7 @@ experimental profile, matching the app's pinned build environment.
 
 The board file declares hardware packages and dimensions. [hardware/lilygo175.yaml](../packages/hardware/lilygo175.yaml)
 contains the hardware configuration, following the
-[manufacturer's example](https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED-1.43-1.75):
+[manufacturer's exact-model example](https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED-1.43-1.75/blob/main/examples/Light_Sleep_Wake_Up_H0175Y003AM/Light_Sleep_Wake_Up_H0175Y003AM.ino):
 
 | Part | Wiring |
 |---|---|
@@ -74,4 +74,8 @@ coverage shares the existing Desk/Hall fixtures with `web/wasm/test_colour_card.
 
 <img src="images/lilygo175-overview.png" width="233" alt="Four native tiles on the circular LILYGO">
 <img src="images/lilygo175-light.png" width="233" alt="The native Table lamp dimmer card">
+<img src="images/lilygo175-glance.png" width="233" alt="An ordinary Full-size light tile for a glance">
 <img src="images/lilygo175-weather.png" width="233" alt="The native weather card's current conditions">
+<img src="images/lilygo175-forecast.png" width="233" alt="Daily forecasts on the native weather pager">
+<img src="images/lilygo175-hourly.png" width="233" alt="Hourly forecasts on the native weather pager">
+<img src="images/lilygo175-dark.png" width="233" alt="The native overview in Dark mode">

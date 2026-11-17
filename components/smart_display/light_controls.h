@@ -93,7 +93,7 @@ inline void preview(Row &row) {
     lv_point_t value_size{};
     lv_text_get_size(&value_size, lv_label_get_text(row.value), lv_obj_get_style_text_font(row.value, LV_PART_MAIN), 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
     lv_label_set_long_mode(row.caption, LV_LABEL_LONG_MODE_DOTS);
-    lv_obj_set_width(row.caption, std::max(1, row_w - 2 * row_inset - lv_obj_get_style_x(row.caption, LV_PART_MAIN) - value_size.x - ui::px(3)));
+    lv_obj_set_width(row.caption, std::max<int>(1, row_w - 2 * row_inset - lv_obj_get_style_x(row.caption, LV_PART_MAIN) - value_size.x - ui::px(3)));
   }
 }
 inline void event(lv_event_t *e) {
@@ -182,7 +182,8 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   // on (a 800 x 480 panel at 217 dpi asked for 122 x 1.28 = 156 px a row and ran off the bottom). Three rows
   // are two pitches and one card: the last row needs no gap under it, which is why the gap counts once more.
   const int wanted = ui::px(large ? 122 : 60), gap = ui::px(large ? 12 : 5);
-  const int least = ui::touch_min() + lv_font_get_line_height(font) + ui::px(12);
+  const int least = ui::round() && extra ? ui::touch_min() + lv_font_get_line_height(font) + ui::px(18)
+                                        : ui::touch_min() + lv_font_get_line_height(font) + ui::px(12);
   const int footer_limit = ui::round() ? display_shape::footer(overlay_card::glass_width(), overlay_card::glass_height(), ui::mm(1), ui::touch_min()).y - overlay_card::workspace().y : height;
   const int room = footer_limit - top - ui::px(large ? 18 : 8);
   spacing = std::max(least, std::min(wanted, (room + gap) / (3 + extra)));
@@ -307,7 +308,7 @@ inline int pages(const Values &v) {
   return ui::round() ? (showing + per_page - 1) / per_page : 1;
 }
 inline bool extra_visible(const Values &v) {
-  return !ui::round() || ((v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1) / per_page == page;
+  return !ui::round() || (extra > 0 && page * per_page >= (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1);
 }
 // The light as it is now: each slider where the tile says, unless a finger holds it or has just let it go (its wish
 // is on its way and comes back through the tile). A white shade waits for the light's range; an off light shows only

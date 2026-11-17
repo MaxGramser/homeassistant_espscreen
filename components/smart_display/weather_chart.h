@@ -369,7 +369,7 @@ inline void draw_hours(Sink &layer, const lv_area_t &area, const Chart &c) {
   const Level &l = c.fonts.levels[level];
   const int bar = ui::px(level > 1 ? 12 : 8), axis = line_h(c.fonts.axis), rs = ui::px(level > 1 ? 6 : 3);
   const int curve_h = height - (line_h(l.icon) + line_h(l.high) + 2 * rs + 1 + gap + rs + 1 + bar + gap + axis);
-  if (curve_h < ui::px(20)) return;
+  if (curve_h < (ui::round() ? ui::mm(2) : ui::px(20))) return;
   // The same light grid as the week: a line under the temperatures, one over the rain, one between every two marks.
   const int icon_y = y0, high_y = icon_y + line_h(l.icon), rule1 = high_y + line_h(l.high) + rs, curve_y = rule1 + 1 + rs;
   const int rule2 = curve_y + curve_h + gap, bar_y = rule2 + 1, axis_y = bar_y + bar + gap;

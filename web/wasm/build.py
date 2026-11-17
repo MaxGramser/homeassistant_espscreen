@@ -53,7 +53,7 @@ _spec = importlib.util.spec_from_file_location('smart_display_modules', ROOT / '
 modules = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(modules)
 preview_modules = modules.preview_modules()
-flags = ['-O2', '-DESP_SCREEN_HOST', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES',
+flags = ['-O2', '-DESP_SCREEN_HOST', '-DUSE_PSRAM', *[f'-DSCREEN_MAX_{name}={value}' for name, value in ceilings.items()], '-DSCREEN_TEXT_LANGUAGES', '-DUSE_API_HOMEASSISTANT_ACTION_RESPONSES',
          *[f'-D{modules.MODULES[name]["define"]}' for name in preview_modules], '-DGRID_COLS=8', '-DGRID_ROWS=8',
          '-DLV_CONF_INCLUDE_SIMPLE', '-DLV_FONT_FMT_TXT_LARGE=1']
 for folder in (ROOT / 'web/wasm/host_include', ROOT / 'components/smart_display', ROOT / 'web/wasm',

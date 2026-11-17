@@ -1907,7 +1907,7 @@
  "checkout/lilygo175.yaml": {
   "alert": {
    "line": 30,
-   "title_line": 40
+   "title_line": 39
   },
   "battery": false,
   "board": "lilygo175",
@@ -1915,6 +1915,10 @@
    "full": [
     466,
     466
+   ],
+   "thumb": [
+    318,
+    179
    ]
   },
   "can_standby": true,
@@ -1936,10 +1940,10 @@
   "features": [],
   "firmware": "0.61.0",
   "fonts": {
-   "headline": 34,
+   "headline": 33,
    "icon": 52,
    "icon_home": 47,
-   "icon_mini": 34,
+   "icon_mini": 33,
    "label": 20,
    "setpoint": 74,
    "sublabel": 20,
@@ -1973,6 +1977,10 @@
      "full": [
       466,
       466
+     ],
+     "thumb": [
+      318,
+      179
      ]
     },
     "columns": 2,
@@ -1994,6 +2002,10 @@
      "full": [
       466,
       466
+     ],
+     "thumb": [
+      318,
+      179
      ]
     },
     "columns": 2,
@@ -2052,7 +2064,7 @@
    "gap_y": 4,
    "margin": 41,
    "page_bar": 74,
-   "radius": 34,
+   "radius": 33,
    "tile_pad": 15,
    "top": 123
   },
@@ -6535,7 +6547,7 @@
  "lilygo175": {
   "alert": {
    "line": 30,
-   "title_line": 40
+   "title_line": 39
   },
   "battery": false,
   "board": "lilygo175",
@@ -6543,6 +6555,10 @@
    "full": [
     466,
     466
+   ],
+   "thumb": [
+    318,
+    179
    ]
   },
   "can_standby": true,
@@ -6564,10 +6580,10 @@
   "features": [],
   "firmware": "0.61.0",
   "fonts": {
-   "headline": 34,
+   "headline": 33,
    "icon": 52,
    "icon_home": 47,
-   "icon_mini": 34,
+   "icon_mini": 33,
    "label": 20,
    "setpoint": 74,
    "sublabel": 20,
@@ -6601,6 +6617,10 @@
      "full": [
       466,
       466
+     ],
+     "thumb": [
+      318,
+      179
      ]
     },
     "columns": 2,
@@ -6622,6 +6642,10 @@
      "full": [
       466,
       466
+     ],
+     "thumb": [
+      318,
+      179
      ]
     },
     "columns": 2,
@@ -6680,7 +6704,7 @@
    "gap_y": 4,
    "margin": 41,
    "page_bar": 74,
-   "radius": 34,
+   "radius": 33,
    "tile_pad": 15,
    "top": 123
   },
@@ -8596,7 +8620,7 @@
  "packages/lilygo175.yaml": {
   "alert": {
    "line": 30,
-   "title_line": 40
+   "title_line": 39
   },
   "battery": false,
   "board": "lilygo175",
@@ -8604,6 +8628,10 @@
    "full": [
     466,
     466
+   ],
+   "thumb": [
+    318,
+    179
    ]
   },
   "can_standby": true,
@@ -8625,10 +8653,10 @@
   "features": [],
   "firmware": "0.61.0",
   "fonts": {
-   "headline": 34,
+   "headline": 33,
    "icon": 52,
    "icon_home": 47,
-   "icon_mini": 34,
+   "icon_mini": 33,
    "label": 20,
    "setpoint": 74,
    "sublabel": 20,
@@ -8662,6 +8690,10 @@
      "full": [
       466,
       466
+     ],
+     "thumb": [
+      318,
+      179
      ]
     },
     "columns": 2,
@@ -8683,6 +8715,10 @@
      "full": [
       466,
       466
+     ],
+     "thumb": [
+      318,
+      179
      ]
     },
     "columns": 2,
@@ -8741,7 +8777,7 @@
    "gap_y": 4,
    "margin": 41,
    "page_bar": 74,
-   "radius": 34,
+   "radius": 33,
    "tile_pad": 15,
    "top": 123
   },
