@@ -315,12 +315,16 @@ class Sync(unittest.TestCase):
         self.assertIs(video.device_entry, screen)
         self.assertFalse(hasattr(video, '_attr_device_info'))
         let_go = []
-        registry = types.SimpleNamespace(async_update_device=lambda device, remove_config_entry_id: let_go.append((device, remove_config_entry_id)))
+        registry = types.SimpleNamespace(
+            async_update_device=lambda device, remove_config_entry_id: let_go.append((device, remove_config_entry_id)),
+            async_remove_device=lambda device: let_go.append((device, 'removed')))
         camera.dr.async_get = lambda hass: registry
-        camera.dr.async_entries_for_config_entry = lambda registry, entry: [screen, types.SimpleNamespace(id='second')]
+        # One as 2026.11 has it (the device is this entry's alone), one as before (a device of several entries).
+        camera.dr.async_entries_for_config_entry = lambda registry, entry: [
+            screen, types.SimpleNamespace(id='second', config_entry_id='video-1'), types.SimpleNamespace(id='before')]
         video.hass = object()
         asyncio.run(video.async_added_to_hass())
-        self.assertEqual(let_go, [('second', 'video-1')])
+        self.assertEqual(let_go, [('second', 'removed'), ('before', 'video-1')])
 
 
 @unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')

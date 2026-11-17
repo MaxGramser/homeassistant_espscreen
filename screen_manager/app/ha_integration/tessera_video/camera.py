@@ -91,7 +91,11 @@ class ScreenVideo(Camera):
             return
         registry = dr.async_get(self.hass)
         for other in dr.async_entries_for_config_entry(registry, self._own):
-            if other.id != self._screen_device:
+            if other.id == self._screen_device:
+                continue
+            if hasattr(other, "config_entry_id"):
+                registry.async_remove_device(other.id)  # 2026.11 and later: the device is this entry's alone
+            else:
                 registry.async_update_device(other.id, remove_config_entry_id=self._own)
 
     def _entry(self):
