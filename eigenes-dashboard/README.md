@@ -2,8 +2,18 @@
 
 Ein eigenständiges Dashboard für das **Guition ESP32-S3-4848S040** (4 Zoll, 480 × 480, Touch), direkt mit ESPHome
 und LVGL gebaut. Es braucht weder Tessera noch das ESP-Screen-Manager-Add-on. Es hat zwei Seiten, Wetter und
-Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in `wetter-display.yaml`). Ein Tippen
-aufs Display wechselt sofort die Seite; die 45 Sekunden beginnen dann neu.
+Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in `wetter-display.yaml`).
+
+**Bedienung:**
+
+- **Tippen**: sofort die nächste Seite; die 45 Sekunden beginnen neu.
+- **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, oben in der Mitte erscheint ein goldenes Schloss.
+  Ein Tippen oder noch ein langer Druck gibt sie wieder frei.
+- **Wischen nach oben/unten**: heller/dunkler in 20-%-Schritten (10 bis 100 %); bleibt nach einem Neustart erhalten.
+- **Nachtmodus**: Der Schalter „Nachtmodus“ des Geräts in Home Assistant schaltet das Licht aus. Eine Berührung weckt
+  das Display dann für 10 Minuten (`weckdauer`), jede weitere Berührung startet die 10 Minuten neu. Wann es Nacht ist,
+  bestimmt eine Automation in Home Assistant (Beispiel in `home-assistant/wetter_display.yaml`, dort Zeiten, Anwesenheit
+  oder Sonnenstand eintragen).
 
 ![Entwurf bei Tag](vorschau-tag.png) ![Entwurf bei Nacht mit Warnung](vorschau-nacht.png)
 ![Entwurf Raumklima](vorschau-innen.png)
@@ -114,8 +124,9 @@ Die Konfiguration verlangt ESPHome 2026.6.2 oder neuer.
   es schreibt `wetter-display.yaml` neu.
 - **Wetterbilder**: in `werkzeuge/bilder.py` zeichnen und `python3 werkzeuge/bilder.py` ausführen (braucht
   `pip install cairosvg`).
-- **Helligkeit**: Das Gerät bringt in Home Assistant das Licht „Hintergrundlicht“ mit, z. B. für eine Automation, die
-  nachts dimmt.
+- **Helligkeit**: per Wischen am Display, oder über das Licht „Hintergrundlicht“ in Home Assistant.
+- **Nachtmodus**: über den Schalter „Nachtmodus“ (siehe Bedienung); die Weckdauer ist `weckdauer` oben in
+  `wetter-display.yaml`.
 - **Fiepen**: Manche Boards fiepen bei 150 Hz PWM. Dann in `werkzeuge/hardware.yaml` `frequency: 20kHz` setzen; bei
   einigen Chargen wird es damit in niedrigen Stufen dunkel.
 

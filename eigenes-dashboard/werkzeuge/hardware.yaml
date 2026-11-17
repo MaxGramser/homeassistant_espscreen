@@ -25,7 +25,8 @@ light:
     id: hintergrundlicht
     name: Hintergrundlicht
     output: backlight_pwm
-    restore_mode: ALWAYS_ON
+    # beim Start aus; on_boot schaltet es ein, außer im Nachtmodus
+    restore_mode: ALWAYS_OFF
     default_transition_length: 300ms
 
 display:
@@ -79,10 +80,30 @@ touchscreen:
       x_max: 480
       y_min: 0
       y_max: 480
-    # ein Tippen wechselt die Seite sofort; die Zeit bis zum nächsten Wechsel beginnt neu
+    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, lange drücken = Seite halten,
+    # Wischen hoch/runter = heller/dunkler; im Nachtmodus weckt jede Berührung das Display
+    on_touch:
+      - lambda: |-
+          id(t_x0) = id(t_x1) = touch.x;
+          id(t_y0) = id(t_y1) = touch.y;
+          id(t_lang) = false;
+      - script.execute: lang_warten
+    on_update:
+      - lambda: |-
+          if (!touches.empty()) {
+            id(t_x1) = touches[0].x;
+            id(t_y1) = touches[0].y;
+          }
     on_release:
-      - lvgl.page.next:
-          animation: MOVE_LEFT
-          time: 400ms
-      - script.execute: seite_weiter
+      - script.stop: lang_warten
+      - if:
+          condition:
+            lambda: return !id(t_lang);
+          then:
+            - script.execute:
+                id: geste
+                art: !lambda |-
+                  int dx = id(t_x1) - id(t_x0), dy = id(t_y1) - id(t_y0);
+                  if (abs(dy) >= 60 && abs(dy) > abs(dx)) return dy < 0 ? 1 : 2;
+                  return 0;
 

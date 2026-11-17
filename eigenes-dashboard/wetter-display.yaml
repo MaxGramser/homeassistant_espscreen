@@ -34,6 +34,8 @@ substitutions:
   nox_buero: sensor.luft_buero_nox_index
   # Sekunden, nach denen das Display zwischen Wetter und Raumklima wechselt
   seitenwechsel: 45s
+  # so lange bleibt das Display an, wenn man es im Nachtmodus mit einem Tippen weckt
+  weckdauer: 10min
 
 esphome:
   name: ${name}
@@ -44,10 +46,45 @@ esphome:
   on_boot:
     priority: -100
     then:
+      # im Nachtmodus (Schalter, den eine Automation in HA setzt) bleibt das Licht aus
+      - if:
+          condition:
+            switch.is_off: nachtmodus
+          then:
+            - light.turn_on:
+                id: hintergrundlicht
+                brightness: !lambda return id(helligkeit);
+      - script.execute: seite_weiter
+
+globals:
+  # Helligkeit, die Wischen hoch/runter einstellt; bleibt über einen Neustart erhalten
+  - {id: helligkeit, type: float, restore_value: true, initial_value: "0.8"}
+  # Seite festgehalten (langer Druck): kein automatischer Wechsel, das Schloss ist zu sehen
+  - {id: seite_gehalten, type: bool, initial_value: "false"}
+  # Gesten: Start- und letzter Punkt einer Berührung, ob der lange Druck schon ausgelöst hat
+  - {id: t_x0, type: int, initial_value: "0"}
+  - {id: t_y0, type: int, initial_value: "0"}
+  - {id: t_x1, type: int, initial_value: "0"}
+  - {id: t_y1, type: int, initial_value: "0"}
+  - {id: t_lang, type: bool, initial_value: "false"}
+
+switch:
+  # Nachtmodus: an = Licht aus, ein Tippen weckt das Display für ${weckdauer}. Wann es Nacht ist, entscheidet eine
+  # Automation in Home Assistant (Beispiel in home-assistant/wetter_display.yaml).
+  - platform: template
+    id: nachtmodus
+    name: Nachtmodus
+    icon: mdi:weather-night
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - script.stop: nacht_wecken
+      - light.turn_off: hintergrundlicht
+    on_turn_off:
+      - script.stop: nacht_wecken
       - light.turn_on:
           id: hintergrundlicht
-          brightness: 80%
-      - script.execute: seite_weiter
+          brightness: !lambda return id(helligkeit);
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -336,10 +373,97 @@ script:
     mode: restart
     then:
       - delay: ${seitenwechsel}
-      - lvgl.page.next:
-          animation: MOVE_LEFT
-          time: 400ms
-      - script.execute: seite_weiter
+      - if:
+          condition:
+            lambda: return !id(seite_gehalten);
+          then:
+            - lvgl.page.next:
+                animation: MOVE_LEFT
+                time: 400ms
+            - script.execute: seite_weiter
+
+  # Nachtmodus: nach ${weckdauer} ohne Berührung geht das Licht wieder aus
+  - id: nacht_wecken
+    mode: restart
+    then:
+      - delay: ${weckdauer}
+      - if:
+          condition:
+            switch.is_on: nachtmodus
+          then:
+            - light.turn_off: hintergrundlicht
+
+  # langer Druck: nach 0,8 s ohne Bewegung die Seite festhalten oder wieder freigeben (schon während man drückt)
+  - id: lang_warten
+    mode: restart
+    then:
+      - delay: 800ms
+      - if:
+          condition:
+            lambda: |-
+              return abs(id(t_x1) - id(t_x0)) < 20 && abs(id(t_y1) - id(t_y0)) < 20 &&
+                     id(hintergrundlicht).remote_values.is_on();
+          then:
+            - lambda: id(t_lang) = true;
+            - script.execute:
+                id: geste
+                art: 3
+
+  # Gesten: 0 = Tippen (nächste Seite), 1 = Wischen hoch (heller), 2 = Wischen runter (dunkler), 3 = lang (Seite halten)
+  - id: geste
+    parameters:
+      art: int
+    then:
+      - if:
+          # dunkel im Nachtmodus: jede Berührung weckt nur
+          condition:
+            lambda: return id(nachtmodus).state && !id(hintergrundlicht).remote_values.is_on();
+          then:
+            - light.turn_on:
+                id: hintergrundlicht
+                brightness: !lambda return id(helligkeit);
+            - script.execute: nacht_wecken
+          else:
+            - if:
+                condition:
+                  switch.is_on: nachtmodus
+                then:
+                  - script.execute: nacht_wecken   # die Weckzeit zählt ab der letzten Berührung
+            - if:
+                condition:
+                  lambda: return art == 1 || art == 2;
+                then:
+                  - lambda: |-
+                      float h = id(helligkeit) + (art == 1 ? 0.2f : -0.2f);
+                      id(helligkeit) = h > 1.0f ? 1.0f : (h < 0.1f ? 0.1f : h);
+                  - light.turn_on:
+                      id: hintergrundlicht
+                      brightness: !lambda return id(helligkeit);
+                      transition_length: 200ms
+            - if:
+                condition:
+                  lambda: return art == 3 || (art == 0 && id(seite_gehalten));
+                then:
+                  # festhalten oder freigeben; ein Tippen auf eine gehaltene Seite gibt sie nur frei
+                  - lambda: id(seite_gehalten) = !id(seite_gehalten);
+                  - if:
+                      condition:
+                        lambda: return id(seite_gehalten);
+                      then:
+                        - script.stop: seite_weiter
+                        - lvgl.widget.show: schloss
+                      else:
+                        - lvgl.widget.hide: schloss
+                        - script.execute: seite_weiter
+                else:
+                  - if:
+                      condition:
+                        lambda: return art == 0;
+                      then:
+                        - lvgl.page.next:
+                            animation: MOVE_LEFT
+                            time: 400ms
+                        - script.execute: seite_weiter
 
 # ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
 spi:
@@ -368,7 +492,8 @@ light:
     id: hintergrundlicht
     name: Hintergrundlicht
     output: backlight_pwm
-    restore_mode: ALWAYS_ON
+    # beim Start aus; on_boot schaltet es ein, außer im Nachtmodus
+    restore_mode: ALWAYS_OFF
     default_transition_length: 300ms
 
 display:
@@ -422,12 +547,32 @@ touchscreen:
       x_max: 480
       y_min: 0
       y_max: 480
-    # ein Tippen wechselt die Seite sofort; die Zeit bis zum nächsten Wechsel beginnt neu
+    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, lange drücken = Seite halten,
+    # Wischen hoch/runter = heller/dunkler; im Nachtmodus weckt jede Berührung das Display
+    on_touch:
+      - lambda: |-
+          id(t_x0) = id(t_x1) = touch.x;
+          id(t_y0) = id(t_y1) = touch.y;
+          id(t_lang) = false;
+      - script.execute: lang_warten
+    on_update:
+      - lambda: |-
+          if (!touches.empty()) {
+            id(t_x1) = touches[0].x;
+            id(t_y1) = touches[0].y;
+          }
     on_release:
-      - lvgl.page.next:
-          animation: MOVE_LEFT
-          time: 400ms
-      - script.execute: seite_weiter
+      - script.stop: lang_warten
+      - if:
+          condition:
+            lambda: return !id(t_lang);
+          then:
+            - script.execute:
+                id: geste
+                art: !lambda |-
+                  int dx = id(t_x1) - id(t_x0), dy = id(t_y1) - id(t_y0);
+                  if (abs(dy) >= 60 && abs(dy) > abs(dx)) return dy < 0 ? 1 : 2;
+                  return 0;
 
 
 # ---------------- Schriften: Poppins (wie im Entwurf), Icons von Material Design ----------------
@@ -451,7 +596,7 @@ font:
   - {file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: "-0123456789,.°% "}
   - {file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
-  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B", "\U000F033E"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F11DC", "\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
 
 # ---------------- Wetterbilder (werkzeuge/bilder.py zeichnet sie) ----------------
@@ -996,6 +1141,29 @@ lvgl:
   touchscreens: [ts_touch]
   buffer_size: 25%
   default_font: f_14
+  # das Schloss (Seite festgehalten) liegt über beiden Seiten, oben in der Mitte des Panels
+  top_layer:
+    widgets:
+      - obj:
+          id: schloss
+          hidden: true
+          x: 225
+          y: 22
+          width: 30
+          height: 30
+          radius: 15
+          bg_color: 0xB8862B
+          bg_opa: COVER
+          border_width: 0
+          pad_all: 0
+          clickable: false
+          scrollable: false
+          widgets:
+            - label:
+                align: CENTER
+                text: "\U000F033E"
+                text_font: i_ui
+                text_color: 0x0B3A26
   pages:
     - id: seite_wetter
       bg_color: 0xF3F5F9
