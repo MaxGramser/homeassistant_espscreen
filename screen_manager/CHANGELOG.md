@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.98 (firmware 0.61.0)
 
 - **A call always lets you out.** When the app restarted in the middle of a call between screens, both screens stayed in the call and the hang-up key did nothing. The app now answers the end of a call it no longer holds, and a screen ends the call itself when its hang-up gets no answer.
 - **Echo cancelling on the Guition ESP32-P4 panels and the reTerminal D1001.** These boards now take their own speaker's sound back out of the microphone, so in a call between screens you no longer hear yourself come back and both can speak at once. Measured on a Guition 10.1 and a reTerminal D1001: 16 to 28 dB of echo taken away, and a voice beside the board keeps its level while the other side speaks. It works only while a call or the doorbell's Talk needs it, so it costs a page turn nothing between calls, and the switch Echo cancellation under Screen settings, Extras, turns it off altogether. The Guition 7 inch and 4.3 inch have the same codec and get it unmeasured. At the top volume a Guition's small speaker distorts and the canceller does little: voice switching is there for that.
