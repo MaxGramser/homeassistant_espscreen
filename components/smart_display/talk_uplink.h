@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <string>
 
 #if __has_include("esphome/core/defines.h")
@@ -82,6 +83,10 @@ State state();
 void tap(void *stream_buffer);
 void untap();
 
+// The board's echo canceller, where it works on demand (packages/hardware/parts/echo-cancel.yaml): told that it is needed
+// for as long as this screen's voice goes out to a far end, which is when what its speaker plays must not go with it.
+void bind_echo(std::function<void(bool)> needed);
+
 // While muted the microphone's parts go up as silence, so the stream on the far side stays alive (docs/CALLS.md).
 void set_muted(bool muted);
 // The voice's bar, 0 to 1, of the last few parts; when the voice was last above VOICE_DB (the main loop's clock).
@@ -99,6 +104,7 @@ struct HostMicrophone {
 };
 inline HostMicrophone host_microphone;
 template<class Microphone> inline void bind_microphone(Microphone *, int = GAIN) {}
+inline void bind_echo(std::function<void(bool)>) {}
 inline bool available() { return host_microphone.present; }
 inline bool start(const std::string &) {
   if (!host_microphone.present) return false;

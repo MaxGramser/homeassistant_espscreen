@@ -48,6 +48,10 @@ std::atomic<float> shown_bar{0.0f};
 std::atomic<uint32_t> last_voice{0};
 std::atomic<bool> muted_now{false};
 std::atomic<StreamBufferHandle_t> tapped{nullptr};
+std::function<void(bool)> echo_needed;
+void need_echo(bool on) {
+  if (echo_needed) echo_needed(on);
+}
 
 // The microphone's task: a whole part or none.
 void on_samples(const std::vector<uint8_t> &data) {
@@ -178,11 +182,14 @@ void bind_microphone(esphome::microphone::Microphone *m, int gain) {
   source->add_data_callback(on_samples);
 }
 
+void bind_echo(std::function<void(bool)> needed) { echo_needed = std::move(needed); }
+
 bool available() { return microphone != nullptr; }
 
 State state() {
   // A run that ended by itself is reaped here, on the main loop, as its task may not delete itself.
   if (run && run->done.load()) {
+    need_echo(false);
     if (source) source->stop();
     psram_task::reap(run->task);
     free_run(run);
@@ -218,6 +225,7 @@ bool start(const std::string &url) {
     now.store(State::FAILED);
     return false;
   }
+  need_echo(true);
   source->start();
   const auto info = source->get_audio_stream_info();
   ESP_LOGI(TAG, "the microphone gives %u Hz, %u bits, %u channels", (unsigned) info.get_sample_rate(), (unsigned) info.get_bits_per_sample(), (unsigned) info.get_channels());
@@ -235,13 +243,16 @@ void set_muted(bool muted) { muted_now.store(muted, std::memory_order_relaxed); 
 void tap(void *stream_buffer) {
   if (!source || !stream_buffer) return;
   tapped.store(static_cast<StreamBufferHandle_t>(stream_buffer), std::memory_order_release);
+  need_echo(true);
   source->start();
 }
 void untap() {
   if (!tapped.exchange(nullptr, std::memory_order_acq_rel)) return;
   // The microphone's task may be inside on_samples with the buffer it read a moment ago: it writes without waiting, and
   // whoever tapped frees the buffer only after its own task is done, which is later than this by a part.
-  if (source && !run) source->stop();
+  if (run) return;
+  need_echo(false);
+  if (source) source->stop();
 }
 
 float bar() { return shown_bar.load(std::memory_order_relaxed); }

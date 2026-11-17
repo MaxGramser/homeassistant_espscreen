@@ -22,6 +22,8 @@ substitutions:
   # At normal a voice beside a Guition 10.1 kept its level while the board's own speaker played (2 dB lower; 6 dB lower
   # at aggressive), and the speaker's sound still came out under the voice (docs/P4_AUDIO.md).
   AUDIO_ECHO_LEVEL: "normal"
+  # Only a call needs it here; between calls the processor is the page's.
+  AUDIO_ECHO_ON_DEMAND: "true"
   AUDIO_SPEAKER_BUFFER: "100ms"
   AUDIO_REFERENCE_BOOT: |-
     if (!id(ts_audio_dac).write_byte(0x44, 0x58)) ESP_LOGW("audio", "The codec did not take its playback reference");

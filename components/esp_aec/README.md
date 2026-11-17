@@ -19,6 +19,8 @@ Local changes:
   This saves neither DSP CPU nor firmware space. Incomplete DSP frames emit silence.
 - `nlp_level` (normal, aggressive, very_aggressive): ESP-SR's level for how hard the residual is pressed down, set with
   `aec_set_nlp_level` on every handle the library makes. Left out, the library's own stays (aggressive in 2.5.5).
+- `on_demand` with `set_needed(bool)`: at rest the DSP is not called and the microphone is handed on as it is, so a
+  canceller that only a call needs costs nothing between calls. `at_work()` says whether it runs now.
 - Reset the startup guard when the DSP handle is replaced. The diagnostic counter
   `startup_silence_frames()` counts skipped initial frames.
 

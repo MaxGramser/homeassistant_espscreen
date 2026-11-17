@@ -12,6 +12,10 @@ substitutions:
   # very_aggressive). Aggressive is the library's own and what the boards with an ES7210 on the speaker's bus were
   # measured with; a transport measured at another level says its own.
   AUDIO_ECHO_LEVEL: "aggressive"
+  # Whether the canceller works only while this screen's voice goes out to a far end (a call, the doorbell's Talk), and
+  # costs the processor nothing otherwise. Off, it works whenever the microphone runs, also for a voice assistant that
+  # listens while the screen plays, as the boards with an ES7210 on the speaker's bus have always had it.
+  AUDIO_ECHO_ON_DEMAND: "false"
   # The settings page's echo cancellation row, after the microphone controls (packages/core.yaml, BOOT_MICROPHONE_PART).
   BOOT_MICROPHONE_PART: |-
     ${AUDIO_REFERENCE_BOOT}
@@ -23,6 +27,7 @@ substitutions:
         [](bool on) { if (on) id(board_echo_cancellation).turn_on(); else id(board_echo_cancellation).turn_off(); },
         []() -> bool { return id(board_echo_cancellation).state; },
         [](int level) { id(board_aec).set_nlp_level_now(level); });
+    talk_uplink::bind_echo([](bool needed) { id(board_aec).set_needed(needed); });
 
 external_components:
   - source:
@@ -39,6 +44,7 @@ esp_aec:
   mode: fd_low_cost
   filter_length: 4
   nlp_level: ${AUDIO_ECHO_LEVEL}
+  on_demand: ${AUDIO_ECHO_ON_DEMAND}
 
 switch:
   - platform: template
@@ -67,4 +73,5 @@ text_sensor:
     lambda: |-
       if (id(board_aec).is_failed()) return {"Error"};
       if (!id(board_aec).is_initialized()) return {"Starting"};
-      return id(board_aec).enabled() ? std::string("Enabled") : std::string("Bypass");
+      if (!id(board_aec).enabled()) return {"Bypass"};
+      return id(board_aec).at_work() ? std::string("Enabled") : std::string("Resting");

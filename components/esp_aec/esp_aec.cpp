@@ -209,6 +209,12 @@ bool EspAec::process(const int16_t *in_mic, const int16_t *in_ref, int16_t *out,
   }
   const int mic_stride = std::max<int>(1, mic_channels_in);
   const bool enabled = this->enabled_.load(std::memory_order_relaxed);
+  // At rest (on demand, and nothing needs it): the microphone as it is, and the DSP not run. Its filter keeps what it
+  // learned and takes the room up again when it is needed next.
+  if (!this->needed_.load(std::memory_order_relaxed)) {
+    for (int i = 0; i < this->cached_frame_size_; ++i) out[i] = in_mic[i * mic_stride];
+    return true;
+  }
   // A first all-zero MR frame reproduces persistent passthrough in the tested
   // ESP-SR 2.5.5 P4 FD-low-cost path. Leave the fresh handle untouched until
   // actual input arrives. This emits exact silence, introduces no synthetic

@@ -105,6 +105,18 @@ Two things heard in a call between this Guition and a reTerminal D1001 in anothe
 at 12 dB and nothing given back, the voice beside the Guition was too soft at the other end, so the 12 dB are given back
 after the canceller (`AUDIO_VOICE_GAIN`); and with echo cancelling on and voice switching off the call sounded best.
 
+### Only while it is needed
+
+A canceller that runs whenever the microphone does costs a share of one core all day (Espressif gives 11.5 % for this
+mode on a P4), and on these boards the microphone always runs, for the wake word and for the codec's clocks. On a
+Guition 10.1 a page turn held the main loop 218 ms on average with the canceller always at work and 183 to 191 ms
+without it in the firmware (20 turns each over the same five pages, 2026-11-17). So on the
+two transports of this section the canceller works on demand (`AUDIO_ECHO_ON_DEMAND`, `esp_aec`'s `on_demand`): it
+works for as long as the screen's voice goes out to a far end, a call or the doorbell's Talk (`talk_uplink` says so),
+and at rest it hands the microphone on as it is without running the DSP. Its status reads Resting then. The boards with
+an ES7210 on the speaker's bus keep it at work whenever the microphone runs, as a voice assistant that listens while the
+screen plays has always had it there.
+
 ## Interfaces and settings
 
 The board keeps `ts_microphone`, `ts_speaker` and `ts_media_player`. Its new transport replaces
@@ -124,7 +136,7 @@ Under **Screen settings → Extras**, in Tessera and on the panel:
 
 These are ESPHome entities; HA, the editor and panel change the same settings. Gain/ALC failures
 retain the last accepted value and try to restore the previous codec registers. The diagnostic
-**Echo cancellation status** is Enabled, Bypass, Starting or Error. Enabled means cancellation
+**Echo cancellation status** is Enabled, Resting (on a board whose canceller works on demand, between calls), Bypass, Starting or Error. Enabled means cancellation
 is selected and the DSP initialized; it is not a measurement of echo suppression quality.
 
 The ES7210's part takes `AUDIO_TRANSPORT: "aec"` by default, since its MIC3 carries a playback reference. To omit

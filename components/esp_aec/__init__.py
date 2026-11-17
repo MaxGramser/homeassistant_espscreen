@@ -47,6 +47,10 @@ AEC_MODES = {
 CONF_NLP_LEVEL = "nlp_level"
 NLP_LEVELS = {"normal": 0, "aggressive": 1, "very_aggressive": 2}
 
+# The canceller works only while something needs it (set_needed): at rest the DSP is not run. Left out, it works
+# whenever the microphone runs.
+CONF_ON_DEMAND = "on_demand"
+
 CONFIG_SCHEMA = cv.All(
     cv.only_with_framework(Framework.ESP_IDF),
     cv.requires_component(psram.DOMAIN),
@@ -58,6 +62,7 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_FILTER_LENGTH, default=4): cv.int_range(min=1, max=8),
             cv.Optional(CONF_NLP_LEVEL): cv.enum(NLP_LEVELS, lower=True),
+            cv.Optional(CONF_ON_DEMAND, default=False): cv.boolean,
             cv.Optional(CONF_MODE, default="sr_low_cost"): cv.enum(
                 AEC_MODES, lower=True
             ),
@@ -73,6 +78,7 @@ async def to_code(config):
 
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
     cg.add(var.set_filter_length(config[CONF_FILTER_LENGTH]))
+    cg.add(var.set_on_demand(config[CONF_ON_DEMAND]))
     if CONF_NLP_LEVEL in config:
         cg.add(var.set_nlp_level(NLP_LEVELS[str(config[CONF_NLP_LEVEL])]))
     cg.add(var.set_mode(config[CONF_MODE]))
