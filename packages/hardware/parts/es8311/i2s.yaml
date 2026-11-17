@@ -6,6 +6,7 @@ packages:
   audio: !include ../../../features/audio.yaml
 
 substitutions:
+  AUDIO_MIC_GAIN: "24DB"                        # Guition's own setting
   # The clocks come from the microphone's port, which ESPHome runs only while something listens; a speaker without them
   # plays nothing. So the board listens from the start, under everything that reads the microphone (ESPHome counts its
   # listeners): the speaker plays whether a voice assistant listens or not. Microphone off under Extras still mutes it.

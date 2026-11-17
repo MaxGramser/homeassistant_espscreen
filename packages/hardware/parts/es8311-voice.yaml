@@ -13,8 +13,9 @@
 # A screen's Override YAML picks the other with AUDIO_TRANSPORT (docs/P4_AUDIO.md).
 #
 # The microphone is analogue: `use_microphone` stays false (parts/es8311.yaml), because ESPHome's es8311 turns the input
-# into a PDM digital microphone when it is true. AUDIO_MIC_GAIN is the ADC's digital gain; the analogue stage before it
-# is ESPHome's fixed maximum.
+# into a PDM digital microphone when it is true. AUDIO_MIC_GAIN is the ADC's digital gain, which each transport states
+# (a file wins over its packages, so a default here would hide theirs); the analogue stage before it is ESPHome's fixed
+# maximum.
 packages:
   speaker: !include es8311.yaml
   transport: !include es8311/${AUDIO_TRANSPORT}.yaml
@@ -22,7 +23,6 @@ packages:
 substitutions:
   AUDIO_TRANSPORT: "i2s"
   AUDIO_SAMPLE_RATE: "16000"
-  AUDIO_MIC_GAIN: "24DB"
 
 audio_dac:
   - id: !extend ts_audio_dac
