@@ -34,7 +34,10 @@ export function previewAge(root = fileURLToPath(new URL("..", import.meta.url)))
   if (!firmware || !preview) return { stale: false, firmware: null, preview: null };
   // Stale: the firmware changed in a commit that came after the preview's last one.
   const stale = firmware.hash !== preview.hash && before(root, preview.hash, firmware.hash);
-  return { stale, firmware: firmware.at, preview: preview.at };
+  // The dates are said only when the preview is stale: that is the one time the editor shows them. A current preview's
+  // dates would only make the built editor differ from one commit to the next (the preview's own commit has a date of
+  // its own), and then the bundle in Git could never equal a build of the same sources ("bundle in Git is fresh").
+  return stale ? { stale, firmware: firmware.at, preview: preview.at } : { stale: false, firmware: null, preview: null };
 }
 
 /** `virtual:esp-screens-preview-age`: what previewAge says while the editor is built. */

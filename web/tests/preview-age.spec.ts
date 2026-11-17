@@ -30,6 +30,19 @@ describe("the age of the firmware preview", () => {
     write("web/src/wasm/firmware_preview.wasm", "b"); commit("Firmware preview: rebuilt");
     expect(previewAge(root)).toMatchObject({ stale: false });
   });
+  it("says nothing that changes from one commit to the next while the preview is current", () => {
+    // The built editor carries this answer. With the commits' dates in it, the bundle in Git (built before the
+    // preview's own commit existed) could never equal a build of the same sources made after it.
+    const { root, write, commit } = repository();
+    write("components/smart_display/runtime_tiles.h", "1"); write("web/src/wasm/firmware_preview.wasm", "a");
+    commit("firmware and its preview together");
+    const first = previewAge(root);
+    write("components/smart_display/runtime_tiles.h", "2"); write("web/src/wasm/firmware_preview.wasm", "b");
+    commit("both again, later");
+    write("docs/PAGES.md", "z"); commit("a document");
+    expect(previewAge(root)).toEqual(first);
+    expect(first).toEqual({ stale: false, firmware: null, preview: null });
+  });
   it("is stale when the firmware changed after the preview was last built", () => {
     const { root, write, commit } = repository();
     write("components/smart_display/runtime_tiles.h", "1"); write("web/src/wasm/firmware_preview.wasm", "a");
