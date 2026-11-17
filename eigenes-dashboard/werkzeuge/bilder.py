@@ -3,11 +3,11 @@
 
 Aufruf aus eigenes-dashboard/:  python3 werkzeuge/bilder.py   (braucht: pip install cairosvg)
 
-- tag_<zustand>.png   148 x 148  das große Bild bei Tag, je Wetterzustand von Home Assistant
-- mond_<0..7>.png     148 x 148  die Mondphase bei Nacht (0 Neumond, 4 Vollmond, im Uhrzeigersinn zunehmend)
-- nacht_<art>.png      86 x  86  das kleine Wetterbild, das nachts unten rechts auf dem Mond liegt (bei x 61, y 61)
-Alle Zeichnungen nutzen einen viewBox von 0 bis 140 und bleiben innerhalb von x 0..130 und y 8..130, damit das
-Bild auf dem Display Abstand zum Warnrahmen und zum Text darunter hat.
+- tag_<zustand>.png   160 x 160  das große Bild bei Tag, je Wetterzustand von Home Assistant
+- mond_<0..7>.png     160 x 160  die Mondphase bei Nacht (0 Neumond, 4 Vollmond, im Uhrzeigersinn zunehmend)
+- nacht_<art>.png      93 x  93  das kleine Wetterbild, das nachts unten rechts auf dem Mond liegt (bei x 66, y 66)
+Alle Zeichnungen nutzen einen viewBox von 0 bis 140. Das Display zeigt die Bilder in voller Größe, solange keine
+Warnung gilt, und verkleinert sie auf 85 %, sobald darunter eine Warnung steht.
 """
 import math
 import os
@@ -142,6 +142,10 @@ TAG = ["sunny", "partlycloudy", "cloudy", "fog", "rainy", "pouring", "lightning"
 NACHT = {"wolke": cloud(8, 14), **{k: picture(k) for k in TAG if k not in ("sunny", "partlycloudy", "cloudy")}}
 
 
+GROSS = 160                      # das große Bild in voller Größe (ohne Warnung)
+KLEIN = round(86 / 148 * GROSS)  # 93: das kleine Wetterbild auf dem Mond
+
+
 def schreibe(name, body, size):
     text = svg(body, size)
     os.makedirs(os.path.join(ZIEL, "svg"), exist_ok=True)
@@ -153,9 +157,9 @@ def schreibe(name, body, size):
 
 if __name__ == "__main__":
     for k in TAG:
-        schreibe("tag_" + k.replace("-", "_"), picture(k), 148)
+        schreibe("tag_" + k.replace("-", "_"), picture(k), GROSS)
     for i in range(8):
-        schreibe(f"mond_{i}", moon(i / 8), 148)
+        schreibe(f"mond_{i}", moon(i / 8), GROSS)
     for k, body in NACHT.items():
-        schreibe("nacht_" + k.replace("-", "_"), body, 86)
+        schreibe("nacht_" + k.replace("-", "_"), body, KLEIN)
     print("Bilder geschrieben nach", ZIEL)

@@ -12,13 +12,20 @@
 #                                                      Anzeigen, die höchste zuerst (das Display lässt sie als
 #                                                      Lauftext laufen, wenn sie nicht passen); Name der höchsten wie
 #                                                      vom DWD (für das Icon). Leer, wenn keine Warnung gilt.
+#   vorwarnung             "2;Morgen Sturmböen;STURMBÖEN"
+#                                                      wie warnung, aus den Vorwarnungen des DWD; vor dem Namen der
+#                                                      Tag, an dem sie beginnt. Das Display zeigt sie nur ohne Warnung.
+#   regen_satz             "Trocken bis;17 Uhr"        Kopf der Regen-Karte: wann der Regen beginnt oder aufhört
+#                                                      (ab 60 % Wahrscheinlichkeit, ohne Prozente ab 0,3 mm), in den
+#                                                      nächsten 12 Stunden. Der zweite Teil steht in Gold.
 # Seit Home Assistant 2024.4 steht die Vorhersage nicht mehr in den Attributen der Wetter-Entität, sondern kommt nur
 # über die Aktion weather.get_forecasts. Dieser Sensor fragt sie alle 15 Minuten ab.
 #
-# Anpassen: die beiden Zeilen "wetter:" und "warnungen:" unten.
+# Anpassen: die Zeilen "wetter:", "warnungen:" und "vorwarnungen:" unten.
 #   wetter     die Wetter-Entität, z. B. vom DWD (HACS-Integration "DWD Weather") oder Met.no
 #   warnungen  der Sensor "aktuelle Warnstufe" der Integration "Deutscher Wetterdienst (DWD) Weather Warnings";
 #              ohne DWD-Warnungen einfach so lassen, das Display zeigt dann keine Warnung.
+#   vorwarnungen  der Sensor "Vorwarnstufe" derselben Integration
 #
 # Dazu eine Automation für den UV-Index von OpenUV (die DWD-Integration liefert ihn nicht mehr). OpenUV fragt nicht
 # von selbst ab und erlaubt mit dem kostenlosen Schlüssel 50 Abfragen am Tag: Die Automation fragt tagsüber alle
@@ -40,10 +47,13 @@ template:
         entity_id: sun.sun
       - trigger: state
         entity_id: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
+      - trigger: state
+        entity_id: sensor.balkon_kreis_warendorf_vorwarnstufe
     actions:
       - variables:
           wetter: weather.controlroom_sassenberg
           warnungen: sensor.balkon_kreis_warendorf_aktuelle_warnstufe
+          vorwarnungen: sensor.balkon_kreis_warendorf_vorwarnstufe
       - action: weather.get_forecasts
         continue_on_error: true
         target:
@@ -127,6 +137,47 @@ template:
               {% set namen = liste | map(attribute='roh') | map('lower') | map('title') | unique | list %}
               {{ liste[0].stufe }};{{ namen | join(' · ') | truncate(180, true, '…') }};{{ liste[0].roh }}
             {% endif %}
+          vorwarnung: >
+            {% set tage = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
+            {% set ns = namespace(liste=[]) %}
+            {% set n = state_attr(vorwarnungen, 'warning_count') | int(0) %}
+            {% for i in range(1, n + 1) %}
+              {% set stufe = state_attr(vorwarnungen, 'warning_' ~ i ~ '_level') | int(0) %}
+              {% set roh = state_attr(vorwarnungen, 'warning_' ~ i ~ '_name') | string %}
+              {% set start = state_attr(vorwarnungen, 'warning_' ~ i ~ '_start') %}
+              {% set d = as_local(as_datetime(start)).date() if start else now().date() %}
+              {% set tag = 'Heute' if d <= now().date() else 'Morgen' if (d - now().date()).days == 1
+                           else tage[d.weekday()] %}
+              {% if stufe > 0 %}
+                {% set ns.liste = ns.liste + [{'stufe': stufe, 'roh': roh,
+                                               'text': tag ~ ' ' ~ (roh | lower | title)}] %}
+              {% endif %}
+            {% endfor %}
+            {% set liste = ns.liste | sort(attribute='stufe', reverse=true) %}
+            {% if liste | count > 0 %}
+              {% set texte = liste | map(attribute='text') | unique | list %}
+              {{ liste[0].stufe }};{{ texte | join(' · ') | truncate(180, true, '…') }};{{ liste[0].roh }}
+            {% endif %}
+          # Regen in den nächsten 12 Stunden als Satz: Ab wann regnet es, oder bis wann noch?
+          regen_satz: >
+            {% set fc = stuendlich[wetter].forecast if stuendlich is defined and stuendlich and wetter in stuendlich else [] %}
+            {% set ns = namespace(nass=[]) %}
+            {% for f in fc[:12] %}
+              {% set p = f.get('precipitation_probability') %}
+              {% set mm = f.get('precipitation') %}
+              {% set ns.nass = ns.nass + [(p >= 60) if p is number else ((mm >= 0.3) if mm is number else false)] %}
+            {% endfor %}
+            {% if ns.nass | count == 0 %}
+              Regen;
+            {% elif ns.nass[0] %}
+              {% set ns.k = -1 %}
+              {% for x in ns.nass %}{% if not x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
+              {% if ns.k < 0 %}Dauerregen;{% else %}Regen bis;{{ as_local(as_datetime(fc[ns.k].datetime)).hour }} Uhr{% endif %}
+            {% else %}
+              {% set ns.k = -1 %}
+              {% for x in ns.nass %}{% if x and ns.k < 0 %}{% set ns.k = loop.index0 %}{% endif %}{% endfor %}
+              {% if ns.k < 0 %}Kein Regen;in Sicht{% else %}Trocken bis;{{ as_local(as_datetime(fc[ns.k].datetime)).hour }} Uhr{% endif %}
+            {% endif %}
     sensor:
       - name: Display Wetter
         unique_id: display_wetter_vorhersage
@@ -146,6 +197,8 @@ template:
           sonne: "{{ sonne | trim }}"
           aufgang_heute: "{{ (sonne | trim).split(';')[0] if is_state('sun.sun', 'above_horizon') else 0 }}"
           warnung: "{{ warnung | trim }}"
+          vorwarnung: "{{ vorwarnung | trim }}"
+          regen_satz: "{{ regen_satz | trim }}"
 
 automation:
   - id: wetter_display_openuv

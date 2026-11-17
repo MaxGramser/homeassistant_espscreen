@@ -2,7 +2,9 @@
 
 Ein eigenständiges Dashboard für das **Guition ESP32-S3-4848S040** (4 Zoll, 480 × 480, Touch), direkt mit ESPHome
 und LVGL gebaut. Es braucht weder Tessera noch das ESP-Screen-Manager-Add-on. Es hat zwei Seiten, Wetter und
-Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in `wetter-display.yaml`).
+Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (Regler „Seitenwechsel“ in Home Assistant). Die Seite
+Raumklima erscheint erst, wenn mindestens ein Luftsensor einen CO₂-Wert liefert; bis dahin bleibt das Wetter stehen.
+Zwei Punkte unten im grünen Panel zeigen, auf welcher Seite du bist.
 
 **Bedienung:**
 
@@ -10,30 +12,40 @@ Raumklima, und wechselt alle 45 Sekunden zwischen ihnen (`seitenwechsel` oben in
 - **Lange drücken** (knapp 1 Sekunde): Die Seite bleibt stehen, in der Mitte erscheint für ein paar Sekunden ein
   goldenes Schloss. Bei jeder Berührung einer gehaltenen Seite erscheint es kurz wieder; ein Tippen wechselt dann
   nicht. Nur ein erneuter langer Druck gibt die Seite frei.
-- **Wischen nach oben/unten**: heller/dunkler in 20-%-Schritten (10 bis 100 %); bleibt nach einem Neustart erhalten.
+- **Wischen nach oben/unten**: heller/dunkler in 20-%-Schritten (10 bis 100 %); bleibt nach einem Neustart erhalten
+  und steht auch im Regler „Helligkeit“ in Home Assistant.
 - **Nachtmodus**: Der Schalter „Nachtmodus“ des Geräts in Home Assistant schaltet das Licht aus. Eine Berührung weckt
-  das Display dann für 10 Minuten (`weckdauer`), jede weitere Berührung startet die 10 Minuten neu. Wann es Nacht ist,
+  das Display dann für 10 Minuten (Regler „Weckdauer im Nachtmodus“), jede weitere Berührung startet die Zeit neu. Wann es Nacht ist,
   bestimmt eine Automation in Home Assistant (Beispiel in `home-assistant/wetter_display.yaml`, dort Zeiten, Anwesenheit
   oder Sonnenstand eintragen).
 
-![Entwurf bei Tag](vorschau-tag.png) ![Entwurf bei Nacht mit Warnung](vorschau-nacht.png)
-![Entwurf Raumklima](vorschau-innen.png)
+![Entwurf bei Tag](vorschau-tag.png) ![Entwurf mit Warnung](vorschau-warnung.png)
+![Entwurf bei Nacht mit Vorwarnung](vorschau-nacht.png) ![Entwurf Raumklima](vorschau-innen.png)
 
 *Die Bilder sind die abgestimmten Entwürfe (im Browser gezeichnet, mit Beispieldaten). Auf dem Display zeichnet LVGL,
 das kann um wenige Pixel abweichen.*
 
 ## Was das Display zeigt
 
-- **Panel oben** (British Racing Green, nachts dunkler; Akzente in Gold): Ort, Datum und Kalenderwoche, die Temperatur, Sonnenaufgang und
-  -untergang mit „vor/in … Std“, ein großes Wetterbild, der Wettertext, Hoch und Tief von heute.
-- **Nachts** zeigt das große Bild die Mondphase (8 Stufen, auf dem Display berechnet) und klein daneben das aktuelle
-  Wetter, z. B. eine Regenwolke.
-- **Warnungen des DWD**: ein Rahmen um das Panel und ein Hinweis neben dem Ort, in der Farbe der Warnstufe:
+- **Panel oben** (British Racing Green, Akzente in Gold): Ort, Datum und Kalenderwoche, die Temperatur, Sonnenaufgang
+  und -untergang mit „vor/in … Std“, ein großes Wetterbild, Hoch und Tief von heute.
+- **Tag und Nacht**: Nach Sonnenuntergang wird das ganze Display dunkel (dunkle Karten, gedämpftes Gold), und das große
+  Bild zeigt die Mondphase (8 Stufen, auf dem Display berechnet) mit dem aktuellen Wetter klein daneben, z. B. einer
+  Regenwolke. 30 Minuten vor Sonnenaufgang wird es wieder hell und zeigt das Wetter bei Tag.
+- **Warnungen des DWD**: Das Wetterbild wird kleiner, und darunter erscheint ein Hinweis in der Farbe der Warnstufe:
   1 gelb, 2 orange, 3 rot, 4 violett. Bei mehreren Warnungen bestimmt die höchste Farbe und Icon, im Hinweis stehen
-  alle (die höchste zuerst); passen sie nicht neben den Ort, laufen sie als Lauftext durch.
-- **Vier Kacheln**: Wind mit Richtung, Regen heute, Luftfeuchte, UV-Index von OpenUV mit Einstufung (niedrig bis extrem; nachts 0).
-- **5 Tage**: Kurve der Tageshöchstwerte, darunter Regen, Wetter-Icon und Tag.
-- **Regen**: die nächsten 10 Stunden in 2-Stunden-Schritten als Balken.
+  alle (die höchste zuerst); passen sie nicht hinein, laufen sie als Lauftext durch. Gibt es keine Warnung, aber eine
+  **Vorwarnung**, steht sie an derselben Stelle nur mit farbigem Rand, z. B. „Morgen Sturmböen“.
+- **Vier Kacheln**: Wind mit Richtung und Böen, Regen heute, Luftfeuchte, UV-Index von OpenUV mit Einstufung (niedrig
+  bis extrem; nachts 0).
+- **5 Tage**: Kurve der Tageshöchstwerte, darunter Regen, Wetter-Icon und Tag. Liegt das Tief eines Tages unter 0 °,
+  sitzt ein kleiner Eiskristall am Icon (Frost).
+- **Regen**: oben ein Satz wie „Trocken bis 17 Uhr“, „Regen bis 21 Uhr“ oder „Kein Regen in Sicht“ (als Regen zählt
+  eine Stunde ab 60 % Wahrscheinlichkeit, in den nächsten 12 Stunden), darunter die nächsten 10 Stunden in
+  2-Stunden-Schritten als Balken.
+- **Keine Verbindung**: Fehlt die Verbindung zu Home Assistant länger als eine Minute, werden die Werte blass, und
+  unten im Panel steht statt der Seitenpunkte eine durchgestrichene Wolke mit der Uhrzeit, seit der sie fehlt. Das
+  Display startet deswegen nicht neu.
 
 Regen erscheint in Prozent, wenn der Wetterdienst eine Wahrscheinlichkeit liefert (DWD), sonst in Millimetern
 (Met.no); die Balken zeigen dann die Menge (4 mm = voll).
@@ -43,7 +55,8 @@ Regen erscheint in Prozent, wenn der Wetterdienst eine Wahrscheinlichkeit liefer
 Für drei Luftsensoren (Wohnzimmer, Schlafzimmer, Büro; SHT45 und SCD41, im Büro zusätzlich ein SEN55):
 
 - **Panel**: CO₂ je Raum mit einer Farbskala von 400 bis 2000 ppm darunter; der Punkt auf der Skala hat die Farbe
-  der Stufe. Ab „Mittel“ (lüften empfohlen) liegt die Zahl des Raums in einem Block in der Farbe der Stufe: gelb bei
+  der Stufe. Neben dem Raumnamen zeigt ein Pfeil den Trend der letzten 15 Minuten: ↑ orange steigt, ↓ grün fällt,
+  → stabil (weniger als 50 ppm Unterschied). Ab „Mittel“ (lüften empfohlen) liegt die Zahl des Raums in einem Block in der Farbe der Stufe: gelb bei
   „Mittel“, rot bei „Schlecht“.
 - **Kacheln**: Temperatur und Luftfeuchte je Raum; die Luftfeuchte in Ampelfarbe.
 - **Feinstaub (Büro)**: PM1, PM2.5, PM4, PM10 als Balken in Ampelfarbe.
@@ -60,7 +73,7 @@ Für drei Luftsensoren (Wohnzimmer, Schlafzimmer, Büro; SHT45 und SCD41, im Bü
 
 Die Entitäten der Sensoren stehen als Platzhalter oben in `wetter-display.yaml` (`co2_wohnzimmer`,
 `temp_wohnzimmer`, ..., `voc_buero`, `nox_buero`). Sobald die Sensoren in Home Assistant sind, dort ihre echten
-Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
+Namen eintragen. Fehlt ein einzelner Sensor, zeigt das Display „--“.
 
 ## Dateien
 
@@ -88,17 +101,17 @@ Namen eintragen. Fehlt ein Sensor, zeigt das Display „--“.
    (der kostenlose Schlüssel erlaubt 50 Abfragen am Tag).
 3. **Warnungen vom DWD**: unter Einstellungen → Geräte & Dienste → Integration hinzufügen → „Deutscher Wetterdienst
    (DWD) Weather Warnings“ den Warnbereich eintragen (für Sassenberg der Kreis Warendorf). Gebraucht wird der Sensor
-   der *aktuellen* Warnstufe.
+   der *aktuellen* Warnstufe und der der *Vorwarnstufe*.
 4. In `configuration.yaml` Pakete einschalten, falls noch nicht geschehen:
    ```yaml
    homeassistant:
      packages: !include_dir_named packages
    ```
-5. `home-assistant/wetter_display.yaml` nach `config/packages/wetter_display.yaml` kopieren und darin die beiden
-   Zeilen `wetter:` und `warnungen:` auf deine Entitäten setzen (die Warnungs-Entität steht außerdem einmal bei den
-   Auslösern oben); ganz unten in der Automation die OpenUV-Entität.
+5. `home-assistant/wetter_display.yaml` nach `config/packages/wetter_display.yaml` kopieren und darin die Zeilen
+   `wetter:`, `warnungen:` und `vorwarnungen:` auf deine Entitäten setzen (die beiden Warn-Entitäten stehen außerdem
+   bei den Auslösern oben); ganz unten in den Automationen die OpenUV-Entität und den Schalter für den Nachtmodus.
 6. Home Assistant neu starten. Danach gibt es `sensor.display_wetter` mit den Attributen `tag_0` bis `tag_4`,
-   `stunde_0` bis `stunde_4`, `sonne` und `warnung` (Entwicklerwerkzeuge → Zustände).
+   `stunde_0` bis `stunde_4`, `sonne`, `warnung`, `vorwarnung` und `regen_satz` (Entwicklerwerkzeuge → Zustände).
 
 ### 2. ESPHome: Display bauen und flashen
 
@@ -127,20 +140,21 @@ Die Konfiguration verlangt ESPHome 2026.6.2 oder neuer.
   es schreibt `wetter-display.yaml` neu.
 - **Wetterbilder**: in `werkzeuge/bilder.py` zeichnen und `python3 werkzeuge/bilder.py` ausführen (braucht
   `pip install cairosvg`).
-- **Helligkeit**: per Wischen am Display, oder über das Licht „Hintergrundlicht“ in Home Assistant.
-- **Nachtmodus**: über den Schalter „Nachtmodus“ (siehe Bedienung); die Weckdauer ist `weckdauer` oben in
-  `wetter-display.yaml`.
+- **In Home Assistant** (Gerät „Wetter-Display“): die Regler „Seitenwechsel“ (Sekunden), „Weckdauer im Nachtmodus“
+  (Minuten) und „Helligkeit“, der Schalter „Nachtmodus“, unter Diagnose „WLAN-Signal“ und „Laufzeit“ sowie der Knopf
+  „Neustart“. `seitenwechsel` und `weckdauer` oben in `wetter-display.yaml` sind nur die Startwerte.
 - **Fiepen**: Manche Boards fiepen bei 150 Hz PWM. Dann in `werkzeuge/hardware.yaml` `frequency: 20kHz` setzen; bei
   einigen Chargen wird es damit in niedrigen Stufen dunkel.
 
 ## Stand der Prüfung
 
-- `esphome config` und `esphome compile` laufen fehlerfrei, mit beiden Seiten (ESPHome 2026.10.2; Firmware rund 3,0 MB, 37 % der
+- `esphome config` und `esphome compile` laufen fehlerfrei, mit beiden Seiten (ESPHome 2026.10.2; Firmware rund 3,3 MB, 41 % der
   App-Partition).
 - `wetter.h` ist mit einem Test auf dem PC geprüft: Kalenderwoche (auch an Jahreswechseln mit 53 Wochen), Mondphase,
   Sonnenzeiten, Regenwerte, Kurve, Warn-Icons.
 - Die Vorlagen des Home-Assistant-Pakets sind mit Beispieldaten durchgerechnet, auch nachts, ohne Stundenvorhersage
-  und ohne Warnung.
+  und ohne Warnung; Regensatz und Vorwarnung mit trockenen, nassen und gemischten Stunden.
 - Die Stufen der Raumklima-Seite sind an allen Grenzwerten getestet.
-- **Nicht geprüft**: auf dem echten Display ist die Firmware noch nicht gelaufen, und die Entitäten der
-  DWD-Integrationen und der Luftsensoren sind Platzhalter, bis sie in deinem Home Assistant eingerichtet sind.
+- Auf dem echten Display laufen Wetterseite, Warnungen, Gesten und Nachtmodus. **Noch nicht auf dem Display
+  geprüft**: dunkles Design, Vorwarnung, Regensatz, Böen, Frost, Seitenpunkte, die Anzeige ohne Verbindung, der
+  CO₂-Trend und die Regler. Die Luftsensoren sind Platzhalter, bis sie in Home Assistant eingerichtet sind.

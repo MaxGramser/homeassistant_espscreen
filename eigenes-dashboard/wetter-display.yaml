@@ -2,10 +2,11 @@
 # Eigenständige ESPHome-Konfiguration mit LVGL, ohne Tessera. README.md erklärt die Einrichtung.
 # Diese Datei schreibt werkzeuge/yaml_bauen.py; Änderungen am Aufbau dort machen, Einstellungen hier oben.
 #
-# Oben ein blaues Panel: Ort, Datum, Kalenderwoche, Temperatur, Sonnenauf- und -untergang, großes Wetterbild
-# (nachts die Mondphase mit dem Wetter klein daneben), Wettertext, Hoch und Tief. Bei einer DWD-Warnung ein Rahmen
-# und ein Hinweis in der Farbe der Warnstufe. Darunter vier Kacheln (Wind, Regen heute, Luftfeuchte, UV-Index),
-# die Temperaturkurve der 5 Tage und der Regen der nächsten Stunden.
+# Oben ein grünes Panel: Ort, Datum, Kalenderwoche, Temperatur, Sonnenauf- und -untergang, großes Wetterbild
+# (nachts die Mondphase mit dem Wetter klein daneben), Hoch und Tief. Bei einer DWD-Warnung oder Vorwarnung wird das
+# Bild kleiner und darunter steht ein Hinweis in der Farbe der Stufe. Darunter vier Kacheln (Wind mit Böen, Regen
+# heute, Luftfeuchte, UV-Index), die Temperaturkurve der 5 Tage und der Regen der nächsten Stunden. Nachts (bis
+# 30 Minuten vor Sonnenaufgang) ist alles dunkel.
 
 substitutions:
   name: wetter-display
@@ -32,10 +33,11 @@ substitutions:
   pm10_buero: sensor.luft_buero_pm10
   voc_buero: sensor.luft_buero_voc_index
   nox_buero: sensor.luft_buero_nox_index
-  # Sekunden, nach denen das Display zwischen Wetter und Raumklima wechselt
-  seitenwechsel: 45s
-  # so lange bleibt das Display an, wenn man es im Nachtmodus mit einem Tippen weckt
-  weckdauer: 10min
+  # Vorschläge für die Regler in Home Assistant (Gerät Wetter-Display, Konfiguration); dort einstellen:
+  # Sekunden bis zum Wechsel zwischen Wetter und Raumklima
+  seitenwechsel: "45"
+  # Minuten, die das Display an bleibt, wenn man es im Nachtmodus mit einem Tippen weckt
+  weckdauer: "10"
 
 esphome:
   name: ${name}
@@ -55,10 +57,12 @@ esphome:
                 id: hintergrundlicht
                 brightness: !lambda return id(helligkeit);
       - script.execute: seite_weiter
+      - script.execute: punkte_zeichnen
+      - script.execute: warn_zeichnen
 
 globals:
   # Helligkeit, die Wischen hoch/runter einstellt; bleibt über einen Neustart erhalten
-  - {id: helligkeit, type: float, restore_value: true, initial_value: "0.8"}
+  - {id: helligkeit, type: float, initial_value: "0.8"}
   # Seite festgehalten (langer Druck): kein automatischer Wechsel, das Schloss ist zu sehen
   - {id: seite_gehalten, type: bool, initial_value: "false"}
   # Gesten: Start- und letzter Punkt einer Berührung, ob der lange Druck schon ausgelöst hat
@@ -67,6 +71,68 @@ globals:
   - {id: t_x1, type: int, initial_value: "0"}
   - {id: t_y1, type: int, initial_value: "0"}
   - {id: t_lang, type: bool, initial_value: "false"}
+  # Tag oder Nacht (helles oder dunkles Design); ob das Thema schon einmal gesetzt wurde
+  - {id: ist_tag, type: bool, initial_value: "true"}
+  - {id: thema_gesetzt, type: bool, initial_value: "false"}
+  # Verbindung zu Home Assistant: seit wann sie fehlt (millis, 0 = verbunden), ob das angezeigt wird, ab wann (Uhrzeit)
+  - {id: offline_seit, type: uint32_t, initial_value: "0"}
+  - {id: offline_an, type: bool, initial_value: "false"}
+  - {id: offline_text, type: std::string, initial_value: '""'}
+
+number:
+  # Einstellungen, die Home Assistant als Regler zeigt (Gerät Wetter-Display, Konfiguration)
+  - platform: template
+    id: nr_seitenwechsel
+    name: Seitenwechsel
+    icon: mdi:timer-outline
+    entity_category: config
+    unit_of_measurement: s
+    min_value: 10
+    max_value: 300
+    step: 5
+    initial_value: ${seitenwechsel}
+    optimistic: true
+    restore_value: true
+    on_value:
+      - script.execute: seite_weiter
+  - platform: template
+    id: nr_weckdauer
+    name: Weckdauer im Nachtmodus
+    icon: mdi:timer-sand
+    entity_category: config
+    unit_of_measurement: min
+    min_value: 1
+    max_value: 60
+    step: 1
+    initial_value: ${weckdauer}
+    optimistic: true
+    restore_value: true
+  - platform: template
+    id: nr_helligkeit
+    name: Helligkeit
+    icon: mdi:brightness-6
+    entity_category: config
+    unit_of_measurement: "%"
+    min_value: 10
+    max_value: 100
+    step: 10
+    initial_value: 80
+    optimistic: true
+    restore_value: true
+    on_value:
+      - lambda: id(helligkeit) = x / 100.0f;
+      - if:
+          condition:
+            lambda: return id(hintergrundlicht).remote_values.is_on();
+          then:
+            - light.turn_on:
+                id: hintergrundlicht
+                brightness: !lambda return id(helligkeit);
+                transition_length: 200ms
+
+button:
+  - platform: restart
+    name: Neustart
 
 switch:
   # Nachtmodus: an = Licht aus, ein Tippen weckt das Display für ${weckdauer}. Wann es Nacht ist, entscheidet eine
@@ -107,6 +173,8 @@ logger:
   hardware_uart: UART0
 
 api:
+  # ohne Home Assistant nicht neu starten, sondern weiter anzeigen (mit dem Hinweis "keine Verbindung")
+  reboot_timeout: 0s
   encryption:
     key: !secret wetter_display_api_key
 
@@ -128,11 +196,13 @@ time:
     on_time_sync:
       then:
         - script.execute: uhr_zeichnen
+        - script.execute: tag_pruefen
         - script.execute: jetzt_zeichnen
     on_time:
       - seconds: 0
         then:
           - script.execute: uhr_zeichnen
+          - script.execute: tag_pruefen
       - seconds: 0
         minutes: 0
         then:
@@ -161,7 +231,7 @@ script:
           id: bild_jetzt
           src: !lambda |-
               auto c = id(wetter_zustand).state;
-              if (id(sonne_zustand).state == "below_horizon" || c == "clear-night") {
+              if (!id(ist_tag) || c == "clear-night") {
                 int m = id(ha_time).now().is_valid() ? wx::mondphase(id(ha_time).now().timestamp) : 4;
               if (m == 0) return id(img_mond_0);
               if (m == 1) return id(img_mond_1);
@@ -207,23 +277,19 @@ script:
       - if:
           condition:
             lambda: |-
-              return id(sonne_zustand).state == "below_horizon" && !wx::nacht_art(id(wetter_zustand).state).empty();
+              return !id(ist_tag) && !wx::nacht_art(id(wetter_zustand).state).empty();
           then:
             - lvgl.widget.show: bild_klein
           else:
             - lvgl.widget.hide: bild_klein
-      - lvgl.obj.update:
-          id: panel
-          bg_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x0B3A26 : 0x14583A);'
-          bg_grad_color: !lambda 'return lv_color_hex(id(sonne_zustand).state == "below_horizon" ? 0x021A10 : 0x004225);'
       # UV-Index: OpenUV wird nur tagsüber abgefragt; nachts ist er 0
       - lvgl.label.update:
           id: lbl_uv
-          text: !lambda 'return id(sonne_zustand).state == "below_horizon" ? std::string("0") : wx::percent(id(wetter_uv).state);'
+          text: !lambda 'return !id(ist_tag) ? std::string("0") : wx::percent(id(wetter_uv).state);'
       - lvgl.label.update:
           id: lbl_uv_text
-          text: !lambda 'return wx::uv_text(id(sonne_zustand).state == "below_horizon" ? 0.0f : id(wetter_uv).state);'
-          text_color: !lambda 'return wx::uv_color(id(sonne_zustand).state == "below_horizon" ? 0.0f : id(wetter_uv).state);'
+          text: !lambda 'return wx::uv_text(!id(ist_tag) ? 0.0f : id(wetter_uv).state);'
+          text_color: !lambda 'return wx::uv_color(!id(ist_tag) ? 0.0f : id(wetter_uv).state);'
   # die Temperaturkurve, ihre Punkte und Werte; läuft, wenn ein Tag neue Daten hat
   - id: kurve_zeichnen
     mode: restart
@@ -329,25 +395,37 @@ script:
           id: lbl_hoch_4
           y: !lambda 'return wx::punkt_y(4) - 28;'
 
-  # alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und startet die Zeit neu
+  # nach der Zeit des Reglers "Seitenwechsel" zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und
+  # startet die Zeit neu
   - id: seite_weiter
     mode: restart
     then:
-      - delay: ${seitenwechsel}
+      - delay: !lambda 'return (uint32_t) (id(nr_seitenwechsel).state * 1000);'
       - if:
           condition:
             lambda: return !id(seite_gehalten);
           then:
+            - script.execute: seite_wechseln
+            - script.execute: seite_weiter
+
+  # die Seite Raumklima gibt es erst, wenn ein Raum einen CO2-Wert hat; bis dahin bleibt das Wetter stehen
+  - id: seite_wechseln
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return wx::innen_da(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state, id(co2_buero).state) ||
+                     id(seite_innen)->is_showing();
+          then:
             - lvgl.page.next:
                 animation: MOVE_LEFT
                 time: 400ms
-            - script.execute: seite_weiter
 
-  # Nachtmodus: nach ${weckdauer} ohne Berührung geht das Licht wieder aus
+  # Nachtmodus: nach der Weckdauer (Regler, Minuten) ohne Berührung geht das Licht wieder aus
   - id: nacht_wecken
     mode: restart
     then:
-      - delay: ${weckdauer}
+      - delay: !lambda 'return (uint32_t) (id(nr_weckdauer).state * 60000);'
       - if:
           condition:
             switch.is_on: nachtmodus
@@ -405,13 +483,12 @@ script:
                 condition:
                   lambda: return art == 1 || art == 2;
                 then:
-                  - lambda: |-
-                      float h = id(helligkeit) + (art == 1 ? 0.2f : -0.2f);
-                      id(helligkeit) = h > 1.0f ? 1.0f : (h < 0.1f ? 0.1f : h);
-                  - light.turn_on:
-                      id: hintergrundlicht
-                      brightness: !lambda return id(helligkeit);
-                      transition_length: 200ms
+                  # über den Regler "Helligkeit", damit Home Assistant den neuen Wert sieht
+                  - number.set:
+                      id: nr_helligkeit
+                      value: !lambda |-
+                        float h = id(nr_helligkeit).state + (art == 1 ? 20 : -20);
+                        return h > 100 ? 100 : (h < 10 ? 10 : h);
             - if:
                 condition:
                   lambda: return art == 3;
@@ -440,10 +517,135 @@ script:
                             condition:
                               lambda: return art == 0;
                             then:
-                              - lvgl.page.next:
-                                  animation: MOVE_LEFT
-                                  time: 400ms
+                              - script.execute: seite_wechseln
                               - script.execute: seite_weiter
+
+  # Tag oder Nacht neu bestimmen (jede Minute und wenn sich die Sonne ändert); bei einem Wechsel Thema und Bild
+  - id: tag_pruefen
+    then:
+      - if:
+          condition:
+            lambda: |-
+              bool t = wx::ist_tag(id(sonne_zustand).state, id(wetter_sonne).state, id(ha_time).now());
+              bool neu = t != id(ist_tag) || !id(thema_gesetzt);
+              id(ist_tag) = t;
+              id(thema_gesetzt) = true;
+              return neu;
+          then:
+            - script.execute: thema_setzen
+            - script.execute: jetzt_zeichnen
+
+  # helles Design am Tag, dunkles in der Nacht
+  - id: thema_setzen
+    then:
+      - if:
+          condition:
+            lambda: return id(ist_tag);
+          then:
+            - lvgl.style.update:
+                id: s_seite
+                bg_color: 0xF3F5F9
+            - lvgl.style.update:
+                id: s_karte
+                bg_color: 0xFFFFFF
+                shadow_opa: 10%
+            - lvgl.style.update:
+                id: s_panel
+                bg_color: 0x14583A
+                bg_grad_color: 0x004225
+            - lvgl.style.update:
+                id: s_ink
+                text_color: 0x14213D
+            - lvgl.style.update:
+                id: s_muted
+                text_color: 0x5F6B80
+            - lvgl.style.update:
+                id: s_gold
+                text_color: 0xB8862B
+            - lvgl.style.update:
+                id: s_linie
+                bg_color: 0x6B5420
+            - lvgl.style.update:
+                id: s_kurve
+                line_color: 0x6B5420
+            - lvgl.style.update:
+                id: s_spur
+                bg_color: 0xE9EDF4
+          else:
+            - lvgl.style.update:
+                id: s_seite
+                bg_color: 0x070D0A
+            - lvgl.style.update:
+                id: s_karte
+                bg_color: 0x121C17
+                shadow_opa: 0%
+            - lvgl.style.update:
+                id: s_panel
+                bg_color: 0x082A1B
+                bg_grad_color: 0x02120B
+            - lvgl.style.update:
+                id: s_ink
+                text_color: 0xE4EAE6
+            - lvgl.style.update:
+                id: s_muted
+                text_color: 0x8A9C92
+            - lvgl.style.update:
+                id: s_gold
+                text_color: 0xC9A04A
+            - lvgl.style.update:
+                id: s_linie
+                bg_color: 0xC9A04A
+            - lvgl.style.update:
+                id: s_kurve
+                line_color: 0xC9A04A
+            - lvgl.style.update:
+                id: s_spur
+                bg_color: 0x22302A
+
+  # Warnung (gefüllt) oder Vorwarnung (nur Rand) unter dem Wetterbild; das Bild wird dafür kleiner
+  - id: warn_zeichnen
+    then:
+      - lambda: |-
+          bool an = wx::warn_pille(id(warn_pill), id(lbl_warn_icon), id(lbl_warn), id(wetter_warnung).state,
+                                   id(wetter_vorwarnung).state, 222);
+          wx::bild_skalieren(id(bild_jetzt), id(bild_klein), 149, 66, an ? 218 : 256);
+
+  # Titel der Wind-Kachel: Richtung und Böen ("SW · Böen 38"), ohne Böen "Wind SW"
+  - id: wind_titel
+    then:
+      - lvgl.label.update:
+          id: lbl_wind_titel
+          text: !lambda |-
+            auto r = wx::richtung(id(wetter_windrichtung).state);
+            float b = id(wetter_boeen).state;
+            if (!std::isnan(b)) return (r.empty() ? std::string("Böen ") : r + " · Böen ") + wx::percent(b);
+            return r.empty() ? std::string("Wind") : "Wind " + r;
+
+  # unten im Panel: die Seitenpunkte, oder bei fehlender Verbindung die Wolke mit der Uhrzeit. Auf der Wetterseite
+  # gibt es die Punkte erst, wenn auch die Seite Raumklima Daten hat.
+  - id: punkte_zeichnen
+    then:
+      - lambda: |-
+          bool off = id(offline_an);
+          bool innen = wx::innen_da(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state, id(co2_buero).state);
+          auto zeig = [](lv_obj_t *o, bool an) {
+            if (an) lv_obj_remove_flag(o, LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
+          };
+          zeig(id(punkte_w), !off && innen);
+          zeig(id(punkte_i), !off);
+          zeig(id(offline_w), off);
+          zeig(id(offline_i), off);
+          lv_label_set_text(id(lbl_offline_w), id(offline_text).c_str());
+          lv_label_set_text(id(lbl_offline_i), id(offline_text).c_str());
+
+  # ohne Verbindung zu Home Assistant: Werte blass, unten die Wolke mit der Uhrzeit
+  - id: verbindung_zeichnen
+    then:
+      - lambda: |-
+          lv_opa_t o = id(offline_an) ? LV_OPA_40 : LV_OPA_COVER;
+          lv_obj_t *blass[] = {id(temp_zeile), id(bild_jetzt), id(bild_klein), id(warn_pill), id(lbl_hochtief), id(karte_tage), id(karte_regen), id(kachel_wind), id(kachel_regen), id(kachel_feuchte), id(kachel_uv), id(lbl_co2_wohnzimmer), id(block_wohnzimmer), id(marker_wohnzimmer), id(lbl_trend_wohnzimmer), id(kachel_wohnzimmer), id(lbl_co2_schlafzimmer), id(block_schlafzimmer), id(marker_schlafzimmer), id(lbl_trend_schlafzimmer), id(kachel_schlafzimmer), id(lbl_co2_buero), id(block_buero), id(marker_buero), id(lbl_trend_buero), id(kachel_buero), id(karte_feinstaub), id(karte_gase)};
+          for (auto *b : blass) lv_obj_set_style_opa(b, o, LV_PART_MAIN);
+      - script.execute: punkte_zeichnen
 
 # ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
 spi:
@@ -575,8 +777,10 @@ font:
   - {file: fonts/Poppins-600.ttf, id: f_22b, size: 22, bpp: 4, glyphs: "-0123456789,.°% "}
   - {file: fonts/Poppins-500.ttf, id: f_20m, size: 20, bpp: 4, glyphs: "-0123456789,.°% "}
   - {file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
+  - {file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: "HochTief0123456789-°· "}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
-  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B", "\U000F005D", "\U000F0045", "\U000F0054"]}
+  - {file: fonts/materialdesignicons-webfont.ttf, id: i_klein, size: 13, bpp: 4, glyphs: ["\U000F0164", "\U000F0717"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_lock, size: 32, bpp: 4, glyphs: ["󰌾"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_warn, size: 16, bpp: 4, glyphs: ["\U000F11DC", "\U000F0026", "\U000F1A71", "\U000F0D64", "\U000F0591", "\U000F0593", "\U000F059D", "\U000F0596", "\U000F0F36", "\U000F18D6"]}
 
@@ -617,6 +821,48 @@ image:
   - {file: bilder/nacht_windy_variant.png, id: img_nacht_windy_variant, type: RGB565, transparency: alpha_channel}
   - {file: bilder/nacht_exceptional.png, id: img_nacht_exceptional, type: RGB565, transparency: alpha_channel}
 
+interval:
+  # Verbindung zu Home Assistant: fehlt sie länger als eine Minute, zeigt das Display das an
+  - interval: 15s
+    then:
+      - if:
+          condition:
+            api.connected:
+          then:
+            - lambda: id(offline_seit) = 0;
+            - if:
+                condition:
+                  lambda: return id(offline_an);
+                then:
+                  - lambda: id(offline_an) = false;
+                  - script.execute: verbindung_zeichnen
+          else:
+            - lambda: |-
+                if (id(offline_seit) == 0) {
+                  id(offline_seit) = millis() | 1;
+                  auto t = id(ha_time).now();
+                  id(offline_text) = t.is_valid() ? t.strftime("%H:%M") : std::string("");
+                }
+            - if:
+                condition:
+                  lambda: return !id(offline_an) && millis() - id(offline_seit) >= 60000;
+                then:
+                  - lambda: id(offline_an) = true;
+                  - script.execute: verbindung_zeichnen
+  # CO2-Trend: alle 5 Minuten die Werte merken und die Pfeile neben den Räumen setzen
+  - interval: 5min
+    then:
+      - lambda: |-
+          wx::co2_merken(0, id(co2_wohnzimmer).state);
+          wx::co2_merken(1, id(co2_schlafzimmer).state);
+          wx::co2_merken(2, id(co2_buero).state);
+          lv_obj_t *pfeil[] = {id(lbl_trend_wohnzimmer), id(lbl_trend_schlafzimmer), id(lbl_trend_buero)};
+          for (int r = 0; r < 3; ++r) {
+            int t = wx::co2_trend(r);
+            lv_label_set_text(pfeil[r], wx::trend_icon(t).c_str());
+            lv_obj_set_style_text_color(pfeil[r], wx::trend_color(t), LV_PART_MAIN);
+          }
+
 # ---------------- Daten aus Home Assistant ----------------
 text_sensor:
   - platform: homeassistant
@@ -625,14 +871,12 @@ text_sensor:
     on_value:
       then:
         - script.execute: jetzt_zeichnen
-        - lvgl.label.update:
-            id: lbl_zustand
-            text: !lambda 'return wx::text(x);'
   - platform: homeassistant
     id: sonne_zustand
     entity_id: sun.sun
     on_value:
       then:
+        - script.execute: tag_pruefen
         - script.execute: jetzt_zeichnen
   - platform: homeassistant
     id: wetter_sonne
@@ -641,6 +885,7 @@ text_sensor:
     on_value:
       then:
         - script.execute: uhr_zeichnen
+        - script.execute: tag_pruefen
         - lvgl.label.update:
             id: lbl_auf
             text: !lambda 'return wx::uhr_epoch(wx::part(x, 0));'
@@ -653,34 +898,26 @@ text_sensor:
     attribute: warnung
     on_value:
       then:
-        - if:
-            condition:
-              lambda: 'return wx::num(wx::part(x, 0)) >= 1;'
-            then:
-              - lvgl.obj.update:
-                  id: rahmen
-                  border_color: !lambda 'return wx::warn_color((int) wx::num(wx::part(x, 0)));'
-              - lvgl.obj.update:
-                  id: warn_pill
-                  bg_color: !lambda 'return wx::warn_color((int) wx::num(wx::part(x, 0)));'
-              - lvgl.label.update:
-                  id: lbl_warn_icon
-                  text: !lambda 'return wx::warn_icon(wx::part(x, 2));'
-                  text_color: !lambda 'return wx::warn_text_color((int) wx::num(wx::part(x, 0)));'
-              - lvgl.label.update:
-                  id: lbl_warn
-                  text: !lambda 'return wx::part(x, 1);'
-                  text_color: !lambda 'return wx::warn_text_color((int) wx::num(wx::part(x, 0)));'
-              # mehrere Warnungen: passt der Text nicht neben den Ort, läuft er als Lauftext durch den Hinweis
-              - lambda: |-
-                  lv_obj_t *l = id(lbl_warn);
-                  lv_point_t sz;
-                  lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
-                                   LV_COORD_MAX, LV_TEXT_FLAG_NONE);
-                  lv_obj_set_width(l, sz.x > 112 ? 112 : LV_SIZE_CONTENT);
-              - lvgl.widget.show: [rahmen, warn_pill]
-            else:
-              - lvgl.widget.hide: [rahmen, warn_pill]
+        - script.execute: warn_zeichnen
+  - platform: homeassistant
+    id: wetter_vorwarnung
+    entity_id: ${vorhersage_entity}
+    attribute: vorwarnung
+    on_value:
+      then:
+        - script.execute: warn_zeichnen
+  - platform: homeassistant
+    id: wetter_regen_satz
+    entity_id: ${vorhersage_entity}
+    attribute: regen_satz
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_satz_a
+            text: !lambda 'auto a = wx::part(x, 0); return a.empty() ? std::string("Regen") : a;'
+        - lvgl.label.update:
+            id: lbl_satz_b
+            text: !lambda 'return wx::part(x, 1);'
   - platform: homeassistant
     id: tag_0
     entity_id: ${vorhersage_entity}
@@ -704,6 +941,14 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_name_0
             text: !lambda 'return wx::part(x, 0);'
+        # Frost: Tief unter 0 Grad, ein kleiner Eiskristall am Wetter-Icon
+        - if:
+            condition:
+              lambda: 'return wx::num(wx::part(x, 3)) < 0;'
+            then:
+              - lvgl.widget.show: lbl_frost_0
+            else:
+              - lvgl.widget.hide: lbl_frost_0
         - lvgl.label.update:
             id: lbl_legende_einheit
             text: !lambda 'auto u = wx::rain_unit(wx::part(x, 4), wx::part(x, 5)); return u.empty() ? std::string("%") : u;'
@@ -739,6 +984,14 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_name_1
             text: !lambda 'return wx::part(x, 0);'
+        # Frost: Tief unter 0 Grad, ein kleiner Eiskristall am Wetter-Icon
+        - if:
+            condition:
+              lambda: 'return wx::num(wx::part(x, 3)) < 0;'
+            then:
+              - lvgl.widget.show: lbl_frost_1
+            else:
+              - lvgl.widget.hide: lbl_frost_1
   - platform: homeassistant
     id: tag_2
     entity_id: ${vorhersage_entity}
@@ -762,6 +1015,14 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_name_2
             text: !lambda 'return wx::part(x, 0);'
+        # Frost: Tief unter 0 Grad, ein kleiner Eiskristall am Wetter-Icon
+        - if:
+            condition:
+              lambda: 'return wx::num(wx::part(x, 3)) < 0;'
+            then:
+              - lvgl.widget.show: lbl_frost_2
+            else:
+              - lvgl.widget.hide: lbl_frost_2
   - platform: homeassistant
     id: tag_3
     entity_id: ${vorhersage_entity}
@@ -785,6 +1046,14 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_name_3
             text: !lambda 'return wx::part(x, 0);'
+        # Frost: Tief unter 0 Grad, ein kleiner Eiskristall am Wetter-Icon
+        - if:
+            condition:
+              lambda: 'return wx::num(wx::part(x, 3)) < 0;'
+            then:
+              - lvgl.widget.show: lbl_frost_3
+            else:
+              - lvgl.widget.hide: lbl_frost_3
   - platform: homeassistant
     id: tag_4
     entity_id: ${vorhersage_entity}
@@ -808,6 +1077,14 @@ text_sensor:
         - lvgl.label.update:
             id: lbl_name_4
             text: !lambda 'return wx::part(x, 0);'
+        # Frost: Tief unter 0 Grad, ein kleiner Eiskristall am Wetter-Icon
+        - if:
+            condition:
+              lambda: 'return wx::num(wx::part(x, 3)) < 0;'
+            then:
+              - lvgl.widget.show: lbl_frost_4
+            else:
+              - lvgl.widget.hide: lbl_frost_4
   - platform: homeassistant
     id: stunde_0
     entity_id: ${vorhersage_entity}
@@ -918,15 +1195,28 @@ sensor:
     attribute: wind_bearing
     on_value:
       then:
-        - lvgl.label.update:
-            id: lbl_wind_titel
-            text: !lambda 'auto r = wx::richtung(x); return r.empty() ? std::string("Wind") : "Wind " + r;'
+        - script.execute: wind_titel
+  - platform: homeassistant
+    id: wetter_boeen
+    entity_id: ${wetter_entity}
+    attribute: wind_gust_speed
+    on_value:
+      then:
+        - script.execute: wind_titel
   - platform: homeassistant
     id: wetter_uv
     entity_id: ${uv_entity}
     on_value:
       then:
         - script.execute: jetzt_zeichnen
+  # Diagnose in Home Assistant
+  - platform: wifi_signal
+    name: WLAN-Signal
+    update_interval: 60s
+    entity_category: diagnostic
+  - platform: uptime
+    name: Laufzeit
+    entity_category: diagnostic
 
   - platform: homeassistant
     id: co2_wohnzimmer
@@ -956,6 +1246,7 @@ sensor:
             id: marker_wohnzimmer
             x: !lambda 'return 16 + wx::co2_marker_x(x, 117) + 6 - 11;'
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - script.execute: punkte_zeichnen
   - platform: homeassistant
     id: temp_wohnzimmer
     entity_id: ${temp_wohnzimmer}
@@ -1001,6 +1292,7 @@ sensor:
             id: marker_schlafzimmer
             x: !lambda 'return 173 + wx::co2_marker_x(x, 117) + 6 - 11;'
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - script.execute: punkte_zeichnen
   - platform: homeassistant
     id: temp_schlafzimmer
     entity_id: ${temp_schlafzimmer}
@@ -1046,6 +1338,7 @@ sensor:
             id: marker_buero
             x: !lambda 'return 331 + wx::co2_marker_x(x, 117) + 6 - 11;'
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
+        - script.execute: punkte_zeichnen
   - platform: homeassistant
     id: temp_buero
     entity_id: ${temp_buero}
@@ -1156,6 +1449,28 @@ lvgl:
   touchscreens: [ts_touch]
   buffer_size: 25%
   default_font: f_14
+  # Farben, die zwischen Tag (hell) und Nacht (dunkel) wechseln; das Skript thema_setzen schaltet sie um
+  style_definitions:
+    - id: s_seite
+      bg_color: 0xF3F5F9
+    - id: s_karte
+      bg_color: 0xFFFFFF
+      shadow_opa: 10%
+    - id: s_panel
+      bg_color: 0x14583A
+      bg_grad_color: 0x004225
+    - id: s_ink
+      text_color: 0x14213D
+    - id: s_muted
+      text_color: 0x5F6B80
+    - id: s_gold
+      text_color: 0xB8862B
+    - id: s_linie
+      bg_color: 0x6B5420
+    - id: s_kurve
+      line_color: 0x6B5420
+    - id: s_spur
+      bg_color: 0xE9EDF4
   # das Schloss (Seite festgehalten) erscheint kurz in der Mitte über beiden Seiten und blendet sich wieder aus
   top_layer:
     widgets:
@@ -1181,10 +1496,10 @@ lvgl:
                 align: CENTER
                 text: "\U000F033E"
                 text_font: i_lock
-                text_color: 0x0B3A26
+                text_color: 0x082A1B
   pages:
     - id: seite_wetter
-      bg_color: 0xF3F5F9
+      styles: s_seite
       bg_opa: COVER
       scrollable: false
       pad_all: 0
@@ -1195,8 +1510,7 @@ lvgl:
             y: 8
             width: 464
             height: 212
-            bg_color: 0x14583A
-            bg_grad_color: 0x004225
+            styles: s_panel
             bg_grad_dir: VER
             bg_opa: COVER
             border_width: 0
@@ -1206,63 +1520,13 @@ lvgl:
             scrollable: false
             clickable: false
             widgets:
-              - obj:
+              - label:
+                  id: lbl_ort
                   x: 16
                   y: 12
-                  width: SIZE_CONTENT
-                  height: SIZE_CONTENT
-                  bg_opa: TRANSP
-                  border_width: 0
-                  pad_all: 0
-                  scrollable: false
-                  clickable: false
-                  layout: 
-                      type: FLEX
-                      flex_flow: ROW
-                      flex_align_main: START
-                      flex_align_cross: CENTER
-                      flex_align_track: CENTER
-                      pad_column: 12
-                  widgets:
-                      - label:
-                          id: lbl_ort
-                          text: "${ort}"
-                          text_font: f_ort
-                          text_color: 0xFFFFFF
-                      - obj:
-                          id: warn_pill
-                          hidden: true
-                          height: 24
-                          width: SIZE_CONTENT
-                          radius: 12
-                          bg_color: 0xF08A24
-                          bg_opa: COVER
-                          border_width: 0
-                          pad_left: 7
-                          pad_right: 10
-                          pad_top: 0
-                          pad_bottom: 0
-                          scrollable: false
-                          clickable: false
-                          layout: 
-                              type: FLEX
-                              flex_flow: ROW
-                              flex_align_main: START
-                              flex_align_cross: CENTER
-                              flex_align_track: CENTER
-                              pad_column: 5
-                          widgets:
-                          - label:
-                              id: lbl_warn_icon
-                              text: "\U000F0026"
-                              text_font: i_warn
-                              text_color: 0xFFFFFF
-                          - label:
-                              id: lbl_warn
-                              text: ""
-                              text_font: f_pill
-                              text_color: 0xFFFFFF
-                              long_mode: SCROLL_CIRCULAR
+                  text: "${ort}"
+                  text_font: f_ort
+                  text_color: 0xFFFFFF
               - obj:
                   x: 16
                   y: 45
@@ -1312,6 +1576,7 @@ lvgl:
                               text_font: f_14m
                               text_color: 0xFFFFFF
               - obj:
+                  id: temp_zeile
                   x: 12
                   y: 65
                   width: SIZE_CONTENT
@@ -1393,61 +1658,137 @@ lvgl:
                           text_color: 0xB9CFC2
               - image:
                   id: bild_jetzt
-                  x: 311
-                  y: 5
+                  x: 299
+                  y: 2
                   src: img_tag_cloudy
               - image:
                   id: bild_klein
-                  x: 372
-                  y: 66
+                  x: 365
+                  y: 68
                   src: img_nacht_wolke
                   hidden: true
-              - label:
-                  id: lbl_zustand
-                  x: 284
-                  y: 148
-                  width: 164
-                  text: ""
-                  text_font: f_17m
-                  text_color: 0xFFFFFF
-                  text_align: RIGHT
-                  long_mode: DOT
               - label:
                   id: lbl_hochtief
                   x: 284
                   y: 174
                   width: 164
                   text: ""
-                  text_font: f_14
+                  text_font: f_15
                   text_color: 0xB9CFC2
                   text_align: RIGHT
               - obj:
-                  id: rahmen
+                  id: warn_pill
+                  hidden: true
+                  align: TOP_RIGHT
+                  x: -16
+                  y: 144
+                  height: 24
+                  width: SIZE_CONTENT
+                  radius: 12
+                  bg_color: 0xF08A24
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_left: 7
+                  pad_right: 10
+                  pad_top: 0
+                  pad_bottom: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  widgets:
+                      - label:
+                          id: lbl_warn_icon
+                          text: "\U000F0026"
+                          text_font: i_warn
+                          text_color: 0xFFFFFF
+                      - label:
+                          id: lbl_warn
+                          text: ""
+                          text_font: f_pill
+                          text_color: 0xFFFFFF
+                          long_mode: SCROLL_CIRCULAR
+              - obj:
+                  id: punkte_w
                   x: 0
-                  y: 0
-                  width: 464
-                  height: 212
+                  y: -7
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
                   bg_opa: TRANSP
-                  border_width: 4
-                  border_color: 0xF08A24
-                  radius: 22
+                  border_width: 0
                   pad_all: 0
                   scrollable: false
                   clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  align: BOTTOM_MID
+                  widgets:
+                      - obj:
+                          width: 14
+                          height: 6
+                          radius: 3
+                          bg_color: 0xD4A548
+                          bg_opa: COVER
+                          border_width: 0
+                      - obj:
+                          width: 6
+                          height: 6
+                          radius: 3
+                          bg_color: 0xFFFFFF
+                          bg_opa: 35%
+                          border_width: 0
+              - obj:
+                  id: offline_w
+                  x: 0
+                  y: -2
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 4
+                  align: BOTTOM_MID
                   hidden: true
+                  widgets:
+                      - label:
+                          text: "\U000F0164"
+                          text_font: i_klein
+                          text_color: 0xFFD27A
+                      - label:
+                          id: lbl_offline_w
+                          text: ""
+                          text_font: f_12
+                          text_color: 0xFFD27A
         - obj:
             id: kachel_wind
             x: 8
             y: 228
             width: 110
             height: 62
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -1457,9 +1798,11 @@ lvgl:
                   id: lbl_wind_titel
                   x: 16
                   y: 9
+                  width: 90
                   text: "Wind"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
+                  long_mode: DOT
               - obj:
                   x: 15
                   y: 28
@@ -1481,18 +1824,18 @@ lvgl:
                       - label:
                           text: "\U000F059D"
                           text_font: i_ui
-                          text_color: 0xB8862B
+                          styles: s_gold
                           pad_right: 3
                           pad_bottom: 4
                       - label:
                           id: lbl_wind
                           text: "--"
                           text_font: f_wert
-                          text_color: 0x14213D
+                          styles: s_ink
                       - label:
                           text: "km/h"
                           text_font: f_14
-                          text_color: 0x5F6B80
+                          styles: s_muted
                           pad_bottom: 3
         - obj:
             id: kachel_regen
@@ -1500,13 +1843,12 @@ lvgl:
             y: 228
             width: 110
             height: 62
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -1517,7 +1859,7 @@ lvgl:
                   y: 9
                   text: "Regen heute"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - obj:
                   x: 15
                   y: 28
@@ -1539,19 +1881,19 @@ lvgl:
                       - label:
                           text: "\U000F054A"
                           text_font: i_ui
-                          text_color: 0xB8862B
+                          styles: s_gold
                           pad_right: 3
                           pad_bottom: 4
                       - label:
                           id: lbl_regen
                           text: "--"
                           text_font: f_wert
-                          text_color: 0x14213D
+                          styles: s_ink
                       - label:
                           id: lbl_regen_einheit
                           text: "%"
                           text_font: f_14
-                          text_color: 0x5F6B80
+                          styles: s_muted
                           pad_bottom: 3
         - obj:
             id: kachel_feuchte
@@ -1559,13 +1901,12 @@ lvgl:
             y: 228
             width: 110
             height: 62
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -1576,7 +1917,7 @@ lvgl:
                   y: 9
                   text: "Luftfeuchte"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - obj:
                   x: 15
                   y: 28
@@ -1598,18 +1939,18 @@ lvgl:
                       - label:
                           text: "\U000F058E"
                           text_font: i_ui
-                          text_color: 0xB8862B
+                          styles: s_gold
                           pad_right: 3
                           pad_bottom: 4
                       - label:
                           id: lbl_feuchte
                           text: "--"
                           text_font: f_wert
-                          text_color: 0x14213D
+                          styles: s_ink
                       - label:
                           text: "%"
                           text_font: f_14
-                          text_color: 0x5F6B80
+                          styles: s_muted
                           pad_bottom: 3
         - obj:
             id: kachel_uv
@@ -1617,13 +1958,12 @@ lvgl:
             y: 228
             width: 110
             height: 62
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -1634,7 +1974,7 @@ lvgl:
                   y: 9
                   text: "UV-Index"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - obj:
                   x: 15
                   y: 28
@@ -1656,14 +1996,14 @@ lvgl:
                       - label:
                           text: "\U000F05A8"
                           text_font: i_ui
-                          text_color: 0xB8862B
+                          styles: s_gold
                           pad_right: 3
                           pad_bottom: 4
                       - label:
                           id: lbl_uv
                           text: "--"
                           text_font: f_wert
-                          text_color: 0x14213D
+                          styles: s_ink
                       - label:
                           id: lbl_uv_text
                           text: ""
@@ -1676,13 +2016,12 @@ lvgl:
             y: 298
             width: 228
             height: 174
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 16
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -1693,7 +2032,7 @@ lvgl:
                   y: 10
                   text: "5 Tage"
                   text_font: f_17m
-                  text_color: 0x14213D
+                  styles: s_ink
               - obj:
                   x: -16
                   y: 13
@@ -1717,29 +2056,29 @@ lvgl:
                           width: 10
                           height: 3
                           radius: 2
-                          bg_color: 0x6B5420
+                          styles: s_linie
                           bg_opa: COVER
                           border_width: 0
                       - label:
                           text: "Temp"
                           text_font: f_13
-                          text_color: 0x5F6B80
+                          styles: s_muted
                       - label:
                           id: lbl_legende_einheit
                           text: "%"
                           text_font: f_13m
-                          text_color: 0xB8862B
+                          styles: s_gold
                           pad_left: 6
                       - label:
                           text: "Regen"
                           text_font: f_13
-                          text_color: 0x5F6B80
+                          styles: s_muted
               - obj:
                   x: 16
                   y: 106
                   width: 196
                   height: 1
-                  bg_color: 0x6B5420
+                  styles: s_linie
                   bg_opa: 14%
                   border_width: 0
                   radius: 0
@@ -1749,7 +2088,7 @@ lvgl:
               - line:
                   id: kurve
                   points: [[36, 80], [40, 80], [45, 80], [50, 80], [55, 80], [60, 80], [65, 80], [70, 80], [75, 80], [80, 80], [85, 80], [90, 80], [94, 80], [99, 80], [104, 80], [109, 80], [114, 80], [119, 80], [124, 80], [129, 80], [134, 80], [138, 80], [143, 80], [148, 80], [153, 80], [158, 80], [163, 80], [168, 80], [173, 80], [178, 80], [183, 80], [188, 80], [192, 80]]
-                  line_color: 0x6B5420
+                  styles: s_kurve
                   line_width: 3
                   line_rounded: true
               - obj:
@@ -1759,10 +2098,10 @@ lvgl:
                   width: 10
                   height: 10
                   radius: 5
-                  bg_color: 0xB8862B
                   bg_opa: COVER
                   border_width: 3
                   border_color: 0xB8862B
+                  bg_color: 0xB8862B
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1773,7 +2112,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_16m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
               - label:
                   id: lbl_regen_0
@@ -1782,7 +2121,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
                   long_mode: CLIP
               - label:
@@ -1792,8 +2131,16 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: i_tag
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
+              - label:
+                  id: lbl_frost_0
+                  x: 44
+                  y: 121
+                  text: "\U000F0717"
+                  text_font: i_klein
+                  text_color: 0x7FA7D9
+                  hidden: true
               - label:
                   id: lbl_name_0
                   x: 14
@@ -1801,7 +2148,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
               - obj:
                   id: punkt_1
@@ -1810,10 +2157,10 @@ lvgl:
                   width: 10
                   height: 10
                   radius: 5
-                  bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
                   border_color: 0xB8862B
+                  styles: s_karte
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1824,7 +2171,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_16m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: CENTER
               - label:
                   id: lbl_regen_1
@@ -1833,7 +2180,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
                   long_mode: CLIP
               - label:
@@ -1843,8 +2190,16 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: i_tag
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
+              - label:
+                  id: lbl_frost_1
+                  x: 83
+                  y: 121
+                  text: "\U000F0717"
+                  text_font: i_klein
+                  text_color: 0x7FA7D9
+                  hidden: true
               - label:
                   id: lbl_name_1
                   x: 53
@@ -1852,7 +2207,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
               - obj:
                   id: punkt_2
@@ -1861,10 +2216,10 @@ lvgl:
                   width: 10
                   height: 10
                   radius: 5
-                  bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
                   border_color: 0xB8862B
+                  styles: s_karte
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1875,7 +2230,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_16m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: CENTER
               - label:
                   id: lbl_regen_2
@@ -1884,7 +2239,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
                   long_mode: CLIP
               - label:
@@ -1894,8 +2249,16 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: i_tag
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
+              - label:
+                  id: lbl_frost_2
+                  x: 122
+                  y: 121
+                  text: "\U000F0717"
+                  text_font: i_klein
+                  text_color: 0x7FA7D9
+                  hidden: true
               - label:
                   id: lbl_name_2
                   x: 92
@@ -1903,7 +2266,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
               - obj:
                   id: punkt_3
@@ -1912,10 +2275,10 @@ lvgl:
                   width: 10
                   height: 10
                   radius: 5
-                  bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
                   border_color: 0xB8862B
+                  styles: s_karte
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1926,7 +2289,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_16m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: CENTER
               - label:
                   id: lbl_regen_3
@@ -1935,7 +2298,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
                   long_mode: CLIP
               - label:
@@ -1945,8 +2308,16 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: i_tag
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
+              - label:
+                  id: lbl_frost_3
+                  x: 161
+                  y: 121
+                  text: "\U000F0717"
+                  text_font: i_klein
+                  text_color: 0x7FA7D9
+                  hidden: true
               - label:
                   id: lbl_name_3
                   x: 131
@@ -1954,7 +2325,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
               - obj:
                   id: punkt_4
@@ -1963,10 +2334,10 @@ lvgl:
                   width: 10
                   height: 10
                   radius: 5
-                  bg_color: 0xFFFFFF
                   bg_opa: COVER
                   border_width: 3
                   border_color: 0xB8862B
+                  styles: s_karte
                   pad_all: 0
                   scrollable: false
                   clickable: false
@@ -1977,7 +2348,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_16m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: CENTER
               - label:
                   id: lbl_regen_4
@@ -1986,7 +2357,7 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: f_13m
-                  text_color: 0xB8862B
+                  styles: s_gold
                   text_align: CENTER
                   long_mode: CLIP
               - label:
@@ -1996,8 +2367,16 @@ lvgl:
                   width: 40
                   text: ""
                   text_font: i_tag
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
+              - label:
+                  id: lbl_frost_4
+                  x: 200
+                  y: 121
+                  text: "\U000F0717"
+                  text_font: i_klein
+                  text_color: 0x7FA7D9
+                  hidden: true
               - label:
                   id: lbl_name_4
                   x: 170
@@ -2005,7 +2384,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
                   text_align: CENTER
         - obj:
             id: karte_regen
@@ -2013,27 +2392,20 @@ lvgl:
             y: 298
             width: 228
             height: 174
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 16
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
             clickable: false
             widgets:
-              - label:
+              - obj:
                   x: 16
                   y: 10
-                  text: "Regen"
-                  text_font: f_17m
-                  text_color: 0x14213D
-              - obj:
-                  x: -16
-                  y: 13
                   width: SIZE_CONTENT
                   height: SIZE_CONTENT
                   bg_opa: TRANSP
@@ -2048,12 +2420,17 @@ lvgl:
                       flex_align_cross: CENTER
                       flex_align_track: CENTER
                       pad_column: 5
-                  align: TOP_RIGHT
                   widgets:
                       - label:
-                          text: "nächste Stunden"
-                          text_font: f_13
-                          text_color: 0x5F6B80
+                          id: lbl_satz_a
+                          text: "Regen"
+                          text_font: f_17m
+                          styles: s_ink
+                      - label:
+                          id: lbl_satz_b
+                          text: ""
+                          text_font: f_17m
+                          styles: s_gold
               - label:
                   id: lbl_std_0
                   x: 16
@@ -2061,7 +2438,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_std_0
                   x: 70
@@ -2082,7 +2459,7 @@ lvgl:
                   width: 56
                   text: ""
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
                   long_mode: CLIP
               - label:
@@ -2092,7 +2469,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_std_1
                   x: 70
@@ -2113,7 +2490,7 @@ lvgl:
                   width: 56
                   text: ""
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
                   long_mode: CLIP
               - label:
@@ -2123,7 +2500,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_std_2
                   x: 70
@@ -2144,7 +2521,7 @@ lvgl:
                   width: 56
                   text: ""
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
                   long_mode: CLIP
               - label:
@@ -2154,7 +2531,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_std_3
                   x: 70
@@ -2175,7 +2552,7 @@ lvgl:
                   width: 56
                   text: ""
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
                   long_mode: CLIP
               - label:
@@ -2185,7 +2562,7 @@ lvgl:
                   width: 44
                   text: ""
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_std_4
                   x: 70
@@ -2206,11 +2583,11 @@ lvgl:
                   width: 56
                   text: ""
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
                   long_mode: CLIP
     - id: seite_innen
-      bg_color: 0xF3F5F9
+      styles: s_seite
       bg_opa: COVER
       scrollable: false
       pad_all: 0
@@ -2221,8 +2598,7 @@ lvgl:
             y: 8
             width: 464
             height: 212
-            bg_color: 0x14583A
-            bg_grad_color: 0x004225
+            styles: s_panel
             bg_grad_dir: VER
             bg_opa: COVER
             border_width: 0
@@ -2282,12 +2658,33 @@ lvgl:
                           text: "ppm"
                           text_font: f_14m
                           text_color: 0xFFFFFF
-              - label:
+              - obj:
                   x: 16
-                  y: 81
-                  text: "Wohnzimmer"
-                  text_font: f_14
-                  text_color: 0xB9CFC2
+                  y: 79
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 6
+                  widgets:
+                      - label:
+                          text: "Wohnzimmer"
+                          text_font: f_14
+                          text_color: 0xB9CFC2
+                      - label:
+                          id: lbl_trend_wohnzimmer
+                          text: ""
+                          text_font: i_ui
+                          text_color: 0xB9CFC2
               - obj:
                   id: block_wohnzimmer
                   x: 5
@@ -2399,12 +2796,33 @@ lvgl:
                   pad_all: 0
                   scrollable: false
                   clickable: false
-              - label:
+              - obj:
                   x: 173
-                  y: 81
-                  text: "Schlafzimmer"
-                  text_font: f_14
-                  text_color: 0xB9CFC2
+                  y: 79
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 6
+                  widgets:
+                      - label:
+                          text: "Schlafzimmer"
+                          text_font: f_14
+                          text_color: 0xB9CFC2
+                      - label:
+                          id: lbl_trend_schlafzimmer
+                          text: ""
+                          text_font: i_ui
+                          text_color: 0xB9CFC2
               - obj:
                   id: block_schlafzimmer
                   x: 162
@@ -2516,12 +2934,33 @@ lvgl:
                   pad_all: 0
                   scrollable: false
                   clickable: false
-              - label:
+              - obj:
                   x: 331
-                  y: 81
-                  text: "Büro"
-                  text_font: f_14
-                  text_color: 0xB9CFC2
+                  y: 79
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 6
+                  widgets:
+                      - label:
+                          text: "Büro"
+                          text_font: f_14
+                          text_color: 0xB9CFC2
+                      - label:
+                          id: lbl_trend_buero
+                          text: ""
+                          text_font: i_ui
+                          text_color: 0xB9CFC2
               - obj:
                   id: block_buero
                   x: 320
@@ -2621,19 +3060,82 @@ lvgl:
                   pad_all: 0
                   scrollable: false
                   clickable: false
+              - obj:
+                  id: punkte_i
+                  x: 0
+                  y: -7
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 5
+                  align: BOTTOM_MID
+                  widgets:
+                      - obj:
+                          width: 6
+                          height: 6
+                          radius: 3
+                          bg_color: 0xFFFFFF
+                          bg_opa: 35%
+                          border_width: 0
+                      - obj:
+                          width: 14
+                          height: 6
+                          radius: 3
+                          bg_color: 0xD4A548
+                          bg_opa: COVER
+                          border_width: 0
+              - obj:
+                  id: offline_i
+                  x: 0
+                  y: -2
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  layout: 
+                      type: FLEX
+                      flex_flow: ROW
+                      flex_align_main: START
+                      flex_align_cross: CENTER
+                      flex_align_track: CENTER
+                      pad_column: 4
+                  align: BOTTOM_MID
+                  hidden: true
+                  widgets:
+                      - label:
+                          text: "\U000F0164"
+                          text_font: i_klein
+                          text_color: 0xFFD27A
+                      - label:
+                          id: lbl_offline_i
+                          text: ""
+                          text_font: f_12
+                          text_color: 0xFFD27A
         - obj:
             id: kachel_wohnzimmer
             x: 8
             y: 228
             width: 149
             height: 96
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -2644,14 +3146,14 @@ lvgl:
                   y: 9
                   text: "Wohnzimmer"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - label:
                   id: lbl_temp_wohnzimmer
                   x: 16
                   y: 27
                   text: "--"
                   text_font: f_28m
-                  text_color: 0x14213D
+                  styles: s_ink
               - obj:
                   x: 16
                   y: 62
@@ -2674,11 +3176,11 @@ lvgl:
                           id: lbl_feuchte_wohnzimmer
                           text: "--"
                           text_font: f_22b
-                          text_color: 0x5F6B80
+                          styles: s_muted
                       - label:
                           text: "%"
                           text_font: f_16
-                          text_color: 0x5F6B80
+                          styles: s_muted
                           pad_bottom: 3
         - obj:
             id: kachel_schlafzimmer
@@ -2686,13 +3188,12 @@ lvgl:
             y: 228
             width: 149
             height: 96
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -2703,14 +3204,14 @@ lvgl:
                   y: 9
                   text: "Schlafzimmer"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - label:
                   id: lbl_temp_schlafzimmer
                   x: 16
                   y: 27
                   text: "--"
                   text_font: f_28m
-                  text_color: 0x14213D
+                  styles: s_ink
               - obj:
                   x: 16
                   y: 62
@@ -2733,11 +3234,11 @@ lvgl:
                           id: lbl_feuchte_schlafzimmer
                           text: "--"
                           text_font: f_22b
-                          text_color: 0x5F6B80
+                          styles: s_muted
                       - label:
                           text: "%"
                           text_font: f_16
-                          text_color: 0x5F6B80
+                          styles: s_muted
                           pad_bottom: 3
         - obj:
             id: kachel_buero
@@ -2745,13 +3246,12 @@ lvgl:
             y: 228
             width: 149
             height: 96
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 14
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -2762,14 +3262,14 @@ lvgl:
                   y: 9
                   text: "Büro"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - label:
                   id: lbl_temp_buero
                   x: 16
                   y: 27
                   text: "--"
                   text_font: f_28m
-                  text_color: 0x14213D
+                  styles: s_ink
               - obj:
                   x: 16
                   y: 62
@@ -2792,11 +3292,11 @@ lvgl:
                           id: lbl_feuchte_buero
                           text: "--"
                           text_font: f_22b
-                          text_color: 0x5F6B80
+                          styles: s_muted
                       - label:
                           text: "%"
                           text_font: f_16
-                          text_color: 0x5F6B80
+                          styles: s_muted
                           pad_bottom: 3
         - obj:
             id: karte_feinstaub
@@ -2804,13 +3304,12 @@ lvgl:
             y: 332
             width: 228
             height: 140
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 16
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -2821,7 +3320,7 @@ lvgl:
                   y: 10
                   text: "Feinstaub"
                   text_font: f_17m
-                  text_color: 0x14213D
+                  styles: s_ink
               - obj:
                   x: -16
                   y: 13
@@ -2844,14 +3343,14 @@ lvgl:
                       - label:
                           text: "Büro · µg/m³"
                           text_font: f_13
-                          text_color: 0x5F6B80
+                          styles: s_muted
               - label:
                   x: 16
                   y: 42
                   width: 44
                   text: "PM1"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_pm1
                   x: 70
@@ -2862,7 +3361,7 @@ lvgl:
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0xE9EDF4
+                  styles: s_spur
                   bg_opa: COVER
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
@@ -2872,7 +3371,7 @@ lvgl:
                   width: 34
                   text: "--"
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
               - label:
                   x: 16
@@ -2880,7 +3379,7 @@ lvgl:
                   width: 44
                   text: "PM2.5"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_pm25
                   x: 70
@@ -2891,7 +3390,7 @@ lvgl:
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0xE9EDF4
+                  styles: s_spur
                   bg_opa: COVER
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
@@ -2901,7 +3400,7 @@ lvgl:
                   width: 34
                   text: "--"
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
               - label:
                   x: 16
@@ -2909,7 +3408,7 @@ lvgl:
                   width: 44
                   text: "PM4"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_pm4
                   x: 70
@@ -2920,7 +3419,7 @@ lvgl:
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0xE9EDF4
+                  styles: s_spur
                   bg_opa: COVER
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
@@ -2930,7 +3429,7 @@ lvgl:
                   width: 34
                   text: "--"
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
               - label:
                   x: 16
@@ -2938,7 +3437,7 @@ lvgl:
                   width: 44
                   text: "PM10"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - bar:
                   id: bar_pm10
                   x: 70
@@ -2949,7 +3448,7 @@ lvgl:
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0xE9EDF4
+                  styles: s_spur
                   bg_opa: COVER
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
@@ -2959,7 +3458,7 @@ lvgl:
                   width: 34
                   text: "--"
                   text_font: f_14m
-                  text_color: 0x14213D
+                  styles: s_ink
                   text_align: RIGHT
         - obj:
             id: karte_gase
@@ -2967,13 +3466,12 @@ lvgl:
             y: 332
             width: 228
             height: 140
-            bg_color: 0xFFFFFF
+            styles: s_karte
             bg_opa: COVER
             border_width: 0
             radius: 16
             shadow_width: 18
             shadow_color: 0x6B5420
-            shadow_opa: 10%
             shadow_offset_y: 4
             pad_all: 0
             scrollable: false
@@ -2984,7 +3482,7 @@ lvgl:
                   y: 10
                   text: "Gase"
                   text_font: f_17m
-                  text_color: 0x14213D
+                  styles: s_ink
               - obj:
                   x: -16
                   y: 13
@@ -3007,13 +3505,13 @@ lvgl:
                       - label:
                           text: "Büro · 3D-Drucker"
                           text_font: f_13
-                          text_color: 0x5F6B80
+                          styles: s_muted
               - label:
                   x: 16
                   y: 41
                   text: "VOC-Index"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - label:
                   id: lbl_voc_stufe
                   x: 16
@@ -3030,7 +3528,7 @@ lvgl:
                   width: 44
                   text: "--"
                   text_font: f_20m
-                  text_color: 0x14213D
+                  styles: s_ink
               - bar:
                   id: bar_voc
                   x: 70
@@ -3041,7 +3539,7 @@ lvgl:
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0xE9EDF4
+                  styles: s_spur
                   bg_opa: COVER
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}
               - label:
@@ -3049,7 +3547,7 @@ lvgl:
                   y: 89
                   text: "NOx-Index"
                   text_font: f_14
-                  text_color: 0x5F6B80
+                  styles: s_muted
               - label:
                   id: lbl_nox_stufe
                   x: 16
@@ -3066,7 +3564,7 @@ lvgl:
                   width: 44
                   text: "--"
                   text_font: f_20m
-                  text_color: 0x14213D
+                  styles: s_ink
               - bar:
                   id: bar_nox
                   x: 70
@@ -3077,6 +3575,6 @@ lvgl:
                   max_value: 100
                   value: 0
                   radius: 6
-                  bg_color: 0xE9EDF4
+                  styles: s_spur
                   bg_opa: COVER
                   indicator: {radius: 6, bg_color: 0x2E9E4F, bg_opa: COVER}

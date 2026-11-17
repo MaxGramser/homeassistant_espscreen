@@ -331,7 +331,107 @@ inline std::string warn_icon(std::string name) {
 }
 
 
+// Die Pille unter dem Wetterbild: eine Warnung gefüllt in der Farbe der Stufe, sonst eine Vorwarnung nur mit Rand.
+// w und v sind die Attribute "warnung" und "vorwarnung" ("Stufe;Text;DWD-Name"). Passt der Text nicht in max_w,
+// läuft er als Lauftext durch. Gibt zurück, ob die Pille zu sehen ist.
+inline bool warn_pille(lv_obj_t *pille, lv_obj_t *icon, lv_obj_t *text, const std::string &w, const std::string &v,
+                       int max_w) {
+  bool warnung = num(part(w, 0)) >= 1;
+  const std::string &q = warnung ? w : v;
+  int stufe = (int) num(part(q, 0));
+  if (!warnung && !(stufe >= 1)) {
+    lv_obj_add_flag(pille, LV_OBJ_FLAG_HIDDEN);
+    return false;
+  }
+  lv_color_t farbe = warn_color(stufe);
+  if (warnung) {
+    lv_obj_set_style_bg_opa(pille, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(pille, farbe, LV_PART_MAIN);
+    lv_obj_set_style_border_width(pille, 0, LV_PART_MAIN);
+    lv_obj_set_style_text_color(icon, warn_text_color(stufe), LV_PART_MAIN);
+    lv_obj_set_style_text_color(text, warn_text_color(stufe), LV_PART_MAIN);
+  } else {
+    lv_obj_set_style_bg_opa(pille, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(pille, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_color(pille, farbe, LV_PART_MAIN);
+    lv_obj_set_style_text_color(icon, farbe, LV_PART_MAIN);
+    lv_obj_set_style_text_color(text, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+  }
+  lv_label_set_text(icon, warn_icon(part(q, 2)).c_str());
+  lv_label_set_text(text, part(q, 1).c_str());
+  lv_point_t sz;
+  lv_text_get_size(&sz, lv_label_get_text(text), lv_obj_get_style_text_font(text, LV_PART_MAIN), 0, 0, LV_COORD_MAX,
+                   LV_TEXT_FLAG_NONE);
+  lv_obj_set_width(text, sz.x > max_w ? max_w : LV_SIZE_CONTENT);
+  lv_obj_remove_flag(pille, LV_OBJ_FLAG_HIDDEN);
+  return true;
+}
+
+// ---------------------------------------------------------------- Tag und Nacht, das große Bild
+
+// Tag (helles Design, Wetterbild mit Sonne), solange die Sonne über dem Horizont steht, und schon ab 30 Minuten
+// vor dem Aufgang. Nachts ist Feld 0 von "sonne" der nächste Aufgang. Solange sun.sun nichts gemeldet hat: Tag.
+inline bool ist_tag(const std::string &sonne_stand, const std::string &sonne, esphome::ESPTime jetzt) {
+  if (sonne_stand != "below_horizon") return true;
+  double auf = numd(part(sonne, 0));
+  if (std::isnan(auf) || !jetzt.is_valid()) return false;
+  return (double) jetzt.timestamp >= auf - 30 * 60;
+}
+
+// Das große Wetterbild ist ohne Warnung voll groß (Skala 256) und wird kleiner, sobald darunter eine Warnung steht.
+// Es wächst und schrumpft um seine rechte obere Ecke; das kleine Bild auf dem Mond geht mit.
+inline lv_obj_t *bild_gross_obj = nullptr;
+inline lv_obj_t *bild_klein_obj = nullptr;
+inline int32_t bild_skala = 256;
+inline void bild_skala_setzen(void *, int32_t v) {
+  bild_skala = v;
+  if (bild_gross_obj) lv_image_set_scale(bild_gross_obj, v);
+  if (bild_klein_obj) lv_image_set_scale(bild_klein_obj, v);
+}
+// px: x der rechten Kante der Zeichnung im großen Bild; off: Lage des kleinen Bildes im großen (x und y)
+inline void bild_skalieren(lv_obj_t *gross, lv_obj_t *klein, int px, int off, int32_t ziel) {
+  if (bild_gross_obj == nullptr) {
+    bild_gross_obj = gross;
+    bild_klein_obj = klein;
+    lv_image_set_pivot(gross, px, 0);
+    lv_image_set_pivot(klein, px - off, -off);
+  }
+  if (ziel == bild_skala) return;
+  lv_anim_t a;
+  lv_anim_init(&a);
+  lv_anim_set_var(&a, gross);
+  lv_anim_set_values(&a, bild_skala, ziel);
+  lv_anim_set_duration(&a, 400);
+  lv_anim_set_exec_cb(&a, bild_skala_setzen);
+  lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+  lv_anim_start(&a);
+}
+
 // ---------------------------------------------------------------- Raumklima (zweite Seite)
+
+// Die Seite Raumklima gibt es erst, wenn mindestens ein Raum einen CO2-Wert hat.
+inline bool innen_da(float a, float b, float c) { return !std::isnan(a) || !std::isnan(b) || !std::isnan(c); }
+
+// CO2-Trend je Raum: alle 5 Minuten ein Wert, der älteste ist 15 Minuten alt. Ab 50 ppm Unterschied steigt oder
+// fällt er. 0: noch keine 15 Minuten Werte, 1: steigt, -1: fällt, 2: stabil.
+inline float co2_alt[3][4] = {{NAN, NAN, NAN, NAN}, {NAN, NAN, NAN, NAN}, {NAN, NAN, NAN, NAN}};
+inline void co2_merken(int r, float v) {
+  for (int i = 0; i < 3; ++i) co2_alt[r][i] = co2_alt[r][i + 1];
+  co2_alt[r][3] = v;
+}
+inline int co2_trend(int r) {
+  float a = co2_alt[r][0], b = co2_alt[r][3];
+  if (std::isnan(a) || std::isnan(b)) return 0;
+  float d = b - a;
+  return d >= 50 ? 1 : d <= -50 ? -1 : 2;
+}
+inline std::string trend_icon(int t) {
+  return t == 1 ? "\U000F005D" : t == -1 ? "\U000F0045" : t == 2 ? "\U000F0054" : "";
+}
+inline lv_color_t trend_color(int t) {
+  return lv_color_hex(t == 1 ? 0xFFB25B : t == -1 ? 0x7DD39A : 0xB9CFC2);
+}
+
 
 // CO2 in ppm nach der Skala von ELV: 0 Hervorragend, 1 Gut, 2 Befriedigend, 3 Mittel (Lüften empfohlen),
 // 4 Schlecht (Lüften erforderlich). Die Grenzen liegen in der Mitte zwischen den Hunderterstufen der Skala.
