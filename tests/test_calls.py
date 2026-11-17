@@ -219,6 +219,15 @@ def test_the_calls_choices_go_out_as_a_message_of_their_own():
     assert calls.choices_message('k', {'vs': 0, 'ec': 1}) == {'v': 1, 'op': 'call', 'k': 'k', 's': 'set', 'vs': 0, 'ec': 1}
 
 
+def test_every_event_of_a_call_carries_the_calls_own_key():
+    m = machine()
+    out = m.dial('a', 'b', True, 0.0)
+    key = next(o.key for o in out if isinstance(o, calls.Say))
+    out += m.answer(key, 'b', 1.0) + m.hang_up(key, 'a', 9.0)
+    fired = [o for o in out if isinstance(o, calls.Fire)]
+    assert len(fired) >= 3 and all(o.data['key'] == key for o in fired)
+
+
 def test_do_not_disturb_is_the_screens_own_switch_read_from_home_assistant():
     items = [{'platform': 'esphome', 'entity_id': 'switch.hall_do_not_disturb', 'original_name': 'Do not disturb'},
              {'platform': 'esphome', 'entity_id': 'switch.hall_call_ringtone', 'original_name': 'Call ringtone'},

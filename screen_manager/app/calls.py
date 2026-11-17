@@ -70,7 +70,8 @@ class Calls:
         return next((call for call in self.calls.values() if call.has(node)), None)
 
     def _event(self, event, call, **more):
-        return Fire(event, {'from': call.caller, 'to': call.callee, 'video': call.video, **more})
+        # `key` is the call's own: the same in every event of one call, so an automation can tell two calls apart.
+        return Fire(event, {'from': call.caller, 'to': call.callee, 'video': call.video, 'key': call.key, **more})
 
     def dial(self, caller, callee, video, now, reachable=True, quiet=False):
         """`caller` calls `callee`. `reachable`: the app can send to it now; `quiet`: its Do not disturb. Busy, offline and

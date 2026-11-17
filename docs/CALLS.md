@@ -51,7 +51,7 @@ is missed after 45 s, both ends gone, a doorbell's ring goes first (the call is 
 did with the event `esphome.screen_call` (`action`: list, dial, cancel, answer, decline, end, camera, mic; `to`, `video`, `key`).
 The add-on answers with the op `call` (`s`: out, ring, live, held, end) and the list with the op `contacts`, in parts of twelve
 rows so a house of thirty screens fits. Home Assistant gets one event per call: `esp_screens_call_started`, `_answered`,
-`_missed` and `_ended` (from, to, video, seconds).
+`_missed` and `_ended` (from, to, video, seconds, and `key`, the same in every event of one call).
 
 ## The Call tile
 
