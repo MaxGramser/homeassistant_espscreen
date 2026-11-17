@@ -19,6 +19,7 @@ ZIFFERN = "-0123456789,.°% "
 
 # ---- Raster
 M, G, P = 8, 8, 16
+BLOCK_PAD = 8   # Rand des CO2-Blocks links und rechts der Zahl
 # breiter darf der Warntext neben dem Ort nicht werden (bis zum Wetterbild); längerer Text läuft durch
 WARN_MAX = 112
 W = 480 - 2 * M                     # 464
@@ -352,46 +353,7 @@ for d in range(5):
           y: !lambda 'return wx::punkt_y({d}) - 28;'""")
 w("")
 
-w("""  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab der Stufe "Mittel"
-  - id: innen_status
-    then:
-      - if:
-          condition:
-            lambda: |-
-              float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-              return wx::co2_stufe(m) >= 3;
-          then:
-            - lvgl.obj.update:
-                id: rahmen_innen
-                border_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_color(wx::co2_stufe(m));
-            - lvgl.obj.update:
-                id: pill_innen
-                bg_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_color(wx::co2_stufe(m));
-            - lvgl.label.update:
-                id: lbl_pill_innen_icon
-                text_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_text_color(wx::co2_stufe(m));
-            - lvgl.label.update:
-                id: lbl_pill_innen
-                text: !lambda |-
-                  float a = id(co2_wohnzimmer).state, b = id(co2_schlafzimmer).state, c = id(co2_buero).state;
-                  float m = fmaxf(fmaxf(a, b), c);
-                  if (m == c) return std::string("Büro lüften");
-                  if (m == b) return std::string("Schlafzimmer lüften");
-                  return std::string("Wohnzimmer lüften");
-                text_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_text_color(wx::co2_stufe(m));
-            - lvgl.widget.show: [rahmen_innen, pill_innen]
-          else:
-            - lvgl.widget.hide: [rahmen_innen, pill_innen]
-
-  # alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und startet die Zeit neu
+w("""  # alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und startet die Zeit neu
   - id: seite_weiter
     mode: restart
     then:
@@ -736,6 +698,22 @@ for i, (r, name) in enumerate(RAEUME):
         - lvgl.label.update:
             id: lbl_co2_{r}
             text: !lambda 'return wx::zahl(x);'
+        # ab "Mittel" liegt die Zahl in einem Block in der Farbe der Stufe, so breit wie die Zahl
+        - lambda: |-
+            int s = wx::co2_stufe(x);
+            lv_obj_t *l = id(lbl_co2_{r}), *b = id(block_{r});
+            if (s >= 3) {{
+              lv_point_t sz;
+              lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
+                               LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+              lv_obj_set_width(b, sz.x + 2 * {BLOCK_PAD});
+              lv_obj_set_style_bg_color(b, wx::co2_color(s), LV_PART_MAIN);
+              lv_obj_set_style_text_color(l, wx::co2_text_color(s), LV_PART_MAIN);
+              lv_obj_remove_flag(b, LV_OBJ_FLAG_HIDDEN);
+            }} else {{
+              lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_set_style_text_color(l, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+            }}
         - lvgl.obj.update:
             id: stufe_{r}
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
@@ -746,7 +724,6 @@ for i, (r, name) in enumerate(RAEUME):
         - lvgl.widget.update:
             id: marker_{r}
             x: !lambda 'return {spalte(i)} + wx::co2_marker_x(x, {SKALA_W});'
-        - script.execute: innen_status
   - platform: homeassistant
     id: temp_{r}
     entity_id: ${{temp_{r}}}
@@ -962,14 +939,6 @@ w(f"""    - id: seite_innen
       widgets:""")
 
 kids = [label(C, None, P, y(14, 30, 24), "Raumklima", "f_ort", "0xFFFFFF")]
-kids.append(widget("obj", C, dict(
-    id="pill_innen", hidden="true", align="TOP_RIGHT", x=-P, y=17, height=24, width="SIZE_CONTENT", radius=12,
-    bg_color="0xF2C230", bg_opa="COVER", border_width=0, pad_left=7, pad_right=10, pad_top=0, pad_bottom=0,
-    scrollable="false", clickable="false",
-    layout="\n  type: FLEX\n  flex_flow: ROW\n  flex_align_main: START\n  flex_align_cross: CENTER\n"
-           "  flex_align_track: CENTER\n  pad_column: 5"),
-    [label(C + 8, "lbl_pill_innen_icon", None, None, "\\U000F11DC", "i_warn", "0x3A2A00"),
-     label(C + 8, "lbl_pill_innen", None, None, "", "f_pill", "0x3A2A00")]))
 # Untertitel "CO2 in den Räumen" mit tiefgestellter 2 (Poppins hat kein ₂) und die Pille "ppm"
 ux = P
 for text, font, top in (("CO", "f_16", y(46, 20, 16)), ("2", "f_12", y(46, 20, 16) + 8),
@@ -989,6 +958,10 @@ for i, (r, name) in enumerate(RAEUME):
         kids.append(box(C, None, round(i * (TW + G) - G / 2), 82, 1, 120,
                         dict(bg_color="0xFFFFFF", bg_opa="15%", border_width=0, radius=0)))
     kids.append(label(C, None, x, 81, name, "f_14", PMUTED))
+    # Block hinter der Zahl (ab "Mittel"): umschließt die Ziffern (Oberkante 106, Unterkante 145) mit etwas Luft
+    kids.append(box(C, f"block_{r}", x - 3 - BLOCK_PAD, 100, 60, 52, dict(radius=12, bg_color="0xF2C230",
+                                                                        bg_opa="COVER", border_width=0),
+                    hidden="true"))
     kids.append(label(C, f"lbl_co2_{r}", x - 3, y(96, 60, 52), "--", "f_co2", "0xFFFFFF"))
     kids.append(widget("obj", C, dict(
         id=f"stufe_{r}", x=x, y=160, height=22, width="SIZE_CONTENT", radius=11, bg_color="0x5F6B80",
@@ -1008,8 +981,6 @@ for i, (r, name) in enumerate(RAEUME):
     kids.append(box(C, f"marker_{r}", x - 6, 191, 12, 12, dict(radius=6, bg_color="0xFFFFFF", bg_opa="COVER",
                                                                 border_width=0, shadow_width=6, shadow_color="0x000000",
                                                                 shadow_opa="35%", shadow_offset_y=1)))
-kids.append(box(C, "rahmen_innen", 0, 0, W, PANEL_H, dict(bg_opa="TRANSP", border_width=4, border_color="0xF2C230",
-                                                         radius=22), hidden="true"))
 w(box(I, "panel_innen", M, M, W, PANEL_H, dict(bg_color=PANEL_TAG[0], bg_grad_color=PANEL_TAG[1], bg_grad_dir="VER",
                                               bg_opa="COVER", border_width=0, radius=22, clip_corner="true"), kids))
 

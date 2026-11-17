@@ -329,45 +329,6 @@ script:
           id: lbl_hoch_4
           y: !lambda 'return wx::punkt_y(4) - 28;'
 
-  # Raumklima: der Raum mit dem meisten CO2 bestimmt Hinweis und Rahmen, ab der Stufe "Mittel"
-  - id: innen_status
-    then:
-      - if:
-          condition:
-            lambda: |-
-              float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-              return wx::co2_stufe(m) >= 3;
-          then:
-            - lvgl.obj.update:
-                id: rahmen_innen
-                border_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_color(wx::co2_stufe(m));
-            - lvgl.obj.update:
-                id: pill_innen
-                bg_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_color(wx::co2_stufe(m));
-            - lvgl.label.update:
-                id: lbl_pill_innen_icon
-                text_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_text_color(wx::co2_stufe(m));
-            - lvgl.label.update:
-                id: lbl_pill_innen
-                text: !lambda |-
-                  float a = id(co2_wohnzimmer).state, b = id(co2_schlafzimmer).state, c = id(co2_buero).state;
-                  float m = fmaxf(fmaxf(a, b), c);
-                  if (m == c) return std::string("Büro lüften");
-                  if (m == b) return std::string("Schlafzimmer lüften");
-                  return std::string("Wohnzimmer lüften");
-                text_color: !lambda |-
-                  float m = fmaxf(fmaxf(id(co2_wohnzimmer).state, id(co2_schlafzimmer).state), id(co2_buero).state);
-                  return wx::co2_text_color(wx::co2_stufe(m));
-            - lvgl.widget.show: [rahmen_innen, pill_innen]
-          else:
-            - lvgl.widget.hide: [rahmen_innen, pill_innen]
-
   # alle ${seitenwechsel} zwischen Wetter und Raumklima wechseln; ein Tippen wechselt sofort und startet die Zeit neu
   - id: seite_weiter
     mode: restart
@@ -975,6 +936,22 @@ sensor:
         - lvgl.label.update:
             id: lbl_co2_wohnzimmer
             text: !lambda 'return wx::zahl(x);'
+        # ab "Mittel" liegt die Zahl in einem Block in der Farbe der Stufe, so breit wie die Zahl
+        - lambda: |-
+            int s = wx::co2_stufe(x);
+            lv_obj_t *l = id(lbl_co2_wohnzimmer), *b = id(block_wohnzimmer);
+            if (s >= 3) {
+              lv_point_t sz;
+              lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
+                               LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+              lv_obj_set_width(b, sz.x + 2 * 8);
+              lv_obj_set_style_bg_color(b, wx::co2_color(s), LV_PART_MAIN);
+              lv_obj_set_style_text_color(l, wx::co2_text_color(s), LV_PART_MAIN);
+              lv_obj_remove_flag(b, LV_OBJ_FLAG_HIDDEN);
+            } else {
+              lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_set_style_text_color(l, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+            }
         - lvgl.obj.update:
             id: stufe_wohnzimmer
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
@@ -985,7 +962,6 @@ sensor:
         - lvgl.widget.update:
             id: marker_wohnzimmer
             x: !lambda 'return 16 + wx::co2_marker_x(x, 117);'
-        - script.execute: innen_status
   - platform: homeassistant
     id: temp_wohnzimmer
     entity_id: ${temp_wohnzimmer}
@@ -1011,6 +987,22 @@ sensor:
         - lvgl.label.update:
             id: lbl_co2_schlafzimmer
             text: !lambda 'return wx::zahl(x);'
+        # ab "Mittel" liegt die Zahl in einem Block in der Farbe der Stufe, so breit wie die Zahl
+        - lambda: |-
+            int s = wx::co2_stufe(x);
+            lv_obj_t *l = id(lbl_co2_schlafzimmer), *b = id(block_schlafzimmer);
+            if (s >= 3) {
+              lv_point_t sz;
+              lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
+                               LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+              lv_obj_set_width(b, sz.x + 2 * 8);
+              lv_obj_set_style_bg_color(b, wx::co2_color(s), LV_PART_MAIN);
+              lv_obj_set_style_text_color(l, wx::co2_text_color(s), LV_PART_MAIN);
+              lv_obj_remove_flag(b, LV_OBJ_FLAG_HIDDEN);
+            } else {
+              lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_set_style_text_color(l, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+            }
         - lvgl.obj.update:
             id: stufe_schlafzimmer
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
@@ -1021,7 +1013,6 @@ sensor:
         - lvgl.widget.update:
             id: marker_schlafzimmer
             x: !lambda 'return 173 + wx::co2_marker_x(x, 117);'
-        - script.execute: innen_status
   - platform: homeassistant
     id: temp_schlafzimmer
     entity_id: ${temp_schlafzimmer}
@@ -1047,6 +1038,22 @@ sensor:
         - lvgl.label.update:
             id: lbl_co2_buero
             text: !lambda 'return wx::zahl(x);'
+        # ab "Mittel" liegt die Zahl in einem Block in der Farbe der Stufe, so breit wie die Zahl
+        - lambda: |-
+            int s = wx::co2_stufe(x);
+            lv_obj_t *l = id(lbl_co2_buero), *b = id(block_buero);
+            if (s >= 3) {
+              lv_point_t sz;
+              lv_text_get_size(&sz, lv_label_get_text(l), lv_obj_get_style_text_font(l, LV_PART_MAIN), 0, 0,
+                               LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+              lv_obj_set_width(b, sz.x + 2 * 8);
+              lv_obj_set_style_bg_color(b, wx::co2_color(s), LV_PART_MAIN);
+              lv_obj_set_style_text_color(l, wx::co2_text_color(s), LV_PART_MAIN);
+              lv_obj_remove_flag(b, LV_OBJ_FLAG_HIDDEN);
+            } else {
+              lv_obj_add_flag(b, LV_OBJ_FLAG_HIDDEN);
+              lv_obj_set_style_text_color(l, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+            }
         - lvgl.obj.update:
             id: stufe_buero
             bg_color: !lambda 'return wx::co2_color(wx::co2_stufe(x));'
@@ -1057,7 +1064,6 @@ sensor:
         - lvgl.widget.update:
             id: marker_buero
             x: !lambda 'return 331 + wx::co2_marker_x(x, 117);'
-        - script.execute: innen_status
   - platform: homeassistant
     id: temp_buero
     entity_id: ${temp_buero}
@@ -2250,42 +2256,6 @@ lvgl:
                   text: "Raumklima"
                   text_font: f_ort
                   text_color: 0xFFFFFF
-              - obj:
-                  id: pill_innen
-                  hidden: true
-                  align: TOP_RIGHT
-                  x: -16
-                  y: 17
-                  height: 24
-                  width: SIZE_CONTENT
-                  radius: 12
-                  bg_color: 0xF2C230
-                  bg_opa: COVER
-                  border_width: 0
-                  pad_left: 7
-                  pad_right: 10
-                  pad_top: 0
-                  pad_bottom: 0
-                  scrollable: false
-                  clickable: false
-                  layout: 
-                      type: FLEX
-                      flex_flow: ROW
-                      flex_align_main: START
-                      flex_align_cross: CENTER
-                      flex_align_track: CENTER
-                      pad_column: 5
-                  widgets:
-                      - label:
-                          id: lbl_pill_innen_icon
-                          text: "\U000F11DC"
-                          text_font: i_warn
-                          text_color: 0x3A2A00
-                      - label:
-                          id: lbl_pill_innen
-                          text: ""
-                          text_font: f_pill
-                          text_color: 0x3A2A00
               - label:
                   x: 16
                   y: 45
@@ -2336,6 +2306,20 @@ lvgl:
                   text: "Wohnzimmer"
                   text_font: f_14
                   text_color: 0xB9CFC2
+              - obj:
+                  id: block_wohnzimmer
+                  x: 5
+                  y: 100
+                  width: 60
+                  height: 52
+                  radius: 12
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  hidden: true
               - label:
                   id: lbl_co2_wohnzimmer
                   x: 13
@@ -2466,6 +2450,20 @@ lvgl:
                   text: "Schlafzimmer"
                   text_font: f_14
                   text_color: 0xB9CFC2
+              - obj:
+                  id: block_schlafzimmer
+                  x: 162
+                  y: 100
+                  width: 60
+                  height: 52
+                  radius: 12
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  hidden: true
               - label:
                   id: lbl_co2_schlafzimmer
                   x: 170
@@ -2596,6 +2594,20 @@ lvgl:
                   text: "Büro"
                   text_font: f_14
                   text_color: 0xB9CFC2
+              - obj:
+                  id: block_buero
+                  x: 320
+                  y: 100
+                  width: 60
+                  height: 52
+                  radius: 12
+                  bg_color: 0xF2C230
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+                  hidden: true
               - label:
                   id: lbl_co2_buero
                   x: 328
@@ -2708,20 +2720,6 @@ lvgl:
                   pad_all: 0
                   scrollable: false
                   clickable: false
-              - obj:
-                  id: rahmen_innen
-                  x: 0
-                  y: 0
-                  width: 464
-                  height: 212
-                  bg_opa: TRANSP
-                  border_width: 4
-                  border_color: 0xF2C230
-                  radius: 22
-                  pad_all: 0
-                  scrollable: false
-                  clickable: false
-                  hidden: true
         - obj:
             id: kachel_wohnzimmer
             x: 8
