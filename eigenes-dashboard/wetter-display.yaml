@@ -871,7 +871,7 @@ font:
   - {file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°ÄÖÜäöüß–·…"}
   - {file: fonts/Poppins-500.ttf, id: f_hund44, size: 44, bpp: 4, glyphs: " !0123456789KSUacehikmnorstuz·–"}
   - {file: fonts/Poppins-500.ttf, id: f_hund32, size: 32, bpp: 4, glyphs: " !0123456789KSUacehikmnorstuz·–"}
-  - {file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: "HochTief0123456789-°· "}
+  - {file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: "HochTief0123456789-°·, "}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: ["\U000F0599", "\U000F0594", "\U000F0595", "\U000F0590", "\U000F0591", "\U000F0592", "\U000F0593", "\U000F067E", "\U000F0596", "\U000F0597", "\U000F0598", "\U000F067F", "\U000F059D", "\U000F059E", "\U000F0F2F"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: ["\U000F059D", "\U000F054A", "\U000F058E", "\U000F05A8", "\U000F059C", "\U000F059B", "\U000F005D", "\U000F0045", "\U000F0054"]}
   - {file: fonts/materialdesignicons-webfont.ttf, id: i_klein, size: 13, bpp: 4, glyphs: ["\U000F0164", "\U000F0717", "\U000F03E9"]}
@@ -1068,7 +1068,7 @@ text_sensor:
             text: !lambda 'auto u = wx::rain_unit(wx::part(x, 4), wx::part(x, 5)); return u.empty() ? std::string("%") : u;'
         - lvgl.label.update:
             id: lbl_hochtief
-            text: !lambda 'return "Hoch " + wx::deg(wx::part(x, 2)) + " · Tief " + wx::deg(wx::part(x, 3));'
+            text: !lambda 'return "Hoch " + wx::deg1(wx::part(x, 2)) + " · Tief " + wx::deg1(wx::part(x, 3));'
         - lvgl.label.update:
             id: lbl_regen
             text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
@@ -2229,9 +2229,9 @@ lvgl:
                   hidden: true
               - label:
                   id: lbl_hochtief
-                  x: 284
+                  x: 260
                   y: 174
-                  width: 164
+                  width: 188
                   text: ""
                   text_font: f_15
                   text_color: 0xB9CFC2

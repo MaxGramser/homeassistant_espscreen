@@ -50,6 +50,17 @@ inline std::string deg(float v) {
   return strcmp(b, "-0°") == 0 ? std::string("0°") : std::string(b);  // "-0°" sieht falsch aus
 }
 inline std::string deg(const std::string &s) { return deg(num(s)); }
+// Mit einer Nachkommastelle und deutschem Komma: "11,4°" (Hoch und Tief im Panel)
+inline std::string deg1(const std::string &s) {
+  float v = num(s);
+  if (std::isnan(v)) return "--°";
+  char b[16];
+  snprintf(b, sizeof(b), "%.1f°", v);
+  std::string r = strcmp(b, "-0.0°") == 0 ? std::string("0.0°") : std::string(b);
+  size_t p = r.find('.');
+  if (p != std::string::npos) r[p] = ',';
+  return r;
+}
 
 // Nur die Zahl, ohne Grad: für die große Temperatur (das "°C" steht daneben in kleinerer Schrift).
 inline std::string zahl(float v) {

@@ -788,7 +788,7 @@ font:
   - {{file: fonts/Poppins-600.ttf, id: f_13b, size: 13, bpp: 4, glyphs: {q(LATIN)}}}
   - {{file: fonts/Poppins-500.ttf, id: f_hund44, size: 44, bpp: 4, glyphs: {q(HUND_GROSS)}}}
   - {{file: fonts/Poppins-500.ttf, id: f_hund32, size: 32, bpp: 4, glyphs: {q(HUND_GROSS)}}}
-  - {{file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: {q("HochTief0123456789-°· ")}}}
+  - {{file: fonts/Poppins-400.ttf, id: f_15, size: 15, bpp: 4, glyphs: {q("HochTief0123456789-°·, ")}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_tag, size: 22, bpp: 4, glyphs: {mdi(COND)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_ui, size: 18, bpp: 4, glyphs: {mdi(UI)}}}
   - {{file: fonts/materialdesignicons-webfont.ttf, id: i_klein, size: 13, bpp: 4, glyphs: {mdi(KLEIN_ICONS)}}}
@@ -957,7 +957,7 @@ for d in range(5):
             text: !lambda 'auto u = wx::rain_unit(wx::part(x, 4), wx::part(x, 5)); return u.empty() ? std::string("%") : u;'
         - lvgl.label.update:
             id: lbl_hochtief
-            text: !lambda 'return "Hoch " + wx::deg(wx::part(x, 2)) + " · Tief " + wx::deg(wx::part(x, 3));'
+            text: !lambda 'return "Hoch " + wx::deg1(wx::part(x, 2)) + " · Tief " + wx::deg1(wx::part(x, 3));'
         - lvgl.label.update:
             id: lbl_regen
             text: !lambda 'return wx::rain_value(wx::part(x, 4), wx::part(x, 5));'
@@ -1262,7 +1262,8 @@ kids.append(row(C, None, P, y(ROW, 20, 17), [
 kids.append(widget("image", C, dict(id="bild_jetzt", x=BILD_X, y=BILD_Y, src="img_tag_cloudy")))
 kids.append(widget("image", C, dict(id="bild_klein", x=BILD_X + BADGE_OFF, y=BILD_Y + BADGE_OFF, src="img_nacht_wolke",
                                     hidden="true")))
-kids.append(label(C, "lbl_hochtief", RX, y(ROW, 20, 15), "", "f_15", PMUTED, width=RW, align="RIGHT"))
+# eine Nachkommastelle: "Hoch -10,4° · Tief -18,6°" ist 166 px breit, darum 24 px breiter als die Spalte
+kids.append(label(C, "lbl_hochtief", RX - 24, y(ROW, 20, 15), "", "f_15", PMUTED, width=RW + 24, align="RIGHT"))
 # Warnung oder Vorwarnung: rechtsbündig unter dem Bild; Farben, Rand und Text setzt wx::warn_pille()
 kids.append(widget("obj", C, dict(
     id="warn_pill", hidden="true", align="TOP_RIGHT", x=-P, y=PILL_Y, height=PILL_H, width="SIZE_CONTENT",

@@ -2,7 +2,8 @@
 #
 # Erstellt sensor.display_wetter. Seine Attribute tragen, was das Display für Vorhersage, Sonne und Warnungen braucht,
 # je ein kurzer Text mit Semikolons (ESPHome überträgt einen Text mit höchstens 255 Zeichen):
-#   tag_0 ... tag_4        "Heute;rainy;11;4;60;1.2"   Name; Zustand; Höchst; Tiefst; Regen-%; Regen-mm
+#   tag_0 ... tag_4        "Heute;rainy;11.4;3.6;60;1.2"  Name; Zustand; Höchst; Tiefst (eine Nachkommastelle);
+#                                                      Regen-%; Regen-mm
 #   stunde_0 ... stunde_4  "15;40;0.6"                 Stunde; Regen-%; Regen-mm (die nächsten 10 Stunden in
 #                                                      2-Stunden-Schritten)
 #   sonne                  "1763276520;1763309880"     Aufgang; Untergang als Unix-Zeit. Tagsüber der Aufgang von
@@ -82,8 +83,8 @@ template:
               {% set mm = f.get('precipitation') %}
               {% set ns.liste = ns.liste + [
                    name ~ ';' ~ f.condition
-                   ~ ';' ~ ((hoch | round(0) | int) if hoch is number else '')
-                   ~ ';' ~ ((tief | round(0) | int) if tief is number else '')
+                   ~ ';' ~ ((hoch | round(1)) if hoch is number else '')
+                   ~ ';' ~ ((tief | round(1)) if tief is number else '')
                    ~ ';' ~ ((prozent | round(0) | int) if prozent is number else '')
                    ~ ';' ~ ((mm | round(1)) if mm is number else '')] %}
             {% endfor %}
