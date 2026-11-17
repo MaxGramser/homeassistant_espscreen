@@ -93,6 +93,19 @@ Not built. What a look at it found (2026-11-17), for whoever takes it up:
 - What decides it: PPA plus JPEG time a frame on a sending screen that also shows the other's picture, and screen to screen throughput
   through one access point, which carries every picture twice.
 
+## Measuring a call from a desk
+
+Whether a voice comes back is heard by the person at the other end, which makes every change a walk to another room. Two
+things take that out:
+
+- A call can be run without touching glass: fire `esphome.screen_call` in Home Assistant as a finger would (`dial`,
+  `answer` with the call's `key` from `esp_screens_call_started`, `end`, `switch`, `echo`).
+- With Debug mode on, a screen takes the op `call_bench` in `esphome.<node>_screen_message` (`v` 2): the op `call` as
+  it is, outside the app's feed, with `l` and `tk` naming a computer. That computer serves the stream of a far end (a
+  known voice as `audio/L16` parts, as `live_stream.part_head` writes them) and takes the screen's own voice on `tk`, so
+  it holds exactly what the far end would hear: the echo with the canceller at work and at rest (`s` `set`, `ec`), how
+  late it is, and what is left of a voice beside the board while the far end speaks.
+
 ## The ring
 
 The screen rings on its own speaker, at full volume whatever its volume is set to, and goes back to its volume when the ring
