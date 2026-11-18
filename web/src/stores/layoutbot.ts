@@ -10,7 +10,7 @@ import { send } from "../api";
 import { gridOf, placePlan } from "../editor/layoutbot";
 import { t } from "../i18n";
 import { label } from "../model/change-label";
-import { summaryOf, type Plan, type PlanNote, type Summary } from "../model/layoutbot";
+import { summaryOf, type Plan, type PlanNote, type Restructure, type Summary } from "../model/layoutbot";
 import { sameValue } from "../model/pages";
 import type { PageLayout } from "../types";
 import { useDocumentStore } from "./document";
@@ -18,6 +18,7 @@ import { useInventoryStore } from "./inventory";
 import { useScreenStore } from "./screen";
 import { useSessionStore } from "./session";
 import { useUiStore } from "./ui";
+import { usePreference } from "../composables/usePreference";
 
 /** The answer the editor understands (the add-on's LAYOUTBOT_PLAN): a checked plan to place. */
 export const PLAN_VERSION = 2;
@@ -68,7 +69,10 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   const open = computed({ get: () => ui.chatOpen, set: (value: boolean) => { void ui.openChat(value); } });
   const busy = ref(false);
   const started = ref(0);
-  const agent = ref<string | null>(null);
+  // The AI Task the person picked in the chat's head, kept in this browser: an AI Task of its own with a larger model,
+  // made for Layoutbot in Home Assistant, stays chosen (docs/LAYOUTBOT.md, "Which model").
+  const picked = usePreference<string>("esp-screens.layoutbot-agent", "");
+  const agent = computed<string | null>({ get: () => picked.value || null, set: (id) => { picked.value = id ?? ""; } });
   const messages = ref<BotMessage[]>([]);
   let next = 1, asking = 0;
   const agentName = computed(() => agents.value.find((a) => a.id === agent.value)?.name ?? agents.value[0]?.name ?? "");
@@ -94,16 +98,31 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
     say({ from: "bot", text: t("editor.layoutbot.stopped") });
   }
 
-  async function ask(prompt: string) {
+  /** The page shown, by its number (from 1), for "Restructure this page". */
+  const shownPage = () => Math.max(0, doc.document?.pages.findIndex((page) => page.id === doc.selectedPageId) ?? 0) + 1;
+  /** Whether there is anything of the person's to restructure: tiles of devices on the page shown, or on the screen. */
+  function canRestructure(scope: "page" | "screen") {
+    const all = doc.document?.pages ?? [], list = scope === "page" ? all.slice(shownPage() - 1, shownPage()) : all;
+    return list.some((page) => page.tiles.some((tile) => tile.content.kind === "entity"));
+  }
+  /** Restructure this page or the whole screen (docs/LAYOUTBOT.md, "Restructuring"): the AI groups the person's own tiles,
+   * the editor places them again; `words` of the person's steer the grouping. */
+  function restructure(scope: "page" | "screen", words = "") {
+    const said = [t(`editor.layoutbot.restructure.${scope}`), words.trim()].filter(Boolean).join(": ");
+    return ask(words, scope === "page" ? { scope, page: shownPage() } : { scope }, said);
+  }
+
+  async function ask(prompt: string, restructuring?: Restructure, said?: string) {
     const text = prompt.trim();
-    if (!text || busy.value || !available.value || !doc.document || !doc.documentGrid || !scr.currentScreen) return;
-    say({ from: "you", text });
+    if ((!text && !restructuring) || busy.value || !available.value || !doc.document || !doc.documentGrid || !scr.currentScreen) return;
+    say({ from: "you", text: said ?? text });
     const sent = doc.document, screen = scr.currentScreen, grid = doc.screenGridOf(doc.documentGrid), mine = ++asking;
     busy.value = true;
     started.value = Date.now();
     try {
       const answer = await send<Answer>(`screens/${encodeURIComponent(screen.id)}/layoutbot`, "POST",
-        { version: PLAN_VERSION, prompt: text, layout: sent, ...(agent.value ? { agent: agent.value } : {}), ...(allScreens.value ? { all_screens: true } : {}) });
+        { version: PLAN_VERSION, prompt: text, layout: sent, ...(agent.value ? { agent: agent.value } : {}),
+          ...(restructuring ? { restructure: restructuring } : allScreens.value ? { all_screens: true } : {}) });
       if (mine !== asking) return;
       // An add-on from before plans answers with a whole document this editor no longer applies.
       if (answer.version !== PLAN_VERSION || !answer.plan) throw new Error(t("editor.layoutbot.update_app"));
@@ -230,5 +249,5 @@ export const useLayoutbotStore = defineStore("layoutbot", () => {
   }
 
   return { agents, shown, ready, available, recheck, open, busy, started, agent, agentName, messages, allScreens, delivering,
-    ask, stop, undo, undoable, show, preview, deliver, decline, targets };
+    ask, restructure, canRestructure, stop, undo, undoable, show, preview, deliver, decline, targets };
 });

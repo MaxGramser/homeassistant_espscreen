@@ -1654,8 +1654,10 @@
       "none": "A Layoutbotnak egy adatokat előállítani képes AI Taskra van szüksége a Home Assistantben (Beállítások > Eszközök és szolgáltatások, egy AI-integráció).",
       "notes": {
         "unknown": "{entity} kimaradt: ez nem ennek a Home Assistantnek az entitása.",
-        "no_page": "Nincs {page}. oldal."
-      }
+        "no_page": "Nincs {page}. oldal.",
+        "kept": "A Layoutbot kihagyta {count} csempédet: ezek szabadon állnak az utolsó oldalon."
+      },
+      "nothing_to_restructure": "Ezen az oldalon még nincs átszervezhető eszközcsempe. Adj hozzá párat, aztán kérdezz újra."
     }
   },
   "editor": {
@@ -4895,6 +4897,8 @@
       "close": "Bezárás",
       "hello": "Szia! Mondd el, mit mutasson ez a kijelző, és elrendezem az oldalait. Csak az elrendezést módosítom, az eszközeidet soha.",
       "privacy": "A Home Assistant {agent} szolgáltatását használom. A kérdésed, a kijelzőid oldalai és az entitásaid azonosítói, nevei és területei oda kerülnek.",
+      "model_hint": "Sokkal jobban dolgozom egy nagyobb modellel, mint a legolcsóbbal. A Home Assistantben add hozzá nekem az AI-integrációdhoz egy AI Taskot, kapcsold ki az „Ajánlott modellbeállítások” opciót, válassz egy nagyobb modellt, majd jelöld ki a chat tetején.",
+      "model_link": "Integrációk megnyitása",
       "placeholder": "Készíts egy oldalt, amelyen…",
       "ask": "Kérdezés",
       "send": {
@@ -4921,6 +4925,10 @@
       "show": "Mutatás",
       "undo": "Visszavonás",
       "undone": "Visszavonva",
+      "restructure": {
+        "page": "Szervezd át ezt az oldalt",
+        "screen": "Szervezd át az egész kijelzőt"
+      },
       "suggest": {
         "lights_sections": "Tedd az összes lámpát egy oldalra, helyiségenként egy szakaszba",
         "lights": "Tedd az összes lámpát egy oldalra",
@@ -4949,7 +4957,8 @@
         "memory_full": "A kijelző memóriája megtelt, ezért {count} csempe kimaradt. | A kijelző memóriája megtelt, ezért {count} csempe kimaradt.",
         "left_out": "A kijelzőn nem volt hely további {count} csempének. | A kijelzőn nem volt hely további {count} csempének.",
         "no_page": "Nincs {page}. oldal.",
-        "not_drawn": "A kijelző {count} entitáshoz nem rajzol csempét. | A kijelző {count} entitáshoz nem rajzol csempét."
+        "not_drawn": "A kijelző {count} entitáshoz nem rajzol csempét. | A kijelző {count} entitáshoz nem rajzol csempét.",
+        "restructure_no_room": "Átszervezve nem lenne hely {count} csempédnek, ezért úgy hagytam az oldalakat, ahogy voltak. | Átszervezve nem lenne hely {count} csempédnek, ezért úgy hagytam az oldalakat, ahogy voltak."
       },
       "update_app": "Frissítsd a Tessera alkalmazást: ez a szerkesztő maga helyezi el a Layoutbot terveit.",
       "scope": {

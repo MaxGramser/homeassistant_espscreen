@@ -1654,8 +1654,10 @@
       "none": "Layoutbot heeft een AI Task in Home Assistant nodig die data kan maken (Instellingen > Apparaten & diensten, een AI-integratie).",
       "notes": {
         "unknown": "{entity} weggelaten: dat is geen entiteit van deze Home Assistant.",
-        "no_page": "Er is geen pagina {page}."
-      }
+        "no_page": "Er is geen pagina {page}.",
+        "kept": "Layoutbot is {count} van je tegels vergeten: ze staan los op de laatste pagina."
+      },
+      "nothing_to_restructure": "Op deze pagina staan nog geen tegels van apparaten om te herstructureren. Voeg er een paar toe en vraag het dan nog eens."
     }
   },
   "editor": {
@@ -4895,6 +4897,8 @@
       "close": "Sluiten",
       "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
       "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag, de pagina's van je schermen en de id's, namen en ruimtes van je entiteiten gaan daarheen.",
+      "model_hint": "Ik werk veel beter met een groter model dan met het goedkoopste. Voeg in Home Assistant een AI Task voor mij toe aan je AI-integratie, zet 'Aanbevolen modelinstellingen' uit, kies een groter model en kies het dan bovenaan deze chat.",
+      "model_link": "Integraties openen",
       "placeholder": "Maak een pagina met…",
       "ask": "Vragen",
       "send": {
@@ -4921,6 +4925,10 @@
       "show": "Toon",
       "undo": "Ongedaan maken",
       "undone": "Ongedaan gemaakt",
+      "restructure": {
+        "page": "Herstructureer deze pagina",
+        "screen": "Herstructureer het hele scherm"
+      },
       "suggest": {
         "lights_sections": "Zet alle lampen op één pagina, met een sectie per kamer",
         "lights": "Zet alle lampen op één pagina",
@@ -4949,7 +4957,8 @@
         "memory_full": "Het geheugen van het scherm is vol, dus {count} tegel is weggelaten. | Het geheugen van het scherm is vol, dus {count} tegels zijn weggelaten.",
         "left_out": "Het scherm had geen ruimte voor nog {count} tegel. | Het scherm had geen ruimte voor nog {count} tegels.",
         "no_page": "Er is geen pagina {page}.",
-        "not_drawn": "Het scherm tekent geen tegel van {count} entiteit. | Het scherm tekent geen tegel van {count} entiteiten."
+        "not_drawn": "Het scherm tekent geen tegel van {count} entiteit. | Het scherm tekent geen tegel van {count} entiteiten.",
+        "restructure_no_room": "Na herstructureren zou er geen ruimte zijn voor {count} van je tegels, dus ik heb de pagina's gelaten zoals ze waren. | Na herstructureren zou er geen ruimte zijn voor {count} van je tegels, dus ik heb de pagina's gelaten zoals ze waren."
       },
       "update_app": "Werk de Tessera-app bij: deze editor plaatst de plannen van Layoutbot zelf.",
       "scope": {

@@ -6,7 +6,7 @@
 import { getJson } from "../api";
 import type { AutoScreen, HomeFacts } from "../model/auto-layout";
 import { featuresOf } from "../model/catalogue";
-import { applyPlan, type Plan, type PlanNote } from "../model/layoutbot";
+import { applyPlan, withoutScope, type Plan, type PlanNote } from "../model/layoutbot";
 import { measuring } from "../model/memory";
 import * as pages from "../model/pages";
 import * as status from "../model/screen-status";
@@ -36,19 +36,23 @@ export function screenAfter(screen: Screen, layout: PageLayout, grid: PageGrid):
     features: featuresOf({ rangeless: screen.climate_range === false, vacuumTile: screen.vacuum_tile !== false, lightPresets: screen.light_presets === true }),
     pictures: Boolean(screen.pictures), liveCamera: screen.live_camera === true, todoLists: screen.todo_lists === true,
     firmware: status.firmwareVersion(screen) || "", memory: screen.memory && !measuring(screen.memory) ? screen.memory : null,
-    area: screen.area || undefined, title: layout.title, topbar: home.topbar,
+    area: screen.area || undefined, title: layout.title, topbar: home?.topbar,
   };
 }
 
+const homeBar = (layout: PageLayout) => (layout.pages.find((page) => page.id === layout.homePageId) ?? layout.pages[0])?.topbar;
 /** The plan placed in `document` for `screen`: the next draft and its notes. Nothing is applied or saved here. */
 export async function placePlan(screen: Screen, document: PageLayout, grid: PageGrid, plan: Plan, covers = false): Promise<{ layout: PageLayout; notes: PlanNote[] }> {
   const inv = useInventoryStore(), entities = useEntitiesStore();
   await entities.loadCapabilities([...new Set(plan.pages.flatMap((page) => [...page.tiles, ...page.sections.flatMap((s) => s.entities)]))]);
   const facts = await getJson<HomeFacts>("home-facts");
-  const view = pages.projectLayout(document, grid);
+  // A restructure places the pages it takes anew: the screen's room is what stays without them.
+  const stays = plan.restructure ? withoutScope(document, plan.restructure) : document;
+  const view = pages.projectLayout(stays, grid);
   return applyPlan(document, plan, {
     held: grid, covers,
-    input: { entities: inv.inventory.entities, facts, capabilities: entities.capabilities, screen: screenAfter(screen, document, grid),
-      existing: { tiles: view.tiles, pages: document.pages }, plugins: usePluginsStore().pluginTileOf },
+    // New pages take the home page's top bar, also when the whole screen is placed anew.
+    input: { entities: inv.inventory.entities, facts, capabilities: entities.capabilities, screen: { ...screenAfter(screen, stays, grid), topbar: homeBar(document) },
+      existing: { tiles: view.tiles, pages: stays.pages }, plugins: usePluginsStore().pluginTileOf },
   });
 }

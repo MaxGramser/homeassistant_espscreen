@@ -192,5 +192,69 @@ class Asking(unittest.TestCase):
             asyncio.run(layoutbot.ask(nothing, "x", DOCUMENT, GRID, ENTITIES))
 
 
+def tile(n, entity, row, column):
+    return {"id": f"r{n}", "content": {"kind": "entity", "entityId": entity},
+            "placement": {"row": row, "column": column, "columns": 1, "rows": 1}, "appearance": {"label": ""}, "interaction": {}}
+
+
+class Restructuring(unittest.TestCase):
+    """"Restructure this page" or "the whole screen" (docs/LAYOUTBOT.md, "Restructuring"): the model only groups the
+    person's own tiles; the add-on keeps every one of them exactly once, and only them."""
+    PAGE = {**HOME, "id": "b" * 16, "topbar": {**HOME["topbar"], "title": {"source": "text", "text": "Mixed"}},
+            "tiles": [tile(1, "light.desk", 0, 1), tile(2, "cover.blind_0", 0, 0), tile(3, "cover.curtain_0", 1, 0),
+                      {"id": "r4", "content": {"kind": "builtin", "entityId": "screen.clock"},
+                       "placement": {"row": 2, "column": 0, "columns": 1, "rows": 1}, "appearance": {"label": ""}, "interaction": {}}]}
+    DOC = {**DOCUMENT, "pages": [HOME, PAGE]}
+
+    def test_the_scope_is_the_pages_own_entities_in_reading_order(self):
+        self.assertEqual(layoutbot.scope_entities(self.DOC, {"scope": "page", "page": 2}), ["cover.blind_0", "light.desk", "cover.curtain_0"])
+        self.assertEqual(layoutbot.scope_entities(self.DOC, {"scope": "screen"}), ["light.sofa", "cover.blind_0", "light.desk", "cover.curtain_0"])
+        self.assertIsNone(layoutbot.scope_entities(self.DOC, {"scope": "page", "page": 3}))
+        self.assertIsNone(layoutbot.scope_entities(self.DOC, {"scope": "everything"}))
+
+    def test_every_tile_once_and_only_the_pages_own(self):
+        answer = {"reply": "Grouped.", "pages": [{"page": "4", "title": "Woonkamer", "icon": "sofa", "sections": [
+            {"title": "Zonwering", "icon": "blinds", "entities": ["cover.blind_0", "cover.blind_0", "light.sofa", "cover.made_up"]}],
+            "tiles": []}], "remove": ["light.desk"]}
+        plan, notes = layoutbot.restructured(answer, self.DOC, {"scope": "page", "page": 2})
+        self.assertEqual(plan["restructure"], {"scope": "page", "page": 2})
+        self.assertEqual(plan["remove"], [])   # a restructure never takes a tile off
+        page, = plan["pages"]
+        # Its one entity left of the section stands loose; what the model forgot stands loose on the last page; another
+        # page's tile and a made-up one never come in.
+        self.assertEqual(page["sections"], [])
+        self.assertEqual(page["tiles"], ["cover.blind_0", "light.desk", "cover.curtain_0"])
+        self.assertEqual(notes, [{"key": "kept", "count": 2}])
+
+    def test_a_forgotten_tile_joins_its_room_and_a_section_of_one_is_loose(self):
+        doc = {**DOCUMENT, "pages": [{**HOME, "tiles": [tile(1, "light.sofa", 0, 0), tile(2, "light.desk", 0, 1),
+                                                       tile(3, "cover.blind_0", 0, 2), tile(4, "cover.curtain_0", 0, 3)]}]}
+        rooms = [{"id": "light.sofa", "area": "Hall"}, {"id": "light.desk", "area": "Office"},
+                 {"id": "cover.blind_0", "area": "Office"}, {"id": "cover.curtain_0", "area": "Hall"}]
+        answer = {"pages": [{"title": "Office", "sections": [{"title": "Desk", "entities": ["light.desk"]}], "tiles": ["cover.blind_0"]},
+                            {"title": "Hall", "tiles": ["light.sofa"]}, {"title": "Other", "tiles": []}]}
+        plan, _ = layoutbot.restructured(answer, doc, {"scope": "screen"}, rooms)
+        office, hall = plan["pages"]
+        self.assertEqual(office["sections"], [])
+        self.assertEqual(office["tiles"], ["light.desk", "cover.blind_0"])
+        self.assertEqual(hall["tiles"], ["light.sofa", "cover.curtain_0"])   # its room's page, not the last one
+
+    def test_the_question_holds_only_the_scope_and_its_own_rules(self):
+        calls = []
+
+        async def request(kind, **data):
+            calls.append(data)
+            return {"response": {"data": {"reply": "", "pages": []}}}
+
+        asyncio.run(layoutbot.ask(request, "Blinds first", self.DOC, GRID, ENTITIES, restructure={"scope": "page", "page": 2}))
+        text = calls[0]["service_data"]["instructions"]
+        self.assertIn("every one of them goes in exactly once", text)
+        self.assertIn('one page, "Mixed"', text)
+        self.assertIn("\ncover.blind_0 |  | Living\n", text)
+        self.assertNotIn("light.sofa", text)   # the other page's
+        self.assertNotIn("cover.blind_1", text)  # the home's, not on the page
+        self.assertTrue(text.endswith("<request>\nBlinds first\n</request>"))
+
+
 if __name__ == '__main__':
     unittest.main()

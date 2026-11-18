@@ -1654,8 +1654,10 @@
       "none": "Layoutbot necesita un AI Task en Home Assistant que pueda generar datos (Ajustes > Dispositivos y servicios, una integración de IA).",
       "notes": {
         "unknown": "Se omitió {entity}: no es una entidad de este Home Assistant.",
-        "no_page": "No hay página {page}."
-      }
+        "no_page": "No hay página {page}.",
+        "kept": "Layoutbot olvidó {count} de tus mosaicos: están sueltos en la última página."
+      },
+      "nothing_to_restructure": "Esta página aún no tiene mosaicos de dispositivos que reestructurar. Añade algunos y vuelve a preguntar."
     }
   },
   "editor": {
@@ -4895,6 +4897,8 @@
       "close": "Cerrar",
       "hello": "¡Hola! Dime qué debe mostrar esta pantalla y organizo sus páginas. Solo cambio el diseño, nunca tus dispositivos.",
       "privacy": "Uso {agent} de Home Assistant. Tu pregunta, las páginas de tus pantallas y los ids, nombres y áreas de tus entidades van allí.",
+      "model_hint": "Trabajo mucho mejor con un modelo más grande que con el más barato. En Home Assistant, añade un AI Task para mí a tu integración de IA, desactiva «Configuración recomendada del modelo», elige un modelo más grande y selecciónalo en la parte superior de este chat.",
+      "model_link": "Abrir integraciones",
       "placeholder": "Haz una página con…",
       "ask": "Preguntar",
       "send": {
@@ -4921,6 +4925,10 @@
       "show": "Mostrar",
       "undo": "Deshacer",
       "undone": "Deshecho",
+      "restructure": {
+        "page": "Reestructura esta página",
+        "screen": "Reestructura toda la pantalla"
+      },
       "suggest": {
         "lights_sections": "Pon todas las luces en una página, con una sección por habitación",
         "lights": "Pon todas las luces en una página",
@@ -4949,7 +4957,8 @@
         "memory_full": "La memoria de la pantalla está llena, así que se omitió {count} mosaico. | La memoria de la pantalla está llena, así que se omitieron {count} mosaicos.",
         "left_out": "La pantalla no tenía sitio para {count} mosaico más. | La pantalla no tenía sitio para {count} mosaicos más.",
         "no_page": "No hay página {page}.",
-        "not_drawn": "La pantalla no dibuja ningún mosaico de {count} entidad. | La pantalla no dibuja ningún mosaico de {count} entidades."
+        "not_drawn": "La pantalla no dibuja ningún mosaico de {count} entidad. | La pantalla no dibuja ningún mosaico de {count} entidades.",
+        "restructure_no_room": "Al reestructurar no habría sitio para {count} de tus mosaicos, así que dejé las páginas como estaban. | Al reestructurar no habría sitio para {count} de tus mosaicos, así que dejé las páginas como estaban."
       },
       "update_app": "Actualiza la app Tessera: este editor coloca él mismo los planes de Layoutbot.",
       "scope": {

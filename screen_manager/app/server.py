@@ -5082,7 +5082,10 @@ def create_app(manager, development=False):
         grid = manager.verified_grid(inbox)
         if screen is None or grid is None:
             raise LayoutError(t('addon.errors.not_paired'))
-        if not isinstance(data, dict) or not isinstance(data.get('prompt'), str) or not data['prompt'].strip():
+        # Restructuring the person's own tiles (docs/LAYOUTBOT.md, "Restructuring"): a page or the whole screen, asked by
+        # its own key in the chat, with or without words of the person's.
+        restructure = data.get('restructure') if isinstance(data, dict) and isinstance(data.get('restructure'), dict) else None
+        if not isinstance(data, dict) or not isinstance(data.get('prompt'), str) or (not data['prompt'].strip() and restructure is None):
             raise ValueError(t('addon.errors.pages.fields'))
         # An editor from before plans (it applied a whole document the add-on made) would show nothing of this answer:
         # it is told to reload, as an old tab is for a save (LAYOUTBOT_PLAN).
@@ -5097,8 +5100,12 @@ def create_app(manager, development=False):
         known = {entity['id'] for entity in entities}
         name_of = lambda item: manager.labels.get(item.get('device_id')) or item['name']
         # The other screens with a page document, described to the model only when the person chose all screens.
+        if restructure is not None:
+            restructure = {'scope': restructure.get('scope'), 'page': restructure.get('page')}
+            if not layoutbot.scope_entities(draft, restructure):
+                raise ValueError(t('addon.layoutbot.nothing_to_restructure'))
         others = []
-        if data.get('all_screens') is True:
+        if data.get('all_screens') is True and restructure is None:
             for other in manager.screens():
                 record = manager.store.get(other['id'])
                 other_grid = manager.verified_grid(other['id'])
@@ -5107,10 +5114,15 @@ def create_app(manager, development=False):
                 others.append({'id': other['id'], 'name': name_of(other), 'grid': other_grid,
                                'sections': has_module(other, 'sections'), 'document': record['layout']})
         answer, seconds = await layoutbot.ask(manager.ha.request, data['prompt'][:layoutbot.PROMPT_CHARS], draft, grid,
-                                              entities, has_module(screen, 'sections'), agent, name=name_of(screen), others=others)
+                                              entities, has_module(screen, 'sections'), agent, name=name_of(screen), others=others,
+                                              restructure=restructure)
         words = lambda notes: [t(f"addon.layoutbot.notes.{note['key']}", **{k: v for k, v in note.items() if k != 'key'}) for note in notes]
-        # Another screen's plan is checked against its saved document; the editor shows it before anything is saved.
-        plan, notes, elsewhere = layoutbot.answered(answer, draft, known, others, data.get('all_screens'))
+        if restructure is not None:
+            plan, notes = layoutbot.restructured(answer, draft, restructure, entities)
+            elsewhere = []
+        else:
+            # Another screen's plan is checked against its saved document; the editor shows it before anything is saved.
+            plan, notes, elsewhere = layoutbot.answered(answer, draft, known, others, data.get('all_screens'))
         elsewhere = [{**other, 'notes': words(other['notes'])} for other in elsewhere]
         LOG.info('Layoutbot answered in %.1f s with %s (%d notes, %d other screens)', seconds, agent, len(notes), len(elsewhere))
         return web.json_response({'version': LAYOUTBOT_PLAN, 'reply': answer.get('reply') if isinstance(answer.get('reply'), str) else '',

@@ -1654,8 +1654,10 @@
       "none": "Layoutbot needs an AI Task in Home Assistant that can generate data (Settings > Devices & services, an AI integration).",
       "notes": {
         "unknown": "Left out {entity}: it is not an entity of this Home Assistant.",
-        "no_page": "There is no page {page}."
-      }
+        "no_page": "There is no page {page}.",
+        "kept": "Layoutbot forgot {count} of your tiles: they stand loose on the last page."
+      },
+      "nothing_to_restructure": "There are no tiles of devices on this page to restructure yet. Add a few, then ask again."
     }
   },
   "editor": {
@@ -4895,6 +4897,8 @@
       "close": "Close",
       "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
       "privacy": "I use {agent} from Home Assistant. Your question, the pages of your screens and the ids, names and areas of your entities go to it.",
+      "model_hint": "I work much better with a larger model than the cheapest one. In Home Assistant, add an AI Task for me to your AI integration, turn off Recommended model settings and choose a larger model, then pick it at the top of this chat.",
+      "model_link": "Open integrations",
       "placeholder": "Make a page with…",
       "ask": "Ask",
       "send": {
@@ -4921,6 +4925,10 @@
       "show": "Show",
       "undo": "Undo",
       "undone": "Undone",
+      "restructure": {
+        "page": "Restructure this page",
+        "screen": "Restructure the whole screen"
+      },
       "suggest": {
         "lights_sections": "Put all the lights on one page, in a section per room",
         "lights": "Put all the lights on one page",
@@ -4949,7 +4957,8 @@
         "memory_full": "The screen's memory is full, so {count} tile was left out. | The screen's memory is full, so {count} tiles were left out.",
         "left_out": "The screen had no room for {count} more tile. | The screen had no room for {count} more tiles.",
         "no_page": "There is no page {page}.",
-        "not_drawn": "The screen draws no tile of {count} entity. | The screen draws no tile of {count} entities."
+        "not_drawn": "The screen draws no tile of {count} entity. | The screen draws no tile of {count} entities.",
+        "restructure_no_room": "Restructured, there would be no room for {count} of your tiles, so I left the pages as they were. | Restructured, there would be no room for {count} of your tiles, so I left the pages as they were."
       },
       "update_app": "Update the Tessera app: this editor places Layoutbot's plans itself.",
       "scope": {

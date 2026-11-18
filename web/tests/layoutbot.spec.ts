@@ -81,6 +81,27 @@ describe("Layoutbot", () => {
     expect(bot.undoable(answer)).toBe(false);
   });
 
+  it("restructures the page shown by its own key, the person's words along, and places the tiles anew", async () => {
+    const doc = useDocumentStore(), bot = useLayoutbotStore(), before = clone(doc.document!);
+    const grouped = { pages: [{ page: "new", title: "", icon: null, sections: [], tiles: ["light.a"] }], remove: [], restructure: { scope: "page", page: 1 } };
+    api.on("POST screens/:id/layoutbot", answering({ reply: "Grouped.", plan: grouped }));
+    const chat = mount(LayoutBot, { attachTo: document.body });
+    bot.open = true;
+    await flushPromises();
+    expect(bot.canRestructure("page")).toBe(true);
+    await bot.restructure("page", "lights first");
+    const [asked] = api.asked("POST screens/:id/layoutbot");
+    expect(asked.body).toEqual({ version: 2, prompt: "lights first", layout: before, agent: "ai_task.cloud", restructure: { scope: "page", page: 1 } });
+    expect(bot.messages[0].text).toBe("Restructure this page: lights first");
+    // The page keeps its id and its tiles; nothing else asked for, so nothing else changed.
+    expect(doc.document!.pages[0].id).toBe(before.pages[0].id);
+    expect(doc.document!.pages[0].tiles.map((tile) => (tile.content as any).entityId)).toEqual(["light.a"]);
+    // Without words of the person's, the key alone asks.
+    await bot.restructure("screen");
+    expect(api.asked("POST screens/:id/layoutbot")[1].body).toMatchObject({ prompt: "", restructure: { scope: "screen" } });
+    chat.unmount();
+  });
+
   it("tells the person to update the app when the add-on answers in the old way", async () => {
     const doc = useDocumentStore(), bot = useLayoutbotStore(), before = clone(doc.document!);
     api.on("POST screens/:id/layoutbot", () => ({ reply: "Done", layout: withNewPage(before), changed: true, notes: [] }));
