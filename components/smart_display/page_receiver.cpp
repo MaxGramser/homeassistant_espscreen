@@ -896,6 +896,8 @@ std::string receive(const std::string &payload) {
     tile.guard = string(options["guard"], 16); if (tile.guard.empty()) tile.guard="confirm";
     // Where a cover's slats stand open: "50" for a blind closed at 0 and at 100, else Home Assistant's 100.
     tile.tilt_middle = string(options["tilt_open"], 4) == "50";
+    // An alarm panel's code sends itself after this many digits (4 to 8); missing, "off" or anything else keeps OK.
+    tile.send_after = (uint8_t) alarm_panel::send_after((unsigned) std::atoi(string(options["send_after"], 4).c_str()));
     // A live picture's pace (0.2.91+): 5, 10, 15 or 30 s (5 and 10 from app 0.3.13); a missing or odd value keeps the
     // default. 0 is Live (firmware dev, live_view.h): a camera that streams on its tile, which only a screen whose hello
     // says `live` is sent. Firmware before it read 0 as 15.

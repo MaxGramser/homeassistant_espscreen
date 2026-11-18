@@ -2301,6 +2301,12 @@
         "confirm_hint": "A locked lock unlocks after a second tap on the tile or its key. Locking always takes one tap.",
         "lock_only_hint": "This screen can lock but never unlock or open. Good for a screen in a porch, a garage or a child's room."
       },
+      "send_after": {
+        "label": "Send code after",
+        "off": "OK key",
+        "off_hint": "The code goes when you tap OK. Home Assistant does not say how many digits a code has.",
+        "on_hint": "The code goes by itself after {digits} digits, without OK. Use this only when every code of this alarm has {digits} digits: a code sent too early counts as a wrong one."
+      },
       "tilt_open": {
         "label": "Slats open at",
         "100": "100 %",

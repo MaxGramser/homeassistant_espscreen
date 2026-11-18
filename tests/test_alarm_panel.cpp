@@ -181,9 +181,35 @@ static void test_layouts() {
         for (int j = 0; j < i; ++j) assert(apart(k.keys[i], k.keys[j]));
       }
       assert(inside(k.dots, width, top, bottom) && inside(k.line, width, top, bottom) && k.dot >= 4);
+      // As large as the room allows, up to a large phone keypad's key: either a key reached its ceiling or its shape's
+      // limit, or the keys and the dots fill the glass's width or height.
+      const Rect &key = k.keys[4];
+      assert(key.w <= std::max(ui::mm(KEY_W_MAX_MM), m.least_key()) && key.h <= std::max(ui::mm(KEY_H_MAX_MM), m.least_key()));
+      const int pad_w = k.keys[2].x + k.keys[2].w - k.keys[0].x, pad_h = k.keys[11].y + k.keys[11].h - k.keys[0].y;
+      const bool capped = key.w >= ui::mm(KEY_W_MAX_MM) - 1 || key.h >= ui::mm(KEY_H_MAX_MM) - 1 ||
+                          key.w * 10 >= key.h * KEY_WIDE_MAX - 10 || key.h * 100 >= key.w * KEY_TALL_MAX - 100;
+      const bool fills = pad_w + (k.beside ? k.info.w : 0) >= (width - 2 * m.side) * 9 / 10 || pad_h >= (bottom - top) * 8 / 10;
+      if (!(capped || fills)) {
+        std::printf("%s: keypad %dx%d with keys %dx%d leaves the glass empty (card %d, %d..%d)\n", g.name, pad_w, pad_h, key.w, key.h, width, top, bottom);
+        assert(false);
+      }
+      if (digits == 4) std::printf("  %-24s key %3dx%3d px = %2dx%2d mm%s\n", g.name, key.w, key.h, key.w * 25 / g.dpi, key.h * 25 / g.dpi, k.beside ? ", dots beside" : "");
     }
   }
   ui::configure(170, "standard");
+}
+
+// Sending by itself: only with a length the tile gives, and then the keys beside 0 change.
+static void test_send_after() {
+  assert(send_after(0) == 0 && send_after(3) == 0 && send_after(4) == 4 && send_after(8) == 8 && send_after(9) == 0);
+  assert(!sends_now(0, 4) && !sends_now(4, 3) && sends_now(4, 4) && !sends_now(4, 5) && sends_now(6, 6));
+  assert(left_of_zero(0) == Side::DELETE && right_of_zero(0) == Side::OK);
+  assert(left_of_zero(4) == Side::NONE && right_of_zero(4) == Side::DELETE);
+  assert(dots_shown(0, 0) == 4 && dots_shown(0, 6) == 6 && dots_shown(6, 0) == 6 && dots_shown(4, 2) == 4);
+  Codes code{"number", false, false};
+  assert(keypad_first("triggered", code) && keypad_first("pending", code) && !keypad_first("arming", code) && !keypad_first("armed_away", code));
+  Codes saved{"number", false, true}, letters{"text", false, false}, none{"", false, false};
+  assert(!keypad_first("triggered", saved) && !keypad_first("triggered", letters) && !keypad_first("triggered", none));
 }
 
 int main() {
@@ -194,5 +220,6 @@ int main() {
   test_attempt();
   test_lockout();
   test_layouts();
+  test_send_after();
   std::puts("alarm_panel: ok");
 }

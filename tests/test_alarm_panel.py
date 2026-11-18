@@ -85,3 +85,45 @@ class TheApp(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SendsByItself(unittest.TestCase):
+    """After how many digits a code sends itself (the tile's send_after, docs/ALARM_PANEL.md). Home Assistant reports no
+    length of a code (only code_format), so the tile says it, never the app or the screen by guessing."""
+
+    def layout(self, entity, value):
+        return {'title': 'Home', 'tiles': [{'entity': entity, 'slot': 0, 'options': {'send_after': value}}]}
+
+    def test_the_app_keeps_a_length_and_stores_no_default(self):
+        self.assertEqual(list(core.ALARM_SEND_AFTER), ['off', '4', '5', '6', '7', '8'])
+        for value in ('4', 6, '8'):
+            options = core.validate_layout(self.layout('alarm_control_panel.home', value))['tiles'][0]['options']
+            self.assertEqual(options, {'send_after': str(value)})
+        self.assertEqual(core.validate_layout(self.layout('alarm_control_panel.home', 'off'))['tiles'][0].get('options', {}), {})
+        for bad in (self.layout('alarm_control_panel.home', '3'), self.layout('alarm_control_panel.home', '10'),
+                    self.layout('lock.door', '4'), self.layout('light.a', '4')):
+            with self.assertRaises(ValueError):
+                core.validate_layout(bad)
+        self.assertEqual(core.tile_options({'send_after': '4'}), {'send_after': '4'})
+
+    def test_the_screen_reads_it_and_the_firmware_agrees_on_the_range(self):
+        states = {'alarm_control_panel.home': {'state': 'disarmed', 'attributes': {'code_format': 'number', 'supported_features': 3}}}
+        message = core.state_message(0, {'entity': 'alarm_control_panel.home', 'name': '', 'options': {'send_after': '6'}}, states)
+        self.assertEqual(message['o']['send_after'], '6')
+        receiver = (COMPONENT / 'page_receiver.cpp').read_text()
+        self.assertIn('alarm_panel::send_after((unsigned) std::atoi(string(options["send_after"], 4).c_str()))', receiver)
+        lengths = [int(v) for v in core.ALARM_SEND_AFTER[1:]]
+        self.assertIn(f'SEND_AFTER_MIN = {min(lengths)}, SEND_AFTER_MAX = {max(lengths)};', PANEL)
+        self.assertLessEqual(max(lengths), int(re.search(r'CODE_MAX = (\d+)', PANEL).group(1)))
+
+    def test_the_last_digit_sends_and_a_lock_keeps_its_ok_key(self):
+        command = body(TILES, 'inline void alarm_command(int cmd){')
+        self.assertIn('alarm_panel::sends_now(alarm_send_after(),(unsigned)alarm_pad.code.size())', command)
+        self.assertIn('t.domain()=="alarm_control_panel"?alarm_panel::send_after(t.send_after):0', TILES)
+
+    def test_going_off_opens_the_keypad_on_red(self):
+        card = body(TILES, 'inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t *heading){')
+        self.assertIn('alarm_keypad_first(t)', card)
+        self.assertIn('keypad_first,heading);', card)
+        # Back on that keypad closes the card: there is no card with a Disarm key behind it to go back to.
+        self.assertIn('if(first)hide_detail();else redraw_detail();', TILES)

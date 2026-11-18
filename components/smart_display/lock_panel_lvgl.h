@@ -160,7 +160,6 @@ inline void lock_card_ring(const Tile &t,int cx,int cy,int size,int width){
   (void)t;(void)cx;(void)cy;(void)size;(void)width;
 #endif
 }
-inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int bottom,const lv_font_t *text,const lv_font_t *icons,const lv_font_t *mini);
 // The lock and alarm cards (docs/CARD_PARTS.md, "Security cards"): every state, every step of a code, every attempt,
 // a second tap asked for and a lockout are their shape, so each of those builds the card as it always did, with its
 // animations. Only their status line paints itself (who locked it, a note that runs out).
@@ -170,7 +169,7 @@ inline uint32_t security_card_shape(const Tile &t){
   const uint32_t now=esphome::millis();
   const auto &x=t.extra();
   const auto codes=alarm_codes(t);
-  add(t.entity);add(t.state);add(t.icon);add(t.guard);number(t.supported);f.write(t.available());f.write(fresh());
+  add(t.entity);add(t.state);add(t.icon);add(t.guard);number(t.send_after);number(t.supported);f.write(t.available());f.write(fresh());
   add(codes.format);f.write(codes.arm_required);f.write(codes.saved);f.write(x.assumed);number(x.alarm_end);number(x.alarm_delay);
   f.write(alarm_pad.open);number(alarm_pad.mode);number(alarm_pad.code.size());add(alarm_pad.entity);
   number(alarm_pad.note);f.write(alarm_pad.note&&now-alarm_pad.note_at<4000);number(alarm_pad.shake_at);
@@ -186,6 +185,7 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
   detail_placed=true;
   if(alarm_pad.entity!=t.entity){alarm_close_pad();alarm_pad.entity=t.entity;}
   if(alarm_pad.open&&!t.available())alarm_close_pad();
+  alarm_red=false;
   alarm_forget_widgets();lock_ring=nullptr;
   card_shaped(t,security_card_shape);
   const lv_font_t *text=large?detail_font:(control_font?control_font:detail_font);
@@ -197,7 +197,7 @@ inline void render_lock_detail(Tile &t,bool large,int width,int height,lv_obj_t 
   if(alarm_pad.open){
     // The keypad in the card's place, titled as the key that asked for it: Unlock, Lock, Open door.
     if(heading)label(heading,lock_action_text(alarm_pad.mode));
-    render_code_pad(m,width,top,bottom,text,icons,mini);
+    render_code_pad(m,width,detail_bar::bottom()+m.gap(),height-m.gap(),text,icons,mini);
     return;
   }
   const auto lock=lock_of(t);

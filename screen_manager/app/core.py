@@ -202,6 +202,9 @@ LOCK_GUARDS = tuple(catalogue.of_type('lock')['guards'])
 # Where a cover's slats stand open (the `tilt_open` option): 100 as Home Assistant's rule has it, the default and never
 # stored, or 50 for a blind that reports 0 and 100 as closed one way and the other (catalogue/cover.yaml).
 COVER_TILT_OPEN = tuple(catalogue.of_type('cover')['tilt_open'])
+# After how many digits an alarm panel's code sends itself (the `send_after` option): never, the default and never
+# stored, or 4 to 8 (catalogue/alarm_control_panel.yaml). Home Assistant does not know a code's length; the tile does.
+ALARM_SEND_AFTER = tuple(catalogue.of_type('alarm_control_panel')['send_after'])
 # An automation as a tile (GitHub #62): a tap switches it on or off and holding runs its actions, or with the tap option
 # `run` the other way round. Older firmware refuses the domain, so a layout with one waits for the update.
 AUTOMATION_MIN_FIRMWARE = catalogue.parse_version(catalogue.of_type('automation')['firmware'])
@@ -1381,6 +1384,8 @@ TILE_EVENT_OPTIONS = {'size': 'size', 'controls': 'controls', 'display': 'displa
                       'history_hours': 'history_hours', 'refresh': 'refresh', 'fit': 'fit', 'overlay': 'overlay',
                       # Where a cover's slats stand open: 100 (Home Assistant's rule) or 50.
                       'tilt_open': 'tilt_open',
+                      # After how many digits an alarm panel's code sends itself: off, or 4 to 8.
+                      'send_after': 'send_after',
                       # A light's presets: a list of at most four, each {"b": 1-100} with "k" kelvin or "h" and "s".
                       'presets': 'presets',
                       # Whether the presets show their brightness on their discs (off unless asked).
@@ -1978,7 +1983,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -2063,6 +2068,14 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 options = {k: v for k, v in options.items() if k != 'tilt_open'}
                 if value != COVER_TILT_OPEN[0]:
                     options['tilt_open'] = value
+            # An alarm panel's code sends itself after 4 to 8 digits, or never (the OK key, the default); no other tile.
+            if 'send_after' in options:
+                value = str(options['send_after'])
+                if domain != 'alarm_control_panel' or value not in ALARM_SEND_AFTER:
+                    raise ValueError(t('addon.errors.layout.invalid_setting', setting='send_after'))
+                options = {k: v for k, v in options.items() if k != 'send_after'}
+                if value != ALARM_SEND_AFTER[0]:
+                    options['send_after'] = value
             # A light's presets (module light_presets): at most four, each a brightness with a white shade or a colour.
             try:
                 options = light_presets.validate(options, domain)

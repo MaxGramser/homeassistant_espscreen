@@ -18,6 +18,8 @@
   screen.
 - [TEXT_ENTITY.md](TEXT_ENTITY.md): a Home Assistant text (text, input_text) as a tile, its value edited with the
   keyboard on the larger boards and shown only on the 4 MB ones.
+- [ALARM_PANEL.md](ALARM_PANEL.md): the alarm panel's card and keypad, what happens when the alarm goes off, and a
+  code that sends itself after its last digit.
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [BATTERY.md](BATTERY.md): a screen's battery in its top bar, and how a board or your own YAML measures it (also a
   recipe for the code).

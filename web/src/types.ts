@@ -20,6 +20,7 @@ export type TileOptions = {
   guard?: string;
   // Where a cover's slats stand open: "100" (Home Assistant's rule, never stored) or "50".
   tilt_open?: string;
+  send_after?: string;
   // A light's presets (docs/LIGHT_PRESETS.md, light_presets.py): at most four, each a brightness with a white shade or a
   // colour, and whether each disc shows its brightness (stored only when it does).
   presets?: LightPreset[];
@@ -129,7 +130,7 @@ export type PageTile = {
     todoOrder?: string; todoCompleted?: boolean; todoDue?: boolean; todoAdd?: boolean; todoSuggest?: boolean; todoClear?: boolean;
     // A sensor's meter (firmware 0.56.0): TileOptions' meter, min, max, segments, colors and thresholds.
     meterStyle?: string; meterMin?: number; meterMax?: number; meterSegments?: number; meterColors?: string[]; meterThresholds?: number[] };
-  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string;
+  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string; send_after?: string;
     presets?: LightPreset[]; preset_levels?: boolean };
   children?: ChildTile[];
 };

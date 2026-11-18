@@ -2103,16 +2103,17 @@ class Run:
         refused = [c for c in calls if c.service == 'esphome.screen_alarm_code_refused']
         if refused[-1].data.get('locked') != '30':
             faults.append(f'the third wrong code locked for {refused[-1].data.get("locked")} s, not 30')
-        # The alarm goes off: the screen opens the keypad to disarm by itself (still locked here), and Back shows the
-        # card with its big Disarm key.
+        # The alarm goes off: the screen opens the keypad to disarm by itself (still locked here), on red. It is the
+        # card now, so Back closes it, and the tile opens the keypad again.
         states[entity] = alarm('triggered')
         await push()
-        card = await self.alarm_until(lambda c: c['pad'] and c['title'] == 'Disarm' and c['status'] == 'Triggered',
-                                      'going off never opened the keypad to disarm')
-        await self.tap(*card['back'][:2])
-        card = await self.alarm_until(lambda c: c['open'] and not c['pad'] and len(c['modes']) == 1, 'triggered never showed the Disarm key')
+        card = await self.alarm_until(lambda c: c['pad'] and c['title'] == 'Disarm', 'going off never opened the keypad to disarm')
         keep(card, 'triggered')
         await self.snapshot(self.out / 'alarm-triggered.png')
+        await self.tap(*card['back'][:2])
+        await self.alarm_until(lambda c: not c['open'], 'Back on the red keypad never closed the card')
+        await self.tap(*tile)
+        card = await self.alarm_until(lambda c: c['open'] and c['pad'], 'the tile of a panel going off never opened its keypad')
         # A panel without a code: a mode goes straight out, without a keypad.
         states[entity] = alarm('disarmed', code_format=None)
         await push()
