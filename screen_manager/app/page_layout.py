@@ -50,8 +50,6 @@ APPEARANCE = {
 # since app 0.4.84 its own shuffle and repeat.
 INTERACTION = {"tap": "tap", "inline": "inline", "controls": "controls", "action": "action", "guard": "guard", "play": "play", "speaker": "speaker",
                "shuffle": "shuffle", "repeat": "repeat", "tilt_open": "tilt_open",
-               # An alarm panel's code that sends itself after this many digits (catalogue/alarm_control_panel.yaml).
-               "send_after": "send_after",
                # A light's presets (module light_presets, light_presets.py): a brightness with a white shade or a colour each.
                "presets": "presets", "preset_levels": "preset_levels"}
 

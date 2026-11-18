@@ -98,7 +98,7 @@ export type HeaderItem = { id?: string; type: string; entity?: string; content?:
 // `bar_cards`: the screen takes cards from its top bar (firmware 0.56.0), so its tiles of the top bar count too (model/memory.ts).
 // `sections`: the screen draws sections, so a page's sections count too (any other screen is sent none).
 export type ScreenMemory = { room: number | null; used: number; psram: boolean; tile: number; extra: number; page?: number; short?: boolean; live?: boolean;
-  bar_cards?: boolean; sections?: boolean };
+  bar_cards?: boolean; sections?: boolean; alarms?: string[] };
 // `barItems`: the items one page's top bar takes there (model/pages.ts barLimit). `plugins`: whether plugin tiles and
 // items are taken there (the add-on serves plugins, the plugins store's pluginsEnabled); never stored with a document.
 export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number; plugins?: boolean }>;
@@ -130,7 +130,7 @@ export type PageTile = {
     todoOrder?: string; todoCompleted?: boolean; todoDue?: boolean; todoAdd?: boolean; todoSuggest?: boolean; todoClear?: boolean;
     // A sensor's meter (firmware 0.56.0): TileOptions' meter, min, max, segments, colors and thresholds.
     meterStyle?: string; meterMin?: number; meterMax?: number; meterSegments?: number; meterColors?: string[]; meterThresholds?: number[] };
-  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string; send_after?: string;
+  interaction: { tap?: string; inline?: string; controls?: string; action?: TileOptions["action"]; guard?: string; play?: FavoritePlay; speaker?: string; shuffle?: string; repeat?: string; tilt_open?: string;
     presets?: LightPreset[]; preset_levels?: boolean };
   children?: ChildTile[];
 };

@@ -173,9 +173,6 @@ const guards = computed(() => offer("guard", ["confirm", "lock_only"].map((key) 
 // the cover has slats (or the choice is stored already).
 const tiltOpen = computed(() => String(current("tilt_open", "100")));
 const tiltOpens = computed(() => offer("tilt_open", ["100", "50"].map((key) => [key, t(`editor.tile.tilt_open.${key}`)] as [string, string]), tiltOpen.value));
-// After how many digits an alarm panel's code sends itself (catalogue/alarm_control_panel.yaml): never, or 4 to 8.
-const sendAfter = computed(() => String(current("send_after", "off")));
-const sendAfters = computed(() => offer("send_after", ["off", "4", "5", "6", "7", "8"].map((key) => [key, key === "off" ? t("editor.tile.send_after.off") : key] as [string, string]), sendAfter.value));
 const hasSlats = computed(() => {
   if (domain.value !== "cover") return false;
   const live = entities.liveOf(props.tile.entity);
@@ -369,9 +366,6 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
       <ActionPicker v-if="domain !== 'screen' && !goesTo && tap === 'action'" :tile="tile" />
       <PropRow v-if="domain === 'lock'" :label="t('editor.tile.guard.label')" icon="check-circle" :hint="t(guard === 'lock_only' ? 'editor.tile.guard.lock_only_hint' : 'editor.tile.guard.confirm_hint')">
         <ChoiceField :choices="guards" :value="guard" :aria-label="t('editor.tile.guard.label')" @pick="(v) => setTileOption(tile, 'guard', v)" />
-      </PropRow>
-      <PropRow v-if="domain === 'alarm_control_panel'" :label="t('editor.tile.send_after.label')" icon="gesture-tap" :hint="t(sendAfter === 'off' ? 'editor.tile.send_after.off_hint' : 'editor.tile.send_after.on_hint', { digits: sendAfter })">
-        <ChoiceField :choices="sendAfters" :value="sendAfter" :aria-label="t('editor.tile.send_after.label')" @pick="(v) => setTileOption(tile, 'send_after', v)" />
       </PropRow>
       <PropRow v-if="hasSlats && !goesTo" :label="t('editor.tile.tilt_open.label')" icon="sort-variant" :hint="t(tiltOpen === '50' ? 'editor.tile.tilt_open.50_hint' : 'editor.tile.tilt_open.100_hint')">
         <ChoiceField :choices="tiltOpens" :value="tiltOpen" :aria-label="t('editor.tile.tilt_open.label')" @pick="(v) => setTileOption(tile, 'tilt_open', v)" />

@@ -294,7 +294,7 @@ struct KeypadLayout {
   bool beside = false;
 };
 // The keypad under the bar. `digits` is how many dots it shows (at least four, like a PIN field, or exactly the
-// tile's send_after). The keys are as large as the room allows, up to a large phone keypad's: the dots and their line take what
+// alarm's send_after). The keys are as large as the room allows, up to a large phone keypad's: the dots and their line take what
 // they need, above the keys or beside them on wide glass, and the twelve keys share all the rest, a finger's size at
 // the least. People type a code here while a siren goes, so a key of a fixed size in the middle of a large glass
 // was too small (docs/ALARM_PANEL.md, "The keypad").
@@ -355,7 +355,8 @@ inline KeypadLayout keypad_layout(const Metrics &m, int width, int top, int bott
 // ---- Sending by itself ----
 // Home Assistant never says how many digits a code has: an alarm panel reports only code_format ("number" or "text"),
 // the manual alarm takes a code of any length or a template, and Alarmo keeps a code per person. So the screen sends a
-// code by itself only when the tile says how long it is (the tile's send_after option, 0 for never), and then it
+// code by itself only when someone said how long it is (the alarm's choice on the Events page, which the app gives
+// every tile of it as send_after; 0 for never), and then it
 // shows exactly that many dots and needs no OK key. A code sent too early would count as a wrong one.
 constexpr unsigned SEND_AFTER_MIN = 4, SEND_AFTER_MAX = 8;
 inline unsigned send_after(unsigned option) { return option >= SEND_AFTER_MIN && option <= SEND_AFTER_MAX ? option : 0; }

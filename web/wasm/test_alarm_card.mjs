@@ -1,7 +1,9 @@
 // The alarm panel (firmware 0.3.3), read from the real firmware, no line of it quoted: its card offers Home Assistant's
 // modes in the frontend's order for what the panel supports (never trigger); disarming with a code opens the keypad and
 // sends the code with the action; a refused code becomes the event esphome.screen_alarm_code_refused with the panel, the
-// count and the lock, never the code; arming without a required code goes out at once.
+// count and the lock, never the code; arming without a required code goes out at once. And the alarm's choices from the
+// Events page (docs/ALARM_PANEL.md): a code that sends itself after its length with Delete where OK was, the keypad that
+// opens on its own when the alarm goes off and that Back closes, and a screen left out that stays quiet.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import createModule from '../src/wasm/firmware_preview.js';
@@ -71,4 +73,48 @@ press(over().key('Away'));
 assert.deepEqual(actions().map((a) => [a.service, a.data]), [['alarm_control_panel.alarm_arm_away', { entity_id: 'alarm_control_panel.shed' }]],
   'arming without a required code goes out at once, with no code');
 
-console.log('alarm card: the modes in order, the keypad, a refused code without the code, arming at once');
+close();
+
+// The alarm's choices from the Events page, which the app gives every tile of it (alarm_screens.py): the house sends its
+// code after four digits; the garage is set to leave this screen out when it goes off.
+const house = { entity: 'alarm_control_panel.house', name: 'house', state: 'armed_away', o: { send_after: '4' },
+  a: { code_format: 'number', code_arm_required: false, supported_features: 63 } };
+const garage = { entity: 'alarm_control_panel.garage', name: 'garage', state: 'armed_away', o: { alarm_wake: 'off' },
+  a: { code_format: 'number', code_arm_required: false, supported_features: 63 } };
+const receive = connection(m, '3333333333333333', '4444444444444444');
+configure(receive, 'Alarm', 1, [house, garage].map((t, slot) => ({ ...t, slot })));
+// The shed's arming above still waits for its state; after ten seconds without one the screen lets it go.
+tick(200);
+const glyphs = (code) => over().labels.filter((o) => o.icon && o.text.codePointAt(0) === code);
+
+// Four digits send the code by themselves: no OK key, and Delete (the keyboard's arrow, after the bar's Back) takes back
+// one digit.
+open(0);
+press(over().key('Disarmed'));
+assert.equal(glyphs(OK).length, 0, 'a code that sends itself has no OK key');
+assert.equal(glyphs(BACK).length, 2, 'Back in the bar and Delete beside 0');
+for (const digit of '12') press(over().key(digit));
+press(glyphs(BACK).at(-1));
+for (const digit of '23') press(over().key(digit));
+assert.deepEqual(actions(), [], 'three digits send nothing');
+press(over().key('4'));
+const typed = actions();
+assert.deepEqual(typed.map((a) => [a.service, a.data]), [['alarm_control_panel.alarm_disarm', { entity_id: 'alarm_control_panel.house', code: '1234' }]],
+  'the fourth digit sends the code, the deleted one gone');
+m.ccall('preview_action_response', null, ['number', 'number', 'string'], [typed[0].call_id, 1, '']);
+close();
+
+// The house goes off: its card opens by itself as the keypad, without a card with one Disarm key first, and Back closes it.
+receive({ op: 'state', i: 0, entity: house.entity, name: house.name, state: 'triggered', a: house.a });
+tick(12);
+assert.ok(over().key(BACK) && ['1', '5', '0'].every((d) => over().words.includes(d)), 'going off opens the keypad at once');
+press(over().key(BACK));
+assert.ok(!over().key(BACK), 'Back on that keypad closes the card');
+
+// The garage goes off too: this screen was left out for it, so nothing opens.
+receive({ op: 'state', i: 1, entity: garage.entity, name: garage.name, state: 'triggered', a: garage.a });
+tick(12);
+assert.ok(!over().key(BACK), 'a screen left out for an alarm stays quiet when it goes off');
+
+console.log('alarm card: the modes in order, the keypad, a refused code without the code, arming at once, a code that sends itself, '
+  + 'Delete, the keypad at once when it goes off, a screen left out');

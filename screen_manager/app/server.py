@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 import automations
 import calendar_feed
 import todo_feed
+import alarm_screens
 import doorbell
 import durations
 import picture_legacy
@@ -1099,6 +1100,8 @@ class Manager:
         # Plugins (docs/PLUGINS.md): which exist, which each screen runs, their files and their tiles' data.
         self.plugins = plugins.Plugins(self, self.path.parent, self.firmware.root)
         self.icons = screen_icons.ScreenIcons(self, self.path.parent)
+        # What the screens do when an alarm goes off (Events, Alarm; docs/ALARM_PANEL.md): set once per alarm.
+        self.alarm_screens = alarm_screens.AlarmScreens(self.path.parent)
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
@@ -1425,7 +1428,10 @@ class Manager:
         # Whether its tiles of the top bar count too (core.layout_cost): a screen that takes cards from its top bar; and its
         # pages' sections: a screen that draws them (any other is sent none).
         features = getattr(sender, 'features', None) or ()
-        return {**memory, 'live': live is not None, 'bar_cards': BAR_CARDS_FEATURE in features, 'sections': SECTIONS_FEATURE in features} if memory else None
+        # And the alarms it wakes for (alarm_screens): one it has on no tile comes as a tile without a cell, which costs as one.
+        alarms = self.alarm_screens.watched(inbox, self.ha.states) if BAR_CARDS_FEATURE in features else []
+        return {**memory, 'live': live is not None, 'bar_cards': BAR_CARDS_FEATURE in features, 'sections': SECTIONS_FEATURE in features,
+                **({'alarms': alarms} if alarms else {})} if memory else None
 
     def _discovered(self, inbox):
         """The screen as discovery sees it now, or None while it is not in Home Assistant's registry."""
@@ -3147,7 +3153,9 @@ class Manager:
         # The speakers a player's menu lists change with what this app started and the libraries it read.
         media = (tuple(sorted(self.outputs.items())), tuple(sorted(e for e, known in self.accounts.items() if known[1])))
         savers = tuple(sorted(e for choice in self.savers.choices.values() for e in screen_saver.entities(choice, self.ha.states)))
-        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups, media, savers, id(self.energy_prefs()))
+        # Every alarm panel: a screen may wake for one it has on no tile (alarm_screens).
+        alarms = tuple(self.alarm_screens.panels(self.ha.states))
+        key = (id(getattr(self.ha, 'registry', [])), id(self.layouts), groups, media, savers, id(self.energy_prefs()), alarms)
         if key != self._watched_key:
             watched = {tile['entity'] for layout in self.layouts.values() for tile in layout['tiles']}
             watched |= {item['entity'] for record in self.store.records().values() if record['format'] == PAGE_FORMAT
@@ -3156,6 +3164,7 @@ class Manager:
             watched |= {eid for inbox, layout in self.layouts.items() for tile in layout['tiles'] for eid in self.related_entities(tile, inbox)}
             watched |= {eid for device in self.setting_index().values() for eid in device.values()}
             watched |= set(savers)
+            watched |= set(alarms)
             self._watched_key, self._watched = key, watched
         return set(self._watched)
 
@@ -5681,6 +5690,20 @@ def create_app(manager, development=False):
         service, unusable = alert_data(data)
         await manager.ha.call(alert_service(screen['node']), service)
         return web.json_response({'sent': 1, 'failed': 0, 'skipped': 0, 'unusable': unusable})
+    async def alarms_view(request):
+        """Events, Alarm: every alarm panel with what the screens do when it goes off (alarm_screens)."""
+        return web.json_response(manager.alarm_screens.view(manager.ha.states))
+    async def alarms_change(request):
+        """Events, Alarm: one alarm's screens ("all" or ids) and code length. Every screen gets its tiles again."""
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ValueError(t('addon.errors.layout.invalid_setting', setting='alarm'))
+        try:
+            manager.alarm_screens.set(body.get('entity'), body.get('screens', alarm_screens.ALL), body.get('send_after', 'off'))
+        except ValueError as error:
+            raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
+        manager.ha.changed.set()
+        return web.json_response(manager.alarm_screens.view(manager.ha.states))
     async def test_doorbell(request):
         """Events, Doorbell, Try it: one ring to one screen or to every screen, as esp_screens_doorbell sends it."""
         body = await request.json()
@@ -6358,6 +6381,8 @@ def create_app(manager, development=False):
     app.router.add_post('/api/screens/{inbox}/calibrate', calibrate)
     app.router.add_post('/api/alerts/test', test_alert)
     app.router.add_post('/api/doorbell/test', test_doorbell)
+    app.router.add_get('/api/alarms', alarms_view)
+    app.router.add_put('/api/alarms', alarms_change)
     app.router.add_get('/api/automations', list_automations)
     app.router.add_post('/api/automations', save_automation)
     app.router.add_delete('/api/automations/{id}', delete_automation)

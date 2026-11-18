@@ -45,14 +45,17 @@ def bounded(message):
     return message
 
 
-def configuration(record, region, bar=(), sections=False):
+def configuration(record, region, bar=(), sections=False, alarms=None):
     """Editor workspace and legacy device settings never change this revision. The tiles of the top bar a screen gets do
-    (`bar`, core.BAR_CARDS_FEATURE): a screen that starts to take them gets the layout again with them."""
+    (`bar`, core.BAR_CARDS_FEATURE): a screen that starts to take them gets the layout again with them. So do an alarm's
+    choices from the Events page (`alarms`, alarm_screens: its code length and whether this screen wakes for it), which
+    its tiles carry in their options: a change gives the screen its tiles again."""
     # A screen that starts to draw sections gets the layout again with them (`sections`, its hello); a layout without
     # sections keeps the revision it always had.
     drawn = sections and any(sections_of(page) for page in record["layout"]["pages"])
     return fingerprint({"layout": record["layout"], "grid": record["sourceGrid"], "region": region,
-                        **({"bar": [tile["entity"] for tile in bar]} if bar else {}), **({"sections": True} if drawn else {})})
+                        **({"bar": [tile["entity"] for tile in bar]} if bar else {}), **({"sections": True} if drawn else {}),
+                        **({"alarms": alarms} if alarms else {})})
 
 
 def appearance_configuration(record, region, initial_tiles):
@@ -164,14 +167,14 @@ def bar_value_messages(bars, previous, stride=FIRMWARE_MAX_BAR_ITEMS):
     return [*replacements, *grouped.values()]
 
 
-def prepare(inbox, record, region, values, bars, bar=(), sections=False, sums=None):
+def prepare(inbox, record, region, values, bars, bar=(), sections=False, sums=None, alarms=None):
     """Compile and bound the entire transaction before persistence or delivery.
 
     Initial states are supplied by the caller so this pure boundary has no HA
     side effects. The real delivery also checks refreshed values here. `bar`:
     the tiles of the top bar for a screen that takes them, after every other.
     """
-    revision = configuration(record, region, bar)
+    revision = configuration(record, region, bar, alarms=alarms)
     tiles = compile_tiles(record["layout"], grid_of_record(record)) + list(bar)
     pages = record["layout"]["pages"]
     if len(values) != len(tiles) or len(bars) != len(pages):
@@ -468,14 +471,14 @@ class Sender:
             raise DeliveryError(answer.get("status") or "Screen requested synchronization")
         return answer
 
-    async def synchronize(self, inbox, record, region, values, bars, alive=lambda: True, bar=(), sums=None):
+    async def synchronize(self, inbox, record, region, values, bars, alive=lambda: True, bar=(), sums=None, alarms=None):
         """values and bars are resolved snapshots for this validated document,
         `bar` the tiles of the top bar the values end with (prepare).
 
         Every message is size-checked before begin. Optional histories/images
         may arrive later; tile configuration and an initial HA value may not.
         """
-        revision = configuration(record, region, bar, SECTIONS_FEATURE in (getattr(self, "features", None) or ()))
+        revision = configuration(record, region, bar, SECTIONS_FEATURE in (getattr(self, "features", None) or ()), alarms)
         if self.failed_revision == revision:
             raise Refused(self.failure)
         pages = record["layout"]["pages"]
@@ -483,7 +486,7 @@ class Sender:
             given = sums
             sections = SECTIONS_FEATURE in (getattr(self, "features", None) or ())
             sums = (given or []) if sections else []
-            begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar, sections, sums)
+            begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar, sections, sums, alarms)
         except Refused as error:
             # No begin was sent, so an already applied document remains valid.
             # Resolved live values may shrink again without a layout edit.
@@ -520,8 +523,8 @@ class Sender:
                     if (SECTIONS_FEATURE in self.features) != sections and any(sections_of(page) for page in pages):
                         sections = SECTIONS_FEATURE in self.features
                         sums = (given or []) if sections else []
-                        revision = configuration(record, region, bar, sections)
-                        begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar, sections, sums)
+                        revision = configuration(record, region, bar, sections, alarms)
+                        begin, initial_tiles, initial_bars, live_values = prepare(inbox, record, region, values, bars, bar, sections, sums, alarms)
                     # Tiles of the top bar only to a screen that still names them: one flashed back to an older firmware
                     # gets the layout without them on the next round, which its hello now decides.
                     if bar and BAR_CARDS_FEATURE not in self.features:

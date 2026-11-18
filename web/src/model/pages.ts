@@ -638,7 +638,7 @@ export function arrangeTiles(layout: PageLayout, grid: PageGrid, entries: { tile
         if (options[wire] !== undefined) Object.assign(appearance, { [key]: clone(options[wire]) });
       }
       const interaction: PageTile["interaction"] = {};
-      for (const key of ["tap", "inline", "controls", "action", "guard", "play", "speaker", "shuffle", "repeat", "tilt_open", "send_after", "presets", "preset_levels"] as const) {
+      for (const key of ["tap", "inline", "controls", "action", "guard", "play", "speaker", "shuffle", "repeat", "tilt_open", "presets", "preset_levels"] as const) {
         if (options[key] !== undefined) Object.assign(interaction, { [key]: clone(options[key]) });
       }
       // A key keeps its id: an edit of one key is not a new key.

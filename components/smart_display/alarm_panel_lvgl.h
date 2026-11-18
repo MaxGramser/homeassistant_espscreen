@@ -529,6 +529,8 @@ inline void alarm_state_arrived(unsigned index,const std::string &before){
   if(alarm_attempt.active&&t.entity==alarm_attempt_entity)alarm_settled(alarm_attempt.settle(t.state,esphome::millis()),true);
   if(!alarm_panel::calls_for_attention(t.state)||alarm_panel::calls_for_attention(before)||!t.available())return;
   if(!enabled||!model.ready())return;
+  // A screen left out on the Events page (the app's alarm_screens) stays quiet: every tile of the panel says so.
+  if(t.alarm_quiet)return;
   // A panel on several tiles gets a state message per tile: the first of them wakes the screen, once.
   for(size_t i=0;i<index;++i)if(model.tiles[i].entity==t.entity)return;
   ESP_LOGI("alarm","%s is %s: the screen wakes with its card",t.entity.c_str(),t.state.c_str());

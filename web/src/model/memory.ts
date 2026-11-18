@@ -45,11 +45,20 @@ export const pageCost = (page: PricedPage, memory: Pick<ScreenMemory, "psram" | 
   TILE.memory.page + page.topbar.trailing.filter((item) => item.type === "entity").length * TILE.memory.bar_text +
   (memory.sections ? (page.sections?.length ?? 0) * TILE.memory.section : 0) + (memory.psram ? 0 : memory.page ?? 0);
 
+/** The alarms a screen wakes for (`alarms`, the app's alarm_screens) that are on neither its tiles nor its top bar: each
+ * comes as a tile without a cell, as core.layout_cost counts it. */
+export function alarmEntities(pages: readonly PricedPage[], tiles: readonly PricedTile[], memory: Pick<ScreenMemory, "alarms" | "bar_cards">) {
+  if (!memory.bar_cards) return [];
+  const on = new Set([...tiles.map((tile) => tile.entity), ...barEntities(pages, tiles)]);
+  return (memory.alarms ?? []).filter((entity) => !on.has(entity));
+}
+
 /** What these tiles (the keys of a bedside clock included) and pages take together, with the tiles of the top bar on a
- * screen that gets them (`bar_cards`, barEntities). */
+ * screen that gets them (`bar_cards`, barEntities) and of the alarms it wakes for (alarmEntities). */
 export const layoutCost = (tiles: readonly PricedTile[], memory: ScreenMemory, pages: readonly PricedPage[] = [], plugins: PluginTileLookup = noPluginTiles) =>
   tiles.reduce((sum, tile) => sum + tileCost(tile, memory, plugins), 0) + pages.reduce((sum, page) => sum + pageCost(page, memory), 0) +
-  (memory.bar_cards ? barEntities(pages, tiles).reduce((sum, entity) => sum + tileCost({ entity }, memory, plugins), 0) : 0);
+  (memory.bar_cards ? barEntities(pages, tiles).reduce((sum, entity) => sum + tileCost({ entity }, memory, plugins), 0) : 0) +
+  alarmEntities(pages, tiles, memory).reduce((sum, entity) => sum + tileCost({ entity }, memory, plugins), 0);
 
 export type MemoryUse = { need: number; room: number; share: number; level: "fine" | "close" | "full" | "over" };
 

@@ -7,13 +7,17 @@ event without it, arming at once); web/tests/layout.spec.ts the editor's colours
 and the rules that keep a code private.
 """
 from firmware_sources import firmware_domains, runtime_source
+import json
+import tempfile
 import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+import alarm_screens  # noqa: E402
 import core  # noqa: E402
+import page_delivery  # noqa: E402
 import header_bar  # noqa: E402
 
 TILES = runtime_source()
@@ -87,28 +91,71 @@ if __name__ == '__main__':
     unittest.main()
 
 
-class SendsByItself(unittest.TestCase):
-    """After how many digits a code sends itself (the tile's send_after, docs/ALARM_PANEL.md). Home Assistant reports no
-    length of a code (only code_format), so the tile says it, never the app or the screen by guessing."""
+class AlarmScreens(unittest.TestCase):
+    """What the screens do when an alarm goes off, set once per alarm on the Events page (alarm_screens.py,
+    docs/ALARM_PANEL.md): which screens open the keypad by themselves, and after how many digits the code sends itself.
+    Home Assistant reports no length of a code (only code_format), so the person says it, once for the alarm."""
 
-    def layout(self, entity, value):
-        return {'title': 'Home', 'tiles': [{'entity': entity, 'slot': 0, 'options': {'send_after': value}}]}
+    STATES = {'alarm_control_panel.house': {'state': 'disarmed', 'attributes': {'friendly_name': 'House', 'code_format': 'number'}},
+              'alarm_control_panel.shed': {'state': 'disarmed', 'attributes': {}}, 'light.hall': {'state': 'on', 'attributes': {}}}
 
-    def test_the_app_keeps_a_length_and_stores_no_default(self):
-        self.assertEqual(list(core.ALARM_SEND_AFTER), ['off', '4', '5', '6', '7', '8'])
-        for value in ('4', 6, '8'):
-            options = core.validate_layout(self.layout('alarm_control_panel.home', value))['tiles'][0]['options']
-            self.assertEqual(options, {'send_after': str(value)})
-        self.assertEqual(core.validate_layout(self.layout('alarm_control_panel.home', 'off'))['tiles'][0].get('options', {}), {})
-        for bad in (self.layout('alarm_control_panel.home', '3'), self.layout('alarm_control_panel.home', '10'),
-                    self.layout('lock.door', '4'), self.layout('light.a', '4')):
+    def store(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        return alarm_screens.AlarmScreens(folder.name), folder.name
+
+    def test_every_screen_and_the_ok_key_by_default_and_nothing_stored(self):
+        store, folder = self.store()
+        self.assertEqual(store.choice('alarm_control_panel.house'), {'screens': 'all', 'send_after': 'off'})
+        self.assertTrue(store.wakes('alarm_control_panel.house', 'any-screen'))
+        self.assertEqual(store.options('alarm_control_panel.house', 'any-screen'), {})
+        self.assertEqual(store.set('alarm_control_panel.house', 'all', 'off'), {'screens': 'all', 'send_after': 'off'})
+        self.assertEqual(json.loads((Path(folder) / 'alarm_screens.json').read_text())['alarms'], {})
+
+    def test_a_choice_is_kept_and_read_again(self):
+        store, folder = self.store()
+        store.set('alarm_control_panel.house', ['kitchen', 'hall'], '6')
+        again = alarm_screens.AlarmScreens(folder)
+        self.assertEqual(again.choice('alarm_control_panel.house'), {'screens': ['hall', 'kitchen'], 'send_after': '6'})
+        self.assertEqual(again.options('alarm_control_panel.house', 'hall'), {'send_after': '6'})
+        self.assertEqual(again.options('alarm_control_panel.house', 'bedroom'), {'send_after': '6', 'alarm_wake': 'off'})
+        for bad in (('light.hall', 'all', 'off'), ('alarm_control_panel.house', 'some', 'off'), ('alarm_control_panel.house', 'all', '3'),
+                    ('alarm_control_panel.house', 'all', '10'), ('alarm_control_panel.house', [''], 'off')):
             with self.assertRaises(ValueError):
-                core.validate_layout(bad)
-        self.assertEqual(core.tile_options({'send_after': '4'}), {'send_after': '4'})
+                again.set(*bad)
+        self.assertEqual(list(alarm_screens.SEND_AFTER), ['off', '4', '5', '6', '7', '8'])
 
-    def test_the_screen_gets_it_with_the_tile(self):
-        states = {'alarm_control_panel.home': {'state': 'disarmed', 'attributes': {'code_format': 'number', 'supported_features': 3}}}
-        message = core.state_message(0, {'entity': 'alarm_control_panel.home', 'name': '', 'options': {'send_after': '6'}}, states)
-        self.assertEqual(message['o']['send_after'], '6')
-        # What the screen does with it is read from the real card in web/wasm/test_alarm_card.mjs, and the range it
-        # takes (4 to 8) is alarm_panel::send_after in tests/test_alarm_panel.cpp.
+    def test_a_screen_gets_a_tile_without_a_cell_for_an_alarm_it_has_on_no_tile(self):
+        store, _ = self.store()
+        store.set('alarm_control_panel.shed', ['hall'], '4')
+        placed = [{'entity': 'alarm_control_panel.house', 'slot': 0, 'options': {}}]
+        self.assertEqual(store.tiles('hall', self.STATES, placed),
+                         [{'entity': 'alarm_control_panel.shed', 'name': '', 'bar': True, 'options': {'send_after': '4'}}])
+        self.assertEqual(store.tiles('kitchen', self.STATES, placed), [], 'the kitchen does not wake for the shed and has the house on a tile')
+        self.assertEqual(store.with_options(placed[0], 'kitchen'), placed[0], 'the house keeps its defaults')
+        self.assertEqual(store.with_options({'entity': 'light.hall', 'options': {}}, 'hall'), {'entity': 'light.hall', 'options': {}})
+
+    def test_the_tiles_count_in_the_screens_memory(self):
+        memory = {'tile': 100, 'extra': 50, 'psram': True, 'bar_cards': True, 'alarms': ['alarm_control_panel.house', 'alarm_control_panel.shed']}
+        tiles = [{'entity': 'alarm_control_panel.house', 'slot': 0, 'options': {}}]
+        with_alarm = core.layout_cost(tiles, memory)
+        self.assertEqual(with_alarm - core.layout_cost(tiles, {**memory, 'alarms': []}), core.tile_cost({'entity': 'alarm_control_panel.shed'}, memory),
+                         'only the alarm on no tile costs a tile')
+        self.assertEqual(core.layout_cost(tiles, {**memory, 'bar_cards': False}), core.layout_cost(tiles, {**memory, 'bar_cards': False, 'alarms': []}),
+                         'a screen that takes no tiles without a cell gets none')
+
+    def test_a_layout_saved_with_the_choice_on_its_tile_loads_without_it(self):
+        layout = {'title': 'Home', 'tiles': [{'entity': 'alarm_control_panel.house', 'slot': 0, 'options': {'send_after': '4'}}]}
+        self.assertEqual(core.validate_layout(layout)['tiles'][0].get('options', {}), {})
+
+    def test_the_screen_gets_the_choice_with_the_tile(self):
+        message = core.state_message(0, {'entity': 'alarm_control_panel.house', 'name': '', 'options': {'send_after': '6', 'alarm_wake': 'off'}}, self.STATES)
+        self.assertEqual((message['o']['send_after'], message['o']['alarm_wake']), ('6', 'off'))
+        # What the screen does with them is read from the real card in web/wasm/test_alarm_card.mjs, and the range of
+        # lengths it takes (4 to 8) is alarm_panel::send_after in tests/test_alarm_panel.cpp.
+
+    def test_a_change_gives_the_screen_its_tiles_again(self):
+        record = {'layout': {'pages': []}, 'sourceGrid': {'columns': 3, 'rows': 3}}
+        plain = page_delivery.configuration(record, {})
+        self.assertEqual(plain, page_delivery.configuration(record, {}, alarms=None))
+        self.assertNotEqual(plain, page_delivery.configuration(record, {}, alarms={'alarm_control_panel.house': {'send_after': '4'}}))

@@ -16,7 +16,7 @@ import { iconsRoute, overrideRoute, reportRoute, router } from "../router";
 // The address itself is the router's (router.ts: #/settings, #/screens/<id>, ...); these names stay for every caller.
 export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;
 /** The parts of Events (#/events/<kind>): what an automation fires at the screens. */
-export const eventKinds = ["alerts", "doorbell"] as const;
+export const eventKinds = ["alerts", "doorbell", "alarm"] as const;
 export type EventKind = (typeof eventKinds)[number];
 export type Route = (typeof routes)[number];
 export type Toast = { message: string; action?: { label: string; run: () => void } };
@@ -158,7 +158,10 @@ export const useUiStore = defineStore("ui", () => {
   const overrideProfile = computed(() => current.value.name === "override" ? (String(current.value.params.profile || "") || null) : null);
   function openOverride(profile: string | null) { return router.push(overrideRoute(profile)); }
   // The part of Events that is open (#/events/<kind>): the alerts unless the address names another.
-  const eventsKind = computed<EventKind>(() => current.value.name === "events" && current.value.params.kind === "doorbell" ? "doorbell" : "alerts");
+  const eventsKind = computed<EventKind>(() => {
+    const kind = current.value.name === "events" ? current.value.params.kind : undefined;
+    return (eventKinds as readonly unknown[]).includes(kind) ? (kind as EventKind) : "alerts";
+  });
   function openEvents(kind: EventKind) { return router.push({ name: "events", params: { kind } }); }
   // The screen whose troubleshooting report is open (#/screens/<id>/report, components/ReportPanel.vue).
   const reportScreen = computed(() => current.value.name === "report" ? (String(current.value.params.id || "") || null) : null);

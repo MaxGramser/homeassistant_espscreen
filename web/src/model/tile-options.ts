@@ -56,7 +56,7 @@ export const DEFAULTS: Record<string, unknown> = { sub: "auto", fit: rules.pictu
   ...Object.fromEntries(Object.entries(CALENDAR_DEFAULTS).filter(([key]) => !["places", "words", "hide_words", "calendars"].includes(key))),
   ...TODO_DEFAULTS,
   // A sensor's meter (firmware 0.56.0, meter.validate): the ring and one segment are what nothing means.
-  meter: rules.meter.styles[0], segments: rules.meter.segments[0], tilt_open: "100", send_after: "off" };
+  meter: rules.meter.styles[0], segments: rules.meter.segments[0], tilt_open: "100" };
 
 const pageTile = (entity: string) => /^screen\.page_\d+$/.test(entity);
 
@@ -76,8 +76,8 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   if (out.sub === "auto") delete out.sub;
   // Where a cover's slats stand open: Home Assistant's 100 is never stored, and no other tile has the choice.
   if (out.tilt_open !== undefined && (!entity.startsWith("cover.") || String(out.tilt_open) === "100")) delete out.tilt_open;
-  // After how many digits an alarm panel's code sends itself: never (the OK key) is never stored, and only an alarm has it.
-  if (out.send_after !== undefined && (!entity.startsWith("alarm_control_panel.") || String(out.send_after) === "off")) delete out.send_after;
+  // An alarm's code length is the alarm's, on the Events page (AlarmView), never a tile's: one saved on dev's tile goes.
+  delete out.send_after;
   // Perform action keeps its action; another tap choice leaves none behind.
   if (out.tap !== "action") delete out.action;
   // A live picture's pace and fill belong to the live picture, and their defaults are not stored. A bedside clock's key

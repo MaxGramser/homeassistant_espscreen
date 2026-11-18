@@ -39,21 +39,35 @@ going on and how long is left ("Pending · 0:24"). Back closes the card, since t
 the tile opens the keypad again. The screen wakes with this keypad when the state arrives (`alarm_state_arrived`).
 During the exit delay (`arming`) the card keeps its one Disarm key, as Home Assistant's dialog does.
 
-## Sending the code by itself
+No automation is needed for this: every screen follows the alarm's state itself.
 
-A tile's **Send code after** option (`send_after`: off, or 4 to 8 digits, `catalogue/alarm_control_panel.yaml`) makes
-the last digit send the code, without OK. The keypad then shows exactly that many dots. Off is the default and is never
-stored. Only the person who sets up the tile knows the length, and a code sent too early counts as a wrong one, so the
-editor's hint says to use it only when every code of that alarm has that many digits. A lock's keypad has no such
-option and keeps its OK key.
+## The Alarm tab of Events
 
-A screen with older firmware ignores the option and shows its OK key, so a layout with it needs no update first.
+The editor's **Events** page has an **Alarm** tab with every alarm panel Home Assistant has, and two choices for each.
+They belong to the alarm, not to a tile: one alarm has the same codes on every screen. The app keeps them
+(`screen_manager/app/alarm_screens.py`, served at `api/alarms`) and gives them to every tile of that alarm on every
+screen.
+
+- **Screens that open the keypad.** Every screen by default, a screen added later too; turn **Every screen** off to
+  choose them. A chosen screen that has the alarm on no page gets it as a tile without a cell, the way an entity of the
+  top bar comes (`bar` in the tile's message), so its card can open there. It costs a tile in the screen's memory, and
+  the app and the editor count it (`core.layout_cost`, `alarmEntities` in `web/src/model/memory.ts`). A screen that is
+  not chosen gets `alarm_wake: "off"` on the alarm's tiles and stays quiet; its tile still opens the card with a tap.
+  A screen whose firmware takes no tiles without a cell (before firmware 0.56.0) wakes only for an alarm on its pages.
+- **Send the code after.** The OK key by default, or 4 to 8 digits (`send_after`, `catalogue/alarm_control_panel.yaml`).
+  The last digit then sends the code, without OK, and the keypad shows exactly that many dots. Only the person knows
+  the length, and a code sent too early counts as a wrong one, so the tab says to choose it only when every code of
+  that alarm has that many digits. A lock's keypad has no such choice and keeps its OK key.
+
+An older screen ignores both options. A change gives every screen its tiles again (the alarm's choices are part of the
+layout's fingerprint, `page_delivery.configuration`). An alarm that keeps the defaults is not stored.
 
 ## Where a change goes
 
 - the logic and the layouts: `alarm_panel.h`, with `tests/test_alarm_panel.cpp`;
 - the drawing: `render_code_pad`, `render_alarm_detail` and `alarm_command` in `alarm_panel_lvgl.h` (back on the keypad in `detail_lvgl.h`);
-- the option: `catalogue/alarm_control_panel.yaml`, `ALARM_SEND_AFTER` in `screen_manager/app/core.py`,
-  `canonicalOptions` in `web/src/model/tile-options.ts`, the editor's `TileInspector.vue`, and its words under
-  `editor.tile.send_after` in `screen_manager/translations/en.json`;
+- the choices per alarm: `alarm_screens.py` (with `alarm_tiles` in `page_service.py`), the lengths in
+  `catalogue/alarm_control_panel.yaml`, the tab `web/src/components/AlarmView.vue` and its words under `editor.alarm` in
+  `screen_manager/translations/en.json`; on the screen `send_after` and `alarm_quiet` in `page_receiver.cpp`;
+- the card read from the real firmware: `web/wasm/test_alarm_card.mjs`;
 - the walk through the card on every board: the alarm round of `tools/render/run.py`.
