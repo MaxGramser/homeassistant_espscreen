@@ -1008,6 +1008,12 @@
         "unknown": "A fordítószerver már nem ismeri a Tesserát. Párosítsd újra.",
         "pending": "A fordítószerver még nem fogadta el a Tesserát."
       },
+      "build_files": {
+        "automatic": "Az automatikus takarítás csak be- vagy kikapcsolt lehet.",
+        "level": "Válaszd ki, mely fordítási fájlokat töröljük.",
+        "cleaning": "A fordítási fájlok takarítása már folyamatban van.",
+        "building": "Egy kijelző fordítása folyamatban van, vagy várakozik. A fordítási fájlokat a befejezés után takaríthatod ki."
+      },
       "video": {
         "not_written": "A Tessera video nem írható ide: {folder}: {reason}.",
         "not_installed": "Először telepítsd a Tessera videót."
@@ -3523,6 +3529,32 @@
         "forget_confirm": "Elfelejted ezt: {name}? A kijelzők újra itt fordulnak. Hogy ott is eltávolítsd a Tesserát, töröld a fordítószerver párosított eszközei közül.",
         "forget_go": "Elfelejtés",
         "unavailable": "Ez a Tessera nem tud fordítószerverrel beszélni."
+      },
+      "build_files": {
+        "title": "Fordítási fájlok",
+        "intro": "Minden firmware-fordítás fájlokat hagy maga után, hogy ugyanannak a kijelzőnek a következő fordítása gyors legyen. A Home Assistant biztonsági mentései kihagyják őket.",
+        "measuring": "Mérés…",
+        "total": "{size} összesen",
+        "folders": "Fordítási mappák",
+        "folders_detail": "1 kijelző | {count} kijelző",
+        "cache": "Fordítási gyorsítótár",
+        "tools": "ESP-IDF és letöltések",
+        "clean": "Fordítási mappák takarítása",
+        "cleaning": "Takarítás…",
+        "clean_confirm": "Törlöd az összes kijelző fordítási mappáit? Ez {size} helyet szabadít fel. Minden kijelző következő fordítása újra mindent lefordít, és néhány perccel tovább tart, Raspberry Pi-n még tovább. Az elrendezések, a bővítmények és a beállítások érintetlenek maradnak.",
+        "clean_all": "A fordítási gyorsítótárat és az ESP-IDF-et is töröld",
+        "clean_all_confirm": "Törlöd az összes fordítási fájlt, a fordítási gyorsítótárat és az ESP-IDF-et is? Ez {size} helyet szabadít fel. A következő fordítás újra letölti az ESP-IDF-et, nagyjából 1 GB-ot, és mindent az elejétől fordít, ami Raspberry Pi-n fél óráig is tarthat. Az elrendezések, a bővítmények és a beállítások érintetlenek maradnak.",
+        "clean_go": "Takarítás",
+        "cleaned": "Kitakarítva: ismét {size} szabad.",
+        "cleaned_nothing": "Kitakarítva.",
+        "busy": "Egy kijelző fordítása folyamatban van. A befejezése után takaríthatsz.",
+        "auto_label": "Takarítás fordítás után",
+        "auto_hint": "A következő fordítástól kezdve törli a fordítási mappákat, amint már semmi sem fordul. Helyet spórol, de a kijelzők minden további fordítása újra mindent lefordít, és néhány perccel tovább tart.",
+        "auto_on": "A fordítási mappák fordítás után takarítva lesznek.",
+        "auto_off": "A fordítási mappák megmaradnak a gyorsabb fordításért.",
+        "offer": "{size} felszabadítása",
+        "not_now": "Most nem",
+        "large": "A fordítási mappák {size} helyet foglalnak. A takarításukkal felszabadul a fordítások által használt hely nagy része."
       }
     },
     "firmware": {

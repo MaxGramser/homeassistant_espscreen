@@ -1008,6 +1008,12 @@
         "unknown": "The build server no longer knows Tessera. Pair it again.",
         "pending": "The build server has not accepted Tessera yet."
       },
+      "build_files": {
+        "automatic": "Automatic clean-up can only be on or off.",
+        "level": "Choose which build files to remove.",
+        "cleaning": "The build files are being cleaned up already.",
+        "building": "A screen is building or waiting to build. Clean up the build files once it is done."
+      },
       "video": {
         "not_written": "Tessera video could not be written to {folder}: {reason}.",
         "not_installed": "Install Tessera video first."
@@ -3072,6 +3078,32 @@
         "forget_confirm": "Forget {name}? Screens build here again. To remove Tessera there too, remove it from the paired devices of the build server.",
         "forget_go": "Forget",
         "unavailable": "This Tessera can't talk to a build server."
+      },
+      "build_files": {
+        "title": "Build files",
+        "intro": "Every firmware build leaves files behind, so the next build of the same screen is quick. Home Assistant backups leave them out.",
+        "measuring": "Measuring…",
+        "total": "{size} in all",
+        "folders": "Build folders",
+        "folders_detail": "One screen | {count} screens",
+        "cache": "Compile cache",
+        "tools": "ESP-IDF and downloads",
+        "clean": "Clean up build folders",
+        "cleaning": "Cleaning up…",
+        "clean_confirm": "Remove the build folders of every screen? This frees {size}. The next build of each screen compiles everything again and takes a few minutes longer, more on a Raspberry Pi. Layouts, plugins and settings stay as they are.",
+        "clean_all": "Also remove the compile cache and ESP-IDF",
+        "clean_all_confirm": "Remove every build file, also the compile cache and ESP-IDF? This frees {size}. The next build downloads ESP-IDF again, about 1 GB, and compiles everything from the start, which can take half an hour on a Raspberry Pi. Layouts, plugins and settings stay as they are.",
+        "clean_go": "Clean up",
+        "cleaned": "Cleaned up: {size} free again.",
+        "cleaned_nothing": "Cleaned up.",
+        "busy": "A screen is building. You can clean up once it is done.",
+        "auto_label": "Clean up after building",
+        "auto_hint": "From the next build on, removes the build folders once nothing is building anymore. Saves room, but every next build of a screen compiles everything again and takes a few minutes longer.",
+        "auto_on": "Build folders are cleaned up after building.",
+        "auto_off": "Build folders stay for quicker builds.",
+        "offer": "Free {size}",
+        "not_now": "Not now",
+        "large": "The build folders take {size}. Cleaning them up frees most of the room the builds take."
       }
     },
     "firmware": {

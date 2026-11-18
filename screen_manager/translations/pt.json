@@ -1008,6 +1008,12 @@
         "unknown": "O servidor de compilação já não conhece o Tessera. Emparelhe-o de novo.",
         "pending": "O servidor de compilação ainda não aceitou o Tessera."
       },
+      "build_files": {
+        "automatic": "A limpeza automática só pode estar ligada ou desligada.",
+        "level": "Escolha que ficheiros de compilação remover.",
+        "cleaning": "Os ficheiros de compilação já estão a ser limpos.",
+        "building": "Um ecrã está a ser compilado ou à espera. Limpe os ficheiros de compilação quando terminar."
+      },
       "video": {
         "not_written": "Não foi possível escrever Tessera video em {folder}: {reason}.",
         "not_installed": "Instale primeiro Tessera video."
@@ -3523,6 +3529,32 @@
         "forget_confirm": "Esquecer {name}? Os ecrãs voltam a ser compilados aqui. Para remover também o Tessera de lá, remova-o dos dispositivos emparelhados do servidor de compilação.",
         "forget_go": "Esquecer",
         "unavailable": "Este Tessera não consegue falar com um servidor de compilação."
+      },
+      "build_files": {
+        "title": "Ficheiros de compilação",
+        "intro": "Cada compilação de firmware deixa ficheiros para trás, para que a compilação seguinte do mesmo ecrã seja rápida. As cópias de segurança do Home Assistant não os incluem.",
+        "measuring": "A medir…",
+        "total": "{size} no total",
+        "folders": "Pastas de compilação",
+        "folders_detail": "1 ecrã | {count} ecrãs",
+        "cache": "Cache de compilação",
+        "tools": "ESP-IDF e transferências",
+        "clean": "Limpar pastas de compilação",
+        "cleaning": "A limpar…",
+        "clean_confirm": "Remover as pastas de compilação de todos os ecrãs? Isto liberta {size}. A próxima compilação de cada ecrã compila tudo outra vez e demora alguns minutos a mais, ainda mais num Raspberry Pi. Os esquemas, os plugins e as definições ficam como estão.",
+        "clean_all": "Remover também a cache de compilação e o ESP-IDF",
+        "clean_all_confirm": "Remover todos os ficheiros de compilação, também a cache de compilação e o ESP-IDF? Isto liberta {size}. A próxima compilação transfere o ESP-IDF outra vez, cerca de 1 GB, e compila tudo desde o início, o que pode demorar meia hora num Raspberry Pi. Os esquemas, os plugins e as definições ficam como estão.",
+        "clean_go": "Limpar",
+        "cleaned": "Limpo: {size} livres outra vez.",
+        "cleaned_nothing": "Limpo.",
+        "busy": "Um ecrã está a ser compilado. Pode limpar quando terminar.",
+        "auto_label": "Limpar após a compilação",
+        "auto_hint": "A partir da próxima compilação, remove as pastas de compilação quando já não estiver nada a compilar. Poupa espaço, mas cada compilação seguinte de um ecrã compila tudo outra vez e demora alguns minutos a mais.",
+        "auto_on": "As pastas de compilação são limpas após a compilação.",
+        "auto_off": "As pastas de compilação ficam para compilações mais rápidas.",
+        "offer": "Libertar {size}",
+        "not_now": "Agora não",
+        "large": "As pastas de compilação ocupam {size}. Limpá-las liberta a maior parte do espaço que as compilações ocupam."
       }
     },
     "firmware": {

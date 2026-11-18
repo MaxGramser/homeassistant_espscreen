@@ -5,6 +5,7 @@ import { useBusy } from "../composables/useBusy";
 import { useConfirm } from "../composables/useConfirm";
 import { haProfile, matchLanguage, numberText, type NumberMarks, type NumberStyle, STYLE_MARKS, t } from "../i18n";
 import BuildLog from "./BuildLog.vue";
+import BuildFilesCard from "./BuildFilesCard.vue";
 import BuildServerCard from "./BuildServerCard.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
@@ -160,6 +161,8 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
       </section>
       <!-- Build firmware on a faster computer: an ESPHome build server (BuildServerCard, the add-on's build_server.py). -->
       <BuildServerCard v-if="inv.inventory.build_server" />
+      <!-- The room the builds take in the app's data, and cleaning it up (BuildFilesCard, the add-on's build_files.py). -->
+      <BuildFilesCard />
       <section v-if="lang" class="card" id="language">
         <h2>{{ t("editor.settings.language.title") }}</h2>
         <div class="field">

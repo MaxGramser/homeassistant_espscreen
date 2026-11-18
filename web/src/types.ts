@@ -469,6 +469,8 @@ export type Inventory = {
   line?: LineBuild[];
   // The build server (build_server.py, docs/BUILDS.md "On a build server"), in every live answer.
   build_server?: BuildServerView;
+  // What the builds left in /data, the automatic clean-up and whether to offer one (build_files.py, docs/BUILDS.md).
+  build_files?: import("./model/build-files").BuildFilesView;
   // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
   plugin_sharing?: PluginSharing | null;
   // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).

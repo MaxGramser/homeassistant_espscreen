@@ -1008,6 +1008,12 @@
         "unknown": "Der Build-Server kennt Tessera nicht mehr. Kopple ihn erneut.",
         "pending": "Der Build-Server hat Tessera noch nicht angenommen."
       },
+      "build_files": {
+        "automatic": "Das automatische Aufräumen kann nur an oder aus sein.",
+        "level": "Wähle, welche Build-Dateien entfernt werden.",
+        "cleaning": "Die Build-Dateien werden schon aufgeräumt.",
+        "building": "Ein Bildschirm baut gerade oder wartet auf seinen Build. Räume die Build-Dateien auf, sobald er fertig ist."
+      },
       "video": {
         "not_written": "Tessera video konnte nicht nach {folder} geschrieben werden: {reason}.",
         "not_installed": "Installiere zuerst Tessera video."
@@ -3523,6 +3529,32 @@
         "forget_confirm": "{name} vergessen? Bildschirme werden wieder hier gebaut. Um Tessera auch dort zu entfernen, entferne es aus den gekoppelten Geräten des Build-Servers.",
         "forget_go": "Vergessen",
         "unavailable": "Dieses Tessera kann nicht mit einem Build-Server sprechen."
+      },
+      "build_files": {
+        "title": "Build-Dateien",
+        "intro": "Jeder Firmware-Build lässt Dateien zurück, damit der nächste Build desselben Bildschirms schnell geht. Backups von Home Assistant lassen sie aus.",
+        "measuring": "Wird gemessen…",
+        "total": "{size} insgesamt",
+        "folders": "Build-Ordner",
+        "folders_detail": "1 Bildschirm | {count} Bildschirme",
+        "cache": "Compile-Cache",
+        "tools": "ESP-IDF und Downloads",
+        "clean": "Build-Ordner aufräumen",
+        "cleaning": "Räumt auf…",
+        "clean_confirm": "Die Build-Ordner aller Bildschirme entfernen? Das gibt {size} frei. Der nächste Build jedes Bildschirms kompiliert wieder alles und dauert ein paar Minuten länger, auf einem Raspberry Pi noch mehr. Layouts, Plugins und Einstellungen bleiben, wie sie sind.",
+        "clean_all": "Auch Compile-Cache und ESP-IDF entfernen",
+        "clean_all_confirm": "Alle Build-Dateien entfernen, auch den Compile-Cache und ESP-IDF? Das gibt {size} frei. Der nächste Build lädt ESP-IDF erneut herunter, etwa 1 GB, und kompiliert alles von vorn, was auf einem Raspberry Pi eine halbe Stunde dauern kann. Layouts, Plugins und Einstellungen bleiben, wie sie sind.",
+        "clean_go": "Aufräumen",
+        "cleaned": "Aufgeräumt: {size} wieder frei.",
+        "cleaned_nothing": "Aufgeräumt.",
+        "busy": "Ein Bildschirm wird gebaut. Du kannst aufräumen, sobald er fertig ist.",
+        "auto_label": "Nach dem Build aufräumen",
+        "auto_hint": "Ab dem nächsten Build entfernt es die Build-Ordner, sobald nichts mehr gebaut wird. Spart Platz, aber jeder weitere Build eines Bildschirms kompiliert wieder alles und dauert ein paar Minuten länger.",
+        "auto_on": "Build-Ordner werden nach dem Build aufgeräumt.",
+        "auto_off": "Build-Ordner bleiben für schnellere Builds.",
+        "offer": "{size} freigeben",
+        "not_now": "Nicht jetzt",
+        "large": "Die Build-Ordner belegen {size}. Wenn du sie aufräumst, wird der größte Teil des Platzes frei, den die Builds belegen."
       }
     },
     "firmware": {

@@ -1008,6 +1008,12 @@
         "unknown": "Le serveur de compilation ne connaît plus Tessera. Associez-le à nouveau.",
         "pending": "Le serveur de compilation n'a pas encore accepté Tessera."
       },
+      "build_files": {
+        "automatic": "Le nettoyage automatique ne peut être qu'activé ou désactivé.",
+        "level": "Choisissez les fichiers de compilation à supprimer.",
+        "cleaning": "Les fichiers de compilation sont déjà en cours de nettoyage.",
+        "building": "Un écran est en cours de compilation ou en attente. Nettoyez les fichiers de compilation une fois la compilation terminée."
+      },
       "video": {
         "not_written": "Tessera video n'a pas pu être écrite dans {folder} : {reason}.",
         "not_installed": "Installez d'abord Tessera video."
@@ -3523,6 +3529,32 @@
         "forget_confirm": "Oublier {name} ? Les écrans sont à nouveau compilés ici. Pour y retirer Tessera aussi, supprimez-le des appareils associés du serveur de compilation.",
         "forget_go": "Oublier",
         "unavailable": "Ce Tessera ne peut pas parler à un serveur de compilation."
+      },
+      "build_files": {
+        "title": "Fichiers de compilation",
+        "intro": "Chaque compilation du firmware laisse des fichiers, pour que la compilation suivante du même écran soit rapide. Les sauvegardes de Home Assistant les écartent.",
+        "measuring": "Mesure en cours…",
+        "total": "{size} au total",
+        "folders": "Dossiers de compilation",
+        "folders_detail": "1 écran | {count} écrans",
+        "cache": "Cache de compilation",
+        "tools": "ESP-IDF et téléchargements",
+        "clean": "Nettoyer les dossiers de compilation",
+        "cleaning": "Nettoyage en cours…",
+        "clean_confirm": "Supprimer les dossiers de compilation de tous les écrans ? Cela libère {size}. La prochaine compilation de chaque écran recompile tout et prend quelques minutes de plus, davantage sur un Raspberry Pi. Les mises en page, les plugins et les réglages restent tels quels.",
+        "clean_all": "Supprimer aussi le cache de compilation et ESP-IDF",
+        "clean_all_confirm": "Supprimer tous les fichiers de compilation, y compris le cache de compilation et ESP-IDF ? Cela libère {size}. La prochaine compilation télécharge de nouveau ESP-IDF, environ 1 GB, et recompile tout depuis le début, ce qui peut prendre une demi-heure sur un Raspberry Pi. Les mises en page, les plugins et les réglages restent tels quels.",
+        "clean_go": "Nettoyer",
+        "cleaned": "Nettoyage terminé : {size} de nouveau libres.",
+        "cleaned_nothing": "Nettoyage terminé.",
+        "busy": "Un écran est en cours de compilation. Vous pourrez nettoyer une fois la compilation terminée.",
+        "auto_label": "Nettoyer après la compilation",
+        "auto_hint": "À partir de la prochaine compilation, supprime les dossiers de compilation dès que plus rien n'est en cours de compilation. Fait gagner de la place, mais chaque compilation suivante d'un écran recompile tout et prend quelques minutes de plus.",
+        "auto_on": "Les dossiers de compilation sont nettoyés après la compilation.",
+        "auto_off": "Les dossiers de compilation sont conservés pour des compilations plus rapides.",
+        "offer": "Libérer {size}",
+        "not_now": "Pas maintenant",
+        "large": "Les dossiers de compilation occupent {size}. Les nettoyer libère presque toute la place que prennent les compilations."
       }
     },
     "firmware": {

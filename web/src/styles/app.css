@@ -950,6 +950,14 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .bs-switch .sr-text { flex: 1; display: grid; gap: 2px; }
 .bs-switch b { font-weight: 550; font-size: 13px; color: var(--ink); }
 .bs-building { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+/* The build files (BuildFilesCard): what each kind takes, and the clean-up. */
+.build-files .bf-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bf-sizes { display: grid; gap: 6px; margin: 0; }
+.bf-sizes div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.bf-sizes dt { color: var(--ink-2); }
+.bf-sizes dt small { color: var(--muted); }
+.bf-sizes dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+.bf-large { color: var(--ink); }
 .field { display: grid; gap: 6px; }
 .field > .f-label, fieldset legend { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
