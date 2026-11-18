@@ -25,6 +25,14 @@ After every change the glass equals LVGL's render, but for live pictures and the
 album cover and camera still is asked again in the new look (the look is part of a picture's key), so those cards are
 empty for about a second and come back one by one.
 
+Later the same night, with plugins and the rest a busy home has: the 4-inch with air quality, plane radar, new music,
+picture frame, departures and the flip clock and photo clock screensavers (installed from the plugin index through the
+app), plugin tiles in a contrast section with following tiles; the 10.1 with the same and its own Screen camera live on
+the page. Dark mode was changed while the screensaver showed (standby brightness above 0) and the screen was then woken,
+while Home Assistant was frozen for 20 s and for 100 s (the screen lost it), and right before Home Assistant restarted.
+The released firmware (main, 0.4.98) on the 4-inch went through the same rounds. Every time the glass equalled LVGL's
+render once the change was drawn; the only differences were live pictures, a radar's sweep and the minute.
+
 ## Ruled out
 
 - The order of drawing in `theme::set_dark()` and the redraw: the first refresh after a change is already whole.
@@ -35,8 +43,9 @@ empty for about a second and come back one by one.
 
 ## Candidates left
 
-- Something only the reporters' setups have: a plugin, a screensaver or standby brightness above 0 (the screensaver
-  over the page), an automation that changes Dark mode together with another setting, or a layout bigger than the test's.
+- Something only the reporters' setups have: an automation that changes Dark mode together with another setting, a
+  layout bigger than the test's, a plugin not tried here, or a board not tried here (the Waveshare 10.1 turns LVGL 270
+  degrees, the Guitions 90, and has its own panel timing).
 - A firmware older than 0.61.0 on the screen with a newer app, or a build with another ESPHome than 2026.9 or 2026.11.
 
 ## The deciding experiment
