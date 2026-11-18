@@ -11,8 +11,10 @@ import type { Tile } from "../types";
 /** An entity the library offers: Home Assistant's, a card of the screen's own, or a plugin's tile type. */
 export type Entry = { id: string; name: string; area?: string; device?: string; state?: string; tile?: boolean; words?: string };
 // The domains to filter on; the label of each is editor.library.filters.<domain>, "" for no filter.
+// "plugin" (second, right under All): every plugin's tiles together, which people could not find among the rooms.
+export const PLUGIN_FILTER = "plugin";
 export const FILTERS = [
-  "", "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
+  "", PLUGIN_FILTER, "light", "climate", "humidifier", "switch", "binary_sensor", "button", "script", "automation", "fan", "cover", "scene", "vacuum", "sensor",
   "media_player", "camera", "remote", "weather", "number", "select", "person", "timer", "screen", "alarm_control_panel", "lock", "calendar", "todo", "text",
 ];
 // A kind that takes a second domain along: an input helper with its entity, the sun with the weather.
@@ -29,7 +31,8 @@ export function tileCounts(tiles: readonly Tile[]) {
 /** Its mark: how often it is on the screen (×2), there once (✓), or to add (+). */
 export const markOf = (id: string, counts: Map<string, number>) => (counts.get(id) || 0) > 1 ? `×${counts.get(id)}` : counts.has(id) ? "✓" : "+";
 /** Whether an entity is of a kind, the kind's second domain included; every entity for no kind. */
-export const inDomain = (id: string, filter: string) => !filter || id.startsWith(filter + ".") || ALIAS[filter] === id.split(".")[0];
+export const inDomain = (id: string, filter: string) => !filter || (filter === PLUGIN_FILTER ? isPluginTile(id)
+  : !isPluginTile(id) && (id.startsWith(filter + ".") || ALIAS[filter] === id.split(".")[0]));
 
 export type LibraryFilter = {
   /** What is typed, in lower case. */

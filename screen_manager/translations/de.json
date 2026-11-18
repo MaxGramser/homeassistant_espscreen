@@ -1654,8 +1654,10 @@
       "none": "Layoutbot braucht einen AI Task in Home Assistant, der Daten erzeugen kann (Einstellungen > Geräte & Dienste, eine KI-Integration).",
       "notes": {
         "unknown": "{entity} ausgelassen: Das ist keine Entität dieses Home Assistant.",
-        "no_page": "Es gibt keine Seite {page}."
-      }
+        "no_page": "Es gibt keine Seite {page}.",
+        "kept": "Layoutbot hat {count} deiner Kacheln vergessen: Sie stehen lose auf der letzten Seite."
+      },
+      "nothing_to_restructure": "Auf dieser Seite gibt es noch keine Gerätekacheln zum Umstrukturieren. Füge ein paar hinzu und frag dann noch einmal."
     }
   },
   "editor": {
@@ -1985,6 +1987,7 @@
       "search_label": "Entität hinzufügen",
       "filters": {
         "all": "Alle",
+        "plugin": "Plugins",
         "light": "Leuchten",
         "climate": "Klima",
         "switch": "Schalter",
@@ -2972,6 +2975,18 @@
         "offered": "Bei {columns} × {rows} hat diese Kachel Platz hierfür. Wähle, was sie zeigt; ändern kannst du es später unter Steuerung.",
         "suggested": "Vorschlag",
         "none": "Keine Steuerung",
+        "never": "Nicht mehr anzeigen",
+        "done": "Fertig"
+      },
+      "look": {
+        "title": "Wie soll es aussehen?",
+        "text": "Dieser Sensor beginnt als Messanzeige. Zeige auf eine Darstellung, um sie auf der Kachel zu sehen; ändern kannst du sie später unter Anzeige.",
+        "ring": "Messanzeige: Ring",
+        "tape": "Messanzeige: Skala",
+        "bar": "Messanzeige: Balken",
+        "graph": "Diagramm der letzten Stunden",
+        "watch": "Großer Wert",
+        "standard": "Nur der Wert",
         "never": "Nicht mehr anzeigen",
         "done": "Fertig"
       },
@@ -4883,6 +4898,8 @@
       "close": "Schließen",
       "hello": "Hi! Sag mir, was dieser Bildschirm zeigen soll, und ich richte seine Seiten ein. Ich ändere nur das Layout, nie deine Geräte.",
       "privacy": "Ich nutze {agent} aus Home Assistant. Deine Frage, die Seiten deiner Bildschirme und die IDs, Namen und Bereiche deiner Entitäten gehen dorthin.",
+      "model_hint": "Ich arbeite mit einem größeren Modell viel besser als mit dem günstigsten. Füge in Home Assistant deiner KI-Integration einen AI Task für mich hinzu, schalte „Empfohlene Modelleinstellungen“ aus, wähle ein größeres Modell und wähle es dann oben in diesem Chat aus.",
+      "model_link": "Integrationen öffnen",
       "placeholder": "Erstelle eine Seite mit…",
       "ask": "Fragen",
       "send": {
@@ -4909,6 +4926,10 @@
       "show": "Zeigen",
       "undo": "Rückgängig",
       "undone": "Rückgängig gemacht",
+      "restructure": {
+        "page": "Strukturiere diese Seite um",
+        "screen": "Strukturiere den ganzen Bildschirm um"
+      },
       "suggest": {
         "lights_sections": "Setz alle Leuchten auf eine Seite, mit einem Bereich pro Raum",
         "lights": "Setz alle Leuchten auf eine Seite",
@@ -4937,7 +4958,8 @@
         "memory_full": "Der Speicher des Bildschirms ist voll, daher wurde {count} Kachel ausgelassen. | Der Speicher des Bildschirms ist voll, daher wurden {count} Kacheln ausgelassen.",
         "left_out": "Der Bildschirm hatte keinen Platz für {count} weitere Kachel. | Der Bildschirm hatte keinen Platz für {count} weitere Kacheln.",
         "no_page": "Es gibt keine Seite {page}.",
-        "not_drawn": "Der Bildschirm zeichnet keine Kachel für {count} Entität. | Der Bildschirm zeichnet keine Kachel für {count} Entitäten."
+        "not_drawn": "Der Bildschirm zeichnet keine Kachel für {count} Entität. | Der Bildschirm zeichnet keine Kachel für {count} Entitäten.",
+        "restructure_no_room": "Nach dem Umstrukturieren wäre kein Platz für {count} deiner Kacheln, daher habe ich die Seiten so gelassen, wie sie waren. | Nach dem Umstrukturieren wäre kein Platz für {count} deiner Kacheln, daher habe ich die Seiten so gelassen, wie sie waren."
       },
       "update_app": "Aktualisiere die Tessera-App: Dieser Editor platziert die Pläne von Layoutbot selbst.",
       "scope": {

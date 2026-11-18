@@ -1654,8 +1654,10 @@
       "none": "Layoutbot needs an AI Task in Home Assistant that can generate data (Settings > Devices & services, an AI integration).",
       "notes": {
         "unknown": "Left out {entity}: it is not an entity of this Home Assistant.",
-        "no_page": "There is no page {page}."
-      }
+        "no_page": "There is no page {page}.",
+        "kept": "Layoutbot forgot {count} of your tiles: they stand loose on the last page."
+      },
+      "nothing_to_restructure": "There are no tiles of devices on this page to restructure yet. Add a few, then ask again."
     }
   },
   "editor": {
@@ -1984,6 +1986,7 @@
       "search_label": "Add an entity",
       "filters": {
         "all": "All",
+        "plugin": "Plugins",
         "light": "Lights",
         "climate": "Climate",
         "switch": "Switches",
@@ -2521,6 +2524,18 @@
         "offered": "At {columns} × {rows} this tile has room for these. Pick what it shows; you can change it later under Controls.",
         "suggested": "Suggested",
         "none": "No controls",
+        "never": "Don't show again",
+        "done": "Done"
+      },
+      "look": {
+        "title": "How should it look?",
+        "text": "This sensor starts as a meter. Point at a look to see it on the tile; you can change it later under Display.",
+        "ring": "Meter: ring",
+        "tape": "Meter: tape",
+        "bar": "Meter: bar",
+        "graph": "Graph of the last hours",
+        "watch": "Large value",
+        "standard": "Just the value",
         "never": "Don't show again",
         "done": "Done"
       },
@@ -4575,9 +4590,10 @@
     },
     "events": {
       "eyebrow": "Events · from Home Assistant",
-      "intro": "What an automation in Home Assistant can fire at your screens. You choose the trigger, the screens and what they show.",
+      "intro": "What Home Assistant shows on your screens: alerts and a doorbell's ring that your automations send, and your alarm when it goes off.",
       "alerts": "Alerts",
       "doorbell": "Doorbell",
+      "alarm": "Alarm",
       "wizard": {
         "suggested": "Your doorbells:",
         "none": "No entity found",
@@ -4883,6 +4899,8 @@
       "close": "Close",
       "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
       "privacy": "I use {agent} from Home Assistant. Your question, the pages of your screens and the ids, names and areas of your entities go to it.",
+      "model_hint": "I work much better with a larger model than the cheapest one. In Home Assistant, add an AI Task for me to your AI integration, turn off Recommended model settings and choose a larger model, then pick it at the top of this chat.",
+      "model_link": "Open integrations",
       "placeholder": "Make a page with…",
       "ask": "Ask",
       "send": {
@@ -4909,6 +4927,10 @@
       "show": "Show",
       "undo": "Undo",
       "undone": "Undone",
+      "restructure": {
+        "page": "Restructure this page",
+        "screen": "Restructure the whole screen"
+      },
       "suggest": {
         "lights_sections": "Put all the lights on one page, in a section per room",
         "lights": "Put all the lights on one page",
@@ -4937,7 +4959,8 @@
         "memory_full": "The screen's memory is full, so {count} tile was left out. | The screen's memory is full, so {count} tiles were left out.",
         "left_out": "The screen had no room for {count} more tile. | The screen had no room for {count} more tiles.",
         "no_page": "There is no page {page}.",
-        "not_drawn": "The screen draws no tile of {count} entity. | The screen draws no tile of {count} entities."
+        "not_drawn": "The screen draws no tile of {count} entity. | The screen draws no tile of {count} entities.",
+        "restructure_no_room": "Restructured, there would be no room for {count} of your tiles, so I left the pages as they were. | Restructured, there would be no room for {count} of your tiles, so I left the pages as they were."
       },
       "update_app": "Update the Tessera app: this editor places Layoutbot's plans itself.",
       "scope": {
@@ -4945,6 +4968,28 @@
         "all": "All screens"
       },
       "preview": "Look"
+    },
+    "alarm": {
+      "hero_title": "When the alarm goes off",
+      "hero_text": "Someone comes in, or the alarm goes off: your screens wake by themselves and open the keypad on red, with the time that is left. Type the code and the alarm is off. You need no automation for this; Tessera follows your alarm in Home Assistant.",
+      "none": "Home Assistant has no alarm panel. Add one, such as Manual alarm or Alarmo, and it shows here.",
+      "no_code": "This alarm asks no code to disarm, so the screens open its card with a Disarm key instead of the keypad.",
+      "screens_label": "Screens that open the keypad",
+      "every_screen": "Every screen",
+      "every_screen_hint": "Also a screen you add later. Turn it off to choose the screens yourself.",
+      "none_chosen": "No screen opens the keypad by itself. The alarm's tile still opens it with a tap.",
+      "older": "Needs a firmware update to open it without the alarm's tile on a page.",
+      "send_label": "Send the code after",
+      "send_off": "OK key",
+      "send_off_hint": "The code goes when you tap OK. Home Assistant does not say how many digits a code has.",
+      "send_on_hint": "The code goes by itself after {digits} digits, without OK. Only choose this when every code of this alarm has {digits} digits: a code sent too early counts as a wrong one.",
+      "saved": "Saved. Your screens have it in a moment.",
+      "how_title": "How it works on the screen",
+      "how_wake": "When the alarm counts down after someone came in, or goes off, the chosen screens wake and open the keypad. While it counts down to arming, the alarm's card shows a Disarm key instead.",
+      "how_keys": "The keys take all the room the screen has, up to the size of a large phone keypad. Delete takes back the last digit.",
+      "how_wrong": "Three wrong codes lock the keypad for 30 seconds, and every wrong code after that doubles the time, up to 15 minutes. Home Assistant hears of each one as the event esphome.screen_alarm_code_refused, never with the code.",
+      "how_code": "The code goes to Home Assistant with the action, as its own alarm card sends it, and is wiped on the screen at once. A screen never stores or logs it.",
+      "how_tile": "Put the alarm on a page too, and a tap on its tile opens the card with a key per mode at any time."
     }
   }
 }

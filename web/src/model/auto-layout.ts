@@ -17,6 +17,7 @@ import type { PricedPage, PricedTile } from "./memory";
 import type { PluginTileLookup } from "./plugins";
 import { copyBar, emptyPage } from "./pages";
 import rules from "./page-rules.json";
+import { startLook } from "./sensor-look";
 import { ICONS, placeUnits, type Face, type PlaceTarget, type PlaceTile, type PlaceUnit } from "./placement";
 import { sizeFor, sizesOn } from "./sizes";
 
@@ -324,6 +325,11 @@ function plan(c: Candidate, label: string, input: AutoInput, room: Room, role: {
       break;
     case "sensor":
       if (columns > 1) { appearance.display = "graph"; appearance.historyHours = 24; }
+      // A room's other sensors as the editor adds one (model/sensor-look.ts): a meter that suits what it measures.
+      else if (displayDrawn(c, caps, "meter", screen)) {
+        const look = startLook(c.id, { state: c.entity.state, a: { unit_of_measurement: c.fact.unit, device_class: c.fact.class, state_class: c.fact.stateClass } }, () => true);
+        if (look) Object.assign(appearance, { display: "meter", ...(look.meter ? { meterStyle: look.meter } : {}), ...(look.min !== undefined ? { meterMin: look.min, meterMax: look.max } : {}) });
+      }
       break;
     default:
       if (columns * rows > 1) { const set = bestControls(c, caps, columns, rows, screen, room, CONTROLS[c.domain] ?? []); if (set) interaction.controls = set; }

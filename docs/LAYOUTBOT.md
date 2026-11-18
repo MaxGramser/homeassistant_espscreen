@@ -9,6 +9,7 @@ Home Assistant, and it only ever changes the draft in the editor: it never contr
 | The question, the checked plan and the split by screen | `screen_manager/app/layoutbot.py` | `tests/test_layoutbot.py` |
 | The route | `layoutbot_ask` in `screen_manager/app/server.py` (`POST api/screens/<id>/layoutbot`) | |
 | The plan placed in a draft | `web/src/model/layoutbot.ts` (applyPlan) over `web/src/model/placement.ts` (placeUnits) | `web/tests/layoutbot-plan.spec.ts` |
+| Restructuring a page or the screen | `layoutbot.restructured`, `web/src/model/layoutbot.ts` (applyRestructure) | `tests/test_layoutbot.py`, `web/tests/layoutbot-restructure.spec.ts` |
 | What a screen takes, for the open one and the others | `web/src/editor/layoutbot.ts` | |
 | The chat, the bot, the shine, sending | `web/src/components/LayoutBot.vue` (the shine, and where the chat stands), `LayoutBotChat.vue`, `LayoutBotKey.vue`, `web/src/stores/layoutbot.ts` | `web/tests/layoutbot.spec.ts` |
 | On a phone: the key in the dock, the chat in a sheet | `web/src/components/ui/UiSheet.vue`, `ScreenView.vue` (`.phone-dock`) | `web/tests/layoutbot-phone.spec.ts` |
@@ -125,6 +126,48 @@ is taken back), the others still go, the chat says which failed and why, and the
 While the question is out the pages wait: a veil with a light sweeping over it covers them, a pill says how long it has
 been, and no click or key reaches the editor except Escape, which stops waiting. An answer that comes after Stop, or
 for a draft that changed meanwhile (another tab's save), is left unused and the chat says so.
+
+## Restructuring
+
+Two keys above the chat's field ask Layoutbot to tidy up what the person put on the screen themselves: **Restructure
+this page** (the page shown) and **Restructure the whole screen**. Words in the field go along and steer the grouping
+("lights first"); the key alone asks too. The editor sends `restructure: {scope: "page", page: <n>}` or
+`{scope: "screen"}` beside the draft.
+
+1. The add-on asks the AI only to group: the entities of that page (or of every page), each exactly once, by room where
+   they span several, and within a room by kind, in sections with a title and an icon (`layoutbot.RESTRUCTURE_RULES`).
+   It never adds or takes off a tile, and other screens are never asked about.
+2. It checks the grouping (`layoutbot.restructured`): only the scope's own entities, each once; a section of one entity
+   is a loose tile; an entity the model forgot goes to the page that holds most of its room, else the last, and the chat
+   says how many (`kept`).
+3. The editor places it (`web/src/model/layoutbot.ts applyRestructure`) through the placement Auto layout uses: it first
+   counts the room the screen has without the pages it takes, then gives each tile the cards Auto layout offers the same
+   entity (controls and displays from the catalogue and what Home Assistant says the entity can do) and grows them while
+   the page still holds everything. A light that stays one row high with nothing else on its card gets the small
+   brightness slider where it dims, so a page of many lamps is still worked from its tiles. The sections come from the
+   grouping, and a page that needs more room goes on in a page right after it.
+4. What the person made stays: a tile's own name, icon and colour on every card it may take, its own card where it
+   stood in one cell (a meter they chose stays a meter), and tiles that are no entity of the home (a built-in, a plugin)
+   as they were. A page restructured alone keeps its place, its id, its title, its icon and its top bar.
+5. The last look: every tile of before must be in the result. When one would not fit (the screen's pages, its tile
+   ceiling or its memory), nothing changes and the chat says why. Otherwise the result is one step of undo, with Show,
+   Undo and the question whether to send it, as any answer.
+
+Measured with gpt-4o-mini through Home Assistant 2026.11 on the Guition 10.1 (5 x 5, sections), November 2026: a page of
+11 tiles in 5.1 s and one of 13 tiles in 6.4 s, both grouped into sections of lights, media and the rest. The whole
+screen (46 tiles over 7 pages) in 8.7 s gave pages per room; in one run the model left out 6 tiles and in another many
+more, which the check put back on their rooms' pages. A small model groups one page well and a whole screen less
+reliably; nothing is ever lost.
+
+## Which model
+
+Home Assistant's `ai_task.generate_data` has no field for a model: the model is a setting of each AI Task in its AI
+integration, and the integration's recommended settings take a small, cheap model. Layoutbot chooses which AI Task it
+asks, not which model. A small model arranges a page from a sentence well enough, but groups a whole screen less
+reliably (see "Restructuring"). So the chat advises, under its first message, to add an AI Task for Layoutbot to the AI
+integration (OpenAI: the integration's page, Add AI Task), turn off "Recommended model settings" there and choose a
+larger model, and pick that AI Task in the chat's head. The other uses of the AI integration keep the cheap one, and the
+chat keeps the choice in the browser (`esp-screens.layoutbot-agent`).
 
 ## What it can never do
 

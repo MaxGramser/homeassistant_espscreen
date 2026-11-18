@@ -52,7 +52,7 @@ How a screen is filled follows its grid, from `boards.json` and its hello:
   tile joins another. Larger cards where they pay off: a room's light group 2 × 2 with brightness and presets, the first
   thermostat 2 × 2 with setpoint and modes, the first player 2 × 2 with its album cover and the others wide with their
   keys, the weather 2 × 2 with its forecast, the vacuum 3 × 2 with its map and rooms, a list 2 × 3, the calendar
-  2 × 2, a camera 2 × 2 (live as many as the screen streams at once), the alarm 2 × 2, the meter wide with its graph.
+  2 × 2, a camera 2 × 2 (live as many as the screen streams at once), the alarm 2 × 2, the meter wide with its graph. A room's other sensors start as the meter that suits them where the screen draws one (docs/METER.md, "The first look").
 - **Three by three**: sections too, with wide or tall cards instead of squares.
 - **Smaller grids** (the CYD, the 4 inch boards) and every board without the `sections` module: plain tiles, one room or
   the house to a page, continued on the next page where it runs over, the weather wide with its forecast. Rooms that each

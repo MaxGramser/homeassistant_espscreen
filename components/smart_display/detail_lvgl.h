@@ -264,6 +264,7 @@ inline void choose(Tile &t,Choice &row,const std::string &value){
 inline void alarm_command(int cmd);
 inline void lock_command(int cmd);
 inline bool alarm_pad_open();
+inline bool alarm_keypad_first(const Tile &t);
 // The card keys whose change is a wish (docs/OPTIMISTIC.md): play or pause, mute, shuffle, repeat, an option, a mode,
 // a thermostat's rows and the power keys.
 inline bool wish_command(int cmd){
@@ -272,7 +273,13 @@ inline bool wish_command(int cmd){
 }
 inline void detail_command(int cmd){
   // Back on the alarm's keypad goes back to its card; everywhere else it closes the card.
-  if(cmd==-1&&alarm_pad_open()){alarm_close_pad();redraw_detail();return;}
+  // A panel that goes off is its keypad (alarm_keypad_first): back closes the card, there is no card behind it.
+  if(cmd==-1&&alarm_pad_open()){
+    const bool first=alarm_keypad_first(model.tiles[detail_index]);
+    alarm_close_pad();
+    if(first)hide_detail();else redraw_detail();
+    return;
+  }
 #ifdef SD_MOD_VACUUM_CARD
   // A view of the vacuum card (its rooms, routines, suction and water) goes back to the card.
   if(cmd==-1&&vacuum_card::back())return;

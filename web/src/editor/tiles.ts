@@ -12,6 +12,7 @@ import * as pages from "../model/pages";
 import { isTallSize, sizeColumns, sizesOn, spanOf, spanOffered } from "../model/sizes";
 import { canonicalOptions, coupledOptions, growthOf, type TilePanel } from "../model/tile-options";
 import { PLUGIN_TILE_OPTIONS } from "../model/plugins";
+import { startLook } from "../model/sensor-look";
 import { energyFits } from "../model/ui-scale";
 import { useDocumentStore } from "../stores/document";
 import { useEntitiesStore } from "../stores/entities";
@@ -77,6 +78,12 @@ export function placeTile(tile: Tile, target: number) {
  * on this glass (app 0.4.77), since a 2 x 2 card is too low for it on some. */
 export function startTile(id: string): Tile {
   const tile = newTile(id, useScreenStore().coversByDefault);
+  // A sensor whose state is a number starts as a meter, its look and range fitting what it measures (model/sensor-look.ts),
+  // and LookTip offers the others once it landed.
+  if (id.startsWith("sensor.")) {
+    const look = startLook(id, useEntitiesStore().liveStates[id], useScreenStore().supports);
+    return look ? { ...tile, options: canonicalOptions(id, { ...tile.options, ...look }, false) } : tile;
+  }
   // A calendar card shows more as it gets more room (firmware 0.56.0): it starts 2 x 2 where the screen takes that size,
   // else double width, else in one cell.
   if (id.startsWith("calendar.")) {
@@ -117,6 +124,10 @@ export async function addTile(id: string) {
     }
     return;
   }
+  // A sensor's look follows what Home Assistant says of it: read it first when the library has not yet.
+  if (id.startsWith("sensor.") && !useEntitiesStore().liveStates[id]) await useEntitiesStore().reloadState(id);
+  if (!doc.layout) return;
+  const before = tileIds();
   const tile = startTile(id), { grid, firstFree, occupied } = doc.editorLayout;
   const page = Math.max(0, doc.document!.pages.findIndex((page) => page.id === doc.selectedPageId));
   const at = marked?.kind === "cell" ? marked.slot : -1;
@@ -128,7 +139,17 @@ export async function addTile(id: string) {
     const added = doc.layout!.tiles.find((item) => item.entity === id && item.slot === slot);
     if (added && useUiStore().phone) doc.markAdded(added);
     else if (added) insp.openTile(added);
+    offerLook(id, before);
   }
+}
+/** The ids of the open layout's tiles now, to tell a tile just added from those that were there. */
+export const tileIds = () => new Set((useDocumentStore().layout?.tiles ?? []).map((item) => item.id));
+/** A sensor just added as a meter: the tip beside it offers its other looks (LookTip), unless the person put the tips
+ * away. */
+export function offerLook(entity: string, before: Set<string | undefined>) {
+  const ui = useUiStore();
+  const added = useDocumentStore().layout?.tiles.find((item) => item.entity === entity && item.id && !before.has(item.id) && item.in === undefined);
+  if (added?.id && added.options?.display === "meter" && ui.lookTips && !ui.phone) ui.lookTip = { tileId: added.id };
 }
 export function removeTile(tile: Tile) {
   if (!tile.id) return;

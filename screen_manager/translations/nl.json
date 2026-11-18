@@ -1654,8 +1654,10 @@
       "none": "Layoutbot heeft een AI Task in Home Assistant nodig die data kan maken (Instellingen > Apparaten & diensten, een AI-integratie).",
       "notes": {
         "unknown": "{entity} weggelaten: dat is geen entiteit van deze Home Assistant.",
-        "no_page": "Er is geen pagina {page}."
-      }
+        "no_page": "Er is geen pagina {page}.",
+        "kept": "Layoutbot is {count} van je tegels vergeten: ze staan los op de laatste pagina."
+      },
+      "nothing_to_restructure": "Op deze pagina staan nog geen tegels van apparaten om te herstructureren. Voeg er een paar toe en vraag het dan nog eens."
     }
   },
   "editor": {
@@ -1984,6 +1986,7 @@
       "search_label": "Voeg een entiteit toe",
       "filters": {
         "all": "Alles",
+        "plugin": "Plugins",
         "light": "Lampen",
         "climate": "Klimaat",
         "switch": "Schakelaars",
@@ -2521,6 +2524,18 @@
         "offered": "Op {columns} × {rows} past dit op deze tegel. Kies wat hij laat zien; later aanpassen kan bij Bediening.",
         "suggested": "Voorgesteld",
         "none": "Geen bediening",
+        "never": "Niet meer tonen",
+        "done": "Klaar"
+      },
+      "look": {
+        "title": "Hoe moet het eruitzien?",
+        "text": "Deze sensor begint als meter. Wijs naar een uiterlijk om het op de tegel te zien; later aanpassen kan bij Weergave.",
+        "ring": "Meter: ring",
+        "tape": "Meter: tape",
+        "bar": "Meter: balk",
+        "graph": "Grafiek van de afgelopen uren",
+        "watch": "Grote waarde",
+        "standard": "Alleen de waarde",
         "never": "Niet meer tonen",
         "done": "Klaar"
       },
@@ -4575,9 +4590,10 @@
     },
     "events": {
       "eyebrow": "Events · uit Home Assistant",
-      "intro": "Wat een automatisering in Home Assistant naar je schermen kan sturen. Jij kiest de trigger, de schermen en wat ze laten zien.",
+      "intro": "Wat Home Assistant op je schermen laat zien: meldingen en het aanbellen van een deurbel die je automatiseringen sturen, en je alarm als het afgaat.",
       "alerts": "Alerts",
       "doorbell": "Deurbel",
+      "alarm": "Alarm",
       "wizard": {
         "suggested": "Je deurbellen:",
         "none": "Geen entiteit gevonden",
@@ -4883,6 +4899,8 @@
       "close": "Sluiten",
       "hello": "Hoi! Vertel wat dit scherm moet laten zien, dan deel ik de pagina's in. Ik verander alleen de indeling, nooit je apparaten.",
       "privacy": "Ik gebruik {agent} uit Home Assistant. Je vraag, de pagina's van je schermen en de id's, namen en ruimtes van je entiteiten gaan daarheen.",
+      "model_hint": "Ik werk veel beter met een groter model dan met het goedkoopste. Voeg in Home Assistant een AI Task voor mij toe aan je AI-integratie, zet 'Aanbevolen modelinstellingen' uit, kies een groter model en kies het dan bovenaan deze chat.",
+      "model_link": "Integraties openen",
       "placeholder": "Maak een pagina met…",
       "ask": "Vragen",
       "send": {
@@ -4909,6 +4927,10 @@
       "show": "Toon",
       "undo": "Ongedaan maken",
       "undone": "Ongedaan gemaakt",
+      "restructure": {
+        "page": "Herstructureer deze pagina",
+        "screen": "Herstructureer het hele scherm"
+      },
       "suggest": {
         "lights_sections": "Zet alle lampen op één pagina, met een sectie per kamer",
         "lights": "Zet alle lampen op één pagina",
@@ -4937,7 +4959,8 @@
         "memory_full": "Het geheugen van het scherm is vol, dus {count} tegel is weggelaten. | Het geheugen van het scherm is vol, dus {count} tegels zijn weggelaten.",
         "left_out": "Het scherm had geen ruimte voor nog {count} tegel. | Het scherm had geen ruimte voor nog {count} tegels.",
         "no_page": "Er is geen pagina {page}.",
-        "not_drawn": "Het scherm tekent geen tegel van {count} entiteit. | Het scherm tekent geen tegel van {count} entiteiten."
+        "not_drawn": "Het scherm tekent geen tegel van {count} entiteit. | Het scherm tekent geen tegel van {count} entiteiten.",
+        "restructure_no_room": "Na herstructureren zou er geen ruimte zijn voor {count} van je tegels, dus ik heb de pagina's gelaten zoals ze waren. | Na herstructureren zou er geen ruimte zijn voor {count} van je tegels, dus ik heb de pagina's gelaten zoals ze waren."
       },
       "update_app": "Werk de Tessera-app bij: deze editor plaatst de plannen van Layoutbot zelf.",
       "scope": {
@@ -4945,6 +4968,28 @@
         "all": "Alle schermen"
       },
       "preview": "Bekijk"
+    },
+    "alarm": {
+      "hero_title": "Als het alarm afgaat",
+      "hero_text": "Komt er iemand binnen, of gaat het alarm af, dan worden je schermen vanzelf wakker en openen ze het toetsenblok op rood, met de tijd die nog over is. Tik de code in en het alarm is uit. Hier is geen automatisering voor nodig: Tessera volgt je alarm in Home Assistant.",
+      "none": "Home Assistant heeft geen alarmpaneel. Voeg er een toe, zoals Handmatig alarm of Alarmo, en het verschijnt hier.",
+      "no_code": "Dit alarm vraagt geen code om uit te schakelen, dus de schermen openen zijn kaart met een knop Uitschakelen in plaats van het toetsenblok.",
+      "screens_label": "Schermen die het toetsenblok openen",
+      "every_screen": "Elk scherm",
+      "every_screen_hint": "Ook een scherm dat je later toevoegt. Zet dit uit om zelf de schermen te kiezen.",
+      "none_chosen": "Geen scherm opent het toetsenblok vanzelf. De tegel van het alarm opent het nog wel met een tik.",
+      "older": "Heeft een firmware-update nodig om het te openen zonder de tegel van het alarm op een pagina.",
+      "send_label": "Verstuur de code na",
+      "send_off": "OK-knop",
+      "send_off_hint": "De code gaat als je op OK tikt. Home Assistant zegt niet hoeveel cijfers een code heeft.",
+      "send_on_hint": "De code gaat vanzelf na {digits} cijfers, zonder OK. Kies dit alleen als elke code van dit alarm {digits} cijfers heeft: een code die te vroeg gaat telt als een foute.",
+      "saved": "Opgeslagen. Je schermen hebben het zo.",
+      "how_title": "Hoe het werkt op het scherm",
+      "how_wake": "Telt het alarm af omdat er iemand binnenkwam, of gaat het af, dan worden de gekozen schermen wakker en openen ze het toetsenblok. Telt het af naar inschakelen, dan toont de kaart van het alarm een knop Uitschakelen.",
+      "how_keys": "De toetsen nemen alle ruimte die het scherm heeft, tot de grootte van een groot telefoontoetsenblok. Wissen haalt het laatste cijfer weg.",
+      "how_wrong": "Drie foute codes zetten het toetsenblok 30 seconden op slot, en elke foute code daarna verdubbelt die tijd, tot 15 minuten. Home Assistant hoort van elke foute code via het event esphome.screen_alarm_code_refused, nooit met de code.",
+      "how_code": "De code gaat met de actie naar Home Assistant, zoals zijn eigen alarmkaart hem stuurt, en wordt op het scherm meteen gewist. Een scherm bewaart of logt hem nooit.",
+      "how_tile": "Zet het alarm ook op een pagina, dan opent een tik op zijn tegel altijd de kaart met een knop per stand."
     }
   }
 }

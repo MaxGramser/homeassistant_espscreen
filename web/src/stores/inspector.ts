@@ -30,7 +30,7 @@ export type Inspector =
 // 0.4.12). One at a time: marking one forgets the other.
 export type InsertTarget = { kind: "cell"; slot: number } | { kind: "key"; holder: string; key: number } | null;
 // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
-export type OptionPreview = { tileId: string; key: string; value: unknown };
+export type OptionPreview = { tileId: string; key: string; value: unknown; with?: Record<string, unknown> };
 
 export const useInspectorStore = defineStore("inspector", () => {
   const doc = useDocumentStore();
@@ -81,8 +81,10 @@ export const useInspectorStore = defineStore("inspector", () => {
   function previewed(tile: Tile): Tile {
     const hover = optionPreview.value;
     // Only while that tile's own settings are open and nothing is being dragged: the drawn copy never reaches an edit.
-    if (!hover || !tile.id || hover.tileId !== tile.id || doc.selectedTileId !== tile.id || dragging.active) return tile;
-    return { ...tile, options: { ...(tile.options || {}), [hover.key]: hover.value } } as Tile;
+    // A sensor's look (LookTip) is drawn on its tile while the tip is open, whatever drawer is.
+    const looking = useUiStore().lookTip?.tileId === tile.id;
+    if (!hover || !tile.id || hover.tileId !== tile.id || (doc.selectedTileId !== tile.id && !looking) || dragging.active) return tile;
+    return { ...tile, options: { ...(tile.options || {}), ...(hover.with || {}), [hover.key]: hover.value } } as Tile;
   }
 
   // ---- What the drawer shows ----

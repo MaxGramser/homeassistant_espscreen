@@ -182,6 +182,17 @@ def section_sums(manager, layout):
     return out
 
 
+def alarm_tiles(manager, inbox, placed, sender, features):
+    """The tiles without a cell a screen gets for the alarms it opens by itself when they go off and has on no tile
+    (alarm_screens, docs/ALARM_PANEL.md), after `placed`, as many as its tile ceiling leaves room for. Only to a screen
+    that takes such tiles (BAR_CARDS_FEATURE); an older one wakes only for a panel on one of its tiles."""
+    choices = getattr(manager, 'alarm_screens', None)
+    if choices is None or BAR_CARDS_FEATURE not in features:
+        return []
+    most = (getattr(sender, 'max_tiles', None) or getattr(sender, 'last_max_tiles', None) or FIRMWARE_MAX_TILES) - len(placed)
+    return choices.tiles(inbox, manager.ha.states, placed)[:max(0, most)]
+
+
 def top_bar_tiles(record, tiles, sender, features):
     """The tiles of the top bar a screen gets (core.BAR_CARDS_FEATURE): to one whose hello names them, a tile without a
     cell for each entity in a top bar that is on no tile, after `tiles`, as many as its tile ceiling leaves room for. An
@@ -206,9 +217,20 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
     # What else its hello said it takes (app 0.4.32): a thermostat's range on its -/+ (firmware 0.19.0+).
     features = frozenset(getattr(sender, 'features', ()) or ())
     bar = top_bar_tiles(record, flat['tiles'], sender, features)
-    tiles = flat['tiles'] + bar
+    # An alarm's choices from the Events page (alarm_screens): its code length and whether this screen wakes for it go
+    # with every tile of it, and an alarm this screen wakes for but has on no tile comes as a tile without a cell.
+    choices = getattr(manager, 'alarm_screens', None)
+    alarms = alarm_tiles(manager, inbox, flat['tiles'] + bar, sender, features)
+    bar = [choices.with_options(tile, inbox) for tile in bar] + alarms if choices else bar
+    placed = [choices.with_options(tile, inbox) for tile in flat['tiles']] if choices else flat['tiles']
+    tiles = placed + bar
+    alarm_key = choices.key() if choices else None
+    # What of those choices this screen's tiles carry, in the layout's fingerprint (page_delivery.configuration).
+    marks = {tile['entity']: choices.options(tile['entity'], inbox) for tile in tiles if choices and tile['entity'].startswith('alarm_control_panel.')}
+    marks = {entity: options for entity, options in sorted(marks.items()) if options} or None
     full = (force or dirty is None or not cached or cached['revision'] != record['revision'] or cached['context'] != context
-            or cached.get('lamps') != lamps or cached.get('features') != features or cached.get('bar') != bar)
+            or cached.get('lamps') != lamps or cached.get('features') != features or cached.get('bar') != bar
+            or cached.get('alarms') != alarm_key)
     if full:
         dependencies = [{item['entity'] for item in bar_items(page) if item['type'] == 'entity'} for page in record['layout']['pages']]
     else:
@@ -232,7 +254,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         saved = manager.store.get(inbox)
         return saved is not None and saved.get('revision') == expected
     before = sender.confirmed
-    wanted = page_delivery.configuration(record, manager.page_region(inbox), bar, SECTIONS_FEATURE in features)
+    wanted = page_delivery.configuration(record, manager.page_region(inbox), bar, SECTIONS_FEATURE in features, marks)
     # A layout this screen already refused is refused again without a word to it (Sender.failed_revision): the status keeps
     # the reason, instead of saying Applying on every pass and pushing the editor each time.
     if before != wanted and sender.failed_revision != wanted:
@@ -240,7 +262,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         manager.notify()
     try:
         rev = await sender.synchronize(inbox, record, manager.page_region(inbox), values, bars, current, bar,
-                                       section_sums(manager, record['layout']) if SECTIONS_FEATURE in features else None)
+                                       section_sums(manager, record['layout']) if SECTIONS_FEATURE in features else None, marks)
     except page_delivery.Superseded:
         manager.ha.changed.set()
         return True
@@ -252,7 +274,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         return True
     manager.sent[inbox] = {'protocol': 2, 'rev': rev, 'saved_revision': expected}
     manager.page_values[inbox] = {'revision': expected, 'context': context, 'dependencies': dependencies, 'values': values, 'bars': bars,
-                                  'lamps': lamps, 'features': features, 'bar': bar, 'missed': missed}
+                                  'lamps': lamps, 'features': features, 'bar': bar, 'missed': missed, 'alarms': alarm_key}
     # The hello of this delivery told us the screen takes lamps, or anything else new: the next round sends them.
     if getattr(sender, 'group_lamps', False) != lamps or frozenset(getattr(sender, 'features', ()) or ()) != features:
         manager.ha.changed.set()

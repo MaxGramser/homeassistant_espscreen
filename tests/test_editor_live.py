@@ -387,6 +387,11 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(states['sensor.t']['state'], '21.5')
         self.assertEqual(states['sensor.t']['a']['unit_of_measurement'], '°C')
         self.assertIn('word', states['light.a'])
+        # A sensor's state class tells a counter from a value that goes up and down: what a new tile starts as
+        # (web/src/model/sensor-look.ts). The editor gets it; a screen never does (core.ATTRS).
+        self.manager.ha.states['sensor.energy'] = {'state': '120.5', 'attributes': {'unit_of_measurement': 'kWh', 'state_class': 'total_increasing'}}
+        response = await self.client.get('/api/states?entity=sensor.energy')
+        self.assertEqual((await response.json())['states']['sensor.energy']['a']['state_class'], 'total_increasing')
         # A duration's word is how the screens write it, in hours and minutes (durations.py, wishlist 107).
         self.manager.ha.states['sensor.left'] = {'state': '0.2', 'attributes': {'device_class': 'duration', 'unit_of_measurement': 'h'}}
         response = await self.client.get('/api/states?entity=sensor.left')

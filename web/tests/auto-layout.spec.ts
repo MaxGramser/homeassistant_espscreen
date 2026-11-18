@@ -333,3 +333,18 @@ describe("an empty home", () => {
     expect(result.layout.pages).toHaveLength(1);
   });
 });
+
+describe("a room's sensors", () => {
+  it("start as the meter that suits them where the screen draws meters, as an added sensor does (model/sensor-look.ts)", () => {
+    const things = [...HOUSE,
+      { id: "sensor.kitchen_temperature", name: "Kitchen Temperature", area: "kitchen", class: "temperature", unit: "°C", stateClass: "measurement", state: "21.4" },
+      { id: "sensor.kitchen_co2", name: "Kitchen CO2", area: "kitchen", class: "carbon_dioxide", unit: "ppm", stateClass: "measurement", state: "640" },
+      { id: "sensor.kitchen_energy", name: "Kitchen Energy", area: "kitchen", class: "energy", unit: "kWh", stateClass: "total_increasing", state: "120.5" }];
+    const { layout } = make(MIDDLE, things);
+    // The temperature is the kitchen's summary; its CO2 a bar over a round range around its value now, its energy a value.
+    expect(tileFor(layout, "sensor.kitchen_co2")?.appearance).toMatchObject({ display: "meter", meterStyle: "bar", meterMin: 0, meterMax: 1000 });
+    expect(tileFor(layout, "sensor.kitchen_energy")?.appearance.display).toBeUndefined();
+    // A screen whose firmware draws no meter keeps the value.
+    expect(tileFor(make({ ...MIDDLE, firmware: "0.55.0" }, things).layout, "sensor.kitchen_co2")?.appearance.display).toBeUndefined();
+  });
+});

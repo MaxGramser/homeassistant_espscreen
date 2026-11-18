@@ -1654,8 +1654,10 @@
       "none": "O Layoutbot precisa de um AI Task no Home Assistant que consiga gerar dados (Definições > Dispositivos e serviços, uma integração de IA).",
       "notes": {
         "unknown": "{entity} ficou de fora: não é uma entidade deste Home Assistant.",
-        "no_page": "Não existe a página {page}."
-      }
+        "no_page": "Não existe a página {page}.",
+        "kept": "O Layoutbot esqueceu-se de {count} dos seus mosaicos: estão soltos na última página."
+      },
+      "nothing_to_restructure": "Esta página ainda não tem mosaicos de dispositivos para reestruturar. Adicione alguns e pergunte outra vez."
     }
   },
   "editor": {
@@ -1985,6 +1987,7 @@
       "search_label": "Adicionar uma entidade",
       "filters": {
         "all": "Tudo",
+        "plugin": "Plugins",
         "light": "Luzes",
         "climate": "Climatização",
         "switch": "Interruptores",
@@ -2972,6 +2975,18 @@
         "offered": "Em {columns} × {rows} este mosaico tem espaço para isto. Escolha o que mostra; pode alterar depois em Controlos.",
         "suggested": "Sugerido",
         "none": "Sem controlos",
+        "never": "Não mostrar novamente",
+        "done": "Concluído"
+      },
+      "look": {
+        "title": "Como deve ser o aspeto?",
+        "text": "Este sensor começa como medidor. Aponte para um aspeto para o ver no mosaico; pode alterá-lo depois em Apresentação.",
+        "ring": "Medidor: anel",
+        "tape": "Medidor: régua",
+        "bar": "Medidor: barra",
+        "graph": "Gráfico das últimas horas",
+        "watch": "Valor grande",
+        "standard": "Só o valor",
         "never": "Não mostrar novamente",
         "done": "Concluído"
       },
@@ -4883,6 +4898,8 @@
       "close": "Fechar",
       "hello": "Olá! Diga-me o que este ecrã deve mostrar e eu organizo as páginas. Só altero o layout, nunca os seus dispositivos.",
       "privacy": "Uso {agent} do Home Assistant. A sua pergunta, as páginas dos seus ecrãs e os ids, nomes e áreas das suas entidades vão para lá.",
+      "model_hint": "Trabalho muito melhor com um modelo maior do que com o mais barato. No Home Assistant, adicione um AI Task para mim à sua integração de IA, desative «Definições recomendadas do modelo», escolha um modelo maior e depois selecione-o no topo deste chat.",
+      "model_link": "Abrir integrações",
       "placeholder": "Cria uma página com…",
       "ask": "Perguntar",
       "send": {
@@ -4909,6 +4926,10 @@
       "show": "Mostrar",
       "undo": "Desfazer",
       "undone": "Desfeito",
+      "restructure": {
+        "page": "Reestrutura esta página",
+        "screen": "Reestrutura todo o ecrã"
+      },
       "suggest": {
         "lights_sections": "Põe todas as luzes numa página, com uma secção por divisão",
         "lights": "Põe todas as luzes numa página",
@@ -4937,7 +4958,8 @@
         "memory_full": "A memória do ecrã está cheia, por isso {count} mosaico ficou de fora. | A memória do ecrã está cheia, por isso {count} mosaicos ficaram de fora.",
         "left_out": "O ecrã não tinha espaço para mais {count} mosaico. | O ecrã não tinha espaço para mais {count} mosaicos.",
         "no_page": "Não existe a página {page}.",
-        "not_drawn": "O ecrã não desenha nenhum mosaico de {count} entidade. | O ecrã não desenha nenhum mosaico de {count} entidades."
+        "not_drawn": "O ecrã não desenha nenhum mosaico de {count} entidade. | O ecrã não desenha nenhum mosaico de {count} entidades.",
+        "restructure_no_room": "Ao reestruturar, não haveria espaço para {count} dos seus mosaicos, por isso deixei as páginas como estavam. | Ao reestruturar, não haveria espaço para {count} dos seus mosaicos, por isso deixei as páginas como estavam."
       },
       "update_app": "Atualize a app Tessera: este editor coloca ele próprio os planos do Layoutbot.",
       "scope": {

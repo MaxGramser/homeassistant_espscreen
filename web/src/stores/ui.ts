@@ -16,7 +16,7 @@ import { iconsRoute, overrideRoute, reportRoute, router } from "../router";
 // The address itself is the router's (router.ts: #/settings, #/screens/<id>, ...); these names stay for every caller.
 export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;
 /** The parts of Events (#/events/<kind>): what an automation fires at the screens. */
-export const eventKinds = ["alerts", "doorbell"] as const;
+export const eventKinds = ["alerts", "doorbell", "alarm"] as const;
 export type EventKind = (typeof eventKinds)[number];
 export type Route = (typeof routes)[number];
 export type Toast = { message: string; action?: { label: string; run: () => void } };
@@ -158,7 +158,10 @@ export const useUiStore = defineStore("ui", () => {
   const overrideProfile = computed(() => current.value.name === "override" ? (String(current.value.params.profile || "") || null) : null);
   function openOverride(profile: string | null) { return router.push(overrideRoute(profile)); }
   // The part of Events that is open (#/events/<kind>): the alerts unless the address names another.
-  const eventsKind = computed<EventKind>(() => current.value.name === "events" && current.value.params.kind === "doorbell" ? "doorbell" : "alerts");
+  const eventsKind = computed<EventKind>(() => {
+    const kind = current.value.name === "events" ? current.value.params.kind : undefined;
+    return (eventKinds as readonly unknown[]).includes(kind) ? (kind as EventKind) : "alerts";
+  });
   function openEvents(kind: EventKind) { return router.push({ name: "events", params: { kind } }); }
   // The screen whose troubleshooting report is open (#/screens/<id>/report, components/ReportPanel.vue).
   const reportScreen = computed(() => current.value.name === "report" ? (String(current.value.params.id || "") || null) : null);
@@ -179,6 +182,9 @@ export const useUiStore = defineStore("ui", () => {
   // remembered in this browser: "Don't show this again" leaves the richer default and only the tip goes.
   const growTip = ref<{ tileId: string; before: string; size: string; applied: string | null } | null>(null);
   const growTips = usePreference("esp-screens.grow-tips", true, { serializer: flagSerializer });
+  // The tip beside a sensor just added as a meter (LookTip): its other looks, each drawn on the tile as the pointer rests.
+  const lookTip = ref<{ tileId: string } | null>(null);
+  const lookTips = usePreference("esp-screens.look-tips", true, { serializer: flagSerializer });
 
   // ---- The editor's clock and the top bar's fonts ----
   // The time the mockup's clocks and "last changed" lines read: the store's start ticks it (composables/useClock.ts).
@@ -208,7 +214,7 @@ export const useUiStore = defineStore("ui", () => {
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen, autoLayoutOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
     route, go, setMainView, chatOpen, openChat, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
-    libraryOpen, filter, search, room, hidePlaced, growTip, growTips,
+    libraryOpen, filter, search, room, hidePlaced, growTip, growTips, lookTip, lookTips,
     now, fontsVersion, start,
   };
 });

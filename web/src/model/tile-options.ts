@@ -76,6 +76,8 @@ export function canonicalOptions(entity: string, options: TileOptions = {}, key 
   if (out.sub === "auto") delete out.sub;
   // Where a cover's slats stand open: Home Assistant's 100 is never stored, and no other tile has the choice.
   if (out.tilt_open !== undefined && (!entity.startsWith("cover.") || String(out.tilt_open) === "100")) delete out.tilt_open;
+  // An alarm's code length is the alarm's, on the Events page (AlarmView), never a tile's: one saved on dev's tile goes.
+  delete out.send_after;
   // Perform action keeps its action; another tap choice leaves none behind.
   if (out.tap !== "action") delete out.action;
   // A live picture's pace and fill belong to the live picture, and their defaults are not stored. A bedside clock's key

@@ -1654,8 +1654,10 @@
       "none": "Layoutbot a besoin d'un AI Task dans Home Assistant capable de générer des données (Paramètres > Appareils et services, une intégration d'IA).",
       "notes": {
         "unknown": "{entity} laissé de côté : ce n'est pas une entité de ce Home Assistant.",
-        "no_page": "Il n'y a pas de page {page}."
-      }
+        "no_page": "Il n'y a pas de page {page}.",
+        "kept": "Layoutbot a oublié {count} de vos tuiles : elles sont posées en vrac sur la dernière page."
+      },
+      "nothing_to_restructure": "Cette page n'a pas encore de tuiles d'appareils à restructurer. Ajoutez-en quelques-unes, puis redemandez."
     }
   },
   "editor": {
@@ -1985,6 +1987,7 @@
       "search_label": "Ajouter une entité",
       "filters": {
         "all": "Tout",
+        "plugin": "Plugins",
         "light": "Lumières",
         "climate": "Climatisation",
         "switch": "Interrupteurs",
@@ -2972,6 +2975,18 @@
         "offered": "En {columns} × {rows}, cette tuile a de la place pour ceci. Choisissez ce qu’elle affiche ; modifiable plus tard sous Commandes.",
         "suggested": "Suggéré",
         "none": "Aucune commande",
+        "never": "Ne plus afficher",
+        "done": "Terminé"
+      },
+      "look": {
+        "title": "Quel aspect voulez-vous ?",
+        "text": "Ce capteur démarre en jauge. Pointez un aspect pour le voir sur la tuile ; modifiable plus tard sous Affichage.",
+        "ring": "Jauge : anneau",
+        "tape": "Jauge : règle",
+        "bar": "Jauge : barre",
+        "graph": "Graphique des dernières heures",
+        "watch": "Grande valeur",
+        "standard": "Seulement la valeur",
         "never": "Ne plus afficher",
         "done": "Terminé"
       },
@@ -4883,6 +4898,8 @@
       "close": "Fermer",
       "hello": "Bonjour ! Dites-moi ce que cet écran doit afficher et j'organise ses pages. Je ne change que la mise en page, jamais vos appareils.",
       "privacy": "J'utilise {agent} de Home Assistant. Votre question, les pages de vos écrans et les identifiants, noms et pièces de vos entités lui sont envoyés.",
+      "model_hint": "Je travaille bien mieux avec un modèle plus grand qu'avec le moins cher. Dans Home Assistant, ajoutez un AI Task pour moi à votre intégration d'IA, désactivez « Paramètres de modèle recommandés », choisissez un modèle plus grand, puis sélectionnez-le en haut de ce chat.",
+      "model_link": "Ouvrir les intégrations",
       "placeholder": "Crée une page avec…",
       "ask": "Demander",
       "send": {
@@ -4909,6 +4926,10 @@
       "show": "Afficher",
       "undo": "Annuler",
       "undone": "Annulé",
+      "restructure": {
+        "page": "Restructure cette page",
+        "screen": "Restructure tout l'écran"
+      },
       "suggest": {
         "lights_sections": "Mets toutes les lumières sur une page, avec une section par pièce",
         "lights": "Mets toutes les lumières sur une page",
@@ -4937,7 +4958,8 @@
         "memory_full": "La mémoire de l'écran est pleine, {count} tuile a donc été laissée de côté. | La mémoire de l'écran est pleine, {count} tuiles ont donc été laissées de côté.",
         "left_out": "L'écran n'avait pas de place pour {count} tuile de plus. | L'écran n'avait pas de place pour {count} tuiles de plus.",
         "no_page": "Il n'y a pas de page {page}.",
-        "not_drawn": "L'écran ne dessine aucune tuile pour {count} entité. | L'écran ne dessine aucune tuile pour {count} entités."
+        "not_drawn": "L'écran ne dessine aucune tuile pour {count} entité. | L'écran ne dessine aucune tuile pour {count} entités.",
+        "restructure_no_room": "Après restructuration, il n'y aurait pas de place pour {count} de vos tuiles, j'ai donc laissé les pages telles quelles. | Après restructuration, il n'y aurait pas de place pour {count} de vos tuiles, j'ai donc laissé les pages telles quelles."
       },
       "update_app": "Mettez à jour l'app Tessera : cet éditeur place lui-même les plans de Layoutbot.",
       "scope": {

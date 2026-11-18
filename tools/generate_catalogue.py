@@ -31,7 +31,7 @@ VERSION = re.compile(r'^\d+\.\d+\.\d+$')
 FIRST_TYPES = frozenset('alarm_control_panel automation binary_sensor button camera climate cover fan image input_boolean input_button '
                         'input_number input_select light lock media_player number person scene screen script select sensor sun switch '
                         'timer vacuum weather'.split())
-TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'tilt_open', 'picture', 'map', 'key', 'keypad', 'memory', 'cards', 'favorite', 'energy', 'grow'}
+TOP = {'domain', 'firmware', 'displays', 'controls', 'inline', 'toggle', 'taps', 'guards', 'tilt_open', 'send_after', 'picture', 'map', 'key', 'keypad', 'memory', 'cards', 'favorite', 'energy', 'grow'}
 # What one tile of a type keeps in the memory inside a screen's chip (firmware 0.34.0+, docs/TILE_MEMORY.md): `bytes`
 # measured on a board with PSRAM, `extras` whether it keeps a block of extras. Every type says it, so a new one cannot
 # leave the screen's memory budget guessing; the most a tile may keep is a sanity bound, not a rule.
@@ -288,6 +288,7 @@ def normalise(tile, types, translations, facts, commands=None):
             'taps': list(data.get('taps') or []),
             'guards': list(data.get('guards') or []),
             **({'tilt_open': [str(v) for v in data['tilt_open']]} if data.get('tilt_open') else {}),
+            **({'send_after': [str(v) for v in data['send_after']]} if data.get('send_after') else {}),
             'picture': picture,
             'map': map_options,
             'keypad': keypad(f'{where} keypad', data['keypad'], commands) if 'keypad' in data else None,

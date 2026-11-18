@@ -32,6 +32,7 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 import { useDraftsStore } from "../stores/drafts";
 import GrowTip from "./GrowTip.vue";
+import LookTip from "./LookTip.vue";
 import LayoutBot from "./LayoutBot.vue";
 
 const ui = useUiStore();
@@ -261,6 +262,7 @@ function onCanvasClick(e: MouseEvent) {
   <Teleport to="body"><div v-if="band" class="select-band" :style="{ left: `${band.left}px`, top: `${band.top}px`, width: `${band.width}px`, height: `${band.height}px` }"></div></Teleport>
   <Library v-if="doc.layout" />
   <GrowTip v-if="!ui.previewOpen" />
+  <LookTip v-if="!ui.previewOpen" />
   <!-- Layoutbot (docs/LAYOUTBOT.md): on every page width; on a phone its key stands in the dock (ScreenView.vue). -->
   <LayoutBot v-if="doc.layout && !ui.previewOpen" />
   <NavigationPreview v-if="ui.previewOpen && doc.document" :key="scr.selected || ''" @close="ui.previewOpen = false" />

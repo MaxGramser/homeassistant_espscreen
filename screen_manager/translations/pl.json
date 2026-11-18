@@ -1654,8 +1654,10 @@
       "none": "Layoutbot potrzebuje w Home Assistant zadania AI Task, które potrafi generować dane (Ustawienia > Urządzenia oraz usługi, integracja AI).",
       "notes": {
         "unknown": "Pominięto {entity}: to nie jest encja tego Home Assistant.",
-        "no_page": "Nie ma strony {page}."
-      }
+        "no_page": "Nie ma strony {page}.",
+        "kept": "Layoutbot pominął {count} Twoich kafelków: stoją luzem na ostatniej stronie."
+      },
+      "nothing_to_restructure": "Na tej stronie nie ma jeszcze kafelków urządzeń do przebudowania. Dodaj kilka i zapytaj ponownie."
     }
   },
   "editor": {
@@ -1985,6 +1987,7 @@
       "search_label": "Dodaj encję",
       "filters": {
         "all": "Wszystkie",
+        "plugin": "Wtyczki",
         "light": "Światła",
         "climate": "Klimat",
         "switch": "Przełączniki",
@@ -2972,6 +2975,18 @@
         "offered": "Przy {columns} × {rows} ten kafelek ma miejsce na to. Wybierz, co pokazuje; zmienisz to później w Sterowaniu.",
         "suggested": "Sugerowane",
         "none": "Bez sterowania",
+        "never": "Nie pokazuj ponownie",
+        "done": "Gotowe"
+      },
+      "look": {
+        "title": "Jak ma wyglądać?",
+        "text": "Ten czujnik zaczyna jako wskaźnik. Wskaż wygląd, aby zobaczyć go na kafelku; zmienisz to później w Widoku.",
+        "ring": "Wskaźnik: pierścień",
+        "tape": "Wskaźnik: skala",
+        "bar": "Wskaźnik: pasek",
+        "graph": "Wykres z ostatnich godzin",
+        "watch": "Duża wartość",
+        "standard": "Tylko wartość",
         "never": "Nie pokazuj ponownie",
         "done": "Gotowe"
       },
@@ -4883,6 +4898,8 @@
       "close": "Zamknij",
       "hello": "Cześć! Powiedz, co ma pokazywać ten ekran, a ułożę jego strony. Zmieniam tylko układ, nigdy Twoje urządzenia.",
       "privacy": "Korzystam z {agent} z Home Assistant. Trafiają tam Twoje pytanie, strony Twoich ekranów oraz identyfikatory, nazwy i obszary Twoich encji.",
+      "model_hint": "Pracuję znacznie lepiej z większym modelem niż z najtańszym. W Home Assistant dodaj dla mnie AI Task do swojej integracji AI, wyłącz „Zalecane ustawienia modelu”, wybierz większy model, a następnie wskaż go u góry tego czatu.",
+      "model_link": "Otwórz integracje",
       "placeholder": "Zrób stronę z…",
       "ask": "Zapytaj",
       "send": {
@@ -4909,6 +4926,10 @@
       "show": "Pokaż",
       "undo": "Cofnij",
       "undone": "Cofnięto",
+      "restructure": {
+        "page": "Przebuduj tę stronę",
+        "screen": "Przebuduj cały ekran"
+      },
       "suggest": {
         "lights_sections": "Umieść wszystkie światła na jednej stronie, z sekcją na każde pomieszczenie",
         "lights": "Umieść wszystkie światła na jednej stronie",
@@ -4937,7 +4958,8 @@
         "memory_full": "Pamięć ekranu jest pełna, więc pominięto {count} kafelek. | Pamięć ekranu jest pełna, więc pominięto {count} kafelki. | Pamięć ekranu jest pełna, więc pominięto {count} kafelków.",
         "left_out": "Na ekranie zabrakło miejsca na jeszcze {count} kafelek. | Na ekranie zabrakło miejsca na jeszcze {count} kafelki. | Na ekranie zabrakło miejsca na jeszcze {count} kafelków.",
         "no_page": "Nie ma strony {page}.",
-        "not_drawn": "Ekran nie rysuje kafelka dla {count} encji. | Ekran nie rysuje kafelka dla {count} encji. | Ekran nie rysuje kafelka dla {count} encji."
+        "not_drawn": "Ekran nie rysuje kafelka dla {count} encji. | Ekran nie rysuje kafelka dla {count} encji. | Ekran nie rysuje kafelka dla {count} encji.",
+        "restructure_no_room": "Po przebudowie zabrakłoby miejsca na {count} Twoich kafelków, więc zostawiłem strony bez zmian. | Po przebudowie zabrakłoby miejsca na {count} Twoich kafelków, więc zostawiłem strony bez zmian. | Po przebudowie zabrakłoby miejsca na {count} Twoich kafelków, więc zostawiłem strony bez zmian."
       },
       "update_app": "Zaktualizuj aplikację Tessera: ten edytor sam rozmieszcza plany Layoutbota.",
       "scope": {

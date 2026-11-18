@@ -91,6 +91,14 @@
    "toggle": null,
    "taps": [],
    "guards": [],
+   "send_after": [
+    "off",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8"
+   ],
    "picture": null,
    "map": null,
    "keypad": null

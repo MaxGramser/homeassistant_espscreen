@@ -884,10 +884,13 @@ def page_cost(page, memory):
 
 def layout_cost(tiles, memory, pages=()):
     """What `tiles` (a flat layout's, the keys of a bedside clock included) and the document's `pages` take together
-    inside the screen's chip, with the tiles of the top bar on a screen that gets them (memory `bar_cards`, bar_entities)."""
+    inside the screen's chip, with the tiles of the top bar on a screen that gets them (memory `bar_cards`, bar_entities)
+    and a tile without a cell for each alarm it wakes for and has on neither (memory `alarms`, alarm_screens)."""
     bar = bar_entities(pages, tiles) if memory.get('bar_cards') else ()
+    on = {tile.get('entity') for tile in tiles} | set(bar)
+    alarms = [entity for entity in memory.get('alarms') or () if entity not in on] if memory.get('bar_cards') else ()
     return (sum(tile_cost(tile, memory) for tile in tiles) + sum(page_cost(page, memory) for page in pages)
-            + sum(tile_cost({'entity': entity}, memory) for entity in bar))
+            + sum(tile_cost({'entity': entity}, memory) for entity in (*bar, *alarms)))
 
 def firmware_features(version, grid=DEFAULT_GRID):
     """What the editor may offer a screen with firmware `version` (a tuple, or None): the tile limit, full-page and
@@ -1978,7 +1981,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -2063,6 +2066,9 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 options = {k: v for k, v in options.items() if k != 'tilt_open'}
                 if value != COVER_TILT_OPEN[0]:
                     options['tilt_open'] = value
+            # An alarm's code length is the alarm's, set on the Events page (alarm_screens), never a tile's: a layout
+            # saved while dev had it on the tile drops it.
+            options = {k: v for k, v in options.items() if k not in ('send_after', 'alarm_wake')}
             # A light's presets (module light_presets): at most four, each a brightness with a white shade or a colour.
             try:
                 options = light_presets.validate(options, domain)

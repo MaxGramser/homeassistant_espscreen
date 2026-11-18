@@ -641,6 +641,11 @@ struct Tile {
   // Where the slats stand open (the tile's tilt_open option): at 100 as Home Assistant's rule has it, or at 50 for a blind
   // that reports 0 and 100 as closed one way and the other.
   bool tilt_middle = false;
+  // An alarm panel's tile: how many digits send the code by themselves (4 to 8, the alarm's choice on the Events page,
+  // which the app gives every tile of it), 0 for the OK key. Home Assistant never says how long a code is.
+  uint8_t send_after = 0;
+  // An alarm panel this screen does not wake for when it goes off (alarm_wake "off": the Events page left it out).
+  bool alarm_quiet = false;
   // A sensor's graph: 24 samples over `history_hours`, empty without one.
   unsigned history_hours = 24;
   std::vector<float> history;

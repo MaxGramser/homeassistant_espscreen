@@ -109,6 +109,8 @@ async def main():
     parser.add_argument("--checkout", default="/Users/maxgramser/Documents/Code/esphome-cyd-display")
     parser.add_argument("--covers", action="store_true")
     parser.add_argument("--domains", help="comma-separated: only these domains go in the prompt")
+    parser.add_argument("--restructure", help="page:<n> or screen: restructure the saved document's own tiles "
+                        "(docs/LAYOUTBOT.md, \"Restructuring\"); the prompts are the person's words beside it")
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     async with HA(*access(args.checkout)) as ha:
@@ -124,15 +126,22 @@ async def main():
         text = layoutbot.instructions("x", record["layout"], grid, entities, sections, domains)
         print(f"HA {ha.version}, screen {args.screen} {grid.columns}x{grid.rows}, sections {sections}, "
               f"{len(entities)} entities, prompt {len(text)} chars", flush=True)
+        restructure = None
+        if args.restructure:
+            scope, _, number = args.restructure.partition(":")
+            restructure = {"scope": scope, **({"page": int(number)} if scope == "page" else {})}
         results = []
         for prompt in args.prompts:
             started = time.monotonic()
             entry = {"prompt": prompt}
             try:
                 plan, seconds = await layoutbot.ask(ha.request, prompt, record["layout"], grid, entities,
-                                                           sections, args.agent, domains)
+                                                           sections, args.agent, domains, restructure=restructure)
                 entry.update(answer=plan, seconds=round(seconds, 1))
-                checked, notes, _ = layoutbot.answered(plan, record["layout"], {e["id"] for e in entities}, [], False)
+                if restructure:
+                    checked, notes = layoutbot.restructured(plan, record["layout"], restructure, entities)
+                else:
+                    checked, notes, _ = layoutbot.answered(plan, record["layout"], {e["id"] for e in entities}, [], False)
                 entry.update(valid=True, notes=notes, summary=summary(checked), plan=checked)
             except Exception as error:  # noqa: BLE001 - a trial reports every failure and goes on
                 entry.update(valid=False, error=f"{type(error).__name__}: {error}")

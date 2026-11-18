@@ -47,6 +47,12 @@ function submit(text = draft.value) {
   draft.value = "";
   void bot.ask(text);
 }
+function restructure(scope: "page" | "screen") {
+  if (bot.busy) return;
+  const words = draft.value;
+  draft.value = "";
+  void bot.restructure(scope, words);
+}
 function onKey(event: KeyboardEvent) {
   if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); submit(); }
 }
@@ -115,6 +121,8 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
       <div class="msg bot">
         <p>{{ t("editor.layoutbot.hello") }}</p>
         <p class="fine">{{ t("editor.layoutbot.privacy", { agent: bot.agentName }) }}</p>
+        <!-- The model is the AI Task's setting in Home Assistant, never the question's: the advice where to choose it. -->
+        <p class="fine model-hint">{{ t("editor.layoutbot.model_hint") }} <a href="/_my_redirect/integrations" target="_top">{{ t("editor.layoutbot.model_link") }}</a></p>
       </div>
       <div v-if="!bot.messages.length" class="bot-suggest">
         <button v-for="text in suggestions" :key="text" type="button" :disabled="bot.busy" @click="submit(text)">{{ text }}</button>
@@ -158,6 +166,12 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
       <div v-if="bot.busy" class="msg bot typing" aria-hidden="true"><i></i><i></i><i></i></div>
     </div>
 
+    <!-- Restructuring the person's own tiles (docs/LAYOUTBOT.md, "Restructuring"): this page, or the whole screen. Words in
+         the field go along and steer the grouping. -->
+    <div v-if="bot.ready" class="bot-tidy">
+      <button type="button" class="chip" data-restructure="page" :disabled="bot.busy || !bot.canRestructure('page')" @click="restructure('page')"><Icon name="auto-fix" />{{ t("editor.layoutbot.restructure.page") }}</button>
+      <button type="button" class="chip" data-restructure="screen" :disabled="bot.busy || !bot.canRestructure('screen')" @click="restructure('screen')"><Icon name="auto-fix" />{{ t("editor.layoutbot.restructure.screen") }}</button>
+    </div>
     <!-- Other screens only when the person chooses them (the add-on's layoutbot.answered holds to it). -->
     <Segmented v-if="bot.ready && otherScreens" class="bot-scope" :choices="scopes" :value="bot.allScreens" :disabled="bot.busy" @pick="bot.allScreens = $event" />
     <form v-if="bot.ready" ref="compose" class="bot-compose" @submit.prevent="submit()">
@@ -208,6 +222,8 @@ const agentChoices = computed(() => bot.agents.map((agent) => [agent.id, agent.n
 .elsewhere em { font-style: normal; color: var(--muted); margin-left: 4px; }
 .chip.mini { padding: 2px 8px; font-size: 12px; flex: none; }
 .bot-scope { margin: 6px 10px 0; align-self: flex-start; }
+.bot-tidy { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 10px 0; }
+.bot-tidy .chip:disabled { opacity: .5; cursor: default; }
 .msg.send { border-color: color-mix(in srgb, var(--bot-b) 35%, var(--line)); background: color-mix(in srgb, var(--bot-b) 6%, var(--surface)); }
 .send-yes { border: 0; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; font-weight: 600; color: white; cursor: pointer;
   background: linear-gradient(140deg, var(--bot-a), var(--bot-b)); box-shadow: 0 4px 12px color-mix(in srgb, var(--bot-b) 30%, transparent);

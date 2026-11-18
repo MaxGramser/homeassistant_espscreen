@@ -42,6 +42,9 @@ inline void alarm_forget_widgets(){alarm_dots=alarm_line=alarm_ring=nullptr;for(
 inline alarm_panel::Codes alarm_codes(const Tile &t){
   alarm_panel::Codes c;c.format=t.extra().code_format;c.arm_required=!t.extra().arm_code_free;c.saved=t.extra().code_saved;return c;
 }
+inline bool alarm_keypad_first(const Tile &t){
+  return t.domain()=="alarm_control_panel"&&t.available()&&alarm_panel::keypad_first(t.state,alarm_codes(t));
+}
 inline const char *alarm_state_text(const std::string &state){
   using namespace screen_text;
   if(state=="disarmed")return tr(txt::ha_alarm_disarmed);
@@ -86,6 +89,18 @@ inline std::string alarm_card_line(const Tile &t){
   return alarm_status(t,true);
 }
 inline bool alarm_pad_open(){return alarm_pad.open&&detail_index<model.count&&model.tiles[detail_index].entity==alarm_pad.entity;}
+// The open card's send_after (the tile's option): how many digits send the code by themselves, 0 for the OK key.
+// Only an alarm panel's tile has it; a lock's keypad keeps its OK key.
+inline unsigned alarm_send_after(){
+  if(detail_index>=model.count)return 0;
+  const auto &t=model.tiles[detail_index];
+  return t.domain()=="alarm_control_panel"?alarm_panel::send_after(t.send_after):0;
+}
+// The keypad stands on red while the panel goes off or counts someone in (alarm_panel::keypad_first): set by the card
+// as it is drawn.
+inline bool alarm_red=false;
+// Whether the card of this panel is its keypad at once, and back closes the card rather than going to the card.
+inline bool alarm_keypad_first(const Tile &t);
 // A code leaves no copy behind: the bytes are overwritten before the string lets them go.
 inline void alarm_wipe(std::string &code){for(char &c:code)c='\0';code.clear();}
 inline void alarm_close_pad(){alarm_wipe(alarm_pad.code);alarm_pad.open=false;alarm_pad.note=0;}
@@ -300,16 +315,18 @@ inline void alarm_card_ring(const Tile &t,int cx,int cy,int size,int width){
 inline void alarm_draw_dots(const alarm_panel::KeypadLayout &l){
   if(!alarm_dots)return;
   lv_obj_clean(alarm_dots);
-  const unsigned n=alarm_pad.code.size(),shown=std::max<unsigned>(4,n);
+  const unsigned n=alarm_pad.code.size(),shown=alarm_panel::dots_shown(alarm_send_after(),n);
   alarm_dots_shown=shown;
   const int gap=alarm_panel::dot_gap(l.dot),row=(int)shown*l.dot+((int)shown-1)*gap;
   lv_obj_set_size(alarm_dots,std::max(row,l.dots.w),l.dot);
   lv_obj_set_x(alarm_dots,l.dots.x+(l.dots.w-row)/2-(std::max(row,l.dots.w)-l.dots.w)/2);
   const bool bad=alarm_pad.note==txt::alarm_wrong_code||alarm_pad.note==txt::alarm_nothing_changed;
   for(unsigned i=0;i<shown;++i){
-    auto *dot=detail_shape(alarm_dots,(std::max(row,l.dots.w)-row)/2+(int)i*(l.dot+gap),0,l.dot,l.dot,
-                           i<n?(bad?theme::state(alarm_panel::RED):theme::hex(theme::INK)):theme::hex(theme::CARD),l.dot/2);
-    if(i>=n){lv_obj_set_style_border_width(dot,std::max(1,l.dot/7),0);lv_obj_set_style_border_color(dot,theme::color(theme::TICK),0);}
+    // On red the dots are white: filled for a digit, a ring for one still to come.
+    const uint32_t empty=alarm_red?theme::state(alarm_panel::RED):theme::hex(theme::CARD);
+    const uint32_t full=alarm_red?theme::hex(theme::ON_ACCENT):bad?theme::state(alarm_panel::RED):theme::hex(theme::INK);
+    auto *dot=detail_shape(alarm_dots,(std::max(row,l.dots.w)-row)/2+(int)i*(l.dot+gap),0,l.dot,l.dot,i<n?full:empty,l.dot/2);
+    if(i>=n){lv_obj_set_style_border_width(dot,std::max(1,l.dot/7),0);lv_obj_set_style_border_color(dot,theme::color(alarm_red?theme::ON_ACCENT:theme::TICK),0);}
   }
 }
 inline alarm_panel::KeypadLayout alarm_keypad_layout;
@@ -322,6 +339,8 @@ inline std::string alarm_line_text(){
   if(alarm_lock.locked(now))return fill(txt::alarm_try_again,"time",countdown(alarm_lock.remaining_s(now)));
   if(alarm_attempt.active)return tr(txt::tile_command_sent);
   if(alarm_pad.note&&now-alarm_pad.note_at<4000)return tr(alarm_pad.note);
+  // On red the line says what is going on and how long is left: Triggered, Pending · 0:24.
+  if(alarm_red&&detail_index<model.count)return alarm_status(model.tiles[detail_index],false);
   return tr(txt::ha_alarm_action_enter_code);
 }
 // What the keypad's keys may do now: nothing while the lock holds or a code is on its way, and Clear and OK only with
@@ -331,13 +350,15 @@ inline void alarm_keys_state(){
   const bool held=alarm_lock.locked(now)||alarm_attempt.active||!fresh();
   for(int i=0;i<12;++i){
     if(!alarm_keys[i])continue;
-    const bool off=held||((i==9||i==11)&&alarm_pad.code.empty())||(i!=9&&i!=11&&alarm_pad.code.size()>=alarm_panel::CODE_MAX);
+    // The keys beside 0 (delete, OK) need a digit to act on; a digit needs room for one more.
+    const bool side=i==9||i==11;
+    const bool off=held||(side&&alarm_pad.code.empty())||(!side&&alarm_pad.code.size()>=alarm_panel::CODE_MAX);
     if(off)lv_obj_add_state(alarm_keys[i],LV_STATE_DISABLED);else lv_obj_remove_state(alarm_keys[i],LV_STATE_DISABLED);
   }
   if(alarm_line){
     label(alarm_line,alarm_line_text());
     const bool bad=!alarm_lock.locked(now)&&alarm_pad.note&&now-alarm_pad.note_at<4000;
-    lv_obj_set_style_text_color(alarm_line,bad?lv_color_hex(theme::foreground(alarm_panel::RED)):theme::color(theme::MUTED),0);
+    lv_obj_set_style_text_color(alarm_line,alarm_red?theme::color(theme::ON_ACCENT):bad?lv_color_hex(theme::foreground(alarm_panel::RED)):theme::color(theme::MUTED),0);
   }
 }
 // A key with an icon and a word side by side, centred: the mode keys and the Disarm key.
@@ -358,10 +379,23 @@ inline void alarm_key_face(lv_obj_t *key,const char *icon,const std::string &wor
     lv_obj_set_pos(glyph,x,(h-icon_w)/2);lv_obj_remove_flag(glyph,LV_OBJ_FLAG_CLICKABLE);
   }
 }
+inline const lv_font_t *largest_digits(const char *text,int width,int height);
 // The keypad: the dots, a line of words and twelve keys, in the card's place. The alarm panel's and a lock's.
-inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int bottom,const lv_font_t *text,const lv_font_t *icons,const lv_font_t *mini){
+// `top` is right under the card's bar: the keypad's title is the bar's name (Disarm), so the state line gives way and
+// the keys take its room. `red`: the panel goes off or counts someone in, and the whole glass behind it turns red.
+inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int bottom,const lv_font_t *text,const lv_font_t *icons,const lv_font_t *mini,
+                            bool red=false,lv_obj_t *heading=nullptr){
   using namespace alarm_panel;
-  const auto l=keypad_layout(m,width,top,bottom,(unsigned)alarm_pad.code.size());
+  alarm_red=red;
+  if(detail_status)lv_obj_add_flag(detail_status,LV_OBJ_FLAG_HIDDEN);
+  if(red){
+    // The card's own ground turns red, behind the bar too, so the red reaches every edge of the glass; show_detail
+    // gives it back its page colour with the next card. The name on it turns white.
+    lv_obj_set_style_bg_color(detail_root,lv_color_hex(theme::state(alarm_panel::RED)),0);
+    if(heading)lv_obj_set_style_text_color(heading,theme::color(theme::ON_ACCENT),0);
+  }
+  const unsigned send_after=alarm_send_after();
+  const auto l=keypad_layout(m,width,top,bottom,dots_shown(send_after,(unsigned)alarm_pad.code.size()));
   alarm_keypad_layout=l;
   alarm_dots=lv_obj_create(detail_root);lv_obj_remove_style_all(alarm_dots);lv_obj_set_pos(alarm_dots,l.dots.x,l.dots.y);
   lv_obj_remove_flag(alarm_dots,LV_OBJ_FLAG_CLICKABLE);lv_obj_remove_flag(alarm_dots,LV_OBJ_FLAG_SCROLLABLE);
@@ -374,21 +408,30 @@ inline void render_code_pad(const alarm_panel::Metrics &m,int width,int top,int 
   alarm_line=detail_text(detail_root,alarm_line_text(),l.line.x,l.line.y,l.line.w,text,LV_TEXT_ALIGN_CENTER,theme::MUTED);
   // The words wrap within their room instead of ending in dots after the first one (keypad_layout gives it the lines).
   lv_label_set_long_mode(alarm_line,LV_LABEL_LONG_WRAP);lv_obj_set_height(alarm_line,l.line.h);
-  const lv_font_t *digits=watch_font?watch_font:detail_font;
-  const lv_font_t *glyphs=icons&&lv_font_get_line_height(icons)<=l.keys[0].h-ui::px(6)?icons:mini;
+  // The digits take the largest digit step that fits a key (looks/shared/digits.yaml), else the card's own.
+  const Rect &cell=l.keys[0];
+  const lv_font_t *digits=largest_digits("8",cell.w*6/10,cell.h*55/100);
+  if(!digits)digits=watch_font?watch_font:detail_font;
+  const lv_font_t *glyphs=icons&&lv_font_get_line_height(icons)<=cell.h-ui::px(6)?icons:mini;
+  const int radius=std::min(m.radius(),cell.h/3);
   const unsigned before=detail_action_count;
   for(int i=0;i<12;++i){
     const Rect &r=l.keys[i];
-    const bool ok=i==11,clear=i==9;
+    // The keys beside 0: delete and OK, or nothing and delete when the code sends itself (alarm_panel::Side).
+    const Side side=i==9?left_of_zero(send_after):i==11?right_of_zero(send_after):Side::NONE;
+    if((i==9||i==11)&&side==Side::NONE)continue;
+    const bool ok=side==Side::OK,erase=side==Side::DELETE;
     const int digit=i<9?i+1:0;
-    auto *key=detail_button("",r.x,r.y,r.w,r.h,ok?ALARM_OK:clear?ALARM_CLEAR:ALARM_DIGIT_FIRST+digit);
-    lv_obj_set_style_radius(key,r.h/2,0);
-    lv_obj_set_style_bg_color(key,theme::color(ok?theme::ACCENT:theme::CARD),0);
-    lv_obj_set_style_bg_color(key,theme::color(ok?theme::ACCENT_PRESSED:theme::KEY),LV_STATE_PRESSED);
-    lv_obj_set_style_border_width(key,ok?0:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
+    auto *key=detail_button("",r.x,r.y,r.w,r.h,ok?ALARM_OK:erase?ALARM_CLEAR:ALARM_DIGIT_FIRST+digit);
+    lv_obj_set_style_radius(key,radius,0);
+    // On red the OK key is the dark key of the card's Disarm, as blue on red would clash.
+    const theme::Role ok_bg=red?theme::BUTTON_DARK:theme::ACCENT,ok_down=red?theme::BUTTON_DARK_PRESSED:theme::ACCENT_PRESSED;
+    lv_obj_set_style_bg_color(key,theme::color(ok?ok_bg:theme::CARD),0);
+    lv_obj_set_style_bg_color(key,theme::color(ok?ok_down:theme::KEY),LV_STATE_PRESSED);
+    lv_obj_set_style_border_width(key,ok||red?0:1,0);lv_obj_set_style_border_color(key,theme::color(theme::LINE),0);
     auto *face=lv_obj_get_child(key,0);
-    lv_obj_set_style_text_font(face,ok||clear?glyphs:digits,0);
-    lv_label_set_text(face,ok?glyph::CHECK:clear?glyph::CLOSE:std::to_string(digit).c_str());
+    lv_obj_set_style_text_font(face,ok||erase?glyphs:digits,0);
+    lv_label_set_text(face,ok?glyph::CHECK:erase?glyph::ERASE:std::to_string(digit).c_str());
     lv_obj_set_style_text_color(face,theme::color(ok?theme::ON_ACCENT:theme::INK),0);
     lv_obj_set_size(face,LV_SIZE_CONTENT,LV_SIZE_CONTENT);lv_obj_center(face);
     alarm_keys[i]=key;
@@ -404,6 +447,13 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
   if(alarm_pad.entity!=t.entity){alarm_close_pad();alarm_pad.entity=t.entity;}
   // A keypad to disarm closes when the panel is disarmed another way.
   if(alarm_pad.open&&(!t.available()||(alarm_pad.mode==DISARM&&t.state=="disarmed")))alarm_close_pad();
+  // Going off or counting someone in, a panel that asks a code is its keypad at once (design B): no card with one
+  // Disarm key first. A keypad open to arm turns into the one to disarm.
+  const bool keypad_first=alarm_keypad_first(t);
+  if(keypad_first&&(!alarm_pad.open||alarm_pad.mode!=DISARM)){
+    alarm_wipe(alarm_pad.code);alarm_pad.open=true;alarm_pad.mode=DISARM;alarm_pad.note=0;alarm_pad.entity=t.entity;
+  }
+  alarm_red=false;
   alarm_forget_widgets();
   card_shaped(t,security_card_shape);
   const lv_font_t *text=large?detail_font:(control_font?control_font:detail_font);
@@ -415,9 +465,10 @@ inline void render_alarm_detail(Tile &t,bool large,int width,int height,lv_obj_t
   const bool on=t.active(),available=t.available();
   const uint32_t colour=on?color(t.state):theme::STATE_OFF;
   if(alarm_pad.open){
-    // The keypad in the card's place, titled as Home Assistant's code dialog: Disarm, Arm away.
+    // The keypad in the card's place, titled as Home Assistant's code dialog: Disarm, Arm away. It starts right under
+    // the bar and takes the glass to its bottom edge.
     if(heading)label(heading,alarm_action_text(alarm_pad.mode));
-    render_code_pad(m,width,top,bottom,text,icons,mini);
+    render_code_pad(m,width,detail_bar::bottom()+m.gap(),height-m.gap(),text,icons,mini,keypad_first,heading);
     return;
   }
   // The card: the shield on its white card, and the modes or the one Disarm key.
@@ -478,6 +529,8 @@ inline void alarm_state_arrived(unsigned index,const std::string &before){
   if(alarm_attempt.active&&t.entity==alarm_attempt_entity)alarm_settled(alarm_attempt.settle(t.state,esphome::millis()),true);
   if(!alarm_panel::calls_for_attention(t.state)||alarm_panel::calls_for_attention(before)||!t.available())return;
   if(!enabled||!model.ready())return;
+  // A screen left out on the Events page (the app's alarm_screens) stays quiet: every tile of the panel says so.
+  if(t.alarm_quiet)return;
   // A panel on several tiles gets a state message per tile: the first of them wakes the screen, once.
   for(size_t i=0;i<index;++i)if(model.tiles[i].entity==t.entity)return;
   ESP_LOGI("alarm","%s is %s: the screen wakes with its card",t.entity.c_str(),t.state.c_str());
@@ -529,11 +582,15 @@ inline void alarm_command(int cmd){
     // The dots follow the finger at once; a fifth digit makes the row longer, so it is drawn again.
     alarm_draw_dots(alarm_keypad_layout);
     alarm_keys_state();
+    // The last digit of a code whose length the tile gives sends it, as OK would (alarm_panel::sends_now).
+    if(alarm_panel::sends_now(alarm_send_after(),(unsigned)alarm_pad.code.size())&&fresh()&&t.available())alarm_send(t);
     return;
   }
   if(cmd==ALARM_CLEAR){
+    // Delete takes the last digit back, as a phone's keypad does.
     if(!screen_input::touch_guard.accept_repeat(now,300+cmd))return;
-    alarm_wipe(alarm_pad.code);alarm_pad.note=0;alarm_draw_dots(alarm_keypad_layout);alarm_keys_state();
+    if(!alarm_pad.code.empty()){alarm_pad.code.back()='\0';alarm_pad.code.pop_back();}
+    alarm_pad.note=0;alarm_draw_dots(alarm_keypad_layout);alarm_keys_state();
     return;
   }
   if(!fresh()||!allowed(now,300+cmd,"alarm:"+t.entity)||!t.available())return;

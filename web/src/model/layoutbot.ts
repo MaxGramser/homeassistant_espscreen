@@ -24,7 +24,10 @@ import * as sections from "./sections";
 export type PlanSection = { title: string; icon: string | null; entities: string[] };
 /** One page of a checked plan: a new one, or the number (from 1) of one the screen has. */
 export type PlanPage = { page: "new" | number; title: string; icon: string | null; sections: PlanSection[]; tiles: string[] };
-export type Plan = { pages: PlanPage[]; remove: string[] };
+/** Restructuring (docs/LAYOUTBOT.md, "Restructuring"): the person's own tiles of one page (its number, from 1) or of the
+ * whole screen, grouped anew by the plan's pages and placed again. */
+export type Restructure = { scope: "page"; page: number } | { scope: "screen" };
+export type Plan = { pages: PlanPage[]; remove: string[]; restructure?: Restructure };
 /** A note of what was left out: a key of editor.layoutbot.notes and its values. */
 export type PlanNote = { key: string; named?: Record<string, string | number> };
 export type PlanContext = {
@@ -42,6 +45,7 @@ const lower = (text: string) => text.trim().toLocaleLowerCase();
 
 /** The plan placed in `document`: the next draft (checked as any edit) and what was left out. */
 export function applyPlan(document: PageLayout, plan: Plan, ctx: PlanContext): { layout: PageLayout; notes: PlanNote[] } {
+  if (plan.restructure) return applyRestructure(document, plan, ctx);
   const grid = ctx.held, notes: PlanNote[] = [];
   const note = (key: string, named: Record<string, string | number> = {}) => {
     const same = notes.find((n) => n.key === key && n.named?.page === named.page);
@@ -134,6 +138,113 @@ function tilesOf(entities: string[], context: string, unit: string, ctx: PlanCon
     // Alike tiles of one section grow together (every light of it as large as the others), not those of another.
     return [{ ...tile, alike: `${unit}:${tile.alike}` }];
   });
+}
+
+// ---- Restructuring the person's own tiles ----
+
+/** The pages a restructure takes (their indexes), or none where the plan names a page the draft does not have. */
+export function scopeOf(document: PageLayout, restructure: Restructure): number[] {
+  if (restructure.scope === "screen") return document.pages.map((_, i) => i);
+  return document.pages[restructure.page - 1] ? [restructure.page - 1] : [];
+}
+/** The draft without the pages a restructure takes: what stays as it is, priced beside the pages placed anew. */
+export function withoutScope(document: PageLayout, restructure: Restructure): PageLayout {
+  const taken = new Set(scopeOf(document, restructure));
+  return { ...document, pages: document.pages.filter((_, i) => !taken.has(i)) };
+}
+
+const SLIDERS = new Set(["light"]);
+/** The person's own tiles of a page or of the screen, grouped as the plan groups them and placed again through the
+ * placement Auto layout uses (placeUnits), each the richest of its cards that the page still holds (`grow`):
+ * - a tile keeps what the person made of it: its own name, icon and colour on every card, and its own card where it stood
+ *   in one cell (a meter they chose stays a meter);
+ * - a light that stays one row high with nothing else on its card gets the small brightness slider, where Home Assistant
+ *   says it dims (catalogue `inline`);
+ * - a tile the plan does not dress (a built-in, a plugin, an entity Home Assistant no longer lists) keeps its card as it is;
+ * - a page restructured alone keeps its place, its id, its title, its icon and its top bar, and goes on in a page after
+ *   it when it needs more room; the whole screen gets the plan's pages.
+ * Last, the result is checked: every tile of before is in it, or the draft stays as it was and the note says why. */
+export function applyRestructure(document: PageLayout, plan: Plan, ctx: PlanContext): { layout: PageLayout; notes: PlanNote[] } {
+  const grid = ctx.held, notes: PlanNote[] = [], scope = plan.restructure!;
+  const indexes = scopeOf(document, scope);
+  if (!indexes.length) return { layout: document, notes: [{ key: "no_page", named: { page: scope.scope === "page" ? scope.page : 0 } }] };
+  const old = indexes.map((i) => document.pages[i]), oldTiles = old.flatMap((page) => page.tiles);
+  const mine = new Map<string, PageTile>();
+  for (const tile of oldTiles) { const entity = entityOf(tile); if (entity && tile.content.kind === "entity" && !mine.has(entity)) mine.set(entity, tile); }
+  const asItIs = (tile: PageTile): PlaceTile => {
+    const { id: _id, placement, ...card } = JSON.parse(JSON.stringify(tile)) as PageTile;
+    return { tile: card, columns: placement.columns, rows: placement.rows, rank: 1, entity: entityOf(tile) ?? "" };
+  };
+  // The person's own touches on every card a tile may take.
+  const own = (entity: string, placed: PlaceTile): PlaceTile => {
+    const before = mine.get(entity)!;
+    const touch = (card: PlaceTile["tile"]) => ({ ...card, appearance: { ...card.appearance,
+      ...(before.appearance.label ? { label: before.appearance.label } : {}),
+      ...(before.appearance.icon ? { icon: before.appearance.icon } : {}),
+      ...(before.appearance.background ? { background: before.appearance.background } : {}) } });
+    const theirs = before.placement.columns * before.placement.rows === 1 ? asItIs(before).tile : null;
+    const faces = (placed.faces ?? [{ columns: placed.columns, rows: placed.rows, tile: placed.tile }])
+      .map((face, n) => ({ ...face, tile: n === 0 && theirs ? theirs : touch(face.tile) }));
+    return { ...placed, tile: faces[0].tile, faces };
+  };
+  const placedHere = new Set<string>();
+  const dressed = (entities: string[], context: string, unit: string) => {
+    const firsts = new Set<string>();
+    return entities.flatMap((entity): PlaceTile[] => {
+      if (!mine.has(entity) || placedHere.has(entity)) return [];
+      placedHere.add(entity);
+      const kind = placeTileFor(entity, ctx.input, { context })?.alike;
+      const tile = kind === undefined ? null : placeTileFor(entity, ctx.input, { first: !firsts.has(kind), context });
+      if (!tile) return [asItIs(mine.get(entity)!)];
+      firsts.add(kind!);
+      return [{ ...own(entity, tile), alike: `${unit}:${tile.alike}` }];
+    });
+  };
+  const units: PlaceUnit[] = [];
+  const keep = scope.scope === "page" ? { title: old[0].topbar.title.source === "text" ? old[0].topbar.title.text : "", icon: old[0].icon } : null;
+  plan.pages.forEach((item, n) => {
+    const page = keep && n === 0 ? { title: keep.title, ...(keep.icon ? { icon: keep.icon } : {}) } : { title: item.title, ...(item.icon ? { icon: item.icon } : {}) };
+    const share = `${n}`;
+    item.sections.forEach((s, k) => units.push({ key: `${n}:${k}`, title: s.title, ...(s.icon ? { icon: s.icon } : {}),
+      tiles: dressed(s.entities, s.title, `${n}:${k}`), page, share, ...(ctx.input.screen.sections ? {} : { loose: true }) }));
+    if (item.tiles.length) units.push({ key: `${n}:loose`, title: "", tiles: dressed(item.tiles, "", `${n}:loose`), loose: true, page, share });
+  });
+  // What the plan does not name stays on the last page, as it is: a built-in, a plugin, an entity it forgot.
+  const rest = oldTiles.filter((tile) => { const entity = entityOf(tile); return !(entity && tile.content.kind === "entity" && placedHere.has(entity)); })
+    .filter((tile, i, all) => tile.content.kind !== "entity" || all.findIndex((other) => entityOf(other) === entityOf(tile)) === i);
+  if (rest.length) {
+    const last = units.at(-1);
+    units.push({ key: "rest", title: "", tiles: rest.map(asItIs), loose: true, page: last?.page ?? { title: keep?.title ?? "" }, share: last?.share ?? "0" });
+  }
+  const placing = units.filter((unit) => unit.tiles.length);
+  const stays = withoutScope(document, scope), view = pages.projectLayout(stays, grid), screen = ctx.input.screen;
+  const placed = placeUnits(placing, {
+    ...placeTarget({ ...ctx.input, existing: { tiles: view.tiles, pages: stays.pages } }),
+    ...(keep ? { topbar: old[0].topbar } : {}),
+    pages: Math.max(0, Math.min(screen.pages, pages.pageLimit(grid) - stays.pages.length)), tiles: Math.max(0, screen.tiles), fill: 1, grow: true,
+  });
+  // The last look: nothing of the person's may be lost. Else the draft stays as it was.
+  if (placed.left.length) return { layout: document, notes: [{ key: "restructure_no_room", named: { count: placed.left.length } }] };
+  for (const page of placed.pages) for (const tile of page.tiles) sliderOn(tile, ctx);
+  const fresh = placed.pages;
+  if (keep && fresh[0]) { fresh[0].id = old[0].id; fresh[0].topbar = JSON.parse(JSON.stringify(old[0].topbar)); if (old[0].icon) fresh[0].icon = old[0].icon; }
+  const at = indexes[0];
+  const next = [...document.pages.slice(0, at), ...fresh, ...document.pages.slice(at + indexes.length)];
+  const home = next.some((page) => page.id === document.homePageId) ? document.homePageId : next[0]?.id;
+  const layout = pages.validatePages({ ...document, pages: next, ...(home ? { homePageId: home } : {}) }, grid, document);
+  const count = (doc: PageLayout, page: number[]) => page.reduce((n, i) => n + doc.pages[i].tiles.length, 0);
+  const after = fresh.map((_, i) => at + i);
+  if (count(layout, after) !== oldTiles.length) return { layout: document, notes: [{ key: "restructure_no_room", named: { count: Math.max(1, oldTiles.length - count(layout, after)) } }] };
+  return { layout, notes };
+}
+/** A light one row high with nothing else on its card gets the small brightness slider, where it dims. */
+function sliderOn(tile: PageTile, ctx: PlanContext) {
+  const entity = entityOf(tile);
+  if (!entity || tile.content.kind !== "entity" || !SLIDERS.has(entity.split(".")[0]) || tile.placement.rows !== 1) return;
+  if (tile.interaction.controls && tile.interaction.controls !== "none") return;
+  if (tile.interaction.inline || (tile.appearance.display && tile.appearance.display !== "standard")) return;
+  if (!ctx.input.capabilities[entity]?.inline) return;
+  tile.interaction.inline = "slider";
 }
 
 /** Tiles of these entities off a page; a section left without tiles goes too (`sectionsGo`), as Remove section does. */
