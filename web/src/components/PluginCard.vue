@@ -55,6 +55,7 @@ async function heart() {
         <Icon v-if="status.kind === 'installed'" name="check" />
         <Icon v-else-if="status.kind === 'update'" name="update" />
         <Icon v-else-if="status.kind === 'missing'" name="alert-circle-outline" />
+        <Icon v-else-if="status.kind === 'elsewhere'" name="information-outline" />
         <span v-else-if="status.kind === 'building'" class="spin" aria-hidden="true"></span>
         {{ status.label }}
       </span>

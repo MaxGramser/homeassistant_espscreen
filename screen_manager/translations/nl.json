@@ -4000,6 +4000,7 @@
         "fits_none": "Past op geen van je schermen",
         "failed": "Bouwen mislukt",
         "not_running": "Draait niet op het scherm",
+        "runs_other": "Draait {version} op het scherm",
         "queued": "Wacht op zijn beurt"
       },
       "source": {
@@ -4049,6 +4050,7 @@
       "remove": "Verwijderen van {screen}",
       "building": "De firmware voor {screen} wordt gebouwd…",
       "installed_on": "Op {screen}, versie {version}",
+      "runs_elsewhere": "{screen} draait versie {running}, ergens anders gebouwd. Hier bouwen zet er versie {version} op.",
       "update": "Bijwerken naar {version}",
       "trust": {
         "title": "Ik vertrouw deze maker"

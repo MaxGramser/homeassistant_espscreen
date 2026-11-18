@@ -162,6 +162,15 @@ def runs(inbox, record, running, now=None):
     return any(item.get('id') == record['id'] and item.get('version') == record.get('version') for item in reported)
 
 
+def runs_version(inbox, record, running, now=None):
+    """The version the screen of `inbox` runs of `record`'s plugin when it is not the one this app built (runs is
+    False): a firmware built elsewhere (ESPHome Device Builder, a computer) from another commit or release. None when
+    the screen runs this app's version, does not run the plugin at all, or cannot be known."""
+    if runs(inbox, record, running, now) is not False:
+        return None
+    return next((item.get('version') or None for item in running.get(inbox) or [] if item.get('id') == record['id']), None)
+
+
 def version_tuple(text):
     return tuple(int(n) for n in re.findall(r'\d+', str(text or ''))[:3])
 
@@ -1237,6 +1246,8 @@ class Plugins:
                                          'state': record.get('state', 'active'), 'reason': record.get('reason'),
                                          # Whether the screen runs it (runs): the editor says so when it does not.
                                          'running': runs(inbox, record, running),
+                                         # The version it runs instead, when it was built elsewhere: the editor names it.
+                                         'runs_version': runs_version(inbox, record, running),
                                          **({'failed_update': record['failed_update']} if record.get('failed_update') else {}),
                                          # Which of its secrets for this screen alone are set (never their values).
                                          'secrets': {item['id']: self.secrets.has(

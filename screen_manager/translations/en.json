@@ -4000,6 +4000,7 @@
         "fits_none": "Fits none of your screens",
         "failed": "Build failed",
         "not_running": "Not running on the screen",
+        "runs_other": "Runs {version} on the screen",
         "queued": "Waits its turn"
       },
       "source": {
@@ -4049,6 +4050,7 @@
       "remove": "Remove from {screen}",
       "building": "Building the firmware for {screen}…",
       "installed_on": "On {screen}, version {version}",
+      "runs_elsewhere": "{screen} runs version {running}, built somewhere else. Building it here puts version {version} on it.",
       "update": "Update to {version}",
       "trust": {
         "title": "I trust this maker"

@@ -3092,6 +3092,16 @@ class WhetherTheScreenRunsIt(unittest.TestCase):
         self.assertFalse(plugin_service.runs('tablet', dict(record, id='bt_proxy'), running, now=5000), 'not in the hello')
         self.assertTrue(plugin_service.runs('tablet', {'id': 'cinema', 'version': '0.1.0'}, running, now=5000), 'a record from before `settled`')
 
+    def test_the_version_a_screen_runs_instead(self):
+        import plugins as plugin_service
+        record = {'id': 'co2_ring', 'version': '0.2.16', 'state': 'active', 'settled': 1000}
+        running = {'tablet': [{'id': 'co2_ring', 'version': '0.2.17', 'tiles': ['co2']}]}
+        self.assertEqual(plugin_service.runs_version('tablet', record, running, now=5000), '0.2.17', 'built elsewhere')
+        self.assertIsNone(plugin_service.runs_version('tablet', dict(record, version='0.2.17'), running, now=5000), 'this version')
+        self.assertIsNone(plugin_service.runs_version('tablet', dict(record, id='cinema'), running, now=5000), 'not in the hello')
+        self.assertIsNone(plugin_service.runs_version('kitchen', record, running, now=5000), 'not known')
+        self.assertIsNone(plugin_service.runs_version('tablet', record, running, now=1001), 'just built')
+
     def test_nothing_while_it_cannot_be_known(self):
         import plugins as plugin_service
         record = {'id': 'tap_sound', 'version': '0.2.0', 'state': 'active', 'settled': 1000}

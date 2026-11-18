@@ -4,7 +4,7 @@
 // and the screen is like any other. Taking it off is asked of the details around it (`remove`).
 import { computed } from "vue";
 import { editorNumber, t, te } from "../../i18n";
-import { attachLine, fileOf, headroomKb, text, type Plugin } from "../../model/plugins";
+import { attachLine, fileOf, headroomKb, isTest, text, type Plugin } from "../../model/plugins";
 import { glyph } from "../../model/topbar";
 import type { Screen } from "../../types";
 import PluginSetup from "../PluginSetup.vue";
@@ -63,7 +63,8 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
         <button type="button" class="btn quiet" id="plugin-keep" @click="plugins.takeOut(screen, plugin.id)">{{ t("editor.plugins.tray.keep") }}</button>
       </div>
     </template>
-    <template v-else-if="status.kind === 'test'">
+    <template v-else-if="status.kind === 'test' || (status.kind === 'elsewhere' && isTest(installed))">
+      <p v-if="installed?.runs_version" class="pd-misfit" id="plugin-runs-elsewhere"><Icon name="information-outline" />{{ t("editor.plugins.runs_elsewhere", { screen: screen.name, running: installed.runs_version, version: installed.version }) }}</p>
       <p class="pd-note">{{ t("editor.plugins.test_note") }}</p>
       <div class="pd-buttons">
         <button type="button" class="btn primary" id="plugin-rebuild" @click="plugins.rebuildTest(screen, plugin)">{{ t("editor.plugins.rebuild") }}</button>
@@ -79,7 +80,8 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
     </template>
     <p v-else-if="status.kind === 'building'" class="pd-note"><span class="spin" aria-hidden="true"></span>{{ t("editor.plugins.building", { screen: screen.name }) }}</p>
     <template v-else-if="installed">
-      <p class="pd-note"><Icon name="check-circle" />{{ t("editor.plugins.installed_on", { screen: screen.name, version: installed.version }) }}</p>
+      <p v-if="installed.runs_version" class="pd-misfit" id="plugin-runs-elsewhere"><Icon name="information-outline" />{{ t("editor.plugins.runs_elsewhere", { screen: screen.name, running: installed.runs_version, version: installed.version }) }}</p>
+      <p v-else class="pd-note"><Icon name="check-circle" />{{ t("editor.plugins.installed_on", { screen: screen.name, version: installed.version }) }}</p>
       <p v-if="cameWith.length" class="pd-note pd-along-note" id="plugin-came-with"><Icon name="link-variant" />{{ t("editor.plugins.along.came_with", { names: cameWith.map((p) => text(p.name)).join(", ") }) }}</p>
       <p v-else-if="needed.length" class="pd-note pd-along-note" id="plugin-needed-by"><Icon name="link-variant" />{{ t("editor.plugins.along.needed_now", { names: needed.map((p) => text(p.name)).join(", ") }) }}</p>
       <p v-if="installed.failed_update" class="pd-misfit" id="plugin-failed-update"><Icon name="information-outline" /><span>{{ t("editor.plugins.failed_update", { screen: screen.name, version: installed.failed_update.version, current: installed.version }) }}<small v-if="installed.failed_update.reason" class="pd-reason">{{ reasonText(installed.failed_update.reason) }}</small></span></p>
