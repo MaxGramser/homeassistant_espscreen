@@ -37,8 +37,11 @@
 #include "look_trade_log.h"
 #endif
 
-#if !(LVGL_VERSION_MAJOR == 9 && LVGL_VERSION_MINOR == 5)
-#error "look_trade.h reads lv_obj_t::styles as LVGL 9.5 has them: check the fields named at its head before allowing this LVGL"
+// LVGL 9.6 (ESPHome 2026.11) checked 2026-11-18: the same fields (lv_obj_style_t moved its selector after path_cb,
+// still beside the style), the same presence-only cache (LV_OBJ_STYLE_CACHE, which ESPHome 2026.11 turns on), and
+// lv_obj_refresh_style now also updates the object's cached blur status, which a trade of copies leaves as it was.
+#if !(LVGL_VERSION_MAJOR == 9 && (LVGL_VERSION_MINOR == 5 || LVGL_VERSION_MINOR == 6))
+#error "look_trade.h reads lv_obj_t::styles as LVGL 9.5 and 9.6 have them: check the fields named at its head before allowing this LVGL"
 #endif
 
 namespace look_trade {

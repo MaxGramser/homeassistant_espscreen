@@ -185,12 +185,12 @@ bool card_tap(Widgets &w, const Tile &t) {
   using namespace rt;
   const std::string title = d.book_title.empty() ? tr(txt::calendar_booked) : d.book_title;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef("calendar.create_event");
+  request.service = api_text::of("calendar.create_event");
   request.data.init(d.book_place.empty() ? 4 : 5);
   auto field = [&](const char *key, const std::string &value) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(key);
-    entry.value = esphome::StringRef(value);
+    entry.key = api_text::of(key);
+    entry.value = api_text::of(value);
     request.data.push_back(entry);
   };
   field("entity_id", d.book_on);

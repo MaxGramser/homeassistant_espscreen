@@ -195,7 +195,7 @@ fact of the hardware, and where:
 | whether a decode holds the glass, and a full view's pace | `picture_engine::limits()` (`decode_on_glass`: the P4's decoder runs on the 2D-DMA, the S3's on the CPU; `view_pps` 8 on the S3) | `live_view.cpp` |
 | the panel is MIPI-DSI | `glass_dsi.cpp` (the wrap of `esp_lcd_new_panel_dpi`) | a P4 with an RGB panel would find no frame buffer and show stills |
 | the panel is an S3's RGB panel | `glass_rgb.cpp` (the wrap of `esp_lcd_new_rgb_panel`, its frame buffer; no underrun count, `misses` 0) | an S3 with a SPI or QSPI panel finds no frame buffer and shows stills |
-| LVGL draws big-endian | `glass_rgb.cpp` (`LV_COLOR_16_SWAP`, `glass::Panel::swapped`) | `picture_engine::Block::swap`, the S3's blit |
+| LVGL draws big-endian | `glass_rgb.cpp` (`LV_COLOR_16_SWAP` up to LVGL 9.5, `LV_COLOR_FORMAT_DEFAULT` of `RGB565_SWAPPED` from LVGL 9.6, `glass::Panel::swapped`) | `picture_engine::Block::swap`, the S3's blit |
 | the frame buffer is RGB565 | `glass_dsi.cpp` | `glass::direct()`, `live_view::available()` |
 | each 2D-DMA client's burst | `picture_engine::limits().burst_bytes` (64 on the P4: the panel's bridge runs dry on ESP-IDF's 128, lvgl/lvgl #9590) | the streams' and LVGL's PPA clients (`glass_dsi.cpp`) |
 | the largest picture a stream's part may be | `picture_engine::limits()` (`picture_bytes` 1 MB, `tile_picture_bytes` 384 KB on the P4, over a busy camera's 150 to 250 KB at 1280 x 800, CAMERA.md 2026-10-10; 0 elsewhere, no part at all) | `live_view::Reader`, a stream's input buffer |

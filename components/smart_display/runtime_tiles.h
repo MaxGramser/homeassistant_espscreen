@@ -34,6 +34,14 @@
 #include "esphome/components/logger/logger.h"
 #endif
 #endif
+// The words of a Home Assistant action's fields (its service, each key and value) as this ESPHome's API has them:
+// StringRef up to ESPHome 2026.10, ProgmemStringRef from 2026.11, which is made from a StringRef only explicitly. Every
+// field is filled through api_text::of, so the firmware builds on both. The text stays the caller's, as before.
+namespace api_text {
+using Text = decltype(esphome::api::HomeassistantServiceMap::key);
+inline Text of(const std::string &text) { return Text(esphome::StringRef(text)); }
+inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
+}  // namespace api_text
 #include "header_bar.h"
 #include "page_header.h"
 #include "tile_palette.h"
@@ -1103,14 +1111,14 @@ inline bool action(const std::string &service, const std::string &entity, const 
   // Of any domain: a tile's entity was checked when it came, and a plugin may act on one Tessera draws no tile for.
   if (!fresh() || !entity_id(entity)) return false;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(service);
+  request.service = api_text::of(service);
   request.data.init(1 + !key.empty() + !key2.empty());
   esphome::api::HomeassistantServiceMap entry;
-  entry.key = esphome::StringRef("entity_id");
-  entry.value = esphome::StringRef(entity);
+  entry.key = api_text::of("entity_id");
+  entry.value = api_text::of(entity);
   request.data.push_back(entry);
-  if(!key.empty()) {esphome::api::HomeassistantServiceMap param;param.key=esphome::StringRef(key);param.value=esphome::StringRef(value);request.data.push_back(param);}
-  if(!key2.empty()) {esphome::api::HomeassistantServiceMap param;param.key=esphome::StringRef(key2);param.value=esphome::StringRef(value2);request.data.push_back(param);}
+  if(!key.empty()) {esphome::api::HomeassistantServiceMap param;param.key=api_text::of(key);param.value=api_text::of(value);request.data.push_back(param);}
+  if(!key2.empty()) {esphome::api::HomeassistantServiceMap param;param.key=api_text::of(key2);param.value=api_text::of(value2);request.data.push_back(param);}
   const bool watched = send_action(request, entity, watch, busy);
   ESP_LOGI("runtime_action","Sent service=%s entity=%s",service.c_str(),entity.c_str());
   return watched;
@@ -1142,11 +1150,11 @@ inline void wish_watch(lv_timer_t *) {
 inline void step_action(const std::string &service, const std::string &entity, const std::string &key = "", const std::string &value = "") {
   if (!fresh() || !valid_entity(entity)) return;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(service);
+  request.service = api_text::of(service);
   request.data.init(key.empty() ? 1 : 2);
   esphome::api::HomeassistantServiceMap target, field;
-  target.key = esphome::StringRef("entity_id"); target.value = esphome::StringRef(entity); request.data.push_back(target);
-  if (!key.empty()) { field.key = esphome::StringRef(key); field.value = esphome::StringRef(value); request.data.push_back(field); }
+  target.key = api_text::of("entity_id"); target.value = api_text::of(entity); request.data.push_back(target);
+  if (!key.empty()) { field.key = api_text::of(key); field.value = api_text::of(value); request.data.push_back(field); }
   esphome::api::global_api_server->send_homeassistant_action(request);
   ESP_LOGI("runtime_action", "Sent %s%s%s to %s", service.c_str(), value.empty() ? "" : " ", value.c_str(), entity.c_str());
 }
@@ -1160,21 +1168,21 @@ inline bool action_template(const std::string &service, const std::string &entit
                             bool busy, const std::string &key2, const std::string &value2) {
   if (!fresh() || !valid_entity(entity)) return false;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(service);
+  request.service = api_text::of(service);
   request.data.init(1);
   esphome::api::HomeassistantServiceMap target;
-  target.key = esphome::StringRef("entity_id");
-  target.value = esphome::StringRef(entity);
+  target.key = api_text::of("entity_id");
+  target.value = api_text::of(entity);
   request.data.push_back(target);
   request.data_template.init(1 + !key2.empty());
   esphome::api::HomeassistantServiceMap entry;
-  entry.key = esphome::StringRef(key);
-  entry.value = esphome::StringRef(value);
+  entry.key = api_text::of(key);
+  entry.value = api_text::of(value);
   request.data_template.push_back(entry);
   if (!key2.empty()) {
     esphome::api::HomeassistantServiceMap second;
-    second.key = esphome::StringRef(key2);
-    second.value = esphome::StringRef(value2);
+    second.key = api_text::of(key2);
+    second.value = api_text::of(value2);
     request.data_template.push_back(second);
   }
   const bool watched = send_action(request, entity, true, busy);
@@ -1187,23 +1195,23 @@ inline void perform(const Tile &tile) {
   const auto &x = tile.extra();
   if (!fresh() || !valid_entity(tile.entity) || x.action.empty()) return;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(x.action);
+  request.service = api_text::of(x.action);
   request.data.init(1 + x.action_data.size());
   esphome::api::HomeassistantServiceMap target;
-  target.key = esphome::StringRef("entity_id");
-  target.value = esphome::StringRef(tile.entity);
+  target.key = api_text::of("entity_id");
+  target.value = api_text::of(tile.entity);
   request.data.push_back(target);
   for (const auto &pair : x.action_data) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(pair.first);
-    entry.value = esphome::StringRef(pair.second);
+    entry.key = api_text::of(pair.first);
+    entry.value = api_text::of(pair.second);
     request.data.push_back(entry);
   }
   request.data_template.init(x.action_templates.size());
   for (const auto &pair : x.action_templates) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(pair.first);
-    entry.value = esphome::StringRef(pair.second);
+    entry.key = api_text::of(pair.first);
+    entry.value = api_text::of(pair.second);
     request.data_template.push_back(entry);
   }
   send_action(request, tile.entity, true);
@@ -1215,15 +1223,15 @@ inline void perform(const Tile &tile) {
 inline void options_request(const std::string &entity, unsigned page) {
   if (inbox.empty()) return;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef("esphome.screen_options");
+  request.service = api_text::of("esphome.screen_options");
   request.is_event = true;
   const std::string number = std::to_string(page);
   const std::string keys[] = {"inbox", "entity", "page", "session", "rev", "view"}, values[] = {inbox, entity, number, protocol_key(transfer.lease), layout_rev, std::to_string(++options_view_id)};
   request.data.init(6);
   for (int i = 0; i < 6; ++i) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(keys[i]);
-    entry.value = esphome::StringRef(values[i]);
+    entry.key = api_text::of(keys[i]);
+    entry.value = api_text::of(values[i]);
     request.data.push_back(entry);
   }
   esphome::api::global_api_server->send_homeassistant_action(request);
@@ -1235,7 +1243,7 @@ inline void options_request(const std::string &entity, unsigned page) {
 inline void library_event(const char *service, std::initializer_list<std::pair<const char *, std::string>> pairs) {
   if (inbox.empty()) return;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(service);
+  request.service = api_text::of(service);
   request.is_event = true;
   // The values live until the request is sent: the request holds references to them.
   std::vector<std::pair<std::string, std::string>> data = {{"inbox", inbox}, {"session", protocol_key(transfer.lease)}, {"rev", layout_rev}};
@@ -1243,8 +1251,8 @@ inline void library_event(const char *service, std::initializer_list<std::pair<c
   request.data.init(data.size());
   for (const auto &pair : data) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(pair.first);
-    entry.value = esphome::StringRef(pair.second);
+    entry.key = api_text::of(pair.first);
+    entry.value = api_text::of(pair.second);
     request.data.push_back(entry);
   }
   esphome::api::global_api_server->send_homeassistant_action(request);
@@ -1281,13 +1289,13 @@ inline void picture_ask(const picture_question::Question &q, const char *kind, c
     for (auto &field : picture_question::legacy(q)) data.push_back(std::move(field));
   }
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef("esphome.screen_camera");
+  request.service = api_text::of("esphome.screen_camera");
   request.is_event = true;
   request.data.init(data.size());
   for (const auto &pair : data) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(pair.first);
-    entry.value = esphome::StringRef(pair.second);
+    entry.key = api_text::of(pair.first);
+    entry.value = api_text::of(pair.second);
     request.data.push_back(entry);
   }
   esphome::api::global_api_server->send_homeassistant_action(request);
@@ -1314,15 +1322,15 @@ inline void play_request(const std::string &entity, uint32_t item, const std::st
 inline void history_request(const std::string &entity, uint32_t hours) {
   if (inbox.empty()) return;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef("esphome.screen_history");
+  request.service = api_text::of("esphome.screen_history");
   request.is_event = true;
   const std::string span = std::to_string(hours);
   const std::string keys[] = {"inbox", "entity", "hours", "session", "rev", "view"}, values[] = {inbox, entity, span, protocol_key(transfer.lease), layout_rev, std::to_string(++history_view_id)};
   request.data.init(6);
   for (int i = 0; i < 6; ++i) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(keys[i]);
-    entry.value = esphome::StringRef(values[i]);
+    entry.key = api_text::of(keys[i]);
+    entry.value = api_text::of(values[i]);
     request.data.push_back(entry);
   }
   esphome::api::global_api_server->send_homeassistant_action(request);
@@ -1334,10 +1342,10 @@ inline void history_request(const std::string &entity, uint32_t hours) {
 }
 inline void setting_event(const std::string &key, int value) {
   if(inbox.empty())return;
-  esphome::api::HomeassistantActionRequest request;request.service=esphome::StringRef("esphome.screen_setting");request.is_event=true;
+  esphome::api::HomeassistantActionRequest request;request.service=api_text::of("esphome.screen_setting");request.is_event=true;
   std::string number=std::to_string(value);request.data.init(3);
   const std::string keys[]={"inbox","key","value"},values[]={inbox,key,number};
-  for(int i=0;i<3;++i){esphome::api::HomeassistantServiceMap entry;entry.key=esphome::StringRef(keys[i]);entry.value=esphome::StringRef(values[i]);request.data.push_back(entry);}
+  for(int i=0;i<3;++i){esphome::api::HomeassistantServiceMap entry;entry.key=api_text::of(keys[i]);entry.value=api_text::of(values[i]);request.data.push_back(entry);}
   esphome::api::global_api_server->send_homeassistant_action(request);
 }
 } // namespace runtime_tiles

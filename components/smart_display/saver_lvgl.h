@@ -131,16 +131,16 @@ inline void saver_faces() {
 }
 inline void saver_send(const char *service, const char *key = nullptr, const char *value = nullptr) {
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(service);
+  request.service = api_text::of(service);
   request.data.init(key ? 2 : 1);
   esphome::api::HomeassistantServiceMap target;
-  target.key = esphome::StringRef("entity_id");
-  target.value = esphome::StringRef(saver_now.entity);
+  target.key = api_text::of("entity_id");
+  target.value = api_text::of(saver_now.entity);
   request.data.push_back(target);
   if (key) {
     esphome::api::HomeassistantServiceMap field;
-    field.key = esphome::StringRef(key);
-    field.value = esphome::StringRef(value);
+    field.key = api_text::of(key);
+    field.value = api_text::of(value);
     request.data.push_back(field);
   }
   esphome::api::global_api_server->send_homeassistant_action(request);

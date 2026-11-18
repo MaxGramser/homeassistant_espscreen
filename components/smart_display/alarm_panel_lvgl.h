@@ -118,12 +118,12 @@ inline void alarm_load_lock(){
 inline void alarm_refused_event(const std::string &entity,uint32_t locked){
   esphome::api::HomeassistantActionRequest request;
   // A lock's keypad has an event of its own (firmware 0.5.0+).
-  request.service=esphome::StringRef(entity.compare(0,5,"lock.")==0?"esphome.screen_lock_code_refused":"esphome.screen_alarm_code_refused");
+  request.service=api_text::of(entity.compare(0,5,"lock.")==0?"esphome.screen_lock_code_refused":"esphome.screen_alarm_code_refused");
   request.is_event=true;
   const std::string failures=std::to_string(alarm_lock.failures),seconds=std::to_string(locked);
   const std::string keys[]={"entity_id","failures","locked"},values[]={entity,failures,seconds};
   request.data.init(3);
-  for(int i=0;i<3;++i){esphome::api::HomeassistantServiceMap entry;entry.key=esphome::StringRef(keys[i]);entry.value=esphome::StringRef(values[i]);request.data.push_back(entry);}
+  for(int i=0;i<3;++i){esphome::api::HomeassistantServiceMap entry;entry.key=api_text::of(keys[i]);entry.value=api_text::of(values[i]);request.data.push_back(entry);}
   esphome::api::global_api_server->send_homeassistant_action(request);
 }
 inline void redraw_detail();

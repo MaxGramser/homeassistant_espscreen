@@ -290,19 +290,19 @@ bool action(const char *service, const std::string &entity, JsonVariantConst fie
   }
   if (!rt::fresh()) return false;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef(service);
+  request.service = api_text::of(service);
   request.data.init(encoded.data.size());
   for (const auto &pair : encoded.data) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(pair.first);
-    entry.value = esphome::StringRef(pair.second);
+    entry.key = api_text::of(pair.first);
+    entry.value = api_text::of(pair.second);
     request.data.push_back(entry);
   }
   request.data_template.init(encoded.templates.size());
   for (const auto &pair : encoded.templates) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(pair.first);
-    entry.value = esphome::StringRef(pair.second);
+    entry.key = api_text::of(pair.first);
+    entry.value = api_text::of(pair.second);
     request.data_template.push_back(entry);
   }
   // With an entity its tiles wait for the answer as for a tap; without one (the fields name their own target, or
@@ -380,7 +380,7 @@ uint32_t send(const Plugin *plugin, JsonObjectConst request) {
   serializeJson(doc, body);
   if (body.size() > 512) return 0;
   esphome::api::HomeassistantActionRequest action;
-  action.service = esphome::StringRef("esphome.screen_plugin");
+  action.service = api_text::of("esphome.screen_plugin");
   action.is_event = true;
   const std::string session = rt::protocol_key(rt::transfer.lease);
   const std::string keys[] = {"inbox", "plugin", "session", "rev", "body"};
@@ -388,8 +388,8 @@ uint32_t send(const Plugin *plugin, JsonObjectConst request) {
   action.data.init(5);
   for (int i = 0; i < 5; ++i) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(keys[i]);
-    entry.value = esphome::StringRef(values[i]);
+    entry.key = api_text::of(keys[i]);
+    entry.value = api_text::of(values[i]);
     action.data.push_back(entry);
   }
   esphome::api::global_api_server->send_homeassistant_action(action);

@@ -181,6 +181,9 @@ return, not stale output. No custom echo-cancellation algorithm has been added.
   longer compiled there, and its releases from 2026.11.0 on require ESPHome 2026.10. The pinned commit is the
   stack's own step in between, which reads the handle either way, so it builds with the app's ESPHome, with
   `min_version` and with the newest. Moving the pin past it waits for a `min_version` of 2026.10.
+  ESPHome 2026.11 renamed the speaker's `audio_dac_` to `audio_dacs_`, which the pinned commit still uses, so a board
+  with echo cancelling does not build on ESPHome 2026.11 yet; only the stack's development tag from 2026.12 on reads
+  both, and it requires ESPHome 2026.10 (docs/open-issues/esphome-2026-11-audio-stack.md).
 - Espressif **ESP-SR 2.5.5** provides the AEC algorithm. ESP-DSP retains the reviewed `^1.8.0`
   constraint; the pinned stack supplies its audio-effects dependency, an exact version for each
   chip revision (`1.3.0~1` before revision 3, `1.4.3` from revision 3 on).
