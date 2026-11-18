@@ -20,6 +20,8 @@ int main() {
     assert(f.status.y + f.status.h <= f.heading.y);
     assert(f.heading.y + f.heading.h < f.grid.y);
     assert(f.grid.y + f.grid.h < f.footer.y);
+    assert(2 * f.grid.y + f.grid.h == side);
+    assert(2 * f.grid.x + f.grid.w == side);
     assert(f.footer.h >= touch && f.footer.w >= 3 * touch);
     assert((f.grid.w - 8) / 2 >= touch && (f.grid.h - 4) / 2 >= touch);
   }

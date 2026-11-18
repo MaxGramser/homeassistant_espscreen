@@ -13,13 +13,16 @@ def home(width, height, edge, touch, line, mark, gap, row_gap):
         half = math.floor(math.sqrt(radius * radius - dy * dy)) if dy < radius else 0
         return dict(x=width // 2 - half, y=top, w=2 * half, h=max(0, bottom - top))
 
-    half = min(radius, touch * 9 // 5)
+    half = min(radius, touch * 3 // 2 + edge // 2)
     bottom = height // 2 + math.floor(math.sqrt(max(0, radius * radius - half * half)))
     footer = band(max(height // 2, bottom - touch), bottom)
     top = height // 2 - radius + touch * 2 // 5
     status = band(top, top + line)
     heading = band(top + line + row_gap, top + line + row_gap + max(line, mark))
     grid = band(heading['y'] + heading['h'] + gap, footer['y'] - gap)
+    middle = height // 2
+    half = max(0, min(middle - grid['y'], grid['y'] + grid['h'] - middle))
+    grid.update(y=middle - half, h=2 * half)
     return dict(status=status, heading=heading, grid=grid, footer=footer)
 
 

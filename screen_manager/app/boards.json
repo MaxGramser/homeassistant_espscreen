@@ -2181,15 +2181,15 @@
   "round_frame": {
    "footer": {
     "h": 74,
-    "w": 266,
-    "x": 100,
-    "y": 336
+    "w": 232,
+    "x": 117,
+    "y": 348
    },
    "grid": {
-    "h": 197,
+    "h": 198,
     "w": 384,
     "x": 41,
-    "y": 123
+    "y": 134
    },
    "heading": {
     "h": 33,
@@ -2212,7 +2212,7 @@
    "title_top": 14
   },
   "spacing": {
-   "bottom": 146,
+   "bottom": 134,
    "circle": 67,
    "gap": 8,
    "gap_y": 4,
@@ -2220,7 +2220,7 @@
    "page_bar": 74,
    "radius": 33,
    "tile_pad": 15,
-   "top": 123
+   "top": 134
   },
   "tier": "full",
   "wide_slots": false,
@@ -7129,15 +7129,15 @@
   "round_frame": {
    "footer": {
     "h": 74,
-    "w": 266,
-    "x": 100,
-    "y": 336
+    "w": 232,
+    "x": 117,
+    "y": 348
    },
    "grid": {
-    "h": 197,
+    "h": 198,
     "w": 384,
     "x": 41,
-    "y": 123
+    "y": 134
    },
    "heading": {
     "h": 33,
@@ -7160,7 +7160,7 @@
    "title_top": 14
   },
   "spacing": {
-   "bottom": 146,
+   "bottom": 134,
    "circle": 67,
    "gap": 8,
    "gap_y": 4,
@@ -7168,7 +7168,7 @@
    "page_bar": 74,
    "radius": 33,
    "tile_pad": 15,
-   "top": 123
+   "top": 134
   },
   "tier": "full",
   "wide_slots": false,
@@ -9356,15 +9356,15 @@
   "round_frame": {
    "footer": {
     "h": 74,
-    "w": 266,
-    "x": 100,
-    "y": 336
+    "w": 232,
+    "x": 117,
+    "y": 348
    },
    "grid": {
-    "h": 197,
+    "h": 198,
     "w": 384,
     "x": 41,
-    "y": 123
+    "y": 134
    },
    "heading": {
     "h": 33,
@@ -9387,7 +9387,7 @@
    "title_top": 14
   },
   "spacing": {
-   "bottom": 146,
+   "bottom": 134,
    "circle": 67,
    "gap": 8,
    "gap_y": 4,
@@ -9395,7 +9395,7 @@
    "page_bar": 74,
    "radius": 33,
    "tile_pad": 15,
-   "top": 123
+   "top": 134
   },
   "tier": "full",
   "wide_slots": false,

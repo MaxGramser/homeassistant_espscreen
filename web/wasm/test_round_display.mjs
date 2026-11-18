@@ -82,6 +82,8 @@ for (const t of overview) {
 }
 assert.equal(overview[0].x, board.round_frame.grid.x);
 assert.equal(overview[0].y, board.spacing.top);
+assert.equal(Math.min(...overview.map(t => t.y)) + Math.max(...overview.map(t => t.y + t.height)), 466,
+  'the complete control grid is vertically centered on the physical display');
 assert.ok(texts().some(t => t.startsWith('Table l')) && texts().includes('Heating'), `native labels, with native dots for long names: ${texts().join('|')}`);
 target(key('\u{F0142}'));
 const heading = objects().find(o => o.type === 'label' && o.text === 'Living room');
@@ -175,6 +177,7 @@ const full = JSON.parse(m.ccall('preview_diagnostics', 'string', [], [])).tiles;
 assert.equal(full.length, 1);
 assert.equal(full[0].width, board.round_frame.grid.w);
 assert.equal(full[0].height, board.round_frame.grid.h);
+assert.equal(2 * full[0].y + full[0].height, 466, 'the Full glance tile keeps the same vertical center');
 inside({ x1: full[0].x, y1: full[0].y, x2: full[0].x + full[0].width - 1, y2: full[0].y + full[0].height - 1 });
 // The native Dock is on LVGL's top layer. Its resting drawer and page targets fit the circular glass.
 const dots = objects().find(o => o.clickable && o.x1 > 175 && o.x2 < 290 && o.y1 === board.round_frame.footer.y);

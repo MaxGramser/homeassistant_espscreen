@@ -22,8 +22,8 @@ inline Rect workspace(int width, int height, int edge) {
 }
 inline Rect footer(int width, int height, int edge, int touch) {
   const int r = radius(width, height, edge);
-  // Three finger-sized zones, with room for the native density-scaled dots between the outer keys.
-  const int half = std::min(r, touch * 9 / 5);
+  // Three finger-sized zones and an edge-sized gap leave the centered controls their native height.
+  const int half = std::min(r, touch * 3 / 2 + edge / 2);
   const int bottom = height / 2 + static_cast<int>(std::floor(std::sqrt(std::max(0.0, double(r) * r - double(half) * half))));
   return band(width, height, edge, std::max(height / 2, bottom - touch), bottom);
 }
@@ -36,6 +36,12 @@ inline Home home(int width, int height, int edge, int touch, int line, int mark,
   f.heading = band(width, height, edge, title_y, title_y + std::max(line, mark));
   f.footer = footer(width, height, edge, touch);
   f.grid = band(width, height, edge, f.heading.y + f.heading.h + gap, f.footer.y - gap);
+  // Center the controls on the physical glass, keeping both the heading and the footer clear.
+  // Retain the safe band's width so centering does not change native card layouts horizontally.
+  const int middle = height / 2;
+  const int half = std::max(0, std::min(middle - f.grid.y, f.grid.y + f.grid.h - middle));
+  f.grid.y = middle - half;
+  f.grid.h = 2 * half;
   return f;
 }
 }  // namespace display_shape
