@@ -82,6 +82,8 @@ for (const t of overview) {
 }
 assert.equal(overview[0].x, board.round_frame.grid.x);
 assert.equal(overview[0].y, board.spacing.top);
+assert.equal(Math.max(...overview.map(t => t.x + t.width)) - Math.min(...overview.map(t => t.x)), board.round_frame.grid.w,
+  'the control grid fills the available circular chord');
 assert.equal(Math.min(...overview.map(t => t.y)) + Math.max(...overview.map(t => t.y + t.height)), 466,
   'the complete control grid is vertically centered on the physical display');
 assert.ok(texts().some(t => t.startsWith('Table l')) && texts().includes('Heating'), `native labels, with native dots for long names: ${texts().join('|')}`);

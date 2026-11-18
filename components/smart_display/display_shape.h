@@ -37,11 +37,10 @@ inline Home home(int width, int height, int edge, int touch, int line, int mark,
   f.footer = footer(width, height, edge, touch);
   f.grid = band(width, height, edge, f.heading.y + f.heading.h + gap, f.footer.y - gap);
   // Center the controls on the physical glass, keeping both the heading and the footer clear.
-  // Retain the safe band's width so centering does not change native card layouts horizontally.
+  // Use the full safe chord at the grid's final vertical position.
   const int middle = height / 2;
   const int half = std::max(0, std::min(middle - f.grid.y, f.grid.y + f.grid.h - middle));
-  f.grid.y = middle - half;
-  f.grid.h = 2 * half;
+  f.grid = band(width, height, edge, middle - half, middle + half);
   return f;
 }
 }  // namespace display_shape

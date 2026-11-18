@@ -22,6 +22,9 @@ int main() {
     assert(f.grid.y + f.grid.h < f.footer.y);
     assert(2 * f.grid.y + f.grid.h == side);
     assert(2 * f.grid.x + f.grid.w == side);
+    const int r = display_shape::radius(side, side, edge);
+    const int dy = std::max(std::abs(f.grid.y - side / 2), std::abs(f.grid.y + f.grid.h - side / 2));
+    assert((f.grid.w / 2 + 1) * (f.grid.w / 2 + 1) + dy * dy > r * r);
     assert(f.footer.h >= touch && f.footer.w >= 3 * touch);
     assert((f.grid.w - 8) / 2 >= touch && (f.grid.h - 4) / 2 >= touch);
   }

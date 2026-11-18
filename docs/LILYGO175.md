@@ -15,10 +15,10 @@ There is no separate round-screen layout format or device state. A tap uses the 
 its native card, subject to the usual availability and touch guards.
 
 The shared circular frame puts configured status items above the smaller, centered room title. Four tiles occupy the
-wide middle chord, centered vertically on the physical display at y=233. Native overlay content uses an inscribed
+full safe width at their height, centered vertically on the physical display at y=233. Native overlay content uses an inscribed
 square, while Back and page keys use wider safe chords.
 The bounds include the complete key rectangles and a 1 mm edge margin. With this density, the native 7 mm touch minimum
-is 74 pixels; a default tile is 188 × 97 pixels. A decorative badge may be smaller, since the entire tile is the
+is 74 pixels; a default tile is 194 × 97 pixels. A decorative badge may be smaller, since the entire tile is the
 touch target. Icons keep the native visible-ink centering. Long names keep native dots. A Full card shrinks its decorative badge before its text can leave the card; inline controls that do not fit remain available in the native detail card.
 
 The light card pages its existing colour, white-temperature and brightness rows when they cannot fit together. Preset keys get further native pages, keeping every configured preset reachable.
