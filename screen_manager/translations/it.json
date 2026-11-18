@@ -1987,6 +1987,7 @@
       "search_label": "Aggiungi un'entità",
       "filters": {
         "all": "Tutti",
+        "plugin": "Plugin",
         "light": "Luci",
         "climate": "Clima",
         "switch": "Interruttori",

@@ -91,6 +91,18 @@ describe("a remote in the library (firmware 0.22.0)", () => {
   });
 });
 
+describe("the plugins' tiles in the library", () => {
+  it("stand together under Plugins, right under All, and in no other kind", () => {
+    expect(FILTERS.slice(0, 2)).toEqual(["", "plugin"]);
+    const pool = [{ id: "plugin:clock.face", name: "Big clock" }, { id: "plugin:air_quality.tile", name: "Air" }, { id: "light.a", name: "Lamp" }];
+    expect(libraryMatches(pool, "plugin", "").map((e) => e.id)).toEqual(["plugin:clock.face", "plugin:air_quality.tile"]);
+    expect(kindCounts(pool, "").slice(0, 3)).toEqual([["", 3], ["plugin", 2], ["light", 1]]);
+    expect(inDomain("plugin:clock.face", "light")).toBe(false);
+    // A home without plugins shows no Plugins kind.
+    expect(kindCounts([pool[2]], "").map(([kind]) => kind)).not.toContain("plugin");
+  });
+});
+
 describe("the Call tile in the library", () => {
   const entries = [{ id: "screen.call", name: "Call", tile: true }, { id: "light.a", name: "Lamp", tile: true }] as never[];
   const base = { query: "", pages: 8, pictures: true, hidePlaced: false, counts: new Map() } as never;

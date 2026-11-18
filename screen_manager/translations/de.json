@@ -1987,6 +1987,7 @@
       "search_label": "Entität hinzufügen",
       "filters": {
         "all": "Alle",
+        "plugin": "Plugins",
         "light": "Leuchten",
         "climate": "Klima",
         "switch": "Schalter",

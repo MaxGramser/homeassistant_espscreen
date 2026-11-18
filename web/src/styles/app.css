@@ -533,6 +533,7 @@ a:hover { text-decoration: underline; }
 .lib-domains small { color: var(--muted); font-size: 11.5px; font-weight: 400; }
 .lib-domains .domain-icon { width: 18px; height: 18px; font-size: 12px; border-radius: 5px; flex: none; }
 .lib-domains .domain-icon.all { background: var(--seg); color: var(--ink-2); }
+.lib-domains .domain-icon.plugin { background: var(--accent-soft); color: var(--accent); }
 .lib-hide { position: sticky; bottom: 0; margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 8px; background: var(--surface); border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink-2); }
 .lib-hide label { cursor: pointer; line-height: 1.3; }
 .lib-list { overflow: auto; padding: 0 14px 14px; scroll-padding: 40px 0 8px; }

@@ -1987,6 +1987,7 @@
       "search_label": "Añadir una entidad",
       "filters": {
         "all": "Todo",
+        "plugin": "Plugins",
         "light": "Luces",
         "climate": "Climatización",
         "switch": "Interruptores",

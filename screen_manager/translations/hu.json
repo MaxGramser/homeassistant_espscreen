@@ -1987,6 +1987,7 @@
       "search_label": "Entitás hozzáadása",
       "filters": {
         "all": "Összes",
+        "plugin": "Bővítmények",
         "light": "Lámpák",
         "climate": "Klíma",
         "switch": "Kapcsolók",

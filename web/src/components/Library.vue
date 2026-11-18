@@ -239,7 +239,8 @@ function onResizeKey(e: KeyboardEvent) {
       <div class="lib-rail">
         <nav class="lib-domains" id="filters" :aria-label="t('editor.library.filter_label')">
           <button v-for="[value, n] in offered" :key="value" type="button" :aria-pressed="ui.filter === value ? 'true' : 'false'" @click="ui.filter = value">
-            <span v-if="value" class="domain-icon mdi" :style="{ color: domainInfo(value + '.')[2], background: domainInfo(value + '.')[3] }" aria-hidden="true">{{ glyph(entities.automaticIcon(value + ".")) }}</span>
+            <span v-if="value === 'plugin'" class="domain-icon plugin" aria-hidden="true"><Icon name="puzzle-outline" /></span>
+            <span v-else-if="value" class="domain-icon mdi" :style="{ color: domainInfo(value + '.')[2], background: domainInfo(value + '.')[3] }" aria-hidden="true">{{ glyph(entities.automaticIcon(value + ".")) }}</span>
             <span v-else class="domain-icon all" aria-hidden="true"><Icon name="view-dashboard-outline" /></span>
             <span class="dn">{{ t(`editor.library.filters.${value || "all"}`) }}</span>
             <small>{{ n }}</small>

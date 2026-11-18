@@ -1986,6 +1986,7 @@
       "search_label": "Add an entity",
       "filters": {
         "all": "All",
+        "plugin": "Plugins",
         "light": "Lights",
         "climate": "Climate",
         "switch": "Switches",

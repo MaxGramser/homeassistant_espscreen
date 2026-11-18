@@ -1987,6 +1987,7 @@
       "search_label": "Dodaj encję",
       "filters": {
         "all": "Wszystkie",
+        "plugin": "Wtyczki",
         "light": "Światła",
         "climate": "Klimat",
         "switch": "Przełączniki",

@@ -1986,6 +1986,7 @@
       "search_label": "Voeg een entiteit toe",
       "filters": {
         "all": "Alles",
+        "plugin": "Plugins",
         "light": "Lampen",
         "climate": "Klimaat",
         "switch": "Schakelaars",
