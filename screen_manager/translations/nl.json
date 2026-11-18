@@ -2524,6 +2524,17 @@
         "never": "Niet meer tonen",
         "done": "Klaar"
       },
+      "look": {
+        "title": "Hoe moet het eruitzien?",
+        "text": "Deze sensor begint als meter. Wijs naar een uiterlijk om het op de tegel te zien; later aanpassen kan bij Weergave.",
+        "ring": "Meter: ring",
+        "tape": "Meter: tape",
+        "bar": "Meter: balk",
+        "graph": "Grafiek van de afgelopen uren",
+        "standard": "Alleen de waarde",
+        "never": "Niet meer tonen",
+        "done": "Klaar"
+      },
       "text": {
         "title": "Template",
         "hint": "Schrijf tekst met Home Assistant-templates erin, zoals bij Ontwikkelhulpmiddelen › Template. Home Assistant vult hem in, en het scherm toont het resultaat en houdt het bij. Is het resultaat leeg, dan verdwijnt de tile.",

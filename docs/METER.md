@@ -17,6 +17,27 @@ setpoint, so a meter on a large card is readable across a room. Nothing else is 
 no gradients, no extra lines. The ring's icon takes its size from the card's own icon font, never from another card on
 the glass, and always a face that has the glyph: the largest that fits the circle, else the smallest that has it.
 
+## The first look
+
+A sensor that is added to a screen starts as a meter, so the meter is seen without being looked for
+(`web/src/model/sensor-look.ts`). The look follows what Home Assistant says the sensor measures:
+
+| The sensor | Starts as | Its range |
+|---|---|---|
+| A battery | Bar | 0 to 100 % |
+| A percentage (humidity, moisture, a level) | Ring | 0 to 100 % |
+| A temperature | Tape | a room's, 10 to 30 °C or 50 to 86 °F, widened in steps of 5 to hold the value now |
+| Any other number (power, CO2, light) | Bar | from 0 to a round number above the value now (840 W: 0 to 1000) |
+
+It keeps the plain value when the sensor is a counter (state class `total` or `total_increasing`, such as an energy
+meter's kWh, where a meter would only fill up), when its state is no number, and on a screen whose firmware draws no
+meter (older than 0.56.0). The same rule gives Auto layout's one-cell sensors their look (docs/AUTO_LAYOUT.md).
+
+Beside a sensor just added as a meter, a tip asks how it should look: the ring, the tape, the bar, its graph or just the
+value. A look the pointer rests on is drawn on the tile, a click keeps it, and the meter's looks keep the range it
+started with. "Don't show again" puts the tip away for good (the browser remembers it); the Display field of the
+tile's settings has every look as before. `web/tests/sensor-look.spec.ts` proves the rule and the tip.
+
 ## The range
 
 **From Home Assistant** is the default. A percentage runs from 0 to 100. Home Assistant states no range for any other

@@ -5533,6 +5533,10 @@ def create_app(manager, development=False):
                     if isinstance(value, (str, int, float)):
                         attributes[key] = value
                 attributes['artwork_mark'] = (media_extras(state.get('attributes', {})) or {}).get('pic', '')
+            # A sensor's state class (editor only, never to a screen): a counter (total, total_increasing) starts as a
+            # value, anything else that is a number as a meter (web/src/model/sensor-look.ts).
+            if eid.startswith('sensor.') and isinstance(state.get('attributes', {}).get('state_class'), str):
+                attributes['state_class'] = state['attributes']['state_class']
             if eid.startswith('automation.') and isinstance(state.get('attributes', {}).get('current'), int):
                 # How many runs go on right now: a tile set to run its actions is coloured while they do.
                 attributes['current'] = state['attributes']['current']

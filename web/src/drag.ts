@@ -9,7 +9,7 @@ import type { ObjectDirective } from "vue";
 import { entriesOf, pageOrder, sectionTile, sizeOf } from "./model/layout";
 import { blockOf, insertIntoSection, movedSection } from "./model/sections";
 import type { SectionBlock } from "./types";
-import { commitArrangement, confirmMemory, keyToCell, placeKey, startTile } from "./editor/tiles";
+import { commitArrangement, confirmMemory, keyToCell, offerLook, placeKey, startTile, tileIds } from "./editor/tiles";
 import { movePage, pagesShown } from "./editor/pages";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
@@ -366,7 +366,12 @@ function land({ drop, preview, moving, key, refused, slot, blocks }: { drop: boo
     return;
   }
   if (drop && preview && moving && layout) {
-    if (commitArrangement(preview, undefined, blocks ?? undefined)) useEntitiesStore().loadCapabilities([moving.entity]);
+    const before = tileIds();
+    if (commitArrangement(preview, undefined, blocks ?? undefined)) {
+      useEntitiesStore().loadCapabilities([moving.entity]);
+      // A tile from the library, not one moved: a sensor that came as a meter offers its other looks (LookTip).
+      if (!moving.id) offerLook(moving.entity, before);
+    }
   } else if (drop && moving && refused !== null && refused !== undefined) useUiStore().toast(t("editor.layout.no_room", { page: refused + 1 }));
 }
 // A finished drag is no click (startDrag, from boot.ts): the click the browser sends after it stops before anything sees it.

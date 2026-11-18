@@ -179,6 +179,9 @@ export const useUiStore = defineStore("ui", () => {
   // remembered in this browser: "Don't show this again" leaves the richer default and only the tip goes.
   const growTip = ref<{ tileId: string; before: string; size: string; applied: string | null } | null>(null);
   const growTips = usePreference("esp-screens.grow-tips", true, { serializer: flagSerializer });
+  // The tip beside a sensor just added as a meter (LookTip): its other looks, each drawn on the tile as the pointer rests.
+  const lookTip = ref<{ tileId: string } | null>(null);
+  const lookTips = usePreference("esp-screens.look-tips", true, { serializer: flagSerializer });
 
   // ---- The editor's clock and the top bar's fonts ----
   // The time the mockup's clocks and "last changed" lines read: the store's start ticks it (composables/useClock.ts).
@@ -208,7 +211,7 @@ export const useUiStore = defineStore("ui", () => {
     tab, menuOpen, palette, addSheet, pagesSheet, previewOpen, pageWizardOpen, autoLayoutOpen,
     narrowPhone, fullEditor, phone, setFullEditor, sideOpen,
     route, go, setMainView, chatOpen, openChat, overrideProfile, openOverride, reportScreen, openReport, iconsScreen, openIcons, eventsKind, openEvents,
-    libraryOpen, filter, search, room, hidePlaced, growTip, growTips,
+    libraryOpen, filter, search, room, hidePlaced, growTip, growTips, lookTip, lookTips,
     now, fontsVersion, start,
   };
 });

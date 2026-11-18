@@ -2975,6 +2975,17 @@
         "never": "Não mostrar novamente",
         "done": "Concluído"
       },
+      "look": {
+        "title": "Como deve ser o aspeto?",
+        "text": "Este sensor começa como medidor. Aponte para um aspeto para o ver no mosaico; pode alterá-lo depois em Apresentação.",
+        "ring": "Medidor: anel",
+        "tape": "Medidor: régua",
+        "bar": "Medidor: barra",
+        "graph": "Gráfico das últimas horas",
+        "standard": "Só o valor",
+        "never": "Não mostrar novamente",
+        "done": "Concluído"
+      },
       "text": {
         "title": "Modelo",
         "hint": "Escreva texto com modelos do Home Assistant, como em Ferramentas de programador › Modelo. O Home Assistant preenche-o, e o ecrã mostra o resultado e mantém-no atualizado. Se o resultado estiver vazio, o mosaico desaparece.",

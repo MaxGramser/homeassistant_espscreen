@@ -2975,6 +2975,17 @@
         "never": "No volver a mostrar",
         "done": "Listo"
       },
+      "look": {
+        "title": "¿Cómo debe verse?",
+        "text": "Este sensor empieza como medidor. Apunta a un aspecto para verlo en el mosaico; puedes cambiarlo después en Presentación.",
+        "ring": "Medidor: anillo",
+        "tape": "Medidor: regla",
+        "bar": "Medidor: barra",
+        "graph": "Gráfico de las últimas horas",
+        "standard": "Solo el valor",
+        "never": "No volver a mostrar",
+        "done": "Listo"
+      },
       "text": {
         "title": "Plantilla",
         "hint": "Escribe texto con plantillas de Home Assistant, como en Herramientas para desarrolladores › Plantilla. Home Assistant lo rellena, y la pantalla muestra el resultado y lo mantiene al día. Si el resultado está vacío, el mosaico desaparece.",

@@ -2975,6 +2975,17 @@
         "never": "Ne plus afficher",
         "done": "Terminé"
       },
+      "look": {
+        "title": "Quel aspect voulez-vous ?",
+        "text": "Ce capteur démarre en jauge. Pointez un aspect pour le voir sur la tuile ; modifiable plus tard sous Affichage.",
+        "ring": "Jauge : anneau",
+        "tape": "Jauge : règle",
+        "bar": "Jauge : barre",
+        "graph": "Graphique des dernières heures",
+        "standard": "Seulement la valeur",
+        "never": "Ne plus afficher",
+        "done": "Terminé"
+      },
       "text": {
         "title": "Modèle",
         "hint": "Écrivez du texte avec des modèles Home Assistant, comme dans Outils de développement › Modèle. Home Assistant le complète, et l’écran affiche le résultat et le tient à jour. Si le résultat est vide, la tuile disparaît.",

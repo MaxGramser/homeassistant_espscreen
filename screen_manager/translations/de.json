@@ -2975,6 +2975,17 @@
         "never": "Nicht mehr anzeigen",
         "done": "Fertig"
       },
+      "look": {
+        "title": "Wie soll es aussehen?",
+        "text": "Dieser Sensor beginnt als Messanzeige. Zeige auf eine Darstellung, um sie auf der Kachel zu sehen; ändern kannst du sie später unter Anzeige.",
+        "ring": "Messanzeige: Ring",
+        "tape": "Messanzeige: Skala",
+        "bar": "Messanzeige: Balken",
+        "graph": "Diagramm der letzten Stunden",
+        "standard": "Nur der Wert",
+        "never": "Nicht mehr anzeigen",
+        "done": "Fertig"
+      },
       "text": {
         "title": "Template",
         "hint": "Schreibe Text mit Home-Assistant-Templates darin, wie unter Entwicklerwerkzeuge › Template. Home Assistant füllt ihn aus, und der Bildschirm zeigt das Ergebnis und hält es aktuell. Ist das Ergebnis leer, verschwindet die Kachel.",

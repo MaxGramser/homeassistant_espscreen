@@ -2975,6 +2975,17 @@
         "never": "Ne mutasd újra",
         "done": "Kész"
       },
+      "look": {
+        "title": "Hogyan nézzen ki?",
+        "text": "Ez az érzékelő mérőként indul. Mutass egy megjelenésre, hogy lásd a csempén; később a Megjelenítés alatt módosíthatod.",
+        "ring": "Mérő: gyűrű",
+        "tape": "Mérő: skála",
+        "bar": "Mérő: sáv",
+        "graph": "Grafikon az elmúlt órákról",
+        "standard": "Csak az érték",
+        "never": "Ne mutasd újra",
+        "done": "Kész"
+      },
       "text": {
         "title": "Sablon",
         "hint": "Írj szöveget Home Assistant sablonokkal, mint a Fejlesztői eszközök › Sablon alatt. A Home Assistant kitölti, a képernyő pedig megmutatja és naprakészen tartja az eredményt. Ha az eredmény üres, a csempe eltűnik.",

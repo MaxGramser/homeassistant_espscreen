@@ -2524,6 +2524,17 @@
         "never": "Don't show again",
         "done": "Done"
       },
+      "look": {
+        "title": "How should it look?",
+        "text": "This sensor starts as a meter. Point at a look to see it on the tile; you can change it later under Display.",
+        "ring": "Meter: ring",
+        "tape": "Meter: tape",
+        "bar": "Meter: bar",
+        "graph": "Graph of the last hours",
+        "standard": "Just the value",
+        "never": "Don't show again",
+        "done": "Done"
+      },
       "text": {
         "title": "Template",
         "hint": "Write text with Home Assistant templates in it, as in Developer tools › Template. Home Assistant fills it in, and the screen shows the result and keeps it up to date. When the result is empty, the tile disappears.",

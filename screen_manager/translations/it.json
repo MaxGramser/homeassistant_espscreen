@@ -2975,6 +2975,17 @@
         "never": "Non mostrare più",
         "done": "Fatto"
       },
+      "look": {
+        "title": "Che aspetto deve avere?",
+        "text": "Questo sensore parte come indicatore. Punta su un aspetto per vederlo sul riquadro; puoi cambiarlo dopo in Visualizzazione.",
+        "ring": "Indicatore: anello",
+        "tape": "Indicatore: scala",
+        "bar": "Indicatore: barra",
+        "graph": "Grafico delle ultime ore",
+        "standard": "Solo il valore",
+        "never": "Non mostrare più",
+        "done": "Fatto"
+      },
       "text": {
         "title": "Modello",
         "hint": "Scrivi testo con modelli di Home Assistant, come in Strumenti per sviluppatori › Modello. Home Assistant lo compila, e lo schermo mostra il risultato e lo tiene aggiornato. Se il risultato è vuoto, il riquadro scompare.",

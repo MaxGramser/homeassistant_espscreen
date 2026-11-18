@@ -2975,6 +2975,17 @@
         "never": "Nie pokazuj ponownie",
         "done": "Gotowe"
       },
+      "look": {
+        "title": "Jak ma wyglądać?",
+        "text": "Ten czujnik zaczyna jako wskaźnik. Wskaż wygląd, aby zobaczyć go na kafelku; zmienisz to później w Widoku.",
+        "ring": "Wskaźnik: pierścień",
+        "tape": "Wskaźnik: skala",
+        "bar": "Wskaźnik: pasek",
+        "graph": "Wykres z ostatnich godzin",
+        "standard": "Tylko wartość",
+        "never": "Nie pokazuj ponownie",
+        "done": "Gotowe"
+      },
       "text": {
         "title": "Szablon",
         "hint": "Napisz tekst z szablonami Home Assistant, jak w Narzędzia deweloperskie › Szablon. Home Assistant go wypełnia, a ekran pokazuje wynik i na bieżąco go aktualizuje. Gdy wynik jest pusty, kafelek znika.",
