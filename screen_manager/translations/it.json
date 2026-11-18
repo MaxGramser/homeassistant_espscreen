@@ -2982,6 +2982,7 @@
         "tape": "Indicatore: scala",
         "bar": "Indicatore: barra",
         "graph": "Grafico delle ultime ore",
+        "watch": "Valore grande",
         "standard": "Solo il valore",
         "never": "Non mostrare più",
         "done": "Fatto"

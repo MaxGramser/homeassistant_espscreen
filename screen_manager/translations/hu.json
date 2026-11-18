@@ -2982,6 +2982,7 @@
         "tape": "Mérő: skála",
         "bar": "Mérő: sáv",
         "graph": "Grafikon az elmúlt órákról",
+        "watch": "Nagy érték",
         "standard": "Csak az érték",
         "never": "Ne mutasd újra",
         "done": "Kész"

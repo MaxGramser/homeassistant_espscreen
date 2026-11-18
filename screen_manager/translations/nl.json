@@ -2531,6 +2531,7 @@
         "tape": "Meter: tape",
         "bar": "Meter: balk",
         "graph": "Grafiek van de afgelopen uren",
+        "watch": "Grote waarde",
         "standard": "Alleen de waarde",
         "never": "Niet meer tonen",
         "done": "Klaar"

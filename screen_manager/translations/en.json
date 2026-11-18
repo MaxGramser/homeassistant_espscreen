@@ -2531,6 +2531,7 @@
         "tape": "Meter: tape",
         "bar": "Meter: bar",
         "graph": "Graph of the last hours",
+        "watch": "Large value",
         "standard": "Just the value",
         "never": "Don't show again",
         "done": "Done"

@@ -33,8 +33,8 @@ It keeps the plain value when the sensor is a counter (state class `total` or `t
 meter's kWh, where a meter would only fill up), when its state is no number, and on a screen whose firmware draws no
 meter (older than 0.56.0). The same rule gives Auto layout's one-cell sensors their look (docs/AUTO_LAYOUT.md).
 
-Beside a sensor just added as a meter, a tip asks how it should look: the ring, the tape, the bar, its graph or just the
-value. A look the pointer rests on is drawn on the tile, a click keeps it, and the meter's looks keep the range it
+Beside a sensor just added as a meter, a tip asks how it should look: the ring, the tape, the bar, its graph, the large
+value or just the value. A look the pointer rests on is drawn on the tile, a click keeps it, and the meter's looks keep the range it
 started with. "Don't show again" puts the tip away for good (the browser remembers it); the Display field of the
 tile's settings has every look as before. `web/tests/sensor-look.spec.ts` proves the rule and the tip.
 

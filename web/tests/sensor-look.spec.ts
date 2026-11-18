@@ -51,6 +51,8 @@ describe('the look a sensor starts with', () => {
     expect(lookOf({ display: 'meter' })).toBe('ring');
     expect(lookOf({ display: 'meter', meter: 'tape' })).toBe('tape');
     expect(lookOf(undefined)).toBe('standard');
+    expect(lookOf({ display: 'watch' })).toBe('watch');
+    expect(lookOptions('watch', [10, 30])).toEqual({ display: 'watch' });
   });
 });
 
@@ -92,7 +94,7 @@ describe('a sensor added to a screen', () => {
     vi.advanceTimersByTime(500);
     await nextTick(); await nextTick();
     const looks = () => [...document.querySelectorAll<HTMLElement>('.look-tip .grow-set')];
-    expect(looks().map((look) => look.dataset.look)).toEqual(['ring', 'tape', 'bar', 'graph', 'standard']);
+    expect(looks().map((look) => look.dataset.look)).toEqual(['ring', 'tape', 'bar', 'graph', 'watch', 'standard']);
     expect(looks()[1].getAttribute('aria-checked')).toBe('true');
     // Pointed at, the ring is drawn on the tile with the same range; a click keeps the bar.
     looks()[0].dispatchEvent(new Event('pointerenter'));
@@ -100,7 +102,7 @@ describe('a sensor added to a screen', () => {
     looks()[2].click();
     await nextTick();
     expect(added().options).toMatchObject({ display: 'meter', meter: 'bar', min: 10, max: 30 });
-    looks()[4].click();
+    looks()[5].click();
     await nextTick();
     expect(added().options?.display).toBe('standard');
     expect(added().options?.min).toBeUndefined();

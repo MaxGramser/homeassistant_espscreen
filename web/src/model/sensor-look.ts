@@ -3,15 +3,15 @@
  * percentage is a ring from 0 to 100, a battery a bar of cells, a temperature a tape over the range of a room, any other
  * number a bar over a round range around its value now. A counter (an energy meter's kWh, a total), a sensor whose state
  * is no number, and a screen without the meter (firmware older than 0.56.0) keep the plain value.
- * The looks a new sensor is offered (LookTip) are the meter's three, its graph and the plain value, each with the same
+ * The looks a new sensor is offered (LookTip) are the meter's three, its graph, the large value and the plain value, each with the same
  * range. Pure: what Home Assistant reports and what the screen's firmware draws come in. */
 import type { TileOptions } from "../types";
 import { suggestRange } from "./meter";
 
 export type SensorFacts = { state?: string | null; a?: Record<string, unknown> | null };
 export type Supports = (major: number, minor: number, patch: number) => boolean;
-export type LookKey = "ring" | "tape" | "bar" | "graph" | "standard";
-export const LOOK_KEYS: LookKey[] = ["ring", "tape", "bar", "graph", "standard"];
+export type LookKey = "ring" | "tape" | "bar" | "graph" | "watch" | "standard";
+export const LOOK_KEYS: LookKey[] = ["ring", "tape", "bar", "graph", "watch", "standard"];
 
 // What only grows: a meter of it would fill and stay full (Home Assistant's SensorStateClass).
 const COUNTERS = new Set(["total", "total_increasing"]);
@@ -52,7 +52,7 @@ export function startMeter(entity: string, facts: SensorFacts | null | undefined
 
 /** The options a look sets on the tile, the range kept across the meter's looks so moving between them loses nothing. */
 export function lookOptions(look: LookKey, range: [number, number] | null): TileOptions {
-  if (look === "graph" || look === "standard") return { display: look };
+  if (look === "graph" || look === "watch" || look === "standard") return { display: look };
   // The ring is the meter's own default, which the add-on never stores (meter.validate): the tile leaves it out.
   return { display: "meter", ...(look === "ring" ? {} : { meter: look }), ...(range ? { min: range[0], max: range[1] } : {}) };
 }
@@ -67,5 +67,5 @@ export function startLook(entity: string, facts: SensorFacts | null | undefined,
 export function lookOf(options: TileOptions | undefined): LookKey {
   const display = options?.display;
   if (display === "meter") return (["ring", "tape", "bar"].includes(String(options?.meter)) ? options!.meter : "ring") as LookKey;
-  return display === "graph" ? "graph" : "standard";
+  return display === "graph" || display === "watch" ? display : "standard";
 }

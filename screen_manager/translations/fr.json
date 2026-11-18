@@ -2982,6 +2982,7 @@
         "tape": "Jauge : règle",
         "bar": "Jauge : barre",
         "graph": "Graphique des dernières heures",
+        "watch": "Grande valeur",
         "standard": "Seulement la valeur",
         "never": "Ne plus afficher",
         "done": "Terminé"
