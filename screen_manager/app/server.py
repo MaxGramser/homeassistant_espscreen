@@ -42,6 +42,7 @@ import saver_photos
 import feedback
 import reports
 import build_server
+import build_files
 from build_queue import BuildQueue
 from firmware import Firmware
 import ha_pairing
@@ -1093,6 +1094,8 @@ class Manager:
         self.build_queue = self.firmware.builds = BuildQueue(self)
         # The build server builds go to first when it is on (build_server.py, docs/BUILDS.md "On a build server").
         self.build_server = self.firmware.server = build_server.BuildServer(self.path.parent, self.notify)
+        # What the builds leave in /data, and the clean-up the owner starts or turns on (build_files.py, docs/BUILDS.md).
+        self.build_files = build_files.BuildFiles(self.build_queue, self.path.parent, self.notify)
         # Plugins (docs/PLUGINS.md): which exist, which each screen runs, their files and their tiles' data.
         self.plugins = plugins.Plugins(self, self.path.parent, self.firmware.root)
         self.icons = screen_icons.ScreenIcons(self, self.path.parent)
@@ -5008,6 +5011,8 @@ def create_app(manager, development=False):
                 'builds': manager.builds(screens, profiles),
                 # The build server: paired or not, there or not, on or off, what it builds (build_server.py).
                 'build_server': manager.build_server.view(),
+                # What the builds left in /data, the automatic clean-up and whether the page offers one (build_files.py).
+                'build_files': manager.build_files.view(),
                 # What this app shares about plugins (plugin_likes.py): the likes' yes, counting, whether cards ask.
                 'plugin_sharing': manager.plugins.liker.view() if editor_features['plugins'] else None,
                 # The live streams of every screen together against the most the app serves (live_stream.py): the
@@ -5944,6 +5949,28 @@ def create_app(manager, development=False):
             raise build_server_refused(error) from None
     async def build_server_forget(request):
         return web.json_response(await manager.build_server.forget())
+    # ---- The build files (build_files.py, docs/BUILDS.md "Build files") ----
+    async def build_files_start(app):
+        # The sizes once when the app starts, off the loop; the first answers have none yet.
+        app['build_files_measure'] = asyncio.get_running_loop().create_task(manager.build_files.measure())
+    app.on_startup.append(build_files_start)
+    async def build_files_view(request):
+        if request.query.get('measure'):
+            await manager.build_files.measure()
+        return web.json_response(manager.build_files.view())
+    async def build_files_settings(request):
+        manager.build_files.set_auto((await request.json()).get('auto'))
+        return web.json_response(manager.build_files.view())
+    async def build_files_clean(request):
+        data = await request.json()
+        return web.json_response(await manager.build_files.clean(data.get('level') or 'folders'))
+    async def build_files_decline(request):
+        manager.build_files.decline()
+        return web.json_response(manager.build_files.view())
+    app.router.add_get('/api/build-files', build_files_view)
+    app.router.add_put('/api/build-files', build_files_settings)
+    app.router.add_post('/api/build-files/clean', build_files_clean)
+    app.router.add_post('/api/build-files/decline', build_files_decline)
     app.router.add_get('/api/build-server', build_server_view)
     app.router.add_post('/api/build-server/preview', build_server_preview)
     app.router.add_post('/api/build-server/pair', build_server_pair)

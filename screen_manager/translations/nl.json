@@ -1008,6 +1008,12 @@
         "unknown": "De buildserver kent Tessera niet meer. Koppel hem opnieuw.",
         "pending": "De buildserver heeft Tessera nog niet geaccepteerd."
       },
+      "build_files": {
+        "automatic": "Automatisch opruimen kan alleen aan of uit staan.",
+        "level": "Kies welke buildbestanden worden verwijderd.",
+        "cleaning": "De buildbestanden worden al opgeruimd.",
+        "building": "Een scherm wordt gebouwd of wacht op zijn build. Ruim de buildbestanden op zodra dat klaar is."
+      },
       "video": {
         "not_written": "Tessera video kon niet naar {folder} worden geschreven: {reason}.",
         "not_installed": "Installeer eerst Tessera video."
@@ -3072,6 +3078,32 @@
         "forget_confirm": "{name} vergeten? Schermen worden dan weer hier gebouwd. Om Tessera ook daar te verwijderen, haal je het weg uit de gekoppelde apparaten van de buildserver.",
         "forget_go": "Vergeten",
         "unavailable": "Deze Tessera kan niet met een buildserver praten."
+      },
+      "build_files": {
+        "title": "Buildbestanden",
+        "intro": "Elke firmwarebuild laat bestanden achter, zodat de volgende build van hetzelfde scherm snel gaat. Back-ups van Home Assistant laten ze weg.",
+        "measuring": "Meten…",
+        "total": "{size} in totaal",
+        "folders": "Buildmappen",
+        "folders_detail": "1 scherm | {count} schermen",
+        "cache": "Compile-cache",
+        "tools": "ESP-IDF en downloads",
+        "clean": "Buildmappen opruimen",
+        "cleaning": "Opruimen…",
+        "clean_confirm": "De buildmappen van alle schermen verwijderen? Dit maakt {size} vrij. De volgende build van elk scherm compileert alles opnieuw en duurt een paar minuten langer, op een Raspberry Pi nog langer. Indelingen, plugins en instellingen blijven zoals ze zijn.",
+        "clean_all": "Verwijder ook de compile-cache en ESP-IDF",
+        "clean_all_confirm": "Alle buildbestanden verwijderen, ook de compile-cache en ESP-IDF? Dit maakt {size} vrij. De volgende build downloadt ESP-IDF opnieuw, ongeveer 1 GB, en compileert alles van het begin, wat op een Raspberry Pi een half uur kan duren. Indelingen, plugins en instellingen blijven zoals ze zijn.",
+        "clean_go": "Opruimen",
+        "cleaned": "Opgeruimd: {size} weer vrij.",
+        "cleaned_nothing": "Opgeruimd.",
+        "busy": "Een scherm wordt gebouwd. Je kunt opruimen zodra dat klaar is.",
+        "auto_label": "Opruimen na het builden",
+        "auto_hint": "Vanaf de volgende build verwijdert het de buildmappen zodra er niets meer wordt gebouwd. Bespaart ruimte, maar elke volgende build van een scherm compileert alles opnieuw en duurt een paar minuten langer.",
+        "auto_on": "Buildmappen worden na het builden opgeruimd.",
+        "auto_off": "Buildmappen blijven staan voor snellere builds.",
+        "offer": "{size} vrijmaken",
+        "not_now": "Niet nu",
+        "large": "De buildmappen nemen {size} in beslag. Opruimen maakt het grootste deel van de ruimte vrij die de builds innemen."
       }
     },
     "firmware": {
