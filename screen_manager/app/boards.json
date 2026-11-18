@@ -1,5 +1,27 @@
 {
  "checkout/crowpanel101.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 18,
    "title_line": 22
@@ -703,6 +725,28 @@
   "width": 480
  },
  "checkout/jc1060p470.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -860,6 +904,28 @@
   "width": 1024
  },
  "checkout/jc1060p470v2.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -1153,6 +1219,28 @@
   "width": 480
  },
  "checkout/jc4880p443.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 32,
    "title_line": 40
@@ -1306,6 +1394,28 @@
   "width": 800
  },
  "checkout/jc8012p4a1.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -1459,6 +1569,28 @@
   "width": 1280
  },
  "checkout/jc8012p4a1v2.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -1612,6 +1744,28 @@
   "width": 1280
  },
  "checkout/jc8012p4a1v3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -1905,6 +2059,28 @@
   "width": 800
  },
  "checkout/reterminald1001.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 27,
    "title_line": 35
@@ -2309,6 +2485,28 @@
   "width": 800
  },
  "checkout/tab5.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 42,
    "title_line": 55
@@ -2467,6 +2665,28 @@
   "width": 1280
  },
  "checkout/waveshare101.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -2621,6 +2841,28 @@
   "width": 1280
  },
  "checkout/waveshare101v3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -3870,6 +4112,28 @@
   "width": 1024
  },
  "checkout/wavesharep4.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 36,
    "title_line": 47
@@ -4024,6 +4288,28 @@
   "width": 720
  },
  "checkout/wavesharep47.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 30,
    "title_line": 39
@@ -4178,6 +4464,28 @@
   "width": 1280
  },
  "checkout/wavesharep47b.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -4472,6 +4780,28 @@
   "width": 480
  },
  "crowpanel101": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 18,
    "title_line": 22
@@ -5175,6 +5505,28 @@
   "width": 480
  },
  "jc1060p470": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -5332,6 +5684,28 @@
   "width": 1024
  },
  "jc1060p470v2": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -5625,6 +5999,28 @@
   "width": 480
  },
  "jc4880p443": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 32,
    "title_line": 40
@@ -5778,6 +6174,28 @@
   "width": 800
  },
  "jc8012p4a1": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -5931,6 +6349,28 @@
   "width": 1280
  },
  "jc8012p4a1v2": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -6084,6 +6524,28 @@
   "width": 1280
  },
  "jc8012p4a1v3": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -6377,6 +6839,28 @@
   "width": 800
  },
  "packages/crowpanel101.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 18,
    "title_line": 22
@@ -7080,6 +7564,28 @@
   "width": 480
  },
  "packages/jc1060p470.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -7237,6 +7743,28 @@
   "width": 1024
  },
  "packages/jc1060p470v2.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -7530,6 +8058,28 @@
   "width": 480
  },
  "packages/jc4880p443.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 32,
    "title_line": 40
@@ -7683,6 +8233,28 @@
   "width": 800
  },
  "packages/jc8012p4a1.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -7836,6 +8408,28 @@
   "width": 1280
  },
  "packages/jc8012p4a1v2.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -7989,6 +8583,28 @@
   "width": 1280
  },
  "packages/jc8012p4a1v3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -8282,6 +8898,28 @@
   "width": 800
  },
  "packages/reterminald1001.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 27,
    "title_line": 35
@@ -8686,6 +9324,28 @@
   "width": 800
  },
  "packages/tab5.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 42,
    "title_line": 55
@@ -8844,6 +9504,28 @@
   "width": 1280
  },
  "packages/waveshare101.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -8998,6 +9680,28 @@
   "width": 1280
  },
  "packages/waveshare101v3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -10247,6 +10951,28 @@
   "width": 1024
  },
  "packages/wavesharep4.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 36,
    "title_line": 47
@@ -10401,6 +11127,28 @@
   "width": 720
  },
  "packages/wavesharep47.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 30,
    "title_line": 39
@@ -10555,6 +11303,28 @@
   "width": 1280
  },
  "packages/wavesharep47b.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -10849,6 +11619,28 @@
   "width": 480
  },
  "reterminald1001": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 27,
    "title_line": 35
@@ -11253,6 +12045,28 @@
   "width": 800
  },
  "tab5": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 42,
    "title_line": 55
@@ -11411,6 +12225,28 @@
   "width": 1280
  },
  "waveshare101": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -11565,6 +12401,28 @@
   "width": 1280
  },
  "waveshare101v3": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 21,
    "title_line": 28
@@ -12814,6 +13672,28 @@
   "width": 1024
  },
  "wavesharep4": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 36,
    "title_line": 47
@@ -12968,6 +13848,28 @@
   "width": 720
  },
  "wavesharep47": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 30,
    "title_line": 39
@@ -13122,6 +14024,28 @@
   "width": 1280
  },
  "wavesharep47b": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32

@@ -19,6 +19,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager' / 'app'))
 import alert_layout  # noqa: E402
@@ -159,6 +161,24 @@ def camera_of(values, side):
     return boxes
 
 
+# The fonts a screen's own icons join (screen_icons.FONTS, docs/ICONS.md).
+ICON_FONTS = ('materialdesign_icons', 'materialdesign_icons_mini', 'watch_icon')
+
+
+def added_icons(board):
+    """{font: [codepoint]} of the glyphs this board's packages add to the icon fonts with `!extend`, beyond the fixed
+    set of packages/core.yaml (a call's keys in features/audio-player.yaml). ESPHome stops at a glyph a font is given
+    twice, so a screen's own icons leave these out of that font (screen_icons.font_lines)."""
+    flow = r'(\[(?:\'[^\']*\'|"(?:[^"\\]|\\.)*"|[^\]\'"])*\])'
+    source, found = profiles.merged(f'packages/{board}.yaml'), {}
+    for font in ICON_FONTS:
+        points = {f'{ord(char):05X}' for flow_list in re.findall(r'id: !extend ' + font + r'\n\s+glyphs: ' + flow, source)
+                  for item in yaml.safe_load(flow_list) for char in item}
+        if points:
+            found[font] = sorted(points)
+    return found
+
+
 def shapes():
     """{entry file: shape} for every entry a screen's YAML can include, plus the board names themselves."""
     found = {}
@@ -263,6 +283,10 @@ def shapes():
             for side in both.values():
                 side['camera'] = camera_of(values, side)
             shape['camera'] = dict(both['landscape']['camera'])
+        # The icons its packages add to the icon fonts themselves; only on a board that has any.
+        icons = added_icons(board)
+        if icons:
+            shape['added_icons'] = icons
         found[board] = shape
     for entry, board in profiles.ENTRIES.items():
         found[entry] = found[board]

@@ -92,6 +92,49 @@ class ScreenIconsTest(unittest.TestCase):
         self.assertEqual(lines.count('\\U000'), len(EXTRA))    # a YAML alias repeats the list, not the bytes
         self.assertEqual(self.manager.written, [INBOX])
 
+    def test_a_font_leaves_out_what_the_board_already_gives_it(self):
+        """A board with sound adds a call's keys to two of the three fonts itself (features/audio-player.yaml); the same
+        glyph a second time stops ESPHome with "Found duplicate glyphs", so every build of that screen failed."""
+        loud = next(board for board, shape in core.SHAPES.items() if shape.get('own_icons') and shape.get('added_icons'))
+        self.manager.screens_list[0]['board'] = loud
+        added = core.SHAPES[loud]['added_icons']
+        table = tile_icons.mdi()
+        twice = next(name for name in sorted(table) if name not in tile_icons.GLYPHS and table[name][0].upper() in added['materialdesign_icons'])
+        self.icons.choose(INBOX, [twice, EXTRA[0]])
+        self.icons.apply(INBOX)
+        fonts = {}
+        for line in self.icons.font_lines(INBOX):
+            if 'id: !extend ' in line:
+                font = line.split('!extend ')[1]
+                fonts[font] = []
+            elif '\\U000' in line:
+                fonts[font].append(line.split('# ')[1])
+        self.assertEqual(fonts['materialdesign_icons'], [EXTRA[0]])
+        self.assertEqual(fonts['materialdesign_icons_mini'], [EXTRA[0]])
+        self.assertEqual(sorted(fonts['watch_icon']), sorted([twice, EXTRA[0]]))    # the watch's font has it from nowhere else
+
+    def test_only_icons_the_board_has_leave_a_font_out(self):
+        loud = next(board for board, shape in core.SHAPES.items() if shape.get('own_icons') and shape.get('added_icons'))
+        self.manager.screens_list[0]['board'] = loud
+        added = core.SHAPES[loud]['added_icons']
+        table = tile_icons.mdi()
+        twice = [name for name in sorted(table) if name not in tile_icons.GLYPHS and table[name][0].upper() in added['materialdesign_icons']][:2]
+        self.icons.choose(INBOX, twice)
+        self.icons.apply(INBOX)
+        lines = '\n'.join(self.icons.font_lines(INBOX))
+        self.assertNotIn('!extend materialdesign_icons\n', lines)
+        self.assertNotIn('!extend materialdesign_icons_mini', lines)
+        self.assertIn('!extend watch_icon', lines)
+
+    def test_every_glyph_a_package_adds_is_known(self):
+        """What the packages add to the icon fonts is what boards.json says, for every board that includes the file."""
+        import re
+        for path in sorted((ROOT / 'packages').rglob('*.yaml')):
+            for font, flow in re.findall(r'id: !extend (materialdesign_icons(?:_mini)?|watch_icon)\n\s+glyphs: (\[[^\n]*\])', path.read_text()):
+                points = {f'{ord(char):05X}' for item in __import__('yaml').safe_load(flow) for char in item}
+                known = set().union(*(set(shape.get('added_icons', {}).get(font, ())) for shape in core.SHAPES.values()))
+                self.assertLessEqual(points, known, (path.name, font))
+
     def test_the_fonts_exist_in_the_core(self):
         core_yaml = (ROOT / 'packages/core.yaml').read_text()
         for font in screen_icons.FONTS:
