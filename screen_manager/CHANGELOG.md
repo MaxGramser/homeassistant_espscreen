@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Echo cancelling builds with ESPHome 2026.10.** A screen with echo cancelling (the ESP32-P4 boards with a speaker and a microphone) built in ESPHome Device Builder on ESPHome 2026.10 stopped with `invalid use of non-static member function 'RingBuffer::handle_'`. The audio library these boards use is now taken at a version that builds with ESPHome 2026.10 and with the older ones the app uses. (#434)
+- **An icon of your own that a board with sound already has no longer breaks the build.** On a screen with a speaker, choosing microphone-off, account-voice, video or one of five other call icons as an extra icon made every build of that screen fail with "Found duplicate glyphs". The app now leaves such an icon out of the fonts the board already gives it. (#432)
 - **Wi-Fi secrets shared with Home Assistant are found.** When ESPHome's `secrets.yaml` takes its keys from Home Assistant's with `<<: !include ../secrets.yaml`, New screen said the Wi-Fi was not there and the file was not valid. Tessera now reads the file the way ESPHome does, so the Wi-Fi from the included file counts and nothing is written twice (GitHub #351).
 - **An Android TV remote that reports no state keeps its keys.** A remote from Home Assistant's Android TV integration (ADB, a Fire TV for example) is always "unknown" in Home Assistant, and its tile showed as unavailable, so its keypad never opened. It now stays usable, as in Home Assistant, where only "unavailable" turns a remote off (GitHub #387).
 
