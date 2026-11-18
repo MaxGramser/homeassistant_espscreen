@@ -13,6 +13,16 @@ screen sync (TimeoutError)" in the same minutes. Candidates: the app still deliv
 said hello, on the same connection to Home Assistant the call's messages need; the screen's own video server starting.
 The experiment: restart a board, call within ten seconds, and read which of the app's tasks waits.
 
+Seen a third time on 2026-11-18, after a firmware update of the Guition alone (the audio stack's pin moved, dev
+fdc61b84), with the first call made about five minutes after it had started again, so not only within seconds: the app
+counted 13.5 s of voice from the Guition in a call of 26 s and logged "Retrying screen sync (TimeoutError)". The
+Guition did not restart and kept its connection to Home Assistant, but its hang-up key seemed dead for a while; when
+it took the tap, the call's card said "Not reachable", because the app no longer held the call. The screen stayed in
+the call and asked for the call's picture every 20 s until then ("camera.tessera_call is not on the layout" in the
+app's log). The second call, minutes later, ran whole for half a minute: 7.5 to 8 pictures a second, sound that never
+ran dry, the canceller Enabled, sound heard well at both ends. New to explain: why the screen's own keys did not
+answer during the stall, and why it did not leave the call by itself when its stream went quiet.
+
 ## A sound takes about a second there and back
 
 With a computer as the far end (docs/CALLS.md, "Measuring a call from a desk"), what the computer sent came back from
