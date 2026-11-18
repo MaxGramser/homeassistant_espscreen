@@ -16,6 +16,8 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
+| [dark-mode-half-switched.md](dark-mode-half-switched.md) | Users see Dark mode switch only half since 0.4.98; not reproduced on a Guition 10.1 and 4-inch read back from the glass in every way tried; what a reporter can tell | 2026-11-18 |
+| [esphome-2026-11-audio-stack.md](esphome-2026-11-audio-stack.md) | The boards with echo cancelling do not build on ESPHome 2026.11 (the speaker's `audio_dac_` became `audio_dacs_`); the rest builds with it and its LVGL 9.6 | 2026-11-18 |
 | [calls-found-on-the-bench.md](calls-found-on-the-bench.md) | Calls on two boards: the first call after a restart can stall, a sound takes a second there and back, the canceller relearns for a minute after two boards shared a desk, the Guition's microphone is noisy, a live view aborts when internal RAM runs out, and one old-protocol message leaves a screen at "Configuration problem" | 2026-11-17 |
 | [waveshare-7-inch-rev3.md](waveshare-7-inch-rev3.md) | The Waveshare 7-inch P4 has no proven rev3 firmware: its old advice (`engineering_sample: false`) was not enough on the 10.1; what a report from a rev3 owner needs | 2026-11-16 |
 | [main-host-render-min-power.md](main-host-render-min-power.md) | main's host render does not build on ESPHome 2026.9.0 (set_min_power without power scaling); fixed on dev by df32c78b, one line for a hotfix. Solved on dev 2026-11-16 | 2026-11-16 |

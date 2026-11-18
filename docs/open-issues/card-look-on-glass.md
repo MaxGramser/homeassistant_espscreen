@@ -48,6 +48,15 @@ the pressed colour all looked right (items 1, 2, 4, 6 and 7, and item 5 without 
 knob of a switch or slider (3), a cover in a contrast section (5) and a plugin tile (8). The file stays open until those
 are seen and the look is judged by eye on the screen it was made for.
 
+### 2026-11-18: two boards, read back from the glass
+
+A Guition 10.1 (P4) and a Guition 4-inch (S3) on a test Home Assistant with the app, dev at 75ff7db3: sections in
+contrast with and without following tiles, album covers in a contrast section and in a following one (item 5), meters,
+blinds and graph tiles, Dark mode on and off from Home Assistant, from the settings page and while asleep, page turns in
+both looks (items 1, 4, 6, 7). Each time the frame buffer equalled LVGL's render (docs/open-issues/dark-mode-half-switched.md).
+The 4-inch also ran a build with ESPHome 2026.11 (LVGL 9.6) through the same changes. Still not looked at by eye: the
+knob of a switch or slider (3), the pressed colour on these boards (2) and a plugin tile (8).
+
 ## Pointers
 
 docs/THEME.md "A card's look", docs/PAGES.md "Sections", `runtime_tiles.h` (`CardScope`, `card_surface`,

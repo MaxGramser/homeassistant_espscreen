@@ -194,7 +194,8 @@ its states without a microphone.
 ## 4. One screen on the glass
 
 `diagnostics/send_layout.py` pushes the same demo layout to a screen over its API; `diagnostics/run_ui_test.py` runs
-its self test (don't touch the screen meanwhile); `diagnostics/capture_ui.py` saves what LVGL draws as a picture. A
+its self test (don't touch the screen meanwhile); `diagnostics/capture_ui.py` saves what LVGL draws as a picture (`--glass`: the panel's frame buffer, live pictures
+included; both the whole glass, docs/PICTURE_ARCHITECTURE.md). A
 new board is flashed and walked through by hand: touch in the corners, a drag, the backlight, the colour order, a page
 swipe from each edge, and the same standing up (docs/ADDING_A_BOARD.md). A resistive panel's calibration is tapped by
 a person (docs/CALIBRATING.md); a GT911 panel is checked with `tools/verify_gt911.py`.
