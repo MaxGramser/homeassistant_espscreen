@@ -152,7 +152,7 @@ export function inkOf(text: string, font: string): Ink {
   }
   return ink;
 }
-export const barFonts = (m: BarMetrics) => ({ name: `500 ${m.name}px "Bar Roboto"`, text: `400 ${m.text}px "Bar Roboto"`, icon: `${m.icon}px "Tile Icons"` });
+export const barFonts = (m: BarMetrics) => ({ name: `${m.round ? 400 : 500} ${m.name}px "Bar Roboto"`, text: `400 ${m.text}px "Bar Roboto"`, icon: `${m.icon}px "Tile Icons"` });
 // Same integer arithmetic as header_bar::gaps() in the firmware, from the digit height in pixels.
 export function barGaps(cap: number) {
   return { icon: Math.max(2, Math.floor((cap * 4 + 5) / 10)), item: Math.max(6, Math.floor((cap * 125 + 50) / 100)), name: Math.max(8, Math.floor((cap * 16 + 5) / 10)) };
@@ -185,8 +185,10 @@ export function barLayout(items: HeaderItem[], metrics: BarMetrics, nameText: st
     return part;
   });
   const shown = parts.filter((p) => p.shown);
+  const nameInk = inkOf(nameText || "H", fonts.name);
+  const mark = metrics.round ? Math.min(metrics.round.heading.h, Math.max(1, Math.round(nameInk.bottom - nameInk.top))) : metrics.mark;
   // The home key takes the name's place and the name moves behind it; the items on the right keep every pixel.
-  const key = home || back ? { mark: !back, size: metrics.mark, glyph: glyph(BACK_GLYPH), ink: inkOf(glyph(BACK_GLYPH), fonts.icon) } : null;
+  const key = home || back ? { mark: !back, size: mark, glyph: glyph(BACK_GLYPH), ink: inkOf(glyph(BACK_GLYPH), fonts.icon) } : null;
   const homeShift = key ? key.size + (metrics.round?.gap ?? metrics.inset) : 0;
   const width = Math.max(0, metrics.round?.status.w ?? metrics.width - homeShift);
   const natural = inkOf(nameText, fonts.name).advance;
@@ -195,10 +197,19 @@ export function barLayout(items: HeaderItem[], metrics: BarMetrics, nameText: st
   let first = 0;
   while (first < shown.length && total(shown.slice(first)) + gaps.name + minName > width) first++;
   const placed = shown.slice(first), dropped = new Set(shown.slice(0, first).map((p) => p.index));
-  let x = (metrics.round ? metrics.round.status.x + metrics.round.status.w - metrics.inset : metrics.width) - total(placed);
+  let x = metrics.round ? metrics.round.status.x - metrics.inset + Math.floor((metrics.round.status.w - total(placed)) / 2) : metrics.width - total(placed);
   for (const p of placed) { p.x = x; x += p.width + gaps.item; }
   const nameRoom = metrics.round ? metrics.round.heading.w - homeShift : (placed.length ? placed[0].x! - gaps.name : metrics.width) - homeShift;
-  return { metrics, fonts, cap, zero, gaps, parts, placed, dropped, nameText, natural, nameRoom, key, homeShift };
+  let titleMiddle: number | null = null;
+  if (metrics.round) {
+    const middle = metrics.round.status.y + metrics.round.status.h / 2;
+    const baseline = Math.floor(middle - (zero.top + zero.bottom) / 2);
+    const bottom = placed.reduce((edge, p) => Math.max(edge, Math.floor(middle + (p.dial || 0) / 2),
+      Math.floor(middle + (p.icon ? p.icon.ink.bottom - p.icon.ink.top : 0) / 2), p.text ? baseline + p.text.ink.bottom : 0), Math.floor(middle + cap / 2));
+    // The native header balances visible ink, including the room name's descenders, above the fixed controls.
+    titleMiddle = (bottom + metrics.round.grid.y) / 2;
+  }
+  return { metrics, fonts, cap, zero, gaps, parts, placed, dropped, nameText, natural, nameRoom, key, homeShift, nameInk, titleMiddle };
 }
 // LVGL's LV_LABEL_LONG_DOT: the longest start that fits with "..." after it.
 export function dotted(text: string, font: string, room: number) {

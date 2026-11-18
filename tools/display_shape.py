@@ -23,6 +23,8 @@ def home(width, height, edge, touch, line, mark, gap, row_gap):
     middle = height // 2
     half = max(0, min(middle - grid['y'], grid['y'] + grid['h'] - middle))
     grid = band(middle - half, middle + half)
+    heading_y = status['y'] + status['h'] + (grid['y'] - status['y'] - status['h'] - heading['h']) // 2
+    heading = band(heading_y, heading_y + heading['h'])
     return dict(status=status, heading=heading, grid=grid, footer=footer)
 
 

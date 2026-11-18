@@ -618,6 +618,10 @@ int main() {{
         for mine, (first, room, *xs) in zip(self.ts['places'], firmware):
             # The firmware places beside the home key (page_header.h: `left += shift; width -= shift`); the mockup from
             # the bar's own left edge.
+            if mine['round'] and xs:
+                # The circular status row uses the same overflow policy, centered above the title.
+                shift = xs[0] // 2 - xs[0]
+                xs = [x + shift for x in xs]
             self.assertEqual((mine['first'], mine['xs']), (first, [x + mine['shift'] for x in xs]), mine)
             if mine['round']:
                 # The room title and status use separate chords on circular glass.

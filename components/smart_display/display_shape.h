@@ -41,6 +41,9 @@ inline Home home(int width, int height, int edge, int touch, int line, int mark,
   const int middle = height / 2;
   const int half = std::max(0, std::min(middle - f.grid.y, f.grid.y + f.grid.h - middle));
   f.grid = band(width, height, edge, middle - half, middle + half);
+  // Share the space above the fixed grid evenly between the two header rows.
+  const int heading_y = f.status.y + f.status.h + (f.grid.y - f.status.y - f.status.h - f.heading.h) / 2;
+  f.heading = band(width, height, edge, heading_y, heading_y + f.heading.h);
   return f;
 }
 }  // namespace display_shape

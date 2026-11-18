@@ -13,14 +13,19 @@ const board = JSON.parse(readFileSync(new URL('../../screen_manager/app/boards.j
 const m = await createModule({ wasmBinary: readFileSync(new URL('../src/wasm/firmware_preview.wasm', import.meta.url)) });
 m._preview_shape(1);
 assert.equal(m._preview_init(466, 466, 266, 2, 2), 1);
-const receive = connection(m);
+let receive, configuration = 0x1111;
 const presets = [{ b: 20 }, { b: 40 }, { b: 60 }, { b: 80 }];
 const tiles = [...fixture.tiles, { ...both, slot: 6, o: { presets } }, { ...warm, slot: 7 }];
-receive({ op: 'begin', title: 'Living room', pages: 3, tiles: tiles.length, home: 0, ...fixture.region });
-for (let p = 0; p < 3; ++p) receive({ op: 'page', p, id: (p + 1).toString(16).padStart(16, '0'),
-  title: '', home_control: true, excluded: false, items: fixture.items });
-tiles.forEach((tile, i) => receive({ ...tile, i, op: 'tile' }));
-receive({ op: 'commit' });
+function configureHeader(items = fixture.items) {
+  const token = (++configuration).toString(16).padStart(16, '0');
+  receive = connection(m, token, token);
+  receive({ op: 'begin', title: 'Living room', pages: 3, tiles: tiles.length, home: 0, ...fixture.region });
+  for (let p = 0; p < 3; ++p) receive({ op: 'page', p, id: (p + 1).toString(16).padStart(16, '0'),
+    title: '', home_control: true, excluded: false, items });
+  tiles.forEach((tile, i) => receive({ ...tile, i, op: 'tile' }));
+  receive({ op: 'commit' });
+}
+configureHeader();
 let ms = 0;
 function tick(n = 8) { for (let i = 0; i < n; ++i) { m._preview_time(ms += 32, 1789459680, 7200); m._preview_render(); } }
 const layout = () => JSON.parse(m.ccall('preview_layout', 'string', [], []));
@@ -73,7 +78,37 @@ function actions() {
   for (let a; (a = m.ccall('preview_next_action', 'string', [], []));) out.push(JSON.parse(a));
   return out;
 }
+// Measure painted pixels, rather than label boxes: the room name includes the descender of g.
+function ink(box) {
+  const frame = m._preview_frame(), background = frame + (25 * 466 + 233) * 4;
+  const bounds = { x1: 466, y1: 466, x2: -1, y2: -1 };
+  for (let y = box.y1; y <= box.y2; ++y) for (let x = box.x1; x <= box.x2; ++x) {
+    const p = frame + (y * 466 + x) * 4;
+    if ([0, 1, 2].every(c => Math.abs(m.HEAPU8[p + c] - m.HEAPU8[background + c]) < 40)) continue;
+    bounds.x1 = Math.min(bounds.x1, x); bounds.x2 = Math.max(bounds.x2, x);
+    bounds.y1 = Math.min(bounds.y1, y); bounds.y2 = Math.max(bounds.y2, y);
+  }
+  assert.ok(bounds.x2 >= bounds.x1, 'the header leaves visible ink');
+  return bounds;
+}
+function headerGeometry() {
+  const all = objects(), heading = all.find(o => o.type === 'label' && o.text === 'Living room');
+  const title = ink(heading);
+  const mark = all.find(o => o.type === 'image' && o.y1 >= board.round_frame.heading.y && o.y2 < board.round_frame.grid.y);
+  assert.ok(mark, 'the native Home mark is present');
+  const logo = ink(mark), status = board.round_frame.status;
+  const row = ink({ x1: status.x, y1: status.y, x2: status.x + status.w - 1, y2: status.y + status.h - 1 });
+  assert.ok(Math.abs(row.x1 + row.x2 + 1 - 466) <= 2, `the complete status row is centered within one pixel: ${JSON.stringify(row)}`);
+  assert.ok(Math.abs((logo.y2 - logo.y1) - (title.y2 - title.y1)) <= 2, 'the Home mark matches the room text height');
+  assert.ok(Math.abs(logo.y1 + logo.y2 - title.y1 - title.y2) <= 2, 'the Home mark and room text share a vertical center');
+  const above = title.y1 - row.y2 - 1, below = board.round_frame.grid.y - title.y2 - 1;
+  assert.ok(Math.abs(above - below) <= 1, `equal visible header gaps: ${above}, ${below}`);
+  inside(mark);
+}
 tick(20);
+headerGeometry();
+configureHeader([{ k: 'clock' }, { k: 'analog' }]); tick(20); headerGeometry();
+configureHeader(); tick(20);
 const overview = JSON.parse(m.ccall('preview_diagnostics', 'string', [], [])).tiles;
 assert.equal(overview.length, 4);
 for (const t of overview) {
@@ -192,4 +227,4 @@ const pick = objects().find(o => o.id > drawer.id && o.clickable && o.x1 > 80 &&
   objects().some(label => label.parent === o.id && label.type === 'label' && label.text === 'Living room'));
 assert.ok(pick, 'Dock keeps a native page target'); target(pick); tap(pick); tick(20);
 assert.ok(!objects().some(o => o.id === drawer.id && o.x1 === drawer.x1 && o.y1 === drawer.y1 && o.y2 === drawer.y2));
-console.log('PASS round firmware: canonical devices, actions/hold, badge/frame geometry, four/full tiles, safe touch rectangles, light/preset paging, seven days/48 hours, physical edge swipes, Dock and light/dark');
+console.log('PASS round firmware: centered status, equal visible header gaps, aligned Home mark, canonical devices, actions/hold, badge/frame geometry, four/full tiles, safe touch rectangles, light/preset paging, seven days/48 hours, physical edge swipes, Dock and light/dark');

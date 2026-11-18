@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The bar at the top of a mockup page, drawn as the screen draws it: name left, items right.
+// The native page bar: name left and items right on a rectangle, two centered rows on a circle.
 import { computed } from "vue";
 import { t } from "../i18n";
 import { handAngles } from "../model/clock";
@@ -41,10 +41,10 @@ const capMiddle = computed(() => baseline.value + (lay.value.zero.top + lay.valu
 // The home key stands on the capitals' baseline of the name, not on the digits of the items: the screens place it
 // that way. Back's chevron sits in the middle of the same slot.
 const nameCap = computed(() => inkOf("H", lay.value.fonts.name));
-const nameBaseline = computed(() => m.value.round ? m.value.round.heading.y + (m.value.round.heading.h - nameCap.value.top - nameCap.value.bottom) / 2 : m.value.top);
+const nameBaseline = computed(() => m.value.round ? Math.floor(lay.value.titleMiddle! - (lay.value.nameInk.top + lay.value.nameInk.bottom) / 2) : m.value.top);
 const titleX = computed(() => m.value.round ? (m.value.width - Math.min(m.value.round.heading.w, lay.value.natural + lay.value.homeShift)) / 2 : 0);
-const markY = computed(() => nameBaseline.value + nameCap.value.bottom - lay.value.key!.size);
-const backY = computed(() => nameBaseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
+const markY = computed(() => m.value.round ? Math.floor(lay.value.titleMiddle! - lay.value.key!.size / 2) : nameBaseline.value + nameCap.value.bottom - lay.value.key!.size);
+const backY = computed(() => m.value.round ? lay.value.titleMiddle! - (lay.value.key!.ink.top + lay.value.key!.ink.bottom) / 2 : nameBaseline.value + nameCap.value.bottom - lay.value.key!.ink.bottom);
 const backX = computed(() => (lay.value.key!.size - (lay.value.key!.ink.right - lay.value.key!.ink.left)) / 2 - lay.value.key!.ink.left);
 const name = computed(() => dotted(lay.value.nameText, lay.value.fonts.name, Math.min(lay.value.natural, lay.value.nameRoom)));
 // The clock item's hands at the editor's one clock (model/clock.ts), as long as the screen draws them.

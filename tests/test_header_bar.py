@@ -361,7 +361,7 @@ class ParityTests(unittest.TestCase):
         # The same rule over the same room: the home key takes its width off the bar before the name is measured
         # (firmware 0.2.100+), so both sides read `width`, not the whole bar.
         self.assertIn('(width * 35) / 100', EDITOR)
-        self.assertIn('const width = Math.max(0, metrics.width - homeShift);', EDITOR)
+        self.assertIn('const width = Math.max(0, metrics.round?.status.w ?? metrics.width - homeShift);', EDITOR)
         english = json.loads((ROOT / 'screen_manager/translations/en.json').read_text(encoding='utf-8'))['screen']
         self.assertEqual(header_bar.MONTHS, tuple(english['date']['months_short']))
 

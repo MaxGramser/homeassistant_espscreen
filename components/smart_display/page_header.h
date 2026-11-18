@@ -25,8 +25,8 @@ inline display_shape::Home round_frame(int w, int h, const lv_font_t *font, cons
 
 // One item drawn the bar's way, apart from its widgets, so the screensaver clock's row (firmware 0.50.0+) is the bar's
 // own: the same words, the same ink-to-ink gaps, the same middle line.
-// Ink edges of a text from its label's left edge, and its advance (what LVGL sizes a label by).
-struct TextInk { int left = 0, right = 0, advance = 0; };
+// Ink edges from the text's baseline origin, and its advance (what LVGL sizes a label by).
+struct TextInk { int left = 0, right = 0, advance = 0, top = 0, bottom = 0; };
 inline TextInk text_ink(const lv_font_t *font, const std::string &text) {
   TextInk ink;
   bool first = true;
@@ -35,8 +35,10 @@ inline TextInk text_ink(const lv_font_t *font, const std::string &text) {
     lv_font_glyph_dsc_t g;
     if (!lv_font_get_glyph_dsc(font, &g, cp, 0)) continue;
     if (g.box_w > 0) {
-      if (first) { ink.left = ink.advance + g.ofs_x; first = false; }
+      if (first) { ink.left = ink.advance + g.ofs_x; ink.top = -g.box_h - g.ofs_y; ink.bottom = -g.ofs_y; first = false; }
       ink.right = ink.advance + g.ofs_x + g.box_w;
+      ink.top = std::min(ink.top, -g.box_h - g.ofs_y);
+      ink.bottom = std::max(ink.bottom, -g.ofs_y);
     }
     ink.advance += g.adv_w;
   }
@@ -262,26 +264,31 @@ public:
     // Geometry from the profile's own widgets: the name's margin and baseline, the clock's right margin.
     if (ui::round()) set_font(room_label, header_text_font);
     const lv_font_t *name_font = lv_obj_get_style_text_font(room_label, LV_PART_MAIN);
+    const auto name_ink = text_ink(name_font, header_name.empty() ? "H" : header_name);
     int page_w = lv_obj_get_width(page), left = lv_obj_get_x(room_label);
     const auto round = ui::round() ? round_frame(page_w, lv_obj_get_height(page), header_text_font, home_mark) : display_shape::Home{};
     // int32_t is long on the ESP32 toolchain: keep the arithmetic in int.
     int width = std::max(0, page_w + static_cast<int>(lv_obj_get_style_x(time_label, LV_PART_MAIN)) - left);
     // The name's margin from the side of the glass, as the profile placed it before the key moved it along.
     if (header_name_owner != room_label) { header_name_owner = room_label; header_name_left = left; }
-    if (ui::round()) {
-      const int mark_w = home_mark ? home_mark->header.w : ui::px(25) * 17 / 24;
-      const int title = text_ink(name_font, header_name).advance;
-      const int group = std::min(round.heading.w, title + (view.leading == Leading::none ? 0 : mark_w + ui::px(5)));
-      header_name_left = (page_w - group) / 2;
-      left = header_name_left;
-    }
-    const int header_top = ui::round() ? round.heading.y : header_name_left;
     // The key's slot: the mark's picture, or the house of the icon font. Back takes the same slot, so the title and
     // the finger's area stay where they are when a detail page swaps the key for a chevron.
     int slot_w = 0, slot_h = 0;
     lv_font_glyph_dsc_t house, cap;
     if (header_home_mark) { slot_w = home_mark->header.w; slot_h = home_mark->header.h; }
     else if (lv_font_get_glyph_dsc(header_icon_font, &house, HOME_GLYPH, 0)) { slot_w = house.box_w; slot_h = house.box_h; }
+    if (ui::round()) {
+      // Match the mark's visible height to the room text; its finger area keeps the original slot size.
+      if (header_home_mark) {
+        slot_h = std::min(round.heading.h, std::max(1, name_ink.bottom - name_ink.top));
+        slot_w = static_cast<int>(home_mark->header.w) * slot_h / home_mark->header.h;
+      }
+      const int title = header_name.empty() ? 0 : name_ink.advance;
+      const int group = std::min(round.heading.w, title + (view.leading == Leading::none ? 0 : slot_w + ui::px(5)));
+      header_name_left = (page_w - group) / 2;
+      left = header_name_left;
+    }
+    const int header_top = ui::round() ? round.heading.y : header_name_left;
     // The bar keeps one margin all round (firmware 0.14.0+): the top of the key's slot lies as far below the top of
     // the glass as the name lies from its side. Since firmware 0.15.0 the name's capitals are centred on the slot
     // (GitHub #90), so the name and the key share one middle line whatever the fonts, and the bar stays put when the
@@ -335,6 +342,27 @@ public:
       widths[count] = p.width;
       parts[count++] = p;
     }
+    auto round_placement = ui::round() ? header_bar::place(widths.data(), count, gaps, round.status.w, 0) : header_bar::Placement{};
+    int title_middle2 = 2 * header_top + slot_h;
+    if (ui::round()) {
+      int x = (round.status.w - header_bar::span(widths.data(), round_placement.first, count, gaps)) / 2;
+      int status_bottom = (middle2 + zero.box_h) / 2;
+      for (size_t k = round_placement.first; k < count; ++k) {
+        round_placement.x[k] = x; x += widths[k] + gaps.item;
+        const auto &p = parts[k];
+        if (p.dial) status_bottom = std::max(status_bottom, (middle2 + dial) / 2);
+        if (p.icon) {
+          lv_font_glyph_dsc_t ink;
+          if (lv_font_get_glyph_dsc(p.font, &ink, p.icon, 0)) status_bottom = std::max(status_bottom, (middle2 + ink.box_h) / 2);
+        }
+        if (p.text_w) status_bottom = std::max(status_bottom, item_baseline + text_ink(header_text_font, p.text).bottom);
+      }
+      // Equal visible gaps from status to room and from room to controls, including descenders.
+      title_middle2 = status_bottom + round.grid.y;
+      baseline = (title_middle2 - name_ink.top - name_ink.bottom) / 2;
+      lv_obj_set_y(room_label, text_top(name_font, baseline));
+      lv_obj_set_height(header_root, baseline + name_font->line_height);
+    }
     // The home key at the left, before the name (firmware 0.2.100+). It stands where the name starts, the name moves
     // behind it, and the items on the right keep their space: only the name gives room.
     left = header_name_left;
@@ -349,8 +377,12 @@ public:
     if (view.leading != Leading::none && slot_w && slot_h &&
         (draw_mark || (lv_font_get_glyph_dsc(leading_font, &leading, leading_glyph, 0) && leading.box_w))) {
       // The key fills its slot from the bar's top margin down; the name's capitals are centred on it.
-      const int ink_bottom = header_top + slot_h;
+      const int ink_bottom = ui::round() ? (title_middle2 + slot_h) / 2 : header_top + slot_h;
       if (draw_mark) {
+        if (ui::round()) {
+          lv_image_set_inner_align(header_home_mark, LV_IMAGE_ALIGN_STRETCH);
+          lv_obj_set_size(header_home_mark, slot_w, slot_h);
+        }
         lv_obj_set_pos(header_home_mark, left, ink_bottom - slot_h);
         mark_on = true;
       } else {
@@ -361,15 +393,16 @@ public:
         // Back replaces Home inside the same slot. Keep the title and touch
         // target fixed even though a chevron is naturally narrower than the mark.
         lv_obj_set_pos(header_home_icon, left + (slot_w - leading.box_w) / 2 - leading.ofs_x,
-                       ink_top - ((leading_font->line_height - leading_font->base_line) - leading.box_h - leading.ofs_y));
+                       ui::round() ? icon_top(leading_font, leading_glyph, title_middle2) : ink_top - ((leading_font->line_height - leading_font->base_line) - leading.box_h - leading.ofs_y));
       }
       // The finger gets the whole height of the bar and a little air either side of the key, so a tap near the
       // key is a tap on it; the key itself is only a couple of dozen pixels.
       const int pad = gaps.item / 2;
       // The band above the tiles, which the board states as the grid's own y; without it the name's line.
       const int band = tile_grid && lv_obj_get_y(tile_grid) > 0 ? lv_obj_get_y(tile_grid) : baseline + name_font->line_height;
-      lv_obj_set_pos(header_home_tap, std::max(0, left - pad), ui::round() ? round.heading.y : 0);
-      lv_obj_set_size(header_home_tap, slot_w + 2 * pad, ui::round() ? round.heading.h : band);
+      const int tap_slot = ui::round() && home_mark ? static_cast<int>(home_mark->header.w) : slot_w;
+      lv_obj_set_pos(header_home_tap, std::max(0, left - pad - (tap_slot - slot_w) / 2), ui::round() ? round.heading.y : 0);
+      lv_obj_set_size(header_home_tap, tap_slot + 2 * pad, ui::round() ? round.heading.h : band);
       // The same air on both sides of the key: the margin the board keeps from the edge of the glass stands between
       // the key and the name as well, measured ink to ink like every other gap in this bar.
       const int shift = slot_w + (ui::round() ? ui::px(5) : header_name_left);
@@ -384,7 +417,7 @@ public:
     lv_obj_set_x(room_label, home_on ? left - text_ink(name_font, header_name.c_str()).left : left);
     lv_point_t name_size;
     lv_text_get_size(&name_size, header_name.c_str(), name_font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
-    auto placement = header_bar::place(widths.data(), count, gaps, ui::round() ? round.status.w : width, ui::round() ? 0 : name_size.x);
+    auto placement = ui::round() ? round_placement : header_bar::place(widths.data(), count, gaps, width, name_size.x);
     lv_obj_set_width(room_label, std::max(1, std::min<int>(name_size.x, ui::round() ? round.heading.x + round.heading.w - left : placement.name_room)));
     lv_obj_set_height(room_label, lv_font_get_line_height(name_font));
 

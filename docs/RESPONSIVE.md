@@ -5,7 +5,13 @@ status, room, tile grid and native page bar, and an inscribed workspace for nati
 display and touch coordinates stay unchanged. `tools/display_shape.py` supplies the same frame to board metadata;
 the editor consumes it and the WASM renderer uses the firmware code. Rectangular builds discard the circular paths
 through `SCREEN_ROUND=0`. The circular control grid is centered vertically on the physical display, with its height
-bounded by the reserved heading and page bar. Its width uses the full safe chord at that height. On a circle, decorative Full-card badges yield room to their native text. Inline keys keep their touch size; steppers and media controls that do not fit stay available in the native detail card. A nightstand clock uses an existing smaller time face when its large digits cannot fit. [LILYGO175.md](LILYGO175.md) describes the first experimental round profile and its checks.
+bounded by the reserved heading and page bar. Its width uses the full safe chord at that height. The circular status
+row is centered as a group above the room title. The Home mark matches the title's visible height and vertical center;
+equal visible gaps separate status, title and controls, including the title's descenders. The editor uses the same
+placement and title font weight. The Home touch area keeps its original size when the mark is drawn smaller.
+`web/wasm/test_round_display.mjs` measures these gaps from rendered pixels with both a digital clock and a digital/analog
+pair; `tests/test_editor_parity.py` compares status overflow and placement across board shapes.
+On a circle, decorative Full-card badges yield room to their native text. Inline keys keep their touch size; steppers and media controls that do not fit stay available in the native detail card. A nightstand clock uses an existing smaller time face when its large digits cannot fit. [LILYGO175.md](LILYGO175.md) describes the first experimental round profile and its checks.
 
 Since app 0.2.94 (firmware 0.2.80) a board says what its glass is and the firmware, the add-on and the editor
 follow: the tile grid, the size of everything drawn, the cards a tap opens. The CYD and the Guition were the

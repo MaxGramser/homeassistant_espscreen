@@ -19,6 +19,7 @@ int main() {
       inside(box, side, edge);
     assert(f.status.y + f.status.h <= f.heading.y);
     assert(f.heading.y + f.heading.h < f.grid.y);
+    assert(std::abs((f.heading.y - f.status.y - f.status.h) - (f.grid.y - f.heading.y - f.heading.h)) <= 1);
     assert(f.grid.y + f.grid.h < f.footer.y);
     assert(2 * f.grid.y + f.grid.h == side);
     assert(2 * f.grid.x + f.grid.w == side);

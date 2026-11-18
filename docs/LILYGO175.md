@@ -14,7 +14,9 @@ The default grid is two columns and two rows. The existing **Full** tile size gi
 There is no separate round-screen layout format or device state. A tap uses the tile's normal action and a hold opens
 its native card, subject to the usual availability and touch guards.
 
-The shared circular frame puts configured status items above the smaller, centered room title. Four tiles occupy the
+The shared circular frame centers configured status items above the smaller room title. The Home mark and room text
+match in visible height and share a vertical center. Equal visible gaps separate the status row, room and controls.
+Four tiles occupy the
 full safe width at their height, centered vertically on the physical display at y=233. Native overlay content uses an inscribed
 square, while Back and page keys use wider safe chords.
 The bounds include the complete key rectangles and a 1 mm edge margin. With this density, the native 7 mm touch minimum
