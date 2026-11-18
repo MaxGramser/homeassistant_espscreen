@@ -31,9 +31,10 @@ struct Values {
 #include "lvgl.h"
 #include "screen_input.h"
 #include "theme.h"
+#include "detail_bar.h"
 #include <functional>
 namespace light_controls {
-struct Row { lv_obj_t *box{}, *slider{}, *value{}, *icon{}; bool dirty = false; unsigned index{}; bool off = false; int held = 0; };
+struct Row { lv_obj_t *box{}, *slider{}, *value{}, *icon{}, *caption{}; bool dirty = false; unsigned index{}; bool off = false; int held = 0; };
 inline Row rows[3];
 // The card the rows stand on: a hand's width, in the middle of the overlay that covers the glass.
 inline lv_obj_t *card = nullptr;
@@ -47,6 +48,7 @@ inline int top, spacing, row_gap, glass_h;
 // Rows a card adds under the three (a light's presets, module light_presets): counted when the rows share the room, and
 // the place and size of a row, for the card to draw its own in the same shape (place() returns where it goes).
 inline int extra = 0;
+inline int page = 0, per_page = 3;
 inline int row_x = 0, row_w = 0, row_h = 0, row_inset = 0, row_text_y = 0;
 // A row's own white card, as each of the three has one (a change of look builds the card again).
 inline lv_obj_t *row_card(lv_obj_t *parent, int x, int y, int w, int h) {
@@ -86,6 +88,12 @@ inline void preview(Row &row) {
     lv_obj_set_style_bg_color(row.slider, theme::color(row.off ? theme::TRACK : theme::AMBER_TRACK), LV_PART_MAIN);
     if (row.off) lv_label_set_text(row.value, screen_text::tr(screen_text::txt::ha_off));
     else lv_label_set_text(row.value, screen_text::percent(value).c_str());
+  }
+  if (ui::round() && row.caption) {
+    lv_point_t value_size{};
+    lv_text_get_size(&value_size, lv_label_get_text(row.value), lv_obj_get_style_text_font(row.value, LV_PART_MAIN), 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_EXPAND);
+    lv_label_set_long_mode(row.caption, LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_width(row.caption, std::max<int>(1, row_w - 2 * row_inset - lv_obj_get_style_x(row.caption, LV_PART_MAIN) - value_size.x - ui::px(3)));
   }
 }
 inline void event(lv_event_t *e) {
@@ -168,14 +176,18 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
   // The look decides the class, never the glass: a wide panel draws the same rows, only at its own density.
   const bool large = ui::large();
   top = ui::px(large ? 100 : 52);
+  if (ui::round()) top = detail_bar::bottom() + ui::px(6);
   // The three rows share the room under the title. A row wants the look's pitch, keeps at least a finger and
   // its words, and the three together never take more than what is left, so the card fits any glass it lands
   // on (a 800 x 480 panel at 217 dpi asked for 122 x 1.28 = 156 px a row and ran off the bottom). Three rows
   // are two pitches and one card: the last row needs no gap under it, which is why the gap counts once more.
   const int wanted = ui::px(large ? 122 : 60), gap = ui::px(large ? 12 : 5);
-  const int least = ui::touch_min() + lv_font_get_line_height(font) + ui::px(12);
-  const int room = height - top - ui::px(large ? 18 : 8);
+  const int least = ui::round() && extra ? ui::touch_min() + lv_font_get_line_height(font) + ui::px(18)
+                                        : ui::touch_min() + lv_font_get_line_height(font) + ui::px(12);
+  const int footer_limit = ui::round() ? display_shape::footer(overlay_card::glass_width(), overlay_card::glass_height(), ui::mm(1), ui::touch_min()).y - overlay_card::workspace().y : height;
+  const int room = footer_limit - top - ui::px(large ? 18 : 8);
   spacing = std::max(least, std::min(wanted, (room + gap) / (3 + extra)));
+  per_page = ui::round() ? std::max(1, (room + gap) / spacing) : 3 + extra;
   row_gap = gap; glass_h = height;
   int margin = ui::px(large ? 20 : 12), w = width - 2 * margin, card_h = spacing - gap;
   int inset = ui::px(large ? 18 : 10), text_y = ui::px(large ? 14 : 5), track_h = ui::px(large ? 32 : 18);
@@ -206,13 +218,14 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
       lv_obj_set_pos(icon, inset - (ui::px(large ? 2 : 1)), text_y + (text_h - icon_h) / 2);
       text_x += icon_h + (ui::px(large ? 6 : 4));
     }
-    auto *label = lv_label_create(row.box); lv_label_set_text(label, names[i]);
+    auto *label = row.caption = lv_label_create(row.box); lv_label_set_text(label, names[i]);
     lv_obj_set_pos(label, text_x, text_y);
     row.value = lv_label_create(row.box); lv_obj_align(row.value, LV_ALIGN_TOP_RIGHT, -inset, text_y);
     row.slider = lv_slider_create(row.box);
     lv_obj_remove_style_all(row.slider);
     lv_obj_remove_flag(row.slider, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_ext_click_area(row.slider, ui::px(large ? 12 : 8));
+    if (ui::round()) lv_obj_set_ext_click_area(row.slider, std::max(ui::px(8), (ui::touch_min() - track_h + 1) / 2));
     if (i < 2) {
       // The knob travels between the centres of the two round ends.
       round_end(row.box, track_x, track_y, track_h, i == 0 ? RAINBOW[0] : WARM);
@@ -273,16 +286,29 @@ inline void setup(lv_obj_t *parent, const lv_font_t *font, int width, int height
 // what it draws (overlay_card::centre).
 inline int place(const Values &v) {
   const int showing = (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1 + extra;
-  const int block = showing * spacing - row_gap;
+  const int count = ui::round() ? (showing + per_page - 1) / per_page : 1;
+  page = clamp(page, 0, count - 1);
+  const int block = std::min(showing, per_page) * spacing - row_gap;
   const int over = glass_h - top - ui::px(ui::large() ? 18 : 8) - block;
-  int y = over > ui::touch_min() ? top + over / 2 : top;
+  int y = !ui::round() && over > ui::touch_min() ? top + over / 2 : top;
+  int ordinal = 0;
   for (unsigned i = 0; i < 3; ++i) {
     auto &row = rows[i];
     const bool visible = i == 0 ? v.color : i == 1 ? v.temperature : true;
     if (!visible) { lv_obj_add_flag(row.box, LV_OBJ_FLAG_HIDDEN); continue; }
+    const bool here = !ui::round() || ordinal / per_page == page;
+    ++ordinal;
+    if (!here) { lv_obj_add_flag(row.box, LV_OBJ_FLAG_HIDDEN); continue; }
     lv_obj_remove_flag(row.box, LV_OBJ_FLAG_HIDDEN); lv_obj_set_y(row.box, y); y += spacing;
   }
   return y;
+}
+inline int pages(const Values &v) {
+  const int showing = (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1 + extra;
+  return ui::round() ? (showing + per_page - 1) / per_page : 1;
+}
+inline bool extra_visible(const Values &v) {
+  return !ui::round() || (extra > 0 && page * per_page >= (v.color ? 1 : 0) + (v.temperature ? 1 : 0) + 1);
 }
 // The light as it is now: each slider where the tile says, unless a finger holds it or has just let it go (its wish
 // is on its way and comes back through the tile). A white shade waits for the light's range; an off light shows only

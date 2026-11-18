@@ -110,7 +110,7 @@ export const useDocumentStore = defineStore("document", () => {
   // What the screen being edited looks like. The manager works it out (core.shape_of): what the screen reported itself,
   // else the board package its YAML builds from, else its board. The editor only draws it, and falls back to the smallest
   // screen there is while it has heard nothing at all (SMALLEST).
-  const screenShape = computed(() => {
+  const screenShape = computed<NonNullable<Screen["shape"]>>(() => {
     const shape = scr.currentScreen?.shape;
     if (!shape || !(shape.columns > 0 && shape.rows > 0)) return SMALLEST;
     // A draft that stands the screen up or lays it down (app 0.4.85): the canvas of that way, before the screen turned.

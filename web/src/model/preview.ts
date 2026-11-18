@@ -17,7 +17,7 @@ export function previewProfiles(boards: Record<string, BoardChoice>): PreviewPro
     .map(([orientation, shape]) => ({
       key: `${board.key}-${orientation}`, board: board.key, name: `${board.name} ${board.model}`,
       orientation: orientation as Orientation,
-      shape: { ...shape!, dpi: board.dpi, look: board.look || "standard", ...(board.fonts ? { fonts: board.fonts } : {}),
+      shape: { ...shape!, dpi: board.dpi, look: board.look || "standard", ...(board.form ? { form: board.form, round_frame: board.round_frame } : {}), ...(board.fonts ? { fonts: board.fonts } : {}),
         ...(board.spacing?.margin !== undefined ? { spacing: board.spacing } : {}), catalog: board },
     }))), customPreview];
 }
@@ -26,6 +26,7 @@ export function validPreviewShape(shape: ScreenShape): boolean {
   return [shape.width, shape.height].every(n => Number.isInteger(n) && n >= 160 && n <= 2560)
     && [shape.columns, shape.rows].every(n => Number.isInteger(n) && n >= 1 && n <= 8)
     && shape.columns * shape.rows <= 64
+    && (shape.form !== "round" || (shape.width === shape.height && renderer.forms?.includes("round")))
     && renderer.profiles.some(profile => profile.dpi === shape.dpi && profile.look === shape.look);
 }
 
@@ -35,7 +36,7 @@ export function previewShapeOf(screen: Pick<Screen, "shape">, grid?: PageGrid | 
   const shape = screen.shape;
   if (!shape?.dpi) return null;
   const found: ScreenShape = { width: shape.width, height: shape.height, columns: grid?.columns ?? shape.columns,
-    rows: grid?.rows ?? shape.rows, dpi: shape.dpi, look: shape.look || "standard" };
+    rows: grid?.rows ?? shape.rows, dpi: shape.dpi, look: shape.look || "standard", ...(shape.form ? { form: shape.form } : {}) };
   return validPreviewShape(found) ? found : null;
 }
 

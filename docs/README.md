@@ -33,6 +33,7 @@
 ## Per board
 
 - [GUITION.md](GUITION.md): the Guition 4848S040, 4 inch, 480 × 480: hardware, mounting, touch and rotation.
+- [LILYGO175.md](LILYGO175.md): experimental round T-Display-S3 AMOLED 1.75, native layout, rotation and hardware acceptance.
 - [GUITION_FACTORY_REFERENCE.md](GUITION_FACTORY_REFERENCE.md): the manufacturer's own demo on the 4848S040, as a
   reference for the panel's driving.
 - [CROWPANEL101.md](CROWPANEL101.md): the Elecrow CrowPanel Advanced, 10.1 inch, ESP32-P4.

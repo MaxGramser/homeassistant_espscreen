@@ -15,10 +15,7 @@ const SHAPES = [
   { key: 'guition', width: 480, height: 480, dpi: 170, columns: 3, rows: 3 },
   { key: 'jc8012p4a1', width: 1280, height: 800, dpi: 149, columns: 5, rows: 4 },
 ];
-const both = { entity: 'light.desk', name: 'Desk', state: 'on', slot: 0, o: {},
-  a: { brightness: 128, color_mode: 'hs', hs_color: [30, 60], color_temp_kelvin: 3000, min_color_temp_kelvin: 2000,
-       max_color_temp_kelvin: 6500, supported_color_modes: ['color_temp', 'hs'] } };
-const warm = { ...both, entity: 'light.hall', name: 'Hall', slot: 1, a: { ...both.a, supported_color_modes: ['color_temp'], color_mode: 'color_temp' } };
+import { both, warm } from './light_fixtures.mjs';
 
 for (const shape of SHAPES) {
   const m = await createModule({ wasmBinary });

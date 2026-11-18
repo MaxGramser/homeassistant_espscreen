@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { agoText, LOOK_BARS, barGaps, barLayout, barMetricsFor, clockText, dateText, dotted, itemKey } from "../src/model/topbar";
 import type { HeaderItem } from "../src/types";
+import boardShapes from "../../screen_manager/app/boards.json";
 
 describe("words for the time since a change", () => {
   const now = 1_000_000;
@@ -83,5 +84,22 @@ describe("the bar's geometry", () => {
     // A half rounds to the even neighbour, as ESPHome's substitutions round.
     expect(barMetricsFor({ ...shape, fonts: { icon_home: 12 } }).mark).toBe(8);
     expect(barMetricsFor({ width: 480, dpi: 170, look: "standard" })).toMatchObject({ name: 27, inset: 16, mark: 24 });
+  });
+  it("centers circular status items and matches the room mark to the title's visible height", () => {
+    const metrics = barMetricsFor(boardShapes.lilygo175);
+    const items: HeaderItem[] = [{ type: "clock" }, { type: "analog" }];
+    const view = (item: HeaderItem) => item.type === "analog" ? { shown: true, analog: true } : { shown: true, text: "3:04 PM" };
+    const lay = barLayout(items, metrics, "Living room", view, true);
+    const left = lay.placed[0].x! + metrics.inset;
+    const last = lay.placed.at(-1)!;
+    const right = last.x! + last.width + metrics.inset;
+    expect(Math.abs(left + right - boardShapes.lilygo175.width)).toBeLessThan(2);
+    expect(lay.fonts.name).toBe(lay.fonts.text);
+    expect(lay.key!.size).toBe(Math.round(lay.nameInk.bottom - lay.nameInk.top));
+    const middle = metrics.round!.status.y + metrics.round!.status.h / 2;
+    const bottom = Math.floor(middle + last.dial! / 2);
+    const height = lay.nameInk.bottom - lay.nameInk.top;
+    expect(lay.titleMiddle! - height / 2 - bottom).toBeCloseTo(metrics.round!.grid.y - lay.titleMiddle! - height / 2);
+    expect(metrics.round!.grid).toMatchObject({ x: 35, y: 134, w: 396, h: 198 });
   });
 });

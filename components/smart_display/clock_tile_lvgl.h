@@ -411,6 +411,14 @@ inline void render_bedside(Widgets &w,const Tile &t,int width,int height){
   const auto l=bedside_layout(width,height,pad,names);
   const lv_font_t *font=bedside_digits(),*small=small_font?small_font:w.value_font;
   const std::string time=time_text(now),ampm=am_pm(now);
+  if(ui::round() && (!l.fits || text_width(time,font)>l.digits_w)){
+    for(unsigned q=0;q<15;++q)if(w.parts[q])set_hidden(w.parts[q],true);
+    const auto text=face_text(w,now,ui::large(),width,height,false);
+    if(text.font)place_face_text(w,text,now,0,(height-text.height)/2,width,true);
+    else hide_face_text(w);
+    return;
+  }
+  if(ui::round())hide_face_text(w);
   const auto ink=theme::color(theme::BEDSIDE),muted=theme::color(theme::MUTED);
   if(l.mode==BedsideLayout::STACK){
     const size_t colon=time.find(':');

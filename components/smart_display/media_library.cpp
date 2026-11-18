@@ -63,8 +63,8 @@ bool menu_visible() { return menu_root != nullptr; }
 static Shape shape() {
   const auto m = effects_page::screen_metrics();
   Shape s;
-  s.width = overlay_card::screen_width();
-  s.height = overlay_card::screen_height();
+  s.width = overlay_card::view_width();
+  s.height = overlay_card::view_height();
   s.pad = m.pad;
   s.gap = m.gap;
   s.top = m.bar_y + m.bar + m.gap;
@@ -647,7 +647,7 @@ static void draw_menu() {
   menu_drawn = menu_key(t);
   menu_due = false;
   const auto m = effects_page::screen_metrics();
-  const int width = overlay_card::screen_width(), height = overlay_card::screen_height();
+  const int width = overlay_card::view_width(), height = overlay_card::view_height();
   // A scrim over everything that closes the menu when tapped beside it.
   menu_root = plain(lv_screen_active(), 0, 0, width, height);
   lv_obj_add_flag(menu_root, LV_OBJ_FLAG_CLICKABLE);

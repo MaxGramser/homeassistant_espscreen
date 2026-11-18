@@ -17,12 +17,12 @@ FULL_FLASH_MB = 8
 
 # name: the lowest tier that has it, the define its code is gated by, and whether the editor's firmware preview
 # (web/wasm, docs/EMULATOR_ARCHITECTURE.md) is built with it. The preview is this firmware compiled for the browser: it
-# takes every module that draws from what the add-on sends, and leaves out the ones that need a part it has none of (a
-# finger's edge swipe, live pictures, a microphone). web/wasm/build.py and generate_renderer_manifest.py read this
+# takes every module that draws from what the add-on sends, including the Dock's pointer swipes and light presets,
+# and leaves out the ones that need a part it has none of (live pictures, a microphone). web/wasm/build.py and generate_renderer_manifest.py read this
 # column; until 2026-11-15 they named three modules by hand, so the preview drew no sections while the app said it did.
 MODULES = {
     # Up from the bottom edge opens a window of every page to pick from; lite goes home as before.
-    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK", "preview": False},
+    "dock": {"min_tier": "full", "define": "SD_MOD_DOCK", "preview": True},
     # The vacuum card with its map, its rooms and its routines; lite keeps the card it had.
     "vacuum_card": {"min_tier": "full", "define": "SD_MOD_VACUUM_CARD", "preview": False},
     # A cover group's page, a card per cover, behind a key on its card; lite keeps the cover card alone.
@@ -36,7 +36,7 @@ MODULES = {
     # The template tile: a text Home Assistant renders from a template, as rows the app sends; lite is not offered it.
     "text_card": {"min_tier": "full", "define": "SD_MOD_TEXT_CARD", "preview": True},
     # A light's presets: round keys on its tile and its card that set a colour and a brightness; lite draws the slider.
-    "light_presets": {"min_tier": "full", "define": "SD_MOD_LIGHT_PRESETS", "preview": False},
+    "light_presets": {"min_tier": "full", "define": "SD_MOD_LIGHT_PRESETS", "preview": True},
     # The to-do card: a list to tick, its full screen and the keyboard that adds an item; lite has no to-do tile.
     "todo": {"min_tier": "full", "define": "SD_MOD_TODO", "preview": True},
     # A text's field: a Home Assistant text or input_text edited with the keyboard; lite shows the value only.

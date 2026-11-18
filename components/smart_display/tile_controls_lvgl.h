@@ -18,7 +18,9 @@ inline climate_tile::Metrics bar_metrics(const PanelMetrics &m,bool large){
 inline void draw_mode_bar(Widgets &w,const Tile &t,lv_obj_t *parent,lv_obj_t *&track,lv_obj_t **segments,climate_tile::Rect bar,
                           int room,const climate_tile::Metrics &cm,bool large);
 inline PanelMetrics panel_metrics(bool large) {
-  return large ? PanelMetrics{ui::px(60), ui::px(46), ui::px(14), ui::px(8), ui::px(196), ui::px(52), ui::px(140), ui::px(44), ui::px(76), ui::px(40), ui::px(22), ui::px(8), ui::px(4)} : PanelMetrics{ui::px(40), ui::px(34), ui::px(9), ui::px(4), ui::px(128), ui::px(36), ui::px(90), ui::px(30), ui::px(48), ui::px(26), ui::px(14), ui::px(6), ui::px(6)};
+  auto m=large ? PanelMetrics{ui::px(60), ui::px(46), ui::px(14), ui::px(8), ui::px(196), ui::px(52), ui::px(140), ui::px(44), ui::px(76), ui::px(40), ui::px(22), ui::px(8), ui::px(4)} : PanelMetrics{ui::px(40), ui::px(34), ui::px(9), ui::px(4), ui::px(128), ui::px(36), ui::px(90), ui::px(30), ui::px(48), ui::px(26), ui::px(14), ui::px(6), ui::px(6)};
+  if(ui::round()){m.key_h=std::max(m.key_h,ui::touch_min());m.toggle_h=std::max(m.toggle_h,ui::touch_min());m.ext=0;}
+  return m;
 }
 // The same controls at the bottom of a full-page card (firmware 0.2.62+): keys a thumb finds without looking.
 inline PanelMetrics panel_metrics_full(bool big) {
@@ -100,6 +102,7 @@ inline void range_chip(Widgets &w,const Tile &t,int x,int y,int cw,int ch,int fa
   }
   if(!face)face=lv_obj_get_style_text_font(value,LV_PART_MAIN);
   set_font(value,face);label(value,text);
+  if(ui::round() && ch<ui::touch_min()){y-=(ui::touch_min()-ch)/2;ch=ui::touch_min();}
   lv_obj_set_pos(chip,x,y);lv_obj_set_size(chip,std::max(1,cw),std::max(1,ch));
   // The number may stand taller than the chip, as the single number stands in its pill: it is not cut at the chip's edge.
   lv_obj_add_flag(chip,LV_OBJ_FLAG_OVERFLOW_VISIBLE);

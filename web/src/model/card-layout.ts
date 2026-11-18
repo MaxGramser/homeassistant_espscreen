@@ -84,9 +84,11 @@ export function cardHead(shape: Shape, look: CardLook, room: { width: number; he
   const roomy = nameStep && !large && room.width - panel >= mm(30);
   const titleSize = roomy ? look.sublabelBig : look.label, titleLine = lineOf(titleSize), valueLine = lineOf(look.sublabel);
   const gap = px(large ? 6 : 1);
-  const circle = Math.max(1, Math.min(look.circle, room.height + 2 * room.padY - 2 * px(large ? 6 : 3)));
+  const smallBadge = shape.form === "round" && room.width < mm(20);
+  let circle = Math.max(1, Math.min(look.circle, room.height + 2 * room.padY - 2 * px(large ? 6 : 3)));
+  if (smallBadge) circle = Math.min(circle, mm(5));
   const titleY = Math.max(0, Math.trunc((room.height - (titleLine + (withValue ? gap + valueLine : 0))) / 2));
-  const x = circle + px(large ? 10 : 12), width = Math.max(1, room.width - x - panel);
+  const x = circle + px(smallBadge ? 3 : large ? 10 : 12), width = Math.max(1, room.width - x - panel);
   return {
     circle: { x: 0, y: Math.trunc((room.height - circle) / 2), size: circle, icon: iconFace(look, code, circle) },
     title: { x, y: titleY, width, size: titleSize, line: titleLine, weight: roomy ? 400 : 700 },
@@ -100,9 +102,11 @@ export const sliderCorner = (height: number) => (height > 20 ? Math.trunc((heigh
 /** The controls of a card of one row (panel_metrics): keys, the -/+ pill, a slider, a switch and a run key. */
 export function panelMetrics(shape: Shape) {
   const { large, px } = uiScale(shape);
-  return large
+  const m = large
     ? { keyW: px(60), keyH: px(46), radius: px(14), gap: px(8), sliderH: px(44), toggleW: px(76), toggleH: px(40), runPad: px(22), textGap: px(8) }
     : { keyW: px(40), keyH: px(34), radius: px(9), gap: px(4), sliderH: px(30), toggleW: px(48), toggleH: px(26), runPad: px(14), textGap: px(6) };
+  if (shape.form === "round") { m.keyH = Math.max(m.keyH, touchMin(shape)); m.toggleH = Math.max(m.toggleH, touchMin(shape)); }
+  return m;
 }
 
 export type PanelKind = "toggle" | "keys" | "setpoint" | "slider" | "volume" | "run" | "mode" | "presets";
@@ -122,11 +126,11 @@ export function cardPanel(shape: Shape, kind: PanelKind, fill: number, room: { w
   }
   if (kind === "toggle") { width = m.toggleW; height = m.toggleH; }
   else if (kind === "keys") width = keys ? keys * keyW + (keys - 1) * m.gap : 0;
-  else if (kind === "setpoint") { width = fill; height = m.keyH + 2; }
+  else if (kind === "setpoint") { width = shape.form === "round" && fill < 3 * touchMin(shape) ? 0 : fill; height = m.keyH + 2; }
   else if (kind === "slider") width = fill;
   else if (kind === "volume") width = Math.max(touchMin(shape), fill - m.gap - m.keyH) + m.gap + m.keyH;
   else if (kind === "run") width = Math.max(Math.trunc((m.keyW * 3) / 2), run + 2 * m.runPad);
-  return { ...m, kind, keyW, width, height, presets, x: room.width - width, y: Math.max(0, Math.trunc((room.height - height) / 2)), taken: width ? width + m.textGap : 0,
+  return { ...m, kind, keyW, width, height, presets, x: room.width - width, y: shape.form === "round" ? Math.floor((room.height - height) / 2) : Math.max(0, Math.trunc((room.height - height) / 2)), taken: width ? width + m.textGap : 0,
     knob: m.toggleH - 8, slider: Math.max(touchMin(shape), fill - m.gap - m.keyH) };
 }
 

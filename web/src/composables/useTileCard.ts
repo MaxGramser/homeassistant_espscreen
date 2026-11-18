@@ -15,7 +15,7 @@ import { bigKeyLine, bigValue, bodyText, ownWords, favoriteLine, fillPercent, he
   roundValue, runText, sameLive, sameWords, screenText, setpointText, stateText, subLine, tallValue, type Live, type ScreenWords } from "../model/tile-text";
 import { glyph, clockText } from "../model/topbar";
 import { resolveControls } from "../model/catalogue";
-import { cardContent, cardHeight, lineOf, restContent, uiScale, watchCard, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
+import { cardContent, cardHeight, lineOf, restContent, uiScale, watchCard, touchMin, watchPadding, wideChip, widestSetpoint } from "../model/ui-scale";
 import { cardHead, cardLook, cardPanel, cardRoom, iconFace, panelMetrics, pillFace, sliderCorner, type PanelKind } from "../model/card-layout";
 import { dotted, textPx } from "../model/text-fit";
 import { tallCard, type Rect, type TallText } from "../model/tall-layout";
@@ -273,7 +273,8 @@ export function useTileCard(props: TileCardProps) {
     const r = room.value, f = face.value;
     if (!r || f.kind !== "full" || f.display !== "standard" || props.tile.options?.inline === "slider") return null;
     const s = doc.screenShape, { large, px } = uiScale(s), lk = look.value, a = current.value?.a || {};
-    const media = domain.value === "media_player" && !gone.value;
+    const compactMedia = s.form === "round" && domain.value === "media_player" && r.height < 3 * touchMin(s);
+    const media = domain.value === "media_player" && !gone.value && !compactMedia;
     if (media) {
       const cellH = px(large ? 108 : 52) - 2 * r.padY, headH0 = Math.max(1, Math.min(cellH, Math.trunc((r.height * 30) / 100)));
       const head = cardHead(s, lk, { width: r.width, height: headH0, padY: r.padY }, 0, icon.value, Boolean(texts.line), true, false);
@@ -282,12 +283,14 @@ export function useTileCard(props: TileCardProps) {
       const { top, below } = mediaTop(s, headH);
       return { kind: "media" as const, head, top, layout: mediaLayout(m, r.width, Math.max(40, r.height - top - below)) };
     }
-    if (f.controls) return null;
-    const circle = px(large ? 128 : 64), gap = px(large ? 12 : 6), nameH = lineOf(lk.headline), valueH = lineOf(lk.sublabel);
+    if (f.controls && !compactMedia) return null;
+    const nameSize = s.form === "round" ? lk.sublabelBig : lk.headline;
+    const gap = px(large ? 12 : 6), nameH = lineOf(nameSize), valueH = lineOf(lk.sublabel);
+    const circle = Math.min(px(large ? 128 : 64), s.form === "round" ? Math.max(1, r.height - gap - nameH - 2 - valueH) : Infinity);
     const top = Math.max(0, Math.trunc((r.height - (circle + gap + nameH + 2 + valueH)) / 2));
     const chosen = props.tile.options?.icon && props.tile.options.icon !== "auto";
     return { kind: "stack" as const, circle: { x: Math.max(0, Math.trunc((r.width - circle) / 2)), y: top, size: circle,
-      icon: chosen ? iconFace(lk, icon.value, circle) : Math.max(8, px(large ? 64 : 40)) }, nameY: top + circle + gap, nameH, valueY: top + circle + gap + nameH + 2, valueH };
+      icon: chosen ? iconFace(lk, icon.value, circle) : Math.max(8, px(large ? 64 : 40)) }, nameSize, nameY: top + circle + gap, nameH, valueY: top + circle + gap + nameH + 2, valueH };
   });
   const fullStyle = computed(() => {
     const r = room.value, f = full.value;
@@ -298,8 +301,8 @@ export function useTileCard(props: TileCardProps) {
       "--track": role("TRACK"), "--key": role("KEY"), "--muted": role("MUTED"), "--subtle": role("SUBTLE"), "--media-accent": role("ACCENT"), "--media-blue": hex(theme.ha.LIGHT_BLUE) };
     if (f.kind === "stack") return { kind: f.kind, box: frame,
       circle: { ...box({ x: f.circle.x, y: f.circle.y, w: f.circle.size, h: f.circle.size }), fontSize: glassPx(f.circle.icon) },
-      title: { left: "0", width: "100%", top: glassPx(f.nameY), fontSize: glassPx(lk.headline), lineHeight: glassPx(f.nameH), fontWeight: "500", textAlign: "center" as const },
-      name: dotted(texts.name, lk.headline, 500, r.width), line: texts.line,
+      title: { left: "0", width: "100%", top: glassPx(f.nameY), fontSize: glassPx(f.nameSize), lineHeight: glassPx(f.nameH), fontWeight: "500", textAlign: "center" as const },
+      name: dotted(texts.name, f.nameSize, 500, r.width), line: texts.line,
       value: { left: "0", width: "100%", top: glassPx(f.valueY), fontSize: glassPx(lk.sublabel), lineHeight: glassPx(f.valueH), textAlign: "center" as const } };
     const h = f.head, l = f.layout, a = current.value?.a || {}, state = current.value?.state || "";
     const track = ["playing", "paused", "buffering"].includes(state);

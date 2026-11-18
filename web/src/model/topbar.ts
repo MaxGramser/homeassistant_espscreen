@@ -4,7 +4,7 @@
 // height of the digits; the gaps measured between what you see (glyph ink), not between boxes, so
 // an icon with side bearings sits exactly as close to its value as one without.
 import { t } from "../i18n";
-import type { HeaderItem } from "../types";
+import type { HeaderItem, RoundFrame } from "../types";
 
 // The words are the screens' own (app 0.2.90): screen.date and screen.time of the translations, in the language the
 // screens have, which `locale` names; English where none is given.
@@ -98,7 +98,7 @@ export function agoText(then: number, now = Math.floor(Date.now() / 1000), local
 // `inset` is the margin the board keeps from the edge of the glass: the bar starts there, and the home key keeps
 // the same distance to the page title (firmware 0.2.100+). `mark` is the home key's side, the Tessera mark
 // (firmware 0.10.0+): 17 of the 24 units of FONT_ICON_HOME_SIZE, the house that stood there before.
-export type BarMetrics = { width: number; top: number; name: number; text: number; icon: number; inset: number; mark: number };
+export type BarMetrics = { width: number; top: number; name: number; text: number; icon: number; inset: number; mark: number; round?: RoundFrame & { gap: number } };
 // The bar of each look at the look's own density, across the canvas it was drawn on (480 and 320 wide): the fonts of
 // the page title, the values and the icons (FONT_HEADLINE_SIZE, FONT_SUBLABEL_BIG_SIZE, FONT_ICON_MINI_SIZE) and the
 // margin from the glass (HEADER_INSET) of packages/looks/, which tests/test_header_bar.py keeps equal. `top` is where
@@ -108,7 +108,7 @@ export const LOOK_BARS: Record<Look, BarMetrics & { dpi: number }> = {
   standard: { width: 448, top: 36, name: 27, text: 21, icon: 26, inset: 16, mark: 24, dpi: 170 },
   compact: { width: 302, top: 24, name: 18, text: 14, icon: 18, inset: 9, mark: 18, dpi: 143 },
 };
-export type ShapeLike = { width: number; look?: string; dpi?: number; fonts?: { headline?: number; sublabel_big?: number; icon_mini?: number; icon_home?: number };
+export type ShapeLike = { width: number; form?: string; round_frame?: RoundFrame; look?: string; dpi?: number; fonts?: { headline?: number; sublabel_big?: number; icon_mini?: number; icon_home?: number };
   spacing?: { margin: number } };
 // Python's round(), which ESPHome's substitutions round with: a half goes to the even neighbour.
 const roundHalfEven = (x: number) => { const f = Math.floor(x), d = x - f; return d > 0.5 || (d === 0.5 && f % 2 !== 0) ? f + 1 : f; };
@@ -123,8 +123,8 @@ export function barMetricsFor(shape: ShapeLike): BarMetrics {
   const f = (shape.dpi && shape.dpi > 0 ? shape.dpi : base.dpi) / base.dpi;
   const px = (n: number) => Math.round(n * f), fonts = shape.fonts ?? {};
   const inset = shape.spacing?.margin ?? Math.min(px(base.inset), base.inset);
-  return { width: shape.width - 2 * inset, top: px(base.top), name: fonts.headline ?? px(base.name), text: fonts.sublabel_big ?? px(base.text),
-           icon: fonts.icon_mini ?? px(base.icon), inset, mark: fonts.icon_home ? roundHalfEven((fonts.icon_home * 17) / 24) : px(base.mark) };
+  return { width: shape.width - 2 * inset, top: px(base.top), name: shape.form === "round" ? fonts.sublabel_big ?? px(base.text) : fonts.headline ?? px(base.name), text: fonts.sublabel_big ?? px(base.text),
+           icon: fonts.icon_mini ?? px(base.icon), inset, mark: fonts.icon_home ? roundHalfEven((fonts.icon_home * 17) / 24) : px(base.mark), ...(shape.form === "round" && shape.round_frame ? { round: { ...shape.round_frame, gap: Math.round(5 * Math.round((Math.round(shape.dpi || base.dpi) * 100 + Math.floor(base.dpi / 2)) / base.dpi) / 100) } } : {}) };
 }
 export type ItemView = { icon?: string | null; text?: string; color?: string | null; shown: boolean; analog?: boolean; loading?: boolean };
 type Ink = { left: number; right: number; top: number; bottom: number; advance: number };
@@ -152,7 +152,7 @@ export function inkOf(text: string, font: string): Ink {
   }
   return ink;
 }
-export const barFonts = (m: BarMetrics) => ({ name: `500 ${m.name}px "Bar Roboto"`, text: `400 ${m.text}px "Bar Roboto"`, icon: `${m.icon}px "Tile Icons"` });
+export const barFonts = (m: BarMetrics) => ({ name: `${m.round ? 400 : 500} ${m.name}px "Bar Roboto"`, text: `400 ${m.text}px "Bar Roboto"`, icon: `${m.icon}px "Tile Icons"` });
 // Same integer arithmetic as header_bar::gaps() in the firmware, from the digit height in pixels.
 export function barGaps(cap: number) {
   return { icon: Math.max(2, Math.floor((cap * 4 + 5) / 10)), item: Math.max(6, Math.floor((cap * 125 + 50) / 100)), name: Math.max(8, Math.floor((cap * 16 + 5) / 10)) };
@@ -185,20 +185,31 @@ export function barLayout(items: HeaderItem[], metrics: BarMetrics, nameText: st
     return part;
   });
   const shown = parts.filter((p) => p.shown);
+  const nameInk = inkOf(nameText || "H", fonts.name);
+  const mark = metrics.round ? Math.min(metrics.round.heading.h, Math.max(1, Math.round(nameInk.bottom - nameInk.top))) : metrics.mark;
   // The home key takes the name's place and the name moves behind it; the items on the right keep every pixel.
-  const key = home || back ? { mark: !back, size: metrics.mark, glyph: glyph(BACK_GLYPH), ink: inkOf(glyph(BACK_GLYPH), fonts.icon) } : null;
-  const homeShift = key ? key.size + metrics.inset : 0;
-  const width = Math.max(0, metrics.width - homeShift);
+  const key = home || back ? { mark: !back, size: mark, glyph: glyph(BACK_GLYPH), ink: inkOf(glyph(BACK_GLYPH), fonts.icon) } : null;
+  const homeShift = key ? key.size + (metrics.round?.gap ?? metrics.inset) : 0;
+  const width = Math.max(0, metrics.round?.status.w ?? metrics.width - homeShift);
   const natural = inkOf(nameText, fonts.name).advance;
-  const minName = Math.min(natural, Math.floor((width * 35) / 100));
+  const minName = metrics.round ? 0 : Math.min(natural, Math.floor((width * 35) / 100));
   const total = (list: BarPart[]) => list.reduce((sum, p) => sum + p.width, 0) + Math.max(0, list.length - 1) * gaps.item;
   let first = 0;
   while (first < shown.length && total(shown.slice(first)) + gaps.name + minName > width) first++;
   const placed = shown.slice(first), dropped = new Set(shown.slice(0, first).map((p) => p.index));
-  let x = metrics.width - total(placed);
+  let x = metrics.round ? metrics.round.status.x - metrics.inset + Math.floor((metrics.round.status.w - total(placed)) / 2) : metrics.width - total(placed);
   for (const p of placed) { p.x = x; x += p.width + gaps.item; }
-  const nameRoom = (placed.length ? placed[0].x! - gaps.name : metrics.width) - homeShift;
-  return { metrics, fonts, cap, zero, gaps, parts, placed, dropped, nameText, natural, nameRoom, key, homeShift };
+  const nameRoom = metrics.round ? metrics.round.heading.w - homeShift : (placed.length ? placed[0].x! - gaps.name : metrics.width) - homeShift;
+  let titleMiddle: number | null = null;
+  if (metrics.round) {
+    const middle = metrics.round.status.y + metrics.round.status.h / 2;
+    const baseline = Math.floor(middle - (zero.top + zero.bottom) / 2);
+    const bottom = placed.reduce((edge, p) => Math.max(edge, Math.floor(middle + (p.dial || 0) / 2),
+      Math.floor(middle + (p.icon ? p.icon.ink.bottom - p.icon.ink.top : 0) / 2), p.text ? baseline + p.text.ink.bottom : 0), Math.floor(middle + cap / 2));
+    // The native header balances visible ink, including the room name's descenders, above the fixed controls.
+    titleMiddle = (bottom + metrics.round.grid.y) / 2;
+  }
+  return { metrics, fonts, cap, zero, gaps, parts, placed, dropped, nameText, natural, nameRoom, key, homeShift, nameInk, titleMiddle };
 }
 // LVGL's LV_LABEL_LONG_DOT: the longest start that fits with "..." after it.
 export function dotted(text: string, font: string, room: number) {

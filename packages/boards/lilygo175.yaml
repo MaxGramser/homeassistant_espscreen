@@ -1,0 +1,31 @@
+# LILYGO T-Display-S3 AMOLED 1.75, H0175Y003AM (CO5300 / CST9217).
+# Pins and the six-column controller offset follow the manufacturer's GFX_CST9217_Image example:
+# https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED-1.43-1.75
+# Experimental: configuration/build and native UI checks do not establish physical touch, power or panel acceptance.
+packages:
+  hardware: !include ../hardware/lilygo175.yaml
+  look: !include ../looks/compact.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+
+substitutions:
+  BOARD_ID: "lilygo175"
+  DEVICE_NAME: "lilygo175-new"
+  DEVICE_FRIENDLY_NAME: "My LILYGO"
+  PANEL_W: "466"
+  PANEL_H: "466"
+  # A circular screen's 1.75 inches are its diameter, not the diagonal of the square pixel canvas.
+  DISPLAY_DPI: "266"
+  DISPLAY_SHAPE: "round"
+  GRID_COLS: "2"
+  GRID_ROWS: "2"
+  # Keep the native touch targets on this 44.45 mm glass; full/wide tiles still use the usual size option.
+  GRID_MAX_ROWS: "2"
+  SCREEN_MAX_TILES: "128"
+  SCREEN_MAX_PAGES: "24"
+  SCREEN_MAX_BAR_ITEMS: "12"
+  LVGL_BUFFER_SIZE: "12%"
+  TOUCH_CONTROLLER: "CST9217"

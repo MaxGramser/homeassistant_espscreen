@@ -84,6 +84,7 @@ content = "// Generated. Do not edit; regenerate with web/wasm/build.sh.\n" + f'
 metadata = root / 'web/src/wasm/renderer.json'
 metadata_content = json.dumps({
     'firmware': profiles.board_values('guition')['SCREEN_FIRMWARE_VERSION'].strip('"'),
+    'forms': ['rectangle', 'round'],
     'profiles': [{'dpi': dpi, 'look': look} for dpi, look, _ in variants()],
 }, indent=2) + '\n'
 if '--check' in sys.argv:

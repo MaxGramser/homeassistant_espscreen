@@ -245,7 +245,7 @@ def boards():
                 # A board without pictures draws its cards without a cover's place (firmware 0.46.0), so it is a shape of
                 # its own even on the glass of a board with them.
                 pictures = bool(shape.get('camera'))
-                shape_key = (o['width'], o['height'], columns, rows, shape['dpi'], pictures)
+                shape_key = (o['width'], o['height'], columns, rows, shape['dpi'], pictures, shape.get('form'))
                 finest = (columns, rows) != (o['columns'], o['rows'])
                 if shape_key in seen:
                     # Another board's own grid is held to every rule.
@@ -254,7 +254,7 @@ def boards():
                 name = (f'{key}-{side}' if not finest else
                         f'{key}-{side}-{rows}rows' if columns == o['columns'] else f'{key}-{side}-{columns}x{rows}')
                 seen[shape_key] = {'key': name, 'width': o['width'], 'height': o['height'], 'columns': columns,
-                                   'rows': rows, 'dpi': shape['dpi'], 'pictures': pictures, 'finest': finest}
+                                   'rows': rows, 'dpi': shape['dpi'], 'pictures': pictures, 'form': shape.get('form'), 'finest': finest}
                 found.append(seen[shape_key])
     return found
 

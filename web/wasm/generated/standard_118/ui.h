@@ -246,6 +246,9 @@ runtime_tiles::brand_mark = tessera_mark;
 runtime_tiles::mini_icon_font = materialdesign_icons_mini;
 detail_bar::icon_font = materialdesign_icons_mini;
 detail_bar::title_font = headline;
+page_bar::icon_font = materialdesign_icons_mini;
+page_bar::words_font = sublabel_big;
+detail_bar::compact_title_font = sublabel_big;
 runtime_tiles::big_icon_font = materialdesign_icons_big;
 runtime_tiles::control_font = sublabel_big;
 runtime_tiles::small_font = sublabel;
@@ -274,4 +277,5 @@ settings_screen::attach_hold(lv_screen_active(), 22, 0,
 lv_obj_remove_flag(lv_screen_active(), LV_OBJ_FLAG_CLICKABLE);
 lv_obj_remove_flag(tile_scroll, LV_OBJ_FLAG_CLICKABLE);
 runtime_tiles::grid_bind(tile_scroll, 11, 33);
+runtime_tiles::page_dots_open(page_number);
 }

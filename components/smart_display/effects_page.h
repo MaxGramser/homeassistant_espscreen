@@ -219,7 +219,7 @@ inline int picker_row = -1;
 inline uint32_t clock() { return now ? now() : lv_tick_get(); }
 // The page's sizes from the screen (a page just made has no width of its own until LVGL lays it out).
 inline Metrics screen_metrics() {
-  return metrics(overlay_card::content_width(), overlay_card::screen_height());
+  return metrics(overlay_card::content_width(), overlay_card::view_height());
 }
 inline bool visible() { return root != nullptr; }
 inline bool steady() { return !drift || tap_limit <= 0 || drift() <= tap_limit; }

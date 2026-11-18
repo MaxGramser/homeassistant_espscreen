@@ -36,6 +36,7 @@ inline int bottom() { const auto m = metrics(); return m.y + m.key; }
 
 // The round keys' glyphs and the name, set once by the core (packages/core.yaml).
 inline const lv_font_t *icon_font = nullptr, *title_font = nullptr;
+inline const lv_font_t *compact_title_font = nullptr;
 constexpr const char *BACK = "\U000F004D";  // mdi:arrow-left
 
 struct Rect { int x, y, w, h; };
@@ -45,16 +46,32 @@ using overlay_card::glass_left;
 // The back key's place, and the `i`-th key's from the right (0 at the edge), in `parent`'s coordinates.
 inline Rect back_slot(const lv_obj_t *parent) {
   const auto m = metrics();
+  if (ui::round()) {
+    const int y = overlay_card::workspace().y + m.y;
+    const auto b = display_shape::band(overlay_card::glass_width(), overlay_card::glass_height(), ui::mm(1), y, y + m.key);
+    return {overlay_card::physical_left(parent) + b.x + m.gap, overlay_card::physical_top(parent) + y, m.key, m.key};
+  }
   return {glass_left(parent) + m.x, m.y, m.key, m.key};
 }
 inline Rect right_slot(const lv_obj_t *parent, int i = 0) {
   const auto m = metrics();
+  if (ui::round()) {
+    const int y = overlay_card::workspace().y + m.y;
+    const auto b = display_shape::band(overlay_card::glass_width(), overlay_card::glass_height(), ui::mm(1), y, y + m.key);
+    return {overlay_card::physical_left(parent) + b.x + b.w - m.gap - m.key - i * (m.key + m.gap),
+            overlay_card::physical_top(parent) + y, m.key, m.key};
+  }
   return {glass_left(parent) + overlay_card::screen_width() - m.x - m.key - i * (m.key + m.gap), m.y, m.key, m.key};
 }
 // The room for the name, or for what a card shows there instead (the media card's speaker): between the back key and
 // `right` keys at the right, and as much at the left as at the right, so its middle is the glass's middle.
 inline Rect middle(const lv_obj_t *parent, int right = 1) {
   const auto m = metrics();
+  if (ui::round()) {
+    const auto left = back_slot(parent), edge = right_slot(parent, std::max(1, right) - 1);
+    const int side = left.x + left.w + m.gap;
+    return {side, left.y, std::max(1, edge.x - m.gap - side), m.key};
+  }
   const int keys = std::max(1, right), side = m.x + keys * m.key + (keys - 1) * m.gap + ui::px(8);
   return {glass_left(parent) + side, m.y, std::max(1, overlay_card::screen_width() - 2 * side), m.key};
 }
@@ -115,11 +132,13 @@ inline void place(lv_obj_t *parent, const Bar &bar) {
 // The whole bar: the back key and the name first (a card centred under its bar keeps its first two children where
 // they are, overlay_card::centre), then the keys at the right, the first at the edge.
 inline Bar make(lv_obj_t *parent, const std::string &title, Key back, Key right = {}, Key right2 = {}) {
+  if (ui::round()) overlay_card::frame(parent);
   Bar bar;
   bar.back = key(parent, back_slot(parent), back.glyph ? back.glyph : BACK, back.handler, back.user);
   bar.title = lv_label_create(parent);
   lv_obj_remove_flag(bar.title, LV_OBJ_FLAG_CLICKABLE);
-  if (title_font) lv_obj_set_style_text_font(bar.title, title_font, 0);
+  const auto *font = ui::round() && compact_title_font ? compact_title_font : title_font;
+  if (font) lv_obj_set_style_text_font(bar.title, font, 0);
   lv_obj_set_style_text_color(bar.title, theme::color(theme::INK), 0);
   lv_obj_set_style_text_align(bar.title, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_long_mode(bar.title, LV_LABEL_LONG_DOT);

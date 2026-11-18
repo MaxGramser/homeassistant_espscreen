@@ -39,6 +39,8 @@ on the screen itself, and how updates work.
   Search by entity, device, or room, and drag to reorder. A whole page moves the same way: drag it by its
   number to another place in the row, and its tiles, its own title and the Go to page tiles that lead to it come
   along. Remove page in the page's ··· menu takes a page away with those same tiles, with Undo beside the message.
+The [experimental LILYGO T-Display-S3 AMOLED 1.75](docs/LILYGO175.md), H0175Y003AM, starts with four native tiles per page, with up to 128 tiles on 24 pages within its memory budget. The ordinary Full size gives one light the whole tile area. Physical hardware acceptance is pending.
+
 - **On a phone** (app 0.4.40) the editor shows the screen itself, one page at a time: swipe for the next page, tap
   its name under the screen for the list of pages. **Add tile** opens a sheet to pick one, a tap on an empty place adds
   it right there, and a tap on a tile gives its name, icon and colour, with More settings for the rest. Everything else

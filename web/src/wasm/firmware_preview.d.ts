@@ -1,4 +1,5 @@
 export type FirmwarePreviewModule = {
+  _preview_shape?(round: number): void;
   _preview_init(width: number, height: number, dpi: number, columns: number, rows: number): number;
   // A board without pictures (firmware 0.46.0); a build from before has no such export.
   _preview_pictures?(on: number): void;

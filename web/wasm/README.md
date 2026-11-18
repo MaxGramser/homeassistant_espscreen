@@ -27,7 +27,7 @@ player. Track changes and discarded downloads follow the firmware's image lifeti
 
 Resolution and grid are runtime inputs (160–2560 pixels per axis, 1–8 columns and
 rows, at most 64 cells). The preview holds as many pages, tiles and top bar items as the
-largest board in `boards.json` (`core.PREVIEW_CEILINGS`, the `SCREEN_MAX_*` flags in `build.py`). Font/style densities come from the shared board catalog,
+largest board in `boards.json` (`core.PREVIEW_CEILINGS`, the `SCREEN_MAX_*` flags in `build.py`). The preview also keeps up to 48 forecast hours, as a board with PSRAM does, and compiles the native Dock and light-presets modules. Font/style densities come from the shared board catalog,
 plus a 254 dpi profile for the 720 × 720 Waveshare ESP32-P4-WIFI6-Touch-LCD-4B design
 target. That target is preview-only, not new physical board support. Regenerating
 the preview includes newly added catalog densities without new card rendering code.
@@ -62,6 +62,7 @@ PYTHON=/path/to/venv/bin/python sh web/wasm/build.sh
 node web/wasm/test_runtime.mjs
 node web/wasm/test_look.mjs
 node web/wasm/test_colour_card.mjs
+node web/wasm/test_round_display.mjs
 node web/wasm/test_profiles.mjs
 node web/wasm/test_images.mjs
 PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs

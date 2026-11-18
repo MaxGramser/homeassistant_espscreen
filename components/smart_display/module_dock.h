@@ -335,10 +335,11 @@ inline bool build(bool finger) {
   lv_obj_set_style_bg_color(root, theme::color(theme::SCRIM), 0);
   lv_obj_add_event_cb(root, backdrop, LV_EVENT_CLICKED, nullptr);
 
-  const int glass = overlay_card::screen_width(), H = overlay_card::screen_height();
+  if (ui::round()) overlay_card::frame(root);
+  const int glass = overlay_card::view_width(), H = overlay_card::view_height();
   // A small drawer, not a sheet: at most 12 cm wide, in the middle of the bottom edge. A 4-inch glass is narrower
   // than that, so there it spans the glass.
-  const int W = std::min(glass, ui::mm(120));
+  const int W = std::min(glass, ui::mm(ui::round() ? 20 : 120));
   glass_w = W;
   // The pages it shows: every page of the swipe (a detail page, left out of it, is reached by its tile) that its
   // page settings leave in the Dock. An app from before the page settings sends no records: then every page.
@@ -354,30 +355,30 @@ inline bool build(bool finger) {
     root = nullptr;
     return false;
   }
-  const int pad = ui::mm(4), gap = ui::mm(3), inset = ui::mm(1) + ui::mm(1) / 2, line = lv_font_get_line_height(small_font);
-  const int grab = ui::mm(6), dots_h = ui::mm(4), room_w = W - 2 * pad;
+  const int pad = ui::mm(ui::round() ? 2 : 4), gap = ui::mm(3), inset = ui::mm(1) + ui::mm(1) / 2, line = lv_font_get_line_height(small_font);
+  const int grab = ui::mm(ui::round() ? 4 : 6), dots_h = ui::mm(ui::round() ? 3 : 4), room_w = W - 2 * pad;
   // The columns of one drawer's width: every page in two rows when each picture keeps at least 13 mm (no more columns
   // than that), each picture at most 32 mm, and so many that the drawer stays within half the glass.
   auto item_w_of = [&](int cols) { return (room_w - (cols - 1) * gap) / cols; };
   // A picture has the glass's proportions, whatever the drawer's width.
   auto item_h_of = [&](int cols) { return inset + (item_w_of(cols) - 2 * inset) * H / glass + ui::mm(1) + line + inset; };
   // One row when every page fits in it, two otherwise; the dots when they do not all fit in two.
-  auto rows_of = [&](int cols) { return pages > cols ? 2 : 1; };
+  auto rows_of = [&](int cols) { return !ui::round() && pages > cols ? 2 : 1; };
   auto drawer_of = [&](int cols) {
-    return grab + rows_of(cols) * item_h_of(cols) + (rows_of(cols) - 1) * gap + (pages > 2 * cols ? dots_h : 0) + pad;
+    return grab + rows_of(cols) * item_h_of(cols) + (rows_of(cols) - 1) * gap + (pages > rows_of(cols) * cols ? dots_h : 0) + pad;
   };
   const int most = std::max(1, (room_w + gap) / (ui::mm(13) + gap));
   // No picture wider than 32 mm, so a few pages stand side by side in one row instead of two rows of large ones.
   const int fewest = (room_w + gap + ui::mm(32) + gap - 1) / (ui::mm(32) + gap);
   int cols = std::min(std::max({1, (pages + 1) / 2, fewest}), most);
   while (cols < most && drawer_of(cols) > H / 2) ++cols;
-  const int per_view = 2 * cols;
+  const int per_view = rows_of(cols) * cols;
   views = (pages + per_view - 1) / per_view;
   const int item_w = item_w_of(cols), item_h = item_h_of(cols), pic_w = item_w - 2 * inset, pic_h = pic_w * H / glass;
   const int rows = rows_of(cols), band = rows * item_h + (rows - 1) * gap;
   drawer_h = drawer_of(cols);
   // The drawer reaches below the glass by its corner and the overshoot's way, so the bottom never shows a gap.
-  below = std::max(ui::mm(5), drawer_h / 8);
+  below = ui::round() ? 0 : std::max(ui::mm(5), drawer_h / 8);
   corner = ui::mm(6);
 
   drawer = lv_obj_create(root);

@@ -13,6 +13,7 @@ const out = [];
 for (const screen of screens) {
   // One module per glass and grid: preview_init sets them once, and every layout after it replaces the one before.
   const m = await createModule({ wasmBinary });
+  m._preview_shape(screen.form === 'round' ? 1 : 0);
   if (m._preview_init(screen.width, screen.height, screen.dpi, screen.columns, screen.rows) !== 1) {
     out.push({ screen: screen.key, error: 'preview_init refused the glass or grid' });
     continue;

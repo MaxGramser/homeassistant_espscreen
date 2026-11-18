@@ -1,0 +1,75 @@
+# LILYGO H0175Y003AM: CO5300 QSPI panel with its CST9217 touch and shared power rail.
+# Manufacturer pins and the six-column panel offset:
+# https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED-1.43-1.75
+packages:
+  build: !include esp-idf.yaml
+
+# CST9217 needs ESPHome's cst9220 driver; this board is validated with the app's pinned ESPHome.
+esphome:
+  min_version: 2026.9.0
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+spi:
+  id: lcd
+  type: quad
+  clk_pin: GPIO12
+  data_pins: [GPIO11, GPIO13, GPIO14, GPIO15]
+
+i2c:
+  id: touch_bus
+  sda: GPIO7
+  scl: GPIO6
+  frequency: 400kHz
+  scan: true
+
+# The display/touch supply must be enabled before the CO5300's hardware reset.
+switch:
+  - platform: gpio
+    id: panel_power
+    pin: GPIO16
+    restore_mode: ALWAYS_ON
+    internal: true
+
+display:
+  - platform: mipi_spi
+    id: my_display
+    model: CO5300
+    spi_id: lcd
+    bus_mode: quad
+    cs_pin: GPIO10
+    reset_pin: GPIO17
+    data_rate: 40MHz
+    dimensions:
+      width: 466
+      height: 466
+      offset_width: 6
+      offset_height: 0
+    auto_clear_enabled: false
+    update_interval: never
+
+# AMOLED brightness is a controller command, not a PWM backlight pin. The shared backlight feature keeps its
+# existing entity, standby/night behaviour and action path; only its hardware output differs.
+output:
+  - platform: template
+    id: gpio_backlight_pwm
+    type: float
+    write_action:
+      - lambda: |-
+          id(my_display).set_brightness(static_cast<uint8_t>(state * 255.0f));
+
+touchscreen:
+  - platform: cst9220
+    id: ts_touch
+    i2c_id: touch_bus
+    address: 0x5A
+    interrupt_pin: GPIO9
+    update_interval: 20ms

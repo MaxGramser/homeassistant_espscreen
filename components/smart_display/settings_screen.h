@@ -552,8 +552,8 @@ struct Metrics {
   int width, height, pad, radius, inset, bar, bar_y, rows_y, row_h, gap, pager, bottom, pill_w, pill_h, switch_w, switch_h;
 };
 inline Metrics metrics() {
-  int width = lv_display_get_horizontal_resolution(lv_display_get_default());
-  int height = lv_display_get_vertical_resolution(lv_display_get_default());
+  int width = overlay_card::view_width();
+  int height = overlay_card::view_height();
   // The look decides the class (ui::large), never the width: a 480 px compact panel keeps the small rows.
   bool large = ui::large();
   return Metrics{large, width, height,

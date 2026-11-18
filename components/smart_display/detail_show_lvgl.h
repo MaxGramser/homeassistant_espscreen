@@ -15,7 +15,7 @@ inline void show_detail(unsigned index){
   if(alarm_pad.open&&t.entity!=alarm_pad.entity)alarm_close_pad();
   // A card that opens starts on a day (an hour for a tile whose graph shows one); switching ranges keeps it open.
   if(!detail_root||lv_obj_has_flag(detail_root,LV_OBJ_FLAG_HIDDEN)||detail_index!=index){
-    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();weather_view=0;select_page=0;
+    history_hours=t.history_hours==1?1:24;history_asked_entity.clear();weather_view=0;weather_offset=0;select_page=0;
     // A player's card that opens shows its cover and colour as they are; one built again while open keeps its face.
     media_face=MediaFace{};
   }
@@ -75,7 +75,7 @@ inline void show_detail(unsigned index){
                      :d=="light"||d=="fan"?light_columns(large):1;
   overlay_card::frame(detail_root,kind,columns);
   // The room the frame just gave the card; LVGL reports the new width only after its next layout pass.
-  int width=overlay_card::content_width(kind,columns), height=overlay_card::screen_height();int pad=overlay_card::pad(), top=ui::px(large?100:62), gap=ui::px(large?12:6),bh=ui::px(large?58:34),cw=(width-pad*2-gap)/2;
+  int width=overlay_card::content_width(kind,columns), height=overlay_card::view_height();int pad=overlay_card::pad(), top=ui::px(large?100:62), gap=ui::px(large?12:6),bh=ui::px(large?58:34),cw=(width-pad*2-gap)/2;
   // The top bar of every page a tap opens (detail_bar): the back key and the name, on the glass's edges.
   const auto top_bar=detail_bar::make(detail_root,t.name,{detail_bar::BACK,[](lv_event_t *){detail_command(-1);}});
   auto *back=top_bar.back,*heading=top_bar.title;
