@@ -33,7 +33,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/n-IA-hane/esphome-audio-stack
-      ref: 0482d741a938378ef948e3b8f3dd31536f9f2cc9
+      ref: 245fc1ad34b443996479c645d20e2960d99bdc31
       path: esphome/components
     components: [esp_audio_stack]
     refresh: never

@@ -172,12 +172,18 @@ return, not stale output. No custom echo-cancellation algorithm has been added.
 
 ## Sources and attribution
 
-- Hane's [ESPHome Audio Stack](https://github.com/n-IA-hane/esphome-audio-stack/tree/0482d741a938378ef948e3b8f3dd31536f9f2cc9)
+- Hane's [ESPHome Audio Stack](https://github.com/n-IA-hane/esphome-audio-stack/tree/245fc1ad34b443996479c645d20e2960d99bdc31)
   provides the full-duplex bus and standard ESPHome microphone/speaker adapters. Only
   `esp_audio_stack` is fetched from that pinned version. Our [AEC wrapper](../components/esp_aec/README.md)
   derives from the same repository and keeps its MIT notice.
+  The pin is chosen by the ESPHome versions a screen builds with (docs/RELEASING.md, "ESPHome versions"): ESPHome
+  2026.10 made the ring buffer's handle a function, the stack's 2026.10.2 release still read it as a field and no
+  longer compiled there, and its releases from 2026.11.0 on require ESPHome 2026.10. The pinned commit is the
+  stack's own step in between, which reads the handle either way, so it builds with the app's ESPHome, with
+  `min_version` and with the newest. Moving the pin past it waits for a `min_version` of 2026.10.
 - Espressif **ESP-SR 2.5.5** provides the AEC algorithm. ESP-DSP retains the reviewed `^1.8.0`
-  constraint; the pinned stack supplies its audio-effects dependency for pre-v3 silicon.
+  constraint; the pinned stack supplies its audio-effects dependency, an exact version for each
+  chip revision (`1.3.0~1` before revision 3, `1.4.3` from revision 3 on).
   Dependency resolution must be recorded and revalidated when versions change.
 - The [ES7210 extension](../components/es7210_extended/README.md) builds on ESPHome's driver and
   the earlier gain/ALC work, with TDM and independently configured reference gain.

@@ -77,20 +77,31 @@ class ScreenIcons:
 
     def font_lines(self, inbox):
         """The `font:` part of this screen's plugins file; nothing for a screen without icons of its own, whose build stays
-        as it was."""
+        as it was. A font leaves out the icons the board's own packages already give it (boards.json `added_icons`: a
+        call's keys on a board with sound), which the screen then has from there."""
         names = self.beyond_set(self.record(inbox)['written'])
         if not names:
             return []
         table = tile_icons.mdi()
-        lines = ['font:']
-        for index, font in enumerate(FONTS):
+        screen = self.manager.screen(inbox)
+        board = core.SHAPES.get(core.board_of(screen)) if isinstance(screen, dict) else None
+        has = (board or {}).get('added_icons') or {}
+        lines, shared = ['font:'], False
+        for font in FONTS:
+            mine = [name for name in names if table[name][0].upper() not in has.get(font, ())]
+            if not mine:
+                continue
             lines.append(f'  - id: !extend {font}')
-            if index == 0:
+            if mine != names:
+                lines.append('    glyphs:')
+                lines += [f'      - "\\U000{table[name][0]}" # {name}' for name in mine]
+            elif shared:
+                lines.append('    glyphs: *own_icons')
+            else:
+                shared = True
                 lines.append('    glyphs: &own_icons')
                 lines += [f'      - "\\U000{table[name][0]}" # {name}' for name in names]
-            else:
-                lines.append('    glyphs: *own_icons')
-        return lines
+        return lines if len(lines) > 1 else []
 
     # ---- the editor ----
     def view(self, inbox):
