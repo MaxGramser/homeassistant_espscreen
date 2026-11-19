@@ -31,7 +31,7 @@ substitutions:
 
 external_components:
   # Hane's audio stack at 245fc1ad with one commit for ESPHome 2026.11 (a speaker's DACs), in this project's fork until the
-  # stack has a commit that builds with ESPHome 2026.6 to 2026.11 itself (docs/P4_AUDIO.md, "Sources and attribution").
+  # app's ESPHome and min_version reach 2026.10, which the stack's own versions need (docs/P4_AUDIO.md).
   - source:
       type: git
       url: https://github.com/MaxGramser/esphome-audio-stack

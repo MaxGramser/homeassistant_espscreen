@@ -36,5 +36,5 @@ The pin moves to this project's fork of the stack (MaxGramser/esphome-audio-stac
 6ffa32df): 245fc1ad and one commit that, from ESPHome 2026.11 on (`ESPHOME_VERSION_CODE`), hands the speaker's volume and
 mute to `speaker::Speaker`, which drives every DAC there; with an older ESPHome the code is as before. The Guition 10.1
 (jc8012p4a1v3, echo cancelling) built with it on ESPHome 2026.9.0 and 2026.11.0. Not yet flashed and heard on 2026.11.
-The same commit goes to the stack as a pull request; once the stack has one like it, the pin goes back there. This file
-goes with the next release.
+The stack's own development version (v2026.12.0-dev) does the same but requires ESPHome 2026.10: once the app's
+ESPHome and `min_version` reach 2026.10 the pin goes back to the stack. This file goes with the next release.

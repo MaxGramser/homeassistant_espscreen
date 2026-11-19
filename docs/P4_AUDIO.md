@@ -186,8 +186,9 @@ return, not stale output. No custom echo-cancellation algorithm has been added.
   ESPHome 2026.11 renamed the speaker's `audio_dac_` to `audio_dacs_` and drives the DACs in its own `set_volume` and
   `set_mute_state`. The stack's own versions that know this require ESPHome 2026.10, so the fork adds one commit on top
   of 245fc1ad: from ESPHome 2026.11 on (`ESPHOME_VERSION_CODE`) the speaker hands volume and mute to the base class, with
-  an older ESPHome it is as before. One pin builds with ESPHome 2026.6 to 2026.11. The same change goes to the stack as a
-  pull request; once the stack has a commit like it, the pin goes back to the stack itself.
+  an older ESPHome it is as before. One pin builds with ESPHome 2026.6 to 2026.11. The stack's own development version
+  already does the same but requires ESPHome 2026.10: once the app's ESPHome and `min_version` reach 2026.10, the pin
+  goes back to the stack itself and the fork is no longer needed.
 - Espressif **ESP-SR 2.5.5** provides the AEC algorithm. ESP-DSP retains the reviewed `^1.8.0`
   constraint; the pinned stack supplies its audio-effects dependency, an exact version for each
   chip revision (`1.3.0~1` before revision 3, `1.4.3` from revision 3 on).
