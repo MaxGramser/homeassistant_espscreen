@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.99 (firmware 0.62.0)
 
 - **A screen draws every change whole again.** On the ESP32-P4 boards (the Guition and Waveshare 10.1 and 7 inch, the reTerminal D1001, the Tab5) a card that opened, a change of Dark mode or a page could reach the glass only in part since 0.4.98: the frame or a few blocks turned while the rest of the page stayed as it was. The pictures of whole pages these screens kept to show a page sooner (0.4.98) read the screen's memory in a way that could throw away what had just been drawn. They are gone; a page turn is drawn as before 0.4.98, which takes a moment longer on a 10-inch, and the memory they held goes to covers and cameras again.
 - **Screens build with ESPHome 2026.11.** ESPHome Device Builder's newest ESPHome, with LVGL 9.6, stopped every screen's build (`no match for 'operator='`, `LV_COLOR_16_SWAP was not declared`). The firmware now builds with it as with the older ones. The ESP32-P4 boards with echo cancelling still wait for their audio library to build there; until then, build them with ESPHome 2026.10 or older, as the app does.
