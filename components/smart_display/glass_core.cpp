@@ -41,7 +41,7 @@ int turn() { return lvgl ? static_cast<int>(lvgl->get_rotation()) : 0; }
 
 // ---- One writer at a time ----
 // Who holds it, for the count of who keeps a stream waiting (Held below): LVGL's refresh, a stream, or another writer
-// (a still's decode, a page's picture ahead). Set and cleared by the holder only, at its outermost hold.
+// (a still's decode, the veil). Set and cleared by the holder only, at its outermost hold.
 static std::atomic<uint8_t> holder{NOBODY};
 static int depth = 0;  // the holder's own nesting; only the task that holds the lock touches it
 void hold() {
@@ -347,82 +347,6 @@ static void written(uint16_t *from, size_t bytes) {
   (void) from;
   (void) bytes;
 #endif
-}
-// ---- A page's picture, past LVGL (glass.h) ----
-// The rows of the frame buffer a rectangle lies on, read past the processor's cache: what the cache held of them is let
-// go, so the copy reads what the panel shows. Whole cache lines, outward: the frame buffer begins on one, and nothing
-// the processor wrote waits in them (the veil and laid() are written back at once).
-static void read_fresh(uint16_t *fb, const Panel &p, int row, int rows) {
-#if defined(GLASS_DSI)
-#if defined(CONFIG_CACHE_L2_CACHE_LINE_SIZE) && CONFIG_CACHE_L2_CACHE_LINE_SIZE > 64
-  const size_t line = CONFIG_CACHE_L2_CACHE_LINE_SIZE;  // the chip's largest cache line, as the build set it
-#else
-  const size_t line = 64;
-#endif
-  const size_t whole = static_cast<size_t>(p.w) * p.h * 2, row_bytes = static_cast<size_t>(p.w) * 2;
-  size_t from = static_cast<size_t>(row) * row_bytes / line * line;
-  size_t to = (static_cast<size_t>(row + rows) * row_bytes + line - 1) / line * line;
-  if (to > whole) to = (whole + line - 1) / line * line;
-  const esp_err_t said = esp_cache_msync(reinterpret_cast<uint8_t *>(fb) + from, to - from, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
-  static bool told = false;
-  if (said != ESP_OK && !told) {
-    told = true;
-    ESP_LOGW(TAG, "the frame buffer cannot be read past the cache: %s", esp_err_to_name(said));
-  }
-#else
-  (void) fb; (void) p; (void) row; (void) rows;
-#endif
-}
-static bool on(const Panel &p, const Rect &r) { return r.x >= 0 && r.y >= 0 && r.w > 0 && r.h > 0 && r.x + r.w <= p.w && r.y + r.h <= p.h; }
-void taken(const Rect &r, uint16_t *to) {
-  const Panel p = panel();
-  auto *fb = static_cast<uint16_t *>(frame_buffer());
-  if (!fb || !to || !on(p, r)) return;
-  read_fresh(fb, p, r.y, r.h);
-  for (int y = r.y; y < r.y + r.h; ++y) {
-    const size_t at = static_cast<size_t>(y) * p.w + r.x;
-    memcpy(to + at, fb + at, static_cast<size_t>(r.w) * 2);
-  }
-}
-void laid(const Rect &r, const uint16_t *from) {
-  const Panel p = panel();
-  auto *fb = static_cast<uint16_t *>(frame_buffer());
-  if (!fb || !from || !on(p, r)) return;
-  for (int y = r.y; y < r.y + r.h; ++y) {
-    const size_t at = static_cast<size_t>(y) * p.w + r.x;
-    memcpy(fb + at, from + at, static_cast<size_t>(r.w) * 2);
-  }
-}
-void shown(int row, int rows) {
-  const Panel p = panel();
-  auto *fb = static_cast<uint16_t *>(frame_buffer());
-  if (!fb || row < 0 || rows <= 0 || row + rows > p.h) return;
-  written(fb + static_cast<size_t>(row) * p.w, static_cast<size_t>(rows) * p.w * 2);
-}
-uint32_t differs(const Rect &r, const uint16_t *with) {
-  const Panel p = panel();
-  auto *fb = static_cast<uint16_t *>(frame_buffer());
-  if (!fb || !with || !on(p, r)) return 0;
-  read_fresh(fb, p, r.y, r.h);
-  uint32_t n = 0;
-  for (int y = r.y; y < r.y + r.h; ++y) {
-    const size_t at = static_cast<size_t>(y) * p.w + r.x;
-    if (!memcmp(fb + at, with + at, static_cast<size_t>(r.w) * 2)) continue;
-    for (int x = 0; x < r.w; ++x) n += fb[at + x] != with[at + x];
-  }
-  return n;
-}
-static_assert(MAX_WAITING >= LV_INV_BUF_SIZE, "glass::waiting hands out every area LVGL's list holds");
-int waiting(Rect *areas, int most) {
-  lv_display_t *display = lv_display_get_default();
-  int n = 0;
-  for (uint32_t i = 0; display && i < display->inv_p; ++i) {
-    if (display->inv_area_joined[i]) continue;
-    const lv_area_t &a = display->inv_areas[i];
-    if (areas && n < most) areas[n] = Rect{a.x1, a.y1, a.x2 - a.x1 + 1, a.y2 - a.y1 + 1};
-    ++n;
-  }
-  return n;
 }
 int streaming(Rect *spots, int most) {
   int n = 0;

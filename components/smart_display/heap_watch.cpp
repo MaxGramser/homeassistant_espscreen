@@ -4,7 +4,6 @@
 #include "glass.h"
 #include "esphome/core/defines.h"
 #ifdef USE_ESP32
-#include <atomic>
 #include <cstring>
 
 #include "esphome/core/log.h"
@@ -39,10 +38,6 @@ uint32_t logged_failures = 0, logged_fell_back = 0, checked_at = 0, counted_at =
 uint32_t internal_total = 0;  // all the internal RAM there is, read once at boot
 constexpr uint32_t COUNT_MS = 5 * 60 * 1000;  // how often the tasks and the two heaps are logged: a leak shows as a trend
 
-#ifdef GLASS_STEADY
-std::atomic<uint32_t> psram_refusals{0}, psram_refusal_bytes{0};
-#endif
-
 uint32_t internal_free() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
 uint32_t internal_lowest() { return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL); }
 
@@ -59,12 +54,6 @@ void failed(size_t size, uint32_t caps, const char *function) {
     record.fell_back_size = static_cast<uint32_t>(size);
     return;
   }
-#ifdef GLASS_STEADY  // counted where something gives memory up for it (page pictures); no byte of it elsewhere
-  if (caps & MALLOC_CAP_SPIRAM) {
-    psram_refusal_bytes.store(static_cast<uint32_t>(size), std::memory_order_relaxed);
-    psram_refusals.fetch_add(1, std::memory_order_relaxed);
-  }
-#endif
   record.failures++;
   record.size = size;
   record.caps = caps;
@@ -88,14 +77,6 @@ void log_failure(const Record &r, bool previous_boot) {
 }
 
 }  // namespace
-
-#ifdef GLASS_STEADY
-uint32_t psram_refused() { return psram_refusals.load(std::memory_order_relaxed); }
-uint32_t psram_refused_bytes() { return psram_refusal_bytes.load(std::memory_order_relaxed); }
-#else
-uint32_t psram_refused() { return 0; }
-uint32_t psram_refused_bytes() { return 0; }
-#endif
 
 void setup() {
   if (record.magic == MAGIC) {
@@ -161,8 +142,6 @@ void dump() {
 }  // namespace heap_watch
 #else
 namespace heap_watch {
-uint32_t psram_refused() { return 0; }
-uint32_t psram_refused_bytes() { return 0; }
 void setup() {}
 void tick(uint32_t) {}
 void dump() {}

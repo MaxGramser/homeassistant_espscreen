@@ -19,33 +19,6 @@ static void test_never_squeezed() {
   for (Work w : {GLASS, VOICE, DOORBELL}) assert(g.level(w) == 0);
 }
 
-// The screen's own work is no sign: a loop it held itself in an idle moment (a page drawn off the glass) and the
-// report of it that follows raise no step, once; a held-up loop with no such work before it, a second report for one
-// piece of work, a report that comes too late, and any other sign count as ever.
-static void test_own_work() {
-  Governor g;
-  for (uint32_t t = 1000; t < 7000; t += 1000) {  // six pages made ahead, a second apart
-    g.own_work(t);
-    g.signal(SLOW_LOOP, t + 200);
-  }
-  assert(g.step() == 0 && g.signs(SLOW_LOOP) == 0);
-  g.signal(SLOW_LOOP, 9000);                      // a page turn: nobody said it was their own work
-  assert(g.step() == 1 && g.cause() == SLOW_LOOP);
-  Governor twice;
-  twice.own_work(1000);
-  twice.signal(SLOW_LOOP, 1100);
-  twice.signal(SLOW_LOOP, 1300);                  // a second report for one piece of work is somebody else's
-  assert(twice.step() == 1);
-  Governor late;
-  late.own_work(1000);
-  late.signal(SLOW_LOOP, 1000 + OWN_WORK_MS + 1);
-  assert(late.step() == 1);
-  Governor other;
-  other.own_work(1000);
-  other.signal(GLASS_MISS, 1100);                 // the panel ran dry: that is a sign, whoever held the loop
-  assert(other.step() == 1 && other.cause() == GLASS_MISS);
-}
-
 // From the bottom of the order up: the background, sensing and the camera first, then the camera further and the
 // live tiles, then the tiles further.
 static void test_steps_in_order() {
@@ -158,7 +131,6 @@ int main() {
   test_rest();
   test_finger();
   test_heard();
-  test_own_work();
   std::puts("PASS: the governor's order, its steps, a burst as one sign, the rest, the wake word's floor, the finger and "
             "someone hearing the microphone");
   return 0;

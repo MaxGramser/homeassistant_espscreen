@@ -75,8 +75,6 @@ inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
 #include "boot_trial.h"
 #include "heap_watch.h"
 #include "kept_pages.h"
-#include "page_pictures.h"
-#include "page_pictures_log.h"
 #include "tile_memory.h"
 #include "wifi_status.h"
 #include "ota_status.h"
@@ -808,19 +806,6 @@ struct CardLook { lv_style_t *tile = nullptr, *circle = nullptr, *title = nullpt
 inline CardLook card_look;
 inline uint32_t last_turn_ms = 0;
 inline void live_tiles_halt();  // live tiles stop at once (a page turns; live_tiles_round)
-// Page pictures (page_pictures_lvgl.h): a page's picture from the glass, put back on it when the screen turns to it.
-inline void page_pictures_start();
-inline void page_pictures_leave();
-inline bool page_pictures_put(int page);
-inline void page_pictures_untrue(int page);
-inline void page_pictures_forget();
-inline void page_pictures_switch(bool on);
-inline void page_pictures_report();
-inline void page_pictures_hold(unsigned mb, unsigned seconds);
-inline void page_pictures_prove();
-// warm_page says when the page it works on stands drawn in its cards, off the glass (page_pictures_lvgl.h, made ahead).
-inline void (*warm_drawn)(int page) = nullptr;
-inline unsigned page_pictures_count();
 inline void live_tile_answer(size_t index, const std::string &url);  // the last page turn: pictures wait until the pages stand still (camera_view::settled)
 inline uint32_t touched_at = 0;    // the last finger on the glass: pages are prepared in the background only after a pause
 inline int kept_limit = -1;        // at most this many pages kept, -1 for as many as fit (a diagnostic build's A/B)
@@ -3075,7 +3060,6 @@ inline void slow_pass_log(unsigned drawn,uint32_t took,size_t index,uint32_t slo
 inline void render(lv_obj_t *room) {
   if (!enabled) return;
   room_label=room; swipe_profile::Lap lap;
-  page_pictures_start();
   ota_status::watch();
   ota_status::draw = ota_draw;
   if (const auto wifi = wifi_status::problem(); wifi.shown) {
@@ -3803,7 +3787,6 @@ inline std::function<void()> grid_changed;
 inline void regrid(size_t columns, size_t rows) {
   if (columns == grid.columns && rows == grid.rows) return;
   shelf.forget();
-  page_pictures_forget();
   release_kept(0);
   for (auto &w : widgets) drop_card(w);
 #ifdef SD_MOD_SECTIONS
@@ -3864,7 +3847,6 @@ inline lv_obj_t *face_picture(const Widgets &w) {
 }
 inline void forget_kept() {
   shelf.forget();
-  page_pictures_forget();
 #ifdef SD_MOD_SECTIONS
   // A new layout's sections are drawn anew when their pages are placed.
   ::sections::forget();
@@ -3904,10 +3886,6 @@ inline void show_page(int &page, lv_obj_t *previous, lv_obj_t *next, lv_obj_t *n
   swipe_profile::FillTimer timer;
   last_turn_ms=esphome::millis();
   live_tiles_halt();  // a live tile's picture never stays where its card left
-  // The page's picture, where it is still true, goes on the glass before a card is exchanged, placed or drawn
-  // (page_pictures_lvgl.h); what follows draws the page as ever, underneath.
-  page_pictures_leave();
-  page_pictures_put(page);
   const auto kept=keep_page(page,glass_synced);
   applied_page=place_page(page,kept.kept);
   // A page with a title of its own carries it into the top bar with the same frame as its tiles, not a tick later.
@@ -3973,7 +3951,6 @@ inline bool warm_page(int page) {
       const auto &w = widgets[slot];
       if (w.tile && w.index < model.count && (all || changes.tile_after(w.index, visit.synced))) render_slot(slot);
     }
-    if (warm_drawn) warm_drawn(page);
     keep_page(glass, changes.last);  // the glass's own cards come back; the page stays on the shelf, drawn up to now
     applied_page = place_page(glass, true);
   }
@@ -4325,7 +4302,6 @@ inline void restyle() {
 #include "pressure_lvgl.h"
 #include "camera_answer_lvgl.h"
 #include "picture_rounds_lvgl.h"
-#include "page_pictures_lvgl.h"
 #include "saver_state_lvgl.h"
 namespace runtime_tiles {
 #ifdef SD_MOD_CLOCK_FACES

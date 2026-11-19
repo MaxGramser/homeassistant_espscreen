@@ -372,25 +372,6 @@ static void test_map_tile() {
   t.entity = "screen.map";
   t.display = "map";
   assert(t.is_map() && t.pictured() && t.builtin());
-  // A tile whose look depends on its card being on the glass is left out of a page's picture made ahead: whatever
-  // shows a picture, and a camera, an image and a player whatever they show now. A light or a sensor is not.
-  {
-    Tile seen;
-    seen.entity = "camera.door";
-    assert(seen.seen_to_look_right());            // a camera with its plain tile: its still comes when it is seen
-    seen.display = "live";
-    assert(seen.seen_to_look_right() && seen.pictured());
-    seen = Tile{}; seen.entity = "image.weather";
-    assert(seen.seen_to_look_right());
-    seen = Tile{}; seen.entity = "media_player.kitchen";
-    assert(seen.seen_to_look_right());            // its cover is asked for by its card
-    seen = Tile{}; seen.entity = "person.someone"; seen.display = "map";
-    assert(seen.seen_to_look_right());
-    for (const char *plain : {"light.a", "sensor.outside", "switch.b", "cover.blind", "climate.hall", "lock.door"}) {
-      seen = Tile{}; seen.entity = plain;
-      assert(!seen.seen_to_look_right());
-    }
-  }
   Tile camera;
   camera.entity = "camera.door";
   camera.display = "live";

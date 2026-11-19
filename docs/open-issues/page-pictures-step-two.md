@@ -75,3 +75,10 @@ it did when a freshen drew the whole glass (docs/KEPT_PAGES.md, "Prepared pages"
 - `components/smart_display/glass_core.cpp`: `keep_out`, `cut_out`.
 - `components/smart_display/swipe_profile.h`: `picture`, `put`, `done`.
 - docs/KEPT_PAGES.md, "Page pictures"; docs/SWIPE_PROFILE.md.
+
+## Solved: page pictures are gone (2026-11-19)
+
+Page pictures were taken out of the firmware (docs/KEPT_PAGES.md, "Nothing past LVGL at a turn"): reading the frame
+buffer for a picture threw away what LVGL had just drawn (docs/open-issues/dark-mode-half-switched.md), and as this file
+measured, LVGL drew the whole page after the put anyway. There is no step two to take. This file goes with the next
+release.

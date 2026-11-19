@@ -79,21 +79,6 @@ std::string receive(const std::string &payload) {
     }
     auto op = string(root["op"]);
     reply_memory = op == "hello" || op == "ping";
-#ifdef GLASS_STEADY
-    // Page pictures' diagnostics (docs/KEPT_PAGES.md, "The proof on a board"), on a screen that has them and only with
-    // Debug mode on: off (0) or on (1) for an A/B on one firmware, a report of what they hold and the memory beside
-    // them (2), and `mb` MB of PSRAM held for `s` seconds to watch them give memory up.
-    if (op == "page_pictures" && settings_screen::debug_mode) return [&]() __attribute__((noinline)) -> bool {
-      const int n = root["n"] | 2;
-      if (root["ahead"].is<int>()) page_pictures_ahead_on = (root["ahead"] | 0) == 1;
-      if ((root["prove"] | 0) == 1) page_pictures_prove();
-      else if (root["mb"].is<unsigned>()) page_pictures_hold(root["mb"] | 0u, root["s"] | 60u);
-      else if (n == 0 || n == 1) page_pictures_switch(n == 1);
-      page_pictures_report();
-      result = "Page pictures";
-      return true;
-    }();
-#endif
 #ifdef SD_MOD_CALL
     // A call from a bench (docs/CALLS.md, "Measuring a call from a desk"), only with Debug mode on and outside the
     // add-on's session: the op `call` as it is, with links to a computer that plays the other screen, so what a screen
@@ -356,7 +341,6 @@ std::string receive(const std::string &payload) {
       size_t i = 0;
       for (JsonVariant text : root["t"].as<JsonArray>()) sections[i++].summary = string(text, section_layout::SUMMARY_BYTES);
       ::sections::summaries(int(index));
-      page_pictures_untrue(int(index));  // a summary takes no change number: the page's picture is of the old one
       last_received = esphome::millis();
       result = "Synced";
       return true;

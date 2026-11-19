@@ -588,14 +588,6 @@ struct Tile {
   bool favorite() const { return display == "favorite" && domain() == "media_player" && !full; }
   // A tile that draws its picture out of the page's strip (runtime_tiles.h, live_*).
   bool pictured() const { return live() || cover_tile() || is_map() || (favorite() && !extra().fav_mark.empty()) || vacuum_map(); }
-  // A tile whose look depends on its card being on the glass: pictures load while their card is seen, a camera shows
-  // a spinner or its last still until then, a player's cover comes when its card asks. Drawn off the glass (a page's
-  // picture made ahead, page_pictures_lvgl.h) such a card is not what the glass will show, so its part of that
-  // picture is never true: every tile that shows a picture, and every camera, image and player whatever it shows now.
-  bool seen_to_look_right() const {
-    const auto d = domain();
-    return pictured() || d == "camera" || d == "image" || d == "media_player";
-  }
   // A robot's map on its larger tile (module vacuum, module_vacuum_tile.cpp): the app draws it at the map's place.
   bool vacuum_map() const {
 #ifdef SD_MOD_VACUUM_CARD

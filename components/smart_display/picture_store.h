@@ -45,12 +45,8 @@ constexpr size_t MAX_BYTES = 1024 * 640 * 2;
 // 8 MB keeps the cap above. ESP Screen Manager honours the same side (picture_question.LARGE_SIDE).
 constexpr int LARGE_SIDE = 2048;
 // The store's whole budget on a board with that much PSRAM: a fifth of it, at most 6 MB (about 1.2 MB of a board's
-// 8 MB heap of 6, 6 MB of a P4 board's 32). The one place this is written: the store asks it, and so does whatever
-// leaves the store its room (page_pictures::reserve).
+// 8 MB heap of 6, 6 MB of a P4 board's 32). The one place this is written: the store asks it.
 constexpr size_t budget_for(size_t psram_total) { return psram_total / 5 < (6u << 20) ? psram_total / 5 : (6u << 20); }
-// The most page pictures may ever hold beside the store (page_pictures.h): half of the PSRAM heap, so the kept pages'
-// cards, LVGL's objects, this store and the streams always have the other half.
-constexpr size_t page_pictures_ceiling(size_t psram_total) { return psram_total / 2; }
 struct Cap {
   int side = MAX_SIDE;
   size_t bytes = MAX_BYTES;

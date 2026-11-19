@@ -270,7 +270,7 @@ inline void tile_cover_arrived(size_t index) {
       w.parts[MEDIA_PICTURE] = media_picture_show(w.extra, w.parts[MEDIA_PICTURE], w.cover_rect, src);
       w.cover_shown = key;
       w.cover_hold = 0;
-      changes.mark_tile(index);  // the card changed off the glass: its page's picture shows it without this cover
+      changes.mark_tile(index);  // the card changed off the glass: its kept page knows it drew this cover
     }
   });
 }

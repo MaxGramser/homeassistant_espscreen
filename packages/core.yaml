@@ -1589,8 +1589,8 @@ sensor:
             // Under loop_stack::FLOOR it warns, so it shows without Debug mode (loop_stack.h).
             loop_stack::report("", (unsigned) uxTaskGetStackHighWaterMark(nullptr));
             // Pages kept whole and pictures kept (firmware 0.3.2+): what they hold, and the PSRAM left beside them.
-            ESP_LOGI("health", "kept_pages=%u page_pictures=%u pictures=%u B psram_free=%u", runtime_tiles::kept_count(),
-                     runtime_tiles::page_pictures_count(), (unsigned) runtime_tiles::pictures.size(),
+            ESP_LOGI("health", "kept_pages=%u pictures=%u B psram_free=%u", runtime_tiles::kept_count(),
+                     (unsigned) runtime_tiles::pictures.size(),
                      (unsigned) heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
             #endif
     fragmentation:

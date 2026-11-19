@@ -57,5 +57,19 @@ mends it. Then the same on a bench board with that layout (the app's report from
 
 ## Pointers
 
-`theme.h` (`set_dark`), `runtime_tiles.h` (`restyle`, `warm_page`), `screen_power.h`, `page_pictures_lvgl.h`,
+`theme.h` (`set_dark`), `runtime_tiles.h` (`restyle`, `warm_page`), `screen_power.h`,
 `screen_diagnostics.h` (the snapshots and the burst).
+
+## Solved: page pictures (2026-11-19)
+
+Caught on the Guition 10.1 with plugins and its Screen camera, after page turns back and forth and a tap on a tile that
+opens a card (a plugin's radar, the climate card): the glass showed the page as it was, in blocks of 64 pixels, with
+the open card only where streams and pictures had their rooms, while LVGL's own render showed the card whole. The log
+showed no put, but a page's picture being taken from the glass ("page 4 taken: 1497 KB in 5 steps") in the second
+before the card opened. A take read the frame buffer past the processor's cache (`esp_cache_msync` towards the
+processor, which drops what the cache held of those rows), and so threw away what LVGL had just drawn there: LVGL took
+it as drawn, the panel never got it. A change of Dark mode is the same whole redraw, which explains a page whose frame
+turned and whose cards did not. With page pictures switched off on the same firmware (the diagnostic message
+`page_pictures` 0) the owner could not make it happen again. Page pictures were then removed altogether (the commit
+that adds this section). They only ever ran on boards with a MIPI-DSI panel (the ESP32-P4 boards); a report from an S3
+board (the 4-inch Guition) has another cause and stays to be found from that reporter's details above.

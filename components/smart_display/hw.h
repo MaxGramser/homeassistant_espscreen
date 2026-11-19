@@ -39,9 +39,6 @@ struct Caps {
   // Motion (screen_motion.h, docs/MOTION.md): dims laid on the glass itself, a card before its dim, a change of the whole glass
   // behind the backlight. A full-tier screen whose frame buffer a task may write; never a lite one (the CYD).
   bool motion = false;
-  // Page pictures (page_pictures.h, docs/KEPT_PAGES.md): a page's picture kept in PSRAM and put on the glass when the
-  // screen turns to it. A screen with motion whose glass a long copy leaves in peace (glass::steady: a MIPI-DSI panel).
-  bool page_pictures = false;
   uint32_t psram_bytes = 0, internal_bytes = 0;  // the heaps as the chip reports them at boot
 };
 
@@ -51,7 +48,6 @@ struct Facts {
   bool live_video = false;
   bool direct_glass = false;  // a frame buffer a task may write past LVGL (glass::direct)
   bool full_tier = false;     // the build's tier (modules.py: 8 MB of flash or more)
-  bool steady_glass = false;  // a long copy to or from the frame buffer costs the panel no frame (glass::steady)
   uint8_t live_tiles = 0;  // the engine's (picture_engine::limits)
   uint32_t psram_bytes = 0, internal_bytes = 0;
 };
@@ -65,7 +61,6 @@ constexpr Caps resolve(const Facts &f) {
   c.camera = f.camera;
   c.live_tiles = f.live_video ? f.live_tiles : 0;
   c.motion = f.direct_glass && f.full_tier;
-  c.page_pictures = c.motion && f.steady_glass && f.psram_bytes > 0;
   c.psram_bytes = f.psram_bytes;
   c.internal_bytes = f.internal_bytes;
   return c;

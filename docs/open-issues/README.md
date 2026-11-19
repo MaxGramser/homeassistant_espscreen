@@ -16,13 +16,13 @@ Rules:
 
 | File | What | Since |
 |---|---|---|
-| [dark-mode-half-switched.md](dark-mode-half-switched.md) | Users see Dark mode switch only half since 0.4.98; not reproduced on a Guition 10.1 and 4-inch read back from the glass in every way tried; what a reporter can tell | 2026-11-18 |
+| [dark-mode-half-switched.md](dark-mode-half-switched.md) | Dark mode, a card or a turn that reached the glass only in part since 0.4.98: page pictures' copies of the frame buffer threw away what LVGL drew; removed. Solved 2026-11-19 for the P4 boards; a 4-inch report still open | 2026-11-18 |
 | [esphome-2026-11-audio-stack.md](esphome-2026-11-audio-stack.md) | The boards with echo cancelling do not build on ESPHome 2026.11 (the speaker's `audio_dac_` became `audio_dacs_`); the rest builds with it and its LVGL 9.6 | 2026-11-18 |
 | [calls-found-on-the-bench.md](calls-found-on-the-bench.md) | Calls on two boards: the first call after a restart can stall, a sound takes a second there and back, the canceller relearns for a minute after two boards shared a desk, the Guition's microphone is noisy, a live view aborts when internal RAM runs out, and one old-protocol message leaves a screen at "Configuration problem" | 2026-11-17 |
 | [waveshare-7-inch-rev3.md](waveshare-7-inch-rev3.md) | The Waveshare 7-inch P4 has no proven rev3 firmware: its old advice (`engineering_sample: false`) was not enough on the 10.1; what a report from a rev3 owner needs | 2026-11-16 |
 | [main-host-render-min-power.md](main-host-render-min-power.md) | main's host render does not build on ESPHome 2026.9.0 (set_min_power without power scaling); fixed on dev by df32c78b, one line for a hotfix. Solved on dev 2026-11-16 | 2026-11-16 |
 | [loop-stack-margin.md](loop-stack-margin.md) | The loop task's stack: a Guition 10.1 with a large layout overflowed it; fixed in b8e887c6, three boards read about 10 KB free; the screensaver and a night are still to read | 2026-11-16 |
-| [page-pictures-step-two.md](page-pictures-step-two.md) | A page's picture is on the glass in 47 ms, but LVGL still draws the whole page after it (296 ms until it is done); what letting LVGL skip it takes | 2026-11-16 |
+| [page-pictures-step-two.md](page-pictures-step-two.md) | A page's picture is on the glass in 47 ms, but LVGL still draws the whole page after it (296 ms until it is done); what letting LVGL skip it takes. Solved: page pictures removed 2026-11-19 | 2026-11-16 |
 | [lvgl-replace-style-selector.md](lvgl-replace-style-selector.md) | LVGL 9.5's lv_obj_replace_style with LV_PART_ANY \| LV_STATE_ANY overwrites each replaced style's selector; the report LVGL could get, not sent | 2026-11-16 |
 | [card-look-on-glass.md](card-look-on-glass.md) | A card's look (sections whose tiles follow the contrast) is proven on the host and in the preview, not yet seen on glass; the file holds what to look at | 2026-11-15 |
 | [render-swipe-past-excluded-pages.md](render-swipe-past-excluded-pages.md) | Host render checks that failed on dev: the swipe past excluded pages, automation, remote and bars. Solved 2026-11-16 | 2026-11-15 |
