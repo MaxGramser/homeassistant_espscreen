@@ -57,6 +57,10 @@ class NotationTests(unittest.TestCase):
             self.assertEqual((us.clock_24h(), uk.clock_24h(), uk.language()), (False, True, 'en-GB'))
             de = region(tmp, 'de')
             self.assertEqual((de.number_style(), de.percent_space()), ('comma', True))
+            self.assertEqual((region(tmp, 'zh-Hans').language(), region(tmp, 'zh-Hant').language()), ('zh-Hans', 'zh-Hant'))
+            self.assertEqual((i18n.TRANSLATIONS.resolve('zh-CN'), i18n.TRANSLATIONS.resolve('zh-TW')), ('zh-Hans', 'zh-Hant'))
+            self.assertEqual(region(tmp, 'en', language='zh-CN').language(), 'zh-Hans')
+            self.assertEqual(region(tmp, 'en', language='zh-TW').language(), 'zh-Hant')
 
     def test_a_chosen_language_and_format_win(self):
         with tempfile.TemporaryDirectory() as tmp:

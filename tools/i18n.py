@@ -87,6 +87,8 @@ def check():
     langs = languages()
     english = langs['en']
     problems, notes = [], []
+    alias_owners = {}
+    known_codes = {code.lower() for code in langs}
     base = dict(gen.flatten({k: v for k, v in english.items() if k != '_meta'}))
     drawable = font_letters()
     width = text_width()
@@ -97,6 +99,20 @@ def check():
         for field in ('name', 'english', 'script', 'plural', 'checked'):
             if field not in meta:
                 problems.append(f'{code}: _meta.{field} is missing')
+        aliases = meta.get('aliases', [])
+        if not isinstance(aliases, list):
+            problems.append(f'{code}: _meta.aliases must be a list of language codes')
+        else:
+            for alias in aliases:
+                if not isinstance(alias, str) or not re.fullmatch(r'[a-z]{2,3}(-[A-Za-z0-9]{2,8})?', alias):
+                    problems.append(f'{code}: invalid _meta.aliases entry {alias!r}')
+                    continue
+                normalized = alias.lower()
+                if normalized in known_codes and normalized != code.lower():
+                    problems.append(f'{code}: alias {alias} is already a language file code')
+                if normalized in alias_owners:
+                    problems.append(f'{code}: alias {alias} is already claimed by {alias_owners[normalized]}')
+                alias_owners[normalized] = code
         forms = FORMS.get(meta.get('plural'))
         if forms is None:
             problems.append(f'{code}: _meta.plural must be one of {", ".join(FORMS)}')

@@ -7,7 +7,7 @@ import metas from "virtual:esp-screens-languages";
 import { createI18n } from "vue-i18n";
 import english from "../../screen_manager/translations/en.json";
 
-export type LanguageMeta = { name: string; english: string; script?: string; plural: string; clock?: string; checked: boolean };
+export type LanguageMeta = { name: string; english: string; script?: string; plural: string; clock?: string; checked: boolean; aliases?: string[] };
 // A language's texts as the build hands them over: compiled, and only the page's part (not the file's own shape).
 type Texts = Record<string, unknown>;
 const en = english as unknown as Texts;
@@ -72,11 +72,15 @@ export function requestedLanguage(win: Window = window) {
   }
   return win.navigator.language || "en";
 }
-// The language of the list that fits a code best: the same one (pt-BR), else its base language (pt), else none.
+// Region aliases come from each translation's _meta, so the files remain the single source of truth.
+const LANGUAGE_ALIASES: Record<string, string> = Object.fromEntries(
+  Object.entries(META).flatMap(([code, meta]) => (meta.aliases || []).map((alias) => [alias.toLowerCase(), code])),
+);
+// The language of the list that fits a code best: exact, its script/region alias, then its base.
 export function matchLanguage(wanted: string | null | undefined, available = languages()) {
   const find = (code: string) => available.find((own) => own.toLowerCase() === code.toLowerCase());
   const code = (wanted || "").trim();
-  return code ? find(code) || find(code.split("-")[0]) : undefined;
+  return code ? find(code) || find(LANGUAGE_ALIASES[code.toLowerCase()] || "") || find(code.split("-")[0]) : undefined;
 }
 export const pickLanguage = (wanted: string | null | undefined, available = languages()) => matchLanguage(wanted, available) || "en";
 

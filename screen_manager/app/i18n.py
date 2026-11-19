@@ -26,6 +26,7 @@ CLOCKS = ('auto', '24', '12')
 NUMBERS = ('auto', 'point', 'comma', 'space')
 PLACEHOLDER = re.compile(r'\{([a-z_]+)\}')
 
+
 # Which form of a plural text ("1 hour ago | {n} hours ago") fits n; the firmware (screen_text_gen.py) and the editor
 # (web/src/i18n.ts) have the same rules, docs/TRANSLATING.md says which languages use which.
 def _slavic(n, one):
@@ -65,7 +66,7 @@ class Translations:
     """Every language file, read once."""
 
     def __init__(self, folder=FOLDER):
-        self.data, self.flat = {}, {}
+        self.data, self.flat, self.aliases = {}, {}, {}
         for path in sorted(Path(folder).glob('*.json')):
             try:
                 data = json.loads(path.read_text(encoding='utf-8'))
@@ -76,18 +77,24 @@ class Translations:
                 self.data[path.stem] = data
                 self.flat[path.stem] = {key: value for key, value in flatten({k: v for k, v in data.items() if k != '_meta'})
                                         if isinstance(value, str)}
+                for alias in data.get('_meta', {}).get('aliases', []):
+                    if isinstance(alias, str):
+                        self.aliases[alias.lower()] = path.stem
         self.data.setdefault('en', {'_meta': {'name': 'English', 'english': 'English', 'plural': 'one_other'}})
         self.flat.setdefault('en', {})
 
-    def resolve(self, code):
-        """The language ESP Screens has for `code`: the code itself (in any case), else its base (pt-BR -> pt), else English."""
+    def file_code(self, code):
+        """Return a supported canonical file code using its declared aliases and base language."""
         if not isinstance(code, str):
-            return 'en'
+            return None
         by_lower = {known.lower(): known for known in self.data}
-        for candidate in (code, code.split('-')[0]):
-            if candidate.lower() in by_lower:
+        for candidate in (code, self.aliases.get(code.lower()), code.split('-')[0]):
+            if candidate and candidate.lower() in by_lower:
                 return by_lower[candidate.lower()]
-        return 'en'
+        return None
+    def resolve(self, code):
+        """The exact language file, its Chinese alias or base, else English."""
+        return self.file_code(code) or 'en'
 
     def meta(self, code):
         """A language's `_meta`, its base language's for what a small variant file (en-GB) leaves out."""
@@ -279,7 +286,8 @@ class Region:
         self.stored = self.path.exists()
         raw = atomic.read_json(self.path, 1)
         if raw:
-            self.setting = raw.get('language') if raw.get('language') == 'auto' or raw.get('language') in self.tr.data else 'auto'
+            saved_language = raw.get('language', 'auto')
+            self.setting = 'auto' if saved_language == 'auto' else (self.tr.file_code(saved_language) or 'auto')
             self.clock = raw.get('clock') if raw.get('clock') in CLOCKS else 'auto'
             self.numbers = raw.get('numbers') if raw.get('numbers') in NUMBERS else 'auto'
             self.pinned = raw.get('pinned') is True
@@ -296,8 +304,10 @@ class Region:
         setting = data.get('setting', self.setting)
         clock = data.get('clock', self.clock)
         numbers = data.get('numbers', self.numbers)
-        if setting != 'auto' and setting not in self.tr.data:
-            raise ValueError(t('addon.errors.language_choice'))
+        if setting != 'auto':
+            setting = self.tr.file_code(setting)
+            if setting is None:
+                raise ValueError(t('addon.errors.language_choice'))
         if clock not in CLOCKS or numbers not in NUMBERS:
             raise ValueError(t('addon.errors.region_choice'))
         # The owner choosing a clock ends the pin.

@@ -91,12 +91,18 @@ describe("English", () => {
 });
 
 describe("choosing a language", () => {
-  const available = ["en", "nl", "pt-BR", "zh-Hans"];
+  const available = ["en", "nl", "pt-BR", "zh-Hans", "zh-Hant"];
   it("takes the same code, else its base language, else English", () => {
     expect(matchLanguage("nl", available)).toBe("nl");
     expect(matchLanguage("PT-br", available)).toBe("pt-BR");
     expect(matchLanguage("zh-hans", available)).toBe("zh-Hans");
     expect(matchLanguage("nl-BE", available)).toBe("nl");
+    expect(pickLanguage("zh-Hans")).toBe("zh-Hans");
+    expect(pickLanguage("zh-Hant")).toBe("zh-Hant");
+    expect(matchLanguage("zh-CN", available)).toBe("zh-Hans");
+    expect(matchLanguage("zh-TW", available)).toBe("zh-Hant");
+    expect(pickLanguage("zh-CN")).toBe("zh-Hans");
+    expect(pickLanguage("zh-TW")).toBe("zh-Hant");
     expect(matchLanguage("fr", available)).toBeUndefined();
     expect(pickLanguage("fr", available)).toBe("en");
     expect(pickLanguage("pt", available)).toBe("en");

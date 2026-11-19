@@ -1,0 +1,4998 @@
+{
+  "_meta": {
+    "name": "简体中文",
+    "english": "Chinese (Simplified)",
+    "aliases": ["zh-CN", "zh-SG", "zh-MY"],
+    "script": "han",
+    "plural": "none",
+    "clock": "24",
+    "checked": false
+  },
+  "screen": {
+    "number": {
+      "decimal": ".",
+      "group": ",",
+      "group_min": "1",
+      "percent": "%"
+    },
+    "time": {
+      "just_now": "刚刚",
+      "minutes_ago": "{n} 分钟前",
+      "hours_ago": "{n} 小时前",
+      "yesterday": "昨天",
+      "days_ago": "{n} 天前",
+      "weeks_ago": "{n} 周前",
+      "months_ago": "{n} 个月前",
+      "years_ago": "{n} 年前",
+      "in_minutes": "{n} 分钟后",
+      "in_hours": "{n} 小时后",
+      "tomorrow": "明天",
+      "in_days": "{n} 天后",
+      "am": "上午",
+      "pm": "下午"
+    },
+    "date": {
+      "weekdays": [
+        "星期日",
+        "星期一",
+        "星期二",
+        "星期三",
+        "星期四",
+        "星期五",
+        "星期六"
+      ],
+      "weekdays_short": [
+        "周日",
+        "周一",
+        "周二",
+        "周三",
+        "周四",
+        "周五",
+        "周六"
+      ],
+      "weekdays_min": [
+        "日",
+        "一",
+        "二",
+        "三",
+        "四",
+        "五",
+        "六"
+      ],
+      "months": [
+        "一月",
+        "二月",
+        "三月",
+        "四月",
+        "五月",
+        "六月",
+        "七月",
+        "八月",
+        "九月",
+        "十月",
+        "十一月",
+        "十二月"
+      ],
+      "months_short": [
+        "1月",
+        "2月",
+        "3月",
+        "4月",
+        "5月",
+        "6月",
+        "7月",
+        "8月",
+        "9月",
+        "10月",
+        "11月",
+        "12月"
+      ],
+      "top_bar": "{month}{day}日 周{weekday_min}",
+      "full": "{month}{day}日 {weekday}",
+      "day_month": "{month}{day}日",
+      "weekday_time": "{weekday} {time}"
+    },
+    "duration": {
+      "seconds": "{n} 秒",
+      "minutes": "{n} 分钟",
+      "hours": "{n} 小时",
+      "hours_minutes": "{h} 小时 {m} 分钟",
+      "days": "{n} 天",
+      "days_hours": "{d} 天 {h} 小时"
+    },
+    "status": {
+      "connecting": "正在等待 Home Assistant",
+      "waiting": "正在等待 Tessera",
+      "loading_tiles": "正在加载卡片…",
+      "preparing_pages": "正在准备页面 {n}/{total}",
+      "ha_not_connected": "HA 未连接",
+      "manager_not_active": "Tessera 未运行",
+      "choose_tiles": "在 HA 中选择卡片",
+      "home": "首页",
+      "no_network": "无网络",
+      "configuration_problem": "配置异常。\n请更新附加组件。",
+      "configuration_version": "配置异常。\n请检查屏幕与附加组件版本。",
+      "wifi_problem": "Wi-Fi 连接异常",
+      "wifi_hotspot": "连接热点 {name} 进行修复。\n密码：{password}",
+      "wifi_usb": "检查 Wi-Fi 名称与密码后，通过 USB 重新安装屏幕。",
+      "wifi_connecting": "正在连接 Wi-Fi",
+      "wifi_address": "正在获取 IP 地址",
+      "wifi_not_found": "找不到 Wi-Fi 网络",
+      "wifi_password": "Wi-Fi 密码不正确",
+      "wifi_weak": "信号过弱（{dbm} dBm）",
+      "wifi_failed": "连接失败，正在重试",
+      "loading_tiles_count": "正在加载卡片 {n}/{total}",
+      "hint_home_assistant": "Home Assistant 能通过此地址访问屏幕后，Tessera 将自动添加该屏幕。",
+      "hint_tessera": "Home Assistant 中的 Tessera Screen Manager 应用是否正在运行？",
+      "first_tiles": "选择卡片",
+      "first_tiles_open": "在 Home Assistant 中打开 Tessera",
+      "first_tiles_pick": "为 {name} 选择卡片",
+      "first_tiles_save": "点击“保存并发送”",
+      "updating": "正在更新固件 {percent}",
+      "update_restart": "更新完成，正在重启",
+      "update_failed": "更新失败",
+      "hint_key": "已拒绝来自 {address} 的连接：密钥与本屏幕不匹配。请在 Home Assistant 的 ESPHome 集成中输入本屏幕的密钥。",
+      "no_answer_title": "Home Assistant 未响应",
+      "no_answer_text": "此屏幕可能尚未获准执行 Home Assistant 操作。请前往 Home Assistant → ESPHome → 此屏幕 → 配置，启用“允许设备执行 Home Assistant 操作”。"
+    },
+    "preparing": {
+      "default": "正在排列卡片",
+      "light": "正在查看灯光状态",
+      "media": "正在整理专辑封面",
+      "camera": "正在清理摄像头镜头",
+      "climate": "正在检查温控器",
+      "weather": "正在查看窗外天气",
+      "cover": "正在查看窗帘",
+      "vacuum": "正在寻找扫地机器人",
+      "sensor": "正在读取传感器",
+      "sun": "正在追踪太阳位置",
+      "clock": "正在校准时钟",
+      "scene": "正在准备场景",
+      "switch": "正在统计开关"
+    },
+    "settings": {
+      "title": "设置",
+      "brightness": "亮度",
+      "night": "夜间",
+      "screen": "屏幕",
+      "this_screen": "此屏幕",
+      "extras": "扩展功能",
+      "microphone": "麦克风",
+      "media_player": "音量",
+      "wake_when_moved": "移动时唤醒",
+      "backlight_pwm": "背光 PWM",
+      "dimmest_level": "最低亮度",
+      "dark_mode": "深色模式",
+      "auto_standby": "自动待机",
+      "standby_after": "经过以下时间后待机",
+      "standby_brightness": "待机亮度",
+      "standby_lit": "待机时保持屏幕亮起",
+      "night_mode": "夜间模式",
+      "starts": "开始",
+      "ends": "结束",
+      "night_brightness": "夜间亮度",
+      "night_lit": "夜间保持屏幕亮起",
+      "back_to_page_1": "返回首页",
+      "after": "经过以下时间后",
+      "also_on_standby": "待机时也启用",
+      "swipe_between_pages": "滑动切换页面",
+      "page_buttons": "页面按钮",
+      "home_button": "显示首页按钮",
+      "rotation": "旋转",
+      "address": "地址",
+      "firmware": "固件",
+      "home_assistant": "Home Assistant",
+      "restart": "重启",
+      "calibrate_touch": "校准触摸屏",
+      "connected": "已连接",
+      "not_connected": "未连接",
+      "tap_again_to_restart": "再次点击以重启",
+      "tap_again_to_calibrate": "再次点击以校准",
+      "seconds": "{n} 秒",
+      "minutes": "{n} 分钟",
+      "hours": "{n} 小时",
+      "hours_minutes": "{h} 小时 {m} 分钟",
+      "wifi": "Wi-Fi",
+      "tessera": "Tessera",
+      "debug_mode": "调试模式",
+      "plugins": "插件",
+      "microphone_gain": "麦克风增益",
+      "automatic_gain": "自动增益",
+      "call_ringtone": "来电铃声",
+      "do_not_disturb": "免打扰",
+      "call_voice_switching": "通话语音切换",
+      "echo_cancellation": "回声消除",
+      "loop_pages": "循环切换页面"
+    },
+    "doorbell": {
+      "sound_on": "开启声音",
+      "sound_off": "关闭声音",
+      "door": "门",
+      "door_confirm": "再次点击开门",
+      "door_sent": "已发送",
+      "talk": "通话",
+      "tap_talk": "点击通话",
+      "talking": "正在通话",
+      "tap_stop": "点击停止",
+      "connecting": "正在连接",
+      "talk_busy": "其他人正在通话",
+      "talk_failed": "连接失败"
+    },
+    "tile": {
+      "tap_to_open": "点击打开",
+      "page": "第 {n} 页",
+      "refused": "已拒绝",
+      "command_sent": "命令已发送…",
+      "updating": "正在更新…",
+      "confirmed": "Home Assistant 已确认",
+      "no_answer": "无响应"
+    },
+    "alert": {
+      "notification": "通知",
+      "ok": "确定"
+    },
+    "light": {
+      "color": "颜色",
+      "color_temperature": "色温",
+      "brightness": "亮度",
+      "waiting": "正在等待…",
+      "presets": "预设"
+    },
+    "effects": {
+      "effect": "效果",
+      "nothing": "没有可选效果",
+      "loading": "正在加载…",
+      "not_connected": "未连接"
+    },
+    "climate": {
+      "target": "目标",
+      "mode": "模式",
+      "fan": "风扇",
+      "swing": "摆风",
+      "now": "当前 {value}"
+    },
+    "vacuum": {
+      "check_robot": "请在 HA 中检查机器人",
+      "auto_suction": "自动吸力",
+      "robot_chooses": "机器人自动决定吸力与水量",
+      "per_room": "按房间设置吸力和水量",
+      "speed_quiet": "安静",
+      "speed_balanced": "标准",
+      "speed_turbo": "强力",
+      "speed_max": "最强",
+      "pause_cleaning": "暂停清扫",
+      "pause": "暂停",
+      "resume": "继续",
+      "start_cleaning": "开始清扫",
+      "clean": "清扫",
+      "dock": "回充",
+      "stop": "停止",
+      "by_room": "按区域清扫",
+      "routines": "清扫程序",
+      "suction_water": "吸尘与拖地",
+      "pick_rooms": "选择一个或多个区域",
+      "order_hint": "并非所有扫地机器人都会遵循这一清扫顺序",
+      "no_rooms": "尚未映射区域",
+      "no_rooms_how": "请在 Home Assistant 的扫地机器人设置中，将分区映射到区域。",
+      "routines_note": "清扫程序在扫地机器人自带的应用中创建"
+    },
+    "cover": {
+      "position": "位置",
+      "tilt": "倾斜",
+      "tilt_value": "倾斜 {n}%"
+    },
+    "weather": {
+      "feels_like": "体感 {n}°",
+      "no_forecast": "Home Assistant 未提供每日天气预报",
+      "coming_days": "未来几天"
+    },
+    "history": {
+      "no_data": "暂无数据",
+      "average": "平均",
+      "average_of": "{duration} 平均值",
+      "now": "现在",
+      "range_hour": "1 小时",
+      "range_day": "24 小时",
+      "range_week": "1 周",
+      "high": "最高 {value}",
+      "low": "最低 {value}",
+      "times": "{n} 次",
+      "loading": "正在加载历史记录…",
+      "empty": "此时间段无历史记录",
+      "unavailable": "无历史记录"
+    },
+    "media": {
+      "muted": "已静音",
+      "not_playing": "未播放",
+      "loading": "加载中",
+      "library": "媒体库",
+      "choose_speaker": "选择扬声器",
+      "library_hint": "点击媒体库中的封面开始播放",
+      "library_failed": "媒体库没有响应",
+      "library_empty": "这里没有内容",
+      "starting_on": "正在通过 {speaker} 播放"
+    },
+    "timer": {
+      "running": "运行中",
+      "paused": "已暂停",
+      "stopped": "已停止",
+      "pause": "暂停",
+      "start": "开始",
+      "cancel": "取消",
+      "paused_left": "已暂停 {time}"
+    },
+    "sun": {
+      "name": "太阳",
+      "sunrise": "日出 {time}",
+      "sunset": "日落 {time}",
+      "rise": "升起 {time}",
+      "set": "落下 {time}"
+    },
+    "script": {
+      "running": "正在运行…",
+      "never_run": "从未运行",
+      "last_time": "上次 {time}",
+      "yesterday_time": "昨天 {time}",
+      "yesterday_time_short": "昨 {time}",
+      "last_date": "上次 {date}"
+    },
+    "camera": {
+      "no_image": "摄像头未提供图像",
+      "loading": "正在加载图像",
+      "live": "实时",
+      "recording": "录制中",
+      "tap_to_view": "点击查看",
+      "no_image_yet": "暂无图像"
+    },
+    "calibration": {
+      "title": "请按照向导进行校准",
+      "touch_check": "GT911 触摸检测",
+      "hold": "每次点击请稍作停留",
+      "crosshair": "点击十字准星\n第 {point}/5 个校准点 · 第 {tap}/3 次点击",
+      "gently": "请轻触并稍作停留",
+      "same": "同一个十字准星点击 3 次",
+      "rejected": "测量无效，请重试",
+      "save_failed": "保存失败，请重试"
+    },
+    "alarm": {
+      "wrong_code": "密码错误",
+      "nothing_changed": "操作未生效，请检查密码。",
+      "try_again": "请在 {time} 后重试",
+      "too_many": "密码错误次数过多",
+      "letters": "密码包含字母，请在 Home Assistant 中输入。"
+    },
+    "lock": {
+      "confirm": "确认",
+      "really_unlock": "确定解锁吗？",
+      "lock_only": "此屏幕仅支持上锁",
+      "lock_only_short": "仅上锁"
+    },
+    "ha": {
+      "on": "开",
+      "off": "关",
+      "unavailable": "不可用",
+      "climate": {
+        "off": "关闭",
+        "heat": "制热",
+        "cool": "制冷",
+        "heat_cool": "制热/制冷",
+        "auto": "自动",
+        "dry": "除湿",
+        "fan_only": "仅送风"
+      },
+      "hvac_action": {
+        "heating": "制热中",
+        "cooling": "制冷中",
+        "idle": "空闲",
+        "off": "已关闭",
+        "drying": "除湿中",
+        "fan": "风扇",
+        "preheating": "预热中",
+        "defrosting": "除霜中"
+      },
+      "cover": {
+        "open": "打开",
+        "closed": "已关闭",
+        "opening": "正在打开",
+        "closing": "正在关闭"
+      },
+      "media": {
+        "playing": "播放中",
+        "paused": "已暂停",
+        "idle": "空闲",
+        "standby": "待机"
+      },
+      "person": {
+        "home": "在家",
+        "not_home": "离家"
+      },
+      "sun": {
+        "above_horizon": "地平线上方",
+        "below_horizon": "地平线下方"
+      },
+      "vacuum": {
+        "docked": "已停靠充电座",
+        "cleaning": "清扫中",
+        "paused": "已暂停",
+        "returning": "正在返回充电座",
+        "idle": "空闲",
+        "error": "错误"
+      },
+      "weather": {
+        "sunny": "晴",
+        "clear_night": "晴朗夜间",
+        "cloudy": "阴天",
+        "partlycloudy": "多云",
+        "rainy": "雨天",
+        "pouring": "大雨",
+        "snowy": "下雪",
+        "snowy_rainy": "雨夹雪",
+        "fog": "雾",
+        "hail": "冰雹",
+        "lightning": "雷电",
+        "lightning_rainy": "雷阵雨",
+        "windy": "有风",
+        "exceptional": "异常天气"
+      },
+      "binary": {
+        "battery_on": "电量低",
+        "battery_off": "电量正常",
+        "battery_charging_on": "充电中",
+        "battery_charging_off": "未充电",
+        "carbon_monoxide_on": "已检测到",
+        "carbon_monoxide_off": "正常",
+        "cold_on": "温度低",
+        "cold_off": "温度正常",
+        "connectivity_on": "已连接",
+        "connectivity_off": "已断开",
+        "door_on": "打开",
+        "door_off": "已关闭",
+        "garage_door_on": "打开",
+        "garage_door_off": "已关闭",
+        "gas_on": "已检测到",
+        "gas_off": "正常",
+        "heat_on": "温度高",
+        "heat_off": "温度正常",
+        "light_on": "检测到光线",
+        "light_off": "无光线",
+        "lock_on": "未上锁",
+        "lock_off": "已上锁",
+        "moisture_on": "潮湿",
+        "moisture_off": "干燥",
+        "motion_on": "已检测到",
+        "motion_off": "正常",
+        "moving_on": "移动中",
+        "moving_off": "未移动",
+        "occupancy_on": "已检测到",
+        "occupancy_off": "正常",
+        "opening_on": "打开",
+        "opening_off": "已关闭",
+        "plug_on": "已插入",
+        "plug_off": "未插入",
+        "power_on": "开",
+        "power_off": "关",
+        "presence_on": "在家",
+        "presence_off": "离家",
+        "problem_on": "异常",
+        "problem_off": "正常",
+        "running_on": "运行中",
+        "running_off": "未运行",
+        "safety_on": "不安全",
+        "safety_off": "安全",
+        "smoke_on": "已检测到",
+        "smoke_off": "正常",
+        "sound_on": "已检测到",
+        "sound_off": "正常",
+        "tamper_on": "检测到拆动",
+        "tamper_off": "正常",
+        "update_on": "有可用更新",
+        "update_off": "已是最新",
+        "vibration_on": "已检测到",
+        "vibration_off": "正常",
+        "window_on": "打开",
+        "window_off": "已关闭"
+      },
+      "button": {
+        "activate": "激活",
+        "run": "运行",
+        "press": "按下"
+      },
+      "climate_fan": {
+        "auto": "自动",
+        "low": "低",
+        "medium": "中",
+        "high": "高",
+        "middle": "中间",
+        "focus": "集中",
+        "diffuse": "扩散",
+        "top": "顶部",
+        "on": "开",
+        "off": "关"
+      },
+      "climate_swing": {
+        "on": "开",
+        "off": "关",
+        "both": "两者",
+        "vertical": "垂直",
+        "horizontal": "水平"
+      },
+      "alarm": {
+        "disarmed": "已撤防",
+        "armed_home": "居家布防",
+        "armed_away": "离家布防",
+        "armed_night": "夜间布防",
+        "armed_vacation": "假期布防",
+        "armed_custom_bypass": "自定义旁路布防",
+        "pending": "等待中",
+        "arming": "正在布防",
+        "disarming": "正在撤防",
+        "triggered": "已触发"
+      },
+      "lock": {
+        "locked": "已上锁",
+        "unlocked": "已解锁",
+        "locking": "正在上锁",
+        "unlocking": "正在解锁",
+        "open": "打开",
+        "opening": "正在打开",
+        "jammed": "卡住"
+      },
+      "alarm_mode": {
+        "armed_home": "居家",
+        "armed_away": "离家",
+        "armed_night": "夜间",
+        "armed_vacation": "假期",
+        "armed_custom_bypass": "自定义",
+        "disarmed": "已撤防"
+      },
+      "alarm_action": {
+        "disarm": "撤防",
+        "arm_home": "居家布防",
+        "arm_away": "离家布防",
+        "arm_night": "夜间布防",
+        "arm_vacation": "假期布防",
+        "arm_custom_bypass": "自定义旁路",
+        "enter_code": "输入密码"
+      },
+      "lock_action": {
+        "lock": "上锁",
+        "unlock": "解锁",
+        "open": "打开",
+        "open_door": "开门",
+        "open_door_confirm": "确定开门吗？"
+      },
+      "humidifier_mode": {
+        "normal": "正常",
+        "eco": "节能",
+        "away": "离家",
+        "boost": "增强",
+        "comfort": "舒适",
+        "home": "居家",
+        "sleep": "睡眠",
+        "auto": "自动",
+        "baby": "婴儿"
+      },
+      "humidifier_action": {
+        "humidifying": "加湿中",
+        "drying": "除湿中",
+        "idle": "空闲",
+        "off": "关"
+      },
+      "today": "今天",
+      "weather_view": {
+        "daily": "每日",
+        "hourly": "每小时"
+      },
+      "weather_attribute": {
+        "humidity": "湿度",
+        "wind_speed": "风速",
+        "air_pressure": "气压",
+        "visibility": "能见度"
+      },
+      "wind_direction": {
+        "n": "北",
+        "nne": "北东北",
+        "ne": "东北",
+        "ene": "东东北",
+        "e": "东",
+        "ese": "东东南",
+        "se": "东南",
+        "sse": "南东南",
+        "s": "南",
+        "ssw": "南西南",
+        "sw": "西南",
+        "wsw": "西西南",
+        "w": "西",
+        "wnw": "西西北",
+        "nw": "西北",
+        "nnw": "北西北"
+      }
+    },
+    "navigation": {
+      "back": "返回"
+    },
+    "energy": {
+      "solar": "太阳能",
+      "grid": "电网",
+      "battery": "电池",
+      "home": "家庭",
+      "other": "其他",
+      "untracked": "未追踪",
+      "no_power": "Home Assistant 能源设置中没有功率传感器"
+    },
+    "plugin": {
+      "missing": "缺少插件"
+    },
+    "calendar": {
+      "free": "空闲",
+      "busy": "忙碌",
+      "starts_soon": "即将开始",
+      "private": "忙碌",
+      "all_day": "全天",
+      "today": "今天",
+      "tomorrow": "明天",
+      "nothing": "暂无安排",
+      "nothing_more": "本周没有其他安排",
+      "until": "直到 {x}",
+      "next": "下一项 {x}",
+      "left": "剩余 {x}",
+      "in": "{x} 后",
+      "more": "还有 {x} 项",
+      "earlier": "之前还有 {x} 项",
+      "later": "之后还有 {x} 项",
+      "more_week": "本周还有 {x} 项",
+      "days_view": "{x} 天",
+      "views": [
+        "接下来",
+        "日",
+        "周",
+        "月"
+      ],
+      "view_notes": [
+        "当前及接下来的日程",
+        "查看单日，点击日期条选择",
+        "按天并排、按小时排列",
+        "浏览整月，点击打开某一天"
+      ],
+      "today_key": "今天",
+      "booking": "正在预约…",
+      "calendars": "日历",
+      "also": "当前还有 {x} 项",
+      "booked": "已在屏幕上预约"
+    },
+    "todo": {
+      "open": "{x} 项未完成",
+      "all_done": "全部完成",
+      "more": "还有 {x} 项",
+      "completed": "已完成",
+      "add": "添加项目",
+      "added": "已添加 {x} 项",
+      "rename": "重命名",
+      "remove": "移除",
+      "cancel": "取消",
+      "clear": "移除 {x} 个已完成项目？",
+      "waiting": "加载中",
+      "empty": "列表为空",
+      "yesterday": "昨天"
+    },
+    "call": {
+      "title": "通话",
+      "calling": "正在呼叫",
+      "calling_video": "正在发起视频通话",
+      "video": "视频通话",
+      "audio": "通话",
+      "decline": "拒接",
+      "answer": "接听",
+      "ended": "通话结束",
+      "declined": "已拒接",
+      "busy": "正在其他通话中",
+      "no_answer": "无响应",
+      "quiet": "免打扰",
+      "gone": "无法联系",
+      "available": "可用",
+      "sound_only": "仅支持语音",
+      "in_call": "通话中",
+      "offline": "离线",
+      "missed_at": "未接来电",
+      "no_screens": "没有其他可呼叫的屏幕"
+    }
+  },
+  "addon": {
+    "errors": {
+      "language_choice": "请从列表中选择语言。",
+      "region_choice": "请从列表中选择时间格式与数字格式。",
+      "open_through_ha": "请通过 Home Assistant 打开此页面。",
+      "refresh_page": "请刷新页面后重试。",
+      "ha_refused": "Home Assistant 拒绝了此操作：{reason}。",
+      "ha_refused_change": "Home Assistant 拒绝了此更改：{reason}。",
+      "no_reason": "未提供原因",
+      "ha_unreachable": "当前无法连接 Home Assistant，请稍后重试。",
+      "too_large": "请求内容过大。",
+      "invalid_input": "输入无效，请检查名称、开发板与所选卡片。",
+      "unknown_screen": "未知屏幕。",
+      "not_paired": "此 ESP 屏幕尚未配对，请刷新概览。",
+      "choose_icon": "请从列表中选择图标。",
+      "skill_not_written": "无法将技能写入 {folder}（{reason}）。",
+      "settings": {
+        "unknown": "未知屏幕设置，请刷新管理页面。",
+        "invalid_value": "{setting} 的值无效。",
+        "dim_above_normal": "待机与夜间亮度不能高于正常亮度。",
+        "offline": "屏幕离线，恢复在线后才能修改设置。",
+        "unavailable": "暂时无法修改 {names}：实体在 Home Assistant 中已关闭，或屏幕正在重启。",
+        "rotation": "旋转屏幕需要固件 {version} 或更高版本。",
+        "rotation_quarter": "只有方形屏幕支持旋转 90°；此屏幕只能旋转 180°。"
+      },
+      "layout": {
+        "invalid": "布局无效。",
+        "title": "屏幕标题最多可输入 96 字节。",
+        "page_title": "页面标题最多可输入 96 字节。",
+        "page_titles": "一块屏幕最多可有 {n} 个页面。",
+        "tiles_max": "最多选择 {n} 张卡片。",
+        "unsupported": "不支持此实体。",
+        "once": "每台屏幕只能添加一个床头时钟。",
+        "tile_name": "卡片名称最多可输入 80 字节。",
+        "unknown_settings": "未知卡片设置。",
+        "navigation_size": "导航卡片宽度只能为单列或双列。",
+        "background": "请从调色板中选择一种柔和的背景颜色。",
+        "invalid_setting": "无效的卡片设置：{setting}",
+        "no_toggle": "此实体不支持开关操作。",
+        "builtin_action": "内置卡片无法执行操作。",
+        "no_mini_slider": "此实体不支持迷你滑块。",
+        "history_hours": "历史记录时长可选择 1、6 或 24 小时。",
+        "refresh": "实时画面：刷新间隔可选 5、10、15 或 30 秒。",
+        "watch_or_slider": "请选择“大号数值”或“迷你滑块”。",
+        "no_direct_control": "此实体不支持该直接控制。",
+        "position": "卡片位置无效，请刷新管理页面。",
+        "full_page_top": "整页卡片必须从页面顶部开始。",
+        "wide_left": "双列卡片必须从左列开始。",
+        "same_spot": "两个卡片位置重叠。",
+        "pages": "一块屏幕可有 1～{n} 个页面。",
+        "eight_pages": "这些卡片无法放入屏幕现有页面。请移除部分卡片或缩小卡片尺寸。",
+        "camera_unsupported": "此屏幕无法显示摄像头图像。",
+        "map_unsupported": "此屏幕无法显示地图。",
+        "map_entities": "地图最多可显示 {n} 位人员及追踪器，每个仅出现一次，此外还会显示卡片自身对应的人员。",
+        "firmware_first": "使用这些卡片前，请先升级屏幕固件至 {version} 或更新版本。",
+        "entity_gone": "所选实体已不存在，请查找新的实体。",
+        "ids_too_long": "这些卡片的实体 ID 总长度超出屏幕单条消息的容量，请移除部分卡片。",
+        "favorite_play": "请选择此收藏卡片要播放的内容。",
+        "text_template": "模板卡片需要填写模板，长度不超过 4000 个字符。"
+      },
+      "top_bar": {
+        "invalid": "顶部栏配置无效，请刷新管理页面。",
+        "full": "顶部栏最多容纳 {n} 个项目。",
+        "invalid_setting": "顶部栏中存在无效设置。",
+        "unknown_setting": "顶部栏存在未知设置，请刷新管理页面。",
+        "entity": "此实体无法放入顶部栏。",
+        "unknown_item": "顶部栏存在未知项目，请刷新管理页面。",
+        "twice": "该项目已添加到顶部栏。",
+        "entity_gone": "顶部栏中的某个实体已不存在，请选择其他实体。"
+      },
+      "tap_action": {
+        "choose": "请从列表中选择一个操作。",
+        "fields_max": "一次点击操作最多可设置 {n} 个字段。",
+        "field_not_allowed": "点击操作不允许设置字段 {field}。",
+        "unsendable": "操作中包含屏幕无法发送的参数值。",
+        "too_long": "操作参数过长，超过了屏幕可接收的长度限制。"
+      },
+      "events": {
+        "none_paired": "尚无配对屏幕",
+        "name_the_screen": "请指定屏幕名称。已配对屏幕：{screens}。",
+        "no_such_screen": "未找到名为“{name}”的屏幕。已配对屏幕：{screens}。",
+        "several_screens": "“{name}”匹配了多块屏幕：{screens}。",
+        "name_the_entity": "请指定实体名称。",
+        "not_for_a_screen": "{entity} 不能添加到屏幕。",
+        "not_on_screen": "{entity} 不在此屏幕上。",
+        "add_it_first": "{entity} 尚未添加到此屏幕，请先添加。",
+        "key_stays": "{entity} 位于床头时钟下方，请在编辑器中将其移到对应位置。",
+        "not_on_spot": "{entity} 不在位置 {slot}。",
+        "not_on_page": "{entity} 不在第 {page} 页。",
+        "move_where": "请指定要移至的页面或位置。",
+        "spot_taken": "该位置已被 {entity} 占用，请选择其他位置，或先移动该实体。",
+        "page_not_empty": "第 {page} 页不为空。全屏卡片需要独占一个页面。",
+        "no_empty_page": "所有页面都不为空。全屏卡片需要独占一个页面。",
+        "page_full": "第 {page} 页已满。",
+        "no_room": "此屏幕没有剩余空间。",
+        "screen_full": "此屏幕已有 {n} 张卡片，请先移除一张。",
+        "page_range": "请选择第 1 至 {last} 页。",
+        "spot_range": "请选择 0 至 {last} 之间的位置。",
+        "row_needs_page": "请指定该行或该列所在的页面。",
+        "row_range": "请选择第 1 至 {last} 行。",
+        "column": "列只能指定为左侧或右侧。",
+        "column_range": "请选择 1 至 {last} 之间的列；最左列为第一列，最右列为最后一列。",
+        "full_page_alone": "全页卡片已占满第 {page} 页，无法再放入其他卡片。",
+        "does_not_fit": "无法放入第 {page} 页：双列卡片需要占用两个位置。",
+        "size": "此屏幕不支持尺寸为 {size} 的卡片，可用尺寸：{sizes}。",
+        "order_needed": "请按所需顺序提供实体列表。",
+        "order_not_on_screen": "以下实体不在此屏幕上：{entities}。",
+        "order_not_on_page": "以下实体不在第 {page} 页：{entities}。请先将它们移到该页。",
+        "named_too_often": "以下实体在命令中出现的次数超过其在屏幕上的数量：{entities}。",
+        "named_too_often_page": "以下实体在命令中出现的次数超过其在第 {page} 页上的数量：{entities}。"
+      },
+      "home_assistant": {
+        "action_not_offered": "Home Assistant 不支持对 {name} 执行 {action}，请从列表中选择其他操作。",
+        "action_answers_only": "{action} 只返回数据，而屏幕无法显示此类操作的返回结果。",
+        "no_such_field": "Home Assistant 中的 {name} 对应操作 {action} 没有字段 {field}。",
+        "field_needed": "操作 {action} 需要填写字段 {field}。",
+        "no_on_off": "Home Assistant 无法开关 {name}，因此“开/关”操作不会生效，请选择其他点击操作。",
+        "no_small_slider": "Home Assistant 没有可供迷你滑块调整的 {name} 属性。",
+        "no_graph": "{name} 没有可用于绘制图表的数值数据。",
+        "no_forecast": "Home Assistant 中的 {name} 没有每日天气预报。",
+        "no_meter": "{name} 没有可用于仪表盘显示的数值数据。",
+        "no_control": "Home Assistant 不支持对 {name} 进行此类直接控制。"
+      },
+      "alerts": {
+        "invalid": "提醒配置无效。",
+        "cannot_show": "{name} 无法显示提醒：{reason}。",
+        "no_device_name": "设备名称未知",
+        "offline": "离线",
+        "firmware": "固件 {version}",
+        "unknown_version": "未知",
+        "not_ready": "未就绪"
+      },
+      "firmware": {
+        "board_and_name": "请选择开发板并填写唯一设备名称（仅小写字母、数字和连字符，最多 30 个字符）。",
+        "choice": "请选择该开发板支持的选项。",
+        "friendly_name": "请为屏幕设置一个易辨认的名称（最多 60 个字符）。",
+        "choose_profile": "请选择现有的 YAML 配置文件。",
+        "profile_missing": "ESPHome 文件夹中不存在该配置文件。",
+        "secrets_invalid": "ESPHome 文件夹中的 secrets.yaml 不是有效的 YAML。请先修复该文件，系统不会覆盖它。",
+        "wifi_needed": "请填写 Wi-Fi 名称和密码，它们将保存到 ESPHome 的 secrets.yaml 中。",
+        "wifi_not_set": "无法将 Wi-Fi 信息写入 secrets.yaml，请手动设置 wifi_ssid 和 wifi_password。",
+        "name_exists": "此名称已存在。更新设备时请使用现有配置文件。",
+        "name_taken": "另一块屏幕已经使用设备名称 {name}。Home Assistant 无法区分同名设备，请为此屏幕使用唯一名称。",
+        "friendly_taken": "另一块屏幕已命名为 {name}。Home Assistant 可能为其实体名称自动编号，导致自动化指向错误屏幕。请使用其他名称。",
+        "override_exists": "此名称已有本地覆盖配置。请先恢复或移除覆盖配置，再以此名称创建新屏幕。",
+        "override_symlink": "本地覆盖配置是符号链接，请先将其替换为普通文件。",
+        "other_include": "此配置文件已引用其他 local_overrides 文件。",
+        "profile_invalid": "屏幕配置文件不是有效的 YAML，请先修复再添加覆盖配置。",
+        "no_packages": "此配置文件没有可供 Tessera 扩展的 packages 配置段。",
+        "override_invalid": "覆盖配置数据无效。",
+        "yaml_needed": "请先输入 YAML 内容。",
+        "override_too_large": "覆盖配置太大，请控制在 12 KB 以内。",
+        "yaml_error_line": "YAML 第 {line} 行出错：{problem}。",
+        "yaml_error": "YAML 错误：{problem}。",
+        "invalid_yaml": "无效 YAML",
+        "override_object": "覆盖配置必须是 YAML 对象，例如包含 display: 或 substitutions:。",
+        "sections_managed": "以下配置段由 Tessera 管理：{names}。",
+        "substitutions_managed": "以下替换变量由 Tessera 管理：{names}。",
+        "substitutions_in_profile": "{names} 已在此屏幕自身的 YAML（“新建屏幕”时选择）中设置，优先级高于覆盖配置。请在原 YAML 中修改。",
+        "orientation": "请选择屏幕横向还是纵向安装。",
+        "orientation_managed": "屏幕安装方向应在编辑器页面旁的“网格”选项中，或在创建屏幕时的“新建屏幕”中指定，因此 LVGL_ROTATION 仍由 Tessera 管理。",
+        "usb_port": "请从列表中选择已连接的 USB 端口。",
+        "busy_wait": "已有构建或安装任务正在运行，请等待完成。",
+        "busy": "已有构建或安装任务正在运行。",
+        "no_esphome": "当前安装中缺少 ESPHome CLI。",
+        "still_building": "固件仍在构建中，请在构建完成后下载。",
+        "build_first": "请先构建固件，完成后才会显示下载选项。",
+        "unknown_action": "未知固件操作。",
+        "host": "请输入目标屏幕的 IP 地址或主机名。",
+        "grid": "请选择此屏幕支持的网格。",
+        "build_gone": "找不到此构建任务。最新构建可在“固件与 USB”中查看。"
+      },
+      "updates": {
+        "automatic": "请选择开启或关闭自动更新。",
+        "busy": "已有更新任务正在运行，请等待完成。",
+        "unknown_screen": "未知屏幕，请刷新概览。",
+        "offline": "此屏幕已离线，重新上线后才能更新。",
+        "latest": "此屏幕已安装最新固件。",
+        "enter_ip": "请输入此屏幕的 IP 地址。",
+        "no_profile": "未找到此屏幕的 ESPHome 配置文件。请检查 ESPHome 文件夹中的名称。",
+        "ip_unknown": "IP 地址未知。只需手动填写一次，后续新固件会自动上报。",
+        "all_updated": "所有可连接的屏幕都已更新。",
+        "reinstall_dev": "只有开发通道允许重新安装相同版本的固件。",
+        "all_on_the_way": "所有需要更新的屏幕都已在更新队列中。",
+        "nothing_to_reinstall": "目前没有可重新安装固件的屏幕：它们可能已离线、正在更新，或在此应用中找不到对应配置文件。"
+      },
+      "remove": {
+        "not_allowed": "此应用无权从 Home Assistant 移除集成。请前往 Home Assistant“设置 → 设备与服务”移除屏幕。",
+        "gone": "Home Assistant 中已不存在此屏幕。",
+        "no_entry": "此屏幕未作为 ESPHome 设备添加到 Home Assistant，因此只能从 Home Assistant 中手动移除。"
+      },
+      "calibrate": {
+        "no_wizard": "{name} 无需校准：其触摸面板可直接报告触摸坐标。",
+        "offline": "{name} 已离线，请在重新上线后开始校准。"
+      },
+      "editor_reload": "请刷新编辑器后再保存，当前标签页使用的是旧版布局格式。",
+      "pages": {
+        "footprint": "此卡片占用的网格尺寸需要未来版本的屏幕功能支持。",
+        "pages_full": "此屏幕已无法添加更多页面",
+        "page_missing": "页面已不存在",
+        "tile_missing": "卡片已不存在",
+        "home_invalid": "首页必须是现有页面。",
+        "identity": "实例 ID 无效或重复",
+        "navigation": "页面导航设置无效。",
+        "arrangement": "重新排列卡片时必须保留所有现有卡片。",
+        "order": "页面顺序无效",
+        "delete": "无法删除此页面",
+        "size": "不支持此卡片尺寸",
+        "adapt_pages": "布局页数超出目标屏幕支持的上限",
+        "adapt_full": "该页面的卡片数量超过目标网格容量。未移除任何卡片。",
+        "select_link": "请选择页面导航卡片以修改目标页面。",
+        "import_grid": "旧版导出文件没有记录网格信息。是否按每页 {columns} × {rows} 格导入？",
+        "source_grid": "无法确定来源网格，请先连接此屏幕。",
+        "migration_pending": "请先完成此屏幕待处理的布局迁移，再进行编辑或更新。",
+        "migration_unreadable": "无法读取旧布局。请恢复备份，或为此屏幕重新创建布局。",
+        "storage_json": "保存的 JSON 数据无效，原始数据未更改。",
+        "storage_duplicate": "保存的 JSON 中存在重复的键。",
+        "storage_nonfinite": "保存的 JSON 中含有非有限数值。",
+        "backup_conflict": "布局迁移备份存在冲突，原始数据未更改。",
+        "storage_version": "未知的数据存储版本，原始数据未更改。",
+        "storage_record": "保存的屏幕记录无效。",
+        "storage_metadata": "布局迁移恢复元数据无效。",
+        "fields": "页面配置包含无效或不受支持的字段。",
+        "workspace_refs": "工作区引用无效。",
+        "workspace_position": "工作区位置无效。",
+        "workspace_conflict": "工作区已被其他编辑器修改。",
+        "layout_conflict": "布局已被其他编辑器修改，请重新加载并处理草稿冲突。",
+        "adaptation": "屏幕网格已变化，必须手动适配布局。",
+        "normalization": "保存页面文档前需要规范化卡片选项。",
+        "on_tile": "第 {page} 页，卡片“{tile}”：{problem}",
+        "ambiguous_tile": "无法确定卡片事件的来源，请指定所在页面。",
+        "save_first": "请先保存页面文档，再保存文档设置。",
+        "destination_exists": "目标屏幕已有保存的布局",
+        "update_tall": "请更新屏幕固件以支持这些卡片尺寸。",
+        "memory": "屏幕可用内存不足以加载此布局，请减少卡片数量。",
+        "grid_range": "此屏幕不支持该网格尺寸，请在预览图旁选择其他网格。",
+        "section_title": "分区名称最多 48 字节。",
+        "section_tiles": "分区内的卡片必须位于其边界内，占满全页的卡片不能加入分区。",
+        "section_overlap": "分区与未分组卡片不能占用同一个网格单元。",
+        "sections_full": "每个页面最多支持 16 个分区。"
+      },
+      "feedback": {
+        "invalid": "无法提交此反馈。请选择“是”或“不完全是”，且仅选择列表中提供的问题。",
+        "comment": "备注不得超过 1000 个字符。",
+        "unknown_board": "目前尚不支持对此开发板提供反馈。",
+        "deleting": "之前提交的反馈仍在删除中，请完成后再提交。",
+        "storage": "反馈功能不可用：保存的数据来自另一版本的 Tessera。"
+      },
+      "media": {
+        "browse": "{name} 未能返回媒体库内容。",
+        "link_invalid": "这不是 Spotify 链接。请在 Spotify 应用中选择“分享 → 复制链接”。",
+        "link_short": "spotify.link 是短链接。请在浏览器中打开并复制跳转后的完整链接。",
+        "link_player": "{name} 不支持播放 Spotify 链接。"
+      },
+      "allow_actions": {
+        "not_allowed": "Home Assistant 不允许此应用修改集成。请前往“设置 → 设备与服务”手动操作。",
+        "no_entry": "Home Assistant 中没有此屏幕对应的 ESPHome 设备。",
+        "failed": "Home Assistant 未接受此更改。请打开“设置 → 设备与服务 → ESPHome”，选择此屏幕并点击“配置”，开启“允许设备执行 Home Assistant 操作”。"
+      },
+      "plugins": {
+        "request": "插件请求不完整。",
+        "unknown": "插件 {id} 不存在。",
+        "misfit_api": "{name} 是按另一套插件 API 编写的，与当前 Tessera 附加组件不兼容。",
+        "misfit_board": "{name} 适用于其他开发板。",
+        "misfit_psram": "{name} 需要带 PSRAM 的开发板。",
+        "misfit_blocked": "{name} 已被禁用：此版本已知存在危险或严重故障。",
+        "firmware": "此屏幕当前固件还不支持插件。更新固件后才会显示插件卡片。",
+        "file": "插件配置文件无效。",
+        "other_include": "此屏幕的 YAML 已引用其他 tessera_plugins 配置文件。",
+        "link_invalid": "这不是有效的 GitHub 仓库链接（格式：https://github.com/owner/repository）。",
+        "link_not_found": "未找到插件：可能没有发布版本，或目录中缺少 tessera-plugin.yaml。",
+        "link_rate": "GitHub 当前未响应，可能触发了每小时请求次数限制，请稍后重试。",
+        "folder": "插件目录 tessera-plugins 中的 {folder} 尚不是有效插件：{why}",
+        "manifest": "插件描述文件无效：{why}",
+        "consent": "{name} 请求了与之前不同的权限。请先查看新权限并同意，然后再更新。",
+        "requires_unknown": "{name} 依赖插件 {other}，但插件列表中没有该插件。",
+        "requires_misfit": "{name} 依赖 {other}，但它不兼容此屏幕。",
+        "feature_missing": "{name} 需要功能 {feature}，但没有适用于此屏幕的插件能够提供它。",
+        "feature_conflict": "每块屏幕只能有一个 {feature}，但 {names} 均尝试提供此功能。",
+        "needed_by": "{others} 依赖 {name}，需要一起移除。",
+        "choose": "请选择由哪个插件为 {name} 提供 {feature}。",
+        "other_origin": "此屏幕已运行来自 {origin} 的同名插件 {name}。请在详情中切换到当前来源。",
+        "misfit_esphome": "{name} 需要 ESPHome {version} 或更新版本才能构建。",
+        "like_consent": "请先同意将你的点赞计入公开统计。",
+        "like_off": "点赞功能已关闭：此功能需要更新版本的附加组件。",
+        "like_failed": "无法提交点赞，请稍后重试。",
+        "misfit_built_in": "{name} 提供的功能已内置于此开发板。",
+        "offline": "附加组件暂时不知道 {screen} 在网络中的地址。请打开该屏幕，等待它显示在线后重试。",
+        "like_not_listed": "只能为 Tessera 插件目录中的插件点赞。",
+        "rate_not_installed": "请先在至少一块屏幕上安装此插件，然后才能评分。",
+        "rate_failed": "无法提交评分，请稍后重试。",
+        "count_failed": "无法关闭使用量统计：当前无法连接 Tessera，请稍后重试。",
+        "forget_running": "仍有屏幕正在运行此插件，请先从屏幕中卸载。"
+      },
+      "extras": {
+        "request": "此屏幕不支持修改该扩展选项。"
+      },
+      "display_precision_unregistered": "此传感器没有唯一 ID，因此 Home Assistant 不保存其设置；显示精度只能在 YAML 中调整。",
+      "build_server": {
+        "host": "请输入构建服务器的 IP 地址或主机名。",
+        "port": "端口必须为 1 至 65535 的数字。构建服务器默认监听 6055 端口。",
+        "unreachable": "该地址没有响应。请确认构建服务器正在运行、能为其他设备构建固件，并检查防火墙是否放行 6055 端口。",
+        "protocol": "该地址有服务响应，但它不是 Tessera 能够通信的 ESPHome 编译服务器。",
+        "preview_first": "请先查询构建服务器，再核对其指纹。",
+        "no_window": "构建服务器当前不接受新设备配对。请开启“配对请求”后重试。",
+        "no_window_key": "构建服务器未接受该配对密钥。请检查密钥，或重新启动服务器以生成新密钥。",
+        "rejected": "构建服务器拒绝配对。",
+        "mismatch": "构建服务器返回的指纹与之前确认的不一致，请重新查询。",
+        "not_paired": "请先配对构建服务器。",
+        "unknown": "构建服务器已不再识别 Tessera，请重新配对。",
+        "pending": "构建服务器尚未接受 Tessera 的配对请求。"
+      },
+      "build_files": {
+        "automatic": "自动清理只能设置为开启或关闭。",
+        "level": "请选择要删除的构建文件类型。",
+        "cleaning": "构建文件已在清理中。",
+        "building": "当前有屏幕正在编译或等待编译，请在全部编译结束后再清理构建文件。"
+      },
+      "video": {
+        "not_written": "无法将 Tessera 视频组件写入 {folder}：{reason}。",
+        "not_installed": "请先安装 Tessera 视频集成。"
+      },
+      "report": {
+        "depth": "请选择基础报告或完整报告。",
+        "busy": "此屏幕的诊断报告仍在收集中。",
+        "no_profile": "此屏幕的 YAML 不在当前附加组件的 ESPHome 文件夹中，因此无法在此生成报告。",
+        "not_found": "该报告已不存在，请重新生成。",
+        "not_ready": "报告尚未生成完毕。",
+        "failed": "报告收集已中断（{reason}），请重试。",
+        "consent": "请勾选复选框以发送报告。",
+        "note": "备注不得超过 2000 个字符。",
+        "email": "电子邮箱地址格式似乎不正确。",
+        "too_large": "报告过大，无法发送。请下载报告并作为附件提交到 GitHub Issue。",
+        "retry": "Tessera 暂时未能接收报告，请稍后重试，或下载报告。",
+        "offline": "当前无法连接 Tessera，请改为下载报告。",
+        "invalid": "Tessera 拒绝接收该报告。请下载后作为附件提交到 GitHub Issue。"
+      },
+      "automations": {
+        "not_allowed": "Home Assistant 不允许此附加组件保存自动化。请使用具有管理员权限的账户。",
+        "refused": "Home Assistant 拒绝保存此自动化：{reason}",
+        "not_ours": "此自动化不是由 Tessera 创建的，因此不会修改。",
+        "invalid": "无法保存此自动化（{part}）。"
+      },
+      "icons": {
+        "request": "提交的数据不是图标列表。",
+        "too_many": "每块屏幕最多可添加 {most} 个自定义图标。"
+      }
+    },
+    "status": {
+      "first_tiles": "选择第一批卡片",
+      "saved": "已保存，等待同步",
+      "applying": "正在应用布局",
+      "applied": "布局已应用",
+      "firmware_needed": "布局已保存，这些卡片需要固件 {version} 或更高版本",
+      "too_large": "布局已保存，但内容超过单条屏幕消息的大小限制，请移除部分卡片。",
+      "sent": "已发送至 Home Assistant",
+      "offline": "屏幕离线，更改已保存",
+      "retrying": "发送失败，正在自动重试",
+      "screen": {
+        "synced": "已同步",
+        "loading_tiles": "正在加载卡片",
+        "layout_received": "已收到布局",
+        "resend_needed": "需要重新发送",
+        "ready": "已准备好配置卡片",
+        "error": "错误：{reason}"
+      }
+    },
+    "updates": {
+      "offline": "屏幕离线，将在下次重试。",
+      "unknown_target": "配置文件或 IP 地址未知，请手动更新屏幕。",
+      "build_failed": "构建或安装失败，请查看“固件与 USB”中的日志。",
+      "plugin_update_needed": "{name} 与当前固件不兼容，无法构建。请先在“插件”页面将 {name} 更新到 {version}，然后重新更新屏幕。",
+      "plugin_failed": "{name} {version} 与此固件无法一起构建，目前也没有更新的插件版本。请在“插件”页面移除 {name}，再更新屏幕；详情见“固件与 USB”中的日志。",
+      "build_memory": "构建固件的内存不足：需要约 {need} 可用内存，目前只有 {free}。请暂时停止一些附加组件或增加内存，详情见“固件与 USB”。",
+      "build_memory_limit": "即使只运行一个编译任务，构建固件的内存仍不足。请暂时停止一些附加组件或增加内存，详情见“固件与 USB”。",
+      "no_report": "屏幕未上报固件版本 {version}，请检查设备。",
+      "dropped_off": "更新后屏幕失去连接，请检查设备。",
+      "updated": "已更新至固件 {version}。"
+    },
+    "notify": {
+      "update_stopped": "自动更新在 {name} 处停止：{reason}。其余屏幕未作更改。"
+    },
+    "labels": {
+      "built_into_screen": "屏幕内置",
+      "backgrounds": {
+        "auto": "默认",
+        "none": "无",
+        "red": "红色",
+        "orange": "橙色",
+        "yellow": "黄色",
+        "green": "绿色",
+        "mint": "薄荷绿",
+        "blue": "蓝色",
+        "purple": "紫色",
+        "pink": "粉色",
+        "gray": "灰色"
+      },
+      "controls": {
+        "none": "无",
+        "climate": {
+          "setpoint": "温度 − / +",
+          "mode": "模式按钮",
+          "setpoint_mode": "温度 − / + 与模式按钮"
+        },
+        "switch": {
+          "toggle": "开关"
+        },
+        "input_boolean": {
+          "toggle": "开关"
+        },
+        "automation": {
+          "toggle": "开关",
+          "run": "运行按钮"
+        },
+        "light": {
+          "toggle": "开关",
+          "brightness": "亮度滑块",
+          "presets": "预设",
+          "brightness_presets": "亮度滑块与预设"
+        },
+        "fan": {
+          "toggle": "开关",
+          "speed": "速度滑块"
+        },
+        "vacuum": {
+          "buttons": "开始、停止、回充",
+          "map": "地图",
+          "rooms": "可选房间",
+          "routines": "清扫程序",
+          "map_rooms": "地图与房间"
+        },
+        "cover": {
+          "buttons": "打开、停止、关闭",
+          "position": "位置滑块",
+          "tilt": "叶片角度",
+          "buttons_tilt": "打开、停止、关闭与叶片角度",
+          "position_tilt": "位置与叶片角度"
+        },
+        "media_player": {
+          "volume": "音量与静音控制",
+          "playback": "上一首、播放/暂停、下一首",
+          "volume_playback": "音量与上一首、播放/暂停、下一首"
+        },
+        "number": {
+          "stepper": "数值 − / +",
+          "slider": "滑块"
+        },
+        "input_number": {
+          "stepper": "数值 − / +",
+          "slider": "滑块"
+        },
+        "select": {
+          "stepper": "上一选项 / 下一选项"
+        },
+        "input_select": {
+          "stepper": "上一选项 / 下一选项"
+        },
+        "timer": {
+          "buttons": "开始/暂停与取消"
+        },
+        "scene": {
+          "run": "激活按钮"
+        },
+        "script": {
+          "run": "运行按钮"
+        },
+        "button": {
+          "run": "按下按钮"
+        },
+        "input_button": {
+          "run": "按下按钮"
+        },
+        "remote": {
+          "toggle": "开关"
+        },
+        "humidifier": {
+          "setpoint": "湿度 − / +",
+          "slider": "湿度滑块",
+          "mode": "模式按钮",
+          "setpoint_mode": "湿度 − / + 与模式按钮",
+          "toggle": "开关"
+        }
+      },
+      "top_bar": {
+        "builtin": {
+          "clock": "时间",
+          "analog": "模拟时钟",
+          "date": "日期",
+          "wifi": "Wi-Fi 信号",
+          "link": "连接警告",
+          "battery": "电池"
+        },
+        "contents": {
+          "state": "状态",
+          "last_changed": "上次变化",
+          "icon": "仅图标"
+        },
+        "shows": {
+          "always": "始终",
+          "active": "仅活动时"
+        },
+        "suggestions": {
+          "temperature": "温度",
+          "humidity": "湿度",
+          "power": "功耗",
+          "motion": "上次活动",
+          "weather": "天气",
+          "people_home": "在家人数",
+          "sun": "日出与日落",
+          "co2": "CO₂"
+        },
+        "wifi_contents": {
+          "icon": "仅图标",
+          "percent": "百分比",
+          "dbm": "dBm"
+        },
+        "wifi_shows": {
+          "always": "始终",
+          "weak": "仅信号弱时"
+        },
+        "battery_contents": {
+          "icon": "仅图标",
+          "percent": "百分比"
+        },
+        "plugin_contents": {
+          "all": "图标与文字",
+          "icon": "仅图标"
+        },
+        "battery_shows": {
+          "always": "始终",
+          "low": "仅在电量低时显示"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "麦克风",
+          "hint": "关闭后，所有使用麦克风的功能都会静音；重启后仍保留此设置。"
+        },
+        "media_player": {
+          "label": "音量",
+          "hint": "调节屏幕语音回答、通知和音乐的音量，与 Home Assistant 中该屏幕媒体播放器的音量一致。"
+        },
+        "wake_when_moved": {
+          "label": "移动时唤醒",
+          "hint": "拿起、移动或轻敲屏幕时自动从待机状态唤醒。检测的是屏幕自身的移动，不会响应有人从旁边走过。"
+        },
+        "backlight_pwm": {
+          "label": "背光 PWM",
+          "hint": "此设置控制背光调光时开关的频率。150 Hz 能使此开发板的所有设备正常调光，但部分设备在低于 20 kHz 时会产生啸叫。如有啸叫，请选择 20 kHz；若 20 kHz 下调光不均匀，则改用 15 kHz。"
+        },
+        "dimmest_level": {
+          "label": "最低亮度",
+          "hint": "设置背光能够降低到的最低亮度，占最大亮度的百分比。如果最低亮度时屏幕变黑或闪烁，请适当提高。"
+        },
+        "microphone_gain": {
+          "label": "麦克风增益",
+          "hint": "麦克风模拟增益，初始值为 30 dB；播放参考信号的增益保持固定。"
+        },
+        "automatic_gain": {
+          "label": "自动增益",
+          "hint": "由麦克风音频编解码器自动调整录音音量，与回声消除功能相互独立。"
+        },
+        "call_ringtone": {
+          "label": "来电铃声",
+          "hint": "关闭后，来电仍会点亮屏幕并显示来电者，但不会响铃。"
+        },
+        "do_not_disturb": {
+          "label": "免打扰",
+          "hint": "开启后，会立即拒绝拨打到此屏幕的通话并告知呼叫方原因；门铃仍会响起。"
+        },
+        "call_voice_switching": {
+          "label": "通话语音切换",
+          "hint": "开启后，处于收听状态的一方会暂时静音麦克风，防止语音形成回声。关闭后双方可以同时讲话。通话中也可单独切换此选项。"
+        },
+        "echo_cancellation": {
+          "label": "回声消除",
+          "hint": "减少扬声器声音被麦克风重新收录。关闭仅停用回声消除，不会关闭麦克风或全双工通话。需要支持 AEC 的音频传输方式。"
+        }
+      }
+    },
+    "alerts": {
+      "fields": {
+        "title": {
+          "label": "标题",
+          "help": "卡片顶部的单行标题，过长时显示省略号；留空则显示“通知”。",
+          "example": "门口有人"
+        },
+        "subtitle": {
+          "label": "副标题",
+          "help": "标题下方的说明文字，可以分成多行，也可以留空。",
+          "example": "3 号门，后门"
+        },
+        "icon": {
+          "label": "图标",
+          "help": "从列表中选择图标名称，也可填写 mdi:name 或十六进制码位（如 F12E6）。无效或留空时显示警告三角形。"
+        },
+        "color": {
+          "label": "颜色",
+          "help": "从九种柔和的卡片颜色中选择；留空则使用白色卡片。"
+        },
+        "button_text": {
+          "label": "按钮文字",
+          "help": "按钮上显示的文字。留空时为“确定”。",
+          "example": "马上来"
+        },
+        "timeout": {
+          "label": "超时时间",
+          "help": "提醒自动消失前等待的秒数。设为 0 表示一直等待用户点击按钮。无论超时时间如何设置，点击按钮都会立即关闭提醒。"
+        },
+        "flash": {
+          "label": "闪烁",
+          "help": "开启后，提醒出现时背光会闪烁四次，然后保持常亮。"
+        },
+        "camera": {
+          "label": "摄像头",
+          "help": "指定摄像头或图像实体。除 CYD 外，固件版本为 0.2.57 或以上的屏幕会在提醒卡片上按摄像头原始宽高比显示提醒触发时的画面：通常位于文字上方，宽而矮的屏幕上则位于文字旁边。点击可全屏查看。CYD 仅显示不带图片的提醒。仅适用于 esp_screens_show_alert 事件。"
+        },
+        "action": {
+          "label": "操作",
+          "help": "按下任意屏幕上的按钮时执行一次的 Home Assistant 操作，例如 script.open_gate 或 light.turn_off。使用 `data` 提供 entity_id、brightness 等参数。提醒超时或被新提醒替换时不会执行。仅适用于 esp_screens_show_alert 事件。"
+        },
+        "screen": {
+          "label": "屏幕",
+          "help": "指定接收提醒的屏幕：设备名（如 kitchen-screen）、Home Assistant 中显示的名称，或区域名称（该区域所有屏幕）。也可使用列表，如 [kitchen-screen, hallway]。留空表示全部屏幕；找不到匹配屏幕时不会发送，已知屏幕可在 Tessera Screen Manager 日志中查看。仅适用于 esp_screens_show_alert 和 esp_screens_dismiss_alert 事件。"
+        },
+        "button_color": {
+          "label": "按钮颜色",
+          "help": "为提醒按钮单独设置颜色：红、橙、黄、绿、薄荷绿、蓝、紫、粉或灰。使用完整颜色的按钮会显示白色文字。留空则保留默认深色按钮。"
+        },
+        "button2_text": {
+          "label": "第二个按钮文字",
+          "help": "在第一个按钮左侧增加第二个按钮，用于“拒绝/接受”等选择；留空则只显示一个按钮。",
+          "example": "暂不"
+        },
+        "button2_color": {
+          "label": "第二个按钮颜色",
+          "help": "第二个按钮可使用相同的颜色选项。留空时使用浅色按钮。"
+        },
+        "button2_action": {
+          "label": "第二个按钮操作",
+          "help": "按下任意屏幕上的第二个按钮时，执行一次 Home Assistant 操作，用法与第一个按钮的 `action` 相同。使用 `button2_data` 提供参数。仅适用于 esp_screens_show_alert 事件。"
+        }
+      },
+      "endings": {
+        "ok": "已按下按钮",
+        "button2": "已按下第二个按钮",
+        "timeout": "已超时",
+        "replaced": "被新提醒替换",
+        "remote": "通过 Home Assistant 的 dismiss_alert 关闭"
+      }
+    },
+    "icons": {
+      "groups": {
+        "lighting": "照明",
+        "rooms": "房间",
+        "climate": "空调",
+        "weather": "天气",
+        "media_and_music": "媒体与音乐",
+        "security": "安防",
+        "appliances": "家用电器",
+        "energy": "能源",
+        "window_coverings": "窗帘与遮阳",
+        "garden_and_pets": "园艺与宠物",
+        "people_and_travel": "人物与出行",
+        "other": "其他"
+      },
+      "names": {
+        "lightbulb": "灯泡",
+        "lightbulb_group": "灯光",
+        "ceiling_light": "吸顶灯",
+        "chandelier": "吊灯",
+        "lamp": "台灯",
+        "floor_lamp": "落地灯",
+        "desk_lamp": "书桌灯",
+        "wall_sconce_flat": "壁灯",
+        "light_recessed": "嵌入式筒灯",
+        "spotlight_beam": "射灯",
+        "led_strip_variant": "LED 灯带",
+        "outdoor_lamp": "户外灯",
+        "home": "住宅",
+        "sofa": "客厅",
+        "bed": "卧室",
+        "silverware_fork_knife": "餐厅",
+        "chef_hat": "厨房",
+        "shower": "淋浴",
+        "bathtub": "浴室",
+        "toilet": "马桶",
+        "desk": "书房",
+        "garage": "车库",
+        "fireplace": "壁炉",
+        "thermometer": "温度",
+        "thermostat": "温控器",
+        "air_conditioner": "空调",
+        "radiator": "暖气片",
+        "heat_pump": "热泵",
+        "fire": "供暖",
+        "snowflake": "制冷",
+        "water_percent": "湿度",
+        "fan": "风扇",
+        "ceiling_fan": "吊扇",
+        "air_purifier": "空气净化器",
+        "molecule_co2": "二氧化碳（CO₂）",
+        "weather_sunny": "晴天",
+        "weather_partly_cloudy": "局部多云",
+        "weather_cloudy": "阴天",
+        "weather_rainy": "雨",
+        "weather_snowy": "雪",
+        "weather_windy": "风",
+        "weather_night": "夜间",
+        "weather_sunset_up": "日出",
+        "music_note": "音乐",
+        "music": "音符",
+        "playlist_music": "播放列表",
+        "album": "专辑",
+        "record_player": "唱片机",
+        "spotify": "Spotify",
+        "radio": "收音机",
+        "podcast": "播客",
+        "speaker": "扬声器",
+        "speaker_multiple": "扬声器",
+        "soundbar": "回音壁音箱",
+        "headphones": "耳机",
+        "microphone": "麦克风",
+        "piano": "钢琴",
+        "guitar_acoustic": "吉他",
+        "television": "电视",
+        "projector": "投影仪",
+        "movie_open": "电影",
+        "cast": "投屏",
+        "gamepad_variant": "游戏机",
+        "remote_tv": "遥控器",
+        "lock": "门锁",
+        "lock_open_variant": "解锁",
+        "shield_home": "警报",
+        "alarm_light": "警示灯",
+        "bell": "铃铛",
+        "doorbell": "门铃",
+        "cctv": "摄像头",
+        "motion_sensor": "运动传感器",
+        "door_closed": "门",
+        "door_open": "门已打开",
+        "window_closed_variant": "窗户",
+        "smoke_detector": "烟雾探测器",
+        "water_alert": "漏水",
+        "washing_machine": "洗衣机",
+        "tumble_dryer": "烘干机",
+        "dishwasher": "洗碗机",
+        "fridge": "冰箱",
+        "stove": "炉灶",
+        "microwave": "微波炉",
+        "toaster_oven": "烤箱",
+        "coffee_maker": "咖啡",
+        "kettle": "电热水壶",
+        "robot_vacuum": "扫地机器人",
+        "robot_mower": "割草机器人",
+        "printer_3d": "3D 打印机",
+        "power_plug": "电源插头",
+        "power_socket_eu": "插座",
+        "laptop": "笔记本电脑",
+        "router_wireless": "路由器",
+        "flash": "电源",
+        "solar_power": "太阳能发电",
+        "solar_panel": "太阳能板",
+        "home_battery": "家庭储能电池",
+        "battery_high": "电池",
+        "ev_station": "电动车充电站",
+        "car_electric": "电动汽车",
+        "meter_electric": "电表",
+        "meter_gas": "燃气表",
+        "water": "水",
+        "water_boiler": "热水器",
+        "gauge": "仪表",
+        "window_shutter": "百叶窗",
+        "window_shutter_open": "卷帘已打开",
+        "blinds": "百叶帘",
+        "blinds_open": "百叶帘已打开",
+        "roller_shade_closed": "卷帘",
+        "curtains": "窗帘",
+        "curtains_closed": "窗帘已关闭",
+        "awning_outline": "遮阳棚",
+        "flower": "花朵",
+        "tree": "树木",
+        "sprout": "植物",
+        "grass": "草坪",
+        "sprinkler": "自动喷灌器",
+        "pool": "泳池",
+        "grill": "烧烤",
+        "mailbox": "信箱",
+        "trash_can": "垃圾",
+        "recycle": "回收",
+        "dog": "狗",
+        "cat": "猫",
+        "account": "人员",
+        "account_group": "家庭",
+        "account_child": "儿童",
+        "home_account": "在家",
+        "sleep": "睡眠",
+        "run": "运动",
+        "briefcase": "工作",
+        "car": "汽车",
+        "bike": "自行车",
+        "bus": "公交车",
+        "train": "火车",
+        "airplane": "假期",
+        "map_marker": "位置",
+        "power": "开关",
+        "toggle_switch": "开关",
+        "gesture_tap_button": "按钮",
+        "play": "开始",
+        "script_text": "脚本",
+        "palette": "场景",
+        "alarm": "闹钟",
+        "clock_outline": "时钟",
+        "timer_outline": "计时器",
+        "calendar": "日历",
+        "bell_ring": "通知",
+        "heart": "收藏",
+        "alert_outline": "警告",
+        "cog": "设置",
+        "broom": "清扫",
+        "diabetes": "糖尿病",
+        "phone": "电话"
+      }
+    },
+    "screen": {
+      "builtin": {
+        "clock": "时钟",
+        "nightstand": "床头时钟",
+        "page": "前往第 {page} 页",
+        "map": "地图",
+        "energy": "能源",
+        "text": "模板",
+        "call": "通话"
+      },
+      "identify": {
+        "title": "这是 {name}",
+        "subtitle": "通过 Tessera 识别屏幕"
+      },
+      "script_running": "运行中",
+      "states": {
+        "locking": "正在上锁",
+        "unlocking": "正在解锁",
+        "jammed": "卡住",
+        "buffering": "缓冲中",
+        "returning": "正在返回",
+        "error": "错误",
+        "disarmed": "已撤防",
+        "armed_home": "居家布防",
+        "armed_away": "离家布防",
+        "armed_night": "夜间布防",
+        "armed_vacation": "外出度假布防",
+        "armed": "已布防",
+        "arming": "正在布防",
+        "pending": "等待中",
+        "triggered": "已触发",
+        "active": "活动中",
+        "up": "向上",
+        "down": "向下",
+        "unknown": "未知"
+      },
+      "history": {
+        "other": "其他"
+      },
+      "vacuum": {
+        "vacuum": "扫地机器人",
+        "vac_and_mop": "吸尘与拖地",
+        "vac_then_mop": "先吸尘后拖地",
+        "mop": "拖地",
+        "custom": "自定义",
+        "smart": "智能",
+        "min": "最小",
+        "slight": "轻微",
+        "low": "低",
+        "mild": "温和",
+        "medium": "中",
+        "moderate": "适中",
+        "standard": "标准",
+        "high": "高",
+        "intense": "强力",
+        "extreme": "极强",
+        "ultra_high": "超强",
+        "silent": "静音",
+        "gentle": "轻柔",
+        "strong": "强劲",
+        "max_plus": "最大+",
+        "auto": "自动"
+      },
+      "map": {
+        "since_time": "自 {time} 起",
+        "battery": "电池"
+      },
+      "media": {
+        "playlist": "播放列表",
+        "album": "专辑",
+        "artist": "艺人",
+        "track": "歌曲",
+        "podcast": "播客",
+        "episode": "单集",
+        "channel": "频道",
+        "genre": "音乐风格",
+        "directory": "文件夹",
+        "music": "音乐"
+      }
+    },
+    "doorbell": {
+      "fields": {
+        "camera": {
+          "label": "摄像头",
+          "help": "门铃摄像头实体，必填。支持流媒体的屏幕（ESP32-P4）会显示带声音的实时视频；其他屏幕则在提醒中显示静态画面。"
+        },
+        "title": {
+          "label": "标题",
+          "help": "门铃在屏幕门铃界面顶部及提醒标题中显示的名称。留空则使用摄像头名称。"
+        },
+        "screen": {
+          "label": "屏幕",
+          "help": "指定接收门铃的屏幕：设备名（如 kitchen-screen）、Home Assistant 显示名称或区域名。列表可指定多个屏幕。留空表示全部屏幕；无匹配项则不发送。"
+        },
+        "timeout": {
+          "label": "超时时间",
+          "help": "无人操作时门铃提示保持的秒数，范围为 {min}～{max}。留空默认为 {default}。触摸屏幕后提示会继续保持。"
+        },
+        "keep_minutes": {
+          "label": "保留未接门铃",
+          "help": "未接听的门铃在屏幕顶部栏保留的分钟数，从响铃时开始计算，范围为 1 至 {most}。留空或设为 0 表示一直保留到用户打开为止。"
+        },
+        "sound": {
+          "label": "声音",
+          "help": "在带扬声器的屏幕上，是否立即播放门铃摄像头的声音。留空或 true 表示打开画面时声音开启；false 表示静音打开，可手动点“声音”开启，适合卧室或工作室。"
+        },
+        "chime": {
+          "label": "门铃铃声",
+          "help": "在带扬声器的屏幕上，门铃响起时是否播放提示音。留空或 true 表示响铃；false 表示不播放提示音，但仍会打开门铃画面。"
+        },
+        "lock": {
+          "label": "门锁",
+          "help": "门铃画面上的开门按钮可通过第二次点击解锁此锁实体，并显示锁状态。需要密码的锁须在 Home Assistant 的锁设置中配置默认密码。不需要开门按钮时请留空。"
+        },
+        "door_action": {
+          "label": "开门操作",
+          "help": "也可不指定锁，而让开门按钮在第二次点击后执行 Home Assistant 操作，如 script.open_gate 或 button.press。使用 `door_data` 提供 entity_id 等参数。"
+        },
+        "door_data": {
+          "label": "开门操作参数",
+          "help": "`door_action` 的操作参数，例如 entity_id。"
+        }
+      },
+      "endings": {
+        "answered": "有人触摸并应答，其他屏幕的提示已关闭",
+        "closed": "通过关闭按钮或其他方式关闭",
+        "missed": "超时前无人操作",
+        "seen": "从顶部栏重新打开未接门铃"
+      }
+    },
+    "layoutbot": {
+      "none": "Layoutbot 需要 Home Assistant 中能够生成数据的 AI Task（在“设置 → 设备与服务”配置 AI 集成）。",
+      "notes": {
+        "unknown": "已跳过 {entity}：它不是当前 Home Assistant 中的实体。",
+        "no_page": "第 {page} 页不存在。",
+        "kept": "Layoutbot 未能保留 {count} 张卡片的布局，它们已作为未分组卡片放在最后一页。"
+      },
+      "nothing_to_restructure": "此页面还没有可重新排列的设备卡片。请先添加几张卡片再试。"
+    }
+  },
+  "editor": {
+    "common": {
+      "undo": "撤销",
+      "online": "在线",
+      "offline": "离线",
+      "unknown": "未知",
+      "unsaved": "未保存的更改",
+      "cancel": "取消",
+      "ok": "确定",
+      "open_integrations": "打开设备与服务",
+      "save_send": "保存并发送",
+      "saving": "正在保存…",
+      "read_current_data": "读取当前数据",
+      "results": "找到 {n} 个结果。继续输入可缩小范围。",
+      "close": "关闭",
+      "expand": "显示更多",
+      "collapse": "显示更少",
+      "remove": "移除",
+      "loading": "正在加载…",
+      "back": "← 返回",
+      "copy": "复制",
+      "done": "完成"
+    },
+    "nav": {
+      "new_screen": "新建屏幕",
+      "firmware": "固件与 USB",
+      "events": "事件",
+      "settings": "设置",
+      "new_screen_detail": "连接并安装",
+      "plugins": "插件",
+      "manual": "使用手册"
+    },
+    "api": {
+      "failed": "操作失败，请刷新页面后重试。"
+    },
+    "copy": {
+      "api_key": {
+        "copied": "API 密钥已复制。",
+        "selected": "已选中 API 密钥，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "layout_json": {
+        "copied": "布局 JSON 已复制。",
+        "selected": "已选中布局 JSON，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "action_name": {
+        "copied": "操作名称已复制。",
+        "selected": "已选中操作名称，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "yaml": {
+        "copied": "YAML 已复制。",
+        "selected": "已选中 YAML，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "icon_name": {
+        "copied": "图标名称已复制。",
+        "selected": "已选中图标名称，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "empty_color": {
+        "copied": "空白颜色已复制。",
+        "selected": "已选中空白颜色值，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "color_name": {
+        "copied": "颜色名称已复制。",
+        "selected": "已选中颜色名称，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "screen_name": {
+        "copied": "屏幕名称已复制。",
+        "selected": "已选中屏幕名称，请按 Ctrl+C 或 Command+C 复制。"
+      },
+      "log": {
+        "copied": "日志已复制。",
+        "selected": "已选中日志，请按 Ctrl+C 或 Command+C 复制。"
+      }
+    },
+    "sidebar": {
+      "connection": {
+        "reconnecting": "正在重新连接 Home Assistant…"
+      },
+      "search": "搜索",
+      "fold": "收起侧边栏",
+      "unfold": "展开侧边栏",
+      "resize": "调整侧边栏宽度：拖动边缘或使用方向键；双击可恢复默认宽度",
+      "screens": "屏幕",
+      "refresh": "刷新",
+      "update": {
+        "button": "更新",
+        "available": "更新到 {version}",
+        "no_profile": "未找到与此设备名称对应的 ESPHome 配置文件。",
+        "whats_new": "更新内容",
+        "full_log": "完整日志",
+        "short": "更新",
+        "reinstall": "从开发版重新安装",
+        "reinstall_why": "从最新开发分支重新编译此屏幕的固件，并通过 Wi-Fi 安装。开发分支的版本号保持不变，因此不会以普通更新的形式提示新开发版。",
+        "in_tessera": "请先在 Tessera 中更新",
+        "in_tessera_why": "请先在 Tessera 中更新此屏幕。它仍使用首次安装时的闪存分区布局，而当前固件已无法适配，因此不能直接通过 ESPHome Device Builder 更新。Tessera 会迁移分区并保留设置，之后两种更新方式都可使用。",
+        "reinstall_short": "构建最新开发版固件并通过 Wi-Fi 安装。"
+      },
+      "host": {
+        "hint": "只需输入一次 IP 地址；新固件之后会自动上报地址。",
+        "placeholder": "IP 地址，例如 192.168.1.50",
+        "label": "IP 地址",
+        "start": "开始"
+      },
+      "pending": {
+        "installed": "安装完成，等待连接 Wi-Fi……",
+        "downloaded": "固件已下载。请通过 ESPHome Web 刷入屏幕。",
+        "not_flashed": "尚未安装：请前往“固件与 USB”处理 {file}。",
+        "adding": "已连接 Wi-Fi，正在准备设备……",
+        "failed": "Tessera 无法自动将设备添加到 Home Assistant。请在“设置 → 设备与服务”中手动添加，并使用下方 API 密钥。"
+      },
+      "copy_api_key": "复制 API 密钥",
+      "files": "下载屏幕配置文件",
+      "files_hint": "下载此屏幕的 ESPHome YAML（含相关密钥）、本地覆盖 YAML，以及保存 Wi-Fi 信息的 secrets.yaml，以便在自己的电脑上使用 ESPHome 编译固件。",
+      "details": {
+        "room": "房间",
+        "firmware": "固件",
+        "board": "开发板",
+        "show": "显示 {name} 的详细信息",
+        "hide": "隐藏 {name} 的详细信息"
+      },
+      "rename": {
+        "button": "重命名",
+        "label": "在此应用中显示的名称",
+        "save": "保存"
+      },
+      "remove": {
+        "button": "移除屏幕",
+        "title": "移除 {name}？",
+        "ha": "从 Home Assistant 中移除此设备及其实体，无论它们被用于何处。",
+        "profile": "从 ESPHome 文件夹中删除 {file} 及其编译产物。",
+        "layout": "从此应用中删除它的卡片、设置和更新历史。",
+        "online": "此屏幕仍处于连接状态。请先擦除固件或断开电源，否则 Home Assistant 可能再次发现它。",
+        "confirm": "移除",
+        "done": "已移除 {name}。",
+        "kept": "已移除 {name}，但其配置文件 {file} 仍保留在 ESPHome 文件夹中。"
+      },
+      "home": "屏幕概览",
+      "dev_chip": "当前运行的是 Tessera 开发版；它构建的屏幕固件均来自开发分支。"
+    },
+    "palette": {
+      "groups": {
+        "screens": "屏幕",
+        "actions": "操作",
+        "add": "添加到此屏幕"
+      },
+      "alerts_detail": "速查表与测试提醒",
+      "settings_detail": "更新、Claude",
+      "nothing_to_save": "没有需要保存的更改",
+      "identify": "识别此屏幕",
+      "identify_detail": "闪烁背光并显示识别卡片",
+      "identify_needs": "需要更新固件",
+      "export": "导出布局",
+      "export_detail": "下载并复制为 JSON",
+      "placeholder": "搜索屏幕、实体、操作…",
+      "empty": "没有匹配结果，请输入屏幕、实体或操作的部分名称。"
+    },
+    "search": {
+      "groups": {
+        "recent": "最近",
+        "settings": "屏幕设置",
+        "tiles": "屏幕上的内容",
+        "plugins": "插件"
+      },
+      "hint": {
+        "open": "打开",
+        "run": "运行",
+        "show": "显示",
+        "add": "添加"
+      },
+      "keys": {
+        "move": "移动",
+        "choose": "选择",
+        "close": "关闭"
+      },
+      "identify": "识别 {name}",
+      "update": "更新 {name}",
+      "update_detail": "更新到 {version}",
+      "update_all": "更新所有屏幕",
+      "update_all_detail": "有 {n} 块屏幕等待更新",
+      "update_all_confirm": "现在更新 {n} 块屏幕吗？将依次更新，每块屏幕安装完成后都会重启。",
+      "update_all_go": "立即更新",
+      "install": "安装待安装插件",
+      "install_detail": "{n} 个插件",
+      "add_plugin": "将 {plugin} 添加到 {screen}",
+      "add_plugin_detail": "已加入待安装列表",
+      "on": "开",
+      "off": "关闭"
+    },
+    "empty": {
+      "choose": {
+        "title": "选择屏幕",
+        "text": "请从左侧选择屏幕，以修改卡片、顶部栏和屏幕设置。"
+      },
+      "start": {
+        "title": "从屏幕开始",
+        "text": "使用 USB 将屏幕连接到 Home Assistant 主机，即可一次完成设备配置、固件构建和首次刷写。",
+        "button": "安装新屏幕"
+      }
+    },
+    "home": {
+      "title": "你的屏幕",
+      "summary": "{count} 台中有 {online} 台在线",
+      "open": "打开 {name}",
+      "no_layout": "尚无布局",
+      "in_tessera": "先在 Tessera 中更新"
+    },
+    "broken": {
+      "screens": "{n} 屏幕",
+      "summary": {
+        "missing": "{screens} 上有 {n} 张卡片引用了已不存在的实体",
+        "unavailable": "{screens} 上有 {n} 张卡片引用了长时间不可用的实体",
+        "mixed": "{screens} 上有 {n} 张卡片引用了已删除或不可用的实体"
+      },
+      "short": "有 {n} 张卡片需要检查",
+      "review": "查看",
+      "hide": "隐藏",
+      "missing": "已不在 Home Assistant 中",
+      "unavailable_minutes": "已不可用 {n} 分钟",
+      "unavailable_hours": "已不可用 {n} 小时",
+      "unavailable_days": "已不可用 {n} 天",
+      "change": "改为显示其他实体",
+      "on_screen": "此实体已添加到当前屏幕。",
+      "replaced": "现在显示 {name}",
+      "fix": {
+        "choose": "选择其他实体",
+        "missing": "Home Assistant 中已不存在此实体",
+        "missing_hint": "该实体可能已删除或重命名。请选择这张卡片现在应显示的实体。",
+        "unavailable_hint": "Home Assistant 已有一段时间未收到该实体的状态。可选择其他实体，或等待恢复。",
+        "search": "搜索实体"
+      }
+    },
+    "screen_view": {
+      "confirm": {
+        "switch": "你有未保存的更改，仍要切换到其他屏幕吗？",
+        "copy": "要用其他屏幕的布局副本覆盖未保存的更改吗？",
+        "import": "要用导入的布局覆盖未保存的更改吗？"
+      },
+      "saved": {
+        "current": "已保存，正在更新屏幕。",
+        "other": "已保存，正在更新 {name}。",
+        "newer_edit": "已保存，但最新更改尚未发送，请再次点击“保存并发送”。"
+      },
+      "identified": "{name} 将闪烁背光并短暂显示识别卡片。",
+      "offline": "离线 · 更改已保存",
+      "tabs": {
+        "layout": "布局",
+        "settings": "屏幕设置",
+        "plugins": "插件"
+      },
+      "sent": "已保存并发送到屏幕",
+      "all_saved": "全部已保存",
+      "more": "更多",
+      "menu": {
+        "identify": "识别",
+        "identify_hint": "让屏幕闪烁以便识别",
+        "identify_needs": "需要固件 0.2.31 或更新版本",
+        "copy": "从其他屏幕复制布局……",
+        "copy_screens": "{n} 台屏幕",
+        "copy_none": "没有其他屏幕",
+        "copy_tiles": "{n} 张卡片",
+        "export": "导出布局",
+        "import": "导入布局……",
+        "override": "覆盖 YAML",
+        "override_none": "未找到此屏幕的 ESPHome 配置文件",
+        "update": "更新固件",
+        "group_screen": "此屏幕",
+        "group_layout": "布局",
+        "group_advanced": "高级"
+      },
+      "sending": "正在发送"
+    },
+    "layout": {
+      "removed": "{name} 已移除",
+      "no_room": "第 {page} 页没有空间容纳此卡片。",
+      "no_free_page": "没有空白页面可容纳全页卡片，请先腾出一个页面。",
+      "page_taken": "此屏幕已包含前往第 {page} 页的导航卡片。",
+      "copied": "已复制 {name} 的布局。确认后请点击“保存并发送”。",
+      "imported": "布局已导入。确认后请点击“保存并发送”。",
+      "not_json": "输入内容不是有效的 JSON。请先导出布局，或粘贴其他 Tessera 导出的布局。",
+      "count": "{n} 页 · {tiles}/{limit} 张卡片",
+      "no_tiles": "请从卡片库添加第一盏灯、场景或设备。",
+      "page_removed": "已删除第 {page} 页。",
+      "page_removed_tiles": "已删除第 {page} 页及其中 {n} 张卡片。",
+      "positions_hint": "空白位置及固定卡片位置从固件 0.2.26 开始支持。当前固件 {firmware} 会将卡片依次前移到首个空位，直到更新固件。",
+      "aria": "屏幕布局",
+      "add_page": "添加页面",
+      "max_pages": "最多 {n} 页",
+      "help": {
+        "title": "工作原理",
+        "change_label": "更改",
+        "change": "点击卡片或顶部栏进行修改。",
+        "add_label": "添加",
+        "add": "先点击空白位置，再从卡片库选择项目；也可以直接将项目拖到页面上。",
+        "move_label": "移动",
+        "move": "拖动卡片；将其放到下一页即可创建新页面。",
+        "copy_label": "复制",
+        "copy": "按住 {mod} 或 Shift 并点击，也可在卡片旁拖出选区；使用 {copy} 复制，再在其他页面或屏幕上使用 {paste} 粘贴。",
+        "pages_label": "页面",
+        "pages": "拖动页码可调整页面顺序；其他操作位于“···”菜单。",
+        "map_label": "地图",
+        "map": "查看各个“前往页面”卡片指向的位置。",
+        "preview_label": "预览",
+        "preview": "可尝试滑动和页面跳转，不会实际控制家中设备。"
+      },
+      "copy_needs_migration": "请先打开来源屏幕，完成旧布局向页面格式的迁移，然后再复制。",
+      "removed_several": "已移除 {n} 张卡片"
+    },
+    "page": {
+      "label": "第 {page} 页",
+      "remove": "移除页面",
+      "edit_bar": "编辑顶部栏",
+      "move_title": "将此页面拖动到同一行的其他位置，或使用 ← 和 → 调整顺序",
+      "move_aria": "移动第 {page} 页",
+      "cell": {
+        "title": "空白位置。点击此处添加卡片，或拖入卡片。",
+        "aria": "第 {page} 页空白位置 {slot}：在此添加下一张卡片",
+        "next": "下一张卡片放在这里",
+        "empty": "空白"
+      }
+    },
+    "library": {
+      "title": "卡片库",
+      "entities": "{n} 个实体",
+      "search": "按名称、区域、设备或类型搜索……",
+      "search_label": "添加实体",
+      "filters": {
+        "all": "全部",
+        "plugin": "插件",
+        "light": "灯光",
+        "climate": "空调",
+        "switch": "开关",
+        "binary_sensor": "状态",
+        "button": "操作",
+        "script": "脚本",
+        "automation": "自动化",
+        "remote": "遥控器",
+        "fan": "风扇",
+        "cover": "窗帘",
+        "scene": "场景",
+        "vacuum": "扫地机器人",
+        "sensor": "传感器",
+        "media_player": "媒体",
+        "camera": "摄像头",
+        "weather": "天气",
+        "number": "值",
+        "select": "选择器",
+        "person": "人员",
+        "timer": "计时器",
+        "screen": "屏幕",
+        "alarm_control_panel": "警报",
+        "lock": "门锁",
+        "humidifier": "加湿器",
+        "calendar": "日历",
+        "todo": "待办列表",
+        "text": "文本"
+      },
+      "room": "房间",
+      "hide_placed": "隐藏已添加的实体",
+      "hide_placed_title": "隐藏已添加到屏幕的实体",
+      "again": "此实体已在屏幕上，可再次添加为另一张卡片",
+      "all_placed": "这里的所有实体均已添加到屏幕。",
+      "none_found": "未找到实体，请尝试其他名称、区域或筛选条件。",
+      "found_elsewhere": "当前筛选范围内没有结果，但整个卡片库中有 {n} 个匹配实体。",
+      "search_everything": "显示全部匹配结果",
+      "full": "此屏幕最多可放置 {n} 张卡片。",
+      "full_update": "此屏幕目前最多支持 {n} 张卡片；更新固件后可支持 48 张。",
+      "hint": "拖动到页面，或点击“+”添加到第一个空位。按 ⌘K 可搜索全部内容。",
+      "resize": "拖动以调整卡片库宽度",
+      "filter_label": "按类型筛选",
+      "no_room": "空间不足",
+      "plugins": "插件卡片"
+    },
+    "memory": {
+      "label": "卡片内存",
+      "share": "{n} %",
+      "title": "这些卡片需要 {need} KB 内存，屏幕可用于卡片的内存共 {room} KB。天气预报、温控器或媒体播放器比灯具或开关占用更多内存。",
+      "over": "所需内存超过屏幕测得的可用容量。布局仍可保存，但内存不足时部分卡片可能简化显示，屏幕也可能拒绝此布局。",
+      "short": "屏幕内存不足，部分卡片目前以简化方式显示。",
+      "last_known": "数据来自屏幕上次在线时的报告。",
+      "full_library": "屏幕用于卡片的内存接近上限，但仍可继续添加卡片。",
+      "confirm_close": "添加后卡片内存占用将达到 {n}%，仍要添加吗？",
+      "confirm_over": "添加这张卡片后，布局所需内存将超过屏幕测得的卡片可用内存（{n}%）。如果内存不足，部分卡片可能无法完整显示，或者屏幕会拒绝应用该布局。仍要添加吗？",
+      "measuring": "测量中",
+      "measuring_title": "屏幕启动或接收新布局约一分钟后，在卡片稳定运行时测量可用内存。",
+      "none": "没有剩余空间",
+      "none_title": "此屏幕目前没有可供卡片使用的剩余内存。仍可保存布局，但卡片可能简化显示或布局被拒绝。",
+      "confirm_none": "此屏幕目前没有可用的卡片内存。内存不足时部分卡片可能简化显示或布局被拒绝。仍要添加吗？"
+    },
+    "domains": {
+      "light": "灯光",
+      "climate": "空调",
+      "vacuum": "扫地机器人",
+      "fan": "风扇",
+      "cover": "窗帘",
+      "media_player": "媒体",
+      "sensor": "传感器",
+      "binary_sensor": "状态",
+      "switch": "开关",
+      "input_boolean": "开关",
+      "automation": "自动化",
+      "remote": "遥控器",
+      "scene": "场景",
+      "script": "脚本",
+      "weather": "天气",
+      "number": "数值",
+      "input_number": "数值",
+      "select": "选择",
+      "input_select": "选择",
+      "button": "操作",
+      "input_button": "操作",
+      "screen": "屏幕",
+      "sun": "太阳",
+      "timer": "计时器",
+      "person": "人员",
+      "camera": "摄像头",
+      "image": "图像",
+      "entity": "实体",
+      "alarm_control_panel": "报警控制面板",
+      "lock": "门锁",
+      "humidifier": "加湿器",
+      "calendar": "日历",
+      "todo": "待办清单",
+      "text": "文本",
+      "input_text": "文本"
+    },
+    "displays": {
+      "standard": "标准",
+      "watch": "大号数值",
+      "forecast": "天气预报",
+      "graph": "图表",
+      "meter": "仪表",
+      "digital": "数字时钟",
+      "analog": "模拟时钟",
+      "dial": "圆形刻度时钟",
+      "flip": "翻页时钟",
+      "sunpath": "太阳轨迹",
+      "live": "实时画面",
+      "cover": "专辑封面",
+      "map": "地图",
+      "favorite": "收藏"
+    },
+    "sizes": {
+      "single": "普通",
+      "wide": "双倍",
+      "full": "整页"
+    },
+    "tile": {
+      "name": "屏幕显示名称",
+      "icon": {
+        "auto_ha": "自动 (从 Home Assistant)",
+        "auto_default": "自动 (默认)",
+        "needs_firmware": "自固件 0.2.18 起，屏幕才支持显示自定义图标。"
+      },
+      "goes_to": {
+        "label": "跳转至页面",
+        "empty": "{page} (空)",
+        "needs_firmware": "导航卡片需要固件 0.2.62，请先在屏幕上点击“更新”。",
+        "no_page": "此屏幕没有第 {page} 页，因此点击时会打开最后一页。请选择其他页面。",
+        "hint": "点击卡片将打开指定页面。"
+      },
+      "display": {
+        "label": "显示方式",
+        "digital": "数字时钟",
+        "analog": "模拟时钟",
+        "dial": "简约表盘",
+        "flip": "翻页时钟",
+        "standard": "名称与状态",
+        "watch": "大号数值",
+        "forecast": "天气预报",
+        "graph": "图表",
+        "meter": "仪表",
+        "sunpath": "太阳轨迹",
+        "live": "实时画面",
+        "live_needs_firmware": "实时画面需要固件 0.2.77 或更新版本。保存后请在屏幕上点击“更新”。",
+        "live_card_hint": "图片将铺满卡片，并在页面显示期间按照下方设置的间隔刷新。点击仍可全屏查看。",
+        "live_card_needs_firmware": "卡片铺满图片需要固件 0.3.7 或更新版本。保存后请点击屏幕的“更新”。在此之前，仅会在图标位置显示小图。",
+        "cover": "专辑封面",
+        "cover_needs_firmware": "在卡片上显示专辑封面需要固件 0.2.78 或更新版本。保存后请点击屏幕的“更新”。",
+        "map": "地图",
+        "map_hint": "以与屏幕配色一致的简洁地图显示此人及其他已添加人员的位置。Home Assistant 从 OpenStreetMap 获取道路底图；屏幕只会收到渲染好的图片，不会收到位置数据。有人移动时地图将重新绘制；轻点可全屏查看。",
+        "map_needs_firmware": "地图需要固件 0.20.0 或更新版本。保存后请在屏幕上点击“更新”。",
+        "no_graph": "Home Assistant 没有此实体的数值数据，因此无法绘制图表。请选择其他显示方式。",
+        "no_forecast": "此天气实体在 Home Assistant 中没有每日预报数据。请选择其他显示方式。",
+        "no_meter": "Home Assistant 没有此实体的数值数据，因此仪表盘为空。请选择其他显示方式。",
+        "meter_needs_firmware": "仪表盘需要固件 0.56.0 或更新版本。保存后请在屏幕上点击“更新”。",
+        "tall_cover_hint": "使用专辑封面作为调暗的背景；没有封面时显示普通卡片。",
+        "face_needs_firmware": "此时钟样式需要固件 0.3.6 或更新版本。保存后请点击屏幕的“更新”。旧固件会显示数字时钟。",
+        "map_tile_needs_firmware": "地图卡片需要固件 0.21.0 或更新版本。保存后请在屏幕上点击“更新”。",
+        "favorite": "收藏",
+        "favorite_hint": "为此播放器设置一个播放列表、专辑或艺人。轻点卡片会在所选扬声器上开始播放；播放时轻点会暂停，长按则打开播放器详情。对于支持图片的屏幕，封面会铺满卡片。",
+        "favorite_needs_firmware": "收藏卡片需要固件 0.24.0 或更新版本。保存后请在屏幕上点击“更新”。"
+      },
+      "refresh": {
+        "label": "刷新",
+        "seconds": "每 {n} 秒",
+        "live": "实时",
+        "paused": "实时画面已暂停",
+        "cap": "此屏幕最多同时播放 {n} 路实时摄像头画面，其他摄像头每 15 秒更新一张图片。同时播放两路通常比四路更流畅。",
+        "cap_one": "此屏幕一次只能播放一路实时摄像头，其他摄像头每 15 秒刷新一张图片。",
+        "streams": "全部屏幕目前占用了 {used}/{most} 路实时流。超出上限的摄像头每 15 秒刷新一张图片。"
+      },
+      "picture": {
+        "fit": {
+          "label": "图片",
+          "fill": "铺满卡片",
+          "contain": "完整图片"
+        },
+        "overlay": {
+          "label": "叠加在图片上",
+          "name": "名称",
+          "none": "无内容"
+        }
+      },
+      "map": {
+        "framing": {
+          "label": "显示",
+          "everyone": "所有人",
+          "home": "住宅周边",
+          "person": "以此人员为中心"
+        },
+        "distance": {
+          "label": "距离",
+          "neighbourhood": "街区",
+          "street": "街道",
+          "town": "城镇",
+          "region": "区域"
+        },
+        "with": {
+          "label": "地图上同时显示",
+          "hint": "其他人员和追踪器会显示在此位置旁边，各自使用不同颜色。追踪器可以是 Home Assistant 已知位置的手机、汽车或定位标签。",
+          "add": "添加人员或追踪器",
+          "remove": "移除 {name}"
+        },
+        "follow": {
+          "label": "跟随",
+          "everyone": "所有人",
+          "chosen": "已选择",
+          "everyone_hint": "显示所有 Home Assistant 已知位置的人员，以及未关联到人员的追踪器。"
+        },
+        "markers": {
+          "label": "标记",
+          "photo": "照片",
+          "initials": "姓名首字母"
+        },
+        "names": {
+          "label": "名称",
+          "auto": "空间足够时显示",
+          "always": "始终",
+          "never": "从不"
+        },
+        "zones": {
+          "label": "区域",
+          "show": "显示",
+          "hide": "隐藏"
+        },
+        "streets": {
+          "label": "街道",
+          "show": "显示",
+          "hide": "简洁地图"
+        },
+        "look": {
+          "label": "外观",
+          "auto": "跟随屏幕样式",
+          "light": "浅色",
+          "dark": "深色"
+        },
+        "chosen": {
+          "label": "在地图上显示",
+          "hint": "地图跟踪的人员和设备，各自使用不同颜色。追踪器可以是 Home Assistant 已知位置的手机、汽车或定位标签。"
+        }
+      },
+      "controls": {
+        "label": "卡片上的直接控制",
+        "not_offered": "Home Assistant 不支持此实体的该控制功能，因此屏幕上会显示空白。请换一种控制方式。",
+        "full_hint": "控件显示在全屏卡片底部，点击其他区域时会执行下方设置的操作。",
+        "wide_hint": "双列卡片的右侧显示控制项，样式类似 Home Assistant 的设置行。点击名称的动作由下方设置决定。",
+        "needs_firmware": "直接控制需要固件 0.2.19 或更新版本；旧固件仍会以原样显示卡片。",
+        "tall_hint": "选择卡片增高后显示的控制项。增加卡片高度时，系统会推荐最完整的可用控制组合，但不会覆盖你手动选择的配置。",
+        "room_hint": "屏幕会在卡片空间允许时显示这些控制项（需要固件 0.57.0 或以上）：单列卡片显示在名称下方，双列卡片显示在名称旁边。空间不足时则不显示这些控制项。",
+        "tilt": "叶片角度",
+        "tilt_hint": "空间足够时显示受支持的百叶窗叶片角度滑块或倾斜按钮；小卡片可通过详情页操作，原有开关选项保持不变。"
+      },
+      "presets": {
+        "label": "预设",
+        "preset": "预设 {n}",
+        "swatch_aria": "预设 {n}，亮度 {b}%",
+        "white": "白色",
+        "colour": "颜色",
+        "level": "仅亮度",
+        "white_shade": "白色色调",
+        "kelvin": "{k} K",
+        "hue": "色相",
+        "degrees": "{h}°",
+        "saturation": "饱和度",
+        "brightness": "亮度",
+        "percent": "{n}%",
+        "use_light": "使用灯具当前状态",
+        "use_light_off": "请先打开灯具，以获取当前亮度和颜色。",
+        "add": "添加预设",
+        "add_first": "添加第一个预设",
+        "levels": "在预设中显示亮度",
+        "levels_hint": "在各预设的圆形按钮内以小字显示亮度。只包含亮度的预设始终会显示亮度值。",
+        "hint": "点击预设可一次性设置灯光状态，圆环标示当前正在使用的预设；点击编辑，拖动排序。",
+        "hint_empty": "最多设置四个圆形快捷按钮，类似 Home Assistant 的常用颜色，每个按钮可分别设置亮度。新预设会采用灯具当前状态。",
+        "own": "自定义设置",
+        "device": "灯具自带预设",
+        "effect": "效果",
+        "search": "搜索",
+        "none_found": "没有找到内容",
+        "device_kind": "类型",
+        "device_preset": "预设",
+        "device_playlist": "播放列表",
+        "device_hint": "使用灯具自身的预设，可一并设置颜色、效果和亮度。",
+        "swatch_aria_named": "预设 {n}，{name}"
+      },
+      "tap": {
+        "label": "点击时",
+        "auto": "自动",
+        "detail": "打开控制详情",
+        "none": "仅查看",
+        "toggle": "开启 / 关闭",
+        "run": "执行自动化操作",
+        "action": "执行操作",
+        "no_toggle": "Home Assistant 无法开关此实体，点击卡片不会生效，请选择其他操作。",
+        "toggle_needs_firmware": "从固件 0.2.58 起支持点击切换状态，请在屏幕上点击“更新”；此前点击只会打开详情卡片。",
+        "automation_needs_firmware": "自动化控制需要固件 0.7.0，请先更新屏幕。",
+        "hold": "长按卡片打开详情。",
+        "hold_run": "长按卡片执行操作。",
+        "hold_toggle": "长按卡片切换开关状态。",
+        "hold_light": "长按卡片调节灯具支持的亮度和颜色。",
+        "hold_fan": "长按卡片调节风扇转速（如支持）。",
+        "hold_history": "长按卡片查看历史记录。",
+        "hold_timer": "长按卡片取消计时器。",
+        "detail_no_toggle": "点击将打开详情，不再切换开关状态。使用 {auto} 时，点击切换状态，长按打开详情。"
+      },
+      "guard": {
+        "label": "此处允许解锁",
+        "confirm": "二次确认后",
+        "lock_only": "从不",
+        "confirm_hint": "门锁处于锁定状态时，需要再次点击卡片或解锁按钮才能解锁；上锁只需点击一次。",
+        "lock_only_hint": "此屏幕只能上锁，不能解锁或开门，适合门廊、车库或儿童房。"
+      },
+      "tilt_open": {
+        "label": "百叶窗叶片打开角度",
+        "100": "100 %",
+        "50": "50 %",
+        "100_hint": "遵循 Home Assistant 约定：0% 表示关闭，100% 表示完全打开。",
+        "50_hint": "适用于 50% 为打开、0% 和 100% 分别向两个方向关闭的百叶窗，例如 SwitchBot Blind Tilt。"
+      },
+      "sub": {
+        "label": "第二行",
+        "auto": "自动",
+        "none": "无内容",
+        "attr": "属性值",
+        "text": "自定义文字",
+        "value_aria": "第二行显示的数值",
+        "text_aria": "第二行显示什么内容",
+        "text_placeholder": "输入自定义文字",
+        "hint_auto": "由屏幕自动计算的内容，例如亮度、温度或脚本上次运行时间。",
+        "hint_none": "卡片只显示名称，下方不显示其他内容。",
+        "hint_attr": "实体属性值，按照 Home Assistant 的名称和格式显示。",
+        "hint_text": "无论实体状态如何，始终显示相同文字。"
+      },
+      "slider": {
+        "label": "卡片上的迷你滑块",
+        "nothing": "Home Assistant 没有可供此实体通过滑块调整的属性，请选择“无”。"
+      },
+      "history": {
+        "label": "历史记录",
+        "hours": "{n} 小时"
+      },
+      "background": {
+        "label": "柔和背景色",
+        "aria": "背景：{name}"
+      },
+      "resize": {
+        "columns": "调整宽度（左右方向键）",
+        "rows": "调整高度（上下方向键）"
+      },
+      "sections": {
+        "look": "外观",
+        "controls": "控制项",
+        "style": "图标与颜色"
+      },
+      "keys": {
+        "hint": "将灯具、温度或门锁拖到时钟下方的圆形位置，也可以点击位置后选择实体。这些位置也是卡片，点击可配置。",
+        "under": "床头时钟下方显示圆形卡片。轻点执行该卡片的通常操作，长按打开卡片详情。",
+        "name_shown": "在快捷按钮下显示名称",
+        "name_shown_hint": "关闭后只显示圆形图标。"
+      },
+      "favorite": {
+        "plays": "播放内容",
+        "none": "尚未选择",
+        "choose": "选择",
+        "done": "完成",
+        "back": "返回",
+        "loading": "正在加载媒体库……",
+        "empty": "这里没有内容",
+        "open": "打开 {name}",
+        "speaker": "扬声器",
+        "speaker_now": "播放位置",
+        "speaker_hint": "指定播放开始时的输出设备。“播放时选择”表示当前播放器未连接扬声器时，在屏幕上询问要使用哪个扬声器。",
+        "link": "或粘贴 Spotify 链接",
+        "link_hint": "在 Spotify 应用中选择“分享 → 复制链接”，获取播放列表、专辑、艺人、歌曲或播客的链接或 URI。",
+        "link_add": "添加",
+        "shuffle": "随机播放",
+        "shuffle_hint": "设置开始播放时是否启用随机播放。启用时，播放器会先跳过一次，使播放的第一首歌曲也随机选出；选择“保持原样”会沿用播放器当前的随机播放设置。",
+        "shuffle_keep": "保持当前设置",
+        "shuffle_on": "开",
+        "shuffle_off": "关闭",
+        "repeat": "重复播放",
+        "repeat_hint": "设置开始播放时的循环状态。“保持原样”表示沿用播放器当前状态。",
+        "repeat_off": "关",
+        "repeat_all": "全部循环",
+        "repeat_one": "单曲循环",
+        "repeat_keep": "保持当前设置"
+      },
+      "energy": {
+        "hint": "实时显示家庭电力流向，沿用 Home Assistant 能源面板的方式，展示太阳能、电网、蓄电池及家中设备的用电情况。点击节点可查看对应传感器历史记录。",
+        "needs_firmware": "能源卡片需要固件 0.47.0 或更新版本。保存后请在屏幕上点击“更新”。",
+        "flow": {
+          "label": "流动效果",
+          "hint": "动态圆点沿线路移动，电力越大移动越快。“线条与箭头”模式更简洁：电力越大线路越粗，箭头标示流动方向。旧版固件仍会显示动态圆点。",
+          "dots": "动态圆点",
+          "lines": "线条与箭头"
+        }
+      },
+      "calendar": {
+        "title": "日历",
+        "needs_firmware": "日历卡片需要固件 0.56.0 或更新版本。保存后请在屏幕上点击“更新”。",
+        "show": {
+          "label": "显示",
+          "events": "日程",
+          "events_hint": "显示活动标题、即将到来的活动，以及周视图和月视图。",
+          "busy_free": "空闲或忙碌",
+          "busy_free_hint": "以大字显示“空闲”“即将开始”或“忙碌”，并显示下一条预约及其持续时间。",
+          "room": "会议室状态与预约",
+          "room_hint": "用绿色或红色大字显示空闲／忙碌及状态结束时间，并提供立即预订会议室的按钮。"
+        },
+        "calendars": {
+          "label": "日历",
+          "hint": "每张卡片最多可显示 {n} 个日历，各自使用 Home Assistant 中的颜色。",
+          "count": "{n} 个日历",
+          "own": "当前卡片",
+          "none": "Home Assistant 中没有其他日历。"
+        },
+        "filter": {
+          "title": "哪些事件",
+          "found": "{n} 个日程"
+        },
+        "places": {
+          "label": "地点",
+          "hint": "仅显示发生在指定地点的活动，例如某间会议室。地点取自日历事件；也可输入新地点后添加。",
+          "add": "添加地点"
+        },
+        "words": {
+          "label": "标题包含的关键词",
+          "hint": "仅显示标题包含任一指定关键词、且不包含排除关键词的活动。",
+          "only": "仅包含",
+          "hide": "排除",
+          "add": "添加关键词"
+        },
+        "all_day": "全天活动",
+        "tentative": "待定事件",
+        "tentative_hint": "是否显示日历中标记为“暂定”、尚未确认的活动。",
+        "private": "隐藏活动标题",
+        "private_hint": "所有活动仅显示为“忙碌”，不显示标题或地点，适合走廊和公共空间中的屏幕。",
+        "time": {
+          "title": "时间"
+        },
+        "ahead": "提前查看",
+        "ahead_hint": "从今天开始，卡片展示未来多少天的活动。",
+        "days": "{n} 天",
+        "soon": "即将开始",
+        "soon_hint": "设置在活动开始前多久显示“即将开始”。",
+        "soon_off": "关",
+        "minutes": "{n} 分钟",
+        "start_view": "打开全屏时显示",
+        "start_view_hint": "点击卡片可打开全屏日历。“自动”模式在屏幕空间足够时显示周视图，否则显示日视图。",
+        "view": {
+          "auto": "自动",
+          "up_next": "接下来",
+          "day": "日",
+          "week": "周",
+          "month": "月"
+        },
+        "week_start": "每周开始于",
+        "week_start_hint": "“今天”始终显示接下来的几天；“周一”则显示标准日历周。",
+        "week_start_today": "今天",
+        "week_start_monday": "星期一",
+        "hours": "小时",
+        "hours_hint": "周视图显示的时间范围。“自动”会根据活动安排调整，至少显示 8:00 至 20:00；超出范围的活动另行计数。",
+        "hours_auto": "自动",
+        "week_numbers": "周数",
+        "week_numbers_hint": "在月视图中显示于每周左侧。",
+        "book": {
+          "title": "预约",
+          "on": "预订写入日历",
+          "on_hint": "选择从屏幕发起的预约写入哪个日历。仅显示能够通过 Home Assistant 新建事件的日历，例如本地日历、Google 日历和 CalDAV 日历。",
+          "none": "此卡片所选日历均无法通过 Home Assistant 新建事件，因此不显示预约按钮。",
+          "place": "地点",
+          "place_hint": "写入预约活动的地点，例如会议室名称。",
+          "place_add": "添加地点",
+          "name": "标题",
+          "name_hint": "写入日历的预约标题。",
+          "name_placeholder": "通过屏幕预订"
+        }
+      },
+      "meter": {
+        "title": "仪表盘",
+        "look": "外观",
+        "styles": {
+          "ring": "环形",
+          "tape": "刻度带",
+          "bar": "条形"
+        },
+        "range": "范围",
+        "range_hint": "设置仪表盘的最小值和最大值。默认传感器范围遵循 Home Assistant 仪表盘卡片的 0～100；温度、CO₂ 或功率可自定义。",
+        "range_ha": "来自 Home Assistant",
+        "range_own": "自定义",
+        "min": "最小",
+        "max": "最大",
+        "outside": "{value} 不在 {min}～{max} 范围内。",
+        "set_own": "自定义范围",
+        "range_wrong": "最小值必须小于最大值。",
+        "color": "颜色",
+        "segments": "分段",
+        "segments_hint": "仪表盘可使用单色，或在达到阈值时切换为两段／三段颜色。阈值单位与传感器一致。",
+        "whole": "整个仪表盘",
+        "up_to": "不超过",
+        "above": "超过该值",
+        "swatch_aria": "第 {n} 段颜色：{color}",
+        "own_color": "使用卡片自身颜色",
+        "threshold_aria": "阈值 {n}",
+        "thresholds_wrong": "每个阈值必须大于前一个阈值。",
+        "reset": "恢复默认",
+        "colors": {
+          "red": "红色",
+          "pink": "粉色",
+          "purple": "紫色",
+          "deep-purple": "深紫色",
+          "indigo": "靛蓝色",
+          "blue": "蓝色",
+          "light-blue": "浅蓝色",
+          "cyan": "青色",
+          "teal": "蓝绿色",
+          "green": "绿色",
+          "light-green": "浅绿色",
+          "lime": "青柠色",
+          "yellow": "黄色",
+          "amber": "琥珀色",
+          "orange": "橙色",
+          "deep-orange": "深橙色",
+          "brown": "棕色",
+          "grey": "灰色",
+          "blue-grey": "蓝灰色"
+        }
+      },
+      "anchor_hint": "点击图标可更换图标，点击名称可重命名卡片。",
+      "grow": {
+        "title": "可显示更多控制项",
+        "applied": "此卡片在 {columns} × {rows} 的尺寸下可容纳更多控制项。请选择显示内容；之后仍可在“控制项”中修改。",
+        "offered": "在 {columns} × {rows} 网格下，此卡片有空间显示以下控件。请选择要显示的内容，之后可在“控件”中修改。",
+        "suggested": "推荐",
+        "none": "不显示控制项",
+        "never": "不再提示",
+        "done": "完成"
+      },
+      "look": {
+        "title": "如何显示？",
+        "text": "此传感器默认显示为仪表盘。将鼠标移到样式上可预览，之后可在“显示方式”中修改。",
+        "ring": "仪表：环形",
+        "tape": "仪表：带状",
+        "bar": "仪表：条形",
+        "graph": "最近几小时的趋势图",
+        "watch": "大号数值",
+        "standard": "仅显示数值",
+        "never": "不再提示",
+        "done": "完成"
+      },
+      "text": {
+        "title": "模板",
+        "hint": "可以输入包含 Home Assistant 模板的文字，写法与“开发者工具 → 模板”一致。Home Assistant 负责计算并更新结果，屏幕只显示最终内容；结果为空时卡片会隐藏。",
+        "manual": "模板编写说明",
+        "field": "模板",
+        "placeholder": "输入文字，或使用 {'{{'} 读取实体状态……",
+        "keys": {
+          "space": "空格",
+          "complete": "补全",
+          "next": "下一个字段",
+          "comment": "注释"
+        },
+        "result": "屏幕显示结果",
+        "bytes": "已使用 {n}/{of} 字节",
+        "empty": "结果为空，此处不会显示内容。",
+        "access": "模板在 Home Assistant 中以 Tessera 附加组件的权限运行，因此能够读取所有实体。",
+        "markup": {
+          "label": "标记语法",
+          "heading": "标题",
+          "bullet": "项目符号",
+          "table": "表格",
+          "bold": "加粗",
+          "good": "绿色文字",
+          "alert": "红色文字",
+          "accent": "蓝色文字"
+        },
+        "complete": {
+          "now": "现在",
+          "state": "状态：{state}"
+        },
+        "examples": {
+          "title": "从示例开始：",
+          "lights": "已开启的灯",
+          "open": "打开的门窗",
+          "weather": "天气",
+          "lights_heading": "已开启的灯",
+          "all_off": "所有灯均已关闭",
+          "open_heading": "打开",
+          "now": "现在",
+          "humidity": "湿度"
+        },
+        "listen": {
+          "label": "更新触发条件",
+          "time": "时间变化时",
+          "none": "此模板没有读取任何实体；只有修改模板本身时，显示内容才会更新。",
+          "all": "如果模板读取所有实体状态，Home Assistant 最多每分钟重新渲染一次。指定实体或实体域（例如 states.light），则状态变化时可立即更新。"
+        },
+        "lint": {
+          "unknown": "Home Assistant 中不存在 {id}",
+          "replace": "替换为 {id}"
+        }
+      },
+      "todo": {
+        "title": "待办清单",
+        "plain": "此开发板无法显示待办清单，需要至少 8 MB 闪存的开发板。请移除此卡片。",
+        "needs_firmware": "待办事项列表需要固件 0.61.0 或更新版本。保存后请在屏幕上点击“更新”。",
+        "order": {
+          "label": "顺序",
+          "hint": "使用与 Home Assistant 待办清单卡片相同的排序方式。",
+          "none": "跟随 Home Assistant 排序",
+          "alpha_asc": "按名称排序（A–Z）",
+          "alpha_desc": "名称 Z → A",
+          "duedate_asc": "按截止日期升序（最早优先）",
+          "duedate_desc": "按截止日期降序（最晚优先）"
+        },
+        "completed": "已完成事项",
+        "completed_hint": "空间足够时，在未完成事项下方显示已完成事项，并添加删除线。",
+        "due": "截止日期",
+        "due_hint": "在事项旁显示日期；逾期日期显示为红色。",
+        "screen": "在屏幕上",
+        "add": "添加事项",
+        "add_hint": "卡片上的“+”按钮及列表输入框会打开屏幕键盘。",
+        "suggest": "推荐名称",
+        "suggest_hint": "输入时，屏幕键盘会提示之前已经勾选完成的事项；轻点即可将其重新加入待办列表。",
+        "clear": "清除已完成事项",
+        "clear_hint": "列表中提供清除所有已勾选事项的按钮，执行前会确认。"
+      },
+      "call": {
+        "section": "通话",
+        "who": "通话",
+        "who_hint_all": "点击后打开可呼叫屏幕列表。",
+        "who_hint_one": "点击立即呼叫此屏幕。",
+        "everyone": "从列表中选择",
+        "kind": "通话类型",
+        "kind_hint": "视频通话要求双方屏幕安装“屏幕摄像头”插件及其“视频”组件，否则只进行语音通话。",
+        "video": "条件允许时使用视频",
+        "sound": "仅语音"
+      },
+      "text_entity": {
+        "edit": "点击后通过屏幕键盘编辑文本值，密码以圆点显示。",
+        "view_only": "此开发板只能查看文本值；要在屏幕上修改，需要至少 8 MB 闪存的开发板。"
+      }
+    },
+    "precision": {
+      "label": "显示精度",
+      "default": "默认 ({value})",
+      "note": "这是 Home Assistant 中此传感器的设置，修改后 Home Assistant 也会同步更新。",
+      "unregistered": "此传感器没有唯一 ID，因此 Home Assistant 不会保存它的设置。"
+    },
+    "tile_card": {
+      "label": "{name}，第 {page} 页位置 {slot}。回车：配置；方向键：移动。",
+      "remove": "移除卡片",
+      "remove_named": "移除 {name}"
+    },
+    "action": {
+      "label": "操作",
+      "asking": "正在向 Home Assistant 查询此实体支持的操作……",
+      "not_answering": "Home Assistant 暂无响应，请稍后重试。",
+      "choose": "选择操作",
+      "search": "搜索操作，例如切换、位置或播放",
+      "search_label": "搜索操作",
+      "none_found": "未找到操作。",
+      "gone": "Home Assistant 已不再支持对此实体执行此操作，点击将不会生效。请选择其他操作。",
+      "optional": "{name}（可选）",
+      "not_set": "未设置",
+      "on": "开",
+      "off": "关",
+      "needs": "Home Assistant 需要 {fields}。",
+      "needs_firmware": "执行自定义点击操作需要固件 0.2.58 或以上。请在屏幕上点击“更新”。在升级前，点击操作会按“自动”方式执行。"
+    },
+    "icon": {
+      "label": "图标",
+      "none": "无图标",
+      "search": "搜索图标，例如灯具、音乐或门",
+      "search_label": "搜索图标",
+      "none_text_only": "无图标，仅文字",
+      "aria": "图标: {name}",
+      "none_found": "未找到图标。",
+      "own": "此屏幕的图标",
+      "more": "更多图标"
+    },
+    "inspect": {
+      "title": "当前数据",
+      "subtitle": "连接状态、运行状态和支持的属性",
+      "reading": "正在读取…",
+      "fetching": "正在获取 Home Assistant 当前状态……",
+      "status": "状态: {status}",
+      "options": "迷你滑块：{slider} · 显示方式：{display} · 尺寸：{size} · 控制项：{control} · 背景：{background}",
+      "yes": "是",
+      "no": "否",
+      "control_none": "无",
+      "background_default": "默认",
+      "read_again": "重新读取"
+    },
+    "topbar": {
+      "removed": "已从顶部栏移除 {name}",
+      "full": "顶部栏最多可放置 {n} 个项目。",
+      "already": "该项目已在顶部栏中。",
+      "title": "顶部栏",
+      "aria": "顶部栏：{name}",
+      "items": "已用 {used} 项，共 {n} 项",
+      "name": "页面顶部标题",
+      "name_placeholder": "例如：客厅",
+      "screen_name": "屏幕标题",
+      "screen_name_hint": "没有单独设置标题的页面都会显示此名称。",
+      "no_title_hint": "留空则只显示标志。",
+      "item_label": "{name}，位置 {slot}。回车：配置；方向键：移动。",
+      "max": "最多 {n} 个项目",
+      "add_title": "添加时间、日期、模拟时钟或实体",
+      "hint": {
+        "overflow": "顶部栏名称旁空间不足，屏幕会隐藏带虚线标记的项目。请移除项目或缩短名称。",
+        "needs_firmware": "传感器、日期和模拟时钟需要固件 {version} 或更新版本。更新前仅显示屏幕名称；若顶部栏包含时间则也显示时钟。"
+      },
+      "detail": {
+        "hidden": "已隐藏：当前未激活",
+        "overflow": "名称旁空间不足",
+        "hidden_signal": "信号良好时隐藏",
+        "hidden_link": "所有连接正常时隐藏",
+        "hidden_battery": "电量高于 20% 时隐藏"
+      },
+      "live": {
+        "looks": "屏幕实际显示效果"
+      },
+      "analog_sample": "显示时间的小型模拟表盘",
+      "content": {
+        "label": "显示内容",
+        "hint": "“上次变化时间”由屏幕持续计时，例如“刚刚”“5 分钟前”“昨天”。"
+      },
+      "auto_icon": "自动（与 Home Assistant 一致）",
+      "show": {
+        "label": "显示",
+        "hint": "“仅活动时显示”会在关闭、离家或数值为 0 时隐藏该项目，适用于门窗状态、洗衣机运行状态或在家人员。"
+      },
+      "clock_24": "24 小时制 · 在 {settings} 中修改",
+      "clock_12": "12 小时制 · 在 {settings} 中修改",
+      "clock_settings": "设置 → 语言与地区",
+      "date_hint": "今日日期：{date}。日期以屏幕自身时钟为准。",
+      "add": {
+        "title": "添加到顶部栏",
+        "slots": "已使用 {used}/{n} 个位置",
+        "builtin": "屏幕内置项目",
+        "added": "已添加",
+        "suggestions": "Home Assistant 推荐",
+        "entity": "实体",
+        "search": "按名称、区域或实体搜索，例如温度或门",
+        "search_label": "搜索要添加到顶部栏的实体",
+        "none_found": "未找到实体。",
+        "plugins": "来自插件"
+      },
+      "left_hint": "标题和首页按钮可在页面设置中配置",
+      "wifi_sample": "屏幕自身的 Wi-Fi 信号",
+      "link_sample": "仅在 Home Assistant 或 Tessera 断开时显示",
+      "battery_sample": "屏幕自身电量",
+      "wifi_hint": "屏幕自行读取 Wi-Fi 信号，因此即使与 Home Assistant 断开连接，顶部栏仍会显示该项目。信号以四格至一格表示，断网时显示断开标记。",
+      "wifi_show_hint": "“仅信号弱时显示”会在信号下降至一格或断网时才显示，平时保持顶部栏简洁。",
+      "link_hint": "仅在 Home Assistant 或 Tessera 断开连接时显示，以便快速判断数据为何缺失。",
+      "battery_hint": "屏幕直接读取自身电池状态，因此 Home Assistant 断开时仍会显示。图标样式与 Home Assistant 一致，并在充电时显示闪电标记。",
+      "battery_show_hint": "“仅低电量时显示”会在电量降至 20% 或以下时才显示。",
+      "status_firmware": "此项目需要固件 {version} 或更新版本。更新前不会显示。",
+      "plugin_item": "仅在插件有内容可显示时展示其状态。未安装该插件的屏幕不会显示此项目。",
+      "left_move": "左移",
+      "right_move": "右移",
+      "strip": {
+        "left_title": "标题与首页按钮",
+        "left_hint": "左侧 · 在 {page} 的设置中调整",
+        "place": "第 {place}/{count} 个项目",
+        "hint": "点击顶部栏项目可配置；左右拖动可调整顺序，拖出顶部栏可移除。",
+        "copy": "将此顶部栏复制到其他页面",
+        "copy_hint": "仅复制项目，或连同标题一起复制整个顶部栏",
+        "page_settings": "{page} 的设置"
+      }
+    },
+    "screen_settings": {
+      "groups": {
+        "brightness": "亮度",
+        "night": "夜间",
+        "screen": "屏幕",
+        "this_screen": "此屏幕"
+      },
+      "rows": {
+        "brightness": "亮度",
+        "dark_mode": "深色模式",
+        "standby_enabled": "自动待机",
+        "standby_seconds": "经过以下时间后待机",
+        "standby_brightness": "待机亮度",
+        "standby_lit": "待机时保持屏幕亮起",
+        "night_enabled": "夜间模式",
+        "night_start": "开始",
+        "night_end": "结束",
+        "night_brightness": "夜间亮度",
+        "night_lit": "夜间保持屏幕亮起",
+        "auto_home": "返回首页",
+        "auto_home_seconds": "经过以下时间后",
+        "home_on_standby": "待机时也启用",
+        "swipe_pages": "滑动切换页面",
+        "page_buttons": "页面按钮",
+        "home_button": "显示首页按钮",
+        "rotation": "旋转",
+        "loop_pages": "循环浏览页面"
+      },
+      "actions": {
+        "calibrate": {
+          "button": "触摸校准",
+          "hint": "屏幕会依次显示五个十字准星，请站在屏幕前依次点击，每个位置点击三次。",
+          "confirm": "要在 {name} 上开始触摸校准吗？",
+          "done": "{name} 正在显示校准十字准星。"
+        }
+      },
+      "duration": {
+        "seconds": "{n} 秒",
+        "minutes": "{n} 分钟",
+        "hours": "{n} 小时",
+        "hours_minutes": "{h} 小时 {m} 分钟"
+      },
+      "time": {
+        "am": "上午 {time}",
+        "pm": "下午 {time}"
+      },
+      "other_screen_busy": "仍在保存另一台屏幕的设置，请稍后重试。",
+      "reach": {
+        "pages": "页面 {list}"
+      },
+      "status": {
+        "offline": "屏幕已离线，重新上线后才能修改设置。",
+        "screen": "设置立即在屏幕上生效；如果从屏幕端修改，也会同步显示在这里。",
+        "app": "设置立即生效。固件 0.2.49 起，屏幕可自行保存这些设置。"
+      },
+      "unavailable": "此实体已在 Home Assistant 中关闭，或屏幕正在重启。",
+      "lower": "降低 {name}",
+      "higher": "提高 {name}",
+      "screensaver": {
+        "title": "屏幕保护程序",
+        "show": "在待机时显示",
+        "standby_off": "请先开启“自动待机”才能使用此功能。",
+        "needs_firmware": "要使用屏幕保护程序，请将此屏幕更新到固件 {version}。",
+        "no_pictures": "此屏幕没有足够的图片存储空间，因此会显示时钟。",
+        "lead": "显示第一个可用的内容",
+        "use": "使用 {name}",
+        "kinds": {
+          "media": "正在播放的音乐",
+          "photos": "照片",
+          "camera": "摄像头",
+          "clock": "时钟"
+        },
+        "summary": {
+          "media_none": "尚未选择播放器",
+          "camera_none": "尚未选择摄像头",
+          "temperature": "室外温度",
+          "time_date": "时间与日期",
+          "off": "关闭",
+          "photos_none": "选择文件夹",
+          "plugin_gone": "该插件未安装在此屏幕上",
+          "plugin_entity": "选择实体"
+        },
+        "on": "在屏幕保护程序中显示",
+        "place": "第 {n} 个，共 {count} 个",
+        "earlier": "尝试更早的时间",
+        "later": "尝试更晚的时间",
+        "players_title": "播放器",
+        "players": "播放器列表（顶部优先）",
+        "players_hint": "优先显示第一个正在播放的播放器及其封面。",
+        "player_add": "添加播放器",
+        "player_search": "搜索播放器",
+        "player_none": "没有匹配的播放器",
+        "remove_player": "移除 {name}",
+        "keys_hint": "屏幕保护程序中可以控制播放、暂停和音量；点击其他区域即可唤醒屏幕。",
+        "choose_camera": "选择摄像头",
+        "camera_hint": "每 15 秒更新一次摄像头画面",
+        "temperature": "温度",
+        "weather_auto": "自动",
+        "weather_none": "无温度数据",
+        "items_add": "添加实体",
+        "items_hint": "在温度旁边单行显示实体，例如传感器、门或灯。",
+        "items_full": "时钟最多可显示 {n} 个实体。",
+        "items_already": "此实体已经显示在时钟上。",
+        "items_removed": "已从时钟移除 {name}",
+        "items_title": "时钟实体",
+        "items_slots": "已用 {used} 个，共 {n} 个",
+        "item_text": "文本",
+        "item_icon": "图标",
+        "item_both": "两者",
+        "item_look": "显示内容",
+        "item_hint": "无论实体原本是什么颜色，屏幕保护程序中均以黑白显示。",
+        "items_add_title": "添加到时钟",
+        "clock_part": "时间、日期和温度",
+        "row_hint": "点击此行中的实体可配置；左右拖动可调整位置，拖出此行即可移除。",
+        "face": "表盘",
+        "faces": {
+          "digital": "数字式",
+          "glass": "玻璃风格",
+          "classic": "经典",
+          "bauhaus": "包豪斯"
+        },
+        "look": "外观",
+        "look_dark": "深色",
+        "look_light": "浅色",
+        "look_auto": "跟随屏幕设置",
+        "numerals": "数字刻度",
+        "numerals_none": "无",
+        "seconds": "秒针",
+        "face_alone_hint": "此表盘只显示时间。温度和实体信息仅在“经典”和“数字”表盘中显示。",
+        "face_moves_hint": "表盘每分钟会轻微移动，包豪斯表盘每十分钟会重新生成画面，以免像素长时间显示相同内容。",
+        "plugin_add": "从插件添加",
+        "plugin_steps_full": "最多可添加 {n} 个插件步骤",
+        "plugin_gone": "此插件未安装在屏幕上，因此该步骤不会显示内容。请重新安装插件或移除此步骤。",
+        "plugin_entity_search": "搜索实体",
+        "plugin_entity_none": "没有匹配的实体",
+        "plugin_entity_choose": "选择实体",
+        "plugin_entity_change": "选择其他实体",
+        "face_standard": "标准",
+        "photos_folder": "文件夹",
+        "photos_hint": "选择 Home Assistant 媒体库中的文件夹，例如 /media 下的目录、Immich 或 Synology Photos。",
+        "photos_sources": "媒体",
+        "photos_untitled": "未命名",
+        "photos_loading": "正在加载…",
+        "photos_failed": "Home Assistant 无法打开此文件夹。",
+        "photos_here": "此处有 {n} 张照片",
+        "photos_none_here": "当前文件夹内没有照片，请打开其中的子文件夹。",
+        "photos_empty": "此处没有内容。",
+        "photos_choose": "选择此文件夹",
+        "photos_change": "更改",
+        "photos_show": "幻灯片播放",
+        "photos_every": "切换间隔",
+        "photos_every_30": "30 秒",
+        "photos_every_60": "1 分钟",
+        "photos_every_300": "5 分钟",
+        "photos_every_900": "15 分钟",
+        "photos_every_3600": "1 小时",
+        "photos_order": "顺序",
+        "photos_order_shuffle": "随机顺序",
+        "photos_order_in_order": "按顺序",
+        "photos_fit": "适应",
+        "photos_fit_auto": "自动",
+        "photos_fit_fill": "填充",
+        "photos_fit_whole": "完整",
+        "photos_fit_auto_hint": "与屏幕比例接近的照片将铺满屏幕；其他照片完整显示，并使用照片自身颜色填充背景。",
+        "photos_fit_fill_hint": "所有照片都铺满屏幕，边缘可能被裁切。",
+        "photos_fit_whole_hint": "所有照片完整显示，空白区域用照片自身颜色填充。",
+        "photos_motion": "动态效果",
+        "photos_motion_still": "静止",
+        "photos_motion_slow": "缓慢",
+        "photos_motion_still_hint": "每张照片保持静止。",
+        "photos_motion_slow_hint": "照片将缓慢移动，以填满整个屏幕，每次平移一个像素。10 英寸屏幕由于内存限制，较大的照片不会移动。"
+      },
+      "plugins": {
+        "title": "插件",
+        "note": "各插件的设置位于“插件”标签页中的插件详情里。"
+      },
+      "extras": {
+        "title": "扩展功能",
+        "note": "此开发板特有的屏幕设置。也可在屏幕自身的设置页面及 Home Assistant 中找到相同开关。"
+      }
+    },
+    "update": {
+      "starting": "正在开始更新……",
+      "building": "正在编译固件……",
+      "writing": "正在通过 Wi-Fi 写入固件……",
+      "phases": {
+        "install": "正在编译并安装……",
+        "verify": "等待屏幕重新上线……",
+        "settle": "正在检查运行稳定性……"
+      },
+      "new_language": "新语言：{name}"
+    },
+    "settings": {
+      "updates": {
+        "auto_on": "屏幕将于夜间自动更新。",
+        "auto_off": "自动更新已关闭。",
+        "title": "固件更新",
+        "busy": "正在更新到固件 {version}……",
+        "no_screens": "尚未配对屏幕。新屏幕将使用固件 {version}。",
+        "available": "固件 {version} 可供 {n} 块屏幕更新。",
+        "current": "所有屏幕均已安装固件 {version}。",
+        "available_mixed": "有 {n} 块屏幕可以更新。",
+        "current_mixed": "所有屏幕均已是最新版本。",
+        "all": "更新全部 {n} 块屏幕",
+        "whats_new": "固件 {version} 的更新内容",
+        "auto_label": "每晚自动更新",
+        "auto_hint": "在 03:00 至 06:00 间逐台更新，遇到错误即停止并在 Home Assistant 中报告。",
+        "reinstall_all": "为全部 {n} 块屏幕重装开发版",
+        "reinstall_all_hint": "依次为所有屏幕编译最新开发版固件，再通过 Wi-Fi 安装。开发版的版本号保持不变，因此不会以普通更新的形式提示新开发版。",
+        "reinstall_all_confirm": "要为 {n} 块屏幕重新安装最新开发版固件吗？将逐台构建和安装，各屏幕完成后会重启。",
+        "reinstall_all_go": "重新安装"
+      },
+      "video": {
+        "title": "Home Assistant 中的视频",
+        "text": "启用 Screen camera 插件的“视频”部分后，屏幕就能向 Home Assistant 提供带声音的实时摄像头画面。既可以通过 Home Assistant 的摄像头实体观看，也可以在浏览器或应用中观看。使用前必须安装 Tessera video 集成。",
+        "install": "安装到 Home Assistant",
+        "install_again": "重新安装",
+        "update": "更新集成",
+        "newer": "已安装 · 有更新版本",
+        "waits_restart": "已安装，需重启 Home Assistant 才能加载",
+        "running": "● 正在 Home Assistant 中运行",
+        "restart": "重新启动 Home Assistant",
+        "restart_confirm": "现在重启 Home Assistant 吗？重启期间，仪表板和自动化也会暂时不可用。",
+        "restarting": "Home Assistant 正在重启。恢复后屏幕视频将在约一分钟内恢复。",
+        "installed": "Tessera 视频集成已安装，请重启 Home Assistant 以加载。",
+        "screens": "启用视频的屏幕：{names}",
+        "no_screens": "目前没有任何启用了视频功能的屏幕。请在配有摄像头的 P4 屏幕上安装“屏幕摄像头”插件并启用其“视频”功能。",
+        "writes": "将写入文件夹 {path}，再次安装会替换其中内容。Tessera 会自动添加启用视频功能的屏幕。"
+      },
+      "claude": {
+        "installed": "技能已安装，Claude Code 可以立即使用。",
+        "installed_restart": "技能已安装。请重启 Claude Code，以便识别新的技能文件夹。",
+        "text": "向 Claude 提供 Tessera 使用说明后，你就可以提出这样的要求：“邮箱满了时，在所有屏幕上显示提醒。”Claude 将了解 Tessera 的提醒事件、字段、颜色和图标。",
+        "install": "为 Claude Code 安装",
+        "install_again": "重新安装",
+        "update": "更新技能",
+        "not_installed": "未安装",
+        "installed_chip": "● 已安装",
+        "newer": "已安装 · 有更新版本",
+        "writes": "供 Home Assistant 中的 Claude Code 使用。安装时将文件写入 {path}；再次安装会覆盖原文件。",
+        "download": "下载供 claude.ai 使用",
+        "upload": "在 Claude 的“自定义 → 技能”中上传 ZIP 压缩包。"
+      },
+      "title": "管理与屏幕相关的所有设置。",
+      "back": "← 我的屏幕",
+      "screens": {
+        "title": "屏幕",
+        "text": "添加新屏幕，或为现有屏幕构建、重新安装固件。",
+        "firmware_detail": "通过 USB 或 Wi-Fi 构建和安装"
+      },
+      "language": {
+        "title": "语言与地区",
+        "screen_language": "屏幕语言",
+        "auto": "Home Assistant 的语言（{name}）",
+        "auto_plain": "Home Assistant 的语言",
+        "ha_missing": "在获取 Home Assistant 的语言设置之前，屏幕会使用英语。",
+        "unchecked": "{name} · 尚未完成校对，欢迎协助",
+        "help": "{name} 尚未完成校对，欢迎协助：{guide}",
+        "guide": "翻译指南",
+        "update_hint": "更改语言后，每块屏幕都需要重新构建并更新固件；可点击屏幕的“更新”，或等待夜间自动更新。",
+        "time": "时间格式",
+        "time_auto": "自动，跟随语言设置（{clock}）",
+        "clock_24": "24 小时",
+        "clock_12": "12 小时",
+        "numbers": "数字格式",
+        "numbers_auto": "自动，跟随语言设置（{example}）",
+        "profile": "你的 Home Assistant 配置文件: {formats}",
+        "use_profile": "使用这些设置",
+        "editor_hint": "编辑器语言跟随你的 Home Assistant 用户资料设置。",
+        "saved": "已保存。",
+        "saved_language": "已保存。各屏幕将在下次更新固件时采用新语言。"
+      },
+      "alerts": {
+        "text": "自动化可以在一块或全部屏幕上显示全屏提醒卡片。速查表列出了操作名称、参数、图标和颜色，并提供测试表单。",
+        "detail": "由自动化触发的全屏通知"
+      },
+      "build_server": {
+        "title": "构建服务器",
+        "intro": "可以使用性能更强的电脑编译固件。Tessera 将屏幕的 YAML 发送至 ESPHome 编译服务器，并安装服务器返回的固件。如果服务器无法完成编译，则像以前一样在本机编译。",
+        "connect": "连接构建服务器",
+        "how_title": "如何启动构建服务器",
+        "how_desktop": "电脑上的 ESPHome Desktop：默认可为其他设备构建固件。",
+        "how_builder": "ESPHome Device Builder：设置 → 构建服务器 → 启用远程构建。",
+        "how_headless": "无显示器的服务器：运行 {command}，并使用输出的配对密钥。",
+        "how_link": "了解构建服务器",
+        "address": "地址",
+        "address_hint": "请输入构建服务器所在电脑的 IP 地址或主机名。Home Assistant 附加组件无法在网络上自动发现它。",
+        "port": "端口",
+        "look_up": "查找",
+        "looking": "正在查找…",
+        "check_title": "这是你的构建服务器吗？",
+        "check_text": "{name} · ESPHome {version}",
+        "check_hint": "构建服务器的指纹会显示在启用“为其他设备构建”功能的页面，或构建服务器启动时的窗口中。只有两端显示的表情符号完全一致时，才应进行配对。",
+        "server_emoji": "服务器指纹",
+        "own_emoji": "Tessera 指纹",
+        "own_emoji_hint": "接受 Tessera 的配对请求时，构建服务器会显示这些图标。",
+        "key": "配对密钥",
+        "key_hint": "输入构建服务器启动时显示的一次性密钥，例如 ABCD-EFGH-JKLM-NPQR。",
+        "pair": "符号一致，开始配对",
+        "pairing": "正在配对…",
+        "back": "返回",
+        "cancel": "取消",
+        "wait_title": "在 {name} 上接受 Tessera 的配对请求",
+        "wait_text": "打开构建服务器的“配对请求”，确认 Tessera 的表情符号与此处一致，然后接受请求。",
+        "paired": "已与 {name} 配对。此后屏幕固件将在该服务器构建。",
+        "status": {
+          "connecting": "正在连接…",
+          "online": "就绪",
+          "busy": "正在处理其他编译任务",
+          "offline": "无法联系",
+          "pending": "等待你接受配对请求",
+          "refused": "已不再配对",
+          "mismatch": "指纹已变化"
+        },
+        "offline_text": "服务器恢复前将在本机进行构建。",
+        "refused_text": "{name} 已不再识别 Tessera，或配对请求未及时获批准。请重新配对。",
+        "mismatch_text": "{name} 返回的指纹与先前确认的不一致。如果重新安装过服务器，请重新配对。",
+        "send": "在此服务器构建屏幕固件",
+        "send_hint": "关闭此选项或无法连接服务器时，将在本机构建。",
+        "version_same": "使用 ESPHome {version} 构建，与 Tessera 版本一致。",
+        "version_other": "使用 Tessera 所用的 ESPHome {ours} 构建。服务器会将它与自身的 {theirs} 版本并行安装一次。",
+        "building": "正在构建 {file} · {step}",
+        "last_server": "上次构建：{file}，在此服务器耗时 {time}。",
+        "last_here": "上次构建：{file}，在本机运行，原因：{reason}。",
+        "last_failed": "上次构建：{file} 在服务器上失败，请查看日志了解原因。",
+        "minutes": "{m} 分 {s} 秒",
+        "seconds": "{s} 秒",
+        "pair_again": "重新配对",
+        "forget": "忘记",
+        "forget_confirm": "要取消关联 {name} 吗？之后屏幕将改为在本机构建固件。若要从构建服务器一侧移除 Tessera，还需在该服务器的已配对设备中将其移除。",
+        "forget_go": "忘记",
+        "unavailable": "当前 Tessera 无法连接构建服务器。"
+      },
+      "build_files": {
+        "title": "构建文件",
+        "intro": "每次固件构建都会留下缓存文件，以加快同一屏幕的下次构建。Home Assistant 备份不会包含这些文件。",
+        "measuring": "正在测量…",
+        "total": "总计 {size}",
+        "folders": "构建目录",
+        "folders_detail": "{count} 台屏幕",
+        "cache": "编译缓存",
+        "tools": "ESP-IDF 与下载文件",
+        "clean": "清理构建目录",
+        "cleaning": "正在清理…",
+        "clean_confirm": "要删除所有屏幕的编译文件夹吗？预计可释放 {size} 的空间。下一次编译各屏幕固件时，需要从头编译，通常会多花几分钟；在树莓派上可能更久。页面布局、插件和设置不会被删除。",
+        "clean_all": "同时删除编译缓存与 ESP-IDF",
+        "clean_all_confirm": "要删除所有构建文件，包括编译缓存和 ESP-IDF 吗？预计释放 {size}。下次构建将重新下载约 1 GB 的 ESP-IDF 并从头编译，在树莓派上可能需要半小时。页面布局、插件及设置均不受影响。",
+        "clean_go": "清理",
+        "cleaned": "清理完成，释放了 {size} 空间。",
+        "cleaned_nothing": "清理完成。",
+        "busy": "有屏幕正在编译固件，请等待编译结束后再清理。",
+        "auto_label": "构建后自动清理",
+        "auto_hint": "下次构建起，所有构建任务完成后将自动清理构建文件夹。这样可节省存储空间，但以后每次构建都需要完整重新编译，通常会多花几分钟。",
+        "auto_on": "每次构建完成后自动清理构建目录。",
+        "auto_off": "保留构建目录以加快下次构建。",
+        "offer": "释放 {size}",
+        "not_now": "暂不",
+        "large": "构建目录占用 {size}；清理后可释放大部分构建文件所占空间。"
+      }
+    },
+    "firmware": {
+      "title": "构建并安装屏幕固件",
+      "intro": "内置 ESPHome CLI 使用当前屏幕的设备配置文件（包含密钥的 YAML）和 secrets。先选择配置文件，再选择连接到 Home Assistant 主机的 USB 端口、使用主机名的 {ota}，或通过 {download} 在自己的电脑上刷写固件。{check} 仅验证配置，{build} 只编译，{install} 将固件刷入屏幕。Tessera 中的卡片布局不会改变。首次在树莓派等 Home Assistant 主机上构建可能需要 20 分钟甚至更久，这是正常现象。",
+      "ota": "Wi-Fi / OTA",
+      "download": "下载",
+      "check": "检查",
+      "build": "仅构建",
+      "install": "构建并安装",
+      "build_download": "构建并下载",
+      "no_cli": "缺少 ESPHome 命令行工具。请将附加组件更新至 0.2.0。",
+      "choose": "先选择目标设备配置，再选择 USB 端口、IP 地址或下载。",
+      "profile": "ESPHome 配置文件",
+      "install_to": "安装到",
+      "no_board": "该端口尚未连接屏幕",
+      "download_target": "下载固件并自行刷写",
+      "host": "IP 地址或主机名",
+      "download_file": "下载 {name}",
+      "download_how": "请在 Chrome 或 Edge 中使用 {esphome_web} 将固件刷入屏幕：点击“连接”，选择屏幕的 USB 串口，点击“安装”并选择此文件。文件中包含 Wi-Fi 密码和屏幕密钥，请妥善保管，不要分享。",
+      "waiting": "正在排队，前面还有 {n} 个构建任务"
+    },
+    "installer": {
+      "board": "你使用的是哪种屏幕？",
+      "board_title": "{name} · {inch} 英寸",
+      "status": {
+        "new": "新建",
+        "experimental": "实验性"
+      },
+      "status_hint": {
+        "new": "新支持的型号：目前仅在少量设备上测试过，欢迎反馈使用情况。",
+        "experimental": "实验性支持：尚未在此硬件上验证，欢迎反馈。"
+      },
+      "abilities": {
+        "camera": "摄像头画面",
+        "no_camera": "不支持摄像头图片",
+        "dimming": "可调亮度背光",
+        "no_dimming": "背光始终开启",
+        "standby": "支持待机和夜间模式",
+        "no_standby": "不支持待机",
+        "tiles": "{pages} 页最多可放置 {n} 张卡片",
+        "calibration": "首次启动需要触摸校准"
+      },
+      "choice": {
+        "DISPLAY_MODEL": "显示控制器",
+        "FLASH_SIZE": "闪存容量",
+        "BOARD_VARIANT": "开发板"
+      },
+      "choice_hint": {
+        "DISPLAY_MODEL": "请先尝试第一个选项。如果屏幕黑屏、花屏或图像错乱，再尝试另一个。",
+        "FLASH_SIZE": "多数此类开发板配备 16 MB 闪存。如果刷写后持续黑屏或反复重启，请选择 8 MB。",
+        "BOARD_VARIANT": "请选择实际使用的板卡。若无外壳的黄色板卡选错，点击左上角可能被识别为右下角。"
+      },
+      "choice_option": {
+        "BOARD_VARIANT": {
+          "black": "黑色，带外壳",
+          "yellow": "黄色，无外壳"
+        }
+      },
+      "choice_usual": "大多数开发板",
+      "orientation_landscape": "横屏",
+      "orientation_portrait": "竖屏",
+      "name": "名称",
+      "name_placeholder": "客厅屏幕",
+      "device_name": "设备名称",
+      "name_hint": "每块屏幕都有独立的设备配置和密钥。例如有四块屏幕，就需要使用不同名称完成四次安装。",
+      "name_taken": "已有其他屏幕使用此名称。Home Assistant 会为实体名称自动编号，可能导致自动化指向错误的屏幕。",
+      "device_name_hint": "只能使用小写字母、数字和连字符，每块屏幕名称必须不同。",
+      "node_taken": "已有其他屏幕使用此设备名称，Home Assistant 无法区分同名设备。",
+      "wifi": {
+        "title": "Wi-Fi",
+        "ssid": "Wi-Fi 名称（2.4 GHz）",
+        "password": "Wi-Fi 密码",
+        "new": "只需填写一次。Tessera 会保存到 ESPHome 的 secrets.yaml，以后新屏幕自动使用。",
+        "missing": "ESPHome 的 secrets.yaml 尚缺少 Wi-Fi 信息，Tessera 只会填入缺失的配置项。",
+        "ready": "Wi-Fi 配置来自 ESPHome 的 secrets.yaml。",
+        "invalid": "ESPHome 文件夹中的 secrets.yaml 不是有效的 YAML，请先修复，系统不会覆盖它。",
+        "other": "其他网络",
+        "other_note": "所有屏幕构建固件时都使用此 Wi-Fi 配置，因此现有屏幕也会在下次更新时采用它。"
+      },
+      "install_via": "安装方式",
+      "target": {
+        "usb": "使用 USB 数据线将屏幕连接到 Home Assistant 主机，设备会自动出现在此处。如果连接的是当前电脑，请选择“从此电脑安装”。",
+        "download": "下载固件后，在自己的电脑上通过 Chrome 或 Edge 刷写到屏幕。此后可通过 Wi-Fi 更新。",
+        "later": "配置文件将保存到 ESPHome 文件夹。稍后可通过“固件与 USB”或 ESPHome Device Builder 安装。",
+        "several": "已连接多块开发板，请选择此屏幕对应的端口。",
+        "once": "首次通过 USB 安装，之后即可无线更新。"
+      },
+      "install": "安装",
+      "save_profile": "保存设备配置",
+      "no_cli": "当前安装中缺少 ESPHome CLI，只能保存设备配置文件。",
+      "progress": {
+        "saved": "{file} 已保存到 ESPHome 文件夹",
+        "writing": "正在将固件写入 {name}……",
+        "building": "正在编译固件……",
+        "ready": "{name} 的固件已准备就绪",
+        "installed": "固件已安装到 {name}",
+        "build_failed": "编译失败",
+        "install_failed": "安装失败",
+        "waiting": "正在排队……"
+      },
+      "detail": {
+        "saved": "可稍后在“固件与 USB”中安装：选择此配置文件，再选择 Home Assistant 主机的 USB 端口，或下载后从自己的电脑刷写。请保存用于配对的 API 密钥：",
+        "uploading": "暂时不要拔掉 USB 数据线。",
+        "building": "在树莓派等 Home Assistant 主机上编译固件可能需要 20 分钟或更久，尤其是首次编译。这属于正常情况。你可以离开此页面：安装会继续进行，之后仍可在“新建屏幕”中查看进度。",
+        "building_download": "在树莓派等 Home Assistant 主机上编译固件可能需要 20 分钟或更久，尤其是首次编译。这属于正常情况。你可以离开此页面：编译会继续进行，之后仍可在“新建屏幕”中查看进度。",
+        "downloaded": "请从自己的电脑将固件刷入屏幕。设备连接 Wi-Fi 后会出现在这里。",
+        "booted": "屏幕正在启动，连接 Wi-Fi 后会自动加入 Home Assistant。",
+        "booted_calibrate": "屏幕正在启动并连接 Wi-Fi。首次需要触摸校准，请点击十字准星；随后将自动加入 Home Assistant。",
+        "see_log": "请查看下方日志。",
+        "waiting": "前面还有 {n} 个构建任务。完成后此任务将自动开始，你可以离开此页面。",
+        "waiting_browser": "前面还有 {n} 个构建任务。完成后会自动开始此任务。请保持此页面打开，固件构建完成后会立即写入屏幕。"
+      },
+      "download_steps": {
+        "plug": "{bold}，请使用支持数据传输的 USB 线。",
+        "plug_bold": "将屏幕连接到电脑",
+        "open": "在 Chrome 或 Edge 中打开 {bold}，点击“连接”并选择屏幕的 USB 端口。",
+        "open_bold": "打开 {esphome_web}",
+        "install": "点击 {bold} 并选择 {file}。屏幕将重启并连接 Wi-Fi。",
+        "install_calibrate": "点击 {bold} 并选择 {file}。屏幕将重启并连接 Wi-Fi。首次需要触摸校准，请点击十字准星。",
+        "install_bold": "点击“安装”"
+      },
+      "download_keep": "固件文件包含 Wi-Fi 密码和屏幕密钥，请妥善保管。",
+      "api_key": "API 密钥",
+      "pairing": {
+        "ha": "{bold} Home Assistant 会将 {name} 列为已发现的 ESPHome 设备，点击“添加”。若未发现，可输入屏幕 IP 手动添加 ESPHome 设备。",
+        "ha_bold": "打开 Home Assistant → 设置 → 设备与服务。",
+        "key": "若 Home Assistant 要求输入加密密钥，请使用下方的 {bold}。",
+        "key_bold": "粘贴 API 密钥",
+        "actions": "{bold} 在 ESPHome 集成中选择“配置”，开启“允许设备执行 Home Assistant 操作”。否则屏幕只能查看状态，无法控制设备。",
+        "actions_bold": "允许 Home Assistant 操作：",
+        "tiles": "{bold} 返回 Tessera 后，屏幕通常会在约 30 秒内出现在左侧列表。此前将显示为“尚未加入 Home Assistant”。",
+        "tiles_bold": "选择卡片。"
+      },
+      "retry": "重试",
+      "another": "安装另一块屏幕",
+      "start_over": "重新开始",
+      "done": "完成",
+      "key_more": "显示 API 密钥",
+      "steps": {
+        "board": "屏幕",
+        "setup": "设置",
+        "install": "安装"
+      },
+      "pick_title": "你使用的是哪种屏幕？",
+      "pick_intro": "选择开发板，可按品牌、尺寸或板卡上印刷的型号搜索。",
+      "search": "按品牌、尺寸或型号搜索",
+      "sizes": {
+        "all": "全部",
+        "small": "4 英寸及以下",
+        "medium": "4～6 英寸",
+        "large": "7 英寸及以上"
+      },
+      "none_found": "没有匹配“{query}”的屏幕。",
+      "try_virtual": "还没有实体屏幕？试用虚拟预览屏幕",
+      "setup_title": "个性化配置",
+      "install_title": "选择安装方式",
+      "next": "下一步",
+      "advanced": "高级",
+      "ways": {
+        "ha_title": "通过 Home Assistant 主机的 USB 安装",
+        "ha_found": "已发现：{port}",
+        "ha_waiting": "将屏幕通过 USB 连接到运行 Home Assistant 的设备",
+        "browser_title": "从此电脑安装",
+        "browser_detail": "使用 Chrome 或 Edge，并将屏幕通过 USB 连接到此电脑",
+        "download_title": "下载固件文件",
+        "download_detail": "通过 ESPHome Web 自行刷写",
+        "later_title": "稍后",
+        "later_detail": "目前只保存配置"
+      },
+      "steps_done": {
+        "prepare": "正在准备",
+        "build": "编译固件",
+        "write": "正在写入屏幕",
+        "restart": "正在启动",
+        "done": "完成",
+        "download": "可供下载"
+      },
+      "elapsed": "已用时 {time}",
+      "show_log": "显示详情",
+      "hide_log": "隐藏详情",
+      "next_title": "下一步做什么",
+      "model": "具体型号是什么？",
+      "model_hint": "型号印在板卡背面。外观可能相似，但不同型号需要不同固件。",
+      "models": "{n} 个型号",
+      "arrive": {
+        "waiting": "正在等待 {name} 连接 Wi-Fi……",
+        "seen": "{name} 已连接 Wi-Fi，正在准备……",
+        "paired": "{name} 已与 Home Assistant 配对。",
+        "missing": "{name} 尚未连接 Wi-Fi",
+        "hotspot": "请查看屏幕显示的热点名称与密码，用手机连接该热点并设置正确的 Wi-Fi。也可以在此修改 Wi-Fi 后重新安装。",
+        "no_hotspot": "Wi-Fi 名称或密码可能有误。请在此修改后重新安装，并保持屏幕连接 USB。",
+        "change": "更改 Wi-Fi 并重新安装",
+        "failed": "Tessera 无法自动将 {name} 加入 Home Assistant，请按下方说明手动添加。"
+      },
+      "known": {
+        "title": "此开发板已作为 {name} 添加到 Home Assistant",
+        "text": "Home Assistant 按开发板的 MAC 地址识别 ESPHome 设备，因此同一块开发板上已有 {name} 时，无法同时添加 {new}。可以重新安装 {name}，也可以选择替换：新固件刷入开发板后，Home Assistant 中的 {name} 及其实体将被移除，由 {new} 取代。",
+        "reinstall": "重新安装 {name}",
+        "replace": "将 {name} 替换为 {new}",
+        "replaced": "已从 Home Assistant 移除 {name}，并由 {new} 替代。",
+        "go_firmware": "在“固件与 USB”中选择 {name} 的配置文件，并选择“从此浏览器安装”。"
+      },
+      "memory": {
+        "low_title": "Home Assistant 主机可用内存较少",
+        "low": "目前可用内存为 {free}，因此固件构建会减少并行编译任务（从 {cores} 个降至 {jobs} 个）。所需时间更长，但可降低内存占用。",
+        "tight_title": "运行 Home Assistant 的设备可能内存不足",
+        "tight": "构建固件需要约 {need} 可用内存，目前只有 {free}。将尝试单任务编译；如仍失败，请暂时停止其他附加组件或增加内存后重试。",
+        "retry_title": "构建时内存耗尽，改为单任务编译继续",
+        "retry": "因内存不足，系统停止了编译任务（开始构建时可用内存为 {free}）。将从中断处恢复构建，并改为每次只运行一个编译器。这样耗时更久，但有助于在现有内存中完成。",
+        "out_title": "内存不足，无法构建固件",
+        "out": "构建固件需要约 {need} 可用内存，而此 Home Assistant 主机只有 {free}。请暂时停止部分附加组件或增加内存后重试。",
+        "limit_title": "内存不足，无法构建固件",
+        "limit": "即使一次只运行一个编译器，构建仍因内存不足而失败。请暂时停止部分附加组件，或增加设备内存后重试。"
+      },
+      "pair_yourself": "在 Home Assistant 中手动添加",
+      "grid": "网格",
+      "grid_hint": "推荐网格最适合此屏幕。安装后仍可在编辑器的页面旁修改网格和屏幕方向，无需重新构建固件。",
+      "grid_best": "恢复推荐设置",
+      "waits_turn": "其他屏幕正在构建，此任务将排队并在前一个任务完成后自动开始。"
+    },
+    "alerts": {
+      "intro": "每块屏幕都提供 {action} 操作。它会在当前内容上方显示一张提醒卡片、唤醒屏幕，并将背光保持在正常亮度，直到用户按下按钮或提醒超时。Home Assistant 本身不会为 ESPHome 操作提供字段说明或下拉列表；所有可填写的字段都列在这里。",
+      "loading": "正在加载速查表……",
+      "example": {
+        "title": "门口有人",
+        "subtitle": "3 号门，后门",
+        "button": "马上来"
+      },
+      "sections": "分区",
+      "nav": {
+        "screens": "你的屏幕",
+        "howto": "在自动化中使用",
+        "all": "所有屏幕",
+        "fields": "字段说明",
+        "icons": "图标",
+        "colors": "颜色",
+        "behaviour": "行为",
+        "events": "事件",
+        "tips": "提示",
+        "one": "1 台屏幕",
+        "choice": "双按钮"
+      },
+      "try": {
+        "title": "标题",
+        "subtitle": "副标题",
+        "icon": "图标",
+        "color": "颜色",
+        "button": "按钮文字",
+        "timeout": "超时（秒；0 表示等待按钮操作）",
+        "flash": "闪烁背光",
+        "flash_hint": "提醒到达时闪烁四次。",
+        "sending": "正在发送…",
+        "send": "发送提醒",
+        "sent_all": "已发送到 {n} 块屏幕。",
+        "nothing": "没有屏幕能够显示此提醒。请确认至少有一台屏幕在线，且固件版本为 {version} 或更新版本。"
+      },
+      "white": "白色（默认）",
+      "screens": {
+        "text": "每块屏幕都有包含其设备名称的专属操作。需要固件 {version} 或更新版本；旧屏幕可在“屏幕”中点击“更新”。",
+        "none": "尚未配对屏幕。请通过“新建屏幕”安装，Home Assistant 发现设备后会显示相应操作。",
+        "ready": "● 固件 {version}",
+        "update": "需要更新至固件 {version}",
+        "unknown": "设备名称未知 · 请更新屏幕",
+        "show": "显示提醒",
+        "dismiss": "关闭提醒"
+      },
+      "howto": {
+        "add": "选择 {add} 并搜索 {esphome}，然后选择此屏幕的操作。Home Assistant 中对应名称为“节点 {device} 执行 show_alert 操作”。",
+        "add_bold": "添加操作",
+        "device": "设备名称",
+        "fields": "{bold} Home Assistant 会要求填写全部七个字段；不用的可留空或填入 {empty}、{zero} 或关闭。",
+        "fields_bold": "填写操作参数。",
+        "yaml": "想直接编辑 YAML？在操作中选择 {edit}，并粘贴下面的示例。",
+        "example_for": "示例适用于",
+        "no_screen": "屏幕（尚未配对）"
+      },
+      "edit_yaml": "以 YAML 编辑",
+      "copy_yaml": "复制 YAML",
+      "all": {
+        "title": "同时向所有屏幕发送",
+        "text": "触发事件 {show} 并提供相同参数，Tessera 就会向所有在线屏幕转发提醒，包括以后新增的屏幕。{dismiss} 可清除全部屏幕的提醒。在自动化中添加 {event} 操作，或在 {edit} 中粘贴示例。不需要的字段可省略。使用时 Tessera 必须正在运行。",
+        "event": "手动触发事件"
+      },
+      "fields": {
+        "text": "文本可自由填写，但长度以字节计算；带重音的字母可能占两个字节。超出宽度的标题会以省略号截断，副标题中无法容纳的内容则会被舍弃。",
+        "field": "字段",
+        "type": "类型",
+        "what": "作用",
+        "example": "示例",
+        "limit": "限制",
+        "types": {
+          "string": "文本",
+          "int": "数字",
+          "bool": "开 / 关",
+          "entity": "实体"
+        },
+        "bytes": "{limits} 字节",
+        "seconds": "0 至 86400 秒",
+        "camera_limit": "除 CYD 外所有固件版本为 0.2.57 或更新版本的屏幕",
+        "screen_limit": "附加组件版本需为 0.2.133 或以上"
+      },
+      "icons": {
+        "text": "在 {field} 中填写图标名称，如 {example}；也支持 {mdi} 和十六进制码位（{hex}）。固件只包含列出的图标，其他名称会显示警告三角形。点击图标可复制名称。",
+        "handy": "常用通知图标",
+        "search_label": "搜索图标",
+        "search": "按名称或描述搜索……",
+        "extra": "另外可用：控制类与天气类图标",
+        "copy": "复制 {name}",
+        "none": "没有名为“{query}”的图标。未知名称会显示警告三角形（{fallback}）。"
+      },
+      "colors": {
+        "text": "在 {field} 中填写颜色名称。这些颜色与卡片的柔和背景色一致，文字为深色；留空或无效时显示白色卡片。点击颜色可复制名称。"
+      },
+      "behaviour": {
+        "wakes": "{bold} 提醒会立即唤醒已调暗或熄屏的屏幕，并显示在所有页面、已打开的灯光卡片及待机界面之上。",
+        "wakes_bold": "唤醒屏幕。",
+        "on": "{bold} 只要提醒卡片仍在显示，背光便保持正常亮度，暂不进入待机或夜间模式。用户点击按钮后，正常待机计时会重新开始。",
+        "on_bold": "一直显示，直到点击按钮。",
+        "timeout": "{bold} 设为 {zero} 将一直等待用户点击按钮；设为 {minute} 则一分钟后自动消失，提前点击按钮也会关闭。",
+        "timeout_bold": "超时时间。",
+        "blinking": "{bold} 启用 {flash} 后，提醒到达时背光会在约一秒内闪烁四次，之后保持屏幕亮起。",
+        "blinking_bold": "闪烁。",
+        "replacing": "{bold} 新提醒会取代当前提醒，不会排队。被替换的提醒将以 {replaced} 状态结束。",
+        "replacing_bold": "替换提醒。",
+        "closing": "{bold} 通过 {dismiss} 可远程关闭提醒，例如门已经打开时。若当前没有提醒，此操作不会产生效果。",
+        "closing_bold": "远程关闭。",
+        "beside": "{bold} 不会执行任何操作；只有点击提醒按钮才会关闭，从而避免唤醒屏幕时误关闭提醒。",
+        "beside_bold": "点击卡片外部"
+      },
+      "events": {
+        "text": "每次提醒结束都会触发事件 {event}，携带 {action}、{title}、{screen}（设备名称）以及 Home Assistant 添加的 {device_id}。可在“设置 → 开发者工具 → 事件”中查看。",
+        "when": "触发时",
+        "wait": "正在等待用户点击按钮"
+      },
+      "tips": {
+        "color": "使用 {bold} 区分提醒：门铃可用橙色，烟雾或漏水可用红色，完成状态可用绿色。文字始终使用清晰易读的深色。",
+        "color_bold": "按通知类型设置颜色",
+        "short": "标题尽量 {bold}。屏幕每行约能显示 20 个字符，较长标题会被省略号截断；详细说明请放在副标题中。",
+        "short_bold": "简短",
+        "button": "使用 {bold} 可将提醒变成需要回答的问题，例如“马上来”“已查看”“关闭”。后续事件会告诉你是谁作出了响应。",
+        "button_bold": "自定义按钮文字",
+        "resolve": "对于可自动解决的提醒（如门已打开或已取出洗衣），可在同一自动化中使用 {dismiss} 关闭提醒。",
+        "every": "要通知全部屏幕？只需触发一次 {event}（见“同时通知所有屏幕”）。各屏幕会独立响应，并分别返回自己的 {screen}。",
+        "claude": "希望用 {bold} 帮忙编写自动化？请在“设置 → Claude”中安装 Tessera 技能。",
+        "claude_bold": "询问 Claude"
+      },
+      "wait_yaml": {
+        "comment": "门铃：显示提醒并等待有人按下按钮。",
+        "message": "有人正在走向门口。"
+      },
+      "one": {
+        "title": "单块屏幕：摄像头画面或按钮操作",
+        "text": "在同一事件中添加 {screen}，提醒就只发送给指定屏幕。要显示 {camera} 画面或让按钮执行 {action}，也必须使用此方式；屏幕自身的提醒操作不提供这些字段。{screen} 的可用值见下方列表。",
+        "more": "需要通知多块屏幕？可提供列表，如 {list}。也可以填写区域名，通知该区域的所有屏幕。名称无匹配时不会发送，Tessera Screen Manager 日志会列出已知屏幕。",
+        "value": "在 screen 参数后填写：",
+        "name": "Home Assistant 中的名称",
+        "room": "房间",
+        "picture": "摄像头画面",
+        "picture_yes": "是",
+        "picture_no": "否，提醒不包含图片",
+        "none": "尚未配对屏幕。配对后，此处会列出可填写的屏幕名称。"
+      },
+      "choice": {
+        "title": "双按钮与按钮颜色",
+        "text": "添加 {second}，可在第一个按钮左侧显示第二个按钮，例如“稍后”和“开门”。{first_color} 和 {second_color} 可分别设置颜色，如绿色表示确认、红色表示取消。按钮含义可自行选择，但第一个按钮始终位于右侧。",
+        "event": "通过事件发送提醒时，这些字段均可选。第二个按钮可以使用 {second_action} 和 {second_data} 执行操作，与第一个按钮的 {action} 相同。固件低于 {version} 的屏幕只会显示一个按钮。",
+        "direct": "直接调用单块屏幕时，其操作 {choice} 除 show_alert 的字段外还接受三个额外字段；按下第二个按钮后，以 {ending} 状态结束提醒。"
+      },
+      "wizard": {
+        "camera": "摄像头（可选）",
+        "no_camera": "无摄像头",
+        "screens_hint": "未选择：发送到所有支持提醒的屏幕。",
+        "description": "通过 Tessera“事件”创建，在屏幕上显示提醒。",
+        "title": "新建提醒自动化",
+        "with_picture": "显示摄像头画面",
+        "without_picture": "显示不带图片的提醒",
+        "summary": {
+          "says": "显示内容",
+          "buttons": "按钮"
+        },
+        "steps": {
+          "trigger": {
+            "title": "由什么触发？",
+            "help": "选择提醒的触发条件：传感器变为开启、辅助开关、按钮或事件。如果想嵌入现有自动化，可跳过此步骤。"
+          },
+          "words": {
+            "title": "提醒显示什么内容？",
+            "help": "填写简短标题及下方的一行说明。预览卡片会按屏幕实际绘制效果显示。"
+          },
+          "look": {
+            "title": "显示效果如何？",
+            "help": "选择图标、颜色、可选的摄像头画面，以及是否闪烁背光。"
+          },
+          "screens": {
+            "title": "发送到哪些屏幕？",
+            "help": "选择显示此提醒的屏幕，以及提醒保留的时长。"
+          },
+          "try": {
+            "title": "试一试",
+            "help": "现在按自动化的实际设置发送一次测试，请观察屏幕效果。"
+          },
+          "add": {
+            "title": "完成",
+            "help": "创建独立的自动化，或将操作复制到现有自动化中。"
+          },
+          "buttons": {
+            "title": "显示哪些按钮？",
+            "help": "可以只显示一个按钮，或两个选择按钮。每个按钮可触发 Home Assistant 操作，也可仅关闭提醒。"
+          }
+        },
+        "buttons": {
+          "one": "单按钮",
+          "one_detail": "例如“确定”“马上来”“已查看”，可关闭提醒并执行一个操作。",
+          "two": "双按钮",
+          "two_detail": "例如“开门”和“稍后”，每个按钮都可设置独立操作。",
+          "first": "右侧按钮",
+          "second": "左侧按钮",
+          "second_example": "暂不",
+          "color": "颜色",
+          "own_color": "自定义颜色",
+          "does": "按下时",
+          "only_close": "仅关闭提醒",
+          "no_actions": "此实体没有无需额外参数即可执行的操作，请选择其他实体。",
+          "closes": "关闭提醒",
+          "only": "仅显示按钮"
+        },
+        "try_action": "注意：测试时点击带操作的按钮也会真正执行该操作。",
+        "route": {
+          "event": "通过事件 {event} 发送提醒。这是唯一能同时携带摄像头画面、按钮操作及目标屏幕列表的方式。附加组件会根据各屏幕固件支持的格式发送提醒。",
+          "one_button": "{screens}：固件低于 {version}，只会显示右侧按钮。",
+          "action": "无论用户在哪块屏幕上按下提醒按钮，此附加组件都会执行对应的按钮操作且仅执行一次。提醒超时消失或被新提醒替换时，不会执行该操作。",
+          "no_picture": "{screens}：显示提醒，但不显示摄像头画面。"
+        }
+      },
+      "hero": {
+        "title": "在屏幕上显示提醒",
+        "text": "提醒会以覆盖全屏的卡片显示，并带有按钮，可用于门口有人、洗衣完成或窗户未关等情况。向导将引导完成设置并添加 Home Assistant 自动化。",
+        "create": "创建提醒自动化",
+        "empty": "尚未创建提醒自动化。请在上方创建，随后会显示在这里。"
+      },
+      "reference": "自行编写"
+    },
+    "override": {
+      "eyebrow": "高级 · 本地覆盖配置",
+      "title": "覆盖 YAML",
+      "title_named": "覆盖 YAML · {name}",
+      "intro": "这是属于此屏幕的本地覆盖配置，在公共屏幕包之后加载，即使 Tessera 更新也会保留。可在此修改显示屏型号等硬件特定配置。",
+      "safe_title": "哪些设置可以安全修改？",
+      "safe_text": "可以修改显示屏、触摸面板、substitutions、引脚等设备参数；设备名称、Wi-Fi、API、OTA 和包引用仍由 Tessera 管理。",
+      "active": "已启用",
+      "ready": "可以附加到设备配置",
+      "editor_label": "本地覆盖 YAML",
+      "use_example": "使用示例",
+      "clear": "清空",
+      "characters": "{n} 个字符",
+      "lines": "{n} 行",
+      "save_check": "保存并检查",
+      "save": "保存覆盖配置",
+      "no_profile": "未找到此屏幕对应的 ESPHome 配置文件。",
+      "attached": "更改将在下次构建时生效。",
+      "not_attached": "请先保存一次，以将覆盖配置关联到设备配置文件。",
+      "saving": "正在检查并保存……",
+      "saved": "已保存。覆盖配置在固件更新时会保留。",
+      "saved_toast": "覆盖 YAML 已保存。",
+      "checking": "已保存，ESPHome 正在验证完整设备配置……",
+      "checking_profile": "ESPHome 正在检查配置文件……",
+      "checking_stage": "ESPHome 正在检查配置文件……{stage}",
+      "valid": "完整配置验证通过，可以构建和安装。",
+      "rejected": "ESPHome 拒绝了完整配置，请前往“固件与 USB”查看详细日志。",
+      "confirm_example": "确定用示例覆盖当前内容吗？",
+      "example_loaded": "已载入示例，确认后请保存。",
+      "confirm_clear": "确定清空本地覆盖配置吗？",
+      "cleared": "保存后覆盖配置将为空。",
+      "checking_waits": "正在等待当前构建任务结束，然后检查……"
+    },
+    "mockup": {
+      "home": "首页",
+      "unknown": "未知",
+      "calendar_free": "空闲",
+      "todo_open": "{x} 项未完成",
+      "todo_all_done": "全部完成",
+      "todo_more": "还有 {x} 项"
+    },
+    "pages": {
+      "repaired": "第 {page} 页卡片“{tile}”：已移除不再适配的部分（{what}）。",
+      "repaired_tile": "第 {page} 页：卡片“{tile}”已无法放入，现已移除。",
+      "mode": "编辑器模式",
+      "simple": "简单",
+      "advanced": "高级",
+      "redo": "重做",
+      "title": "页面标题",
+      "title_hint": "留空则使用屏幕标题。",
+      "is_home": "首页",
+      "set_home": "设为首页",
+      "drag_home": "这是首页。拖动到其他页面可更改首页。",
+      "include_navigation": "在分页指示点和滑动导航中显示",
+      "migration_dropped": "有 {count} 张卡片无法迁移：{names}。原始布局保存在 screens.v1.backup.json 中。",
+      "dismiss_migration": "关闭此提示",
+      "start_fresh": "为此屏幕重新开始",
+      "start_fresh_confirm": "要在此屏幕上从一个空白页面重新开始吗？原始布局仍保存在迁移备份中，其他屏幕不会受到影响。",
+      "offline_notice": "正在等待屏幕重新连接。编辑器目前使用上次验证的设备能力数据。",
+      "include_navigation_hint": "关闭后，仍可通过直接链接进入此页面。底部导航栏会显示“返回”；如果底部导航栏隐藏，则用“返回”取代“首页”。",
+      "dock_picture": "页面预览图",
+      "in_dock": "在快捷导航栏中",
+      "in_dock_hint": "从屏幕底部向上滑动可打开页面停靠栏，快速跳转到任意页面。",
+      "dock_mode_picture": "图片",
+      "dock_mode_icon": "图标",
+      "dock_mode_hidden": "隐藏",
+      "dock_hint_picture": "页面停靠栏显示此页面的缩略图。",
+      "dock_hint_icon": "页面停靠栏以图标代替此页面的缩略图。",
+      "dock_hint_hidden": "此页面仍可通过滑动与分页点访问，只是不显示在页面停靠栏中。",
+      "wizard_home": "首页键",
+      "home_control": "在此页面显示首页按钮",
+      "clock_control": "时间",
+      "edit_topbar": "编辑此页面的顶部栏",
+      "order": "页面顺序",
+      "order_hint": "数字形式的“显示页面”命令遵循此顺序；按名称建立的页面链接保持原目标不变。",
+      "map_position": "地图上的位置",
+      "left": "向左移动",
+      "up": "向上移动",
+      "down": "向下移动",
+      "right": "向右移动",
+      "routes": "页面连接",
+      "no_routes": "没有导航卡片链接到此页面或从此页面跳转。",
+      "edit_page": "编辑页面",
+      "copy_conflict": "完整复制会造成此屏幕上的实体重复。你可以新建一个使用相同顶部栏的空白页面。",
+      "duplicate": "复制页面",
+      "empty_copy": "新建使用相同顶部栏的空白页面",
+      "position_occupied": "该地图位置已有一个页面。",
+      "map_hint": "可移动页面以整理导航图，不会改变实际页面顺序。",
+      "arrange": "从首页开始排列",
+      "zoom_out": "缩小",
+      "zoom_in": "放大",
+      "zoom": "页面显示大小",
+      "zoom_reset": "恢复到 100%",
+      "choose_destination": "选择目标页面。",
+      "move_map": "在地图上移动 {name}",
+      "change_destination": "修改 {name} 上导航卡片的目标页面",
+      "deeplink": "深层链接",
+      "page_settings": "页面设置",
+      "back_map": "返回页面地图",
+      "wait_grid": "请先连接此屏幕以加载已验证的网格配置，再进行编辑。",
+      "update_notice": "请更新屏幕固件以使用新标题栏和布局。",
+      "conflict": "另一个编辑器已保存更改。你可以加载已保存版本并放弃当前草稿，或者保留当前设计并覆盖已保存布局。",
+      "reload_saved": "加载已保存版本",
+      "keep_mine": "保留我的设计并保存",
+      "shared_bar": "此屏幕仍使用共享顶部栏项目。在更新固件之前，修改这些项目会影响所有页面。",
+      "unreachable": "从首页无法导航到以下页面：{pages}。请添加导航卡片，或将这些页面加入页面导航。",
+      "no_way_home": "从以下页面无法返回首页：{pages}。请添加返回卡片，或开启“首页”控件。",
+      "navigation": "页面导航",
+      "previous": "上一页",
+      "next": "下一页",
+      "go_home": "返回首页",
+      "try_navigation": "测试导航",
+      "preview_hint": "仅供预览。页面链接可以使用，但实体控制不会真正操作设备。",
+      "swipe_previous": "滑动至上一页",
+      "swipe_next": "滑动至下一页",
+      "copy_bar": "复制顶部栏",
+      "copy_from": "来源页面",
+      "copy_to": "复制到所选页面",
+      "copy_content": "复制",
+      "copy_items": "仅复制项目，保留各页的标题与首页按钮",
+      "copy_whole": "复制整个顶部栏，包括标题和首页按钮",
+      "copy_apply": "复制到所选页面",
+      "history_label": "记录器历史：{hours} 小时",
+      "history_loading": "正在加载历史记录……",
+      "history_empty": "没有历史记录",
+      "grid_changed": "屏幕网格已改变，请在保存或发送前检查卡片位置。",
+      "grid_review": "检查网格调整",
+      "grid_review_hint": "比较左侧的已保存位置和右侧的建议位置。无法放入原位置的卡片会被移到紧随其原页面的新页面。保存前不会发送任何更改。",
+      "grid_accept": "使用这些位置",
+      "selected_full": "此页面已满，请在其他页面选择一个空白单元格。",
+      "choose_page": "页面",
+      "all_connections": "全部连接关系",
+      "migration_adjusted": "无效的旧版设置已恢复为默认值：{fields}。原始设置仍保留在迁移备份中。",
+      "view_row": "行",
+      "view_map": "地图",
+      "preview": "预览",
+      "page_menu": "页面 {page}: 更多",
+      "home_chip": "首页",
+      "detail_chip": "通过导航卡片",
+      "cells_used": "已占用网格单元",
+      "tiles_go": "同时移动 {n} 张卡片",
+      "connections": "连接",
+      "connections_selected": "已选中",
+      "sections": {
+        "title": "标题",
+        "navigation": "导航"
+      },
+      "home_hint": "点击首页按钮或向上滑动可返回这里。",
+      "bar_entities": "右侧的其他项目",
+      "actions_blocked": "Home Assistant 尚未允许此屏幕执行操作，因此点击卡片不会生效。",
+      "allow_actions": "允许执行操作",
+      "actions_allowed": "{name} 现已可以控制你的设备。",
+      "part_page": "页面：标题与导航",
+      "part_page_hint": "页面标题、首页设置及进入此页面的方式",
+      "home_control_hint": "在此页面顶部栏左侧显示首页按钮，点击可返回首页。"
+    },
+    "feedback": {
+      "question": "你的屏幕运行是否符合预期？",
+      "intro": "帮助我们改进此型号。你的回答与屏幕型号会分享给 Tessera，不包含账号或 Home Assistant 设置。",
+      "yes": "是的，运行良好",
+      "no": "不太理想",
+      "later": "稍后",
+      "never": "不再询问",
+      "add_something": "添加内容",
+      "issues_question": "遇到了哪些问题？",
+      "issues": {
+        "display": "屏幕",
+        "touch": "触摸",
+        "connection": "连接",
+        "installation": "安装",
+        "other": "其他"
+      },
+      "comment_label": "还有其他问题吗？（可选）",
+      "comment_hint": "请不要填写个人信息、日志、密码或 API 密钥。",
+      "report_title": "希望我们修复问题？",
+      "report_text": "发送诊断报告：Tessera 会收集开发板信息、版本、日志和最近一次崩溃记录，并在发送前展示给你；只有得到你的同意才会发送。你也可以阅读故障排查说明。",
+      "add_details": "补充详细信息",
+      "done": "完成",
+      "settings_title": "反馈",
+      "shared": {
+        "working": "你已反馈：运行良好",
+        "not_working": "你已反馈：不太理想"
+      },
+      "none_yet": "你尚未为此屏幕提交反馈。",
+      "none_now": "此屏幕目前没有共享任何信息。",
+      "share": "提交反馈",
+      "change": "修改反馈",
+      "delete": "删除我共享的反馈",
+      "retry": "重试",
+      "status": {
+        "sending": "正在发送…",
+        "received": "感谢反馈，已成功收到。",
+        "waiting": "尚未发送，稍后会自动重试。",
+        "failed": "未发送：已连续一天无法连接 Tessera。",
+        "deleting": "尚未删除，稍后会自动重试。",
+        "delete_failed": "尚未删除：已连续一天无法连接 Tessera。",
+        "deleted": "已删除你共享的反馈。",
+        "conflict": "Tessera 已存有此屏幕的其他反馈，请修改回答后重新提交。",
+        "rejected": "Tessera 未接受这份反馈。"
+      },
+      "what_title": "会共享哪些信息？",
+      "what": {
+        "model": "屏幕型号：{model}",
+        "answer": "你的回答、所选问题和备注",
+        "firmware": "屏幕固件版本：{version}",
+        "addon": "Tessera 版本：{version}",
+        "nothing_else": "不会包含姓名、账号、实体、日志或 Home Assistant 设置。每块屏幕使用独立的随机标识提交。"
+      },
+      "privacy": "隐私",
+      "report_send": "发送报告",
+      "report_manual": "查看故障排查指南"
+    },
+    "webflash": {
+      "target": "从此浏览器安装（Chrome 或 Edge）",
+      "hint": "使用 USB 数据线将屏幕连接到此电脑。Tessera 构建固件后，将通过 Chrome 或 Edge 从当前页面刷入。后续可通过 Wi-Fi 更新。",
+      "firmware_hint": "使用 USB 数据线将屏幕连接到这台电脑。Tessera 编译固件后，可在 Chrome 或 Edge 中通过此页面刷入屏幕。原有设置与触摸校准数据会保留。此方式也可恢复一直重启、始终无法上线的屏幕。",
+      "go": "连接并安装",
+      "building": "首次在树莓派等 Home Assistant 主机上构建可能需要 20 分钟或更久，这是正常现象。请保持此标签页打开、USB 连接不断开，固件准备好后会自动安装。",
+      "keep_open": "完成前请保持此标签页打开，且不要断开 USB 连接。",
+      "unavailable": {
+        "insecure": "通过浏览器安装需要在 Chrome 或 Edge 中以 HTTPS 打开 Home Assistant，例如通过 Home Assistant Cloud 地址。目前使用的是 HTTP，请改为下载固件，或通过 HTTPS 打开页面。",
+        "browser": "此浏览器无法访问 USB 端口。请改用电脑上的 Chrome 或 Edge，或选择下载固件。"
+      },
+      "phase": {
+        "picking": "请在浏览器弹出的窗口中选择屏幕对应的 USB 端口。",
+        "connecting": "正在连接开发板……",
+        "waiting": "已连接开发板（{chip}）。固件构建完成后会立即开始安装。",
+        "downloading": "正在从 Tessera 获取固件……",
+        "erasing": "正在擦除开发板闪存……",
+        "writing": "正在安装… {percent}%",
+        "restarting": "正在重启屏幕……",
+        "done": "安装完成，屏幕正在重启。"
+      },
+      "errors": {
+        "no_port": "尚未选择端口。如果列表中没有屏幕：",
+        "blocked": "浏览器不允许此页面访问 USB 端口，请检查网站权限，或改为下载固件。",
+        "busy": "屏幕串口正被其他程序或标签页占用，例如串口监视器或 ESPHome Web。请关闭后重试。",
+        "connect": "开发板没有响应。选择端口时请按住板上的 BOOT 按钮，直到安装开始后再松开。重新插拔 USB 线也可能解决问题。",
+        "wrong_chip": "USB 上的开发板芯片是 {found}，但此屏幕固件适用于 {expected}。请连接正确的屏幕，或选择对应板卡。",
+        "wrong_image": "Tessera 构建的固件适用于 {expected}，但 USB 上连接的是 {found} 芯片。未写入任何内容。",
+        "disconnected": "屏幕已断开连接，请重新插入 USB 线后重试。",
+        "download": "无法从 Tessera 获取固件：{error}",
+        "failed": "安装失败：{error}"
+      },
+      "hints": {
+        "computer": "请将屏幕连接到运行当前浏览器的这台计算机。",
+        "power": "确认开发板已通电，大多数板卡有一个小指示灯。",
+        "cable": "请使用支持数据传输的 USB 线，部分线材只能充电。",
+        "driver": "如有需要，请安装板卡 USB 芯片的驱动程序（CP210x、CH340 或 CH9102）。"
+      },
+      "group_ha": "连接到 Home Assistant 主机",
+      "group_here": "连接到此电脑",
+      "group_wifi": "通过 Wi-Fi"
+    },
+    "preview": {
+      "type": "新屏幕类型",
+      "physical": "实体屏幕",
+      "virtual": "虚拟预览",
+      "intro": "无需配对硬件，即可使用 Home Assistant 实体设计屏幕。预览保存在当前浏览器中。在固件预览中，只有开启相应选项，点击操作才会发送到 Home Assistant。",
+      "profile": "开发板 / 配置文件",
+      "design_only": "仅用于预览的设备配置，不代表固件已支持此开发板。",
+      "override": "覆盖分辨率或网格设置",
+      "width": "宽度（像素）",
+      "height": "高度（像素）",
+      "columns": "列数",
+      "rows": "行数",
+      "name": "预览名称",
+      "name_placeholder": "Waveshare 4B 预览",
+      "create": "创建虚拟设备",
+      "created": "已创建虚拟设备“{name}”。",
+      "invalid_shape": "请输入名称，选择受支持的配置，并使用 1–8 列/行的网格和 160–2560 像素画布。",
+      "canvas": "LVGL 固件预览",
+      "packet_error": "固件拒绝了预览数据包：{message}",
+      "stopped": "固件预览已停止：{message}",
+      "action_error": "Home Assistant 命令执行失败：{message}",
+      "stale": "此预览基于 {date} 的固件构建，固件之后已有变更，因此部分新界面可能无法显示。",
+      "remove": "移除此预览及其在当前浏览器中保存的布局。",
+      "save": "保存预览",
+      "saved": "已保存在此浏览器中",
+      "hint": "直接运行屏幕固件来预览正在编辑的布局。可以像操作实体屏幕一样点击、长按和滑动。预览中的布局更改不会保存。",
+      "control": "点击操作可控制设备",
+      "control_hint": "开启后，点击预览可控制 Home Assistant 设备并修改面板设置。关闭后，硬件设置只能查看，其他更改仅在预览中生效。",
+      "skipped": "无法加载预览屏幕 {names}，已跳过。",
+      "not_kept": "此浏览器无法保存预览屏幕：存储空间已满或存储权限受到限制。"
+    },
+    "inspector": {
+      "kind": {
+        "tile": "卡片",
+        "page": "页面",
+        "bar": "顶部栏"
+      },
+      "back": "返回 {name}"
+    },
+    "confirm": {
+      "leave_question": "你有尚未保存的更改。仍要返回概览吗？",
+      "discard_open": "放弃更改并打开",
+      "discard_leave": "放弃更改并离开",
+      "replace_layout": "替换布局",
+      "import": "导入",
+      "start_fresh": "重新开始",
+      "calibrate": "开始校准",
+      "add_anyway": "仍然添加",
+      "use_example": "替换为示例",
+      "clear_override": "清除覆盖配置"
+    },
+    "undo": {
+      "undo": "撤销：{what}",
+      "redo": "重做：{what}",
+      "undone": "已撤销：{what}",
+      "redone": "已重做：{what}",
+      "a_tile": "卡片",
+      "what": {
+        "grid": "网格已调整为 {grid}",
+        "page_added": "页面 {page} 已添加",
+        "page_copied": "已复制新增第 {page} 页",
+        "page_removed": "页面 {page} 已移除",
+        "page_moved": "页面已移至第 {page} 位",
+        "pages_moved": "页面已重新排序",
+        "tile_added": "{name} 已添加",
+        "tiles_added": "已添加 {n} 张卡片",
+        "tile_removed": "{name} 已移除",
+        "tiles_removed": "已移除 {n} 张卡片",
+        "tile_moved": "{name} 已移动",
+        "tile_moved_page": "{name} 已移到第 {page} 页",
+        "tiles_moved": "已移动 {n} 张卡片",
+        "tile_link": "{name} 现已链接到第 {page} 页",
+        "tile_renamed": "{name} 已重命名",
+        "tile_look": "已更改 {name} 的显示方式",
+        "tile_resized": "{name} 已调整尺寸",
+        "tile_icon": "已更改 {name} 的图标",
+        "tile_color": "已更改 {name} 的背景颜色",
+        "tile_tap": "已更改 {name} 的点击操作",
+        "tile_option": "已更改 {name} 的设置",
+        "tiles_changed": "已修改 {n} 张卡片",
+        "screen_title": "已更改屏幕标题",
+        "page_title": "已更改第 {page} 页的标题",
+        "home_page": "已将第 {page} 页设为首页",
+        "page_buttons": "已更改第 {page} 页的页面按钮",
+        "home_key": "已更改第 {page} 页的首页按钮",
+        "top_bar": "已更改第 {page} 页的顶部栏",
+        "top_bars": "已更改多个顶部栏",
+        "map_moved": "已在导航图中移动第 {page} 页",
+        "map_arranged": "已从首页开始排列导航图",
+        "stood_up": "屏幕已改为竖屏",
+        "laid_down": "屏幕已改为横屏",
+        "layout_copied": "已从 {name} 复制布局",
+        "layout_imported": "已导入布局",
+        "changed": "已更改布局",
+        "restored": "已恢复未保存的更改",
+        "taken_over": "已采用其他标签页的更改",
+        "auto_layout": "自动为你生成的布局",
+        "layoutbot": "布局助手的更改"
+      }
+    },
+    "draft": {
+      "kept": "{time} 的未保存更改",
+      "kept_hint": "草稿保存在当前浏览器中，尚未发送到屏幕。",
+      "restore": "恢复",
+      "discard": "放弃更改"
+    },
+    "tabs": {
+      "elsewhere": "此屏幕正在其他标签页中编辑",
+      "elsewhere_hint": "其他标签页中的更改尚未保存。",
+      "take_over": "在此处接管编辑",
+      "keep_mine": "保留我的版本"
+    },
+    "connection": {
+      "lost": "无法连接 Tessera 屏幕管理器。",
+      "lost_hint": "更改会保留在此处，正在尝试重新连接……",
+      "restored": "连接已恢复"
+    },
+    "naming": {
+      "rename": "重命名",
+      "reset": "恢复为 {name}"
+    },
+    "phone": {
+      "menu": "菜单",
+      "screens": "屏幕",
+      "add_tile": "添加卡片",
+      "add_to_cell": "添加到 {page} 的位置 {cell}",
+      "add_to_page": "添加到 {page} 的第一个空位",
+      "added": "{name} 已添加",
+      "page_of": "第 {n} 页，共 {total} 页",
+      "pages": "页面",
+      "page_tiles": "{n} 卡片",
+      "pages_order": "页面与顺序",
+      "hint": "点击卡片进行修改。",
+      "hint_pages": "点击卡片修改，滑动可切换至下一页。",
+      "on_screen": "所有内容已同步到屏幕",
+      "not_sent": "已更改，尚未发送",
+      "more_settings": "更多设置",
+      "more_settings_hint": "显示方式、第二行内容和点击操作",
+      "move": "移动",
+      "full_editor": "完整编辑器",
+      "simple_editor": "简洁视图"
+    },
+    "donate": {
+      "title": "支持 Tessera",
+      "body": "Tessera 免费提供，今后也会保持免费。项目由我负责开发与维护，并接受社区贡献。你的支持能让我投入更多时间开发、审查和测试改进。欢迎每月赞助或一次性支持。",
+      "monthly": "按月支持",
+      "once": "或一次性请我喝杯咖啡",
+      "later": "以后再说",
+      "donated": "我已经赞助过",
+      "thanks": "感谢支持！以后不会再询问。"
+    },
+    "funding": {
+      "title": "寻求项目资助",
+      "body": "我还有一份维持生活的全职工作，必须优先兼顾。Tessera 的规模不断扩大，而我已难以抽出足够时间维护。为了让项目持续发展，我需要资金支持，以便投入更多时间或聘请其他人帮忙。如果你愿意支持，欢迎联系我。",
+      "mail": "给我发邮件",
+      "later": "暂不"
+    },
+    "plugins": {
+      "title": "插件",
+      "intro": "为屏幕添加扩展功能：页面卡片、全屏功能或开发板硬件支持。插件会编入屏幕固件，因此可以为每块屏幕分别选择。",
+      "risk": {
+        "title": "安装插件需自行承担风险",
+        "text": "每个插件都会占用部分屏幕内存和处理器时间。少量插件一般可以共存，但同时启用过多插件（例如语音助手、蓝牙代理和摄像头）可能耗尽内存，导致屏幕变慢、卡死或重启。建议每次只添加一两个，确认屏幕稳定后再继续；如出现异常，先移除最近添加的插件。",
+        "many": "此次编译后，{screen} 将运行 {n} 个插件。插件过多可能导致屏幕不稳定；若出现异常，请移除部分插件。"
+      },
+      "search": "按名称、作者或功能搜索",
+      "filter": "显示",
+      "from_tessera": "来自 Tessera",
+      "by": "作者：{maker}",
+      "label": {
+        "tessera": "来自 Tessera",
+        "community": "社区",
+        "test": "测试"
+      },
+      "state": {
+        "building": "正在构建…",
+        "installed": "已安装",
+        "update": "更新到 {version}",
+        "test_on": "在 {name} 上测试",
+        "updates": "有 {n} 台屏幕需要更新",
+        "on_screens": "安装在 {n} 台屏幕上",
+        "fits_none": "不兼容任何现有屏幕",
+        "failed": "固件构建失败",
+        "not_running": "未在屏幕上运行",
+        "runs_other": "屏幕正在运行版本 {version}",
+        "queued": "正在排队"
+      },
+      "source": {
+        "link": "从链接添加",
+        "branch": "从分支测试",
+        "folder": "从文件夹测试"
+      },
+      "misfit_short": {
+        "board": "不支持此开发板",
+        "psram": "需要 PSRAM",
+        "firmware": "需要更新固件",
+        "flash": "此屏幕空间不足",
+        "blocked": "已阻止",
+        "esphome": "需要更新 ESPHome",
+        "feature": "缺少所需硬件功能",
+        "needs": "依赖的插件不兼容",
+        "built_in": "开发板已内置此功能"
+      },
+      "misfit": {
+        "board": "此插件不支持 {screen} 所用的开发板。",
+        "psram": "此插件需要带 PSRAM 的开发板，而 {screen} 没有 PSRAM。",
+        "firmware": "{screen} 必须先更新固件才能安装此插件。",
+        "flash": "{screen} 仅剩约 {kb} KB 可用空间，不足以容纳此插件。",
+        "blocked": "此插件版本因已知安全风险或严重故障而被禁用。",
+        "esphome": "此插件需要比当前附加组件支持的版本更新的 ESPHome。",
+        "feature": "{screen} 缺少此插件所需的功能，并且没有兼容的插件可以提供该功能。",
+        "needs": "此插件依赖另一个不兼容 {screen} 的插件。",
+        "built_in": "{screen} 开发板已自带此功能，因此无需安装该插件。"
+      },
+      "none_installed": "此屏幕尚未安装插件。",
+      "none_found": "没有与“{query}”匹配的插件。",
+      "version": "版本 {version}",
+      "stage": {
+        "beta": "测试版",
+        "example": "示例"
+      },
+      "stage_hint": {
+        "beta": "测试版：功能基本可用，但仍在完善中。欢迎向作者反馈。",
+        "example": "示例插件：展示插件功能的实现方式。你可以试用它，并参考源码开发自己的插件。"
+      },
+      "attribute": {
+        "cloud": "使用云服务",
+        "commercial": "商业版",
+        "ai-developed": "由 AI 辅助开发"
+      },
+      "test_note": "测试来源：屏幕使用构建时指定的提交版本；仓库有新的提交时，这里会显示可更新。文件夹来源始终按文件夹当前内容构建。",
+      "remove": "从 {screen} 移除",
+      "building": "正在为 {screen} 编译固件……",
+      "installed_on": "已安装在 {screen} 上，版本 {version}",
+      "runs_elsewhere": "{screen} 当前运行其他来源构建的 {running} 版本。在此重新构建将安装 {version} 版本。",
+      "update": "更新到 {version}",
+      "trust": {
+        "title": "我信任此插件作者"
+      },
+      "adds": {
+        "title": "提供的功能",
+        "tile": "卡片“{name}”",
+        "tile_sizes": "每页尺寸从 {min} 到 {max}",
+        "tile_sizes_or_page": "每页尺寸从 {min} 到 {max}，或占满整页",
+        "tile_only_page": "占满整个页面",
+        "tap": "点击操作“{name}”",
+        "tap_on": "用于 {domains} 领域的卡片",
+        "card": "独立全屏卡片“{name}”",
+        "bar": "顶部栏项目“{name}”",
+        "settings": "设置",
+        "settings_where": "可在屏幕设置页面及此处“插件”标签页的插件详情中设置"
+      },
+      "may": {
+        "title": "插件可以执行的操作",
+        "ha": "使用以下 Home Assistant 命令",
+        "ha_none": "不执行 Home Assistant 操作",
+        "network": "连接到 {hosts}",
+        "network_none": "不连接 Home Assistant 之外的服务",
+        "read": "读取以下 Home Assistant 实体",
+        "sends": "向 {host} 发送：{what}",
+        "sends_option": "为 {option} 选择的实体所具有的属性：{attributes}",
+        "sends_state": "状态"
+      },
+      "warning": "插件在屏幕上运行时拥有对屏幕的完整访问权限，包括 Wi-Fi 信息和可在 Home Assistant 中执行的操作；插件的构建过程也会在此附加组件内执行，可能访问 Home Assistant 设置。只安装可信作者的插件，或先检查其源代码。",
+      "room": {
+        "title": "{screen} 的可用空间",
+        "small": "额外占用 {kb} KB：固件在分区中所占的空间将从 {before} 增加到 {after}。",
+        "large": "{kb} KB，远低于此屏幕的容量上限。",
+        "title_all": "可用空间",
+        "per_screen": "在每台安装此插件的屏幕上占用 {kb} KB。对于 4 MB 开发板，此处会显示是否有足够空间。"
+      },
+      "works": {
+        "title": "兼容的屏幕：",
+        "any": "所有开发板",
+        "any_psram": "所有带 PSRAM 的开发板"
+      },
+      "source_code": "源代码",
+      "issues": "报告问题",
+      "add_link": "通过链接添加",
+      "link": {
+        "title": "通过链接添加",
+        "intro": "可添加列表外的插件，也可测试自己开发的插件。Tessera 会先读取插件说明并检查兼容性，然后才开始构建。",
+        "sources": {
+          "link": "发布版本",
+          "branch": "测试分支",
+          "folder": "测试文件夹"
+        },
+        "url": "GitHub 链接",
+        "branch": "分支",
+        "folder": "此主机上的文件夹",
+        "hints": {
+          "link": "Tessera 会使用最新发布版；没有发布版时使用最新提交。之后有新版本会提示更新。",
+          "branch": "Tessera 使用指定分支的最新提交；出现更新提交时会提示更新，适用于开发测试。",
+          "folder": "适合开发中的插件：保存文件后，下次构建直接使用更新内容。文件夹位于 Home Assistant 配置目录。"
+        },
+        "fetch": "读取插件信息",
+        "test": "将插件添加到 {screen} 进行测试",
+        "not_found": "此链接中没有找到插件说明文件。",
+        "on_screen": "安装到屏幕"
+      },
+      "none_in_use": "你的所有屏幕都还没有安装插件。",
+      "screen_update": "当前版本 {from}，可更新到 {to}",
+      "screen_version": "版本 {version}",
+      "on_screens": "安装在哪些屏幕上",
+      "apply": {
+        "add": "添加到 {n} 台屏幕",
+        "remove": "从 {n} 台屏幕移除",
+        "both": "应用到 {n} 台屏幕",
+        "none": "应用"
+      },
+      "update_all": "将 {n} 台屏幕更新到 {version}",
+      "tab": {
+        "intro": "查看 {screen} 已运行的插件，以及可添加的功能。所有新增插件会在一次固件构建中统一安装。",
+        "all": "所有插件",
+        "here": "此屏幕上的插件",
+        "add": "添加",
+        "misfits": "不兼容此屏幕（{n}）",
+        "updates": "{n} 个插件有可用更新",
+        "updates_note": "为 {screen} 构建一次固件以更新：{names}。",
+        "updates_rights": "{names} 请求了与此前不同的权限。",
+        "update_all": "更新此屏幕上的全部插件"
+      },
+      "pending": {
+        "add": "应用时将添加",
+        "remove": "应用时将移除"
+      },
+      "setup": {
+        "on_screen": "{label} 在 {screen}",
+        "choose_pin": "选择引脚",
+        "part_kb": "额外占用 {kb} KB",
+        "secret_set": "已设置。如需替换，请填写新值。",
+        "part_needs": "屏幕需要具备 {what}"
+      },
+      "readme": {
+        "title": "使用说明"
+      },
+      "english_only": "仅提供英语",
+      "build_note": "安装插件会重新构建此屏幕的固件，并通过 Wi-Fi 发送，每块屏幕可能需要数分钟。插件也会写入屏幕 YAML，因此通过 ESPHome Device Builder 构建时同样包含该插件。",
+      "attach": {
+        "row": "只需在屏幕标签页中关联一次",
+        "text": "{screen} 由独立 YAML 构建。只需添加一次此配置行，之后 Tessera 会将插件维护在单独文件中，ESPHome Device Builder 在更新后仍可正常包含这些插件。",
+        "copy": "复制配置行",
+        "done": "我已添加",
+        "file": "Tessera 将写入 {file} 的内容"
+      },
+      "folder_error": "文件夹 {folder} 还不是有效插件：{why}",
+      "rebuild": "重新构建",
+      "failed": "无法使用此插件为 {screen} 构建固件。请前往“固件与 USB”查看日志。",
+      "retry": "重试",
+      "privacy": "隐私",
+      "consent": {
+        "title": "此次更新请求了新的权限",
+        "agree": "我同意插件目前请求的权限"
+      },
+      "settings_missing": "此屏幕尚无该设置；下次构建插件固件后才会出现。",
+      "changes": "更新内容",
+      "tray": {
+        "title": "准备安装",
+        "count": "{n} 个插件",
+        "add": "添加",
+        "added": "已添加",
+        "setup": "配置",
+        "remove": "移除 {name}",
+        "room": "占用此屏幕剩余 {room} KB 空间中的 {kb} KB",
+        "too_much": "总共需要 {kb} KB，只剩 {room} KB：请移除部分插件",
+        "trust": "{names} 来自社区，未经 Tessera 审核。",
+        "install": "安装 {n} 个插件",
+        "one_build": "{screen} 会将所有这些插件合并到一次固件构建中。",
+        "builds": "将依次为 {n} 台屏幕构建固件。",
+        "stage": "添加到 {screen}",
+        "in_tray": "等待安装",
+        "in_tray_note": "可从角落的安装清单中单独安装，或与其他插件一起安装。",
+        "along": "随 {names} 一起安装",
+        "title_changes": "准备构建",
+        "changes": "{n} 项更改",
+        "build": "应用 {n} 项更改并构建",
+        "off": "将从此屏幕移除",
+        "off_note": "此插件已标记为待移除。在下一次通过角落的待处理更改卡片启动固件构建时，将与屏幕上的其他更改一并应用。",
+        "keep": "保留",
+        "keep_named": "保留 {name}",
+        "minutes": "每次构建可能需要几分钟。",
+        "off_set": "标记为待移除",
+        "risk": "请自行评估风险：每个插件都会占用内存，安装过多可能导致屏幕不稳定。"
+      },
+      "maker": {
+        "title": "创建自己的插件",
+        "lead": "插件是一个包含说明文件和 ESPHome 代码的文件夹，可以放在自己的 GitHub 仓库中，由你开发、发布并持续更新。",
+        "guide": "插件开发指南",
+        "start": {
+          "title": "从模板开始",
+          "text": "将模板创建为自己的 GitHub 仓库，并设置名称和图标。",
+          "action": "打开模板"
+        },
+        "test": {
+          "title": "在你的屏幕上试用",
+          "text": "通过链接添加自己的仓库。每次推送新提交或发布版本，此处都会提示可更新。",
+          "folder": "也可以将插件文件夹放在 {path}，无需发布即可测试。"
+        },
+        "share": {
+          "title": "分享给所有人",
+          "text": "插件运行良好？将其加入社区目录，就能直接从你的仓库展示给所有用户。你仍是插件作者。",
+          "action": "添加到插件列表"
+        }
+      },
+      "settings": {
+        "title": "设置",
+        "live": "在此屏幕上",
+        "live_note": "更改立即生效。",
+        "shared": "应用于所有屏幕",
+        "shared_note": "只需填写一次，所有安装此插件的屏幕共用。",
+        "build": "构建时",
+        "build_note": "修改此设置将重新构建 {screen} 的固件。",
+        "save_build": "保存并构建",
+        "run": "运行",
+        "too_short": "至少输入 {n} 个字符。"
+      },
+      "tabs": {
+        "tiles": "卡片",
+        "screensavers": "屏幕保护程序",
+        "functions": "功能",
+        "hardware": "硬件",
+        "in_use": "使用中"
+      },
+      "types": {
+        "tiles": "卡片",
+        "screensavers": "屏幕保护程序",
+        "functions": "功能",
+        "hardware": "硬件"
+      },
+      "topics": {
+        "time": "时间与倒计时",
+        "weather": "天气与天空",
+        "calendar": "日历与任务",
+        "home": "家居",
+        "energy": "能源",
+        "travel": "出行",
+        "money": "财经",
+        "sports": "体育",
+        "news": "新闻与资讯",
+        "media": "音乐 & 媒体",
+        "photos": "照片与艺术",
+        "fun": "游戏与娱乐",
+        "voice": "语音与声音",
+        "tech": "科技"
+      },
+      "topic_filter": "主题",
+      "sort": {
+        "label": "排序方式",
+        "popular": "最多点赞",
+        "new": "最新",
+        "name": "名称",
+        "rated": "评分最高",
+        "used": "使用最多"
+      },
+      "none_in_tab": {
+        "tiles": "暂无提供卡片的插件。",
+        "screensavers": "目前没有屏保插件。",
+        "functions": "暂无提供全屏功能的插件。",
+        "hardware": "暂无硬件插件。"
+      },
+      "fits_none_group": "有 {n} 个插件不兼容你的任何屏幕",
+      "likes": {
+        "count": "{n} 人点赞",
+        "like": "点赞",
+        "unlike": "取消点赞",
+        "ask": "你的点赞会计入该插件的公开点赞总数。公开的只有数量，不包含你、Home Assistant 或屏幕的信息。",
+        "like_hint": "即使未安装到任何屏幕，也可以点赞，向作者表达感谢。"
+      },
+      "along": {
+        "title": "附带组件",
+        "brings": "提供 {what} 功能",
+        "needed_by": "被 {name} 依赖",
+        "came_with": "作为 {names} 的依赖一起安装。",
+        "needed_now": "{names} 需要此插件。",
+        "choose": "选择由哪个插件提供 {what}？"
+      },
+      "remove_ask": {
+        "needed": "{names} 依赖 {name}，因此也将一并移除。",
+        "orphans": "同时移除 {names}",
+        "orphans_note": "此插件仅因 {name} 而被安装，其他插件不再依赖它。",
+        "both": "一起移除",
+        "go": "移除"
+      },
+      "blocked_now": "此版本已被禁用（{why}），将在下次构建中移除。请更新到较新版本。",
+      "other_origin": "此屏幕已运行来自 {origin} 的同名插件，无法在此处更新。",
+      "switch": "切换为来自 {origin} 的插件",
+      "needs": {
+        "title": "依赖与提供的功能",
+        "plugin": "依赖其他插件；添加此插件时将一并安装。",
+        "feature": "一个{what}",
+        "feature_note": "此功能可能由屏幕开发板或其他插件提供；如果只有一个兼容的提供者，会自动将其一并安装。",
+        "brings": "提供 {what}",
+        "brings_note": "供同一屏幕上其他需要此功能的插件使用。"
+      },
+      "features": {
+        "speaker": "扬声器",
+        "microphone": "麦克风",
+        "media_player": "媒体播放器",
+        "camera": "供 Home Assistant 使用的摄像头视频流",
+        "camera_sensor": "摄像头传感器",
+        "bluetooth": "蓝牙"
+      },
+      "fitting_only": "只显示与我的屏幕兼容的插件",
+      "made_by": {
+        "label": "作者",
+        "all": "任何人",
+        "tessera": "Tessera",
+        "community": "社区"
+      },
+      "filter_button": "筛选",
+      "filter_remove": "移除 {what}",
+      "filter_clear": "清除筛选",
+      "fitting_all": "同时显示不兼容项目",
+      "news": {
+        "title": "{version} 更新内容",
+        "none": "作者没有提供此版本的更新说明。",
+        "history": "全部版本"
+      },
+      "failed_update": "版本 {version} 无法为 {screen} 成功构建，因此已回退至当前运行的 {current}。日志见“固件与 USB”。",
+      "interrupted": "固件构建过程中，附加组件发生了重启。",
+      "stars": {
+        "label": "为 {name} 评分",
+        "of_five": "5 星中的 {n} 星",
+        "say": {
+          "1": "无法使用",
+          "2": "较差",
+          "3": "一般",
+          "4": "良好",
+          "5": "非常好"
+        },
+        "yours": "你的评分",
+        "give": "你的使用体验如何？",
+        "clear": "撤销评分"
+      },
+      "numbers": {
+        "rating": "{rating} 分，来自 {n} 条评分",
+        "few": "目前有 {n} 条评分",
+        "homes": "已在 {n} 个家庭中使用"
+      },
+      "counting": {
+        "label": "向插件商店统计我的插件使用情况",
+        "hint": "每天一次，仅发送插件名称、版本和每块屏幕的型号，不发送其他信息。",
+        "on_hint": "已开启：每天向 Tessera 发送一次插件名称、版本及对应屏幕型号。关闭后将删除服务器上的相关统计记录。"
+      },
+      "rate_card": {
+        "by": "{maker} · {version}",
+        "question": "{name} 已在 {screen} 上运行 {days} 天。你觉得这款插件怎么样？",
+        "send": "发送",
+        "what_title": "共享哪些信息？",
+        "what": {
+          "plugin": "插件及其版本：{name} {version}",
+          "board": "屏幕型号：{board}",
+          "stars": "你的评分",
+          "counting": "启用统计后：每天记录一次屏幕使用的插件、插件版本以及屏幕型号",
+          "nothing_else": "除此之外不发送任何信息：不包括姓名、账户、实体或 Home Assistant 设置。附加组件使用自己的随机标识提交这些数据。"
+        },
+        "thanks": "感谢评分！你对 {name} 的评分已提交。",
+        "heart_hint": "特别喜欢？也可以给作者 {maker} 点赞。点赞仅计入插件公开总数，不包含你的个人信息。",
+        "hearted": "感谢点赞",
+        "issue_hint": "很遗憾遇到问题。要协助修复吗？可向 {maker} 提交问题，系统会自动填写版本与屏幕型号。",
+        "issue_open": "在 GitHub 上提交问题"
+      },
+      "sharing": {
+        "title": "插件商店",
+        "text": "帮助其他用户找到好插件。点赞和评分只在你主动提交时发送，使用统计只在开启期间发送。",
+        "asking": "安装新插件几天后邀请用户评分",
+        "asking_hint": "每次在屏幕上方显示一个插件卡片。"
+      },
+      "forget": {
+        "go": "从列表中移除",
+        "note": "没有屏幕正在使用此插件，可从列表中移除并忘记此链接。",
+        "note_folder": "没有屏幕在使用此文件夹来源的插件。移除后文件夹会被移至 config/tessera-plugins/.removed/{id}，之后可以永久删除。"
+      }
+    },
+    "plugin_tile": {
+      "from": "来自插件 {plugin} 的卡片",
+      "details": "插件详情",
+      "options": "选项",
+      "choose": "选择…",
+      "less": "更少",
+      "more": "更多",
+      "from_fetch": "这些选项由插件自己的数据源通过 Tessera 提供。",
+      "on_screen": "在屏幕上",
+      "sizes": "尺寸可从 {min} 调整到 {max}，拖动卡片边缘即可调整。",
+      "sizes_or_page": "尺寸可从 {min} 调整到 {max}，也可占满整页；拖动卡片边缘即可调整。",
+      "sizes_only_page": "此卡片始终独占整个页面。",
+      "whole_page": "整个页面",
+      "placeholder": "编辑器显示占位内容；插件绘制的实际内容会显示在实体屏幕上。",
+      "now": "现在",
+      "minutes": "{n} 分钟",
+      "live": "编辑器根据插件数据绘制；屏幕端会自行绘制并使用本地时钟倒计时。",
+      "entity": "实体",
+      "add": "添加",
+      "change": "选择其他选项",
+      "find": "查找…",
+      "search": "搜索…",
+      "search_more": "请输入至少两个字符",
+      "none_found": "没有找到匹配内容",
+      "remove": "移除 {name}",
+      "type": "输入后按回车",
+      "full": "此卡片已达到屏幕允许的最大配置数量。",
+      "count": "{n} 的 {max}",
+      "show_all": "显示全部实体",
+      "show_fitting": "只显示兼容的实体",
+      "not_set": "未设置",
+      "fill_device": "从设备填充",
+      "fill_device_hint": "选择设备后会自动填入其传感器，也可逐项修改。",
+      "fill_device_none": "没有设备拥有至少两个此类传感器。",
+      "fill_device_count": "{n} 传感器"
+    },
+    "build": {
+      "plugins": "正在编译包含插件的固件",
+      "install": "安装中",
+      "failed": "上一次为 {screen} 构建固件失败，请查看日志了解原因。",
+      "title": "正在编译",
+      "count": "有 {n} 个构建任务正在进行",
+      "ready": "{name} 已准备就绪",
+      "ready_several": "{names} 已准备就绪",
+      "update_failed": "更新 {name} 失败",
+      "build_failed": "编译 {name} 失败",
+      "show_log": "查看日志",
+      "waiting_place": "正在排队，前面还有 {n} 个构建任务",
+      "server": {
+        "bundle": "正在打包 YAML",
+        "send": "正在发送到 {name}",
+        "queued": "正在 {name} 上排队",
+        "build": "正在 {name} 上构建",
+        "fetch": "正在获取固件",
+        "here": "正在本机构建：{reason}",
+        "fallback": {
+          "offline": "无法连接构建服务器",
+          "refused": "构建服务器尚未配对",
+          "mismatch": "构建服务器指纹已变化",
+          "unavailable": "此处没有可用的构建服务器",
+          "lost": "构建服务器连接已中断",
+          "refused_job": "构建服务器拒绝了此任务",
+          "provision": "构建服务器无法安装 ESPHome",
+          "cancelled": "任务已在构建服务器上停止",
+          "fetch": "未能从构建服务器获取固件",
+          "bundle": "无法打包 YAML"
+        }
+      },
+      "icons": "正在编译包含自定义图标的固件"
+    },
+    "grid": {
+      "title": "网格",
+      "columns": "列数",
+      "rows": "行数",
+      "columns_less": "减少列数",
+      "columns_more": "增加列数",
+      "rows_less": "减少行数",
+      "rows_more": "增加行数",
+      "hint": "无法放入当前页面的卡片会自动移动到紧随其后的新页面。保存后，屏幕将应用新的网格布局。",
+      "update_first": "请先更新屏幕，才能在这里选择网格。",
+      "pages_added": "为容纳超出空间的卡片，已新增 {n} 页。",
+      "new_page": "为放不下的卡片新建页面",
+      "too_many_pages": "在 {grid} 网格下，这些卡片需要 {needed} 页，但此屏幕最多支持 {most} 页。请减少卡片或选择其他网格；当前配置未更改。",
+      "way": "方式",
+      "landscape": "横屏",
+      "portrait": "竖屏",
+      "turn_hint": "切换屏幕方向后将自动重启一次，以重新测量画布尺寸。"
+    },
+    "clipboard": {
+      "copied": "已复制 {n} 张卡片。可在任意页面或屏幕中使用 {key} 粘贴。",
+      "cut": "已剪切 {n} 张卡片",
+      "pasted": "已粘贴 {n} 张卡片",
+      "pasted_pages": "已粘贴 {n} 张卡片，其余放置到 {pages} 个新页面",
+      "pasted_some": "已粘贴 {n}/{total} 张卡片，其余卡片因空间或位置不足而未粘贴。",
+      "none_fit": "未粘贴任何卡片，此屏幕没有足够空间或合适位置。",
+      "empty": "尚未复制任何内容"
+    },
+    "selection": {
+      "title": "{n} 卡片",
+      "leave": "不包含 {name}",
+      "copy": "复制",
+      "hint": "{copy} 可复制卡片及全部设置。选择当前或其他屏幕的页面或网格单元，再按 {paste} 粘贴。",
+      "remove": "移除 {n} 卡片"
+    },
+    "menu": {
+      "cut": "剪切",
+      "move_to": "移动到页面",
+      "add_here": "在此处添加卡片",
+      "paste_here": "粘贴到此处"
+    },
+    "report": {
+      "button": "我的屏幕运行不正常",
+      "card_title": "遇到问题？",
+      "card_hint": "收集此屏幕的诊断报告，查看内容后发送给 Tessera，以协助查找原因。",
+      "eyebrow": "故障排查",
+      "title": "我的屏幕运行不正常",
+      "title_named": "{name} 运行不正常",
+      "intro": "附加组件会把掌握的这块屏幕的信息整理成若干诊断文件。你可以先逐一查看，只有点击“发送”后，文件才会提交给 Tessera。",
+      "loading": "正在读取应用中的诊断信息……",
+      "collects_title": "报告包含的内容",
+      "collects": "报告包含屏幕开发板及版本、最长 45 秒的实时屏幕日志、Home Assistant 中与屏幕有关的日志、附加组件日志和上一次构建日志。报告会隐藏密码、密钥、网络地址及屏幕名称。",
+      "nothing_leaves": "在你点击“发送”之前，任何数据都不会离开 Home Assistant。你可以先查看全部报告文件。",
+      "crash_title": "上次崩溃",
+      "crash_line": "{reason}，{when}，{seen}",
+      "crash_seen": "本周出现 {n} 次",
+      "crash_lines": "解码后的日志行",
+      "full": "同时包含页面布局、实体名称及 Home Assistant 的其他日志信息，有助于定位问题原因。",
+      "note_label": "发生了什么？（可选）",
+      "note_hint": "描述你看到的现象、发生前的操作以及出现频率。",
+      "email_label": "你的邮箱（可选）",
+      "email_hint": "用于我们进一步询问问题。",
+      "remember_email": "在此应用中保存我的邮箱",
+      "collect": "收集",
+      "check_again": "重新检查",
+      "blockers": {
+        "no_profile": "这块屏幕的 YAML 不在当前附加组件的 ESPHome 文件夹中，因此无法在这里生成诊断报告。",
+        "collecting": "此屏幕已有诊断报告正在收集中，请稍后重新检查。"
+      },
+      "collecting": "正在收集…",
+      "collecting_hint": "收集过程最多可能需要一分钟，因为附加组件需要持续读取屏幕日志一段时间。",
+      "steps": {
+        "identity": "正在读取屏幕标识",
+        "profile": "正在复制设备配置",
+        "screen_log": "正在监听屏幕日志",
+        "ha_log": "正在读取 Home Assistant 日志",
+        "addon_log": "正在读取应用日志",
+        "build_log": "正在读取最近构建日志",
+        "crash": "正在读取最近崩溃记录",
+        "zip": "正在打包文件"
+      },
+      "ready_title": "已准备好供你查看",
+      "facts": {
+        "board": "开发板",
+        "firmware": "固件",
+        "addon": "Tessera",
+        "ha": "Home Assistant",
+        "esphome": "ESPHome",
+        "plugins": "插件",
+        "crash": "上次崩溃",
+        "none": "无",
+        "unknown": "未知"
+      },
+      "warnings": {
+        "screen_offline": "屏幕已离线：报告没有实时日志，只包含应用保存的信息。",
+        "no_api_key": "应用没有此屏幕的 API 密钥，因此无法读取实时日志。",
+        "no_elf": "缺少固件调试文件，因此无法将崩溃定位到具体代码行。",
+        "ha_log_unavailable": "无法读取 Home Assistant 日志。",
+        "addon_log_unavailable": "无法读取当前应用的运行日志。",
+        "no_crash_record": "未找到此屏幕的崩溃记录。"
+      },
+      "files_title": "报告中的文件",
+      "file_lines": "{n} 行",
+      "size": {
+        "b": "{n} B",
+        "kb": "{n} KB",
+        "mb": "{n} MB"
+      },
+      "download": "下载 ZIP",
+      "send_title": "发送给 Tessera",
+      "send_text": "这些信息将发送到 Tessera 并保留 {days} 天，包括上方文件、你的备注和可选的邮箱。",
+      "privacy": "隐私",
+      "with_note": "包含你的备注。",
+      "with_email": "我们可能通过 {email} 联系你。",
+      "change_note": "修改备注或邮箱",
+      "consent": "我已阅读报告内容，并同意将其发送给 Tessera。",
+      "send": "发送",
+      "sending": "正在发送…",
+      "sent": {
+        "title": "已发送，感谢反馈",
+        "quote": "请在 GitHub 或 Discord 中提供此编号，以便我们找到报告。",
+        "copy": "复制",
+        "copied": "编号已复制。",
+        "selected": "已选中编号，请按 Ctrl+C 或 ⌘C 复制。",
+        "github": "在 GitHub 上提交 Issue",
+        "discord": "在 Discord 提问",
+        "new": "创建新报告"
+      },
+      "failed_title": "无法生成报告",
+      "try_again": "重试"
+    },
+    "events": {
+      "eyebrow": "事件 · 来自 Home Assistant",
+      "intro": "管理 Home Assistant 发送到屏幕的事件：自动化触发的提醒、门铃来电以及报警器触发时的警报。",
+      "alerts": "提醒",
+      "doorbell": "门铃",
+      "alarm": "警报",
+      "wizard": {
+        "suggested": "检测到的门铃：",
+        "none": "未找到实体",
+        "pick_trigger": "选择触发条件",
+        "yaml": "以 YAML 查看自动化",
+        "kind": {
+          "doorbell": "当此门铃响起时触发（Home Assistant 的“门铃响起”事件）。",
+          "event": "每次发生此事件时触发。",
+          "on": "当此实体开启时触发。",
+          "press": "每次按下此按钮时触发。"
+        },
+        "back": "返回",
+        "next": "下一步",
+        "done": "完成",
+        "other": "其他事项",
+        "other_detail": "任何传感器、开关、辅助实体、按钮或自定义事件",
+        "every_screen": "所有屏幕",
+        "summary": {
+          "starts": "触发条件",
+          "screens": "屏幕",
+          "title": "Home Assistant 中的名称"
+        },
+        "domain": {
+          "binary_sensor": "二元传感器：从关闭变为开启时触发，例如检测到有人。",
+          "switch": "开关：当有人打开开关时触发。",
+          "input_boolean": "辅助开关：开启时触发，例如由其他自动化控制。"
+        },
+        "finish": {
+          "label": "你希望如何使用它？",
+          "automation": "创建自动化",
+          "automation_detail": "Tessera 会根据第 1 步的选择，在 Home Assistant 中创建对应的自动化。",
+          "needs_trigger": "请先在步骤 1 中选择触发条件。",
+          "action": "在自己的自动化中使用",
+          "action_detail": "仅复制此操作，并将其粘贴到已有自动化中。",
+          "paste": "在 Home Assistant 中打开自动化，添加操作，从菜单中选择“以 YAML 编辑”，然后粘贴此内容。",
+          "copy": "复制 YAML"
+        }
+      },
+      "install": {
+        "add": "添加到 Home Assistant",
+        "saving": "正在添加…",
+        "saved": "已添加，立即生效，无需重启。",
+        "open": "在 Home Assistant 中打开",
+        "hint": "该自动化在 Home Assistant 中名为“{title}”，可进一步编辑。",
+        "listed": "由 Tessera 在 Home Assistant 中创建",
+        "remove": "移除",
+        "remove_confirm": "要从 Home Assistant 中移除“{name}”吗？",
+        "on": "开",
+        "off": "关"
+      }
+    },
+    "doorbell": {
+      "intro": "有人按门铃时，屏幕会显示门口画面。自动化触发事件并传入门铃摄像头：P4 屏幕会唤醒、响铃并打开带声音的实时画面；其他屏幕则在提醒中显示摄像头图片。只要能够触发自动化，任何门铃都可以使用。",
+      "example": {
+        "title": "前门",
+        "when": "刚刚",
+        "sound": "开启声音"
+      },
+      "try": {
+        "send": "响铃",
+        "views": "已在 {n} 块屏幕上打开实时画面。",
+        "alerts": "已在 {n} 块屏幕上显示提醒。",
+        "nothing": "没有屏幕显示门铃。请确认屏幕在线，且摄像头已添加为 camera 实体。"
+      },
+      "no_camera": "无摄像头",
+      "fields": {
+        "title": "标题",
+        "timeout": "超时时间 (秒)",
+        "keep": "在顶部栏保留未接门铃提示"
+      },
+      "screens": {
+        "view": "带声音的实时画面",
+        "picture": "带图片的提醒",
+        "plain": "不带图片的提醒"
+      },
+      "after": {
+        "title": "之后",
+        "text": "每次门铃响起后，如果有人在屏幕上接听，将触发 {answered}；如果无人接听，将触发 {missed}。两种事件都附带摄像头与标题信息；接听事件还会包含接听屏幕的名称。",
+        "dismiss": "例如门打开后，要在所有屏幕上关闭门铃提示："
+      },
+      "yaml": {
+        "missed_alias": "将未接门铃通知发送到我的手机",
+        "missed_message": "有人按了门铃",
+        "description": "通过 Tessera“事件”创建的屏幕门铃自动化。"
+      },
+      "wizard": {
+        "title": "新建门铃自动化",
+        "camera_hint": "P4 屏幕可播放摄像头的实时画面及其音频（如果摄像头提供）；其他屏幕只显示图片。",
+        "screens_hint": "未选择：所有屏幕。",
+        "limits": "并非所有门铃都支持全部功能：只有摄像头视频流带音频时才能播放声音。双向通话功能将后续提供。",
+        "more_cameras": "其他摄像头……",
+        "timeout_hint": "无人操作时门铃画面保持的时长。留空则使用默认值。",
+        "summary": {
+          "camera": "摄像头",
+          "door": "门"
+        },
+        "steps": {
+          "rings": {
+            "title": "由什么触发门铃？",
+            "help": "选择通知 Home Assistant 有人来访的触发源。优先列出门铃，也支持传感器、按钮或事件。若要嵌入现有自动化，可跳过此步骤。"
+          },
+          "camera": {
+            "title": "选择哪台摄像头？",
+            "help": "门铃响起时屏幕显示的摄像头，通常为门铃自带摄像头。"
+          },
+          "door": {
+            "title": "需要开门功能吗？",
+            "help": "门铃画面可显示开门按钮，用户需要再次点击才能开门。按钮可以操作门锁，也可以调用脚本或大门按钮等其他 Home Assistant 操作；此功能可以不设置。"
+          },
+          "screens": {
+            "title": "哪些屏幕显示门铃？",
+            "help": "选择接收门铃的屏幕，各屏幕会显示自身支持的功能。"
+          },
+          "name": {
+            "title": "名称与超时时间",
+            "help": "屏幕上显示的标题和保持门铃画面的时间，两项均可留空。"
+          },
+          "try": {
+            "title": "试一试",
+            "help": "立即模拟一次门铃，按自动化真实配置发送，请查看屏幕效果。"
+          },
+          "add": {
+            "title": "完成",
+            "help": "创建独立自动化，或复制操作到现有自动化中。"
+          }
+        },
+        "door": {
+          "none": "不配置开门按钮",
+          "lock": "门锁",
+          "action": "其他操作",
+          "pick_lock": "选择门锁……",
+          "pick_action": "选择开门操作……",
+          "code": "此锁需要密码：只有在 Home Assistant 的锁设置中配置默认密码后，开门按钮才会出现。"
+        },
+        "sound": {
+          "label": "立即播放门铃声音",
+          "hint": "门铃画面打开时立即播放摄像头声音。可在工作室等需要安静的地方关闭，之后可手动点“声音”开启。"
+        },
+        "chime": {
+          "label": "门铃响起时播放提示音",
+          "hint": "有人按门铃时播放屏幕提示音。不希望每次都响铃，可关闭此选项。"
+        },
+        "keep": {
+          "minutes": "{n} 分钟",
+          "hours": "{n} 小时",
+          "open": "直到有人打开",
+          "hint": "无人接听的门铃提醒会在屏幕顶部栏保留设定时长，并显示响铃距今的时间。点击该提醒即可重新打开门铃界面。"
+        }
+      },
+      "hero": {
+        "title": "在屏幕上显示门铃",
+        "text": "门铃响起时，屏幕会显示来访者：P4 屏幕播放带声音的实时视频，其他屏幕显示静态图片或提醒。向导会协助设置并在 Home Assistant 中创建自动化。",
+        "create": "创建门铃自动化",
+        "empty": "尚未创建门铃自动化。请在上方创建，随后会显示在这里。"
+      },
+      "by_hand": {
+        "title": "自行编写自动化"
+      }
+    },
+    "drawer": {
+      "resize": "调整设置面板大小：拖动边缘或使用方向键，双击恢复默认。"
+    },
+    "screen_icons": {
+      "eyebrow": "图标",
+      "title": "{name} 的图标",
+      "intro": "每块屏幕都有一组固定图标，你还可以额外添加最多 {room} 个。图标属于固件的一部分，更改后需要重新构建才能显示。",
+      "count": "已添加 {n} 个，共 {room} 个",
+      "on_screen": "已在此屏幕上使用",
+      "none_yet": "尚未添加图标。请从下方选择。",
+      "waiting": "有 {n} 个图标等待构建",
+      "leaving": "有 {n} 个图标将在下次构建后移除",
+      "changes": "需要重新构建固件才能把这些更改安装到屏幕，过程可能需要数分钟，完成后屏幕会重启。",
+      "build": "构建 {name}",
+      "building": "正在编译包含这些图标的固件……",
+      "all_up_to_date": "所选图标均已安装到屏幕。",
+      "everywhere": "应用于所有屏幕",
+      "everywhere_ask": "将替换 {n} 块屏幕的自定义图标，并逐台重新构建固件。4 MB 闪存的屏幕不受影响。",
+      "everywhere_yes": "为 {n} 块屏幕编译固件",
+      "everywhere_done": "等待构建：{names}",
+      "everywhere_off": "已关闭，未编译：{names}",
+      "from_ha": "Home Assistant 中使用的图标",
+      "from_ha_hint": "你的实体正在使用、但此屏幕尚无法绘制的图标。",
+      "add_all": "全部添加",
+      "all": "所有图标",
+      "search": "搜索全部图标",
+      "search_label": "搜索全部图标",
+      "nothing": "没有找到该名称的图标。",
+      "fixed": "所有屏幕均已内置",
+      "full": "此屏幕没有剩余空间。",
+      "in_use": "此屏幕有 {n} 张卡片使用了 {icon}。下次构建后，这些卡片将恢复使用自动图标。",
+      "remove": "移除",
+      "own_yaml": "此屏幕通过自己的 YAML 文件编译固件。请在该文件旁将此配置保存为 {file}，在原 YAML 的 packages: 下添加下面这一行，然后从该配置进行编译。",
+      "loading": "正在加载图标……",
+      "card_title": "图标",
+      "card_hint": "还可添加最多 {room} 个额外图标。",
+      "card_button": "选择图标",
+      "card_count": "已添加 {n} 个",
+      "card_waiting": "有 {n} 个图标等待构建",
+      "card_no_room": "此开发板只有 4 MB 闪存，没有额外图标空间。"
+    },
+    "sections": {
+      "untitled": "分区",
+      "kind": "分区",
+      "choose_tiles": "请先选择要加入分区的卡片。",
+      "one_page": "一个分区只能包含同一页面的卡片，请选择同一页面上的卡片。",
+      "already_in": "部分卡片已属于其他分区。请先移出原分区，或选择未分组的卡片。",
+      "no_full": "占满整个页面的卡片不能放入分区。",
+      "too_tall": "这些卡片所需行数超过页面高度。请减少卡片数量或加宽分区。",
+      "no_room": "这里没有足够空间：其他卡片或分区占用了位置。",
+      "no_room_page": "第 {page} 页没有足够空间放入此分区。",
+      "removed": "已移除分区，卡片保留在原位置",
+      "removed_with_tiles": "已移除分区及其中的卡片",
+      "resize_columns": "调整分区宽度",
+      "resize_rows": "调整分区高度",
+      "head_title": "拖动可移动分区，点击可打开分区设置",
+      "aria": "分区 {title}",
+      "rename": "重命名分区",
+      "title": "名称",
+      "make": "创建分区",
+      "add": "添加分区",
+      "add_here": "在此处添加分区",
+      "library_hint": "带标题的卡片分组",
+      "make_now": "立即创建分区",
+      "name_placeholder": "名称，例如“灯光”",
+      "in_section": "在此分区中",
+      "update_screen": "当前固件还不支持绘制分区，会照常显示卡片但不显示分区外观。请更新固件以启用。",
+      "head": "标题",
+      "no_icon": "无图标",
+      "summary": "摘要",
+      "summary_none": "无",
+      "summary_search": "搜索实体",
+      "summary_none_found": "未找到实体",
+      "summary_clear": "无摘要",
+      "summary_hint": "在标题右侧显示一个实体的状态，例如温度或已开启的灯具数量。",
+      "size": "尺寸",
+      "columns": "列数",
+      "rows": "行数",
+      "narrower": "更窄",
+      "wider": "更宽",
+      "lower": "降低高度",
+      "taller": "更高",
+      "size_hint": "分区只能向空白单元格扩展。如果分区太窄，卡片会按照阅读顺序向上重新排列。",
+      "loose_hint": "有 {n} 个未分组的卡片位于分区旁边。建议将这些卡片单独排成一行，放在分区上方。",
+      "loose_row": "排列为一行",
+      "short_grid": "在只有 {rows} 行的网格中，分区标题会占用较多卡片空间：每张卡片高度约为 {with} 毫米，而不是 {without} 毫米。",
+      "remove": "移除分区",
+      "remove_with_tiles": "移除分区及卡片",
+      "settings": "分区设置",
+      "contrast": "反差背景",
+      "contrast_hint": "使用与页面相反的背景颜色：日间为深色、深色模式下为浅色，突出显示这个分区。",
+      "contrast_tiles": "卡片也使用反差配色",
+      "contrast_tiles_hint": "分区和内部卡片都采用反差配色：白天显示深色卡片与面板，深色模式下则显示浅色。"
+    },
+    "auto": {
+      "groups": {
+        "lights": "灯光",
+        "covers": "窗帘和窗户",
+        "climate": "空调",
+        "media": "媒体",
+        "security": "安防",
+        "actions": "场景",
+        "others": "设备",
+        "weather": "天气",
+        "people": "在家人员",
+        "energy": "能源",
+        "cameras": "摄像头",
+        "vacuum": "扫地机器人",
+        "todo": "待办列表",
+        "calendar": "日历"
+      },
+      "home": "首页",
+      "all_lights": "所有灯光",
+      "two_rooms": "{a} 和 {b}",
+      "room_list": "{list} 和 {last}",
+      "more_rooms": "{a} 以及另外 {n} 个房间",
+      "button": "自动布局",
+      "button_title": "根据 Home Assistant 的房间和设备生成页面",
+      "title": "自动生成屏幕布局",
+      "intro": "Tessera 会根据 Home Assistant 中的区域和设备为此屏幕生成页面：每个房间对应一个页面或分区，并将全屋天气、报警、人员和摄像头组合展示。如果屏幕空间允许，会使用更大的卡片。生成后可以撤销，也可以随意调整。",
+      "reading": "正在读取家庭设备……",
+      "failed": "无法读取家庭配置：{error}",
+      "nothing": "Tessera 尚未找到可在此屏幕显示的设备。请在 Home Assistant 中为设备分配区域，或从卡片库手动添加。",
+      "nothing_new": "Tessera 建议添加的内容已经全部在此屏幕上。",
+      "summary": "{pages} 页 · {tiles} 张卡片",
+      "summary_sections": "包含 {n} 个分区",
+      "from_rooms": "来自 {n} 个房间",
+      "left_out": "还有 {n} 个实体无法放入此屏幕，你可以在卡片库中找到它们。",
+      "replace": "替换现有页面",
+      "replace_hint": "将用新页面替换屏幕当前全部页面。",
+      "append": "添加在现有页面之后",
+      "append_hint": "保留现有页面，并在后面新增页面，放置尚未显示在此屏幕上的实体。",
+      "append_full": "此屏幕已没有可用页面或卡片空间。请替换现有页面，或先腾出空间。",
+      "make": "生成布局",
+      "made": "已生成 {pages} 个页面的布局，可通过撤销恢复。",
+      "offer_title": "要自动生成第一版布局吗？",
+      "offer_text": "Tessera 可以根据 Home Assistant 中的房间和设备为此屏幕自动排版，之后仍可自由修改所有内容。",
+      "offer_make": "生成初始布局",
+      "offer_empty": "从空白布局开始"
+    },
+    "layoutbot": {
+      "name": "布局助手",
+      "open": "询问布局助手",
+      "close": "关闭",
+      "hello": "你好！告诉我你希望这块屏幕显示什么，我会为它安排页面布局。我只会更改布局，不会控制你的设备。",
+      "privacy": "我会使用 Home Assistant 中的 {agent}。你的指令、屏幕页面及实体 ID、名称和所属区域会发送给它。",
+      "model_hint": "使用较大的模型时，我的表现通常比使用最便宜的模型更好。请在 Home Assistant 中为 AI 集成添加一个供我使用的 AI Task，关闭“推荐模型”设置，改为选择能力更强的模型，然后在聊天界面顶部选择该任务。",
+      "model_link": "打开集成",
+      "placeholder": "创建一个页面，显示……",
+      "ask": "询问",
+      "send": {
+        "ask": "要发送到 {which} 吗？",
+        "yes": "是，发送",
+        "no": "暂不",
+        "sending": "正在发送…",
+        "sent": "已发送，屏幕会在片刻后显示。",
+        "not_all": "部分内容未发送。",
+        "failed": "无法发送到 {which}。",
+        "declined": "未发送。你可以随时点击“保存并发送”。",
+        "to": "正在发送给 {name}",
+        "not_opened": "无法打开该屏幕",
+        "not_saved": "未保存",
+        "unsaved": "当前打开的屏幕有未保存的更改",
+        "own": "上次保存后你自己作出的更改也会一并发送。"
+      },
+      "busy": "Layoutbot 正在安排页面",
+      "seconds": "{n} 秒",
+      "stop": "停止",
+      "stopped": "已停止，没有修改任何内容。",
+      "nothing": "没有更改。",
+      "stale": "处理期间页面发生了变化，因此我保留了原布局。请重新提出要求。",
+      "show": "显示",
+      "undo": "撤销",
+      "undone": "已撤销",
+      "restructure": {
+        "page": "重新整理此页面",
+        "screen": "重新整理整块屏幕"
+      },
+      "suggest": {
+        "lights_sections": "将所有灯光放在一页，每个房间一个分区",
+        "lights": "将所有灯光放在一页",
+        "covers_sections": "创建包含所有百叶窗和窗帘的页面，分为两个分区",
+        "covers": "创建包含所有百叶窗和窗帘的页面",
+        "media": "为全部扬声器创建音乐页面",
+        "climate": "创建包含供暖与温度信息的环境控制页面"
+      },
+      "what": {
+        "pages": "新增 {n} 页",
+        "added": "已添加 {n} 张卡片",
+        "removed": "已移除 {n} 张卡片",
+        "changed": "页面 {pages} 已更改"
+      },
+      "connect": {
+        "title": "在 Home Assistant 中连接 AI",
+        "short": "尚未连接",
+        "body": "我可以根据一句话安排屏幕页面，例如“把所有灯放在同一页，每个房间一个分区”。需要使用你连接到 Home Assistant 的 AI：添加以下集成之一，其余由我完成。",
+        "cloud": "使用自己的 API 密钥连接云端服务",
+        "local": "在你自己的计算机上",
+        "after": "任何支持 AI Tasks 的 AI 集成都可以使用。添加后请返回这里查看。",
+        "again": "重新检查"
+      },
+      "notes": {
+        "page_full": "第 {page} 页已满，{count} 张卡片未能放入。",
+        "memory_full": "屏幕内存已满，因此有 {count} 张卡片未能添加。",
+        "left_out": "屏幕空间不足，无法再放入 {count} 张卡片。",
+        "no_page": "不存在第 {page} 页。",
+        "not_drawn": "此屏幕无法显示 {count} 个实体对应的卡片。",
+        "restructure_no_room": "重新排版后将有 {count} 张卡片无法放入，因此保留原页面不变。"
+      },
+      "update_app": "请更新 Tessera 应用：此版本的编辑器可以直接应用 Layoutbot 生成的布局方案。",
+      "scope": {
+        "here": "此屏幕",
+        "all": "全部屏幕"
+      },
+      "preview": "查看"
+    },
+    "alarm": {
+      "hero_title": "警报触发时",
+      "hero_text": "有人进入或警报触发时，屏幕会自动唤醒并显示红色密码键盘及剩余时间。输入密码即可撤防，无需额外配置自动化；Tessera 会同步 Home Assistant 中的警报状态。",
+      "none": "Home Assistant 尚未配置报警控制面板。添加 Manual Alarm 或 Alarmo 等集成后会在这里显示。",
+      "no_code": "此报警器撤防无需密码，因此屏幕打开的详情卡片会直接显示“撤防”按钮，而不是数字键盘。",
+      "screens_label": "自动打开密码键盘的屏幕",
+      "every_screen": "所有屏幕",
+      "every_screen_hint": "也包括以后新增的屏幕。关闭后可手动选择接收的屏幕。",
+      "none_chosen": "未选择自动打开键盘的屏幕；仍可通过点击报警卡片打开键盘。",
+      "older": "需要更新固件，才能在页面未添加报警卡片时自动打开键盘。",
+      "send_label": "经过以下时间后发送密码",
+      "send_off": "确定键",
+      "send_off_hint": "点击“确定”后才会提交密码。Home Assistant 不提供密码长度信息。",
+      "send_on_hint": "输入 {digits} 位数字后自动提交，无需点击“确定”。仅当所有有效密码长度均为 {digits} 位时才应开启，否则过早提交会被视为密码错误。",
+      "saved": "已保存，屏幕稍后会应用设置。",
+      "how_title": "屏幕上的工作方式",
+      "how_wake": "当有人进入并触发报警倒计时，或警报正式响起时，所选屏幕会自动唤醒并显示密码键盘。布防倒计时期间，报警卡片则显示“撤防”按钮。",
+      "how_keys": "数字键盘会尽量利用屏幕空间，但不会超过大尺寸手机键盘的大小。按“删除”可清除最后输入的一位数字。",
+      "how_wrong": "连续输错三次后键盘会锁定 30 秒，此后每错一次等待时间翻倍，最长 15 分钟。Home Assistant 每次都会收到 esphome.screen_alarm_code_refused 事件，但事件不包含密码。",
+      "how_code": "密码会随操作发送到 Home Assistant，与原生报警卡片的处理方式相同，随后立即从屏幕清除。屏幕不会保存或记录密码。",
+      "how_tile": "也可以将报警器添加到页面。点击其卡片即可随时打开详情，选择布防模式或进行撤防。"
+    }
+  }
+}

@@ -68,6 +68,8 @@ A partial check helps too. Say which sections you went through, and leave `check
 1. Pick the code Home Assistant uses for your language (`sv`, `da`, `cs`, `pt-BR`); Tessera follows Home Assistant's
    language setting by that code. A variant such as `pt-BR` may be a small file with only the texts that differ from
    `pt`. That is how `en-GB` works: it holds the 24-hour clock and British spelling, and the rest falls back to `en`.
+   For Chinese, use Home Assistant's script locale codes `zh-Hans` (Simplified) and `zh-Hant` (Traditional).
+   Older regional codes such as `zh-CN` and `zh-TW` are accepted as aliases for these script codes.
 2. Create the file. If you have Node.js and Python:
 
    ```bash
@@ -147,6 +149,7 @@ list of its own in both places, letters the text font (Roboto) has.
 | `english` | The language in English |
 | `script` | `latin`, `cyrillic`, `greek`, `han`, ... |
 | `plural` | One of the plural rules above |
+| `aliases` | Optional locale codes from other naming conventions that should select this language, for example `zh-CN` in the `zh-Hans` file |
 | `clock` | `12` or `24`: what *Automatic* means for the clock (from the CLDR) |
 | `checked` | `true` once someone who speaks the language has checked the whole file |
 

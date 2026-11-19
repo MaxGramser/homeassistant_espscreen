@@ -19,6 +19,8 @@ sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import profiles  # noqa: E402
 import header_bar  # noqa: E402
 import i18n  # noqa: E402
+sys.path.insert(0, str(ROOT / 'components/smart_display'))
+import screen_text_gen  # noqa: E402
 
 CORE = (ROOT / 'packages/core.yaml').read_text(encoding='utf-8')
 TEXT_FONTS = ('headline', 'watch_value', 'label', 'sublabel', 'sublabel_big')
@@ -34,6 +36,10 @@ class FirmwareLetters(unittest.TestCase):
         self.assertEqual(len(core_list('cyrillic')), len(set(core_list('cyrillic'))), 'a letter twice')
         # None of them is a Latin glyph already in the fonts, which ESPHome refuses as a duplicate.
         self.assertFalse(set(core_list('cyrillic')) & set(header_bar.GLYPHS))
+
+    def test_older_chinese_region_codes_build_with_the_script_language_files(self):
+        self.assertEqual(screen_text_gen.resolve('zh-CN'), 'zh-Hans')
+        self.assertEqual(screen_text_gen.resolve('zh-TW'), 'zh-Hant')
 
     def test_every_text_font_takes_the_letters_of_its_language_last(self):
         for font in TEXT_FONTS:

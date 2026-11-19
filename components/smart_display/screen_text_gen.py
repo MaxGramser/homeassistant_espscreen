@@ -40,9 +40,22 @@ def load(code, folder=TRANSLATIONS):
     return json.loads(path.read_text(encoding='utf-8'))
 
 
+def _aliases(folder=TRANSLATIONS):
+    """Aliases declared by each translation file's `_meta`, indexed by normalized code."""
+    found = {}
+    for language in languages(folder):
+        data = load(language, folder) or {}
+        for alias in data.get('_meta', {}).get('aliases', []):
+            if isinstance(alias, str):
+                found[alias.lower()] = language
+    return found
+
+
 def resolve(code, folder=TRANSLATIONS):
-    """The language a build takes for `code`: the file itself, else its base language (pt-BR -> pt), else English."""
-    for candidate in (code, (code or '').split('-')[0]):
+    """The language a build takes for `code`: exact, declared alias, base, then English."""
+    value = code if isinstance(code, str) else ''
+    alias = _aliases(folder).get(value.lower())
+    for candidate in (value, alias, value.split('-')[0]):
         if candidate and load(candidate, folder) is not None:
             return candidate
     return 'en'
