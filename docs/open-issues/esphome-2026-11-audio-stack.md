@@ -29,3 +29,12 @@ A build of the Guition 10.1 (jc8012p4a1v3) with ESPHome 2026.6.2, 2026.9.0 and 2
 ## Pointers
 
 `packages/hardware/parts/echo-cancel.yaml` (the pin), docs/P4_AUDIO.md "Sources and attribution".
+
+## Solved: the stack in a fork, one commit on top (2026-11-19)
+
+The pin moves to this project's fork of the stack (MaxGramser/esphome-audio-stack, branch `tessera-esphome-2026.11`,
+6ffa32df): 245fc1ad and one commit that, from ESPHome 2026.11 on (`ESPHOME_VERSION_CODE`), hands the speaker's volume and
+mute to `speaker::Speaker`, which drives every DAC there; with an older ESPHome the code is as before. The Guition 10.1
+(jc8012p4a1v3, echo cancelling) built with it on ESPHome 2026.9.0 and 2026.11.0. Not yet flashed and heard on 2026.11.
+The same commit goes to the stack as a pull request; once the stack has one like it, the pin goes back there. This file
+goes with the next release.

@@ -30,10 +30,12 @@ substitutions:
     talk_uplink::bind_echo([](bool needed) { id(board_aec).set_needed(needed); });
 
 external_components:
+  # Hane's audio stack at 245fc1ad with one commit for ESPHome 2026.11 (a speaker's DACs), in this project's fork until the
+  # stack has a commit that builds with ESPHome 2026.6 to 2026.11 itself (docs/P4_AUDIO.md, "Sources and attribution").
   - source:
       type: git
-      url: https://github.com/n-IA-hane/esphome-audio-stack
-      ref: 245fc1ad34b443996479c645d20e2960d99bdc31
+      url: https://github.com/MaxGramser/esphome-audio-stack
+      ref: 6ffa32dfc2a271cf258ec974e4bef624b34ce05d
       path: esphome/components
     components: [esp_audio_stack]
     refresh: never
