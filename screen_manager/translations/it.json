@@ -2058,7 +2058,8 @@
         "fits_none": "Non adatto a nessuno dei tuoi schermi",
         "failed": "Compilazione non riuscita",
         "not_running": "Non è in esecuzione sullo schermo",
-        "queued": "Attende il suo turno"
+        "queued": "Attende il suo turno",
+        "runs_other": "Sullo schermo gira la versione {version}"
       },
       "source": {
         "link": "Da un link",
@@ -2444,7 +2445,8 @@
         "go": "Rimuovi dall'elenco",
         "note": "Nessuno schermo usa questo plugin. Rimuovilo dall'elenco per dimenticare il link.",
         "note_folder": "Nessuno schermo usa questo plugin dalla sua cartella. Rimuovendolo, la cartella passa in config/tessera-plugins/.removed/{id}, dove puoi eliminarla definitivamente."
-      }
+      },
+      "runs_elsewhere": "{screen} esegue la versione {running}, compilata altrove. Compilandola qui vi si installa la versione {version}."
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",
@@ -4642,7 +4644,8 @@
         "remove_confirm": "Rimuovere \"{name}\" da Home Assistant?",
         "on": "Attiva",
         "off": "Disattiva"
-      }
+      },
+      "alarm": "Allarme"
     },
     "doorbell": {
       "intro": "Qualcuno suona e i tuoi schermi mostrano la porta. Un'automazione invia l'evento con la telecamera del campanello: uno schermo P4 si riattiva, suona un avviso e apre la telecamera dal vivo con l'audio; ogni altro schermo mostra la sua immagine in un avviso. Funziona qualsiasi campanello, qualunque sia il trigger.",
@@ -4967,6 +4970,28 @@
         "all": "Tutti gli schermi"
       },
       "preview": "Guarda"
+    },
+    "alarm": {
+      "hero_title": "Quando scatta l'allarme",
+      "hero_text": "Qualcuno entra o scatta l'allarme: i tuoi schermi si risvegliano da soli e aprono il tastierino in rosso, con il tempo rimasto. Digita il codice e l'allarme si spegne. Non serve alcuna automazione; Tessera segue il tuo allarme in Home Assistant.",
+      "none": "Home Assistant non ha alcun pannello di allarme. Aggiungine uno, come Manual alarm o Alarmo, e comparirà qui.",
+      "no_code": "Questo allarme non chiede un codice per essere disattivato, quindi gli schermi aprono la sua scheda con un tasto Disattiva invece del tastierino.",
+      "screens_label": "Schermi che aprono il tastierino",
+      "every_screen": "Tutti gli schermi",
+      "every_screen_hint": "Anche uno schermo aggiunto in seguito. Disattivalo per scegliere tu gli schermi.",
+      "none_chosen": "Nessuno schermo apre il tastierino da solo. Il riquadro dell'allarme lo apre comunque con un tocco.",
+      "older": "Serve un aggiornamento del firmware per aprirlo senza il riquadro dell'allarme su una pagina.",
+      "send_label": "Invia il codice dopo",
+      "send_off": "Tasto OK",
+      "send_off_hint": "Il codice parte quando tocchi OK. Home Assistant non dice quante cifre ha un codice.",
+      "send_on_hint": "Il codice parte da solo dopo {digits} cifre, senza OK. Sceglilo solo se tutti i codici di questo allarme hanno {digits} cifre: un codice inviato troppo presto conta come errato.",
+      "saved": "Salvato. I tuoi schermi lo avranno tra un attimo.",
+      "how_title": "Come funziona sullo schermo",
+      "how_wake": "Quando l'allarme fa il conto alla rovescia perché qualcuno è entrato, o scatta, gli schermi scelti si risvegliano e aprono il tastierino. Durante il conto alla rovescia prima dell'inserimento, la scheda dell'allarme mostra invece un tasto Disattiva.",
+      "how_keys": "I tasti occupano tutto lo spazio dello schermo, fino alle dimensioni del tastierino di un telefono grande. Cancella toglie l'ultima cifra.",
+      "how_wrong": "Tre codici errati bloccano il tastierino per 30 secondi, e ogni codice errato successivo raddoppia il tempo, fino a 15 minuti. Home Assistant viene a sapere di ciascuno con l'evento esphome.screen_alarm_code_refused, mai con il codice.",
+      "how_code": "Il codice va a Home Assistant con l'azione, come lo invia la sua scheda di allarme, e viene cancellato subito sullo schermo. Uno schermo non lo salva né lo registra mai.",
+      "how_tile": "Metti l'allarme anche su una pagina: un tocco sul suo riquadro apre in qualsiasi momento la scheda con un tasto per modalità."
     }
   }
 }

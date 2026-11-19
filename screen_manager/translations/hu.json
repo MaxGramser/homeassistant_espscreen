@@ -2058,7 +2058,8 @@
         "fits_none": "Egyik kijelződre sem jó",
         "failed": "A fordítás nem sikerült",
         "not_running": "Nem fut a kijelzőn",
-        "queued": "Sorára vár"
+        "queued": "Sorára vár",
+        "runs_other": "A kijelzőn a(z) {version} verzió fut"
       },
       "source": {
         "link": "Hivatkozásból",
@@ -2444,7 +2445,8 @@
         "go": "Eltávolítás a listából",
         "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön.",
         "note_folder": "Egyetlen kijelző sem használja ezt a bővítményt a mappájából. Az eltávolítás a mappát ide helyezi át: config/tessera-plugins/.removed/{id}, ahol végleg törölheted."
-      }
+      },
+      "runs_elsewhere": "{screen} a(z) {running} verziót futtatja, amelyet máshol fordítottak. Ha itt fordítod, a(z) {version} verzió kerül rá."
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",
@@ -4642,7 +4644,8 @@
         "remove_confirm": "Eltávolítod a(z) „{name}” automatizálást a Home Assistantből?",
         "on": "Be",
         "off": "Ki"
-      }
+      },
+      "alarm": "Riasztó"
     },
     "doorbell": {
       "intro": "Valaki csenget, és a képernyőid mutatják az ajtót. Egy automatizálás elküldi az eseményt a csengő kamerájával: egy P4 képernyő felébred, csengőhangot játszik és élőben, hanggal megnyitja a kamerát; minden más képernyő értesítésben mutatja a képét. Bármilyen csengő működik, bármi indítja az automatizálást.",
@@ -4967,6 +4970,28 @@
         "all": "Minden kijelző"
       },
       "preview": "Megnézem"
+    },
+    "alarm": {
+      "hero_title": "Amikor a riasztó megszólal",
+      "hero_text": "Valaki belép, vagy megszólal a riasztó: a kijelzők maguktól felébrednek, és pirosan megnyitják a billentyűzetet a hátralévő idővel. Írd be a kódot, és a riasztó kikapcsol. Ehhez nem kell automatizálás; a Tessera követi a riasztódat a Home Assistantban.",
+      "none": "A Home Assistantban nincs riasztópanel. Adj hozzá egyet, például a Manual alarm vagy az Alarmo integrációt, és itt megjelenik.",
+      "no_code": "Ez a riasztó nem kér kódot a hatástalanításhoz, ezért a kijelzők billentyűzet helyett Hatástalanít gombbal nyitják meg a kártyáját.",
+      "screens_label": "Kijelzők, amelyek megnyitják a billentyűzetet",
+      "every_screen": "Minden kijelző",
+      "every_screen_hint": "Egy később hozzáadott kijelző is. Kapcsold ki, ha magad választod ki a kijelzőket.",
+      "none_chosen": "Egyik kijelző sem nyitja meg magától a billentyűzetet. A riasztó csempéje egy érintéssel továbbra is megnyitja.",
+      "older": "Firmware-frissítés kell ahhoz, hogy a riasztó csempéje nélkül is megnyíljon egy oldalon.",
+      "send_label": "A kód küldése ennyi után",
+      "send_off": "OK gomb",
+      "send_off_hint": "A kód az OK megérintésekor megy el. A Home Assistant nem mondja meg, hány számjegyű egy kód.",
+      "send_on_hint": "A kód {digits} számjegy után magától elmegy, OK nélkül. Csak akkor válaszd, ha a riasztó minden kódja {digits} számjegyű: a túl korán elküldött kód hibásnak számít.",
+      "saved": "Mentve. A kijelzők egy pillanat múlva megkapják.",
+      "how_title": "Hogyan működik a kijelzőn",
+      "how_wake": "Amikor a riasztó visszaszámol, mert valaki belépett, vagy megszólal, a kiválasztott kijelzők felébrednek és megnyitják a billentyűzetet. Élesítés előtti visszaszámláláskor a riasztó kártyája inkább egy Hatástalanít gombot mutat.",
+      "how_keys": "A gombok kitöltik a kijelző teljes helyét, legfeljebb egy nagy telefon billentyűzetének méretéig. A Törlés visszaveszi az utolsó számjegyet.",
+      "how_wrong": "Három hibás kód 30 másodpercre zárolja a billentyűzetet, és utána minden hibás kód megduplázza az időt, legfeljebb 15 percig. A Home Assistant mindegyikről az esphome.screen_alarm_code_refused eseménnyel értesül, soha nem a kóddal.",
+      "how_code": "A kód a művelettel megy a Home Assistantba, ahogy a saját riasztókártyája küldi, és a kijelzőn azonnal törlődik. Egy kijelző soha nem tárolja és nem naplózza.",
+      "how_tile": "Tedd a riasztót egy oldalra is: a csempéjének megérintése bármikor megnyitja a kártyát, módonként egy gombbal."
     }
   }
 }

@@ -2058,7 +2058,8 @@
         "fits_none": "Não é compatível com nenhum dos seus ecrãs",
         "failed": "A compilação falhou",
         "not_running": "Não está a correr no ecrã",
-        "queued": "Aguarda a sua vez"
+        "queued": "Aguarda a sua vez",
+        "runs_other": "O ecrã corre a versão {version}"
       },
       "source": {
         "link": "A partir de uma ligação",
@@ -2444,7 +2445,8 @@
         "go": "Remover da lista",
         "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação.",
         "note_folder": "Nenhum ecrã usa este plugin a partir da sua pasta. Ao removê-lo, a pasta passa para config/tessera-plugins/.removed/{id}, onde a pode apagar de vez."
-      }
+      },
+      "runs_elsewhere": "{screen} corre a versão {running}, compilada noutro sítio. Compilá-la aqui instala a versão {version}."
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",
@@ -4642,7 +4644,8 @@
         "remove_confirm": "Remover \"{name}\" do Home Assistant?",
         "on": "Ligada",
         "off": "Desligada"
-      }
+      },
+      "alarm": "Alarme"
     },
     "doorbell": {
       "intro": "Alguém toca e os seus ecrãs mostram a porta. Uma automação envia o evento com a câmara da campainha: um ecrã P4 acorda, toca um aviso e abre a câmara em direto com som; qualquer outro ecrã mostra a imagem num alerta. Qualquer campainha funciona, seja qual for o gatilho.",
@@ -4967,6 +4970,28 @@
         "all": "Todos os ecrãs"
       },
       "preview": "Ver"
+    },
+    "alarm": {
+      "hero_title": "Quando o alarme dispara",
+      "hero_text": "Alguém entra ou o alarme dispara: os seus ecrãs acordam sozinhos e abrem o teclado a vermelho, com o tempo que falta. Escreva o código e o alarme desliga. Não precisa de nenhuma automação; o Tessera acompanha o seu alarme no Home Assistant.",
+      "none": "O Home Assistant não tem nenhum painel de alarme. Adicione um, como Manual alarm ou Alarmo, e aparece aqui.",
+      "no_code": "Este alarme não pede código para desarmar, por isso os ecrãs abrem o seu cartão com uma tecla Desarmar em vez do teclado.",
+      "screens_label": "Ecrãs que abrem o teclado",
+      "every_screen": "Todos os ecrãs",
+      "every_screen_hint": "Também um ecrã que adicione mais tarde. Desligue para escolher os ecrãs.",
+      "none_chosen": "Nenhum ecrã abre o teclado sozinho. O mosaico do alarme continua a abri-lo com um toque.",
+      "older": "Precisa de uma atualização do firmware para o abrir sem o mosaico do alarme numa página.",
+      "send_label": "Enviar o código após",
+      "send_off": "Tecla OK",
+      "send_off_hint": "O código é enviado quando toca em OK. O Home Assistant não diz quantos dígitos tem um código.",
+      "send_on_hint": "O código é enviado sozinho após {digits} dígitos, sem OK. Escolha isto só se todos os códigos deste alarme tiverem {digits} dígitos: um código enviado cedo demais conta como errado.",
+      "saved": "Guardado. Os seus ecrãs recebem-no dentro de momentos.",
+      "how_title": "Como funciona no ecrã",
+      "how_wake": "Quando o alarme faz a contagem decrescente porque alguém entrou, ou dispara, os ecrãs escolhidos acordam e abrem o teclado. Durante a contagem para armar, o cartão do alarme mostra antes uma tecla Desarmar.",
+      "how_keys": "As teclas ocupam todo o espaço do ecrã, até ao tamanho do teclado de um telemóvel grande. Apagar retira o último dígito.",
+      "how_wrong": "Três códigos errados bloqueiam o teclado 30 segundos, e cada código errado a seguir duplica o tempo, até 15 minutos. O Home Assistant sabe de cada um pelo evento esphome.screen_alarm_code_refused, nunca com o código.",
+      "how_code": "O código vai para o Home Assistant com a ação, tal como o envia o seu próprio cartão de alarme, e é apagado logo no ecrã. Um ecrã nunca o guarda nem o regista.",
+      "how_tile": "Coloque também o alarme numa página: um toque no seu mosaico abre a qualquer momento o cartão com uma tecla por modo."
     }
   }
 }

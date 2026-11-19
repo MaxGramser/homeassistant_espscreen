@@ -2058,7 +2058,8 @@
         "fits_none": "Nie pasuje do żadnego z Twoich ekranów",
         "failed": "Kompilacja nie powiodła się",
         "not_running": "Nie działa na ekranie",
-        "queued": "Czeka na swoją kolej"
+        "queued": "Czeka na swoją kolej",
+        "runs_other": "Na ekranie działa wersja {version}"
       },
       "source": {
         "link": "Z linku",
@@ -2444,7 +2445,8 @@
         "go": "Usuń z listy",
         "note": "Żaden ekran nie używa tej wtyczki. Usuń ją z listy, aby zapomnieć link.",
         "note_folder": "Żaden ekran nie używa tej wtyczki z jej folderu. Usunięcie przenosi folder do config/tessera-plugins/.removed/{id}, gdzie możesz go skasować na dobre."
-      }
+      },
+      "runs_elsewhere": "{screen} działa w wersji {running}, zbudowanej gdzie indziej. Zbudowanie jej tutaj wgra wersję {version}."
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",
@@ -4642,7 +4644,8 @@
         "remove_confirm": "Usunąć „{name}” z Home Assistant?",
         "on": "Wł.",
         "off": "Wył."
-      }
+      },
+      "alarm": "Alarm"
     },
     "doorbell": {
       "intro": "Ktoś dzwoni, a twoje ekrany pokazują drzwi. Automatyzacja wysyła zdarzenie z kamerą dzwonka: ekran P4 budzi się, odtwarza gong i otwiera kamerę na żywo z dźwiękiem; każdy inny ekran pokazuje jej obraz w alercie. Działa każdy dzwonek, bez względu na wyzwalacz.",
@@ -4967,6 +4970,28 @@
         "all": "Wszystkie ekrany"
       },
       "preview": "Zobacz"
+    },
+    "alarm": {
+      "hero_title": "Gdy alarm się włączy",
+      "hero_text": "Ktoś wchodzi albo alarm się włącza: ekrany budzą się same i otwierają klawiaturę na czerwono, z pozostałym czasem. Wpisz kod i alarm jest wyłączony. Nie potrzebujesz do tego automatyzacji; Tessera śledzi Twój alarm w Home Assistant.",
+      "none": "Home Assistant nie ma panelu alarmowego. Dodaj go, na przykład Manual alarm lub Alarmo, a pojawi się tutaj.",
+      "no_code": "Ten alarm nie wymaga kodu do rozbrojenia, więc ekrany otwierają jego kartę z przyciskiem Rozbrój zamiast klawiatury.",
+      "screens_label": "Ekrany, które otwierają klawiaturę",
+      "every_screen": "Każdy ekran",
+      "every_screen_hint": "Także ekran dodany później. Wyłącz, aby samemu wybrać ekrany.",
+      "none_chosen": "Żaden ekran nie otwiera klawiatury sam. Kafelek alarmu nadal otwiera ją jednym dotknięciem.",
+      "older": "Wymaga aktualizacji firmware, aby otworzyć ją bez kafelka alarmu na stronie.",
+      "send_label": "Wyślij kod po",
+      "send_off": "Przycisk OK",
+      "send_off_hint": "Kod zostaje wysłany po dotknięciu OK. Home Assistant nie podaje, ile cyfr ma kod.",
+      "send_on_hint": "Kod wysyła się sam po {digits} cyfrach, bez OK. Wybierz to tylko wtedy, gdy każdy kod tego alarmu ma {digits} cyfr: kod wysłany za wcześnie liczy się jako błędny.",
+      "saved": "Zapisano. Twoje ekrany dostaną to za chwilę.",
+      "how_title": "Jak to działa na ekranie",
+      "how_wake": "Gdy alarm odlicza, bo ktoś wszedł, albo się włącza, wybrane ekrany budzą się i otwierają klawiaturę. Podczas odliczania do uzbrojenia karta alarmu pokazuje zamiast tego przycisk Rozbrój.",
+      "how_keys": "Przyciski zajmują całe miejsce na ekranie, do rozmiaru klawiatury dużego telefonu. Usuń cofa ostatnią cyfrę.",
+      "how_wrong": "Trzy błędne kody blokują klawiaturę na 30 sekund, a każdy kolejny błędny kod podwaja ten czas, do 15 minut. Home Assistant dowiaduje się o każdym przez zdarzenie esphome.screen_alarm_code_refused, nigdy razem z kodem.",
+      "how_code": "Kod trafia do Home Assistant z akcją, tak jak wysyła go jego własna karta alarmu, i od razu jest usuwany na ekranie. Ekran nigdy go nie przechowuje ani nie zapisuje w logach.",
+      "how_tile": "Umieść alarm także na stronie: dotknięcie jego kafelka w każdej chwili otwiera kartę z przyciskiem dla każdego trybu."
     }
   }
 }

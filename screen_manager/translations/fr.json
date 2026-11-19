@@ -2058,7 +2058,8 @@
         "fits_none": "Ne convient à aucun de vos écrans",
         "failed": "Échec de la compilation",
         "not_running": "Ne s'exécute pas sur l'écran",
-        "queued": "Attend son tour"
+        "queued": "Attend son tour",
+        "runs_other": "La version {version} tourne sur l'écran"
       },
       "source": {
         "link": "Depuis un lien",
@@ -2444,7 +2445,8 @@
         "go": "Retirer de la liste",
         "note": "Aucun écran n'utilise ce plugin. Retirez-le de la liste pour oublier le lien.",
         "note_folder": "Aucun écran n'utilise ce plugin depuis son dossier. Le retirer déplace le dossier vers config/tessera-plugins/.removed/{id}, où vous pouvez le supprimer pour de bon."
-      }
+      },
+      "runs_elsewhere": "{screen} exécute la version {running}, compilée ailleurs. La compiler ici y installe la version {version}."
     },
     "plugin_tile": {
       "from": "Une tuile du plugin {plugin}",
@@ -4642,7 +4644,8 @@
         "remove_confirm": "Supprimer « {name} » de Home Assistant ?",
         "on": "Activée",
         "off": "Désactivée"
-      }
+      },
+      "alarm": "Alarme"
     },
     "doorbell": {
       "intro": "Quelqu'un sonne et vos écrans montrent la porte. Une automatisation envoie l'événement avec la caméra de la sonnette : un écran P4 se réveille, joue un carillon et ouvre la caméra en direct avec le son ; tout autre écran affiche son image dans une alerte. Toute sonnette fonctionne, quel que soit le déclencheur.",
@@ -4967,6 +4970,28 @@
         "all": "Tous les écrans"
       },
       "preview": "Voir"
+    },
+    "alarm": {
+      "hero_title": "Quand l'alarme se déclenche",
+      "hero_text": "Quelqu'un entre ou l'alarme se déclenche : vos écrans se réveillent d'eux-mêmes et ouvrent le clavier en rouge, avec le temps qui reste. Tapez le code et l'alarme est désactivée. Aucune automatisation n'est nécessaire ; Tessera suit votre alarme dans Home Assistant.",
+      "none": "Home Assistant n'a aucun panneau d'alarme. Ajoutez-en un, comme Manual alarm ou Alarmo, et il apparaît ici.",
+      "no_code": "Cette alarme ne demande pas de code pour la désactiver : les écrans ouvrent donc sa carte avec une touche Désactiver au lieu du clavier.",
+      "screens_label": "Écrans qui ouvrent le clavier",
+      "every_screen": "Tous les écrans",
+      "every_screen_hint": "Aussi un écran ajouté plus tard. Désactivez pour choisir vous-même les écrans.",
+      "none_chosen": "Aucun écran n'ouvre le clavier de lui-même. La tuile de l'alarme l'ouvre toujours d'un toucher.",
+      "older": "Nécessite une mise à jour du firmware pour l'ouvrir sans la tuile de l'alarme sur une page.",
+      "send_label": "Envoyer le code après",
+      "send_off": "Touche OK",
+      "send_off_hint": "Le code part quand vous touchez OK. Home Assistant ne dit pas combien de chiffres compte un code.",
+      "send_on_hint": "Le code part de lui-même après {digits} chiffres, sans OK. Ne choisissez cela que si tous les codes de cette alarme ont {digits} chiffres : un code envoyé trop tôt compte comme faux.",
+      "saved": "Enregistré. Vos écrans l’auront dans un instant.",
+      "how_title": "Comment cela fonctionne sur l'écran",
+      "how_wake": "Quand l'alarme décompte parce que quelqu'un est entré, ou se déclenche, les écrans choisis se réveillent et ouvrent le clavier. Pendant le décompte avant l'armement, la carte de l'alarme affiche plutôt une touche Désactiver.",
+      "how_keys": "Les touches prennent toute la place de l'écran, jusqu'à la taille du clavier d'un grand téléphone. Effacer retire le dernier chiffre.",
+      "how_wrong": "Trois codes faux bloquent le clavier 30 secondes, et chaque code faux ensuite double ce temps, jusqu'à 15 minutes. Home Assistant apprend chacun par l'événement esphome.screen_alarm_code_refused, jamais avec le code.",
+      "how_code": "Le code part vers Home Assistant avec l'action, comme sa propre carte d'alarme l'envoie, et est effacé aussitôt sur l'écran. Un écran ne le garde ni ne le journalise jamais.",
+      "how_tile": "Placez aussi l'alarme sur une page : un toucher sur sa tuile ouvre à tout moment la carte avec une touche par mode."
     }
   }
 }
