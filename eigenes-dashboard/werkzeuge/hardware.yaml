@@ -1,0 +1,109 @@
+# ---------------- Hardware (Pins wie in ESPHomes Guition-4848S040-Vorlage) ----------------
+spi:
+  id: lcd_spi
+  clk_pin: GPIO48
+  mosi_pin: GPIO47
+
+i2c:
+  id: touch_bus
+  sda: GPIO19
+  scl:
+    number: GPIO45
+    ignore_strapping_warning: true
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_pwm
+    # 150 Hz dimmt auf allen Chargen dieses Boards; falls es fiept, auf 20 kHz stellen.
+    frequency: 150 Hz
+    min_power: 0.01
+    zero_means_zero: true
+
+light:
+  - platform: monochromatic
+    id: hintergrundlicht
+    name: Hintergrundlicht
+    output: backlight_pwm
+    # beim Start aus; on_boot schaltet es ein, außer im Nachtmodus
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 300ms
+
+display:
+  - platform: st7701s
+    id: my_display
+    dimensions: {width: 480, height: 480}
+    spi_id: lcd_spi
+    spi_mode: MODE0
+    data_rate: 2MHz
+    color_order: RGB
+    invert_colors: false
+    cs_pin: 39
+    de_pin: 18
+    hsync_pin: 16
+    vsync_pin: 17
+    pclk_pin: 21
+    pclk_frequency: 16MHz
+    pclk_inverted: false
+    hsync_front_porch: 10
+    hsync_pulse_width: 8
+    hsync_back_porch: 50
+    vsync_front_porch: 10
+    vsync_pulse_width: 8
+    vsync_back_porch: 20
+    init_sequence:
+      - 1
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10]
+      - [0xCD, 0x00]
+      - [0xC7, 0x00]
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x00]
+      - [0x3A, 0x60]
+      - [0x36, 0x00]
+      - [0x20]
+      - [0x11]
+      - delay 120ms
+    data_pins:
+      red: [11, 12, 13, 14, 0]
+      green: [8, 20, 3, 46, 9, 10]
+      blue: [4, 5, 6, 7, 15]
+    update_interval: never
+    auto_clear_enabled: false
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+    calibration:
+      x_min: 0
+      x_max: 480
+      y_min: 0
+      y_max: 480
+    # Gesten (Ablauf im Skript "geste"): Tippen = nächste Seite, Doppeltipp = Hunderunde, lange drücken = Seite halten,
+    # Wischen hoch/runter = heller/dunkler; im Nachtmodus weckt jede Berührung das Display
+    on_touch:
+      - lambda: |-
+          id(t_x0) = id(t_x1) = touch.x;
+          id(t_y0) = id(t_y1) = touch.y;
+          id(t_lang) = false;
+      - script.execute: lang_warten
+    on_update:
+      - lambda: |-
+          if (!touches.empty()) {
+            id(t_x1) = touches[0].x;
+            id(t_y1) = touches[0].y;
+          }
+    on_release:
+      - script.stop: lang_warten
+      - if:
+          condition:
+            lambda: return !id(t_lang);
+          then:
+            - script.execute:
+                id: geste
+                art: !lambda |-
+                  int dx = id(t_x1) - id(t_x0), dy = id(t_y1) - id(t_y0);
+                  if (abs(dy) >= 60 && abs(dy) > abs(dx)) return dy < 0 ? 1 : 2;
+                  return 0;
+

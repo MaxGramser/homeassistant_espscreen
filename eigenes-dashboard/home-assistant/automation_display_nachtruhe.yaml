@@ -1,0 +1,128 @@
+# Wetter-Display: Nachtruhe, Anwesenheit und Flur-Bewegung (für automations.yaml)
+#
+# - Aus in der Nachtruhe (23–6 Uhr) und wenn niemand zu Hause ist (Schalter "Nachtmodus" des Displays an:
+#   Licht aus, ein Tippen weckt es für die "Weckdauer").
+# - Nachtruhe + Bewegung im Flur + jemand zu Hause: Display 20 Minuten an (20 %), dann wieder aus.
+#   Jede weitere Bewegung startet die 20 Minuten neu.
+# - Tagsüber, jemand zu Hause, Display aus: Bewegung im Flur schaltet es wieder ein.
+# - In der Nachtruhe steht der Regler "Helligkeit" auf 20 %, damit auch ein Tippen nur gedimmt weckt;
+#   um 6 Uhr wieder auf 80 %.
+# Entitäten prüfen: Einstellungen > Geräte > Wetter-Display.
+
+- id: wetter_display_nachtruhe
+  alias: Wetter-Display Nachtruhe
+  description: >-
+    Display aus von 23–6 Uhr und wenn niemand zu Hause ist. Nachts weckt Bewegung im Flur es für 20 Minuten
+    mit 20 %, tagsüber schaltet Bewegung es wieder ein, wenn jemand zu Hause ist.
+  mode: restart
+  triggers:
+  - trigger: time
+    at: '23:00:00'
+    id: nacht
+  - trigger: time
+    at: '06:00:00'
+    id: tag
+  - trigger: state
+    entity_id: group.family
+    to: not_home
+    id: weg
+  - trigger: state
+    entity_id: group.family
+    to: home
+    id: heim
+  - trigger: state
+    entity_id: binary_sensor.bewegungsmelder_flur_bewegung
+    from: 'off'
+    to: 'on'
+    id: bewegung
+  - trigger: homeassistant
+    event: start
+    id: pruefen
+  conditions:
+  # Display offline: nichts tun
+  - condition: template
+    value_template: "{{ has_value('switch.wetter_display_nachtmodus') }}"
+  variables:
+    nachtruhe: "{{ now().hour >= 23 or now().hour < 6 }}"
+    zuhause: "{{ is_state('group.family', 'home') }}"
+    soll_aus: "{{ nachtruhe or not zuhause }}"
+    hell_tag: 80
+    hell_nacht: 20
+  actions:
+  - choose:
+    # Nachtruhe + Bewegung: 20 Minuten gedimmt an, danach wieder aus
+    - conditions:
+      - condition: trigger
+        id: bewegung
+      - condition: template
+        value_template: "{{ nachtruhe and zuhause }}"
+      sequence:
+      - action: light.turn_on
+        target:
+          entity_id: light.wetter_display_hintergrundlicht
+        data:
+          brightness_pct: "{{ hell_nacht }}"
+      - delay:
+          minutes: 20
+      - condition: state
+        entity_id: switch.wetter_display_nachtmodus
+        state: 'on'
+      - action: light.turn_off
+        target:
+          entity_id: light.wetter_display_hintergrundlicht
+    # Tagsüber + Bewegung + Display aus: wieder einschalten
+    - conditions:
+      - condition: trigger
+        id: bewegung
+      - condition: template
+        value_template: "{{ zuhause and not nachtruhe }}"
+      - condition: state
+        entity_id: switch.wetter_display_nachtmodus
+        state: 'on'
+      sequence:
+      - action: number.set_value
+        target:
+          entity_id: number.wetter_display_helligkeit
+        data:
+          value: "{{ hell_tag }}"
+      - action: switch.turn_off
+        target:
+          entity_id: switch.wetter_display_nachtmodus
+    # 23 Uhr, alle weg oder Neustart in der Nachtruhe: aus (nachts mit 20 % für ein Tippen)
+    - conditions:
+      - condition: trigger
+        id: [nacht, weg, pruefen]
+      - condition: template
+        value_template: "{{ soll_aus }}"
+      sequence:
+      - action: switch.turn_on
+        target:
+          entity_id: switch.wetter_display_nachtmodus
+      # falls es gerade durch Bewegung an war
+      - action: light.turn_off
+        target:
+          entity_id: light.wetter_display_hintergrundlicht
+      - if:
+        - condition: template
+          value_template: "{{ nachtruhe }}"
+        then:
+        - action: number.set_value
+          target:
+            entity_id: number.wetter_display_helligkeit
+          data:
+            value: "{{ hell_nacht }}"
+    # 6 Uhr, jemand kommt heim oder Neustart am Tag: an mit Tageshelligkeit
+    - conditions:
+      - condition: trigger
+        id: [tag, heim, pruefen]
+      - condition: template
+        value_template: "{{ not soll_aus }}"
+      sequence:
+      - action: number.set_value
+        target:
+          entity_id: number.wetter_display_helligkeit
+        data:
+          value: "{{ hell_tag }}"
+      - action: switch.turn_off
+        target:
+          entity_id: switch.wetter_display_nachtmodus
