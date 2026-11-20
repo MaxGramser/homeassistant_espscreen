@@ -53,7 +53,7 @@ export function removePage(page: number) {
 export function setHomePage(id: string) { return useDocumentStore().editDocument((draft) => { draft.homePageId = id; }); }
 export function connectTile(tileId: string, target: string | "home") {
   return useDocumentStore().editDocument((draft) => {
-    const tile = draft.pages.flatMap((page) => page.tiles).find((item) => item.id === tileId);
+    const tile = draft.pages.flatMap(pages.allTiles).find((item) => item.id === tileId);
     if (tile?.content.kind !== "navigation") throw new Error(t("addon.errors.pages.select_link"));
     tile.content.target = target === "home" ? { kind: "home" } : { kind: "page", pageId: target };
   });
@@ -102,7 +102,8 @@ export function duplicateEditorPage(id: string, empty: boolean) {
   const doc = useDocumentStore(), document = doc.document, grid = doc.documentGrid;
   if (!document || !grid) return false;
   if (document.pages.length >= doc.editorLayout.grid.pages) { toast(t("addon.errors.pages.pages_full")); return false; }
-  const copied = empty ? 0 : (document.pages.find((page) => page.id === id)?.tiles.length || 0);
+  const source = empty ? undefined : document.pages.find((page) => page.id === id);
+  const copied = source ? pages.allTiles(source).length : 0;
   if ((doc.layout?.tiles.length || 0) + copied > doc.tileLimit) { toast(t("addon.errors.layout.tiles_max", doc.tileLimit)); return false; }
   try { return doc.applyDocument(pages.duplicatePage(document, doc.screenGridOf(grid), id, empty)); }
   catch (error: any) { toast(error.message); return false; }

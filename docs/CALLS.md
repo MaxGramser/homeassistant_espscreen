@@ -28,6 +28,8 @@ frame and a smaller JPEG when the add-on falls behind.
 
 ## Media
 
+A call has video only between screens that both run the Screen camera plugin with its part Video: that plugin is the
+screen's video server, and without it a call is sound only (the editor says so under the Call tile's Kind of call).
 A call's picture is read straight from the other screen's own video server (RTSP over TCP, `screen_source.py`, video only),
 decoded by the add-on and sent to the glass as a JPEG for its size, as any live camera's. A D1001 to a Guition 10.1, both
 directions at once (2026-11-10): about 290 ms glass to glass with 13 pictures a second, against 230 ms for one direction
@@ -51,7 +53,10 @@ is missed after 45 s, both ends gone, a doorbell's ring goes first (the call is 
 did with the event `esphome.screen_call` (`action`: list, dial, cancel, answer, decline, end, camera, mic; `to`, `video`, `key`).
 The add-on answers with the op `call` (`s`: out, ring, live, held, end) and the list with the op `contacts`, in parts of twelve
 rows so a house of thirty screens fits. Home Assistant gets one event per call: `esp_screens_call_started`, `_answered`,
-`_missed` and `_ended` (from, to, video, seconds).
+`_missed` and `_ended` (from, to, video, seconds, and `key`, the same in every event of one call).
+
+A screen always gets out of a call. ESP Screens answers the end or the decline of a call it does not hold (it started again in the
+middle of one) with that call's end, and a screen whose hang-up gets no answer within two and a half seconds ends the call itself.
 
 ## The Call tile
 
@@ -60,15 +65,65 @@ once, and **Kind of call**, video where both ends can or sound only.
 
 ## Echo
 
-While one side speaks the other side's microphone goes down by 18 dB, for a quarter of a second after the last word (`calls.VoiceSwitch`).
-A screen that cancels echo itself (`echo_cancel` in its capabilities) is left alone. The doorbell's Talk is always switched.
+Two things keep a voice from coming back out of the other loudspeaker, and both are a call's own choices, the same on both screens:
 
-## The ring
+- **Voice switching.** While one side speaks the other side's microphone goes down by 18 dB, for a quarter of a second after the last
+  word (`calls.VoiceSwitch`). Its price: the two cannot speak at once.
+- **Echo cancelling**, on a board with a canceller (`echo_cancel` in its capabilities). A side whose canceller is at work is not
+  switched.
 
-The screen rings on its own speaker, at full volume whatever its volume is set to, and goes back to its volume when the ring
-ends. 1.4 and 1.9 kHz: what these small speakers carry best.
+Each has a small key in the call, in the top corner on the keys' side, smaller and quieter than the keys a call is run with: one
+person speaking (`mdi:account-voice`) for voice switching, an ear (`mdi:ear-hearing`) for echo cancelling, which is there only when a
+side of the call has a canceller. A press on either screen changes it for the call: the screen says `switch` or `echo` with
+`esphome.screen_call` (`video` 1 for on), and ESP Screens tells both screens with the op `call` in the state `set` (`vs`, `ec`), as
+the live message does when the call starts. A board with a canceller puts it to work or to rest as the call says and leaves it as
+it found it when the call ends.
 
-The switch **Call ringtone** of each screen (in Home Assistant, under its configuration) turns the ring off: the screen still lights up and shows who calls.
+A call starts with echo cancelling on, and with voice switching only where it is needed: when one of its screens has no canceller.
+Two screens that both cancel echo start without it, and either key brings it. The switch **Call voice switching** of each screen
+(in Home Assistant, under its configuration; on as it comes) lets a screen say it never wants its calls to start with it. The
+doorbell's Talk is always switched.
+
+## Screen to screen
+
+A call's media can go straight between the two screens, with ESP Screens only connecting them. Each screen serves its
+own camera and voice to the other one and takes the other's the same way (`call_serve.h`): a small server on port 8555
+answers `GET /call/<token>.mjpeg` with the stream a live view already plays, pictures as JPEG and the voice as `audio/L16`
+parts every 20 ms, the heads of its parts as ESP Screens writes them. The pictures are the camera's frames the screen is
+handed for its own view, scaled to at most 720 pixels a side and made into JPEG by the chip's own encoder
+(`picture_engine::encode`), ten a second at most; the voice is the microphone's parts after the board's own processing.
+
+- **Who may.** A screen says `call_direct` in its hello (a P4 with a microphone). A call goes direct only between two
+  screens that both say it and both have their switch **Direct calls** on (`calls.DIRECT_SWITCH`). No firmware has that
+  switch yet: the route has not run on a board, so until it has, every call goes through ESP Screens. The switch comes
+  back (`packages/features/audio-player.yaml`, a template switch named Direct calls, off as it comes) with the proof.
+- **The token.** ESP Screens makes one for each direction of each call. The live message brings a screen the token it
+  serves under (`ds`) and, as `l`, the other screen's address with the other's token; there is no `tk`. A screen answers
+  only under its token, only the other screen's address, and only while the call is live.
+- **The fall back.** A screen whose stream the other one does not come for within four seconds says `direct` with
+  `video` 0 in `esphome.screen_call`; ESP Screens then sends both the live message again with its own links, and that
+  call goes through it from there. Two addresses that cannot reach each other (a guest network, client isolation, a
+  VLAN) cannot be told from here, so the attempt decides.
+
+Not run on a board yet (2026-11-17): it compiles for a Guition JC8012P4A1 V3 and a reTerminal D1001. Voice switching
+on the screens themselves is not built, so a direct call relies on the boards' echo cancelling. What a look before it
+found, for the measurements still to make:
+
+- An ESP32-P4 does not decode H.264 in hardware: the block encodes only. Espressif's software decoder reaches 7 to 10
+  pictures a second at 1280x720 with both cores to itself (its own figures), which a screen that also draws does not have.
+- JPEG both ways is the route Espressif's own call between two P4 boards takes: the hardware codec encodes and decodes
+  720p far faster than a call needs, one direction at a time behind one lock.
+- The camera's frames are scaled by the PPA on the way, the device the picture engine already shares.
+- Through the app a call between these two boards showed 7 to 8 pictures a second each way, and once 3 from the
+  Guition while it also showed the other's picture: the number a direct call has to beat.
+
+## Do not disturb
+
+The switch **Do not disturb** of each screen (on the screen's settings page under Extras, in the app's Extras card and in Home
+Assistant, as the ringtone and the voice switching's choice are: docs/SETTINGS.md; off as it comes, kept by the screen). On, a
+call to the screen is refused at once: nothing rings or lights up there, the caller reads that the screen does not want to be
+disturbed, and the list of screens shows it. ESP Screens reads the switch from Home Assistant (`calls.quiet`). The doorbell is not a
+call and still rings. As a switch it takes an automation: on at night, off in the morning.
 
 ## The picture in a call
 

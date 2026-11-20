@@ -197,7 +197,11 @@
       "plugins": "Plugins",
       "microphone_gain": "Mikrofonverstärkung",
       "automatic_gain": "Automatische Verstärkung",
-      "echo_cancellation": "Echounterdrückung"
+      "call_ringtone": "Klingelton",
+      "do_not_disturb": "Nicht stören",
+      "call_voice_switching": "Sprachumschaltung",
+      "echo_cancellation": "Echounterdrückung",
+      "loop_pages": "Seiten im Kreis"
     },
     "doorbell": {
       "sound_on": "Ton an",
@@ -688,7 +692,8 @@
       "sound_only": "Verfügbar, nur Ton",
       "in_call": "Im Gespräch",
       "offline": "Offline",
-      "missed_at": "Verpasster Anruf"
+      "missed_at": "Verpasster Anruf",
+      "no_screens": "Kein Bildschirm zum Anrufen"
     }
   },
   "addon": {
@@ -926,7 +931,11 @@
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
         "update_tall": "Aktualisiere den Bildschirm, um diese Kachelgrößen zu verwenden",
         "memory": "Der Bildschirm hat nicht genug freien Speicher für dieses Layout. Verwende weniger Kacheln.",
-        "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster."
+        "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster.",
+        "section_title": "Ein Bereich braucht einen Namen von höchstens 48 Bytes.",
+        "section_tiles": "Die Kacheln eines Bereichs müssen in ihm stehen, und eine Kachel über die ganze Seite steht nie in einem Bereich.",
+        "section_overlap": "Bereiche und lose Kacheln dürfen nicht auf denselben Zellen stehen.",
+        "sections_full": "Eine Seite hat höchstens 16 Bereiche."
       },
       "feedback": {
         "invalid": "Diese Antwort kann nicht geteilt werden. Wähle Ja oder Nicht ganz und nur die genannten Probleme.",
@@ -999,6 +1008,12 @@
         "unknown": "Der Build-Server kennt Tessera nicht mehr. Kopple ihn erneut.",
         "pending": "Der Build-Server hat Tessera noch nicht angenommen."
       },
+      "build_files": {
+        "automatic": "Das automatische Aufräumen kann nur an oder aus sein.",
+        "level": "Wähle, welche Build-Dateien entfernt werden.",
+        "cleaning": "Die Build-Dateien werden schon aufgeräumt.",
+        "building": "Ein Bildschirm baut gerade oder wartet auf seinen Build. Räume die Build-Dateien auf, sobald er fertig ist."
+      },
       "video": {
         "not_written": "Tessera video konnte nicht nach {folder} geschrieben werden: {reason}.",
         "not_installed": "Installiere zuerst Tessera video."
@@ -1023,6 +1038,10 @@
         "refused": "Home Assistant hat die Automatisierung abgelehnt: {reason}",
         "not_ours": "Diese Automatisierung wurde nicht von Tessera erstellt, die App lässt sie in Ruhe.",
         "invalid": "Diese Automatisierung kann nicht gespeichert werden ({part})."
+      },
+      "icons": {
+        "request": "Das ist keine Liste von Symbolen.",
+        "too_many": "Ein Bildschirm fasst höchstens {most} eigene Symbole."
       }
     },
     "status": {
@@ -1238,6 +1257,18 @@
         "automatic_gain": {
           "label": "Automatische Verstärkung",
           "hint": "Der Mikrofoncodec regelt den Aufnahmepegel automatisch. Unabhängig von der Echounterdrückung."
+        },
+        "call_ringtone": {
+          "label": "Klingelton",
+          "hint": "Aus: Bei einem Anruf leuchtet der Bildschirm auf und zeigt, wer anruft, ohne Ton."
+        },
+        "do_not_disturb": {
+          "label": "Nicht stören",
+          "hint": "Ein: Ein Anruf an diesen Bildschirm wird sofort abgelehnt und der Anrufer liest, warum. Die Türklingel läutet weiterhin."
+        },
+        "call_voice_switching": {
+          "label": "Sprachumschaltung",
+          "hint": "Ein: Das Mikrofon der Seite, die zuhört, wird leise, damit eine Stimme nicht als Echo zurückkommt. Aus: Beide Seiten können gleichzeitig sprechen. Eine kleine Taste im Anruf ändert es für diesen Anruf."
         },
         "echo_cancellation": {
           "label": "Echounterdrückung",
@@ -1618,6 +1649,15 @@
         "missed": "Niemand hat es vor dem Timeout berührt",
         "seen": "Ein verpasstes Klingeln wurde aus der oberen Leiste wieder geöffnet"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot braucht einen AI Task in Home Assistant, der Daten erzeugen kann (Einstellungen > Geräte & Dienste, eine KI-Integration).",
+      "notes": {
+        "unknown": "{entity} ausgelassen: Das ist keine Entität dieses Home Assistant.",
+        "no_page": "Es gibt keine Seite {page}.",
+        "kept": "Layoutbot hat {count} deiner Kacheln vergessen: Sie stehen lose auf der letzten Seite."
+      },
+      "nothing_to_restructure": "Auf dieser Seite gibt es noch keine Gerätekacheln zum Umstrukturieren. Füge ein paar hinzu und frag dann noch einmal."
     }
   },
   "editor": {
@@ -1635,6 +1675,8 @@
       "read_current_data": "Aktuelle Daten abrufen",
       "results": "1 Ergebnis. Tippe weiter, um die Suche einzugrenzen. | {n} Ergebnisse. Tippe weiter, um die Suche einzugrenzen.",
       "close": "Schließen",
+      "expand": "Mehr anzeigen",
+      "collapse": "Weniger anzeigen",
       "remove": "Entfernen",
       "loading": "Wird geladen…",
       "back": "← Zurück",
@@ -1945,6 +1987,7 @@
       "search_label": "Entität hinzufügen",
       "filters": {
         "all": "Alle",
+        "plugin": "Plugins",
         "light": "Leuchten",
         "climate": "Klima",
         "switch": "Schalter",
@@ -1959,6 +2002,7 @@
         "vacuum": "Staubsauger",
         "sensor": "Sensoren",
         "media_player": "Medien",
+        "camera": "Kameras",
         "weather": "Wetter",
         "number": "Werte",
         "select": "Auswahl",
@@ -1978,6 +2022,8 @@
       "again": "Schon auf diesem Bildschirm; nochmal hinzufügen für eine weitere Kachel",
       "all_placed": "Alles hier ist schon auf diesem Bildschirm.",
       "none_found": "Keine Entitäten gefunden. Versuche einen anderen Namen, Bereich oder Filter.",
+      "found_elsewhere": "Nichts in dieser Auswahl, aber 1 Entität passt in der ganzen Bibliothek. | Nichts in dieser Auswahl, aber {n} Entitäten passen in der ganzen Bibliothek.",
+      "search_everything": "Alle Treffer anzeigen",
       "full": "Dieser Bildschirm fasst 1 Kachel. | Dieser Bildschirm fasst {n} Kacheln.",
       "full_update": "Dieser Bildschirm fasst 1 Kachel; mit einem Firmware-Update sind es 48. | Dieser Bildschirm fasst {n} Kacheln; mit einem Firmware-Update sind es 48.",
       "hint": "Ziehe eine Entität auf eine Seite oder tippe auf +, um sie auf den ersten freien Platz zu setzen. ⌘K durchsucht alles.",
@@ -2012,7 +2058,8 @@
         "fits_none": "Passt auf keinen deiner Bildschirme",
         "failed": "Erstellen fehlgeschlagen",
         "not_running": "Läuft nicht auf dem Bildschirm",
-        "queued": "Wartet, bis es dran ist"
+        "queued": "Wartet, bis es dran ist",
+        "runs_other": "Auf dem Bildschirm läuft Version {version}"
       },
       "source": {
         "link": "Über einen Link",
@@ -2069,6 +2116,8 @@
         "title": "Was es hinzufügt",
         "tile": "Kachel „{name}“",
         "tile_sizes": "Von {min} bis {max} auf einer Seite",
+        "tile_sizes_or_page": "Von {min} bis {max} auf einer Seite, oder die ganze Seite",
+        "tile_only_page": "Die ganze Seite",
         "tap": "Tippaktion „{name}“",
         "tap_on": "Auf Kacheln von {domains}",
         "card": "„{name}“, eine eigene Ansicht auf dem Bildschirm",
@@ -2082,7 +2131,10 @@
         "ha_none": "Führt keine Aktionen in Home Assistant aus",
         "network": "Verbindet sich mit {hosts}",
         "network_none": "Baut keine Verbindungen außerhalb von Home Assistant auf",
-        "read": "Liest diese Entitäten aus Home Assistant"
+        "read": "Liest diese Entitäten aus Home Assistant",
+        "sends": "Sendet an {host}: {what}",
+        "sends_option": "{attributes} der Entität, die du für {option} wählst",
+        "sends_state": "Zustand"
       },
       "warning": "Ein Plugin läuft mit vollem Zugriff auf deinem Bildschirm, auch auf sein WLAN und die Aktionen, die er in Home Assistant ausführen darf, und sein Build läuft in dieser App, wo er an deine Home-Assistant-Konfiguration herankommt. Füge nur Plugins von Autoren hinzu, denen du vertraust, oder lies zuerst den Code.",
       "room": {
@@ -2391,8 +2443,10 @@
       },
       "forget": {
         "go": "Aus der Liste entfernen",
-        "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen."
-      }
+        "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen.",
+        "note_folder": "Kein Bildschirm nutzt dieses Plugin aus seinem Ordner. Beim Entfernen wandert der Ordner nach config/tessera-plugins/.removed/{id}, wo du ihn endgültig löschen kannst."
+      },
+      "runs_elsewhere": "{screen} hat Version {running}, woanders gebaut. Wenn du hier baust, kommt Version {version} darauf."
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",
@@ -2404,6 +2458,9 @@
       "from_fetch": "Die Auswahl kommt aus der eigenen Datenquelle des Plugins, über Tessera.",
       "on_screen": "Auf dem Bildschirm",
       "sizes": "Von {min} bis {max}; zieh an einem Rand der Kachel, um ihre Größe zu ändern.",
+      "sizes_or_page": "Von {min} bis {max}, oder die ganze Seite; zieh an einem Rand der Kachel, um ihre Größe zu ändern.",
+      "sizes_only_page": "Diese Kachel nimmt immer eine ganze Seite ein.",
+      "whole_page": "Ganze Seite",
       "placeholder": "Der Editor zeigt einen Platzhalter: Was das Plugin zeichnet, erscheint auf dem Bildschirm selbst.",
       "now": "jetzt",
       "minutes": "{n} Min.",
@@ -2418,7 +2475,14 @@
       "remove": "{name} entfernen",
       "type": "Eingeben und Enter drücken",
       "full": "Der Bildschirm nimmt für diese Kachel nicht mehr auf: ihre Optionen sind voll.",
-      "count": "{n} von {max}"
+      "count": "{n} von {max}",
+      "show_all": "Alle Entitäten anzeigen",
+      "show_fitting": "Nur Passende anzeigen",
+      "not_set": "Nicht festgelegt",
+      "fill_device": "Von einem Gerät ausfüllen",
+      "fill_device_hint": "Wähle ein Gerät, und seine Sensoren werden unten eingetragen. Du kannst jeden danach noch ändern.",
+      "fill_device_none": "Kein Gerät hat zwei oder mehr dieser Sensoren",
+      "fill_device_count": "1 Sensor | {n} Sensoren"
     },
     "memory": {
       "label": "Speicher für Kacheln",
@@ -2916,6 +2980,18 @@
         "never": "Nicht mehr anzeigen",
         "done": "Fertig"
       },
+      "look": {
+        "title": "Wie soll es aussehen?",
+        "text": "Dieser Sensor beginnt als Messanzeige. Zeige auf eine Darstellung, um sie auf der Kachel zu sehen; ändern kannst du sie später unter Anzeige.",
+        "ring": "Messanzeige: Ring",
+        "tape": "Messanzeige: Skala",
+        "bar": "Messanzeige: Balken",
+        "graph": "Diagramm der letzten Stunden",
+        "watch": "Großer Wert",
+        "standard": "Nur der Wert",
+        "never": "Nicht mehr anzeigen",
+        "done": "Fertig"
+      },
       "text": {
         "title": "Template",
         "hint": "Schreibe Text mit Home-Assistant-Templates darin, wie unter Entwicklerwerkzeuge › Template. Home Assistant füllt ihn aus, und der Bildschirm zeigt das Ergebnis und hält es aktuell. Ist das Ergebnis leer, verschwindet die Kachel.",
@@ -2993,6 +3069,17 @@
         "clear": "Erledigte entfernen",
         "clear_hint": "Eine Taste in der Liste entfernt nach Rückfrage alles Abgehakte"
       },
+      "call": {
+        "section": "Anruf",
+        "who": "Ruft an",
+        "who_hint_all": "Ein Tippen öffnet die Liste der Bildschirme.",
+        "who_hint_one": "Ein Tippen ruft diesen Bildschirm sofort an.",
+        "everyone": "Aus der Liste wählen",
+        "kind": "Art des Anrufs",
+        "kind_hint": "Video braucht das Plugin Screen camera mit dem Teil Video auf beiden Bildschirmen, sonst wird es ein Anruf mit Ton.",
+        "video": "Video, wo möglich",
+        "sound": "Nur Ton"
+      },
       "text_entity": {
         "edit": "Ein Tippen öffnet den Wert in einem Feld mit der Tastatur des Bildschirms. Ein Passwort erscheint als Punkte.",
         "view_only": "Dieses Board zeigt nur den Wert: Ändern auf dem Bildschirm braucht ein Board mit 8 MB Flash oder mehr."
@@ -3032,7 +3119,9 @@
       "search_label": "Symbol suchen",
       "none_text_only": "Kein Symbol, nur Text",
       "aria": "Symbol: {name}",
-      "none_found": "Kein Symbol gefunden."
+      "none_found": "Kein Symbol gefunden.",
+      "own": "Symbole dieses Bildschirms",
+      "more": "Mehr Symbole"
     },
     "inspect": {
       "title": "Aktuelle Daten",
@@ -3150,7 +3239,8 @@
         "swipe_pages": "Zwischen Seiten wischen",
         "page_buttons": "Seitentasten",
         "home_button": "Home-Taste zeigen",
-        "rotation": "Drehung"
+        "rotation": "Drehung",
+        "loop_pages": "Seiten im Kreis"
       },
       "actions": {
         "calibrate": {
@@ -3456,6 +3546,32 @@
         "forget_confirm": "{name} vergessen? Bildschirme werden wieder hier gebaut. Um Tessera auch dort zu entfernen, entferne es aus den gekoppelten Geräten des Build-Servers.",
         "forget_go": "Vergessen",
         "unavailable": "Dieses Tessera kann nicht mit einem Build-Server sprechen."
+      },
+      "build_files": {
+        "title": "Build-Dateien",
+        "intro": "Jeder Firmware-Build lässt Dateien zurück, damit der nächste Build desselben Bildschirms schnell geht. Backups von Home Assistant lassen sie aus.",
+        "measuring": "Wird gemessen…",
+        "total": "{size} insgesamt",
+        "folders": "Build-Ordner",
+        "folders_detail": "1 Bildschirm | {count} Bildschirme",
+        "cache": "Compile-Cache",
+        "tools": "ESP-IDF und Downloads",
+        "clean": "Build-Ordner aufräumen",
+        "cleaning": "Räumt auf…",
+        "clean_confirm": "Die Build-Ordner aller Bildschirme entfernen? Das gibt {size} frei. Der nächste Build jedes Bildschirms kompiliert wieder alles und dauert ein paar Minuten länger, auf einem Raspberry Pi noch mehr. Layouts, Plugins und Einstellungen bleiben, wie sie sind.",
+        "clean_all": "Auch Compile-Cache und ESP-IDF entfernen",
+        "clean_all_confirm": "Alle Build-Dateien entfernen, auch den Compile-Cache und ESP-IDF? Das gibt {size} frei. Der nächste Build lädt ESP-IDF erneut herunter, etwa 1 GB, und kompiliert alles von vorn, was auf einem Raspberry Pi eine halbe Stunde dauern kann. Layouts, Plugins und Einstellungen bleiben, wie sie sind.",
+        "clean_go": "Aufräumen",
+        "cleaned": "Aufgeräumt: {size} wieder frei.",
+        "cleaned_nothing": "Aufgeräumt.",
+        "busy": "Ein Bildschirm wird gebaut. Du kannst aufräumen, sobald er fertig ist.",
+        "auto_label": "Nach dem Build aufräumen",
+        "auto_hint": "Ab dem nächsten Build entfernt es die Build-Ordner, sobald nichts mehr gebaut wird. Spart Platz, aber jeder weitere Build eines Bildschirms kompiliert wieder alles und dauert ein paar Minuten länger.",
+        "auto_on": "Build-Ordner werden nach dem Build aufgeräumt.",
+        "auto_off": "Build-Ordner bleiben für schnellere Builds.",
+        "offer": "{size} freigeben",
+        "not_now": "Nicht jetzt",
+        "large": "Die Build-Ordner belegen {size}. Wenn du sie aufräumst, wird der größte Teil des Platzes frei, den die Builds belegen."
       }
     },
     "firmware": {
@@ -4174,6 +4290,7 @@
       "packet_error": "Die Firmware hat ein Vorschaupaket abgelehnt: {message}",
       "stopped": "Firmware-Vorschau angehalten: {message}",
       "action_error": "Home Assistant-Befehl fehlgeschlagen: {message}",
+      "stale": "Diese Vorschau ist älter als die Firmware: Sie wurde am {date} erstellt und die Firmware hat sich seitdem geändert, also zeichnet ein Bildschirm vielleicht etwas, das hier noch nicht zu sehen ist.",
       "remove": "Die Vorschau und ihr gespeichertes Layout in diesem Browser.",
       "save": "Vorschau speichern",
       "saved": "In diesem Browser gespeichert",
@@ -4247,7 +4364,9 @@
         "layout_imported": "Layout importiert",
         "changed": "Layout geändert",
         "restored": "nicht gespeicherte Änderungen wiederhergestellt",
-        "taken_over": "Änderungen aus dem anderen Tab übernommen"
+        "taken_over": "Änderungen aus dem anderen Tab übernommen",
+        "auto_layout": "das für dich erstellte Layout",
+        "layoutbot": "Änderung von Layoutbot"
       }
     },
     "draft": {
@@ -4338,7 +4457,8 @@
           "fetch": "die Firmware ist nicht zurückgekommen",
           "bundle": "das YAML konnte nicht gepackt werden"
         }
-      }
+      },
+      "icons": "Baut mit seinen Symbolen"
     },
     "grid": {
       "title": "Raster",
@@ -4524,7 +4644,8 @@
         "remove_confirm": "„{name}“ aus Home Assistant entfernen?",
         "on": "An",
         "off": "Aus"
-      }
+      },
+      "alarm": "Alarm"
     },
     "doorbell": {
       "intro": "Jemand klingelt, und deine Bildschirme zeigen die Tür. Eine Automatisierung sendet das Event mit der Kamera der Türklingel: ein P4-Bildschirm wacht auf, spielt einen Gong und öffnet die Kamera live mit Ton; jeder andere Bildschirm zeigt ihr Bild in einem Alert. Jede Türklingel funktioniert, egal was die Automatisierung startet.",
@@ -4636,6 +4757,241 @@
     },
     "drawer": {
       "resize": "Breite der Einstellungen: ziehen oder die Pfeiltasten nutzen; Doppelklick setzt sie zurück"
+    },
+    "screen_icons": {
+      "eyebrow": "Symbole",
+      "title": "Symbole von {name}",
+      "intro": "Jeder Bildschirm bringt einen festen Satz Symbole mit. Hier fügst du bis zu {room} weitere hinzu. Symbole sind Teil der Firmware, eine Änderung kommt also erst auf den Bildschirm, wenn er neu erstellt wird.",
+      "count": "{n} von {room} hinzugefügt",
+      "on_screen": "Auf diesem Bildschirm",
+      "none_yet": "Noch keine. Wähle aus den Symbolen unten.",
+      "waiting": "1 Symbol wartet auf das Erstellen | {n} Symbole warten auf das Erstellen",
+      "leaving": "1 Symbol verschwindet beim nächsten Erstellen | {n} Symbole verschwinden beim nächsten Erstellen",
+      "changes": "Erstelle die Firmware neu, um diese Änderungen auf den Bildschirm zu bringen. Das dauert ein paar Minuten, und der Bildschirm startet neu.",
+      "build": "{name} erstellen",
+      "building": "Wird mit diesen Symbolen erstellt…",
+      "all_up_to_date": "Alles, was du gewählt hast, ist auf dem Bildschirm.",
+      "everywhere": "Auf jeden Bildschirm bringen",
+      "everywhere_ask": "Das ersetzt die hinzugefügten Symbole von {n} Bildschirm und erstellt ihn neu. | Das ersetzt die hinzugefügten Symbole von {n} Bildschirmen und erstellt sie nacheinander neu. Ein Bildschirm mit 4 MB Flash bleibt, wie er ist.",
+      "everywhere_yes": "{n} Bildschirm erstellen | {n} Bildschirme erstellen",
+      "everywhere_done": "Warten auf das Erstellen: {names}",
+      "everywhere_off": "Aus, daher nicht erstellt: {names}",
+      "from_ha": "In deinem Home Assistant verwendet",
+      "from_ha_hint": "Symbole deiner Entitäten, die dieser Bildschirm noch nicht zeichnen kann.",
+      "add_all": "Alle hinzufügen",
+      "all": "Alle Symbole",
+      "search": "Alle Symbole durchsuchen",
+      "search_label": "Alle Symbole durchsuchen",
+      "nothing": "Kein Symbol hat diesen Namen.",
+      "fixed": "Schon auf jedem Bildschirm",
+      "full": "Dieser Bildschirm hat keinen Platz mehr.",
+      "in_use": "{icon} ist auf {n} Kachel dieses Bildschirms. Sie zeigt nach dem nächsten Erstellen ihr automatisches Symbol. | {icon} ist auf {n} Kacheln dieses Bildschirms. Sie zeigen nach dem nächsten Erstellen ihr automatisches Symbol.",
+      "remove": "Entfernen",
+      "own_yaml": "Dieser Bildschirm wird aus seinem eigenen YAML erstellt. Speichere dies als {file} daneben, füge die Zeile unten unter packages: ein und erstelle ihn dort.",
+      "loading": "Symbole werden geladen…",
+      "card_title": "Symbole",
+      "card_hint": "Füge zu den Symbolen dieses Bildschirms bis zu {room} weitere hinzu.",
+      "card_button": "Symbole wählen",
+      "card_count": "{n} hinzugefügt",
+      "card_waiting": "{n} warten auf das Erstellen",
+      "card_no_room": "Dieses Board hat 4 MB Flash und keinen Platz für weitere Symbole."
+    },
+    "sections": {
+      "untitled": "Bereich",
+      "kind": "Bereich",
+      "choose_tiles": "Wähle zuerst die Kacheln für den Bereich.",
+      "one_page": "Die Kacheln eines Bereichs stehen auf einer Seite: Wähle Kacheln einer Seite.",
+      "already_in": "Eine dieser Kacheln steht schon in einem Bereich. Nimm sie zuerst heraus oder wähle lose Kacheln.",
+      "no_full": "Eine Kachel über die ganze Seite kann nicht in einem Bereich stehen.",
+      "too_tall": "Diese Kacheln brauchen mehr Zeilen, als die Seite hat. Wähle weniger oder mache den Bereich breiter.",
+      "no_room": "Dafür ist hier kein Platz: Andere Kacheln oder Bereiche stehen im Weg.",
+      "no_room_page": "Kein Platz für den Bereich auf Seite {page}.",
+      "removed": "Bereich entfernt, seine Kacheln bleiben stehen",
+      "removed_with_tiles": "Bereich mit seinen Kacheln entfernt",
+      "resize_columns": "Bereich breiter oder schmaler machen",
+      "resize_rows": "Bereich höher oder niedriger machen",
+      "head_title": "Ziehen, um den Bereich zu verschieben, klicken für seine Einstellungen",
+      "aria": "Bereich {title}",
+      "rename": "Bereich umbenennen",
+      "title": "Name",
+      "make": "Bereich erstellen",
+      "add": "Abschnitt hinzufügen",
+      "add_here": "Abschnitt hier hinzufügen",
+      "library_hint": "Eine Gruppe von Kacheln mit Titel",
+      "make_now": "Bereich erstellen",
+      "name_placeholder": "Name, zum Beispiel Licht",
+      "in_section": "In diesem Bereich",
+      "update_screen": "Die Firmware dieses Bildschirms zeichnet noch keine Bereiche: Er zeigt dieselben Kacheln ohne sie. Aktualisiere den Bildschirm, um sie zu sehen.",
+      "head": "Titel",
+      "no_icon": "Kein Symbol",
+      "summary": "Zusammenfassung",
+      "summary_none": "Keine",
+      "summary_search": "Entitäten suchen",
+      "summary_none_found": "Keine Entität gefunden",
+      "summary_clear": "Keine Zusammenfassung",
+      "summary_hint": "Der Zustand einer Entität rechts neben dem Titel, etwa eine Temperatur oder wie viele Lampen an sind.",
+      "size": "Größe",
+      "columns": "Spalten",
+      "rows": "Zeilen",
+      "narrower": "Schmaler",
+      "wider": "Breiter",
+      "lower": "Niedriger",
+      "taller": "Höher",
+      "size_hint": "Ein Bereich wächst nur in leere Zellen. Wird er zu schmal für seine Kacheln, rücken sie in Lesereihenfolge nach.",
+      "loose_hint": "1 lose Kachel steht neben einem Bereich. Lose Kacheln lesen sich am besten als eigene Zeile über den Bereichen. | {n} lose Kacheln stehen neben einem Bereich. Lose Kacheln lesen sich am besten als eigene Zeile über den Bereichen.",
+      "loose_row": "Zur Zeile machen",
+      "short_grid": "Auf einem Raster mit {rows} Zeilen nimmt der Titel eines Bereichs seinen Kacheln viel Platz: Jede ist dann etwa {with} mm statt {without} mm hoch. Kacheln außerhalb von Bereichen behalten ihre Höhe.",
+      "remove": "Bereich entfernen",
+      "remove_with_tiles": "Bereich und Kacheln entfernen",
+      "settings": "Bereichseinstellungen",
+      "contrast": "Kontrasthintergrund",
+      "contrast_hint": "Das Feld in der Gegenfarbe der Seite, dunkel am Tag und hell im Dunkelmodus, damit dieser Bereich hervorsticht.",
+      "contrast_tiles": "Kacheln auch im Kontrast",
+      "contrast_tiles_hint": "Der ganze Bereich im anderen Aussehen, die Karten der Kacheln auch: dunkle Karten auf dunklem Feld am Tag, helle im Dunkelmodus."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Licht",
+        "covers": "Rollos & Fenster",
+        "climate": "Klima",
+        "media": "Medien",
+        "security": "Sicherheit",
+        "actions": "Szenen",
+        "others": "Geräte",
+        "weather": "Wetter",
+        "people": "Wer ist zu Hause",
+        "energy": "Energie",
+        "cameras": "Kameras",
+        "vacuum": "Staubsauger",
+        "todo": "Listen",
+        "calendar": "Kalender"
+      },
+      "home": "Zuhause",
+      "all_lights": "Alle Lichter",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} und {n} weitere",
+      "button": "Automatisches Layout",
+      "button_title": "Seiten aus deinen Home-Assistant-Bereichen und -Geräten erstellen",
+      "title": "Ein Layout für dich erstellen",
+      "intro": "Tessera sieht sich deine Bereiche und Geräte in Home Assistant an und erstellt Seiten für diesen Bildschirm: eine Seite oder einen Abschnitt pro Raum, Wetter, Alarm, Personen und Kameras des Hauses zusammen, größere Kacheln, wo dieser Bildschirm Platz dafür hat. Du kannst es rückgängig machen und danach alles ändern.",
+      "reading": "Dein Zuhause wird gelesen…",
+      "failed": "Dein Zuhause konnte nicht gelesen werden: {error}",
+      "nothing": "Tessera hat noch nichts für diesen Bildschirm gefunden. Gib deinen Geräten in Home Assistant einen Bereich oder füge Kacheln aus der Bibliothek hinzu.",
+      "nothing_new": "Alles, was Tessera auf diesen Bildschirm setzen würde, ist schon darauf.",
+      "summary": "{pages} Seite · {tiles} Kacheln | {pages} Seiten · {tiles} Kacheln",
+      "summary_sections": "{n} Abschnitt | {n} Abschnitte",
+      "from_rooms": "aus einem Raum | aus {n} Räumen",
+      "left_out": "Eine weitere Entität fand keinen Platz auf diesem Bildschirm; sie ist in der Bibliothek. | {n} weitere Entitäten fanden keinen Platz auf diesem Bildschirm; sie sind in der Bibliothek.",
+      "replace": "Seiten ersetzen",
+      "replace_hint": "Der Bildschirm bekommt diese Seiten statt der jetzigen.",
+      "append": "Nach den jetzigen Seiten hinzufügen",
+      "append_hint": "Die jetzigen Seiten bleiben, die neuen kommen danach, mit dem, was noch nicht auf dem Bildschirm ist.",
+      "append_full": "Auf diesem Bildschirm sind keine Seiten oder Kacheln mehr frei. Ersetze die Seiten oder schaffe zuerst Platz.",
+      "make": "Layout erstellen",
+      "made": "Ein Layout mit {pages} Seite ist fertig. Rückgängig nimmt es zurück. | Ein Layout mit {pages} Seiten ist fertig. Rückgängig nimmt es zurück.",
+      "offer_title": "Soll ich ein erstes Layout für dich erstellen?",
+      "offer_text": "Tessera kann diesen Bildschirm aus deinen Home-Assistant-Bereichen und -Geräten einrichten. Danach kannst du alles ändern.",
+      "offer_make": "Erstes Layout erstellen",
+      "offer_empty": "Leer beginnen"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Layoutbot fragen",
+      "close": "Schließen",
+      "hello": "Hi! Sag mir, was dieser Bildschirm zeigen soll, und ich richte seine Seiten ein. Ich ändere nur das Layout, nie deine Geräte.",
+      "privacy": "Ich nutze {agent} aus Home Assistant. Deine Frage, die Seiten deiner Bildschirme und die IDs, Namen und Bereiche deiner Entitäten gehen dorthin.",
+      "model_hint": "Ich arbeite mit einem größeren Modell viel besser als mit dem günstigsten. Füge in Home Assistant deiner KI-Integration einen AI Task für mich hinzu, schalte „Empfohlene Modelleinstellungen“ aus, wähle ein größeres Modell und wähle es dann oben in diesem Chat aus.",
+      "model_link": "Integrationen öffnen",
+      "placeholder": "Erstelle eine Seite mit…",
+      "ask": "Fragen",
+      "send": {
+        "ask": "Soll ich es an {which} senden?",
+        "yes": "Ja, senden",
+        "no": "Nicht jetzt",
+        "sending": "Wird gesendet…",
+        "sent": "Gesendet. Der Bildschirm zeigt es gleich.",
+        "not_all": "Nicht alles wurde gesendet.",
+        "failed": "Senden an {which} fehlgeschlagen.",
+        "declined": "Nicht gesendet. Mit Speichern & senden geht das jederzeit.",
+        "to": "Senden an {name}",
+        "not_opened": "dieser Bildschirm konnte nicht geöffnet werden",
+        "not_saved": "es wurde nicht gespeichert",
+        "unsaved": "der geöffnete Bildschirm hat nicht gespeicherte Änderungen",
+        "own": "Deine eigenen Änderungen seit dem letzten Speichern gehen mit."
+      },
+      "busy": "Layoutbot richtet deine Seiten ein",
+      "seconds": "{n} s",
+      "stop": "Stopp",
+      "stopped": "Gestoppt. Nichts wurde geändert.",
+      "nothing": "Nichts wurde geändert.",
+      "stale": "Die Seiten haben sich geändert, während ich nachdachte, also habe ich sie gelassen, wie sie sind. Frag mich noch einmal.",
+      "show": "Zeigen",
+      "undo": "Rückgängig",
+      "undone": "Rückgängig gemacht",
+      "restructure": {
+        "page": "Strukturiere diese Seite um",
+        "screen": "Strukturiere den ganzen Bildschirm um"
+      },
+      "suggest": {
+        "lights_sections": "Setz alle Leuchten auf eine Seite, mit einem Bereich pro Raum",
+        "lights": "Setz alle Leuchten auf eine Seite",
+        "covers_sections": "Eine Seite mit allen Jalousien und Vorhängen, in zwei Bereichen",
+        "covers": "Eine Seite mit allen Jalousien und Vorhängen",
+        "media": "Eine Musikseite mit allen Lautsprechern",
+        "climate": "Eine Klimaseite mit der Heizung und den Temperaturen"
+      },
+      "what": {
+        "pages": "1 neue Seite | {n} neue Seiten",
+        "added": "1 Kachel hinzugefügt | {n} Kacheln hinzugefügt",
+        "removed": "1 Kachel entfernt | {n} Kacheln entfernt",
+        "changed": "Seite {pages} geändert | Seiten {pages} geändert"
+      },
+      "connect": {
+        "title": "Verbinde eine KI in Home Assistant",
+        "short": "Noch nicht verbunden",
+        "body": "Ich richte die Seiten dieses Bildschirms aus einem Satz ein, etwa „alle Leuchten auf eine Seite, ein Bereich pro Raum“. Dafür nutze ich die KI, die du mit Home Assistant verbindest: Füge eine dieser Integrationen hinzu, und ich erledige den Rest.",
+        "cloud": "In der Cloud, mit deinem eigenen Schlüssel",
+        "local": "Auf deinem eigenen Computer",
+        "after": "Jede KI-Integration mit AI Tasks funktioniert. Sobald sie hinzugefügt ist, schau hier erneut nach.",
+        "again": "Erneut prüfen"
+      },
+      "notes": {
+        "page_full": "Seite {page} ist voll, daher wurde {count} Kachel ausgelassen. | Seite {page} ist voll, daher wurden {count} Kacheln ausgelassen.",
+        "memory_full": "Der Speicher des Bildschirms ist voll, daher wurde {count} Kachel ausgelassen. | Der Speicher des Bildschirms ist voll, daher wurden {count} Kacheln ausgelassen.",
+        "left_out": "Der Bildschirm hatte keinen Platz für {count} weitere Kachel. | Der Bildschirm hatte keinen Platz für {count} weitere Kacheln.",
+        "no_page": "Es gibt keine Seite {page}.",
+        "not_drawn": "Der Bildschirm zeichnet keine Kachel für {count} Entität. | Der Bildschirm zeichnet keine Kachel für {count} Entitäten.",
+        "restructure_no_room": "Nach dem Umstrukturieren wäre kein Platz für {count} deiner Kacheln, daher habe ich die Seiten so gelassen, wie sie waren. | Nach dem Umstrukturieren wäre kein Platz für {count} deiner Kacheln, daher habe ich die Seiten so gelassen, wie sie waren."
+      },
+      "update_app": "Aktualisiere die Tessera-App: Dieser Editor platziert die Pläne von Layoutbot selbst.",
+      "scope": {
+        "here": "Dieser Bildschirm",
+        "all": "Alle Bildschirme"
+      },
+      "preview": "Ansehen"
+    },
+    "alarm": {
+      "hero_title": "Wenn der Alarm losgeht",
+      "hero_text": "Jemand kommt herein oder der Alarm geht los: Deine Bildschirme wachen von selbst auf und öffnen das Tastenfeld in Rot, mit der verbleibenden Zeit. Gib den Code ein, und der Alarm ist aus. Dafür brauchst du keine Automatisierung; Tessera folgt deinem Alarm in Home Assistant.",
+      "none": "Home Assistant hat keine Alarmanlage. Füge eine hinzu, etwa Manual alarm oder Alarmo, dann erscheint sie hier.",
+      "no_code": "Diese Alarmanlage verlangt zum Deaktivieren keinen Code, daher öffnen die Bildschirme ihre Karte mit einer Taste Deaktivieren statt des Tastenfelds.",
+      "screens_label": "Bildschirme, die das Tastenfeld öffnen",
+      "every_screen": "Jeder Bildschirm",
+      "every_screen_hint": "Auch ein Bildschirm, den du später hinzufügst. Schalte es aus, um die Bildschirme selbst zu wählen.",
+      "none_chosen": "Kein Bildschirm öffnet das Tastenfeld von selbst. Die Kachel der Alarmanlage öffnet es weiterhin mit einem Tippen.",
+      "older": "Braucht ein Firmware-Update, um es ohne die Kachel der Alarmanlage auf einer Seite zu öffnen.",
+      "send_label": "Code senden nach",
+      "send_off": "OK-Taste",
+      "send_off_hint": "Der Code geht, wenn du OK tippst. Home Assistant sagt nicht, wie viele Ziffern ein Code hat.",
+      "send_on_hint": "Der Code geht nach {digits} Ziffern von selbst, ohne OK. Wähle das nur, wenn jeder Code dieser Alarmanlage {digits} Ziffern hat: Ein zu früh gesendeter Code zählt als falsch.",
+      "saved": "Gespeichert. Deine Bildschirme haben es gleich.",
+      "how_title": "So funktioniert es auf dem Bildschirm",
+      "how_wake": "Wenn der Alarm herunterzählt, weil jemand hereingekommen ist, oder losgeht, wachen die gewählten Bildschirme auf und öffnen das Tastenfeld. Während er bis zum Scharfschalten herunterzählt, zeigt die Karte der Alarmanlage stattdessen eine Taste Deaktivieren.",
+      "how_keys": "Die Tasten nehmen den ganzen Platz des Bildschirms ein, bis zur Größe des Tastenfelds eines großen Telefons. Löschen nimmt die letzte Ziffer zurück.",
+      "how_wrong": "Drei falsche Codes sperren das Tastenfeld für 30 Sekunden, und jeder weitere falsche Code verdoppelt die Zeit, bis zu 15 Minuten. Home Assistant erfährt von jedem durch das Ereignis esphome.screen_alarm_code_refused, nie mit dem Code.",
+      "how_code": "Der Code geht mit der Aktion an Home Assistant, so wie ihn dessen eigene Alarmkarte sendet, und wird auf dem Bildschirm sofort gelöscht. Ein Bildschirm speichert oder protokolliert ihn nie.",
+      "how_tile": "Lege die Alarmanlage auch auf eine Seite: Ein Tippen auf ihre Kachel öffnet jederzeit die Karte mit einer Taste pro Modus."
     }
   }
 }

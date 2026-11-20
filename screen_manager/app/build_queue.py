@@ -107,6 +107,8 @@ class BuildQueue:
     def __init__(self, manager):
         self.manager = manager
         self.line, self.running, self.worker = [], None, None
+        # While the build files are cleaned up (build_files.py) nothing starts: what is asked waits until `release`.
+        self.held = False
         self.ended = collections.deque(maxlen=self.ENDED)
         self._numbers = itertools.count(1)
 
@@ -167,6 +169,14 @@ class BuildQueue:
     def busy(self):
         return bool(self.running or self.line)
 
+    def hold(self):
+        """Nothing starts until `release` (the build files are being cleaned up); what is asked meanwhile waits."""
+        self.held = True
+
+    def release(self):
+        self.held = False
+        self._wake()
+
     def place(self, build):
         """Which turn a waiting build has: 1 is the next to run."""
         return self.line.index(build) + 1 if build in self.line else 0
@@ -204,7 +214,7 @@ class BuildQueue:
 
     # ---- the worker ----
     def _wake(self):
-        if self.line and self.running is None and (self.worker is None or self.worker.done()):
+        if self.line and self.running is None and not self.held and (self.worker is None or self.worker.done()):
             # The first build runs from this moment, so the page never sees it wait for nothing.
             self._begin(self.line.pop(0))
             self.worker = asyncio.get_running_loop().create_task(self._work())
@@ -243,6 +253,10 @@ class BuildQueue:
             if self.line:
                 self._begin(self.line.pop(0))
                 self._changed()
+        # Nothing more to build: what the builds left is measured, or cleaned up when that is on (build_files.py).
+        files = getattr(self.manager, 'build_files', None)
+        if files is not None:
+            files.after_line()
 
     def _end(self, build, state):
         """A build ended: its outcome and log are kept, whoever waits for it is told, the page hears of it. Whatever goes

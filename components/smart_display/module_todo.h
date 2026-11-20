@@ -13,6 +13,7 @@
 #include "calendar_card.h"
 #include "keyboard.h"
 #include "roomy.h"
+#include "screen_text.h"
 #include "ui_scale.h"
 
 #include <algorithm>
@@ -53,13 +54,22 @@ inline bool is_done(const Item &it, const Marks &marks) {
   return it.flags & DONE;
 }
 
-// ---- The words, in the screen's language (module_todo.cpp fills them from screen_text.h).
+// ---- The words, in the screen's language: screen.todo of screen_manager/translations/en.json, which a screen's build
+// gives in its own language. screen_words() asks for them, for the card (module_todo.cpp, which adds the due days from
+// the date words) and for its test on a PC (tests/test_todo.cpp, with the English table).
 struct Words {
-  std::string open = "{x} open", all_done = "All done", more = "+{x} more", completed = "Completed", add = "Add item",
-              added = "{x} added", rename = "Rename", remove = "Remove", cancel = "Cancel", clear = "Remove {x} completed?",
-              waiting = "Loading", empty = "Nothing on the list";
+  std::string open, all_done, more, completed, add, added, rename, remove, cancel, clear, waiting, empty;
   std::function<std::string(int)> day;  // a due day by its distance from today: "Today", "Friday", "12 Nov"
 };
+inline Words screen_words() {
+  using screen_text::tr;
+  namespace t = screen_text::txt;
+  Words w;
+  w.open = tr(t::todo_open); w.all_done = tr(t::todo_all_done); w.more = tr(t::todo_more); w.completed = tr(t::todo_completed);
+  w.add = tr(t::todo_add); w.added = tr(t::todo_added); w.rename = tr(t::todo_rename); w.remove = tr(t::todo_remove);
+  w.cancel = tr(t::todo_cancel); w.clear = tr(t::todo_clear); w.waiting = tr(t::todo_waiting); w.empty = tr(t::todo_empty);
+  return w;
+}
 inline std::string fill(const std::string &pattern, const std::string &value) {
   const size_t at = pattern.find("{x}");
   return at == std::string::npos ? pattern : pattern.substr(0, at) + value + pattern.substr(at + 3);

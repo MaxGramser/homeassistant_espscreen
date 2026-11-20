@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <string>
 
 #if __has_include("esphome/core/defines.h")
@@ -31,7 +32,8 @@ constexpr uint32_t RATE = 16000;
 constexpr size_t PART = RATE * 2 * 20 / 1000;  // 20 ms of samples, what goes in one chunk
 constexpr size_t BUFFER = 12800;               // 400 ms between the microphone and the socket
 constexpr uint32_t ANSWER_MS = 18000;          // the add-on connects the camera first (talk_bridge.ANSWER_SECONDS) and says so
-constexpr int GAIN = 4;                        // as Screen camera's microphone: these boards' microphones are quiet
+constexpr int GAIN = 4;                        // as Screen camera's microphone: these boards' microphones are quiet;
+                                               // a board whose microphone comes in lower says its own (bind_microphone)
 // The voice's level for the key's bars: an RMS below FLOOR is silence, CEILING is a full bar.
 constexpr float FLOOR_DB = -55.0f, CEILING_DB = -18.0f;
 // The level from which a part counts as someone speaking (what turns Talk off after a minute of nothing).
@@ -66,13 +68,25 @@ inline float bar_of(float db) {
 
 #if defined(USE_MICROPHONE) && defined(USE_LIVE_VIEW)
 // The board's microphone (packages/features/audio-player.yaml binds it).
-void bind_microphone(esphome::microphone::Microphone *microphone);
+// `gain`: what the voice is multiplied by on its way out, after the board's own processing (an echo canceller wants
+// the microphone low enough not to clip on the board's own speaker, and the voice is made up here).
+void bind_microphone(esphome::microphone::Microphone *microphone, int gain = GAIN);
 bool available();
 // The main loop's: start talking to `url` (http://host:port/camera/<token>/talk); false when one is already going or
 // nothing to talk with. The microphone starts at once, its first parts are thrown away until the add-on says it is live.
 bool start(const std::string &url);
 void stop();
 State state();
+// The microphone's parts for someone else as well (a direct call's own server, call_serve.h): every whole part the
+// microphone gives is also put into `buffer`, or left out whole when it has no room, and the microphone runs while it is
+// tapped. From the main loop; one tap at a time, and not beside a talk that goes up (a direct call has none).
+void tap(void *stream_buffer);
+void untap();
+
+// The board's echo canceller, where it works on demand (packages/hardware/parts/echo-cancel.yaml): told that it is needed
+// for as long as this screen's voice goes out to a far end, which is when what its speaker plays must not go with it.
+void bind_echo(std::function<void(bool)> needed);
+
 // While muted the microphone's parts go up as silence, so the stream on the far side stays alive (docs/CALLS.md).
 void set_muted(bool muted);
 // The voice's bar, 0 to 1, of the last few parts; when the voice was last above VOICE_DB (the main loop's clock).
@@ -89,7 +103,8 @@ struct HostMicrophone {
   uint32_t voice = 0;    // when the voice was last above VOICE_DB (the main loop's clock)
 };
 inline HostMicrophone host_microphone;
-template<class Microphone> inline void bind_microphone(Microphone *) {}
+template<class Microphone> inline void bind_microphone(Microphone *, int = GAIN) {}
+inline void bind_echo(std::function<void(bool)>) {}
 inline bool available() { return host_microphone.present; }
 inline bool start(const std::string &) {
   if (!host_microphone.present) return false;
@@ -102,7 +117,7 @@ inline void set_muted(bool) {}
 inline float bar() { return host_microphone.state == State::LIVE ? host_microphone.bar : 0.0f; }
 inline uint32_t voice_at() { return host_microphone.voice; }
 #else
-template<class Microphone> inline void bind_microphone(Microphone *) {}
+template<class Microphone> inline void bind_microphone(Microphone *, int = GAIN) {}
 inline bool available() { return false; }
 inline bool start(const std::string &) { return false; }
 inline void stop() {}

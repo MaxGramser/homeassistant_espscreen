@@ -20,6 +20,7 @@ export type TileOptions = {
   guard?: string;
   // Where a cover's slats stand open: "100" (Home Assistant's rule, never stored) or "50".
   tilt_open?: string;
+  send_after?: string;
   // A light's presets (docs/LIGHT_PRESETS.md, light_presets.py): at most four, each a brightness with a white shade or a
   // colour, and whether each disc shows its brightness (stored only when it does).
   presets?: LightPreset[];
@@ -95,8 +96,9 @@ export type HeaderItem = { id?: string; type: string; entity?: string; content?:
 // said before it went offline.
 // `room` is null while the screen is still measuring it (firmware 0.51.0).
 // `bar_cards`: the screen takes cards from its top bar (firmware 0.56.0), so its tiles of the top bar count too (model/memory.ts).
+// `sections`: the screen draws sections, so a page's sections count too (any other screen is sent none).
 export type ScreenMemory = { room: number | null; used: number; psram: boolean; tile: number; extra: number; page?: number; short?: boolean; live?: boolean;
-  bar_cards?: boolean };
+  bar_cards?: boolean; sections?: boolean; alarms?: string[] };
 // `barItems`: the items one page's top bar takes there (model/pages.ts barLimit). `plugins`: whether plugin tiles and
 // items are taken there (the add-on serves plugins, the plugins store's pluginsEnabled); never stored with a document.
 export type PageGrid = Readonly<{ columns: number; rows: number; pages?: number; barItems?: number; plugins?: boolean }>;
@@ -144,7 +146,24 @@ export type Page = {
   tiles: PageTile[];
   // The page's own icon by name (a pickable MDI icon), which the Dock shows instead of its picture; left out, the picture.
   icon?: string;
+  // Sections (docs/PAGES.md "Sections"): blocks of cells with a title, an icon and a panel. Left out on a page without
+  // any. Every tile of the page stands in `tiles`, as before sections; a tile belongs to the section whose block it lies
+  // in (model/page-tiles.ts sectionOf).
+  sections?: Section[];
 };
+// A section's block on its page's grid; it holds no tiles of its own. `summary`: an entity whose state the section's
+// band shows at its right end.
+export type Section = {
+  id: string; title: string; icon?: string; summary?: string;
+  // The panel in the page's opposite colour, so the section stands out (off unless chosen); with `contrastTiles` the
+  // whole section is a piece of the other look, its tiles' cards too.
+  contrast?: boolean; contrastTiles?: boolean;
+  placement: { row: number; column: number; columns: number; rows: number };
+};
+// A section as the editor's slot view sees it (projectLayout): its page and its block in the page's cells, and every
+// field a section has. Made from Section, so a field added there is here too (model/pages.ts blockOfSection and
+// sectionOfBlock are the one way from one to the other).
+export type SectionBlock = Omit<Section, "placement"> & Section["placement"] & { page: number };
 export type PageLayout = { title: string; homePageId: string; pages: Page[] };
 export type PageWorkspace = { revision: string; positions: Record<string, { x: number; y: number }> };
 export type PageDocument = {
@@ -161,6 +180,8 @@ export type Layout = {
   page_titles?: string[];
   header?: { items: HeaderItem[] };
   settings?: Record<string, any>;
+  // Every page's sections, with their page (projectLayout), so the mockup draws them where the tiles are.
+  sections?: SectionBlock[];
   [key: string]: unknown;
 };
 export type UpdateInfo = {
@@ -327,7 +348,12 @@ export type Screen = {
       watch_icon?: number; setpoint?: number; icon?: number };
     // The grid in glass pixels (boards.json); its heights (gap_y, top, page_bar) and a card's circle from app 0.4.74, a
     // card's corner and its icon's face (fonts.icon) from app 0.4.90.
-    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number } } | null;
+    spacing?: { margin: number; gap: number; tile_pad: number; gap_y?: number; top?: number; page_bar?: number; circle?: number; radius?: number };
+    // A section's band on this glass (boards.json, module_sections.h): its height and its title's top in it.
+    section?: { band: number; title_top: number; ink_top?: number; line?: number } } | null;
+  // Sections on a page (docs/PAGES.md "Sections"): its board has the module (the full tier), and its own hello says it
+  // draws them now (an older firmware does not, and gets the same tiles without them).
+  sections?: boolean; sections_drawn?: boolean;
   // Which way it was built to hang (app 0.2.107): a screen standing up has another canvas and another grid, and
   // while it is offline only the YAML of its own profile says so.
   orientation?: Orientation;
@@ -443,6 +469,8 @@ export type Inventory = {
   line?: LineBuild[];
   // The build server (build_server.py, docs/BUILDS.md "On a build server"), in every live answer.
   build_server?: BuildServerView;
+  // What the builds left in /data, the automatic clean-up and whether to offer one (build_files.py, docs/BUILDS.md).
+  build_files?: import("./model/build-files").BuildFilesView;
   // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
   plugin_sharing?: PluginSharing | null;
   // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).
@@ -450,6 +478,8 @@ export type Inventory = {
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
   claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };
+  // Layoutbot (docs/LAYOUTBOT.md): the AI Tasks of Home Assistant that can make data; none, no bot.
+  layoutbot?: { id: string; name: string }[];
   // Video in Home Assistant (Settings, screen_video.py): the tessera_video integration in Home Assistant's folder, the
   // version Home Assistant runs (null until it restarted with it), and the screens with Screen camera's part Video.
   video?: VideoIntegration;

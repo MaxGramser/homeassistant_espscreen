@@ -5,11 +5,10 @@ it, ESP Screen Manager saved the layout and resent the whole screen, and the scr
 again while a finger was on a slider. Touch input stalled, and the GT911's stray (0, 0) contact became
 the finger's last position, so LVGL moved the slider to its end on release. Each link is checked here.
 """
-from firmware_sources import runtime_source
 from manager_fixtures import with_screen_grid
 import asyncio
 import importlib.util
-import re
+
 import sys
 import tempfile
 import unittest
@@ -19,12 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import profiles  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 from core import validate_settings  # noqa: E402
 
-PROFILES = ('checkout/cyd.yaml', 'checkout/guition.yaml', 'packages/cyd.yaml', 'packages/guition.yaml')
-RUNTIME = runtime_source()
-LIGHT_CONTROLS = (ROOT / 'components/smart_display/light_controls.h').read_text()
 
 
 @unittest.skipUnless(importlib.util.find_spec('aiohttp'), 'Run using .venv-portal/bin/python for server tests')
@@ -85,44 +80,32 @@ class SettingEvents(unittest.IsolatedAsyncioTestCase):
 
 
 class Firmware(unittest.TestCase):
-    def setUp(self):
-        self.profiles = {name: profiles.text(name) for name in PROFILES}
+    """Rules every board keeps for the links of this story. What the firmware does with them is proven by running it:
+    a setting set to the value it has stores, applies and reports nothing (tests/test_settings_screen.cpp); a layout
+    that comes again keeps a held finger's tap and the glass, and the GT911's stray (0, 0) is no swipe
+    (web/wasm/test_quiet_resync.mjs); the ghost filter and the jump on release (tests/test_screen_input.cpp)."""
+    TEXTS = {board: profiles.resolved(profile) for board, _, profile in profiles.BOARD_TABLE}
 
-    def test_home_assistant_setting_the_same_value_writes_and_reports_nothing(self):
-        # Firmware 0.2.49+: the setting entities change a value through settings_screen::set(), which stores,
-        # applies and reports only a real change (tests/test_settings_screen.cpp checks that).
-        screen = (ROOT / 'components/smart_display/settings_screen.h').read_text()
-        self.assertRegex(screen, r'return SetResult::same;\n  changed\(key\.c_str\(\), reported\);')
-        for name, text in self.profiles.items():
+    def test_every_setting_entity_writes_through_settings_screen_set(self):
+        # Every writer goes through settings_screen::set() (AGENTS.md, "Settings live in one table"), which stores,
+        # applies and reports only a real change: Home Assistant setting the value a screen has is then nothing.
+        for board, text in self.TEXTS.items():
             for key in ('brightness', 'standby_brightness', 'night_brightness', 'standby_seconds'):
-                self.assertIn(f"set_action:\n      - lambda: 'settings_screen::set(\"{key}\", (int32_t) lround(x));'", text, f'{name}: {key}')
-            self.assertNotIn('runtime_tiles::setting_event("', text, f'{name}: settings are reported through set() only')
+                self.assertRegex(text, r'set_action:\s*- lambda:[^\n]*settings_screen::set\("%s"' % key,
+                                 f'{board}: the {key} entity must set it through settings_screen::set')
+            self.assertNotIn('runtime_tiles::setting_event("', text, f'{board}: a setting is reported through settings_screen::set only')
 
-    def test_a_repeated_layout_does_not_redraw_the_page(self):
-        block = RUNTIME[RUNTIME.index('if (op == "begin")'):RUNTIME.index('if (op == "ping")')]
-        # A layout that comes again on the grid the screen has is no change (firmware 0.53.0+: another grid is one).
-        unchanged = block.index('if (begin == page_protocol::Begin::unchanged && !regridded)')
-        self.assertLess(unchanged, block.index('cancel_layout_input();'))
-        self.assertLess(unchanged, block.index('model.begin('))
-        commit = RUNTIME[RUNTIME.index('if (op == "commit")'):RUNTIME.index('if (op == "camera")')]
-        self.assertLess(commit.index('if (transfer.active && model.ready())'), commit.index('layout_changed()'))
-
-    def test_the_guition_hides_the_stray_gt911_contact_from_lvgl_and_the_edge_swipe(self):
-        for name in ('checkout/guition.yaml', 'packages/guition.yaml'):
-            text = self.profiles[name]
-            self.assertIn('screen_input::ghost_touch.filter(', text, name)
-            self.assertIn('lv_indev_set_read_cb(indev, filtered);', text, name)
-            self.assertIn('runtime_tiles::touch_input::moved(', text, f'{name}: the shared handler sees every contact')
-        for name in ('checkout/cyd.yaml', 'packages/cyd.yaml'):
-            self.assertNotIn('ghost_touch', self.profiles[name], 'the CYD has its own XPT2046 filter')
-        # The skip itself lives in the shared tree now (runtime_tiles::touch_input::moved), so every board that
-        # uses it gets it: a board cannot take half of the handling any more, which is how a GT911 board once
-        # ended up with on_touch and neither of the other two triggers.
-        self.assertRegex(RUNTIME, r'if \(x == 0 && y == 0\) return;\s+screen_input::touch_guard\.update')
-
-    def test_a_slider_that_jumps_on_release_is_logged(self):
-        self.assertIn('screen_input::release_jump(row.held, value,', LIGHT_CONTROLS)
-        self.assertIn('screen_input::release_jump(slider_held,raw,', RUNTIME)
+    def test_every_gt911_board_hides_its_stray_contact(self):
+        # The GT911 reports a stray (0, 0) as the last sample before lift-off (measured on Studio 1). Every board with one
+        # filters it before LVGL sees it, and hands every contact to the shared handler, which leaves (0, 0) out of the
+        # edge swipe; the resistive XPT2046 boards (the CYD) have a filter of their own.
+        for board, text in self.TEXTS.items():
+            if 'platform: gt911' in text:
+                for wiring in ('screen_input::ghost_touch.filter(', 'lv_indev_set_read_cb(indev, filtered);', 'runtime_tiles::touch_input::moved('):
+                    self.assertIn(wiring, text, f'{board} has a GT911: filter its stray (0, 0) with screen_input::ghost_touch '
+                                                f'and hand every contact to runtime_tiles::touch_input::moved')
+            if 'platform: xpt2046' in text:
+                self.assertNotIn('screen_input::ghost_touch', text, f'{board} has the resistive XPT2046, which has a filter of its own')
 
 
 if __name__ == '__main__':

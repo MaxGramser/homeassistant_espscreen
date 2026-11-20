@@ -7,7 +7,6 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'screen_manager/app'))
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from core import NIGHTSTAND, Grid, validate_layout  # noqa: E402
 from firmware_sources import runtime_source  # noqa: E402
 from layout_migrations import migrate_legacy  # noqa: E402
@@ -17,41 +16,16 @@ SOURCE = runtime_source()
 CLOCK = {'entity': NIGHTSTAND, 'name': '', 'slot': 0, 'options': {'size': 'full'}}
 
 
-class BigKeyTests(unittest.TestCase):
-    def test_only_cards_that_switch_or_run_and_have_no_other_control(self):
-        rule = SOURCE[SOURCE.index('inline bool big_key(const Tile &t){'):]
-        rule = rule[:rule.index('}\n')]
-        for domain in ('light', 'switch', 'input_boolean', 'fan', 'script', 'scene', 'button', 'input_button'):
-            self.assertIn(f'd=="{domain}"', rule)
-        for domain in ('cover', 'media_player', 'vacuum', 'climate', 'lock'):
-            self.assertNotIn(f'd=="{domain}"', rule)
-        self.assertIn('t.inline_control!="slider"', rule)
-        self.assertIn('t.controls=="toggle"||t.controls=="run"', rule)
-
-    def test_two_rows_tall_but_not_a_whole_page(self):
-        self.assertIn('if(t.row_span()>=2&&!w.full&&big_key(t)){', SOURCE)
-        # The whole card is the key: its switch or run key is not drawn.
-        block = SOURCE[SOURCE.index('if(t.row_span()>=2&&!w.full&&big_key(t)){'):][:400]
-        self.assertIn('hide_panel(w);hide_extra(w);', block)
+class Firmware(unittest.TestCase):
+    """What the screen draws is read from the real firmware in web/wasm/test_tile_shapes.mjs (tools/check.sh): the big
+    key for the eight domains that switch or run and for none of five that have controls, not with a slider or a bar,
+    a tap low on it switching; the flip clock's two blocks and its line; the bedside clock's AM or PM; a key without
+    its name in its place."""
 
     def test_the_prototype_switches_are_gone(self):
-        self.assertNotIn('design_variant', SOURCE)
-        self.assertNotIn('DESIGN PROTOTYPE', SOURCE)
-
-
-class FlipAndBedsideTests(unittest.TestCase):
-    def test_the_flip_clock_fills_a_card_as_wide_as_the_page(self):
-        self.assertIn('if(w.full || (w.wide && t.row_span()>=2)){', SOURCE)
-        # Room above the blocks and under the day's line, so a low card never has them touch its edge.
-        self.assertIn('air=std::max(ui::px(6),height/20);', SOURCE)
-        self.assertIn('const int bh=std::min(height-2*air-line_gap-sh,bw*92/100);', SOURCE)
-
-    def test_am_or_pm_stands_under_the_end_of_the_time(self):
-        self.assertIn('auto *p=digit_label(w,2,small,end-aw,last+ui::px(10),aw,LV_TEXT_ALIGN_LEFT,ampm);', SOURCE)
-
-    def test_a_key_without_its_name_keeps_its_place(self):
-        self.assertIn('names.push_back(!t.overlay?std::string():t.name.empty()?t.entity:t.name);', SOURCE)
-        self.assertIn('if(i<l.keys && l.names && !names[i].empty()){', SOURCE)
+        # Rule: the design study's switches (firmware 0.16) do not come back into the firmware.
+        for word in ('design_variant', 'DESIGN PROTOTYPE'):
+            self.assertNotIn(word, SOURCE, f'{word}: the 0.17.0 shapes are the product, not a prototype to switch')
 
 
 class KeyNameTests(unittest.TestCase):

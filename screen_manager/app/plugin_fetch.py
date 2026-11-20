@@ -18,20 +18,52 @@ import ipaddress
 import json
 import logging
 import math
+import re
 import socket
 import time
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit
 
-from plugin_manifest import FETCH_PLACEHOLDER, MAX_ITEMS, PLACEHOLDER, parse_path
+from plugin_manifest import ATTRIBUTE_PLACEHOLDER, FETCH_PLACEHOLDER, MAX_ITEMS, PLACEHOLDER, parse_path
 
 log = logging.getLogger('plugin_fetch')
+# A placeholder of either form (groups 1-2 FETCH_PLACEHOLDER's, 3-5 ATTRIBUTE_PLACEHOLDER's), for fill's single pass.
+ANY_PLACEHOLDER = re.compile(f'{FETCH_PLACEHOLDER.pattern}|{ATTRIBUTE_PLACEHOLDER.pattern}')
 
 MAX_BYTES = 64 * 1024
 TIMEOUT = 10
 TEXT_BYTES = 48
+URL_BYTES = 255            # a field "as: url" (plugin API 0.28): a picture's address whole, never cut
 BACKOFF = (60, 120, 300, 900)
 FORGET_AFTER = 2           # intervals a question nobody asks for stays in the cache
+# The most questions kept at once. Each holds an answer of up to MAX_BYTES, parsed, so this is about 8 MB at the very
+# worst; a fetch the screen itself asks (0.27) makes a new question for every value, and one with a long `every` would
+# keep each of them for twice that long. Past it the question asked longest ago makes way.
+MAX_QUESTIONS = 128
+
+
+# A service that says it is busy (HTTP 429 or 503) is left alone as a whole, not per question: a fetch the screen asks
+# makes a new question for every value, and each would otherwise be tried once. As long as its Retry-After says, within
+# these bounds; without one, BUSY_WAIT.
+BUSY_WAIT = 60
+BUSY_MOST = 3600
+
+
+class ServiceBusy(OSError):
+    """The service answered 429 or 503: `wait` seconds before anything is asked of that host again."""
+
+    def __init__(self, status, wait):
+        super().__init__(f'HTTP {status}')
+        self.wait = wait
+
+
+def busy_wait(retry_after):
+    """The seconds a Retry-After header asks for (a number of seconds; a date or nothing is BUSY_WAIT), bounded."""
+    try:
+        seconds = float(retry_after)
+    except (TypeError, ValueError):
+        seconds = BUSY_WAIT
+    return min(max(seconds, BUSY_WAIT), BUSY_MOST) if math.isfinite(seconds) else BUSY_WAIT
 
 
 class FetchRefused(ValueError):
@@ -130,6 +162,10 @@ def field_value(item, field):
         return epoch_of(value, field.get('tz'))
     if field['as'] == 'number':
         return number_of(value)
+    if field['as'] == 'url':
+        # Whole or not at all: a cut address names another file, or none.
+        ok = isinstance(value, str) and re.match(r'https?://\S+$', value) and len(value.encode()) <= URL_BYTES
+        return value if ok else None
     if value is None or isinstance(value, (dict, list)):
         return None
     return short(value)
@@ -242,18 +278,48 @@ def words_of(values):
     return {key: word_of(value) for key, value in (values or {}).items()}
 
 
+def attribute_word(value, decimals=None):
+    """An entity's attribute (or state) as a fetch puts it in a URL (0.27), or None when it gives no word: missing, an
+    empty text, a list or an object, or, with `decimals`, no number (a text such as "52.37" is one). A number is rounded
+    to `decimals` and written with exactly that many ("4.90"); without them it is word_of's word."""
+    if value is None or isinstance(value, (list, dict)):
+        return None
+    if decimals is not None:
+        number = None if isinstance(value, bool) else number_of(value)
+        return None if number is None else format(number, f'.{decimals}f')
+    word = word_of(value)
+    return word if word.strip() else None
+
+
 def fill(fetch, values, secrets):
     """The URL and headers with every placeholder filled in. A value in the URL is percent-encoded; a secret may only
     stand in a header or the query (the manifest check makes sure). `{name|,}` joins the values of a list, each
-    percent-encoded in a URL (0.12). Raises FetchRefused when one is missing: an empty text or an empty list."""
+    percent-encoded in a URL (0.12). `{option.attribute}` and `{option.attribute:decimals}` (0.27) are the entity's
+    attribute as `values` has it under "option.attribute" (Plugins.entity_values), rounded to that many decimals. Raises
+    FetchRefused when one is missing: an empty text or an empty list, an attribute that is not there, or one that is no
+    number where decimals ask for one."""
     def given(name):
         value = secrets[name] if name in secrets else values.get(name, '')
         return [str(v) for v in value] if isinstance(value, list) else str(value)
 
     missing = [name for name in fetch['placeholders']
                if (lambda v: not v if isinstance(v, list) else v.strip() == '')(given(name))]
+    words = {}
+    for read in fetch.get('reads') or ():
+        name = f'{read["option"]}.{read["attribute"]}'
+        word = attribute_word(values.get(name), read['decimals'])
+        if word is None:
+            missing.append(name if read['decimals'] is None or values.get(name) in (None, '')
+                           else f'{name} (no number)')
+        words[(name, read['decimals'])] = word
     if missing:
-        raise FetchRefused(f'not filled in: {", ".join(missing)}')
+        raise FetchRefused(f'not filled in: {", ".join(dict.fromkeys(missing))}')
+
+    def attribute(match, encode):
+        found = words.get((f'{match.group(3)}.{match.group(4)}', None if match.group(5) is None else int(match.group(5))))
+        if found is None:
+            raise FetchRefused(f'not filled in: {match.group(3)}.{match.group(4)}')
+        return quote(found, safe='') if encode else found
 
     def word(match, encode):
         value, joiner = given(match.group(1)), match.group(2)
@@ -263,8 +329,10 @@ def fill(fetch, values, secrets):
             return joiner.join(quote(v, safe='') if encode else v for v in value)
         return quote(value, safe='') if encode else value
 
-    url = FETCH_PLACEHOLDER.sub(lambda m: word(m, True), fetch['url'])
-    headers = {key: FETCH_PLACEHOLDER.sub(lambda m: word(m, False), value) for key, value in fetch['headers'].items()}
+    # One pass over both forms, so a value filled in is never read as a placeholder itself.
+    one = lambda m, encode: attribute(m, encode) if m.group(3) else word(m, encode)
+    url = ANY_PLACEHOLDER.sub(lambda m: one(m, True), fetch['url'])
+    headers = {key: ANY_PLACEHOLDER.sub(lambda m: one(m, False), value) for key, value in fetch['headers'].items()}
     if any(c in value for value in headers.values() for c in '\r\n'):
         raise FetchRefused('a header value holds a line break')
     return url, headers
@@ -313,17 +381,24 @@ class PublicResolver:
         await self.inner.close()
 
 
+# Who asks, with a way to reach the project: services such as planespotters.net refuse a server's request without a
+# contact URL in its User-Agent.
+USER_AGENT = 'Tessera (+https://github.com/MaxGramser/homeassistant_espscreen)'
+
+
 class Fetcher:
     """Every plugin fetch of the add-on: one cache, one schedule, one session of its own (never the one that holds
     Home Assistant's token)."""
 
-    def __init__(self, user_agent='Tessera (+plugins)', session_factory=None, clock=time.monotonic):
+    def __init__(self, user_agent=USER_AGENT, session_factory=None, clock=time.monotonic):
         self.user_agent = user_agent
         self.session_factory = session_factory
         self.session = None
         self.clock = clock
+        self.busy = {}          # host -> the clock until which it asked to be left alone (ServiceBusy)
         self.cache = {}         # question -> {'data', 'at', 'ok', 'error', 'stale', 'next', 'fails', 'asked'}
         self.locks = {}
+        self.lines = {}         # a tile's line of asking a fetch (get's `line`) -> {'key', 'at', 'used', 'every'}
 
     async def _session(self):
         if self.session is None or self.session.closed:
@@ -362,6 +437,8 @@ class Fetcher:
         async with session.get(url, headers=headers, allow_redirects=False) as response:
             if response.status in (301, 302, 303, 307, 308):
                 raise OSError(f'HTTP {response.status}: redirects are not followed')
+            if response.status in (429, 503):
+                raise ServiceBusy(response.status, busy_wait(response.headers.get('Retry-After')))
             if response.status >= 400:
                 raise OSError(f'HTTP {response.status}')
             raw = bytearray()
@@ -379,30 +456,62 @@ class Fetcher:
         except ValueError:
             raise OSError('the answer is not JSON')
 
-    def peek(self, plugin, fetch, values, secrets):
-        """The cache entry for this question without asking, or None; raises FetchRefused when it cannot be filled in."""
-        url, headers = fill(fetch, values, secrets)
-        return self.cache.get(question(plugin, url, headers))
+    def peek(self, plugin, fetch, values, secrets, line=None):
+        """The cache entry for this question without asking, or None; raises FetchRefused when it cannot be filled in.
+        With `line` (get), the entry the line still serves while its new question waits."""
+        return self.current(plugin, fetch, values, secrets, line)[1]
 
-    async def get(self, plugin, manifest, fetch, values, secrets, force=False, every=None):
+    def current(self, plugin, fetch, values, secrets, line=None):
+        """(key, entry) of what get would hand out now without asking: this question's, or the one its line still serves
+        (None for no entry yet). Raises FetchRefused when it cannot be filled in."""
+        url, headers = fill(fetch, values, secrets)
+        key = question(plugin, url, headers)
+        held = self.lines.get(line) if line is not None else None
+        entry = self.cache.get(key)
+        if held and held['key'] != key and (entry is None or entry['data'] is None) and held['key'] in self.cache:
+            return held['key'], self.cache[held['key']]
+        return key, entry
+
+    async def get(self, plugin, manifest, fetch, values, secrets, force=False, every=None, line=None):
         """(key, entry) for this question, asked again when its answer is older than this fetch's `every` (and no
         failure asks it to wait). Never raises for a network failure: the entry says what went wrong and keeps the last
         good data. `entry['changed']` counts the answers that differed from the one before. `every`: shorter than the
-        fetch's own for a question that is soon forgotten (what a person typed in a search)."""
+        fetch's own for a question that is soon forgotten (what a person typed in a search).
+
+        `line` (0.27): one tile's way of asking this fetch, the same while only an attribute of a chosen entity changes
+        (Plugins.line_of), so a URL that keeps changing by itself (a place that moves) never asks the service more often
+        than `every`: the line's question is replaced, not added to, and a new question of the line is asked only once
+        `every` has passed since the line last asked. Until then the line keeps its last question's answer. A new
+        question another tile has already asked is served from the cache at once, as always."""
         url, headers = fill(fetch, values, secrets)
         key = question(plugin, url, headers)
         now = self.clock()
         every = min(fetch['every'], every or fetch['every'])
+        held = self.lines.get(line) if line is not None else None
+        if held and held['key'] != key and not force:
+            old, new = self.cache.get(held['key']), self.cache.get(key)
+            new_fresh = new is not None and new['fetched'] is not None and now - new['fetched'] < every
+            if old is not None and not new_fresh and now - held['at'] < every:
+                old['asked'] = held['used'] = now
+                return held['key'], old
+        if key not in self.cache:
+            self._make_room()
         entry = self.cache.setdefault(key, {'data': None, 'fetched': None, 'ok': None, 'error': None, 'stale': False,
                                             'retry': 0, 'fails': 0, 'asked': now, 'every': every, 'changed': 0})
         entry['asked'] = now
         entry['every'] = min(entry['every'], every)
         lock = self.locks.setdefault(key, asyncio.Lock())
+        asked_service = False
         async with lock:
             fresh = entry['fetched'] is not None and self.clock() - entry['fetched'] < every
             if not force and (fresh or self.clock() < entry['retry']):
+                self._hold(line, key, held, now, every, entry, False)
                 return key, entry
+            asked_service = True
+            host = urlsplit(url).hostname or ''
             try:
+                if self.clock() < self.busy.get(host, 0):
+                    raise ServiceBusy('429 or 503 a moment ago: the service is left alone', self.busy[host] - self.clock())
                 data = await self.download(url, headers, manifest['permissions']['network'])
                 if data != entry['data']:
                     entry['changed'] += 1
@@ -412,19 +521,48 @@ class Fetcher:
             except Exception as error:   # the network, the service, its answer
                 entry['fails'] += 1
                 wait = BACKOFF[min(entry['fails'], len(BACKOFF)) - 1]
+                if isinstance(error, ServiceBusy):
+                    # The whole host waits, and this question with it, as long as the service asked.
+                    self.busy[host] = max(self.busy.get(host, 0), self.clock() + error.wait)
+                    wait = max(wait, error.wait)
                 if entry['data'] is not None and not entry['stale']:
                     entry['changed'] += 1
                 entry.update(error=redact(str(error) or type(error).__name__, secrets)[:160],
                              stale=entry['data'] is not None, retry=self.clock() + wait)
                 log.warning('plugin %s fetch %s: %s', plugin, fetch['id'], entry['error'])
+        self._hold(line, key, held, now, every, entry, asked_service)
         return key, entry
 
+    def _hold(self, line, key, held, now, every, entry, asked):
+        """The line's question is now `key`: `at` is when the line last asked the service (a question it took over from
+        the cache costs nothing, so the line's own moment stays)."""
+        if line is None:
+            return
+        at = now if asked else held['at'] if held else (entry['fetched'] if entry['fetched'] is not None else now)
+        self.lines[line] = {'key': key, 'at': at, 'used': now, 'every': every}
+
+    def _make_room(self):
+        """Room for one more question (MAX_QUESTIONS): the one asked longest ago goes, never one being fetched now or
+        one a line still follows (a tile shows it)."""
+        followed = {held['key'] for held in self.lines.values()}
+        while len(self.cache) >= MAX_QUESTIONS:
+            idle = [k for k in self.cache if k not in followed and not (k in self.locks and self.locks[k].locked())]
+            if not idle:
+                return
+            oldest = min(idle, key=lambda k: self.cache[k]['asked'])
+            self.cache.pop(oldest, None)
+            self.locks.pop(oldest, None)
+
     def forget_unused(self):
-        """Drop questions no tile asked for during two of their intervals."""
+        """Drop questions no tile asked for during two of their intervals, and the lines nobody follows any more."""
         now = self.clock()
         for key in [k for k, e in self.cache.items() if now - e['asked'] > FORGET_AFTER * e['every'] + 60]:
             self.cache.pop(key, None)
             self.locks.pop(key, None)
+        for line in [k for k, held in self.lines.items() if now - held['used'] > FORGET_AFTER * held['every'] + 60]:
+            self.lines.pop(line, None)
+        for host in [h for h, until in self.busy.items() if until <= now]:
+            self.busy.pop(host, None)
 
     def status(self):
         """Per question what a person may see: when it last worked, the last error. No URL, no header."""

@@ -8,10 +8,10 @@ import time
 import picture_question
 import page_delivery
 from doorbell import FEATURE as DOORBELL_FEATURE, with_missed
-from core import bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
+from core import SECTIONS_FEATURE, has_module, bar_cards, bar_entities, plugin_tile, BAR_CARDS_FEATURE, HEADER_MAX_ITEMS, BUILTIN, FIRMWARE_MAX_TILES, CAMERA_DOMAINS, FREE_PAGES_MIN_FIRMWARE, board_of, firmware_features, page_target, sizes_on, state_message, version_text
 from i18n import t, shown, english
-from page_layout import (FORMAT as PAGE_FORMAT, LayoutError, bar_items, compile_tiles,
-                         grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document)
+from page_layout import (FORMAT as PAGE_FORMAT, SECTION_SUMMARY_BYTES, LayoutError, bar_items, compile_tiles, sections_of,
+                         grid_of_record, grown, legacy_projection, screen_grid_of_record, validate_document, without_sections)
 
 
 def preflight_update(manager, inbox):
@@ -70,6 +70,10 @@ def save_pages(manager, inbox, data):
         if not previous or previous['format'] != PAGE_FORMAT or adaptation != expected or manager.verified_grid(inbox) is None:
             raise LayoutError(t('addon.errors.pages.adaptation'))
     document = validate_document(data.get('layout'), grid)
+    # A screen whose board draws no sections keeps none: the tiles stay where they stand. The editor holds a draft to
+    # the same (stores/document.ts held), so this only meets a layout that came another way.
+    if not has_module(screen, 'sections'):
+        document = without_sections(document)
     candidate = {'format': PAGE_FORMAT, 'sourceGrid': {'columns': grid.columns, 'rows': grid.rows}, 'layout': document}
     sender = manager.page_sender(inbox, screen)
     verified_protocol = (sender.protocol if sender.protocol is not None else sender.last_protocol) if sender else None
@@ -163,6 +167,32 @@ def grow_record(manager, inbox, record):
     return record
 
 
+def section_sums(manager, layout):
+    """Each page's section summaries (docs/PAGES.md "Sections"): the state of the entity a section names, in the words
+    and units the top bar gives it (header_bar), or empty; a page without sections has none."""
+    out = []
+    for page in layout['pages']:
+        texts = []
+        for section in sections_of(page):
+            text = ''
+            if section.get('summary'):
+                text = manager.summary_text(section['summary'])
+            texts.append(text.encode()[:SECTION_SUMMARY_BYTES].decode('utf8', 'ignore'))
+        out.append(texts)
+    return out
+
+
+def alarm_tiles(manager, inbox, placed, sender, features):
+    """The tiles without a cell a screen gets for the alarms it opens by itself when they go off and has on no tile
+    (alarm_screens, docs/ALARM_PANEL.md), after `placed`, as many as its tile ceiling leaves room for. Only to a screen
+    that takes such tiles (BAR_CARDS_FEATURE); an older one wakes only for a panel on one of its tiles."""
+    choices = getattr(manager, 'alarm_screens', None)
+    if choices is None or BAR_CARDS_FEATURE not in features:
+        return []
+    most = (getattr(sender, 'max_tiles', None) or getattr(sender, 'last_max_tiles', None) or FIRMWARE_MAX_TILES) - len(placed)
+    return choices.tiles(inbox, manager.ha.states, placed)[:max(0, most)]
+
+
 def top_bar_tiles(record, tiles, sender, features):
     """The tiles of the top bar a screen gets (core.BAR_CARDS_FEATURE): to one whose hello names them, a tile without a
     cell for each entity in a top bar that is on no tile, after `tiles`, as many as its tile ceiling leaves room for. An
@@ -187,9 +217,20 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
     # What else its hello said it takes (app 0.4.32): a thermostat's range on its -/+ (firmware 0.19.0+).
     features = frozenset(getattr(sender, 'features', ()) or ())
     bar = top_bar_tiles(record, flat['tiles'], sender, features)
-    tiles = flat['tiles'] + bar
+    # An alarm's choices from the Events page (alarm_screens): its code length and whether this screen wakes for it go
+    # with every tile of it, and an alarm this screen wakes for but has on no tile comes as a tile without a cell.
+    choices = getattr(manager, 'alarm_screens', None)
+    alarms = alarm_tiles(manager, inbox, flat['tiles'] + bar, sender, features)
+    bar = [choices.with_options(tile, inbox) for tile in bar] + alarms if choices else bar
+    placed = [choices.with_options(tile, inbox) for tile in flat['tiles']] if choices else flat['tiles']
+    tiles = placed + bar
+    alarm_key = choices.key() if choices else None
+    # What of those choices this screen's tiles carry, in the layout's fingerprint (page_delivery.configuration).
+    marks = {tile['entity']: choices.options(tile['entity'], inbox) for tile in tiles if choices and tile['entity'].startswith('alarm_control_panel.')}
+    marks = {entity: options for entity, options in sorted(marks.items()) if options} or None
     full = (force or dirty is None or not cached or cached['revision'] != record['revision'] or cached['context'] != context
-            or cached.get('lamps') != lamps or cached.get('features') != features or cached.get('bar') != bar)
+            or cached.get('lamps') != lamps or cached.get('features') != features or cached.get('bar') != bar
+            or cached.get('alarms') != alarm_key)
     if full:
         dependencies = [{item['entity'] for item in bar_items(page) if item['type'] == 'entity'} for page in record['layout']['pages']]
     else:
@@ -213,14 +254,15 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         saved = manager.store.get(inbox)
         return saved is not None and saved.get('revision') == expected
     before = sender.confirmed
-    wanted = page_delivery.configuration(record, manager.page_region(inbox), bar)
+    wanted = page_delivery.configuration(record, manager.page_region(inbox), bar, SECTIONS_FEATURE in features, marks)
     # A layout this screen already refused is refused again without a word to it (Sender.failed_revision): the status keeps
     # the reason, instead of saying Applying on every pass and pushing the editor each time.
     if before != wanted and sender.failed_revision != wanted:
         manager.status[inbox] = 'Applying'
         manager.notify()
     try:
-        rev = await sender.synchronize(inbox, record, manager.page_region(inbox), values, bars, current, bar)
+        rev = await sender.synchronize(inbox, record, manager.page_region(inbox), values, bars, current, bar,
+                                       section_sums(manager, record['layout']) if SECTIONS_FEATURE in features else None, marks)
     except page_delivery.Superseded:
         manager.ha.changed.set()
         return True
@@ -232,7 +274,7 @@ async def sync_pages(manager, inbox, record, screen, dirty=None, force=False, co
         return True
     manager.sent[inbox] = {'protocol': 2, 'rev': rev, 'saved_revision': expected}
     manager.page_values[inbox] = {'revision': expected, 'context': context, 'dependencies': dependencies, 'values': values, 'bars': bars,
-                                  'lamps': lamps, 'features': features, 'bar': bar, 'missed': missed}
+                                  'lamps': lamps, 'features': features, 'bar': bar, 'missed': missed, 'alarms': alarm_key}
     # The hello of this delivery told us the screen takes lamps, or anything else new: the next round sends them.
     if getattr(sender, 'group_lamps', False) != lamps or frozenset(getattr(sender, 'features', ()) or ()) != features:
         manager.ha.changed.set()

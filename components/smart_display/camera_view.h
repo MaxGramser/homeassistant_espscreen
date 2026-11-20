@@ -6,6 +6,7 @@
 // The app answers `esphome.screen_camera` with a link to a picture it keeps fresh (docs/PICTURES.md, picture_service.py).
 // The rhythm is fixed rather than as fast as the Wi-Fi allows: a picture every four seconds, every time, reads as
 // smoother than one after three seconds and the next after five. Never a queue: a slow load makes the next one later.
+#include <cstddef>
 #include <cstdint>
 
 namespace camera_view {
@@ -21,13 +22,34 @@ constexpr uint32_t PENDING_MS = 20000;     // an alert's camera announced this l
 // download never lands between two quick page turns and holds the next one up. Asking the app for a link is an event
 // and costs the screen nothing; only the download waits.
 constexpr uint32_t SETTLE_MS = 800;
-inline bool settled(uint32_t now, uint32_t last_turn) { return now - last_turn >= SETTLE_MS; }
+constexpr bool settled(uint32_t now, uint32_t last_turn) { return now - last_turn >= SETTLE_MS; }
+// Whether a picture may start loading this round (pictures_round): never under a finger, and not while the pages turn.
+constexpr bool may_load(bool pressed, uint32_t now, uint32_t last_turn) { return !pressed && settled(now, last_turn); }
 // Whether the tiles are there to be seen (firmware 0.40.0+, GitHub #161), and so whether their pictures (a page's live
 // pictures, a media card's cover) keep loading: a screen in use, or one in standby that still shows its dimmed tiles. A
 // screensaver over them (the clock too) hides them, and below SEEN_LEVEL % of brightness nobody reads a picture. Before,
 // standby stopped every picture, and a camera that stood still on a dimmed screen looked like a camera that stopped.
 constexpr int SEEN_LEVEL = 5;
-inline bool tiles_seen(bool awake, bool screensaver, int standby_level) {
+constexpr bool tiles_seen(bool awake, bool screensaver, int standby_level) {
   return awake || (!screensaver && standby_level >= SEEN_LEVEL);
 }
+// Which of the tiles' pictures may load now (card_picture_wants, tile_picture_waiting). Those on the glass, while the
+// tiles are there to be seen (tiles_seen, so also on a dimmed screen without a screensaver, GitHub #161) and no card
+// or full view stands over them. tests/test_camera_view.cpp.
+constexpr bool pictures_on_glass(bool tiles_seen, bool card_open, bool view_open) {
+  return tiles_seen && !card_open && !view_open;
+}
+// Those of a kept page out of sight, fetched ahead: only while the screen is in use, no pages are being prepared, the
+// store has room to spare (under three quarters of its budget: over it a page out of sight lets its pictures go, and
+// fetching them again would only send them round) and the screen is not busy (the governor's background, pressure.h).
+constexpr bool pictures_ahead(bool awake, bool kept, bool preparing, size_t used, size_t budget, int background_pressure) {
+  return awake && kept && !preparing && used < budget / 4 * 3 && background_pressure == 0;
+}
+
+// Where a picture card's name lies (render_camera_card) and where the live picture's copy of it lies (live_name): left,
+// as wide as the card's content, one line of the tile's font high, at the bottom. One place for both, so the name over a
+// live picture lies where the card's own did; a copy of the card's label once lay halfway up (a wallbox, 2026-10-28).
+struct NameBox { int x, y, w, h; };
+constexpr NameBox name_box(int width, int height, int line_h) { return {0, height - line_h, width, line_h}; }
+
 }  // namespace camera_view

@@ -208,6 +208,15 @@ bool decode_into(const uint8_t *data, size_t length, uint8_t *into, size_t into_
 // for a JPEG the decoder cannot read. From a download's task.
 uint8_t *decode(const uint8_t *data, size_t length, Still &out);
 #endif
+#if defined(PICTURE_ENGINE_P4) && defined(SCREEN_PICTURES)
+// The other way, on a P4 alone (its hardware encoder; a call's own picture, call_serve.h): a buffer the encoder may read
+// pixels from and one it may write a JPEG to (free() them), and RGB565 pixels in LVGL's order (`w` x `h`, both whole
+// blocks of 16) as a JPEG of `quality` (1 to 100). The JPEG's length, 0 when it failed. The caller holds the glass; the
+// decoder and the encoder are one engine behind one lock, so a decode waits for an encode and the other way round.
+uint8_t *encode_input(size_t bytes, size_t *got);
+uint8_t *encode_output(size_t bytes, size_t *got);
+size_t encode(const uint8_t *pixels, size_t pixels_size, int w, int h, int quality, uint8_t *out, size_t out_size);
+#endif
 #if (defined(PICTURE_ENGINE_P4) || defined(PICTURE_ENGINE_S3)) && defined(SCREEN_PICTURES)
 // A client of the engine's copies, and its end: on a P4 a PPA client with the glass's bursts (glass.h), on an S3 a token.
 Client client();

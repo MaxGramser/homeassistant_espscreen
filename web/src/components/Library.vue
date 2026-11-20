@@ -27,6 +27,7 @@ import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useInventoryStore } from "../stores/inventory";
 import { addTile } from "../editor/tiles";
+import { addSection, sectionsOffered } from "../editor/sections";
 import { pageTitleShown } from "../editor/pages";
 import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
@@ -67,6 +68,23 @@ const pluginEntries = computed<(Entry & { plugin: string })[]>(() => (plugins.pl
 const pluginOf = (id: string) => pluginEntries.value.find((e) => e.id === id)?.plugin || "";
 // Go to page tiles for the pages there are and the next one, at least the eight every screen has and at most what this
 // screen takes: a board with 24 pages (firmware 0.34.0+) would otherwise list 24 of them.
+// A section is added from here too (docs/PAGES.md "Sections"): on a screen that draws them, at the marked empty cell
+// (one outside a section; a section never holds another) or on the chosen page's first free cells, so a tile or a
+// section is one choice in one place. A search finds it by its name.
+const sectionOffered = computed(() => {
+  if (!sectionsOffered() || ui.filter || ui.room) return false;
+  const query = ui.search.trim().toLowerCase();
+  if (query && ![t("editor.sections.add"), t("editor.sections.untitled")].some((word) => word.toLowerCase().includes(query))) return false;
+  const grid = doc.editorLayout.grid, slot = insp.insertAt;
+  if (slot < 0) return true;
+  const page = Math.floor(slot / grid.slots), local = slot % grid.slots, row = Math.floor(local / grid.columns), column = local % grid.columns;
+  return !(doc.layout?.sections ?? []).some((b) => b.page === page && column >= b.column && column < b.column + b.columns && row >= b.row && row < b.row + b.rows);
+});
+function addSectionHere() {
+  const pages = doc.document?.pages || [], slot = insp.insertAt;
+  const page = slot >= 0 ? Math.floor(slot / doc.editorLayout.grid.slots) : Math.max(0, pages.findIndex((item) => item.id === doc.selectedPageId));
+  if (addSection(page, slot) && ui.phone) open.value = false;
+}
 const pagesOffered = computed(() => Math.min(doc.editorLayout.grid.pages, Math.max(8, (doc.document?.pages.length || 0) + 1)));
 const query = computed(() => ui.search.trim().toLocaleLowerCase());
 // What the search and the hide switch leave over (model/library.ts). The picker offers what a tile can show; camera and
@@ -221,7 +239,8 @@ function onResizeKey(e: KeyboardEvent) {
       <div class="lib-rail">
         <nav class="lib-domains" id="filters" :aria-label="t('editor.library.filter_label')">
           <button v-for="[value, n] in offered" :key="value" type="button" :aria-pressed="ui.filter === value ? 'true' : 'false'" @click="ui.filter = value">
-            <span v-if="value" class="domain-icon mdi" :style="{ color: domainInfo(value + '.')[2], background: domainInfo(value + '.')[3] }" aria-hidden="true">{{ glyph(entities.automaticIcon(value + ".")) }}</span>
+            <span v-if="value === 'plugin'" class="domain-icon plugin" aria-hidden="true"><Icon name="puzzle-outline" /></span>
+            <span v-else-if="value" class="domain-icon mdi" :style="{ color: domainInfo(value + '.')[2], background: domainInfo(value + '.')[3] }" aria-hidden="true">{{ glyph(entities.automaticIcon(value + ".")) }}</span>
             <span v-else class="domain-icon all" aria-hidden="true"><Icon name="view-dashboard-outline" /></span>
             <span class="dn">{{ t(`editor.library.filters.${value || "all"}`) }}</span>
             <small>{{ n }}</small>
@@ -240,6 +259,15 @@ function onResizeKey(e: KeyboardEvent) {
         </div>
       </div>
       <div ref="list" class="lib-list" id="results" role="listbox" aria-live="polite" :aria-label="t('editor.library.title')" @scroll.passive="loadSoon.start()">
+        <section v-if="sectionOffered" class="lib-group lib-layout">
+          <div class="lib-grid">
+            <button type="button" class="ent ent-section" id="lib-section" @click="addSectionHere">
+              <span class="av"><Icon name="view-grid-outline" /></span>
+              <span class="tx"><b>{{ t("editor.sections.add") }}</b><small>{{ t("editor.sections.library_hint") }}</small></span>
+              <span class="add">+</span>
+            </button>
+          </div>
+        </section>
         <section v-for="group in groups" :key="group.key" class="lib-group">
           <h4 v-if="group.title" class="lib-group-title">{{ group.title }} <small>{{ group.count }}</small></h4>
           <div class="lib-grid">

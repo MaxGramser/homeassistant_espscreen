@@ -2,7 +2,7 @@
 // the kinds and rooms with their counts, and how an entity is named and marked.
 import { describe, expect, it } from "vitest";
 import { t } from "../src/i18n";
-import { entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
+import { FILTERS, entryDetail, entryTone, inDomain, kindCounts, libraryBase, libraryGroups, libraryMatches, libraryWindow, markOf, roomCounts, shortName, tileCounts,
   type Entry, type LibraryFilter } from "../src/model/library";
 
 const ENTRIES: Entry[] = [
@@ -78,6 +78,28 @@ describe("the library", () => {
     expect(entryDetail(ENTRIES[0], true, "Bus")).toBe("Bus");
     expect(entryDetail(ENTRIES[1], true, "")).toBe("");
     expect([entryTone(ENTRIES[4]), entryTone(ENTRIES[5]), entryTone(ENTRIES[6])]).toEqual(["on", "gone", ""]);
+  });
+});
+
+describe("a remote in the library (firmware 0.22.0)", () => {
+  it("is a kind of its own to filter on", () => {
+    expect(FILTERS).toContain("remote");
+    // The screen's own cards (a page's key, the clock) and timers have filters of their own too.
+    expect(FILTERS).toEqual(expect.arrayContaining(["timer", "screen"]));
+    expect(inDomain("remote.living_room", "remote")).toBe(true);
+    expect(kindCounts([{ id: "remote.living_room", name: "TV" }], "").find(([kind]) => kind === "remote")?.[1]).toBe(1);
+  });
+});
+
+describe("the plugins' tiles in the library", () => {
+  it("stand together under Plugins, right under All, and in no other kind", () => {
+    expect(FILTERS.slice(0, 2)).toEqual(["", "plugin"]);
+    const pool = [{ id: "plugin:clock.face", name: "Big clock" }, { id: "plugin:air_quality.tile", name: "Air" }, { id: "light.a", name: "Lamp" }];
+    expect(libraryMatches(pool, "plugin", "").map((e) => e.id)).toEqual(["plugin:clock.face", "plugin:air_quality.tile"]);
+    expect(kindCounts(pool, "").slice(0, 3)).toEqual([["", 3], ["plugin", 2], ["light", 1]]);
+    expect(inDomain("plugin:clock.face", "light")).toBe(false);
+    // A home without plugins shows no Plugins kind.
+    expect(kindCounts([pool[2]], "").map(([kind]) => kind)).not.toContain("plugin");
   });
 });
 

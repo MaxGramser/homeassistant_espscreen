@@ -1,5 +1,10 @@
 """Plugins (docs/PLUGINS.md): the manifest check, the map language, fetch's rules, the plugins file, a plugin tile in a
-layout, and one plugin API version in the firmware, the component and the add-on."""
+layout, and one plugin API version in the firmware, the component and the add-on.
+
+What reads the firmware's source here is a rule over it (docs/TESTING.md, "A test reads behaviour, not lines"): one API
+version everywhere, every CardColor a swatch, a number both sides write the same (SameNumbers), a name that must stay
+gone. What the firmware does with them is the host probe's (tools/render/run.py's plugin round) and plugin_host.cpp's
+static_assert on the card colours."""
 import asyncio
 import json
 import re
@@ -24,6 +29,37 @@ from firmware import Firmware  # noqa: E402
 from page_delivery import plugins_of  # noqa: E402
 
 SCREEN = {'board': 'guition', 'firmware': '0.50.0'}   # 480 x 480 glass
+FIRMWARE = ROOT / 'components' / 'smart_display'
+
+
+def cpp_number(file, name):
+    """The number a firmware header gives a constant (`constexpr <type> NAME = 8;`, also one of several in a line), read
+    by its name wherever it stands outside a comment, or None."""
+    code = re.sub(r'//[^\n]*|/\*.*?\*/', '', (FIRMWARE / file).read_text(), flags=re.S)
+    found = re.search(rf'\b{name}\s*=\s*(\d+)\b', code)
+    return int(found.group(1)) if found else None
+
+
+def cpp_block(text, opening):
+    """What lies between the braces of the first block `opening` (a regex ending before its `{`) starts, braces counted,
+    or None."""
+    found = re.search(opening + r'[^;{]*\{', text)
+    if not found:
+        return None
+    depth, at = 1, found.end()
+    while depth and at < len(text):
+        depth += {'{': 1, '}': -1}.get(text[at], 0)
+        at += 1
+    return text[found.end():at - 1]
+
+
+def python_value(path, name):
+    """The value a module assigns to a name at its top (`NAME = (0, 28)`), read by parsing it, not by its spelling."""
+    import ast
+    for node in ast.parse(path.read_text()).body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            return ast.literal_eval(node.value)
+    return None
 
 
 def refused(question, manifest, tile, of_entity=None):
@@ -192,19 +228,49 @@ class Manifest(unittest.TestCase):
             with self.assertRaises(pm.ManifestError):
                 sizes(**wrong)
 
+    def test_a_card_colour_of_a_plugin_tile_is_one_of_the_screens_own(self):
+        """ui::set_card_color (0.26) names every swatch of theme.h, each once, so a plugin's card is drawn by the same
+        table as a tile a person coloured, in both looks; the palette takes it over the tile's own."""
+        enum = cpp_block((FIRMWARE / 'plugin_api.h').read_text(), r'enum\s+class\s+CardColor\b')
+        table = cpp_block((FIRMWARE / 'theme.h').read_text(), r'\bSWATCHES\s*\[\s*\]\s*=')
+        self.assertTrue(enum and table, 'plugin_api.h has an `enum class CardColor` and theme.h a `SWATCHES[]` table: '
+                                        'this rule reads both, so name the new places here when they move')
+        names = [part.split('=')[0].strip() for part in enum.split(',') if part.strip()]
+        swatches = re.findall(r'\{\s*"([^"]+)"', table)
+        self.assertEqual(names[0], 'NONE', 'CardColor starts with NONE, which gives the card back to the colour the '
+                                           'person chose for the tile')
+        # INSTRUMENT (0.28) comes after them: the instrument roles' ground, no swatch (theme::Face::instrument).
+        self.assertEqual(names[-1], 'INSTRUMENT', 'CardColor ends with INSTRUMENT, the one colour that is no swatch: a new '
+                                                  'swatch goes in before it')
+        # Every colour the API names is a swatch of the screen's own table, and the API names them all. How the host
+        # gets from one to the other is plugin_host.cpp's static_assert (card_swatches_whole), checked when it compiles,
+        # and that the card then wears it in both looks is tools/render/run.py's plugin round, which sets a colour and
+        # reads the card's ground on the glass (docs/TESTING.md, "A test reads behaviour, not lines").
+        self.assertEqual(sorted(name.lower() for name in names[1:-1]), sorted(swatches),
+                         'every swatch of theme::SWATCHES is a CardColor of the plugin API by its name, once, and every '
+                         'CardColor between NONE and INSTRUMENT is a swatch: a new swatch gets its CardColor (before '
+                         'INSTRUMENT) and its line in plugin_host.cpp\'s CARD_SWATCHES, and raises the API\'s minor')
+
     def test_one_plugin_api_everywhere(self):
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        major, minor = re.search(r'PLUGIN_API_MAJOR = (\d+), PLUGIN_API_MINOR = (\d+)', header).groups()
-        component = (ROOT / 'components/smart_display/__init__.py').read_text()
-        self.assertIn(f'PLUGIN_API = ({major}, {minor})', component)
-        self.assertEqual(pm.PLUGIN_API, (int(major), int(minor)))
-        self.assertIn(f'PLUGIN_API_BREAKS = {pm.PLUGIN_API_BREAKS!r}', component)
-        # The docs name the same number, once, and the host probe is written for it: it uses the newest moments.
+        """One plugin API version: plugin_api.h, the component's __init__.py, the add-on's manifest check, the docs and
+        the host probe, which is written for the newest API and uses its newest moments."""
+        api = (cpp_number('plugin_api.h', 'PLUGIN_API_MAJOR'), cpp_number('plugin_api.h', 'PLUGIN_API_MINOR'))
+        self.assertNotIn(None, api, 'plugin_api.h states PLUGIN_API_MAJOR and PLUGIN_API_MINOR')
+        version = f'{api[0]}.{api[1]}'
+        raise_all = (f'plugin_api.h says {version}: a new API raises PLUGIN_API_MINOR there, PLUGIN_API in '
+                     'components/smart_display/__init__.py and screen_manager/app/plugin_manifest.py, "the plugin API '
+                     'is X.Y now" in docs/PLUGINS.md and the host probe\'s `api`, together')
+        component = FIRMWARE / '__init__.py'
+        self.assertEqual(python_value(component, 'PLUGIN_API'), api, raise_all)
+        self.assertEqual(pm.PLUGIN_API, api, raise_all)
+        self.assertEqual(python_value(component, 'PLUGIN_API_BREAKS'), pm.PLUGIN_API_BREAKS,
+                         'PLUGIN_API_BREAKS is the same in components/smart_display/__init__.py (which refuses a plugin '
+                         'when it is built) and screen_manager/app/plugin_manifest.py (which refuses it in the app)')
         doc = (ROOT / 'docs/PLUGINS.md').read_text()
-        self.assertEqual(re.findall(r'the plugin API is (\d+\.\d+) now', doc), [f'{major}.{minor}'])
+        self.assertEqual(re.findall(r'the plugin API is (\d+\.\d+) now', doc), [version], raise_all)
         import yaml
         probe = yaml.safe_load((ROOT / 'tests/fixtures/plugins/host_probe/tessera-plugin.yaml').read_text())
-        self.assertEqual(probe['api'], f'{major}.{minor}')
+        self.assertEqual(probe['api'], version, raise_all)
 
     def test_a_tile_may_have_places_for_pictures(self):
         """`pictures` (0.10): how many places a tile has at most, 0 without; the screen asks for as many at most."""
@@ -217,19 +283,38 @@ class Manifest(unittest.TestCase):
             with self.assertRaises(pm.ManifestError) as caught:
                 pm.check(manifest(tiles=tiles), ENGLISH)
             self.assertIn('tiles[0].pictures', str(caught.exception))
-        header = (ROOT / 'components/smart_display/tile_picture.h').read_text()
-        self.assertIn(f'constexpr size_t MAX_PARTS = {pm.MAX_PICTURES};', header)
 
     def test_the_two_ticks_have_two_names(self):
-        """A plugin's 250 ms moment with millis() is on_interval; on_tick is a tile's or a card's second with the clock."""
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        plugin = header[header.index('class Plugin {'):header.index('// The register.')]
-        self.assertIn('virtual void on_interval(uint32_t now_ms)', plugin)
-        self.assertNotIn('void on_tick', plugin)
+        """A plugin's 250 ms moment with millis() is on_interval; on_tick is a tile's or a card's second with the clock.
+        That the screen calls on_interval is the host probe's (it overrides it, and tools/render/run.py's plugin round
+        reads `interval=1` among the moments of boot); here, the name that must stay gone."""
+        plugin = cpp_block((FIRMWARE / 'plugin_api.h').read_text(), r'\bclass\s+Plugin\b')
+        self.assertIsNotNone(plugin, 'plugin_api.h defines tessera::Plugin, the class a plugin derives from')
+        self.assertIsNone(re.search(r'\bon_tick\b', re.sub(r'//[^\n]*|/\*.*?\*/', '', plugin, flags=re.S)),
+                          'tessera::Plugin has no on_tick: before 0.4 that was its 250 ms moment, and a plugin of then '
+                          'that overrides it must fail to build instead of being called once a second. The plugin\'s '
+                          'moment is on_interval; on_tick belongs to a tile and a card')
 
-    def test_placeholder_price_is_the_screens(self):
-        host = (ROOT / 'components/smart_display/plugin_host.h').read_text()
-        self.assertIn(f'PLACEHOLDER_BYTES = {core.PLUGIN_PLACEHOLDER_BYTES};', host)
+
+class SameNumbers(unittest.TestCase):
+    """A number the add-on and the firmware both use, written in each (they cannot share a file): the same on both
+    sides, read by its name in the header, whatever line it stands in."""
+    NUMBERS = [
+        # (the add-on's value, its name, the firmware header, the constant there, what the number is)
+        (pm.MAX_PICTURES, 'plugin_manifest.MAX_PICTURES', 'tile_picture.h', 'MAX_PARTS',
+         'how many places for pictures a tile may have, which the screen asks for at most'),
+        (core.PLUGIN_PLACEHOLDER_BYTES, 'core.PLUGIN_PLACEHOLDER_BYTES', 'plugin_host.h', 'PLACEHOLDER_BYTES',
+         'what a tile of a plugin the screen does not have costs of the layout memory'),
+        (picture_paint.MIRROR_PERCENT, 'picture_paint.MIRROR_PERCENT', 'plugin_api.h', 'MIRROR_PERCENT',
+         'the share of a picture\'s height its reflection takes, which the plugin keeps room for and the app paints'),
+    ]
+
+    def test_the_add_on_and_the_firmware_say_the_same(self):
+        for value, python, header, name, what in self.NUMBERS:
+            with self.subTest(name):
+                self.assertEqual(cpp_number(header, name), value,
+                                 f'{name} in components/smart_display/{header} and {python} in the add-on are {what}: '
+                                 'change both together')
 
 
 class Pictures(unittest.IsolatedAsyncioTestCase):
@@ -275,10 +360,6 @@ class Pictures(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(self.question(**bad), bad)
         # Covers of different tiles still never overlap.
         self.assertIsNone(picture_legacy.frames('[[0,0,60,90,6,0],[40,0,60,90,6,0]]', (480, 480), 2))
-
-    def test_the_reflection_is_the_screens_share(self):
-        header = (ROOT / 'components/smart_display/plugin_api.h').read_text()
-        self.assertIn(f'constexpr int MIRROR_PERCENT = {picture_paint.MIRROR_PERCENT};', header)
 
     @unittest.skipUnless(__import__('importlib').util.find_spec('PIL'), 'Pillow')
     def test_layers_overlap_turn_and_mirror(self):
@@ -542,7 +623,7 @@ class Links(unittest.IsolatedAsyncioTestCase):
 
     async def test_the_index_an_app_reads_is_the_version_a_screen_gets_back_and_forth(self):
         """The dev app reads the plugins index of the dev branch, the stable app that of main (Plugins.index_branches):
-        a screen moved to dev and back (the deploy-home skill) takes each index's version through the same update,
+        a screen moved to dev and back takes each index's version through the same update,
         the newer one on dev and the older one again on main, so a lower version is an update too."""
         import plugins as plugin_service
         tmp = tempfile.TemporaryDirectory()
@@ -1007,6 +1088,28 @@ class EntityOptions(unittest.IsolatedAsyncioTestCase):
         self.assertLess(len(x['entities']['solar']['attributes']['forecast']), 2000)
         self.assertLessEqual(len(json.dumps(x, separators=(',', ':')).encode()), plugin_service_budget())
 
+    async def test_a_place_keeps_its_room_beside_a_long_list_whose_last_items_give_way(self):
+        # A radar's sky fills the room on its own; its place (an entity option) still goes, and the sky loses items.
+        self.states['zone.home'] = {'state': '2', 'attributes': {'friendly_name': 'Home', 'latitude': 52.37, 'longitude': 4.89}}
+        self.kind['options'][0]['domains'] = ['sensor', 'zone']
+        self.kind['options'][0]['attributes'] = ['latitude', 'longitude']
+        sky = {'items': [{'hex': f'{n:06x}', 'flight': f'KLM{n:04d}', 'lat': 52.3 + n / 1000, 'lon': 4.8 + n / 1000,
+                          'alt': 30000 + n, 'gs': 420.5, 'track': 270.1, 'dst': n / 10} for n in range(40)]}
+
+        async def full_sky(*args, **kwargs):
+            return sky
+        self.service.tile_data = full_sky
+        x = (await self.message({'grid': 'zone.home'}))['x']
+        self.assertEqual(x['entities']['grid']['attributes'], {'latitude': 52.37, 'longitude': 4.89})
+        self.assertGreater(len(x['items']), 5)
+        self.assertLess(len(x['items']), 40)
+        self.assertLessEqual(len(json.dumps(x, separators=(',', ':')).encode()), plugin_service_budget())
+
+    def test_a_fetch_says_how_to_reach_the_project(self):
+        # planespotters.net (and others) refuse a server's request whose User-Agent has no contact URL or email.
+        # The app's own fetcher, not a bare one: the app gave it a string of its own until 2026-11-15.
+        self.assertRegex(self.service.fetcher.user_agent, r'\(\+https://')
+
     async def test_a_choice_of_another_domain_is_left_out(self):
         x = (await self.message({'grid': 'light.kitchen'})).get('x') or {}
         self.assertNotIn('entities', x)
@@ -1017,6 +1120,870 @@ class EntityOptions(unittest.IsolatedAsyncioTestCase):
             {'kind': 'entity', 'domains': ['plant', 'sensor']}, {'kind': 'text'}]}], 'inputs': []}})()
         states = {'plant.fern': {'state': 'ok', 'attributes': {}}, 'sensor.moisture': {'state': '1', 'attributes': {}}}
         self.assertEqual(plugin_service.plugin_entities([entry], states), [{'id': 'plant.fern', 'name': 'plant.fern'}])
+
+
+AIR_ENGLISH = {'app': {'name': 'Air', 'summary': 'The air in a room.', 'tile': 'Air quality', 'co2': 'CO2', 'pm25': 'PM2.5',
+                       'voc': 'VOC', 'limits': 'Limits', 'standard': 'Standard', 'who': 'WHO', 'eu': 'EU',
+                       'co2_limit': 'CO2 limit', 'label': 'Label'}, 'screen': {}}
+AIR_OPTIONS = [
+    {'id': 'co2', 'kind': 'entity', 'label': 'co2', 'domains': ['sensor'], 'device_class': ['carbon_dioxide']},
+    {'id': 'pm25', 'kind': 'entity', 'label': 'pm25', 'domains': ['sensor'], 'device_class': ['pm25']},
+    {'id': 'voc', 'kind': 'entity', 'label': 'voc', 'domains': ['sensor'],
+     'matches': ['voc_index', 'total_volatile_organic_component_index']},
+    {'id': 'standard', 'kind': 'choice', 'label': 'standard', 'default': 'who',
+     'choices': [{'value': 'who', 'label': 'who'}, {'value': 'eu', 'label': 'eu'}]},
+    {'id': 'co2_limit', 'kind': 'number', 'label': 'co2_limit', 'min': 400, 'max': 5000, 'step': 50, 'unit': 'ppm',
+     'optional': True, 'group': 'limits', 'placeholder_from': {'option': 'standard', 'values': {'who': 1000, 'eu': 800}}},
+]
+
+
+def air(options=None, api='0.26', **tile):
+    """A manifest of one tile of the air in a room, with the options of plugin API 0.26."""
+    return {'id': 'air', 'version': '1.0.0', 'api': api, 'icon': 'air-filter', 'maintainer': 'someone', 'license': 'MIT',
+            'topics': ['home'], 'tiles': [{'id': 'room', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 900,
+                                           'options': [dict(option) for option in (AIR_OPTIONS if options is None else options)],
+                                           **tile}]}
+
+
+def air_option(**changes):
+    """AIR_OPTIONS with one option changed, by its id; a value of None takes the field off."""
+    out = []
+    for option in AIR_OPTIONS:
+        option = dict(option)
+        if option['id'] == changes.get('id'):
+            option.update(changes)
+            option = {key: value for key, value in option.items() if value is not None}
+        out.append(option)
+    return out
+
+
+class MoreOptions(unittest.TestCase):
+    """Plugin API 0.26: an entity option that says which entities it is for, a tile filled from one device, options
+    under a heading, a number that may stay empty, and up to 24 options of a tile."""
+
+    def refuses(self, data, word=None):
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(data, AIR_ENGLISH)
+        if word:
+            self.assertIn(word, str(caught.exception))
+
+    def test_the_whole_tile_passes_and_keeps_every_field(self):
+        tile = pm.check(air(from_device=True), AIR_ENGLISH)['tiles'][0]
+        options = {option['id']: option for option in tile['options']}
+        self.assertTrue(tile['from_device'])
+        self.assertEqual(options['co2']['device_class'], ['carbon_dioxide'])
+        self.assertEqual(options['voc']['matches'], ['voc_index', 'total_volatile_organic_component_index'])
+        self.assertEqual((options['co2_limit']['optional'], options['co2_limit']['group']), (True, 'limits'))
+        self.assertEqual(options['co2_limit']['placeholder_from'], {'option': 'standard', 'values': {'who': 1000, 'eu': 800}})
+        self.assertNotIn('default', options['co2_limit'])
+        self.assertFalse(pm.check(air(), AIR_ENGLISH)['tiles'][0]['from_device'])
+
+    def test_every_new_field_belongs_to_0_26(self):
+        plain = [{'id': 'label', 'kind': 'text', 'label': 'label'}]
+        pm.check(air(plain, api='0.25'), AIR_ENGLISH)
+        for name, options, tile in (
+                ('device_class', [AIR_OPTIONS[0]], {}), ('matches', [AIR_OPTIONS[2]], {}),
+                ('group', [{**plain[0], 'group': 'limits'}], {}),
+                ('optional', [{'id': 'n', 'kind': 'number', 'label': 'label', 'min': 0, 'max': 9, 'optional': True}], {}),
+                # A number with `placeholder_from` is `optional` too, which the sentence names first.
+                ('optional', [AIR_OPTIONS[3], {k: v for k, v in AIR_OPTIONS[4].items() if k != 'group'}], {}), ('from_device', plain, {'from_device': False}),
+                ('more than 12', [{**plain[0], 'id': f'o{i}'} for i in range(13)], {})):
+            with self.subTest(name):
+                self.refuses(air(options, api='0.25', **tile), 'needs plugin API 0.26 (api: "0.26")')
+                self.refuses(air(options, api='0.15', **tile), name)
+
+    def test_which_entities_an_option_is_for(self):
+        for field in ('device_class', 'matches'):
+            for wrong in ([], ['Carbon-Dioxide'], [f'w{i}' for i in range(9)], 'pm25', [''], [3]):
+                with self.subTest(field=field, wrong=wrong):
+                    self.refuses(air(air_option(id='co2', **{'device_class': None, field: wrong})))
+            # Only an option of kind entity names them.
+            self.refuses(air([{'id': 'label', 'kind': 'text', 'label': 'label', field: ['pm25']}]), 'does not belong')
+        both = pm.check(air(air_option(id='co2', matches=['co2'])), AIR_ENGLISH)['tiles'][0]['options'][0]
+        self.assertEqual((both['device_class'], both['matches']), (['carbon_dioxide'], ['co2']))
+
+    def test_an_entity_fits_by_its_class_its_translation_key_or_the_end_of_its_id(self):
+        options = {option['id']: option for option in pm.check(air(), AIR_ENGLISH)['tiles'][0]['options']}
+        co2, voc = options['co2'], options['voc']
+        self.assertTrue(pm.entity_fits(co2, 'sensor.hall_co2', 'carbon_dioxide'))
+        self.assertFalse(pm.entity_fits(co2, 'sensor.hall_co2', 'pm25'))
+        self.assertFalse(pm.entity_fits(co2, 'sensor.hall_co2'))
+        self.assertTrue(pm.entity_fits(voc, 'sensor.hall_air', None, 'voc_index'))
+        self.assertTrue(pm.entity_fits(voc, 'sensor.hall_voc_index'))
+        self.assertTrue(pm.entity_fits(voc, 'sensor.hall_total_volatile_organic_component_index', 'aqi', 'other'))
+        self.assertFalse(pm.entity_fits(voc, 'sensor.hall_voc_index_raw'))
+        self.assertFalse(pm.entity_fits(voc, 'sensor.hallvoc_index'), 'a word of the id, never the end of another word')
+        self.assertFalse(pm.entity_fits(voc, 'sensor.hall_temperature', 'temperature', 'temperature'))
+        # Never an entity of another domain, whatever it says of itself.
+        self.assertFalse(pm.entity_fits(co2, 'number.hall_co2', 'carbon_dioxide'))
+        # An option that names neither takes every entity of its domains, as before 0.26.
+        every = {'kind': 'entity', 'domains': ['sensor', 'binary_sensor']}
+        self.assertTrue(pm.entity_fits(every, 'binary_sensor.door'))
+        self.assertFalse(pm.entity_fits(every, 'light.door'))
+        # The rule shapes the editor's list only: a value of any entity of the domains is kept.
+        self.assertEqual(pm.option_value(co2, 'sensor.hall_temperature'), 'sensor.hall_temperature')
+
+    def test_a_tile_filled_from_a_device_has_two_options_that_say_which_entities(self):
+        pm.check(air(from_device=True), AIR_ENGLISH)
+        pm.check(air([AIR_OPTIONS[0], AIR_OPTIONS[2]], from_device=True), AIR_ENGLISH)
+        any_sensor = {'id': 'other', 'kind': 'entity', 'label': 'label', 'domains': ['sensor']}
+        for options in ([AIR_OPTIONS[0]], [AIR_OPTIONS[0], any_sensor], [AIR_OPTIONS[3]], []):
+            with self.subTest(options=[o['id'] for o in options]):
+                self.refuses(air(options, from_device=True), 'from_device')
+                pm.check(air(options, from_device=False), AIR_ENGLISH)
+        self.refuses(air(from_device='yes'), 'true or false')
+
+    def test_a_group_is_a_text_of_the_plugin(self):
+        english = {**AIR_ENGLISH, 'app': {k: v for k, v in AIR_ENGLISH['app'].items() if k != 'limits'}}
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(air(), english)
+        self.assertIn('limits', str(caught.exception))
+        self.refuses(air(air_option(id='co2', group='Not a key')))
+        # Every kind of option may stand under one, a screensaver's too.
+        self.assertEqual(pm.check(air(air_option(id='co2', group='limits')), AIR_ENGLISH)['tiles'][0]['options'][0]['group'], 'limits')
+        saver = {'id': 'face', 'name': 'tile', 'step': 'clock', 'memory': 900,
+                 'options': [{'id': 'label', 'kind': 'text', 'label': 'label', 'group': 'limits'}]}
+        self.assertEqual(pm.check({**air([]), 'savers': [saver]}, AIR_ENGLISH)['savers'][0]['options'][0]['group'], 'limits')
+        self.refuses({**air([], api='0.25'), 'savers': [saver]}, '0.26')
+
+    def test_a_number_may_stay_empty(self):
+        number = lambda **given: [{'id': 'n', 'kind': 'number', 'label': 'label', 'min': 400, 'max': 5000, **given}]
+        option = pm.check(air(number(optional=True)), AIR_ENGLISH)['tiles'][0]['options'][0]
+        self.assertTrue(option['optional'])
+        self.assertNotIn('default', option)
+        for wrong in (number(optional=False), number(optional='yes'), number(optional=True, default=800),
+                      [{'id': 'label', 'kind': 'text', 'label': 'label', 'optional': True}]):
+            with self.subTest(wrong=wrong):
+                self.refuses(air(wrong))
+        # A filled value is checked as every number; an empty one is no key at all, never 0.
+        self.assertEqual(pm.option_value(option, 800), 800)
+        for wrong in (399, 5001, '', None, '800'):
+            with self.subTest(value=wrong), self.assertRaises(pm.ManifestError):
+                pm.option_value(option, wrong)
+        self.assertTrue(core.plugin_options({'co2': 'sensor.hall_co2'}))
+        self.assertFalse(core.plugin_options({'co2_limit': None}))
+
+    def test_the_values_leave_an_empty_number_out(self):
+        import plugins as plugin_service
+        tile = pm.check(air(), AIR_ENGLISH)['tiles'][0]
+        values = lambda chosen: plugin_service.Plugins.values_of(None, None, tile, chosen)
+        self.assertEqual(values({'co2': 'sensor.hall_co2'}), {'standard': 'who', 'co2': 'sensor.hall_co2'})
+        self.assertEqual(values({}), {'standard': 'who'})
+        self.assertEqual(values({'co2_limit': 900, 'standard': 'eu'}), {'standard': 'eu', 'co2_limit': 900})
+        # A value that is no number of the option (an older editor's empty text, one out of range) is left out too.
+        for wrong in ('', 0, 99999):
+            with self.subTest(value=wrong):
+                self.assertNotIn('co2_limit', values({'co2_limit': wrong}))
+
+    def test_what_applies_while_a_number_is_empty(self):
+        limit = lambda **source: air_option(id='co2_limit', placeholder_from={'option': 'standard', 'values': {'who': 1000}, **source})
+        # A value of the choice may lack a number.
+        self.assertEqual(pm.check(air(limit()), AIR_ENGLISH)['tiles'][0]['options'][4]['placeholder_from']['values'], {'who': 1000})
+        for wrong, word in ((limit(option='missing'), 'choice'), (limit(option='co2'), 'choice'), (limit(option='co2_limit'), 'choice'),
+                            (limit(values={'us': 900}), 'us'), (limit(values={'who': 'high'}), 'number'), (limit(values={}), 'values'),
+                            (limit(values=[1000]), 'mapping'), (limit(more=1), 'more'),
+                            (air_option(id='co2_limit', optional=None), 'optional'),
+                            (air_option(id='co2_limit', placeholder_from={'option': 'standard'}), 'values')):
+            with self.subTest(word=word):
+                self.refuses(air(wrong), word)
+        # The choice it names has fixed choices and keeps one value: no list from a fetch, no list of picks.
+        several = [{**AIR_OPTIONS[3], 'multiple': 2, 'default': []}, AIR_OPTIONS[4]]
+        self.refuses(air(several), 'choice')
+
+    def test_a_tile_takes_24_options_and_a_screensaver_twelve(self):
+        options = lambda n: [{'id': f'o{i}', 'kind': 'text', 'label': 'label'} for i in range(n)]
+        self.assertEqual(len(pm.check(air(options(24)), AIR_ENGLISH)['tiles'][0]['options']), 24)
+        self.refuses(air(options(25)), 'at most 24')
+        saver = lambda n: {**air([]), 'savers': [{'id': 'face', 'name': 'tile', 'step': 'clock', 'memory': 900, 'options': options(n)}]}
+        pm.check(saver(12), AIR_ENGLISH)
+        self.refuses(saver(13), 'at most 12')
+        # The layout check keeps as many, within the same bytes.
+        self.assertEqual(core.PLUGIN_OPTION_MAX, pm.MAX_OPTIONS)
+        self.assertTrue(core.plugin_options({f'o{i}': 'sensor.hall_carbon_dioxide' for i in range(24)}))
+        self.assertFalse(core.plugin_options({f'o{i}': 1 for i in range(25)}))
+        self.assertFalse(core.plugin_options({f'o{i}': 'x' * 64 for i in range(24)}), 'the 1280 bytes stay')
+
+    def test_the_editor_gets_the_entities_that_fit_and_their_devices(self):
+        import plugins as plugin_service
+        entry = type('Entry', (), {'manifest': pm.check(air(from_device=True), AIR_ENGLISH)})()
+        registry = [
+            {'entity_id': 'sensor.one_co2', 'device_id': 'd1', 'translation_key': 'carbon_dioxide'},
+            {'entity_id': 'sensor.one_pm25', 'device_id': 'd1'},
+            {'entity_id': 'sensor.one_raw_pm25', 'device_id': 'd1', 'translation_key': 'raw_pm25', 'disabled_by': 'integration',
+             'original_device_class': 'pm25'},
+            {'entity_id': 'sensor.one_voc_index', 'device_id': 'd1', 'entity_category': 'diagnostic'},
+            {'entity_id': 'sensor.one_temperature', 'device_id': 'd1'},
+            {'entity_id': 'sensor.two_air', 'device_id': 'd2', 'translation_key': 'voc_index'},
+            {'entity_id': 'number.one_co2', 'device_id': 'd1'}]
+        states = {'sensor.one_co2': {'state': '612', 'attributes': {'device_class': 'carbon_dioxide'}},
+                  'sensor.one_pm25': {'state': '4', 'attributes': {'device_class': 'pm25'}},
+                  'sensor.one_voc_index': {'state': '90', 'attributes': {}},
+                  'sensor.one_temperature': {'state': '21', 'attributes': {'device_class': 'temperature'}},
+                  'sensor.two_air': {'state': '80', 'attributes': {}},
+                  'sensor.yaml_co2': {'state': '500', 'attributes': {'device_class': 'carbon_dioxide'}},
+                  'number.one_co2': {'state': '1', 'attributes': {'device_class': 'carbon_dioxide'}}}
+        devices = [{'id': 'd1', 'name': 'airgradient-one', 'name_by_user': 'AirGradient ONE'}, {'id': 'd2', 'name': 'Sensirion'},
+                   {'id': 'd3', 'name': 'A lamp'}]
+        facts, names = plugin_service.entity_facts([entry], states, registry, devices)
+        self.assertEqual(facts, {
+            'sensor.one_co2': {'device': 'd1', 'device_class': 'carbon_dioxide', 'translation_key': 'carbon_dioxide'},
+            'sensor.one_pm25': {'device': 'd1', 'device_class': 'pm25'},
+            'sensor.one_raw_pm25': {'device': 'd1', 'device_class': 'pm25', 'translation_key': 'raw_pm25', 'disabled': True},
+            'sensor.one_voc_index': {'device': 'd1', 'category': 'diagnostic'},
+            'sensor.two_air': {'device': 'd2', 'translation_key': 'voc_index'},
+            'sensor.yaml_co2': {'device_class': 'carbon_dioxide'}})
+        self.assertEqual(names, {'d1': 'AirGradient ONE', 'd2': 'Sensirion'})
+        # No plugin with such an option: nothing travels, however many sensors a home has.
+        plain = type('Entry', (), {'manifest': pm.check(air([{'id': 'any', 'kind': 'entity', 'label': 'label', 'domains': ['sensor']}]),
+                                                         AIR_ENGLISH)})()
+        self.assertEqual(plugin_service.entity_facts([plain], states, registry, devices), ({}, {}))
+        self.assertEqual(plugin_service.entity_facts([entry], states, None, None)[0]['sensor.one_co2'], {'device_class': 'carbon_dioxide'})
+
+    def test_the_payload_names_them_and_every_field_of_an_option(self):
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+
+        class FakeManager:
+            ha = type('HA', (), {'states': {'sensor.one_co2': {'state': '612', 'attributes': {'device_class': 'carbon_dioxide'}}},
+                                 'registry': [{'entity_id': 'sensor.one_co2', 'device_id': 'd1'}],
+                                 'devices': [{'id': 'd1', 'name': 'AirGradient ONE'}],
+                                 'changed': asyncio.Event(), 'dirty': set()})()
+            page_senders, aliases, firmware = {}, {}, None
+            updates = type('Updates', (), {'resolve': lambda self, screen: (None, None)})()
+
+            def screens(self):
+                return []
+        service = plugin_service.Plugins(FakeManager(), Path(tmp.name) / 'data', Path(tmp.name) / 'esphome')
+        service._take_index({'format': 1, 'plugins': [{
+            'id': 'air', 'repo': 'https://github.com/MaxGramser/tessera-plugins', 'path': 'plugins/air', 'label': 'tessera',
+            'release': {'version': '1.0.0', 'sha': 'a' * 40, 'date': '2026-11-14'}, 'manifest': air(from_device=True),
+            'translations': {'en': AIR_ENGLISH, 'nl': {'app': {'limits': 'Grenzen'}}}}]})
+        payload = service.payload()
+        self.assertEqual(payload['entity_facts'], {'sensor.one_co2': {'device': 'd1', 'device_class': 'carbon_dioxide'}})
+        self.assertEqual(payload['devices'], {'d1': 'AirGradient ONE'})
+        tile = payload['plugins'][0]['tiles'][0]
+        options = {option['id']: option for option in tile['options']}
+        self.assertTrue(tile['from_device'])
+        self.assertEqual((options['co2']['device_class'], options['voc']['matches'][0]), (['carbon_dioxide'], 'voc_index'))
+        limit = options['co2_limit']
+        self.assertEqual(limit['group'], {'en': 'Limits', 'nl': 'Grenzen'})
+        self.assertEqual((limit['optional'], limit['placeholder_from']['values']['eu'], limit['unit']), (True, 800, 'ppm'))
+        self.assertNotIn('default', limit)
+        self.assertNotIn('group', options['co2'])
+
+
+PLACE_ENGLISH = {'app': {'name': 'Weather', 'summary': 'The weather where you are.', 'tile': 'Weather', 'place': 'Place',
+                         'label': 'Label', 'card': 'Card'}, 'screen': {}}
+PLACE_OPTION = {'id': 'place', 'kind': 'entity', 'label': 'place', 'domains': ['zone', 'person', 'device_tracker'],
+                'attributes': ['latitude', 'longitude'], 'default': 'zone.home'}
+PLACE_URL = 'https://api.example.org/forecast?lat={place.latitude:2}&lon={place.longitude:2}'
+
+
+def place_plugin(api='0.27', url=PLACE_URL, options=None, fetch=None, tiles=None, **more):
+    """A manifest of the weather where a chosen entity is (plugin API 0.27): its fetch reads the entity's latitude and
+    longitude, and a second fetch the screen asks for, with the details of a row."""
+    data = {'id': 'weather', 'version': '1.0.0', 'api': api, 'icon': 'weather-partly-cloudy', 'maintainer': 'someone',
+            'license': 'MIT', 'topics': ['weather'], 'permissions': {'network': ['api.example.org']},
+            'attributes': ['cloud'], 'privacy': 'https://example.org/p',
+            'tiles': tiles if tiles is not None else [{'id': 'now', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '2x2'}, 'memory': 600,
+                                                       'data': 'forecast', 'options': [dict(o) for o in (options or [PLACE_OPTION])]}],
+            'fetch': [{'id': 'forecast', 'url': url, 'every': '10m',
+                       'map': {'fields': {'temp': {'path': 'current.temperature', 'as': 'number'}, 'sky': 'current.sky'}}},
+                      *(fetch or [])]}
+    data.update(more)
+    return data
+
+
+DETAIL = {'id': 'detail', 'url': 'https://api.example.org/rows/{row}?day={day}', 'every': '1m', 'asked': ['row', 'day'],
+          'map': {'fields': {'title': 'title', 'at': {'path': 'when', 'as': 'epoch'}}}}
+
+
+class FetchMore(unittest.TestCase):
+    """Plugin API 0.27, the manifest: a fetch that reads an attribute of the entity a person chose, an entity option
+    with a default, a fetch the screen asks for, twelve fields, and places for pictures in a popup."""
+
+    def refuses(self, data, word=None):
+        with self.assertRaises(pm.ManifestError) as caught:
+            pm.check(data, PLACE_ENGLISH)
+        if word:
+            self.assertIn(word, str(caught.exception))
+
+    def test_a_fetch_reads_the_chosen_entitys_attributes(self):
+        out = pm.check(place_plugin(), PLACE_ENGLISH)
+        fetch = out['fetch'][0]
+        self.assertEqual(fetch['reads'], [{'option': 'place', 'attribute': 'latitude', 'decimals': 2},
+                                          {'option': 'place', 'attribute': 'longitude', 'decimals': 2}])
+        self.assertEqual(fetch['placeholders'], [])
+        self.assertEqual(out['tiles'][0]['options'][0]['default'], 'zone.home')
+        self.assertEqual(out['sends'], [{'fetch': 'forecast', 'host': 'api.example.org',
+                                         'reads': ['place.latitude', 'place.longitude']}])
+        # Its state, without decimals, in a header too.
+        stated = pm.check(place_plugin(url='https://api.example.org/now', fetch=None), PLACE_ENGLISH)
+        self.assertEqual(stated['sends'], [])
+        data = place_plugin()
+        data['fetch'][0]['headers'] = {'X-Where': '{place.state}'}
+        self.assertIn({'option': 'place', 'attribute': 'state', 'decimals': None}, pm.check(data, PLACE_ENGLISH)['fetch'][0]['reads'])
+
+    def test_every_wrong_attribute_placeholder_is_named(self):
+        text = {'id': 'place', 'kind': 'text', 'label': 'place'}
+        for data, word in (
+                (place_plugin(options=[text]), 'option of kind entity'),
+                (place_plugin(url='https://api.example.org/x?a={place.altitude}'), '"altitude"'),
+                (place_plugin(url='https://{place.state}.example.org/x'), 'fixed host'),
+                (place_plugin(url='https://api.example.org:{place.state}/x'), 'fixed host'),
+                (place_plugin(url='https://{place.state}@api.example.org/x'), 'fixed host'),
+                (place_plugin(url='https://api.example.org/x?a={place.latitude:7}'), 'decimals from 0 to 6'),
+                (place_plugin(url='https://api.example.org/x?a={place.lat-x}'), 'no placeholder'),
+                (place_plugin(url='https://api.example.org/x?a={where.latitude}'), '"where"'),
+                (place_plugin(api='0.26', options=[{k: v for k, v in PLACE_OPTION.items() if k != 'default'}]),
+                 'needs plugin API 0.27 (api: "0.27")')):
+            with self.subTest(word=word, url=data['fetch'][0]['url']):
+                self.refuses(data, word)
+        # Every tile whose data the fetch is has the option: a second tile without it is refused.
+        second = {'id': 'other', 'name': 'tile', 'sizes': {'min': '1x1', 'max': '1x1'}, 'memory': 600, 'data': 'forecast'}
+        tiles = place_plugin()['tiles'] + [second]
+        self.refuses(place_plugin(tiles=tiles), 'every tile')
+        # A fetch that fills a list of choices has no tile's entity to read.
+        choices = place_plugin(url='https://api.example.org/x', fetch=[{
+            'id': 'areas', 'url': 'https://api.example.org/areas?lat={place.latitude}', 'every': '1h',
+            'map': {'items': '$.areas[*]', 'value': 'id', 'label': 'name'}}])
+        choices['tiles'][0]['options'].append({'id': 'area', 'kind': 'choice', 'label': 'label', 'options_from': 'areas'})
+        self.refuses(choices, 'only a fetch that is a tile')
+
+    def test_an_entity_option_may_start_with_an_entity(self):
+        tile = pm.check(place_plugin(), PLACE_ENGLISH)['tiles'][0]
+        import plugins as plugin_service
+        self.assertEqual(plugin_service.Plugins.values_of(None, None, tile, {}), {'place': 'zone.home'})
+        self.assertEqual(plugin_service.Plugins.values_of(None, None, tile, {'place': 'person.someone'}), {'place': 'person.someone'})
+        self.assertEqual(plugin_service.Plugins.values_of(None, None, tile, {'place': ''}), {'place': ''}, 'taken off stays off')
+        for wrong, word in (('light.kitchen', 'domains'), ('zone', 'entity id'), (3, 'text')):
+            with self.subTest(wrong=wrong):
+                self.refuses(place_plugin(options=[{**PLACE_OPTION, 'default': wrong}]), word)
+        self.refuses(place_plugin(api='0.26', url='https://api.example.org/now'), 'needs plugin API 0.27')
+        pm.check(place_plugin(api='0.26', url='https://api.example.org/now', options=[{**PLACE_OPTION, 'default': ''}]), PLACE_ENGLISH)
+
+    def test_a_fetch_the_screen_asks_for(self):
+        out = pm.check(place_plugin(fetch=[DETAIL]), PLACE_ENGLISH)
+        detail = out['fetch'][1]
+        self.assertEqual((detail['asked'], detail['placeholders']), (['row', 'day'], ['day', 'row']))
+        secret = place_plugin(fetch=[{**DETAIL, 'headers': {'Authorization': 'Bearer {key}'}}],
+                              inputs=[{'id': 'key', 'kind': 'secret', 'label': 'label'}])
+        self.assertEqual(pm.check(secret, PLACE_ENGLISH)['fetch'][1]['placeholders'], ['day', 'key', 'row'])
+        saver = {'id': 'face', 'name': 'tile', 'step': 'own', 'memory': 600, 'data': 'detail'}
+        with_choice = place_plugin(fetch=[{**DETAIL, 'map': {'items': '$[*]', 'value': 'id', 'label': 'name'}}])
+        with_choice['tiles'][0]['options'].append({'id': 'pick', 'kind': 'choice', 'label': 'label', 'options_from': 'detail'})
+        for data, word in (
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['row', 'day', 'a', 'b', 'c']}]), 'at most 4'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': []}]), '1 to 4'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['row', 'row']}]), '1 to 4'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['Row']}]), '1 to 4'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://api.example.org/rows/{row}?day={day}&x={nope}'}]), '{nope}'),
+                (place_plugin(fetch=[{**DETAIL, 'asked': ['row', 'day', 'unused']}]), '"unused"'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://api.example.org/rows/{row}?day={day}&l={place.latitude}'}]),
+                 'only a fetch that is a tile'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://{row}.example.org/{day}'}]), 'fixed host'),
+                (place_plugin(fetch=[{**DETAIL, 'url': 'https://elsewhere.example.org/{row}/{day}'}]), 'permissions.network'),
+                (place_plugin(fetch=[{**DETAIL, 'each': 'row'}]), 'each'),
+                (place_plugin(fetch=[DETAIL], inputs=[{'id': 'row', 'kind': 'text', 'label': 'label'}]), 'input'),
+                (place_plugin(url='https://api.example.org/now', fetch=[DETAIL],
+                              tiles=[{**place_plugin()['tiles'][0], 'data': 'detail'}]), 'no tile'),
+                ({**place_plugin(fetch=[DETAIL]), 'savers': [saver]}, 'no tile'),
+                (with_choice, 'no tile'),
+                (place_plugin(api='0.26', url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
+                              fetch=[DETAIL]), 'needs plugin API 0.27 (api: "0.27")')):
+            with self.subTest(word=word):
+                self.refuses(data, word)
+
+    def test_twelve_fields_and_the_api_that_brought_them(self):
+        fields = lambda n: {f'f{i}': f'a.f{i}' for i in range(n)}
+        plain = lambda api, n: place_plugin(api=api, url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
+                                            fetch=None) | {'fetch': [{'id': 'forecast', 'url': 'https://api.example.org/now', 'every': '10m',
+                                                                      'map': {'fields': fields(n)}}]}
+        self.assertEqual(len(pm.check(plain('0.27', 12), PLACE_ENGLISH)['fetch'][0]['map']['fields']), 12)
+        pm.check(plain('0.26', 8), PLACE_ENGLISH)
+        self.refuses(plain('0.27', 13), '1 to 12 fields')
+        self.refuses(plain('0.26', 9), 'more than 8 fields needs plugin API 0.27')
+        # An answer's fields and a tile's, the same.
+        answers = plain('0.26', 1) | {'permissions': {'network': ['api.example.org'], 'ha_commands': ['history/history_during_period']},
+                                       'answers': [{'command': 'history/history_during_period', 'fields': fields(9)}]}
+        self.refuses(answers, 'answers[0].fields')
+        pm.check(answers | {'api': '0.27'}, PLACE_ENGLISH)
+        self.assertEqual(pm.MAX_FIELDS, 12)
+
+    def test_a_picture_address_comes_whole(self):
+        # A text stops at 48 bytes, which cut planespotters' addresses into ones that answer 404; `as: url` (0.28) keeps
+        # an http(s) address whole up to 255 bytes, or gives none.
+        import plugin_fetch
+        photo = 'https://t.plnspttrs.net/03074/1998710_fdd0467702_280.jpg'
+        item = {'photos': [{'thumbnail_large': {'src': photo}}]}
+        path = pm.parse_path('photos[0].thumbnail_large.src', root=False)
+        self.assertEqual(plugin_fetch.field_value(item, {'path': path, 'as': 'url'}), photo)
+        self.assertNotEqual(plugin_fetch.field_value(item, {'path': path, 'as': 'text'}), photo)
+        for wrong in ('ftp://example.org/a.jpg', 'https://example.org/' + 'a' * 300, 'not an address', 7):
+            self.assertIsNone(plugin_fetch.field_value({'src': wrong}, {'path': pm.parse_path('src', root=False), 'as': 'url'}))
+        with_url = lambda api: place_plugin(api=api, url='https://api.example.org/now', options=[{'id': 'place', 'kind': 'text', 'label': 'place'}],
+                                            fetch=None) | {'fetch': [{'id': 'forecast', 'url': 'https://api.example.org/now', 'every': '1d',
+                                                                      'map': {'fields': {'photo': {'path': 'src', 'as': 'url'}}}}]}
+        # And whole in the answer to the screen's own ask. A text is bounded once, by its kind, in the map; the answer
+        # that came through a map is then only fitted to its bytes, and one that came as it was has no kinds, so every
+        # text in it stops at TEXT_BYTES, an address too: nothing guesses a kind from what a text looks like.
+        import plugins as plugin_service
+        spec = pm.check_map({'items': '$.list[*]', 'fields': {'photo': {'path': 'src', 'as': 'url'}, 'by': 'by'}}, 'map', False)
+        mapped = plugin_fetch.apply_map(spec, {'list': [{'src': photo, 'by': 'x' * 80}]})
+        self.assertEqual(plugin_service.bounded(mapped, mapped=True)['items'][0], {'photo': photo, 'by': 'x' * 48})
+        self.assertEqual(plugin_service.bounded({'photo': photo, 'by': 'x' * 80}),
+                         {'photo': photo[:plugin_fetch.TEXT_BYTES], 'by': 'x' * 48})
+        pm.check(with_url('0.28'), PLACE_ENGLISH)
+        self.refuses(with_url('0.27'), 'a field "as: url" needs plugin API 0.28')
+
+    def test_places_for_pictures_in_a_popup(self):
+        base = place_plugin(url='https://api.example.org/now', cards=[{'id': 'sky', 'name': 'card', 'pictures': 1}])
+        out = pm.check({**base, 'popups': [{'id': 'photo', 'pictures': 2}]}, PLACE_ENGLISH)
+        self.assertEqual(out['popups'], [{'id': 'photo', 'pictures': 2}])
+        self.assertEqual(pm.check(base, PLACE_ENGLISH)['popups'], [])
+        for popups, word in (([{'id': 'sky', 'pictures': 1}], 'a card too'), ([{'id': 'photo', 'pictures': 9}], 'between 1 and 8'),
+                             ([{'id': 'photo', 'pictures': 0}], 'between 1 and 8'), ([{'id': 'photo'}], '"pictures" is required'),
+                             ([{'id': 'photo', 'pictures': 1}] * 2, 'used twice'),
+                             ([{'id': f'p{i}', 'pictures': 1} for i in range(9)], 'at most 8'),
+                             ([{'id': 'photo', 'pictures': 1, 'wide': True}], 'unknown field')):
+            with self.subTest(word=word):
+                self.refuses({**base, 'popups': popups}, word)
+        self.refuses({**base, 'api': '0.26', 'popups': [{'id': 'photo', 'pictures': 1}]}, 'needs plugin API 0.27')
+
+    def test_what_a_fetch_sends_is_part_of_the_yes(self):
+        plain = pm.check(place_plugin(url='https://api.example.org/now'), PLACE_ENGLISH)
+        reading = pm.check(place_plugin(), PLACE_ENGLISH)
+        # A plugin that sends nothing of Home Assistant keeps the fingerprint it had before 0.27.
+        import hashlib
+        before = {'permissions': {'read_entities': [], 'home_assistant_actions': [], 'network': ['api.example.org']},
+                  'attributes': ['cloud']}
+        self.assertEqual(pm.permission_hash(plain), hashlib.sha256(json.dumps(before, sort_keys=True).encode()).hexdigest()[:16])
+        self.assertNotEqual(pm.permission_hash(reading), pm.permission_hash(plain))
+        # Another attribute asks again; another name of the fetch, or other decimals, do not.
+        more = pm.check(place_plugin(url=PLACE_URL + '&s={place.state}'), PLACE_ENGLISH)
+        self.assertNotEqual(pm.permission_hash(more), pm.permission_hash(reading))
+        renamed = place_plugin(url=PLACE_URL.replace(':2}', ':3}'))
+        renamed['fetch'][0]['id'] = 'weather_now'
+        renamed['tiles'][0]['data'] = 'weather_now'
+        self.assertEqual(pm.permission_hash(pm.check(renamed, PLACE_ENGLISH)), pm.permission_hash(reading))
+
+
+class FetchFill(unittest.TestCase):
+    """Plugin API 0.27: an entity's attribute filled into a fetch, rounded, and a tile's line of asking."""
+
+    def setUp(self):
+        self.fetch = pm.check(place_plugin(), PLACE_ENGLISH)['fetch'][0]
+
+    def test_rounded_and_encoded(self):
+        url, _ = plugin_fetch.fill(self.fetch, {'place.latitude': 52.3676, 'place.longitude': '4,9041'}, {})
+        self.assertEqual(url, 'https://api.example.org/forecast?lat=52.37&lon=4.90')
+        data = place_plugin(url='https://api.example.org/x?q={place.state}&n={place.latitude:0}')
+        data['fetch'][0]['headers'] = {'X-Where': '{place.state}'}
+        fetch = pm.check(data, PLACE_ENGLISH)['fetch'][0]
+        url, headers = plugin_fetch.fill(fetch, {'place.state': 'not home/away', 'place.latitude': 52.6}, {})
+        self.assertEqual(url, 'https://api.example.org/x?q=not%20home%2Faway&n=53')
+        self.assertEqual(headers, {'X-Where': 'not home/away'})
+        # A value filled in is never a placeholder itself.
+        url, headers = plugin_fetch.fill(fetch, {'place.state': '{place.latitude:0}', 'place.latitude': 1}, {})
+        self.assertEqual(headers['X-Where'], '{place.latitude:0}')
+
+    def test_missing_or_no_number_waits_as_not_filled(self):
+        for values, word in (({}, 'place.latitude'), ({'place.latitude': 52.1}, 'place.longitude'),
+                             ({'place.latitude': 'north', 'place.longitude': 4.9}, 'place.latitude (no number)'),
+                             ({'place.latitude': float('nan'), 'place.longitude': 4.9}, 'no number'),
+                             ({'place.latitude': True, 'place.longitude': 4.9}, 'no number'),
+                             ({'place.latitude': [52], 'place.longitude': 4.9}, 'place.latitude')):
+            with self.subTest(values=values), self.assertRaises(plugin_fetch.FetchRefused) as caught:
+                plugin_fetch.fill(self.fetch, values, {})
+            self.assertIn('not filled in', str(caught.exception))
+            self.assertIn(word, str(caught.exception))
+
+    def test_the_cache_keeps_a_bounded_number_of_questions(self):
+        # A fetch the screen asks makes a question per value; past MAX_QUESTIONS the one asked longest ago makes way,
+        # never the one a tile's line still follows.
+        clock = [1000.0]
+        fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
+
+        async def download(url, headers, network):
+            return {'current': {'temperature': 1}}
+        fetcher.download = download
+        manifest = pm.check(place_plugin(), PLACE_ENGLISH)
+        at = lambda n: {'place.latitude': n % 80, 'place.longitude': n // 80}   # whole degrees: each its own question
+
+        async def run():
+            followed, _ = await fetcher.get('weather', manifest, self.fetch, at(0), {}, line='L')
+            first, _ = await fetcher.get('weather', manifest, self.fetch, at(1), {})
+            for n in range(2, plugin_fetch.MAX_QUESTIONS + 20):
+                clock[0] += 1
+                await fetcher.get('weather', manifest, self.fetch, at(n), {})
+            self.assertEqual(len(fetcher.cache), plugin_fetch.MAX_QUESTIONS)
+            self.assertIn(followed, fetcher.cache)
+            self.assertNotIn(first, fetcher.cache)
+            self.assertEqual(set(fetcher.locks) - set(fetcher.cache), set())
+        asyncio.run(run())
+
+    def test_a_busy_service_is_left_alone_as_a_whole(self):
+        # HTTP 429 or 503 is the host's word, not one question's: every other question of that host waits with it, for
+        # as long as its Retry-After says, and none of them reaches the service meanwhile.
+        clock, asked = [1000.0], []
+        fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
+
+        async def download(url, headers, network):
+            asked.append(url)
+            if len(asked) == 1:
+                raise plugin_fetch.ServiceBusy(429, plugin_fetch.busy_wait('300'))
+            return {'current': {'temperature': 1}}
+        fetcher.download = download
+        manifest = pm.check(place_plugin(), PLACE_ENGLISH)
+        at = lambda n: {'place.latitude': n, 'place.longitude': 4}
+
+        async def run():
+            _, first = await fetcher.get('weather', manifest, self.fetch, at(1), {})
+            self.assertEqual((len(asked), first['data']), (1, None))
+            for n in range(2, 8):
+                _, other = await fetcher.get('weather', manifest, self.fetch, at(n), {})
+                self.assertIsNone(other['data'])
+            self.assertEqual(len(asked), 1, 'six more questions, none of them asked of the busy service')
+            clock[0] += 301
+            _, again = await fetcher.get('weather', manifest, self.fetch, at(2), {})
+            self.assertEqual((len(asked), again['data']), (2, {'current': {'temperature': 1}}))
+            fetcher.forget_unused()
+            self.assertEqual(fetcher.busy, {})
+        asyncio.run(run())
+        self.assertEqual([plugin_fetch.busy_wait(v) for v in ('5', '300', '99999', None, 'Wed, 21 Oct 2026 07:28:00 GMT', 'nan')],
+                         [60, 300, 3600, 60, 60, 60])
+
+    def test_a_line_asks_a_moving_place_at_most_every_interval(self):
+        clock, asked = [1000.0], []
+        fetcher = plugin_fetch.Fetcher(clock=lambda: clock[0])
+
+        async def download(url, headers, network):
+            asked.append(url)
+            return {'current': {'temperature': len(asked)}}
+        fetcher.download = download
+        manifest = pm.check(place_plugin(), PLACE_ENGLISH)
+        at = lambda lat: {'place.latitude': lat, 'place.longitude': 4.9}
+
+        async def run():
+            first, entry = await fetcher.get('weather', manifest, self.fetch, at(52.1), {}, line='L')
+            self.assertEqual(len(asked), 1)
+            clock[0] += 60
+            # The place moved: the line keeps its answer until ten minutes after it last asked.
+            key, held = await fetcher.get('weather', manifest, self.fetch, at(52.2), {}, line='L')
+            self.assertEqual((key, len(asked)), (first, 1))
+            self.assertIs(fetcher.peek('weather', self.fetch, at(52.2), {}, line='L'), held)
+            clock[0] += 60
+            key, _ = await fetcher.get('weather', manifest, self.fetch, at(52.3), {}, line='L')
+            self.assertEqual((key, len(asked)), (first, 1))
+            # Another tile without a line asks the new place at once; the line takes that answer from the cache.
+            other, _ = await fetcher.get('weather', manifest, self.fetch, at(52.3), {})
+            self.assertEqual(len(asked), 2)
+            key, entry = await fetcher.get('weather', manifest, self.fetch, at(52.3), {}, line='L')
+            self.assertEqual((key, len(asked), entry['data']['current']['temperature']), (other, 2, 2))
+            clock[0] += 60
+            key, _ = await fetcher.get('weather', manifest, self.fetch, at(52.4), {}, line='L')
+            self.assertEqual(len(asked), 2, 'taking over a cached answer is not the line asking')
+            # Once ten minutes have passed since the line asked, its new question is asked.
+            clock[0] = 1000.0 + 600
+            key, entry = await fetcher.get('weather', manifest, self.fetch, at(52.4), {}, line='L')
+            self.assertEqual((len(asked), asked[-1]), (3, 'https://api.example.org/forecast?lat=52.40&lon=4.90'))
+            self.assertEqual(entry['data']['current']['temperature'], 3)
+            # A line nobody follows is forgotten with its questions.
+            clock[0] += 10_000
+            fetcher.forget_unused()
+            self.assertEqual((fetcher.lines, fetcher.cache), ({}, {}))
+        asyncio.run(run())
+
+
+def place_service(tmp, states, manifest_data=None, english=PLACE_ENGLISH):
+    """A Plugins with the place plugin in a test folder on the screen `hall`, Home Assistant's states `states`, and a
+    fetcher whose service answers with how many times it was asked."""
+    import plugins as plugin_service
+    import yaml
+    config = Path(tmp) / 'esphome'
+    config.mkdir()
+    folder = Path(tmp) / 'tessera-plugins' / 'weather'
+    (folder / 'translations').mkdir(parents=True)
+    (folder / 'tessera-plugin.yaml').write_text(yaml.safe_dump(manifest_data or place_plugin(fetch=[DETAIL])))
+    (folder / 'translations' / 'en.json').write_text(json.dumps(english))
+    sent, asked = [], []
+
+    class FakeManager:
+        ha = type('HA', (), {'states': states, 'time_zone': 'UTC', 'changed': asyncio.Event(), 'dirty': set()})()
+        page_senders, aliases, layouts = {}, {}, {}
+
+        def screen(self, inbox):
+            return {'id': inbox, 'node': inbox, 'name': 'Hall', 'board': 'guition', 'online': True}
+
+        def transport(self, inbox, screen=None):
+            return 'action'
+
+        async def send_auxiliary(self, inbox, message, action, request):
+            sent.append(message['m'])
+    service = plugin_service.Plugins(FakeManager(), Path(tmp) / 'data', config)
+    service.scan_folders()
+    service.store.put('hall', {'id': 'weather', 'source': 'folder', 'state': 'active'})
+
+    async def download(url, headers, network):
+        asked.append(url)
+        return {'current': {'temperature': len(asked), 'sky': 'clear'}, 'title': f'Row {len(asked)}', 'when': 1792389600}
+    service.fetcher.download = download
+    return service, sent, asked
+
+
+class FetchOfThePlace(unittest.IsolatedAsyncioTestCase):
+    """Plugin API 0.27, the app: a tile's fetch filled in from Home Assistant's state of the chosen entity, asked again
+    within one loop turn when it moves but never more often than `every`, and what the editor says it sends."""
+
+    async def asyncSetUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.states = {'zone.home': {'state': '1', 'attributes': {'latitude': 52.3676, 'longitude': 4.9041, 'friendly_name': 'Home'}},
+                       'person.someone': {'state': 'not_home', 'attributes': {'latitude': 51.92, 'longitude': 4.48}},
+                       'person.away': {'state': 'unavailable', 'attributes': {'latitude': 1, 'longitude': 2}}}
+        self.service, self.sent, self.asked = place_service(tmp.name, self.states)
+        self.tile = {'entity': 'plugin:weather.now', 'name': '', 'slot': 0, 'options': {'plugin': {}}}
+        self.service.manager.layouts = {'hall': {'tiles': [self.tile]}}
+
+    async def test_the_default_entity_fills_the_fetch_and_goes_with_the_tile(self):
+        message = await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(self.asked, ['https://api.example.org/forecast?lat=52.37&lon=4.90'])
+        self.assertEqual(message['x']['temp'], 1)
+        self.assertEqual(message['x']['entities']['place']['attributes'], {'latitude': 52.3676, 'longitude': 4.9041})
+        self.assertEqual(message['o']['plugin'], {'place': 'zone.home'})
+
+    async def test_no_entity_an_unavailable_one_or_a_missing_attribute_waits(self):
+        for chosen in ({'place': ''}, {'place': 'person.away'}, {'place': 'person.gone'}):
+            with self.subTest(chosen=chosen):
+                message = await self.service.tile_message(0, {**self.tile, 'options': {'plugin': chosen}}, inbox='hall')
+                self.assertEqual(message['x']['wait'], 'not_filled')
+        self.assertEqual(self.asked, [])
+        # A choice of another domain is no value of the option, as every value that does not fit: the default applies.
+        message = await self.service.tile_message(0, {**self.tile, 'options': {'plugin': {'place': 'light.kitchen'}}}, inbox='hall')
+        self.assertEqual((message['o']['plugin'], len(self.asked)), ({'place': 'zone.home'}, 1))
+        self.asked.clear()
+        self.service.fetcher.cache.clear()
+        self.states['zone.home']['attributes'].pop('longitude')
+        message = await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(message['x']['wait'], 'not_filled')
+        self.assertEqual(self.asked, [])
+
+    async def test_a_place_that_moves_is_asked_in_the_next_turn_but_never_more_often_than_every(self):
+        clock = [5000.0]
+        self.service.fetcher.clock = lambda: clock[0]
+        self.tile['options']['plugin'] = {'place': 'person.someone'}
+        await self.service.refresh_data()
+        self.assertEqual(len(self.asked), 1)
+        self.assertIn('plugin:weather.now', self.service.manager.ha.dirty)
+        self.service.manager.ha.dirty.clear()
+        # The person moves, every turn of the loop: the service is not asked again before ten minutes have passed.
+        for step in range(1, 40):
+            clock[0] += 15
+            self.states['person.someone']['attributes']['latitude'] = 51.92 + step / 100
+            await self.service.refresh_data()
+            await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(len(self.asked), 1)
+        self.assertEqual(self.service.manager.ha.dirty, set())
+        # The turn after ten minutes asks where the person is now, and sends the tile.
+        clock[0] = 5000.0 + 600
+        await self.service.refresh_data()
+        self.assertEqual(self.asked[-1], 'https://api.example.org/forecast?lat=52.31&lon=4.48')
+        self.assertEqual(len(self.asked), 2)
+        self.assertIn('plugin:weather.now', self.service.manager.ha.dirty)
+        message = await self.service.tile_message(0, self.tile, inbox='hall')
+        self.assertEqual(message['x']['temp'], 2)
+        # A person who chooses another entity is asked at once: a choice is no move.
+        self.tile['options']['plugin'] = {'place': 'zone.home'}
+        clock[0] += 15
+        await self.service.refresh_data()
+        self.assertEqual(len(self.asked), 3)
+
+    async def test_the_editor_hears_what_it_sends(self):
+        entry = self.service.listed()['weather']
+        sends = self.service.editor_plugin(entry)['sends']
+        self.assertEqual(sends, [{'host': 'api.example.org', 'options': [
+            {'option': 'place', 'label': {'en': 'Place'}, 'attributes': ['latitude', 'longitude']}]}])
+        # GET api/plugins lists editor_plugin of every plugin, and its fingerprint counts what it sends.
+        self.assertEqual(self.service.editor_plugin(entry)['permission_hash'], pm.permission_hash(entry.manifest))
+        self.assertEqual(self.service.sends_of(type('E', (), {'manifest': pm.check(place_plugin(url='https://api.example.org/now'),
+                                                                                       PLACE_ENGLISH), 'texts': {}})()), [])
+
+
+class FetchAsked(unittest.IsolatedAsyncioTestCase):
+    """Plugin API 0.27: the screen asks one of its plugin's fetches with values of its own (tessera::send with
+    `fetch:<id>`), shared and cached as every fetch, at most twenty a minute, every value checked."""
+
+    async def asyncSetUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.service, self.sent, self.asked = place_service(tmp.name, {})
+        self.re = 0
+
+    async def ask(self, ask, data=None, plugin='weather'):
+        self.re += 1
+        body = {'re': self.re, 'ask': ask, **({'data': data} if data is not None else {})}
+        await self.service.answer({'inbox': 'hall', 'plugin': plugin, 'body': json.dumps(body)})
+        return self.sent[-1] if self.sent else None
+
+    async def test_mapped_as_a_tile_would_get_it_and_cached(self):
+        with self.assertLogs('plugins', 'INFO') as logged:
+            reply = await self.ask('fetch:detail', {'row': 'KL 1234', 'day': 3})
+        self.assertEqual(reply, {'re': 1, 'ok': True, 'result': {'title': 'Row 1', 'at': 1792389600}})
+        self.assertEqual(self.asked, ['https://api.example.org/rows/KL%201234?day=3'])
+        self.assertIn('asks its fetch: detail', logged.output[0])
+        self.assertNotIn('KL', logged.output[0], 'the values stay out of the log')
+        # The same question again: from the cache, the service is not asked.
+        reply = await self.ask('fetch:detail', {'day': '3', 'row': 'KL 1234'})
+        self.assertEqual((reply['ok'], reply['result']['title'], len(self.asked)), (True, 'Row 1', 1))
+        # A tile's fetch is shared the same way: the screen's own row and a tile never ask twice for one URL.
+        self.assertEqual(len(self.service.fetcher.cache), 1)
+
+    async def test_every_value_is_checked(self):
+        for data in ({'row': 'a/b', 'day': '1'}, {'row': 'x' * 65, 'day': '1'}, {'row': '', 'day': '1'}, {'row': 'a'},
+                     {'row': 'a', 'day': '1', 'more': 'x'}, {'row': True, 'day': '1'}, {'row': ['a'], 'day': '1'},
+                     {'row': 'a?b=c', 'day': '1'}, {'row': 'ä', 'day': '1'}, 'row=a', None):
+            with self.subTest(data=data):
+                reply = await self.ask('fetch:detail', data)
+                self.assertEqual((reply['ok'], reply['error']), (False, 'refused'))
+        reply = await self.ask('fetch:detail', {'row': 'A_b.c:d+e -f', 'day': 2.0})
+        self.assertTrue(reply['ok'])
+        self.assertEqual(self.asked, ['https://api.example.org/rows/A_b.c%3Ad%2Be%20-f?day=2'])
+
+    async def test_only_a_fetch_with_asked_and_never_a_command_it_does_not_name(self):
+        for ask in ('fetch:forecast', 'fetch:nowhere', 'fetch:'):
+            with self.subTest(ask=ask):
+                reply = await self.ask(ask, {'row': 'a', 'day': '1'})
+                self.assertEqual((reply['ok'], reply['error']), (False, 'refused'))
+        reply = await self.ask('get_states')
+        self.assertEqual(reply, {'re': self.re, 'ok': False, 'error': 'not_allowed'})
+        reply = await self.ask('call_service:weather.get_forecasts', {'entity_id': 'weather.home'})
+        self.assertEqual(reply['error'], 'not_allowed')
+        self.assertEqual(self.asked, [])
+        # A plugin the screen does not run gets nothing at all.
+        count = len(self.sent)
+        await self.ask('fetch:detail', {'row': 'a', 'day': '1'}, plugin='other')
+        self.assertEqual(len(self.sent), count)
+
+    async def test_twenty_a_minute(self):
+        clock = [100.0]
+        import plugins as plugin_service
+        original = plugin_service.time.monotonic
+        plugin_service.time.monotonic = lambda: clock[0]
+        self.addCleanup(setattr, plugin_service.time, 'monotonic', original)
+        for i in range(plugin_service.FETCH_ASKS_PER_MINUTE):
+            reply = await self.ask('fetch:detail', {'row': f'r{i % 2}', 'day': '1'})
+            self.assertTrue(reply['ok'])
+        reply = await self.ask('fetch:detail', {'row': 'r0', 'day': '1'})
+        self.assertEqual((reply['ok'], reply['error']), (False, 'too_often'))
+        self.assertEqual(len(self.asked), 2, 'twenty asks of two rows asked the service twice')
+        clock[0] += 61
+        self.assertTrue((await self.ask('fetch:detail', {'row': 'r0', 'day': '1'}))['ok'])
+
+    async def test_a_failed_service_and_a_missing_secret(self):
+        async def broken(url, headers, network):
+            raise OSError('HTTP 503')
+        self.service.fetcher.download = broken
+        reply = await self.ask('fetch:detail', {'row': 'a', 'day': '1'})
+        self.assertEqual((reply['ok'], reply['error']), (False, 'failed'))
+        entry = self.service.listed()['weather']
+        secret = {**pm.check(place_plugin(fetch=[{**DETAIL, 'url': 'https://api.example.org/rows/{row}?day={day}&key={key}'}],
+                                          inputs=[{'id': 'key', 'kind': 'secret', 'label': 'label'}]), PLACE_ENGLISH)}
+        entry.manifest = secret
+        reply = await self.ask('fetch:detail', {'row': 'a', 'day': '1'})
+        self.assertEqual((reply['ok'], reply['error']), (False, 'not_filled'))
+
+
+class PopupPictures(unittest.TestCase):
+    """Plugin API 0.27: a popup's places for pictures ask as a card's do (owner plugin_card), from a host of
+    permissions.network only."""
+
+    def test_a_popup_is_found_as_a_card_and_shows_no_home_assistant_picture(self):
+        import types
+        import server
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        data = place_plugin(url='https://api.example.org/now', cards=[{'id': 'sky', 'name': 'card', 'pictures': 1}],
+                            popups=[{'id': 'photo', 'pictures': 2}])
+        service, _, _ = place_service(tmp.name, {}, data)
+        entry = service.listed()['weather']
+        self.assertEqual(entry.card('photo'), {'id': 'photo', 'pictures': 2, 'popup': True})
+        self.assertEqual(entry.card('sky')['pictures'], 1)
+        self.assertNotIn('popup', entry.card('sky'))
+        self.assertIsNone(entry.card('nowhere'))
+
+        class Fake:
+            plugin_place = server.Manager.plugin_place
+            plugin_picture_refused = server.Manager.plugin_picture_refused
+
+            def __init__(self):
+                self.plugins = service
+                self.layouts = {'hall': {'tiles': [{'entity': 'media_player.kitchen', 'options': {}}]}}
+        fake = Fake()
+        ask = lambda key, *texts: types.SimpleNamespace(owner=pq.Owner('plugin_card', key=key, of='media_player.kitchen'),
+                                                        sources=[pq.source(text) for text in texts])
+        network, home = 'https://api.example.org/p.jpg', '/api/image_proxy/media_player.kitchen'
+        popup = ask('plugin:weather.photo', network, home)
+        self.assertEqual(fake.plugin_place('hall', {}, popup)[2], False)
+        self.assertIsNone(fake.plugin_picture_refused('hall', {}, popup, popup.sources[0]))
+        self.assertIn('not an address', fake.plugin_picture_refused('hall', {}, popup, popup.sources[1]))
+        self.assertIn('no entity', fake.plugin_picture_refused('hall', {}, popup, pq.source('cover:media_player.kitchen')))
+        self.assertIn('allows 2', fake.plugin_picture_refused('hall', {}, ask('plugin:weather.photo', network, network, network),
+                                                              pq.source(network)))
+        self.assertIn('not an address', fake.plugin_picture_refused('hall', {}, popup, pq.source('https://elsewhere.example.org/p.jpg')))
+        # A card shown for an entity of the layout keeps Home Assistant's pictures, as before.
+        card = ask('plugin:weather.sky', home)
+        self.assertEqual(fake.plugin_place('hall', {}, card)[2], True)
+        self.assertIsNone(fake.plugin_picture_refused('hall', {}, card, card.sources[0]))
+
+
+class SharedRoom(unittest.TestCase):
+    """The parts of a tile's `x` share its room by one rule (plugins.shared, docs/PLUGINS.md): the smallest whole, the
+    rest split alike among the larger."""
+
+    @staticmethod
+    def size(value):
+        return len(json.dumps(value, separators=(',', ':'), ensure_ascii=False).encode())
+
+    def test_a_small_part_goes_whole_and_two_long_ones_each_give_way(self):
+        import plugins as plugin_service
+        place = {'state': '2', 'attributes': {'latitude': 52.37, 'longitude': 4.89}}
+        sky = {'items': [{'hex': f'{n:06x}', 'flight': f'KLM{n:04d}', 'alt': 30000 + n} for n in range(200)]}
+        prices = {'prices': [n / 7 for n in range(400)]}
+        parts = plugin_service.shared(2000, [
+            lambda budget: place if self.size(place) <= budget else {'wait': 'too_large'},
+            lambda budget: plugin_service.fitted_data(sky, budget),
+            lambda budget: plugin_service.fitted_data(prices, budget)])
+        self.assertEqual(parts[0], place)
+        self.assertTrue(0 < len(parts[1]['items']) < 200)
+        self.assertTrue(0 < len(parts[2]['prices']) < 400)
+        self.assertLessEqual(sum(self.size(part) for part in parts), 2000)
+        # The two long ones got about as much each: neither starved the other.
+        self.assertLess(abs(self.size(parts[1]) - self.size(parts[2])), 700)
+
+    def test_whatever_the_sizes_the_parts_stay_within_the_room(self):
+        import plugins as plugin_service
+        for room in (0, 40, 300, 1200, 2600):
+            for lengths in ((0,), (5, 5), (1, 400), (400, 1, 400), (300, 300, 300, 300)):
+                shapers = [lambda budget, n=n: plugin_service.fitted_data({'numbers': list(range(n))}, budget) for n in lengths]
+                parts = plugin_service.shared(room, shapers)
+                used = sum(self.size(part) for part in parts)
+                waits = sum(self.size(part) for part in parts if part == {'wait': 'too_large'})
+                # A part that does not fit at all says so in its own place: that word is all that may pass the room.
+                self.assertLessEqual(used - waits, max(room, 0), (room, lengths))
+
+    def test_data_without_items_shortens_its_lists_and_with_items_loses_the_last(self):
+        import plugins as plugin_service
+        day = {'unit': 'ct', 'prices': list(range(500)), 'peaks': list(range(500))}
+        got = plugin_service.fitted_data(day, 600)
+        self.assertEqual((got['unit'], len(got['prices'])), ('ct', len(got['peaks'])))
+        self.assertTrue(0 < len(got['prices']) < 500)
+        sky = {'stale': True, 'items': [{'n': n} for n in range(100)]}
+        got = plugin_service.fitted_data(sky, 300)
+        self.assertEqual(got['items'], sky['items'][:len(got['items'])])
+        self.assertLessEqual(self.size(got), 300)
+        self.assertGreater(self.size({**got, 'items': sky['items'][:len(got['items']) + 1]}), 300)
+        self.assertEqual(plugin_service.fitted_data({'name': 'x' * 400}, 100), {'wait': 'too_large'})
 
 
 def plugin_service_budget():
@@ -1107,6 +2074,38 @@ class Questions(unittest.IsolatedAsyncioTestCase):
         # A plugin the screen does not run gets nothing at all.
         await service.answer({'inbox': 'kitchen', 'plugin': 'other', 'body': json.dumps(body)})
         self.assertEqual(len(sent), 2)
+
+    def test_a_folder_someone_was_making_is_set_aside_not_deleted(self):
+        # The Plugins page's Remove for a folder plugin: refused while a screen runs it from the folder, then the folder
+        # moves to tessera-plugins/.removed/ (a second one beside it gets -2), and the page no longer lists it.
+        import shutil
+        import plugins as plugin_service
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config = Path(tmp.name) / 'esphome'
+        config.mkdir()
+        fixture = ROOT / 'tests' / 'fixtures' / 'plugins' / 'calendar_peek'
+        folders = Path(tmp.name) / 'tessera-plugins'
+        shutil.copytree(fixture, folders / 'calendar_peek')
+        service = plugin_service.Plugins(type('Manager', (), {'page_senders': {}})(), Path(tmp.name) / 'data', config)
+        service.scan_folders()
+        self.assertIn('calendar_peek', service.listed())
+        service.store.put('kitchen', {'id': 'calendar_peek', 'source': 'folder', 'state': 'active'})
+        with self.assertRaises(ValueError):
+            service.forget_folder('calendar_peek')      # a screen still builds it from the folder
+        self.assertTrue((folders / 'calendar_peek').is_dir())
+        service.store.remove('kitchen', 'calendar_peek')
+        service.store.put('hall', {'id': 'calendar_peek', 'source': 'index', 'ref': 'abc'})   # another origin is no reason
+        moved = service.forget_folder('calendar_peek')
+        self.assertEqual(moved, folders / '.removed' / 'calendar_peek')
+        self.assertTrue((moved / 'tessera-plugin.yaml').is_file())
+        self.assertFalse((folders / 'calendar_peek').exists())
+        self.assertNotIn('calendar_peek', service.folders)
+        self.assertEqual(service.folder_errors, {})
+        shutil.copytree(fixture, folders / 'calendar_peek')
+        self.assertEqual(service.forget_folder('calendar_peek'), folders / '.removed' / 'calendar_peek-2')
+        with self.assertRaises(ValueError):
+            service.forget_folder('calendar_peek')      # already gone
 
     async def test_settings_of_the_screens_own_entities_only(self):
         import shutil
@@ -1961,9 +2960,28 @@ class JsonValues(unittest.IsolatedAsyncioTestCase):
 
     def test_one_number_everywhere(self):
         self.assertEqual((core.PLUGIN_LIST_MAX, core.PLUGIN_OPTIONS_BYTES), (pm.MAX_MULTIPLE, pm.OPTIONS_BYTES))
-        model = (ROOT / 'web/src/model/plugins.ts').read_text()
-        self.assertTrue(f'PLUGIN_OPTIONS_BYTES = {pm.OPTIONS_BYTES}' in model, 'the editor keeps another budget')
-        self.assertTrue(f'PLUGIN_LIST_MAX = {pm.MAX_MULTIPLE}' in model, 'the editor keeps another list length')
+        # How many options a tile keeps (0.26): the manifest's and the layout check's.
+        self.assertEqual(core.PLUGIN_OPTION_MAX, pm.MAX_OPTIONS)
+        # The editor has no numbers of its own: it reads the manifest's from page-rules.json, which
+        # tools/generate_page_rules.py writes and tests/test_page_conformance.py keeps current.
+        for source in sorted((ROOT / 'web/src').rglob('*')):
+            if source.suffix in ('.ts', '.vue'):
+                with self.subTest(source.name):
+                    self.assertIsNone(re.search(r'PLUGIN_(OPTIONS_BYTES|LIST_MAX|OPTION_MAX)[^=\n]*=\s*\d', source.read_text()),
+                                      f'{source.relative_to(ROOT)} writes a plugin option number by hand: the editor '
+                                      'reads it from page-rules.json (rules.plugins), which tools/generate_page_rules.py '
+                                      'writes from the manifest\'s')
+        rules = json.loads((ROOT / 'web/src/model/page-rules.json').read_text())['plugins']
+        self.assertEqual(rules, {'optionsBytes': pm.OPTIONS_BYTES, 'listMax': pm.MAX_MULTIPLE, 'optionMax': pm.MAX_OPTIONS})
+
+    def test_the_add_on_and_the_editor_say_alike_which_entity_an_option_is_for(self):
+        # The cases the editor's entityFits answers too (web/tests/plugin-conformance.spec.ts).
+        cases = json.loads((ROOT / 'tests/fixtures/plugin-conformance.json').read_text())['entity_fits']
+        self.assertGreater(len(cases), 10)
+        for case in cases:
+            with self.subTest(case=case['name']):
+                self.assertEqual(pm.entity_fits(case['option'], case['entity'], case.get('device_class'), case.get('translation_key')),
+                                 case['fits'])
 
     def test_words_and_joins(self):
         self.assertEqual(plugin_fetch.words_of({'on': True, 'off': False, 'n': 3.0, 'x': 2.5, 'pick': {'value': '7', 'label': 'L'},
@@ -2073,6 +3091,16 @@ class WhetherTheScreenRunsIt(unittest.TestCase):
         self.assertFalse(plugin_service.runs('tablet', dict(record, version='0.2.1'), running, now=5000), 'another version')
         self.assertFalse(plugin_service.runs('tablet', dict(record, id='bt_proxy'), running, now=5000), 'not in the hello')
         self.assertTrue(plugin_service.runs('tablet', {'id': 'cinema', 'version': '0.1.0'}, running, now=5000), 'a record from before `settled`')
+
+    def test_the_version_a_screen_runs_instead(self):
+        import plugins as plugin_service
+        record = {'id': 'co2_ring', 'version': '0.2.16', 'state': 'active', 'settled': 1000}
+        running = {'tablet': [{'id': 'co2_ring', 'version': '0.2.17', 'tiles': ['co2']}]}
+        self.assertEqual(plugin_service.runs_version('tablet', record, running, now=5000), '0.2.17', 'built elsewhere')
+        self.assertIsNone(plugin_service.runs_version('tablet', dict(record, version='0.2.17'), running, now=5000), 'this version')
+        self.assertIsNone(plugin_service.runs_version('tablet', dict(record, id='cinema'), running, now=5000), 'not in the hello')
+        self.assertIsNone(plugin_service.runs_version('kitchen', record, running, now=5000), 'not known')
+        self.assertIsNone(plugin_service.runs_version('tablet', record, running, now=1001), 'just built')
 
     def test_nothing_while_it_cannot_be_known(self):
         import plugins as plugin_service

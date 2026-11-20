@@ -14,7 +14,29 @@ sensor whose state is a number can show it (the same sensors that can show a gra
 
 Every look takes the largest of the board's fixed fonts that fits, up to the large digits of the thermostat's
 setpoint, so a meter on a large card is readable across a room. Nothing else is drawn: no numbers along a percentage,
-no gradients, no extra lines.
+no gradients, no extra lines. The ring's icon takes its size from the card's own icon font, never from another card on
+the glass, and always a face that has the glyph: the largest that fits the circle, else the smallest that has it.
+
+## The first look
+
+A sensor that is added to a screen starts as a meter, so the meter is seen without being looked for
+(`web/src/model/sensor-look.ts`). The look follows what Home Assistant says the sensor measures:
+
+| The sensor | Starts as | Its range |
+|---|---|---|
+| A battery | Bar | 0 to 100 % |
+| A percentage (humidity, moisture, a level) | Ring | 0 to 100 % |
+| A temperature | Tape | a room's, 10 to 30 °C or 50 to 86 °F, widened in steps of 5 to hold the value now |
+| Any other number (power, CO2, light) | Bar | from 0 to a round number above the value now (840 W: 0 to 1000) |
+
+It keeps the plain value when the sensor is a counter (state class `total` or `total_increasing`, such as an energy
+meter's kWh, where a meter would only fill up), when its state is no number, and on a screen whose firmware draws no
+meter (older than 0.56.0). The same rule gives Auto layout's one-cell sensors their look (docs/AUTO_LAYOUT.md).
+
+Beside a sensor just added as a meter, a tip asks how it should look: the ring, the tape, the bar, its graph, the large
+value or just the value. A look the pointer rests on is drawn on the tile, a click keeps it, and the meter's looks keep the range it
+started with. "Don't show again" puts the tip away for good (the browser remembers it); the Display field of the
+tile's settings has every look as before. `web/tests/sensor-look.spec.ts` proves the rule and the tip.
 
 ## The range
 
@@ -61,6 +83,6 @@ The tile's options (`screen_manager/app/meter.py` checks them and leaves out the
 The app sends the colours as numbers, so the screen keeps no table of names. The meter needs firmware 0.56.0; the app
 asks an older screen to update first. The screen plans each card in `components/smart_display/meter_card.h` and paints
 it in one object per card (`meter_paint.h`, `meter_view.cpp`), so a bar of 60 cells or a ruler of 50 marks costs one
-object. `tools/render/meter_firmware.py` renders the same planner and painter on every board's grid, every span and
+object, and draws every text through `draw_text::label`, which has LVGL keep a copy until it draws. `tools/render/meter_firmware.py` renders the same planner and painter on every board's grid, every span and
 both looks, and counts any word that had to be shortened and anything outside its card; `tests/test_meter_card.cpp`
 checks the plans on every span of the boards' grids.

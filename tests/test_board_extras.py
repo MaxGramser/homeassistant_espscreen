@@ -23,7 +23,8 @@ class TheBoards(unittest.TestCase):
     def test_every_listed_setting_is_an_entity_a_screen_row_and_words(self):
         listed = {board: shape['catalog'].get('settings') or [] for board, shape in SHAPES.items()
                   if not board.startswith(('checkout/', 'packages/'))}
-        self.assertEqual(listed['reterminald1001'], ['media_player', 'microphone', 'wake_when_moved'])
+        self.assertEqual(listed['reterminald1001'], ['media_player', 'microphone', 'call_ringtone', 'do_not_disturb', 'call_voice_switching', 'wake_when_moved',
+                          'echo_cancellation'])
         # The 4-inch Guition's backlight: its PWM (a choice) and its floor (a number), which differ between batches.
         self.assertEqual(listed['guition'], ['backlight_pwm', 'dimmest_level'])
         labels = SCREEN_TEXT['addon']['labels']['extras']
@@ -86,13 +87,15 @@ class TheBoards(unittest.TestCase):
                                     'a PWM output beside a camera clock stands on channel 2 or higher')
 
     def test_a_board_without_extras_has_no_page_and_no_row(self):
-        # The core's hooks are empty: a screen whose files add nothing has no Extras page (settings_screen.h).
-        core_yaml = (ROOT / 'packages/core.yaml').read_text()
-        self.assertIn('  BOOT_AUDIO: ""', core_yaml)
-        self.assertIn('  BOOT_BOARD_SETTINGS: ""', core_yaml)
-        header = (ROOT / 'components/smart_display/settings_screen.h').read_text()
-        self.assertIn('page_row(screen_text::txt::settings_extras, "\\U000F0493", BOARD_PAGE, has_board_rows)', header)
-        self.assertNotIn('board_rows.push_back', profiles.resolved('packages/cyd.yaml'))
+        # The core's hooks are empty, so only a board that lists settings (boards.yaml `settings`) adds rows; that the
+        # Extras page then shows exactly when there are rows is tests/test_settings_screen.cpp (has_board_rows).
+        core = profiles.substitutions_of(profiles.CORE)
+        for hook in ('BOOT_AUDIO', 'BOOT_BOARD_SETTINGS'):
+            self.assertEqual(core.get(hook), '', f'packages/core.yaml sets {hook}: it is a board\'s hook, empty in the core')
+        for board in profiles.BOARDS:
+            listed = bool(profiles.CATALOG[board].get('settings'))
+            rows = 'board_rows.push_back' in profiles.resolved(f'packages/{board}.yaml')
+            self.assertEqual(rows, listed, f'{board}: a board adds Extras rows exactly when boards.yaml lists its settings')
 
 
 class HA:
@@ -129,12 +132,19 @@ class TheApp(unittest.TestCase):
         manager.screen = lambda inbox: {**original(inbox), 'online': False}
         manager.package_of = lambda screen: 'packages/reterminald1001.yaml'
         rows = entity_settings.extras_for(manager, 'text.hall_tiles')
-        self.assertEqual([row['key'] for row in rows], ['media_player', 'microphone', 'wake_when_moved'])
+        self.assertEqual([row['key'] for row in rows], ['media_player', 'microphone', 'call_ringtone', 'do_not_disturb', 'call_voice_switching', 'wake_when_moved',
+                          'echo_cancellation'])
         self.assertTrue(all(not row['available'] for row in rows))
 
     def test_the_rows_are_the_boards_entities_in_its_order_with_the_apps_words(self):
         rows = entity_settings.extras_for(Manager('reterminald1001'), 'text.hall_tiles', 'nl')
-        self.assertEqual([(r['key'], r['entity'], r['kind'], r['value'], r['available']) for r in rows],
+        # A call's three switches and echo cancellation are rows of this board too; this Home Assistant has no entity
+        # for them.
+        calls = ['call_ringtone', 'do_not_disturb', 'call_voice_switching']
+        self.assertEqual([r['key'] for r in rows[2:5]], calls)
+        self.assertEqual(rows[-1]['key'], 'echo_cancellation')
+        rows = [r for r in rows if r['key'] not in calls + ['echo_cancellation']]
+        self.assertEqual([(r['key'], r['entity'], r['kind'], r['value'], r['available']) for r in rows[:3]],
                          [('media_player', 'media_player.hall_media_player', 'number', 45, True),
                           ('microphone', 'switch.hall_microphone', 'switch', True, True),
                           ('wake_when_moved', 'switch.hall_wake_when_moved', 'switch', False, True)])

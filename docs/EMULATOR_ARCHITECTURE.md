@@ -48,6 +48,15 @@ When updating firmware:
 Changes to renderer internals normally compile directly. Changes to hardware APIs or
 ESPHome's code-generation shape may require an adapter/generator update; these should
 fail the build, rather than loading a stale imitation. Resolution and grid are runtime
-inputs. Font/style density profiles are generated at build time.
+inputs. Font/style density profiles are generated at build time. A feature may add glyphs
+to a shared font with `- id: !extend <font id>` in its `font:` list; the generator merges
+that item into the font with that id, as ESPHome does, and fails when no font has it.
+
+A preview that is older than the firmware says so itself. CI rebuilds the preview and the editor after every firmware
+change on dev (`.github/workflows/preview.yml`); when that job fails, the editor that was built last is a developer's,
+and `web/preview-age.ts` has told it, from the commits, that the firmware changed after the preview was last built. The
+preview pane then shows one quiet line with the date. An editor built by CI never shows it. The built editor carries the
+dates only while the preview is stale: a current preview says nothing that changes from one commit to the next, so the
+bundle in Git equals a build of the same sources (`tools/check.sh`, "bundle in Git is fresh").
 
 See [the build instructions and current limitations](../web/wasm/README.md).

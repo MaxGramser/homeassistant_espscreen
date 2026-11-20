@@ -173,7 +173,7 @@ def our_ref(value):
 # The shared firmware of this app release: packages/core.yaml's SCREEN_FIRMWARE_VERSION, what every board builds
 # unless its own board file went ahead with a fix for that board alone (firmware_target, docs/BOARD_RELEASES.md). The
 # middle number is the core: the feature gates below name a shared X.Y.0, so a feature always ships with a new core.
-FIRMWARE_VERSION = '0.61.0'
+FIRMWARE_VERSION = '0.62.0'
 # The Auto standby switch a screen offers Home Assistant automations.
 AUTO_STANDBY_MIN_FIRMWARE = '0.2.41'
 # The settings page the screen opens itself, and the screen.settings tile that opens it.
@@ -299,6 +299,10 @@ FIRMWARE_MAX_BAR_ITEMS = 6
 # layout made for a board with more pages still loads whatever is connected, and a save is held to the screen's own.
 STORE_MAX_PAGES = 32
 STORE_MAX_TILES = 1024
+# A page holds at most this many sections (docs/PAGES.md "Sections"), and a screen that draws them names this feature in
+# its hello (firmware module sections, the full tier only).
+STORE_MAX_SECTIONS = 16
+SECTIONS_FEATURE = 'sections'
 STORE_MAX_BAR_ITEMS = 16
 
 class Grid:
@@ -869,19 +873,24 @@ def tile_cost(tile, memory):
     return cost
 
 def page_cost(page, memory):
-    """What one page of a pages-v2 document takes inside the screen's chip: the catalogue's price of a page (its title)
-    and of each item of its top bar that shows an entity (its text), and on a board without PSRAM the page's own record,
-    whose size the screen gave (`page`). The screen counts its text and moment items, which are the entity items."""
+    """What one page of a pages-v2 document takes inside the screen's chip: the catalogue's price of a page (its title),
+    of each item of its top bar that shows an entity (its text) and, on a screen that draws sections (memory `sections`,
+    its hello), of each of its sections; and on a board without PSRAM the page's own record, whose size the screen gave
+    (`page`). The screen counts its text and moment items, which are the entity items, and the sections it was given."""
     entities = sum(1 for item in page.get('topbar', {}).get('trailing', []) if isinstance(item, dict) and item.get('type') == 'entity')
+    sections = len(page.get('sections') or []) if memory.get('sections') else 0
     return (catalogue.CHOICE_MEMORY['page'] + entities * catalogue.CHOICE_MEMORY['bar_text']
-            + (0 if memory['psram'] else memory.get('page', 0)))
+            + sections * catalogue.CHOICE_MEMORY['section'] + (0 if memory['psram'] else memory.get('page', 0)))
 
 def layout_cost(tiles, memory, pages=()):
     """What `tiles` (a flat layout's, the keys of a bedside clock included) and the document's `pages` take together
-    inside the screen's chip, with the tiles of the top bar on a screen that gets them (memory `bar_cards`, bar_entities)."""
+    inside the screen's chip, with the tiles of the top bar on a screen that gets them (memory `bar_cards`, bar_entities)
+    and a tile without a cell for each alarm it wakes for and has on neither (memory `alarms`, alarm_screens)."""
     bar = bar_entities(pages, tiles) if memory.get('bar_cards') else ()
+    on = {tile.get('entity') for tile in tiles} | set(bar)
+    alarms = [entity for entity in memory.get('alarms') or () if entity not in on] if memory.get('bar_cards') else ()
     return (sum(tile_cost(tile, memory) for tile in tiles) + sum(page_cost(page, memory) for page in pages)
-            + sum(tile_cost({'entity': entity}, memory) for entity in bar))
+            + sum(tile_cost({'entity': entity}, memory) for entity in (*bar, *alarms)))
 
 def firmware_features(version, grid=DEFAULT_GRID):
     """What the editor may offer a screen with firmware `version` (a tuple, or None): the tile limit, full-page and
@@ -1109,7 +1118,7 @@ PLUGIN_TILE = re.compile(r'^plugin:([a-z][a-z0-9_]{0,31})\.([a-z][a-z0-9_]{0,31}
 # What a plugin tile may carry: its size, colour, icon, whether a tap reaches it, and its own options (`plugin`, the
 # manifest's options; checked against the manifest where the screen is known, plugins.check_tile).
 PLUGIN_TILE_OPTIONS = {'size', 'background', 'icon', 'tap', 'plugin', 'plugin_entity'}
-PLUGIN_OPTION_MAX = 12
+PLUGIN_OPTION_MAX = 24      # plugin API 0.26 (plugin_manifest.MAX_OPTIONS, the editor's PLUGIN_OPTION_MAX); twelve before
 PLUGIN_TEXT_MAX = 64
 # A list option's values (plugin API 0.12), and what a tile's options take together as JSON (plugin_manifest's
 # MAX_MULTIPLE and OPTIONS_BYTES, the editor's PLUGIN_OPTIONS_BYTES; a test keeps them equal).
@@ -1145,9 +1154,10 @@ def _plugin_pick(value):
 
 
 def plugin_options(value):
-    """A plugin tile's own options in their stored shape: at most 12, each a short text, a number, true/false, a pick
+    """A plugin tile's own options in their stored shape: at most 24, each a short text, a number, true/false, a pick
     {value, label}, or a list of up to 16 texts or picks (plugin API 0.12), together at most PLUGIN_OPTIONS_BYTES of
-    JSON. Whether a value fits its option is the manifest's (plugin_manifest.option_value)."""
+    JSON. A number that may stay empty (0.26, `optional`) is kept as no key at all. Whether a value fits its option is
+    the manifest's (plugin_manifest.option_value)."""
     if not isinstance(value, dict) or len(value) > PLUGIN_OPTION_MAX:
         return False
     for key, item in value.items():
@@ -1971,7 +1981,7 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
             continue
         if 'options' in tile:
             options = tile['options']
-            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
+            if not isinstance(options, dict) or set(options) - {'call_to', 'call_kind', 'tap', 'display', 'inline', 'history_hours', 'background', 'size', 'icon', 'controls', 'action', 'refresh', 'sub', 'fit', 'overlay', 'guard', 'tilt_open', 'send_after', 'flow', light_presets.OPTION, light_presets.LEVELS, text_tile.OPTION, *MAP_OWN, *FAVORITE_OWN, *calendar_feed.KEYS, *todo_feed.KEYS, *meter.KEYS}:
                 raise ValueError(t('addon.errors.layout.unknown_settings'))
             # A calendar card's choices (firmware 0.56.0): its calendars, its filters, its look; other tiles have none.
             if tile['entity'].startswith('calendar.'):
@@ -2056,6 +2066,9 @@ def validate_layout(data, stored=False, grid=DEFAULT_GRID):
                 options = {k: v for k, v in options.items() if k != 'tilt_open'}
                 if value != COVER_TILT_OPEN[0]:
                     options['tilt_open'] = value
+            # An alarm's code length is the alarm's, set on the Events page (alarm_screens), never a tile's: a layout
+            # saved while dev had it on the tile drops it.
+            options = {k: v for k, v in options.items() if k not in ('send_after', 'alarm_wake')}
             # A light's presets (module light_presets): at most four, each a brightness with a white shade or a colour.
             try:
                 options = light_presets.validate(options, domain)

@@ -1,4 +1,3 @@
-from firmware_sources import runtime_source
 import re
 import tempfile
 import unittest
@@ -7,7 +6,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'tools'))
 import profiles  # noqa: E402
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_portal
 from core import turns_of, validate_settings
 
@@ -103,13 +101,12 @@ class EdgeBandTests(unittest.TestCase):
                 self.assertNotIn('DISPLAY_W', call, f'{board.name}: {call}')
 
     def test_the_shared_tree_turns_a_touch_with_esphomes_own_call(self):
+        # Rule (AGENTS.md, "Touch and navigation"): a touch is turned once, by ESPHome's own call, never also by ours.
         core = (self.ROOT / 'packages' / 'core.yaml').read_text()
-        self.assertIn('runtime_tiles::touch_input::to_screen', core)
-        self.assertIn('rotate_coordinates', core)
-        touch = runtime_source()
-        # The band is armed against the live canvas, not a number from the board file, so it is the same band of
-        # glass on a screen built standing up (firmware 0.2.92+).
-        self.assertIn('screen_input::edge_swipe.begin(sx, sy, overlay_card::screen_width(), overlay_card::screen_height())', touch)
-        # No rotation arithmetic of our own left in the firmware's own touch handling.
+        self.assertIn('runtime_tiles::touch_input::to_screen', core, 'core.yaml hands every touch to touch_input::to_screen')
+        self.assertIn('rotate_coordinates', core, "and turns it with ESPHome's rotate_coordinates")
         swipe = (self.ROOT / 'components' / 'smart_display' / 'screen_input.h').read_text()
-        self.assertNotIn('rotation_', swipe)
+        self.assertNotIn('rotation_', swipe, 'screen_input.h keeps no rotation of its own: the touch arrives turned')
+        # The edge band is armed against the live canvas, not a number from the board file (firmware 0.2.92+): the
+        # same preview build swipes at the right edge of 480 x 480, 720 x 720, 800 x 480 and 480 x 800 standing up
+        # in web/wasm/test_runtime.mjs (tools/check.sh).

@@ -144,7 +144,9 @@ not in the ESPHome folder you mounted is added by hand, as in
   over https (or from `localhost` on the computer that runs the container).
 - **Backups:** Home Assistant backups don't include this container. Keep a copy of
   `data/screens.json` and `data/updates.json` (layouts and update settings) and of the
-  ESPHome folder. `data/build`, `data/esphome`, `data/idf` and `data/platformio` are caches.
+  ESPHome folder. `data/build`, `data/esphome`, `data/idf` and `data/platformio` are build files that every build
+  makes again: leave them out of your own backups. Settings → Build files cleans them up
+  ([docs/BUILDS.md](BUILDS.md#build-files)).
 - **Claude:** **Install for Claude Code** is meant for the Claude Code app on Home Assistant
   OS. Use **Download for claude.ai** instead.
 - **Camera images (every board except the CYD, the Waveshare 3.5-inch and the Hosyond 4-inch):** the screens load camera pictures, and from app 0.2.77 the

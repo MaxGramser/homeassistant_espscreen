@@ -25,8 +25,8 @@ its chip, its panel or its sensor, and the layers below are keyed on those facts
 | `picture_jpeg.h` | the JPEG a screen takes: whole MCUs, the decoder's stride, the notes (`TSSR`) and the corners made exact; one profile with the app's `picture_paint` (step 2, done) | yes, `tests/test_picture_jpeg.cpp` | none |
 | `picture_fetch.h` | the link, an answer's head, the BMP decoder row by row, the gatherer of a whole JPEG | yes, `tests/test_picture_fetch.cpp` | none |
 | `picture_fetch.cpp` | the download task and its socket, the three slots, the hand-off to the main loop | no | sockets, FreeRTOS, PSRAM; a whole JPEG through `picture_engine` (step 4) |
-| `live_view.h` | the stream's framing (`Reader`), where a rectangle lies on a turned panel (`on_panel`), how a picture fits or is cut (`fit`, `cut`), what a tile lays over a live picture (`compose`, `draw_loader`) | yes, `tests/test_live_view.cpp` | none |
-| `glass.h`, `glass_dsi.cpp` | the panel as a surface (step 3, done): its size, format and turn, the frame buffer (a linker wrap of `esp_lcd_new_panel_dpi`), the one-writer lock with LVGL's refresh hooks, the rooms LVGL keeps out of (`keep_out`), the underrun counter, the PPA burst wrap | `on_panel`, `tests/test_live_view.cpp` | DSI panel, LVGL internals |
+| `live_view.h` | the stream's framing (`Reader`), where a rectangle lies on a turned panel (`on_panel`), how a picture fits or is cut (`fit`, `cut`), what a tile lays over a live picture (`compose`, `draw_loader`), how the streams are counted (`Census`, `room_for`, `beside`), the sound's rules (`sound_part`, `SoundPump`, `SoundClaim`) | yes, `tests/test_live_view.cpp`, `tests/test_live_sound.cpp` | none |
+| `glass.h`, `glass_dsi.cpp` | the panel as a surface (step 3, done): its size, format and turn, the frame buffer (a linker wrap of `esp_lcd_new_panel_dpi`), the one-writer lock with LVGL's refresh hooks, the rooms LVGL keeps out of (`keep_out`), the underrun counter, the PPA burst wrap; how a writer waits for the glass at `WRITER_PRIORITY` (`wait_as_writer`, `leave_as_writer`) | `on_panel`, the writers' turn, `tests/test_live_view.cpp` | DSI panel, LVGL internals |
 | `glass_dsi_refresh.h`, `.cpp` | the panel's DMA repeats the frame buffer by itself, so no interrupt stands between two frames (docs/CAMERA.md, "A frame's restart") | no, the bench with a camera on the glass | the DW-GDMA channel, through a linker wrap of `dw_gdma_new_channel` |
 | `picture_engine.h`, `picture_engine_p4.cpp` | the engine (step 4, done): the formats taken whole, the hardware JPEG decoder for stills and streams, the PPA copy through the guard, the one turn mapping (`ppa_angle`); the software engine is the stubs | `ppa_angle` and the stubs, `tests/test_picture_engine.cpp` | JPEG decoder, PPA, 2D-DMA |
 | `live_view.cpp` | the streams' tasks, the canvas of a tile and what goes over it, the camera's sound to the speaker | no | sockets, speaker |
@@ -195,7 +195,7 @@ fact of the hardware, and where:
 | whether a decode holds the glass, and a full view's pace | `picture_engine::limits()` (`decode_on_glass`: the P4's decoder runs on the 2D-DMA, the S3's on the CPU; `view_pps` 8 on the S3) | `live_view.cpp` |
 | the panel is MIPI-DSI | `glass_dsi.cpp` (the wrap of `esp_lcd_new_panel_dpi`) | a P4 with an RGB panel would find no frame buffer and show stills |
 | the panel is an S3's RGB panel | `glass_rgb.cpp` (the wrap of `esp_lcd_new_rgb_panel`, its frame buffer; no underrun count, `misses` 0) | an S3 with a SPI or QSPI panel finds no frame buffer and shows stills |
-| LVGL draws big-endian | `glass_rgb.cpp` (`LV_COLOR_16_SWAP`, `glass::Panel::swapped`) | `picture_engine::Block::swap`, the S3's blit |
+| LVGL draws big-endian | `glass_rgb.cpp` (`LV_COLOR_16_SWAP` up to LVGL 9.5, `LV_COLOR_FORMAT_DEFAULT` of `RGB565_SWAPPED` from LVGL 9.6, `glass::Panel::swapped`) | `picture_engine::Block::swap`, the S3's blit |
 | the frame buffer is RGB565 | `glass_dsi.cpp` | `glass::direct()`, `live_view::available()` |
 | each 2D-DMA client's burst | `picture_engine::limits().burst_bytes` (64 on the P4: the panel's bridge runs dry on ESP-IDF's 128, lvgl/lvgl #9590) | the streams' and LVGL's PPA clients (`glass_dsi.cpp`) |
 | the largest picture a stream's part may be | `picture_engine::limits()` (`picture_bytes` 1 MB, `tile_picture_bytes` 384 KB on the P4, over a busy camera's 150 to 250 KB at 1280 x 800, CAMERA.md 2026-10-10; 0 elsewhere, no part at all) | `live_view::Reader`, a stream's input buffer |
@@ -254,6 +254,9 @@ using Room = int;                                     // a rectangle LVGL keeps 
 Room reserve(const Rect &area);                       //   (armed: today's `armed`, `spot`, `keep_out`, `invalidate`)
 void move(Room room, const Rect &spot);
 void give_back(Room room);                            //   LVGL draws the room again
+void redraw(Room room);                               //   once more after a tile's stream task ended (redraw_all
+                                                      //   for a full view): its last picture may land after the
+                                                      //   redraw at closing (a 10.1 inch, 2026-11-15)
 uint32_t misses();                                    // the panel ran dry since boot
 Rect on_panel(const Rect &r, int turn, int pw, int ph);  // pure, as today
 }
@@ -630,7 +633,10 @@ Three gaps the restart hunt of October 2026 ran into, each a round of its own af
 - **A snapshot that shows live pictures.** `ui_snapshot` (packages/features/snapshot.yaml) renders LVGL's tree, so a
   live tile is a black room in it and a live picture cannot be seen from afar. With the glass a layer, a snapshot on a
   P4 reads the frame buffer under the glass lock, the truth of what the panel shows; a board without a direct glass
-  keeps LVGL's render.
+  keeps LVGL's render. Both snapshots cover the whole glass, every n-th pixel so no side passes 240 (a 1280 x 800
+  glass comes as 214 x 134, the frame buffer standing up as the panel scans it). `glass_burst(count, every)` copies
+  the frame buffer now and after each of LVGL's refreshes that follow, at least `every` ms apart (up to 8 copies, as
+  PSRAM allows), and `glass_send(n)` streams copy n: what a change of the whole glass looks like in its first second.
 - **A record of what the loop waited on.** A task watchdog with an idle program counter says the main loop was blocked,
   not on what: the crash record (`esp32.crash`) keeps the program counter and two frames of the crashing core's task,
   and an abort keeps the assert machinery; the assert's text and the watchdog's culprit go to the console only. dev has

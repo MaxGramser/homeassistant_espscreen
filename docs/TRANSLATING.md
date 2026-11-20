@@ -181,7 +181,9 @@ firmware update.
 - **Before a release:**
   - `python3 tools/i18n.py check`: keys, placeholders, plurals, letters the screens can't draw, long screen texts.
   - `python3 tools/i18n.py lint`: English left in the firmware's code. What stays English on purpose is listed in
-    `LINT_KEEP`, with the reason.
+    `LINT_KEEP`, with the reason. Words that only a log line says live in a log-only header, a file whose name ends
+    in `_log.h` (such as `redraw_log.h`, why every card is drawn again), which the lint leaves out by rule. Such a
+    header knows nothing that draws or translates, and `tests/test_log_words.py` holds it to that.
   - `python3 tools/i18n.py header --check`.
 - **Refreshing the words from Home Assistant and the calendar:**
 

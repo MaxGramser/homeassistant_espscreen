@@ -115,6 +115,7 @@ static View *view_of(lv_obj_t *canvas) {
 }
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *view = view_of(canvas);
   if (!view || !view->data) return;
   lv_area_t a;
@@ -184,12 +185,12 @@ bool card_tap(Widgets &w, const Tile &t) {
   using namespace rt;
   const std::string title = d.book_title.empty() ? tr(txt::calendar_booked) : d.book_title;
   esphome::api::HomeassistantActionRequest request;
-  request.service = esphome::StringRef("calendar.create_event");
+  request.service = api_text::of("calendar.create_event");
   request.data.init(d.book_place.empty() ? 4 : 5);
   auto field = [&](const char *key, const std::string &value) {
     esphome::api::HomeassistantServiceMap entry;
-    entry.key = esphome::StringRef(key);
-    entry.value = esphome::StringRef(value);
+    entry.key = api_text::of(key);
+    entry.value = api_text::of(value);
     request.data.push_back(entry);
   };
   field("entity_id", d.book_on);

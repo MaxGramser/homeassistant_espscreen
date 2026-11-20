@@ -633,6 +633,11 @@ struct Tile {
   // Where the slats stand open (the tile's tilt_open option): at 100 as Home Assistant's rule has it, or at 50 for a blind
   // that reports 0 and 100 as closed one way and the other.
   bool tilt_middle = false;
+  // An alarm panel's tile: how many digits send the code by themselves (4 to 8, the alarm's choice on the Events page,
+  // which the app gives every tile of it), 0 for the OK key. Home Assistant never says how long a code is.
+  uint8_t send_after = 0;
+  // An alarm panel this screen does not wake for when it goes off (alarm_wake "off": the Events page left it out).
+  bool alarm_quiet = false;
   // A sensor's graph: 24 samples over `history_hours`, empty without one.
   unsigned history_hours = 24;
   std::vector<float> history;
@@ -800,7 +805,10 @@ struct Tile {
     // A cover that cannot tell whether it is open (an awning or a blind without feedback: Home Assistant's is_closed is
     // None) reports "unknown" and still takes its keys, as in Home Assistant, where only "unavailable" turns them off
     // (frontend data/cover.ts canOpen, canClose, canStop).
-    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover";
+    // A remote that never reports on or off (Home Assistant's Android TV integration over ADB: always "unknown") still
+    // sends its keys, as in Home Assistant, whose toggle shows both keys for "unknown" and turns them off only for
+    // "unavailable" (frontend components/entity/ha-entity-toggle.ts; GitHub #387).
+    return state != "unknown" || d == "scene" || d == "button" || d == "input_button" || d == "cover" || d == "remote";
   }
   // Home Assistant's stateActive() (frontend src/common/entity/state_active.ts), the rule its cards colour by: an
   // entity it calls inactive is grey, such as an airco that is off, a closed blind, a docked robot, a player in

@@ -5,6 +5,7 @@
 // literal pool of one object file must stay within reach of all of its code (page_receiver.cpp says how that broke).
 #include "esphome/core/log.h"
 #include "runtime_tiles.h"
+#include "draw_text.h"
 
 #include <unordered_map>
 
@@ -100,6 +101,7 @@ static bool meets(const lv_area_t &clip, int x1, int y1, int x2, int y2) {
 // Only what meets the area being redrawn is handed to LVGL: a moving dot redraws a few pixels, not the card.
 static void draw(lv_event_t *e) {
   auto *canvas = static_cast<lv_obj_t *>(lv_event_get_current_target(e));
+  rt::CardScope look(canvas);  // drawn by LVGL, in its card's look (docs/THEME.md "A card's look")
   View *view = view_of(canvas);
   if (!view) return;
   auto *layer = lv_event_get_layer(e);
@@ -185,7 +187,7 @@ static void draw(lv_event_t *e) {
     dsc.font = font; dsc.color = paint(t.paint); dsc.text = t.s.c_str();
     dsc.align = t.centre ? LV_TEXT_ALIGN_CENTER : LV_TEXT_ALIGN_LEFT;
     lv_area_t box{x1, y1, x1 + t.w - 1, y1 + h - 1};
-    lv_draw_label(layer, &dsc, &box);
+    draw_text::label(layer, dsc, box);
   }
 }
 

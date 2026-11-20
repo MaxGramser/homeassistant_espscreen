@@ -14,7 +14,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import i18n  # noqa: E402
 import yaml  # noqa: E402
 from firmware import Firmware, LenientLoader  # noqa: E402

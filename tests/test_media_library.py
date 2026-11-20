@@ -60,6 +60,24 @@ def png(colour, size=(64, 64)):
     return out.getvalue()
 
 
+def screen_fixture():
+    """What a screen gets for a Spotify player with its library: the player's extras, the top folder and Albums, as the
+    add-on makes them; web/wasm/test_media_library.mjs plays them to the real firmware (no thumbnails: words only)."""
+    shelf, attrs = media_library.Shelf(), {'source': 'Kitchen', 'source_list': ['Bedroom', 'Kitchen'], 'shuffle': False, 'repeat': 'off'}
+
+    def page(folder, number):
+        items = media_library.entries(folder, shelf, PLAYER, attrs)
+        return media_library.message(PLAYER, number, folder['title'], 0, media_library.pages(items), len(items))
+    top = page(media_library.folder_of(TOP), 0)
+    shelf_albums = albums(3)
+    for child in shelf_albums['children']:
+        child['thumbnail'] = None
+    number = next(item[0] for item in top['k'] if item[1] == 'Albums')
+    return {'entity': PLAYER, 'features': PLAYING, 'x': media_library.player_extras(attrs, browsable=True),
+            'top': top, 'albums': page(media_library.folder_of(shelf_albums), number),
+            'browse': media_library.BROWSE_EVENT, 'play': media_library.PLAY_EVENT}
+
+
 class TheLibrary(unittest.TestCase):
     def test_folders_take_the_class_of_what_they_hold(self):
         folder = media_library.folder_of(TOP)
@@ -121,16 +139,17 @@ class TheLibrary(unittest.TestCase):
         empty = media_library.message(PLAYER, 0, '', 0, media_library.pages([]), 0, failed=True)
         self.assertEqual((empty['k'], empty['x'], empty['n']), ([], 1, 1))
 
-    def test_the_answer_is_what_the_firmware_parses(self):
-        source = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
-        message = media_library.message(PLAYER, 3, 'Albums', 0, [[[9, 'Blue', 7, 'F0025']]], 1)
-        for key in message:
-            if key not in ('v', 'op'):
-                self.assertIn(f'root["{key}"]', source)
-        self.assertIn('op == "browse"', source)
-        self.assertIn('"esphome.screen_browse"', (ROOT / 'components/smart_display/runtime_tiles.h').read_text())
-        self.assertIn('"esphome.screen_play"', (ROOT / 'components/smart_display/runtime_tiles.h').read_text())
-        self.assertIn('features.add("media_library")', (ROOT / 'packages/core.yaml').read_text())
+    def test_the_screen_reads_the_fixture_the_add_on_makes(self):
+        # web/wasm/test_media_library.mjs opens the real firmware's library with this fixture, folder by folder, and taps
+        # an album: the events it sends and the words it shows are read from the cards, no line of the firmware quoted.
+        self.assertEqual(json.loads((ROOT / 'tests/fixtures/media-library.json').read_text()), screen_fixture(),
+                         'write tests/fixtures/media-library.json from screen_fixture(); the firmware preview test reads it')
+
+    def test_a_screen_says_it_takes_the_library(self):
+        # Rule: the add-on sends a player's library only to a screen whose hello names the feature, and the hello is
+        # core.yaml's lambda, which no preview runs.
+        self.assertIn(f'features.add("{media_library.FEATURE}")', (ROOT / 'packages/core.yaml').read_text(),
+                      'core.yaml announces the library, or the add-on never sends one')
 
 
 class AStart(unittest.IsolatedAsyncioTestCase):

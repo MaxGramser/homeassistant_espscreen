@@ -26,12 +26,18 @@ HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
 
 
 class VersionSourceTests(unittest.TestCase):
-    def test_app_target_matches_shipped_firmware(self):
-        for name in ('packages/cyd.yaml', 'packages/guition.yaml', 'checkout/cyd.yaml', 'checkout/guition.yaml'):
+    def test_every_board_ships_the_apps_firmware_and_says_what_the_updater_reads(self):
+        # Every entry a screen builds from (published and from a clone): its number is the app's core (X.Y), at its
+        # own revision or later (docs/BOARD_RELEASES.md), and it reports its node name and address, which the updater
+        # finds a screen by (updates.discover).
+        core = parse_version(FIRMWARE_VERSION)
+        for name in profiles.NAMES:
             text = profiles.text(name)
-            self.assertIn(f'SCREEN_FIRMWARE_VERSION: "{FIRMWARE_VERSION}"', text, name)
-            self.assertIn('name: "Device name"', text, name)
-            self.assertIn('platform: wifi_info', text, name)
+            number = parse_version(profiles.board_values(profiles.board_of(name))['SCREEN_FIRMWARE_VERSION'].strip('"'))
+            self.assertEqual(number[:2], core[:2], f'{name} builds firmware {number}, the app ships {FIRMWARE_VERSION}: raise its board file')
+            self.assertGreaterEqual(number, core, f'{name} is behind the core {FIRMWARE_VERSION}')
+            self.assertIn('name: "Device name"', text, f'{name}: the "Device name" text sensor of packages/core.yaml is missing')
+            self.assertIn('platform: wifi_info', text, f'{name}: the wifi_info of packages/core.yaml is missing')
         self.assertEqual(parse_version(FIRMWARE_VERSION), tuple(int(p) for p in FIRMWARE_VERSION.split('.')))
         self.assertIsNone(parse_version('unknown'))
         self.assertIsNone(parse_version('1.2'))

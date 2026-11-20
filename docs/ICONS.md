@@ -45,11 +45,16 @@ font:
 A screen without icons of its own has no such part and builds as it always did. The big font of a full-page card keeps
 its short list: a card falls back to the regular icon size there, as it does for any chosen icon.
 
-Three things to keep in mind when you change this:
+Four things to keep in mind when you change this:
 
 - ESPHome stops at a glyph it finds twice in a font, so an icon of the fixed set must never be in the file. The list is
   taken against the set whenever it is written, and the file is written again right before every build
   (`ScreenIcons.before_build`), because a release can move an icon into the set.
+- A board's own packages can add icons to these fonts too: a board with sound brings a call's keys in
+  `packages/features/audio-player.yaml`, to the card font and the small one. `tools/generate_board_shapes.py` reads
+  them into `boards.json` (`added_icons`, per font), and the file leaves such an icon out of the fonts that already
+  have it and adds it to the others, so the screen can still use it everywhere. A package that extends one of the
+  three fonts needs nothing more: the generator finds it, and `tests/test_screen_icons.py` holds the two together.
 - The three font ids in `screen_icons.FONTS` are part of a file that lives on people's machines. Don't rename them.
   `tests/test_screen_icons.py` checks they exist.
 - A build that fails puts the file back to `built`, so a later update of that screen does not fail on the same list.

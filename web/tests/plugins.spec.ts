@@ -34,6 +34,18 @@ describe("plugins", () => {
     expect(plugins.fits(plugin({ id: "voice" }), screen("cyd", { pictures: true }))).toEqual({ ok: true });
   });
 
+  it("offers Remove for a link or a folder no screen runs, a folder judged by screens that run it from the folder", () => {
+    const s = screen("guition"), plugins = usePluginsStore();
+    plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "index" }] };
+    expect(plugins.forgettable(plugin({ source: "folder" }))).toBe(true);
+    expect(plugins.forgettable(plugin({ source: "link" }))).toBe(false);
+    expect(plugins.forgettable(plugin({ source: "index" }))).toBe(false);
+    plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "folder" }] };
+    expect(plugins.forgettable(plugin({ source: "folder" }))).toBe(false);
+    plugins.installed = {};
+    expect(plugins.forgettable(plugin({ source: "link" }))).toBe(true);
+  });
+
   it("offers an update only from the plugin's own origin, and a newer commit for a branch", () => {
     const s = screen("guition"), plugins = usePluginsStore(), hasUpdate = plugins.hasUpdate;
     plugins.installed = { [s.id]: [{ id: "bus", version: "1.0.0", source: "index", origin: "github.com/someone/fork" }] };

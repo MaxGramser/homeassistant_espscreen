@@ -1,17 +1,26 @@
 """One way to show a finger's change before Home Assistant confirms it (docs/OPTIMISTIC.md).
 
 The wish in optimistic.h is that way: these checks keep the doc's field table equal to the code and keep the tile's old
-private hold for on and off from coming back.
+private hold for on and off from coming back. The wish's behaviour is proven in tests/test_optimistic.cpp (a tap goes out
+at once, a burst folds into one, TAP_HOLD is Home Assistant's two seconds as a static_assert), and a card painted in
+place against the same card built anew in web/wasm/test_card_parts.mjs.
 """
+from firmware_sources import runtime_source
 import re
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OPTIMISTIC = (ROOT / 'components/smart_display/optimistic.h').read_text()
-TILES = (ROOT / 'components/smart_display/runtime_tiles.h').read_text()
+TILES = runtime_source()
 MODEL = (ROOT / 'components/smart_display/runtime_model.h').read_text()
 DOC = (ROOT / 'docs/OPTIMISTIC.md').read_text()
+
+
+def function(source, head):
+    """The body of the function that starts with `head`, up to its closing brace at the start of a line."""
+    body = source[source.index(head):]
+    return body[:body.index('\n}\n')]
 
 
 def fields():
@@ -28,8 +37,8 @@ class OneWish(unittest.TestCase):
         self.assertEqual(sorted(names), sorted(table), 'docs/OPTIMISTIC.md: the field table differs from optimistic::Field')
 
     def test_every_field_is_read_and_written(self):
-        read = TILES[TILES.index('inline std::string wish_read('):TILES.index('inline void wish_write(')]
-        write = TILES[TILES.index('inline void wish_write('):TILES.index('inline void wish_show(')]
+        # Rule: a field the wish knows is one the tile can show and take back (docs/OPTIMISTIC.md, "Adding a field").
+        read, write = function(TILES, 'inline std::string wish_read('), function(TILES, 'inline void wish_write(')
         for name in fields():
             self.assertIn(f'F::{name}', read, f'wish_read does not read {name} (docs/OPTIMISTIC.md, "Adding a field")')
             self.assertIn(f'F::{name}', write, f'wish_write does not write {name} (docs/OPTIMISTIC.md, "Adding a field")')
@@ -39,12 +48,10 @@ class OneWish(unittest.TestCase):
         for old in ('optimistic_tap', 'undo_optimistic', 'tap_held', 'optimistic_on', 'press_key('):
             self.assertNotIn(old, TILES + MODEL, f'{old}: use wish() (docs/OPTIMISTIC.md)')
 
-    def test_the_rules_follow_home_assistant(self):
-        # ha-entity-toggle.ts: two seconds after the call returned.
-        self.assertIn('constexpr uint32_t TAP_HOLD = 2000;', OPTIMISTIC)
-        # A choice goes out at once; taps while it is on its way fold into one.
-        self.assertNotIn('QUIET_TAP', OPTIMISTIC + TILES)
-        self.assertIn('wish_run(w, esphome::millis());  // a choice goes out now, unless one is on its way', TILES)
+    def test_no_quiet_tap(self):
+        # Rule: a choice goes out at once and taps on its way fold into one (tests/test_optimistic.cpp); no quiet time
+        # before a tap goes out comes back.
+        self.assertNotIn('QUIET_TAP', OPTIMISTIC + TILES, 'a tap waits for nothing: docs/OPTIMISTIC.md')
 
 
 class CardParts(unittest.TestCase):
@@ -60,26 +67,19 @@ class CardParts(unittest.TestCase):
         for card in re.findall(r'^inline void (render_[a-z]+_detail)\(', TILES, re.M):
             self.assertIn(card, shapes, f'{card} is a card without a shape (docs/CARD_PARTS.md)')
         for card, shape in shapes.items():
-            body = TILES[TILES.index(f'inline void {card}('):]
-            body = body[:body.index('\n}\n')]
+            body = function(TILES, f'inline void {card}(')
             self.assertIn(f'card_shaped(t,{shape});', body, f'{card} names no shape (docs/CARD_PARTS.md)')
 
     def test_the_pages_over_a_card_wish(self):
         # The lamp page and the effects page change a lamp or a row as a wish and keep no hold of their own.
         for page in ('group_page.h', 'effects_page.h'):
             source = (ROOT / 'components/smart_display' / page).read_text()
-            self.assertIn('wish(', source)
-            self.assertNotIn('SENT_HOLD_MS', source)
-        # Bound in C++ since app 0.4.86 (runtime_tiles::bind_pages), which the core and the browser preview both call.
-        self.assertIn('group_page::wish = wish_part;', TILES)
-        self.assertIn('effects_page::wish = wish_part;', TILES)
-        self.assertIn('runtime_tiles::bind_pages();', (ROOT / 'packages/core.yaml').read_text())
-
-    def test_a_change_paints_before_it_builds(self):
-        refresh = TILES[TILES.index('inline void refresh_detail(unsigned index){'):]
-        refresh = refresh[:refresh.index('\n}\n')]
-        self.assertLess(refresh.index('card_repaint('), refresh.index('show_detail(index);'))
-        self.assertIn('card_parts.clear();card_shape_of=nullptr;', TILES)
+            self.assertIn('wish(', source, f'{page} changes a lamp or a row as a wish')
+            self.assertNotIn('SENT_HOLD_MS', source, f'{page} keeps no hold of its own')
+        # Rule: bound in C++ since app 0.4.86 (runtime_tiles::bind_pages), which the core and the browser preview both call.
+        self.assertIn('group_page::wish = wish_part;', TILES, 'the lamp page wishes through the runtime')
+        self.assertIn('effects_page::wish = wish_part;', TILES, 'and so does the effects page')
+        self.assertIn('runtime_tiles::bind_pages();', (ROOT / 'packages/core.yaml').read_text(), 'core.yaml binds the pages at boot')
 
 
 if __name__ == '__main__':

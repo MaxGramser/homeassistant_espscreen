@@ -3,6 +3,7 @@
 // host design study (tools/render/calendar_card.py) share it, so what the study shows is what the glass shows.
 #include "calendar_card.h"
 #include "theme.h"
+#include "draw_text.h"
 
 #include <algorithm>
 #include <array>
@@ -90,7 +91,7 @@ inline void paint(lv_layer_t *layer, const cc::Scene &sc, int ox, int oy, const 
     // The plan already fitted the line to its box; a glyph's overhang may not wrap a left-aligned line onto a second.
     if (t.align == cc::LEFT) d.flag = LV_TEXT_FLAG_EXPAND;
     lv_area_t a{x1, y1, x1 + t.w - 1, y1 + h - 1};
-    lv_draw_label(layer, &d, &a);
+    draw_text::label(layer, d, a);
   }
 }
 // The hit under a point in the scene's coordinates (the last one drawn wins: sheets lie over the page).

@@ -104,6 +104,9 @@ const open = computed(() => everything.value.find((plugin) => plugin.id === open
 // The tray folds to its head while details are open, and opens again when they close.
 function show(plugin: Plugin) { openId.value = plugin.id; panel.value = "plugin"; plugins.tray.open = false; }
 function close() { panel.value = null; openId.value = null; plugins.tray.open = true; }
+// A plugin that left the list while its details were open (Remove, a test folder that went) closes them: the details are
+// gone before their own close could reach this page, which left an empty column.
+watch(open, (plugin) => { if (panel.value === "plugin" && !plugin) close(); });
 // ⌘K sends a person to a plugin: its details open once the page has it (the screen's Plugins tab does the same).
 watch(() => [plugins.focus, everything.value.length] as const, ([id]) => {
   const plugin = id ? everything.value.find((p) => p.id === id) : null;

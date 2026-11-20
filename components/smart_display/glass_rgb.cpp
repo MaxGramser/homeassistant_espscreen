@@ -15,7 +15,7 @@
 #include <esp_lcd_panel_rgb.h>
 #if defined(SCREEN_PICTURES)
 
-#include "lvgl.h"  // LV_COLOR_16_SWAP, LVGL's byte order for this display
+#include "lvgl.h"  // LVGL's byte order for this display
 
 namespace glass {
 
@@ -26,7 +26,13 @@ static void *buffer = nullptr;
 
 static void panel_made(esp_lcd_panel_handle_t made, const esp_lcd_rgb_panel_config_t *config) {
   panel_handle = made;
+  // LVGL's byte order for this display: LV_COLOR_16_SWAP up to LVGL 9.5 (ESPHome 2026.10), the display's default colour
+  // format from LVGL 9.6 (ESPHome 2026.11 renders a big-endian display in RGB565_SWAPPED).
+#ifdef LV_COLOR_16_SWAP
   panel_facts.swapped = LV_COLOR_16_SWAP;
+#else
+  panel_facts.swapped = LV_COLOR_FORMAT_DEFAULT == LV_COLOR_FORMAT_RGB565_SWAPPED;
+#endif
   panel_facts.w = static_cast<int>(config->timings.h_res);
   panel_facts.h = static_cast<int>(config->timings.v_res);
   // A frame buffer of its own (not one the display hands in) of one RGB565 pixel to every 16-bit word of the bus.

@@ -44,6 +44,9 @@ constexpr size_t MAX_BYTES = 1024 * 640 * 2;
 // glass's 1280x800 at its own pixels, for a camera over the whole page, the full view and the screensaver. A board with
 // 8 MB keeps the cap above. ESP Screen Manager honours the same side (picture_question.LARGE_SIDE).
 constexpr int LARGE_SIDE = 2048;
+// The store's whole budget on a board with that much PSRAM: a fifth of it, at most 6 MB (about 1.2 MB of a board's
+// 8 MB heap of 6, 6 MB of a P4 board's 32). The one place this is written: the store asks it.
+constexpr size_t budget_for(size_t psram_total) { return psram_total / 5 < (6u << 20) ? psram_total / 5 : (6u << 20); }
 struct Cap {
   int side = MAX_SIDE;
   size_t bytes = MAX_BYTES;
@@ -77,6 +80,7 @@ template <class Image> struct Store {
     size_t bytes = 0;
     uint32_t stored_at = 0, used = 0;
     bool retired = false;    // replaced by a copy of another size; freed once no card shows it
+    std::string etag;        // the app's ETag of these bytes, so its owner's next link may come back 304
   };
   std::array<Entry, ENTRIES> entries{};
   std::function<void(void *)> release;
@@ -97,6 +101,13 @@ template <class Image> struct Store {
     for (auto &e : entries) if (e.buffer && !e.retired && e.key == key) return &e;
     return nullptr;
   }
+  // Also a retired copy (one whose owner moved on but whose card may still draw it): the picture an owner had before.
+  Entry *entry_any(const std::string &key) {
+    if (Entry *e = entry(key)) return e;
+    if (key.empty()) return nullptr;
+    for (auto &e : entries) if (e.buffer && e.key == key) return &e;
+    return nullptr;
+  }
   // The kept picture for `key`, or nullptr.
   Image *find(const std::string &key) {
     Entry *e = entry(key);
@@ -108,7 +119,7 @@ template <class Image> struct Store {
   // allocated it) and the caller lets go of it. A picture under the same key before it is retired: it stays while a card
   // draws it and goes at the next collect. nullptr when there is no room: the caller keeps its buffer and draws it
   // itself. With every slot taken the picture used longest ago that no card draws makes way (make_room).
-  Image *adopt(const std::string &key, const Image &from, uint32_t now) {
+  Image *adopt(const std::string &key, const Image &from, uint32_t now, const std::string &etag = {}) {
     if (!budget || !from.data || !from.data_size || key.empty() || from.data_size > budget) return nullptr;
     Entry *slot = nullptr;
     for (auto &c : entries) if (!c.buffer) { slot = &c; break; }
@@ -120,8 +131,19 @@ template <class Image> struct Store {
     slot->bytes = from.data_size;
     slot->image = from;
     slot->stored_at = now; slot->used = ++uses; slot->retired = false;
+    slot->etag = etag;
     note("takes", *slot);
     return &slot->image;
+  }
+  // The same bytes under another key: an owner's new link (another track of the same album) answered 304 to the ETag of
+  // the picture it shows (`from`), so that picture is the new key's too. Its pixels stay where they are, so the card on
+  // the glass changes nothing. False when `from` is gone or `to` is had already.
+  bool rekey(const std::string &from, const std::string &to, uint32_t now) {
+    Entry *e = entry_any(from);
+    if (!e || to.empty() || entry(to)) return false;
+    e->key = to; e->stored_at = now; e->used = ++uses; e->retired = false;
+    note("takes (the same bytes, a new key)", *e);
+    return true;
   }
   // Every slot taken (firmware 0.52.0): the picture that no card draws and was used longest ago makes way, one no longer
   // wanted (retired) before any other. Before, the slots ran out long before the bytes reached the budget: on a 4-inch
@@ -195,4 +217,19 @@ template <class Image> struct Store {
     e = Entry{};
   }
 };
+
+// What picture_done does with a picture its slot finished (docs/PICTURES.md, "Memory" and "Unchanged pictures").
+// A 304 (`cached`) for a picture the store let go meanwhile, whose pixels no slot holds either, leaves nothing to show:
+// it is loaded again, whole. `asked` is whether the slot knew which picture it loaded; `in_store` is asked after the
+// store had the chance to file the owner's previous picture under it (rekey).
+constexpr bool load_again(bool store, bool ok, bool cached, bool asked, bool in_store, bool slot_holds) {
+  return store && ok && cached && asked && !in_store && !slot_holds;
+}
+// Then: a 304 for a picture the store has is touched (nothing downloaded or drawn again); a download with pixels goes
+// into the store, its own buffer and no copy, where the slot can hand it over (adopt); anything else is drawn from its
+// slot. The view and an alert draw the store's copy, which a download that breaks off halfway cannot take away (0.13.0).
+enum class Arrival : uint8_t { touch, adopt, slot };
+constexpr Arrival arrival(bool store, bool cached, bool in_store, bool has_pixels) {
+  return store && cached && in_store ? Arrival::touch : store && has_pixels ? Arrival::adopt : Arrival::slot;
+}
 }  // namespace picture_store

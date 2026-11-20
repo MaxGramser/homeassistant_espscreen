@@ -3,6 +3,7 @@
 // touch at a few frames a second (the home page); otherwise it takes taps and swipes, and `controls` decides whether
 // a tap on a tile reaches Home Assistant.
 import { useDocumentVisibility, useElementVisibility, useRafFn, useTimeoutFn } from "@vueuse/core";
+import age from "virtual:esp-screens-preview-age";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { FirmwarePreviewModule } from "../wasm/firmware_preview.js";
 import { loadFirmware } from "../wasm/load";
@@ -12,6 +13,7 @@ import type { PageLayout, Screen } from "../types";
 import type { Texts } from "../model/plugins";
 import { useInventoryStore } from "../stores/inventory";
 import { useDocumentStore } from "../stores/document";
+import { allTiles } from "../model/page-tiles";
 
 const inv = useInventoryStore();
 const doc = useDocumentStore();
@@ -297,7 +299,8 @@ function refreshLiveState() {
 function entityQuery() {
   const entities = new Set<string>();
   for (const page of layout()?.pages ?? []) {
-    for (const tile of page.tiles) if (tile.content.kind === 'entity') entities.add(tile.content.entityId);
+    for (const tile of allTiles(page)) if (tile.content.kind === 'entity') entities.add(tile.content.entityId);
+    for (const section of page.sections ?? []) if (section.summary) entities.add(section.summary);
     for (const item of page.topbar.trailing) if (item.entity) entities.add(item.entity);
   }
   return [...entities].sort().map(entity => `entity=${encodeURIComponent(entity)}`).join('&');
@@ -368,6 +371,8 @@ onBeforeUnmount(() => {
   frames.pause();
   cancel(); module = null;
 });
+// When the preview shipped here was built, in the person's own way of writing a date; empty where the build could not say.
+const staleSince = age.preview ? new Date(age.preview).toLocaleDateString() : "";
 </script>
 
 <template>
@@ -375,6 +380,8 @@ onBeforeUnmount(() => {
     <canvas ref="canvas" :width="width" :height="height" :aria-label="t('editor.preview.canvas')"
       @pointerdown.prevent="contact" @pointermove="contact" @pointerup="contact" @pointercancel="cancel" @lostpointercapture="cancel"></canvas>
   </div>
+  <!-- The preview this editor ships is older than the firmware (web/preview-age.ts): said here, where it is looked at. -->
+  <p v-if="age.stale && !still" class="firmware-preview-note" role="status">{{ t("editor.preview.stale", { date: staleSince }) }}</p>
   <p v-if="actionError && !still" class="firmware-preview-error" role="alert">{{ actionError }}</p>
   <p v-if="error && !still" class="firmware-preview-error" role="alert">{{ error }}</p>
 </template>

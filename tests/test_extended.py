@@ -5,7 +5,6 @@ import tempfile
 import unittest
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'screen_manager/app'))
-sys.path.insert(0,str(Path(__file__).resolve().parent))
 from server import KEEPALIVE_SECONDS
 from core import validate_layout, state_message, packets
 from firmware import Firmware

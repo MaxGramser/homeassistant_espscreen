@@ -6,8 +6,10 @@
 // mockup draws of a drag is the drag store's (stores/drag.ts); the pointer's own bookkeeping
 // (the hold, the ghost, the scrolling near an edge) stays here, outside any store.
 import type { ObjectDirective } from "vue";
-import { entriesOf, pageOrder } from "./model/layout";
-import { commitArrangement, confirmMemory, keyToCell, placeKey, startTile } from "./editor/tiles";
+import { entriesOf, pageOrder, sectionTile, sizeOf } from "./model/layout";
+import { blockOf, insertIntoSection, movedSection } from "./model/sections";
+import type { SectionBlock } from "./types";
+import { commitArrangement, confirmMemory, keyToCell, offerLook, placeKey, startTile, tileIds } from "./editor/tiles";
 import { movePage, pagesShown } from "./editor/pages";
 import type { Tile } from "./types";
 import rules from "./model/page-rules.json";
@@ -18,13 +20,17 @@ import { useDragStore, type DragPreview, type KeyPlace } from "./stores/drag";
 import { useUiStore } from "./stores/ui";
 import { useEntitiesStore } from "./stores/entities";
 
-export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number };
+export type DragSource = { kind: "tile"; tile: Tile } | { kind: "entity"; id: string } | { kind: "page"; page: number }
+  // A section carried whole by its band (docs/PAGES.md "Sections"): it goes as one block, its tiles with it.
+  | { kind: "section"; id: string };
 type Drag = {
   source: DragSource | null; element: HTMLElement | null; ghost: HTMLElement | null; timer: number;
   start: { x: number; y: number } | null; offset: { x: number; y: number }; pointerId: number | null;
   suppressUntil: number; last: { x: number; y: number } | null; scroller: number; target: number | null; lastSlot: number | null;
+  // The cell of the carried tile it was taken by, from its top left (grabbedCell): that cell lands under the pointer.
+  grab: { column: number; row: number };
 };
-const drag: Drag = { source: null, element: null, ghost: null, timer: 0, start: null, offset: { x: 0, y: 0 }, pointerId: null, suppressUntil: 0, last: null, scroller: 0, target: null, lastSlot: null };
+const drag: Drag = { source: null, element: null, ghost: null, timer: 0, start: null, offset: { x: 0, y: 0 }, pointerId: null, suppressUntil: 0, last: null, scroller: 0, target: null, lastSlot: null, grab: { column: 0, row: 0 } };
 
 export const vDrag: ObjectDirective<HTMLElement, DragSource | null> = {
   mounted(element, binding) {
@@ -86,6 +92,10 @@ function carried(element: HTMLElement): HTMLElement {
   return glass;
 }
 
+const blockSlot = (block: SectionBlock) => {
+  const { grid } = useDocumentStore().editorLayout;
+  return block.page * grid.slots + block.row * grid.columns + block.column;
+};
 function beginDrag(e: PointerEvent) {
   const dragging = useDragStore();
   if (dragging.active || !drag.start || !drag.source || !drag.element) return;
@@ -93,7 +103,12 @@ function beginDrag(e: PointerEvent) {
   // The row as it stands, read before the drag begins: from here on a tile drag adds a page to it.
   const pages = pagesShown();
   dragging.active = true;
-  dragging.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile : startTile(source.id);
+  // A section is carried as a tile of its block's size (model/layout.ts sectionTile); its tiles go with it.
+  const block = source.kind === "section" ? useDocumentStore().layout?.sections?.find((b) => b.id === source.id) : undefined;
+  if (source.kind === "section" && !block) { dragging.active = false; return; }
+  dragging.section = block ? block.id : null;
+  dragging.moving = source.kind === "page" ? null : source.kind === "tile" ? source.tile
+    : block ? sectionTile(block, blockSlot(block)) : startTile((source as { id: string }).id);
   // A page keeps its own place until the pointer names another one; the ghost is the label you grabbed it by.
   dragging.page = source.kind === "page" ? { from: source.page, to: source.page, order: pageOrder(pages, source.page, source.page) } : null;
   dragging.preview = null;
@@ -105,6 +120,8 @@ function beginDrag(e: PointerEvent) {
   ghost.style.width = `${rect.width}px`;
   ghost.style.height = `${rect.height}px`;
   drag.offset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  // Where the press was, not where the drag began a few pixels later: the cell a finger or the mouse took the tile by.
+  drag.grab = source.kind === "tile" ? grabbedCell(drag.element, drag.start.x, drag.start.y) : { column: 0, row: 0 };
   document.body.append(ghost);
   drag.ghost = ghost;
   // The mockup re-renders while hovering, so the pointer is followed on the document, not the card.
@@ -126,6 +143,14 @@ function beginDrag(e: PointerEvent) {
   }, 16);
   if (!dragging.page) setTarget(-1);
   moveDrag(e);
+}
+// The cell of a card that a point is on, from the card's top left, by the cells it covers (its data-columns and
+// data-rows, as slotAt reads them): a 2 x 2 card taken by its lower right quarter is held by its cell (1, 1).
+export function grabbedCell(card: HTMLElement, x: number, y: number) {
+  const r = card.getBoundingClientRect();
+  const columns = Number(card.dataset.columns || 1), rows = Number(card.dataset.rows || 1);
+  const along = (offset: number, size: number, count: number) => size > 0 ? Math.max(0, Math.min(count - 1, Math.floor(offset / size * count))) : 0;
+  return { column: along(x - r.left, r.width, columns), row: along(y - r.top, r.height, rows) };
 }
 // True when the element scrolls along that axis: more content than room, and an overflow that lets it scroll.
 export function scrollsAlong(element: Element | null, axis: "x" | "y") {
@@ -182,6 +207,8 @@ function aim(x: number, y: number) {
   if (dragging.page) return setPageTarget(pageAt(x, y));
   // A key place under a bedside clock takes a tile as a cell does (app 0.4.12); it is checked first, since it lies on
   // the clock's card, which is a cell too.
+  // A section lands with its top left corner in the cell under the band's top left corner, as it is carried.
+  if (dragging.section) return setTarget(slotAt(x - drag.offset.x + 12, y - drag.offset.y + (drag.ghost?.offsetHeight ?? 0) + 12));
   const key = keyAt(x, y);
   dragging.key = key;
   if (key) { drag.target = null; dragging.preview = null; return; }
@@ -240,12 +267,52 @@ function setPageTarget(place: number) {
   page.order = pageOrder(pagesShown(), page.from, to);
   dragging.preview = doc.editorLayout.reorderPages(entriesOf(doc.layout), page.order);
 }
-function setTarget(slot: number) {
-  const dragging = useDragStore(), doc = useDocumentStore(), moving = dragging.moving, { arrange, pageOf } = doc.editorLayout;
-  if (drag.target === slot || !doc.layout || !moving) return;
+function setTarget(pointed: number) {
+  const dragging = useDragStore(), doc = useDocumentStore(), moving = dragging.moving, { anchorAt, arrange, pageOf } = doc.editorLayout;
+  if (!doc.layout || !moving) return;
+  // The cell under the pointer is the cell the tile was taken by; its first cell lies that far up and to the left.
+  const slot = anchorAt(pointed, sizeOf(moving), drag.grab);
+  if (drag.target === slot) return;
   drag.target = slot;
   // A key leaves its clock for an empty cell only: the drop shows nothing moving aside.
   if (moving.in !== undefined) { dragging.preview = null; return; }
+  // A section: the page without its own tiles makes room for its block, and its tiles go along (model/sections.ts).
+  if (dragging.section) {
+    const id = dragging.section, grid = doc.documentGrid ? doc.screenGridOf(doc.documentGrid) : null;
+    const own = new Set(doc.layout.tiles.filter((tile) => grid && blockOf(doc.layout!, tile, grid)?.id === id));
+    const arranged = slot >= 0 && grid ? arrange(doc.layout.tiles.filter((tile) => !own.has(tile)), moving, slot) : null;
+    const edit = arranged && grid ? movedSection(doc.layout, grid, id, arranged) : null;
+    dragging.preview = edit && !("refused" in edit) ? edit.entries : null;
+    dragging.previewBlocks = edit && !("refused" in edit) ? edit.blocks : null;
+    dragging.refused = slot >= 0 && !dragging.preview ? pageOf(slot) : null;
+    return;
+  }
+  // Into a section (docs/PAGES.md "Sections"), as an app goes into a folder: on a free cell of the block it lands there;
+  // on a tile of the block, or where the block is full, it takes that place in the section's reading order, the tiles
+  // after it move on and the section grows by rows when it must.
+  const grid = doc.documentGrid ? doc.screenGridOf(doc.documentGrid) : null;
+  const region = slot >= 0 && grid ? doc.editorLayout.regionOf(doc.editorLayout.startOf(slot, sizeOf(moving)), sizeOf(moving)) : "";
+  const block = region ? doc.layout.sections?.find((b) => b.id === region) : undefined;
+  if (block && grid) {
+    const start = doc.editorLayout.startOf(slot, sizeOf(moving));
+    const cells = doc.editorLayout.cellsOf(start, sizeOf(moving));
+    const others = doc.layout.tiles.filter((tile) => tile !== moving && !(moving.id && tile.id === moving.id) && tile.slot >= 0);
+    const taken = new Set(others.flatMap((tile) => doc.editorLayout.cellsOf(tile.slot, sizeOf(tile))));
+    const free = cells.every((cell) => !taken.has(cell));
+    const arranged = free ? arrange(doc.layout.tiles, moving, slot) : null;
+    if (!arranged) {
+      const edit = insertIntoSection(doc.layout, grid, moving, block.id, start);
+      dragging.preview = "refused" in edit ? null : edit.entries;
+      dragging.previewBlocks = "refused" in edit ? null : edit.blocks;
+      dragging.refused = dragging.preview ? null : pageOf(slot);
+      return;
+    }
+    dragging.previewBlocks = null;
+    dragging.preview = arranged;
+    dragging.refused = null;
+    return;
+  }
+  dragging.previewBlocks = null;
   // Off the grid: a tile from the grid shows where it came from; a new one shows nowhere yet.
   dragging.preview = slot >= 0 ? arrange(doc.layout.tiles, moving, slot) : null;
   // A page the tile can't land on says so as a whole, instead of showing nothing: a page-filling tile over a page
@@ -255,6 +322,7 @@ function setTarget(slot: number) {
 function endDrag(drop: boolean) {
   const dragging = useDragStore();
   const preview = dragging.preview, moving = dragging.moving, page = dragging.page, key = dragging.key, refused = dragging.refused;
+  const blocks = dragging.previewBlocks, section = dragging.section;
   // A tile from the library, not one moved on the grid: past the screen's memory it asks first, as a click does.
   const fresh = drag.source?.kind === "entity";
   document.removeEventListener("pointermove", moveDrag);
@@ -264,7 +332,7 @@ function endDrag(drop: boolean) {
   try { document.documentElement.releasePointerCapture(drag.pointerId!); } catch { /* no longer captured */ }
   drag.ghost?.remove();
   drag.lastSlot = drag.target;
-  Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null });
+  Object.assign(drag, { ghost: null, suppressUntil: Date.now() + CLICK_AFTER_DRAG_MS, last: null, start: null, target: null, element: null, source: null, grab: { column: 0, row: 0 } });
   clearInterval(drag.scroller);
   dragging.clear();
   // A page lands exactly where the row showed it; the move takes its title and its Go to page tiles with it.
@@ -272,15 +340,21 @@ function endDrag(drop: boolean) {
     if (drop) movePage(page.from, page.to);
     return;
   }
-  const landing = { drop, preview, moving, key, refused, slot: drag.lastSlot };
+  // A section lands where the page showed it, its tiles with it; one let go where it fits nowhere stays where it was.
+  if (section) {
+    if (drop && preview && blocks) commitArrangement(preview, undefined, blocks);
+    else if (drop && refused !== null) useUiStore().toast(t("editor.sections.no_room_page", { page: refused + 1 }));
+    return;
+  }
+  const landing = { drop, preview, moving, key, refused, slot: drag.lastSlot, blocks };
   // Past the screen's memory a new tile waits for the answer (useConfirm), then lands where the drag left it.
   const allowed = drop && fresh && moving && (key || preview) ? confirmMemory(moving.entity) : true;
   if (allowed !== true) { void allowed.then((yes) => { if (yes) land(landing); }); return; }
   land(landing);
 }
 // Where a dropped tile goes: under a bedside clock, off its clock to an empty cell, or into the place the drag showed.
-function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; preview: DragPreview | null; moving: Tile | null;
-  key: KeyPlace | null; refused: number | null; slot: number | null }) {
+function land({ drop, preview, moving, key, refused, slot, blocks }: { drop: boolean; preview: DragPreview | null; moving: Tile | null;
+  key: KeyPlace | null; refused: number | null; slot: number | null; blocks?: SectionBlock[] | null }) {
   const layout = useDocumentStore().layout;
   if (drop && key && moving && layout) {
     const clock = layout.tiles.find((tile) => tile.id === key.holder);
@@ -292,7 +366,12 @@ function land({ drop, preview, moving, key, refused, slot }: { drop: boolean; pr
     return;
   }
   if (drop && preview && moving && layout) {
-    if (commitArrangement(preview)) useEntitiesStore().loadCapabilities([moving.entity]);
+    const before = tileIds();
+    if (commitArrangement(preview, undefined, blocks ?? undefined)) {
+      useEntitiesStore().loadCapabilities([moving.entity]);
+      // A tile from the library, not one moved: a sensor that came as a meter offers its other looks (LookTip).
+      if (!moving.id) offerLook(moving.entity, before);
+    }
   } else if (drop && moving && refused !== null && refused !== undefined) useUiStore().toast(t("editor.layout.no_room", { page: refused + 1 }));
 }
 // A finished drag is no click (startDrag, from boot.ts): the click the browser sends after it stops before anything sees it.
@@ -307,5 +386,5 @@ export const dragSuppressed = () => Date.now() < drag.suppressUntil;
 export function resetDrag() {
   clearTimeout(drag.timer);
   if (drag.ghost) endDrag(false);
-  Object.assign(drag, { source: null, element: null, ghost: null, start: null, pointerId: null, suppressUntil: 0, last: null, target: null, lastSlot: null });
+  Object.assign(drag, { source: null, element: null, ghost: null, start: null, pointerId: null, suppressUntil: 0, last: null, target: null, lastSlot: null, grab: { column: 0, row: 0 } });
 }

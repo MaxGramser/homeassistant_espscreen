@@ -198,6 +198,79 @@ def test_a_side_with_its_own_canceller_is_never_turned_down():
     assert level_of(s.feed('b', tone(3000), 0.02)) > 2900
 
 
+def test_voice_switching_and_echo_cancelling_are_the_calls_choices_for_both_screens():
+    # Two screens that both cancel echo start without voice switching; one that cannot brings it from the start.
+    assert calls.VoiceSwitch('a', 'b', cancels=['a', 'b']).keys() == {'vs': 0, 'ec': 1}
+    s = calls.VoiceSwitch('a', 'b', cancels=['a'])
+    assert s.keys() == {'vs': 1, 'ec': 1}
+    assert s.switching('b') and not s.switching('a')      # a's canceller is at work: a is not turned down
+    s.feed('a', tone(5000), 0.0)
+    s.feed('b', tone(3000), 0.01)                # the part in which the level goes down
+    assert level_of(s.feed('b', tone(3000), 0.02)) < 3000 * calls.DUCK * 1.1
+    s.turn('switch', False)                      # off for the call: nobody is turned down
+    assert s.keys() == {'vs': 0, 'ec': 1}
+    assert level_of(s.feed('b', tone(3000), 0.04)) > 2900    # at once, with no ramp left from before
+    s.turn('switch', True)
+    s.turn('echo', False)                        # the canceller rests: a is switched as b is
+    assert s.keys() == {'vs': 1, 'ec': 0} and s.switching('a')
+    # A call of two screens without a canceller has no key for echo cancelling.
+    assert calls.VoiceSwitch('a', 'b').keys() == {'vs': 1}
+
+
+def test_the_calls_choices_go_out_as_a_message_of_their_own():
+    assert calls.choices_message('k', {'vs': 0, 'ec': 1}) == {'v': 1, 'op': 'call', 'k': 'k', 's': 'set', 'vs': 0, 'ec': 1}
+
+
+def test_a_screen_that_ends_a_call_nobody_holds_is_told_it_ended():
+    # The app started again in the middle of a call: it knows nothing of it, and the screens must still get out.
+    m = machine()
+    for said in (m.hang_up('lost', 'a', 5.0), m.decline('lost', 'a', 5.0)):
+        assert [(o.node, o.key, o.state, o.why) for o in said] == [('a', 'lost', calls.END, calls.GONE)]
+    # Someone else's call is not theirs to end.
+    out = m.dial('a', 'b', False, 0.0)
+    key = next(o.key for o in out if isinstance(o, calls.Say))
+    assert m.hang_up(key, 'c', 1.0) == []
+
+
+def test_every_event_of_a_call_carries_the_calls_own_key():
+    m = machine()
+    out = m.dial('a', 'b', True, 0.0)
+    key = next(o.key for o in out if isinstance(o, calls.Say))
+    out += m.answer(key, 'b', 1.0) + m.hang_up(key, 'a', 9.0)
+    fired = [o for o in out if isinstance(o, calls.Fire)]
+    assert len(fired) >= 3 and all(o.data['key'] == key for o in fired)
+
+
+def test_a_direct_call_has_a_token_for_each_direction_and_the_port_the_screens_serve_on():
+    tokens = calls.direct_tokens('a', 'b')
+    assert set(tokens) == {'a', 'b'} and tokens['a'] != tokens['b'] and all(len(t) >= 16 for t in tokens.values())
+    assert calls.direct_link('192.0.2.7', 'tok') == 'http://192.0.2.7:8555/call/tok.mjpeg'
+    header = (pathlib.Path(__file__).resolve().parents[1] / 'components/smart_display/call_serve.h').read_text()
+    assert f'constexpr uint16_t PORT = {calls.DIRECT_PORT};' in header
+
+
+def test_direct_calls_are_the_screens_own_switch_off_as_it_comes():
+    items = [{'platform': 'esphome', 'entity_id': 'switch.hall_direct_calls', 'original_name': 'Direct calls'}]
+    assert calls.switch_on(items, {'switch.hall_direct_calls': {'state': 'on'}}, calls.DIRECT_SWITCH)
+    assert not calls.switch_on(items, {'switch.hall_direct_calls': {'state': 'off'}}, calls.DIRECT_SWITCH)
+    assert not calls.switch_on([], {'switch.hall_direct_calls': {'state': 'on'}}, calls.DIRECT_SWITCH)   # firmware from before it
+
+
+def test_do_not_disturb_is_the_screens_own_switch_read_from_home_assistant():
+    items = [{'platform': 'esphome', 'entity_id': 'switch.hall_do_not_disturb', 'original_name': 'Do not disturb'},
+             {'platform': 'esphome', 'entity_id': 'switch.hall_call_ringtone', 'original_name': 'Call ringtone'},
+             {'platform': 'other', 'entity_id': 'switch.something_do_not_disturb', 'original_name': 'Do not disturb'}]
+    assert calls.quiet(items, {'switch.hall_do_not_disturb': {'state': 'on'}})
+    assert not calls.quiet(items, {'switch.hall_do_not_disturb': {'state': 'off'}, 'switch.something_do_not_disturb': {'state': 'on'}})
+    assert not calls.quiet(items, {})                       # Home Assistant has no state yet
+    assert not calls.quiet(items[1:], {'switch.something_do_not_disturb': {'state': 'on'}})   # a screen without the switch
+    # A quiet screen refuses the call at once, and the caller reads why.
+    m = machine()
+    out = m.dial('a', 'b', False, 0.0, quiet=True)
+    assert [(o.node, o.state, o.why) for o in out if isinstance(o, calls.Say)] == [('a', calls.END, calls.QUIET)]
+    assert not m.calls
+
+
 def test_the_rooms_noise_is_no_voice():
     s = calls.VoiceSwitch('a', 'b')
     for n in range(40):
@@ -218,3 +291,11 @@ def test_a_screen_without_the_feature_gets_no_call_tile():
 def test_with_no_call_up_the_app_only_waits():
     source = (pathlib.Path(__file__).resolve().parent.parent / 'screen_manager/app/server.py').read_text()
     assert 'asyncio.wait_for(self.ha.call_events.get(), 1 if self.calls.calls else None)' in source
+
+
+def load_tests(loader, tests, pattern):
+    """The functions above as unittest's tests: the check runs `unittest discover`, which finds classes only, and passed
+    these by until 2026-11-17."""
+    import unittest
+    return unittest.TestSuite(unittest.FunctionTestCase(test) for name, test in sorted(globals().items())
+                              if name.startswith('test_') and callable(test))

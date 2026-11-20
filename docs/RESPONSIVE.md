@@ -67,6 +67,11 @@ which cell a card takes and how many it spans: `lv_obj_set_grid_cell(tile, STRET
 a wide card two columns, the 0.3.1 taller cards two rows, and a full card the whole page. No coordinate is computed in C++ any more, and the cards grow
 by themselves when the page bar goes (the container then reaches the bottom edge, keeping the side margin).
 
+A page with sections (docs/PAGES.md "Sections") keeps the same rows: a section's title and padding come out of its own
+cards as margins (`section_layout.h inside`, `module_sections.h place`), so no tile outside it changes. The editor's
+card room takes the same margins (`inner`, `margin` in `card-layout.ts`), so its cards are as high as the glass makes
+them.
+
 The cards themselves are made in C++ at boot (firmware 0.53.0+): `runtime_tiles::make_cells` builds one per cell of
 the grid the screen runs on, in the four card styles of `packages/core.yaml` and with the board's `TILE_ICON_SIZE`,
 and `make_card` builds the cards of a kept page the same way. Before, they were YAML widgets, one file per number of
@@ -127,7 +132,9 @@ the glass in `packages/looks/shared/digits.yaml`. A new card takes the largest s
 board's flash, the 4 MB boards have no room to spare, and the CYD runs close to its budget (docs/RELEASING.md).
 `tests/test_font_set.py` fails on a font that slips in with a feature, so adding one is a deliberate change to that
 set. `tools/font_metrics.py` reads a font's line height from the TrueType file, for a check that needs the height LVGL
-will get without building.
+will get without building. Code asks for a font by its role, never by looking at another card: the tile's icon font is
+`runtime_tiles::tile_icon_font()`, fixed at boot (`materialdesign_icons`, handed to `make_cells`), so a card drawn while
+another page's cards are bound measures the same font.
 
 The five text fonts carry the same characters (firmware 0.36.0+): every printable ASCII character, the letters European
 languages write with, and three hearts (♡ ♥ ❤) from `fonts/NotoSansSymbols2-hearts.ttf` through ESPHome's `extras:`,
@@ -232,7 +239,10 @@ behind it. The effects page and the colour card do the same on their own roots.
 
 Anything a finger must hit keeps at least `ui::touch_min()` (7 mm of glass, from the board's density) as its
 touch area, however thin it is drawn: `overlay_card::touchable(object, drawn_thickness)` grows the click area
-instead of the drawing, so a blind's slider on a small panel stays usable.
+instead of the drawing, so a blind's slider on a small panel stays usable. A key in the last row of a card that
+fills the glass also takes the strip between it and the glass's bottom edge (`detail_reach_down`): a finger aimed
+that low lands on the strip as often as on the key, and a touch panel reads a press near its edge a few pixels
+further out. The history card's range keys do this.
 
 ## Designing a card or a page here
 

@@ -4,6 +4,7 @@
 #include "lvgl.h"
 #include "meter_card.h"
 #include "theme.h"
+#include "draw_text.h"
 
 #include <algorithm>
 #include <array>
@@ -64,7 +65,7 @@ inline void words(lv_layer_t *layer, const mc::Text &t, const lv_font_t *f, uint
   // The plan fitted the line to its box; a glyph's overhang may not wrap a left-aligned line onto a second.
   if (t.align == mc::LEFT) d.flag = LV_TEXT_FLAG_EXPAND;
   lv_area_t a{ox + t.x, oy + t.y, ox + t.x + std::max(1, t.w) - 1, oy + t.y + lv_font_get_line_height(f) - 1};
-  lv_draw_label(layer, &d, &a);
+  draw_text::label(layer, d, a);
 }
 inline void paint_ring(lv_layer_t *layer, const Look &v, int ox, int oy) {
   const auto &p = v.plan;

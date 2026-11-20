@@ -14,8 +14,10 @@ import { defineStore } from "pinia";
 import { computed, onScopeDispose, ref, shallowRef } from "vue";
 import { getJson, send } from "../api";
 import { t } from "../i18n";
+import { type BuildFilesView, freedBy, sizeText } from "../model/build-files";
 import * as status from "../model/screen-status";
 import type { Build, LineBuild, Screen } from "../types";
+import { askConfirm } from "../composables/useConfirm";
 import { useInventoryStore } from "./inventory";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
@@ -90,7 +92,49 @@ export const useBuildsStore = defineStore("builds", () => {
     const said = status.buildEndText(ends);
     if (!said) return;
     if (said.failed) ui.toast(said.text, { label: t("editor.build.show_log"), run: () => ui.go("#firmware") });
+    else if (offerClean()) {
+      // The build files grew large (build_files.py `offer`): the build that ended offers the clean-up, once a page.
+      offered.value = true;
+      ui.toast(said.text, { label: t("editor.settings.build_files.offer", { size: sizeText(inv.inventory.build_files!.sizes!.folders) }), run: () => cleanBuildFiles("folders") });
+    }
     else ui.toast(said.text);
+  }
+
+  // ---- Build files (build_files.py, docs/BUILDS.md "Build files"): the room the builds take, and the clean-up ----
+  const offered = ref(false);
+  const cleaningFiles = ref(false);
+  /** Whether a build that ended offers the clean-up: the add-on says the build folders are large, nothing more is on its
+   * way, and this page did not offer it before. */
+  const offerClean = () => !offered.value && !!inv.inventory.build_files?.offer && !!inv.inventory.build_files.sizes
+    && !line.value.some((build) => build.state === "queued" || build.state === "running");
+  function takeBuildFiles(next: BuildFilesView) {
+    inv.inventory = { ...inv.inventory, build_files: next };
+  }
+  async function cleanBuildFiles(level: "folders" | "all") {
+    const files = inv.inventory.build_files;
+    const size = sizeText(freedBy(files?.sizes, level));
+    const yes = await askConfirm(t(level === "all" ? "editor.settings.build_files.clean_all_confirm" : "editor.settings.build_files.clean_confirm", { size }),
+      { confirm: t("editor.settings.build_files.clean_go"), danger: level === "all" });
+    if (!yes) return;
+    cleaningFiles.value = true;
+    try {
+      const next = await send<BuildFilesView>("build-files/clean", "POST", { level });
+      takeBuildFiles(next);
+      ui.toast(next.last?.freed ? t("editor.settings.build_files.cleaned", { size: sizeText(next.last.freed) }) : t("editor.settings.build_files.cleaned_nothing"));
+    } catch (e: any) {
+      ui.toast(e.message);
+    } finally {
+      cleaningFiles.value = false;
+    }
+  }
+  async function declineBuildFiles() {
+    try { takeBuildFiles(await send<BuildFilesView>("build-files/decline", "POST", {})); } catch (e: any) { ui.toast(e.message); }
+  }
+  async function setAutoClean(auto: boolean) {
+    try {
+      takeBuildFiles(await send<BuildFilesView>("build-files", "PUT", { auto }));
+      ui.toast(t(auto ? "editor.settings.build_files.auto_on" : "editor.settings.build_files.auto_off"));
+    } catch (e: any) { ui.toast(e.message); }
   }
 
   // ---- Updates ----
@@ -200,6 +244,6 @@ export const useBuildsStore = defineStore("builds", () => {
   return {
     updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew, lineBuild, lineForgot, lineOf, lineEnded, buildLogOf }),
     anyBuilding, buildingScreens, prune, forget, watched, line, devChannel,
-    startUpdate, runUpdateAll, setAutoUpdate, askBuild, loadBuildLog, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
+    startUpdate, runUpdateAll, setAutoUpdate, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

@@ -35,7 +35,12 @@ A tap anywhere else on the card opens the full screen.
 ## The full screen
 
 The whole list in one column that scrolls: a field that opens the keyboard, the open items, and under **Completed**
-what is done. A tap on the bin beside Completed asks once and then removes every completed item.
+what is done. A tap on the bin beside Completed asks once and then removes every completed item. The question is the
+card's own, "Remove 3 completed?", and not Home Assistant's "Remove completed items?" (which gives the count in a line
+below it): the card has one line for it, and on the smallest screens with this card (480 x 320 at 165 dpi, standing up,
+238 px for the line) Home Assistant's wording does not fit in eight of the ten languages, where the card's fits in
+every language with a count below 100. The Russian question takes Home Assistant's own words, "Завершено" (its
+heading for what is done, which the card's heading uses too) and "удалить".
 
 A swipe to the left on an item brings **Rename** and **Remove** in from the row's end, as far as the finger draws them:
 past a third of the way they stay, less lets them go back. The item's name stays where it is, so it is clear whose keys

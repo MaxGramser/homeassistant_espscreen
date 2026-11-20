@@ -1,12 +1,13 @@
 """Binary sensors in Home Assistant's words (app 0.2.62 / firmware 0.2.53): a door tile says Open or Closed.
 
-The screen maps the device class itself (`tile_controls::binary_state_text`), from the `device_class` attribute every
-state message has carried since app 0.2.23: nothing new on the wire, so it works with older apps too. These tests keep
-its table equal to the add-on's `header_bar.BINARY_STATES`, which the top bar and the history card use.
+The screen maps the device class itself, from the `device_class` attribute every state message has carried since app
+0.2.23: nothing new on the wire, so it works with older apps too. Its words are the add-on's `header_bar.BINARY_STATES`,
+which the top bar and the history card use: tests/fixtures/binary-words.json holds that table for both sides, and
+web/wasm/test_binary_words.mjs reads the real firmware's cards for every class, on and off, a card's heading and the
+words its history brings. Here: the fixture is the add-on's table, the add-on's sides say the same, and the fonts
+carry every word.
 """
-from firmware_sources import runtime_source
 import json
-import re
 import sys
 import unittest
 from pathlib import Path
@@ -19,27 +20,18 @@ import header_bar  # noqa: E402
 import history_card  # noqa: E402
 from core import state_message  # noqa: E402
 
-CONTROLS = (ROOT / 'components/smart_display/tile_controls.h').read_text()
-TILES = runtime_source()
+FIXTURE = ROOT / 'tests/fixtures/binary-words.json'
 PROFILES = ('checkout/guition.yaml', 'checkout/cyd.yaml', 'packages/cyd.yaml', 'packages/guition.yaml')
 
 
 ENGLISH = json.loads((ROOT / 'screen_manager/translations/en.json').read_text(encoding='utf-8'))
 
 
-def firmware_words():
-    """The firmware's table (app 0.2.90: keys into screen.ha.binary, in the screen's language) in English."""
-    block = re.search(r'constexpr BinaryWords BINARY_WORDS\[\] = \{(.*?)\n\};', CONTROLS, re.S)
-    words = ENGLISH['screen']['ha']['binary']
-    found = {}
-    for device_class, on, off in re.findall(r'\{"(\w+)", screen_text::txt::ha_binary_(\w+), screen_text::txt::ha_binary_(\w+)\}', block.group(1)):
-        found[device_class] = (words[on], words[off])
-    return found
-
-
 class BinaryWords(unittest.TestCase):
-    def test_the_screen_carries_the_add_on_s_words(self):
-        self.assertEqual(firmware_words(), header_bar.BINARY_STATES)
+    def test_the_screen_s_fixture_is_the_add_on_s_table(self):
+        found = {kind: tuple(words) for kind, words in json.loads(FIXTURE.read_text(encoding='utf-8')).items()}
+        self.assertEqual(found, header_bar.BINARY_STATES,
+                         'Write tests/fixtures/binary-words.json from header_bar.BINARY_STATES; the firmware preview test reads it.')
 
     def test_top_bar_and_history_card_say_the_same(self):
         for device_class, (on, off) in header_bar.BINARY_STATES.items():
@@ -51,7 +43,6 @@ class BinaryWords(unittest.TestCase):
         for attrs in ({}, {'device_class': 'future_class'}):
             self.assertEqual(header_bar.value('binary_sensor.x', {'state': 'on', 'attributes': attrs}), ('On', None))
             self.assertEqual(history_card.state_label('binary_sensor', 'off', attrs), 'Off')
-        self.assertIn('return screen_text::tr(on ? screen_text::txt::ha_on : screen_text::txt::ha_off);', CONTROLS)
         self.assertEqual((ENGLISH['screen']['ha']['on'], ENGLISH['screen']['ha']['off']), ('On', 'Off'))
 
     def test_the_state_message_already_carries_the_class(self):
@@ -60,16 +51,7 @@ class BinaryWords(unittest.TestCase):
         message = state_message(0, tile, states)
         self.assertEqual((message['state'], message['a']['device_class']), ('on', 'door'))
         self.assertNotIn('x', message)
-        self.assertIn('tile.device_class=string(a["device_class"],24);', TILES)
         self.assertLessEqual(max(map(len, header_bar.BINARY_STATES)), 24)
-
-    def test_tile_card_and_heading_use_them_for_binary_sensors_only(self):
-        self.assertIn('else if (d == "binary_sensor" && (value == "on" || value == "off")) '
-                      'value = tile_controls::binary_state_text(t.device_class, value == "on");', TILES)
-        self.assertIn('if(t.domain()=="binary_sensor"&&(t.state=="on"||t.state=="off"))'
-                      'return tile_controls::binary_state_text(t.device_class,t.state=="on");', TILES)
-        # A card still waiting for its history must not take the words of the card opened before it.
-        self.assertIn('if(history.entity==t.entity)for(const auto &pair:history.words)', TILES)
 
     def test_the_fonts_carry_every_word(self):
         letters = set(''.join(on + off for on, off in header_bar.BINARY_STATES.values()))

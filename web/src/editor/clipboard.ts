@@ -4,7 +4,7 @@
 // one, and the pasted tiles are chosen afterwards, so a second paste or a drag carries on from there.
 import { t } from "../i18n";
 import { entriesOf } from "../model/layout";
-import { memoryUse, NEARLY_FULL, noRoom } from "../model/memory";
+import { memoryLine, memoryUse } from "../model/memory";
 import { suggestedPageTitle } from "../model/page-naming";
 import * as pages from "../model/pages";
 import { copyTiles, pasteTiles as placeCopied, type CopiedTiles } from "../model/tile-clipboard";
@@ -70,8 +70,8 @@ export function removeTiles(tiles: readonly Tile[], said = "editor.layout.remove
   if (!ids.size) return false;
   const done = doc.editDocument((draft) => {
     for (const page of draft.pages) {
-      page.tiles = page.tiles.filter((item) => !ids.has(item.id));
-      for (const item of page.tiles) if (item.children) {
+      pages.keepTiles(page, (item) => !ids.has(item.id));
+      for (const item of pages.allTiles(page)) if (item.children) {
         item.children = item.children.filter((child) => !ids.has(child.id));
         if (!item.children.length) delete item.children;
       }
@@ -96,7 +96,7 @@ export async function pasteCopied(): Promise<boolean> {
     // An entity the screen takes once (a bedside clock, or every tile on older firmware) is left out where it stands.
     allowed: (tile, entity, layout) => {
       if (tile.content.kind === "plugin" && !usePluginsStore().pluginTileOf(entity)) return false;
-      const here = layout.pages.some((page) => page.tiles.some((item) => item !== tile && pages.entityOf(layout, item) === entity));
+      const here = layout.pages.some((page) => pages.allTiles(page).some((item) => item !== tile && pages.entityOf(layout, item) === entity));
       return !here || (scr.repeatable(entity) && !(entity in pageRules.keyHolders));
     },
     sizes: (tile, entity) => tileSizeChoices({ entity, name: "", slot: 0, options: { display: tile.appearance.display } } as Tile),
@@ -114,8 +114,7 @@ export async function pasteCopied(): Promise<boolean> {
     const plugins = usePluginsStore().pluginTileOf;
     const before = memoryUse(doc.layout.tiles, memory, doc.document.pages, plugins);
     const after = memoryUse(pages.projectLayout(result.layout, doc.documentGrid).tiles, memory, result.layout.pages, plugins);
-    const line = after.level === "over" && before.level !== "over" ? (noRoom(after) ? "none" : "over")
-      : after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? "close" : null;
+    const line = memoryLine(before, after)?.line;
     if (line && !(await askConfirm(t(`editor.memory.confirm_${line}`, { n: Math.min(999, Math.round(after.share * 100)) }), { confirm: t("editor.confirm.add_anyway") })))
       return false;
   }

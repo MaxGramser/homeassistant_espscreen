@@ -4,13 +4,18 @@ answers closes it on the others, a ring nobody answered shows in the top bars, a
 event per ring. The Events page's wizard puts such an automation into Home Assistant (automations.py)."""
 import asyncio
 import importlib.util
+import os
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
+import package_yaml  # noqa: E402
 import automations  # noqa: E402
 import doorbell  # noqa: E402
 import live_stream  # noqa: E402
@@ -192,39 +197,118 @@ class TheSound(unittest.TestCase):
         self.assertNotIn('nc', rings.message(rings.start('camera.porch', 'Porch', 60, ['a'])))
 
 
+def cxx(source):
+    """The output of a little C++ program over the firmware's own headers, compiled as tools/check.sh compiles the C++
+    tests; None without a compiler."""
+    compiler = shutil.which(os.environ.get('CXX', 'clang++')) or shutil.which('g++')
+    if not compiler:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / 'probe.cpp'
+        path.write_text(source)
+        subprocess.run([compiler, '-std=c++17', f'-I{ROOT}', f'-I{ROOT / "tests"}', str(path), '-o', str(Path(tmp) / 'probe')],
+                       check=True)
+        return subprocess.run([str(Path(tmp) / 'probe')], check=True, capture_output=True, text=True).stdout
+
+
+def receiver_branch(op):
+    """The part of the page receiver (page_receiver.cpp) that reads op `op`, up to the next op it reads."""
+    receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
+    start = receiver.index(f'if (op == "{op}")')
+    return receiver[start:receiver.index('if (op == ', start + 1)]
+
+
 class TheFirmwareReadsTheSame(unittest.TestCase):
-    def test_the_op_the_report_and_the_item(self):
-        receiver = (ROOT / 'components/smart_display/page_receiver.cpp').read_text()
-        self.assertIn('op == "doorbell"', receiver)
-        for field in ('"k"', '"c"', '"e"', '"n"', '"r"', '"t"', '"d"', '"ds"', '"m"', '"nc"'):
-            self.assertIn(f'root[{field}]', receiver)
-        self.assertIn('value["b"]', receiver)
-        core = (ROOT / 'packages/core.yaml').read_text()
-        self.assertIn(f'event: {doorbell.EVENT}', core)
-        self.assertIn(f'features.add("{doorbell.FEATURE}")', core)
-        # Standby and Back to Home wait while a ring shows (a ring after two quiet minutes closed at once without it).
-        self.assertEqual(core.count('if (runtime_tiles::doorbell_holds()) return false;'), 2)
+    """The app and the screen speak one protocol (AGENTS.md, "Compatibility"): what the one sends, the other reads, by the
+    same names and numbers. What the screen does with a ring is module_doorbell.cpp's, its rules doorbell_ring.h's and
+    doorbell_door.h's, proven by tests/test_doorbell_ring.cpp and tests/test_doorbell_door.cpp."""
+
+    def test_every_field_of_the_op_is_read_and_nothing_else(self):
+        rings = doorbell.Doorbells()
+        key = rings.start('camera.porch', 'Porch', 60, ['a'], door={'lock': 'lock.front_door'}, nodes=['hall'], sound=False,
+                          chime=False)
+        sent = set(rings.message(key, door_state='locked', link='http://x/camera/a.mjpeg', talk='http://x/talk/a'))
+        sent |= set(rings.message(key, close=True)) | set(rings.door_message(key, 'unlocked'))
+        read = set(re.findall(r'root\["(\w+)"\]', receiver_branch('doorbell')))
+        self.assertEqual(sent - {'v', 'op'}, read,
+                         'the op "doorbell" the app sends (doorbell.Doorbells.message, door_message) and the one '
+                         'page_receiver.cpp reads must name the same fields: change both, and docs/DOORBELL.md')
+
+    def test_a_missed_ring_in_the_top_bar_opens_it_again(self):
+        rings = doorbell.Doorbells()
+        rings.unanswered(rings.start('camera.porch', 'Porch', 60, ['a']))
+        self.assertEqual(rings.bar_item()['b'], 1)
+        self.assertIn('value["b"]', (ROOT / 'components/smart_display/page_receiver.cpp').read_text(),
+                      'the top bar\'s item of a missed ring says so with `b` (doorbell.Doorbells.bar_item), which the '
+                      'receiver reads to open that ring again: change both')
+
+    def test_the_door_and_the_timeout_are_the_same_numbers(self):
+        out = cxx(f'''#define THEME_TEST
+#include "components/smart_display/doorbell_door.h"
+#include "components/smart_display/doorbell_ring.h"
+#include <cstdio>
+int main() {{
+  using doorbell_door::Kind;
+  std::printf("%d %d %d\\n", doorbell_door::kind_of({doorbell.DOOR_LOCK}) == Kind::LOCK,
+              doorbell_door::kind_of({doorbell.DOOR_ACTION}) == Kind::ACTION, doorbell_door::kind_of(0) == Kind::NONE);
+  std::printf("%u %u %u\\n", (unsigned) doorbell_ring::TIMEOUT_S, (unsigned) doorbell_ring::TIMEOUT_MIN_S,
+              (unsigned) doorbell_ring::TIMEOUT_MAX_S);
+}}
+''')
+        if out is None:
+            self.skipTest('no C++ compiler')
+        kinds, timeouts = out.splitlines()[:2]
+        self.assertEqual(kinds, '1 1 1', 'the app\'s DOOR_LOCK and DOOR_ACTION are the screen\'s lock and action '
+                                         '(doorbell_door::kind_of): change both')
+        self.assertEqual(tuple(map(int, timeouts.split())), (doorbell.TIMEOUT, doorbell.TIMEOUT_MIN, doorbell.TIMEOUT_MAX),
+                         'a ring stays as long on the screen (doorbell_ring.h) as the app counts it (doorbell.TIMEOUT, '
+                         'TIMEOUT_MIN, TIMEOUT_MAX): change both')
+
+    def test_the_screen_reports_what_the_app_reads(self):
+        report = package_yaml.script('doorbell_report')
+        events = [step['homeassistant.event'] for step in package_yaml.steps(report) if 'homeassistant.event' in step]
+        self.assertEqual([e['event'] for e in events], [doorbell.EVENT],
+                         'the screen reports a ring\'s end as the one event the app listens to (doorbell.EVENT)')
+        self.assertEqual(set(events[0]['data']), {'action', 'key', 'screen'},
+                         'Manager.doorbell_report reads action, key and screen from the screen\'s report')
         module = (ROOT / 'components/smart_display/module_doorbell.cpp').read_text()
-        for action, _ in doorbell.ENDINGS:
-            self.assertIn(f'say("{action}")', module)
-        self.assertIn(f'say("{doorbell.DOOR}")', module)
-        # A key the screen cannot use is not there: Talk needs its microphone, Sound its speaker.
-        self.assertIn('hears = hw::caps().microphone && talk_uplink::available()', module)
-        self.assertIn('camera_muted = quiet;', module)
-        self.assertEqual(module.count('if (chimes) chime();'), 2, 'a ring and a ring again while it shows')
-        door = (ROOT / 'components/smart_display/doorbell_door.h').read_text()
-        self.assertIn(f'd == {doorbell.DOOR_LOCK} ? Kind::LOCK : d == {doorbell.DOOR_ACTION} ? Kind::ACTION', door)
-        clamp = re.search(r'std::max<uint32_t>\((\d+), std::min<uint32_t>\((\d+), untouched_s \? untouched_s : (\d+)\)\)', module)
-        self.assertEqual(tuple(map(int, clamp.groups())), (doorbell.TIMEOUT_MIN, doorbell.TIMEOUT_MAX, doorbell.TIMEOUT))
-        # No switch of its own any more: which screens get a ring is the event's `screen`.
-        self.assertNotIn('ts_doorbell', (ROOT / 'packages/features/audio-player.yaml').read_text())
+        self.assertEqual(set(re.findall(r'say\("(\w+)"\)', module)), {action for action, _ in doorbell.ENDINGS} | {doorbell.DOOR},
+                         'module_doorbell.cpp says the endings the app knows (doorbell.ENDINGS) and the door key\'s "door", '
+                         'no others: change both, and docs/DOORBELL.md')
+
+    def test_the_hello_says_doorbell(self):
+        self.assertEqual(len(re.findall(rf'features\.add\("{doorbell.FEATURE}"\)', (ROOT / 'packages/core.yaml').read_text())), 1,
+                         f'a screen that draws a ring says "{doorbell.FEATURE}" in its hello, once: the app sends the op only '
+                         'to such a screen')
+
+    def test_whatever_holds_the_glass_for_an_alert_holds_it_for_a_ring(self):
+        # Standby and Back to Home wait while an alert shows; a ring on the glass holds them too (a ring after two quiet
+        # minutes closed at once without it).
+        guards = 0
+        for path in package_yaml.files():
+            text = path.read_text()
+            for found in re.finditer(r'\|\| id\(alert_active\)\) return false;', text):
+                guards += 1
+                self.assertIn('runtime_tiles::doorbell_holds()', text[found.end():text.find('then:', found.end())],
+                              f'{path.relative_to(ROOT)}: a guard that waits while an alert shows waits while a ring shows '
+                              'too: add `if (runtime_tiles::doorbell_holds()) return false;` after it')
+        self.assertGreaterEqual(guards, 2, 'standby and Back to Home each wait while an alert shows')
+
+    def test_no_switch_of_its_own(self):
+        # Which screens get a ring is the event's `screen`, not a switch on each screen.
+        for path in [*package_yaml.files(), *(ROOT / 'components/smart_display').glob('*.*')]:
+            self.assertNotIn('ts_doorbell', path.read_text(errors='replace'),
+                             f'{path.relative_to(ROOT)}: no doorbell switch; the event names its screens')
 
     def test_the_chime_has_half_a_second_ahead(self):
-        # The chime is handed over every 250 ms (camera_tick). At the bus's own rate ts_speaker's resampler hands it
-        # straight to the mixer's announcement input, so that input holds half a second itself: with ESPHome's 100 ms a
-        # Guition's chime came in pieces of 200 ms with gaps between (2026-10-28).
-        player = (ROOT / 'packages/features/audio-player.yaml').read_text()
-        self.assertRegex(player, r'- id: ts_announcement_input\n\s+buffer_duration: 500ms\n')
+        # glass: a ring's chime on a Guition 4848S040 plays whole, without gaps. The chime is handed over every 250 ms
+        # (camera_tick); at the bus's own rate ts_speaker's resampler hands it straight to the mixer's announcement input,
+        # so that input holds half a second itself: with ESPHome's 100 ms a Guition's chime came in pieces of 200 ms with
+        # gaps between (2026-10-28).
+        player = package_yaml.load(ROOT / 'packages/features/audio-player.yaml')
+        mixer = next(s for s in player['speaker'] if s.get('id') == 'ts_mixer')
+        source = next(s for s in mixer['source_speakers'] if s['id'] == 'ts_announcement_input')
+        self.assertEqual(source.get('buffer_duration'), '500ms', 'the mixer\'s announcement input holds half a second')
 
 
 class TheAutomations(unittest.TestCase):

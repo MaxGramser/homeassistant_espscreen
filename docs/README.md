@@ -18,6 +18,8 @@
   screen.
 - [TEXT_ENTITY.md](TEXT_ENTITY.md): a Home Assistant text (text, input_text) as a tile, its value edited with the
   keyboard on the larger boards and shown only on the 4 MB ones.
+- [ALARM_PANEL.md](ALARM_PANEL.md): the alarm panel's card and keypad, what the screens do when the alarm goes off,
+  and the Alarm tab of Events: which screens open the keypad and a code that sends itself after its last digit.
 - [SCREENSAVER.md](SCREENSAVER.md): what a screen shows in standby instead of its dimmed tiles: a cover, a camera or the clock.
 - [BATTERY.md](BATTERY.md): a screen's battery in its top bar, and how a board or your own YAML measures it (also a
   recipe for the code).
@@ -49,7 +51,8 @@
 - [WAVESHAREP4.md](WAVESHAREP4.md): the Waveshare ESP32-P4-86-Panel-ETH-2RO, 4 inch, 720 × 720, using Wi-Fi.
 - [WAVESHAREP47B.md](WAVESHAREP47B.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B, 7 inch, rev3 ESP32-P4.
 - [WAVESHAREP47.md](WAVESHAREP47.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-7, 7 inch, 1280 × 720.
-- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800.
+- [WAVESHARE101.md](WAVESHARE101.md): the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1, 10.1 inch, 1280 × 800, with pre-v3 or rev3
+  silicon.
 - [WAVESHARE7.md](WAVESHARE7.md): the Waveshare ESP32-S3-Touch-LCD-7, and the backlight mod that makes it dim.
 - [WAVESHARE7B.md](WAVESHARE7B.md): the Waveshare ESP32-S3-Touch-LCD-7B.
 - [HOSYOND40.md](HOSYOND40.md): the Hosyond 4-inch ESP32-32E.
@@ -72,7 +75,10 @@
 - [THEME.md](THEME.md): colours and Dark mode, from one table.
 - [SETTINGS.md](SETTINGS.md): the screen settings, and adding one; a board's own settings (Extras), and adding one.
 - [PAGES.md](PAGES.md): the page model, tile sizes, navigation, storage and the message rules.
-- [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, and pictures kept until they change.
+- [AUTO_LAYOUT.md](AUTO_LAYOUT.md): the first layout the editor makes from a home's areas and devices, how it groups,
+  sizes and labels tiles per screen, and the places a change of it touches.
+- [LAYOUTBOT.md](LAYOUTBOT.md): the editor's chat that arranges pages with the AI connected to Home Assistant.
+- [KEPT_PAGES.md](KEPT_PAGES.md): pages kept whole, prepared ahead, pictures kept until they change, and a page's picture put on the glass at a turn.
 - [OPTIMISTIC.md](OPTIMISTIC.md): a finger's change shown at once and squared with Home Assistant afterwards, the one
   way every control does it.
 - [MOTION.md](MOTION.md): the one layer for what moves or changes the whole glass, and which screens have it.

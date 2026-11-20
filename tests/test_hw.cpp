@@ -29,7 +29,6 @@ int main() {
   moving.direct_glass = false;
   assert(!hw::resolve(moving).motion);
   assert(a.psram_bytes == 32u * 1024 * 1024 && a.internal_bytes == 768u * 1024);
-
   // An S3 board with a speaker and no live video: no live tiles, whatever else it has.
   hw::Facts still = full;
   still.live_video = false;

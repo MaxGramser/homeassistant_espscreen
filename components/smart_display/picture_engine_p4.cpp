@@ -11,6 +11,7 @@
 #include "picture_jpeg.h"
 
 #include <driver/jpeg_decode.h>
+#include <driver/jpeg_encode.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -92,17 +93,18 @@ uint8_t *decode(const uint8_t *data, size_t length, Still &out) {
   size_t size = 0;
   uint8_t *pixels = output(still.bytes, &size);
   if (!pixels) return nullptr;
-  // The glass goes to its highest waiter, and the streams' tasks wait at WRITER_PRIORITY: a download at its own
-  // priority 1 waited behind four live tiles for up to two minutes (a reTerminal D1001, 2026-10-25). It waits at theirs,
-  // in turn with them, and is back at its own once it let go.
-  const UBaseType_t own = uxTaskPriorityGet(nullptr);
-  if (own < glass::WRITER_PRIORITY) vTaskPrioritySet(nullptr, glass::WRITER_PRIORITY);
-  const int64_t asked = esp_timer_get_time();
-  glass::hold();
+  // The glass goes to its highest waiter, and the streams' tasks wait at WRITER_PRIORITY: a download waits at theirs, in
+  // turn with them, and is back at its own once it let go (glass::wait_as_writer).
+  const unsigned own = uxTaskPriorityGet(nullptr);
+  auto set_priority = [](unsigned priority) { vTaskPrioritySet(nullptr, priority); };
+  int64_t asked = 0;
+  glass::wait_as_writer(own, set_priority, [&asked] {
+    asked = esp_timer_get_time();
+    glass::hold();
+  });
   const int64_t got = esp_timer_get_time();
   const bool decoded = decode_into(data, length, pixels, size);
-  glass::release();
-  if (own < glass::WRITER_PRIORITY) vTaskPrioritySet(nullptr, own);
+  glass::leave_as_writer(own, set_priority, glass::release);
   still.waited_ms = static_cast<uint32_t>((got - asked) / 1000);
   still.held_ms = static_cast<uint32_t>((esp_timer_get_time() - got) / 1000);
   if (!decoded) {
@@ -112,6 +114,41 @@ uint8_t *decode(const uint8_t *data, size_t length, Still &out) {
   out = still;
   out.bytes = size;
   return pixels;
+}
+
+// ---- The encoder: made at the first picture a call sends, kept for the screen's life ----
+static jpeg_encoder_handle_t encoder = nullptr;
+uint8_t *encode_input(size_t bytes, size_t *got) {
+  jpeg_encode_memory_alloc_cfg_t in{.buffer_direction = JPEG_ENC_ALLOC_INPUT_BUFFER};
+  size_t size = 0;
+  auto *buffer = static_cast<uint8_t *>(jpeg_alloc_encoder_mem(bytes, &in, &size));
+  if (got) *got = buffer ? size : 0;
+  return buffer;
+}
+uint8_t *encode_output(size_t bytes, size_t *got) {
+  jpeg_encode_memory_alloc_cfg_t out{.buffer_direction = JPEG_ENC_ALLOC_OUTPUT_BUFFER};
+  size_t size = 0;
+  auto *buffer = static_cast<uint8_t *>(jpeg_alloc_encoder_mem(bytes, &out, &size));
+  if (got) *got = buffer ? size : 0;
+  return buffer;
+}
+size_t encode(const uint8_t *pixels, size_t pixels_size, int w, int h, int quality, uint8_t *out, size_t out_size) {
+  if (!encoder) {
+    jpeg_encode_engine_cfg_t engine{.intr_priority = 0, .timeout_ms = 200};
+    if (jpeg_new_encoder_engine(&engine, &encoder) != ESP_OK) {
+      encoder = nullptr;
+      return 0;
+    }
+  }
+  jpeg_encode_cfg_t cfg{};
+  cfg.width = w;
+  cfg.height = h;
+  cfg.src_type = JPEG_ENCODE_IN_FORMAT_RGB565;
+  cfg.sub_sample = JPEG_DOWN_SAMPLING_YUV420;
+  cfg.image_quality = quality;
+  uint32_t written = 0;
+  if (jpeg_encoder_process(encoder, &cfg, pixels, pixels_size, out, out_size, &written) != ESP_OK) return 0;
+  return written;
 }
 
 // ---- The PPA ----

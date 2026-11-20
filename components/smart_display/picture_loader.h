@@ -90,8 +90,10 @@ class Loader {
       if (!job->want.key.empty() && forget) forget(job->want.key);
       if (job->phase == Phase::LOADING) stop(*job);
       const Owner keep = job->owner;
+      std::string before = std::move(job->want.key);
       *job = Job{};
       job->owner = keep;
+      job->had = std::move(before);
     }
     job->want = std::move(w);
     job->seen = true;
@@ -233,6 +235,12 @@ class Loader {
     for (const auto &j : jobs_) if (j.phase == Phase::LOADING && j.want.slot == slot) return j.want.key;
     return {};
   }
+  // The key the owner of the download into `slot` wanted before this one (its picture may still be on the glass), or "".
+  // Its ETag goes with the new link, so the same bytes under another key come back 304 (runtime_tiles.h).
+  std::string loading_had(Slot slot) const {
+    for (const auto &j : jobs_) if (j.phase == Phase::LOADING && j.want.slot == slot) return j.had;
+    return {};
+  }
   size_t size() const { return jobs_.size(); }
   // For the tests and the log.
   enum class Phase : uint8_t { NEW, ASKED, NONE, LINKED, LOADING, DONE };
@@ -244,6 +252,7 @@ class Loader {
     Want want;
     Phase phase = Phase::NEW;
     std::string url;
+    std::string had;  // the key wanted before this one
     uint32_t asked_at = 0, none_at = 0, started_at = 0, finished_at = 0;
     uint32_t kept_at = 0;  // when the store's copy was made (a picture that refreshes waits for its turn from there)
     uint8_t failures = 0, empties = 0, attempts = 0;

@@ -197,7 +197,11 @@
       "plugins": "Bővítmények",
       "microphone_gain": "Mikrofonerősítés",
       "automatic_gain": "Automatikus erősítés",
-      "echo_cancellation": "Visszhangszűrés"
+      "call_ringtone": "Csengőhang",
+      "do_not_disturb": "Ne zavarjanak",
+      "call_voice_switching": "Hangváltás",
+      "echo_cancellation": "Visszhangszűrés",
+      "loop_pages": "Körbelapozás"
     },
     "doorbell": {
       "sound_on": "Hang be",
@@ -688,7 +692,8 @@
       "sound_only": "Elérhető, csak hang",
       "in_call": "Hívásban",
       "offline": "Offline",
-      "missed_at": "Nem fogadott hívás"
+      "missed_at": "Nem fogadott hívás",
+      "no_screens": "Nincs másik hívható kijelző"
     }
   },
   "addon": {
@@ -926,7 +931,11 @@
         "destination_exists": "A célkijelzőnek már van mentett elrendezése",
         "update_tall": "Ezekhez a csempeméretekhez frissítsd a kijelzőt",
         "memory": "A kijelzőn nincs elég szabad memória ehhez az elrendezéshez. Csökkentsd a csempék számát.",
-        "grid_range": "Ez a kijelző nem fogad el ekkora rácsot. Válassz másik rácsot az előnézet mellett."
+        "grid_range": "Ez a kijelző nem fogad el ekkora rácsot. Válassz másik rácsot az előnézet mellett.",
+        "section_title": "Egy szakasznak legfeljebb 48 bájtos név kell.",
+        "section_tiles": "Egy szakasz csempéinek benne kell lenniük, és egy egész oldalas csempe sosem lehet szakaszban.",
+        "section_overlap": "Szakaszok és szabad csempék nem állhatnak ugyanazokon a cellákon.",
+        "sections_full": "Egy oldalon legfeljebb 16 szakasz lehet."
       },
       "feedback": {
         "invalid": "Ez a válasz nem osztható meg. Válaszd az igent vagy a nem egészent, és csak a felsorolt problémákat.",
@@ -999,6 +1008,12 @@
         "unknown": "A fordítószerver már nem ismeri a Tesserát. Párosítsd újra.",
         "pending": "A fordítószerver még nem fogadta el a Tesserát."
       },
+      "build_files": {
+        "automatic": "Az automatikus takarítás csak be- vagy kikapcsolt lehet.",
+        "level": "Válaszd ki, mely fordítási fájlokat töröljük.",
+        "cleaning": "A fordítási fájlok takarítása már folyamatban van.",
+        "building": "Egy kijelző fordítása folyamatban van, vagy várakozik. A fordítási fájlokat a befejezés után takaríthatod ki."
+      },
       "video": {
         "not_written": "A Tessera video nem írható ide: {folder}: {reason}.",
         "not_installed": "Először telepítsd a Tessera videót."
@@ -1023,6 +1038,10 @@
         "refused": "A Home Assistant elutasította az automatizálást: {reason}",
         "not_ours": "Ezt az automatizálást nem a Tessera készítette, ezért az alkalmazás nem nyúl hozzá.",
         "invalid": "Ez az automatizálás nem menthető ({part})."
+      },
+      "icons": {
+        "request": "Ez nem ikonok listája.",
+        "too_many": "Egy kijelzőre legfeljebb {most} saját ikon fér."
       }
     },
     "status": {
@@ -1238,6 +1257,18 @@
         "automatic_gain": {
           "label": "Automatikus erősítés",
           "hint": "A mikrofon kodekje automatikusan állítja a felvétel szintjét. Független a visszhangszűréstől."
+        },
+        "call_ringtone": {
+          "label": "Csengőhang",
+          "hint": "Kikapcsolva: híváskor a kijelző felvillan és megmutatja, ki hív, hang nélkül."
+        },
+        "do_not_disturb": {
+          "label": "Ne zavarjanak",
+          "hint": "Bekapcsolva: az erre a kijelzőre érkező hívás azonnal elutasításra kerül, és a hívó olvassa, miért. Az ajtócsengő továbbra is szól."
+        },
+        "call_voice_switching": {
+          "label": "Hangváltás",
+          "hint": "Bekapcsolva: a hallgató oldal mikrofonja lehalkul, így a hang nem jön vissza visszhangként. Kikapcsolva: mindkét oldal egyszerre beszélhet. A hívásban egy kis gomb arra a hívásra átváltja."
         },
         "echo_cancellation": {
           "label": "Visszhangszűrés",
@@ -1618,6 +1649,15 @@
         "missed": "Senki nem érintette meg az időkorlát előtt",
         "seen": "Egy nem fogadott csengetést újra megnyitottak a felső sávból"
       }
+    },
+    "layoutbot": {
+      "none": "A Layoutbotnak egy adatokat előállítani képes AI Taskra van szüksége a Home Assistantben (Beállítások > Eszközök és szolgáltatások, egy AI-integráció).",
+      "notes": {
+        "unknown": "{entity} kimaradt: ez nem ennek a Home Assistantnek az entitása.",
+        "no_page": "Nincs {page}. oldal.",
+        "kept": "A Layoutbot kihagyta {count} csempédet: ezek szabadon állnak az utolsó oldalon."
+      },
+      "nothing_to_restructure": "Ezen az oldalon még nincs átszervezhető eszközcsempe. Adj hozzá párat, aztán kérdezz újra."
     }
   },
   "editor": {
@@ -1635,6 +1675,8 @@
       "read_current_data": "Aktuális adatok beolvasása",
       "results": "1 találat. Gépelj tovább a szűkítéshez. | {n} találat. Gépelj tovább a szűkítéshez.",
       "close": "Bezárás",
+      "expand": "Több megjelenítése",
+      "collapse": "Kevesebb megjelenítése",
       "remove": "Eltávolítás",
       "loading": "Betöltés…",
       "back": "← Vissza",
@@ -1945,6 +1987,7 @@
       "search_label": "Entitás hozzáadása",
       "filters": {
         "all": "Összes",
+        "plugin": "Bővítmények",
         "light": "Lámpák",
         "climate": "Klíma",
         "switch": "Kapcsolók",
@@ -1959,6 +2002,7 @@
         "vacuum": "Porszívó",
         "sensor": "Érzékelők",
         "media_player": "Média",
+        "camera": "Kamerák",
         "weather": "Időjárás",
         "number": "Értékek",
         "select": "Választók",
@@ -1978,6 +2022,8 @@
       "again": "Már szerepel ezen a kijelzőn; add hozzá újra egy újabb csempéhez",
       "all_placed": "Minden, ami itt van, már szerepel ezen a kijelzőn.",
       "none_found": "Nincs találat. Próbálj másik nevet, helyiséget vagy szűrőt.",
+      "found_elsewhere": "Ebben a válogatásban nincs találat, de a teljes könyvtárban 1 entitás illik rá. | Ebben a válogatásban nincs találat, de a teljes könyvtárban {n} entitás illik rá.",
+      "search_everything": "Minden találat megjelenítése",
       "full": "Ezen a kijelzőn 1 csempe fér el. | Ezen a kijelzőn {n} csempe fér el.",
       "full_update": "Ezen a kijelzőn 1 csempe fér el; frissítsd a firmware-t 48-hoz. | Ezen a kijelzőn {n} csempe fér el; frissítsd a firmware-t 48-hoz.",
       "hint": "Húzd egy oldalra, vagy koppints a +-ra az első szabad helyre való hozzáadáshoz. A ⌘K mindenben keres.",
@@ -2012,7 +2058,8 @@
         "fits_none": "Egyik kijelződre sem jó",
         "failed": "A fordítás nem sikerült",
         "not_running": "Nem fut a kijelzőn",
-        "queued": "Sorára vár"
+        "queued": "Sorára vár",
+        "runs_other": "A kijelzőn a(z) {version} verzió fut"
       },
       "source": {
         "link": "Hivatkozásból",
@@ -2069,6 +2116,8 @@
         "title": "Mit ad hozzá",
         "tile": "„{name}” csempe",
         "tile_sizes": "{min} és {max} között egy oldalon",
+        "tile_sizes_or_page": "{min} és {max} között egy oldalon, vagy az egész oldal",
+        "tile_only_page": "Az egész oldal",
         "tap": "„{name}” koppintási művelet",
         "tap_on": "Csempéken: {domains}",
         "card": "„{name}”, saját nézet a kijelzőn",
@@ -2082,7 +2131,10 @@
         "ha_none": "Nem futtat Home Assistant-műveleteket",
         "network": "Csatlakozik ide: {hosts}",
         "network_none": "A Home Assistanton kívül semmihez nem csatlakozik",
-        "read": "Ezeket az entitásokat olvassa a Home Assistantból"
+        "read": "Ezeket az entitásokat olvassa a Home Assistantból",
+        "sends": "Ide küld: {host}: {what}",
+        "sends_option": "a(z) {option} mezőhöz választott entitás {attributes} értéke",
+        "sends_state": "állapot"
       },
       "warning": "A bővítmény teljes hozzáféréssel fut a kijelződön, beleértve a Wi-Fi-t és azokat a műveleteket, amelyeket a kijelző a Home Assistantban végrehajthat, a fordítása pedig ebben az alkalmazásban fut, ahol hozzáfér a Home Assistant konfigurációdhoz. Csak megbízható készítőktől adj hozzá bővítményt, vagy előbb olvasd el a kódot.",
       "room": {
@@ -2391,8 +2443,10 @@
       },
       "forget": {
         "go": "Eltávolítás a listából",
-        "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön."
-      }
+        "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön.",
+        "note_folder": "Egyetlen kijelző sem használja ezt a bővítményt a mappájából. Az eltávolítás a mappát ide helyezi át: config/tessera-plugins/.removed/{id}, ahol végleg törölheted."
+      },
+      "runs_elsewhere": "{screen} a(z) {running} verziót futtatja, amelyet máshol fordítottak. Ha itt fordítod, a(z) {version} verzió kerül rá."
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",
@@ -2404,6 +2458,9 @@
       "from_fetch": "A választható elemek a bővítmény saját adatforrásából érkeznek, a Tesserán keresztül.",
       "on_screen": "A kijelzőn",
       "sizes": "{min} és {max} között; a méret módosításához húzd a csempe egyik szélét.",
+      "sizes_or_page": "{min} és {max} között, vagy az egész oldal; a méret módosításához húzd a csempe egyik szélét.",
+      "sizes_only_page": "Ez a csempe mindig egy egész oldalt foglal el.",
+      "whole_page": "Egész oldal",
       "placeholder": "A szerkesztő helyőrzőt mutat: amit a bővítmény rajzol, az magán a kijelzőn jelenik meg.",
       "now": "most",
       "minutes": "{n} perc",
@@ -2418,7 +2475,14 @@
       "remove": "{name} eltávolítása",
       "type": "Írd be, majd Enter",
       "full": "A kijelző nem fogad többet ehhez a csempéhez: a beállításai megteltek.",
-      "count": "{n} / {max}"
+      "count": "{n} / {max}",
+      "show_all": "Minden entitás megjelenítése",
+      "show_fitting": "Csak a megfelelők megjelenítése",
+      "not_set": "Nincs megadva",
+      "fill_device": "Kitöltés egy eszközről",
+      "fill_device_hint": "Válassz egy eszközt, és az érzékelői lent kitöltődnek. Utána mindegyiket módosíthatod.",
+      "fill_device_none": "Egyetlen eszköznek sincs kettő vagy több ilyen érzékelője",
+      "fill_device_count": "1 érzékelő | {n} érzékelő"
     },
     "memory": {
       "label": "Memória a csempéknek",
@@ -2916,6 +2980,18 @@
         "never": "Ne mutasd újra",
         "done": "Kész"
       },
+      "look": {
+        "title": "Hogyan nézzen ki?",
+        "text": "Ez az érzékelő mérőként indul. Mutass egy megjelenésre, hogy lásd a csempén; később a Megjelenítés alatt módosíthatod.",
+        "ring": "Mérő: gyűrű",
+        "tape": "Mérő: skála",
+        "bar": "Mérő: sáv",
+        "graph": "Grafikon az elmúlt órákról",
+        "watch": "Nagy érték",
+        "standard": "Csak az érték",
+        "never": "Ne mutasd újra",
+        "done": "Kész"
+      },
       "text": {
         "title": "Sablon",
         "hint": "Írj szöveget Home Assistant sablonokkal, mint a Fejlesztői eszközök › Sablon alatt. A Home Assistant kitölti, a képernyő pedig megmutatja és naprakészen tartja az eredményt. Ha az eredmény üres, a csempe eltűnik.",
@@ -2993,6 +3069,17 @@
         "clear": "Készek eltávolítása",
         "clear_hint": "A lista egy gombja kérdés után eltávolít mindent, ami ki van pipálva"
       },
+      "call": {
+        "section": "Hívás",
+        "who": "Kit hív",
+        "who_hint_all": "Egy koppintás megnyitja a kijelzők listáját.",
+        "who_hint_one": "Egy koppintás azonnal hívja ezt a kijelzőt.",
+        "everyone": "Választás a listából",
+        "kind": "Hívás típusa",
+        "kind_hint": "A videóhoz mindkét kijelzőn a Screen camera bővítmény kell a Video részével, különben hanghívás lesz.",
+        "video": "Videó, ahol lehet",
+        "sound": "Csak hang"
+      },
       "text_entity": {
         "edit": "Egy koppintás megnyitja az értéket egy mezőben a képernyő billentyűzetével. A jelszó pontokként látszik.",
         "view_only": "Ez a panel csak az értéket mutatja: a képernyőn való módosításhoz legalább 8 MB flash memóriájú panel kell."
@@ -3032,7 +3119,9 @@
       "search_label": "Ikon keresése",
       "none_text_only": "Nincs ikon, csak szöveg",
       "aria": "Ikon: {name}",
-      "none_found": "Nincs ilyen ikon."
+      "none_found": "Nincs ilyen ikon.",
+      "own": "A kijelző ikonjai",
+      "more": "További ikonok"
     },
     "inspect": {
       "title": "Aktuális adatok",
@@ -3150,7 +3239,8 @@
         "swipe_pages": "Lapozás húzással",
         "page_buttons": "Lapozógombok",
         "home_button": "Kezdőlap gomb",
-        "rotation": "Elforgatás"
+        "rotation": "Elforgatás",
+        "loop_pages": "Körbelapozás"
       },
       "actions": {
         "calibrate": {
@@ -3456,6 +3546,32 @@
         "forget_confirm": "Elfelejted ezt: {name}? A kijelzők újra itt fordulnak. Hogy ott is eltávolítsd a Tesserát, töröld a fordítószerver párosított eszközei közül.",
         "forget_go": "Elfelejtés",
         "unavailable": "Ez a Tessera nem tud fordítószerverrel beszélni."
+      },
+      "build_files": {
+        "title": "Fordítási fájlok",
+        "intro": "Minden firmware-fordítás fájlokat hagy maga után, hogy ugyanannak a kijelzőnek a következő fordítása gyors legyen. A Home Assistant biztonsági mentései kihagyják őket.",
+        "measuring": "Mérés…",
+        "total": "{size} összesen",
+        "folders": "Fordítási mappák",
+        "folders_detail": "1 kijelző | {count} kijelző",
+        "cache": "Fordítási gyorsítótár",
+        "tools": "ESP-IDF és letöltések",
+        "clean": "Fordítási mappák takarítása",
+        "cleaning": "Takarítás…",
+        "clean_confirm": "Törlöd az összes kijelző fordítási mappáit? Ez {size} helyet szabadít fel. Minden kijelző következő fordítása újra mindent lefordít, és néhány perccel tovább tart, Raspberry Pi-n még tovább. Az elrendezések, a bővítmények és a beállítások érintetlenek maradnak.",
+        "clean_all": "A fordítási gyorsítótárat és az ESP-IDF-et is töröld",
+        "clean_all_confirm": "Törlöd az összes fordítási fájlt, a fordítási gyorsítótárat és az ESP-IDF-et is? Ez {size} helyet szabadít fel. A következő fordítás újra letölti az ESP-IDF-et, nagyjából 1 GB-ot, és mindent az elejétől fordít, ami Raspberry Pi-n fél óráig is tarthat. Az elrendezések, a bővítmények és a beállítások érintetlenek maradnak.",
+        "clean_go": "Takarítás",
+        "cleaned": "Kitakarítva: ismét {size} szabad.",
+        "cleaned_nothing": "Kitakarítva.",
+        "busy": "Egy kijelző fordítása folyamatban van. A befejezése után takaríthatsz.",
+        "auto_label": "Takarítás fordítás után",
+        "auto_hint": "A következő fordítástól kezdve törli a fordítási mappákat, amint már semmi sem fordul. Helyet spórol, de a kijelzők minden további fordítása újra mindent lefordít, és néhány perccel tovább tart.",
+        "auto_on": "A fordítási mappák fordítás után takarítva lesznek.",
+        "auto_off": "A fordítási mappák megmaradnak a gyorsabb fordításért.",
+        "offer": "{size} felszabadítása",
+        "not_now": "Most nem",
+        "large": "A fordítási mappák {size} helyet foglalnak. A takarításukkal felszabadul a fordítások által használt hely nagy része."
       }
     },
     "firmware": {
@@ -4174,6 +4290,7 @@
       "packet_error": "A firmware elutasított egy előnézeti csomagot: {message}",
       "stopped": "A firmware-előnézet leállt: {message}",
       "action_error": "A Home Assistant parancs sikertelen: {message}",
+      "stale": "Ez az előnézet régebbi a firmware-nél: ekkor készült: {date}, és a firmware azóta változott, így egy kijelző olyat is rajzolhat, amit ez még nem mutat.",
       "remove": "Az előnézet és a böngészőben mentett elrendezése.",
       "save": "Előnézet mentése",
       "saved": "Mentve ebben a böngészőben",
@@ -4247,7 +4364,9 @@
         "layout_imported": "elrendezés importálva",
         "changed": "elrendezés módosítva",
         "restored": "nem mentett módosítások visszaállítva",
-        "taken_over": "a másik lap módosításai átvéve"
+        "taken_over": "a másik lap módosításai átvéve",
+        "auto_layout": "a neked készített elrendezés",
+        "layoutbot": "a Layoutbot módosítása"
       }
     },
     "draft": {
@@ -4338,7 +4457,8 @@
           "fetch": "a firmware nem jött vissza",
           "bundle": "a YAML-t nem sikerült becsomagolni"
         }
-      }
+      },
+      "icons": "Fordítás az ikonjaival"
     },
     "grid": {
       "title": "Rács",
@@ -4524,7 +4644,8 @@
         "remove_confirm": "Eltávolítod a(z) „{name}” automatizálást a Home Assistantből?",
         "on": "Be",
         "off": "Ki"
-      }
+      },
+      "alarm": "Riasztó"
     },
     "doorbell": {
       "intro": "Valaki csenget, és a képernyőid mutatják az ajtót. Egy automatizálás elküldi az eseményt a csengő kamerájával: egy P4 képernyő felébred, csengőhangot játszik és élőben, hanggal megnyitja a kamerát; minden más képernyő értesítésben mutatja a képét. Bármilyen csengő működik, bármi indítja az automatizálást.",
@@ -4636,6 +4757,241 @@
     },
     "drawer": {
       "resize": "A beállítások szélessége: húzd, vagy használd a nyilakat; dupla kattintás visszaállítja"
+    },
+    "screen_icons": {
+      "eyebrow": "Ikonok",
+      "title": "{name} ikonjai",
+      "intro": "Minden kijelzőn van egy rögzített ikonkészlet. Itt legfeljebb {room} továbbit adhatsz hozzá. Az ikonok a firmware részei, ezért a változás csak újrafordítás után jut el a kijelzőre.",
+      "count": "{n} / {room} hozzáadva",
+      "on_screen": "Ezen a kijelzőn",
+      "none_yet": "Még nincs. Válassz az alábbi ikonok közül.",
+      "waiting": "1 ikon fordításra vár | {n} ikon fordításra vár",
+      "leaving": "1 ikon a következő fordítással eltűnik | {n} ikon a következő fordítással eltűnik",
+      "changes": "Fordítsd újra, hogy ezek a változások a kijelzőre kerüljenek. Néhány percig tart, és a kijelző újraindul.",
+      "build": "{name} fordítása",
+      "building": "Fordítás ezekkel az ikonokkal…",
+      "all_up_to_date": "Minden, amit választottál, a kijelzőn van.",
+      "everywhere": "Minden kijelzőre",
+      "everywhere_ask": "Ez lecseréli {n} kijelző hozzáadott ikonjait, és lefordítja. | Ez lecseréli {n} kijelző hozzáadott ikonjait, és egymás után lefordítja őket. A 4 MB flash-sel rendelkező kijelző marad, ahogy van.",
+      "everywhere_yes": "{n} kijelző fordítása | {n} kijelző fordítása",
+      "everywhere_done": "Fordításra vár: {names}",
+      "everywhere_off": "Kikapcsolva, ezért nem készült el: {names}",
+      "from_ha": "A Home Assistantedben használt",
+      "from_ha_hint": "Az entitásaid ikonjai, amelyeket ez a kijelző még nem tud kirajzolni.",
+      "add_all": "Összes hozzáadása",
+      "all": "Összes ikon",
+      "search": "Keresés az összes ikonban",
+      "search_label": "Keresés az összes ikonban",
+      "nothing": "Nincs ilyen nevű ikon.",
+      "fixed": "Már minden kijelzőn megvan",
+      "full": "Ezen a kijelzőn nincs több hely.",
+      "in_use": "{icon} ennek a kijelzőnek {n} csempéjén szerepel. A következő fordítás után az automatikus ikonját mutatja. | {icon} ennek a kijelzőnek {n} csempéjén szerepel. A következő fordítás után az automatikus ikonjukat mutatják.",
+      "remove": "Eltávolítás",
+      "own_yaml": "Ez a kijelző a saját YAML-jából készül. Mentsd ezt {file} néven mellé, add hozzá az alábbi sort a packages: alá, és ott fordítsd le.",
+      "loading": "Ikonok betöltése…",
+      "card_title": "Ikonok",
+      "card_hint": "Adj hozzá legfeljebb {room} ikont a kijelző meglévő ikonjaihoz.",
+      "card_button": "Ikonok választása",
+      "card_count": "{n} hozzáadva",
+      "card_waiting": "{n} fordításra vár",
+      "card_no_room": "Ennek a panelnek 4 MB flash-e van, további ikonoknak nincs hely."
+    },
+    "sections": {
+      "untitled": "Szakasz",
+      "kind": "Szakasz",
+      "choose_tiles": "Először válaszd ki a szakasz csempéit.",
+      "one_page": "Egy szakasz csempéi egy oldalon vannak: egy oldal csempéit válaszd.",
+      "already_in": "Ezek közül az egyik csempe már egy szakaszban van. Előbb vedd ki, vagy válassz szabad csempéket.",
+      "no_full": "Egy egész oldalas csempe nem lehet szakaszban.",
+      "too_tall": "Ezeknek a csempéknek több sor kell, mint amennyi az oldalon van. Válassz kevesebbet, vagy tedd szélesebbé a szakaszt.",
+      "no_room": "Itt nincs hely: más csempék vagy szakaszok vannak útban.",
+      "no_room_page": "Nincs hely a szakasznak a(z) {page}. oldalon.",
+      "removed": "Szakasz törölve, a csempéi a helyükön maradnak",
+      "removed_with_tiles": "Szakasz törölve a csempéivel együtt",
+      "resize_columns": "A szakasz szélesítése vagy keskenyítése",
+      "resize_rows": "A szakasz magasítása vagy alacsonyítása",
+      "head_title": "Húzd a szakasz áthelyezéséhez, kattints a beállításaiért",
+      "aria": "Szakasz: {title}",
+      "rename": "Szakasz átnevezése",
+      "title": "Név",
+      "make": "Szakasz létrehozása",
+      "add": "Szakasz hozzáadása",
+      "add_here": "Szakasz hozzáadása ide",
+      "library_hint": "Csempék címmel ellátott csoportja",
+      "make_now": "Szakasz létrehozása",
+      "name_placeholder": "Név, például Lámpák",
+      "in_section": "Ebben a szakaszban",
+      "update_screen": "Ennek a kijelzőnek a firmware-e még nem rajzol szakaszokat: ugyanazokat a csempéket mutatja nélkülük. Frissítsd a kijelzőt, hogy lásd őket.",
+      "head": "Cím",
+      "no_icon": "Nincs ikon",
+      "summary": "Összegzés",
+      "summary_none": "Nincs",
+      "summary_search": "Entitások keresése",
+      "summary_none_found": "Nincs találat",
+      "summary_clear": "Nincs összegzés",
+      "summary_hint": "Egy entitás állapota a cím jobb oldalán, például egy hőmérséklet vagy hogy hány lámpa ég.",
+      "size": "Méret",
+      "columns": "Oszlopok",
+      "rows": "Sorok",
+      "narrower": "Keskenyebb",
+      "wider": "Szélesebb",
+      "lower": "Alacsonyabb",
+      "taller": "Magasabb",
+      "size_hint": "Egy szakasz csak üres cellákba nő. Ha túl keskeny lesz a csempéinek, azok olvasási sorrendben továbbcsúsznak.",
+      "loose_hint": "1 szabad csempe áll egy szakasz mellett. A szabad csempék legjobban külön sorban olvashatók a szakaszok fölött. | {n} szabad csempe áll egy szakasz mellett. A szabad csempék legjobban külön sorban olvashatók a szakaszok fölött.",
+      "loose_row": "Legyen belőle sor",
+      "short_grid": "Egy {rows} soros rácson a szakasz címe sok helyet vesz el a csempéitől: mindegyik kb. {with} mm magas {without} mm helyett. A szakaszon kívüli csempék megtartják a magasságukat.",
+      "remove": "Szakasz törlése",
+      "remove_with_tiles": "Szakasz és csempék törlése",
+      "settings": "Szakasz beállításai",
+      "contrast": "Kontrasztos háttér",
+      "contrast_hint": "A panel az oldal ellentétes színében, nappal sötét, sötét módban világos, hogy ez a szakasz kiemelkedjen.",
+      "contrast_tiles": "A csempék is kontrasztban",
+      "contrast_tiles_hint": "Az egész szakasz a másik megjelenésben, a csempék kártyái is: nappal sötét kártyák sötét panelen, sötét módban világosak."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lámpák",
+        "covers": "Redőnyök és ablakok",
+        "climate": "Klíma",
+        "media": "Média",
+        "security": "Biztonság",
+        "actions": "Jelenetek",
+        "others": "Eszközök",
+        "weather": "Időjárás",
+        "people": "Ki van otthon",
+        "energy": "Energia",
+        "cameras": "Kamerák",
+        "vacuum": "Porszívó",
+        "todo": "Listák",
+        "calendar": "Naptár"
+      },
+      "home": "Otthon",
+      "all_lights": "Összes lámpa",
+      "two_rooms": "{a} és {b}",
+      "room_list": "{list} és {last}",
+      "more_rooms": "{a} és még {n}",
+      "button": "Automatikus elrendezés",
+      "button_title": "Oldalak készítése a Home Assistant területeidből és eszközeidből",
+      "title": "Elrendezés készítése neked",
+      "intro": "A Tessera megnézi a Home Assistant területeidet és eszközeidet, és oldalakat készít ehhez a kijelzőhöz: helyiségenként egy oldalt vagy szakaszt, a ház időjárását, riasztóját, személyeit és kameráit együtt, nagyobb csempéket ott, ahol a kijelzőn van hely. Visszavonhatod, és utána bármit módosíthatsz.",
+      "reading": "Az otthonod beolvasása…",
+      "failed": "Az otthonodat nem sikerült beolvasni: {error}",
+      "nothing": "A Tessera még nem talált semmit, amit ezen a kijelzőn mutathatna. Adj területet az eszközeidnek a Home Assistantban, vagy adj hozzá csempéket a könyvtárból.",
+      "nothing_new": "Minden, amit a Tessera erre a kijelzőre tenne, már rajta van.",
+      "summary": "{pages} oldal · {tiles} csempe | {pages} oldal · {tiles} csempe",
+      "summary_sections": "{n} szakasz | {n} szakasz",
+      "from_rooms": "egy helyiségből | {n} helyiségből",
+      "left_out": "Még egy entitás nem fért el ezen a kijelzőn; a könyvtárban megtalálod. | Még {n} entitás nem fért el ezen a kijelzőn; a könyvtárban megtalálod őket.",
+      "replace": "Oldalak cseréje",
+      "replace_hint": "A kijelző ezeket az oldalakat kapja a mostaniak helyett.",
+      "append": "Hozzáadás a mostani oldalak után",
+      "append_hint": "A mostani oldalak maradnak, az újak utánuk jönnek azzal, ami még nincs a kijelzőn.",
+      "append_full": "Ezen a kijelzőn nem maradt szabad oldal vagy csempe. Cseréld le az oldalakat, vagy előbb csinálj helyet.",
+      "make": "Elrendezés készítése",
+      "made": "Elkészült egy {pages} oldalas elrendezés. A visszavonás visszaállítja. | Elkészült egy {pages} oldalas elrendezés. A visszavonás visszaállítja.",
+      "offer_title": "Készítsek neked egy első elrendezést?",
+      "offer_text": "A Tessera elrendezheti ezt a kijelzőt a Home Assistant területeid és eszközeid alapján. Utána mindent módosíthatsz.",
+      "offer_make": "Első elrendezés készítése",
+      "offer_empty": "Üres kezdés"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Kérdezd a Layoutbotot",
+      "close": "Bezárás",
+      "hello": "Szia! Mondd el, mit mutasson ez a kijelző, és elrendezem az oldalait. Csak az elrendezést módosítom, az eszközeidet soha.",
+      "privacy": "A Home Assistant {agent} szolgáltatását használom. A kérdésed, a kijelzőid oldalai és az entitásaid azonosítói, nevei és területei oda kerülnek.",
+      "model_hint": "Sokkal jobban dolgozom egy nagyobb modellel, mint a legolcsóbbal. A Home Assistantben add hozzá nekem az AI-integrációdhoz egy AI Taskot, kapcsold ki az „Ajánlott modellbeállítások” opciót, válassz egy nagyobb modellt, majd jelöld ki a chat tetején.",
+      "model_link": "Integrációk megnyitása",
+      "placeholder": "Készíts egy oldalt, amelyen…",
+      "ask": "Kérdezés",
+      "send": {
+        "ask": "Elküldjem ide: {which}?",
+        "yes": "Igen, küldd",
+        "no": "Most nem",
+        "sending": "Küldés…",
+        "sent": "Elküldve. A kijelző hamarosan mutatja.",
+        "not_all": "Nem minden lett elküldve.",
+        "failed": "Nem sikerült elküldeni ide: {which}.",
+        "declined": "Nincs elküldve. A Mentés és küldés bármikor megteszi.",
+        "to": "Küldés ide: {name}",
+        "not_opened": "azt a kijelzőt nem sikerült megnyitni",
+        "not_saved": "nem lett elmentve",
+        "unsaved": "a megnyitott kijelzőn nem mentett módosítások vannak",
+        "own": "A legutóbbi mentés óta végzett saját módosításaid is vele mennek."
+      },
+      "busy": "A Layoutbot elrendezi az oldalaidat",
+      "seconds": "{n} mp",
+      "stop": "Leállítás",
+      "stopped": "Leállítva. Semmi sem változott.",
+      "nothing": "Semmi sem változott.",
+      "stale": "Az oldalak megváltoztak, amíg gondolkodtam, ezért úgy hagytam őket, ahogy vannak. Kérdezz újra.",
+      "show": "Mutatás",
+      "undo": "Visszavonás",
+      "undone": "Visszavonva",
+      "restructure": {
+        "page": "Szervezd át ezt az oldalt",
+        "screen": "Szervezd át az egész kijelzőt"
+      },
+      "suggest": {
+        "lights_sections": "Tedd az összes lámpát egy oldalra, helyiségenként egy szakaszba",
+        "lights": "Tedd az összes lámpát egy oldalra",
+        "covers_sections": "Egy oldal az összes redőnnyel és függönnyel, két szakaszban",
+        "covers": "Egy oldal az összes redőnnyel és függönnyel",
+        "media": "Egy zenei oldal az összes hangszóróval",
+        "climate": "Egy klímaoldal a fűtéssel és a hőmérsékletekkel"
+      },
+      "what": {
+        "pages": "1 új oldal | {n} új oldal",
+        "added": "1 csempe hozzáadva | {n} csempe hozzáadva",
+        "removed": "1 csempe levéve | {n} csempe levéve",
+        "changed": "oldal módosítva: {pages} | oldalak módosítva: {pages}"
+      },
+      "connect": {
+        "title": "Csatlakoztass egy AI-t a Home Assistantben",
+        "short": "Még nincs csatlakoztatva",
+        "body": "Egyetlen mondatból rendezem el a kijelző oldalait, például: „az összes lámpa egy oldalon, helyiségenként egy szakasz”. Ehhez azt az AI-t használom, amelyet a Home Assistanthez csatlakoztatsz: adj hozzá egyet ezek közül az integrációk közül, a többit én intézem.",
+        "cloud": "A felhőben, saját kulccsal",
+        "local": "A saját számítógépeden",
+        "after": "Bármelyik AI Tasks-t támogató AI-integráció megfelel. Ha hozzáadtad, nézd meg itt újra.",
+        "again": "Újraellenőrzés"
+      },
+      "notes": {
+        "page_full": "A(z) {page}. oldal megtelt, ezért {count} csempe kimaradt. | A(z) {page}. oldal megtelt, ezért {count} csempe kimaradt.",
+        "memory_full": "A kijelző memóriája megtelt, ezért {count} csempe kimaradt. | A kijelző memóriája megtelt, ezért {count} csempe kimaradt.",
+        "left_out": "A kijelzőn nem volt hely további {count} csempének. | A kijelzőn nem volt hely további {count} csempének.",
+        "no_page": "Nincs {page}. oldal.",
+        "not_drawn": "A kijelző {count} entitáshoz nem rajzol csempét. | A kijelző {count} entitáshoz nem rajzol csempét.",
+        "restructure_no_room": "Átszervezve nem lenne hely {count} csempédnek, ezért úgy hagytam az oldalakat, ahogy voltak. | Átszervezve nem lenne hely {count} csempédnek, ezért úgy hagytam az oldalakat, ahogy voltak."
+      },
+      "update_app": "Frissítsd a Tessera alkalmazást: ez a szerkesztő maga helyezi el a Layoutbot terveit.",
+      "scope": {
+        "here": "Ez a kijelző",
+        "all": "Minden kijelző"
+      },
+      "preview": "Megnézem"
+    },
+    "alarm": {
+      "hero_title": "Amikor a riasztó megszólal",
+      "hero_text": "Valaki belép, vagy megszólal a riasztó: a kijelzők maguktól felébrednek, és pirosan megnyitják a billentyűzetet a hátralévő idővel. Írd be a kódot, és a riasztó kikapcsol. Ehhez nem kell automatizálás; a Tessera követi a riasztódat a Home Assistantban.",
+      "none": "A Home Assistantban nincs riasztópanel. Adj hozzá egyet, például a Manual alarm vagy az Alarmo integrációt, és itt megjelenik.",
+      "no_code": "Ez a riasztó nem kér kódot a hatástalanításhoz, ezért a kijelzők billentyűzet helyett Hatástalanít gombbal nyitják meg a kártyáját.",
+      "screens_label": "Kijelzők, amelyek megnyitják a billentyűzetet",
+      "every_screen": "Minden kijelző",
+      "every_screen_hint": "Egy később hozzáadott kijelző is. Kapcsold ki, ha magad választod ki a kijelzőket.",
+      "none_chosen": "Egyik kijelző sem nyitja meg magától a billentyűzetet. A riasztó csempéje egy érintéssel továbbra is megnyitja.",
+      "older": "Firmware-frissítés kell ahhoz, hogy a riasztó csempéje nélkül is megnyíljon egy oldalon.",
+      "send_label": "A kód küldése ennyi után",
+      "send_off": "OK gomb",
+      "send_off_hint": "A kód az OK megérintésekor megy el. A Home Assistant nem mondja meg, hány számjegyű egy kód.",
+      "send_on_hint": "A kód {digits} számjegy után magától elmegy, OK nélkül. Csak akkor válaszd, ha a riasztó minden kódja {digits} számjegyű: a túl korán elküldött kód hibásnak számít.",
+      "saved": "Mentve. A kijelzők egy pillanat múlva megkapják.",
+      "how_title": "Hogyan működik a kijelzőn",
+      "how_wake": "Amikor a riasztó visszaszámol, mert valaki belépett, vagy megszólal, a kiválasztott kijelzők felébrednek és megnyitják a billentyűzetet. Élesítés előtti visszaszámláláskor a riasztó kártyája inkább egy Hatástalanít gombot mutat.",
+      "how_keys": "A gombok kitöltik a kijelző teljes helyét, legfeljebb egy nagy telefon billentyűzetének méretéig. A Törlés visszaveszi az utolsó számjegyet.",
+      "how_wrong": "Három hibás kód 30 másodpercre zárolja a billentyűzetet, és utána minden hibás kód megduplázza az időt, legfeljebb 15 percig. A Home Assistant mindegyikről az esphome.screen_alarm_code_refused eseménnyel értesül, soha nem a kóddal.",
+      "how_code": "A kód a művelettel megy a Home Assistantba, ahogy a saját riasztókártyája küldi, és a kijelzőn azonnal törlődik. Egy kijelző soha nem tárolja és nem naplózza.",
+      "how_tile": "Tedd a riasztót egy oldalra is: a csempéjének megérintése bármikor megnyitja a kártyát, módonként egy gombbal."
     }
   }
 }

@@ -130,6 +130,50 @@ def terminal_line(text):
     return parts[-1].rstrip() if parts else ''
 
 
+def _secrets_loader(text, folder, depth):
+    class Loader(yaml.SafeLoader):
+        def flatten_mapping(self, node):
+            for index, (key, value) in enumerate(node.value):
+                if key.tag == 'tag:yaml.org,2002:merge' and value.tag == '!include':
+                    node.value[index] = (key, _included_secrets(folder, self.construct_scalar(value), depth, value.start_mark))
+            super().flatten_mapping(node)
+    # A key whose whole value is an include is no secret this app can use: it reads as missing, never as an error.
+    Loader.add_constructor('!include', lambda loader, node: None)
+    return Loader(text)
+
+
+def _included_secrets(folder, name, depth, mark):
+    if depth >= 4:
+        raise yaml.constructor.ConstructorError(None, None, 'secrets include each other too deep', mark)
+    path = Path(folder) / name
+    try:
+        loader = _secrets_loader(path.read_text(), path.parent, depth + 1)
+    except (OSError, UnicodeError) as error:
+        raise yaml.constructor.ConstructorError(None, None, f'cannot read the included {name} ({error})', mark) from None
+    try:
+        root = loader.get_single_node()
+        if root is None:
+            return yaml.MappingNode('tag:yaml.org,2002:map', [])
+        if not isinstance(root, yaml.MappingNode):
+            raise yaml.constructor.ConstructorError(None, None, f'the included {name} is not a list of keys', mark)
+        loader.flatten_mapping(root)   # its own includes, counted from its own folder
+        return root
+    finally:
+        loader.dispose()
+
+
+def read_secrets(text, folder):
+    """ESPHome's secrets.yaml as ESPHome reads it. A file may take its keys from another one with
+    `<<: !include ../secrets.yaml`, one file of secrets for Home Assistant and ESPHome (GitHub #351); a key of its own
+    wins over an included one. `folder` is where the file stands, which an include counts from. Raises yaml.YAMLError
+    for text that is not YAML, an include that cannot be read, or includes more than four deep."""
+    loader = _secrets_loader(text, folder, 0)
+    try:
+        return loader.get_single_data()
+    finally:
+        loader.dispose()
+
+
 class Firmware:
     OVERRIDE_SUFFIX = '.local.yaml'
     OVERRIDE_LIMIT = 12 * 1024  # bytes; checked here, far below the request body limit (128 KB since app 0.2.78)
@@ -243,7 +287,7 @@ class Firmware:
             return {'state': 'new', 'missing': ['wifi_ssid', 'wifi_password']}
         try:
             text = path.read_text()
-            values = yaml.safe_load(text)
+            values = read_secrets(text, self.root)
             # An empty file, or one of comments only (as ESPHome's Device Builder leaves it), has no keys yet, as ESPHome
             # reads it too (#263). A document of its own, even `~` or `[]`, is not a file of secrets and stays untouched.
             if values is None and yaml.compose(text) is None:
@@ -300,11 +344,10 @@ class Firmware:
             raise ValueError(t('addon.errors.firmware.wifi_not_set'))
         self._write_secrets(path, text)
 
-    @staticmethod
-    def _parsed(text):
+    def _parsed(self, text):
         # The file as it would be written: a text the appended lines made unreadable is never written, and says so.
         try:
-            return yaml.safe_load(text)
+            return read_secrets(text, self.root)
         except yaml.YAMLError:
             return None
 
@@ -809,7 +852,7 @@ packages:
         path = self.root / 'secrets.yaml'
         if wanted and path.is_file() and not path.is_symlink():
             try:
-                values = yaml.safe_load(path.read_text())
+                values = read_secrets(path.read_text(), self.root)
             except (OSError, yaml.YAMLError, UnicodeError):
                 values = None
             if isinstance(values, dict):

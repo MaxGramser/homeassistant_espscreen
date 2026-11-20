@@ -1,0 +1,28 @@
+# The ES8311's plain transport (parts/es8311-voice.yaml, AUDIO_TRANSPORT "i2s"): ESPHome's own I2S, both ways at once
+# without echo cancelling. Two of the chip's I2S ports stand on the codec's three clock pins, the microphone's port giving
+# the clocks and the speaker's following them (ESPHome's `i2s_mode: secondary`), as @Eugen417 runs it on a JC8012P4A1 V3
+# (pull request #259). features/audio.yaml reads the codec's data on the left slot.
+packages:
+  audio: !include ../../../features/audio.yaml
+
+substitutions:
+  AUDIO_MIC_GAIN: "24DB"                        # Guition's own setting
+  # The clocks come from the microphone's port, which ESPHome runs only while something listens; a speaker without them
+  # plays nothing. So the board listens from the start, under everything that reads the microphone (ESPHome counts its
+  # listeners): the speaker plays whether a voice assistant listens or not. Microphone off under Extras still mutes it.
+  BOOT_MICROPHONE_PART: |-
+    id(ts_microphone)->start();
+
+i2s_audio:
+  - id: ts_speaker_bus
+    i2s_mclk_pin: {number: "${AUDIO_MCLK_PIN}", allow_other_uses: true}
+    i2s_bclk_pin: {number: "${AUDIO_BCLK_PIN}", allow_other_uses: true}
+    i2s_lrclk_pin: {number: "${AUDIO_LRCLK_PIN}", allow_other_uses: true}
+  - id: ts_mic_bus
+    i2s_mclk_pin: {number: "${AUDIO_MCLK_PIN}", allow_other_uses: true}
+    i2s_bclk_pin: {number: "${AUDIO_BCLK_PIN}", allow_other_uses: true}
+    i2s_lrclk_pin: {number: "${AUDIO_LRCLK_PIN}", allow_other_uses: true}
+
+speaker:
+  - id: !extend ts_speaker_out
+    i2s_mode: secondary

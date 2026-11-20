@@ -100,6 +100,19 @@ constexpr int MAX_ROOMS = 8;
 // The FreeRTOS priority a writer waits for the glass at: a stream's task runs at it, and a still's download waits at it
 // in turn with them (picture_engine::decode), as a mutex goes to its highest waiter.
 constexpr unsigned WRITER_PRIORITY = 5;
+// How a writer waits for the glass and lets go of it, pure (tests/test_live_view.cpp): raised to WRITER_PRIORITY before
+// it asks, never lowered (a task above it stays where it is), and back at its own priority `own` only once it let go.
+// A still's download that waited at its own priority 1 waited behind four live tiles for up to two minutes (a
+// reTerminal D1001, 2026-10-25, "11011 ms waiting for the glass, 2 ms holding it"). `set` sets the calling task's
+// priority (vTaskPrioritySet); `hold` asks for the glass (hold, hold_counted) and `release` gives it back.
+template<typename Set, typename Hold> auto wait_as_writer(unsigned own, Set set, Hold hold) -> decltype(hold()) {
+  if (own < WRITER_PRIORITY) set(WRITER_PRIORITY);
+  return hold();
+}
+template<typename Set, typename Release> void leave_as_writer(unsigned own, Set set, Release release) {
+  release();
+  if (own < WRITER_PRIORITY) set(own);
+}
 
 #if (defined(GLASS_DSI) || defined(GLASS_RGB)) && defined(SCREEN_PICTURES)
 // LVGL, which says how the glass is turned (smart_display/__init__.py binds it at boot), and whether it is bound yet (a
@@ -137,6 +150,9 @@ void give_back(Room room);
 // LVGL draws the whole glass again (a full view's stream gone for good, its room drawn again while its task may still
 // have been busy with its last picture).
 void redraw_all();
+// LVGL draws a room's area again, armed or not: a tile's stream gone for good, as redraw_all for a full view. A 10.1
+// inch kept a camera tile's last picture over the next page where nothing of that page drew (2026-11-15).
+void redraw(Room room);
 // Every pixel of the glass outside `keep` (a rectangle of the screen as LVGL lays it out, empty for none) goes under a
 // veil of `scrim` at `opa`, or comes out from under it, in the frame buffer itself, without LVGL: what a dim over the
 // whole glass would cost LVGL a whole redraw for. Row by row in four passes through the glass, so what the panel shows
@@ -146,6 +162,9 @@ void redraw_all();
 bool veil(const Rect &keep, uint16_t scrim, uint8_t opa, bool on);
 bool veilable();  // whether veil would do it now
 bool drawing();   // LVGL is bound and not paused: its timers run and a refresh draws
+// Where the streams that write the glass now have their pictures (armed rooms' spots, rectangles of the screen as LVGL
+// lays it out): up to `most` of them into `spots`, and how many there are.
+int streaming(Rect *spots, int most);
 // How often the panel ran dry since boot: the frames of blue (the panel watch below counts them), every 50 ms from the
 // streams' tick.
 void tick();
@@ -161,7 +180,7 @@ std::string watch_said();
 void note_log_line();
 void note_finger(bool down);
 // For a panel kind's file, from an interrupt too: who holds the glass now (LVGL's refresh, a stream, another writer: a
-// still's decode, a page's picture ahead) and whether LVGL flushes.
+// still's decode, the veil) and whether LVGL flushes.
 enum Holder : uint8_t { NOBODY, LVGL, STREAM, OTHER, HOLDERS };
 Holder holder_now();
 bool flushing_now();
@@ -169,7 +188,7 @@ bool flushing_now();
 // and how long it held the glass, in all and the longest; how much of that went to flushing what it drew (the turn on
 // the PPA of a turned glass, then the panel's copy and its wait for the copy's end) and how much of the flushing to the
 // PPA's turn alone; and the streams' waits for the glass, behind LVGL's refresh, another stream or another writer (a
-// still's decode, a page's picture fetched ahead). Counted since the last call, which starts the count again (the main
+// still's decode, the veil). Counted since the last call, which starts the count again (the main
 // loop).
 struct Held {
   uint32_t refreshes = 0, flushes = 0, refresh_us = 0, refresh_most_us = 0, flush_us = 0, flush_most_us = 0,
@@ -200,6 +219,8 @@ inline void disarm(Room, bool) {}
 inline void follow(Room) {}
 inline void give_back(Room) {}
 inline void redraw_all() {}
+inline void redraw(Room) {}
+inline int streaming(Rect *, int) { return 0; }
 inline bool veil(const Rect &, uint16_t, uint8_t, bool) { return false; }
 inline bool veilable() { return false; }
 inline bool drawing() { return false; }

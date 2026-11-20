@@ -29,4 +29,19 @@ namespace wifi_chip {
 // without one. The first call with Wi-Fi connected asks the C6 (one RPC over the link); every later one gives that.
 std::string firmware();
 
+// That rule, pure (tests/test_wifi_chip.cpp proves it on a PC): never asked before Wi-Fi is up, since the question goes
+// over the link Wi-Fi brings up, and never again once it answered. `up` says whether Wi-Fi is connected, `ask` asks the C6
+// and returns its words.
+struct FirmwareOnce {
+  std::string told;
+  int asked = 0;
+  template <typename Up, typename Ask> std::string get(Up &&up, Ask &&ask) {
+    if (!told.empty()) return told;
+    if (!up()) return "unknown";
+    ++asked;
+    told = ask();
+    return told;
+  }
+};
+
 }  // namespace wifi_chip

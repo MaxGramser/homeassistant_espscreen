@@ -6,19 +6,61 @@ Screen camera's part Video, through the integration's own config flow, and takes
 that lost the video. A device the app does not know keeps its entry. The integration and the firmware work the stream's
 password out of the screen's API key the same way (Screen camera's components/screen_video/__init__.py).
 """
+import ast
 import asyncio
-import hashlib
+import importlib
+import importlib.util
 import json
 from pathlib import Path
 import sys
 import tempfile
+import types
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import screen_video  # noqa: E402
 
+HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
+if HAS_AIOHTTP:
+    from aiohttp.test_utils import TestClient, TestServer
+    from server import Manager, create_app
+
 INTEGRATION = ROOT / 'screen_manager/app/ha_integration/tessera_video'
+
+
+def integration_camera():
+    """The integration's camera.py as Home Assistant loads it, with the few names it takes from Home Assistant stood in
+    for: what it works out of a screen's ESPHome entry is plain Python."""
+    class Camera:
+        def __init__(self):
+            pass
+
+        async def async_added_to_hass(self):
+            pass
+
+    names = {
+        'homeassistant': {}, 'homeassistant.components': {}, 'homeassistant.helpers': {},
+        'homeassistant.components.camera': {'Camera': Camera, 'CameraEntityFeature': types.SimpleNamespace(STREAM=2)},
+        'homeassistant.components.ffmpeg': {'async_get_image': None},
+        'homeassistant.config_entries': {'ConfigEntry': object},
+        'homeassistant.const': {'MAJOR_VERSION': 2026, 'MINOR_VERSION': 11},
+        'homeassistant.core': {'HomeAssistant': object},
+        'homeassistant.exceptions': {'ConfigEntryNotReady': Exception},
+        'homeassistant.helpers.device_registry': {'CONNECTION_NETWORK_MAC': 'mac', 'DeviceInfo': dict},
+        'homeassistant.helpers.entity_platform': {'AddEntitiesCallback': object},
+    }
+    stubs = {name: types.ModuleType(name) for name in names}
+    for name, attributes in names.items():
+        for key, value in attributes.items():
+            setattr(stubs[name], key, value)
+    stubs['homeassistant.helpers'].device_registry = stubs['homeassistant.helpers.device_registry']
+    package = types.ModuleType('tessera_video_under_test')
+    package.__path__ = [str(INTEGRATION)]
+    stubs['tessera_video_under_test'] = package
+    with mock.patch.dict(sys.modules, stubs):
+        return importlib.import_module('tessera_video_under_test.camera')
 
 
 class FakeStore:
@@ -39,17 +81,30 @@ class FakeHA:
 
     def __init__(self, loaded='1.0.0', entries=()):
         self.loaded = loaded
-        # Home Assistant's list of entries has no unique id: the device registry says which device holds an entry.
-        self.entries = [{k: v for k, v in e.items() if k != 'unique_id'} for e in entries]
+        # Home Assistant's list of entries has no unique id: the entity registry says which device an entry's camera
+        # is on. As Home Assistant 2026.11 answers: a device belongs to one entry, the ESPHome one.
+        self.entries = [{'state': 'loaded', **{k: v for k, v in e.items() if k != 'unique_id'}} for e in entries]
         self.held = {e['entry_id']: e.get('unique_id') for e in entries}
         self.deleted, self.flows = [], {}
+        self.apart = set()  # entries whose camera sits on a device of its own (an integration before 1.0.3 on 2026.11)
+
+    def waits(self, entry_id):
+        """The entry's screen is gone from ESPHome: the integration says ConfigEntryNotReady, and no camera is made."""
+        next(e for e in self.entries if e['entry_id'] == entry_id)['state'] = 'setup_retry'
 
     @property
     def devices(self):
-        if getattr(self, 'no_devices', False):
+        return [{'id': device, 'config_entries': ['esphome-' + device], 'primary_config_entry': 'esphome-' + device}
+                for device in self.held.values() if device]
+
+    @property
+    def registry(self):
+        if getattr(self, 'no_cameras', False):
             return []
-        return [{'id': device, 'config_entries': ['esphome-' + device, entry]} for entry, device in self.held.items()
-                if device and any(e['entry_id'] == entry for e in self.entries)]
+        return [{'entity_id': f'camera.{entry}_video', 'platform': 'tessera_video', 'config_entry_id': entry,
+                 'device_id': 'own-' + entry if entry in self.apart else device}
+                for entry, device in self.held.items()
+                if device and any(e['entry_id'] == entry and e['state'] == 'loaded' for e in self.entries)]
 
     async def request(self, kind, **data):
         if kind == 'manifest/get':
@@ -70,7 +125,7 @@ class FakeHA:
             device = data['device']
             if device in self.held.values():
                 return {'type': 'abort', 'reason': 'already_configured'}
-            self.entries.append({'entry_id': 'e' + device, 'title': device})
+            self.entries.append({'entry_id': 'e' + device, 'title': device, 'state': 'loaded'})
             self.held['e' + device] = device
             return {'type': 'create_entry', 'result': {'entry_id': 'e' + device}}
         if method == 'delete':
@@ -132,17 +187,41 @@ class Install(unittest.TestCase):
             {x for k, v in d.items() if isinstance(v, dict) for x in keys(v, p + k + '.')}
         self.assertEqual(keys(dutch), keys(english))
 
-    def test_the_password_is_the_firmwares(self):
-        # Screen camera's components/screen_video/__init__.py: sha256("tessera-video:" + key), its first 24 hex digits.
-        const = (INTEGRATION / 'const.py').read_text()
-        self.assertIn('PASSWORD_SALT = "tessera-video:"', const)
-        self.assertIn('PASSWORD_LENGTH = 24', const)
-        self.assertIn('PORT = 8554', const)
-        self.assertIn('USER = "tessera"', const)
-        camera = (INTEGRATION / 'camera.py').read_text()
-        self.assertIn('hashlib.sha256((PASSWORD_SALT + (key or "")).encode()).hexdigest()[:PASSWORD_LENGTH]', camera)
+    def test_the_stream_is_the_one_the_firmware_serves(self):
+        # Screen camera's components/screen_video/__init__.py works the password out of the screen's API key when it is
+        # built (sha256 of "tessera-video:" and the key, its first 24 hex digits) and serves the stream as user tessera
+        # on port 8554. These are its answers for this key and for none; the integration must ask with the same.
+        camera = integration_camera()
         key = 'MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI='
-        self.assertEqual(len(hashlib.sha256(('tessera-video:' + key).encode()).hexdigest()[:24]), 24)
+        self.assertEqual(camera.password(key), '1c013c2215e26f7ce1ca2da3')
+        self.assertEqual(camera.password(None), '0f2f6ecab7ca79bec56631db')
+        esphome = types.SimpleNamespace(data={'host': '192.0.2.7', 'noise_psk': key})
+        video = camera.ScreenVideo('AA:BB:CC:DD:EE:FF', esphome)
+        self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:1c013c2215e26f7ce1ca2da3@192.0.2.7:8554/')
+        self.assertEqual(video._attr_unique_id, 'AA:BB:CC:DD:EE:FF-video')
+        # Read each time: Home Assistant changes the host and the key in the ESPHome entry.
+        esphome.data = {'host': '192.0.2.8'}
+        self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:0f2f6ecab7ca79bec56631db@192.0.2.8:8554/')
+
+    def test_the_camera_asks_home_assistant_for_its_screens_entry_and_says_when_it_is_gone(self):
+        # The entry the camera was made with is never kept: asked by its id, so the key of a screen that was added again
+        # is never the old one. Once Home Assistant has no such entry the camera is unavailable, hands out no address,
+        # and its own entry is set up again, once, to wait for the screen where a person sees it.
+        camera = integration_camera()
+        key = 'MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI='
+        made_with = types.SimpleNamespace(entry_id='esphome-1', data={'host': '192.0.2.7', 'noise_psk': 'an old key'})
+        entries = {'esphome-1': types.SimpleNamespace(entry_id='esphome-1', data={'host': '192.0.2.9', 'noise_psk': key})}
+        reloads = []
+        video = camera.ScreenVideo('AA:BB:CC:DD:EE:FF', made_with, 'video-1')
+        video.hass = types.SimpleNamespace(config_entries=types.SimpleNamespace(
+            async_get_entry=entries.get, async_schedule_reload=reloads.append))
+        self.assertTrue(video.available)
+        self.assertEqual(asyncio.run(video.stream_source()), 'rtsp://tessera:1c013c2215e26f7ce1ca2da3@192.0.2.9:8554/')
+        del entries['esphome-1']
+        self.assertFalse(video.available)
+        self.assertIsNone(asyncio.run(video.stream_source()))
+        self.assertIsNone(asyncio.run(video.async_camera_image()))
+        self.assertEqual(reloads, ['video-1'])
 
 
 class Screens(unittest.TestCase):
@@ -189,33 +268,124 @@ class Sync(unittest.TestCase):
             again = asyncio.run(videos.sync(ha, *screen_video.video_screens(FakePlugins(RECORDS), screens())))
             self.assertEqual(again, {'added': [], 'removed': []})
 
-    def test_an_entry_on_no_device_yet_is_not_added_twice(self):
+    def test_an_entry_that_waits_for_a_screen_that_is_gone_goes_and_the_screen_of_today_gets_one(self):
+        # The tablet was added to Home Assistant again: another device, another key. Its old entry names the old
+        # device, which ESPHome holds no more, and Home Assistant says the entry waits (setup_retry).
         with tempfile.TemporaryDirectory() as folder:
-            # The tablet's entry is there, but its camera is on no device yet (the ESPHome device is not loaded).
-            ha = FakeHA(entries=[{'entry_id': 'waiting', 'unique_id': 'dev-tablet', 'title': 'Tablet'}])
-            ha.no_devices = True
+            ha = FakeHA(entries=[{'entry_id': 'stale', 'unique_id': 'dev-tablet-before', 'title': 'Tablet'},
+                                 {'entry_id': 'mine', 'unique_id': 'dev-elsewhere', 'title': 'Built elsewhere'}])
+            ha.waits('stale')
+            videos, done = self.run_sync(ha, folder)
+            self.assertEqual(done, {'added': ['dev-tablet'], 'removed': ['stale']})
+            self.assertEqual(ha.deleted, ['stale'])
+            # A screen built elsewhere and added by hand has a working entry: it stays.
+            self.assertEqual(sorted(ha.held[e['entry_id']] for e in ha.entries), ['dev-elsewhere', 'dev-tablet'])
+
+    def test_a_working_entry_whose_camera_sits_on_a_device_of_its_own_stays(self):
+        # Home Assistant 2026.11 with an integration before 1.0.3: the camera is on a second device with the screen's
+        # name, which no ESPHome entry holds. The entry works, and nothing but Home Assistant's own word that an entry
+        # waits takes one away (a guess from the registries took this one away, again and again, 2026-11-17).
+        with tempfile.TemporaryDirectory() as folder:
+            ha = FakeHA(entries=[{'entry_id': 'works', 'unique_id': 'dev-tablet', 'title': 'Tablet'}])
+            ha.apart = {'works'}
+            _, done = self.run_sync(ha, folder)
+            self.assertEqual(done, {'added': [], 'removed': []})
+            self.assertEqual(ha.deleted, [])
+            self.assertEqual(len(ha.entries), 1)
+
+    def test_an_entry_whose_camera_is_not_there_yet_is_not_added_twice(self):
+        with tempfile.TemporaryDirectory() as folder:
+            # The tablet's entry is there, but its camera is in no registry yet (Home Assistant is starting).
+            ha = FakeHA(entries=[{'entry_id': 'starting', 'unique_id': 'dev-tablet', 'title': 'Tablet'}])
+            ha.no_cameras = True
             _, done = self.run_sync(ha, folder)
             self.assertEqual(done, {'added': [], 'removed': []})
             self.assertEqual(len(ha.entries), 1)
 
+    def test_the_camera_names_the_screens_device_and_second_devices_let_go_after_it_moved(self):
+        # From Home Assistant 2025.8 the camera names the screen's device itself and hands out no device of its own;
+        # a device this entry made before lets go of the entry once the camera is on the screen's device.
+        camera = integration_camera()
+        self.assertTrue(camera.NAMES_ITS_DEVICE)
+        screen = types.SimpleNamespace(id='dev-tablet', config_entry_id='esphome-1')
+        self.assertEqual(camera._entries_of(screen), {'esphome-1'})
+        self.assertEqual(camera._entries_of(types.SimpleNamespace(config_entries={'esphome-1', 'video-1'})),
+                         {'esphome-1', 'video-1'})
+        video = camera.ScreenVideo('AA:BB:CC:DD:EE:FF', types.SimpleNamespace(entry_id='esphome-1', data={}), 'video-1', screen)
+        self.assertIs(video.device_entry, screen)
+        self.assertFalse(hasattr(video, '_attr_device_info'))
+        let_go = []
+        registry = types.SimpleNamespace(
+            async_update_device=lambda device, remove_config_entry_id: let_go.append((device, remove_config_entry_id)),
+            async_remove_device=lambda device: let_go.append((device, 'removed')))
+        camera.dr.async_get = lambda hass: registry
+        # One as 2026.11 has it (the device is this entry's alone), one as before (a device of several entries).
+        camera.dr.async_entries_for_config_entry = lambda registry, entry: [
+            screen, types.SimpleNamespace(id='second', config_entry_id='video-1'), types.SimpleNamespace(id='before')]
+        video.hass = object()
+        asyncio.run(video.async_added_to_hass())
+        self.assertEqual(let_go, [('second', 'removed'), ('before', 'video-1')])
 
-class Wiring(unittest.TestCase):
-    def test_the_app_routes_and_the_editor(self):
-        server = (ROOT / 'screen_manager/app/server.py').read_text()
-        for needle in ("app.router.add_post('/api/video', install_video)", "app.router.add_post('/api/video/restart',",
-                       "payload['video'] = manager.video_status()", 'manager.video_loop()',
-                       "call_service('homeassistant', 'restart', {})"):
-            self.assertIn(needle, server)
-        view = (ROOT / 'web/src/components/AppSettingsView.vue').read_text()
-        self.assertIn('id="video-install"', view)
-        self.assertIn('id="video-restart"', view)
-        # A P4's network buffers: the video's send buffer, and all of it in PSRAM first (docs/CAMERA.md,
-        # components/smart_display/p4_build.py).
-        component = (ROOT / 'components/smart_display/p4_build.py').read_text()
-        self.assertIn('"CONFIG_LWIP_TCP_SND_BUF_DEFAULT": 65534', component)
-        self.assertIn('"CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP": True', component)
-        # Nothing restarts Home Assistant without the person's yes.
-        self.assertIn('confirm(t("editor.settings.video.restart_confirm")', view)
+
+@unittest.skipUnless(HAS_AIOHTTP, 'Run using .venv-portal/bin/python for server tests')
+class Endpoint(unittest.IsolatedAsyncioTestCase):
+    """Settings, Video in Home Assistant, through the app's own routes. The editor's buttons, and that the restart waits
+    for the person's yes, are web/tests/video-settings.spec.ts."""
+
+    async def test_the_inventory_says_install_writes_and_restart_asks_home_assistant(self):
+        class HA:
+            online = True
+            registry, devices, areas, states = [], [], [], {}
+            changed = asyncio.Event()
+            calls = []
+            closes = False
+
+            async def call_service(self, domain, service, data):
+                self.calls.append((domain, service, data))
+                if self.closes:
+                    raise ConnectionError('Home Assistant went away: it restarts')
+
+        with tempfile.TemporaryDirectory() as tmp:
+            ha = HA()
+            manager = Manager(ha, Path(tmp) / 'data' / 'screens.json')
+            manager.videos = screen_video.Videos(screen_video.target(Path(tmp) / 'config'))
+            async with TestClient(TestServer(create_app(manager, True))) as client:
+                full = await (await client.get('/api/inventory')).json()
+                self.assertEqual(full['video'], {**screen_video.status(manager.videos.directory), 'loaded': None,
+                                                 'screens': [], 'entries': 0})
+                self.assertFalse(full['video']['installed'])
+                csrf = {'X-Screen-CSRF': full['csrf']}
+                # Nothing restarts Home Assistant for a video it has not got.
+                refused = await client.post('/api/video/restart', headers=csrf)
+                self.assertEqual(refused.status, 409)
+                self.assertEqual(ha.calls, [])
+                self.assertEqual((await client.post('/api/video')).status, 403, 'CSRF like every other change')
+                self.assertFalse(manager.videos.directory.exists(), 'written only on request')
+                done = await (await client.post('/api/video', headers=csrf)).json()
+                self.assertTrue(done['installed'] and done['current'] and done['restart'])
+                self.assertTrue((manager.videos.directory / 'manifest.json').is_file())
+                # Restarted as Home Assistant's own Restart does, which checks the configuration first; Home Assistant
+                # may close the connection before it answers.
+                for closes in (False, True):
+                    ha.closes = closes
+                    restarted = await client.post('/api/video/restart', headers=csrf)
+                    self.assertEqual(await restarted.json(), {'restarting': True})
+                self.assertEqual(ha.calls, [('homeassistant', 'restart', {})] * 2)
+
+
+class Loops(unittest.TestCase):
+    def test_the_app_runs_every_loop_of_its_manager(self):
+        # A loop of the Manager that main() does not start never runs: the screens' video entries would never be kept.
+        tree = ast.parse((ROOT / 'screen_manager/app/server.py').read_text())
+        manager = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Manager')
+        loops = {f.name for f in manager.body if isinstance(f, ast.AsyncFunctionDef) and f.name.endswith('_loop')}
+        main = next(node for node in tree.body if isinstance(node, ast.AsyncFunctionDef) and node.name == 'main')
+        started = {call.func.attr for call in ast.walk(main) if isinstance(call, ast.Call)
+                   and isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name)
+                   and call.func.value.id == 'manager'}
+        self.assertIn('video_loop', loops)
+        self.assertEqual(loops - started, set(), 'every Manager.*_loop is started in server.py main(), in its asyncio.gather '
+                                                 'with the others')
 
 
 if __name__ == '__main__':

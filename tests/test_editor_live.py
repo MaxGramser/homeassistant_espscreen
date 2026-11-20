@@ -13,7 +13,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
-sys.path.insert(0, str(ROOT / 'tests'))
 import changelog  # noqa: E402
 
 HAS_AIOHTTP = importlib.util.find_spec('aiohttp') is not None
@@ -388,6 +387,11 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(states['sensor.t']['state'], '21.5')
         self.assertEqual(states['sensor.t']['a']['unit_of_measurement'], '°C')
         self.assertIn('word', states['light.a'])
+        # A sensor's state class tells a counter from a value that goes up and down: what a new tile starts as
+        # (web/src/model/sensor-look.ts). The editor gets it; a screen never does (core.ATTRS).
+        self.manager.ha.states['sensor.energy'] = {'state': '120.5', 'attributes': {'unit_of_measurement': 'kWh', 'state_class': 'total_increasing'}}
+        response = await self.client.get('/api/states?entity=sensor.energy')
+        self.assertEqual((await response.json())['states']['sensor.energy']['a']['state_class'], 'total_increasing')
         # A duration's word is how the screens write it, in hours and minutes (durations.py, wishlist 107).
         self.manager.ha.states['sensor.left'] = {'state': '0.2', 'attributes': {'device_class': 'duration', 'unit_of_measurement': 'h'}}
         response = await self.client.get('/api/states?entity=sensor.left')
@@ -556,69 +560,35 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
 
 
 class Editor(unittest.TestCase):
-    """The page side of the same features, read from the Vue sources."""
+    """The page side of the same features, proven in the editor's own tests: the live values asked sixty at a time,
+    one round at a time, a group's lamps after them (web/tests/live-states.spec.ts) and drawn on the mockup (lit, a
+    slider's fill, a wide card's toggle: components.spec.ts); identify and the test alert's requests
+    (live-states.spec.ts); copying and importing a layout, remapped and never cut to a tile limit (store.spec.ts,
+    page-editor.spec.ts, pages.spec.ts); the library's room and placed filters and the palette with Cmd K
+    (components.spec.ts, palette-actions.spec.ts); an update's notes and progress (screen-status.spec.ts,
+    builds.spec.ts, builds-visible.spec.ts, components.spec.ts); a full page and the page keys (layout.spec.ts,
+    tile-options.spec.ts, tile-resize.spec.ts, tile-face.spec.ts, store.spec.ts, library.spec.ts). Kept below as
+    quotes until a component test clicks them: the controls that only wire a click to a store's function."""
+
     def setUp(self):
         import editor_sources
         self.store = editor_sources.source('stores/document.ts')
         self.page = editor_sources.PAGE
 
-    def test_the_mockup_polls_live_values_and_draws_them(self):
+    def test_the_mockup_follows_home_assistant_while_on_screen(self):
+        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(layout.value) && ui.tab === "layout" && ui.route === "" });', self.store,
+                      'the mockup asks for its values every 8 s while the layout is on screen')
+
+    def test_the_menu_and_the_wizards_have_their_controls(self):
+        for marker in ('id="identify"', 'id="alert-wizard-open"', 'id="alert-try"', 'id="copy-layout"', 'id="export-layout"',
+                       'id="import-layout"', 'accept: "application/json,.json"', 'id="open-palette"'):
+            self.assertIn(marker, self.page, f'the page has {marker}')
+        self.assertIn('function exportLayout(', self.store, 'the document store exports a layout')
+
+    def test_the_editors_texts(self):
         import editor_sources
-        self.assertIn('getJson(`states?${query(entities.slice(i, i + 60))}`)', editor_sources.source('stores/entities.ts'))
-        self.assertIn('useVisibleInterval(loadStates, 8000, { when: () => Boolean(layout.value) && ui.tab === "layout" && ui.route === "" });', self.store)
-        for marker in ('liveOf(props.tile.entity)', 'lit: card.lit', ':style="card.sliderStyle"', "class=\"tog\" :class=\"{ off: !card.on }\""):
-            self.assertIn(marker, self.page, marker)
-
-    def test_identify_and_the_test_alert_have_their_buttons(self):
-        import editor_sources
-        screen = editor_sources.source('stores/screen.ts')
-        self.assertIn('send(`screens/${encodeURIComponent(screen.id)}/identify`, "POST")', screen)
-        self.assertIn('send("alerts/test", "POST", { screen: target, data })', screen)
-        self.assertIn('id="identify"', self.page)
-        self.assertIn('id="alert-wizard-open"', self.page)
-        self.assertIn('id="alert-try"', self.page)
-
-    def test_layouts_can_be_copied_exported_and_imported(self):
-        for name in ('function copyLayoutFrom(', 'function exportLayout(', 'async function importLayout('):
-            self.assertIn(name, self.store)
-        for marker in ('id="copy-layout"', 'id="export-layout"', 'id="import-layout"', 'accept: "application/json,.json"'):
-            self.assertIn(marker, self.page, marker)
-        self.assertIn('pages.remapLayout(record.layout, heldTo(documentGrid.value))', self.store)
-        self.assertNotIn('.slice(0, tileLimit.value)', self.store, 'an incompatible import must be reviewed, never silently truncated')
-
-    def test_the_library_filters_by_room_and_placement_and_the_palette_exists(self):
-        for marker in ('id="room"', 'id="hide-placed"', 'id="open-palette"', 'id="palette-input"', "e.key.toLowerCase() === \"k\""):
-            self.assertIn(marker, self.page, marker)
-
-    def test_updates_show_their_notes_and_progress(self):
-        import editor_sources
-        status = editor_sources.source('model/screen-status.ts')
-        builds = editor_sources.source('stores/builds.ts')
-        self.assertIn('export function whatsNew', status)
-        self.assertIn('const whatsNew = (screen: Screen) => status.whatsNew(', builds)
-        # Every build's progress, an update's as a plugin build's, from the builds store's one source (buildOf,
-        # Manager.builds).
-        self.assertIn('export function buildProgress', status)
-        self.assertIn('const buildProgress = (screen: Screen) => status.buildProgress(', builds)
-        self.assertIn('const buildOf = (screen: Screen): Build | null => inv.inventory.builds?.[screen.id]', builds)
-        for marker in ('class="whatsnew"', 'role="progressbar"', "go('#firmware')"):
-            self.assertIn(marker, self.page, marker)
-
-    def test_full_page_and_navigation_tiles_are_in_the_editor(self):
-        import editor_sources
-        layout = editor_sources.source('model/layout.ts')
-        for marker in ('export const SIZES: Size[] = [...NAMED_SIZES];', 'export const pageTarget', 'versionAtLeast(firmware, "0.18.0")) return Math.min(FIRMWARE_MAX_TILES, grid.maxSlots)'):
-            self.assertIn(marker, layout, marker)
-        drawer = editor_sources.component('TileInspector')
-        for marker in ("t('editor.tile.goes_to.label')", 'retargetPageTile(tile, Number(v))'):
-            self.assertIn(marker, drawer, marker)
-        # A tile's size, the whole page too, is set with its handles on the tile itself (app 0.4.32).
-        self.assertIn('export function resizeChoices(', editor_sources.source('editor/tiles.ts'))
         self.assertEqual(editor_sources.text('tile.goes_to.label'), 'Goes to page')
-        self.assertIn('return { wide: face.wide, full: face.full, tall: face.tall,', editor_sources.component('TileCard'))
-        self.assertIn('"timer", "screen",', editor_sources.source('model/library.ts'))
         self.assertEqual(editor_sources.text('library.filters.screen'), 'Screen')
-
 
 if __name__ == '__main__':
     unittest.main()

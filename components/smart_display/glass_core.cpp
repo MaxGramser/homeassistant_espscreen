@@ -6,6 +6,7 @@
 #if (defined(GLASS_DSI) || defined(GLASS_RGB)) && defined(SCREEN_PICTURES)
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 
 #include "esphome/components/lvgl/lvgl_esphome.h"
 #include "esphome/core/log.h"
@@ -19,6 +20,7 @@
 #include <freertos/task.h>
 #if defined(GLASS_DSI)
 #include <esp_cache.h>
+#include <sdkconfig.h>
 #endif
 
 namespace glass {
@@ -39,7 +41,7 @@ int turn() { return lvgl ? static_cast<int>(lvgl->get_rotation()) : 0; }
 
 // ---- One writer at a time ----
 // Who holds it, for the count of who keeps a stream waiting (Held below): LVGL's refresh, a stream, or another writer
-// (a still's decode, a page's picture ahead). Set and cleared by the holder only, at its outermost hold.
+// (a still's decode, the veil). Set and cleared by the holder only, at its outermost hold.
 static std::atomic<uint8_t> holder{NOBODY};
 static int depth = 0;  // the holder's own nesting; only the task that holds the lock touches it
 void hold() {
@@ -323,6 +325,10 @@ void give_back(Room room) {
   s->used = false;
   filter_when_rooms();
 }
+void redraw(Room room) {
+  RoomState *s = room_at(room);
+  if (s && !s->area.empty()) invalidate(lv_rect(s->area));
+}
 void redraw_all() {
   lv_display_t *display = lv_display_get_default();
   if (!display) return;
@@ -341,6 +347,18 @@ static void written(uint16_t *from, size_t bytes) {
   (void) from;
   (void) bytes;
 #endif
+}
+int streaming(Rect *spots, int most) {
+  int n = 0;
+  for (auto &s : rooms) {
+    if (!s.used || !s.armed) continue;
+    if (spots && n < most) {
+      const Rect spot = spot_of(s);
+      spots[n] = spot.empty() ? s.area : spot;
+    }
+    ++n;
+  }
+  return n;
 }
 bool drawing() { return lvgl && !lvgl->is_paused(); }
 bool veilable() {

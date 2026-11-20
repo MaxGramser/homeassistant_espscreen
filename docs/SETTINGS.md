@@ -222,9 +222,13 @@ by a board fact rather than written into one board file: `shown` on the row, and
 
 - `tests/test_settings_screen.cpp` (`clang++ -std=c++17 -Wall -Wextra -Werror -I.`) walks every page and
   every row, and checks `set()`: add the key to its table of clamps.
-- `tests/test_screen_owned_settings.py` checks the entities in both profiles, `SETTING_ENTITIES`, the editor
-  rows (labels, steps and the duration ladder against `settings_screen.h`) and the add-on's calls;
-  `tests/test_settings_view.py` and `tests/test_layout.py` cover the rest of the add-on side.
+- `tests/test_screen_owned_settings.py` checks the entities on every board, `SETTING_ENTITIES`, the editor
+  rows against the rows of `settings_screen.h` and the add-on's calls; `tests/test_settings_view.py` and
+  `tests/test_layout.py` cover the rest of the add-on side. The duration ladder and the -/+ steps are run on both
+  sides over the same edges (`web/tests/settings.spec.ts`, `tests/test_settings_screen.cpp`), and
+  `web/wasm/test_settings_tile.mjs` taps the settings card with the link down in the firmware preview.
+- `tools/render/run.py guition --only standby` runs Wake, Sleep, Auto standby, Back to page 1 and a setting the
+  screen changes itself on the real firmware (a host build), and reads its clocks, pages and entities back.
 - Look at it before believing it: `tools/render/run.py <board>` builds the real firmware of a board as a program
   for this computer (`tools/render/host.py`, SDL2) and drives it over its API (docs/TESTING.md). It renders the
   tile pages, the cards and the alerts, not the settings pages, so walk every settings page on a screen as well,
@@ -256,12 +260,12 @@ What the boards have today:
 
 | Board | Extras | Where it comes from |
 |---|---|---|
-| reTerminal D1001 | Volume, Microphone, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
+| reTerminal D1001 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching, Wake when moved | `features/audio.yaml`, and the board file for its motion sensor |
 | Guition 4-inch (4848S040) | Backlight PWM, Dimmest level | the board file: its backlight's PWM (150 Hz dims every batch, some whine under 20 kHz, GitHub #327) and the floor it dims to (1 % is under some drivers' start, GitHub #337) |
-| Waveshare ESP32-P4 86 panel, ESP32-P4-WIFI6-Touch-LCD-7B, -7 and -10.1 | Volume, Microphone, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio.yaml` (its parts in `hardware/parts/`) and the shared audio player |
-| M5Stack Tab5 | Volume, Microphone, Echo cancellation (AEC transport) | `hardware/parts/es7210.yaml` and `es8388.yaml` and the shared audio player |
-| CrowPanel Advanced 10.1 | Volume, Microphone | `features/audio.yaml` |
-| Guition JC8012P4A1 (and its V2 and V3), JC1060P470 (and its V2), JC4880P443 | Volume, Microphone | `hardware/guition-p4-audio.yaml` and `features/audio.yaml` |
+| Waveshare ESP32-P4 86 panel, ESP32-P4-WIFI6-Touch-LCD-7B, -7 and -10.1 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching, Microphone gain, Automatic gain, Echo cancellation (AEC transport) | `hardware/wavesharep4-audio.yaml` (its parts in `hardware/parts/`) and the shared audio player |
+| M5Stack Tab5 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching, Echo cancellation (AEC transport) | `hardware/parts/es7210.yaml` and `es8388.yaml` and the shared audio player |
+| CrowPanel Advanced 10.1 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching | `features/audio.yaml` |
+| Guition JC8012P4A1 (and its V2 and V3), JC1060P470 (and its V2), JC4880P443 | Volume, Microphone, Call ringtone, Do not disturb, Call voice switching | `hardware/guition-p4-audio.yaml` and `features/audio.yaml` |
 
 A plugin's settings work the same way, from its own ESPHome entities, on its own settings page and in its details on
 the screen's Plugins tab (docs/PLUGINS.md); the code that finds and changes them is one module for both.

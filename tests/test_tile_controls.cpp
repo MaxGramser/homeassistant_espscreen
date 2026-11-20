@@ -427,6 +427,9 @@ int main() {
     lock.tap = "none";
     assert(tap_route(lock, false).route == TapRoute::NONE);
     assert(!make("lock.a", "locked").active() && make("lock.a", "unlocked").active() && make("lock.a", "jammed").active());
+    // An alarm panel is active unless disarmed (stateActive in Home Assistant's frontend).
+    assert(!make("alarm_control_panel.a", "disarmed").active() && make("alarm_control_panel.a", "armed_away").active() &&
+           make("alarm_control_panel.a", "triggered").active());
     assert(accent(make("lock.a", "locked")) == theme::ha::GREEN && accent(make("lock.a", "unlocking")) == theme::ha::ORANGE &&
            accent(make("lock.a", "jammed")) == theme::ha::RED && accent(make("lock.a", "open")) == theme::ha::RED);
   }
@@ -476,6 +479,12 @@ int main() {
   // tap option "toggle" switches it. Amber while on, grey while off (state_color.ts: --state-active-color).
   {
     Tile remote = make("remote.living_room", "on");
+    // A remote that never reports on or off (Android TV over ADB: always "unknown") keeps its keys, as in Home
+    // Assistant; only "unavailable" takes them away (GitHub #387).
+    Tile adb = make("remote.fire_tv", "unknown");
+    assert(adb.available());
+    adb.state = "unavailable";
+    assert(!adb.available());
     assert(runtime_tiles::valid_entity("remote.living_room"));
     Tap tap = tap_route(remote, false), held = tap_route(remote, true);
     assert(tap.route == TapRoute::CARD && held.route == TapRoute::CARD);
@@ -550,5 +559,17 @@ int main() {
   limited.supported=8; assert(!panel_available(limited));
   limited.supported=16; limited.controls="volume";
   limited.state="unavailable"; assert(!panel_available(limited));
+  // Every weather condition Home Assistant has (weather/const.py ATTR_CONDITION_*) is one of the table's kinds, which
+  // the tile's colour, the card's sky and the chart's marks all ask; a word it does not have is unknown.
+  for (const char *condition : {"clear-night", "cloudy", "exceptional", "fog", "hail", "lightning", "lightning-rainy", "partlycloudy",
+                                "pouring", "rainy", "snowy", "snowy-rainy", "sunny", "windy", "windy-variant"})
+    assert(weather_kind(condition) != Weather::UNKNOWN);
+  assert(weather_kind("windy-variant") == weather_kind("windy") && weather_kind("snowy-rainy") != weather_kind("snowy"));
+  assert(weather_kind("a-condition-ha-adds-later") == Weather::UNKNOWN);
+  // A lamp's own colour by Home Assistant's contrast rule (hui-tile-card._computeStateColor): under 40 % saturation
+  // lifted to 40 %; under 10 % nothing is left to lift, so it keeps the amber of a lamp that is on.
+  assert(lamp_color(30, 5) == theme::ha::AMBER && lamp_color(200, 9) == theme::ha::AMBER);
+  assert(lamp_color(30, 10) == lamp_color(30, 40) && lamp_color(30, 25) == lamp_color(30, 40));
+  assert(lamp_color(30, 60) == hsv_rgb(30, 60, 100) && lamp_color(30, 60) != theme::ha::AMBER && lamp_color(390, 60) == lamp_color(30, 60));
   return 0;
 }

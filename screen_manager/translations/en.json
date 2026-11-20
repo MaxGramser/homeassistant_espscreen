@@ -197,6 +197,9 @@
       "plugins": "Plugins",
       "microphone_gain": "Microphone gain",
       "automatic_gain": "Automatic gain",
+      "call_ringtone": "Call ringtone",
+      "do_not_disturb": "Do not disturb",
+      "call_voice_switching": "Call voice switching",
       "echo_cancellation": "Echo cancellation",
       "loop_pages": "Loop pages"
     },
@@ -928,7 +931,11 @@
         "destination_exists": "Destination screen already has a saved layout",
         "update_tall": "Update the screen to use these tile sizes",
         "memory": "The screen does not have enough free memory for this layout. Reduce the number of tiles.",
-        "grid_range": "This screen does not take a grid of that size. Choose another grid beside the mockup."
+        "grid_range": "This screen does not take a grid of that size. Choose another grid beside the mockup.",
+        "section_title": "A section needs a name of at most 48 bytes.",
+        "section_tiles": "A section's tiles must stand inside it, and a tile over the whole page never stands in a section.",
+        "section_overlap": "Sections and loose tiles may not stand on the same cells.",
+        "sections_full": "A page holds at most 16 sections."
       },
       "feedback": {
         "invalid": "This answer can't be shared. Choose yes or not quite, and only the listed problems.",
@@ -1000,6 +1007,12 @@
         "not_paired": "Pair a build server first.",
         "unknown": "The build server no longer knows Tessera. Pair it again.",
         "pending": "The build server has not accepted Tessera yet."
+      },
+      "build_files": {
+        "automatic": "Automatic clean-up can only be on or off.",
+        "level": "Choose which build files to remove.",
+        "cleaning": "The build files are being cleaned up already.",
+        "building": "A screen is building or waiting to build. Clean up the build files once it is done."
       },
       "video": {
         "not_written": "Tessera video could not be written to {folder}: {reason}.",
@@ -1244,6 +1257,18 @@
         "automatic_gain": {
           "label": "Automatic gain",
           "hint": "Let the microphone codec adjust the recording level. Independent of echo cancellation."
+        },
+        "call_ringtone": {
+          "label": "Call ringtone",
+          "hint": "Off, a call lights the screen up and shows who is calling, without a sound."
+        },
+        "do_not_disturb": {
+          "label": "Do not disturb",
+          "hint": "On, a call to this screen is refused at once and the caller reads why. The doorbell still rings."
+        },
+        "call_voice_switching": {
+          "label": "Call voice switching",
+          "hint": "On, the microphone of the side that listens goes quiet, so a voice does not come back as an echo. Off, both sides can speak at once. A small key in a call changes it for that call."
         },
         "echo_cancellation": {
           "label": "Echo cancellation",
@@ -1624,6 +1649,15 @@
         "missed": "Nobody touched it before its timeout",
         "seen": "A missed ring was opened again from the top bar"
       }
+    },
+    "layoutbot": {
+      "none": "Layoutbot needs an AI Task in Home Assistant that can generate data (Settings > Devices & services, an AI integration).",
+      "notes": {
+        "unknown": "Left out {entity}: it is not an entity of this Home Assistant.",
+        "no_page": "There is no page {page}.",
+        "kept": "Layoutbot forgot {count} of your tiles: they stand loose on the last page."
+      },
+      "nothing_to_restructure": "There are no tiles of devices on this page to restructure yet. Add a few, then ask again."
     }
   },
   "editor": {
@@ -1641,6 +1675,8 @@
       "read_current_data": "Read current data",
       "results": "1 result. Keep typing to narrow it down. | {n} results. Keep typing to narrow it down.",
       "close": "Close",
+      "expand": "Show more",
+      "collapse": "Show less",
       "remove": "Remove",
       "loading": "Loading…",
       "back": "← Back",
@@ -1950,6 +1986,7 @@
       "search_label": "Add an entity",
       "filters": {
         "all": "All",
+        "plugin": "Plugins",
         "light": "Lights",
         "climate": "Climate",
         "switch": "Switches",
@@ -2490,6 +2527,18 @@
         "never": "Don't show again",
         "done": "Done"
       },
+      "look": {
+        "title": "How should it look?",
+        "text": "This sensor starts as a meter. Point at a look to see it on the tile; you can change it later under Display.",
+        "ring": "Meter: ring",
+        "tape": "Meter: tape",
+        "bar": "Meter: bar",
+        "graph": "Graph of the last hours",
+        "watch": "Large value",
+        "standard": "Just the value",
+        "never": "Don't show again",
+        "done": "Done"
+      },
       "text": {
         "title": "Template",
         "hint": "Write text with Home Assistant templates in it, as in Developer tools › Template. Home Assistant fills it in, and the screen shows the result and keeps it up to date. When the result is empty, the tile disappears.",
@@ -2574,7 +2623,7 @@
         "who_hint_one": "A tap calls this screen at once.",
         "everyone": "Choose from the list",
         "kind": "Kind of call",
-        "kind_hint": "Video needs a camera on both screens, otherwise it is a call with sound.",
+        "kind_hint": "Video needs the Screen camera plugin with its part Video on both screens, otherwise it is a call with sound.",
         "video": "Video where possible",
         "sound": "Sound only"
       },
@@ -3044,6 +3093,32 @@
         "forget_confirm": "Forget {name}? Screens build here again. To remove Tessera there too, remove it from the paired devices of the build server.",
         "forget_go": "Forget",
         "unavailable": "This Tessera can't talk to a build server."
+      },
+      "build_files": {
+        "title": "Build files",
+        "intro": "Every firmware build leaves files behind, so the next build of the same screen is quick. Home Assistant backups leave them out.",
+        "measuring": "Measuring…",
+        "total": "{size} in all",
+        "folders": "Build folders",
+        "folders_detail": "One screen | {count} screens",
+        "cache": "Compile cache",
+        "tools": "ESP-IDF and downloads",
+        "clean": "Clean up build folders",
+        "cleaning": "Cleaning up…",
+        "clean_confirm": "Remove the build folders of every screen? This frees {size}. The next build of each screen compiles everything again and takes a few minutes longer, more on a Raspberry Pi. Layouts, plugins and settings stay as they are.",
+        "clean_all": "Also remove the compile cache and ESP-IDF",
+        "clean_all_confirm": "Remove every build file, also the compile cache and ESP-IDF? This frees {size}. The next build downloads ESP-IDF again, about 1 GB, and compiles everything from the start, which can take half an hour on a Raspberry Pi. Layouts, plugins and settings stay as they are.",
+        "clean_go": "Clean up",
+        "cleaned": "Cleaned up: {size} free again.",
+        "cleaned_nothing": "Cleaned up.",
+        "busy": "A screen is building. You can clean up once it is done.",
+        "auto_label": "Clean up after building",
+        "auto_hint": "From the next build on, removes the build folders once nothing is building anymore. Saves room, but every next build of a screen compiles everything again and takes a few minutes longer.",
+        "auto_on": "Build folders are cleaned up after building.",
+        "auto_off": "Build folders stay for quicker builds.",
+        "offer": "Free {size}",
+        "not_now": "Not now",
+        "large": "The build folders take {size}. Cleaning them up frees most of the room the builds take."
       }
     },
     "firmware": {
@@ -3762,6 +3837,7 @@
       "packet_error": "Firmware rejected a preview packet: {message}",
       "stopped": "Firmware preview stopped: {message}",
       "action_error": "Home Assistant command failed: {message}",
+      "stale": "This preview is older than the firmware: it was built on {date} and the firmware has changed since, so a screen may draw something this does not show yet.",
       "remove": "The preview and its saved layout in this browser.",
       "save": "Save preview",
       "saved": "Saved in this browser",
@@ -3835,7 +3911,9 @@
         "layout_imported": "layout imported",
         "changed": "layout changed",
         "restored": "unsaved changes restored",
-        "taken_over": "changes from the other tab taken over"
+        "taken_over": "changes from the other tab taken over",
+        "auto_layout": "the layout made for you",
+        "layoutbot": "Layoutbot's change"
       }
     },
     "draft": {
@@ -3922,6 +4000,7 @@
         "fits_none": "Fits none of your screens",
         "failed": "Build failed",
         "not_running": "Not running on the screen",
+        "runs_other": "Runs {version} on the screen",
         "queued": "Waits its turn"
       },
       "source": {
@@ -3971,6 +4050,7 @@
       "remove": "Remove from {screen}",
       "building": "Building the firmware for {screen}…",
       "installed_on": "On {screen}, version {version}",
+      "runs_elsewhere": "{screen} runs version {running}, built somewhere else. Building it here puts version {version} on it.",
       "update": "Update to {version}",
       "trust": {
         "title": "I trust this maker"
@@ -3994,7 +4074,10 @@
         "ha_none": "Runs no Home Assistant actions",
         "network": "Connects to {hosts}",
         "network_none": "Makes no connections outside Home Assistant",
-        "read": "Reads these entities from Home Assistant"
+        "read": "Reads these entities from Home Assistant",
+        "sends": "Sends to {host}: {what}",
+        "sends_option": "{attributes} of the entity you choose for {option}",
+        "sends_state": "state"
       },
       "warning": "A plugin runs on your screen with full access to it, including its Wi-Fi and the actions it may perform in Home Assistant, and its build runs in this app, where it can reach your Home Assistant configuration. Only add plugins from makers you trust, or read the code first.",
       "room": {
@@ -4303,7 +4386,8 @@
       },
       "forget": {
         "go": "Remove from the list",
-        "note": "No screen runs this plugin. Remove it from the list to forget the link."
+        "note": "No screen runs this plugin. Remove it from the list to forget the link.",
+        "note_folder": "No screen runs this plugin from its folder. Removing it moves the folder to config/tessera-plugins/.removed/{id}, where you can delete it for good."
       }
     },
     "plugin_tile": {
@@ -4333,7 +4417,14 @@
       "remove": "Remove {name}",
       "type": "Type and press Enter",
       "full": "The screen takes no more for this tile: its options are full.",
-      "count": "{n} of {max}"
+      "count": "{n} of {max}",
+      "show_all": "Show all entities",
+      "show_fitting": "Show only what fits",
+      "not_set": "Not set",
+      "fill_device": "Fill from a device",
+      "fill_device_hint": "Choose a device and its sensors are filled in below. You can still change each one.",
+      "fill_device_none": "No device has two or more of these sensors",
+      "fill_device_count": "1 sensor | {n} sensors"
     },
     "build": {
       "plugins": "Building with its plugins",
@@ -4501,9 +4592,10 @@
     },
     "events": {
       "eyebrow": "Events · from Home Assistant",
-      "intro": "What an automation in Home Assistant can fire at your screens. You choose the trigger, the screens and what they show.",
+      "intro": "What Home Assistant shows on your screens: alerts and a doorbell's ring that your automations send, and your alarm when it goes off.",
       "alerts": "Alerts",
       "doorbell": "Doorbell",
+      "alarm": "Alarm",
       "wizard": {
         "suggested": "Your doorbells:",
         "none": "No entity found",
@@ -4703,6 +4795,203 @@
       "card_count": "{n} added",
       "card_waiting": "{n} waiting for a build",
       "card_no_room": "This board has 4 MB of flash, with no room for more icons."
+    },
+    "sections": {
+      "untitled": "Section",
+      "kind": "Section",
+      "choose_tiles": "Choose the tiles for the section first.",
+      "one_page": "A section's tiles stand on one page: choose tiles of one page.",
+      "already_in": "One of these tiles is already in a section. Take it out first, or choose loose tiles.",
+      "no_full": "A tile over the whole page cannot stand in a section.",
+      "too_tall": "These tiles need more rows than the page has. Choose fewer, or make the section wider.",
+      "no_room": "There is no room for that here: other tiles or sections are in the way.",
+      "no_room_page": "No room for the section on page {page}.",
+      "removed": "Section removed, its tiles stay where they are",
+      "removed_with_tiles": "Section removed with its tiles",
+      "resize_columns": "Make the section wider or narrower",
+      "resize_rows": "Make the section taller or lower",
+      "head_title": "Drag to move the section, click for its settings",
+      "aria": "Section {title}",
+      "rename": "Rename the section",
+      "title": "Name",
+      "make": "Make a section",
+      "add": "Add a section",
+      "add_here": "Add a section here",
+      "library_hint": "A titled group of tiles",
+      "make_now": "Make the section",
+      "name_placeholder": "Name, for example Lights",
+      "in_section": "In this section",
+      "update_screen": "This screen's firmware does not draw sections yet: it shows the same tiles without them. Update the screen to see them.",
+      "head": "Title",
+      "no_icon": "No icon",
+      "summary": "Summary",
+      "summary_none": "None",
+      "summary_search": "Search entities",
+      "summary_none_found": "No entity found",
+      "summary_clear": "No summary",
+      "summary_hint": "One entity's state at the right of the title, such as a temperature or how many lights are on.",
+      "size": "Size",
+      "columns": "Columns",
+      "rows": "Rows",
+      "narrower": "Narrower",
+      "wider": "Wider",
+      "lower": "Lower",
+      "taller": "Taller",
+      "size_hint": "A section grows only into empty cells. When it gets too narrow for its tiles, they move up in reading order.",
+      "loose_hint": "1 loose tile stands beside a section. Loose tiles read best as a row of their own above the sections. | {n} loose tiles stand beside a section. Loose tiles read best as a row of their own above the sections.",
+      "loose_row": "Make it a row",
+      "short_grid": "On a grid of {rows} rows a section's title takes a lot of room from its tiles: each is about {with} mm high instead of {without} mm. Tiles outside sections keep their height.",
+      "remove": "Remove section",
+      "remove_with_tiles": "Remove section and tiles",
+      "settings": "Section settings",
+      "contrast": "Contrast background",
+      "contrast_hint": "The panel in the page's opposite colour, dark by day and light in Dark mode, so this section stands out.",
+      "contrast_tiles": "Tiles in contrast too",
+      "contrast_tiles_hint": "The whole section in the other look, its tiles' cards too: dark cards on a dark panel by day, light ones in Dark mode."
+    },
+    "auto": {
+      "groups": {
+        "lights": "Lights",
+        "covers": "Blinds & windows",
+        "climate": "Climate",
+        "media": "Media",
+        "security": "Security",
+        "actions": "Scenes",
+        "others": "Devices",
+        "weather": "Weather",
+        "people": "Who is home",
+        "energy": "Energy",
+        "cameras": "Cameras",
+        "vacuum": "Vacuum",
+        "todo": "Lists",
+        "calendar": "Calendar"
+      },
+      "home": "Home",
+      "all_lights": "All lights",
+      "two_rooms": "{a} & {b}",
+      "room_list": "{list} & {last}",
+      "more_rooms": "{a} and {n} more",
+      "button": "Auto layout",
+      "button_title": "Make pages from your Home Assistant rooms and devices",
+      "title": "Make a layout for you",
+      "intro": "Tessera looks at your Home Assistant areas and devices and makes pages for this screen: a page or section per room, the house's weather, alarm, people and cameras together, larger tiles where this screen has room for them. You can undo it and change anything afterwards.",
+      "reading": "Reading your home…",
+      "failed": "Your home could not be read: {error}",
+      "nothing": "Tessera found nothing for this screen to show yet. Give your devices an area in Home Assistant, or add tiles from the library.",
+      "nothing_new": "Everything Tessera would put on this screen is on it already.",
+      "summary": "{pages} page · {tiles} tiles | {pages} pages · {tiles} tiles",
+      "summary_sections": "{n} section in it | {n} sections in it",
+      "from_rooms": "from one room | from {n} rooms",
+      "left_out": "One more entity found no room on this screen; the library has it. | {n} more entities found no room on this screen; the library has them.",
+      "replace": "Replace the pages",
+      "replace_hint": "The screen gets these pages instead of the ones it has now.",
+      "append": "Add after the current pages",
+      "append_hint": "The pages it has stay, the new ones come after them with what is not on the screen yet.",
+      "append_full": "This screen has no pages or tiles left for more. Replace the pages, or make room first.",
+      "make": "Make the layout",
+      "made": "A layout of {pages} page is ready. Undo takes it back. | A layout of {pages} pages is ready. Undo takes it back.",
+      "offer_title": "Shall I make a first layout for you?",
+      "offer_text": "Tessera can lay out this screen from your Home Assistant rooms and devices. You can change everything afterwards.",
+      "offer_make": "Make a first layout",
+      "offer_empty": "Start empty"
+    },
+    "layoutbot": {
+      "name": "Layoutbot",
+      "open": "Ask Layoutbot",
+      "close": "Close",
+      "hello": "Hi! Tell me what this screen should show and I'll arrange its pages. I only change the layout, never your devices.",
+      "privacy": "I use {agent} from Home Assistant. Your question, the pages of your screens and the ids, names and areas of your entities go to it.",
+      "model_hint": "I work much better with a larger model than the cheapest one. In Home Assistant, add an AI Task for me to your AI integration, turn off Recommended model settings and choose a larger model, then pick it at the top of this chat.",
+      "model_link": "Open integrations",
+      "placeholder": "Make a page with…",
+      "ask": "Ask",
+      "send": {
+        "ask": "Shall I send it to {which}?",
+        "yes": "Yes, send it",
+        "no": "Not now",
+        "sending": "Sending…",
+        "sent": "Sent. The screen shows it in a moment.",
+        "not_all": "Not everything was sent.",
+        "failed": "Could not send to {which}.",
+        "declined": "Not sent. Save & send does it whenever you like.",
+        "to": "Sending to {name}",
+        "not_opened": "that screen could not be opened",
+        "not_saved": "it was not saved",
+        "unsaved": "the open screen has unsaved changes",
+        "own": "Your own changes since the last save go along."
+      },
+      "busy": "Layoutbot is arranging your pages",
+      "seconds": "{n} s",
+      "stop": "Stop",
+      "stopped": "Stopped. Nothing changed.",
+      "nothing": "Nothing changed.",
+      "stale": "The pages changed while I was thinking, so I left them as they are. Ask me again.",
+      "show": "Show",
+      "undo": "Undo",
+      "undone": "Undone",
+      "restructure": {
+        "page": "Restructure this page",
+        "screen": "Restructure the whole screen"
+      },
+      "suggest": {
+        "lights_sections": "Put all the lights on one page, in a section per room",
+        "lights": "Put all the lights on one page",
+        "covers_sections": "A page with all the blinds and curtains, in two sections",
+        "covers": "A page with all the blinds and curtains",
+        "media": "A music page with all the speakers",
+        "climate": "A climate page with the heating and the temperatures"
+      },
+      "what": {
+        "pages": "1 new page | {n} new pages",
+        "added": "1 tile added | {n} tiles added",
+        "removed": "1 tile taken off | {n} tiles taken off",
+        "changed": "page {pages} changed | pages {pages} changed"
+      },
+      "connect": {
+        "title": "Connect an AI in Home Assistant",
+        "short": "Not connected yet",
+        "body": "I arrange this screen's pages from a sentence, such as \"all the lights on one page, a section per room\". For that I use the AI you connect to Home Assistant: add one of these integrations and I do the rest.",
+        "cloud": "In the cloud, with your own key",
+        "local": "On your own computer",
+        "after": "Any AI integration with AI Tasks works. Once it is added, look again here.",
+        "again": "Look again"
+      },
+      "notes": {
+        "page_full": "Page {page} is full, so {count} tile was left out. | Page {page} is full, so {count} tiles were left out.",
+        "memory_full": "The screen's memory is full, so {count} tile was left out. | The screen's memory is full, so {count} tiles were left out.",
+        "left_out": "The screen had no room for {count} more tile. | The screen had no room for {count} more tiles.",
+        "no_page": "There is no page {page}.",
+        "not_drawn": "The screen draws no tile of {count} entity. | The screen draws no tile of {count} entities.",
+        "restructure_no_room": "Restructured, there would be no room for {count} of your tiles, so I left the pages as they were. | Restructured, there would be no room for {count} of your tiles, so I left the pages as they were."
+      },
+      "update_app": "Update the Tessera app: this editor places Layoutbot's plans itself.",
+      "scope": {
+        "here": "This screen",
+        "all": "All screens"
+      },
+      "preview": "Look"
+    },
+    "alarm": {
+      "hero_title": "When the alarm goes off",
+      "hero_text": "Someone comes in, or the alarm goes off: your screens wake by themselves and open the keypad on red, with the time that is left. Type the code and the alarm is off. You need no automation for this; Tessera follows your alarm in Home Assistant.",
+      "none": "Home Assistant has no alarm panel. Add one, such as Manual alarm or Alarmo, and it shows here.",
+      "no_code": "This alarm asks no code to disarm, so the screens open its card with a Disarm key instead of the keypad.",
+      "screens_label": "Screens that open the keypad",
+      "every_screen": "Every screen",
+      "every_screen_hint": "Also a screen you add later. Turn it off to choose the screens yourself.",
+      "none_chosen": "No screen opens the keypad by itself. The alarm's tile still opens it with a tap.",
+      "older": "Needs a firmware update to open it without the alarm's tile on a page.",
+      "send_label": "Send the code after",
+      "send_off": "OK key",
+      "send_off_hint": "The code goes when you tap OK. Home Assistant does not say how many digits a code has.",
+      "send_on_hint": "The code goes by itself after {digits} digits, without OK. Only choose this when every code of this alarm has {digits} digits: a code sent too early counts as a wrong one.",
+      "saved": "Saved. Your screens have it in a moment.",
+      "how_title": "How it works on the screen",
+      "how_wake": "When the alarm counts down after someone came in, or goes off, the chosen screens wake and open the keypad. While it counts down to arming, the alarm's card shows a Disarm key instead.",
+      "how_keys": "The keys take all the room the screen has, up to the size of a large phone keypad. Delete takes back the last digit.",
+      "how_wrong": "Three wrong codes lock the keypad for 30 seconds, and every wrong code after that doubles the time, up to 15 minutes. Home Assistant hears of each one as the event esphome.screen_alarm_code_refused, never with the code.",
+      "how_code": "The code goes to Home Assistant with the action, as its own alarm card sends it, and is wiped on the screen at once. A screen never stores or logs it.",
+      "how_tile": "Put the alarm on a page too, and a tap on its tile opens the card with a key per mode at any time."
     }
   }
 }

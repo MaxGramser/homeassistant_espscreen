@@ -26,6 +26,32 @@ OUT = ROOT / 'web/wasm/generated'
 WORK = ROOT / '.esphome/wasm-codegen'
 
 
+class Extend(str):
+    """The id of an `- id: !extend <id>` item: it adds to the item with that id instead of being one of its own."""
+
+
+class FontLoader(yaml.SafeLoader):
+    pass
+
+
+FontLoader.add_constructor('!extend', lambda loader, node: Extend(loader.construct_scalar(node)))
+
+
+def extended(items):
+    """A list as ESPHome merges it: an `!extend` item merges into the item with its id (its lists add on), wherever
+    in the packages either one stands. A feature adds glyphs to a shared icon font this way (audio-player.yaml)."""
+    from esphome.components.packages import merge_config
+    plain = [dict(item) for item in items if not isinstance(item.get('id'), Extend)]
+    by_id = {item.get('id'): item for item in plain}
+    for item in items:
+        if isinstance(item.get('id'), Extend):
+            if item['id'] not in by_id:
+                raise RuntimeError(f'!extend {item["id"]}: no font with that id in the profile')
+            target = by_id[item['id']]
+            target.update(merge_config(target, {k: v for k, v in item.items() if k != 'id'}))
+    return plain
+
+
 def section(text, key):
     return re.search(r'^' + key + r':\n.*?(?=^[a-z_]+:|\Z)', text, re.M | re.S)[0]
 
@@ -50,8 +76,8 @@ def generate(dpi, look, profile):
     for path in profiles.files(profile):
         resolved = profiles.resolve(path.read_text(), values)
         if re.search(r'^font:\n', resolved, re.M):
-            font_config = merge_config(font_config, yaml.safe_load(section(resolved, 'font')))
-    fonts = font_config['font']
+            font_config = merge_config(font_config, yaml.load(section(resolved, 'font'), Loader=FontLoader))
+    fonts = extended(font_config['font'])
     for font in fonts:
         for part in [font] + font.get('extras', []):  # the hearts come from a font of their own (firmware 0.36.0+)
             part['file'] = str((ROOT / profile).parent / part['file'])

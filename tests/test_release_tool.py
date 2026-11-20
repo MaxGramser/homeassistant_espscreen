@@ -18,7 +18,6 @@ import release  # noqa: E402
 import release_plugins  # noqa: E402
 sys.path.insert(0, str(ROOT / 'screen_manager/app'))
 import changelog as whats_new  # noqa: E402
-sys.path.insert(0, str(ROOT / 'tests'))
 import test_release_lint  # noqa: E402
 
 CHANGELOG = (ROOT / 'screen_manager/CHANGELOG.md').read_text()

@@ -41,7 +41,6 @@ def encode_cover(raw, size, ground):
     """The cover the card gets for that question, as the one painter makes it."""
     found = picture_legacy.read({'entity': 'media_player.office', 'size': str(size), 'bg': f'{ground:06X}'}, GUITION)
     return picture_paint.paint(found.question, [raw])
-MODEL = (ROOT / 'components/smart_display/runtime_model.h').read_text()
 CARD = (ROOT / 'components/smart_display/media_card.h').read_text()
 SONOS = {'friendly_name': 'Office', 'media_title': 'Woman at the Loom', 'media_artist': 'KATZROAR', 'media_album_name': 'Invocation',
          'media_duration': 270, 'media_position': 0, 'media_position_updated_at': '2026-09-18T10:09:49.068667+00:00',
@@ -123,33 +122,24 @@ class Extras(unittest.TestCase):
 
 
 class Firmware(unittest.TestCase):
-    def test_the_firmware_reads_what_the_app_sends(self):
-        for key in ('extra["artist"]', 'extra["album"]', 'extra["pic"]', 'extra["dur"]', 'extra["pos"]', 'extra["at"]'):
-            self.assertIn(key, TILES, key)
-        for field in ('media_artist', 'media_album', 'media_picture', 'media_duration', 'media_position', 'media_position_at'):
-            self.assertIn(field, MODEL, field)
-            self.assertIn(field, MODEL[MODEL.index('bool empty() const'):], f'{field} counted in Extra::empty')
+    """The firmware's side is read from the real cards in web/wasm/test_media_card.mjs (each extra the app sends on its
+    own, one action table for the card and the page) and web/wasm/test_images.mjs (the cover asked with its size and
+    answered as `cover`), and checked in tests/test_picture_question.cpp (an older app's `size` and `bg`),
+    tests/test_tile_controls.cpp (mute) and tests/test_media_card.cpp (the cover's size)."""
 
-    def test_the_card_asks_for_a_cover_with_size_and_background(self):
-        # One question with the card's place and its ground (picture_question.h); an older app gets `size` and `bg`.
-        question = (ROOT / 'components/smart_display/picture_question.h').read_text()
-        card = question[question.index('inline Fields legacy('):]
-        card = card[card.index('case Owner::CARD:'):card.index('case Owner::LIBRARY:')]
-        self.assertIn('out.emplace_back("size", std::to_string(q.w));', card)
-        self.assertIn('out.emplace_back("bg", hex(place.ground));', card)
-        self.assertIn('view != "cover"', TILES)
-        self.assertIn('if (view == "cover")', TILES)
-        # The keys of the card and of the tile over the whole page share one action table.
-        self.assertIn('inline void media_action(Tile &t,int cmd)', TILES)
-        self.assertIn('media_player.volume_mute', TILES)
-        # A picture drawn from a download lets it go before another picture loads into the same buffer (the camera after a
-        # cover), and comes back from the store, or is asked for again, after (picture_loader.h, firmware 0.52.0).
-        self.assertIn('if (slot_key[static_cast<int>(slot)] != key) slot_letgo(slot);', TILES)
-        self.assertIn('cover_forget_pictures();', TILES.split('inline void slot_letgo(picture_loader::Slot slot) {', 1)[1].split('\n}\n', 1)[0])
+    def test_a_download_lets_go_before_another_lands_in_its_buffer(self):
+        # Kept as a quote until a preview test draws a camera after a cover in one buffer (the preview has the loader,
+        # no such test yet): a picture drawn from a download lets it go before another picture loads into the same
+        # buffer, and comes back from the store, or is asked for again, after (picture_loader.h, firmware 0.52.0).
+        self.assertIn('if (slot_key[static_cast<int>(slot)] != key) slot_letgo(slot);', TILES,
+                      'a picture into a slot first lets go of the picture drawn from it')
+        self.assertIn('cover_forget_pictures();', TILES.split('inline void slot_letgo(picture_loader::Slot slot) {', 1)[1].split('\n}\n', 1)[0],
+                      'and the cover drawn from it is forgotten, to come back from the store or be asked again')
 
     def test_the_layout_has_no_colour_of_its_own(self):
-        self.assertIsNone(re.search(r'0x[0-9A-Fa-f]{6}', CARD))
-        self.assertNotIn('lv_', CARD)
+        # Rule: media_card.h is the card's geometry alone, tested on the host; colours are theme.h's, drawing is LVGL's.
+        self.assertIsNone(re.search(r'0x[0-9A-Fa-f]{6}', CARD), 'media_card.h writes no colour')
+        self.assertNotIn('lv_', CARD, 'media_card.h draws nothing')
 
 
 class Covers(unittest.TestCase):
@@ -173,13 +163,12 @@ class Covers(unittest.TestCase):
         # The card asks for exactly the pixels it draws and the screen draws what comes back one to one, so a square
         # the app refuses is a square that stays empty, silently: picture_legacy reads no question, answer_camera
         # returns without a word. The two numbers are one number.
+        # Rule between the two sides: the card's ceiling is the app's largest cover.
         ceiling = int(re.search(r'static int cover_max\(\) \{ return (\d+); \}', CARD)[1])
-        self.assertEqual(ceiling, picture_legacy.COVER_SIZES[1])
+        self.assertEqual(ceiling, picture_legacy.COVER_SIZES[1], 'media_card.h cover_max() and picture_legacy.COVER_SIZES[1] are one number')
         self.assertIsNone(cover_request({'size': str(ceiling + 1), 'bg': 'E7E7E7'}))
         self.assertIsNotNone(cover_request({'size': str(ceiling), 'bg': 'E7E7E7'}))
-        # art_cap takes the smaller of the room and that ceiling; nothing else sizes the cover.
-        self.assertIn('std::min(cover_max(), std::max(max_art()', CARD)
-        self.assertNotIn('m.max_art(), above,', CARD)
+        # The cover grows with the room up to that ceiling, and the layout uses it: tests/test_media_card.cpp.
 
     def test_the_request_names_a_size_and_a_background(self):
         self.assertEqual(cover_request({'size': '160', 'bg': 'E7E7E7'}), (160, 0xE7E7E7))

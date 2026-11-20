@@ -22,5 +22,23 @@ int main() {
   // A failed load is tried again after the gap, and a link that fails MAX_FAILURES times in a row is asked for anew:
   // the loader's rules, whose numbers come from here.
   assert(GAP_MS < REFRESH_MS && ASK_AGAIN_MS > REFRESH_MS && ASK_AGAIN_MAX_MS > ASK_AGAIN_MS && MAX_FAILURES >= 2);
+  // A picture starts loading only with no finger down and the pages standing still for SETTLE_MS.
+  static_assert(may_load(false, 10000, 10000 - SETTLE_MS) && !may_load(true, 10000, 0));
+  static_assert(!may_load(false, 10000, 10000 - SETTLE_MS + 1));
+  // The tiles' pictures (GitHub #161): those on the glass load while the tiles are seen and nothing covers them...
+  static_assert(pictures_on_glass(true, false, false));
+  static_assert(!pictures_on_glass(true, true, false) && !pictures_on_glass(true, false, true));  // a card, a full view
+  static_assert(!pictures_on_glass(false, false, false));  // a screensaver, or dark
+  // ...and a kept page's are fetched ahead only while the screen is in use, with room to spare and nothing else busy.
+  static_assert(pictures_ahead(true, true, false, 0, 1000, 0) && pictures_ahead(true, true, false, 749, 1000, 0));
+  static_assert(!pictures_ahead(true, true, false, 750, 1000, 0));  // three quarters of the store: no more ahead
+  static_assert(!pictures_ahead(false, true, false, 0, 1000, 0));  // dimmed: what is not seen waits for a screen in use
+  static_assert(!pictures_ahead(true, false, false, 0, 1000, 0) && !pictures_ahead(true, true, true, 0, 1000, 0));
+  static_assert(!pictures_ahead(true, true, false, 0, 1000, 1));  // a busy screen fetches nothing ahead
+  // A dimmed screen without a screensaver still shows its tiles, so their pictures on the glass load (tiles_seen).
+  static_assert(pictures_on_glass(tiles_seen(false, false, 30), false, false));
+  // A picture card's name and the live picture's copy of it: left, as wide as the content, one line high, at the bottom.
+  static_assert(name_box(200, 120, 20).x == 0 && name_box(200, 120, 20).y == 100);
+  static_assert(name_box(200, 120, 20).w == 200 && name_box(200, 120, 20).h == 20);
   return 0;
 }

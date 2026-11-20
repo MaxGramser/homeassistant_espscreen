@@ -1,0 +1,29 @@
+# ESP Screens - the ES8311 as the whole of a board's sound: its DAC drives the speaker and its ADC reads one analogue
+# microphone on its own input (a part: docs/PROFILES.md, "Parts"). A board names it and declares its wiring: the I2C bus
+# (AUDIO_I2C) and the one I2S bus (AUDIO_MCLK_PIN, AUDIO_BCLK_PIN, AUDIO_LRCLK_PIN, AUDIO_DOUT_PIN, AUDIO_DIN_PIN). The
+# part turns that into the microphone `ts_microphone` and the speaker `ts_speaker_out` the features build on, over one
+# of two transports, as the ES7210's part does (parts/es7210.yaml):
+#
+# - "aec" (es8311/aec.yaml), the default: the codec's own feedback as the playback reference, with echo cancelling
+#   (parts/echo-cancel.yaml). The codec puts what it is given to play beside what its microphone hears, sample for
+#   sample, so no wire and no second converter is needed;
+# - "i2s" (es8311/i2s.yaml): ESPHome's own I2S, two of the chip's ports on the codec's one bus, both ways at once, no
+#   echo cancelling and none of its libraries in the firmware.
+#
+# A screen's Override YAML picks the other with AUDIO_TRANSPORT (docs/P4_AUDIO.md).
+#
+# The microphone is analogue: `use_microphone` stays false (parts/es8311.yaml), because ESPHome's es8311 turns the input
+# into a PDM digital microphone when it is true. AUDIO_MIC_GAIN is the ADC's digital gain, which each transport states
+# (a file wins over its packages, so a default here would hide theirs); the analogue stage before it is ESPHome's fixed
+# maximum.
+packages:
+  speaker: !include es8311.yaml
+  transport: !include es8311/${AUDIO_TRANSPORT}.yaml
+
+substitutions:
+  AUDIO_TRANSPORT: "aec"
+  AUDIO_SAMPLE_RATE: "16000"
+
+audio_dac:
+  - id: !extend ts_audio_dac
+    mic_gain: ${AUDIO_MIC_GAIN}

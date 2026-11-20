@@ -11,6 +11,7 @@ import { useDragStore } from "./drag";
 import { useEntitiesStore } from "./entities";
 import { lookups } from "./lookup";
 import { useUiStore } from "./ui";
+import { allTiles } from "../model/page-tiles";
 
 export type Inspector =
   | { kind: "tile" }
@@ -22,12 +23,14 @@ export type Inspector =
   | { kind: "saver-add" }
   | { kind: "saver"; step: SaverStep }
   | { kind: "page"; id: string }
+  // A section of a page (docs/PAGES.md "Sections"): its title, icon, summary and size (SectionInspector).
+  | { kind: "section"; id: string }
   | { kind: "inspect"; entity?: string; slot?: number; key?: number };
 // Where the next tile from the library goes: an empty cell a click marked, or a key place under a bedside clock (app
 // 0.4.12). One at a time: marking one forgets the other.
 export type InsertTarget = { kind: "cell"; slot: number } | { kind: "key"; holder: string; key: number } | null;
 // A choice the pointer rests on in the inspector, drawn on its tile before it is picked (app 0.4.32).
-export type OptionPreview = { tileId: string; key: string; value: unknown };
+export type OptionPreview = { tileId: string; key: string; value: unknown; with?: Record<string, unknown> };
 
 export const useInspectorStore = defineStore("inspector", () => {
   const doc = useDocumentStore();
@@ -54,7 +57,9 @@ export const useInspectorStore = defineStore("inspector", () => {
   const pagePart = ref<"page" | "dock">("page");
   // A name asked to be changed (app 0.4.x): the drawer of that tile or page puts the focus in its name field. Counted, so
   // asking again for the same one focuses it again.
-  const naming = ref<{ kind: "tile" | "page"; id: string; asked: number } | null>(null);
+  const naming = ref<{ kind: "tile" | "page" | "section"; id: string; asked: number } | null>(null);
+  // The chosen tiles on their way into a section (SectionMaker): the name field beside them is open.
+  const makingSection = ref(false);
   let asked = 0;
   // The tiles chosen together, by id, in the order they were chosen: two or more while the drawer shows them
   // (SelectionInspector), none otherwise. One tile chosen is the tile's own drawer.
@@ -76,8 +81,10 @@ export const useInspectorStore = defineStore("inspector", () => {
   function previewed(tile: Tile): Tile {
     const hover = optionPreview.value;
     // Only while that tile's own settings are open and nothing is being dragged: the drawn copy never reaches an edit.
-    if (!hover || !tile.id || hover.tileId !== tile.id || doc.selectedTileId !== tile.id || dragging.active) return tile;
-    return { ...tile, options: { ...(tile.options || {}), [hover.key]: hover.value } } as Tile;
+    // A sensor's look (LookTip) is drawn on its tile while the tip is open, whatever drawer is.
+    const looking = useUiStore().lookTip?.tileId === tile.id;
+    if (!hover || !tile.id || hover.tileId !== tile.id || (doc.selectedTileId !== tile.id && !looking) || dragging.active) return tile;
+    return { ...tile, options: { ...(tile.options || {}), ...(hover.with || {}), [hover.key]: hover.value } } as Tile;
   }
 
   // ---- What the drawer shows ----
@@ -93,7 +100,7 @@ export const useInspectorStore = defineStore("inspector", () => {
     inspector.value = { kind: "tiles" };
     selection.value = found.map((tile) => tile.id!);
     doc.selectedTileId = null;
-    doc.selectedPageId = doc.document?.pages.find((page) => page.tiles.some((item) => item.id === found[0].id))?.id || doc.selectedPageId;
+    doc.selectedPageId = doc.document?.pages.find((page) => allTiles(page).some((item) => item.id === found[0].id))?.id || doc.selectedPageId;
   }
   /** A tile taken into the choice, or out of it (Cmd, Ctrl or Shift and a click): the tile already open counts along. */
   function toggleTile(tile: Tile) {
@@ -105,7 +112,7 @@ export const useInspectorStore = defineStore("inspector", () => {
     selection.value = []; back.value = null;
     if (!doc.isSelected(tile)) { iconPickerOpen.value = false; actionPickerOpen.value = false; actionSearch.value = ""; entityPickerOpen.value = false; }
     doc.selectedTileId = tile.id || null;
-    doc.selectedPageId = doc.document?.pages.find((page) => page.tiles.some((item) => item.id === tile.id ||
+    doc.selectedPageId = doc.document?.pages.find((page) => allTiles(page).some((item) => item.id === tile.id ||
       item.children?.some((child) => child.id === tile.id)))?.id || doc.selectedPageId;
     inspector.value = { kind: "tile" };
     entities.loadCapabilities([tile.entity]);
@@ -162,6 +169,19 @@ export const useInspectorStore = defineStore("inspector", () => {
     openPage(id);
     naming.value = { kind: "page", id, asked: ++asked };
   }
+  /** A section's drawer (docs/PAGES.md "Sections"), on the page it stands on. */
+  function openSection(id: string) {
+    if (!(inspector.value?.kind === "section" && inspector.value.id === id)) iconPickerOpen.value = false;
+    selection.value = []; back.value = null; makingSection.value = false;
+    const page = doc.document?.pages.find((item) => item.sections?.some((section) => section.id === id));
+    if (page) doc.selectedPageId = page.id;
+    doc.selectedTileId = null;
+    inspector.value = { kind: "section", id };
+  }
+  function renameSection(id: string) {
+    openSection(id);
+    naming.value = { kind: "section", id, asked: ++asked };
+  }
   /** The way back in the head: to the page whose settings opened this top bar. */
   function goBack() {
     const to = back.value;
@@ -197,6 +217,11 @@ export const useInspectorStore = defineStore("inspector", () => {
   });
   // Anything else opened in the drawer lets go of the tiles chosen together.
   watch(inspector, (open) => { if (open?.kind !== "tiles") selection.value = []; }, { flush: "sync" });
+  // A section's drawer closes when its section goes (taken away, undone).
+  watch(() => inspector.value?.kind === "section" ? (doc.layout?.sections ?? []).some((b) => b.id === (inspector.value as { id: string }).id) : true,
+    (there) => { if (!there) closeInspector(); });
+  // The name field beside chosen tiles closes when they are no longer chosen together.
+  watch(chosenTiles, (tiles) => { if (!tiles.length) makingSection.value = false; });
   // The screensaver's drawers belong to the settings: they close when the layout comes back.
   watch(() => ui.tab, (tab) => { if (tab !== "settings" && inspector.value?.kind.startsWith("saver")) closeInspector(); });
   // Another screen, none, or another draft of this one (copied, imported, the saved one read again): every drawer closes,
@@ -207,7 +232,7 @@ export const useInspectorStore = defineStore("inspector", () => {
   }));
 
   return {
-    inspector, selection, band, selectedTiles, chosenTiles, isPicked, selectTiles, toggleTile, iconPickerOpen, actionPickerOpen, actionSearch, entityPickerOpen, insert, insertAt, insertKey, optionPreview, naming, renameTile, renamePage,
+    inspector, selection, band, selectedTiles, chosenTiles, isPicked, selectTiles, toggleTile, iconPickerOpen, actionPickerOpen, actionSearch, entityPickerOpen, insert, insertAt, insertKey, optionPreview, naming, renameTile, renamePage, openSection, renameSection, makingSection,
     // What the mockup reads as it draws (stores/lookup.ts).
     ...lookups({ previewed }),
     back, pagePart, goBack, escape,

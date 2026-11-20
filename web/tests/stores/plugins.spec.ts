@@ -171,6 +171,16 @@ describe("a plugin's state", () => {
     expect(status("bus", desk)).toBe("");
   });
 
+  it("on one screen: not running, or running another version built elsewhere, which an update may mend", async () => {
+    const { plugins } = await loaded([plugin("bus", { version: "1.1.0" }), plugin("clock")],
+      { hall: [installed("bus", { running: false, runs_version: "1.2.0" }), installed("clock", { running: false })] });
+    const of = (id: string) => plugins.statusOn(plugins.index.find((p) => p.id === id)!, hall);
+    expect(of("clock")).toEqual({ kind: "missing", label: t("editor.plugins.state.not_running") });
+    expect(of("bus").kind).toBe("update");
+    plugins.installed.hall[0].version = "1.1.0";
+    expect(of("bus")).toEqual({ kind: "elsewhere", label: t("editor.plugins.state.runs_other", { version: "1.2.0" }) });
+  });
+
   it("over every screen: building, a test by its screen, updates and screens counted, or fitting none", async () => {
     const { plugins } = await loaded([plugin("bus", { version: "1.1.0" }), plugin("big", { requires: { psram: true } }), plugin("new")],
       { hall: [installed("bus"), installed("lab", { source: "branch" })], desk: [installed("bus", { version: "1.1.0" })] });

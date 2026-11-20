@@ -333,11 +333,10 @@ class Picture(unittest.TestCase):
 
     def test_the_firmware_lays_its_words_by_the_same_rule(self):
         import picture_paint
-        header = (ROOT / 'components/smart_display/saver_view.h').read_text()
         self.assertEqual(picture_paint.SQUARE, (5, 4))
-        self.assertIn('width * 4 <= height * 5 && height * 4 <= width * 5', header)
         # The cover fills glass that is about square (picture_paint.fills against a square), and stands at the left of
-        # lying glass or at the top of standing glass.
+        # lying glass or at the top of standing glass. The firmware's saver_view::shape gives the same answer for these
+        # same boxes in tests/test_saver_view.cpp: change one side and that test, or the two lay a cover apart.
         for box, shape in (((480, 480), 'fill'), ((500, 400), 'fill'), ((501, 400), 'side'), ((400, 501), 'top'), ((1024, 600), 'side')):
             fills = picture_paint.fills(box, (1, 1))
             self.assertEqual('fill' if fills else 'side' if box[0] > box[1] else 'top', shape, box)

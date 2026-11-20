@@ -24,8 +24,8 @@ export function tileCost(tile: PricedTile, memory: Pick<ScreenMemory, "psram" | 
   return bytes;
 }
 
-/** A page as its price counts it: its top bar's items, of which the entity items keep a text. */
-export type PricedPage = { topbar: { trailing: readonly { type: string; entity?: string }[] } };
+/** A page as its price counts it: its top bar's items, of which the entity items keep a text, and its sections. */
+export type PricedPage = { topbar: { trailing: readonly { type: string; entity?: string }[] }; sections?: readonly unknown[] };
 
 /** The entities in the pages' top bars that are on none of `tiles`, once each: the tiles of the top bar a screen that takes
  * cards from its top bar gets (firmware 0.56.0), one without a cell for each, so a tap on its item opens its card. Only a
@@ -39,15 +39,26 @@ export function barEntities(pages: readonly PricedPage[], tiles: readonly Priced
   return out;
 }
 
-/** What one page costs: its title, each entity item of its top bar, and on a board without PSRAM its own record. */
-export const pageCost = (page: PricedPage, memory: Pick<ScreenMemory, "psram" | "page">) =>
-  TILE.memory.page + page.topbar.trailing.filter((item) => item.type === "entity").length * TILE.memory.bar_text + (memory.psram ? 0 : memory.page ?? 0);
+/** What one page costs: its title, each entity item of its top bar, each of its sections on a screen that draws them (any
+ * other is sent none), and on a board without PSRAM its own record. */
+export const pageCost = (page: PricedPage, memory: Pick<ScreenMemory, "psram" | "page" | "sections">) =>
+  TILE.memory.page + page.topbar.trailing.filter((item) => item.type === "entity").length * TILE.memory.bar_text +
+  (memory.sections ? (page.sections?.length ?? 0) * TILE.memory.section : 0) + (memory.psram ? 0 : memory.page ?? 0);
+
+/** The alarms a screen wakes for (`alarms`, the app's alarm_screens) that are on neither its tiles nor its top bar: each
+ * comes as a tile without a cell, as core.layout_cost counts it. */
+export function alarmEntities(pages: readonly PricedPage[], tiles: readonly PricedTile[], memory: Pick<ScreenMemory, "alarms" | "bar_cards">) {
+  if (!memory.bar_cards) return [];
+  const on = new Set([...tiles.map((tile) => tile.entity), ...barEntities(pages, tiles)]);
+  return (memory.alarms ?? []).filter((entity) => !on.has(entity));
+}
 
 /** What these tiles (the keys of a bedside clock included) and pages take together, with the tiles of the top bar on a
- * screen that gets them (`bar_cards`, barEntities). */
+ * screen that gets them (`bar_cards`, barEntities) and of the alarms it wakes for (alarmEntities). */
 export const layoutCost = (tiles: readonly PricedTile[], memory: ScreenMemory, pages: readonly PricedPage[] = [], plugins: PluginTileLookup = noPluginTiles) =>
   tiles.reduce((sum, tile) => sum + tileCost(tile, memory, plugins), 0) + pages.reduce((sum, page) => sum + pageCost(page, memory), 0) +
-  (memory.bar_cards ? barEntities(pages, tiles).reduce((sum, entity) => sum + tileCost({ entity }, memory, plugins), 0) : 0);
+  (memory.bar_cards ? barEntities(pages, tiles).reduce((sum, entity) => sum + tileCost({ entity }, memory, plugins), 0) : 0) +
+  alarmEntities(pages, tiles, memory).reduce((sum, entity) => sum + tileCost({ entity }, memory, plugins), 0);
 
 export type MemoryUse = { need: number; room: number; share: number; level: "fine" | "close" | "full" | "over" };
 
@@ -78,9 +89,22 @@ export const noRoom = (use: MemoryUse) => use.room === 0 || use.share >= NO_ROOM
  * rule: the editor asks once at each line, and yes may be the answer (GitHub #157). */
 export function memoryCrossing(tiles: readonly PricedTile[], tile: PricedTile, memory: ScreenMemory, pages: readonly PricedPage[] = [],
   plugins: PluginTileLookup = noPluginTiles) {
-  const before = memoryUse(tiles, memory, pages, plugins), after = memoryUse([...tiles, tile], memory, pages, plugins);
+  return memoryLine(memoryUse(tiles, memory, pages, plugins), memoryUse([...tiles, tile], memory, pages, plugins));
+}
+/** The line a change takes a layout past, from what it took before to what it takes after: the one rule every add holds
+ * to (a tile from the library, a paste, a first layout). Null when it crosses none, also when it was past that line already. */
+export function memoryLine(before: MemoryUse, after: MemoryUse) {
   if (after.level === "over") return before.level === "over" ? null : { line: noRoom(after) ? "none" as const : "over" as const, share: after.share };
   return after.share >= NEARLY_FULL && before.share < NEARLY_FULL ? { line: "close" as const, share: after.share } : null;
+}
+/** Whether a proposal (a first layout, a plan of Layoutbot) may take a layout from `before` to `after`: stricter than an add,
+ * because nobody is asked on the way. It crosses no line (memoryLine) and ends no higher than it started: a layout below
+ * nine tenths stays below them, one between nine tenths and all of the room stays within the room, and one past all of it
+ * gets nothing more that costs memory. */
+export function proposalHolds(before: MemoryUse, after: MemoryUse) {
+  if (before.level === "over") return after.need <= before.need;
+  if (before.share >= NEARLY_FULL) return after.level !== "over";
+  return memoryLine(before, after) === null && after.share < NEARLY_FULL;
 }
 
 /** Kilobytes as the editor shows them: whole numbers, rounded up for what is needed, down for what there is. */

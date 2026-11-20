@@ -388,7 +388,7 @@ from that tile has its sound at once.
 
 **Nothing of LVGL's under a live picture.** A live picture writes past LVGL, so it stops the moment anything LVGL draws
 lies over its room, and starts again once nothing does. What counts follows LVGL's own order of drawing
-(`drawn_over` in `runtime_tiles.h`): on the way from the tile or the camera view up to its screen or layer, every object
+(`drawn_over` in `live_view_lvgl.h`): on the way from the tile or the camera view up to its screen or layer, every object
 that comes after it (a card opened on the page itself, as a lamp's colour card is); for a tile, anything on the top
 layer (the update's progress, an alert, the camera full screen, the screensaver) and its page no longer on the glass;
 and anything on the system layer. A plain, clear container is not in the way by itself, only what it holds. No list of
@@ -691,6 +691,20 @@ browser as WebRTC without transcoding. Stills come from the same stream. Both en
 Home Assistant already keeps for the screen (`sha256("tessera-video:" + key)`, its first 24 hexadecimal digits), user
 `tessera`.
 
+The key is the screen's ESPHome entry's, asked from Home Assistant every time a stream or a still is wanted
+(integration 1.0.2), never kept: a screen that is removed from Home Assistant and added again gets another entry and
+another key. While that entry is gone the camera is unavailable and its own entry waits for the screen. A video entry
+that Home Assistant says is waiting (`setup_retry`) is taken away by the app, which gives the screen's device of today
+an entry in the same look (`screen_video.Videos.sync`); before that, such a camera went on asking with the old key and
+Home Assistant's go2rtc said "wrong user/pass" for it. Only Home Assistant's own word takes an entry away, never a
+guess from the registries.
+
+The camera sits on the screen's ESPHome device by naming that device itself (`Entity.device_entry`, as Home Assistant's
+own helpers do; integration 1.0.3, Home Assistant 2025.8 and later). From Home Assistant 2026.11 a device belongs to one
+integration, so a camera that named the screen by its MAC got a second device with the screen's name. Such a device
+lets go once the camera has moved, and the camera keeps its entity id. The app reads which screen an entry is for from
+the entity registry, through the camera's device.
+
 **What changes on the screen.** The camera runs from boot, in its raw mode. Its JPEG pictures are gone, and so is the
 camera "Camera" of the screen's device: "Video" gives the stills now. Light level and motion of Screen camera keep
 working: they read the same frames the video gets. The dot in the top right corner is solid while anyone watches and a
@@ -791,9 +805,10 @@ assistant can listen at the same time.
   (`tests/test_live_pictures.py`); `live_stream.py`: the links, the stream and a tile's pace (`live_pace`)
   (`tests/test_live_stream.py`); `components/smart_display/live_view.h` and
   `live_view.cpp`: the screen's streams, up to seven at once (`tests/test_live_view.cpp` checks the stream's framing,
-  where a picture lies on a turned panel, how it is scaled, cut into a card and what is laid over it);
+  where a picture lies on a turned panel, how it is scaled, cut into a card and what is laid over it;
+  `tests/test_live_sound.cpp` how its sound goes into its buffer, reaches the speaker and claims it);
   `live_spots.h`: the one machine of the live tiles and a plugin's live places (what streams, asks, stops and gives up;
-  `tests/test_live_spots.cpp`), and the full view's handle and tries; `runtime_tiles.h` (`live_tiles_round`,
+  `tests/test_live_spots.cpp`), and the full view's handle and tries; `live_spots_lvgl.h` (`live_tiles_round`,
   `live_spot_ask`, `live_spot_open`, `live_stop_covered`, `live_tick`) binds it: which spots may stream, their question,
   their look.
 - Every step of every picture is in the screen's log at DEBUG (`logger: level: DEBUG` in a screen's Override YAML),
