@@ -433,6 +433,13 @@ through `GET api/plugins/<id>/image` (`plugins.store_image`): the editor's `img-
 file from GitHub at the plugin's commit, checks it is a PNG of at most 1 MB and 2560 x 1440, keeps one per plugin under
 `data/images`, and serves it under an address named after the commit, which a browser keeps for a day.
 
+The pictures of a plugin's README come the same way (GitHub #450): `PluginReadme.vue` turns a relative picture (or a
+full address of a raw file of the plugin's own folder) into `GET api/plugins/<id>/readme/<path>?v=<commit>`
+(`model/readme-pictures.ts`), and `plugins.readme_image` reads it from the plugin's folder at its commit: a path of the
+folder only (no segment that starts with a dot), a PNG, JPEG, GIF or WebP of its extension's kind (no SVG), at most
+2 MB and 4096 x 4096. Pictures are kept under `data/images/readme`, one commit per plugin; a folder plugin's are read from
+its folder each time. Any other picture is left out of the README.
+
 ## Pictures on a plugin tile
 
 A plugin never fetches: its tile lays out places (`ui::picture`) and names an address for each (`ui::set_picture`), and

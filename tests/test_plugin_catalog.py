@@ -323,6 +323,71 @@ class StoreImage(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await service.store_image('clock'), png())
 
 
+def picture(kind, width=640, height=360):
+    from io import BytesIO
+    from PIL import Image
+    out = BytesIO()
+    Image.new('RGB', (width, height), (20, 30, 40)).save(out, kind)
+    return out.getvalue()
+
+
+class ReadmeImage(unittest.IsolatedAsyncioTestCase):
+    """The pictures of a plugin's README (GitHub #450): the editor's img-src is 'self', so the app fetches a relative
+    picture of the README from the plugin's own folder at its commit and serves it, as it does store.png."""
+    service = Catalogue.service
+
+    async def test_fetched_once_from_the_plugins_folder_at_the_commit_and_kept(self):
+        service = self.service()
+        service._take_index({'format': 1, 'plugins': [item('clock')]})
+        base = f'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{"a" * 40}/plugins/clock/'
+        service.http = FakeHttp({base + 'docs/images/gold.png': png(), base + 'docs/photo.jpg': picture('JPEG')})
+        self.assertEqual(await service.readme_image('clock', 'docs/images/gold.png'), (png(), 'image/png'))
+        self.assertEqual(await service.readme_image('clock', 'docs/images/gold.png'), (png(), 'image/png'))
+        self.assertEqual(await service.readme_image('clock', 'docs/photo.jpg'), (picture('JPEG'), 'image/jpeg'))
+        self.assertEqual(service.http.asked, [base + 'docs/images/gold.png', base + 'docs/photo.jpg'],
+                         'kept after the first time')
+        self.assertIsNone(await service.readme_image('nothing', 'docs/images/gold.png'))
+        self.assertIsNone(await service.readme_image('clock', 'docs/images/missing.png'))
+        # A new commit: its pictures are fetched again and the older commit's go.
+        service._take_index({'format': 1, 'plugins': [{**item('clock'), 'release': {'version': '1.0.1', 'sha': 'b' * 40,
+                                                                                     'date': '2026-10-12'}}]})
+        service.http = FakeHttp({base.replace('a' * 40, 'b' * 40) + 'docs/images/gold.png': png()})
+        self.assertEqual(await service.readme_image('clock', 'docs/images/gold.png'), (png(), 'image/png'))
+        self.assertEqual([p.name for p in (service.data / 'images' / 'readme').iterdir()], [f'clock-{"b" * 40}'])
+
+    async def test_only_a_path_of_its_own_folder_and_a_picture_of_its_kind(self):
+        service = self.service()
+        service._take_index({'format': 1, 'plugins': [item('clock')]})
+        base = f'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/{"a" * 40}/plugins/clock/'
+        files = {base + 'page.png': b'<html>', base + 'png.jpg': png(), base + 'huge.png': png(5000, 100),
+                 base + 'logo.svg': b'<svg/>', base + 'notes.txt': b'x'}
+        service.http = FakeHttp(files)
+        for path in ('../bins/store.png', 'docs/../../x.png', '.git/x.png', '/etc/x.png', 'docs//x.png', 'logo.svg',
+                     'notes.txt', 'page.png', 'png.jpg', 'huge.png', 'a/' * 9 + 'x.png', 'x' * 300 + '.png'):
+            self.assertIsNone(await service.readme_image('clock', path), path)
+        self.assertEqual(service.http.asked, [base + 'page.png', base + 'png.jpg', base + 'huge.png'],
+                         'a path outside the folder or of another kind is never asked for')
+        self.assertFalse((service.data / 'images' / 'readme').exists(), 'nothing refused is kept')
+
+    async def test_a_folder_shows_its_own_files_only(self):
+        import json
+        import yaml
+        import plugins as plugin_service
+        service = self.service()
+        folder = service.data.parent / 'clock'
+        (folder / 'translations').mkdir(parents=True)
+        (folder / 'docs').mkdir()
+        (folder / 'tessera-plugin.yaml').write_text(yaml.safe_dump(manifest('clock')))
+        (folder / 'translations' / 'en.json').write_text(json.dumps({'app': {'name': 'Clock', 'summary': 'x'}, 'screen': {}}))
+        (folder / 'docs' / 'gold.png').write_bytes(png())
+        (service.data.parent / 'secret.png').write_bytes(png())
+        (folder / 'docs' / 'away.png').symlink_to(service.data.parent / 'secret.png')
+        service.folders = {'clock': plugin_service.read_folder(folder)}
+        self.assertEqual(await service.readme_image('clock', 'docs/gold.png'), (png(), 'image/png'))
+        self.assertIsNone(await service.readme_image('clock', 'docs/away.png'), 'a link out of the folder')
+        self.assertIsNone(await service.readme_image('clock', 'docs/missing.png'))
+
+
 
 class IndexResponse(FakeResponse):
     headers = {}
