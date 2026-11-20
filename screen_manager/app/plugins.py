@@ -16,6 +16,7 @@ app's own (firmware.build_environment), and the plugins repository holds a liste
 needs (its tools/check.py).
 """
 import asyncio
+import hashlib
 import json
 import logging
 import math
@@ -70,6 +71,16 @@ STORE_IMAGE = 'store.png'
 STORE_IMAGE_MAX = 1024 * 1024
 STORE_IMAGE_SIZE = (2560, 1440)   # the largest it takes; the tool makes 1280 x 720
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+# The pictures of a plugin's README: a relative path in its markdown, a file of the plugin's own folder. The editor's
+# img-src is 'self' as for store.png, so the app fetches them at the plugin's commit and serves them (readme_image).
+# Raster pictures only (an SVG can carry script), each under README_IMAGE_MAX and README_IMAGE_SIZE.
+README_IMAGE_TYPES = {'.png': 'PNG', '.jpg': 'JPEG', '.jpeg': 'JPEG', '.gif': 'GIF', '.webp': 'WEBP'}
+README_IMAGE_MIME = {'PNG': 'image/png', 'JPEG': 'image/jpeg', 'GIF': 'image/gif', 'WEBP': 'image/webp'}
+README_IMAGE_MAX = 2 * 1024 * 1024
+README_IMAGE_SIZE = (4096, 4096)
+# Folders and a file name of the plugin's folder: no segment starts with a dot, so nothing climbs out or reads .git.
+README_IMAGE_PATH = re.compile(r'[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*){0,7}')
+README_IMAGE_PATH_MAX = 200
 PLUGIN_ICON = 'F0A66'         # puzzle-outline, for a plugin whose icon is not in Tessera's set
 X_BUDGET = 2600               # bytes of a tile's data on the wire: the message carries more and stays under 4 KB
 # What a tile's message holds besides its own fields on the way (session, sequence, revision, slot, the "x" key): its
@@ -327,6 +338,23 @@ def store_image_ok(body):
             return image.format == 'PNG' and 0 < width <= STORE_IMAGE_SIZE[0] and 0 < height <= STORE_IMAGE_SIZE[1]
     except Exception:
         return False
+
+
+
+def readme_image_type(body, kind):
+    """The media type of `body` when it is a picture of `kind` (README_IMAGE_TYPES) the README may show, else None: at most
+    README_IMAGE_MAX bytes and README_IMAGE_SIZE, as Pillow reads its header (nothing is decoded)."""
+    if not body or len(body) > README_IMAGE_MAX:
+        return None
+    try:
+        from io import BytesIO
+        from PIL import Image
+        with Image.open(BytesIO(body)) as image:
+            width, height = image.size
+            ok = image.format == kind and 0 < width <= README_IMAGE_SIZE[0] and 0 < height <= README_IMAGE_SIZE[1]
+    except Exception:
+        return None
+    return README_IMAGE_MIME[kind] if ok else None
 
 
 class Entry:
@@ -1205,6 +1233,74 @@ class Plugins:
         except OSError as error:
             LOG.warning('Plugin %s: picture not kept (%s)', entry.id, error)
         return body
+
+    async def readme_image(self, plugin_id, path):
+        """(body, media type) of a picture a listed plugin's README names by the relative `path`, or None: from its
+        folder, or fetched from GitHub at the plugin's commit from the plugin's own folder and kept under
+        data/images/readme (one commit per plugin). Only a path of README_IMAGE_PATH with an extension of
+        README_IMAGE_TYPES, and only a picture of that kind (readme_image_type)."""
+        entry = self.listed().get(plugin_id)
+        if entry is None or not isinstance(path, str) or len(path) > README_IMAGE_PATH_MAX \
+                or not README_IMAGE_PATH.fullmatch(path):
+            return None
+        suffix = Path(path).suffix.lower()
+        kind = README_IMAGE_TYPES.get(suffix)
+        if kind is None:
+            return None
+        if entry.folder is not None:
+            folder = Path(entry.folder).resolve()
+            try:
+                file = (folder / path).resolve()
+                if not file.is_relative_to(folder):
+                    return None
+                body = file.read_bytes()
+            except OSError:
+                return None
+            media = readme_image_type(body, kind)
+            return (body, media) if media else None
+        found = GITHUB_LINK.match(entry.repo or '')
+        if not found or not re.fullmatch(r'[0-9a-f]{40}', entry.ref or ''):
+            return None
+        kept_in = self.data / 'images' / 'readme' / f'{entry.id}-{entry.ref}'
+        kept = kept_in / (hashlib.sha256(path.encode()).hexdigest()[:32] + suffix)
+        try:
+            body = kept.read_bytes()
+        except OSError:
+            body = None
+        if body is not None:
+            media = readme_image_type(body, kind)
+            return (body, media) if media else None
+        base = '' if entry.path in ('', '.') else entry.path.strip('/') + '/'
+        url = GITHUB_RAW.format(owner=found.group(1), repo=found.group(2), ref=entry.ref, path=base + path)
+        import aiohttp
+        try:
+            if self.http is None or self.http.closed:
+                self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
+                                                  headers={'User-Agent': self.fetcher.user_agent})
+            async with self.http.get(url) as response:
+                if response.status != 200:
+                    return None
+                body = bytes(await read_whole(response, README_IMAGE_MAX))
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
+            LOG.info('Plugin %s: README picture %s not read (%s)', entry.id, path, error)
+            return None
+        media = readme_image_type(body, kind)
+        if media is None:
+            LOG.info('Plugin %s: README picture %s is not a picture the README shows', entry.id, path)
+            return None
+        try:
+            kept_in.mkdir(parents=True, exist_ok=True)
+            # One commit per plugin: the pictures of an older commit go.
+            older = re.compile(re.escape(entry.id) + r'-[0-9a-f]{40}')
+            for old in kept_in.parent.iterdir():
+                if old != kept_in and older.fullmatch(old.name):
+                    for file in old.iterdir():
+                        file.unlink(missing_ok=True)
+                    old.rmdir()
+            kept.write_bytes(body)
+        except OSError as error:
+            LOG.warning('Plugin %s: README picture %s not kept (%s)', entry.id, path, error)
+        return body, media
 
     def settle(self):
         """What a plugin's record says squared with what its screen runs, for a screen without a build on its way: a

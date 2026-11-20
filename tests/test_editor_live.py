@@ -149,6 +149,20 @@ class Endpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.headers['Cache-Control'], 'private, max-age=86400')
         self.assertEqual(await response.read(), picture.getvalue())
         self.assertEqual((await self.client.get('/api/plugins/nothing/image')).status, 404)
+        # A picture of its README (GitHub #450): kept under the commit and served by the app, a day in the browser.
+        kept = self.manager.plugins.data / 'images' / 'readme' / f'clock-{sha}'
+        kept.mkdir(parents=True)
+        import hashlib
+        (kept / (hashlib.sha256(b'docs/gold.png').hexdigest()[:32] + '.png')).write_bytes(picture.getvalue())
+        response = await self.client.get(f'/api/plugins/clock/readme/docs/gold.png?v={sha}')
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.headers['Content-Type'], 'image/png')
+        self.assertEqual(response.headers['Cache-Control'], 'private, max-age=86400')
+        self.assertEqual(await response.read(), picture.getvalue())
+        self.assertEqual((await self.client.get('/api/plugins/clock/readme/docs/gold.png')).headers['Cache-Control'],
+                         'no-store', 'not asked for under a commit')
+        self.assertEqual((await self.client.get('/api/plugins/clock/readme/..%2Fsecrets.png')).status, 404)
+        self.assertEqual((await self.client.get('/api/plugins/clock/readme/logo.svg')).status, 404)
 
     async def test_display_precision_is_home_assistants_own_setting(self):
         # Home Assistant's entity settings (entity-registry-settings-editor.ts): read and set in its registry.
