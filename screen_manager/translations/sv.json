@@ -1,0 +1,3941 @@
+{
+  "_meta": {
+    "name": "Svenska",
+    "english": "Swedish",
+    "script": "latin",
+    "plural": "one_other",
+    "clock": "24",
+    "checked": true
+  },
+  "screen": {
+    "number": {
+      "decimal": ",",
+      "group": " ",
+      "group_min": "1",
+      "percent": " %"
+    },
+    "time": {
+      "just_now": "Nyss",
+      "minutes_ago": "{n} min sedan",
+      "hours_ago": "1 timme sedan | {n} timmar sedan",
+      "yesterday": "Igår",
+      "days_ago": "1 dag sedan | {n} dagar sedan",
+      "weeks_ago": "1 vecka sedan | {n} veckor sedan",
+      "months_ago": "1 månad sedan | {n} månader sedan",
+      "years_ago": "1 år sedan | {n} år sedan",
+      "in_minutes": "Om {n} min",
+      "in_hours": "Om 1 timme | Om {n} timmar",
+      "tomorrow": "Imorgon",
+      "in_days": "Om 1 dag | Om {n} dagar",
+      "am": "fm",
+      "pm": "em"
+    },
+    "date": {
+      "weekdays": [
+        "söndag",
+        "måndag",
+        "tisdag",
+        "onsdag",
+        "torsdag",
+        "fredag",
+        "lördag"
+      ],
+      "weekdays_short": [
+        "sön",
+        "mån",
+        "tis",
+        "ons",
+        "tors",
+        "fre",
+        "lör"
+      ],
+      "weekdays_min": [
+        "sö",
+        "må",
+        "ti",
+        "on",
+        "to",
+        "fr",
+        "lö"
+      ],
+      "months": [
+        "januari",
+        "februari",
+        "mars",
+        "april",
+        "maj",
+        "juni",
+        "juli",
+        "augusti",
+        "september",
+        "oktober",
+        "november",
+        "december"
+      ],
+      "months_short": [
+        "jan.",
+        "feb.",
+        "mars",
+        "apr.",
+        "maj",
+        "juni",
+        "juli",
+        "aug.",
+        "sep.",
+        "okt.",
+        "nov.",
+        "dec."
+      ],
+      "top_bar": "{weekday} {day} {month}",
+      "full": "{weekday} {day} {month}",
+      "day_month": "{day} {month}",
+      "weekday_time": "{weekday} {time}"
+    },
+    "duration": {
+      "seconds": "{n} s",
+      "minutes": "{n} min",
+      "hours": "{n} tim",
+      "hours_minutes": "{h} tim {m} min",
+      "days": "{n} dygn",
+      "days_hours": "{d} dygn {h} tim"
+    },
+    "status": {
+      "connecting": "Väntar på Home Assistant",
+      "waiting": "Väntar på Tessera",
+      "loading_tiles": "Laddar rutor...",
+      "preparing_pages": "Förbereder sidor {n}/{total}",
+      "ha_not_connected": "HA inte ansluten",
+      "manager_not_active": "Tessera inte aktiv",
+      "choose_tiles": "Välj rutor i HA",
+      "home": "Hem",
+      "no_network": "Inget nätverk",
+      "configuration_problem": "Konfigurationsproblem.\nUppdatera tillägget.",
+      "configuration_version": "Konfigurationsproblem.\nKontrollera skärmens och tilläggets versioner.",
+      "wifi_problem": "Problem med Wi-Fi-anslutningen",
+      "wifi_hotspot": "Anslut till surfzonen {name} för att åtgärda detta.\nLösenord: {password}",
+      "wifi_usb": "Kontrollera Wi-Fi-namnet och lösenordet och installera sedan skärmen igen via USB.",
+      "wifi_connecting": "Ansluter till Wi-Fi",
+      "wifi_address": "Hämtar en adress",
+      "wifi_not_found": "Nätverket hittades inte",
+      "wifi_password": "Lösenordet godtogs inte",
+      "wifi_weak": "För svag signal ({dbm} dBm)",
+      "wifi_failed": "Kunde inte ansluta, försöker igen",
+      "loading_tiles_count": "Laddar rutor {n}/{total}",
+      "hint_home_assistant": "Tessera lägger till skärmen när Home Assistant når den på den här adressen.",
+      "hint_tessera": "Körs appen Tessera Screen Manager i Home Assistant?",
+      "first_tiles": "Välj dina rutor",
+      "first_tiles_open": "Öppna Tessera i Home Assistant",
+      "first_tiles_pick": "Välj rutor för {name}",
+      "first_tiles_save": "Tryck på Spara och skicka",
+      "updating": "Uppdaterar firmware {percent}",
+      "update_restart": "Uppdatering klar, startar om",
+      "update_failed": "Uppdateringen misslyckades",
+      "hint_key": "En anslutning från {address} avvisades: dess nyckel är inte den här skärmens. Ange skärmens nyckel i Home Assistants ESPHome-integration.",
+      "no_answer_title": "Inget svar från Home Assistant",
+      "no_answer_text": "Ofta får skärmen inte utföra åtgärder än. Slå på det i Home Assistant: ESPHome > den här skärmen > Konfigurera."
+    },
+    "preparing": {
+      "default": "Ordnar dina rutor",
+      "light": "Kikar på dina lampor",
+      "media": "Dammar av skivomslagen",
+      "camera": "Putsar kameralinserna",
+      "climate": "Kollar termostaten",
+      "weather": "Tittar ut genom fönstret",
+      "cover": "Kikar bakom gardinerna",
+      "vacuum": "Letar efter robotdammsugaren",
+      "sensor": "Läser av alla sensorer",
+      "sun": "Följer solen",
+      "clock": "Drar upp klockorna",
+      "scene": "Repeterar dina scener",
+      "switch": "Räknar dina strömbrytare"
+    },
+    "settings": {
+      "title": "Inställningar",
+      "brightness": "Ljusstyrka",
+      "night": "Natt",
+      "screen": "Skärm",
+      "this_screen": "Den här skärmen",
+      "extras": "Extra",
+      "microphone": "Mikrofon",
+      "media_player": "Volym",
+      "wake_when_moved": "Väck vid rörelse",
+      "dark_mode": "Mörkt läge",
+      "auto_standby": "Automatiskt viloläge",
+      "standby_after": "Viloläge efter",
+      "standby_brightness": "Ljusstyrka i viloläge",
+      "standby_lit": "Skärmen tänd i viloläge",
+      "night_mode": "Nattläge",
+      "starts": "Börjar",
+      "ends": "Slutar",
+      "night_brightness": "Ljusstyrka på natten",
+      "night_lit": "Skärmen tänd på natten",
+      "back_to_page_1": "Tillbaka till Hem",
+      "after": "Efter",
+      "also_on_standby": "Även i viloläge",
+      "swipe_between_pages": "Svep mellan sidor",
+      "page_buttons": "Sidknappar",
+      "home_button": "Visa hemknapp",
+      "rotation": "Rotation",
+      "address": "Adress",
+      "firmware": "Firmware",
+      "home_assistant": "Home Assistant",
+      "restart": "Starta om",
+      "calibrate_touch": "Kalibrera pekskärm",
+      "connected": "Ansluten",
+      "not_connected": "Inte ansluten",
+      "tap_again_to_restart": "Tryck igen för att starta om",
+      "tap_again_to_calibrate": "Tryck igen för att kalibrera",
+      "seconds": "{n} sek",
+      "minutes": "{n} min",
+      "hours": "{n} tim",
+      "hours_minutes": "{h} tim {m}",
+      "wifi": "Wi-Fi",
+      "tessera": "Tessera",
+      "plugins": "Pluginer",
+      "microphone_gain": "Mikrofonförstärkning",
+      "automatic_gain": "Automatisk förstärkning",
+      "echo_cancellation": "Ekoreducering"
+    },
+    "tile": {
+      "tap_to_open": "Tryck och öppna",
+      "page": "Sida {n}",
+      "refused": "Nekades",
+      "command_sent": "Kommando skickat...",
+      "updating": "Uppdaterar...",
+      "confirmed": "Bekräftat av Home Assistant",
+      "no_answer": "Inget svar"
+    },
+    "alert": {
+      "notification": "Avisering",
+      "ok": "OK"
+    },
+    "light": {
+      "color": "Färg",
+      "color_temperature": "Färgtemperatur",
+      "brightness": "Ljusstyrka",
+      "waiting": "Väntar..."
+    },
+    "effects": {
+      "effect": "Effekt",
+      "nothing": "Inget att välja",
+      "loading": "Laddar...",
+      "not_connected": "Inte ansluten"
+    },
+    "climate": {
+      "target": "Mål",
+      "mode": "Läge",
+      "fan": "Fläkt",
+      "swing": "Svängläge",
+      "now": "Nu {value}"
+    },
+    "vacuum": {
+      "check_robot": "Kontrollera roboten i HA",
+      "auto_suction": "Automatisk sugkraft",
+      "robot_chooses": "Roboten väljer sugkraft och vatten",
+      "per_room": "Sugkraft och vatten enligt rummens inställningar",
+      "speed_quiet": "Tyst",
+      "speed_balanced": "Normal",
+      "speed_turbo": "Turbo",
+      "speed_max": "Max",
+      "pause_cleaning": "Pausa städning",
+      "pause": "Pausa",
+      "resume": "Fortsätt",
+      "start_cleaning": "Starta städning",
+      "clean": "Städa",
+      "dock": "Docka",
+      "stop": "Stoppa",
+      "by_room": "Per område",
+      "routines": "Rutiner",
+      "suction_water": "Sug och mopp",
+      "pick_rooms": "Välj ett eller flera områden",
+      "order_hint": "Alla robotar följer inte ordningen",
+      "no_rooms": "Inga områden kartlagda",
+      "no_rooms_how": "Koppla robotens segment till områden i Home Assistant, i dammsugarens inställningar.",
+      "routines_note": "Skapade i robotens egen app"
+    },
+    "cover": {
+      "position": "Position",
+      "tilt": "Lutning",
+      "tilt_value": "Lutning {n} %"
+    },
+    "weather": {
+      "feels_like": "Känns som {n}°",
+      "no_forecast": "Ingen dagsprognos från Home Assistant",
+      "coming_days": "Kommande dagar"
+    },
+    "history": {
+      "no_data": "Ingen data",
+      "average": "medel",
+      "average_of": "medel över {duration}",
+      "now": "Nu",
+      "range_hour": "1 timme",
+      "range_day": "24 timmar",
+      "range_week": "1 vecka",
+      "high": "Högst {value}",
+      "low": "Lägst {value}",
+      "times": "en gång | {n} gånger",
+      "loading": "Laddar historik...",
+      "empty": "Ingen historik för perioden",
+      "unavailable": "Ingen historik tillgänglig"
+    },
+    "media": {
+      "muted": "Ljud av",
+      "not_playing": "Spelar inte",
+      "loading": "Laddar",
+      "library": "Bibliotek",
+      "choose_speaker": "Välj en högtalare",
+      "library_hint": "Tryck på ett omslag i biblioteket för att spela",
+      "library_failed": "Biblioteket svarade inte",
+      "library_empty": "Inget här",
+      "starting_on": "Startar på {speaker}"
+    },
+    "timer": {
+      "running": "Igång",
+      "paused": "Pausad",
+      "stopped": "Stoppad",
+      "pause": "Pausa",
+      "start": "Starta",
+      "cancel": "Avbryt",
+      "paused_left": "Pausad {time}"
+    },
+    "sun": {
+      "name": "Sol",
+      "sunrise": "Soluppgång {time}",
+      "sunset": "Solnedgång {time}",
+      "rise": "upp {time}",
+      "set": "ned {time}"
+    },
+    "script": {
+      "running": "Körs...",
+      "never_run": "Aldrig körd",
+      "last_time": "Senast {time}",
+      "yesterday_time": "Igår {time}",
+      "yesterday_time_short": "Igår {time}",
+      "last_date": "Senast {date}"
+    },
+    "camera": {
+      "no_image": "Ingen bild från kameran",
+      "loading": "Laddar bild",
+      "live": "Live",
+      "recording": "Spelar in",
+      "tap_to_view": "Tryck för att visa",
+      "no_image_yet": "Ingen bild än"
+    },
+    "calibration": {
+      "title": "Följ kalibreringsguiden",
+      "touch_check": "GT911 pekkontroll",
+      "hold": "Håll kvar varje tryck en stund",
+      "crosshair": "Tryck på hårkorset\nPunkt {point}/5 - tryck {tap}/3",
+      "gently": "Tryck lätt, lite längre",
+      "same": "Tryck på samma hårkors 3 gånger",
+      "rejected": "Mätningen godkändes inte, försök igen",
+      "save_failed": "Kunde inte spara, försök igen"
+    },
+    "alarm": {
+      "wrong_code": "Fel kod",
+      "nothing_changed": "Inget ändrades. Kontrollera koden.",
+      "try_again": "Försök igen om {time}",
+      "too_many": "För många felaktiga koder",
+      "letters": "Koden innehåller bokstäver. Ange den i Home Assistant."
+    },
+    "lock": {
+      "confirm": "Bekräfta",
+      "really_unlock": "Vill du låsa upp?",
+      "lock_only": "Endast låsning på den här skärmen",
+      "lock_only_short": "Endast lås"
+    },
+    "ha": {
+      "on": "På",
+      "off": "Av",
+      "unavailable": "Otillgänglig",
+      "climate": {
+        "off": "Av",
+        "heat": "Värme",
+        "cool": "Kyla",
+        "heat_cool": "Värme/Kyla",
+        "auto": "Auto",
+        "dry": "Avfukta",
+        "fan_only": "Endast fläkt"
+      },
+      "hvac_action": {
+        "heating": "Värmer",
+        "cooling": "Kyler",
+        "idle": "Inaktiv",
+        "off": "Av",
+        "drying": "Avfuktar",
+        "fan": "Fläkt",
+        "preheating": "Förvärmer",
+        "defrosting": "Avfrostar"
+      },
+      "cover": {
+        "open": "Öppen",
+        "closed": "Stängd",
+        "opening": "Öppnar",
+        "closing": "Stänger"
+      },
+      "media": {
+        "playing": "Spelar",
+        "paused": "Pausad",
+        "idle": "Inaktiv",
+        "standby": "Viloläge"
+      },
+      "person": {
+        "home": "Hemma",
+        "not_home": "Borta"
+      },
+      "sun": {
+        "above_horizon": "Över horisonten",
+        "below_horizon": "Under horisonten"
+      },
+      "vacuum": {
+        "docked": "Dockad",
+        "cleaning": "Städar",
+        "paused": "Pausad",
+        "returning": "Återvänder till docka",
+        "idle": "Inaktiv",
+        "error": "Fel"
+      },
+      "weather": {
+        "sunny": "Soligt",
+        "clear_night": "Klart, natt",
+        "cloudy": "Molnigt",
+        "partlycloudy": "Växlande molnighet",
+        "rainy": "Regn",
+        "pouring": "Ösregn",
+        "snowy": "Snö",
+        "snowy_rainy": "Snöigt, regnigt",
+        "fog": "Dimma",
+        "hail": "Hagel",
+        "lightning": "Åska",
+        "lightning_rainy": "Åska, regnigt",
+        "windy": "Blåsigt",
+        "exceptional": "Exceptionellt"
+      },
+      "binary": {
+        "battery_on": "Låg",
+        "battery_off": "Normal",
+        "battery_charging_on": "Laddar",
+        "battery_charging_off": "Laddar inte",
+        "carbon_monoxide_on": "Detekterad",
+        "carbon_monoxide_off": "Tom",
+        "cold_on": "Kall",
+        "cold_off": "Normal",
+        "connectivity_on": "Ansluten",
+        "connectivity_off": "Frånkopplad",
+        "door_on": "Öppen",
+        "door_off": "Stängd",
+        "garage_door_on": "Öppen",
+        "garage_door_off": "Stängd",
+        "gas_on": "Detekterad",
+        "gas_off": "Tom",
+        "heat_on": "Varm",
+        "heat_off": "Normal",
+        "light_on": "Ljus detekterat",
+        "light_off": "Inget ljus",
+        "lock_on": "Olåst",
+        "lock_off": "Låst",
+        "moisture_on": "Blöt",
+        "moisture_off": "Torr",
+        "motion_on": "Detekterad",
+        "motion_off": "Tom",
+        "moving_on": "Rör sig",
+        "moving_off": "Stilla",
+        "occupancy_on": "Detekterad",
+        "occupancy_off": "Tomt",
+        "opening_on": "Öppen",
+        "opening_off": "Stängd",
+        "plug_on": "Inkopplad",
+        "plug_off": "Urkopplad",
+        "power_on": "På",
+        "power_off": "Av",
+        "presence_on": "Hemma",
+        "presence_off": "Borta",
+        "problem_on": "Problem",
+        "problem_off": "OK",
+        "running_on": "Kör",
+        "running_off": "Kör inte",
+        "safety_on": "Osäker",
+        "safety_off": "Säker",
+        "smoke_on": "Detekterad",
+        "smoke_off": "Fritt",
+        "sound_on": "Detekterad",
+        "sound_off": "Fritt",
+        "tamper_on": "Sabotage upptäckt",
+        "tamper_off": "Tom",
+        "update_on": "Uppdatering tillgänglig",
+        "update_off": "Uppdaterad",
+        "vibration_on": "Detekterad",
+        "vibration_off": "Stilla",
+        "window_on": "Öppet",
+        "window_off": "Stängt"
+      },
+      "button": {
+        "activate": "Aktivera",
+        "run": "Kör",
+        "press": "Tryck"
+      },
+      "climate_fan": {
+        "auto": "Auto",
+        "low": "Låg",
+        "medium": "Medel",
+        "high": "Hög",
+        "middle": "Mellan",
+        "focus": "Fokus",
+        "diffuse": "Diffus",
+        "top": "Topp",
+        "on": "På",
+        "off": "Av"
+      },
+      "climate_swing": {
+        "on": "På",
+        "off": "Av",
+        "both": "Båda",
+        "vertical": "Vertikalt",
+        "horizontal": "Horisontellt"
+      },
+      "alarm": {
+        "disarmed": "Avlarmat",
+        "armed_home": "Pålarmat i hemmaläge",
+        "armed_away": "Pålarmat i bortaläge",
+        "armed_night": "Pålarmat i nattläge",
+        "armed_vacation": "Pålarmat i semesterläge",
+        "armed_custom_bypass": "Pålarmat i anpassat förbikopplingsläge",
+        "pending": "Väntar",
+        "arming": "Larmar på",
+        "disarming": "Larmar av",
+        "triggered": "Utlöst"
+      },
+      "lock": {
+        "locked": "Låst",
+        "unlocked": "Olåst",
+        "locking": "Låser",
+        "unlocking": "Låser upp",
+        "open": "Öppen",
+        "opening": "Öppnar",
+        "jammed": "Fastnat"
+      },
+      "alarm_mode": {
+        "armed_home": "Hemma",
+        "armed_away": "Borta",
+        "armed_night": "Natt",
+        "armed_vacation": "Semester",
+        "armed_custom_bypass": "Anpassat",
+        "disarmed": "Avlarmat"
+      },
+      "alarm_action": {
+        "disarm": "Larma av",
+        "arm_home": "Larma hemmaläge",
+        "arm_away": "Larma bortaläge",
+        "arm_night": "Larma nattläge",
+        "arm_vacation": "Larma semesterläge",
+        "arm_custom_bypass": "Larm förbikopplat",
+        "enter_code": "Ange kod"
+      },
+      "lock_action": {
+        "lock": "Lås",
+        "unlock": "Lås upp",
+        "open": "Upplåst",
+        "open_door": "Öppen dörr",
+        "open_door_confirm": "Är det verkligen öppet?"
+      },
+      "humidifier_mode": {
+        "normal": "Normal",
+        "eco": "Eko",
+        "away": "Borta",
+        "boost": "Boost",
+        "comfort": "Komfort",
+        "home": "Hemma",
+        "sleep": "Sov",
+        "auto": "Auto",
+        "baby": "Bebis"
+      },
+      "humidifier_action": {
+        "humidifying": "Fuktande",
+        "drying": "Avfuktar",
+        "idle": "Inaktiv",
+        "off": "Av"
+      },
+      "today": "I dag",
+      "weather_view": {
+        "daily": "Dagligen",
+        "hourly": "Varje timme"
+      },
+      "weather_attribute": {
+        "humidity": "Luftfuktighet",
+        "wind_speed": "Vindhastighet",
+        "air_pressure": "Lufttryck",
+        "visibility": "Sikt"
+      },
+      "wind_direction": {
+        "n": "N",
+        "nne": "NNÖ",
+        "ne": "NÖ",
+        "ene": "ÖNÖ",
+        "e": "Ö",
+        "ese": "ÖSÖ",
+        "se": "SÖ",
+        "sse": "SSÖ",
+        "s": "S",
+        "ssw": "SSV",
+        "sw": "SV",
+        "wsw": "VSV",
+        "w": "V",
+        "wnw": "VNV",
+        "nw": "NV",
+        "nnw": "NNV"
+      }
+    },
+    "navigation": {
+      "back": "Tillbaka"
+    },
+    "energy": {
+      "solar": "Sol",
+      "grid": "Elnät",
+      "battery": "Batteri",
+      "home": "Hem",
+      "other": "Övrigt",
+      "untracked": "Ej uppmätt",
+      "no_power": "Inga effektsensorer i Home Assistants energiinställningar"
+    },
+    "plugin": {
+      "missing": "Plugin saknas"
+    },
+    "calendar": {
+      "free": "Ledig",
+      "busy": "Upptagen",
+      "starts_soon": "Börjar snart",
+      "private": "Upptagen",
+      "all_day": "Heldag",
+      "today": "Idag",
+      "tomorrow": "Imorgon",
+      "nothing": "Inget planerat",
+      "nothing_more": "Inget mer den här veckan",
+      "until": "Till {x}",
+      "next": "Nästa {x}",
+      "left": "{x} kvar",
+      "in": "om {x}",
+      "more": "{x} till",
+      "earlier": "{x} tidigare",
+      "later": "{x} senare",
+      "more_week": "{x} till den här veckan",
+      "days_view": "{x} dagar",
+      "views": [
+        "Härnäst",
+        "Dag",
+        "Vecka",
+        "Månad"
+      ],
+      "view_notes": [
+        "Det som pågår nu, sedan de närmaste",
+        "En dag, ett tryck på remsan väljer den",
+        "Dagar sida vid sida, timmar nedåt",
+        "En överblick över månaden, ett tryck öppnar en dag"
+      ],
+      "today_key": "Idag",
+      "booking": "Bokar…",
+      "calendars": "Kalendrar",
+      "also": "+{x} nu",
+      "booked": "Bokad på skärmen"
+    }
+  },
+  "addon": {
+    "errors": {
+      "language_choice": "Välj ett språk i listan.",
+      "region_choice": "Välj klocka och talformat i listorna.",
+      "open_through_ha": "Öppna den här sidan via Home Assistant.",
+      "refresh_page": "Ladda om sidan och försök igen.",
+      "ha_refused": "Home Assistant godtog det inte: {reason}.",
+      "ha_refused_change": "Home Assistant godtog inte ändringen: {reason}.",
+      "no_reason": "ingen orsak angiven",
+      "ha_unreachable": "Home Assistant går inte att nå just nu. Försök igen om en stund.",
+      "too_large": "Begäran är för stor.",
+      "invalid_input": "Ogiltig inmatning. Kontrollera namnet, kretskortet och de valda rutorna.",
+      "unknown_screen": "Okänd skärm.",
+      "not_paired": "Det här är ingen parkopplad ESP-skärm. Ladda om översikten.",
+      "choose_icon": "Välj en ikon i listan.",
+      "skill_not_written": "Kunde inte skriva färdigheten till {folder} ({reason}).",
+      "settings": {
+        "unknown": "Okända skärminställningar. Ladda om hanteringssidan.",
+        "invalid_value": "Ogiltigt värde för {setting}.",
+        "dim_above_normal": "Ljusstyrkan i viloläge och på natten får inte vara högre än den normala.",
+        "offline": "Skärmen är offline. Du kan ändra inställningarna när den är tillbaka.",
+        "unavailable": "{names} kan inte ändras nu: entiteten är avstängd i Home Assistant, eller så startar skärmen om.",
+        "rotation": "För att vrida skärmen krävs firmware {version} eller senare.",
+        "rotation_quarter": "Bara en kvadratisk skärm kan vridas ett kvarts varv. Den här kan vändas upp och ned (180°)."
+      },
+      "layout": {
+        "invalid": "Ogiltig layout.",
+        "title": "Ge skärmen en rubrik på högst 96 byte.",
+        "page_title": "Ge sidan en rubrik på högst 96 byte.",
+        "page_titles": "En skärm har högst 1 sida. | En skärm har högst {n} sidor.",
+        "tiles_max": "Välj högst 1 ruta. | Välj högst {n} rutor.",
+        "unsupported": "Den här entiteten stöds inte.",
+        "once": "Sängklockan kan bara finnas en gång per skärm.",
+        "tile_name": "Ett rutnamn får innehålla högst 80 byte.",
+        "unknown_settings": "Okända rutinställningar.",
+        "navigation_size": "En navigeringsruta har enkel eller dubbel bredd.",
+        "background": "Välj en pastellfärg som bakgrund i paletten.",
+        "invalid_setting": "Ogiltig rutinställning: {setting}",
+        "no_toggle": "Den här entiteten kan inte slås på och av.",
+        "builtin_action": "Ett inbyggt kort kan inte utföra en åtgärd.",
+        "no_mini_slider": "Den här entiteten stöder inte ett minireglage.",
+        "history_hours": "Historik: välj 1, 6 eller 24 timmar.",
+        "refresh": "Livebild: uppdatera var 5:e, 10:e, 15:e eller 30:e sekund.",
+        "watch_or_slider": "Välj stort värde eller minireglage.",
+        "no_direct_control": "Den här entiteten stöder inte den direktstyrningen.",
+        "position": "Ogiltig placering av rutan. Ladda om hanteringssidan.",
+        "full_page_top": "En helsidesruta börjar överst på sin sida.",
+        "wide_left": "En ruta med dubbel bredd börjar i vänstra kolumnen.",
+        "same_spot": "Två rutor ligger på samma plats.",
+        "pages": "En skärm har 1 sida. | En skärm har 1 till {n} sidor.",
+        "eight_pages": "Rutorna får inte plats på skärmens sidor. Ta bort en ruta eller gör en mindre.",
+        "camera_unsupported": "Den här skärmen kan inte visa kamerabilder.",
+        "map_unsupported": "Den här skärmen kan inte visa en karta.",
+        "map_entities": "En karta visar högst {n} personer och spårare, var och en en gång, utöver rutans egen person.",
+        "firmware_first": "Installera först skärmfirmware {version} eller senare för de här rutorna.",
+        "entity_gone": "En vald entitet finns inte längre. Leta upp den nya entiteten.",
+        "ids_too_long": "Rutornas entitets-ID:n är tillsammans för långa för ett meddelande till skärmen. Ta bort några rutor.",
+        "favorite_play": "Välj vad den här favoriten ska spela."
+      },
+      "top_bar": {
+        "invalid": "Ogiltigt toppfält. Ladda om hanteringssidan.",
+        "full": "Toppfältet har plats för högst 1 objekt. | Toppfältet har plats för högst {n} objekt.",
+        "invalid_setting": "Ogiltig inställning i toppfältet.",
+        "unknown_setting": "Okänd inställning i toppfältet. Ladda om hanteringssidan.",
+        "entity": "Den här entiteten kan inte ligga i toppfältet.",
+        "unknown_item": "Okänt objekt i toppfältet. Ladda om hanteringssidan.",
+        "twice": "Objektet finns redan i toppfältet.",
+        "entity_gone": "En entitet i toppfältet finns inte längre. Välj en annan."
+      },
+      "tap_action": {
+        "choose": "Välj en åtgärd i listan.",
+        "fields_max": "En tryckåtgärd anger högst 1 fält. | En tryckåtgärd anger högst {n} fält.",
+        "field_not_allowed": "{field} är inget fält som en tryckåtgärd kan ange.",
+        "unsendable": "Ett värde i åtgärden kan inte skickas av skärmen.",
+        "too_long": "Åtgärdens värden är för långa för skärmen."
+      },
+      "events": {
+        "none_paired": "inga än",
+        "name_the_screen": "Ange skärmen. Parkopplade: {screens}.",
+        "no_such_screen": "Ingen skärm heter \"{name}\". Parkopplade: {screens}.",
+        "several_screens": "\"{name}\" matchar flera skärmar: {screens}.",
+        "name_the_entity": "Ange entiteten.",
+        "not_for_a_screen": "{entity} kan inte visas på en skärm.",
+        "not_on_screen": "{entity} finns inte på den här skärmen.",
+        "add_it_first": "{entity} finns inte på den här skärmen. Lägg till den först.",
+        "key_stays": "{entity} ligger under sängklockan. Flytta den där i redigeraren.",
+        "not_on_spot": "{entity} finns inte på plats {slot}.",
+        "not_on_page": "{entity} finns inte på sida {page}.",
+        "move_where": "Ange sidan eller platsen den ska flyttas till.",
+        "spot_taken": "Platsen är upptagen av {entity}. Ange en annan plats eller flytta den först.",
+        "page_not_empty": "Sida {page} är inte tom. En helsidesruta behöver en egen sida.",
+        "no_empty_page": "Ingen sida är tom. En helsidesruta behöver en egen sida.",
+        "page_full": "Sida {page} är full.",
+        "no_room": "Det finns ingen plats kvar på skärmen.",
+        "screen_full": "Skärmen har redan 1 ruta. Ta bort en först. | Skärmen har redan {n} rutor. Ta bort en först.",
+        "page_range": "Välj en sida mellan 1 och {last}.",
+        "spot_range": "Välj en plats mellan 0 och {last}.",
+        "row_needs_page": "Ange sidan för raden eller kolumnen.",
+        "row_range": "Välj en rad mellan 1 och {last}.",
+        "column": "Ange kolumnen som \"left\" eller \"right\".",
+        "column_range": "Välj en kolumn mellan 1 och {last}, eller \"left\" och \"right\" för den första och den sista.",
+        "full_page_alone": "En helsidesruta tar upp hela sida {page}. Inget annat får plats där.",
+        "does_not_fit": "Det får inte plats på sida {page}. En ruta med dubbel bredd tar två platser.",
+        "size": "Skärmen har ingen ruta i storleken {size}. Den tar: {sizes}.",
+        "order_needed": "Ange entiteterna i den ordning du vill ha dem.",
+        "order_not_on_screen": "Finns inte på skärmen: {entities}.",
+        "order_not_on_page": "Finns inte på sida {page}: {entities}. Flytta dit den först.",
+        "named_too_often": "Angiven fler gånger än den finns på skärmen: {entities}.",
+        "named_too_often_page": "Angiven fler gånger än den finns på sida {page}: {entities}."
+      },
+      "home_assistant": {
+        "action_not_offered": "Home Assistant erbjuder inte {action} för {name}. Välj en åtgärd i listan.",
+        "action_answers_only": "{action} svarar bara med data, som en skärm inte kan visa.",
+        "no_such_field": "Home Assistant har inget fält {field} i {action} för {name}.",
+        "field_needed": "{action} behöver ett värde för {field}.",
+        "no_on_off": "Home Assistant kan inte slå på och av {name}, så På / av skulle inte göra något. Välj en annan tryckåtgärd.",
+        "no_small_slider": "{name} har inget som ett litet reglage kan ändra i Home Assistant.",
+        "no_graph": "{name} har inga värden att rita ett diagram av.",
+        "no_forecast": "{name} har ingen dagsprognos i Home Assistant.",
+        "no_meter": "{name} har inga värden att visa på en mätare.",
+        "no_control": "Home Assistant erbjuder inte den direktstyrningen för {name}."
+      },
+      "alerts": {
+        "invalid": "Ogiltig avisering.",
+        "cannot_show": "{name} kan inte visa en avisering: {reason}.",
+        "no_device_name": "enhetsnamnet är okänt",
+        "offline": "offline",
+        "firmware": "firmware {version}",
+        "unknown_version": "okänd",
+        "not_ready": "inte redo"
+      },
+      "firmware": {
+        "board_and_name": "Välj ett kretskort och ett unikt namn (gemener, siffror och bindestreck, högst 30 tecken).",
+        "choice": "Välj ett av alternativen som kretskortet erbjuder.",
+        "friendly_name": "Ge skärmen ett namn som går att känna igen (högst 60 tecken).",
+        "choose_profile": "Välj en befintlig YAML-profil.",
+        "profile_missing": "Profilen finns inte i ESPHome-mappen.",
+        "secrets_invalid": "secrets.yaml i ESPHome-mappen är inte giltig YAML. Rätta filen först, den skrivs inte över.",
+        "wifi_needed": "Fyll i Wi-Fi-namn och lösenord. De sparas i ESPHomes secrets.yaml.",
+        "wifi_not_set": "Wi-Fi kunde inte anges i secrets.yaml. Fyll i wifi_ssid och wifi_password där själv.",
+        "name_exists": "Namnet finns redan. Använd den befintliga profilen för uppdateringar.",
+        "name_taken": "En annan skärm har redan enhetsnamnet {name}. Home Assistant kan inte skilja två enheter med samma namn åt, så den här skärmen behöver ett eget namn.",
+        "friendly_taken": "En annan skärm heter redan {name}. Home Assistant skulle numrera den här skärmens entitetsnamn, så automatiseringar skulle peka på fel skärm. Ge den ett eget namn.",
+        "override_exists": "Namnet har redan en lokal åsidosättning. Återställ eller ta bort den innan du skapar en ny skärm med det här namnet.",
+        "override_symlink": "Den lokala åsidosättningen är en symbolisk länk. Ersätt den med en vanlig fil först.",
+        "other_include": "Profilen har redan en annan local_overrides-include.",
+        "profile_invalid": "Skärmprofilen är inte giltig YAML. Rätta den innan du lägger till en åsidosättning.",
+        "no_packages": "Profilen har ingen packages-sektion som Tessera kan bygga ut.",
+        "override_invalid": "Ogiltiga data för åsidosättningen.",
+        "yaml_needed": "Ange YAML-text först.",
+        "override_too_large": "Åsidosättningen är för stor. Håll den under 12 kB.",
+        "yaml_error_line": "YAML-fel på rad {line}: {problem}.",
+        "yaml_error": "YAML-fel: {problem}.",
+        "invalid_yaml": "ogiltig YAML",
+        "override_object": "Åsidosättningen måste innehålla ett YAML-objekt, till exempel display: eller substitutions:.",
+        "sections_managed": "De här sektionerna hanteras fortfarande av Tessera: {names}.",
+        "substitutions_managed": "De här substitutions hanteras fortfarande av Tessera: {names}.",
+        "substitutions_in_profile": "{names} är angivet i skärmens egen YAML (valt under Ny skärm), som går före åsidosättningen. Ändra det där i stället.",
+        "orientation": "Välj om skärmen sitter liggande eller stående.",
+        "orientation_managed": "Åt vilket håll en skärm hänger väljs i redigeraren, under Rutnät bredvid sidorna, eller när den byggs, under Ny skärm, så LVGL_ROTATION sköts av Tessera.",
+        "usb_port": "Välj den anslutna USB-porten i listan.",
+        "busy_wait": "Ett bygge eller en installation pågår redan. Vänta tills det är klart.",
+        "busy": "Ett bygge eller en installation pågår redan.",
+        "no_esphome": "ESPHome CLI saknas i den här installationen.",
+        "still_building": "Firmware byggs fortfarande. Ladda ned den när bygget är klart.",
+        "build_first": "Bygg firmware först. Nedladdningen visas när bygget är klart.",
+        "unknown_action": "Okänd firmwareåtgärd.",
+        "host": "Ange IP-adressen eller värdnamnet för skärmen.",
+        "grid": "Välj ett rutnät som den här skärmen klarar.",
+        "build_gone": "Det här bygget är inte längre känt. De senaste byggena finns under Firmware & USB."
+      },
+      "updates": {
+        "automatic": "Välj på eller av för automatiska uppdateringar.",
+        "busy": "En uppdatering pågår redan. Vänta tills den är klar.",
+        "unknown_screen": "Okänd skärm. Ladda om översikten.",
+        "offline": "Skärmen är offline. Den kan uppdateras när den är tillbaka.",
+        "latest": "Skärmen har redan den senaste firmware.",
+        "enter_ip": "Ange skärmens IP-adress.",
+        "no_profile": "Ingen ESPHome-profil hittades för skärmen. Kontrollera namnet i ESPHome-mappen.",
+        "ip_unknown": "IP-adressen är okänd. Ange den en gång, sedan rapporterar ny firmware den själv.",
+        "all_updated": "Alla nåbara skärmar är redan uppdaterade.",
+        "reinstall_dev": "Att installera om samma firmware går bara i dev-kanalen.",
+        "all_on_the_way": "Alla skärmar med en uppdatering har den redan på väg.",
+        "nothing_to_reinstall": "Ingen skärm kan installeras om nu: var och en är offline, redan på väg eller saknar profil i appen."
+      },
+      "remove": {
+        "not_allowed": "Appen får inte ta bort en integration från Home Assistant. Ta bort skärmen i Home Assistant, under Inställningar → Enheter och tjänster.",
+        "gone": "Skärmen finns inte längre i Home Assistant.",
+        "no_entry": "Skärmen finns inte som ESPHome-enhet i Home Assistant, så den kan bara tas bort i Home Assistant."
+      },
+      "calibrate": {
+        "no_wizard": "{name} behöver ingen kalibrering: pekpanelen anger själv var du tryckte, så det finns inget att mäta.",
+        "offline": "{name} är offline. Kalibreringen kan starta när den är tillbaka."
+      },
+      "editor_reload": "Ladda om redigeraren innan du sparar. Den här fliken använder ett äldre layoutformat.",
+      "pages": {
+        "footprint": "Den här rutstorleken kräver en framtida skärmfunktion",
+        "pages_full": "Skärmen har inte plats för fler sidor",
+        "page_missing": "Sidan finns inte längre",
+        "tile_missing": "Rutan finns inte längre",
+        "home_invalid": "Hem måste vara en befintlig sida",
+        "identity": "Ogiltigt eller dubblerat instans-ID",
+        "navigation": "Ogiltig inställning för sidnavigering",
+        "arrangement": "En ordning av rutor måste behålla alla befintliga rutor",
+        "order": "Ogiltig sidordning",
+        "delete": "Sidan kan inte tas bort",
+        "size": "Rutstorleken stöds inte",
+        "adapt_pages": "Layouten har fler sidor än målskärmen stöder",
+        "adapt_full": "En sida har fler rutor än målskärmens rutnät rymmer. Inga rutor togs bort.",
+        "select_link": "Välj en navigeringsruta för att ändra vart den leder",
+        "import_grid": "Den här äldre exporten anger inte sitt rutnät. Importera den som {columns} × {rows} celler per sida?",
+        "source_grid": "Källans rutnät är okänt. Anslut skärmen först",
+        "migration_pending": "Slutför skärmens väntande migrering innan du redigerar eller uppdaterar den",
+        "migration_unreadable": "Den gamla layouten kunde inte läsas. Återställ säkerhetskopian eller börja om från början för skärmen.",
+        "storage_json": "Ogiltig JSON i lagringen, data lämnas oförändrade",
+        "storage_duplicate": "Dubblerade nycklar i lagrad JSON",
+        "storage_nonfinite": "Icke-ändligt värde i lagrad JSON",
+        "backup_conflict": "Motstridig säkerhetskopia från migrering, data lämnas oförändrade",
+        "storage_version": "Okänd lagringsversion, data lämnas oförändrade",
+        "storage_record": "Ogiltig lagrad skärmpost",
+        "storage_metadata": "Ogiltiga metadata för återställning av migrering",
+        "fields": "Ogiltiga eller ej stödda fält i sidkonfigurationen",
+        "workspace_refs": "Ogiltiga referenser i arbetsytan",
+        "workspace_position": "Ogiltig position i arbetsytan",
+        "workspace_conflict": "Arbetsytan ändrades i en annan redigerare",
+        "layout_conflict": "Layouten ändrades i en annan redigerare. Ladda om och stäm av utkastet",
+        "adaptation": "Skärmens rutnät har ändrats. Layouten måste anpassas",
+        "normalization": "Rutornas alternativ måste normaliseras innan siddokumentet sparas",
+        "ambiguous_tile": "Rutans händelse har en tvetydig källa. Ange dess sida",
+        "save_first": "Spara ett siddokument innan du sparar dokumentinställningarna",
+        "destination_exists": "Målskärmen har redan en sparad layout",
+        "update_tall": "Uppdatera skärmen för att använda de här rutstorlekarna",
+        "memory": "Skärmen har inte tillräckligt med ledigt minne för layouten. Minska antalet rutor.",
+        "grid_range": "Den här skärmen klarar inte ett rutnät av den storleken. Välj ett annat rutnät bredvid förhandsbilden."
+      },
+      "feedback": {
+        "invalid": "Svaret kan inte delas. Välj ja eller inte riktigt, och bara problemen i listan.",
+        "comment": "Håll anteckningen under 1000 tecken.",
+        "unknown_board": "Feedback finns inte för det här kretskortet än.",
+        "deleting": "Ditt delade svar håller fortfarande på att tas bort. Svara igen när det är klart.",
+        "storage": "Feedback är avstängd: sparade data skrevs av en annan version av Tessera."
+      },
+      "media": {
+        "browse": "{name} svarade inte med sitt bibliotek.",
+        "link_invalid": "Det här är ingen Spotify-länk. Kopiera en i Spotify-appen med Dela > Kopiera länk.",
+        "link_short": "En spotify.link-adress pekar bara vidare. Öppna den i webbläsaren och kopiera den långa adressen den leder till.",
+        "link_player": "{name} spelar inte Spotify-länkar."
+      },
+      "allow_actions": {
+        "not_allowed": "Home Assistant låter inte appen ändra sina integrationer. Gör det i Home Assistant, under Inställningar → Enheter och tjänster.",
+        "no_entry": "Home Assistant har inte den här skärmen som en ESPHome-enhet.",
+        "failed": "Home Assistant tog inte emot det. Öppna Inställningar → Enheter och tjänster → ESPHome i Home Assistant, välj skärmen, sedan Konfigurera, och slå på ”Tillåt att enheten får utföra åtgärder i Home Assistant”."
+      },
+      "plugins": {
+        "request": "Plugin-förfrågan är inte komplett.",
+        "unknown": "Det finns ingen plugin {id}.",
+        "misfit_api": "{name} skrevs för ett annat plugin-API än appens.",
+        "misfit_board": "{name} är gjord för andra kretskort.",
+        "misfit_psram": "{name} behöver ett kretskort med PSRAM.",
+        "misfit_blocked": "{name} är blockerad: den här versionen är känd för att vara skadlig eller trasig.",
+        "firmware": "Skärmens firmware har inga pluginer än. Uppdatera den, så visas plugin-rutorna.",
+        "file": "Plugin-filen är inte giltig.",
+        "other_include": "Skärmens YAML har redan en annan tessera_plugins-include.",
+        "link_invalid": "Det är ingen länk till ett GitHub-repo (https://github.com/owner/repository).",
+        "link_not_found": "Ingen plugin hittades där: ingen release, eller ingen tessera-plugin.yaml i den mappen.",
+        "link_rate": "GitHub svarar inte just nu (för många frågor på en timme). Försök igen senare.",
+        "folder": "Mappen {folder} i tessera-plugins är inte en plugin än: {why}",
+        "manifest": "Pluginens beskrivning är inte giltig: {why}",
+        "consent": "{name} begär andra rättigheter än tidigare. Se vad den får göra nu och godkänn, uppdatera sedan.",
+        "requires_unknown": "{name} behöver pluginen {other}, som inte finns i plugin-listan.",
+        "requires_misfit": "{name} behöver {other}, som inte passar den här skärmen.",
+        "feature_missing": "{name} behöver en {feature}, och inget som ger en passar den här skärmen.",
+        "feature_conflict": "En skärm har en {feature}, och {names} skulle var och en ge en.",
+        "needed_by": "{others} behöver {name}: ta bort dem tillsammans.",
+        "choose": "Välj vilken plugin som ger {feature} för {name}.",
+        "other_origin": "Skärmen kör en annan plugin som heter {name}, från {origin}. Byt till den här i dess detaljer.",
+        "misfit_esphome": "{name} behöver ESPHome {version} eller nyare för att byggas.",
+        "like_not_installed": "Lägg först pluginen på en av dina skärmar, sedan kan du gilla den.",
+        "like_consent": "Godkänn först att din gillning räknas i en offentlig siffra.",
+        "like_off": "Gillningar är avstängda: en nyare version av appen sköter dem.",
+        "like_failed": "Gillningen gick inte iväg. Försök igen om en stund.",
+        "misfit_built_in": "{name} ger det som kretskortet redan har inbyggt.",
+        "offline": "Appen vet inte än var {screen} finns på nätverket. Slå på den, vänta tills den visas som online och försök sedan igen."
+      },
+      "extras": {
+        "request": "Den här ändringen av ett tillval går inte på den här skärmen."
+      },
+      "display_precision_unregistered": "Home Assistant sparar inga inställningar för sensorn eftersom den saknar unikt ID, så dess visningsprecision kan bara ställas in i dess YAML.",
+      "build_server": {
+        "host": "Ange byggserverns IP-adress eller värdnamn.",
+        "port": "Porten är ett tal från 1 till 65535. En byggserver lyssnar på 6055 om du inte har ändrat det.",
+        "unreachable": "Inget svarar på den adressen. Kontrollera att byggservern körs, att den bygger åt andra enheter och att en brandvägg släpper igenom port 6055.",
+        "protocol": "Något svarar på den adressen, men det är ingen ESPHome-byggserver som Tessera kan prata med.",
+        "preview_first": "Slå först upp byggservern, jämför sedan dess fingeravtryck.",
+        "no_window": "Byggservern tar inte emot nya enheter just nu. Öppna Parkopplingsförfrågningar på den och parkoppla igen.",
+        "no_window_key": "Byggservern godtog inte den nyckeln. Kontrollera parkopplingsnyckeln, eller starta om byggservern för att få en ny.",
+        "rejected": "Byggservern avvisade parkopplingen.",
+        "mismatch": "Byggservern svarade med ett annat fingeravtryck än det du kontrollerade. Slå upp den igen.",
+        "not_paired": "Parkoppla först en byggserver.",
+        "unknown": "Byggservern känner inte längre till Tessera. Parkoppla den igen.",
+        "pending": "Byggservern har inte godkänt Tessera än."
+      }
+    },
+    "status": {
+      "first_tiles": "Välj dina första rutor",
+      "saved": "Sparat, väntar på synkronisering",
+      "applying": "Tillämpar layout",
+      "applied": "Layout tillämpad",
+      "firmware_needed": "Layouten är sparad, men de här rutorna kräver firmware {version}+",
+      "too_large": "Layouten är sparad, men den är för stor för ett meddelande till skärmen. Ta bort några rutor.",
+      "sent": "Skickat till Home Assistant",
+      "offline": "Skärmen är offline, ändringarna är sparade",
+      "retrying": "Det gick inte att skicka, försöker igen automatiskt",
+      "screen": {
+        "synced": "Synkroniserad",
+        "loading_tiles": "Laddar rutor",
+        "layout_received": "Layout mottagen",
+        "resend_needed": "Behöver skickas igen",
+        "ready": "Redo för att ställa in rutor",
+        "error": "Fel: {reason}"
+      }
+    },
+    "updates": {
+      "offline": "Skärmen var offline, ett nytt försök görs nästa gång.",
+      "unknown_target": "Profilen eller IP-adressen är okänd, uppdatera skärmen manuellt.",
+      "build_failed": "Bygget eller installationen misslyckades, se loggen under Firmware & USB.",
+      "plugin_update_needed": "{name} går inte att bygga med den här firmwaren. Uppdatera pluginen {name} till {version} på sidan Pluginer och uppdatera sedan skärmen igen.",
+      "plugin_failed": "{name} {version} går inte att bygga med den här firmwaren, och ingen nyare version finns än. Ta bort pluginen {name} på sidan Pluginer för att uppdatera skärmen utan den, se loggen under Firmware & USB.",
+      "build_memory": "Inte tillräckligt med minne för att bygga firmwaren: ungefär {need} måste vara ledigt och {free} är det. Stoppa några tillägg en stund eller ge maskinen mer minne, se Firmware & USB.",
+      "build_memory_limit": "Inte tillräckligt med minne för att bygga firmwaren, inte ens med en kompilator i taget. Stoppa några tillägg en stund eller ge maskinen mer minne, se Firmware & USB.",
+      "no_report": "Skärmen har inte rapporterat firmware {version}, kontrollera skärmen.",
+      "dropped_off": "Skärmen försvann efter uppdateringen, kontrollera skärmen.",
+      "updated": "Uppdaterad till firmware {version}."
+    },
+    "notify": {
+      "update_stopped": "Den automatiska uppdateringen stoppade vid {name}: {reason} De övriga skärmarna har inte rörts."
+    },
+    "labels": {
+      "built_into_screen": "Inbyggd i skärmen",
+      "backgrounds": {
+        "auto": "Standard",
+        "none": "Ingen",
+        "red": "Röd",
+        "orange": "Orange",
+        "yellow": "Gul",
+        "green": "Grön",
+        "mint": "Mint",
+        "blue": "Blå",
+        "purple": "Lila",
+        "pink": "Rosa",
+        "gray": "Grå"
+      },
+      "controls": {
+        "none": "Ingen",
+        "climate": {
+          "setpoint": "Temperatur − / +",
+          "mode": "Lägesknappar",
+          "setpoint_mode": "Temperatur − / + och lägesknappar"
+        },
+        "switch": {
+          "toggle": "På/av-knapp"
+        },
+        "input_boolean": {
+          "toggle": "På/av-knapp"
+        },
+        "automation": {
+          "toggle": "På/av-knapp",
+          "run": "Kör-knapp"
+        },
+        "light": {
+          "toggle": "På/av-knapp",
+          "brightness": "Reglage för ljusstyrka"
+        },
+        "fan": {
+          "toggle": "På/av-knapp",
+          "speed": "Reglage för hastighet"
+        },
+        "vacuum": {
+          "buttons": "Starta, stoppa, docka"
+        },
+        "cover": {
+          "buttons": "Öppna, stoppa, stäng",
+          "position": "Reglage för position",
+          "tilt": "Lamellutning",
+          "buttons_tilt": "Öppna, stoppa, stäng och lamellutning",
+          "position_tilt": "Position och lamellutning"
+        },
+        "media_player": {
+          "volume": "Volym och ljud av",
+          "playback": "Föregående, spela/pausa, nästa",
+          "volume_playback": "Volym och föregående, spela/pausa, nästa"
+        },
+        "number": {
+          "stepper": "Värde − / +",
+          "slider": "Reglage"
+        },
+        "input_number": {
+          "stepper": "Värde − / +",
+          "slider": "Reglage"
+        },
+        "select": {
+          "stepper": "Föregående / nästa val"
+        },
+        "input_select": {
+          "stepper": "Föregående / nästa val"
+        },
+        "timer": {
+          "buttons": "Starta/pausa och avbryt"
+        },
+        "scene": {
+          "run": "Aktivera-knapp"
+        },
+        "script": {
+          "run": "Kör-knapp"
+        },
+        "button": {
+          "run": "Tryck på knapp"
+        },
+        "input_button": {
+          "run": "Tryck på knapp"
+        },
+        "remote": {
+          "toggle": "På/av-knapp"
+        },
+        "humidifier": {
+          "setpoint": "Luftfuktighet − / +",
+          "slider": "Reglage för luftfuktighet",
+          "mode": "Lägesknappar",
+          "setpoint_mode": "Luftfuktighet − / + och lägesknappar",
+          "toggle": "På/av-knapp"
+        }
+      },
+      "top_bar": {
+        "builtin": {
+          "clock": "Tid",
+          "analog": "Analog klocka",
+          "date": "Datum",
+          "wifi": "Wi-Fi-signal",
+          "link": "Anslutningsvarning",
+          "battery": "Batteri"
+        },
+        "contents": {
+          "state": "Status",
+          "last_changed": "Senast ändrad",
+          "icon": "Bara ikon"
+        },
+        "shows": {
+          "always": "Alltid",
+          "active": "Endast när aktiv"
+        },
+        "suggestions": {
+          "temperature": "Temperatur",
+          "humidity": "Luftfuktighet",
+          "power": "Elförbrukning",
+          "motion": "Senaste rörelse",
+          "weather": "Väder",
+          "people_home": "Personer hemma",
+          "sun": "Soluppgång och solnedgång",
+          "co2": "CO₂"
+        },
+        "wifi_contents": {
+          "icon": "Bara ikon",
+          "percent": "Procent",
+          "dbm": "dBm"
+        },
+        "wifi_shows": {
+          "always": "Alltid",
+          "weak": "Bara när den är svag"
+        },
+        "battery_contents": {
+          "icon": "Bara ikon",
+          "percent": "Procent"
+        },
+        "plugin_contents": {
+          "all": "Ikon och text",
+          "icon": "Bara ikon"
+        },
+        "battery_shows": {
+          "always": "Alltid",
+          "low": "Bara när det är lågt"
+        }
+      },
+      "extras": {
+        "microphone": {
+          "label": "Mikrofon",
+          "hint": "Av stänger av mikrofonen för allt som lyssnar. Skärmen behåller det efter en omstart."
+        },
+        "media_player": {
+          "label": "Volym",
+          "hint": "Hur högt skärmen talar och spelar: svar, meddelanden och musik. Samma volym som skärmens mediaspelare i Home Assistant."
+        },
+        "wake_when_moved": {
+          "label": "Väck vid rörelse",
+          "hint": "Skärmen vaknar ur viloläge när någon lyfter upp den, flyttar den eller knackar på den. Den känner av själva skärmen, inte någon som går förbi."
+        },
+        "microphone_gain": {
+          "label": "Mikrofonförstärkning",
+          "hint": "Analog mikrofonförstärkning. Börjar på 30 dB, förstärkningen för uppspelningsreferensen ligger fast."
+        },
+        "automatic_gain": {
+          "label": "Automatisk förstärkning",
+          "hint": "Låt mikrofonens codec justera inspelningsnivån. Oberoende av ekoreducering."
+        },
+        "echo_cancellation": {
+          "label": "Ekoreducering",
+          "hint": "Dämpar skärmens högtalare i mikrofonens ljud. Av hoppar över reduceringen, det stänger inte av mikrofonen eller fullduplexljudet. Kräver AEC-överföringen."
+        }
+      }
+    },
+    "alerts": {
+      "fields": {
+        "title": {
+          "label": "Rubrik",
+          "help": "En enda rad överst på kortet. Det som inte får plats kortas av med tre punkter. Tomt blir \"Avisering\".",
+          "example": "Någon står vid dörren"
+        },
+        "subtitle": {
+          "label": "Underrubrik",
+          "help": "Förklaring under rubriken, över flera rader. Radbrytningar går bra. Får vara tomt.",
+          "example": "Dörr 3, baksidan"
+        },
+        "icon": {
+          "label": "Ikon",
+          "help": "Ett namn från listan, även som mdi:name eller som hexadecimal kodpunkt (F12E6). Okänt eller tomt ger varningstriangeln."
+        },
+        "color": {
+          "label": "Färg",
+          "help": "En av rutornas nio pastellfärger. Tomt ger det vita kortet."
+        },
+        "button_text": {
+          "label": "Knapptext",
+          "help": "Texten på knappen. Tomt blir \"OK\".",
+          "example": "Kommer"
+        },
+        "timeout": {
+          "label": "Tidsgräns",
+          "help": "Antal sekunder innan kortet försvinner av sig självt. 0 väntar på knappen, hur länge det än dröjer. Knappen stänger det alltid direkt, även med en tidsgräns."
+        },
+        "flash": {
+          "label": "Blinkning",
+          "help": "På får bakgrundsbelysningen att blinka fyra gånger när aviseringen kommer. Sedan förblir skärmen tänd."
+        },
+        "camera": {
+          "label": "Kamera",
+          "help": "En kamera- eller bildentitet. Alla skärmar utom CYD, med firmware 0.2.57+, visar bilden från det ögonblicket på kortet, i kamerans egna proportioner (ovanför texten, eller bredvid den på en bred, låg skärm). Ett tryck på bilden öppnar kameran i helskärm. CYD visar aviseringen utan bild. Endast via händelsen esp_screens_show_alert."
+        },
+        "action": {
+          "label": "Åtgärd",
+          "help": "En Home Assistant-åtgärd, till exempel script.open_gate eller light.turn_off, som utförs en gång när knappen trycks på någon skärm. `data` anger dess fält (entity_id, brightness, ...). Vid tidsgräns eller en ny avisering utförs den inte. Endast via händelsen esp_screens_show_alert."
+        },
+        "screen": {
+          "label": "Skärm",
+          "help": "Vilken skärm som får aviseringen: dess enhetsnamn (till exempel kitchen-screen), namnet som Home Assistant visar, eller ett rum, som når alla skärmar i rummet. En lista, till exempel [kitchen-screen, hallway], når flera. Utelämna för alla skärmar. Ett namn som inte matchar någon skärm skickar ingenting. Loggen för Tessera Screen Manager visar vilka skärmar den känner till. Endast via händelserna esp_screens_show_alert och esp_screens_dismiss_alert."
+        },
+        "button_color": {
+          "label": "Knappfärg",
+          "help": "Knappen i en egen färg: red, orange, yellow, green, mint, blue, purple, pink eller gray, som en hel färg med vit text. Tomt behåller den mörka knappen."
+        },
+        "button2_text": {
+          "label": "Text på andra knappen",
+          "help": "En andra knapp till vänster om den första, för ett val som Avböj och Acceptera. Tomt ger en knapp.",
+          "example": "Inte nu"
+        },
+        "button2_color": {
+          "label": "Färg på andra knappen",
+          "help": "Den andra knappen i någon av samma färger. Tomt behåller den ljusa knappen."
+        },
+        "button2_action": {
+          "label": "Åtgärd för andra knappen",
+          "help": "En Home Assistant-åtgärd som utförs en gång när den andra knappen trycks på någon skärm, som `action` för den första. `button2_data` anger dess fält. Endast via händelsen esp_screens_show_alert."
+        }
+      },
+      "endings": {
+        "ok": "Knappen trycktes",
+        "button2": "Den andra knappen trycktes",
+        "timeout": "Tidsgränsen löpte ut",
+        "replaced": "En ny avisering ersatte den",
+        "remote": "dismiss_alert från Home Assistant"
+      }
+    },
+    "icons": {
+      "groups": {
+        "lighting": "Belysning",
+        "rooms": "Rum",
+        "climate": "Klimat",
+        "weather": "Väder",
+        "media_and_music": "Media och musik",
+        "security": "Säkerhet",
+        "appliances": "Hushållsapparater",
+        "energy": "Energi",
+        "window_coverings": "Fönsterskydd",
+        "garden_and_pets": "Trädgård och husdjur",
+        "people_and_travel": "Personer och resor",
+        "other": "Övrigt"
+      },
+      "names": {
+        "lightbulb": "Lampa",
+        "lightbulb_group": "Lampor",
+        "ceiling_light": "Taklampa",
+        "chandelier": "Ljuskrona",
+        "lamp": "Bordslampa",
+        "floor_lamp": "Golvlampa",
+        "desk_lamp": "Skrivbordslampa",
+        "wall_sconce_flat": "Vägglampa",
+        "light_recessed": "Infälld spotlight",
+        "spotlight_beam": "Spotlight",
+        "led_strip_variant": "LED-list",
+        "outdoor_lamp": "Utebelysning",
+        "home": "Hus",
+        "sofa": "Vardagsrum",
+        "bed": "Sovrum",
+        "silverware_fork_knife": "Matsal",
+        "chef_hat": "Kök",
+        "shower": "Dusch",
+        "bathtub": "Badrum",
+        "toilet": "Toalett",
+        "desk": "Kontor",
+        "garage": "Garage",
+        "fireplace": "Öppen spis",
+        "thermometer": "Temperatur",
+        "thermostat": "Termostat",
+        "air_conditioner": "AC",
+        "radiator": "Element",
+        "heat_pump": "Värmepump",
+        "fire": "Värme",
+        "snowflake": "Kyla",
+        "water_percent": "Luftfuktighet",
+        "fan": "Fläkt",
+        "ceiling_fan": "Takfläkt",
+        "air_purifier": "Luftrenare",
+        "molecule_co2": "CO₂",
+        "weather_sunny": "Sol",
+        "weather_partly_cloudy": "Halvklart",
+        "weather_cloudy": "Molnigt",
+        "weather_rainy": "Regn",
+        "weather_snowy": "Snö",
+        "weather_windy": "Blåsigt",
+        "weather_night": "Natt",
+        "weather_sunset_up": "Soluppgång",
+        "music_note": "Musik",
+        "music": "Noter",
+        "playlist_music": "Spellista",
+        "album": "Album",
+        "record_player": "Skivspelare",
+        "spotify": "Spotify",
+        "radio": "Radio",
+        "podcast": "Podcast",
+        "speaker": "Högtalare",
+        "speaker_multiple": "Högtalare (flera)",
+        "soundbar": "Soundbar",
+        "headphones": "Hörlurar",
+        "microphone": "Mikrofon",
+        "piano": "Piano",
+        "guitar_acoustic": "Gitarr",
+        "television": "TV",
+        "projector": "Projektor",
+        "movie_open": "Film",
+        "cast": "Casta",
+        "gamepad_variant": "Spelkonsol",
+        "remote_tv": "Fjärrkontroll",
+        "lock": "Lås",
+        "lock_open_variant": "Lås öppet",
+        "shield_home": "Larm",
+        "alarm_light": "Larmljus",
+        "bell": "Klocka",
+        "doorbell": "Dörrklocka",
+        "cctv": "Kamera",
+        "motion_sensor": "Rörelsesensor",
+        "door_closed": "Dörr",
+        "door_open": "Dörr öppen",
+        "window_closed_variant": "Fönster",
+        "smoke_detector": "Brandvarnare",
+        "water_alert": "Vattenläcka",
+        "washing_machine": "Tvättmaskin",
+        "tumble_dryer": "Torktumlare",
+        "dishwasher": "Diskmaskin",
+        "fridge": "Kylskåp",
+        "stove": "Spis",
+        "microwave": "Mikrovågsugn",
+        "toaster_oven": "Ugn",
+        "coffee_maker": "Kaffe",
+        "kettle": "Vattenkokare",
+        "robot_vacuum": "Robotdammsugare",
+        "robot_mower": "Robotgräsklippare",
+        "printer_3d": "3D-skrivare",
+        "power_plug": "Stickpropp",
+        "power_socket_eu": "Eluttag",
+        "laptop": "Bärbar dator",
+        "router_wireless": "Router",
+        "flash": "Ström",
+        "solar_power": "Solenergi",
+        "solar_panel": "Solpaneler",
+        "home_battery": "Hembatteri",
+        "battery_high": "Batteri",
+        "ev_station": "Laddstation",
+        "car_electric": "Elbil",
+        "meter_electric": "Elmätare",
+        "meter_gas": "Gasmätare",
+        "water": "Vatten",
+        "water_boiler": "Varmvattenberedare",
+        "gauge": "Mätare",
+        "window_shutter": "Fönsterlucka",
+        "window_shutter_open": "Fönsterlucka öppen",
+        "blinds": "Persienner",
+        "blinds_open": "Persienner öppna",
+        "roller_shade_closed": "Rullgardin",
+        "curtains": "Gardiner",
+        "curtains_closed": "Gardiner stängda",
+        "awning_outline": "Markis",
+        "flower": "Blomma",
+        "tree": "Träd",
+        "sprout": "Växt",
+        "grass": "Gräsmatta",
+        "sprinkler": "Vattenspridare",
+        "pool": "Pool",
+        "grill": "Grill",
+        "mailbox": "Brevlåda",
+        "trash_can": "Sopor",
+        "recycle": "Återvinning",
+        "dog": "Hund",
+        "cat": "Katt",
+        "account": "Person",
+        "account_group": "Familj",
+        "account_child": "Barn",
+        "home_account": "Hemma",
+        "sleep": "Sover",
+        "run": "Tränar",
+        "briefcase": "Arbete",
+        "car": "Bil",
+        "bike": "Cykel",
+        "bus": "Buss",
+        "train": "Tåg",
+        "airplane": "Semester",
+        "map_marker": "Plats",
+        "power": "På/av",
+        "toggle_switch": "Strömbrytare",
+        "gesture_tap_button": "Knapp",
+        "play": "Starta",
+        "script_text": "Skript",
+        "palette": "Scen",
+        "alarm": "Väckarklocka",
+        "clock_outline": "Klocka",
+        "timer_outline": "Timer",
+        "calendar": "Kalender",
+        "bell_ring": "Avisering",
+        "heart": "Favorit",
+        "alert_outline": "Varning",
+        "cog": "Inställningar",
+        "broom": "Städning",
+        "diabetes": "Diabetes"
+      }
+    },
+    "screen": {
+      "builtin": {
+        "clock": "Klocka",
+        "nightstand": "Sängklocka",
+        "page": "Gå till sida {page}",
+        "map": "Karta",
+        "energy": "Energi"
+      },
+      "identify": {
+        "title": "Det här är {name}",
+        "subtitle": "Identifiera, från Tessera"
+      },
+      "script_running": "Körs",
+      "states": {
+        "locking": "Låser",
+        "unlocking": "Låser upp",
+        "jammed": "Fastnat",
+        "buffering": "Buffrar",
+        "returning": "Återvänder",
+        "error": "Fel",
+        "disarmed": "Avlarmat",
+        "armed_home": "Larmat hemma",
+        "armed_away": "Larmat borta",
+        "armed_night": "Larmat natt",
+        "armed_vacation": "Larmat semester",
+        "armed": "Larmat",
+        "arming": "Larmar",
+        "pending": "Väntande",
+        "triggered": "Utlöst",
+        "active": "Aktiv",
+        "up": "Upp",
+        "down": "Ned",
+        "unknown": "Okänd"
+      },
+      "history": {
+        "other": "Övrigt"
+      },
+      "vacuum": {
+        "vacuum": "Dammsug",
+        "vac_and_mop": "Dammsug & moppa",
+        "vac_then_mop": "Dammsug, sedan moppa",
+        "mop": "Moppa",
+        "custom": "Anpassad",
+        "smart": "Smart",
+        "min": "Min",
+        "slight": "Lätt",
+        "low": "Låg",
+        "mild": "Mild",
+        "medium": "Medel",
+        "moderate": "Måttlig",
+        "standard": "Standard",
+        "high": "Hög",
+        "intense": "Intensiv",
+        "extreme": "Extrem",
+        "ultra_high": "Ultrahög",
+        "silent": "Ljudlös",
+        "gentle": "Skonsam",
+        "strong": "Stark",
+        "max_plus": "Max+",
+        "auto": "Auto"
+      },
+      "map": {
+        "since_time": "sedan {time}",
+        "battery": "Batteri"
+      },
+      "media": {
+        "playlist": "Spellista",
+        "album": "Album",
+        "artist": "Artist",
+        "track": "Låt",
+        "podcast": "Podcast",
+        "episode": "Avsnitt",
+        "channel": "Kanal",
+        "genre": "Genre",
+        "directory": "Mapp",
+        "music": "Musik"
+      }
+    }
+  },
+  "editor": {
+    "common": {
+      "undo": "Ångra",
+      "online": "Online",
+      "offline": "Offline",
+      "unknown": "okänd",
+      "unsaved": "Osparade ändringar",
+      "cancel": "Avbryt",
+      "ok": "OK",
+      "open_integrations": "Öppna Enheter och tjänster",
+      "save_send": "Spara och skicka",
+      "saving": "Sparar…",
+      "read_current_data": "Läs aktuella data",
+      "results": "1 resultat. Skriv mer för att begränsa. | {n} resultat. Skriv mer för att begränsa.",
+      "close": "Stäng",
+      "remove": "Ta bort",
+      "loading": "Laddar…",
+      "back": "← Tillbaka",
+      "copy": "Kopiera",
+      "done": "Klar"
+    },
+    "nav": {
+      "new_screen": "Ny skärm",
+      "firmware": "Firmware & USB",
+      "alerts": "Aviseringar",
+      "settings": "Inställningar",
+      "new_screen_detail": "Anslut och installera",
+      "plugins": "Pluginer"
+    },
+    "api": {
+      "failed": "Det fungerade inte. Ladda om sidan och försök igen."
+    },
+    "copy": {
+      "api_key": {
+        "copied": "API-nyckeln kopierad.",
+        "selected": "API-nyckeln är markerad. Kopiera med Ctrl+C eller Command+C."
+      },
+      "layout_json": {
+        "copied": "Layout-JSON kopierad.",
+        "selected": "Layout-JSON är markerad. Kopiera med Ctrl+C eller Command+C."
+      },
+      "action_name": {
+        "copied": "Åtgärdsnamnet kopierat.",
+        "selected": "Åtgärdsnamnet är markerat. Kopiera med Ctrl+C eller Command+C."
+      },
+      "yaml": {
+        "copied": "YAML kopierad.",
+        "selected": "YAML är markerad. Kopiera med Ctrl+C eller Command+C."
+      },
+      "icon_name": {
+        "copied": "Ikonnamnet kopierat.",
+        "selected": "Ikonnamnet är markerat. Kopiera med Ctrl+C eller Command+C."
+      },
+      "empty_color": {
+        "copied": "Tom färg kopierad.",
+        "selected": "Tom färg är markerad. Kopiera med Ctrl+C eller Command+C."
+      },
+      "color_name": {
+        "copied": "Färgnamnet kopierat.",
+        "selected": "Färgnamnet är markerat. Kopiera med Ctrl+C eller Command+C."
+      },
+      "screen_name": {
+        "copied": "Skärmnamnet kopierat.",
+        "selected": "Skärmnamnet är markerat. Kopiera med Ctrl+C eller Command+C."
+      },
+      "log": {
+        "copied": "Loggen kopierad.",
+        "selected": "Loggen är markerad. Kopiera med Ctrl+C eller Kommando+C."
+      }
+    },
+    "sidebar": {
+      "connection": {
+        "reconnecting": "Återansluter till Home Assistant…"
+      },
+      "search": "Sök",
+      "fold": "Fäll ihop sidofältet",
+      "unfold": "Fäll ut sidofältet",
+      "resize": "Ändra storlek på sidofältet: dra, eller använd piltangenterna, dubbelklicka för att återställa",
+      "screens": "Skärmar",
+      "refresh": "Uppdatera",
+      "update": {
+        "button": "Uppdatera",
+        "available": "Uppdatera {version}",
+        "no_profile": "Ingen ESPHome-profil hittades med det här enhetsnamnet.",
+        "whats_new": "Nyheter",
+        "full_log": "Hela loggen",
+        "short": "Uppdatera",
+        "reinstall": "Installera om från dev",
+        "reinstall_why": "Bygger skärmen igen från senaste dev och installerar den över Wi-Fi. På dev är versionsnumret detsamma, så en ny dev erbjuds aldrig som uppdatering.",
+        "in_tessera": "Uppdatera i Tessera först",
+        "in_tessera_why": "Uppdatera skärmen här i Tessera först. Den har fortfarande flash-layouten den installerades med från början, och den nuvarande firmwaren får inte längre plats i den, så ESPHome Device Builder kan inte uppdatera den. Tessera flyttar den till den nya layouten på vägen och behåller dess inställningar. Därefter fungerar båda sätten.",
+        "reinstall_short": "Bygger senaste dev och installerar den över Wi-Fi."
+      },
+      "host": {
+        "hint": "IP-adressen, en gång. Ny firmware rapporterar den själv.",
+        "placeholder": "IP-adress, t.ex. 192.168.1.50",
+        "label": "IP-adress",
+        "start": "Starta"
+      },
+      "pending": {
+        "installed": "Installerad. Väntar på att den ansluter till ditt Wi-Fi...",
+        "downloaded": "Firmware nedladdad. För över den till skärmen med ESPHome Web.",
+        "not_flashed": "Inte installerad än: Firmware & USB → {file}.",
+        "adding": "På ditt Wi-Fi. Gör den redo...",
+        "failed": "Tessera kan inte lägga till den i Home Assistant själv. Lägg till den under Inställningar → Enheter och tjänster, med API-nyckeln nedan."
+      },
+      "copy_api_key": "Kopiera API-nyckel",
+      "files": "Ladda ned skärmens filer",
+      "files_hint": "Skärmens ESPHome-YAML med nycklar, dess YAML-åsidosättning och en secrets.yaml med Wi-Fi, för att bygga den med ESPHome på din egen dator.",
+      "details": {
+        "room": "Rum",
+        "firmware": "Firmware",
+        "board": "Kretskort",
+        "show": "Visa detaljer för {name}",
+        "hide": "Dölj detaljer för {name}"
+      },
+      "rename": {
+        "button": "Byt namn",
+        "label": "Namn i appen",
+        "save": "Spara"
+      },
+      "remove": {
+        "button": "Ta bort skärm",
+        "title": "Ta bort {name}?",
+        "ha": "Från Home Assistant: enheten med dess entiteter, var de än används.",
+        "profile": "Från ESPHome-mappen: {file} och det som byggts från den.",
+        "layout": "Från appen: rutorna, inställningarna och uppdateringshistoriken.",
+        "online": "Skärmen är fortfarande ansluten. Radera eller koppla ur den först, annars hittar Home Assistant den igen.",
+        "confirm": "Ta bort",
+        "done": "{name} är borttagen.",
+        "kept": "{name} är borttagen. Profilen {file} finns kvar i ESPHome-mappen."
+      },
+      "home": "Översikt över dina skärmar",
+      "dev_chip": "Det här är dev-versionen av appen: varje skärm den bygger kommer från dev-grenen."
+    },
+    "palette": {
+      "groups": {
+        "screens": "Skärmar",
+        "actions": "Åtgärder",
+        "add": "Lägg till på skärmen"
+      },
+      "alerts_detail": "Lathund och en testavisering",
+      "settings_detail": "Uppdateringar, Claude",
+      "nothing_to_save": "Inget att spara",
+      "identify": "Identifiera skärmen",
+      "identify_detail": "Blinkar med bakgrundsbelysningen och visar ett kort",
+      "identify_needs": "Kräver nyare firmware",
+      "export": "Exportera layout",
+      "export_detail": "Ladda ned och kopiera som JSON",
+      "placeholder": "Sök skärmar, entiteter, åtgärder…",
+      "empty": "Inget matchar. Skriv en del av en skärm, entitet eller åtgärd."
+    },
+    "search": {
+      "groups": {
+        "recent": "Senaste",
+        "settings": "Skärminställningar",
+        "tiles": "På dina skärmar",
+        "plugins": "Pluginer"
+      },
+      "hint": {
+        "open": "Öppna",
+        "run": "Kör",
+        "show": "Visa",
+        "add": "Lägg till"
+      },
+      "keys": {
+        "move": "Flytta",
+        "choose": "Välj",
+        "close": "Stäng"
+      },
+      "identify": "Identifiera {name}",
+      "update": "Uppdatera {name}",
+      "update_detail": "Till {version}",
+      "update_all": "Uppdatera alla skärmar",
+      "update_all_detail": "1 skärm väntar | {n} skärmar väntar",
+      "update_all_confirm": "Uppdatera 1 skärm nu? Den startar om när uppdateringen är på plats. | Uppdatera {n} skärmar nu? En i taget, var och en startar om när uppdateringen är på plats.",
+      "update_all_go": "Uppdatera nu",
+      "install": "Installera pluginerna som lagts undan",
+      "install_detail": "1 plugin | {n} pluginer",
+      "add_plugin": "Lägg till {plugin} på {screen}",
+      "add_plugin_detail": "Undanlagd, redo att installeras",
+      "on": "På",
+      "off": "Av"
+    },
+    "empty": {
+      "choose": {
+        "title": "Välj en skärm",
+        "text": "Välj en av dina skärmar till vänster för att ändra dess rutor, toppfält och inställningar."
+      },
+      "start": {
+        "title": "Börja med en skärm",
+        "text": "Anslut skärmen via USB till datorn som kör Home Assistant. Profil, firmware och första installationen görs i ett svep.",
+        "button": "Installera ny skärm"
+      }
+    },
+    "home": {
+      "title": "Dina skärmar",
+      "summary": "{online} av {count} online",
+      "open": "Öppna {name}",
+      "no_layout": "Ingen layout än",
+      "in_tessera": "Uppdatera i Tessera först"
+    },
+    "broken": {
+      "screens": "1 skärm | {n} skärmar",
+      "summary": {
+        "missing": "1 ruta på {screens} visar en entitet som inte längre finns | {n} rutor på {screens} visar en entitet som inte längre finns",
+        "unavailable": "1 ruta på {screens} visar en entitet som har varit otillgänglig ett tag | {n} rutor på {screens} visar en entitet som har varit otillgänglig ett tag",
+        "mixed": "1 ruta på {screens} visar en entitet som är borta eller otillgänglig | {n} rutor på {screens} visar en entitet som är borta eller otillgänglig"
+      },
+      "short": "1 ruta att kontrollera | {n} rutor att kontrollera",
+      "review": "Granska",
+      "hide": "Dölj",
+      "missing": "Finns inte längre i Home Assistant",
+      "unavailable_minutes": "Otillgänglig i 1 minut | Otillgänglig i {n} minuter",
+      "unavailable_hours": "Otillgänglig i 1 timme | Otillgänglig i {n} timmar",
+      "unavailable_days": "Otillgänglig i 1 dag | Otillgänglig i {n} dagar",
+      "change": "Visa en annan entitet",
+      "on_screen": "Den entiteten finns redan på skärmen.",
+      "replaced": "Visar nu {name}",
+      "fix": {
+        "choose": "Välj en annan entitet",
+        "missing": "Home Assistant har inte längre den här entiteten",
+        "missing_hint": "Den har tagits bort eller bytt namn. Välj vad rutan ska visa nu.",
+        "unavailable_hint": "Home Assistant har inte hört något från den. Välj en annan entitet, eller vänta tills den kommer tillbaka.",
+        "search": "Sök entiteter"
+      }
+    },
+    "screen_view": {
+      "confirm": {
+        "switch": "Du har osparade ändringar. Öppna en annan skärm ändå?",
+        "copy": "Ersätta den osparade layouten med en kopia av den andra skärmens?",
+        "import": "Ersätta den osparade layouten med den importerade?"
+      },
+      "saved": {
+        "current": "Sparat. Skärmen uppdateras.",
+        "other": "Sparat. {name} uppdateras.",
+        "newer_edit": "Sparat. Din senaste ändring är inte skickad än: tryck på Spara och skicka igen."
+      },
+      "identified": "{name} blinkar och visar ett kort i några sekunder.",
+      "offline": "Offline · ändringarna sparas",
+      "tabs": {
+        "layout": "Layout",
+        "settings": "Skärminställningar",
+        "plugins": "Pluginer"
+      },
+      "sent": "Sparat · skickat till skärmen",
+      "all_saved": "Allt sparat",
+      "more": "Mer",
+      "menu": {
+        "identify": "Identifiera",
+        "identify_hint": "blinka med skärmen",
+        "identify_needs": "Kräver firmware 0.2.31 eller senare",
+        "copy": "Kopiera layout från…",
+        "copy_screens": "{n} skärm | {n} skärmar",
+        "copy_none": "ingen annan skärm",
+        "copy_tiles": "{n} ruta | {n} rutor",
+        "export": "Exportera layout",
+        "import": "Importera layout…",
+        "override": "YAML-åsidosättning",
+        "override_none": "Ingen ESPHome-profil hittades för skärmen",
+        "update": "Uppdatera firmware",
+        "group_screen": "Den här skärmen",
+        "group_layout": "Layout",
+        "group_advanced": "Avancerat"
+      },
+      "sending": "Skickar"
+    },
+    "layout": {
+      "removed": "{name} borttagen",
+      "no_room": "Det finns ingen plats för rutan på sida {page}.",
+      "no_free_page": "Ingen sida är ledig för en helsidesruta. Frigör en sida först.",
+      "page_taken": "Skärmen har redan en ruta som leder till sida {page}.",
+      "copied": "Layouten från {name} kopierad. Spara och skicka när den ser rätt ut.",
+      "imported": "Layouten importerad. Spara och skicka när den ser rätt ut.",
+      "not_json": "Det där är inte JSON. Exportera en layout först, eller klistra in en från en annan Tessera.",
+      "count": "{n} sida · {tiles} / {limit} rutor | {n} sidor · {tiles} / {limit} rutor",
+      "no_tiles": "Lägg till din första lampa, scen eller enhet från biblioteket.",
+      "page_removed": "Sida {page} är borttagen.",
+      "page_removed_tiles": "Sida {page} och en ruta är borttagna. | Sida {page} och {n} rutor är borttagna.",
+      "positions_hint": "Tomma platser och fasta positioner fungerar från firmware 0.2.26. Den här skärmen (firmware {firmware}) flyttar upp rutorna till första lediga plats tills den uppdateras.",
+      "aria": "Skärmlayout",
+      "add_page": "Lägg till sida",
+      "max_pages": "Högst 1 sida | Högst {n} sidor",
+      "help": {
+        "title": "Så fungerar det",
+        "change_label": "Ändra",
+        "change": "Klicka på en ruta eller ett toppfält.",
+        "add_label": "Lägg till",
+        "add": "Klicka på en tom plats och sedan på något i biblioteket. Eller dra det till sidan.",
+        "move_label": "Flytta",
+        "move": "Dra en ruta. Släpp den på nästa sida för att skapa en ny sida.",
+        "copy_label": "Kopiera",
+        "copy": "Håll ned {mod} eller Skift och klicka, eller dra ett band bredvid rutorna. {copy}, sedan {paste} på en annan sida eller skärm.",
+        "pages_label": "Sidor",
+        "pages": "Dra en sida i dess nummer. Resten finns i menyn ···.",
+        "map_label": "Karta",
+        "map": "Visar vart varje Gå till sida-ruta leder.",
+        "preview_label": "Förhandsvisning",
+        "preview": "Prova att svepa och tryck på sidrutorna. Inget hemma slås på eller av."
+      },
+      "copy_needs_migration": "Öppna källskärmen en gång så att dess layout kan flyttas till sidor, och kopiera den sedan.",
+      "removed_several": "1 ruta borttagen | {n} rutor borttagna"
+    },
+    "page": {
+      "label": "Sida {page}",
+      "remove": "Ta bort sida",
+      "edit_bar": "Redigera toppfält",
+      "move_title": "Dra sidan till en annan plats i raden, eller använd ← och →",
+      "move_aria": "Flytta sida {page}",
+      "cell": {
+        "title": "Tom plats. Klicka för att lägga till en ruta här, eller dra hit en.",
+        "aria": "Tom plats {slot} på sida {page}: lägg till nästa ruta här",
+        "next": "Nästa ruta hamnar här",
+        "empty": "Tom"
+      }
+    },
+    "library": {
+      "title": "Bibliotek",
+      "entities": "{n} entitet | {n} entiteter",
+      "search": "Sök efter namn, enhet eller rum…",
+      "search_label": "Lägg till en entitet",
+      "filters": {
+        "all": "Alla",
+        "light": "Lampor",
+        "climate": "Klimat",
+        "switch": "Strömbrytare",
+        "binary_sensor": "Status",
+        "button": "Åtgärder",
+        "script": "Skript",
+        "automation": "Automatiseringar",
+        "remote": "Fjärrkontroller",
+        "fan": "Fläktar",
+        "cover": "Skydd",
+        "scene": "Scener",
+        "vacuum": "Dammsugare",
+        "sensor": "Sensorer",
+        "media_player": "Media",
+        "weather": "Väder",
+        "number": "Värden",
+        "select": "Val",
+        "person": "Personer",
+        "timer": "Timers",
+        "screen": "Skärm",
+        "alarm_control_panel": "Larm",
+        "lock": "Lås",
+        "humidifier": "Luftfuktare",
+        "calendar": "Kalendrar"
+      },
+      "room": "Rum",
+      "hide_placed": "Dölj placerade",
+      "hide_placed_title": "Dölj det som redan finns på skärmen",
+      "again": "Finns redan på skärmen. Lägg till den igen för ännu en ruta",
+      "all_placed": "Allt här finns redan på skärmen.",
+      "none_found": "Inga entiteter hittades. Prova ett annat namn, rum eller filter.",
+      "full": "Skärmen rymmer 1 ruta. | Skärmen rymmer {n} rutor.",
+      "full_update": "Skärmen rymmer 1 ruta. Uppdatera dess firmware för 48. | Skärmen rymmer {n} rutor. Uppdatera dess firmware för 48.",
+      "hint": "Dra till en sida, eller tryck på + för att lägga till på första lediga plats. ⌘K söker i allt.",
+      "resize": "Dra för att ändra bibliotekets storlek",
+      "filter_label": "Filtrera efter typ",
+      "no_room": "Ingen plats",
+      "plugins": "Pluginer"
+    },
+    "memory": {
+      "label": "Minne för rutor",
+      "share": "{n} %",
+      "title": "Rutorna tar {need} av de {room} kB som skärmen har för rutor. En prognos, en termostat eller en mediaspelare tar mer än en lampa eller en strömbrytare.",
+      "over": "Det här är mer än skärmen mätte upp för rutor. Det sparas ändå: om skärmen får ont om minne visar vissa rutor mindre, eller så avvisar den layouten.",
+      "short": "Vissa rutor visar mindre just nu: skärmen fick slut på minne.",
+      "last_known": "Som skärmen rapporterade när den senast var online.",
+      "full_library": "Skärmens minne för rutor är nästan fullt. Du kan fortfarande lägga till rutor.",
+      "confirm_close": "Med den här rutan är skärmens minne för rutor {n} % fullt. Lägga till den ändå?",
+      "confirm_over": "Med den här rutan behöver layouten mer minne än skärmen mätte upp för rutor ({n} %). Om skärmen får ont om minne visar vissa rutor mindre, eller så avvisar den layouten. Lägga till den ändå?",
+      "measuring": "Mäter",
+      "measuring_title": "Skärmen mäter sitt minne för rutor när rutorna har kommit på plats, ungefär en minut efter att den startar eller får en ny layout.",
+      "none": "Inget utrymme",
+      "none_title": "Skärmen har inget minne över för rutor just nu. Det sparas ändå: om skärmen får ont om minne visar vissa rutor mindre, eller så avvisar den layouten.",
+      "confirm_none": "Skärmen har inget minne över för rutor just nu. Om den får ont om minne visar vissa rutor mindre, eller så avvisar den layouten. Lägga till rutan ändå?"
+    },
+    "domains": {
+      "light": "Lampa",
+      "climate": "Klimat",
+      "vacuum": "Dammsugare",
+      "fan": "Fläkt",
+      "cover": "Skydd",
+      "media_player": "Media",
+      "sensor": "Sensor",
+      "binary_sensor": "Status",
+      "switch": "Strömbrytare",
+      "input_boolean": "Strömbrytare",
+      "automation": "Automatisering",
+      "remote": "Fjärrkontroll",
+      "scene": "Scen",
+      "script": "Skript",
+      "weather": "Väder",
+      "number": "Värde",
+      "input_number": "Värde",
+      "select": "Val",
+      "input_select": "Val",
+      "button": "Åtgärd",
+      "input_button": "Åtgärd",
+      "screen": "Skärm",
+      "sun": "Sol",
+      "timer": "Timer",
+      "person": "Person",
+      "camera": "Kamera",
+      "image": "Bild",
+      "entity": "Entitet",
+      "alarm_control_panel": "Larmpanel",
+      "lock": "Lås",
+      "humidifier": "Luftfuktare",
+      "calendar": "Kalender"
+    },
+    "displays": {
+      "standard": "standard",
+      "watch": "stort värde",
+      "forecast": "väderprognos",
+      "graph": "diagram",
+      "meter": "mätare",
+      "digital": "digital klocka",
+      "analog": "analog klocka",
+      "dial": "enkel urtavla",
+      "flip": "flipklocka",
+      "sunpath": "solbana",
+      "live": "livebild",
+      "cover": "skivomslag",
+      "map": "karta",
+      "favorite": "favorit"
+    },
+    "sizes": {
+      "single": "normal",
+      "wide": "dubbel",
+      "full": "helsida"
+    },
+    "tile": {
+      "name": "Namn på skärmen",
+      "icon": {
+        "auto_ha": "Automatisk (från Home Assistant)",
+        "auto_default": "Automatisk (standard)",
+        "needs_firmware": "Skärmen visar en vald ikon från firmware 0.2.18."
+      },
+      "goes_to": {
+        "label": "Leder till sida",
+        "empty": "{page} (tom)",
+        "needs_firmware": "Navigeringsrutor kräver firmware 0.2.62: tryck på Uppdatera för skärmen först.",
+        "no_page": "Skärmen har ingen sida {page}, så ett tryck öppnar dess sista sida. Välj en annan sida.",
+        "hint": "Ett tryck på rutan öppnar den sidan."
+      },
+      "display": {
+        "label": "Visning",
+        "digital": "Digital klocka",
+        "analog": "Analog klocka",
+        "dial": "Enkel urtavla",
+        "flip": "Flipklocka",
+        "standard": "Namn och status",
+        "watch": "Stort värde",
+        "forecast": "Väderprognos",
+        "graph": "Diagram",
+        "meter": "Mätare",
+        "sunpath": "Solbana",
+        "live": "Livebild",
+        "live_needs_firmware": "En livebild kräver firmware 0.2.77 eller senare: tryck på Uppdatera för skärmen efter att du sparat.",
+        "live_card_hint": "Bilden fyller rutan och uppdateras i takten nedan medan sidan visas. Ett tryck öppnar den fortfarande i helskärm.",
+        "live_card_needs_firmware": "En bild som fyller rutan kräver firmware 0.3.7 eller senare: tryck på Uppdatera för skärmen efter att du sparat. Till dess visar skärmen en liten bild i stället för ikonen.",
+        "cover": "Skivomslag",
+        "cover_hint": "Skivomslaget för det som spelas visas i stället för ikonen, som i Home Assistants egen ruta. En spelare utan bild behåller sin ikon. Ett tryck öppnar fortfarande kortet.",
+        "cover_needs_firmware": "Skivomslaget på rutan kräver firmware 0.2.78 eller senare: tryck på Uppdatera för skärmen efter att du sparat.",
+        "map": "Karta",
+        "map_hint": "Var den här personen och de du lägger till befinner sig, på en lugn karta i skärmens färger. Home Assistant hämtar gatorna från OpenStreetMap, och skärmen får bara bilden, aldrig en position. Kartan ritas om när någon flyttar sig. Ett tryck öppnar den över hela skärmen.",
+        "map_needs_firmware": "En karta kräver firmware 0.20.0 eller senare: tryck på Uppdatera för skärmen efter att du sparat.",
+        "no_graph": "Home Assistant har inga värden för entiteten, så diagrammet förblir tomt. Välj en annan visning.",
+        "no_forecast": "Väderleverantören har ingen dagsprognos i Home Assistant. Välj en annan visning.",
+        "no_meter": "Home Assistant har inga värden för den här entiteten, så mätaren förblir tom. Välj en annan visning.",
+        "meter_needs_firmware": "En mätare kräver firmware 0.56.0 eller nyare: tryck på Uppdatera på skärmen efter att du sparat.",
+        "tall_cover_hint": "Använder skivomslaget som nedtonad bakgrund. Utan omslag visas den vanliga rutan.",
+        "face_needs_firmware": "Den här klockan kräver firmware 0.3.6 eller senare: tryck på Uppdatera för skärmen efter att du sparat. Till dess visar skärmen den digitala klockan.",
+        "map_tile_needs_firmware": "Kartrutan kräver firmware 0.21.0 eller senare: tryck på Uppdatera för skärmen efter att du sparat.",
+        "favorite": "Favorit",
+        "favorite_hint": "En spellista, ett album eller en artist för den här spelaren, som startas med ett tryck på högtalaren. Ett tryck medan den spelar pausar, och ett långt tryck öppnar spelaren. Där skärmen kan visa bilder fyller omslaget rutan.",
+        "favorite_needs_firmware": "En favorit kräver firmware 0.24.0 eller senare: tryck på Uppdatera för skärmen efter att du sparat."
+      },
+      "refresh": {
+        "label": "Uppdatering",
+        "seconds": "Varje {n} s",
+        "live": "Live"
+      },
+      "picture": {
+        "fit": {
+          "label": "Bild",
+          "fill": "Fyll rutan",
+          "contain": "Hela bilden"
+        },
+        "overlay": {
+          "label": "På bilden",
+          "name": "Namn",
+          "none": "Inget"
+        }
+      },
+      "map": {
+        "framing": {
+          "label": "Visa",
+          "everyone": "Alla",
+          "home": "Runt hemmet",
+          "person": "Runt den här personen"
+        },
+        "distance": {
+          "label": "Avstånd",
+          "neighbourhood": "Kvarter",
+          "street": "Gata",
+          "town": "Stad",
+          "region": "Region"
+        },
+        "with": {
+          "label": "Också på kartan",
+          "hint": "Personer och spårare som visas utöver den här, var och en i sin egen färg. En spårare är en telefon, en bil eller en tagg som Home Assistant vet var den är.",
+          "add": "Lägg till en person eller spårare",
+          "remove": "Ta bort {name}"
+        },
+        "follow": {
+          "label": "Följ",
+          "everyone": "Alla",
+          "chosen": "Valda",
+          "everyone_hint": "Alla som Home Assistant vet var de är: varje person, och varje spårare som inte redan tillhör någon."
+        },
+        "markers": {
+          "label": "Markörer",
+          "photo": "Foto",
+          "initials": "Initialer"
+        },
+        "names": {
+          "label": "Namn",
+          "auto": "Där det finns plats",
+          "always": "Alltid",
+          "never": "Aldrig"
+        },
+        "zones": {
+          "label": "Zoner",
+          "show": "Visa",
+          "hide": "Dölj"
+        },
+        "streets": {
+          "label": "Gator",
+          "show": "Visa",
+          "hide": "Enkel"
+        },
+        "look": {
+          "label": "Utseende",
+          "auto": "Som skärmen",
+          "light": "Ljust",
+          "dark": "Mörkt"
+        },
+        "chosen": {
+          "label": "På kartan",
+          "hint": "Vilka kartan följer, var och en i sin egen färg. En spårare är en telefon, en bil eller en tagg som Home Assistant vet var den är."
+        }
+      },
+      "controls": {
+        "label": "Direktstyrning på rutan",
+        "not_offered": "Home Assistant erbjuder inte den här styrningen för entiteten, så den förblir tom på skärmen. Välj en annan.",
+        "full_hint": "Längst ned på helsidesrutan. Ett tryck någon annanstans fungerar enligt inställningen nedan.",
+        "wide_hint": "Till höger på rutan med dubbel bredd, som raderna i Home Assistant. Ett tryck på namnet fungerar enligt inställningen nedan.",
+        "needs_firmware": "Skärmen visar direktstyrning från firmware 0.2.19. Till dess förblir rutan som den var.",
+        "tall_hint": "Välj vilka kontroller som visas i den extra höjden. En ruta som växer föreslår den rikaste uppsättningen som får plats, ditt val står kvar som du ställt in det.",
+        "room_hint": "Skärmen ritar dem där rutan har plats för dem (firmware 0.57.0 eller nyare): under namnet på en enkel ruta, bredvid det på en dubbelbred. Där de inte får plats ser rutan ut som utan dem.",
+        "tilt": "Lamellutning",
+        "tilt_hint": "Lägger till reglaget eller knapparna för lamellutning när det finns plats. På mindre rutor använder du detaljvyn. Ditt val för öppna/stäng ändras inte."
+      },
+      "tap": {
+        "label": "Vid tryck",
+        "auto": "Automatiskt",
+        "detail": "Öppna kontroll",
+        "none": "Bara visa",
+        "toggle": "På / av",
+        "run": "Kör automatiseringens åtgärder",
+        "action": "Utför åtgärd",
+        "no_toggle": "Home Assistant kan inte slå på och av den här, så ett tryck gör ingenting. Välj ett annat alternativ.",
+        "toggle_needs_firmware": "Skärmen slår på och av från firmware 0.2.58: tryck på Uppdatera för skärmen. Till dess öppnar ett tryck kortet.",
+        "automation_needs_firmware": "Automatiseringar kräver skärmfirmware 0.7.0: tryck på Uppdatera för skärmen först.",
+        "hold": "Håll på rutan för att öppna kortet.",
+        "hold_run": "Håll på rutan för att köra åtgärderna.",
+        "hold_toggle": "Håll på rutan för att slå på eller av.",
+        "hold_light": "Håll på rutan för ljusstyrka och färg, i den mån lampan har dem.",
+        "hold_fan": "Håll på rutan för hastighet, om fläkten har det.",
+        "hold_history": "Håll på rutan för historik.",
+        "hold_timer": "Håll på rutan för att avbryta timern.",
+        "detail_no_toggle": "Ett tryck öppnar kortet och slår inte längre på eller av. Med {auto} slår ett tryck på eller av, och ett långt tryck öppnar kortet."
+      },
+      "guard": {
+        "label": "Upplåsning här",
+        "confirm": "Efter bekräftelse",
+        "lock_only": "Aldrig",
+        "confirm_hint": "Ett låst lås låses upp efter ett andra tryck på rutan eller knappen. Låsning kräver alltid bara ett tryck.",
+        "lock_only_hint": "Skärmen kan låsa men aldrig låsa upp eller öppna. Bra för en skärm i en farstu, ett garage eller ett barnrum."
+      },
+      "tilt_open": {
+        "label": "Lamellerna öppna vid",
+        "100": "100 %",
+        "50": "50 %",
+        "100_hint": "Home Assistants regel: 0 % är stängd, 100 % är helt öppen.",
+        "50_hint": "För persienner som är öppna vid 50 % och stängda vid 0 % och 100 %, åt ena eller andra hållet, som SwitchBot Blind Tilt."
+      },
+      "sub": {
+        "label": "Andra raden",
+        "auto": "Automatiskt",
+        "none": "Inget",
+        "attr": "Ett värde",
+        "text": "Egen text",
+        "value_aria": "Vilket värde den andra raden visar",
+        "text_aria": "Vad den andra raden visar",
+        "text_placeholder": "Din egen text",
+        "hint_auto": "Det skärmen räknar ut själv: en ljusstyrka, en temperatur, när ett skript senast kördes.",
+        "hint_none": "Rutan visar sitt namn och inget under det.",
+        "hint_attr": "Ett värde från entiteten, namngivet och skrivet som i Home Assistant.",
+        "hint_text": "Samma text, vad entiteten än gör."
+      },
+      "slider": {
+        "label": "Litet reglage på rutan",
+        "nothing": "Home Assistant har inget som ett reglage kan ändra för entiteten. Välj Nej."
+      },
+      "history": {
+        "label": "Historik",
+        "hours": "{n} timme | {n} timmar"
+      },
+      "background": {
+        "label": "Pastellbakgrund",
+        "aria": "Bakgrund: {name}"
+      },
+      "resize": {
+        "columns": "Ändra bredd (vänster-/högerpil)",
+        "rows": "Ändra höjd (upp-/nedpil)"
+      },
+      "sections": {
+        "look": "Utseende",
+        "controls": "Kontroller",
+        "style": "Ikon och färg"
+      },
+      "keys": {
+        "hint": "Dra en lampa, en temperatur eller ett lås till de runda platserna under klockan, eller tryck på en plats och välj en. De är rutor: tryck på en för att ställa in den.",
+        "under": "Under sängklockan: en ruta i rund form. Ett tryck gör samma sak som på en ruta, och ett långt tryck öppnar kortet.",
+        "name_shown": "Namn under knappen",
+        "name_shown_hint": "Av visar bara cirkeln."
+      },
+      "favorite": {
+        "plays": "Spelar",
+        "none": "Inget valt än",
+        "choose": "Välj",
+        "done": "Klar",
+        "back": "Tillbaka",
+        "loading": "Laddar biblioteket…",
+        "empty": "Inget här",
+        "open": "Öppna {name}",
+        "speaker": "Högtalare",
+        "speaker_now": "Där den spelar",
+        "speaker_hint": "Var den startar. \"Där den spelar\" frågar efter en högtalare på skärmen när spelaren inte spelar någonstans.",
+        "link": "Eller klistra in en Spotify-länk",
+        "link_hint": "En länk eller URI från Spotify-appen, via Dela > Kopiera länk: en spellista, ett album, en artist, en låt eller en podd.",
+        "link_add": "Lägg till",
+        "shuffle": "Blanda",
+        "shuffle_hint": "Ställs in när den startar. Med blanda på hoppar den en gång, så att första låten är en blandad. ”Som det är” behåller spelarens egen inställning.",
+        "shuffle_keep": "Som det är",
+        "shuffle_on": "På",
+        "shuffle_off": "Av",
+        "repeat": "Upprepa",
+        "repeat_hint": "Ställs in när den startar. ”Som det är” behåller spelarens egen inställning.",
+        "repeat_off": "Av",
+        "repeat_all": "Upprepa alla",
+        "repeat_one": "Upprepa en",
+        "repeat_keep": "Som det är"
+      },
+      "energy": {
+        "hint": "Husets effekt just nu, ritad så som Home Assistants egen energivy ritar den: sol, elnät, batteri och dina enheter, från energiinställningarna i Home Assistant. Ett tryck på en cirkel öppnar sensorns historik.",
+        "needs_firmware": "Energikortet kräver firmware 0.47.0 eller nyare: tryck på Uppdatera på skärmen efter att du sparat.",
+        "flow": {
+          "label": "Flöde",
+          "hint": "Prickar rör sig längs varje linje, snabbare ju mer effekt som flödar. Linjer och pilar är lugnare: en linje blir tjockare med effekten och en pil visar åt vilket håll den går. En skärm med äldre firmware behåller prickarna.",
+          "dots": "Rörliga prickar",
+          "lines": "Linjer och pilar"
+        }
+      },
+      "calendar": {
+        "title": "Kalender",
+        "needs_firmware": "Kalenderkortet kräver firmware 0.56.0 eller nyare: tryck på Uppdatera på skärmen efter att du sparat.",
+        "show": {
+          "label": "Visa",
+          "events": "Händelser",
+          "events_hint": "Titlar, vad som kommer härnäst, veckan och månaden",
+          "busy_free": "Ledig eller upptagen",
+          "busy_free_hint": "Ledig, Börjar snart eller Upptagen med stora bokstäver, nästa bokning och hur länge den varar",
+          "room": "Status och bokning",
+          "room_hint": "Ledig eller Upptagen med stora bokstäver i grönt eller rött, till när, och knappar som bokar rummet nu"
+        },
+        "calendars": {
+          "label": "Kalendrar",
+          "hint": "Upp till {n} kalendrar på ett kort, var och en i sin egen färg från Home Assistant.",
+          "count": "{n} kalender | {n} kalendrar",
+          "own": "Den här rutan",
+          "none": "Home Assistant har inga andra kalendrar."
+        },
+        "filter": {
+          "title": "Vilka händelser",
+          "found": "{n} händelse | {n} händelser"
+        },
+        "places": {
+          "label": "Plats",
+          "hint": "Bara händelser på de här platserna, t.ex. ett mötesrum. Platserna kommer från kalendrarnas egna händelser, skriv en annan för att lägga till den.",
+          "add": "Lägg till en plats"
+        },
+        "words": {
+          "label": "Ord i titeln",
+          "hint": "Bara händelser med något av de här orden i titeln, och inga med något av orden som ska uteslutas.",
+          "only": "Bara med",
+          "hide": "Uteslut",
+          "add": "Lägg till ett ord"
+        },
+        "all_day": "Heldagshändelser",
+        "tentative": "Preliminära händelser",
+        "tentative_hint": "Händelser som inte är bekräftade än, så som kalendern markerar dem.",
+        "private": "Dölj titlar",
+        "private_hint": "Varje händelse visas som Upptagen, utan titel eller plats: för en skärm i en hall eller ett delat rum.",
+        "time": {
+          "title": "Tid"
+        },
+        "ahead": "Blickar framåt",
+        "ahead_hint": "Hur många dagars händelser kortet listar från idag.",
+        "days": "{n} dag | {n} dagar",
+        "soon": "Börjar snart",
+        "soon_hint": "Hur länge före en händelse kortet säger Börjar snart.",
+        "soon_off": "Av",
+        "minutes": "{n} min | {n} min",
+        "start_view": "Helskärm öppnas på",
+        "start_view_hint": "Ett tryck på kortet öppnar dess helskärm. Automatiskt visar veckan där skärmen har plats för den, annars dagen.",
+        "view": {
+          "auto": "Automatiskt",
+          "up_next": "Härnäst",
+          "day": "Dag",
+          "week": "Vecka",
+          "month": "Månad"
+        },
+        "week_start": "Veckan börjar",
+        "week_start_hint": "Idag håller de kommande dagarna i sikte, måndag visar kalenderveckan.",
+        "week_start_today": "Idag",
+        "week_start_monday": "Måndag",
+        "hours": "Timmar",
+        "hours_hint": "Timmarna veckan visar. Automatiskt följer händelserna, minst åtta till åtta, det som hamnar utanför räknas.",
+        "hours_auto": "Automatiskt",
+        "week_numbers": "Veckonummer",
+        "week_numbers_hint": "I månaden, till vänster om varje vecka.",
+        "book": {
+          "title": "Bokning",
+          "on": "Boka i",
+          "on_hint": "Kalendern som en bokning från skärmen hamnar i. Bara kalendrar som tar emot nya händelser från Home Assistant, som Lokal kalender, Google och CalDAV.",
+          "none": "Ingen av kortets kalendrar tar emot nya händelser från Home Assistant, så kortet visar inga bokningsknappar.",
+          "place": "Plats",
+          "place_hint": "Skrivs in i bokningen som dess plats, till exempel rummets namn.",
+          "place_add": "Lägg till en plats",
+          "name": "Titel",
+          "name_hint": "Bokningens titel i kalendern.",
+          "name_placeholder": "Bokad på skärmen"
+        }
+      },
+      "meter": {
+        "title": "Mätare",
+        "look": "Utseende",
+        "styles": {
+          "ring": "Ring",
+          "tape": "Band",
+          "bar": "Stapel"
+        },
+        "range": "Intervall",
+        "range_hint": "Var mätaren börjar och slutar. Från Home Assistant går en sensor från 0 till 100, som på dess mätarkort. Ställ in ett eget för en temperatur, CO2 eller effekt.",
+        "range_ha": "Från Home Assistant",
+        "range_own": "Eget",
+        "min": "Min",
+        "max": "Max",
+        "outside": "{value} ligger utanför {min} – {max}.",
+        "set_own": "Ställ in intervallet själv",
+        "range_wrong": "Minimum måste vara lägre än maximum.",
+        "color": "Färg",
+        "segments": "Segment",
+        "segments_hint": "En färg för hela mätaren, eller två eller tre som skiftar vid ett tröskelvärde. Ett tröskelvärde anges i sensorns egen enhet.",
+        "whole": "hela mätaren",
+        "up_to": "upp till",
+        "above": "över det",
+        "swatch_aria": "Färg för segment {n}: {color}",
+        "own_color": "Rutans egen färg",
+        "threshold_aria": "Tröskelvärde {n}",
+        "thresholds_wrong": "Varje tröskelvärde måste vara högre än det före.",
+        "reset": "Återställ standard",
+        "colors": {
+          "red": "Röd",
+          "pink": "Rosa",
+          "purple": "Lila",
+          "deep-purple": "Djuplila",
+          "indigo": "Indigo",
+          "blue": "Blå",
+          "light-blue": "Ljusblå",
+          "cyan": "Cyan",
+          "teal": "Blågrön",
+          "green": "Grön",
+          "light-green": "Ljusgrön",
+          "lime": "Lime",
+          "yellow": "Gul",
+          "amber": "Bärnsten",
+          "orange": "Orange",
+          "deep-orange": "Mörkorange",
+          "brown": "Brun",
+          "grey": "Grå",
+          "blue-grey": "Blågrå"
+        }
+      },
+      "anchor_hint": "Klicka på ikonen för att välja en annan, eller på namnet för att byta namn på rutan",
+      "grow": {
+        "title": "Plats för fler kontroller",
+        "applied": "Rutan får plats med fler kontroller vid {columns} × {rows}. Välj vad den visar, du kan ändra det senare under Kontroller.",
+        "offered": "Vid {columns} × {rows} har rutan plats för de här. Välj vad den visar, du kan ändra det senare under Kontroller.",
+        "suggested": "Förslag",
+        "none": "Inga kontroller",
+        "never": "Visa inte igen",
+        "done": "Klar"
+      }
+    },
+    "precision": {
+      "label": "Visningsprecision",
+      "default": "Standard ({value})",
+      "note": "Det här är Home Assistants egen inställning för sensorn, så den ändras där också.",
+      "unregistered": "Sensorn saknar unikt ID, så Home Assistant sparar inga inställningar för den."
+    },
+    "tile_card": {
+      "label": "{name}, plats {slot} på sida {page}. Enter: ställ in, piltangenter: flytta",
+      "remove": "Ta bort ruta",
+      "remove_named": "Ta bort {name}"
+    },
+    "action": {
+      "label": "Åtgärd",
+      "asking": "Frågar Home Assistant vilka åtgärder entiteten har…",
+      "not_answering": "Home Assistant svarar inte just nu. Försök igen om en stund.",
+      "choose": "Välj en åtgärd",
+      "search": "Sök, till exempel toggle, position eller play",
+      "search_label": "Sök efter en åtgärd",
+      "none_found": "Ingen åtgärd hittades.",
+      "gone": "Home Assistant erbjuder inte längre den här åtgärden för entiteten, så ett tryck gör ingenting. Välj en annan.",
+      "optional": "{name} (valfritt)",
+      "not_set": "Inte angivet",
+      "on": "På",
+      "off": "Av",
+      "needs": "Home Assistant behöver {fields}.",
+      "needs_firmware": "Skärmen utför åtgärder från firmware 0.2.58: tryck på Uppdatera för skärmen. Till dess fungerar ett tryck som Automatiskt."
+    },
+    "icon": {
+      "label": "Ikon",
+      "none": "Ingen ikon",
+      "search": "Sök, till exempel lampa, musik eller dörr",
+      "search_label": "Sök efter en ikon",
+      "none_text_only": "Ingen ikon, bara text",
+      "aria": "Ikon: {name}",
+      "none_found": "Ingen ikon hittades."
+    },
+    "inspect": {
+      "title": "Aktuella data",
+      "subtitle": "Anslutning, status och egenskaper som stöds",
+      "reading": "Läser…",
+      "fetching": "Hämtar aktuell status från HA…",
+      "status": "Status: {status}",
+      "options": "Litet reglage: {slider} · Visning: {display} · Storlek: {size} · Kontroll: {control} · Bakgrund: {background}",
+      "yes": "ja",
+      "no": "nej",
+      "control_none": "ingen",
+      "background_default": "Standard",
+      "read_again": "Läs igen"
+    },
+    "topbar": {
+      "removed": "{name} borttagen från toppfältet",
+      "full": "Toppfältet har plats för 1 objekt. | Toppfältet har plats för {n} objekt.",
+      "already": "Det här finns redan i toppfältet.",
+      "title": "Toppfält",
+      "aria": "Toppfält: {name}",
+      "items": "{used} av {n} objekt | {used} av {n} objekt",
+      "name": "Rubrik ovanför sidan",
+      "name_placeholder": "Till exempel: Vardagsrum",
+      "screen_name": "Skärmens rubrik",
+      "screen_name_hint": "Visas på varje sida som saknar egen rubrik.",
+      "no_title_hint": "Lämna tomt för att bara visa logotypen.",
+      "item_label": "{name}, plats {slot}. Enter: ställ in, pilar: flytta",
+      "max": "Högst 1 objekt | Högst {n} objekt",
+      "add_title": "Lägg till tid, datum, analog klocka eller en entitet",
+      "hint": {
+        "overflow": "Allt får inte plats bredvid namnet: skärmen utelämnar de streckade objekten. Ta bort ett eller välj ett kortare namn.",
+        "needs_firmware": "Sensorer, datum och analog klocka visas från firmware {version}. Till dess visar skärmen namnet och, om tiden finns i fältet, klockan."
+      },
+      "detail": {
+        "hidden": "Dold: inte aktiv just nu",
+        "overflow": "Får inte plats bredvid namnet",
+        "hidden_signal": "Dold medan signalen är bra",
+        "hidden_link": "Dold medan allt är anslutet",
+        "hidden_battery": "Dold medan batteriet är över 20 %"
+      },
+      "live": {
+        "looks": "Så ser det ut på skärmen"
+      },
+      "analog_sample": "Liten urtavla med tiden",
+      "content": {
+        "label": "Vad som visas",
+        "hint": "Senast ändrad räknas vidare på själva skärmen: ”Nyss”, ”5 min sedan”, ”Igår”."
+      },
+      "auto_icon": "Automatisk (som i Home Assistant)",
+      "show": {
+        "label": "Visa",
+        "hint": "Endast när aktiv döljer objektet så länge det är av, stängt, borta eller 0. Praktiskt för en öppen dörr, en tvättmaskin som är igång eller vem som är hemma."
+      },
+      "clock_24": "24-timmarsklocka · ändra under {settings}",
+      "clock_12": "12-timmarsklocka · ändra under {settings}",
+      "clock_settings": "Inställningar → Språk och region",
+      "date_hint": "{date} i dag. Datumet följer skärmens egen klocka.",
+      "add": {
+        "title": "Lägg till i toppfältet",
+        "slots": "{used} av {n} plats använd | {used} av {n} platser använda",
+        "builtin": "Från själva skärmen",
+        "added": "Redan tillagd",
+        "suggestions": "Förslag från Home Assistant",
+        "entity": "En entitet",
+        "search": "Sök efter namn, rum eller entitet, t.ex. temperatur eller dörr",
+        "search_label": "Sök efter en entitet för toppfältet",
+        "none_found": "Inga entiteter hittades.",
+        "plugins": "Från pluginer"
+      },
+      "left_hint": "Rubrik och hemknapp: i sidinställningarna",
+      "wifi_sample": "Skärmens egen signal",
+      "link_sample": "Bara när Home Assistant eller Tessera är borta",
+      "battery_sample": "Skärmens eget batteri",
+      "wifi_hint": "Skärmen läser sin egen signal, så objektet stannar kvar i fältet när Home Assistant är borta. Fyra staplar ned till en, överstruken utan nätverk.",
+      "wifi_show_hint": "Bara när den är svag håller fältet tomt tills signalen sjunker till en stapel eller nätverket försvinner.",
+      "link_hint": "Visas bara medan Home Assistant eller Tessera är borta, så att du direkt ser varför värden saknas.",
+      "battery_hint": "Skärmen läser sitt eget batteri, så objektet stannar kvar i fältet när Home Assistant är borta. Ikonen följer nivån så som Home Assistant ritar den, med en blixt medan den laddar.",
+      "battery_show_hint": "Bara när det är lågt håller fältet tomt tills batteriet är på 20 % eller mindre.",
+      "status_firmware": "Objektet visas från firmware {version}. Fram till den uppdateringen utelämnar skärmen det.",
+      "plugin_item": "Visar vad dess plugin säger, bara medan den har något att säga. På en skärm utan den pluginen syns det inte.",
+      "left_move": "Flytta åt vänster",
+      "right_move": "Flytta åt höger",
+      "strip": {
+        "left_title": "Titel och hemknapp",
+        "left_hint": "Vänster sida · ställs in i inställningarna för {page}",
+        "place": "Objekt {place} av {count}",
+        "hint": "Tryck på ett objekt i fältet för att ställa in det. Dra det åt vänster eller höger för att flytta det, eller ut ur fältet för att ta bort det.",
+        "copy": "Kopiera fältet till andra sidor",
+        "copy_hint": "Dess objekt, eller hela fältet med titeln",
+        "page_settings": "Inställningar för {page}"
+      }
+    },
+    "screen_settings": {
+      "groups": {
+        "brightness": "Ljusstyrka",
+        "night": "Natt",
+        "screen": "Skärm",
+        "this_screen": "Den här skärmen"
+      },
+      "rows": {
+        "brightness": "Ljusstyrka",
+        "dark_mode": "Mörkt läge",
+        "standby_enabled": "Automatiskt viloläge",
+        "standby_seconds": "Viloläge efter",
+        "standby_brightness": "Ljusstyrka i viloläge",
+        "standby_lit": "Skärmen tänd i viloläge",
+        "night_enabled": "Nattläge",
+        "night_start": "Börjar",
+        "night_end": "Slutar",
+        "night_brightness": "Ljusstyrka på natten",
+        "night_lit": "Skärmen tänd på natten",
+        "auto_home": "Tillbaka till Hem",
+        "auto_home_seconds": "Efter",
+        "home_on_standby": "Även i viloläge",
+        "swipe_pages": "Svep mellan sidor",
+        "page_buttons": "Sidknappar",
+        "home_button": "Visa hemknapp",
+        "rotation": "Rotation"
+      },
+      "actions": {
+        "calibrate": {
+          "button": "Kalibrera pekskärm",
+          "hint": "Skärmen visar fem kors och väntar. Den som står framför den trycker tre gånger på varje kors.",
+          "confirm": "Starta kalibreringen på {name}?",
+          "done": "{name} visar korsen."
+        }
+      },
+      "duration": {
+        "seconds": "{n} sek",
+        "minutes": "{n} min",
+        "hours": "{n} tim",
+        "hours_minutes": "{h} tim {m}"
+      },
+      "time": {
+        "am": "{time} fm",
+        "pm": "{time} em"
+      },
+      "other_screen_busy": "Sparar fortfarande den andra skärmens inställningar. Försök igen om en stund.",
+      "reach": {
+        "pages": "sida {list} | sidorna {list}"
+      },
+      "status": {
+        "offline": "Skärmen är offline. Inställningarna kan ändras när den är tillbaka.",
+        "screen": "Ändringar gäller direkt på skärmen och visas här när de ändras där.",
+        "app": "Ändringar gäller direkt. Med firmware 0.2.49 sparar skärmen dem själv."
+      },
+      "unavailable": "Entiteten är avstängd i Home Assistant, eller så startar skärmen om.",
+      "lower": "{name} lägre",
+      "higher": "{name} högre",
+      "screensaver": {
+        "title": "Skärmsläckare",
+        "show": "Visa i viloläge",
+        "standby_off": "Slå på Automatiskt viloläge för att använda den.",
+        "needs_firmware": "Uppdatera skärmen till firmware {version} för att använda en skärmsläckare.",
+        "no_pictures": "Skärmen har inget minne för bilder, så den visar klockan.",
+        "lead": "Visar den första som är tillgänglig",
+        "use": "Använd {name}",
+        "kinds": {
+          "media": "Musik som spelas",
+          "photos": "Foton",
+          "camera": "Kamera",
+          "clock": "Klocka"
+        },
+        "summary": {
+          "media_none": "Ingen spelare än",
+          "camera_none": "Ingen kamera än",
+          "temperature": "Utomhustemperatur",
+          "time_date": "Tid och datum",
+          "off": "Av",
+          "photos_none": "Välj en mapp",
+          "plugin_gone": "Dess plugin finns inte på den här skärmen",
+          "plugin_entity": "Välj en entitet"
+        },
+        "on": "Visa på skärmsläckaren",
+        "place": "{n} av {count}",
+        "earlier": "Prova tidigare",
+        "later": "Prova senare",
+        "players_title": "Spelare",
+        "players": "Spelare, den första överst",
+        "players_hint": "Den första som spelar visas, med sitt omslag.",
+        "player_add": "Lägg till en spelare",
+        "player_search": "Sök spelare",
+        "player_none": "Ingen spelare matchar",
+        "remove_player": "Ta bort {name}",
+        "keys_hint": "Spela, pausa och volymen fungerar på skärmsläckaren. Ett tryck någon annanstans väcker skärmen.",
+        "choose_camera": "Välj en kamera",
+        "camera_hint": "Dess bild, var 15:e sekund",
+        "temperature": "Temperatur",
+        "weather_auto": "Automatiskt",
+        "weather_none": "Ingen temperatur",
+        "items_add": "Lägg till en entitet",
+        "items_hint": "Visas bredvid temperaturen, på en rad: en sensor, en dörr, en lampa.",
+        "items_full": "Klockan har plats för {n} entiteter.",
+        "items_already": "Den här finns redan på klockan.",
+        "items_removed": "{name} borttagen från klockan",
+        "items_title": "Klockans entiteter",
+        "items_slots": "{used} av {n}",
+        "item_text": "Text",
+        "item_icon": "Ikon",
+        "item_both": "Båda",
+        "item_look": "Visar",
+        "item_hint": "Svartvitt på skärmsläckaren, oavsett entitetens färg.",
+        "items_add_title": "Lägg till på klockan",
+        "clock_part": "Tid, datum och temperatur",
+        "row_hint": "Tryck på en entitet i raden för att ställa in den. Dra den åt vänster eller höger för att flytta den, eller ut ur raden för att ta bort den.",
+        "face": "Urtavla",
+        "faces": {
+          "digital": "Digital",
+          "glass": "Glas",
+          "classic": "Klassisk",
+          "bauhaus": "Bauhaus"
+        },
+        "look": "Utseende",
+        "look_dark": "Mörk",
+        "look_light": "Ljus",
+        "look_auto": "Skärmens",
+        "numerals": "Siffror",
+        "numerals_none": "Inga",
+        "seconds": "Sekundvisare",
+        "face_alone_hint": "Den här urtavlan visar bara tiden. Temperaturen och entiteterna visas på Klassisk och Digital.",
+        "face_moves_hint": "Urtavlan flyttar sig lite varje minut, och Bauhaus målar en ny bild var tionde minut, så inget står kvar på samma pixlar länge.",
+        "plugin_add": "Lägg till från pluginer",
+        "plugin_steps_full": "Plats för {n} plugin-steg",
+        "plugin_gone": "Dess plugin finns inte på den här skärmen, så steget visar ingenting. Lägg till pluginen igen eller ta bort steget.",
+        "plugin_entity_search": "Sök entiteter",
+        "plugin_entity_none": "Ingen entitet matchar",
+        "plugin_entity_choose": "Välj en entitet",
+        "plugin_entity_change": "Välj en annan entitet",
+        "face_standard": "Standard",
+        "photos_folder": "Mapp",
+        "photos_hint": "En mapp i Home Assistants media: en mapp under /media, Immich, Synology Photos.",
+        "photos_sources": "Media",
+        "photos_untitled": "Namnlös",
+        "photos_loading": "Laddar…",
+        "photos_failed": "Home Assistant kunde inte öppna mappen.",
+        "photos_here": "{n} foto här | {n} foton här",
+        "photos_none_here": "Inga foton direkt i den här mappen. Öppna en av dess mappar.",
+        "photos_empty": "Inget här.",
+        "photos_choose": "Välj den här mappen",
+        "photos_change": "Ändra",
+        "photos_show": "Bildspel",
+        "photos_every": "Var",
+        "photos_every_30": "30 s",
+        "photos_every_60": "1 min",
+        "photos_every_300": "5 min",
+        "photos_every_900": "15 min",
+        "photos_every_3600": "1 tim",
+        "photos_order": "Ordning",
+        "photos_order_shuffle": "Blanda",
+        "photos_order_in_order": "I ordning",
+        "photos_fit": "Anpassning",
+        "photos_fit_auto": "Auto",
+        "photos_fit_fill": "Fyll",
+        "photos_fit_whole": "Hela",
+        "photos_fit_auto_hint": "Ett foto med ungefär skärmens form fyller den. Andra visas hela, mot sin egen färg.",
+        "photos_fit_fill_hint": "Varje foto fyller skärmen, beskuret i kanterna.",
+        "photos_fit_whole_hint": "Varje foto visas helt, mot sin egen färg.",
+        "photos_motion": "Rörelse",
+        "photos_motion_still": "Stilla",
+        "photos_motion_slow": "Långsam",
+        "photos_motion_still_hint": "Varje foto står stilla.",
+        "photos_motion_slow_hint": "Ett foto som fyller glaset glider långsamt över det, en pixel i taget. 10-tumsskärmarna håller sina foton stilla: ett större foto får inte plats i deras minne."
+      },
+      "plugins": {
+        "title": "Pluginer",
+        "note": "Varje plugins inställningar finns i dess detaljer på fliken Pluginer."
+      },
+      "extras": {
+        "title": "Extra",
+        "note": "Inställningar som bara den här skärmen har, från dess kretskort. Samma strömbrytare finns på skärmens egen inställningssida och i Home Assistant."
+      }
+    },
+    "update": {
+      "starting": "Startar uppdatering…",
+      "building": "Bygger firmware…",
+      "writing": "Skriver firmware via Wi-Fi…",
+      "phases": {
+        "install": "Bygger och installerar…",
+        "verify": "Väntar på att skärmen ska komma tillbaka…",
+        "settle": "Kontrollerar att den förblir stabil…"
+      },
+      "new_language": "Nytt språk: {name}"
+    },
+    "settings": {
+      "updates": {
+        "auto_on": "Skärmarna uppdateras nu automatiskt på natten.",
+        "auto_off": "Automatiska uppdateringar är avstängda.",
+        "title": "Firmwareuppdateringar",
+        "busy": "Uppdaterar till firmware {version}…",
+        "no_screens": "Ingen skärm parkopplad än. Nya skärmar får firmware {version}.",
+        "available": "Firmware {version} finns för {n} skärm. | Firmware {version} finns för {n} skärmar.",
+        "current": "Alla skärmar har firmware {version}.",
+        "available_mixed": "En uppdatering finns för {n} skärm. | En uppdatering finns för {n} skärmar.",
+        "current_mixed": "Alla skärmar är uppdaterade.",
+        "all": "Uppdatera 1 skärm | Uppdatera alla {n} skärmar",
+        "whats_new": "Nyheter i firmware {version}",
+        "auto_label": "Uppdatera automatiskt varje natt",
+        "auto_hint": "Mellan 03:00 och 06:00, en skärm i taget. Stoppar vid fel och rapporterar det i Home Assistant.",
+        "reinstall_all": "Installera om 1 skärm från dev | Installera om alla {n} skärmar från dev",
+        "reinstall_all_hint": "Bygger senaste dev för varje skärm, en i taget, och installerar den över Wi-Fi. På dev är versionsnumret detsamma, så en ny dev erbjuds aldrig som uppdatering.",
+        "reinstall_all_confirm": "Installera om 1 skärm från senaste dev? Den startar om när firmwaren är på plats. | Installera om {n} skärmar från senaste dev? De byggs en i taget, och var och en startar om när firmwaren är på plats.",
+        "reinstall_all_go": "Installera om"
+      },
+      "claude": {
+        "installed": "Färdigheten är installerad. Claude Code hittar den direkt.",
+        "installed_restart": "Färdigheten är installerad. Starta om Claude Code en gång så att den hittar den nya mappen för färdigheter.",
+        "text": "Lär Claude om Tessera och fråga sedan: \"Visa en avisering på alla mina skärmar när brevlådan är full.\" Claude känner till aviseringshändelserna och varje fält, färg och ikon.",
+        "install": "Installera för Claude Code",
+        "install_again": "Installera igen",
+        "update": "Uppdatera färdigheten",
+        "not_installed": "Inte installerad",
+        "installed_chip": "● Installerad",
+        "newer": "Installerad · en nyare version finns",
+        "writes": "För Claude Code i Home Assistant. Skriver en fil till {path}. En ny installation ersätter den.",
+        "download": "Ladda ned för claude.ai",
+        "upload": "Ladda upp zip-filen i Claude under Customize → Skills."
+      },
+      "title": "Allt runt dina skärmar.",
+      "back": "← Mina skärmar",
+      "screens": {
+        "title": "Skärmar",
+        "text": "Lägg till en skärm, eller bygg och installera om firmware på en du redan har.",
+        "firmware_detail": "Bygg och installera via USB eller Wi-Fi"
+      },
+      "language": {
+        "title": "Språk och region",
+        "screen_language": "Skärmspråk",
+        "auto": "Home Assistants språk ({name})",
+        "auto_plain": "Home Assistants språk",
+        "ha_missing": "Skärmarna använder engelska tills Home Assistants språk finns.",
+        "unchecked": "{name} · inte granskad än, hjälp välkomnas",
+        "help": "{name} är inte granskad än, hjälp välkomnas: {guide}",
+        "guide": "så översätter du",
+        "update_hint": "Efter en ändring behöver varje skärm en firmwareuppdatering, ett bygge per skärm: med dess Uppdatera-knapp eller i de nattliga uppdateringarna.",
+        "time": "Tidsformat",
+        "time_auto": "Automatiskt, följer språket ({clock})",
+        "clock_24": "24 timmar",
+        "clock_12": "12 timmar",
+        "numbers": "Talformat",
+        "numbers_auto": "Automatiskt, följer språket ({example})",
+        "profile": "Din Home Assistant-profil: {formats}",
+        "use_profile": "Använd dessa",
+        "editor_hint": "Själva redigeraren följer språket i din Home Assistant-profil.",
+        "saved": "Sparat.",
+        "saved_language": "Sparat. Varje skärm får det nya språket vid nästa uppdatering."
+      },
+      "alerts": {
+        "text": "Ett kort över hela skärmen från en automatisering, på en skärm eller på alla. Lathunden har åtgärdsnamn, fält, ikoner och färger, och ett formulär för att prova.",
+        "detail": "Aviseringar i helskärm, från en automatisering"
+      },
+      "build_server": {
+        "title": "Byggserver",
+        "intro": "Bygg firmware på en snabbare dator. Tessera skickar skärmens YAML till en ESPHome-byggserver och installerar det som kommer tillbaka. När servern inte kan byggs det här som tidigare.",
+        "connect": "Anslut en byggserver",
+        "how_title": "Så startar du en byggserver",
+        "how_desktop": "ESPHome Desktop på en dator: den bygger åt andra enheter från början.",
+        "how_builder": "ESPHome Device Builder: Settings → Build server → Enable remote build.",
+        "how_headless": "På en server utan skärm: kör {command} och använd nyckeln den skriver ut.",
+        "how_link": "Mer om byggservrar",
+        "address": "Adress",
+        "address_hint": "Datorns IP-adress eller värdnamn. Home Assistant-appar kan inte leta efter den på nätverket.",
+        "port": "Port",
+        "look_up": "Slå upp den",
+        "looking": "Letar…",
+        "check_title": "Är det här din byggserver?",
+        "check_text": "{name} · ESPHome {version}",
+        "check_hint": "Byggservern visar sitt fingeravtryck där du slog på byggande åt andra enheter, eller i fönstret där du startade den. Parkoppla bara när de här emojierna stämmer.",
+        "server_emoji": "Dess fingeravtryck",
+        "own_emoji": "Tesseras fingeravtryck",
+        "own_emoji_hint": "Byggservern visar de här när du godkänner Tessera.",
+        "key": "Parkopplingsnyckel",
+        "key_hint": "Nyckeln byggservern skrev ut när den startade, som ABCD-EFGH-JKLM-NPQR. Den fungerar en gång.",
+        "pair": "De stämmer, parkoppla",
+        "pairing": "Parkopplar…",
+        "back": "Tillbaka",
+        "cancel": "Avbryt",
+        "wait_title": "Godkänn Tessera på {name}",
+        "wait_text": "Öppna Parkopplingsförfrågningar på byggservern, kontrollera att den visar de här emojierna för Tessera och godkänn den.",
+        "paired": "Parkopplad med {name}. Skärmar byggs där från och med nu.",
+        "status": {
+          "connecting": "Ansluter…",
+          "online": "Redo",
+          "busy": "Upptagen med ett annat bygge",
+          "offline": "Går inte att nå",
+          "pending": "Väntar på att du godkänner",
+          "refused": "Inte längre parkopplad",
+          "mismatch": "Fingeravtrycket har ändrats"
+        },
+        "offline_text": "Byggen körs här tills den är tillbaka.",
+        "refused_text": "{name} känner inte längre till Tessera, eller så godkände ingen den i tid. Parkoppla den igen för att bygga där.",
+        "mismatch_text": "{name} svarade med ett annat fingeravtryck än det du kontrollerade. Om du har installerat om den, parkoppla den igen.",
+        "send": "Bygg skärmar på den här servern",
+        "send_hint": "Av, eller när servern inte går att nå: byggen körs här.",
+        "version_same": "Bygger med ESPHome {version}, samma som Tessera.",
+        "version_other": "Bygger med ESPHome {ours}, som Tessera använder. Servern installerar den en gång, bredvid sin egen {theirs}.",
+        "building": "Bygger {file} · {step}",
+        "last_server": "Senaste bygge: {file} på den här servern på {time}.",
+        "last_here": "Senaste bygge: {file} kördes här, {reason}.",
+        "last_failed": "Senaste bygge: {file} misslyckades på den här servern. Loggen säger varför.",
+        "minutes": "{m} min {s} s",
+        "seconds": "{s} s",
+        "pair_again": "Parkoppla igen",
+        "forget": "Glöm",
+        "forget_confirm": "Glömma {name}? Skärmar byggs här igen. För att ta bort Tessera även där, ta bort den från byggserverns parkopplade enheter.",
+        "forget_go": "Glöm",
+        "unavailable": "Den här Tessera kan inte prata med en byggserver."
+      }
+    },
+    "firmware": {
+      "title": "Bygg och installera skärmfirmware",
+      "intro": "Den inbyggda ESPHome CLI använder din egen profil (YAML med nycklar) och dina secrets. Välj skärmens profil och sedan en USB-port (skärmen ansluten till datorn som kör Home Assistant), {ota} med värdnamnet, eller {download} för att föra över firmware till skärmen från din egen dator. {check} validerar bara, {build} kompilerar, {install} för över firmware till skärmen. Dina rutor ligger kvar som de är i Tessera. Bygget kan ta 20 minuter eller mer på en Home Assistant-dator som en Raspberry Pi, särskilt första gången. Det är normalt.",
+      "ota": "Wi-Fi / OTA",
+      "download": "Ladda ned",
+      "check": "Kontrollera",
+      "build": "Bara bygg",
+      "install": "Bygg och installera",
+      "build_download": "Bygg och ladda ned",
+      "no_cli": "ESPHome CLI saknas. Uppdatera appen till 0.2.0.",
+      "choose": "Välj profilen och sedan en USB-port, en IP-adress eller Ladda ned.",
+      "profile": "ESPHome-profil",
+      "install_to": "Installera på",
+      "no_board": "Ingen skärm ansluten där än",
+      "download_target": "Ladda ned filen och installera den själv",
+      "host": "IP-adress eller värdnamn",
+      "download_file": "Ladda ned {name}",
+      "download_how": "För över den till skärmen med {esphome_web} i Chrome eller Edge: Connect, välj skärmens USB-port, Install, och välj den här filen. Den innehåller ditt Wi-Fi-lösenord och skärmens nycklar, så dela den inte med någon.",
+      "waiting": "väntar på sin tur, 1 bygge före | väntar på sin tur, {n} byggen före"
+    },
+    "installer": {
+      "board": "Vilken skärm har du?",
+      "board_title": "{name} · {inch} tum",
+      "status": {
+        "new": "Ny",
+        "experimental": "Experimentell"
+      },
+      "status_hint": {
+        "new": "Ny: hittills provad på bara några få skärmar. Berätta hur det går.",
+        "experimental": "Experimentell: ännu inte provad på den här hårdvaran. Berätta hur det går."
+      },
+      "abilities": {
+        "camera": "Kamerabilder",
+        "no_camera": "Inga kamerabilder",
+        "dimming": "Dimbar bakgrundsbelysning",
+        "no_dimming": "Bakgrundsbelysningen alltid på",
+        "standby": "Viloläge och natt",
+        "no_standby": "Inget viloläge",
+        "tiles": "Upp till {n} rutor på {pages} sidor",
+        "calibration": "Pekkalibrering vid första start"
+      },
+      "choice": {
+        "DISPLAY_MODEL": "Skärmkontroller"
+      },
+      "choice_hint": {
+        "DISPLAY_MODEL": "De flesta av de här kretskorten har den första. Välj den andra om skärmen visar brus eller en förvrängd bild."
+      },
+      "choice_usual": "de flesta kretskort",
+      "orientation_landscape": "Liggande",
+      "orientation_portrait": "Stående",
+      "name": "Namn",
+      "name_placeholder": "Skärm i vardagsrummet",
+      "device_name": "Enhetsnamn",
+      "name_hint": "Varje skärm får en egen profil med egna nycklar. Fyra skärmar? Gå igenom det här fyra gånger med olika namn.",
+      "name_taken": "En annan skärm heter redan så. Home Assistant skulle numrera den här skärmens entitetsnamn, så automatiseringar skulle peka på fel skärm.",
+      "device_name_hint": "Gemener, siffror och bindestreck. Ett eget namn för varje skärm.",
+      "node_taken": "En annan skärm har redan det här enhetsnamnet. Home Assistant kan inte skilja två enheter med samma namn åt.",
+      "wifi": {
+        "title": "Wi-Fi",
+        "ssid": "Wi-Fi-namn (2,4 GHz)",
+        "password": "Wi-Fi-lösenord",
+        "new": "Fyll i en gång: Tessera sparar det i ESPHomes secrets.yaml, och senare skärmar använder det automatiskt.",
+        "missing": "Din secrets.yaml i ESPHome saknar fortfarande Wi-Fi-uppgifter. Tessera fyller bara i de rader som saknas.",
+        "ready": "Wi-Fi hämtas från din secrets.yaml i ESPHome.",
+        "invalid": "secrets.yaml i ESPHome-mappen är inte giltig YAML. Rätta filen först, den skrivs inte över.",
+        "other": "Ett annat nätverk",
+        "other_note": "Alla skärmar byggs med det här Wi-Fi-nätverket, så skärmar du redan har får det vid nästa uppdatering."
+      },
+      "install_via": "Installera via",
+      "target": {
+        "usb": "Anslut skärmen till Home Assistant-datorn med en USB-kabel för data, så dyker den upp här av sig själv. Är den ansluten till datorn du använder nu? Välj Från den här datorn.",
+        "download": "Ladda ned firmware och för över den till skärmen från din egen dator, i Chrome eller Edge. Därefter sker uppdateringar via Wi-Fi.",
+        "later": "Profilen läggs i ESPHome-mappen. Du kan installera senare via Firmware & USB eller från ESPHome Device Builder.",
+        "several": "Fler än ett kretskort är anslutna: välj den här skärmens port.",
+        "once": "En gång via USB, därefter sker allt trådlöst."
+      },
+      "install": "Installera",
+      "save_profile": "Spara profil",
+      "no_cli": "ESPHome CLI saknas i den här installationen, så det går bara att spara profilen.",
+      "progress": {
+        "saved": "{file} finns i ESPHome-mappen",
+        "writing": "Skriver firmware till {name}…",
+        "building": "Bygger firmware…",
+        "ready": "Firmware för {name} är klar",
+        "installed": "Firmware finns på {name}",
+        "build_failed": "Bygget misslyckades",
+        "install_failed": "Installationen misslyckades",
+        "waiting": "Väntar på sin tur…"
+      },
+      "detail": {
+        "saved": "Installera senare från Firmware & USB: välj profilen och sedan USB-porten på Home Assistant-datorn, eller Ladda ned för att föra över firmware till skärmen från din egen dator. Spara API-nyckeln för parkopplingen:",
+        "uploading": "Koppla inte ur USB-kabeln än.",
+        "building": "Bygget kan ta 20 minuter eller mer på en Home Assistant-dator som en Raspberry Pi, särskilt första gången. Det är normalt. Du kan lämna sidan: installationen fortsätter och du hittar den igen under Ny skärm.",
+        "building_download": "Bygget kan ta 20 minuter eller mer på en Home Assistant-dator som en Raspberry Pi, särskilt första gången. Det är normalt. Du kan lämna sidan: bygget fortsätter och du hittar det igen under Ny skärm.",
+        "downloaded": "För över den till skärmen från din egen dator. Den visas här när den är på ditt Wi-Fi.",
+        "booted": "Skärmen startar, ansluter till ditt Wi-Fi och ansluter till Home Assistant av sig själv.",
+        "booted_calibrate": "Skärmen startar och ansluter till ditt Wi-Fi. Först ber den om en kalibrering av pekskärmen: tryck på hårkorsen. Sedan ansluter den till Home Assistant av sig själv.",
+        "see_log": "Se loggen nedan.",
+        "waiting": "1 bygge går först. Det här startar av sig självt direkt efter, och du kan lämna sidan. | {n} byggen går först. Det här startar av sig självt direkt efter dem, och du kan lämna sidan.",
+        "waiting_browser": "1 bygge går först. Det här startar av sig självt direkt efter. Håll sidan öppen: den skriver till skärmen så fort firmwaren är byggd. | {n} byggen går först. Det här startar av sig självt direkt efter dem. Håll sidan öppen: den skriver till skärmen så fort firmwaren är byggd."
+      },
+      "download_steps": {
+        "plug": "{bold} med en USB-kabel för data.",
+        "plug_bold": "Anslut skärmen till din dator",
+        "open": "{bold} i Chrome eller Edge, klicka på Connect och välj skärmens USB-port.",
+        "open_bold": "Öppna {esphome_web}",
+        "install": "{bold} och välj {file}. Skärmen startar om och ansluter till ditt Wi-Fi.",
+        "install_calibrate": "{bold} och välj {file}. Skärmen startar om och ansluter till ditt Wi-Fi. Först ber den om en pekkalibrering: tryck på hårkorsen.",
+        "install_bold": "Klicka på Install"
+      },
+      "download_keep": "Filen innehåller ditt Wi-Fi-lösenord och skärmens nycklar, så dela den inte med någon.",
+      "api_key": "API-nyckel",
+      "pairing": {
+        "ha": "{bold} Home Assistant listar {name} som en upptäckt ESPHome-enhet, klicka på Lägg till. Inte upptäckt? Lägg till ESPHome manuellt med skärmens IP-adress.",
+        "ha_bold": "Gå till Home Assistant → Inställningar → Enheter och tjänster.",
+        "key": "{bold} nedan om Home Assistant ber om en krypteringsnyckel.",
+        "key_bold": "Klistra in API-nyckeln",
+        "actions": "{bold} ESPHome-integrationen → Konfigurera → ”Tillåt att enheten får utföra åtgärder i Home Assistant”. Utan det ser skärmen allt men styr ingenting.",
+        "actions_bold": "Tillåt HA-åtgärder:",
+        "tiles": "{bold} Tillbaka i Tessera dyker skärmen upp i listan till vänster inom ungefär trettio sekunder. Till dess visas den där som ”inte i Home Assistant än”.",
+        "tiles_bold": "Välj dina rutor."
+      },
+      "retry": "Försök igen",
+      "another": "Installera en till skärm",
+      "start_over": "Börja om",
+      "done": "Klar",
+      "key_more": "Visa API-nyckeln",
+      "steps": {
+        "board": "Skärm",
+        "setup": "Ställ in",
+        "install": "Installera"
+      },
+      "pick_title": "Vilken skärm har du?",
+      "pick_intro": "Välj ditt kretskort. Sök efter märke, storlek eller det som står tryckt på det.",
+      "search": "Sök efter märke, storlek eller modell",
+      "sizes": {
+        "all": "Alla",
+        "small": "Upp till 4 tum",
+        "medium": "4 till 6 tum",
+        "large": "7 tum och större"
+      },
+      "none_found": "Ingen skärm matchar ”{query}”.",
+      "try_virtual": "Ingen skärm än? Prova en förhandsvisningsskärm",
+      "setup_title": "Gör den till din",
+      "install_title": "Hur vill du installera den?",
+      "next": "Nästa",
+      "advanced": "Avancerat",
+      "ways": {
+        "ha_title": "USB på Home Assistant",
+        "ha_found": "Hittad: {port}",
+        "ha_waiting": "Anslut skärmen till datorn som kör Home Assistant",
+        "browser_title": "Från den här datorn",
+        "browser_detail": "Chrome eller Edge, med skärmen i den här datorns USB",
+        "download_title": "Ladda ned filen",
+        "download_detail": "För över den till skärmen själv med ESPHome Web",
+        "later_title": "Senare",
+        "later_detail": "Spara bara inställningarna tills vidare"
+      },
+      "steps_done": {
+        "prepare": "Förbereder",
+        "build": "Bygger firmware",
+        "write": "För över till skärmen",
+        "restart": "Startar",
+        "done": "Klart",
+        "download": "Klar att laddas ned"
+      },
+      "elapsed": "{time} hittills",
+      "show_log": "Visa detaljer",
+      "hide_log": "Dölj detaljer",
+      "next_title": "Vad händer nu",
+      "model": "Vilken modell är det?",
+      "model_hint": "Står tryckt på kretskortets baksida. De ser likadana ut, men var och en behöver sin egen firmware.",
+      "models": "{n} modell | {n} modeller",
+      "arrive": {
+        "waiting": "Väntar på att {name} ska ansluta till ditt Wi-Fi...",
+        "seen": "{name} är på ditt Wi-Fi. Gör den redo...",
+        "paired": "{name} är parkopplad med Home Assistant.",
+        "missing": "{name} är inte ansluten till ditt Wi-Fi än",
+        "hotspot": "Titta på skärmen: den visar en surfzon och dess lösenord. Anslut till den med telefonen och välj rätt Wi-Fi där. Eller ange rätt Wi-Fi här och installera igen.",
+        "no_hotspot": "Wi-Fi-namnet eller lösenordet är troligen fel. Ange rätt Wi-Fi här och installera igen, med skärmen fortfarande ansluten med kabeln.",
+        "change": "Ändra Wi-Fi och installera igen",
+        "failed": "Tessera kan inte lägga till {name} i Home Assistant själv. Lägg till den själv nedan."
+      },
+      "memory": {
+        "low_title": "Lite ledigt minne på Home Assistant-maskinen",
+        "low": "{free} minne är ledigt, så firmwaren byggs med färre kompilatorer i taget ({jobs} i stället för {cores}). Det tar längre tid, men det får plats.",
+        "tight_title": "Home Assistant-maskinen kan ha ont om minne",
+        "tight": "Att bygga firmwaren kräver ungefär {need} ledigt minne och {free} är ledigt. Den försöker med en kompilator i taget. Om bygget stannar, stoppa några tillägg en stund eller ge maskinen mer minne och försök igen.",
+        "retry_title": "Bygget fick slut på minne och fortsätter med en kompilator",
+        "retry": "Systemet stoppade kompilatorn eftersom minnet tog slut ({free} var ledigt när bygget började). Bygget fortsätter med en kompilator i taget, från där det stannade. Det tar längre tid, men det får plats.",
+        "out_title": "Inte tillräckligt med minne för att bygga firmwaren",
+        "out": "Att bygga firmwaren kräver ungefär {need} ledigt minne och den här Home Assistant-maskinen har {free}. Stoppa några tillägg en stund eller ge maskinen mer minne och försök sedan igen.",
+        "limit_title": "Inte tillräckligt med minne för att bygga firmwaren",
+        "limit": "Bygget fick slut på minne, även med en kompilator i taget. Stoppa några tillägg en stund eller ge maskinen mer minne och försök sedan igen."
+      },
+      "pair_yourself": "Lägg till den i Home Assistant själv",
+      "grid": "Rutnät",
+      "grid_hint": "Det föreslagna rutnätet är det bästa för den här skärmen. Du kan ändra det, och åt vilket håll den hänger, senare bredvid sidorna i redigeraren, utan ett nytt bygge.",
+      "grid_best": "Tillbaka till det bästa",
+      "waits_turn": "En annan skärm byggs just nu. Den här väntar på sin tur och startar av sig själv direkt efter."
+    },
+    "alerts": {
+      "eyebrow": "Aviseringar · lathund",
+      "title": "En avisering i helskärm, från en automatisering.",
+      "intro": "Varje skärm har åtgärden {action}. Den lägger ett kort över allt, väcker skärmen och håller bakgrundsbelysningen på normal ljusstyrka tills någon trycker på knappen eller tidsgränsen löper ut. Home Assistant visar inga förklaringar eller listor för ESPHome-åtgärder, så allt du kan fylla i finns här.",
+      "loading": "Lathunden laddas fortfarande, ett ögonblick.",
+      "example": {
+        "title": "Någon står vid dörren",
+        "subtitle": "Dörr 3, baksidan",
+        "button": "Kommer"
+      },
+      "sections": "Avsnitt",
+      "nav": {
+        "try": "Prova",
+        "screens": "Dina skärmar",
+        "howto": "I en automatisering",
+        "all": "Alla skärmar",
+        "fields": "Fälten",
+        "icons": "Ikoner",
+        "colors": "Färger",
+        "behaviour": "Beteende",
+        "events": "Händelser",
+        "tips": "Tips",
+        "one": "En skärm",
+        "choice": "Två knappar"
+      },
+      "try": {
+        "text": "Skicka en avisering nu, med samma fält som en automatisering skickar. Skärmen visar kortet och blinkar med bakgrundsbelysningen om blinkning är på.",
+        "screen": "Skärm",
+        "all": "Alla skärmar ({ready} redo)",
+        "not_ready": "{name} · inte redo",
+        "title": "Rubrik",
+        "subtitle": "Underrubrik",
+        "icon": "Ikon",
+        "color": "Färg",
+        "button": "Knapptext",
+        "timeout": "Tidsgräns (sekunder, 0 väntar på knappen)",
+        "flash": "Blinka med bakgrundsbelysningen",
+        "flash_hint": "Fyra gånger när aviseringen kommer.",
+        "sending": "Skickar…",
+        "send": "Skicka avisering",
+        "sent_all": "Skickad till {n} skärm. | Skickad till {n} skärmar.",
+        "sent_to": "Skickad till {name}.",
+        "sent_one": "Skickad till skärmen.",
+        "skipped": "1 hoppades över (offline eller gammal firmware). | {n} hoppades över (offline eller gammal firmware).",
+        "left_empty": "Lämnades tomma: {fields}.",
+        "nothing": "Ingen skärm kunde visa den: kontrollera att en skärm är online med firmware {version} eller senare."
+      },
+      "white": "Vit (standard)",
+      "screens": {
+        "text": "Varje skärm har en egen åtgärd, med enhetsnamnet i. Från firmware {version}. Uppdatera en äldre skärm med dess Uppdatera-knapp under Skärmar.",
+        "none": "Ingen skärm parkopplad än. Installera en via Ny skärm. Åtgärden visas när Home Assistant ser skärmen.",
+        "ready": "● firmware {version}",
+        "update": "Uppdatering behövs · firmware {version}",
+        "unknown": "Enhetsnamnet är okänt · uppdatera skärmen",
+        "show": "Visa avisering",
+        "dismiss": "Stäng avisering"
+      },
+      "howto": {
+        "add": "{add} och sök efter {esphome}. Välj skärmens åtgärd: Home Assistant kallar den ”Utför åtgärden show_alert för noden {device}”.",
+        "add_bold": "Lägg till åtgärd",
+        "device": "enhetsnamn",
+        "fields": "{bold} Home Assistant frågar efter alla sju. Lämna det du inte använder tomt ({empty}, {zero}, av).",
+        "fields_bold": "Fyll i fälten.",
+        "yaml": "Föredrar du YAML? Välj {edit} på åtgärden och klistra in exemplet nedan.",
+        "example_for": "Exempel för",
+        "no_screen": "en skärm (inte parkopplad än)"
+      },
+      "edit_yaml": "Redigera i YAML",
+      "copy_yaml": "Kopiera YAML",
+      "all": {
+        "title": "Alla skärmar på en gång",
+        "text": "Skicka händelsen {show} med samma fält, så skickar Tessera aviseringen vidare till alla skärmar som är online, även skärmar du lägger till senare. {dismiss} tar bort den överallt. I en automatisering lägger du till åtgärden {event} eller klistrar in exemplet under {edit}. Utelämna fälten du inte använder. Tessera måste vara igång för detta.",
+        "event": "Utlös manuell händelse"
+      },
+      "fields": {
+        "text": "Texten är fri. Gränsen räknas i byte, och en bokstav med accent eller prick (å, ä, ö) räknas som två. Det som inte får plats kortas av med tre punkter (rubrik) eller utelämnas (underrubrik).",
+        "field": "Fält",
+        "type": "Typ",
+        "what": "Vad det gör",
+        "example": "Exempel",
+        "limit": "Gräns",
+        "types": {
+          "string": "text",
+          "int": "tal",
+          "bool": "på / av",
+          "entity": "entitet"
+        },
+        "bytes": "{limits} byte",
+        "seconds": "0 till 86400 s",
+        "camera_limit": "Alla skärmar utom CYD, firmware 0.2.57+",
+        "screen_limit": "App 0.2.133+"
+      },
+      "icons": {
+        "text": "Fyll i namnet i {field}, till exempel {example}. {mdi} och den hexadecimala kodpunkten ({hex}) fungerar också. Bara de här ikonerna finns i firmware, och alla andra namn visar varningstriangeln. Tryck på en ikon för att kopiera namnet.",
+        "handy": "Praktiska för aviseringar",
+        "search_label": "Sök efter en ikon",
+        "search": "Sök efter namn eller beskrivning…",
+        "extra": "Finns också: kontroll- och väderikoner",
+        "copy": "Kopiera {name}",
+        "none": "Ingen ikon för \"{query}\". Okända namn visar varningstriangeln ({fallback})."
+      },
+      "colors": {
+        "text": "Fyll i namnet i {field}. Det här är rutornas pastellfärger, med mörk text. Tomt eller okänt ger det vita kortet. Tryck för att kopiera."
+      },
+      "behaviour": {
+        "wakes": "{bold} En avisering väcker direkt en nedtonad eller släckt skärm och visas ovanför alla sidor, alla öppna lampkort och vilolägets lager.",
+        "wakes_bold": "Väcker skärmen.",
+        "on": "{bold} Så länge kortet visas förblir bakgrundsbelysningen på normal ljusstyrka. Viloläge och nattläge får vänta. Efter knappen börjar den vanliga tiden till viloläge om.",
+        "on_bold": "Tänd tills knappen trycks.",
+        "timeout": "{bold} {zero} väntar på knappen, hur länge det än dröjer. Med {minute} försvinner kortet efter en minut, men knappen stänger det tidigare.",
+        "timeout_bold": "Tidsgräns.",
+        "blinking": "{bold} {flash} blinkar med bakgrundsbelysningen fyra gånger när aviseringen kommer (ungefär en sekund) och låter sedan skärmen vara tänd.",
+        "blinking_bold": "Blinkning.",
+        "replacing": "{bold} En ny avisering ersätter den nuvarande, de staplas inte. Den ersatta aviseringen rapporterar sig som {replaced}.",
+        "replacing_bold": "Ersättning.",
+        "closing": "{bold} {dismiss} tar bort kortet, till exempel om dörren redan är öppnad. Utan avisering gör åtgärden ingenting.",
+        "closing_bold": "Stänga på distans.",
+        "beside": "{bold} gör ingenting, bara knappen stänger det. Så stänger ett tryck för att väcka skärmen aldrig aviseringen av misstag.",
+        "beside_bold": "Ett tryck bredvid kortet"
+      },
+      "events": {
+        "text": "Varje avslut skickar händelsen {event} med {action}, {title}, {screen} (enhetsnamnet) och {device_id} som Home Assistant lägger till. Syns under Inställningar → Verktyg → Händelser.",
+        "when": "När",
+        "wait": "Väntar tills någon trycker på knappen"
+      },
+      "tips": {
+        "color": "Använd en {bold}: orange för dörren, rött för rök eller vatten, grönt för \"klart\". Texten förblir alltid mörk och läsbar.",
+        "color_bold": "färg per typ av avisering",
+        "short": "Håll rubriken {bold}. En skärm visar ungefär tjugo tecken på en rad och kortar av en längre rubrik med tre punkter. Lägg detaljer i underrubriken.",
+        "short_bold": "kort",
+        "button": "En {bold} gör aviseringen till en fråga: \"Kommer\", \"Sett\", \"Stäng av\". Händelsen talar sedan om vem som svarade.",
+        "button_bold": "egen knapptext",
+        "resolve": "En avisering som löser sig själv (dörren öppnas, tvätten tas ur) stänger du i samma automatisering med {dismiss}.",
+        "every": "Alla skärmar? Skicka {event} en gång (se Alla skärmar på en gång). Skärmarna fungerar ändå var för sig, och var och en rapporterar med sin egen {screen}.",
+        "claude": "Vill du hellre {bold} om automatiseringen? Installera Tessera-färdigheten under Inställningar → Claude.",
+        "claude_bold": "fråga Claude"
+      },
+      "wait_yaml": {
+        "comment": "Dörrklocka: visa aviseringen och vänta tills någon trycker på knappen.",
+        "message": "Någon kommer till dörren."
+      },
+      "one": {
+        "title": "En skärm, med kamera eller knappåtgärd",
+        "text": "Lägg till {screen} i samma händelse så får bara den skärmen aviseringen. Så visar en enskild skärm en bild från {camera} eller kör en {action} från knappen: skärmens egen åtgärd har inga fält för det. Efter {screen} kommer ett av värdena i listan nedan.",
+        "more": "Några skärmar? Ange en lista, till exempel {list}. Ett rum fungerar också och når alla skärmar i rummet. Ett namn som inte matchar någon skärm skickar ingenting, och loggen för Tessera Screen Manager visar då vilka skärmar den känner till.",
+        "value": "Efter screen:",
+        "name": "Namn i Home Assistant",
+        "room": "Rum",
+        "picture": "Kamerabild",
+        "picture_yes": "Ja",
+        "picture_no": "Nej, aviseringen kommer utan bild",
+        "none": "Inga skärmar parkopplade än. När en skärm är parkopplad visas här vad du ska fylla i för den."
+      },
+      "choice": {
+        "title": "Två knappar och knappfärger",
+        "text": "Lägg till {second} för en andra knapp till vänster om den första, så att den som står vid skärmen kan välja, till exempel Inte nu och Öppna. {first_color} och {second_color} ger en knapp en egen färg, grönt för ja och rött för nej. Du väljer själv vilket svar som hamnar på vilken sida: den första knappen är alltid till höger.",
+        "event": "Via händelsen är alla de här fälten valfria, och {second_action} med {second_data} kör en åtgärd från den andra knappen, som {action} gör från den första. En skärm med firmware äldre än {version} visar aviseringen med en knapp.",
+        "direct": "Anropar du en skärm direkt? Dess åtgärd {choice} tar fälten från show_alert plus de här tre. Den andra knappen avslutar aviseringen med {ending}."
+      }
+    },
+    "override": {
+      "eyebrow": "Avancerat · lokal åsidosättning",
+      "title": "YAML-åsidosättning",
+      "title_named": "YAML-åsidosättning · {name}",
+      "intro": "Den här lilla filen är din. Den läses in efter det gemensamma skärmpaketet och ligger kvar när Tessera uppdateras. Ändra hårdvaruspecifika detaljer här, till exempel en skärmmodell.",
+      "safe_title": "Vad är säkert att ändra?",
+      "safe_text": "Skärm, pekskärm, substitutions, pinnar och andra enhetsdetaljer. Namn, Wi-Fi, API, OTA och paketlänkar fortsätter att hanteras.",
+      "active": "Aktiv",
+      "ready": "Redo att kopplas in",
+      "editor_label": "YAML för lokal åsidosättning",
+      "use_example": "Använd exempel",
+      "clear": "Rensa",
+      "characters": "1 tecken | {n} tecken",
+      "lines": "1 rad | {n} rader",
+      "save_check": "Spara och kontrollera",
+      "save": "Spara åsidosättning",
+      "no_profile": "Ingen ESPHome-profil hittades för skärmen.",
+      "attached": "Ändringar här gäller från nästa bygge.",
+      "not_attached": "Spara en gång för att koppla filen till profilen.",
+      "saving": "Kontrollerar och sparar…",
+      "saved": "Sparat. Åsidosättningen behålls vid firmwareuppdateringar.",
+      "saved_toast": "YAML-åsidosättningen sparad.",
+      "checking": "Sparat. ESPHome kontrollerar hela profilen…",
+      "checking_profile": "ESPHome kontrollerar profilen…",
+      "checking_stage": "ESPHome kontrollerar profilen… {stage}",
+      "valid": "Hela profilen är giltig. Säker att bygga och installera.",
+      "rejected": "ESPHome godkände inte profilen. Se Firmware & USB för hela loggen.",
+      "confirm_example": "Ersätta den nuvarande texten med exemplet?",
+      "example_loaded": "Exemplet inläst. Spara när du är redo.",
+      "confirm_clear": "Rensa den lokala åsidosättningen?",
+      "cleared": "Åsidosättningen blir tom när du sparar.",
+      "checking_waits": "Väntar på bygget som körs nu, kontrollerar sedan…"
+    },
+    "mockup": {
+      "home": "Hem",
+      "unknown": "Okänd",
+      "calendar_free": "Ledig"
+    },
+    "pages": {
+      "mode": "Redigeringsläge",
+      "simple": "Enkel",
+      "advanced": "Avancerad",
+      "redo": "Gör om",
+      "title": "Sidrubrik",
+      "title_hint": "Lämna tomt för att använda skärmens rubrik.",
+      "is_home": "Startsida",
+      "set_home": "Ange som Hem",
+      "drag_home": "Startsida. Dra till en annan sida för att flytta Hem.",
+      "include_navigation": "Visa i sidprickarna och svepnavigeringen",
+      "migration_dropped": "{count} rutor kunde inte föras över: {names}. Den ursprungliga layouten finns kvar i screens.v1.backup.json.",
+      "dismiss_migration": "Stäng meddelandet",
+      "start_fresh": "Börja om från början för skärmen",
+      "start_fresh_confirm": "Börja med en tom sida på skärmen? Den ursprungliga layouten finns kvar i säkerhetskopian från migreringen. Andra skärmar ändras inte.",
+      "offline_notice": "Väntar på att skärmen ska återansluta. Redigeringen utgår från dess senast bekräftade funktioner.",
+      "include_navigation_hint": "När det är av öppnar direktlänkar fortfarande sidan. Tillbaka visas i det nedre fältet, eller ersätter Hem när fältet är dolt.",
+      "dock_picture": "Bild av sidan",
+      "in_dock": "I dockan",
+      "in_dock_hint": "Dockan öppnas med ett svep uppåt från nederkanten och visar alla sidor att hoppa till.",
+      "dock_mode_picture": "Bild",
+      "dock_mode_icon": "Ikon",
+      "dock_mode_hidden": "Dold",
+      "dock_hint_picture": "Dockan visar en liten bild av sidan.",
+      "dock_hint_icon": "Dockan visar den här ikonen för sidan i stället för dess bild.",
+      "dock_hint_hidden": "Sidan finns kvar i svep och sidprickar, bara dockan utelämnar den.",
+      "wizard_home": "Hemknapp",
+      "home_control": "Visa en hemknapp på sidan",
+      "clock_control": "Tid",
+      "edit_topbar": "Redigera sidans toppfält",
+      "order": "Sidordning",
+      "order_hint": "Kommandon som visar en sida via nummer följer den här ordningen. Namngivna sidlänkar behåller sitt mål.",
+      "map_position": "Position på kartan",
+      "left": "Flytta vänster",
+      "up": "Flytta upp",
+      "down": "Flytta ned",
+      "right": "Flytta höger",
+      "routes": "Sidkopplingar",
+      "no_routes": "Inga navigeringsrutor leder till eller från sidan.",
+      "edit_page": "Redigera sida",
+      "copy_conflict": "En fullständig kopia skulle duplicera entiteter som redan finns på skärmen. Du kan skapa en tom sida med samma toppfält.",
+      "duplicate": "Duplicera sida",
+      "empty_copy": "Ny tom sida med det här toppfältet",
+      "position_occupied": "Det finns redan en sida på den positionen på kartan.",
+      "map_hint": "Flytta sidor för att ordna kartan. Sidordningen förblir densamma.",
+      "arrange": "Ordna från Hem",
+      "zoom_out": "Zooma ut",
+      "zoom_in": "Zooma in",
+      "zoom": "Sidornas storlek",
+      "zoom_reset": "Tillbaka till 100 %",
+      "choose_destination": "Välj målsida.",
+      "move_map": "Flytta {name} på kartan",
+      "change_destination": "Ändra målet för en navigeringsruta på {name}",
+      "deeplink": "Direktlänk",
+      "page_settings": "Sidinställningar",
+      "back_map": "Tillbaka till kartan",
+      "wait_grid": "Anslut skärmen för att läsa in dess bekräftade rutnät innan du redigerar.",
+      "update_notice": "Uppdatera skärmen för att använda det nya toppfältet och layouten",
+      "conflict": "En annan redigerare har sparat ändringar. Läs in den sparade versionen för att kasta ditt utkast, eller behåll din design och ersätt den sparade layouten.",
+      "reload_saved": "Läs in sparad version",
+      "keep_mine": "Behåll min design och spara",
+      "shared_bar": "Skärmen använder fortfarande gemensamma objekt i toppfältet. Ändringar av dem gäller alla sidor tills firmware har uppdaterats.",
+      "unreachable": "Från Hem finns ingen väg till {pages}. Lägg till en navigeringsruta eller ta med sidan i sidnavigeringen.",
+      "no_way_home": "Från {pages} finns ingen väg tillbaka till Hem. Lägg till en tillbakaruta eller slå på hemknappen.",
+      "navigation": "Sidnavigering",
+      "previous": "Föregående sida",
+      "next": "Nästa sida",
+      "go_home": "Gå till Hem",
+      "try_navigation": "Prova navigeringen",
+      "preview_hint": "Endast förhandsvisning. Sidlänkar fungerar här, men entitetskontroller styr inga enheter.",
+      "swipe_previous": "Svep till föregående sida",
+      "swipe_next": "Svep till nästa sida",
+      "copy_bar": "Kopiera ett toppfält",
+      "copy_from": "Från sida",
+      "copy_to": "Till valda sidor",
+      "copy_content": "Kopiera",
+      "copy_items": "Bara objekt, behåll rubriker och hemknappar",
+      "copy_whole": "Hela fältet, inklusive rubrik och hemknapp",
+      "copy_apply": "Kopiera till valda sidor",
+      "history_label": "Historik från Recorder, {hours} timmar",
+      "history_loading": "Laddar historik…",
+      "history_empty": "Ingen inspelad historik",
+      "grid_changed": "Skärmens rutnät har ändrats. Granska rutornas placering innan du sparar eller skickar.",
+      "grid_review": "Granska anpassningen av rutnätet",
+      "grid_review_hint": "Jämför de sparade platserna till vänster med de föreslagna platserna till höger. Rutor som inte längre får plats flyttas till en ny sida direkt efter sin egen. Inget skickas förrän du sparar.",
+      "grid_accept": "Använd de här placeringarna",
+      "selected_full": "Sidan är full. Välj en tom cell på en annan sida.",
+      "choose_page": "Sida",
+      "all_connections": "Alla kopplingar",
+      "migration_adjusted": "Ogiltiga äldre inställningar ersattes med standardvärden: {fields}. Originalen finns kvar i säkerhetskopian från migreringen.",
+      "view_row": "Rad",
+      "view_map": "Karta",
+      "preview": "Förhandsvisning",
+      "page_menu": "Sida {page}: mer",
+      "home_chip": "Hem",
+      "detail_chip": "Via en ruta",
+      "cells_used": "Använda celler",
+      "tiles_go": "En ruta följer med | {n} rutor följer med",
+      "connections": "Kopplingar",
+      "connections_selected": "Valda",
+      "sections": {
+        "title": "Rubrik",
+        "navigation": "Navigering"
+      },
+      "home_hint": "Hemknappen och ett svep uppåt leder hit.",
+      "bar_entities": "Också till höger",
+      "actions_blocked": "Home Assistant låter inte skärmen utföra åtgärder än, så ett tryck på en ruta gör ingenting.",
+      "allow_actions": "Tillåt åtgärder",
+      "actions_allowed": "{name} får nu styra dina enheter.",
+      "part_page": "Sidan: titel och navigering",
+      "part_page_hint": "Titel, startsida och hur du kommer hit",
+      "home_control_hint": "Lägger hemknappen till vänster i sidans toppfält. Den leder till startsidan."
+    },
+    "feedback": {
+      "question": "Fungerar skärmen som du förväntar dig?",
+      "intro": "Hjälp oss att förbättra den här modellen. Ditt svar och skärmmodellen delas med Tessera, utan konto och utan dina Home Assistant-inställningar.",
+      "yes": "Ja, fungerar bra",
+      "no": "Inte riktigt",
+      "later": "Senare",
+      "never": "Fråga inte igen",
+      "add_something": "Lägg till något",
+      "issues_question": "Vad är problemet?",
+      "issues": {
+        "display": "Skärm",
+        "touch": "Pekskärm",
+        "connection": "Anslutning",
+        "installation": "Installation",
+        "other": "Övrigt"
+      },
+      "comment_label": "Något mer? (valfritt)",
+      "comment_hint": "Utelämna personuppgifter, loggar, lösenord och API-nycklar.",
+      "report_title": "Vill du få det åtgärdat?",
+      "report_text": "Öppna ett ärende på GitHub. Ditt kretskort, versionerna och det du berättat är redan ifyllt. Lägg till en logg så kan vi undersöka det och fråga dig om det.",
+      "report_open": "Öppna ett ärende på GitHub",
+      "add_details": "Lägg till detaljer",
+      "done": "Klar",
+      "settings_title": "Feedback",
+      "shared": {
+        "working": "Du delade: fungerar bra",
+        "not_working": "Du delade: inte riktigt"
+      },
+      "none_yet": "Du har inte delat något svar för den här skärmen.",
+      "none_now": "Inget från den här skärmen delas just nu.",
+      "share": "Dela ett svar",
+      "change": "Ändra svar",
+      "delete": "Ta bort mitt delade svar",
+      "retry": "Försök igen",
+      "status": {
+        "sending": "Skickar…",
+        "received": "Tack, ditt svar har tagits emot.",
+        "waiting": "Inte skickat än. Vi försöker igen senare.",
+        "failed": "Inte skickat: Tessera gick inte att nå på ett dygn.",
+        "deleting": "Inte borttaget än. Vi försöker igen senare.",
+        "delete_failed": "Inte borttaget än: Tessera gick inte att nå på ett dygn.",
+        "deleted": "Ditt delade svar har tagits bort.",
+        "conflict": "Tessera har ett annat svar för den här skärmen. Ändra ditt svar för att dela det igen.",
+        "rejected": "Tessera godtog inte svaret."
+      },
+      "what_title": "Vad delas?",
+      "what": {
+        "model": "Skärmmodellen: {model}",
+        "answer": "Ditt svar, problemen du valde och din anteckning",
+        "firmware": "Skärmens firmwareversion: {version}",
+        "addon": "Tessera-versionen: {version}",
+        "nothing_else": "Inget annat: inget namn, konto, entiteter, loggar eller Home Assistant-inställningar. Varje skärm delar under sin egen slumpmässiga nyckel."
+      },
+      "privacy": "Integritet"
+    },
+    "webflash": {
+      "target": "Installera från den här webbläsaren (Chrome eller Edge)",
+      "hint": "Anslut skärmen till den här datorn med en USB-kabel för data. Tessera bygger firmware, och sedan för den här sidan över den till skärmen, i Chrome eller Edge. Därefter sker uppdateringar via Wi-Fi.",
+      "firmware_hint": "Anslut skärmen till den här datorn med en USB-kabel för data. Tessera bygger firmware, och sedan för den här sidan över den till skärmen, i Chrome eller Edge. Skärmen behåller sina inställningar och sin pekkalibrering. Det räddar också en skärm som startar om hela tiden och aldrig kommer online.",
+      "go": "Anslut och installera",
+      "building": "Bygget kan ta 20 minuter eller mer på en Home Assistant-dator som en Raspberry Pi, särskilt första gången. Det är normalt. Håll fliken öppen och skärmen ansluten: sidan installerar firmware så snart den är klar.",
+      "keep_open": "Håll fliken öppen och USB-kabeln ansluten tills det är klart.",
+      "unavailable": {
+        "insecure": "Installation från webbläsaren kräver att Home Assistant är öppnat via https, till exempel via din Home Assistant Cloud-adress, i Chrome eller Edge. Den här sidan öppnades via vanlig http. Välj Ladda ned i stället, eller öppna Home Assistant via https.",
+        "browser": "Den här webbläsaren kommer inte åt USB-portar. Använd Chrome eller Edge på en dator, eller välj Ladda ned i stället."
+      },
+      "phase": {
+        "picking": "Välj skärmens USB-port i fönstret som webbläsaren visar.",
+        "connecting": "Ansluter till kretskortet…",
+        "waiting": "Ansluten till kretskortet ({chip}). Firmware förs över så snart den är byggd.",
+        "downloading": "Hämtar firmware från Tessera…",
+        "erasing": "Raderar kretskortets minne…",
+        "writing": "Installerar… {percent} %",
+        "restarting": "Startar om skärmen…",
+        "done": "Installerad. Skärmen startar om."
+      },
+      "errors": {
+        "no_port": "Ingen port vald. Om skärmen inte fanns i listan:",
+        "blocked": "Webbläsaren låter inte sidan använda USB-portar. Kontrollera webbplatsens behörigheter i webbläsaren, eller välj Ladda ned i stället.",
+        "busy": "Skärmens port används av ett annat program eller en annan flik, till exempel en seriell monitor eller ESPHome Web. Stäng det och försök igen.",
+        "connect": "Kretskortet svarade inte. Håll in BOOT-knappen på kretskortet medan du väljer port, tills installationen startar, och försök igen. Det kan också hjälpa att koppla ur och in kabeln.",
+        "wrong_chip": "Kretskortet på kabeln har ett {found}-chip, men skärmens firmware är för ett {expected}. Anslut rätt skärm eller välj dess kretskort.",
+        "wrong_image": "Firmware som Tessera byggde är för ett {expected}, men kretskortet på kabeln har ett {found}. Inget skrevs.",
+        "disconnected": "Skärmen kopplades från. Anslut den igen och försök på nytt.",
+        "download": "Kunde inte hämta firmware från Tessera: {error}",
+        "failed": "Installationen misslyckades: {error}"
+      },
+      "hints": {
+        "computer": "Anslut skärmen till den här datorn, den som webbläsaren körs på.",
+        "power": "Kontrollera att kretskortet har ström: de flesta har en liten lampa.",
+        "cable": "Använd en USB-kabel som för över data. Vissa kablar kan bara ladda.",
+        "driver": "Installera drivrutinen för kretskortets USB-chip om datorn behöver en (CP210x, CH340 eller CH9102)."
+      },
+      "group_ha": "Ansluten till Home Assistant-datorn",
+      "group_here": "Ansluten till den här datorn",
+      "group_wifi": "Via Wi-Fi"
+    },
+    "preview": {
+      "type": "Ny skärmtyp",
+      "physical": "Fysisk skärm",
+      "virtual": "Virtuell förhandsvisning",
+      "intro": "Utforma en skärm med entiteter från Home Assistant utan att parkoppla någon hårdvara. Förhandsvisningar sparas i den här webbläsaren. I firmwareförhandsvisningen når tryck Home Assistant bara om du slår på det.",
+      "profile": "Kretskort / profil",
+      "design_only": "Bara en förhandsvisningsprofil. Det lägger inte till firmwarestöd för kretskortet.",
+      "override": "Åsidosätt upplösning eller rutnät",
+      "width": "Bredd (pixlar)",
+      "height": "Höjd (pixlar)",
+      "columns": "Kolumner",
+      "rows": "Rader",
+      "name": "Namn på förhandsvisningen",
+      "name_placeholder": "Förhandsvisning av Waveshare 4B",
+      "create": "Skapa virtuell enhet",
+      "created": "Den virtuella enheten \"{name}\" har skapats.",
+      "invalid_shape": "Välj ett namn, en profil som stöds, ett rutnät med 1–8 kolumner/rader och en yta på 160–2560 pixlar.",
+      "canvas": "Förhandsvisning av LVGL-firmware",
+      "packet_error": "Firmware avvisade ett förhandsvisningspaket: {message}",
+      "stopped": "Förhandsvisningen av firmware stoppades: {message}",
+      "action_error": "Kommandot till Home Assistant misslyckades: {message}",
+      "remove": "Förhandsvisningen och dess sparade layout i den här webbläsaren.",
+      "save": "Spara förhandsvisning",
+      "saved": "Sparad i den här webbläsaren",
+      "hint": "Skärmens egen firmware, ritad från layouten du redigerar. Tryck, håll och svep som på skärmen. Layoutändringar sparas inte.",
+      "control": "Tryck styr enheter",
+      "control_hint": "När det är på kan tryck styra enheter i Home Assistant och ändra panelens inställningar. När det är av är hårdvaruinställningarna skrivskyddade och andra ändringar stannar i förhandsvisningen.",
+      "skipped": "Förhandsvisningsskärmen {names} kunde inte läsas in och utelämnades.",
+      "not_kept": "Webbläsaren kunde inte spara förhandsvisningsskärmen: dess lagring är full eller blockerad."
+    },
+    "inspector": {
+      "kind": {
+        "tile": "Ruta",
+        "page": "Sida",
+        "bar": "Toppfält"
+      },
+      "back": "Tillbaka till {name}"
+    },
+    "confirm": {
+      "leave_question": "Du har osparade ändringar. Gå till översikten ändå?",
+      "discard_open": "Släng och öppna",
+      "discard_leave": "Släng och lämna",
+      "replace_layout": "Ersätt layout",
+      "import": "Importera",
+      "start_fresh": "Börja om",
+      "calibrate": "Starta kalibrering",
+      "add_anyway": "Lägg till ändå",
+      "use_example": "Ersätt med exempel",
+      "clear_override": "Rensa åsidosättning"
+    },
+    "undo": {
+      "undo": "Ångra: {what}",
+      "redo": "Gör om: {what}",
+      "undone": "Ångrat: {what}",
+      "redone": "Gjort om: {what}",
+      "a_tile": "ruta",
+      "what": {
+        "grid": "rutnät ändrat till {grid}",
+        "page_added": "sida {page} tillagd",
+        "page_copied": "sida {page} tillagd som kopia",
+        "page_removed": "sida {page} borttagen",
+        "page_moved": "sida flyttad till plats {page}",
+        "pages_moved": "sidor omordnade",
+        "tile_added": "{name} tillagd",
+        "tiles_added": "1 ruta tillagd | {n} rutor tillagda",
+        "tile_removed": "{name} borttagen",
+        "tiles_removed": "1 ruta borttagen | {n} rutor borttagna",
+        "tile_moved": "{name} flyttad",
+        "tile_moved_page": "{name} flyttad till sida {page}",
+        "tiles_moved": "1 ruta flyttad | {n} rutor flyttade",
+        "tile_link": "{name} öppnar nu sida {page}",
+        "tile_renamed": "{name} har bytt namn",
+        "tile_look": "visningen av {name} ändrad",
+        "tile_resized": "storleken på {name} ändrad",
+        "tile_icon": "ikonen för {name} ändrad",
+        "tile_color": "bakgrunden för {name} ändrad",
+        "tile_tap": "vid tryck för {name} ändrat",
+        "tile_option": "inställningarna för {name} ändrade",
+        "tiles_changed": "1 ruta ändrad | {n} rutor ändrade",
+        "screen_title": "skärmens titel ändrad",
+        "page_title": "titeln på sida {page} ändrad",
+        "home_page": "sida {page} gjord till startsida",
+        "page_buttons": "sidknapparna på sida {page} ändrade",
+        "home_key": "hemknappen på sida {page} ändrad",
+        "top_bar": "toppfältet på sida {page} ändrat",
+        "top_bars": "toppfälten ändrade",
+        "map_moved": "sida {page} flyttad på kartan",
+        "map_arranged": "kartan ordnad från Hem",
+        "stood_up": "skärmen vriden till stående",
+        "laid_down": "skärmen vriden till liggande",
+        "layout_copied": "layouten kopierad från {name}",
+        "layout_imported": "layout importerad",
+        "changed": "layouten ändrad",
+        "restored": "osparade ändringar återställda",
+        "taken_over": "ändringar från den andra fliken övertagna"
+      }
+    },
+    "draft": {
+      "kept": "Osparade ändringar från {time}",
+      "kept_hint": "Sparade i den här webbläsaren, inte på skärmen än.",
+      "restore": "Återställ",
+      "discard": "Släng"
+    },
+    "tabs": {
+      "elsewhere": "Skärmen redigeras i en annan flik",
+      "elsewhere_hint": "Dess ändringar är inte sparade än.",
+      "take_over": "Ta över här",
+      "keep_mine": "Behåll mina"
+    },
+    "connection": {
+      "lost": "ESP Screen Manager går inte att nå.",
+      "lost_hint": "Dina ändringar stannar här. Försöker igen…",
+      "restored": "Anslutningen återställd"
+    },
+    "naming": {
+      "rename": "Byt namn",
+      "reset": "Tillbaka till {name}"
+    },
+    "phone": {
+      "menu": "Meny",
+      "screens": "Skärmar",
+      "add_tile": "Lägg till ruta",
+      "add_to_cell": "Hamnar på plats {cell} på {page}",
+      "add_to_page": "Hamnar på första lediga plats på {page}",
+      "added": "{name} tillagd",
+      "page_of": "{n} av {total}",
+      "pages": "Sidor",
+      "page_tiles": "{n} ruta | {n} rutor",
+      "pages_order": "Sidor och ordning",
+      "hint": "Tryck på en ruta för att ändra den.",
+      "hint_pages": "Tryck på en ruta för att ändra den. Svep för nästa sida.",
+      "on_screen": "Allt finns på skärmen",
+      "not_sent": "Ändrat, inte skickat än",
+      "more_settings": "Fler inställningar",
+      "more_settings_hint": "Visning, andra raden och vad ett tryck gör",
+      "move": "Flytta",
+      "full_editor": "Fullständig redigerare",
+      "simple_editor": "Enkel vy"
+    },
+    "donate": {
+      "title": "Stöd Tessera",
+      "body": "Tessera är gratis och förblir gratis. Jag leder utvecklingen och underhållet, med bidrag från communityn. Ditt stöd ger mig mer tid att bygga, granska och testa förbättringar. Ett månatligt bidrag eller en kaffe en gång är välkommet.",
+      "monthly": "Stöd varje månad",
+      "once": "eller bjud mig på en kaffe en gång",
+      "later": "Kanske senare",
+      "donated": "Jag har redan donerat",
+      "thanks": "Tack! Du får inte frågan igen."
+    },
+    "plugins": {
+      "title": "Pluginer",
+      "intro": "Extra för dina skärmar: rutor att lägga på en sida, något mer som hela skärmen kan göra, eller hårdvara på kretskortet. En plugin byggs in i skärmens firmware, så du väljer per skärm vilka den får.",
+      "search": "Sök på namn, skapare eller vad den gör",
+      "filter": "Visa",
+      "from_tessera": "Från Tessera",
+      "by": "Av {maker}",
+      "label": {
+        "tessera": "Från Tessera",
+        "community": "Community",
+        "test": "Test"
+      },
+      "state": {
+        "building": "Bygger…",
+        "installed": "Installerad",
+        "update": "Uppdatera {version}",
+        "test_on": "Testa på {name}",
+        "updates": "Uppdatera på {n} skärm | Uppdatera på {n} skärmar",
+        "on_screens": "På {n} skärm | På {n} skärmar",
+        "fits_none": "Passar ingen av dina skärmar",
+        "failed": "Bygget misslyckades",
+        "not_running": "Körs inte på skärmen",
+        "queued": "Väntar på sin tur"
+      },
+      "source": {
+        "link": "Från en länk",
+        "branch": "Testa från en gren",
+        "folder": "Testa från en mapp"
+      },
+      "misfit_short": {
+        "board": "Inte för det här kretskortet",
+        "psram": "Kräver PSRAM",
+        "firmware": "Kräver nyare firmware",
+        "flash": "För stor för den här skärmen",
+        "blocked": "Blockerad",
+        "esphome": "Kräver nyare ESPHome",
+        "feature": "Kräver hårdvara som skärmen saknar",
+        "needs": "Kräver en plugin som inte passar",
+        "built_in": "Inbyggd i det här kretskortet"
+      },
+      "misfit": {
+        "board": "Den här pluginen är gjord för andra kretskort än det i {screen}.",
+        "psram": "Den här pluginen kräver ett kretskort med PSRAM, och {screen} har inget.",
+        "firmware": "{screen} behöver en firmwareuppdatering innan den kan ta emot den här pluginen.",
+        "flash": "{screen} har plats för ungefär {kb} kB till, och den här pluginen är större.",
+        "blocked": "Den här versionen av pluginen är blockerad: den är känd för att vara skadlig eller trasig.",
+        "esphome": "Den här pluginen kräver en nyare ESPHome än den appen bygger med.",
+        "feature": "{screen} har inget som ger det den här pluginen behöver, och ingen plugin som ger det passar.",
+        "needs": "Den här pluginen behöver en annan plugin som inte passar {screen}.",
+        "built_in": "Kretskortet i {screen} har det här inbyggt, så pluginen behövs inte där."
+      },
+      "none_installed": "Inga pluginer på den här skärmen än.",
+      "none_found": "Ingen plugin matchar ”{query}”.",
+      "version": "version {version}",
+      "stage": {
+        "beta": "Beta",
+        "example": "Exempel"
+      },
+      "stage_hint": {
+        "beta": "Beta: den fungerar, men den hittar fortfarande sina former. Berätta för skaparen hur det går.",
+        "example": "Ett exempel: gjort för att visa vad en plugin kan göra. Prova det, och läs koden för att göra en egen."
+      },
+      "attribute": {
+        "cloud": "Använder en molntjänst",
+        "commercial": "Kommersiell",
+        "ai-developed": "Gjord med AI"
+      },
+      "test_note": "Ett test: skärmen stannar på den commit den byggdes från, och en nyare commit visas här som en uppdatering. En mapp byggs som den är just nu.",
+      "remove": "Ta bort från {screen}",
+      "building": "Bygger firmwaren för {screen}…",
+      "installed_on": "På {screen}, version {version}",
+      "update": "Uppdatera till {version}",
+      "trust": {
+        "title": "Jag litar på den här skaparen"
+      },
+      "adds": {
+        "title": "Vad den lägger till",
+        "tile": "Rutan ”{name}”",
+        "tile_sizes": "Från {min} till {max} på en sida",
+        "tap": "Tryckåtgärden ”{name}”",
+        "tap_on": "På rutor för {domains}",
+        "card": "”{name}”, en egen skärm på glaset",
+        "bar": "Toppfältsobjektet ”{name}”",
+        "settings": "Inställningar",
+        "settings_where": "På skärmens inställningssida och här, i dess detaljer på fliken Pluginer"
+      },
+      "may": {
+        "title": "Vad den får göra",
+        "ha": "Använder de här kommandona i Home Assistant",
+        "ha_none": "Utför inga åtgärder i Home Assistant",
+        "network": "Ansluter till {hosts}",
+        "network_none": "Gör inga anslutningar utanför Home Assistant",
+        "read": "Läser de här entiteterna från Home Assistant"
+      },
+      "warning": "En plugin körs på skärmen med full åtkomst till den, inklusive dess Wi-Fi och de åtgärder den får utföra i Home Assistant, och dess bygge körs i den här appen, där den kan nå din Home Assistant-konfiguration. Lägg bara till pluginer från skapare du litar på, eller läs koden först.",
+      "room": {
+        "title": "Utrymme på {screen}",
+        "small": "{kb} kB till: firmwaren går från {before} till {after} av sin plats.",
+        "large": "{kb} kB, med god marginal till utrymmet skärmen har.",
+        "title_all": "Utrymme",
+        "per_screen": "{kb} kB på varje skärm den hamnar på. Ett kretskort med 4 MB visar här om det har plats för den."
+      },
+      "works": {
+        "title": "Fungerar på:",
+        "any": "alla kretskort",
+        "any_psram": "alla kretskort med PSRAM"
+      },
+      "source_code": "Källkod",
+      "issues": "Rapportera ett problem",
+      "add_link": "Lägg till med en länk",
+      "link": {
+        "title": "Lägg till med en länk",
+        "intro": "En plugin som inte finns i listan, eller en du håller på att göra. Tessera läser först dess beskrivning och säger om den passar innan något byggs.",
+        "sources": {
+          "link": "Release",
+          "branch": "Testa en gren",
+          "folder": "Testa en mapp"
+        },
+        "url": "GitHub-länk",
+        "branch": "Gren",
+        "folder": "Mapp på den här maskinen",
+        "hints": {
+          "link": "Tessera tar den senaste releasen (utan en, den senaste commiten) och håller skärmen på den. Något nyare visas som en uppdatering.",
+          "branch": "Tessera tar den senaste commiten i grenen och håller skärmen på den, en nyare commit visas som en uppdatering. För att prova.",
+          "folder": "För en plugin du håller på att göra: spara, så tar nästa bygge med den. Mappen ligger i Home Assistants konfiguration."
+        },
+        "fetch": "Läs pluginen",
+        "test": "Lägg till på {screen} som test",
+        "not_found": "Ingen pluginbeskrivning på den här länken.",
+        "on_screen": "På skärmen"
+      },
+      "none_in_use": "Ingen av dina skärmar har en plugin än.",
+      "screen_update": "Version {from}, uppdatera till {to}",
+      "screen_version": "Version {version}",
+      "on_screens": "På vilka skärmar",
+      "apply": {
+        "add": "Lägg till på {n} skärm | Lägg till på {n} skärmar",
+        "remove": "Ta bort från {n} skärm | Ta bort från {n} skärmar",
+        "both": "Tillämpa på {n} skärm | Tillämpa på {n} skärmar",
+        "none": "Tillämpa"
+      },
+      "update_all": "Uppdatera {n} skärm till {version} | Uppdatera {n} skärmar till {version}",
+      "tab": {
+        "intro": "Pluginerna som {screen} kör, och vad den kan lägga till. Det du lägger till installeras tillsammans, i ett bygge av skärmen.",
+        "all": "Alla pluginer",
+        "here": "På den här skärmen",
+        "add": "Lägg till",
+        "misfits": "Passar inte den här skärmen ({n}) | Passar inte den här skärmen ({n})",
+        "updates": "En uppdatering för {n} plugin | Uppdateringar för {n} pluginer",
+        "updates_note": "Ett bygge för {screen}: {names}.",
+        "updates_rights": "{names} begär andra rättigheter än tidigare. | {names} begär andra rättigheter än tidigare.",
+        "update_all": "Uppdatera alla på den här skärmen"
+      },
+      "pending": {
+        "add": "Läggs till när du tillämpar",
+        "remove": "Tas bort när du tillämpar"
+      },
+      "setup": {
+        "on_screen": "{label} på {screen}",
+        "choose_pin": "Välj ett stift",
+        "part_kb": "{kb} kB till",
+        "secret_set": "Inställt. Fyll i ett nytt för att ersätta det.",
+        "part_needs": "Kräver en {what} på skärmen"
+      },
+      "readme": {
+        "title": "Läs mig"
+      },
+      "english_only": "Bara på engelska",
+      "build_note": "Installationen bygger skärmens firmware igen och skickar den över Wi-Fi, några minuter per skärm. Pluginen finns i skärmens YAML, så ett bygge i ESPHome Device Builder har den också.",
+      "attach": {
+        "row": "Koppla in en gång, i skärmens flik",
+        "text": "{screen} byggs från sin egen YAML. Lägg till den här raden i den en gång. Därefter håller Tessera dess pluginer i en egen fil, och ESPHome Device Builder bygger dem som vanligt, även efter en uppdatering.",
+        "copy": "Kopiera raden",
+        "done": "Jag har lagt till den",
+        "file": "Vad Tessera skriver i {file}"
+      },
+      "folder_error": "Mappen {folder} är inte en plugin än: {why}",
+      "rebuild": "Bygg igen",
+      "failed": "Firmwaren för {screen} gick inte att bygga med den här pluginen. Loggen finns under Firmware & USB.",
+      "retry": "Försök igen",
+      "privacy": "Integritet",
+      "consent": {
+        "title": "Den här uppdateringen begär andra rättigheter",
+        "agree": "Jag godkänner vad den får göra nu"
+      },
+      "settings_missing": "Inte på den här skärmen än: det kommer med pluginens nästa bygge.",
+      "changes": "Vad som ändrats",
+      "tray": {
+        "title": "Redo att installera",
+        "count": "{n} plugin | {n} pluginer",
+        "add": "Lägg till",
+        "added": "Tillagd",
+        "setup": "Ställ in",
+        "remove": "Ta ut {name}",
+        "room": "{kb} kB av de {room} kB skärmen har kvar",
+        "too_much": "{kb} kB tillsammans, {room} kB kvar: ta ut en",
+        "trust": "{names} kommer från communityn och är inte granskad av Tessera. | {names} kommer från communityn och är inte granskade av Tessera.",
+        "install": "Installera {n} plugin | Installera {n} pluginer",
+        "one_build": "{screen} byggs en gång, med alla.",
+        "builds": "{n} skärmar byggs, en i taget.",
+        "stage": "Lägg till på {screen}",
+        "in_tray": "Redo att installera",
+        "in_tray_note": "Installera den från kortet i hörnet, ensam eller med andra.",
+        "along": "följer med {names}",
+        "title_changes": "Redo att byggas",
+        "changes": "{n} ändring | {n} ändringar",
+        "build": "Bygg {n} ändring | Bygg {n} ändringar",
+        "off": "tas bort från skärmen",
+        "off_note": "Undanlagd för borttagning. Den följer med nästa bygge från kortet i hörnet, tillsammans med allt annat för den här skärmen.",
+        "keep": "Behåll den",
+        "keep_named": "Behåll {name}",
+        "minutes": "Varje bygge tar några minuter.",
+        "off_set": "Undanlagd för borttagning"
+      },
+      "maker": {
+        "title": "Gör en egen plugin",
+        "lead": "En plugin är en mapp med en beskrivning och lite ESPHome-kod, i ett eget GitHub-repo. Du gör den, och du publicerar dess uppdateringar.",
+        "guide": "Så gör du en plugin",
+        "start": {
+          "title": "Börja från mallen",
+          "text": "Gör den till ett repo på ditt eget GitHub, med ett namn och en ikon.",
+          "action": "Öppna mallen"
+        },
+        "test": {
+          "title": "Prova den på din skärm",
+          "text": "Lägg till ditt repo med en länk. Pusha, så visas varje ny commit eller release här som en uppdatering.",
+          "folder": "Eller lägg dess mapp i {path} för att testa utan en release."
+        },
+        "share": {
+          "title": "Dela den med alla",
+          "text": "Fungerar den bra? Lista den i communityn så visas den här för alla, direkt från ditt repo. Du förblir dess skapare.",
+          "action": "Lista den"
+        }
+      },
+      "settings": {
+        "title": "Inställningar",
+        "live": "På den här skärmen",
+        "live_note": "En ändring gäller direkt.",
+        "shared": "För alla skärmar",
+        "shared_note": "Fylls i en gång, för alla skärmar med den här pluginen.",
+        "build": "Vid bygge",
+        "build_note": "En ändring bygger {screen} igen.",
+        "save_build": "Spara och bygg",
+        "run": "Kör",
+        "too_short": "Minst {n} tecken."
+      },
+      "tabs": {
+        "tiles": "Rutor",
+        "screensavers": "Skärmsläckare",
+        "functions": "Funktioner",
+        "hardware": "Hårdvara",
+        "in_use": "Används"
+      },
+      "types": {
+        "tiles": "Rutor",
+        "screensavers": "Skärmsläckare",
+        "functions": "Funktion",
+        "hardware": "Hårdvara"
+      },
+      "topics": {
+        "time": "Tid och nedräkningar",
+        "weather": "Väder och himmel",
+        "calendar": "Kalender och uppgifter",
+        "home": "Hemmet",
+        "energy": "Energi",
+        "travel": "På resande fot",
+        "money": "Pengar",
+        "sports": "Sport",
+        "news": "Nyheter och fakta",
+        "media": "Musik och media",
+        "photos": "Foton och konst",
+        "fun": "Spel och nöje",
+        "voice": "Röst och ljud",
+        "tech": "Teknik"
+      },
+      "topic_filter": "Ämnen",
+      "sort": {
+        "label": "Sortera efter",
+        "popular": "Mest gillade",
+        "new": "Nyaste",
+        "name": "Namn"
+      },
+      "none_in_tab": {
+        "tiles": "Inga pluginer med rutor än.",
+        "screensavers": "Inga skärmsläckarpluginer än.",
+        "functions": "Inga pluginer för hela skärmen än.",
+        "hardware": "Inga hårdvarupluginer än."
+      },
+      "fits_none_group": "{n} plugin passar ingen av dina skärmar | {n} pluginer passar ingen av dina skärmar",
+      "likes": {
+        "count": "{n} person gillar den här | {n} personer gillar den här",
+        "like": "Gilla",
+        "unlike": "Ta tillbaka din gillning",
+        "install_first": "Lägg den på en skärm först, sedan kan du gilla den",
+        "ask": "Din gillning räknas i en offentlig siffra per plugin. Bara siffran är offentlig: inget om dig, Home Assistant eller dina skärmar följer med."
+      },
+      "along": {
+        "title": "Följer med",
+        "brings": "ger {what}",
+        "needed_by": "behövs av {name}",
+        "came_with": "Följde med {names}.",
+        "needed_now": "{names} behöver den här pluginen.",
+        "choose": "Vilken plugin ger {what}?"
+      },
+      "remove_ask": {
+        "needed": "{names} behöver {name}, så den tas också bort.",
+        "orphans": "Ta också bort {names}",
+        "orphans_note": "Den följde bara med {name}, inget annat på skärmen behöver den.",
+        "both": "Ta bort dem tillsammans",
+        "go": "Ta bort"
+      },
+      "blocked_now": "Den här versionen är blockerad ({why}) och lämnar nästa bygge. Uppdatera till en nyare.",
+      "other_origin": "Skärmen kör en annan plugin med det här namnet, från {origin}. Den uppdateras inte härifrån.",
+      "switch": "Byt till den från {origin}",
+      "needs": {
+        "title": "Behöver och ger",
+        "plugin": "En annan plugin, den följer med när du lägger till den här.",
+        "feature": "En {what}",
+        "feature_note": "Från skärmens kretskort, eller en plugin som ger en: den följer med när det bara finns en.",
+        "brings": "Ger en {what}",
+        "brings_note": "För andra pluginer som behöver en, på samma skärm."
+      },
+      "features": {
+        "speaker": "högtalare",
+        "microphone": "mikrofon",
+        "media_player": "mediaspelare",
+        "camera": "kameraström för Home Assistant",
+        "camera_sensor": "kamerasensor",
+        "bluetooth": "Bluetooth"
+      },
+      "fitting_only": "Bara det som passar mina skärmar",
+      "made_by": {
+        "label": "Gjord av",
+        "all": "Vem som helst",
+        "tessera": "Tessera",
+        "community": "Community"
+      },
+      "filter_button": "Filtrera",
+      "filter_remove": "Ta bort {what}",
+      "filter_clear": "Rensa filter",
+      "fitting_all": "Även det som inte passar",
+      "news": {
+        "title": "Nyheter i {version}",
+        "none": "Skaparen skrev inga anteckningar för den här uppdateringen.",
+        "history": "Alla versioner"
+      },
+      "failed_update": "Version {version} gick inte att bygga för {screen}, så den gick tillbaka till {current}, den den kör. Loggen finns under Firmware & USB.",
+      "interrupted": "Appen startade om under bygget."
+    },
+    "plugin_tile": {
+      "from": "En ruta från pluginen {plugin}",
+      "details": "Plugindetaljer",
+      "options": "Alternativ",
+      "choose": "Välj…",
+      "less": "Mindre",
+      "more": "Mer",
+      "from_fetch": "Valen kommer från pluginens egen datakälla, via Tessera.",
+      "on_screen": "På skärmen",
+      "sizes": "Från {min} till {max}, dra i en kant av rutan för att ändra dess storlek.",
+      "placeholder": "Redigeraren visar en platshållare: det pluginen ritar syns på själva skärmen.",
+      "now": "nu",
+      "minutes": "{n} min",
+      "live": "Redigeraren ritar den från pluginens egna data, skärmen ritar den själv och räknar ned på sin egen klocka.",
+      "entity": "Entitet",
+      "add": "Lägg till",
+      "change": "Välj en annan",
+      "find": "Hitta…",
+      "search": "Sök…",
+      "search_more": "Skriv två bokstäver eller fler",
+      "none_found": "Inget hittades",
+      "remove": "Ta bort {name}",
+      "type": "Skriv och tryck på Enter",
+      "full": "Skärmen tar inte emot mer för den här rutan: dess alternativ är fulla.",
+      "count": "{n} av {max}"
+    },
+    "build": {
+      "plugins": "Bygger med sina pluginer",
+      "install": "Installerar",
+      "failed": "Det senaste bygget av {screen} misslyckades. Loggen säger varför.",
+      "title": "Bygger nu",
+      "count": "1 bygge på väg | {n} byggen på väg",
+      "ready": "{name} är klar",
+      "ready_several": "{names} är klara",
+      "update_failed": "Uppdateringen av {name} misslyckades",
+      "build_failed": "Bygget av {name} misslyckades",
+      "show_log": "Visa logg",
+      "waiting_place": "Väntar på sin tur, 1 bygge före | Väntar på sin tur, {n} byggen före",
+      "server": {
+        "bundle": "Packar YAML-filen",
+        "send": "Skickar till {name}",
+        "queued": "Väntar på {name}",
+        "build": "Bygger på {name}",
+        "fetch": "Hämtar firmwaren",
+        "here": "Bygger här · {reason}",
+        "fallback": {
+          "offline": "byggservern går inte att nå",
+          "refused": "byggservern är inte parkopplad",
+          "mismatch": "byggserverns fingeravtryck har ändrats",
+          "unavailable": "ingen byggserver här",
+          "lost": "anslutningen till byggservern bröts",
+          "refused_job": "byggservern tog inte emot det",
+          "provision": "byggservern kunde inte installera ESPHome",
+          "cancelled": "det stoppades på byggservern",
+          "fetch": "firmwaren kom inte tillbaka",
+          "bundle": "YAML-filen kunde inte packas"
+        }
+      }
+    },
+    "grid": {
+      "title": "Rutnät",
+      "columns": "Kolumner",
+      "rows": "Rader",
+      "columns_less": "Färre kolumner",
+      "columns_more": "Fler kolumner",
+      "rows_less": "Färre rader",
+      "rows_more": "Fler rader",
+      "hint": "Rutor som inte längre får plats på en sida flyttas till en ny sida direkt efter den. Skärmen får det nya rutnätet när du sparar.",
+      "update_first": "Uppdatera skärmen för att välja dess rutnät här.",
+      "pages_added": "1 sida tillagd för rutorna som inte längre fick plats | {n} sidor tillagda för rutorna som inte längre fick plats",
+      "new_page": "Ny sida för det som inte längre fick plats",
+      "too_many_pages": "Med {grid} behöver rutorna {needed} sidor, och skärmen klarar {most}. Ta bort rutor eller välj ett annat rutnät. Inget har ändrats.",
+      "way": "Riktning",
+      "landscape": "Liggande",
+      "portrait": "Stående",
+      "turn_hint": "När den vrids startar skärmen om en gång för att mäta sin nya yta."
+    },
+    "clipboard": {
+      "copied": "1 ruta kopierad. Klistra in den med {key} på valfri sida eller skärm | {n} rutor kopierade. Klistra in dem med {key} på valfri sida eller skärm",
+      "cut": "1 ruta urklippt | {n} rutor urklippta",
+      "pasted": "1 ruta inklistrad | {n} rutor inklistrade",
+      "pasted_pages": "{n} rutor inklistrade, resten på en ny sida | {n} rutor inklistrade, resten på {pages} nya sidor",
+      "pasted_some": "{n} av {total} rutor inklistrade. Skärmen har inte utrymme eller plats för de andra",
+      "none_fit": "Inget inklistrat. Skärmen har inte utrymme eller plats för de här rutorna",
+      "empty": "Inget kopierat än"
+    },
+    "selection": {
+      "title": "1 ruta | {n} rutor",
+      "leave": "Lämna {name} utanför",
+      "copy": "Kopiera",
+      "hint": "{copy} kopierar rutorna med alla inställningar. Välj en sida eller en cell, här eller på en annan skärm, och tryck på {paste}.",
+      "remove": "Ta bort ruta | Ta bort {n} rutor"
+    },
+    "menu": {
+      "cut": "Klipp ut",
+      "move_to": "Flytta till sida",
+      "add_here": "Lägg till en ruta här",
+      "paste_here": "Klistra in här"
+    }
+  }
+}
