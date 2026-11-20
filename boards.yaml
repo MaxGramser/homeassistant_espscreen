@@ -158,6 +158,12 @@ waveshare5:
   model: ESP32-S3-Touch-LCD-5
   status: new
 
+crowpanel5:
+    file: crowpanel-esp32s3-50.yaml
+    name: Elecrow
+    model: CrowPanel 5.0
+    status: new
+
 jc8048w550ci:
   file: guition-jc8048w550c-i.yaml
   name: Guition

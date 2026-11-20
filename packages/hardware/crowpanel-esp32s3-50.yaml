@@ -1,0 +1,67 @@
+# ESP Screens - Elecrow CrowPanel 5.0" Standard (DIS07050H)
+packages:
+  chip: !include esp32s3-rgb.yaml
+
+substitutions:
+  BACKLIGHT_DIMMABLE: "true"
+
+esphome:
+  platformio_options:
+    board_build.esp-idf.memory_type: qio_opi
+    board_build.flash_mode: dio
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 4MB
+  partitions: no_ota.csv
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
+      CONFIG_SPIRAM_RODATA: "y"
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+output:
+  - platform: ledc
+    id: gpio_backlight_pwm
+    pin: GPIO2
+    frequency: 5000Hz
+
+i2c:
+  id: touch_bus
+  sda: GPIO19
+  scl: GPIO20
+  scan: true
+
+touchscreen:
+  - platform: gt911
+    id: ts_touch
+    i2c_id: touch_bus
+    display: my_display
+    update_interval: 20ms
+
+display:
+  - platform: rpi_dpi_rgb
+    id: my_display
+    color_order: RGB
+    invert_colors: true
+    auto_clear_enabled: false
+    update_interval: never
+    dimensions:
+      width: ${PANEL_W}
+      height: ${PANEL_H}
+    de_pin: GPIO40
+    hsync_pin: GPIO39
+    vsync_pin: GPIO41
+    pclk_pin: GPIO0
+    pclk_frequency: 12MHz
+    data_pins:
+      red:   [45, 48, 47, 21, 14]
+      green: [5, 6, 7, 15, 16, 4]
+      blue:  [8, 3, 46, 9, 1]
