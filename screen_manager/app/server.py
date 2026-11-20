@@ -4987,6 +4987,10 @@ def create_app(manager, development=False):
         # A plugin's picture is asked for under its commit (plugins.image_url), so it too can be kept: a day.
         elif request.path.startswith('/api/plugins/') and request.path.endswith('/image') and response.status == 200:
             response.headers['Cache-Control'] = 'private, max-age=86400'
+        # So is a picture of its README asked for under the commit (`v`); a folder's has none and is asked for again.
+        elif request.path.startswith('/api/plugins/') and '/readme/' in request.path and request.query.get('v') \
+                and response.status == 200:
+            response.headers['Cache-Control'] = 'private, max-age=86400'
     app.on_response_prepare.append(cache_assets)
 
     # The page is the Vite build of web/ (npm run build writes it here): index.html names its script and styles
@@ -6381,6 +6385,15 @@ def create_app(manager, development=False):
                 raise web.HTTPNotFound()
             return web.Response(body=body, content_type='image/png')
         app.router.add_get('/api/plugins/{plugin}/image', plugins_image)
+
+        async def plugins_readme_image(request):
+            # A picture of a plugin's README (a relative path in it), served by the app for the same reason as store.png.
+            found = await manager.plugins.readme_image(request.match_info['plugin'], request.match_info['path'])
+            if found is None:
+                raise web.HTTPNotFound()
+            body, media = found
+            return web.Response(body=body, content_type=media)
+        app.router.add_get('/api/plugins/{plugin}/readme/{path:.+}', plugins_readme_image)
 
         async def plugins_link(request):
             data = await request.json()
