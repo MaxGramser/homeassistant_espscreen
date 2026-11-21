@@ -2574,7 +2574,8 @@
         "hint": "Ein Tippen auf die Kachel öffnet diese Seite."
       },
       "orientation": {
-        "label": "Symbol- und Textanordnung",
+        "label": "Layout",
+        "hint": "Platziere das Symbol neben dem Text oder darüber, wenn genug Platz ist. Automatisch richtet sich nach dem verfügbaren Platz.",
         "auto": "Automatisch",
         "horizontal": "Horizontal",
         "vertical": "Vertikal"

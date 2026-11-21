@@ -2574,7 +2574,8 @@
         "hint": "Um toque no mosaico abre essa página."
       },
       "orientation": {
-        "label": "Disposição do ícone e do texto",
+        "label": "Disposição",
+        "hint": "Coloque o ícone ao lado do texto ou acima, se houver espaço. Automática se adapta ao espaço disponível.",
         "auto": "Automática",
         "horizontal": "Horizontal",
         "vertical": "Vertical"

@@ -2121,7 +2121,8 @@
         "hint": "Een tik op de tegel opent die pagina."
       },
       "orientation": {
-        "label": "Indeling van pictogram en tekst",
+        "label": "Indeling",
+        "hint": "Plaats het pictogram naast de tekst of erboven als er ruimte is. Automatisch volgt de beschikbare ruimte.",
         "auto": "Automatisch",
         "horizontal": "Horizontaal",
         "vertical": "Verticaal"

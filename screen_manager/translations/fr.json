@@ -2574,7 +2574,8 @@
         "hint": "Toucher la tuile ouvre cette page."
       },
       "orientation": {
-        "label": "Disposition de l’icône et du texte",
+        "label": "Disposition",
+        "hint": "Placez l’icône à côté du texte ou au-dessus si la place le permet. Automatique s’adapte à l’espace disponible.",
         "auto": "Automatique",
         "horizontal": "Horizontale",
         "vertical": "Verticale"

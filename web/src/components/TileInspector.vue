@@ -309,7 +309,7 @@ const backgroundName = computed(() => inv.inventory.backgrounds?.[props.tile.opt
         <ChoiceField :choices="displays" :value="display" :tile="tile" preview-key="display" :aria-label="t('editor.tile.display.label')" @pick="(v) => setTileOption(tile, 'display', v)" />
         <template v-if="shownHint?.warn" #note><small class="help warn">{{ shownHint.text }}</small></template>
       </PropRow>
-      <PropRow v-if="orientationShown" :label="t('editor.tile.orientation.label')" icon="view-dashboard-outline">
+      <PropRow v-if="orientationShown" :label="t('editor.tile.orientation.label')" icon="view-dashboard-outline" :hint="t('editor.tile.orientation.hint')">
         <ChoiceField :choices="orientations" :value="current('orientation', 'auto')" :tile="tile" preview-key="orientation" :sample="v => v === 'auto' ? undefined : v"
           :disabled="!orientationReady && !tile.options?.orientation"
           :aria-label="t('editor.tile.orientation.label')" @pick="(v) => setTileOption(tile, 'orientation', v)" />

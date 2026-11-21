@@ -2574,7 +2574,8 @@
         "hint": "A csempére koppintva ez az oldal nyílik meg."
       },
       "orientation": {
-        "label": "Ikon és szöveg elrendezése",
+        "label": "Elrendezés",
+        "hint": "Az ikon a szöveg mellé vagy fölé kerül, ha van elég hely. Az Automatikus a rendelkezésre álló helyhez igazodik.",
         "auto": "Automatikus",
         "horizontal": "Vízszintes",
         "vertical": "Függőleges"

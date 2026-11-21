@@ -175,7 +175,7 @@ shows as a box on the screen, so a new one goes into all five lists and `GLYPHS`
   face a board carries, when they fit under the name and beside the unit and the value has no letter that face
   lacks (a word keeps the value's own face); a 4-inch Guition has no such room and keeps its face. A cell at
   least twice the look's cell height stacks the icon above the name and state. Plain, single-cell entity and navigation
-  cards can override this in **Look → Icon and text layout**. **Horizontal** keeps the text beside the icon. **Vertical** puts
+  cards can override this in **Look → Layout**. **Horizontal** keeps the text beside the icon. **Vertical** puts
   it below the icon if both lines and a readable icon fit, otherwise it uses the row. Cards with a dedicated layout,
   such as graphs, sliders, cover controls, preset keys and to-do lists, keep their own design and offer no orientation
   choice. The C++, editor and firmware preview tests check the automatic threshold and manual overrides.

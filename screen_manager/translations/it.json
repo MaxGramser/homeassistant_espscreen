@@ -2574,7 +2574,8 @@
         "hint": "Un tocco sul riquadro apre quella pagina."
       },
       "orientation": {
-        "label": "Disposizione di icona e testo",
+        "label": "Disposizione",
+        "hint": "Posiziona l’icona accanto al testo o sopra, se c’è spazio. Automatica si adatta allo spazio disponibile.",
         "auto": "Automatica",
         "horizontal": "Orizzontale",
         "vertical": "Verticale"

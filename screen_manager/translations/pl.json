@@ -2574,7 +2574,8 @@
         "hint": "Dotknięcie kafelka otwiera tę stronę."
       },
       "orientation": {
-        "label": "Układ ikony i tekstu",
+        "label": "Układ",
+        "hint": "Umieść ikonę obok tekstu lub nad nim, jeśli jest miejsce. Układ automatyczny dostosowuje się do dostępnego miejsca.",
         "auto": "Automatyczny",
         "horizontal": "Poziomy",
         "vertical": "Pionowy"

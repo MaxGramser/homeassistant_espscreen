@@ -2121,7 +2121,8 @@
         "hint": "A tap on the tile opens that page."
       },
       "orientation": {
-        "label": "Icon and text layout",
+        "label": "Layout",
+        "hint": "Place the icon beside the text or above it when there is room. Automatic follows the available space.",
         "auto": "Automatic",
         "horizontal": "Horizontal",
         "vertical": "Vertical"
