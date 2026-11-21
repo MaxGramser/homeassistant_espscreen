@@ -134,9 +134,6 @@ def tile_message(message, tile, *, initial, holders=None):
         else:
             message.update(op="tile", slot=tile["slot"])
         message.setdefault("o", {})
-        orientation = tile.get("options", {}).get("orientation")
-        if orientation in ("horizontal", "vertical"):
-            message["o"]["orientation"] = orientation
     else:
         message["op"] = "state"
         # HA may change an automatic icon with the entity's state. This is a

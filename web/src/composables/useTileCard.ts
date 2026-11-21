@@ -119,10 +119,8 @@ export function useTileCard(props: TileCardProps) {
   const note = computed(() => (face.value.display !== "standard" ? displayName(face.value.display) : ""));
   const status = computed(() => stateText(props.tile.entity, current.value, { runs: runs.value, note: note.value,
     controlled: Boolean(face.value.controls && face.value.controls !== "none" && (face.value.wide || face.value.tall) && !face.value.full) }, words.value));
-  const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value, status.value));
-  const headStatus = computed(() => goesTo.value
-    ? subLine(String(props.tile.options?.sub ?? "auto"), current.value, screenText(words.value, "screen.tile.page", { n: goesTo.value }))
-    : line.value);
+  const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value,
+    goesTo.value ? screenText(words.value, "screen.tile.page", { n: goesTo.value }) : status.value));
   const fill = computed(() => fillPercent(domain.value, current.value));
   const lit = computed(() => isOn(domain.value, current.value, runs.value));
   // The value the body shows large; the same words are not repeated under the name (a second line of your own stays).
@@ -228,7 +226,7 @@ export function useTileCard(props: TileCardProps) {
     const orientation = f.display === "standard" && (goesTo.value || domain.value !== "screen") ? props.tile.options?.orientation : undefined;
     // A page link keeps its ordinary row and chevron unless a vertical override fits.
     if (goesTo.value && orientation !== "vertical") return null;
-    const result = cardHead(doc.screenShape, look.value, r, panel.value?.taken ?? 0, icon.value, Boolean(headStatus.value), f.wide, true, orientation);
+    const result = cardHead(doc.screenShape, look.value, r, panel.value?.taken ?? 0, icon.value, Boolean(texts.line), f.wide, true, orientation);
     return goesTo.value && !result.title.center ? null : result;
   });
   // A card more than a row high as the glass lays it out (runtime_tiles render_tall, model/tall-layout.ts): its heading,
@@ -351,7 +349,7 @@ export function useTileCard(props: TileCardProps) {
         "--slider-h": glassPx(p.sliderH), "--slider-w": glassPx(p.slider), "--icon-mini": glassPx(look.value.iconMini), "--slider-r": glassPx(sliderCorner(p.sliderH)) },
       dots: p?.presets ? presetDots(p.presets.keys) : null,
       name: dotted(texts.name, h.title.size, h.title.weight, h.title.width),
-      line: h.value ? dotted(headStatus.value, h.value.size, h.value.weight, h.value.width) : "" };
+      line: h.value ? dotted(texts.line, h.value.size, h.value.weight, h.value.width) : "" };
   });
   // ---- A light's presets (module light_presets): round keys in their colours, the ring round the one it shows ----
   const presets = computed(() => (domain.value === "light" ? presetsOf(props.tile.options) : []));

@@ -108,9 +108,17 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('appearance', [m['op'] for m in self.screen.messages])
 
     async def test_orientation_requires_a_firmware_hello_and_a_full_transaction(self):
+        from core import state_message
+        from page_layout import compile_tiles, grid_of_record
+
+        def resolve_values():
+            tiles = compile_tiles(self.record['layout'], grid_of_record(self.record))
+            self.values = [state_message(i, tile, {}) for i, tile in enumerate(tiles)]
+
         await self.enable_appearance_updates()
         tile = self.record['layout']['pages'][0]['tiles'][0]
         tile['appearance']['orientation'] = 'vertical'
+        resolve_values()
         with self.assertRaises(Refused):
             await self.sync()
         self.assertEqual([m['op'] for m in self.screen.messages], ['hello'])
@@ -124,12 +132,14 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.sender = Sender(newer)
         navigation = self.record['layout']['pages'][1]['tiles'][0]
         navigation['appearance']['orientation'] = 'horizontal'
+        resolve_values()
         await self.sync()
         self.assertEqual(self.screen.initial[0]['o']['orientation'], 'vertical')
         self.assertTrue(self.screen.initial[1]['entity'].startswith('screen.page_'))
         self.assertEqual(self.screen.initial[1]['o']['orientation'], 'horizontal')
         self.screen.messages.clear()
         del tile['appearance']['orientation']
+        resolve_values()
         await self.sync()
         self.assertIn('begin', [m['op'] for m in self.screen.messages])
         self.assertNotIn('orientation', self.screen.initial[0]['o'])

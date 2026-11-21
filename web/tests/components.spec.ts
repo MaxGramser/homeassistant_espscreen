@@ -780,6 +780,31 @@ describe("TileInspector: pages (app 0.2.78)", () => {
     expect(card.find('.nm[style*="text-align: center"]').exists()).toBe(false);
     if (entity === "screen.page_2") expect(card.get(".goto").text()).toBe("Page 2 ›");
   });
+  it("lets older firmware clear a stored orientation without offering another unsupported override", async () => {
+    const { tile, drawer } = open([{ entity: "switch.test", name: "Test", slot: 0, options: { orientation: "vertical" } }], 0);
+    expect(choices(drawer, "Icon and text layout")).toEqual(["Automatic", "Vertical"]);
+    const field = row(drawer, "Icon and text layout");
+    await field.findAll(".seg button")[0].trigger("click");
+    expect(current(tile).options?.orientation).toBeUndefined();
+    expect(field.get(".seg button").attributes("disabled")).toBeDefined();
+  });
+  it.each([
+    { entity: "cover.c", options: { controls: "buttons" } },
+    { entity: "light.a", options: { controls: "presets", presets: [{ b: 128 }] } },
+    { entity: "todo.test", options: {} },
+  ])("does not offer orientation for the dedicated single-cell layout of $entity", ({ entity, options }) => {
+    Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.62.0", tile_orientation: true, light_presets: true });
+    const { drawer } = open([{ entity, name: "Test", slot: 0, options }], 0);
+    expect(drawer.text()).not.toContain("Icon and text layout");
+  });
+  it.each([
+    { entity: "cover.c", options: { controls: "none" } },
+    { entity: "todo.test", options: {} },
+  ])("offers orientation when $entity uses a plain head", ({ entity, options }) => {
+    Object.assign(useInventoryStore().inventory.screens[0], { tile_orientation: true, todo_lists: false });
+    const { drawer } = open([{ entity, name: "Test", slot: 0, options }], 0);
+    expect(choices(drawer, "Icon and text layout")).toEqual(["Automatic", "Horizontal", "Vertical"]);
+  });
   it("offers existing page destinations and creates the next empty page as one edit", async () => {
     Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.63", full_page: true });
     const { tile, drawer } = open([
