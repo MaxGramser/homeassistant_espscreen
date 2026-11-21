@@ -378,7 +378,7 @@ inline void saver_follow_pending() {
 inline void saver_sync(bool lit) {
   saver_lit = lit;
   const bool shown = saver_root || saver_camera;
-  if (saver_leaving && !lit) return;  // it goes in the dark, in a moment
+  if (lit) saver_woke = false;  // standby again: no waking touch is still to be read
   if (!lit || !saver_wanted()) { if (shown) saver_hide(); return; }
   // The camera and the cover stand as they are while nothing changed; the clock is drawn again, a minute later. A
   // plugin's saver stays and draws on its own clock (on_tick).
@@ -400,20 +400,16 @@ inline void saver_sync(bool lit) {
   saver_hide();
   saver_show();
 }
-// wake_display: the screensaver goes, and the touch that woke the screen does nothing else.
-// `at_once` for a wake the main loop does not go on after (an update's start): no timer would end the dark.
-inline void saver_wake(bool at_once = false) {
-  // A second wake of the same touch (the finger's click after the board felt the tap) finds it leaving already.
-  if (saver_leaving && !at_once) return;
+// Whether a screensaver is on the glass now: a finger that lands on one wakes the screen at once (dim_wake_overlay).
+inline bool saver_on() { return saver_root || saver_camera; }
+// wake_display: the screensaver goes, and the touch that woke the screen does nothing else. It goes at once and the
+// page under it is drawn in sight: a finger gets its answer the moment it lands, on every board. Hiding that drawing
+// behind a dark backlight kept the glass black for as long as the page took to draw, which read as a tap not heard.
+// `saver_woke` stays until wake_tap has read it, since the finger that woke the screen on its press clicks after.
+inline void saver_wake() {
   saver_lit = false;
-  saver_woke = saver_root || saver_camera;
-  // The page under it would be drawn strip by strip in sight: on a screen with motion it comes behind the backlight.
-  if (saver_woke && !at_once) {
-    saver_leaving = true;
-    screen_motion::cut([]() { saver_leaving = false; saver_hide(); });
-  } else {
-    saver_hide();
-  }
+  if (saver_on()) saver_woke = true;
+  saver_hide();
 }
 // A new layout on its way (cancel_layout_input): every picture goes; saver_tick draws the screensaver again.
 inline void saver_forget() { saver_hide(); }

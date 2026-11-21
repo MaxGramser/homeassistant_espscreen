@@ -36,9 +36,6 @@ script:
       ms: int
     then:
       - lambda: |-
-          // While a change of the whole glass is drawn in the dark the light is that change's (screen_motion::cut): it
-          // comes up at the level the screen should have once the page is at rest.
-          if (screen_motion::holds_light()) return;
           id(back_light).turn_on().set_transition_length(ms).set_brightness(level / 100.0f).perform();
 
   - id: wake_display
@@ -51,19 +48,12 @@ script:
           id(last_touch_ms) = millis();
           id(display_dimmed) = false;
           id(sleep_requested) = false;
-          // The backlight as screen_motion.h drives it for a change of the whole glass: out at once, and back to this level.
-          if (!screen_motion::dark) {
-            screen_motion::dark = []() { id(set_backlight).execute(0, 0); };
-            screen_motion::lit = [](int ms) {
-              id(set_backlight).execute(id(display_dimmed) ? runtime_tiles::standby_level() : screen_settings::current.brightness, ms);
-            };
-          }
           // The screensaver goes with the standby, and the touch that woke the screen does nothing else (0.29.0+).
+          // From a screensaver the light is up at once: a finger on it must see that it was heard, and the page comes
+          // in sight under that light. From the dark it fades in over 200 ms (ESPHome's default of 1 s felt sluggish).
+          const bool from_saver = runtime_tiles::saver_on();
           runtime_tiles::saver_wake();
-          // A short fade in, 200 ms. ESPHome's default is 1s, and that feels sluggish
-          // when you touch the screen and are waiting on light. After the screensaver's leave, which keeps the light
-          // for itself until the page under it is drawn (set_backlight then does nothing here).
-          id(set_backlight).execute(screen_settings::current.brightness, 200);
+          id(set_backlight).execute(screen_settings::current.brightness, from_saver ? 0 : 200);
       - lvgl.widget.hide: dim_wake_overlay
       - script.execute: close_cards
 

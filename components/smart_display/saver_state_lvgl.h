@@ -19,9 +19,6 @@ namespace runtime_tiles {
 // wake_tap leaves the tile it lay over alone).
 inline std::function<void()> saver_changed;  // the profile's apply_screen_settings, which ends in saver_sync
 inline bool saver_lit = false;               // in standby with the backlight on (the standby or night level)
-// The screensaver is on its way out behind the backlight (saver_wake, screen_motion::cut): it stays on the glass until
-// the light is out, so nobody else takes it off in sight meanwhile.
-inline bool saver_leaving = false;
 inline uint32_t saver_ticked = 0;
 // A camera in standby loads at a live tile's default pace rather than the full view's four seconds: a screensaver can
 // stand there all evening, and the Wi-Fi and Home Assistant need not fetch a picture every four seconds for it.

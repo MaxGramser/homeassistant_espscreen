@@ -374,7 +374,7 @@ esphome:
             id(display_dimmed) = false;
             id(last_touch_ms) = millis();
             plugin_host::before_update();
-            runtime_tiles::saver_wake(true);
+            runtime_tiles::saver_wake();
             lv_obj_add_flag(id(dim_wake_overlay), LV_OBJ_FLAG_HIDDEN);
             ${OTA_BACKLIGHT}
           };
@@ -2358,6 +2358,10 @@ lvgl:
             scrollable: false
             scrollbar_mode: 'OFF'
             clickable: true
+            # A finger on a screensaver gets its answer as it lands, not when it lifts: the screensaver goes and the
+            # light comes up at once (runtime_tiles::saver_wake). The click that follows wakes nothing more.
+            on_press:
+              - lambda: 'if (runtime_tiles::saver_on()) id(wake_display).execute();'
             on_click:
               - script.execute: wake_display
               # A page that is one full tile switching something on or off switches with this push as well

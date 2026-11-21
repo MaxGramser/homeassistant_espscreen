@@ -1,6 +1,6 @@
 #pragma once
 // Motion: the one layer the UI asks for anything that moves or changes over the whole glass (docs/MOTION.md). A card,
-// the Dock or a plugin says what happens (an overlay shows, a sheet is let go, the whole glass changes) and this layer
+// the Dock or a plugin says what happens (an overlay shows, a sheet is let go) and this layer
 // picks how this screen does it. It knows LVGL's objects, the glass and the capability record; nothing of a board, a
 // chip or what an overlay holds.
 //
@@ -13,7 +13,6 @@
 //                 the glass itself (glass::veil), and the way back in the same order
 //   dim           the dim alone, for an overlay that moves its own part (the Dock's drawer)
 //   settle        what a finger let go travels on at the finger's speed and comes to rest (sheet_motion.h)
-//   cut           the whole glass changes behind the backlight: dark, drawn at once, lit again
 // The sums are pure (glass.h, sheet_motion.h; tests/test_sheet_motion.cpp); the rule is hw.h's (tests/test_hw.cpp).
 #include <algorithm>
 #include <cstdint>
@@ -116,61 +115,6 @@ inline void settle(lv_obj_t *o, lv_anim_exec_xcb_t set, int32_t from, int32_t to
   if (done) lv_anim_set_completed_cb(&a, done);
   set(o, from);
   lv_anim_start(&a);
-}
-
-// ---- The whole glass changes ----
-// The backlight, as the screen's own scripts drive it: dark at once, and back to the level the screen should have now
-// over `ms`. Set where the backlight lives (features/backlight.yaml); without them a cut is the change alone.
-inline std::function<void()> dark;
-inline std::function<void(int ms)> lit;
-// The dark is as short as the drawing: the light goes out, one step later the change is made and LVGL draws the whole of
-// it at once, and the light comes up. Waiting for the page to come to rest instead kept a page with a live tile or a
-// playing song dark for half a second (a camera on the glass, 2026-11-10): what still changes after the first whole
-// drawing is the page's ordinary life.
-constexpr uint32_t CUT_STEP_MS = 12, CUT_LIT_MS = 100;
-struct Cut {
-  std::function<void()> change;
-  lv_timer_t *timer = nullptr;
-  bool own = false;
-};
-inline Cut cutting;
-// For the backlight's script: the light is the cut's until it ends, so no other writer brings it up over a page that is
-// still being drawn. The cut's own calls pass.
-inline bool holds_light() { return cutting.timer && !cutting.own; }
-inline void cut_light(bool up) {
-  cutting.own = true;
-  if (up) lit(CUT_LIT_MS);
-  else dark();
-  cutting.own = false;
-}
-inline void cut_step(lv_timer_t *) {  // a timer of one run: it deletes itself
-  auto change = std::move(cutting.change);
-  cutting.change = nullptr;
-  if (change) change();
-  lv_refr_now(nullptr);
-  cut_light(true);
-  cutting.timer = nullptr;
-}
-// `change` makes the glass another (the screensaver goes, the page under it comes): LVGL would draw that strip by
-// strip in sight. So the light goes out, the change is made and drawn in the dark, and the light comes up on the whole
-// of it: one movement, out and in. A second change while one waits joins it, in the same dark. On a screen without
-// motion, without the light's hooks or with LVGL paused the change is made at once, as ever.
-inline void cut(std::function<void()> change) {
-  if (cutting.timer) {
-    cutting.change = [first = std::move(cutting.change), second = std::move(change)]() {
-      if (first) first();
-      second();
-    };
-    return;
-  }
-  if (!able() || !dark || !lit || !glass::drawing()) {
-    change();
-    return;
-  }
-  cutting.change = std::move(change);
-  cutting.timer = lv_timer_create(cut_step, CUT_STEP_MS, nullptr);
-  lv_timer_set_repeat_count(cutting.timer, 1);
-  cut_light(false);
 }
 
 }  // namespace screen_motion
