@@ -310,6 +310,12 @@ and tile storage remain in place. Structural changes, older peers and edits
 that exceed one bounded packet use the full transaction. No second layout or
 compatibility decoder is stored on the screen.
 
+The per-tile icon and text layout is optional appearance data. Automatic is
+stored as no override, so existing layouts keep their behavior. Horizontal or
+Vertical is sent in the initial tile message of a full page transaction, only
+after the screen's hello advertises `tile_orientation`. An older screen is not
+sent a layout that depends on the override.
+
 The store stays at version 2 while no screen has a section, so an older app reads it as before. The first save with
 a section keeps the version 2 file as `screens.v2.backup.json` beside the store (never overwritten, as the version 1
 backup) and writes version 3, which an older app refuses without rewriting it: going back needs that backup.

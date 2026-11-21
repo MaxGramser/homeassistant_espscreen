@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Choose the icon and text layout for a tile.** Plain single-cell entity and Go to page tiles can keep the automatic layout, put the icon beside the text, or put it above the name and second line. The screen must support the new option.
 - **The ESP32-P4 screens with echo cancelling build with ESPHome 2026.11.** The Guition, Waveshare and reTerminal ESP32-P4 boards and the Tab5 stopped in their audio library on ESPHome 2026.11 (`no member named 'audio_dac_'`), as ESPHome Device Builder has it now. They build with it now, as with the older ESPHome the app uses.
 - **The alarm page in every language.** German, Spanish, French, Hungarian, Italian, Polish, Portuguese and Russian showed the new Alarm page under Events, and the note on a plugin that runs another version on a screen, in English. They are translated now.
 

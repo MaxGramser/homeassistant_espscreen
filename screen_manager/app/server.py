@@ -4897,6 +4897,7 @@ def create_app(manager, development=False):
             screen['grids'] = manager.screen_grids(screen['id'])
             screen['hang'] = manager.wanted_way(screen['id']) if manager.turnable(screen['id']) else None
             screen['tile_sizes'] = sorted(sender.tile_sizes if sender.protocol is not None else sender.last_tile_sizes) if sender else ['single', 'wide', 'full']
+            screen['tile_orientation'] = bool(sender and 'tile_orientation' in sender.features)
             screen['page_capability'] = ('offline' if not screen.get('online') or not sender or sender.protocol is None
                                          else 'ready' if sender.protocol == 2 else 'update_screen')
             screen['page_last_capability'] = ('ready' if sender and sender.last_protocol == 2

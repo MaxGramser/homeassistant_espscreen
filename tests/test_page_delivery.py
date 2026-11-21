@@ -107,6 +107,33 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('begin', [m['op'] for m in self.screen.messages])
         self.assertNotIn('appearance', [m['op'] for m in self.screen.messages])
 
+    async def test_orientation_requires_a_firmware_hello_and_a_full_transaction(self):
+        await self.enable_appearance_updates()
+        tile = self.record['layout']['pages'][0]['tiles'][0]
+        tile['appearance']['orientation'] = 'vertical'
+        with self.assertRaises(Refused):
+            await self.sync()
+        self.assertEqual([m['op'] for m in self.screen.messages], ['hello'])
+
+        async def newer(message):
+            answer = await self.screen.send(message)
+            if message['op'] == 'hello':
+                answer.update(appearance_updates=1, features=['tile_orientation'])
+            return answer
+
+        self.sender = Sender(newer)
+        navigation = self.record['layout']['pages'][1]['tiles'][0]
+        navigation['appearance']['orientation'] = 'horizontal'
+        await self.sync()
+        self.assertEqual(self.screen.initial[0]['o']['orientation'], 'vertical')
+        self.assertTrue(self.screen.initial[1]['entity'].startswith('screen.page_'))
+        self.assertEqual(self.screen.initial[1]['o']['orientation'], 'horizontal')
+        self.screen.messages.clear()
+        del tile['appearance']['orientation']
+        await self.sync()
+        self.assertIn('begin', [m['op'] for m in self.screen.messages])
+        self.assertNotIn('orientation', self.screen.initial[0]['o'])
+
     async def test_interrupted_cosmetic_save_recovers_the_saved_document(self):
         await self.enable_appearance_updates()
         self.record['layout']['title'] = 'Retry title'

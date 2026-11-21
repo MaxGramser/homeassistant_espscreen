@@ -74,7 +74,7 @@ export const useInventoryStore = defineStore("inventory", () => {
     const skipped = value.filter((s) => !usable.includes(s)).map((s) => (typeof s?.name === "string" && s.name) || "?").join(", ");
     if (skipped && skipped !== previewsSkipped) { previewsSkipped = skipped; setTimeout(() => ui.toast(t("editor.preview.skipped", { names: skipped })), 0); }
     return usable.map((s) => ({ ...s, firmware: renderer.firmware, firmware_known: renderer.firmware,
-      tile_sizes: sizesOn(s.shape), grids: previewGrids(s.shape, s.orientation), page_capability: 'ready' }));
+      tile_orientation: true, tile_sizes: sizesOn(s.shape), grids: previewGrids(s.shape, s.orientation), page_capability: 'ready' }));
   }
   // A storage that keeps nothing (a private window, full or blocked) is said in the page's words, not the browser's, to
   // whoever wrote: a new preview screen, a save, a rename, a removal. Each writes here first, so what was not kept is not
@@ -111,7 +111,7 @@ export const useInventoryStore = defineStore("inventory", () => {
       firmware: renderer.firmware, firmware_known: renderer.firmware, tile_limit: 64, full_page: true,
       page_tiles_repeat: true, entity_tiles_repeat: true, no_title: true, climate_range: true, in_sync: true, shape, layout: { title: name.trim(), tiles: [], pages: 1 },
       source_grid: sourceGrid, page_document: document, page_capability: 'ready',
-      tile_sizes: sizesOn(shape), grids: previewGrids(shape, orientation),
+      tile_orientation: true, tile_sizes: sizesOn(shape), grids: previewGrids(shape, orientation),
     };
     persistVirtualScreens([...inventory.value.screens, screen]);
     inventory.value.screens.push(screen);

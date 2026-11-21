@@ -930,6 +930,7 @@
         "save_first": "Zapisz układ stron przed zapisaniem ustawień",
         "destination_exists": "Ekran docelowy ma już zapisany układ",
         "update_tall": "Zaktualizuj ekran, aby używać tych rozmiarów kafelków",
+        "update_orientation": "Zaktualizuj ekran, aby wybrać układ kafelków",
         "memory": "Ekran nie ma wystarczającej ilości wolnej pamięci dla tego układu. Użyj mniejszej liczby kafelków.",
         "grid_range": "Ten ekran nie przyjmuje siatki tej wielkości. Wybierz inną siatkę obok podglądu.",
         "section_title": "Sekcja potrzebuje nazwy o długości najwyżej 48 bajtów.",
@@ -2571,6 +2572,12 @@
         "needs_firmware": "Kafelki nawigacji wymagają wersji firmware 0.2.62: najpierw naciśnij „Aktualizuj” przy tym ekranie.",
         "no_page": "Ten ekran nie ma strony {page}, więc dotknięcie otwiera jego ostatnią stronę. Wybierz inną stronę.",
         "hint": "Dotknięcie kafelka otwiera tę stronę."
+      },
+      "orientation": {
+        "label": "Układ ikony i tekstu",
+        "auto": "Automatyczny",
+        "horizontal": "Poziomy",
+        "vertical": "Pionowy"
       },
       "display": {
         "label": "Widok",

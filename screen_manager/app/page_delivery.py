@@ -134,6 +134,9 @@ def tile_message(message, tile, *, initial, holders=None):
         else:
             message.update(op="tile", slot=tile["slot"])
         message.setdefault("o", {})
+        orientation = tile.get("options", {}).get("orientation")
+        if orientation in ("horizontal", "vertical"):
+            message["o"]["orientation"] = orientation
     else:
         message["op"] = "state"
         # HA may change an automatic icon with the entity's state. This is a
@@ -529,6 +532,8 @@ class Sender:
                     # gets the layout without them on the next round, which its hello now decides.
                     if bar and BAR_CARDS_FEATURE not in self.features:
                         raise Superseded("The screen takes no tiles of the top bar")
+                    if "tile_orientation" not in self.features and any("orientation" in message["o"] for message in initial_tiles):
+                        raise Refused(english('addon.errors.pages.update_orientation'))
                     # A screen that takes the layout's grid (firmware 0.53.0+) takes that grid's sizes; its hello names
                     # those of the grid it is on.
                     sizes = sizes_on(grid_of_record(record)) if self.grids is not None else self.tile_sizes

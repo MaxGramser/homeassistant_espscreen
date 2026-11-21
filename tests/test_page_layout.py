@@ -56,6 +56,27 @@ class PageLayoutTests(unittest.TestCase):
         self.assertEqual(record["layout"]["pages"][1]["tiles"][0]["placement"], {"row": 0, "column": 0, "columns": 1, "rows": 1})
         self.assertEqual(legacy_projection(record)["tiles"], validate_layout(old, grid=grid)["tiles"])
 
+    def test_tile_orientation_survives_document_validation(self):
+        record = self.migrate({"title": "Screen", "tiles": [{"entity": "switch.test", "slot": 0}]})
+        appearance = record["layout"]["pages"][0]["tiles"][0]["appearance"]
+        for orientation in ("horizontal", "vertical"):
+            with self.subTest(orientation=orientation):
+                appearance["orientation"] = orientation
+                document = validate_document(record["layout"], Grid())
+                self.assertEqual(compile_tiles(document, Grid())[0]["options"]["orientation"], orientation)
+                with self.assertRaises(LayoutError):
+                    legacy_projection(record)
+        appearance["orientation"] = "diagonal"
+        with self.assertRaises(ValueError):
+            validate_document(record["layout"], Grid())
+
+    def test_automatic_tile_orientation_keeps_the_legacy_layout(self):
+        old = {"title": "Screen", "tiles": [{"entity": "switch.test", "slot": 0}]}
+        automatic = deepcopy(old)
+        automatic["tiles"][0]["options"] = {"orientation": "auto"}
+        self.assertNotIn("orientation", validate_layout(automatic)["tiles"][0]["options"])
+        self.assertEqual(legacy_projection(self.migrate(automatic)), legacy_projection(self.migrate(old)))
+
     def test_rectangular_footprints_leave_future_sizes_capability_gated(self):
         record = self.migrate({"title": "Screen", "tiles": [
             {"entity": "media_player.test", "slot": 0, "options": {"size": "wide"}}]})

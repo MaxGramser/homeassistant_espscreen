@@ -748,6 +748,38 @@ describe("TileInspector: pages (app 0.2.78)", () => {
     const tile = doc.layout!.tiles[index];
     return { tile, drawer: inspector(tile) };
   }
+  it.each(["screen.page_2", "button.test", "script.test", "switch.test"])("offers and previews both orientations for %s", async (entity) => {
+    const screens = useInventoryStore().inventory.screens;
+    screens[0] = screenFixture({
+      ...screens[0],
+      shape: { width: 640, height: 180, dpi: 196, look: "compact", columns: 4, rows: 1 },
+      settings: { owner: "screen", keys: ["page_buttons"], values: { page_buttons: false }, unavailable: [] },
+      layout: { title: "Test", pages: 2, tiles: [{ entity, name: "Test", slot: 0 }] },
+    });
+    doc.loadDocument(screens[0]);
+    const tile = doc.layout!.tiles[0];
+    const drawer = inspector(tile);
+    const field = row(drawer, "Icon and text layout");
+    expect(field.get(".seg button").attributes("disabled")).toBeDefined();
+    expect(field.text()).toContain("Update the screen");
+    useInventoryStore().inventory.screens[0].tile_orientation = true;
+    await drawer.vm.$nextTick();
+    expect(field.get(".seg button").attributes("disabled")).toBeUndefined();
+    expect(choices(drawer, "Icon and text layout")).toEqual(["Automatic", "Horizontal", "Vertical"]);
+    await field.findAll(".seg button")[2].trigger("click");
+    expect(current(tile).options?.orientation).toBe("vertical");
+    const card = mount(TileCard, { props: { tile: current(tile), at: 0 } });
+    expect(card.get(".glass-head .nm").attributes("style")).toContain("text-align: center");
+    if (entity === "screen.page_2") expect(card.get(".glass-head .st").text()).toBe("Page 2");
+    await field.findAll(".seg button")[1].trigger("click");
+    expect(current(tile).options?.orientation).toBe("horizontal");
+    await field.findAll(".seg button")[0].trigger("click");
+    expect(current(tile).options?.orientation).toBeUndefined();
+    await field.findAll(".seg button")[1].trigger("click");
+    await card.setProps({ tile: current(tile) });
+    expect(card.find('.nm[style*="text-align: center"]').exists()).toBe(false);
+    if (entity === "screen.page_2") expect(card.get(".goto").text()).toBe("Page 2 ›");
+  });
   it("offers existing page destinations and creates the next empty page as one edit", async () => {
     Object.assign(useInventoryStore().inventory.screens[0], { firmware: "0.2.63", full_page: true });
     const { tile, drawer } = open([
