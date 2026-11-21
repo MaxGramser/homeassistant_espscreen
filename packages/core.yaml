@@ -1562,7 +1562,10 @@ font:
     glyphs: *tile_icons
 
 # Make memory visible: this board has no PSRAM, so the free heap determines
-# how much UI still fits. Also shows up as an entity in Home Assistant.
+# how much UI still fits. The figures are entities in Home Assistant, switched off there until someone wants them
+# (`disabled_by_default`, firmware 0.63.0): a row every five minutes per figure and screen is nobody's history. ESP
+# Screens switches them on while the screen's Debug mode is on (screen_manager/app/debug_sensors.py), and the
+# health lines below go to the log either way.
 debug:
   # Heap figures every five minutes: enough to spot a leak, few recorder rows.
   update_interval: 300s
@@ -1571,6 +1574,7 @@ sensor:
   - platform: debug
     free:
       name: "Heap Free"
+      disabled_by_default: true
       id: heap_free
       on_value:
         - lambda: |-
@@ -1595,13 +1599,16 @@ sensor:
             #endif
     fragmentation:
       name: "Heap Fragmentation"
+      disabled_by_default: true
     block:
       name: "Heap Largest Block"
+      disabled_by_default: true
       on_value:
         - lambda: 'ESP_LOGI("health", "largest_block=%.0f", x);'
     # The lowest free heap since boot: what the busiest moment (boot sync, a swipe) left over.
     min_free:
       name: "Heap Minimum Free"
+      disabled_by_default: true
       on_value:
         - lambda: 'ESP_LOGI("health", "min_free=%.0f", x);'
   # The other half of the memory (firmware 0.2.83+). The four figures above are ESPHome's debug platform, and on
@@ -1611,6 +1618,7 @@ sensor:
   # from how much PSRAM it has. These two say what the other half holds; a board without PSRAM reports zero.
   - platform: template
     name: "Psram Free"
+    disabled_by_default: true
     id: psram_free
     unit_of_measurement: B
     accuracy_decimals: 0
@@ -1628,6 +1636,7 @@ sensor:
   # page is built (show_tile_page_soon). The figure of the health line loop_stack_min_free.
   - platform: template
     name: "Loop Stack Free"
+    disabled_by_default: true
     id: loop_stack_free
     unit_of_measurement: B
     accuracy_decimals: 0
@@ -1646,6 +1655,7 @@ sensor:
   # shows nothing, so the figure waits for standby at level 0 or Sleep and keeps its last value until then.
   - platform: template
     name: "Psram Largest Block"
+    disabled_by_default: true
     id: psram_largest
     unit_of_measurement: B
     accuracy_decimals: 0

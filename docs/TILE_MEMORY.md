@@ -157,7 +157,8 @@ the type, on a board with PSRAM, twice:
 1. Build a screen's firmware with the heap figures every 10 seconds (`debug: update_interval: 10s` in its own YAML) and
    flash it.
 2. Save a layout of one tile of the type, wait until the screen has applied it, wait 10 seconds and take the median of the
-   **Heap Free** sensor over 25 seconds.
+   **Heap Free** sensor over 25 seconds (switch the sensor on in Home Assistant first, or turn on the screen's Debug
+   mode: docs/SETTINGS.md).
 3. Do the same with 41 tiles, then 1 and 41 again. The mean of the two differences, divided by 40, is the price; the two
    agree within a few bytes. A step during which the screen restarted is done again.
 

@@ -69,6 +69,7 @@ text_sensor:
   - platform: template
     id: pressure_state
     name: "Pressure"
+    disabled_by_default: true
     icon: "mdi:gauge"
     entity_category: diagnostic
     update_interval: never

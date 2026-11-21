@@ -70,6 +70,7 @@ text_sensor:
   - platform: template
     id: board_aec_status
     name: "Echo cancellation status"
+    disabled_by_default: true
     entity_category: diagnostic
     update_interval: 2s
     lambda: |-

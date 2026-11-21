@@ -43,6 +43,21 @@ subscriber over Wi-Fi, came with a flash on the live camera tiles, and with the 
 (docs/PLATFORM_PLAN.md 4.7). Turn it on to read a screen's log in ESPHome or Home Assistant; the troubleshooting
 report turns it on for its own 45 seconds and back to what it was (`reports.screen_log`, `debug=True`).
 
+**The measuring sensors** follow Debug mode in Home Assistant. A screen measures itself: Heap Free, Heap Fragmentation,
+Heap Largest Block, Heap Minimum Free, Psram Free, Psram Largest Block and Loop Stack Free on every board, Wi-Fi
+co-processor, Panel watch and Panel misses on an ESP32-P4, Pressure on a board with a camera and Echo cancellation
+status on one that cancels echo. They are for a diagnosis, so the firmware marks them `disabled_by_default`: Home
+Assistant has them switched off and records nothing of them, and anyone can switch one on under the screen's device.
+Once a screen's Debug mode has been on for a minute and a half, the app switches on the diagnostic entities of that
+screen that Home Assistant holds switched off, and it switches the same ones off again when Debug mode goes off
+(`screen_manager/app/debug_sensors.py`, `tests/test_debug_sensors.py`). It undoes only its own work: a sensor someone
+switched on stays on, one someone switched off stays off, and a screen that had them on before this firmware keeps them
+on, because Home Assistant reads the mark only when it first meets an entity. Switching an entity on makes Home
+Assistant load the screen's integration again half a minute later, so the screen's link drops for a moment then. The
+troubleshooting report needs none of this: it reads the figures from the screen itself. A new sensor that measures the
+firmware gets the mark, right under its `name:`; what the app reads through Home Assistant (Screen firmware, Screen
+board, the settings) never does, and the test says so.
+
 A screen starts with each setting's default until it stores a value of its own. Swipe between pages is the one whose
 default depends on the screen: off in the firmware and in `SETTING_RULES`, because every screen set up before had it off
 and one whose settings were never changed stores no choice, so a default of on would turn it on with an update. A screen

@@ -61,6 +61,7 @@ psram:
 text_sensor:
   - platform: template
     name: "Wi-Fi co-processor"
+    disabled_by_default: true
     entity_category: diagnostic
     lambda: 'return {wifi_chip::firmware()};'
     update_interval: 60s
@@ -71,6 +72,7 @@ text_sensor:
   # Assistant's history of this sensor is the record (the log gets the same line, once a minute and only after a flash).
   - platform: template
     name: "Panel watch"
+    disabled_by_default: true
     icon: "mdi:monitor-eye"
     entity_category: diagnostic
     lambda: 'return {glass::watch_said()};'
@@ -83,6 +85,7 @@ text_sensor:
 sensor:
   - platform: template
     name: "Panel misses"
+    disabled_by_default: true
     icon: "mdi:monitor-off"
     entity_category: diagnostic
     state_class: total_increasing

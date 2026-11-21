@@ -36,6 +36,7 @@ import screen_source
 import claude_skill
 import layoutbot
 import screen_video
+import debug_sensors
 import screen_hang
 import screen_labels
 import screen_saver
@@ -1135,6 +1136,8 @@ class Manager:
         self.skill_dir = claude_skill.skill_dir()
         # Video in Home Assistant (Settings): the tessera_video integration, installed only on request (screen_video.py).
         self.videos = screen_video.Videos(screen_video.target())
+        # A screen's measuring sensors, on in Home Assistant while its Debug mode is on (debug_sensors.py).
+        self.debug_sensors = debug_sensors.DebugSensors(self.path.parent / 'debug-sensors.json')
         self._registry_source, self._registry_index = None, {}
         self._items_source, self._items = None, []
         self._screens_key, self._screens = None, []
@@ -1740,6 +1743,19 @@ class Manager:
                 LOG.debug('Video in Home Assistant waits (%s)', type(error).__name__)
             except Exception:   # a slip in one round never ends the app
                 LOG.exception('Video in Home Assistant failed this round')
+
+    async def debug_sensor_loop(self):
+        """A screen's measuring sensors follow its Debug mode in Home Assistant (debug_sensors.py)."""
+        while True:
+            await asyncio.sleep(debug_sensors.INTERVAL)
+            if not self.ha.online or not self.ha.registry:
+                continue
+            try:
+                await self.debug_sensors.run(self.ha, {s['device_id'] for s in self.screens() if s.get('device_id')})
+            except (ClientError, ConnectionError, TimeoutError, OSError, ValueError, Refused) as error:
+                LOG.debug('The sensors of Debug mode wait (%s)', type(error).__name__)
+            except Exception:   # a slip in one round never ends the app
+                LOG.exception('The sensors of Debug mode failed this round')
 
     async def pairing_loop(self):
         """Adds the screens this app made to Home Assistant as soon as it finds them on the network, and lets them
@@ -6465,7 +6481,7 @@ async def main():
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
                                  manager.alert_loop(), manager.doorbell_loop(), manager.call_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
-                                 manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(),
+                                 manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(), manager.debug_sensor_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))
         finally:
             await cameras.cleanup()
