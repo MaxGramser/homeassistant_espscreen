@@ -1,0 +1,181 @@
+# ESP Screens - Guition JC1060P470 "V3" board, EXPERIMENTAL: the 7-inch JC1060P470 as Guition ships it now (SKU
+# 10153004-V3, sold as JC1060P470C_I_W_Y with the camera), with rev3 ESP32-P4 silicon behind the V2's LCD and JD9165
+# driver. 1024x600 MIPI-DSI + GT911 capacitive touch, on an ESP32-P4 with an ESP32-C6 for Wi-Fi.
+#
+# Everything but the chip revision is the V2's: the same panel timings and init table, the 10 MHz Wi-Fi link, the
+# GT911, the audio and the camera port, so this file differs from guition-jc1060p470-v2.yaml only in its silicon and
+# in its display platform. The V2's firmware is built for pre-v3 silicon and leaves a V3 dark and off the network
+# (GitHub #397), which is how someone finds out which of the two they have. jtenniswood/espcontrol's
+# guition-esp32-p4-jc1060p470-v3 profile runs this board as the V2's with engineering_sample: false.
+# The speaker and the microphone are the Guition P4 panels' audio (hardware/guition-p4-audio.yaml) on the pins of the
+# JC-ESP32P4-M3 module board, experimental.
+#
+# docs/PROFILES.md says how the files of a screen fit together. Two entry files include this one:
+# checkout/jc1060p470v3.yaml (a build on this computer) and packages/jc1060p470v3.yaml (the package a screen builds from
+# over GitHub).
+packages:
+  # The board apart from its LCD: the ESP32-P4 and its ESP32-C6 (shared with the 10.1-inch) and the GT911, shared
+  # with the first JC1060P470.
+  hardware: !include ../hardware/guition-jc1060p470.yaml
+  look: !include ../looks/standard.yaml
+  touch: !include ../features/capacitive-touch.yaml
+  backlight: !include ../features/backlight.yaml
+  camera: !include ../features/camera.yaml
+  self_test: !include ../features/self-test.yaml
+  snapshot: !include ../features/snapshot.yaml
+  # The ES8311, its speaker and its microphone, on the pins of the module board below.
+  audio: !include ../hardware/guition-p4-audio.yaml
+
+substitutions:
+  # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
+  BOARD_ID: "jc1060p470v3"
+  DEVICE_NAME: "jc1060p470v3-new"
+  DEVICE_FRIENDLY_NAME: "My Guition 7 V3"
+
+  # The glass: the panel's own pixels, which the display block below always drives, and its density: 1187 diagonal
+  # pixels over 7 inches. The look scales its sizes by the exact density, the firmware by the nearest whole number.
+  PANEL_W: "1024"
+  PANEL_H: "600"
+  DISPLAY_DPI: "169.548"
+  # The tile grid: columns and rows of cells. The shared tree places every cell from these
+  # (runtime_tiles::place_page), so a board with more room states more columns or rows.
+  GRID_COLS: "4"
+  GRID_ROWS: "4"
+  # The cells of a page when this screen stands up: two columns of seven keep the standard tile size.
+  GRID_COLS_PORTRAIT: "2"
+  GRID_ROWS_PORTRAIT: "7"
+  # More tiles and pages than the 64 and eight of a board without PSRAM (firmware 0.34.0+): an ESP32-P4 has the PSRAM and
+  # the memory inside the chip for them, and the memory budget (tile_memory.h) says how many a layout really takes.
+  SCREEN_MAX_TILES: "256"
+  SCREEN_MAX_PAGES: "16"
+  SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it
+  # LVGL's draw buffer as a share of the screen. A quarter of 1024x600 is 300 KB, most of what the chip keeps free
+  # inside it, so the buffer goes to PSRAM at once, as on the 10.1-inch (docs/ADDING_A_BOARD.md).
+  LVGL_BUFFER_SIZE: "50%"
+  # The Wi-Fi link at 10 MHz: at 20 MHz the C6's SDIO clock puts a band of vertical streaks into the picture of this
+  # panel, reported and measured by people with a V2 (ESPHome pull request 18695 and the configurations around it).
+  HOSTED_SDIO_FREQUENCY: "10MHz"
+  # The audio on the JC-ESP32P4-M3 module board (hardware/guition-p4-audio.yaml): the microphone's data and the
+  # amplifier's enable.
+  AUDIO_DIN_PIN: GPIO48
+  AUDIO_AMPLIFIER_PIN: GPIO11
+  # The camera's sensor (the feature camera_sensor, docs/PLUGINS.md): the OmniVision OV02C10 on the MIPI-CSI port of
+  # the boards that carry one (the "C" in Guition's model name). It answers on the touch bus at 0x36, clocks itself
+  # and has no reset or power-down pin; a camera plugin drives it (screen_camera), as Guition's firmware for the JC1060P470C drives it (espressif/esp-video-components#90).
+  CAMERA_I2C: touch_bus
+  CAMERA_XCLK_PIN: "-1"                        # the sensor has its own clock
+
+# ============================================================
+# No need to edit below this line.
+# ============================================================
+
+esphome:
+  # This board asks for more ESPHome than the packages' own min_version (packages/core.yaml): its audio (the
+  # speaker_source media player, the resamplers) is built and tried on 2026.9.0, as on the other boards with a speaker.
+  # A board file's min_version wins over the core's.
+  min_version: 2026.9.0
+
+# Rev3 silicon ("chip revision: v3.x" in the boot log). The V2's chips are pre-v3, which
+# packages/hardware/esp32p4-core.yaml builds for; ESP-IDF lays out memory differently for the two and a pre-v3
+# firmware does not run on a rev3 chip (GitHub #397). This board file's value wins over that file's.
+esp32:
+  engineering_sample: false
+
+# ESPHome has no model for this panel yet (pull request 18695 adds `JC1060P470-V2`), so it is described in full:
+# the timings and the init table of Guition's own driver for the new panel (JC1060P470C_I_W_Y.zip, 2026-07-13,
+# esp_lcd_jd9165), as that pull request carries them. ESPHome adds the pixel format, the orientation and the
+# display-on commands itself.
+# The platform is mipi_dsi_v3, a copy of ESPHome 2026.9.0's mipi_dsi in components/ that lets ESP-IDF pick the DSI
+# clock: upstream's fixed clock aborts on rev3 silicon while the display starts (as on the JC8012P4A1 V3, GitHub #52).
+# ESPHome fixes this in 2026.9.1 (esphome/esphome#18984); then this goes back to `platform: mipi_dsi` and the copy goes
+# away (components/mipi_dsi_v3/README.md).
+display:
+  - platform: mipi_dsi_v3
+    id: my_display
+    model: CUSTOM
+    update_interval: never
+    auto_clear_enabled: false
+    # The panel's LCD_RST (GPIO0 on the schematic), a hardware reset as on the first panel: the pull request found
+    # this panel blanks on GPIO0, and its table wants the wait below after it.
+    reset_pin: GPIO0
+    color_order: RGB
+    dimensions: {width: 1024, height: 600}
+    lanes: 2
+    lane_bit_rate: 750Mbps
+    pclk_frequency: 52MHz
+    hsync_pulse_width: 24
+    hsync_back_porch: 136
+    hsync_front_porch: 160
+    vsync_pulse_width: 2
+    vsync_back_porch: 21
+    vsync_front_porch: 12
+    init_sequence:
+      # The JD9165 takes the table only 120 ms after a reset. ESPHome waits that long before its own sleep-out,
+      # not before the table, and without this wait the panel comes up white after a restart with the power on.
+      - delay 120ms
+      - [0x30, 0x00]
+      - [0xF7, 0x49, 0x61, 0x02, 0x00]
+      - [0x30, 0x01]
+      - [0x04, 0x0C]
+      - [0x05, 0x08]
+      - [0x0B, 0x11]
+      - [0x20, 0x04]
+      - [0x1F, 0x05]
+      - [0x23, 0x38]
+      - [0x28, 0x18]
+      - [0x29, 0x29]
+      - [0x2A, 0x01]
+      - [0x2B, 0x29]
+      - [0x2C, 0x01]
+      - [0x30, 0x02]
+      - [0x00, 0x05]
+      - [0x01, 0x22]
+      - [0x02, 0x08]
+      - [0x03, 0x12]
+      - [0x04, 0x16]
+      - [0x05, 0x64]
+      - [0x06, 0x00]
+      - [0x07, 0x00]
+      - [0x08, 0x78]
+      - [0x09, 0x00]
+      - [0x0A, 0x04]
+      - [0x0B, 0x16, 0x17, 0x0B, 0x0D, 0x0D, 0x0D, 0x11, 0x10, 0x07, 0x07, 0x09]
+      - [0x0C, 0x09, 0x1E, 0x1E, 0x1C, 0x1C, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x0D, 0x0A, 0x05, 0x0B, 0x0D, 0x0D, 0x0D, 0x11, 0x10, 0x06, 0x06, 0x08]
+      - [0x0E, 0x08, 0x1F, 0x1F, 0x1D, 0x1D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x0F, 0x0A, 0x05, 0x0D, 0x0B, 0x0D, 0x0D, 0x11, 0x10, 0x1D, 0x1D, 0x1F]
+      - [0x10, 0x1F, 0x08, 0x08, 0x06, 0x06, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x11, 0x16, 0x17, 0x0D, 0x0B, 0x0D, 0x0D, 0x11, 0x10, 0x1C, 0x1C, 0x1E]
+      - [0x12, 0x1E, 0x09, 0x09, 0x07, 0x07, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D]
+      - [0x13, 0x00, 0x00, 0x00, 0x00]
+      - [0x14, 0x00, 0x00, 0x41, 0x41]
+      - [0x15, 0x00, 0x00, 0x00, 0x00]
+      - [0x17, 0x00]
+      - [0x18, 0x85]
+      - [0x19, 0x06, 0x09]
+      - [0x1A, 0x05, 0x08]
+      - [0x1B, 0x0A, 0x04]
+      - [0x26, 0x00]
+      - [0x27, 0x00]
+      - [0x30, 0x06]
+      - [0x12, 0x3F, 0x25, 0x27, 0x35, 0x1D, 0x1B, 0x1B, 0x1A, 0x18, 0x0A, 0x2A, 0x21, 0x19, 0x30]
+      - [0x13, 0x3F, 0x26, 0x27, 0x35, 0x1E, 0x1C, 0x1C, 0x1A, 0x18, 0x0B, 0x2A, 0x21, 0x19, 0x30]
+      - [0x30, 0x0A]
+      - [0x02, 0x4F]
+      - [0x0B, 0x40]
+      - [0x30, 0x0D]
+      - [0x0D, 0x04]
+      - [0x10, 0x05]
+      - [0x11, 0x0C]
+      - [0x12, 0x05]
+      - [0x13, 0x0C]
+      - [0x30, 0x00]
+      # Guition's driver waits 120 ms between sleep-out and display-on; ESPHome's own sleep-out follows with about
+      # 10 ms. A sleep-out here and the wait after it keep the vendor's margin; the second one is a no-op.
+      - [0x11]
+      - delay 120ms
+
+# The log over the chip's own USB-Serial/JTAG, ESPHome's default on an ESP32-P4 and what
+# jtenniswood/espcontrol's V3 profile for this board runs; hardware/esp32p4-c6.yaml chooses UART0 for every P4 board.
+logger:
+  hardware_uart: USB_SERIAL_JTAG
