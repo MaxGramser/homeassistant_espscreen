@@ -930,6 +930,7 @@
         "save_first": "Guarda a disposição das páginas antes de guardar as definições",
         "destination_exists": "O ecrã de destino já tem uma disposição guardada",
         "update_tall": "Atualiza o ecrã para usar estes tamanhos de cartão",
+        "update_orientation": "Atualize a tela para escolher a disposição dos blocos",
         "memory": "O ecrã não tem memória livre suficiente para esta disposição. Use menos blocos.",
         "grid_range": "Este ecrã não aceita uma grelha deste tamanho. Escolha outra grelha ao lado da pré-visualização.",
         "section_title": "Uma secção precisa de um nome com no máximo 48 bytes.",
@@ -2571,6 +2572,13 @@
         "needs_firmware": "Os mosaicos de navegação precisam do firmware 0.2.62: prima primeiro Atualizar na lista de ecrãs.",
         "no_page": "Este ecrã não tem página {page}, por isso um toque abre a última página. Escolha outra página.",
         "hint": "Um toque no mosaico abre essa página."
+      },
+      "orientation": {
+        "label": "Disposição",
+        "hint": "Coloque o ícone ao lado do texto ou acima, se houver espaço. Automática se adapta ao espaço disponível.",
+        "auto": "Automática",
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
       },
       "display": {
         "label": "Apresentação",

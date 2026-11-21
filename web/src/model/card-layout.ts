@@ -5,6 +5,7 @@
 // glass's scale (stores/canvas.ts --glass), so a card is drawn as the glass draws it on every board, not at sizes of
 // the editor's own. tests/test_editor_parity.py holds these to the firmware.
 import ink from "./icon-ink.json";
+import type { CardOrientation } from "../types";
 import { textPx } from "./text-fit";
 import { presetPanel, presetSizes } from "./light-presets";
 import { cardContent, cardHeight, frameOf, lineOf, touchMin, uiScale, type Shape } from "./ui-scale";
@@ -64,12 +65,19 @@ export type Head = { circle: { x: number; y: number; size: number; icon: number 
  * room a control at the right takes with its gap (layout_panel's panel_w), `code` the icon's glyph; `nameStep` false
  * for the head of a full card, whose name never takes the larger step. */
 export function cardHead(shape: Shape, look: CardLook, room: { width: number; height: number; padY: number; outer?: number }, panel: number, code: string,
-  withValue: boolean, wide = false, nameStep = true): Head {
+  withValue: boolean, wide = false, nameStep = true, orientation?: CardOrientation): Head {
   const { large, px, compact } = uiScale(shape);
   // A card of one cell at least twice the look's cell high (a tall glass with few rows) stands its icon above its name
   // and its line, centred, as a full card does (runtime_tiles render).
-  if (!wide && !panel && (room.outer ?? 0) >= 2 * px(large ? 108 : 52)) {
-    const circle = Math.trunc((Math.min(room.width, (room.height * (large ? 45 : 40)) / 100))), gap = px(large ? 10 : 6), between = px(large ? 2 : 1);
+  const minimum = px(large ? 32 : 20);
+  const stackGap = px(large ? 10 : 6), stackBetween = px(large ? 2 : 1);
+  const available = room.height - stackGap - stackBetween - lineOf(look.label) - lineOf(look.sublabel);
+  const stack = orientation === "vertical" ? room.width >= minimum && available >= minimum
+    : orientation === undefined && (room.outer ?? 0) >= 2 * px(large ? 108 : 52);
+  if (!wide && !panel && stack) {
+    const ideal = Math.min(room.width, Math.trunc(room.height * (large ? 45 : 40) / 100));
+    const circle = orientation === "vertical" ? Math.min(available, Math.max(minimum, ideal)) : ideal;
+    const gap = stackGap, between = stackBetween;
     const titleLine = lineOf(look.label), valueLine = lineOf(look.sublabel);
     const top = Math.max(0, Math.trunc((room.height - (circle + gap + titleLine + between + valueLine)) / 2));
     return {

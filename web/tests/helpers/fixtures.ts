@@ -36,7 +36,7 @@ export function documentFixture(view: Layout, grid = testGrid): PageDocument {
         : { kind: "entity", entityId: tile.entity };
     const appearance: PageTile["appearance"] = { label: tile.name }, interaction: PageTile["interaction"] = {};
     if (o.size === "wide" || o.size === "full") appearance.presentation = o.size;
-    for (const [key, option] of Object.entries({ display: "display", icon: "icon", background: "background", historyHours: "history_hours", refresh: "refresh", subtitle: "sub" }))
+    for (const [key, option] of Object.entries({ display: "display", icon: "icon", background: "background", orientation: "orientation", historyHours: "history_hours", refresh: "refresh", subtitle: "sub" }))
       if (o[option] !== undefined) Object.assign(appearance, { [key]: clone(o[option]) });
     for (const key of ["tap", "inline", "controls", "action", "presets", "preset_levels"] as const) if (o[key] !== undefined) Object.assign(interaction, { [key]: clone(o[key]) });
     layout.pages[Math.floor(tile.slot / cells)].tiles.push({ id: tile.id, content, appearance, interaction,

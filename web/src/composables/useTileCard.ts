@@ -119,7 +119,8 @@ export function useTileCard(props: TileCardProps) {
   const note = computed(() => (face.value.display !== "standard" ? displayName(face.value.display) : ""));
   const status = computed(() => stateText(props.tile.entity, current.value, { runs: runs.value, note: note.value,
     controlled: Boolean(face.value.controls && face.value.controls !== "none" && (face.value.wide || face.value.tall) && !face.value.full) }, words.value));
-  const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value, status.value));
+  const line = computed(() => subLine(String(props.tile.options?.sub ?? "auto"), current.value,
+    goesTo.value ? screenText(words.value, "screen.tile.page", { n: goesTo.value }) : status.value));
   const fill = computed(() => fillPercent(domain.value, current.value));
   const lit = computed(() => isOn(domain.value, current.value, runs.value));
   // The value the body shows large; the same words are not repeated under the name (a second line of your own stays).
@@ -217,12 +218,16 @@ export function useTileCard(props: TileCardProps) {
     return cardPanel(s, kind, restContent(s, g.columns, shape.value.columns, cell % g.columns), r, keys, run);
   });
   // A card of one row with a plain head (runtime_tiles head_row): the circle at the left, the name and its line beside
-  // it; not a Big number, a graph, a picture, a small slider, a cover laid out by its room or a page's link.
+  // it; not a Big number, a graph, a picture, a small slider or a cover laid out by its room.
   const head = computed(() => {
     const r = room.value, f = face.value;
     if (!r || !["standard", "wide"].includes(f.kind) || shape.value.rows !== 1 || !(f.display === "standard" || (f.display === "cover" && domain.value === "media_player")) || f.coverRow || f.modeBar
-      || goesTo.value || props.tile.options?.inline === "slider") return null;
-    return cardHead(doc.screenShape, look.value, r, panel.value?.taken ?? 0, icon.value, Boolean(texts.line), f.wide);
+      || props.tile.options?.inline === "slider") return null;
+    const orientation = f.display === "standard" && (goesTo.value || domain.value !== "screen") ? props.tile.options?.orientation : undefined;
+    // A page link keeps its ordinary row and chevron unless a vertical override fits.
+    if (goesTo.value && orientation !== "vertical") return null;
+    const result = cardHead(doc.screenShape, look.value, r, panel.value?.taken ?? 0, icon.value, Boolean(texts.line), f.wide, true, orientation);
+    return goesTo.value && !result.title.center ? null : result;
   });
   // A card more than a row high as the glass lays it out (runtime_tiles render_tall, model/tall-layout.ts): its heading,
   // the body's words in the face that fits, its controls in their row, or one centred stack; a blind's slats keep the

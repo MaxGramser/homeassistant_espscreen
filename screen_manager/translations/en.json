@@ -930,6 +930,7 @@
         "save_first": "Save a page document before saving document settings",
         "destination_exists": "Destination screen already has a saved layout",
         "update_tall": "Update the screen to use these tile sizes",
+        "update_orientation": "Update the screen to use manual tile layouts",
         "memory": "The screen does not have enough free memory for this layout. Reduce the number of tiles.",
         "grid_range": "This screen does not take a grid of that size. Choose another grid beside the mockup.",
         "section_title": "A section needs a name of at most 48 bytes.",
@@ -2118,6 +2119,13 @@
         "needs_firmware": "Navigation tiles need firmware 0.2.62: press Update on the screen first.",
         "no_page": "This screen has no page {page}, so a tap opens its last page. Choose another page.",
         "hint": "A tap on the tile opens that page."
+      },
+      "orientation": {
+        "label": "Layout",
+        "hint": "Place the icon beside the text or above it when there is room. Automatic follows the available space.",
+        "auto": "Automatic",
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
       },
       "display": {
         "label": "Display",

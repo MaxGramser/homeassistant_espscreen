@@ -930,6 +930,7 @@
         "save_first": "Speichere zuerst das Seitenlayout und danach die Einstellungen",
         "destination_exists": "Der Zielbildschirm hat bereits ein gespeichertes Layout",
         "update_tall": "Aktualisiere den Bildschirm, um diese Kachelgrößen zu verwenden",
+        "update_orientation": "Aktualisiere den Bildschirm, um die Kachelanordnung manuell zu wählen",
         "memory": "Der Bildschirm hat nicht genug freien Speicher für dieses Layout. Verwende weniger Kacheln.",
         "grid_range": "Dieser Bildschirm nimmt kein Raster dieser Größe an. Wähle neben der Vorschau ein anderes Raster.",
         "section_title": "Ein Bereich braucht einen Namen von höchstens 48 Bytes.",
@@ -2571,6 +2572,13 @@
         "needs_firmware": "Navigationskacheln brauchen Firmware 0.2.62: Drücke zuerst beim Bildschirm auf „Aktualisieren“.",
         "no_page": "Dieser Bildschirm hat keine Seite {page}, daher öffnet ein Tippen seine letzte Seite. Wähle eine andere Seite.",
         "hint": "Ein Tippen auf die Kachel öffnet diese Seite."
+      },
+      "orientation": {
+        "label": "Layout",
+        "hint": "Platziere das Symbol neben dem Text oder darüber, wenn genug Platz ist. Automatisch richtet sich nach dem verfügbaren Platz.",
+        "auto": "Automatisch",
+        "horizontal": "Horizontal",
+        "vertical": "Vertikal"
       },
       "display": {
         "label": "Anzeige",

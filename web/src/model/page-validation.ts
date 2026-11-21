@@ -113,7 +113,7 @@ export function validatePageShape(layout: PageLayout, plugins = false) {
     for (const tile of allTiles(page)) {
       fields(tile, ['id', 'content', 'placement', 'appearance', 'interaction', 'children'], ['id', 'content', 'placement', 'appearance', 'interaction']);
       fields(tile.placement, ['row', 'column', 'columns', 'rows']);
-      fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
+      fields(tile.appearance, ['label', 'presentation', 'display', 'icon', 'background', 'orientation', 'historyHours', 'refresh', 'subtitle', 'fit', 'overlay',
         'mapEntities', 'mapFraming', 'mapDistance', 'mapFollow', 'mapMarkers', 'mapNames', 'mapZones', 'mapStreets', 'mapLook', 'energyFlow', 'textTemplate',
         ...CALENDAR_FIELDS, ...CALENDAR_MORE, ...TODO_FIELDS, ...METER_FIELDS], ['label']);
       fields(tile.interaction, ['tap', 'inline', 'controls', 'action', 'guard', 'play', 'speaker', 'shuffle', 'repeat', 'tilt_open', 'presets', 'preset_levels'], []);
@@ -176,6 +176,7 @@ export function validateCardOptions(tile: PageTile, entityId: string, size: stri
     || i.presets.some((p) => canon(cleanPreset(p)) !== canon(p)))) fail('normalization');
   if (i.preset_levels !== undefined && (domain !== 'light' || i.preset_levels !== true)) fail('normalization');
   if (a.icon !== undefined && !icon(a.icon)) fail();
+  if (a.orientation !== undefined && !['horizontal', 'vertical'].includes(a.orientation)) fail();
   if (rules.wideOnly.includes(a.display || '') && !isWideSize(size)) fail('normalization');
   if (tile.content.kind === 'navigation' && (size === 'full' || a.display !== undefined || i.inline !== undefined ||
       i.controls !== undefined || a.historyHours !== undefined)) fail('normalization');

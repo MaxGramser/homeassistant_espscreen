@@ -107,7 +107,7 @@ describe("the tile panel", () => {
     const tile: Tile = { entity: "light.a", name: "", slot: 0, options: { sub: "none" } };
     appendTiles(tile);
     const panel = mount(TileInspector, { props: { tile: current(tile)! } });
-    const automatic = panel.findAll("button").find((b) => b.text() === "Automatic")!;
+    const automatic = panel.get('[aria-label="Second line"]').findAll("button").find((b) => b.text() === "Automatic")!;
     await automatic.trigger("click");
     expect(useUiStore().notice).toBeNull();
     expect(current(tile)!.options?.sub).toBeUndefined();

@@ -21,7 +21,7 @@ FORMAT = "pages-v2"
 PAGE_ID = re.compile(r"[0-9a-f]{16}\Z")
 INSTANCE_ID = re.compile(r"[a-zA-Z0-9_-]{1,64}\Z")
 APPEARANCE = {
-    "display": "display", "icon": "icon", "background": "background",
+    "display": "display", "icon": "icon", "background": "background", "orientation": "orientation",
     "historyHours": "history_hours", "refresh": "refresh", "subtitle": "sub", "fit": "fit", "overlay": "overlay",
     # A map card (app 0.4.33): who rides along and how it frames them. None of the three ever reaches a screen.
     "mapEntities": "map", "mapFraming": "framing", "mapDistance": "distance",
@@ -642,6 +642,7 @@ def legacy_compatible(layout, grid):
                     not in ('tall', 'square') and not span_of(footprint_size(tile['placement']['columns'], tile['placement']['rows'], grid, tile['appearance'].get('presentation')))
                     and tile['interaction'].get('controls') not in ('tilt', 'buttons_tilt', 'position_tilt', 'setpoint_mode', 'volume_playback')
                     and not tile.get('children')
+                    and 'orientation' not in tile['appearance']
                     for page in pages for tile in all_tiles(page))
             and not any(sections_of(page) for page in pages))
 
