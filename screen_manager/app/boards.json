@@ -1079,6 +1079,28 @@
   "width": 1024
  },
  "checkout/jc1060p470v3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -1102,7 +1124,7 @@
    "inch": 7.0,
    "model": "JC1060P470 V3",
    "name": "Guition",
-   "order": 31,
+   "order": 32,
    "settings": [
     "media_player",
     "microphone"
@@ -1121,7 +1143,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.61.0",
+  "firmware": "0.62.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -1150,7 +1172,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -1206,6 +1229,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -6001,6 +6030,28 @@
   "width": 1024
  },
  "jc1060p470v3": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -6024,7 +6075,7 @@
    "inch": 7.0,
    "model": "JC1060P470 V3",
    "name": "Guition",
-   "order": 31,
+   "order": 32,
    "settings": [
     "media_player",
     "microphone"
@@ -6043,7 +6094,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.61.0",
+  "firmware": "0.62.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -6072,7 +6123,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -6128,6 +6180,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
@@ -8202,6 +8260,28 @@
   "width": 1024
  },
  "packages/jc1060p470v3.yaml": {
+  "added_icons": {
+   "materialdesign_icons": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ],
+   "materialdesign_icons_mini": [
+    "F036D",
+    "F03F5",
+    "F03FA",
+    "F0567",
+    "F0568",
+    "F05CB",
+    "F0A45",
+    "F0ED4"
+   ]
+  },
   "alert": {
    "line": 25,
    "title_line": 32
@@ -8225,7 +8305,7 @@
    "inch": 7.0,
    "model": "JC1060P470 V3",
    "name": "Guition",
-   "order": 31,
+   "order": 32,
    "settings": [
     "media_player",
     "microphone"
@@ -8244,7 +8324,7 @@
    "camera_sensor",
    "bluetooth"
   ],
-  "firmware": "0.61.0",
+  "firmware": "0.62.0",
   "fonts": {
    "headline": 27,
    "icon": 42,
@@ -8273,7 +8353,8 @@
    "text_card",
    "light_presets",
    "todo",
-   "text_edit"
+   "text_edit",
+   "sections"
   ],
   "orientations": {
    "landscape": {
@@ -8329,6 +8410,12 @@
   },
   "own_icons": true,
   "rows": 4,
+  "section": {
+   "band": 41,
+   "ink_top": 4,
+   "line": 21,
+   "title_top": 20
+  },
   "spacing": {
    "circle": 54,
    "gap": 12,
