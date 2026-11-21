@@ -73,7 +73,7 @@ substitutions:
 # ============================================================
 
 esphome:
-  # This board asks for more ESPHome than the packages' own min_version (2026.6.2, packages/core.yaml): its touch
+  # This board asks for more ESPHome than the packages' own min_version (2026.7.0, packages/core.yaml): its touch
   # platform (gsl3670) arrived in 2026.7.0 and that platform's `model: GUITION-JC8012P4A1` in 2026.8.0, which is
   # what this file uses, and its audio (the speaker_source media player, the resamplers) is built and tried on 2026.9.0,
   # as on the other boards with a speaker. A board file's min_version wins over the core's, so the CYD, the Guition and
