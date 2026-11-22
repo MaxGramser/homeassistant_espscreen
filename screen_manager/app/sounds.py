@@ -37,10 +37,13 @@ NONE = 'none'
 OWN = 'own-'
 # What a screen does with each kind, and how long a sound of it may be: a call's tone loops (its pause included), the
 # others play once.
+# A kind's `volume` is where it starts (VOLUME, below): a call rings with the speaker raised to the top, a chime and an
+# alert's sound play at the screen's own volume, so the chime starts as loud as the screen's own ding-dong was (about
+# -7 dB); at -20 dB it was barely heard on a Guition 10.1 (2026-11-22).
 KINDS = {
-    'call': {'default': 'classic', 'max_seconds': 3.0, 'loops': True},
-    'doorbell': {'default': 'chime', 'max_seconds': 5.0, 'loops': False},
-    'alert': {'default': NONE, 'max_seconds': 3.0, 'loops': False},
+    'call': {'default': 'classic', 'max_seconds': 3.0, 'loops': True, 'volume': -20},
+    'doorbell': {'default': 'chime', 'max_seconds': 5.0, 'loops': False, 'volume': -7},
+    'alert': {'default': NONE, 'max_seconds': 3.0, 'loops': False, 'volume': -20},
 }
 MAX_SECONDS = max(kind['max_seconds'] for kind in KINDS.values())
 # The largest WAV someone may send: the longest sound and room for its head.
@@ -54,7 +57,8 @@ FEATURE = 'sounds'
 LEVEL = 0.5
 # How loud a screen plays each kind: the loudest sample of what it gets, in dB of full scale (the editor's Volume). The
 # app makes the file at that volume (at_volume), so a screen needs nothing new for it. At -6 dB the speakers of the
-# Guition 10.1 still distorted a ring; the owner chose -20 dB of -10, -14 and -20 (2026-11-22).
+# Guition 10.1 still distorted a ring; the owner chose -20 dB of -10, -14 and -20 (2026-11-22). A kind starts at its own
+# `volume` (KINDS); one is kept only once someone moves its slider, so a kind nobody set follows its start.
 VOLUME = -20
 VOLUME_RANGE = (-40, 0)
 # How long the Test key lets a screen ring (server.sound_test).
@@ -205,8 +209,10 @@ class Sounds:
             default = mine.get('default') if self.fits(kind, mine.get('default')) else rule['default']
             screens = {str(k): v for k, v in (mine.get('screens') or {}).items() if self.fits(kind, v)} if isinstance(mine.get('screens'), dict) else {}
             volume = mine.get('volume')
-            volume = int(volume) if isinstance(volume, (int, float)) and not isinstance(volume, bool) and VOLUME_RANGE[0] <= volume <= VOLUME_RANGE[1] else VOLUME
-            self.kinds[kind] = {'default': default, 'screens': screens, 'volume': volume}
+            volume = int(volume) if isinstance(volume, (int, float)) and not isinstance(volume, bool) and VOLUME_RANGE[0] <= volume <= VOLUME_RANGE[1] else None
+            self.kinds[kind] = {'default': default, 'screens': screens}
+            if volume is not None:
+                self.kinds[kind]['volume'] = volume
         self.made = {}  # (file, volume): the name of that file at that volume (at_volume)
 
     @staticmethod
@@ -247,7 +253,11 @@ class Sounds:
         if sound == NONE:
             return NONE
         name = self.file_of(sound) or self.built['classic']
-        return self.files.link(base, self.at_volume(name, self.kinds[kind]['volume']))
+        return self.files.link(base, self.at_volume(name, self.volume_of(kind)))
+
+    def volume_of(self, kind):
+        """How loud `kind` plays: what someone set, else where the kind starts."""
+        return self.kinds[kind].get('volume', KINDS[kind].get('volume', VOLUME))
 
     def at_volume(self, name, volume):
         """The file `name` with its loudest sample at `volume` dB of full scale: a file of its own, held in memory and made
@@ -290,7 +300,7 @@ class Sounds:
         sounds += [{'id': o['id'], 'name': o['name'], 'built_in': False, 'file': o['file'], 'seconds': round(self.length.get(o['id'], 0), 2)}
                    for o in self.own]
         kinds = {kind: {'default': self.kinds[kind]['default'], 'max_seconds': rule['max_seconds'], 'loops': rule['loops'],
-                        'volume': self.kinds[kind]['volume'],
+                        'volume': self.volume_of(kind),
                         'screens': [{**screen, 'sound': self.kinds[kind]['screens'].get(str(screen['id']), '')} for screen in screens.get(kind, [])]}
                  for kind, rule in KINDS.items()}
         return {'rate': RATE, 'min_seconds': MIN_SECONDS, 'max_seconds': MAX_SECONDS, 'max_own': MAX_OWN, 'name_most': NAME_MOST,

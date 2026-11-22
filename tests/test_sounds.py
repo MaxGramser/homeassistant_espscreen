@@ -199,7 +199,8 @@ class Library(unittest.TestCase):
     def test_a_screen_plays_each_kind_at_its_volume(self):
         # -20 dB unless someone moves the slider: the file a screen gets has its loudest sample there (the owner chose
         # -20 dB of -10, -14 and -20 on the Guition 10.1, 2026-11-22).
-        self.assertEqual({kind: v['volume'] for kind, v in self.sounds.view({})['kinds'].items()}, {'call': -20, 'doorbell': -20, 'alert': -20})
+        # The doorbell's chime starts as loud as the screen's own ding-dong was: it plays at the screen's own volume.
+        self.assertEqual({kind: v['volume'] for kind, v in self.sounds.view({})['kinds'].items()}, {'call': -20, 'doorbell': -7, 'alert': -20})
         link = self.sounds.link('call', 'http://h:8098', 'kitchen')
         name = link.rsplit('/', 1)[1].split('.')[0]
         peak = max(abs(int.from_bytes(self.files.get(name)[0][44:][i:i + 2], 'little', signed=True)) for i in range(0, 2 * sounds.RATE, 2))
@@ -211,12 +212,22 @@ class Library(unittest.TestCase):
         self.assertNotEqual(quieter, link)
         self.assertEqual(self.sounds.link('call', 'http://h:8098', 'hall'), quieter)
         self.assertEqual(self.sounds.link('doorbell', 'http://h:8098', 'kitchen').rsplit('/', 1)[1].split('.')[0],
-                         self.sounds.at_volume(self.sounds.built['chime'], -20))
+                         self.sounds.at_volume(self.sounds.built['chime'], -7))
         self.assertEqual(sounds.Sounds(self.folder, screen_files.ScreenFiles(self.folder)).kinds['call']['volume'], -30)
         for bad in (-41, 1, 'loud', True, None):
             with self.assertRaises(ValueError):
                 self.sounds.set_volume('call', bad)
         self.assertIsNotNone(self.sounds.wav('classic', -10))
+
+    def test_a_volume_is_kept_only_once_set(self):
+        # A choice of sound saves the store; the volumes nobody set stay unset, so a kind follows where it starts.
+        self.sounds.choose('call', 'kitchen', 'bell')
+        import json
+        stored = json.loads((Path(self.folder) / 'sounds.json').read_text())
+        self.assertNotIn('volume', stored['kinds']['doorbell'])
+        self.sounds.set_volume('doorbell', -12)
+        again = sounds.Sounds(self.folder, screen_files.ScreenFiles(self.folder))
+        self.assertEqual((again.volume_of('doorbell'), again.volume_of('alert')), (-12, -20))
 
     def test_the_test_key_plays_as_for_real(self):
         # A call's test is a ring of its own (state ring, its `rt`) ended by the app; the others the op `sound`.

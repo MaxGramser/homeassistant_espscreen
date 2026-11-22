@@ -16,7 +16,10 @@ chimes Ding-dong and an alert stays silent until you choose otherwise.
 
 ## Volume and Test
 
-Each kind has a **Volume** slider, from -40 to 0 dB: where the loudest moment of its sound sits. It starts at -20 dB.
+Each kind has a **Volume** slider, from -40 to 0 dB: where the loudest moment of its sound sits. A call's ring starts
+at -20 dB and so does an alert's sound; a doorbell's chime starts at -7 dB, as loud as the screens chimed before,
+because a chime and an alert play at the screen's own volume while a ring raises the speaker to the top. A volume is
+kept once you move its slider; until then the kind follows where it starts.
 The small speakers of these screens distort when a sound is louder: at -6 dB a ring still distorted on a Guition 10.1,
 and of -10, -14 and -20 dB the last sounded best. The app makes the file at that volume itself, so a screen with any
 firmware that takes the sound gets it at the new volume with its next ring.
