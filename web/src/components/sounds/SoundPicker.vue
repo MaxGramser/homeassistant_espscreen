@@ -17,7 +17,8 @@ import AudioEditor from "./AudioEditor.vue";
 const props = defineProps<{ kind: SoundKind }>();
 const sounds = useSoundsStore();
 const PLAY = glyph("F040A"), STOP = glyph("F04DB"), REMOVE = glyph("F09E7"), TEST = glyph("F057E");
-onMounted(() => { void sounds.load(); });
+// An app that does not answer leaves the card as it is: it loads again when it is opened next.
+onMounted(() => { sounds.load().catch((error: unknown) => console.error("The sounds could not be read:", error)); });
 
 const kind = computed(() => sounds.view?.kinds[props.kind]);
 const secondsText = (value: number) => new Intl.NumberFormat(editorLanguage(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
