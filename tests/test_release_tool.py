@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
@@ -286,6 +287,24 @@ class ThePlugins(unittest.TestCase):
                 self.assertEqual(plugins.merge('trial', keep=False), (None, ['README.md']))
                 self.assertEqual(plugins.merge('again', keep=True), (None, ['README.md']))
                 self.assertEqual(plugins.git('status', '--porcelain'), '')
+
+
+class TheIndexRun(unittest.TestCase):
+    """The index workflow on main at a release (release_plugins.build_index): a run of the hour can push the release's
+    waiting run out, which GitHub calls cancelled; it is started once more, and any other end is the answer."""
+
+    def ends(self, *conclusions):
+        left = list(conclusions)
+        with mock.patch.object(release_plugins, 'index_run', side_effect=lambda say=print: left.pop(0)) as run:
+            return release_plugins.build_index(lambda *_: None), run.call_count
+
+    def test_a_pushed_out_run_is_started_once_more(self):
+        self.assertEqual(self.ends('cancelled', 'success'), ('success', 2))
+        self.assertEqual(self.ends('cancelled', 'cancelled'), ('cancelled', 2))
+
+    def test_any_other_end_is_the_answer(self):
+        self.assertEqual(self.ends('success'), ('success', 1))
+        self.assertEqual(self.ends('failure'), ('failure', 1))
 
 
 if __name__ == '__main__':

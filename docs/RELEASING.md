@@ -140,7 +140,8 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    So before anything is published, `publish` checks that the plugins' check is green on their dev, that every plugin
    of dev's index fits this release's plugin API, and that their dev merges into their main without a conflict outside
    `index.json`, `likes.json` and `stats.json`; any of these refuses the release. Right after main moved, it merges their dev into
-   their main, runs their index workflow on main (built against the released core), and checks main's index: it names
+   their main, runs their index workflow on main (built against the released core; a run that a run of the hour pushed out
+   is started once more), and checks main's index: it names
    this plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and their check
    is green on main. Then their dev moves up to main, so every app offers the plugins the same day. A step that fails
    leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a

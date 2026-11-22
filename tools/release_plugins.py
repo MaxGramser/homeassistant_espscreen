@@ -222,7 +222,13 @@ def wait_for_check(sha, say=print):
 
 def build_index(say=print):
     """Runs the index workflow on main (index.yml: built against TESSERA_REF main, the released core, and committed
-    when it changed) and waits for it: its conclusion."""
+    when it changed) and waits for it: its conclusion. The workflow's runs wait for each other and GitHub keeps one
+    waiting run only, so a run of the hour can push this one out ("cancelled"): it is started once more then."""
+    conclusion = index_run(say)
+    return index_run(say) if conclusion == 'cancelled' else conclusion
+
+
+def index_run(say=print):
     started = time.time() - 5
     gh('workflow', 'run', INDEX_WORKFLOW, '--repo', REPOSITORY, '--ref', RELEASES)
     end = time.monotonic() + WAIT
