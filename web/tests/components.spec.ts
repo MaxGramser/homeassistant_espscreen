@@ -33,6 +33,7 @@ import { removePage, setScreenTitle } from "../src/editor/pages";
 import { setTileOption } from "../src/editor/tiles";
 import { useDocumentStore } from "../src/stores/document";
 import { useInspectorStore } from "../src/stores/inspector";
+import { router } from "../src/router";
 
 let insp: ReturnType<typeof useInspectorStore>;
 beforeEach(() => { insp = useInspectorStore(); });
@@ -971,6 +972,8 @@ describe("HomeView: every screen with its home page (app 0.4.0)", () => {
 });
 
 describe("Screen settings: a key held down", () => {
+  // Brightness is in the Display part of the Settings tab.
+  beforeEach(async () => { await router.push("/screens/living?settings=display"); });
   const view = (extra: Record<string, unknown> = {}) => {
     Object.assign(useInventoryStore().inventory.screens[0], {
       settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
@@ -992,6 +995,8 @@ describe("Screen settings: a key held down", () => {
 });
 
 describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
+  // Calibrate touch is in the This board part of the Settings tab.
+  beforeEach(async () => { await router.push("/screens/living?settings=board"); });
   const view = (extra: Record<string, unknown> = {}) => {
     Object.assign(useInventoryStore().inventory.screens[0], {
       settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
@@ -1029,6 +1034,7 @@ describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
 });
 
 describe("AppSettingsView", () => {
+  beforeEach(async () => { await router.push("/settings/updates"); });
   it("shows what the current firmware brings from the changelog of the full inventory (app 0.2.78)", () => {
     useInventoryStore().inventory.updates = { target: "0.2.65", pending: 0 };
     useInventoryStore().inventory.changelog = [
@@ -1062,6 +1068,7 @@ describe("AppSettingsView", () => {
 });
 
 describe("Reinstall all from dev (the dev app's Updates card)", () => {
+  beforeEach(async () => { await router.push("/settings/updates"); });
   it("offers every screen again on the dev app only, asks first, and asks the add-on for the round", async () => {
     const calls: [string, RequestInit][] = [];
     vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit = {}) => {

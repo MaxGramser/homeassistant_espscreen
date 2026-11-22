@@ -3413,6 +3413,35 @@
       "extras": {
         "title": "Extras",
         "note": "Ajustes que solo tiene esta pantalla, de su placa. Los mismos interruptores están en la página de ajustes de la propia pantalla y en Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Pantalla",
+          "grid": "{columns} × {rows} mosaicos"
+        },
+        "standby": {
+          "title": "Reposo y noche",
+          "after": "Reposo tras {time}",
+          "off": "Sin reposo",
+          "night": "Noche de {start} a {end}"
+        },
+        "navigation": {
+          "title": "Navegación",
+          "home_after": "Volver a Inicio tras {time}"
+        },
+        "board": {
+          "title": "Esta placa"
+        },
+        "help": {
+          "title": "Ayuda",
+          "feedback": "Comentarios"
+        }
+      },
+      "blocks": {
+        "display": "Brillo y rotación",
+        "standby": "Reposo",
+        "night": "Noche",
+        "navigation": "Navegación"
       }
     },
     "update": {
@@ -3480,8 +3509,6 @@
       "title": "Todo lo que rodea a tus pantallas.",
       "back": "← Mis pantallas",
       "screens": {
-        "title": "Pantallas",
-        "text": "Añade una pantalla, o compila y reinstala el firmware de una que ya tengas.",
         "firmware_detail": "Compilar e instalar por USB o Wi-Fi"
       },
       "language": {
@@ -3592,6 +3619,36 @@
         "offer": "Liberar {size}",
         "not_now": "Ahora no",
         "large": "Las carpetas de compilación ocupan {size}. Al limpiarlas se libera la mayor parte del espacio que usan las compilaciones."
+      },
+      "parts": {
+        "updates": {
+          "title": "Actualizaciones",
+          "nightly": "Se actualiza cada noche",
+          "badge": "1 actualización | {n} actualizaciones"
+        },
+        "builds": {
+          "title": "Compilación",
+          "server": "En el servidor de compilación {name}",
+          "server_pending": "El servidor de compilación {name} espera aprobación",
+          "no_server": "Compilado en esta app"
+        },
+        "language": {
+          "auto": "{name}, de Home Assistant",
+          "auto_plain": "De Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Se cuenta en la tienda",
+          "counting_off": "No se cuenta en la tienda",
+          "asking_on": "Pide estrellas",
+          "asking_off": "Nunca pide estrellas"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Vídeo: {state}",
+          "claude": "Claude: {state}",
+          "running": "en marcha"
+        }
       }
     },
     "firmware": {

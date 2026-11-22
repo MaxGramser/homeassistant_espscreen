@@ -8,12 +8,15 @@ import { useInventoryStore } from "../src/stores/inventory";
 import type { Inventory, VideoIntegration } from "../src/types";
 import { answerDialogs } from "./helpers/dialogs";
 import { fakeApi } from "./helpers/fake-api";
+import { router } from "../src/router";
 
 const PATH = "/homeassistant/custom_components/tessera_video";
 function video(extra: Partial<VideoIntegration> = {}): VideoIntegration {
   return { path: PATH, installed: false, current: false, version: "1.0.0", loaded: null, screens: [], entries: 0, ...extra };
 }
-beforeEach(() => {
+beforeEach(async () => {
+  // Video is in the Home Assistant part of Settings (#/settings/home-assistant).
+  await router.push("/settings/home-assistant");
   useInventoryStore().inventory = {
     csrf: "t", screens: [], entities: [], updates: { target: "0.4.97", pending: 0 }, editor_features: { plugins: true }, video: video(),
   } as unknown as Inventory;

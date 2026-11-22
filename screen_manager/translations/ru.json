@@ -2948,6 +2948,35 @@
       "extras": {
         "title": "Дополнительно",
         "note": "Настройки, которые есть только у этого экрана, от его платы. Те же переключатели есть на странице настроек самого экрана и в Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Экран",
+          "grid": "{columns} × {rows} плиток"
+        },
+        "standby": {
+          "title": "Ожидание и ночь",
+          "after": "Ожидание через {time}",
+          "off": "Без ожидания",
+          "night": "Ночь с {start} до {end}"
+        },
+        "navigation": {
+          "title": "Навигация",
+          "home_after": "На главную через {time}"
+        },
+        "board": {
+          "title": "Эта плата"
+        },
+        "help": {
+          "title": "Помощь",
+          "feedback": "Отзыв"
+        }
+      },
+      "blocks": {
+        "display": "Яркость и поворот",
+        "standby": "Ожидание",
+        "night": "Ночь",
+        "navigation": "Навигация"
       }
     },
     "update": {
@@ -3015,8 +3044,6 @@
       "title": "Всё вокруг ваших экранов.",
       "back": "← Мои экраны",
       "screens": {
-        "title": "Экраны",
-        "text": "Добавьте экран или соберите и переустановите прошивку уже имеющегося.",
         "firmware_detail": "Сборка и установка по USB или Wi-Fi"
       },
       "language": {
@@ -3127,6 +3154,36 @@
         "offer": "Освободить {size}",
         "not_now": "Не сейчас",
         "large": "Папки сборки занимают {size}. Очистка освобождает большую часть места, которое занимают сборки."
+      },
+      "parts": {
+        "updates": {
+          "title": "Обновления",
+          "nightly": "Обновляется каждую ночь",
+          "badge": "{n} обновление | {n} обновления | {n} обновлений"
+        },
+        "builds": {
+          "title": "Сборка",
+          "server": "На сервере сборки {name}",
+          "server_pending": "Сервер сборки {name} ждёт подтверждения",
+          "no_server": "Собирается в этом приложении"
+        },
+        "language": {
+          "auto": "{name}, из Home Assistant",
+          "auto_plain": "Из Home Assistant"
+        },
+        "plugins": {
+          "title": "Плагины",
+          "counting_on": "Учитывается в магазине",
+          "counting_off": "Не учитывается в магазине",
+          "asking_on": "Просит звёзды",
+          "asking_off": "Никогда не просит звёзды"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Видео: {state}",
+          "claude": "Claude: {state}",
+          "running": "работает"
+        }
       }
     },
     "firmware": {

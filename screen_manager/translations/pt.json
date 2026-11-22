@@ -3413,6 +3413,35 @@
       "extras": {
         "title": "Extras",
         "note": "Definições que só este ecrã tem, da sua placa. Os mesmos interruptores estão na página de definições do próprio ecrã e no Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Ecrã",
+          "grid": "{columns} × {rows} mosaicos"
+        },
+        "standby": {
+          "title": "Repouso e noite",
+          "after": "Repouso após {time}",
+          "off": "Sem repouso",
+          "night": "Noite das {start} às {end}"
+        },
+        "navigation": {
+          "title": "Navegação",
+          "home_after": "Voltar ao Início após {time}"
+        },
+        "board": {
+          "title": "Esta placa"
+        },
+        "help": {
+          "title": "Ajuda",
+          "feedback": "Comentários"
+        }
+      },
+      "blocks": {
+        "display": "Brilho e rotação",
+        "standby": "Repouso",
+        "night": "Noite",
+        "navigation": "Navegação"
       }
     },
     "update": {
@@ -3480,8 +3509,6 @@
       "title": "Tudo o que rodeia os seus ecrãs.",
       "back": "← Os meus ecrãs",
       "screens": {
-        "title": "Ecrãs",
-        "text": "Adicione um ecrã, ou compile e reinstale o firmware de um que já tenha.",
         "firmware_detail": "Compilar e instalar por USB ou Wi-Fi"
       },
       "language": {
@@ -3592,6 +3619,36 @@
         "offer": "Libertar {size}",
         "not_now": "Agora não",
         "large": "As pastas de compilação ocupam {size}. Limpá-las liberta a maior parte do espaço que as compilações ocupam."
+      },
+      "parts": {
+        "updates": {
+          "title": "Atualizações",
+          "nightly": "Atualizado todas as noites",
+          "badge": "1 atualização | {n} atualizações"
+        },
+        "builds": {
+          "title": "Compilação",
+          "server": "No servidor de compilação {name}",
+          "server_pending": "O servidor de compilação {name} aguarda aprovação",
+          "no_server": "Compilado nesta app"
+        },
+        "language": {
+          "auto": "{name}, do Home Assistant",
+          "auto_plain": "Do Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Contado na loja",
+          "counting_off": "Não contado na loja",
+          "asking_on": "Pede estrelas",
+          "asking_off": "Nunca pede estrelas"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Vídeo: {state}",
+          "claude": "Claude: {state}",
+          "running": "a funcionar"
+        }
       }
     },
     "firmware": {

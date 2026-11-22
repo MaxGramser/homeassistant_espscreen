@@ -2948,6 +2948,35 @@
       "extras": {
         "title": "Extra's",
         "note": "Instellingen die alleen dit scherm heeft, van zijn bord. Dezelfde schakelaars staan op de instellingenpagina van het scherm zelf en in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Beeld",
+          "grid": "{columns} × {rows} tegels"
+        },
+        "standby": {
+          "title": "Stand-by & nacht",
+          "after": "Stand-by na {time}",
+          "off": "Geen stand-by",
+          "night": "Nacht {start} tot {end}"
+        },
+        "navigation": {
+          "title": "Navigatie",
+          "home_after": "Terug naar Thuis na {time}"
+        },
+        "board": {
+          "title": "Dit bord"
+        },
+        "help": {
+          "title": "Hulp",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Helderheid en rotatie",
+        "standby": "Stand-by",
+        "night": "Nacht",
+        "navigation": "Navigatie"
       }
     },
     "update": {
@@ -3015,8 +3044,6 @@
       "title": "Alles rond je schermen.",
       "back": "← Mijn schermen",
       "screens": {
-        "title": "Schermen",
-        "text": "Voeg een scherm toe, of bouw en installeer de firmware van een bestaand scherm opnieuw.",
         "firmware_detail": "Bouwen en installeren via USB of Wi-Fi"
       },
       "language": {
@@ -3127,6 +3154,36 @@
         "offer": "{size} vrijmaken",
         "not_now": "Niet nu",
         "large": "De buildmappen nemen {size} in beslag. Opruimen maakt het grootste deel van de ruimte vrij die de builds innemen."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Elke nacht bijgewerkt",
+          "badge": "1 update | {n} updates"
+        },
+        "builds": {
+          "title": "Bouwen",
+          "server": "Op buildserver {name}",
+          "server_pending": "Buildserver {name} wacht op goedkeuring",
+          "no_server": "Gebouwd in deze app"
+        },
+        "language": {
+          "auto": "{name}, van Home Assistant",
+          "auto_plain": "Van Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Meegeteld in de store",
+          "counting_off": "Niet meegeteld in de store",
+          "asking_on": "Vraagt om sterren",
+          "asking_off": "Vraagt nooit om sterren"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video: {state}",
+          "claude": "Claude: {state}",
+          "running": "draait"
+        }
       }
     },
     "firmware": {

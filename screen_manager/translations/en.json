@@ -2948,6 +2948,35 @@
       "extras": {
         "title": "Extras",
         "note": "Settings only this screen has, from its board. The same switches are on the screen's own settings page and in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Display",
+          "grid": "{columns} × {rows} tiles"
+        },
+        "standby": {
+          "title": "Standby & night",
+          "after": "Standby after {time}",
+          "off": "No standby",
+          "night": "Night {start} to {end}"
+        },
+        "navigation": {
+          "title": "Navigation",
+          "home_after": "Back to Home after {time}"
+        },
+        "board": {
+          "title": "This board"
+        },
+        "help": {
+          "title": "Help",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Brightness and rotation",
+        "standby": "Standby",
+        "night": "Night",
+        "navigation": "Navigation"
       }
     },
     "update": {
@@ -3015,8 +3044,6 @@
       "title": "Everything around your screens.",
       "back": "← My screens",
       "screens": {
-        "title": "Screens",
-        "text": "Add a screen, or build and reinstall the firmware of one you already have.",
         "firmware_detail": "Build and install via USB or Wi-Fi"
       },
       "language": {
@@ -3127,6 +3154,36 @@
         "offer": "Free {size}",
         "not_now": "Not now",
         "large": "The build folders take {size}. Cleaning them up frees most of the room the builds take."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Updated every night",
+          "badge": "1 update | {n} updates"
+        },
+        "builds": {
+          "title": "Builds",
+          "server": "On build server {name}",
+          "server_pending": "Build server {name} waits to be accepted",
+          "no_server": "Built in this app"
+        },
+        "language": {
+          "auto": "{name}, from Home Assistant",
+          "auto_plain": "From Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Counted in the store",
+          "counting_off": "Not counted in the store",
+          "asking_on": "Asks for stars",
+          "asking_off": "Never asks for stars"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video: {state}",
+          "claude": "Claude: {state}",
+          "running": "running"
+        }
       }
     },
     "firmware": {

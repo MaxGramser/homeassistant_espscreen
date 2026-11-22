@@ -14,6 +14,7 @@ import { paletteGroups, paletteItems, rememberChoice, type PaletteActions, type 
 import { text as pluginText } from "../model/plugins";
 import { needsUpdate } from "../model/screen-status";
 import { SETTING_GROUPS, settingLabel, type SettingRow } from "../model/settings";
+import { screenPartOf } from "../model/settings-parts";
 import { glyph } from "../model/topbar";
 import type { Screen } from "../types";
 import { useUiStore } from "../stores/ui";
@@ -70,7 +71,14 @@ const actions: PaletteActions = {
   },
   installSetAside: () => plugins.installTray(),
   showTile: (screen, tileId) => { void showTile(screen, tileId); },
-  openSetting: (screen, key) => onScreen(screen, () => { ui.go(""); ui.tab = "settings"; settings.spotlight = key; }),
+  // A setting opens the part of the Settings tab that shows it, and its row is marked there (SettingRows).
+  openSetting: (screen, key) => onScreen(screen, async () => {
+    await ui.go("");
+    ui.tab = "settings";
+    const part = screenPartOf(key);
+    if (part) await ui.openScreenSettings(part);
+    settings.spotlight = key;
+  }),
   openPlugin: (id) => { plugins.focus = id; ui.go("#plugins"); },
   addPlugin: (id) => {
     const screen = scr.currentScreen, plugin = plugins.index.find((p) => p.id === id);

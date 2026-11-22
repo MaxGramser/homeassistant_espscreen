@@ -3413,6 +3413,35 @@
       "extras": {
         "title": "Dodatki",
         "note": "Ustawienia, które ma tylko ten ekran, z jego płytki. Te same przełączniki są na stronie ustawień samego ekranu i w Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Wyświetlacz",
+          "grid": "{columns} × {rows} kafelków"
+        },
+        "standby": {
+          "title": "Czuwanie i noc",
+          "after": "Czuwanie po {time}",
+          "off": "Bez czuwania",
+          "night": "Noc od {start} do {end}"
+        },
+        "navigation": {
+          "title": "Nawigacja",
+          "home_after": "Powrót do ekranu głównego po {time}"
+        },
+        "board": {
+          "title": "Ta płytka"
+        },
+        "help": {
+          "title": "Pomoc",
+          "feedback": "Opinia"
+        }
+      },
+      "blocks": {
+        "display": "Jasność i obrót",
+        "standby": "Czuwanie",
+        "night": "Noc",
+        "navigation": "Nawigacja"
       }
     },
     "update": {
@@ -3480,8 +3509,6 @@
       "title": "Wszystko wokół Twoich ekranów.",
       "back": "← Moje ekrany",
       "screens": {
-        "title": "Ekrany",
-        "text": "Dodaj ekran albo skompiluj i ponownie zainstaluj firmware ekranu, który już masz.",
         "firmware_detail": "Kompiluj i instaluj przez USB lub Wi-Fi"
       },
       "language": {
@@ -3592,6 +3619,36 @@
         "offer": "Zwolnij {size}",
         "not_now": "Nie teraz",
         "large": "Foldery kompilacji zajmują {size}. Wyczyszczenie ich zwalnia większość miejsca, które zajmują kompilacje."
+      },
+      "parts": {
+        "updates": {
+          "title": "Aktualizacje",
+          "nightly": "Aktualizowane każdej nocy",
+          "badge": "1 aktualizacja | {n} aktualizacje | {n} aktualizacji"
+        },
+        "builds": {
+          "title": "Kompilacja",
+          "server": "Na serwerze kompilacji {name}",
+          "server_pending": "Serwer kompilacji {name} czeka na akceptację",
+          "no_server": "Kompilowane w tej aplikacji"
+        },
+        "language": {
+          "auto": "{name}, z Home Assistant",
+          "auto_plain": "Z Home Assistant"
+        },
+        "plugins": {
+          "title": "Wtyczki",
+          "counting_on": "Liczone w sklepie",
+          "counting_off": "Nie liczone w sklepie",
+          "asking_on": "Prosi o gwiazdki",
+          "asking_off": "Nigdy nie prosi o gwiazdki"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Wideo: {state}",
+          "claude": "Claude: {state}",
+          "running": "działa"
+        }
       }
     },
     "firmware": {

@@ -3413,6 +3413,35 @@
       "extras": {
         "title": "Extra",
         "note": "Impostazioni che ha solo questo schermo, dalla sua scheda. Gli stessi interruttori sono nella pagina impostazioni dello schermo e in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Schermo",
+          "grid": "{columns} × {rows} riquadri"
+        },
+        "standby": {
+          "title": "Standby e notte",
+          "after": "Standby dopo {time}",
+          "off": "Nessuno standby",
+          "night": "Notte dalle {start} alle {end}"
+        },
+        "navigation": {
+          "title": "Navigazione",
+          "home_after": "Torna a Home dopo {time}"
+        },
+        "board": {
+          "title": "Questa scheda"
+        },
+        "help": {
+          "title": "Aiuto",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Luminosità e rotazione",
+        "standby": "Standby",
+        "night": "Notte",
+        "navigation": "Navigazione"
       }
     },
     "update": {
@@ -3480,8 +3509,6 @@
       "title": "Tutto ciò che riguarda i tuoi schermi.",
       "back": "← I miei schermi",
       "screens": {
-        "title": "Schermi",
-        "text": "Aggiungi uno schermo, oppure compila e reinstalla il firmware di uno che hai già.",
         "firmware_detail": "Compila e installa via USB o Wi-Fi"
       },
       "language": {
@@ -3592,6 +3619,36 @@
         "offer": "Libera {size}",
         "not_now": "Non ora",
         "large": "Le cartelle di compilazione occupano {size}. Pulirle libera la maggior parte dello spazio che occupano le compilazioni."
+      },
+      "parts": {
+        "updates": {
+          "title": "Aggiornamenti",
+          "nightly": "Aggiornato ogni notte",
+          "badge": "1 aggiornamento | {n} aggiornamenti"
+        },
+        "builds": {
+          "title": "Compilazione",
+          "server": "Sul server di compilazione {name}",
+          "server_pending": "Il server di compilazione {name} attende l’approvazione",
+          "no_server": "Compilato in questa app"
+        },
+        "language": {
+          "auto": "{name}, da Home Assistant",
+          "auto_plain": "Da Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugin",
+          "counting_on": "Contato nello store",
+          "counting_off": "Non contato nello store",
+          "asking_on": "Chiede le stelle",
+          "asking_off": "Non chiede mai le stelle"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video: {state}",
+          "claude": "Claude: {state}",
+          "running": "in funzione"
+        }
       }
     },
     "firmware": {

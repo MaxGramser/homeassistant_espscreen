@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // One screen: the head with its status, the Layout and Settings tabs, and the inspector in a column on the right.
 import { useEventListener, useFileDialog } from "@vueuse/core";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
@@ -32,6 +32,10 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
+// A part of the Settings tab is in the address (`?settings=<part>`): an address with one opens the tab, and leaving the
+// tab takes the part out of the address again, in place, so Back does not walk through it.
+watch(() => ui.screenSettingsPart, (part) => { if (part) ui.tab = "settings"; }, { immediate: true });
+watch(() => ui.tab, (tab) => { if (tab !== "settings" && ui.screenSettingsPart) ui.openScreenSettings(null, { replace: true }); });
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();

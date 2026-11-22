@@ -3413,6 +3413,35 @@
       "extras": {
         "title": "Extras",
         "note": "Des réglages que seul cet écran possède, venant de sa carte. Les mêmes interrupteurs sont sur la page de réglages de l’écran et dans Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Affichage",
+          "grid": "{columns} × {rows} tuiles"
+        },
+        "standby": {
+          "title": "Veille et nuit",
+          "after": "Veille après {time}",
+          "off": "Pas de veille",
+          "night": "Nuit de {start} à {end}"
+        },
+        "navigation": {
+          "title": "Navigation",
+          "home_after": "Retour à l’accueil après {time}"
+        },
+        "board": {
+          "title": "Cette carte"
+        },
+        "help": {
+          "title": "Aide",
+          "feedback": "Avis"
+        }
+      },
+      "blocks": {
+        "display": "Luminosité et rotation",
+        "standby": "Veille",
+        "night": "Nuit",
+        "navigation": "Navigation"
       }
     },
     "update": {
@@ -3480,8 +3509,6 @@
       "title": "Tout ce qui entoure vos écrans.",
       "back": "← Mes écrans",
       "screens": {
-        "title": "Écrans",
-        "text": "Ajoutez un écran, ou compilez et réinstallez le firmware d'un écran que vous avez déjà.",
         "firmware_detail": "Compiler et installer via USB ou Wi-Fi"
       },
       "language": {
@@ -3592,6 +3619,36 @@
         "offer": "Libérer {size}",
         "not_now": "Pas maintenant",
         "large": "Les dossiers de compilation occupent {size}. Les nettoyer libère presque toute la place que prennent les compilations."
+      },
+      "parts": {
+        "updates": {
+          "title": "Mises à jour",
+          "nightly": "Mis à jour chaque nuit",
+          "badge": "1 mise à jour | {n} mises à jour"
+        },
+        "builds": {
+          "title": "Compilation",
+          "server": "Sur le serveur de compilation {name}",
+          "server_pending": "Le serveur de compilation {name} attend l’accord",
+          "no_server": "Compilé dans cette app"
+        },
+        "language": {
+          "auto": "{name}, depuis Home Assistant",
+          "auto_plain": "Depuis Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Compté dans la boutique",
+          "counting_off": "Non compté dans la boutique",
+          "asking_on": "Demande des étoiles",
+          "asking_off": "Ne demande jamais d’étoiles"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Vidéo : {state}",
+          "claude": "Claude : {state}",
+          "running": "en marche"
+        }
       }
     },
     "firmware": {

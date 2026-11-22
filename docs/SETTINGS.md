@@ -108,9 +108,10 @@ The page is a menu of groups, each of which opens a page of its own:
 | This screen | Screen, Address, Wi-Fi (network and signal), Firmware, Home Assistant, Tessera, Debug mode, Calibrate touch (a resistive panel that has a wizard), Restart; the rows say their values again every two seconds while the page is open |
 
 Every change is stored on the screen, applied at once and published on its entity, so Home Assistant and
-Tessera show it within a second. The editor's **Screen settings** panel has the first three groups as
-cards with the same rows: a switch for a toggle, `-` and `+` that repeat while held, chips for the
-rotation. A screen whose device has a Calibrate touch button also gets a This screen card with that button.
+Tessera show it within a second. The editor's **Screen settings** tab has the same rows, grouped by what a person looks
+for instead of as on the screen (docs/PAGES.md, "Settings"): Display, Standby & night and Navigation, each a part of
+its own, with a switch for a toggle, `-` and `+` that repeat while held, chips for the rotation. A screen whose device
+has a Calibrate touch button also gets that button under This board.
 The 12 or 24-hour clock is not on this panel: it is Settings → Language & region, for every screen. A change there applies at once, without Save. An offline screen shows its values as
 unknown and takes no changes until it is back.
 
@@ -221,8 +222,9 @@ by a board fact rather than written into one board file: `shown` on the row, and
   entity for it. Leave it out for a screen that does not own its settings too (`owner` `'layout'`), as
   `dark_mode` and `page_buttons` are: such firmware cannot have it.
 - `web/src/model/settings.ts`: one row in `SETTING_GROUPS`; its label is `editor.screen_settings.rows.<key>` in
-  `screen_manager/translations/en.json`, in the words the screen uses; then build the editor
-  (`cd web && npm test && npm run build`, AGENTS.md).
+  `screen_manager/translations/en.json`, in the words the screen uses. The key also goes in the part of the editor's
+  Settings tab that shows it, `SCREEN_PART_ROWS` in `web/src/model/settings-parts.ts` (`web/tests/settings-parts.spec.ts`
+  fails on a key no part shows); then build the editor (`cd web && npm test && npm run build`, AGENTS.md).
 - `screen_manager/app/claude_skill.py`: a row in the table of screen entities.
 - `screen_manager/app/core.py`: a `<KEY>_MIN_FIRMWARE` constant with the first firmware that has the setting, such
   as `HOME_BUTTON_MIN_FIRMWARE = '0.2.100'`. The skill's row prints it ("Firmware X or newer"), and the tests hold it
@@ -267,7 +269,7 @@ it in three places at once:
 
 - **Home Assistant**, as every entity of the screen's device;
 - **the screen**, on its settings page under **Extras**, a page that only a screen with such a setting has;
-- **the editor**, under Screen settings in an **Extras** card.
+- **the editor**, in the screen's Settings tab under This board, in an **Extras** card.
 
 All three show and change the same entity, so there is no second copy of the value to keep in step.
 

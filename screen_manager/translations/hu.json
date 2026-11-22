@@ -3413,6 +3413,35 @@
       "extras": {
         "title": "Extrák",
         "note": "Beállítások, amelyek csak ennek a kijelzőnek vannak, a lapkájától. Ugyanezek a kapcsolók a kijelző saját beállításoldalán és a Home Assistantben is ott vannak."
+      },
+      "parts": {
+        "display": {
+          "title": "Kijelző",
+          "grid": "{columns} × {rows} csempe"
+        },
+        "standby": {
+          "title": "Készenlét és éjszaka",
+          "after": "Készenlét {time} után",
+          "off": "Nincs készenlét",
+          "night": "Éjszaka {start} és {end} között"
+        },
+        "navigation": {
+          "title": "Navigáció",
+          "home_after": "Vissza a kezdőlapra {time} után"
+        },
+        "board": {
+          "title": "Ez a panel"
+        },
+        "help": {
+          "title": "Súgó",
+          "feedback": "Visszajelzés"
+        }
+      },
+      "blocks": {
+        "display": "Fényerő és elforgatás",
+        "standby": "Készenlét",
+        "night": "Éjszaka",
+        "navigation": "Navigáció"
       }
     },
     "update": {
@@ -3480,8 +3509,6 @@
       "title": "Minden, ami a kijelzőidhez kell.",
       "back": "← Kijelzőim",
       "screens": {
-        "title": "Kijelzők",
-        "text": "Adj hozzá kijelzőt, vagy fordítsd le és telepítsd újra egy meglévő firmware-ét.",
         "firmware_detail": "Fordítás és telepítés USB-n vagy Wi-Fi-n"
       },
       "language": {
@@ -3592,6 +3619,36 @@
         "offer": "{size} felszabadítása",
         "not_now": "Most nem",
         "large": "A fordítási mappák {size} helyet foglalnak. A takarításukkal felszabadul a fordítások által használt hely nagy része."
+      },
+      "parts": {
+        "updates": {
+          "title": "Frissítések",
+          "nightly": "Minden éjjel frissül",
+          "badge": "1 frissítés | {n} frissítés"
+        },
+        "builds": {
+          "title": "Fordítás",
+          "server": "A(z) {name} fordítószerveren",
+          "server_pending": "A(z) {name} fordítószerver jóváhagyásra vár",
+          "no_server": "Ebben az alkalmazásban fordítva"
+        },
+        "language": {
+          "auto": "{name}, a Home Assistantből",
+          "auto_plain": "A Home Assistantből"
+        },
+        "plugins": {
+          "title": "Bővítmények",
+          "counting_on": "Beleszámít a boltba",
+          "counting_off": "Nem számít bele a boltba",
+          "asking_on": "Csillagokat kér",
+          "asking_off": "Soha nem kér csillagot"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Videó: {state}",
+          "claude": "Claude: {state}",
+          "running": "fut"
+        }
       }
     },
     "firmware": {

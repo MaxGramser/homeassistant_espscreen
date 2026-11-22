@@ -100,5 +100,13 @@
   "book-open-page-variant": "F05DA",
   "phone": "F03F2",
   "video": "F0567",
-  "auto-fix": "F0068"
+  "auto-fix": "F0068",
+  "translate": "F05CA",
+  "home-assistant": "F07D0",
+  "hammer-wrench": "F1323",
+  "white-balance-sunny": "F05A8",
+  "gesture-swipe": "F0D76",
+  "chip": "F061A",
+  "lifebuoy": "F087E",
+  "weather-night": "F0594"
 }
