@@ -9,7 +9,11 @@
 //
 // What it does not know: what a sound is for, and when it plays. Without a speaker (USE_SPEAKER) or the download
 // (SCREEN_PICTURES) there is nothing here, and each owner plays what it played before files came.
+// ESPHome's defines say whether there is a speaker; the editor's preview (web/wasm, ESP_SCREEN_HOST) has none and no
+// ESPHome, so it takes the file without them, as it does module_todo.cpp.
+#ifndef ESP_SCREEN_HOST
 #include "esphome/core/defines.h"
+#endif
 #include <cstddef>
 #include <cstdint>
 #include <functional>

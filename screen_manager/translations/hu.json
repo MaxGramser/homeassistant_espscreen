@@ -4260,7 +4260,8 @@
       "actions_allowed": "{name} mostantól vezérelheti az eszközeidet.",
       "part_page": "Az oldal: cím és navigáció",
       "part_page_hint": "Cím, kezdőlap és hogyan jutsz ide",
-      "home_control_hint": "A Kezdőlap gombot az oldal felső sávjának bal szélére teszi. A kezdőlapra visz."
+      "home_control_hint": "A Kezdőlap gombot az oldal felső sávjának bal szélére teszi. A kezdőlapra visz.",
+      "place_on_new_page": "Új oldalra"
     },
     "feedback": {
       "question": "Úgy működik a kijelződ, ahogy várod?",

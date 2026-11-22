@@ -4260,7 +4260,8 @@
       "actions_allowed": "{name} darf deine Geräte jetzt steuern.",
       "part_page": "Die Seite: Titel und Navigation",
       "part_page_hint": "Titel, Startseite und wie man hierher kommt",
-      "home_control_hint": "Setzt die Home-Taste links in die obere Leiste dieser Seite. Sie führt zur Startseite."
+      "home_control_hint": "Setzt die Home-Taste links in die obere Leiste dieser Seite. Sie führt zur Startseite.",
+      "place_on_new_page": "Auf eine neue Seite"
     },
     "feedback": {
       "question": "Funktioniert dein Bildschirm wie erwartet?",

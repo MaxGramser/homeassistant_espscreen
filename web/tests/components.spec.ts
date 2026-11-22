@@ -502,15 +502,24 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   });
 
   it("opens, grows and remembers its height in this browser, and works where the browser keeps nothing", async () => {
+    // Until it is given a height of its own, it takes 30 % of the window and at most 300 px: 216 px on a laptop's 720.
+    vi.stubGlobal("innerHeight", 720);
     let library = mount(Library, { attachTo: document.body });
     const height = () => library.find("#library").attributes("style");
+    expect(height()).toContain("height: 216px");
+    library.unmount();
+    vi.stubGlobal("innerHeight", 1000);
+    library = mount(Library, { attachTo: document.body });
     expect(height()).toContain("height: 300px");
     await library.find(".lib-grip").trigger("keydown", { key: "ArrowUp" });
     expect(height()).toContain("height: 340px");
     library.unmount();
+    // The height chosen is kept, also in a smaller window.
+    vi.stubGlobal("innerHeight", 720);
     library = mount(Library, { attachTo: document.body });
     expect(height()).toContain("height: 340px");
     library.unmount();
+    vi.stubGlobal("innerHeight", 1000);
     // A browser that blocks storage (a private window, an iframe without it) throws on every read and write: the drawer
     // used to throw while mounting and took the layout with it.
     const blocked = () => { throw new DOMException("The operation is insecure.", "SecurityError"); };

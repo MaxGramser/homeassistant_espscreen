@@ -3,9 +3,14 @@
 //
 // Compiled on its own, as module_vacuum_tile.cpp is: on Xtensa the literal pool of one object file must stay within reach
 // of all of its code, and main.cpp is at that edge.
+// The module's define comes from ESPHome's defines; the editor's preview (web/wasm/build.py) passes it on its command line.
+#ifndef ESP_SCREEN_HOST
 #include "esphome/core/defines.h"
+#endif
 #ifdef SD_MOD_LIGHT_PRESETS
+#ifndef ESP_SCREEN_HOST
 #include "esphome/core/log.h"
+#endif
 #include "runtime_tiles.h"
 
 namespace runtime_tiles {

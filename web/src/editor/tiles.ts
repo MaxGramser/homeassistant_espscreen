@@ -21,6 +21,7 @@ import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useUiStore } from "../stores/ui";
+import { addPage } from "./pages";
 import type { ChildTile, Layout, Tile, SectionBlock } from "../types";
 
 const toast = (message: string) => useUiStore().toast(message);
@@ -134,7 +135,13 @@ export async function addTile(id: string) {
   const target = at >= 0 ? at : firstFree(occupied(entriesOf(layout)), sizeOf(tile), page * grid.slots);
   const slot = at >= 0 || target < (page + 1) * grid.slots ? target : -1;
   insp.insert = null;
-  if (slot < 0) return toast(t("editor.pages.selected_full"));
+  // A full page takes nothing silently from elsewhere; the person may put the tile on a new page of its own instead.
+  if (slot < 0) {
+    const roomForPage = doc.document!.pages.length < grid.pages;
+    return roomForPage
+      ? useUiStore().toast(t("editor.pages.selected_full"), { label: t("editor.pages.place_on_new_page"), run: () => { if (addPage()) void addTile(id); } })
+      : toast(t("editor.pages.selected_full"));
+  }
   if (slot >= 0 && placeTile(tile, slot)) {
     const added = doc.layout!.tiles.find((item) => item.entity === id && item.slot === slot);
     if (added && useUiStore().phone) doc.markAdded(added);
@@ -182,7 +189,12 @@ export function moveTileToPage(tile: Tile, page: number) {
 export function otherPages(tile: Tile) {
   const doc = useDocumentStore(), { pageOf } = doc.editorLayout;
   if (tile.in !== undefined || tile.entity === "screen.nightstand" || !doc.document) return [];
-  return doc.document.pages.map((page, index) => ({ index, name: pages.titleOf(doc.document!, page) || t("editor.page.label", { page: index + 1 }) }))
+  // The page's number always, and its title after it: pages often share a title (the screen's name), and the number is
+  // what tells them apart.
+  return doc.document.pages.map((page, index) => {
+    const number = t("editor.page.label", { page: index + 1 }), title = pages.titleOf(doc.document!, page);
+    return { index, name: title && title !== number ? `${number} · ${title}` : number };
+  })
     .filter((page) => page.index !== pageOf(tile.slot));
 }
 /** Moves a tile to the first free cell of another page, and the editor goes there with it. */

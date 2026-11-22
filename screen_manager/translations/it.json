@@ -4260,7 +4260,8 @@
       "actions_allowed": "{name} ora può comandare i tuoi dispositivi.",
       "part_page": "La pagina: titolo e navigazione",
       "part_page_hint": "Titolo, pagina iniziale e come ci si arriva",
-      "home_control_hint": "Mette il pulsante Home a sinistra nella barra in alto di questa pagina. Porta alla pagina iniziale."
+      "home_control_hint": "Mette il pulsante Home a sinistra nella barra in alto di questa pagina. Porta alla pagina iniziale.",
+      "place_on_new_page": "In una nuova pagina"
     },
     "feedback": {
       "question": "Il tuo schermo funziona come ti aspetti?",

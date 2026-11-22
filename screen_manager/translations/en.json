@@ -3795,7 +3795,8 @@
       "actions_allowed": "{name} may now control your devices.",
       "part_page": "The page: title and navigation",
       "part_page_hint": "Title, home page and how you get here",
-      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page."
+      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page.",
+      "place_on_new_page": "On a new page"
     },
     "feedback": {
       "question": "Does your screen work as you expect?",

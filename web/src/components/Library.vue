@@ -54,7 +54,9 @@ const open = computed({
 const destination = computed(() => {
   const pages = doc.document?.pages || [];
   const page = insp.insertAt >= 0 ? Math.floor(insp.insertAt / doc.editorLayout.grid.slots) : Math.max(0, pages.findIndex((item) => item.id === doc.selectedPageId));
-  const name = pageTitleShown(page) || t("editor.page.label", { page: page + 1 });
+  // The page's number always: its title alone is often the screen's name, and reads as the whole screen.
+  const number = t("editor.page.label", { page: page + 1 }), title = pageTitleShown(page);
+  const name = title && title !== number ? `${number} · ${title}` : number;
   return insp.insertAt >= 0 ? t("editor.phone.add_to_cell", { cell: insp.insertAt % doc.editorLayout.grid.slots + 1, page: name }) : t("editor.phone.add_to_page", { page: name });
 });
 // How many tiles each entity has on the screen. One that is there stays addable when the firmware takes an entity on
@@ -180,7 +182,10 @@ const HEAD = 49;
 // The height this browser keeps, written when the edge is let go or a key moved it; `height` follows the pointer.
 const keptHeight = usePreference("esp-screens.library-height", 300,
   { serializer: { read: (raw) => Math.max(MIN, Number(raw) || 300), write: (px) => String(Math.round(px)) } });
-const height = ref(keptHeight.value);
+// Until the person drags it to a height of their own, it takes 30 % of the window, at most 300 px: on a laptop's 720 px
+// the pages keep room for their rows instead of being cut off after two.
+const heightChosen = (() => { try { return localStorage.getItem("esp-screens.library-height") !== null; } catch { return false; } })();
+const height = ref(heightChosen ? keptHeight.value : Math.min(300, Math.max(MIN, Math.round(window.innerHeight * 0.3))));
 const maxHeight = () => Math.max(MIN, Math.round(window.innerHeight * 0.7));
 function toggle() { open.value = !open.value; }
 // Typing in the folded bar opens the drawer on what it finds.

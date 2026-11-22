@@ -3795,7 +3795,8 @@
       "actions_allowed": "{name} mag je apparaten nu bedienen.",
       "part_page": "De pagina: titel en navigatie",
       "part_page_hint": "Titel, startpagina en hoe je hier komt",
-      "home_control_hint": "Zet de Home-knop links in de topbar van deze pagina. Hij gaat naar de startpagina."
+      "home_control_hint": "Zet de Home-knop links in de topbar van deze pagina. Hij gaat naar de startpagina.",
+      "place_on_new_page": "Op een nieuwe pagina"
     },
     "feedback": {
       "question": "Werkt je scherm zoals je verwacht?",

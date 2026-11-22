@@ -4260,7 +4260,8 @@
       "actions_allowed": "{name} ya puede controlar tus dispositivos.",
       "part_page": "La página: título y navegación",
       "part_page_hint": "Título, página de inicio y cómo se llega aquí",
-      "home_control_hint": "Pone el botón de inicio a la izquierda de la barra superior de esta página. Lleva a la página de inicio."
+      "home_control_hint": "Pone el botón de inicio a la izquierda de la barra superior de esta página. Lleva a la página de inicio.",
+      "place_on_new_page": "En una página nueva"
     },
     "feedback": {
       "question": "¿Tu pantalla funciona como esperas?",

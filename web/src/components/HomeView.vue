@@ -101,7 +101,8 @@ onMounted(entities.loadOverview);
               </span>
             </span>
           </span>
-          <span v-else class="home-empty"><Icon name="view-dashboard-outline" />{{ t("editor.home.no_layout") }}</span>
+          <!-- Only a screen with nothing to draw: not the mockup, and not the firmware's own preview that took its place. -->
+          <span v-if="!view && !(live && layout && !failed.has(screen.id))" class="home-empty"><Icon name="view-dashboard-outline" />{{ t("editor.home.no_layout") }}</span>
         </span>
         <span class="home-foot">
           <ProgressRing v-if="building(screen)" class="home-ring" :size="16" :percent="builds.buildProgress(screen)?.percent ?? 0"

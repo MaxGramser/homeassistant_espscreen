@@ -4260,7 +4260,8 @@
       "actions_allowed": "{name} peut maintenant commander vos appareils.",
       "part_page": "La page : titre et navigation",
       "part_page_hint": "Titre, page d'accueil et comment y arriver",
-      "home_control_hint": "Place le bouton Accueil à gauche de la barre du haut de cette page. Il mène à la page d'accueil."
+      "home_control_hint": "Place le bouton Accueil à gauche de la barre du haut de cette page. Il mène à la page d'accueil.",
+      "place_on_new_page": "Sur une nouvelle page"
     },
     "feedback": {
       "question": "Votre écran fonctionne-t-il comme prévu ?",

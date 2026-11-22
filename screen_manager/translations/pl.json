@@ -4260,7 +4260,8 @@
       "actions_allowed": "{name} może teraz sterować twoimi urządzeniami.",
       "part_page": "Strona: tytuł i nawigacja",
       "part_page_hint": "Tytuł, strona główna i jak tu trafić",
-      "home_control_hint": "Umieszcza przycisk Home po lewej stronie górnego paska tej strony. Prowadzi do strony głównej."
+      "home_control_hint": "Umieszcza przycisk Home po lewej stronie górnego paska tej strony. Prowadzi do strony głównej.",
+      "place_on_new_page": "Na nowej stronie"
     },
     "feedback": {
       "question": "Czy ekran działa tak, jak oczekujesz?",
