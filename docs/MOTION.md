@@ -39,6 +39,11 @@ the rule from its hardware, with no line in its board file.
   stream writes the glass or while LVGL is paused; then the overlay comes the plain way.
 - **The card first.** A card drawn after its dim comes in pieces of it. `show` has LVGL draw the card at once, then
   dims around it; `hide` takes the card off first, then brightens the page.
+  What the dim keeps off is the area LVGL draws for the card, which is the card's place through the display's own
+  rounding (ESPHome's `draw_rounding`, two pixels by default): a card on an odd pixel has a rim of a pixel that LVGL
+  drew, dim and all, and with the card's bare place kept the veil dimmed that rim twice, a dark line around the card.
+  Read back from a Guition 10.1's frame buffer with `glass_part` (2026-11-22): one pixel wide on two sides of an
+  alert, gone with the rounded room.
 - **The release** is `sheet_motion.h`: a cubic that starts at the finger's speed and ends at rest, never past its
   place, in a time between a shortest and a longest that follows the way left.
 

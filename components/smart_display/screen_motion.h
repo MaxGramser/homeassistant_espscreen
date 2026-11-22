@@ -37,10 +37,16 @@ template <typename Change> inline void quietly(lv_obj_t *over, Change &&change) 
   change();
   lv_display_enable_invalidation(display, true);
 }
+// The room LVGL draws for `o`, which is what the dim keeps off: its place through the display's own rounding (ESPHome's
+// draw_rounding, as glass_core.cpp's rooms go through it), because that is the area LVGL redraws when the card is
+// invalidated. A card on an odd pixel has a rim of a pixel around it that LVGL drew, dim and all; with the card's bare
+// place kept, the veil dimmed that rim a second time and it stood as a dark line around the card (a Guition 10.1,
+// 2026-11-22).
 inline glass::Rect room_of(lv_obj_t *o) {
   lv_obj_update_layout(lv_obj_get_screen(o));
   lv_area_t a;
   lv_obj_get_coords(o, &a);
+  lv_display_send_event(lv_obj_get_display(o), LV_EVENT_INVALIDATE_AREA, &a);
   return {a.x1, a.y1, lv_area_get_width(&a), lv_area_get_height(&a)};
 }
 // What lies over the overlay was darkened with the rest: LVGL draws it again.
