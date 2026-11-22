@@ -356,7 +356,21 @@ class Updater:
             if wide:
                 installed = await self.install_wide(inbox, profile, host)
             else:
-                installed = await self.job(profile, 'install', host)
+                # A plugin suggested for the screen's board that its owner said yes to (plugin_defaults.py) comes with
+                # this build. The update never fails on it: a build that stops goes once more without it.
+                plugins = getattr(self.manager, 'plugins', None)
+                joined = await plugins.join_accepted(inbox) if plugins and not note else []
+                try:
+                    installed = await self.job(profile, 'install', host)
+                except ValueError:
+                    if joined:
+                        plugins.settle_joined(inbox, joined, False, 'interrupted')
+                    raise
+                if joined and not installed:
+                    plugins.settle_joined(inbox, joined, False, logs=list(getattr(firmware, 'logs', None) or []))
+                    installed = await self.job(profile, 'install', host)
+                elif joined:
+                    plugins.settle_joined(inbox, joined, True)
         except ValueError as error:
             # The sentence firmware.start refused with, kept with its key.
             self.record(inbox, 'failed', error.args[0] if len(error.args) == 1 else str(error))

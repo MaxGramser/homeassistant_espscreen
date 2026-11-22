@@ -2446,7 +2446,19 @@
         "note": "Żaden ekran nie używa tej wtyczki. Usuń ją z listy, aby zapomnieć link.",
         "note_folder": "Żaden ekran nie używa tej wtyczki z jej folderu. Usunięcie przenosi folder do config/tessera-plugins/.removed/{id}, gdzie możesz go skasować na dobre."
       },
-      "runs_elsewhere": "{screen} działa w wersji {running}, zbudowanej gdzie indziej. Zbudowanie jej tutaj wgra wersję {version}."
+      "runs_elsewhere": "{screen} działa w wersji {running}, zbudowanej gdzie indziej. Zbudowanie jej tutaj wgra wersję {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Ta płytka ma kamerę."
+        },
+        "question": "Dodać {name} do ekranu {screen}?",
+        "yes": "Dodaj",
+        "yes_update": "Dodaj przy następnej aktualizacji",
+        "no": "Nie, dziękuję",
+        "building": "{name} jest budowane dla ekranu {screen}.",
+        "with_update": "{name} przyjdzie z następną aktualizacją ekranu {screen}.",
+        "declined": "W porządku. {name} zostaje na stronie Wtyczki, gdybyś chciał później."
+      }
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Ekran",
         "setup": "Ustawienia",
-        "install": "Instalacja"
+        "install": "Instalacja",
+        "plugins": "Wtyczki"
       },
       "pick_title": "Jaki masz ekran?",
       "pick_intro": "Wybierz płytkę. Szukaj po marce, rozmiarze lub nadruku.",
@@ -3791,7 +3804,9 @@
       "grid": "Siatka",
       "grid_hint": "Proponowana siatka jest najlepsza dla tego ekranu. Możesz ją zmienić, wraz z orientacją, później obok stron w edytorze, bez ponownej kompilacji.",
       "grid_best": "Wróć do najlepszej",
-      "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem."
+      "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem.",
+      "plugins_title": "Wtyczki dla tego ekranu",
+      "plugins_intro": "Pasują do tego, co ma ta płytka. Odznacz to, czego nie chcesz: nie zostanie wbudowane, a później możesz to dodać na stronie Wtyczki."
     },
     "alerts": {
       "intro": "Każdy ekran ma akcję {action}. Wyświetla ona kartę nad wszystkim, budzi ekran i utrzymuje normalną jasność podświetlenia, dopóki ktoś nie dotknie przycisku albo nie upłynie limit czasu. Sam Home Assistant nie pokazuje dla akcji ESPHome żadnych objaśnień ani list rozwijanych; wszystko, co możesz wypełnić, znajdziesz tutaj.",

@@ -5026,6 +5026,8 @@ def create_app(manager, development=False):
                 screen['feedback'] = None
             # How a plugin it runs works for you (docs/PLUGINS.md, "Likes, ratings and counting"): the stars card.
             screen['plugin_ask'] = manager.plugins.ask_card(screen) if editor_features['plugins'] else None
+            # A plugin for hardware its board has (plugin_defaults.py): suggested once, above the screen.
+            screen['plugin_suggest'] = manager.plugins.suggest_card(screen) if editor_features['plugins'] else None
         return {'csrf': csrf, 'connected': manager.ha.online, 'screens': screens,
                 'editor_features': editor_features,
                 'pending': manager.pending_profiles(screens, profiles),
@@ -5828,7 +5830,16 @@ def create_app(manager, development=False):
             clash = name_clash(data.get('name'), data.get('friendly_name'), manager.taken_names())
             if clash:
                 raise ValueError(clash)
-        return web.json_response(manager.firmware.install(data))
+        # What the wizard's Plugins step kept ticked of the plugins suggested for the board goes into the first build.
+        chosen = data.pop('plugins', None) if isinstance(data, dict) else None
+        prepared = None
+        if isinstance(chosen, dict) and core.plugins_enabled():
+            def prepared(made):
+                try:
+                    manager.plugins.start_with(made['file'], data['name'], data.get('board'), chosen)
+                except Exception as error:  # noqa: BLE001 - the screen is made without them; its card suggests them again
+                    LOG.warning('The plugins chosen for %s did not go into its first build: %s', made['file'], error)
+        return web.json_response(manager.firmware.install(data, prepared=prepared))
     async def firmware_wifi(request):
         """New screen → Wi-Fi: another network or password in ESPHome's secrets.yaml (app 0.4.32), for a screen that did
         not come online. Every screen builds with these two lines, so each takes them at its next update."""
@@ -6067,6 +6078,17 @@ def create_app(manager, development=False):
             await manager.plugins.refresh_likes()
             return web.json_response(manager.plugins.payload(REQUEST_LANGUAGE.get()))
 
+        async def plugins_answer_suggested(request):
+            """The card above a screen that suggests a plugin for its board's hardware: {"plugin": id, "yes": bool}."""
+            data = await request.json()
+            if not isinstance(data, dict) or not isinstance(data.get('plugin'), str) or type(data.get('yes')) is not bool:
+                raise ValueError(t('addon.errors.plugins.request'))
+            result = await manager.plugins.answer_suggestion(request.match_info['inbox'], data['plugin'], data['yes'])
+            manager.notify()
+            return web.json_response(result)
+        async def plugins_suggested_for_board(request):
+            """New screen's Plugins step: what is suggested for the board chosen in its first step."""
+            return web.json_response({'plugins': manager.plugins.suggest_for_board(request.match_info['board'])})
         async def plugins_apply(request):
             result = await manager.plugins.apply(request.match_info['inbox'], await request.json())
             manager.notify()
@@ -6110,6 +6132,8 @@ def create_app(manager, development=False):
 
         app.router.add_get('/api/plugins', plugins_list)
         app.router.add_post('/api/screens/{inbox}/plugins', plugins_apply)
+        app.router.add_post('/api/screens/{inbox}/plugins/suggested', plugins_answer_suggested)
+        app.router.add_get('/api/boards/{board}/plugins/suggested', plugins_suggested_for_board)
         app.router.add_get('/api/screens/{inbox}/plugins/file', plugins_file)
         app.router.add_put('/api/plugins/{plugin}/secrets/{input}', plugins_secret)
         app.router.add_post('/api/plugins/{plugin}/choices/{fetch}', plugins_choices)

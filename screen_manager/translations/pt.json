@@ -2446,7 +2446,19 @@
         "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação.",
         "note_folder": "Nenhum ecrã usa este plugin a partir da sua pasta. Ao removê-lo, a pasta passa para config/tessera-plugins/.removed/{id}, onde a pode apagar de vez."
       },
-      "runs_elsewhere": "{screen} corre a versão {running}, compilada noutro sítio. Compilá-la aqui instala a versão {version}."
+      "runs_elsewhere": "{screen} corre a versão {running}, compilada noutro sítio. Compilá-la aqui instala a versão {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Esta placa tem uma câmara."
+        },
+        "question": "Adicionar {name} a {screen}?",
+        "yes": "Adicionar",
+        "yes_update": "Adicionar com a próxima atualização",
+        "no": "Não, obrigado",
+        "building": "{name} está a ser compilado para {screen}.",
+        "with_update": "{name} chega com a próxima atualização de {screen}.",
+        "declined": "Tudo bem. {name} continua na página Plugins se o quiser mais tarde."
+      }
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Ecrã",
         "setup": "Configurar",
-        "install": "Instalar"
+        "install": "Instalar",
+        "plugins": "Plugins"
       },
       "pick_title": "Que ecrã tens?",
       "pick_intro": "Escolhe a tua placa. Procura por marca, tamanho ou o que tem impresso.",
@@ -3791,7 +3804,9 @@
       "grid": "Grelha",
       "grid_hint": "A grelha proposta é a melhor para este ecrã. Pode alterá-la, e a orientação, mais tarde ao lado das páginas no editor, sem nova compilação.",
       "grid_best": "Voltar à melhor",
-      "waits_turn": "Outro ecrã está a ser compilado agora. Este espera a sua vez e começa sozinho logo a seguir."
+      "waits_turn": "Outro ecrã está a ser compilado agora. Este espera a sua vez e começa sozinho logo a seguir.",
+      "plugins_title": "Plugins para este ecrã",
+      "plugins_intro": "Combinam com o que esta placa tem. Desmarque o que não quiser: não é incluído, e pode adicioná-lo mais tarde na página Plugins."
     },
     "alerts": {
       "intro": "Cada ecrã tem a ação {action}. Coloca um cartão por cima de tudo, acorda o ecrã e mantém a retroiluminação no brilho normal até alguém tocar no botão ou o tempo limite acabar. O próprio Home Assistant não mostra explicações nem listas pendentes para as ações do ESPHome; tudo o que pode preencher está aqui.",

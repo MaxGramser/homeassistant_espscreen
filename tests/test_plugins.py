@@ -2494,6 +2494,142 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kept['origins'], {'bus/key/all': origin, 'bus/token/hall': origin})
 
 
+class Suggested(unittest.IsolatedAsyncioTestCase):
+    """Plugins the app suggests for a board (plugin_defaults.py): a rule names the hardware and the plugin, a person
+    answers once, on New screen's Plugins step or on the card above a screen, and the app never adds one unasked."""
+
+    RULE = ({'plugin': 'clock_words', 'feature': 'feat', 'since': (0, 0, 1), 'why': 'camera'},)
+
+    def ready(self, available=False, **make):
+        from unittest import mock
+        import core
+        import plugin_defaults
+        self.mock, self.core = mock, core
+        service, config, started = BuildOutcome.make(self, **make)
+        service.scan_folders()
+        service.index['clock_words'] = service.folders['clock_words']
+        service.ready = True
+        board = dict(core.SHAPES.get('guition') or {}, features=['feat'])
+        self.update = {'profile': 'hall.yaml', 'host': '10.0.0.1', 'available': available, 'state': 'idle'}
+        service.manager.updates.state_for = lambda screen: self.update
+        service.manager.firmware.profile_names = lambda: {'hall.yaml': {'node': 'hall'}}
+        for patch in (mock.patch.dict(core.SHAPES, {'guition': board}), mock.patch.object(plugin_defaults, 'RULES', self.RULE),
+                      mock.patch.object(core, 'plugins_enabled', lambda: True),
+                      mock.patch.object(service, '_entry_asked', lambda item: service.index[item['id']])):
+            patch.start()
+            self.addCleanup(patch.stop)
+        return service, config, started
+
+    def card(self, service):
+        return service.suggest_card(service.screen_of('hall'))
+
+    async def test_a_board_with_the_hardware_gets_the_card_and_another_board_does_not(self):
+        service, _, started = self.ready()
+        card = self.card(service)
+        self.assertEqual([(p['id'], p['why']) for p in card['plugins']], [('clock_words', 'camera')])
+        self.assertEqual(started, [], 'a suggestion builds nothing')
+        self.assertIsNone(service.store.get('hall', 'clock_words'))
+        with self.mock.patch.dict(self.core.SHAPES, {'guition': dict(self.core.SHAPES['guition'], features=[])}):
+            self.assertIsNone(self.card(service))
+
+    async def test_no_is_kept_and_the_card_never_comes_back(self):
+        service, _, started = self.ready()
+        self.assertEqual(await service.answer_suggestion('hall', 'clock_words', False), {'declined': True})
+        self.assertIsNone(self.card(service))
+        self.assertEqual((started, service.store.declined('hall')), ([], ['clock_words']))
+        with self.assertRaises(ValueError):
+            await service.answer_suggestion('hall', 'clock_words', True)
+
+    async def test_yes_builds_it_now_when_no_update_waits(self):
+        service, _, started = self.ready()
+        await service.answer_suggestion('hall', 'clock_words', True)
+        await service.manager.build_queue.idle()
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((len(started), record['state'], record.get('suggested')), (1, 'active', True))
+        self.assertIsNone(self.card(service))
+
+    async def test_yes_waits_for_the_update_that_is_due_and_comes_with_it(self):
+        service, config, started = self.ready(available=True)
+        self.assertEqual(await service.answer_suggestion('hall', 'clock_words', True), {'with_update': True})
+        self.assertEqual((started, self.card(service)), ([], None), 'no build of its own, and asked only once')
+        self.assertEqual(await service.join_accepted('hall'), ['clock_words'])
+        self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'building')
+        service.settle_joined('hall', ['clock_words'], True)
+        self.assertEqual((service.store.get('hall', 'clock_words')['state'], service.store.accepted('hall')), ('active', []))
+
+    async def test_an_update_brings_nothing_nobody_said_yes_to(self):
+        service, _, _ = self.ready(available=True)
+        self.assertEqual(await service.join_accepted('hall'), [])
+        self.assertIsNone(service.store.get('hall', 'clock_words'))
+
+    async def test_an_update_that_stops_on_it_goes_on_without_it(self):
+        service, config, _ = self.ready(available=True)
+        await service.answer_suggestion('hall', 'clock_words', True)
+        await service.join_accepted('hall')
+        service.settle_joined('hall', ['clock_words'], False, logs=['compile failed'])
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'failed')
+        self.assertNotIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+        self.assertIsNone(self.card(service), 'listed as failed on the Plugins page, not suggested again')
+
+    async def test_a_plugin_a_person_took_off_is_not_suggested_again(self):
+        service, _, _ = self.ready()
+        await service.answer_suggestion('hall', 'clock_words', True)
+        await service.manager.build_queue.idle()
+        await service.apply('hall', {'remove': ['clock_words']})
+        await service.manager.build_queue.idle()
+        self.assertIsNone(self.card(service))
+        # Added again on the Plugins page: theirs, and the answer is spent.
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'index'}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual(service.store.declined('hall'), [])
+        self.assertNotIn('suggested', service.store.get('hall', 'clock_words'))
+
+    async def test_new_screen_builds_what_stayed_ticked_and_keeps_what_was_unticked(self):
+        service, config, started = self.ready()
+        self.assertEqual([p['id'] for p in service.suggest_for_board('guition')], ['clock_words'])
+        paired = []
+        service.manager.screens = lambda: paired
+        # Ticked: in the plugins file before the first build, and the screen's own once Home Assistant has it.
+        self.assertEqual(service.start_with('hall.yaml', 'hall', 'guition', {'add': ['clock_words', 'calendar_peek']}), ['clock_words'])
+        self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
+        self.assertNotIn('calendar_peek', (config / 'hall.plugins.yaml').read_text(), 'only what the board suggests')
+        service.adopt_started()
+        self.assertIsNone(service.store.get('hall', 'clock_words'), 'not before the screen is paired')
+        paired.append(dict(service.manager.screen('hall')))
+        service.adopt_started()
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((record['state'], record['suggested'], service.store.starting), ('active', True, {}))
+        self.assertEqual(started, [], 'the first build is New screen\'s own')
+
+    async def test_new_screen_unticked_is_never_suggested_for_that_screen(self):
+        service, config, _ = self.ready()
+        service.manager.screens = lambda: [dict(service.manager.screen('hall'))]
+        self.assertEqual(service.start_with('hall.yaml', 'hall', 'guition', {'add': [], 'declined': ['clock_words']}), [])
+        self.assertFalse((config / 'hall.plugins.yaml').exists())
+        service.adopt_started()
+        self.assertEqual(service.store.declined('hall'), ['clock_words'])
+        self.assertIsNone(self.card(service))
+
+    async def test_a_profile_removed_before_its_screen_came_leaves_nothing(self):
+        service, _, _ = self.ready()
+        service.manager.screens = lambda: []
+        service.start_with('hall.yaml', 'hall', 'guition', {'add': ['clock_words']})
+        service.manager.firmware.profile_names = lambda: {}
+        service.adopt_started()
+        self.assertEqual(service.store.starting, {})
+
+    def test_every_rule_names_a_feature_a_board_can_have_and_a_reason_with_words(self):
+        import json
+        import plugin_defaults
+        import plugin_manifest
+        words = json.loads((ROOT / 'screen_manager/translations/en.json').read_text())['editor']['plugins']['suggest']['why']
+        for rule in plugin_defaults.RULES:
+            self.assertIn(rule['feature'], plugin_manifest.FEATURES, rule)
+            self.assertIn(rule['why'], words, rule)
+            self.assertRegex(rule['plugin'], r'^[a-z][a-z0-9_]+$')
+
+
 class Builds(unittest.IsolatedAsyncioTestCase):
     """Manager.builds: one record per screen for whatever is being built for it, whoever asked (the build line,
     build_queue), so the editor tracks every build in one place."""

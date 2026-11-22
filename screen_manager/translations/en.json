@@ -3261,7 +3261,8 @@
       "steps": {
         "board": "Screen",
         "setup": "Set up",
-        "install": "Install"
+        "install": "Install",
+        "plugins": "Plugins"
       },
       "pick_title": "Which screen do you have?",
       "pick_intro": "Pick your board. Search by brand, size or what is printed on it.",
@@ -3338,7 +3339,9 @@
       "grid": "Grid",
       "grid_hint": "The suggested grid is the best for this screen. You can change it, and which way it hangs, later beside the pages in the editor, without a new build.",
       "grid_best": "Back to the best",
-      "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after."
+      "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after.",
+      "plugins_title": "Plugins for this screen",
+      "plugins_intro": "These go with what this board has. Untick what you do not want: it is not built in, and you can add it later on the Plugins page."
     },
     "alerts": {
       "intro": "Every screen has the {action} action. It places a card over everything, wakes the screen, and keeps the backlight at normal brightness until someone taps the button or the timeout runs out. Home Assistant itself shows no explanation or dropdowns for ESPHome actions; everything you can fill in is listed here.",
@@ -4388,6 +4391,18 @@
         "go": "Remove from the list",
         "note": "No screen runs this plugin. Remove it from the list to forget the link.",
         "note_folder": "No screen runs this plugin from its folder. Removing it moves the folder to config/tessera-plugins/.removed/{id}, where you can delete it for good."
+      },
+      "suggest": {
+        "why": {
+          "camera": "This board has a camera."
+        },
+        "question": "Add {name} to {screen}?",
+        "yes": "Add it",
+        "yes_update": "Add with the next update",
+        "no": "No, thanks",
+        "building": "{name} is being built for {screen}.",
+        "with_update": "{name} comes with {screen}'s next update.",
+        "declined": "Fine. {name} stays on the Plugins page if you want it later."
       }
     },
     "plugin_tile": {

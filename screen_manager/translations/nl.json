@@ -3261,7 +3261,8 @@
       "steps": {
         "board": "Scherm",
         "setup": "Instellen",
-        "install": "Installeren"
+        "install": "Installeren",
+        "plugins": "Plugins"
       },
       "pick_title": "Welk scherm heb je?",
       "pick_intro": "Kies je bord. Zoek op merk, maat of wat erop staat.",
@@ -3338,7 +3339,9 @@
       "grid": "Raster",
       "grid_hint": "Het voorgestelde raster is het beste voor dit scherm. Je kunt het, en hoe het hangt, later naast de pagina’s in de editor aanpassen, zonder opnieuw te bouwen.",
       "grid_best": "Terug naar het beste",
-      "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf."
+      "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf.",
+      "plugins_title": "Plugins voor dit scherm",
+      "plugins_intro": "Deze horen bij wat dit bord heeft. Vink uit wat je niet wilt: dat wordt niet ingebouwd, en je kunt het later toevoegen op de pagina Plugins."
     },
     "alerts": {
       "intro": "Elk scherm heeft de actie {action}. Die legt een kaart over alles heen, wekt het scherm en houdt de backlight op de normale helderheid tot iemand op de knop tikt of de timeout verstrijkt. Home Assistant toont bij ESPHome-acties zelf geen uitleg of keuzelijsten; alles wat je kunt invullen staat hier.",
@@ -4388,6 +4391,18 @@
         "go": "Uit de lijst halen",
         "note": "Geen enkel scherm gebruikt deze plugin. Haal hem uit de lijst om de link te vergeten.",
         "note_folder": "Geen enkel scherm gebruikt deze plugin vanuit zijn map. Als je hem verwijdert, gaat de map naar config/tessera-plugins/.removed/{id}, waar je hem voorgoed kunt wissen."
+      },
+      "suggest": {
+        "why": {
+          "camera": "Dit bord heeft een camera."
+        },
+        "question": "{name} toevoegen aan {screen}?",
+        "yes": "Toevoegen",
+        "yes_update": "Toevoegen bij de volgende update",
+        "no": "Nee, bedankt",
+        "building": "{name} wordt gebouwd voor {screen}.",
+        "with_update": "{name} komt mee met de volgende update van {screen}.",
+        "declined": "Prima. {name} blijft op de pagina Plugins staan als je hem later wilt."
       }
     },
     "plugin_tile": {

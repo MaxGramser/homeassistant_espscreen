@@ -2446,7 +2446,19 @@
         "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön.",
         "note_folder": "Egyetlen kijelző sem használja ezt a bővítményt a mappájából. Az eltávolítás a mappát ide helyezi át: config/tessera-plugins/.removed/{id}, ahol végleg törölheted."
       },
-      "runs_elsewhere": "{screen} a(z) {running} verziót futtatja, amelyet máshol fordítottak. Ha itt fordítod, a(z) {version} verzió kerül rá."
+      "runs_elsewhere": "{screen} a(z) {running} verziót futtatja, amelyet máshol fordítottak. Ha itt fordítod, a(z) {version} verzió kerül rá.",
+      "suggest": {
+        "why": {
+          "camera": "Ezen a lapon van kamera."
+        },
+        "question": "Hozzáadod a(z) {name} bővítményt ehhez: {screen}?",
+        "yes": "Hozzáadás",
+        "yes_update": "Hozzáadás a következő frissítéssel",
+        "no": "Nem, köszönöm",
+        "building": "A(z) {name} készül ehhez: {screen}.",
+        "with_update": "A(z) {name} a(z) {screen} következő frissítésével érkezik.",
+        "declined": "Rendben. A(z) {name} a Bővítmények oldalon marad, ha később kérnéd."
+      }
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Kijelző",
         "setup": "Beállítás",
-        "install": "Telepítés"
+        "install": "Telepítés",
+        "plugins": "Bővítmények"
       },
       "pick_title": "Milyen kijelződ van?",
       "pick_intro": "Válaszd ki a lapkát. Keress márkára, méretre vagy a feliratra.",
@@ -3791,7 +3804,9 @@
       "grid": "Rács",
       "grid_hint": "A javasolt rács a legjobb ehhez a kijelzőhöz. Később a szerkesztőben, az oldalak mellett, újrafordítás nélkül módosíthatod, a tájolással együtt.",
       "grid_best": "Vissza a legjobbhoz",
-      "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul."
+      "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul.",
+      "plugins_title": "Bővítmények ehhez a képernyőhöz",
+      "plugins_intro": "Ezek ahhoz tartoznak, ami ezen a lapon megtalálható. Vedd ki a pipát abból, amit nem kérsz: az nem épül be, és később a Bővítmények oldalon hozzáadhatod."
     },
     "alerts": {
       "intro": "Minden kijelzőnek van {action} művelete. Ez egy kártyát tesz mindenre, felébreszti a kijelzőt, és normál fényerőn tartja a háttérvilágítást, amíg valaki meg nem nyomja a gombot, vagy le nem jár az időkorlát. A Home Assistant maga nem ad magyarázatot vagy legördülő listákat az ESPHome-műveletekhez; minden, amit kitölthetsz, itt van felsorolva.",

@@ -2446,7 +2446,19 @@
         "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen.",
         "note_folder": "Kein Bildschirm nutzt dieses Plugin aus seinem Ordner. Beim Entfernen wandert der Ordner nach config/tessera-plugins/.removed/{id}, wo du ihn endgültig löschen kannst."
       },
-      "runs_elsewhere": "{screen} hat Version {running}, woanders gebaut. Wenn du hier baust, kommt Version {version} darauf."
+      "runs_elsewhere": "{screen} hat Version {running}, woanders gebaut. Wenn du hier baust, kommt Version {version} darauf.",
+      "suggest": {
+        "why": {
+          "camera": "Dieses Board hat eine Kamera."
+        },
+        "question": "{name} zu {screen} hinzufügen?",
+        "yes": "Hinzufügen",
+        "yes_update": "Mit dem nächsten Update hinzufügen",
+        "no": "Nein, danke",
+        "building": "{name} wird für {screen} gebaut.",
+        "with_update": "{name} kommt mit dem nächsten Update von {screen}.",
+        "declined": "In Ordnung. {name} bleibt auf der Seite Plugins, falls du es später möchtest."
+      }
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Bildschirm",
         "setup": "Einrichten",
-        "install": "Installieren"
+        "install": "Installieren",
+        "plugins": "Plugins"
       },
       "pick_title": "Welchen Bildschirm hast du?",
       "pick_intro": "Wähle dein Board. Suche nach Marke, Größe oder Aufdruck.",
@@ -3791,7 +3804,9 @@
       "grid": "Raster",
       "grid_hint": "Das vorgeschlagene Raster ist das beste für diesen Bildschirm. Du kannst es und die Ausrichtung später neben den Seiten im Editor ändern, ohne neu zu bauen.",
       "grid_best": "Zurück zum besten",
-      "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst."
+      "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst.",
+      "plugins_title": "Plugins für diesen Bildschirm",
+      "plugins_intro": "Diese passen zu dem, was dieses Board hat. Entferne den Haken bei allem, was du nicht möchtest: Es wird nicht eingebaut, und du kannst es später auf der Seite Plugins hinzufügen."
     },
     "alerts": {
       "intro": "Jeder Bildschirm hat die Aktion {action}. Sie legt eine Karte über alles, weckt den Bildschirm und hält die Hintergrundbeleuchtung auf normaler Helligkeit, bis jemand auf die Taste tippt oder das Timeout abläuft. Home Assistant selbst zeigt für ESPHome-Aktionen keine Erklärungen oder Auswahllisten; alles, was du ausfüllen kannst, steht hier.",

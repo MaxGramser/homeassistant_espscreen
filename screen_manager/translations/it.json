@@ -2446,7 +2446,19 @@
         "note": "Nessuno schermo usa questo plugin. Rimuovilo dall'elenco per dimenticare il link.",
         "note_folder": "Nessuno schermo usa questo plugin dalla sua cartella. Rimuovendolo, la cartella passa in config/tessera-plugins/.removed/{id}, dove puoi eliminarla definitivamente."
       },
-      "runs_elsewhere": "{screen} esegue la versione {running}, compilata altrove. Compilandola qui vi si installa la versione {version}."
+      "runs_elsewhere": "{screen} esegue la versione {running}, compilata altrove. Compilandola qui vi si installa la versione {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Questa scheda ha una fotocamera."
+        },
+        "question": "Aggiungere {name} a {screen}?",
+        "yes": "Aggiungi",
+        "yes_update": "Aggiungi con il prossimo aggiornamento",
+        "no": "No, grazie",
+        "building": "{name} è in compilazione per {screen}.",
+        "with_update": "{name} arriva con il prossimo aggiornamento di {screen}.",
+        "declined": "Va bene. {name} resta nella pagina Plugin se lo vorrai più tardi."
+      }
     },
     "plugin_tile": {
       "from": "Un riquadro del plugin {plugin}",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Schermo",
         "setup": "Configura",
-        "install": "Installa"
+        "install": "Installa",
+        "plugins": "Plugin"
       },
       "pick_title": "Quale schermo hai?",
       "pick_intro": "Scegli la tua scheda. Cerca per marca, dimensione o ciò che c’è stampato sopra.",
@@ -3791,7 +3804,9 @@
       "grid": "Griglia",
       "grid_hint": "La griglia proposta è la migliore per questo schermo. Puoi cambiarla, e l’orientamento, più tardi accanto alle pagine nell’editor, senza ricompilare.",
       "grid_best": "Torna alla migliore",
-      "waits_turn": "Ora si sta compilando un altro schermo. Questo aspetta il suo turno e parte da solo subito dopo."
+      "waits_turn": "Ora si sta compilando un altro schermo. Questo aspetta il suo turno e parte da solo subito dopo.",
+      "plugins_title": "Plugin per questo schermo",
+      "plugins_intro": "Vanno con ciò che ha questa scheda. Togli la spunta a quello che non vuoi: non viene incluso, e puoi aggiungerlo più tardi nella pagina Plugin."
     },
     "alerts": {
       "intro": "Ogni schermo ha l'azione {action}. Mette una scheda sopra tutto, riattiva lo schermo e mantiene la retroilluminazione a luminosità normale finché qualcuno non tocca il pulsante o non scade il timeout. Home Assistant da solo non mostra spiegazioni né menu a tendina per le azioni ESPHome; qui trovi tutto quello che puoi compilare.",

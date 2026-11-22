@@ -930,9 +930,11 @@ packages:
         self._ensure_include(profile, 'tessera_plugins', path.name)
         return self.plugins_file(profile.name)
 
-    def install(self, data):
+    def install(self, data, prepared=None):
         """Profile plus, when a USB port is chosen, the build and flash in one go. With the target
-        'download' it builds only, and the owner flashes the image from their own computer.
+        'download' it builds only, and the owner flashes the image from their own computer. `prepared(result)` runs
+        once the profile is written and before its build is asked for: what else the first build takes (the plugins
+        New screen's wizard chose) is written there.
 
         The target is checked before anything is written, so a refused install leaves no half-made profile behind. In
         the app the job waits its turn in the build line (`builds`, build_queue.BuildQueue.attended) and `build` is
@@ -946,6 +948,8 @@ packages:
             if not shutil.which('esphome'):
                 raise ValueError(t('addon.errors.firmware.no_esphome'))
         result = self.create(data)
+        if prepared is not None:
+            prepared(result)
         if target:
             request = {'file': result['file'], 'action': 'download'} if target == 'download' else \
                 {'file': result['file'], 'action': 'install', 'target': target}

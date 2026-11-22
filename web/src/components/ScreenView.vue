@@ -13,6 +13,7 @@ import ScreenPluginsTab from "./ScreenPluginsTab.vue";
 import Drawer from "./Drawer.vue";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import PluginRatingCard from "./PluginRatingCard.vue";
+import PluginSuggestCard from "./PluginSuggestCard.vue";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
@@ -222,6 +223,8 @@ useEventListener(document, "keydown", onKey);
   <FeedbackPanel v-if="screen.feedback?.available" :key="`card-${screen.id}`" :screen="screen" mode="card" />
   <!-- Stars for a plugin it runs (docs/PLUGINS.md, "Likes, ratings and counting"), never at once with the card above. -->
   <PluginRatingCard v-if="inv.pluginsEnabled" :key="`rate-${screen.id}`" :screen="screen" />
+  <!-- A plugin for hardware its board has (docs/PLUGINS.md, "Plugins a board starts with"), asked once. -->
+  <PluginSuggestCard v-if="inv.pluginsEnabled" :key="`suggest-${screen.id}`" :screen="screen" />
   <div class="body" id="body">
     <div class="work">
       <LayoutView v-if="ui.tab === 'layout'" />

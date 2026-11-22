@@ -2446,7 +2446,19 @@
         "note": "Ninguna pantalla usa este plugin. Quítalo de la lista para olvidar el enlace.",
         "note_folder": "Ninguna pantalla usa este plugin desde su carpeta. Al quitarlo, la carpeta pasa a config/tessera-plugins/.removed/{id}, donde puedes borrarla del todo."
       },
-      "runs_elsewhere": "{screen} ejecuta la versión {running}, compilada en otro lugar. Si la compilas aquí, se le pone la versión {version}."
+      "runs_elsewhere": "{screen} ejecuta la versión {running}, compilada en otro lugar. Si la compilas aquí, se le pone la versión {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Esta placa tiene una cámara."
+        },
+        "question": "¿Añadir {name} a {screen}?",
+        "yes": "Añadir",
+        "yes_update": "Añadir con la próxima actualización",
+        "no": "No, gracias",
+        "building": "{name} se está compilando para {screen}.",
+        "with_update": "{name} llega con la próxima actualización de {screen}.",
+        "declined": "De acuerdo. {name} sigue en la página Plugins por si lo quieres más tarde."
+      }
     },
     "plugin_tile": {
       "from": "Un mosaico del plugin {plugin}",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Pantalla",
         "setup": "Configurar",
-        "install": "Instalar"
+        "install": "Instalar",
+        "plugins": "Plugins"
       },
       "pick_title": "¿Qué pantalla tienes?",
       "pick_intro": "Elige tu placa. Busca por marca, tamaño o lo que lleva impreso.",
@@ -3791,7 +3804,9 @@
       "grid": "Cuadrícula",
       "grid_hint": "La cuadrícula propuesta es la mejor para esta pantalla. Puedes cambiarla, y su orientación, más tarde junto a las páginas en el editor, sin volver a compilar.",
       "grid_best": "Volver a la mejor",
-      "waits_turn": "Ahora se está compilando otra pantalla. Esta espera su turno y empieza sola justo después."
+      "waits_turn": "Ahora se está compilando otra pantalla. Esta espera su turno y empieza sola justo después.",
+      "plugins_title": "Plugins para esta pantalla",
+      "plugins_intro": "Van con lo que tiene esta placa. Desmarca lo que no quieras: no se incluye, y puedes añadirlo más tarde en la página Plugins."
     },
     "alerts": {
       "intro": "Cada pantalla tiene la acción {action}. Coloca una tarjeta por encima de todo, despierta la pantalla y mantiene la retroiluminación al brillo normal hasta que alguien toque el botón o se agote el tiempo de espera. Home Assistant no muestra explicaciones ni desplegables para las acciones de ESPHome; aquí tienes todo lo que puedes rellenar.",

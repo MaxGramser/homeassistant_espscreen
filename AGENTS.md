@@ -47,6 +47,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
+| suggest a plugin for hardware a board has (New screen's Plugins step, the card above a screen) | docs/PLUGINS.md, "Plugins a board starts with" | `RULES` in `screen_manager/app/plugin_defaults.py` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |
 | touch the flash of a board with 4 MB | docs/FLASH_LAYOUT.md | `components/flash_layout/`, `packages/hardware/flash-4mb.yaml` |
 | change how a build waits its turn (updates, plugins, New screen, Firmware & USB) | docs/BUILDS.md | `screen_manager/app/build_queue.py`, `web/src/stores/builds.ts` |

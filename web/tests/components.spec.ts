@@ -1170,7 +1170,7 @@ describe("the title above a page (app 0.2.105, in the page's settings since 0.3.
 // follows Home Assistant finding it on the network, or after three minutes says what fixes it.
 describe("New screen and the Wi-Fi", () => {
   const flush = async () => { for (let i = 0; i < 4; i++) await Promise.resolve(); await new Promise((done) => setTimeout(done, 0)); };
-  function addon(job: any) {
+  function addon(job: any, suggested: any[] = []) {
     const calls: { url: string; method: string; body?: any }[] = [];
     const inventory = { screens: [] as any[], pending: [{ file: "hall.yaml", friendly: "Hall", node: "hall", installed: true, seen: false }] };
     vi.stubGlobal("fetch", vi.fn((url: string, options: any = {}) => {
@@ -1181,6 +1181,7 @@ describe("New screen and the Wi-Fi", () => {
       if (/firmware\/builds\/\d+\/log$/.test(String(url))) return Promise.resolve({ ok: true, json: () => Promise.resolve({ build: job, logs: [] }) });
       // The live inventory carries the build line (the add-on's build_queue).
       if (String(url).includes("inventory")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ ...useInventoryStore().inventory, ...inventory, line: asked ? [job] : [] }) });
+      if (String(url).endsWith("plugins/suggested")) return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify({ plugins: suggested })), json: () => Promise.resolve({ plugins: suggested }) });
       const answer = String(url).endsWith("firmware/profiles") ? { file: "hall.yaml", api_key: "k", build: job } : String(url).endsWith("firmware/jobs") ? job : { state: "ready" };
       return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify(answer)), json: () => Promise.resolve(answer) });
     }));
@@ -1205,6 +1206,44 @@ describe("New screen and the Wi-Fi", () => {
     expect(writes.map((c) => [c.url, c.method])).toEqual([["api/firmware/wifi", "PUT"], ["api/firmware/profiles", "POST"]]);
     expect(writes[0].body).toEqual({ wifi_ssid: "Home", wifi_password: "secret" });
     expect(writes[1].body.wifi_password).toBeUndefined();
+  });
+  it("has no Plugins step for a board nothing is suggested for, and sends no choice", async () => {
+    const { calls } = addon({ id: 2, by: "install", file: "hall.yaml", action: "install", state: "success", asked: 1, started: 2, finished: 3 });
+    const view = mount(InstallerView);
+    await flush();
+    await toDone(view);
+    expect(view.findAll(".setup-steps li").length).toBe(3);
+    await view.find("#setup-next").trigger("click");
+    expect(view.find("#install-go").exists()).toBe(true);
+    await view.find("#install-form").trigger("submit");
+    await flush();
+    expect(calls.find((c) => c.url.endsWith("firmware/profiles"))!.body.plugins).toBeUndefined();
+  });
+  it("asks which of the plugins suggested for the board go into the first firmware, ticked to start with", async () => {
+    const camera = { id: "screen_camera", name: { en: "Screen camera" }, summary: { en: "The camera of the screen." }, version: "0.7.0", why: "camera", image: null };
+    const radio = { id: "gps_fix", name: { en: "GPS" }, summary: { en: "Where the screen is." }, version: "1.0.0", why: "camera", image: null };
+    const { calls } = addon({ id: 2, by: "install", file: "hall.yaml", action: "install", state: "success", asked: 1, started: 2, finished: 3 }, [camera, radio]);
+    const view = mount(InstallerView);
+    await flush();
+    await toDone(view);
+    await flush();
+    const steps = view.findAll(".setup-steps li").map((li) => li.text());
+    expect(steps.length).toBe(4);
+    ["Screen", "Set up", "Plugins", "Install"].forEach((word, at) => expect(steps[at]).toContain(word));
+    await view.find("#setup-next").trigger("click");
+    // The Plugins step: both ticked, each with its reason; Next goes on to Install, not Install itself.
+    expect(view.find("#install-go").exists()).toBe(false);
+    const rows = view.findAll("#install-plugins .pick");
+    expect(rows.map((row) => row.classes("chosen"))).toEqual([true, true]);
+    expect(rows[0].text()).toContain("Screen camera");
+    expect(rows[0].text()).toContain(t("editor.plugins.suggest.why.camera"));
+    await rows[1].find("input").setValue(false);
+    expect(rows[1].classes("chosen")).toBe(false);
+    await view.find("#setup-next").trigger("click");
+    expect(view.find("#install-go").exists()).toBe(true);
+    await view.find("#install-form").trigger("submit");
+    await flush();
+    expect(calls.find((c) => c.url.endsWith("firmware/profiles"))!.body.plugins).toEqual({ add: ["screen_camera"], declined: ["gps_fix"] });
   });
   it("says why when its build was refused at its turn, such as a cable pulled while it waited", async () => {
     addon({ id: 2, by: "install", file: "hall.yaml", action: "install", state: "failed", asked: 1, started: 2, finished: 3,

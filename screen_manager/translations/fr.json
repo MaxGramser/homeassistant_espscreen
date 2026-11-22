@@ -2446,7 +2446,19 @@
         "note": "Aucun écran n'utilise ce plugin. Retirez-le de la liste pour oublier le lien.",
         "note_folder": "Aucun écran n'utilise ce plugin depuis son dossier. Le retirer déplace le dossier vers config/tessera-plugins/.removed/{id}, où vous pouvez le supprimer pour de bon."
       },
-      "runs_elsewhere": "{screen} exécute la version {running}, compilée ailleurs. La compiler ici y installe la version {version}."
+      "runs_elsewhere": "{screen} exécute la version {running}, compilée ailleurs. La compiler ici y installe la version {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Cette carte a une caméra."
+        },
+        "question": "Ajouter {name} à {screen} ?",
+        "yes": "Ajouter",
+        "yes_update": "Ajouter avec la prochaine mise à jour",
+        "no": "Non, merci",
+        "building": "{name} est en cours de compilation pour {screen}.",
+        "with_update": "{name} arrive avec la prochaine mise à jour de {screen}.",
+        "declined": "D'accord. {name} reste sur la page Plugins si vous le voulez plus tard."
+      }
     },
     "plugin_tile": {
       "from": "Une tuile du plugin {plugin}",
@@ -3714,7 +3726,8 @@
       "steps": {
         "board": "Écran",
         "setup": "Configurer",
-        "install": "Installer"
+        "install": "Installer",
+        "plugins": "Plugins"
       },
       "pick_title": "Quel écran as-tu ?",
       "pick_intro": "Choisis ta carte. Cherche par marque, taille ou ce qui est imprimé dessus.",
@@ -3791,7 +3804,9 @@
       "grid": "Grille",
       "grid_hint": "La grille proposée est la meilleure pour cet écran. Vous pourrez la changer, et son orientation, plus tard à côté des pages dans l’éditeur, sans nouvelle compilation.",
       "grid_best": "Revenir à la meilleure",
-      "waits_turn": "Un autre écran est en cours de compilation. Celui-ci attend son tour et démarre tout seul juste après."
+      "waits_turn": "Un autre écran est en cours de compilation. Celui-ci attend son tour et démarre tout seul juste après.",
+      "plugins_title": "Plugins pour cet écran",
+      "plugins_intro": "Ils vont avec ce que possède cette carte. Décochez ce que vous ne voulez pas : ce n'est pas intégré, et vous pouvez l'ajouter plus tard sur la page Plugins."
     },
     "alerts": {
       "intro": "Chaque écran a l'action {action}. Elle place une carte par-dessus tout, réveille l'écran et garde le rétroéclairage à luminosité normale jusqu'à ce que quelqu'un touche le bouton ou que le délai expire. Home Assistant n'affiche lui-même ni explication ni listes déroulantes pour les actions ESPHome ; tout ce que vous pouvez remplir est listé ici.",
