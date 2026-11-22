@@ -97,8 +97,9 @@ class Library(unittest.TestCase):
             channels, width, rate, frames = read(self.files.get(name)[0])
             self.assertEqual((channels, width, rate), (1, 2, sounds.RATE), key)
             self.assertGreaterEqual(frames, sounds.MIN_SECONDS * rate, key)
-            # And is heard: the levelled ones reach 97 % of full scale, the chime its own third.
-            self.assertGreater(max(self.samples(key)), (0.25 if key == 'chime' else 0.95) * 32767, key)
+            # And is heard, without driving the speaker into distortion: the levelled ones at LEVEL, the chime its own.
+            self.assertGreater(max(self.samples(key)), 0.25 * 32767, key)
+            self.assertLessEqual(max(self.samples(key)), sounds.LEVEL * 32767 + 1, key)
             # Every built-in sound fits every kind, and comes out the same at every start: a screen keeps it by its name.
             self.assertLessEqual(frames, min(k['max_seconds'] for k in sounds.KINDS.values()) * rate, key)
             self.assertEqual(sounds.Sounds(tempfile.mkdtemp(), screen_files.ScreenFiles(tempfile.mkdtemp())).built[key], name, key)
@@ -117,9 +118,9 @@ class Library(unittest.TestCase):
         loud = self.samples('classic')
         rate = sounds.RATE
         self.assertEqual(len(loud), 3 * rate)
-        self.assertGreater(max(loud[:int(0.42 * rate)]), 20000)
+        self.assertGreater(max(loud[:int(0.42 * rate)]), 0.45 * 32767)
         self.assertEqual(max(loud[int(0.43 * rate):int(0.55 * rate)]), 0)
-        self.assertGreater(max(loud[int(0.57 * rate):int(0.98 * rate)]), 20000)
+        self.assertGreater(max(loud[int(0.57 * rate):int(0.98 * rate)]), 0.45 * 32767)
         self.assertEqual(max(loud[int(1.1 * rate):]), 0)
 
     def test_chime_is_the_screens_own_ding_dong(self):

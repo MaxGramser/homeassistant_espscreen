@@ -19,7 +19,7 @@ describe("ringtone", () => {
     expect(made.length).toBe(2 * RATE);
     expect(Math.abs(made[0])).toBe(0);
     expect(Math.abs(made[made.length - 1])).toBeLessThan(0.01);
-    expect(loudest(made)).toBeCloseTo(0.97, 3);
+    expect(loudest(made)).toBeCloseTo(0.5, 3);
     expect(cut(tone(1600, 1), RATE, -1, 9).length).toBe(RATE);
     expect(fade(new Float32Array([1, 1]), RATE).length).toBe(2);
     expect(Array.from(level(new Float32Array(4)))).toEqual([0, 0, 0, 0]);

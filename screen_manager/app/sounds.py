@@ -48,6 +48,10 @@ MOST_BYTES = int(MAX_SECONDS * RATE * 2) + 4096
 # The screen's feature for sounds as files (the hello's `sounds`): a doorbell's chime and an alert's tone. A call's ring
 # needs none: the module call reads `rt` since it came.
 FEATURE = 'sounds'
+# Where every sound's loudest sample sits: half of full scale (-6 dB). At 97 % the speakers distorted with the volume a
+# ring stands at (the owner heard it on the Guition 10.1 and the D1001, 2026-11-22); the editor levels to the same
+# (web/src/model/ringtone.ts, PEAK).
+LEVEL = 0.5
 
 
 def _blank(seconds):
@@ -128,9 +132,9 @@ BUILT_IN = {'classic': _classic, 'marimba': _marimba, 'digital': _digital, 'bell
 
 
 def to_wav(samples, levelled=True):
-    """16-bit mono WAV bytes of `samples` (floats in -1..1), with `levelled` the loudest at 97 % of full scale."""
+    """16-bit mono WAV bytes of `samples` (floats in -1..1), with `levelled` the loudest at LEVEL of full scale."""
     peak = max((abs(s) for s in samples), default=0.0) or 1.0
-    gain = 0.97 / peak if levelled else 1.0
+    gain = LEVEL / peak if levelled else 1.0
     pcm = array.array('h', (max(-32767, min(32767, int(round(s * gain * 32767)))) for s in samples))
     if array.array('h', [1]).tobytes()[0] != 1:
         pcm.byteswap()

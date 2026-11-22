@@ -28,7 +28,8 @@ Play plays that part the way the screen will. What is kept is not the file as it
 
 - the bass under 400 Hz is filtered out: the small speakers cannot play it, and it only takes level the rest could use;
 - the ends fade over 8 ms, so a ring that loops does not click at every turn;
-- the level is raised until the loudest sample is at 97 % of full scale: a ring is to be heard across a room.
+- the level is set so the loudest sample is at half of full scale, the same for every sound: loud enough across a room
+  at the volume a ring plays at, where 97 % made the speakers distort.
 
 The app checks the finished WAV again (16 kHz, mono, 16 bits, a quarter of a second to 5 seconds) and keeps up to
 twelve sounds of your own, in its own data, so they are still there after a restart of the app or a screen. A sound of

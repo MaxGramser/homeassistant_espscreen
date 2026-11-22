@@ -6,11 +6,12 @@
 //
 // Why each step: the screens' small speakers carry 1.4 to 1.9 kHz best and nothing much under 400 Hz, so the bass only
 // takes level that the rest could use; a ringtone plays back to back, so a jump at its ends is a click every turn; and a
-// ring must be heard across a room, so it is levelled to the top instead of kept as quiet as the file came.
+// ring must be heard across a room, so it is levelled to one height for every sound instead of kept as the file came.
 
 export const HIGH_PASS_HZ = 400;
 export const FADE_SECONDS = 0.008;
-export const PEAK = 0.97;
+// Half of full scale (-6 dB), as the app's own sounds (sounds.LEVEL): at 97 % the speakers distorted at a ring's volume.
+export const PEAK = 0.5;
 
 /** A second-order high-pass (RBJ's cookbook, Butterworth Q), run twice: 24 dB an octave under `cutoff`. */
 export function highPass(input: Float32Array, rate: number, cutoff = HIGH_PASS_HZ): Float32Array {
