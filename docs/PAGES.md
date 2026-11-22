@@ -78,7 +78,9 @@ or the overview), a screen with `session.select()`, an override with `ui.openOve
 
 The app's Settings page and a screen's Settings tab work the same way, the way Home Assistant's own Settings do: each
 opens on a list of its parts, one row per part with its icon, its name and one line of what is set now, and a row opens
-its part as a page of its own, one column of cards, with the way back to the list above its title. The parts are in
+its part as a page of its own, one column of cards, with the way back to the list above its title. The look is Home
+Assistant's too: one column of 600 px in the middle of a wide page, the rows in a few separate cards, each part's icon
+white on a round colour of its own (`PART_LOOK` in `settings-parts.ts`, the `--tone-*` tokens in `styles/tokens.css`). The parts are in
 `web/src/model/settings-parts.ts`, and so is the part each of a screen's settings is in:
 
 | Page | Parts | Address |

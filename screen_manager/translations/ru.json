@@ -3182,7 +3182,11 @@
           "title": "Home Assistant",
           "video": "Видео: {state}",
           "claude": "Claude: {state}",
-          "running": "работает"
+          "running": "работает",
+          "not_installed": "не установлено",
+          "installed": "установлено",
+          "update": "обновление готово",
+          "restart": "нужен перезапуск"
         }
       }
     },

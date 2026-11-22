@@ -28,3 +28,20 @@ export function screenPartOf(key: string): ScreenSettingsPart | null {
   for (const part of SCREEN_SETTINGS_PARTS) if (SCREEN_PART_ROWS[part]?.some((block) => block.keys.includes(key))) return part;
   return null;
 }
+
+/** The colours of the round icons of the settings lists: the --tone-* tokens of styles/tokens.css. */
+export type Tone = "teal" | "cyan" | "blue" | "indigo" | "violet" | "green" | "orange" | "yellow" | "rose";
+/** Each part's icon colour, and the card of the list it stands in (like Home Assistant's Settings, a few separate cards
+ *  of rows rather than one long one). */
+export const PART_LOOK: Record<AppSettingsPart | ScreenSettingsPart, { tone: Tone; card: number }> = {
+  updates: { tone: "teal", card: 0 }, builds: { tone: "orange", card: 0 },
+  language: { tone: "violet", card: 1 }, plugins: { tone: "yellow", card: 1 }, "home-assistant": { tone: "blue", card: 1 },
+  display: { tone: "orange", card: 0 }, standby: { tone: "indigo", card: 0 }, navigation: { tone: "green", card: 0 },
+  board: { tone: "rose", card: 1 }, help: { tone: "cyan", card: 2 },
+};
+/** Parts in the cards of the list they stand in, in order; a card with none of them is left out. */
+export function partCards<T extends { id: AppSettingsPart | ScreenSettingsPart }>(parts: T[]): T[][] {
+  const cards: T[][] = [];
+  for (const part of parts) (cards[PART_LOOK[part.id].card] ||= []).push(part);
+  return cards.filter(Boolean);
+}

@@ -3647,7 +3647,11 @@
           "title": "Home Assistant",
           "video": "Videó: {state}",
           "claude": "Claude: {state}",
-          "running": "fut"
+          "running": "fut",
+          "not_installed": "nincs telepítve",
+          "installed": "telepítve",
+          "update": "frissítés kész",
+          "restart": "újraindítás kell"
         }
       }
     },

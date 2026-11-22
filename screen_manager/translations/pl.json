@@ -3647,7 +3647,11 @@
           "title": "Home Assistant",
           "video": "Wideo: {state}",
           "claude": "Claude: {state}",
-          "running": "działa"
+          "running": "działa",
+          "not_installed": "nie zainstalowano",
+          "installed": "zainstalowano",
+          "update": "aktualizacja gotowa",
+          "restart": "wymaga restartu"
         }
       }
     },

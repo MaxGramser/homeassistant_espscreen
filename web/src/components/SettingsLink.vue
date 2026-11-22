@@ -4,9 +4,11 @@
 // most there, so that needs no page. The name is the row's button; a click anywhere else on the row but the control
 // opens the part as well.
 import type { IconName } from "../model/ui-icons";
+import type { Tone } from "../model/settings-parts";
 import Icon from "./ui/Icon.vue";
 
-defineProps<{ icon: IconName; title: string; summary?: string; badge?: string; id?: string }>();
+// `tone`: the colour of the round icon, one of the --tone-* tokens (styles/tokens.css), as Home Assistant colours its own.
+defineProps<{ icon: IconName; title: string; summary?: string; badge?: string; id?: string; tone?: Tone }>();
 const emit = defineEmits<{ open: [] }>();
 function rowClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
@@ -17,7 +19,7 @@ function rowClick(e: MouseEvent) {
 <template>
   <div class="set-link" @click="rowClick">
     <button type="button" class="set-link-main" :id="id" @click="emit('open')">
-      <span class="set-link-icon"><Icon :name="icon" /></span>
+      <span class="set-link-icon" :style="tone ? { '--tone': `var(--tone-${tone})` } : undefined"><Icon :name="icon" /></span>
       <span class="set-link-tx"><b>{{ title }}</b><small v-if="summary">{{ summary }}</small></span>
     </button>
     <span v-if="badge" class="chip update">{{ badge }}</span>

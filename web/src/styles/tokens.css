@@ -37,6 +37,17 @@
   --bot-c: #38bdf8;
   --focus: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
   --pop-shadow: 0 14px 38px rgba(20, 24, 40, 0.16), 0 2px 6px rgba(20, 24, 40, 0.08);
+  /* The round icons of the settings lists (SettingsLink.vue): Home Assistant's own colours for the rows of its Settings
+     page, the same in light and dark, each with a white glyph. */
+  --tone-teal: #00838f;
+  --tone-cyan: #3b808e;
+  --tone-blue: #0d47a1;
+  --tone-indigo: #3f51b5;
+  --tone-violet: #7c4dff;
+  --tone-green: #518c43;
+  --tone-orange: #e48629;
+  --tone-yellow: #f1c447;
+  --tone-rose: #b1345c;
   --ui-font: -apple-system, BlinkMacSystemFont, system-ui, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }

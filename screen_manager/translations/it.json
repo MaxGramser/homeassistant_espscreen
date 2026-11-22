@@ -3645,9 +3645,13 @@
         },
         "home_assistant": {
           "title": "Home Assistant",
-          "video": "Video: {state}",
-          "claude": "Claude: {state}",
-          "running": "in funzione"
+          "video": "Video {state}",
+          "claude": "Claude {state}",
+          "running": "in funzione",
+          "not_installed": "non installato",
+          "installed": "installato",
+          "update": "aggiornamento pronto",
+          "restart": "riavvio necessario"
         }
       }
     },

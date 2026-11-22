@@ -917,20 +917,23 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .step output { min-width: 56px; text-align: center; font-weight: 500; }
 
 /* The two settings pages (docs/PAGES.md, "Settings"): a list of parts, each part a page of its own in one column. */
-.set-column { display: grid; gap: 14px; align-content: start; max-width: 720px; width: 100%; }
-.set-list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; display: grid; }
-.set-list-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); padding: 6px 4px 0; }
-.set-link { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 10px; padding: 0 12px 0 0; border-radius: 9px; cursor: pointer; }
+/* Like Home Assistant's Settings: one column of 600 px in the middle of a wide page, its rows in separate cards. */
+#settings-view { max-width: none; }
+#settings-view > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
+.set-column { display: grid; gap: 24px; align-content: start; max-width: 600px; width: 100%; margin-inline: auto; }
+.set-cards { display: grid; gap: 24px; }
+.set-list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; overflow: hidden; }
+.set-link { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 12px; min-height: 66px; padding-right: 16px; cursor: pointer; }
 .set-link:hover { background: var(--surface-2); }
-.set-link-main { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 0 10px 10px; text-align: left; color: inherit; background: none; border-radius: 9px; }
-.set-link-main:focus-visible { box-shadow: var(--focus); outline: none; }
-.set-link-icon { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
-.set-link-icon .ui-icon { font-size: 18px; }
-.set-link-tx { display: grid; gap: 1px; min-width: 0; }
-.set-link-tx b { font-weight: 600; font-size: 13.5px; color: var(--ink); }
-.set-link-tx small { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.set-link-main { display: flex; align-items: center; gap: 16px; min-width: 0; align-self: stretch; padding: 10px 0 10px 16px; text-align: left; color: inherit; background: none; border-radius: 0; }
+.set-link-main:focus-visible { box-shadow: inset var(--focus); outline: none; }
+.set-link-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--tone, var(--accent)); color: #fff; }
+.set-link-icon .ui-icon { font-size: 22px; }
+.set-link-tx { display: grid; gap: 2px; min-width: 0; }
+.set-link-tx b { font-weight: 500; font-size: 14px; color: var(--ink); }
+.set-link-tx small { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 .set-link-control { display: inline-flex; align-items: center; cursor: default; }
-.set-link-arrow { color: var(--muted); font-size: 18px; }
+.set-link-arrow { color: var(--muted); font-size: 20px; }
 .set-head { display: grid; gap: 4px; justify-items: start; }
 .set-head h1, .set-head h2 { font-size: 20px; }
 .set-head p { color: var(--muted); font-size: 13px; max-width: 62ch; }

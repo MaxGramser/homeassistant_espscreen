@@ -12,7 +12,7 @@ import Icon from "./ui/Icon.vue";
 import SettingsHead from "./SettingsHead.vue";
 import SettingsLink from "./SettingsLink.vue";
 import type { IconName } from "../model/ui-icons";
-import type { AppSettingsPart } from "../model/settings-parts";
+import { PART_LOOK, partCards, type AppSettingsPart } from "../model/settings-parts";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
@@ -144,10 +144,11 @@ const pluginsLine = computed(() => [
   t(sharing.value?.counting ? "editor.settings.parts.plugins.counting_on" : "editor.settings.parts.plugins.counting_off"),
   t(sharing.value?.asking ? "editor.settings.parts.plugins.asking_on" : "editor.settings.parts.plugins.asking_off"),
 ].join(" · "));
-const videoState = computed(() => !video.value ? t("editor.common.loading") : !video.value.installed ? t("editor.settings.claude.not_installed")
-  : !video.value.current ? t("editor.settings.video.newer") : videoWaitsRestart.value ? t("editor.settings.video.waits_restart") : t("editor.settings.parts.home_assistant.running"));
-const claudeState = computed(() => !skill.value ? t("editor.common.loading") : !skill.value.installed ? t("editor.settings.claude.not_installed")
-  : skill.value.current ? t("editor.settings.claude.installed_chip") : t("editor.settings.claude.newer"));
+const haState = (key: string) => t(`editor.settings.parts.home_assistant.${key}`);
+const videoState = computed(() => !video.value ? t("editor.common.loading") : !video.value.installed ? haState("not_installed")
+  : !video.value.current ? haState("update") : videoWaitsRestart.value ? haState("restart") : haState("running"));
+const claudeState = computed(() => !skill.value ? t("editor.common.loading") : !skill.value.installed ? haState("not_installed")
+  : skill.value.current ? haState("installed") : haState("update"));
 const haLine = computed(() => [
   ...(inv.pluginsEnabled ? [t("editor.settings.parts.home_assistant.video", { state: videoState.value })] : []),
   t("editor.settings.parts.home_assistant.claude", { state: claudeState.value }),
@@ -183,8 +184,10 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
 
     <!-- The list of parts: a row each, with what is set now; a row opens its part. -->
     <div v-if="!part" class="set-column">
-      <div class="set-list" id="settings-parts">
-        <SettingsLink v-for="p in parts" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :title="p.title" :summary="p.summary" :badge="p.badge" @open="ui.openSettings(p.id)" />
+      <div id="settings-parts" class="set-cards">
+        <div v-for="(card, i) in partCards(parts)" :key="i" class="set-list">
+          <SettingsLink v-for="p in card" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :tone="PART_LOOK[p.id].tone" :title="p.title" :summary="p.summary" :badge="p.badge" @open="ui.openSettings(p.id)" />
+        </div>
       </div>
     </div>
 

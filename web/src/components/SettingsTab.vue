@@ -15,7 +15,7 @@ import PluginSettings from "./PluginSettings.vue";
 import { text } from "../model/plugins";
 import { glyph } from "../model/topbar";
 import { SETTING_GROUPS, settingLabel, type SettingRow } from "../model/settings";
-import { SCREEN_PART_ROWS, type ScreenSettingsPart } from "../model/settings-parts";
+import { PART_LOOK, partCards, SCREEN_PART_ROWS, type ScreenSettingsPart } from "../model/settings-parts";
 import type { IconName } from "../model/ui-icons";
 import { useSettingsStore } from "../stores/settings";
 import { usePluginsStore } from "../stores/plugins";
@@ -129,14 +129,16 @@ const flipDark = () => settings.setSetting("dark_mode", !values.value.dark_mode,
 
     <!-- The list of parts: a row each, with what is set now; a row opens its part. -->
     <div v-if="!part" class="set-column">
-      <div class="set-list" id="settings-groups">
-        <SettingsLink v-for="p in parts" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :title="title(p.id)" :summary="p.summary" @open="ui.openScreenSettings(p.id)">
+      <div id="settings-groups" class="set-cards">
+        <div v-for="(card, i) in partCards(parts)" :key="i" class="set-list">
+        <SettingsLink v-for="p in card" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :tone="PART_LOOK[p.id].tone" :title="title(p.id)" :summary="p.summary" @open="ui.openScreenSettings(p.id)">
           <!-- The one thing people change most here needs no page: dark mode, on the row of the display. -->
           <button v-if="p.id === 'display' && has('dark_mode')" type="button" class="switch" role="switch" id="quick-dark-mode"
             :class="{ unknown: values.dark_mode === null || values.dark_mode === undefined }"
             :aria-checked="Boolean(values.dark_mode) ? 'true' : 'false'" :aria-label="settingLabel(row('dark_mode'))"
             :disabled="offline || view?.unavailable.includes('dark_mode')" @click="flipDark"></button>
         </SettingsLink>
+        </div>
       </div>
     </div>
 
