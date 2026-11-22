@@ -53,6 +53,25 @@ def write_text(path, text, mode=0o600, sync_folder=True):
         sync(path.parent)
 
 
+def write_bytes(path, data, mode=0o600):
+    """`data` into `path`, whole or not at all, as write_text (a file a screen downloads, screen_files)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix=path.name + '.', suffix='.tmp')
+    try:
+        os.fchmod(descriptor, mode)
+        with os.fdopen(descriptor, 'wb') as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(temporary)
+        raise
+    sync(path.parent)
+
+
 def write_json(path, data, mode=0o600, **dumps):
     """`data` as JSON into `path`, as write_text; `dumps` goes to json.dumps (indent, sort_keys, separators)."""
     write_text(path, json.dumps(data, ensure_ascii=False, **dumps) + '\n', mode)

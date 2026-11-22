@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "Eso no es una lista de iconos.",
         "too_many": "Una pantalla admite como máximo {most} iconos propios."
+      },
+      "sounds": {
+        "name": "Dale un nombre al sonido.",
+        "many": "Ya hay {most} sonidos propios. Elimina uno primero.",
+        "format": "Un sonido es un archivo WAV de 16 kHz, mono, 16 bits.",
+        "short": "Un sonido dura al menos un cuarto de segundo.",
+        "long": "Un sonido dura como máximo {seconds} segundos.",
+        "unknown": "Ese sonido no existe.",
+        "volume": "Un volumen es un número entero de dB de -40 a 0.",
+        "none": "Esta pantalla no reproduce ningún sonido para esto. Elige uno primero.",
+        "older": "Esta pantalla necesita una actualización de firmware para esto.",
+        "busy": "Esta pantalla está en una llamada ahora mismo."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "Layoutbot olvidó {count} de tus mosaicos: están sueltos en la última página."
       },
       "nothing_to_restructure": "Esta página aún no tiene mosaicos de dispositivos que reestructurar. Añade algunos y vuelve a preguntar."
+    },
+    "sounds": {
+      "test": "Prueba de tono de llamada"
     }
   },
   "editor": {
@@ -2447,7 +2462,19 @@
         "note": "Ninguna pantalla usa este plugin. Quítalo de la lista para olvidar el enlace.",
         "note_folder": "Ninguna pantalla usa este plugin desde su carpeta. Al quitarlo, la carpeta pasa a config/tessera-plugins/.removed/{id}, donde puedes borrarla del todo."
       },
-      "runs_elsewhere": "{screen} ejecuta la versión {running}, compilada en otro lugar. Si la compilas aquí, se le pone la versión {version}."
+      "runs_elsewhere": "{screen} ejecuta la versión {running}, compilada en otro lugar. Si la compilas aquí, se le pone la versión {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Esta placa tiene una cámara."
+        },
+        "question": "¿Añadir {name} a {screen}?",
+        "yes": "Añadir",
+        "yes_update": "Añadir con la próxima actualización",
+        "no": "No, gracias",
+        "building": "{name} se está compilando para {screen}.",
+        "with_update": "{name} llega con la próxima actualización de {screen}.",
+        "declined": "De acuerdo. {name} sigue en la página Plugins por si lo quieres más tarde."
+      }
     },
     "plugin_tile": {
       "from": "Un mosaico del plugin {plugin}",
@@ -3401,6 +3428,35 @@
       "extras": {
         "title": "Extras",
         "note": "Ajustes que solo tiene esta pantalla, de su placa. Los mismos interruptores están en la página de ajustes de la propia pantalla y en Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Pantalla",
+          "grid": "{columns} × {rows} mosaicos"
+        },
+        "standby": {
+          "title": "Reposo y noche",
+          "after": "Reposo tras {time}",
+          "off": "Sin reposo",
+          "night": "Noche de {start} a {end}"
+        },
+        "navigation": {
+          "title": "Navegación",
+          "home_after": "Volver a Inicio tras {time}"
+        },
+        "board": {
+          "title": "Esta placa"
+        },
+        "help": {
+          "title": "Ayuda",
+          "feedback": "Comentarios"
+        }
+      },
+      "blocks": {
+        "display": "Brillo y rotación",
+        "standby": "Reposo",
+        "night": "Noche",
+        "navigation": "Navegación"
       }
     },
     "update": {
@@ -3468,8 +3524,6 @@
       "title": "Todo lo que rodea a tus pantallas.",
       "back": "← Mis pantallas",
       "screens": {
-        "title": "Pantallas",
-        "text": "Añade una pantalla, o compila y reinstala el firmware de una que ya tengas.",
         "firmware_detail": "Compilar e instalar por USB o Wi-Fi"
       },
       "language": {
@@ -3580,6 +3634,40 @@
         "offer": "Liberar {size}",
         "not_now": "Ahora no",
         "large": "Las carpetas de compilación ocupan {size}. Al limpiarlas se libera la mayor parte del espacio que usan las compilaciones."
+      },
+      "parts": {
+        "updates": {
+          "title": "Actualizaciones",
+          "nightly": "Se actualiza cada noche",
+          "badge": "1 actualización | {n} actualizaciones"
+        },
+        "builds": {
+          "title": "Compilación",
+          "server": "En el servidor de compilación {name}",
+          "server_pending": "El servidor de compilación {name} espera aprobación",
+          "no_server": "Compilado en esta app"
+        },
+        "language": {
+          "auto": "{name}, de Home Assistant",
+          "auto_plain": "De Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Se cuenta en la tienda",
+          "counting_off": "No se cuenta en la tienda",
+          "asking_on": "Pide estrellas",
+          "asking_off": "Nunca pide estrellas"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Vídeo {state}",
+          "claude": "Claude {state}",
+          "running": "en marcha",
+          "not_installed": "no instalado",
+          "installed": "instalado",
+          "update": "actualización lista",
+          "restart": "reinicio necesario"
+        }
       }
     },
     "firmware": {
@@ -3722,7 +3810,8 @@
       "steps": {
         "board": "Pantalla",
         "setup": "Configurar",
-        "install": "Instalar"
+        "install": "Instalar",
+        "plugins": "Plugins"
       },
       "pick_title": "¿Qué pantalla tienes?",
       "pick_intro": "Elige tu placa. Busca por marca, tamaño o lo que lleva impreso.",
@@ -3799,7 +3888,9 @@
       "grid": "Cuadrícula",
       "grid_hint": "La cuadrícula propuesta es la mejor para esta pantalla. Puedes cambiarla, y su orientación, más tarde junto a las páginas en el editor, sin volver a compilar.",
       "grid_best": "Volver a la mejor",
-      "waits_turn": "Ahora se está compilando otra pantalla. Esta espera su turno y empieza sola justo después."
+      "waits_turn": "Ahora se está compilando otra pantalla. Esta espera su turno y empieza sola justo después.",
+      "plugins_title": "Plugins para esta pantalla",
+      "plugins_intro": "Van con lo que tiene esta placa. Desmarca lo que no quieras: no se incluye, y puedes añadirlo más tarde en la página Plugins."
     },
     "alerts": {
       "intro": "Cada pantalla tiene la acción {action}. Coloca una tarjeta por encima de todo, despierta la pantalla y mantiene la retroiluminación al brillo normal hasta que alguien toque el botón o se agote el tiempo de espera. Home Assistant no muestra explicaciones ni desplegables para las acciones de ESPHome; aquí tienes todo lo que puedes rellenar.",
@@ -4177,7 +4268,8 @@
       "actions_allowed": "{name} ya puede controlar tus dispositivos.",
       "part_page": "La página: título y navegación",
       "part_page_hint": "Título, página de inicio y cómo se llega aquí",
-      "home_control_hint": "Pone el botón de inicio a la izquierda de la barra superior de esta página. Lleva a la página de inicio."
+      "home_control_hint": "Pone el botón de inicio a la izquierda de la barra superior de esta página. Lleva a la página de inicio.",
+      "place_on_new_page": "En una página nueva"
     },
     "feedback": {
       "question": "¿Tu pantalla funciona como esperas?",
@@ -4653,7 +4745,8 @@
         "on": "Activada",
         "off": "Desactivada"
       },
-      "alarm": "Alarma"
+      "alarm": "Alarma",
+      "calls": "Llamadas"
     },
     "doorbell": {
       "intro": "Alguien llama y tus pantallas muestran la puerta. Una automatización envía el evento con la cámara del timbre: una pantalla P4 se despierta, toca un aviso y abre la cámara en directo con sonido; cualquier otra pantalla muestra su imagen en una alerta. Funciona cualquier timbre, sea cual sea el disparador.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Tres códigos erróneos bloquean el teclado 30 segundos, y cada código erróneo después dobla el tiempo, hasta 15 minutos. Home Assistant se entera de cada uno con el evento esphome.screen_alarm_code_refused, nunca con el código.",
       "how_code": "El código va a Home Assistant con la acción, como lo envía su propia tarjeta de alarma, y se borra en la pantalla al instante. Una pantalla nunca lo guarda ni lo registra.",
       "how_tile": "Pon también la alarma en una página: un toque en su mosaico abre la tarjeta con una tecla por modo en cualquier momento."
+    },
+    "calls": {
+      "hero_title": "Llamadas",
+      "hero_text": "Cuando una pantalla llama a otra, suena la pantalla llamada. Elige abajo con qué suena: un tono tiene su propia pausa y suena una y otra vez hasta que alguien contesta. Una nueva elección llega a la pantalla con su siguiente llamada, sin necesidad de actualizar."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Tono de llamada",
+          "text": "Lo que suena en una pantalla cuando otra pantalla la llama."
+        },
+        "doorbell": {
+          "title": "Timbre",
+          "text": "Lo que reproduce una pantalla cuando suena el timbre de la puerta: en las pantallas que abren el timbre y, en las demás, con su alerta."
+        },
+        "alert": {
+          "title": "Sonido de alerta",
+          "text": "Lo que reproduce una pantalla cuando aparece una alerta tuya, enviada con el evento esp_screens_show_alert. Sin sonido es como era antes. Una alerta puede quedarse en silencio con sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Clásico",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Campana",
+        "chime": "Din-don",
+        "notice": "Aviso"
+      },
+      "none": "Sin sonido",
+      "play": "Reproducir",
+      "stop": "Detener",
+      "seconds": "{seconds} s",
+      "chosen": "Sonido elegido",
+      "saved": "Sonido guardado",
+      "removed": "Sonido eliminado",
+      "own_add": "Añadir un sonido propio",
+      "own_choose": "Elegir un archivo de sonido",
+      "own_unreadable": "No se pudo leer este archivo como sonido.",
+      "own_full": "Ya hay {most} sonidos propios. Elimina uno primero.",
+      "own_drag_loop": "Arrastra la parte, o uno de sus bordes, aquí o en el archivo entero de arriba; las teclas de flecha también la mueven. Reproducir (o la barra espaciadora) la repite en bucle como lo hará la pantalla.",
+      "own_drag_once": "Arrastra la parte, o uno de sus bordes, aquí o en el archivo entero de arriba; las teclas de flecha también la mueven. Reproducir (o la barra espaciadora) la reproduce como lo hará la pantalla.",
+      "own_name": "Nombre",
+      "own_save": "Guardar sonido",
+      "screens_title": "Por pantalla",
+      "screens_same": "Igual que todas las pantallas",
+      "screens_none": "Todavía no hay ninguna pantalla con altavoz que pueda reproducir esto.",
+      "volume": "Volumen",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volumen ajustado a {volume} dB",
+      "test": "Probar",
+      "test_hint": "Lo reproduce ahora en esta pantalla, tal como sonará de verdad",
+      "test_sent": "Reproduciéndolo en la pantalla",
+      "editor": {
+        "drop": "Suelta aquí un archivo de sonido",
+        "drop_loop": "Vale cualquier canción o sonido: eliges la parte que suena, como máximo {seconds} segundos, con la pausa que quieras antes de que vuelva a sonar.",
+        "drop_once": "Vale cualquier canción o sonido: eliges la parte que se reproduce, como máximo {seconds} segundos.",
+        "total": "{time} en total",
+        "other_file": "Otro archivo",
+        "whole": "El archivo entero",
+        "part": "La parte que suena",
+        "start": "Inicio",
+        "end": "Fin",
+        "of_most": "de como máximo {most} s",
+        "made": "Lo que se le hace al sonido",
+        "no_bass": "Sin graves",
+        "soft_ends": "Extremos suaves",
+        "even_level": "Volumen uniforme",
+        "repeats": "Se repite"
+      }
     }
   }
 }

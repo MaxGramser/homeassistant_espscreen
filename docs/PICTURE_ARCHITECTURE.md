@@ -637,6 +637,8 @@ Three gaps the restart hunt of October 2026 ran into, each a round of its own af
   glass comes as 214 x 134, the frame buffer standing up as the panel scans it). `glass_burst(count, every)` copies
   the frame buffer now and after each of LVGL's refreshes that follow, at least `every` ms apart (up to 8 copies, as
   PSRAM allows), and `glass_send(n)` streams copy n: what a change of the whole glass looks like in its first second.
+  `glass_part(x, y, w, h)` sends a part of the frame buffer at its own size, at most 240 pixels each way and every
+  one of them, in the panel's coordinates: a line one pixel wide, which a picture of the whole glass steps over.
 - **A record of what the loop waited on.** A task watchdog with an idle program counter says the main loop was blocked,
   not on what: the crash record (`esp32.crash`) keeps the program counter and two frames of the crashing core's task,
   and an abort keeps the assert machinery; the assert's text and the watchdog's culprit go to the console only. dev has

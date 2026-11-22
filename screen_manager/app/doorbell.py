@@ -236,11 +236,12 @@ class Doorbells:
             del self.rings[old]
         return key
 
-    def message(self, key, close=False, door_state=None, link=None, talk=None):
+    def message(self, key, close=False, door_state=None, link=None, talk=None, chime=None):
         """The op of ring `key`, or its close. A ring with a door says what its key is (`d`), and a lock its state (`ds`);
         one that opens quiet says so (`m`), one without its chime too (`nc`); `link`, the stream the app made for that
         screen as the event came (`l`), which its view opens at once instead of asking for one; `talk`, where that screen
-        sends its voice (`tk`), only when Home Assistant has two-way audio for the camera: the view then has a Talk key."""
+        sends its voice (`tk`), only when Home Assistant has two-way audio for the camera: the view then has a Talk key;
+        `chime`, the link of the chime chosen for that screen or `none` (`ch`, docs/SOUNDS.md), to a screen that takes it."""
         ring = self.rings.get(key)
         if close or ring is None:
             return {'v': 1, 'op': 'doorbell', 'k': key, 'c': 1}
@@ -253,6 +254,8 @@ class Doorbells:
             message['l'] = link
         if talk:
             message['tk'] = talk
+        if chime and ring.get('chime') is not False:
+            message['ch'] = chime
         door = ring.get('door')
         if door and door.get('lock'):
             message.update(d=DOOR_LOCK, ds=str(door_state or '')[:16])

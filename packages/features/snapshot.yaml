@@ -19,6 +19,17 @@ api:
       then:
         - lambda: screen_diagnostics::glass_begin();
         - script.execute: send_snapshot_rows
+    # A part of the frame buffer at its own size, at most 240 pixels each way, in the panel's coordinates: a line one
+    # pixel wide, which the whole glass's picture steps over.
+    - action: glass_part
+      variables:
+        x: int
+        y: int
+        w: int
+        h: int
+      then:
+        - lambda: screen_diagnostics::glass_part(x, y, w, h);
+        - script.execute: send_snapshot_rows
     # A burst: the frame buffer now and after each refresh that follows, at least `every` ms apart (count at most 8),
     # kept in PSRAM until glass_send streams each copy (screen_diagnostics.h).
     - action: glass_burst

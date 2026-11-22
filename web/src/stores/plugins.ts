@@ -416,6 +416,11 @@ export const usePluginsStore = defineStore("plugins", () => {
     const result = await send<{ likes: PluginSharing }>(`plugins/${plugin}/ask`, "POST", { action });
     if (result?.likes) inv.inventory = { ...inv.inventory, plugin_sharing: result.likes };
   }
+  // The card that suggests a plugin for the board's own hardware (plugin_defaults.py): yes or no, kept by the add-on.
+  async function answerSuggested(screen: Screen, plugin: string, yes: boolean) {
+    await send(`screens/${encodeURIComponent(screen.id)}/plugins/suggested`, "POST", { plugin, yes });
+    await inv.refresh(false);
+  }
   async function change(screen: Screen, body: object) {
     const result = await send<{ own_yaml?: boolean; file?: string; content?: string; line?: string }>(
       `screens/${encodeURIComponent(screen.id)}/plugins`, "POST", body);
@@ -628,7 +633,7 @@ export const usePluginsStore = defineStore("plugins", () => {
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike, canRate,
       isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),
-    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, rate, setCounting, cardAnswer, forgetDrafts,
+    reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, rate, setCounting, cardAnswer, answerSuggested, forgetDrafts,
     addPlugin, rebuildTest, updateAll, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
   };
 });

@@ -268,6 +268,16 @@ class LogBuffer(logging.Handler):
             self.lines.append(self.format(record))
 
 
+# The firmware's own sensors a report holds, by their name in lower case (Reports._device_sensors).
+SENSORS = ('heap free', 'heap fragmentation', 'heap largest block', 'heap minimum free', 'psram free', 'psram largest block',
+           'wifi signal', 'last boot', 'uptime', 'node status', 'screen firmware', 'screen board', 'screen flash', 'screen layout',
+           'wi-fi co-processor', 'loop stack free')
+
+
+def _heard(state):
+    return state not in (None, '', 'unknown', 'unavailable')
+
+
 DEBUG_SWITCH = 'debug_mode'  # the object id of the screen's Debug mode switch (packages/core.yaml)
 
 
@@ -277,21 +287,36 @@ async def _maybe(result):
         await result
 
 
-async def debug_on(client, wait=2.0):
+# The kinds of entity whose value a report reads straight from the screen (readings, below).
+READ_KINDS = ('SensorInfo', 'TextSensorInfo', 'BinarySensorInfo')
+
+
+async def debug_on(client, wait=2.0, readings=None):
     """Turn the screen's Debug mode on for a read of its log: a screen logs its warnings and errors alone while it is
     off (settings_screen.h), and the report wants every line. The switch's key when this turned it on, so the caller
-    turns it off again, else None: a screen without the switch (firmware before it), or one already in Debug mode."""
+    turns it off again, else None: a screen without the switch (firmware before it), or one already in Debug mode.
+    `readings`, a dict, takes what the screen's sensors say now, by their name in lower case: a screen's measuring
+    sensors are off in Home Assistant unless someone wants them (debug_sensors.py), and the screen itself always has
+    them."""
     entities, _ = await client.list_entities_services()
     switch = next((e for e in entities if getattr(e, 'object_id', '') == DEBUG_SWITCH and type(e).__name__ == 'SwitchInfo'), None)
-    if switch is None:
+    names = {e.key: str(getattr(e, 'name', '') or '').lower() for e in entities if type(e).__name__ in READ_KINDS}
+    if switch is None and (readings is None or not names):
         return None
     state = asyncio.get_running_loop().create_future()
 
     def on_state(update):
-        if getattr(update, 'key', None) == switch.key and not state.done():
+        key = getattr(update, 'key', None)
+        if switch is not None and key == switch.key and not state.done():
             state.set_result(bool(getattr(update, 'state', False)))
+        if readings is not None and names.get(key) and not getattr(update, 'missing_state', False):
+            value = getattr(update, 'state', None)
+            if value is not None and value == value:   # a sensor without a value yet says NaN
+                readings[names[key]] = str(value)
 
     client.subscribe_states(on_state)
+    if switch is None:
+        return None
     with contextlib.suppress(asyncio.TimeoutError):
         if await asyncio.wait_for(state, wait):
             return None
@@ -300,11 +325,11 @@ async def debug_on(client, wait=2.0):
 
 
 async def screen_log(host, key, seconds, *, port=API_PORT, dump_config=True, level='DEBUG', limit=LINES_MAX, name='tessera',
-                     debug=False):
+                     debug=False, readings=None):
     """Up to `seconds` of a screen's log over the native API, from the first line (ESPHome's kept crash record goes to
     the first subscriber after a reboot, then the config dump with the reset reason). (lines, device_info or None).
     `debug`: the screen's Debug mode on for the read and back as it was after it, so the log has every line and not
-    only the warnings and errors a screen keeps to otherwise."""
+    only the warnings and errors a screen keeps to otherwise. `readings`: see debug_on."""
     from aioesphomeapi import APIClient, LogLevel
     client = APIClient(host, port, None, noise_psk=key or None, client_info=f'ESP Screen Manager {name}')
     lines, info = [], None
@@ -326,7 +351,7 @@ async def screen_log(host, key, seconds, *, port=API_PORT, dump_config=True, lev
             info = await client.device_info()
         if debug:
             try:
-                turned_on = await debug_on(client)
+                turned_on = await debug_on(client, readings=readings)
             except Exception as error:  # noqa: BLE001 - the log is still worth reading without it
                 LOG.info('Debug mode of %s could not be turned on (%s)', name, type(error).__name__)
         client.subscribe_logs(on_log, log_level=getattr(LogLevel, f'LOG_LEVEL_{level}'), dump_config=dump_config)
@@ -674,14 +699,18 @@ class Reports:
         key = self._api_key(profile) if profile else None
         if profile and key is None and self._needs_key(profile):
             warnings.append('no_api_key')
-        lines, device = [], None
+        lines, device, readings = [], None, {}
         if screen.get('online') and host:
             self._set(report, 'screen_log', 0.25)
             try:
-                lines, device = await screen_log(host, key, CAPTURE_SECONDS, name=inbox, debug=True)
+                lines, device = await screen_log(host, key, CAPTURE_SECONDS, name=inbox, debug=True, readings=readings)
             except Exception as error:  # noqa: BLE001 - the report says the log could not be read
                 LOG.info('Reading the log of %s failed (%s)', inbox, type(error).__name__)
                 warnings.append('screen_log_failed')
+        # What Home Assistant does not keep of the screen's sensors (off there, or not heard yet), the screen said itself.
+        said = {name: readings[name] for name in SENSORS if name in readings and not _heard(heap.get(name))}
+        if said:
+            summary['sensors'] = {**heap, **said}
         crash = crash_summary(lines, self.clock) if lines else None
         decoded, why = [], None
         if crash:
@@ -855,17 +884,15 @@ class Reports:
     def _device_sensors(self, screen):
         """The firmware's own diagnostic sensors of this screen as Home Assistant has them now: heap, PSRAM, Wi-Fi
         signal, last boot, uptime, the loop task's lowest free stack, and on an ESP32-P4 the firmware of its Wi-Fi
-        co-processor (wifi_chip.h)."""
+        co-processor (wifi_chip.h). The measuring ones are off in Home Assistant unless someone wants them
+        (debug_sensors.py); the report's read of the screen fills those in (collect)."""
         device = screen.get('device_id')
-        wanted = ('heap free', 'heap fragmentation', 'heap largest block', 'heap minimum free', 'psram free', 'psram largest block',
-                  'wifi signal', 'last boot', 'uptime', 'node status', 'screen firmware', 'screen board', 'screen flash', 'screen layout',
-                  'wi-fi co-processor', 'loop stack free')
         out = {}
         for item in getattr(self.manager.ha, 'registry', []) or []:
             if not isinstance(item, dict) or item.get('device_id') != device:
                 continue
             name = str(item.get('original_name') or '').lower()
-            if name in wanted:
+            if name in SENSORS:
                 state = (self.manager.ha.states.get(item['entity_id']) or {})
                 out[name] = state.get('state')
         return out

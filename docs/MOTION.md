@@ -28,7 +28,6 @@ the rule from its hardware, with no line in its board file.
 | `screen_motion::show(over, card)`, `screen_motion::hide(over, card)` | The card is drawn first and whole, then the page dims around it on the glass itself; the way back in the same order | LVGL shows or hides `over` |
 | `screen_motion::dim(over, opa, keep, on)` | The dim alone, all of the glass but `keep`, for an overlay that moves its own part; the caller tells LVGL inside `screen_motion::quietly` | Returns false; the caller sets the style |
 | `screen_motion::settle(obj, set, from, to, speed, full, shortest, longest)` | What a finger let go travels on at the finger's speed and comes to rest | The same: it is plain LVGL |
-| `screen_motion::cut(change)` | The backlight goes out, `change` is made and drawn at once in the dark, the light comes up on the whole of it | `change` runs at once |
 
 ## What each block rests on
 
@@ -40,19 +39,22 @@ the rule from its hardware, with no line in its board file.
   stream writes the glass or while LVGL is paused; then the overlay comes the plain way.
 - **The card first.** A card drawn after its dim comes in pieces of it. `show` has LVGL draw the card at once, then
   dims around it; `hide` takes the card off first, then brightens the page.
+  What the dim keeps off is the area LVGL draws for the card, which is the card's place through the display's own
+  rounding (ESPHome's `draw_rounding`, two pixels by default): a card on an odd pixel has a rim of a pixel that LVGL
+  drew, dim and all, and with the card's bare place kept the veil dimmed that rim twice, a dark line around the card.
+  Read back from a Guition 10.1's frame buffer with `glass_part` (2026-11-22): one pixel wide on two sides of an
+  alert, gone with the rounded room.
 - **The release** is `sheet_motion.h`: a cubic that starts at the finger's speed and ends at rest, never past its
   place, in a time between a shortest and a longest that follows the way left.
-- **The cut** needs the backlight's two hooks, `screen_motion::dark` and `screen_motion::lit`, which `features/backlight.yaml` sets.
-  Without them, or with LVGL paused, the change is made at once. One step after the light is out the change is made
-  and LVGL draws the whole of it at once, then the light comes up in 100 ms. Waiting for the page to come to rest
-  instead kept a page with a live tile dark for half a second (a camera on the glass, 2026-11-10). While the dark lasts
-  the backlight is the cut's: `set_backlight` does nothing for another writer (`holds_light`), and a second change
-  joins the first in the same dark.
 
 ## Who uses it
 
-The Dock (`dim`, `settle`), alerts and plugin popups (`show`, `hide`), and the screensaver when a touch wakes the
-screen (`cut`).
+The Dock (`dim`, `settle`), and alerts and plugin popups (`show`, `hide`).
+
+The screensaver does not: a finger on it takes it off at once, the light comes up without a fade and the page is drawn
+in sight, on every board. Drawing the page behind a dark backlight first (a block `cut`, until 2026-11) hid the
+drawing but kept the glass black for as long as it took, and waited for the finger to lift, which read as a tap that
+was not heard. An answer the moment the finger lands is worth more here than a page that arrives whole.
 
 ## Adding a block or a user
 

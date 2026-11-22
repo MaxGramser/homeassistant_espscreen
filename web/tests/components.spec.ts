@@ -33,6 +33,7 @@ import { removePage, setScreenTitle } from "../src/editor/pages";
 import { setTileOption } from "../src/editor/tiles";
 import { useDocumentStore } from "../src/stores/document";
 import { useInspectorStore } from "../src/stores/inspector";
+import { router } from "../src/router";
 
 let insp: ReturnType<typeof useInspectorStore>;
 beforeEach(() => { insp = useInspectorStore(); });
@@ -501,15 +502,24 @@ describe("Library: the drawer along the bottom, with every domain in one column 
   });
 
   it("opens, grows and remembers its height in this browser, and works where the browser keeps nothing", async () => {
+    // Until it is given a height of its own, it takes 30 % of the window and at most 300 px: 216 px on a laptop's 720.
+    vi.stubGlobal("innerHeight", 720);
     let library = mount(Library, { attachTo: document.body });
     const height = () => library.find("#library").attributes("style");
+    expect(height()).toContain("height: 216px");
+    library.unmount();
+    vi.stubGlobal("innerHeight", 1000);
+    library = mount(Library, { attachTo: document.body });
     expect(height()).toContain("height: 300px");
     await library.find(".lib-grip").trigger("keydown", { key: "ArrowUp" });
     expect(height()).toContain("height: 340px");
     library.unmount();
+    // The height chosen is kept, also in a smaller window.
+    vi.stubGlobal("innerHeight", 720);
     library = mount(Library, { attachTo: document.body });
     expect(height()).toContain("height: 340px");
     library.unmount();
+    vi.stubGlobal("innerHeight", 1000);
     // A browser that blocks storage (a private window, an iframe without it) throws on every read and write: the drawer
     // used to throw while mounting and took the layout with it.
     const blocked = () => { throw new DOMException("The operation is insecure.", "SecurityError"); };
@@ -1030,6 +1040,8 @@ describe("HomeView: every screen with its home page (app 0.4.0)", () => {
 });
 
 describe("Screen settings: a key held down", () => {
+  // Brightness is in the Display part of the Settings tab.
+  beforeEach(async () => { await router.push("/screens/living?settings=display"); });
   const view = (extra: Record<string, unknown> = {}) => {
     Object.assign(useInventoryStore().inventory.screens[0], {
       settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
@@ -1051,6 +1063,8 @@ describe("Screen settings: a key held down", () => {
 });
 
 describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
+  // Calibrate touch is in the This board part of the Settings tab.
+  beforeEach(async () => { await router.push("/screens/living?settings=board"); });
   const view = (extra: Record<string, unknown> = {}) => {
     Object.assign(useInventoryStore().inventory.screens[0], {
       settings: { owner: "screen", keys: [], values: {}, unavailable: [], rotations: [0, 180], switches: [], ...extra },
@@ -1088,6 +1102,7 @@ describe("Screen settings: Calibrate touch (app 0.2.117)", () => {
 });
 
 describe("AppSettingsView", () => {
+  beforeEach(async () => { await router.push("/settings/updates"); });
   it("shows what the current firmware brings from the changelog of the full inventory (app 0.2.78)", () => {
     useInventoryStore().inventory.updates = { target: "0.2.65", pending: 0 };
     useInventoryStore().inventory.changelog = [
@@ -1121,6 +1136,7 @@ describe("AppSettingsView", () => {
 });
 
 describe("Reinstall all from dev (the dev app's Updates card)", () => {
+  beforeEach(async () => { await router.push("/settings/updates"); });
   it("offers every screen again on the dev app only, asks first, and asks the add-on for the round", async () => {
     const calls: [string, RequestInit][] = [];
     vi.stubGlobal("fetch", vi.fn((path: string, options: RequestInit = {}) => {
@@ -1229,7 +1245,7 @@ describe("the title above a page (app 0.2.105, in the page's settings since 0.3.
 // follows Home Assistant finding it on the network, or after three minutes says what fixes it.
 describe("New screen and the Wi-Fi", () => {
   const flush = async () => { for (let i = 0; i < 4; i++) await Promise.resolve(); await new Promise((done) => setTimeout(done, 0)); };
-  function addon(job: any) {
+  function addon(job: any, suggested: any[] = []) {
     const calls: { url: string; method: string; body?: any }[] = [];
     const inventory = { screens: [] as any[], pending: [{ file: "hall.yaml", friendly: "Hall", node: "hall", installed: true, seen: false }] };
     vi.stubGlobal("fetch", vi.fn((url: string, options: any = {}) => {
@@ -1240,6 +1256,7 @@ describe("New screen and the Wi-Fi", () => {
       if (/firmware\/builds\/\d+\/log$/.test(String(url))) return Promise.resolve({ ok: true, json: () => Promise.resolve({ build: job, logs: [] }) });
       // The live inventory carries the build line (the add-on's build_queue).
       if (String(url).includes("inventory")) return Promise.resolve({ ok: true, json: () => Promise.resolve({ ...useInventoryStore().inventory, ...inventory, line: asked ? [job] : [] }) });
+      if (String(url).endsWith("plugins/suggested")) return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify({ plugins: suggested })), json: () => Promise.resolve({ plugins: suggested }) });
       const answer = String(url).endsWith("firmware/profiles") ? { file: "hall.yaml", api_key: "k", build: job } : String(url).endsWith("firmware/jobs") ? job : { state: "ready" };
       return Promise.resolve({ ok: true, text: () => Promise.resolve(JSON.stringify(answer)), json: () => Promise.resolve(answer) });
     }));
@@ -1264,6 +1281,44 @@ describe("New screen and the Wi-Fi", () => {
     expect(writes.map((c) => [c.url, c.method])).toEqual([["api/firmware/wifi", "PUT"], ["api/firmware/profiles", "POST"]]);
     expect(writes[0].body).toEqual({ wifi_ssid: "Home", wifi_password: "secret" });
     expect(writes[1].body.wifi_password).toBeUndefined();
+  });
+  it("has no Plugins step for a board nothing is suggested for, and sends no choice", async () => {
+    const { calls } = addon({ id: 2, by: "install", file: "hall.yaml", action: "install", state: "success", asked: 1, started: 2, finished: 3 });
+    const view = mount(InstallerView);
+    await flush();
+    await toDone(view);
+    expect(view.findAll(".setup-steps li").length).toBe(3);
+    await view.find("#setup-next").trigger("click");
+    expect(view.find("#install-go").exists()).toBe(true);
+    await view.find("#install-form").trigger("submit");
+    await flush();
+    expect(calls.find((c) => c.url.endsWith("firmware/profiles"))!.body.plugins).toBeUndefined();
+  });
+  it("asks which of the plugins suggested for the board go into the first firmware, ticked to start with", async () => {
+    const camera = { id: "screen_camera", name: { en: "Screen camera" }, summary: { en: "The camera of the screen." }, version: "0.7.0", why: "camera", image: null };
+    const radio = { id: "gps_fix", name: { en: "GPS" }, summary: { en: "Where the screen is." }, version: "1.0.0", why: "camera", image: null };
+    const { calls } = addon({ id: 2, by: "install", file: "hall.yaml", action: "install", state: "success", asked: 1, started: 2, finished: 3 }, [camera, radio]);
+    const view = mount(InstallerView);
+    await flush();
+    await toDone(view);
+    await flush();
+    const steps = view.findAll(".setup-steps li").map((li) => li.text());
+    expect(steps.length).toBe(4);
+    ["Screen", "Set up", "Plugins", "Install"].forEach((word, at) => expect(steps[at]).toContain(word));
+    await view.find("#setup-next").trigger("click");
+    // The Plugins step: both ticked, each with its reason; Next goes on to Install, not Install itself.
+    expect(view.find("#install-go").exists()).toBe(false);
+    const rows = view.findAll("#install-plugins .pick");
+    expect(rows.map((row) => row.classes("chosen"))).toEqual([true, true]);
+    expect(rows[0].text()).toContain("Screen camera");
+    expect(rows[0].text()).toContain(t("editor.plugins.suggest.why.camera"));
+    await rows[1].find("input").setValue(false);
+    expect(rows[1].classes("chosen")).toBe(false);
+    await view.find("#setup-next").trigger("click");
+    expect(view.find("#install-go").exists()).toBe(true);
+    await view.find("#install-form").trigger("submit");
+    await flush();
+    expect(calls.find((c) => c.url.endsWith("firmware/profiles"))!.body.plugins).toEqual({ add: ["screen_camera"], declined: ["gps_fix"] });
   });
   it("says why when its build was refused at its turn, such as a cable pulled while it waited", async () => {
     addon({ id: 2, by: "install", file: "hall.yaml", action: "install", state: "failed", asked: 1, started: 2, finished: 3,

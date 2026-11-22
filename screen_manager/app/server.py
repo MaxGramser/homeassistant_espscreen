@@ -32,10 +32,13 @@ import camera_source
 import live_stream
 import talk_bridge
 import calls
+import sounds
+import screen_files
 import screen_source
 import claude_skill
 import layoutbot
 import screen_video
+import debug_sensors
 import screen_hang
 import screen_labels
 import screen_saver
@@ -1102,6 +1105,9 @@ class Manager:
         self.icons = screen_icons.ScreenIcons(self, self.path.parent)
         # What the screens do when an alarm goes off (Events, Alarm; docs/ALARM_PANEL.md): set once per alarm.
         self.alarm_screens = alarm_screens.AlarmScreens(self.path.parent)
+        # The files screens download from the camera port (docs/SCREEN_FILES.md), and the sounds among them (docs/SOUNDS.md).
+        self.files = screen_files.ScreenFiles(self.path.parent)
+        self.sounds = sounds.Sounds(self.path.parent, self.files)
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
@@ -1135,6 +1141,8 @@ class Manager:
         self.skill_dir = claude_skill.skill_dir()
         # Video in Home Assistant (Settings): the tessera_video integration, installed only on request (screen_video.py).
         self.videos = screen_video.Videos(screen_video.target())
+        # A screen's measuring sensors, on in Home Assistant while its Debug mode is on (debug_sensors.py).
+        self.debug_sensors = debug_sensors.DebugSensors(self.path.parent / 'debug-sensors.json')
         self._registry_source, self._registry_index = None, {}
         self._items_source, self._items = None, []
         self._screens_key, self._screens = None, []
@@ -1208,6 +1216,7 @@ class Manager:
         self.call_switches = {}        # the voice switch of each call that is up, by its key
         self.call_direct = {}          # {node: token} of each call whose media go straight between its screens, by its key
         self.call_relayed = set()      # keys of calls a screen could not reach the other for: through this app from then on
+        self.call_ready = {}           # the cameras kept running while a video call rings, by its key (call_prepare)
         screen_source.provider = self.call_rtsp
         self.store = LayoutStore(self.path, self.record_grid)
         # An app from before Language & region (app 0.2.90): its screens keep the 24 hours they show, until Home Assistant
@@ -1741,6 +1750,19 @@ class Manager:
             except Exception:   # a slip in one round never ends the app
                 LOG.exception('Video in Home Assistant failed this round')
 
+    async def debug_sensor_loop(self):
+        """A screen's measuring sensors follow its Debug mode in Home Assistant (debug_sensors.py)."""
+        while True:
+            await asyncio.sleep(debug_sensors.INTERVAL)
+            if not self.ha.online or not self.ha.registry:
+                continue
+            try:
+                await self.debug_sensors.run(self.ha, {s['device_id'] for s in self.screens() if s.get('device_id')})
+            except (ClientError, ConnectionError, TimeoutError, OSError, ValueError, Refused) as error:
+                LOG.debug('The sensors of Debug mode wait (%s)', type(error).__name__)
+            except Exception:   # a slip in one round never ends the app
+                LOG.exception('The sensors of Debug mode failed this round')
+
     async def pairing_loop(self):
         """Adds the screens this app made to Home Assistant as soon as it finds them on the network, and lets them
         perform actions (ha_pairing.py, app 0.4.73)."""
@@ -1873,6 +1895,7 @@ class Manager:
         self.forget_inbox(inbox)
         self.plugins.forget_screen(inbox)
         self.icons.forget_screen(inbox)
+        self.sounds.forget_screen(inbox)
         self.labels.forget(screen.get('device_id'))
         self.hangs.forget(screen.get('device_id'))
         self.savers.forget(screen.get('device_id'))
@@ -4177,9 +4200,10 @@ class Manager:
         # measured above, so every screen shows the same moment.
         await asyncio.gather(*(send(key, group) for key, group in groups.items()))
 
-    async def broadcast(self, event_type, data):
+    async def broadcast(self, event_type, data, sound_kind='alert'):
         """An alert event for every screen, or for the screens its `screen` names (app 0.2.133): the matching action on each
-        screen that can show it, all at once."""
+        screen that can show it, all at once. A screen that plays sounds as files hears the sound chosen for `sound_kind`
+        with it (docs/SOUNDS.md): an alert's, a doorbell's chime for a ring shown as an alert, none for None."""
         action = BROADCAST_EVENTS[event_type]
         service_data, unusable = alert_data(data) if action == 'show_alert' else ({}, [])
         camera, usable = alert_camera(data) if event_type == BROADCAST_SHOW else ('', True)
@@ -4248,10 +4272,53 @@ class Manager:
                 self.alert_actions[screen['node']] = (key, {'ok': button, 'button2': button2 if screen['node'] in chooses else None})
         if viewers and any(screen in shown for screen in viewers):
             await self.alert_images(camera, [screen for screen in viewers if screen in shown])
+        if event_type == BROADCAST_SHOW and sound_kind and data.get('sound') is not False:
+            await self.alert_sounds(sound_kind, shown)
         result = {'sent': len(ready) - len(failed), 'skipped': len(skipped), 'failed': len(failed)}
         if wanted:
             result['unknown'] = unknown
         return result
+
+    async def sound_test(self, kind, screen_id):
+        """A screen plays its sound of `kind` now, as it would for real (docs/SOUNDS.md, "Volume"): a call's ring as a ring
+        of a few seconds at the volume a ring stands at, nobody on the other end; a chime or an alert's sound once.
+        ValueError: 'unknown', 'none' (it plays no sound), 'older' (its firmware takes no sounds as files), 'busy'."""
+        screen = next((s for s in self.screens() if s.get('id') == screen_id), None)
+        if kind not in sounds.KINDS or screen is None:
+            raise ValueError('unknown')
+        if self.sounds.sound_of(kind, screen_id) == sounds.NONE:
+            raise ValueError('none')
+        transport, scope = self.transport(screen['id'], screen), self.page_scope(screen['id'])
+        if kind == 'call':
+            node = screen.get('node')
+            if not node or node not in self.call_screens():
+                raise ValueError('older')
+            if self.calls.of(node):
+                raise ValueError('busy')
+            base = await self.link_base(screen)
+            if not base:
+                raise ValueError('older')
+            key = 'test' + secrets.token_hex(2)
+            ring = {'v': 1, 'op': 'call', 'k': key, 's': calls.RING, 'n': t('addon.sounds.test')[:60], 'vd': 0,
+                    'rt': self.sounds.link('call', base, screen_id)}
+            await self.send_auxiliary(screen['id'], ring, transport, scope)
+
+            async def end():
+                await asyncio.sleep(sounds.TEST_RING_SECONDS)
+                await self.send_auxiliary(screen['id'], {'v': 1, 'op': 'call', 'k': key, 's': calls.END, 'n': ring['n'], 'vd': 0, 'w': calls.HUNG_UP},
+                                          self.transport(screen['id'], screen), self.page_scope(screen['id']))
+            asyncio.ensure_future(end())
+            return
+        link = await self.sound_link(kind, screen)
+        if not link:
+            raise ValueError('older')
+        await self.send_auxiliary(screen['id'], sounds.sound_message(link), transport, scope)
+
+    async def alert_sounds(self, kind, screens):
+        """The sound of `kind` on each screen that shows an alert and plays sounds as files (the op `sound`)."""
+        links = await asyncio.gather(*(self.sound_link(kind, screen) for screen in screens))
+        await asyncio.gather(*(self.send_auxiliary(screen['id'], sounds.sound_message(link), self.transport(screen['id'], screen), self.page_scope(screen['id']))
+                               for screen, link in zip(screens, links) if link and link != sounds.NONE), return_exceptions=True)
 
     async def tile_event(self, event_type, data):
         """One tile event: the screen it names, the changed layout, saved and pushed like the editor does. Returns the
@@ -4428,17 +4495,20 @@ class Manager:
                          await asyncio.gather(*(self.doorbell_link(screen, camera) for screen in views))))
         talks = dict(zip((screen['id'] for screen in views),
                          await asyncio.gather(*(self.doorbell_talk(screen, camera) for screen in views))))
+        chimes = dict(zip((screen['id'] for screen in views),
+                          await asyncio.gather(*(self.sound_link('doorbell', screen) for screen in views))))
         if any(links.values()):
             self.live.warm(camera)  # its first picture on its way before the first screen opens its link
         state = self.doorbell_lock_state(door)
         sent = await self.doorbell_send(views, lambda screen: self.doorbells.message(key, door_state=state, link=links.get(screen['id']),
-                                                                                  talk=talks.get(screen['id']))) if views else 0
+                                                                                  talk=talks.get(screen['id']), chime=chimes.get(screen['id']))) if views else 0
         if door and door.get('lock') and views:
             asyncio.ensure_future(self.doorbell_follow_lock(key))
         alerts = {'sent': 0, 'skipped': 0, 'failed': 0}
         if others:
             alerts = await self.broadcast(BROADCAST_SHOW, {'title': name, 'icon': doorbell.ALERT_ICON, 'camera': camera,
-                                                           'timeout': timeout, 'screen': [screen['node'] for screen in others]})
+                                                           'timeout': timeout, 'screen': [screen['node'] for screen in others]},
+                                          sound_kind='doorbell' if chime is not False else None)
         LOG.info('%s: %s on %d screens with its view, %d with its alert', doorbell.SHOW, camera, sent, alerts.get('sent', 0))
         asyncio.ensure_future(self.doorbell_unanswered(key, timeout))
         result = {'sent': sent, 'alerts': alerts.get('sent', 0), 'skipped': alerts.get('skipped', 0) + len(views) - sent,
@@ -4585,6 +4655,34 @@ class Manager:
                          'ip': screen.get('ip') or ''}
         return out
 
+    def plays_sounds(self, screen):
+        """Whether a screen takes the sounds of docs/SOUNDS.md as files: a speaker and the hello's `sounds`."""
+        sender = self.page_senders.get(screen['id'])
+        return sounds.FEATURE in (getattr(sender, 'features', None) or ()) and bool((self.caps_of_screen(screen) or {}).get('speaker'))
+
+    async def sound_link(self, kind, screen):
+        """The link of the sound `screen` plays for `kind` (sounds.link, `none` for silence), or None when the screen takes
+        no sounds as files or has no address for this app."""
+        if not self.plays_sounds(screen):
+            return None
+        base = await self.link_base(screen)
+        return self.sounds.link(kind, base, screen['id']) if base else None
+
+    def sound_screens(self):
+        """Per kind the screens that can play its sound (the editor's lists): a call's from the module call, the others
+        every screen with a speaker, a doorbell's only where the module doorbell is (or the screen said nothing yet)."""
+        out = {'call': [{'id': mine['screen']['id'], 'name': mine['name']} for mine in self.call_screens().values() if mine['speaks']],
+               'doorbell': [], 'alert': []}
+        for screen in self.screens():
+            if not (self.caps_of_screen(screen) or {}).get('speaker'):
+                continue
+            row = {'id': screen['id'], 'name': self.labels.get(screen.get('device_id')) or screen.get('name') or screen['id']}
+            features = getattr(self.page_senders.get(screen['id']), 'features', None)
+            out['alert'].append(row)
+            if features is None or 'doorbell' in features:
+                out['doorbell'].append(row)
+        return {kind: sorted(rows, key=lambda row: str(row['name']).lower()) for kind, rows in out.items()}
+
     def call_switch_on(self, screen, switch):
         """Whether one of the screen's own call switches is on (calls.switch_on)."""
         device = screen.get('device_id')
@@ -4635,11 +4733,17 @@ class Manager:
                 self.call_switches.pop(out.key, None)
                 self.call_direct.pop(out.key, None)
                 self.call_relayed.discard(out.key)
+            self.call_prepare(out, known)
             mine = known.get(out.node)
             if not mine:
                 continue
             peer = known.get(out.peer) or {}
             message = calls.message(out, name=peer.get('name', out.peer), icon=glyph_of(peer.get('icon') or CALL_ICON))
+            if out.state == calls.RING:
+                # The tone this screen rings with (docs/SOUNDS.md): a file it downloads once and keeps, or `none`.
+                base = await self.link_base(mine['screen'])
+                if base:
+                    message['rt'] = self.sounds.link('call', base, mine['screen']['id'])
             # Straight between the two screens where both can and neither said it could not reach the other
             # (docs/CALLS.md, "Screen to screen"): each serves under its token and fetches the other's. Whether two
             # addresses reach each other cannot be told from here, so the attempt decides and a screen says `direct`.
@@ -4671,6 +4775,23 @@ class Manager:
                     if switch is not None:
                         message.update(switch.keys())
             await self.send_auxiliary(mine['screen']['id'], message, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
+
+    def call_prepare(self, out, known):
+        """The cameras of a video call start while it rings (docs/CALLS.md, "Ready before the answer"): this app reads
+        both screens' video from the first ring, as it will in the call, so each camera, its encoder and this app's
+        decoder stand when the call is answered and the first picture is there at once. Nobody sees a picture before the
+        answer: a source without a link sends nothing to a glass. A call that ends unanswered lets the cameras go, and
+        they stop and give their memory back by themselves (Screen camera 0.7.0). Not for a call straight between the
+        two screens, which this app's sources have no part in."""
+        if out.state in (calls.OUT, calls.RING):
+            mine, peer = known.get(out.node) or {}, known.get(out.peer) or {}
+            if not out.video or out.key in self.call_ready or (mine.get('direct') and peer.get('direct') and out.key not in self.call_relayed):
+                return
+            self.call_ready[out.key] = [self.live.keep(screen_source.PREFIX + node) for node, facts in ((out.node, mine), (out.peer, peer))
+                                        if facts.get('films') and node not in self.call_cameras_off]
+        elif out.key in self.call_ready:
+            # Live: the screens open their links within a moment, and each source lingers that long. Ended: nobody will.
+            self.live.let_go(self.call_ready.pop(out.key))
 
     def call_switch(self, key, known):
         """The voice switch of the call `key`, made when its first end goes live; None once the call is gone."""
@@ -5011,6 +5132,8 @@ def create_app(manager, development=False):
                 screen['feedback'] = None
             # How a plugin it runs works for you (docs/PLUGINS.md, "Likes, ratings and counting"): the stars card.
             screen['plugin_ask'] = manager.plugins.ask_card(screen) if editor_features['plugins'] else None
+            # A plugin for hardware its board has (plugin_defaults.py): suggested once, above the screen.
+            screen['plugin_suggest'] = manager.plugins.suggest_card(screen) if editor_features['plugins'] else None
         return {'csrf': csrf, 'connected': manager.ha.online, 'screens': screens,
                 'editor_features': editor_features,
                 'pending': manager.pending_profiles(screens, profiles),
@@ -5705,6 +5828,68 @@ def create_app(manager, development=False):
             raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
         manager.ha.changed.set()
         return web.json_response(manager.alarm_screens.view(manager.ha.states))
+    def sound_error(error):
+        return ValueError(t(f'addon.errors.sounds.{error}', seconds=f'{sounds.MAX_SECONDS:g}', most=sounds.MAX_OWN))
+    async def sounds_view(request):
+        """Events (Calls, Doorbell, Alerts): every sound, and per kind the one for every screen and each screen's own."""
+        return web.json_response(manager.sounds.view(manager.sound_screens()))
+    async def sound_file(request):
+        """A sound as the screens get it, for the editor to play."""
+        volume = request.query.get('volume')
+        try:
+            volume = int(volume) if volume not in (None, '') else None
+        except ValueError:
+            volume = None
+        data = manager.sounds.wav(request.match_info['sound'], volume)
+        if data is None:
+            raise web.HTTPNotFound()
+        return web.Response(body=data, content_type='audio/wav', headers={'Cache-Control': 'no-cache'})
+    async def sound_add(request):
+        """A sound someone cut in the editor, as a WAV of 16 kHz mono (sounds.checked). Read in parts against the longest
+        sound (sounds.MOST_BYTES), past the app's limit for a request (128 KB): five seconds are 160 KB."""
+        data = bytearray()
+        async for part in request.content.iter_chunked(64 * 1024):
+            data += part
+            if len(data) > sounds.MOST_BYTES:
+                raise sound_error('long')
+        try:
+            sound = manager.sounds.add(request.query.get('name', ''), data)
+        except ValueError as error:
+            raise sound_error(str(error)) from None
+        return web.json_response({'id': sound, **manager.sounds.view(manager.sound_screens())})
+    async def sound_remove(request):
+        try:
+            manager.sounds.remove(request.match_info['sound'])
+        except ValueError as error:
+            raise sound_error(str(error)) from None
+        return web.json_response(manager.sounds.view(manager.sound_screens()))
+    async def sound_volume(request):
+        """How loud the screens play a kind of sound, in dB of full scale (sounds.VOLUME_RANGE)."""
+        body = await request.json()
+        try:
+            manager.sounds.set_volume(str((body or {}).get('kind') or ''), (body or {}).get('volume'))
+        except (ValueError, AttributeError):
+            raise sound_error('volume') from None
+        return web.json_response(manager.sounds.view(manager.sound_screens()))
+    async def sound_test(request):
+        """The Test key of a screen: it plays its sound of a kind as it would for real (manager.sound_test)."""
+        body = await request.json()
+        body = body if isinstance(body, dict) else {}
+        try:
+            await manager.sound_test(str(body.get('kind') or ''), str(body.get('screen') or ''))
+        except ValueError as error:
+            raise sound_error(str(error)) from None
+        return web.json_response({'ok': True})
+    async def sound_choose(request):
+        """The sound of a kind for every screen (`screen` empty) or for one ('' follows every screen's)."""
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise sound_error('unknown')
+        try:
+            manager.sounds.choose(str(body.get('kind') or ''), str(body.get('screen') or ''), str(body.get('sound') or ''))
+        except ValueError as error:
+            raise sound_error(str(error)) from None
+        return web.json_response(manager.sounds.view(manager.sound_screens()))
     async def test_doorbell(request):
         """Events, Doorbell, Try it: one ring to one screen or to every screen, as esp_screens_doorbell sends it."""
         body = await request.json()
@@ -5813,7 +5998,16 @@ def create_app(manager, development=False):
             clash = name_clash(data.get('name'), data.get('friendly_name'), manager.taken_names())
             if clash:
                 raise ValueError(clash)
-        return web.json_response(manager.firmware.install(data))
+        # What the wizard's Plugins step kept ticked of the plugins suggested for the board goes into the first build.
+        chosen = data.pop('plugins', None) if isinstance(data, dict) else None
+        prepared = None
+        if isinstance(chosen, dict) and core.plugins_enabled():
+            def prepared(made):
+                try:
+                    manager.plugins.start_with(made['file'], data['name'], data.get('board'), chosen)
+                except Exception as error:  # noqa: BLE001 - the screen is made without them; its card suggests them again
+                    LOG.warning('The plugins chosen for %s did not go into its first build: %s', made['file'], error)
+        return web.json_response(manager.firmware.install(data, prepared=prepared))
     async def firmware_wifi(request):
         """New screen → Wi-Fi: another network or password in ESPHome's secrets.yaml (app 0.4.32), for a screen that did
         not come online. Every screen builds with these two lines, so each takes them at its next update."""
@@ -6052,6 +6246,17 @@ def create_app(manager, development=False):
             await manager.plugins.refresh_likes()
             return web.json_response(manager.plugins.payload(REQUEST_LANGUAGE.get()))
 
+        async def plugins_answer_suggested(request):
+            """The card above a screen that suggests a plugin for its board's hardware: {"plugin": id, "yes": bool}."""
+            data = await request.json()
+            if not isinstance(data, dict) or not isinstance(data.get('plugin'), str) or type(data.get('yes')) is not bool:
+                raise ValueError(t('addon.errors.plugins.request'))
+            result = await manager.plugins.answer_suggestion(request.match_info['inbox'], data['plugin'], data['yes'])
+            manager.notify()
+            return web.json_response(result)
+        async def plugins_suggested_for_board(request):
+            """New screen's Plugins step: what is suggested for the board chosen in its first step."""
+            return web.json_response({'plugins': manager.plugins.suggest_for_board(request.match_info['board'])})
         async def plugins_apply(request):
             result = await manager.plugins.apply(request.match_info['inbox'], await request.json())
             manager.notify()
@@ -6095,6 +6300,8 @@ def create_app(manager, development=False):
 
         app.router.add_get('/api/plugins', plugins_list)
         app.router.add_post('/api/screens/{inbox}/plugins', plugins_apply)
+        app.router.add_post('/api/screens/{inbox}/plugins/suggested', plugins_answer_suggested)
+        app.router.add_get('/api/boards/{board}/plugins/suggested', plugins_suggested_for_board)
         app.router.add_get('/api/screens/{inbox}/plugins/file', plugins_file)
         app.router.add_put('/api/plugins/{plugin}/secrets/{input}', plugins_secret)
         app.router.add_post('/api/plugins/{plugin}/choices/{fetch}', plugins_choices)
@@ -6384,6 +6591,13 @@ def create_app(manager, development=False):
     app.router.add_post('/api/doorbell/test', test_doorbell)
     app.router.add_get('/api/alarms', alarms_view)
     app.router.add_put('/api/alarms', alarms_change)
+    app.router.add_get('/api/sounds', sounds_view)
+    app.router.add_post('/api/sounds', sound_add)
+    app.router.add_put('/api/sounds/choice', sound_choose)
+    app.router.add_put('/api/sounds/volume', sound_volume)
+    app.router.add_post('/api/sounds/test', sound_test)
+    app.router.add_get(r'/api/sounds/{sound:[a-z0-9-]{1,40}}.wav', sound_file)
+    app.router.add_delete(r'/api/sounds/{sound:[a-z0-9-]{1,40}}', sound_remove)
     app.router.add_get('/api/automations', list_automations)
     app.router.add_post('/api/automations', save_automation)
     app.router.add_delete('/api/automations/{id}', delete_automation)
@@ -6459,14 +6673,14 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live, manager.talks), access_log=None)
+        cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live, manager.talks, manager.files), access_log=None)
         await cameras.setup()
         # A port another program holds turns camera images off, and nothing else.
         await picture_links.open_port(cameras)
         try:
             await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
                                  manager.alert_loop(), manager.doorbell_loop(), manager.call_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
-                                 manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(),
+                                 manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(), manager.debug_sensor_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))
         finally:
             await cameras.cleanup()

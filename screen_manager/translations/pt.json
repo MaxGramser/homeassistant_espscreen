@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "Isto não é uma lista de ícones.",
         "too_many": "Um ecrã aceita no máximo {most} ícones próprios."
+      },
+      "sounds": {
+        "name": "Dê um nome ao som.",
+        "many": "Já existem {most} sons próprios. Remova um primeiro.",
+        "format": "Um som é um ficheiro WAV de 16 kHz, mono, 16 bits.",
+        "short": "Um som tem pelo menos um quarto de segundo.",
+        "long": "Um som tem no máximo {seconds} segundos.",
+        "unknown": "Esse som não existe.",
+        "volume": "Um volume é um número inteiro de dB de -40 a 0.",
+        "none": "Este ecrã não reproduz nenhum som para isto. Escolha um primeiro.",
+        "older": "Este ecrã precisa de uma atualização de firmware para isto.",
+        "busy": "Este ecrã está numa chamada neste momento."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "O Layoutbot esqueceu-se de {count} dos seus mosaicos: estão soltos na última página."
       },
       "nothing_to_restructure": "Esta página ainda não tem mosaicos de dispositivos para reestruturar. Adicione alguns e pergunte outra vez."
+    },
+    "sounds": {
+      "test": "Teste do toque de chamada"
     }
   },
   "editor": {
@@ -2447,7 +2462,19 @@
         "note": "Nenhum ecrã usa este plugin. Remova-o da lista para esquecer a ligação.",
         "note_folder": "Nenhum ecrã usa este plugin a partir da sua pasta. Ao removê-lo, a pasta passa para config/tessera-plugins/.removed/{id}, onde a pode apagar de vez."
       },
-      "runs_elsewhere": "{screen} corre a versão {running}, compilada noutro sítio. Compilá-la aqui instala a versão {version}."
+      "runs_elsewhere": "{screen} corre a versão {running}, compilada noutro sítio. Compilá-la aqui instala a versão {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Esta placa tem uma câmara."
+        },
+        "question": "Adicionar {name} a {screen}?",
+        "yes": "Adicionar",
+        "yes_update": "Adicionar com a próxima atualização",
+        "no": "Não, obrigado",
+        "building": "{name} está a ser compilado para {screen}.",
+        "with_update": "{name} chega com a próxima atualização de {screen}.",
+        "declined": "Tudo bem. {name} continua na página Plugins se o quiser mais tarde."
+      }
     },
     "plugin_tile": {
       "from": "Um mosaico do plugin {plugin}",
@@ -3401,6 +3428,35 @@
       "extras": {
         "title": "Extras",
         "note": "Definições que só este ecrã tem, da sua placa. Os mesmos interruptores estão na página de definições do próprio ecrã e no Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Ecrã",
+          "grid": "{columns} × {rows} mosaicos"
+        },
+        "standby": {
+          "title": "Repouso e noite",
+          "after": "Repouso após {time}",
+          "off": "Sem repouso",
+          "night": "Noite das {start} às {end}"
+        },
+        "navigation": {
+          "title": "Navegação",
+          "home_after": "Voltar ao Início após {time}"
+        },
+        "board": {
+          "title": "Esta placa"
+        },
+        "help": {
+          "title": "Ajuda",
+          "feedback": "Comentários"
+        }
+      },
+      "blocks": {
+        "display": "Brilho e rotação",
+        "standby": "Repouso",
+        "night": "Noite",
+        "navigation": "Navegação"
       }
     },
     "update": {
@@ -3468,8 +3524,6 @@
       "title": "Tudo o que rodeia os seus ecrãs.",
       "back": "← Os meus ecrãs",
       "screens": {
-        "title": "Ecrãs",
-        "text": "Adicione um ecrã, ou compile e reinstale o firmware de um que já tenha.",
         "firmware_detail": "Compilar e instalar por USB ou Wi-Fi"
       },
       "language": {
@@ -3580,6 +3634,40 @@
         "offer": "Libertar {size}",
         "not_now": "Agora não",
         "large": "As pastas de compilação ocupam {size}. Limpá-las liberta a maior parte do espaço que as compilações ocupam."
+      },
+      "parts": {
+        "updates": {
+          "title": "Atualizações",
+          "nightly": "Atualizado todas as noites",
+          "badge": "1 atualização | {n} atualizações"
+        },
+        "builds": {
+          "title": "Compilação",
+          "server": "No servidor de compilação {name}",
+          "server_pending": "O servidor de compilação {name} aguarda aprovação",
+          "no_server": "Compilado nesta app"
+        },
+        "language": {
+          "auto": "{name}, do Home Assistant",
+          "auto_plain": "Do Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Contado na loja",
+          "counting_off": "Não contado na loja",
+          "asking_on": "Pede estrelas",
+          "asking_off": "Nunca pede estrelas"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Vídeo {state}",
+          "claude": "Claude {state}",
+          "running": "a funcionar",
+          "not_installed": "não instalado",
+          "installed": "instalado",
+          "update": "atualização pronta",
+          "restart": "reinício necessário"
+        }
       }
     },
     "firmware": {
@@ -3722,7 +3810,8 @@
       "steps": {
         "board": "Ecrã",
         "setup": "Configurar",
-        "install": "Instalar"
+        "install": "Instalar",
+        "plugins": "Plugins"
       },
       "pick_title": "Que ecrã tens?",
       "pick_intro": "Escolhe a tua placa. Procura por marca, tamanho ou o que tem impresso.",
@@ -3799,7 +3888,9 @@
       "grid": "Grelha",
       "grid_hint": "A grelha proposta é a melhor para este ecrã. Pode alterá-la, e a orientação, mais tarde ao lado das páginas no editor, sem nova compilação.",
       "grid_best": "Voltar à melhor",
-      "waits_turn": "Outro ecrã está a ser compilado agora. Este espera a sua vez e começa sozinho logo a seguir."
+      "waits_turn": "Outro ecrã está a ser compilado agora. Este espera a sua vez e começa sozinho logo a seguir.",
+      "plugins_title": "Plugins para este ecrã",
+      "plugins_intro": "Combinam com o que esta placa tem. Desmarque o que não quiser: não é incluído, e pode adicioná-lo mais tarde na página Plugins."
     },
     "alerts": {
       "intro": "Cada ecrã tem a ação {action}. Coloca um cartão por cima de tudo, acorda o ecrã e mantém a retroiluminação no brilho normal até alguém tocar no botão ou o tempo limite acabar. O próprio Home Assistant não mostra explicações nem listas pendentes para as ações do ESPHome; tudo o que pode preencher está aqui.",
@@ -4177,7 +4268,8 @@
       "actions_allowed": "{name} já pode controlar os seus dispositivos.",
       "part_page": "A página: título e navegação",
       "part_page_hint": "Título, página inicial e como chegar aqui",
-      "home_control_hint": "Coloca o botão Início à esquerda da barra superior desta página. Leva à página inicial."
+      "home_control_hint": "Coloca o botão Início à esquerda da barra superior desta página. Leva à página inicial.",
+      "place_on_new_page": "Numa página nova"
     },
     "feedback": {
       "question": "O seu ecrã funciona como espera?",
@@ -4653,7 +4745,8 @@
         "on": "Ligada",
         "off": "Desligada"
       },
-      "alarm": "Alarme"
+      "alarm": "Alarme",
+      "calls": "Chamadas"
     },
     "doorbell": {
       "intro": "Alguém toca e os seus ecrãs mostram a porta. Uma automação envia o evento com a câmara da campainha: um ecrã P4 acorda, toca um aviso e abre a câmara em direto com som; qualquer outro ecrã mostra a imagem num alerta. Qualquer campainha funciona, seja qual for o gatilho.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Três códigos errados bloqueiam o teclado 30 segundos, e cada código errado a seguir duplica o tempo, até 15 minutos. O Home Assistant sabe de cada um pelo evento esphome.screen_alarm_code_refused, nunca com o código.",
       "how_code": "O código vai para o Home Assistant com a ação, tal como o envia o seu próprio cartão de alarme, e é apagado logo no ecrã. Um ecrã nunca o guarda nem o regista.",
       "how_tile": "Coloque também o alarme numa página: um toque no seu mosaico abre a qualquer momento o cartão com uma tecla por modo."
+    },
+    "calls": {
+      "hero_title": "Chamadas",
+      "hero_text": "Quando um ecrã liga a outro, toca o ecrã chamado. Escolha abaixo com que toca: um toque tem a sua própria pausa e repete-se até alguém atender. Uma nova escolha chega ao ecrã no toque seguinte, sem precisar de atualização."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Toque de chamada",
+          "text": "O que toca num ecrã quando outro ecrã lhe liga."
+        },
+        "doorbell": {
+          "title": "Campainha",
+          "text": "O que um ecrã toca quando a campainha da porta soa: nos ecrãs que abrem a campainha e, nos outros, com o seu alerta."
+        },
+        "alert": {
+          "title": "Som de alerta",
+          "text": "O que um ecrã toca quando aparece um alerta seu, enviado com o evento esp_screens_show_alert. Sem som é como era antes. Um alerta pode ficar em silêncio com sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Clássico",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Sino",
+        "chime": "Din-dom",
+        "notice": "Aviso"
+      },
+      "none": "Sem som",
+      "play": "Reproduzir",
+      "stop": "Parar",
+      "seconds": "{seconds} s",
+      "chosen": "Som escolhido",
+      "saved": "Som guardado",
+      "removed": "Som removido",
+      "own_add": "Adicionar um som próprio",
+      "own_choose": "Escolher um ficheiro de som",
+      "own_unreadable": "Não foi possível ler este ficheiro como som.",
+      "own_full": "Já existem {most} sons próprios. Remova um primeiro.",
+      "own_drag_loop": "Arraste a parte, ou um dos seus limites, aqui ou no ficheiro inteiro acima; as teclas de seta também a movem. Reproduzir (ou a barra de espaço) repete-a em ciclo, como o ecrã fará.",
+      "own_drag_once": "Arraste a parte, ou um dos seus limites, aqui ou no ficheiro inteiro acima; as teclas de seta também a movem. Reproduzir (ou a barra de espaço) reproduz-a, como o ecrã fará.",
+      "own_name": "Nome",
+      "own_save": "Guardar som",
+      "screens_title": "Por ecrã",
+      "screens_same": "Igual a todos os ecrãs",
+      "screens_none": "Ainda nenhum ecrã que o possa reproduzir tem altifalante.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume definido para {volume} dB",
+      "test": "Testar",
+      "test_hint": "Reproduz agora neste ecrã, tal como vai soar a sério",
+      "test_sent": "A reproduzir no ecrã",
+      "editor": {
+        "drop": "Largue aqui um ficheiro de som",
+        "drop_loop": "Qualquer música ou som serve: escolhe a parte que toca, no máximo {seconds} segundos, com a pausa que quiser antes de tocar de novo.",
+        "drop_once": "Qualquer música ou som serve: escolhe a parte que é reproduzida, no máximo {seconds} segundos.",
+        "total": "{time} no total",
+        "other_file": "Outro ficheiro",
+        "whole": "O ficheiro inteiro",
+        "part": "A parte reproduzida",
+        "start": "Início",
+        "end": "Fim",
+        "of_most": "de no máximo {most} s",
+        "made": "O que se faz ao som",
+        "no_bass": "Sem graves",
+        "soft_ends": "Limites suaves",
+        "even_level": "Volume uniforme",
+        "repeats": "Repete-se"
+      }
     }
   }
 }

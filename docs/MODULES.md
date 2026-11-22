@@ -70,7 +70,7 @@ the add-on and the editor offer a module's options only on boards that have it.
 - **light_presets** (full): a light's presets, round keys on its tile and its card that set a colour or a white shade
   and a brightness (docs/LIGHT_PRESETS.md, `module_light_presets.h`). Its screens say `light_presets` in their hello and
   ESP Screens sends them the controls `presets` and `brightness_presets`; the editor offers them where `boards.json`
-  lists the module, and lite draws the brightness slider.
+  lists the module, and lite draws the brightness slider. The editor's firmware preview draws them too.
 - **call** (full): calls between screens (docs/CALLS.md, `module_call.cpp` with its header). Its screens say `call` in their hello
   when they stream and have a microphone and a speaker, and ESP Screens sends them the ops `call` and `contacts`; the Call tile
   `screen.call` is offered where `boards.json` lists the module.

@@ -60,10 +60,16 @@ class FakeScreenApi:
         switch = SwitchInfo()
         switch.object_id, switch.key = 'debug_mode', 7
         other = types.SimpleNamespace(object_id='dark_mode', key=3)
-        return ([other, switch] if self.with_switch else [other]), []
+        SensorInfo = type('SensorInfo', (), {})
+        heap, never = SensorInfo(), SensorInfo()
+        heap.object_id, heap.key, heap.name = 'heap_free', 9, 'Heap Free'
+        never.object_id, never.key, never.name = 'psram_largest_block', 10, 'Psram Largest Block'
+        return ([other, switch] if self.with_switch else [other]) + [heap, never], []
 
     def subscribe_states(self, on_state):
         on_state(types.SimpleNamespace(key=3, state=True))
+        on_state(types.SimpleNamespace(key=9, state=236132.0, missing_state=False))
+        on_state(types.SimpleNamespace(key=10, state=0.0, missing_state=True))
         on_state(types.SimpleNamespace(key=7, state=self.debug))
 
     def switch_command(self, key, state):
@@ -96,13 +102,20 @@ class DebugModeForTheLog(unittest.IsolatedAsyncioTestCase):
         saved = sys.modules.get('aioesphomeapi')
         sys.modules['aioesphomeapi'] = fake
         try:
-            lines, _ = await reports.screen_log('screen.local', None, 0.05, debug=True)
+            self.readings = {}
+            lines, _ = await reports.screen_log('screen.local', None, 0.05, debug=True, readings=self.readings)
         finally:
             if saved is None:
                 del sys.modules['aioesphomeapi']
             else:
                 sys.modules['aioesphomeapi'] = saved
         return lines, made[0]
+
+    async def test_the_screen_s_own_figures_are_read_with_or_without_the_switch(self):
+        # The measuring sensors are off in Home Assistant unless someone wants them (debug_sensors.py).
+        for screen in ({}, {'with_switch': False}, {'debug': True}):
+            await self.read(**screen)
+            self.assertEqual(self.readings, {'heap free': '236132.0'})
 
     async def test_debug_mode_is_on_for_the_read_and_off_after_it(self):
         lines, api = await self.read()

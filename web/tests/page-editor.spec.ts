@@ -152,6 +152,20 @@ describe("one draft in both editor modes", () => {
     addTile('sensor.overflow');
     expect(JSON.stringify(doc.document)).toBe(before);
   });
+  it('offers a new page for a tile the selected page has no room for, and puts it there on a yes', async () => {
+    doc.selectedPageId = doc.document!.pages[1].id;
+    for (let i = 0; i < 6; i++) await addTile(`light.filling_${i}`);
+    const pages = doc.document!.pages.length;
+    await addTile('light.overflow');
+    const notice = useUiStore().notice!;
+    expect(notice.message).toBe('This page is full. Select an empty cell on another page.');
+    expect(notice.action?.label).toBe('On a new page');
+    expect(doc.document!.pages).toHaveLength(pages);
+    notice.action!.run();
+    await vi.waitFor(() => expect(doc.document!.pages).toHaveLength(pages + 1));
+    await vi.waitFor(() => expect(doc.document!.pages.at(-1)!.tiles.map((tile) => tile.content)).toEqual([{ kind: 'entity', entityId: 'light.overflow' }]));
+    expect(doc.selectedPageId).toBe(doc.document!.pages.at(-1)!.id);
+  });
   it('uses a page picker and named routes at phone widths without shrinking the map', async () => {
     setMedia('(max-width: 700px)', true);
     const view = mount(LayoutView);

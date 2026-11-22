@@ -1,4 +1,5 @@
-"""The camera port: the links a screen downloads its pictures from (docs/PICTURES.md, "In ESP Screen Manager").
+"""The camera port: the links a screen downloads its pictures from (docs/PICTURES.md, "In ESP Screen Manager"), and the
+files it takes (screen_files, docs/SCREEN_FILES.md).
 
 A screen never asks Home Assistant for a picture and never holds a Home Assistant token: this app answers its question
 with a link on its own port on the LAN (8098), random and short-lived, and the screen downloads the picture there. A
@@ -83,10 +84,11 @@ class Links:
         return (304, None, tag, kind) if etag == tag and link.revalidate else (200, body, tag, kind)
 
 
-def web_app(links, stream=None, talks=None):
+def web_app(links, stream=None, talks=None, files=None):
     """The camera port: GET /camera/<token>.bmp or .jpg, and /camera/<token>.mjpeg for a stream (live_stream), or .jpg
-    on a stream's token for its pictures one an ask, and POST /camera/<token>/talk for a screen's voice (talk_bridge), open
-    to the LAN like the screens are."""
+    on a stream's token for its pictures one an ask, POST /camera/<token>/talk for a screen's voice (talk_bridge), and
+    GET /files/<name>.<ext> for a file a screen takes (screen_files, docs/SCREEN_FILES.md), open to the LAN like the
+    screens are."""
     from aiohttp import web
 
     async def image(request):
@@ -108,6 +110,16 @@ def web_app(links, stream=None, talks=None):
         async def streamed(request):
             return await stream.serve(request, request.match_info['token'])
         app.router.add_get(r'/camera/{token:[A-Za-z0-9_-]{16,64}}.mjpeg', streamed)
+    if files is not None:
+        async def file(request):
+            status, body, etag, kind = files.serve(request.match_info['name'], request.headers.get('If-None-Match'))
+            headers = {'Cache-Control': 'no-cache', **({'ETag': etag} if etag else {})}
+            if status == 200:
+                return web.Response(body=body, content_type=kind, headers=headers)
+            if status == 304:
+                return web.Response(status=304, headers=headers)
+            return web.Response(status=404, text='Unknown file', headers=headers)
+        app.router.add_get(r'/files/{name:[0-9a-f]{64}}.{ext:[a-z0-9]{1,8}}', file)
     if talks is not None:
         async def talked(request):
             return await talks.serve(request, request.match_info['token'])

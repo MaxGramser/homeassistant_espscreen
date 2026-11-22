@@ -916,8 +916,34 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .step button:hover:not(:disabled) { color: var(--ink); background: var(--line-strong); }
 .step output { min-width: 56px; text-align: center; font-weight: 500; }
 
+/* The two settings pages (docs/PAGES.md, "Settings"): a list of parts, each part a page of its own in one column. */
+/* Like Home Assistant's Settings: one column of 600 px in the middle of a wide page, its rows in separate cards. */
+#settings-view { max-width: none; }
+#settings-view > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
+.set-column { display: grid; gap: 24px; align-content: start; max-width: 600px; width: 100%; margin-inline: auto; }
+.set-cards { display: grid; gap: 24px; }
+.set-list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; overflow: hidden; }
+.set-link { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 12px; min-height: 66px; padding-right: 16px; cursor: pointer; }
+.set-link:hover { background: var(--surface-2); }
+.set-link-main { display: flex; align-items: center; gap: 16px; min-width: 0; align-self: stretch; padding: 10px 0 10px 16px; text-align: left; color: inherit; background: none; border-radius: 0; }
+.set-link-main:focus-visible { box-shadow: inset var(--focus); outline: none; }
+.set-link-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--tone, var(--accent)); color: #fff; }
+.set-link-icon .ui-icon { font-size: 22px; }
+.set-link-tx { display: grid; gap: 2px; min-width: 0; }
+.set-link-tx b { font-weight: 500; font-size: 14px; color: var(--ink); }
+.set-link-tx small { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.set-link-control { display: inline-flex; align-items: center; cursor: default; }
+.set-link-arrow { color: var(--muted); font-size: 20px; }
+.set-head { display: grid; gap: 4px; justify-items: start; }
+.set-head h1, .set-head h2 { font-size: 20px; }
+.set-head p { color: var(--muted); font-size: 13px; max-width: 62ch; }
+.set-back { display: inline-flex; align-items: center; gap: 2px; margin-left: -4px; padding: 2px 6px 2px 2px; border-radius: 6px; color: var(--accent); font-size: 12.5px; font-weight: 500; background: none; }
+.set-back:hover { background: var(--accent-soft); }
+.set-back .ui-icon { font-size: 16px; }
+.set-column > .set-card, .set-column > .card { width: 100%; }
+
 /* Pages that replace the old dialogs: new screen, firmware, alerts, override, settings */
-.panel { padding: 22px 26px 40px; overflow: auto; display: grid; gap: 18px; align-content: start; max-width: 960px; width: 100%; }
+.panel { padding: 22px 26px 40px; overflow: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-content: start; max-width: 960px; width: 100%; }
 .panel.wide { max-width: 1120px; }
 .panel-head { display: flex; align-items: flex-start; gap: 12px; }
 .panel-head .tx { display: grid; gap: 2px; flex: 1; min-width: 0; }
@@ -1625,7 +1651,7 @@ section.advanced code { font-size: 11.5px; }
 .app.phone .dr-body .name-sec { order: -2; }
 .app.phone .dr-body .style-section { order: -1; }
 .phone-more { display: flex; align-items: center; gap: 10px; margin: 6px 16px 0; padding: 12px 12px 12px 14px; border-radius: 12px; background: var(--surface-2); text-align: left; color: var(--muted); }
-.phone-more span { flex: 1; display: grid; gap: 2px; }
+.phone-more > span:not(.ui-icon) { flex: 1; display: grid; gap: 2px; }
 .phone-more b { color: var(--accent); font-size: 15px; font-weight: 550; }
 .phone-more small { font-size: 12.5px; }
 .phone-tile-actions { display: flex; gap: 10px; padding: 14px 16px 4px; }

@@ -293,6 +293,13 @@ export type FeedbackView = {
 export type PluginSharing = {
   consented: boolean; counting: boolean; counting_asked: boolean; asking: boolean; counted?: number | null; usable: boolean;
 };
+// A plugin the add-on suggests for a board's own hardware (plugin_defaults.py): on New screen's Plugins step and on the
+// card above a screen. `why` is the key of its reason (editor.plugins.suggest.why.<why>).
+export type PluginSuggestion = {
+  id: string; name: Record<string, string>; summary: Record<string, string>; version?: string | null; why: string; image?: string | null;
+};
+// `update`: an update waits for the screen, so a yes comes with it instead of a build now.
+export type PluginSuggest = { plugins: PluginSuggestion[]; update: boolean };
 // The stars card above a screen (Plugins.ask_card): a plugin of the index it has run for a few days and not yet rated.
 export type PluginAsk = {
   plugin: string; name: Record<string, string>; version?: string | null; days: number; maintainer: string; tessera: boolean;
@@ -325,6 +332,8 @@ export type Screen = {
   feedback?: FeedbackView | null;
   // How a plugin it runs works for you (docs/PLUGINS.md, "Likes, ratings and counting"): the stars card, or none.
   plugin_ask?: PluginAsk | null;
+  // A plugin for hardware its board has, suggested once (plugin_defaults.py): the card, or none.
+  plugin_suggest?: PluginSuggest | null;
   alert_action?: string; dismiss_action?: string;
   // What a doorbell's ring does here (app 0.4.91, docs/DOORBELL.md): its camera live, its alert with the picture, or the alert alone.
   doorbell?: "view" | "picture" | "plain";

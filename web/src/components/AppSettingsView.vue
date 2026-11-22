@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// Everything around the screens: firmware updates, language and region, alerts, Claude.
+// Everything around the screens, in parts (docs/PAGES.md, "Settings"): the page opens on a list of them, one row each
+// with what is set now, and a part opens as a page of its own at #/settings/<part> (model/settings-parts.ts).
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
 import { useConfirm } from "../composables/useConfirm";
@@ -8,6 +9,10 @@ import BuildLog from "./BuildLog.vue";
 import BuildFilesCard from "./BuildFilesCard.vue";
 import BuildServerCard from "./BuildServerCard.vue";
 import Icon from "./ui/Icon.vue";
+import SettingsHead from "./SettingsHead.vue";
+import SettingsLink from "./SettingsLink.vue";
+import type { IconName } from "../model/ui-icons";
+import { PART_LOOK, partCards, type AppSettingsPart } from "../model/settings-parts";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
@@ -119,26 +124,75 @@ async function choose(field: "setting" | "clock" | "numbers", event: Event) {
   if (!saved) select.value = String(lang.value?.[field] ?? "auto");
 }
 const useProfile = () => whileSaving(() => region.saveLanguage(different.value));
+
+// ---- The list of parts: each with its icon, its title and one line of what is set now ----
+const auto = computed(() => Boolean(u.value?.auto));
+const buildsLine = computed(() => {
+  const server = inv.inventory.build_server?.server;
+  if (!server) return t("editor.settings.parts.builds.no_server");
+  return server.state === "pending" ? t("editor.settings.parts.builds.server_pending", { name: server.name }) : t("editor.settings.parts.builds.server", { name: server.name });
+});
+const languageLine = computed(() => {
+  const l = lang.value;
+  if (!l) return "";
+  const name = l.setting === "auto"
+    ? (haName.value ? t("editor.settings.parts.language.auto", { name: haName.value }) : t("editor.settings.parts.language.auto_plain"))
+    : l.languages.find((own) => own.code === l.setting)?.name || l.setting;
+  return [name, clockName(l.clock_effective), example(STYLE_MARKS[(l.numbers_effective || "point") as NumberStyle])].join(" · ");
+});
+const pluginsLine = computed(() => [
+  t(sharing.value?.counting ? "editor.settings.parts.plugins.counting_on" : "editor.settings.parts.plugins.counting_off"),
+  t(sharing.value?.asking ? "editor.settings.parts.plugins.asking_on" : "editor.settings.parts.plugins.asking_off"),
+].join(" · "));
+const haState = (key: string) => t(`editor.settings.parts.home_assistant.${key}`);
+const videoState = computed(() => !video.value ? t("editor.common.loading") : !video.value.installed ? haState("not_installed")
+  : !video.value.current ? haState("update") : videoWaitsRestart.value ? haState("restart") : haState("running"));
+const claudeState = computed(() => !skill.value ? t("editor.common.loading") : !skill.value.installed ? haState("not_installed")
+  : skill.value.current ? haState("installed") : haState("update"));
+const haLine = computed(() => [
+  ...(inv.pluginsEnabled ? [t("editor.settings.parts.home_assistant.video", { state: videoState.value })] : []),
+  t("editor.settings.parts.home_assistant.claude", { state: claudeState.value }),
+].join(" · "));
+type Part = { id: AppSettingsPart; icon: IconName; title: string; summary: string; badge?: string };
+const parts = computed<Part[]>(() => [
+  ...(u.value ? [{ id: "updates" as const, icon: "update" as const, title: t("editor.settings.parts.updates.title"),
+    summary: [updatesHint.value, ...(auto.value ? [t("editor.settings.parts.updates.nightly")] : [])].join(" · "),
+    badge: outdated.value && !u.value.busy ? t("editor.settings.parts.updates.badge", outdated.value) : undefined }] : []),
+  { id: "builds", icon: "hammer-wrench", title: t("editor.settings.parts.builds.title"), summary: buildsLine.value },
+  ...(lang.value ? [{ id: "language" as const, icon: "translate" as const, title: t("editor.settings.language.title"), summary: languageLine.value }] : []),
+  ...(inv.pluginsEnabled && sharing.value?.usable ? [{ id: "plugins" as const, icon: "puzzle-outline" as const, title: t("editor.settings.parts.plugins.title"), summary: pluginsLine.value }] : []),
+  { id: "home-assistant", icon: "home-assistant", title: t("editor.settings.parts.home_assistant.title"), summary: haLine.value },
+]);
+// The part the address names, while this app has it (an add-on without language settings has no Language part).
+const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) || null);
 </script>
 
 <template>
   <div class="panel" id="settings-view">
     <div class="panel-head">
       <div class="tx">
-        <span class="eyebrow">{{ t("editor.nav.settings") }}</span>
-        <h1 id="settings-title">{{ t("editor.settings.title") }}</h1>
+        <template v-if="part">
+          <SettingsHead :back="t('editor.nav.settings')" :title="part.title" as="h1" @back="ui.openSettings(null)" />
+        </template>
+        <template v-else>
+          <span class="eyebrow">{{ t("editor.nav.settings") }}</span>
+          <h1 id="settings-title">{{ t("editor.settings.title") }}</h1>
+        </template>
       </div>
       <button type="button" class="btn quiet" id="close-settings" @click="ui.go('')">{{ t("editor.settings.back") }}</button>
     </div>
-    <div class="card-grid">
-      <section class="card">
-        <h2>{{ t("editor.settings.screens.title") }}</h2>
-        <p>{{ t("editor.settings.screens.text") }}</p>
-        <div class="tools">
-          <button type="button" class="tool" @click="ui.go('#new-screen')"><span class="tool-icon">＋</span><span class="tx"><b>{{ t("editor.nav.new_screen") }}</b><small>{{ t("editor.nav.new_screen_detail") }}</small></span></button>
-          <button type="button" class="tool" @click="ui.go('#firmware')"><span class="tool-icon">⇪</span><span class="tx"><b>{{ t("editor.nav.firmware") }}</b><small>{{ t("editor.settings.screens.firmware_detail") }}</small></span></button>
+
+    <!-- The list of parts: a row each, with what is set now; a row opens its part. -->
+    <div v-if="!part" class="set-column">
+      <div id="settings-parts" class="set-cards">
+        <div v-for="(card, i) in partCards(parts)" :key="i" class="set-list">
+          <SettingsLink v-for="p in card" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :tone="PART_LOOK[p.id].tone" :title="p.title" :summary="p.summary" :badge="p.badge" @open="ui.openSettings(p.id)" />
         </div>
-      </section>
+      </div>
+    </div>
+
+    <div v-else class="set-column">
+      <template v-if="part.id === 'updates'">
       <section v-if="u" class="card updates" id="updates">
         <h2>{{ t("editor.settings.updates.title") }}</h2>
         <p id="updates-hint">{{ updatesHint }}</p>
@@ -159,12 +213,23 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
           <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint") }}</small></span>
         </label>
       </section>
+      <!-- The expert path: build and install a firmware by USB or Wi-Fi (FirmwareView). -->
+      <section class="card">
+        <div class="tools">
+          <button type="button" class="tool" id="settings-firmware" @click="ui.go('#firmware')"><span class="tool-icon">⇪</span><span class="tx"><b>{{ t("editor.nav.firmware") }}</b><small>{{ t("editor.settings.screens.firmware_detail") }}</small></span></button>
+        </div>
+      </section>
+      </template>
+
+      <template v-else-if="part.id === 'builds'">
       <!-- Build firmware on a faster computer: an ESPHome build server (BuildServerCard, the add-on's build_server.py). -->
       <BuildServerCard v-if="inv.inventory.build_server" />
       <!-- The room the builds take in the app's data, and cleaning it up (BuildFilesCard, the add-on's build_files.py). -->
       <BuildFilesCard />
-      <section v-if="lang" class="card" id="language">
-        <h2>{{ t("editor.settings.language.title") }}</h2>
+      </template>
+
+      <template v-else-if="part.id === 'language' && lang">
+      <section class="card" id="language">
         <div class="field">
           <label class="f-label" for="screen-language">{{ t("editor.settings.language.screen_language") }}</label>
           <select id="screen-language" :value="lang.setting" :disabled="saving" @change="choose('setting', $event)">
@@ -199,8 +264,11 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
         </div>
         <small>{{ t("editor.settings.language.editor_hint") }}</small>
       </section>
+      </template>
+
+      <template v-else-if="part.id === 'plugins' && sharing">
       <!-- What this app shares about plugins (plugin_likes.py): counting, and whether the stars card asks. -->
-      <section v-if="inv.pluginsEnabled && sharing?.usable" class="card" id="plugin-sharing">
+      <section class="card" id="plugin-sharing">
         <h2>{{ t("editor.plugins.sharing.title") }}</h2>
         <p>{{ t("editor.plugins.sharing.text") }}</p>
         <label class="check" for="sharing-counting">
@@ -213,13 +281,9 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
         </label>
         <a class="btn quiet mini" href="https://tessera-maxgramser.on-forge.com/privacy" target="_blank" rel="noopener">{{ t("editor.feedback.privacy") }}</a>
       </section>
-      <section class="card">
-        <h2>{{ t("editor.nav.events") }}</h2>
-        <p>{{ t("editor.settings.alerts.text") }}</p>
-        <div class="tools">
-          <button type="button" class="tool" @click="ui.go('#events')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.events") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
-        </div>
-      </section>
+      </template>
+
+      <template v-else-if="part.id === 'home-assistant'">
       <section v-if="inv.pluginsEnabled" class="card" id="video">
         <h2>{{ t("editor.settings.video.title") }}</h2>
         <p>{{ t("editor.settings.video.text") }}</p>
@@ -258,6 +322,14 @@ const useProfile = () => whileSaving(() => region.saveLanguage(different.value))
           <small>{{ t("editor.settings.claude.upload") }}</small>
         </div>
       </section>
+      <section class="card">
+        <h2>{{ t("editor.nav.events") }}</h2>
+        <p>{{ t("editor.settings.alerts.text") }}</p>
+        <div class="tools">
+          <button type="button" class="tool" @click="ui.go('#events')"><span class="tool-icon">!</span><span class="tx"><b>{{ t("editor.nav.events") }}</b><small>{{ t("editor.settings.alerts.detail") }}</small></span></button>
+        </div>
+      </section>
+      </template>
     </div>
   </div>
 </template>

@@ -34,6 +34,8 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | change sizes, fonts or the grid | docs/RESPONSIVE.md | `ui_scale.h`, `packages/looks/`, `runtime_model.h` (`Grid`) |
 | give a board a battery in the top bar | docs/BATTERY.md | the board's `battery` sensors, `battery_status.h` |
 | change how a picture reaches the screen | docs/PICTURES.md, then docs/CAMERA.md | `picture_question.h`, `picture_loader.h`, `picture_fetch.h`, `screen_manager/app/picture_service.py` |
+| send a file from the add-on to a screen (a ringtone, a new kind of file) | docs/SCREEN_FILES.md | `screen_manager/app/screen_files.py`, `file_fetch.h`, `http_get.h` |
+| change a sound a screen plays (ringtone, chime, alert), or add a kind of sound | docs/SOUNDS.md | `screen_manager/app/sounds.py`, `kept_sound.h`, `web/src/components/sounds/` |
 | change the picture engine, the glass or a live stream's spot, or add a chip or panel kind | docs/PICTURE_ARCHITECTURE.md | `picture_engine.h`, `glass.h`, `glass_dsi_refresh.cpp`, `live_spots.h`, `p4_build.py`, `live_view.cpp` |
 | change how a screen joins Home Assistant | docs/EASY_SETUP.md, chapter 3 | `screen_manager/app/ha_pairing.py`, Home Assistant's esphome config flow |
 | add an icon to the fixed set, or change how a screen gets icons of its own | docs/ICONS.md | `screen_manager/app/tile_icons.py`, `screen_manager/app/screen_icons.py` |
@@ -47,6 +49,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | make a control show its change before Home Assistant confirms it | docs/OPTIMISTIC.md | `optimistic.h`, `wish()` in `optimistic_lvgl.h` |
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
+| suggest a plugin for hardware a board has (New screen's Plugins step, the card above a screen) | docs/PLUGINS.md, "Plugins a board starts with" | `RULES` in `screen_manager/app/plugin_defaults.py` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |
 | touch the flash of a board with 4 MB | docs/FLASH_LAYOUT.md | `components/flash_layout/`, `packages/hardware/flash-4mb.yaml` |
 | change how a build waits its turn (updates, plugins, New screen, Firmware & USB) | docs/BUILDS.md | `screen_manager/app/build_queue.py`, `web/src/stores/builds.ts` |

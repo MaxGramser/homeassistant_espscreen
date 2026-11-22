@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "Dat is geen lijst met iconen.",
         "too_many": "Een scherm kan hooguit {most} eigen iconen hebben."
+      },
+      "sounds": {
+        "name": "Geef het geluid een naam.",
+        "many": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
+        "format": "Een geluid is een WAV-bestand van 16 kHz, mono, 16 bits.",
+        "short": "Een geluid duurt minstens een kwart seconde.",
+        "long": "Een geluid duurt hoogstens {seconds} seconden.",
+        "unknown": "Dat geluid bestaat niet.",
+        "volume": "Een volume is een heel aantal dB van -40 tot 0.",
+        "none": "Dit scherm speelt hier geen geluid voor. Kies er eerst een.",
+        "older": "Dit scherm heeft hiervoor een firmware-update nodig.",
+        "busy": "Dit scherm is nu in gesprek."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "Layoutbot is {count} van je tegels vergeten: ze staan los op de laatste pagina."
       },
       "nothing_to_restructure": "Op deze pagina staan nog geen tegels van apparaten om te herstructureren. Voeg er een paar toe en vraag het dan nog eens."
+    },
+    "sounds": {
+      "test": "Beltoontest"
     }
   },
   "editor": {
@@ -2948,6 +2963,35 @@
       "extras": {
         "title": "Extra's",
         "note": "Instellingen die alleen dit scherm heeft, van zijn bord. Dezelfde schakelaars staan op de instellingenpagina van het scherm zelf en in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Beeld",
+          "grid": "{columns} × {rows} tegels"
+        },
+        "standby": {
+          "title": "Stand-by & nacht",
+          "after": "Stand-by na {time}",
+          "off": "Geen stand-by",
+          "night": "Nacht {start} tot {end}"
+        },
+        "navigation": {
+          "title": "Navigatie",
+          "home_after": "Terug naar Thuis na {time}"
+        },
+        "board": {
+          "title": "Dit bord"
+        },
+        "help": {
+          "title": "Hulp",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Helderheid en rotatie",
+        "standby": "Stand-by",
+        "night": "Nacht",
+        "navigation": "Navigatie"
       }
     },
     "update": {
@@ -3015,8 +3059,6 @@
       "title": "Alles rond je schermen.",
       "back": "← Mijn schermen",
       "screens": {
-        "title": "Schermen",
-        "text": "Voeg een scherm toe, of bouw en installeer de firmware van een bestaand scherm opnieuw.",
         "firmware_detail": "Bouwen en installeren via USB of Wi-Fi"
       },
       "language": {
@@ -3127,6 +3169,40 @@
         "offer": "{size} vrijmaken",
         "not_now": "Niet nu",
         "large": "De buildmappen nemen {size} in beslag. Opruimen maakt het grootste deel van de ruimte vrij die de builds innemen."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Elke nacht bijgewerkt",
+          "badge": "1 update | {n} updates"
+        },
+        "builds": {
+          "title": "Bouwen",
+          "server": "Op buildserver {name}",
+          "server_pending": "Buildserver {name} wacht op goedkeuring",
+          "no_server": "Gebouwd in deze app"
+        },
+        "language": {
+          "auto": "{name}, van Home Assistant",
+          "auto_plain": "Van Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Meegeteld in de store",
+          "counting_off": "Niet meegeteld in de store",
+          "asking_on": "Vraagt om sterren",
+          "asking_off": "Vraagt nooit om sterren"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video {state}",
+          "claude": "Claude {state}",
+          "running": "draait",
+          "not_installed": "niet geïnstalleerd",
+          "installed": "geïnstalleerd",
+          "update": "update klaar",
+          "restart": "herstart nodig"
+        }
       }
     },
     "firmware": {
@@ -3269,7 +3345,8 @@
       "steps": {
         "board": "Scherm",
         "setup": "Instellen",
-        "install": "Installeren"
+        "install": "Installeren",
+        "plugins": "Plugins"
       },
       "pick_title": "Welk scherm heb je?",
       "pick_intro": "Kies je bord. Zoek op merk, maat of wat erop staat.",
@@ -3346,7 +3423,9 @@
       "grid": "Raster",
       "grid_hint": "Het voorgestelde raster is het beste voor dit scherm. Je kunt het, en hoe het hangt, later naast de pagina’s in de editor aanpassen, zonder opnieuw te bouwen.",
       "grid_best": "Terug naar het beste",
-      "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf."
+      "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf.",
+      "plugins_title": "Plugins voor dit scherm",
+      "plugins_intro": "Deze horen bij wat dit bord heeft. Vink uit wat je niet wilt: dat wordt niet ingebouwd, en je kunt het later toevoegen op de pagina Plugins."
     },
     "alerts": {
       "intro": "Elk scherm heeft de actie {action}. Die legt een kaart over alles heen, wekt het scherm en houdt de backlight op de normale helderheid tot iemand op de knop tikt of de timeout verstrijkt. Home Assistant toont bij ESPHome-acties zelf geen uitleg of keuzelijsten; alles wat je kunt invullen staat hier.",
@@ -3724,7 +3803,8 @@
       "actions_allowed": "{name} mag je apparaten nu bedienen.",
       "part_page": "De pagina: titel en navigatie",
       "part_page_hint": "Titel, startpagina en hoe je hier komt",
-      "home_control_hint": "Zet de Home-knop links in de topbar van deze pagina. Hij gaat naar de startpagina."
+      "home_control_hint": "Zet de Home-knop links in de topbar van deze pagina. Hij gaat naar de startpagina.",
+      "place_on_new_page": "Op een nieuwe pagina"
     },
     "feedback": {
       "question": "Werkt je scherm zoals je verwacht?",
@@ -4396,6 +4476,18 @@
         "go": "Uit de lijst halen",
         "note": "Geen enkel scherm gebruikt deze plugin. Haal hem uit de lijst om de link te vergeten.",
         "note_folder": "Geen enkel scherm gebruikt deze plugin vanuit zijn map. Als je hem verwijdert, gaat de map naar config/tessera-plugins/.removed/{id}, waar je hem voorgoed kunt wissen."
+      },
+      "suggest": {
+        "why": {
+          "camera": "Dit bord heeft een camera."
+        },
+        "question": "{name} toevoegen aan {screen}?",
+        "yes": "Toevoegen",
+        "yes_update": "Toevoegen bij de volgende update",
+        "no": "Nee, bedankt",
+        "building": "{name} wordt gebouwd voor {screen}.",
+        "with_update": "{name} komt mee met de volgende update van {screen}.",
+        "declined": "Prima. {name} blijft op de pagina Plugins staan als je hem later wilt."
       }
     },
     "plugin_tile": {
@@ -4653,7 +4745,8 @@
         "remove_confirm": "\"{name}\" verwijderen uit Home Assistant?",
         "on": "Aan",
         "off": "Uit"
-      }
+      },
+      "calls": "Bellen"
     },
     "doorbell": {
       "intro": "Er wordt aangebeld en je schermen laten de deur zien. Een automatisering stuurt het event met de camera van de deurbel: een P4-scherm wordt wakker, speelt een belgeluid en opent de camera live met geluid; elk ander scherm toont de foto in een alert. Elke deurbel werkt, wat de automatisering ook start.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Drie foute codes zetten het toetsenblok 30 seconden op slot, en elke foute code daarna verdubbelt die tijd, tot 15 minuten. Home Assistant hoort van elke foute code via het event esphome.screen_alarm_code_refused, nooit met de code.",
       "how_code": "De code gaat met de actie naar Home Assistant, zoals zijn eigen alarmkaart hem stuurt, en wordt op het scherm meteen gewist. Een scherm bewaart of logt hem nooit.",
       "how_tile": "Zet het alarm ook op een pagina, dan opent een tik op zijn tegel altijd de kaart met een knop per stand."
+    },
+    "calls": {
+      "hero_title": "Bellen",
+      "hero_text": "Als een scherm een ander scherm belt, gaat het gebelde scherm over. Kies hieronder waarmee: een beltoon heeft zijn eigen pauze en speelt steeds opnieuw tot iemand opneemt. Een nieuwe keuze komt met de volgende keer bellen op het scherm, zonder update."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Beltoon",
+          "text": "Waarmee een scherm overgaat als een ander scherm het belt."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "Wat een scherm speelt als de deurbel gaat, op de schermen die de deurbel openen, en op de andere met de melding."
+        },
+        "alert": {
+          "title": "Meldingsgeluid",
+          "text": "Wat een scherm speelt als er een melding van je komt, verstuurd met het event esp_screens_show_alert. Geen geluid is zoals het was. Een melding kan stil blijven met sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Klassiek",
+        "marimba": "Marimba",
+        "digital": "Digitaal",
+        "bell": "Bel",
+        "chime": "Ding-dong",
+        "notice": "Seintje"
+      },
+      "none": "Geen geluid",
+      "play": "Afspelen",
+      "stop": "Stop",
+      "seconds": "{seconds} s",
+      "chosen": "Geluid gekozen",
+      "saved": "Geluid bewaard",
+      "removed": "Geluid verwijderd",
+      "own_add": "Eigen geluid toevoegen",
+      "own_choose": "Kies een geluidsbestand",
+      "own_unreadable": "Dit bestand kon niet als geluid gelezen worden.",
+      "own_full": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
+      "own_drag_loop": "Sleep het stuk of een van de randen, hier of in het hele bestand erboven; de pijltjestoetsen kunnen het ook. Afspelen (of de spatiebalk) herhaalt het zoals het scherm het doet.",
+      "own_drag_once": "Sleep het stuk of een van de randen, hier of in het hele bestand erboven; de pijltjestoetsen kunnen het ook. Afspelen (of de spatiebalk) speelt het zoals het scherm het doet.",
+      "own_name": "Naam",
+      "own_save": "Geluid bewaren",
+      "screens_title": "Per scherm",
+      "screens_same": "Zoals elk scherm",
+      "screens_none": "Nog geen scherm dat dit kan spelen heeft een speaker.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume op {volume} dB gezet",
+      "test": "Test",
+      "test_hint": "Speelt het nu op dit scherm, zoals het straks echt klinkt",
+      "test_sent": "Speelt op het scherm",
+      "editor": {
+        "drop": "Sleep een geluidsbestand hierheen",
+        "drop_loop": "Elk nummer of geluid kan: je kiest het stuk dat belt, hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt.",
+        "drop_once": "Elk nummer of geluid kan: je kiest het stuk dat speelt, hoogstens {seconds} seconden.",
+        "total": "{time} in totaal",
+        "other_file": "Ander bestand",
+        "whole": "Het hele bestand",
+        "part": "Het stuk dat speelt",
+        "start": "Begin",
+        "end": "Einde",
+        "of_most": "van hoogstens {most} s",
+        "made": "Wat er met het geluid gebeurt",
+        "no_bass": "Bas eruit",
+        "soft_ends": "Zachte randen",
+        "even_level": "Gelijk volume",
+        "repeats": "Herhaalt"
+      }
     }
   }
 }

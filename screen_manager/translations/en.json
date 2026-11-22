@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "That is not a list of icons.",
         "too_many": "A screen takes at most {most} icons of its own."
+      },
+      "sounds": {
+        "name": "Give the sound a name.",
+        "many": "There are {most} sounds of your own already. Remove one first.",
+        "format": "A sound is a WAV file of 16 kHz, mono, 16 bits.",
+        "short": "A sound is at least a quarter of a second long.",
+        "long": "A sound is at most {seconds} seconds long.",
+        "unknown": "That sound does not exist.",
+        "volume": "A volume is a whole number of dB from -40 to 0.",
+        "none": "This screen plays no sound for this. Choose one first.",
+        "older": "This screen needs a firmware update for this.",
+        "busy": "This screen is in a call right now."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "Layoutbot forgot {count} of your tiles: they stand loose on the last page."
       },
       "nothing_to_restructure": "There are no tiles of devices on this page to restructure yet. Add a few, then ask again."
+    },
+    "sounds": {
+      "test": "Ringtone test"
     }
   },
   "editor": {
@@ -2948,6 +2963,35 @@
       "extras": {
         "title": "Extras",
         "note": "Settings only this screen has, from its board. The same switches are on the screen's own settings page and in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Display",
+          "grid": "{columns} × {rows} tiles"
+        },
+        "standby": {
+          "title": "Standby & night",
+          "after": "Standby after {time}",
+          "off": "No standby",
+          "night": "Night {start} to {end}"
+        },
+        "navigation": {
+          "title": "Navigation",
+          "home_after": "Back to Home after {time}"
+        },
+        "board": {
+          "title": "This board"
+        },
+        "help": {
+          "title": "Help",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Brightness and rotation",
+        "standby": "Standby",
+        "night": "Night",
+        "navigation": "Navigation"
       }
     },
     "update": {
@@ -3015,8 +3059,6 @@
       "title": "Everything around your screens.",
       "back": "← My screens",
       "screens": {
-        "title": "Screens",
-        "text": "Add a screen, or build and reinstall the firmware of one you already have.",
         "firmware_detail": "Build and install via USB or Wi-Fi"
       },
       "language": {
@@ -3127,6 +3169,40 @@
         "offer": "Free {size}",
         "not_now": "Not now",
         "large": "The build folders take {size}. Cleaning them up frees most of the room the builds take."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Updated every night",
+          "badge": "1 update | {n} updates"
+        },
+        "builds": {
+          "title": "Builds",
+          "server": "On build server {name}",
+          "server_pending": "Build server {name} waits to be accepted",
+          "no_server": "Built in this app"
+        },
+        "language": {
+          "auto": "{name}, from Home Assistant",
+          "auto_plain": "From Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Counted in the store",
+          "counting_off": "Not counted in the store",
+          "asking_on": "Asks for stars",
+          "asking_off": "Never asks for stars"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video {state}",
+          "claude": "Claude {state}",
+          "running": "running",
+          "not_installed": "not installed",
+          "installed": "installed",
+          "update": "update ready",
+          "restart": "restart needed"
+        }
       }
     },
     "firmware": {
@@ -3269,7 +3345,8 @@
       "steps": {
         "board": "Screen",
         "setup": "Set up",
-        "install": "Install"
+        "install": "Install",
+        "plugins": "Plugins"
       },
       "pick_title": "Which screen do you have?",
       "pick_intro": "Pick your board. Search by brand, size or what is printed on it.",
@@ -3346,7 +3423,9 @@
       "grid": "Grid",
       "grid_hint": "The suggested grid is the best for this screen. You can change it, and which way it hangs, later beside the pages in the editor, without a new build.",
       "grid_best": "Back to the best",
-      "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after."
+      "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after.",
+      "plugins_title": "Plugins for this screen",
+      "plugins_intro": "These go with what this board has. Untick what you do not want: it is not built in, and you can add it later on the Plugins page."
     },
     "alerts": {
       "intro": "Every screen has the {action} action. It places a card over everything, wakes the screen, and keeps the backlight at normal brightness until someone taps the button or the timeout runs out. Home Assistant itself shows no explanation or dropdowns for ESPHome actions; everything you can fill in is listed here.",
@@ -3724,7 +3803,8 @@
       "actions_allowed": "{name} may now control your devices.",
       "part_page": "The page: title and navigation",
       "part_page_hint": "Title, home page and how you get here",
-      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page."
+      "home_control_hint": "Puts the Home button at the left of this page's top bar. It leads to the home page.",
+      "place_on_new_page": "On a new page"
     },
     "feedback": {
       "question": "Does your screen work as you expect?",
@@ -4396,6 +4476,18 @@
         "go": "Remove from the list",
         "note": "No screen runs this plugin. Remove it from the list to forget the link.",
         "note_folder": "No screen runs this plugin from its folder. Removing it moves the folder to config/tessera-plugins/.removed/{id}, where you can delete it for good."
+      },
+      "suggest": {
+        "why": {
+          "camera": "This board has a camera."
+        },
+        "question": "Add {name} to {screen}?",
+        "yes": "Add it",
+        "yes_update": "Add with the next update",
+        "no": "No, thanks",
+        "building": "{name} is being built for {screen}.",
+        "with_update": "{name} comes with {screen}'s next update.",
+        "declined": "Fine. {name} stays on the Plugins page if you want it later."
       }
     },
     "plugin_tile": {
@@ -4653,7 +4745,8 @@
         "remove_confirm": "Remove \"{name}\" from Home Assistant?",
         "on": "On",
         "off": "Off"
-      }
+      },
+      "calls": "Calls"
     },
     "doorbell": {
       "intro": "Someone rings, and your screens show the door. An automation fires the event with the doorbell's camera: a P4 screen wakes, chimes and opens the camera live with its sound; any other screen shows its picture in an alert. Any doorbell works, whatever starts the automation.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Three wrong codes lock the keypad for 30 seconds, and every wrong code after that doubles the time, up to 15 minutes. Home Assistant hears of each one as the event esphome.screen_alarm_code_refused, never with the code.",
       "how_code": "The code goes to Home Assistant with the action, as its own alarm card sends it, and is wiped on the screen at once. A screen never stores or logs it.",
       "how_tile": "Put the alarm on a page too, and a tap on its tile opens the card with a key per mode at any time."
+    },
+    "calls": {
+      "hero_title": "Calls",
+      "hero_text": "When one screen calls another, the screen that is called rings. Choose what it rings with below: a ring holds its own pause and plays over and over until someone answers. A new choice reaches a screen with its next ring, no update needed."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Ringtone",
+          "text": "What a screen rings with when another screen calls it."
+        },
+        "doorbell": {
+          "title": "Chime",
+          "text": "What a screen plays when the doorbell rings, on the screens that open the doorbell, and on the others with its alert."
+        },
+        "alert": {
+          "title": "Alert sound",
+          "text": "What a screen plays when an alert of yours comes up, sent with the esp_screens_show_alert event. No sound is what it was before. An alert can stay quiet with sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Classic",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Bell",
+        "chime": "Ding-dong",
+        "notice": "Notice"
+      },
+      "none": "No sound",
+      "play": "Play",
+      "stop": "Stop",
+      "seconds": "{seconds} s",
+      "chosen": "Sound chosen",
+      "saved": "Sound saved",
+      "removed": "Sound removed",
+      "own_add": "Add your own sound",
+      "own_choose": "Choose a sound file",
+      "own_unreadable": "This file could not be read as sound.",
+      "own_full": "There are {most} sounds of your own already. Remove one first.",
+      "own_drag_loop": "Drag the part, or one of its edges, here or in the whole file above; the arrow keys move them too. Play (or the space bar) loops it the way the screen will.",
+      "own_drag_once": "Drag the part, or one of its edges, here or in the whole file above; the arrow keys move them too. Play (or the space bar) plays it the way the screen will.",
+      "own_name": "Name",
+      "own_save": "Save sound",
+      "screens_title": "Per screen",
+      "screens_same": "Same as every screen",
+      "screens_none": "No screen that can play this has a speaker yet.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume set to {volume} dB",
+      "test": "Test",
+      "test_hint": "Plays it on this screen now, the way it will for real",
+      "test_sent": "Playing it on the screen",
+      "editor": {
+        "drop": "Drop a sound file here",
+        "drop_loop": "Any song or sound will do: you pick the part that rings, at most {seconds} seconds, with the pause you want before it rings again.",
+        "drop_once": "Any song or sound will do: you pick the part that plays, at most {seconds} seconds.",
+        "total": "{time} in all",
+        "other_file": "Another file",
+        "whole": "The whole file",
+        "part": "The part that plays",
+        "start": "Start",
+        "end": "End",
+        "of_most": "of at most {most} s",
+        "made": "What is done to the sound",
+        "no_bass": "Bass filtered out",
+        "soft_ends": "Soft ends",
+        "even_level": "Even volume",
+        "repeats": "Repeats"
+      }
     }
   }
 }

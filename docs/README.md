@@ -25,6 +25,9 @@
   recipe for the code).
 - [EXTRA_HARDWARE.md](EXTRA_HARDWARE.md): a wall button, a temperature sensor or other parts on a screen's spare pins,
   through its Override YAML.
+- [CALLS.md](CALLS.md): calls between screens, the Call tile, echo and Do not disturb.
+- [SOUNDS.md](SOUNDS.md): the ringtone, the doorbell's chime and the alert sound a screen plays, chosen under Events
+  or cut from a sound file of your own, and adding a kind of sound (also a recipe).
 - [ICONS.md](ICONS.md): the icons every screen carries, the ones you add per screen and why that takes a build (also a
   recipe for the code).
 - [UPDATING_4MB_SCREENS.md](UPDATING_4MB_SCREENS.md): the CYD and the Hosyond get more room for firmware, and what to do
@@ -94,6 +97,8 @@
 - [FLASH_LAYOUT.md](FLASH_LAYOUT.md): the partition table of a board with 4 MB of flash, and how a screen gets it
   without losing its settings (the technical side of UPDATING_4MB_SCREENS.md).
 - [CAMERA.md](CAMERA.md): camera pictures and album covers, from Home Assistant to the screen.
+- [SCREEN_FILES.md](SCREEN_FILES.md): the files a screen downloads from the app (the sounds first), named by their
+  content on the port of the pictures, and adding a kind of file (a recipe).
 - [PICTURE_ARCHITECTURE.md](PICTURE_ARCHITECTURE.md): the building blocks under pictures and cameras in the firmware,
   the app and the Screen camera plugin, their seams, and the layers they are moved into (a design with its recipe).
 - [PLATFORM_PLAN.md](PLATFORM_PLAN.md): what Tessera builds next on the ESP32-P4 and in what order: the hardware layer

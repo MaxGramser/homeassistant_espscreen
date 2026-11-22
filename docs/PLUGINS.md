@@ -387,6 +387,45 @@ offered and built only where the screen has them. `Plugins.plan` says what a cha
 (the editor's "Comes along", the tray's rows); `apply` carries it out in one build and marks what came along (`auto`).
 A plugin another one needs only goes together with it, and what only came along is offered to go as well.
 
+## Plugins a board starts with
+
+A board can have hardware that only does something with a plugin: a camera without Screen camera is a lens nobody
+reads. The app suggests the plugin for such hardware, and a person answers once. It never adds a plugin by itself.
+
+**The rules** are one table, `RULES` in `screen_manager/app/plugin_defaults.py`. A rule names the plugin (an id of the
+app's own index, never a link or a folder, so a plugin cannot suggest itself), the feature of the board that calls for
+it (`boards.json` `features`, which come from the board's files), the first version worth suggesting, and the key of
+its reason. Nothing else names a plugin: `plugins.py`, the wizard and the card read the table.
+
+| Board has | Suggested | Since | Reason |
+|---|---|---|---|
+| `camera_sensor` | Screen camera | 0.7.0 | "This board has a camera." |
+
+**Where a person answers.**
+
+- *New screen.* The wizard has a Plugins step between Set up and Install, only for a board a rule suggests something
+  for (`PluginsStep.vue`, `GET api/boards/<board>/plugins/suggested`). Each plugin is ticked and says its reason. What
+  stays ticked goes into the screen's plugins file before its first build (`Plugins.start_with`), so the screen is built
+  once; what is unticked is kept as a no. Both wait under `starting` in `plugins.json`, by the screen's node, until Home
+  Assistant has the screen, and then become its own (`Plugins.adopt_started`). A profile removed before its screen ever
+  came leaves nothing.
+- *A screen that is there.* A card above the screen suggests the plugin (`PluginSuggestCard.vue`, the inventory's
+  `plugin_suggest`), one at a time, never together with the board's card or the stars card. Yes builds it now, as when
+  a person adds it on the Plugins page; when an update waits for the screen, yes is kept and that update brings it
+  (`Plugins.join_accepted` before the build, `settle_joined` after), so the screen is built once. An update never
+  fails on it: a build that stops goes once more without it, and the plugin stays listed as failed on the Plugins
+  page. An update, by hand or at night, brings nothing nobody said yes to.
+
+**An answer is kept**, per screen, in `plugins.json` (`declined`, `accepted`). No means the plugin is not suggested for
+that screen again; taking a suggested plugin off a screen counts as no. The plugin stays on the Plugins page either
+way, and adding it there is a person's own choice like any other.
+
+**A new rule** is one line in `RULES`, one sentence under `editor.plugins.suggest.why` in every language
+(docs/TRANSLATING.md), and a row in the table above. Suggest a plugin only when it costs a screen that never uses it
+next to nothing, and write down the measurement (Screen camera: docs/CAMERA.md, "A camera nobody uses"). A plugin that
+needs something filled in before it builds (an input without a default) is not one to suggest here. The tests are
+`Suggested` in `tests/test_plugins.py` and `web/tests/plugin-suggest.spec.ts`.
+
 ## Finding a plugin
 
 The Plugins page has a tab per type, read from the manifest (`plugin_type`: tiles, functions, hardware) and one for

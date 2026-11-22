@@ -147,3 +147,11 @@ export function arrivalOf(inventory: Pick<Inventory, "screens" | "pending">, fil
   if (found) return found.pairing === "failed" ? "failed" : "seen";
   return waited > ARRIVE_MS ? "missing" : "waiting";
 }
+
+// ---- The steps, and the Plugins step (docs/PLUGINS.md, "Plugins a board starts with") ----
+export type InstallStage = "board" | "setup" | "plugins" | "install";
+/** What the Plugins step sends with the profile: what stayed ticked is built in, what was unticked is kept as a no. */
+export function pluginChoice(suggested: readonly { id: string }[], picks: Readonly<Record<string, boolean>>) {
+  return { add: suggested.filter((plugin) => picks[plugin.id]).map((plugin) => plugin.id),
+    declined: suggested.filter((plugin) => !picks[plugin.id]).map((plugin) => plugin.id) };
+}

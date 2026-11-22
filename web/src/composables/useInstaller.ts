@@ -10,13 +10,13 @@ import { t } from "../i18n";
 import { afterBrowserBuild, errorLine, firmwareImage, memoryText } from "../model/firmware-job";
 import { customPreview, previewProfiles } from "../model/preview";
 import { boardAbilities, boardList } from "../model/boards";
-import { bestGrid as bestOf, boardOrientations, familyOf, goLabel, gridRange, installWays, nameClash, profileRequest, wayHint, wayTarget,
-  type InstallForm, type SizeFilter } from "../model/installer";
+import { bestGrid as bestOf, boardOrientations, familyOf, goLabel, gridRange, installWays, nameClash, pluginChoice, profileRequest, wayHint, wayTarget,
+  type InstallForm, type InstallStage, type SizeFilter } from "../model/installer";
 import { elapsedText, followDetail, followTitle, installProgress, type Follow } from "../model/install-progress";
 import { nodeName } from "../model/slug";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
-import type { BoardChoice, LineBuild, Orientation } from "../types";
+import type { BoardChoice, LineBuild, Orientation, PluginSuggestion } from "../types";
 import { useArrival } from "./useArrival";
 import { useBusy } from "./useBusy";
 import { useClock } from "./useClock";
@@ -54,13 +54,30 @@ export function useInstaller() {
   const status = ref("");
   const { busy: submitting, run: whileSubmitting } = useBusy();
   const logOpen = ref(false);
-  const step = ref<1 | 2 | 3>(1);
+  // The steps the form goes through. Plugins is there only for a board the add-on suggests a plugin for
+  // (plugin_defaults.py): hardware of the board that a plugin makes work, ticked, each with its reason.
+  const step = ref(1);
+  const suggested = ref<PluginSuggestion[]>([]);
+  const picks = reactive<Record<string, boolean>>({});
+  const stages = computed<InstallStage[]>(() => ["board", "setup", ...(suggested.value.length ? ["plugins" as const] : []), "install"]);
+  const stage = computed<InstallStage>(() => stages.value[step.value - 1] || "install");
   const query = ref("");
   const size = ref<SizeFilter>("");
   // Ready Wi-Fi can still be the wrong one: "Another network" asks for both lines again, written before the build.
   const wifiOther = ref(false);
 
   watch(() => form.friendly_name, () => { if (!installer.nodeEdited) form.name = nodeName(form.friendly_name); });
+  // What the add-on suggests for the chosen board; a board asked about earlier never answers for the one chosen now.
+  watch(() => form.board, async (board) => {
+    suggested.value = [];
+    if (!board) return;
+    try {
+      const found: { plugins?: PluginSuggestion[] } | null = await send(`boards/${encodeURIComponent(board)}/plugins/suggested`, "GET");
+      if (form.board !== board) return;
+      suggested.value = found?.plugins || [];
+      for (const plugin of suggested.value) if (!(plugin.id in picks)) picks[plugin.id] = true;
+    } catch (err: any) { console.error("Asking which plugins go with the board failed:", err); }
+  }, { immediate: true });
   // The boards and everything said about them come from the add-on (boards.yaml and the board files, through
   // boards.json): the list, each board's glass drawn to one scale, its abilities, its choices. Nothing here names a board.
   const boards = computed<Record<string, BoardChoice>>(() => data.value?.boards || {});
@@ -236,6 +253,8 @@ export function useInstaller() {
   async function build(browser: boolean) {
     try {
       const payload = profileRequest(form, { choices: choices.value, gridChosen: gridChosen.value, wifiMissing: askWifi.value ? wifiMissing.value : null, browser });
+      // What stayed ticked on the Plugins step goes into the first firmware; what was unticked is not suggested again.
+      if (suggested.value.length) payload.plugins = pluginChoice(suggested.value, picks);
       if (wifiOther.value) await saveWifi();
       const result = await send("firmware/profiles", "POST", payload);
       Object.assign(installer, { file: result.file, apiKey: result.api_key, friendly: form.friendly_name.trim(), calibrate: !!chosen.value?.calibrate,
@@ -277,6 +296,8 @@ export function useInstaller() {
     Object.assign(form, { board: boardRows.value[0]?.key || "", orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
     bestGrid();
     step.value = 1; query.value = ""; size.value = ""; wifiOther.value = false; restart();
+    for (const id of Object.keys(picks)) delete picks[id];
+    for (const plugin of suggested.value) picks[plugin.id] = true;
     status.value = ""; note.value = ""; logOpen.value = false;
     refresh();
   }
@@ -284,7 +305,7 @@ export function useInstaller() {
     if (installer.view === "progress" && !line.onItsWay.value) installer.view = "done";
     ui.go("");
   }
-  function back() { if (step.value > 1) step.value = (step.value - 1) as 1 | 2; }
+  function back() { if (step.value > 1) step.value -= 1; }
   function tryVirtual() { mode.value = "virtual"; step.value = 2; }
   function realScreen() { mode.value = "physical"; step.value = 1; }
   function pickWay(value: string) { form.target = value; installer.picked = true; refresh(); }
@@ -309,7 +330,7 @@ export function useInstaller() {
   onBeforeUnmount(() => flash.cancel());
 
   return proxyRefs({
-    form, mode, installer, flash, support, logs, note, status, logOpen, step, query, size, wifiOther, submitting, fixing,
+    form, mode, installer, flash, support, logs, note, status, logOpen, step, stages, stage, suggested, picks, query, size, wifiOther, submitting, fixing,
     boardRows, previews, previewForm, chosen, abilities, choices, orientations, range, gridChosen, siblings, clash, wifi, askWifi, wifiMissing,
     wifiNote, goDisabled, goLabel: computed(() => goLabel(form.target)), wayHint: computed(() => wayHint(form.target, support, ports.value)),
     ways, art, running, ok, download, memory, progressTitle, progressDetail, image, progress, elapsed, artState, arrival,

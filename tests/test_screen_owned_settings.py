@@ -662,6 +662,7 @@ class Editor(unittest.TestCase):
         self.script = editor_sources.SCRIPT
         self.css = editor_sources.CSS
         self.tab = editor_sources.component('SettingsTab')
+        self.rows = editor_sources.component('SettingRows')
 
     def test_the_panel_replaces_the_form(self):
         self.assertIn('<div class="settings" id="general-settings"', self.tab)
@@ -673,7 +674,8 @@ class Editor(unittest.TestCase):
             self.assertIn(rule, self.css)
         # A value Home Assistant does not have (offline, entity off) shows as unknown, not as a default.
         self.assertIn('if (value === null || value === undefined) return "—";', self.script)
-        self.assertIn(':class="{ unknown: values[row.key] === null || values[row.key] === undefined }"', self.tab)
+        # The rows themselves are SettingRows, which each part of the tab shows by key (docs/PAGES.md, "Settings").
+        self.assertIn(':class="{ unknown: values[row.key] === null || values[row.key] === undefined }"', self.rows)
 
     def test_the_rows_are_the_settings_of_the_screen_page(self):
         import editor_sources

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // One screen: the head with its status, the Layout and Settings tabs, and the inspector in a column on the right.
 import { useEventListener, useFileDialog } from "@vueuse/core";
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { t } from "../i18n";
 import { needsUpdate } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
@@ -13,6 +13,7 @@ import ScreenPluginsTab from "./ScreenPluginsTab.vue";
 import Drawer from "./Drawer.vue";
 import FeedbackPanel from "./FeedbackPanel.vue";
 import PluginRatingCard from "./PluginRatingCard.vue";
+import PluginSuggestCard from "./PluginSuggestCard.vue";
 import Icon from "./ui/Icon.vue";
 import UiMenu from "./ui/UiMenu.vue";
 import UiMenuItem from "./ui/UiMenuItem.vue";
@@ -31,6 +32,10 @@ import { useDocumentStore } from "../stores/document";
 import { useInspectorStore } from "../stores/inspector";
 
 const ui = useUiStore();
+// A part of the Settings tab is in the address (`?settings=<part>`): an address with one opens the tab, and leaving the
+// tab takes the part out of the address again, in place, so Back does not walk through it.
+watch(() => ui.screenSettingsPart, (part) => { if (part) ui.tab = "settings"; }, { immediate: true });
+watch(() => ui.tab, (tab) => { if (tab !== "settings" && ui.screenSettingsPart) ui.openScreenSettings(null, { replace: true }); });
 const builds = useBuildsStore();
 const plugins = usePluginsStore();
 const scr = useScreenStore();
@@ -222,6 +227,8 @@ useEventListener(document, "keydown", onKey);
   <FeedbackPanel v-if="screen.feedback?.available" :key="`card-${screen.id}`" :screen="screen" mode="card" />
   <!-- Stars for a plugin it runs (docs/PLUGINS.md, "Likes, ratings and counting"), never at once with the card above. -->
   <PluginRatingCard v-if="inv.pluginsEnabled" :key="`rate-${screen.id}`" :screen="screen" />
+  <!-- A plugin for hardware its board has (docs/PLUGINS.md, "Plugins a board starts with"), asked once. -->
+  <PluginSuggestCard v-if="inv.pluginsEnabled" :key="`suggest-${screen.id}`" :screen="screen" />
   <div class="body" id="body">
     <div class="work">
       <LayoutView v-if="ui.tab === 'layout'" />

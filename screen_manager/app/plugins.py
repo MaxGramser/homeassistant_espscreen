@@ -31,6 +31,7 @@ import core
 import entity_settings
 import feedback
 import page_delivery
+import plugin_defaults
 import plugin_fetch
 import plugin_likes
 import plugin_manifest as pm
@@ -1285,12 +1286,13 @@ class Plugins:
 
     # ---- A screen's plugins file ----
 
-    def sidecar(self, inbox, records=None):
+    def sidecar(self, inbox, records=None, screen=None):
         """The text of `<name>.plugins.yaml` for this screen's records (or the ones it is about to have). A plugin whose
         first build failed is left out, so the screen's next build (an update of the core) does not fail on it."""
         packages, components = [], []
         records = [r for r in (self.store.of(inbox) if records is None else records) if r.get('state') != 'failed']
-        screen = self.screen_of(inbox) or {'id': inbox}
+        # `screen`: one that is still being made (start_with), which has a board and no inbox yet.
+        screen = screen or self.screen_of(inbox) or {'id': inbox}
         have = self.features_on(screen, records)
         for record in records:
             entry = self.entry_for(record)
@@ -1325,7 +1327,7 @@ class Plugins:
             components += ['  - source:', '      type: git', f'      url: {entry.repo}', f'      ref: {entry.ref}',
                            f'      path: {folder}components', '    refresh: never']
         lines = ['# Written by Tessera. Change plugins and icons in Tessera, not here.']
-        fonts = self.manager.icons.font_lines(inbox) if getattr(self.manager, 'icons', None) else []
+        fonts = self.manager.icons.font_lines(inbox) if inbox and getattr(self.manager, 'icons', None) else []
         if packages:
             lines += ['packages:', *packages, 'external_components:', *components]
         if fonts:
@@ -1400,6 +1402,136 @@ class Plugins:
                 if feature not in have and not self.providers(feature, screen):
                     return 'feature'
         return None
+
+    # ---- Plugins the app suggests for a board (plugin_defaults.py) ----
+
+    def _suggestion(self, rule, entry):
+        # Its texts in every language it has, as the stars card gives them: the editor picks.
+        words = lambda key: dict(entry.texts.get(key) or {'en': key})
+        return {'id': entry.id, 'name': words('name'), 'summary': words('summary'), 'version': entry.version,
+                'why': rule['why'], 'image': self.image_url(entry)}
+
+    def _suggested(self, screen):
+        """[(rule, entry)]: the rules this screen's board meets whose plugin the index offers, at a version worth
+        suggesting, and that fits the screen. `screen` may be one that is still being made: {'id': None, 'board': key}."""
+        if not self.ready or not core.plugins_enabled():
+            return []
+        found = []
+        for rule in plugin_defaults.rules_for(core.SHAPES.get(core.board_of(screen), {}).get('features')):
+            entry = self.index.get(rule['plugin'])
+            if entry is None or version_tuple(entry.version) < rule['since'] or self.fits(entry, screen):
+                continue
+            found.append((rule, entry))
+        return found
+
+    def suggest_for_board(self, board):
+        """New screen's Plugins step: what this board's rules suggest, each with the key of its reason."""
+        return [self._suggestion(rule, entry) for rule, entry in self._suggested({'id': None, 'board': board})]
+
+    def suggested(self, screen):
+        """[(rule, entry)] for a screen that is there: as _suggested, and not on the screen (a plugin that failed to
+        build stays listed there), nothing on it bringing the same already, and not said no to."""
+        inbox = screen['id']
+        have, declined = self.features_on(screen), set(self.store.declined(inbox))
+        return [(rule, entry) for rule, entry in self._suggested(screen)
+                if entry.id not in declined and not self.store.get(inbox, entry.id)
+                and not set(entry.manifest['provides']) & have]
+
+    def suggest_card(self, screen):
+        """The card above a screen that suggests a plugin for its board's hardware, or None: what is suggested and not
+        answered yet. `update`: an update waits for this screen, so a yes comes with it instead of a build now."""
+        screen = self.known_board(screen)
+        accepted = set(self.store.accepted(screen['id']))
+        open_ = [self._suggestion(rule, entry) for rule, entry in self.suggested(screen) if entry.id not in accepted]
+        if not open_:
+            return None
+        return {'plugins': open_, 'update': bool(self.manager.updates.state_for(screen)['available'])}
+
+    async def answer_suggestion(self, inbox, plugin, yes):
+        """A person's answer on the card. No: kept, never suggested for this screen again. Yes: with the update that
+        waits for the screen, or built now as when a person adds it on the Plugins page."""
+        screen = self.screen_of(inbox)
+        if screen is None:
+            raise ValueError(t('addon.errors.not_paired'))
+        inbox = screen['id']
+        if plugin not in {entry.id for _, entry in self.suggested(screen)}:
+            raise ValueError(t('addon.errors.plugins.request'))
+        if not yes:
+            self.store.answer(inbox, plugin, False)
+            return {'declined': True}
+        state = self.manager.updates.state_for(screen)
+        if state['profile'] and state['available']:
+            self.store.answer(inbox, plugin, True)
+            return {'with_update': True}
+        return await self.apply(inbox, {'add': [{'id': plugin, 'source': 'index', 'suggested': True}]})
+
+    async def join_accepted(self, inbox):
+        """Before an update's build of this screen: the suggested plugins a person said yes to go into its plugins file,
+        so the update brings them and the screen is built once. The ids that joined; settle them with settle_joined."""
+        screen = self.screen_of(inbox)
+        accepted = set(self.store.accepted(inbox)) if screen else set()
+        due = [entry.id for _, entry in self.suggested(screen) if entry.id in accepted] if accepted else []
+        if not due:
+            return []
+        try:
+            await self.apply(inbox, {'add': [{'id': plugin, 'source': 'index', 'suggested': True} for plugin in due]}, queue=False)
+        except ValueError as error:
+            LOG.info('%s does not get %s with this update: %s', inbox, ', '.join(due), error)
+            return []
+        LOG.info('%s gets %s with this update, as asked on its card', inbox, ', '.join(due))
+        return due
+
+    def settle_joined(self, inbox, joined, ok, reason=None, logs=None):
+        """The end of the build join_accepted wrote for: on, or failed and out of the plugins file again."""
+        if joined:
+            self._settle_build(inbox, joined, ok, None if ok else reason or (build_reason(logs) if logs else 'build'))
+
+    def start_with(self, file, node, board, chosen):
+        """New screen made the profile `file` of a screen called `node`: what its wizard kept ticked of the plugins
+        suggested for its board goes into its plugins file before the first build, and is kept with what was unticked
+        until Home Assistant has the screen (adopt_started). Only what suggest_for_board offers is taken."""
+        chosen = chosen if isinstance(chosen, dict) else {}
+        offered = dict((entry.id, entry) for _, entry in self._suggested({'id': None, 'board': board}))
+        listed = lambda key: [item for item in chosen.get(key) or [] if isinstance(item, str) and item in offered] \
+            if isinstance(chosen.get(key), list) else []
+        add = listed('add')
+        declined = [plugin for plugin in listed('declined') if plugin not in add]
+        records = []
+        for plugin in add:
+            entry = offered[plugin]
+            records.append({'id': entry.id, 'source': entry.source, 'repo': entry.repo, 'path': entry.path, 'ref': entry.ref,
+                            'version': entry.version, 'values': {}, 'suggested': True, 'state': 'active',
+                            'parts': [part['id'] for part in entry.manifest['parts'] if part['default']],
+                            **({'repo_id': entry.repo_id} if entry.repo_id else {}),
+                            'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())}})
+            self.keep_snapshot(entry)
+        if records:
+            self.manager.firmware.save_plugins(file, self.sidecar(None, records, screen={'id': None, 'board': board}))
+        self.store.start(node, records, declined)
+        return [record['id'] for record in records]
+
+    def adopt_started(self):
+        """A screen New screen made is in Home Assistant now: what its wizard chose becomes the screen's own."""
+        if not self.store.starting:
+            return
+        nodes = {meta.get('node') for meta in self.manager.firmware.profile_names().values()}
+        screens = {screen.get('node'): screen for screen in self.screens()}
+        for node in list(self.store.starting):
+            if node not in nodes:
+                self.store.forget_start(node)   # its profile was removed before the screen ever came
+                continue
+            screen = screens.get(node)
+            if screen is None:
+                continue
+            found = self.store.started(node)
+            for record in found['plugins']:
+                if not self.store.get(screen['id'], record['id']):
+                    self.store.put(screen['id'], dict(record, settled=int(time.time())))
+            for plugin in found['declined']:
+                if not self.store.get(screen['id'], plugin):
+                    self.store.answer(screen['id'], plugin, False)
+            self.store.forget_start(node)
+            self._know_tiles()
 
     def providers(self, feature, screen):
         """The plugins of the list that bring `feature` and fit this screen, Tessera's own first."""
@@ -1536,8 +1668,9 @@ class Plugins:
                          'permission_hash': pm.permission_hash(step['entry'].manifest)} for step in plan['add']],
                 'remove': plan['remove'], 'choose': plan['choose'], 'orphans': plan['orphans']}
 
-    async def apply(self, inbox, body):
-        """Add and remove plugins on one screen, write its plugins file and build it. `body`:
+    async def apply(self, inbox, body, queue=True):
+        """Add and remove plugins on one screen, write its plugins file and build it (`queue` False: written and not
+        built, for a build that is about to run anyway, join_accepted). `body`:
         {"add": [{"id", "source": "index"|"folder"|"link"|"branch", "parts": [...], "values": {...}, "secrets": {...},
         "consent": bool, "switch": bool, "auto": bool}], "remove": [id], "providers": {feature: id}}. What the plugins
         asked for need comes along in the same build (_plan), marked as come along; `switch` replaces a plugin of the same
@@ -1613,6 +1746,8 @@ class Plugins:
                 **({'repo_id': entry.repo_id} if entry.repo_id else {}),
                 **({'branch': entry.branch} if entry.branch else {}),
                 **({'auto': True} if came else {}),
+                # Suggested for the board's own hardware (plugin_defaults.py) and said yes to.
+                **({'suggested': True} if item.get('suggested') is True and not (had and not had.get('suggested')) else {}),
                 **({'previous': {k: v for k, v in previous.items() if k not in ('previous', 'failed_update')}}
                    if previous and profile else {}),
                 'consent': {'permissions': pm.permission_hash(entry.manifest), 'at': int(time.time())},
@@ -1634,6 +1769,9 @@ class Plugins:
         for plugin in removes:
             gone = self.store.get(inbox, plugin)
             self.store.remove(inbox, plugin)
+            # Taken off by a person: the app does not suggest it for this screen again.
+            if plugin in plugin_defaults.suggested_ids():
+                self.store.answer(inbox, plugin, False)
             origin = record_origin(gone) if gone else None
             if gone and not any(record_origin(r) == origin for screen_records in self.store.everywhere().values()
                                 for r in screen_records if r['id'] == plugin):
@@ -1644,6 +1782,8 @@ class Plugins:
             # A screen built from its own YAML: the app cannot build it, so the page shows the file and the line.
             return {'own_yaml': True, 'file': f'{screen.get("node") or "screen"}.plugins.yaml', 'content': text,
                     'line': self.attach_line(f'{screen.get("node") or "screen"}.yaml')}
+        if not queue:
+            return {'written': True, 'built': False}
         # The screen's build waits its turn in the app's one build line (build_queue, docs/BUILDS.md): ticking three
         # screens on the Plugins page builds them one after the other. A screen asked again while its build waits builds
         # once, with everything asked for it, and so does one whose update waits; one asked while its build runs builds
@@ -2327,6 +2467,7 @@ class Plugins:
     async def loop(self):
         while True:
             try:
+                self.adopt_started()
                 # The screensaver's steps first: the tiles' round forgets the answers nobody asked for in it.
                 await self.refresh_savers()
                 if self.plugin_tiles():

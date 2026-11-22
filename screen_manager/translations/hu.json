@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "Ez nem ikonok listája.",
         "too_many": "Egy kijelzőre legfeljebb {most} saját ikon fér."
+      },
+      "sounds": {
+        "name": "Adj nevet a hangnak.",
+        "many": "Már {most} saját hangod van. Előbb távolíts el egyet.",
+        "format": "A hang egy 16 kHz-es, mono, 16 bites WAV-fájl.",
+        "short": "A hang legalább negyed másodperc hosszú.",
+        "long": "A hang legfeljebb {seconds} másodperc hosszú.",
+        "unknown": "Ilyen hang nincs.",
+        "volume": "A hangerő egész szám dB-ben, -40 és 0 között.",
+        "none": "Ez a képernyő nem játszik le hangot ehhez. Előbb válassz egyet.",
+        "older": "Ehhez a képernyőnek firmware-frissítésre van szüksége.",
+        "busy": "Ez a képernyő éppen hívásban van."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "A Layoutbot kihagyta {count} csempédet: ezek szabadon állnak az utolsó oldalon."
       },
       "nothing_to_restructure": "Ezen az oldalon még nincs átszervezhető eszközcsempe. Adj hozzá párat, aztán kérdezz újra."
+    },
+    "sounds": {
+      "test": "Csengőhang-teszt"
     }
   },
   "editor": {
@@ -2447,7 +2462,19 @@
         "note": "Egyetlen képernyő sem használja ezt a bővítményt. Távolítsd el a listából, hogy a hivatkozás feledésbe merüljön.",
         "note_folder": "Egyetlen kijelző sem használja ezt a bővítményt a mappájából. Az eltávolítás a mappát ide helyezi át: config/tessera-plugins/.removed/{id}, ahol végleg törölheted."
       },
-      "runs_elsewhere": "{screen} a(z) {running} verziót futtatja, amelyet máshol fordítottak. Ha itt fordítod, a(z) {version} verzió kerül rá."
+      "runs_elsewhere": "{screen} a(z) {running} verziót futtatja, amelyet máshol fordítottak. Ha itt fordítod, a(z) {version} verzió kerül rá.",
+      "suggest": {
+        "why": {
+          "camera": "Ezen a lapon van kamera."
+        },
+        "question": "Hozzáadod a(z) {name} bővítményt ehhez: {screen}?",
+        "yes": "Hozzáadás",
+        "yes_update": "Hozzáadás a következő frissítéssel",
+        "no": "Nem, köszönöm",
+        "building": "A(z) {name} készül ehhez: {screen}.",
+        "with_update": "A(z) {name} a(z) {screen} következő frissítésével érkezik.",
+        "declined": "Rendben. A(z) {name} a Bővítmények oldalon marad, ha később kérnéd."
+      }
     },
     "plugin_tile": {
       "from": "A(z) {plugin} bővítmény csempéje",
@@ -3401,6 +3428,35 @@
       "extras": {
         "title": "Extrák",
         "note": "Beállítások, amelyek csak ennek a kijelzőnek vannak, a lapkájától. Ugyanezek a kapcsolók a kijelző saját beállításoldalán és a Home Assistantben is ott vannak."
+      },
+      "parts": {
+        "display": {
+          "title": "Kijelző",
+          "grid": "{columns} × {rows} csempe"
+        },
+        "standby": {
+          "title": "Készenlét és éjszaka",
+          "after": "Készenlét {time} után",
+          "off": "Nincs készenlét",
+          "night": "Éjszaka {start} és {end} között"
+        },
+        "navigation": {
+          "title": "Navigáció",
+          "home_after": "Vissza a kezdőlapra {time} után"
+        },
+        "board": {
+          "title": "Ez a panel"
+        },
+        "help": {
+          "title": "Súgó",
+          "feedback": "Visszajelzés"
+        }
+      },
+      "blocks": {
+        "display": "Fényerő és elforgatás",
+        "standby": "Készenlét",
+        "night": "Éjszaka",
+        "navigation": "Navigáció"
       }
     },
     "update": {
@@ -3468,8 +3524,6 @@
       "title": "Minden, ami a kijelzőidhez kell.",
       "back": "← Kijelzőim",
       "screens": {
-        "title": "Kijelzők",
-        "text": "Adj hozzá kijelzőt, vagy fordítsd le és telepítsd újra egy meglévő firmware-ét.",
         "firmware_detail": "Fordítás és telepítés USB-n vagy Wi-Fi-n"
       },
       "language": {
@@ -3580,6 +3634,40 @@
         "offer": "{size} felszabadítása",
         "not_now": "Most nem",
         "large": "A fordítási mappák {size} helyet foglalnak. A takarításukkal felszabadul a fordítások által használt hely nagy része."
+      },
+      "parts": {
+        "updates": {
+          "title": "Frissítések",
+          "nightly": "Minden éjjel frissül",
+          "badge": "1 frissítés | {n} frissítés"
+        },
+        "builds": {
+          "title": "Fordítás",
+          "server": "A(z) {name} fordítószerveren",
+          "server_pending": "A(z) {name} fordítószerver jóváhagyásra vár",
+          "no_server": "Ebben az alkalmazásban fordítva"
+        },
+        "language": {
+          "auto": "{name}, a Home Assistantből",
+          "auto_plain": "A Home Assistantből"
+        },
+        "plugins": {
+          "title": "Bővítmények",
+          "counting_on": "Beleszámít a boltba",
+          "counting_off": "Nem számít bele a boltba",
+          "asking_on": "Csillagokat kér",
+          "asking_off": "Soha nem kér csillagot"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Videó: {state}",
+          "claude": "Claude: {state}",
+          "running": "fut",
+          "not_installed": "nincs telepítve",
+          "installed": "telepítve",
+          "update": "frissítés kész",
+          "restart": "újraindítás kell"
+        }
       }
     },
     "firmware": {
@@ -3722,7 +3810,8 @@
       "steps": {
         "board": "Kijelző",
         "setup": "Beállítás",
-        "install": "Telepítés"
+        "install": "Telepítés",
+        "plugins": "Bővítmények"
       },
       "pick_title": "Milyen kijelződ van?",
       "pick_intro": "Válaszd ki a lapkát. Keress márkára, méretre vagy a feliratra.",
@@ -3799,7 +3888,9 @@
       "grid": "Rács",
       "grid_hint": "A javasolt rács a legjobb ehhez a kijelzőhöz. Később a szerkesztőben, az oldalak mellett, újrafordítás nélkül módosíthatod, a tájolással együtt.",
       "grid_best": "Vissza a legjobbhoz",
-      "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul."
+      "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul.",
+      "plugins_title": "Bővítmények ehhez a képernyőhöz",
+      "plugins_intro": "Ezek ahhoz tartoznak, ami ezen a lapon megtalálható. Vedd ki a pipát abból, amit nem kérsz: az nem épül be, és később a Bővítmények oldalon hozzáadhatod."
     },
     "alerts": {
       "intro": "Minden kijelzőnek van {action} művelete. Ez egy kártyát tesz mindenre, felébreszti a kijelzőt, és normál fényerőn tartja a háttérvilágítást, amíg valaki meg nem nyomja a gombot, vagy le nem jár az időkorlát. A Home Assistant maga nem ad magyarázatot vagy legördülő listákat az ESPHome-műveletekhez; minden, amit kitölthetsz, itt van felsorolva.",
@@ -4177,7 +4268,8 @@
       "actions_allowed": "{name} mostantól vezérelheti az eszközeidet.",
       "part_page": "Az oldal: cím és navigáció",
       "part_page_hint": "Cím, kezdőlap és hogyan jutsz ide",
-      "home_control_hint": "A Kezdőlap gombot az oldal felső sávjának bal szélére teszi. A kezdőlapra visz."
+      "home_control_hint": "A Kezdőlap gombot az oldal felső sávjának bal szélére teszi. A kezdőlapra visz.",
+      "place_on_new_page": "Új oldalra"
     },
     "feedback": {
       "question": "Úgy működik a kijelződ, ahogy várod?",
@@ -4653,7 +4745,8 @@
         "on": "Be",
         "off": "Ki"
       },
-      "alarm": "Riasztó"
+      "alarm": "Riasztó",
+      "calls": "Hívások"
     },
     "doorbell": {
       "intro": "Valaki csenget, és a képernyőid mutatják az ajtót. Egy automatizálás elküldi az eseményt a csengő kamerájával: egy P4 képernyő felébred, csengőhangot játszik és élőben, hanggal megnyitja a kamerát; minden más képernyő értesítésben mutatja a képét. Bármilyen csengő működik, bármi indítja az automatizálást.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Három hibás kód 30 másodpercre zárolja a billentyűzetet, és utána minden hibás kód megduplázza az időt, legfeljebb 15 percig. A Home Assistant mindegyikről az esphome.screen_alarm_code_refused eseménnyel értesül, soha nem a kóddal.",
       "how_code": "A kód a művelettel megy a Home Assistantba, ahogy a saját riasztókártyája küldi, és a kijelzőn azonnal törlődik. Egy kijelző soha nem tárolja és nem naplózza.",
       "how_tile": "Tedd a riasztót egy oldalra is: a csempéjének megérintése bármikor megnyitja a kártyát, módonként egy gombbal."
+    },
+    "calls": {
+      "hero_title": "Hívások",
+      "hero_text": "Amikor egy képernyő felhív egy másikat, a hívott képernyő csörög. Lent választhatod ki, mivel csörögjön: a csengőhangnak saját szünete van, és újra meg újra szól, amíg valaki fel nem veszi. Az új választás a következő csengetéssel jut el a képernyőre, frissítés nélkül."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Csengőhang",
+          "text": "Ami megszólal egy képernyőn, amikor egy másik képernyő felhívja."
+        },
+        "doorbell": {
+          "title": "Ajtócsengő",
+          "text": "Amit a képernyő lejátszik, amikor megszólal az ajtócsengő: azokon a képernyőkön, amelyek megnyitják az ajtócsengőt, a többin pedig az értesítésével."
+        },
+        "alert": {
+          "title": "Értesítési hang",
+          "text": "Amit a képernyő lejátszik, amikor feljön egy általad küldött értesítés, az esp_screens_show_alert eseménnyel elküldve. Hang nélkül minden marad a régi. Egy értesítés a sound: false beállítással maradhat néma."
+        }
+      },
+      "builtin": {
+        "classic": "Klasszikus",
+        "marimba": "Marimba",
+        "digital": "Digitális",
+        "bell": "Harang",
+        "chime": "Ding-dong",
+        "notice": "Jelzés"
+      },
+      "none": "Nincs hang",
+      "play": "Lejátszás",
+      "stop": "Leállítás",
+      "seconds": "{seconds} mp",
+      "chosen": "Hang kiválasztva",
+      "saved": "Hang mentve",
+      "removed": "Hang eltávolítva",
+      "own_add": "Saját hang hozzáadása",
+      "own_choose": "Hangfájl kiválasztása",
+      "own_unreadable": "Ezt a fájlt nem sikerült hangként beolvasni.",
+      "own_full": "Már {most} saját hangod van. Előbb távolíts el egyet.",
+      "own_drag_loop": "Húzd a részt vagy valamelyik szélét ide, vagy a fenti teljes fájlban; a nyílbillentyűk is mozgatják. A Lejátszás (vagy a szóköz) ismétli, ahogyan a képernyő fogja.",
+      "own_drag_once": "Húzd a részt vagy valamelyik szélét ide, vagy a fenti teljes fájlban; a nyílbillentyűk is mozgatják. A Lejátszás (vagy a szóköz) úgy játssza le, ahogyan a képernyő fogja.",
+      "own_name": "Név",
+      "own_save": "Hang mentése",
+      "screens_title": "Képernyőnként",
+      "screens_same": "Ugyanaz, mint minden képernyőn",
+      "screens_none": "Még egyetlen olyan képernyőnek sincs hangszórója, amely ezt le tudja játszani.",
+      "volume": "Hangerő",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Hangerő beállítva: {volume} dB",
+      "test": "Teszt",
+      "test_hint": "Most lejátssza ezen a képernyőn, úgy, ahogy élesben szólni fog",
+      "test_sent": "Lejátszás a képernyőn",
+      "editor": {
+        "drop": "Húzz ide egy hangfájlt",
+        "drop_loop": "Bármelyik dal vagy hang jó: te választod ki a csengő részt, legfeljebb {seconds} másodpercet, azzal a szünettel, amelyet a következő csengetés előtt szeretnél.",
+        "drop_once": "Bármelyik dal vagy hang jó: te választod ki a lejátszott részt, legfeljebb {seconds} másodpercet.",
+        "total": "{time} összesen",
+        "other_file": "Másik fájl",
+        "whole": "A teljes fájl",
+        "part": "A lejátszott rész",
+        "start": "Kezdet",
+        "end": "Vég",
+        "of_most": "legfeljebb {most} mp-ből",
+        "made": "Mi történik a hanggal",
+        "no_bass": "Basszus nélkül",
+        "soft_ends": "Lágy szélek",
+        "even_level": "Egyenletes hangerő",
+        "repeats": "Ismétlődik"
+      }
     }
   }
 }

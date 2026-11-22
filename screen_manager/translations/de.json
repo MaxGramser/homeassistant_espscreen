@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "Das ist keine Liste von Symbolen.",
         "too_many": "Ein Bildschirm fasst höchstens {most} eigene Symbole."
+      },
+      "sounds": {
+        "name": "Gib dem Ton einen Namen.",
+        "many": "Es gibt schon {most} eigene Töne. Entferne zuerst einen.",
+        "format": "Ein Ton ist eine WAV-Datei mit 16 kHz, mono, 16 Bit.",
+        "short": "Ein Ton ist mindestens eine Viertelsekunde lang.",
+        "long": "Ein Ton ist höchstens {seconds} Sekunden lang.",
+        "unknown": "Diesen Ton gibt es nicht.",
+        "volume": "Eine Lautstärke ist eine ganze Zahl in dB von -40 bis 0.",
+        "none": "Dieser Bildschirm spielt dafür keinen Ton. Wähle zuerst einen.",
+        "older": "Dieser Bildschirm braucht dafür ein Firmware-Update.",
+        "busy": "Dieser Bildschirm ist gerade in einem Anruf."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "Layoutbot hat {count} deiner Kacheln vergessen: Sie stehen lose auf der letzten Seite."
       },
       "nothing_to_restructure": "Auf dieser Seite gibt es noch keine Gerätekacheln zum Umstrukturieren. Füge ein paar hinzu und frag dann noch einmal."
+    },
+    "sounds": {
+      "test": "Klingelton-Test"
     }
   },
   "editor": {
@@ -2447,7 +2462,19 @@
         "note": "Kein Bildschirm nutzt dieses Plugin. Entferne es aus der Liste, um den Link zu vergessen.",
         "note_folder": "Kein Bildschirm nutzt dieses Plugin aus seinem Ordner. Beim Entfernen wandert der Ordner nach config/tessera-plugins/.removed/{id}, wo du ihn endgültig löschen kannst."
       },
-      "runs_elsewhere": "{screen} hat Version {running}, woanders gebaut. Wenn du hier baust, kommt Version {version} darauf."
+      "runs_elsewhere": "{screen} hat Version {running}, woanders gebaut. Wenn du hier baust, kommt Version {version} darauf.",
+      "suggest": {
+        "why": {
+          "camera": "Dieses Board hat eine Kamera."
+        },
+        "question": "{name} zu {screen} hinzufügen?",
+        "yes": "Hinzufügen",
+        "yes_update": "Mit dem nächsten Update hinzufügen",
+        "no": "Nein, danke",
+        "building": "{name} wird für {screen} gebaut.",
+        "with_update": "{name} kommt mit dem nächsten Update von {screen}.",
+        "declined": "In Ordnung. {name} bleibt auf der Seite Plugins, falls du es später möchtest."
+      }
     },
     "plugin_tile": {
       "from": "Eine Kachel des Plugins {plugin}",
@@ -3401,6 +3428,35 @@
       "extras": {
         "title": "Extras",
         "note": "Einstellungen, die nur dieser Bildschirm hat, von seinem Board. Dieselben Schalter stehen auf der Einstellungsseite des Bildschirms und in Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Anzeige",
+          "grid": "{columns} × {rows} Kacheln"
+        },
+        "standby": {
+          "title": "Standby & Nacht",
+          "after": "Standby nach {time}",
+          "off": "Kein Standby",
+          "night": "Nacht {start} bis {end}"
+        },
+        "navigation": {
+          "title": "Navigation",
+          "home_after": "Zurück zu Start nach {time}"
+        },
+        "board": {
+          "title": "Dieses Board"
+        },
+        "help": {
+          "title": "Hilfe",
+          "feedback": "Feedback"
+        }
+      },
+      "blocks": {
+        "display": "Helligkeit und Drehung",
+        "standby": "Standby",
+        "night": "Nacht",
+        "navigation": "Navigation"
       }
     },
     "update": {
@@ -3468,8 +3524,6 @@
       "title": "Alles rund um deine Bildschirme.",
       "back": "← Meine Bildschirme",
       "screens": {
-        "title": "Bildschirme",
-        "text": "Füge einen Bildschirm hinzu oder erstelle und installiere die Firmware eines vorhandenen neu.",
         "firmware_detail": "Per USB oder Wi-Fi erstellen und installieren"
       },
       "language": {
@@ -3580,6 +3634,40 @@
         "offer": "{size} freigeben",
         "not_now": "Nicht jetzt",
         "large": "Die Build-Ordner belegen {size}. Wenn du sie aufräumst, wird der größte Teil des Platzes frei, den die Builds belegen."
+      },
+      "parts": {
+        "updates": {
+          "title": "Updates",
+          "nightly": "Jede Nacht aktualisiert",
+          "badge": "1 Update | {n} Updates"
+        },
+        "builds": {
+          "title": "Builds",
+          "server": "Auf Build-Server {name}",
+          "server_pending": "Build-Server {name} wartet auf Freigabe",
+          "no_server": "In dieser App gebaut"
+        },
+        "language": {
+          "auto": "{name}, aus Home Assistant",
+          "auto_plain": "Aus Home Assistant"
+        },
+        "plugins": {
+          "title": "Plugins",
+          "counting_on": "Im Store mitgezählt",
+          "counting_off": "Nicht im Store mitgezählt",
+          "asking_on": "Fragt nach Sternen",
+          "asking_off": "Fragt nie nach Sternen"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Video {state}",
+          "claude": "Claude {state}",
+          "running": "läuft",
+          "not_installed": "nicht installiert",
+          "installed": "installiert",
+          "update": "Update bereit",
+          "restart": "Neustart nötig"
+        }
       }
     },
     "firmware": {
@@ -3722,7 +3810,8 @@
       "steps": {
         "board": "Bildschirm",
         "setup": "Einrichten",
-        "install": "Installieren"
+        "install": "Installieren",
+        "plugins": "Plugins"
       },
       "pick_title": "Welchen Bildschirm hast du?",
       "pick_intro": "Wähle dein Board. Suche nach Marke, Größe oder Aufdruck.",
@@ -3799,7 +3888,9 @@
       "grid": "Raster",
       "grid_hint": "Das vorgeschlagene Raster ist das beste für diesen Bildschirm. Du kannst es und die Ausrichtung später neben den Seiten im Editor ändern, ohne neu zu bauen.",
       "grid_best": "Zurück zum besten",
-      "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst."
+      "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst.",
+      "plugins_title": "Plugins für diesen Bildschirm",
+      "plugins_intro": "Diese passen zu dem, was dieses Board hat. Entferne den Haken bei allem, was du nicht möchtest: Es wird nicht eingebaut, und du kannst es später auf der Seite Plugins hinzufügen."
     },
     "alerts": {
       "intro": "Jeder Bildschirm hat die Aktion {action}. Sie legt eine Karte über alles, weckt den Bildschirm und hält die Hintergrundbeleuchtung auf normaler Helligkeit, bis jemand auf die Taste tippt oder das Timeout abläuft. Home Assistant selbst zeigt für ESPHome-Aktionen keine Erklärungen oder Auswahllisten; alles, was du ausfüllen kannst, steht hier.",
@@ -4177,7 +4268,8 @@
       "actions_allowed": "{name} darf deine Geräte jetzt steuern.",
       "part_page": "Die Seite: Titel und Navigation",
       "part_page_hint": "Titel, Startseite und wie man hierher kommt",
-      "home_control_hint": "Setzt die Home-Taste links in die obere Leiste dieser Seite. Sie führt zur Startseite."
+      "home_control_hint": "Setzt die Home-Taste links in die obere Leiste dieser Seite. Sie führt zur Startseite.",
+      "place_on_new_page": "Auf eine neue Seite"
     },
     "feedback": {
       "question": "Funktioniert dein Bildschirm wie erwartet?",
@@ -4653,7 +4745,8 @@
         "on": "An",
         "off": "Aus"
       },
-      "alarm": "Alarm"
+      "alarm": "Alarm",
+      "calls": "Anrufe"
     },
     "doorbell": {
       "intro": "Jemand klingelt, und deine Bildschirme zeigen die Tür. Eine Automatisierung sendet das Event mit der Kamera der Türklingel: ein P4-Bildschirm wacht auf, spielt einen Gong und öffnet die Kamera live mit Ton; jeder andere Bildschirm zeigt ihr Bild in einem Alert. Jede Türklingel funktioniert, egal was die Automatisierung startet.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Drei falsche Codes sperren das Tastenfeld für 30 Sekunden, und jeder weitere falsche Code verdoppelt die Zeit, bis zu 15 Minuten. Home Assistant erfährt von jedem durch das Ereignis esphome.screen_alarm_code_refused, nie mit dem Code.",
       "how_code": "Der Code geht mit der Aktion an Home Assistant, so wie ihn dessen eigene Alarmkarte sendet, und wird auf dem Bildschirm sofort gelöscht. Ein Bildschirm speichert oder protokolliert ihn nie.",
       "how_tile": "Lege die Alarmanlage auch auf eine Seite: Ein Tippen auf ihre Kachel öffnet jederzeit die Karte mit einer Taste pro Modus."
+    },
+    "calls": {
+      "hero_title": "Anrufe",
+      "hero_text": "Wenn ein Bildschirm einen anderen anruft, klingelt der angerufene Bildschirm. Wähle unten, womit er klingelt: Ein Klingelton hat seine eigene Pause und spielt immer wieder, bis jemand abnimmt. Eine neue Wahl erreicht einen Bildschirm mit dem nächsten Klingeln, ein Update ist nicht nötig."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Klingelton",
+          "text": "Was auf einem Bildschirm klingelt, wenn ihn ein anderer Bildschirm anruft."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "Was ein Bildschirm spielt, wenn die Türklingel läutet: auf den Bildschirmen, die die Türklingel öffnen, und auf den anderen mit ihrem Alert."
+        },
+        "alert": {
+          "title": "Alert-Ton",
+          "text": "Was ein Bildschirm spielt, wenn ein Alert von dir erscheint, gesendet mit dem Event esp_screens_show_alert. Kein Ton ist so wie vorher. Ein Alert kann mit sound: false still bleiben."
+        }
+      },
+      "builtin": {
+        "classic": "Klassisch",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Glocke",
+        "chime": "Ding-Dong",
+        "notice": "Hinweis"
+      },
+      "none": "Kein Ton",
+      "play": "Abspielen",
+      "stop": "Stopp",
+      "seconds": "{seconds} s",
+      "chosen": "Ton gewählt",
+      "saved": "Ton gespeichert",
+      "removed": "Ton entfernt",
+      "own_add": "Eigenen Ton hinzufügen",
+      "own_choose": "Tondatei auswählen",
+      "own_unreadable": "Diese Datei konnte nicht als Ton gelesen werden.",
+      "own_full": "Es gibt schon {most} eigene Töne. Entferne zuerst einen.",
+      "own_drag_loop": "Ziehe den Teil oder eine seiner Kanten hierher oder in die ganze Datei oben; die Pfeiltasten bewegen sie auch. Abspielen (oder die Leertaste) spielt ihn in einer Schleife, so wie der Bildschirm ihn spielen wird.",
+      "own_drag_once": "Ziehe den Teil oder eine seiner Kanten hierher oder in die ganze Datei oben; die Pfeiltasten bewegen sie auch. Abspielen (oder die Leertaste) spielt ihn so, wie der Bildschirm ihn spielen wird.",
+      "own_name": "Name",
+      "own_save": "Ton speichern",
+      "screens_title": "Pro Bildschirm",
+      "screens_same": "Wie bei jedem Bildschirm",
+      "screens_none": "Noch kein Bildschirm, der das abspielen kann, hat einen Lautsprecher.",
+      "volume": "Lautstärke",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Lautstärke auf {volume} dB gesetzt",
+      "test": "Testen",
+      "test_hint": "Spielt ihn jetzt auf diesem Bildschirm, so wie er später wirklich klingt",
+      "test_sent": "Wird auf dem Bildschirm gespielt",
+      "editor": {
+        "drop": "Tondatei hier ablegen",
+        "drop_loop": "Jeder Song und jeder Ton passt: Du wählst den Teil, der klingelt, höchstens {seconds} Sekunden, mit der Pause, die du vor dem nächsten Klingeln willst.",
+        "drop_once": "Jeder Song und jeder Ton passt: Du wählst den Teil, der gespielt wird, höchstens {seconds} Sekunden.",
+        "total": "{time} insgesamt",
+        "other_file": "Andere Datei",
+        "whole": "Die ganze Datei",
+        "part": "Der Teil, der gespielt wird",
+        "start": "Start",
+        "end": "Ende",
+        "of_most": "von höchstens {most} s",
+        "made": "Was mit dem Ton gemacht wird",
+        "no_bass": "Ohne Bässe",
+        "soft_ends": "Weiche Enden",
+        "even_level": "Gleiche Lautstärke",
+        "repeats": "Wiederholt"
+      }
     }
   }
 }

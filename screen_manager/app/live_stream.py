@@ -171,6 +171,15 @@ class LiveFeed:
             source.idle_since = time.monotonic()
         source.start()
 
+    def keep(self, entity):
+        """A camera that will be watched after a wait longer than warm's moment (a call that rings: both screens' own
+        cameras): its source runs from now until let_go, so the first picture is there when the wait ends."""
+        source = self.source(entity)
+        source.viewers += 1
+        source.idle_since = None
+        source.start()
+        return source
+
     @staticmethod
     def let_go(held):
         for source in held:

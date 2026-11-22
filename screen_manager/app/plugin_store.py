@@ -2,7 +2,11 @@
 
 - `/data/plugins.json`: per screen (its inbox, the key LayoutStore uses) the plugins it has: where each comes from, the
   commit it is pinned to, its version, its optional parts, what was filled in (never a secret), what the person agreed to
-  and its state. Written whole and atomically, like the layouts.
+  and its state. Beside them what a person answered to a plugin the app suggested for the screen's board
+  (plugin_defaults.py): `declined`, said no or took it off, so it is not suggested again; `accepted`, said yes while an
+  update waited, so that update brings it. And under `starting`, by node, what New screen's wizard chose for a screen
+  Home Assistant does not have yet: the records its first firmware was built with, and what was unticked, taken over
+  once the screen is paired. Written whole and atomically, like the layouts.
 - `/data/plugin_secrets.json` (mode 0600): the values of inputs of kind `secret`, by plugin, input and scope, each with
   the origin it was filled in for (app 0.4.x, plugin API 0.7: `origins`). A secret never leaves this file except into a
   fetch of its own plugin from that origin: not to another plugin with the same id (a fork), not to the editor (it only
@@ -33,10 +37,12 @@ class PluginStore:
         self.lock = threading.RLock()
         data = _read(self.path) or {}
         self.screens = data.get('screens') if isinstance(data.get('screens'), dict) else {}
+        self.starting = data.get('starting') if isinstance(data.get('starting'), dict) else {}
 
     def save(self):
         with self.lock:
-            _write(self.path, {'version': VERSION, 'screens': self.screens}, 0o644)
+            _write(self.path, {'version': VERSION, 'screens': self.screens,
+                               **({'starting': self.starting} if self.starting else {})}, 0o644)
 
     def of(self, inbox):
         """The plugins of one screen, a list of records (copies)."""
@@ -52,6 +58,11 @@ class PluginStore:
             items = [item for item in entry['plugins'] if item.get('id') != record['id']]
             items.append(dict(record, changed=int(time.time())))
             entry['plugins'] = sorted(items, key=lambda item: item['id'])
+            # On the screen now: the answers about it are spent.
+            for key in ('declined', 'accepted'):
+                entry[key] = [item for item in entry.get(key) or [] if item != record['id']]
+                if not entry[key]:
+                    del entry[key]
             self.save()
 
     def set_state(self, inbox, plugin, state, reason=None):
@@ -71,9 +82,45 @@ class PluginStore:
             if not entry:
                 return
             entry['plugins'] = [item for item in entry['plugins'] if item.get('id') != plugin]
-            if not entry['plugins']:
+            if not entry['plugins'] and not entry.get('declined') and not entry.get('accepted'):
                 self.screens.pop(inbox, None)
             self.save()
+
+    def answer(self, inbox, plugin, yes):
+        """What a person said to a suggested plugin (plugin_defaults.py): no, so it is not suggested for this screen
+        again, or yes, so the screen's next update brings it."""
+        with self.lock:
+            entry = self.screens.setdefault(inbox, {'plugins': []})
+            said, other = ('accepted', 'declined') if yes else ('declined', 'accepted')
+            entry[said] = sorted(set(entry.get(said) or []) | {plugin})
+            entry[other] = [item for item in entry.get(other) or [] if item != plugin]
+            if not entry[other]:
+                del entry[other]
+            self.save()
+
+    def declined(self, inbox):
+        return list((self.screens.get(inbox) or {}).get('declined') or [])
+
+    def accepted(self, inbox):
+        return list((self.screens.get(inbox) or {}).get('accepted') or [])
+
+    def start(self, node, records, declined):
+        """What New screen chose for the screen it is making, until Home Assistant has it (plugins.adopt_started)."""
+        with self.lock:
+            if records or declined:
+                self.starting[node] = {'plugins': [dict(record) for record in records], 'declined': sorted(declined)}
+            else:
+                self.starting.pop(node, None)
+            self.save()
+
+    def started(self, node):
+        found = self.starting.get(node)
+        return {'plugins': [dict(r) for r in found.get('plugins') or []], 'declined': list(found.get('declined') or [])} if found else None
+
+    def forget_start(self, node):
+        with self.lock:
+            if self.starting.pop(node, None) is not None:
+                self.save()
 
     def forget_screen(self, inbox):
         with self.lock:
@@ -82,7 +129,7 @@ class PluginStore:
 
     def everywhere(self):
         """{inbox: [records]} for every screen with plugins."""
-        return {inbox: self.of(inbox) for inbox in self.screens}
+        return {inbox: self.of(inbox) for inbox in self.screens if self.of(inbox)}
 
     def in_use(self, plugin):
         return [inbox for inbox in self.screens if self.get(inbox, plugin)]

@@ -1043,6 +1043,18 @@
       "icons": {
         "request": "To nie jest lista ikon.",
         "too_many": "Ekran mieści najwyżej {most} własnych ikon."
+      },
+      "sounds": {
+        "name": "Nadaj dźwiękowi nazwę.",
+        "many": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
+        "format": "Dźwięk to plik WAV 16 kHz, mono, 16 bitów.",
+        "short": "Dźwięk trwa co najmniej ćwierć sekundy.",
+        "long": "Dźwięk trwa najwyżej {seconds} sekund.",
+        "unknown": "Taki dźwięk nie istnieje.",
+        "volume": "Głośność to liczba całkowita w dB od -40 do 0.",
+        "none": "Ten ekran nie odtwarza do tego żadnego dźwięku. Najpierw wybierz jeden.",
+        "older": "Ten ekran potrzebuje do tego aktualizacji firmware'u.",
+        "busy": "Ten ekran jest teraz w trakcie rozmowy."
       }
     },
     "status": {
@@ -1659,6 +1671,9 @@
         "kept": "Layoutbot pominął {count} Twoich kafelków: stoją luzem na ostatniej stronie."
       },
       "nothing_to_restructure": "Na tej stronie nie ma jeszcze kafelków urządzeń do przebudowania. Dodaj kilka i zapytaj ponownie."
+    },
+    "sounds": {
+      "test": "Test dzwonka"
     }
   },
   "editor": {
@@ -2447,7 +2462,19 @@
         "note": "Żaden ekran nie używa tej wtyczki. Usuń ją z listy, aby zapomnieć link.",
         "note_folder": "Żaden ekran nie używa tej wtyczki z jej folderu. Usunięcie przenosi folder do config/tessera-plugins/.removed/{id}, gdzie możesz go skasować na dobre."
       },
-      "runs_elsewhere": "{screen} działa w wersji {running}, zbudowanej gdzie indziej. Zbudowanie jej tutaj wgra wersję {version}."
+      "runs_elsewhere": "{screen} działa w wersji {running}, zbudowanej gdzie indziej. Zbudowanie jej tutaj wgra wersję {version}.",
+      "suggest": {
+        "why": {
+          "camera": "Ta płytka ma kamerę."
+        },
+        "question": "Dodać {name} do ekranu {screen}?",
+        "yes": "Dodaj",
+        "yes_update": "Dodaj przy następnej aktualizacji",
+        "no": "Nie, dziękuję",
+        "building": "{name} jest budowane dla ekranu {screen}.",
+        "with_update": "{name} przyjdzie z następną aktualizacją ekranu {screen}.",
+        "declined": "W porządku. {name} zostaje na stronie Wtyczki, gdybyś chciał później."
+      }
     },
     "plugin_tile": {
       "from": "Kafelek wtyczki {plugin}",
@@ -3401,6 +3428,35 @@
       "extras": {
         "title": "Dodatki",
         "note": "Ustawienia, które ma tylko ten ekran, z jego płytki. Te same przełączniki są na stronie ustawień samego ekranu i w Home Assistant."
+      },
+      "parts": {
+        "display": {
+          "title": "Wyświetlacz",
+          "grid": "{columns} × {rows} kafelków"
+        },
+        "standby": {
+          "title": "Czuwanie i noc",
+          "after": "Czuwanie po {time}",
+          "off": "Bez czuwania",
+          "night": "Noc od {start} do {end}"
+        },
+        "navigation": {
+          "title": "Nawigacja",
+          "home_after": "Powrót do ekranu głównego po {time}"
+        },
+        "board": {
+          "title": "Ta płytka"
+        },
+        "help": {
+          "title": "Pomoc",
+          "feedback": "Opinia"
+        }
+      },
+      "blocks": {
+        "display": "Jasność i obrót",
+        "standby": "Czuwanie",
+        "night": "Noc",
+        "navigation": "Nawigacja"
       }
     },
     "update": {
@@ -3468,8 +3524,6 @@
       "title": "Wszystko wokół Twoich ekranów.",
       "back": "← Moje ekrany",
       "screens": {
-        "title": "Ekrany",
-        "text": "Dodaj ekran albo skompiluj i ponownie zainstaluj firmware ekranu, który już masz.",
         "firmware_detail": "Kompiluj i instaluj przez USB lub Wi-Fi"
       },
       "language": {
@@ -3580,6 +3634,40 @@
         "offer": "Zwolnij {size}",
         "not_now": "Nie teraz",
         "large": "Foldery kompilacji zajmują {size}. Wyczyszczenie ich zwalnia większość miejsca, które zajmują kompilacje."
+      },
+      "parts": {
+        "updates": {
+          "title": "Aktualizacje",
+          "nightly": "Aktualizowane każdej nocy",
+          "badge": "1 aktualizacja | {n} aktualizacje | {n} aktualizacji"
+        },
+        "builds": {
+          "title": "Kompilacja",
+          "server": "Na serwerze kompilacji {name}",
+          "server_pending": "Serwer kompilacji {name} czeka na akceptację",
+          "no_server": "Kompilowane w tej aplikacji"
+        },
+        "language": {
+          "auto": "{name}, z Home Assistant",
+          "auto_plain": "Z Home Assistant"
+        },
+        "plugins": {
+          "title": "Wtyczki",
+          "counting_on": "Liczone w sklepie",
+          "counting_off": "Nie liczone w sklepie",
+          "asking_on": "Prosi o gwiazdki",
+          "asking_off": "Nigdy nie prosi o gwiazdki"
+        },
+        "home_assistant": {
+          "title": "Home Assistant",
+          "video": "Wideo: {state}",
+          "claude": "Claude: {state}",
+          "running": "działa",
+          "not_installed": "nie zainstalowano",
+          "installed": "zainstalowano",
+          "update": "aktualizacja gotowa",
+          "restart": "wymaga restartu"
+        }
       }
     },
     "firmware": {
@@ -3722,7 +3810,8 @@
       "steps": {
         "board": "Ekran",
         "setup": "Ustawienia",
-        "install": "Instalacja"
+        "install": "Instalacja",
+        "plugins": "Wtyczki"
       },
       "pick_title": "Jaki masz ekran?",
       "pick_intro": "Wybierz płytkę. Szukaj po marce, rozmiarze lub nadruku.",
@@ -3799,7 +3888,9 @@
       "grid": "Siatka",
       "grid_hint": "Proponowana siatka jest najlepsza dla tego ekranu. Możesz ją zmienić, wraz z orientacją, później obok stron w edytorze, bez ponownej kompilacji.",
       "grid_best": "Wróć do najlepszej",
-      "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem."
+      "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem.",
+      "plugins_title": "Wtyczki dla tego ekranu",
+      "plugins_intro": "Pasują do tego, co ma ta płytka. Odznacz to, czego nie chcesz: nie zostanie wbudowane, a później możesz to dodać na stronie Wtyczki."
     },
     "alerts": {
       "intro": "Każdy ekran ma akcję {action}. Wyświetla ona kartę nad wszystkim, budzi ekran i utrzymuje normalną jasność podświetlenia, dopóki ktoś nie dotknie przycisku albo nie upłynie limit czasu. Sam Home Assistant nie pokazuje dla akcji ESPHome żadnych objaśnień ani list rozwijanych; wszystko, co możesz wypełnić, znajdziesz tutaj.",
@@ -4177,7 +4268,8 @@
       "actions_allowed": "{name} może teraz sterować twoimi urządzeniami.",
       "part_page": "Strona: tytuł i nawigacja",
       "part_page_hint": "Tytuł, strona główna i jak tu trafić",
-      "home_control_hint": "Umieszcza przycisk Home po lewej stronie górnego paska tej strony. Prowadzi do strony głównej."
+      "home_control_hint": "Umieszcza przycisk Home po lewej stronie górnego paska tej strony. Prowadzi do strony głównej.",
+      "place_on_new_page": "Na nowej stronie"
     },
     "feedback": {
       "question": "Czy ekran działa tak, jak oczekujesz?",
@@ -4653,7 +4745,8 @@
         "on": "Wł.",
         "off": "Wył."
       },
-      "alarm": "Alarm"
+      "alarm": "Alarm",
+      "calls": "Połączenia"
     },
     "doorbell": {
       "intro": "Ktoś dzwoni, a twoje ekrany pokazują drzwi. Automatyzacja wysyła zdarzenie z kamerą dzwonka: ekran P4 budzi się, odtwarza gong i otwiera kamerę na żywo z dźwiękiem; każdy inny ekran pokazuje jej obraz w alercie. Działa każdy dzwonek, bez względu na wyzwalacz.",
@@ -5000,6 +5093,75 @@
       "how_wrong": "Trzy błędne kody blokują klawiaturę na 30 sekund, a każdy kolejny błędny kod podwaja ten czas, do 15 minut. Home Assistant dowiaduje się o każdym przez zdarzenie esphome.screen_alarm_code_refused, nigdy razem z kodem.",
       "how_code": "Kod trafia do Home Assistant z akcją, tak jak wysyła go jego własna karta alarmu, i od razu jest usuwany na ekranie. Ekran nigdy go nie przechowuje ani nie zapisuje w logach.",
       "how_tile": "Umieść alarm także na stronie: dotknięcie jego kafelka w każdej chwili otwiera kartę z przyciskiem dla każdego trybu."
+    },
+    "calls": {
+      "hero_title": "Połączenia",
+      "hero_text": "Gdy jeden ekran dzwoni do drugiego, dzwoni ten, do którego dzwonisz. Wybierz poniżej, czym dzwoni: dźwięk ma własną przerwę i gra w kółko, aż ktoś odbierze. Nowy wybór trafia na ekran przy następnym dzwonieniu, bez aktualizacji."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Dzwonek",
+          "text": "To, co dzwoni na ekranie, gdy dzwoni do niego inny ekran."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "To, co ekran odtwarza, gdy dzwoni dzwonek do drzwi: na ekranach, które otwierają dzwonek, a na pozostałych z jego alertem."
+        },
+        "alert": {
+          "title": "Dźwięk alertu",
+          "text": "To, co ekran odtwarza, gdy pojawia się twój alert wysłany zdarzeniem esp_screens_show_alert. Brak dźwięku jest tak, jak było. Alert może pozostać cichy dzięki sound: false."
+        }
+      },
+      "builtin": {
+        "classic": "Klasyczny",
+        "marimba": "Marimba",
+        "digital": "Cyfrowy",
+        "bell": "Dzwon",
+        "chime": "Ding-dong",
+        "notice": "Powiadomienie"
+      },
+      "none": "Brak dźwięku",
+      "play": "Odtwórz",
+      "stop": "Zatrzymaj",
+      "seconds": "{seconds} s",
+      "chosen": "Dźwięk wybrany",
+      "saved": "Dźwięk zapisany",
+      "removed": "Dźwięk usunięty",
+      "own_add": "Dodaj własny dźwięk",
+      "own_choose": "Wybierz plik dźwiękowy",
+      "own_unreadable": "Nie udało się odczytać tego pliku jako dźwięku.",
+      "own_full": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
+      "own_drag_loop": "Przeciągnij fragment lub jedną z jego krawędzi tutaj albo w całym pliku powyżej; strzałki też go przesuwają. Odtwórz (lub spacja) zapętla go tak, jak zrobi to ekran.",
+      "own_drag_once": "Przeciągnij fragment lub jedną z jego krawędzi tutaj albo w całym pliku powyżej; strzałki też go przesuwają. Odtwórz (lub spacja) odtwarza go tak, jak zrobi to ekran.",
+      "own_name": "Nazwa",
+      "own_save": "Zapisz dźwięk",
+      "screens_title": "Na ekran",
+      "screens_same": "Tak samo jak na każdym ekranie",
+      "screens_none": "Żaden ekran, który to odtworzy, nie ma jeszcze głośnika.",
+      "volume": "Głośność",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Głośność ustawiona na {volume} dB",
+      "test": "Testuj",
+      "test_hint": "Odtwarza go teraz na tym ekranie, tak jak zabrzmi naprawdę",
+      "test_sent": "Odtwarzanie na ekranie",
+      "editor": {
+        "drop": "Upuść tutaj plik dźwiękowy",
+        "drop_loop": "Pasuje każda piosenka i każdy dźwięk: wybierasz fragment, który dzwoni, najwyżej {seconds} sekund, z przerwą, jaką chcesz przed kolejnym dzwonieniem.",
+        "drop_once": "Pasuje każda piosenka i każdy dźwięk: wybierasz fragment, który się odtwarza, najwyżej {seconds} sekund.",
+        "total": "{time} łącznie",
+        "other_file": "Inny plik",
+        "whole": "Cały plik",
+        "part": "Odtwarzany fragment",
+        "start": "Początek",
+        "end": "Koniec",
+        "of_most": "z najwyżej {most} s",
+        "made": "Co dzieje się z dźwiękiem",
+        "no_bass": "Bez basów",
+        "soft_ends": "Miękkie końce",
+        "even_level": "Równa głośność",
+        "repeats": "Powtarza się"
+      }
     }
   }
 }

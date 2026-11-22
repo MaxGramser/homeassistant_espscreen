@@ -74,6 +74,8 @@ substitutions:
         [](int32_t on) { if (on) id(ts_call_voice_switching).turn_on(); else id(ts_call_voice_switching).turn_off(); }));
     // The doorbell's chime (module doorbell, docs/DOORBELL.md) on the speaker for announcements.
     runtime_tiles::doorbell_audio(id(ts_speaker));
+    // The sound chosen in the app that belongs to no module, an alert's tone (kept_sound.h, docs/SOUNDS.md).
+    kept_sound::bind_speaker(id(ts_speaker));
 
 # A call's keys (module call, docs/CALLS.md): glyphs only a board with sound needs, so a CYD pays nothing for them.
 font:
