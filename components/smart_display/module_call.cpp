@@ -18,6 +18,8 @@
 #include "picture_engine.h"
 #include "call_serve.h"
 #include "picture_fetch.h"
+#include "file_fetch.h"
+#include "wav.h"
 #ifdef USE_SPEAKER
 #include "plugin_sound.h"
 #include "roomy.h"
@@ -107,6 +109,54 @@ void make_ring() {
   ring_sound.rate = RATE;
   ring_sound.channels = 1;
 }
+// The ringtone ESP Screens chose for this screen (docs/CALLS.md, "Ringtone"): a ring's `rt` links a WAV file of the app's
+// (file_fetch.h), named by its content, so the screen downloads it once and keeps it until another is chosen. The file
+// holds its own pause: it plays back to back for as long as it rings. Without one (an app before ringtones, a download
+// that failed) the screen rings with its own tone above, every RING_EVERY_MS.
+constexpr size_t TONE_MOST = 256 * 1024;   // the app sends at most 3 s of 16 kHz mono (96 KB); more is no ringtone
+constexpr uint32_t TONE_WAIT_MS = 1500;    // a ring waits this long for its tone before it rings with the screen's own
+std::string tone_name, tone_wanted;        // the file the screen has, and the one on its way
+uint8_t *tone_file = nullptr;
+tessera::Sound tone_sound;
+uint32_t tone_asked = 0;
+void want_tone(const std::string &link) {
+  const std::string name = file_fetch::name_of(link);
+  if (name.empty() || name == tone_name || name == tone_wanted) return;
+  tone_wanted = name;
+  tone_asked = esphome::millis();
+  const bool asked = file_fetch::get(link, TONE_MOST, [name](bool ok, uint8_t *data, size_t size) {
+    if (tone_wanted == name) tone_wanted.clear();
+    if (!ok) { ESP_LOGW(TAG, "the ringtone %s did not come", name.c_str()); return; }
+    const wav::Sound w = wav::read(data, size);
+    if (!w.ok || w.bits != 16 || w.channels > 2 || w.rate < 8000 || w.rate > 48000) {
+      ESP_LOGW(TAG, "the ringtone %s is no 16-bit sound", name.c_str());
+      roomy::release(data);
+      return;
+    }
+    // The tone that plays is the old file's: it stops before its bytes go.
+    if (player.playing(tone_sound)) player.stop();
+    if (tone_file) roomy::release(tone_file);
+    tone_file = data;
+    tone_sound.data = data + w.offset;
+    tone_sound.length = w.size;
+    tone_sound.rate = w.rate;
+    tone_sound.channels = static_cast<uint8_t>(w.channels);
+    tone_name = name;
+    ESP_LOGI(TAG, "ringtone %s: %u ms", name.c_str(), (unsigned) (w.size * 1000 / (2u * w.channels * w.rate)));
+  });
+  if (!asked) tone_wanted.clear();
+}
+// Whether a ring still waits for the tone it asked for.
+bool tone_on_its_way(uint32_t now) { return !tone_wanted.empty() && now - tone_asked < TONE_WAIT_MS; }
+// Keeps the chosen tone going: the player queues it behind itself, so it plays without a gap however late the loop comes.
+bool ring_tone(uint32_t now) {
+  if (tone_name.empty() || tone_on_its_way(now)) return false;
+  if (ring_on && !ring_on()) return true;
+  if (!speaker_out) return true;
+  if (!player.playing()) ESP_LOGI(TAG, "ringing");
+  player.add(tone_sound, 0);
+  return true;
+}
 void ring_stop() {
   player.stop();
   if (ring_volume_restore >= 0.0f && volume_set) volume_set(ring_volume_restore);
@@ -122,6 +172,9 @@ void ring_once() {
 #else
 void ring_once() {}
 void ring_stop() {}
+void want_tone(const std::string &) {}
+bool tone_on_its_way(uint32_t) { return false; }
+bool ring_tone(uint32_t) { return false; }
 #endif
 
 void claim_audio() {
@@ -601,7 +654,8 @@ void on_contacts(const std::string &text_rows, bool append, bool more) {
 }
 
 void on_call(const std::string &state, const std::string &key, const std::string &name, const std::string &icon, bool video,
-             const std::string &new_link, const std::string &talk, bool films, const std::string &why, int voice_switch, int echo, const std::string &serve) {
+             const std::string &new_link, const std::string &talk, bool films, const std::string &why, int voice_switch, int echo, const std::string &serve,
+             const std::string &ringtone) {
   if (state == "set") {
     // The call's choices, changed on either screen: nothing else of the call moves.
     if (key != call_key || stage != Stage::LIVE) return;
@@ -642,6 +696,7 @@ void on_call(const std::string &state, const std::string &key, const std::string
     close_list();
     stage = Stage::RING;
     last_ring = 0;
+    want_tone(ringtone);
     ring_since = esphome::millis();
 #ifdef USE_SPEAKER
     if (volume_get && volume_set && ring_volume_restore < 0.0f && (!ring_on || ring_on())) {
@@ -772,7 +827,7 @@ void tick(uint32_t now) {
     stage = Stage::NONE;
     call_key.clear();
   }
-  if (stage == Stage::RING && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
+  if (stage == Stage::RING && !ring_tone(now) && !tone_on_its_way(now) && (!last_ring || now - last_ring >= RING_EVERY_MS)) {
     last_ring = now;
     ring_once();
   }

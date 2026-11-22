@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "Das ist keine Liste von Symbolen.",
         "too_many": "Ein Bildschirm fasst höchstens {most} eigene Symbole."
+      },
+      "ringtones": {
+        "name": "Gib dem Ton einen Namen.",
+        "many": "Du hast schon {most} eigene Töne. Entferne zuerst einen.",
+        "format": "Ein Klingelton ist eine WAV-Datei mit 16 kHz, Mono, 16 Bit.",
+        "short": "Ein Klingelton ist mindestens eine Viertelsekunde lang.",
+        "long": "Ein Klingelton ist höchstens {seconds} Sekunden lang.",
+        "unknown": "Diesen Klingelton gibt es nicht."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "on": "An",
         "off": "Aus"
       },
-      "alarm": "Alarm"
+      "alarm": "Alarm",
+      "calls": "Anrufe"
     },
     "doorbell": {
       "intro": "Jemand klingelt, und deine Bildschirme zeigen die Tür. Eine Automatisierung sendet das Event mit der Kamera der Türklingel: ein P4-Bildschirm wacht auf, spielt einen Gong und öffnet die Kamera live mit Ton; jeder andere Bildschirm zeigt ihr Bild in einem Alert. Jede Türklingel funktioniert, egal was die Automatisierung startet.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Drei falsche Codes sperren das Tastenfeld für 30 Sekunden, und jeder weitere falsche Code verdoppelt die Zeit, bis zu 15 Minuten. Home Assistant erfährt von jedem durch das Ereignis esphome.screen_alarm_code_refused, nie mit dem Code.",
       "how_code": "Der Code geht mit der Aktion an Home Assistant, so wie ihn dessen eigene Alarmkarte sendet, und wird auf dem Bildschirm sofort gelöscht. Ein Bildschirm speichert oder protokolliert ihn nie.",
       "how_tile": "Lege die Alarmanlage auch auf eine Seite: Ein Tippen auf ihre Kachel öffnet jederzeit die Karte mit einer Taste pro Modus."
+    },
+    "calls": {
+      "hero_title": "Klingelton",
+      "hero_text": "Was auf einem Bildschirm klingelt, wenn ihn ein anderer Bildschirm anruft. Ein Ton hat seine eigene Pause und spielt immer wieder, bis jemand abnimmt. Eine neue Wahl erreicht einen Bildschirm mit dem nächsten Klingeln, ein Update ist nicht nötig.",
+      "every_title": "Für jeden Bildschirm",
+      "tones": {
+        "classic": "Klassisch",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Glocke"
+      },
+      "play": "Abspielen",
+      "stop": "Stopp",
+      "chosen": "Klingelton gewählt",
+      "saved": "Klingelton gespeichert",
+      "removed": "Klingelton entfernt",
+      "own_title": "Dein eigener Ton",
+      "own_text": "Wähle eine Tondatei und dann den Teil, der klingelt: höchstens {seconds} Sekunden, mit der Pause, die du vor dem nächsten Klingeln willst. Die Bässe werden herausgefiltert, weil die Lautsprecher der Bildschirme sie nicht wiedergeben können, und der Pegel wird so weit wie möglich angehoben.",
+      "own_choose": "Tondatei wählen",
+      "own_unreadable": "Diese Datei konnte nicht als Ton gelesen werden.",
+      "own_full": "Du hast schon {most} eigene Töne. Entferne zuerst einen.",
+      "own_part": "{start} s bis {end} s, {length} s lang",
+      "own_drag": "Ziehe den Teil oder einen seiner Ränder. Abspielen wiederholt ihn so, wie es der Bildschirm tun wird.",
+      "own_name": "Name",
+      "own_save": "Ton speichern",
+      "screens_title": "Pro Bildschirm",
+      "screens_same": "Wie jeder Bildschirm",
+      "screens_none": "Noch kein Bildschirm, der Anrufe annimmt, hat einen Lautsprecher."
     }
   }
 }

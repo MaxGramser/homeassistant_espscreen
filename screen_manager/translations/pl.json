@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "To nie jest lista ikon.",
         "too_many": "Ekran mieści najwyżej {most} własnych ikon."
+      },
+      "ringtones": {
+        "name": "Nadaj dźwiękowi nazwę.",
+        "many": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
+        "format": "Dzwonek to plik WAV 16 kHz, mono, 16 bitów.",
+        "short": "Dzwonek trwa co najmniej ćwierć sekundy.",
+        "long": "Dzwonek trwa najwyżej {seconds} s.",
+        "unknown": "Taki dzwonek nie istnieje."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "on": "Wł.",
         "off": "Wył."
       },
-      "alarm": "Alarm"
+      "alarm": "Alarm",
+      "calls": "Połączenia"
     },
     "doorbell": {
       "intro": "Ktoś dzwoni, a twoje ekrany pokazują drzwi. Automatyzacja wysyła zdarzenie z kamerą dzwonka: ekran P4 budzi się, odtwarza gong i otwiera kamerę na żywo z dźwiękiem; każdy inny ekran pokazuje jej obraz w alercie. Działa każdy dzwonek, bez względu na wyzwalacz.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Trzy błędne kody blokują klawiaturę na 30 sekund, a każdy kolejny błędny kod podwaja ten czas, do 15 minut. Home Assistant dowiaduje się o każdym przez zdarzenie esphome.screen_alarm_code_refused, nigdy razem z kodem.",
       "how_code": "Kod trafia do Home Assistant z akcją, tak jak wysyła go jego własna karta alarmu, i od razu jest usuwany na ekranie. Ekran nigdy go nie przechowuje ani nie zapisuje w logach.",
       "how_tile": "Umieść alarm także na stronie: dotknięcie jego kafelka w każdej chwili otwiera kartę z przyciskiem dla każdego trybu."
+    },
+    "calls": {
+      "hero_title": "Dzwonek",
+      "hero_text": "To, co dzwoni na ekranie, gdy dzwoni do niego inny ekran. Dźwięk ma własną przerwę i gra w kółko, aż ktoś odbierze. Nowy wybór trafia na ekran przy następnym dzwonieniu, bez aktualizacji.",
+      "every_title": "Dla każdego ekranu",
+      "tones": {
+        "classic": "Klasyczny",
+        "marimba": "Marimba",
+        "digital": "Cyfrowy",
+        "bell": "Dzwon"
+      },
+      "play": "Odtwórz",
+      "stop": "Zatrzymaj",
+      "chosen": "Wybrano dzwonek",
+      "saved": "Zapisano dzwonek",
+      "removed": "Usunięto dzwonek",
+      "own_title": "Twój własny dźwięk",
+      "own_text": "Wybierz plik dźwiękowy, a potem fragment, który dzwoni: najwyżej {seconds} s, z przerwą, jaką chcesz przed kolejnym dzwonieniem. Bas jest odfiltrowany, bo głośniki ekranów nie potrafią go odtworzyć, a poziom jest podnoszony najwyżej, jak się da.",
+      "own_choose": "Wybierz plik dźwiękowy",
+      "own_unreadable": "Nie udało się odczytać tego pliku jako dźwięku.",
+      "own_full": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
+      "own_part": "Od {start} s do {end} s, długość {length} s",
+      "own_drag": "Przeciągnij fragment lub jedną z jego krawędzi. Odtwórz zapętla go tak, jak zrobi to ekran.",
+      "own_name": "Nazwa",
+      "own_save": "Zapisz dźwięk",
+      "screens_title": "Dla ekranu",
+      "screens_same": "Tak samo jak każdy ekran",
+      "screens_none": "Żaden ekran odbierający połączenia nie ma jeszcze głośnika."
     }
   }
 }

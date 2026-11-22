@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "Isto não é uma lista de ícones.",
         "too_many": "Um ecrã aceita no máximo {most} ícones próprios."
+      },
+      "ringtones": {
+        "name": "Dá um nome ao toque.",
+        "many": "Já tens {most} toques teus. Remove um primeiro.",
+        "format": "Um toque de chamada é um ficheiro WAV de 16 kHz, mono, 16 bits.",
+        "short": "Um toque de chamada dura pelo menos um quarto de segundo.",
+        "long": "Um toque de chamada dura no máximo {seconds} segundos.",
+        "unknown": "Esse toque de chamada não existe."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "on": "Ligada",
         "off": "Desligada"
       },
-      "alarm": "Alarme"
+      "alarm": "Alarme",
+      "calls": "Chamadas"
     },
     "doorbell": {
       "intro": "Alguém toca e os seus ecrãs mostram a porta. Uma automação envia o evento com a câmara da campainha: um ecrã P4 acorda, toca um aviso e abre a câmara em direto com som; qualquer outro ecrã mostra a imagem num alerta. Qualquer campainha funciona, seja qual for o gatilho.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Três códigos errados bloqueiam o teclado 30 segundos, e cada código errado a seguir duplica o tempo, até 15 minutos. O Home Assistant sabe de cada um pelo evento esphome.screen_alarm_code_refused, nunca com o código.",
       "how_code": "O código vai para o Home Assistant com a ação, tal como o envia o seu próprio cartão de alarme, e é apagado logo no ecrã. Um ecrã nunca o guarda nem o regista.",
       "how_tile": "Coloque também o alarme numa página: um toque no seu mosaico abre a qualquer momento o cartão com uma tecla por modo."
+    },
+    "calls": {
+      "hero_title": "Toque de chamada",
+      "hero_text": "O que toca num ecrã quando outro ecrã lhe liga. Um toque tem a sua própria pausa e repete-se até alguém atender. Uma nova escolha chega ao ecrã no toque seguinte, sem precisar de atualização.",
+      "every_title": "Para todos os ecrãs",
+      "tones": {
+        "classic": "Clássico",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Sino"
+      },
+      "play": "Reproduzir",
+      "stop": "Parar",
+      "chosen": "Toque escolhido",
+      "saved": "Toque guardado",
+      "removed": "Toque removido",
+      "own_title": "O teu próprio toque",
+      "own_text": "Escolhe um ficheiro de som e depois a parte que toca: no máximo {seconds} segundos, com a pausa que quiseres antes de voltar a tocar. Os graves são filtrados, porque os altifalantes dos ecrãs não os conseguem reproduzir, e o nível é aumentado o mais possível.",
+      "own_choose": "Escolher um ficheiro de som",
+      "own_unreadable": "Não foi possível ler este ficheiro como som.",
+      "own_full": "Já tens {most} toques teus. Remove um primeiro.",
+      "own_part": "De {start} s a {end} s, com {length} s de duração",
+      "own_drag": "Arrasta a parte ou uma das suas margens. Reproduzir repete-a como o ecrã o fará.",
+      "own_name": "Nome",
+      "own_save": "Guardar toque",
+      "screens_title": "Por ecrã",
+      "screens_same": "Igual a todos os ecrãs",
+      "screens_none": "Nenhum ecrã que recebe chamadas tem ainda altifalante."
     }
   }
 }

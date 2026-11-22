@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "Ce n'est pas une liste d'icônes.",
         "too_many": "Un écran accepte au plus {most} icônes à lui."
+      },
+      "ringtones": {
+        "name": "Donnez un nom à la sonnerie.",
+        "many": "Vous avez déjà {most} sonneries personnelles. Supprimez-en une d'abord.",
+        "format": "Une sonnerie est un fichier WAV de 16 kHz, mono, 16 bits.",
+        "short": "Une sonnerie dure au moins un quart de seconde.",
+        "long": "Une sonnerie dure au plus {seconds} secondes.",
+        "unknown": "Cette sonnerie n'existe pas."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "on": "Activée",
         "off": "Désactivée"
       },
-      "alarm": "Alarme"
+      "alarm": "Alarme",
+      "calls": "Appels"
     },
     "doorbell": {
       "intro": "Quelqu'un sonne et vos écrans montrent la porte. Une automatisation envoie l'événement avec la caméra de la sonnette : un écran P4 se réveille, joue un carillon et ouvre la caméra en direct avec le son ; tout autre écran affiche son image dans une alerte. Toute sonnette fonctionne, quel que soit le déclencheur.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Trois codes faux bloquent le clavier 30 secondes, et chaque code faux ensuite double ce temps, jusqu'à 15 minutes. Home Assistant apprend chacun par l'événement esphome.screen_alarm_code_refused, jamais avec le code.",
       "how_code": "Le code part vers Home Assistant avec l'action, comme sa propre carte d'alarme l'envoie, et est effacé aussitôt sur l'écran. Un écran ne le garde ni ne le journalise jamais.",
       "how_tile": "Placez aussi l'alarme sur une page : un toucher sur sa tuile ouvre à tout moment la carte avec une touche par mode."
+    },
+    "calls": {
+      "hero_title": "Sonnerie",
+      "hero_text": "Ce qui sonne sur un écran quand un autre écran l'appelle. Une sonnerie a sa propre pause et joue en boucle jusqu'à ce que quelqu'un réponde. Un nouveau choix arrive sur un écran à sa prochaine sonnerie, sans mise à jour.",
+      "every_title": "Pour tous les écrans",
+      "tones": {
+        "classic": "Classique",
+        "marimba": "Marimba",
+        "digital": "Numérique",
+        "bell": "Cloche"
+      },
+      "play": "Lire",
+      "stop": "Arrêter",
+      "chosen": "Sonnerie choisie",
+      "saved": "Sonnerie enregistrée",
+      "removed": "Sonnerie supprimée",
+      "own_title": "Votre propre sonnerie",
+      "own_text": "Choisissez un fichier son, puis la partie qui sonne : {seconds} secondes au plus, avec la pause voulue avant qu'elle ne sonne de nouveau. Les basses sont filtrées, car les haut-parleurs des écrans ne peuvent pas les jouer, et le niveau est monté aussi haut que possible.",
+      "own_choose": "Choisir un fichier son",
+      "own_unreadable": "Ce fichier n'a pas pu être lu comme un son.",
+      "own_full": "Vous avez déjà {most} sonneries personnelles. Supprimez-en une d'abord.",
+      "own_part": "De {start} s à {end} s, {length} s de durée",
+      "own_drag": "Faites glisser la partie ou l'un de ses bords. Lire la joue en boucle comme le fera l'écran.",
+      "own_name": "Nom",
+      "own_save": "Enregistrer la sonnerie",
+      "screens_title": "Par écran",
+      "screens_same": "Comme tous les écrans",
+      "screens_none": "Aucun écran qui reçoit des appels n'a encore de haut-parleur."
     }
   }
 }

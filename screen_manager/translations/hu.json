@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "Ez nem ikonok listája.",
         "too_many": "Egy kijelzőre legfeljebb {most} saját ikon fér."
+      },
+      "ringtones": {
+        "name": "Adj nevet a csengőhangnak.",
+        "many": "Már {most} saját csengőhangod van. Előbb törölj egyet.",
+        "format": "A csengőhang egy 16 kHz-es, mono, 16 bites WAV fájl.",
+        "short": "A csengőhang legalább negyed másodperc hosszú.",
+        "long": "A csengőhang legfeljebb {seconds} másodperc hosszú.",
+        "unknown": "Ez a csengőhang nem létezik."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "on": "Be",
         "off": "Ki"
       },
-      "alarm": "Riasztó"
+      "alarm": "Riasztó",
+      "calls": "Hívások"
     },
     "doorbell": {
       "intro": "Valaki csenget, és a képernyőid mutatják az ajtót. Egy automatizálás elküldi az eseményt a csengő kamerájával: egy P4 képernyő felébred, csengőhangot játszik és élőben, hanggal megnyitja a kamerát; minden más képernyő értesítésben mutatja a képét. Bármilyen csengő működik, bármi indítja az automatizálást.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Három hibás kód 30 másodpercre zárolja a billentyűzetet, és utána minden hibás kód megduplázza az időt, legfeljebb 15 percig. A Home Assistant mindegyikről az esphome.screen_alarm_code_refused eseménnyel értesül, soha nem a kóddal.",
       "how_code": "A kód a művelettel megy a Home Assistantba, ahogy a saját riasztókártyája küldi, és a kijelzőn azonnal törlődik. Egy kijelző soha nem tárolja és nem naplózza.",
       "how_tile": "Tedd a riasztót egy oldalra is: a csempéjének megérintése bármikor megnyitja a kártyát, módonként egy gombbal."
+    },
+    "calls": {
+      "hero_title": "Csengőhang",
+      "hero_text": "Ami megszólal egy képernyőn, amikor egy másik képernyő felhívja. A hangnak saját szünete van, és újra meg újra szól, amíg valaki fel nem veszi. Az új választás a következő csengetéssel jut el a képernyőre, frissítés nélkül.",
+      "every_title": "Minden képernyőhöz",
+      "tones": {
+        "classic": "Klasszikus",
+        "marimba": "Marimba",
+        "digital": "Digitális",
+        "bell": "Csengő"
+      },
+      "play": "Lejátszás",
+      "stop": "Leállítás",
+      "chosen": "Csengőhang kiválasztva",
+      "saved": "Csengőhang mentve",
+      "removed": "Csengőhang törölve",
+      "own_title": "Saját hang",
+      "own_text": "Válassz egy hangfájlt, majd azt a részt, amely csörög: legfeljebb {seconds} másodperc, a következő csörgés előtti kívánt szünettel. A basszust kiszűrjük, mert a képernyők hangszórói nem tudják lejátszani, a hangerőt pedig a lehető legmagasabbra emeljük.",
+      "own_choose": "Hangfájl választása",
+      "own_unreadable": "Ezt a fájlt nem lehetett hangként beolvasni.",
+      "own_full": "Már {most} saját hangod van. Előbb törölj egyet.",
+      "own_part": "{start} mp-től {end} mp-ig, {length} mp hosszú",
+      "own_drag": "Húzd a részt vagy az egyik szélét. A lejátszás ismétli, ahogy a képernyő fogja.",
+      "own_name": "Név",
+      "own_save": "Hang mentése",
+      "screens_title": "Képernyőnként",
+      "screens_same": "Ugyanaz, mint minden képernyőn",
+      "screens_none": "Még egyik hívást fogadó képernyőnek sincs hangszórója."
     }
   }
 }

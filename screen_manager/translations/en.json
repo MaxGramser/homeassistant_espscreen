@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "That is not a list of icons.",
         "too_many": "A screen takes at most {most} icons of its own."
+      },
+      "ringtones": {
+        "name": "Give the tone a name.",
+        "many": "There are {most} tones of your own already. Remove one first.",
+        "format": "A ringtone is a WAV file of 16 kHz, mono, 16 bits.",
+        "short": "A ringtone is at least a quarter of a second long.",
+        "long": "A ringtone is at most {seconds} seconds long.",
+        "unknown": "That ringtone does not exist."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "remove_confirm": "Remove \"{name}\" from Home Assistant?",
         "on": "On",
         "off": "Off"
-      }
+      },
+      "calls": "Calls"
     },
     "doorbell": {
       "intro": "Someone rings, and your screens show the door. An automation fires the event with the doorbell's camera: a P4 screen wakes, chimes and opens the camera live with its sound; any other screen shows its picture in an alert. Any doorbell works, whatever starts the automation.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Three wrong codes lock the keypad for 30 seconds, and every wrong code after that doubles the time, up to 15 minutes. Home Assistant hears of each one as the event esphome.screen_alarm_code_refused, never with the code.",
       "how_code": "The code goes to Home Assistant with the action, as its own alarm card sends it, and is wiped on the screen at once. A screen never stores or logs it.",
       "how_tile": "Put the alarm on a page too, and a tap on its tile opens the card with a key per mode at any time."
+    },
+    "calls": {
+      "hero_title": "Ringtone",
+      "hero_text": "What rings on a screen when another screen calls it. A tone holds its own pause and plays over and over until someone answers. A new choice reaches a screen with its next ring, no update needed.",
+      "every_title": "For every screen",
+      "tones": {
+        "classic": "Classic",
+        "marimba": "Marimba",
+        "digital": "Digital",
+        "bell": "Bell"
+      },
+      "play": "Play",
+      "stop": "Stop",
+      "chosen": "Ringtone chosen",
+      "saved": "Ringtone saved",
+      "removed": "Ringtone removed",
+      "own_title": "Your own tone",
+      "own_text": "Choose a sound file, then pick the part that rings: at most {seconds} seconds, with the pause you want before it rings again. The bass is filtered out, since the speakers of the screens cannot play it, and the level is raised as far as it goes.",
+      "own_choose": "Choose a sound file",
+      "own_unreadable": "This file could not be read as sound.",
+      "own_full": "There are {most} tones of your own already. Remove one first.",
+      "own_part": "{start} s to {end} s, {length} s long",
+      "own_drag": "Drag the part, or one of its edges. Play loops it the way the screen will.",
+      "own_name": "Name",
+      "own_save": "Save tone",
+      "screens_title": "Per screen",
+      "screens_same": "Same as every screen",
+      "screens_none": "No screen that takes calls has a speaker yet."
     }
   }
 }

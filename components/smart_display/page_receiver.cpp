@@ -442,12 +442,14 @@ std::string receive(const std::string &payload) {
       // A call between screens (module call, docs/CALLS.md): `s` out, ring, live, held or end; `k` its key, `n` the other
       // screen's name, `i` its icon, `vd` video, `l` the stream of the other, `tk` where this screen sends its voice,
       // `ds` the token this screen serves its own camera and voice under in a direct call (call_serve.h; `l` is then the
-      // other screen's own address and `tk` is absent), `pc` the other's camera is on, `w` why it ended, `vs` and `ec` the call's voice switching and echo cancelling (docs/CALLS.md, "Echo"; the state `set` brings only these).
+      // other screen's own address and `tk` is absent), `pc` the other's camera is on, `w` why it ended, `vs` and `ec` the call's voice switching and echo cancelling (docs/CALLS.md, "Echo"; the state `set` brings only these),
+      // `rt` with a ring: the link of the ringtone chosen for this screen (docs/CALLS.md, "Ringtone").
       call::on_call(string(root["s"], 8), string(root["k"], 16), string(root["n"], 60), string(root["i"], 8),
                     root["vd"].is<unsigned>() && root["vd"].as<unsigned>() == 1, string(root["l"], 200), string(root["tk"], 200),
                     !(root["pc"].is<unsigned>() && root["pc"].as<unsigned>() == 0), string(root["w"], 16),
                     root["vs"].is<unsigned>() ? static_cast<int>(root["vs"].as<unsigned>() == 1) : -1,
-                    root["ec"].is<unsigned>() ? static_cast<int>(root["ec"].as<unsigned>() == 1) : -1, string(root["ds"], 32));
+                    root["ec"].is<unsigned>() ? static_cast<int>(root["ec"].as<unsigned>() == 1) : -1, string(root["ds"], 32),
+                    string(root["rt"], 200));
 #endif
       result = model.ready() ? "Synced" : "Loading tiles";
       return true;

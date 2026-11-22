@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "Questo non è un elenco di icone.",
         "too_many": "Uno schermo accetta al massimo {most} icone proprie."
+      },
+      "ringtones": {
+        "name": "Dai un nome al suono.",
+        "many": "Hai già {most} suoni tuoi. Rimuovine prima uno.",
+        "format": "Una suoneria è un file WAV a 16 kHz, mono, a 16 bit.",
+        "short": "Una suoneria dura almeno un quarto di secondo.",
+        "long": "Una suoneria dura al massimo {seconds} secondi.",
+        "unknown": "Quella suoneria non esiste."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "on": "Attiva",
         "off": "Disattiva"
       },
-      "alarm": "Allarme"
+      "alarm": "Allarme",
+      "calls": "Chiamate"
     },
     "doorbell": {
       "intro": "Qualcuno suona e i tuoi schermi mostrano la porta. Un'automazione invia l'evento con la telecamera del campanello: uno schermo P4 si riattiva, suona un avviso e apre la telecamera dal vivo con l'audio; ogni altro schermo mostra la sua immagine in un avviso. Funziona qualsiasi campanello, qualunque sia il trigger.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Tre codici errati bloccano il tastierino per 30 secondi, e ogni codice errato successivo raddoppia il tempo, fino a 15 minuti. Home Assistant viene a sapere di ciascuno con l'evento esphome.screen_alarm_code_refused, mai con il codice.",
       "how_code": "Il codice va a Home Assistant con l'azione, come lo invia la sua scheda di allarme, e viene cancellato subito sullo schermo. Uno schermo non lo salva né lo registra mai.",
       "how_tile": "Metti l'allarme anche su una pagina: un tocco sul suo riquadro apre in qualsiasi momento la scheda con un tasto per modalità."
+    },
+    "calls": {
+      "hero_title": "Suoneria",
+      "hero_text": "Ciò che suona su uno schermo quando un altro schermo lo chiama. Un suono ha la sua pausa e si ripete finché qualcuno risponde. Una nuova scelta arriva allo schermo con il suo prossimo squillo, senza bisogno di aggiornare.",
+      "every_title": "Per ogni schermo",
+      "tones": {
+        "classic": "Classico",
+        "marimba": "Marimba",
+        "digital": "Digitale",
+        "bell": "Campana"
+      },
+      "play": "Riproduci",
+      "stop": "Ferma",
+      "chosen": "Suoneria scelta",
+      "saved": "Suoneria salvata",
+      "removed": "Suoneria rimossa",
+      "own_title": "Il tuo suono",
+      "own_text": "Scegli un file audio, poi la parte che suona: al massimo {seconds} secondi, con la pausa che vuoi prima che suoni di nuovo. I bassi vengono filtrati, perché gli altoparlanti degli schermi non possono riprodurli, e il livello viene alzato il più possibile.",
+      "own_choose": "Scegli un file audio",
+      "own_unreadable": "Impossibile leggere questo file come audio.",
+      "own_full": "Hai già {most} suoni tuoi. Rimuovine prima uno.",
+      "own_part": "Da {start} s a {end} s, lunga {length} s",
+      "own_drag": "Trascina la parte o uno dei suoi bordi. Riproduci la ripete come farà lo schermo.",
+      "own_name": "Nome",
+      "own_save": "Salva suono",
+      "screens_title": "Per schermo",
+      "screens_same": "Come ogni schermo",
+      "screens_none": "Nessuno schermo che riceve chiamate ha ancora un altoparlante."
     }
   }
 }

@@ -1042,6 +1042,14 @@
       "icons": {
         "request": "Dat is geen lijst met iconen.",
         "too_many": "Een scherm kan hooguit {most} eigen iconen hebben."
+      },
+      "ringtones": {
+        "name": "Geef de toon een naam.",
+        "many": "Er zijn al {most} eigen tonen. Verwijder er eerst een.",
+        "format": "Een beltoon is een WAV-bestand van 16 kHz, mono, 16 bits.",
+        "short": "Een beltoon duurt minstens een kwart seconde.",
+        "long": "Een beltoon duurt hoogstens {seconds} seconden.",
+        "unknown": "Die beltoon bestaat niet."
       }
     },
     "status": {
@@ -4660,7 +4668,8 @@
         "remove_confirm": "\"{name}\" verwijderen uit Home Assistant?",
         "on": "Aan",
         "off": "Uit"
-      }
+      },
+      "calls": "Bellen"
     },
     "doorbell": {
       "intro": "Er wordt aangebeld en je schermen laten de deur zien. Een automatisering stuurt het event met de camera van de deurbel: een P4-scherm wordt wakker, speelt een belgeluid en opent de camera live met geluid; elk ander scherm toont de foto in een alert. Elke deurbel werkt, wat de automatisering ook start.",
@@ -5007,6 +5016,34 @@
       "how_wrong": "Drie foute codes zetten het toetsenblok 30 seconden op slot, en elke foute code daarna verdubbelt die tijd, tot 15 minuten. Home Assistant hoort van elke foute code via het event esphome.screen_alarm_code_refused, nooit met de code.",
       "how_code": "De code gaat met de actie naar Home Assistant, zoals zijn eigen alarmkaart hem stuurt, en wordt op het scherm meteen gewist. Een scherm bewaart of logt hem nooit.",
       "how_tile": "Zet het alarm ook op een pagina, dan opent een tik op zijn tegel altijd de kaart met een knop per stand."
+    },
+    "calls": {
+      "hero_title": "Beltoon",
+      "hero_text": "Wat er op een scherm klinkt als een ander scherm het belt. Een toon heeft zijn eigen pauze en speelt steeds opnieuw tot iemand opneemt. Een nieuwe keuze komt met de volgende keer bellen op het scherm, zonder update.",
+      "every_title": "Voor elk scherm",
+      "tones": {
+        "classic": "Klassiek",
+        "marimba": "Marimba",
+        "digital": "Digitaal",
+        "bell": "Bel"
+      },
+      "play": "Afspelen",
+      "stop": "Stop",
+      "chosen": "Beltoon gekozen",
+      "saved": "Beltoon bewaard",
+      "removed": "Beltoon verwijderd",
+      "own_title": "Je eigen toon",
+      "own_text": "Kies een geluidsbestand en dan het stuk dat belt: hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt. De bas wordt eruit gefilterd, want de speakers van de schermen kunnen die niet spelen, en het volume gaat zo hoog als het kan.",
+      "own_choose": "Kies een geluidsbestand",
+      "own_unreadable": "Dit bestand kon niet als geluid gelezen worden.",
+      "own_full": "Er zijn al {most} eigen tonen. Verwijder er eerst een.",
+      "own_part": "{start} s tot {end} s, {length} s lang",
+      "own_drag": "Sleep het stuk, of een van de randen. Afspelen herhaalt het zoals het scherm het doet.",
+      "own_name": "Naam",
+      "own_save": "Toon bewaren",
+      "screens_title": "Per scherm",
+      "screens_same": "Zoals elk scherm",
+      "screens_none": "Nog geen scherm dat gebeld kan worden heeft een speaker."
     }
   }
 }

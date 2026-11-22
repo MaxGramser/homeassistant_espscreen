@@ -16,7 +16,7 @@ import { iconsRoute, overrideRoute, reportRoute, router } from "../router";
 // The address itself is the router's (router.ts: #/settings, #/screens/<id>, ...); these names stay for every caller.
 export const routes = ["", "#settings", "#new-screen", "#firmware", "#events", "#override", "#plugins", "#report", "#icons"] as const;
 /** The parts of Events (#/events/<kind>): what an automation fires at the screens. */
-export const eventKinds = ["alerts", "doorbell", "alarm"] as const;
+export const eventKinds = ["alerts", "doorbell", "alarm", "calls"] as const;
 export type EventKind = (typeof eventKinds)[number];
 export type Route = (typeof routes)[number];
 export type Toast = { message: string; action?: { label: string; run: () => void } };

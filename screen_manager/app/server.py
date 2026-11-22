@@ -32,6 +32,8 @@ import camera_source
 import live_stream
 import talk_bridge
 import calls
+import ringtones
+import screen_files
 import screen_source
 import claude_skill
 import layoutbot
@@ -1103,6 +1105,9 @@ class Manager:
         self.icons = screen_icons.ScreenIcons(self, self.path.parent)
         # What the screens do when an alarm goes off (Events, Alarm; docs/ALARM_PANEL.md): set once per alarm.
         self.alarm_screens = alarm_screens.AlarmScreens(self.path.parent)
+        # The files screens download from the camera port (docs/SCREEN_FILES.md), and a call's ringtone among them.
+        self.files = screen_files.ScreenFiles(self.path.parent)
+        self.ringtones = ringtones.Ringtones(self.path.parent, self.files)
         self.updates = Updater(self, self.path.parent / 'updates.json')
         # Does this screen work as you expect? One shared answer per board, with its own key (app 0.3.10).
         self.feedback = feedback.Feedback(self.path.parent / 'feedback.json')
@@ -1889,6 +1894,7 @@ class Manager:
         self.forget_inbox(inbox)
         self.plugins.forget_screen(inbox)
         self.icons.forget_screen(inbox)
+        self.ringtones.forget_screen(inbox)
         self.labels.forget(screen.get('device_id'))
         self.hangs.forget(screen.get('device_id'))
         self.savers.forget(screen.get('device_id'))
@@ -4656,6 +4662,11 @@ class Manager:
                 continue
             peer = known.get(out.peer) or {}
             message = calls.message(out, name=peer.get('name', out.peer), icon=glyph_of(peer.get('icon') or CALL_ICON))
+            if out.state == calls.RING:
+                # The tone this screen rings with (docs/CALLS.md, "Ringtone"): a file it downloads once and keeps.
+                base = await self.link_base(mine['screen'])
+                if base:
+                    message['rt'] = self.ringtones.link(base, mine['screen']['id'])
             # Straight between the two screens where both can and neither said it could not reach the other
             # (docs/CALLS.md, "Screen to screen"): each serves under its token and fetches the other's. Whether two
             # addresses reach each other cannot be told from here, so the attempt decides and a screen says `direct`.
@@ -5722,6 +5733,45 @@ def create_app(manager, development=False):
             raise ValueError(t('addon.errors.layout.invalid_setting', setting=str(error))) from None
         manager.ha.changed.set()
         return web.json_response(manager.alarm_screens.view(manager.ha.states))
+    def ringtone_screens():
+        """The screens that can ring for a call: with a speaker and the module call (calls.FEATURE)."""
+        return sorted(({'id': mine['screen']['id'], 'name': mine['name']} for mine in manager.call_screens().values() if mine['speaks']),
+                      key=lambda screen: screen['name'].lower())
+    def ringtone_error(error):
+        return ValueError(t(f'addon.errors.ringtones.{error}', seconds=f'{ringtones.MAX_SECONDS:g}', most=ringtones.MAX_OWN))
+    async def ringtones_view(request):
+        """Events, Calls: every ringtone, the one for every screen, and each screen that rings with its own."""
+        return web.json_response(manager.ringtones.view(ringtone_screens()))
+    async def ringtone_sound(request):
+        """A ringtone as the screens get it, for the editor to play."""
+        data = manager.ringtones.wav(request.match_info['tone'])
+        if data is None:
+            raise web.HTTPNotFound()
+        return web.Response(body=data, content_type='audio/wav', headers={'Cache-Control': 'no-cache'})
+    async def ringtone_add(request):
+        """Events, Calls: a tone someone cut in the editor, as a WAV of 16 kHz mono (ringtones.checked)."""
+        data = await request.read()
+        try:
+            tone = manager.ringtones.add(request.query.get('name', ''), data)
+        except ValueError as error:
+            raise ringtone_error(str(error)) from None
+        return web.json_response({'id': tone, **manager.ringtones.view(ringtone_screens())})
+    async def ringtone_remove(request):
+        try:
+            manager.ringtones.remove(request.match_info['tone'])
+        except ValueError as error:
+            raise ringtone_error(str(error)) from None
+        return web.json_response(manager.ringtones.view(ringtone_screens()))
+    async def ringtone_choose(request):
+        """Events, Calls: the tone for every screen (`screen` empty) or for one ('' follows every screen's)."""
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ringtone_error('unknown')
+        try:
+            manager.ringtones.choose(str(body.get('screen') or ''), str(body.get('tone') or ''))
+        except ValueError as error:
+            raise ringtone_error(str(error)) from None
+        return web.json_response(manager.ringtones.view(ringtone_screens()))
     async def test_doorbell(request):
         """Events, Doorbell, Try it: one ring to one screen or to every screen, as esp_screens_doorbell sends it."""
         body = await request.json()
@@ -6423,6 +6473,11 @@ def create_app(manager, development=False):
     app.router.add_post('/api/doorbell/test', test_doorbell)
     app.router.add_get('/api/alarms', alarms_view)
     app.router.add_put('/api/alarms', alarms_change)
+    app.router.add_get('/api/ringtones', ringtones_view)
+    app.router.add_post('/api/ringtones', ringtone_add)
+    app.router.add_put('/api/ringtones/choice', ringtone_choose)
+    app.router.add_get(r'/api/ringtones/{tone:[a-z0-9-]{1,40}}.wav', ringtone_sound)
+    app.router.add_delete(r'/api/ringtones/{tone:[a-z0-9-]{1,40}}', ringtone_remove)
     app.router.add_get('/api/automations', list_automations)
     app.router.add_post('/api/automations', save_automation)
     app.router.add_delete('/api/automations/{id}', delete_automation)
@@ -6498,7 +6553,7 @@ async def main():
         await runner.setup()
         await web.TCPSite(runner, '127.0.0.1' if development else '0.0.0.0', 8099).start()
         # Camera images for the screens: their own port on the LAN, not the ingress page (docs/CAMERA.md).
-        cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live, manager.talks), access_log=None)
+        cameras = web.AppRunner(picture_links.web_app(manager.links, manager.live, manager.talks, manager.files), access_log=None)
         await cameras.setup()
         # A port another program holds turns camera images off, and nothing else.
         await picture_links.open_port(cameras)
