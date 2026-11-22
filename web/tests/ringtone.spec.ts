@@ -1,7 +1,7 @@
 // A ringtone of one's own (model/ringtone.ts, docs/CALLS.md "Ringtone"): the bass out, the cut, the fades, the level,
 // the WAV the add-on takes (ringtones.checked, tests/test_ringtones.py) and the part a hand moves on the waveform.
 import { describe, expect, it } from "vitest";
-import { cut, fade, firstPart, highPass, level, movePart, peaks, ringtone, wav } from "../src/model/ringtone";
+import { cut, fade, firstPart, highPass, level, movePart, peaks, ringtone, rulerTicks, viewAround, wav } from "../src/model/ringtone";
 
 const RATE = 16000;
 const tone = (hz: number, seconds: number, amplitude = 0.5) =>
@@ -58,5 +58,18 @@ describe("ringtone", () => {
     expect(movePart(part, "start", 2.9, 10, 0.25, 3)).toEqual({ start: 2.75, end: 3 });
     expect(movePart(part, "end", 9, 10, 0.25, 3)).toEqual({ start: 1, end: 4 });
     expect(movePart(part, "end", 0, 10, 0.25, 3)).toEqual({ start: 1, end: 1.25 });
+  });
+
+  it("shows a part with room around it, inside the sound", () => {
+    expect(viewAround({ start: 10, end: 13 }, 60)).toEqual({ start: 8.5, end: 14.5 });
+    expect(viewAround({ start: 0.2, end: 1 }, 60)).toEqual({ start: 0, end: 2.8 });
+    expect(viewAround({ start: 58, end: 60 }, 60)).toEqual({ start: 56, end: 60 });
+    expect(viewAround({ start: 0, end: 1.5 }, 3)).toEqual({ start: 0, end: 3 });
+  });
+
+  it("marks the ruler at a round step", () => {
+    expect(rulerTicks(8.5, 14.5)).toEqual({ step: 1, ticks: [9, 10, 11, 12, 13, 14] });
+    expect(rulerTicks(0, 2.8).step).toBe(0.5);
+    expect(rulerTicks(0, 180).ticks.slice(0, 3)).toEqual([0, 30, 60]);
   });
 });

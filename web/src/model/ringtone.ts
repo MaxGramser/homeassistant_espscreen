@@ -135,3 +135,25 @@ export function movePart(part: { start: number; end: number }, edge: "start" | "
   const end = Math.min(length, Math.min(part.start + most, Math.max(part.start + least, to)));
   return { start: part.start, end };
 }
+
+/** What the editor's large waveform shows around a part: the part with room on both sides (half its length, at least a
+ *  second), kept inside the sound; the whole sound when it is short. */
+export function viewAround(part: { start: number; end: number }, length: number): { start: number; end: number } {
+  const span = part.end - part.start;
+  const room = Math.max(1, span * 0.5);
+  if (span + 2 * room >= length) return { start: 0, end: length };
+  let start = part.start - room, end = part.end + room;
+  if (start < 0) { end -= start; start = 0; }
+  if (end > length) { start -= end - length; end = length; }
+  return { start: Math.max(0, start), end: Math.min(length, end) };
+}
+
+/** The ruler under a waveform from `start` to `end` seconds: a round step that gives at most `most` marks, and the marks. */
+export function rulerTicks(start: number, end: number, most = 10): { step: number; ticks: number[] } {
+  const steps = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300];
+  const span = Math.max(1e-6, end - start);
+  const step = steps.find((s) => span / s <= most) ?? steps[steps.length - 1];
+  const ticks: number[] = [];
+  for (let t = Math.ceil(start / step - 1e-9) * step; t <= end + 1e-9; t += step) ticks.push(Math.round(t * 1000) / 1000 + 0);
+  return { step, ticks };
+}

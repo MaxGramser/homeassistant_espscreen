@@ -5121,13 +5121,10 @@
       "removed": "Son supprimé",
       "own_add": "Ajouter votre propre son",
       "own_choose": "Choisir un fichier son",
-      "own_text_loop": "Choisissez la partie qui sonne : {seconds} secondes au plus, avec la pause voulue avant la sonnerie suivante. Les basses sont filtrées, car les haut-parleurs des écrans ne peuvent pas les jouer, et le niveau est réglé sur celui des autres sons.",
-      "own_text_once": "Choisissez la partie à jouer : {seconds} secondes au plus. Les basses sont filtrées, car les haut-parleurs des écrans ne peuvent pas les jouer, et le niveau est réglé sur celui des autres sons.",
       "own_unreadable": "Ce fichier n'a pas pu être lu comme un son.",
       "own_full": "Il y a déjà {most} sons personnels. Supprimez-en un d'abord.",
-      "own_part": "De {start} s à {end} s, {length} s de long",
-      "own_drag_loop": "Faites glisser la partie, ou l'un de ses bords. Écouter la joue en boucle comme le fera l'écran.",
-      "own_drag_once": "Faites glisser la partie, ou l'un de ses bords. Écouter la joue comme le fera l'écran.",
+      "own_drag_loop": "Faites glisser la partie, ou l'un de ses bords, ici ou dans le fichier entier ci-dessus ; les touches fléchées la déplacent aussi. Écouter (ou la barre d'espace) la joue en boucle comme le fera l'écran.",
+      "own_drag_once": "Faites glisser la partie, ou l'un de ses bords, ici ou dans le fichier entier ci-dessus ; les touches fléchées la déplacent aussi. Écouter (ou la barre d'espace) la joue comme le fera l'écran.",
       "own_name": "Nom",
       "own_save": "Enregistrer le son",
       "screens_title": "Par écran",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Volume réglé à {volume} dB",
       "test": "Tester",
       "test_hint": "Le joue maintenant sur cet écran, tel qu'il sonnera pour de vrai",
-      "test_sent": "Lecture sur l'écran"
+      "test_sent": "Lecture sur l'écran",
+      "editor": {
+        "drop": "Déposez un fichier son ici",
+        "drop_loop": "N'importe quelle chanson ou n'importe quel son convient : vous choisissez la partie qui sonne, {seconds} secondes au maximum, avec la pause voulue avant qu'elle sonne de nouveau.",
+        "drop_once": "N'importe quelle chanson ou n'importe quel son convient : vous choisissez la partie qui est jouée, {seconds} secondes au maximum.",
+        "total": "{time} au total",
+        "other_file": "Un autre fichier",
+        "whole": "Le fichier entier",
+        "part": "La partie jouée",
+        "start": "Début",
+        "end": "Fin",
+        "of_most": "de {most} s au maximum",
+        "made": "Ce qui est fait au son",
+        "no_bass": "Sans graves",
+        "soft_ends": "Bords doux",
+        "even_level": "Volume égal",
+        "repeats": "Se répète"
+      }
     }
   }
 }

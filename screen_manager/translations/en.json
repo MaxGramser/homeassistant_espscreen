@@ -5121,13 +5121,10 @@
       "removed": "Sound removed",
       "own_add": "Add your own sound",
       "own_choose": "Choose a sound file",
-      "own_text_loop": "Pick the part that rings: at most {seconds} seconds, with the pause you want before it rings again. The bass is filtered out, since the speakers of the screens cannot play it, and the level is set to that of the other sounds.",
-      "own_text_once": "Pick the part to play: at most {seconds} seconds. The bass is filtered out, since the speakers of the screens cannot play it, and the level is set to that of the other sounds.",
       "own_unreadable": "This file could not be read as sound.",
       "own_full": "There are {most} sounds of your own already. Remove one first.",
-      "own_part": "{start} s to {end} s, {length} s long",
-      "own_drag_loop": "Drag the part, or one of its edges. Play loops it the way the screen will.",
-      "own_drag_once": "Drag the part, or one of its edges. Play plays it the way the screen will.",
+      "own_drag_loop": "Drag the part, or one of its edges, here or in the whole file above; the arrow keys move them too. Play (or the space bar) loops it the way the screen will.",
+      "own_drag_once": "Drag the part, or one of its edges, here or in the whole file above; the arrow keys move them too. Play (or the space bar) plays it the way the screen will.",
       "own_name": "Name",
       "own_save": "Save sound",
       "screens_title": "Per screen",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Volume set to {volume} dB",
       "test": "Test",
       "test_hint": "Plays it on this screen now, the way it will for real",
-      "test_sent": "Playing it on the screen"
+      "test_sent": "Playing it on the screen",
+      "editor": {
+        "drop": "Drop a sound file here",
+        "drop_loop": "Any song or sound will do: you pick the part that rings, at most {seconds} seconds, with the pause you want before it rings again.",
+        "drop_once": "Any song or sound will do: you pick the part that plays, at most {seconds} seconds.",
+        "total": "{time} in all",
+        "other_file": "Another file",
+        "whole": "The whole file",
+        "part": "The part that plays",
+        "start": "Start",
+        "end": "End",
+        "of_most": "of at most {most} s",
+        "made": "What is done to the sound",
+        "no_bass": "Bass filtered out",
+        "soft_ends": "Soft ends",
+        "even_level": "Even volume",
+        "repeats": "Repeats"
+      }
     }
   }
 }

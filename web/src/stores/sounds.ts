@@ -82,7 +82,15 @@ export const useSoundsStore = defineStore("sounds", () => {
   let audio: AudioContext | null = null;
   let source: AudioBufferSourceNode | null = null;
   const playing = ref("");
+  // Where the sound that plays is: when it started on the context's clock, how long it is, and whether it loops.
+  let startedAt = 0, playLength = 0, looping = false;
   const context = () => (audio ??= new AudioContext());
+  /** Seconds into the sound that plays now (within one turn of a loop), or -1 when nothing plays. */
+  function position() {
+    if (!playing.value || !audio || !playLength) return -1;
+    const elapsed = audio.currentTime - startedAt;
+    return looping ? elapsed % playLength : Math.min(elapsed, playLength);
+  }
   function stop() {
     try { source?.stop(); } catch { /* already stopped */ }
     source = null;
@@ -100,6 +108,9 @@ export const useSoundsStore = defineStore("sounds", () => {
     const mine = source;
     source.onended = () => { if (source === mine) { source = null; playing.value = ""; } };
     source.start();
+    startedAt = ctx.currentTime;
+    playLength = buffer.duration;
+    looping = loop;
     playing.value = key;
   }
   function playSamples(samples: Float32Array, key: string, loop: boolean) {
@@ -132,5 +143,5 @@ export const useSoundsStore = defineStore("sounds", () => {
     return (await offline.startRendering()).getChannelData(0).slice();
   }
 
-  return { view, busy, load, nameOf, fitting, ownCount, choose, setVolume, test, remove, add, playing, stop, play, playSamples, decode };
+  return { view, busy, load, nameOf, fitting, ownCount, choose, setVolume, test, remove, add, playing, position, stop, play, playSamples, decode };
 });

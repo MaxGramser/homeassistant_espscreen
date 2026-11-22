@@ -27,15 +27,17 @@ nobody on the other end; for a chime and an alert's sound, the sound once. A scr
 
 ## A sound of your own
 
-Under any kind, **Add your own sound** opens a sound file (WAV, MP3, M4A, OGG, FLAC, whatever the browser plays). The
-browser decodes it, brings it to 16 kHz mono and draws its waveform. You pick the part to keep by dragging it or its
-edges:
+Under any kind, **Add your own sound** opens the audio editor. Drop a sound file on it or choose one (WAV, MP3, M4A,
+OGG, FLAC, whatever the browser plays); the browser decodes it and brings it to 16 kHz mono. The editor shows:
 
-- a ringtone at most 3 seconds, with the pause you want before it rings again, since it plays back to back for as long
-  as the screen rings;
-- a chime at most 5 seconds, and an alert sound at most 3, each played once.
+- the whole file in a thin strip on top, with the part that plays in it: drag the part along a long song there;
+- that part large below it, with room on either side, a grip at its start and end that shows its time, and a ruler;
+- the part's length against the most it may be: a ringtone at most 3 seconds, with the pause you want before it
+  rings again, since it plays back to back for as long as the screen rings; a chime at most 5 seconds and an alert
+  sound at most 3, each played once.
 
-Play plays that part the way the screen will. What is kept is not the file as it came:
+Drag the part or a grip on either waveform; the arrow keys move a grip or the part by 0.05 s (Shift: 0.5 s), and the
+space bar plays. Play plays that part the way the screen will. What is kept is not the file as it came:
 
 - the bass under 400 Hz is filtered out: the small speakers cannot play it, and it only takes level the rest could use;
 - the ends fade over 8 ms, so a ring that loops does not click at every turn;
@@ -80,7 +82,7 @@ needs no feature: the module call reads it since it came. The switch **Call ring
 | The library, the choices, the built-in sounds, the volume | `screen_manager/app/sounds.py` (`KINDS`, `BUILT_IN`, `VOLUME`, `at_volume`, `sounds.json`) |
 | The Test key | `server.py`: `sound_test` |
 | The links in the messages | `server.py`: `call_send`, `doorbell_show`, `broadcast` and `alert_sounds` |
-| The editor | `web/src/components/sounds/SoundPicker.vue` and `SoundCutter.vue`, `web/src/stores/sounds.ts`, `web/src/model/ringtone.ts` |
+| The editor | `web/src/components/sounds/SoundPicker.vue` and `AudioEditor.vue` (the audio editor, one for every kind), `web/src/stores/sounds.ts`, `web/src/model/ringtone.ts` |
 | A file kept by its name, the sound that plays once | `components/smart_display/kept_sound.h` |
 | The ring, the chime | `module_call.cpp` (`want_tone`, `ring_tone`), `module_doorbell.cpp` (`chime`) |
 

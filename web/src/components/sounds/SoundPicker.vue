@@ -1,18 +1,18 @@
 <script setup lang="ts">
 // What the screens play for one kind of sound (docs/SOUNDS.md): a call's ring, a doorbell's chime or an alert's tone,
 // in that kind's own part of Events (CallsView, DoorbellView, AlertsView). One card: the sound for every screen with a
-// key to hear each, how loud the screens play it (Volume, -20 dB unless changed), a sound of one's own cut from a file
-// (SoundCutter), and each screen that can play this kind with a sound of its own and a Test key that plays it there as it
+// key to hear each, how loud the screens play it (Volume, -20 dB unless changed), a sound of one's own made from a file
+// (AudioEditor), and each screen that can play this kind with a sound of its own and a Test key that plays it there as it
 // would for real. Only screens with a speaker are listed; the library is the app's, the same in every kind
 // (stores/sounds.ts), and a kind offers what fits its length.
 import { computed, nextTick, onMounted, ref } from "vue";
-import { t } from "../../i18n";
+import { editorLanguage, t } from "../../i18n";
 import { glyph } from "../../model/topbar";
 import { NONE, useSoundsStore, type Sound, type SoundKind } from "../../stores/sounds";
 import Icon from "../ui/Icon.vue";
 import UiSelect from "../ui/UiSelect.vue";
 import UiSlider from "../ui/UiSlider.vue";
-import SoundCutter from "./SoundCutter.vue";
+import AudioEditor from "./AudioEditor.vue";
 
 const props = defineProps<{ kind: SoundKind }>();
 const sounds = useSoundsStore();
@@ -20,12 +20,13 @@ const PLAY = glyph("F040A"), STOP = glyph("F04DB"), REMOVE = glyph("F09E7"), TES
 onMounted(() => { void sounds.load(); });
 
 const kind = computed(() => sounds.view?.kinds[props.kind]);
+const secondsText = (value: number) => new Intl.NumberFormat(editorLanguage(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
 const choices = computed(() => [...sounds.fitting(props.kind), null]);  // null: no sound
 const screenChoices = computed(() => [["", t("editor.sounds.screens_same")] as const,
   ...sounds.fitting(props.kind).map((s) => [s.id, sounds.nameOf(s.id)] as const), [NONE, t("editor.sounds.none")] as const]);
 const key = (sound: Sound) => `${props.kind}-${sound.id}`;
 const cutting = ref(false);
-const cutter = ref<InstanceType<typeof SoundCutter> | null>(null);
+const cutter = ref<InstanceType<typeof AudioEditor> | null>(null);
 const full = computed(() => sounds.ownCount >= (sounds.view?.max_own ?? 12));
 function startCut() {
   cutting.value = true;
@@ -40,7 +41,9 @@ async function keepVolume(value: number) {
   volume.value = null;
 }
 const soundOf = (screen: { sound: string }) => screen.sound || kind.value?.default || NONE;
-async function saved(id: string) {
+async function save(name: string, samples: Float32Array) {
+  const id = await sounds.add(name, samples);
+  if (!id) return;
   cutting.value = false;
   await sounds.choose(props.kind, "", id);
 }
@@ -61,7 +64,7 @@ async function saved(id: string) {
           <button type="button" role="radio" class="sound-pick" :aria-checked="kind.default === (sound?.id ?? NONE)" :disabled="sounds.busy"
             @click="sounds.choose(props.kind, '', sound?.id ?? NONE)">
             <span>{{ sounds.nameOf(sound?.id ?? NONE) }}</span>
-            <small v-if="sound && !sound.built_in">{{ t("editor.sounds.seconds", { seconds: sound.seconds.toFixed(1) }) }}</small>
+            <small v-if="sound && !sound.built_in">{{ t("editor.sounds.seconds", { seconds: secondsText(sound.seconds) }) }}</small>
             <Icon v-if="kind.default === (sound?.id ?? NONE)" name="check" />
           </button>
           <button v-if="sound && !sound.built_in" type="button" class="btn quiet mini" :aria-label="t('editor.common.remove')" :disabled="sounds.busy"
@@ -81,8 +84,8 @@ async function saved(id: string) {
         <button v-else-if="!cutting" type="button" class="btn" :id="`sounds-${props.kind}-own`" @click="startCut">
           <Icon name="plus" />{{ t("editor.sounds.own_add") }}
         </button>
-        <SoundCutter v-if="cutting" ref="cutter" :most="kind.max_seconds" :loops="kind.loops" :id-prefix="`sounds-${props.kind}`"
-          @saved="saved" @cancel="cutting = false" />
+        <AudioEditor v-if="cutting" ref="cutter" :most="kind.max_seconds" :loops="kind.loops" :id-prefix="`sounds-${props.kind}`"
+          :busy="sounds.busy" @save="save" @cancel="cutting = false" />
       </div>
 
       <div v-if="kind.screens.length" class="sound-screens">

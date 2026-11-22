@@ -5121,13 +5121,10 @@
       "removed": "Ton entfernt",
       "own_add": "Eigenen Ton hinzufügen",
       "own_choose": "Tondatei auswählen",
-      "own_text_loop": "Wähle den Teil, der klingelt: höchstens {seconds} Sekunden, mit der Pause, die du vor dem nächsten Klingeln willst. Die Bässe werden herausgefiltert, weil die Lautsprecher der Bildschirme sie nicht wiedergeben können, und der Pegel wird auf den der anderen Klänge gesetzt.",
-      "own_text_once": "Wähle den Teil, der gespielt wird: höchstens {seconds} Sekunden. Die Bässe werden herausgefiltert, weil die Lautsprecher der Bildschirme sie nicht wiedergeben können, und der Pegel wird auf den der anderen Klänge gesetzt.",
       "own_unreadable": "Diese Datei konnte nicht als Ton gelesen werden.",
       "own_full": "Es gibt schon {most} eigene Töne. Entferne zuerst einen.",
-      "own_part": "{start} s bis {end} s, {length} s lang",
-      "own_drag_loop": "Ziehe den Teil oder eine seiner Kanten. Mit Abspielen läuft er als Schleife, so wie der Bildschirm ihn spielen wird.",
-      "own_drag_once": "Ziehe den Teil oder eine seiner Kanten. Abspielen spielt ihn so, wie der Bildschirm ihn spielen wird.",
+      "own_drag_loop": "Ziehe den Teil oder eine seiner Kanten hierher oder in die ganze Datei oben; die Pfeiltasten bewegen sie auch. Abspielen (oder die Leertaste) spielt ihn in einer Schleife, so wie der Bildschirm ihn spielen wird.",
+      "own_drag_once": "Ziehe den Teil oder eine seiner Kanten hierher oder in die ganze Datei oben; die Pfeiltasten bewegen sie auch. Abspielen (oder die Leertaste) spielt ihn so, wie der Bildschirm ihn spielen wird.",
       "own_name": "Name",
       "own_save": "Ton speichern",
       "screens_title": "Pro Bildschirm",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Lautstärke auf {volume} dB gesetzt",
       "test": "Testen",
       "test_hint": "Spielt ihn jetzt auf diesem Bildschirm, so wie er später wirklich klingt",
-      "test_sent": "Wird auf dem Bildschirm gespielt"
+      "test_sent": "Wird auf dem Bildschirm gespielt",
+      "editor": {
+        "drop": "Tondatei hier ablegen",
+        "drop_loop": "Jeder Song und jeder Ton passt: Du wählst den Teil, der klingelt, höchstens {seconds} Sekunden, mit der Pause, die du vor dem nächsten Klingeln willst.",
+        "drop_once": "Jeder Song und jeder Ton passt: Du wählst den Teil, der gespielt wird, höchstens {seconds} Sekunden.",
+        "total": "{time} insgesamt",
+        "other_file": "Andere Datei",
+        "whole": "Die ganze Datei",
+        "part": "Der Teil, der gespielt wird",
+        "start": "Start",
+        "end": "Ende",
+        "of_most": "von höchstens {most} s",
+        "made": "Was mit dem Ton gemacht wird",
+        "no_bass": "Ohne Bässe",
+        "soft_ends": "Weiche Enden",
+        "even_level": "Gleiche Lautstärke",
+        "repeats": "Wiederholt"
+      }
     }
   }
 }

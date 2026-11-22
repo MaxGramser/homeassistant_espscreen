@@ -5121,13 +5121,10 @@
       "removed": "Dźwięk usunięty",
       "own_add": "Dodaj własny dźwięk",
       "own_choose": "Wybierz plik dźwiękowy",
-      "own_text_loop": "Wybierz fragment, który dzwoni: najwyżej {seconds} sekund, z przerwą, jaką chcesz przed kolejnym dzwonieniem. Basy są odfiltrowane, bo głośniki ekranów nie potrafią ich odtworzyć, a poziom jest ustawiany na taki jak w pozostałych dźwiękach.",
-      "own_text_once": "Wybierz fragment do odtworzenia: najwyżej {seconds} sekund. Basy są odfiltrowane, bo głośniki ekranów nie potrafią ich odtworzyć, a poziom jest ustawiany na taki jak w pozostałych dźwiękach.",
       "own_unreadable": "Nie udało się odczytać tego pliku jako dźwięku.",
       "own_full": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
-      "own_part": "Od {start} s do {end} s, długość {length} s",
-      "own_drag_loop": "Przeciągnij fragment lub jedną z jego krawędzi. Odtwórz zapętla go tak, jak zrobi to ekran.",
-      "own_drag_once": "Przeciągnij fragment lub jedną z jego krawędzi. Odtwórz gra go tak, jak zrobi to ekran.",
+      "own_drag_loop": "Przeciągnij fragment lub jedną z jego krawędzi tutaj albo w całym pliku powyżej; strzałki też go przesuwają. Odtwórz (lub spacja) zapętla go tak, jak zrobi to ekran.",
+      "own_drag_once": "Przeciągnij fragment lub jedną z jego krawędzi tutaj albo w całym pliku powyżej; strzałki też go przesuwają. Odtwórz (lub spacja) odtwarza go tak, jak zrobi to ekran.",
       "own_name": "Nazwa",
       "own_save": "Zapisz dźwięk",
       "screens_title": "Na ekran",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Głośność ustawiona na {volume} dB",
       "test": "Testuj",
       "test_hint": "Odtwarza go teraz na tym ekranie, tak jak zabrzmi naprawdę",
-      "test_sent": "Odtwarzanie na ekranie"
+      "test_sent": "Odtwarzanie na ekranie",
+      "editor": {
+        "drop": "Upuść tutaj plik dźwiękowy",
+        "drop_loop": "Pasuje każda piosenka i każdy dźwięk: wybierasz fragment, który dzwoni, najwyżej {seconds} sekund, z przerwą, jaką chcesz przed kolejnym dzwonieniem.",
+        "drop_once": "Pasuje każda piosenka i każdy dźwięk: wybierasz fragment, który się odtwarza, najwyżej {seconds} sekund.",
+        "total": "{time} łącznie",
+        "other_file": "Inny plik",
+        "whole": "Cały plik",
+        "part": "Odtwarzany fragment",
+        "start": "Początek",
+        "end": "Koniec",
+        "of_most": "z najwyżej {most} s",
+        "made": "Co dzieje się z dźwiękiem",
+        "no_bass": "Bez basów",
+        "soft_ends": "Miękkie końce",
+        "even_level": "Równa głośność",
+        "repeats": "Powtarza się"
+      }
     }
   }
 }

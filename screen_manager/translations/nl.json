@@ -5121,13 +5121,10 @@
       "removed": "Geluid verwijderd",
       "own_add": "Eigen geluid toevoegen",
       "own_choose": "Kies een geluidsbestand",
-      "own_text_loop": "Kies het stuk dat belt: hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt. De bas wordt eruit gefilterd, want de speakers van de schermen kunnen die niet spelen, en het volume wordt gelijk aan dat van de andere geluiden.",
-      "own_text_once": "Kies het stuk dat speelt: hoogstens {seconds} seconden. De bas wordt eruit gefilterd, want de speakers van de schermen kunnen die niet spelen, en het volume wordt gelijk aan dat van de andere geluiden.",
       "own_unreadable": "Dit bestand kon niet als geluid gelezen worden.",
       "own_full": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
-      "own_part": "{start} s tot {end} s, {length} s lang",
-      "own_drag_loop": "Sleep het stuk, of een van de randen. Afspelen herhaalt het zoals het scherm het doet.",
-      "own_drag_once": "Sleep het stuk, of een van de randen. Afspelen speelt het zoals het scherm het doet.",
+      "own_drag_loop": "Sleep het stuk of een van de randen, hier of in het hele bestand erboven; de pijltjestoetsen kunnen het ook. Afspelen (of de spatiebalk) herhaalt het zoals het scherm het doet.",
+      "own_drag_once": "Sleep het stuk of een van de randen, hier of in het hele bestand erboven; de pijltjestoetsen kunnen het ook. Afspelen (of de spatiebalk) speelt het zoals het scherm het doet.",
       "own_name": "Naam",
       "own_save": "Geluid bewaren",
       "screens_title": "Per scherm",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Volume op {volume} dB gezet",
       "test": "Test",
       "test_hint": "Speelt het nu op dit scherm, zoals het straks echt klinkt",
-      "test_sent": "Speelt op het scherm"
+      "test_sent": "Speelt op het scherm",
+      "editor": {
+        "drop": "Sleep een geluidsbestand hierheen",
+        "drop_loop": "Elk nummer of geluid kan: je kiest het stuk dat belt, hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt.",
+        "drop_once": "Elk nummer of geluid kan: je kiest het stuk dat speelt, hoogstens {seconds} seconden.",
+        "total": "{time} in totaal",
+        "other_file": "Ander bestand",
+        "whole": "Het hele bestand",
+        "part": "Het stuk dat speelt",
+        "start": "Begin",
+        "end": "Einde",
+        "of_most": "van hoogstens {most} s",
+        "made": "Wat er met het geluid gebeurt",
+        "no_bass": "Bas eruit",
+        "soft_ends": "Zachte randen",
+        "even_level": "Gelijk volume",
+        "repeats": "Herhaalt"
+      }
     }
   }
 }

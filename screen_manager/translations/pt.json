@@ -5121,13 +5121,10 @@
       "removed": "Som removido",
       "own_add": "Adicionar um som próprio",
       "own_choose": "Escolher um ficheiro de som",
-      "own_text_loop": "Escolha a parte que toca: no máximo {seconds} segundos, com a pausa que quiser antes de tocar de novo. Os graves são filtrados, porque as colunas dos ecrãs não os conseguem reproduzir, e o nível é definido para o dos outros sons.",
-      "own_text_once": "Escolha a parte a reproduzir: no máximo {seconds} segundos. Os graves são filtrados, porque as colunas dos ecrãs não os conseguem reproduzir, e o nível é definido para o dos outros sons.",
       "own_unreadable": "Não foi possível ler este ficheiro como som.",
       "own_full": "Já existem {most} sons próprios. Remova um primeiro.",
-      "own_part": "De {start} s a {end} s, {length} s de duração",
-      "own_drag_loop": "Arraste a parte ou um dos seus limites. Reproduzir repete-a em ciclo, como o ecrã fará.",
-      "own_drag_once": "Arraste a parte ou um dos seus limites. Reproduzir toca-a como o ecrã fará.",
+      "own_drag_loop": "Arraste a parte, ou um dos seus limites, aqui ou no ficheiro inteiro acima; as teclas de seta também a movem. Reproduzir (ou a barra de espaço) repete-a em ciclo, como o ecrã fará.",
+      "own_drag_once": "Arraste a parte, ou um dos seus limites, aqui ou no ficheiro inteiro acima; as teclas de seta também a movem. Reproduzir (ou a barra de espaço) reproduz-a, como o ecrã fará.",
       "own_name": "Nome",
       "own_save": "Guardar som",
       "screens_title": "Por ecrã",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Volume definido para {volume} dB",
       "test": "Testar",
       "test_hint": "Reproduz agora neste ecrã, tal como vai soar a sério",
-      "test_sent": "A reproduzir no ecrã"
+      "test_sent": "A reproduzir no ecrã",
+      "editor": {
+        "drop": "Largue aqui um ficheiro de som",
+        "drop_loop": "Qualquer música ou som serve: escolhe a parte que toca, no máximo {seconds} segundos, com a pausa que quiser antes de tocar de novo.",
+        "drop_once": "Qualquer música ou som serve: escolhe a parte que é reproduzida, no máximo {seconds} segundos.",
+        "total": "{time} no total",
+        "other_file": "Outro ficheiro",
+        "whole": "O ficheiro inteiro",
+        "part": "A parte reproduzida",
+        "start": "Início",
+        "end": "Fim",
+        "of_most": "de no máximo {most} s",
+        "made": "O que se faz ao som",
+        "no_bass": "Sem graves",
+        "soft_ends": "Limites suaves",
+        "even_level": "Volume uniforme",
+        "repeats": "Repete-se"
+      }
     }
   }
 }

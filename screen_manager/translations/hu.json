@@ -5121,13 +5121,10 @@
       "removed": "Hang eltávolítva",
       "own_add": "Saját hang hozzáadása",
       "own_choose": "Hangfájl kiválasztása",
-      "own_text_loop": "Válaszd ki a részt, amely csörög: legfeljebb {seconds} másodperc, azzal a szünettel, amelyet a következő csörgés előtt szeretnél. A mélyhangokat kiszűrjük, mert a képernyők hangszórói nem tudják lejátszani őket, a hangerőt pedig a többi hangéhoz igazítjuk.",
-      "own_text_once": "Válaszd ki a lejátszandó részt: legfeljebb {seconds} másodperc. A mélyhangokat kiszűrjük, mert a képernyők hangszórói nem tudják lejátszani őket, a hangerőt pedig a többi hangéhoz igazítjuk.",
       "own_unreadable": "Ezt a fájlt nem sikerült hangként beolvasni.",
       "own_full": "Már {most} saját hangod van. Előbb távolíts el egyet.",
-      "own_part": "{start} mp-től {end} mp-ig, {length} mp hosszú",
-      "own_drag_loop": "Húzd a részt vagy valamelyik szélét. A Lejátszás ismétli, ahogyan a képernyő fogja.",
-      "own_drag_once": "Húzd a részt vagy valamelyik szélét. A Lejátszás úgy játssza le, ahogyan a képernyő fogja.",
+      "own_drag_loop": "Húzd a részt vagy valamelyik szélét ide, vagy a fenti teljes fájlban; a nyílbillentyűk is mozgatják. A Lejátszás (vagy a szóköz) ismétli, ahogyan a képernyő fogja.",
+      "own_drag_once": "Húzd a részt vagy valamelyik szélét ide, vagy a fenti teljes fájlban; a nyílbillentyűk is mozgatják. A Lejátszás (vagy a szóköz) úgy játssza le, ahogyan a képernyő fogja.",
       "own_name": "Név",
       "own_save": "Hang mentése",
       "screens_title": "Képernyőnként",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Hangerő beállítva: {volume} dB",
       "test": "Teszt",
       "test_hint": "Most lejátssza ezen a képernyőn, úgy, ahogy élesben szólni fog",
-      "test_sent": "Lejátszás a képernyőn"
+      "test_sent": "Lejátszás a képernyőn",
+      "editor": {
+        "drop": "Húzz ide egy hangfájlt",
+        "drop_loop": "Bármelyik dal vagy hang jó: te választod ki a csengő részt, legfeljebb {seconds} másodpercet, azzal a szünettel, amelyet a következő csengetés előtt szeretnél.",
+        "drop_once": "Bármelyik dal vagy hang jó: te választod ki a lejátszott részt, legfeljebb {seconds} másodpercet.",
+        "total": "{time} összesen",
+        "other_file": "Másik fájl",
+        "whole": "A teljes fájl",
+        "part": "A lejátszott rész",
+        "start": "Kezdet",
+        "end": "Vég",
+        "of_most": "legfeljebb {most} mp-ből",
+        "made": "Mi történik a hanggal",
+        "no_bass": "Basszus nélkül",
+        "soft_ends": "Lágy szélek",
+        "even_level": "Egyenletes hangerő",
+        "repeats": "Ismétlődik"
+      }
     }
   }
 }

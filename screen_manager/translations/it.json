@@ -5121,13 +5121,10 @@
       "removed": "Suono rimosso",
       "own_add": "Aggiungi un suono tuo",
       "own_choose": "Scegli un file audio",
-      "own_text_loop": "Scegli la parte che suona: al massimo {seconds} secondi, con la pausa che vuoi prima che suoni di nuovo. I bassi vengono filtrati, perché gli altoparlanti degli schermi non possono riprodurli, e il livello viene impostato su quello degli altri suoni.",
-      "own_text_once": "Scegli la parte da riprodurre: al massimo {seconds} secondi. I bassi vengono filtrati, perché gli altoparlanti degli schermi non possono riprodurli, e il livello viene impostato su quello degli altri suoni.",
       "own_unreadable": "Non è stato possibile leggere questo file come suono.",
       "own_full": "Ci sono già {most} suoni tuoi. Rimuovine prima uno.",
-      "own_part": "Da {start} s a {end} s, lungo {length} s",
-      "own_drag_loop": "Trascina la parte, o uno dei suoi bordi. Riproduci la ripete in ciclo come farà lo schermo.",
-      "own_drag_once": "Trascina la parte, o uno dei suoi bordi. Riproduci la suona come farà lo schermo.",
+      "own_drag_loop": "Trascina la parte, o uno dei suoi bordi, qui o nel file intero qui sopra; anche i tasti freccia la spostano. Riproduci (o la barra spaziatrice) la ripete in ciclo come farà lo schermo.",
+      "own_drag_once": "Trascina la parte, o uno dei suoi bordi, qui o nel file intero qui sopra; anche i tasti freccia la spostano. Riproduci (o la barra spaziatrice) la riproduce come farà lo schermo.",
       "own_name": "Nome",
       "own_save": "Salva suono",
       "screens_title": "Per schermo",
@@ -5138,7 +5135,24 @@
       "volume_saved": "Volume impostato a {volume} dB",
       "test": "Prova",
       "test_hint": "Lo riproduce ora su questo schermo, come suonerà davvero",
-      "test_sent": "Riproduzione sullo schermo"
+      "test_sent": "Riproduzione sullo schermo",
+      "editor": {
+        "drop": "Trascina qui un file audio",
+        "drop_loop": "Va bene qualsiasi brano o suono: scegli la parte che suona, al massimo {seconds} secondi, con la pausa che vuoi prima che suoni di nuovo.",
+        "drop_once": "Va bene qualsiasi brano o suono: scegli la parte che viene riprodotta, al massimo {seconds} secondi.",
+        "total": "{time} in tutto",
+        "other_file": "Un altro file",
+        "whole": "Il file intero",
+        "part": "La parte riprodotta",
+        "start": "Inizio",
+        "end": "Fine",
+        "of_most": "di al massimo {most} s",
+        "made": "Cosa si fa al suono",
+        "no_bass": "Senza bassi",
+        "soft_ends": "Bordi morbidi",
+        "even_level": "Volume uniforme",
+        "repeats": "Si ripete"
+      }
     }
   }
 }
