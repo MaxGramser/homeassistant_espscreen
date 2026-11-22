@@ -74,7 +74,7 @@ def _notes(out, notes, decay, partials, attack=0.004):
         for i in range(first, len(out)):
             t = (i - first) / RATE
             envelope = math.exp(-t * decay) * min(t / attack, 1.0)
-            if envelope < 0.001:
+            if t > attack and envelope < 0.001:
                 break
             out[i] += envelope * sum(level * math.sin(2 * math.pi * freq * k * t) for k, level in partials)
     return out
