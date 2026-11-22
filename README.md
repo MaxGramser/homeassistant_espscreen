@@ -109,11 +109,15 @@ A screen looks best on a stand that was made for it. These are free to download 
 ready Bambu Studio print profile and no supports needed.
 
 <p align="center">
-  <a href="https://makerworld.com/en/models/3485702"><img src="docs/images/stand-d1001.jpg" width="32%" alt="A Seeed reTerminal D1001 on a round white printed base on a wooden desk, showing a Tessera page with the clock, the weather, music, a camera and the lights"></a>
-  <a href="https://makerworld.com/en/models/3410079"><img src="docs/images/stand-guition-v2.jpg" width="32%" alt="The 4-inch Guition in a black printed wedge stand on a wooden table, showing a home page with the weather, a speaker, the airco and two lights"></a>
-  <a href="https://makerworld.com/en/models/3389654"><img src="docs/images/stand-guition.jpg" width="32%" alt="The 4-inch Guition in an upright black printed stand on a wooden table, beside a window"></a>
+  <a href="https://makerworld.com/en/@maxgramser/upload"><img src="docs/images/stand-guition-10.jpg" width="24%" alt="The 10.1-inch Guition in a round black printed base on a wooden table, showing a living room page with the lights, music, the airco, a temperature graph and the weather"></a>
+  <a href="https://makerworld.com/en/models/3485702"><img src="docs/images/stand-d1001.jpg" width="24%" alt="A Seeed reTerminal D1001 on a round white printed base on a wooden desk, showing a Tessera page with the clock, the weather, music, a camera and the lights"></a>
+  <a href="https://makerworld.com/en/models/3410079"><img src="docs/images/stand-guition-v2.jpg" width="24%" alt="The 4-inch Guition in a black printed wedge stand on a wooden table, showing a home page with the weather, a speaker, the airco and two lights"></a>
+  <a href="https://makerworld.com/en/models/3389654"><img src="docs/images/stand-guition.jpg" width="24%" alt="The 4-inch Guition in an upright black printed stand on a wooden table, beside a window"></a>
 </p>
 
+- **[Home Assistant tablet base, 10.1 inch](https://makerworld.com/en/@maxgramser/upload)** for the Guition 10.1" JC8012P4A1
+  (every version, V3 included): a round base tilted 30 degrees, one part, no supports. Set the screen in, no screws.
+  Live cameras, music and Assist on the ESP32-P4, with 25 tiles on a page.
 - **[Home Assistant tablet base](https://makerworld.com/en/models/3485702)** for the Seeed reTerminal D1001 (8 inch): a
   round base with a dock, tilted 30 degrees. Two printed rails hold the screen by its VESA holes, with four M4 x 8 mm
   screws. The ESP32-P4 inside plays your cameras live and talks to Assist.
