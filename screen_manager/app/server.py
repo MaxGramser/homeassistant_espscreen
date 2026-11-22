@@ -4279,6 +4279,41 @@ class Manager:
             result['unknown'] = unknown
         return result
 
+    async def sound_test(self, kind, screen_id):
+        """A screen plays its sound of `kind` now, as it would for real (docs/SOUNDS.md, "Volume"): a call's ring as a ring
+        of a few seconds at the volume a ring stands at, nobody on the other end; a chime or an alert's sound once.
+        ValueError: 'unknown', 'none' (it plays no sound), 'older' (its firmware takes no sounds as files), 'busy'."""
+        screen = next((s for s in self.screens() if s.get('id') == screen_id), None)
+        if kind not in sounds.KINDS or screen is None:
+            raise ValueError('unknown')
+        if self.sounds.sound_of(kind, screen_id) == sounds.NONE:
+            raise ValueError('none')
+        transport, scope = self.transport(screen['id'], screen), self.page_scope(screen['id'])
+        if kind == 'call':
+            node = screen.get('node')
+            if not node or node not in self.call_screens():
+                raise ValueError('older')
+            if self.calls.of(node):
+                raise ValueError('busy')
+            base = await self.link_base(screen)
+            if not base:
+                raise ValueError('older')
+            key = 'test' + secrets.token_hex(2)
+            ring = {'v': 1, 'op': 'call', 'k': key, 's': calls.RING, 'n': t('addon.sounds.test')[:60], 'vd': 0,
+                    'rt': self.sounds.link('call', base, screen_id)}
+            await self.send_auxiliary(screen['id'], ring, transport, scope)
+
+            async def end():
+                await asyncio.sleep(sounds.TEST_RING_SECONDS)
+                await self.send_auxiliary(screen['id'], {'v': 1, 'op': 'call', 'k': key, 's': calls.END, 'n': ring['n'], 'vd': 0, 'w': calls.HUNG_UP},
+                                          self.transport(screen['id'], screen), self.page_scope(screen['id']))
+            asyncio.ensure_future(end())
+            return
+        link = await self.sound_link(kind, screen)
+        if not link:
+            raise ValueError('older')
+        await self.send_auxiliary(screen['id'], sounds.sound_message(link), transport, scope)
+
     async def alert_sounds(self, kind, screens):
         """The sound of `kind` on each screen that shows an alert and plays sounds as files (the op `sound`)."""
         links = await asyncio.gather(*(self.sound_link(kind, screen) for screen in screens))
@@ -5799,7 +5834,12 @@ def create_app(manager, development=False):
         return web.json_response(manager.sounds.view(manager.sound_screens()))
     async def sound_file(request):
         """A sound as the screens get it, for the editor to play."""
-        data = manager.sounds.wav(request.match_info['sound'])
+        volume = request.query.get('volume')
+        try:
+            volume = int(volume) if volume not in (None, '') else None
+        except ValueError:
+            volume = None
+        data = manager.sounds.wav(request.match_info['sound'], volume)
         if data is None:
             raise web.HTTPNotFound()
         return web.Response(body=data, content_type='audio/wav', headers={'Cache-Control': 'no-cache'})
@@ -5822,6 +5862,23 @@ def create_app(manager, development=False):
         except ValueError as error:
             raise sound_error(str(error)) from None
         return web.json_response(manager.sounds.view(manager.sound_screens()))
+    async def sound_volume(request):
+        """How loud the screens play a kind of sound, in dB of full scale (sounds.VOLUME_RANGE)."""
+        body = await request.json()
+        try:
+            manager.sounds.set_volume(str((body or {}).get('kind') or ''), (body or {}).get('volume'))
+        except (ValueError, AttributeError):
+            raise sound_error('volume') from None
+        return web.json_response(manager.sounds.view(manager.sound_screens()))
+    async def sound_test(request):
+        """The Test key of a screen: it plays its sound of a kind as it would for real (manager.sound_test)."""
+        body = await request.json()
+        body = body if isinstance(body, dict) else {}
+        try:
+            await manager.sound_test(str(body.get('kind') or ''), str(body.get('screen') or ''))
+        except ValueError as error:
+            raise sound_error(str(error)) from None
+        return web.json_response({'ok': True})
     async def sound_choose(request):
         """The sound of a kind for every screen (`screen` empty) or for one ('' follows every screen's)."""
         body = await request.json()
@@ -6536,6 +6593,8 @@ def create_app(manager, development=False):
     app.router.add_get('/api/sounds', sounds_view)
     app.router.add_post('/api/sounds', sound_add)
     app.router.add_put('/api/sounds/choice', sound_choose)
+    app.router.add_put('/api/sounds/volume', sound_volume)
+    app.router.add_post('/api/sounds/test', sound_test)
     app.router.add_get(r'/api/sounds/{sound:[a-z0-9-]{1,40}}.wav', sound_file)
     app.router.add_delete(r'/api/sounds/{sound:[a-z0-9-]{1,40}}', sound_remove)
     app.router.add_get('/api/automations', list_automations)

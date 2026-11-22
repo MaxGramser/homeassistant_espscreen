@@ -1049,7 +1049,11 @@
         "format": "Een geluid is een WAV-bestand van 16 kHz, mono, 16 bits.",
         "short": "Een geluid duurt minstens een kwart seconde.",
         "long": "Een geluid duurt hoogstens {seconds} seconden.",
-        "unknown": "Dat geluid bestaat niet."
+        "unknown": "Dat geluid bestaat niet.",
+        "volume": "Een volume is een heel aantal dB van -40 tot 0.",
+        "none": "Dit scherm speelt hier geen geluid voor. Kies er eerst een.",
+        "older": "Dit scherm heeft hiervoor een firmware-update nodig.",
+        "busy": "Dit scherm is nu in gesprek."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot is {count} van je tegels vergeten: ze staan los op de laatste pagina."
       },
       "nothing_to_restructure": "Op deze pagina staan nog geen tegels van apparaten om te herstructureren. Voeg er een paar toe en vraag het dan nog eens."
+    },
+    "sounds": {
+      "test": "Beltoontest"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Geluid bewaren",
       "screens_title": "Per scherm",
       "screens_same": "Zoals elk scherm",
-      "screens_none": "Nog geen scherm dat dit kan spelen heeft een speaker."
+      "screens_none": "Nog geen scherm dat dit kan spelen heeft een speaker.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume op {volume} dB gezet",
+      "test": "Test",
+      "test_hint": "Speelt het nu op dit scherm, zoals het straks echt klinkt",
+      "test_sent": "Speelt op het scherm"
     }
   }
 }

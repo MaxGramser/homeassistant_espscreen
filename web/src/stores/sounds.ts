@@ -12,8 +12,9 @@ import { useUiStore } from "./ui";
 
 export type SoundKind = "call" | "doorbell" | "alert";
 export type Sound = { id: string; name?: string; built_in: boolean; file: string; seconds: number };
-export type KindView = { default: string; max_seconds: number; loops: boolean; screens: { id: string; name: string; sound: string }[] };
-export type SoundsView = { rate: number; min_seconds: number; max_seconds: number; max_own: number; name_most: number; sounds: Sound[];
+export type KindView = { default: string; max_seconds: number; loops: boolean; volume: number; screens: { id: string; name: string; sound: string }[] };
+export type SoundsView = { rate: number; min_seconds: number; max_seconds: number; max_own: number; name_most: number;
+  volume_range: [number, number]; sounds: Sound[];
   kinds: Record<SoundKind, KindView> };
 export const NONE = "none";
 
@@ -48,6 +49,18 @@ export const useSoundsStore = defineStore("sounds", () => {
   }
   const choose = (kind: SoundKind, screen: string, sound: string) =>
     run(() => send<SoundsView>("sounds/choice", "PUT", { kind, screen, sound }), t("editor.sounds.chosen"));
+  /** How loud the screens play `kind`, in dB of full scale. */
+  const setVolume = (kind: SoundKind, volume: number) =>
+    run(() => send<SoundsView>("sounds/volume", "PUT", { kind, volume }), t("editor.sounds.volume_saved", { volume }));
+  /** The screen plays its sound of `kind` now, as it would for real. */
+  async function test(kind: SoundKind, screen: string) {
+    try {
+      await send("sounds/test", "POST", { kind, screen });
+      ui.toast(t("editor.sounds.test_sent"));
+    } catch (error) {
+      ui.toast((error as Error).message);
+    }
+  }
   function remove(sound: Sound) {
     if (playing.value === sound.id) stop();
     return run(() => send<SoundsView>(`sounds/${sound.id}`, "DELETE"), t("editor.sounds.removed"));
@@ -96,12 +109,14 @@ export const useSoundsStore = defineStore("sounds", () => {
     playBuffer(buffer, key, loop);
   }
   const buffers = new Map<string, AudioBuffer>();
-  async function play(sound: Sound, loop: boolean, key = sound.id) {
+  /** Plays `sound` here at `volume` dB, the way the screens get it (louder or softer than they sound, but in proportion). */
+  async function play(sound: Sound, loop: boolean, key = sound.id, volume?: number) {
     if (playing.value === key) return stop();
-    let buffer = buffers.get(sound.file);
+    const cached = `${sound.file}@${volume ?? ""}`;
+    let buffer = buffers.get(cached);
     if (!buffer) {
-      buffer = await context().decodeAudioData(await (await api(`sounds/${sound.id}.wav`)).arrayBuffer());
-      buffers.set(sound.file, buffer);
+      buffer = await context().decodeAudioData(await (await api(`sounds/${sound.id}.wav${volume === undefined ? "" : `?volume=${volume}`}`)).arrayBuffer());
+      buffers.set(cached, buffer);
     }
     playBuffer(buffer, key, loop);
   }
@@ -117,5 +132,5 @@ export const useSoundsStore = defineStore("sounds", () => {
     return (await offline.startRendering()).getChannelData(0).slice();
   }
 
-  return { view, busy, load, nameOf, fitting, ownCount, choose, remove, add, playing, stop, play, playSamples, decode };
+  return { view, busy, load, nameOf, fitting, ownCount, choose, setVolume, test, remove, add, playing, stop, play, playSamples, decode };
 });

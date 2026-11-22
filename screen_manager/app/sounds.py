@@ -52,6 +52,13 @@ FEATURE = 'sounds'
 # ring stands at (the owner heard it on the Guition 10.1 and the D1001, 2026-11-22); the editor levels to the same
 # (web/src/model/ringtone.ts, PEAK).
 LEVEL = 0.5
+# How loud a screen plays each kind: the loudest sample of what it gets, in dB of full scale (the editor's Volume). The
+# app makes the file at that volume (at_volume), so a screen needs nothing new for it. At -6 dB the speakers of the
+# Guition 10.1 still distorted a ring; the owner chose -20 dB of -10, -14 and -20 (2026-11-22).
+VOLUME = -20
+VOLUME_RANGE = (-40, 0)
+# How long the Test key lets a screen ring (server.sound_test).
+TEST_RING_SECONDS = 6
 
 
 def _blank(seconds):
@@ -197,7 +204,10 @@ class Sounds:
             mine = stored.get(kind) if isinstance(stored.get(kind), dict) else {}
             default = mine.get('default') if self.fits(kind, mine.get('default')) else rule['default']
             screens = {str(k): v for k, v in (mine.get('screens') or {}).items() if self.fits(kind, v)} if isinstance(mine.get('screens'), dict) else {}
-            self.kinds[kind] = {'default': default, 'screens': screens}
+            volume = mine.get('volume')
+            volume = int(volume) if isinstance(volume, (int, float)) and not isinstance(volume, bool) and VOLUME_RANGE[0] <= volume <= VOLUME_RANGE[1] else VOLUME
+            self.kinds[kind] = {'default': default, 'screens': screens, 'volume': volume}
+        self.made = {}  # (file, volume): the name of that file at that volume (at_volume)
 
     @staticmethod
     def _ringtones(path):
@@ -237,7 +247,41 @@ class Sounds:
         if sound == NONE:
             return NONE
         name = self.file_of(sound) or self.built['classic']
-        return self.files.link(base, name)
+        return self.files.link(base, self.at_volume(name, self.kinds[kind]['volume']))
+
+    def at_volume(self, name, volume):
+        """The file `name` with its loudest sample at `volume` dB of full scale: a file of its own, held in memory and made
+        again after a restart as a screen asks for it; the same file and volume are the same name, so a screen keeps it."""
+        key = (name, volume)
+        if key not in self.made:
+            found = self.files.get(name)
+            if not found:
+                return name
+            with wave.open(io.BytesIO(found[0]), 'rb') as w:
+                pcm = array.array('h', w.readframes(w.getnframes()))
+            if array.array('h', [1]).tobytes()[0] != 1:
+                pcm.byteswap()
+            peak = max((abs(x) for x in pcm), default=0) or 1
+            gain = 32767 * 10 ** (volume / 20) / peak
+            out = array.array('h', (max(-32767, min(32767, int(round(x * gain)))) for x in pcm))
+            if array.array('h', [1]).tobytes()[0] != 1:
+                out.byteswap()
+            data = io.BytesIO()
+            with wave.open(data, 'wb') as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(RATE)
+                w.writeframes(out.tobytes())
+            self.made[key] = self.files.add(data.getvalue(), 'wav', keep=False)
+        return self.made[key]
+
+    def set_volume(self, kind, volume):
+        """The volume of `kind`, in whole dB within VOLUME_RANGE."""
+        if kind not in KINDS or isinstance(volume, bool) or not isinstance(volume, (int, float)) or not VOLUME_RANGE[0] <= volume <= VOLUME_RANGE[1]:
+            raise ValueError('volume')
+        with self.lock:
+            self.kinds[kind]['volume'] = int(round(volume))
+            self.save()
 
     def view(self, screens):
         """What the editor shows: every sound with its length, and per kind its limit, the one for every screen and each
@@ -246,13 +290,18 @@ class Sounds:
         sounds += [{'id': o['id'], 'name': o['name'], 'built_in': False, 'file': o['file'], 'seconds': round(self.length.get(o['id'], 0), 2)}
                    for o in self.own]
         kinds = {kind: {'default': self.kinds[kind]['default'], 'max_seconds': rule['max_seconds'], 'loops': rule['loops'],
+                        'volume': self.kinds[kind]['volume'],
                         'screens': [{**screen, 'sound': self.kinds[kind]['screens'].get(str(screen['id']), '')} for screen in screens.get(kind, [])]}
                  for kind, rule in KINDS.items()}
         return {'rate': RATE, 'min_seconds': MIN_SECONDS, 'max_seconds': MAX_SECONDS, 'max_own': MAX_OWN, 'name_most': NAME_MOST,
+                'volume_range': list(VOLUME_RANGE),
                 'sounds': sounds, 'kinds': kinds}
 
-    def wav(self, sound):
+    def wav(self, sound, volume=None):
+        """The WAV of `sound`, at `volume` dB when given (what a screen gets), else as it is kept."""
         name = self.file_of(sound)
+        if name and volume is not None:
+            name = self.at_volume(name, volume)
         found = self.files.get(name) if name else None
         return found[0] if found else None
 

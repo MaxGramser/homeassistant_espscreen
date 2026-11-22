@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // What the screens play for one kind of sound (docs/SOUNDS.md): a call's ring, a doorbell's chime or an alert's tone,
 // in that kind's own part of Events (CallsView, DoorbellView, AlertsView). One card: the sound for every screen with a
-// key to hear each, a sound of one's own cut from a file (SoundCutter), and each screen that can play this kind with a
-// sound of its own. Only screens with a speaker are listed; the library is the app's, the same in every kind
+// key to hear each, how loud the screens play it (Volume, -20 dB unless changed), a sound of one's own cut from a file
+// (SoundCutter), and each screen that can play this kind with a sound of its own and a Test key that plays it there as it
+// would for real. Only screens with a speaker are listed; the library is the app's, the same in every kind
 // (stores/sounds.ts), and a kind offers what fits its length.
 import { computed, nextTick, onMounted, ref } from "vue";
 import { t } from "../../i18n";
@@ -10,11 +11,12 @@ import { glyph } from "../../model/topbar";
 import { NONE, useSoundsStore, type Sound, type SoundKind } from "../../stores/sounds";
 import Icon from "../ui/Icon.vue";
 import UiSelect from "../ui/UiSelect.vue";
+import UiSlider from "../ui/UiSlider.vue";
 import SoundCutter from "./SoundCutter.vue";
 
 const props = defineProps<{ kind: SoundKind }>();
 const sounds = useSoundsStore();
-const PLAY = glyph("F040A"), STOP = glyph("F04DB"), REMOVE = glyph("F09E7");
+const PLAY = glyph("F040A"), STOP = glyph("F04DB"), REMOVE = glyph("F09E7"), TEST = glyph("F057E");
 onMounted(() => { void sounds.load(); });
 
 const kind = computed(() => sounds.view?.kinds[props.kind]);
@@ -30,6 +32,14 @@ function startCut() {
   // The file chooser at once, from the same tap (a browser opens it only from one).
   void nextTick(() => cutter.value?.choose());
 }
+// The volume follows the slider at once and is kept when the hand lets go.
+const volume = ref<number | null>(null);
+const shown = computed(() => volume.value ?? kind.value?.volume ?? -20);
+async function keepVolume(value: number) {
+  await sounds.setVolume(props.kind, value);
+  volume.value = null;
+}
+const soundOf = (screen: { sound: string }) => screen.sound || kind.value?.default || NONE;
 async function saved(id: string) {
   cutting.value = false;
   await sounds.choose(props.kind, "", id);
@@ -46,7 +56,7 @@ async function saved(id: string) {
           :data-sound="sound?.id ?? NONE">
           <button v-if="sound" type="button" class="sound-play" :class="{ on: sounds.playing === key(sound) }"
             :aria-label="sounds.playing === key(sound) ? t('editor.sounds.stop') : t('editor.sounds.play')"
-            @click="sounds.play(sound, kind.loops, key(sound))"><span class="mdi">{{ sounds.playing === key(sound) ? STOP : PLAY }}</span></button>
+            @click="sounds.play(sound, kind.loops, key(sound), kind.volume)"><span class="mdi">{{ sounds.playing === key(sound) ? STOP : PLAY }}</span></button>
           <span v-else class="sound-play-space" />
           <button type="button" role="radio" class="sound-pick" :aria-checked="kind.default === (sound?.id ?? NONE)" :disabled="sounds.busy"
             @click="sounds.choose(props.kind, '', sound?.id ?? NONE)">
@@ -57,6 +67,13 @@ async function saved(id: string) {
           <button v-if="sound && !sound.built_in" type="button" class="btn quiet mini" :aria-label="t('editor.common.remove')" :disabled="sounds.busy"
             @click="sounds.remove(sound)"><span class="mdi">{{ REMOVE }}</span></button>
         </div>
+      </div>
+
+      <div class="sound-volume">
+        <span>{{ t("editor.sounds.volume") }}</span>
+        <UiSlider :id="`sounds-${props.kind}-volume`" :model-value="shown" :min="sounds.view?.volume_range[0] ?? -40" :max="sounds.view?.volume_range[1] ?? 0"
+          :step="1" :label="t('editor.sounds.volume')" @update:model-value="(v) => (volume = v)" @commit="keepVolume" />
+        <strong>{{ t("editor.sounds.volume_db", { volume: shown }) }}</strong>
       </div>
 
       <div class="sound-own">
@@ -74,6 +91,8 @@ async function saved(id: string) {
           <span>{{ screen.name }}</span>
           <UiSelect :model-value="screen.sound" :options="screenChoices" :disabled="sounds.busy" :aria-label="screen.name"
             @update:model-value="(sound) => sounds.choose(props.kind, screen.id, String(sound))" />
+          <button type="button" class="btn quiet sound-test" :disabled="sounds.busy || soundOf(screen) === NONE"
+            :title="t('editor.sounds.test_hint')" @click="sounds.test(props.kind, screen.id)"><span class="mdi">{{ TEST }}</span>{{ t("editor.sounds.test") }}</button>
         </div>
       </div>
       <p v-else class="hint">{{ t("editor.sounds.screens_none") }}</p>
@@ -102,5 +121,10 @@ async function saved(id: string) {
 .sound-screens { display: grid; gap: 2px; }
 .sound-screen { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; }
 .sound-screen > span { min-width: 0; overflow-wrap: anywhere; }
-.sound-screen :deep(.ui-select) { min-width: 200px; }
+.sound-screen :deep(.ui-select) { min-width: 200px; margin-left: auto; }
+.sound-test { flex: none; }
+.sound-test .mdi { font-size: 16px; }
+.sound-volume { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; max-width: 520px; }
+.sound-volume > span { font-size: 13px; color: var(--muted); }
+.sound-volume strong { font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
 </style>

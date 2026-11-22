@@ -1049,7 +1049,11 @@
         "format": "Dźwięk to plik WAV 16 kHz, mono, 16 bitów.",
         "short": "Dźwięk trwa co najmniej ćwierć sekundy.",
         "long": "Dźwięk trwa najwyżej {seconds} sekund.",
-        "unknown": "Taki dźwięk nie istnieje."
+        "unknown": "Taki dźwięk nie istnieje.",
+        "volume": "Głośność to liczba całkowita w dB od -40 do 0.",
+        "none": "Ten ekran nie odtwarza do tego żadnego dźwięku. Najpierw wybierz jeden.",
+        "older": "Ten ekran potrzebuje do tego aktualizacji firmware'u.",
+        "busy": "Ten ekran jest teraz w trakcie rozmowy."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot pominął {count} Twoich kafelków: stoją luzem na ostatniej stronie."
       },
       "nothing_to_restructure": "Na tej stronie nie ma jeszcze kafelków urządzeń do przebudowania. Dodaj kilka i zapytaj ponownie."
+    },
+    "sounds": {
+      "test": "Test dzwonka"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Zapisz dźwięk",
       "screens_title": "Na ekran",
       "screens_same": "Tak samo jak na każdym ekranie",
-      "screens_none": "Żaden ekran, który to odtworzy, nie ma jeszcze głośnika."
+      "screens_none": "Żaden ekran, który to odtworzy, nie ma jeszcze głośnika.",
+      "volume": "Głośność",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Głośność ustawiona na {volume} dB",
+      "test": "Testuj",
+      "test_hint": "Odtwarza go teraz na tym ekranie, tak jak zabrzmi naprawdę",
+      "test_sent": "Odtwarzanie na ekranie"
     }
   }
 }

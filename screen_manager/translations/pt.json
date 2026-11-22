@@ -1049,7 +1049,11 @@
         "format": "Um som é um ficheiro WAV de 16 kHz, mono, 16 bits.",
         "short": "Um som tem pelo menos um quarto de segundo.",
         "long": "Um som tem no máximo {seconds} segundos.",
-        "unknown": "Esse som não existe."
+        "unknown": "Esse som não existe.",
+        "volume": "Um volume é um número inteiro de dB de -40 a 0.",
+        "none": "Este ecrã não reproduz nenhum som para isto. Escolha um primeiro.",
+        "older": "Este ecrã precisa de uma atualização de firmware para isto.",
+        "busy": "Este ecrã está numa chamada neste momento."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "O Layoutbot esqueceu-se de {count} dos seus mosaicos: estão soltos na última página."
       },
       "nothing_to_restructure": "Esta página ainda não tem mosaicos de dispositivos para reestruturar. Adicione alguns e pergunte outra vez."
+    },
+    "sounds": {
+      "test": "Teste do toque de chamada"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Guardar som",
       "screens_title": "Por ecrã",
       "screens_same": "Igual a todos os ecrãs",
-      "screens_none": "Ainda nenhum ecrã que o possa reproduzir tem altifalante."
+      "screens_none": "Ainda nenhum ecrã que o possa reproduzir tem altifalante.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume definido para {volume} dB",
+      "test": "Testar",
+      "test_hint": "Reproduz agora neste ecrã, tal como vai soar a sério",
+      "test_sent": "A reproduzir no ecrã"
     }
   }
 }

@@ -156,7 +156,7 @@ class Library(unittest.TestCase):
         self.assertEqual(self.sounds.sound_of('call', 'kitchen'), 'bell')
         self.sounds.choose('call', 'kitchen', '')
         self.assertEqual(self.sounds.sound_of('call', 'kitchen'), sound)
-        self.assertEqual(self.sounds.link('call', 'http://h:8098', 'kitchen'), f'http://h:8098/files/{self.sounds.file_of(sound)}.wav')
+        self.assertEqual(self.sounds.link('call', 'http://h:8098', 'kitchen'), f'http://h:8098/files/{self.sounds.at_volume(self.sounds.file_of(sound), sounds.VOLUME)}.wav')
         self.sounds.choose('doorbell', '', sounds.NONE)
         self.assertEqual(self.sounds.link('doorbell', 'http://h:8098', 'kitchen'), sounds.NONE)
         # Kept over a restart.
@@ -195,6 +195,36 @@ class Library(unittest.TestCase):
         with self.assertRaises(ValueError) as caught:
             self.sounds.add('one more', a_wav(1.5))
         self.assertEqual(str(caught.exception), 'many')
+
+    def test_a_screen_plays_each_kind_at_its_volume(self):
+        # -20 dB unless someone moves the slider: the file a screen gets has its loudest sample there (the owner chose
+        # -20 dB of -10, -14 and -20 on the Guition 10.1, 2026-11-22).
+        self.assertEqual({kind: v['volume'] for kind, v in self.sounds.view({})['kinds'].items()}, {'call': -20, 'doorbell': -20, 'alert': -20})
+        link = self.sounds.link('call', 'http://h:8098', 'kitchen')
+        name = link.rsplit('/', 1)[1].split('.')[0]
+        peak = max(abs(int.from_bytes(self.files.get(name)[0][44:][i:i + 2], 'little', signed=True)) for i in range(0, 2 * sounds.RATE, 2))
+        self.assertAlmostEqual(20 * math.log10(peak / 32767), -20, delta=0.1)
+        self.assertNotEqual(name, self.sounds.built['classic'])
+        # Another volume is another file, so a screen takes it with its next ring; the same volume is the same file.
+        self.sounds.set_volume('call', -30)
+        quieter = self.sounds.link('call', 'http://h:8098', 'kitchen')
+        self.assertNotEqual(quieter, link)
+        self.assertEqual(self.sounds.link('call', 'http://h:8098', 'hall'), quieter)
+        self.assertEqual(self.sounds.link('doorbell', 'http://h:8098', 'kitchen').rsplit('/', 1)[1].split('.')[0],
+                         self.sounds.at_volume(self.sounds.built['chime'], -20))
+        self.assertEqual(sounds.Sounds(self.folder, screen_files.ScreenFiles(self.folder)).kinds['call']['volume'], -30)
+        for bad in (-41, 1, 'loud', True, None):
+            with self.assertRaises(ValueError):
+                self.sounds.set_volume('call', bad)
+        self.assertIsNotNone(self.sounds.wav('classic', -10))
+
+    def test_the_test_key_plays_as_for_real(self):
+        # A call's test is a ring of its own (state ring, its `rt`) ended by the app; the others the op `sound`.
+        server = (ROOT / 'screen_manager/app/server.py').read_text()
+        test = server[server.index('    async def sound_test(self, kind, screen_id):'):server.index('    async def alert_sounds(self')]
+        for needle in ("'s': calls.RING", "'rt': self.sounds.link('call', base, screen_id)", "'s': calls.END", 'sounds.sound_message(link)',
+                       "raise ValueError('none')", "raise ValueError('busy')"):
+            self.assertIn(needle, test)
 
     def test_a_screen_that_goes_forgets_its_choices(self):
         self.sounds.choose('call', 'kitchen', 'bell')

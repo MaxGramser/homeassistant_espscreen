@@ -14,6 +14,17 @@ Six sounds come with the app: Classic, Marimba, Digital, Bell, Ding-dong and Not
 the chime the screens played before they had a choice. Nothing changes by itself: a call rings Classic, a doorbell
 chimes Ding-dong and an alert stays silent until you choose otherwise.
 
+## Volume and Test
+
+Each kind has a **Volume** slider, from -40 to 0 dB: where the loudest moment of its sound sits. It starts at -20 dB.
+The small speakers of these screens distort when a sound is louder: at -6 dB a ring still distorted on a Guition 10.1,
+and of -10, -14 and -20 dB the last sounded best. The app makes the file at that volume itself, so a screen with any
+firmware that takes the sound gets it at the new volume with its next ring.
+
+Each screen under **Per screen** has a **Test** key: the screen plays its sound of that kind now, the way it will for
+real. For a call that is a ring of six seconds at the volume a ring stands at, with "Ringtone test" as the caller and
+nobody on the other end; for a chime and an alert's sound, the sound once. A screen in a call is not rung.
+
 ## A sound of your own
 
 Under any kind, **Add your own sound** opens a sound file (WAV, MP3, M4A, OGG, FLAC, whatever the browser plays). The
@@ -28,8 +39,8 @@ Play plays that part the way the screen will. What is kept is not the file as it
 
 - the bass under 400 Hz is filtered out: the small speakers cannot play it, and it only takes level the rest could use;
 - the ends fade over 8 ms, so a ring that loops does not click at every turn;
-- the level is set so the loudest sample is at half of full scale, the same for every sound: loud enough across a room
-  at the volume a ring plays at, where 97 % made the speakers distort.
+- the level is set so the loudest sample is at half of full scale, the same for every sound; what a screen plays is
+  then set by the kind's Volume.
 
 The app checks the finished WAV again (16 kHz, mono, 16 bits, a quarter of a second to 5 seconds) and keeps up to
 twelve sounds of your own, in its own data, so they are still there after a restart of the app or a screen. A sound of
@@ -66,7 +77,8 @@ needs no feature: the module call reads it since it came. The switch **Call ring
 
 | Part | Where |
 |---|---|
-| The library, the choices, the built-in sounds | `screen_manager/app/sounds.py` (`KINDS`, `BUILT_IN`, `sounds.json`) |
+| The library, the choices, the built-in sounds, the volume | `screen_manager/app/sounds.py` (`KINDS`, `BUILT_IN`, `VOLUME`, `at_volume`, `sounds.json`) |
+| The Test key | `server.py`: `sound_test` |
 | The links in the messages | `server.py`: `call_send`, `doorbell_show`, `broadcast` and `alert_sounds` |
 | The editor | `web/src/components/sounds/SoundPicker.vue` and `SoundCutter.vue`, `web/src/stores/sounds.ts`, `web/src/model/ringtone.ts` |
 | A file kept by its name, the sound that plays once | `components/smart_display/kept_sound.h` |

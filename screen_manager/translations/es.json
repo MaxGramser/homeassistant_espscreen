@@ -1049,7 +1049,11 @@
         "format": "Un sonido es un archivo WAV de 16 kHz, mono, 16 bits.",
         "short": "Un sonido dura al menos un cuarto de segundo.",
         "long": "Un sonido dura como máximo {seconds} segundos.",
-        "unknown": "Ese sonido no existe."
+        "unknown": "Ese sonido no existe.",
+        "volume": "Un volumen es un número entero de dB de -40 a 0.",
+        "none": "Esta pantalla no reproduce ningún sonido para esto. Elige uno primero.",
+        "older": "Esta pantalla necesita una actualización de firmware para esto.",
+        "busy": "Esta pantalla está en una llamada ahora mismo."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot olvidó {count} de tus mosaicos: están sueltos en la última página."
       },
       "nothing_to_restructure": "Esta página aún no tiene mosaicos de dispositivos que reestructurar. Añade algunos y vuelve a preguntar."
+    },
+    "sounds": {
+      "test": "Prueba de tono de llamada"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Guardar sonido",
       "screens_title": "Por pantalla",
       "screens_same": "Igual que todas las pantallas",
-      "screens_none": "Todavía no hay ninguna pantalla con altavoz que pueda reproducir esto."
+      "screens_none": "Todavía no hay ninguna pantalla con altavoz que pueda reproducir esto.",
+      "volume": "Volumen",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volumen ajustado a {volume} dB",
+      "test": "Probar",
+      "test_hint": "Lo reproduce ahora en esta pantalla, tal como sonará de verdad",
+      "test_sent": "Reproduciéndolo en la pantalla"
     }
   }
 }

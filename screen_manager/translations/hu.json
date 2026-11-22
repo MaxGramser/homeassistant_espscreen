@@ -1049,7 +1049,11 @@
         "format": "A hang egy 16 kHz-es, mono, 16 bites WAV-fájl.",
         "short": "A hang legalább negyed másodperc hosszú.",
         "long": "A hang legfeljebb {seconds} másodperc hosszú.",
-        "unknown": "Ilyen hang nincs."
+        "unknown": "Ilyen hang nincs.",
+        "volume": "A hangerő egész szám dB-ben, -40 és 0 között.",
+        "none": "Ez a képernyő nem játszik le hangot ehhez. Előbb válassz egyet.",
+        "older": "Ehhez a képernyőnek firmware-frissítésre van szüksége.",
+        "busy": "Ez a képernyő éppen hívásban van."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "A Layoutbot kihagyta {count} csempédet: ezek szabadon állnak az utolsó oldalon."
       },
       "nothing_to_restructure": "Ezen az oldalon még nincs átszervezhető eszközcsempe. Adj hozzá párat, aztán kérdezz újra."
+    },
+    "sounds": {
+      "test": "Csengőhang-teszt"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Hang mentése",
       "screens_title": "Képernyőnként",
       "screens_same": "Ugyanaz, mint minden képernyőn",
-      "screens_none": "Még egyetlen olyan képernyőnek sincs hangszórója, amely ezt le tudja játszani."
+      "screens_none": "Még egyetlen olyan képernyőnek sincs hangszórója, amely ezt le tudja játszani.",
+      "volume": "Hangerő",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Hangerő beállítva: {volume} dB",
+      "test": "Teszt",
+      "test_hint": "Most lejátssza ezen a képernyőn, úgy, ahogy élesben szólni fog",
+      "test_sent": "Lejátszás a képernyőn"
     }
   }
 }

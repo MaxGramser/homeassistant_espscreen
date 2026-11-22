@@ -1049,7 +1049,11 @@
         "format": "Ein Ton ist eine WAV-Datei mit 16 kHz, mono, 16 Bit.",
         "short": "Ein Ton ist mindestens eine Viertelsekunde lang.",
         "long": "Ein Ton ist höchstens {seconds} Sekunden lang.",
-        "unknown": "Diesen Ton gibt es nicht."
+        "unknown": "Diesen Ton gibt es nicht.",
+        "volume": "Eine Lautstärke ist eine ganze Zahl in dB von -40 bis 0.",
+        "none": "Dieser Bildschirm spielt dafür keinen Ton. Wähle zuerst einen.",
+        "older": "Dieser Bildschirm braucht dafür ein Firmware-Update.",
+        "busy": "Dieser Bildschirm ist gerade in einem Anruf."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot hat {count} deiner Kacheln vergessen: Sie stehen lose auf der letzten Seite."
       },
       "nothing_to_restructure": "Auf dieser Seite gibt es noch keine Gerätekacheln zum Umstrukturieren. Füge ein paar hinzu und frag dann noch einmal."
+    },
+    "sounds": {
+      "test": "Klingelton-Test"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Ton speichern",
       "screens_title": "Pro Bildschirm",
       "screens_same": "Wie bei jedem Bildschirm",
-      "screens_none": "Noch kein Bildschirm, der das abspielen kann, hat einen Lautsprecher."
+      "screens_none": "Noch kein Bildschirm, der das abspielen kann, hat einen Lautsprecher.",
+      "volume": "Lautstärke",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Lautstärke auf {volume} dB gesetzt",
+      "test": "Testen",
+      "test_hint": "Spielt ihn jetzt auf diesem Bildschirm, so wie er später wirklich klingt",
+      "test_sent": "Wird auf dem Bildschirm gespielt"
     }
   }
 }

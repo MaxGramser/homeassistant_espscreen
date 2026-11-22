@@ -1049,7 +1049,11 @@
         "format": "Un suono è un file WAV a 16 kHz, mono, 16 bit.",
         "short": "Un suono dura almeno un quarto di secondo.",
         "long": "Un suono dura al massimo {seconds} secondi.",
-        "unknown": "Quel suono non esiste."
+        "unknown": "Quel suono non esiste.",
+        "volume": "Un volume è un numero intero di dB da -40 a 0.",
+        "none": "Questo schermo non riproduce nessun suono per questo. Scegline prima uno.",
+        "older": "Questo schermo ha bisogno di un aggiornamento del firmware per questo.",
+        "busy": "Questo schermo è in chiamata in questo momento."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot ha dimenticato {count} dei tuoi riquadri: sono sparsi nell'ultima pagina."
       },
       "nothing_to_restructure": "Su questa pagina non ci sono ancora riquadri di dispositivi da ristrutturare. Aggiungine qualcuno e chiedi di nuovo."
+    },
+    "sounds": {
+      "test": "Prova della suoneria"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Salva suono",
       "screens_title": "Per schermo",
       "screens_same": "Uguale a ogni schermo",
-      "screens_none": "Nessuno schermo che può riprodurlo ha ancora un altoparlante."
+      "screens_none": "Nessuno schermo che può riprodurlo ha ancora un altoparlante.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume impostato a {volume} dB",
+      "test": "Prova",
+      "test_hint": "Lo riproduce ora su questo schermo, come suonerà davvero",
+      "test_sent": "Riproduzione sullo schermo"
     }
   }
 }

@@ -1049,7 +1049,11 @@
         "format": "Un son est un fichier WAV de 16 kHz, mono, 16 bits.",
         "short": "Un son dure au moins un quart de seconde.",
         "long": "Un son dure {seconds} secondes au plus.",
-        "unknown": "Ce son n'existe pas."
+        "unknown": "Ce son n'existe pas.",
+        "volume": "Un volume est un nombre entier de dB de -40 à 0.",
+        "none": "Cet écran ne joue aucun son pour cela. Choisissez-en un d'abord.",
+        "older": "Cet écran a besoin d'une mise à jour du firmware pour cela.",
+        "busy": "Cet écran est en appel en ce moment."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot a oublié {count} de vos tuiles : elles sont posées en vrac sur la dernière page."
       },
       "nothing_to_restructure": "Cette page n'a pas encore de tuiles d'appareils à restructurer. Ajoutez-en quelques-unes, puis redemandez."
+    },
+    "sounds": {
+      "test": "Test de sonnerie"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Enregistrer le son",
       "screens_title": "Par écran",
       "screens_same": "Comme tous les écrans",
-      "screens_none": "Aucun écran capable de jouer ceci n'a encore de haut-parleur."
+      "screens_none": "Aucun écran capable de jouer ceci n'a encore de haut-parleur.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume réglé à {volume} dB",
+      "test": "Tester",
+      "test_hint": "Le joue maintenant sur cet écran, tel qu'il sonnera pour de vrai",
+      "test_sent": "Lecture sur l'écran"
     }
   }
 }

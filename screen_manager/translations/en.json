@@ -1049,7 +1049,11 @@
         "format": "A sound is a WAV file of 16 kHz, mono, 16 bits.",
         "short": "A sound is at least a quarter of a second long.",
         "long": "A sound is at most {seconds} seconds long.",
-        "unknown": "That sound does not exist."
+        "unknown": "That sound does not exist.",
+        "volume": "A volume is a whole number of dB from -40 to 0.",
+        "none": "This screen plays no sound for this. Choose one first.",
+        "older": "This screen needs a firmware update for this.",
+        "busy": "This screen is in a call right now."
       }
     },
     "status": {
@@ -1666,6 +1670,9 @@
         "kept": "Layoutbot forgot {count} of your tiles: they stand loose on the last page."
       },
       "nothing_to_restructure": "There are no tiles of devices on this page to restructure yet. Add a few, then ask again."
+    },
+    "sounds": {
+      "test": "Ringtone test"
     }
   },
   "editor": {
@@ -5125,7 +5132,13 @@
       "own_save": "Save sound",
       "screens_title": "Per screen",
       "screens_same": "Same as every screen",
-      "screens_none": "No screen that can play this has a speaker yet."
+      "screens_none": "No screen that can play this has a speaker yet.",
+      "volume": "Volume",
+      "volume_db": "{volume} dB",
+      "volume_saved": "Volume set to {volume} dB",
+      "test": "Test",
+      "test_hint": "Plays it on this screen now, the way it will for real",
+      "test_sent": "Playing it on the screen"
     }
   }
 }
