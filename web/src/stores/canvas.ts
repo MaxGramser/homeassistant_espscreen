@@ -33,7 +33,10 @@ export const useCanvasStore = defineStore("canvas", () => {
   // The zoom of the pages in this browser (1 = the size above), and the room the editor has for one page, measured by
   // the page row (LayoutView) while it is there.
   const zoom = usePreference<number>("esp-screens.editor-zoom", 1);
-  const room = ref<{ width: number; height: number } | null>(null);
+  // `cap` is a narrow page that is not a phone's (the full editor on a phone, a narrow window): there the room is only a
+  // ceiling for the width, so the glass never stands wider than the page. Wider, an iPhone's Home Assistant app let the
+  // frame of the add-on grow with it and drew the whole editor smaller, with its cards out of shape (app 0.4.101).
+  const room = ref<{ width: number; height: number; cap?: boolean } | null>(null);
   function zoomBy(step: number) {
     const at = ZOOMS.findIndex((value) => value >= zoom.value - 0.001);
     zoom.value = ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, (at < 0 ? ZOOMS.length - 1 : at) + step))];
@@ -51,11 +54,12 @@ export const useCanvasStore = defineStore("canvas", () => {
     const across = (side: number) => (shape.width >= shape.height ? (side * shape.width) / shape.height : side);
     const least = shape.width >= shape.height ? Math.min(560, across(MOCKUP_SIDE)) : MOCKUP_SIDE;
     const life = "dpi" in shape && shape.dpi ? across((Math.min(shape.width, shape.height) / shape.dpi) * CSS_PER_INCH) : 0;
-    const fit = room.value ? Math.min(room.value.width, (room.value.height * shape.width) / shape.height) : Infinity;
+    const fit = room.value && !room.value.cap ? Math.min(room.value.width, (room.value.height * shape.width) / shape.height) : Infinity;
     const scale = ui.phone ? 1 : Math.min(2, Math.max(0.5, Number(zoom.value) || 1));
     // A phone draws the page across its whole width, the same on every page (before, a page took the width of its
     // contents there, and one with a long name stood wider than the next).
-    const width = ui.phone && room.value ? room.value.width : Math.max(least, Math.min(life, fit)) * scale;
+    const width = ui.phone && room.value ? room.value.width
+      : Math.min(room.value?.cap ? room.value.width : Infinity, Math.max(least, Math.min(life, fit)) * scale);
     const rounded = Math.round(width * 10) / 10;
     // The glass in editor pixels, and the -/+ pill at the size the screen draws it (model/ui-scale.ts).
     const glass = rounded / shape.width, pill = pillMetrics(shape);

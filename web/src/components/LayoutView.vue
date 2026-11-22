@@ -85,9 +85,10 @@ const { band } = useBandSelect(canvasView);
 const canvasSize = useElementSize(canvasView);
 watchEffect(() => {
   const width = canvasSize.width.value, height = canvasSize.height.value;
-  // A phone fills its width with the page (stores/canvas.ts); a narrow page that is not a phone keeps the sizes above.
-  canvas.room = width <= 0 || height <= 0 || (narrow.value && !ui.phone) ? null
-    : ui.phone ? { width, height } : { width: width - 10, height: height - 110 };
+  // A phone fills its width with the page (stores/canvas.ts).
+  // A narrow page that is not a phone keeps the sizes above, but never wider than the page (the full editor on a phone).
+  canvas.room = width <= 0 || height <= 0 ? null
+    : ui.phone ? { width, height } : narrow.value ? { width, height, cap: true } : { width: width - 10, height: height - 110 };
 });
 onBeforeUnmount(() => { canvas.room = null; });
 const zoomPercent = computed(() => `${Math.round(canvas.zoom * 100)}%`);
@@ -251,8 +252,9 @@ function onCanvasClick(e: MouseEvent) {
         </div>
       </div>
     </div>
-    <!-- The size of the pages (stores/canvas.ts zoom): out of the toolbar, in the corner, as on a map. -->
-    <div v-if="!ui.phone && mode === 'simple'" class="zoom-dock"><div class="zoom-pill" role="group" :aria-label="t('editor.pages.zoom')">
+    <!-- The size of the pages (stores/canvas.ts zoom): out of the toolbar, in the corner, as on a map. Not on a narrow page,
+         where the glass already takes the page's width. -->
+    <div v-if="!narrow && mode === 'simple'" class="zoom-dock"><div class="zoom-pill" role="group" :aria-label="t('editor.pages.zoom')">
       <button type="button" class="icon-btn" id="zoom-out" :aria-label="t('editor.pages.zoom_out')" :disabled="canvas.zoom <= 0.5" @click="canvas.zoomBy(-1)"><Icon name="magnify-minus-outline" /></button>
       <button type="button" class="zoom-value" id="zoom-reset" :title="t('editor.pages.zoom_reset')" @click="canvas.zoom = 1">{{ zoomPercent }}</button>
       <button type="button" class="icon-btn" id="zoom-in" :aria-label="t('editor.pages.zoom_in')" :disabled="canvas.zoom >= 2" @click="canvas.zoomBy(1)"><Icon name="magnify-plus-outline" /></button>
