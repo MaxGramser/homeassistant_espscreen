@@ -141,6 +141,10 @@ class TheBoards(unittest.TestCase):
         """The bridge is built for a plain ESP32; every board that takes the wide table is one."""
         for board in WIDE_BOARDS:
             blocks = [load(path.read_text()).get('esp32') or {} for path in profiles.chain(profiles.BOARDS[board])]
+            if 'esp32s3' in [str(block.get('variant')).lower() for block in blocks]:
+                # A 4 MB ESP32-S3 (the JC4827W543) is new: it was never sold with firmware from before 0.33.1, so no
+                # screen of it needs the bridge, and the bridge is only built for a plain ESP32.
+                continue
             self.assertIn('esp32dev', [block.get('board') for block in blocks], board)
             self.assertIn('esp32', [str(block.get('variant')).lower() for block in blocks], board)
         for name in ('packages/bridge.yaml', 'checkout/bridge.yaml'):

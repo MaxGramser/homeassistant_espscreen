@@ -113,7 +113,7 @@ class Boards(unittest.TestCase):
     def test_the_boards_with_4_mb_lack_the_module_and_every_other_board_has_it(self):
         boards = json.loads((ROOT / 'screen_manager/app/boards.json').read_text())
         lite = {key for key, board in boards.items() if todo_feed.MODULE not in board.get('modules', [])}
-        self.assertEqual({key for key in lite if '/' not in key}, {'cyd', 'cyd9342', 'hosyond40'})
+        self.assertEqual({key for key in lite if '/' not in key}, {'cyd', 'cyd9342', 'hosyond40', 'jc4827w543'})
         self.assertTrue(all(boards[key].get('tier') == 'lite' for key in lite))
 
 
