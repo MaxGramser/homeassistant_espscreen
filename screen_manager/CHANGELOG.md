@@ -1,3 +1,7 @@
+## Unreleased
+
+- **The full editor fits a phone.** With the full editor on a phone, the page stood wider than the phone, and in the Home Assistant app on an iPhone the whole editor was then drawn smaller, with large empty spaces and cards out of shape. The page now takes the phone's width, the tabs of a screen scroll sideways when they do not fit, and the zoom keys stay away where the page already fills the width.
+
 ## 0.4.100 (firmware 0.63.0)
 
 - **No dark line around an alert.** On the ESP32-P4 screens an alert, and any card that dims the page behind it, could have a thin dark line along two of its sides, standing square around its rounded corners. It is gone.

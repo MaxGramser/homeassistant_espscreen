@@ -355,6 +355,8 @@ event and the layout sensor count rows, columns and pages the same way. The mock
 proportions: the top bar down to where the tile area starts (`SCROLL_Y`), the grid's margins and gaps, and the
 page bar (`PAGE_BAR_H`) once the layout has more than one page, all from `boards.json`, so a card is as high
 against its page as on the screen (`cardHeight` in `web/src/model/ui-scale.ts`).
+The page is never wider than the editor's room for it on a narrow page (`cap` in `stores/canvas.ts`, the full editor on
+a phone): a wider page made an iPhone's Home Assistant app draw the whole editor smaller.
 
 Inside a card the mockup draws in the glass's own pixels too, scaled by the page's zoom: the board's corner
 (`TILE_RADIUS`), padding, icon circle and fonts from `boards.json` (`fonts.icon` is the card's icon face,
