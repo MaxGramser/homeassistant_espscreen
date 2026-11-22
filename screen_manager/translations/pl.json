@@ -1043,13 +1043,13 @@
         "request": "To nie jest lista ikon.",
         "too_many": "Ekran mieści najwyżej {most} własnych ikon."
       },
-      "ringtones": {
+      "sounds": {
         "name": "Nadaj dźwiękowi nazwę.",
         "many": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
-        "format": "Dzwonek to plik WAV 16 kHz, mono, 16 bitów.",
-        "short": "Dzwonek trwa co najmniej ćwierć sekundy.",
-        "long": "Dzwonek trwa najwyżej {seconds} s.",
-        "unknown": "Taki dzwonek nie istnieje."
+        "format": "Dźwięk to plik WAV 16 kHz, mono, 16 bitów.",
+        "short": "Dźwięk trwa co najmniej ćwierć sekundy.",
+        "long": "Dźwięk trwa najwyżej {seconds} sekund.",
+        "unknown": "Taki dźwięk nie istnieje."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Umieść alarm także na stronie: dotknięcie jego kafelka w każdej chwili otwiera kartę z przyciskiem dla każdego trybu."
     },
     "calls": {
-      "hero_title": "Dzwonek",
-      "hero_text": "To, co dzwoni na ekranie, gdy dzwoni do niego inny ekran. Dźwięk ma własną przerwę i gra w kółko, aż ktoś odbierze. Nowy wybór trafia na ekran przy następnym dzwonieniu, bez aktualizacji.",
-      "every_title": "Dla każdego ekranu",
-      "tones": {
+      "hero_title": "Połączenia",
+      "hero_text": "Gdy jeden ekran dzwoni do drugiego, dzwoni ten, do którego dzwonisz. Wybierz poniżej, czym dzwoni: dźwięk ma własną przerwę i gra w kółko, aż ktoś odbierze. Nowy wybór trafia na ekran przy następnym dzwonieniu, bez aktualizacji."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Dzwonek",
+          "text": "To, co dzwoni na ekranie, gdy dzwoni do niego inny ekran."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "To, co ekran odtwarza, gdy dzwoni dzwonek do drzwi: na ekranach, które otwierają dzwonek, a na pozostałych z jego alertem."
+        },
+        "alert": {
+          "title": "Dźwięk alertu",
+          "text": "To, co ekran odtwarza, gdy pojawia się twój alert wysłany zdarzeniem esp_screens_show_alert. Brak dźwięku jest tak, jak było. Alert może pozostać cichy dzięki sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Klasyczny",
         "marimba": "Marimba",
         "digital": "Cyfrowy",
-        "bell": "Dzwon"
+        "bell": "Dzwon",
+        "chime": "Ding-dong",
+        "notice": "Powiadomienie"
       },
+      "none": "Brak dźwięku",
       "play": "Odtwórz",
       "stop": "Zatrzymaj",
-      "chosen": "Wybrano dzwonek",
-      "saved": "Zapisano dzwonek",
-      "removed": "Usunięto dzwonek",
-      "own_title": "Twój własny dźwięk",
-      "own_text": "Wybierz plik dźwiękowy, a potem fragment, który dzwoni: najwyżej {seconds} s, z przerwą, jaką chcesz przed kolejnym dzwonieniem. Bas jest odfiltrowany, bo głośniki ekranów nie potrafią go odtworzyć, a poziom jest podnoszony najwyżej, jak się da.",
+      "seconds": "{seconds} s",
+      "chosen": "Dźwięk wybrany",
+      "saved": "Dźwięk zapisany",
+      "removed": "Dźwięk usunięty",
+      "own_add": "Dodaj własny dźwięk",
       "own_choose": "Wybierz plik dźwiękowy",
+      "own_text_loop": "Wybierz fragment, który dzwoni: najwyżej {seconds} sekund, z przerwą, jaką chcesz przed kolejnym dzwonieniem. Basy są odfiltrowane, bo głośniki ekranów nie potrafią ich odtworzyć, a poziom jest podnoszony tak wysoko, jak się da.",
+      "own_text_once": "Wybierz fragment do odtworzenia: najwyżej {seconds} sekund. Basy są odfiltrowane, bo głośniki ekranów nie potrafią ich odtworzyć, a poziom jest podnoszony tak wysoko, jak się da.",
       "own_unreadable": "Nie udało się odczytać tego pliku jako dźwięku.",
       "own_full": "Masz już {most} własnych dźwięków. Najpierw usuń jeden.",
       "own_part": "Od {start} s do {end} s, długość {length} s",
-      "own_drag": "Przeciągnij fragment lub jedną z jego krawędzi. Odtwórz zapętla go tak, jak zrobi to ekran.",
+      "own_drag_loop": "Przeciągnij fragment lub jedną z jego krawędzi. Odtwórz zapętla go tak, jak zrobi to ekran.",
+      "own_drag_once": "Przeciągnij fragment lub jedną z jego krawędzi. Odtwórz gra go tak, jak zrobi to ekran.",
       "own_name": "Nazwa",
       "own_save": "Zapisz dźwięk",
-      "screens_title": "Dla ekranu",
-      "screens_same": "Tak samo jak każdy ekran",
-      "screens_none": "Żaden ekran odbierający połączenia nie ma jeszcze głośnika."
+      "screens_title": "Na ekran",
+      "screens_same": "Tak samo jak na każdym ekranie",
+      "screens_none": "Żaden ekran, który to odtworzy, nie ma jeszcze głośnika."
     }
   }
 }

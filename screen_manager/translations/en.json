@@ -1043,13 +1043,13 @@
         "request": "That is not a list of icons.",
         "too_many": "A screen takes at most {most} icons of its own."
       },
-      "ringtones": {
-        "name": "Give the tone a name.",
-        "many": "There are {most} tones of your own already. Remove one first.",
-        "format": "A ringtone is a WAV file of 16 kHz, mono, 16 bits.",
-        "short": "A ringtone is at least a quarter of a second long.",
-        "long": "A ringtone is at most {seconds} seconds long.",
-        "unknown": "That ringtone does not exist."
+      "sounds": {
+        "name": "Give the sound a name.",
+        "many": "There are {most} sounds of your own already. Remove one first.",
+        "format": "A sound is a WAV file of 16 kHz, mono, 16 bits.",
+        "short": "A sound is at least a quarter of a second long.",
+        "long": "A sound is at most {seconds} seconds long.",
+        "unknown": "That sound does not exist."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Put the alarm on a page too, and a tap on its tile opens the card with a key per mode at any time."
     },
     "calls": {
-      "hero_title": "Ringtone",
-      "hero_text": "What rings on a screen when another screen calls it. A tone holds its own pause and plays over and over until someone answers. A new choice reaches a screen with its next ring, no update needed.",
-      "every_title": "For every screen",
-      "tones": {
+      "hero_title": "Calls",
+      "hero_text": "When one screen calls another, the screen that is called rings. Choose what it rings with below: a ring holds its own pause and plays over and over until someone answers. A new choice reaches a screen with its next ring, no update needed."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Ringtone",
+          "text": "What a screen rings with when another screen calls it."
+        },
+        "doorbell": {
+          "title": "Chime",
+          "text": "What a screen plays when the doorbell rings, on the screens that open the doorbell, and on the others with its alert."
+        },
+        "alert": {
+          "title": "Alert sound",
+          "text": "What a screen plays when an alert of yours comes up, sent with the esp_screens_show_alert event. No sound is what it was before. An alert can stay quiet with sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Classic",
         "marimba": "Marimba",
         "digital": "Digital",
-        "bell": "Bell"
+        "bell": "Bell",
+        "chime": "Ding-dong",
+        "notice": "Notice"
       },
+      "none": "No sound",
       "play": "Play",
       "stop": "Stop",
-      "chosen": "Ringtone chosen",
-      "saved": "Ringtone saved",
-      "removed": "Ringtone removed",
-      "own_title": "Your own tone",
-      "own_text": "Choose a sound file, then pick the part that rings: at most {seconds} seconds, with the pause you want before it rings again. The bass is filtered out, since the speakers of the screens cannot play it, and the level is raised as far as it goes.",
+      "seconds": "{seconds} s",
+      "chosen": "Sound chosen",
+      "saved": "Sound saved",
+      "removed": "Sound removed",
+      "own_add": "Add your own sound",
       "own_choose": "Choose a sound file",
+      "own_text_loop": "Pick the part that rings: at most {seconds} seconds, with the pause you want before it rings again. The bass is filtered out, since the speakers of the screens cannot play it, and the level is raised as far as it goes.",
+      "own_text_once": "Pick the part to play: at most {seconds} seconds. The bass is filtered out, since the speakers of the screens cannot play it, and the level is raised as far as it goes.",
       "own_unreadable": "This file could not be read as sound.",
-      "own_full": "There are {most} tones of your own already. Remove one first.",
+      "own_full": "There are {most} sounds of your own already. Remove one first.",
       "own_part": "{start} s to {end} s, {length} s long",
-      "own_drag": "Drag the part, or one of its edges. Play loops it the way the screen will.",
+      "own_drag_loop": "Drag the part, or one of its edges. Play loops it the way the screen will.",
+      "own_drag_once": "Drag the part, or one of its edges. Play plays it the way the screen will.",
       "own_name": "Name",
-      "own_save": "Save tone",
+      "own_save": "Save sound",
       "screens_title": "Per screen",
       "screens_same": "Same as every screen",
-      "screens_none": "No screen that takes calls has a speaker yet."
+      "screens_none": "No screen that can play this has a speaker yet."
     }
   }
 }

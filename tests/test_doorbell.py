@@ -229,6 +229,8 @@ class TheFirmwareReadsTheSame(unittest.TestCase):
                           chime=False)
         sent = set(rings.message(key, door_state='locked', link='http://x/camera/a.mjpeg', talk='http://x/talk/a'))
         sent |= set(rings.message(key, close=True)) | set(rings.door_message(key, 'unlocked'))
+        # The chime chosen for the screen (docs/SOUNDS.md), on a ring that chimes.
+        sent |= set(rings.message(rings.start('camera.porch', 'Porch', 60, ['a']), chime='http://x/files/a.wav'))
         read = set(re.findall(r'root\["(\w+)"\]', receiver_branch('doorbell')))
         self.assertEqual(sent - {'v', 'op'}, read,
                          'the op "doorbell" the app sends (doorbell.Doorbells.message, door_message) and the one '
@@ -375,7 +377,7 @@ class TheManager(unittest.TestCase):
             manager.sent_messages.append((inbox, message))
             return True
 
-        async def broadcast(event_type, data):
+        async def broadcast(event_type, data, sound_kind='alert'):
             manager.broadcasts.append((event_type, data))
             return {'sent': len(data.get('screen') or []), 'skipped': 0, 'failed': 0}
         manager.send_auxiliary, manager.broadcast = send_auxiliary, broadcast

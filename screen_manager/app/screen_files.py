@@ -2,7 +2,7 @@
 
 A file is named by its content, the sha256 of its bytes in hex, and served on the camera port (picture_links, 8098) as
 /files/<name>.<ext>. A screen that has a name has its file: it asks for nothing until a link names another, and an
-answer carries the name as its ETag. What a file means is its owner's (ringtones.py for a call's ringtone); this only
+answer carries the name as its ETag. What a file means is its owner's (sounds.py for the sounds a screen plays, docs/SOUNDS.md); this only
 keeps bytes. A file the app makes itself (a built-in ringtone) is kept in memory and made again at each start; a file
 someone gave the app is written into `files/` of its data, so it is still there after a restart.
 

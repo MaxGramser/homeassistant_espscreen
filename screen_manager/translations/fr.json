@@ -1043,13 +1043,13 @@
         "request": "Ce n'est pas une liste d'icônes.",
         "too_many": "Un écran accepte au plus {most} icônes à lui."
       },
-      "ringtones": {
-        "name": "Donnez un nom à la sonnerie.",
-        "many": "Vous avez déjà {most} sonneries personnelles. Supprimez-en une d'abord.",
-        "format": "Une sonnerie est un fichier WAV de 16 kHz, mono, 16 bits.",
-        "short": "Une sonnerie dure au moins un quart de seconde.",
-        "long": "Une sonnerie dure au plus {seconds} secondes.",
-        "unknown": "Cette sonnerie n'existe pas."
+      "sounds": {
+        "name": "Donnez un nom au son.",
+        "many": "Il y a déjà {most} sons personnels. Supprimez-en un d'abord.",
+        "format": "Un son est un fichier WAV de 16 kHz, mono, 16 bits.",
+        "short": "Un son dure au moins un quart de seconde.",
+        "long": "Un son dure {seconds} secondes au plus.",
+        "unknown": "Ce son n'existe pas."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Placez aussi l'alarme sur une page : un toucher sur sa tuile ouvre à tout moment la carte avec une touche par mode."
     },
     "calls": {
-      "hero_title": "Sonnerie",
-      "hero_text": "Ce qui sonne sur un écran quand un autre écran l'appelle. Une sonnerie a sa propre pause et joue en boucle jusqu'à ce que quelqu'un réponde. Un nouveau choix arrive sur un écran à sa prochaine sonnerie, sans mise à jour.",
-      "every_title": "Pour tous les écrans",
-      "tones": {
+      "hero_title": "Appels",
+      "hero_text": "Quand un écran en appelle un autre, l'écran appelé sonne. Choisissez ci-dessous ce qui le fait sonner : une sonnerie a sa propre pause et joue en boucle jusqu'à ce que quelqu'un réponde. Un nouveau choix arrive sur un écran à sa prochaine sonnerie, sans mise à jour."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Sonnerie",
+          "text": "Ce qui sonne sur un écran quand un autre écran l'appelle."
+        },
+        "doorbell": {
+          "title": "Carillon",
+          "text": "Ce qu'un écran joue quand la sonnette retentit : sur les écrans qui ouvrent la sonnette, et sur les autres avec son alerte."
+        },
+        "alert": {
+          "title": "Son d'alerte",
+          "text": "Ce qu'un écran joue quand une de vos alertes s'affiche, envoyée avec l'événement esp_screens_show_alert. Sans son, c'est comme avant. Une alerte peut rester silencieuse avec sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Classique",
         "marimba": "Marimba",
         "digital": "Numérique",
-        "bell": "Cloche"
+        "bell": "Cloche",
+        "chime": "Ding-dong",
+        "notice": "Notification"
       },
-      "play": "Lire",
+      "none": "Aucun son",
+      "play": "Écouter",
       "stop": "Arrêter",
-      "chosen": "Sonnerie choisie",
-      "saved": "Sonnerie enregistrée",
-      "removed": "Sonnerie supprimée",
-      "own_title": "Votre propre sonnerie",
-      "own_text": "Choisissez un fichier son, puis la partie qui sonne : {seconds} secondes au plus, avec la pause voulue avant qu'elle ne sonne de nouveau. Les basses sont filtrées, car les haut-parleurs des écrans ne peuvent pas les jouer, et le niveau est monté aussi haut que possible.",
+      "seconds": "{seconds} s",
+      "chosen": "Son choisi",
+      "saved": "Son enregistré",
+      "removed": "Son supprimé",
+      "own_add": "Ajouter votre propre son",
       "own_choose": "Choisir un fichier son",
+      "own_text_loop": "Choisissez la partie qui sonne : {seconds} secondes au plus, avec la pause voulue avant la sonnerie suivante. Les basses sont filtrées, car les haut-parleurs des écrans ne peuvent pas les jouer, et le niveau est relevé autant que possible.",
+      "own_text_once": "Choisissez la partie à jouer : {seconds} secondes au plus. Les basses sont filtrées, car les haut-parleurs des écrans ne peuvent pas les jouer, et le niveau est relevé autant que possible.",
       "own_unreadable": "Ce fichier n'a pas pu être lu comme un son.",
-      "own_full": "Vous avez déjà {most} sonneries personnelles. Supprimez-en une d'abord.",
-      "own_part": "De {start} s à {end} s, {length} s de durée",
-      "own_drag": "Faites glisser la partie ou l'un de ses bords. Lire la joue en boucle comme le fera l'écran.",
+      "own_full": "Il y a déjà {most} sons personnels. Supprimez-en un d'abord.",
+      "own_part": "De {start} s à {end} s, {length} s de long",
+      "own_drag_loop": "Faites glisser la partie, ou l'un de ses bords. Écouter la joue en boucle comme le fera l'écran.",
+      "own_drag_once": "Faites glisser la partie, ou l'un de ses bords. Écouter la joue comme le fera l'écran.",
       "own_name": "Nom",
-      "own_save": "Enregistrer la sonnerie",
+      "own_save": "Enregistrer le son",
       "screens_title": "Par écran",
       "screens_same": "Comme tous les écrans",
-      "screens_none": "Aucun écran qui reçoit des appels n'a encore de haut-parleur."
+      "screens_none": "Aucun écran capable de jouer ceci n'a encore de haut-parleur."
     }
   }
 }

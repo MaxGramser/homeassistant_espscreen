@@ -1043,13 +1043,13 @@
         "request": "Eso no es una lista de iconos.",
         "too_many": "Una pantalla admite como máximo {most} iconos propios."
       },
-      "ringtones": {
-        "name": "Ponle un nombre al tono.",
-        "many": "Ya tienes {most} tonos propios. Elimina uno primero.",
-        "format": "Un tono de llamada es un archivo WAV de 16 kHz, mono, 16 bits.",
-        "short": "Un tono de llamada dura al menos un cuarto de segundo.",
-        "long": "Un tono de llamada dura como máximo {seconds} segundos.",
-        "unknown": "Ese tono de llamada no existe."
+      "sounds": {
+        "name": "Dale un nombre al sonido.",
+        "many": "Ya hay {most} sonidos propios. Elimina uno primero.",
+        "format": "Un sonido es un archivo WAV de 16 kHz, mono, 16 bits.",
+        "short": "Un sonido dura al menos un cuarto de segundo.",
+        "long": "Un sonido dura como máximo {seconds} segundos.",
+        "unknown": "Ese sonido no existe."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Pon también la alarma en una página: un toque en su mosaico abre la tarjeta con una tecla por modo en cualquier momento."
     },
     "calls": {
-      "hero_title": "Tono de llamada",
-      "hero_text": "Lo que suena en una pantalla cuando otra pantalla la llama. Un tono tiene su propia pausa y suena una y otra vez hasta que alguien contesta. Una nueva elección llega a la pantalla con su siguiente llamada, sin necesidad de actualizar.",
-      "every_title": "Para todas las pantallas",
-      "tones": {
+      "hero_title": "Llamadas",
+      "hero_text": "Cuando una pantalla llama a otra, suena la pantalla llamada. Elige abajo con qué suena: un tono tiene su propia pausa y suena una y otra vez hasta que alguien contesta. Una nueva elección llega a la pantalla con su siguiente llamada, sin necesidad de actualizar."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Tono de llamada",
+          "text": "Lo que suena en una pantalla cuando otra pantalla la llama."
+        },
+        "doorbell": {
+          "title": "Timbre",
+          "text": "Lo que reproduce una pantalla cuando suena el timbre de la puerta: en las pantallas que abren el timbre y, en las demás, con su alerta."
+        },
+        "alert": {
+          "title": "Sonido de alerta",
+          "text": "Lo que reproduce una pantalla cuando aparece una alerta tuya, enviada con el evento esp_screens_show_alert. Sin sonido es como era antes. Una alerta puede quedarse en silencio con sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Clásico",
         "marimba": "Marimba",
         "digital": "Digital",
-        "bell": "Campana"
+        "bell": "Campana",
+        "chime": "Din-don",
+        "notice": "Aviso"
       },
+      "none": "Sin sonido",
       "play": "Reproducir",
       "stop": "Detener",
-      "chosen": "Tono de llamada elegido",
-      "saved": "Tono de llamada guardado",
-      "removed": "Tono de llamada eliminado",
-      "own_title": "Tu propio tono",
-      "own_text": "Elige un archivo de sonido y luego la parte que suena: como máximo {seconds} segundos, con la pausa que quieras antes de que vuelva a sonar. Se filtran los graves, porque los altavoces de las pantallas no pueden reproducirlos, y el nivel se sube al máximo posible.",
+      "seconds": "{seconds} s",
+      "chosen": "Sonido elegido",
+      "saved": "Sonido guardado",
+      "removed": "Sonido eliminado",
+      "own_add": "Añadir un sonido propio",
       "own_choose": "Elegir un archivo de sonido",
+      "own_text_loop": "Elige la parte que suena: como máximo {seconds} segundos, con la pausa que quieras antes de que vuelva a sonar. Se filtran los graves, porque los altavoces de las pantallas no pueden reproducirlos, y el nivel se sube todo lo posible.",
+      "own_text_once": "Elige la parte que se reproduce: como máximo {seconds} segundos. Se filtran los graves, porque los altavoces de las pantallas no pueden reproducirlos, y el nivel se sube todo lo posible.",
       "own_unreadable": "No se pudo leer este archivo como sonido.",
-      "own_full": "Ya tienes {most} tonos propios. Elimina uno primero.",
+      "own_full": "Ya hay {most} sonidos propios. Elimina uno primero.",
       "own_part": "De {start} s a {end} s, {length} s de duración",
-      "own_drag": "Arrastra la parte o uno de sus bordes. Reproducir la repite como lo hará la pantalla.",
+      "own_drag_loop": "Arrastra la parte o uno de sus bordes. Reproducir la repite en bucle como lo hará la pantalla.",
+      "own_drag_once": "Arrastra la parte o uno de sus bordes. Reproducir la toca como lo hará la pantalla.",
       "own_name": "Nombre",
-      "own_save": "Guardar tono",
+      "own_save": "Guardar sonido",
       "screens_title": "Por pantalla",
       "screens_same": "Igual que todas las pantallas",
-      "screens_none": "Ninguna pantalla que recibe llamadas tiene altavoz todavía."
+      "screens_none": "Todavía no hay ninguna pantalla con altavoz que pueda reproducir esto."
     }
   }
 }

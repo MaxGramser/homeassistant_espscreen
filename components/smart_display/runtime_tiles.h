@@ -68,6 +68,7 @@ inline Text of(const char *text) { return Text(esphome::StringRef(text)); }
 #include "camera_view.h"
 #include "picture_fetch.h"
 #include "file_fetch.h"
+#include "kept_sound.h"
 #include "live_spots.h"
 #include "pressure.h"
 #include "live_view.h"

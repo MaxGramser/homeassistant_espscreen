@@ -118,7 +118,7 @@ interval:
   # live_view.h; nothing on the other boards).
   - interval: 50ms
     then:
-      - lambda: 'picture_fetch::tick(); file_fetch::tick(); runtime_tiles::live_tick();'
+      - lambda: 'picture_fetch::tick(); file_fetch::tick(); kept_sound::loop(); runtime_tiles::live_tick();'
 
 lvgl:
   style_definitions:

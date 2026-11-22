@@ -79,23 +79,9 @@ middle of one) with that call's end, and a screen whose hang-up gets no answer w
 
 ## Ringtone
 
-What rings on a screen that is called is chosen on the editor's Events page, under **Calls**: one tone for every screen,
-and where someone wants it a screen's own. Four come with the app (Classic, Marimba, Digital, Bell), made by
-`screen_manager/app/ringtones.py`; Classic is the tone a screen made itself before (`make_ring` in `module_call.cpp`).
-Each is bright on purpose, since the small speakers carry 1.4 to 1.9 kHz best.
-
-Someone can add a tone of their own. The editor decodes a sound file in the browser, brings it to 16 kHz mono and draws
-its waveform; the part that rings is picked on it, at most three seconds, with the pause it wants before it rings again,
-since a tone plays back to back for as long as the screen rings. The bass under 400 Hz is filtered out (the speakers cannot
-play it, and it only takes level), the ends fade over 8 ms so the loop does not click, and the level is raised until the
-loudest sample is at 97 % of full scale (`web/src/model/ringtone.ts`). Play loops that part as the screen will. The app
-checks the finished WAV again (16 kHz, mono, 16 bits, a quarter of a second to three seconds) and keeps up to twelve.
-
-A tone reaches a screen as a file of the app (docs/SCREEN_FILES.md): a ring's op `call` carries `rt`, the link of the tone
-chosen for that screen, and the screen downloads it once and keeps it by its name until a ring names another. So a new
-choice needs no update; it plays with the next ring. A ring waits at most 1.5 s for a tone it does not have yet, and rings
-with the screen's own tone when none comes. A screen whose firmware is older than ringtones ignores `rt` and rings as
-before, and the switch **Call ringtone** still turns the sound off.
+What rings on a screen that is called is chosen on the editor's Events page, under **Calls**: a sound that comes with the
+app or one cut from a file of your own, for every screen or one screen. A ring's op `call` carries its link (`rt`), and
+the screen plays it back to back while it rings. docs/SOUNDS.md has the whole of it.
 
 ## The Call tile
 

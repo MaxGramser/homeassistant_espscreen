@@ -336,7 +336,7 @@ class Rules(unittest.TestCase):
         # glass: open a camera tile full screen on a board with pictures: the picture comes and refreshes every four
         # seconds, an alert with a camera shows it in its frame, and closing the cards or dimming closes the camera. These
         # are the screen's moments the camera takes part in, as one profile wires them; nothing on a PC runs that YAML.
-        for needle in ("- lambda: 'picture_fetch::tick(); file_fetch::tick(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();',
+        for needle in ("- lambda: 'picture_fetch::tick(); file_fetch::tick(); kept_sound::loop(); runtime_tiles::live_tick();'", 'runtime_tiles::camera_tick();',
                        'runtime_tiles::alert_prepare();', 'runtime_tiles::alert_clear();', 'runtime_tiles::camera_close();',
                        'id: alert_image_frame'):
             self.assertIn(needle, PROFILE, needle)

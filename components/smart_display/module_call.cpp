@@ -18,8 +18,7 @@
 #include "picture_engine.h"
 #include "call_serve.h"
 #include "picture_fetch.h"
-#include "file_fetch.h"
-#include "wav.h"
+#include "kept_sound.h"
 #ifdef USE_SPEAKER
 #include "plugin_sound.h"
 #include "roomy.h"
@@ -109,52 +108,28 @@ void make_ring() {
   ring_sound.rate = RATE;
   ring_sound.channels = 1;
 }
-// The ringtone ESP Screens chose for this screen (docs/CALLS.md, "Ringtone"): a ring's `rt` links a WAV file of the app's
-// (file_fetch.h), named by its content, so the screen downloads it once and keeps it until another is chosen. The file
-// holds its own pause: it plays back to back for as long as it rings. Without one (an app before ringtones, a download
-// that failed) the screen rings with its own tone above, every RING_EVERY_MS.
-constexpr size_t TONE_MOST = 256 * 1024;   // the app sends at most 3 s of 16 kHz mono (96 KB); more is no ringtone
-constexpr uint32_t TONE_WAIT_MS = 1500;    // a ring waits this long for its tone before it rings with the screen's own
-std::string tone_name, tone_wanted;        // the file the screen has, and the one on its way
-uint8_t *tone_file = nullptr;
-tessera::Sound tone_sound;
-uint32_t tone_asked = 0;
+// The ringtone ESP Screens chose for this screen (docs/SOUNDS.md): a ring's `rt` links a WAV file of the app, kept by its
+// name (kept_sound.h), so the screen downloads it once. The file holds its own pause: it plays back to back for as long
+// as it rings. `none` rings without a sound; without a link or a file (an app before sounds, a download that failed) the
+// screen rings with its own tone above, every RING_EVERY_MS.
+kept_sound::Kept tone("ringtone");
+std::string tone_link;  // the ring's `rt`
 void want_tone(const std::string &link) {
-  const std::string name = file_fetch::name_of(link);
-  if (name.empty() || name == tone_name || name == tone_wanted) return;
-  tone_wanted = name;
-  tone_asked = esphome::millis();
-  const bool asked = file_fetch::get(link, TONE_MOST, [name](bool ok, uint8_t *data, size_t size) {
-    if (tone_wanted == name) tone_wanted.clear();
-    if (!ok) { ESP_LOGW(TAG, "the ringtone %s did not come", name.c_str()); return; }
-    const wav::Sound w = wav::read(data, size);
-    if (!w.ok || w.bits != 16 || w.channels > 2 || w.rate < 8000 || w.rate > 48000) {
-      ESP_LOGW(TAG, "the ringtone %s is no 16-bit sound", name.c_str());
-      roomy::release(data);
-      return;
-    }
-    // The tone that plays is the old file's: it stops before its bytes go.
-    if (player.playing(tone_sound)) player.stop();
-    if (tone_file) roomy::release(tone_file);
-    tone_file = data;
-    tone_sound.data = data + w.offset;
-    tone_sound.length = w.size;
-    tone_sound.rate = w.rate;
-    tone_sound.channels = static_cast<uint8_t>(w.channels);
-    tone_name = name;
-    ESP_LOGI(TAG, "ringtone %s: %u ms", name.c_str(), (unsigned) (w.size * 1000 / (2u * w.channels * w.rate)));
-  });
-  if (!asked) tone_wanted.clear();
+  tone_link = link;
+  if (!link.empty() && !kept_sound::silent(link)) tone.want(link, []() { if (player.playing(tone.sound())) player.stop(); });
 }
 // Whether a ring still waits for the tone it asked for.
-bool tone_on_its_way(uint32_t now) { return !tone_wanted.empty() && now - tone_asked < TONE_WAIT_MS; }
-// Keeps the chosen tone going: the player queues it behind itself, so it plays without a gap however late the loop comes.
+bool tone_on_its_way(uint32_t now) { return !tone_link.empty() && !kept_sound::silent(tone_link) && !tone.has(tone_link) && tone.waiting(now); }
+// Keeps the chosen tone going (true), or leaves the ring to the screen's own tone (false). The player queues it behind
+// itself, so it plays without a gap however late the loop comes.
 bool ring_tone(uint32_t now) {
-  if (tone_name.empty() || tone_on_its_way(now)) return false;
+  if (kept_sound::silent(tone_link)) return true;
+  if (tone_link.empty() || !tone.has(tone_link)) return false;
+  (void) now;
   if (ring_on && !ring_on()) return true;
   if (!speaker_out) return true;
   if (!player.playing()) ESP_LOGI(TAG, "ringing");
-  player.add(tone_sound, 0);
+  player.add(tone.sound(), 0);
   return true;
 }
 void ring_stop() {

@@ -1,8 +1,8 @@
-// A ringtone of one's own (docs/CALLS.md, "Ringtone"): the part of a sound someone picks on the waveform, made into what
-// the screens play. The browser decodes the file and brings it to 16 kHz mono (CallsView, Web Audio's own resampler);
+// A sound of one's own (docs/SOUNDS.md): the part of a sound file someone picks on the waveform, made into what the
+// screens play. The browser decodes the file and brings it to 16 kHz mono (stores/sounds.ts, Web Audio's resampler);
 // everything after that is here and pure, so tests/ringtone.spec.ts checks it: the bass out, the cut, short fades so the
-// loop does not click, and the level as loud as it goes. The add-on checks the finished WAV again (ringtones.checked)
-// and holds the limits this reads from api/ringtones (rate, max_seconds, min_seconds).
+// loop does not click, and the level as loud as it goes. The add-on checks the finished WAV again (sounds.checked)
+// and holds the limits this reads from api/sounds (rate, max_seconds, min_seconds).
 //
 // Why each step: the screens' small speakers carry 1.4 to 1.9 kHz best and nothing much under 400 Hz, so the bass only
 // takes level that the rest could use; a ringtone plays back to back, so a jump at its ends is a click every turn; and a

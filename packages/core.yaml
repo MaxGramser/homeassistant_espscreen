@@ -761,6 +761,11 @@ api:
                     #ifdef SD_MOD_DOORBELL
                     if (live_view::available()) features.add("doorbell");
                     #endif
+                    // sounds (docs/SOUNDS.md): this screen plays sounds the app chose as files it downloads (kept_sound.h),
+                    // so ESP Screens sends a doorbell's ring its chime (`ch`) and an alert its tone (the op "sound").
+                    #if defined(USE_SPEAKER) && defined(SCREEN_PICTURES)
+                    if (hw::caps().speaker) features.add("sounds");
+                    #endif
                     // call (module call, docs/CALLS.md): a call needs live pictures, a microphone and a speaker.
                     #ifdef SD_MOD_CALL
                     if (live_view::available() && hw::caps().microphone && hw::caps().speaker) {

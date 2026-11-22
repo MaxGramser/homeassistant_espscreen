@@ -1,18 +1,18 @@
 # Files a screen downloads
 
 A screen takes more from ESP Screen Manager than its tiles: pictures, streams, and files. A file is something the app
-has and a screen keeps, such as a call's ringtone. This is how one gets there, and the recipe for a new kind.
+has and a screen keeps, such as the sound it rings with. This is how one gets there, and the recipe for a new kind.
 
 ## The way
 
 - **One store.** `screen_manager/app/screen_files.py` keeps every file by its content: the name of a file is the sha256 of
-  its bytes in hex. A file someone gave the app (a ringtone they cut) is written into `files/` of the app's data and is
-  there after a restart. A file the app makes itself (a built-in ringtone) is held in memory and made again at each
+  its bytes in hex. A file someone gave the app (a sound they cut) is written into `files/` of the app's data and is
+  there after a restart. A file the app makes itself (a built-in sound) is held in memory and made again at each
   start, to the same bytes, so to the same name.
 - **One path.** The app serves every file at `/files/<name>.<ext>` on its LAN port, 8098, the port the pictures and
   streams already use (`picture_links.py`). The answer carries the name as its ETag. No second port: 8098 is the one a
   house already lets through.
-- **A link where it is needed.** The app puts a file's link into the message that needs it (a ring's `rt`), made from its
+- **A link where it is needed.** The app puts a file's link into the message that needs it (a ring's `rt`, docs/SOUNDS.md), made from its
   address on the screen's own network (`lan_address`). Nothing is pushed: the screen asks when a message names a file it
   does not have.
 - **One download on the screen.** `components/smart_display/file_fetch.h` downloads a file whole into PSRAM in a task of
@@ -34,7 +34,7 @@ nothing for it.
 
 | Kind | Extension | Who keeps it | Who reads it on the screen | Doc |
 |---|---|---|---|---|
-| A call's ringtone | `wav` (16 kHz, mono, 16 bits) | `ringtones.py` | `module_call.cpp`, `wav.h` | docs/CALLS.md, "Ringtone" |
+| A sound: a call's ringtone, a doorbell's chime, an alert's sound | `wav` (16 kHz, mono, 16 bits) | `sounds.py` | `kept_sound.h`, `wav.h` | docs/SOUNDS.md |
 
 ## A new kind of file
 
@@ -49,6 +49,6 @@ nothing for it.
 
 ## Tests
 
-`tests/test_ringtones.py` checks the store, the path on the camera port (200, 304 on the name, 404) and the ring's
+`tests/test_sounds.py` checks the store, the path on the camera port (200, 304 on the name, 404) and the ring's
 `rt`; `tests/test_wav.cpp` the WAV reader and `file_fetch::name_of`; `tests/test_picture_fetch.cpp` and
 `tests/test_live_view.cpp` the link and the head of `http_get.h`.

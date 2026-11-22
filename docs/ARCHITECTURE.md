@@ -127,9 +127,9 @@ in a task beside the main loop and decodes a BMP as it streams; `camera_view.h` 
 seconds, never a queue). The add-on answers every question the same way (`screen_manager/app/picture_service.py`).
 Detail: docs/PICTURES.md, docs/CAMERA.md "One route for every picture"; tests: `tests/test_picture_question.cpp`,
 `tests/test_picture_loader.cpp`, `tests/test_picture_fetch.cpp`, `tests/test_camera_view.cpp`.
-A file the app has and a screen keeps (a call's ringtone) goes beside them: `file_fetch.h` downloads it whole in a task of
+A file the app has and a screen keeps (a sound it plays, docs/SOUNDS.md, `kept_sound.h`) goes beside them: `file_fetch.h` downloads it whole in a task of
 its own, named by its content, from `/files/` on the same port; `http_get.h` is the link, head and socket every download
-of the app shares. Detail: docs/SCREEN_FILES.md; tests: `tests/test_wav.cpp`, `tests/test_ringtones.py`.
+of the app shares. Detail: docs/SCREEN_FILES.md; tests: `tests/test_wav.cpp`, `tests/test_sounds.py`.
 
 ### 6. The capability record
 

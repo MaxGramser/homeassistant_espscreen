@@ -29,6 +29,7 @@
 #include "plugin_host.h"
 #include "settings_screen.h"
 #include "talk_uplink.h"
+#include "kept_sound.h"
 #ifdef USE_SPEAKER
 #include "plugin_sound.h"
 #include "roomy.h"
@@ -136,11 +137,37 @@ void make_chime() {
 }
 #endif
 
-void chime() {
+// The chime chosen in the app (docs/SOUNDS.md): the ring's `ch`, a file kept by its name (kept_sound.h). A ring waits at
+// most kept_sound::WAIT_MS for a file it does not have yet (`chime_due`), then chimes with the screen's own.
+std::string chime_link;
+uint32_t chime_due = 0;
 #ifdef USE_SPEAKER
-  if (!speaker) return;
+kept_sound::Kept chosen_chime("chime");
+#endif
+
+void chime_now() {
+#ifdef USE_SPEAKER
+  chime_due = 0;
+  if (!speaker || kept_sound::silent(chime_link)) return;
+  if (!chime_link.empty() && chosen_chime.has(chime_link)) {
+    player.play(chosen_chime.sound());
+    return;
+  }
   if (chime_samples.empty()) make_chime();
   player.play(chime_sound);
+#endif
+}
+
+void chime() {
+#ifdef USE_SPEAKER
+  if (!chime_link.empty() && !kept_sound::silent(chime_link) && !chosen_chime.has(chime_link)) {
+    chosen_chime.want(chime_link, []() { if (player.playing(chosen_chime.sound())) player.stop(); });
+    if (chosen_chime.waiting(esphome::millis())) {
+      chime_due = esphome::millis() | 1;  // it chimes as the file comes, or without it
+      return;
+    }
+  }
+  chime_now();
 #endif
 }
 
@@ -539,6 +566,7 @@ void closing() {
 
 void tick(uint32_t now) {
 #ifdef USE_SPEAKER
+  if (chime_due && (chosen_chime.has(chime_link) || !chosen_chime.waiting(now))) chime_now();
   player.loop();
 #endif
   if (!active || !camera_root) return;
@@ -600,7 +628,8 @@ void take_door(const Ring &r) {
 
 void ring(const std::string &camera_entity, const std::string &name, const std::string &key, uint32_t rang, uint32_t untouched_s,
           unsigned door_kind, const std::string &door_state_now, bool quiet, bool chimes, const std::string &link,
-          const std::string &talk) {
+          const std::string &talk, const std::string &chime_file) {
+  chime_link = chime_file;
   if (!camera_supported() || camera_entity.rfind("camera.", 0) != 0 || !valid_entity(camera_entity)) return;
   const uint32_t now = esphome::millis();
   ring_ms = now;

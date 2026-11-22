@@ -1043,13 +1043,13 @@
         "request": "Questo non è un elenco di icone.",
         "too_many": "Uno schermo accetta al massimo {most} icone proprie."
       },
-      "ringtones": {
+      "sounds": {
         "name": "Dai un nome al suono.",
-        "many": "Hai già {most} suoni tuoi. Rimuovine prima uno.",
-        "format": "Una suoneria è un file WAV a 16 kHz, mono, a 16 bit.",
-        "short": "Una suoneria dura almeno un quarto di secondo.",
-        "long": "Una suoneria dura al massimo {seconds} secondi.",
-        "unknown": "Quella suoneria non esiste."
+        "many": "Ci sono già {most} suoni tuoi. Rimuovine prima uno.",
+        "format": "Un suono è un file WAV a 16 kHz, mono, 16 bit.",
+        "short": "Un suono dura almeno un quarto di secondo.",
+        "long": "Un suono dura al massimo {seconds} secondi.",
+        "unknown": "Quel suono non esiste."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Metti l'allarme anche su una pagina: un tocco sul suo riquadro apre in qualsiasi momento la scheda con un tasto per modalità."
     },
     "calls": {
-      "hero_title": "Suoneria",
-      "hero_text": "Ciò che suona su uno schermo quando un altro schermo lo chiama. Un suono ha la sua pausa e si ripete finché qualcuno risponde. Una nuova scelta arriva allo schermo con il suo prossimo squillo, senza bisogno di aggiornare.",
-      "every_title": "Per ogni schermo",
-      "tones": {
+      "hero_title": "Chiamate",
+      "hero_text": "Quando uno schermo ne chiama un altro, lo schermo chiamato suona. Scegli qui sotto con cosa suona: una suoneria ha la sua pausa e si ripete finché qualcuno risponde. Una nuova scelta arriva allo schermo con il suo prossimo squillo, senza bisogno di aggiornare."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Suoneria",
+          "text": "Ciò che suona su uno schermo quando un altro schermo lo chiama."
+        },
+        "doorbell": {
+          "title": "Campanello",
+          "text": "Ciò che uno schermo riproduce quando suona il campanello, sugli schermi che aprono il campanello e sugli altri con il suo avviso."
+        },
+        "alert": {
+          "title": "Suono di avviso",
+          "text": "Ciò che uno schermo riproduce quando compare un tuo avviso, inviato con l'evento esp_screens_show_alert. Nessun suono è come prima. Un avviso può restare silenzioso con sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Classico",
         "marimba": "Marimba",
         "digital": "Digitale",
-        "bell": "Campana"
+        "bell": "Campana",
+        "chime": "Din-don",
+        "notice": "Notifica"
       },
+      "none": "Nessun suono",
       "play": "Riproduci",
       "stop": "Ferma",
-      "chosen": "Suoneria scelta",
-      "saved": "Suoneria salvata",
-      "removed": "Suoneria rimossa",
-      "own_title": "Il tuo suono",
-      "own_text": "Scegli un file audio, poi la parte che suona: al massimo {seconds} secondi, con la pausa che vuoi prima che suoni di nuovo. I bassi vengono filtrati, perché gli altoparlanti degli schermi non possono riprodurli, e il livello viene alzato il più possibile.",
+      "seconds": "{seconds} s",
+      "chosen": "Suono scelto",
+      "saved": "Suono salvato",
+      "removed": "Suono rimosso",
+      "own_add": "Aggiungi un suono tuo",
       "own_choose": "Scegli un file audio",
-      "own_unreadable": "Impossibile leggere questo file come audio.",
-      "own_full": "Hai già {most} suoni tuoi. Rimuovine prima uno.",
-      "own_part": "Da {start} s a {end} s, lunga {length} s",
-      "own_drag": "Trascina la parte o uno dei suoi bordi. Riproduci la ripete come farà lo schermo.",
+      "own_text_loop": "Scegli la parte che suona: al massimo {seconds} secondi, con la pausa che vuoi prima che suoni di nuovo. I bassi vengono filtrati, perché gli altoparlanti degli schermi non possono riprodurli, e il livello viene alzato il più possibile.",
+      "own_text_once": "Scegli la parte da riprodurre: al massimo {seconds} secondi. I bassi vengono filtrati, perché gli altoparlanti degli schermi non possono riprodurli, e il livello viene alzato il più possibile.",
+      "own_unreadable": "Non è stato possibile leggere questo file come suono.",
+      "own_full": "Ci sono già {most} suoni tuoi. Rimuovine prima uno.",
+      "own_part": "Da {start} s a {end} s, lungo {length} s",
+      "own_drag_loop": "Trascina la parte, o uno dei suoi bordi. Riproduci la ripete in ciclo come farà lo schermo.",
+      "own_drag_once": "Trascina la parte, o uno dei suoi bordi. Riproduci la suona come farà lo schermo.",
       "own_name": "Nome",
       "own_save": "Salva suono",
       "screens_title": "Per schermo",
-      "screens_same": "Come ogni schermo",
-      "screens_none": "Nessuno schermo che riceve chiamate ha ancora un altoparlante."
+      "screens_same": "Uguale a ogni schermo",
+      "screens_none": "Nessuno schermo che può riprodurlo ha ancora un altoparlante."
     }
   }
 }

@@ -1043,13 +1043,13 @@
         "request": "Das ist keine Liste von Symbolen.",
         "too_many": "Ein Bildschirm fasst höchstens {most} eigene Symbole."
       },
-      "ringtones": {
+      "sounds": {
         "name": "Gib dem Ton einen Namen.",
-        "many": "Du hast schon {most} eigene Töne. Entferne zuerst einen.",
-        "format": "Ein Klingelton ist eine WAV-Datei mit 16 kHz, Mono, 16 Bit.",
-        "short": "Ein Klingelton ist mindestens eine Viertelsekunde lang.",
-        "long": "Ein Klingelton ist höchstens {seconds} Sekunden lang.",
-        "unknown": "Diesen Klingelton gibt es nicht."
+        "many": "Es gibt schon {most} eigene Töne. Entferne zuerst einen.",
+        "format": "Ein Ton ist eine WAV-Datei mit 16 kHz, mono, 16 Bit.",
+        "short": "Ein Ton ist mindestens eine Viertelsekunde lang.",
+        "long": "Ein Ton ist höchstens {seconds} Sekunden lang.",
+        "unknown": "Diesen Ton gibt es nicht."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Lege die Alarmanlage auch auf eine Seite: Ein Tippen auf ihre Kachel öffnet jederzeit die Karte mit einer Taste pro Modus."
     },
     "calls": {
-      "hero_title": "Klingelton",
-      "hero_text": "Was auf einem Bildschirm klingelt, wenn ihn ein anderer Bildschirm anruft. Ein Ton hat seine eigene Pause und spielt immer wieder, bis jemand abnimmt. Eine neue Wahl erreicht einen Bildschirm mit dem nächsten Klingeln, ein Update ist nicht nötig.",
-      "every_title": "Für jeden Bildschirm",
-      "tones": {
+      "hero_title": "Anrufe",
+      "hero_text": "Wenn ein Bildschirm einen anderen anruft, klingelt der angerufene Bildschirm. Wähle unten, womit er klingelt: Ein Klingelton hat seine eigene Pause und spielt immer wieder, bis jemand abnimmt. Eine neue Wahl erreicht einen Bildschirm mit dem nächsten Klingeln, ein Update ist nicht nötig."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Klingelton",
+          "text": "Was auf einem Bildschirm klingelt, wenn ihn ein anderer Bildschirm anruft."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "Was ein Bildschirm spielt, wenn die Türklingel läutet: auf den Bildschirmen, die die Türklingel öffnen, und auf den anderen mit ihrem Alert."
+        },
+        "alert": {
+          "title": "Alert-Ton",
+          "text": "Was ein Bildschirm spielt, wenn ein Alert von dir erscheint, gesendet mit dem Event esp_screens_show_alert. Kein Ton ist so wie vorher. Ein Alert kann mit sound: false still bleiben."
+        }
+      },
+      "builtin": {
         "classic": "Klassisch",
         "marimba": "Marimba",
         "digital": "Digital",
-        "bell": "Glocke"
+        "bell": "Glocke",
+        "chime": "Ding-Dong",
+        "notice": "Hinweis"
       },
+      "none": "Kein Ton",
       "play": "Abspielen",
       "stop": "Stopp",
-      "chosen": "Klingelton gewählt",
-      "saved": "Klingelton gespeichert",
-      "removed": "Klingelton entfernt",
-      "own_title": "Dein eigener Ton",
-      "own_text": "Wähle eine Tondatei und dann den Teil, der klingelt: höchstens {seconds} Sekunden, mit der Pause, die du vor dem nächsten Klingeln willst. Die Bässe werden herausgefiltert, weil die Lautsprecher der Bildschirme sie nicht wiedergeben können, und der Pegel wird so weit wie möglich angehoben.",
-      "own_choose": "Tondatei wählen",
+      "seconds": "{seconds} s",
+      "chosen": "Ton gewählt",
+      "saved": "Ton gespeichert",
+      "removed": "Ton entfernt",
+      "own_add": "Eigenen Ton hinzufügen",
+      "own_choose": "Tondatei auswählen",
+      "own_text_loop": "Wähle den Teil, der klingelt: höchstens {seconds} Sekunden, mit der Pause, die du vor dem nächsten Klingeln willst. Die Bässe werden herausgefiltert, weil die Lautsprecher der Bildschirme sie nicht wiedergeben können, und der Pegel wird so weit wie möglich angehoben.",
+      "own_text_once": "Wähle den Teil, der gespielt wird: höchstens {seconds} Sekunden. Die Bässe werden herausgefiltert, weil die Lautsprecher der Bildschirme sie nicht wiedergeben können, und der Pegel wird so weit wie möglich angehoben.",
       "own_unreadable": "Diese Datei konnte nicht als Ton gelesen werden.",
-      "own_full": "Du hast schon {most} eigene Töne. Entferne zuerst einen.",
+      "own_full": "Es gibt schon {most} eigene Töne. Entferne zuerst einen.",
       "own_part": "{start} s bis {end} s, {length} s lang",
-      "own_drag": "Ziehe den Teil oder einen seiner Ränder. Abspielen wiederholt ihn so, wie es der Bildschirm tun wird.",
+      "own_drag_loop": "Ziehe den Teil oder eine seiner Kanten. Mit Abspielen läuft er als Schleife, so wie der Bildschirm ihn spielen wird.",
+      "own_drag_once": "Ziehe den Teil oder eine seiner Kanten. Abspielen spielt ihn so, wie der Bildschirm ihn spielen wird.",
       "own_name": "Name",
       "own_save": "Ton speichern",
       "screens_title": "Pro Bildschirm",
-      "screens_same": "Wie jeder Bildschirm",
-      "screens_none": "Noch kein Bildschirm, der Anrufe annimmt, hat einen Lautsprecher."
+      "screens_same": "Wie bei jedem Bildschirm",
+      "screens_none": "Noch kein Bildschirm, der das abspielen kann, hat einen Lautsprecher."
     }
   }
 }

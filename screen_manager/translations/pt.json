@@ -1043,13 +1043,13 @@
         "request": "Isto não é uma lista de ícones.",
         "too_many": "Um ecrã aceita no máximo {most} ícones próprios."
       },
-      "ringtones": {
-        "name": "Dá um nome ao toque.",
-        "many": "Já tens {most} toques teus. Remove um primeiro.",
-        "format": "Um toque de chamada é um ficheiro WAV de 16 kHz, mono, 16 bits.",
-        "short": "Um toque de chamada dura pelo menos um quarto de segundo.",
-        "long": "Um toque de chamada dura no máximo {seconds} segundos.",
-        "unknown": "Esse toque de chamada não existe."
+      "sounds": {
+        "name": "Dê um nome ao som.",
+        "many": "Já existem {most} sons próprios. Remova um primeiro.",
+        "format": "Um som é um ficheiro WAV de 16 kHz, mono, 16 bits.",
+        "short": "Um som tem pelo menos um quarto de segundo.",
+        "long": "Um som tem no máximo {seconds} segundos.",
+        "unknown": "Esse som não existe."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Coloque também o alarme numa página: um toque no seu mosaico abre a qualquer momento o cartão com uma tecla por modo."
     },
     "calls": {
-      "hero_title": "Toque de chamada",
-      "hero_text": "O que toca num ecrã quando outro ecrã lhe liga. Um toque tem a sua própria pausa e repete-se até alguém atender. Uma nova escolha chega ao ecrã no toque seguinte, sem precisar de atualização.",
-      "every_title": "Para todos os ecrãs",
-      "tones": {
+      "hero_title": "Chamadas",
+      "hero_text": "Quando um ecrã liga a outro, toca o ecrã chamado. Escolha abaixo com que toca: um toque tem a sua própria pausa e repete-se até alguém atender. Uma nova escolha chega ao ecrã no toque seguinte, sem precisar de atualização."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Toque de chamada",
+          "text": "O que toca num ecrã quando outro ecrã lhe liga."
+        },
+        "doorbell": {
+          "title": "Campainha",
+          "text": "O que um ecrã toca quando a campainha da porta soa: nos ecrãs que abrem a campainha e, nos outros, com o seu alerta."
+        },
+        "alert": {
+          "title": "Som de alerta",
+          "text": "O que um ecrã toca quando aparece um alerta seu, enviado com o evento esp_screens_show_alert. Sem som é como era antes. Um alerta pode ficar em silêncio com sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Clássico",
         "marimba": "Marimba",
         "digital": "Digital",
-        "bell": "Sino"
+        "bell": "Sino",
+        "chime": "Din-dom",
+        "notice": "Aviso"
       },
+      "none": "Sem som",
       "play": "Reproduzir",
       "stop": "Parar",
-      "chosen": "Toque escolhido",
-      "saved": "Toque guardado",
-      "removed": "Toque removido",
-      "own_title": "O teu próprio toque",
-      "own_text": "Escolhe um ficheiro de som e depois a parte que toca: no máximo {seconds} segundos, com a pausa que quiseres antes de voltar a tocar. Os graves são filtrados, porque os altifalantes dos ecrãs não os conseguem reproduzir, e o nível é aumentado o mais possível.",
+      "seconds": "{seconds} s",
+      "chosen": "Som escolhido",
+      "saved": "Som guardado",
+      "removed": "Som removido",
+      "own_add": "Adicionar um som próprio",
       "own_choose": "Escolher um ficheiro de som",
+      "own_text_loop": "Escolha a parte que toca: no máximo {seconds} segundos, com a pausa que quiser antes de tocar de novo. Os graves são filtrados, porque as colunas dos ecrãs não os conseguem reproduzir, e o nível é aumentado o mais possível.",
+      "own_text_once": "Escolha a parte a reproduzir: no máximo {seconds} segundos. Os graves são filtrados, porque as colunas dos ecrãs não os conseguem reproduzir, e o nível é aumentado o mais possível.",
       "own_unreadable": "Não foi possível ler este ficheiro como som.",
-      "own_full": "Já tens {most} toques teus. Remove um primeiro.",
-      "own_part": "De {start} s a {end} s, com {length} s de duração",
-      "own_drag": "Arrasta a parte ou uma das suas margens. Reproduzir repete-a como o ecrã o fará.",
+      "own_full": "Já existem {most} sons próprios. Remova um primeiro.",
+      "own_part": "De {start} s a {end} s, {length} s de duração",
+      "own_drag_loop": "Arraste a parte ou um dos seus limites. Reproduzir repete-a em ciclo, como o ecrã fará.",
+      "own_drag_once": "Arraste a parte ou um dos seus limites. Reproduzir toca-a como o ecrã fará.",
       "own_name": "Nome",
-      "own_save": "Guardar toque",
+      "own_save": "Guardar som",
       "screens_title": "Por ecrã",
       "screens_same": "Igual a todos os ecrãs",
-      "screens_none": "Nenhum ecrã que recebe chamadas tem ainda altifalante."
+      "screens_none": "Ainda nenhum ecrã que o possa reproduzir tem altifalante."
     }
   }
 }

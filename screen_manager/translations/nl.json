@@ -1043,13 +1043,13 @@
         "request": "Dat is geen lijst met iconen.",
         "too_many": "Een scherm kan hooguit {most} eigen iconen hebben."
       },
-      "ringtones": {
-        "name": "Geef de toon een naam.",
-        "many": "Er zijn al {most} eigen tonen. Verwijder er eerst een.",
-        "format": "Een beltoon is een WAV-bestand van 16 kHz, mono, 16 bits.",
-        "short": "Een beltoon duurt minstens een kwart seconde.",
-        "long": "Een beltoon duurt hoogstens {seconds} seconden.",
-        "unknown": "Die beltoon bestaat niet."
+      "sounds": {
+        "name": "Geef het geluid een naam.",
+        "many": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
+        "format": "Een geluid is een WAV-bestand van 16 kHz, mono, 16 bits.",
+        "short": "Een geluid duurt minstens een kwart seconde.",
+        "long": "Een geluid duurt hoogstens {seconds} seconden.",
+        "unknown": "Dat geluid bestaat niet."
       }
     },
     "status": {
@@ -5075,32 +5075,53 @@
       "how_tile": "Zet het alarm ook op een pagina, dan opent een tik op zijn tegel altijd de kaart met een knop per stand."
     },
     "calls": {
-      "hero_title": "Beltoon",
-      "hero_text": "Wat er op een scherm klinkt als een ander scherm het belt. Een toon heeft zijn eigen pauze en speelt steeds opnieuw tot iemand opneemt. Een nieuwe keuze komt met de volgende keer bellen op het scherm, zonder update.",
-      "every_title": "Voor elk scherm",
-      "tones": {
+      "hero_title": "Bellen",
+      "hero_text": "Als een scherm een ander scherm belt, gaat het gebelde scherm over. Kies hieronder waarmee: een beltoon heeft zijn eigen pauze en speelt steeds opnieuw tot iemand opneemt. Een nieuwe keuze komt met de volgende keer bellen op het scherm, zonder update."
+    },
+    "sounds": {
+      "kinds": {
+        "call": {
+          "title": "Beltoon",
+          "text": "Waarmee een scherm overgaat als een ander scherm het belt."
+        },
+        "doorbell": {
+          "title": "Gong",
+          "text": "Wat een scherm speelt als de deurbel gaat, op de schermen die de deurbel openen, en op de andere met de melding."
+        },
+        "alert": {
+          "title": "Meldingsgeluid",
+          "text": "Wat een scherm speelt als er een melding van je komt, verstuurd met het event esp_screens_show_alert. Geen geluid is zoals het was. Een melding kan stil blijven met sound: false."
+        }
+      },
+      "builtin": {
         "classic": "Klassiek",
         "marimba": "Marimba",
         "digital": "Digitaal",
-        "bell": "Bel"
+        "bell": "Bel",
+        "chime": "Ding-dong",
+        "notice": "Seintje"
       },
+      "none": "Geen geluid",
       "play": "Afspelen",
       "stop": "Stop",
-      "chosen": "Beltoon gekozen",
-      "saved": "Beltoon bewaard",
-      "removed": "Beltoon verwijderd",
-      "own_title": "Je eigen toon",
-      "own_text": "Kies een geluidsbestand en dan het stuk dat belt: hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt. De bas wordt eruit gefilterd, want de speakers van de schermen kunnen die niet spelen, en het volume gaat zo hoog als het kan.",
+      "seconds": "{seconds} s",
+      "chosen": "Geluid gekozen",
+      "saved": "Geluid bewaard",
+      "removed": "Geluid verwijderd",
+      "own_add": "Eigen geluid toevoegen",
       "own_choose": "Kies een geluidsbestand",
+      "own_text_loop": "Kies het stuk dat belt: hoogstens {seconds} seconden, met de pauze die je wilt voor hij weer belt. De bas wordt eruit gefilterd, want de speakers van de schermen kunnen die niet spelen, en het volume gaat zo hoog als het kan.",
+      "own_text_once": "Kies het stuk dat speelt: hoogstens {seconds} seconden. De bas wordt eruit gefilterd, want de speakers van de schermen kunnen die niet spelen, en het volume gaat zo hoog als het kan.",
       "own_unreadable": "Dit bestand kon niet als geluid gelezen worden.",
-      "own_full": "Er zijn al {most} eigen tonen. Verwijder er eerst een.",
+      "own_full": "Er zijn al {most} eigen geluiden. Verwijder er eerst een.",
       "own_part": "{start} s tot {end} s, {length} s lang",
-      "own_drag": "Sleep het stuk, of een van de randen. Afspelen herhaalt het zoals het scherm het doet.",
+      "own_drag_loop": "Sleep het stuk, of een van de randen. Afspelen herhaalt het zoals het scherm het doet.",
+      "own_drag_once": "Sleep het stuk, of een van de randen. Afspelen speelt het zoals het scherm het doet.",
       "own_name": "Naam",
-      "own_save": "Toon bewaren",
+      "own_save": "Geluid bewaren",
       "screens_title": "Per scherm",
       "screens_same": "Zoals elk scherm",
-      "screens_none": "Nog geen scherm dat gebeld kan worden heeft een speaker."
+      "screens_none": "Nog geen scherm dat dit kan spelen heeft een speaker."
     }
   }
 }
