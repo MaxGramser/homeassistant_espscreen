@@ -1216,6 +1216,7 @@ class Manager:
         self.call_switches = {}        # the voice switch of each call that is up, by its key
         self.call_direct = {}          # {node: token} of each call whose media go straight between its screens, by its key
         self.call_relayed = set()      # keys of calls a screen could not reach the other for: through this app from then on
+        self.call_ready = {}           # the cameras kept running while a video call rings, by its key (call_prepare)
         screen_source.provider = self.call_rtsp
         self.store = LayoutStore(self.path, self.record_grid)
         # An app from before Language & region (app 0.2.90): its screens keep the 24 hours they show, until Home Assistant
@@ -4657,6 +4658,7 @@ class Manager:
                 self.call_switches.pop(out.key, None)
                 self.call_direct.pop(out.key, None)
                 self.call_relayed.discard(out.key)
+            self.call_prepare(out, known)
             mine = known.get(out.node)
             if not mine:
                 continue
@@ -4698,6 +4700,23 @@ class Manager:
                     if switch is not None:
                         message.update(switch.keys())
             await self.send_auxiliary(mine['screen']['id'], message, self.transport(mine['screen']['id'], mine['screen']), self.page_scope(mine['screen']['id']))
+
+    def call_prepare(self, out, known):
+        """The cameras of a video call start while it rings (docs/CALLS.md, "Ready before the answer"): this app reads
+        both screens' video from the first ring, as it will in the call, so each camera, its encoder and this app's
+        decoder stand when the call is answered and the first picture is there at once. Nobody sees a picture before the
+        answer: a source without a link sends nothing to a glass. A call that ends unanswered lets the cameras go, and
+        they stop and give their memory back by themselves (Screen camera 0.7.0). Not for a call straight between the
+        two screens, which this app's sources have no part in."""
+        if out.state in (calls.OUT, calls.RING):
+            mine, peer = known.get(out.node) or {}, known.get(out.peer) or {}
+            if not out.video or out.key in self.call_ready or (mine.get('direct') and peer.get('direct') and out.key not in self.call_relayed):
+                return
+            self.call_ready[out.key] = [self.live.keep(screen_source.PREFIX + node) for node, facts in ((out.node, mine), (out.peer, peer))
+                                        if facts.get('films') and node not in self.call_cameras_off]
+        elif out.key in self.call_ready:
+            # Live: the screens open their links within a moment, and each source lingers that long. Ended: nobody will.
+            self.live.let_go(self.call_ready.pop(out.key))
 
     def call_switch(self, key, known):
         """The voice switch of the call `key`, made when its first end goes live; None once the call is gone."""

@@ -96,8 +96,15 @@ class VoiceSource(camera_source.Source):
             raise
 
 
+QUIET_PICTURE = 1.0                # no picture for this long: silence keeps the far end's stream alive
+QUIET_VOICE = 0.2                  # as VoiceSource: silence only while nobody speaks
+
+
 class ScreenSource(camera_source.Source):
-    """The newest picture of a screen's camera, and its voice for every screen that listens (the call's other end)."""
+    """The newest picture of a screen's camera, and its voice for every screen that listens (the call's other end).
+    While no picture comes (the camera starts with its first viewer, Screen camera 0.7.0, and its first frame can take
+    seconds) and nobody speaks, silence goes to whoever listens, as a call with sound alone sends it: a screen gives up
+    on a stream that is quiet for 6 s (live_view::QUIET_MS), and then said that the camera has no picture."""
 
     sound_only = False
 
@@ -106,9 +113,24 @@ class ScreenSource(camera_source.Source):
         self.url, self.route = url, 'rtsp'
         self.stopped = threading.Event()
         self.frames = 0
+        self.last_frame = self.last_voice = 0.0
+
+    def quiet(self, now):
+        """Whether silence is due at `now`: no picture for QUIET_PICTURE and no voice for QUIET_VOICE."""
+        return now - self.last_frame > QUIET_PICTURE and now - self.last_voice > QUIET_VOICE
+
+    async def keep_alive(self):
+        while not self.stopped.is_set():
+            if self.quiet(time.monotonic()):
+                silence = bytes(VOICE_PART)
+                for queue in list(self.listeners):
+                    if not queue.full():
+                        queue.put_nowait(silence)
+            await asyncio.sleep(0.1)
 
     def voice(self, data):
         """A part of the screen's voice for whoever listens; a listener that fell behind loses its oldest part."""
+        self.last_voice = time.monotonic()
         for queue in list(self.listeners):
             if queue.full():
                 queue.get_nowait()
@@ -127,6 +149,7 @@ class ScreenSource(camera_source.Source):
                 if self.stopped.is_set() or not self.watched():
                     return
                 self.frames += 1
+                self.last_frame = time.monotonic()
                 if first:
                     self.mark('first')
                     first = False
@@ -137,6 +160,7 @@ class ScreenSource(camera_source.Source):
     async def run(self):
         self.stopped.clear()
         loop = asyncio.get_running_loop()
+        alive = asyncio.create_task(self.keep_alive())
         try:
             while self.watched() and not self.stopped.is_set():
                 try:
@@ -146,6 +170,7 @@ class ScreenSource(camera_source.Source):
                     await asyncio.sleep(RETRY_SECONDS)
         finally:
             self.stopped.set()
+            alive.cancel()
             LOG.info('Live %s: read %d frames in all', self.entity, self.frames)
 
     def listen(self, queue):  # the voice comes from talk_bridge, no session of its own

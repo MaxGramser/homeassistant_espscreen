@@ -46,6 +46,25 @@ far speaker (a D1001 to a Guition 10.1, 2026-11-10):
 The network cuts a voice where it likes, also inside a sample (6 of 1334 pieces in one call). One odd byte handed on turns
 everything after it into noise, so `talk_bridge.Voice` passes on whole parts of 20 ms only.
 
+## Ready before the answer
+
+A screen's camera starts with its first viewer (Screen camera 0.7.0, docs/CAMERA.md "A camera nobody uses"), and the
+add-on's reader of a screen's video takes a moment to find its first frame. Measured on a Guition 10.1 and a reTerminal
+D1001 (2026-11-22), with the reader started at the answer: the first picture 1.7 to 3.0 seconds after the answer, and
+4.7 to 5.3 seconds for a camera's first use since the screen started, when its encoder is made as well.
+
+So a video call's cameras start while it rings (`Manager.call_prepare`, `live_stream.Live.keep`): from the first ring
+the add-on reads both screens' video, exactly as it will in the call. Each camera, its encoder and the add-on's decoder
+then stand when the call is answered, and the link a screen opens finds its source running. Nobody sees a picture
+before the answer: a source without a link sends nothing to a glass. The camera's dot shows on both screens while the
+call rings, because the cameras run. A call that ends unanswered lets the sources go, and each camera stops and gives
+its memory back by itself. A call straight between two screens is not prepared: the add-on's sources have no part in it.
+
+And a stream that waits for its first picture stays alive (`screen_source.ScreenSource.quiet`). A screen gives up on a
+stream that is quiet for 6 s (`live_view::QUIET_MS`) and then says the camera has no picture; a call answered at once,
+before its cameras stood, could wait about that long. While no picture comes and nobody speaks, the source sends
+silence to whoever listens, as a call with sound alone does.
+
 ## Signalling
 
 The add-on holds every call (`calls.py`, pure and tested without Home Assistant): one call a screen, busy, a ring nobody answers
