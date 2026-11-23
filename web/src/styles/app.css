@@ -1879,6 +1879,7 @@ section.advanced code { font-size: 11.5px; }
 .build-steps li.now { color: var(--ink); font-weight: 600; }
 .build-steps li.failed { color: var(--danger); font-weight: 600; }
 .build-steps li.skipped { opacity: 0.55; }
+.build-steps li.waits { color: var(--ink-2); }
 .build-note.done .ui-icon { color: var(--good); }
 /* Every update of a screen in one card. */
 .sp-update-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; width: 100%; }

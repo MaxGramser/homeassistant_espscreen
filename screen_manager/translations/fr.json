@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Pas assez de mémoire pour compiler le firmware, même avec un compilateur à la fois. Arrête quelques modules un moment ou donne plus de mémoire à la machine ; voir Firmware et USB.",
       "no_report": "L'écran n'est pas revenu avec le firmware {version} ; vérifiez l'écran.",
       "dropped_off": "L'écran s'est déconnecté après la mise à jour ; vérifiez l'écran.",
-      "updated": "Mis à jour vers le firmware {version}."
+      "updated": "Mis à jour vers le firmware {version}.",
+      "round_stopped": "Pas mis à jour : un écran plus tôt dans la tournée n'a pas passé son contrôle, la tournée s'est donc arrêtée."
     },
     "notify": {
       "update_stopped": "La mise à jour automatique s'est arrêtée à l'écran {name} : {reason} Les autres écrans n'ont pas été touchés.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "Compilation et installation…",
         "verify": "En attente du retour de l'écran…",
-        "settle": "Vérification de la stabilité…"
+        "settle": "Vérification de la stabilité…",
+        "ready": "Compilé d'avance : s'installe dès que les écrans d'avant ont passé leur contrôle"
       },
       "new_language": "Nouvelle langue : {name}",
       "restarting": "Redémarre avec le nouveau firmware, de retour dans une minute ou deux",
@@ -3731,7 +3733,8 @@
         "failed": "Échouée",
         "interrupted": "Arrêtée, l'app a redémarré",
         "running": "En cours",
-        "other": "Terminée"
+        "other": "Terminée",
+        "retry": "De nouveau, en fin de file"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Compile",
         "send": "L'envoie à l'écran",
         "confirm": "L'écran confirme",
-        "on": "sur {name}"
+        "on": "sur {name}",
+        "send_waits": "Attend son tour pour s'installer"
       },
       "done": "{screen} est prêt.",
       "done_confirmed": "{screen} est prêt et dit exécuter ce qui a été compilé.",

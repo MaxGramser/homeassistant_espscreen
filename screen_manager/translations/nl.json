@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Te weinig geheugen om de firmware te bouwen, ook met één compiler tegelijk. Stop een paar add-ons tijdelijk of geef de machine meer geheugen; zie Firmware & USB.",
       "no_report": "Scherm meldde zich niet met firmware {version}; controleer het scherm.",
       "dropped_off": "Scherm viel weg na de update; controleer het scherm.",
-      "updated": "Bijgewerkt naar firmware {version}."
+      "updated": "Bijgewerkt naar firmware {version}.",
+      "round_stopped": "Niet bijgewerkt: een scherm eerder in de ronde haalde zijn controle niet, dus de ronde stopte."
     },
     "notify": {
       "update_stopped": "Automatisch bijwerken is gestopt bij {name}: {reason} De overige schermen zijn niet aangeraakt.",
@@ -3004,7 +3005,8 @@
       "phases": {
         "install": "Bouwen en installeren…",
         "verify": "Wachten tot het scherm terug is…",
-        "settle": "Controleren of het stabiel blijft…"
+        "settle": "Controleren of het stabiel blijft…",
+        "ready": "Vooruit gebouwd: installeert zodra de schermen ervoor hun controle hebben gehaald"
       },
       "new_language": "Nieuwe taal: {name}",
       "restarting": "Start opnieuw met de nieuwe firmware, over een minuut of twee terug",
@@ -3242,7 +3244,8 @@
         "failed": "Mislukt",
         "interrupted": "Gestopt, de app herstartte",
         "running": "Bezig",
-        "other": "Afgelopen"
+        "other": "Afgelopen",
+        "retry": "Opnieuw, achteraan in de rij"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Bouwt",
         "send": "Stuurt naar het scherm",
         "confirm": "Scherm bevestigt",
-        "on": "op {name}"
+        "on": "op {name}",
+        "send_waits": "Wacht op zijn beurt om te installeren"
       },
       "done": "{screen} is klaar.",
       "done_confirmed": "{screen} is klaar en meldt dat hij draait wat er gebouwd is.",

@@ -52,7 +52,7 @@ find the placeholder (docs/CAMERA.md, Screen camera's video). The compile cache 
 Update all and the nightly round are a `Round`: one build that fails leaves the builds of its round that still wait out
 (`skipped`), so a bad build never reaches the next screen. Builds asked apart, such as another screen's Update or a
 plugin build, stay in the line. A build of the round that someone also asks for by itself (its screen's Update or
-Reinstall from dev, a plugin that joins it) leaves the round, so it is never left out for another screen's failure. Between two updates of one round there is a pause (`Updater.pause_seconds`).
+Reinstall from dev, a plugin that joins it) leaves the round, so it is never left out for another screen's failure.
 
 ## Following a build
 
@@ -101,6 +101,31 @@ and `GET api/firmware/logs/{key}` sends one as a file. In the editor:
 - A plugin's details and the screen's build note (`BuildLog.vue`) offer the same download.
 - The screen's Plugins tab lists its last builds with their logs (`BuildHistory.vue`).
 - Firmware & USB lists every kept log, to download.
+
+## Building ahead
+
+The slot is ESPHome's, not the build's. A build holds it while ESPHome compiles or uploads, and gives it up while it
+only waits (`BuildQueue.handoff`): while its screen restarts and is checked, and in a round while it waits for its turn
+to install. The next build compiles meanwhile. Its next ESPHome step takes the slot back before anything that waits in
+the line (`BuildQueue.step` asks `reacquire` for the build of its task, `build_queue.CURRENT`), after the job that runs
+now. A build that gave the slot up still runs for its screen (`aside`, and `on_the_way`); the page sees two or more
+builds running, one of them compiling.
+
+In a round of more than one screen an update is made in two steps (`Updater.build_and_install`): `build` (compile, on the
+build server when it is on), then `upload` (Firmware's action that sends what the last build made, also the build
+server's images). Between the two it waits, beside the line (phase `ready`), until every screen before it in the round
+has ended: its install goes only once those passed their check (they report the new firmware and stay up through
+`settle_seconds`). A screen before it that failed ends the round, and the build made ahead is not installed
+(`skipped`, `addon.updates.round_stopped`). A screen updated alone builds and installs in one `install`.
+
+A failure that says nothing about the firmware does not end the round: a download the build needs that did not come
+(`network`) or a screen that was away for its upload (`offline`, `Updater.passing`). That screen goes once more, at the
+end of the line in the same round (its build ends `retry`); a second failure is a failure. A plugin build gives the slot
+up as well while its screen restarts and confirms the plugins (`Plugins._verify`). There is no pause between two updates
+of a round any more: the check is the wait.
+
+With a build server, the Mac compiles the next screen while this app uploads to one screen and waits for another, so it
+is busy as long as a round has screens left to build.
 
 ## The steps of a build
 

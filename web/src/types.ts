@@ -447,7 +447,7 @@ export type BuildServerPreview = { host: string; port: number; pin: string; name
 // in order and the last ones that ended, newest first. `check` is a YAML check. While it waits, `place` is its turn and
 // `after` the profile that builds now; while it runs, ESPHome's `stage` and the build's `memory`; once it ended, why
 // (`reason`) and the memory it had. Its log is asked by its id (stores/builds.ts loadBuildLog).
-export type LineState = "queued" | "running" | "success" | "failed" | "skipped" | "interrupted";
+export type LineState = "queued" | "running" | "success" | "failed" | "skipped" | "interrupted" | "retry";
 export type LineBuild = {
   id: number; by: Build["by"] | "check"; file: string | null; screen?: string | null; action: string; target?: string;
   state: LineState; asked: number; started: number | null; finished: number | null; phase?: string | null; plugins?: string[];

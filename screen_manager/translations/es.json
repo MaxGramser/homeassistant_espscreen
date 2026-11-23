@@ -1089,7 +1089,8 @@
       "build_memory_limit": "No hay memoria suficiente para compilar el firmware, ni con un compilador a la vez. Detén unos complementos un rato o dale más memoria a la máquina; consulta Firmware y USB.",
       "no_report": "La pantalla no ha vuelto a comunicarse con el firmware {version}; revisa la pantalla.",
       "dropped_off": "La pantalla se desconectó tras la actualización; revisa la pantalla.",
-      "updated": "Actualizada al firmware {version}."
+      "updated": "Actualizada al firmware {version}.",
+      "round_stopped": "No actualizada: una pantalla anterior de la ronda no pasó su comprobación, así que la ronda se detuvo."
     },
     "notify": {
       "update_stopped": "La actualización automática se detuvo en {name}: {reason} Las demás pantallas no se han modificado.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "Compilando e instalando…",
         "verify": "Esperando a que vuelva la pantalla…",
-        "settle": "Comprobando que se mantiene estable…"
+        "settle": "Comprobando que se mantiene estable…",
+        "ready": "Compilado por adelantado: se instala cuando las pantallas anteriores pasen su comprobación"
       },
       "new_language": "Idioma nuevo: {name}",
       "restarting": "Reiniciando con el nuevo firmware, vuelve en un par de minutos",
@@ -3731,7 +3733,8 @@
         "failed": "Fallida",
         "interrupted": "Detenida, la app se reinició",
         "running": "Compilando",
-        "other": "Terminada"
+        "other": "Terminada",
+        "retry": "Otra vez, al final de la cola"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Compila",
         "send": "La envía a la pantalla",
         "confirm": "La pantalla confirma",
-        "on": "en {name}"
+        "on": "en {name}",
+        "send_waits": "Espera su turno para instalarse"
       },
       "done": "{screen} está lista.",
       "done_confirmed": "{screen} está lista y dice que ejecuta lo compilado.",

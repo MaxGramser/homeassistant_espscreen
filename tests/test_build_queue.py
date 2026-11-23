@@ -255,7 +255,8 @@ class TheLine(unittest.IsolatedAsyncioTestCase):
         await line.close()
         self.assertEqual((running.state, waiting.state), ('interrupted', 'interrupted'))
         self.assertTrue(running.done.is_set())
-        owner.firmware.task.cancel()
+        if owner.firmware.task:
+            owner.firmware.task.cancel()
 
 
 class ThePageHears(unittest.TestCase):

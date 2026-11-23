@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Memoria insufficiente per compilare il firmware, anche con un compilatore alla volta. Ferma qualche componente aggiuntivo per un po' o dai più memoria alla macchina; vedi Firmware e USB.",
       "no_report": "Lo schermo non si è ripresentato con il firmware {version}; controlla lo schermo.",
       "dropped_off": "Lo schermo si è disconnesso dopo l'aggiornamento; controlla lo schermo.",
-      "updated": "Aggiornato al firmware {version}."
+      "updated": "Aggiornato al firmware {version}.",
+      "round_stopped": "Non aggiornato: uno schermo precedente nel giro non ha superato il controllo, quindi il giro si è fermato."
     },
     "notify": {
       "update_stopped": "L'aggiornamento automatico si è fermato allo schermo {name}: {reason} Gli altri schermi non sono stati toccati.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "Compilazione e installazione…",
         "verify": "In attesa che lo schermo torni online…",
-        "settle": "Verifica della stabilità…"
+        "settle": "Verifica della stabilità…",
+        "ready": "Compilato in anticipo: si installa appena gli schermi precedenti superano il controllo"
       },
       "new_language": "Nuova lingua: {name}",
       "restarting": "Si riavvia con il nuovo firmware, torna tra un paio di minuti",
@@ -3731,7 +3733,8 @@
         "failed": "Non riuscita",
         "interrupted": "Interrotta, l'app si è riavviata",
         "running": "In corso",
-        "other": "Terminata"
+        "other": "Terminata",
+        "retry": "Di nuovo, in fondo alla coda"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Compila",
         "send": "La invia allo schermo",
         "confirm": "Lo schermo conferma",
-        "on": "su {name}"
+        "on": "su {name}",
+        "send_waits": "Attende il turno per l'installazione"
       },
       "done": "{screen} è pronto.",
       "done_confirmed": "{screen} è pronto e dice di eseguire ciò che è stato compilato.",

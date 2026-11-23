@@ -19,8 +19,9 @@ const where = computed(() => (props.build?.where === "server" && props.build.ser
       <Icon v-if="step.state === 'done'" name="check" />
       <Icon v-else-if="step.state === 'failed'" name="alert-circle-outline" />
       <span v-else-if="step.state === 'now'" class="spin small" aria-hidden="true"></span>
+      <Icon v-else-if="step.state === 'waits'" name="clock-outline" />
       <i v-else aria-hidden="true"></i>
-      <span>{{ t(`editor.build.steps.${step.key}`) }}<small v-if="step.key === 'build' && where">{{ where }}</small></span>
+      <span>{{ step.state === "waits" ? t("editor.build.steps.send_waits") : t(`editor.build.steps.${step.key}`) }}<small v-if="step.key === 'build' && where">{{ where }}</small></span>
     </li>
   </ol>
 </template>

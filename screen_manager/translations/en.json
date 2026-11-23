@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Not enough memory to build the firmware, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory; see Firmware & USB.",
       "no_report": "Screen didn't report back with firmware {version}; check the screen.",
       "dropped_off": "Screen dropped off after the update; check the screen.",
-      "updated": "Updated to firmware {version}."
+      "updated": "Updated to firmware {version}.",
+      "round_stopped": "Not updated: a screen before it in the round failed its check, so the round stopped."
     },
     "notify": {
       "update_stopped": "Automatic update stopped at {name}: {reason} The remaining screens were not touched.",
@@ -3004,7 +3005,8 @@
       "phases": {
         "install": "Building and installing…",
         "verify": "Waiting for the screen to come back…",
-        "settle": "Checking that it stays stable…"
+        "settle": "Checking that it stays stable…",
+        "ready": "Built ahead: installs once the screens before it passed their check"
       },
       "new_language": "New language: {name}",
       "restarting": "Restarting with the new firmware, back in a minute or two",
@@ -3242,7 +3244,8 @@
         "failed": "Failed",
         "interrupted": "Stopped, the app restarted",
         "running": "Building",
-        "other": "Ended"
+        "other": "Ended",
+        "retry": "Again, at the end of the line"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Builds",
         "send": "Sends it to the screen",
         "confirm": "Screen confirms",
-        "on": "on {name}"
+        "on": "on {name}",
+        "send_waits": "Waits for its turn to install"
       },
       "done": "{screen} is ready.",
       "done_confirmed": "{screen} is ready, and says it runs what was built.",

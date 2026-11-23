@@ -16,7 +16,7 @@ const endedIds = computed(() => builds.line.filter((b) => builds.lineEnded(b)).m
 onMounted(() => void builds.loadKeptLogs());
 watch(endedIds, () => void builds.loadKeptLogs());
 const when = (at?: number) => (at ? new Date(at * 1000).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }) : "");
-const state = (s: string) => t(`editor.firmware.kept_state.${["success", "failed", "interrupted", "running"].includes(s) ? s : "other"}`);
+const state = (s: string) => t(`editor.firmware.kept_state.${["success", "failed", "interrupted", "running", "retry"].includes(s) ? s : "other"}`);
 const kind = (by?: string) => t(`editor.history.by.${["update", "plugins", "install", "icons"].includes(by || "") ? by : "other"}`);
 </script>
 

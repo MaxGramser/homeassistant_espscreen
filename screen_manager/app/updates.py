@@ -42,7 +42,6 @@ def shown_result(result):
 class Updater:
     verify_timeout = 240
     settle_seconds = 60
-    pause_seconds = 120
     poll_seconds = 5
     # The partition table of a board with 4 MB of flash (app 0.4.56). How long a screen gets to say its word after a
     # restart: its features sensor speaks every minute. And for a screen on its bridge, which Home Assistant cannot
@@ -326,18 +325,66 @@ class Updater:
 
     async def run_build(self, build):
         """An update's turn in the build line: the screen's update, then what it means for its round. A failure ends the
-        round (the build line leaves its waiting updates out) so a bad build never reaches the next screen."""
+        round (the build line leaves its waiting updates out) so a bad build never reaches the next screen. A failure that
+        says nothing about the firmware (a download that did not come, a screen that was away for its upload) puts the
+        screen back at the end of the line once (`retry`), and the round goes on (docs/BUILDS.md, "Building ahead")."""
         inbox = build.screen = self.current_id(build.screen)
         outcome = await self.update_one(inbox, build)
+        if outcome == 'failed' and self.passing(build) and not getattr(build, 'again', False):
+            again = self.line.add('update', build.file, self.run_build, screen=inbox, round=build.round, join=False)
+            again.again = True
+            LOG.info('Update of %s goes once more, at the end of the line (%s)', inbox, self.passing(build))
+            return 'retry'
         if outcome == 'failed' and build.round and build.round.automatic:
             # For whoever reads Home Assistant: in the screens' language, Home Assistant's own unless another was chosen
             # (app 0.2.90).
             await self.notify(screen_t('addon.notify.update_stopped', name=self.name(inbox),
                                        reason=result_text(self.results[self.current_id(inbox)])))
-        # A pause between two updates of one round; not before anything else that is next (New screen, another's build).
-        if outcome == 'success' and build.round and self.line.line and self.line.line[0].round is build.round:
-            await asyncio.sleep(self.pause_seconds)
         return outcome
+
+    def passing(self, build):
+        """Why a failed update says nothing about its firmware, or None: 'network' (a download it needs did not come) or
+        'offline' (built, but the screen was away for its upload). Such a screen goes once more; any other failure ends
+        its round."""
+        if getattr(build, 'verified_failed', False) or not getattr(build, 'stepped', False):
+            return None
+        firmware = self.manager.firmware
+        logs, job = list(getattr(firmware, 'logs', None) or []), getattr(firmware, 'job', None) or {}
+        if getattr(build, 'logs', None) and self.line.running is not build:
+            logs = list(build.logs)
+        from plugins import failure_kind
+        kind = failure_kind(logs, job.get('stage') if self.line.running is build else getattr(build, 'stage', None),
+                            job.get('memory'))
+        return kind if kind in ('network', 'offline') else None
+
+    async def build_and_install(self, inbox, profile, host, build):
+        """The screen's firmware built and installed. In a round the build is made ahead: the slot goes to the next build
+        while this one waits for every screen before it in the round to have passed its check, and its upload takes the
+        slot back. True when it went on, False when it did not, None when the round stopped before its turn (a screen
+        before it failed)."""
+        # A screen alone (its own Update) builds and installs in one go: there is no next screen to build ahead for.
+        if not getattr(build, 'round', None) or len(build.round.builds) < 2 or not hasattr(self.line, 'handoff'):
+            return await self.job(profile, 'install', host)
+        build.phase = 'install'
+        if not await self.job(profile, 'build'):
+            return False
+        before = self.ahead_of(build)
+        if any(not other.done.is_set() for other in before):
+            # Built: the slot goes to the next build while this one waits for its turn to install.
+            build.phase = 'ready'
+            self.line.handoff(build)
+            for other in before:
+                await other.done.wait()
+        if any(other.state == 'failed' for other in before):
+            return None
+        build.phase = 'install'
+        return await self.job(profile, 'upload', host)
+
+    @staticmethod
+    def ahead_of(build):
+        """The builds of the build's round before it: it installs only once they have ended."""
+        builds = list(getattr(build.round, 'builds', []) or [])
+        return builds[:builds.index(build)] if build in builds else []
 
     def name(self, inbox):
         screen = self.screen(inbox)
@@ -377,14 +424,22 @@ class Updater:
                 plugins = getattr(self.manager, 'plugins', None)
                 joined = await plugins.join_accepted(inbox) if plugins and not note else []
                 try:
-                    installed = await self.job(profile, 'install', host)
+                    installed = await self.build_and_install(inbox, profile, host, build)
                 except ValueError:
                     if joined:
                         plugins.settle_joined(inbox, joined, False, 'interrupted')
                     raise
+                if installed is None:
+                    if joined:
+                        plugins.settle_joined(inbox, joined, False, 'interrupted')
+                    self.record(inbox, 'skipped', english('addon.updates.round_stopped'))
+                    return 'skipped'
                 if joined and not installed:
                     plugins.settle_joined(inbox, joined, False, logs=list(getattr(firmware, 'logs', None) or []))
-                    installed = await self.job(profile, 'install', host)
+                    installed = await self.build_and_install(inbox, profile, host, build)
+                    if installed is None:
+                        self.record(inbox, 'skipped', english('addon.updates.round_stopped'))
+                        return 'skipped'
                 elif joined:
                     plugins.settle_joined(inbox, joined, True)
         except ValueError as error:
@@ -409,7 +464,11 @@ class Updater:
                 self.record(inbox, 'failed', english('addon.updates.build_failed'))
             return 'failed'
         build.phase = 'verify'
+        # The screen restarts and is checked: that is waiting, not building, so the slot goes to the next build.
+        if hasattr(self.line, 'handoff'):
+            self.line.handoff(build)
         if not await self.wait_for_target(inbox, target):
+            build.verified_failed = True
             self.record(inbox, 'failed', english('addon.updates.no_report', version=target), target)
             return 'failed'
         if wide:
@@ -425,6 +484,7 @@ class Updater:
         await asyncio.sleep(self.settle_seconds)
         current = self.screen(inbox)
         if not current or not current['online']:
+            build.verified_failed = True
             self.record(inbox, 'failed', english('addon.updates.dropped_off'), target)
             return 'failed'
         if self.current_id(inbox) in self.bridging:

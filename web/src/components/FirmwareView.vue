@@ -83,7 +83,7 @@ const keptLogs = computed(() => builds.keptLogs);
 const endedIds = computed(() => builds.line.filter((b) => builds.lineEnded(b)).map((b) => b.id).join(","));
 watch(endedIds, () => void builds.loadKeptLogs(), { immediate: true });
 const keptWhen = (at?: number) => (at ? new Date(at * 1000).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }) : "");
-const keptState = (state: string) => t(`editor.firmware.kept_state.${["success", "failed", "interrupted", "running"].includes(state) ? state : "other"}`);
+const keptState = (state: string) => t(`editor.firmware.kept_state.${["success", "failed", "interrupted", "running", "retry"].includes(state) ? state : "other"}`);
 // What the add-on says about the memory the build has (build_memory.py, app 0.4.65), under the status line.
 const memoryText = computed(() => memoryOf(followed.build.value ?? data.value?.job)?.text || "");
 // The log of the build this page asked for once it is known, else whatever builds now.

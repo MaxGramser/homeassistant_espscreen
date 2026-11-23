@@ -6,7 +6,7 @@
 import type { Build, LineBuild } from "../types";
 
 export type StepKey = "wait" | "build" | "send" | "confirm";
-export type StepState = "done" | "now" | "todo" | "failed" | "skipped";
+export type StepState = "done" | "now" | "todo" | "failed" | "skipped" | "waits";
 export type Step = { key: StepKey; state: StepState };
 
 const ORDER: StepKey[] = ["wait", "build", "send", "confirm"];
@@ -27,9 +27,12 @@ export function stepsOf(build: (Build | LineBuild) & { verified?: boolean | null
   if (state === "success") {
     return ORDER.map((key) => ({ key, state: key === "confirm" ? (build.verified === false ? "failed" : build.verified ? "done" : "skipped") : "done" }));
   }
+  // Built ahead in a round: built, and its install waits for the screens before it to pass their check.
+  if (state === "running" && build.phase === "ready")
+    return ORDER.map((key) => ({ key, state: key === "wait" || key === "build" ? "done" : key === "send" ? "waits" : "todo" }));
   const at = stepAt(build as LineBuild);
   const index = ORDER.indexOf(at);
-  const ended = state === "failed" || state === "interrupted" || state === "skipped";
+  const ended = state === "failed" || state === "interrupted" || state === "skipped" || state === "retry";
   return ORDER.map((key, i) => ({
     key,
     state: i < index ? "done" : i === index ? (ended ? "failed" : "now") : ended ? "skipped" : "todo",

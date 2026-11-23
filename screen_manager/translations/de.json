@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Zu wenig Speicher, um die Firmware zu erstellen, auch mit einem Compiler gleichzeitig. Halte ein paar Add-ons vorübergehend an oder gib der Maschine mehr Speicher; siehe Firmware & USB.",
       "no_report": "Bildschirm hat sich nicht mit Firmware {version} zurückgemeldet; prüfe den Bildschirm.",
       "dropped_off": "Bildschirm war nach dem Update nicht mehr erreichbar; prüfe den Bildschirm.",
-      "updated": "Auf Firmware {version} aktualisiert."
+      "updated": "Auf Firmware {version} aktualisiert.",
+      "round_stopped": "Nicht aktualisiert: Ein Bildschirm davor hat seine Prüfung nicht bestanden, daher hielt die Runde an."
     },
     "notify": {
       "update_stopped": "Automatisches Update bei {name} gestoppt: {reason} Die übrigen Bildschirme blieben unverändert.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "Wird erstellt und installiert…",
         "verify": "Warte, bis der Bildschirm wieder da ist…",
-        "settle": "Prüfe, ob er stabil bleibt…"
+        "settle": "Prüfe, ob er stabil bleibt…",
+        "ready": "Vorab erstellt: wird installiert, sobald die Bildschirme davor ihre Prüfung bestanden haben"
       },
       "new_language": "Neue Sprache: {name}",
       "restarting": "Startet mit der neuen Firmware neu, in ein, zwei Minuten zurück",
@@ -3731,7 +3733,8 @@
         "failed": "Fehlgeschlagen",
         "interrupted": "Abgebrochen, die App startete neu",
         "running": "Läuft",
-        "other": "Beendet"
+        "other": "Beendet",
+        "retry": "Noch einmal, am Ende der Reihe"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Erstellt",
         "send": "Sendet an den Bildschirm",
         "confirm": "Bildschirm bestätigt",
-        "on": "auf {name}"
+        "on": "auf {name}",
+        "send_waits": "Wartet, bis es installiert wird"
       },
       "done": "{screen} ist fertig.",
       "done_confirmed": "{screen} ist fertig und meldet, dass er das Erstellte ausführt.",

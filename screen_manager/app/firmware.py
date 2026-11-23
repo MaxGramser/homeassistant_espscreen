@@ -1042,14 +1042,15 @@ packages:
             raise ValueError(t('addon.errors.firmware.choose_profile'))
         profile = self.profile(data.get('file'))
         action = data.get('action')
-        # 'widen' sends the partition table of the profile's last build (app 0.4.56), nothing else.
-        if action not in ('validate','build','install','download','widen'): raise ValueError(t('addon.errors.firmware.unknown_action'))
+        # 'widen' sends the partition table of the profile's last build (app 0.4.56), nothing else; 'upload' sends the
+        # firmware of its last build (a build made ahead while another screen was checked, docs/BUILDS.md "Building ahead").
+        if action not in ('validate','build','install','download','widen','upload'): raise ValueError(t('addon.errors.firmware.unknown_action'))
         if not shutil.which('esphome'): raise ValueError(t('addon.errors.firmware.no_esphome'))
         target = data.get('target') or ''
         if not isinstance(target, str): raise ValueError(t('addon.errors.firmware.host'))
         if action == 'widen' and target.startswith('/dev/'):
             raise ValueError(t('addon.errors.firmware.host'))  # ESPHome sends a table over Wi-Fi only
-        if action in ('install', 'widen'):
+        if action in ('install', 'widen', 'upload'):
             if target.startswith('/dev/'):
                 if target not in self.ports(): raise ValueError(t('addon.errors.firmware.usb_port'))
             elif not re.fullmatch(r'[a-zA-Z0-9][a-zA-Z0-9.-]{0,252}',target):
@@ -1062,7 +1063,7 @@ packages:
         profile, action, target = self.check(data)
         # What a build writes into the screen's own YAML first. Not for a table, which goes with the build that was
         # made, and not for a bridge, which this app wrote whole.
-        managed = action not in ('validate', 'widen') and not profile.name.endswith(self.BRIDGE_SUFFIX)
+        managed = action not in ('validate', 'widen', 'upload') and not profile.name.endswith(self.BRIDGE_SUFFIX)
         # ESPHome Device Builder lists the Override YAML as a device of its own (`<name>.local`, GitHub #219), and
         # deleting that one leaves the screen's YAML including a file that is gone: every build stops at "file not
         # found". An empty override, the one New screen writes, makes it build again.
@@ -1124,7 +1125,7 @@ packages:
         override_file = self.root / (profile.stem + self.OVERRIDE_SUFFIX)
         if override_file.exists() and not override_file.is_symlink():
             collect(yaml.compose(override_file.read_text()))
-        if action != 'widen':
+        if action not in ('widen', 'upload'):
             self.images.pop(profile.name, None)  # until this job succeeds, the old image may no longer match the profile
         self.logs.clear()
         if dropped:
@@ -1281,12 +1282,12 @@ packages:
     async def run(self, profile, action, target):
         env = self.build_env(profile)
         try:
-            if action not in ('validate', 'widen'):
+            if action not in ('validate', 'widen', 'upload'):
                 await self.retire_platformio()
                 # A build the server makes needs no compile cache here; one that falls back gets it then.
                 if not (self.server and self.server.wanted()):
                     await self.seed_cache(profile, env)
-            stages = ['config'] if action=='validate' else ['upload'] if action=='widen' else ['compile'] + (['upload'] if action=='install' else [])
+            stages = ['config'] if action=='validate' else ['upload'] if action in ('widen', 'upload') else ['compile'] + (['upload'] if action=='install' else [])
             memory = None
             for stage in stages:
                 cmd=['esphome']+(['--quiet'] if stage=='config' else [])+[stage]+(['--partition-table'] if action=='widen' else [])+[str(profile)]
@@ -1318,11 +1319,11 @@ packages:
                     memory = self.job['memory'] = {**memory, 'reason': 'out' if short else 'limit'}
                     raise RuntimeError(self.memory_note(memory))
                 if code: raise RuntimeError('ESPHome '+stage+' failed; see the log.')
-            image = self.factory_image(profile) if action not in ('validate', 'widen') else None
+            image = self.factory_image(profile) if action not in ('validate', 'widen', 'upload') else None
             if action == 'download' and not image:
                 raise RuntimeError('ESPHome built no factory image (firmware.factory.bin) to download; see the log.')
             self.job['state']='success'; self.logs.append('Succeeded: '+action)
-            if action=='install': self.installed.add(profile.name)
+            if action in ('install', 'upload'): self.installed.add(profile.name)
             if image: self.images[profile.name] = image
         except asyncio.CancelledError:
             self.job['state']='interrupted'

@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Za mało pamięci, aby skompilować firmware, także z jednym kompilatorem naraz. Zatrzymaj na chwilę kilka dodatków albo daj maszynie więcej pamięci; zobacz „Firmware i USB”.",
       "no_report": "Ekran nie zgłosił się z firmware {version}; sprawdź ekran.",
       "dropped_off": "Ekran rozłączył się po aktualizacji; sprawdź ekran.",
-      "updated": "Zaktualizowano do firmware {version}."
+      "updated": "Zaktualizowano do firmware {version}.",
+      "round_stopped": "Nie zaktualizowano: wcześniejszy ekran w rundzie nie przeszedł kontroli, więc runda się zatrzymała."
     },
     "notify": {
       "update_stopped": "Automatyczna aktualizacja zatrzymała się na ekranie {name}: {reason} Pozostałe ekrany pozostały bez zmian.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "Kompilowanie i instalowanie…",
         "verify": "Oczekiwanie na powrót ekranu…",
-        "settle": "Sprawdzanie, czy działa stabilnie…"
+        "settle": "Sprawdzanie, czy działa stabilnie…",
+        "ready": "Skompilowane z wyprzedzeniem: zainstaluje się, gdy wcześniejsze ekrany przejdą kontrolę"
       },
       "new_language": "Nowy język: {name}",
       "restarting": "Uruchamia się ponownie z nowym firmware, wróci za minutę lub dwie",
@@ -3731,7 +3733,8 @@
         "failed": "Nieudana",
         "interrupted": "Przerwana, aplikacja uruchomiła się ponownie",
         "running": "W toku",
-        "other": "Zakończona"
+        "other": "Zakończona",
+        "retry": "Ponownie, na końcu kolejki"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Kompiluje",
         "send": "Wysyła na ekran",
         "confirm": "Ekran potwierdza",
-        "on": "na {name}"
+        "on": "na {name}",
+        "send_waits": "Czeka na swoją kolej do instalacji"
       },
       "done": "{screen} jest gotowy.",
       "done_confirmed": "{screen} jest gotowy i potwierdza, że działa to, co skompilowano.",

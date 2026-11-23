@@ -2076,7 +2076,11 @@ class Plugins:
         if not wanted or inbox not in getattr(self.manager, 'page_senders', {}):
             return None
         build.phase = 'verify'
-        self.manager.build_queue.changed()
+        # The screen restarts and is checked: that is waiting, not building, so the slot goes to the next build.
+        line = self.manager.build_queue
+        if hasattr(line, 'handoff'):
+            line.handoff(build)
+        line.changed()
         # The screen restarts with the new firmware: it drops off (no hello) and says hello again with what it runs.
         gone = False
         deadline = time.monotonic() + self.VERIFY_WAIT

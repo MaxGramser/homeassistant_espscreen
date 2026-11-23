@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Nincs elég memória a firmware fordításához, egy fordítóval sem. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek; lásd Firmware és USB.",
       "no_report": "A kijelző nem jelentkezett vissza a(z) {version} firmware-rel; ellenőrizd a kijelzőt.",
       "dropped_off": "A kijelző a frissítés után eltűnt; ellenőrizd a kijelzőt.",
-      "updated": "Frissítve a(z) {version} firmware-re."
+      "updated": "Frissítve a(z) {version} firmware-re.",
+      "round_stopped": "Nincs frissítve: egy korábbi kijelző nem ment át az ellenőrzésen, ezért a kör leállt."
     },
     "notify": {
       "update_stopped": "Az automatikus frissítés megállt ennél: {name}: {reason} A többi kijelzőhöz nem nyúltunk.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "Fordítás és telepítés…",
         "verify": "Várakozás, hogy a kijelző visszatérjen…",
-        "settle": "Stabilitás ellenőrzése…"
+        "settle": "Stabilitás ellenőrzése…",
+        "ready": "Előre lefordítva: települ, amint az előtte lévő kijelzők átmentek az ellenőrzésen"
       },
       "new_language": "Új nyelv: {name}",
       "restarting": "Újraindul az új firmware-rel, egy-két perc múlva visszatér",
@@ -3731,7 +3733,8 @@
         "failed": "Sikertelen",
         "interrupted": "Leállt, az app újraindult",
         "running": "Folyamatban",
-        "other": "Befejeződött"
+        "other": "Befejeződött",
+        "retry": "Újra, a sor végén"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Fordít",
         "send": "Elküldi a kijelzőre",
         "confirm": "A kijelző megerősíti",
-        "on": "itt: {name}"
+        "on": "itt: {name}",
+        "send_waits": "Várja, hogy telepíthessék"
       },
       "done": "{screen} kész.",
       "done_confirmed": "{screen} kész, és jelzi, hogy a lefordítottat futtatja.",

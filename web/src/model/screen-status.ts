@@ -25,7 +25,7 @@ export const restarting = (screen: Screen, building: Building) => !screen.online
 export const restartingText = () => t("editor.update.restarting");
 // What a running update is doing, by its phase.
 export const phaseText = (phase: string | undefined) =>
-  ["install", "verify", "settle"].includes(phase || "") ? t(`editor.update.phases.${phase}`) : t("editor.update.starting");
+  ["install", "verify", "settle", "ready"].includes(phase || "") ? t(`editor.update.phases.${phase}`) : t("editor.update.starting");
 // What a running build is doing, in words: an update's phase, or what a plugin build or an install is.
 export function buildText(screen: Screen, build: Build | null) {
   if (!build || build.by === "update") return phaseText(build?.phase ?? screen.update?.phase);
@@ -41,6 +41,8 @@ export function buildProgress(screen: Screen, building: Building): { percent: nu
   const away = !screen.online;
   // An update's phase, or a plugin build's own wait for the screen (verify); anything else installs.
   const phase = build?.by === "update" || !build ? (build?.phase ?? screen.update?.phase) : build.phase === "verify" ? "verify" : "install";
+  // Built ahead in a round: it installs once every screen before it passed its check (docs/BUILDS.md, "Building ahead").
+  if (phase === "ready") return { percent: 55, text: phaseText("ready") };
   if (phase === "verify") return { percent: 78, text: away ? restartingText() : phaseText("verify") };
   if (phase === "settle") return { percent: 92, text: away ? restartingText() : phaseText("settle") };
   if (stage === "upload") return { percent: 66, text: away ? restartingText() : t("editor.update.writing") };

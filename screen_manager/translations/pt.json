@@ -1089,7 +1089,8 @@
       "build_memory_limit": "Memória insuficiente para compilar o firmware, também com um compilador de cada vez. Para alguns complementos por um tempo ou dá mais memória à máquina; consulta Firmware e USB.",
       "no_report": "O ecrã não voltou a comunicar com o firmware {version}; verifique o ecrã.",
       "dropped_off": "O ecrã desligou-se depois da atualização; verifique o ecrã.",
-      "updated": "Atualizado para o firmware {version}."
+      "updated": "Atualizado para o firmware {version}.",
+      "round_stopped": "Não atualizado: um ecrã anterior na ronda não passou a verificação, por isso a ronda parou."
     },
     "notify": {
       "update_stopped": "A atualização automática parou em {name}: {reason} Os restantes ecrãs não foram alterados.",
@@ -3493,7 +3494,8 @@
       "phases": {
         "install": "A compilar e a instalar…",
         "verify": "À espera que o ecrã volte…",
-        "settle": "A verificar se se mantém estável…"
+        "settle": "A verificar se se mantém estável…",
+        "ready": "Compilado antecipadamente: instala-se quando os ecrãs anteriores passarem a verificação"
       },
       "new_language": "Novo idioma: {name}",
       "restarting": "A reiniciar com o novo firmware, volta dentro de um ou dois minutos",
@@ -3731,7 +3733,8 @@
         "failed": "Falhou",
         "interrupted": "Parada, a app reiniciou",
         "running": "A compilar",
-        "other": "Terminada"
+        "other": "Terminada",
+        "retry": "De novo, no fim da fila"
       }
     },
     "installer": {
@@ -4621,7 +4624,8 @@
         "build": "Compila",
         "send": "Envia para o ecrã",
         "confirm": "O ecrã confirma",
-        "on": "em {name}"
+        "on": "em {name}",
+        "send_waits": "Espera a sua vez para instalar"
       },
       "done": "{screen} está pronto.",
       "done_confirmed": "{screen} está pronto e diz que corre o que foi compilado.",

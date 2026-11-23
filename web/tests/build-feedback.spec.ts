@@ -56,6 +56,10 @@ describe("the steps of a build", () => {
     expect(stepsOf(build({ state: "success", verified: true })).map((s) => s.state)).toEqual(["done", "done", "done", "done"]);
     expect(stepsOf(build({ state: "success", verified: false })).at(-1)!.state).toBe("failed");
     expect(stepsOf(build({ state: "success", verified: null })).at(-1)!.state).toBe("skipped");
+    // Built ahead in a round: built, and its install waits for the screens before it (docs/BUILDS.md, "Building ahead").
+    expect(stepsOf(build({ phase: "ready" })).map((s) => s.state)).toEqual(["done", "done", "waits", "todo"]);
+    // Back at the end of the line after a download that did not come: the step it stopped at.
+    expect(stepsOf(build({ state: "retry", stage: "compile" })).map((s) => s.state)).toEqual(["done", "failed", "skipped", "skipped"]);
   });
 });
 
