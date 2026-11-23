@@ -4813,7 +4813,14 @@
         "off": "Desactivada"
       },
       "alarm": "Alarma",
-      "calls": "Llamadas"
+      "calls": "Llamadas",
+      "parts": {
+        "automations": "{n} automatización | {n} automatizaciones",
+        "no_automation": "Aún no hay automatizaciones",
+        "alarm_panels": "{n} panel de alarma | {n} paneles de alarma",
+        "no_alarm": "No hay panel de alarma en Home Assistant",
+        "rings_with": "Suena con {sound}"
+      }
     },
     "doorbell": {
       "intro": "Alguien llama y tus pantallas muestran la puerta. Una automatización envía el evento con la cámara del timbre: una pantalla P4 se despierta, toca un aviso y abre la cámara en directo con sonido; cualquier otra pantalla muestra su imagen en una alerta. Funciona cualquier timbre, sea cual sea el disparador.",

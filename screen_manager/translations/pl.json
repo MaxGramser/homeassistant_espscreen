@@ -4813,7 +4813,14 @@
         "off": "Wył."
       },
       "alarm": "Alarm",
-      "calls": "Połączenia"
+      "calls": "Połączenia",
+      "parts": {
+        "automations": "{n} automatyzacja | {n} automatyzacje | {n} automatyzacji",
+        "no_automation": "Jeszcze brak automatyzacji",
+        "alarm_panels": "{n} panel alarmowy | {n} panele alarmowe | {n} paneli alarmowych",
+        "no_alarm": "Brak panelu alarmowego w Home Assistant",
+        "rings_with": "Dzwoni: {sound}"
+      }
     },
     "doorbell": {
       "intro": "Ktoś dzwoni, a twoje ekrany pokazują drzwi. Automatyzacja wysyła zdarzenie z kamerą dzwonka: ekran P4 budzi się, odtwarza gong i otwiera kamerę na żywo z dźwiękiem; każdy inny ekran pokazuje jej obraz w alercie. Działa każdy dzwonek, bez względu na wyzwalacz.",

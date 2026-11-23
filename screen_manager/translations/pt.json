@@ -4813,7 +4813,14 @@
         "off": "Desligada"
       },
       "alarm": "Alarme",
-      "calls": "Chamadas"
+      "calls": "Chamadas",
+      "parts": {
+        "automations": "{n} automatização | {n} automatizações",
+        "no_automation": "Ainda sem automatizações",
+        "alarm_panels": "{n} painel de alarme | {n} painéis de alarme",
+        "no_alarm": "Nenhum painel de alarme no Home Assistant",
+        "rings_with": "Toca com {sound}"
+      }
     },
     "doorbell": {
       "intro": "Alguém toca e os seus ecrãs mostram a porta. Uma automação envia o evento com a câmara da campainha: um ecrã P4 acorda, toca um aviso e abre a câmara em direto com som; qualquer outro ecrã mostra a imagem num alerta. Qualquer campainha funciona, seja qual for o gatilho.",

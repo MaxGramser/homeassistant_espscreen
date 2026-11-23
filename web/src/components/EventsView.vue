@@ -1,46 +1,62 @@
 <script setup lang="ts">
-// Events (app 0.4.91): what Home Assistant shows on the screens, each one a part of this page with its own address
-// (#/events/<kind>, ui.eventsKind): an alert (AlertsView) and a doorbell's ring (DoorbellView) that an automation fires,
-// the alarm going off (AlarmView), which the screens follow themselves, and what rings when one screen calls another
-// (CallsView). Another kind later is one more tab and part.
-import { computed } from "vue";
+// Events (app 0.4.91): what Home Assistant shows on the screens, a page of parts like Settings (model/parts.ts,
+// docs/PAGES.md "Pages of parts"). It opens on a list of its parts, each with one line of what is set now, and a part
+// opens on its own address (#/events/<kind>, ui.eventsKind): an alert (AlertsView) and a doorbell's ring (DoorbellView)
+// that an automation fires, the alarm going off (AlarmView), which the screens follow themselves, and what rings when one
+// screen calls another (CallsView). Another kind later is one more row and part.
+import { computed, onMounted, ref } from "vue";
+import { getJson } from "../api";
 import { t } from "../i18n";
-import { glyph } from "../model/topbar";
-import { useUiStore, type EventKind } from "../stores/ui";
+import type { PartRow } from "../model/parts";
+import { PART_LOOK, type EventPart } from "../model/settings-parts";
+import type { IconName } from "../model/ui-icons";
+import { useAutomations } from "../composables/useAutomations";
+import { useSoundsStore } from "../stores/sounds";
+import { useUiStore } from "../stores/ui";
 import AlarmView from "./AlarmView.vue";
 import AlertsView from "./AlertsView.vue";
 import CallsView from "./CallsView.vue";
 import DoorbellView from "./DoorbellView.vue";
-import UiTabs from "./ui/UiTabs.vue";
+import PartsPage from "./parts/PartsPage.vue";
 
 const ui = useUiStore();
-const tabs = computed(() => [
-  { value: "alerts", label: t("editor.events.alerts"), glyph: glyph("F0594") },
-  { value: "doorbell", label: t("editor.events.doorbell"), glyph: glyph("F12E6") },
-  { value: "alarm", label: t("editor.events.alarm"), glyph: glyph("F0498") },
-  { value: "calls", label: t("editor.events.calls"), glyph: glyph("F11AB") },
-]);
+const sounds = useSoundsStore();
+
+// What the list says of each part: the automations of Tessera in Home Assistant, the alarm panels, the ring of a call.
+const alerts = useAutomations("alert");
+const doorbells = useAutomations("doorbell");
+const alarms = ref<number | null>(null);
+const loaded = ref(false);
+onMounted(async () => {
+  await Promise.all([
+    alerts.refresh(), doorbells.refresh(), sounds.load().catch(() => undefined),
+    getJson<{ alarms: unknown[] }>("alarms").then((view) => { alarms.value = view.alarms?.length ?? 0; }).catch(() => { alarms.value = null; }),
+  ]);
+  loaded.value = true;
+});
+const automationsLine = (n: number) => (!loaded.value ? "" : n ? t("editor.events.parts.automations", { n }, n) : t("editor.events.parts.no_automation"));
+const alarmLine = computed(() => (alarms.value === null ? "" : alarms.value ? t("editor.events.parts.alarm_panels", { n: alarms.value }, alarms.value) : t("editor.events.parts.no_alarm")));
+const callLine = computed(() => {
+  const ring = sounds.view?.kinds.call?.default;
+  return ring ? t("editor.events.parts.rings_with", { sound: sounds.nameOf(ring) }) : "";
+});
+
+const ICONS: Record<EventPart, IconName> = { alerts: "bell-ring-outline", doorbell: "doorbell", alarm: "shield-home-outline", calls: "phone-ring-outline" };
+const rows = computed<PartRow<EventPart>[]>(() => [
+  { id: "alerts", title: t("editor.events.alerts"), summary: automationsLine(alerts.listed.value.length) },
+  { id: "doorbell", title: t("editor.events.doorbell"), summary: automationsLine(doorbells.listed.value.length) },
+  { id: "alarm", title: t("editor.events.alarm"), summary: alarmLine.value },
+  { id: "calls", title: t("editor.events.calls"), summary: callLine.value },
+].map((row) => ({ ...row, id: row.id as EventPart, icon: ICONS[row.id as EventPart], ...PART_LOOK[row.id as EventPart] })));
 </script>
 
 <template>
-  <div class="panel wide events" id="events-page">
-    <div class="panel-head">
-      <div class="tx">
-        <span class="eyebrow">{{ t("editor.events.eyebrow") }}</span>
-        <h1>{{ t("editor.nav.events") }}</h1>
-        <p>{{ t("editor.events.intro") }}</p>
-      </div>
-      <button type="button" class="btn quiet" id="close-events" @click="ui.go('')">{{ t("editor.common.back") }}</button>
-    </div>
-    <UiTabs id="events-tabs" :model-value="ui.eventsKind" :tabs="tabs" :label="t('editor.nav.events')"
-      @update:model-value="(kind) => ui.openEvents(kind as EventKind)" />
+  <PartsPage id="events-page" close-id="close-events" list-id="events-parts" row-prefix="events-part" :wide="Boolean(ui.eventsKind)"
+    :eyebrow="t('editor.events.eyebrow')" :title="t('editor.nav.events')" :intro="t('editor.events.intro')" :close-label="t('editor.common.back')"
+    :rows="rows" :open="ui.eventsKind" @open="ui.openEvents" @close="ui.go('')">
     <AlertsView v-if="ui.eventsKind === 'alerts'" />
     <DoorbellView v-else-if="ui.eventsKind === 'doorbell'" />
     <AlarmView v-else-if="ui.eventsKind === 'alarm'" />
     <CallsView v-else />
-  </div>
+  </PartsPage>
 </template>
-
-<style scoped>
-.events { display: grid; gap: 14px; }
-</style>

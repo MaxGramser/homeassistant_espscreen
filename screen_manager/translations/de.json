@@ -4813,7 +4813,14 @@
         "off": "Aus"
       },
       "alarm": "Alarm",
-      "calls": "Anrufe"
+      "calls": "Anrufe",
+      "parts": {
+        "automations": "{n} Automatisierung | {n} Automatisierungen",
+        "no_automation": "Noch keine Automatisierung",
+        "alarm_panels": "{n} Alarmzentrale | {n} Alarmzentralen",
+        "no_alarm": "Keine Alarmzentrale in Home Assistant",
+        "rings_with": "Klingelt mit {sound}"
+      }
     },
     "doorbell": {
       "intro": "Jemand klingelt, und deine Bildschirme zeigen die Tür. Eine Automatisierung sendet das Event mit der Kamera der Türklingel: ein P4-Bildschirm wacht auf, spielt einen Gong und öffnet die Kamera live mit Ton; jeder andere Bildschirm zeigt ihr Bild in einem Alert. Jede Türklingel funktioniert, egal was die Automatisierung startet.",

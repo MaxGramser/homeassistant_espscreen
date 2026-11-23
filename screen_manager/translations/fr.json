@@ -4813,7 +4813,14 @@
         "off": "Désactivée"
       },
       "alarm": "Alarme",
-      "calls": "Appels"
+      "calls": "Appels",
+      "parts": {
+        "automations": "{n} automatisation | {n} automatisations",
+        "no_automation": "Pas encore d'automatisation",
+        "alarm_panels": "{n} centrale d'alarme | {n} centrales d'alarme",
+        "no_alarm": "Aucune centrale d'alarme dans Home Assistant",
+        "rings_with": "Sonne avec {sound}"
+      }
     },
     "doorbell": {
       "intro": "Quelqu'un sonne et vos écrans montrent la porte. Une automatisation envoie l'événement avec la caméra de la sonnette : un écran P4 se réveille, joue un carillon et ouvre la caméra en direct avec le son ; tout autre écran affiche son image dans une alerte. Toute sonnette fonctionne, quel que soit le déclencheur.",

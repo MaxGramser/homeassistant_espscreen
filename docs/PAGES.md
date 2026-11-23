@@ -74,29 +74,43 @@ or writes `location.hash`: a view is opened with `ui.go()` (the route names the 
 or the overview), a screen with `session.select()`, an override with `ui.openOverride()`; what is open is read from
 `ui.route`, `scr.selected` and `ui.overrideProfile`.
 
-### Settings
+### Pages of parts
 
-The app's Settings page and a screen's Settings tab work the same way, the way Home Assistant's own Settings do: each
-opens on a list of its parts, one row per part with its icon, its name and one line of what is set now, and a row opens
-its part as a page of its own, one column of cards, with the way back to the list above its title. The look is Home
-Assistant's too: one column of 600 px in the middle of a wide page, the rows in a few separate cards, each part's icon
-white on a round colour of its own (`PART_LOOK` in `settings-parts.ts`, the `--tone-*` tokens in `styles/tokens.css`). The parts are in
-`web/src/model/settings-parts.ts`, and so is the part each of a screen's settings is in:
+A page that holds many things is a page of parts, the way Home Assistant's own Settings are: the app's Settings, a
+screen's Settings tab and Events. Each opens on a list of its parts, one row per part with its icon, its name and one
+line of what is set now, and a row opens its part as a page of its own, with the way back to the list above its title.
+The look is Home Assistant's too: one column of 600 px in the middle of a wide page, the rows in a few separate cards,
+each part's icon white on a round colour of its own (`PART_LOOK` in `settings-parts.ts`, the `--tone-*` tokens in
+`styles/tokens.css`). A part is in the address, so a link, a reload and Back reach it.
+
+It is one design system, in `web/src/model/parts.ts` and `web/src/components/parts/`:
+
+| Piece | What it is |
+|---|---|
+| `PartRow`, `cardsOf` (`model/parts.ts`) | a part as its list shows it (icon, colour, card, title, summary, badge), and the rows in their cards |
+| `PartsPage.vue` | a whole page of parts: its title and intro over the list, or an open part with the way back; the key that leaves |
+| `PartList.vue` | the cards of rows, with a slot for one control of a row's own |
+| `PartLink.vue` | one row |
+| `PartHead.vue` | the head of an open part: the way back and its title |
 
 | Page | Parts | Address |
 |---|---|---|
-| Settings (`AppSettingsView.vue`) | Updates, Builds, Language & region, Plugins, Home Assistant | `#/settings/<part>` |
-| A screen's Settings tab (`SettingsTab.vue`) | Display, Standby & night, Navigation, This board, Help | `?settings=<part>` on the screen's address |
+| Settings (`AppSettingsView.vue`, a `PartsPage`) | Updates, Builds, Language & region, Plugins, Home Assistant | `#/settings/<part>` |
+| A screen's Settings tab (`SettingsTab.vue`, `PartList` and `PartHead` inside the screen's tabs) | Display, Standby & night, Navigation, This board, Help | `?settings=<part>` on the screen's address |
+| Events (`EventsView.vue`, a `PartsPage`) | Alerts and Doorbell (fired by an automation), Alarm and Calls (followed by the screens) | `#/events/<part>` |
 
 A part that has nothing on this app or this screen (Language on an add-on without languages, This board on a preview
 screen) has no row, and its address opens the list. The rows of the screen's own settings are `SettingRows.vue`, which a
 part shows by key, so the editor groups them by what a person looks for while the screen's own settings page keeps the
-groups of `settings_screen.h`. A row of the list (`SettingsLink.vue`) may carry one control for what people change most
-there, so that needs no page: dark mode, on the row of Display. A setting ⌘K finds opens its part and marks its row.
-Leaving the Settings tab takes the part out of the address again, in place, so Back does not walk through it.
+groups of `settings_screen.h`. A row may carry one control for what people change most there, so that needs no page:
+dark mode, on the row of Display. A setting ⌘K finds opens its part and marks its row. Leaving the Settings tab takes the
+part out of the address again, in place, so Back does not walk through it. Events says of each part what Home Assistant
+has: its automations of Tessera, its alarm panels, the ring a call plays.
 
-A new card goes in the part it belongs to, and a new part needs a good reason: its name in the list, an icon of
-`web/src/model/ui-icons.json`, a summary line made of what is set, and its texts in every language.
+A page that grows gets one more part, never a longer page; a new page that holds many things is a `PartsPage`. A new
+card goes in the part it belongs to, and a new part needs a good reason: its name in the list, an icon of
+`web/src/model/ui-icons.json` (`tools/generate_icons.py` puts a new one in the editor's font), a colour and card in
+`PART_LOOK`, a summary line made of what is set, and its texts in every language.
 
 ### Menus
 

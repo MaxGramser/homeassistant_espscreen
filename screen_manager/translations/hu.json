@@ -4813,7 +4813,14 @@
         "off": "Ki"
       },
       "alarm": "Riasztó",
-      "calls": "Hívások"
+      "calls": "Hívások",
+      "parts": {
+        "automations": "{n} automatizálás | {n} automatizálás",
+        "no_automation": "Még nincs automatizálás",
+        "alarm_panels": "{n} riasztópanel | {n} riasztópanel",
+        "no_alarm": "Nincs riasztópanel a Home Assistantban",
+        "rings_with": "Csengőhang: {sound}"
+      }
     },
     "doorbell": {
       "intro": "Valaki csenget, és a képernyőid mutatják az ajtót. Egy automatizálás elküldi az eseményt a csengő kamerájával: egy P4 képernyő felébred, csengőhangot játszik és élőben, hanggal megnyitja a kamerát; minden más képernyő értesítésben mutatja a képét. Bármilyen csengő működik, bármi indítja az automatizálást.",

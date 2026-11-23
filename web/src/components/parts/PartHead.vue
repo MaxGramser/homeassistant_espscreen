@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// The head of one part of a settings page (docs/PAGES.md, "Settings"): the way back to the list of parts, named after
-// it, and the part's title (the page's own heading on the app's Settings page, a heading under the tabs on a screen's).
-import Icon from "./ui/Icon.vue";
+// The head of an open part (model/parts.ts, docs/PAGES.md "Pages of parts"): the way back to the list of parts, named
+// after it, and the part's title (the page's own heading on a whole page, a heading under the tabs on a screen's).
+import Icon from "../ui/Icon.vue";
 
 withDefaults(defineProps<{ back: string; title: string; text?: string; as?: "h1" | "h2" }>(), { text: "", as: "h2" });
 const emit = defineEmits<{ back: [] }>();

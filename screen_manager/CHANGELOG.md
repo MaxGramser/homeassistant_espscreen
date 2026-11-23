@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Events is laid out like Settings.** Events opens on a list of its parts, Alerts, Doorbell, Alarm and Calls, each with a line of what is set (your automations, your alarm panels, the ring of a call), and each opens on a page of its own. Settings, a screen's settings and Events now share one design.
+
 - **An open editor loads the new version by itself after an update of the app.** Before, a page that stayed open kept running the old editor against the new app. It now reloads as soon as nothing is in progress, and waits for unsaved changes, New screen and Firmware & USB.
 
 - **Recommended boards stand apart in New screen.** The board list now opens with the boards the project recommends (the Guition 4 inch, the Guition 10.1 inch V3 and the reTerminal D1001), larger and in their own section, and New screen starts on the first of them. Every other board follows under them, marked Proven, New or Experimental, with a plain line on what that means. Searching and the sizes still look through both. Long model names in the model choice now wrap instead of running past their card.

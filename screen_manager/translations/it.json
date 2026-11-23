@@ -4813,7 +4813,14 @@
         "off": "Disattiva"
       },
       "alarm": "Allarme",
-      "calls": "Chiamate"
+      "calls": "Chiamate",
+      "parts": {
+        "automations": "{n} automazione | {n} automazioni",
+        "no_automation": "Ancora nessuna automazione",
+        "alarm_panels": "{n} pannello d'allarme | {n} pannelli d'allarme",
+        "no_alarm": "Nessun pannello d'allarme in Home Assistant",
+        "rings_with": "Squilla con {sound}"
+      }
     },
     "doorbell": {
       "intro": "Qualcuno suona e i tuoi schermi mostrano la porta. Un'automazione invia l'evento con la telecamera del campanello: uno schermo P4 si riattiva, suona un avviso e apre la telecamera dal vivo con l'audio; ogni altro schermo mostra la sua immagine in un avviso. Funziona qualsiasi campanello, qualunque sia il trigger.",

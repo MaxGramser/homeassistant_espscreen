@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Everything around the screens, in parts (docs/PAGES.md, "Settings"): the page opens on a list of them, one row each
+// Everything around the screens, in parts (docs/PAGES.md, "Pages of parts"): the page opens on a list of them, one row each
 // with what is set now, and a part opens as a page of its own at #/settings/<part> (model/settings-parts.ts).
 import { computed, ref } from "vue";
 import { useBusy } from "../composables/useBusy";
@@ -9,10 +9,10 @@ import BuildLog from "./BuildLog.vue";
 import BuildFilesCard from "./BuildFilesCard.vue";
 import BuildServerCard from "./BuildServerCard.vue";
 import Icon from "./ui/Icon.vue";
-import SettingsHead from "./SettingsHead.vue";
-import SettingsLink from "./SettingsLink.vue";
+import PartsPage from "./parts/PartsPage.vue";
 import type { IconName } from "../model/ui-icons";
-import { PART_LOOK, partCards, type AppSettingsPart } from "../model/settings-parts";
+import { PART_LOOK, type AppSettingsPart } from "../model/settings-parts";
+import type { PartRow } from "../model/parts";
 import { useUiStore } from "../stores/ui";
 import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
@@ -175,35 +175,17 @@ const parts = computed<Part[]>(() => [
   ...(inv.pluginsEnabled && sharing.value?.usable ? [{ id: "plugins" as const, icon: "puzzle-outline" as const, title: t("editor.settings.parts.plugins.title"), summary: pluginsLine.value }] : []),
   { id: "home-assistant", icon: "home-assistant", title: t("editor.settings.parts.home_assistant.title"), summary: haLine.value },
 ]);
+// The rows of the list (model/parts.ts): each part with its icon's colour and card.
+const rows = computed<PartRow<AppSettingsPart>[]>(() => parts.value.map((p) => ({ ...p, ...PART_LOOK[p.id] })));
 // The part the address names, while this app has it (an add-on without language settings has no Language part).
 const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) || null);
 </script>
 
 <template>
-  <div class="panel" id="settings-view">
-    <div class="panel-head">
-      <div class="tx">
-        <template v-if="part">
-          <SettingsHead :back="t('editor.nav.settings')" :title="part.title" as="h1" @back="ui.openSettings(null)" />
-        </template>
-        <template v-else>
-          <span class="eyebrow">{{ t("editor.nav.settings") }}</span>
-          <h1 id="settings-title">{{ t("editor.settings.title") }}</h1>
-        </template>
-      </div>
-      <button type="button" class="btn quiet" id="close-settings" @click="ui.go('')">{{ t("editor.settings.back") }}</button>
-    </div>
-
-    <!-- The list of parts: a row each, with what is set now; a row opens its part. -->
-    <div v-if="!part" class="set-column">
-      <div id="settings-parts" class="set-cards">
-        <div v-for="(card, i) in partCards(parts)" :key="i" class="set-list">
-          <SettingsLink v-for="p in card" :key="p.id" :id="`settings-part-${p.id}`" :icon="p.icon" :tone="PART_LOOK[p.id].tone" :title="p.title" :summary="p.summary" :badge="p.badge" @open="ui.openSettings(p.id)" />
-        </div>
-      </div>
-    </div>
-
-    <div v-else class="set-column">
+  <PartsPage id="settings-view" close-id="close-settings" list-id="settings-parts" row-prefix="settings-part" title-id="settings-title"
+    :eyebrow="t('editor.nav.settings')" :title="t('editor.settings.title')" :close-label="t('editor.settings.back')"
+    :rows="rows" :open="part?.id ?? null" @open="ui.openSettings" @close="ui.go('')">
+    <template v-if="part">
       <template v-if="part.id === 'updates'">
       <section v-if="u" class="card updates" id="updates">
         <h2>{{ t("editor.settings.updates.title") }}</h2>
@@ -355,6 +337,6 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
         </div>
       </section>
       </template>
-    </div>
-  </div>
+    </template>
+  </PartsPage>
 </template>

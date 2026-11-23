@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// One row of a settings list (docs/PAGES.md, "Settings"): the part's icon, its name, one line of what is set now, and the
-// way into its page. A row can carry one control of its own beside the arrow (the slot), for the one thing people change
-// most there, so that needs no page. The name is the row's button; a click anywhere else on the row but the control
-// opens the part as well.
-import type { IconName } from "../model/ui-icons";
-import type { Tone } from "../model/settings-parts";
-import Icon from "./ui/Icon.vue";
+// One row of a list of parts (model/parts.ts, docs/PAGES.md "Pages of parts"): the part's round icon, its name, one line
+// of what is set now, and the way into its page. A row can carry one control of its own beside the arrow (the slot), for
+// the one thing people change most there, so that needs no page. The name is the row's button; a click anywhere else on
+// the row but the control opens the part as well.
+import type { IconName } from "../../model/ui-icons";
+import type { Tone } from "../../model/parts";
+import Icon from "../ui/Icon.vue";
 
 // `tone`: the colour of the round icon, one of the --tone-* tokens (styles/tokens.css), as Home Assistant colours its own.
 defineProps<{ icon: IconName; title: string; summary?: string; badge?: string; id?: string; tone?: Tone }>();

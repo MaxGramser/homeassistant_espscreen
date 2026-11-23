@@ -4813,7 +4813,14 @@
         "on": "Aan",
         "off": "Uit"
       },
-      "calls": "Bellen"
+      "calls": "Bellen",
+      "parts": {
+        "automations": "{n} automatisering | {n} automatiseringen",
+        "no_automation": "Nog geen automatisering",
+        "alarm_panels": "{n} alarmpaneel | {n} alarmpanelen",
+        "no_alarm": "Geen alarmpaneel in Home Assistant",
+        "rings_with": "Belt met {sound}"
+      }
     },
     "doorbell": {
       "intro": "Er wordt aangebeld en je schermen laten de deur zien. Een automatisering stuurt het event met de camera van de deurbel: een P4-scherm wordt wakker, speelt een belgeluid en opent de camera live met geluid; elk ander scherm toont de foto in een alert. Elke deurbel werkt, wat de automatisering ook start.",

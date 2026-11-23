@@ -4813,7 +4813,14 @@
         "on": "On",
         "off": "Off"
       },
-      "calls": "Calls"
+      "calls": "Calls",
+      "parts": {
+        "automations": "{n} automation | {n} automations",
+        "no_automation": "No automation yet",
+        "alarm_panels": "{n} alarm panel | {n} alarm panels",
+        "no_alarm": "No alarm panel in Home Assistant",
+        "rings_with": "Rings with {sound}"
+      }
     },
     "doorbell": {
       "intro": "Someone rings, and your screens show the door. An automation fires the event with the doorbell's camera: a P4 screen wakes, chimes and opens the camera live with its sound; any other screen shows its picture in an alert. Any doorbell works, whatever starts the automation.",

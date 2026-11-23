@@ -920,7 +920,7 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 .step button:hover:not(:disabled) { color: var(--ink); background: var(--line-strong); }
 .step output { min-width: 56px; text-align: center; font-weight: 500; }
 
-/* The two settings pages (docs/PAGES.md, "Settings"): a list of parts, each part a page of its own in one column. */
+/* The pages of parts: Settings, a screen's Settings tab and Events (docs/PAGES.md, "Pages of parts"): a list of parts, each part a page of its own in one column. */
 /* Like Home Assistant's Settings: one column of 600 px in the middle of a wide page, its rows in separate cards. */
 #settings-view { max-width: none; }
 #settings-view > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
