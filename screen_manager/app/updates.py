@@ -368,17 +368,22 @@ class Updater:
         build.phase = 'install'
         if not await self.job(profile, 'build'):
             return False
-        before = self.ahead_of(build)
+        if not await self.turn(build):
+            return None
+        return await self.job(profile, 'upload', host)
+
+    async def turn(self, build):
+        """A build made ahead in a round waits, beside the line, until every screen before it in the round has ended:
+        it touches its screen only once those passed their check. False when one of them failed (the round stopped)."""
+        before = self.ahead_of(build) if getattr(build, 'round', None) and hasattr(self.line, 'handoff') else []
         if any(not other.done.is_set() for other in before):
             # Built: the slot goes to the next build while this one waits for its turn to install.
             build.phase = 'ready'
             self.line.handoff(build)
             for other in before:
                 await other.done.wait()
-        if any(other.state == 'failed' for other in before):
-            return None
         build.phase = 'install'
-        return await self.job(profile, 'upload', host)
+        return not any(other.state == 'failed' for other in before)
 
     @staticmethod
     def ahead_of(build):
@@ -417,7 +422,10 @@ class Updater:
             # queue; its saved configuration can change while another builds.
             self.manager.preflight_update(inbox)
             if wide:
-                installed = await self.install_wide(inbox, profile, host)
+                installed = await self.install_wide(inbox, profile, host, build)
+                if installed is None:
+                    self.record(inbox, 'skipped', english('addon.updates.round_stopped'))
+                    return 'skipped'
             else:
                 # A plugin suggested for the screen's board that its owner said yes to (plugin_defaults.py) comes with
                 # this build. The update never fails on it: a build that stops goes once more without it.
@@ -531,7 +539,7 @@ class Updater:
             return False
         return await self.wait_for_word(inbox, 'wide') == 'wide'
 
-    async def install_wide(self, inbox, profile, host):
+    async def install_wide(self, inbox, profile, host, build=None):
         """Build and install the firmware of a board whose flash takes the wide table. True when it is on the screen.
 
         A screen that already says "widen" gets the table first, from the firmware it runs. A screen that still has
@@ -540,6 +548,9 @@ class Updater:
         firmware = self.manager.firmware
         if not await self.job(profile, 'build'):
             return False
+        # In a round: built ahead, it touches the screen only once the screens before it passed their check.
+        if build is not None and not await self.turn(build):
+            return None
         note = self.bridging.get(self.current_id(inbox))
         if note:
             return await self.over_bridge(inbox, profile, host, started=True)

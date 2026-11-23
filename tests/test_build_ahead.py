@@ -97,6 +97,22 @@ class BuildingAhead(unittest.IsolatedAsyncioTestCase):
             self.assertEqual({k: v['state'] for k, v in m.updates.results.items()},
                              {'text.screen1': 'success', 'text.screen2': 'success'})
 
+    async def test_a_board_with_4_mb_built_ahead_waits_for_its_turn_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp)
+            m.updates.settle_seconds = 0.3
+            m.updates.word_timeout = 0.01
+            # The kitchen's board takes the wide partition table: it goes its own way (Updater.install_wide).
+            m.firmware.wide_slots = lambda profile: str(profile).endswith('kitchen.yaml')
+            m.firmware.image_size = lambda profile: 0
+            m.firmware.NARROW_SLOT = 1
+            await m.updates.launch(['text.screen1', 'text.screen2']).wait()
+            first_done = self.ended(m, 'text.screen1')[0].finished
+            kitchen = [(action, at - time.monotonic() + time.time()) for file, action, at in m.firmware.times if file == 'kitchen.yaml']
+            self.assertEqual([action for action, _ in kitchen], ['build', 'install'])
+            self.assertLess(kitchen[0][1], first_done, 'built while the first screen was checked')
+            self.assertGreaterEqual(kitchen[1][1] + 0.01, first_done, 'installed only after the first passed its check')
+
     async def test_a_screen_updated_alone_builds_and_installs_in_one_go(self):
         with tempfile.TemporaryDirectory() as tmp:
             m = self.manager(tmp)
