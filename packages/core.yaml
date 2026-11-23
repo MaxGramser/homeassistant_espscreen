@@ -28,7 +28,7 @@ substitutions:
   # flash on them. One list per script with the letters its languages here write (Russian's now), the same letters as
   # header_bar.SCRIPT_GLYPHS in the add-on (a test keeps the two equal), and the languages that take it, those whose
   # translation file says `"script": "cyrillic"` (a test as well).
-   SCRIPT_GLYPHS_GREEK: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωΆΈΉΊΌΎΏάέήίόύώΐΰϊϋς"
+     SCRIPT_GLYPHS_GREEK: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωΆΈΉΊΌΎΏάέήίόύώΐΰϊϋς"
   SCRIPT_GLYPHS_CYRILLIC: "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№"
   SCRIPT_GLYPHS: '${ SCRIPT_GLYPHS_CYRILLIC if LANGUAGE.split("-") in ["ru"] else (SCRIPT_GLYPHS_GREEK if LANGUAGE.split("-") in ["el"] else "") }'
 
