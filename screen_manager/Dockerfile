@@ -14,7 +14,7 @@ LABEL io.hass.version="${BUILD_VERSION}" io.hass.type="app" io.hass.arch="${BUIL
 # amd64 and aarch64); ESPHome's own Pillow stays the one it brings.
 RUN (pip freeze | grep -iE '^(cryptography|pillow)==' || true) > /tmp/esphome-keeps.txt \
  && pip install --no-cache-dir -c /tmp/esphome-keeps.txt 'aiohttp>=3.12,<4' PyYAML \
-      aiortc==1.15.0 av==17.1.0 aioice==0.10.2 pylibsrtp==1.0.0 pyee==14.0.0 pyOpenSSL==26.4.0 google-crc32c==1.9.0 \
+      aiortc==1.16.0 av==17.1.0 aioice==0.13.0 pylibsrtp==1.0.0 pyee==14.0.0 pyOpenSSL==26.4.0 google-crc32c==1.9.0 \
       pillow-heif==1.8.0 \
  && rm /tmp/esphome-keeps.txt
 COPY app /app
