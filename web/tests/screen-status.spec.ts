@@ -32,6 +32,10 @@ describe("a screen's status", () => {
     expect(rowStatus(away, "running")).toBe("running");
     expect(buildProgress(away, building)!.text).toBe(t("editor.update.restarting"));
     expect(buildProgress(screen(), building)!.text).toBe(t("editor.update.writing"));
+    // A plugin build waiting for the screen to confirm says so too.
+    const confirming: StatusFacts = { ...quiet, build: { by: "plugins", state: "running", stage: null, phase: "verify" } };
+    expect(buildProgress(screen(), confirming)!.text).toBe(t("editor.update.phases.verify"));
+    expect(buildProgress(away, confirming)!.text).toBe(t("editor.update.restarting"));
     // Waiting its turn while away is away: nothing installs on it yet.
     expect(rowStatus(away, "queued")).toBe("down");
   });

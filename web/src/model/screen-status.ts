@@ -39,7 +39,8 @@ export function buildProgress(screen: Screen, building: Building): { percent: nu
   const { build } = building;
   const stage = build?.stage ?? undefined;
   const away = !screen.online;
-  const phase = build?.by === "update" || !build ? (build?.phase ?? screen.update?.phase) : "install";
+  // An update's phase, or a plugin build's own wait for the screen (verify); anything else installs.
+  const phase = build?.by === "update" || !build ? (build?.phase ?? screen.update?.phase) : build.phase === "verify" ? "verify" : "install";
   if (phase === "verify") return { percent: 78, text: away ? restartingText() : phaseText("verify") };
   if (phase === "settle") return { percent: 92, text: away ? restartingText() : phaseText("settle") };
   if (stage === "upload") return { percent: 66, text: away ? restartingText() : t("editor.update.writing") };

@@ -3152,6 +3152,9 @@ class Manager:
                       'stage': view.get('stage') if view['state'] == 'running' else None}
             if build.by == 'update':
                 record['phase'] = build.phase if view['state'] == 'running' else None
+            elif build.phase and view['state'] == 'running':
+                # A plugin build waiting for the screen to say it runs what was built (Plugins._verify).
+                record['phase'] = build.phase
             if build.plugins['add'] or build.by == 'plugins':
                 record['plugins'] = list(build.plugins['add'])
             if view['state'] == 'queued':
