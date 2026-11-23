@@ -30,7 +30,8 @@ substitutions:
   # translation file says `"script": "cyrillic"` (a test as well).
   SCRIPT_GLYPHS_GREEK: "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωΆΈΉΊΌΎΏάέήίόύώΐΰϊϋς"
   SCRIPT_GLYPHS_CYRILLIC: "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяЁё№"
-  SCRIPT_GLYPHS: '${ SCRIPT_GLYPHS_CYRILLIC if LANGUAGE.split("-") in ["ru"] else (SCRIPT_GLYPHS_GREEK if LANGUAGE.split("-") in ["el"] else "") }'
+  SCRIPT_GLYPHS: '${ SCRIPT_GLYPHS_CYRILLIC if LANGUAGE.startswith("ru") else (SCRIPT_GLYPHS_GREEK if LANGUAGE.startswith("el") else "") }'
+
 
 
   # Swipe between pages on a screen that has stored no choice of its own: off, as every screen set up before had it, so
