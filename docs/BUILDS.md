@@ -154,7 +154,7 @@ Plugins tab (`PluginFailures.vue`):
 |---|---|---|
 | `plugin` | a compiler error in the plugin's own component (`blame`) | a filled-in issue at the maker's GitHub, with the log |
 | `memory` | this Home Assistant ran short of memory (build_memory.py) | a build server |
-| `offline` | built, but the screen did not take the upload | installed once more by itself as soon as the screen is back, once |
+| `offline` | built, but the screen was not there for the upload | installed once more by itself within a minute of the screen being back (`Plugins.SETTLE_EVERY`), once |
 | `network` | a download the build needs did not come | tried once more by itself at once; then a key to try again |
 | `interrupted` | the app restarted during the build | built once more by itself after the start (above); this kind is a second cut |
 | `build` | anything else | the log, and the issue at the maker |

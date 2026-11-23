@@ -1320,8 +1320,9 @@ class Plugins:
         self.manager.notify()
         return {**{k: v for k, v in result.items() if k != 'fresh'}, 'built': True, 'firmware': True}
 
-    # How often a screen that came back is looked at for what waited for it (settle, _after_offline).
-    SETTLE_EVERY = 900
+    # How often a screen that came back is looked at for what waited for it (settle, _after_offline): a minute, so a
+    # screen that was away gets its build soon after it is back. settle only reads the records and the screens' hellos.
+    SETTLE_EVERY = 60
 
     async def resume_after_start(self):
         """After a start: what a restart cut off is built once more as soon as its screen has an address (settle), also
