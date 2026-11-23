@@ -1862,6 +1862,10 @@ class Plugins:
         """What the end of a build of this screen (a plugin build, or the update it became one with) means for the
         plugins it brought: whether the screen's firmware with them went on. A plugin asked for again while it built is
         settled by the build that waits for it."""
+        if build.state == 'interrupted':
+            # The app stops (BuildQueue.close): the plugins stay `building`, and the next start builds them once more
+            # (settle, _resume) instead of calling them failed.
+            return
         later = self.manager.build_queue.waiting(build.file)
         again = set(later.plugins['add']) if later else set()
         ok = build.installed

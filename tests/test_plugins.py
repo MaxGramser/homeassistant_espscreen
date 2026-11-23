@@ -2452,6 +2452,15 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(record['state'], 'active')
         self.assertNotIn('resumed', record)
 
+    async def test_a_build_the_app_stops_during_waits_for_the_next_start(self):
+        service, config, started = self.make()
+        service.manager.firmware.gate = asyncio.Event()
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        while not service.manager.build_queue.running:
+            await asyncio.sleep(0)
+        await service.manager.build_queue.close()   # the app stops (an update of the app)
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'building')
+
     async def test_a_build_cut_off_twice_fails_with_its_log(self):
         service, config, started = self.make()
         await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
