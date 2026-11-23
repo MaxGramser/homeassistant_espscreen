@@ -80,7 +80,8 @@ A page that holds many things is a page of parts, the way Home Assistant's own S
 screen's Settings tab and Events. Each opens on a list of its parts, one row per part with its icon, its name and one
 line of what is set now, and a row opens its part as a page of its own, with the way back to the list above its title.
 The look is Home Assistant's too: one column of 600 px in the middle of a wide page, the rows in a few separate cards,
-each part's icon white on a round colour of its own (`PART_LOOK` in `settings-parts.ts`, the `--tone-*` tokens in
+each part's icon white on a round colour of its own (`PART_LOOK` in `settings-parts.ts`: every part's icon, colour and
+card in one table; the `--tone-*` tokens in
 `styles/tokens.css`). A part is in the address, so a link, a reload and Back reach it.
 
 It is one design system, in `web/src/model/parts.ts` and `web/src/components/parts/`:
@@ -105,12 +106,13 @@ part shows by key, so the editor groups them by what a person looks for while th
 groups of `settings_screen.h`. A row may carry one control for what people change most there, so that needs no page:
 dark mode, on the row of Display. A setting ⌘K finds opens its part and marks its row. Leaving the Settings tab takes the
 part out of the address again, in place, so Back does not walk through it. Events says of each part what Home Assistant
-has: its automations of Tessera, its alarm panels, the ring a call plays.
+has: its automations of Tessera, its alarm panels, the ring a call plays, read from the stores the parts read too
+(`stores/automations.ts`, `stores/alarms.ts`, `stores/sounds.ts`), so a change in a part shows in the list at once.
 
 A page that grows gets one more part, never a longer page; a new page that holds many things is a `PartsPage`. A new
 card goes in the part it belongs to, and a new part needs a good reason: its name in the list, an icon of
-`web/src/model/ui-icons.json` (`tools/generate_icons.py` puts a new one in the editor's font), a colour and card in
-`PART_LOOK`, a summary line made of what is set, and its texts in every language.
+`web/src/model/ui-icons.json` (`tools/generate_icons.py` puts a new one in the editor's font), its icon, colour and card
+in `PART_LOOK`, a summary line made of what is set, and its texts in every language.
 
 ### Menus
 

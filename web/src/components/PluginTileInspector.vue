@@ -25,10 +25,14 @@ import SwitchRow from "./ui/SwitchRow.vue";
 import { useUiStore } from "../stores/ui";
 import { useInspectorStore } from "../stores/inspector";
 import { useBrokenStore } from "../stores/broken";
+import { useScreenStore } from "../stores/screen";
+import { useSessionStore } from "../stores/session";
 
 const plugins = usePluginsStore();
 const ui = useUiStore();
 const insp = useInspectorStore();
+const scr = useScreenStore();
+const session = useSessionStore();
 
 const props = defineProps<{ tile: Tile }>();
 const kind = computed(() => plugins.pluginTileOf(props.tile.entity)!);
@@ -73,7 +77,7 @@ const setPage = (on: boolean) => setTileOption(props.tile, "size", on ? "full" :
 const broken = useBrokenStore();
 const entityHealth = computed(() => props.tile.options?.plugin_entity ? broken.tileHealth(props.tile.options.plugin_entity) : null);
 // The plugin's details, in the screen's Plugins tab: the README says what the options mean.
-function openPlugin() { insp.closeInspector(); ui.tab = "plugins"; }
+const openPlugin = () => void (scr.selected && session.openTab(scr.selected, "plugins", kind.value.plugin.id));
 </script>
 
 <template>

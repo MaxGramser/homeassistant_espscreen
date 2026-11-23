@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useResizeObserver } from "@vueuse/core";
-import { nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { vTooltip } from "floating-vue";
 import "floating-vue/dist/style.css";
 import { t } from "../i18n";
@@ -64,19 +64,13 @@ const isSelected = (screen: Screen) => screen.id === scr.selected && ui.route ==
 const explains = (screen: Screen) => explainsItself(screen, scr.updateState(screen)?.kind);
 // Folded to its icons the sidebar has no room for a screen's details: the row opens them again.
 const isOpen = (screen: Screen) => !sidebar.folded && (folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && explains(screen));
-// A screen's plugins with an update, and the ones that did not build (plugins.failuresOn): the row says them too, so
-// nobody has to open a screen to find out (docs/BUILDS.md, "Updates of a screen"). The firmware's own update keeps its
-// key; plugin news opens the screen's Plugins tab.
-const pluginNews = (screen: Screen) => {
-  if (screen.virtual || !plugins.pluginsEnabled) return null;
-  if (plugins.failuresOn(screen).some((f) => !(f.why === "offline" && !f.waited))) return "failed";
-  const n = plugins.updatesOn(screen).length;
-  return n ? n : null;
-};
-async function openPlugins(screen: Screen) {
+// A screen's plugin news on its row (plugins.newsOn): a plugin that did not build, or how many have an update; the
+// firmware's own update keeps its key, plugin news opens the screen's Plugins tab.
+const news = computed(() => new Map(inv.inventory.screens.map((screen) => [screen.id, plugins.pluginsEnabled ? plugins.newsOn(screen) : null])));
+const pluginNews = (screen: Screen) => news.value.get(screen.id) ?? null;
+function openPlugins(screen: Screen) {
   if (!isSelected(screen)) folded.value = null;
-  await session.select(screen.id);
-  if (scr.selected === screen.id) ui.tab = "plugins";
+  void session.openTab(screen.id, "plugins");
 }
 function choose(screen: Screen) {
   if (!isSelected(screen)) folded.value = null;

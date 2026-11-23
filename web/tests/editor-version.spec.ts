@@ -31,7 +31,7 @@ describe("the editor this page runs", () => {
 
 describe("an app that serves a newer editor", () => {
   let script: HTMLScriptElement;
-  beforeEach(() => { script = page("./assets/index-old.js"); });
+  beforeEach(() => { script = page("./assets/index-old.js"); sessionStorage.clear(); });
   afterEach(() => script.remove());
 
   it("reloads the page at once when nothing is in progress", async () => {
@@ -55,12 +55,31 @@ describe("an app that serves a newer editor", () => {
     await nextTick();
     expect(reload).not.toHaveBeenCalled();
     expect(ui.notice?.message).toContain("new version of the editor");
-    ui.notice?.action?.run();
-    expect(reload).toHaveBeenCalledTimes(1);
     await ui.go("");
     await nextTick();
-    expect(reload).toHaveBeenCalledTimes(2);
+    expect(reload).toHaveBeenCalledTimes(1);   // left New screen: it reloads once
+    ui.notice?.action?.run();
+    expect(reload).toHaveBeenCalledTimes(2);   // the key reloads now, whatever
     stop();
+  });
+
+  it("waits for plugins set aside in the tray, and reloads at most once for one editor", async () => {
+    const reload = vi.fn();
+    const plugins = (await import("../src/stores/plugins")).usePluginsStore();
+    plugins.tray.items = [{ screen: "text.hall", plugin: "rain" }];
+    const stop = startEditorVersion(reload);
+    useInventoryStore().inventory.editor = "index-new.js";
+    await nextTick();
+    expect(reload).not.toHaveBeenCalled();
+    plugins.tray.items = [];
+    await nextTick();
+    expect(reload).toHaveBeenCalledTimes(1);
+    stop();
+    // The page came back with the same old editor (the app named one it cannot serve): no second reload, no loop.
+    const again = startEditorVersion(reload);
+    await nextTick();
+    expect(reload).toHaveBeenCalledTimes(1);
+    again();
   });
 
   it("waits for unsaved changes", async () => {

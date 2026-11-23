@@ -109,10 +109,8 @@ export const useBuildsStore = defineStore("builds", () => {
   }
 
   async function showPlugins(screen: Screen) {
-    const { useSessionStore } = await import("./session");
-    const { useScreenStore } = await import("./screen");
-    await useSessionStore().select(screen.id);
-    if (useScreenStore().selected === screen.id) ui.tab = "plugins";
+    const { useSessionStore } = await import("./session");   // the session store reads this one: asked when needed
+    await useSessionStore().openTab(screen.id, "plugins");
   }
 
   // ---- Build files (build_files.py, docs/BUILDS.md "Build files"): the room the builds take, and the clean-up ----
@@ -240,10 +238,18 @@ export const useBuildsStore = defineStore("builds", () => {
   }
 
   // ---- Build logs kept on disk (api/firmware/logs): every build's, also past a restart of the app ----
+  // Asked once a view shows them (Firmware & USB, a screen's builds), and from then on again whenever a build ends
+  // (refreshKeptLogs, from followBuilds): one list for every view.
   const keptLogs = ref<KeptLog[]>([]);
+  let keptFollowed = false;
   async function loadKeptLogs() {
+    keptFollowed = true;
     try { keptLogs.value = (await getJson<{ logs: KeptLog[] }>("firmware/logs")).logs || []; } catch { /* Keep what we have. */ }
   }
+  /** A build ended: the kept logs again, when a view asked for them. */
+  const refreshKeptLogs = () => (keptFollowed ? loadKeptLogs() : Promise.resolve());
+  /** The ids of the builds that ended, as one key: what refreshKeptLogs follows. */
+  const endedKey = computed(() => line.value.filter((build) => lineEnded(build)).map((build) => build.id).join(","));
 
   // ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
   // New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
@@ -274,6 +280,6 @@ export const useBuildsStore = defineStore("builds", () => {
   return {
     updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew, lineBuild, lineForgot, lineOf, lineEnded, buildLogOf }),
     anyBuilding, buildingScreens, prune, forget, watched, line, devChannel,
-    startUpdate, runUpdateAll, setAutoUpdate, setUpdateHour, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, keptLogs, loadKeptLogs, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
+    startUpdate, runUpdateAll, setAutoUpdate, setUpdateHour, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, keptLogs, loadKeptLogs, refreshKeptLogs, endedKey, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

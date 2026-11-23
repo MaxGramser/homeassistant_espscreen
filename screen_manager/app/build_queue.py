@@ -52,8 +52,9 @@ class Round:
         self.automatic, self.builds = automatic, []
 
     async def wait(self):
-        for build in list(self.builds):
-            await build.done.wait()
+        """Until every build of the round ended, also one that joined it later (a screen once more, Updater.run_build)."""
+        while not all(build.done.is_set() for build in self.builds):
+            await next(build for build in self.builds if not build.done.is_set()).done.wait()
 
 
 class Build:
@@ -82,7 +83,14 @@ class Build:
         self.installed = False
         self.stepped = False  # whether it ran an ESPHome step: then the firmware's job and log are its own
         self.logs, self.memory = [], None
+        # The ESPHome step it got to (compile, upload); whether its screen said after it that it runs what was built
+        # (True, False, or None when it could not tell); whether a download that did not come was tried once more.
         self.stage, self.verified, self.retried = None, None, False
+        # Its try in a round: 2 is the screen once more at the end of the line after a failure that said nothing about
+        # its firmware (Updater.run_build); a second such failure is a failure.
+        self.attempt = 1
+        # It ended while it waited beside the line: its last log and job are its own snapshot, not the slot's.
+        self.ended_aside = False
         self.log = None     # the key of its log kept on disk (build_logs.py), from its first ESPHome step
         # Where its compile ran (build_server.py): 'server' or 'here' after a fallback (its reason in `fallback`), None for
         # a build that never asked the server.
@@ -115,6 +123,8 @@ class Build:
 
 class BuildQueue:
     ENDED = 8
+    # The lines a build keeps in memory, of all its steps together (the whole log is on disk, build_logs.py).
+    LOG_LINES = 600
 
     def __init__(self, manager):
         self.manager = manager
@@ -223,11 +233,23 @@ class BuildQueue:
         build = CURRENT.get() or self.running
         if build is not None and build is not self.running and build in self.tasks:
             await self.reacquire(build)   # it gave the slot up while it waited: back before the line
+        new_log = build is not None and build.log is None
+        if build is not None:
+            self._keep_log(build)   # before start: what start writes first is the build's too
+        try:
+            firmware.start(data)
+        except ValueError:
+            # Refused before anything ran (a file that went, a wrong address): no step, no log of its own.
+            self._detach_log(build, discard=new_log)
+            raise
         if build is not None:
             build.stepped = True
-            self._keep_log(build)
-        firmware.start(data)
-        await firmware.task
+        try:
+            await firmware.task
+        finally:
+            if build is not None:
+                # Every step's lines, in order: a build made ahead keeps its compile log as well as its upload's.
+                build.logs = (build.logs + list(getattr(firmware, 'logs', None) or []))[-self.LOG_LINES:]
         ok = (getattr(firmware, 'job', None) or {}).get('state') == 'success'
         if ok and build is not None and data.get('action') in ('install', 'upload') and data.get('file') == build.file:
             build.installed = True
@@ -241,9 +263,7 @@ class BuildQueue:
         if build is None or self.running is not build:
             return
         self._snapshot(build)
-        tee = getattr(self.firmware, 'logs', None)
-        if getattr(tee, 'sink', None) is not None:
-            tee.sink = None
+        self._detach_log(build)
         if build not in self.aside:
             self.aside.append(build)
         self.running = None
@@ -252,8 +272,8 @@ class BuildQueue:
         self._changed()
 
     async def reacquire(self, build):
-        """The slot back for a build that gave it up, before anything that waits in the line: after the ESPHome job that
-        runs now."""
+        """The slot back for a build that gave it up, before anything that waits in the line: as soon as the build that
+        holds it now gives it up or ends (an install a person follows holds it through its whole job)."""
         if self.running is build:
             return
         build.granted.clear()
@@ -270,11 +290,21 @@ class BuildQueue:
                 tee.sink = lambda line: logs.line(key, line)
         self._changed()
 
+    def _detach_log(self, build, discard=False):
+        """The slot's log no longer goes to the build's file; a file just started for a step that never ran goes."""
+        tee = getattr(self.firmware, 'logs', None)
+        if getattr(tee, 'sink', None) is not None:
+            tee.sink = None
+        logs = getattr(self.manager, 'build_logs', None)
+        if discard and build is not None and build.log and logs is not None:
+            logs.discard(build.log)
+            build.log = None
+
     def _snapshot(self, build):
-        """What the build's last ESPHome step left, kept with it before another build's step clears it."""
+        """What the build's last ESPHome step left (its job: memory, where it built, the step it got to), kept with it
+        before another build's step replaces it. Its lines are kept by `step` as each step ends."""
         if not build.stepped:
             return
-        build.logs = list(getattr(self.firmware, 'logs', None) or [])
         job = getattr(self.firmware, 'job', None) or {}
         build.memory = job.get('memory')
         build.where, build.server, build.fallback = job.get('where'), job.get('server'), job.get('fallback')
@@ -330,7 +360,12 @@ class BuildQueue:
             if build in self.tasks:
                 return build
         if self.line and not self.held:
-            return self.line.pop(0)
+            # Never a second build of a profile whose build waits beside the line (its screen is being checked, or it
+            # waits for its turn to install): it would install over it, or empty its build folder. It goes after.
+            busy = {b.file for b in self.aside if b.file}
+            for i, build in enumerate(self.line):
+                if build.file not in busy:
+                    return self.line.pop(i)
         return None
 
     async def _work(self):
@@ -389,9 +424,8 @@ class BuildQueue:
             build.reason = type(error).__name__
         finally:
             holding = self.running is build
-            if not holding:
-                # It ended beside the line: what it kept is its own; its ESPHome log is not the slot's.
-                build._aside_end = True
+            # It ended beside the line: what it kept is its own; its ESPHome log is not the slot's.
+            build.ended_aside = not holding
             if build in self.aside:
                 self.aside.remove(build)
             self.tasks.pop(build, None)
@@ -409,13 +443,13 @@ class BuildQueue:
         wrong here, the build counts as ended (`done`), so nothing waits for it for ever."""
         build.state, build.finished = state, time.time()
         try:
-            if build.stepped and not getattr(build, '_aside_end', False):
+            if build.stepped and not build.ended_aside:
                 # Its last step's log and the memory that build had (build_memory): why it was slow, or why it stopped.
-                # The ESPHome step it got to (compile, upload): where a build that failed stopped (Plugins.failure_kind).
+                # The ESPHome step it got to (compile, upload): where a build that failed stopped (build_failures.failure_kind).
                 self._snapshot(build)
             if build.log:
                 tee = getattr(self.firmware, 'logs', None)
-                if getattr(tee, 'sink', None) is not None and not getattr(build, '_aside_end', False):
+                if getattr(tee, 'sink', None) is not None and not build.ended_aside:
                     tee.sink = None
                 logs = getattr(self.manager, 'build_logs', None)
                 if logs is not None:

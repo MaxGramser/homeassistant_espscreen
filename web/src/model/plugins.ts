@@ -245,6 +245,8 @@ export type Installed = {
   // The version it ran before its last update, to go back to (go_back), and whether the screen said after the build
   // that it runs it (false: it came back without it).
   before?: string | null; verified?: boolean | null;
+  // When the add-on built it once more after its screen came back (a failure kind 'offline' waits for that once).
+  waited?: number | null;
   // Whether the screen's last hello names it at this version (plugins.py runs): false is a plugin that crashed at boot
   // or a firmware built without it; null while that cannot be known (offline, building, just built).
   running?: boolean | null;
@@ -261,25 +263,35 @@ export type Installed = {
 // A plugin on a screen whose last build failed: a new one that stays out (`added`), or an update the screen went back
 // from (`update`), with the reason and the key of the build's kept log.
 export type PluginFailure = { plugin: Plugin; installed: Installed; kind: "added" | "update"; version: string;
-  reason: string | null; log: string | null; why: NonNullable<Installed["kind"]> | "build"; waited?: boolean };
+  reason: string | null; log: string | null; why: NonNullable<Installed["kind"]>;
+  /** Built, and waiting for its screen to be back to install by itself: no failure yet. */
+  waiting: boolean };
+
+/** A line of a build's log as it may go into a public issue: the screen's own names (its name, its node, its YAML file)
+ *  become `<screen>`, so the issue says nothing of whose screen it is. */
+export function anonymous(line: string, screen: Pick<Screen, "name" | "node" | "update">) {
+  const profile = screen.update?.profile || "";
+  const names = [screen.name, screen.node, profile, profile.replace(/\.yaml$/, "")].filter((name): name is string => Boolean(name && name.length > 1));
+  return names.sort((a, b) => b.length - a.length).reduce((out, name) => out.split(name).join("<screen>"), line);
+}
 
 /** A new issue at the plugin's own repository about a build that failed, filled in with what the maker needs: the plugin
- * and version, the board, the firmware and why it stopped, and a word to attach the log the person downloaded. Null for a
- * plugin without a repository on GitHub, and for a build the app restarted during, which is no fault of the plugin. In
- * English, as the makers read it; it names no screen, home or person. */
-export function issueUrl(failure: PluginFailure, board: string | null | undefined, firmware: string | null | undefined): string | null {
+ * and version, the board, the firmware and why it stopped (anonymous), and a word to attach the log the person
+ * downloaded. Null for a plugin without a repository on GitHub, and for a build the app restarted during, which is no
+ * fault of the plugin. In English, as the makers read it. */
+export function issueUrl(failure: PluginFailure, screen: Pick<Screen, "name" | "node" | "update" | "board" | "firmware">): string | null {
   const repo = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+/.exec(failure.plugin.repo || "")?.[0];
-  if (!repo || failure.reason === "interrupted") return null;
+  if (!repo || failure.why === "interrupted") return null;
   const name = failure.plugin.name.en || text(failure.plugin.name);
-  const title = `${name} ${failure.version} did not build${board ? ` on ${board}` : ""}`;
+  const title = `${name} ${failure.version} did not build${screen.board ? ` on ${screen.board}` : ""}`;
   const body = [
     `**Plugin:** ${failure.plugin.id} ${failure.version}${failure.kind === "update" ? ` (update from ${failure.installed.version})` : ""}`,
-    `**Board:** ${board || "unknown"}`,
-    `**Tessera firmware:** ${firmware || "unknown"}`,
+    `**Board:** ${screen.board || "unknown"}`,
+    `**Tessera firmware:** ${screen.firmware || "unknown"}`,
     "",
     "**Where the build stopped:**",
     "```",
-    (failure.reason || "").split("\n")[0],
+    anonymous((failure.reason || "").split("\n")[0], screen),
     "```",
     "",
     "The full build log is attached (downloaded from the Plugins tab of the Tessera app).",

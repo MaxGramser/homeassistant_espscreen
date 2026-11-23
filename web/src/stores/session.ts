@@ -98,6 +98,18 @@ export const useSessionStore = defineStore("session", () => {
     drafts.opened();
     return opened ? ui.go("", how) : undefined;
   }
+  /** A screen opened on one of its tabs, with a plugin's details open on its Plugins tab (`plugin`): the one way the
+   *  page sends a person to a screen's tab (a build's message, the sidebar, Settings, ⌘K). An unsaved edit of another
+   *  screen asks first, as switching screens does; false when the person stayed. */
+  async function openTab(id: string, tab: "layout" | "settings" | "plugins", plugin?: string) {
+    if (scr.selected !== id) await select(id);
+    else if (ui.route !== "") await ui.go("");
+    if (scr.selected !== id) return false;
+    insp.closeInspector();
+    ui.tab = tab;
+    if (plugin) plugins.focus = plugin;
+    return true;
+  }
   // The logo: back to the overview, the way a home key goes home. An unsaved edit asks first, as switching screens does.
   function goHome(): void | Promise<unknown> {
     const home = () => (scr.selected ? undefined : ui.go(""));
@@ -186,5 +198,5 @@ export const useSessionStore = defineStore("session", () => {
   }
   onScopeDispose(() => running?.());
 
-  return { select, goHome, forgetOpenScreen, createVirtualScreen, removeScreen, arrived, start };
+  return { select, openTab, goHome, forgetOpenScreen, createVirtualScreen, removeScreen, arrived, start };
 });

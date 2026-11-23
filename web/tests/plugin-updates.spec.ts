@@ -64,7 +64,8 @@ describe("update all on this screen", () => {
     expect(card.text()).toContain("1.1.0 → 1.2.0");
     await button.trigger("click");
     await vi.waitFor(() => expect(calls.length).toBe(1));
-    expect(calls[0].path).toContain("screens/text.hall_tile_settings/plugins");
+    // One request: the add-on builds the plugins with the firmware's update when there is one (update-everything).
+    expect(calls[0].path).toContain("screens/text.hall_tile_settings/update-everything");
     expect(calls[0].body.add.map((a: any) => a.id)).toEqual(["bus", "waste"]);
     expect(calls[0].body.add[1].values).toEqual({ calendar: "calendar.bins" });
   });
@@ -114,7 +115,7 @@ describe("a plugin that did not build", () => {
 
   it("offers a filled-in issue at the maker's repository for a build that stopped on the plugin", async () => {
     plugins.index[0] = { ...plugins.index[0], repo: "https://github.com/someone/tessera-bus/tree/abc/plugin", maintainer: "Someone" };
-    plugins.installed[hall.id][0] = installed("bus", "1.1.0", { failed_update: { version: "1.2.0", reason: "bus.h:3:1: error: oops\nmore", log: "k" } });
+    plugins.installed[hall.id][0] = installed("bus", "1.1.0", { failed_update: { version: "1.2.0", reason: "hall.yaml: bus.h:3:1: error: oops in Hall\nmore", log: "k" } });
     const view = mount(ScreenPluginsTab);
     await nextTick();
     const link = view.get("#screen-plugin-failures a[data-action=issue]");
@@ -127,5 +128,7 @@ describe("a plugin that did not build", () => {
     expect(body).toContain("bus.h:3:1: error: oops");
     expect(body).toContain("0.52.0");
     expect(body).not.toContain("Hall");
+    expect(body).not.toContain("hall.yaml");
+    expect(body).toContain("<screen>: bus.h:3:1: error: oops in <screen>");
   });
 });

@@ -119,8 +119,13 @@ has ended: its install goes only once those passed their check (they report the 
 (`skipped`, `addon.updates.round_stopped`). A screen updated alone builds and installs in one `install`.
 
 A failure that says nothing about the firmware does not end the round: a download the build needs that did not come
-(`network`) or a screen that was away for its upload (`offline`, `Updater.passing`). That screen goes once more, at the
-end of the line in the same round (its build ends `retry`); a second failure is a failure. A plugin build gives the slot
+(`network`) or a screen that was away for its upload (`offline`, `Updater.passing`, by `build_failures.PASSING`). That
+screen goes once more, at the end of the line in the same round (its build ends `retry`, `Build.attempt` 2), with what
+it brought for the screen's plugins and whoever waits for its end; a second failure is a failure. A screen that was away
+goes once more only with other screens of its round between. While a build waits beside the line no other build of its
+screen starts (`BuildQueue._pick`): it would install over it or empty its build folder. A build keeps every step's lines
+(`Build.logs`), so one made ahead keeps its compile log as well as its upload's, and a step refused before it ran (a file
+that went, a wrong address) leaves no step and no log behind. A plugin build gives the slot
 up as well while its screen restarts and confirms the plugins (`Plugins._verify`). There is no pause between two updates
 of a round any more: the check is the wait.
 
@@ -141,8 +146,9 @@ that could not tell. A build that went well stays on the page for ten minutes wi
 
 ## Why a build failed
 
-A plugin build that fails is given a kind (`failure_kind` in `screen_manager/app/plugins.py`), and each kind has its
-own words and its own way out in the screen's Plugins tab (`PluginFailures.vue`):
+A build that fails is given a kind (`failure_kind` in `screen_manager/app/build_failures.py`, the one place that reads a
+build's log for its cause), and for a plugin build each kind has its own words and its own way out in the screen's
+Plugins tab (`PluginFailures.vue`):
 
 | Kind | What happened | The way out |
 |---|---|---|
@@ -154,7 +160,8 @@ own words and its own way out in the screen's Plugins tab (`PluginFailures.vue`)
 | `build` | anything else | the log, and the issue at the maker |
 
 A failure is said in Home Assistant too: one notification per screen (`tessera_plugins_<screen>`), taken away by the
-next build that goes well (`Plugins._tell_home_assistant`). The page's own message after a failed plugin build opens the
+next build that goes well (`Plugins._tell_home_assistant`, through `ha_notice.py`, the one way this app leaves a
+notification in Home Assistant). The page's own message after a failed plugin build opens the
 screen's Plugins tab.
 
 ## A version that does not run well
@@ -174,9 +181,9 @@ that file; the plugins settle with that build. Without a firmware update it is a
 The sidebar names a screen's plugin updates beside its name (a key that opens its Plugins tab) and marks a plugin that
 did not build. The Updates card of the settings lists the screens with plugin updates, and lets the nightly round start
 at an hour of the owner's choosing (`hour` in `updates.json`, three hours from it; `Updater.round_day` keeps a window
-past midnight one round). Home Assistant hears of new updates too: one notification (`tessera_updates`) that names each
-screen and what waits, made again when that changes and taken away once nothing waits (`Plugins.announce_updates`,
-every fifteen minutes).
+past midnight one round; the summary sends `hour` and `window`, so the editor shows the add-on's own numbers). Home Assistant hears of new updates too: one notification (`tessera_updates`) that names each
+screen and what waits, made again when that changes and taken away once nothing waits (`update_notice.py`, every
+fifteen minutes, from `Updater.firmware_waiting` and `Plugins.updates_on`).
 
 ## Before a build
 
@@ -194,9 +201,11 @@ goes into (#453).
 A page keeps the editor it loaded, also after the app was updated or the dev app rebuilt, and an old editor against a
 new app may not understand what the app sends. Every live answer names the editor the app serves (`editor`: the
 `index-<hash>.js` its `static/index.html` names, `server.editor_bundle`). A page that runs another one reloads itself as
-soon as nothing is in progress: no unsaved change, not in New screen or Firmware & USB (a flash from the browser would
-break off), not writing a troubleshooting report. Until then it says so once, with a key to reload now
-(`web/src/stores/editor-version.ts`).
+soon as nothing is in progress: no unsaved change of a screen, no plugin work the page holds (`plugins.pending`: the
+tray, a change on its way), not in New screen or Firmware & USB (a flash from the browser would break off), not writing a
+troubleshooting report. Until then it says so once, with a key to reload now (`web/src/stores/editor-version.ts`). It
+reloads at most once for one editor the app serves (kept for the tab), so it never loops. Under SCREEN_DEV the live answer
+reads the bundle with the page, so a fresh `npm run build` reloads the page once.
 
 ## On a build server
 

@@ -29,9 +29,17 @@ class Startup(unittest.TestCase):
         # its Show or Yes, and Yes goes back to the screen the person was on (home). Choosing is the session's
         # (stores/session.ts). On its way through the other screens Yes opens each in place of the browser's entry
         # (select's `replace`), so Back never lands on one of them (web/tests/layoutbot-phone.spec.ts).
+        # session.openTab opens a screen on one of its tabs (select(id)) for the person's tap on a build's message, a
+        # screen's plugin key in the sidebar, a row of Settings, ⌘K or a plugin tile's key: those are its only callers.
         self.assertEqual(set(re.findall(r'(?<![\w.])(?<!function )(?:session\.)?select\(([^),]*)[,)]', SCRIPT)),
-                         {'screen.id', 'null', 'other.id', 'home'},
+                         {'screen.id', 'null', 'other.id', 'home', 'id'},
                          'a screen opens only when the person chooses it: a new select() needs a person\'s tap behind it')
+        session = editor_sources.source('stores/session.ts')
+        body = session[session.index('async function openTab('):]
+        self.assertIn('await select(id)', body[:body.index('\n  }\n')], 'openTab opens the screen it is given')
+        callers = sorted(re.findall(r'(?<!function )openTab\(([^,]+),', SCRIPT))
+        self.assertEqual(callers, sorted(['screen.id', 'scr.selected', 'screen.value!.id', 'screen.id', 'screen.id', 'screen.id']),
+                         'openTab is asked for the screen of a person\'s tap only (and the open screen)')
         bot = editor_sources.source('stores/layoutbot.ts')
         for argument, function in (('other.id', 'preview'), ('other.id', 'deliver'), ('home', 'deliver')):
             body = bot[bot.index(f'async function {function}('):]

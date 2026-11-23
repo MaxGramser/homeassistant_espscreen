@@ -27,9 +27,9 @@ const still = (f: PluginFailure) => (f.kind === "update"
   ? t("editor.plugins.failures.update_note", { current: f.installed.version })
   : t("editor.plugins.failures.added_note"));
 // Why, in words, by its kind; a screen that was away says it waits for it (once), not that it failed.
-const why = (f: PluginFailure) => t(`editor.plugins.failures.why.${f.why === "offline" && !f.waited ? "offline_wait" : f.why}`, { screen: props.screen.name });
+const why = (f: PluginFailure) => t(`editor.plugins.failures.why.${f.waiting ? "offline_wait" : f.why}`, { screen: props.screen.name });
 // A build that stopped on the plugin (or on something the log names) can go to its maker: a filled-in issue.
-const issue = (f: PluginFailure) => (["plugin", "build"].includes(f.why) ? issueUrl(f, props.screen.board, props.screen.firmware) : null);
+const issue = (f: PluginFailure) => (["plugin", "build"].includes(f.why) ? issueUrl(f, props.screen) : null);
 // An update that asks for other rights gets its yes in the plugin's details; everything else goes again from here.
 function retry(f: PluginFailure) {
   if (f.kind === "update" && plugins.needsConsent(props.screen, f.plugin) && !plugins.consented[f.plugin.id]) emit("open", f.plugin);
@@ -39,8 +39,8 @@ function retry(f: PluginFailure) {
 
 <template>
   <div v-if="failures.length" class="sp-failures" id="screen-plugin-failures" role="alert">
-    <div v-for="f in failures" :key="f.plugin.id" class="sp-failure" :class="[f.why, { waiting: f.why === 'offline' && !f.waited }]" :data-plugin="f.plugin.id" :data-why="f.why">
-      <Icon :name="f.why === 'offline' && !f.waited ? 'information-outline' : 'alert-circle-outline'" />
+    <div v-for="f in failures" :key="f.plugin.id" class="sp-failure" :class="[f.why, { waiting: f.waiting }]" :data-plugin="f.plugin.id" :data-why="f.why">
+      <Icon :name="f.waiting ? 'information-outline' : 'alert-circle-outline'" />
       <div class="sp-failure-text">
         <b>{{ title(f) }}</b>
         <span>{{ still(f) }} {{ why(f) }}</span>

@@ -26,10 +26,8 @@ const names = (items: Plugin[]) => items.map((p) => text(p.name)).join(", ");
 function agree(on: boolean) { for (const p of asking.value) plugins.consented[p.id] = on; }
 const from = (p: Plugin) => plugins.installedOn(props.screen, p.id)?.version ?? "";
 const count = computed(() => list.value.length + (firmware.value ? 1 : 0));
-function go() {
-  if (firmware.value) void plugins.updateEverything(props.screen, list.value);
-  else void plugins.updateAll(props.screen, list.value);
-}
+// One request: the add-on builds the firmware's update with the plugins' when there is one, else the plugins alone.
+const go = () => void plugins.updateEverything(props.screen, list.value);
 </script>
 
 <template>

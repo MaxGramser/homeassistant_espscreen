@@ -230,6 +230,16 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
   // Every plugin of this screen with an update: "Update all on this screen" takes them in one build.
   const updatesOn = (screen: Screen) => index.value.filter((plugin) => hasUpdate(screen, plugin));
+  /** What a screen's row says of its plugins (the sidebar): "failed" when one did not build (not one that only waits
+   *  for its screen to be back), else how many have an update, else null. */
+  function newsOn(screen: Screen): "failed" | number | null {
+    if (screen.virtual) return null;
+    if (failuresOn(screen).some((f) => !f.waiting)) return "failed";
+    return updatesOn(screen).length || null;
+  }
+  /** Every screen with plugin updates, each with them (Settings, Updates). */
+  const updatesEverywhere = computed(() => realScreens().map((screen) => ({ screen, plugins: updatesOn(screen) }))
+    .filter((row) => row.plugins.length));
   // Every plugin of this screen whose last build failed, and is not on its way again: what the screen's Plugins tab says
   // first, with the build's kept log to download.
   function failuresOn(screen: Screen): PluginFailure[] {
@@ -237,12 +247,14 @@ export const usePluginsStore = defineStore("plugins", () => {
     for (const plugin of [...index.value, ...testsOn(screen)]) {
       const have = installedOn(screen, plugin.id);
       if (!have || buildingOn(screen, plugin.id) || out.some((f) => f.plugin.id === plugin.id)) continue;
+      // A build that was good but found no screen waits for it once (the add-on builds it again when it is back).
+      const failure = (why: PluginFailure["why"], waited: unknown) => ({ why, waiting: why === "offline" && !waited });
       if (have.state === "failed")
         out.push({ plugin, installed: have, kind: "added", version: have.version, reason: have.reason ?? null, log: have.log ?? null,
-          why: have.kind || (have.reason === "interrupted" ? "interrupted" : "build"), waited: Boolean((have as any).waited) });
+          ...failure(have.kind || "build", have.waited) });
       else if (have.failed_update)
-        out.push({ plugin, installed: have, kind: "update", version: have.failed_update.version, reason: have.failed_update.reason ?? null, log: have.failed_update.log ?? null,
-          why: have.failed_update.kind || (have.failed_update.reason === "interrupted" ? "interrupted" : "build"), waited: Boolean(have.failed_update.waited) });
+        out.push({ plugin, installed: have, kind: "update", version: have.failed_update.version, reason: have.failed_update.reason ?? null,
+          log: have.failed_update.log ?? null, ...failure(have.failed_update.kind || "build", have.failed_update.waited) });
     }
     return out;
   }
@@ -527,6 +539,9 @@ export const usePluginsStore = defineStore("plugins", () => {
   // screen that gets one plugin and loses another builds once. Each screen then builds once with all of its changes, in
   // one request. What a plugin asks for (its inputs, trust in a community maker) is filled in its details.
   const tray = ref({ items: [] as { screen: string; plugin: string; remove?: boolean }[], open: true, sending: false });
+  /** Whether this page holds plugin work a reload would lose: something set aside in the tray (it lives in this page
+   *  only), or a change on its way to the add-on (stores/editor-version.ts waits for it). */
+  const pending = computed(() => tray.value.items.length > 0 || tray.value.sending || Object.keys(sending).length > 0);
   const trayItem = (screen: Screen, id: string) => tray.value.items.find((item) => item.screen === screen.id && item.plugin === id);
   const isSetAside = (screen: Screen, id: string) => Boolean(trayItem(screen, id) && !trayItem(screen, id)!.remove);
   const isTakingOff = (screen: Screen, id: string) => Boolean(trayItem(screen, id)?.remove);
@@ -672,12 +687,12 @@ export const usePluginsStore = defineStore("plugins", () => {
 
   return {
     index, installed, loaded, received, secrets, files, choices, previews, entities, entityFacts, devices, pluginEntities, folders, features, likeConsent, likeAsk, sharing, appFit,
-    values, parts, attached, focus, consented, plans, providers, tray, pluginsEnabled, trayGroups, forgettable, forgetLink,
+    values, parts, attached, focus, consented, plans, providers, tray, pending, pluginsEnabled, trayGroups, forgettable, forgetLink, updatesEverywhere,
     // What the Plugins page, a screen's tab and the cards read as they draw (stores/lookup.ts); choicesFor, previewFor and
     // planOn answer at once and ask the add-on for what they do not have yet.
     ...lookups({
       pluginTileOf, barItemOf, saverOf, saversFor, fits, choicesFor, choicesPending, previewFor, tapActionsFor, barItemsFor, entitiesIn, needsConsent, realScreens,
-      otherOrigin, hasUpdate, updatesOn, failuresOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
+      otherOrigin, hasUpdate, updatesOn, failuresOn, newsOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike, canRate,
       isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),

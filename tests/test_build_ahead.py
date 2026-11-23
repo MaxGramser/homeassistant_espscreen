@@ -113,6 +113,38 @@ class BuildingAhead(unittest.IsolatedAsyncioTestCase):
             self.assertLess(kitchen[0][1], first_done, 'built while the first screen was checked')
             self.assertGreaterEqual(kitchen[1][1] + 0.01, first_done, 'installed only after the first passed its check')
 
+    async def test_a_second_build_of_a_screen_waits_while_its_update_waits_beside_the_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp)
+            m.updates.settle_seconds = 0.3
+            m.updates.launch(['text.screen1', 'text.screen2'])
+            while not m.build_queue.aside:   # the first screen is being checked, beside the line
+                await asyncio.sleep(0.01)
+            other = m.build_queue.add('install', 'living-room.yaml',
+                                      lambda build: m.build_queue.step({'file': 'living-room.yaml', 'action': 'build'}))
+            await m.build_queue.idle()
+            first = self.ended(m, 'text.screen1')[0]
+            starts = {b.id: b.started for b in m.build_queue.ended}
+            self.assertGreaterEqual(starts[other.id], first.finished, 'it waited for the update of its screen to end')
+
+    async def test_a_screen_once_more_keeps_its_plugins_its_log_and_the_round_waits_for_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = self.manager(tmp)
+            m.firmware.network_once.add('living-room.yaml')
+            ended = []
+            round = m.updates.launch(['text.screen1', 'text.screen2'])
+            first = round.builds[0]
+            first.plugins['add'] = ['rain']
+            first.ends.append(ended.append)
+            await round.wait()   # also the screen once more, which joined the round later
+            again = [b for b in self.ended(m, 'text.screen1') if b.attempt == 2][0]
+            self.assertEqual(again.state, 'success')
+            self.assertEqual(again.plugins['add'], ['rain'], 'what it brought for its plugins goes along')
+            self.assertIn(again, ended, 'whoever waits for its end hears of the build that ended for real')
+            # Its log is every step's: the build made ahead and its upload.
+            self.assertTrue(any('build living-room.yaml' in line for line in again.logs))
+            self.assertTrue(any('upload living-room.yaml' in line for line in again.logs))
+
     async def test_a_screen_updated_alone_builds_and_installs_in_one_go(self):
         with tempfile.TemporaryDirectory() as tmp:
             m = self.manager(tmp)

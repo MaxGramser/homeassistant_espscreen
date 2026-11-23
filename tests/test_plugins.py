@@ -2462,12 +2462,14 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'building')
 
     def test_a_failure_says_its_kind(self):
-        from plugins import failure_kind
+        from build_failures import failure_kind
         self.assertEqual(failure_kind(['x'], blamed=True), 'plugin')
         self.assertEqual(failure_kind(['x'], memory={'reason': 'out'}), 'memory')
-        self.assertEqual(failure_kind(['Uploading', 'ERROR Error resolving IP address of hall.local'], 'upload'), 'offline')
-        self.assertEqual(failure_kind(['fatal: unable to access \'https://github.com/x/y/\': Could not resolve host'], 'compile'), 'network')
-        self.assertEqual(failure_kind(['main.cpp:3: error: oops'], 'compile'), 'build')
+        self.assertEqual(failure_kind(['Uploading', 'ERROR Error resolving IP address of hall.local']), 'offline')
+        self.assertEqual(failure_kind(['fatal: unable to access \'https://github.com/x/y/\': Could not resolve host']), 'network')
+        self.assertEqual(failure_kind(['main.cpp:3: error: oops']), 'build')
+        # An upload the screen refused is no absence: a wrong password says something.
+        self.assertEqual(failure_kind(['Uploading', 'ERROR Authentication invalid. Is the password correct?']), 'build')
 
     async def test_a_build_that_stopped_on_the_network_goes_once_more(self):
         import plugins as plugin_service
@@ -2539,26 +2541,6 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         service.settle()   # once only
         await asyncio.sleep(0)
         self.assertEqual(len(started), 1)
-
-    async def test_updates_waiting_are_said_in_home_assistant_once(self):
-        service, config, started = self.make()
-        said = []
-
-        async def request(kind, **data):
-            said.append((data['service'], data['service_data']))
-        service.manager.ha.request = request
-        service.manager.screens = lambda: [service.manager.screen('hall')]
-        firmware = {'available': True, 'profile': 'hall.yaml', 'target': '0.64.0'}
-        service.manager.updates.state_for = lambda screen: firmware
-        await service.announce_updates()
-        self.assertEqual(said[-1][0], 'create')
-        self.assertIn('Hall', said[-1][1]['message'])
-        self.assertIn('0.64.0', said[-1][1]['message'])
-        await service.announce_updates()
-        self.assertEqual(len(said), 1, 'said once, not on every look')
-        firmware['available'] = False
-        await service.announce_updates()
-        self.assertEqual(said[-1], ('dismiss', {'notification_id': 'tessera_updates'}))
 
     async def test_a_build_cut_off_twice_fails_with_its_log(self):
         service, config, started = self.make()

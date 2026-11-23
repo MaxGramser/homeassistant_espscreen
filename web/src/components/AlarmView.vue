@@ -5,9 +5,9 @@
 // after how many digits the code sends itself (the OK key by default). A screen that wakes for a panel it has on no tile
 // gets that panel as a tile without a cell, so the choice holds for every screen, not only those with the alarm on a page.
 import { computed, onMounted, ref } from "vue";
-import { getJson, send } from "../api";
 import { t } from "../i18n";
 import { glyph } from "../model/topbar";
+import { useAlarmsStore, type Alarm } from "../stores/alarms";
 import { useInventoryStore } from "../stores/inventory";
 import { useUiStore } from "../stores/ui";
 import ChoiceField from "./ChoiceField.vue";
@@ -15,16 +15,14 @@ import CheckRow from "./ui/CheckRow.vue";
 import SwitchRow from "./ui/SwitchRow.vue";
 import theme from "virtual:esp-screens-theme";
 
-type Alarm = { entity: string; name: string; code: boolean; screens: "all" | string[]; send_after: string };
-type View = { alarms: Alarm[]; send_after: string[] };
-
 const ui = useUiStore();
 const inv = useInventoryStore();
-const view = ref<View | null>(null);
+const alarms = useAlarmsStore();
+const view = computed(() => alarms.view);
 const busy = ref("");
 const screens = computed(() => inv.inventory.screens.filter((s) => !s.virtual));
 
-onMounted(async () => { view.value = await getJson<View>("alarms"); });
+onMounted(() => void alarms.load());
 
 const lengths = computed(() => (view.value?.send_after ?? ["off"]).map((key) => [key, key === "off" ? t("editor.alarm.send_off") : key] as const));
 const every = (alarm: Alarm) => alarm.screens === "all";
@@ -35,7 +33,7 @@ const older = (screen: { memory?: { bar_cards?: boolean } | null }) => Boolean(s
 async function save(alarm: Alarm, change: Partial<Pick<Alarm, "screens" | "send_after">>) {
   busy.value = alarm.entity;
   try {
-    view.value = await send<View>("alarms", "PUT", { entity: alarm.entity, screens: alarm.screens, send_after: alarm.send_after, ...change });
+    await alarms.save(alarm, change);
     ui.toast(t("editor.alarm.saved"));
   } finally {
     busy.value = "";

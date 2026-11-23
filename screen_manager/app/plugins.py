@@ -27,6 +27,7 @@ from pathlib import Path
 import yaml
 
 import build_cache
+import ha_notice
 import core
 import entity_settings
 import feedback
@@ -37,6 +38,7 @@ import plugin_likes
 import plugin_manifest as pm
 import plugin_pictures
 import tile_icons
+from build_failures import build_reason, failed_components, failure_kind  # noqa: F401 (also read from here)
 from i18n import screen_t, t
 from plugin_store import PluginSecrets, PluginStore
 
@@ -114,64 +116,6 @@ def origin_of(repo, path='.'):
 def record_origin(record):
     """The origin of a plugin on a screen, from its record."""
     return 'folder' if record.get('source') == 'folder' else origin_of(record.get('repo'), record.get('path'))
-
-
-def build_reason(logs):
-    """Why a build failed, in one line of its log. The app's own last line says it in words (memory that ran short, a
-    screen that did not answer); only when that line points to the log, the last error the compiler or ESPHome named.
-    The whole log is kept on disk (build_logs.py) and offered with the failure."""
-    lines = [str(line).strip() for line in list(logs or [])[-60:] if str(line).strip()]
-    if not lines:
-        return 'build'
-    if 'see the log' not in lines[-1]:
-        return lines[-1][:200]
-    errors = [line for line in lines if re.search(r'\berror\b|ERROR', line) and 'see the log' not in line]
-    return (errors or lines)[-1][:200]
-
-
-# A compiler error in a file of an external component: `../src/esphome/components/tap_sound/tap_sound.h:19:8: error: ...`.
-COMPONENT_ERROR = re.compile(r'components/([a-z0-9_]+)/[^\s:]+:\d+(?::\d+)?:\s*(?:fatal\s+)?error:')
-# A plugin the core refused while ESPHome read the configuration, before any compiler ran (smart_display.register_plugin):
-# `Plugin tap_sound wants plugin API 0.11; this firmware offers 0.10.` or `Plugin tap_sound was written for plugin API ...`.
-API_REFUSAL = re.compile(r'Plugin ([a-z0-9_]+) (?:wants|was written for) plugin API')
-
-
-def failed_components(logs):
-    """The components a build's compiler errors lie in, and the plugins the core refused by their API, Tessera's own
-    components left out."""
-    lines = [str(line) for line in logs or []]
-    found = {match.group(1) for line in lines for match in [COMPONENT_ERROR.search(line)] if match}
-    found |= {match.group(1) for line in lines for match in [API_REFUSAL.search(line)] if match}
-    return found - {'smart_display', 'flash_layout'}
-
-
-# A build that stopped on the network, not on its code: a download of a component, a library or a tool that did not come.
-# Tried once more by itself (Plugins._build), and named as such when it stops again.
-NETWORK = re.compile(r'Could not resolve host|Temporary failure in name resolution|Connection (?:reset|refused|timed out)|'
-                     r'Failed to (?:download|clone|fetch)|unable to access .https?://|HTTP Error 5\d\d|'
-                     r'RemoteDisconnected|Read timed out|Network is unreachable', re.I)
-# An upload that found no screen: the build itself was good (Plugins.failure_kind 'offline').
-NO_SCREEN = re.compile(r'Error resolving IP address|Connecting to .* failed|Connection to .* timed out|'
-                       r'No route to host|Host is unreachable|OTA (?:failed|timed out)|Error binding|'
-                       r'did not answer|could not reach', re.I)
-
-
-def failure_kind(logs, stage=None, memory=None, blamed=False):
-    """What kind of failure a build's end was, which decides the sentence and the way out the editor offers (docs/BUILDS.md,
-    "Why a build failed"): 'plugin' (a compiler error in a plugin's own code: its maker can fix it), 'memory' (the
-    computer ran short), 'offline' (built, but the screen did not take it: installed by itself once it is back),
-    'network' (a download did not come), or 'build' (anything else)."""
-    lines = [str(line) for line in list(logs or [])[-200:]]
-    if blamed:
-        return 'plugin'
-    if (memory or {}).get('reason') in ('out', 'limit'):
-        return 'memory'
-    tail = '\n'.join(lines[-40:])
-    if stage == 'upload' or NO_SCREEN.search(tail):
-        return 'offline'
-    if any(NETWORK.search(line) for line in lines):
-        return 'network'
-    return 'build'
 
 
 # After a build went on, the screen reboots and says hello again within this many seconds; until then whether it runs
@@ -444,6 +388,9 @@ class Plugins:
         # screen has an address again, and only failed when it still has none this long after the start.
         self.started_at = time.time()
         self._waited = set()   # (inbox, plugin, version) built again once after its screen came back (_after_offline)
+        # The app's loops of this service, started and stopped by server.py: counting its plugins in the store, and settling
+        # what a restart or an absent screen left (resume_after_start).
+        self.counting_task = self.resume_task = None
         self.data = Path(data_dir) / 'plugins'
         self.config = Path(config_dir)
         self.store = PluginStore(Path(data_dir) / 'plugins.json')
@@ -1285,13 +1232,7 @@ class Plugins:
             self.store.put(inbox, dict(record, resumed=int(time.time())))
         LOG.info('Plugins of %s: the build a restart cut off starts once more (%s)', screen.get('name') or inbox,
                  ', '.join(r['id'] for r in records))
-        build = self.manager.build_queue.add('plugins', profile, self._build, screen=inbox, target=host,
-                                             plugins={'add': [r['id'] for r in records]})
-        if self._built not in build.ends:
-            build.ends.append(self._built)
-        notify = getattr(self.manager, 'notify', None)
-        if notify:
-            notify()
+        self._queue(inbox, profile, host, add=[r['id'] for r in records])
 
     def _after_offline(self, inbox, records):
         """A build that was good but found no screen to take it (kind 'offline') goes once more by itself as soon as the
@@ -1346,13 +1287,10 @@ class Plugins:
         if not profile or not host:
             raise ValueError(t('addon.errors.plugins.offline', screen=screen.get('name') or inbox))
         now = {k: v for k, v in record.items() if k not in ('before', 'previous', 'failed_update', 'verified')}
+        fresh = sorted(before.get('parts') or []) != sorted(now.get('parts') or [])
         self.store.put(inbox, dict(before, state='building', previous=now, changed=int(time.time())))
         self.manager.firmware.save_plugins(profile, self.sidecar(inbox))
-        build = self.manager.build_queue.add('plugins', profile, self._build, screen=inbox, target=host,
-                                             plugins={'add': [plugin]})
-        if self._built not in build.ends:
-            build.ends.append(self._built)
-        self.manager.notify()
+        build = self._queue(inbox, profile, host, add=[plugin], fresh=fresh)
         return {'written': True, 'built': True, 'queued': self.manager.build_queue.place(build)}
 
     # ---- Everything for one screen in one build ----
@@ -1374,18 +1312,21 @@ class Plugins:
         build = updates.build_of(inbox)
         if build is not None and building:
             build.plugins['add'] = sorted(set(build.plugins['add']) | set(building))
+            # A plugin whose parts changed builds from an empty build folder: before its steps start (the build line
+            # starts them in a task of their own).
+            build.fresh = build.fresh or bool(result.get('fresh'))
             if self._built not in build.ends:
                 build.ends.append(self._built)
         self.manager.notify()
-        return {**result, 'built': True, 'firmware': True}
+        return {**{k: v for k, v in result.items() if k != 'fresh'}, 'built': True, 'firmware': True}
 
-    # How often the app looks for updates to say in Home Assistant (announce_updates).
-    ANNOUNCE_EVERY = 900
+    # How often a screen that came back is looked at for what waited for it (settle, _after_offline).
+    SETTLE_EVERY = 900
 
     async def resume_after_start(self):
         """After a start: what a restart cut off is built once more as soon as its screen has an address (settle), also
-        while nobody opens the editor. From then on, every ANNOUNCE_EVERY seconds: a screen that came back gets what
-        waited for it (settle), and new updates are said in Home Assistant (announce_updates)."""
+        while nobody opens the editor; from then on, every SETTLE_EVERY seconds, a screen that came back gets what
+        waited for it."""
         while time.time() - self.started_at <= self.RESUME_WAIT + 60:
             await asyncio.sleep(30)
             try:
@@ -1395,67 +1336,23 @@ class Plugins:
             if not any(r.get('state') == 'building' for records in self.store.everywhere().values() for r in records):
                 break
         while True:
+            await asyncio.sleep(self.SETTLE_EVERY)
             try:
                 self.settle()
-                await self.announce_updates()
             except Exception:
-                LOG.exception('Plugins: looking for updates')
-            await asyncio.sleep(self.ANNOUNCE_EVERY)
+                LOG.exception('Plugins: settling')
 
-    def updates_waiting(self):
-        """Every update a screen has waiting, as Home Assistant's notification says them: {inbox: [(what, version)]},
-        'firmware' for the screen's own and a plugin's id for each plugin with a newer release than it runs."""
-        out = {}
-        updates = getattr(self.manager, 'updates', None)
-        for screen in self.manager.screens():
-            inbox, items = screen['id'], []
-            try:
-                state = updates.state_for(screen) if updates else {}
-            except Exception:
-                state = {}
-            if state.get('available') and state.get('profile'):
-                items.append(('firmware', state.get('target')))
-            for record in self.store.of(inbox):
-                if record.get('state', 'active') != 'active' or record.get('source', 'index') != 'index':
-                    continue
-                offer = self.index.get(record['id'])
-                if offer and offer.version != record.get('version') and offer.origin == record_origin(record):
-                    items.append((record['id'], offer.version))
-            if items:
-                out[inbox] = items
+    def updates_on(self, inbox):
+        """The plugins of a screen with a newer release in the index than it runs, from the same origin:
+        [(plugin, version, name)] (update_notice.py; the editor works it out the same way, plugins.hasUpdate)."""
+        out = []
+        for record in self.store.of(inbox):
+            if record.get('state', 'active') != 'active' or record.get('source', 'index') != 'index':
+                continue
+            offer = self.index.get(record['id'])
+            if offer and offer.version != record.get('version') and offer.origin == record_origin(record):
+                out.append((record['id'], offer.version, offer.text('name')))
         return out
-
-    async def announce_updates(self):
-        """Updates said in Home Assistant (docs/BUILDS.md, "Updates of a screen"): one notification that names every
-        screen with an update waiting, made again when a new one comes, and taken away once nothing waits. Said once per
-        change of what waits, not on every look."""
-        ha = getattr(self.manager, 'ha', None)
-        if ha is None or not hasattr(ha, 'request'):
-            return
-        waiting = self.updates_waiting()
-        now = {(inbox, what, version) for inbox, items in waiting.items() for what, version in items}
-        said = getattr(self, '_announced', None)
-        if now == said or (said is None and not now):
-            self._announced = now
-            return
-        self._announced = now
-        if not now:
-            data, service = {'notification_id': 'tessera_updates'}, 'dismiss'
-        else:
-            lines = []
-            for inbox, items in waiting.items():
-                screen = self.manager.screen(inbox) or {}
-                what = ', '.join((screen_t('addon.notify.updates_firmware', version=version) if item == 'firmware' else
-                                  f'{self.known(item, inbox).text("name") if self.known(item, inbox) else item} {version}')
-                                 for item, version in items)
-                lines.append(f'- **{screen.get("name") or inbox}**: {what}')
-            data = {'notification_id': 'tessera_updates', 'title': 'Tessera',
-                    'message': screen_t('addon.notify.updates') + '\n\n' + '\n'.join(lines)}
-            service = 'create'
-        try:
-            await ha.request('call_service', domain='persistent_notification', service=service, service_data=data)
-        except Exception as error:
-            LOG.warning('Telling Home Assistant about updates failed (%s)', type(error).__name__)
 
     def payload(self, language='en'):
         self.settle()
@@ -1477,7 +1374,11 @@ class Plugins:
                                          'parts': record.get('parts', []), 'values': record.get('values', {}),
                                          'consent': (record.get('consent') or {}).get('permissions'),
                                          'state': record.get('state', 'active'), 'reason': record.get('reason'),
-                                         'log': record.get('log'), 'kind': record.get('kind'),
+                                         'log': record.get('log'),
+                                         # Why it failed (build_failures.failure_kind), also for a failure kept before
+                                         # kinds were: the editor reads the kind alone.
+                                         'kind': record.get('kind') or (('interrupted' if record.get('reason') == 'interrupted'
+                                                                         else 'build') if record.get('state') == 'failed' else None),
                                          'waited': record.get('waited'),
                                          # The version it ran before its last update, to go back to (go_back).
                                          'before': (record.get('before') or {}).get('version'),
@@ -2022,24 +1923,32 @@ class Plugins:
             # A screen built from its own YAML: the app cannot build it, so the page shows the file and the line.
             return {'own_yaml': True, 'file': f'{screen.get("node") or "screen"}.plugins.yaml', 'content': text,
                     'line': self.attach_line(f'{screen.get("node") or "screen"}.yaml')}
-        if not queue:
-            return {'written': True, 'built': False}
-        # The screen's build waits its turn in the app's one build line (build_queue, docs/BUILDS.md): ticking three
-        # screens on the Plugins page builds them one after the other. A screen asked again while its build waits builds
-        # once, with everything asked for it, and so does one whose update waits; one asked while its build runs builds
-        # once more after it, since that build may have read its YAML before this change.
-        line = self.manager.build_queue
         # A plugin whose parts changed builds from an empty build folder (BuildQueue, Build.fresh).
         before = {r['id']: r for r in had_records}
         fresh = any(c['record']['id'] in before and
                     sorted(before[c['record']['id']].get('parts') or []) != sorted(c['record']['parts'] or [])
                     for c in changes)
-        build = line.add('plugins', profile, self._build, screen=inbox, target=host,
-                         plugins={'add': [c['record']['id'] for c in changes], 'remove': list(removes), 'fresh': fresh})
+        if not queue:
+            return {'written': True, 'built': False, 'fresh': fresh}
+        # The screen's build waits its turn in the app's one build line (build_queue, docs/BUILDS.md): ticking three
+        # screens on the Plugins page builds them one after the other. A screen asked again while its build waits builds
+        # once, with everything asked for it, and so does one whose update waits; one asked while its build runs builds
+        # once more after it, since that build may have read its YAML before this change.
+        line = self.manager.build_queue
+        build = self._queue(inbox, profile, host, add=[c['record']['id'] for c in changes], remove=list(removes), fresh=fresh)
+        return {'written': True, 'built': True, 'queued': line.place(build)}
+
+    def _queue(self, inbox, profile, host, add, remove=(), fresh=False):
+        """A plugin build of a screen in the build line, settled by `_built` once it ends (the one way every plugin build is
+        asked for: a change, a build a restart cut off, the version before). Joins a build of the screen that waits."""
+        build = self.manager.build_queue.add('plugins', profile, self._build, screen=inbox, target=host,
+                                             plugins={'add': list(add), 'remove': list(remove), 'fresh': fresh})
         if self._built not in build.ends:
             build.ends.append(self._built)
-        self.manager.notify()
-        return {'written': True, 'built': True, 'queued': line.place(build)}
+        notify = getattr(self.manager, 'notify', None)
+        if notify:
+            notify()
+        return build
 
     # How long a screen gets after a plugin build to restart and say it runs what was built (verify).
     VERIFY_WAIT = 240
@@ -2054,7 +1963,7 @@ class Plugins:
         ok = await line.step(step)
         logs = list(getattr(self.manager.firmware, 'logs', None) or [])
         stage = ((getattr(self.manager.firmware, 'job', None) or {}).get('stage'))
-        if not ok and stage != 'upload' and failure_kind(logs, stage) == 'network':
+        if not ok and stage != 'upload' and failure_kind(logs) == 'network':
             self.manager.firmware.logs.append('A download did not come: the build goes once more.')
             build.retried = True
             ok = await line.step(step)
@@ -2077,10 +1986,7 @@ class Plugins:
             return None
         build.phase = 'verify'
         # The screen restarts and is checked: that is waiting, not building, so the slot goes to the next build.
-        line = self.manager.build_queue
-        if hasattr(line, 'handoff'):
-            line.handoff(build)
-        line.changed()
+        self.manager.build_queue.handoff(build)
         # The screen restarts with the new firmware: it drops off (no hello) and says hello again with what it runs.
         gone = False
         deadline = time.monotonic() + self.VERIFY_WAIT
@@ -2101,21 +2007,20 @@ class Plugins:
         """What the end of a build of this screen (a plugin build, or the update it became one with) means for the
         plugins it brought: whether the screen's firmware with them went on. A plugin asked for again while it built is
         settled by the build that waits for it."""
-        if build.state == 'interrupted':
-            # The app stops (BuildQueue.close): the plugins stay `building`, and the next start builds them once more
-            # (settle, _resume) instead of calling them failed.
+        if build.state in ('interrupted', 'retry'):
+            # The app stops (BuildQueue.close), or the build goes once more at the end of the line (Updater.run_build,
+            # which hands its plugins on): the plugins stay `building` until a build of them ends for real.
             return
         later = self.manager.build_queue.waiting(build.file)
         again = set(later.plugins['add']) if later else set()
         ok = build.installed
-        reason = None if ok else ('interrupted' if build.state == 'interrupted'
-                                  else build_reason(build.logs) if build.logs else str(build.reason or build.state))
+        reason = None if ok else (build_reason(build.logs) if build.logs else str(build.reason or build.state))
         kind = None
         if not ok:
             blamed = bool(build.logs and self.blame(build.screen, build.logs))
-            kind = failure_kind(build.logs, getattr(build, 'stage', None), build.memory, blamed)
+            kind = failure_kind(build.logs, build.memory, blamed)
         self._settle_build(build.screen, [p for p in build.plugins['add'] if p not in again], ok, reason, build.log,
-                           kind=kind, verified=getattr(build, 'verified', None))
+                           kind=kind, verified=build.verified)
 
     def _settle_build(self, inbox, added, ok, reason, log=None, kind=None, verified=None):
         """What a build's end means for the plugins it added. Built: they are active and what came before is forgotten.
@@ -2163,31 +2068,22 @@ class Plugins:
         """A plugin build that failed is said in Home Assistant too (a notification, one per screen), for whoever does not
         have the editor open; one that built takes it away again. A restart of the app is no failure: its build goes once
         more by itself."""
-        ha = getattr(self.manager, 'ha', None)
-        if ha is None or not hasattr(ha, 'request') or not added or reason == 'interrupted':
+        if not added or reason == 'interrupted':
             return
-        key = f'tessera_plugins_{re.sub(r"[^a-z0-9_]+", "_", str(inbox).lower())}'
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
+        ha = getattr(self.manager, 'ha', None)
+        key = f'tessera_plugins_{re.sub(r"[^a-z0-9_]+", "_", str(inbox).lower())}'
         if ok:
-            data = {'notification_id': key}
-            service = 'dismiss'
-        else:
-            screen = self.manager.screen(inbox) or {}
-            names = ', '.join(self.known(p, inbox).text('name') if self.known(p, inbox) else p for p in added)
-            data = {'notification_id': key, 'title': 'Tessera',
-                    'message': screen_t('addon.notify.plugin_failed', names=names,
-                                        screen=screen.get('name') or inbox, reason=str(reason or '').split('\n')[0])}
-            service = 'create'
-
-        async def say():
-            try:
-                await ha.request('call_service', domain='persistent_notification', service=service, service_data=data)
-            except Exception as error:
-                LOG.warning('Telling Home Assistant about a plugin build failed (%s)', type(error).__name__)
-        loop.create_task(say())
+            loop.create_task(ha_notice.dismiss(ha, key))
+            return
+        screen = self.manager.screen(inbox) or {}
+        names = ', '.join(self.known(p, inbox).text('name') if self.known(p, inbox) else p for p in added)
+        loop.create_task(ha_notice.show(ha, key, screen_t('addon.notify.plugin_failed', names=names,
+                                                         screen=screen.get('name') or inbox,
+                                                         reason=str(reason or '').split('\n')[0])))
 
     def _last_log(self, inbox):
         """The newest kept build log of a screen's profile (build_logs.py), or None."""

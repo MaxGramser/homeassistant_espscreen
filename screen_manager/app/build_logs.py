@@ -91,6 +91,17 @@ class BuildLogs:
         except OSError as error:
             LOG.warning('Build log %s not closed: %s', key, error)
 
+    def discard(self, key):
+        """A log started for a step that never ran: gone, files and all."""
+        handle = self._open.pop(key, None)
+        if handle is not None:
+            handle.close()
+        for suffix in ('.log', '.json'):
+            try:
+                (self.folder / f'{key}{suffix}').unlink()
+            except OSError:
+                pass
+
     def _write_meta(self, key, meta):
         atomic.write_json(self.folder / f'{key}.json', meta)
 

@@ -84,7 +84,7 @@ const actions: PaletteActions = {
     const screen = scr.currentScreen, plugin = plugins.index.find((p) => p.id === id);
     if (!screen || !plugin) return;
     plugins.setAside(screen, plugin);
-    ui.go(""); ui.tab = "plugins"; plugins.focus = id;
+    void session.openTab(screen.id, "plugins", id);
   },
 };
 

@@ -17,12 +17,12 @@ import { glyph } from "../model/topbar";
 import { SETTING_GROUPS, settingLabel, type SettingRow } from "../model/settings";
 import { PART_LOOK, SCREEN_PART_ROWS, type ScreenSettingsPart } from "../model/settings-parts";
 import type { PartRow } from "../model/parts";
-import type { IconName } from "../model/ui-icons";
 import { useSettingsStore } from "../stores/settings";
 import { usePluginsStore } from "../stores/plugins";
 import { useScreenStore } from "../stores/screen";
 import { useDocumentStore } from "../stores/document";
 import { pageReachWarning } from "../editor/pages";
+import { useSessionStore } from "../stores/session";
 import { useUiStore } from "../stores/ui";
 import { useScreenIconsStore } from "../stores/screenIcons";
 
@@ -31,6 +31,7 @@ const plugins = usePluginsStore();
 const scr = useScreenStore();
 const doc = useDocumentStore();
 const ui = useUiStore();
+const session = useSessionStore();
 const screenIcons = useScreenIconsStore();
 
 const view = computed(() => settings.settingsView());
@@ -47,10 +48,7 @@ const pluginsWithSettings = computed(() => {
     .filter((plugin) => plugin.settings?.length || (plugin.inputs || []).length || (plugin.parts || []).length);
 });
 // A plugin's details on the screen's Plugins tab, opened from here, where its settings used to be.
-function openPlugin(id: string) {
-  plugins.focus = id;
-  ui.tab = "plugins";
-}
+const openPlugin = (id: string) => void session.openTab(screen.value!.id, "plugins", id);
 const values = computed(() => settings.settingValues());
 const offline = computed(() => view.value?.owner === "screen" && !screen.value?.online);
 // Page buttons and swiping off: the pages that only Go to page tiles could reach, and don't.
@@ -108,13 +106,13 @@ const helpLine = computed(() => [
   ...(real.value ? [t("editor.report.card_title")] : []),
 ].join(" · "));
 
-type Part = { id: ScreenSettingsPart; icon: IconName; summary: string };
+type Part = { id: ScreenSettingsPart; summary: string };
 const parts = computed<Part[]>(() => [
-  ...(gridShown.value || blocks("display").length ? [{ id: "display" as const, icon: "white-balance-sunny" as const, summary: displayLine.value }] : []),
-  ...(blocks("standby").length ? [{ id: "standby" as const, icon: "weather-night" as const, summary: standbyLine.value }] : []),
-  ...(blocks("navigation").length ? [{ id: "navigation" as const, icon: "gesture-swipe" as const, summary: navigationLine.value }] : []),
-  ...(real.value && boardLine.value ? [{ id: "board" as const, icon: "chip" as const, summary: boardLine.value }] : []),
-  ...(helpLine.value ? [{ id: "help" as const, icon: "lifebuoy" as const, summary: helpLine.value }] : []),
+  ...(gridShown.value || blocks("display").length ? [{ id: "display" as const, summary: displayLine.value }] : []),
+  ...(blocks("standby").length ? [{ id: "standby" as const, summary: standbyLine.value }] : []),
+  ...(blocks("navigation").length ? [{ id: "navigation" as const, summary: navigationLine.value }] : []),
+  ...(real.value && boardLine.value ? [{ id: "board" as const, summary: boardLine.value }] : []),
+  ...(helpLine.value ? [{ id: "help" as const, summary: helpLine.value }] : []),
 ]);
 const title = (part: ScreenSettingsPart) => t(`editor.screen_settings.parts.${part}.title`);
 // The rows of the list (model/parts.ts): each part with its title, its icon's colour and card.

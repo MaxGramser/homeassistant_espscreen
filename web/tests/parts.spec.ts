@@ -2,7 +2,7 @@
 // list of parts, in cards like Home Assistant's own Settings.
 import { describe, expect, it } from "vitest";
 import { cardsOf } from "../src/model/parts";
-import { EVENT_PARTS, PART_LOOK, partCards } from "../src/model/settings-parts";
+import { EVENT_PARTS, PART_LOOK } from "../src/model/settings-parts";
 
 describe("a page of parts", () => {
   it("puts its rows in their cards, in order, and leaves out a card with none", () => {
@@ -11,8 +11,8 @@ describe("a page of parts", () => {
   });
 
   it("gives every part of Events a colour and a card: what automations fire, then what the screens follow", () => {
-    expect(partCards(EVENT_PARTS.map((id) => ({ id }))).map((card) => card.map((row) => row.id)))
+    expect(cardsOf(EVENT_PARTS.map((id) => ({ id, ...PART_LOOK[id] }))).map((card) => card.map((row) => row.id)))
       .toEqual([["alerts", "doorbell"], ["alarm", "calls"]]);
-    for (const id of EVENT_PARTS) expect(PART_LOOK[id].tone).toBeTruthy();
+    for (const id of EVENT_PARTS) expect(PART_LOOK[id].tone && PART_LOOK[id].icon).toBeTruthy();
   });
 });

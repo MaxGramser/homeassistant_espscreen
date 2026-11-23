@@ -3,7 +3,8 @@
 // card): how far it is, or its turn while it waits, and its log, folded away until someone opens it. It reads the builds
 // store: buildOf (the add-on's Manager.builds) and the build line (lineOf, the newest build of the screen's profile) for
 // the lines. After a build that failed it stays, with that build's own log, until the next build of the screen starts.
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { useClock } from "../composables/useClock";
 import { useStickToBottom } from "../composables/useStickToBottom";
 import { t } from "../i18n";
 import { waitingText } from "../model/screen-status";
@@ -24,9 +25,7 @@ const last = computed(() => builds.lineOf(build.value?.file || props.screen.upda
 const failed = computed(() => !build.value && (last.value?.state === "failed" || last.value?.state === "interrupted"));
 // A build that went well stays a moment with its steps done, so whoever pressed the key sees that it did (docs/BUILDS.md).
 const DONE_SHOWN_S = 600;
-const now = ref(Date.now());
-const ticker = window.setInterval(() => { now.value = Date.now(); }, 30_000);
-onBeforeUnmount(() => window.clearInterval(ticker));
+const now = useClock(30_000);
 const done = computed(() => !build.value && last.value?.state === "success" && last.value.by !== "check"
   && Boolean(last.value.finished && now.value / 1000 - last.value.finished < DONE_SHOWN_S));
 const lines = computed(() => builds.buildLogOf(last.value));

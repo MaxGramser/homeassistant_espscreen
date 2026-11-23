@@ -49,6 +49,7 @@ import build_server
 import build_files
 import build_logs
 import build_memory
+import update_notice
 from build_queue import BuildQueue
 from firmware import Firmware
 import ha_pairing
@@ -1118,6 +1119,8 @@ class Manager:
         self.build_files = build_files.BuildFiles(self.build_queue, self.path.parent, self.notify)
         # Plugins (docs/PLUGINS.md): which exist, which each screen runs, their files and their tiles' data.
         self.plugins = plugins.Plugins(self, self.path.parent, self.firmware.root)
+        # Updates said in Home Assistant: the firmware's and the plugins' (update_notice.py).
+        self.update_notice = update_notice.UpdateNotice(self)
         self.icons = screen_icons.ScreenIcons(self, self.path.parent)
         # What the screens do when an alarm goes off (Events, Alarm; docs/ALARM_PANEL.md): set once per alarm.
         self.alarm_screens = alarm_screens.AlarmScreens(self.path.parent)
@@ -5021,6 +5024,9 @@ def create_app(manager, development=False):
     async def index(request):
         # SCREEN_DEV reads the file every time, so a fresh `npm run build` shows up without a restart.
         return web.Response(text=(static / 'index.html').read_text() if development else page, content_type='text/html')
+    # The editor's script the page gets (index above): read again with the page under SCREEN_DEV, so the live answer and
+    # the page never name two (a page that runs another reloads itself, web/src/stores/editor-version.ts).
+    served_bundle = (lambda: editor_bundle(static)) if development else (lambda: EDITOR_BUNDLE)
     def light_payload(screens=None):
         """Screens and update status: everything that changes while the page is open."""
         if screens is None:
@@ -5178,7 +5184,7 @@ def create_app(manager, development=False):
                 'build_room': manager.build_room(),
                 # The editor's bundle this app serves (static/index.html): a page that runs another one reloads itself
                 # once nothing is in progress (web/src/stores/editor-version.ts).
-                'editor': EDITOR_BUNDLE,
+                'editor': served_bundle(),
                 # What this app shares about plugins (plugin_likes.py): the likes' yes, counting, whether cards ask.
                 'plugin_sharing': manager.plugins.liker.view() if editor_features['plugins'] else None,
                 # The live streams of every screen together against the most the app serves (live_stream.py): the
@@ -5556,10 +5562,7 @@ def create_app(manager, development=False):
         data = await request.json()
         if not isinstance(data, dict):
             raise ValueError(t('addon.errors.updates.automatic'))
-        if 'auto' in data:
-            manager.updates.set_auto(data.get('auto'))
-        if 'hour' in data:
-            manager.updates.set_hour(data.get('hour'))
+        manager.updates.set_choices(**{key: data[key] for key in ('auto', 'hour') if key in data})
         return web.json_response(manager.updates.summary())
     async def inspector(request):
         screen=manager.screen(request.match_info['inbox'])
@@ -6742,7 +6745,7 @@ async def main():
         # A port another program holds turns camera images off, and nothing else.
         await picture_links.open_port(cameras)
         try:
-            await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(),
+            await asyncio.gather(ha.run(), manager.run(), manager.history_loop(), manager.updates.run(), manager.update_notice.run(),
                                  manager.alert_loop(), manager.doorbell_loop(), manager.call_loop(), manager.tile_loop(), manager.card_history_loop(), manager.camera_loop(), manager.card_options_loop(), manager.calendar_loop(), manager.todo_loop(),
                                  manager.media_loop(), manager.pairing_loop(), manager.photo_loop(), manager.video_loop(), manager.debug_sensor_loop(),
                                  *([manager.plugins.loop(), manager.plugin_loop()] if core.plugins_enabled() else []))

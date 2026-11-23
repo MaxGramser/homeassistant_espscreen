@@ -10,7 +10,6 @@ import BuildFilesCard from "./BuildFilesCard.vue";
 import BuildServerCard from "./BuildServerCard.vue";
 import Icon from "./ui/Icon.vue";
 import PartsPage from "./parts/PartsPage.vue";
-import type { IconName } from "../model/ui-icons";
 import { PART_LOOK, type AppSettingsPart } from "../model/settings-parts";
 import type { PartRow } from "../model/parts";
 import { useUiStore } from "../stores/ui";
@@ -18,6 +17,7 @@ import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
 import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
+import { useSessionStore } from "../stores/session";
 import { text } from "../model/plugins";
 
 const ui = useUiStore();
@@ -25,6 +25,7 @@ const region = useRegionStore();
 const builds = useBuildsStore();
 const inv = useInventoryStore();
 const plugins = usePluginsStore();
+const session = useSessionStore();
 // What this app shares about plugins (plugin_likes.py): counting the plugins it runs, and the stars card's asking.
 const sharing = computed(() => inv.inventory.plugin_sharing || null);
 const sharingBusy = ref(false);
@@ -39,15 +40,13 @@ async function share(what: "counting" | "asking", on: boolean) {
 const u = computed(() => inv.inventory.updates);
 // The hour as Home Assistant's clock writes it (24 or 12 hours), for the nightly round's start.
 const hourText = (h: number) => new Date(2000, 0, 1, h, 0).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-// The screens with plugin updates, each with what it gets.
-const pluginUpdates = computed(() => inv.inventory.screens.filter((s) => !s.virtual).map((screen) => ({ screen, list: plugins.updatesOn(screen) }))
-  .filter((row) => row.list.length).map((row) => ({ screen: row.screen, names: row.list.map((p) => `${text(p.name)} ${p.version}`).join(", ") })));
-async function openPlugins(screen: (typeof inv.inventory.screens)[number]) {
-  const { useSessionStore } = await import("../stores/session");
-  const { useScreenStore } = await import("../stores/screen");
-  await useSessionStore().select(screen.id);
-  if (useScreenStore().selected === screen.id) ui.tab = "plugins";
-}
+// When the nightly round may run, as the add-on says it (its start hour and the hours it has from then).
+const night = computed(() => (u.value?.hour !== undefined && u.value.window !== undefined
+  ? { from: hourText(u.value.hour), to: hourText((u.value.hour + u.value.window) % 24) } : null));
+// The screens with plugin updates, each with what it gets (plugins.updatesEverywhere); a row opens that screen's tab.
+const pluginUpdates = computed(() => plugins.updatesEverywhere.map((row) => ({ screen: row.screen,
+  names: row.plugins.map((p) => `${text(p.name)} ${p.version}`).join(", ") })));
+const openPlugins = (screen: (typeof inv.inventory.screens)[number]) => void session.openTab(screen.id, "plugins");
 const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
 const running = computed(() => inv.inventory.screens.find((s) => s.id === inv.inventory.updates?.busy));
 // Each screen is offered its own board's firmware (app 0.3.21): one number only when those screens share it.
@@ -165,15 +164,15 @@ const haLine = computed(() => [
   ...(inv.pluginsEnabled ? [t("editor.settings.parts.home_assistant.video", { state: videoState.value })] : []),
   t("editor.settings.parts.home_assistant.claude", { state: claudeState.value }),
 ].join(" · "));
-type Part = { id: AppSettingsPart; icon: IconName; title: string; summary: string; badge?: string };
+type Part = { id: AppSettingsPart; title: string; summary: string; badge?: string };
 const parts = computed<Part[]>(() => [
-  ...(u.value ? [{ id: "updates" as const, icon: "update" as const, title: t("editor.settings.parts.updates.title"),
+  ...(u.value ? [{ id: "updates" as const, title: t("editor.settings.parts.updates.title"),
     summary: [updatesHint.value, ...(auto.value ? [t("editor.settings.parts.updates.nightly")] : [])].join(" · "),
     badge: outdated.value && !u.value.busy ? t("editor.settings.parts.updates.badge", outdated.value) : undefined }] : []),
-  { id: "builds", icon: "hammer-wrench", title: t("editor.settings.parts.builds.title"), summary: buildsLine.value },
-  ...(lang.value ? [{ id: "language" as const, icon: "translate" as const, title: t("editor.settings.language.title"), summary: languageLine.value }] : []),
-  ...(inv.pluginsEnabled && sharing.value?.usable ? [{ id: "plugins" as const, icon: "puzzle-outline" as const, title: t("editor.settings.parts.plugins.title"), summary: pluginsLine.value }] : []),
-  { id: "home-assistant", icon: "home-assistant", title: t("editor.settings.parts.home_assistant.title"), summary: haLine.value },
+  { id: "builds", title: t("editor.settings.parts.builds.title"), summary: buildsLine.value },
+  ...(lang.value ? [{ id: "language" as const, title: t("editor.settings.language.title"), summary: languageLine.value }] : []),
+  ...(inv.pluginsEnabled && sharing.value?.usable ? [{ id: "plugins" as const, title: t("editor.settings.parts.plugins.title"), summary: pluginsLine.value }] : []),
+  { id: "home-assistant", title: t("editor.settings.parts.home_assistant.title"), summary: haLine.value },
 ]);
 // The rows of the list (model/parts.ts): each part with its icon's colour and card.
 const rows = computed<PartRow<AppSettingsPart>[]>(() => parts.value.map((p) => ({ ...p, ...PART_LOOK[p.id] })));
@@ -204,12 +203,12 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
         </details>
         <label class="check">
           <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="builds.setAutoUpdate(($event.target as HTMLInputElement).checked)" />
-          <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint_hour", { from: hourText(u.hour ?? 3), to: hourText(((u.hour ?? 3) + 3) % 24) }) }}</small></span>
+          <span>{{ t("editor.settings.updates.auto_label") }}<small v-if="night">{{ t("editor.settings.updates.auto_hint_hour", night) }}</small></span>
         </label>
         <!-- When the nightly round may start (wish 113): a screen beside a bed restarts at full brightness. -->
-        <label v-if="u.auto" class="field update-hour">
+        <label v-if="u.auto && u.hour !== undefined" class="field update-hour">
           <span class="f-label">{{ t("editor.settings.updates.hour_label") }}</span>
-          <select id="update-hour" :value="u.hour ?? 3" @change="builds.setUpdateHour(Number(($event.target as HTMLSelectElement).value))">
+          <select id="update-hour" :value="u.hour" @change="builds.setUpdateHour(Number(($event.target as HTMLSelectElement).value))">
             <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ hourText(h - 1) }}</option>
           </select>
         </label>

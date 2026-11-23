@@ -32,9 +32,12 @@ export function stepsOf(build: (Build | LineBuild) & { verified?: boolean | null
     return ORDER.map((key) => ({ key, state: key === "wait" || key === "build" ? "done" : key === "send" ? "waits" : "todo" }));
   const at = stepAt(build as LineBuild);
   const index = ORDER.indexOf(at);
-  const ended = state === "failed" || state === "interrupted" || state === "skipped" || state === "retry";
+  // How the step it got to ended: failed; goes once more at the end of the line (retry: it waits); left out because its
+  // round stopped before its turn (skipped: nothing failed here).
+  const stopped: StepState | null = state === "failed" || state === "interrupted" ? "failed" : state === "retry" ? "waits"
+    : state === "skipped" ? "skipped" : null;
   return ORDER.map((key, i) => ({
     key,
-    state: i < index ? "done" : i === index ? (ended ? "failed" : "now") : ended ? "skipped" : "todo",
+    state: i < index ? "done" : i === index ? (stopped ?? "now") : stopped ? "skipped" : "todo",
   }));
 }
