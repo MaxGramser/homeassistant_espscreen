@@ -19,7 +19,7 @@ const nameStep = ref<InstanceType<typeof NameStep> | null>(null);
 // Step two asks nothing it can't check on the spot: Next goes on only when its fields are filled in as they must be.
 function next() {
   if (install.stage === "board") { if (install.form.board || install.mode === "virtual") install.step = 2; return; }
-  if (install.stage === "setup" && (!nameStep.value?.check() || install.clash.node || install.clash.name)) return;
+  if (install.stage === "setup" && (!nameStep.value?.check() || install.clash.node || install.clash.name || install.clash.quote)) return;
   if (install.stage !== "install") install.step += 1;
 }
 // Each step, and the installation after them, starts at its top.
@@ -51,7 +51,7 @@ watch(() => [install.step, install.installer.view], () => root.value?.scrollTo?.
         <button v-else-if="install.mode === 'virtual'" type="button" class="btn quiet" @click="install.realScreen">{{ t("editor.common.back") }}</button>
         <span class="status-line error" id="install-status" role="status">{{ install.status }}</span>
         <button v-if="install.mode === 'virtual'" type="submit" class="btn primary big" id="virtual-create">{{ t("editor.preview.create") }}</button>
-        <button v-else-if="install.stage !== 'install'" type="button" class="btn primary big" id="setup-next" :disabled="(install.stage === 'board' && !install.form.board) || (install.stage === 'setup' && (install.clash.name || install.clash.node))" @click="next">{{ t("editor.installer.next") }}<Icon name="arrow-right" /></button>
+        <button v-else-if="install.stage !== 'install'" type="button" class="btn primary big" id="setup-next" :disabled="(install.stage === 'board' && !install.form.board) || (install.stage === 'setup' && (install.clash.name || install.clash.node || install.clash.quote))" @click="next">{{ t("editor.installer.next") }}<Icon name="arrow-right" /></button>
         <button v-else type="submit" class="btn primary big" id="install-go" :disabled="install.goDisabled">{{ install.goLabel }}</button>
       </footer>
     </form>

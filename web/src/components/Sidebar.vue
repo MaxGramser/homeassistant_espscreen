@@ -64,6 +64,20 @@ const isSelected = (screen: Screen) => screen.id === scr.selected && ui.route ==
 const explains = (screen: Screen) => explainsItself(screen, scr.updateState(screen)?.kind);
 // Folded to its icons the sidebar has no room for a screen's details: the row opens them again.
 const isOpen = (screen: Screen) => !sidebar.folded && (folded.value?.id === screen.id ? folded.value.open : isSelected(screen) && explains(screen));
+// A screen's plugins with an update, and the ones that did not build (plugins.failuresOn): the row says them too, so
+// nobody has to open a screen to find out (docs/BUILDS.md, "Updates of a screen"). The firmware's own update keeps its
+// key; plugin news opens the screen's Plugins tab.
+const pluginNews = (screen: Screen) => {
+  if (screen.virtual || !plugins.pluginsEnabled) return null;
+  if (plugins.failuresOn(screen).some((f) => !(f.why === "offline" && !f.waited))) return "failed";
+  const n = plugins.updatesOn(screen).length;
+  return n ? n : null;
+};
+async function openPlugins(screen: Screen) {
+  if (!isSelected(screen)) folded.value = null;
+  await session.select(screen.id);
+  if (scr.selected === screen.id) ui.tab = "plugins";
+}
 function choose(screen: Screen) {
   if (!isSelected(screen)) folded.value = null;
   removeFor.value = null;
@@ -180,11 +194,14 @@ const lastLog = () => {
           <ProgressRing v-if="status(screen) === 'running'" class="row-ring" :percent="builds.buildProgress(screen)?.percent ?? 0" :label="subline(screen)?.text || ''" />
           <Icon v-else-if="status(screen) === 'failed'" name="alert-circle-outline" class="sub-icon failed" />
           <small v-else-if="['down', 'virtual', 'waiting'].includes(status(screen))" class="sub" :class="subline(screen)?.kind">{{ status(screen) === 'waiting' ? t("editor.sidebar.update.short") : subline(screen)?.text }}</small>
+          <span v-else-if="pluginNews(screen) === 'failed'" class="sub-icon failed plugin-news" role="img" :aria-label="t('editor.sidebar.plugins.failed')" :title="t('editor.sidebar.plugins.failed')"><Icon name="puzzle-outline" /></span>
           <span v-else-if="brokenOn(screen).length" class="broken-dot" role="img" :aria-label="t('editor.broken.short', brokenOn(screen).length)" :title="t('editor.broken.short', brokenOn(screen).length)"></span>
         </button>
         <span class="row-end">
           <!-- The one button an update needs, always in the list: an icon, so the name keeps its room; its words in the tooltip. -->
           <button v-if="status(screen) === 'update'" type="button" class="update-pill" :title="`${t('editor.sidebar.update.button')} · ${subline(screen)?.text}`" :aria-label="`${t('editor.sidebar.update.button')}: ${screen.name}`" @click="update(screen)"><Icon name="update" /></button>
+          <button v-if="status(screen) !== 'update' && typeof pluginNews(screen) === 'number'" type="button" class="update-pill plugin-pill" :title="t('editor.sidebar.plugins.updates', { n: pluginNews(screen) }, Number(pluginNews(screen)))"
+            :aria-label="`${t('editor.sidebar.plugins.updates', { n: pluginNews(screen) }, Number(pluginNews(screen)))}: ${screen.name}`" @click="openPlugins(screen)"><Icon name="puzzle-outline" /><small>{{ pluginNews(screen) }}</small></button>
           <button type="button" class="details-toggle" :aria-expanded="isOpen(screen) ? 'true' : 'false'"
             :aria-label="t(isOpen(screen) ? 'editor.sidebar.details.hide' : 'editor.sidebar.details.show', { name: screen.name })"
             :title="t(isOpen(screen) ? 'editor.sidebar.details.hide' : 'editor.sidebar.details.show', { name: screen.name })" @click="toggleDetails(screen)">

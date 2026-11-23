@@ -867,7 +867,8 @@
         "host": "Vul het IP-adres of de hostnaam van het bedoelde scherm in.",
         "grid": "Kies een raster dat dit scherm aanneemt.",
         "build_gone": "Deze build is niet meer bekend. De nieuwste builds staan onder Firmware & USB.",
-        "log_gone": "Dit build-log wordt niet meer bewaard."
+        "log_gone": "Dit build-log wordt niet meer bewaard.",
+        "friendly_name_quote": "De naam van een scherm mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in."
       },
       "updates": {
         "automatic": "Kies aan of uit voor automatisch bijwerken.",
@@ -881,7 +882,8 @@
         "all_updated": "Alle bereikbare schermen zijn al bijgewerkt.",
         "reinstall_dev": "Dezelfde firmware opnieuw installeren kan alleen in het dev-kanaal.",
         "all_on_the_way": "Elk scherm met een update heeft die al onderweg.",
-        "nothing_to_reinstall": "Er is nu geen scherm opnieuw te installeren: elk is offline, al onderweg, of heeft geen profiel in deze app."
+        "nothing_to_reinstall": "Er is nu geen scherm opnieuw te installeren: elk is offline, al onderweg, of heeft geen profiel in deze app.",
+        "hour": "Kies een uur van 0 tot 23."
       },
       "remove": {
         "not_allowed": "Deze app mag geen integratie uit Home Assistant verwijderen. Verwijder het scherm in Home Assistant zelf, onder Instellingen → Apparaten & diensten.",
@@ -989,7 +991,8 @@
         "rate_not_installed": "Zet de plugin eerst op een van je schermen, dan kun je hem beoordelen.",
         "rate_failed": "De sterren zijn niet verstuurd. Probeer het zo nog eens.",
         "count_failed": "Meetellen kon niet uit: Tessera was niet bereikbaar. Probeer het zo nog eens.",
-        "forget_running": "Een scherm gebruikt deze plugin nog. Haal hem eerst van het scherm."
+        "forget_running": "Een scherm gebruikt deze plugin nog. Haal hem eerst van het scherm.",
+        "no_before": "Er is geen eerdere versie van deze plugin om naar terug te gaan."
       },
       "extras": {
         "request": "Deze extra kan op dit scherm niet zo worden gewijzigd."
@@ -1089,7 +1092,10 @@
       "updated": "Bijgewerkt naar firmware {version}."
     },
     "notify": {
-      "update_stopped": "Automatisch bijwerken is gestopt bij {name}: {reason} De overige schermen zijn niet aangeraakt."
+      "update_stopped": "Automatisch bijwerken is gestopt bij {name}: {reason} De overige schermen zijn niet aangeraakt.",
+      "plugin_failed": "{names} bouwde niet op {screen}: {reason} Het scherm draait nog wat het draaide. Open Tessera en dan de Plugins-tab van het scherm voor de reden en het log.",
+      "updates": "Er staan updates klaar voor je schermen. Open Tessera om ze te installeren.",
+      "updates_firmware": "firmware {version}"
     },
     "labels": {
       "built_into_screen": "Ingebouwd in het scherm",
@@ -1812,7 +1818,11 @@
         "kept": "{name} is verwijderd. Het profiel {file} staat nog in de ESPHome-map."
       },
       "home": "Overzicht van je schermen",
-      "dev_chip": "Dit is de dev-versie van de app: elk scherm dat hij bouwt komt van de dev-branch."
+      "dev_chip": "Dit is de dev-versie van de app: elk scherm dat hij bouwt komt van de dev-branch.",
+      "plugins": {
+        "failed": "Een plugin bouwde niet",
+        "updates": "{n} plugin-update | {n} plugin-updates"
+      }
     },
     "palette": {
       "groups": {
@@ -3012,11 +3022,13 @@
         "all": "1 scherm bijwerken | Alle {n} schermen bijwerken",
         "whats_new": "Nieuw in firmware {version}",
         "auto_label": "Elke nacht automatisch bijwerken",
-        "auto_hint": "Tussen 03:00 en 06:00, één scherm tegelijk. Stopt bij een fout en meldt die in Home Assistant.",
         "reinstall_all": "1 scherm opnieuw installeren van dev | Alle {n} schermen opnieuw installeren van dev",
         "reinstall_all_hint": "Bouwt voor elk scherm de nieuwste dev, de een na de ander, en zet die via Wi-Fi op het scherm. Op dev blijft het versienummer gelijk, dus een nieuwe dev wordt nooit als update aangeboden.",
         "reinstall_all_confirm": "1 scherm opnieuw installeren van de nieuwste dev? Het herstart zodra de firmware erop staat. | {n} schermen opnieuw installeren van de nieuwste dev? Ze worden een voor een gebouwd, en elk herstart zodra de firmware erop staat.",
-        "reinstall_all_go": "Opnieuw installeren"
+        "reinstall_all_go": "Opnieuw installeren",
+        "auto_hint_hour": "Tussen {from} en {to}, één scherm tegelijk. Stopt bij een fout en meldt die in Home Assistant.",
+        "hour_label": "Beginnen om",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Video in Home Assistant",
@@ -3439,7 +3451,8 @@
       "grid_best": "Terug naar het beste",
       "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf.",
       "plugins_title": "Plugins voor dit scherm",
-      "plugins_intro": "Deze horen bij wat dit bord heeft. Vink uit wat je niet wilt: dat wordt niet ingebouwd, en je kunt het later toevoegen op de pagina Plugins."
+      "plugins_intro": "Deze horen bij wat dit bord heeft. Vink uit wat je niet wilt: dat wordt niet ingebouwd, en je kunt het later toevoegen op de pagina Plugins.",
+      "name_quote": "Een naam mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in."
     },
     "alerts": {
       "intro": "Elk scherm heeft de actie {action}. Die legt een kaart over alles heen, wekt het scherm en houdt de backlight op de normale helderheid tot iemand op de knop tikt of de timeout verstrijkt. Home Assistant toont bij ESPHome-acties zelf geen uitleg of keuzelijsten; alles wat je kunt invullen staat hier.",
@@ -4236,8 +4249,6 @@
         "here": "Op dit scherm",
         "add": "Toevoegen",
         "misfits": "Past niet op dit scherm ({n}) | Passen niet op dit scherm ({n})",
-        "updates": "Een update voor {n} plugin | Updates voor {n} plugins",
-        "updates_note": "Eén build voor {screen}: {names}.",
         "updates_rights": "{names} vraagt om andere rechten dan eerst. | {names} vragen om andere rechten dan eerst.",
         "update_all": "Alles bijwerken op dit scherm"
       },
@@ -4513,7 +4524,21 @@
         "no_log": "Van deze build is geen log bewaard.",
         "details": "Details",
         "report": "Meld bij {maker}",
-        "report_hint": "Melden opent een issue op de GitHub van de maker, al ingevuld. Voeg het gedownloade log toe."
+        "report_hint": "Melden opent een issue op de GitHub van de maker, al ingevuld. Voeg het gedownloade log toe.",
+        "why": {
+          "plugin": "Hij stopte in de eigen code van de plugin; de maker kan dat oplossen.",
+          "memory": "Deze Home Assistant had te weinig geheugen tijdens het bouwen. Een build server op een andere computer bouwt hem zonder die grens.",
+          "offline": "Hij is gebouwd, maar {screen} nam hem niet aan, ook niet nadat hij terug was. Kijk of hij aan staat en op wifi zit.",
+          "offline_wait": "Hij is gebouwd, maar {screen} was niet bereikbaar. Hij installeert vanzelf zodra het scherm terug is.",
+          "network": "Een download die hij nodig heeft kwam niet, ook niet bij een tweede poging. Probeer het zo nog eens.",
+          "build": "In het log staat waarom.",
+          "interrupted": "De app herstartte tijdens de build, en opnieuw tijdens de poging daarna."
+        },
+        "build_server": "Build server instellen"
+      },
+      "back": {
+        "button": "Terug naar {version}",
+        "not_running": "{screen} kwam na de update terug zonder {name}. Terug naar de vorige versie helpt meestal."
       }
     },
     "plugin_tile": {
@@ -4584,7 +4609,18 @@
           "bundle": "de YAML kon niet worden ingepakt"
         }
       },
-      "icons": "Bouwt met zijn iconen"
+      "icons": "Bouwt met zijn iconen",
+      "steps": {
+        "title": "Stappen van de build",
+        "wait": "Wacht op zijn beurt",
+        "build": "Bouwt",
+        "send": "Stuurt naar het scherm",
+        "confirm": "Scherm bevestigt",
+        "on": "op {name}"
+      },
+      "done": "{screen} is klaar.",
+      "done_confirmed": "{screen} is klaar en meldt dat hij draait wat er gebouwd is.",
+      "show_why": "Toon waarom"
     },
     "grid": {
       "title": "Raster",
@@ -5187,6 +5223,29 @@
         "soft_ends": "Zachte randen",
         "even_level": "Gelijk volume",
         "repeats": "Herhaalt"
+      }
+    },
+    "updates_card": {
+      "title": "{n} update voor {screen} | {n} updates voor {screen}",
+      "one": "Eén build van {screen}.",
+      "one_build": "Alles in één build van {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} is offline. Bijwerken kan zodra hij terug is.",
+      "go_all": "Alles bijwerken"
+    },
+    "build_room": {
+      "title": "Deze Home Assistant heeft mogelijk te weinig geheugen om te bouwen",
+      "text": "Er is {free} GB vrij, en een build heeft ongeveer {need} GB nodig. Een build kan mislukken of Home Assistant traag maken. Een build server op een andere computer voorkomt dat, en het scherm bijwerken vanuit ESPHome Device Builder op een computer ook.",
+      "server": "Build server"
+    },
+    "history": {
+      "title": "Laatste build van dit scherm | Laatste {n} builds van dit scherm",
+      "by": {
+        "update": "Update",
+        "plugins": "Plugins",
+        "install": "Installatie",
+        "icons": "Iconen",
+        "other": "Build"
       }
     }
   }

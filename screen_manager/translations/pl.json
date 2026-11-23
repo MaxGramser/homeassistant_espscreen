@@ -867,7 +867,8 @@
         "host": "Wpisz adres IP lub nazwę hosta właściwego ekranu.",
         "grid": "Wybierz siatkę, którą ten ekran przyjmuje.",
         "build_gone": "Ta kompilacja nie jest już znana. Najnowsze są w sekcji Firmware i USB.",
-        "log_gone": "Ten dziennik kompilacji nie jest już przechowywany."
+        "log_gone": "Ten dziennik kompilacji nie jest już przechowywany.",
+        "friendly_name_quote": "Nazwa ekranu nie może zawierać \" ani \\. Napisz na przykład 4 cale jako 4in."
       },
       "updates": {
         "automatic": "Włącz lub wyłącz automatyczne aktualizacje.",
@@ -881,7 +882,8 @@
         "all_updated": "Wszystkie osiągalne ekrany są już zaktualizowane.",
         "reinstall_dev": "Ponowna instalacja tego samego firmware jest możliwa tylko w kanale dev.",
         "all_on_the_way": "Każdy ekran z aktualizacją ma ją już w drodze.",
-        "nothing_to_reinstall": "Teraz nie można ponownie zainstalować żadnego ekranu: każdy jest offline, już w drodze albo nie ma profilu w tej aplikacji."
+        "nothing_to_reinstall": "Teraz nie można ponownie zainstalować żadnego ekranu: każdy jest offline, już w drodze albo nie ma profilu w tej aplikacji.",
+        "hour": "Wybierz godzinę od 0 do 23."
       },
       "remove": {
         "not_allowed": "Ta aplikacja nie może usunąć integracji z Home Assistant. Usuń ekran w samym Home Assistant, w sekcji Ustawienia → Urządzenia oraz usługi.",
@@ -989,7 +991,8 @@
         "rate_not_installed": "Najpierw dodaj wtyczkę do jednego z ekranów, wtedy możesz ją ocenić.",
         "rate_failed": "Gwiazdki nie zostały wysłane. Spróbuj za chwilę.",
         "count_failed": "Nie udało się wyłączyć liczenia: Tessera była nieosiągalna. Spróbuj za chwilę.",
-        "forget_running": "Ekran nadal używa tej wtyczki. Najpierw zdejmij ją z ekranu."
+        "forget_running": "Ekran nadal używa tej wtyczki. Najpierw zdejmij ją z ekranu.",
+        "no_before": "Nie ma wcześniejszej wersji tej wtyczki, do której można wrócić."
       },
       "extras": {
         "request": "Tej zmiany dodatku nie można wprowadzić na tym ekranie."
@@ -1089,7 +1092,10 @@
       "updated": "Zaktualizowano do firmware {version}."
     },
     "notify": {
-      "update_stopped": "Automatyczna aktualizacja zatrzymała się na ekranie {name}: {reason} Pozostałe ekrany pozostały bez zmian."
+      "update_stopped": "Automatyczna aktualizacja zatrzymała się na ekranie {name}: {reason} Pozostałe ekrany pozostały bez zmian.",
+      "plugin_failed": "{names} nie skompilowała się na {screen}: {reason} Ekran działa dalej tak jak wcześniej. Otwórz Tessera, a potem kartę Wtyczki ekranu, aby zobaczyć powód i dziennik.",
+      "updates": "Są gotowe aktualizacje dla twoich ekranów. Otwórz Tessera, aby je zainstalować.",
+      "updates_firmware": "firmware {version}"
     },
     "labels": {
       "built_into_screen": "Wbudowane w ekran",
@@ -1812,7 +1818,11 @@
         "kept": "Ekran {name} został usunięty. Jego profil {file} pozostaje w folderze ESPHome."
       },
       "home": "Przegląd twoich ekranów",
-      "dev_chip": "To wersja dev aplikacji: każdy ekran, który kompiluje, pochodzi z gałęzi dev."
+      "dev_chip": "To wersja dev aplikacji: każdy ekran, który kompiluje, pochodzi z gałęzi dev.",
+      "plugins": {
+        "failed": "Wtyczka się nie skompilowała",
+        "updates": "{n} aktualizacja wtyczki | {n} aktualizacje wtyczek | {n} aktualizacji wtyczek"
+      }
     },
     "palette": {
       "groups": {
@@ -2207,8 +2217,6 @@
         "here": "Na tym ekranie",
         "add": "Dodaj",
         "misfits": "Nie pasuje do tego ekranu ({n}) | Nie pasują do tego ekranu ({n}) | Nie pasują do tego ekranu ({n})",
-        "updates": "Aktualizacja dla {n} wtyczki | Aktualizacje dla {n} wtyczek | Aktualizacje dla {n} wtyczek",
-        "updates_note": "Jedna kompilacja dla {screen}: {names}.",
         "updates_rights": "{names} prosi o inne uprawnienia niż wcześniej. | {names} proszą o inne uprawnienia niż wcześniej. | {names} proszą o inne uprawnienia niż wcześniej.",
         "update_all": "Zaktualizuj wszystko na tym ekranie"
       },
@@ -2485,7 +2493,21 @@
         "no_log": "Z tej kompilacji nie zachowano dziennika.",
         "details": "Szczegóły",
         "report": "Zgłoś do {maker}",
-        "report_hint": "Zgłoszenie otwiera wypełnione zgłoszenie na GitHubie autora. Dołącz pobrany dziennik."
+        "report_hint": "Zgłoszenie otwiera wypełnione zgłoszenie na GitHubie autora. Dołącz pobrany dziennik.",
+        "why": {
+          "plugin": "Zatrzymała się we własnym kodzie wtyczki, który jej autor może poprawić.",
+          "memory": "Temu Home Assistantowi zabrakło pamięci podczas kompilacji. Serwer kompilacji na innym komputerze skompiluje ją bez tego limitu.",
+          "offline": "Została skompilowana, ale {screen} jej nie przyjął, także po powrocie. Sprawdź, czy jest włączony i w Wi-Fi.",
+          "offline_wait": "Została skompilowana, ale {screen} był nieosiągalny. Zainstaluje się sama, gdy ekran wróci.",
+          "network": "Potrzebne pobieranie nie dotarło, także przy drugiej próbie. Spróbuj ponownie za chwilę.",
+          "build": "Dziennik mówi dlaczego.",
+          "interrupted": "Aplikacja uruchomiła się ponownie podczas kompilacji, i znowu przy następnej próbie."
+        },
+        "build_server": "Skonfiguruj serwer kompilacji"
+      },
+      "back": {
+        "button": "Wróć do {version}",
+        "not_running": "{screen} wrócił po aktualizacji bez {name}. Powrót do poprzedniej wersji zwykle pomaga."
       }
     },
     "plugin_tile": {
@@ -3489,11 +3511,13 @@
         "all": "Aktualizuj 1 ekran | Aktualizuj wszystkie ekrany ({n}) | Aktualizuj wszystkie ekrany ({n})",
         "whats_new": "Co nowego w firmware {version}",
         "auto_label": "Aktualizuj automatycznie co noc",
-        "auto_hint": "Między 03:00 a 06:00, po jednym ekranie naraz. Przy błędzie zatrzymuje się i zgłasza go w Home Assistant.",
         "reinstall_all": "Zainstaluj ponownie 1 ekran z dev | Zainstaluj ponownie {n} ekrany z dev | Zainstaluj ponownie {n} ekranów z dev",
         "reinstall_all_hint": "Kompiluje najnowszą wersję dev dla każdego ekranu, jeden po drugim, i instaluje ją przez Wi-Fi. Na dev numer wersji się nie zmienia, więc nowa wersja dev nigdy nie pojawia się jako aktualizacja.",
         "reinstall_all_confirm": "Zainstalować ponownie 1 ekran z najnowszej wersji dev? Uruchomi się ponownie, gdy dostanie firmware. | Zainstalować ponownie {n} ekrany z najnowszej wersji dev? Kompilują się po kolei i każdy uruchamia się ponownie, gdy dostanie firmware. | Zainstalować ponownie {n} ekranów z najnowszej wersji dev? Kompilują się po kolei i każdy uruchamia się ponownie, gdy dostanie firmware.",
-        "reinstall_all_go": "Zainstaluj ponownie"
+        "reinstall_all_go": "Zainstaluj ponownie",
+        "auto_hint_hour": "Między {from} a {to}, jeden ekran naraz. Zatrzymuje się przy błędzie i zgłasza go w Home Assistant.",
+        "hour_label": "Zacznij o",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Wideo w Home Assistant",
@@ -3916,7 +3940,8 @@
       "grid_best": "Wróć do najlepszej",
       "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem.",
       "plugins_title": "Wtyczki dla tego ekranu",
-      "plugins_intro": "Pasują do tego, co ma ta płytka. Odznacz to, czego nie chcesz: nie zostanie wbudowane, a później możesz to dodać na stronie Wtyczki."
+      "plugins_intro": "Pasują do tego, co ma ta płytka. Odznacz to, czego nie chcesz: nie zostanie wbudowane, a później możesz to dodać na stronie Wtyczki.",
+      "name_quote": "Nazwa nie może zawierać \" ani \\. Napisz na przykład 4 cale jako 4in."
     },
     "alerts": {
       "intro": "Każdy ekran ma akcję {action}. Wyświetla ona kartę nad wszystkim, budzi ekran i utrzymuje normalną jasność podświetlenia, dopóki ktoś nie dotknie przycisku albo nie upłynie limit czasu. Sam Home Assistant nie pokazuje dla akcji ESPHome żadnych objaśnień ani list rozwijanych; wszystko, co możesz wypełnić, znajdziesz tutaj.",
@@ -4584,7 +4609,18 @@
           "bundle": "nie udało się spakować YAML"
         }
       },
-      "icons": "Kompiluje z ikonami"
+      "icons": "Kompiluje z ikonami",
+      "steps": {
+        "title": "Kroki kompilacji",
+        "wait": "Czeka na swoją kolej",
+        "build": "Kompiluje",
+        "send": "Wysyła na ekran",
+        "confirm": "Ekran potwierdza",
+        "on": "na {name}"
+      },
+      "done": "{screen} jest gotowy.",
+      "done_confirmed": "{screen} jest gotowy i potwierdza, że działa to, co skompilowano.",
+      "show_why": "Pokaż dlaczego"
     },
     "grid": {
       "title": "Siatka",
@@ -5187,6 +5223,29 @@
         "soft_ends": "Miękkie końce",
         "even_level": "Równa głośność",
         "repeats": "Powtarza się"
+      }
+    },
+    "updates_card": {
+      "title": "{n} aktualizacja dla {screen} | {n} aktualizacje dla {screen} | {n} aktualizacji dla {screen}",
+      "one": "Jedna kompilacja {screen}.",
+      "one_build": "Wszystko w jednej kompilacji {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} jest offline. Można go zaktualizować, gdy wróci.",
+      "go_all": "Zaktualizuj wszystko"
+    },
+    "build_room": {
+      "title": "Temu Home Assistantowi może zabraknąć pamięci do kompilacji",
+      "text": "Ma {free} GB wolnej pamięci, a kompilacja potrzebuje około {need} GB. Może się nie udać lub spowolnić Home Assistanta. Serwer kompilacji na innym komputerze tego unika, podobnie jak aktualizacja ekranu z ESPHome Device Builder na komputerze.",
+      "server": "Serwer kompilacji"
+    },
+    "history": {
+      "title": "Ostatnia kompilacja tego ekranu | Ostatnie {n} kompilacje tego ekranu | Ostatnie {n} kompilacji tego ekranu",
+      "by": {
+        "update": "Aktualizacja",
+        "plugins": "Wtyczki",
+        "install": "Instalacja",
+        "icons": "Ikony",
+        "other": "Kompilacja"
       }
     }
   }

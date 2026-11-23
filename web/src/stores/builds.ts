@@ -96,13 +96,23 @@ export const useBuildsStore = defineStore("builds", () => {
     }
     const said = status.buildEndText(ends);
     if (!said) return;
-    if (said.failed) ui.toast(said.text, { label: t("editor.build.show_log"), run: () => ui.go("#firmware") });
+    // A failed plugin build goes to its screen's Plugins tab, where it says why with its log; any other to Firmware & USB.
+    const plugin = ends.find((end) => end.outcome === "failed" && end.by === "plugins");
+    if (said.failed && plugin) ui.toast(said.text, { label: t("editor.build.show_why"), run: () => showPlugins(plugin.screen) });
+    else if (said.failed) ui.toast(said.text, { label: t("editor.build.show_log"), run: () => ui.go("#firmware") });
     else if (offerClean()) {
       // The build files grew large (build_files.py `offer`): the build that ended offers the clean-up, once a page.
       offered.value = true;
       ui.toast(said.text, { label: t("editor.settings.build_files.offer", { size: sizeText(inv.inventory.build_files!.sizes!.folders) }), run: () => cleanBuildFiles("folders") });
     }
     else ui.toast(said.text);
+  }
+
+  async function showPlugins(screen: Screen) {
+    const { useSessionStore } = await import("./session");
+    const { useScreenStore } = await import("./screen");
+    await useSessionStore().select(screen.id);
+    if (useScreenStore().selected === screen.id) ui.tab = "plugins";
   }
 
   // ---- Build files (build_files.py, docs/BUILDS.md "Build files"): the room the builds take, and the clean-up ----
@@ -161,6 +171,15 @@ export const useBuildsStore = defineStore("builds", () => {
     try {
       await send("updates/run", "POST", reinstall ? { reinstall } : undefined);
       await inv.refresh(false);
+    } catch (e: any) {
+      ui.toast(e.message);
+    }
+  }
+  // The hour the nightly round may start (wish 113).
+  async function setUpdateHour(hour: number) {
+    try {
+      await send("updates", "PUT", { hour });
+      if (inv.inventory.updates) inv.inventory.updates.hour = hour;
     } catch (e: any) {
       ui.toast(e.message);
     }
@@ -255,6 +274,6 @@ export const useBuildsStore = defineStore("builds", () => {
   return {
     updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew, lineBuild, lineForgot, lineOf, lineEnded, buildLogOf }),
     anyBuilding, buildingScreens, prune, forget, watched, line, devChannel,
-    startUpdate, runUpdateAll, setAutoUpdate, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, keptLogs, loadKeptLogs, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
+    startUpdate, runUpdateAll, setAutoUpdate, setUpdateHour, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, keptLogs, loadKeptLogs, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

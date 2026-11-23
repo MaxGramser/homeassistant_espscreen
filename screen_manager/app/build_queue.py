@@ -74,6 +74,7 @@ class Build:
         self.installed = False
         self.stepped = False  # whether it ran an ESPHome step: then the firmware's job and log are its own
         self.logs, self.memory = [], None
+        self.stage, self.verified, self.retried = None, None, False
         self.log = None     # the key of its log kept on disk (build_logs.py), from its first ESPHome step
         # Where its compile ran (build_server.py): 'server' or 'here' after a fallback (its reason in `fallback`), None for
         # a build that never asked the server.
@@ -286,6 +287,8 @@ class BuildQueue:
                 job = getattr(self.firmware, 'job', None) or {}
                 build.memory = job.get('memory')
                 build.where, build.server, build.fallback = job.get('where'), job.get('server'), job.get('fallback')
+                # The ESPHome step it got to (compile, upload): where a build that failed stopped (Plugins.failure_kind).
+                build.stage = job.get('stage')
             if build.log:
                 tee = getattr(self.firmware, 'logs', None)
                 if getattr(tee, 'sink', None) is not None:
@@ -349,7 +352,8 @@ class BuildQueue:
                        remote=job.get('remote'), fallback=job.get('fallback'))
         elif build.state in ENDS:
             out.update(reason=shown(build.reason) if build.reason else None, memory=build.memory, where=build.where,
-                       server=build.server, fallback=build.fallback)
+                       server=build.server, fallback=build.fallback, stage=build.stage, verified=build.verified,
+                       retried=build.retried)
         return out
 
     def payload(self):

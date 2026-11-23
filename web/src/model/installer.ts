@@ -85,7 +85,9 @@ export type Taken = { nodes: string[]; prefixes: string[] };
 /** Which name clashes: the name, whose start of entity ids another screen has (core.entity_slug), or the device name. */
 export function nameClash(taken: Taken, friendly: string, node: string) {
   const prefix = entitySlug(friendly.trim());
-  return { name: !!prefix && taken.prefixes.includes(prefix), node: !!node && taken.nodes.includes(node.trim().toLowerCase()) };
+  // " and \ end or break the C++ strings the name goes into, so the build would fail (#453): said before anything is built.
+  return { name: !!prefix && taken.prefixes.includes(prefix), node: !!node && taken.nodes.includes(node.trim().toLowerCase()),
+    quote: /["\\]/.test(friendly) };
 }
 
 // ---- How the firmware gets onto it ----

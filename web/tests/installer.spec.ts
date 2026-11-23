@@ -62,9 +62,12 @@ describe("what it is called and how it hangs", () => {
 
   it("says when another screen carries the name or the device name already", () => {
     const taken = { nodes: ["hall"], prefixes: ["living_room"] };
-    expect(nameClash(taken, "Living room", "living-room")).toEqual({ name: true, node: false });
-    expect(nameClash(taken, "Hall", "Hall ")).toEqual({ name: false, node: true });
-    expect(nameClash(taken, "  ", "")).toEqual({ name: false, node: false });
+    expect(nameClash(taken, "Living room", "living-room")).toEqual({ name: true, node: false, quote: false });
+    expect(nameClash(taken, "Hall", "Hall ")).toEqual({ name: false, node: true, quote: false });
+    expect(nameClash(taken, "  ", "")).toEqual({ name: false, node: false, quote: false });
+    // " and \ would break the firmware's C++ strings (#453): said before anything is built.
+    expect(nameClash(taken, 'Guition 4"', "guition").quote).toBe(true);
+    expect(nameClash(taken, "Hall \\ kitchen", "hall").quote).toBe(true);
   });
 });
 

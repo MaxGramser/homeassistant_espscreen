@@ -867,7 +867,8 @@
         "host": "Gib die IP-Adresse oder den Hostnamen des gewünschten Bildschirms ein.",
         "grid": "Wähle ein Raster, das dieser Bildschirm annimmt.",
         "build_gone": "Dieser Build ist nicht mehr bekannt. Die neuesten Builds stehen unter Firmware & USB.",
-        "log_gone": "Dieses Build-Protokoll wird nicht mehr aufbewahrt."
+        "log_gone": "Dieses Build-Protokoll wird nicht mehr aufbewahrt.",
+        "friendly_name_quote": "Der Name eines Bildschirms darf kein \" oder \\ enthalten. Schreibe 4 Zoll zum Beispiel als 4in."
       },
       "updates": {
         "automatic": "Wähle für automatische Updates an oder aus.",
@@ -881,7 +882,8 @@
         "all_updated": "Alle erreichbaren Bildschirme sind schon aktuell.",
         "reinstall_dev": "Dieselbe Firmware erneut installieren geht nur im Dev-Kanal.",
         "all_on_the_way": "Jeder Bildschirm mit einem Update hat es schon auf dem Weg.",
-        "nothing_to_reinstall": "Gerade lässt sich kein Bildschirm neu installieren: Jeder ist offline, schon auf dem Weg oder hat kein Profil in dieser App."
+        "nothing_to_reinstall": "Gerade lässt sich kein Bildschirm neu installieren: Jeder ist offline, schon auf dem Weg oder hat kein Profil in dieser App.",
+        "hour": "Wähle eine Stunde von 0 bis 23."
       },
       "remove": {
         "not_allowed": "Diese App darf keine Integration aus Home Assistant entfernen. Entferne den Bildschirm in Home Assistant selbst, unter Einstellungen → Geräte & Dienste.",
@@ -989,7 +991,8 @@
         "rate_not_installed": "Setz das Plugin zuerst auf einen deiner Bildschirme, dann kannst du es bewerten.",
         "rate_failed": "Die Sterne wurden nicht gesendet. Versuch es gleich noch einmal.",
         "count_failed": "Das Mitzählen ließ sich nicht ausschalten: Tessera war nicht erreichbar. Versuch es gleich noch einmal.",
-        "forget_running": "Ein Bildschirm nutzt dieses Plugin noch. Nimm es zuerst vom Bildschirm."
+        "forget_running": "Ein Bildschirm nutzt dieses Plugin noch. Nimm es zuerst vom Bildschirm.",
+        "no_before": "Es gibt keine frühere Version dieses Plugins, zu der es zurück kann."
       },
       "extras": {
         "request": "Diese Änderung eines Extras ist auf diesem Bildschirm nicht möglich."
@@ -1089,7 +1092,10 @@
       "updated": "Auf Firmware {version} aktualisiert."
     },
     "notify": {
-      "update_stopped": "Automatisches Update bei {name} gestoppt: {reason} Die übrigen Bildschirme blieben unverändert."
+      "update_stopped": "Automatisches Update bei {name} gestoppt: {reason} Die übrigen Bildschirme blieben unverändert.",
+      "plugin_failed": "{names} ließ sich auf {screen} nicht erstellen: {reason} Der Bildschirm läuft weiter mit dem Bisherigen. Öffne Tessera und dann den Plugins-Tab des Bildschirms für den Grund und das Protokoll.",
+      "updates": "Für deine Bildschirme stehen Updates bereit. Öffne Tessera, um sie zu installieren.",
+      "updates_firmware": "Firmware {version}"
     },
     "labels": {
       "built_into_screen": "Im Bildschirm eingebaut",
@@ -1812,7 +1818,11 @@
         "kept": "{name} wurde entfernt. Das Profil {file} liegt noch im ESPHome-Ordner."
       },
       "home": "Übersicht deiner Bildschirme",
-      "dev_chip": "Das ist die Dev-Version der App: Jeder Bildschirm, den sie baut, kommt vom Dev-Branch."
+      "dev_chip": "Das ist die Dev-Version der App: Jeder Bildschirm, den sie baut, kommt vom Dev-Branch.",
+      "plugins": {
+        "failed": "Ein Plugin ließ sich nicht erstellen",
+        "updates": "{n} Plugin-Update | {n} Plugin-Updates"
+      }
     },
     "palette": {
       "groups": {
@@ -2207,8 +2217,6 @@
         "here": "Auf diesem Bildschirm",
         "add": "Hinzufügen",
         "misfits": "Passt nicht auf diesen Bildschirm ({n}) | Passen nicht auf diesen Bildschirm ({n})",
-        "updates": "Ein Update für {n} Plugin | Updates für {n} Plugins",
-        "updates_note": "Ein Build für {screen}: {names}.",
         "updates_rights": "{names} verlangt andere Rechte als bisher. | {names} verlangen andere Rechte als bisher.",
         "update_all": "Alles auf diesem Bildschirm aktualisieren"
       },
@@ -2485,7 +2493,21 @@
         "no_log": "Von diesem Build wurde kein Protokoll aufbewahrt.",
         "details": "Details",
         "report": "An {maker} melden",
-        "report_hint": "Melden öffnet ein Issue auf dem GitHub des Erstellers, schon ausgefüllt. Hänge das heruntergeladene Protokoll an."
+        "report_hint": "Melden öffnet ein Issue auf dem GitHub des Erstellers, schon ausgefüllt. Hänge das heruntergeladene Protokoll an.",
+        "why": {
+          "plugin": "Er brach im eigenen Code des Plugins ab; der Ersteller kann das beheben.",
+          "memory": "Diesem Home Assistant ging beim Erstellen der Speicher aus. Ein Build-Server auf einem anderen Computer erstellt es ohne diese Grenze.",
+          "offline": "Es wurde erstellt, aber {screen} hat es nicht angenommen, auch nicht, als er zurück war. Prüfe, ob er an ist und im WLAN.",
+          "offline_wait": "Es wurde erstellt, aber {screen} war nicht erreichbar. Es wird von selbst installiert, sobald der Bildschirm zurück ist.",
+          "network": "Ein nötiger Download kam nicht, auch nicht beim zweiten Versuch. Versuche es gleich noch einmal.",
+          "build": "Das Protokoll sagt, warum.",
+          "interrupted": "Die App startete während des Builds neu, und noch einmal beim Versuch danach."
+        },
+        "build_server": "Build-Server einrichten"
+      },
+      "back": {
+        "button": "Zurück zu {version}",
+        "not_running": "{screen} kam nach dem Update ohne {name} zurück. Zurück zur vorigen Version hilft meistens."
       }
     },
     "plugin_tile": {
@@ -3489,11 +3511,13 @@
         "all": "1 Bildschirm aktualisieren | Alle {n} Bildschirme aktualisieren",
         "whats_new": "Neu in Firmware {version}",
         "auto_label": "Jede Nacht automatisch aktualisieren",
-        "auto_hint": "Zwischen 03:00 und 06:00 Uhr, ein Bildschirm nach dem anderen. Stoppt bei einem Fehler und meldet ihn in Home Assistant.",
         "reinstall_all": "1 Bildschirm von Dev neu installieren | Alle {n} Bildschirme von Dev neu installieren",
         "reinstall_all_hint": "Baut für jeden Bildschirm den neuesten Dev-Stand, einen nach dem anderen, und installiert ihn über WLAN. Auf Dev bleibt die Versionsnummer gleich, darum wird ein neuer Dev-Stand nie als Update angeboten.",
         "reinstall_all_confirm": "1 Bildschirm vom neuesten Dev-Stand neu installieren? Er startet neu, sobald die Firmware drauf ist. | {n} Bildschirme vom neuesten Dev-Stand neu installieren? Sie werden nacheinander gebaut, und jeder startet neu, sobald seine Firmware drauf ist.",
-        "reinstall_all_go": "Neu installieren"
+        "reinstall_all_go": "Neu installieren",
+        "auto_hint_hour": "Zwischen {from} und {to}, ein Bildschirm nach dem anderen. Hält bei einem Fehler an und meldet ihn in Home Assistant.",
+        "hour_label": "Beginnen um",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Video in Home Assistant",
@@ -3916,7 +3940,8 @@
       "grid_best": "Zurück zum besten",
       "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst.",
       "plugins_title": "Plugins für diesen Bildschirm",
-      "plugins_intro": "Diese passen zu dem, was dieses Board hat. Entferne den Haken bei allem, was du nicht möchtest: Es wird nicht eingebaut, und du kannst es später auf der Seite Plugins hinzufügen."
+      "plugins_intro": "Diese passen zu dem, was dieses Board hat. Entferne den Haken bei allem, was du nicht möchtest: Es wird nicht eingebaut, und du kannst es später auf der Seite Plugins hinzufügen.",
+      "name_quote": "Ein Name darf kein \" oder \\ enthalten. Schreibe 4 Zoll zum Beispiel als 4in."
     },
     "alerts": {
       "intro": "Jeder Bildschirm hat die Aktion {action}. Sie legt eine Karte über alles, weckt den Bildschirm und hält die Hintergrundbeleuchtung auf normaler Helligkeit, bis jemand auf die Taste tippt oder das Timeout abläuft. Home Assistant selbst zeigt für ESPHome-Aktionen keine Erklärungen oder Auswahllisten; alles, was du ausfüllen kannst, steht hier.",
@@ -4584,7 +4609,18 @@
           "bundle": "das YAML konnte nicht gepackt werden"
         }
       },
-      "icons": "Baut mit seinen Symbolen"
+      "icons": "Baut mit seinen Symbolen",
+      "steps": {
+        "title": "Schritte des Builds",
+        "wait": "Wartet, bis er dran ist",
+        "build": "Erstellt",
+        "send": "Sendet an den Bildschirm",
+        "confirm": "Bildschirm bestätigt",
+        "on": "auf {name}"
+      },
+      "done": "{screen} ist fertig.",
+      "done_confirmed": "{screen} ist fertig und meldet, dass er das Erstellte ausführt.",
+      "show_why": "Grund zeigen"
     },
     "grid": {
       "title": "Raster",
@@ -5187,6 +5223,29 @@
         "soft_ends": "Weiche Enden",
         "even_level": "Gleiche Lautstärke",
         "repeats": "Wiederholt"
+      }
+    },
+    "updates_card": {
+      "title": "{n} Update für {screen} | {n} Updates für {screen}",
+      "one": "Ein Build von {screen}.",
+      "one_build": "Alles in einem Build von {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} ist offline. Aktualisieren geht, sobald er zurück ist.",
+      "go_all": "Alles aktualisieren"
+    },
+    "build_room": {
+      "title": "Diesem Home Assistant fehlt womöglich Speicher für einen Build",
+      "text": "Es sind {free} GB frei, ein Build braucht etwa {need} GB. Ein Build kann scheitern oder Home Assistant verlangsamen. Ein Build-Server auf einem anderen Computer vermeidet das, ebenso das Aktualisieren aus dem ESPHome Device Builder auf einem Computer.",
+      "server": "Build-Server"
+    },
+    "history": {
+      "title": "Letzter Build dieses Bildschirms | Letzte {n} Builds dieses Bildschirms",
+      "by": {
+        "update": "Update",
+        "plugins": "Plugins",
+        "install": "Installation",
+        "icons": "Symbole",
+        "other": "Build"
       }
     }
   }

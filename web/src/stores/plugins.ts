@@ -113,14 +113,16 @@ export const usePluginsStore = defineStore("plugins", () => {
       (plugin.savers || []).map((saver) => ({ key: pluginSaverKey(plugin.id, saver.id), plugin, saver })));
   }
   /** Whether a plugin fits a screen, with what only the add-on knows about it there. */
-  const fits = (plugin: Plugin, screen: Screen | null) => fit(plugin, screen, (screen && appFit.value[screen.id]) || {});
+  // A screen without a plugin yet pays for the plugin host with the first one (model/plugins.ts PLUGIN_HOST_KB, #440).
+  const hostless = (screen: Screen) => !(installed.value[nodeOf(screen)] || []).some((item) => item.state !== "failed");
+  const fits = (plugin: Plugin, screen: Screen | null) => fit(plugin, screen, (screen && appFit.value[screen.id]) || {}, Boolean(screen && hostless(screen)));
 
   // The add-on's plugins (api/plugins). Asked again when a plugin build of some screen starts or ends (start).
   function reloadPlugins(refresh = false) {
     return getJson<Payload>(refresh ? "plugins?refresh=1" : "plugins").then((data) => {
-      index.value = data.plugins;
-      installed.value = data.installed;
-      secrets.value = data.secrets || {};
+      index.value = Array.isArray(data?.plugins) ? data.plugins : [];
+      installed.value = data?.installed && typeof data.installed === "object" ? data.installed : {};
+      secrets.value = data?.secrets || {};
       folders.value = data.folders || { path: "", errors: {} };
       entities.value = data.entities || [];
       entityFacts.value = data.entity_facts || {};
@@ -236,9 +238,11 @@ export const usePluginsStore = defineStore("plugins", () => {
       const have = installedOn(screen, plugin.id);
       if (!have || buildingOn(screen, plugin.id) || out.some((f) => f.plugin.id === plugin.id)) continue;
       if (have.state === "failed")
-        out.push({ plugin, installed: have, kind: "added", version: have.version, reason: have.reason ?? null, log: have.log ?? null });
+        out.push({ plugin, installed: have, kind: "added", version: have.version, reason: have.reason ?? null, log: have.log ?? null,
+          why: have.kind || (have.reason === "interrupted" ? "interrupted" : "build"), waited: Boolean((have as any).waited) });
       else if (have.failed_update)
-        out.push({ plugin, installed: have, kind: "update", version: have.failed_update.version, reason: have.failed_update.reason ?? null, log: have.failed_update.log ?? null });
+        out.push({ plugin, installed: have, kind: "update", version: have.failed_update.version, reason: have.failed_update.reason ?? null, log: have.failed_update.log ?? null,
+          why: have.failed_update.kind || (have.failed_update.reason === "interrupted" ? "interrupted" : "build"), waited: Boolean(have.failed_update.waited) });
     }
     return out;
   }
@@ -488,6 +492,35 @@ export const usePluginsStore = defineStore("plugins", () => {
     await reloadPlugins();
   }
 
+  // A plugin back to the version a screen ran before its last update (the add-on's go_back), for a version that does
+  // not run well there: one build, like an update.
+  async function goBack(screen: Screen, plugin: Plugin) {
+    sending[screen.id] = [plugin.id];
+    try {
+      await send(`screens/${encodeURIComponent(screen.id)}/plugins/${encodeURIComponent(plugin.id)}/back`, "POST", {});
+      await useInventoryStore().refresh(false).catch(() => null);
+    } catch (error: any) {
+      ui.toast(error.message);
+    } finally {
+      delete sending[screen.id];
+    }
+    await reloadPlugins();
+  }
+  // A screen's firmware update and its plugin updates in one build (the add-on's update_everything): the plugins file
+  // gets the new versions, and the firmware update builds it.
+  async function updateEverything(screen: Screen, list: Plugin[]) {
+    sending[screen.id] = list.map((plugin) => plugin.id);
+    try {
+      await send(`screens/${encodeURIComponent(screen.id)}/update-everything`, "POST", { add: list.map((plugin) => addition(screen, plugin)) });
+      await useInventoryStore().refresh(false).catch(() => null);
+    } catch (error: any) {
+      ui.toast(error.message);
+    } finally {
+      delete sending[screen.id];
+    }
+    await reloadPlugins();
+  }
+
   // ---- Ready to install: changes set aside per screen, built together in one build per screen ----
   // Adding a plugin does not build at once: it goes into the tray (PluginTray), where a person can set aside more, on
   // this screen or another, and press Install once. Taking one off goes there too, with what goes along with it, so a
@@ -649,6 +682,6 @@ export const usePluginsStore = defineStore("plugins", () => {
       isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),
     reloadPlugins, loadPlugins, setParts, setValue, markAttached, copyAttach, chooseProvider, like, rate, setCounting, cardAnswer, answerSuggested, forgetDrafts,
-    addPlugin, rebuildTest, updateAll, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
+    addPlugin, rebuildTest, updateAll, goBack, updateEverything, setAside, takeOut, toggleSetAside, installTray, setAsideRemoval, switchPlugin, setSecret, start,
   };
 });

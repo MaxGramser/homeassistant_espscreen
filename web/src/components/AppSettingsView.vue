@@ -18,6 +18,7 @@ import { useRegionStore } from "../stores/region";
 import { useBuildsStore } from "../stores/builds";
 import { useInventoryStore } from "../stores/inventory";
 import { usePluginsStore } from "../stores/plugins";
+import { text } from "../model/plugins";
 
 const ui = useUiStore();
 const region = useRegionStore();
@@ -36,6 +37,17 @@ async function share(what: "counting" | "asking", on: boolean) {
 }
 
 const u = computed(() => inv.inventory.updates);
+// The hour as Home Assistant's clock writes it (24 or 12 hours), for the nightly round's start.
+const hourText = (h: number) => new Date(2000, 0, 1, h, 0).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+// The screens with plugin updates, each with what it gets.
+const pluginUpdates = computed(() => inv.inventory.screens.filter((s) => !s.virtual).map((screen) => ({ screen, list: plugins.updatesOn(screen) }))
+  .filter((row) => row.list.length).map((row) => ({ screen: row.screen, names: row.list.map((p) => `${text(p.name)} ${p.version}`).join(", ") })));
+async function openPlugins(screen: (typeof inv.inventory.screens)[number]) {
+  const { useSessionStore } = await import("../stores/session");
+  const { useScreenStore } = await import("../stores/screen");
+  await useSessionStore().select(screen.id);
+  if (useScreenStore().selected === screen.id) ui.tab = "plugins";
+}
 const outdated = computed(() => inv.inventory.screens.filter((s) => s.update?.available).length);
 const running = computed(() => inv.inventory.screens.find((s) => s.id === inv.inventory.updates?.busy));
 // Each screen is offered its own board's firmware (app 0.3.21): one number only when those screens share it.
@@ -210,8 +222,21 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
         </details>
         <label class="check">
           <input type="checkbox" id="auto-update" :checked="Boolean(u.auto)" @change="builds.setAutoUpdate(($event.target as HTMLInputElement).checked)" />
-          <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint") }}</small></span>
+          <span>{{ t("editor.settings.updates.auto_label") }}<small>{{ t("editor.settings.updates.auto_hint_hour", { from: hourText(u.hour ?? 3), to: hourText(((u.hour ?? 3) + 3) % 24) }) }}</small></span>
         </label>
+        <!-- When the nightly round may start (wish 113): a screen beside a bed restarts at full brightness. -->
+        <label v-if="u.auto" class="field update-hour">
+          <span class="f-label">{{ t("editor.settings.updates.hour_label") }}</span>
+          <select id="update-hour" :value="u.hour ?? 3" @change="builds.setUpdateHour(Number(($event.target as HTMLSelectElement).value))">
+            <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ hourText(h - 1) }}</option>
+          </select>
+        </label>
+        <!-- Plugin updates wait on the screens they are on: each one opens that screen's Plugins tab. -->
+        <ul v-if="pluginUpdates.length" class="plugin-update-list" id="settings-plugin-updates">
+          <li v-for="row in pluginUpdates" :key="row.screen.id">
+            <button type="button" class="btn link" @click="openPlugins(row.screen)"><Icon name="puzzle-outline" />{{ t("editor.settings.updates.plugin_row", { screen: row.screen.name, names: row.names }) }}<Icon name="arrow-right" /></button>
+          </li>
+        </ul>
       </section>
       <!-- The expert path: build and install a firmware by USB or Wi-Fi (FirmwareView). -->
       <section class="card">

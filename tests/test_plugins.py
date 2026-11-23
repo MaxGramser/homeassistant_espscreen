@@ -2461,6 +2461,105 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         await service.manager.build_queue.close()   # the app stops (an update of the app)
         self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'building')
 
+    def test_a_failure_says_its_kind(self):
+        from plugins import failure_kind
+        self.assertEqual(failure_kind(['x'], blamed=True), 'plugin')
+        self.assertEqual(failure_kind(['x'], memory={'reason': 'out'}), 'memory')
+        self.assertEqual(failure_kind(['Uploading', 'ERROR Error resolving IP address of hall.local'], 'upload'), 'offline')
+        self.assertEqual(failure_kind(['fatal: unable to access \'https://github.com/x/y/\': Could not resolve host'], 'compile'), 'network')
+        self.assertEqual(failure_kind(['main.cpp:3: error: oops'], 'compile'), 'build')
+
+    async def test_a_build_that_stopped_on_the_network_goes_once_more(self):
+        import plugins as plugin_service
+        service, config, started = self.make(['failed', 'success'])
+        kinds = iter(['network'])
+        real = plugin_service.failure_kind
+        plugin_service.failure_kind = lambda *a, **k: next(kinds, 'build')
+        self.addCleanup(setattr, plugin_service, 'failure_kind', real)
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        self.assertEqual(len(started), 2)
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
+        self.assertTrue(service.manager.build_queue.ended[-1].retried)
+
+    async def test_a_failure_tells_home_assistant_and_a_build_takes_it_away(self):
+        service, config, started = self.make(['failed', 'success'])
+        said = []
+
+        async def request(kind, **data):
+            said.append((data['service'], data['service_data']))
+        service.manager.ha.request = request
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        await asyncio.sleep(0)
+        self.assertEqual(said[-1][0], 'create')
+        self.assertIn('Hall', said[-1][1]['message'])
+        self.assertEqual(said[-1][1]['notification_id'], 'tessera_plugins_hall')
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
+        await service.manager.build_queue.idle()
+        await asyncio.sleep(0)
+        self.assertEqual(said[-1], ('dismiss', {'notification_id': 'tessera_plugins_hall'}))
+
+    async def test_back_to_the_version_before(self):
+        service, config, started = self.make(['success'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        now = service.store.get('hall', 'clock_words')
+        older = dict(now, version='0.0.9')
+        service.store.put('hall', dict(now, state='active', before=older))
+        result = service.go_back('hall', 'clock_words')
+        self.assertTrue(result['built'])
+        self.assertEqual(service.store.get('hall', 'clock_words')['version'], '0.0.9')
+        await service.manager.build_queue.idle()
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((record['version'], record['state']), ('0.0.9', 'active'))
+        # What it ran just before is what it goes back to next.
+        self.assertEqual(record['before']['version'], now['version'])
+        service.store.put('hall', {k: v for k, v in record.items() if k != 'before'})
+        with self.assertRaises(ValueError):
+            service.go_back('hall', 'clock_words')
+
+    async def test_a_screen_that_was_away_gets_its_build_once_it_is_back(self):
+        service, config, started = self.make(['success'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        record = service.store.get('hall', 'clock_words')
+        service.store.put('hall', dict(record, state='failed', reason='did not answer', kind='offline'))
+        online = {'value': False}
+        screen = service.manager.screen
+        service.manager.screen = lambda inbox: dict(screen(inbox), online=online['value'])
+        service.settle()
+        await asyncio.sleep(0)
+        self.assertEqual(started, [])
+        online['value'] = True
+        service.settle()
+        for _ in range(20):
+            await asyncio.sleep(0)
+        await service.manager.build_queue.idle()
+        self.assertEqual(len(started), 1)
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
+        service.settle()   # once only
+        await asyncio.sleep(0)
+        self.assertEqual(len(started), 1)
+
+    async def test_updates_waiting_are_said_in_home_assistant_once(self):
+        service, config, started = self.make()
+        said = []
+
+        async def request(kind, **data):
+            said.append((data['service'], data['service_data']))
+        service.manager.ha.request = request
+        service.manager.screens = lambda: [service.manager.screen('hall')]
+        firmware = {'available': True, 'profile': 'hall.yaml', 'target': '0.64.0'}
+        service.manager.updates.state_for = lambda screen: firmware
+        await service.announce_updates()
+        self.assertEqual(said[-1][0], 'create')
+        self.assertIn('Hall', said[-1][1]['message'])
+        self.assertIn('0.64.0', said[-1][1]['message'])
+        await service.announce_updates()
+        self.assertEqual(len(said), 1, 'said once, not on every look')
+        firmware['available'] = False
+        await service.announce_updates()
+        self.assertEqual(said[-1], ('dismiss', {'notification_id': 'tessera_updates'}))
+
     async def test_a_build_cut_off_twice_fails_with_its_log(self):
         service, config, started = self.make()
         await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)

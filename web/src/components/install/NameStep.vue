@@ -48,7 +48,8 @@ defineExpose({ check });
         <small>{{ t("editor.installer.name_hint") }}</small>
         <!-- One line, not two: a name that is taken usually makes a device name that is taken as well, and the
              name is what someone changes. The device name speaks for itself only when it is the one that clashes. -->
-        <small v-if="install.clash.name" id="name-taken" class="warn">{{ t("editor.installer.name_taken") }}</small>
+        <small v-if="install.clash.quote" id="name-quote" class="warn">{{ t("editor.installer.name_quote") }}</small>
+        <small v-else-if="install.clash.name" id="name-taken" class="warn">{{ t("editor.installer.name_taken") }}</small>
         <small v-else-if="install.clash.node" id="node-taken" class="warn">{{ t("editor.installer.node_taken") }}</small>
       </div>
       <!-- Which model of this screen: what is printed on the board tells them apart. -->

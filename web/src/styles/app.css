@@ -1859,6 +1859,34 @@ section.advanced code { font-size: 11.5px; }
 .sp-failure-text b { font-size: 13.5px; font-weight: 600; }
 .sp-failure-reason { display: block; padding: 6px 8px; border-radius: 8px; background: var(--surface); color: var(--ink-2); font-size: 11.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .sp-failure-nolog { color: var(--muted); }
+/* A build that was good but found no screen: it waits for the screen, which is no error. */
+.sp-failure.waiting { background: var(--surface); border: 1px solid var(--line); }
+.sp-failure.waiting > .ui-icon { color: var(--muted); }
+/* The steps of a build (BuildSteps): waits, builds, sends, the screen confirms. */
+.build-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.build-steps li { display: inline-flex; align-items: center; gap: 5px; }
+.build-steps li > i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line); display: inline-block; }
+.build-steps li small { margin-left: 4px; color: var(--muted); }
+.build-steps li.done { color: var(--ink-2); }
+.build-steps li.done .ui-icon { color: var(--good); }
+.build-steps li.now { color: var(--ink); font-weight: 600; }
+.build-steps li.failed { color: var(--danger); font-weight: 600; }
+.build-steps li.skipped { opacity: 0.55; }
+.build-note.done .ui-icon { color: var(--good); }
+/* Every update of a screen in one card. */
+.sp-update-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+.sp-update-list li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.sp-update-list li small { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sp-update-away { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.build-room .btn.link { margin-top: 4px; padding-left: 0; }
+.sp-history summary { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; list-style: none; font-size: 12px; font-weight: 600; color: var(--muted); }
+.sp-history summary::-webkit-details-marker { display: none; }
+.sp-history[open] summary .ui-icon { transform: rotate(90deg); }
+.sp-history[open] summary { margin-bottom: 8px; }
+.plugin-pill small { font-size: 10.5px; font-weight: 700; margin-left: 1px; }
+.plugin-news .ui-icon { color: var(--danger); }
+.plugin-update-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.update-hour { max-width: 220px; }
 .pd-misfit .pd-log { margin-top: 6px; }
 /* Firmware & USB: every build's log the add-on keeps on disk, newest first, each to download. */
 .kept-logs { display: grid; gap: 8px; margin-top: 16px; }

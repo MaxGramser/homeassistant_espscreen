@@ -87,6 +87,8 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
       <p v-if="cameWith.length" class="pd-note pd-along-note" id="plugin-came-with"><Icon name="link-variant" />{{ t("editor.plugins.along.came_with", { names: cameWith.map((p) => text(p.name)).join(", ") }) }}</p>
       <p v-else-if="needed.length" class="pd-note pd-along-note" id="plugin-needed-by"><Icon name="link-variant" />{{ t("editor.plugins.along.needed_now", { names: needed.map((p) => text(p.name)).join(", ") }) }}</p>
       <p v-if="installed.failed_update" class="pd-misfit" id="plugin-failed-update"><Icon name="information-outline" /><span>{{ t("editor.plugins.failed_update", { screen: screen.name, version: installed.failed_update.version, current: installed.version }) }}<small v-if="installed.failed_update.reason" class="pd-reason">{{ reasonText(installed.failed_update.reason) }}</small><a v-if="installed.failed_update.log" class="btn quiet mini pd-log" id="plugin-failed-update-log" :href="buildLogHref(installed.failed_update.log)" :download="`${installed.failed_update.log}.log`"><Icon name="tray-arrow-down" />{{ t("editor.plugins.download_log") }}</a></span></p>
+      <!-- After an update the screen came back without it (it crashed at boot): the version before is one tap away. -->
+      <p v-if="installed.verified === false || status.kind === 'missing'" class="pd-misfit" id="plugin-not-running"><Icon name="alert-circle-outline" /><span>{{ t("editor.plugins.back.not_running", { screen: screen.name, name: text(plugin.name) }) }}</span></p>
       <p v-if="installed.blocked" class="pd-misfit" id="plugin-blocked"><Icon name="alert-circle-outline" />{{ t("editor.plugins.blocked_now", { why: installed.blocked }) }}</p>
       <template v-if="other">
         <p class="pd-misfit" id="plugin-other-origin"><Icon name="information-outline" />{{ t("editor.plugins.other_origin", { origin: installed.origin }) }}</p>
@@ -98,6 +100,7 @@ const reasonText = (reason: string) => (reason === "interrupted" ? t("editor.plu
       </label>
       <div class="pd-buttons">
         <button v-if="status.kind === 'update'" type="button" class="btn primary" id="plugin-update" :disabled="!agreed" @click="plugins.addPlugin([screen], plugin)">{{ t("editor.plugins.update", { version: plugin.version }) }}</button>
+        <button v-if="installed.before && !plugins.buildingOn(screen, plugin.id)" type="button" class="btn" :class="installed.verified === false || status.kind === 'missing' ? 'primary' : 'quiet'" id="plugin-back" @click="plugins.goBack(screen, plugin)"><Icon name="undo" />{{ t("editor.plugins.back.button", { version: installed.before }) }}</button>
         <button type="button" class="btn quiet" id="plugin-remove" @click="$emit('remove', [screen])">{{ t("editor.plugins.remove", { screen: screen.name }) }}</button>
       </div>
     </template>

@@ -867,7 +867,8 @@
         "host": "Add meg a kívánt kijelző IP-címét vagy hosztnevét.",
         "grid": "Válassz olyan rácsot, amelyet ez a kijelző elfogad.",
         "build_gone": "Ez a fordítás már nem ismert. A legújabbak a Firmware és USB alatt vannak.",
-        "log_gone": "Ezt a fordítási naplót már nem őrizzük."
+        "log_gone": "Ezt a fordítási naplót már nem őrizzük.",
+        "friendly_name_quote": "A kijelző neve nem tartalmazhat \" vagy \\ jelet. A 4 hüvelyket írd például 4in-nek."
       },
       "updates": {
         "automatic": "Kapcsold be vagy ki az automatikus frissítéseket.",
@@ -881,7 +882,8 @@
         "all_updated": "Minden elérhető kijelző már frissítve van.",
         "reinstall_dev": "Ugyanazt a firmware-t újratelepíteni csak a dev csatornán lehet.",
         "all_on_the_way": "Minden kijelző, amelyhez frissítés van, már sorban áll vele.",
-        "nothing_to_reinstall": "Most egy kijelzőt sem lehet újratelepíteni: mindegyik offline, már sorban áll, vagy nincs profilja ebben az alkalmazásban."
+        "nothing_to_reinstall": "Most egy kijelzőt sem lehet újratelepíteni: mindegyik offline, már sorban áll, vagy nincs profilja ebben az alkalmazásban.",
+        "hour": "Válassz egy órát 0 és 23 között."
       },
       "remove": {
         "not_allowed": "Ez az alkalmazás nem távolíthat el integrációt a Home Assistantból. Töröld a kijelzőt magában a Home Assistantban: Beállítások → Eszközök és szolgáltatások.",
@@ -989,7 +991,8 @@
         "rate_not_installed": "Előbb tedd fel a bővítményt az egyik kijelződre, utána értékelheted.",
         "rate_failed": "A csillagok nem mentek el. Próbáld újra egy kicsit később.",
         "count_failed": "A számolást nem sikerült kikapcsolni: a Tessera nem volt elérhető. Próbáld újra egy kicsit később.",
-        "forget_running": "Egy képernyő még használja ezt a bővítményt. Előbb vedd le a képernyőről."
+        "forget_running": "Egy képernyő még használja ezt a bővítményt. Előbb vedd le a képernyőről.",
+        "no_before": "Ennek a bővítménynek nincs korábbi verziója, amelyre vissza lehetne állni."
       },
       "extras": {
         "request": "Ez a módosítás ezen a kijelzőn nem lehetséges."
@@ -1089,7 +1092,10 @@
       "updated": "Frissítve a(z) {version} firmware-re."
     },
     "notify": {
-      "update_stopped": "Az automatikus frissítés megállt ennél: {name}: {reason} A többi kijelzőhöz nem nyúltunk."
+      "update_stopped": "Az automatikus frissítés megállt ennél: {name}: {reason} A többi kijelzőhöz nem nyúltunk.",
+      "plugin_failed": "{names} nem fordult le ezen: {screen}: {reason} A kijelző továbbra is azt futtatja, amit eddig. Nyisd meg a Tesserát, majd a kijelző Bővítmények lapját az okért és a naplóért.",
+      "updates": "Frissítések várnak a kijelzőidre. Nyisd meg a Tesserát a telepítésükhöz.",
+      "updates_firmware": "firmware {version}"
     },
     "labels": {
       "built_into_screen": "A kijelzőbe beépített",
@@ -1812,7 +1818,11 @@
         "kept": "{name} eltávolítva. A(z) {file} profilja még az ESPHome mappában van."
       },
       "home": "Kijelzőid áttekintése",
-      "dev_chip": "Ez az alkalmazás dev változata: minden kijelző, amit fordít, a dev ágból jön."
+      "dev_chip": "Ez az alkalmazás dev változata: minden kijelző, amit fordít, a dev ágból jön.",
+      "plugins": {
+        "failed": "Egy bővítmény nem fordult le",
+        "updates": "{n} bővítményfrissítés | {n} bővítményfrissítés"
+      }
     },
     "palette": {
       "groups": {
@@ -2207,8 +2217,6 @@
         "here": "Ezen a kijelzőn",
         "add": "Hozzáadás",
         "misfits": "Nem jó ehhez a kijelzőhöz ({n}) | Nem jók ehhez a kijelzőhöz ({n})",
-        "updates": "Frissítés {n} bővítményhez | Frissítések {n} bővítményhez",
-        "updates_note": "{screen}: egyetlen fordítás ({names}).",
         "updates_rights": "{names} más jogosultságot kér, mint korábban. | {names} más jogosultságot kérnek, mint korábban.",
         "update_all": "Minden frissítése ezen a kijelzőn"
       },
@@ -2485,7 +2493,21 @@
         "no_log": "Erről a fordításról nem maradt napló.",
         "details": "Részletek",
         "report": "Jelentés: {maker}",
-        "report_hint": "A jelentés kitöltött hibajegyet nyit a készítő GitHubján. Csatold a letöltött naplót."
+        "report_hint": "A jelentés kitöltött hibajegyet nyit a készítő GitHubján. Csatold a letöltött naplót.",
+        "why": {
+          "plugin": "A bővítmény saját kódjában állt meg; ezt a készítője javíthatja.",
+          "memory": "Ennek a Home Assistantnak fordítás közben elfogyott a memóriája. Egy másik gépen futó fordítószerver e korlát nélkül fordítja.",
+          "offline": "Lefordult, de {screen} nem fogadta, akkor sem, amikor visszatért. Nézd meg, hogy be van-e kapcsolva és a Wi-Fin van-e.",
+          "offline_wait": "Lefordult, de {screen} nem volt elérhető. Magától települ, amint a kijelző visszatér.",
+          "network": "Egy szükséges letöltés nem érkezett meg, a második próbára sem. Próbáld újra egy kicsit később.",
+          "build": "A naplóból kiderül, miért.",
+          "interrupted": "Az app fordítás közben újraindult, és az utána következő próbánál is."
+        },
+        "build_server": "Fordítószerver beállítása"
+      },
+      "back": {
+        "button": "Vissza erre: {version}",
+        "not_running": "{screen} a frissítés után {name} nélkül tért vissza. Általában segít visszaállni az előző verzióra."
       }
     },
     "plugin_tile": {
@@ -3489,11 +3511,13 @@
         "all": "1 kijelző frissítése | Mind a(z) {n} kijelző frissítése",
         "whats_new": "A(z) {version} firmware újdonságai",
         "auto_label": "Automatikus frissítés minden éjjel",
-        "auto_hint": "03:00 és 06:00 között, egyszerre egy kijelzőt. Hiba esetén leáll, és jelzi a Home Assistantban.",
         "reinstall_all": "1 kijelző újratelepítése dev-ből | Mind a(z) {n} kijelző újratelepítése dev-ből",
         "reinstall_all_hint": "Minden kijelzőhöz lefordítja a legújabb dev változatot, egymás után, és Wi-Fin telepíti. Dev-en a verziószám nem változik, ezért egy új dev sosem jelenik meg frissítésként.",
         "reinstall_all_confirm": "Újratelepíted 1 kijelzőt a legújabb dev-ből? Újraindul, amint rajta van a firmware. | Újratelepítesz {n} kijelzőt a legújabb dev-ből? Egymás után fordulnak, és mindegyik újraindul, amint rajta van a firmware.",
-        "reinstall_all_go": "Újratelepítés"
+        "reinstall_all_go": "Újratelepítés",
+        "auto_hint_hour": "{from} és {to} között, egyszerre egy kijelzőt. Hibánál megáll, és jelzi a Home Assistantban.",
+        "hour_label": "Kezdés",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Videó a Home Assistantban",
@@ -3916,7 +3940,8 @@
       "grid_best": "Vissza a legjobbhoz",
       "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul.",
       "plugins_title": "Bővítmények ehhez a képernyőhöz",
-      "plugins_intro": "Ezek ahhoz tartoznak, ami ezen a lapon megtalálható. Vedd ki a pipát abból, amit nem kérsz: az nem épül be, és később a Bővítmények oldalon hozzáadhatod."
+      "plugins_intro": "Ezek ahhoz tartoznak, ami ezen a lapon megtalálható. Vedd ki a pipát abból, amit nem kérsz: az nem épül be, és később a Bővítmények oldalon hozzáadhatod.",
+      "name_quote": "A név nem tartalmazhat \" vagy \\ jelet. A 4 hüvelyket írd például 4in-nek."
     },
     "alerts": {
       "intro": "Minden kijelzőnek van {action} művelete. Ez egy kártyát tesz mindenre, felébreszti a kijelzőt, és normál fényerőn tartja a háttérvilágítást, amíg valaki meg nem nyomja a gombot, vagy le nem jár az időkorlát. A Home Assistant maga nem ad magyarázatot vagy legördülő listákat az ESPHome-műveletekhez; minden, amit kitölthetsz, itt van felsorolva.",
@@ -4584,7 +4609,18 @@
           "bundle": "a YAML-t nem sikerült becsomagolni"
         }
       },
-      "icons": "Fordítás az ikonjaival"
+      "icons": "Fordítás az ikonjaival",
+      "steps": {
+        "title": "A fordítás lépései",
+        "wait": "Várja a sorát",
+        "build": "Fordít",
+        "send": "Elküldi a kijelzőre",
+        "confirm": "A kijelző megerősíti",
+        "on": "itt: {name}"
+      },
+      "done": "{screen} kész.",
+      "done_confirmed": "{screen} kész, és jelzi, hogy a lefordítottat futtatja.",
+      "show_why": "Miért?"
     },
     "grid": {
       "title": "Rács",
@@ -5187,6 +5223,29 @@
         "soft_ends": "Lágy szélek",
         "even_level": "Egyenletes hangerő",
         "repeats": "Ismétlődik"
+      }
+    },
+    "updates_card": {
+      "title": "{n} frissítés: {screen} | {n} frissítés: {screen}",
+      "one": "{screen} egy fordítása.",
+      "one_build": "Minden egy fordításban: {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} offline. Frissíteni akkor lehet, ha visszatér.",
+      "go_all": "Minden frissítése"
+    },
+    "build_room": {
+      "title": "Ennek a Home Assistantnak talán kevés a memóriája a fordításhoz",
+      "text": "{free} GB szabad, egy fordításhoz kb. {need} GB kell. A fordítás meghiúsulhat vagy lelassíthatja a Home Assistantot. Egy másik gépen futó fordítószerver ezt elkerüli, ahogy a kijelző frissítése az ESPHome Device Builderből egy számítógépen is.",
+      "server": "Fordítószerver"
+    },
+    "history": {
+      "title": "A kijelző utolsó fordítása | A kijelző utolsó {n} fordítása",
+      "by": {
+        "update": "Frissítés",
+        "plugins": "Bővítmények",
+        "install": "Telepítés",
+        "icons": "Ikonok",
+        "other": "Fordítás"
       }
     }
   }

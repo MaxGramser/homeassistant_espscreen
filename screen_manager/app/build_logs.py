@@ -17,6 +17,7 @@ import re
 import time
 from pathlib import Path
 
+import atomic
 from i18n import t
 
 LOG = logging.getLogger('screen_manager')
@@ -91,10 +92,7 @@ class BuildLogs:
             LOG.warning('Build log %s not closed: %s', key, error)
 
     def _write_meta(self, key, meta):
-        path = self.folder / f'{key}.json'
-        tmp = path.with_suffix('.json.tmp')
-        tmp.write_text(json.dumps(meta), encoding='utf-8')
-        tmp.replace(path)
+        atomic.write_json(self.folder / f'{key}.json', meta)
 
     def _read_meta(self, key):
         try:

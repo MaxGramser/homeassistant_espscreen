@@ -1,7 +1,7 @@
 """Firmware updates for paired screens: on demand, all at once, or nightly. Each is a build in the app's one build line
 (build_queue, docs/BUILDS.md), so one screen at a time and never refused because something else builds."""
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
 import re
@@ -13,7 +13,10 @@ from core import FIRMWARE_VERSION, SHAPES, board_of, channel, firmware_target, p
 from i18n import Text, english, screen_t, shown, t
 
 LOG = logging.getLogger('screen_manager')
-NIGHT_HOURS = range(3, 6)
+# The hour the nightly round may start, chosen in the Updates card (wish 113: screens beside a bed restart at full
+# brightness): 3 at night unless chosen; the round may start within three hours from it.
+DEFAULT_HOUR = 3
+WINDOW_HOURS = 3
 # What a screen with 4 MB of flash says about its partition table in its "Screen flash" sensor (components/flash_layout)
 # that this app acts on: it has the wide one, it is ready to take it, or it is ready after one more update (it runs
 # from its second slot, and ESPHome replaces the table of a screen in its first). Any other word, and no word at all,
@@ -55,6 +58,7 @@ class Updater:
     def __init__(self, manager, path):
         self.manager, self.path = manager, Path(path)
         self.auto, self.hosts, self.results, self.last_round = False, {}, {}, None
+        self.hour = DEFAULT_HOUR
         # Screens this app left on their bridge (app 0.4.56): {inbox: {'profile', 'host', 'since'}}, finished by the
         # next round however it ended, also after a restart of the app.
         self.bridging, self.bridge_tried = {}, 0.0
@@ -65,6 +69,8 @@ class Updater:
         raw = atomic.read_json(self.path, 1)
         if raw is not None:
             self.auto = raw.get('auto') is True
+            hour = raw.get('hour')
+            self.hour = hour if isinstance(hour, int) and not isinstance(hour, bool) and 0 <= hour <= 23 else DEFAULT_HOUR
             self.hosts = {k: v for k, v in raw.get('hosts', {}).items() if isinstance(v, str)}
             self.results = {k: v for k, v in raw.get('results', {}).items() if isinstance(v, dict)}
             self.last_round = raw.get('last_round') if isinstance(raw.get('last_round'), str) else None
@@ -74,7 +80,10 @@ class Updater:
     def save(self):
         # 'bridging' only while a screen is on its bridge, so the file reads as before for an older app.
         atomic.write_json(self.path, {'version': 1, 'auto': self.auto, 'hosts': self.hosts, 'results': self.results,
-                                      'last_round': self.last_round, **({'bridging': self.bridging} if self.bridging else {})})
+                                      'last_round': self.last_round,
+                                      # The hour only once it was chosen, so the file reads as before for an older app.
+                                      **({'hour': self.hour} if self.hour != DEFAULT_HOUR else {}),
+                                      **({'bridging': self.bridging} if self.bridging else {})})
 
     @property
     def line(self):
@@ -194,7 +203,7 @@ class Updater:
         # The changelog goes with the full inventory only (app 0.2.78): this summary is in every live update of the page.
         # `target` is the shared version; what one screen is offered is its own `update.target` (app 0.3.21). `channel`
         # is the branch the screens build from, when the app was added from this repository (docs/RELEASING.md).
-        return {'auto': self.auto, 'target': FIRMWARE_VERSION, 'busy': self.current,
+        return {'auto': self.auto, 'hour': self.hour, 'target': FIRMWARE_VERSION, 'busy': self.current,
                 'pending': len(self.pending(screens, profiles)), 'last_round': self.last_round, 'channel': channel(),
                 # How many screens Reinstall all from dev would build again; only on the dev channel.
                 **({'reinstallable': len(self.reinstallable(screens, profiles))} if channel() == 'dev' else {})}
@@ -215,6 +224,13 @@ class Updater:
         if not isinstance(enabled, bool):
             raise ValueError(t('addon.errors.updates.automatic'))
         self.auto = enabled
+        self.save()
+
+    def set_hour(self, hour):
+        """The hour the nightly round may start (0 to 23), in Home Assistant's time."""
+        if not isinstance(hour, int) or isinstance(hour, bool) or not 0 <= hour <= 23:
+            raise ValueError(t('addon.errors.updates.hour'))
+        self.hour = hour
         self.save()
 
     def start(self, inbox, host=None, reinstall=False):
@@ -557,8 +573,13 @@ class Updater:
         except Exception as error:
             LOG.warning('Notifying Home Assistant failed (%s)', type(error).__name__)
 
+    def round_day(self, now):
+        """The day a round at `now` counts for: the day its window began, so a window past midnight (from 23:00) is one
+        round, not two."""
+        return (now - timedelta(hours=(now.hour - self.hour) % 24)).date().isoformat()
+
     def due(self, now):
-        return self.auto and now.hour in NIGHT_HOURS and self.last_round != now.date().isoformat()
+        return self.auto and (now.hour - self.hour) % 24 < WINDOW_HOURS and self.last_round != self.round_day(now)
 
     async def run(self):
         while True:
@@ -584,7 +605,7 @@ class Updater:
             return self.launch(waiting, automatic=True)
         if not self.due(now):
             return None
-        self.last_round = now.date().isoformat()
+        self.last_round = self.round_day(now)
         self.save()
         pending = self.pending()
         if not pending:

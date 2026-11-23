@@ -48,6 +48,7 @@ import reports
 import build_server
 import build_files
 import build_logs
+import build_memory
 from build_queue import BuildQueue
 from firmware import Firmware
 import ha_pairing
@@ -1536,6 +1537,15 @@ class Manager:
         if inbox and self.turnable(inbox):
             region['upright'] = self.wanted_way(inbox) == 'portrait'
         return region
+
+    def build_room(self):
+        """The memory a build here would have against what its heaviest file needs (build_memory.py), and whether the
+        build server takes the builds: `tight` when a build here may fail or slow Home Assistant down."""
+        free = build_memory.available_mb(getattr(self.firmware, 'MEMINFO', '/proc/meminfo'),
+                                         getattr(self.firmware, 'CGROUP', '/sys/fs/cgroup'))
+        server = bool(getattr(self, 'build_server', None) and self.build_server.wanted())
+        return {'free_mb': free, 'need_mb': build_memory.HEAVY_MB, 'server': server,
+                'tight': bool(free is not None and free < build_memory.HEAVY_MB and not server)}
 
     def preflight_update(self, inbox):
         return page_service.preflight_update(self, inbox=inbox)
@@ -5148,6 +5158,9 @@ def create_app(manager, development=False):
                 'build_server': manager.build_server.view(),
                 # What the builds left in /data, the automatic clean-up and whether the page offers one (build_files.py).
                 'build_files': manager.build_files.view(),
+                # Whether a build here has the memory it needs, said before a build starts (docs/BUILDS.md, "Before a
+                # build"): tight without a build server, the editor warns where builds are started.
+                'build_room': manager.build_room(),
                 # What this app shares about plugins (plugin_likes.py): the likes' yes, counting, whether cards ask.
                 'plugin_sharing': manager.plugins.liker.view() if editor_features['plugins'] else None,
                 # The live streams of every screen together against the most the app serves (live_stream.py): the
@@ -5507,12 +5520,28 @@ def create_app(manager, development=False):
     async def update_screen(request):
         data = await request.json() if request.can_read_body else {}
         return web.json_response(manager.updates.start(request.match_info['inbox'], data.get('host'), data.get('reinstall') is True))
+    async def update_everything(request):
+        """A screen's firmware update and its plugin updates in one build (Plugins.update_everything)."""
+        data = await request.json() if request.can_read_body else {}
+        result = await manager.plugins.update_everything(request.match_info['inbox'], data if isinstance(data, dict) else {})
+        manager.notify()
+        return web.json_response(result)
+    async def plugin_back(request):
+        """A plugin back to the version a screen ran before its last update (Plugins.go_back)."""
+        result = manager.plugins.go_back(request.match_info['inbox'], request.match_info['plugin'])
+        return web.json_response(result)
     async def update_all(request):
         # `reinstall`: Reinstall all from dev, every screen again with the newest dev (dev channel only).
         data = await request.json() if request.can_read_body else {}
         return web.json_response({'started': manager.updates.start_all(isinstance(data, dict) and data.get('reinstall') is True)})
     async def update_settings(request):
-        manager.updates.set_auto((await request.json()).get('auto'))
+        data = await request.json()
+        if not isinstance(data, dict):
+            raise ValueError(t('addon.errors.updates.automatic'))
+        if 'auto' in data:
+            manager.updates.set_auto(data.get('auto'))
+        if 'hour' in data:
+            manager.updates.set_hour(data.get('hour'))
         return web.json_response(manager.updates.summary())
     async def inspector(request):
         screen=manager.screen(request.match_info['inbox'])
@@ -6232,6 +6261,8 @@ def create_app(manager, development=False):
     app.on_cleanup.append(shutdown)
     app.router.add_get('/api/screens/{inbox}/inspect', inspector)
     app.router.add_post('/api/screens/{inbox}/update', update_screen)
+    app.router.add_post('/api/screens/{inbox}/update-everything', update_everything)
+    app.router.add_post('/api/screens/{inbox}/plugins/{plugin}/back', plugin_back)
     app.router.add_post('/api/updates/run', update_all)
     app.router.add_put('/api/updates', update_settings)
     app.router.add_put('/api/language', change_language)

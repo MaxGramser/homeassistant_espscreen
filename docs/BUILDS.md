@@ -99,7 +99,70 @@ and `GET api/firmware/logs/{key}` sends one as a file. In the editor:
   repository, filled in with the plugin, version, board, firmware and the line it stopped on (`issueUrl` in
   `web/src/model/plugins.ts`), naming no screen or home; the person attaches the log they downloaded.
 - A plugin's details and the screen's build note (`BuildLog.vue`) offer the same download.
+- The screen's Plugins tab lists its last builds with their logs (`BuildHistory.vue`).
 - Firmware & USB lists every kept log, to download.
+
+## The steps of a build
+
+Every place that shows a build shows its steps (`BuildSteps.vue`, `web/src/model/build-steps.ts`): waits its turn,
+builds (on the build server or here), sends it to the screen, the screen confirms. The add-on says the ESPHome step a
+build is at (`stage`: compile, upload) and the build's own phase (`verify`), and for a build that ended the step it got
+to (`stage`) and whether the screen confirmed (`verified`).
+
+A plugin build waits after its upload until the screen has restarted and says, in its hello, that it runs the plugins
+at the versions built (`Plugins._verify`, up to four minutes). True is a confirmed build; false a screen that came back
+without them (a plugin that crashed at boot), which the editor answers with the version before (below); null a screen
+that could not tell. A build that went well stays on the page for ten minutes with its steps done.
+
+## Why a build failed
+
+A plugin build that fails is given a kind (`failure_kind` in `screen_manager/app/plugins.py`), and each kind has its
+own words and its own way out in the screen's Plugins tab (`PluginFailures.vue`):
+
+| Kind | What happened | The way out |
+|---|---|---|
+| `plugin` | a compiler error in the plugin's own component (`blame`) | a filled-in issue at the maker's GitHub, with the log |
+| `memory` | this Home Assistant ran short of memory (build_memory.py) | a build server |
+| `offline` | built, but the screen did not take the upload | installed once more by itself as soon as the screen is back, once |
+| `network` | a download the build needs did not come | tried once more by itself at once; then a key to try again |
+| `interrupted` | the app restarted during the build | built once more by itself after the start (above); this kind is a second cut |
+| `build` | anything else | the log, and the issue at the maker |
+
+A failure is said in Home Assistant too: one notification per screen (`tessera_plugins_<screen>`), taken away by the
+next build that goes well (`Plugins._tell_home_assistant`). The page's own message after a failed plugin build opens the
+screen's Plugins tab.
+
+## A version that does not run well
+
+A plugin build that went well keeps what the screen ran before (`before` on the record, its files kept as the release's
+snapshot). The plugin's details offer "Back to <version>" (`POST api/screens/{inbox}/plugins/{plugin}/back`,
+`Plugins.go_back`), first of all when the screen came back without the plugin. It is a plugin build like any other: a
+failure keeps what runs.
+
+## Updates of a screen
+
+A screen's updates are in one card at the top of its Plugins tab (`ScreenUpdates.vue`): its firmware and each plugin,
+from the version it runs to the new one, and one key for all of it. `POST api/screens/{inbox}/update-everything`
+(`Plugins.update_everything`) writes the plugins file with the new versions and starts the firmware update, which builds
+that file; the plugins settle with that build. Without a firmware update it is a plugin build.
+
+The sidebar names a screen's plugin updates beside its name (a key that opens its Plugins tab) and marks a plugin that
+did not build. The Updates card of the settings lists the screens with plugin updates, and lets the nightly round start
+at an hour of the owner's choosing (`hour` in `updates.json`, three hours from it; `Updater.round_day` keeps a window
+past midnight one round). Home Assistant hears of new updates too: one notification (`tessera_updates`) that names each
+screen and what waits, made again when that changes and taken away once nothing waits (`Plugins.announce_updates`,
+every fifteen minutes).
+
+## Before a build
+
+`build_room` in the live answer says whether this Home Assistant has the memory a build needs: free memory against the
+heaviest file (build_memory.py), and whether the build server takes the builds. Tight without a build server, the
+editor says so where builds are started (`BuildRoom.vue`), with the two ways round it: a build server, or ESPHome
+Device Builder on a computer. Building here stays the default; nothing is refused.
+
+The editor also counts the plugin host for the first plugin on a 4 MB screen (`PLUGIN_HOST_KB` in
+`web/src/model/plugins.ts`, #440), and New screen refuses a name with `"` or `\`, which would break the C++ strings it
+goes into (#453).
 
 ## On a build server
 

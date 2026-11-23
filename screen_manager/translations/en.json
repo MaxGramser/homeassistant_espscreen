@@ -867,7 +867,8 @@
         "host": "Enter the IP address or hostname of the intended screen.",
         "grid": "Choose a grid this screen takes.",
         "build_gone": "This build is no longer known. The newest builds are under Firmware & USB.",
-        "log_gone": "This build log is no longer kept."
+        "log_gone": "This build log is no longer kept.",
+        "friendly_name_quote": "A screen's name cannot hold \" or \\. Write 4 inch as 4in, for example."
       },
       "updates": {
         "automatic": "Choose on or off for automatic updates.",
@@ -881,7 +882,8 @@
         "all_updated": "All reachable screens are already updated.",
         "reinstall_dev": "Reinstalling the same firmware is for the dev channel only.",
         "all_on_the_way": "Every screen with an update has it on its way already.",
-        "nothing_to_reinstall": "No screen can be reinstalled now: each is offline, already on its way, or has no profile in this app."
+        "nothing_to_reinstall": "No screen can be reinstalled now: each is offline, already on its way, or has no profile in this app.",
+        "hour": "Choose an hour from 0 to 23."
       },
       "remove": {
         "not_allowed": "This app may not remove an integration from Home Assistant. Remove the screen in Home Assistant itself, under Settings → Devices & services.",
@@ -989,7 +991,8 @@
         "rate_not_installed": "Put the plugin on one of your screens first, then you can rate it.",
         "rate_failed": "The stars did not go out. Try again in a moment.",
         "count_failed": "Counting could not be turned off: Tessera could not be reached. Try again in a moment.",
-        "forget_running": "A screen still runs this plugin. Take it off the screen first."
+        "forget_running": "A screen still runs this plugin. Take it off the screen first.",
+        "no_before": "There is no earlier version of this plugin to go back to."
       },
       "extras": {
         "request": "This change of an extra is not possible on this screen."
@@ -1089,7 +1092,10 @@
       "updated": "Updated to firmware {version}."
     },
     "notify": {
-      "update_stopped": "Automatic update stopped at {name}: {reason} The remaining screens were not touched."
+      "update_stopped": "Automatic update stopped at {name}: {reason} The remaining screens were not touched.",
+      "plugin_failed": "{names} did not build on {screen}: {reason} The screen still runs what it ran before. Open Tessera, then the screen's Plugins tab, for why and the log.",
+      "updates": "Updates are ready for your screens. Open Tessera to install them.",
+      "updates_firmware": "firmware {version}"
     },
     "labels": {
       "built_into_screen": "Built into the screen",
@@ -1812,7 +1818,11 @@
         "kept": "{name} is removed. Its profile {file} is still in the ESPHome folder."
       },
       "home": "Overview of your screens",
-      "dev_chip": "This is the dev version of the app: every screen it builds comes from the dev branch."
+      "dev_chip": "This is the dev version of the app: every screen it builds comes from the dev branch.",
+      "plugins": {
+        "failed": "A plugin did not build",
+        "updates": "{n} plugin update | {n} plugin updates"
+      }
     },
     "palette": {
       "groups": {
@@ -3012,11 +3022,13 @@
         "all": "Update 1 screen | Update all {n} screens",
         "whats_new": "What's new in firmware {version}",
         "auto_label": "Update automatically every night",
-        "auto_hint": "Between 03:00 and 06:00, one screen at a time. Stops on an error and reports it in Home Assistant.",
         "reinstall_all": "Reinstall 1 screen from dev | Reinstall all {n} screens from dev",
         "reinstall_all_hint": "Builds the newest dev for every screen, one after the other, and installs it over Wi-Fi. On dev the version number stays the same, so a new dev is never offered as an update.",
         "reinstall_all_confirm": "Reinstall 1 screen from the newest dev? It restarts once its firmware is on. | Reinstall {n} screens from the newest dev? They are built one after the other, and each restarts once its firmware is on.",
-        "reinstall_all_go": "Reinstall"
+        "reinstall_all_go": "Reinstall",
+        "auto_hint_hour": "Between {from} and {to}, one screen at a time. Stops on an error and reports it in Home Assistant.",
+        "hour_label": "Start at",
+        "plugin_row": "{screen}: {names}"
       },
       "video": {
         "title": "Video in Home Assistant",
@@ -3439,7 +3451,8 @@
       "grid_best": "Back to the best",
       "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after.",
       "plugins_title": "Plugins for this screen",
-      "plugins_intro": "These go with what this board has. Untick what you do not want: it is not built in, and you can add it later on the Plugins page."
+      "plugins_intro": "These go with what this board has. Untick what you do not want: it is not built in, and you can add it later on the Plugins page.",
+      "name_quote": "A name cannot hold \" or \\. Write 4 inch as 4in, for example."
     },
     "alerts": {
       "intro": "Every screen has the {action} action. It places a card over everything, wakes the screen, and keeps the backlight at normal brightness until someone taps the button or the timeout runs out. Home Assistant itself shows no explanation or dropdowns for ESPHome actions; everything you can fill in is listed here.",
@@ -4236,8 +4249,6 @@
         "here": "On this screen",
         "add": "Add",
         "misfits": "Does not fit this screen ({n}) | Do not fit this screen ({n})",
-        "updates": "An update for {n} plugin | Updates for {n} plugins",
-        "updates_note": "One build for {screen}: {names}.",
         "updates_rights": "{names} asks for other rights than before. | {names} ask for other rights than before.",
         "update_all": "Update all on this screen"
       },
@@ -4513,7 +4524,21 @@
         "no_log": "No log was kept of this build.",
         "details": "Details",
         "report": "Report to {maker}",
-        "report_hint": "Reporting opens an issue at the maker's GitHub, already filled in. Attach the log you downloaded."
+        "report_hint": "Reporting opens an issue at the maker's GitHub, already filled in. Attach the log you downloaded.",
+        "why": {
+          "plugin": "It stopped in the plugin's own code, which its maker can fix.",
+          "memory": "This Home Assistant ran short of memory while building. A build server on another computer builds it without that limit.",
+          "offline": "It was built, but {screen} did not take it, also after it came back. Check that it is on and on Wi-Fi.",
+          "offline_wait": "It was built, but {screen} was not reachable. It installs by itself once the screen is back.",
+          "network": "A download it needs did not come, also on a second try. Try again in a moment.",
+          "build": "The log says why.",
+          "interrupted": "The app restarted during the build, and again during the try after it."
+        },
+        "build_server": "Set up a build server"
+      },
+      "back": {
+        "button": "Back to {version}",
+        "not_running": "{screen} came back without {name} after the update. Going back to the version before usually helps."
       }
     },
     "plugin_tile": {
@@ -4584,7 +4609,18 @@
           "bundle": "the YAML could not be packed"
         }
       },
-      "icons": "Building with its icons"
+      "icons": "Building with its icons",
+      "steps": {
+        "title": "Steps of the build",
+        "wait": "Waits its turn",
+        "build": "Builds",
+        "send": "Sends it to the screen",
+        "confirm": "Screen confirms",
+        "on": "on {name}"
+      },
+      "done": "{screen} is ready.",
+      "done_confirmed": "{screen} is ready, and says it runs what was built.",
+      "show_why": "Show why"
     },
     "grid": {
       "title": "Grid",
@@ -5187,6 +5223,29 @@
         "soft_ends": "Soft ends",
         "even_level": "Even volume",
         "repeats": "Repeats"
+      }
+    },
+    "updates_card": {
+      "title": "{n} update for {screen} | {n} updates for {screen}",
+      "one": "One build of {screen}.",
+      "one_build": "All of it in one build of {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} is offline. It can be updated once it is back.",
+      "go_all": "Update everything"
+    },
+    "build_room": {
+      "title": "This Home Assistant may be short of memory for a build",
+      "text": "It has {free} GB free, and a build needs about {need} GB. A build may fail or slow Home Assistant down. A build server on another computer avoids that, and so does updating the screen from ESPHome Device Builder on a computer.",
+      "server": "Build server"
+    },
+    "history": {
+      "title": "Last build of this screen | Last {n} builds of this screen",
+      "by": {
+        "update": "Update",
+        "plugins": "Plugins",
+        "install": "Install",
+        "icons": "Icons",
+        "other": "Build"
       }
     }
   }

@@ -128,6 +128,10 @@ class Choices(unittest.TestCase):
         for grid in ({'columns': 4, 'rows': 3}, {'columns': 0, 'rows': 3}, {'columns': 2}, {'columns': '2', 'rows': 3}, [2, 3]):
             with self.assertRaises(ValueError, msg=grid):
                 core.installation_yaml({'board': 'cyd', 'name': 'hall', 'friendly_name': 'Hall', 'grid': grid})
+        # A name with " or \ would break the C++ strings it goes into (#453): refused before a build.
+        for name in ('Guition 4"', 'Hall \\ kitchen'):
+            with self.assertRaises(ValueError, msg=name):
+                core.installation_yaml({'board': 'cyd', 'name': 'hall', 'friendly_name': name})
         # Offline, the screen's own YAML says the grid it starts with, the way it hangs: the app counts its cells on it.
         import firmware
         self.assertEqual(firmware.profile_meta(four)['built_grid'], {'rows': 4})

@@ -867,7 +867,8 @@
         "host": "Saisissez l'adresse IP ou le nom d'hôte de l'écran voulu.",
         "grid": "Choisissez une grille que cet écran accepte.",
         "build_gone": "Cette compilation n'est plus connue. Les plus récentes sont sous Firmware et USB.",
-        "log_gone": "Ce journal de compilation n'est plus conservé."
+        "log_gone": "Ce journal de compilation n'est plus conservé.",
+        "friendly_name_quote": "Le nom d'un écran ne peut pas contenir \" ni \\. Écris 4 pouces comme 4in, par exemple."
       },
       "updates": {
         "automatic": "Choisissez activé ou désactivé pour les mises à jour automatiques.",
@@ -881,7 +882,8 @@
         "all_updated": "Tous les écrans joignables sont déjà à jour.",
         "reinstall_dev": "Réinstaller le même firmware n'est possible que sur le canal dev.",
         "all_on_the_way": "Chaque écran ayant une mise à jour l'a déjà en route.",
-        "nothing_to_reinstall": "Aucun écran ne peut être réinstallé maintenant : chacun est hors ligne, déjà en route ou sans profil dans cette app."
+        "nothing_to_reinstall": "Aucun écran ne peut être réinstallé maintenant : chacun est hors ligne, déjà en route ou sans profil dans cette app.",
+        "hour": "Choisis une heure de 0 à 23."
       },
       "remove": {
         "not_allowed": "Cette application ne peut pas supprimer une intégration de Home Assistant. Retirez l'écran dans Home Assistant même, sous Paramètres → Appareils et services.",
@@ -989,7 +991,8 @@
         "rate_not_installed": "Mettez d'abord le plugin sur un de vos écrans, vous pourrez ensuite le noter.",
         "rate_failed": "Les étoiles ne sont pas parties. Réessayez dans un instant.",
         "count_failed": "Le comptage n'a pas pu être désactivé : Tessera était injoignable. Réessayez dans un instant.",
-        "forget_running": "Un écran utilise encore ce plugin. Retirez-le d'abord de l'écran."
+        "forget_running": "Un écran utilise encore ce plugin. Retirez-le d'abord de l'écran.",
+        "no_before": "Il n'y a pas de version précédente de ce plugin à laquelle revenir."
       },
       "extras": {
         "request": "Ce changement d’un extra n’est pas possible sur cet écran."
@@ -1089,7 +1092,10 @@
       "updated": "Mis à jour vers le firmware {version}."
     },
     "notify": {
-      "update_stopped": "La mise à jour automatique s'est arrêtée à l'écran {name} : {reason} Les autres écrans n'ont pas été touchés."
+      "update_stopped": "La mise à jour automatique s'est arrêtée à l'écran {name} : {reason} Les autres écrans n'ont pas été touchés.",
+      "plugin_failed": "{names} ne s'est pas compilé sur {screen} : {reason} L'écran garde ce qu'il avait. Ouvre Tessera, puis l'onglet Plugins de l'écran pour la raison et le journal.",
+      "updates": "Des mises à jour sont prêtes pour tes écrans. Ouvre Tessera pour les installer.",
+      "updates_firmware": "firmware {version}"
     },
     "labels": {
       "built_into_screen": "Intégré à l'écran",
@@ -1812,7 +1818,11 @@
         "kept": "{name} a été retiré. Son profil {file} est encore dans le dossier ESPHome."
       },
       "home": "Aperçu de vos écrans",
-      "dev_chip": "C'est la version dev de l'app : chaque écran qu'elle compile vient de la branche dev."
+      "dev_chip": "C'est la version dev de l'app : chaque écran qu'elle compile vient de la branche dev.",
+      "plugins": {
+        "failed": "Un plugin ne s'est pas compilé",
+        "updates": "{n} mise à jour de plugin | {n} mises à jour de plugins"
+      }
     },
     "palette": {
       "groups": {
@@ -2207,8 +2217,6 @@
         "here": "Sur cet écran",
         "add": "Ajouter",
         "misfits": "Ne convient pas à cet écran ({n}) | Ne conviennent pas à cet écran ({n})",
-        "updates": "Une mise à jour pour {n} plugin | Des mises à jour pour {n} plugins",
-        "updates_note": "Une seule compilation pour {screen} : {names}.",
         "updates_rights": "{names} demande d'autres droits qu'avant. | {names} demandent d'autres droits qu'avant.",
         "update_all": "Tout mettre à jour sur cet écran"
       },
@@ -2485,7 +2493,21 @@
         "no_log": "Aucun journal n'a été conservé pour cette compilation.",
         "details": "Détails",
         "report": "Signaler à {maker}",
-        "report_hint": "Signaler ouvre un ticket sur le GitHub de l'auteur, déjà rempli. Joins le journal téléchargé."
+        "report_hint": "Signaler ouvre un ticket sur le GitHub de l'auteur, déjà rempli. Joins le journal téléchargé.",
+        "why": {
+          "plugin": "Il s'est arrêté dans le code du plugin lui-même, que son auteur peut corriger.",
+          "memory": "Ce Home Assistant a manqué de mémoire pendant la compilation. Un serveur de compilation sur un autre ordinateur le compile sans cette limite.",
+          "offline": "Il a été compilé, mais {screen} ne l'a pas pris, même après son retour. Vérifie qu'il est allumé et sur le Wi-Fi.",
+          "offline_wait": "Il a été compilé, mais {screen} n'était pas joignable. Il s'installe tout seul dès que l'écran revient.",
+          "network": "Un téléchargement nécessaire n'est pas arrivé, même au second essai. Réessaie dans un instant.",
+          "build": "Le journal dit pourquoi.",
+          "interrupted": "L'app a redémarré pendant la compilation, et encore pendant l'essai suivant."
+        },
+        "build_server": "Configurer un serveur de compilation"
+      },
+      "back": {
+        "button": "Revenir à {version}",
+        "not_running": "{screen} est revenu sans {name} après la mise à jour. Revenir à la version précédente aide en général."
       }
     },
     "plugin_tile": {
@@ -3489,11 +3511,13 @@
         "all": "Mettre à jour {n} écran | Mettre à jour les {n} écrans",
         "whats_new": "Nouveautés du firmware {version}",
         "auto_label": "Mettre à jour automatiquement chaque nuit",
-        "auto_hint": "Entre 03:00 et 06:00, un écran à la fois. S'arrête en cas d'erreur et la signale dans Home Assistant.",
         "reinstall_all": "Réinstaller 1 écran depuis dev | Réinstaller les {n} écrans depuis dev",
         "reinstall_all_hint": "Compile la dev la plus récente pour chaque écran, l'un après l'autre, et l'installe par Wi-Fi. Sur dev, le numéro de version ne change pas : une nouvelle dev n'est donc jamais proposée comme mise à jour.",
         "reinstall_all_confirm": "Réinstaller 1 écran depuis la dev la plus récente ? Il redémarre dès que son firmware est installé. | Réinstaller {n} écrans depuis la dev la plus récente ? Ils sont compilés l'un après l'autre, et chacun redémarre dès que son firmware est installé.",
-        "reinstall_all_go": "Réinstaller"
+        "reinstall_all_go": "Réinstaller",
+        "auto_hint_hour": "Entre {from} et {to}, un écran à la fois. S'arrête à la première erreur et la signale dans Home Assistant.",
+        "hour_label": "Commencer à",
+        "plugin_row": "{screen} : {names}"
       },
       "video": {
         "title": "Vidéo dans Home Assistant",
@@ -3916,7 +3940,8 @@
       "grid_best": "Revenir à la meilleure",
       "waits_turn": "Un autre écran est en cours de compilation. Celui-ci attend son tour et démarre tout seul juste après.",
       "plugins_title": "Plugins pour cet écran",
-      "plugins_intro": "Ils vont avec ce que possède cette carte. Décochez ce que vous ne voulez pas : ce n'est pas intégré, et vous pouvez l'ajouter plus tard sur la page Plugins."
+      "plugins_intro": "Ils vont avec ce que possède cette carte. Décochez ce que vous ne voulez pas : ce n'est pas intégré, et vous pouvez l'ajouter plus tard sur la page Plugins.",
+      "name_quote": "Un nom ne peut pas contenir \" ni \\. Écris 4 pouces comme 4in, par exemple."
     },
     "alerts": {
       "intro": "Chaque écran a l'action {action}. Elle place une carte par-dessus tout, réveille l'écran et garde le rétroéclairage à luminosité normale jusqu'à ce que quelqu'un touche le bouton ou que le délai expire. Home Assistant n'affiche lui-même ni explication ni listes déroulantes pour les actions ESPHome ; tout ce que vous pouvez remplir est listé ici.",
@@ -4584,7 +4609,18 @@
           "bundle": "le YAML n'a pas pu être préparé"
         }
       },
-      "icons": "Compilation avec ses icônes"
+      "icons": "Compilation avec ses icônes",
+      "steps": {
+        "title": "Étapes de la compilation",
+        "wait": "Attend son tour",
+        "build": "Compile",
+        "send": "L'envoie à l'écran",
+        "confirm": "L'écran confirme",
+        "on": "sur {name}"
+      },
+      "done": "{screen} est prêt.",
+      "done_confirmed": "{screen} est prêt et dit exécuter ce qui a été compilé.",
+      "show_why": "Voir pourquoi"
     },
     "grid": {
       "title": "Grille",
@@ -5187,6 +5223,29 @@
         "soft_ends": "Bords doux",
         "even_level": "Volume égal",
         "repeats": "Se répète"
+      }
+    },
+    "updates_card": {
+      "title": "{n} mise à jour pour {screen} | {n} mises à jour pour {screen}",
+      "one": "Une compilation de {screen}.",
+      "one_build": "Tout en une compilation de {screen}.",
+      "firmware": "Firmware",
+      "away": "{screen} est hors ligne. La mise à jour sera possible à son retour.",
+      "go_all": "Tout mettre à jour"
+    },
+    "build_room": {
+      "title": "Ce Home Assistant manque peut-être de mémoire pour compiler",
+      "text": "Il a {free} Go libres, et une compilation demande environ {need} Go. Elle peut échouer ou ralentir Home Assistant. Un serveur de compilation sur un autre ordinateur l'évite, tout comme mettre à jour l'écran depuis ESPHome Device Builder sur un ordinateur.",
+      "server": "Serveur de compilation"
+    },
+    "history": {
+      "title": "Dernière compilation de cet écran | {n} dernières compilations de cet écran",
+      "by": {
+        "update": "Mise à jour",
+        "plugins": "Plugins",
+        "install": "Installation",
+        "icons": "Icônes",
+        "other": "Compilation"
       }
     }
   }

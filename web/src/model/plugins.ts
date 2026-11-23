@@ -240,13 +240,18 @@ export type Installed = {
   state?: "building" | "active" | "failed"; reason?: string | null;
   // The key of the failed build's log the add-on keeps on disk (build_logs.py): buildLogHref downloads it.
   log?: string | null;
+  // Why the last build failed (plugins.py failure_kind): plugin, memory, offline, network, build or interrupted.
+  kind?: "plugin" | "memory" | "offline" | "network" | "build" | "interrupted" | null;
+  // The version it ran before its last update, to go back to (go_back), and whether the screen said after the build
+  // that it runs it (false: it came back without it).
+  before?: string | null; verified?: boolean | null;
   // Whether the screen's last hello names it at this version (plugins.py runs): false is a plugin that crashed at boot
   // or a firmware built without it; null while that cannot be known (offline, building, just built).
   running?: boolean | null;
   // The version the screen runs instead (plugins.py runs_version): a firmware built elsewhere, from another commit.
   runs_version?: string | null;
   // An update whose build failed: the screen went back to this record's version, and this is the one that did not build.
-  failed_update?: { version: string; ref?: string | null; reason?: string | null; log?: string | null };
+  failed_update?: { version: string; ref?: string | null; reason?: string | null; log?: string | null; kind?: Installed["kind"]; waited?: number };
   // Which of its secrets for this screen alone are set (never their values).
   secrets?: Record<string, boolean>;
   // The fingerprint of the rights the person agreed to when it went on (Plugin.permission_hash then).
@@ -256,7 +261,7 @@ export type Installed = {
 // A plugin on a screen whose last build failed: a new one that stays out (`added`), or an update the screen went back
 // from (`update`), with the reason and the key of the build's kept log.
 export type PluginFailure = { plugin: Plugin; installed: Installed; kind: "added" | "update"; version: string;
-  reason: string | null; log: string | null };
+  reason: string | null; log: string | null; why: NonNullable<Installed["kind"]> | "build"; waited?: boolean };
 
 /** A new issue at the plugin's own repository about a build that failed, filled in with what the maker needs: the plugin
  * and version, the board, the firmware and why it stopped, and a word to attach the log the person downloaded. Null for a
@@ -434,7 +439,11 @@ export type AppFit = Record<string, Record<string, Misfit>>;
 // 1,919,472 B of 2,031,616 B, which leaves 49 KB below it.
 // The add-on reports a 4 MB screen's own last image and slot (firmware_image, Firmware.image_room); before its first
 // build the CYD's numbers stand in for every 4 MB board.
-export const SMALL_FLASH = { image: 1_919_472, slot: 2_031_616, ceiling: 0.97 };
+// 0.4.99 measured 1,949,619 B for the core on the CYD (#440): the stand-in follows the release.
+export const SMALL_FLASH = { image: 1_949_619, slot: 2_031_616, ceiling: 0.97 };
+// What the first plugin on a screen costs beyond its own code: the plugin host of smart_display and what it pulls in,
+// about 34 KB on the CYD of 0.4.99 (#440). A screen that runs a plugin has it in its image already.
+export const PLUGIN_HOST_KB = 34;
 const SMALL_FLASH_BOARDS = ["cyd", "cyd9342", "hosyond40"];
 const imageOf = (screen: Screen) => screen.firmware_image
   || (screen.board && SMALL_FLASH_BOARDS.includes(screen.board) ? { size: SMALL_FLASH.image, slot: SMALL_FLASH.slot } : null);
@@ -449,7 +458,7 @@ export const headroomKb = (screen?: Screen) => {
 export const FREE_PINS: Record<string, string[]> = { cyd: ["GPIO22", "GPIO27"], cyd9342: ["GPIO22", "GPIO27"] };
 export const freePins = (screen: Screen) => (screen.board && FREE_PINS[screen.board]) || [];
 
-export function fit(plugin: Plugin, screen: Screen | null, known: Record<string, Misfit> = {}): Fit {
+export function fit(plugin: Plugin, screen: Screen | null, known: Record<string, Misfit> = {}, hostless = false): Fit {
   if (!screen) return { ok: true };
   if (plugin.blocked) return { ok: false, reason: "blocked" };
   if (plugin.fits_api === false) return { ok: false, reason: "firmware" };
@@ -457,7 +466,8 @@ export function fit(plugin: Plugin, screen: Screen | null, known: Record<string,
   if (plugin.requires.psram && !screen.pictures) return { ok: false, reason: "psram" };
   const reason = known[plugin.id];
   if (reason) return { ok: false, reason };
-  if (smallFlash(screen) && plugin.flash_kb > headroomKb(screen)) return { ok: false, reason: "flash" };
+  // The first plugin on a screen brings the plugin host along (`hostless`: the screen runs none yet).
+  if (smallFlash(screen) && plugin.flash_kb + (hostless ? PLUGIN_HOST_KB : 0) > headroomKb(screen)) return { ok: false, reason: "flash" };
   return { ok: true };
 }
 

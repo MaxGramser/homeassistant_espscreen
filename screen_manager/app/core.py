@@ -3136,6 +3136,10 @@ def installation_yaml(data):
         raise ValueError(t('addon.errors.firmware.board_and_name'))
     if not isinstance(friendly, str) or not friendly.strip() or len(friendly) > 60:
         raise ValueError(t('addon.errors.firmware.friendly_name'))
+    # The name goes into C++ strings of the firmware (packages/core.yaml), where " or \ ends or breaks the string and
+    # the build fails far from here (#453): said now, before a build.
+    if '"' in friendly or '\\' in friendly:
+        raise ValueError(t('addon.errors.firmware.friendly_name_quote'))
     quote = lambda s: json.dumps(s, ensure_ascii=False)
     # The language of the screen's texts (app 0.2.90): Settings -> Language & region, which ESP Screens passes in.
     language = data.get('language') if isinstance(data.get('language'), str) and re.fullmatch(r'[a-z]{2,3}(-[A-Za-z0-9]{2,8})?', data.get('language')) else 'en'

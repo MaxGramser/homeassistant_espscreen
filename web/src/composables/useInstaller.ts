@@ -123,7 +123,7 @@ export function useInstaller() {
   const lineBusy = computed(() => builds.line.some((build) => build.state === "queued" || build.state === "running"));
   const goDisabled = computed(() => submitting.value || wifi.value?.state === "invalid" || form.target === "usb" ||
     (form.target === "browser" && support !== "ok") ||
-    clash.value.node || clash.value.name || (!!form.target && !data.value?.available));
+    clash.value.node || clash.value.name || clash.value.quote || (!!form.target && !data.value?.available));
   const ways = computed(() => installWays(ports.value));
   // The drawing of the chosen screen, which way it hangs and with the name typed so far.
   const art = computed(() => {

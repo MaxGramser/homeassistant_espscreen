@@ -453,6 +453,9 @@ export type LineBuild = {
   reason?: string | null;
   // The key of its log kept on disk (build_logs.py), from its first ESPHome step: buildLogHref downloads it.
   log?: string | null;
+  // An ended plugin build: whether the screen said after its restart that it runs what was built (null: it could not
+  // tell), and whether a download that did not come was tried once more.
+  verified?: boolean | null; retried?: boolean;
 } & ServerSide;
 export type VideoIntegration = {
   path: string; installed: boolean; current: boolean; version: string; loaded: string | null;
@@ -473,7 +476,7 @@ export type Inventory = {
   pending?: { friendly: string; file: string; node?: string; installed?: boolean; downloaded?: boolean; api_key?: string; seen?: boolean; pairing?: "adding" | "failed" | null }[];
   // `channel`: the branch the screens build from, when the app was added from this repository (docs/RELEASING.md).
   // `reinstallable`: on the dev channel, how many screens Reinstall all from dev builds again (Updater.reinstallable).
-  updates?: { target: string; busy?: boolean | string | null; pending?: number; auto?: boolean; channel?: "main" | "dev" | null; reinstallable?: number };
+  updates?: { target: string; busy?: boolean | string | null; pending?: number; auto?: boolean; hour?: number; channel?: "main" | "dev" | null; reinstallable?: number };
   builds?: Record<string, Build>;
   // The add-on's build line (build_queue.py, docs/BUILDS.md): what runs, what waits and the last that ended (newest
   // first), from the same look at the line as `builds`, in every live answer.
@@ -482,6 +485,8 @@ export type Inventory = {
   build_server?: BuildServerView;
   // What the builds left in /data, the automatic clean-up and whether to offer one (build_files.py, docs/BUILDS.md).
   build_files?: import("./model/build-files").BuildFilesView;
+  // Whether a build here has the memory it needs (the add-on's build_room): `tight` without a build server.
+  build_room?: { free_mb: number | null; need_mb: number; server: boolean; tight: boolean };
   // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
   plugin_sharing?: PluginSharing | null;
   // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).

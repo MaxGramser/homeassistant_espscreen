@@ -58,7 +58,10 @@ describe("update all on this screen", () => {
     const view = mount(ScreenPluginsTab);
     await nextTick();
     const button = view.get("#screen-plugin-update-all");
-    expect(view.get("#screen-plugin-updates").text()).toContain("Public transport, Waste collection");
+    const card = view.get("#screen-plugin-updates");
+    expect(card.text()).toContain("2 updates for Hall");
+    expect(card.findAll("[data-update]").map((row) => row.attributes("data-update"))).toEqual(["bus", "waste"]);
+    expect(card.text()).toContain("1.1.0 → 1.2.0");
     await button.trigger("click");
     await vi.waitFor(() => expect(calls.length).toBe(1));
     expect(calls[0].path).toContain("screens/text.hall_tile_settings/plugins");
