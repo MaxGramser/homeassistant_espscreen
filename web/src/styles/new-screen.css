@@ -36,12 +36,12 @@
 .ob-card.chosen { box-shadow: 0 0 0 2px var(--accent), 0 12px 32px color-mix(in srgb, var(--accent) 16%, transparent); }
 .ob-card input, .ob-row input { position: absolute; opacity: 0; pointer-events: none; }
 .ob-card:has(input:focus-visible), .ob-row:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
-.ob-art { height: 188px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; padding: 16px; transition: background 0.2s ease; }
+.ob-art { min-width: 0; height: 188px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; padding: 16px; transition: background 0.2s ease; }
 .ob-card.chosen .ob-art { background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-2)); }
 .ob-art .device-art { max-height: calc(40px + min(var(--inch, 7), 10.5) * 11px); max-width: calc(60px + min(var(--inch, 7), 10.5) * 18px);
   filter: drop-shadow(0 10px 18px rgba(16, 17, 18, 0.16)); }
 .ob-art.tall { height: 280px; }
-.ob-art.tall .ob-frame { --frame-h: 230px; }
+.ob-art.tall .ob-frame { --frame-h: 230px; width: min(100%, calc(var(--frame-h) * var(--art-ratio, 1))); }
 .ob-card-words { display: grid; gap: 4px; padding: 0 8px; }
 .ob-card-words b { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
 .ob-card-words small { font-size: 14px; color: var(--muted); line-height: 1.4; }
@@ -87,8 +87,9 @@
 
 /* The screen large, with its name. */
 .ob-hero { display: grid; place-items: center; margin: 4px 0 28px; }
-.ob-frame { --frame-h: clamp(150px, 27vh, 236px); position: relative; height: var(--frame-h); width: calc(var(--frame-h) * var(--art-ratio, 1)); max-width: min(100%, 420px);
-  display: grid; place-items: center; }
+/* The frame takes its height from --frame-h and its width from the board's proportions, never wider than its room. */
+.ob-frame { --frame-h: clamp(150px, 27vh, 236px); position: relative; width: min(100%, 420px, calc(var(--frame-h) * var(--art-ratio, 1)));
+  aspect-ratio: var(--art-ratio, 1); display: grid; place-items: center; }
 .ob-frame .device-art { width: 100%; height: 100%; filter: drop-shadow(0 22px 34px rgba(16, 17, 18, 0.2)); }
 .ob-hero.small { margin-bottom: 20px; width: min(100%, 300px); }
 .ob-field { width: min(100%, 440px); }
@@ -177,6 +178,7 @@
 
 /* The installation, until the screen works: the screen lighting up, the title, one bar and the four steps. */
 .ob-body.follow { padding-top: 8px; text-align: center; }
+.ob-body.follow .ob-frame { --frame-h: clamp(130px, 22vh, 210px); }
 .ob-step-words { display: grid; justify-items: center; }
 .ob-done-mark { position: absolute; right: -16px; bottom: -12px; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
   background: var(--good); color: var(--surface); font-size: 32px; box-shadow: 0 0 0 6px var(--surface); animation: ob-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both; }
@@ -197,7 +199,7 @@
 .ob-journey-name { flex: 1; }
 .ob-journey-pct { font-size: 14px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ob-meta { margin: 16px 0 0; font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.ob-log { width: min(100%, 640px); margin-top: 22px; text-align: left; }
+.ob-log { width: min(100%, 640px); margin-top: 22px; text-align: center; }
 .ob-log summary { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; cursor: pointer; list-style: none; color: var(--muted); font-size: 14px; }
 .ob-log summary::-webkit-details-marker { display: none; }
 .ob-log summary:hover { background: var(--seg); color: var(--ink); }

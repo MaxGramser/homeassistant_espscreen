@@ -194,6 +194,12 @@ export function elapsedText(started: number, finished: number | null, now: numbe
 export type JourneyKey = "build" | "write" | "wifi" | "ha";
 export type Journey = { steps: { key: JourneyKey; state: StepState; percent: number | null }[]; percent: number; done: boolean; failed: boolean };
 const PARTS: Record<JourneyKey, number> = { build: 0.6, write: 0.2, wifi: 0.12, ha: 0.08 };
+/** How far the software is made, as a share of 1: getting ready (ESPHome setting the build up, its first 15 %), then the
+ * build's own count. */
+function madeShare(prepare: Step | undefined, build: Step | undefined) {
+  if (build?.state === "running") return 0.15 + 0.85 * (build.percent ?? 0) / 100;
+  return prepare?.state === "running" ? 0.15 * (prepare.percent ?? 0) / 100 : 0;
+}
 export function journey(progress: Progress, arrival: string | null, download: boolean): Journey {
   const step = (key: StepKey) => progress.steps.find((one) => one.key === key);
   const prepare = step("prepare"), build = step("build"), write = step("write"), restart = step("restart");
@@ -216,7 +222,7 @@ export function journey(progress: Progress, arrival: string | null, download: bo
   let percent = 0;
   for (const one of steps) {
     if (one.state === "done") percent += PARTS[one.key];
-    else if (one.state === "running") percent += PARTS[one.key] * (one.key === "build" ? (build?.state === "running" ? 0.05 + 0.95 * (build.percent ?? 0) / 100 : 0.02) : (one.percent ?? 0) / 100);
+    else if (one.state === "running") percent += PARTS[one.key] * (one.key === "build" ? madeShare(prepare, build) : (one.percent ?? 0) / 100);
   }
   const done = arrival === "ready";
   return { steps, percent: done ? 100 : Math.min(99, Math.round(percent * 100)), done, failed: steps.some((one) => one.state === "failed") };

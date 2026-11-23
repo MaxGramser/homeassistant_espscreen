@@ -179,3 +179,13 @@ describe("the whole way until the screen works (app 0.4.103)", () => {
     expect(journey(built, "waiting", true).percent).toBeLessThan(100);
   });
 });
+
+describe("the bar while the software is made", () => {
+  it("moves while ESPHome gets the build ready, before the build counts anything", () => {
+    const steps = (prepare: number | null) => ({ percent: 0, failed: false, done: false, steps: [
+      { key: "prepare", state: "running", percent: prepare }, { key: "build", state: "waiting", percent: null }, { key: "write", state: "waiting", percent: null },
+      { key: "restart", state: "waiting", percent: null }, { key: "done", state: "waiting", percent: null }] }) as Progress;
+    expect(journey(steps(null), null, false).percent).toBe(0);
+    expect(journey(steps(75), null, false).percent).toBe(7);
+  });
+});
