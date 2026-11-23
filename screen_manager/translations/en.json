@@ -3252,24 +3252,9 @@
     "installer": {
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
-      "status": {
-        "stable": "Proven",
-        "new": "New",
-        "experimental": "Experimental"
-      },
       "status_hint": {
         "new": "New: tried on only a few screens so far. Tell us how it goes.",
         "experimental": "Experimental: not yet tried on this hardware. Tell us how it goes."
-      },
-      "tiers": {
-        "recommended": {
-          "title": "Recommended",
-          "lead": "Proven on real screens and the project's pick: the most you can do with Tessera, tried every day."
-        },
-        "more": {
-          "title": "More boards",
-          "lead": "Proven ones work but do less; New ones run on a few screens so far; Experimental ones are not yet tried on the hardware. Tell us how it goes."
-        }
       },
       "abilities": {
         "camera": "Camera pictures",
@@ -3301,40 +3286,20 @@
       "orientation_landscape": "Lying down",
       "orientation_portrait": "Standing up",
       "name": "Name",
-      "name_placeholder": "Living room screen",
       "device_name": "Device name",
-      "name_hint": "Every screen gets its own profile with its own keys. Four screens? Go through this four times with a different name.",
       "name_taken": "Another screen is already called this. Home Assistant would number this one’s entity names, so automations would point at the wrong screen.",
       "device_name_hint": "Lowercase letters, digits, and dashes. A different name for each screen.",
       "node_taken": "Another screen already has this device name. Home Assistant cannot tell two devices of one name apart.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Wi-Fi name (2.4 GHz)",
         "password": "Wi-Fi password",
-        "new": "Fill in once: Tessera saves this in ESPHome secrets.yaml, later screens use it automatically.",
-        "missing": "Your ESPHome secrets.yaml is still missing Wi-Fi details. Tessera only fills in the missing lines.",
         "ready": "Wi-Fi comes from your ESPHome secrets.yaml.",
         "invalid": "secrets.yaml in the ESPHome folder isn't valid YAML. Fix the file first; it won't be overwritten.",
         "other": "Another network",
         "other_note": "Every screen builds with this Wi-Fi, so screens you already have take it at their next update."
       },
-      "install_via": "Install via",
-      "target": {
-        "usb": "Plug the screen into the Home Assistant machine with a USB data cable; it shows up here on its own. Is it plugged into the computer you are using now? Choose From this computer.",
-        "download": "Download the firmware and put it on the screen from your own computer, in Chrome or Edge. After that, updates go over Wi-Fi.",
-        "later": "The profile goes into the ESPHome folder. You can install later via Firmware & USB, or from ESPHome Device Builder.",
-        "several": "More than one board connected: choose this screen's port.",
-        "once": "Once over USB; after that, everything is wireless."
-      },
-      "install": "Install",
-      "save_profile": "Save profile",
       "no_cli": "The ESPHome CLI is missing from this installation; only saving the profile is possible.",
       "progress": {
-        "saved": "{file} is in the ESPHome folder",
-        "writing": "Writing firmware to {name}…",
-        "building": "Building firmware…",
-        "ready": "Firmware for {name} is ready",
-        "installed": "Firmware is on {name}",
         "build_failed": "Build failed",
         "install_failed": "Install failed",
         "waiting": "Waiting its turn…"
@@ -3368,21 +3333,12 @@
         "key": "{bold} below if Home Assistant asks for an encryption key.",
         "key_bold": "Paste the API key",
         "actions": "{bold} ESPHome integration → Configure → “Allow the device to perform Home Assistant actions”. Without this, the screen sees everything but controls nothing.",
-        "actions_bold": "Allow HA actions:",
-        "tiles": "{bold} Back in Tessera, the screen appears in the list on the left within about thirty seconds; until then it's shown there as “not yet in Home Assistant”.",
-        "tiles_bold": "Choose your tiles."
+        "actions_bold": "Allow HA actions:"
       },
       "retry": "Retry",
-      "another": "Install another screen",
       "start_over": "Start over",
       "done": "Done",
       "key_more": "Show the API key",
-      "steps": {
-        "board": "Screen",
-        "setup": "Set up",
-        "install": "Install",
-        "plugins": "Plugins"
-      },
       "pick_title": "Which screen do you have?",
       "pick_intro": "Pick your board. Search by brand, size or what is printed on it.",
       "search": "Search by brand, size or model",
@@ -3394,45 +3350,15 @@
       },
       "none_found": "No screen matches “{query}”.",
       "try_virtual": "No screen yet? Try a preview screen",
-      "setup_title": "Make it yours",
-      "install_title": "How do you want to install it?",
-      "next": "Next",
-      "advanced": "Advanced",
-      "ways": {
-        "ha_title": "USB on Home Assistant",
-        "ha_found": "Found: {port}",
-        "ha_waiting": "Plug the screen into the machine Home Assistant runs on",
-        "browser_title": "From this computer",
-        "browser_detail": "Chrome or Edge, with the screen on this computer's USB",
-        "download_title": "Download the file",
-        "download_detail": "Put it on the screen yourself with ESPHome Web",
-        "later_title": "Later",
-        "later_detail": "Only keep the settings for now"
-      },
-      "steps_done": {
-        "prepare": "Getting ready",
-        "build": "Building the firmware",
-        "write": "Putting it on the screen",
-        "restart": "Starting up",
-        "done": "Done",
-        "download": "Ready to download"
-      },
       "elapsed": "{time} so far",
       "show_log": "Show details",
       "hide_log": "Hide details",
-      "next_title": "What's next",
       "model": "Which model is it?",
-      "model_hint": "Printed on the back of the board. They look alike, but each needs its own firmware.",
-      "models": "{n} model | {n} models",
       "arrive": {
-        "waiting": "Waiting for {name} to join your Wi-Fi...",
-        "seen": "{name} is on your Wi-Fi. Getting it ready...",
-        "paired": "{name} is paired with Home Assistant.",
         "missing": "{name} is not on your Wi-Fi yet",
         "hotspot": "Look at the screen: it names a hotspot and its password. Join it with your phone and pick the right Wi-Fi there. Or set the right Wi-Fi here and install again.",
         "no_hotspot": "The Wi-Fi name or password is probably wrong. Set the right Wi-Fi here and install again, with the screen still on its cable.",
-        "change": "Change Wi-Fi and install again",
-        "failed": "Tessera can't add {name} to Home Assistant by itself. Add it yourself below."
+        "change": "Change Wi-Fi and install again"
       },
       "known": {
         "title": "This board is already in Home Assistant as {name}",
@@ -3454,14 +3380,109 @@
         "limit_title": "Not enough memory to build the firmware",
         "limit": "The build ran out of memory, also with one compiler at a time. Stop a few add-ons for a while or give the machine more memory, then try again."
       },
-      "pair_yourself": "Add it in Home Assistant yourself",
       "grid": "Grid",
       "grid_hint": "The suggested grid is the best for this screen. You can change it, and which way it hangs, later beside the pages in the editor, without a new build.",
       "grid_best": "Back to the best",
       "waits_turn": "Another screen is being built now. This one waits its turn and starts by itself right after.",
-      "plugins_title": "Plugins for this screen",
-      "plugins_intro": "These go with what this board has. Untick what you do not want: it is not built in, and you can add it later on the Plugins page.",
-      "name_quote": "A name cannot hold \" or \\. Write 4 inch as 4in, for example."
+      "name_quote": "A name cannot hold \" or \\. Write 4 inch as 4in, for example.",
+      "flow": {
+        "back": "Back",
+        "step_of": "Step {step} of {steps}",
+        "continue": "Continue",
+        "go_install": "Install",
+        "go_download": "Build and download",
+        "more_options": "More options",
+        "fewer_options": "Fewer options",
+        "later": "No cable at hand? Save it and install later",
+        "download_instead": "Rather do it yourself? Download the file",
+        "pick_lead": "Pick the screen you have. We recommend these: they can do everything, and we test them every day.",
+        "square": "Square",
+        "wide": "Widescreen",
+        "versions": "{n} version | {n} versions",
+        "other_screen": "I have another screen",
+        "which_is_it": "Which screen is it?",
+        "status": {
+          "stable": "Proven",
+          "new": "New",
+          "experimental": "Not tested yet"
+        },
+        "model_title": "Which version do you have?",
+        "model_lead": "The {name} comes in {n} versions. They look alike, but each needs its own software. The back of the board says which one you have.",
+        "choice_lead": "Boards sold under this name differ in a part. Most people can keep what is chosen.",
+        "model_usual": "The most common one. Not sure? Pick this one.",
+        "name_title": "What is this screen called?",
+        "name_lead": "Usually the room it will hang in.",
+        "name_placeholder": "Kitchen",
+        "rooms": "Rooms in Home Assistant",
+        "hang_title": "How will it hang?",
+        "hang_lead": "You can change this later, without installing it again.",
+        "tiles_a_page": "{n} tile per page | {n} tiles per page",
+        "plugins_title": "This screen can do more",
+        "plugins_lead": "Its hardware can do more with these. Turn on what you want to use.",
+        "plugins_later": "You can turn these on or off later on the Plugins page.",
+        "wifi_title": "Which Wi-Fi will it join?",
+        "wifi_lead": "The screen needs a 2.4 GHz network. You enter it once: every screen after this one uses it too.",
+        "wifi_once": "Saved in your ESPHome settings, never shown again.",
+        "wifi_ready": "The screen joins the same Wi-Fi as your other ESPHome devices.",
+        "cable_title": "Where is the cable plugged in?",
+        "cable_lead": "The screen gets its software once over a USB cable. After that, everything goes over Wi-Fi.",
+        "cable_here": "In this computer",
+        "cable_here_detail": "The computer you are reading this on. Works in Chrome and Edge.",
+        "cable_ha": "In your Home Assistant",
+        "cable_ha_detail": "The machine Home Assistant runs on, such as a Raspberry Pi or a Home Assistant Green.",
+        "here_title": "Plug the cable into this computer",
+        "here_plug": "Plug the screen into this computer with a USB data cable.",
+        "here_click": "Click Install below.",
+        "here_pick": "Your browser asks which device: choose the screen and click Connect.",
+        "file_title": "You'll get a file to put on it",
+        "file_lead": "This browser cannot write to a screen itself. Tessera makes a file, and you put it on the screen with ESPHome Web in Chrome or Edge.",
+        "ha_title": "Plug the cable into your Home Assistant",
+        "ha_lead": "Not into this computer, but into the machine Home Assistant runs on. We see it as soon as it is there.",
+        "ha_which": "Which one is the screen?",
+        "ha_which_lead": "More than one device is plugged into your Home Assistant. Pick the screen.",
+        "ha_waiting": "Waiting for the screen",
+        "ha_waiting_detail": "Plug in the cable. This updates by itself.",
+        "ha_found": "Screen found",
+        "ha_others": "Also plugged in: {n} other device | Also plugged in: {n} other devices",
+        "ha_not_screen": "Probably not a screen, such as a Zigbee stick",
+        "saved_title": "{name} is saved",
+        "ready_title": "{name} is ready",
+        "ready_lead": "It is on, on your Wi-Fi, and part of Home Assistant. Now choose what goes on it.",
+        "ha_ask_title": "Home Assistant asks you something about {name}",
+        "now": {
+          "build": "{name} is being prepared",
+          "write": "The software goes onto {name}",
+          "write_self": "Put the software on {name}",
+          "wifi": "{name} is starting",
+          "ha": "Adding {name} to Home Assistant"
+        },
+        "lead": {
+          "build": "This usually takes 5 to 20 minutes, the first time the longest. You can close this window: it keeps going.",
+          "build_browser": "This usually takes 5 to 20 minutes, the first time the longest. Keep this page open: it puts the software on the screen as soon as it is ready.",
+          "write": "Leave the cable in until this is done.",
+          "write_self": "Download the file and put it on the screen with ESPHome Web. This page sees the screen as soon as it is on your Wi-Fi.",
+          "wifi": "It starts up and joins your Wi-Fi. That usually takes less than a minute.",
+          "wifi_calibrate": "It starts up and joins your Wi-Fi. It first asks you to tap a few crosshairs on the screen: that teaches it where your finger is.",
+          "ha": "Tessera adds it to ESPHome in Home Assistant and allows it to control your home. You don't have to do anything."
+        },
+        "steps": {
+          "build": "Making the software",
+          "write": "Putting it on the screen",
+          "write_self": "You put it on the screen",
+          "wifi": "Starting and joining your Wi-Fi",
+          "ha": "Adding it to Home Assistant"
+        },
+        "may_close": "you can close this window",
+        "show_log": "What happens exactly",
+        "to_pages": "Make its pages",
+        "another": "Add another screen",
+        "close_follow": "Close, it keeps going",
+        "recap": {
+          "wifi": "On your Wi-Fi",
+          "ha": "In Home Assistant",
+          "actions": "Allowed to control your home"
+        }
+      }
     },
     "alerts": {
       "intro": "Every screen has the {action} action. It places a card over everything, wakes the screen, and keeps the backlight at normal brightness until someone taps the button or the timeout runs out. Home Assistant itself shows no explanation or dropdowns for ESPHome actions; everything you can fill in is listed here.",
@@ -3900,7 +3921,6 @@
     },
     "webflash": {
       "target": "Install from this browser (Chrome or Edge)",
-      "hint": "Plug the screen into this computer with a USB data cable. Tessera builds the firmware, then this page puts it on the screen, in Chrome or Edge. After that, updates go over Wi-Fi.",
       "firmware_hint": "Plug the screen into this computer with a USB data cable. Tessera builds the firmware, then this page puts it on the screen, in Chrome or Edge. The screen keeps its settings and touch calibration. This also rescues a screen that keeps restarting and never comes online.",
       "go": "Connect & install",
       "building": "Building can take 20 minutes or more on a Home Assistant machine such as a Raspberry Pi, the first time especially. That's normal. Keep this tab open and the screen plugged in: this page installs the firmware as soon as it's ready.",

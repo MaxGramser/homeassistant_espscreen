@@ -3252,24 +3252,9 @@
     "installer": {
       "board": "Welk scherm heb je?",
       "board_title": "{name} · {inch} inch",
-      "status": {
-        "stable": "Bewezen",
-        "new": "Nieuw",
-        "experimental": "Experimenteel"
-      },
       "status_hint": {
         "new": "Nieuw: tot nu toe op maar een paar schermen geprobeerd. Laat ons weten hoe het gaat.",
         "experimental": "Experimenteel: nog niet op deze hardware geprobeerd. Laat ons weten hoe het gaat."
-      },
-      "tiers": {
-        "recommended": {
-          "title": "Aanbevolen",
-          "lead": "Bewezen op echte schermen en de keus van het project: het meeste wat Tessera kan, elke dag getest."
-        },
-        "more": {
-          "title": "Meer borden",
-          "lead": "Bewezen borden werken maar kunnen minder; Nieuw draait pas op een paar schermen; Experimenteel is nog niet op de hardware geprobeerd. Laat ons weten hoe het gaat."
-        }
       },
       "abilities": {
         "camera": "Camerabeelden",
@@ -3301,40 +3286,20 @@
       "orientation_landscape": "Liggend",
       "orientation_portrait": "Staand",
       "name": "Naam",
-      "name_placeholder": "Scherm woonkamer",
       "device_name": "Apparaatnaam",
-      "name_hint": "Elk scherm krijgt een eigen profiel met eigen sleutels. Vier schermen? Doorloop dit vier keer met een andere naam.",
       "name_taken": "Een ander scherm heet al zo. Home Assistant zou de entiteitsnamen van dit scherm nummeren, waardoor automatiseringen het verkeerde scherm aanspreken.",
       "device_name_hint": "Kleine letters, cijfers en streepjes. Elk scherm een andere naam.",
       "node_taken": "Een ander scherm heeft deze apparaatnaam al. Home Assistant kan twee apparaten met dezelfde naam niet uit elkaar houden.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Wi-Fi-naam (2,4 GHz)",
         "password": "Wi-Fi-wachtwoord",
-        "new": "Eén keer invullen: Tessera bewaart dit in ESPHome secrets.yaml, volgende schermen gebruiken het automatisch.",
-        "missing": "Je ESPHome secrets.yaml mist nog Wi-Fi-gegevens. Tessera vult alleen de ontbrekende regels aan.",
         "ready": "Wi-Fi komt uit je ESPHome secrets.yaml.",
         "invalid": "secrets.yaml in de ESPHome-map is geen geldige YAML. Herstel het bestand eerst; het wordt niet overschreven.",
         "other": "Ander netwerk",
         "other_note": "Elk scherm bouwt met deze wifi, dus schermen die je al hebt nemen hem over bij hun volgende update."
       },
-      "install_via": "Installeren via",
-      "target": {
-        "usb": "Sluit het scherm met een USB-datakabel aan op de Home Assistant-machine; het verschijnt hier vanzelf. Zit het aan de computer waar je nu achter zit? Kies Via deze computer.",
-        "download": "Download de firmware en zet die vanaf je eigen computer op het scherm, in Chrome of Edge. Daarna gaan updates via Wi-Fi.",
-        "later": "Het profiel komt in de ESPHome-map. Installeren kan later via Firmware & USB, of vanuit ESPHome Device Builder.",
-        "several": "Meer dan één bord aangesloten: kies de poort van dit scherm.",
-        "once": "Eén keer via USB; daarna gaat alles draadloos."
-      },
-      "install": "Installeren",
-      "save_profile": "Profiel bewaren",
       "no_cli": "De ESPHome CLI ontbreekt in deze installatie; alleen het profiel bewaren kan.",
       "progress": {
-        "saved": "{file} staat in de ESPHome-map",
-        "writing": "Firmware naar {name} schrijven…",
-        "building": "Firmware bouwen…",
-        "ready": "Firmware voor {name} is klaar",
-        "installed": "Firmware staat op {name}",
         "build_failed": "Bouwen mislukt",
         "install_failed": "Installeren mislukt",
         "waiting": "Wacht op zijn beurt…"
@@ -3368,21 +3333,12 @@
         "key": "{bold} hieronder als Home Assistant om een versleutelingssleutel vraagt.",
         "key_bold": "Plak de API-sleutel",
         "actions": "{bold} ESPHome-integratie → Configureren → “Allow the device to perform Home Assistant actions”. Zonder dit ziet het scherm alles, maar bedient het niets.",
-        "actions_bold": "Sta HA-acties toe:",
-        "tiles": "{bold} Terug in Tessera verschijnt het scherm binnen een halve minuut in de lijst links; tot die tijd staat het daar als “nog niet in Home Assistant”.",
-        "tiles_bold": "Kies je tegels."
+        "actions_bold": "Sta HA-acties toe:"
       },
       "retry": "Opnieuw proberen",
-      "another": "Nog een scherm installeren",
       "start_over": "Opnieuw beginnen",
       "done": "Klaar",
       "key_more": "Toon de API-sleutel",
-      "steps": {
-        "board": "Scherm",
-        "setup": "Instellen",
-        "install": "Installeren",
-        "plugins": "Plugins"
-      },
       "pick_title": "Welk scherm heb je?",
       "pick_intro": "Kies je bord. Zoek op merk, maat of wat erop staat.",
       "search": "Zoek op merk, maat of model",
@@ -3394,45 +3350,15 @@
       },
       "none_found": "Geen scherm gevonden voor “{query}”.",
       "try_virtual": "Nog geen scherm? Probeer een voorbeeldscherm",
-      "setup_title": "Maak hem van jou",
-      "install_title": "Hoe wil je installeren?",
-      "next": "Verder",
-      "advanced": "Geavanceerd",
-      "ways": {
-        "ha_title": "USB aan Home Assistant",
-        "ha_found": "Gevonden: {port}",
-        "ha_waiting": "Sluit het scherm aan op de computer waar Home Assistant op draait",
-        "browser_title": "Via deze computer",
-        "browser_detail": "Chrome of Edge, met het scherm aan de USB van deze computer",
-        "download_title": "Bestand downloaden",
-        "download_detail": "Zet het er zelf op met ESPHome Web",
-        "later_title": "Later",
-        "later_detail": "Alleen de instellingen bewaren"
-      },
-      "steps_done": {
-        "prepare": "Voorbereiden",
-        "build": "Firmware bouwen",
-        "write": "Op het scherm zetten",
-        "restart": "Opstarten",
-        "done": "Klaar",
-        "download": "Klaar om te downloaden"
-      },
       "elapsed": "{time} bezig",
       "show_log": "Details tonen",
       "hide_log": "Details verbergen",
-      "next_title": "Wat nu",
       "model": "Welk model is het?",
-      "model_hint": "Staat op de achterkant van het bord. Ze lijken op elkaar, maar elk heeft zijn eigen firmware nodig.",
-      "models": "{n} model | {n} modellen",
       "arrive": {
-        "waiting": "Wachten tot {name} op je wifi verschijnt...",
-        "seen": "{name} is op je wifi. Wordt klaargezet...",
-        "paired": "{name} is gekoppeld met Home Assistant.",
         "missing": "{name} is nog niet op je wifi",
         "hotspot": "Kijk op het scherm: het noemt een hotspot met wachtwoord. Verbind je telefoon ermee en kies daar het juiste wifi-netwerk. Of zet hier de juiste wifi en installeer opnieuw.",
         "no_hotspot": "Waarschijnlijk klopt de wifi-naam of het wachtwoord niet. Zet hier de juiste wifi en installeer opnieuw, met het scherm nog aan de kabel.",
-        "change": "Wifi wijzigen en opnieuw installeren",
-        "failed": "Tessera kan {name} niet zelf aan Home Assistant toevoegen. Voeg hem hieronder zelf toe."
+        "change": "Wifi wijzigen en opnieuw installeren"
       },
       "known": {
         "title": "Dit bord staat al in Home Assistant als {name}",
@@ -3454,14 +3380,109 @@
         "limit_title": "Te weinig geheugen om de firmware te bouwen",
         "limit": "Het geheugen was op, ook met één compiler tegelijk. Stop een paar add-ons tijdelijk of geef de machine meer geheugen en probeer het dan opnieuw."
       },
-      "pair_yourself": "Zelf toevoegen in Home Assistant",
       "grid": "Raster",
       "grid_hint": "Het voorgestelde raster is het beste voor dit scherm. Je kunt het, en hoe het hangt, later naast de pagina’s in de editor aanpassen, zonder opnieuw te bouwen.",
       "grid_best": "Terug naar het beste",
       "waits_turn": "Er wordt nu een ander scherm gebouwd. Dit scherm wacht op zijn beurt en begint daarna vanzelf.",
-      "plugins_title": "Plugins voor dit scherm",
-      "plugins_intro": "Deze horen bij wat dit bord heeft. Vink uit wat je niet wilt: dat wordt niet ingebouwd, en je kunt het later toevoegen op de pagina Plugins.",
-      "name_quote": "Een naam mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in."
+      "name_quote": "Een naam mag geen \" of \\ bevatten. Schrijf 4 inch bijvoorbeeld als 4in.",
+      "flow": {
+        "back": "Terug",
+        "step_of": "Stap {step} van {steps}",
+        "continue": "Ga verder",
+        "go_install": "Installeren",
+        "go_download": "Maken en downloaden",
+        "more_options": "Meer opties",
+        "fewer_options": "Minder opties",
+        "later": "Geen kabel bij de hand? Bewaar het en installeer later",
+        "download_instead": "Liever zelf? Download het bestand",
+        "pick_lead": "Kies het scherm dat je hebt. Deze raden we aan: ze kunnen alles en we testen ze elke dag.",
+        "square": "Vierkant",
+        "wide": "Breedbeeld",
+        "versions": "{n} uitvoering | {n} uitvoeringen",
+        "other_screen": "Ik heb een ander scherm",
+        "which_is_it": "Welk scherm is het?",
+        "status": {
+          "stable": "Bewezen",
+          "new": "Nieuw",
+          "experimental": "Nog niet getest"
+        },
+        "model_title": "Welke uitvoering heb je?",
+        "model_lead": "De {name} is er in {n} uitvoeringen. Ze lijken op elkaar, maar elk heeft zijn eigen software nodig. Achterop het bord staat welke je hebt.",
+        "choice_lead": "Borden met deze naam verschillen in een onderdeel. De meeste mensen kunnen laten staan wat gekozen is.",
+        "model_usual": "De meest verkochte. Weet je het niet? Kies deze.",
+        "name_title": "Hoe heet dit scherm?",
+        "name_lead": "Meestal de ruimte waar hij komt te hangen.",
+        "name_placeholder": "Keuken",
+        "rooms": "Ruimtes in Home Assistant",
+        "hang_title": "Hoe hangt hij?",
+        "hang_lead": "Je kunt dit later nog veranderen, zonder opnieuw te installeren.",
+        "tiles_a_page": "{n} tegel per pagina | {n} tegels per pagina",
+        "plugins_title": "Dit scherm kan meer",
+        "plugins_lead": "Met deze doet zijn hardware meer. Zet aan wat je wilt gebruiken.",
+        "plugins_later": "Je kunt dit later aan- of uitzetten op de pagina Plugins.",
+        "wifi_title": "Op welk Wi-Fi komt hij?",
+        "wifi_lead": "Het scherm heeft een 2,4 GHz-netwerk nodig. Je vult het één keer in: elk volgend scherm gebruikt het ook.",
+        "wifi_once": "Bewaard in je ESPHome-instellingen, en nergens meer getoond.",
+        "wifi_ready": "Het scherm komt op hetzelfde Wi-Fi als je andere ESPHome-apparaten.",
+        "cable_title": "Waar zit de kabel in?",
+        "cable_lead": "Het scherm krijgt zijn software één keer via een USB-kabel. Daarna gaat alles via Wi-Fi.",
+        "cable_here": "In deze computer",
+        "cable_here_detail": "De computer waarop je dit nu leest. Werkt in Chrome en Edge.",
+        "cable_ha": "In je Home Assistant",
+        "cable_ha_detail": "Het apparaat waar Home Assistant op draait, zoals een Raspberry Pi of een Home Assistant Green.",
+        "here_title": "Steek de kabel in deze computer",
+        "here_plug": "Sluit het scherm met een USB-datakabel aan op deze computer.",
+        "here_click": "Klik hieronder op Installeren.",
+        "here_pick": "Je browser vraagt welk apparaat: kies het scherm en klik op Verbinden.",
+        "file_title": "Je krijgt een bestand om erop te zetten",
+        "file_lead": "Deze browser kan zelf niet naar een scherm schrijven. Tessera maakt een bestand, en dat zet je met ESPHome Web in Chrome of Edge op het scherm.",
+        "ha_title": "Steek de kabel in je Home Assistant",
+        "ha_lead": "Niet in deze computer, maar in het apparaat waar Home Assistant op draait. We zien vanzelf wanneer hij er is.",
+        "ha_which": "Welke is het scherm?",
+        "ha_which_lead": "Er zit meer dan één apparaat aan je Home Assistant. Kies het scherm.",
+        "ha_waiting": "We wachten op het scherm",
+        "ha_waiting_detail": "Steek de kabel erin. Dit werkt zichzelf bij.",
+        "ha_found": "Scherm gevonden",
+        "ha_others": "Ook aangesloten: {n} ander apparaat | Ook aangesloten: {n} andere apparaten",
+        "ha_not_screen": "Waarschijnlijk geen scherm, zoals een Zigbee-stick",
+        "saved_title": "{name} is bewaard",
+        "ready_title": "{name} is klaar",
+        "ready_lead": "Hij staat aan, zit op je Wi-Fi en hoort bij Home Assistant. Nu kies je wat erop komt.",
+        "ha_ask_title": "Home Assistant vraagt je iets over {name}",
+        "now": {
+          "build": "{name} wordt klaargemaakt",
+          "write": "De software gaat op {name}",
+          "write_self": "Zet de software op {name}",
+          "wifi": "{name} start op",
+          "ha": "{name} wordt toegevoegd aan Home Assistant"
+        },
+        "lead": {
+          "build": "Dit duurt meestal 5 tot 20 minuten, de eerste keer het langst. Je mag dit venster sluiten: het gaat gewoon door.",
+          "build_browser": "Dit duurt meestal 5 tot 20 minuten, de eerste keer het langst. Laat deze pagina open: hij zet de software op het scherm zodra die klaar is.",
+          "write": "Laat de kabel erin zitten tot dit klaar is.",
+          "write_self": "Download het bestand en zet het met ESPHome Web op het scherm. Deze pagina ziet het scherm zodra het op je Wi-Fi zit.",
+          "wifi": "Hij start op en maakt verbinding met je Wi-Fi. Dat duurt meestal minder dan een minuut.",
+          "wifi_calibrate": "Hij start op en maakt verbinding met je Wi-Fi. Eerst vraagt hij je op een paar kruisjes op het scherm te tikken: zo leert hij waar je vinger is.",
+          "ha": "Tessera voegt hem toe aan ESPHome in Home Assistant en geeft hem toestemming om je huis te bedienen. Je hoeft niets te doen."
+        },
+        "steps": {
+          "build": "Software maken",
+          "write": "Op het scherm zetten",
+          "write_self": "Jij zet het op het scherm",
+          "wifi": "Opstarten en verbinden met je Wi-Fi",
+          "ha": "Toevoegen aan Home Assistant"
+        },
+        "may_close": "je mag dit venster sluiten",
+        "show_log": "Wat er precies gebeurt",
+        "to_pages": "Pagina's maken",
+        "another": "Nog een scherm toevoegen",
+        "close_follow": "Sluiten, het gaat gewoon door",
+        "recap": {
+          "wifi": "Op je Wi-Fi",
+          "ha": "In Home Assistant",
+          "actions": "Mag je huis bedienen"
+        }
+      }
     },
     "alerts": {
       "intro": "Elk scherm heeft de actie {action}. Die legt een kaart over alles heen, wekt het scherm en houdt de backlight op de normale helderheid tot iemand op de knop tikt of de timeout verstrijkt. Home Assistant toont bij ESPHome-acties zelf geen uitleg of keuzelijsten; alles wat je kunt invullen staat hier.",
@@ -3900,7 +3921,6 @@
     },
     "webflash": {
       "target": "Installeren vanuit deze browser (Chrome of Edge)",
-      "hint": "Sluit het scherm met een USB-datakabel aan op deze computer. Tessera bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Updates gaan daarna via wifi.",
       "firmware_hint": "Sluit het scherm met een USB-datakabel aan op deze computer. Tessera bouwt de firmware, daarna zet deze pagina die op het scherm, in Chrome of Edge. Het scherm houdt zijn instellingen en aanraakkalibratie. Zo red je ook een scherm dat steeds herstart en nooit online komt.",
       "go": "Verbinden & installeren",
       "building": "Bouwen kan op een Home Assistant-machine zoals een Raspberry Pi 20 minuten of langer duren, zeker de eerste keer. Dat is normaal. Houd dit tabblad open en het scherm aangesloten: deze pagina installeert de firmware zodra hij klaar is.",

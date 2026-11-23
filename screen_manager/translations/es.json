@@ -3743,24 +3743,9 @@
     "installer": {
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
-      "status": {
-        "stable": "Probada",
-        "new": "Nuevo",
-        "experimental": "Experimental"
-      },
       "status_hint": {
         "new": "Nuevo: probado en pocas pantallas hasta ahora. Cuéntanos qué tal va.",
         "experimental": "Experimental: aún no se ha probado en este hardware. Cuéntanos qué tal va."
-      },
-      "tiers": {
-        "recommended": {
-          "title": "Recomendadas",
-          "lead": "Probadas en pantallas reales y elegidas por el proyecto: lo máximo que puede hacer Tessera, probado cada día."
-        },
-        "more": {
-          "title": "Más placas",
-          "lead": "Las probadas funcionan pero hacen menos; las nuevas funcionan en pocas pantallas; las experimentales aún no se han probado en el hardware. Cuéntanos cómo va."
-        }
       },
       "abilities": {
         "camera": "Imágenes de cámara",
@@ -3792,40 +3777,20 @@
       "orientation_landscape": "En horizontal",
       "orientation_portrait": "En vertical",
       "name": "Nombre",
-      "name_placeholder": "Pantalla del salón",
       "device_name": "Nombre del dispositivo",
-      "name_hint": "Cada pantalla tiene su propio perfil con sus propias claves. ¿Cuatro pantallas? Haz esto cuatro veces con un nombre distinto.",
       "name_taken": "Otra pantalla ya se llama así. Home Assistant numeraría los nombres de las entidades de esta, y las automatizaciones apuntarían a la pantalla equivocada.",
       "device_name_hint": "Letras minúsculas, números y guiones. Un nombre distinto para cada pantalla.",
       "node_taken": "Otra pantalla ya tiene este nombre de dispositivo. Home Assistant no puede distinguir dos dispositivos con el mismo nombre.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Nombre de la red Wi-Fi (2,4 GHz)",
         "password": "Contraseña de la Wi-Fi",
-        "new": "Rellénalo una sola vez: Tessera lo guarda en el secrets.yaml de ESPHome y las siguientes pantallas lo usan automáticamente.",
-        "missing": "A tu secrets.yaml de ESPHome aún le faltan los datos de la Wi-Fi. Tessera solo rellena las líneas que faltan.",
         "ready": "La Wi-Fi se toma de tu secrets.yaml de ESPHome.",
         "invalid": "El secrets.yaml de la carpeta de ESPHome no es un YAML válido. Corrige antes el archivo; no se sobrescribirá.",
         "other": "Otra red",
         "other_note": "Todas las pantallas se compilan con esta Wi-Fi; las que ya tienes la toman en su próxima actualización."
       },
-      "install_via": "Instalar mediante",
-      "target": {
-        "usb": "Conecta la pantalla con un cable USB de datos al equipo de Home Assistant; aparece aquí sola. ¿Está conectada al ordenador que usas ahora? Elige Desde este ordenador.",
-        "download": "Descarga el firmware e instálalo en la pantalla desde tu propio ordenador, con Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
-        "later": "El perfil se guarda en la carpeta de ESPHome. Puedes instalarlo más tarde desde Firmware y USB o desde ESPHome Device Builder.",
-        "several": "Hay más de una placa conectada: elige el puerto de esta pantalla.",
-        "once": "Una vez por USB; después, todo es inalámbrico."
-      },
-      "install": "Instalar",
-      "save_profile": "Guardar perfil",
       "no_cli": "A esta instalación le falta la CLI de ESPHome; solo se puede guardar el perfil.",
       "progress": {
-        "saved": "{file} está en la carpeta de ESPHome",
-        "writing": "Grabando el firmware en {name}…",
-        "building": "Compilando el firmware…",
-        "ready": "El firmware para {name} está listo",
-        "installed": "El firmware ya está en {name}",
         "build_failed": "Error en la compilación",
         "install_failed": "Error en la instalación",
         "waiting": "Esperando su turno…"
@@ -3859,21 +3824,12 @@
         "key": "{bold} abajo si Home Assistant pide una clave de cifrado.",
         "key_bold": "Pega la clave API",
         "actions": "{bold} integración ESPHome → Configurar → «Permite que el dispositivo realice acciones de Home Assistant». Sin esto, la pantalla lo ve todo pero no controla nada.",
-        "actions_bold": "Permite las acciones de HA:",
-        "tiles": "{bold} De vuelta en Tessera, la pantalla aparece en la lista de la izquierda en unos treinta segundos; hasta entonces se muestra ahí como «aún no está en Home Assistant».",
-        "tiles_bold": "Elige tus mosaicos."
+        "actions_bold": "Permite las acciones de HA:"
       },
       "retry": "Reintentar",
-      "another": "Instalar otra pantalla",
       "start_over": "Empezar de nuevo",
       "done": "Hecho",
       "key_more": "Mostrar la clave API",
-      "steps": {
-        "board": "Pantalla",
-        "setup": "Configurar",
-        "install": "Instalar",
-        "plugins": "Plugins"
-      },
       "pick_title": "¿Qué pantalla tienes?",
       "pick_intro": "Elige tu placa. Busca por marca, tamaño o lo que lleva impreso.",
       "search": "Buscar por marca, tamaño o modelo",
@@ -3885,45 +3841,15 @@
       },
       "none_found": "Ninguna pantalla coincide con «{query}».",
       "try_virtual": "¿Aún sin pantalla? Prueba una pantalla de vista previa",
-      "setup_title": "Hazla tuya",
-      "install_title": "¿Cómo quieres instalarla?",
-      "next": "Siguiente",
-      "advanced": "Avanzado",
-      "ways": {
-        "ha_title": "USB en Home Assistant",
-        "ha_found": "Encontrada: {port}",
-        "ha_waiting": "Conecta la pantalla al equipo donde funciona Home Assistant",
-        "browser_title": "Desde este ordenador",
-        "browser_detail": "Chrome o Edge, con la pantalla en el USB de este ordenador",
-        "download_title": "Descargar el archivo",
-        "download_detail": "Instálalo tú con ESPHome Web",
-        "later_title": "Más tarde",
-        "later_detail": "Guardar solo los ajustes"
-      },
-      "steps_done": {
-        "prepare": "Preparando",
-        "build": "Compilando el firmware",
-        "write": "Escribiendo en la pantalla",
-        "restart": "Arrancando",
-        "done": "Listo",
-        "download": "Listo para descargar"
-      },
       "elapsed": "{time} en curso",
       "show_log": "Mostrar detalles",
       "hide_log": "Ocultar detalles",
-      "next_title": "Qué sigue",
       "model": "¿Qué modelo es?",
-      "model_hint": "Está impreso en la parte trasera de la placa. Se parecen, pero cada uno necesita su propio firmware.",
-      "models": "{n} modelo | {n} modelos",
       "arrive": {
-        "waiting": "Esperando a que {name} aparezca en tu Wi-Fi...",
-        "seen": "{name} está en tu Wi-Fi. Preparándola...",
-        "paired": "{name} está vinculada con Home Assistant.",
         "missing": "{name} aún no está en tu Wi-Fi",
         "hotspot": "Mira la pantalla: muestra un punto de acceso y su contraseña. Conéctate con el móvil y elige ahí la Wi-Fi correcta. O pon aquí la Wi-Fi correcta e instala de nuevo.",
         "no_hotspot": "Probablemente el nombre o la contraseña de la Wi-Fi no son correctos. Pon aquí la Wi-Fi correcta e instala de nuevo, con la pantalla aún conectada al cable.",
-        "change": "Cambiar Wi-Fi e instalar de nuevo",
-        "failed": "Tessera no puede añadir {name} a Home Assistant por sí sola. Añádela tú mismo abajo."
+        "change": "Cambiar Wi-Fi e instalar de nuevo"
       },
       "known": {
         "title": "Esta placa ya está en Home Assistant como {name}",
@@ -3945,14 +3871,109 @@
         "limit_title": "No hay memoria suficiente para compilar el firmware",
         "limit": "Se agotó la memoria, también con un compilador a la vez. Detén unos complementos un rato o dale más memoria a la máquina, y vuelve a intentarlo."
       },
-      "pair_yourself": "Añadirla tú mismo en Home Assistant",
       "grid": "Cuadrícula",
       "grid_hint": "La cuadrícula propuesta es la mejor para esta pantalla. Puedes cambiarla, y su orientación, más tarde junto a las páginas en el editor, sin volver a compilar.",
       "grid_best": "Volver a la mejor",
       "waits_turn": "Ahora se está compilando otra pantalla. Esta espera su turno y empieza sola justo después.",
-      "plugins_title": "Plugins para esta pantalla",
-      "plugins_intro": "Van con lo que tiene esta placa. Desmarca lo que no quieras: no se incluye, y puedes añadirlo más tarde en la página Plugins.",
-      "name_quote": "Un nombre no puede llevar \" ni \\. Escribe 4 pulgadas como 4in, por ejemplo."
+      "name_quote": "Un nombre no puede llevar \" ni \\. Escribe 4 pulgadas como 4in, por ejemplo.",
+      "flow": {
+        "back": "Atrás",
+        "step_of": "Paso {step} de {steps}",
+        "continue": "Continuar",
+        "go_install": "Instalar",
+        "go_download": "Crear y descargar",
+        "more_options": "Más opciones",
+        "fewer_options": "Menos opciones",
+        "later": "¿No tienes un cable a mano? Guárdalo e instala más tarde",
+        "download_instead": "¿Prefieres hacerlo tú? Descarga el archivo",
+        "pick_lead": "Elige la pantalla que tienes. Te recomendamos estas: pueden con todo y las probamos cada día.",
+        "square": "Cuadrada",
+        "wide": "Panorámica",
+        "versions": "{n} versión | {n} versiones",
+        "other_screen": "Tengo otra pantalla",
+        "which_is_it": "¿Qué pantalla es?",
+        "status": {
+          "stable": "Probada",
+          "new": "Nueva",
+          "experimental": "Aún sin probar"
+        },
+        "model_title": "¿Qué versión tienes?",
+        "model_lead": "La {name} viene en {n} versiones. Se parecen, pero cada una necesita su propio software. En la parte trasera de la placa pone cuál tienes.",
+        "choice_lead": "Las placas que se venden con este nombre se diferencian en una pieza. La mayoría puede dejar lo que está elegido.",
+        "model_usual": "La más vendida. ¿No estás seguro? Elige esta.",
+        "name_title": "¿Cómo se llama esta pantalla?",
+        "name_lead": "Normalmente, la habitación donde va a colgar.",
+        "name_placeholder": "Cocina",
+        "rooms": "Habitaciones en Home Assistant",
+        "hang_title": "¿Cómo va a colgar?",
+        "hang_lead": "Puedes cambiarlo más tarde, sin volver a instalar.",
+        "tiles_a_page": "{n} mosaico por página | {n} mosaicos por página",
+        "plugins_title": "Esta pantalla puede hacer más",
+        "plugins_lead": "Con estos plugins, su hardware puede hacer más. Activa lo que quieras usar.",
+        "plugins_later": "Puedes activarlos o desactivarlos más tarde en la página Plugins.",
+        "wifi_title": "¿A qué Wi-Fi se conectará?",
+        "wifi_lead": "La pantalla necesita una red de 2,4 GHz. La introduces una sola vez: todas las pantallas siguientes también la usan.",
+        "wifi_once": "Se guarda en los ajustes de ESPHome y no se vuelve a mostrar.",
+        "wifi_ready": "La pantalla se conecta a la misma Wi-Fi que tus otros dispositivos ESPHome.",
+        "cable_title": "¿Dónde está enchufado el cable?",
+        "cable_lead": "La pantalla recibe su software una sola vez, por un cable USB. Después, todo va por Wi-Fi.",
+        "cable_here": "En este ordenador",
+        "cable_here_detail": "El ordenador en el que estás leyendo esto. Funciona en Chrome y Edge.",
+        "cable_ha": "En tu Home Assistant",
+        "cable_ha_detail": "El equipo en el que funciona Home Assistant, como una Raspberry Pi o un Home Assistant Green.",
+        "here_title": "Enchufa el cable a este ordenador",
+        "here_plug": "Conecta la pantalla a este ordenador con un cable USB de datos.",
+        "here_click": "Haz clic abajo en Instalar.",
+        "here_pick": "Tu navegador pregunta qué dispositivo: elige la pantalla y haz clic en Conectar.",
+        "file_title": "Recibirás un archivo para ponerle",
+        "file_lead": "Este navegador no puede escribir en una pantalla por sí mismo. Tessera crea un archivo, y tú lo pones en la pantalla con ESPHome Web en Chrome o Edge.",
+        "ha_title": "Enchufa el cable a tu Home Assistant",
+        "ha_lead": "No a este ordenador, sino al equipo en el que funciona Home Assistant. Lo vemos en cuanto está conectado.",
+        "ha_which": "¿Cuál es la pantalla?",
+        "ha_which_lead": "Hay más de un dispositivo conectado a tu Home Assistant. Elige la pantalla.",
+        "ha_waiting": "Esperando la pantalla",
+        "ha_waiting_detail": "Enchufa el cable. Esto se actualiza solo.",
+        "ha_found": "Pantalla encontrada",
+        "ha_others": "También conectado: {n} otro dispositivo | También conectados: {n} otros dispositivos",
+        "ha_not_screen": "Probablemente no es una pantalla, por ejemplo un adaptador Zigbee",
+        "saved_title": "{name} está guardada",
+        "ready_title": "{name} está lista",
+        "ready_lead": "Está encendida, conectada a tu Wi-Fi y forma parte de Home Assistant. Ahora elige qué se muestra en ella.",
+        "ha_ask_title": "Home Assistant te pregunta algo sobre {name}",
+        "now": {
+          "build": "Preparando {name}",
+          "write": "El software se instala en {name}",
+          "write_self": "Pon el software en {name}",
+          "wifi": "{name} se está iniciando",
+          "ha": "Añadiendo {name} a Home Assistant"
+        },
+        "lead": {
+          "build": "Suele tardar de 5 a 20 minutos, y la primera vez es lo más largo. Puedes cerrar esta ventana: sigue en marcha.",
+          "build_browser": "Suele tardar de 5 a 20 minutos, y la primera vez es lo más largo. Deja esta página abierta: pone el software en la pantalla en cuanto esté listo.",
+          "write": "Deja el cable puesto hasta que termine.",
+          "write_self": "Descarga el archivo y ponlo en la pantalla con ESPHome Web. Esta página ve la pantalla en cuanto está en tu Wi-Fi.",
+          "wifi": "Se inicia y se conecta a tu Wi-Fi. Suele tardar menos de un minuto.",
+          "wifi_calibrate": "Se inicia y se conecta a tu Wi-Fi. Primero te pide que toques unas cruces en la pantalla: así aprende dónde está tu dedo.",
+          "ha": "Tessera la añade a ESPHome en Home Assistant y le da permiso para controlar tu casa. No tienes que hacer nada."
+        },
+        "steps": {
+          "build": "Creando el software",
+          "write": "Poniéndolo en la pantalla",
+          "write_self": "Tú lo pones en la pantalla",
+          "wifi": "Iniciando y conectando a tu Wi-Fi",
+          "ha": "Añadiéndola a Home Assistant"
+        },
+        "may_close": "puedes cerrar esta ventana",
+        "show_log": "Qué ocurre exactamente",
+        "to_pages": "Crear sus páginas",
+        "another": "Añadir otra pantalla",
+        "close_follow": "Cerrar, sigue en marcha",
+        "recap": {
+          "wifi": "En tu Wi-Fi",
+          "ha": "En Home Assistant",
+          "actions": "Puede controlar tu casa"
+        }
+      }
     },
     "alerts": {
       "intro": "Cada pantalla tiene la acción {action}. Coloca una tarjeta por encima de todo, despierta la pantalla y mantiene la retroiluminación al brillo normal hasta que alguien toque el botón o se agote el tiempo de espera. Home Assistant no muestra explicaciones ni desplegables para las acciones de ESPHome; aquí tienes todo lo que puedes rellenar.",
@@ -4391,7 +4412,6 @@
     },
     "webflash": {
       "target": "Instalar desde este navegador (Chrome o Edge)",
-      "hint": "Conecta la pantalla a este ordenador con un cable USB de datos. Tessera compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. Después, las actualizaciones van por Wi-Fi.",
       "firmware_hint": "Conecta la pantalla a este ordenador con un cable USB de datos. Tessera compila el firmware y luego esta página lo instala en la pantalla, en Chrome o Edge. La pantalla conserva sus ajustes y su calibración táctil. Así también rescatas una pantalla que se reinicia sin parar y nunca se conecta.",
       "go": "Conectar e instalar",
       "building": "La compilación puede tardar 20 minutos o más en un equipo de Home Assistant como una Raspberry Pi, sobre todo la primera vez. Es normal. Deja esta pestaña abierta y la pantalla conectada: esta página instala el firmware en cuanto esté listo.",

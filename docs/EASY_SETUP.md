@@ -85,33 +85,47 @@ Use the GitHub version for updates; a local test add-on is a separate app.
 
 ## 2. New screen: connecting and installing
 
-1. Connect the screen with a **USB data cable** to the machine running Home
-   Assistant. With multiple boards: connect them one at a time for the first
-   installation, or check which port belongs to this screen.
-2. Click the **+** beside **Screens** in the sidebar of Tessera. New screen walks you through three steps.
-   **Screen**: under **Which screen do you have?** pick your board. Type its brand, size or what is printed on
-   it to find it, or narrow the list by size. **Set up**: give the screen a name, for example `Kitchen`, and watch
-   it appear on the drawing of your screen. A CYD asks for its **Display controller**. The screen gets the best
-   grid for its glass, lying down. The device name (`kitchen`) follows from the name; **Advanced** shows it, lets you
-   choose a different one, lets you choose another grid (columns and rows, and on glass that is not square
-   **Lying down** or **Standing up**), and lists what the board can and cannot do. The grid and the way it hangs can
-   be changed later in the editor, beside the pages, without a new build.
-3. Wi-Fi: if `wifi_ssid` and `wifi_password` are already in the ESPHome `secrets.yaml`,
-   the screen uses them automatically. If they're missing, or the file doesn't
-   exist yet, the Set up step asks for them once and Tessera only adds the
-   missing lines to `secrets.yaml`; comments and other secrets are left
-   alone. If `secrets.yaml` isn't valid YAML, fix that yourself first. A `secrets.yaml` that takes its keys
-   from Home Assistant's with `<<: !include ../secrets.yaml` is read as ESPHome reads it: the Wi-Fi in the
-   included file counts, and a key of the file's own wins.
-4. **Install**: choose **USB on Home Assistant** (the port it found has a green light) and click
-   **Install**. Tessera stores the profile (`kitchen.yaml`, with unique
-   API and OTA keys) in the ESPHome folder, builds the firmware, and writes it
-   over USB. The page follows it in steps (getting ready, building the firmware, putting it on the screen,
-   starting up), each with how far it is, while the drawing of your screen fills in. **Show details** opens
-   ESPHome's own log. A first build takes a few minutes on a Raspberry Pi. You can close the
-   page: the installation keeps running and picks back up when you reopen it.
-5. When it is done, the page follows the screen onto your Wi-Fi and into Home Assistant (chapter 3). If the build
-   fails, the step it stopped in turns red, the log opens and you can **Retry**.
+1. Click the **+** beside **Screens** in the sidebar of Tessera. New screen asks one thing at a time, with
+   **Continue** at the bottom and **Back** at the top; the dots at the top show how far you are. It only asks what
+   your screen needs:
+   - **Which screen do you have?** The recommended boards come first, drawn large. **I have another screen** opens
+     every board in one list: type its brand, size or what is printed on it, or narrow the list by size. A board
+     that is new or not tested yet on its hardware says so in the list.
+   - **Which version do you have?** Only for a screen sold in more than one version, or with a part that differs
+     between boards (a CYD's display controller). The back of the board says which one you have; the most common
+     one is chosen to begin with.
+   - **What is this screen called?** For example `Kitchen`; the rooms of your home in Home Assistant are offered as
+     names, and the drawing of your screen shows the name as you type. **More options** shows the device name
+     (`kitchen`, which follows from the name), the grid it starts with (columns and rows) and what the board can and
+     cannot do.
+   - **How will it hang?** Only for glass that is not square: lying down or standing up, each drawn with the tiles
+     of its page. The grid and the way it hangs can be changed later in the editor, beside the pages, without a new
+     build.
+   - **This screen can do more.** Only for a board with hardware a plugin makes work, such as a camera (see
+     [PLUGINS.md](PLUGINS.md)): each plugin with a switch, on to begin with.
+   - **Which Wi-Fi will it join?** Only when `wifi_ssid` and `wifi_password` are not in the ESPHome `secrets.yaml`
+     yet, or the file doesn't exist. Tessera only adds the missing lines to `secrets.yaml`; comments and other
+     secrets are left alone. If `secrets.yaml` isn't valid YAML, fix that yourself first. A `secrets.yaml` that takes
+     its keys from Home Assistant's with `<<: !include ../secrets.yaml` is read as ESPHome reads it: the Wi-Fi in the
+     included file counts, and a key of the file's own wins. When the Wi-Fi is there already, the last step offers
+     **Another network**.
+   - **Where is the cable plugged in?** **In this computer**, the one you are reading New screen on, or **In your
+     Home Assistant**, the machine Home Assistant runs on. This computer comes first where this browser can write
+     a screen itself (see below). **No cable at hand? Save it and install later** keeps the profile without a build.
+2. **In your Home Assistant**: plug the screen into the machine running Home Assistant with a **USB data cable**.
+   The page watches its USB ports and says **Screen found** as soon as the screen is there. Devices that are
+   certainly not a screen, such as a Zigbee or Z-Wave stick, are kept out of the way under **Also plugged in**.
+   With two screens plugged in, it asks which one. Click **Install**: Tessera stores the profile (`kitchen.yaml`,
+   with unique API and OTA keys) in the ESPHome folder, builds the firmware and writes it over USB.
+3. The page then follows the screen until it works, in four steps: **Making the software**, **Putting it on the
+   screen**, **Starting and joining your Wi-Fi** and **Adding it to Home Assistant**, while the drawing of your screen
+   fills in. A first build takes a few minutes on a Raspberry Pi. You can close the page: the installation keeps
+   running and picks back up when you reopen it. **What happens exactly** opens ESPHome's own log.
+4. The page says the screen **is ready** only once Home Assistant has it: on your Wi-Fi, added to the ESPHome
+   integration, online and allowed to perform actions (chapter 3). **Make its pages** opens it in the editor. If
+   the build fails, the step it stopped in turns red, the log opens and you can **Retry**. If the screen is not on
+   your Wi-Fi after three minutes, or Home Assistant asks something only you can answer, the page says so and what
+   helps.
 
 Every screen gets its own profile: four screens means going through **New
 screen** four times, with four different names. The shared board package is the
@@ -120,16 +134,15 @@ Keep that profile and reuse it for updates. Going through **New screen**
 again for an existing screen generates new keys and is not the
 update route.
 
-No USB port in the list? A cable plugged into your laptop isn't visible to the
-machine running Home Assistant, and a server or virtual machine may have no USB port
-within reach at all. Then put the firmware on the screen from the computer you're using.
+No screen found? A cable plugged into your laptop isn't visible to the machine running Home Assistant, and a
+server or virtual machine may have no USB port within reach at all. Then choose **In this computer** and put the
+firmware on the screen from the computer you're using.
 
 **From this browser.** This works in Chrome or Edge on a computer, when Home Assistant is
 opened over https (see below):
 
 1. Plug the screen into this computer with a USB data cable.
-2. In the Install step of **New screen**, choose **From this computer** and click
-   **Connect & install**.
+2. In **New screen**, choose **In this computer** where it asks for the cable, and click **Install**.
 3. The browser asks which port to use: choose the screen's. Tessera first checks that the
    board carries the chip the chosen board needs (an ESP32, ESP32-S3 or ESP32-P4), then builds the
    firmware the same way as over USB. Keep the tab open. As soon as the build is ready, the page
@@ -138,17 +151,17 @@ opened over https (see below):
 
 A browser only reaches USB ports on a secure page. Home Assistant opened as
 `http://homeassistant.local:8123` isn't one: open it over https, for example through your
-Home Assistant Cloud address or your own certificate. On a plain http page the option says so and
-stays off, and Download below still works. Not in the port list? Use a cable that carries data
+Home Assistant Cloud address or your own certificate. On a plain http page, **In this computer** says so and
+makes a file to download instead (below). Not in the port list? Use a cable that carries data
 (some only charge), and install the driver for the board's USB chip (CP210x, CH340 or CH9102) if
 your computer needs one. The board doesn't answer? Hold its **BOOT** button while you choose the
 port, until the installation starts.
 
 **Download.** For any other browser:
 
-1. In the Install step of **New screen**, choose **Download the file** and click
-   **Build & download**. Tessera builds the firmware the same way; when it's ready,
-   the window offers the file, for example `kitchen.factory.bin`.
+1. In the last step of **New screen**, click **Rather do it yourself? Download the file** (or **Build and download**
+   where this browser cannot write a screen). Tessera builds the firmware the same way; when it's ready, the page
+   offers the file, for example `kitchen.factory.bin`, and waits for the screen to come onto your Wi-Fi.
 2. Plug the screen into your own computer with a USB data cable.
 3. Open [ESPHome Web](https://web.esphome.io/?dashboard_install) in Chrome or Edge on that
    computer (other browsers can't reach USB), click **Connect** and choose the screen's port.

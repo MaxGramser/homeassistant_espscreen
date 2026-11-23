@@ -3743,24 +3743,9 @@
     "installer": {
       "board": "Welchen Bildschirm hast du?",
       "board_title": "{name} · {inch} Zoll",
-      "status": {
-        "stable": "Bewährt",
-        "new": "Neu",
-        "experimental": "Experimentell"
-      },
       "status_hint": {
         "new": "Neu: bisher nur auf wenigen Bildschirmen ausprobiert. Sag uns, wie es läuft.",
         "experimental": "Experimentell: auf dieser Hardware noch nicht ausprobiert. Sag uns, wie es läuft."
-      },
-      "tiers": {
-        "recommended": {
-          "title": "Empfohlen",
-          "lead": "Auf echten Bildschirmen bewährt und die Wahl des Projekts: das meiste, was Tessera kann, jeden Tag getestet."
-        },
-        "more": {
-          "title": "Weitere Boards",
-          "lead": "Bewährte funktionieren, können aber weniger; neue laufen bisher auf wenigen Bildschirmen; experimentelle sind noch nicht auf der Hardware getestet. Sag uns, wie es läuft."
-        }
       },
       "abilities": {
         "camera": "Kamerabilder",
@@ -3792,40 +3777,20 @@
       "orientation_landscape": "Quer",
       "orientation_portrait": "Hochkant",
       "name": "Name",
-      "name_placeholder": "Bildschirm Wohnzimmer",
       "device_name": "Gerätename",
-      "name_hint": "Jeder Bildschirm bekommt ein eigenes Profil mit eigenen Schlüsseln. Vier Bildschirme? Dann das Ganze viermal, mit je einem anderen Namen.",
       "name_taken": "Ein anderer Bildschirm heißt bereits so. Home Assistant würde die Entitätsnamen dieses Bildschirms nummerieren, Automationen würden dann den falschen ansprechen.",
       "device_name_hint": "Kleinbuchstaben, Ziffern und Bindestriche. Für jeden Bildschirm ein anderer Name.",
       "node_taken": "Ein anderer Bildschirm hat diesen Gerätenamen bereits. Home Assistant kann zwei Geräte mit demselben Namen nicht unterscheiden.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Wi-Fi-Name (2,4 GHz)",
         "password": "Wi-Fi-Passwort",
-        "new": "Einmal ausfüllen: Tessera speichert das in der secrets.yaml von ESPHome, weitere Bildschirme nutzen es automatisch.",
-        "missing": "In deiner secrets.yaml von ESPHome fehlen noch Wi-Fi-Angaben. Tessera ergänzt nur die fehlenden Zeilen.",
         "ready": "Die Wi-Fi-Daten kommen aus deiner secrets.yaml von ESPHome.",
         "invalid": "Die secrets.yaml im ESPHome-Ordner ist kein gültiges YAML. Korrigiere zuerst die Datei; sie wird nicht überschrieben.",
         "other": "Anderes Netzwerk",
         "other_note": "Jeder Bildschirm wird mit diesem WLAN gebaut; vorhandene Bildschirme übernehmen es beim nächsten Update."
       },
-      "install_via": "Installieren über",
-      "target": {
-        "usb": "Schließe den Bildschirm mit einem USB-Datenkabel an den Home Assistant-Rechner an; er erscheint hier von selbst. Hängt er an dem Computer, an dem du gerade sitzt? Wähle „Über diesen Computer“.",
-        "download": "Lade die Firmware herunter und spiele sie in Chrome oder Edge von deinem eigenen Computer aus auf den Bildschirm. Danach laufen Updates über Wi-Fi.",
-        "later": "Das Profil kommt in den ESPHome-Ordner. Installieren kannst du später über Firmware & USB oder im ESPHome Device Builder.",
-        "several": "Mehr als ein Board angeschlossen: Wähle den Port dieses Bildschirms.",
-        "once": "Einmal per USB; danach läuft alles drahtlos."
-      },
-      "install": "Installieren",
-      "save_profile": "Profil speichern",
       "no_cli": "In dieser Installation fehlt die ESPHome CLI; nur das Speichern des Profils ist möglich.",
       "progress": {
-        "saved": "{file} liegt im ESPHome-Ordner",
-        "writing": "Firmware wird auf {name} geschrieben…",
-        "building": "Firmware wird erstellt…",
-        "ready": "Firmware für {name} ist fertig",
-        "installed": "Firmware ist auf {name}",
         "build_failed": "Erstellen fehlgeschlagen",
         "install_failed": "Installation fehlgeschlagen",
         "waiting": "Wartet, bis er dran ist…"
@@ -3859,21 +3824,12 @@
         "key": "{bold} unten, falls Home Assistant nach einem Verschlüsselungsschlüssel fragt.",
         "key_bold": "Füge den API-Schlüssel von oben ein",
         "actions": "{bold} ESPHome-Integration → Konfigurieren → „Dem Gerät erlauben, Home Assistant-Aktionen auszuführen“. Ohne das sieht der Bildschirm alles, steuert aber nichts.",
-        "actions_bold": "HA-Aktionen erlauben:",
-        "tiles": "{bold} Zurück in Tessera erscheint der Bildschirm innerhalb von etwa dreißig Sekunden links in der Liste; bis dahin steht er dort als „noch nicht in Home Assistant“.",
-        "tiles_bold": "Wähle deine Kacheln."
+        "actions_bold": "HA-Aktionen erlauben:"
       },
       "retry": "Erneut versuchen",
-      "another": "Weiteren Bildschirm installieren",
       "start_over": "Neu beginnen",
       "done": "Fertig",
       "key_more": "API-Schlüssel anzeigen",
-      "steps": {
-        "board": "Bildschirm",
-        "setup": "Einrichten",
-        "install": "Installieren",
-        "plugins": "Plugins"
-      },
       "pick_title": "Welchen Bildschirm hast du?",
       "pick_intro": "Wähle dein Board. Suche nach Marke, Größe oder Aufdruck.",
       "search": "Nach Marke, Größe oder Modell suchen",
@@ -3885,45 +3841,15 @@
       },
       "none_found": "Kein Bildschirm passt zu „{query}“.",
       "try_virtual": "Noch kein Bildschirm? Probiere einen Vorschau-Bildschirm",
-      "setup_title": "Mach ihn zu deinem",
-      "install_title": "Wie möchtest du installieren?",
-      "next": "Weiter",
-      "advanced": "Erweitert",
-      "ways": {
-        "ha_title": "USB an Home Assistant",
-        "ha_found": "Gefunden: {port}",
-        "ha_waiting": "Schließe den Bildschirm an den Rechner an, auf dem Home Assistant läuft",
-        "browser_title": "Über diesen Computer",
-        "browser_detail": "Chrome oder Edge, mit dem Bildschirm am USB dieses Computers",
-        "download_title": "Datei herunterladen",
-        "download_detail": "Selbst mit ESPHome Web aufspielen",
-        "later_title": "Später",
-        "later_detail": "Nur die Einstellungen speichern"
-      },
-      "steps_done": {
-        "prepare": "Vorbereiten",
-        "build": "Firmware bauen",
-        "write": "Auf den Bildschirm schreiben",
-        "restart": "Starten",
-        "done": "Fertig",
-        "download": "Bereit zum Herunterladen"
-      },
       "elapsed": "seit {time}",
       "show_log": "Details zeigen",
       "hide_log": "Details ausblenden",
-      "next_title": "Wie geht es weiter",
       "model": "Welches Modell ist es?",
-      "model_hint": "Steht auf der Rückseite der Platine. Sie sehen gleich aus, brauchen aber jeweils eigene Firmware.",
-      "models": "{n} Modell | {n} Modelle",
       "arrive": {
-        "waiting": "Warte, bis {name} im WLAN erscheint...",
-        "seen": "{name} ist im WLAN. Wird eingerichtet...",
-        "paired": "{name} ist mit Home Assistant gekoppelt.",
         "missing": "{name} ist noch nicht im WLAN",
         "hotspot": "Schau auf den Bildschirm: Er nennt einen Hotspot mit Passwort. Verbinde dein Handy damit und wähle dort das richtige WLAN. Oder trage hier das richtige WLAN ein und installiere erneut.",
         "no_hotspot": "Wahrscheinlich stimmen WLAN-Name oder Passwort nicht. Trage hier das richtige WLAN ein und installiere erneut, mit dem Bildschirm noch am Kabel.",
-        "change": "WLAN ändern und neu installieren",
-        "failed": "Tessera kann {name} nicht selbst zu Home Assistant hinzufügen. Füge ihn unten selbst hinzu."
+        "change": "WLAN ändern und neu installieren"
       },
       "known": {
         "title": "Dieses Board ist in Home Assistant schon als {name} bekannt",
@@ -3945,14 +3871,109 @@
         "limit_title": "Zu wenig Speicher, um die Firmware zu erstellen",
         "limit": "Der Speicher ging aus, auch mit einem Compiler gleichzeitig. Halte ein paar Add-ons vorübergehend an oder gib der Maschine mehr Speicher, und versuche es dann erneut."
       },
-      "pair_yourself": "Selbst in Home Assistant hinzufügen",
       "grid": "Raster",
       "grid_hint": "Das vorgeschlagene Raster ist das beste für diesen Bildschirm. Du kannst es und die Ausrichtung später neben den Seiten im Editor ändern, ohne neu zu bauen.",
       "grid_best": "Zurück zum besten",
       "waits_turn": "Gerade wird ein anderer Bildschirm gebaut. Dieser wartet, bis er dran ist, und startet danach von selbst.",
-      "plugins_title": "Plugins für diesen Bildschirm",
-      "plugins_intro": "Diese passen zu dem, was dieses Board hat. Entferne den Haken bei allem, was du nicht möchtest: Es wird nicht eingebaut, und du kannst es später auf der Seite Plugins hinzufügen.",
-      "name_quote": "Ein Name darf kein \" oder \\ enthalten. Schreibe 4 Zoll zum Beispiel als 4in."
+      "name_quote": "Ein Name darf kein \" oder \\ enthalten. Schreibe 4 Zoll zum Beispiel als 4in.",
+      "flow": {
+        "back": "Zurück",
+        "step_of": "Schritt {step} von {steps}",
+        "continue": "Weiter",
+        "go_install": "Installieren",
+        "go_download": "Erstellen und herunterladen",
+        "more_options": "Mehr Optionen",
+        "fewer_options": "Weniger Optionen",
+        "later": "Kein Kabel zur Hand? Speichere es und installiere später",
+        "download_instead": "Lieber selbst machen? Lade die Datei herunter",
+        "pick_lead": "Wähle den Bildschirm, den du hast. Diese empfehlen wir: Sie können alles, und wir testen sie jeden Tag.",
+        "square": "Quadratisch",
+        "wide": "Breitbild",
+        "versions": "{n} Version | {n} Versionen",
+        "other_screen": "Ich habe einen anderen Bildschirm",
+        "which_is_it": "Welcher Bildschirm ist es?",
+        "status": {
+          "stable": "Bewährt",
+          "new": "Neu",
+          "experimental": "Noch nicht getestet"
+        },
+        "model_title": "Welche Version hast du?",
+        "model_lead": "Den {name} gibt es in {n} Versionen. Sie sehen ähnlich aus, brauchen aber jeweils eigene Software. Auf der Rückseite der Platine steht, welche du hast.",
+        "choice_lead": "Boards unter diesem Namen unterscheiden sich in einem Bauteil. Die meisten können die Auswahl so lassen.",
+        "model_usual": "Die am häufigsten verkaufte. Unsicher? Nimm diese.",
+        "name_title": "Wie heißt dieser Bildschirm?",
+        "name_lead": "Meistens der Raum, in dem er hängen wird.",
+        "name_placeholder": "Küche",
+        "rooms": "Räume in Home Assistant",
+        "hang_title": "Wie hängt er?",
+        "hang_lead": "Das kannst du später ändern, ohne neu zu installieren.",
+        "tiles_a_page": "{n} Kachel pro Seite | {n} Kacheln pro Seite",
+        "plugins_title": "Dieser Bildschirm kann mehr",
+        "plugins_lead": "Mit diesen kann seine Hardware mehr. Schalte ein, was du nutzen möchtest.",
+        "plugins_later": "Du kannst das später auf der Seite Plugins ein- oder ausschalten.",
+        "wifi_title": "Mit welchem Wi-Fi verbindet er sich?",
+        "wifi_lead": "Der Bildschirm braucht ein 2,4-GHz-Netzwerk. Du gibst es einmal ein: Jeder weitere Bildschirm nutzt es auch.",
+        "wifi_once": "In deinen ESPHome-Einstellungen gespeichert und nirgends mehr angezeigt.",
+        "wifi_ready": "Der Bildschirm verbindet sich mit demselben Wi-Fi wie deine anderen ESPHome-Geräte.",
+        "cable_title": "Wo steckt das Kabel?",
+        "cable_lead": "Der Bildschirm bekommt seine Software einmal über ein USB-Kabel. Danach läuft alles über Wi-Fi.",
+        "cable_here": "In diesem Computer",
+        "cable_here_detail": "Der Computer, auf dem du das gerade liest. Funktioniert in Chrome und Edge.",
+        "cable_ha": "In deinem Home Assistant",
+        "cable_ha_detail": "Das Gerät, auf dem Home Assistant läuft, zum Beispiel ein Raspberry Pi oder ein Home Assistant Green.",
+        "here_title": "Stecke das Kabel in diesen Computer",
+        "here_plug": "Verbinde den Bildschirm mit einem USB-Datenkabel mit diesem Computer.",
+        "here_click": "Klicke unten auf Installieren.",
+        "here_pick": "Dein Browser fragt nach dem Gerät: Wähle den Bildschirm und klicke auf Verbinden.",
+        "file_title": "Du bekommst eine Datei zum Aufspielen",
+        "file_lead": "Dieser Browser kann nicht selbst auf einen Bildschirm schreiben. Tessera erstellt eine Datei, und die spielst du mit ESPHome Web in Chrome oder Edge auf den Bildschirm.",
+        "ha_title": "Stecke das Kabel in deinen Home Assistant",
+        "ha_lead": "Nicht in diesen Computer, sondern in das Gerät, auf dem Home Assistant läuft. Wir sehen automatisch, sobald es angeschlossen ist.",
+        "ha_which": "Welches ist der Bildschirm?",
+        "ha_which_lead": "An deinem Home Assistant hängt mehr als ein Gerät. Wähle den Bildschirm.",
+        "ha_waiting": "Wir warten auf den Bildschirm",
+        "ha_waiting_detail": "Stecke das Kabel an. Das aktualisiert sich von selbst.",
+        "ha_found": "Bildschirm gefunden",
+        "ha_others": "Außerdem angeschlossen: {n} anderes Gerät | Außerdem angeschlossen: {n} andere Geräte",
+        "ha_not_screen": "Wahrscheinlich kein Bildschirm, zum Beispiel ein Zigbee-Stick",
+        "saved_title": "{name} ist gespeichert",
+        "ready_title": "{name} ist fertig",
+        "ready_lead": "Er ist an, im Wi-Fi und Teil von Home Assistant. Jetzt wählst du, was darauf angezeigt wird.",
+        "ha_ask_title": "Home Assistant fragt dich etwas zu {name}",
+        "now": {
+          "build": "{name} wird vorbereitet",
+          "write": "Die Software kommt auf {name}",
+          "write_self": "Spiele die Software auf {name}",
+          "wifi": "{name} startet",
+          "ha": "{name} wird zu Home Assistant hinzugefügt"
+        },
+        "lead": {
+          "build": "Das dauert meist 5 bis 20 Minuten, beim ersten Mal am längsten. Du kannst dieses Fenster schließen: Es läuft weiter.",
+          "build_browser": "Das dauert meist 5 bis 20 Minuten, beim ersten Mal am längsten. Lass diese Seite offen: Sie spielt die Software auf den Bildschirm, sobald sie fertig ist.",
+          "write": "Lass das Kabel stecken, bis das fertig ist.",
+          "write_self": "Lade die Datei herunter und spiele sie mit ESPHome Web auf den Bildschirm. Diese Seite erkennt den Bildschirm, sobald er im Wi-Fi ist.",
+          "wifi": "Er startet und verbindet sich mit deinem Wi-Fi. Das dauert meist weniger als eine Minute.",
+          "wifi_calibrate": "Er startet und verbindet sich mit deinem Wi-Fi. Zuerst bittet er dich, auf ein paar Fadenkreuze zu tippen: So lernt er, wo dein Finger ist.",
+          "ha": "Tessera fügt ihn in Home Assistant zu ESPHome hinzu und erlaubt ihm, dein Zuhause zu steuern. Du musst nichts tun."
+        },
+        "steps": {
+          "build": "Software erstellen",
+          "write": "Auf den Bildschirm spielen",
+          "write_self": "Du spielst sie auf den Bildschirm",
+          "wifi": "Starten und mit deinem Wi-Fi verbinden",
+          "ha": "Zu Home Assistant hinzufügen"
+        },
+        "may_close": "du kannst dieses Fenster schließen",
+        "show_log": "Was genau passiert",
+        "to_pages": "Seiten erstellen",
+        "another": "Noch einen Bildschirm hinzufügen",
+        "close_follow": "Schließen, es läuft weiter",
+        "recap": {
+          "wifi": "In deinem WLAN",
+          "ha": "In Home Assistant",
+          "actions": "Darf dein Zuhause steuern"
+        }
+      }
     },
     "alerts": {
       "intro": "Jeder Bildschirm hat die Aktion {action}. Sie legt eine Karte über alles, weckt den Bildschirm und hält die Hintergrundbeleuchtung auf normaler Helligkeit, bis jemand auf die Taste tippt oder das Timeout abläuft. Home Assistant selbst zeigt für ESPHome-Aktionen keine Erklärungen oder Auswahllisten; alles, was du ausfüllen kannst, steht hier.",
@@ -4391,7 +4412,6 @@
     },
     "webflash": {
       "target": "Aus diesem Browser installieren (Chrome oder Edge)",
-      "hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. Tessera erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Danach laufen Updates über WLAN.",
       "firmware_hint": "Schließe den Bildschirm mit einem USB-Datenkabel an diesen Computer an. Tessera erstellt die Firmware, dann spielt diese Seite sie auf den Bildschirm, in Chrome oder Edge. Der Bildschirm behält seine Einstellungen und Touch-Kalibrierung. So rettest du auch einen Bildschirm, der ständig neu startet und nie online kommt.",
       "go": "Verbinden & installieren",
       "building": "Das Bauen kann auf einem Home-Assistant-Rechner wie einem Raspberry Pi 20 Minuten oder länger dauern, besonders beim ersten Mal. Das ist normal. Lass diesen Tab offen und den Bildschirm angeschlossen: Diese Seite installiert die Firmware, sobald sie fertig ist.",

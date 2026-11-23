@@ -3743,24 +3743,9 @@
     "installer": {
       "board": "Jaki masz ekran?",
       "board_title": "{name} · {inch} cala",
-      "status": {
-        "stable": "Sprawdzona",
-        "new": "Nowość",
-        "experimental": "Eksperymentalny"
-      },
       "status_hint": {
         "new": "Nowość: na razie wypróbowana na kilku ekranach. Napisz, jak działa.",
         "experimental": "Eksperymentalny: jeszcze nie wypróbowany na tym sprzęcie. Napisz, jak działa."
-      },
-      "tiers": {
-        "recommended": {
-          "title": "Polecane",
-          "lead": "Sprawdzone na prawdziwych ekranach i wybrane przez projekt: najwięcej, co potrafi Tessera, testowane codziennie."
-        },
-        "more": {
-          "title": "Więcej płytek",
-          "lead": "Sprawdzone działają, ale potrafią mniej; nowe działają dopiero na kilku ekranach; eksperymentalnych nie testowano jeszcze na sprzęcie. Daj nam znać, jak poszło."
-        }
       },
       "abilities": {
         "camera": "Obrazy z kamer",
@@ -3792,40 +3777,20 @@
       "orientation_landscape": "Poziomo",
       "orientation_portrait": "Pionowo",
       "name": "Nazwa",
-      "name_placeholder": "Ekran w salonie",
       "device_name": "Nazwa urządzenia",
-      "name_hint": "Każdy ekran dostaje własny profil z własnymi kluczami. Cztery ekrany? Przejdź przez to cztery razy, za każdym razem z inną nazwą.",
       "name_taken": "Inny ekran nazywa się już tak samo. Home Assistant ponumerowałby nazwy encji tego ekranu, a automatyzacje trafiałyby do niewłaściwego.",
       "device_name_hint": "Małe litery, cyfry i myślniki. Inna nazwa dla każdego ekranu.",
       "node_taken": "Inny ekran ma już tę nazwę urządzenia. Home Assistant nie odróżni dwóch urządzeń o tej samej nazwie.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Nazwa sieci Wi-Fi (2,4 GHz)",
         "password": "Hasło Wi-Fi",
-        "new": "Wypełnij raz: Tessera zapisze to w pliku secrets.yaml ESPHome, a kolejne ekrany użyją tego automatycznie.",
-        "missing": "W Twoim pliku secrets.yaml ESPHome wciąż brakuje danych Wi-Fi. Tessera uzupełni tylko brakujące wiersze.",
         "ready": "Dane Wi-Fi pochodzą z Twojego pliku secrets.yaml ESPHome.",
         "invalid": "Plik secrets.yaml w folderze ESPHome nie jest poprawnym YAML. Najpierw popraw plik; nie zostanie nadpisany.",
         "other": "Inna sieć",
         "other_note": "Każdy ekran jest budowany z tą siecią Wi-Fi; istniejące przejmą ją przy następnej aktualizacji."
       },
-      "install_via": "Zainstaluj przez",
-      "target": {
-        "usb": "Podłącz ekran kablem USB do transmisji danych do komputera z Home Assistant; pojawi się tu sam. Jest podłączony do komputera, przy którym teraz siedzisz? Wybierz „Z tego komputera”.",
-        "download": "Pobierz firmware i wgraj go na ekran z własnego komputera, w Chrome lub Edge. Potem aktualizacje idą przez Wi-Fi.",
-        "later": "Profil trafi do folderu ESPHome. Zainstalujesz go później w sekcji „Firmware i USB” albo w ESPHome Device Builder.",
-        "several": "Podłączono więcej niż jedną płytkę: wybierz port tego ekranu.",
-        "once": "Raz przez USB; potem wszystko bezprzewodowo."
-      },
-      "install": "Zainstaluj",
-      "save_profile": "Zapisz profil",
       "no_cli": "W tej instalacji brakuje narzędzia ESPHome CLI; można tylko zapisać profil.",
       "progress": {
-        "saved": "{file} jest w folderze ESPHome",
-        "writing": "Wgrywanie firmware: {name}…",
-        "building": "Kompilowanie firmware…",
-        "ready": "Firmware gotowy: {name}",
-        "installed": "Firmware wgrany: {name}",
         "build_failed": "Kompilacja nieudana",
         "install_failed": "Instalacja nieudana",
         "waiting": "Czeka na swoją kolej…"
@@ -3859,21 +3824,12 @@
         "key": "{bold} poniżej, jeśli Home Assistant poprosi o klucz szyfrowania.",
         "key_bold": "Wklej klucz API",
         "actions": "{bold} integracja ESPHome → Konfiguruj → „Zezwól urządzeniu na wykonywanie akcji Home Assistant”. Bez tego ekran widzi wszystko, ale niczym nie steruje.",
-        "actions_bold": "Zezwól na akcje HA:",
-        "tiles": "{bold} Po powrocie do Tessera ekran pojawi się na liście po lewej w ciągu około trzydziestu sekund; do tego czasu jest tam opisany jako „jeszcze nie w Home Assistant”.",
-        "tiles_bold": "Wybierz kafelki."
+        "actions_bold": "Zezwól na akcje HA:"
       },
       "retry": "Ponów",
-      "another": "Zainstaluj kolejny ekran",
       "start_over": "Zacznij od nowa",
       "done": "Gotowe",
       "key_more": "Pokaż klucz API",
-      "steps": {
-        "board": "Ekran",
-        "setup": "Ustawienia",
-        "install": "Instalacja",
-        "plugins": "Wtyczki"
-      },
       "pick_title": "Jaki masz ekran?",
       "pick_intro": "Wybierz płytkę. Szukaj po marce, rozmiarze lub nadruku.",
       "search": "Szukaj po marce, rozmiarze lub modelu",
@@ -3885,45 +3841,15 @@
       },
       "none_found": "Brak ekranu pasującego do „{query}”.",
       "try_virtual": "Nie masz jeszcze ekranu? Wypróbuj ekran podglądu",
-      "setup_title": "Dopasuj go do siebie",
-      "install_title": "Jak chcesz zainstalować?",
-      "next": "Dalej",
-      "advanced": "Zaawansowane",
-      "ways": {
-        "ha_title": "USB w Home Assistant",
-        "ha_found": "Znaleziono: {port}",
-        "ha_waiting": "Podłącz ekran do komputera, na którym działa Home Assistant",
-        "browser_title": "Z tego komputera",
-        "browser_detail": "Chrome lub Edge, z ekranem podłączonym do USB tego komputera",
-        "download_title": "Pobierz plik",
-        "download_detail": "Wgraj go sam przez ESPHome Web",
-        "later_title": "Później",
-        "later_detail": "Zapisz tylko ustawienia"
-      },
-      "steps_done": {
-        "prepare": "Przygotowanie",
-        "build": "Budowanie firmware",
-        "write": "Zapisywanie na ekranie",
-        "restart": "Uruchamianie",
-        "done": "Gotowe",
-        "download": "Gotowe do pobrania"
-      },
       "elapsed": "{time} trwa",
       "show_log": "Pokaż szczegóły",
       "hide_log": "Ukryj szczegóły",
-      "next_title": "Co dalej",
       "model": "Jaki to model?",
-      "model_hint": "Jest nadrukowany z tyłu płytki. Wyglądają podobnie, ale każdy wymaga własnego firmware.",
-      "models": "{n} model | {n} modele | {n} modeli",
       "arrive": {
-        "waiting": "Czekam, aż {name} pojawi się w Wi-Fi...",
-        "seen": "{name} jest w Wi-Fi. Przygotowuję...",
-        "paired": "{name} jest sparowany z Home Assistant.",
         "missing": "{name} nie ma jeszcze w Wi-Fi",
         "hotspot": "Spójrz na ekran: pokazuje hotspot i jego hasło. Połącz się z nim telefonem i wybierz tam właściwą sieć Wi-Fi. Albo ustaw tu właściwą sieć i zainstaluj ponownie.",
         "no_hotspot": "Prawdopodobnie nazwa lub hasło Wi-Fi są błędne. Ustaw tu właściwą sieć i zainstaluj ponownie, z ekranem wciąż podłączonym kablem.",
-        "change": "Zmień Wi-Fi i zainstaluj ponownie",
-        "failed": "Tessera nie może sama dodać {name} do Home Assistant. Dodaj go samodzielnie poniżej."
+        "change": "Zmień Wi-Fi i zainstaluj ponownie"
       },
       "known": {
         "title": "Ta płytka jest już w Home Assistant jako {name}",
@@ -3945,14 +3871,109 @@
         "limit_title": "Za mało pamięci, aby skompilować firmware",
         "limit": "Skończyła się pamięć, także z jednym kompilatorem naraz. Zatrzymaj na chwilę kilka dodatków albo daj maszynie więcej pamięci, potem spróbuj ponownie."
       },
-      "pair_yourself": "Dodaj go samodzielnie w Home Assistant",
       "grid": "Siatka",
       "grid_hint": "Proponowana siatka jest najlepsza dla tego ekranu. Możesz ją zmienić, wraz z orientacją, później obok stron w edytorze, bez ponownej kompilacji.",
       "grid_best": "Wróć do najlepszej",
       "waits_turn": "Teraz kompilowany jest inny ekran. Ten czeka na swoją kolej i zacznie sam zaraz potem.",
-      "plugins_title": "Wtyczki dla tego ekranu",
-      "plugins_intro": "Pasują do tego, co ma ta płytka. Odznacz to, czego nie chcesz: nie zostanie wbudowane, a później możesz to dodać na stronie Wtyczki.",
-      "name_quote": "Nazwa nie może zawierać \" ani \\. Napisz na przykład 4 cale jako 4in."
+      "name_quote": "Nazwa nie może zawierać \" ani \\. Napisz na przykład 4 cale jako 4in.",
+      "flow": {
+        "back": "Wstecz",
+        "step_of": "Krok {step} z {steps}",
+        "continue": "Dalej",
+        "go_install": "Zainstaluj",
+        "go_download": "Utwórz i pobierz",
+        "more_options": "Więcej opcji",
+        "fewer_options": "Mniej opcji",
+        "later": "Nie masz pod ręką kabla? Zapisz i zainstaluj później",
+        "download_instead": "Wolisz zrobić to sam? Pobierz plik",
+        "pick_lead": "Wybierz ekran, który masz. Polecamy te: potrafią wszystko i testujemy je codziennie.",
+        "square": "Kwadratowy",
+        "wide": "Panoramiczny",
+        "versions": "{n} wersja | {n} wersje | {n} wersji",
+        "other_screen": "Mam inny ekran",
+        "which_is_it": "Który to ekran?",
+        "status": {
+          "stable": "Sprawdzony",
+          "new": "Nowy",
+          "experimental": "Jeszcze nie testowany"
+        },
+        "model_title": "Którą wersję masz?",
+        "model_lead": "Model {name} występuje w {n} wersjach. Wyglądają podobnie, ale każda potrzebuje własnego oprogramowania. Z tyłu płytki jest napisane, którą masz.",
+        "choice_lead": "Płytki sprzedawane pod tą nazwą różnią się jednym elementem. Większość osób może zostawić wybraną opcję.",
+        "model_usual": "Najczęściej kupowana. Nie wiesz? Wybierz tę.",
+        "name_title": "Jak nazywa się ten ekran?",
+        "name_lead": "Zwykle to pomieszczenie, w którym zawiśnie.",
+        "name_placeholder": "Kuchnia",
+        "rooms": "Pomieszczenia w Home Assistant",
+        "hang_title": "Jak będzie wisiał?",
+        "hang_lead": "Możesz to później zmienić, bez ponownej instalacji.",
+        "tiles_a_page": "{n} kafelek na stronie | {n} kafelki na stronie | {n} kafelków na stronie",
+        "plugins_title": "Ten ekran potrafi więcej",
+        "plugins_lead": "Z tymi wtyczkami jego sprzęt potrafi więcej. Włącz to, z czego chcesz korzystać.",
+        "plugins_later": "Możesz je później włączyć lub wyłączyć na stronie Wtyczki.",
+        "wifi_title": "Z jaką siecią Wi-Fi się połączy?",
+        "wifi_lead": "Ekran potrzebuje sieci 2,4 GHz. Podajesz ją raz: każdy kolejny ekran też jej użyje.",
+        "wifi_once": "Zapisana w ustawieniach ESPHome i nigdy więcej nie pokazywana.",
+        "wifi_ready": "Ekran połączy się z tą samą siecią Wi-Fi co Twoje inne urządzenia ESPHome.",
+        "cable_title": "Gdzie jest podłączony kabel?",
+        "cable_lead": "Ekran dostaje oprogramowanie raz, przez kabel USB. Potem wszystko idzie przez Wi-Fi.",
+        "cable_here": "W tym komputerze",
+        "cable_here_detail": "W komputerze, na którym to czytasz. Działa w Chrome i Edge.",
+        "cable_ha": "W Twoim Home Assistant",
+        "cable_ha_detail": "W urządzeniu, na którym działa Home Assistant, takim jak Raspberry Pi lub Home Assistant Green.",
+        "here_title": "Podłącz kabel do tego komputera",
+        "here_plug": "Podłącz ekran do tego komputera kablem USB do przesyłania danych.",
+        "here_click": "Kliknij poniżej Zainstaluj.",
+        "here_pick": "Przeglądarka zapyta o urządzenie: wybierz ekran i kliknij Połącz.",
+        "file_title": "Dostaniesz plik do wgrania na ekran",
+        "file_lead": "Ta przeglądarka nie potrafi sama zapisać danych na ekranie. Tessera tworzy plik, który wgrywasz na ekran przez ESPHome Web w Chrome lub Edge.",
+        "ha_title": "Podłącz kabel do swojego Home Assistant",
+        "ha_lead": "Nie do tego komputera, tylko do urządzenia, na którym działa Home Assistant. Zobaczymy to od razu, gdy będzie podłączony.",
+        "ha_which": "Które to ekran?",
+        "ha_which_lead": "Do Twojego Home Assistant podłączone jest więcej niż jedno urządzenie. Wybierz ekran.",
+        "ha_waiting": "Czekamy na ekran",
+        "ha_waiting_detail": "Podłącz kabel. Ta strona odświeża się sama.",
+        "ha_found": "Znaleziono ekran",
+        "ha_others": "Podłączone jest też: {n} inne urządzenie | Podłączone są też: {n} inne urządzenia | Podłączonych jest też: {n} innych urządzeń",
+        "ha_not_screen": "Prawdopodobnie to nie ekran, na przykład klucz Zigbee",
+        "saved_title": "{name} jest zapisany",
+        "ready_title": "{name} jest gotowy",
+        "ready_lead": "Jest włączony, w Twojej sieci Wi-Fi i należy do Home Assistant. Teraz wybierz, co ma na nim być.",
+        "ha_ask_title": "Home Assistant pyta Cię o {name}",
+        "now": {
+          "build": "{name} jest przygotowywany",
+          "write": "Oprogramowanie trafia na {name}",
+          "write_self": "Wgraj oprogramowanie na {name}",
+          "wifi": "{name} się uruchamia",
+          "ha": "{name} jest dodawany do Home Assistant"
+        },
+        "lead": {
+          "build": "To zwykle trwa od 5 do 20 minut, za pierwszym razem najdłużej. Możesz zamknąć to okno: wszystko działa dalej.",
+          "build_browser": "To zwykle trwa od 5 do 20 minut, za pierwszym razem najdłużej. Zostaw tę stronę otwartą: wgra oprogramowanie na ekran, gdy tylko będzie gotowe.",
+          "write": "Zostaw kabel podłączony, aż to się skończy.",
+          "write_self": "Pobierz plik i wgraj go na ekran przez ESPHome Web. Ta strona zobaczy ekran, gdy tylko połączy się z Twoją siecią Wi-Fi.",
+          "wifi": "Uruchamia się i łączy z Twoją siecią Wi-Fi. To zwykle trwa krócej niż minutę.",
+          "wifi_calibrate": "Uruchamia się i łączy z Twoją siecią Wi-Fi. Najpierw poprosi Cię o dotknięcie kilku krzyżyków na ekranie: dzięki temu uczy się, gdzie jest Twój palec.",
+          "ha": "Tessera dodaje go do ESPHome w Home Assistant i pozwala mu sterować Twoim domem. Nie musisz nic robić."
+        },
+        "steps": {
+          "build": "Tworzenie oprogramowania",
+          "write": "Wgrywanie na ekran",
+          "write_self": "Wgrywasz je na ekran",
+          "wifi": "Uruchamianie i łączenie z Twoją siecią Wi-Fi",
+          "ha": "Dodawanie do Home Assistant"
+        },
+        "may_close": "możesz zamknąć to okno",
+        "show_log": "Co dokładnie się dzieje",
+        "to_pages": "Stwórz jego strony",
+        "another": "Dodaj kolejny ekran",
+        "close_follow": "Zamknij, wszystko działa dalej",
+        "recap": {
+          "wifi": "W Twojej sieci Wi-Fi",
+          "ha": "W Home Assistant",
+          "actions": "Może sterować Twoim domem"
+        }
+      }
     },
     "alerts": {
       "intro": "Każdy ekran ma akcję {action}. Wyświetla ona kartę nad wszystkim, budzi ekran i utrzymuje normalną jasność podświetlenia, dopóki ktoś nie dotknie przycisku albo nie upłynie limit czasu. Sam Home Assistant nie pokazuje dla akcji ESPHome żadnych objaśnień ani list rozwijanych; wszystko, co możesz wypełnić, znajdziesz tutaj.",
@@ -4391,7 +4412,6 @@
     },
     "webflash": {
       "target": "Zainstaluj z tej przeglądarki (Chrome lub Edge)",
-      "hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. Tessera kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Później aktualizacje idą przez Wi-Fi.",
       "firmware_hint": "Podłącz ekran do tego komputera kablem USB do transmisji danych. Tessera kompiluje firmware, a potem ta strona wgrywa go na ekran, w Chrome lub Edge. Ekran zachowuje ustawienia i kalibrację dotyku. Tak uratujesz też ekran, który ciągle się restartuje i nigdy nie łączy się z siecią.",
       "go": "Połącz i zainstaluj",
       "building": "Budowanie na komputerze z Home Assistant, takim jak Raspberry Pi, może trwać 20 minut lub dłużej, zwłaszcza za pierwszym razem. To normalne. Zostaw tę kartę otwartą i ekran podłączony: ta strona zainstaluje firmware, gdy tylko będzie gotowy.",

@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **New screen asks one thing at a time, and stays with you until the screen really works.** Each step is one question with a large title and one Continue key: which screen, which version (only when there are more), its name (the rooms of your home are offered), which way it hangs, its plugins and the Wi-Fi (only when needed). Before any USB port, it asks where the cable is: in this computer or in your Home Assistant, each drawn, with the Home Assistant machine's ports watched until the screen shows up and a Zigbee or Z-Wave stick kept out of the way. After the install it follows four steps, the software, putting it on the screen, the Wi-Fi and adding it to Home Assistant, and only says the screen is ready once Home Assistant has it online and allowed to control your home.
+
 - **The plugin store opens on all plugins.** It used to open on Tiles, which looked like everything there was. An All tab now comes first, and the tabs by kind still narrow the list.
 
 - **Updating every screen goes a lot faster.** In Update all and the nightly round, the next screen is built while the one before restarts and is checked, so the build server never sits idle. A screen still installs only once the screens before it passed their check, so a bad firmware never reaches a second screen. The fixed 2 minute pause between two screens is gone, and a screen that failed for a reason that has nothing to do with its firmware (a download that did not come, a screen that was away for a moment) goes once more at the end of the round instead of stopping it.

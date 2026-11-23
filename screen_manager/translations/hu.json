@@ -3743,24 +3743,9 @@
     "installer": {
       "board": "Milyen kijelződ van?",
       "board_title": "{name} · {inch} hüvelyk",
-      "status": {
-        "stable": "Bevált",
-        "new": "Új",
-        "experimental": "Kísérleti"
-      },
       "status_hint": {
         "new": "Új: eddig csak néhány kijelzőn próbálták ki. Mondd el, hogy működik.",
         "experimental": "Kísérleti: ezen a hardveren még nem próbálták ki. Mondd el, hogy működik."
-      },
-      "tiers": {
-        "recommended": {
-          "title": "Ajánlott",
-          "lead": "Valódi kijelzőkön bevált, és a projekt választása: a legtöbb, amit a Tessera tud, minden nap tesztelve."
-        },
-        "more": {
-          "title": "További lapok",
-          "lead": "A bevált lapok működnek, de kevesebbet tudnak; az újak eddig csak néhány kijelzőn futnak; a kísérletieket még nem próbálták ki a hardveren. Mondd el, hogyan megy."
-        }
       },
       "abilities": {
         "camera": "Kameraképek",
@@ -3792,40 +3777,20 @@
       "orientation_landscape": "Fekvő",
       "orientation_portrait": "Álló",
       "name": "Név",
-      "name_placeholder": "Nappali kijelző",
       "device_name": "Eszköznév",
-      "name_hint": "Minden kijelző saját profilt kap saját kulcsokkal. Négy kijelződ van? Menj végig ezen négyszer, mindig más névvel.",
       "name_taken": "Már van ilyen nevű kijelző. A Home Assistant megszámozná ennek az entitásneveit, így az automatizmusok rossz kijelzőre mutatnának.",
       "device_name_hint": "Kisbetűk, számjegyek és kötőjelek. Minden kijelzőnek más név.",
       "node_taken": "Egy másik kijelzőnek már ez az eszközneve. A Home Assistant nem tud megkülönböztetni két azonos nevű eszközt.",
       "wifi": {
-        "title": "Wi-Fi",
         "ssid": "Wi-Fi név (2,4 GHz)",
         "password": "Wi-Fi jelszó",
-        "new": "Csak egyszer kell kitölteni: a Tessera elmenti az ESPHome secrets.yaml fájljába, a későbbi kijelzők automatikusan használják.",
-        "missing": "Az ESPHome secrets.yaml fájlodból még hiányoznak a Wi-Fi adatok. A Tessera csak a hiányzó sorokat tölti ki.",
         "ready": "A Wi-Fi adatok az ESPHome secrets.yaml fájlodból jönnek.",
         "invalid": "Az ESPHome mappában lévő secrets.yaml nem érvényes YAML. Előbb javítsd a fájlt; nem lesz felülírva.",
         "other": "Másik hálózat",
         "other_note": "Minden kijelző ezzel a Wi-Fi-vel készül; a meglévők a következő frissítéskor veszik át."
       },
-      "install_via": "Telepítés módja",
-      "target": {
-        "usb": "Csatlakoztasd a kijelzőt USB-adatkábellel a Home Assistantot futtató géphez; magától megjelenik itt. Ahhoz a számítógéphez csatlakozik, amelyet most használsz? Válaszd az Erről a számítógépről lehetőséget.",
-        "download": "Töltsd le a firmware-t, és a saját számítógépedről, Chrome-ban vagy Edge-ben töltsd fel a kijelzőre. Utána a frissítések Wi-Fi-n mennek.",
-        "later": "A profil az ESPHome mappába kerül. Később telepítheted a Firmware és USB alatt, vagy az ESPHome Device Builderből.",
-        "several": "Több panel is csatlakozik: válaszd ki ennek a kijelzőnek a portját.",
-        "once": "Egyszer USB-n; utána minden vezeték nélkül megy."
-      },
-      "install": "Telepítés",
-      "save_profile": "Profil mentése",
       "no_cli": "Ebből a telepítésből hiányzik az ESPHome CLI; csak a profil mentése lehetséges.",
       "progress": {
-        "saved": "{file} az ESPHome mappában van",
-        "writing": "Firmware feltöltése ide: {name}…",
-        "building": "Firmware fordítása…",
-        "ready": "A firmware kész ehhez: {name}",
-        "installed": "A firmware fent van ezen: {name}",
         "build_failed": "A fordítás sikertelen",
         "install_failed": "A telepítés sikertelen",
         "waiting": "Várakozik a sorára…"
@@ -3859,21 +3824,12 @@
         "key": "{bold} lent, ha a Home Assistant titkosítási kulcsot kér.",
         "key_bold": "Illeszd be az API-kulcsot",
         "actions": "{bold} ESPHome integráció → Konfigurálás → kapcsold be, hogy az eszköz Home Assistant-műveleteket hajthasson végre. Enélkül a kijelző mindent lát, de semmit sem vezérel.",
-        "actions_bold": "Engedélyezd a HA-műveleteket:",
-        "tiles": "{bold} A Tesserába visszatérve a kijelző kb. harminc másodpercen belül megjelenik a bal oldali listában; addig „még nincs a Home Assistantban” jelzéssel látszik.",
-        "tiles_bold": "Válaszd ki a csempéidet."
+        "actions_bold": "Engedélyezd a HA-műveleteket:"
       },
       "retry": "Újra",
-      "another": "Másik kijelző telepítése",
       "start_over": "Újrakezdés",
       "done": "Kész",
       "key_more": "API-kulcs megjelenítése",
-      "steps": {
-        "board": "Kijelző",
-        "setup": "Beállítás",
-        "install": "Telepítés",
-        "plugins": "Bővítmények"
-      },
       "pick_title": "Milyen kijelződ van?",
       "pick_intro": "Válaszd ki a lapkát. Keress márkára, méretre vagy a feliratra.",
       "search": "Keresés márka, méret vagy modell szerint",
@@ -3885,45 +3841,15 @@
       },
       "none_found": "Nincs találat erre: „{query}”.",
       "try_virtual": "Még nincs kijelződ? Próbálj ki egy előnézeti kijelzőt",
-      "setup_title": "Legyen a tiéd",
-      "install_title": "Hogyan szeretnéd telepíteni?",
-      "next": "Tovább",
-      "advanced": "Haladó",
-      "ways": {
-        "ha_title": "USB a Home Assistanten",
-        "ha_found": "Megtalálva: {port}",
-        "ha_waiting": "Csatlakoztasd a kijelzőt ahhoz a géphez, amelyen a Home Assistant fut",
-        "browser_title": "Erről a számítógépről",
-        "browser_detail": "Chrome vagy Edge, a kijelző ennek a gépnek az USB-jén",
-        "download_title": "Fájl letöltése",
-        "download_detail": "Tedd fel magad az ESPHome Webbel",
-        "later_title": "Később",
-        "later_detail": "Csak a beállítások mentése"
-      },
-      "steps_done": {
-        "prepare": "Előkészítés",
-        "build": "Firmware fordítása",
-        "write": "Írás a kijelzőre",
-        "restart": "Indulás",
-        "done": "Kész",
-        "download": "Letölthető"
-      },
       "elapsed": "{time} óta",
       "show_log": "Részletek",
       "hide_log": "Részletek elrejtése",
-      "next_title": "Mi a következő",
       "model": "Melyik modell?",
-      "model_hint": "A lapka hátoldalán olvasható. Hasonlítanak, de mindegyiknek saját firmware kell.",
-      "models": "{n} modell | {n} modell",
       "arrive": {
-        "waiting": "Várakozás, amíg {name} megjelenik a Wi-Fi-n...",
-        "seen": "{name} a Wi-Fi-n van. Előkészítés...",
-        "paired": "{name} párosítva a Home Assistanttel.",
         "missing": "{name} még nincs a Wi-Fi-n",
         "hotspot": "Nézd meg a kijelzőt: kiír egy hotspotot és a jelszavát. Csatlakozz hozzá a telefonoddal, és ott válaszd ki a helyes Wi-Fi-t. Vagy add meg itt a helyes Wi-Fi-t, és telepítsd újra.",
         "no_hotspot": "Valószínűleg rossz a Wi-Fi neve vagy jelszava. Add meg itt a helyes Wi-Fi-t, és telepítsd újra, a kijelző még a kábelen legyen.",
-        "change": "Wi-Fi módosítása és újratelepítés",
-        "failed": "A Tessera nem tudja magától hozzáadni ezt a Home Assistanthez: {name}. Add hozzá magad lent."
+        "change": "Wi-Fi módosítása és újratelepítés"
       },
       "known": {
         "title": "Ez a panel már {name} néven szerepel a Home Assistantban",
@@ -3945,14 +3871,109 @@
         "limit_title": "Nincs elég memória a firmware fordításához",
         "limit": "Elfogyott a memória, egy fordítóval is. Állíts le néhány kiegészítőt egy időre, vagy adj több memóriát a gépnek, majd próbáld újra."
       },
-      "pair_yourself": "Add hozzá magad a Home Assistanthez",
       "grid": "Rács",
       "grid_hint": "A javasolt rács a legjobb ehhez a kijelzőhöz. Később a szerkesztőben, az oldalak mellett, újrafordítás nélkül módosíthatod, a tájolással együtt.",
       "grid_best": "Vissza a legjobbhoz",
       "waits_turn": "Most egy másik kijelző fordítása fut. Ez kivárja a sorát, és utána magától elindul.",
-      "plugins_title": "Bővítmények ehhez a képernyőhöz",
-      "plugins_intro": "Ezek ahhoz tartoznak, ami ezen a lapon megtalálható. Vedd ki a pipát abból, amit nem kérsz: az nem épül be, és később a Bővítmények oldalon hozzáadhatod.",
-      "name_quote": "A név nem tartalmazhat \" vagy \\ jelet. A 4 hüvelyket írd például 4in-nek."
+      "name_quote": "A név nem tartalmazhat \" vagy \\ jelet. A 4 hüvelyket írd például 4in-nek.",
+      "flow": {
+        "back": "Vissza",
+        "step_of": "{step}. lépés a(z) {steps} lépésből",
+        "continue": "Tovább",
+        "go_install": "Telepítés",
+        "go_download": "Létrehozás és letöltés",
+        "more_options": "További beállítások",
+        "fewer_options": "Kevesebb beállítás",
+        "later": "Nincs kéznél kábel? Mentsd el, és telepítsd később",
+        "download_instead": "Inkább magad csinálnád? Töltsd le a fájlt",
+        "pick_lead": "Válaszd ki a kijelződet. Ezeket ajánljuk: mindent tudnak, és minden nap teszteljük őket.",
+        "square": "Négyzetes",
+        "wide": "Széles",
+        "versions": "{n} változat | {n} változat",
+        "other_screen": "Másik kijelzőm van",
+        "which_is_it": "Melyik kijelző az?",
+        "status": {
+          "stable": "Bevált",
+          "new": "Új",
+          "experimental": "Még nem tesztelt"
+        },
+        "model_title": "Melyik változatod van?",
+        "model_lead": "A(z) {name} {n} változatban kapható. Hasonlítanak egymásra, de mindegyikhez saját szoftver kell. A panel hátoldalán áll, melyik van meg neked.",
+        "choice_lead": "Az ezen a néven árult panelek egy alkatrészben különböznek. A legtöbben meghagyhatják a kiválasztottat.",
+        "model_usual": "A leggyakoribb. Nem vagy biztos benne? Ezt válaszd.",
+        "name_title": "Hogy hívják ezt a kijelzőt?",
+        "name_lead": "Általában a szoba neve, ahol lógni fog.",
+        "name_placeholder": "Konyha",
+        "rooms": "Szobák a Home Assistantban",
+        "hang_title": "Hogyan fog lógni?",
+        "hang_lead": "Ezt később is megváltoztathatod, újratelepítés nélkül.",
+        "tiles_a_page": "{n} csempe oldalanként | {n} csempe oldalanként",
+        "plugins_title": "Ez a kijelző többet tud",
+        "plugins_lead": "Ezekkel a bővítményekkel a hardvere többre képes. Kapcsold be, amit használni szeretnél.",
+        "plugins_later": "Ezeket később be- vagy kikapcsolhatod a Bővítmények oldalon.",
+        "wifi_title": "Melyik Wi-Fi-hez csatlakozzon?",
+        "wifi_lead": "A kijelzőnek 2,4 GHz-es hálózatra van szüksége. Egyszer kell megadnod: minden következő kijelző is ezt használja.",
+        "wifi_once": "Az ESPHome beállításaiban tároljuk, és többé nem jelenik meg.",
+        "wifi_ready": "A kijelző ugyanahhoz a Wi-Fi-hez csatlakozik, mint a többi ESPHome-eszközöd.",
+        "cable_title": "Hová van dugva a kábel?",
+        "cable_lead": "A kijelző a szoftverét egyszer kapja meg, USB-kábelen át. Ezután minden Wi-Fi-n megy.",
+        "cable_here": "Ebbe a számítógépbe",
+        "cable_here_detail": "Abba a számítógépbe, amelyiken ezt olvasod. Chrome-ban és Edge-ben működik.",
+        "cable_ha": "A Home Assistantodba",
+        "cable_ha_detail": "Abba a gépbe, amelyen a Home Assistant fut, például egy Raspberry Pi-be vagy egy Home Assistant Greenbe.",
+        "here_title": "Dugd a kábelt ebbe a számítógépbe",
+        "here_plug": "Csatlakoztasd a kijelzőt ehhez a számítógéphez USB adatkábellel.",
+        "here_click": "Kattints lent a Telepítés gombra.",
+        "here_pick": "A böngésző megkérdezi, melyik eszköz: válaszd ki a kijelzőt, és kattints a Csatlakozás gombra.",
+        "file_title": "Kapsz egy fájlt, amit rá kell tenned",
+        "file_lead": "Ez a böngésző nem tud magától a kijelzőre írni. A Tessera készít egy fájlt, amit az ESPHome Weben keresztül töltesz fel a kijelzőre Chrome-ban vagy Edge-ben.",
+        "ha_title": "Dugd a kábelt a Home Assistantodba",
+        "ha_lead": "Nem ebbe a számítógépbe, hanem abba a gépbe, amelyen a Home Assistant fut. Magunktól látjuk, amint bedugtad.",
+        "ha_which": "Melyik a kijelző?",
+        "ha_which_lead": "A Home Assistantodhoz több eszköz is csatlakozik. Válaszd ki a kijelzőt.",
+        "ha_waiting": "Várunk a kijelzőre",
+        "ha_waiting_detail": "Dugd be a kábelt. Ez magától frissül.",
+        "ha_found": "Kijelző megtalálva",
+        "ha_others": "Még csatlakoztatva: {n} másik eszköz | Még csatlakoztatva: {n} másik eszköz",
+        "ha_not_screen": "Valószínűleg nem kijelző, például egy Zigbee-pálca",
+        "saved_title": "A(z) {name} el van mentve",
+        "ready_title": "A(z) {name} kész",
+        "ready_lead": "Be van kapcsolva, csatlakozik a Wi-Fi-dhez, és a Home Assistant része. Most válaszd ki, mi legyen rajta.",
+        "ha_ask_title": "A Home Assistant kérdez valamit a(z) {name} kijelzőről",
+        "now": {
+          "build": "A(z) {name} előkészítés alatt van",
+          "write": "A szoftver felkerül a(z) {name} kijelzőre",
+          "write_self": "Told fel a szoftvert a(z) {name} kijelzőre",
+          "wifi": "A(z) {name} elindul",
+          "ha": "A(z) {name} hozzáadása a Home Assistanthoz"
+        },
+        "lead": {
+          "build": "Ez általában 5-20 percig tart, az első alkalommal a leghosszabban. Bezárhatod ezt az ablakot: tovább fut.",
+          "build_browser": "Ez általában 5-20 percig tart, az első alkalommal a leghosszabban. Hagyd nyitva ezt az oldalt: amint kész a szoftver, ez teszi fel a kijelzőre.",
+          "write": "Hagyd bedugva a kábelt, amíg ez be nem fejeződik.",
+          "write_self": "Töltsd le a fájlt, és told fel a kijelzőre az ESPHome Weben keresztül. Ez az oldal akkor látja a kijelzőt, amint csatlakozik a Wi-Fi-dhez.",
+          "wifi": "Elindul, és csatlakozik a Wi-Fi-dhez. Ez általában egy percnél is rövidebb ideig tart.",
+          "wifi_calibrate": "Elindul, és csatlakozik a Wi-Fi-dhez. Először megkér, hogy koppints néhány célkeresztre a kijelzőn: így tanulja meg, hol van az ujjad.",
+          "ha": "A Tessera hozzáadja az ESPHome-hoz a Home Assistantban, és engedélyezi neki az otthonod vezérlését. Neked nincs teendőd."
+        },
+        "steps": {
+          "build": "Szoftver készítése",
+          "write": "Feltöltés a kijelzőre",
+          "write_self": "Te tolod fel a kijelzőre",
+          "wifi": "Indulás és csatlakozás a Wi-Fi-dhez",
+          "ha": "Hozzáadás a Home Assistanthoz"
+        },
+        "may_close": "bezárhatod ezt az ablakot",
+        "show_log": "Mi történik pontosan",
+        "to_pages": "Oldalak létrehozása",
+        "another": "Újabb kijelző hozzáadása",
+        "close_follow": "Bezárás, tovább fut",
+        "recap": {
+          "wifi": "A Wi-Fi-hálózatodon",
+          "ha": "A Home Assistantben",
+          "actions": "Vezérelheti az otthonodat"
+        }
+      }
     },
     "alerts": {
       "intro": "Minden kijelzőnek van {action} művelete. Ez egy kártyát tesz mindenre, felébreszti a kijelzőt, és normál fényerőn tartja a háttérvilágítást, amíg valaki meg nem nyomja a gombot, vagy le nem jár az időkorlát. A Home Assistant maga nem ad magyarázatot vagy legördülő listákat az ESPHome-műveletekhez; minden, amit kitölthetsz, itt van felsorolva.",
@@ -4391,7 +4412,6 @@
     },
     "webflash": {
       "target": "Telepítés ebből a böngészőből (Chrome vagy Edge)",
-      "hint": "Csatlakoztasd a kijelzőt USB-adatkábellel ehhez a számítógéphez. A Tessera lefordítja a firmware-t, majd ez az oldal Chrome-ban vagy Edge-ben feltölti a kijelzőre. Utána a frissítések Wi-Fi-n mennek.",
       "firmware_hint": "Csatlakoztasd a kijelzőt USB-adatkábellel ehhez a számítógéphez. A Tessera lefordítja a firmware-t, majd ez az oldal Chrome-ban vagy Edge-ben feltölti a kijelzőre. A kijelző megtartja a beállításait és az érintéskalibrálását. Ezzel egy folyton újrainduló, soha online nem kerülő kijelzőt is megmenthetsz.",
       "go": "Csatlakoztatás és telepítés",
       "building": "A fordítás egy Home Assistant-gépen, például Raspberry Pi-n, 20 percig vagy tovább is tarthat, főleg elsőre. Ez normális. Hagyd nyitva ezt a lapot és csatlakoztatva a kijelzőt: ez az oldal azonnal telepíti a firmware-t, amint elkészült.",

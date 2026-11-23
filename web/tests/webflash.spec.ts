@@ -218,11 +218,19 @@ describe("one installation from the browser", () => {
 
 // New screen: This computer builds as Download does, then writes the image from the page, erased first.
 // The wizard's third step, where the way in is chosen (app 0.4.32): past the board and the name.
+// New screen up to its last step (app 0.4.103), the cable in this computer: Continue through every question, the name
+// where it is asked.
 async function toInstall(view: ReturnType<typeof mount>) {
-  await view.find("#setup-next").trigger("click");
-  await view.find("#friendly_name").setValue("Hall");
-  await view.find("#setup-next").trigger("click");
+  const at = () => view.find("[data-step]").attributes("data-step");
+  for (let i = 0; i < 10 && !at()!.startsWith("connect"); i++) {
+    if (at() === "name") await view.find("#friendly_name").setValue("Hall");
+    if (at() === "cable") await view.find('input[name="cable"][value="here"]').setValue();
+    await view.find("#setup-next").trigger("click");
+    await flushPromises();
+  }
 }
+// The steps change with a transition; jsdom runs none, so it is the plain switch here.
+const installer = () => mount(InstallerView, { global: { stubs: { transition: true } } });
 
 describe("New screen from this browser", () => {
   const SHAPES = JSON.parse(readFileSync("../screen_manager/app/boards.json", "utf8"));
@@ -251,24 +259,23 @@ describe("New screen from this browser", () => {
   it("explains why it can't on a page opened over plain http, and keeps Download", async () => {
     secure(false, false);
     addonWithBuild(new Uint8Array());
-    const view = mount(InstallerView);
+    const view = installer();
     await flush();
     await toInstall(view);
-    await view.find('#install-target input[value="browser"]').setValue();
-    expect(view.find("#target-hint").text()).toContain("https");
-    expect(view.find("#install-go").attributes("disabled")).toBeDefined();
-    expect(view.find('#install-target input[value="download"]').exists()).toBe(true);
+    // In this computer, but this browser cannot write a screen: a file to put on it, and why.
+    expect(view.find("#target-hint").text()).toBe(t("editor.installer.flow.file_lead"));
+    expect(view.find("#install-go").text()).toBe(t("editor.installer.flow.go_download"));
+    expect(view.find("#install-go").attributes("disabled")).toBeUndefined();
   });
 
   it("picks the port on the click, builds with the download target, and installs erased", async () => {
     const flasher = fakeFlasher("ESP32");
     const { posted, calls } = addonWithBuild(factoryImage(0, 0x1000));
-    const view = mount(InstallerView);
+    const view = installer();
     await flush();
     await toInstall(view);
-    await view.find('#install-target input[value="browser"]').setValue();
-    expect(view.find("#install-go").text()).toBe("Connect & install");
-    await view.find("#friendly_name").setValue("Hall");
+    expect(view.find("#here-steps").exists()).toBe(true);
+    expect(view.find("#install-go").text()).toBe(t("editor.installer.flow.go_install"));
     await view.find("#install-form").trigger("submit");
     await flushPromises();
     expect(requestPort).toHaveBeenCalledOnce();
@@ -283,18 +290,17 @@ describe("New screen from this browser", () => {
     await vi.waitFor(() => expect(flasher.writeImage).toHaveBeenCalledOnce());
     expect(flasher.writeImage.mock.calls[0][2]).toBe(true);
     expect(calls.some((call) => call.url === "api/firmware/profiles/hall.yaml/flashed")).toBe(true);
-    expect(view.find("#progress-title").text()).toContain("Firmware is on Hall");
-    expect(view.find("#install-steps").exists()).toBe(true);
+    // On the screen is not the end: it starts and joins the Wi-Fi, and then Home Assistant (app 0.4.103).
+    expect(view.find("#progress-title").text()).toBe(t("editor.installer.flow.now.wifi", { name: "Hall" }));
+    expect(view.find('#follow-steps [data-step="write"]').classes()).toContain("done");
   });
 
   it("writes nothing and makes no profile for a board of another chip", async () => {
     fakeFlasher("ESP32-S3");
     const { posted } = addonWithBuild(factoryImage(9, 0));
-    const view = mount(InstallerView);
+    const view = installer();
     await flush();
     await toInstall(view);
-    await view.find('#install-target input[value="browser"]').setValue();
-    await view.find("#friendly_name").setValue("Hall");
     await view.find("#install-form").trigger("submit");
     await flush();
     expect(posted).toEqual([]);

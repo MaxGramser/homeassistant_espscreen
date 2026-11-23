@@ -5,13 +5,14 @@ import { arrivalOf } from "../model/installer";
 import { useInventoryStore } from "../stores/inventory";
 import { useVisibleInterval } from "./useVisibleInterval";
 
-/** `waiting`: the firmware is on and the page waits for the screen; `file`: its profile; `now`: the page's clock. */
-export function useArrival(waiting: () => boolean, file: () => string | null, now: Ref<number>) {
+/** `waiting`: the firmware is on and the page waits for the screen; `file`: its profile; `now`: the page's clock;
+ * `patient`: the person puts the firmware on it themselves (a download), so it is never late. */
+export function useArrival(waiting: () => boolean, file: () => string | null, now: Ref<number>, patient: () => boolean = () => false) {
   const inv = useInventoryStore();
   const doneAt = ref(0);
   watch(waiting, (waits) => { if (waits && !doneAt.value) doneAt.value = Date.now(); });
-  const arrival = computed(() => (waiting() ? arrivalOf(inv.inventory, file() || "", now.value - doneAt.value) : null));
-  useVisibleInterval(() => inv.refresh(false), 5000, { when: () => Boolean(arrival.value) && arrival.value !== "paired" });
+  const arrival = computed(() => (waiting() ? arrivalOf(inv.inventory, file() || "", now.value - doneAt.value, patient()) : null));
+  useVisibleInterval(() => inv.refresh(false), 5000, { when: () => Boolean(arrival.value) && arrival.value !== "ready" });
   /** Waiting again from the next time the firmware is on (another network, the same installation again). */
   const restart = () => { doneAt.value = 0; };
   return { arrival, restart };
