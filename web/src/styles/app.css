@@ -922,8 +922,11 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 
 /* The pages of parts: Settings, a screen's Settings tab and Events (docs/PAGES.md, "Pages of parts"): a list of parts, each part a page of its own in one column. */
 /* Like Home Assistant's Settings: one column of 600 px in the middle of a wide page, its rows in separate cards. */
-#settings-view { max-width: none; }
-#settings-view > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
+/* A whole page of parts (PartsPage): its head stands over the column; an open part that needs more room (a part of Events
+   with its sections) takes the wide page, head and all. */
+.parts-page { max-width: none; }
+.parts-page > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
+.parts-page.wide > .panel-head, .parts-page.wide > .set-column { max-width: 1120px; }
 .set-column { display: grid; gap: 24px; align-content: start; max-width: 600px; width: 100%; margin-inline: auto; }
 .set-cards { display: grid; gap: 24px; }
 .set-list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; overflow: hidden; }
