@@ -3495,7 +3495,9 @@
         "verify": "In attesa che lo schermo torni online…",
         "settle": "Verifica della stabilità…"
       },
-      "new_language": "Nuova lingua: {name}"
+      "new_language": "Nuova lingua: {name}",
+      "restarting": "Si riavvia con il nuovo firmware, torna tra un paio di minuti",
+      "restarting_short": "Aggiornamento"
     },
     "settings": {
       "updates": {

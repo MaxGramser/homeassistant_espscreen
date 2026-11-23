@@ -3,7 +3,7 @@
 import { useEventListener, useFileDialog } from "@vueuse/core";
 import { computed, watch } from "vue";
 import { t } from "../i18n";
-import { needsUpdate } from "../model/screen-status";
+import { needsUpdate, restarting, restartingText } from "../model/screen-status";
 import { isEditableTarget } from "../composables/isEditableTarget";
 import { useConfirm } from "../composables/useConfirm";
 import LayoutBotKey from "./LayoutBotKey.vue";
@@ -47,10 +47,12 @@ const insp = useInspectorStore();
 const screen = computed(() => scr.currentScreen!);
 const statusText = computed(() => screen.value.virtual ? t("editor.preview.virtual") : screen.value.online
   ? `${screen.value.delivery} · ${screen.value.status}`
-  : t("editor.screen_view.offline"));
+  : restarting(screen.value, builds.building(screen.value)) ? restartingText() : t("editor.screen_view.offline"));
 // The head says whether the screen is there in one word; the details of its delivery stay in the chip's tooltip.
-const statusKind = computed(() => !screen.value.online ? "off" : screen.value.in_sync ? "good" : "update");
-const statusWord = computed(() => !screen.value.online ? t("editor.common.offline") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
+// A screen away because its update restarts it says so (model/screen-status.ts restarting), not "offline".
+const away = computed(() => !screen.value.online && !restarting(screen.value, builds.building(screen.value)));
+const statusKind = computed(() => away.value ? "off" : !screen.value.online ? "update" : screen.value.in_sync ? "good" : "update");
+const statusWord = computed(() => away.value ? t("editor.common.offline") : !screen.value.online ? t("editor.update.restarting_short") : screen.value.in_sync ? t("editor.common.online") : t("editor.screen_view.sending"));
 const updateReady = computed(() => needsUpdate(screen.value) && screen.value.online && screen.value.update?.profile && screen.value.update?.host);
 const others = computed(() => inv.inventory.screens.filter((s) => s.id !== screen.value.id && s.layout?.tiles?.length));
 function closeMenu() { ui.menuOpen = false; }
@@ -87,7 +89,7 @@ function phoneBack() {
   if (ui.tab !== "layout") { ui.tab = "layout"; return; }
   session.goHome();
 }
-const phoneStatus = computed(() => !screen.value.online ? t("editor.common.offline")
+const phoneStatus = computed(() => away.value ? t("editor.common.offline") : !screen.value.online ? t("editor.update.restarting_short")
   : doc.dirty ? t("editor.phone.not_sent") : screen.value.in_sync ? t("editor.phone.on_screen") : t("editor.screen_view.sending"));
 function phoneSettings() { closeMenu(); insp.closeInspector(); ui.tab = "settings"; }
 async function phoneRename() {

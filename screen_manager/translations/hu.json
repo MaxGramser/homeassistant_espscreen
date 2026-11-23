@@ -3495,7 +3495,9 @@
         "verify": "Várakozás, hogy a kijelző visszatérjen…",
         "settle": "Stabilitás ellenőrzése…"
       },
-      "new_language": "Új nyelv: {name}"
+      "new_language": "Új nyelv: {name}",
+      "restarting": "Újraindul az új firmware-rel, egy-két perc múlva visszatér",
+      "restarting_short": "Frissítés"
     },
     "settings": {
       "updates": {

@@ -3495,7 +3495,9 @@
         "verify": "Warte, bis der Bildschirm wieder da ist…",
         "settle": "Prüfe, ob er stabil bleibt…"
       },
-      "new_language": "Neue Sprache: {name}"
+      "new_language": "Neue Sprache: {name}",
+      "restarting": "Startet mit der neuen Firmware neu, in ein, zwei Minuten zurück",
+      "restarting_short": "Aktualisiert"
     },
     "settings": {
       "updates": {

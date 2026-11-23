@@ -3006,7 +3006,9 @@
         "verify": "Wachten tot het scherm terug is…",
         "settle": "Controleren of het stabiel blijft…"
       },
-      "new_language": "Nieuwe taal: {name}"
+      "new_language": "Nieuwe taal: {name}",
+      "restarting": "Start opnieuw met de nieuwe firmware, over een minuut of twee terug",
+      "restarting_short": "Bijwerken"
     },
     "settings": {
       "updates": {

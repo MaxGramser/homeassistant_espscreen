@@ -3006,7 +3006,9 @@
         "verify": "Waiting for the screen to come back…",
         "settle": "Checking that it stays stable…"
       },
-      "new_language": "New language: {name}"
+      "new_language": "New language: {name}",
+      "restarting": "Restarting with the new firmware, back in a minute or two",
+      "restarting_short": "Updating"
     },
     "settings": {
       "updates": {

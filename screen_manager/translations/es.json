@@ -3495,7 +3495,9 @@
         "verify": "Esperando a que vuelva la pantalla…",
         "settle": "Comprobando que se mantiene estable…"
       },
-      "new_language": "Idioma nuevo: {name}"
+      "new_language": "Idioma nuevo: {name}",
+      "restarting": "Reiniciando con el nuevo firmware, vuelve en un par de minutos",
+      "restarting_short": "Actualizando"
     },
     "settings": {
       "updates": {
