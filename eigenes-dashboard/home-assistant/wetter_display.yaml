@@ -134,7 +134,7 @@ template:
             {% for i in range(1, n + 1) %}
               {% set stufe = state_attr(warnungen, 'warning_' ~ i ~ '_level') | int(0) %}
               {% set roh = state_attr(warnungen, 'warning_' ~ i ~ '_name') | string %}
-              {% if stufe > 0 %}
+              {% if stufe > 0 and roh | trim not in ['', 'None', 'none', 'unknown', 'unavailable'] %}
                 {% set ns.liste = ns.liste + [{'stufe': stufe, 'roh': roh}] %}
               {% endif %}
             {% endfor %}
@@ -154,7 +154,7 @@ template:
               {% set d = as_local(as_datetime(start)).date() if start else now().date() %}
               {% set tag = 'Heute' if d <= now().date() else 'Morgen' if (d - now().date()).days == 1
                            else tage[d.weekday()] %}
-              {% if stufe > 0 %}
+              {% if stufe > 0 and roh | trim not in ['', 'None', 'none', 'unknown', 'unavailable'] %}
                 {% set ns.liste = ns.liste + [{'stufe': stufe, 'roh': roh,
                                                'text': tag ~ ' ' ~ (roh | lower | title)}] %}
               {% endif %}

@@ -347,13 +347,20 @@ inline std::string warn_icon(std::string name) {
 // läuft er als Lauftext durch. Gibt zurück, ob die Pille zu sehen ist.
 inline bool warn_pille(lv_obj_t *pille, lv_obj_t *icon, lv_obj_t *text, const std::string &w, const std::string &v,
                        int max_w) {
-  bool warnung = num(part(w, 0)) >= 1;
-  const std::string &q = warnung ? w : v;
-  int stufe = (int) num(part(q, 0));
-  if (!warnung && !(stufe >= 1)) {
+  // gültig nur mit Stufe und Text; eine Stufe ohne Namen (kam vom DWD schon vor) zeigt keine leere Pille
+  auto gueltig = [](const std::string &s) {
+    if (s.empty()) return false;
+    if (num(part(s, 0)) >= 1 && !part(s, 1).empty()) return true;
+    ESP_LOGW("warnung", "Warnung ohne Text verworfen: '%s'", s.c_str());
+    return false;
+  };
+  bool warnung = gueltig(w);
+  if (!warnung && !gueltig(v)) {
     lv_obj_add_flag(pille, LV_OBJ_FLAG_HIDDEN);
     return false;
   }
+  const std::string &q = warnung ? w : v;
+  int stufe = (int) num(part(q, 0));
   lv_color_t farbe = warn_color(stufe);
   if (warnung) {
     lv_obj_set_style_bg_opa(pille, LV_OPA_COVER, LV_PART_MAIN);
