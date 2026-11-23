@@ -74,47 +74,16 @@ touchscreen:
       y_min: 0
       y_max: ${PANEL_H}
 
-# The ST7262 is driven directly as an RGB panel; no SPI init sequence.
-# mipi_rgb does not swap the red/blue GPIO groups for BGR as rpi_dpi_rgb does;
-# these groups are exchanged to preserve the JC8048W550's working physical bus mapping.
+# The ST7262 is driven directly as an RGB panel; no SPI init sequence. The JC8048W550 is the reference design of the
+# Sunton ESP32-8048S050, and ESPHome's preset for that board drives it: its pins, the 16 MHz clock on the inverted edge,
+# the 4/8/8 porches, and the colour bits in RGB order, big-endian. A pin map of our own with BGR and little-endian bytes
+# gave neutral greys but turned saturated colours (Home Assistant's red, a lamp's amber) blue.
 display:
   - platform: mipi_rgb
-    model: RPI
+    model: ESP32-8048S050
     id: my_display
     dimensions:
       width: ${PANEL_W}
       height: ${PANEL_H}
-    color_order: BGR
-    # LVGL's RGB565 bytes otherwise make neutral grays green and purple on this RGB bus.
-    byte_order: little_endian
-    pclk_frequency: 16MHz
-    pclk_inverted: true
-    de_pin: GPIO40
-    pclk_pin: GPIO42
-    hsync_pin: GPIO39
-    vsync_pin: GPIO41
-    hsync_pulse_width: 4
-    hsync_back_porch: 8
-    hsync_front_porch: 8
-    vsync_pulse_width: 4
-    vsync_back_porch: 8
-    vsync_front_porch: 8
-    data_pins:
-      red: [GPIO21, GPIO14, GPIO5, GPIO6, GPIO7]
-      green:
-        - number: GPIO46
-          ignore_strapping_warning: true
-        - GPIO9
-        - GPIO1
-        - number: GPIO45
-          ignore_strapping_warning: true
-        - GPIO48
-        - GPIO47
-      blue:
-        - GPIO15
-        - GPIO16
-        - GPIO4
-        - GPIO8
-        - GPIO3
     update_interval: never
     auto_clear_enabled: false
