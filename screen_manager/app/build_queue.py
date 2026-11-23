@@ -74,6 +74,7 @@ class Build:
         self.installed = False
         self.stepped = False  # whether it ran an ESPHome step: then the firmware's job and log are its own
         self.logs, self.memory = [], None
+        self.log = None     # the key of its log kept on disk (build_logs.py), from its first ESPHome step
         # Where its compile ran (build_server.py): 'server' or 'here' after a fallback (its reason in `fallback`), None for
         # a build that never asked the server.
         self.where, self.server, self.fallback = None, None, None
@@ -205,12 +206,28 @@ class BuildQueue:
         firmware = self.firmware
         if self.running:
             self.running.stepped = True
+            self._keep_log(self.running)
         firmware.start(data)
         await firmware.task
         ok = (getattr(firmware, 'job', None) or {}).get('state') == 'success'
         if ok and self.running and data.get('action') == 'install' and data.get('file') == self.running.file:
             self.running.installed = True
         return ok
+
+    def _keep_log(self, build):
+        """The build's log goes to disk from its first ESPHome step on (build_logs.py), every line as it comes."""
+        logs = getattr(self.manager, 'build_logs', None)
+        tee = getattr(self.firmware, 'logs', None)
+        if logs is None or build.log is not None:
+            return
+        try:
+            build.log = logs.start(build)
+        except OSError as error:
+            LOG.warning('Build %s: log not kept on disk (%s)', build.id, error)
+            return
+        if hasattr(tee, 'sink'):
+            key = build.log
+            tee.sink = lambda line: logs.line(key, line)
 
     # ---- the worker ----
     def _wake(self):
@@ -269,6 +286,13 @@ class BuildQueue:
                 job = getattr(self.firmware, 'job', None) or {}
                 build.memory = job.get('memory')
                 build.where, build.server, build.fallback = job.get('where'), job.get('server'), job.get('fallback')
+            if build.log:
+                tee = getattr(self.firmware, 'logs', None)
+                if getattr(tee, 'sink', None) is not None:
+                    tee.sink = None
+                logs = getattr(self.manager, 'build_logs', None)
+                if logs is not None:
+                    logs.end(build)
             self.ended.append(build)
             for end in build.ends:
                 try:
@@ -312,7 +336,7 @@ class BuildQueue:
         """A build as the page follows it. While it runs, the ESPHome step it is at (`stage`) and the memory it has."""
         out = {'id': build.id, 'by': build.by, 'file': build.file, 'screen': build.screen, 'action': build.action,
                'target': build.target, 'state': build.state, 'asked': build.asked, 'started': build.started,
-               'finished': build.finished, 'phase': build.phase, 'plugins': list(build.plugins['add'])}
+               'finished': build.finished, 'phase': build.phase, 'plugins': list(build.plugins['add']), 'log': build.log}
         if build.state == WAITING:
             out['place'] = self.place(build)
             # Who builds now: what the page says the build waits for.

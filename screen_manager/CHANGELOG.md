@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **A plugin that did not build says so where you look, with its log.** When a plugin or its update did not build, the screen's Plugins tab now says so at the top: which plugin, which version, why, and that the screen still runs what it ran. The build's log is one tap away to download, and so is trying again. Every build's log is now kept on disk too, also when the app restarted during the build, and Firmware & USB lists them all to download.
+
 ## 0.4.101 (firmware 0.63.0)
 
 - **The full editor fits a phone.** With the full editor on a phone, the page stood wider than the phone, and in the Home Assistant app on an iPhone the whole editor was then drawn smaller, with large empty spaces and cards out of shape. The page now takes the phone's width, the tabs of a screen scroll sideways when they do not fit, and the zoom keys stay away where the page already fills the width.

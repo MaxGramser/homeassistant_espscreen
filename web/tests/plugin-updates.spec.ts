@@ -79,3 +79,31 @@ describe("update all on this screen", () => {
     expect(calls[0].body.add.find((a: any) => a.id === "waste").consent).toBe(true);
   });
 });
+
+describe("a plugin that did not build", () => {
+  it("is said first in the screen's Plugins tab, with its kept log to download and the way to try again", async () => {
+    plugins.installed[hall.id][0] = installed("bus", "1.1.0", { failed_update: { version: "1.2.0", reason: "interrupted", log: "20261123-071500-hall" } });
+    expect(plugins.failuresOn(hall).map((f) => [f.plugin.id, f.kind, f.version])).toEqual([["bus", "update", "1.2.0"]]);
+    expect(plugins.statusOn(plugins.index[0], hall).label).toBe("Update 1.2.0 failed");
+    const view = mount(ScreenPluginsTab);
+    await nextTick();
+    const box = view.get("#screen-plugin-failures");
+    expect(box.text()).toContain("Public transport 1.2.0 did not build on Hall");
+    expect(box.text()).toContain("still runs version 1.1.0");
+    expect(box.get("a[data-action=log]").attributes("href")).toBe("api/firmware/logs/20261123-071500-hall");
+    await box.get("button[data-action=retry]").trigger("click");
+    await vi.waitFor(() => expect(calls.length).toBe(1));
+    expect(calls[0].body.add.map((a: any) => a.id)).toEqual(["bus"]);
+  });
+
+  it("names a new plugin that stayed out, and says when no log was kept", async () => {
+    plugins.installed[hall.id][1] = installed("waste", "1.0.2", { state: "failed", reason: "compile failed" });
+    const view = mount(ScreenPluginsTab);
+    await nextTick();
+    const box = view.get("#screen-plugin-failures");
+    expect(box.text()).toContain("Waste collection did not build on Hall");
+    expect(box.text()).toContain("compile failed");
+    expect(box.find("a[data-action=log]").exists()).toBe(false);
+    expect(box.text()).toContain("No log was kept");
+  });
+});

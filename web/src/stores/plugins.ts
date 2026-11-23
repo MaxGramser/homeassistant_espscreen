@@ -9,7 +9,7 @@ import { getJson, send } from "../api";
 import { t } from "../i18n";
 import { boardTitle } from "../model/boards";
 import { attachLine, barItemView, barTypesOf, choiceKey, pluginSaverKey, saverTypesOf, compareUrl, fit, isTest, nodeOf, ownYaml, pluginDefaults, pluginTileId, testPlugin,
-  text, tileTypesOf, type AppFit, type EntityFacts, type Installed, type Plugin, type PluginTileOption, type Texts } from "../model/plugins";
+  text, tileTypesOf, type AppFit, type EntityFacts, type Installed, type Plugin, type PluginFailure, type PluginTileOption, type Texts } from "../model/plugins";
 import type { PluginSharing, Screen } from "../types";
 import { useBuildsStore } from "./builds";
 import { useInventoryStore } from "./inventory";
@@ -228,6 +228,20 @@ export const usePluginsStore = defineStore("plugins", () => {
   }
   // Every plugin of this screen with an update: "Update all on this screen" takes them in one build.
   const updatesOn = (screen: Screen) => index.value.filter((plugin) => hasUpdate(screen, plugin));
+  // Every plugin of this screen whose last build failed, and is not on its way again: what the screen's Plugins tab says
+  // first, with the build's kept log to download.
+  function failuresOn(screen: Screen): PluginFailure[] {
+    const out: PluginFailure[] = [];
+    for (const plugin of [...index.value, ...testsOn(screen)]) {
+      const have = installedOn(screen, plugin.id);
+      if (!have || buildingOn(screen, plugin.id) || out.some((f) => f.plugin.id === plugin.id)) continue;
+      if (have.state === "failed")
+        out.push({ plugin, installed: have, kind: "added", version: have.version, reason: have.reason ?? null, log: have.log ?? null });
+      else if (have.failed_update)
+        out.push({ plugin, installed: have, kind: "update", version: have.failed_update.version, reason: have.failed_update.reason ?? null, log: have.failed_update.log ?? null });
+    }
+    return out;
+  }
   // The tile types a screen can place: those of the plugins it runs (the library's Plugins group). A preview screen has none.
   function tilesOn(screen: Screen | undefined) {
     if (!screen || screen.virtual) return [];
@@ -311,7 +325,8 @@ export const usePluginsStore = defineStore("plugins", () => {
     // without it (Installed.running). Said before an update, which would not mend it.
     if (have?.state === "active" && have.running === false && !have.runs_version)
       return { kind: "missing", label: t("editor.plugins.state.not_running") };
-    if (hasUpdate(screen, plugin)) return { kind: "update", label: t("editor.plugins.state.update", { version: plugin.version }) };
+    // An update that did not build says so on its card, until it is tried again.
+    if (hasUpdate(screen, plugin)) return { kind: "update", label: t(have?.failed_update?.version === plugin.version ? "editor.plugins.state.update_failed" : "editor.plugins.state.update", { version: plugin.version }) };
     // It runs, at another version: a firmware built elsewhere (Installed.runs_version). The update above may be the fix.
     if (have?.state === "active" && have.running === false && have.runs_version)
       return { kind: "elsewhere", label: t("editor.plugins.state.runs_other", { version: have.runs_version }) };
@@ -629,7 +644,7 @@ export const usePluginsStore = defineStore("plugins", () => {
     // planOn answer at once and ask the add-on for what they do not have yet.
     ...lookups({
       pluginTileOf, barItemOf, saverOf, saversFor, fits, choicesFor, choicesPending, previewFor, tapActionsFor, barItemsFor, entitiesIn, needsConsent, realScreens,
-      otherOrigin, hasUpdate, updatesOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
+      otherOrigin, hasUpdate, updatesOn, failuresOn, tilesOn, partsOn, valueOf, needsAttach, pluginsFile, setupChanged, setupReady, secretSet, partsKb,
       installedOn, buildingOn, testsOn, allTests, labelOf, stageOf, statusOn, statusOverall, planOn, comesAlong, neededBy, canLike, canRate,
       isSetAside, isTakingOff, trayPlan, trayAlong, trayReady, setAsideKb, removalPlan, newsFrom, compareFor, screenLine,
     }),

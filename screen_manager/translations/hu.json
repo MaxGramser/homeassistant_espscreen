@@ -866,7 +866,8 @@
         "unknown_action": "Ismeretlen firmware-művelet.",
         "host": "Add meg a kívánt kijelző IP-címét vagy hosztnevét.",
         "grid": "Válassz olyan rácsot, amelyet ez a kijelző elfogad.",
-        "build_gone": "Ez a fordítás már nem ismert. A legújabbak a Firmware és USB alatt vannak."
+        "build_gone": "Ez a fordítás már nem ismert. A legújabbak a Firmware és USB alatt vannak.",
+        "log_gone": "Ezt a fordítási naplót már nem őrizzük."
       },
       "updates": {
         "automatic": "Kapcsold be vagy ki az automatikus frissítéseket.",
@@ -2074,7 +2075,8 @@
         "failed": "A fordítás nem sikerült",
         "not_running": "Nem fut a kijelzőn",
         "queued": "Sorára vár",
-        "runs_other": "A kijelzőn a(z) {version} verzió fut"
+        "runs_other": "A kijelzőn a(z) {version} verzió fut",
+        "update_failed": "A(z) {version} frissítés sikertelen"
       },
       "source": {
         "link": "Hivatkozásból",
@@ -2235,7 +2237,7 @@
       },
       "folder_error": "A(z) {folder} mappa még nem bővítmény: {why}",
       "rebuild": "Újrafordítás",
-      "failed": "A(z) {screen} firmware-e nem fordult le ezzel a bővítménnyel. A naplót a Firmware és USB alatt találod.",
+      "failed": "A(z) {screen} firmware-e nem fordult le ezzel a bővítménnyel.",
       "retry": "Próbáld újra",
       "privacy": "Adatvédelem",
       "consent": {
@@ -2406,7 +2408,7 @@
         "none": "A készítő nem írt megjegyzést ehhez a frissítéshez.",
         "history": "Minden verzió"
       },
-      "failed_update": "A(z) {version} verzió nem fordult le a(z) {screen} számára, ezért visszaállt a futó {current} verzióra. A naplót a Firmware és USB alatt találod.",
+      "failed_update": "A(z) {version} verzió nem fordult le a(z) {screen} számára, ezért visszaállt a futó {current} verzióra.",
       "interrupted": "Az app újraindult a fordítás közben.",
       "stars": {
         "label": "Csillagok ehhez: {name}",
@@ -2473,6 +2475,15 @@
         "building": "A(z) {name} készül ehhez: {screen}.",
         "with_update": "A(z) {name} a(z) {screen} következő frissítésével érkezik.",
         "declined": "Rendben. A(z) {name} a Bővítmények oldalon marad, ha később kérnéd."
+      },
+      "download_log": "Napló letöltése",
+      "failures": {
+        "update": "{name} {version} nem fordult le ezen: {screen}",
+        "added": "{name} nem fordult le ezen: {screen}",
+        "update_note": "A kijelző továbbra is a(z) {current} verziót futtatja. A naplóból kiderül, miért.",
+        "added_note": "Nincs a kijelzőn. A naplóból kiderül, miért.",
+        "no_log": "Erről a fordításról nem maradt napló.",
+        "details": "Részletek"
       }
     },
     "plugin_tile": {
@@ -3680,7 +3691,18 @@
       "host": "IP-cím vagy hosztnév",
       "download_file": "{name} letöltése",
       "download_how": "Töltsd fel a kijelzőre a(z) {esphome_web} segítségével Chrome-ban vagy Edge-ben: Connect, válaszd a kijelző USB-portját, Install, majd jelöld ki ezt a fájlt. Tartalmazza a Wi-Fi-jelszavadat és a kijelző kulcsait: ne add ki másnak.",
-      "waiting": "várakozik, 1 fordítás előtte | várakozik, {n} fordítás előtte"
+      "waiting": "várakozik, 1 fordítás előtte | várakozik, {n} fordítás előtte",
+      "kept_title": "Fordítási naplók",
+      "kept_note": "Minden fordítás naplója itt marad, az app újraindítása után is. A legújabb 40-et őrizzük meg.",
+      "kept_none": "Még nem futott fordítás.",
+      "kept_download": "Letöltés",
+      "kept_state": {
+        "success": "Sikeres",
+        "failed": "Sikertelen",
+        "interrupted": "Leállt, az app újraindult",
+        "running": "Folyamatban",
+        "other": "Befejeződött"
+      }
     },
     "installer": {
       "board": "Milyen kijelződ van?",

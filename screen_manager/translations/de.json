@@ -866,7 +866,8 @@
         "unknown_action": "Unbekannte Firmware-Aktion.",
         "host": "Gib die IP-Adresse oder den Hostnamen des gewünschten Bildschirms ein.",
         "grid": "Wähle ein Raster, das dieser Bildschirm annimmt.",
-        "build_gone": "Dieser Build ist nicht mehr bekannt. Die neuesten Builds stehen unter Firmware & USB."
+        "build_gone": "Dieser Build ist nicht mehr bekannt. Die neuesten Builds stehen unter Firmware & USB.",
+        "log_gone": "Dieses Build-Protokoll wird nicht mehr aufbewahrt."
       },
       "updates": {
         "automatic": "Wähle für automatische Updates an oder aus.",
@@ -1079,8 +1080,8 @@
       "offline": "Bildschirm war offline; neuer Versuch beim nächsten Mal.",
       "unknown_target": "Profil oder IP-Adresse unbekannt; aktualisiere diesen Bildschirm von Hand.",
       "build_failed": "Erstellen oder Installieren fehlgeschlagen; siehe Protokoll unter Firmware & USB.",
-      "plugin_update_needed": "{name} lässt sich mit dieser Firmware nicht bauen. Aktualisiere das Plugin {name} auf der Seite Plugins auf {version} und aktualisiere dann den Bildschirm erneut.",
-      "plugin_failed": "{name} {version} lässt sich mit dieser Firmware nicht bauen, und es gibt noch keine neuere Version. Entferne das Plugin {name} auf der Seite Plugins, um den Bildschirm ohne es zu aktualisieren; das Protokoll steht unter Firmware & USB.",
+      "plugin_update_needed": "{name} lässt sich mit dieser Firmware nicht erstellen. Aktualisiere das Plugin {name} auf der Seite Plugins auf {version} und aktualisiere dann den Bildschirm erneut.",
+      "plugin_failed": "{name} {version} lässt sich mit dieser Firmware nicht erstellen, und es gibt noch keine neuere Version. Entferne das Plugin {name} auf der Seite Plugins, um den Bildschirm ohne es zu aktualisieren; das Protokoll steht unter Firmware & USB.",
       "build_memory": "Zu wenig Speicher, um die Firmware zu erstellen: etwa {need} müssen frei sein, frei sind {free}. Halte ein paar Add-ons vorübergehend an oder gib der Maschine mehr Speicher; siehe Firmware & USB.",
       "build_memory_limit": "Zu wenig Speicher, um die Firmware zu erstellen, auch mit einem Compiler gleichzeitig. Halte ein paar Add-ons vorübergehend an oder gib der Maschine mehr Speicher; siehe Firmware & USB.",
       "no_report": "Bildschirm hat sich nicht mit Firmware {version} zurückgemeldet; prüfe den Bildschirm.",
@@ -2074,7 +2075,8 @@
         "failed": "Erstellen fehlgeschlagen",
         "not_running": "Läuft nicht auf dem Bildschirm",
         "queued": "Wartet, bis es dran ist",
-        "runs_other": "Auf dem Bildschirm läuft Version {version}"
+        "runs_other": "Auf dem Bildschirm läuft Version {version}",
+        "update_failed": "Update {version} fehlgeschlagen"
       },
       "source": {
         "link": "Über einen Link",
@@ -2235,7 +2237,7 @@
       },
       "folder_error": "Der Ordner {folder} ist noch kein Plugin: {why}",
       "rebuild": "Neu erstellen",
-      "failed": "Die Firmware für {screen} ließ sich mit diesem Plugin nicht erstellen. Das Protokoll findest du unter Firmware & USB.",
+      "failed": "Die Firmware für {screen} ließ sich mit diesem Plugin nicht erstellen.",
       "retry": "Noch einmal versuchen",
       "privacy": "Datenschutz",
       "consent": {
@@ -2406,7 +2408,7 @@
         "none": "Der Macher hat zu diesem Update nichts notiert.",
         "history": "Alle Versionen"
       },
-      "failed_update": "Version {version} ließ sich für {screen} nicht erstellen, daher bleibt {current}, die Version, die er ausführt. Das Protokoll findest du unter Firmware & USB.",
+      "failed_update": "Version {version} ließ sich für {screen} nicht erstellen, daher ging es zurück zu {current}, der Version, die läuft.",
       "interrupted": "Die App wurde während des Erstellens neu gestartet.",
       "stars": {
         "label": "Sterne für {name}",
@@ -2473,6 +2475,15 @@
         "building": "{name} wird für {screen} gebaut.",
         "with_update": "{name} kommt mit dem nächsten Update von {screen}.",
         "declined": "In Ordnung. {name} bleibt auf der Seite Plugins, falls du es später möchtest."
+      },
+      "download_log": "Protokoll herunterladen",
+      "failures": {
+        "update": "{name} {version} ließ sich auf {screen} nicht erstellen",
+        "added": "{name} ließ sich auf {screen} nicht erstellen",
+        "update_note": "Der Bildschirm läuft weiter mit Version {current}. Das Protokoll sagt, warum.",
+        "added_note": "Es ist nicht auf dem Bildschirm. Das Protokoll sagt, warum.",
+        "no_log": "Von diesem Build wurde kein Protokoll aufbewahrt.",
+        "details": "Details"
       }
     },
     "plugin_tile": {
@@ -3680,7 +3691,18 @@
       "host": "IP-Adresse oder Hostname",
       "download_file": "{name} herunterladen",
       "download_how": "Spiele sie mit {esphome_web} in Chrome oder Edge auf den Bildschirm: „Connect“ klicken, den USB-Port des Bildschirms wählen, „Install“ klicken und diese Datei auswählen. Sie enthält dein Wi-Fi-Passwort und die Schlüssel des Bildschirms: Behalte sie für dich.",
-      "waiting": "wartet, 1 Build zuerst | wartet, {n} Builds zuerst"
+      "waiting": "wartet, 1 Build zuerst | wartet, {n} Builds zuerst",
+      "kept_title": "Build-Protokolle",
+      "kept_note": "Das Protokoll jedes Builds bleibt hier, auch nach einem Neustart der App. Die neuesten 40 werden aufbewahrt.",
+      "kept_none": "Noch kein Build gelaufen.",
+      "kept_download": "Herunterladen",
+      "kept_state": {
+        "success": "Erfolgreich",
+        "failed": "Fehlgeschlagen",
+        "interrupted": "Abgebrochen, die App startete neu",
+        "running": "Läuft",
+        "other": "Beendet"
+      }
     },
     "installer": {
       "board": "Welchen Bildschirm hast du?",

@@ -16,6 +16,7 @@ import yaml
 import zipfile
 import atomic
 import build_cache
+import build_logs
 import build_memory
 import build_server
 from core import BOARD_KEYS, REF, REPO, SHAPES, channel, hotspot_name, installation_yaml, old_hotspot_name, our_ref, ref
@@ -220,7 +221,7 @@ class Firmware:
         self.root, self.data = Path(root).resolve(), Path(data)
         self.job = None
         self.task = None
-        self.logs = deque(maxlen=300)
+        self.logs = build_logs.Tee(300)  # also written to disk while a build runs (build_logs.py)
         self.process = None
         self.installed = set()  # profiles this process flashed successfully; the page nudges pairing for them
         # Factory image per profile from its last successful build in this process; only these are downloaded,

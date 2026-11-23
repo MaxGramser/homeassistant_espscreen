@@ -74,6 +74,25 @@ In the editor, the builds store (`web/src/stores/builds.ts`) is the one place th
 USB and the YAML check use it. A view keeps only which build it follows. Never follow a build by "the firmware job that
 runs now": the next build starts at once, and its job is another one.
 
+## Kept logs
+
+The line keeps its last builds in memory, and those are gone when the app restarts. A build the app restarted during is
+the one whose log matters most, so every build that runs an ESPHome step also writes its log to disk
+(`screen_manager/app/build_logs.py`): `/data/build_logs/<key>.log`, line by line as ESPHome writes it, with
+`<key>.json` beside it (kind, profile, screen, plugins, when it started and how it ended). A log whose build never ended
+reads as `interrupted`. The newest 40 stay; the clean-up of build files leaves them alone. The lines are redacted before
+they get there, as on the page.
+
+A build names its log by that key (`log` in the line), and so does a plugin that did not build (`log` on a failed plugin,
+`failed_update.log` on an update the screen went back from). `GET api/firmware/logs` lists the kept logs, newest first,
+and `GET api/firmware/logs/{key}` sends one as a file. In the editor:
+
+- A screen's Plugins tab says first what did not build on it (`PluginFailures.vue`, `plugins.failuresOn`): the plugin,
+  the version, why, and the log to download, with the way to try again. It stays until the plugin builds or is taken
+  off.
+- A plugin's details and the screen's build note (`BuildLog.vue`) offer the same download.
+- Firmware & USB lists every kept log, to download.
+
 ## On a build server
 
 A Raspberry Pi takes a long time over a screen's firmware and can run short of memory. When a faster computer on the

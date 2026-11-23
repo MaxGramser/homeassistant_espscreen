@@ -238,18 +238,25 @@ export type Installed = {
   id: string; version: string; source: PluginSource; ref?: string | null; parts?: string[]; values?: Record<string, string>;
   origin?: string; branch?: string | null; auto?: boolean; blocked?: string | null;
   state?: "building" | "active" | "failed"; reason?: string | null;
+  // The key of the failed build's log the add-on keeps on disk (build_logs.py): buildLogHref downloads it.
+  log?: string | null;
   // Whether the screen's last hello names it at this version (plugins.py runs): false is a plugin that crashed at boot
   // or a firmware built without it; null while that cannot be known (offline, building, just built).
   running?: boolean | null;
   // The version the screen runs instead (plugins.py runs_version): a firmware built elsewhere, from another commit.
   runs_version?: string | null;
   // An update whose build failed: the screen went back to this record's version, and this is the one that did not build.
-  failed_update?: { version: string; ref?: string | null; reason?: string | null };
+  failed_update?: { version: string; ref?: string | null; reason?: string | null; log?: string | null };
   // Which of its secrets for this screen alone are set (never their values).
   secrets?: Record<string, boolean>;
   // The fingerprint of the rights the person agreed to when it went on (Plugin.permission_hash then).
   consent?: string | null;
 };
+
+// A plugin on a screen whose last build failed: a new one that stays out (`added`), or an update the screen went back
+// from (`update`), with the reason and the key of the build's kept log.
+export type PluginFailure = { plugin: Plugin; installed: Installed; kind: "added" | "update"; version: string;
+  reason: string | null; log: string | null };
 
 // ---- Plugin tiles in a layout: the tile's entity is plugin:<plugin>.<tile>, the type the screen's protocol carries ----
 export const PLUGIN_TILE = /^plugin:([a-z0-9_]+)\.([a-z0-9_]+)$/;

@@ -866,7 +866,8 @@
         "unknown_action": "Onbekende firmwareactie.",
         "host": "Vul het IP-adres of de hostnaam van het bedoelde scherm in.",
         "grid": "Kies een raster dat dit scherm aanneemt.",
-        "build_gone": "Deze build is niet meer bekend. De nieuwste builds staan onder Firmware & USB."
+        "build_gone": "Deze build is niet meer bekend. De nieuwste builds staan onder Firmware & USB.",
+        "log_gone": "Dit build-log wordt niet meer bewaard."
       },
       "updates": {
         "automatic": "Kies aan of uit voor automatisch bijwerken.",
@@ -3215,7 +3216,18 @@
       "host": "IP-adres of hostnaam",
       "download_file": "{name} downloaden",
       "download_how": "Zet het met {esphome_web} op het scherm, in Chrome of Edge: klik op Connect, kies de USB-poort van het scherm, klik op Install en selecteer dit bestand. Het bevat je Wi-Fi-wachtwoord en de sleutels van het scherm: houd het voor jezelf.",
-      "waiting": "wacht op zijn beurt, 1 build eerst | wacht op zijn beurt, {n} builds eerst"
+      "waiting": "wacht op zijn beurt, 1 build eerst | wacht op zijn beurt, {n} builds eerst",
+      "kept_title": "Build-logs",
+      "kept_note": "Het log van elke build blijft hier, ook na een herstart van de app. De nieuwste 40 worden bewaard.",
+      "kept_none": "Er heeft nog geen build gedraaid.",
+      "kept_download": "Downloaden",
+      "kept_state": {
+        "success": "Gelukt",
+        "failed": "Mislukt",
+        "interrupted": "Gestopt, de app herstartte",
+        "running": "Bezig",
+        "other": "Afgelopen"
+      }
     },
     "installer": {
       "board": "Welk scherm heb je?",
@@ -4081,7 +4093,8 @@
         "failed": "Bouwen mislukt",
         "not_running": "Draait niet op het scherm",
         "runs_other": "Draait {version} op het scherm",
-        "queued": "Wacht op zijn beurt"
+        "queued": "Wacht op zijn beurt",
+        "update_failed": "Update {version} mislukt"
       },
       "source": {
         "link": "Via een link",
@@ -4243,7 +4256,7 @@
       },
       "folder_error": "De map {folder} is nog geen plugin: {why}",
       "rebuild": "Opnieuw bouwen",
-      "failed": "De firmware voor {screen} bouwde niet met deze plugin. Het log staat onder Firmware & USB.",
+      "failed": "De firmware voor {screen} bouwde niet met deze plugin.",
       "retry": "Opnieuw proberen",
       "privacy": "Privacy",
       "consent": {
@@ -4414,7 +4427,7 @@
         "none": "De maker schreef geen notities bij deze update.",
         "history": "Alle versies"
       },
-      "failed_update": "Versie {version} bouwde niet voor {screen}, dus die ging terug naar {current}, de versie die hij draait. Het log staat onder Firmware & USB.",
+      "failed_update": "Versie {version} bouwde niet voor {screen}, dus die ging terug naar {current}, de versie die hij draait.",
       "interrupted": "De app startte opnieuw tijdens de build.",
       "stars": {
         "label": "Sterren voor {name}",
@@ -4480,6 +4493,15 @@
         "building": "{name} wordt gebouwd voor {screen}.",
         "with_update": "{name} komt mee met de volgende update van {screen}.",
         "declined": "Prima. {name} blijft op de pagina Plugins staan als je hem later wilt."
+      },
+      "download_log": "Download het log",
+      "failures": {
+        "update": "{name} {version} bouwde niet op {screen}",
+        "added": "{name} bouwde niet op {screen}",
+        "update_note": "Het scherm draait nog versie {current}. In het log staat waarom.",
+        "added_note": "Hij staat niet op het scherm. In het log staat waarom.",
+        "no_log": "Van deze build is geen log bewaard.",
+        "details": "Details"
       }
     },
     "plugin_tile": {

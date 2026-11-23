@@ -451,6 +451,8 @@ export type LineBuild = {
   state: LineState; asked: number; started: number | null; finished: number | null; phase?: string | null; plugins?: string[];
   place?: number; after?: string | null; stage?: string | null; memory?: import("./model/install-progress").BuildMemory | null;
   reason?: string | null;
+  // The key of its log kept on disk (build_logs.py), from its first ESPHome step: buildLogHref downloads it.
+  log?: string | null;
 } & ServerSide;
 export type VideoIntegration = {
   path: string; installed: boolean; current: boolean; version: string; loaded: string | null;

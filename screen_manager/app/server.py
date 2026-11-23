@@ -47,6 +47,7 @@ import feedback
 import reports
 import build_server
 import build_files
+import build_logs
 from build_queue import BuildQueue
 from firmware import Firmware
 import ha_pairing
@@ -1096,6 +1097,8 @@ class Manager:
         self.firmware = Firmware(os.environ.get("ESPHOME_CONFIG", "/homeassistant/esphome"), self.path.parent)
         # The app's one build line (docs/BUILDS.md): updates, plugin builds, New screen and Firmware & USB wait in it.
         self.build_queue = self.firmware.builds = BuildQueue(self)
+        # Every build's log kept on disk, also past a restart of the app (build_logs.py, docs/BUILDS.md "Kept logs").
+        self.build_logs = build_logs.BuildLogs(self.path.parent)
         # The build server builds go to first when it is on (build_server.py, docs/BUILDS.md "On a build server").
         self.build_server = self.firmware.server = build_server.BuildServer(self.path.parent, self.notify)
         # What the builds leave in /data, and the clean-up the owner starts or turns on (build_files.py, docs/BUILDS.md).
@@ -5981,6 +5984,14 @@ def create_app(manager, development=False):
         except ValueError:
             raise ValueError(t('addon.errors.firmware.build_gone')) from None
         return web.json_response(manager.build_queue.log(number))
+    async def firmware_logs(request):
+        """Every build log kept on disk, newest first (build_logs.py): what each build was and how it ended."""
+        return web.json_response({'logs': manager.build_logs.listed()})
+    async def firmware_log_file(request):
+        """One kept build log as a file to save (build_logs.py)."""
+        path = manager.build_logs.path(request.match_info['key'])
+        return web.Response(body=path.read_bytes(), content_type='text/plain', charset='utf-8',
+                            headers={'Content-Disposition': f'attachment; filename="{path.name}"', 'Cache-Control': 'no-store'})
     async def firmware_override(request):
         return web.json_response(manager.firmware.override(request.match_info['file']))
     async def firmware_override_save(request):
@@ -6227,6 +6238,8 @@ def create_app(manager, development=False):
     app.router.add_get('/api/firmware', firmware_status)
     app.router.add_post('/api/firmware/jobs', firmware_start)
     app.router.add_get('/api/firmware/builds/{build}/log', firmware_build_log)
+    app.router.add_get('/api/firmware/logs', firmware_logs)
+    app.router.add_get('/api/firmware/logs/{key}', firmware_log_file)
     app.router.add_get('/api/firmware/profiles/{file}/override', firmware_override)
     app.router.add_put('/api/firmware/profiles/{file}/override', firmware_override_save)
     app.router.add_get('/api/firmware/profiles/{file}/download', firmware_download)

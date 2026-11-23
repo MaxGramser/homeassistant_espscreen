@@ -9,6 +9,7 @@ import PluginDetail from "./PluginDetail.vue";
 import PluginLink from "./PluginLink.vue";
 import PluginTray from "./PluginTray.vue";
 import BuildLog from "./BuildLog.vue";
+import PluginFailures from "./plugins/PluginFailures.vue";
 import Icon from "./ui/Icon.vue";
 import { useUiStore } from "../stores/ui";
 import { usePluginsStore } from "../stores/plugins";
@@ -55,6 +56,9 @@ watch(() => plugins.focus, (id) => {
           <button type="button" class="btn link" id="screen-plugin-all" @click="ui.go('#plugins')">{{ t("editor.plugins.tab.all") }}<Icon name="arrow-right" /></button>
         </div>
       </div>
+
+      <!-- What did not build on this screen, first: why, the build's log to download, and the way to try again. -->
+      <PluginFailures :screen="screen" @open="show" />
 
       <!-- The same word as the Plugins page: plugins share this screen's memory, and many at once can make it unstable. -->
       <div class="notice warn plugin-risk" id="screen-plugin-risk" role="note">

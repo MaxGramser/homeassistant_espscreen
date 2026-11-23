@@ -25,6 +25,11 @@ import { useUiStore } from "./ui";
 // How often the firmware job is asked for while someone follows it (composables/useFirmwareJob.ts), unless one wants more.
 export const FIRMWARE_POLL_MS = 3000;
 export type FirmwareJob = { job: any; logs: string[] };
+/** Where a build log the add-on keeps on disk is downloaded (build_logs.py): relative, so it works behind ingress. */
+export const buildLogHref = (key: string) => `api/firmware/logs/${encodeURIComponent(key)}`;
+/** A build log kept on disk, as api/firmware/logs lists it (newest first). */
+export type KeptLog = { key: string; by?: string; file?: string | null; screen?: string | null; plugins?: string[];
+  started?: number; finished?: number; state: string; reason?: string | null; size: number };
 
 export const useBuildsStore = defineStore("builds", () => {
   const inv = useInventoryStore();
@@ -215,6 +220,12 @@ export const useBuildsStore = defineStore("builds", () => {
     return endedLogs.value[build.id] || [];
   }
 
+  // ---- Build logs kept on disk (api/firmware/logs): every build's, also past a restart of the app ----
+  const keptLogs = ref<KeptLog[]>([]);
+  async function loadKeptLogs() {
+    try { keptLogs.value = (await getJson<{ logs: KeptLog[] }>("firmware/logs")).logs || []; } catch { /* Keep what we have. */ }
+  }
+
   // ---- The add-on's firmware job (api/firmware), asked for once whoever follows it ----
   // New screen, Firmware & USB, a YAML check and the build log all read the same answer: whoever asks while a request is on
   // its way gets its answer, and one asking with `fresh` (how old an answer may be) takes the last one when it is that
@@ -244,6 +255,6 @@ export const useBuildsStore = defineStore("builds", () => {
   return {
     updating, ...lookups({ buildOf, building, isBuilding, buildText, buildProgress, whatsNew, lineBuild, lineForgot, lineOf, lineEnded, buildLogOf }),
     anyBuilding, buildingScreens, prune, forget, watched, line, devChannel,
-    startUpdate, runUpdateAll, setAutoUpdate, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
+    startUpdate, runUpdateAll, setAutoUpdate, askBuild, cleaningFiles, cleanBuildFiles, declineBuildFiles, setAutoClean, loadBuildLog, keptLogs, loadKeptLogs, answer, firmwareJob, fetchFirmware, loadFirmwareJob,
   };
 });

@@ -866,7 +866,8 @@
         "unknown_action": "Azione firmware sconosciuta.",
         "host": "Inserisci l'indirizzo IP o il nome host dello schermo giusto.",
         "grid": "Scegli una griglia che questo schermo accetta.",
-        "build_gone": "Questa compilazione non è più nota. Le più recenti sono in Firmware e USB."
+        "build_gone": "Questa compilazione non è più nota. Le più recenti sono in Firmware e USB.",
+        "log_gone": "Questo log di compilazione non è più conservato."
       },
       "updates": {
         "automatic": "Scegli attivo o disattivo per gli aggiornamenti automatici.",
@@ -2074,7 +2075,8 @@
         "failed": "Compilazione non riuscita",
         "not_running": "Non è in esecuzione sullo schermo",
         "queued": "Attende il suo turno",
-        "runs_other": "Sullo schermo gira la versione {version}"
+        "runs_other": "Sullo schermo gira la versione {version}",
+        "update_failed": "Aggiornamento {version} non riuscito"
       },
       "source": {
         "link": "Da un link",
@@ -2235,7 +2237,7 @@
       },
       "folder_error": "La cartella {folder} non è ancora un plugin: {why}",
       "rebuild": "Compila di nuovo",
-      "failed": "Il firmware per {screen} non si è compilato con questo plugin. Il registro è in Firmware e USB.",
+      "failed": "Il firmware di {screen} non si è compilato con questo plugin.",
       "retry": "Riprova",
       "privacy": "Privacy",
       "consent": {
@@ -2406,7 +2408,7 @@
         "none": "L'autore non ha scritto note per questo aggiornamento.",
         "history": "Tutte le versioni"
       },
-      "failed_update": "La versione {version} non si è compilata per {screen}, che è tornato a {current}, quella che esegue. Il registro è in Firmware e USB.",
+      "failed_update": "La versione {version} non si è compilata per {screen}, quindi è tornato a {current}, quella che esegue.",
       "interrupted": "L'app si è riavviata durante la compilazione.",
       "stars": {
         "label": "Stelle per {name}",
@@ -2473,6 +2475,15 @@
         "building": "{name} è in compilazione per {screen}.",
         "with_update": "{name} arriva con il prossimo aggiornamento di {screen}.",
         "declined": "Va bene. {name} resta nella pagina Plugin se lo vorrai più tardi."
+      },
+      "download_log": "Scarica il log",
+      "failures": {
+        "update": "{name} {version} non si è compilato su {screen}",
+        "added": "{name} non si è compilato su {screen}",
+        "update_note": "Lo schermo esegue ancora la versione {current}. Il log dice perché.",
+        "added_note": "Non è sullo schermo. Il log dice perché.",
+        "no_log": "Di questa compilazione non è stato conservato alcun log.",
+        "details": "Dettagli"
       }
     },
     "plugin_tile": {
@@ -3680,7 +3691,18 @@
       "host": "Indirizzo IP o nome host",
       "download_file": "Scarica {name}",
       "download_how": "Mettilo sullo schermo con {esphome_web} in Chrome o Edge: Connect, scegli la porta USB dello schermo, Install e seleziona questo file. Contiene la tua password Wi-Fi e le chiavi dello schermo: tienilo per te.",
-      "waiting": "in attesa, prima 1 compilazione | in attesa, prima {n} compilazioni"
+      "waiting": "in attesa, prima 1 compilazione | in attesa, prima {n} compilazioni",
+      "kept_title": "Log di compilazione",
+      "kept_note": "Il log di ogni compilazione resta qui, anche dopo un riavvio dell'app. Si conservano i 40 più recenti.",
+      "kept_none": "Nessuna compilazione ancora.",
+      "kept_download": "Scarica",
+      "kept_state": {
+        "success": "Riuscita",
+        "failed": "Non riuscita",
+        "interrupted": "Interrotta, l'app si è riavviata",
+        "running": "In corso",
+        "other": "Terminata"
+      }
     },
     "installer": {
       "board": "Quale schermo hai?",

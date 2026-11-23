@@ -866,7 +866,8 @@
         "unknown_action": "Action de firmware inconnue.",
         "host": "Saisissez l'adresse IP ou le nom d'hôte de l'écran voulu.",
         "grid": "Choisissez une grille que cet écran accepte.",
-        "build_gone": "Cette compilation n'est plus connue. Les plus récentes sont sous Firmware et USB."
+        "build_gone": "Cette compilation n'est plus connue. Les plus récentes sont sous Firmware et USB.",
+        "log_gone": "Ce journal de compilation n'est plus conservé."
       },
       "updates": {
         "automatic": "Choisissez activé ou désactivé pour les mises à jour automatiques.",
@@ -2074,7 +2075,8 @@
         "failed": "Échec de la compilation",
         "not_running": "Ne s'exécute pas sur l'écran",
         "queued": "Attend son tour",
-        "runs_other": "La version {version} tourne sur l'écran"
+        "runs_other": "La version {version} tourne sur l'écran",
+        "update_failed": "Échec de la mise à jour {version}"
       },
       "source": {
         "link": "Depuis un lien",
@@ -2235,7 +2237,7 @@
       },
       "folder_error": "Le dossier {folder} n'est pas encore un plugin : {why}",
       "rebuild": "Compiler de nouveau",
-      "failed": "Le firmware de {screen} n'a pas pu être compilé avec ce plugin. Son journal se trouve dans Firmware et USB.",
+      "failed": "Le firmware de {screen} ne s'est pas compilé avec ce plugin.",
       "retry": "Réessayer",
       "privacy": "Confidentialité",
       "consent": {
@@ -2406,7 +2408,7 @@
         "none": "Le créateur n'a pas écrit de notes pour cette mise à jour.",
         "history": "Toutes les versions"
       },
-      "failed_update": "La version {version} n'a pas pu être compilée pour {screen}, qui est donc revenu à {current}, celle qu'il exécute. Son journal se trouve dans Firmware et USB.",
+      "failed_update": "La version {version} ne s'est pas compilée pour {screen}, il est donc revenu à {current}, celle qu'il exécute.",
       "interrupted": "L'application a redémarré pendant la compilation.",
       "stars": {
         "label": "Étoiles pour {name}",
@@ -2473,6 +2475,15 @@
         "building": "{name} est en cours de compilation pour {screen}.",
         "with_update": "{name} arrive avec la prochaine mise à jour de {screen}.",
         "declined": "D'accord. {name} reste sur la page Plugins si vous le voulez plus tard."
+      },
+      "download_log": "Télécharger le journal",
+      "failures": {
+        "update": "{name} {version} ne s'est pas compilé sur {screen}",
+        "added": "{name} ne s'est pas compilé sur {screen}",
+        "update_note": "L'écran exécute toujours la version {current}. Le journal dit pourquoi.",
+        "added_note": "Il n'est pas sur l'écran. Le journal dit pourquoi.",
+        "no_log": "Aucun journal n'a été conservé pour cette compilation.",
+        "details": "Détails"
       }
     },
     "plugin_tile": {
@@ -3680,7 +3691,18 @@
       "host": "Adresse IP ou nom d'hôte",
       "download_file": "Télécharger {name}",
       "download_how": "Installez-le sur l'écran avec {esphome_web} dans Chrome ou Edge : Connect, choisissez le port USB de l'écran, Install, puis sélectionnez ce fichier. Il contient votre mot de passe Wi-Fi et les clés de l'écran : gardez-le pour vous.",
-      "waiting": "en attente, 1 compilation avant | en attente, {n} compilations avant"
+      "waiting": "en attente, 1 compilation avant | en attente, {n} compilations avant",
+      "kept_title": "Journaux de compilation",
+      "kept_note": "Le journal de chaque compilation reste ici, même après un redémarrage de l'app. Les 40 plus récents sont conservés.",
+      "kept_none": "Aucune compilation pour l'instant.",
+      "kept_download": "Télécharger",
+      "kept_state": {
+        "success": "Réussie",
+        "failed": "Échouée",
+        "interrupted": "Arrêtée, l'app a redémarré",
+        "running": "En cours",
+        "other": "Terminée"
+      }
     },
     "installer": {
       "board": "Quel écran avez-vous ?",

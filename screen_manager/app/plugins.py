@@ -119,7 +119,7 @@ def record_origin(record):
 def build_reason(logs):
     """Why a build failed, in one line of its log. The app's own last line says it in words (memory that ran short, a
     screen that did not answer); only when that line points to the log, the last error the compiler or ESPHome named.
-    The whole log stays under Firmware & USB until the next build."""
+    The whole log is kept on disk (build_logs.py) and offered with the failure."""
     lines = [str(line).strip() for line in list(logs or [])[-60:] if str(line).strip()]
     if not lines:
         return 'build'
@@ -1223,7 +1223,8 @@ class Plugins:
                 if state in ('building', 'failed') and reported.get(record['id']) == record.get('version'):
                     self._settle_build(inbox, [record['id']], True, None)
                 elif state == 'building':
-                    self._settle_build(inbox, [record['id']], False, 'interrupted')
+                    # The app restarted during its build: the log that build wrote until then is kept on disk.
+                    self._settle_build(inbox, [record['id']], False, 'interrupted', self._last_log(inbox))
 
     def payload(self, language='en'):
         self.settle()
@@ -1245,6 +1246,7 @@ class Plugins:
                                          'parts': record.get('parts', []), 'values': record.get('values', {}),
                                          'consent': (record.get('consent') or {}).get('permissions'),
                                          'state': record.get('state', 'active'), 'reason': record.get('reason'),
+                                         'log': record.get('log'),
                                          # Whether the screen runs it (runs): the editor says so when it does not.
                                          'running': runs(inbox, record, running),
                                          # The version it runs instead, when it was built elsewhere: the editor names it.
@@ -1484,7 +1486,9 @@ class Plugins:
     def settle_joined(self, inbox, joined, ok, reason=None, logs=None):
         """The end of the build join_accepted wrote for: on, or failed and out of the plugins file again."""
         if joined:
-            self._settle_build(inbox, joined, ok, None if ok else reason or (build_reason(logs) if logs else 'build'))
+            running = getattr(getattr(self.manager, 'build_queue', None), 'running', None)
+            self._settle_build(inbox, joined, ok, None if ok else reason or (build_reason(logs) if logs else 'build'),
+                               getattr(running, 'log', None))
 
     def start_with(self, file, node, board, chosen):
         """New screen made the profile `file` of a screen called `node`: what its wizard kept ticked of the plugins
@@ -1815,9 +1819,9 @@ class Plugins:
         ok = build.installed
         reason = None if ok else ('interrupted' if build.state == 'interrupted'
                                   else build_reason(build.logs) if build.logs else str(build.reason or build.state))
-        self._settle_build(build.screen, [p for p in build.plugins['add'] if p not in again], ok, reason)
+        self._settle_build(build.screen, [p for p in build.plugins['add'] if p not in again], ok, reason, build.log)
 
-    def _settle_build(self, inbox, added, ok, reason):
+    def _settle_build(self, inbox, added, ok, reason, log=None):
         """What a build's end means for the plugins it added. Built: they are active and what came before is forgotten.
         Failed: the screen still runs what it ran, so the plugins file goes back to that, and the next build of this screen
         (an update of the core, Device Builder) does not fail on the same plugin. A new plugin stays listed as failed,
@@ -1829,21 +1833,33 @@ class Plugins:
             if not record:
                 continue
             if ok:
-                for key in ('previous', 'failed_update', 'reason'):
+                for key in ('previous', 'failed_update', 'reason', 'log'):
                     record.pop(key, None)
                 # `settled`: when it went on, so the screen gets its reboot before its hello is held against it (runs).
                 self.store.put(inbox, dict(record, state='active', settled=int(time.time())))
             elif record.get('previous'):
                 back = dict(record['previous'], state='active',
-                            failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason})
+                            failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason,
+                                           'log': log})
                 self.store.put(inbox, back)
                 rewrite = True
             else:
-                self.store.set_state(inbox, plugin, 'failed', reason)
+                # The build's log kept on disk (build_logs.py): the editor offers it with the failure.
+                self.store.put(inbox, dict(record, state='failed', reason=reason, log=log))
                 rewrite = True
         if rewrite:
             self._know_tiles()
             self.rewrite_sidecar(inbox)
+
+    def _last_log(self, inbox):
+        """The newest kept build log of a screen's profile (build_logs.py), or None."""
+        logs = getattr(self.manager, 'build_logs', None)
+        try:
+            screen = self.manager.screen(inbox)
+            profile = self.manager.updates.resolve(screen)[0] if screen and logs else None
+            return logs.latest(Path(str(profile)).name) if profile else None
+        except Exception:   # no log is no reason to keep a plugin building
+            return None
 
     def blame(self, inbox, logs):
         """The plugin of this screen a failed build stopped on: a compiler error in one of its components, which are

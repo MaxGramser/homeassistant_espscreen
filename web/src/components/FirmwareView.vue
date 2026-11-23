@@ -7,9 +7,10 @@ import { afterBrowserBuild, ESPHOME_WEB, firmwareImage, memoryText as memoryOf, 
 import { serverStep } from "../model/screen-status";
 import type { ServerSide } from "../types";
 import BrowserFlash from "./BrowserFlash.vue";
+import Icon from "./ui/Icon.vue";
 import { flashSupport } from "../flasher/logic";
 import { useBrowserFlash } from "../flasher/session";
-import { useBuildsStore } from "../stores/builds";
+import { buildLogHref, useBuildsStore } from "../stores/builds";
 import { useUiStore } from "../stores/ui";
 
 const ui = useUiStore();
@@ -76,6 +77,13 @@ const statusText = computed(() => {
   const job = data.value.job;
   return job ? `${job.file} · ${job.action} · ${job.state}${job.state === "running" ? where(job) : ""}` : t("editor.firmware.choose");
 });
+// Every build's log the add-on keeps on disk (build_logs.py), also past a restart: asked when the page opens and again
+// whenever a build ends.
+const keptLogs = computed(() => builds.keptLogs);
+const endedIds = computed(() => builds.line.filter((b) => builds.lineEnded(b)).map((b) => b.id).join(","));
+watch(endedIds, () => void builds.loadKeptLogs(), { immediate: true });
+const keptWhen = (at?: number) => (at ? new Date(at * 1000).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }) : "");
+const keptState = (state: string) => t(`editor.firmware.kept_state.${["success", "failed", "interrupted", "running"].includes(state) ? state : "other"}`);
 // What the add-on says about the memory the build has (build_memory.py, app 0.4.65), under the status line.
 const memoryText = computed(() => memoryOf(followed.build.value ?? data.value?.job)?.text || "");
 // The log of the build this page asked for once it is known, else whatever builds now.
@@ -176,5 +184,16 @@ onBeforeUnmount(() => flash.cancel());
       </div>
     </div>
     <pre id="firmware-log" class="log">{{ logLines.join("\n") }}</pre>
+    <section class="kept-logs" id="firmware-kept-logs">
+      <h3>{{ t("editor.firmware.kept_title") }}</h3>
+      <p class="kept-note">{{ t("editor.firmware.kept_note") }}</p>
+      <p v-if="!keptLogs.length" class="kept-note">{{ t("editor.firmware.kept_none") }}</p>
+      <ul v-else class="kept-list">
+        <li v-for="log in keptLogs" :key="log.key" :class="log.state" :data-key="log.key">
+          <span class="kept-words"><b>{{ log.file || log.key }}</b><small>{{ keptWhen(log.started) }} · {{ log.by }} · <span class="kept-state">{{ keptState(log.state) }}</span><template v-if="log.reason"> · {{ log.reason }}</template></small></span>
+          <a class="btn quiet mini" :href="buildLogHref(log.key)" :download="`${log.key}.log`"><Icon name="tray-arrow-down" />{{ t("editor.firmware.kept_download") }}</a>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>

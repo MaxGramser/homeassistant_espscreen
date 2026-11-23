@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'screen_manager' / 'app'))
 
 import core  # noqa: E402
+from build_logs import BuildLogs  # noqa: E402
 from build_queue import BuildQueue  # noqa: E402
 import page_layout  # noqa: E402
 import plugin_fetch  # noqa: E402
@@ -602,6 +603,7 @@ class Links(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -648,6 +650,7 @@ class Links(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2226,6 +2229,7 @@ class Queue(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2286,6 +2290,7 @@ class Queue(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2363,6 +2368,7 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
 
             def __init__(self):
                 self.build_queue = BuildQueue(self)
+                self.build_logs = BuildLogs(Path(tmp.name) / 'data')
             ha = type('HA', (), {'changed': asyncio.Event(), 'dirty': set()})()
             page_senders = {}
 
@@ -2419,12 +2425,17 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         await service.manager.build_queue.idle()
         record = service.store.get('hall', 'clock_words')
         self.assertEqual((record['state'], record['reason']), ('failed', 'compile failed'))
+        # The build's log is kept on disk, and the failure names it for the editor to offer (build_logs.py).
+        self.assertTrue(record['log'])
+        self.assertEqual(service.payload()['installed']['hall'][0]['log'], record['log'])
+        self.assertTrue(service.manager.build_logs.path(record['log']).is_file())
         self.assertNotIn('clock_words', (config / 'hall.plugins.yaml').read_text())
         # Trying again puts it back in the file and builds.
         await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]})
         await service.manager.build_queue.idle()
         self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'active')
         self.assertNotIn('reason', service.store.get('hall', 'clock_words'))
+        self.assertNotIn('log', service.store.get('hall', 'clock_words'))
         self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
 
     async def test_an_update_that_fails_goes_back_to_what_worked(self):
@@ -2438,6 +2449,7 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         record = service.store.get('hall', 'clock_words')
         self.assertEqual(record['state'], 'active')
         self.assertEqual(record['failed_update']['reason'], 'compile failed')
+        self.assertEqual(record['failed_update']['log'], service.manager.build_logs.latest('hall.yaml'))
         self.assertNotIn('previous', record)
         self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
 

@@ -866,7 +866,8 @@
         "unknown_action": "Nieznana operacja firmware.",
         "host": "Wpisz adres IP lub nazwę hosta właściwego ekranu.",
         "grid": "Wybierz siatkę, którą ten ekran przyjmuje.",
-        "build_gone": "Ta kompilacja nie jest już znana. Najnowsze są w sekcji Firmware i USB."
+        "build_gone": "Ta kompilacja nie jest już znana. Najnowsze są w sekcji Firmware i USB.",
+        "log_gone": "Ten dziennik kompilacji nie jest już przechowywany."
       },
       "updates": {
         "automatic": "Włącz lub wyłącz automatyczne aktualizacje.",
@@ -2074,7 +2075,8 @@
         "failed": "Kompilacja nie powiodła się",
         "not_running": "Nie działa na ekranie",
         "queued": "Czeka na swoją kolej",
-        "runs_other": "Na ekranie działa wersja {version}"
+        "runs_other": "Na ekranie działa wersja {version}",
+        "update_failed": "Aktualizacja {version} nie powiodła się"
       },
       "source": {
         "link": "Z linku",
@@ -2235,7 +2237,7 @@
       },
       "folder_error": "Folder {folder} nie jest jeszcze wtyczką: {why}",
       "rebuild": "Skompiluj ponownie",
-      "failed": "Firmware dla {screen} nie skompilował się z tą wtyczką. Log znajdziesz w sekcji „Firmware i USB”.",
+      "failed": "Firmware dla {screen} nie skompilował się z tą wtyczką.",
       "retry": "Spróbuj ponownie",
       "privacy": "Prywatność",
       "consent": {
@@ -2406,7 +2408,7 @@
         "none": "Autor nie napisał notatek do tej aktualizacji.",
         "history": "Wszystkie wersje"
       },
-      "failed_update": "Wersja {version} nie skompilowała się dla {screen}, więc wrócił do {current}, którą uruchamia. Log znajdziesz w sekcji „Firmware i USB”.",
+      "failed_update": "Wersja {version} nie skompilowała się dla {screen}, więc wrócił do {current}, wersji, którą działa.",
       "interrupted": "Aplikacja uruchomiła się ponownie podczas kompilacji.",
       "stars": {
         "label": "Gwiazdki dla {name}",
@@ -2473,6 +2475,15 @@
         "building": "{name} jest budowane dla ekranu {screen}.",
         "with_update": "{name} przyjdzie z następną aktualizacją ekranu {screen}.",
         "declined": "W porządku. {name} zostaje na stronie Wtyczki, gdybyś chciał później."
+      },
+      "download_log": "Pobierz dziennik",
+      "failures": {
+        "update": "{name} {version} nie skompilował się na {screen}",
+        "added": "{name} nie skompilował się na {screen}",
+        "update_note": "Ekran nadal działa w wersji {current}. Dziennik mówi dlaczego.",
+        "added_note": "Nie ma jej na ekranie. Dziennik mówi dlaczego.",
+        "no_log": "Z tej kompilacji nie zachowano dziennika.",
+        "details": "Szczegóły"
       }
     },
     "plugin_tile": {
@@ -3680,7 +3691,18 @@
       "host": "Adres IP lub nazwa hosta",
       "download_file": "Pobierz {name}",
       "download_how": "Wgraj go na ekran przez {esphome_web} w Chrome lub Edge: „Connect”, wybierz port USB ekranu, „Install” i wskaż ten plik. Zawiera Twoje hasło Wi-Fi i klucze ekranu: nie udostępniaj go nikomu.",
-      "waiting": "czeka, najpierw 1 kompilacja | czeka, najpierw {n} kompilacje | czeka, najpierw {n} kompilacji"
+      "waiting": "czeka, najpierw 1 kompilacja | czeka, najpierw {n} kompilacje | czeka, najpierw {n} kompilacji",
+      "kept_title": "Dzienniki kompilacji",
+      "kept_note": "Dziennik każdej kompilacji zostaje tutaj, także po ponownym uruchomieniu aplikacji. Zachowywane jest 40 najnowszych.",
+      "kept_none": "Nie było jeszcze żadnej kompilacji.",
+      "kept_download": "Pobierz",
+      "kept_state": {
+        "success": "Udana",
+        "failed": "Nieudana",
+        "interrupted": "Przerwana, aplikacja uruchomiła się ponownie",
+        "running": "W toku",
+        "other": "Zakończona"
+      }
     },
     "installer": {
       "board": "Jaki masz ekran?",

@@ -866,7 +866,8 @@
         "unknown_action": "Unknown firmware action.",
         "host": "Enter the IP address or hostname of the intended screen.",
         "grid": "Choose a grid this screen takes.",
-        "build_gone": "This build is no longer known. The newest builds are under Firmware & USB."
+        "build_gone": "This build is no longer known. The newest builds are under Firmware & USB.",
+        "log_gone": "This build log is no longer kept."
       },
       "updates": {
         "automatic": "Choose on or off for automatic updates.",
@@ -3215,7 +3216,18 @@
       "host": "IP address or hostname",
       "download_file": "Download {name}",
       "download_how": "Put it on the screen with {esphome_web} in Chrome or Edge: Connect, choose the screen's USB port, Install, and select this file. It holds your Wi-Fi password and the screen's keys: keep it to yourself.",
-      "waiting": "waiting its turn, 1 build first | waiting its turn, {n} builds first"
+      "waiting": "waiting its turn, 1 build first | waiting its turn, {n} builds first",
+      "kept_title": "Build logs",
+      "kept_note": "Every build's log stays here, also after the app restarts. The newest 40 are kept.",
+      "kept_none": "No build has run yet.",
+      "kept_download": "Download",
+      "kept_state": {
+        "success": "Succeeded",
+        "failed": "Failed",
+        "interrupted": "Stopped, the app restarted",
+        "running": "Building",
+        "other": "Ended"
+      }
     },
     "installer": {
       "board": "Which screen do you have?",
@@ -4081,7 +4093,8 @@
         "failed": "Build failed",
         "not_running": "Not running on the screen",
         "runs_other": "Runs {version} on the screen",
-        "queued": "Waits its turn"
+        "queued": "Waits its turn",
+        "update_failed": "Update {version} failed"
       },
       "source": {
         "link": "From a link",
@@ -4243,7 +4256,7 @@
       },
       "folder_error": "The folder {folder} is no plugin yet: {why}",
       "rebuild": "Build again",
-      "failed": "The firmware for {screen} did not build with this plugin. Its log is under Firmware & USB.",
+      "failed": "The firmware for {screen} did not build with this plugin.",
       "retry": "Try again",
       "privacy": "Privacy",
       "consent": {
@@ -4414,7 +4427,7 @@
         "none": "The maker wrote no notes for this update.",
         "history": "All versions"
       },
-      "failed_update": "Version {version} did not build for {screen}, so it went back to {current}, the one it runs. Its log is under Firmware & USB.",
+      "failed_update": "Version {version} did not build for {screen}, so it went back to {current}, the one it runs.",
       "interrupted": "The app restarted during the build.",
       "stars": {
         "label": "Stars for {name}",
@@ -4480,6 +4493,15 @@
         "building": "{name} is being built for {screen}.",
         "with_update": "{name} comes with {screen}'s next update.",
         "declined": "Fine. {name} stays on the Plugins page if you want it later."
+      },
+      "download_log": "Download the log",
+      "failures": {
+        "update": "{name} {version} did not build on {screen}",
+        "added": "{name} did not build on {screen}",
+        "update_note": "The screen still runs version {current}. The log says why.",
+        "added_note": "It is not on the screen. The log says why.",
+        "no_log": "No log was kept of this build.",
+        "details": "Details"
       }
     },
     "plugin_tile": {
