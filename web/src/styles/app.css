@@ -924,7 +924,9 @@ button.insp-sec-head:hover h3 { color: var(--ink); }
 /* Like Home Assistant's Settings: one column of 600 px in the middle of a wide page, its rows in separate cards. */
 /* A whole page of parts (PartsPage): its head stands over the column; an open part that needs more room (a part of Events
    with its sections) takes the wide page, head and all. */
-.parts-page { max-width: none; }
+/* `.panel.parts-page`: wins over `.panel`'s own width further down, so the page spans the whole content area and its
+   column stands in the middle of it, not in the middle of a 960 px panel at its left. */
+.panel.parts-page, .panel.parts-page.wide { max-width: none; }
 .parts-page > .panel-head, .settings > .status { max-width: 600px; width: 100%; margin-inline: auto; }
 .parts-page.wide > .panel-head, .parts-page.wide > .set-column { max-width: 1120px; }
 .set-column { display: grid; gap: 24px; align-content: start; max-width: 600px; width: 100%; margin-inline: auto; }
