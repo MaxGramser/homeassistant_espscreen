@@ -3498,7 +3498,7 @@
       "new_language": "Novo idioma: {name}",
       "restarting": "A reiniciar com o novo firmware, volta dentro de um ou dois minutos",
       "restarting_short": "A atualizar",
-      "editor_new": "Há uma nova versão do editor pronta. Carrega sozinha assim que as alterações estiverem guardadas.",
+      "editor_new": "Há uma nova versão do editor pronta. Carrega sozinha assim que terminares aqui.",
       "editor_reload": "Recarregar agora"
     },
     "settings": {

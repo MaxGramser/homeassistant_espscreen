@@ -3498,7 +3498,7 @@
       "new_language": "Neue Sprache: {name}",
       "restarting": "Startet mit der neuen Firmware neu, in ein, zwei Minuten zurück",
       "restarting_short": "Aktualisiert",
-      "editor_new": "Eine neue Version des Editors ist bereit. Sie lädt von selbst, sobald deine Änderungen gespeichert sind.",
+      "editor_new": "Eine neue Version des Editors ist bereit. Sie lädt von selbst, sobald du hier fertig bist.",
       "editor_reload": "Jetzt neu laden"
     },
     "settings": {

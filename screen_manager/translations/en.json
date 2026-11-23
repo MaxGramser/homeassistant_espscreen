@@ -3009,7 +3009,7 @@
       "new_language": "New language: {name}",
       "restarting": "Restarting with the new firmware, back in a minute or two",
       "restarting_short": "Updating",
-      "editor_new": "A new version of the editor is ready. It loads by itself once your changes are saved.",
+      "editor_new": "A new version of the editor is ready. It loads by itself once you are done here.",
       "editor_reload": "Reload now"
     },
     "settings": {

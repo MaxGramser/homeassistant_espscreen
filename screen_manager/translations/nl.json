@@ -3009,7 +3009,7 @@
       "new_language": "Nieuwe taal: {name}",
       "restarting": "Start opnieuw met de nieuwe firmware, over een minuut of twee terug",
       "restarting_short": "Bijwerken",
-      "editor_new": "Er staat een nieuwe versie van de editor klaar. Die laadt vanzelf zodra je wijzigingen zijn opgeslagen.",
+      "editor_new": "Er staat een nieuwe versie van de editor klaar. Die laadt vanzelf zodra je hier klaar bent.",
       "editor_reload": "Nu herladen"
     },
     "settings": {
