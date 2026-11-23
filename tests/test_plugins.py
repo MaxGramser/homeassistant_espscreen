@@ -2468,6 +2468,13 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(failure_kind(['Uploading', 'ERROR Error resolving IP address of hall.local']), 'offline')
         self.assertEqual(failure_kind(['fatal: unable to access \'https://github.com/x/y/\': Could not resolve host']), 'network')
         self.assertEqual(failure_kind(['main.cpp:3: error: oops']), 'build')
+        # ESPHome 2026.9's own words for an upload that found no screen (taken from a real build, 2026-11-23).
+        real = ['INFO Connecting to 10.255.255.1 port 3232...',
+                'WARNING Connecting to 10.255.255.1 port 3232 failed: [Errno 113] No route to host',
+                'ERROR Upload failed after 3 attempts: connecting to 10.255.255.1 failed: [Errno 113] No route to host',
+                "WARNING Failed to upload to ['10.255.255.1']", 'ESPHome upload failed; see the log.']
+        self.assertEqual(failure_kind(real), 'offline')
+        self.assertEqual(failure_kind(['ERROR Upload failed after 3 attempts: connecting to 192.168.1.50 failed: timed out']), 'offline')
         # An upload the screen refused is no absence: a wrong password says something.
         self.assertEqual(failure_kind(['Uploading', 'ERROR Authentication invalid. Is the password correct?']), 'build')
 
