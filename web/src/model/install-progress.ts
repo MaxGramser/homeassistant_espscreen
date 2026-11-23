@@ -214,7 +214,8 @@ export function journey(progress: Progress, arrival: string | null, download: bo
   const wifiState: StepState = seen ? "done" : arrival === "missing" ? "failed" : (written && on) || restart?.state === "running" ? "running" : "waiting";
   const haState: StepState = arrival === "ready" ? "done" : arrival === "failed" ? "failed" : seen ? "running" : "waiting";
   const steps = [
-    { key: "build" as const, state: buildState, percent: buildState === "running" && build?.state === "running" ? build.percent : null },
+    // Never 100 % while it still runs: the last few steps (linking a P4's firmware) can take minutes.
+    { key: "build" as const, state: buildState, percent: buildState === "running" && build?.state === "running" && build.percent !== null ? Math.min(99, build.percent) : null },
     { key: "write" as const, state: writeState, percent: writeState === "running" && !download ? write?.percent ?? null : null },
     { key: "wifi" as const, state: wifiState, percent: null },
     { key: "ha" as const, state: haState, percent: null },

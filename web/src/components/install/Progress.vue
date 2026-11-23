@@ -72,6 +72,21 @@ function toPages() { if (install.made) session.select(install.made.id); else ui.
       <li v-for="key in ['wifi', 'ha', 'actions']" :key="key"><Icon name="check" />{{ t(`editor.installer.flow.recap.${key}`) }}</li>
     </ul>
 
+    <!-- A file the person puts on the screen: the file and the three steps, until Home Assistant sees the screen. -->
+    <div v-if="install.ok && install.download && now === 'write'" id="install-download" class="ob-ask plain">
+      <a class="ob-go" id="download-firmware" :href="install.image.href" :download="install.image.name"><Icon name="tray-arrow-down" />{{ t("editor.firmware.download_file", { name: install.image.name }) }}</a>
+      <ol class="ob-howto" id="download-steps">
+        <li><span><i18n-t keypath="editor.installer.download_steps.plug" scope="global"><template #bold><b>{{ t("editor.installer.download_steps.plug_bold") }}</b></template></i18n-t></span></li>
+        <li><span><i18n-t keypath="editor.installer.download_steps.open" scope="global">
+          <template #bold><b><i18n-t keypath="editor.installer.download_steps.open_bold" scope="global"><template #esphome_web><a :href="ESPHOME_WEB" target="_blank" rel="noopener">ESPHome Web</a></template></i18n-t></b></template>
+        </i18n-t></span></li>
+        <li><span><i18n-t :keypath="install.installer.calibrate ? 'editor.installer.download_steps.install_calibrate' : 'editor.installer.download_steps.install'" scope="global">
+          <template #bold><b>{{ t("editor.installer.download_steps.install_bold") }}</b></template>
+          <template #file>{{ install.image.name }}</template>
+        </i18n-t></span></li>
+      </ol>
+      <small>{{ t("editor.installer.download_keep") }}</small>
+    </div>
     <!-- On its way: one bar, and the four steps with the one it is at. -->
     <template v-if="!saved && !ready">
       <div class="ob-bar" role="progressbar" :aria-valuenow="install.journey.percent" aria-valuemin="0" aria-valuemax="100" :class="{ bad: failed }">
@@ -94,21 +109,6 @@ function toPages() { if (install.made) session.select(install.made.id); else ui.
     </div>
     <BrowserFlash v-if="install.installer.browser && !ready" :state="install.flash.state" />
 
-    <!-- A file the person puts on the screen: the file and the three steps, until Home Assistant sees the screen. -->
-    <div v-if="install.ok && install.download && now === 'write'" id="install-download" class="ob-ask plain">
-      <a class="ob-go" id="download-firmware" :href="install.image.href" :download="install.image.name"><Icon name="tray-arrow-down" />{{ t("editor.firmware.download_file", { name: install.image.name }) }}</a>
-      <ol class="ob-howto" id="download-steps">
-        <li><i18n-t keypath="editor.installer.download_steps.plug" scope="global"><template #bold><b>{{ t("editor.installer.download_steps.plug_bold") }}</b></template></i18n-t></li>
-        <li><i18n-t keypath="editor.installer.download_steps.open" scope="global">
-          <template #bold><b><i18n-t keypath="editor.installer.download_steps.open_bold" scope="global"><template #esphome_web><a :href="ESPHOME_WEB" target="_blank" rel="noopener">ESPHome Web</a></template></i18n-t></b></template>
-        </i18n-t></li>
-        <li><i18n-t :keypath="install.installer.calibrate ? 'editor.installer.download_steps.install_calibrate' : 'editor.installer.download_steps.install'" scope="global">
-          <template #bold><b>{{ t("editor.installer.download_steps.install_bold") }}</b></template>
-          <template #file>{{ install.image.name }}</template>
-        </i18n-t></li>
-      </ol>
-      <small>{{ t("editor.installer.download_keep") }}</small>
-    </div>
 
     <!-- Not on the Wi-Fi after three minutes: the likely cause and the fix, with the installation again. -->
     <div v-if="install.arrival === 'missing'" class="ob-ask missing" id="arrive" role="status">
@@ -125,9 +125,9 @@ function toPages() { if (install.made) session.select(install.made.id); else ui.
     <!-- Home Assistant asked something only the person can answer: the steps by hand, with the screen's key. -->
     <div v-if="install.arrival === 'failed' || saved" class="ob-ask plain" id="key-more">
       <ol v-if="install.arrival === 'failed'" class="ob-howto" id="pair-steps">
-        <li><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ name }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="ui.openIntegrations">{{ t("editor.common.open_integrations") }}</button></li>
-        <li><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></li>
-        <li><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></li>
+        <li><span><i18n-t keypath="editor.installer.pairing.ha" scope="global"><template #bold><b>{{ t("editor.installer.pairing.ha_bold") }}</b></template><template #name>{{ name }}</template></i18n-t> <button type="button" class="btn quiet mini" @click="ui.openIntegrations">{{ t("editor.common.open_integrations") }}</button></span></li>
+        <li><span><i18n-t keypath="editor.installer.pairing.key" scope="global"><template #bold><b>{{ t("editor.installer.pairing.key_bold") }}</b></template></i18n-t></span></li>
+        <li><span><i18n-t keypath="editor.installer.pairing.actions" scope="global"><template #bold><b>{{ t("editor.installer.pairing.actions_bold") }}</b></template></i18n-t></span></li>
       </ol>
       <div class="key-box">
         <span>{{ t("editor.installer.api_key") }}</span><code id="api-key" ref="keyBox">{{ install.installer.apiKey || "" }}</code>
