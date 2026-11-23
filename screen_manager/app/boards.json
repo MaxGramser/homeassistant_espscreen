@@ -1798,7 +1798,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GSL3680"
   },
   "chip": "ESP32-P4",
@@ -2114,7 +2114,7 @@
     "wake_when_moved",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GSL3670"
   },
   "chip": "ESP32-P4",
@@ -2897,7 +2897,7 @@
     "automatic_gain",
     "echo_cancellation"
    ],
-   "status": "new",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -6578,7 +6578,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GSL3680"
   },
   "chip": "ESP32-P4",
@@ -8637,7 +8637,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GSL3680"
   },
   "chip": "ESP32-P4",
@@ -8953,7 +8953,7 @@
     "wake_when_moved",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GSL3670"
   },
   "chip": "ESP32-P4",
@@ -9736,7 +9736,7 @@
     "automatic_gain",
     "echo_cancellation"
    ],
-   "status": "new",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -11674,7 +11674,7 @@
     "wake_when_moved",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GSL3670"
   },
   "chip": "ESP32-P4",
@@ -12457,7 +12457,7 @@
     "automatic_gain",
     "echo_cancellation"
    ],
-   "status": "new",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
