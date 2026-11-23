@@ -1,6 +1,6 @@
 ## Unreleased
 
-- **A plugin that did not build says so where you look, with its log.** When a plugin or its update did not build, the screen's Plugins tab now says so at the top: which plugin, which version, why, and that the screen still runs what it ran. The build's log is one tap away to download, and so is trying again. Every build's log is now kept on disk too, also when the app restarted during the build, and Firmware & USB lists them all to download.
+- **A plugin that did not build says so where you look, with its log.** When a plugin or its update did not build, the screen's Plugins tab now says so at the top: which plugin, which version, why, and that the screen still runs what it ran. The build's log is one tap away to download, and so is trying again. Every build's log is now kept on disk too, also when the app restarted during the build, and Firmware & USB lists them all to download. When the build stopped on the plugin itself, one more tap opens an issue at its maker's GitHub, already filled in with the plugin, the version, the board and where the build stopped.
 
 ## 0.4.101 (firmware 0.63.0)
 

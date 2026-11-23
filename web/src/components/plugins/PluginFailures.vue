@@ -4,7 +4,7 @@
 // restart of the app) and the way to try again. It stays until the plugin builds or is taken off (plugins.failuresOn).
 import { computed } from "vue";
 import { t } from "../../i18n";
-import { text, type Plugin, type PluginFailure } from "../../model/plugins";
+import { issueUrl, text, type Plugin, type PluginFailure } from "../../model/plugins";
 import type { Screen } from "../../types";
 import Icon from "../ui/Icon.vue";
 import { buildLogHref } from "../../stores/builds";
@@ -22,6 +22,8 @@ const title = (f: PluginFailure) => t(f.kind === "update" ? "editor.plugins.fail
 const note = (f: PluginFailure) => (f.kind === "update"
   ? t("editor.plugins.failures.update_note", { current: f.installed.version })
   : t("editor.plugins.failures.added_note"));
+// A build that stopped on the plugin itself can go to its maker: a filled-in issue at its repository (model/plugins.ts).
+const issue = (f: PluginFailure) => issueUrl(f, props.screen.board, props.screen.firmware);
 // An update that asks for other rights gets its yes in the plugin's details; everything else goes again from here.
 function retry(f: PluginFailure) {
   if (f.kind === "update" && plugins.needsConsent(props.screen, f.plugin) && !plugins.consented[f.plugin.id]) emit("open", f.plugin);
@@ -37,10 +39,12 @@ function retry(f: PluginFailure) {
         <b>{{ title(f) }}</b>
         <span>{{ note(f) }}</span>
         <code v-if="f.reason" class="sp-failure-reason">{{ reasonText(f.reason) }}</code>
+        <small v-if="issue(f)" class="sp-failure-nolog">{{ t("editor.plugins.failures.report_hint") }}</small>
         <small v-if="!f.log" class="sp-failure-nolog">{{ t("editor.plugins.failures.no_log") }}</small>
         <div class="sp-failure-buttons">
           <a v-if="f.log" class="btn primary" :href="buildLogHref(f.log)" :download="`${f.log}.log`" data-action="log"><Icon name="tray-arrow-down" />{{ t("editor.plugins.download_log") }}</a>
           <button type="button" class="btn quiet" data-action="retry" @click="retry(f)"><Icon name="refresh" />{{ f.kind === "update" ? t("editor.plugins.update", { version: f.version }) : t("editor.plugins.retry") }}</button>
+          <a v-if="issue(f)" class="btn quiet" :href="issue(f)!" target="_blank" rel="noopener" data-action="issue"><Icon name="arrow-right" />{{ t("editor.plugins.failures.report", { maker: f.plugin.maintainer }) }}</a>
           <button type="button" class="btn link" data-action="details" @click="emit('open', f.plugin)">{{ t("editor.plugins.failures.details") }}</button>
         </div>
       </div>

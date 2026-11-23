@@ -2483,7 +2483,9 @@
         "update_note": "A kijelző továbbra is a(z) {current} verziót futtatja. A naplóból kiderül, miért.",
         "added_note": "Nincs a kijelzőn. A naplóból kiderül, miért.",
         "no_log": "Erről a fordításról nem maradt napló.",
-        "details": "Részletek"
+        "details": "Részletek",
+        "report": "Jelentés: {maker}",
+        "report_hint": "A jelentés kitöltött hibajegyet nyit a készítő GitHubján. Csatold a letöltött naplót."
       }
     },
     "plugin_tile": {

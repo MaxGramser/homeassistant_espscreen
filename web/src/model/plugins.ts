@@ -258,6 +258,32 @@ export type Installed = {
 export type PluginFailure = { plugin: Plugin; installed: Installed; kind: "added" | "update"; version: string;
   reason: string | null; log: string | null };
 
+/** A new issue at the plugin's own repository about a build that failed, filled in with what the maker needs: the plugin
+ * and version, the board, the firmware and why it stopped, and a word to attach the log the person downloaded. Null for a
+ * plugin without a repository on GitHub, and for a build the app restarted during, which is no fault of the plugin. In
+ * English, as the makers read it; it names no screen, home or person. */
+export function issueUrl(failure: PluginFailure, board: string | null | undefined, firmware: string | null | undefined): string | null {
+  const repo = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+/.exec(failure.plugin.repo || "")?.[0];
+  if (!repo || failure.reason === "interrupted") return null;
+  const name = failure.plugin.name.en || text(failure.plugin.name);
+  const title = `${name} ${failure.version} did not build${board ? ` on ${board}` : ""}`;
+  const body = [
+    `**Plugin:** ${failure.plugin.id} ${failure.version}${failure.kind === "update" ? ` (update from ${failure.installed.version})` : ""}`,
+    `**Board:** ${board || "unknown"}`,
+    `**Tessera firmware:** ${firmware || "unknown"}`,
+    "",
+    "**Where the build stopped:**",
+    "```",
+    (failure.reason || "").split("\n")[0],
+    "```",
+    "",
+    "The full build log is attached (downloaded from the Plugins tab of the Tessera app).",
+    "",
+    "_Opened from the Tessera app._",
+  ].join("\n");
+  return `${repo}/issues/new?${new URLSearchParams({ title, body }).toString()}`;
+}
+
 // ---- Plugin tiles in a layout: the tile's entity is plugin:<plugin>.<tile>, the type the screen's protocol carries ----
 export const PLUGIN_TILE = /^plugin:([a-z0-9_]+)\.([a-z0-9_]+)$/;
 export const pluginTileId = (plugin: string, tile: string) => `plugin:${plugin}.${tile}`;

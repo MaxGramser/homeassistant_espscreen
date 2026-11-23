@@ -2483,7 +2483,9 @@
         "update_note": "O ecrã continua a correr a versão {current}. O registo diz porquê.",
         "added_note": "Não está no ecrã. O registo diz porquê.",
         "no_log": "Não foi guardado nenhum registo desta compilação.",
-        "details": "Detalhes"
+        "details": "Detalhes",
+        "report": "Reportar a {maker}",
+        "report_hint": "Reportar abre uma issue no GitHub do autor, já preenchida. Anexa o registo que transferiste."
       }
     },
     "plugin_tile": {

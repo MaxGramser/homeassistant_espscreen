@@ -2483,7 +2483,9 @@
         "update_note": "Der Bildschirm läuft weiter mit Version {current}. Das Protokoll sagt, warum.",
         "added_note": "Es ist nicht auf dem Bildschirm. Das Protokoll sagt, warum.",
         "no_log": "Von diesem Build wurde kein Protokoll aufbewahrt.",
-        "details": "Details"
+        "details": "Details",
+        "report": "An {maker} melden",
+        "report_hint": "Melden öffnet ein Issue auf dem GitHub des Erstellers, schon ausgefüllt. Hänge das heruntergeladene Protokoll an."
       }
     },
     "plugin_tile": {

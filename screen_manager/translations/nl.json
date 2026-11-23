@@ -4501,7 +4501,9 @@
         "update_note": "Het scherm draait nog versie {current}. In het log staat waarom.",
         "added_note": "Hij staat niet op het scherm. In het log staat waarom.",
         "no_log": "Van deze build is geen log bewaard.",
-        "details": "Details"
+        "details": "Details",
+        "report": "Meld bij {maker}",
+        "report_hint": "Melden opent een issue op de GitHub van de maker, al ingevuld. Voeg het gedownloade log toe."
       }
     },
     "plugin_tile": {

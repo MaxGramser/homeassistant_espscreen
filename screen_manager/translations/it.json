@@ -2483,7 +2483,9 @@
         "update_note": "Lo schermo esegue ancora la versione {current}. Il log dice perché.",
         "added_note": "Non è sullo schermo. Il log dice perché.",
         "no_log": "Di questa compilazione non è stato conservato alcun log.",
-        "details": "Dettagli"
+        "details": "Dettagli",
+        "report": "Segnala a {maker}",
+        "report_hint": "Segnalare apre una issue sul GitHub dell'autore, già compilata. Allega il log scaricato."
       }
     },
     "plugin_tile": {

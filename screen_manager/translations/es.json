@@ -2483,7 +2483,9 @@
         "update_note": "La pantalla sigue ejecutando la versión {current}. El registro dice por qué.",
         "added_note": "No está en la pantalla. El registro dice por qué.",
         "no_log": "No se guardó ningún registro de esta compilación.",
-        "details": "Detalles"
+        "details": "Detalles",
+        "report": "Avisar a {maker}",
+        "report_hint": "Avisar abre una incidencia en el GitHub del autor, ya rellenada. Adjunta el registro que descargaste."
       }
     },
     "plugin_tile": {

@@ -91,6 +91,8 @@ describe("a plugin that did not build", () => {
     expect(box.text()).toContain("Public transport 1.2.0 did not build on Hall");
     expect(box.text()).toContain("still runs version 1.1.0");
     expect(box.get("a[data-action=log]").attributes("href")).toBe("api/firmware/logs/20261123-071500-hall");
+    // A build the app restarted during is no fault of the plugin: nothing to report to its maker.
+    expect(box.find("a[data-action=issue]").exists()).toBe(false);
     await box.get("button[data-action=retry]").trigger("click");
     await vi.waitFor(() => expect(calls.length).toBe(1));
     expect(calls[0].body.add.map((a: any) => a.id)).toEqual(["bus"]);
@@ -105,5 +107,22 @@ describe("a plugin that did not build", () => {
     expect(box.text()).toContain("compile failed");
     expect(box.find("a[data-action=log]").exists()).toBe(false);
     expect(box.text()).toContain("No log was kept");
+  });
+
+  it("offers a filled-in issue at the maker's repository for a build that stopped on the plugin", async () => {
+    plugins.index[0] = { ...plugins.index[0], repo: "https://github.com/someone/tessera-bus/tree/abc/plugin", maintainer: "Someone" };
+    plugins.installed[hall.id][0] = installed("bus", "1.1.0", { failed_update: { version: "1.2.0", reason: "bus.h:3:1: error: oops\nmore", log: "k" } });
+    const view = mount(ScreenPluginsTab);
+    await nextTick();
+    const link = view.get("#screen-plugin-failures a[data-action=issue]");
+    expect(link.text()).toContain("Report to Someone");
+    const url = new URL(link.attributes("href")!);
+    expect(url.origin + url.pathname).toBe("https://github.com/someone/tessera-bus/issues/new");
+    expect(url.searchParams.get("title")).toBe("Public transport 1.2.0 did not build on guition");
+    const body = url.searchParams.get("body")!;
+    expect(body).toContain("bus 1.2.0 (update from 1.1.0)");
+    expect(body).toContain("bus.h:3:1: error: oops");
+    expect(body).toContain("0.52.0");
+    expect(body).not.toContain("Hall");
   });
 });

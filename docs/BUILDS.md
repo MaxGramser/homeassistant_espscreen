@@ -89,7 +89,9 @@ and `GET api/firmware/logs/{key}` sends one as a file. In the editor:
 
 - A screen's Plugins tab says first what did not build on it (`PluginFailures.vue`, `plugins.failuresOn`): the plugin,
   the version, why, and the log to download, with the way to try again. It stays until the plugin builds or is taken
-  off.
+  off. When the build stopped on the plugin (not a restart of the app), it also offers an issue at the plugin's GitHub
+  repository, filled in with the plugin, version, board, firmware and the line it stopped on (`issueUrl` in
+  `web/src/model/plugins.ts`), naming no screen or home; the person attaches the log they downloaded.
 - A plugin's details and the screen's build note (`BuildLog.vue`) offer the same download.
 - Firmware & USB lists every kept log, to download.
 

@@ -4501,7 +4501,9 @@
         "update_note": "The screen still runs version {current}. The log says why.",
         "added_note": "It is not on the screen. The log says why.",
         "no_log": "No log was kept of this build.",
-        "details": "Details"
+        "details": "Details",
+        "report": "Report to {maker}",
+        "report_hint": "Reporting opens an issue at the maker's GitHub, already filled in. Attach the log you downloaded."
       }
     },
     "plugin_tile": {

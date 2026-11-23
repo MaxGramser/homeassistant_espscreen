@@ -2483,7 +2483,9 @@
         "update_note": "L'écran exécute toujours la version {current}. Le journal dit pourquoi.",
         "added_note": "Il n'est pas sur l'écran. Le journal dit pourquoi.",
         "no_log": "Aucun journal n'a été conservé pour cette compilation.",
-        "details": "Détails"
+        "details": "Détails",
+        "report": "Signaler à {maker}",
+        "report_hint": "Signaler ouvre un ticket sur le GitHub de l'auteur, déjà rempli. Joins le journal téléchargé."
       }
     },
     "plugin_tile": {
