@@ -489,6 +489,8 @@ export type Inventory = {
   build_files?: import("./model/build-files").BuildFilesView;
   // Whether a build here has the memory it needs (the add-on's build_room): `tight` without a build server.
   build_room?: { free_mb: number | null; need_mb: number; server: boolean; tight: boolean };
+  // The editor script the app serves (index-<hash>.js): a page that runs another reloads (stores/editor-version.ts).
+  editor?: string | null;
   // What this app shares about plugins (plugin_likes.py): whether a like counts publicly, counting, the stars cards.
   plugin_sharing?: PluginSharing | null;
   // The live streams of every screen together and the most the app serves at once (live_stream.py, LiveFeed.usage).

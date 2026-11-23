@@ -164,6 +164,15 @@ The editor also counts the plugin host for the first plugin on a 4 MB screen (`P
 `web/src/model/plugins.ts`, #440), and New screen refuses a name with `"` or `\`, which would break the C++ strings it
 goes into (#453).
 
+## After an update of the app
+
+A page keeps the editor it loaded, also after the app was updated or the dev app rebuilt, and an old editor against a
+new app may not understand what the app sends. Every live answer names the editor the app serves (`editor`: the
+`index-<hash>.js` its `static/index.html` names, `server.editor_bundle`). A page that runs another one reloads itself as
+soon as nothing is in progress: no unsaved change, not in New screen or Firmware & USB (a flash from the browser would
+break off), not writing a troubleshooting report. Until then it says so once, with a key to reload now
+(`web/src/stores/editor-version.ts`).
+
 ## On a build server
 
 A Raspberry Pi takes a long time over a screen's firmware and can run short of memory. When a faster computer on the

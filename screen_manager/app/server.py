@@ -105,6 +105,18 @@ def row_icon(eid, state, attrs, entry):
 
 LOG = logging.getLogger('screen_manager')
 
+def editor_bundle(static=Path(__file__).parent / 'static'):
+    """The editor's script this app serves, as its index.html names it (`index-<hash>.js`, a new name for every build
+    of the editor), or None without a built editor."""
+    try:
+        found = re.search(r'assets/(index-[A-Za-z0-9_-]+\.js)', (static / 'index.html').read_text())
+    except OSError:
+        return None
+    return found.group(1) if found else None
+
+
+EDITOR_BUNDLE = editor_bundle()
+
 REGISTRY_EVENTS = ('entity_registry_updated', 'device_registry_updated', 'area_registry_updated', 'floor_registry_updated')
 # Keepalive cadence. Firmware 0.2.33+ gets a small ping carrying the layout revision; every
 # layout message declares this number, so the firmware sizes its feed watchdog from it
@@ -5164,6 +5176,9 @@ def create_app(manager, development=False):
                 # Whether a build here has the memory it needs, said before a build starts (docs/BUILDS.md, "Before a
                 # build"): tight without a build server, the editor warns where builds are started.
                 'build_room': manager.build_room(),
+                # The editor's bundle this app serves (static/index.html): a page that runs another one reloads itself
+                # once nothing is in progress (web/src/stores/editor-version.ts).
+                'editor': EDITOR_BUNDLE,
                 # What this app shares about plugins (plugin_likes.py): the likes' yes, counting, whether cards ask.
                 'plugin_sharing': manager.plugins.liker.view() if editor_features['plugins'] else None,
                 # The live streams of every screen together against the most the app serves (live_stream.py): the

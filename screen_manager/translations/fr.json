@@ -3497,7 +3497,9 @@
       },
       "new_language": "Nouvelle langue : {name}",
       "restarting": "Redémarre avec le nouveau firmware, de retour dans une minute ou deux",
-      "restarting_short": "Mise à jour"
+      "restarting_short": "Mise à jour",
+      "editor_new": "Une nouvelle version de l'éditeur est prête. Elle se charge toute seule dès que tes modifications sont enregistrées.",
+      "editor_reload": "Recharger maintenant"
     },
     "settings": {
       "updates": {

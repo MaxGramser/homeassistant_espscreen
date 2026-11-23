@@ -14,6 +14,7 @@ import type { PreviewProfile } from "../model/preview";
 import type { Screen } from "../types";
 import { router, screenRoute } from "../router";
 import { useBuildsStore } from "./builds";
+import { startEditorVersion } from "./editor-version";
 import { useDocumentStore } from "./document";
 import { useDraftsStore } from "./drafts";
 import { useInspectorStore } from "./inspector";
@@ -176,7 +177,7 @@ export const useSessionStore = defineStore("session", () => {
   function start() {
     if (running) return running;
     const stops = [ui.start(), region.start(), settings.start(), plugins.start(), startDrag(),
-      inv.start({ busy: () => builds.anyBuilding }), doc.start(), drafts.start(), topbar.start(), followBuilds(),
+      inv.start({ busy: () => builds.anyBuilding }), doc.start(), drafts.start(), topbar.start(), followBuilds(), startEditorVersion(),
       // The screen the address names, as soon as the inventory can say it exists, and again on every change of either.
       watch(() => [router.currentRoute.value.name, router.currentRoute.value.params.id, inv.loaded, inv.connected,
         inv.inventory.screens.map((s) => s.id).join(" ")], followAddress, { immediate: true })];

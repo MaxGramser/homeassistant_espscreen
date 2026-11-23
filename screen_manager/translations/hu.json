@@ -3497,7 +3497,9 @@
       },
       "new_language": "Új nyelv: {name}",
       "restarting": "Újraindul az új firmware-rel, egy-két perc múlva visszatér",
-      "restarting_short": "Frissítés"
+      "restarting_short": "Frissítés",
+      "editor_new": "Elkészült a szerkesztő új verziója. Magától betöltődik, amint a módosításaid mentve vannak.",
+      "editor_reload": "Újratöltés most"
     },
     "settings": {
       "updates": {
