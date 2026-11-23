@@ -1096,7 +1096,8 @@
       "update_stopped": "A atualização automática parou em {name}: {reason} Os restantes ecrãs não foram alterados.",
       "plugin_failed": "{names} não compilou em {screen}: {reason} O ecrã continua com o que tinha. Abre o Tessera e depois o separador Plugins do ecrã para o motivo e o registo.",
       "updates": "Há atualizações prontas para os teus ecrãs. Abre o Tessera para as instalar.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} está compilado para {screen}, mas {screen} não estava acessível. Instala-se sozinho assim que o ecrã voltar."
     },
     "labels": {
       "built_into_screen": "Integrado no ecrã",

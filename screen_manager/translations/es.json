@@ -1096,7 +1096,8 @@
       "update_stopped": "La actualización automática se detuvo en {name}: {reason} Las demás pantallas no se han modificado.",
       "plugin_failed": "{names} no se compiló en {screen}: {reason} La pantalla sigue con lo que tenía. Abre Tessera y la pestaña Plugins de la pantalla para ver el motivo y el registro.",
       "updates": "Hay actualizaciones listas para tus pantallas. Abre Tessera para instalarlas.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} está compilado para {screen}, pero {screen} no estaba disponible. Se instala solo en cuanto la pantalla vuelva."
     },
     "labels": {
       "built_into_screen": "Integrado en la pantalla",

@@ -1096,7 +1096,8 @@
       "update_stopped": "Automatyczna aktualizacja zatrzymała się na ekranie {name}: {reason} Pozostałe ekrany pozostały bez zmian.",
       "plugin_failed": "{names} nie skompilowała się na {screen}: {reason} Ekran działa dalej tak jak wcześniej. Otwórz Tessera, a potem kartę Wtyczki ekranu, aby zobaczyć powód i dziennik.",
       "updates": "Są gotowe aktualizacje dla twoich ekranów. Otwórz Tessera, aby je zainstalować.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} jest skompilowane dla {screen}, ale {screen} był nieosiągalny. Zainstaluje się samo, gdy ekran wróci."
     },
     "labels": {
       "built_into_screen": "Wbudowane w ekran",

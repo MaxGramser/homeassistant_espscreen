@@ -1096,7 +1096,8 @@
       "update_stopped": "Automatisch bijwerken is gestopt bij {name}: {reason} De overige schermen zijn niet aangeraakt.",
       "plugin_failed": "{names} bouwde niet op {screen}: {reason} Het scherm draait nog wat het draaide. Open Tessera en dan de Plugins-tab van het scherm voor de reden en het log.",
       "updates": "Er staan updates klaar voor je schermen. Open Tessera om ze te installeren.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} is gebouwd voor {screen}, maar {screen} was niet bereikbaar. Het installeert vanzelf zodra het scherm terug is."
     },
     "labels": {
       "built_into_screen": "Ingebouwd in het scherm",

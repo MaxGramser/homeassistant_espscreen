@@ -1096,7 +1096,8 @@
       "update_stopped": "La mise à jour automatique s'est arrêtée à l'écran {name} : {reason} Les autres écrans n'ont pas été touchés.",
       "plugin_failed": "{names} ne s'est pas compilé sur {screen} : {reason} L'écran garde ce qu'il avait. Ouvre Tessera, puis l'onglet Plugins de l'écran pour la raison et le journal.",
       "updates": "Des mises à jour sont prêtes pour tes écrans. Ouvre Tessera pour les installer.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} est compilé pour {screen}, mais {screen} n'était pas joignable. Il s'installe tout seul dès que l'écran revient."
     },
     "labels": {
       "built_into_screen": "Intégré à l'écran",

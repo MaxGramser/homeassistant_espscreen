@@ -1096,7 +1096,8 @@
       "update_stopped": "L'aggiornamento automatico si è fermato allo schermo {name}: {reason} Gli altri schermi non sono stati toccati.",
       "plugin_failed": "{names} non si è compilato su {screen}: {reason} Lo schermo resta con ciò che aveva. Apri Tessera e poi la scheda Plugin dello schermo per il motivo e il log.",
       "updates": "Ci sono aggiornamenti pronti per i tuoi schermi. Apri Tessera per installarli.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} è compilato per {screen}, ma {screen} non era raggiungibile. Si installa da solo appena lo schermo torna."
     },
     "labels": {
       "built_into_screen": "Integrato nello schermo",

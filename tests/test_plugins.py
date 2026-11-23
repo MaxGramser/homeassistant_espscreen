@@ -2502,6 +2502,18 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         self.assertEqual(said[-1], ('dismiss', {'notification_id': 'tessera_plugins_hall'}))
 
+    async def test_a_build_that_found_no_screen_says_it_waits_in_home_assistant(self):
+        service, config, started = self.make(['failed'])
+        said = []
+
+        async def request(kind, **data):
+            said.append((data['service'], data['service_data']))
+        service.manager.ha.request = request
+        service._settle_build('hall', ['clock_words'], False, 'did not answer', kind='offline')
+        await asyncio.sleep(0)
+        self.assertEqual(said[-1][0], 'create')
+        self.assertIn('as soon as the screen is back', said[-1][1]['message'])
+
     async def test_back_to_the_version_before(self):
         service, config, started = self.make(['success'])
         await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)

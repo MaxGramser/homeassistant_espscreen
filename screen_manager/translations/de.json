@@ -1096,7 +1096,8 @@
       "update_stopped": "Automatisches Update bei {name} gestoppt: {reason} Die übrigen Bildschirme blieben unverändert.",
       "plugin_failed": "{names} ließ sich auf {screen} nicht erstellen: {reason} Der Bildschirm läuft weiter mit dem Bisherigen. Öffne Tessera und dann den Plugins-Tab des Bildschirms für den Grund und das Protokoll.",
       "updates": "Für deine Bildschirme stehen Updates bereit. Öffne Tessera, um sie zu installieren.",
-      "updates_firmware": "Firmware {version}"
+      "updates_firmware": "Firmware {version}",
+      "plugin_waits": "{names} ist für {screen} erstellt, aber {screen} war nicht erreichbar. Es wird von selbst installiert, sobald der Bildschirm zurück ist."
     },
     "labels": {
       "built_into_screen": "Im Bildschirm eingebaut",

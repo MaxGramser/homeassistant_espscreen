@@ -1096,7 +1096,8 @@
       "update_stopped": "Az automatikus frissítés megállt ennél: {name}: {reason} A többi kijelzőhöz nem nyúltunk.",
       "plugin_failed": "{names} nem fordult le ezen: {screen}: {reason} A kijelző továbbra is azt futtatja, amit eddig. Nyisd meg a Tesserát, majd a kijelző Bővítmények lapját az okért és a naplóért.",
       "updates": "Frissítések várnak a kijelzőidre. Nyisd meg a Tesserát a telepítésükhöz.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} elkészült ehhez: {screen}, de {screen} nem volt elérhető. Magától települ, amint a kijelző visszatér."
     },
     "labels": {
       "built_into_screen": "A kijelzőbe beépített",

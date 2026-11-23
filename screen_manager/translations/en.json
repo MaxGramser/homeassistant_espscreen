@@ -1096,7 +1096,8 @@
       "update_stopped": "Automatic update stopped at {name}: {reason} The remaining screens were not touched.",
       "plugin_failed": "{names} did not build on {screen}: {reason} The screen still runs what it ran before. Open Tessera, then the screen's Plugins tab, for why and the log.",
       "updates": "Updates are ready for your screens. Open Tessera to install them.",
-      "updates_firmware": "firmware {version}"
+      "updates_firmware": "firmware {version}",
+      "plugin_waits": "{names} is built for {screen}, but {screen} was not reachable. It installs by itself as soon as the screen is back."
     },
     "labels": {
       "built_into_screen": "Built into the screen",

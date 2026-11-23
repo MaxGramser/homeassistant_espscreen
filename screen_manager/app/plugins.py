@@ -2063,9 +2063,9 @@ class Plugins:
         if rewrite:
             self._know_tiles()
             self.rewrite_sidecar(inbox)
-        self._tell_home_assistant(inbox, ok, added, reason)
+        self._tell_home_assistant(inbox, ok, added, reason, kind)
 
-    def _tell_home_assistant(self, inbox, ok, added, reason):
+    def _tell_home_assistant(self, inbox, ok, added, reason, kind=None):
         """A plugin build that failed is said in Home Assistant too (a notification, one per screen), for whoever does not
         have the editor open; one that built takes it away again. A restart of the app is no failure: its build goes once
         more by itself."""
@@ -2082,9 +2082,11 @@ class Plugins:
             return
         screen = self.manager.screen(inbox) or {}
         names = ', '.join(self.known(p, inbox).text('name') if self.known(p, inbox) else p for p in added)
-        loop.create_task(ha_notice.show(ha, key, screen_t('addon.notify.plugin_failed', names=names,
-                                                         screen=screen.get('name') or inbox,
-                                                         reason=str(reason or '').split('\n')[0])))
+        name = screen.get('name') or inbox
+        # Built, but the screen was away: it waits for the screen and installs by itself (_after_offline), no failure.
+        message = (screen_t('addon.notify.plugin_waits', names=names, screen=name) if kind == 'offline' else
+                   screen_t('addon.notify.plugin_failed', names=names, screen=name, reason=str(reason or '').split('\n')[0]))
+        loop.create_task(ha_notice.show(ha, key, message))
 
     def _last_log(self, inbox):
         """The newest kept build log of a screen's profile (build_logs.py), or None."""
