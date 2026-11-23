@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // New screen's first step: which screen. A search, the sizes, and every family of boards drawn as it hangs, in two
-// sections (app 0.4.102): the proven boards first and larger, then the new and experimental ones under a heading that
-// says what that means (model/installer.ts, familyTiers). A double click goes on to the next step.
+// sections (app 0.4.102): the recommended boards first and larger, then every other one, each with how far it has been
+// tried (model/installer.ts, familyTiers). A double click goes on to the next step.
 import { computed } from "vue";
 import { boardTitle } from "../../model/boards";
 import { boardArt, boardFamilies, boardsMatching, familyLead, familyLines, familyStatus, familyTiers, sizeCount, SIZES, type BoardRow } from "../../model/installer";
@@ -15,8 +15,8 @@ const emit = defineEmits<{ next: [] }>();
 const shown = computed(() => boardsMatching(install.boardRows, install.query, install.size));
 const tiers = computed(() => familyTiers(boardFamilies(shown.value)));
 const sections = computed(() => [
-  { key: "proven", families: tiers.value.proven },
-  { key: "trying", families: tiers.value.trying },
+  { key: "recommended", families: tiers.value.recommended },
+  { key: "more", families: tiers.value.more },
 ].filter((section) => section.families.length));
 function pickFamily(family: BoardRow[]) { if (!family.some((board) => board.key === install.form.board)) install.form.board = familyLead(family).key; }
 </script>
@@ -33,7 +33,7 @@ function pickFamily(family: BoardRow[]) { if (!family.some((board) => board.key 
     </div>
     <section v-for="section in sections" :key="section.key" class="board-tier" :class="section.key" :aria-labelledby="`boards-${section.key}`">
       <header class="board-tier-head">
-        <h2 :id="`boards-${section.key}`"><Icon v-if="section.key === 'proven'" name="check-circle" />{{ t(`editor.installer.tiers.${section.key}.title`) }}</h2>
+        <h2 :id="`boards-${section.key}`"><Icon v-if="section.key === 'recommended'" name="check-circle" />{{ t(`editor.installer.tiers.${section.key}.title`) }}</h2>
         <p>{{ t(`editor.installer.tiers.${section.key}.lead`) }}</p>
       </header>
       <fieldset class="boards">
@@ -42,7 +42,7 @@ function pickFamily(family: BoardRow[]) { if (!family.some((board) => board.key 
           <input type="radio" name="board" :value="familyLead(family).key" :checked="family.some((b) => b.key === install.form.board)" @change="pickFamily(family)" />
           <span class="board-art" aria-hidden="true" :style="{ '--inch': family[0].inch }"><DeviceArt v-bind="boardArt(family[0])" /></span>
           <span class="board-words"><b>{{ boardTitle(family[0]) }}</b><small v-for="line in familyLines(family)" :key="line">{{ line }}</small></span>
-          <em v-if="familyStatus(family) !== 'stable'" class="board-badge" :class="familyStatus(family)">{{ t(`editor.installer.status.${familyStatus(family)}`) }}</em>
+          <em v-if="section.key === 'more'" class="board-badge" :class="familyStatus(family)">{{ t(`editor.installer.status.${familyStatus(family)}`) }}</em>
           <span class="board-check" aria-hidden="true"><Icon name="check" /></span>
         </label>
       </fieldset>

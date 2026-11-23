@@ -3734,6 +3734,7 @@
       "board": "¿Qué pantalla tienes?",
       "board_title": "{name} · {inch} pulgadas",
       "status": {
+        "stable": "Probada",
         "new": "Nuevo",
         "experimental": "Experimental"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Experimental: aún no se ha probado en este hardware. Cuéntanos qué tal va."
       },
       "tiers": {
-        "proven": {
-          "title": "Probadas en pantallas reales",
-          "lead": "Probadas por el proyecto en sus propias pantallas y en uso diario. La opción más segura."
+        "recommended": {
+          "title": "Recomendadas",
+          "lead": "Probadas en pantallas reales y elegidas por el proyecto: lo máximo que puede hacer Tessera, probado cada día."
         },
-        "trying": {
-          "title": "Nuevas y experimentales",
-          "lead": "Hechas para estas placas pero aún no probadas: las nuevas funcionan en pocas pantallas, las experimentales aún no se han probado en el hardware. Cuenta con algún detalle por pulir y cuéntanos cómo va."
+        "more": {
+          "title": "Más placas",
+          "lead": "Las probadas funcionan pero hacen menos; las nuevas funcionan en pocas pantallas; las experimentales aún no se han probado en el hardware. Cuéntanos cómo va."
         }
       },
       "abilities": {

@@ -46,6 +46,7 @@
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
    "order": 22,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -192,6 +193,7 @@
    "model": "ESP32-2432S028",
    "name": "CYD",
    "order": 0,
+   "recommended": false,
    "settings": [],
    "status": "stable",
    "touch": "XPT2046"
@@ -290,6 +292,7 @@
    "model": "ESP32-2432S028 ILI9342",
    "name": "CYD",
    "order": 1,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
@@ -388,6 +391,7 @@
    "model": "FNK0104S",
    "name": "Freenove",
    "order": 25,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -508,6 +512,7 @@
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
    "order": 2,
+   "recommended": true,
    "settings": [
     "backlight_pwm",
     "dimmest_level"
@@ -641,6 +646,7 @@
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
    "order": 11,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
@@ -776,6 +782,7 @@
    "model": "JC1060P470",
    "name": "Guition",
    "order": 9,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -950,6 +957,7 @@
    "model": "JC1060P470 V2",
    "name": "Guition",
    "order": 10,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -1103,6 +1111,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "AXS15231"
@@ -1265,6 +1274,7 @@
    "model": "JC4880P443",
    "name": "Guition",
    "order": 21,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -1440,6 +1450,7 @@
    "model": "JC8012P4A1",
    "name": "Guition",
    "order": 4,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -1615,6 +1626,7 @@
    "model": "JC8012P4A1 V2",
    "name": "Guition",
    "order": 15,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -1790,6 +1802,7 @@
    "model": "JC8012P4A1 V3",
    "name": "Guition",
    "order": 5,
+   "recommended": true,
    "settings": [
     "media_player",
     "microphone",
@@ -1943,6 +1956,7 @@
    "model": "JC8048W550C_I",
    "name": "Guition",
    "order": 18,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -2105,6 +2119,7 @@
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
    "order": 20,
+   "recommended": true,
    "settings": [
     "media_player",
     "microphone",
@@ -2249,6 +2264,7 @@
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
    "order": 24,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -2369,6 +2385,7 @@
    "model": "ESP32-8048S070",
    "name": "Sunton",
    "order": 14,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -2536,6 +2553,7 @@
    "model": "Tab5",
    "name": "M5Stack Tab5",
    "order": 16,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -2711,6 +2729,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
    "order": 29,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -2887,6 +2906,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
    "order": 30,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -3031,6 +3051,7 @@
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
    "order": 8,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "FT63X6"
@@ -3156,6 +3177,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3",
    "name": "Waveshare",
    "order": 3,
+   "recommended": false,
    "settings": [],
    "status": "stable",
    "touch": "GT911"
@@ -3296,6 +3318,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
    "order": 31,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3436,6 +3459,7 @@
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
    "order": 7,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3576,6 +3600,7 @@
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
    "order": 23,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3716,6 +3741,7 @@
    "model": "ESP32-S3-Touch-LCD-5",
    "name": "Waveshare",
    "order": 17,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "GT911"
@@ -3856,6 +3882,7 @@
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
    "order": 6,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -3996,6 +4023,7 @@
    "model": "ESP32-S3-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 13,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -4158,6 +4186,7 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 19,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -4334,6 +4363,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
    "order": 28,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -4510,6 +4540,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 27,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -4664,6 +4695,7 @@
    "model": "WT32-SC01 Plus",
    "name": "WT32",
    "order": 26,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -4826,6 +4858,7 @@
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
    "order": 22,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -4972,6 +5005,7 @@
    "model": "ESP32-2432S028",
    "name": "CYD",
    "order": 0,
+   "recommended": false,
    "settings": [],
    "status": "stable",
    "touch": "XPT2046"
@@ -5070,6 +5104,7 @@
    "model": "ESP32-2432S028 ILI9342",
    "name": "CYD",
    "order": 1,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
@@ -5168,6 +5203,7 @@
    "model": "FNK0104S",
    "name": "Freenove",
    "order": 25,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -5288,6 +5324,7 @@
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
    "order": 2,
+   "recommended": true,
    "settings": [
     "backlight_pwm",
     "dimmest_level"
@@ -5421,6 +5458,7 @@
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
    "order": 11,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
@@ -5556,6 +5594,7 @@
    "model": "JC1060P470",
    "name": "Guition",
    "order": 9,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -5730,6 +5769,7 @@
    "model": "JC1060P470 V2",
    "name": "Guition",
    "order": 10,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -5883,6 +5923,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "AXS15231"
@@ -6045,6 +6086,7 @@
    "model": "JC4880P443",
    "name": "Guition",
    "order": 21,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -6220,6 +6262,7 @@
    "model": "JC8012P4A1",
    "name": "Guition",
    "order": 4,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -6395,6 +6438,7 @@
    "model": "JC8012P4A1 V2",
    "name": "Guition",
    "order": 15,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -6570,6 +6614,7 @@
    "model": "JC8012P4A1 V3",
    "name": "Guition",
    "order": 5,
+   "recommended": true,
    "settings": [
     "media_player",
     "microphone",
@@ -6723,6 +6768,7 @@
    "model": "JC8048W550C_I",
    "name": "Guition",
    "order": 18,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -6885,6 +6931,7 @@
    "model": "Advanced 10.1 ESP32-P4",
    "name": "CrowPanel",
    "order": 22,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -7031,6 +7078,7 @@
    "model": "ESP32-2432S028",
    "name": "CYD",
    "order": 0,
+   "recommended": false,
    "settings": [],
    "status": "stable",
    "touch": "XPT2046"
@@ -7129,6 +7177,7 @@
    "model": "ESP32-2432S028 ILI9342",
    "name": "CYD",
    "order": 1,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
@@ -7227,6 +7276,7 @@
    "model": "FNK0104S",
    "name": "Freenove",
    "order": 25,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -7347,6 +7397,7 @@
    "model": "ESP32-S3-4848S040",
    "name": "Guition",
    "order": 2,
+   "recommended": true,
    "settings": [
     "backlight_pwm",
     "dimmest_level"
@@ -7480,6 +7531,7 @@
    "model": "ESP32-32E E32R40T",
    "name": "Hosyond",
    "order": 11,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "XPT2046"
@@ -7615,6 +7667,7 @@
    "model": "JC1060P470",
    "name": "Guition",
    "order": 9,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -7789,6 +7842,7 @@
    "model": "JC1060P470 V2",
    "name": "Guition",
    "order": 10,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -7942,6 +7996,7 @@
    "model": "JC3248W535",
    "name": "Guition",
    "order": 12,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "AXS15231"
@@ -8104,6 +8159,7 @@
    "model": "JC4880P443",
    "name": "Guition",
    "order": 21,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -8279,6 +8335,7 @@
    "model": "JC8012P4A1",
    "name": "Guition",
    "order": 4,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -8454,6 +8511,7 @@
    "model": "JC8012P4A1 V2",
    "name": "Guition",
    "order": 15,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -8629,6 +8687,7 @@
    "model": "JC8012P4A1 V3",
    "name": "Guition",
    "order": 5,
+   "recommended": true,
    "settings": [
     "media_player",
     "microphone",
@@ -8782,6 +8841,7 @@
    "model": "JC8048W550C_I",
    "name": "Guition",
    "order": 18,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -8944,6 +9004,7 @@
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
    "order": 20,
+   "recommended": true,
    "settings": [
     "media_player",
     "microphone",
@@ -9088,6 +9149,7 @@
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
    "order": 24,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -9208,6 +9270,7 @@
    "model": "ESP32-8048S070",
    "name": "Sunton",
    "order": 14,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -9375,6 +9438,7 @@
    "model": "Tab5",
    "name": "M5Stack Tab5",
    "order": 16,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -9550,6 +9614,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
    "order": 29,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -9726,6 +9791,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
    "order": 30,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -9870,6 +9936,7 @@
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
    "order": 8,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "FT63X6"
@@ -9995,6 +10062,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3",
    "name": "Waveshare",
    "order": 3,
+   "recommended": false,
    "settings": [],
    "status": "stable",
    "touch": "GT911"
@@ -10135,6 +10203,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
    "order": 31,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -10275,6 +10344,7 @@
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
    "order": 7,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -10415,6 +10485,7 @@
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
    "order": 23,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -10555,6 +10626,7 @@
    "model": "ESP32-S3-Touch-LCD-5",
    "name": "Waveshare",
    "order": 17,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "GT911"
@@ -10695,6 +10767,7 @@
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
    "order": 6,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -10835,6 +10908,7 @@
    "model": "ESP32-S3-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 13,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -10997,6 +11071,7 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 19,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -11173,6 +11248,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
    "order": 28,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -11349,6 +11425,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 27,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -11503,6 +11580,7 @@
    "model": "WT32-SC01 Plus",
    "name": "WT32",
    "order": 26,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"
@@ -11665,6 +11743,7 @@
    "model": "reTerminal D1001",
    "name": "reTerminal D1001",
    "order": 20,
+   "recommended": true,
    "settings": [
     "media_player",
     "microphone",
@@ -11809,6 +11888,7 @@
    "model": "Indicator D1, D1S, D1L, D1Pro (GX)",
    "name": "SenseCAP",
    "order": 24,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT6336U"
@@ -11929,6 +12009,7 @@
    "model": "ESP32-8048S070",
    "name": "Sunton",
    "order": 14,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -12096,6 +12177,7 @@
    "model": "Tab5",
    "name": "M5Stack Tab5",
    "order": 16,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -12271,6 +12353,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1",
    "name": "Waveshare",
    "order": 29,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -12447,6 +12530,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-10.1 V3",
    "name": "Waveshare",
    "order": 30,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -12591,6 +12675,7 @@
    "model": "ESP32-S3-Touch-LCD-3.5",
    "name": "Waveshare",
    "order": 8,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "FT63X6"
@@ -12716,6 +12801,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3",
    "name": "Waveshare",
    "order": 3,
+   "recommended": false,
    "settings": [],
    "status": "stable",
    "touch": "GT911"
@@ -12856,6 +12942,7 @@
    "model": "ESP32-S3-Touch-LCD-4.3C",
    "name": "Waveshare",
    "order": 31,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -12996,6 +13083,7 @@
    "model": "ESP32-S3-Touch-LCD-4B",
    "name": "Waveshare",
    "order": 7,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -13136,6 +13224,7 @@
    "model": "ESP32-S3-Touch-LCD-4 V4.0",
    "name": "Waveshare",
    "order": 23,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -13276,6 +13365,7 @@
    "model": "ESP32-S3-Touch-LCD-5",
    "name": "Waveshare",
    "order": 17,
+   "recommended": false,
    "settings": [],
    "status": "new",
    "touch": "GT911"
@@ -13416,6 +13506,7 @@
    "model": "ESP32-S3-Touch-LCD-7",
    "name": "Waveshare",
    "order": 6,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -13556,6 +13647,7 @@
    "model": "ESP32-S3-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 13,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "GT911"
@@ -13718,6 +13810,7 @@
    "model": "ESP32-P4-86-Panel-ETH-2RO",
    "name": "Waveshare",
    "order": 19,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -13894,6 +13987,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-7",
    "name": "Waveshare",
    "order": 28,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -14070,6 +14164,7 @@
    "model": "ESP32-P4-WIFI6-Touch-LCD-7B",
    "name": "Waveshare",
    "order": 27,
+   "recommended": false,
    "settings": [
     "media_player",
     "microphone",
@@ -14224,6 +14319,7 @@
    "model": "WT32-SC01 Plus",
    "name": "WT32",
    "order": 26,
+   "recommended": false,
    "settings": [],
    "status": "experimental",
    "touch": "FT63X6"

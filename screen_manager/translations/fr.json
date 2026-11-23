@@ -3734,6 +3734,7 @@
       "board": "Quel écran avez-vous ?",
       "board_title": "{name} · {inch} pouces",
       "status": {
+        "stable": "Éprouvée",
         "new": "Nouveau",
         "experimental": "Expérimental"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Expérimental : pas encore essayé sur ce matériel. Dites-nous ce que ça donne."
       },
       "tiers": {
-        "proven": {
-          "title": "Éprouvés sur de vrais écrans",
-          "lead": "Testés par le projet sur ses propres écrans et utilisés au quotidien. Le choix le plus sûr."
+        "recommended": {
+          "title": "Recommandés",
+          "lead": "Éprouvés sur de vrais écrans et choisis par le projet : tout ce que Tessera sait faire, testé chaque jour."
         },
-        "trying": {
-          "title": "Nouveaux et expérimentaux",
-          "lead": "Faits pour ces cartes mais pas encore éprouvés : les nouvelles tournent sur quelques écrans, les expérimentales n'ont pas encore été essayées sur le matériel. Attendez-vous à quelques imperfections et dites-nous comment ça se passe."
+        "more": {
+          "title": "Autres cartes",
+          "lead": "Les éprouvées fonctionnent mais en font moins ; les nouvelles tournent sur quelques écrans ; les expérimentales n'ont pas encore été essayées sur le matériel. Dites-nous comment ça se passe."
         }
       },
       "abilities": {

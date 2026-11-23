@@ -1,12 +1,6 @@
 ## Unreleased
 
-- **Proven boards stand apart in New screen.** The board list now opens with the boards proven on real screens (the stable ones), larger and in their own section, and puts the new and experimental boards under them with a plain line on what that means. Searching and the sizes still look through both.
-- **A build tells you what it is doing, and when it is really done.** Every build shows its steps: waiting, building, sending to the screen, and the screen confirming. A plugin build now waits until the screen has restarted and says it runs the new version, and a build that went well stays visible for a few minutes so you see it happened.
-- **A failure says what kind it is and what to do.** A fault in the plugin's code offers a filled-in issue at its maker. Memory that ran short points to a build server. A screen that was away gets its build by itself once it is back. A download that did not come is tried once more by itself. A failed build is also said in Home Assistant.
-- **Back to the version before, with one tap.** When a plugin update does not run well, its details offer the version the screen ran before.
-- **Every update of a screen in one place, and in one build.** A screen's Plugins tab shows its firmware update and its plugin updates together, with one key for all of it. The sidebar shows a screen's plugin updates and marks a plugin that did not build, the Updates card lists them, and Home Assistant gets a notification when new updates are ready.
-- **Choose when the nightly update runs.** The automatic update can start at an hour you pick, for screens beside a bed.
-- **Warnings before a build instead of a failure after it.** The app warns when this Home Assistant is short of memory for a build, counts the extra room the first plugin needs on a CYD, and refuses a screen name with a `"` or `\` before anything is built.
+- **Recommended boards stand apart in New screen.** The board list now opens with the boards the project recommends (the Guition 4 inch, the Guition 10.1 inch V3 and the reTerminal D1001), larger and in their own section, and New screen starts on the first of them. Every other board follows under them, marked Proven, New or Experimental, with a plain line on what that means. Searching and the sizes still look through both. Long model names in the model choice now wrap instead of running past their card.
 
 - **Three boards are now stable.** The reTerminal D1001, the Guition JC8012P4A1 V3 (10.1 inch) and the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 V3 have run as everyday screens long enough to move from new or experimental to stable.
 

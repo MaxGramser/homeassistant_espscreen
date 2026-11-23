@@ -91,8 +91,9 @@ export function useInstaller() {
   // The choices besides the orientation (a CYD's display controller): each starts at the board file's own value. A value
   // says what it is (the display controller's model), and its first value is what most boards have.
   const choices = computed(() => Object.entries(chosen.value?.choices || {}).map(([key, options]) => ({ key, options })));
-  // The first board until someone picks one, once the add-on has said which there are.
-  watch(boardRows, (rows) => { if (!boards.value[form.board] && rows.length) form.board = rows[0].key; }, { immediate: true });
+  // The first recommended board until someone picks one (app 0.4.102), once the add-on has said which there are.
+  const firstBoard = (rows: readonly (BoardChoice & { key: string })[]) => (rows.find((row) => row.status === "stable" && row.recommended) || rows[0])?.key || "";
+  watch(boardRows, (rows) => { if (!boards.value[form.board] && rows.length) form.board = firstBoard(rows); }, { immediate: true });
   // Which way the chosen board may hang, with the canvas and the cells of a page for each. A board this add-on has not
   // heard of asks nothing either, and builds lying down, which is what every board did before this choice existed.
   const orientations = computed(() => boardOrientations(boards.value[form.board]));
@@ -293,7 +294,7 @@ export function useInstaller() {
     flash.cancel();
     Object.assign(installer, { view: "setup", file: null, apiKey: null, nodeEdited: false, target: "", picked: false, action: null, browser: false, chip: null, known: null, replace: null,
       build: null, asked: null });
-    Object.assign(form, { board: boardRows.value[0]?.key || "", orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
+    Object.assign(form, { board: firstBoard(boardRows.value), orientation: "landscape" as Orientation, choices: {}, friendly_name: "", name: "", wifi_ssid: "", wifi_password: "", target: "" });
     bestGrid();
     step.value = 1; query.value = ""; size.value = ""; wifiOther.value = false; restart();
     for (const id of Object.keys(picks)) delete picks[id];

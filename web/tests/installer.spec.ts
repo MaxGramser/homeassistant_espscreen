@@ -37,13 +37,16 @@ describe("which screen", () => {
     expect(familyOf(ROWS, ROWS[1]).map((b) => b.key)).toEqual(["a", "a2"]);
     expect([sizeCount(ROWS, ""), sizeCount(ROWS, "medium")]).toEqual([3, 1]);
   });
-  it("puts the proven families first and apart, and a click on one picks its stable model", () => {
-    const tiers = familyTiers(boardFamilies(ROWS));
-    expect(tiers.proven.map((family) => family[0].key)).toEqual(["a", "c"]);
-    expect(tiers.trying.map((family) => family[0].key)).toEqual(["b"]);
-    const mixed = [{ ...ROWS[0], status: "new" as const }, { ...ROWS[1], status: "stable" as const }];
-    expect(familyLead(mixed).key).toBe("a2");
-    expect(familyLead(tiers.trying[0]).key).toBe("b");
+  it("puts the recommended families first and apart, and a click on one picks its recommended model", () => {
+    const rows = [...ROWS.slice(0, 3), { ...ROWS[3], recommended: true }];
+    const tiers = familyTiers(boardFamilies(rows));
+    expect(tiers.recommended.map((family) => family[0].key)).toEqual(["c"]);
+    // A stable board that is not recommended is proven, but not promoted.
+    expect(tiers.more.map((family) => family[0].key)).toEqual(["a", "b"]);
+    const mixed = [{ ...ROWS[0], status: "new" as const }, { ...ROWS[1], status: "stable" as const }, board("a3", { recommended: true })];
+    expect(familyLead(mixed).key).toBe("a3");
+    expect(familyLead(mixed.slice(0, 2)).key).toBe("a2");
+    expect(familyLead(tiers.more[1]).key).toBe("b");
   });
 });
 

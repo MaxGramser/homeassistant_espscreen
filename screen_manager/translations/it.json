@@ -3734,6 +3734,7 @@
       "board": "Quale schermo hai?",
       "board_title": "{name} · {inch} pollici",
       "status": {
+        "stable": "Collaudato",
         "new": "Nuovo",
         "experimental": "Sperimentale"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Sperimentale: non ancora provato su questo hardware. Facci sapere come va."
       },
       "tiers": {
-        "proven": {
-          "title": "Collaudati su schermi reali",
-          "lead": "Provati dal progetto sui propri schermi e in uso ogni giorno. La scelta più sicura."
+        "recommended": {
+          "title": "Consigliati",
+          "lead": "Collaudati su schermi reali e scelti dal progetto: il massimo che Tessera sa fare, provato ogni giorno."
         },
-        "trying": {
-          "title": "Nuovi e sperimentali",
-          "lead": "Fatti per queste schede ma non ancora collaudati: i nuovi funzionano su pochi schermi, gli sperimentali non sono ancora stati provati sull'hardware. Aspettati qualche imperfezione e facci sapere come va."
+        "more": {
+          "title": "Altre schede",
+          "lead": "I collaudati funzionano ma fanno meno; i nuovi funzionano su pochi schermi; gli sperimentali non sono ancora stati provati sull'hardware. Facci sapere come va."
         }
       },
       "abilities": {

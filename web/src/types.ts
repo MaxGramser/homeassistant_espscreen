@@ -231,6 +231,8 @@ export type BoardOrientation = { width: number; height: number; columns: number;
 // it is built (the first value of each is the board file's own).
 export type BoardCatalog = {
   order: number; name: string; model: string; status: "stable" | "new" | "experimental"; inch: number; touch: string;
+  // The project's pick among the stable boards (boards.yaml `recommended`): New screen shows it first and apart.
+  recommended?: boolean;
   calibrate: boolean; choices: Record<string, string[]>;
   // Its extras under Screen settings (boards.yaml `settings`, docs/SETTINGS.md "A board's own settings").
   settings?: string[];

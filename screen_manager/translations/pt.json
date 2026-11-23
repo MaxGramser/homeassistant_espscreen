@@ -3734,6 +3734,7 @@
       "board": "Que ecrã tem?",
       "board_title": "{name} · {inch} polegadas",
       "status": {
+        "stable": "Comprovado",
         "new": "Novo",
         "experimental": "Experimental"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Experimental: ainda não foi experimentado neste hardware. Diga-nos como corre."
       },
       "tiers": {
-        "proven": {
-          "title": "Comprovados em ecrãs reais",
-          "lead": "Testados pelo projeto nos seus próprios ecrãs e em uso diário. A escolha mais segura."
+        "recommended": {
+          "title": "Recomendados",
+          "lead": "Comprovados em ecrãs reais e escolhidos pelo projeto: o máximo que o Tessera faz, testado todos os dias."
         },
-        "trying": {
-          "title": "Novos e experimentais",
-          "lead": "Feitos para estas placas mas ainda não comprovados: os novos funcionam em poucos ecrãs, os experimentais ainda não foram testados no hardware. Conta com algumas arestas por limar e diz-nos como corre."
+        "more": {
+          "title": "Mais placas",
+          "lead": "Os comprovados funcionam mas fazem menos; os novos funcionam em poucos ecrãs; os experimentais ainda não foram testados no hardware. Diz-nos como corre."
         }
       },
       "abilities": {

@@ -39,17 +39,19 @@ export const familyOf = (rows: readonly BoardRow[], board: BoardChoice | undefin
 /** A family is as far along as its furthest model: stable if one is, else new, else experimental. */
 export const familyStatus = (family: readonly BoardRow[]) =>
   family.some((b) => b.status === "stable") ? "stable" : family.some((b) => b.status === "new") ? "new" : "experimental";
-/** The families split in two (app 0.4.102): the proven ones, which have a stable model, first and apart, and every
- * other one (new or experimental) under them, each in the order it comes. */
+/** A recommended board (boards.yaml `recommended`): stable, and the project's pick. */
+const picked = (board: BoardChoice) => board.status === "stable" && !!board.recommended;
+/** The families split in two (app 0.4.102): the recommended ones, which have a recommended model, first and apart, and
+ * every other one (proven, new or experimental) under them, each in the order it comes. */
 export function familyTiers(families: readonly BoardRow[][]) {
-  return { proven: families.filter((family) => familyStatus(family) === "stable"), trying: families.filter((family) => familyStatus(family) !== "stable") };
+  return { recommended: families.filter((family) => family.some(picked)), more: families.filter((family) => !family.some(picked)) };
 }
-/** The model a click on a family's card picks: its first stable one, so the card in the proven section means a proven
- * board; the first model otherwise. */
-export const familyLead = (family: readonly BoardRow[]) => family.find((b) => b.status === "stable") || family[0];
-/** One model says what is printed on it; several say how many there are, and the next step asks which. */
+/** The model a click on a family's card picks: its recommended one, else its first stable one, else its first. */
+export const familyLead = (family: readonly BoardRow[]) => family.find(picked) || family.find((b) => b.status === "stable") || family[0];
+/** One model says what is printed on it; several say how many there are, with the glass and touch of the model a click
+ * picks, and the next step asks which. */
 export const familyLines = (family: readonly BoardRow[]) =>
-  family.length > 1 ? [boardDetail(family[0])[1], t("editor.installer.models", family.length)] : boardDetail(family[0]);
+  family.length > 1 ? [boardDetail(familyLead(family))[1], t("editor.installer.models", family.length)] : boardDetail(family[0]);
 /** How many families a size holds; every family for no size. */
 export const sizeCount = (rows: readonly BoardRow[], size: SizeFilter) =>
   new Set(rows.filter((board) => !size || sizeOfInch(board.inch) === size).map(familyKey)).size;

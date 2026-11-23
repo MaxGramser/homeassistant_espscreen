@@ -3734,6 +3734,7 @@
       "board": "Milyen kijelződ van?",
       "board_title": "{name} · {inch} hüvelyk",
       "status": {
+        "stable": "Bevált",
         "new": "Új",
         "experimental": "Kísérleti"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Kísérleti: ezen a hardveren még nem próbálták ki. Mondd el, hogy működik."
       },
       "tiers": {
-        "proven": {
-          "title": "Valódi kijelzőkön bevált",
-          "lead": "A projekt a saját kijelzőin tesztelte, és naponta használja. A legbiztosabb választás."
+        "recommended": {
+          "title": "Ajánlott",
+          "lead": "Valódi kijelzőkön bevált, és a projekt választása: a legtöbb, amit a Tessera tud, minden nap tesztelve."
         },
-        "trying": {
-          "title": "Új és kísérleti",
-          "lead": "Ezekhez a lapokhoz készült, de még nem bevált: az újak eddig csak néhány kijelzőn futnak, a kísérletieket még nem próbálták ki a hardveren. Számíts apróbb hibákra, és mondd el, hogyan megy."
+        "more": {
+          "title": "További lapok",
+          "lead": "A bevált lapok működnek, de kevesebbet tudnak; az újak eddig csak néhány kijelzőn futnak; a kísérletieket még nem próbálták ki a hardveren. Mondd el, hogyan megy."
         }
       },
       "abilities": {

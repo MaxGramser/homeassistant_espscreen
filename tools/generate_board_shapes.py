@@ -95,6 +95,10 @@ def catalog_of(board, values, lying):
             raise SystemExit(f'boards.yaml: {board} needs a {key}')
     if entry['status'] not in STATUSES:
         raise SystemExit(f'boards.yaml: {board} status is one of {", ".join(STATUSES)}')
+    # Recommended (app 0.4.102): the project's pick, which New screen shows first and apart; only a stable board is one.
+    recommended = entry.get('recommended', False)
+    if not isinstance(recommended, bool) or (recommended and entry['status'] != 'stable'):
+        raise SystemExit(f'boards.yaml: {board} recommended is true or false, and true only for a stable board')
     choices = {}
     for key, options in (entry.get('choices') or {}).items():
         options = [str(option) for option in options or []]
@@ -117,7 +121,7 @@ def catalog_of(board, values, lying):
         if not re.fullmatch(r'[a-z0-9_]+', key) or key not in named:
             raise SystemExit(f'boards.yaml: {board} lists the setting {key}, which no entity of its files is named')
     return {'order': list(profiles.CATALOG).index(board), 'name': entry['name'].strip(), 'model': entry['model'].strip(),
-            'status': entry['status'],
+            'status': entry['status'], 'recommended': recommended,
             'inch': round(math.hypot(lying['width'], lying['height']) / float(values['DISPLAY_DPI']), 1),
             # A controller can use a driver's protocol under another platform name (ST7121 on st7123).
             'touch': values.get('TOUCH_CONTROLLER', touch[1].split('_')[0].upper() if touch else '').strip('"'),

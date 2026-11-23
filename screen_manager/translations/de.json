@@ -3734,6 +3734,7 @@
       "board": "Welchen Bildschirm hast du?",
       "board_title": "{name} · {inch} Zoll",
       "status": {
+        "stable": "Bewährt",
         "new": "Neu",
         "experimental": "Experimentell"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Experimentell: auf dieser Hardware noch nicht ausprobiert. Sag uns, wie es läuft."
       },
       "tiers": {
-        "proven": {
-          "title": "Auf echten Bildschirmen bewährt",
-          "lead": "Vom Projekt auf eigenen Displays getestet und täglich im Einsatz. Die sicherste Wahl."
+        "recommended": {
+          "title": "Empfohlen",
+          "lead": "Auf echten Bildschirmen bewährt und die Wahl des Projekts: das meiste, was Tessera kann, jeden Tag getestet."
         },
-        "trying": {
-          "title": "Neu und experimentell",
-          "lead": "Für diese Boards gemacht, aber noch nicht bewährt: Neue laufen bisher auf wenigen Bildschirmen, experimentelle sind noch nicht auf der Hardware getestet. Rechne mit Ecken und Kanten und sag uns, wie es läuft."
+        "more": {
+          "title": "Weitere Boards",
+          "lead": "Bewährte funktionieren, können aber weniger; neue laufen bisher auf wenigen Bildschirmen; experimentelle sind noch nicht auf der Hardware getestet. Sag uns, wie es läuft."
         }
       },
       "abilities": {

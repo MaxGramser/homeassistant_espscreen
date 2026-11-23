@@ -3734,6 +3734,7 @@
       "board": "Jaki masz ekran?",
       "board_title": "{name} · {inch} cala",
       "status": {
+        "stable": "Sprawdzona",
         "new": "Nowość",
         "experimental": "Eksperymentalny"
       },
@@ -3742,13 +3743,13 @@
         "experimental": "Eksperymentalny: jeszcze nie wypróbowany na tym sprzęcie. Napisz, jak działa."
       },
       "tiers": {
-        "proven": {
-          "title": "Sprawdzone na prawdziwych ekranach",
-          "lead": "Przetestowane przez projekt na własnych ekranach i używane na co dzień. Najbezpieczniejszy wybór."
+        "recommended": {
+          "title": "Polecane",
+          "lead": "Sprawdzone na prawdziwych ekranach i wybrane przez projekt: najwięcej, co potrafi Tessera, testowane codziennie."
         },
-        "trying": {
-          "title": "Nowe i eksperymentalne",
-          "lead": "Przygotowane dla tych płytek, ale jeszcze niesprawdzone: nowe działają dopiero na kilku ekranach, eksperymentalnych nie testowano jeszcze na sprzęcie. Licz się z niedociągnięciami i daj nam znać, jak poszło."
+        "more": {
+          "title": "Więcej płytek",
+          "lead": "Sprawdzone działają, ale potrafią mniej; nowe działają dopiero na kilku ekranach; eksperymentalnych nie testowano jeszcze na sprzęcie. Daj nam znać, jak poszło."
         }
       },
       "abilities": {

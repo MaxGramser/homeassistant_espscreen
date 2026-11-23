@@ -146,7 +146,8 @@ back to. A word the add-on does not know is skipped, so new firmware may report 
 
 The board file carries its own `BOARD_ID` (the screen reports it; `tools/new_board.py` sets it). The Rotation select
 comes from the core, with the angles the glass allows. Its entry in `boards.yaml`, the catalog, says what the board is
-called, what is printed on it, how far it has been tried (`stable`, `new` or `experimental`), and, for a part that
+called, what is printed on it, how far it has been tried (`stable`, `new` or `experimental`), whether the project recommends it (`recommended`, only
+for a stable board: New screen shows it first, in a section of its own), and, for a part that
 differs between boards sold under one name, the `choices` someone makes when a screen of it is built. That is all ESP
 Screens needs: New screen and the screen list draw every board from the catalog and the board's own files (the size in
 inches from its pixels and density, the touch controller from its `touchscreen:` platform (or `TOUCH_CONTROLLER` if its driver name differs), a touch calibration on the first

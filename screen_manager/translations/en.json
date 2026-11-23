@@ -3245,6 +3245,7 @@
       "board": "Which screen do you have?",
       "board_title": "{name} · {inch} inch",
       "status": {
+        "stable": "Proven",
         "new": "New",
         "experimental": "Experimental"
       },
@@ -3253,13 +3254,13 @@
         "experimental": "Experimental: not yet tried on this hardware. Tell us how it goes."
       },
       "tiers": {
-        "proven": {
-          "title": "Proven on real screens",
-          "lead": "Tried by the project on its own glass and in daily use. The safest choice."
+        "recommended": {
+          "title": "Recommended",
+          "lead": "Proven on real screens and the project's pick: the most you can do with Tessera, tried every day."
         },
-        "trying": {
-          "title": "New and experimental",
-          "lead": "Made for these boards but not yet proven: New ones run on a few screens so far, Experimental ones are not yet tried on the hardware. Expect rough edges and tell us how it goes."
+        "more": {
+          "title": "More boards",
+          "lead": "Proven ones work but do less; New ones run on a few screens so far; Experimental ones are not yet tried on the hardware. Tell us how it goes."
         }
       },
       "abilities": {

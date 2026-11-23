@@ -1,5 +1,5 @@
-# The boards ESP Screens ships, in the order New screen offers them within its two sections, the stable boards first
-# and apart, then the new and experimental ones (docs/ADDING_A_BOARD.md).
+# The boards ESP Screens ships, in the order New screen offers them within its two sections: the recommended boards first
+# and apart, then every other one (docs/ADDING_A_BOARD.md).
 #
 # One entry per board, keyed by the word ESP Screens knows it by (the BOARD_ID its firmware reports, and the name of
 # packages/<key>.yaml, the entry a screen installed from ESP Screens builds from over GitHub, and of checkout/<key>.yaml,
@@ -16,6 +16,8 @@
 #   model     what is printed on the board or its box, to tell it from its neighbours
 #   status    stable (tried on the glass by the project), new (tried, few screens out there yet) or experimental
 #             (built and rendered, not yet tried on the hardware)
+#   recommended  optional, true for a stable board the project recommends: New screen shows it first, in a section of
+#             its own. A stable board without it is proven but not promoted (a CYD does too little to start with).
 #   choices   optional: a substitution the board file offers for a part that differs between boards sold under the same
 #             name, with the values someone may pick when the screen is built. The first is the board file's own
 #             default and writes nothing; another is written into the screen's own YAML. Only values that people with
@@ -44,6 +46,7 @@ guition:
   name: Guition
   model: ESP32-S3-4848S040
   status: stable
+  recommended: true
   # Its extras under Screen settings (docs/SETTINGS.md, "A board's own settings"): the backlight's PWM and its floor,
   # which differ between batches of this board (GitHub #5, #327, #337).
   settings: [backlight_pwm, dimmest_level]
@@ -70,6 +73,7 @@ jc8012p4a1v3:
   name: Guition
   model: JC8012P4A1 V3
   status: stable
+  recommended: true
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
@@ -178,6 +182,7 @@ reterminald1001:
   name: reTerminal D1001
   model: reTerminal D1001
   status: stable
+  recommended: true
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, wake_when_moved, echo_cancellation]
 

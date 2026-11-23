@@ -1364,6 +1364,7 @@ describe("the orientation of a new screen", () => {
 
   it("offers the two ways glass that is not square can hang under Advanced, each with the cells it gives (app 0.4.85)", async () => {
     const view = await installer();
+    await view.find('input[value="cyd"]').setValue();
     const options = view.findAll("#grid-fields #orientation-fields .orient");
     expect(options).toHaveLength(2);
     expect(options.map((option) => option.find("b").text())).toEqual(["Lying down", "Standing up"]);
@@ -1393,22 +1394,27 @@ describe("the orientation of a new screen", () => {
     const view = await installer();
     const rows = view.findAll(".board");
     // Matching models share a card in catalog order; different chips or resolutions have their own specifications. The
-    // families with a stable model come first, in a section of their own, each card standing for its stable model; the
-    // new and experimental ones follow (app 0.4.102).
+    // families with a recommended model come first, in a section of their own, each card standing for that model; every
+    // other one follows, with how far it has been tried (app 0.4.102).
     const ordered = Object.entries(boards).sort(([, a]: any, [, b]: any) => a.order - b.order);
     const same = (a: any, b: any) => a.name === b.name && a.inch === b.inch && a.chip === b.chip && a.width === b.width && a.height === b.height;
     const families = ordered.filter(([, board]: any, index) => ordered.findIndex(([, other]: any) => same(other, board)) === index)
       .map(([, first]: any) => ordered.filter(([, board]: any) => same(board, first)));
-    const lead = (family: any[]) => (family.find(([, board]: any) => board.status === "stable") || family[0])[0];
-    const proven = families.filter((family) => family.some(([, board]: any) => board.status === "stable")).map(lead);
-    const trying = families.filter((family) => !family.some(([, board]: any) => board.status === "stable")).map(lead);
-    expect(rows.map((row) => row.find("input").attributes("value"))).toEqual([...proven, ...trying]);
-    expect(view.findAll(".board-tier.proven .board").map((row) => row.find("input").attributes("value"))).toEqual(proven);
-    expect(view.find(".board-tier.proven h2").text()).toContain("Proven on real screens");
-    expect(view.find(".board-tier.trying h2").text()).toBe("New and experimental");
-    expect(view.findAll(".board-tier.proven .board-badge")).toHaveLength(0);
-    expect(rows[0].find("b").text()).toBe("CYD · 2.8 inch");
-    expect(rows[0].findAll("small").map((line) => line.text())).toEqual(["320 × 240 · XPT2046", "2 models"]);
+    const picked = ([, board]: any) => board.status === "stable" && board.recommended;
+    const lead = (family: any[]) => (family.find(picked) || family.find(([, board]: any) => board.status === "stable") || family[0])[0];
+    const recommended = families.filter((family) => family.some(picked)).map(lead);
+    const more = families.filter((family) => !family.some(picked)).map(lead);
+    expect(recommended).toEqual(["guition", "jc8012p4a1v3", "reterminald1001"]);
+    expect(rows.map((row) => row.find("input").attributes("value"))).toEqual([...recommended, ...more]);
+    expect(view.findAll(".board-tier.recommended .board").map((row) => row.find("input").attributes("value"))).toEqual(recommended);
+    expect(view.find(".board-tier.recommended h2").text()).toContain("Recommended");
+    expect(view.find(".board-tier.more h2").text()).toBe("More boards");
+    expect(view.findAll(".board-tier.recommended .board-badge")).toHaveLength(0);
+    // The CYD is proven but not promoted: it leads the other boards, marked Proven.
+    expect(view.find('.board-tier.more input[value="cyd"]').element.closest("label")!.querySelector(".board-badge")!.textContent).toBe("Proven");
+    const cyd = view.find('input[value="cyd"]').element.closest("label")!;
+    expect(cyd.querySelector("b")!.textContent).toBe("CYD · 2.8 inch");
+    expect([...cyd.querySelectorAll("small")].map((line) => line.textContent)).toEqual(["320 × 240 · XPT2046", "2 models"]);
     expect(view.find('input[value="guition"]').element.closest("label")!.textContent).toContain("480 × 480 · GT911");
     expect(view.find('input[value="jc8012p4a1v3"]').element.closest("label")?.textContent).toContain("Guition · 10.1 inch");
     // Each board drawn in its own proportions with the tiles of one page lying down, and to scale by its size (app 0.4.32).
@@ -1417,8 +1423,10 @@ describe("the orientation of a new screen", () => {
     expect(art("jc8012p4a1v3").querySelectorAll(".da-tile")).toHaveLength(25);
     expect(art("guition").querySelector("svg")!.getAttribute("viewBox")).toBe("-7 -7 114 114");
     expect(art("jc8012p4a1v3").getAttribute("style")).toContain("--inch: 10.1");
-    // The first board is chosen to begin with, with what it can do; the CYD asks for a touch calibration first.
+    // The first recommended board is chosen to begin with, with what it can do; the CYD asks for a touch calibration first.
     expect((rows[0].find("input").element as HTMLInputElement).checked).toBe(true);
+    expect(rows[0].find("input").attributes("value")).toBe("guition");
+    await view.find('input[value="cyd"]').setValue();
     expect(view.findAll("#board-abilities li").map((li) => li.text())).toEqual(
       ["No camera pictures", "Dimmable backlight", "Standby and night", "Touch calibration on first start"]);
     expect(view.find("#board-status").exists()).toBe(false);
@@ -1528,6 +1536,7 @@ describe("the orientation of a new screen", () => {
 
   it("offers a board's own choices, starting at the board file's value, and sends only one that differs", async () => {
     const view = await installer();
+    await view.find('input[value="cyd"]').setValue();
     const options = view.findAll("#choice-DISPLAY_MODEL .choice");
     expect(view.find("#choice-DISPLAY_MODEL legend").text()).toBe("Display controller");
     expect(options.map((option) => option.find("b").text())).toEqual(["ILI9341", "ST7789V"]);
@@ -1537,6 +1546,7 @@ describe("the orientation of a new screen", () => {
     await flush();
     expect(answers.pop().choices).toBeUndefined();
     const other = await installer();
+    await other.find('input[value="cyd"]').setValue();
     await other.findAll("#choice-DISPLAY_MODEL .choice input")[1].setValue("ST7789V");
     await other.find("#friendly_name").setValue("Hall");
     await other.find("#install-form").trigger("submit");
@@ -1576,6 +1586,7 @@ describe("the orientation of a new screen", () => {
 
   it("sends the chosen way with the new screen", async () => {
     const view = await installer();
+    await view.find('input[value="cyd"]').setValue();
     await view.findAll("#orientation-fields .orient input")[1].setValue("portrait");
     await view.find("#friendly_name").setValue("Hall");
     await view.find("#install-form").trigger("submit");

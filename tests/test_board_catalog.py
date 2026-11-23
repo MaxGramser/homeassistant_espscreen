@@ -61,6 +61,10 @@ class Catalog(unittest.TestCase):
             chain = [path.name for path in profiles.chain(profiles.BOARDS[board])]
             self.assertEqual(catalog['calibrate'], 'resistive-touch.yaml' in chain, board)
             self.assertIn(catalog['status'], ('stable', 'new', 'experimental'), board)
+            # Only a stable board is recommended, the pick New screen shows first (boards.yaml `recommended`).
+            self.assertIs(type(catalog['recommended']), bool, board)
+            if catalog['recommended']:
+                self.assertEqual(catalog['status'], 'stable', board)
             for key, options in catalog['choices'].items():
                 self.assertEqual(options[0], values[key].strip('"'), f'{board} {key}: the board file\'s own value first')
 
