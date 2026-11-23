@@ -2316,6 +2316,7 @@
         "too_short": "Au moins {n} caractères."
       },
       "tabs": {
+        "all": "Tous",
         "tiles": "Tuiles",
         "screensavers": "Écrans de veille",
         "functions": "Fonctions",
@@ -2354,6 +2355,7 @@
         "used": "Les plus utilisés"
       },
       "none_in_tab": {
+        "all": "Pas encore de plugins.",
         "tiles": "Pas encore de plugins avec des tuiles.",
         "screensavers": "Pas encore de plugins d'écran de veille.",
         "functions": "Pas encore de plugins pour tout l'écran.",

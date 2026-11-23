@@ -4355,6 +4355,7 @@
         "too_short": "Minstens {n} tekens."
       },
       "tabs": {
+        "all": "Alles",
         "tiles": "Tegels",
         "screensavers": "Screensavers",
         "functions": "Functies",
@@ -4393,6 +4394,7 @@
         "used": "Meest gebruikt"
       },
       "none_in_tab": {
+        "all": "Nog geen plugins.",
         "tiles": "Nog geen plugins met tegels.",
         "screensavers": "Nog geen screensaver-plugins.",
         "functions": "Nog geen plugins voor het hele scherm.",

@@ -2316,6 +2316,7 @@
         "too_short": "Mindestens {n} Zeichen."
       },
       "tabs": {
+        "all": "Alle",
         "tiles": "Kacheln",
         "screensavers": "Bildschirmschoner",
         "functions": "Funktionen",
@@ -2354,6 +2355,7 @@
         "used": "Am meisten genutzt"
       },
       "none_in_tab": {
+        "all": "Noch keine Plugins.",
         "tiles": "Noch keine Plugins mit Kacheln.",
         "screensavers": "Noch keine Bildschirmschoner-Plugins.",
         "functions": "Noch keine Plugins für den ganzen Bildschirm.",

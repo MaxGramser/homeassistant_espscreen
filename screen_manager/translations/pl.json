@@ -2316,6 +2316,7 @@
         "too_short": "Co najmniej {n} znaków."
       },
       "tabs": {
+        "all": "Wszystkie",
         "tiles": "Kafelki",
         "screensavers": "Wygaszacze",
         "functions": "Funkcje",
@@ -2354,6 +2355,7 @@
         "used": "Najczęściej używane"
       },
       "none_in_tab": {
+        "all": "Jeszcze brak wtyczek.",
         "tiles": "Nie ma jeszcze wtyczek z kafelkami.",
         "screensavers": "Nie ma jeszcze wtyczek wygaszacza.",
         "functions": "Nie ma jeszcze wtyczek dla całego ekranu.",

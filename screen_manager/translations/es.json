@@ -2316,6 +2316,7 @@
         "too_short": "Al menos {n} caracteres."
       },
       "tabs": {
+        "all": "Todos",
         "tiles": "Mosaicos",
         "screensavers": "Salvapantallas",
         "functions": "Funciones",
@@ -2354,6 +2355,7 @@
         "used": "Más usados"
       },
       "none_in_tab": {
+        "all": "Aún no hay plugins.",
         "tiles": "Aún no hay plugins con mosaicos.",
         "screensavers": "Todavía no hay plugins de salvapantallas.",
         "functions": "Aún no hay plugins para toda la pantalla.",

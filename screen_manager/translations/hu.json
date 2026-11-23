@@ -2316,6 +2316,7 @@
         "too_short": "Legalább {n} karakter."
       },
       "tabs": {
+        "all": "Mind",
         "tiles": "Csempék",
         "screensavers": "Képernyővédők",
         "functions": "Funkciók",
@@ -2354,6 +2355,7 @@
         "used": "Leggyakrabban használt"
       },
       "none_in_tab": {
+        "all": "Még nincsenek bővítmények.",
         "tiles": "Még nincs csempés bővítmény.",
         "screensavers": "Még nincs képernyővédő plugin.",
         "functions": "Még nincs bővítmény az egész kijelzőhöz.",

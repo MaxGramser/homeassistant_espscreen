@@ -2316,6 +2316,7 @@
         "too_short": "Almeno {n} caratteri."
       },
       "tabs": {
+        "all": "Tutti",
         "tiles": "Riquadri",
         "screensavers": "Salvaschermi",
         "functions": "Funzioni",
@@ -2354,6 +2355,7 @@
         "used": "Più usati"
       },
       "none_in_tab": {
+        "all": "Ancora nessun plugin.",
         "tiles": "Ancora nessun plugin con riquadri.",
         "screensavers": "Ancora nessun plugin salvaschermo.",
         "functions": "Ancora nessun plugin per tutto lo schermo.",

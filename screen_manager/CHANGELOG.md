@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The plugin store opens on all plugins.** It used to open on Tiles, which looked like everything there was. An All tab now comes first, and the tabs by kind still narrow the list.
+
 - **Updating every screen goes a lot faster.** In Update all and the nightly round, the next screen is built while the one before restarts and is checked, so the build server never sits idle. A screen still installs only once the screens before it passed their check, so a bad firmware never reaches a second screen. The fixed 2 minute pause between two screens is gone, and a screen that failed for a reason that has nothing to do with its firmware (a download that did not come, a screen that was away for a moment) goes once more at the end of the round instead of stopping it.
 
 - **Events is laid out like Settings.** Events opens on a list of its parts, Alerts, Doorbell, Alarm and Calls, each with a line of what is set (your automations, your alarm panels, the ring of a call), and each opens on a page of its own. Settings, a screen's settings and Events now share one design.

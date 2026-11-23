@@ -4355,6 +4355,7 @@
         "too_short": "At least {n} characters."
       },
       "tabs": {
+        "all": "All",
         "tiles": "Tiles",
         "screensavers": "Screensavers",
         "functions": "Functions",
@@ -4393,6 +4394,7 @@
         "used": "Most used"
       },
       "none_in_tab": {
+        "all": "No plugins yet.",
         "tiles": "No plugins with tiles yet.",
         "screensavers": "No screensaver plugins yet.",
         "functions": "No plugins for the whole screen yet.",

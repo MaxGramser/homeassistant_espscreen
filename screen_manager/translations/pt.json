@@ -2316,6 +2316,7 @@
         "too_short": "Pelo menos {n} caracteres."
       },
       "tabs": {
+        "all": "Todos",
         "tiles": "Mosaicos",
         "screensavers": "Proteções de ecrã",
         "functions": "Funções",
@@ -2354,6 +2355,7 @@
         "used": "Mais usados"
       },
       "none_in_tab": {
+        "all": "Ainda sem plugins.",
         "tiles": "Ainda não há plugins com mosaicos.",
         "screensavers": "Ainda não há plugins de proteção de ecrã.",
         "functions": "Ainda não há plugins para o ecrã inteiro.",
