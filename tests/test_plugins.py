@@ -2438,6 +2438,41 @@ class BuildOutcome(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('log', service.store.get('hall', 'clock_words'))
         self.assertIn('clock_words', (config / 'hall.plugins.yaml').read_text())
 
+    async def test_a_build_the_app_restarted_during_starts_once_more_by_itself(self):
+        service, config, started = self.make(['success'])
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        record = service.store.get('hall', 'clock_words')
+        service.store.put('hall', dict(record, state='building'))   # the app stopped while it built
+        service.settle()
+        build = service.manager.build_queue.running or service.manager.build_queue.line[0]
+        self.assertEqual((build.by, build.plugins['add']), ('plugins', ['clock_words']))
+        self.assertTrue(service.store.get('hall', 'clock_words')['resumed'])
+        await service.manager.build_queue.idle()
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual(record['state'], 'active')
+        self.assertNotIn('resumed', record)
+
+    async def test_a_build_cut_off_twice_fails_with_its_log(self):
+        service, config, started = self.make()
+        await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder'}]}, queue=False)
+        record = service.store.get('hall', 'clock_words')
+        service.store.put('hall', dict(record, state='building', resumed=1))
+        service.settle()
+        self.assertEqual(started, [])
+        record = service.store.get('hall', 'clock_words')
+        self.assertEqual((record['state'], record['reason']), ('failed', 'interrupted'))
+        self.assertNotIn('resumed', record)
+
+    async def test_a_cut_off_build_waits_for_its_screen_and_fails_only_long_after_the_start(self):
+        service, config, started = self.make(host=None)
+        record = {'id': 'clock_words', 'source': 'folder', 'version': '0.1.0', 'state': 'building'}
+        service.store.put('hall', record)
+        service.settle()
+        self.assertEqual((service.store.get('hall', 'clock_words')['state'], started), ('building', []))
+        service.started_at -= service.RESUME_WAIT + 1
+        service.settle()
+        self.assertEqual(service.store.get('hall', 'clock_words')['state'], 'failed')
+
     async def test_an_update_that_fails_goes_back_to_what_worked(self):
         service, config, _ = self.make(['success', 'failed'])
         await service.apply('hall', {'add': [{'id': 'clock_words', 'source': 'folder', 'parts': []}]})

@@ -6353,13 +6353,16 @@ def create_app(manager, development=False):
 
         async def plugins_counting_start(app):
             manager.plugins.counting_task = asyncio.create_task(manager.plugins.counting())
+            # A plugin build the app restarted during starts once more by itself (Plugins.settle, docs/BUILDS.md).
+            manager.plugins.resume_task = asyncio.create_task(manager.plugins.resume_after_start())
 
         async def plugins_counting_stop(app):
-            task = getattr(manager.plugins, 'counting_task', None)
-            if task and not task.done():
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+            for name in ('counting_task', 'resume_task'):
+                task = getattr(manager.plugins, name, None)
+                if task and not task.done():
+                    task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await task
         app.on_startup.append(plugins_counting_start)
         app.on_cleanup.append(plugins_counting_stop)
 

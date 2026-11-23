@@ -411,6 +411,9 @@ def read_folder(folder):
 class Plugins:
     def __init__(self, manager, data_dir, config_dir, session_factory=None):
         self.manager = manager
+        # When this app started: a plugin build the app restarted during is started once more (settle) as soon as its
+        # screen has an address again, and only failed when it still has none this long after the start.
+        self.started_at = time.time()
         self.data = Path(data_dir) / 'plugins'
         self.config = Path(config_dir)
         self.store = PluginStore(Path(data_dir) / 'plugins.json')
@@ -1207,24 +1210,69 @@ class Plugins:
             LOG.warning('Plugin %s: picture not kept (%s)', entry.id, error)
         return body
 
+    # How long after its start the app waits for a screen's address before a plugin build it restarted during counts as
+    # failed: Home Assistant names the screens' addresses within a minute of a start.
+    RESUME_WAIT = 600
+
     def settle(self):
         """What a plugin's record says squared with what its screen runs, for a screen without a build on its way: a
-        plugin the screen reports at that version is active (built elsewhere: ESPHome Device Builder, a computer), and one
-        still building without a build is failed (the app restarted during it), so the editor offers to build again
-        instead of waiting for ever."""
+        plugin the screen reports at that version is active (built elsewhere: ESPHome Device Builder, a computer). One
+        still building without a build lost its build to a restart of the app (an update of the app, a restart of Home
+        Assistant): it is built once more, by itself (`resumed`), since its plugins file already holds it. Only a build
+        that was started again and lost again, or a screen without an address long after the start, counts as failed,
+        so the editor offers to build again instead of waiting for ever."""
         running = self.running()
         line = getattr(self.manager, 'build_queue', None)
         for inbox, records in self.store.everywhere().items():
             if line and line.on_the_way(screen=inbox):
                 continue
             reported = {item['id']: item.get('version') for item in running.get(inbox) or []}
+            again = []
             for record in records:
                 state = record.get('state', 'active')
                 if state in ('building', 'failed') and reported.get(record['id']) == record.get('version'):
                     self._settle_build(inbox, [record['id']], True, None)
+                elif state == 'building' and not record.get('resumed') and line is not None:
+                    again.append(record)
                 elif state == 'building':
-                    # The app restarted during its build: the log that build wrote until then is kept on disk.
+                    # The app restarted during its build (twice): the log that build wrote until then is kept on disk.
                     self._settle_build(inbox, [record['id']], False, 'interrupted', self._last_log(inbox))
+            if again:
+                self._resume(inbox, again)
+
+    def _resume(self, inbox, records):
+        """Build a screen once more for the plugins a restart of the app cut off. Its plugins file holds them already; the
+        build is the one the person asked for, and ends as any plugin build does (_built), back to what worked when it
+        fails. A screen without an address waits until it has one, or fails once RESUME_WAIT has passed."""
+        screen = self.manager.screen(inbox)
+        profile, host = self.manager.updates.resolve(screen) if screen else (None, None)
+        if not profile or not host:
+            if time.time() - self.started_at > self.RESUME_WAIT:
+                self._settle_build(inbox, [r['id'] for r in records], False, 'interrupted', self._last_log(inbox))
+            return
+        for record in records:
+            self.store.put(inbox, dict(record, resumed=int(time.time())))
+        LOG.info('Plugins of %s: the build a restart cut off starts once more (%s)', screen.get('name') or inbox,
+                 ', '.join(r['id'] for r in records))
+        build = self.manager.build_queue.add('plugins', profile, self._build, screen=inbox, target=host,
+                                             plugins={'add': [r['id'] for r in records]})
+        if self._built not in build.ends:
+            build.ends.append(self._built)
+        notify = getattr(self.manager, 'notify', None)
+        if notify:
+            notify()
+
+    async def resume_after_start(self):
+        """After a start: what a restart cut off is built once more as soon as its screen has an address (settle), also
+        while nobody opens the editor."""
+        while time.time() - self.started_at <= self.RESUME_WAIT + 60:
+            await asyncio.sleep(30)
+            try:
+                self.settle()
+            except Exception:   # the next look, or the editor's, settles it
+                LOG.exception('Plugins: settling after the start')
+            if not any(r.get('state') == 'building' for records in self.store.everywhere().values() for r in records):
+                return
 
     def payload(self, language='en'):
         self.settle()
@@ -1833,19 +1881,20 @@ class Plugins:
             if not record:
                 continue
             if ok:
-                for key in ('previous', 'failed_update', 'reason', 'log'):
+                for key in ('previous', 'failed_update', 'reason', 'log', 'resumed'):
                     record.pop(key, None)
                 # `settled`: when it went on, so the screen gets its reboot before its hello is held against it (runs).
                 self.store.put(inbox, dict(record, state='active', settled=int(time.time())))
             elif record.get('previous'):
-                back = dict(record['previous'], state='active',
+                back = dict({k: v for k, v in record['previous'].items() if k != 'resumed'}, state='active',
                             failed_update={'version': record.get('version'), 'ref': record.get('ref'), 'reason': reason,
                                            'log': log})
                 self.store.put(inbox, back)
                 rewrite = True
             else:
                 # The build's log kept on disk (build_logs.py): the editor offers it with the failure.
-                self.store.put(inbox, dict(record, state='failed', reason=reason, log=log))
+                self.store.put(inbox, {**{k: v for k, v in record.items() if k != 'resumed'}, 'state': 'failed',
+                                       'reason': reason, 'log': log})
                 rewrite = True
         if rewrite:
             self._know_tiles()

@@ -83,6 +83,12 @@ the one whose log matters most, so every build that runs an ESPHome step also wr
 reads as `interrupted`. The newest 40 stay; the clean-up of build files leaves them alone. The lines are redacted before
 they get there, as on the page.
 
+A plugin build the app restarted during (an update of the app, a restart of Home Assistant) starts once more by itself:
+its plugins file already holds the plugins, so `Plugins.settle` queues the same build again as soon as the screen has an
+address, at the start (`resume_after_start`) and whenever the editor asks. The record is marked `resumed`; a build that is
+cut off a second time, or a screen still without an address ten minutes after the start (`RESUME_WAIT`), counts as failed
+(`interrupted`), with the log it wrote until then.
+
 A build names its log by that key (`log` in the line), and so does a plugin that did not build (`log` on a failed plugin,
 `failed_update.log` on an update the screen went back from). `GET api/firmware/logs` lists the kept logs, newest first,
 and `GET api/firmware/logs/{key}` sends one as a file. In the editor:
