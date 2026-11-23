@@ -3717,6 +3717,16 @@
         "new": "Nouveau : essayé sur peu d'écrans pour l'instant. Dites-nous ce que ça donne.",
         "experimental": "Expérimental : pas encore essayé sur ce matériel. Dites-nous ce que ça donne."
       },
+      "tiers": {
+        "proven": {
+          "title": "Éprouvés sur de vrais écrans",
+          "lead": "Testés par le projet sur ses propres écrans et utilisés au quotidien. Le choix le plus sûr."
+        },
+        "trying": {
+          "title": "Nouveaux et expérimentaux",
+          "lead": "Faits pour ces cartes mais pas encore éprouvés : les nouvelles tournent sur quelques écrans, les expérimentales n'ont pas encore été essayées sur le matériel. Attendez-vous à quelques imperfections et dites-nous comment ça se passe."
+        }
+      },
       "abilities": {
         "camera": "Images de caméra",
         "no_camera": "Pas d'images de caméra",

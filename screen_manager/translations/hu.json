@@ -3717,6 +3717,16 @@
         "new": "Új: eddig csak néhány kijelzőn próbálták ki. Mondd el, hogy működik.",
         "experimental": "Kísérleti: ezen a hardveren még nem próbálták ki. Mondd el, hogy működik."
       },
+      "tiers": {
+        "proven": {
+          "title": "Valódi kijelzőkön bevált",
+          "lead": "A projekt a saját kijelzőin tesztelte, és naponta használja. A legbiztosabb választás."
+        },
+        "trying": {
+          "title": "Új és kísérleti",
+          "lead": "Ezekhez a lapokhoz készült, de még nem bevált: az újak eddig csak néhány kijelzőn futnak, a kísérletieket még nem próbálták ki a hardveren. Számíts apróbb hibákra, és mondd el, hogyan megy."
+        }
+      },
       "abilities": {
         "camera": "Kameraképek",
         "no_camera": "Nincsenek kameraképek",

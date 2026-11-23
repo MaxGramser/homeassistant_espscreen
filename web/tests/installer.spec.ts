@@ -2,7 +2,7 @@
 // families, which way a board hangs and the grids it takes, a name another screen carries, the ways in and what is sent.
 import { describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
-import { arrivalOf, ARRIVE_MS, bestGrid, boardFamilies, boardOrientations, boardsMatching, canStep, familyLines, familyOf, familyStatus,
+import { arrivalOf, ARRIVE_MS, bestGrid, boardFamilies, boardOrientations, boardsMatching, canStep, familyLead, familyLines, familyOf, familyStatus, familyTiers,
   gridRange, installWays, nameClash, portLabel, profileRequest, sizeCount, sizeOfInch, wayHint, wayTarget, type BoardRow, type InstallForm } from "../src/model/installer";
 import { elapsedText, followDetail, followTitle, stepLabel, type Follow } from "../src/model/install-progress";
 import { useArrival } from "../src/composables/useArrival";
@@ -36,6 +36,14 @@ describe("which screen", () => {
     expect(familyLines(families[1])).toEqual(["M-b", "320 × 240 · GT911"]);
     expect(familyOf(ROWS, ROWS[1]).map((b) => b.key)).toEqual(["a", "a2"]);
     expect([sizeCount(ROWS, ""), sizeCount(ROWS, "medium")]).toEqual([3, 1]);
+  });
+  it("puts the proven families first and apart, and a click on one picks its stable model", () => {
+    const tiers = familyTiers(boardFamilies(ROWS));
+    expect(tiers.proven.map((family) => family[0].key)).toEqual(["a", "c"]);
+    expect(tiers.trying.map((family) => family[0].key)).toEqual(["b"]);
+    const mixed = [{ ...ROWS[0], status: "new" as const }, { ...ROWS[1], status: "stable" as const }];
+    expect(familyLead(mixed).key).toBe("a2");
+    expect(familyLead(tiers.trying[0]).key).toBe("b");
   });
 });
 

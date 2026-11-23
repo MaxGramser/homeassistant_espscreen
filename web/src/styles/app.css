@@ -1378,6 +1378,20 @@ td code { white-space: nowrap; }
 .board-badge.new { color: var(--accent); }
 .board-check { position: absolute; top: 20px; right: 20px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 14px; opacity: 0; transform: scale(0.6); transition: opacity 0.15s, transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 .board.chosen .board-check { opacity: 1; transform: none; }
+/* The proven boards stand apart (app 0.4.102): a soft panel, larger cards and drawings; the new and experimental ones
+ * follow under their own heading, smaller, with space rather than a line between. */
+.board-tier { display: grid; gap: 12px; }
+.board-tier-head { display: grid; gap: 3px; }
+.board-tier-head h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 15px; font-weight: 650; color: var(--ink); }
+.board-tier-head p { margin: 0; font-size: 12.5px; color: var(--muted); max-width: 640px; }
+.board-tier.proven { padding: 16px; border-radius: 18px; background: color-mix(in srgb, var(--good-soft) 55%, var(--surface-2)); }
+.board-tier.proven h2 .ui-icon { color: var(--good); font-size: 18px; }
+.setup .board-tier.proven .boards { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.board-tier.proven .board-art { height: 132px; }
+.board-tier.proven .board-art .device-art { max-height: calc(44px + min(var(--inch, 5), 10.5) * 7.4px); max-width: calc(64px + min(var(--inch, 5), 10.5) * 14px); }
+.board-tier.trying { margin-top: 14px; }
+.setup .board-tier.trying .boards { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.board-tier.trying .board-art { height: 88px; }
 .pick-none { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--muted); }
 .try-virtual { justify-self: start; font-weight: 500; }
 /* ② The screen large on the left, taking its name; the questions on the right. */

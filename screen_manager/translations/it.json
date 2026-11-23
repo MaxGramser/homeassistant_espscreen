@@ -3717,6 +3717,16 @@
         "new": "Nuovo: finora provato su pochi schermi. Facci sapere come va.",
         "experimental": "Sperimentale: non ancora provato su questo hardware. Facci sapere come va."
       },
+      "tiers": {
+        "proven": {
+          "title": "Collaudati su schermi reali",
+          "lead": "Provati dal progetto sui propri schermi e in uso ogni giorno. La scelta più sicura."
+        },
+        "trying": {
+          "title": "Nuovi e sperimentali",
+          "lead": "Fatti per queste schede ma non ancora collaudati: i nuovi funzionano su pochi schermi, gli sperimentali non sono ancora stati provati sull'hardware. Aspettati qualche imperfezione e facci sapere come va."
+        }
+      },
       "abilities": {
         "camera": "Immagini delle telecamere",
         "no_camera": "Niente immagini delle telecamere",

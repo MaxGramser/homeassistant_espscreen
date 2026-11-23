@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Proven boards stand apart in New screen.** The board list now opens with the boards proven on real screens (the stable ones), larger and in their own section, and puts the new and experimental boards under them with a plain line on what that means. Searching and the sizes still look through both.
+
 - **Three boards are now stable.** The reTerminal D1001, the Guition JC8012P4A1 V3 (10.1 inch) and the Waveshare ESP32-P4-WIFI6-Touch-LCD-10.1 V3 have run as everyday screens long enough to move from new or experimental to stable.
 
 - **A plugin build the app restarted during goes on by itself.** When the app was updated or Home Assistant restarted while a screen was building a plugin, the plugin used to stay behind as failed. The app now starts that build once more by itself as soon as it is back, and only says it failed when that second try is cut off too.

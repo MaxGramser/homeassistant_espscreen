@@ -3717,6 +3717,16 @@
         "new": "Nowość: na razie wypróbowana na kilku ekranach. Napisz, jak działa.",
         "experimental": "Eksperymentalny: jeszcze nie wypróbowany na tym sprzęcie. Napisz, jak działa."
       },
+      "tiers": {
+        "proven": {
+          "title": "Sprawdzone na prawdziwych ekranach",
+          "lead": "Przetestowane przez projekt na własnych ekranach i używane na co dzień. Najbezpieczniejszy wybór."
+        },
+        "trying": {
+          "title": "Nowe i eksperymentalne",
+          "lead": "Przygotowane dla tych płytek, ale jeszcze niesprawdzone: nowe działają dopiero na kilku ekranach, eksperymentalnych nie testowano jeszcze na sprzęcie. Licz się z niedociągnięciami i daj nam znać, jak poszło."
+        }
+      },
       "abilities": {
         "camera": "Obrazy z kamer",
         "no_camera": "Bez obrazów z kamer",

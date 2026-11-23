@@ -7,7 +7,8 @@ five by five cells, the glass and grid of the 10.1-inch Guition JC8012P4A1.
 
 Its display, touch and backlight settings are those of a configuration a community member runs on the board (see "Where
 it comes from" below). Nobody has reported running the pre-v3 board file itself on one, and the project has only tried the V3 board file, on
-one unit with rev3 silicon (below), so the pre-v3 board is **experimental** and the V3 board is **new**: tried on glass, not yet in every part.
+one unit with rev3 silicon (below), so the pre-v3 board is **experimental**. The V3 board is **stable**: it has run as an everyday screen long enough to be
+proven, though not every part of it has been tried (below).
 
 ## Which silicon
 
@@ -38,7 +39,7 @@ port, standby and night mode over a day, an update over the air.
 ## Install
 
 Update Tessera Screen Manager and choose **Waveshare · 10.1 inch, ESP32-P4-WIFI6-Touch-LCD-10.1**, or the one that
-ends in **V3** for a board with rev3 silicon (marked New; the first is marked Experimental), in **New screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi
+ends in **V3** for a board with rev3 silicon (among the proven boards; the first is marked Experimental), in **New screen**. Follow [Easy setup](EASY_SETUP.md) to create a profile with its own name, Wi-Fi
 references and unique API/OTA keys. Keep an existing working profile if the board is already installed.
 
 The remote package is `packages/waveshare101.yaml` and the checkout entry `checkout/waveshare101.yaml` (for rev3

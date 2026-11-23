@@ -3240,6 +3240,16 @@
         "new": "Nieuw: tot nu toe op maar een paar schermen geprobeerd. Laat ons weten hoe het gaat.",
         "experimental": "Experimenteel: nog niet op deze hardware geprobeerd. Laat ons weten hoe het gaat."
       },
+      "tiers": {
+        "proven": {
+          "title": "Bewezen op echte schermen",
+          "lead": "Door het project zelf getest op eigen schermen en dagelijks in gebruik. De veiligste keus."
+        },
+        "trying": {
+          "title": "Nieuw en experimenteel",
+          "lead": "Gemaakt voor deze borden maar nog niet bewezen: Nieuw draait pas op een paar schermen, Experimenteel is nog niet op de hardware geprobeerd. Reken op ruwe randjes en laat ons weten hoe het gaat."
+        }
+      },
       "abilities": {
         "camera": "Camerabeelden",
         "no_camera": "Geen camerabeelden",

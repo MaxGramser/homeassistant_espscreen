@@ -1392,21 +1392,31 @@ describe("the orientation of a new screen", () => {
   it("lists every board of the catalog in its order, named and described from its data alone", async () => {
     const view = await installer();
     const rows = view.findAll(".board");
-    // Matching models share a card in catalog order; different chips or resolutions have their own specifications.
+    // Matching models share a card in catalog order; different chips or resolutions have their own specifications. The
+    // families with a stable model come first, in a section of their own, each card standing for its stable model; the
+    // new and experimental ones follow (app 0.4.102).
     const ordered = Object.entries(boards).sort(([, a]: any, [, b]: any) => a.order - b.order);
-    const firsts = ordered.filter(([, board]: any, index) => ordered.findIndex(([, other]: any) => other.name === board.name && other.inch === board.inch
-      && other.chip === board.chip && other.width === board.width && other.height === board.height) === index).map(([key]) => key);
-    expect(rows.map((row) => row.find("input").attributes("value"))).toEqual(firsts);
+    const same = (a: any, b: any) => a.name === b.name && a.inch === b.inch && a.chip === b.chip && a.width === b.width && a.height === b.height;
+    const families = ordered.filter(([, board]: any, index) => ordered.findIndex(([, other]: any) => same(other, board)) === index)
+      .map(([, first]: any) => ordered.filter(([, board]: any) => same(board, first)));
+    const lead = (family: any[]) => (family.find(([, board]: any) => board.status === "stable") || family[0])[0];
+    const proven = families.filter((family) => family.some(([, board]: any) => board.status === "stable")).map(lead);
+    const trying = families.filter((family) => !family.some(([, board]: any) => board.status === "stable")).map(lead);
+    expect(rows.map((row) => row.find("input").attributes("value"))).toEqual([...proven, ...trying]);
+    expect(view.findAll(".board-tier.proven .board").map((row) => row.find("input").attributes("value"))).toEqual(proven);
+    expect(view.find(".board-tier.proven h2").text()).toContain("Proven on real screens");
+    expect(view.find(".board-tier.trying h2").text()).toBe("New and experimental");
+    expect(view.findAll(".board-tier.proven .board-badge")).toHaveLength(0);
     expect(rows[0].find("b").text()).toBe("CYD · 2.8 inch");
     expect(rows[0].findAll("small").map((line) => line.text())).toEqual(["320 × 240 · XPT2046", "2 models"]);
     expect(view.find('input[value="guition"]').element.closest("label")!.textContent).toContain("480 × 480 · GT911");
-    expect(view.find('input[value="jc8012p4a1"]').element.closest("label")?.textContent).toContain("Guition · 10.1 inch");
+    expect(view.find('input[value="jc8012p4a1v3"]').element.closest("label")?.textContent).toContain("Guition · 10.1 inch");
     // Each board drawn in its own proportions with the tiles of one page lying down, and to scale by its size (app 0.4.32).
     const art = (key: string) => view.find(`input[value="${key}"]`).element.closest("label")!.querySelector(".board-art") as HTMLElement;
-    expect(art("jc8012p4a1").querySelector("svg")!.getAttribute("viewBox")).toBe("-7 -7 174 114");
-    expect(art("jc8012p4a1").querySelectorAll(".da-tile")).toHaveLength(25);
+    expect(art("jc8012p4a1v3").querySelector("svg")!.getAttribute("viewBox")).toBe("-7 -7 174 114");
+    expect(art("jc8012p4a1v3").querySelectorAll(".da-tile")).toHaveLength(25);
     expect(art("guition").querySelector("svg")!.getAttribute("viewBox")).toBe("-7 -7 114 114");
-    expect(art("jc8012p4a1").getAttribute("style")).toContain("--inch: 10.1");
+    expect(art("jc8012p4a1v3").getAttribute("style")).toContain("--inch: 10.1");
     // The first board is chosen to begin with, with what it can do; the CYD asks for a touch calibration first.
     expect((rows[0].find("input").element as HTMLInputElement).checked).toBe(true);
     expect(view.findAll("#board-abilities li").map((li) => li.text())).toEqual(
@@ -1450,7 +1460,7 @@ describe("the orientation of a new screen", () => {
 
   it("asks which model a screen of several models is, in sight in the second step (app 0.4.32)", async () => {
     const view = await installer();
-    await view.find('input[value="jc8012p4a1"]').setValue();
+    await view.find('input[value="jc8012p4a1v3"]').setValue();
     await view.find("#setup-next").trigger("click");
     const models = view.findAll("#board-model .model");
     expect(models.map((row) => row.find("b").text())).toEqual(["JC8012P4A1", "JC8012P4A1 V3", "JC8012P4A1 V2"]);

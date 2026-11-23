@@ -1,4 +1,5 @@
-# The boards ESP Screens ships, in the order New screen offers them (docs/ADDING_A_BOARD.md).
+# The boards ESP Screens ships, in the order New screen offers them within its two sections, the stable boards first
+# and apart, then the new and experimental ones (docs/ADDING_A_BOARD.md).
 #
 # One entry per board, keyed by the word ESP Screens knows it by (the BOARD_ID its firmware reports, and the name of
 # packages/<key>.yaml, the entry a screen installed from ESP Screens builds from over GitHub, and of checkout/<key>.yaml,

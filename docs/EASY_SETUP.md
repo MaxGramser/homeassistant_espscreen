@@ -11,12 +11,23 @@ This works with Home Assistant OS on a 64-bit Raspberry Pi or an amd64 machine,
 and one of these exact screen variants. The ESPHome CLI is included in Tessera Screen Manager;
 ESPHome Device Builder is optional:
 
+**Proven on real screens.** The project tried these on its own glass and runs them every day: the safest choice.
+
 | Choice | Hardware |
 | --- | --- |
 | CYD, 2.8 inch | ESP32-2432S028, 320×240, ILI9341 and XPT2046 |
-| CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Guition, 4 inch | ESP32-S3-4848S040, 480×480, ST7701S and GT911 |
 | Waveshare, 4.3 inch | ESP32-S3-Touch-LCD-4.3, 800×480, ST7262 and GT911, 16 MB or 8 MB flash (New screen asks which) |
+| Waveshare P4, 10.1 inch V3 | ESP32-P4-WIFI6-Touch-LCD-10.1 with rev3 ESP32-P4 silicon ("chip revision: v3" in the USB log), 1280×800, JD9365 MIPI-DSI and GT911 ([details](WAVESHARE101.md)) |
+| Guition, 10.1 inch V3 | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
+| reTerminal D1001, 8 inch | Seeed reTerminal D1001, 800×1280, JD9365 MIPI-DSI and GSL3670, ESP32-P4 ([details](RETERMINALD1001.md)) |
+
+**New and experimental.** Made for these boards but not yet proven. A new one runs on a few screens so far; an
+experimental one is built and rendered but not yet tried on the hardware. Expect rough edges, and say how it goes.
+
+| Choice | Hardware |
+| --- | --- |
+| CYD, 2.8 inch ILI9342 (experimental) | ESP32-2432S028 with an ILI9342 display controller, 320×240, XPT2046 |
 | Waveshare, 4.3 inch 4.3C (experimental) | ESP32-S3-Touch-LCD-4.3C (not the 4.3), 800×480, ST7262 and GT911, CH32V003 expander ([details](WAVESHARE43C.md)) |
 | Waveshare, 5 inch (new) | ESP32-S3-Touch-LCD-5 (not the 5B), 800×480, RGB and GT911 ([details](WAVESHARE5.md)) |
 | Guition, 5 inch (experimental) | JC8048W550C_I (the capacitive variant only), 800×480, ST7262 RGB and GT911 ([details](JC8048W550.md)) |
@@ -36,8 +47,6 @@ ESPHome Device Builder is optional:
 | Guition, 10.1 inch (new) | JC8012P4A1, 1280×800, JD9365 MIPI-DSI and GSL3680, ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 10.1 inch V2 (experimental) | JC8012P4A1 V2, 1280×800, JD9365 MIPI-DSI and GSL3680, early ESP32-P4 with the newer LCD ([details](JC8012P4A1.md)) |
 | Waveshare P4, 10.1 inch (experimental) | ESP32-P4-WIFI6-Touch-LCD-10.1, 1280×800, JD9365 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](WAVESHARE101.md)) |
-| Waveshare P4, 10.1 inch V3 (new) | ESP32-P4-WIFI6-Touch-LCD-10.1 with rev3 ESP32-P4 silicon ("chip revision: v3" in the USB log), 1280×800, JD9365 MIPI-DSI and GT911 ([details](WAVESHARE101.md)) |
-| Guition, 10.1 inch V3 (experimental) | JC8012P4A1 V3, 1280×800, JD9365 MIPI-DSI and GSL3680, rev3 ESP32-P4 ([details](JC8012P4A1.md)) |
 | Guition, 7 inch (experimental) | JC1060P470 or JC1060P470 V2, 1024×600, JD9165 MIPI-DSI and GT911, ESP32-P4 ([details](JC1060P470.md)) |
 | Waveshare P4, 4 inch (experimental) | ESP32-P4-86-Panel-ETH-2RO, 720×720, ST7703 MIPI-DSI and GT911, ESP32-P4 ([details](WAVESHAREP4.md)) |
 | Guition, 4.3 inch (experimental) | JC4880P443, 480×800, ST7701 MIPI-DSI and GT911, pre-v3 ESP32-P4 ([details](JC4880P443.md)) |

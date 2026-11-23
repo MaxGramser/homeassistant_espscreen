@@ -3717,6 +3717,16 @@
         "new": "Nuevo: probado en pocas pantallas hasta ahora. Cuéntanos qué tal va.",
         "experimental": "Experimental: aún no se ha probado en este hardware. Cuéntanos qué tal va."
       },
+      "tiers": {
+        "proven": {
+          "title": "Probadas en pantallas reales",
+          "lead": "Probadas por el proyecto en sus propias pantallas y en uso diario. La opción más segura."
+        },
+        "trying": {
+          "title": "Nuevas y experimentales",
+          "lead": "Hechas para estas placas pero aún no probadas: las nuevas funcionan en pocas pantallas, las experimentales aún no se han probado en el hardware. Cuenta con algún detalle por pulir y cuéntanos cómo va."
+        }
+      },
       "abilities": {
         "camera": "Imágenes de cámara",
         "no_camera": "Sin imágenes de cámara",

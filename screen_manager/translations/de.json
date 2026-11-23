@@ -3717,6 +3717,16 @@
         "new": "Neu: bisher nur auf wenigen Bildschirmen ausprobiert. Sag uns, wie es läuft.",
         "experimental": "Experimentell: auf dieser Hardware noch nicht ausprobiert. Sag uns, wie es läuft."
       },
+      "tiers": {
+        "proven": {
+          "title": "Auf echten Bildschirmen bewährt",
+          "lead": "Vom Projekt auf eigenen Displays getestet und täglich im Einsatz. Die sicherste Wahl."
+        },
+        "trying": {
+          "title": "Neu und experimentell",
+          "lead": "Für diese Boards gemacht, aber noch nicht bewährt: Neue laufen bisher auf wenigen Bildschirmen, experimentelle sind noch nicht auf der Hardware getestet. Rechne mit Ecken und Kanten und sag uns, wie es läuft."
+        }
+      },
       "abilities": {
         "camera": "Kamerabilder",
         "no_camera": "Keine Kamerabilder",
