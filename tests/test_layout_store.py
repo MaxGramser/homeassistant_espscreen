@@ -11,7 +11,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "screen_manager/app"))
 from core import Grid
 from layout_store import CommitUncertain, Conflict, LayoutStore
-from page_layout import FORMAT, LayoutError, delete_page, fingerprint
+from page_layout import FORMAT, GridAdaptationRequired, LayoutError, delete_page, fingerprint
 from layout_migrations import migrate_legacy
 
 
@@ -66,7 +66,7 @@ class LayoutStoreTests(unittest.TestCase):
         first = store.save('screen.a', self.document(), None)
         self.grids['screen.a'] = Grid(1, 4)
         before = self.path.read_bytes()
-        with self.assertRaisesRegex(LayoutError, 'adaptation'):
+        with self.assertRaises(GridAdaptationRequired):
             store.save('screen.a', first['layout'], first['revision'])
         self.assertEqual(self.path.read_bytes(), before)
         updated = store.save('screen.a', first['layout'], first['revision'], adapt_grid=True)
@@ -265,7 +265,7 @@ class LayoutStoreTests(unittest.TestCase):
         store = self.store()
         first = store.save("screen.a", self.document(), None)
         self.grids["screen.a"] = Grid(3, 3)
-        with self.assertRaises(LayoutError): store.save("screen.a", first["layout"], first["revision"])
+        with self.assertRaises(GridAdaptationRequired): store.save("screen.a", first["layout"], first["revision"])
         self.assertEqual(store.get("screen.a")["sourceGrid"], {"columns": 2, "rows": 3})
 
 

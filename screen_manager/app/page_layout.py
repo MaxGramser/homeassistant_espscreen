@@ -58,6 +58,12 @@ class LayoutError(ValueError):
     """A document cannot be represented without losing the user's choices."""
 
 
+class GridAdaptationRequired(LayoutError):
+    """The grid a layout is stored for and the grid it is saved or sent for differ, and no adaptation from the one to
+    the other was asked for that matches (layout_store.save, page_service): the words are addon.errors.pages.adaptation,
+    which say what to do (GitHub #355). Its own kind, so a caller and a test hold the reason, not the sentence."""
+
+
 class CompiledLayouts(Mapping):
     """Immutable derived inputs for existing tile formatting/card functions.
 
