@@ -210,12 +210,13 @@ function onCanvasClick(e: MouseEvent) {
       <button type="button" id="kept-discard" class="btn quiet mini" @click="drafts.discard()">{{ t('editor.draft.discard') }}</button>
       <button type="button" id="kept-restore" class="btn primary mini" @click="drafts.restore()">{{ t('editor.draft.restore') }}</button>
     </div>
-    <div v-if="doc.conflict" class="notice warn" role="alert">
+    <!-- A notice with two keys wraps them under its words on a narrow glass (.notice.choice), as the kept draft's does. -->
+    <div v-if="doc.conflict" id="layout-conflict" class="notice warn choice" role="alert">
       <Icon name="alert-circle-outline" /><span class="notice-text">{{ t('editor.pages.conflict') }}</span>
       <button type="button" class="btn quiet mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('reload')">{{ t('editor.pages.reload_saved') }}</button>
       <button type="button" class="btn primary mini" :disabled="doc.busy" @click="doc.resolveLayoutConflict('keep')">{{ t('editor.pages.keep_mine') }}</button>
     </div>
-    <div v-if="doc.gridChanged" class="notice warn" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
+    <div v-if="doc.gridChanged" class="notice warn choice" role="status"><Icon name="resize" /><span class="notice-text">{{ t('editor.pages.grid_changed') }}</span><button class="btn quiet mini" @click="doc.reviewScreenGrid">{{ t('editor.pages.grid_review') }}</button></div>
     <div v-if="positionsHint" id="positions-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ positionsHint }}</span></div>
     <div v-if="reachHint" id="page-reach-hint" class="notice warn" role="status"><Icon name="alert-circle-outline" /><span class="notice-text">{{ reachHint }}</span></div>
     <!-- A new screen: the first layout offered at once (docs/AUTO_LAYOUT.md). -->
