@@ -57,6 +57,10 @@ class P4Core(unittest.TestCase):
         self.assertIn('CHIP_REVISION: "0"', core)
         self.assertRegex(core, r"engineering_sample: '\$\{ .*CHIP_REVISION")
         self.assertRegex(core, r"DSI_PLATFORM: '\$\{ .*CHIP_REVISION")
+        # The image's lowest revision follows the same number: a chip read as v3.0 builds from v3.0, every other rev3
+        # one from ESP-IDF's default v3.1, so the header never refuses the chip the build was made for.
+        self.assertRegex(core, r"CONFIG_ESP32P4_REV_MIN_300: '\$\{ \"y\" if \(CHIP_REVISION \| int\) == 300")
+        self.assertRegex(core, r"CONFIG_ESP32P4_REV_MIN_301: '\$\{ \"y\" if \(CHIP_REVISION \| int\) > 300")
         for path in (ROOT / 'packages').rglob('*.yaml'):
             if path == CORE:
                 continue

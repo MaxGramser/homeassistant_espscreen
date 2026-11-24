@@ -28,7 +28,9 @@ LOG = logging.getLogger('screen_manager')
 KEY = 'CHIP_REVISION'
 # The highest number this takes: ESP-IDF's revisions are major x 100 + minor, with both well below 100.
 LIMIT = 9999
-# The first revision of the ESP32-P4 that a pre-v3 firmware does not boot (CONFIG_ESP32P4_SELECTS_REV_LESS_V3).
+# The first revision of the ESP32-P4 that a pre-v3 firmware does not boot (CONFIG_ESP32P4_SELECTS_REV_LESS_V3). An
+# override that says rev3 without saying which gets this: the widest rev3 build, from v3.0 on, which runs on every v3.x
+# until the screen reports its own revision (packages/hardware/esp32p4-core.yaml, CONFIG_ESP32P4_REV_MIN_300).
 P4_REV3 = 300
 # The "Screen chip" sensor's words: the chip as esptool names it and the revision.
 SENSOR = re.compile(r'(ESP32(?:-[A-Z0-9]+)?) v(\d{1,2})\.(\d{1,2})')

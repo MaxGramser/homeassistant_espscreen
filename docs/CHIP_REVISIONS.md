@@ -24,8 +24,9 @@ chip, not a choice. The packages decide what a revision needs, next to the setti
 (below). Nothing else in the add-on, the editor or the firmware knows what a revision means.
 
 A screen's YAML without the line builds the board's own default. For most ESP32-P4 boards that is `"0"`, the earlier
-silicon the first units of every P4 model carried. A board whose units all carry rev3 states `CHIP_REVISION: "300"` in
-its board file (the JC8012P4A1 V3, the Waveshare 10.1-inch V3 and 7B). The screen's own line always wins over both.
+silicon the first units of every P4 model carried. A board whose units all carry rev3 states `CHIP_REVISION: "301"` in
+its board file (the JC8012P4A1 V3, the Waveshare 10.1-inch V3 and 7B): rev3 from v3.1 on, ESP-IDF's own default
+minimum. The screen's own line always wins over both.
 
 ## Where the number comes from
 
@@ -41,7 +42,8 @@ Most certain first (`screen_manager/app/chip_revision.py`):
    a screen that was installed some other way.
 3. **An Override YAML that switched an ESP32-P4 to rev3 by hand**, with `esp32: engineering_sample: false`. That was the
    way around this before Tessera read the chip, and it says rev3 as plainly as the chip does, so a screen running on
-   that workaround gets `CHIP_REVISION: "300"` at its next update. Its firmware then reports the real number.
+   that workaround gets `CHIP_REVISION: "300"` at its next update: the widest rev3 build, from v3.0 on, which runs on
+   every v3.x. Its firmware then reports the real number, and the update after builds for that.
 
 When none of them says anything, the YAML stays as it is. The line is written only when it changes, and nothing else in
 the file moves (`Firmware.set_chip_revision`). `CHIP_REVISION` is one of the substitutions an Override YAML may not
@@ -70,6 +72,12 @@ no chip family: it holds for any revision rule ESP-IDF has or adds.
 - `P4_EV_BOARD`: ESPHome's name of Espressif's function EV board for the revision, for a hardware file that names a
   board (the Tab5's). ESPHome refuses a pre-v3 board name on a rev3 build, and the other way round. The other P4 boards
   name none.
+- The lowest revision in the image's header (`CONFIG_ESP32P4_REV_MIN_300` or `_301`). ESP-IDF builds rev3 for v3.1 and up
+  unless told otherwise, and Espressif's errata list a v3.0 with its own chip marking (X F XX,
+  [chip revision identification](https://docs.espressif.com/projects/esp-chip-errata/en/latest/esp32p4/01-chip-identification/index.html)).
+  So a chip read as v3.0 (`300`) gets an image that runs from v3.0 on, and every other rev3 reading, the boards'
+  default `301` included, gets ESP-IDF's default. Without this a v3.0 chip would be given a rev3 build its own header
+  refuses. Pre-v3 builds set neither.
 
 The CPU runs at 360 MHz on both, the most the earlier silicon takes. `tests/test_p4_core.py` keeps the rules in the core
 file alone: no board or hardware file sets `engineering_sample`, names a DSI driver or an ESP32-P4 board itself.

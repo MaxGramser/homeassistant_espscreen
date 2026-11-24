@@ -38,7 +38,7 @@ substitutions:
   BOARD_ID: "wavesharep47b"
   # The chip revision this board ships with, the default when the chip has not been read (hardware/esp32p4-core.yaml,
   # docs/CHIP_REVISIONS.md). The engineering_sample switch and the DSI driver follow from it.
-  CHIP_REVISION: "300"
+  CHIP_REVISION: "301"
   DEVICE_NAME: "wavesharep47b-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare P4 7B"
   STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)

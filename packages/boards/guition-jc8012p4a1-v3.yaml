@@ -38,7 +38,7 @@ substitutions:
   BOARD_ID: "jc8012p4a1v3"
   # Every unit of this board carries rev3 silicon: the default when the chip has not been read (hardware/esp32p4-core.yaml,
   # docs/CHIP_REVISIONS.md). The engineering_sample switch and the DSI driver follow from it.
-  CHIP_REVISION: "300"
+  CHIP_REVISION: "301"
   DEVICE_NAME: "jc8012p4a1v3-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V3"
   STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)

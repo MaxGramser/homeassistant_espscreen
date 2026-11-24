@@ -41,7 +41,7 @@ substitutions:
   BOARD_ID: "waveshare101v3"
   # The chip revision this board ships with, the default when the chip has not been read (hardware/esp32p4-core.yaml,
   # docs/CHIP_REVISIONS.md). The engineering_sample switch and the DSI driver follow from it.
-  CHIP_REVISION: "300"
+  CHIP_REVISION: "301"
   DEVICE_NAME: "waveshare101v3-new"
   DEVICE_FRIENDLY_NAME: "My Waveshare 10 V3"
   STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)

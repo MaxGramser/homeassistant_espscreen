@@ -11,7 +11,8 @@ packages:
 # so "302" is v3.2. ESP Screen Manager reads it from the chip itself (on the USB cable while it installs, and from the
 # screen's own "Screen chip" sensor after that) and writes it into the screen's own YAML, where it wins over this. "0"
 # is the board's default when nobody has read the chip: pre-v3, what the first boards of every P4 model carried. A
-# board whose units all carry rev3 states "300" in its board file. Everything below that differs between revisions
+# board whose units all carry rev3 states "301" in its board file: rev3 from v3.1, ESP-IDF's own default minimum, so an
+# image built without a reading runs on what those boards ship with. A chip read as v3.0 builds from v3.0 on (below). Everything below that differs between revisions
 # follows from this one number, here and nowhere else.
 substitutions:
   CHIP_REVISION: "0"
@@ -68,6 +69,13 @@ esp32:
       # instead of 32.1, for 889 KB more firmware (5.54 MB of the 8 MB update slot every P4 board has with its 16 or
       # 32 MB of flash). Keep the app at 6.5 MB a slot at most: above that, first see what can go before size wins again.
       CONFIG_COMPILER_OPTIMIZATION_PERF: "y"
+      # The lowest revision the image runs on, written into its header, where ESP-IDF's bootloader and the browser
+      # installer check it. On rev3 ESP-IDF builds for v3.1 and up unless told otherwise, and Espressif's errata list a
+      # v3.0 with its own marking (X F XX, docs.espressif.com/projects/esp-chip-errata/en/latest/esp32p4/
+      # 01-chip-identification/): a chip read as v3.0 gets an image from v3.0 on, every other rev3 one ESP-IDF's
+      # default. Pre-v3 builds pick neither (their minimum is ESP-IDF's choice below v1.99).
+      CONFIG_ESP32P4_REV_MIN_300: '${ "y" if (CHIP_REVISION | int) == 300 else "n" }'
+      CONFIG_ESP32P4_REV_MIN_301: '${ "y" if (CHIP_REVISION | int) > 300 else "n" }'
 
 psram:
   mode: hex
