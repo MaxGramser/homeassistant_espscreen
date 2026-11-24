@@ -215,9 +215,12 @@ class NoBoardInTheEditor(unittest.TestCase):
 
     def test_new_screen_and_the_screen_list_name_no_board(self):
         words = [board for board in profiles.CATALOG] + sorted({entry['name'] for entry in profiles.CATALOG.values()})
-        for name in ('components/InstallerView.vue', 'components/install/BoardStep.vue', 'components/install/NameStep.vue',
-                     'components/install/WayStep.vue', 'components/install/Progress.vue', 'composables/useInstaller.ts',
-                     'components/Sidebar.vue', 'model/boards.ts', 'model/installer.ts'):
+        # New screen is every file of components/install/ (one step a file since app 0.4.103, so the list follows the
+        # folder rather than naming the steps of the day), with the view, the composable and the models behind it.
+        install = sorted(f'components/install/{path.name}' for path in (ROOT / 'web/src/components/install').glob('*.vue'))
+        self.assertGreaterEqual(len(install), 5)
+        for name in ['components/InstallerView.vue', *install, 'composables/useInstaller.ts',
+                     'components/Sidebar.vue', 'model/boards.ts', 'model/installer.ts']:
             text = (ROOT / 'web/src' / name).read_text()
             for word in words:
                 self.assertIsNone(re.search(rf'["\'`]{re.escape(word)}["\'`]|\b{re.escape(word)}\b(?=\s*[:=])', text, re.I),

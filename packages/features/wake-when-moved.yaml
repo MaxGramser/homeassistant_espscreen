@@ -83,3 +83,14 @@ script:
                 id: wake_from
                 source: "the board moved"
                 sensed: true
+
+# With Debug mode on, once a second: the largest departure from rest of any axis in that second, the measurement the
+# thresholds in moved.h come from (a board lying still, then picked up as gently as a person does).
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          auto &d = moved::the();
+          float acceleration = d.take_largest(moved::ACCELERATION), turning = d.take_largest(moved::TURNING);
+          if (settings_screen::debug_mode)
+            ESP_LOGI("moved", "largest in the last second: %.4f g, %.2f degrees a second", acceleration, turning);
