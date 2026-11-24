@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **A plugin's clock face gets the icons of the clock's row.** A face of the clock from a plugin received every entity of the row with `icon` 0, so a weather entity's rain cloud or sun never showed on it while the Digital face showed it: the row's icons came as hex text (`F0597`) and the screensaver's contract for plugins kept only numbers. It now hands them as the codepoint the plugin API describes (GitHub #448).
+
 - **Notices with two choices read well on a phone.** "Another editor saved changes" and "the screen's grid changed" put their words on full lines and their keys under them, instead of one word a line.
 
 - **A clearer word when a change of grid cannot be saved.** It now says what to do: save the screen once on the grid it has, then change the grid. ([#355](https://github.com/MaxGramser/homeassistant_espscreen/issues/355))
