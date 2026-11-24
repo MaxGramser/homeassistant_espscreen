@@ -10,11 +10,15 @@ packages:
   backlight: !include ../features/backlight.yaml
   camera: !include ../features/camera.yaml
   self_test: !include ../features/self-test.yaml
+  # The BOOT key, GPIO0, as the standby key: a press puts the screen in standby or wakes it.
+  # GPIO0 also reaches the NS4168 amplifier's bit clock, which no board file drives; a speaker would take the pin from the key.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   BOARD_ID: "jc8048w550ci"
   DEVICE_NAME: "jc8048w550ci-new"
   DEVICE_FRIENDLY_NAME: "My Guition 5"
+  STANDBY_KEY_PIN: GPIO0                        # the standby key (features/standby-key.yaml)
 
   PANEL_W: "800"
   PANEL_H: "480"

@@ -31,12 +31,15 @@ packages:
   # sound (features/audio-amplifier.yaml): its hardware below.
   audio: !include ../features/audio.yaml
   audio_amplifier: !include ../features/audio-amplifier.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "crowpanel101"
   DEVICE_NAME: "crowpanel101-new"
   DEVICE_FRIENDLY_NAME: "My CrowPanel 10"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels and its density, 1187 diagonal pixels over 10.1 inches. The look scales its sizes
   # by the exact density, the firmware by the nearest whole number.

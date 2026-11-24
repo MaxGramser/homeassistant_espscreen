@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The key on the board is the standby key.** A press on the board's own key sends the screen to standby at once, with its screensaver, and a second press wakes it, as Sleep and Wake in Home Assistant do, also with Auto standby off. Until now only the reTerminal D1001's button did this; now every board that can go dark does it with its own key or its BOOT key, except the boards whose BOOT key the display uses (Guition 4848S040, Waveshare 4.3, 4.3C, 5, 7 and 7B, WT32-SC01 Plus), the Waveshare 86 panel in the wall and the M5Stack Tab5. On the Waveshare 3.5 and the Waveshare 4 (revision 4.0) it is the power key. The key also shows up in Home Assistant as Button. New firmware.
+
 - **Clearer tile names on the CYD.** On the small screens (the CYD and the Hosyond 4-inch) the names on the tiles are now drawn in medium instead of bold, so their letters no longer run into each other on the glass. They keep their width, so no name gets cut shorter. New firmware.
 
 - **Hold the home button for the screensaver.** Holding the logo at the left of the top bar for half a second sends the screen to standby at once, with its screensaver, the way it goes when the standby time runs out. A tap still goes to the Home page. It works where Auto standby is on. New firmware.

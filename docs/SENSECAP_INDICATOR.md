@@ -45,8 +45,10 @@ memory settings from `packages/hardware/esp32s3-rgb.yaml`.
 - LVGL draws through an eighth of the screen (`LVGL_BUFFER_SIZE: "12%"`), which keeps room inside the chip.
 - No camera package yet: camera tiles, snapshots and media artwork are not included. The board has the PSRAM for them,
   but nobody has tried them on it.
+- The user button on the side (GPIO38, low while pressed) is the standby key: a press puts the screen in standby or
+  wakes it (`features/standby-key.yaml`, firmware 0.64.0+).
 - Not configured: the LoRa radio, the sensors, the Grove ports, the microSD slot and the buzzer (those last four belong
-  to the RP2040), and the user button. The Indicator has no battery.
+  to the RP2040). The Indicator has no battery.
 
 ## Who tried what
 

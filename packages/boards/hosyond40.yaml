@@ -26,12 +26,15 @@ packages:
   self_test: !include ../features/self-test.yaml
   # The light on the RGB LED on the board (the outputs are below).
   led: !include ../features/rgb-led.yaml
+  # The BOOT key, GPIO0, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "hosyond40"
   DEVICE_NAME: "hosyond40-new"
   DEVICE_FRIENDLY_NAME: "My Hosyond"
+  STANDBY_KEY_PIN: GPIO0                        # the standby key (features/standby-key.yaml)
   # The bedside clock draws with the display step this board has anyway: its own digits, a page tall, cost about 40 KB of
   # a 4 MB board's slot, which is close to full (looks/shared/digits.yaml).
   BEDSIDE_OWN_DIGITS: "0"

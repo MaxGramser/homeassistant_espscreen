@@ -2654,6 +2654,21 @@ script:
           else:
             - lambda: 'id(last_touch_ms) = millis();'
 
+  # The board's own key (features/standby-key.yaml, firmware 0.64.0+): a toggle. In standby it wakes the screen as Home
+  # Assistant's Wake does; lit, it is Home Assistant's Sleep, standby at once with the screensaver, also with Auto
+  # standby off, until a tap, Wake or the key again.
+  - id: standby_key
+    then:
+      - if:
+          condition:
+            lambda: 'return id(display_dimmed);'
+          then:
+            - script.execute:
+                id: wake_from
+                source: "the board's key"
+          else:
+            - button.press: sleep_button
+
   # ---------- ALERT (HA action show_alert) ----------
   # The screen wakes, keeps its normal brightness and shows the card until OK or the
   # timeout (0: until OK); the standby interval waits on alert_active. A new alert

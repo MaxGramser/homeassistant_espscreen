@@ -29,12 +29,15 @@ packages:
   snapshot: !include ../features/snapshot.yaml
   # The ES8311, its speaker and its microphone, on the pins of the 10.1-inch circuit board below.
   audio: !include ../hardware/guition-p4-audio.yaml
+  # The BOOT key, GPIO35, as the standby key: a press puts the screen in standby or wakes it.
+  standby_key: !include ../features/standby-key.yaml
 
 substitutions:
   # The key of this board file; the firmware reports it so ESP Screens knows what board a screen is.
   BOARD_ID: "jc8012p4a1v2"
   DEVICE_NAME: "jc8012p4a1v2-new"
   DEVICE_FRIENDLY_NAME: "My Guition 10 V2"
+  STANDBY_KEY_PIN: GPIO35                        # the standby key (features/standby-key.yaml)
 
   # The glass: the panel's own pixels, which the display block below always drives; LVGL turns the picture and the
   # touch together, so nothing else on this board knows which way the glass hangs. 1509 diagonal pixels over

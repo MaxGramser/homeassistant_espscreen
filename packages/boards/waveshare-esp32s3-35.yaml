@@ -112,3 +112,21 @@ display:
     data_rate: 40MHz   # conservative; raise once the rest of the profile is confirmed stable
     update_interval: never
     auto_clear_enabled: false
+
+# The PWR key as the standby key: a press puts the screen in standby or wakes it (the core's script standby_key, as
+# features/standby-key.yaml does for a key on a pin of the chip). The key reaches the ESP32-S3 only through the
+# expander: PWRON, an inverter, SYS_OUT, EXIO6, high while pressed (schematic V2; Waveshare's BSP,
+# BSP_BUTTON_PWR_EXIO). Not the BOOT key: on the V1 board GPIO0 is also the IMU's interrupt line. Held for seconds,
+# the key is the AXP2101's power key.
+binary_sensor:
+  - platform: gpio
+    id: board_button
+    name: "Button"
+    pin:
+      pca9554: io_expander
+      number: 6
+      mode: INPUT
+    filters:
+      - delayed_on_off: 20ms
+    on_press:
+      - script.execute: standby_key

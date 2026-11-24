@@ -23,6 +23,8 @@ packages:
   battery_adc: !include ../features/battery-adc.yaml
   # The RGB LED beside the camera, as a light in Home Assistant (outputs below).
   rgb_led: !include ../features/rgb-led.yaml
+  # The button on top as the standby key (features/standby-key.yaml): high while pressed, no pull-up.
+  standby_key: !include ../features/standby-key.yaml
   # The two microphones (an ES7210 on a bus of its own) and the loudspeaker (an ES8311) as the screen's audio: parts,
   # with their wiring below (docs/PROFILES.md, "Parts").
   microphones: !include ../hardware/parts/es7210.yaml
@@ -66,6 +68,10 @@ substitutions:
   HOSTED_D3_PIN: GPIO10
   TOUCH_SDA: GPIO37
   TOUCH_SCL: GPIO38
+  STANDBY_KEY_PIN: GPIO3
+  STANDBY_KEY_INVERTED: "false"
+  STANDBY_KEY_PULLUP: "false"
+  STANDBY_KEY_STRAPPING: "false"
 
   # The battery (docs/BATTERY.md): ADC1 channel 2 through two equal resistors, read only while the XL9535 switches
   # the divider on (pin 6, below). Seeed's BSP turns the voltage into a level with a curve of 21 points in steps of
@@ -194,20 +200,6 @@ switch:
     pin: {xl9535: board_expander, number: 12}
 
 binary_sensor:
-  # The button on top (GPIO3, high while pressed): the same as Home Assistant's Wake and Sleep buttons, so a press puts
-  # the screen in standby or wakes it the way the core does it.
-  - platform: gpio
-    id: board_button
-    name: "Button"
-    pin: GPIO3
-    on_press:
-      - if:
-          condition:
-            lambda: 'return id(display_dimmed);'
-          then:
-            - button.press: wake_button
-          else:
-            - button.press: sleep_button
   # Low while the charger charges the battery (GPIO15, pulled up). While it charges the level is not known
   # (board_battery_measure: the top bar shows the charging bolt alone); when charging stops (unplugged or full), the
   # battery settles before it is measured again.

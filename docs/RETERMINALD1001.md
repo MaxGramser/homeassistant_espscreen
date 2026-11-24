@@ -19,7 +19,7 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
 | Microphones | two, through an ES7210, on a second I2S bus | `features/audio.yaml` |
 | Motion | LSM6DS3TR-C at 0x6A | its temperature, and Wake when moved |
 | Clock | PCF8563 at 0x51 | keeps the time while Home Assistant is away |
-| Button | GPIO3, high while pressed | the core's Wake and Sleep |
+| Button | GPIO3, high while pressed | the standby key, `features/standby-key.yaml` |
 | RGB LED | GPIO22, 36, 23, lit low | `features/rgb-led.yaml` |
 | Camera | SC2356, 1 MIPI-CSI lane, SCCB 0x36 on `touch_bus`, power on expander pins 1, 3 and 11 | powered by the board file, driven by the Screen camera plugin (below) |
 | SD card, LTE, LoRa | | not configured |
