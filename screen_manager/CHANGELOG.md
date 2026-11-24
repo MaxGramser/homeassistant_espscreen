@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The M5Stack Tab5 dims over the whole range and goes dark at 0 %.** Its backlight barely changed below about 65 % and stayed lit at 0 %. It now runs at the frequency owners of the board measured to dim fully, and 0 % switches it off. New firmware. ([#442](https://github.com/MaxGramser/homeassistant_espscreen/issues/442))
+
 - **A plugin's README shows its pictures.** The pictures in a plugin's README (its examples, a screenshot) showed as empty frames with their words in the plugin's details, as the editor shows no picture from another address. The app now fetches them from the plugin's own folder at its commit and serves them, as it does the plugin's picture on the Plugins page (GitHub #450).
 
 - **A plugin's clock face gets the icons of the clock's row.** A face of the clock from a plugin received every entity of the row with `icon` 0, so a weather entity's rain cloud or sun never showed on it while the Digital face showed it: the row's icons came as hex text (`F0597`) and the screensaver's contract for plugins kept only numbers. It now hands them as the codepoint the plugin API describes (GitHub #448).

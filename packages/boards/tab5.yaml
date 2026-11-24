@@ -38,6 +38,9 @@ substitutions:
   SCREEN_MAX_PAGES: "16"
   SCREEN_MAX_BAR_ITEMS: "12"                   # a wider top bar where the glass has the width for it (GitHub #247)
   LVGL_BUFFER_SIZE: "50%"                       # LVGL's draw buffer as a share of the screen
+  # The backlight's PWM: at ESPHome's 1 kHz the Tab5's backlight driver dims only from 100 % down to about 65 % and
+  # stays lit at 0 %; at 200 Hz it dims over the whole range, measured with the battery current (GitHub #442).
+  BACKLIGHT_FREQUENCY: "200Hz"
   # The display and touch controller, one chip: ST7121 or ST7123, ESPHome's display model M5STACK-TAB5-<this>. The touch
   # is ESPHome's st7123 platform for both.
   DISPLAY_MODEL: "ST7121"
