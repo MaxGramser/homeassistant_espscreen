@@ -353,7 +353,7 @@ inline void loader_bind() {
   };
   loader.forget = [](const std::string &key) { picture_retire(key); };
   // A picture for a page out of sight uses spare room and nothing else (GitHub #415, picture_store fits_ahead).
-  loader.room_ahead = [](size_t bytes) { return pictures_kept() && pictures.fits_ahead(bytes); };
+  loader.room_ahead = [](size_t bytes, size_t coming) { return pictures_kept() && pictures.fits_ahead(bytes, coming); };
 }
 // One round: every picture says what it wants, and the loader does the rest. From camera_tick, and right after an answer
 // of the app, a download's end, a page turn, a camera that opens.

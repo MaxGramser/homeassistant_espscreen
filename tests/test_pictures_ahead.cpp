@@ -28,7 +28,7 @@ struct Screen {
   std::map<std::string, std::pair<int, int>> size;  // what the app sends for each key (w, h)
   std::string loading;
   Slot loading_slot = Slot::LIVE;
-  int downloads = 0, let_go = 0, refused = 0;
+  int downloads = 0, let_go = 0, refused = 0, asked = 0;
   bool rule = true;  // the spare-room rule bound, as picture_rounds_lvgl.h does
 
   explicit Screen(size_t budget) {
@@ -42,13 +42,13 @@ struct Screen {
     };
     loader.load = [this](Slot slot, const std::string &, const std::string &key) { loading = key; loading_slot = slot; ++downloads; };
     loader.forget = [this](const std::string &key) { store.retire(key); };
-    loader.room_ahead = [this](size_t bytes) { return !rule || store.fits_ahead(bytes); };
+    loader.room_ahead = [this](size_t bytes, size_t coming) { return !rule || store.fits_ahead(bytes, coming); };
   }
   Want ahead(const std::string &key) {
     Want w;
     w.key = key; w.tag = "tile|" + key; w.slot = Slot::LIVE; w.rank = Rank::AHEAD;
     w.bytes = picture_store::bytes_of(size[key].first, size[key].second);
-    w.ask = [this, key] { loader.answer("tile|" + key, "http://app/" + key, 0); };
+    w.ask = [this, key] { ++asked; loader.answer("tile|" + key, "http://app/" + key, 0); };
     return w;
   }
   // One round: both kept pages say what they want, a download that ran ends, the store keeps to its budget.
@@ -103,8 +103,10 @@ int main() {
   {
     const Screen after = issue(true);
     assert(after.let_go == 0);
-    // The first that came stays (the map, by the order the pages ask), the other loads when its page comes back.
+    // The first that came stays (the map, by the order the pages ask), the other loads when its page comes back. The app
+    // is asked for one picture only: the second would not fit beside the first, which was let in the same round.
     assert(after.downloads == 1 && after.store.size() == picture_store::bytes_of(490, 500));
+    assert(after.asked == 1);
     std::printf("with the rule: %d download, nothing let go\n", after.downloads);
   }
   // The mirror: two that fit together are both fetched ahead, once each.
@@ -113,7 +115,7 @@ int main() {
     s.size["cover"] = {300, 300};
     s.size["map"] = {490, 500};
     for (uint32_t t = 1000; t < 31000; t += 250) s.round(t);
-    assert(s.downloads == 2 && s.let_go == 0 && s.store.entry("cover") && s.store.entry("map"));
+    assert(s.downloads == 2 && s.asked == 2 && s.let_go == 0 && s.store.entry("cover") && s.store.entry("map"));
   }
   // The room taken meanwhile: a picture that arrives for a page out of sight when it no longer fits is not kept.
   {

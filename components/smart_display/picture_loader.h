@@ -69,9 +69,10 @@ class Loader {
   std::function<void(Slot)> cancel;
   // A picture its owner moved on from: the store may let it go once nothing draws it.
   std::function<void(const std::string &key)> forget;
-  // Whether a picture of `bytes` fetched ahead for a page out of sight fits the store's spare room now
-  // (picture_store::Store::fits_ahead, GitHub #415). Unbound: every one does.
-  std::function<bool(size_t bytes)> room_ahead;
+  // Whether a picture of `bytes` fetched ahead for a page out of sight fits the store's spare room now, beside `coming`:
+  // the pictures fetched ahead that were let in already and are not in the store yet (picture_store::Store::fits_ahead,
+  // GitHub #415). Unbound: every one does.
+  std::function<bool(size_t bytes, size_t coming)> room_ahead;
   // Every step of every picture, for a diagnosis (runtime_tiles.h logs it at DEBUG): who, which picture, what happened.
   std::function<void(const Owner &, const std::string &key, const char *what, const std::string &detail)> log;
 
@@ -135,10 +136,19 @@ class Loader {
     for (auto &job : jobs_)
       if (job.phase == Phase::DONE && !job.told) { job.told = true; if (job.want.done) job.want.done(Outcome::UNCHANGED); }
     const bool glass_waits = glass_waiting(now);
+    // What was let in ahead already and is on its way (asked, linked or loading): a second picture is let in only beside
+    // it, so the app never paints a picture that would be thrown away when it comes.
+    size_t coming = 0;
+    for (const auto &job : jobs_) if (on_its_way_ahead(job)) coming += job.want.bytes;
     for (auto &job : jobs_) {
       // One fetched ahead asks once nothing on the glass waits: the app's work for it should not hold up theirs. One
       // that would not fit the spare room is not asked for at all: it loads when its page comes back.
-      if (job.want.rank == Rank::AHEAD && (glass_waits || !fits_ahead(job))) continue;
+      if (job.want.rank == Rank::AHEAD) {
+        if (glass_waits) continue;
+        const bool counted = on_its_way_ahead(job);
+        if (!fits_ahead(job, counted ? coming - job.want.bytes : coming)) continue;
+        if (!counted && should_ask(job, now) && !asking(job.want.tag, now, &job)) coming += job.want.bytes;
+      }
       // One question of a kind at a time: the app's answer names the player, not the size, so a card's cover and a
       // tile's cover of the same player would take each other's links.
       if (asking(job.want.tag, now, &job)) continue;
@@ -157,7 +167,7 @@ class Loader {
     if (!may_load) return;
     Job *next = nullptr;
     for (auto &job : jobs_) {
-      if (job.want.rank == Rank::AHEAD && (glass_waits || !fits_ahead(job))) continue;  // a page out of sight waits for the glass
+      if (job.want.rank == Rank::AHEAD && (glass_waits || !fits_ahead(job, 0))) continue;  // a page out of sight waits for the glass
       if (should_load(job, now) && (!next || before(job, *next))) next = &job;
     }
     if (!next) return;
@@ -272,7 +282,10 @@ class Loader {
     bool told = false;   // the owner heard that its picture is here
   };
   std::vector<Job> jobs_;
-  bool fits_ahead(const Job &job) const { return !room_ahead || room_ahead(job.want.bytes); }
+  bool fits_ahead(const Job &job, size_t coming) const { return !room_ahead || room_ahead(job.want.bytes, coming); }
+  bool on_its_way_ahead(const Job &job) const {
+    return job.want.rank == Rank::AHEAD && (job.phase == Phase::ASKED || job.phase == Phase::LINKED || job.phase == Phase::LOADING);
+  }
   // The last key of owners that want nothing right now, the oldest first; a few dozen at most.
   static constexpr size_t REMEMBERED = 32;
   std::vector<std::pair<Owner, std::string>> last_;
