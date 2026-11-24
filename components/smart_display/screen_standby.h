@@ -33,6 +33,7 @@
 // in, and one script of it is the timer (`later`, due()). tests/test_screen_standby.cpp runs every rule above.
 #include <cstdint>
 #include <cstdio>
+#include "one_timer.h"
 #include "screen_power.h"
 #include "screen_settings.h"
 
@@ -261,36 +262,18 @@ class Standby {
   bool landing_ = false;        // a standby waits one pass for page 1, then shows itself
   bool going_home_ = false;     // page 1 was asked for, from the loop's next pass
 
-  // The timer: every wait of the standby on one script (glass.later).
+  // The timer: every wait of the standby on one script (glass.later, one_timer.h).
   enum Wait : uint8_t { NEXT_PASS, POWER, WAITS };
-  struct Moment {
-    bool set = false;
-    uint32_t at = 0;
-  };
-  Moment moments_[WAITS];
+  one_timer::Waits<WAITS> waits_;
   bool sorting_ = false;  // inside due(): it asks once, at its end
 
-  void ask(uint32_t now) {
-    int32_t soonest = -1;
-    for (const auto &m : moments_) {
-      if (!m.set) continue;
-      const int32_t left = static_cast<int32_t>(m.at - now) > 0 ? static_cast<int32_t>(m.at - now) : 0;
-      if (soonest < 0 || left < soonest) soonest = left;
-    }
-    if (soonest >= 0) glass.later(static_cast<uint32_t>(soonest));
-  }
+  void ask(uint32_t now) { waits_.ask(now, glass.later); }
   void wait(Wait which, uint32_t ms, uint32_t now) {
-    moments_[which] = {true, now + ms};
+    waits_.set(which, ms, now);
     if (!sorting_) ask(now);
   }
-  // The timer may still fire for a wait that stopped: due() finds nothing to do then.
-  void stop(Wait which) { moments_[which].set = false; }
-  bool reached(Wait which, uint32_t now) {
-    auto &m = moments_[which];
-    if (!m.set || static_cast<int32_t>(now - m.at) < 0) return false;
-    m.set = false;
-    return true;
-  }
+  void stop(Wait which) { waits_.stop(which); }
+  bool reached(Wait which, uint32_t now) { return waits_.reached(which, now); }
 
   // The settings page and every card close and page 1 comes: Back to page 1, the way home, a standby that goes home.
   void home() {

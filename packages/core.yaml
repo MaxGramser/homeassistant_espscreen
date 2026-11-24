@@ -62,6 +62,9 @@ substitutions:
   SCREEN_MAX_PAGES: "8"
   # The most items one page's top bar holds (firmware 0.34.0+); the glass's width decides how many of them show.
   SCREEN_MAX_BAR_ITEMS: "6"
+  # How often the backlight blinks for an alert that asks for a flash (alert_life.h). A backlight that must never go
+  # dark says 0 (features/backlight-always-on.yaml): the card itself is the signal there.
+  ALERT_BLINKS: "4"
   BACKLIGHT_DIMMABLE: "true"                       # false: the backlight is lit or dark, a switch instead of a percentage
   CAN_STANDBY: "true"                              # false: the screen never goes dark (features/backlight-always-on.yaml)
   # 0: the bedside clock takes the display step, never digits of its own (hardware/flash-4mb.yaml, looks/shared/digits.yaml).
@@ -139,6 +142,7 @@ esphome:
     - <esphome/components/smart_display/settings_screen.h>
     - <esphome/components/smart_display/screen_power.h>
     - <esphome/components/smart_display/screen_standby.h>
+    - <esphome/components/smart_display/alert_life.h>
     - <esphome/components/smart_display/moved.h>
     - <esphome/components/smart_display/chip_revision.h>
   name: ${DEVICE_NAME}
@@ -262,7 +266,7 @@ esphome:
           runtime_tiles::touch_input::swipe_blocked = []() -> const char * {
             if (screen_standby::the().in_standby()) return "screen dimmed";
             if (id(calibration_active)) return "calibration";
-            if (id(alert_active)) return "alert showing";
+            if (alert_life::the().up()) return "alert showing";
             return nullptr;
           };
           runtime_tiles::touch_input::card_open = runtime_tiles::colour_shown;
@@ -273,7 +277,7 @@ esphome:
             glass.can_standby = []() { return settings_screen::can_standby; };
             // A calibration, an alert and a doorbell's ring each hold the screen lit.
             glass.owned = []() -> uint8_t {
-              return (id(calibration_active) ? screen_standby::CALIBRATION : 0) | (id(alert_active) ? screen_standby::ALERT : 0) |
+              return (id(calibration_active) ? screen_standby::CALIBRATION : 0) | (alert_life::the().up() ? screen_standby::ALERT : 0) |
                      (runtime_tiles::doorbell_holds() ? screen_standby::RING : 0);
             };
             glass.away = []() {
@@ -300,10 +304,45 @@ esphome:
               id(tile_page) = runtime_tiles::home_page();
               id(show_tile_page).execute();
             };
-            glass.alert_close = []() { id(alert_dismiss).execute(std::string("remote")); };
+            glass.alert_close = []() { alert_life::the().dismiss("remote"); };
             glass.apply = []() { id(apply_screen_settings).execute(false); };
             glass.later = [](uint32_t ms) { id(standby_wait).execute(ms); };
             glass.say = [](const char *line) { ESP_LOGI("standby", "%s", line); };
+          }
+          // An alert's life (alert_life.h): what only this file can do for it. When it is up, what ends it and what
+          // Home Assistant hears is decided there; the actions, the card's keys and the scripts below call in.
+          {
+            auto &alert = alert_life::the();
+            alert.blinks = ${ALERT_BLINKS};
+            alert.glass.close_settings = []() { settings_screen::close(); };
+            // One button or two (firmware 0.3.3+), laid out before what hangs on an alert about to show
+            // (screen_hooks::alert_show), which lays the card out again for a camera's picture.
+            alert.glass.prepare = [](const screen_alert::Alert &card) {
+              runtime_tiles::alert_two_buttons = !card.button2.empty();
+              lv_label_set_text(id(alert_button2_label), card.button2.c_str());
+              runtime_tiles::alert_key(id(alert_ok), id(alert_ok_label), card.button_color);
+              runtime_tiles::alert_key(id(alert_button2), id(alert_button2_label), card.button2_color);
+              runtime_tiles::alert_place(false);
+              screen_hooks::run_alert_show();
+            };
+            alert.glass.fill = [](const screen_alert::Alert &card) {
+              lv_label_set_text(id(alert_icon), card.icon.c_str());
+              lv_label_set_text(id(alert_title), card.title.c_str());
+              lv_label_set_text(id(alert_subtitle), card.subtitle.c_str());
+              lv_label_set_text(id(alert_ok_label), card.button.c_str());
+              lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(card.color)), LV_PART_MAIN);
+            };
+            alert.glass.reveal = [](bool shown) {
+              if (shown) screen_motion::show(id(alert_overlay), id(alert_card));
+              else screen_motion::hide(id(alert_overlay), id(alert_card));
+            };
+            alert.glass.clear = []() { runtime_tiles::alert_clear(); };
+            alert.glass.wake = []() { screen_standby::the().wake(millis()); };
+            alert.glass.stir = []() { screen_standby::the().stir(millis()); };
+            alert.glass.light = [](int level, int ms) { id(set_backlight).execute(level, ms); };
+            alert.glass.report = [](const char *action, const std::string &title) { id(alert_event).execute(std::string(action), title); };
+            alert.glass.later = [](uint32_t ms) { id(alert_wait).execute(ms); };
+            alert.glass.say = [](const char *line) { ESP_LOGI("alert", "%s", line); };
           }
           // The way home for the house in the top bar and for a swipe up from the bottom edge (firmware 0.2.100+, from
           // over any card or the settings page 0.28.0+): the same script the Back to page 1 timeout and Home Assistant
@@ -407,7 +446,7 @@ esphome:
           };
           // The screen's own explanation on the alert card (runtime_tiles::hint_alert): no icon colour, no blinks, until OK.
           runtime_tiles::hint_alert = [](const std::string &title, const std::string &text) {
-            runtime_tiles::own_alert_next = true;
+            alert_life::the().own_next();
             id(alert_show).execute(title, text, std::string("alert-circle-outline"), std::string(), std::string(), std::string(),
                                    std::string(), std::string(), 0, false);
           };
@@ -431,7 +470,7 @@ esphome:
           settings_screen::restart_device = []() { ESP_LOGI("settings", "restart from the screen"); App.safe_reboot(); };
           // A dimmed screen, a calibration or an alert owns the glass; the page waits.
           settings_screen::may_open = []() {
-            return runtime_tiles::enabled && !screen_standby::the().in_standby() && !id(calibration_active) && !id(alert_active) && !screen_hooks::settings_kept_closed();
+            return runtime_tiles::enabled && !screen_standby::the().in_standby() && !id(calibration_active) && !alert_life::the().up() && !screen_hooks::settings_kept_closed();
           };
           settings_screen::drift = []() { return screen_input::touch_guard.distance(); };
           settings_screen::before_open = []() { id(close_cards).execute(); };
@@ -445,7 +484,7 @@ esphome:
             effects_page::restyle();
             group_page::restyle();
             settings_screen::restyle();
-            if (id(alert_active)) lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(id(alert_card_color))), LV_PART_MAIN);
+            if (alert_life::the().up()) lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(alert_life::the().color())), LV_PART_MAIN);
           };
           // Under the cards: the colour card is the first of them on the page, so the back button and
           // the action at the top right of a card keep their taps.
@@ -913,22 +952,6 @@ time:
               minute: true
 
 globals:
-  # Alert overlay (HA action show_alert): standby waits while one is up.
-  - id: alert_active
-    type: bool
-    initial_value: 'false'
-  - id: alert_title_text
-    type: std::string
-  # The alert's colour as the automation named it (a swatch's light value, 0 for the normal card).
-  - id: alert_card_color
-    type: uint32_t
-    initial_value: '0'
-  - id: alert_timeout_seconds
-    type: int
-    initial_value: '0'
-  - id: alert_flash_requested
-    type: bool
-    initial_value: 'false'
   - id: rendered_frames
     type: uint32_t
     initial_value: '0'
@@ -2618,12 +2641,11 @@ script:
       - delay: !lambda return ms;
       - lambda: 'screen_standby::the().due(millis());'
 
-  # ---------- ALERT (HA action show_alert) ----------
-  # The screen wakes, keeps its normal brightness and shows the card until OK or the
-  # timeout (0: until OK); the standby interval waits on alert_active. A new alert
-  # replaces the current one; every ending reports itself as esphome.screen_alert.
+  # ---------- ALERT (alert_life.h) ----------
+  # The card of the actions show_alert and show_alert_choice. When it is up, what ends it, its blinks and what Home
+  # Assistant hears is C++ (components/smart_display/alert_life.h, run by tests/test_alert_life.cpp). The scripts here
+  # are its names in the YAML, for the actions, the card's keys and an Override YAML: each is one call.
   - id: alert_show
-    mode: restart
     parameters:
       title: string
       subtitle: string
@@ -2637,73 +2659,58 @@ script:
       flash: bool
     then:
       - lambda: |-
-          if (id(alert_active)) id(alert_report).execute("replaced");
-          // An alert of the screen's own (firmware 0.38.0) reports nothing to Home Assistant when it closes.
-          runtime_tiles::own_alert = runtime_tiles::own_alert_next;
-          runtime_tiles::own_alert_next = false;
-          // An alert is the one thing that outranks the settings page, so that closes first.
-          settings_screen::close();
-          const auto alert = screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX}, ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color);
-          // One button or two (firmware 0.3.3+), laid out before the hook, which lays the card out again for a picture.
-          runtime_tiles::alert_two_buttons = !alert.button2.empty();
-          lv_label_set_text(id(alert_button2_label), alert.button2.c_str());
-          runtime_tiles::alert_key(id(alert_ok), id(alert_ok_label), alert.button_color);
-          runtime_tiles::alert_key(id(alert_button2), id(alert_button2_label), alert.button2_color);
-          runtime_tiles::alert_place(false);
-          screen_hooks::run_alert_show();
-          id(alert_active) = true;
-          id(alert_title_text) = alert.title;
-          id(alert_timeout_seconds) = alert.timeout_seconds;
-          id(alert_flash_requested) = alert.flash;
-          lv_label_set_text(id(alert_icon), alert.icon.c_str());
-          lv_label_set_text(id(alert_title), alert.title.c_str());
-          lv_label_set_text(id(alert_subtitle), alert.subtitle.c_str());
-          lv_label_set_text(id(alert_ok_label), alert.button.c_str());
-          id(alert_card_color) = alert.color;
-          lv_obj_set_style_bg_color(id(alert_card), lv_color_hex(theme::surface(alert.color)), LV_PART_MAIN);
-          ESP_LOGI("alert", "show \"%s\" timeout=%d flash=%d buttons=%d", alert.title.c_str(), alert.timeout_seconds, (int) alert.flash,
-                   alert.button2.empty() ? 1 : 2);
-      - script.execute: wake_display
-      - lambda: 'screen_motion::show(id(alert_overlay), id(alert_card));'
-      - script.stop: alert_timeout
-      - if:
-          condition:
-            lambda: 'return id(alert_flash_requested);'
-          then:
-            - script.execute: alert_flash
-      - if:
-          condition:
-            lambda: 'return id(alert_timeout_seconds) > 0;'
-          then:
-            - script.execute:
-                id: alert_timeout
-                seconds: !lambda 'return id(alert_timeout_seconds);'
+          alert_life::the().show(screen_alert::make(title, subtitle, icon, color, button_text, timeout, flash, ${ALERT_TITLE_MAX},
+                                                    ${ALERT_SUBTITLE_MAX}, ${ALERT_BUTTON_MAX}, button2_text, button_color, button2_color),
+                                 millis());
 
+  # The alert ends: ok, button2, timeout or remote, the reason Home Assistant hears.
+  - id: alert_dismiss
+    parameters:
+      reason: string
+    then:
+      - lambda: 'alert_life::the().dismiss(reason.c_str());'
+
+  # The backlight's blinks, as an alert that flashes starts them.
+  - id: alert_flash
+    then:
+      - lambda: 'alert_life::the().flash(millis());'
+
+  # The alert that is up closes by itself after so many seconds.
   - id: alert_timeout
-    mode: restart
     parameters:
       seconds: int
     then:
-      - delay: !lambda 'return static_cast<uint32_t>(seconds) * 1000UL;'
-      - script.execute:
-          id: alert_dismiss
-          reason: "timeout"
+      - lambda: 'alert_life::the().timeout(seconds, millis());'
 
-  # Home Assistant adds device_id; action is ok, button2 (the second button, firmware 0.3.3+), timeout, replaced or remote.
+  # An ending to Home Assistant, unless the alert is the screen's own.
   - id: alert_report
     parameters:
       action: string
     then:
-      - if:
-          condition:
-            lambda: 'return !runtime_tiles::own_alert;'
-          then:
-            - homeassistant.event:
-                event: esphome.screen_alert
-                data:
-                  action: !lambda 'return action;'
-                  title: !lambda 'return id(alert_title_text);'
-                  screen: !lambda 'return App.get_name();'
+      - lambda: 'alert_life::the().report(action.c_str());'
+
+  # The alert's one timer: its time running out and its blinks ask here, and a new ask replaces the last.
+  - id: alert_wait
+    mode: restart
+    parameters:
+      ms: int
+    then:
+      - delay: !lambda return ms;
+      - lambda: 'alert_life::the().due(millis());'
+
+  # What alert_life.h reports, as the event esphome.screen_alert. Home Assistant adds device_id; action is ok, button2
+  # (the second button, firmware 0.3.3+), timeout, replaced or remote.
+  - id: alert_event
+    parameters:
+      action: string
+      title: string
+    then:
+      - homeassistant.event:
+          event: esphome.screen_alert
+          data:
+            action: !lambda 'return action;'
+            title: !lambda 'return title;'
+            screen: !lambda 'return App.get_name();'
 
   # How a doorbell's ring ended here (module doorbell, docs/DOORBELL.md): answered (the first touch), closed, missed
   # (nobody touched it) or seen (opened again from the top bar), with the app's key of the ring. Home Assistant adds

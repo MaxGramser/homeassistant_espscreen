@@ -1004,9 +1004,9 @@ inline void watch_busy() { if (!busy_timer) busy_timer = lv_timer_create(busy_wa
 struct WatchedCall { uint32_t id = 0, since = 0; };
 // The screen's own alert card (firmware 0.38.0): the first tap Home Assistant leaves without an answer explains itself
 // once per start, through the same card an automation shows (packages/core.yaml binds it). Such an alert of the
-// screen's own sends no esphome.screen_alert event when it closes (own_alert), so no automation takes it for its own.
+// screen's own sends no esphome.screen_alert event when it closes (alert_life.h, own_next), so no automation takes it for its own.
 inline void (*hint_alert)(const std::string &title, const std::string &text) = nullptr;
-inline bool own_alert = false, own_alert_next = false, unanswered_told = false;
+inline bool unanswered_told = false;
 inline std::array<WatchedCall, 4> watched_calls{};
 inline const char *const NO_ANSWER = "no answer";
 // Returns whether Home Assistant will answer this one (a free place among the four).

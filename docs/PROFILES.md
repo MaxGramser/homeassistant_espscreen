@@ -79,8 +79,8 @@ has it, and a board file only states what is its own. `tools/check_packages.py` 
 repeats what the board would get anyway: a change to a default then reaches that board too.
 
 A mapping merges key by key. A list of components with ids merges by id: `!extend` adds to a widget, a script or a
-component defined anywhere in the chain, and `!remove` takes one away (`backlight-always-on.yaml` removes the
-`alert_flash` of `backlight.yaml` and defines its own). Any other list is joined, the earlier file's items first.
+component defined anywhere in the chain, and `!remove` takes one away. Any other list is joined, the earlier file's
+items first.
 A list and a mapping under the same key are not joined: the later one replaces the other whole. That is why a board
 file has no `esphome: on_boot:` of its own. The core writes its boot steps as one trigger, and a board's list there
 threw all of them away (the Waveshare 4B up to firmware 0.3.9 never took its tiles); `tools/check_packages.py`

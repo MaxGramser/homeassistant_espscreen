@@ -245,6 +245,26 @@ Change a rule of the standby in that file, with its case in the test. The state 
 (`screen_standby::the().in_standby()`) and calls a function. The kinds of wake that are no finger are one named list
 there (`Wake`), with one line that says which of them waits for the quiet after a standby by hand.
 
+### 14. An alert's life
+
+`alert_life.h` holds when the card of `show_alert` and `show_alert_choice` is up and what ends it: its OK, its second
+button, its time running out, `dismiss_alert` or a standby by hand, and a new alert over it. It decides the backlight's
+blinks for an alert that flashes, what Home Assistant hears of each ending (the event `esphome.screen_alert`; an alert
+of the screen's own reports nothing), and how an alert meets the standby: it lights the screen, holds it lit while it
+is up, and starts the standby time again when it ends. Like the standby it is free of LVGL and ESPHome, its state is
+private, and `tests/test_alert_life.cpp` runs every rule, with a real standby bound to it.
+
+What the card says and where its parts stand is not its business: `alert_overlay.h` makes the card's words and layout,
+and `packages/core.yaml` binds the glass (`alert_life::the().glass`): making and filling the card, revealing it, the
+backlight's script, the event, and the standby's wake. What draws on the card hangs on that glass and only asks: the
+camera's picture (`alert_prepare`, `alert_clear`) and a plugin's `on_alert`. How often the backlight blinks is the
+board's number (`ALERT_BLINKS`: 4, and 0 where the backlight must never go dark). The scripts `alert_show`,
+`alert_dismiss`, `alert_flash`, `alert_timeout` and `alert_report` are one call each; `alert_wait` is its timer and
+`alert_event` sends the event.
+
+The standby and the alert each keep their waits on one script through `one_timer.h`: a module stores the moment of
+each wait and asks its timer for the soonest.
+
 ## The hard rules, and the measurement behind each
 
 - **Nothing in the shared code reads a board, a chip or a pin.** The engine table, the modules table and `hw::caps` are
