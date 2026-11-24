@@ -1,5 +1,9 @@
 ## Unreleased
 
+- **A light group that only dims opens its lamps too.** The card of a light group without colours now has the lamps key beside its power key, as the colour card has, so every lamp of such a group can be reached from the screen. New firmware. ([#458](https://github.com/MaxGramser/homeassistant_espscreen/issues/458))
+
+- **A thermostat on another page shows its new mode's colour.** A thermostat that went from Auto to Heat, or a lamp that changed colour, while its page was out of sight came back in its old colour. It now comes back in the colour it has. New firmware. ([#349](https://github.com/MaxGramser/homeassistant_espscreen/issues/349))
+
 - **New screen finishes what it starts.** When the board on the cable is already one of your screens, "Install it again" now installs it right there: the same cable, that screen's own firmware built for the chip on the cable, without wiping its settings or its calibration, and the same steps until it is back in Home Assistant. It used to send you to Firmware & USB with another screen picked.
 
 - **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
