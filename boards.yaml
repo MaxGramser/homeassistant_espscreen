@@ -81,7 +81,7 @@ waveshare7:
   file: waveshare-esp32s3-7.yaml
   name: Waveshare
   model: ESP32-S3-Touch-LCD-7
-  status: experimental
+  status: stable
 
 waveshare4b:
   file: waveshare-esp32s3-4b.yaml
@@ -99,7 +99,7 @@ jc1060p470:
   file: guition-jc1060p470.yaml
   name: Guition
   model: JC1060P470
-  status: experimental
+  status: new
   choices:
     # In a black case or on a yellow board without one (GitHub #289): the yellow one's touch lies half a turn round.
     BOARD_VARIANT: [black, yellow]
@@ -110,7 +110,7 @@ jc1060p470v2:
   file: guition-jc1060p470-v2.yaml
   name: Guition
   model: JC1060P470 V2
-  status: experimental
+  status: stable
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, echo_cancellation]
 
@@ -118,25 +118,25 @@ hosyond40:
   file: hosyond40.yaml
   name: Hosyond
   model: ESP32-32E E32R40T
-  status: experimental
+  status: new
 
 jc3248w535:
   file: guition-jc3248w535.yaml
   name: Guition
   model: JC3248W535
-  status: new
+  status: stable
 
 waveshare7b:
   file: waveshare-esp32s3-7b.yaml
   name: Waveshare
   model: ESP32-S3-Touch-LCD-7B
-  status: experimental
+  status: new
 
 sunton8048s070:
   file: sunton-8048s070.yaml
   name: Sunton
   model: ESP32-8048S070
-  status: experimental
+  status: new
 
 jc8012p4a1v2:
   file: guition-jc8012p4a1-v2.yaml
@@ -173,7 +173,7 @@ wavesharep4:
   file: wavesharep4.yaml
   name: Waveshare
   model: ESP32-P4-86-Panel-ETH-2RO
-  status: experimental
+  status: new
   # Its extras under Screen settings, in this order (docs/SETTINGS.md, "A board's own settings").
   settings: [media_player, microphone, call_ringtone, do_not_disturb, call_voice_switching, microphone_gain, automatic_gain, echo_cancellation]
 

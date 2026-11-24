@@ -62,7 +62,9 @@ def section_metrics(values):
     """The band of a section's title in the glass's pixels (module_sections.h band, title_top) and the font's room above
     its capitals: the inset is the grid's gap (the panel's padding) plus a card's own padding."""
     core = (profiles.ROOT / 'packages/core.yaml').read_text()
-    font, size = profiles.ROOT / font_metrics.font_file(core, 'label'), int(values['FONT_LABEL_SIZE'])
+    # The label's file may be a substitution of the look (TILE_NAME_FONT_FILE): bold, or medium on the compact look.
+    name = re.sub(r'\$\{(\w+)\}', lambda m: values[m[1]], font_metrics.font_file(core, 'label'))
+    font, size = profiles.ROOT / name, int(values['FONT_LABEL_SIZE'])
     inset = int(values['GRID_GAP_Y']) + int(values['TILE_PAD'])
     ink = font_metrics.ink_top(font, size)
     return {'band': inset - ink + font_metrics.line_height(font, size), 'title_top': inset - ink, 'ink_top': ink,

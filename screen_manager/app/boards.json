@@ -648,7 +648,7 @@
    "order": 11,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "XPT2046"
   },
   "chip": "ESP32",
@@ -791,7 +791,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -966,7 +966,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -1113,7 +1113,7 @@
    "order": 12,
    "recommended": false,
    "settings": [],
-   "status": "new",
+   "status": "stable",
    "touch": "AXS15231"
   },
   "chip": "ESP32-S3",
@@ -2387,7 +2387,7 @@
    "order": 14,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -3884,7 +3884,7 @@
    "order": 6,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -4025,7 +4025,7 @@
    "order": 13,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -4197,7 +4197,7 @@
     "automatic_gain",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -5460,7 +5460,7 @@
    "order": 11,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "XPT2046"
   },
   "chip": "ESP32",
@@ -5603,7 +5603,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -5778,7 +5778,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -5925,7 +5925,7 @@
    "order": 12,
    "recommended": false,
    "settings": [],
-   "status": "new",
+   "status": "stable",
    "touch": "AXS15231"
   },
   "chip": "ESP32-S3",
@@ -7533,7 +7533,7 @@
    "order": 11,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "XPT2046"
   },
   "chip": "ESP32",
@@ -7676,7 +7676,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -7851,7 +7851,7 @@
     "call_voice_switching",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -7998,7 +7998,7 @@
    "order": 12,
    "recommended": false,
    "settings": [],
-   "status": "new",
+   "status": "stable",
    "touch": "AXS15231"
   },
   "chip": "ESP32-S3",
@@ -9272,7 +9272,7 @@
    "order": 14,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -10769,7 +10769,7 @@
    "order": 6,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -10910,7 +10910,7 @@
    "order": 13,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -11082,7 +11082,7 @@
     "automatic_gain",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",
@@ -12011,7 +12011,7 @@
    "order": 14,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -13508,7 +13508,7 @@
    "order": 6,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "stable",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -13649,7 +13649,7 @@
    "order": 13,
    "recommended": false,
    "settings": [],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-S3",
@@ -13821,7 +13821,7 @@
     "automatic_gain",
     "echo_cancellation"
    ],
-   "status": "experimental",
+   "status": "new",
    "touch": "GT911"
   },
   "chip": "ESP32-P4",

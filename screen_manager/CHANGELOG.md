@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **Three more boards are stable.** The Waveshare 7 (ESP32-S3-Touch-LCD-7), the Guition 3.5 (JC3248W535) and the Guition 7 V2 (JC1060P470 V2) now count as stable in New screen, on the strength of the many screens people run on them and what they reported. Five boards that people run but that were still marked experimental are now marked new: the Sunton 8048S070, the Hosyond 4-inch, the Waveshare 7B, the Waveshare P4 86 panel and the Guition 7 (JC1060P470).
+
 - **The library shows tiles, not a list.** Every entity now stands as the real tiles it can be on your screen, at one cell, a row of two and two rows of two, each with the richest controls that fit: a thermostat with its modes, a light with its brightness and presets, a player with its album cover. Click a size to add that tile, or drag it onto a page. The list is one click away at the top right of the library, and your choice is remembered.
 
 - **A device's settings and diagnostics are tucked away.** Entities Home Assistant files under Configuration or Diagnostic (a lamp's power-on behaviour, a signal strength) and the ones hidden there now stand folded under "extras" below each room in the library, so the lights, switches and sensors you use come first. They can still be found and added.
