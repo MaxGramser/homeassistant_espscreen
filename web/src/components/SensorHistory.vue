@@ -2,7 +2,7 @@
 import { computedAsync, useElementSize } from '@vueuse/core';
 import { computed, shallowRef, useTemplateRef } from 'vue';
 import { t } from '../i18n';
-import { cardGraph, type HistoryPreview } from '../model/history-preview';
+import { cardGraph, GRAPH_FILL, type HistoryPreview } from '../model/history-preview';
 import { useEntitiesStore } from '../stores/entities';
 import { useUiStore } from '../stores/ui';
 
@@ -29,7 +29,7 @@ const caption = computed(() => history.value ? `${new Date(history.value.start *
   <span ref="box" class="sensor-history">
     <svg v-if="graph" :viewBox="`0 0 ${size.w} ${size.h}`" role="img" :aria-label="t('editor.pages.history_label', { hours })">
       <title>{{ caption }}</title>
-      <path class="area" :d="graph.area" />
+      <path class="area" :d="graph.area" :fill-opacity="GRAPH_FILL" />
       <path class="line" :d="graph.line" />
     </svg>
     <small v-else class="history-empty">{{ t(loading ? 'editor.pages.history_loading' : 'editor.pages.history_empty') }}</small>
@@ -38,8 +38,7 @@ const caption = computed(() => history.value ? `${new Date(history.value.start *
 <style scoped>
 .sensor-history { display: flex; align-items: center; min-width: 0; min-height: 20px; color: var(--tile-accent); }
 svg { display: block; width: 100%; height: 100%; overflow: visible; }
-/* theme::fill_opacity(): 51 of 255 on a light card. */
-.area { fill: currentColor; fill-opacity: 0.2; stroke: none; }
+.area { fill: currentColor; stroke: none; }
 .line { stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; fill: none; }
 .history-empty { font-size: 9px; color: #46525e; }
 </style>
