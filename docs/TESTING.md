@@ -69,9 +69,10 @@ fontTools and jinja2, and stops when one is missing, because a skipped test prov
 - **The editor**: `npm ci`, the Vitest suite, ESLint (`npm run lint`, which `npm run check` and so the build run too),
   the type check and the build, and whether the bundle in Git equals that build.
 - **The firmware preview**, the shared firmware compiled to WebAssembly for the editor: whether it is older than the
-  firmware sources, and its tests (`web/wasm/test_*.mjs`) at three glass shapes. `.github/workflows/preview.yml`
-  rebuilds and commits it when the firmware sources move; locally, `sh web/wasm/build.sh` with Emscripten does the
-  same.
+  firmware sources, and its tests at four glass shapes (`web/wasm/test.sh`, the one list of them: a test that is not
+  in it runs nowhere). `.github/workflows/preview.yml` rebuilds it when the firmware sources move, runs the same list
+  and commits it to the branch (docs/RELEASING.md, "Firmware preview", says how it lands on a branch that moves);
+  locally, `sh web/wasm/build.sh` with Emscripten builds it. `tests/test_preview_land.py` proves the landing.
 
 ### Running a test
 

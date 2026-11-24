@@ -2,10 +2,18 @@
 # compiled file, so it has to be in the commit that goes out. Whenever the firmware sources move past the preview
 # (web/wasm/generate_renderer_manifest.py --check), this rebuilds it with Emscripten, runs its tests, builds the editor
 # and commits the result to the same branch: on dev, where the work goes, it follows every firmware change, so the
-# release commit carries a current preview (docs/RELEASING.md). Not on release-candidate: tools/release.py pushes that
-# branch only to point the packages at it for the upgrade test, and it never comes back.
+# release commit carries a current preview (docs/RELEASING.md, "Firmware preview"). Not on release-candidate:
+# tools/release.py pushes that branch only to point the packages at it for the upgrade test, and it never comes back.
+#
+# The branch moves while this builds, so the three steps are three files, each with one thing to know:
+# web/wasm/build.sh builds the preview, web/wasm/test.sh is the list of its tests (tools/check.sh runs the same file),
+# and web/wasm/land.py puts the result on the head the branch has by then, or ends the run when the firmware sources
+# changed meanwhile (tests/test_preview_land.py walks its cases).
 name: Firmware preview
 
+# The paths hold everything the preview is made from (the files generate_renderer_manifest.py reads): a push that
+# makes the preview stale has to start a run, because a run that finds the firmware sources changed under it ends and
+# leaves the work to that one. Wider costs little: a run that finds the preview current ends within a minute.
 on:
   push:
     branches-ignore: [release-candidate]
@@ -16,17 +24,22 @@ on:
       - "checkout/**"
       - "web/wasm/**"
       - "tools/profiles.py"
+      - "boards.yaml"
       - "screen_manager/Dockerfile"
-      - "screen_manager/translations/en.json"
+      - "screen_manager/app/boards.json"
+      - "screen_manager/translations/*.json"
       - ".github/workflows/preview.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# One run at a time on a branch, and a run that builds is never cancelled: a build takes longer than the time between
+# two pushes on a busy day, so cancelled at each push none would finish. GitHub keeps one run waiting behind the
+# running one, and a newer push takes that place (its default, `queue: single`): the run that follows is the newest.
 concurrency:
   group: preview-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   # The Emscripten the committed preview was built with; raise it on purpose, not by accident.
@@ -88,34 +101,15 @@ jobs:
       - name: Build the preview
         if: steps.stale.outputs.stale == 'true'
         run: |
+          # shellcheck source=/dev/null
           source ~/emsdk/emsdk_env.sh
           PYTHON=python PREVIEW_CACHE="$PWD/.preview-cache" sh web/wasm/build.sh
-          node web/wasm/test_profiles.mjs
-          node web/wasm/test_runtime.mjs
-          node web/wasm/test_look.mjs
-          node web/wasm/test_colour_card.mjs
-          node web/wasm/test_top_bar_cards.mjs
-          node web/wasm/test_images.mjs
-          PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.mjs
-          PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
-          PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
-          node web/wasm/test_weather_detail.mjs
-          python web/wasm/generate_renderer_manifest.py --check
-      - name: Build the editor
-        if: steps.stale.outputs.stale == 'true'
-        working-directory: web
-        run: npm ci && npm run build
+          PYTHON=python sh web/wasm/test.sh
+      # On the head the branch has now, with the editor built on that head (web/wasm/land.py).
       # Every commit on main carries Max as its author (the repository's rule), this one too.
-      - name: Commit the rebuilt preview
+      - name: Land the rebuilt preview
         if: steps.stale.outputs.stale == 'true'
         run: |
           git config user.name "Max Gramser"
           git config user.email "maxgramser@gmail.com"
-          git add web/src/wasm web/wasm/generated screen_manager/app/static
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Firmware preview: rebuilt for ${GITHUB_SHA::7}"
-          for attempt in 1 2 3; do
-            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
-            sleep $((attempt * 5))
-          done
-          exit 1
+          python web/wasm/land.py "$GITHUB_REF_NAME"

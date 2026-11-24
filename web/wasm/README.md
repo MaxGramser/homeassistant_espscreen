@@ -51,26 +51,23 @@ The virtual device enables the firmware's Swipe between pages setting at startup
 
 CI rebuilds it: `.github/workflows/preview.yml` runs on every push that touches the firmware
 sources, and when `generate_renderer_manifest.py --check` finds the preview stale it builds it
-with the pinned Emscripten, runs the tests below, builds the editor and commits the result to
-the same branch. By hand:
+with the pinned Emscripten (`build.sh`), runs its tests (`test.sh`), and lands the result on the
+head the branch has by then, with the editor built on that head (`land.py`; docs/RELEASING.md,
+"Firmware preview", has the rules). By hand:
 
 Use Python 3.12–3.14 with the ESPHome version pinned in `screen_manager/Dockerfile`,
 PyYAML and Jinja2, plus Emscripten on PATH:
 
 ```sh
 PYTHON=/path/to/venv/bin/python sh web/wasm/build.sh
-node web/wasm/test_runtime.mjs
-node web/wasm/test_look.mjs
-node web/wasm/test_colour_card.mjs
-node web/wasm/test_profiles.mjs
-node web/wasm/test_images.mjs
-PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
-PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
-node web/wasm/test_weather_detail.mjs
+sh web/wasm/test.sh
 cd web
 npm test
 npm run build
 ```
+
+`test.sh` is the one list of the preview's tests: a new `test_*.mjs` gets its line there, and
+then runs in `tools/check.sh` and in CI's job alike.
 
 The builder downloads pinned LVGL 9.5.0 and ArduinoJson 7.4.3 into `PREVIEW_CACHE`
 (default: `../.cache`). `ARDUINO_JSON` can point to an existing ArduinoJson checkout.

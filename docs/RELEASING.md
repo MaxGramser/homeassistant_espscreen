@@ -191,9 +191,34 @@ checks would flag is listed in its `KNOWN` and `TOUCH_FLOORS` with the code behi
 it is skipped on a laptop and fails in CI, and a preview older than the firmware sources fails everywhere.
 **Firmware preview.** The editor's preview is the shared firmware compiled to WebAssembly (web/wasm/README.md), and
 `tools/check.sh` fails when it is older than the firmware sources, which every firmware number bump makes it. On dev,
-`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev (a few
-minutes): pull that commit before your next push. The release commit changes the firmware number, so rebuild it there
+`.github/workflows/preview.yml` rebuilds it after a push that changed the firmware and commits it to dev: pull that
+commit before your next push. The release commit changes the firmware number, so rebuild it there
 locally with `sh web/wasm/build.sh` (Emscripten) and `cd web && npm run build`, and commit it with the release.
+
+The job builds for about ten minutes and dev moves meanwhile, so it keeps to one rule: a built file is committed on
+the head it was built from, and is never merged or rebased. The WebAssembly is made from the firmware sources alone
+(`web/wasm/generate_renderer_manifest.py --check` knows which), so one build of it is good for every later head on
+which that check passes. The editor's bundle is made from the WebAssembly and `web/src`, and its files are named after
+their content, so two builds of it cannot be merged: it is built again on the head it lands on, which takes about a
+minute. `web/wasm/land.py` does the landing, and what it does follows from the head dev has by then:
+
+- The head already has a current preview (someone built it by hand): nothing to land.
+- The built preview fits the head, because the head is still the one the job started from or the firmware sources did
+  not change since: the editor is built on that head, and both go to dev as one commit.
+- The firmware sources changed while the job built: the run is out of date. It ends without a commit and without
+  failing, because the push that changed them started a run of its own.
+- dev moved again between taking the head and the push, so the push is refused: the same again on the new head, a
+  few times (`ATTEMPTS` in `land.py`), and then the run fails.
+
+A run that builds is never cancelled, or none would finish on a day with a push every few minutes. One run per branch
+runs at a time, the run of the newest push waits behind it, and a push that arrives while one waits takes its place
+(GitHub's `concurrency` without `cancel-in-progress`). So a run that failed says something is broken: the preview does
+not build, one of its tests fails, or the editor does not build on the head of dev. A run that passed without a commit
+was overtaken, and the run after it has the work. The preview lands once the firmware sources stand still for the
+length of one build, whatever else is pushed in that time. The preview's tests are one list, `web/wasm/test.sh`, which
+the job and `tools/check.sh` both run, and `tests/test_preview_land.py` walks the landing between two repositories on
+one machine, with a branch that moves during the build.
+
 docs/TESTING.md describes the levels of testing, up to the whole chain through a real Home Assistant. Compile sequentially: profiles with the same `DEVICE_NAME` share one build folder,
 and a parallel build can make an upload pick the wrong `firmware.bin` (the check builds are called `check-<board>` and
 build under `.esphome/check`, apart from the profiles of real screens). Check that no secrets are in Git.

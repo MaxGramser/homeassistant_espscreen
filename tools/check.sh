@@ -199,49 +199,12 @@ editor_lint() { cd "$ROOT/web" && npm run lint; }
 # Python tests above run before, so it runs here again, where a missing piece is a failure and not a skip.
 editor_parity() { cd "$ROOT" && EDITOR_PARITY=1 "$PYTHON" -m unittest tests.test_editor_parity; }
 editor_types() { cd "$ROOT/web" && npm run check; }
+# The preview is the one the firmware sources build to, and its tests pass: web/wasm/test.sh is the one list of them,
+# which the job that rebuilds the preview runs too (.github/workflows/preview.yml).
 firmware_preview() {
   cd "$ROOT" || return 1
   "$PYTHON" web/wasm/generate_renderer_manifest.py --check || return 1
-  node web/wasm/test_profiles.mjs || return 1
-  node web/wasm/test_runtime.mjs || return 1
-  node web/wasm/test_card_parts.mjs || return 1
-  node web/wasm/test_card_paint.mjs || return 1
-  node web/wasm/test_card_labels.mjs || return 1
-  node web/wasm/test_page_keys.mjs || return 1
-  node web/wasm/test_quiet_resync.mjs || return 1
-  node web/wasm/test_settings_hold.mjs || return 1
-  node web/wasm/test_settings_tile.mjs || return 1
-  node web/wasm/test_state_look.mjs || return 1
-  node web/wasm/test_binary_words.mjs || return 1
-  node web/wasm/test_tile_icons.mjs || return 1
-  node web/wasm/test_remote_card.mjs || return 1
-  node web/wasm/test_media_library.mjs || return 1
-  node web/wasm/test_history_card.mjs || return 1
-  node web/wasm/test_tile_shapes.mjs || return 1
-  node web/wasm/test_lock_card.mjs || return 1
-  node web/wasm/test_alarm_card.mjs || return 1
-  node web/wasm/test_media_card.mjs || return 1
-  node web/wasm/test_automation_tile.mjs || return 1
-  node web/wasm/test_dark_switch.mjs || return 1
-  node web/wasm/test_cover_card.mjs || return 1
-  node web/wasm/test_page_frame.mjs || return 1
-  node web/wasm/test_look.mjs || return 1
-  node web/wasm/test_colour_card.mjs || return 1
-  node web/wasm/test_light_group_key.mjs || return 1
-  node web/wasm/test_kept_colour.mjs || return 1
-  node web/wasm/test_cover_keys.mjs || return 1
-  node web/wasm/test_top_bar_cards.mjs || return 1
-  node web/wasm/test_images.mjs || return 1
-  PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.mjs || return 1
-  PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs || return 1
-  PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs || return 1
-  PREVIEW_WIDTH=480 PREVIEW_HEIGHT=800 node web/wasm/test_runtime.mjs || return 1
-  node web/wasm/test_weather_detail.mjs || return 1
-  node web/wasm/test_climate_detail.mjs || return 1
-  # The grid a layout brings (firmware 0.53.0+): begin changes it, a card per cell, a grid it does not take refused.
-  node web/wasm/test_grid.mjs || return 1
-  # The firmware's own Settings page in the preview: hold, Extras, a write only with Taps control devices, Back.
-  node web/wasm/test_settings.mjs || return 1
+  PYTHON="$PYTHON" sh web/wasm/test.sh
 }
 editor_build() { cd "$ROOT/web" && npm run build; }
 
