@@ -66,13 +66,14 @@ sensor:
       - lambda: 'if (moved::the().feel(moved::TURNING, 2, x, millis())) id(board_moved).execute(); return {};'
 
 # The board moved (at most once in moved::REPEAT_MS): a sensed wake when Wake when moved is on and the screen is in
-# standby. The log names the axis and how far it left its resting value, also while the screen is lit.
+# standby. The log names the axis and how far it left its resting value, also while the screen is lit: at INFO, the
+# firmware's level, so a board that wakes by itself shows why.
 script:
   - id: board_moved
     then:
       - lambda: |-
           const auto &d = moved::the();
-          ESP_LOGD("moved", "the board moved: %s %c by %.3f %s", d.last_kind() == moved::ACCELERATION ? "acceleration" : "turning",
+          ESP_LOGI("moved", "the board moved: %s %c by %.3f %s", d.last_kind() == moved::ACCELERATION ? "acceleration" : "turning",
                    "xyz"[d.last_axis()], d.last_away(), d.last_kind() == moved::ACCELERATION ? "g" : "degrees a second");
       - if:
           condition:

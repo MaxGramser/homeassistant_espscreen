@@ -52,7 +52,7 @@ ESP32-C6 for Wi-Fi, running on a 2500 mAh battery. Board key `reterminald1001`, 
   `features/wake-when-moved.yaml`, whose detector (`components/smart_display/moved.h`, `tests/test_moved.cpp`) keeps a
   resting value per axis and says the board moved when one leaves it by more than 0.03 g or 5 degrees a second.
   ESPHome's `motion` reports acceleration in g, not in m/s²: the first version compared two readings with 1.0, a whole
-  g, which only shaking reached. The log names the axis and how far it moved (tag `moved`, debug level).
+  g, which only shaking reached. The log names the axis and how far it moved (tag `moved`, at most once in two seconds).
 
 ## The camera
 
