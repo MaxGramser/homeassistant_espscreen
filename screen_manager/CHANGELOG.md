@@ -1,5 +1,7 @@
 ## Unreleased
 
+- **The right colours on the Guition 5-inch JC8048W550C_I.** Red and blue were swapped (a yellow lamp showed blue). The board now uses ESPHome's own model for this panel, which owners of the board confirmed shows the right colours; an Override YAML that fixed it by hand can go. New firmware. ([#243](https://github.com/MaxGramser/homeassistant_espscreen/issues/243))
+
 - **The M5Stack Tab5 dims over the whole range and goes dark at 0 %.** Its backlight barely changed below about 65 % and stayed lit at 0 %. It now runs at the frequency owners of the board measured to dim fully, and 0 % switches it off. New firmware. ([#442](https://github.com/MaxGramser/homeassistant_espscreen/issues/442))
 
 - **A plugin's README shows its pictures.** The pictures in a plugin's README (its examples, a screenshot) showed as empty frames with their words in the plugin's details, as the editor shows no picture from another address. The app now fetches them from the plugin's own folder at its commit and serves them, as it does the plugin's picture on the Plugins page (GitHub #450).
