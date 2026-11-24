@@ -305,6 +305,8 @@ export function issueUrl(failure: PluginFailure, screen: Pick<Screen, "name" | "
 export const PLUGIN_TILE = /^plugin:([a-z0-9_]+)\.([a-z0-9_]+)$/;
 export const pluginTileId = (plugin: string, tile: string) => `plugin:${plugin}.${tile}`;
 export const isPluginTile = (entity: string) => PLUGIN_TILE.test(entity);
+// The plugin a tile is of (plugin:<plugin>.<tile>), "" for any other tile.
+export const pluginOfTile = (entity: string) => (isPluginTile(entity) ? entity.slice(7, entity.indexOf(".")) : "");
 // The options a plugin's tile keeps (PLUGIN_TILE_OPTIONS in the add-on's core.py, which refuses any other).
 export const PLUGIN_TILE_OPTIONS = ["size", "background", "icon", "tap", "plugin", "plugin_entity"];
 // A plugin's tile type by its entity (plugin:<plugin>.<tile>), and what finds one: the plugins store keeps the tile types

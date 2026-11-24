@@ -34,6 +34,9 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
 | Add-on | `screen_manager/app/plugins.py` | The index and test folders, the editor's payload, the plugins file, adding and removing, a plugin tile's state message, the fetch loop. |
 | Add-on | `firmware.py` (`PLUGINS_SUFFIX`, `save_plugins`), `page_layout.py`, `core.py` (`plugin_tile`, `PLUGIN_MEMORY`), `page_delivery.py` (`plugins_of`) | The sidecar, the document, the layout check and price, the negotiation. |
 | Editor | `web/src/model/plugins.ts`, `web/src/stores/plugins.ts`, `web/src/components/Plugin*.vue`, `ScreenPluginsTab.vue` | The Plugins page, the screen's Plugins tab, a plugin tile in the library and the inspector. |
+| Add-on | `screen_manager/app/plugin_module.py`, `Plugins.module`, `modules_on` | A plugin's own code for the editor's preview: what a module says about itself, what is refused, where one comes from (a folder, what the app keeps, what the plugins repository published). docs/EMULATOR_ARCHITECTURE.md, "Plugins". |
+| Add-on | `screen_manager/app/plugin_examples.py`, `Plugins.example_message` | A plugin's own example of a tile (its `preview.yaml`) through the app's shaping, for a tile that is on no page yet. |
+| Editor | `web/wasm/build_plugin.py`, `web/wasm/toolchain.py`, `web/src/stores/plugin-code.ts`, `web/src/stores/faces.ts`, `GlassFaces.vue` | A plugin's module for the preview, its loading, and the plugin's own card on the editor's tile, on a page and in the library. |
 | Test | `tests/fixtures/plugins/host_probe/`, `tools/render/run.py --plugin` | The host probe: a complete plugin that logs every moment of the API; the render harness builds it into a board's firmware for this computer and reads the moments back (docs/TESTING.md, "The plugin host"). |
 
 ## A plugin tile, end to end
@@ -79,11 +82,16 @@ sentence (`api_fits`; the plugins repository's check uses the same rule). A mino
    `tessera::Tile` when the card shows another tile, size or options, `on_state` when the data changed, `on_theme` when
    the look did. The once-a-second gate in `tick()` calls `on_tick` for every plugin card on the glass, and a short tap
    goes to `on_tap` through the same guard as every tile's. `hide_extra` (the card shows something else), `end_extra` and `release_kept` delete the object.
-7. **In the editor** a plugin tile is drawn from its data when its manifest has a `preview`: the add-on fills in the
-   first rows (`POST api/plugins/<id>/preview/<tile>` with the options as they are kept, `Plugins.preview`) and the mockup counts down to a moment on the
-   editor's clock, so a page in the editor looks like the glass. Without a preview it shows the icon, the name and the
-   manifest's `example`. The editor loads the plugins as soon as they are on, so a page with a plugin tile knows its
-   type before the Plugins page was opened.
+7. **In the editor** a plugin tile is drawn by the plugin itself where the editor's firmware preview has the plugin's
+   code: a module of its own, built from the plugin's C++ and loaded into the preview, which draws the tile from the
+   same options and data a screen gets (docs/EMULATOR_ARCHITECTURE.md, "Plugins"). The page editor shows that card
+   over its own, the library shows the tile at each size with the plugin's own example (its `preview.yaml`), and the
+   Preview and the overview draw it as part of the screen. Until that card is there, and for a
+   plugin without a module (one from a link, one that needs hardware), the editor draws what it can know: when the
+   manifest has a `preview`, the add-on fills in the first rows (`POST api/plugins/<id>/preview/<tile>` with the
+   options as they are kept, `Plugins.preview`) and the mockup counts down to a moment on the editor's clock; without
+   one it shows the icon, the name and the manifest's `example`. The editor loads the plugins as soon as they are on,
+   so a page with a plugin tile knows its type before the Plugins page was opened.
 8. **A tile whose plugin this screen lacks** is a plain card: its icon, its name and "Plugin missing"
    (`screen.plugin.missing`). Never an error, never a restart.
 
@@ -226,7 +234,7 @@ beside it, read again a few times after a press, so a test can say how it went. 
 
 | Part | Firmware | Add-on | Editor |
 |---|---|---|---|
-| A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector, `preview` drawn from the data |
+| A tile, with data from a fetch | `Tile`, `add_tile` | `Plugins.tile_message`, `plugin_fetch.py` | library, inspector; the tile drawn by the plugin's own code where the preview has its module, else `preview` drawn from the data |
 | How large a tile is (0.25) | `TileContext::full`, the tile is the whole page; `columns` and `rows` are then the grid's | the manifest's `sizes`: `min` and `max`, `full: true` for the whole page beside them, or `full: true` alone for a tile that only takes the whole page (`plugin_manifest`, `min` and `max` then `None`); no layout check, a saved layout stays readable | `tileSizeChoices`: the rectangles from `min` to `max`, and the whole page with `full: true` or where `max` reaches the grid (a rectangle that fills the grid is called `full`, never a span). A new tile starts at the smallest size it takes (`startTile`); the inspector's Whole page switch, because a tile of at most 2 x 2 has no way there along its edges |
 | A card's own colour (0.26) | `ui::set_card_color(CardColor)` in a call of the tile: the host keeps the colour with the plugin's card (`Card::ground`, a swatch's light value as `Tile::background` keeps one), `render_slot`'s palette takes it over the tile's own (`plugin_host::ground`) for the card, its hairline, its shade under a finger and the corners of its pictures, and a call outside `render()` (a tick, a tap) marks the tile for the next pass. `ui::card_color()` is the card as it is drawn, `ui::card_color(CardColor)` a named colour in this look. A tile with background None keeps no card. | nothing | nothing: the mockup draws the plain card |
 | Entities of one kind, and a device that fills them (0.26) | nothing: the tile reads `x.entities.<option id>` as since 0.15 | an entity option's `device_class` and `matches` (`plugin_manifest.check_option`, `entity_fits`: the entity's device class, its registry translation key, or the end of its id), a tile's `from_device` (`check_tile`: at least two such options); `Plugins.payload` gains `entity_facts` (per fitting entity its device, device class, translation key, whether it is disabled or a diagnostic; `plugins.entity_facts`, at most 2000) and `devices` (their names), from the registries the add-on already reads. The layout check does not use the filter: an entity that does not fit stays valid | `PluginOptions.vue`: the picker offers what fits, with a key under the list for every entity of the domains (`UiPicker`'s `foot`); `PluginTileInspector.vue`: "Fill from a device", the devices with entities for at least two options, most first, and the pick per option (`model/plugins.ts`: enabled, no diagnostic, no `raw` between underscores, then the shortest id) |

@@ -26,8 +26,9 @@ The library shows what a tile can show in one of two views, switched at its top 
   The cards scale with the drawer: a card of two rows fills the height the list has under a shelf's name and sizes, never
   larger than on the page and never under half of it, and the drawer opens at least that high. The strip they stand
   on takes the screen's own colours, the firmware's roles (`web/src/model/glass-colours.ts`), as the page mockup does.
-  A plugin's tile shows its placeholder face on the shelf for now, as a placed one does in the page editor: drawing a
-  plugin's real card in the editor is the plugin preview's work, and the shelf will show it once that lands.
+  A plugin's tile stands on the shelf as the plugin's own code draws it, at each size, with the plugin's own example
+  (docs/EMULATOR_ARCHITECTURE.md, "The page editor's own cards"); a plugin without a module for the preview keeps its
+  placeholder face, as on a page.
 - **List**: the entities as rows, as the library always was.
 
 A device's extras stand apart, the way Home Assistant's device page puts them apart from the controls: a setting

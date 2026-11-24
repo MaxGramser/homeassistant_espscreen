@@ -56,3 +56,8 @@ PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_images.m
 PREVIEW_WIDTH=720 PREVIEW_HEIGHT=720 PREVIEW_DPI=254 node web/wasm/test_runtime.mjs
 PREVIEW_WIDTH=800 PREVIEW_HEIGHT=480 PREVIEW_COLUMNS=3 node web/wasm/test_runtime.mjs
 PREVIEW_WIDTH=480 PREVIEW_HEIGHT=800 node web/wasm/test_runtime.mjs
+
+# A plugin's own code in the preview (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): the preview probe built into a module,
+# loaded into the preview and read back. Building the probe needs Emscripten; where em++ is not on the PATH the test
+# says so and passes, and the job that rebuilds the preview, which has just used it, runs it whole.
+node web/wasm/test_plugin_module.mjs

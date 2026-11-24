@@ -86,7 +86,7 @@ onMounted(entities.loadOverview);
         <span class="home-stage">
           <span v-if="live && layout && !failed.has(screen.id)" class="home-live" :style="{ width: liveWidth(live) }" aria-hidden="true">
             <FirmwarePreview :key="`${screen.id}:${JSON.stringify(live)}`" :width="live.width" :height="live.height" :dpi="live.dpi"
-              :columns="live.columns" :rows="live.rows" :layout="layout" :pictures="drawsPictures(screen)" :dark="screen.settings?.values?.dark_mode === true" still
+              :columns="live.columns" :rows="live.rows" :layout="layout" :pictures="drawsPictures(screen)" :dark="screen.settings?.values?.dark_mode === true" :plugins-of="screen" still
               @ready="drawn.add(screen.id)" @failed="failed.add(screen.id)" />
           </span>
           <span v-if="view && !(live && layout && drawn.has(screen.id) && !failed.has(screen.id))" class="home-glass"

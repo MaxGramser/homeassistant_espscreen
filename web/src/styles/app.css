@@ -1996,6 +1996,12 @@ section.advanced code { font-size: 11.5px; }
 .plugin-face-tag .mdi { font-size: 12px; }
 .plugin-face.compact { gap: 2px; padding: 8px 10px; }
 .plugin-face.compact .plugin-face-tag { display: none; }
+/* A plugin's card as the firmware drew it (stores/faces.ts): the picture is the whole card, edge and corners, so the
+   editor's own card under it shows no ground and no line of its own. */
+.plugin-glass { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); display: block; pointer-events: none; }
+.tile:has(> .plugin-glass), .tile:has(> .plugin-glass):hover { background: transparent; border-color: transparent; }
+/* The card of an earlier visit, until the firmware has drawn it again (model/face-cache.ts). */
+.plugin-glass.kept { opacity: 0.6; }
 .plugin-live { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr; padding: 10px 12px; min-width: 0; }
 .plugin-live-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .plugin-live-badge { flex: none; min-width: 22px; padding: 1px 7px; border-radius: 8px; background: var(--accent); color: #fff;

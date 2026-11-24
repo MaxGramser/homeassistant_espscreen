@@ -23,6 +23,7 @@ import re
 import time
 from copy import deepcopy
 from pathlib import Path
+from urllib.parse import quote
 
 import yaml
 
@@ -36,6 +37,7 @@ import plugin_defaults
 import plugin_fetch
 import plugin_likes
 import plugin_manifest as pm
+import plugin_module
 import plugin_pictures
 import tile_icons
 from build_failures import build_reason, failed_components, failure_kind  # noqa: F401 (also read from here)
@@ -73,6 +75,25 @@ STORE_IMAGE = 'store.png'
 STORE_IMAGE_MAX = 1024 * 1024
 STORE_IMAGE_SIZE = (2560, 1440)   # the largest it takes; the tool makes 1280 x 720
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+# A plugin's own code for the editor's preview (plugin_module.py, docs/EMULATOR_ARCHITECTURE.md "Plugins"): a module
+# per plugin release and preview. A folder someone is making has it where web/wasm/build_plugin.py writes it; the app
+# keeps the ones it was given or fetched under data/plugins/modules, named after the plugin, its version and the
+# preview's number.
+MODULE_FOLDER = '.preview'
+MODULES = 'modules'
+PREVIEW_NUMBER = re.compile(r'[0-9a-f]{16}')
+# A plugin's own example of its tiles (plugin_examples.py): preview.yaml beside its manifest, read from its folder or
+# fetched once at the plugin's commit and kept under data/plugins/examples.
+EXAMPLES_FILE = 'preview.yaml'
+EXAMPLES = 'examples'
+# The modules the plugins repository publishes (its branch `modules`, written by its own build for every release the
+# index lists, for the preview of main and of dev): modules/<number>/index.json says what there is for the preview of
+# that number ({"format": 1, "modules": {"<id>": {"<version>": {"sha256": "...", "bytes": N}}}}), and
+# modules/<number>/<id>-<version>.wasm is the module. The app reads the list with the index (INDEX_TTL, its ETag),
+# fetches a module once, when an editor first asks for it, checks it against the list and by itself (plugin_module)
+# and keeps it; nothing is built or drawn where the app runs.
+MODULES_URL = 'https://raw.githubusercontent.com/MaxGramser/tessera-plugins/modules/modules/{abi}/{name}'
+MODULES_LIST_MAX = 512 * 1024
 PLUGIN_ICON = 'F0A66'         # puzzle-outline, for a plugin whose icon is not in Tessera's set
 X_BUDGET = 2600               # bytes of a tile's data on the wire: the message carries more and stays under 4 KB
 # What a tile's message holds besides its own fields on the way (session, sequence, revision, slot, the "x" key): its
@@ -420,6 +441,13 @@ class Plugins:
         self.saver_cache = {}       # (inbox, key) -> the fetch's answer for a plugin's step of the screensaver (0.14)
         self.fetch_asks = {}        # (inbox, plugin) -> the moments of its fetches the screen asked for (0.27), a minute
         self.http = None            # the session that reads the index: never the one that holds Home Assistant's token
+        # A plugin's own code for the editor's preview (plugin_module.py): what the plugins repository publishes for the
+        # preview of one number ((id, version) -> {sha256, bytes}), and what each module file on disk came to when it
+        # was checked ((path, time, size) -> why not, or None), so a file is read and checked once, not at every ask.
+        self.published = {'abi': None, 'modules': {}, 'etag': None, 'checked': 0.0}
+        self.module_checks = {}
+        # A plugin's preview.yaml as read ((id, ref or the file's time) -> its mapping, or None for a plugin without one).
+        self.example_specs = {}
         self.ready = False
         self._load_cached_index()
         self.scan_folders()
@@ -660,9 +688,9 @@ class Plugins:
             numbers.update(rating=fresh[0]['rating'], ratings=fresh[0]['ratings'])
         return numbers
 
-    async def _read_repository_file(self, url, kept):
-        """A JSON file of the plugins repository (likes.json, stats.json) with its ETag: the data, or None when it did
-        not change or could not be read."""
+    async def _read_repository_file(self, url, kept, limit=LIKES_MAX):
+        """A JSON file of the plugins repository (likes.json, stats.json, a list of modules) with its ETag: the data, or
+        None when it did not change or could not be read."""
         import aiohttp
         try:
             if self.http is None or self.http.closed:
@@ -673,7 +701,7 @@ class Plugins:
                 if response.status == 304:
                     return None
                 response.raise_for_status()
-                data = json.loads(await read_whole(response, LIKES_MAX))
+                data = json.loads(await read_whole(response, limit))
                 kept['etag'] = response.headers.get('ETag')
                 return data
         except Exception as error:
@@ -1186,6 +1214,210 @@ class Plugins:
         except OSError as error:
             LOG.warning('Plugin %s: picture not kept (%s)', entry.id, error)
         return body
+
+    async def example_spec(self, entry):
+        """A plugin's preview.yaml as a mapping, or None: from its folder (read again when the file changed), or
+        fetched once from GitHub at the plugin's commit and kept, as its picture is."""
+        import plugin_examples
+        if entry.folder is not None:
+            path = Path(entry.folder) / EXAMPLES_FILE
+            try:
+                key = (entry.id, path.stat().st_mtime_ns)
+            except OSError:
+                return None
+            if key not in self.example_specs:
+                try:
+                    self.example_specs[key] = plugin_examples.read(path.read_bytes())
+                except OSError:
+                    self.example_specs[key] = None
+            return self.example_specs[key]
+        found = GITHUB_LINK.match(entry.repo or '')
+        if not found or not re.fullmatch(r'[0-9a-f]{40}', entry.ref or ''):
+            return None
+        key = (entry.id, entry.ref)
+        if key in self.example_specs:
+            return self.example_specs[key]
+        kept = self.data / EXAMPLES / f'{entry.id}-{entry.ref}.yaml'
+        try:
+            body = kept.read_bytes()
+        except OSError:
+            body = None
+        if body is None:
+            base = '' if entry.path in ('', '.') else entry.path.strip('/') + '/'
+            url = GITHUB_RAW.format(owner=found.group(1), repo=found.group(2), ref=entry.ref, path=base + EXAMPLES_FILE)
+            import aiohttp
+            try:
+                if self.http is None or self.http.closed:
+                    self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
+                                                      headers={'User-Agent': self.fetcher.user_agent})
+                async with self.http.get(url) as response:
+                    # A plugin without the file is remembered as without, for as long as the app runs.
+                    body = bytes(await read_whole(response, plugin_examples.MAX_BYTES)) if response.status == 200 else b''
+            except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
+                LOG.info('Plugin %s: example not read (%s)', entry.id, error)
+                return None
+            if body:
+                try:
+                    kept.parent.mkdir(parents=True, exist_ok=True)
+                    for old in kept.parent.glob(f'{entry.id}-*.yaml'):
+                        old.unlink(missing_ok=True)
+                    kept.write_bytes(body)
+                except OSError as error:
+                    LOG.warning('Plugin %s: example not kept (%s)', entry.id, error)
+        self.example_specs[key] = plugin_examples.read(body) if body else None
+        return self.example_specs[key]
+
+    async def example_message(self, index, tile, span=None, inbox=None):
+        """The state message of a plugin tile as its plugin's own example shows it (plugin_examples.message), or None:
+        for the editor's library, where a tile nobody set up would only say that it waits. Never an error: a plugin
+        without an example, or one whose example does not read, keeps the message of the tile as it is."""
+        import plugin_examples
+        plugin, _ = core.plugin_tile(tile['entity'])
+        entry = self.known(plugin, inbox)
+        if entry is None:
+            return None
+        try:
+            spec = await self.example_spec(entry)
+            return await plugin_examples.message(entry, spec, index, tile, span) if spec else None
+        except Exception as error:   # a preview.yaml is a maker's file: whatever is wrong in it, the tile stays as it was
+            LOG.info('Plugin %s: its example was not shown (%s: %s)', entry.id, type(error).__name__, error)
+            return None
+
+    def module_files(self, entry, abi):
+        """Where the module of a plugin for the preview of this number may be: its own folder first (the one being
+        made), then what the app keeps."""
+        files = []
+        if entry.folder is not None:
+            files.append(Path(entry.folder) / MODULE_FOLDER / f'{entry.id}.wasm')
+        files.append(self.data / MODULES / f'{entry.id}-{entry.version}-{abi}.wasm')
+        return files
+
+    def module_file(self, entry, abi):
+        """The module file of this plugin that fits the preview of this number, with its time of writing, or (None, 0).
+        A file is read and checked once (plugin_module.fits) and remembered by its time and size: asking which modules
+        a screen has costs a look at each file, not a reading of it."""
+        for path in self.module_files(entry, abi):
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            key = (str(path), stat.st_mtime_ns, stat.st_size, entry.version, abi)
+            if key not in self.module_checks:
+                try:
+                    why = plugin_module.fits(path.read_bytes(), entry.id, entry.version, abi)
+                except OSError as error:
+                    why = str(error)
+                if len(self.module_checks) > 256:
+                    self.module_checks.clear()
+                self.module_checks[key] = why
+                if why:
+                    LOG.info('Plugin %s: the module %s is not loaded (%s)', entry.id, path.name, why)
+            if self.module_checks[key] is None:
+                return path, int(stat.st_mtime)
+        return None, 0
+
+    async def refresh_published(self, abi):
+        """What the plugins repository has for the preview of this number, at most every INDEX_TTL, with its ETag; the
+        last list stays while GitHub cannot be reached."""
+        kept = self.published
+        if kept['abi'] != abi:
+            kept.update(abi=abi, modules={}, etag=None, checked=0.0)
+        if kept['checked'] and time.monotonic() - kept['checked'] < INDEX_TTL:
+            return
+        kept['checked'] = time.monotonic()
+        data = await self._read_repository_file(MODULES_URL.format(abi=abi, name='index.json'), kept, MODULES_LIST_MAX)
+        found = (data or {}).get('modules') if isinstance(data, dict) and data.get('format') == 1 else None
+        if isinstance(found, dict):
+            kept['modules'] = {
+                (plugin, version): {'sha256': item['sha256'], 'bytes': item['bytes']}
+                for plugin, versions in found.items() if isinstance(plugin, str) and isinstance(versions, dict)
+                for version, item in versions.items()
+                if isinstance(version, str) and isinstance(item, dict) and re.fullmatch(r'[0-9a-f]{64}', str(item.get('sha256')))
+                and isinstance(item.get('bytes'), int) and 0 < item['bytes'] <= plugin_module.MAX_BYTES}
+
+    def published_for(self, entry, record):
+        """What the plugins repository published for this plugin as this screen runs it, or None: only for a release
+        of the index, which is the plugin its build made the module of. A link, a branch or a folder is someone's own
+        code under the same id."""
+        if entry.source != 'index' or (record or {}).get('source') not in (None, 'index'):
+            return None
+        return self.published['modules'].get((entry.id, entry.version))
+
+    async def fetch_module(self, entry, abi, listed):
+        """The published module of a plugin, fetched once and kept: the bytes the list names (their size and SHA-256),
+        which say themselves that they are this plugin at this version for this preview. The modules of versions no
+        screen runs any more go."""
+        import hashlib
+        import aiohttp
+        url = MODULES_URL.format(abi=abi, name=f'{entry.id}-{entry.version}.wasm')
+        try:
+            if self.http is None or self.http.closed:
+                self.http = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15),
+                                                  headers={'User-Agent': self.fetcher.user_agent})
+            async with self.http.get(url) as response:
+                if response.status != 200:
+                    return None
+                body = bytes(await read_whole(response, plugin_module.MAX_BYTES))
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as error:
+            LOG.info('Plugin %s: module not read (%s)', entry.id, error)
+            return None
+        why = (None if len(body) == listed['bytes'] and hashlib.sha256(body).hexdigest() == listed['sha256']
+               else 'it is not the file the list names') or plugin_module.fits(body, entry.id, entry.version, abi)
+        if why:
+            LOG.info('Plugin %s: the published module is not loaded (%s)', entry.id, why)
+            return None
+        kept = self.data / MODULES / f'{entry.id}-{entry.version}-{abi}.wasm'
+        try:
+            kept.parent.mkdir(parents=True, exist_ok=True)
+            running = {str(record.get('version')) for records in self.store.everywhere().values()
+                       for record in records if record.get('id') == entry.id}
+            for old in kept.parent.glob(f'{entry.id}-*.wasm'):
+                version, _, number = old.stem[len(entry.id) + 1:].rpartition('-')
+                if number != abi or version not in running | {entry.version}:
+                    old.unlink(missing_ok=True)
+            kept.write_bytes(body)
+        except OSError as error:
+            LOG.warning('Plugin %s: module not kept (%s)', entry.id, error)
+        return body
+
+    async def module(self, plugin_id, abi, inbox=None):
+        """A plugin's own code as the editor's preview loads it, or None: the module of the plugin this screen runs
+        (`inbox`), at its version, built for the preview of this number, and checked. From its folder or what the app
+        keeps, else fetched once from what the plugins repository published. A plugin without one keeps its drawn
+        placeholder in the editor; nothing on a screen depends on it."""
+        entry = self.known(plugin_id, inbox)
+        if entry is None or not PREVIEW_NUMBER.fullmatch(str(abi or '')):
+            return None
+        path, _ = self.module_file(entry, abi)
+        if path is not None:
+            try:
+                return path.read_bytes()
+            except OSError:
+                return None
+        await self.refresh_published(abi)
+        listed = self.published_for(entry, self.store.get(inbox, plugin_id) if inbox else None)
+        return await self.fetch_module(entry, abi, listed) if listed else None
+
+    async def modules_on(self, inbox, abi):
+        """The plugins of a screen whose own code the editor's preview can load: [{id, version, url}]. The address
+        names the version and the preview's number (for a folder being made, the file's time), so it is the same
+        bytes for as long as it is the same address and a browser may keep them."""
+        if not inbox or not PREVIEW_NUMBER.fullmatch(str(abi or '')):
+            return []
+        await self.refresh_published(abi)
+        found = []
+        for record in self.store.of(inbox):
+            entry = self.entry_for(record)
+            if entry is None or record.get('state') == 'failed' or self.blocked_record(record):
+                continue
+            path, written = self.module_file(entry, abi)
+            if path is None and not self.published_for(entry, record):
+                continue
+            mark = f'{entry.version}-{written}' if path is not None and entry.folder is not None else entry.version
+            found.append({'id': entry.id, 'version': entry.version,
+                          'url': f'api/plugins/{entry.id}/module?abi={abi}&screen={quote(str(inbox), safe="")}'
+                                 f'&v={quote(str(mark), safe="")}'})
+        return found
 
     # How long after its start the app waits for a screen's address before a plugin build it restarted during counts as
     # failed: Home Assistant names the screens' addresses within a minute of a start.

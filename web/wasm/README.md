@@ -77,6 +77,22 @@ assets, so its users do not need a compiler or a host-side rendering container.
 Third-party notices ship in `web/public/firmware-preview-licenses.txt`; update
 them alongside dependency versions when rebuilding for a newer firmware release.
 
+## A plugin's module
+
+A plugin's own tile is drawn in the preview by the plugin's own code, built into a module the preview loads
+(docs/EMULATOR_ARCHITECTURE.md, "Plugins"). With the same Emscripten on PATH and PyYAML:
+
+```sh
+python web/wasm/build_plugin.py <plugin folder>            # writes <plugin folder>/.preview/<id>.wasm
+python web/wasm/build_plugin.py <plugin folder> --out <file>
+node web/wasm/test_plugin_module.mjs                       # the preview probe, built, loaded and read back
+```
+
+It prints what it built (`{id, version, api, abi, file, bytes}`), or one sentence and exit 2 when the plugin has
+nothing a browser can run. A module fits the preview whose number (`abi`) it carries, which is `plugin_abi` in
+`web/src/wasm/renderer.json`; a plugin in a test folder beside the ESPHome folder (`tessera-plugins/<id>/`) is shown
+by its own code in the editor as soon as its `.preview/<id>.wasm` is there.
+
 The source manifest and runtime smoke test reject stale WASM artifacts. Tests execute
 the actual binary, checking tile placement, full-width forecast, colour differences,
 forward/back navigation, framebuffer restoration, and firmware edge swipes.
@@ -97,7 +113,8 @@ hardware Extras. Restart and calibration are not offered in the browser.
 
 Hardware, device preferences stored inside WASM, non-image ESPHome event requests
 (history/options) and custom actions with data templates are not emulated. Text and fractional-number Extras
-are read-only, and plugin-specific settings pages are not loaded into the preview. Runtime
+are read-only. A plugin's tiles, cards and settings rows are there for the plugins whose module the preview has; a
+plugin that needs hardware, or whose `plugin.yaml` makes ESPHome entities of its own, has none. Runtime
 detail screens such as the weather card are firmware-rendered; board/YAML-specific
 overlays such as the light colour picker are not yet connected. This is a UI runtime,
 not an ESP32 CPU or peripheral emulator. Browser speed is not a hardware benchmark.

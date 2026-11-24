@@ -51,6 +51,7 @@ subject in the same commit, and a measurement goes with it; the map is updated w
 | make something move, dim the page behind an overlay, or change the whole glass at once | docs/MOTION.md | `screen_motion.h`, `glass::veil`, `sheet_motion.h`, `hw::Caps::motion` |
 | make a card follow a change without being built again | docs/CARD_PARTS.md | `card_bind()`, `card_shaped()` in `runtime_tiles.h` |
 | suggest a plugin for hardware a board has (New screen's Plugins step, the card above a screen) | docs/PLUGINS.md, "Plugins a board starts with" | `RULES` in `screen_manager/app/plugin_defaults.py` |
+| change how a plugin's own tile is shown in the editor, or how its code reaches the preview | docs/EMULATOR_ARCHITECTURE.md, "Plugins" | `web/wasm/build_plugin.py`, `web/wasm/toolchain.py`, `screen_manager/app/plugin_module.py`, `web/src/components/GlassFaces.vue` |
 | change what a plugin can do, or how plugins reach a screen | docs/PLUGINS.md, then the tessera-plugins repository's docs | `plugin_api.h`, `plugin_host.cpp`, `screen_manager/app/plugins.py`, `plugin_manifest.py` |
 | build for a chip's silicon revision, or add a rule when a chip changes its silicon (the ESP32-P4 before and from v3) | docs/CHIP_REVISIONS.md | `CHIP_REVISION` in `packages/hardware/esp32p4-core.yaml`, `screen_manager/app/chip_revision.py` |
 | touch the flash of a board with 4 MB | docs/FLASH_LAYOUT.md | `components/flash_layout/`, `packages/hardware/flash-4mb.yaml` |

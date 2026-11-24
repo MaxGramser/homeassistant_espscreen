@@ -5104,6 +5104,10 @@ def create_app(manager, development=False):
         # A plugin's picture is asked for under its commit (plugins.image_url), so it too can be kept: a day.
         elif request.path.startswith('/api/plugins/') and request.path.endswith('/image') and response.status == 200:
             response.headers['Cache-Control'] = 'private, max-age=86400'
+        # A plugin's module for the preview is asked for under its version and the preview's number
+        # (plugins.modules_on), so a browser keeps it as well and the app hands it out once.
+        elif request.path.startswith('/api/plugins/') and request.path.endswith('/module') and response.status == 200:
+            response.headers['Cache-Control'] = 'private, max-age=86400'
     app.on_response_prepare.append(cache_assets)
 
     # The page is the Vite build of web/ (npm run build writes it here): index.html names its script and styles
@@ -5854,6 +5858,17 @@ def create_app(manager, development=False):
         if any(tile.get('entity') == text_tile.TEXT_TILE for tile in tiles):
             await manager.sync_templates()
         values = [await manager.tile_message(index, tile, lamps=True) for index, tile in enumerate(tiles)]
+        # `examples`: the slots whose tile is shown with its plugin's own example, where it has one, instead of what it
+        # reads now. A tile that is on no page yet (the library's tiles of a plugin at each size) would only say that
+        # it waits to be set up (docs/EMULATOR_ARCHITECTURE.md, "The page editor's own cards").
+        examples = data.get('examples')
+        if isinstance(examples, list) and core.plugins_enabled():
+            wanted = {slot for slot in examples if type(slot) is int}
+            grid = grid_of_record(record)
+            for index, tile in enumerate(tiles):
+                if tile.get('slot') in wanted and core.plugin_tile(tile.get('entity')):
+                    span = 'x'.join(str(n) for n in grid.dimensions(core.tile_size(tile)))
+                    values[index] = await manager.plugins.example_message(index, tile, span) or values[index]
         bars = [manager.header_message({'header': {'items': bar_items(page)}})['items']
                 for page in record['layout']['pages']]
         region = manager.page_region()
@@ -6522,6 +6537,18 @@ def create_app(manager, development=False):
                 raise web.HTTPNotFound()
             return web.Response(body=body, content_type='image/png')
         app.router.add_get('/api/plugins/{plugin}/image', plugins_image)
+
+        async def plugins_modules(request):
+            # The plugins of a screen whose own code the preview of this number can load (plugin_module.py).
+            return web.json_response(await manager.plugins.modules_on(request.query.get('screen'), request.query.get('abi')))
+        app.router.add_get('/api/plugins/modules', plugins_modules)
+
+        async def plugins_module(request):
+            body = await manager.plugins.module(request.match_info['plugin'], request.query.get('abi'), request.query.get('screen'))
+            if body is None:
+                raise web.HTTPNotFound()
+            return web.Response(body=body, content_type='application/wasm')
+        app.router.add_get('/api/plugins/{plugin}/module', plugins_module)
 
         async def plugins_link(request):
             data = await request.json()

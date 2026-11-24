@@ -86,7 +86,7 @@ class Preview(unittest.TestCase):
 
     def test_the_preview_build_names_no_module_by_hand(self):
         root = COMPONENT.parents[1]
-        for script in ('web/wasm/build.py', 'web/wasm/generate_renderer_manifest.py'):
+        for script in ('web/wasm/build.py', 'web/wasm/toolchain.py', 'web/wasm/generate_renderer_manifest.py'):
             text = (root / script).read_text()
             self.assertNotRegex(text, r"SD_MOD_[A-Z]", f'{script} names a module: it reads modules.py\'s preview column')
             self.assertNotRegex(text, r'module_[a-z_]+\.cpp"', f'{script} names a module\'s source file by hand')
