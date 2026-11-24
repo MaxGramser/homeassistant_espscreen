@@ -164,6 +164,30 @@ describe("the plugins' own code in the preview", () => {
     expect(firmware.ccall.mock.invocationCallOrder[started]!).toBeLessThan(firmware._preview_render.mock.invocationCallOrder[0]!);
   });
 
+  it("makes no firmware for a preview that left while the plugins were awaited", async () => {
+    // The overview's previews when the page opens on a screen: mounted for a moment, gone before the add-on answered.
+    // The preview's script is loaded when the first firmware is made; here it is in already, so that what is counted
+    // below is a firmware made or not, never a script still on its way.
+    await import("../src/wasm/firmware_preview.js");
+    const plugins = usePluginsStore();
+    plugins.installed = {} as any;
+    plugins.loaded = false;
+    // The add-on's plugins answer when this test says so; the firmware's own binary is there at once.
+    let answer: (value: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn((url: string) => (url === "api/plugins" ? new Promise<Response>((resolve) => { answer = resolve; })
+      : Promise.resolve(new Response(new ArrayBuffer(8))))));
+    await preview({ screen: hall });
+    wrapper!.unmount(); wrapper = undefined;
+    answer(new Response(JSON.stringify({ plugins: [], installed: { "text.hall": INSTALLED } })));
+    await flushPromises();
+    await flushPromises();
+    expect(vi.mocked(createModule)).not.toHaveBeenCalled();
+    // One that stays is made as before.
+    await preview({ screen: hall });
+    await flushPromises();
+    expect(vi.mocked(createModule)).toHaveBeenCalledTimes(1);
+  });
+
   it("leaves a preview without the plugin when its module does not link", async () => {
     firmware.loadDynamicLibrary.mockImplementationOnce(() => Promise.reject(new Error("undefined symbol")));
     await preview({ screen: hall });
@@ -384,23 +408,21 @@ describe("asking for a face", () => {
 
 describe("the firmware behind the editor", () => {
   // A plugin's tile as its card asks (components/tile/TilePlugin.vue): a face, once the store says what draws it.
-  const Page = defineComponent({
-    setup() {
-      const scr = useScreenStore(), code = usePluginCodeStore();
-      const face = useFace(() => {
-        const by = code.drawnBy(scr.currentScreen, "plugin:bus.next");
-        return by ? { tile: tile(), columns: 2, rows: 1, example: false, by } : null;
-      });
-      return () => h("div", [h(GlassFaces), h("i", face.value ? `drawn ${face.value.width}x${face.value.height}` : "placeholder")]);
-    },
-  });
+  const page = () => {
+    const scr = useScreenStore(), code = usePluginCodeStore();
+    const face = useFace(() => {
+      const by = code.drawnBy(scr.currentScreen, "plugin:bus.next");
+      return by ? { tile: tile(), columns: 2, rows: 1, example: false, by } : null;
+    });
+    return () => h("div", [h(GlassFaces), h("i", face.value ? `drawn ${face.value.width}x${face.value.height}` : "placeholder")]);
+  };
   // The screen as a home has it: chosen in the editor, on a board the preview draws, with a node name of its own.
   function open() {
     const home = { ...hall, shape: { width: 480, height: 480, columns: 3, rows: 3, dpi: 133, look: "standard" } };
     useInventoryStore().inventory = { screens: [home], entities: [], features: { plugins: true } } as any;
     useScreenStore().selected = home.id;
     doc.documentGrid = { columns: 3, rows: 3 };
-    return mount(Page, { attachTo: document.body });
+    return mount({ setup: page }, { attachTo: document.body });
   }
   const settle = async (ms: number) => { vi.advanceTimersByTime(ms); await flushPromises(); };
 

@@ -70,6 +70,10 @@ What starts the automation is yours to pick:
    or answers a later ring of that camera, or until its `keep_minutes` have passed since it rang. The screen counts
    those itself, by its own clock, in standby too: the item carries the moment it leaves (`x`), and a screen that
    wakes after it shows the bar without it.
+5. Someone sends the screen to standby by hand while it rings: **Sleep** in Home Assistant, the board's key or the home
+   button held. That closes the ring as **closed**, gives back the camera, the speaker and the microphone, and the
+   screen goes to standby. Closed counts as an answer, as the close key does, so the app closes the ring on the other
+   screens too. The standby time running out never takes a ringing screen.
 
 ## The keys
 

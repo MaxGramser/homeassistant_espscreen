@@ -143,7 +143,11 @@ does the steps that can go wrong by hand, and refuses when something is missing.
    their main, runs their index workflow on main (built against the released core; a run that a run of the hour pushed out
    is started once more), and checks main's index: it names
    this plugin API, every plugin in it fits, every plugin dev offered is there in at least that version, and their check
-   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. A step that fails
+   is green on main. Then their dev moves up to main, so every app offers the plugins the same day. Last it looks at the
+   editor's modules (docs/EMULATOR_ARCHITECTURE.md, "Plugins"): every plugin main offers must have its module, or the
+   reason it has none, for the number of this release's preview on the plugins repository's branch `modules`. What is
+   missing is built by the plugins' workflow `modules`, waited for and looked at again; a plugin still without one
+   leaves the release not done. A step that fails
    leaves the release out and says what is left: `tools/release.py plugins --yes` finishes it, again from the start (a
    main that has dev already only gets its index built and checked). `status` and `prepare` say what the plugins bring;
    `--without-plugins` publishes without them when there is a reason. A hotfix leaves the plugins alone.
