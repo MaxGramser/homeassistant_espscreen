@@ -68,6 +68,8 @@ class Lifts {
     apply();
   }
   bool up(uintptr_t who) const { return find(who) >= 0; }
+  // The speaker's volume now (0 to 1 of the DAC), -1 without a speaker: for a log line beside a lift.
+  float now() const { return bound() ? get_() : -1.0f; }
   bool any() const { return count_ > 0; }
 
  private:

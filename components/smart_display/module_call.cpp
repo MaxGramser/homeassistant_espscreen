@@ -134,7 +134,10 @@ bool ring_tone(uint32_t now) {
 }
 void ring_stop() {
   player.stop();
-  volume_lift::the().drop(RING_LIFT);
+  if (volume_lift::the().up(RING_LIFT)) {
+    volume_lift::the().drop(RING_LIFT);
+    ESP_LOGI(TAG, "ring done, volume %.3f", volume_lift::the().now());
+  }
 }
 void ring_once() {
   if (ring_on && !ring_on()) return;
@@ -673,7 +676,11 @@ void on_call(const std::string &state, const std::string &key, const std::string
     want_tone(ringtone);
     ring_since = esphome::millis();
 #ifdef USE_SPEAKER
-    if (!volume_lift::the().up(RING_LIFT) && (!ring_on || ring_on())) volume_lift::the().lift(RING_LIFT, ring_top);
+    if (!volume_lift::the().up(RING_LIFT) && (!ring_on || ring_on())) {
+      const float before = volume_lift::the().now();
+      const bool lifted = volume_lift::the().lift(RING_LIFT, ring_top);
+      ESP_LOGI(TAG, "ring volume %.3f to %.3f (top %.3f)%s", before, volume_lift::the().now(), ring_top, lifted ? "" : ", not lifted");
+    }
 #endif
     show_ring();
     claim_audio();
