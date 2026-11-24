@@ -6,6 +6,7 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, h, nextTick } from "vue";
 import FirmwarePreview from "../src/components/FirmwarePreview.vue";
+import GlassFaces from "../src/components/GlassFaces.vue";
 import createModule from "../src/wasm/firmware_preview.js";
 import { api, getJson, send } from "../src/api";
 import { useInventoryStore } from "../src/stores/inventory";
@@ -13,6 +14,7 @@ import { useDocumentStore } from "../src/stores/document";
 import { faceKey, useFace, useFacesStore, type FaceAsk, type GlassCard } from "../src/stores/faces";
 import { PREVIEW_NUMBER, usePluginCodeStore } from "../src/stores/plugin-code";
 import { usePluginsStore } from "../src/stores/plugins";
+import { useScreenStore } from "../src/stores/screen";
 import type { Screen, Tile } from "../src/types";
 
 vi.mock("../src/wasm/firmware_preview.js", () => ({ default: vi.fn() }));
@@ -37,7 +39,9 @@ const firmware = {
   _preview_dark: vi.fn(), _preview_page: vi.fn(() => shown), _preview_show: vi.fn((page: number) => { if (page > 3) return 0; shown = page; return 1; }),
   ccall: vi.fn(response), FS: { writeFile: vi.fn() }, loadDynamicLibrary: vi.fn(() => Promise.resolve(true)),
 };
+// A screen as the add-on lists it: its id, and the name of its ESPHome node, which is another word.
 const hall = { id: "text.hall", node: "hall", name: "Hall", online: true } as unknown as Screen;
+const INSTALLED = [{ id: "bus", version: "1.0.0", source: "index", state: "active" }, { id: "broken", version: "2.0.0", source: "index", state: "failed" }];
 let wrapper: VueWrapper | undefined;
 let doc: ReturnType<typeof useDocumentStore>;
 let paint: Record<string, ReturnType<typeof vi.fn>>;
@@ -51,7 +55,9 @@ beforeEach(() => {
   doc = useDocumentStore();
   doc.document = { title: "Hall", pages: [] } as any;
   useInventoryStore().inventory = { screens: [], entities: [], features: { plugins: true } } as any;
-  usePluginsStore().installed = { hall: [{ id: "bus", version: "1.0.0", source: "index", state: "active" }, { id: "broken", version: "2.0.0", source: "index", state: "failed" }] } as any;
+  // The add-on's plugins are in (api/plugins answered): what is installed, by the screen's id as the add-on writes it.
+  usePluginsStore().installed = { "text.hall": INSTALLED } as any;
+  usePluginsStore().loaded = true;
   vi.mocked(createModule).mockImplementation(() => Promise.resolve({ ...firmware } as any));
   vi.mocked(send).mockResolvedValue(bundle());
   vi.mocked(getJson).mockResolvedValue([{ id: "bus", version: "1.0.0", url: "api/plugins/bus/module?abi=x&screen=text.hall&v=1.0.0" }]);
@@ -88,6 +94,50 @@ describe("the plugins' own code in the preview", () => {
     expect(await code.codeFor({ ...hall, id: "text.attic", node: "attic" } as Screen)).toEqual([]);
     expect(await code.codeFor(undefined)).toEqual([]);
     expect(vi.mocked(getJson)).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads what a screen runs by the screen's id, as the add-on lists it, never by its node's name", async () => {
+    const code = usePluginCodeStore();
+    expect(code.runsOn(hall)).toBe("bus@1.0.0");
+    // A list under the node's name is no screen's: the editor showed placeholders at every home that way.
+    usePluginsStore().installed = { hall: INSTALLED } as any;
+    expect(code.runsOn(hall)).toBe("");
+    expect(await code.codeFor(hall)).toEqual([]);
+    expect(vi.mocked(getJson)).not.toHaveBeenCalled();
+    expect(code.runsOn({ ...hall, virtual: true } as Screen)).toBe("");
+    expect(code.runsOn(undefined)).toBe("");
+  });
+
+  it("waits for the add-on's plugins before it says what a screen runs, so a preview that starts with the page has its code", async () => {
+    const plugins = usePluginsStore(), code = usePluginCodeStore();
+    plugins.installed = {} as any;
+    plugins.loaded = false;
+    // The plugins store asks the add-on itself (api/plugins); its answer comes when this test says so.
+    let answer: (value: Response) => void = () => {};
+    const asks = vi.fn((_url: string) => new Promise<Response>((resolve) => { answer = resolve; }));
+    vi.stubGlobal("fetch", asks);
+    expect(code.runsOn(hall)).toBe("");
+    const asked = code.codeFor(hall);
+    await flushPromises();
+    // Nothing is decided, and no module asked for, while the add-on has not said what is installed.
+    expect(asks.mock.calls.map((call) => call[0])).toEqual(["api/plugins"]);
+    expect(vi.mocked(getJson)).not.toHaveBeenCalled();
+    answer(new Response(JSON.stringify({ plugins: [], installed: { "text.hall": INSTALLED } })));
+    expect((await asked).map((plugin) => plugin.id)).toEqual(["bus"]);
+    expect(code.runsOn(hall)).toBe("bus@1.0.0");
+    expect(code.drawnBy(hall, "plugin:bus.next")).toBe(`bus@1.0.0#${PREVIEW_NUMBER}`);
+    // Asked again, the plugins are not: one answer serves every preview of the page.
+    await code.codeFor({ ...hall, id: "text.attic" } as Screen);
+    expect(asks).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts a preview without plugins' code when the add-on does not say what is installed", async () => {
+    const plugins = usePluginsStore(), code = usePluginCodeStore();
+    plugins.installed = {} as any;
+    plugins.loaded = false;
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
+    expect(await code.codeFor(hall)).toEqual([]);
+    expect(vi.mocked(getJson)).not.toHaveBeenCalled();
   });
 
   it("says which tiles the firmware draws, and with what, once the add-on has answered", async () => {
@@ -182,6 +232,29 @@ describe("a preview its owner draws", () => {
     vi.advanceTimersByTime(10000);
     await flushPromises();
     expect(mounted.emitted("synced")![3]).toEqual([[]]);
+  });
+
+  it("goes on after a refresh the add-on refused, and says so; a firmware that did not load is the end", async () => {
+    // The add-on restarted (a write is refused until the page has its new token): the first refresh fails.
+    vi.mocked(send).mockRejectedValueOnce(new Error("Forbidden"));
+    const mounted = await preview({ manual: true, still: true, layout: doc.document });
+    const view = mounted.vm as unknown as View;
+    expect(mounted.emitted("failed")).toEqual([["Forbidden", false]]);
+    expect(view.capture(0)).toBeNull();
+    // Ten seconds on it asks again by itself, and draws.
+    vi.advanceTimersByTime(10000);
+    await flushPromises();
+    expect(mounted.emitted("synced")).toEqual([[null]]);
+    expect(view.capture(0)).not.toBeNull();
+    expect(mounted.emitted("failed")).toHaveLength(1);
+    wrapper!.unmount(); wrapper = undefined;
+    // A browser that cannot run the firmware: nothing comes after it.
+    vi.mocked(createModule).mockImplementation(() => Promise.reject(new Error("no WebAssembly")));
+    const none = await preview({ manual: true, still: true, layout: doc.document });
+    expect(none.emitted("failed")).toEqual([["no WebAssembly", true]]);
+    vi.advanceTimersByTime(30000);
+    await flushPromises();
+    expect(none.emitted("synced")).toBeUndefined();
   });
 
   it("asks the add-on for the example of the slots that want one", async () => {
@@ -306,5 +379,76 @@ describe("asking for a face", () => {
     expect(faces.of(held.key)).toBeUndefined();
     held.release(); held.release();
     expect(faces.asks.size).toBe(0);
+  });
+});
+
+describe("the firmware behind the editor", () => {
+  // A plugin's tile as its card asks (components/tile/TilePlugin.vue): a face, once the store says what draws it.
+  const Page = defineComponent({
+    setup() {
+      const scr = useScreenStore(), code = usePluginCodeStore();
+      const face = useFace(() => {
+        const by = code.drawnBy(scr.currentScreen, "plugin:bus.next");
+        return by ? { tile: tile(), columns: 2, rows: 1, example: false, by } : null;
+      });
+      return () => h("div", [h(GlassFaces), h("i", face.value ? `drawn ${face.value.width}x${face.value.height}` : "placeholder")]);
+    },
+  });
+  // The screen as a home has it: chosen in the editor, on a board the preview draws, with a node name of its own.
+  function open() {
+    const home = { ...hall, shape: { width: 480, height: 480, columns: 3, rows: 3, dpi: 133, look: "standard" } };
+    useInventoryStore().inventory = { screens: [home], entities: [], features: { plugins: true } } as any;
+    useScreenStore().selected = home.id;
+    doc.documentGrid = { columns: 3, rows: 3 };
+    return mount(Page, { attachTo: document.body });
+  }
+  const settle = async (ms: number) => { vi.advanceTimersByTime(ms); await flushPromises(); };
+
+  it("draws a plugin's tile of the open screen, found by the screen's id", async () => {
+    wrapper = open();
+    await flushPromises();
+    // The add-on was asked for this screen's modules, and the firmware runs a layout of the asked tile alone.
+    expect(vi.mocked(getJson).mock.calls[0]![0]).toBe(`plugins/modules?abi=${PREVIEW_NUMBER}&screen=text.hall`);
+    await settle(1000);
+    expect(vi.mocked(send).mock.calls[0]![0]).toBe("firmware-preview");
+    expect(wrapper.find("i").text()).toBe("drawn 200x100");
+  });
+
+  it("starts when the add-on's plugins come in after the screen was opened", async () => {
+    const plugins = usePluginsStore();
+    plugins.installed = {} as any;
+    wrapper = open();
+    await settle(1000);
+    expect(wrapper.find("i").text()).toBe("placeholder");
+    expect(vi.mocked(createModule)).not.toHaveBeenCalled();
+    // The plugin is installed, or the list only now arrives: the code is asked for and the card drawn.
+    plugins.installed = { "text.hall": INSTALLED } as any;
+    await flushPromises();
+    await settle(1000);
+    expect(wrapper.find("i").text()).toBe("drawn 200x100");
+  });
+
+  it("does not give up when the add-on refuses one refresh", async () => {
+    // The app restarted under an open page: a write is refused until the page has the app's new token.
+    vi.mocked(send).mockRejectedValueOnce(new Error("Forbidden"));
+    wrapper = open();
+    await settle(1000);
+    expect(wrapper.find("i").text()).toBe("placeholder");
+    // The preview asks again ten seconds on; the card comes with it.
+    await settle(10000);
+    await settle(1000);
+    expect(wrapper.find("i").text()).toBe("drawn 200x100");
+  });
+
+  it("leaves the editor's own drawing when the firmware cannot run, and does not try again and again", async () => {
+    // A browser that cannot run the firmware.
+    vi.mocked(createModule).mockImplementation(() => Promise.reject(new Error("no WebAssembly")));
+    wrapper = open();
+    await settle(1000);
+    const made = vi.mocked(createModule).mock.calls.length;
+    expect(made).toBeGreaterThan(0);
+    await settle(30000);
+    expect(wrapper.find("i").text()).toBe("placeholder");
+    expect(vi.mocked(createModule)).toHaveBeenCalledTimes(made);
   });
 });

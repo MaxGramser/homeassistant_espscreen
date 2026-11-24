@@ -163,6 +163,15 @@ pages of the screen's own grid. So the add-on shapes messages only for those til
 look whatever section it stands in on its page (the editor's own filter for a contrast section then applies once), and
 there is no second firmware for the library. It lives while a face is asked for and a minute after.
 
+**What it is loaded with, and when it stops.** What a screen runs is read from the add-on's list of installed plugins,
+by the screen's id (`nodeOf` in `model/plugins.ts`, the key every part of the editor reads that list by). `codeFor`
+waits for that list, so a preview that starts with the page is not started without its plugins' code, and
+`GlassFaces.vue` follows `runsOn(screen)`: a plugin added or updated while the page is open gets its code without a
+reload. A refresh the add-on refused or did not answer, as when the app restarts under an open page and a write waits
+for its new token, is asked again by the preview ten seconds on, and no card is copied meanwhile (`failed` with
+`final` false). A firmware that cannot go on (it did not load in this browser, or it threw in a frame) ends it for
+that glass and that code: every card keeps the editor's own drawing, and nothing is tried again and again.
+
 **A tile on no page shows the plugin's own example.** A tile in the library has no id, and nothing of its own to read:
 drawn as it is, it would say that it waits to be set up. The request names the slots that want the example
 (`examples` in `POST api/firmware-preview`), and the add-on fills each with the plugin's `preview.yaml`, the file its

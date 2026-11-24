@@ -5,7 +5,7 @@
 import { defineStore } from "pinia";
 import { shallowReactive } from "vue";
 import { api, getJson } from "../api";
-import { pluginOfTile } from "../model/plugins";
+import { nodeOf, pluginOfTile } from "../model/plugins";
 import type { Screen } from "../types";
 import type { PluginCode } from "../wasm/load";
 import renderer from "../wasm/renderer.json";
@@ -21,9 +21,18 @@ export const usePluginCodeStore = defineStore("plugin-code", () => {
   // Per screen, the plugins whose code the preview has, each with its version: known once the add-on has answered.
   const coded = shallowReactive(new Map<string, Map<string, string>>());
 
-  // What the screen runs, as one word: another version of a plugin is other code.
-  const runs = (screen: Screen) => (plugins.installed[screen.node || screen.id] || [])
+  // What the screen runs, as one word: another version of a plugin is other code. The add-on lists what is installed
+  // under the key every part of the editor reads it by (model/plugins.ts nodeOf), never under a name of this file's own.
+  const runs = (screen: Screen) => (plugins.installed[nodeOf(screen)] || [])
     .filter((item) => item.state !== "failed").map((item) => `${item.id}@${item.version}`).sort().join(",");
+  // A preview screen runs no plugin, and nothing is asked while plugins are off or this editor's preview takes none.
+  const takes = (screen: Screen | undefined | null): screen is Screen =>
+    Boolean(screen && !screen.virtual && plugins.pluginsEnabled && PREVIEW_NUMBER);
+
+  /** What a screen's preview is loaded with, as one word: "" for a screen that takes no plugin's code, and until the
+   * add-on's plugins are in. Whoever keeps a preview running follows it (GlassFaces.vue), so a plugin that was added
+   * or updated, or that is only now known, gives that preview its code. */
+  const runsOn = (screen: Screen | undefined | null) => (takes(screen) ? runs(screen) : "");
 
   async function read(screen: Screen): Promise<PluginCode[]> {
     const listed = await getJson<{ id: string; version: string; url: string }[]>(
@@ -39,11 +48,14 @@ export const usePluginCodeStore = defineStore("plugin-code", () => {
     return have.map(({ id, bytes: body }) => ({ id, bytes: body }));
   }
 
-  // The modules for a screen's preview; none for a preview screen (it runs no plugin) or while plugins are off.
-  function codeFor(screen: Screen | undefined | null): Promise<PluginCode[]> {
-    if (!screen || screen.virtual || !plugins.pluginsEnabled || !PREVIEW_NUMBER) return Promise.resolve([]);
+  // The modules for a screen's preview; none for a preview screen (it runs no plugin) or while plugins are off. What a
+  // screen runs is known once the add-on's plugins are in, so a preview that starts with the page waits for them here
+  // instead of starting without its plugins' code.
+  async function codeFor(screen: Screen | undefined | null): Promise<PluginCode[]> {
+    if (!takes(screen)) return [];
+    await plugins.loadPlugins();
     const what = runs(screen);
-    if (!what) return Promise.resolve([]);
+    if (!what) return [];
     const key = `${screen.id}|${what}`;
     if (!kept.has(key)) kept.set(key, read(screen).catch(() => { kept.delete(key); return []; }));
     return kept.get(key)!;
@@ -58,5 +70,5 @@ export const usePluginCodeStore = defineStore("plugin-code", () => {
     return version ? `${plugin}@${version}#${PREVIEW_NUMBER}` : null;
   }
 
-  return { codeFor, drawnBy };
+  return { codeFor, drawnBy, runsOn };
 });

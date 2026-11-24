@@ -35,12 +35,15 @@ const { pageOf, grid } = doc.editorLayout;
 // The draft's way and grid, as the Preview takes them (NavigationPreview.vue).
 const live = computed(() => (scr.currentScreen ? previewShapeOf({ shape: doc.screenShape }, doc.documentGrid) : null));
 // The code the firmware is loaded with: the screen's plugins that have a module, as one word (another set is another
-// firmware). Asking also tells the store which tiles the firmware can draw (plugin-code.ts drawnBy).
-const loaded = ref("");
-watch(() => scr.currentScreen, async (screen) => {
-  loaded.value = "";
-  const found = await code.codeFor(screen);
-  if (scr.currentScreen === screen) loaded.value = found.map((plugin) => plugin.id).sort().join(",");
+// firmware), and null until the add-on has said which. Asked again whenever what the screen runs is another thing: a
+// plugin added or updated while the page is open, and the add-on's plugins coming in after the screen was chosen.
+// Asking also tells the store which tiles the firmware can draw (plugin-code.ts drawnBy).
+const runs = computed(() => (scr.currentScreen ? `${scr.currentScreen.id}|${code.runsOn(scr.currentScreen)}` : ""));
+const loaded = ref<string | null>(null);
+watch(runs, async (asked) => {
+  loaded.value = null;
+  const found = await code.codeFor(scr.currentScreen);
+  if (runs.value === asked) loaded.value = found.map((plugin) => plugin.id).sort().join(",");
 }, { immediate: true });
 
 // ---- What a card is drawn for ----
@@ -99,8 +102,14 @@ const asked = computed(() => Boolean(glass.value && live.value && faces.asks.siz
 const alive = ref(false);
 const rest = useTimeoutFn(() => { alive.value = false; }, 60000, { immediate: false });
 watch(asked, (now) => { if (now) { rest.stop(); alive.value = true; } else rest.start(); }, { immediate: true });
+// A firmware that cannot go on (it did not load, as in a browser that cannot run it, or it threw in a frame) ends it
+// for this glass and this code: the cards keep the editor's own drawing. A refresh that failed does not: the add-on
+// restarting or refusing one write is asked again by the preview itself, and nothing is copied until it answers.
 const failed = ref(false);
 watch(() => `${glass.value}:${loaded.value}`, () => { failed.value = false; });
+function stopped(_message: string, final: boolean) {
+  if (final) failed.value = true;
+}
 type Shot = { cards: GlassCard[]; canvas: () => HTMLCanvasElement };
 const preview = ref<{ capture(page: number): Shot | null } | null>(null);
 
@@ -173,11 +182,11 @@ onBeforeUnmount(() => { faces.remember(); void faces.drawFor(""); });
 </script>
 
 <template>
-  <div v-if="alive && live && layout && !failed" class="glass-faces" aria-hidden="true">
+  <div v-if="alive && live && layout && loaded !== null && !failed" class="glass-faces" aria-hidden="true">
     <FirmwarePreview ref="preview" :key="`${glass}:${loaded}`"
       :width="live.width" :height="live.height" :dpi="live.dpi" :columns="live.columns" :rows="live.rows"
       :pictures="drawsPictures(scr.currentScreen)" :dark="dark" :plugins-of="scr.currentScreen"
-      :layout="layout" :examples="examples" still manual @synced="synced" @failed="failed = true" />
+      :layout="layout" :examples="examples" still manual @synced="synced" @failed="stopped" />
   </div>
 </template>
 

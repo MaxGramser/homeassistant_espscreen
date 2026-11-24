@@ -43,7 +43,9 @@ const props = withDefaults(defineProps<{
 }>(), { still: false, controls: true, pictures: true, dark: false, manual: false });
 // `synced`: the firmware has the layout and its values as they are now. `changed`: the tiles (their indexes in the
 // layout) whose values came in new this time, or null when the whole layout did.
-const emit = defineEmits<{ ready: []; failed: [message: string]; synced: [changed: number[] | null] }>();
+// `failed` says with `final` whether that was the end: a refresh the add-on refused or did not answer is asked again
+// by itself ten seconds on (final false), a firmware that did not load or that threw in a frame goes no further.
+const emit = defineEmits<{ ready: []; failed: [message: string, final: boolean]; synced: [changed: number[] | null] }>();
 const canvas = ref<HTMLCanvasElement | null>(null);
 const error = ref("");
 const actionError = ref("");
@@ -167,9 +169,9 @@ function time() {
   module?._preview_time(Math.floor(performance.now()), Math.floor(now.getTime() / 1000), -now.getTimezoneOffset() * 60);
 }
 
-function fail(message: string) {
+function fail(message: string, final = false) {
   error.value = message;
-  emit("failed", message);
+  emit("failed", message, final);
 }
 
 async function receive() {
@@ -253,7 +255,7 @@ function draw() {
     }
   } catch (e) {
     frames.pause();
-    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }));
+    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }), true);
   }
 }
 
@@ -275,7 +277,7 @@ function capture(page: number): { cards: GlassCard[]; canvas: () => HTMLCanvasEl
     return { cards: JSON.parse(module.ccall("preview_cards", "string", [], [])),
       canvas: () => { if (!shown) { shown = true; show(); } return element; } };
   } catch (e) {
-    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }));
+    fail(t("editor.preview.stopped", { message: e instanceof Error ? e.message : String(e) }), true);
     return null;
   }
 }
@@ -426,7 +428,7 @@ onMounted(async () => {
     if (props.manual) return;
     frames.resume();
     draw();
-  } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e)); }
+  } catch (e) { if (!disposed) fail(e instanceof Error ? e.message : String(e), true); }
 });
 watch(layout, () => { behind = true; layoutPause.start(); }, { deep: true });
 watch(language, speak);

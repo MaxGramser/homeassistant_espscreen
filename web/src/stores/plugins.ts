@@ -134,10 +134,12 @@ export const usePluginsStore = defineStore("plugins", () => {
       plans.value = {};
     }).catch(() => undefined);
   }
-  function loadPlugins() {
-    if (loaded.value) return;
-    loaded.value = true;
-    reloadPlugins();
+  // The first answer, for whoever must know what a screen runs before it acts (stores/plugin-code.ts): the same promise
+  // however often it is asked for. An add-on that did not answer settles it too, with nothing installed.
+  let first: Promise<void> | null = null;
+  function loadPlugins(): Promise<void> {
+    if (!loaded.value) { loaded.value = true; first = reloadPlugins(); }
+    return first ?? Promise.resolve();
   }
 
   // `_screen`: the screen shown, whose own plugin of this id answers (two screens may run two plugins of one id).
