@@ -8,6 +8,7 @@ import math
 import os
 import re
 import secrets
+from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from i18n import english, screen_t, t
@@ -2453,6 +2454,14 @@ def unsigned(address):
     parts = urlsplit(address)
     query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key not in SIGNATURES]
     return urlunsplit(parts._replace(query=urlencode(query)))
+
+
+def home_assistant_config(folder):
+    """Whether `folder` is a Home Assistant configuration (configuration.yaml, or Home Assistant's .storage): what this app
+    writes there on request (the video integration, the Claude skill) reaches Home Assistant only then. An app in Docker on
+    its own has a /homeassistant that is no such folder (GitHub #357)."""
+    folder = Path(folder)
+    return (folder / 'configuration.yaml').is_file() or (folder / '.storage').is_dir()
 
 
 def media_cover(attrs):

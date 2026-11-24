@@ -319,7 +319,8 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
       <section class="card" id="claude">
         <h2>Claude</h2>
         <p>{{ t("editor.settings.claude.text") }}</p>
-        <div class="actions">
+        <!-- Install writes into Home Assistant's configuration: an app without one (in Docker on its own) offers the zip alone. -->
+        <div v-if="skill?.home_assistant !== false" class="actions">
           <button type="button" id="claude-install" class="btn" :class="skill?.installed && skill.current ? 'quiet' : 'primary'" :disabled="!skill || installing" @click="install">
             {{ !skill || !skill.installed ? t("editor.settings.claude.install") : skill.current ? t("editor.settings.claude.install_again") : t("editor.settings.claude.update") }}
           </button>
@@ -327,7 +328,7 @@ const part = computed(() => parts.value.find((p) => p.id === ui.settingsPart) ||
             {{ !skill ? t("editor.common.loading") : !skill.installed ? t("editor.settings.claude.not_installed") : skill.current ? t("editor.settings.claude.installed_chip") : t("editor.settings.claude.newer") }}
           </span>
         </div>
-        <i18n-t keypath="editor.settings.claude.writes" tag="small" scope="global">
+        <i18n-t v-if="skill?.home_assistant !== false" keypath="editor.settings.claude.writes" tag="small" scope="global">
           <template #path><code id="claude-path">{{ skill?.path || "/homeassistant/.claude/skills/esp-screens" }}</code></template>
         </i18n-t>
         <div class="actions">

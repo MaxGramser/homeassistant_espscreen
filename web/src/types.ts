@@ -504,7 +504,8 @@ export type Inventory = {
   live_streams?: { used: number; most: number };
   // The CHANGELOG by release, newest first: only in the full inventory, not in the live payload (app 0.2.78).
   changelog?: ChangelogSection[];
-  claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean };
+  // home_assistant false: an app that cannot reach Home Assistant's configuration offers the zip for claude.ai alone.
+  claude_skill?: { path: string; installed: boolean; current: boolean; restart?: boolean; home_assistant?: boolean };
   // Layoutbot (docs/LAYOUTBOT.md): the AI Tasks of Home Assistant that can make data; none, no bot.
   layoutbot?: { id: string; name: string }[];
   // Video in Home Assistant (Settings, screen_video.py): the tessera_video integration in Home Assistant's folder, the

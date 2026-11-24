@@ -21,6 +21,7 @@ import zipfile
 from pathlib import Path
 
 import atomic
+import core
 from i18n import t
 
 LOG = logging.getLogger('screen_manager')
@@ -45,11 +46,9 @@ def files():
 
 
 def home_assistant_folder(directory):
-    """Whether the folder the integration goes into lies in a Home Assistant configuration (GitHub #357): its parent's
-    parent holds configuration.yaml or Home Assistant's .storage. An app that runs in Docker on its own has a
-    /homeassistant that is no such folder, and an integration written there would never load."""
-    config = Path(directory).parent.parent
-    return (config / 'configuration.yaml').is_file() or (config / '.storage').is_dir()
+    """Whether the folder the integration goes into (<configuration>/custom_components/tessera_video) lies in a Home
+    Assistant configuration (core.home_assistant_config, GitHub #357)."""
+    return core.home_assistant_config(Path(directory).parent.parent)
 
 
 def archive():

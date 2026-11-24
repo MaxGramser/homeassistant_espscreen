@@ -12,6 +12,7 @@ from pathlib import Path
 import zipfile
 
 import atomic
+import core
 from i18n import t
 import tile_icons
 from core import (ALERT_ACTION_FIELD, ALERT_ACTION2_FIELD, ALERT_CHOICE_ACTION, ALERT_CHOICE_FIELDS, ALERT_CHOICE_MIN_FIRMWARE, ALERT_CAMERA_FIELD, ALERT_SCREEN_FIELD, ALERT_ENDINGS, ALERT_EVENT, ALERT_FALLBACK_ICON, ALERT_FIELDS, ALERT_LIMITS, ALERT_MAX_TIMEOUT, BOARD_KEYS, SHAPES, limit_boards,
@@ -490,15 +491,22 @@ actions:
 `page` 0 is the menu, 1 Brightness, 2 Night, 3 Screen, 4 This screen, and -1 closes the page and puts the screen back on page 1. Use it to walk someone through a setting ("I opened Brightness on the kitchen screen"), not to change something yourself: for that, use the entities above, which do the same thing without anyone at the panel.
 '''
 
+def home_assistant_folder(directory):
+    """Whether the skill's folder (<configuration>/.claude/skills/esp-screens) lies in a Home Assistant configuration
+    (core.home_assistant_config): an app in Docker on its own offers only the zip for claude.ai."""
+    return core.home_assistant_config(Path(directory).parents[2])
+
 def status(directory):
-    """Whether the skill is there and equal to what this app version writes."""
+    """Whether the skill is there and equal to what this app version writes, and whether this app can write it into a
+    Home Assistant configuration at all (`home_assistant`)."""
+    reachable = home_assistant_folder(directory)
     try:
         installed = (directory / 'SKILL.md').read_text(encoding='utf8')
     except FileNotFoundError:
-        return {'installed': False, 'current': False, 'path': str(directory)}
+        return {'installed': False, 'current': False, 'path': str(directory), 'home_assistant': reachable}
     except (OSError, UnicodeDecodeError):
         installed = None
-    return {'installed': True, 'current': installed == text(), 'path': str(directory)}
+    return {'installed': True, 'current': installed == text(), 'path': str(directory), 'home_assistant': reachable}
 
 def archive():
     """The skill folder as a zip, the way claude.ai takes an uploaded skill: esp-screens/SKILL.md."""
@@ -512,7 +520,9 @@ def archive():
 
 def install(directory):
     """Write SKILL.md, replacing an older copy. `restart`: the skills folder is new, and Claude Code only
-    watches skills folders that existed when it started."""
+    watches skills folders that existed when it started. Only into a Home Assistant configuration."""
+    if not home_assistant_folder(directory):
+        raise ValueError(t('addon.errors.skill_no_home_assistant', folder=Path(directory).parents[2]))
     restart = not directory.parent.is_dir()
     try:
         # Whole or not at all (atomic.write_text), readable by Claude Code as the zip's copy is.
