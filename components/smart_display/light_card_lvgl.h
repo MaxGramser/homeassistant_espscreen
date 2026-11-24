@@ -161,8 +161,8 @@ inline void render_light_detail(Tile &t,bool large,int width,int height,int colu
   card_bind(climate_round_key(bar_key(),tile_controls::glyph::POWER,mini,
                               on?theme::ACCENT_TINT:theme::KEY,on?theme::ACCENT_ICON:theme::ICON_OFF,LIGHT_POWER),t,power_key_paint);
   // A light group that only dims or switches opens this card, not the colour card: its lamps key stands beside the
-  // power key, as on the colour card, and opens the group's page with a card per lamp (720, group_page.h, GitHub #458).
-  if(group_page::available(t))climate_round_key(bar_key(1),tile_controls::glyph::LAMPS,mini,theme::KEY,theme::INK,720);
+  // power key, as on the colour card, and opens the group's page with a card per lamp (GROUP_PAGE, group_page.h, GitHub #458).
+  if(group_page::available(t))climate_round_key(bar_key(1),tile_controls::glyph::LAMPS,mini,theme::KEY,theme::INK,GROUP_PAGE);
 
   detail_card(l.card.x,l.card.y,l.card.w,l.card.h);
   // Where the slider stands is the tile's own answer (slider_value), so the strip on the tile and the card it
